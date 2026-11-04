@@ -58,3 +58,37 @@ func declaredExtensions(r *ochazuke.Runtime) []CatalogExtension {
 	}
 	return nil
 }
+
+// pageActionNouns projects only successfully mounted nouns through this page's
+// exact naming map. A producer name alone does not identify a host namespace.
+func pageActionNouns(r *ochazuke.Runtime, doc CatalogDoc, local func(string) string) []string {
+	if doc.Name == "" {
+		return nil
+	}
+	inst := r.Instances[extensionsID]
+	if inst == nil {
+		return nil
+	}
+	state, ok := inst.Data.(*extensionDeclarations)
+	if !ok {
+		return nil
+	}
+	var nouns []string
+	for _, noun := range doc.Nouns {
+		if !slices.ContainsFunc(noun.Verbs, func(v CatalogVerb) bool { return !v.Builtin }) {
+			continue
+		}
+		name := local(noun.Name)
+		for _, extension := range state.Extensions {
+			if extension.Name != doc.Name {
+				continue
+			}
+			if _, mounted := slices.BinarySearch(extension.Nouns, name); mounted {
+				nouns = append(nouns, name)
+				break
+			}
+		}
+	}
+	slices.Sort(nouns)
+	return slices.Compact(nouns)
+}

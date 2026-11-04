@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -600,5 +601,96 @@ func TestMountPageSplitFollowsThePaneKeys(t *testing.T) {
 	press(m, "ctrl+w", ">")
 	if shift := m.Runtime.PaneShift("ai"); shift != 0 || strings.Contains(frameOf(m), "resize") {
 		t.Fatalf("no detail, no split: shift %d\n%s", shift, frameOf(m))
+	}
+}
+
+func TestMountPageRanksOnlyItsSuccessfulMappedNouns(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	r.Config().Disable()
+	run := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	r.Define("taken").Verb("zz-bravo", run)
+	r.Define("host-foreign").Verb("zz-alpha", run)
+	m := ochazuke.NewModel(r)
+	m.Width, m.Height = 100, 30
+	m.Appearance.Theme = "mono"
+	names := map[string]string{"first": "host-red", "second": "host-blue", "collision": "taken", "foreign": "host-foreign"}
+	local := func(noun string) string {
+		return names[noun]
+	}
+	proxy := func(string, CatalogVerb) any { return run }
+	docs := []CatalogDoc{
+		{Name: "producer", Nouns: []CatalogNoun{
+			{Name: "first", Verbs: []CatalogVerb{{Name: "zz-zulu"}}},
+			{Name: "collision", Verbs: []CatalogVerb{{Name: "zz-bravo"}}},
+			{Name: "foreign", Verbs: []CatalogVerb{{Name: "zz-alpha"}}},
+		}},
+		{Name: "producer", Nouns: []CatalogNoun{{Name: "second", Verbs: []CatalogVerb{{Name: "zz-yankee"}}}}},
+	}
+	for _, doc := range docs {
+		MountCatalog(r, doc, HostMount{Local: local, Proxy: proxy})
+	}
+	for i, doc := range docs {
+		id := []string{"red-page", "blue-page"}[i]
+		noun := []string{"first", "second"}[i]
+		page := CatalogPage{ID: id, Title: id, Lists: []CatalogList{{ID: id + "/list", Noun: noun}}}
+		if i == 0 {
+			if err := DeclarePage(r, page); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := MountPage(m, doc, page, PageConfig{Noun: local}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	unknown := docs[0]
+	unknown.Name = "unmounted"
+	if _, err := MountPage(m, unknown, CatalogPage{ID: "unknown-page", Title: "Unknown", Lists: []CatalogList{{ID: "unknown/list", Noun: "first"}}}, PageConfig{Noun: local}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.AddPage("ordinary-page", "Ordinary", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Text("ordinary") }); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		page string
+		off  bool
+		want []string
+	}{
+		{"red-page", false, []string{"zz-zulu", "zz-alpha", "zz-bravo", "zz-yankee"}},
+		{"blue-page", false, []string{"zz-yankee", "zz-alpha", "zz-bravo", "zz-zulu"}},
+		{"ordinary-page", false, []string{"zz-alpha", "zz-bravo", "zz-yankee", "zz-zulu"}},
+		{"unknown-page", false, []string{"zz-alpha", "zz-bravo", "zz-yankee", "zz-zulu"}},
+		{"blue-page", true, []string{"zz-alpha", "zz-bravo", "zz-yankee", "zz-zulu"}},
+	} {
+		if err := r.OpenPage(tc.page); err != nil {
+			t.Fatal(err)
+		}
+		if tc.off {
+			if err := r.Settings().Set(ochazuke.PaletteActivePageSetting, false); err != nil {
+				t.Fatal(err)
+			}
+		}
+		for _, q := range []ochazuke.Request{
+			{Noun: "ochazuke.palette", Verb: "open"},
+			{Noun: "ochazuke.palette", Verb: "set", Args: ochazuke.Arguments{"text": "zz-"}},
+		} {
+			state, err := r.Execute(q)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if q.Verb == "set" {
+				var got []string
+				for _, entry := range state.(map[string]any)["entries"].([]ochazuke.PaletteEntry) {
+					if entry.Kind == "verb" && strings.HasPrefix(entry.Value, "zz-") {
+						got = append(got, entry.Value)
+					}
+				}
+				if !slices.Equal(got, tc.want) {
+					t.Fatalf("%s (off=%t): palette = %v, want %v", tc.page, tc.off, got, tc.want)
+				}
+			}
+		}
+		if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.palette", Verb: "close"}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

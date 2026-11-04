@@ -125,11 +125,11 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 
 ### chooser.go
 
-- lines: 996 · tests: chooser_test.go
+- lines: 995 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
 - methods: Chooser(32), Runtime(4)
-- leans on: delivery.go(37), instance.go(33), table.go(15), runtime.go(13)
+- leans on: delivery.go(37), instance.go(33), table.go(15), runtime.go(12)
 
 ### chooser_prop_filter.go
 
@@ -654,7 +654,7 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 
 ### pages.go
 
-- lines: 556 · tests: pages_test.go
+- lines: 559 · tests: pages_test.go
 - purpose: Page is the component a page instance fronts: a title, the instance it starts focused on (Focus), the focus it remembers while another page is open (Remember...
 - types: Page, Placement
 - methods: Page(4), Runtime(14)
@@ -685,12 +685,12 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 
 ### palette_nouns.go
 
-- lines: 423 · tests: palette_nouns_test.go
+- lines: 506 · tests: palette_nouns_test.go
 - purpose: PaletteInstance is a labeled object whose ID becomes the default action argument.
 - types: PaletteInstance, PaletteSource (func), PaletteNoun, PaletteEntry
-- methods: Palette(6), lineIndex(5)
+- methods: Palette(7), lineIndex(5)
 - funcs: PagesPaletteSource
-- leans on: runtime.go(16), instance.go(14), palette_parse.go(11), block.go(10)
+- leans on: instance.go(17), runtime.go(16), palette_parse.go(12), block.go(10)
 
 ### palette_parse.go
 
@@ -1304,11 +1304,11 @@ Importable package `cli`: 40 source files, 38 test files.
 
 ### cli/catalog_extensions.go
 
-- lines: 60
+- lines: 94
 - purpose: CatalogExtension preserves a mounted app's own words and the local names of its nouns.
 - types: CatalogExtension
 - funcs: MountCatalog
-- leans on: agent_metadata.go(6), host_mount.go(3), catalog.go(1)
+- leans on: agent_metadata.go(6), catalog.go(3), host_mount.go(3)
 
 ### cli/catalog_inspect.go
 
@@ -1453,7 +1453,7 @@ Importable package `cli`: 40 source files, 38 test files.
 
 ### cli/page.go
 
-- lines: 1161 · tests: page_test.go
+- lines: 1164 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
 - methods: CatalogPage(1), PageView(31), pageList(1)

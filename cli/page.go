@@ -383,11 +383,14 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 	if declared {
 		page := r.PageOf(p.ID)
 		page.Render, page.Focus = v.ListsRender, focus
+		page.ActionNouns = pageActionNouns(r, doc, v.cfg.Noun)
 		return v, nil
 	}
-	if _, err := r.AddPage(p.ID, p.Title, v.ListsRender, append(pageOptions(p), ochazuke.Focus(focus))...); err != nil {
+	page, err := r.AddPage(p.ID, p.Title, v.ListsRender, append(pageOptions(p), ochazuke.Focus(focus))...)
+	if err != nil {
 		return nil, err
 	}
+	page.ActionNouns = pageActionNouns(r, doc, v.cfg.Noun)
 	return v, nil
 }
 

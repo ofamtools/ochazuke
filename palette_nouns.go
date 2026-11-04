@@ -90,6 +90,10 @@ func PagesPaletteSource(r *Runtime, _ Context) []PaletteInstance {
 	return instances
 }
 
+// PaletteActivePageSetting prefers the active page's actions within the
+// palette's existing completion groups.
+const PaletteActivePageSetting = "palette.active-page"
+
 // completions is the list under the line: the words the next position
 // accepts, grouped verbs, nouns, then parameter choices, narrowed by the
 // word being typed (a prefix, as abbreviation resolves) and by the filter
@@ -112,6 +116,7 @@ func (p *Palette) completions() []PaletteEntry {
 	ix := p.index()
 	tokens = ix.nounRuns(p.r, tokens)
 	view := p.r.StandardVerbsView()
+	nounPosition := len(tokens) == 0
 	var out []PaletteEntry
 	verbs := func(names []string, noun string) {
 		for _, verb := range ix.orderVerbs(names, noun, view) {
@@ -181,6 +186,7 @@ func (p *Palette) completions() []PaletteEntry {
 		switch {
 		case c.Err != nil:
 		case len(tokens) == 1 && c.Words[0].Kind == "verb":
+			nounPosition = true
 			names := ix.verbs[c.Words[0].Value]
 			if a, bare := p.r.bareAlias(tokens[0].Text); bare && a.ShadowedVerb() != "" {
 				// set NOUN reads only one-value nouns (owner decision 17).
@@ -208,7 +214,84 @@ func (p *Palette) completions() []PaletteEntry {
 			filtered = append(filtered, entry)
 		}
 	}
+	if nounPosition {
+		p.preferActivePage(filtered, ix, partial, view)
+	}
 	return filtered
+}
+
+// preferActivePage changes display order only. Exact words keep their old
+// order, as do focus-path nouns, standard-verb groups and parameter choices.
+func (p *Palette) preferActivePage(entries []PaletteEntry, ix lineIndex, partial string, view StandardVerbsView) {
+	page := p.r.PageOf(p.r.Page)
+	if page == nil || len(page.ActionNouns) == 0 || !p.r.Settings().Bool(PaletteActivePageSetting) {
+		return
+	}
+	if partial != "" {
+		exact := func(word string) bool { return strings.EqualFold(word, partial) }
+		for _, entry := range entries {
+			if exact(entry.Value) || entry.ID != "" && exact(entry.ID) || slices.ContainsFunc(entry.Aliases, exact) {
+				return
+			}
+		}
+		word := strings.ToLower(partial)
+		if ix.names[word] != "" || len(ix.tails[word]) > 0 {
+			return
+		}
+	}
+	path := p.r.Ancestry(focusOf(p.origin))
+	bucket := func(entry PaletteEntry) int {
+		switch entry.Kind {
+		case "verb":
+			if view.Order == StandardVerbsLast && ix.standardOnly(entry.Value, "") {
+				return 1
+			}
+			return 0
+		case "noun":
+			if _, noun := ix.nouns[entry.Value]; !noun {
+				return -1 // namespace words are not canonical noun entries
+			}
+			for _, id := range path {
+				if inst := p.r.Instances[id]; inst != nil && p.r.DisplayNoun(inst.Noun) == entry.Value {
+					return -1
+				}
+			}
+			return 2
+		default:
+			return -1
+		}
+	}
+	preferred := func(entry PaletteEntry) bool {
+		if entry.Kind == "noun" {
+			return slices.Contains(page.ActionNouns, p.r.CanonicalNoun(entry.Value))
+		}
+		for _, noun := range ix.verbs[entry.Value] {
+			if slices.Contains(page.ActionNouns, ix.ops[noun+"."+entry.Value].Noun) {
+				return true
+			}
+		}
+		return false
+	}
+	for start := 0; start < len(entries); {
+		group := bucket(entries[start])
+		end := start + 1
+		if group >= 0 {
+			for end < len(entries) && bucket(entries[end]) == group {
+				end++
+			}
+			slices.SortStableFunc(entries[start:end], func(a, b PaletteEntry) int {
+				ap, bp := preferred(a), preferred(b)
+				if ap == bp {
+					return 0
+				}
+				if ap {
+					return -1
+				}
+				return 1
+			})
+		}
+		start = end
+	}
 }
 
 // nounWords are the nouns' own words (byNouns without the other names

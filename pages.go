@@ -40,7 +40,10 @@ type Page struct {
 	// the setting, once the user sets it, decides. Set it before
 	// RegisterPage, or pass the DefaultHidden option.
 	DefaultHidden bool `json:"defaultHidden,omitempty"`
-	mode          ModeState
+	// ActionNouns are the canonical nouns whose actions this page represents.
+	// They affect palette ordering only, never availability or execution.
+	ActionNouns []string `json:"-"`
+	mode        ModeState
 	// visited orders the page picker: the stamp of the last OpenPage that
 	// made this page current (larger is more recent), 0 for never.
 	visited uint64

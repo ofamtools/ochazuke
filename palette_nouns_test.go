@@ -300,3 +300,97 @@ func TestPaletteListsFocusStackNounsFirst(t *testing.T) {
 		t.Fatalf("noun order = %v", nouns)
 	}
 }
+
+func TestPaletteActivePageOrdering(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	run := func(Ctx) Result { return Done(nil) }
+	r.Define("active-alpha").Verb("rebuild", run).Verb("revise", run)
+	r.Define("active-zeta").Verb("restore", run).Verb("revise", run).Verb("recording", run).Verb("zapper", run)
+	r.Define("elsewhere").Verb("record", run).Verb("revise", run)
+	r.Register(Operation{Noun: "active-zeta", Verb: "readout", Standard: "get", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	if err := r.AliasAction("elsewhere.zap", "elsewhere.record"); err != nil {
+		t.Fatal(err)
+	}
+	pageTestRegister(t, r, "alpha-page").ActionNouns = []string{"active-alpha"}
+	pageTestRegister(t, r, "zeta-page").ActionNouns = []string{"active-zeta"}
+	pageTestRegister(t, r, "ordinary-page")
+	p := NewPalette(r)
+	for _, tc := range []struct {
+		name, page, line, kind string
+		enabled                bool
+		want                   []string
+	}{
+		{"blank", "zeta-page", "", "verb", true, []string{"recording", "restore", "revise", "zapper", "rebuild", "record", "readout"}},
+		{"alpha", "alpha-page", "re", "verb", true, []string{"rebuild", "revise", "record", "recording", "restore", "readout"}},
+		{"zeta", "zeta-page", "re", "verb", true, []string{"recording", "restore", "revise", "rebuild", "record", "readout"}},
+		{"ordinary", "ordinary-page", "re", "verb", true, []string{"rebuild", "record", "recording", "restore", "revise", "readout"}},
+		{"disabled", "zeta-page", "re", "verb", false, []string{"rebuild", "record", "recording", "restore", "revise", "readout"}},
+		{"reenabled", "zeta-page", "re", "verb", true, []string{"recording", "restore", "revise", "rebuild", "record", "readout"}},
+		{"nouns", "zeta-page", "revise ", "noun", true, []string{"active-zeta", "active-alpha", "elsewhere"}},
+		{"exact-verb", "zeta-page", "record", "verb", true, []string{"record", "recording"}},
+		{"exact-alias", "zeta-page", "zap", "verb", true, []string{"record", "zapper"}},
+		{"explicit-noun", "zeta-page", "elsewhere re", "verb", true, []string{"record", "revise"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := r.OpenPage(tc.page); err != nil {
+				t.Fatal(err)
+			}
+			if err := r.Settings().Set(PaletteActivePageSetting, tc.enabled); err != nil {
+				t.Fatal(err)
+			}
+			paletteRequest(t, r, "open", "palette", nil)
+			paletteRequest(t, r, "set", "palette", Arguments{"text": tc.line})
+			var got []string
+			for _, entry := range p.completions() {
+				if entry.Kind == tc.kind && slices.Contains([]string{"rebuild", "record", "recording", "restore", "revise", "readout", "zapper", "active-alpha", "active-zeta", "elsewhere"}, entry.Value) {
+					got = append(got, entry.Value)
+				}
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("completions of %q on %s = %v, want %v", tc.line, tc.page, got, tc.want)
+			}
+			paletteRequest(t, r, "close", "palette", nil)
+		})
+	}
+}
+
+func TestPaletteActivePagePreservesFocusGuardsAndExecution(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	var ran []string
+	run := func(ctx Ctx) Result {
+		ran = append(ran, ctx.Invoked.Noun)
+		return Done(nil)
+	}
+	r.Define("active").Verb("revise", run)
+	r.Define("foreign").Verb("revise", run)
+	r.DefineGuard("never", func(*Runtime, KeyEvent) bool { return false })
+	r.Define("active").Verb("restricted", run).When("never")
+	pageTestRegister(t, r, "work").ActionNouns = []string{"active"}
+	r.Instance("nearby", Parent("work"), Kind("foreign"))
+	if err := r.OpenPage("work"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("nearby"); err != nil {
+		t.Fatal(err)
+	}
+	p := NewPalette(r)
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteRequest(t, r, "set", "palette", Arguments{"text": "revise "})
+	if got := completionValues(p); !slices.Equal(got, []string{"noun:foreign", "noun:active"}) {
+		t.Fatalf("active-page preference displaced the focus noun: %v", got)
+	}
+	paletteRequest(t, r, "set", "palette", Arguments{"text": "restr"})
+	if got := completionValues(p); len(got) != 0 {
+		t.Fatalf("active-page preference exposed a guarded verb: %v", got)
+	}
+	paletteRequest(t, r, "set", "palette", Arguments{"text": "revise"})
+	paletteRequest(t, r, "run", "palette", nil)
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteRequest(t, r, "set", "palette", Arguments{"text": "active revise"})
+	paletteRequest(t, r, "run", "palette", nil)
+	if !slices.Equal(ran, []string{"foreign", "active"}) {
+		t.Fatalf("implied and explicit execution = %v, want foreign then active", ran)
+	}
+}
