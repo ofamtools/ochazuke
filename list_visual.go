@@ -295,7 +295,7 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 // list.apply itself runs) is not replaced.
 func (r *Runtime) visualApply(q Request, op Operation, focus string) (Request, bool) {
 	owner := r.rows[focus]
-	if owner == "" || len(q.Subjects) > 0 {
+	if owner == "" || len(q.Subjects) > 0 || !personSource(r.history.source) {
 		return q, false
 	}
 	l := r.List(owner)

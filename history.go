@@ -147,6 +147,16 @@ func (r *Runtime) Sourced(source string) (restore func()) {
 	return func() { r.history.source = "" }
 }
 
+// personSource reports whether a history source names a person at the UI:
+// a key ("key:<keys>", leader and fall-through keys included, and the
+// form, confirm and deferred steps that keep their key's source), the
+// palette, or a macro replaying keys. Everything else (""/"api", "cli",
+// "mcp", "hook:<event>") is a program, whose requests act on what they
+// name and never on a selection.
+func personSource(source string) bool {
+	return source == "palette" || strings.HasPrefix(source, "key:") || strings.HasPrefix(source, "macro:")
+}
+
 // forceSource overrides the source until restore: a macro replay records
 // the keys it dispatches as "macro:<register>".
 func (r *Runtime) forceSource(source string) (restore func()) {
