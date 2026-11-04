@@ -90,6 +90,9 @@ func TestActorUndoTargetValidationAndOwner(t *testing.T) {
 func TestActorUndoCreateDeleteAndGuard(t *testing.T) {
 	r, s := newUndoRuntime(t, true, true)
 	a := testAgent("a")
+	if err := r.Settings().Set(AgentRightsSetting, `[{"match":"task.delete","right":"confirm"}]`); err != nil {
+		t.Fatal(err)
+	}
 	created, err := r.Execute(Request{Noun: "task", Verb: "create", Actor: &a, Args: Arguments{"title": "agent task"}})
 	if err != nil {
 		t.Fatal(err)

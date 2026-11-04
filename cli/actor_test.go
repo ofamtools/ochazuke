@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -70,7 +69,7 @@ func TestShellActorEnvironment(t *testing.T) {
 	}
 }
 
-func TestMountedBindingsAgentRights(t *testing.T) {
+func TestMountedBindingsAgentRightsOpen(t *testing.T) {
 	for _, identity := range []string{"explicit", "detected", "detected-owner-override"} {
 		for _, noun := range []string{"bindings", "ochazuke.bindings", "ochazuke bindings"} {
 			for _, verb := range []string{"list", "check", "defaults", "export", "path", "stops"} {
@@ -105,15 +104,12 @@ func TestMountedBindingsAgentRights(t *testing.T) {
 					app := oden.New("tool", args, oden.WithStdio(strings.NewReader(""), &stdout, &stderr))
 					Mount(app, sh)
 					err := app.Run(context.Background())
+					// Agents may read and write config and bindings (not protected
+					// settings); the destructive default is pinned by
+					// TestMountedDestructiveBeatsDeclaredAllow.
 					var refused *ochazuke.RefusedError
-					if !errors.As(err, &refused) || !strings.Contains(refused.Reason, "agents may never run this verb") {
-						t.Fatalf("actor %+v: want rights refusal, got %v", actor, err)
-					}
-					if stdout.Len() != 0 {
-						t.Fatalf("refused command printed %q", stdout.String())
-					}
-					if _, err := os.Stat(target); !errors.Is(err, os.ErrNotExist) {
-						t.Fatalf("export target: %v", err)
+					if errors.As(err, &refused) {
+						t.Fatalf("actor %+v: bindings verb refused: %v", actor, err)
 					}
 				})
 			}
