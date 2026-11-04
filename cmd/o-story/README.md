@@ -492,7 +492,7 @@ Conformance:
 | normal | chooser | `chooser.move` `chooser.pick` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.notify` `demo.open` `demo.ping` `demo.reload` `demo.set` `demo.ship` `demo.synced` `demo.write` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.launch` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.reload` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
@@ -507,6 +507,7 @@ Conformance:
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.copy` |
+| normal | messages | `messages.show` |
 | normal | modal | `modal.close` |
 | normal | mode | `mode.enter` `mode.leave` `mode.set` |
 | normal | notice | `notice.clear` |
@@ -534,10 +535,11 @@ Conformance:
 | table | list | `list.move` |
 | table | mode | `mode.pin` |
 | terminal | bindings | `bindings.help` |
-| terminal | demo | `demo.hints` |
+| terminal | demo | `demo.finish` `demo.hints` |
 | terminal | focus | `focus.next` |
 | terminal | mode | `mode.enter` |
-| terminal | terminal | `terminal.detach` `terminal.send` |
+| terminal | palette | `palette.open` |
+| terminal | terminal | `terminal.detach` `terminal.paste` `terminal.send` |
 | visual | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | bindings | `bindings.help` |
 | visual-line | confirm | `confirm.accept` |
@@ -601,13 +603,16 @@ Mode edges (from → to via):
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `settings.edit`
+- `insert` → `terminal` via `palette.run`
 - `jq` → `insert` via `palette.open`
 - `jq` → `normal` via `list.move`
 - `jq` → `normal` via `mode.set`
 - `leader_pending` → `hints` via `demo.hints`
+- `leader_pending` → `insert` via `palette.open`
 - `leader_pending` → `normal` via `bindings.help`
 - `leader_pending` → `normal` via `focus.next`
 - `leader_pending` → `normal` via `terminal.detach`
+- `leader_pending` → `terminal` via `demo.finish`
 - `leader_pending` → `terminal` via `row x`
 - `leader_pending` → `terminal` via `terminal.send`
 - `leader_pending` → `terminal` via `terminal.send + terminal.send`
@@ -706,6 +711,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `detail.fields`
 - `normal g` → `normal` via `list.goto`
 - `normal g` → `normal` via `markdown.link-open`
+- `normal g` → `normal` via `messages.show`
 - `normal g` → `normal` via `mode.leave`
 - `normal g` → `normal` via `row c`
 - `normal g` → `normal` via `settings.tab`

@@ -81,7 +81,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### binding_render_cache.go
 
-- lines: 233
+- lines: 241
 - purpose: A small bounded cache holds only the current focus and pending-mode walks.
 - methods: runtimeRenderCache(3)
 - leans on: runtime.go(14), noun.go(11), resolve.go(10), instance.go(4)
@@ -103,7 +103,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### bindings_file.go
 
-- lines: 710 · tests: bindings_file_test.go
+- lines: 712 · tests: bindings_file_test.go
 - purpose: ModeSpec is one mode's entry in a bindings file's "modes".
 - types: ModeSpec, BindingGroup, BindingsDoc
 - methods: BindingGroup(2), BindingsDoc(1), Runtime(4), bindingValue(1)
@@ -243,7 +243,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### docs_reference.go
 
-- lines: 449 · tests: docs_reference_test.go
+- lines: 452 · tests: docs_reference_test.go
 - purpose: ReferenceModel is the runtime as the generated reference sees it: every declared setting (with the user's value where it differs from the default) and every ...
 - methods: Runtime(6), Settings(2), docsViewer(7)
 - leans on: runtime.go(22), settings.go(12), noun.go(11), instance.go(5)
@@ -647,10 +647,10 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### noun.go
 
-- lines: 1566 · tests: noun_test.go
+- lines: 1574 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, ModeOption (func), Guard (func)
-- methods: Binding(11), ModeBuilder(7), NounBuilder(21), Runtime(28)
+- methods: Binding(12), ModeBuilder(7), NounBuilder(21), Runtime(28)
 - funcs: Do, Enter, Leave, ModeExtends
 - leans on: runtime.go(81), instance.go(24), resolve.go(11), props.go(5)
 
@@ -872,7 +872,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### resolve.go
 
-- lines: 1211 · tests: resolve_test.go
+- lines: 1214 · tests: resolve_test.go
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent, KeyOutcome
 - methods: Binding(1), Runtime(31), level(1), lookResult(1)
@@ -1173,7 +1173,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### text_view.go
 
-- lines: 280 · tests: text_view_test.go
+- lines: 283 · tests: text_view_test.go
 - purpose: TextAnswer carries a text answer's display title across CLI/catalog calls.
 - types: TextAnswer
 - methods: NounBuilder(1), Runtime(5)
@@ -1651,7 +1651,7 @@ Importable package `cli/inspect`: 6 source files, 2 test files.
 
 ### cli/inspect/catalog.go
 
-- lines: 751
+- lines: 752
 - purpose: Catalog is the JSON an ochazuke tool prints for `BIN catalog` (the cli.CatalogDoc shape), decoded loosely so a catalog written by an older ochazuke (bare fra...
 - types: Catalog, Side, Page, CatNoun, Prop, Example, CatVerb, Param, Params, Request, Binding, UserAction, Source, ToolInfo, Noun, Verb, KeyRow, Data
 - methods: Params(1), resolver(2)
