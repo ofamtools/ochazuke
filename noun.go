@@ -21,10 +21,13 @@ import (
 // mode; a pending mode (operator_pending, a key-sequence prefix, ...) is
 // exclusive and reads only its own table.
 type Noun struct {
-	Name      string               `json:"name"`
-	About     string               `json:"about,omitempty"`
-	Verbs     []string             `json:"verbs,omitempty"`
-	Pin       string               `json:"pin,omitempty"`
+	Name  string   `json:"name"`
+	About string   `json:"about,omitempty"`
+	Verbs []string `json:"verbs,omitempty"`
+	Pin   string   `json:"pin,omitempty"`
+	// Live marks a noun whose rows are fetched on every call, outside the
+	// state verb's answer (NounBuilder.Live).
+	Live      bool                 `json:"live,omitempty"`
 	Focusable bool                 `json:"focusable,omitempty"`
 	Region    bool                 `json:"region,omitempty"`
 	Bindings  map[string][]Binding `json:"bindings"`
@@ -449,6 +452,15 @@ func (b *NounBuilder) Noun() *Noun { return b.n }
 
 // Pin keeps every instance of the noun in one base mode.
 func (b *NounBuilder) Pin(mode string) *NounBuilder { b.n.Pin = mode; return b }
+
+// Live declares that the noun's rows are fetched on every call, outside
+// the state verb's answer (a quota read from a vendor, costly or secret to
+// keep in the inventory). A host that fills a page from the catalog's state
+// leaves the noun's lists out of it and fills them through the noun's row
+// source (CatalogDoc.RowSource) on every reload of the page. The noun's tool
+// owns its caching: the row source is called each time, so it must answer
+// from its own cache (with a way to bypass it) when the data is costly.
+func (b *NounBuilder) Live() *NounBuilder { b.n.Live = true; return b }
 
 // Focusable makes every instance of the noun a focus stop.
 func (b *NounBuilder) Focusable() *NounBuilder { b.n.Focusable = true; return b }

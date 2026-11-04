@@ -265,6 +265,7 @@ type pageList struct {
 	loaded      bool
 	loading     bool
 	verbsListed bool
+	live        bool // the noun's rows are outside the state answer (CatalogNoun.Live): filled through the row source
 }
 
 // LoadVerb is the job verb of a data page's loads: no operation has it,
@@ -322,6 +323,9 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		pl := &pageList{spec: l}
 		if err := v.resolve(pl); err != nil {
 			return nil, err
+		}
+		if n, ok := doc.noun(l.Noun); ok && n.Live && pl.verb != "" {
+			pl.live = true
 		}
 		r.Define(pl.rowNoun)
 		opts := []ochazuke.InstanceOption{ochazuke.Parent(p.ID)}
@@ -671,7 +675,8 @@ func (v *PageView) item(pl *pageList, row Row) ochazuke.ListItem {
 
 // SetState files a state answer's rows (CatalogDoc.State) under the lists
 // of their noun (Row.Noun is a CatalogList's Noun); a list whose noun has
-// no rows in it is emptied.
+// no rows in it is emptied, except a live noun's (CatalogNoun.Live), which
+// the state does not answer.
 func (v *PageView) SetState(rows []Row) error {
 	by := map[string][]Row{}
 	for _, row := range rows {
@@ -679,7 +684,7 @@ func (v *PageView) SetState(rows []Row) error {
 	}
 	var errs []error
 	for _, pl := range v.lists {
-		if pl.verbsListed {
+		if pl.verbsListed || pl.live {
 			continue
 		}
 		if err := v.SetRows(pl.spec.ID, by[pl.spec.Noun]); err != nil {
@@ -714,12 +719,12 @@ func (v *PageView) Reload() error {
 	}
 	if noun, verb, ok := ochazuke.CutKey(v.doc.State); ok {
 		for _, pl := range v.lists {
-			pl.loading = !pl.verbsListed
+			pl.loading = !pl.verbsListed && !pl.live
 		}
-		return errors.Join(werr, v.launch(v.spec.ID, "state", noun, verb, func(out []byte, err error) {
+		return errors.Join(werr, v.reloadLive(), v.launch(v.spec.ID, "state", noun, verb, func(out []byte, err error) {
 			rows, derr := DecodeRows("", out)
 			for _, pl := range v.lists {
-				pl.loading = false
+				pl.loading = pl.live && pl.loading
 			}
 			if err == nil {
 				err = derr
@@ -729,16 +734,29 @@ func (v *PageView) Reload() error {
 			}
 			if err != nil {
 				for _, pl := range v.lists {
-					if !pl.verbsListed {
+					if !pl.verbsListed && !pl.live {
 						pl.err = err.Error()
 					}
 				}
 			}
 		}))
 	}
-	errs := []error{werr}
+	return errors.Join(werr, v.reloadRows(func(*pageList) bool { return true }))
+}
+
+// reloadLive fetches the lists of live nouns (CatalogNoun.Live) through
+// their row sources, beside a state call that does not answer them. Each
+// load of the page or refresh runs the verb once; nothing else does.
+func (v *PageView) reloadLive() error {
+	return v.reloadRows(func(pl *pageList) bool { return pl.live })
+}
+
+// reloadRows runs the row source of every list want accepts, one job each
+// in the list's own slot.
+func (v *PageView) reloadRows(want func(*pageList) bool) error {
+	var errs []error
 	for _, pl := range v.lists {
-		if pl.verbsListed {
+		if pl.verbsListed || !want(pl) {
 			continue
 		}
 		pl.loading = true

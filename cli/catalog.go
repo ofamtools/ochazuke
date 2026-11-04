@@ -117,10 +117,13 @@ type CatalogDoc struct {
 // NounBuilder.Props), in declaration order. A noun with a store has the
 // standard verbs its store supports (CatalogVerb.Standard).
 type CatalogNoun struct {
-	About   string                 `json:"about,omitempty"`
-	Name    string                 `json:"name"`
-	Pin     string                 `json:"pin,omitempty"`
-	Kind    string                 `json:"kind,omitempty"`
+	About string `json:"about,omitempty"`
+	Name  string `json:"name"`
+	Pin   string `json:"pin,omitempty"`
+	Kind  string `json:"kind,omitempty"`
+	// Live says the noun's rows are outside the state answer (NounBuilder.Live):
+	// a host fills its lists through its row source.
+	Live    bool                   `json:"live,omitempty"`
 	Columns []ochazuke.Column      `json:"columns,omitempty"`
 	Props   []ochazuke.PropSpec    `json:"props,omitempty"`
 	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
@@ -354,7 +357,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 					return nil, fmt.Errorf("%s about exceeds %d tokens (chars/4)", op.Noun, AgentTextLimit)
 				}
 				noun.About = n.About
-				noun.Pin, noun.Columns = n.Pin, slices.Clone(n.Columns)
+				noun.Pin, noun.Live, noun.Columns = n.Pin, n.Live, slices.Clone(n.Columns)
 				noun.Filters = slices.Clone(n.Filters)
 				noun.PropsOff = slices.Clone(n.PropsOff)
 				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun)
