@@ -73,8 +73,9 @@ type instanceSpec struct {
 	parent, noun, focus, closeFocus string
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
-	noSort                          bool // NoSort: the source owns the row order
-	guides                          bool // Guides: draw a tree's branch lines
+	rowNoun                         string // RowNoun: the noun of a list's rows while it has none
+	noSort                          bool   // NoSort: the source owns the row order
+	guides                          bool   // Guides: draw a tree's branch lines
 	cellSelect                      bool
 	spillToSelection                bool   // SpillToSelection: a spill into the list lands on its selected row
 	defaultHidden                   bool   // DefaultHidden: a page out of the tabs until shown
@@ -92,6 +93,12 @@ type InstanceOption func(*instanceSpec)
 
 // Parent places the instance under another instance (default app).
 func Parent(id string) InstanceOption { return func(s *instanceSpec) { s.parent = id } }
+
+// RowNoun declares the noun a list's rows will be, so a list with no rows
+// (a source whose rows are all hidden or archived) still has that noun's prop
+// schema and saved filters. Without it the list keeps the nouns of its last
+// rows.
+func RowNoun(noun string) InstanceOption { return func(s *instanceSpec) { s.rowNoun = noun } }
 
 // Kind names the noun the instance answers to (default: the instance id for
 // plain instances, "editor" for inputs, "list" for lists, "page" for pages,

@@ -50,11 +50,11 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### agent_rights.go
 
-- lines: 227 · tests: agent_rights_test.go
+- lines: 231 · tests: agent_rights_test.go
 - purpose: AgentRule is an ordered owner override.
 - types: AgentRule, AgentRight, RefusedError
 - methods: RefusedError(1), Runtime(8)
-- leans on: runtime.go(28), actor.go(12), verb_checks.go(8), agent_metadata.go(7)
+- leans on: runtime.go(29), actor.go(12), verb_checks.go(8), agent_metadata.go(7)
 
 ### alias_shadow.go
 
@@ -433,11 +433,11 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### instance.go
 
-- lines: 377
+- lines: 384
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
 - methods: Payload(1), Runtime(11)
-- funcs: Parent, Kind, Focus, CloseOnDetach, FocusOnClose, NoSpill, SpillToSelection, NoMarks, Guides, ClearFilterOnEnter
+- funcs: Parent, RowNoun, Kind, Focus, CloseOnDetach, FocusOnClose, NoSpill, SpillToSelection, NoMarks, Guides, ClearFilterOnEnter
 - leans on: runtime.go(21), props.go(7), noun.go(5), completion.go(1)
 
 ### instance_cache.go
@@ -480,7 +480,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### list.go
 
-- lines: 911 · tests: list_test.go
+- lines: 912 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(32), Runtime(2)
@@ -547,7 +547,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### list_prop_filter.go
 
-- lines: 708
+- lines: 714
 - purpose: PropFilters returns a copy of the list's active prop conditions.
 - methods: List(23), Runtime(1), Tree(1)
 - leans on: runtime.go(54), list.go(43), prop_filter.go(21), delivery.go(19)
@@ -734,7 +734,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### params.go
 
-- lines: 511 · tests: params_test.go
+- lines: 514 · tests: params_test.go
 - purpose: Choice is one value a parameter accepts: ID is the argument value, Label what a pick list shows.
 - types: Choice, ArgumentError
 - methods: ArgumentError(2), Runtime(13)
@@ -1242,11 +1242,11 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### tree.go
 
-- lines: 1566 · tests: tree_test.go
+- lines: 1569 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
 - methods: Runtime(3), Tree(68), TreeChange(1), TreeNode(1)
-- leans on: instance.go(62), runtime.go(42), block.go(34), delivery.go(31)
+- leans on: instance.go(68), runtime.go(42), block.go(34), delivery.go(31)
 
 ### tree_guides.go
 

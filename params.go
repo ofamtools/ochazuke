@@ -398,6 +398,9 @@ func (r *Runtime) CheckSourceArgs(params map[string]Parameter) error {
 			continue
 		}
 		source := r.ChoicesSource(p)
+		if source == "" && len(p.SourceArgs) == 0 {
+			continue // fixed arguments of a parameter with no source (a noun with no list) are moot
+		}
 		op, ok := r.Operations[source]
 		if !ok {
 			return fmt.Errorf("%s: unknown choices source %q", name, source)

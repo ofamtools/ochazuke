@@ -53,50 +53,51 @@ type List struct {
 	// The predicate runs during rendering and must not mutate runtime state.
 	UnfocusedSelection func() bool
 
-	r           *Runtime
-	id          string
-	all         []ListItem // every row, as SetItems gave them
-	headerTones []ToneSpan // the header row's tones (SetHeaderTones)
-	items       []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
-	linger      filterLinger
-	query       string       // the filter query; "" shows every row
-	propFilters []PropFilter // typed prop conditions, ANDed with the text query
-	sort        []SortKey    // stable view order, applied after filtering
-	noSort      bool         // source-owned or virtualized rows cannot sort locally
-	savedFilter string       // the applied saved filter's name; empty after an ad-hoc change
-	rowCache    map[string]*filterRow
-	derived     fieldProps // the rows' undeclared fields as props (list_props.go); nil until asked, cleared with the rows
-	nouns       []string
-	match       string // the filter's match mode set by search.cycle-match/set-match; "" is search.match (search_match.go)
-	back        string // the row selected when the filter line opened, which filter-clear selects again
-	selected    int
-	offset      int
-	marks       map[string]bool
-	noSpill     bool            // NoSpill: list.move clamps at the edges instead of spilling
-	toSelected  bool            // SpillToSelection: a spill into the list lands on its selected row
-	noMarks     bool            // NoMarks: a read-only view, its rows take no marks
-	choose      bool            // ClearFilterOnEnter: enter in the filter line chooses the match and clears the filter
-	columns     []Column        // Columns: a table; none draws the labels
-	widest      []int           // a table's widest cell per column over the items (cellWidths); nil after SetItems
-	window      int             // rows the last frame showed (list_motions.go's page); 0 before any frame
-	windowed    bool            // the last frame windowed the rows (more rows than fit)
-	colOffset   int             // a table's column offset (table_columns.go); 0 unscrolled
-	colWidth    int             // the width the last frame laid the table's columns out at
-	cellSelect  bool            // CellSelect: a table with a current column (table_cells.go)
-	col         int             // a cell-mode table's current column
-	colWidths   map[int]int     // widths given with z > and z < (table_cells.go)
-	colHeader   bool            // the last frame drew the table's header (edge markers need it)
-	edges       colEdges        // the edge markers the last frame drew (table_columns.go)
-	pins        []int           // the user's pinned columns (table_pins.go), when pinsSet
-	pinsSet     bool            // pins holds a choice; else the default pins
-	restored    bool            // the remembered TableState was read
-	drawn       []int           // the columns the last frame showed
-	drawnWidths []int           // and their widths
-	visual      bool            // V: a visual row selection over the marks (list_visual.go)
-	anchor      string          // the row V started on
-	base        map[string]bool // the marks before V
-	applying    bool            // list.apply is running its rows' requests: they are not replaced again (visualApply)
-	part        string          // an instance under the list that holds its focus as a row does (a timeline's body, timeline.go)
+	r            *Runtime
+	id           string
+	all          []ListItem // every row, as SetItems gave them
+	headerTones  []ToneSpan // the header row's tones (SetHeaderTones)
+	items        []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
+	linger       filterLinger
+	query        string       // the filter query; "" shows every row
+	propFilters  []PropFilter // typed prop conditions, ANDed with the text query
+	sort         []SortKey    // stable view order, applied after filtering
+	noSort       bool         // source-owned or virtualized rows cannot sort locally
+	savedFilter  string       // the applied saved filter's name; empty after an ad-hoc change
+	rowCache     map[string]*filterRow
+	derived      fieldProps // the rows' undeclared fields as props (list_props.go); nil until asked, cleared with the rows
+	nouns        []string
+	declaredNoun string // RowNoun: the row noun while no row says it
+	match        string // the filter's match mode set by search.cycle-match/set-match; "" is search.match (search_match.go)
+	back         string // the row selected when the filter line opened, which filter-clear selects again
+	selected     int
+	offset       int
+	marks        map[string]bool
+	noSpill      bool            // NoSpill: list.move clamps at the edges instead of spilling
+	toSelected   bool            // SpillToSelection: a spill into the list lands on its selected row
+	noMarks      bool            // NoMarks: a read-only view, its rows take no marks
+	choose       bool            // ClearFilterOnEnter: enter in the filter line chooses the match and clears the filter
+	columns      []Column        // Columns: a table; none draws the labels
+	widest       []int           // a table's widest cell per column over the items (cellWidths); nil after SetItems
+	window       int             // rows the last frame showed (list_motions.go's page); 0 before any frame
+	windowed     bool            // the last frame windowed the rows (more rows than fit)
+	colOffset    int             // a table's column offset (table_columns.go); 0 unscrolled
+	colWidth     int             // the width the last frame laid the table's columns out at
+	cellSelect   bool            // CellSelect: a table with a current column (table_cells.go)
+	col          int             // a cell-mode table's current column
+	colWidths    map[int]int     // widths given with z > and z < (table_cells.go)
+	colHeader    bool            // the last frame drew the table's header (edge markers need it)
+	edges        colEdges        // the edge markers the last frame drew (table_columns.go)
+	pins         []int           // the user's pinned columns (table_pins.go), when pinsSet
+	pinsSet      bool            // pins holds a choice; else the default pins
+	restored     bool            // the remembered TableState was read
+	drawn        []int           // the columns the last frame showed
+	drawnWidths  []int           // and their widths
+	visual       bool            // V: a visual row selection over the marks (list_visual.go)
+	anchor       string          // the row V started on
+	base         map[string]bool // the marks before V
+	applying     bool            // list.apply is running its rows' requests: they are not replaced again (visualApply)
+	part         string          // an instance under the list that holds its focus as a row does (a timeline's body, timeline.go)
 
 	// A detached list filter controller can serve another row view. Its
 	// callback reapplies that view's text matching without list focus/motions.
@@ -148,7 +149,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect, noSort: spec.noSort}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect, noSort: spec.noSort, declaredNoun: spec.rowNoun}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	if err := list.SetItems(items); err != nil {

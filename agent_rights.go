@@ -180,7 +180,11 @@ func (r *Runtime) agentNeverReason(op Operation) string {
 		}
 		return reason + "; ask the owner"
 	}
-	return "agents may never run this verb; ask the owner"
+	reason := "agents may never run this verb; ask the owner"
+	if archive, ok := r.Operation(op.Noun + ".archive"); ok && archive.Key() != op.Key() {
+		reason += ", or run " + r.DisplayKey(archive.Key())
+	}
+	return reason
 }
 
 // An allow right passes prompts, including owner overrides and a disabled gate.

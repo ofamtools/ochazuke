@@ -62,3 +62,27 @@ func TestAgentConfigurationReadsAndWrites(t *testing.T) {
 		}
 	}
 }
+
+// A never refusal names the noun's archive verb when it has one and the
+// refused verb is not that verb, destructive or not.
+func TestAgentNeverRefusalNamesArchive(t *testing.T) {
+	r := NewRuntime()
+	r.Define("note").Verb("delete", func(Ctx) Result { t.Fatal("deleted"); return Done(nil) }).Agent(AgentNever).
+		Verb("archive", func(Ctx) Result { return Done(nil) }).Agent(AgentNever).
+		Verb("purge", func(Ctx) Result { return Done(nil) }).Agent(AgentNever)
+	r.Define("bare").Verb("wipe", func(Ctx) Result { return Done(nil) }).Agent(AgentNever)
+	restore := r.BindActor(testAgent("p"), false)
+	defer restore()
+	for _, tc := range []struct{ noun, verb, want string }{
+		{"note", "delete", "agents may never run this verb; ask the owner, or run note.archive"},
+		{"note", "purge", "agents may never run this verb; ask the owner, or run note.archive"},
+		{"note", "archive", "agents may never run this verb; ask the owner"},
+		{"bare", "wipe", "agents may never run this verb; ask the owner"},
+	} {
+		_, err := r.Execute(Request{Noun: tc.noun, Verb: tc.verb, Confirmed: true})
+		var refused *RefusedError
+		if !errors.As(err, &refused) || refused.Reason != tc.want {
+			t.Errorf("%s.%s: %v", tc.noun, tc.verb, err)
+		}
+	}
+}

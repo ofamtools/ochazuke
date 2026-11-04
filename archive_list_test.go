@@ -154,3 +154,83 @@ func TestArchiveRestoreSubjectChoices(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A noun with no list verb has no choices source for restore's subject: the
+// fixed arguments are moot, not an unknown source.
+func TestArchiveRestoreWithoutListHasNoSourceError(t *testing.T) {
+	r := NewRuntime()
+	r.Define("thing").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "gone", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}}).Store(Store{Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil }})
+	op, ok := r.Operations["thing.restore"]
+	if !ok {
+		t.Fatal("no thing.restore")
+	}
+	if err := r.CheckSourceArgs(op.Parameters); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A list whose rows are all hidden keeps its row noun, declared (RowNoun) or
+// from its last rows, so the noun's saved filters still apply; the app's
+// OnFilter refills it from the archived filter. Flat lists and trees alike.
+func TestEmptyListKeepsRowNounForSavedFilters(t *testing.T) {
+	r := NewRuntime()
+	r.Define("parcel").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "retired", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}})
+	archived := Thing{"id": "old", "retired": true}
+	t.Run("flat declared", func(t *testing.T) {
+		l, err := r.AddList("flat-declared", nil, RowNoun("parcel"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		l.OnFilter(func(l *List) {
+			if len(l.PropFilters()) > 0 {
+				_ = l.SetItems([]ListItem{{ID: "old", Noun: "parcel", Data: archived}})
+			}
+		})
+		if err := l.ApplyFilter("archived"); err != nil {
+			t.Fatal(err)
+		}
+		if got := shownIDs(l); !slices.Equal(got, []string{"old"}) {
+			t.Fatal(got)
+		}
+	})
+	t.Run("flat last rows", func(t *testing.T) {
+		l, err := r.AddList("flat-last", []ListItem{{ID: "live", Noun: "parcel", Data: Thing{"id": "live"}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := l.SetItems(nil); err != nil {
+			t.Fatal(err)
+		}
+		l.OnFilter(func(l *List) {
+			if len(l.PropFilters()) > 0 {
+				_ = l.SetItems([]ListItem{{ID: "old2", Noun: "parcel", Data: archived}})
+			}
+		})
+		if err := l.ApplyFilter("archived"); err != nil {
+			t.Fatal(err)
+		}
+		if got := shownIDs(l); !slices.Equal(got, []string{"old2"}) {
+			t.Fatal(got)
+		}
+	})
+	t.Run("tree", func(t *testing.T) {
+		tree, err := r.AddTree("tree", []TreeNode{{ID: "live", Label: "live", Noun: "parcel", Data: Thing{"id": "live"}}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := tree.SetNodes(nil); err != nil {
+			t.Fatal(err)
+		}
+		tree.list.OnFilter(func(l *List) {
+			if len(l.PropFilters()) > 0 {
+				_ = tree.SetNodes([]TreeNode{{ID: "old3", Label: "old", Noun: "parcel", Data: archived}})
+			}
+		})
+		if err := tree.list.ApplyFilter("archived"); err != nil {
+			t.Fatal(err)
+		}
+		if got := shownIDs(tree.list); !slices.Equal(got, []string{"old3"}) {
+			t.Fatal(got)
+		}
+	})
+}

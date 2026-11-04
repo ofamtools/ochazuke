@@ -52,6 +52,12 @@ func (l *List) cacheRows() {
 		l.rowCache[item.ID] = &filterRow{item: item}
 		set[l.r.CanonicalNoun(item.Noun)] = true
 	}
+	if len(set) == 0 && l.declaredNoun != "" {
+		set[l.r.CanonicalNoun(l.declaredNoun)] = true
+	}
+	if len(set) == 0 && len(l.nouns) > 0 {
+		return // no rows now: keep the nouns of the last rows
+	}
 	if len(set) == 0 {
 		if inst := l.r.Instances[l.id]; inst != nil {
 			set[inst.Noun] = true
