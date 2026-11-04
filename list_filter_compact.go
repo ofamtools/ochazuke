@@ -20,6 +20,7 @@ const (
 	filterDirectionNoun  = "ochazuke.filter-direction"
 	filterConditionNoun  = "ochazuke.filter-condition"
 	filterSortField      = ".sort"
+	filterSortKeysField  = ".sort-keys"
 	filterDirectionField = ".direction"
 	filterKeptField      = ".kept"
 )
@@ -97,6 +98,11 @@ func (v *filterViewForm) loadConditions(conditions []PropFilter) (Record, error)
 		values[filterKeptField] = string(raw)
 	}
 	values[filterDirectionField] = "asc"
+	keysJSON, err := json.Marshal(v.l.Sort())
+	if err != nil {
+		return nil, err
+	}
+	values[filterSortKeysField] = string(keysJSON)
 	if keys := v.l.Sort(); len(keys) > 0 {
 		values[filterSortField] = keys[0].Field
 		if keys[0].Desc {
@@ -109,7 +115,9 @@ func (v *filterViewForm) loadConditions(conditions []PropFilter) (Record, error)
 func (v *filterViewForm) write(w RecordWrite) Result {
 	var conds []PropFilter
 	if raw := w.Values[filterKeptField]; raw != "" {
-		if err := json.Unmarshal([]byte(raw), &conds); err != nil {
+		decoder := json.NewDecoder(strings.NewReader(raw))
+		decoder.UseNumber()
+		if err := decoder.Decode(&conds); err != nil {
 			return Failed(err)
 		}
 	}
@@ -119,10 +127,22 @@ func (v *filterViewForm) write(w RecordWrite) Result {
 	if err := v.l.SetPropFilters(conds); err != nil {
 		return Failed(err)
 	}
-	if slices.Contains(w.Changed, filterSortField) || slices.Contains(w.Changed, filterDirectionField) {
+	if slices.Contains(w.Changed, filterSortField) || slices.Contains(w.Changed, filterDirectionField) || slices.Contains(w.Changed, filterSortKeysField) {
 		var keys []SortKey
+		if raw := w.Values[filterSortKeysField]; raw != "" {
+			if err := json.Unmarshal([]byte(raw), &keys); err != nil {
+				return Failed(err)
+			}
+		}
 		if by := w.Values[filterSortField]; by != "" {
-			keys = []SortKey{{Field: by, Desc: w.Values[filterDirectionField] == "desc"}}
+			primary := SortKey{Field: by, Desc: w.Values[filterDirectionField] == "desc"}
+			if len(keys) == 0 {
+				keys = []SortKey{primary}
+			} else {
+				keys[0] = primary
+			}
+		} else {
+			keys = nil
 		}
 		if err := v.l.SetSort(keys); err != nil {
 			return Failed(err)
@@ -164,7 +184,7 @@ func (l *List) openViewForm() error {
 	for _, f := range v.fields {
 		schema = append(schema, f.recordField(!v.legacy))
 	}
-	state = append(state, RecordField{Name: filterKeptField, Hidden: true})
+	state = append(state, RecordField{Name: filterKeptField, Hidden: true}, RecordField{Name: filterSortKeysField, Hidden: true})
 	e, err := l.r.OpenRecordEditor(listFilterFormID, RecordSpec{Title: "Filter", Fields: schema, State: state, Clearable: true, Immediate: !v.legacy, RowView: l, OnClear: v.clearInputs, Load: v.load, Save: v.write, Render: v.render})
 	if err != nil {
 		return err
@@ -481,7 +501,7 @@ func (v *filterViewForm) replaceConditions(conds []PropFilter) error {
 		return err
 	}
 	for _, f := range v.e.fields {
-		if f.Name == filterSortField || f.Name == filterDirectionField {
+		if f.Name == filterSortField || f.Name == filterDirectionField || f.Name == filterSortKeysField {
 			continue
 		}
 		value := loaded[f.Name]

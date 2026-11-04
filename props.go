@@ -635,6 +635,9 @@ func propValue(p PropSpec, value any) (any, error) {
 	if p.loose {
 		value = looseText(value)
 	}
+	if number, ok := value.(json.Number); ok {
+		value = number.String()
+	}
 	if p.Type == PropObject {
 		switch v := value.(type) {
 		case map[string]any:

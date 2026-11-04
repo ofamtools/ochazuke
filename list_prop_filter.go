@@ -61,6 +61,9 @@ func (l *List) cacheRows() {
 }
 
 func (l *List) cachedRow(item ListItem) *filterRow {
+	if item.ID == "" {
+		return nil
+	}
 	if t := l.tree(); t != nil {
 		if row := t.rowCache[item.ID]; row != nil {
 			return row
@@ -255,7 +258,10 @@ func (l *List) ApplyFilter(name string) error {
 	}
 	for _, f := range filters {
 		if f.Name == name {
-			keys, err := l.canonicalSort(f.Sort)
+			var keys []SortKey
+			if l.canSort() {
+				keys, err = l.canonicalSort(f.Sort)
+			}
 			if err != nil {
 				return err
 			}
@@ -281,12 +287,16 @@ func (l *List) SaveFilter(name string) error {
 	if strings.TrimSpace(name) == "" {
 		return errors.New("saved filter needs a name")
 	}
+	keys, err := l.canonicalSort(l.Sort())
+	if err != nil {
+		return err
+	}
 	user, err := l.r.Settings().savedFilters()
 	if err != nil {
 		return err
 	}
 	user = slices.Clone(user)
-	f := SavedFilter{Name: name, List: l.id, Conditions: l.PropFilters(), Sort: l.Sort()}
+	f := SavedFilter{Name: name, List: l.id, Conditions: l.PropFilters(), Sort: keys}
 	i := slices.IndexFunc(user, func(old SavedFilter) bool { return old.Name == name && old.List == l.id })
 	if i < 0 {
 		user = append(user, f)

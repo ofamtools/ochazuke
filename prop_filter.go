@@ -425,7 +425,9 @@ type savedFilterCache struct {
 
 func parseSavedFilters(text string) ([]SavedFilter, error) {
 	var rows []SavedFilter
-	if err := json.Unmarshal([]byte(text), &rows); err != nil {
+	decoder := json.NewDecoder(strings.NewReader(text))
+	decoder.UseNumber()
+	if err := decoder.Decode(&rows); err != nil {
 		return nil, fmt.Errorf("list.filters must be a JSON array of saved filters: %w", err)
 	}
 	if rows == nil {
