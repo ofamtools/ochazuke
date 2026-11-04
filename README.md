@@ -1617,6 +1617,25 @@ transport target in `Ctx.Args["target"]`: the host removes it from the JSON
 arguments and forwards it as `--target`. A declared `target` stays an ordinary
 argument. Neither form changes the host's local focus or instance context.
 
+Extensions can declare host-only rows with `cli.PeerBindings(rows...)` in
+their catalog options (`peerBindings`); the producer never installs or
+validates these against its standalone runtime. After mounting every peer, a
+host resolves namespaces and calls `Runtime.ReloadPeerBindings(rows, peers)`.
+`PeerBinding{Extension, Row, Problem}` carries a resolved row or a host policy
+rejection; `BindingPeer{Name, Namespace, Version, Nouns}` supplies diagnostic
+metadata. Call with the complete set again after each sync, including an empty
+set after removal. The soft layer never replaces an existing key; user rows
+load last and may override or unbind it. `Runtime.PeerBindings()` reports each
+row's loaded/dropped status and reason. Missing peers do not block startup or
+leave hints, and `bindings check` keeps their retryable warnings.
+
+`bindings.peer-notices` is `user` by default (only user-file peer warnings in
+the footer), `all` (catalog warnings too), or `off` (check only). Changes
+withdraw/repost the notices immediately. `CatalogExtension.Version` preserves
+the mounted producer's version; diagnostics check verb presence, never compare
+version numbers. Host-specific registry policy and namespace mapping stay in
+the host, not the library.
+
 
 The resolver is one stack walk. For each level from the focused instance outward to `app` (the `modal` noun's level sits just inside `app` while a modal is open) and then the `editor` noun as the fallback every stack ends with:
 

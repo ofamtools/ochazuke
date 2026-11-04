@@ -57,7 +57,10 @@ type Page struct {
 	// NOUN.VERB and its arguments to writes, and each alias
 	// (ochazuke.NounAlias: since/removeAfter for a deprecated one) is
 	// registered with Runtime.AddNounAlias.
-	Nouns []NounSpec `json:"nouns,omitempty"`
+	Nouns        []NounSpec             `json:"nouns,omitempty"`
+	PeerBindings []ochazuke.PeerBinding `json:"peerBindings,omitempty"`
+	// LateNouns are installed by demo.load-peers, then the soft layer reloads.
+	LateNouns []NounSpec `json:"lateNouns,omitempty"`
 	// Store gives the demo noun props and an in-memory store
 	// (ochazuke.NounBuilder.Props and Store): demo.get, list, create, set
 	// (alias patch) and delete are then standard verbs over Things (the

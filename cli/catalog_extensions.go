@@ -10,6 +10,7 @@ import (
 // its nouns. It is descriptive data only; it never changes agent rights.
 type CatalogExtension struct {
 	Name       string   `json:"name"`
+	Version    string   `json:"version,omitempty"`
 	About      string   `json:"about,omitempty"`
 	AgentRules string   `json:"agentRules,omitempty"`
 	Nouns      []string `json:"nouns"`
@@ -42,7 +43,7 @@ func MountCatalog(r *ochazuke.Runtime, doc CatalogDoc, h HostMount) MountedNouns
 		nouns = append(nouns, name)
 	}
 	slices.Sort(nouns)
-	state.Extensions = append(state.Extensions, CatalogExtension{Name: doc.Name, About: doc.About, AgentRules: doc.AgentRules, Nouns: nouns})
+	state.Extensions = append(state.Extensions, CatalogExtension{Name: doc.Name, Version: doc.Version, About: doc.About, AgentRules: doc.AgentRules, Nouns: nouns})
 	return out
 }
 

@@ -388,6 +388,19 @@ func (ss *session) defineDemo(pages []*Page) error {
 		if err := ss.defineNouns(p.Nouns); err != nil {
 			return err
 		}
+		if len(p.PeerBindings) > 0 {
+			r.ReloadPeerBindings(p.PeerBindings, nil)
+			d.Verb("load-peers", func(ochazuke.Ctx) ochazuke.Result {
+				if err := ss.defineNouns(p.LateNouns); err != nil {
+					return ochazuke.Failed(err)
+				}
+				r.ReloadPeerBindings(p.PeerBindings, nil)
+				return ochazuke.Done(nil)
+			}, "Mount the story's late peer nouns and reload its peer rows")
+			d.Verb("check-bindings", func(ochazuke.Ctx) ochazuke.Result {
+				return ochazuke.Done(strings.Join(r.CheckUserBindings(), "\n"))
+			}, "Show binding diagnostics as text").TextResult()
+		}
 		if p.Store != nil {
 			if err := ss.defineStore(d, p.Store); err != nil {
 				return err

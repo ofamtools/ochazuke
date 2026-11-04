@@ -245,6 +245,12 @@ type Config struct {
 	// bindingsFormat is the format the last read of bindings.json found
 	// (BindingsGrouped, BindingsRows; "" for no file).
 	bindingsFormat string
+	peerRows       []PeerBinding
+	peers          []BindingPeer
+	peerApplied    []appliedRow
+	peerStatuses   []PeerBindingStatus
+	peerNotices    []string
+	peerWatching   bool
 	// actions are the entries of actions.json installed as verbs, in
 	// file order; actionProblems the last read's problems.
 	actions        []Action
@@ -370,6 +376,7 @@ func (r *Runtime) ReloadUserBindings() []string {
 		return nil
 	}
 	c.bindingsLoaded = true
+	r.ensurePeerNotices()
 	r.unapplyUserBindings()
 	if c.Withdraw != nil {
 		for _, p := range c.problems {
@@ -387,7 +394,7 @@ func (r *Runtime) ReloadUserBindings() []string {
 		notice, err := r.applyUserRow(f.row, batch)
 		switch {
 		case err != nil:
-			problems = append(problems, rowProblem(f.where, f.row, err))
+			problems = append(problems, r.userRowProblem(f.where, f.row, err))
 		case notice != "":
 			problems = append(problems, fmt.Sprintf("%s: %s %s: %s", BindingsFile, f.where, f.row.Keys+f.row.Pattern, notice))
 		}
@@ -397,8 +404,11 @@ func (r *Runtime) ReloadUserBindings() []string {
 	}
 	c.problems = problems
 	for _, p := range problems {
-		c.report(p)
+		if !strings.HasPrefix(p, "warning: "+BindingsFile+":") {
+			c.report(p)
+		}
 	}
+	r.syncPeerNotices()
 	return append([]string(nil), problems...)
 }
 
@@ -419,7 +429,7 @@ func (r *Runtime) CheckUserBindings() []string {
 		for _, f := range rows {
 			row, err := r.validateRow(f.row)
 			if err != nil {
-				problems = append(problems, rowProblem(f.where, f.row, err))
+				problems = append(problems, r.userRowProblem(f.where, f.row, err))
 				continue
 			}
 			if note := r.aliasRowNote(f.where, row); note != "" {
@@ -446,6 +456,7 @@ func (r *Runtime) CheckUserBindings() []string {
 	// actions.json is the other half of the user's verbs: its skipped
 	// entries and alias clashes are reported here too.
 	problems = append(problems, r.CheckUserActions()...)
+	problems = append(problems, r.peerWarnings()...)
 	return problems
 }
 
@@ -625,6 +636,11 @@ func (r *Runtime) fileModeProblems(doc BindingsDoc) []string {
 // notice, when not empty, says why the row will not answer everywhere it
 // looks like it should: a guarded row on its keys answers first.
 func (r *Runtime) applyUserRow(row Binding, batch rowBatch) (string, error) {
+	return r.applyBindingRow(row, batch, &r.Config().applied)
+}
+
+// applyBindingRow installs one reversible layer row.
+func (r *Runtime) applyBindingRow(row Binding, batch rowBatch, applied *[]appliedRow) (string, error) {
 	normalized, err := r.validateRow(row)
 	if err != nil {
 		return "", err
@@ -650,8 +666,7 @@ func (r *Runtime) applyUserRow(row Binding, batch rowBatch) (string, error) {
 	if err := r.bindRows([]Binding{row}, false, batch); err != nil {
 		return "", err
 	}
-	c := r.Config()
-	c.applied = append(c.applied, appliedRow{row: normalized, replaced: replaced, at: at})
+	*applied = append(*applied, appliedRow{row: normalized, replaced: replaced, at: at})
 	// An alternative after the file's first row on the identity says
 	// nothing the first row's notice did not.
 	if followup {
@@ -718,8 +733,14 @@ func (r *Runtime) tableRows(row Binding) []Binding {
 // unapplyUserBindings undoes the logged user rows, newest first.
 func (r *Runtime) unapplyUserBindings() {
 	c := r.Config()
-	for i := len(c.applied) - 1; i >= 0; i-- {
-		a := c.applied[i]
+	r.unapplyBindingRows(c.applied)
+	c.applied = nil
+}
+
+// unapplyBindingRows restores the layer below a row log, newest first.
+func (r *Runtime) unapplyBindingRows(applied []appliedRow) {
+	for i := len(applied) - 1; i >= 0; i-- {
+		a := applied[i]
 		restore := func(rows []Binding) []Binding {
 			rows = removeRows(rows, a.row)
 			for k, b := range a.replaced {
@@ -738,8 +759,7 @@ func (r *Runtime) unapplyUserBindings() {
 			}
 		}
 	}
-	if len(c.applied) > 0 {
+	if len(applied) > 0 {
 		r.CancelPendingBinding()
 	}
-	c.applied = nil
 }

@@ -6,6 +6,7 @@
 // this directory and are declared by the feature that needs them (terminal.json: EnsureTerminalLeader). "deprecated" lists older
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
+  {"name":"bindings.peer-notices","section":"keys","type":"string","default":"user","enum":["user","all","off"],"description":"Missing peer binding notices: user shows user-file warnings, all also shows catalog peer warnings, off keeps both in bindings check only"},
   {"name":"keys.text-results","section":"keys","type":"boolean","default":true,"description":"Open declared text, Markdown and preformatted answers from key bindings in their viewer; off leaves key results unpresented"},
   {"name":"text-view.wrap","section":"help","type":"boolean","default":true,"description":"Soft-wrap text answers; off keeps horizontal motion and marks clipped lines with ›"},
   {"name":"text-view.result-title","section":"help","type":"boolean","default":true,"description":"Use a text answer's returned title; off titles it with the operation name"},

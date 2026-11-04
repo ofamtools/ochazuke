@@ -85,7 +85,9 @@ type CatalogDoc struct {
 	Aliases  map[string]string  `json:"aliases,omitempty"`
 	Nouns    []CatalogNoun      `json:"nouns"`
 	Bindings []ochazuke.Binding `json:"bindings"`
-	Pages    []CatalogPage      `json:"pages"`
+	// PeerBindings are host-only declarations, never loaded by the producer.
+	PeerBindings []ochazuke.Binding `json:"peerBindings,omitempty"`
+	Pages        []CatalogPage      `json:"pages"`
 	// Sides are command templates a host may launch beside its own panes.
 	Sides []CatalogSide `json:"sides,omitempty"`
 	// Segments are the status segments the tool answers from one of its

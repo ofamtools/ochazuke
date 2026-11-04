@@ -1,0 +1,7 @@
+{
+ "name":"actions/peer-row-missing-warning",
+ "width":180,
+ "page":{"lists":[{"id":"a","rows":2}],"bind":[{"noun":"demo","keys":"C","do":"demo.check-bindings"}],"peerBindings":[{"extension":"o-lane","row":{"noun":"demo","mode":"normal","keys":"g s","request":{"noun":"md.doc","verb":"show"}}}]},
+ "script":["C"],
+ "expect":[{"contains":["extension md is not registered; the key loads when it is"],"lacks":["unknown operation"]}]
+}
