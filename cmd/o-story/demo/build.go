@@ -423,7 +423,7 @@ func (ss *session) defineDemo(pages []*Page) error {
 		}
 		for _, name := range slices.Sorted(maps.Keys(p.Modes)) {
 			spec := p.Modes[name]
-			if err := r.DefineMode(name, spec.Pending, ochazuke.ModeExtends(spec.Extends)); err != nil {
+			if err := r.DefineMode(name, spec.Pending, ochazuke.ModeExtends(spec.Extends), ochazuke.ModeOutside(spec.Outside)); err != nil {
 				return fmt.Errorf("mode %s: %w", name, err)
 			}
 		}
@@ -687,9 +687,10 @@ func storeValues(props []ochazuke.PropSpec, values ochazuke.Thing) string {
 
 func (ss *session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 	noun, verb, ok := ochazuke.CutKey(v.Verb)
-	if !ok || noun != Demo || verb == "" {
-		return fmt.Errorf("verb %q: must be %s.<name>", v.Verb, Demo)
+	if !ok || noun == "" || verb == "" {
+		return fmt.Errorf("verb %q: must be noun.verb", v.Verb)
 	}
+	d = ss.R.Define(noun)
 	key, rows := v.Verb, slices.Clone(v.Rows)
 	d.Verb(verb, func(c ochazuke.Ctx) ochazuke.Result {
 		entry := key
@@ -742,6 +743,9 @@ func (ss *session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 	}
 	if v.Many {
 		d.Many()
+	}
+	if v.ByAssociation {
+		d.ByAssociation()
 	}
 	params := maps.Clone(v.Parameters)
 	for name, p := range params {
@@ -821,6 +825,7 @@ func (ss *session) open(c ochazuke.Ctx) ochazuke.Result {
 		if _, err := r.AddTerminal(id, stream, ochazuke.Parent(page.ID), ochazuke.CloseOnDetach(), ochazuke.FocusOnClose(inst.ID)); err != nil {
 			return ochazuke.Failed(err)
 		}
+		r.Instances[id].Data = page.Term.Data
 	}
 	if err := r.SetFocus(id); err != nil {
 		return ochazuke.Failed(err)

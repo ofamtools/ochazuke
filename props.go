@@ -112,12 +112,15 @@ type PropSpec struct {
 	Role       string `json:"role,omitempty"`
 	Fallback   string `json:"fallback,omitempty"`
 	FromFocus  bool   `json:"fromFocus,omitempty"`
-	Default    any    `json:"default,omitempty"`
-	Secret     bool   `json:"secret,omitempty"`
-	Multiline  bool   `json:"multiline,omitempty"`
-	When       string `json:"availability,omitempty"`
-	NoFilter   bool   `json:"noFilter,omitempty"`
-	Derived    bool   `json:"derived,omitempty"`
+	// Association lets declared verbs of Noun act through this reference,
+	// read only from the focused instance's Data, never its store.
+	Association bool   `json:"association,omitempty"`
+	Default     any    `json:"default,omitempty"`
+	Secret      bool   `json:"secret,omitempty"`
+	Multiline   bool   `json:"multiline,omitempty"`
+	When        string `json:"availability,omitempty"`
+	NoFilter    bool   `json:"noFilter,omitempty"`
+	Derived     bool   `json:"derived,omitempty"`
 	// loose marks a derived prop whose rows hold values of several kinds:
 	// propValue reads every scalar as its text, so they compare as strings.
 	loose bool
@@ -528,6 +531,9 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	}
 	if p.FromFocus && p.Noun == "" {
 		return fmt.Errorf("prop %s: fromFocus is for a reference (Noun)", key)
+	}
+	if p.Association && p.Noun == "" {
+		return fmt.Errorf("prop %s: association is for a reference (Noun)", key)
 	}
 	if err := r.propAliasClash(n, p.Name); err != nil {
 		return err

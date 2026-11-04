@@ -333,13 +333,16 @@ func (r *Runtime) instanceThing(inst *Instance) focusThing {
 // FocusSetting (if any) is on for a value that is not the subject.
 func (r *Runtime) focusValue(op Operation, name, focus string) (focusThing, bool) {
 	param, ok := op.Parameters[name]
-	if !ok || !param.Focus || param.Noun == "" || focus == "" {
+	if !ok || !param.Focus || param.Required || param.Noun == "" || focus == "" {
 		return focusThing{}, false
 	}
 	if setting := focusSettings[op.Standard]; setting != "" && param.Noun != op.Noun && !r.helpFlag(setting, true) {
 		return focusThing{}, false
 	}
 	id := r.nounInstance(r.CanonicalNoun(param.Noun), focus)
+	if personSource(r.history.source) {
+		id, _ = r.nearestOf(param.Noun, focus)
+	}
 	if id == "" {
 		return focusThing{}, false
 	}

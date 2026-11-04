@@ -399,6 +399,7 @@ type CompletionSpec struct {
 // TermSpec is a fake pane attached from a row: enter on Attach (default the
 // first row) adds the terminal, CloseOnDetach, focus returning to the row.
 type TermSpec struct {
+	Data   any        `json:"data,omitempty"` // the terminal instance's application data
 	Fake   bool       `json:"fake"`
 	Attach string     `json:"attach,omitempty"`
 	Height int        `json:"height,omitempty"`
@@ -523,10 +524,11 @@ type NounSpec struct {
 }
 
 type VerbSpec struct {
-	Verb        string                        `json:"verb"` // demo.<name>
-	Description string                        `json:"description,omitempty"`
-	Parameters  map[string]ochazuke.Parameter `json:"parameters,omitempty"`
-	Positional  []string                      `json:"positional,omitempty"`
+	ByAssociation bool                          `json:"byAssociation,omitempty"`
+	Verb          string                        `json:"verb"` // demo.<name>
+	Description   string                        `json:"description,omitempty"`
+	Parameters    map[string]ochazuke.Parameter `json:"parameters,omitempty"`
+	Positional    []string                      `json:"positional,omitempty"`
 	// RowsBy returns fixture rows selected by an argument value.
 	RowsBy  map[string][]string `json:"rowsBy,omitempty"`
 	RowsArg string              `json:"rowsArg,omitempty"`

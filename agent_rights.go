@@ -226,6 +226,7 @@ func (r *Runtime) CheckRequest(q Request) error {
 		return err
 	}
 	defer r.WithActor(actor)()
-	_, err := r.execute(r.Context(), r.canonicalRequest(q), true)
+	q = r.canonicalRequest(q)
+	_, err := r.execute(r.Context(), &q, true)
 	return err
 }

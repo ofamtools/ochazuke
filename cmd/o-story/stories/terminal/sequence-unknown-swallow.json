@@ -1,7 +1,7 @@
 {
   "name": "sequence-unknown swallow: ctrl+a then an unbound key sends nothing, says the keys are not bound, and returns to terminal mode",
   "area": "terminal",
-  "settings": [{"name": "sequence-unknown", "type": "string", "default": "swallow"}],
+  "settings": [{"name": "sequence-unknown", "type": "string", "default": "swallow"}, {"name": "leader.fall-through", "type": "string", "default": "off"}],
   "page": {
     "lists": [{"id": "a", "rows": 3}],
     "terminal": {"fake": true, "attach": "a1"}

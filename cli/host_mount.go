@@ -201,6 +201,8 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 	}
 	op.Positional = slices.Clone(v.Positional)
 	op.Quiet, op.Many, op.Repeatable, op.Standard = v.Quiet, v.Many, v.Repeatable, v.Standard
+	op.ByAssociation = v.ByAssociation
+	op.FocusBound = v.FocusBound
 	op.Foreground = v.Foreground
 	op.Slot = v.Slot
 	op.Disabled = v.Disabled
