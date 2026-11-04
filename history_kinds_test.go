@@ -186,3 +186,19 @@ func TestBuiltinHistoryKeepsRegistrationAnnotations(t *testing.T) {
 		t.Fatalf("app history inference changed: %+v", op)
 	}
 }
+
+// messages.show reads and jobs.cancel acts: neither is a recorded change,
+// and neither is destructive.
+func TestMountedVerbHistoryKinds(t *testing.T) {
+	r := NewRuntime()
+	for key, want := range map[string]string{
+		"ochazuke.messages.show": HistoryFetch,
+		"ochazuke.jobs.cancel":   HistoryAction,
+		"ochazuke.jobs.list":     HistoryFetch,
+	} {
+		op, ok := r.Operations[key]
+		if !ok || op.Destructive || op.HistoryKindOf() != want {
+			t.Fatalf("%s: found=%v destructive=%v kind=%q, want %q", key, ok, op.Destructive, op.HistoryKindOf(), want)
+		}
+	}
+}

@@ -71,3 +71,20 @@ func TestKeyTextResultsAllRequiresDeclaredText(t *testing.T) {
 		}
 	}
 }
+
+// An agent whose right is allow passes a verb's confirm prompt, and the key
+// that ran it still presents the declared text answer.
+func TestPromptedAllowKeyStillPresentsText(t *testing.T) {
+	r, _ := textResultFixture(t)
+	r.Define("record").
+		Verb("peek", func(Ctx) Result { return Done("one\ntwo") }, "a prompted text").Confirm("Peek?").TextResult().Agent(AgentAllow)
+	r.Define("record").Mode("normal").Bind("p", Do("record.peek"))
+	restore := r.BindActor(testAgent("p"), false)
+	defer restore()
+	if _, err := r.Dispatch(MacroKey{Key: "p"}); err != nil {
+		t.Fatal(err)
+	}
+	if in := r.Input(textViewInputID); in == nil || string(in.Text) != "one\ntwo" {
+		t.Fatalf("text result missing: top modal %q", r.TopModal())
+	}
+}

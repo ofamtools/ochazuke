@@ -134,7 +134,7 @@ func registerUI(r *Runtime) {
 			return Failed(err)
 		}
 		return Done(nil)
-	}, "Read recent messages in full")
+	}, "Read recent messages in full").Fetch()
 }
 
 // UI returns the UI component: Notify, ClearNotice, Error and Info
