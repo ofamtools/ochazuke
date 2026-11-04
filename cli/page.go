@@ -9,7 +9,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/x/ansi"
 	"ofam.dev/ochazuke"
@@ -230,7 +229,6 @@ type PageConfig struct {
 // Rows are the host's cached state: Reload fetches them off the loop, or
 // the host pushes them; keys, focus and page switches never fetch.
 type PageView struct {
-	forced  bool // an explicit refresh is reloading: live lists fetch whatever their age
 	m       *ochazuke.Model
 	doc     CatalogDoc
 	spec    CatalogPage
@@ -267,15 +265,8 @@ type pageList struct {
 	loaded      bool
 	loading     bool
 	verbsListed bool
-	liveAt      time.Time // when a live list last started a fetch
-	live        bool      // the noun's rows are outside the state answer (CatalogNoun.Live): filled through the row source
+	live        bool // the noun's rows are outside the state answer (CatalogNoun.Live): filled through the row source
 }
-
-// LiveTTLSetting is the setting holding how long the rows of a live
-// noun's list (CatalogNoun.Live) are reused: a load or a reload within it
-// keeps them, Refresh fetches again. A live verb reaches a vendor, so the
-// page must not ask on every focus move, page switch or reload.
-const LiveTTLSetting = "pages.live-ttl"
 
 // LoadVerb is the job verb of a data page's loads: no operation has it,
 // so the jobs ticker leaves loads off.
@@ -312,10 +303,6 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		return nil, err
 	}
 	r := m.Runtime
-	if _, ok := r.Settings().Value(LiveTTLSetting); !ok {
-		_ = r.DeclareSetting(ochazuke.Setting{Name: LiveTTLSetting, Section: "pages", Type: ochazuke.SettingDuration, Default: "2m",
-			Description: "How long a live list's rows (a quota read from a vendor) are reused before a reload fetches them again; an explicit refresh always fetches (0s fetches on every reload)"})
-	}
 	v := &PageView{m: m, doc: doc, spec: p, cfg: cfg, rows: map[string]Row{}, hashes: map[string]string{}}
 	for _, w := range p.Widgets {
 		v.widgets = append(v.widgets, &widgetState{spec: w})
@@ -734,7 +721,7 @@ func (v *PageView) Reload() error {
 		for _, pl := range v.lists {
 			pl.loading = !pl.verbsListed && !pl.live
 		}
-		return errors.Join(werr, v.reloadLive(v.forced), v.launch(v.spec.ID, "state", noun, verb, func(out []byte, err error) {
+		return errors.Join(werr, v.reloadLive(), v.launch(v.spec.ID, "state", noun, verb, func(out []byte, err error) {
 			rows, derr := DecodeRows("", out)
 			for _, pl := range v.lists {
 				pl.loading = pl.live && pl.loading
@@ -758,23 +745,10 @@ func (v *PageView) Reload() error {
 }
 
 // reloadLive fetches the lists of live nouns (CatalogNoun.Live) through
-// their row sources, beside a state call that does not answer them. The
-// verb runs when the list has no rows yet, when its rows are older than
-// the live TTL (LiveTTLSetting), or when force is set (an explicit
-// refresh); nothing else runs it.
-func (v *PageView) reloadLive(force bool) error {
-	ttl := v.m.Runtime.Settings().Duration(LiveTTLSetting)
-	now := time.Now()
-	return v.reloadRows(func(pl *pageList) bool {
-		if !pl.live {
-			return false
-		}
-		if force || pl.liveAt.IsZero() || ttl <= 0 || now.Sub(pl.liveAt) >= ttl {
-			pl.liveAt = now
-			return true
-		}
-		return false
-	})
+// their row sources, beside a state call that does not answer them. Each
+// load of the page or refresh runs the verb once; nothing else does.
+func (v *PageView) reloadLive() error {
+	return v.reloadRows(func(pl *pageList) bool { return pl.live })
 }
 
 // reloadRows runs the row source of every list want accepts, one job each

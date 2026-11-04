@@ -39,24 +39,8 @@ func TestMountPageFillsALiveNounThroughItsRowSource(t *testing.T) {
 				t.Fatalf("delta=%v round %d: skill rows = %v", delta, round, got)
 			}
 		}
-		if len(live) != 1 {
-			t.Fatalf("delta=%v: two reloads within the live TTL ran the live verb %d times", delta, len(live))
-		}
-		if err := sp.v.Refresh(); err != nil {
-			t.Fatal(err)
-		}
-		if err := Settle(sp.m.Runtime, nil); err != nil {
-			t.Fatal(err)
-		}
 		if len(live) != 2 {
-			t.Fatalf("delta=%v: an explicit refresh ran the live verb %d times in all", delta, len(live))
-		}
-		if err := sp.m.Runtime.Settings().Set(LiveTTLSetting, "0s"); err != nil {
-			t.Fatal(err)
-		}
-		sp.reload(t)
-		if len(live) != 3 {
-			t.Fatalf("delta=%v: a 0s live TTL fetches on every reload: %d", delta, len(live))
+			t.Fatalf("delta=%v: the live verb ran %d times for 2 loads", delta, len(live))
 		}
 	}
 }
