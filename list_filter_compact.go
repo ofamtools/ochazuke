@@ -298,7 +298,16 @@ func (v *filterViewForm) clearInputs() error {
 		c.SetQuery("")
 	}
 	if !v.legacy {
-		return v.focusPart("field")
+		// form.clear is a normal-mode command: focusing the field picker
+		// would land in its insert mode, so the next key (u, to take the
+		// clear back) would type into the query. The mode stays as it was.
+		mode := v.l.r.Mode.Name
+		if err := v.focusPart("field"); err != nil {
+			return err
+		}
+		if v.l.r.Mode.Name != mode {
+			return v.l.r.SetMode(mode)
+		}
 	}
 	return nil
 }

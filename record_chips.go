@@ -295,6 +295,7 @@ func (e *RecordEditor) clear() error {
 		return errors.New("this form has nothing to clear")
 	}
 	var errs []error
+	first := len(e.undo)
 	for _, f := range e.fields {
 		if f.KeepOnClear {
 			continue
@@ -310,6 +311,11 @@ func (e *RecordEditor) clear() error {
 			e.seen = e.snapshot()
 			errs = append(errs, e.seal(f))
 		}
+	}
+	// The whole clear is one undo step, however many fields it emptied.
+	if steps := e.undo[first:]; len(steps) > 1 {
+		group := recordStep{changes: slices.Clone(steps)}
+		e.undo = append(e.undo[:first], group)
 	}
 	if e.spec.OnClear != nil {
 		errs = append(errs, e.spec.OnClear())
