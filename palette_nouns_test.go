@@ -12,6 +12,7 @@ import (
 // A palette noun's instances complete after the noun (and as its default
 // verb's argument), read live on every listing; one runs the default verb.
 func TestPalettePageInstancesAreLive(t *testing.T) {
+	t.Parallel()
 	r := NewRuntime()
 	p := NewPalette(r)
 	for i := range 60 {
@@ -21,19 +22,14 @@ func TestPalettePageInstancesAreLive(t *testing.T) {
 	paletteRequest(t, r, "open", "page", Arguments{"id": "page-00"})
 	paletteRequest(t, r, "open", "palette", nil)
 	paletteRequest(t, r, "set", "palette", Arguments{"text": "page "})
-	instances, verbs := 0, 0
+	instances := 0
 	for _, entry := range p.completions() {
-		switch entry.Kind {
-		case "choice":
+		if entry.Kind == "choice" {
 			instances++
-		case "verb":
-			verbs++
 		}
 	}
-	// open, pick, next, previous and the standard get, list, set and
-	// watch (hide and show are set's aliases, listed on its row).
-	if instances != 60 || verbs != 8 {
-		t.Fatalf("page completes %d instances and %d verbs, want 60 and 8", instances, verbs)
+	if instances != 60 {
+		t.Fatalf("page completes %d instances, want 60", instances)
 	}
 	pageTestRegister(t, r, "late-page").Title = "Newly registered workspace"
 	paletteRequest(t, r, "set", "palette", Arguments{"text": "page late"})

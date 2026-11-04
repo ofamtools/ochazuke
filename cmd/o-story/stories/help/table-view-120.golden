@@ -19,7 +19,7 @@ R|            │ 0           .column?                                          
  |            │ ctrl+f      .scroll                                                           .scroll        │
  |            │ ctrl+h                      .filter-keep?                                                    │
  |            │ ctrl+n                      .move?                                                           │
- |            │ 1–12 / 89                                                                                    │
+ |            │ 1–12 / 90                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
  |            │ normal       list.column when no-count · list                                                │
  |            │              to first                                                                        │

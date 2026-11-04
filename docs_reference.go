@@ -68,6 +68,7 @@ var standardNeeds = map[string]string{
 	"watch":     "Store.Watch, else Store.List (a singleton: Store.Get)",
 	"create":    "Store.Create and a prop create writes",
 	"set":       "Store.Patch and a writable prop",
+	"edit":      "Store.Get, Store.Patch, a writable prop and forms.edit",
 	"delete":    "Store.Delete",
 	"rename":    "Store.Patch and a writable label prop (role label)",
 	"move":      "Store.Patch and a writable owner reference (role owner)",

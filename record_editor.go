@@ -626,11 +626,13 @@ func (e *RecordEditor) loadChoices(f *recordField) {
 	if !paramHasChoices(f.Parameter) {
 		return
 	}
-	choices, err := e.r.Choices(e.r.contextOf(e.id), f.Parameter, e.arguments())
-	if err != nil && len(choices) == 0 {
+	if f.choicesReady || f.choiceLoading {
 		return
 	}
-	f.choices, f.choicesReady = choices, err == nil
+	f.choiceLoading = true
+	e.r.loadChoices(e.r.contextOf(f.id), f.Parameter, e.id, func(choices []Choice, err error) {
+		f.choices, f.choicesReady, f.choiceLoading = choices, err == nil, false
+	}, e.arguments())
 }
 
 // problem says why a value is not written: required and empty, not of the
@@ -980,7 +982,7 @@ func (e *RecordEditor) choose(f *recordField) error {
 	if f.path {
 		return e.choosePath(f)
 	}
-	if len(f.SourceArgs) > 0 {
+	if len(f.SourceArgs) > 0 || e.r.ChoicesSource(f.Parameter) != "" {
 		return e.suggest(f)
 	}
 	e.loadChoices(f)
@@ -1682,6 +1684,7 @@ func registerForms(r *Runtime) {
 			v, _ := inst.Data.(string)
 			return v, chooser.editor.pick(chooser.field, v)
 		}, "Set the field to this choice; written at once")
+	registerStandardEdit(r)
 }
 
 func boolArg(a Arguments, name string) bool {

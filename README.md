@@ -614,6 +614,46 @@ so `task list --filter archived` reveals them; app and user filter definitions
 can override it. `get` and `set` still address archived records by key.
 Archive and restore have no Vim counterpart.
 
+#### Editing declared props
+
+A noun with `Store.Get`, `Store.Patch` and writable declared props gains
+standard `edit`. Its own `edit` wins, whether registered before or after the
+store. Key, read-only and create-only props are omitted from the form.
+Types, required fields, enums, sources, references and multiline/secret fields
+come from the prop schema. A pending choices source loads off the update loop.
+
+`task edit t3` in the palette opens the record form on that task's current
+values. Enter confirms the changed props in one standard `set`, with the
+store's usual validation, availability, confirmation and undo history.
+Escape from insert returns to normal; Escape in normal cancels without a
+write. This form uses `RecordSpec.Submit`, unlike the filter form, which
+currently applies view changes immediately through `Save`.
+
+Supplying any prop writes directly, without a form:
+`task edit --id t3 --title "New title" --status done`.
+The CLI and MCP `run` use that same handler. Normal-mode `i` is an app-level
+fallback only for an implicit editor outside inputs and modals. Inner
+bindings, including outline editing and a page's own `i`, keep precedence.
+`forms.edit` defaults to `true`; set it to `false` before stores are declared
+or catalogs are mounted to omit implicit `edit`. Existing application editors
+are unaffected.
+
+Catalog mounts keep the form in the host and run the extension's `get` and
+`set` proxies with the subject key and changes. The no-argument row-source
+`PageConfig.Fetch` is not the write path. Hosts and extensions need the new
+ochazuke version; applications already declaring the props and store need no
+new verb. A catalog without declared writable props or readable/updatable
+operations cannot supply this form.
+
+Compared with Vim:
+
+| Vim form | Help tag | Ochazuke behavior |
+|---|---|---|
+| `i` | `i` | Text fields keep Insert mode. On a thing with an implicit editor and no inner binding, `i` opens its prop form instead. |
+| Escape in insert | `i_<Esc>` | Same, return to normal and retain the field's text. A second Escape closes the unsubmitted form without writing. |
+| Record form confirmation | Not applicable | Vim has no built-in typed noun/record form. Enter applies changed props as one store write rather than editing a buffer. |
+
+
 
 #### Configuring noun instances
 
