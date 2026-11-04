@@ -102,6 +102,7 @@ func TestPropFilterCatalogPagePreservesForeignID(t *testing.T) {
 }
 
 func TestPropFilterShellSavedManagementAndOrder(t *testing.T) {
+	testenv.ClearActor(t)
 	r := ochazuke.NewRuntime()
 	r.Config().Dir = t.TempDir()
 	r.Define("note").Props(ochazuke.PropSpec{Name: "by"}).Filters(ochazuke.SavedFilter{Name: "all"})
@@ -117,7 +118,7 @@ func TestPropFilterShellSavedManagementAndOrder(t *testing.T) {
 	for _, args := range [][]string{
 		{"list", "filter-save", "--id", "notes", "--name", "local"},
 		{"list", "filters", "--id", "notes"},
-		{"list", "filter-saved-delete", "--id", "notes", "--name", "local"},
+		{"list", "filter-saved-delete", "--id", "notes", "--name", "local", "--yes"},
 	} {
 		out.Reset()
 		if err := shell.Run(context.Background(), args); err != nil {
