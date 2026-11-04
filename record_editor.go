@@ -112,7 +112,12 @@ type RecordSpec struct {
 	// the loop. At most one write is in flight; changes made meanwhile go
 	// in the next write. A failed write keeps the values on screen, says
 	// so, and is retried with the next change.
+	// Done(ticket) follows an already-started Execute job instead of marking
+	// it complete. Queued saves survive closing the form and drain on quit.
 	Save func(RecordWrite) Result
+	// FieldWrites sends Save one changed field at a time. A failed value stays
+	// marked on that field without preventing other fields from being saved.
+	FieldWrites bool
 	// Debounce is the pause in typing before a text field is written
 	// (DefaultRecordDebounce when zero).
 	Debounce time.Duration
@@ -235,8 +240,9 @@ type recordField struct {
 	chip          int  // the chip under the cursor, an index into choices
 	// lines are the chips' rows as last drawn (indexes into choices), so
 	// j and k move by what is on screen.
-	lines [][]int
-	not   bool // an Invertible field's state as shown
+	lines                 [][]int
+	not                   bool // an Invertible field's state as shown
+	writeErr, failedValue string
 }
 
 func (f *recordField) text() string {
@@ -277,23 +283,24 @@ type RecordEditor struct {
 	// editor uses the Model's.
 	Styles Styles
 
-	written  Record   // the record as written, or queued to be
-	dirty    []string // fields written in memory, not yet in the store
-	inflight bool
-	sending  []string // the fields of the write in flight
-	watch    *Watch   // the Watch noun's subscription while open
-	writeErr string
-	undo     []recordStep
-	redo     []recordStep
-	seq      uint64
-	seen     string
-	focus    string // the focus at the last PendingCommand
-	typing   bool   // whether a text field was being typed in then
-	modal    bool
-	closed   bool
-	loading  bool // outsideWrite is loading the record
-	ran      bool // form.run handed the values to Submit
-	failure  error
+	written   Record   // the record as written, or queued to be
+	saveOwner string   // writes outlive the form instance
+	dirty     []string // fields written in memory, not yet in the store
+	inflight  bool
+	sending   []string // the fields of the write in flight
+	watch     *Watch   // the Watch noun's subscription while open
+	writeErr  string
+	undo      []recordStep
+	redo      []recordStep
+	seq       uint64
+	seen      string
+	focus     string // the focus at the last PendingCommand
+	typing    bool   // whether a text field was being typed in then
+	modal     bool
+	closed    bool
+	loading   bool // outsideWrite is loading the record
+	ran       bool // form.run handed the values to Submit
+	failure   error
 }
 
 // AddRecordEditor places a record editor under Parent (default app); the
@@ -393,7 +400,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	if err := r.CheckSourceArgs(params); err != nil {
 		return nil, err
 	}
-	e := &RecordEditor{r: r, id: id, spec: spec, written: Record{}}
+	e := &RecordEditor{r: r, id: id, spec: spec, written: Record{}, saveOwner: parent}
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
 	for _, field := range fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
@@ -626,17 +633,22 @@ func (e *RecordEditor) loadChoices(f *recordField) {
 	if !paramHasChoices(f.Parameter) {
 		return
 	}
-	choices, err := e.r.Choices(e.r.contextOf(e.id), f.Parameter, e.arguments())
-	if err != nil && len(choices) == 0 {
+	if f.choicesReady || f.choiceLoading {
 		return
 	}
-	f.choices, f.choicesReady = choices, err == nil
+	f.choiceLoading = true
+	e.r.loadChoices(e.r.contextOf(f.id), f.Parameter, e.id, func(choices []Choice, err error) {
+		f.choices, f.choicesReady, f.choiceLoading = choices, err == nil, false
+	}, e.arguments())
 }
 
 // problem says why a value is not written: required and empty, not of the
 // type, not one of the choices, or Validate's error.
 func (e *RecordEditor) problem(f *recordField) string {
 	v := f.text()
+	if f.writeErr != "" && v == f.failedValue {
+		return f.writeErr
+	}
 	if strings.TrimSpace(v) == "" {
 		if f.Required {
 			return "required"
@@ -692,6 +704,9 @@ func (e *RecordEditor) flush() error {
 			}
 		}
 		v := f.text()
+		if v != f.failedValue {
+			f.writeErr = ""
+		}
 		if v == e.written[f.Name] || e.problem(f) != "" {
 			continue
 		}
@@ -709,59 +724,102 @@ func (e *RecordEditor) send() error {
 	}
 	var changed []string
 	for _, f := range e.fields {
-		if slices.Contains(e.dirty, f.Name) {
+		if slices.Contains(e.dirty, f.Name) && (!e.spec.FieldWrites || f.writeErr == "" || f.text() != f.failedValue) {
 			changed = append(changed, f.Name)
+			if e.spec.FieldWrites {
+				break
+			}
 		}
 	}
-	e.dirty = nil
-	if e.spec.Save == nil || e.spec.Submit != nil {
-		return nil // a form that runs once keeps its changes on screen
-	}
-	// While Save runs, its fields are this editor's write: a Changed the
-	// application calls from it is not an outside write of them.
-	e.sending = changed
-	res := e.spec.Save(RecordWrite{Values: maps.Clone(e.written), Changed: slices.Clone(changed)})
-	e.sending = nil
-	switch {
-	case res.err != nil:
-		e.requeue(changed)
-		e.writeErr = res.err.Error()
-		return fmt.Errorf("write %s: %w", strings.Join(changed, ", "), res.err)
-	case res.work == nil:
-		e.writeErr = ""
+	if len(changed) == 0 {
 		return nil
 	}
-	// The job belongs to the editor's parent, so leaving the editor never
-	// cancels a write in flight.
-	owner := e.r.Instances[e.id].Parent
+	e.dirty = slices.DeleteFunc(e.dirty, func(name string) bool { return slices.Contains(changed, name) })
+	if e.spec.Save == nil || e.spec.Submit != nil {
+		return nil
+	}
+	e.sending = changed
+	w := RecordWrite{Values: maps.Clone(e.written), Changed: slices.Clone(changed)}
+	res := e.spec.Save(w)
+	e.sending = nil
+	if res.err != nil {
+		e.saveFailed(w, res.err)
+		err := fmt.Errorf("write %s: %w", strings.Join(changed, ", "), res.err)
+		if e.spec.FieldWrites {
+			return errors.Join(err, e.send())
+		}
+		return err
+	}
+	// Execute returns a ticket when Save dispatches an existing application
+	// operation. Observe that job instead of treating its queued write as done.
+	if ticket, ok := res.value.(Ticket); ok && e.r.Accepts(ticket) {
+		j := e.r.jobs[ticket.Job]
+		j.flush = true
+		inner := j.then
+		e.inflight, e.sending = true, changed
+		j.then = func(c Ctx, value any, err error) error {
+			if inner != nil {
+				err = errors.Join(err, inner(c, value, err))
+			}
+			e.saved(w, err)
+			return err
+		}
+		return nil
+	}
+	if res.work == nil {
+		e.writeErr = ""
+		if e.spec.FieldWrites {
+			return e.send()
+		}
+		return nil
+	}
+	owner := e.saveOwner
 	if e.r.Instances[owner] == nil {
 		owner = "app"
 	}
 	inner := res.then
-	res.then = func(c Ctx, v any, err error) {
+	res.then = func(c Ctx, value any, err error) {
 		if inner != nil {
-			inner(c, v, err)
+			inner(c, value, err)
 		}
-		e.inflight, e.sending = false, nil
-		if err != nil {
-			e.requeue(changed)
-			e.writeErr = err.Error()
-			return
-		}
-		e.writeErr = ""
-		if serr := e.send(); serr != nil {
-			e.fail(serr)
-		}
+		e.saved(w, err)
 	}
 	e.inflight, e.sending = true, changed
 	c := Ctx{actor: e.r.Actor(), Runtime: e.r, Context: e.r.contextOf(owner), Instance: e.r.Instances[owner]}
-	if _, err := e.r.Launch(owner, formWriteVerb, res, c); err != nil {
+	ticket, err := e.r.Launch(owner, formWriteVerb, res, c)
+	if err != nil {
 		e.inflight, e.sending = false, nil
-		e.requeue(changed)
-		e.writeErr = err.Error()
+		e.saveFailed(w, err)
 		return err
 	}
+	e.r.jobs[ticket.Job].flush = true
 	return nil
+}
+
+func (e *RecordEditor) saveFailed(w RecordWrite, err error) {
+	e.requeue(w.Changed)
+	e.writeErr = err.Error()
+	if e.spec.FieldWrites {
+		for _, name := range w.Changed {
+			f := e.field(name)
+			f.writeErr, f.failedValue = err.Error(), w.Values[name]
+		}
+	}
+}
+
+func (e *RecordEditor) saved(w RecordWrite, err error) {
+	e.inflight, e.sending = false, nil
+	if err != nil {
+		e.saveFailed(w, err)
+		if !e.spec.FieldWrites {
+			return
+		}
+	} else {
+		e.writeErr = ""
+	}
+	if nextErr := e.send(); nextErr != nil {
+		e.fail(nextErr)
+	}
 }
 
 func (e *RecordEditor) requeue(changed []string) {
@@ -980,7 +1038,7 @@ func (e *RecordEditor) choose(f *recordField) error {
 	if f.path {
 		return e.choosePath(f)
 	}
-	if len(f.SourceArgs) > 0 {
+	if len(f.SourceArgs) > 0 || e.r.ChoicesSource(f.Parameter) != "" {
 		return e.suggest(f)
 	}
 	e.loadChoices(f)
@@ -1682,6 +1740,7 @@ func registerForms(r *Runtime) {
 			v, _ := inst.Data.(string)
 			return v, chooser.editor.pick(chooser.field, v)
 		}, "Set the field to this choice; written at once")
+	registerStandardEdit(r)
 }
 
 func boolArg(a Arguments, name string) bool {

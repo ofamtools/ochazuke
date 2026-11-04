@@ -65,6 +65,7 @@ type standardVerb struct {
 	Params       func(n *Noun) map[string]Parameter
 	Writes       func(n *Noun, a Arguments) ([]string, error)
 	Run          func(r *Runtime, n *Noun, c Ctx) (any, error)
+	Handler      func(*Runtime, *Noun) AppHandler
 	// ConfirmFor is the row's Operation.ConfirmFor on noun n, set when the
 	// operation asks at all (Confirm, or the store's prompt, not "").
 	ConfirmFor func(r *Runtime, n *Noun, c Context, q Request, prompt string) string
@@ -107,7 +108,7 @@ var standardVerbs = []standardVerb{
 
 // reservedStandardVerbs are the names of every standard verb, those later
 // phases add included: no prop takes one.
-var reservedStandardVerbs = []string{"get", "list", "create", "set", "patch", "delete", "watch", "rename", "move", "duplicate", "archive", "restore"}
+var reservedStandardVerbs = []string{"get", "list", "create", "set", "patch", "edit", "delete", "watch", "rename", "move", "duplicate", "archive", "restore"}
 
 // standardParamNames are the parameters the standard verbs take beside the
 // subject: no key prop and no store list parameter takes one.
@@ -159,7 +160,12 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 			}
 			continue
 		}
-		r.Register(v.operation(r, n))
+		op := v.operation(r, n)
+		if v.Handler != nil && op.App == nil {
+			n.Verbs = slices.DeleteFunc(n.Verbs, func(verb string) bool { return verb == v.Verb })
+			continue
+		}
+		r.Register(op)
 		if g := n.Store.When[v.Verb]; g != "" {
 			r.SetAvailability(key, g)
 		}
@@ -235,6 +241,10 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 	if v.Rows {
 		op.Rows = name
 		op.Result = "rows"
+	}
+	if v.Handler != nil {
+		op.App = v.Handler(r, n)
+		return op
 	}
 	run, many, verb := v.Run, v.Many, v.Verb
 	one := func(c Ctx) Result {
@@ -361,7 +371,7 @@ func (r *Runtime) subjectKey(n *Noun, c Ctx) (string, error) {
 		return fmt.Sprint(v), nil
 	}
 	inst := c.Instance
-	if inst != nil && n.Store.Kind == Instances {
+	if inst != nil && n.StoreKind() == Instances {
 		inst = r.Instances[r.liveSubject(n, inst.ID)] // its things are live instances
 		if inst != nil {
 			return inst.ID, nil

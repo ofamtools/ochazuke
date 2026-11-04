@@ -159,6 +159,13 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 // mountVerb registers one catalog verb of a mounted noun as a proxy; an
 // error skips it, note reports what it mounted differently.
 func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string, v CatalogVerb, h HostMount, nouns map[string]string, param func(ochazuke.Parameter) ochazuke.Parameter, note func(format string, a ...any)) error {
+	var edit ochazuke.AppHandler
+	if v.Standard == "edit" {
+		edit = r.EditHandler(local)
+		if edit == nil {
+			return nil
+		}
+	}
 	if err := try(func() { b.Verb(v.Name, h.Proxy(noun, v), v.Description) }); err != nil {
 		return err
 	}
@@ -203,6 +210,9 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 	op.Quiet, op.Many, op.Repeatable, op.Standard = v.Quiet, v.Many, v.Repeatable, v.Standard
 	op.ByAssociation = v.ByAssociation
 	op.FocusBound = v.FocusBound
+	if edit != nil {
+		op.App = edit
+	}
 	op.Foreground = v.Foreground
 	op.Slot = v.Slot
 	op.Disabled = v.Disabled

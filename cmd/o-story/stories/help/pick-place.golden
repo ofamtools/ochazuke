@@ -30,7 +30,7 @@ R|            │   q             app.quit                                      
  |            │                                                                  tabs (what: row, any table) │
  |            │                                                                  into the registers; over a  │
  |            │                                                                  visual selection (V) every  │
- |            │ 1–7 / 118                                                                                    │
+ |            │ 1–7 / 119                                                                                    │
  |            │ space list.mark · S view · n noun · m mode · p place · esc modal.close · : palette.open · ?… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
