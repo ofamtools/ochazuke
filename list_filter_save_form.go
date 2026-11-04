@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"errors"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
@@ -61,9 +62,17 @@ func (v *filterViewForm) deleteSaved() error {
 	if err != nil {
 		return err
 	}
+	user, err := v.l.r.Settings().savedFilters()
+	if err != nil {
+		return err
+	}
+	// Only the user's own definitions can be deleted; an app default is not
+	// offered, since picking it could only fail.
 	var rows []ChooserRow
 	for _, f := range filters {
-		rows = append(rows, ChooserRow{ID: f.Name, Label: f.Name})
+		if slices.ContainsFunc(user, f.sameDefinition) {
+			rows = append(rows, ChooserRow{ID: f.Name, Label: f.Name})
+		}
 	}
 	_, err = v.l.r.OpenChooser(ChooserSpec{Kind: "list-filter-delete", Title: "Delete saved filter", Plural: "saved filters", Rows: rows, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
 		_, err := v.l.r.Execute(Request{Noun: "ochazuke.list", Verb: "filter-saved-delete", Args: Arguments{"id": v.l.id, "name": row.ID}})

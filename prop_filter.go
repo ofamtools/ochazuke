@@ -236,6 +236,12 @@ type SavedFilter struct {
 	Sort       []SortKey      `json:"sort,omitempty"`
 }
 
+// sameDefinition reports whether old is the definition f came from: the same
+// name in the same list and noun scope.
+func (f SavedFilter) sameDefinition(old SavedFilter) bool {
+	return old.Name == f.Name && old.List == f.List && old.Noun == f.Noun
+}
+
 func (f SavedFilter) conditions() []PropFilter {
 	return append(whereFilters(f.Where), f.Conditions...)
 }

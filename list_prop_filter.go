@@ -330,7 +330,7 @@ func (l *List) DeleteSavedFilter(name string) error {
 	if err != nil {
 		return err
 	}
-	i = slices.IndexFunc(user, func(old SavedFilter) bool { return old.Name == f.Name && old.List == f.List && old.Noun == f.Noun })
+	i = slices.IndexFunc(user, f.sameDefinition)
 	if i < 0 {
 		return fmt.Errorf("%q is an app default; only user saved filters can be deleted", name)
 	}
