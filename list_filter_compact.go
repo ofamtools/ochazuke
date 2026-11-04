@@ -149,6 +149,15 @@ func (l *List) openViewForm() error {
 			}
 		}
 	}
+	for _, f := range v.fields {
+		var conditions []PropFilter
+		for _, c := range l.propFilters {
+			if c.Prop == f.prop {
+				conditions = append(conditions, c)
+			}
+		}
+		f.absorb(conditions)
+	}
 	sortNames := sortedKeys(l.sortSpecs())
 	state := []RecordField{{Name: filterSortField, Label: "Sort", Hidden: true, Parameter: Parameter{Enum: sortNames}}, {Name: filterDirectionField, Label: "Direction", Hidden: true, Parameter: Parameter{Enum: []string{"asc", "desc"}}}}
 	var schema []RecordField
