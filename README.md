@@ -604,7 +604,10 @@ Compared with Vim: `:task status done` reads like `:set {option}={value}` (`:hel
 
 A boolean prop with `RoleArchive` derives `archive` and `restore`; both keep the
 record and are undoable when the store supports undo. Standard `list` hides
-archived records by default. `list.hide-archived=false` includes them again.
+archived records by default, and so do row-fed lists, trees and pages: a row
+whose archive prop is true is hidden (in a tree its whole subtree is), a prop
+filter naming the archive prop (the saved `archived` filter) shows them and
+clearing the filter hides them again. `list.hide-archived=false` includes them again.
 An explicit `--where ARCHIVE_PROP=true` or a saved filter that mentions the
 archive prop overrides hiding. The role declares a saved filter named `archived`,
 so `task list --filter archived` reveals them; app and user filter definitions

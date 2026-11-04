@@ -56,6 +56,7 @@ type List struct {
 	r            *Runtime
 	id           string
 	all          []ListItem // every row, as SetItems gave them
+	archived     int        // rows of all that list.hide-archived hides (archiveHidden)
 	headerTones  []ToneSpan // the header row's tones (SetHeaderTones)
 	items        []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
 	linger       filterLinger
@@ -274,7 +275,7 @@ func cloneItem(it ListItem) ListItem {
 
 // Len is the number of rows, the ones a filter hides included (Shown
 // counts the rest).
-func (l *List) Len() int { return len(l.all) }
+func (l *List) Len() int { return len(l.all) - l.archived }
 
 // Selected returns a value copy; empty lists have no selected item.
 func (l *List) Selected() (ListItem, bool) {
@@ -556,7 +557,7 @@ func (l *List) state() map[string]any {
 		out["sort"] = l.Sort()
 	}
 	if l.query != "" || len(l.propFilters) > 0 || l.savedFilter != "" {
-		out["filter"], out["total"] = l.query, len(l.all)
+		out["filter"], out["total"] = l.query, l.Len()
 		if len(l.propFilters) > 0 {
 			out["propFilters"] = l.PropFilters()
 		}
@@ -758,10 +759,10 @@ func (l *List) labelSegs(toned *Styles, item ListItem, text string, drawn int, g
 func (l *List) emptyLine() string {
 	p := l.placeholder
 	text := p.Text(l.r)
-	if len(l.all) > 0 {
+	if l.Len() > 0 {
 		text = NoMatchText(p.Plural, l.query)
 		if l.Filtering() && !l.r.Settings().Bool("list.filter-strip") {
-			text += fmt.Sprintf(", 0 of %d", len(l.all)) // no strip to count them
+			text += fmt.Sprintf(", 0 of %d", l.Len()) // no strip to count them
 		}
 	}
 	if l.Focused() {

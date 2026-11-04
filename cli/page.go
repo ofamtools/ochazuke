@@ -1135,7 +1135,7 @@ func (v *PageView) listPanel(layout ochazuke.Layout, pl *pageList, width, height
 		text = strings.TrimRight(text, "\n") + "\n" + strings.Join(notes, "\n")
 	}
 	title := fmt.Sprintf("%s (%d)", pl.title(), pl.list.Len())
-	if pl.list.Filter() != "" {
+	if pl.list.Filter() != "" || pl.list.Shown() != pl.list.Len() {
 		title = fmt.Sprintf("%s (%d/%d)", pl.title(), pl.list.Shown(), pl.list.Len())
 	}
 	if pl.loading && pl.loaded {
