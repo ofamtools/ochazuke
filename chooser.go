@@ -156,6 +156,10 @@ type Chooser struct {
 	// tallest is the most lines the rows view has drawn while open: with
 	// chooser.stable-height it pads to it, so typing never resizes it.
 	tallest int
+	// hidden is the count of rows below the drawn ones in the last View
+	// (0 when none or when chooser.hidden-count is off), for a host that
+	// draws the query line itself.
+	hidden int
 	// match is the match mode search.cycle-match or search.set-match
 	// chose while open; "" is the chooser.match setting (search_match.go).
 	match    string
@@ -659,6 +663,10 @@ func (c *Chooser) state() map[string]any {
 	return state
 }
 
+// HiddenRows is the count of matched rows the last View left off the
+// bottom; a host that draws its own query line shows it there.
+func (c *Chooser) HiddenRows() int { return c.hidden }
+
 // View draws the search line, then the rows with the highlighted one in
 // reverse video, with what Enter would create when nothing is highlighted
 // after the matches (before the fixed rows); with a Preview and the
@@ -773,7 +781,9 @@ func (c *Chooser) rowsView(width, height int) Block {
 	case c.cursor >= scroll:
 		offset = c.cursor - scroll + 1
 	}
+	c.hidden = 0
 	if hidden := max(0, fixedFrom-scroll); hidden > 0 && c.r.Settings().Bool(ChooserHiddenCountSetting) {
+		c.hidden = hidden
 		count := fmt.Sprintf("%d more", hidden)
 		if tail != "" {
 			count = tail + " · " + count

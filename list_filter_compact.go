@@ -712,17 +712,24 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 		focusedDirection := v.l.r.Focus == direction.id
 		dir = s.Selection(focusedDirection).Render(dir)
 		v.l.r.Placed(v.sortPicker.input.ID)
-		row := ansi.Truncate(input.Text+strings.Repeat(" ", max(1, inputWidth-ansi.StringWidth(input.Text)+2))+v.l.r.PlacedAt(direction.id, dir, 0, 1), width, "")
+		open := v.l.r.Focus == v.sortPicker.input.ID
+		var rows []string
+		count := ""
+		if open {
+			// The picker's own query line is not drawn here (the direction
+			// shares this row), so its hidden-row count goes after it.
+			rows = strings.Split(v.sortPicker.View(width, 4).Text, "\n")
+			if n := v.sortPicker.HiddenRows(); n > 0 {
+				count = s.Muted.Render(fmt.Sprintf("  %d more", n))
+			}
+		}
+		row := ansi.Truncate(input.Text+strings.Repeat(" ", max(1, inputWidth-ansi.StringWidth(input.Text)+2))+v.l.r.PlacedAt(direction.id, dir, 0, 1)+count, width, "")
 		add(Block{Text: row, Cursor: input.Cursor}, v.sortPicker.input.ID)
 		if v.l.r.Focus == direction.id {
 			focusLine = len(lines) - 1
 		}
-		if v.l.r.Focus == v.sortPicker.input.ID {
-			b := v.sortPicker.View(width, 4)
-			parts := strings.Split(b.Text, "\n")
-			if len(parts) > 1 {
-				lines = append(lines, parts[1:]...)
-			}
+		if len(rows) > 1 {
+			lines = append(lines, rows[1:]...)
 		}
 		if v.l.r.Focus != v.sortPicker.input.ID {
 			lines = append(lines, "", "")
