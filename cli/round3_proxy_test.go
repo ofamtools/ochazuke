@@ -33,8 +33,15 @@ func TestRound3MountedLimitKillsDescendants(t *testing.T) {
 		t.Fatal(err)
 	}
 	pid, _ := strconv.Atoi(strings.TrimSpace(string(raw)))
-	if err := syscall.Kill(pid, 0); err == nil {
-		t.Fatalf("descendant %d survived", pid)
+	// Kill(pid, 0) also succeeds for a process that is still dying or an
+	// unreaped zombie, so poll until it is gone and fail only at the deadline.
+	deadline := time.Now().Add(5 * time.Second)
+	for syscall.Kill(pid, 0) == nil {
+		if time.Now().After(deadline) {
+			_ = syscall.Kill(pid, syscall.SIGKILL)
+			t.Fatalf("descendant %d survived", pid)
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

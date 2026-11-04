@@ -35,7 +35,7 @@ func TestRunMountedCapturedAndForeground(t *testing.T) {
 			var value any
 			var workErr error
 			r.Define("remote").Verb("read", func(ochazuke.Ctx) ochazuke.Result {
-				return RunMounted(CatalogVerb{Foreground: tc.foreground}, ProxyCommand{Bin: "/bin/sh", Args: []string{"-c", tc.script}, Env: append(os.Environ(), "MARKER="+marker), Timeout: tc.timeout, WaitDelay: time.Millisecond}).Then(func(_ ochazuke.Ctx, v any, err error) { value, workErr = v, err })
+				return RunMounted(CatalogVerb{Foreground: tc.foreground}, ProxyCommand{Bin: "/bin/sh", Args: []string{"-c", tc.script}, Env: append(os.Environ(), "MARKER="+marker), Timeout: tc.timeout, WaitDelay: 5 * time.Second}).Then(func(_ ochazuke.Ctx, v any, err error) { value, workErr = v, err })
 			})
 			if _, err := r.Execute(ochazuke.Request{Noun: "remote", Verb: "read"}); err != nil {
 				t.Fatal(err)
