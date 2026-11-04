@@ -82,20 +82,8 @@ func TestVisualSelectionIsTheSubject(t *testing.T) {
 	}
 }
 
-// The selection is the subject from the palette and the API as well as a
-// key: a row verb executed without a target while V is on acts on every
-// selected row.
-func TestVisualSelectionFromTheAPI(t *testing.T) {
-	r, m, l, calls, _ := subjectsTable(t)
-	motionKeys(t, r, m, "V j j")
-	if _, err := r.Execute(Request{Verb: "zap", Noun: "row"}); err != nil {
-		t.Fatal(err)
-	}
-	if strings.Join(*calls, ", ") != "zap r1, zap r2, zap r3" || l.Visual() {
-		t.Fatalf("API row.zap: %v visual %v", *calls, l.Visual())
-	}
-}
-
+// A request from a program (no source: an app's own Execute, a background
+// poll) never widens to the selection; see list_visual_api_test.go.
 // A per-row verb that fails on one row runs on the rest; one error notice
 // counts the done and the failed, and the key does not fail.
 func TestVisualSelectionPartialFailure(t *testing.T) {

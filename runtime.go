@@ -1015,7 +1015,8 @@ func (r *Runtime) execute(c Context, q Request, checkOnly bool, run ...operation
 		}
 	}
 	// A row's own verb on a row in a visual selection (V) acts on every
-	// selected row, from a key, the palette or the API (subjects.go).
+	// selected row, from a key or the palette; a program's request (API,
+	// CLI, MCP, a poll, a hook) acts on its own target (personSource).
 	if vq, ok := r.visualApply(q, op, focus); ok && !checkOnly {
 		return r.ExecuteAt(c, vq)
 	}
