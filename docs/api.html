@@ -7,14 +7,14 @@
 nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 </style></head><body>
 <header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Go API</h1><p>Actions and noun bindings come from a fresh <code>demo.New()</code> in <code>internal/demo</code>. Go declarations and comments come from the root <code>ofam.dev/ochazuke</code> package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
-<nav aria-label="Catalogs"><a href="actions.html">Actions (366)</a><a href="bindings.html">Default bindings (681)</a><a href="api.html" aria-current="page">Go API (1290)</a><a href="transport.html">CLI, socket &amp; MCP</a></nav>
+<nav aria-label="Catalogs"><a href="actions.html">Actions (388)</a><a href="bindings.html">Default bindings (740)</a><a href="api.html" aria-current="page">Go API (1358)</a><a href="transport.html">CLI, socket &amp; MCP</a></nav>
 <div class="toolbar"><label for="search">Search Go API</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
 <noscript>All entries are available below. Search requires JavaScript.</noscript></header>
 <main>
 
 
 
-<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">1290</span></h2><p>Generated exported types, functions, methods, constants and variables from non-test Go source files directly in the root <code>ofam.dev/ochazuke</code> package. Subpackages such as <code>cli</code>, <code>cli/mcp</code>, <code>markdown</code> and <code>grid</code> are outside this catalog's scope; command entry points under <code>cmd/</code> are not library APIs. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
+<section id="api"><p class="eyebrow">03 / Exported Go API</p><h2>Go API <span class="count">1358</span></h2><p>Generated exported types, functions, methods, constants and variables from non-test Go source files directly in the root <code>ofam.dev/ochazuke</code> package. Subpackages such as <code>cli</code>, <code>cli/mcp</code>, <code>markdown</code> and <code>grid</code> are outside this catalog's scope; command entry points under <code>cmd/</code> are not library APIs. Unexported fields and function bodies are omitted. Missing prose means the declaration has no source doc comment.</p><p>Go also provides terminal documentation: run <code>go doc -all .</code> or <code>go doc Runtime.Execute</code> from the repository root. This offline reference needs no <code>godoc</code> server or published module.</p>
 <details class="entry searchable"><summary><code>About</code> <small>type</small></summary><pre>About is the About page&#39;s state: the application&#39;s sections, the
 environment, and the rows the page last evaluated.
 </pre><pre>type About struct {
@@ -155,6 +155,9 @@ alone, or followed by words its action&#39;s rest parameter reads, it is
 the alias; followed by a noun that has the verb of its name, the line
 is that noun&#39;s verb (set mode normal is mode set normal). Its name is
 the bare word (set), since NOUN.VERB may be the verb it shadows.
+ShadowVerb declares a different verb to yield to (h yields to help).
+It enables the same reading without changing the alias&#39;s own name or
+Shadows collision policy. The target may register after the alias.
 Palette keeps a bare alias to the command line inside the app: the CLI
 leaves the word to the shell&#39;s own commands, so bin help stays the
 shell&#39;s help while :help opens the docs viewer, which needs the TUI.
@@ -172,13 +175,16 @@ takes (ParamAlias): --starred for --value on star.
 	Args         Arguments    `json:&#34;args,omitempty&#34;`
 	Bare         bool         `json:&#34;bare,omitempty&#34;`
 	Shadows      bool         `json:&#34;shadows,omitempty&#34;`
+	ShadowVerb   string       `json:&#34;shadowVerb,omitempty&#34;`
 	Palette      bool         `json:&#34;palette,omitempty&#34;`
 	ParamAliases []ParamAlias `json:&#34;paramAliases,omitempty&#34;`
 }</pre><a href="../action_names.go">Source file</a></details><details class="entry searchable"><summary><code>ActionAlias.Deprecated</code> <small>function / method</small></summary><pre>Deprecated reports whether the alias is an old name on its way out.
 </pre><pre>func (a ActionAlias) Deprecated() bool</pre><a href="../action_names.go">Source file</a></details><details class="entry searchable"><summary><code>ActionAlias.Name</code> <small>function / method</small></summary><pre>Name is how the alias is typed: its bare name, else noun.verb.
 </pre><pre>func (a ActionAlias) Name() string</pre><a href="../action_names.go">Source file</a></details><details class="entry searchable"><summary><code>ActionAlias.ParamAlias</code> <small>function / method</small></summary><pre>ParamAlias is the old parameter name the alias takes as name, false
 when name is none.
-</pre><pre>func (a ActionAlias) ParamAlias(name string) (ParamAlias, bool)</pre><a href="../action_names.go">Source file</a></details><details class="entry searchable"><summary><code>ActionsFile</code> <small>constant</small></summary><pre>ActionsFile is the user actions file in the config directory, beside
+</pre><pre>func (a ActionAlias) ParamAlias(name string) (ParamAlias, bool)</pre><a href="../action_names.go">Source file</a></details><details class="entry searchable"><summary><code>ActionAlias.ShadowedVerb</code> <small>function / method</small></summary><pre>ShadowedVerb is the verb a following noun may select, or empty when the
+alias does not yield to noun verbs.
+</pre><pre>func (a ActionAlias) ShadowedVerb() string</pre><a href="../action_names.go">Source file</a></details><details class="entry searchable"><summary><code>ActionsFile</code> <small>constant</small></summary><pre>ActionsFile is the user actions file in the config directory, beside
 bindings.json.
 </pre><pre>const ActionsFile = &#34;actions.json&#34;</pre><a href="../actions.go">Source file</a></details><details class="entry searchable"><summary><code>Actor</code> <small>type</small></summary><pre>Actor identifies who issued a request. The zero value is the owner, preserving
 requests and history written before attribution existed. Identity is advisory,
@@ -195,9 +201,11 @@ not authentication. Servers bind it once at startup, never from tool arguments.
 entries: at least a pane or a name must identify it, and all identity fields
 must match (including session, so a reused pane id is not another session).
 </pre><pre>func (a Actor) SameAgent(b Actor) bool</pre><a href="../actor.go">Source file</a></details><details class="entry searchable"><summary><code>Actor.String</code> <small>function / method</small></summary><pre>String describes the actor without including task titles or pane labels.
-</pre><pre>func (a Actor) String() string</pre><a href="../actor.go">Source file</a></details><details class="entry searchable"><summary><code>ActorFromEnv</code> <small>function / method</small></summary><pre>ActorFromEnv reads explicit CLI identity from OCHAZUKE_ACTOR (a kind or JSON),
-filling an agent&#39;s missing fields from OCHAZUKE_HARNESS, OCHAZUKE_MODEL,
-TUIOS_PANE_ID and TUIOS_SESSION. A terminal pane alone does not imply an agent.
+</pre><pre>func (a Actor) String() string</pre><a href="../actor.go">Source file</a></details><details class="entry searchable"><summary><code>ActorFromEnv</code> <small>function / method</small></summary><pre>ActorFromEnv reads CLI identity from OCHAZUKE_ACTOR (a kind or JSON)
+and detects agent harnesses from their environment markers. Detection only
+narrows rights: an explicit owner or unknown kind cannot demote a detected
+agent. Explicit identity fields win over environment defaults. A terminal
+pane or model alone does not imply an agent.
 </pre><pre>func ActorFromEnv(getenv func(string) string) (Actor, error)</pre><a href="../actor.go">Source file</a></details><details class="entry searchable"><summary><code>ActorOwner, ActorAgent, ActorUnknown</code> <small>constant</small></summary><pre>const (
 	ActorOwner   = &#34;owner&#34;
 	ActorAgent   = &#34;agent&#34;
@@ -236,15 +244,17 @@ Action is a registered action or alias. An alias may not take the name
 of an action or of another alias; such a row is skipped and reported, as
 bindings check reports a bad row. Note is free text listed with it.
 Shadows lets a bare alias take a verb&#39;s name and yield to it by what
-follows (ActionAlias.Shadows); Palette keeps a bare alias out of the
-CLI (ActionAlias.Palette).
+follows (ActionAlias.Shadows); ShadowVerb declares another verb to yield
+to (ActionAlias.ShadowVerb). Palette keeps a bare alias out of the CLI
+(ActionAlias.Palette).
 </pre><pre>type AliasRow struct {
-	Alias   string    `json:&#34;alias&#34;`
-	Action  string    `json:&#34;action&#34;`
-	Note    string    `json:&#34;note,omitempty&#34;`
-	Args    Arguments `json:&#34;args,omitempty&#34;`
-	Shadows bool      `json:&#34;shadows,omitempty&#34;`
-	Palette bool      `json:&#34;palette,omitempty&#34;`
+	Alias      string    `json:&#34;alias&#34;`
+	Action     string    `json:&#34;action&#34;`
+	Note       string    `json:&#34;note,omitempty&#34;`
+	Args       Arguments `json:&#34;args,omitempty&#34;`
+	Shadows    bool      `json:&#34;shadows,omitempty&#34;`
+	ShadowVerb string    `json:&#34;shadowVerb,omitempty&#34;`
+	Palette    bool      `json:&#34;palette,omitempty&#34;`
 	// ParamAliases are old names of the action&#39;s parameters the alias
 	// takes (ActionAlias.ParamAliases): &#34;paramAliases&#34;: [{&#34;alias&#34;:
 	// &#34;starred&#34;, &#34;param&#34;: &#34;value&#34;}].
@@ -338,8 +348,8 @@ y runs the verb (its checks skipped), n and esc leave it unrun.
 (ReadBareAlias): the alias and its presets, with the presets of any
 further bare aliases of the same action right after it (verbose set is
 settings.apply {verbose: true}), Skip the words they took; or, for an
-alias that shadows a verb, Noun: the line is that noun&#39;s verb of the
-alias&#39;s name (set mode normal is mode set normal).
+alias that yields to a verb, Noun: the line is that noun&#39;s ShadowedVerb
+(set mode normal is mode set normal).
 </pre><pre>type BareReading struct {
 	Alias ActionAlias
 	Args  Arguments
@@ -660,7 +670,7 @@ into the query); without it the cursor is at the end.
 the typed text: a source verb with a parameter of this name is called
 with what the user has typed so far (the word in the palette, the query
 in a form&#39;s suggestions chooser, the value being checked), so it can
-complete as you type; one without it is called with no arguments.
+complete as you type; one without it receives only mapped sibling arguments.
 </pre><pre>const ChoicesQueryParameter = &#34;query&#34;</pre><a href="../params.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser</code> <small>type</small></summary><pre>Chooser is one open chooser, the Component of its modal instance.
 </pre><pre>type Chooser struct {
 	// contains filtered or unexported fields
@@ -669,7 +679,9 @@ complete as you type; one without it is called with no arguments.
 Create return their own results). Pending work they return belongs to the
 focus the chooser opened over (runApplication), since the chooser and its
 input are closed before the callback runs.
-</pre><pre>func (c *Chooser) HandleMessage(tea.Msg) bool</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.Highlighted</code> <small>function / method</small></summary><pre>Highlighted is the row Enter takes: the moved-to row, else the top
+</pre><pre>func (c *Chooser) HandleMessage(msg tea.Msg) bool</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.HiddenRows</code> <small>function / method</small></summary><pre>HiddenRows is the count of matched rows the last View left off the
+bottom; a host that draws its own query line shows it there.
+</pre><pre>func (c *Chooser) HiddenRows() int</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.Highlighted</code> <small>function / method</small></summary><pre>Highlighted is the row Enter takes: the moved-to row, else the top
 match; none means Enter creates.
 </pre><pre>func (c *Chooser) Highlighted() (ChooserRow, bool)</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.Kind</code> <small>function / method</small></summary><pre>Kind is the chooser&#39;s modal kind.
 </pre><pre>func (c *Chooser) Kind() string</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.Loading</code> <small>function / method</small></summary><pre>Loading reports whether the current source&#39;s load is in flight.
@@ -693,7 +705,9 @@ surviving moved highlight. Invalid updates leave the chooser unchanged.
 </pre><pre>func (c *Chooser) SetPropFilters(filters []PropFilter) error</pre><a href="../chooser_prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.SetQuery</code> <small>function / method</small></summary><pre>SetQuery replaces the search text (cursor at its end), as typing would.
 </pre><pre>func (c *Chooser) SetQuery(query string)</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.SetRows</code> <small>function / method</small></summary><pre>SetRows replaces the rows (a background load landing); the highlight
 stays on the same row id when the user had moved it.
-</pre><pre>func (c *Chooser) SetRows(rows []ChooserRow)</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.Source</code> <small>function / method</small></summary><pre>Source is the current source&#39;s name, &#34;&#34; for a chooser without sources.
+</pre><pre>func (c *Chooser) SetRows(rows []ChooserRow)</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.SetSort</code> <small>function / method</small></summary><pre>func (c *Chooser) SetSort(keys []SortKey) error</pre><a href="../list_sort.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.Sort</code> <small>function / method</small></summary><pre>Sort and SetSort expose the chooser&#39;s shared row-view controller. Fixed,
+trailing and create rows retain their roles; ordinary rows sort locally.
+</pre><pre>func (c *Chooser) Sort() []SortKey</pre><a href="../list_sort.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.Source</code> <small>function / method</small></summary><pre>Source is the current source&#39;s name, &#34;&#34; for a chooser without sources.
 </pre><pre>func (c *Chooser) Source() string</pre><a href="../chooser_sources.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.Sources</code> <small>function / method</small></summary><pre>Sources are the names of the chooser&#39;s sources, in order.
 </pre><pre>func (c *Chooser) Sources() []string</pre><a href="../chooser_sources.go">Source file</a></details><details class="entry searchable"><summary><code>Chooser.Title</code> <small>function / method</small></summary><pre>Title is the chooser modal&#39;s title; with sources, the current source
 in brackets and the others after it.
@@ -712,7 +726,8 @@ first rows show before it finishes and the list stays responsive.
 </pre><pre>type ChooserBatch struct {
 	Rows []ChooserRow
 	More Result
-}</pre><a href="../chooser_sources.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserPreviewMin</code> <small>constant</small></summary><pre>ChooserPreviewMin is the width from which a chooser with a Preview
+}</pre><a href="../chooser_sources.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserHiddenCountSetting</code> <small>constant</small></summary><pre>ChooserHiddenCountSetting shows how many matching rows are off screen.
+</pre><pre>const ChooserHiddenCountSetting = &#34;chooser.hidden-count&#34;</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserPreviewMin</code> <small>constant</small></summary><pre>ChooserPreviewMin is the width from which a chooser with a Preview
 draws it beside the rows.
 </pre><pre>const ChooserPreviewMin = 60</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserPropFiltersSetting</code> <small>constant</small></summary><pre>ChooserPropFiltersSetting enables chooser prop filters (default true).
 </pre><pre>const ChooserPropFiltersSetting = &#34;chooser.prop-filters&#34;</pre><a href="../chooser_prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserRememberSourceSetting, ChooserEnterSetting</code> <small>constant</small></summary><pre>Chooser settings: rows of settings/ochazuke.json.
@@ -779,8 +794,13 @@ moved onto it, or when the query spells it.
 	// and the chooser&#39;s Filter narrows their rows.
 	Live bool
 	// Empty is the line shown while the source has no rows (&#34;no recent
-	// paths&#34;); the spec&#39;s Empty (or &#34;loading…&#34; while a load runs) else.
+	// paths&#34;); the spec&#39;s Empty else (its Loading while a load runs).
 	Empty string
+	// Loading and LoadingJob, when set, stand in for the spec&#39;s while the
+	// source is current: the line while the job that fills the source runs
+	// (a scan whose completion reloads it), so its Empty never shows then.
+	Loading    string
+	LoadingJob JobSlot
 	// Open navigates into a row marked Opens (browse into a folder) and
 	// returns the query to show next; false leaves everything as it is.
 	// The source then loads again.
@@ -812,14 +832,23 @@ CreateLabel names what Enter would create from the query. CreateRow shows
 that as a &#34;&#43; &lt;label&gt;&#34; row while the query is not empty, after the matches
 and trailing rows and before the fixed rows; typing never matches or
 ranks it, it is the default only when nothing else matches, and Enter on
-it creates. Empty is the line shown while there are no rows at all
-(&#34;loading…&#34;). Keep names the cell columns cut last. Preview draws a
+it creates. Empty is the line shown while there are no rows at all, and
+Loading the line while LoadingJob runs and there are none yet; Plural
+names the rows (Placeholder, one format: &#34;no directories&#34;, &#34;loading
+directories…&#34;, &#34;no directories match &#39;x&#39;&#34;). Keep names the cell columns cut last. Preview draws a
 preview of the highlighted row beside the rows when there is room.
 </pre><pre>type ChooserSpec struct {
 	// Noun is the default row noun for prop filtering.
 	Noun string
 	// NoPropFilters opts this chooser out of prop filters and their keys.
 	NoPropFilters bool
+	// NoSort keeps the source order when these rows are only a partial view.
+	NoSort bool
+	// Stay keeps the chooser open after a pick (for embedded or repeated choices).
+	Stay bool
+	// NormalMode allows Escape to leave search editing; i resumes insert.
+	// The input still starts in insert; default choosers remain pinned there.
+	NormalMode bool
 
 	Kind        string
 	Title       string
@@ -830,6 +859,14 @@ preview of the highlighted row beside the rows when there is room.
 	CreateLabel func(query string) string
 	CreateRow   bool
 	Empty       string
+	// Loading is the line while LoadingJob runs and there are no rows yet
+	// (&#34;&#34; is LoadingText(Plural)); so a chooser opened before its rows
+	// arrive never says it is empty while they load.
+	Loading    string
+	LoadingJob JobSlot
+	// Plural names the rows, plural (&#34;directories&#34;), for the default
+	// Empty and Loading lines and the no-match line; &#34;&#34; is &#34;rows&#34;.
+	Plural string
 	// Keep names the columns (indexes into ChooserRow.Cells) cut last when
 	// the cells do not fit (a directory chooser&#39;s path): the others narrow
 	// to their minimum first, then the kept ones, widest first.
@@ -907,7 +944,12 @@ Vim&#39;s clipboard=unnamed).
 </pre><pre>const ClipboardSetting = &#34;clipboard&#34;</pre><a href="../registers.go">Source file</a></details><details class="entry searchable"><summary><code>CloseOnDetach</code> <small>function / method</small></summary><pre>CloseOnDetach makes terminal.detach remove the terminal instance after
 returning focus, so the stream is released (see TerminalReleaser) instead
 of kept for a later attach. Only AddTerminal reads it.
-</pre><pre>func CloseOnDetach() InstanceOption</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>Collection, Singleton, Instances</code> <small>constant</small></summary><pre>The kinds of store (Store.Kind): what the subject is and which standard
+</pre><pre>func CloseOnDetach() InstanceOption</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>CloseWith</code> <small>function / method</small></summary><pre>CloseWith says what closing the modal does: modal.close (esc and q on
+the modal noun) runs req while the modal is the top one, so a kind
+that does more than pop (the palette clearing its line first, a form
+sealing its field) closes through the same verb and the same rows as
+every other modal. Without it modal.close pops the modal.
+</pre><pre>func CloseWith(req Request) ModalOption</pre><a href="../focus.go">Source file</a></details><details class="entry searchable"><summary><code>Collection, Singleton, Instances</code> <small>constant</small></summary><pre>The kinds of store (Store.Kind): what the subject is and which standard
 verbs make sense.
 </pre><pre>const (
 	// Collection is many things with keys, held by the application
@@ -1186,7 +1228,32 @@ Deprecated: use Error for what failed, Info for a plain message.
 </pre><pre>func (c Ctx) Status(text string)</pre><a href="../deprecated.go">Source file</a></details><details class="entry searchable"><summary><code>Ctx.SubjectIDs</code> <small>function / method</small></summary><pre>SubjectIDs are the ids of ctx&#39;s subjects, for a handler that hands them
 on (Request.Subjects of the request it runs next: a confirm, a chooser&#39;s
 choice).
-</pre><pre>func (ctx Ctx) SubjectIDs() []string</pre><a href="../subjects.go">Source file</a></details><details class="entry searchable"><summary><code>CutKey</code> <small>function / method</small></summary><pre>CutKey is SplitKey with ok reporting whether the key held a dot.
+</pre><pre>func (ctx Ctx) SubjectIDs() []string</pre><a href="../subjects.go">Source file</a></details><details class="entry searchable"><summary><code>CursorMotions</code> <small>type</small></summary><pre>CursorMotions is a component with a cursor or a scroll that answers the
+shared motions (UX-RULES R5.8): view.edge, to one of the four edges
+named by edge (g g first, G last, 0 first-col, $ last-col; a count on
+G or g g is the row number), and view.page, a page or half a page (the
+ctrl&#43;f/ctrl&#43;b and ctrl&#43;d/ctrl&#43;u keys). A list (tables and trees through
+their list), a timeline, a page detail (the docs viewer) and the yank
+history implement it; an application&#39;s component answers the same keys
+by implementing it. The innermost one on the focus path answers, unless
+the component holding it implements it too (a timeline&#39;s card list):
+then the holder does, as view.scroll&#39;s holder scrolls.
+</pre><pre>type CursorMotions interface {
+	// MotionEdges is the edges the component can move to now: first and
+	// last while it has rows or lines, the column edges only where its
+	// cursor moves sideways (a cell-mode table); nil when nothing moves.
+	MotionEdges() []SpillEdge
+	// MoveToEdge moves the cursor (a view without one, its window) to
+	// edge, clamped, never spilling. For first and last a row above 0 is
+	// the row or line numbered row instead (1 the first: 5G).
+	MoveToEdge(edge SpillEdge, row int)
+	// PageLines is the rows or lines one page moves (its window); 0 when
+	// the component has nothing to page.
+	PageLines() int
+	// MovePage moves the cursor and the window by lines (down when
+	// positive), clamped at the edges, never spilling.
+	MovePage(lines int)
+}</pre><a href="../motion_scroll.go">Source file</a></details><details class="entry searchable"><summary><code>CutKey</code> <small>function / method</small></summary><pre>CutKey is SplitKey with ok reporting whether the key held a dot.
 </pre><pre>func CutKey(key string) (noun, verb string, ok bool)</pre><a href="../namespace.go">Source file</a></details><details class="entry searchable"><summary><code>DecodeJSONC</code> <small>function / method</small></summary><pre>DecodeJSONC decodes a JSONC document into v. A syntax error or a value
 of the wrong type names its line and column in data.
 </pre><pre>func DecodeJSONC(data []byte, v any) error</pre><a href="../jsonc.go">Source file</a></details><details class="entry searchable"><summary><code>DefaultArchiveConfirm</code> <small>constant</small></summary><pre>DefaultArchiveConfirm is what a standard delete asks instead when it
@@ -1212,12 +1279,17 @@ nothing): a delete is never silent.
 it starts out of the tabs until page.show (or the pages.hidden setting)
 brings it in. AddPage and RegisterPage read it; other constructors
 ignore it.
-</pre><pre>func DefaultHidden() InstanceOption</pre><a href="../page_hide.go">Source file</a></details><details class="entry searchable"><summary><code>DefaultModalDim, DefaultDimUnfocused, MaxDim</code> <small>constant</small></summary><pre>Dim defaults, in percent toward the background (the settings modal-dim
+</pre><pre>func DefaultHidden() InstanceOption</pre><a href="../page_hide.go">Source file</a></details><details class="entry searchable"><summary><code>DefaultModalDim, DefaultDimUnfocused, DefaultDimUnfocusedSelection, MaxDim</code> <small>constant</small></summary><pre>Dim defaults, in percent toward the background (the settings modal-dim
 and dim-unfocused, Model.Styles).
 </pre><pre>const (
 	DefaultModalDim     = 35 // about the scheme&#39;s muted colour, as the backdrop always was
 	DefaultDimUnfocused = 20
-	MaxDim              = 90
+	// DefaultDimUnfocusedSelection is how much further than the list the
+	// selected row&#39;s bar of a list without the focus fades (setting
+	// dim-unfocused-selection): at the defaults the bar sits halfway
+	// between the text and the background colour.
+	DefaultDimUnfocusedSelection = 30
+	MaxDim                       = 90
 )</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>DefaultRecordDebounce</code> <small>constant</small></summary><pre>DefaultRecordDebounce is how long typing in a field pauses before the
 record is written.
 </pre><pre>const DefaultRecordDebounce = DefaultTreeDebounce</pre><a href="../record_editor.go">Source file</a></details><details class="entry searchable"><summary><code>DefaultSegmentEvery, MinSegmentEvery, DefaultSegmentTimeout, SegmentMaxWidth</code> <small>constant</small></summary><pre>Segment defaults and bounds.
@@ -1231,7 +1303,9 @@ record is written.
 them, a copy.
 </pre><pre>func DefaultTones() map[string]ToneStyle</pre><a href="../tone.go">Source file</a></details><details class="entry searchable"><summary><code>DefaultTreeDebounce</code> <small>constant</small></summary><pre>DefaultTreeDebounce is how long typing in an outline line pauses before
 the line is written.
-</pre><pre>const DefaultTreeDebounce = 400 * time.Millisecond</pre><a href="../tree.go">Source file</a></details><details class="entry searchable"><summary><code>Detail</code> <small>type</small></summary><pre>Detail is the component a detail instance fronts: a page&#39;s read-only
+</pre><pre>const DefaultTreeDebounce = 400 * time.Millisecond</pre><a href="../tree.go">Source file</a></details><details class="entry searchable"><summary><code>DependentChoicesSetting</code> <small>constant</small></summary><pre>DependentChoicesSetting enables refreshing and marking dependent choices as
+sibling fields change. Values are always retained; Free values remain writable.
+</pre><pre>const DependentChoicesSetting = &#34;forms.dependent-choices&#34;</pre><a href="../record_editor.go">Source file</a></details><details class="entry searchable"><summary><code>Detail</code> <small>type</small></summary><pre>Detail is the component a detail instance fronts: a page&#39;s read-only
 detail region (the text beside or below a list about its selected row)
 that scrolls while the focus stays in the list. The application names
 the item the detail is about with the func it gives AddDetail (the
@@ -1250,9 +1324,17 @@ answer first. A detail is not a focus stop.
 </pre><pre>func (d *Detail) ID() string</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.Item</code> <small>function / method</small></summary><pre>Item is the item the offset belongs to.
 </pre><pre>func (d *Detail) Item() string</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.Marker</code> <small>function / method</small></summary><pre>Marker is the position marker of the last Window: first and last
 visible lines and the total, &#34;12–40 / 300&#34;, or &#34;&#34; when the text fits.
-</pre><pre>func (d *Detail) Marker() string</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.Offset</code> <small>function / method</small></summary><pre>Offset is the first visible line, from 0.
+</pre><pre>func (d *Detail) Marker() string</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.MotionEdges</code> <small>function / method</small></summary><pre>MotionEdges is the first and the last line while the text overflows
+its window (CursorMotions): a detail has no cursor, so its edges move
+the window.
+</pre><pre>func (d *Detail) MotionEdges() []SpillEdge</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.MovePage</code> <small>function / method</small></summary><pre>MovePage scrolls the window by lines (CursorMotions).
+</pre><pre>func (d *Detail) MovePage(lines int)</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.MoveToEdge</code> <small>function / method</small></summary><pre>MoveToEdge shows the text&#39;s first or last window, or with row the
+window starting on line row (1 the first) (CursorMotions).
+</pre><pre>func (d *Detail) MoveToEdge(edge SpillEdge, row int)</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.Offset</code> <small>function / method</small></summary><pre>Offset is the first visible line, from 0.
 </pre><pre>func (d *Detail) Offset() int</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.Overflows</code> <small>function / method</small></summary><pre>Overflows reports whether the last Window had more lines than it showed.
-</pre><pre>func (d *Detail) Overflows() bool</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.Scroll</code> <small>function / method</small></summary><pre>Scroll moves the window by lines (down when positive), clamped to the
+</pre><pre>func (d *Detail) Overflows() bool</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.PageLines</code> <small>function / method</small></summary><pre>PageLines is the window&#39;s height while the text overflows it
+(CursorMotions).
+</pre><pre>func (d *Detail) PageLines() int</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.Scroll</code> <small>function / method</small></summary><pre>Scroll moves the window by lines (down when positive), clamped to the
 text the last Window measured, and returns the new offset. A new item
 starts at the top first.
 </pre><pre>func (d *Detail) Scroll(lines int) int</pre><a href="../detail.go">Source file</a></details><details class="entry searchable"><summary><code>Detail.Width</code> <small>function / method</small></summary><pre>Width is the widest line of the whole text the last Window measured
@@ -1301,7 +1383,8 @@ overflows the window (&#34;&#34; when it fits).
 	Cursor   int    `json:&#34;cursor&#34;`
 	Parent   int    `json:&#34;parent&#34;`
 	Children []int  `json:&#34;children&#34;`
-}</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Enter</code> <small>function / method</small></summary><pre>Enter builds a row that enters a pending mode with a typed payload: the
+}</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>EmptyText</code> <small>function / method</small></summary><pre>EmptyText is the one format&#39;s empty line: &#34;no PLURAL&#34; (&#34;no rows&#34; for &#34;&#34;).
+</pre><pre>func EmptyText(plural string) string</pre><a href="../placeholder.go">Source file</a></details><details class="entry searchable"><summary><code>Enter</code> <small>function / method</small></summary><pre>Enter builds a row that enters a pending mode with a typed payload: the
 operator fields (Op, Count, OpCount) and, for a leader, Prefix (the key
 sequence the mode holds, which arms the sequence timer) and Request (what
 the timer runs when no second key arrives).
@@ -1342,7 +1425,16 @@ triggers overlap) and the cursor is past that trigger, at the token&#39;s
 end or anywhere inside it.
 </pre><pre>func FindCompletionToken(text []rune, cursor int, triggers []string) (CompletionToken, int, bool)</pre><a href="../completion.go">Source file</a></details><details class="entry searchable"><summary><code>FindCompletionTokenIn</code> <small>function / method</small></summary><pre>FindCompletionTokenIn is FindCompletionToken over full triggers: each
 trigger&#39;s token also ends at its Boundaries.
-</pre><pre>func FindCompletionTokenIn(text []rune, cursor int, triggers []CompletionTrigger) (CompletionToken, int, bool)</pre><a href="../completion.go">Source file</a></details><details class="entry searchable"><summary><code>FitFocusPath</code> <small>function / method</small></summary><pre>FitFocusPath joins levels with &#34; › &#34; in at most width cells. When they
+</pre><pre>func FindCompletionTokenIn(text []rune, cursor int, triggers []CompletionTrigger) (CompletionToken, int, bool)</pre><a href="../completion.go">Source file</a></details><details class="entry searchable"><summary><code>FindLine</code> <small>function / method</small></summary><pre>FindLine is the row a find whose cursor is a whole row lands on: the
+first of n rows after from (before it with back) that match reports,
+wrapping once around to from itself. from may be -1 (a find down then
+starts at the first row) or n (a find up starts at the last).
+</pre><pre>func FindLine(n, from int, back bool, match func(row int) bool) (int, bool)</pre><a href="../search_find.go">Source file</a></details><details class="entry searchable"><summary><code>FindLineNoun</code> <small>constant</small></summary><pre>The find line and its noun.
+</pre><pre>const (
+	// FindLineNoun is the find line&#39;s noun: the one-line input / opens,
+	// pinned to insert (enter finds, esc closes, tab cycles the match).
+	FindLineNoun = &#34;ochazuke.find-line&#34;
+)</pre><a href="../search_find.go">Source file</a></details><details class="entry searchable"><summary><code>FitFocusPath</code> <small>function / method</small></summary><pre>FitFocusPath joins levels with &#34; › &#34; in at most width cells. When they
 do not fit, it cuts from the left a whole level at a time behind &#34;… › &#34;,
 keeping the innermost level; with less room the innermost level alone
 follows &#34;…&#34;, cut from its left when it is wider still. A cut path always
@@ -1461,7 +1553,8 @@ objects) one row per line, as FormatBindingRows does, each row&#39;s fields
 in their marshalled order (a struct&#39;s declaration order).
 </pre><pre>func FormatRows(rows any) ([]byte, error)</pre><a href="../rows_format.go">Source file</a></details><details class="entry searchable"><summary><code>FormatRowsJSON</code> <small>function / method</small></summary><pre>FormatRowsJSON rewrites a JSON array one element per line, keeping each
 element&#39;s key order; an error when data is not a JSON array.
-</pre><pre>func FormatRowsJSON(data []byte) ([]byte, error)</pre><a href="../rows_format.go">Source file</a></details><details class="entry searchable"><summary><code>FormsOutsideWriteSetting</code> <small>constant</small></summary><pre>FormsOutsideWriteSetting says what an open record editor does when its
+</pre><pre>func FormatRowsJSON(data []byte) ([]byte, error)</pre><a href="../rows_format.go">Source file</a></details><details class="entry searchable"><summary><code>FormsInvertedToneSetting</code> <small>constant</small></summary><pre>FormsInvertedToneSetting draws inverted fields in ToneRecordInverted.
+</pre><pre>const FormsInvertedToneSetting = &#34;forms.inverted-tone&#34;</pre><a href="../record_chips.go">Source file</a></details><details class="entry searchable"><summary><code>FormsOutsideWriteSetting</code> <small>constant</small></summary><pre>FormsOutsideWriteSetting says what an open record editor does when its
 record is written from outside it (RecordSpec.Watch, Reload): reload
 (the default) takes the new values and stays open, focus, field and mode
 kept, a field with unsaved typing keeping the typing; close leaves the
@@ -1784,13 +1877,25 @@ Deprecated: Info is part of UISink.
 	// and leave the hints. Like Vim&#39;s &#39;nomodifiable&#39;, without E21: nothing
 	// is reported. Set it before or after AddInput (or the ReadOnly option).
 	ReadOnly bool
-	Anchor   int
-	History  []EditNode
-	Head     int
+	// Wrap soft-wraps the input&#39;s lines where InputBlock draws them: a
+	// line wider than the block continues on the next row, broken after
+	// the last space that fits (a word wider than the row breaks where it
+	// must). Only the drawing changes; the text holds no added line
+	// breaks. Off, a long line scrolls sideways around the cursor. See
+	// input_wrap.go.
+	Wrap bool
+	// WrapIndent is how many cells a wrapped line&#39;s continuation rows are
+	// indented (nil: the line&#39;s leading spaces, Vim&#39;s &#39;breakindent&#39;).
+	WrapIndent func(line string) int
+	Anchor     int
+	History    []EditNode
+	Head       int
 	// contains filtered or unexported fields
 }</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.Count</code> <small>function / method</small></summary><pre>Count is the pending Vim count, read from the global mode payload while
 the input is focused.
-</pre><pre>func (in *Input) Count() int</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.Pending</code> <small>function / method</small></summary><pre>Pending describes the pending editor mode the way the old grammar did:
+</pre><pre>func (in *Input) Count() int</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.FindText</code> <small>function / method</small></summary><pre>FindText moves the input&#39;s cursor to the first character of the next
+match (the text view&#39;s /).
+</pre><pre>func (in *Input) FindText(m Matcher, back bool) bool</pre><a href="../search_find.go">Source file</a></details><details class="entry searchable"><summary><code>Input.Pending</code> <small>function / method</small></summary><pre>Pending describes the pending editor mode the way the old grammar did:
 &#34;d&#34; for an operator, &#34;g&#34; for a g prefix, &#34;dg&#34; for both, &#34;register&#34; while a
 register name is awaited, &#34;&#34; otherwise.
 </pre><pre>func (in *Input) Pending() string</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.Redo</code> <small>function / method</small></summary><pre>func (in *Input) Redo(steps, branch int) error</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.Replace</code> <small>function / method</small></summary><pre>func (in *Input) Replace(start, end int, text string) error</pre><a href="../input.go">Source file</a></details><details class="entry searchable"><summary><code>Input.SelectAll</code> <small>function / method</small></summary><pre>SelectAll opens a select range over the whole text (SelectText).
@@ -1825,7 +1930,10 @@ reports where the cursor sits, without changing text or editing state.
 Visual selections and an open select range are painted in reverse video
 (the visual-selection style); the cursor itself is left
 to the terminal, so compose this block only for the focused input.
-</pre><pre>func InputBlock(in *Input, width, height int) Block</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>InputView</code> <small>function / method</small></summary><pre>InputView renders an input&#39;s visible text without a cursor, for inputs that
+</pre><pre>func InputBlock(in *Input, width, height int) Block</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>InputRows</code> <small>function / method</small></summary><pre>InputRows is how many rows InputBlock draws all of in at width: its
+lines, plus a row for each soft wrap when in.Wrap is set. A caller
+sizes the block with it so every row shows.
+</pre><pre>func InputRows(in *Input, width int) int</pre><a href="../input_wrap.go">Source file</a></details><details class="entry searchable"><summary><code>InputView</code> <small>function / method</small></summary><pre>InputView renders an input&#39;s visible text without a cursor, for inputs that
 are not focused. See InputBlock.
 </pre><pre>func InputView(in *Input, width, height int) string</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>InputWritableGuard</code> <small>constant</small></summary><pre>InputWritableGuard is the verb guard of the editor&#39;s editing verbs
 (insert, replace, delete, kill, paste, begin, undo, redo): false while
@@ -1947,17 +2055,27 @@ frame that first saw it finished. The Model schedules one JobLingerMsg
 for the earliest remembered finish (Model.lingerCommand), so the row
 goes on an idle screen; any earlier frame past the deadline drops it
 too, and a newer job can push it off sooner.
-</pre><pre>const JobLinger = 4 * time.Second</pre><a href="../ticker.go">Source file</a></details><details class="entry searchable"><summary><code>JobLingerMsg</code> <small>type</small></summary><pre>JobLingerMsg is the ticker&#39;s one-shot timer: it fires when the oldest
-remembered finished job passes JobLinger, so the frame it causes drops
-the row with no key pressed. At is the deadline it was scheduled for;
-only the message for the timer in flight clears it.
-</pre><pre>type JobLingerMsg struct{ At time.Time }</pre><a href="../ticker.go">Source file</a></details><details class="entry searchable"><summary><code>JobRunning, JobDone, JobFailed, JobCancelled</code> <small>constant</small></summary><pre>Job states as jobs.list and the snapshot report them.
+</pre><pre>const JobLinger = 4 * time.Second</pre><a href="../ticker.go">Source file</a></details><details class="entry searchable"><summary><code>JobLingerMsg</code> <small>type</small></summary><pre>JobLingerMsg is a one-shot presentation timer for finished jobs, key
+echo entries or changed filter rows. At is the scheduled deadline; the
+message identifies its timer, so a cancelled or stale tick is harmless.
+Model.JobLingerTick returns the next message for a headless host.
+</pre><pre>type JobLingerMsg struct {
+	At time.Time
+	// contains filtered or unexported fields
+}</pre><a href="../ticker.go">Source file</a></details><details class="entry searchable"><summary><code>JobRunning, JobDone, JobFailed, JobCancelled</code> <small>constant</small></summary><pre>Job states as jobs.list and the snapshot report them.
 </pre><pre>const (
 	JobRunning   = &#34;running&#34;
 	JobDone      = &#34;done&#34;
 	JobFailed    = &#34;failed&#34;
 	JobCancelled = &#34;cancelled&#34;
-)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>JobTickerRows</code> <small>constant</small></summary><pre>JobTickerRows is the most entries the jobs ticker shows; they ride the
+)</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>JobSlot</code> <small>type</small></summary><pre>JobSlot names a replacing job&#39;s slot: Scope and Slot as
+Result.ReplacingAt(scope, slot) gives them (Replacing(slot) scopes the
+slot to the job&#39;s owner).
+</pre><pre>type JobSlot struct {
+	Scope string `json:&#34;scope,omitempty&#34;`
+	Slot  string `json:&#34;slot,omitempty&#34;`
+}</pre><a href="../placeholder.go">Source file</a></details><details class="entry searchable"><summary><code>JobSlot.Running</code> <small>function / method</small></summary><pre>Running reports whether a job runs in the slot; false for the zero slot.
+</pre><pre>func (s JobSlot) Running(r *Runtime) bool</pre><a href="../placeholder.go">Source file</a></details><details class="entry searchable"><summary><code>JobTickerRows</code> <small>constant</small></summary><pre>JobTickerRows is the most entries the jobs ticker shows; they ride the
 rule line above the footer (Layout.TickerRule), so the ticker takes no
 row of its own.
 </pre><pre>const JobTickerRows = 2</pre><a href="../ticker.go">Source file</a></details><details class="entry searchable"><summary><code>JobsTicker</code> <small>function / method</small></summary><pre>JobsTicker renders the ticker&#39;s entries: one message per job,
@@ -2126,11 +2244,16 @@ JSON it is an array. HandleCall keeps the type through its copy.
 </pre><pre>type Lines []any</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>List</code> <small>type</small></summary><pre>List owns flat selection, marks and scrolling on the runtime&#39;s event loop.
 Focus sits on the selected row when there is one, else on the list.
 </pre><pre>type List struct {
+	// UnfocusedSelection decides whether an unfocused page list marks its
+	// selected row. Nil keeps the mark. It never changes selection or focus;
+	// focused lists always mark their row, and unfocused modal lists do not.
+	// The predicate runs during rendering and must not mutate runtime state.
+	UnfocusedSelection func() bool
 	// contains filtered or unexported fields
 }</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.ApplyFilter</code> <small>function / method</small></summary><pre>ApplyFilter applies a named saved filter, keeping the text query.
 </pre><pre>func (l *List) ApplyFilter(name string) error</pre><a href="../list_prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.CanScrollLines</code> <small>function / method</small></summary><pre>CanScrollLines reports whether the list windowed its rows in the last
 frame (more rows than its window).
-</pre><pre>func (l *List) CanScrollLines() bool</pre><a href="../motion_scroll.go">Source file</a></details><details class="entry searchable"><summary><code>List.Column</code> <small>function / method</small></summary><pre>Column is a cell-mode table&#39;s current column (an index into Columns);
+</pre><pre>func (l *List) CanScrollLines() bool</pre><a href="../motion_scroll.go">Source file</a></details><details class="entry searchable"><summary><code>List.Close</code> <small>function / method</small></summary><pre>func (l *List) Close()</pre><a href="../list_filter_linger.go">Source file</a></details><details class="entry searchable"><summary><code>List.Column</code> <small>function / method</small></summary><pre>Column is a cell-mode table&#39;s current column (an index into Columns);
 0 for any other list.
 </pre><pre>func (l *List) Column() int</pre><a href="../table_cells.go">Source file</a></details><details class="entry searchable"><summary><code>List.ColumnOffset</code> <small>function / method</small></summary><pre>ColumnOffset is the table&#39;s column offset: 0 unscrolled, else k for the
 view that starts the scrolling columns at the k-th.
@@ -2144,22 +2267,24 @@ started over.
 </pre><pre>func (l *List) EndVisual()</pre><a href="../list_visual.go">Source file</a></details><details class="entry searchable"><summary><code>List.Filter</code> <small>function / method</small></summary><pre>Filter is the list&#39;s filter query (&#34;&#34; when every row is shown).
 </pre><pre>func (l *List) Filter() string</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.Filtering</code> <small>function / method</small></summary><pre>Filtering reports whether the filter line shows: a filter is set, or
 its query is being typed on this list.
-</pre><pre>func (l *List) Filtering() bool</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.Focus</code> <small>function / method</small></summary><pre>Focus points the active frame at the list&#39;s selected row, or the list.
+</pre><pre>func (l *List) Filtering() bool</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.FlushLingering</code> <small>function / method</small></summary><pre>FlushLingering removes all leaving rows immediately, keeping the filter.
+</pre><pre>func (l *List) FlushLingering()</pre><a href="../list_filter_linger.go">Source file</a></details><details class="entry searchable"><summary><code>List.Focus</code> <small>function / method</small></summary><pre>Focus points the active frame at the list&#39;s selected row, or the list.
 </pre><pre>func (l *List) Focus() error</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.FocusTarget</code> <small>function / method</small></summary><pre>FocusTarget is where a focus jump to the list lands: its selected row.
 </pre><pre>func (l *List) FocusTarget() string</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Focused</code> <small>function / method</small></summary><pre>Focused derives focus from the active frame instead of retaining a stale flag.
-</pre><pre>func (l *List) Focused() bool</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.HeaderTones</code> <small>function / method</small></summary><pre>HeaderTones is the header row&#39;s tones, a copy.
+</pre><pre>func (l *List) Focused() bool</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.HandleMessage</code> <small>function / method</small></summary><pre>func (l *List) HandleMessage(msg tea.Msg) bool</pre><a href="../list_filter_linger.go">Source file</a></details><details class="entry searchable"><summary><code>List.HeaderTones</code> <small>function / method</small></summary><pre>HeaderTones is the header row&#39;s tones, a copy.
 </pre><pre>func (l *List) HeaderTones() []ToneSpan</pre><a href="../table.go">Source file</a></details><details class="entry searchable"><summary><code>List.Height</code> <small>function / method</small></summary><pre>Height is the lines the list needs to draw every row without
 windowing (a table&#39;s header aside): Len, plus the filter line while it
 shows. A host that sizes a list to its rows sizes it with Height, so
 opening the filter line neither windows the rows nor moves what is drawn
 below the list as the filter narrows it.
-</pre><pre>func (l *List) Height() int</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.Items</code> <small>function / method</small></summary><pre>Items returns a copy of every row in display order, the ones a filter
+</pre><pre>func (l *List) Height() int</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.Items</code> <small>function / method</small></summary><pre>Items returns a copy of every row in app order, the ones a filter
 hides included. Cells and Tones are copies too, so editing a returned
 row in place changes nothing until SetItems, which re-measures it;
 Data is the application&#39;s value, shared as given.
 </pre><pre>func (l *List) Items() []ListItem</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Len</code> <small>function / method</small></summary><pre>Len is the number of rows, the ones a filter hides included (Shown
 counts the rest).
-</pre><pre>func (l *List) Len() int</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Marked</code> <small>function / method</small></summary><pre>Marked lists the marked rows in list order, the ones a filter hides
+</pre><pre>func (l *List) Len() int</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Lingering</code> <small>function / method</small></summary><pre>Lingering reports whether id is retained only until its filter deadline.
+</pre><pre>func (l *List) Lingering(id string) bool</pre><a href="../list_filter_linger.go">Source file</a></details><details class="entry searchable"><summary><code>List.Marked</code> <small>function / method</small></summary><pre>Marked lists the marked rows in list order, the ones a filter hides
 included (a mark survives the filter).
 </pre><pre>func (l *List) Marked() []ListItem</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.MatchMode</code> <small>function / method</small></summary><pre>MatchMode is the filter&#39;s match mode: the one search.cycle-match or
 search.set-match chose for this list, else the search.match setting.
@@ -2168,13 +2293,19 @@ selection mode entered with the focus on one of the list&#39;s rows starts
 the selection there; leaving it with the focus on the list ends it. A
 mode left for a modal opened over the selection holds it: the mode the
 modal restores on close resumes it, anchor and marks as they were.
-</pre><pre>func (l *List) ModeChanged(from, to string)</pre><a href="../list_visual.go">Source file</a></details><details class="entry searchable"><summary><code>List.Move</code> <small>function / method</small></summary><pre>Move clamps at either end and does not take focus from another component.
-</pre><pre>func (l *List) Move(delta int)</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.OnFilter</code> <small>function / method</small></summary><pre>OnFilter makes fn hear every change of the list&#39;s text filter (typing,
+</pre><pre>func (l *List) ModeChanged(from, to string)</pre><a href="../list_visual.go">Source file</a></details><details class="entry searchable"><summary><code>List.MotionEdges</code> <small>function / method</small></summary><pre>MotionEdges is first and last while the list has rows, and the column
+edges on a cell-mode table (CursorMotions).
+</pre><pre>func (l *List) MotionEdges() []SpillEdge</pre><a href="../motion_scroll.go">Source file</a></details><details class="entry searchable"><summary><code>List.Move</code> <small>function / method</small></summary><pre>Move clamps at either end and does not take focus from another component.
+</pre><pre>func (l *List) Move(delta int)</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.MovePage</code> <small>function / method</small></summary><pre>MovePage is list.scroll by lines rows (CursorMotions).
+</pre><pre>func (l *List) MovePage(lines int)</pre><a href="../motion_scroll.go">Source file</a></details><details class="entry searchable"><summary><code>List.MoveToEdge</code> <small>function / method</small></summary><pre>MoveToEdge is list.goto for the row edges and list.column {to} for the
+column edges (CursorMotions).
+</pre><pre>func (l *List) MoveToEdge(edge SpillEdge, row int)</pre><a href="../motion_scroll.go">Source file</a></details><details class="entry searchable"><summary><code>List.OnFilter</code> <small>function / method</small></summary><pre>OnFilter makes fn hear every change of the list&#39;s text filter (typing,
 erasing, clearing, a match mode change, a command that reveals a hidden
 row), after the rows and selection follow it; nil stops it. For a host
 that draws something by the list&#39;s matches, as the Settings page&#39;s
 settings follow its section list&#39;s filter.
-</pre><pre>func (l *List) OnFilter(fn func(*List))</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.Patch</code> <small>function / method</small></summary><pre>Patch applies a record-level change (ListPatch) without the caller
+</pre><pre>func (l *List) OnFilter(fn func(*List))</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.PageLines</code> <small>function / method</small></summary><pre>PageLines is the list&#39;s page (CursorMotions), as list.scroll&#39;s.
+</pre><pre>func (l *List) PageLines() int</pre><a href="../motion_scroll.go">Source file</a></details><details class="entry searchable"><summary><code>List.Patch</code> <small>function / method</small></summary><pre>Patch applies a record-level change (ListPatch) without the caller
 rebuilding the rows: it is SetItems over the patched rows, so a row that
 stays keeps its instance (and the bindings and pending jobs on it), the
 selection and the marks follow their ids, and only a removed row&#39;s
@@ -2182,13 +2313,14 @@ instance is closed. An empty patch does nothing; an invalid one (an
 index out of order or out of range, a repeated id) leaves the list
 unchanged. The patch applies to every row, the ones a filter hides
 included, and SetItems filters the result again.
-</pre><pre>func (l *List) Patch(p ListPatch) error</pre><a href="../list_delta.go">Source file</a></details><details class="entry searchable"><summary><code>List.PinColumn</code> <small>function / method</small></summary><pre>PinColumn pins column i; UnpinColumn unpins it.
+</pre><pre>func (l *List) Patch(p ListPatch) error</pre><a href="../list_delta.go">Source file</a></details><details class="entry searchable"><summary><code>List.PendingCommand</code> <small>function / method</small></summary><pre>func (l *List) PendingCommand() tea.Cmd</pre><a href="../list_filter_linger.go">Source file</a></details><details class="entry searchable"><summary><code>List.PinColumn</code> <small>function / method</small></summary><pre>PinColumn pins column i; UnpinColumn unpins it.
 </pre><pre>func (l *List) PinColumn(i int)</pre><a href="../table_pins.go">Source file</a></details><details class="entry searchable"><summary><code>List.PinnedColumns</code> <small>function / method</small></summary><pre>PinnedColumns is the table&#39;s pinned columns (indexes into Columns) in
 declared order.
-</pre><pre>func (l *List) PinnedColumns() []int</pre><a href="../table_pins.go">Source file</a></details><details class="entry searchable"><summary><code>List.PropFilters</code> <small>function / method</small></summary><pre>PropFilters returns a copy of the list&#39;s active prop conditions.
+</pre><pre>func (l *List) PinnedColumns() []int</pre><a href="../table_pins.go">Source file</a></details><details class="entry searchable"><summary><code>List.Placeholder</code> <small>function / method</small></summary><pre>Placeholder is what the list draws with no rows (SetPlaceholder).
+</pre><pre>func (l *List) Placeholder() Placeholder</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.PropFilters</code> <small>function / method</small></summary><pre>PropFilters returns a copy of the list&#39;s active prop conditions.
 </pre><pre>func (l *List) PropFilters() []PropFilter</pre><a href="../list_prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.ResetColumnWidths</code> <small>function / method</small></summary><pre>ResetColumnWidths makes every column automatic again and remembers it.
 </pre><pre>func (l *List) ResetColumnWidths()</pre><a href="../table_cells.go">Source file</a></details><details class="entry searchable"><summary><code>List.ResetPins</code> <small>function / method</small></summary><pre>ResetPins puts the default pins back (Column.Pinned, else the first).
-</pre><pre>func (l *List) ResetPins()</pre><a href="../table_pins.go">Source file</a></details><details class="entry searchable"><summary><code>List.SaveFilter</code> <small>function / method</small></summary><pre>SaveFilter writes the current conditions as a list-scoped user definition.
+</pre><pre>func (l *List) ResetPins()</pre><a href="../table_pins.go">Source file</a></details><details class="entry searchable"><summary><code>List.SaveFilter</code> <small>function / method</small></summary><pre>SaveFilter writes the current conditions and sort as a list-scoped user definition.
 Existing definitions in other scopes keep their order and content.
 </pre><pre>func (l *List) SaveFilter(name string) error</pre><a href="../list_prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.SavedFilters</code> <small>function / method</small></summary><pre>SavedFilters returns the defaults and user filters that apply here.
 </pre><pre>func (l *List) SavedFilters() ([]SavedFilter, error)</pre><a href="../list_prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.ScrollLines</code> <small>function / method</small></summary><pre>ScrollLines moves the list&#39;s window by lines rows, clamped, keeping the
@@ -2213,24 +2345,34 @@ give its cells: Cell is the column. A highlight layer
 crosses the header part (list.header.intersect).
 </pre><pre>func (l *List) SetHeaderTones(tones ...ToneSpan)</pre><a href="../table.go">Source file</a></details><details class="entry searchable"><summary><code>List.SetItems</code> <small>function / method</small></summary><pre>SetItems copies rows, preserves selection by ID, and falls back to the nearest
 remaining index if that ID disappears. Invalid updates leave the list unchanged.
-A filter (SetFilter) stays and applies to the new rows.
+Filters and view sorting stay and apply to the new rows.
 It creates one instance per new row under the list and removes the instances
 of rows that disappear; a retained row keeps its instance and any bindings
 the application put on it. Rows whose cells are unchanged keep a table&#39;s
 measured widths. A record-level change is Patch.
-</pre><pre>func (l *List) SetItems(items []ListItem) error</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.SetMatchNoun</code> <small>function / method</small></summary><pre>SetMatchNoun names the list&#39;s rows, plural, for a filter that lets none
-through: its empty line reads &#34;no NOUN match &#39;QUERY&#39;&#34; instead of &#34;(no
-matches)&#34;. &#34;&#34; restores that.
+</pre><pre>func (l *List) SetItems(items []ListItem) error</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.SetMatchNoun</code> <small>function / method</small></summary><pre>SetMatchNoun names the list&#39;s rows, plural (the placeholder&#39;s Plural):
+its empty lines read &#34;no NOUN&#34;, &#34;no NOUN match &#39;QUERY&#39;&#34;. &#34;&#34; names them
+&#34;rows&#34;.
 </pre><pre>func (l *List) SetMatchNoun(plural string)</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.SetPinnedColumns</code> <small>function / method</small></summary><pre>SetPinnedColumns makes these columns (indexes into Columns) the table&#39;s
 pins and remembers them; the default pins are remembered as no choice.
-</pre><pre>func (l *List) SetPinnedColumns(pins []int)</pre><a href="../table_pins.go">Source file</a></details><details class="entry searchable"><summary><code>List.SetPropFilters</code> <small>function / method</small></summary><pre>SetPropFilters replaces prop conditions, preserving the / text query,
+</pre><pre>func (l *List) SetPinnedColumns(pins []int)</pre><a href="../table_pins.go">Source file</a></details><details class="entry searchable"><summary><code>List.SetPlaceholder</code> <small>function / method</small></summary><pre>SetPlaceholder sets what the list draws with no rows: its Empty and
+Loading lines and the job that fills it (Placeholder).
+</pre><pre>func (l *List) SetPlaceholder(p Placeholder)</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.SetPropFilters</code> <small>function / method</small></summary><pre>SetPropFilters replaces prop conditions, preserving the / text query,
 marks and selection by id. Invalid updates leave the list unchanged.
 On trees, matching descendants bring their ancestors into view even
 when collapsed; clearing restores the original collapse state.
-</pre><pre>func (l *List) SetPropFilters(filters []PropFilter) error</pre><a href="../list_prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.Shown</code> <small>function / method</small></summary><pre>Shown is the number of rows the filter lets through (Len without one).
+</pre><pre>func (l *List) SetPropFilters(filters []PropFilter) error</pre><a href="../list_prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.SetSort</code> <small>function / method</small></summary><pre>SetSort replaces the view sort without changing Items, marks or the app&#39;s
+order. An empty sort restores that order. Selection and focus follow IDs;
+invalid updates leave the view unchanged. Trees sort siblings only.
+</pre><pre>func (l *List) SetSort(keys []SortKey) error</pre><a href="../list_sort.go">Source file</a></details><details class="entry searchable"><summary><code>List.Shown</code> <small>function / method</small></summary><pre>Shown is the number of rows the filter lets through (Len without one).
 </pre><pre>func (l *List) Shown() int</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>List.Snapshot</code> <small>function / method</small></summary><pre>Snapshot is the list&#39;s state with a copy of its rows (the snapshot&#39;s
 /lists entry); changing it never reaches the list.
-</pre><pre>func (l *List) Snapshot() map[string]any</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.StartVisual</code> <small>function / method</small></summary><pre>StartVisual starts a visual row selection at the selected row; a list
+</pre><pre>func (l *List) Snapshot() map[string]any</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Sort</code> <small>function / method</small></summary><pre>Sort returns a copy of the view&#39;s sort keys. They are in-memory state,
+preserved by SetItems, Patch and column changes and included in saved filters.
+</pre><pre>func (l *List) Sort() []SortKey</pre><a href="../list_sort.go">Source file</a></details><details class="entry searchable"><summary><code>List.Sortable</code> <small>function / method</small></summary><pre>Sortable reports whether local ordering is allowed and the rows expose
+a sortable prop or column. Secrets and props turned off for filters are
+not offered for sorting either.
+</pre><pre>func (l *List) Sortable() bool</pre><a href="../list_sort.go">Source file</a></details><details class="entry searchable"><summary><code>List.StartVisual</code> <small>function / method</small></summary><pre>StartVisual starts a visual row selection at the selected row; a list
 without rows or one added with NoMarks refuses.
 </pre><pre>func (l *List) StartVisual() error</pre><a href="../list_visual.go">Source file</a></details><details class="entry searchable"><summary><code>List.ToggleMark</code> <small>function / method</small></summary><pre>ToggleMark marks or unmarks a row for fan-out verbs; a list added with
 NoMarks refuses.
@@ -2241,11 +2383,18 @@ visible; a list with columns draws as a table (tableView). Calling it places the
 even at zero height, and reports its selected row&#39;s line (PlacedAt) so
 the page scrolls to keep that row on screen.
 </pre><pre>func (l *List) View(width, height int) string</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>List.Visual</code> <small>function / method</small></summary><pre>Visual reports whether a V selection is active on the list.
-</pre><pre>func (l *List) Visual() bool</pre><a href="../list_visual.go">Source file</a></details><details class="entry searchable"><summary><code>ListFilterFormSetting, ListFilterChipMaxSetting</code> <small>constant</small></summary><pre>Filter form settings and its modal id.
+</pre><pre>func (l *List) Visual() bool</pre><a href="../list_visual.go">Source file</a></details><details class="entry searchable"><summary><code>ListFilterFormSetting, ListFilterChipMaxSetting, ListFilterLayoutSetting, ListFilterSortSetting, ListFilterPickerSortSetting, ListFilterSaveSetting, ListFilterClearHiddenSortSetting</code> <small>constant</small></summary><pre>Filter form settings and its modal id.
 </pre><pre>const (
-	ListFilterFormSetting    = &#34;list.filter-form&#34;
-	ListFilterChipMaxSetting = &#34;list.filter-chip-max&#34;
-)</pre><a href="../list_filter_form.go">Source file</a></details><details class="entry searchable"><summary><code>ListFilterMode</code> <small>constant</small></summary><pre>ListFilterMode is the mode the filter line is typed in.
+	ListFilterFormSetting            = &#34;list.filter-form&#34;
+	ListFilterChipMaxSetting         = &#34;list.filter-chip-max&#34;
+	ListFilterLayoutSetting          = &#34;list.filter-layout&#34;
+	ListFilterSortSetting            = &#34;list.filter-sort&#34;
+	ListFilterPickerSortSetting      = &#34;list.filter-picker-sort&#34;
+	ListFilterSaveSetting            = &#34;list.filter-save&#34;
+	ListFilterClearHiddenSortSetting = &#34;list.filter-clear-hidden-sort&#34;
+)</pre><a href="../list_filter_form.go">Source file</a></details><details class="entry searchable"><summary><code>ListFilterLingerSetting</code> <small>constant</small></summary><pre>ListFilterLingerSetting controls how long rows leaving a filter remain
+visible. The default is 30s; zero disables lingering.
+</pre><pre>const ListFilterLingerSetting = &#34;list.filter-linger&#34;</pre><a href="../list_filter_linger.go">Source file</a></details><details class="entry searchable"><summary><code>ListFilterMode</code> <small>constant</small></summary><pre>ListFilterMode is the mode the filter line is typed in.
 </pre><pre>const ListFilterMode = &#34;list_filter&#34;</pre><a href="../list_filter.go">Source file</a></details><details class="entry searchable"><summary><code>ListHash</code> <small>function / method</small></summary><pre>ListHash is a list&#39;s content hash: SHA-256 (128 bits, hex) of its record
 hashes in order, one per line. An empty list hashes too.
 </pre><pre>func ListHash(records []string) string</pre><a href="../standard_watch.go">Source file</a></details><details class="entry searchable"><summary><code>ListItem</code> <small>type</small></summary><pre>ListItem is application-owned identity, display text, and the registered
@@ -2308,10 +2457,14 @@ that ignores them is still right.
 	Where map[string]any
 	Limit int
 	Args  Arguments
-}</pre><a href="../props.go">Source file</a></details><details class="entry searchable"><summary><code>Listen</code> <small>function / method</small></summary><pre>Listen requires a private, current-user-owned socket directory. A socket
+}</pre><a href="../props.go">Source file</a></details><details class="entry searchable"><summary><code>ListSortIndicatorSetting</code> <small>constant</small></summary><pre>ListSortIndicatorSetting controls sort arrows and separate labels in row views.
+</pre><pre>const ListSortIndicatorSetting = &#34;list.sort-indicator&#34;</pre><a href="../list_sort.go">Source file</a></details><details class="entry searchable"><summary><code>ListSortSectionsSetting</code> <small>constant</small></summary><pre>ListSortSectionsSetting chooses local section ordering or no section sorting.
+</pre><pre>const ListSortSectionsSetting = &#34;list.sort-sections&#34;</pre><a href="../list_sort.go">Source file</a></details><details class="entry searchable"><summary><code>Listen</code> <small>function / method</small></summary><pre>Listen requires a private, current-user-owned socket directory. A socket
 file left by an application that is gone (nothing answers a connect) is
 removed and listened on again; a live one is never removed.
-</pre><pre>func Listen(path string, send func(CallMsg)) (*Server, error)</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>MacroKey</code> <small>type</small></summary><pre>MacroKey is one recorded key of a macro; Paste marks pasted text.
+</pre><pre>func Listen(path string, send func(CallMsg)) (*Server, error)</pre><a href="../transport.go">Source file</a></details><details class="entry searchable"><summary><code>LoadingText</code> <small>function / method</small></summary><pre>LoadingText is the one format&#39;s loading line: &#34;loading PLURAL…&#34;
+(&#34;loading…&#34; for &#34;&#34;).
+</pre><pre>func LoadingText(plural string) string</pre><a href="../placeholder.go">Source file</a></details><details class="entry searchable"><summary><code>MacroKey</code> <small>type</small></summary><pre>MacroKey is one recorded key of a macro; Paste marks pasted text.
 </pre><pre>type MacroKey struct {
 	Key   string `json:&#34;key&#34;`
 	Paste bool   `json:&#34;paste,omitempty&#34;`
@@ -2350,7 +2503,12 @@ text (fuzzy), rather than spelled in it.
 fuzzyScore for fuzzy (compact runs and word starts score higher), the
 sum of each word&#39;s fuzzyScore for substring, 0 for regex. Higher is
 better; the blank query scores 0 everywhere.
-</pre><pre>func (m Matcher) ScorePrepared(hay string) (int, bool)</pre><a href="../search_match.go">Source file</a></details><details class="entry searchable"><summary><code>MissingOpensFormSetting</code> <small>constant</small></summary><pre>MissingOpensFormSetting says whether a request missing a required
+</pre><pre>func (m Matcher) ScorePrepared(hay string) (int, bool)</pre><a href="../search_match.go">Source file</a></details><details class="entry searchable"><summary><code>Matcher.Spans</code> <small>function / method</small></summary><pre>Spans are the places in text the query matches, as rune offsets
+[start, end) in order: each match of a regex, each occurrence of every
+word of a substring query (when text holds them all), the run from the
+first to the last matched character of a fuzzy one. A blank query and
+an invalid regex give none.
+</pre><pre>func (m Matcher) Spans(text string) [][2]int</pre><a href="../search_find.go">Source file</a></details><details class="entry searchable"><summary><code>MissingOpensFormSetting</code> <small>constant</small></summary><pre>MissingOpensFormSetting says whether a request missing a required
 argument, run from the palette&#39;s enter or from a key, opens the args
 form (on, the default) instead of naming the first missing word.
 </pre><pre>const MissingOpensFormSetting = &#34;palette.missing-opens-form&#34;</pre><a href="../args_form.go">Source file</a></details><details class="entry searchable"><summary><code>ModalAnchorSetting</code> <small>constant</small></summary><pre>ModalAnchorSetting turns anchored modals on (the default) or off. A
@@ -2365,14 +2523,21 @@ wins.
 </pre><pre>type ModalBody interface {
 	ModalTitle() string
 	ModalBlock(s Styles, width, height int) Block
-}</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>ModalDimSetting, DimUnfocusedSetting, ModalBackdropHighlightsSetting</code> <small>constant</small></summary><pre>The dim settings: rows of settings/ochazuke.json.
+}</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>ModalDimSetting, DimUnfocusedSetting, DimUnfocusedSelectionSetting, ModalBackdropHighlightsSetting, UnfocusedSelectionSetting</code> <small>constant</small></summary><pre>The dim settings: rows of settings/ochazuke.json.
 </pre><pre>const (
 	ModalDimSetting     = &#34;modal-dim&#34;
 	DimUnfocusedSetting = &#34;dim-unfocused&#34;
+	// DimUnfocusedSelectionSetting: percent the selected row&#39;s bar of a
+	// list without the focus fades beyond dim-unfocused (0: with the list).
+	DimUnfocusedSelectionSetting = &#34;dim-unfocused-selection&#34;
 	// ModalBackdropHighlightsSetting: keep (the page&#39;s reverse video and
 	// underline beneath a modal stay, dimmed) or plain (the backdrop is
 	// drawn without them).
 	ModalBackdropHighlightsSetting = &#34;modal-highlights&#34;
+	// UnfocusedSelectionSetting: keep (a component without the focus keeps
+	// its selection marked, faded; UX R5.1) or hide (only the focused
+	// component draws its selection).
+	UnfocusedSelectionSetting = &#34;unfocused-selection&#34;
 )</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>ModalOption</code> <small>type</small></summary><pre>ModalOption configures OpenModal.
 </pre><pre>type ModalOption func(*modalSpec)</pre><a href="../focus.go">Source file</a></details><details class="entry searchable"><summary><code>ModalSize</code> <small>function / method</small></summary><pre>ModalSize returns safe body bounds, reserving the same chrome as ComposeModal.
 Modal chrome uses one horizontal padding cell regardless of page density.
@@ -2493,7 +2658,7 @@ adapter holds no component list of its own.
 	// remain the only navigation state; input focus and modal routing are unchanged.
 	Sidebar bool
 
-	// Now is the Model&#39;s clock: the ticker&#39;s memory of finished jobs and
+	// Now is the Model&#39;s clock: finished jobs, key echoes, changed filter rows and
 	// the linger timer read it (time.Now by default, time.Now when nil). A
 	// headless host fakes it, advances it to JobLingerTick&#39;s deadline and
 	// delivers that message instead of waiting JobLinger.
@@ -2516,9 +2681,9 @@ will deliver at its deadline (At), and false when none is scheduled. A
 host with a fake Now advances the clock to At and delivers the message
 itself rather than waiting JobLinger.
 
-It is the Model&#39;s one linger timer: the key echo&#39;s entries (keys.echo-
-linger) ride it too, so the earlier of the two deadlines in flight is the
-one returned, and its message clears whichever timer it was for.
+It returns the earliest deadline among the job ticker, key echo and
+filtered row views. Each view has one cancellable timer, regardless of
+its row count; the returned message addresses only its own timer.
 </pre><pre>func (m *Model) JobLingerTick() (JobLingerMsg, bool)</pre><a href="../ticker.go">Source file</a></details><details class="entry searchable"><summary><code>Model.JobsTicker</code> <small>function / method</small></summary><pre>JobsTicker is the ticker the shell draws in the rule line above the
 footer for the current frame, as plain entries at most width cells each:
 none when no job shows.
@@ -2575,7 +2740,13 @@ steps go back), wrapping; an unknown mode counts as substring.
 no marks, so space does not answer with list.mark there (the verb&#39;s
 guard, list-marks, is false; the footer and ? help leave it out) and
 list.mark refuses. list.apply still runs on the selected row.
-</pre><pre>func NoMarks() InstanceOption</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>NoSpill</code> <small>function / method</small></summary><pre>NoSpill makes a list trap its motions: list.move past its last (first)
+</pre><pre>func NoMarks() InstanceOption</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>NoMatchText</code> <small>function / method</small></summary><pre>NoMatchText is the one format&#39;s line for a filter that lets no row
+through: &#34;no PLURAL match &#39;QUERY&#39;&#34;; with no text query, &#34;no PLURAL match
+the filter&#34;.
+</pre><pre>func NoMatchText(plural, query string) string</pre><a href="../placeholder.go">Source file</a></details><details class="entry searchable"><summary><code>NoSort</code> <small>function / method</small></summary><pre>NoSort leaves ordering to the source of a list or tree. Use it when the
+rows are a virtual window or a partial result: sorting that window would
+misrepresent the whole source. The sort verbs and key are unavailable.
+</pre><pre>func NoSort() InstanceOption</pre><a href="../list_sort.go">Source file</a></details><details class="entry searchable"><summary><code>NoSpill</code> <small>function / method</small></summary><pre>NoSpill makes a list trap its motions: list.move past its last (first)
 row stays on that row instead of moving the focus to the next (previous)
 stop on the page. For a list that must keep the focus, such as a picker.
 </pre><pre>func NoSpill() InstanceOption</pre><a href="../instance.go">Source file</a></details><details class="entry searchable"><summary><code>NoopAction</code> <small>constant</small></summary><pre>NoopAction is the always-available action that does nothing: a row bound
@@ -2669,7 +2840,7 @@ that has none of its own (Input.Completions).
 </pre><pre>func (b *NounBuilder) Completions(triggers ...CompletionTrigger) *NounBuilder</pre><a href="../completion.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Confirm</code> <small>function / method</small></summary><pre>Confirm asks before the last declared verb runs: the prompt template
 ({{id}}, {{noun}}, {{&lt;arg&gt;}}) opens a confirm modal whose y runs the
 stored request and n or esc pops it. An empty prompt removes the confirm.
-</pre><pre>func (b *NounBuilder) Confirm(prompt string) *NounBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Destructive</code> <small>function / method</small></summary><pre>Destructive marks the last verb as deleting, archiving or otherwise destroying data.
+</pre><pre>func (b *NounBuilder) Confirm(prompt string) *NounBuilder</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Destructive</code> <small>function / method</small></summary><pre>Destructive marks the last verb as destroying user data that cannot be recovered.
 </pre><pre>func (b *NounBuilder) Destructive() *NounBuilder</pre><a href="../agent_metadata.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Example</code> <small>function / method</small></summary><pre>Example adds an example to the last verb. The caller keeps ownership of args.
 </pre><pre>func (b *NounBuilder) Example(args Arguments, note string) *NounBuilder</pre><a href="../agent_metadata.go">Source file</a></details><details class="entry searchable"><summary><code>NounBuilder.Fetch</code> <small>function / method</small></summary><pre>Fetch marks the last declared verb as a data request (Operation.HistoryKind
 HistoryFetch): a state, list or show verb. Its calls are history entries
@@ -2903,9 +3074,9 @@ on the Operation passed to Register.
 	ConfirmFor func(r *Runtime, c Context, q Request, prompt string) string `json:&#34;-&#34;`
 	Run        Handler                                                      `json:&#34;-&#34;`
 	App        AppHandler                                                   `json:&#34;-&#34;`
-}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Operation.AgentRightOf</code> <small>function / method</small></summary><pre>AgentRightOf is the declared right, or confirm for a destructive or confirmed
-verb, else allow. Live screen control is allowed when the host enables live.
-This describes a default only; it does not enforce rights or read overrides.
+}</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Operation.AgentRightOf</code> <small>function / method</small></summary><pre>AgentRightOf refuses destructive verbs before consulting declarations, then
+defaults prompted verbs to confirm and everything else to allow.
+This describes a default only; owner overrides are resolved by AgentRight.
 </pre><pre>func (o Operation) AgentRightOf(live bool) string</pre><a href="../agent_metadata.go">Source file</a></details><details class="entry searchable"><summary><code>Operation.ExamplesOf</code> <small>function / method</small></summary><pre>ExamplesOf returns declared examples, else a template of the required params.
 Templates with placeholder strings must be filled before running them.
 </pre><pre>func (o Operation) ExamplesOf() []Example</pre><a href="../agent_metadata.go">Source file</a></details><details class="entry searchable"><summary><code>Operation.HistoryKindOf</code> <small>function / method</small></summary><pre>HistoryKindOf is the kind of history entry the operation records: its
@@ -3034,6 +3205,9 @@ without inputs return Text(body).
 	// the setting, once the user sets it, decides. Set it before
 	// RegisterPage, or pass the DefaultHidden option.
 	DefaultHidden bool `json:&#34;defaultHidden,omitempty&#34;`
+	// ActionNouns are the canonical nouns whose actions this page represents.
+	// They affect palette ordering only, never availability or execution.
+	ActionNouns []string `json:&#34;-&#34;`
 	// contains filtered or unexported fields
 }</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>PagesHiddenSetting</code> <small>constant</small></summary><pre>PagesHiddenSetting is the framework setting that hides pages from the
 tab row and the page-cycling keys (page.next, page.previous, ctrl&#43;j/k):
@@ -3060,7 +3234,9 @@ globally unique.
 </pre><pre>func (p *Palette) HandleKey(key string) (bool, error)</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsActive</code> <small>function / method</small></summary><pre>IsActive reports whether the palette is the top modal.
 </pre><pre>func (p *Palette) IsActive() bool</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.IsOpen</code> <small>function / method</small></summary><pre>func (p *Palette) IsOpen() bool</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.Open</code> <small>function / method</small></summary><pre>func (p *Palette) Open() error</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.RegisterNoun</code> <small>function / method</small></summary><pre>RegisterNoun adds or replaces a live instance source without changing operation forms.
 </pre><pre>func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.Text</code> <small>function / method</small></summary><pre>Text is the command line.
-</pre><pre>func (p *Palette) Text() string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.View</code> <small>function / method</small></summary><pre>func (p *Palette) View() string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.ViewSized</code> <small>function / method</small></summary><pre>func (p *Palette) ViewSized(width, height int) string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteChoiceWordsSetting</code> <small>constant</small></summary><pre>PaletteChoiceWordsSetting says whether the palette offers a choice&#39;s
+</pre><pre>func (p *Palette) Text() string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.View</code> <small>function / method</small></summary><pre>func (p *Palette) View() string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>Palette.ViewSized</code> <small>function / method</small></summary><pre>func (p *Palette) ViewSized(width, height int) string</pre><a href="../palette.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteActivePageSetting</code> <small>constant</small></summary><pre>PaletteActivePageSetting prefers the active page&#39;s actions within the
+palette&#39;s existing completion groups.
+</pre><pre>const PaletteActivePageSetting = &#34;palette.active-page&#34;</pre><a href="../palette_nouns.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteChoiceWordsSetting</code> <small>constant</small></summary><pre>PaletteChoiceWordsSetting says whether the palette offers a choice&#39;s
 own word (Choice.Word, a page&#39;s title) or its id.
 </pre><pre>const PaletteChoiceWordsSetting = &#34;palette.choice-words&#34;</pre><a href="../palette_choices.go">Source file</a></details><details class="entry searchable"><summary><code>PaletteEntry</code> <small>type</small></summary><pre>PaletteEntry is one completion: Value is the word it appends, Kind is
 verb, noun or choice, Label what the list shows.
@@ -3146,6 +3322,10 @@ never lists it. The parameter&#39;s own name wins when both are given.
 	Enum   []string `json:&#34;enum,omitempty&#34;`
 	Source string   `json:&#34;source,omitempty&#34;`
 	Free   bool     `json:&#34;free,omitempty&#34;`
+	// SourceArgs maps a source parameter to a sibling parameter or record
+	// field. Only set sibling values are forwarded; query is still supplied
+	// automatically unless explicitly mapped here. Register the source first.
+	SourceArgs map[string]string `json:&#34;sourceArgs,omitempty&#34;`
 	// Noun says the value names one of that noun&#39;s things: a row of its
 	// list verb (NOUN.list, when it is a read with no required parameter,
 	// stands in for an empty Source), else the id of a live instance of
@@ -3288,12 +3468,13 @@ is remembered under it.
 	PathSourceRecent = &#34;recent&#34;
 	PathSourceTyped  = &#34;typed&#34;
 )</pre><a href="../path_chooser.go">Source file</a></details><details class="entry searchable"><summary><code>PathSourceWalk</code> <small>constant</small></summary><pre>PathSourceWalk is the walk source&#39;s name.
-</pre><pre>const PathSourceWalk = &#34;walk&#34;</pre><a href="../path_walk.go">Source file</a></details><details class="entry searchable"><summary><code>PathStartSetting, PathFieldSetting, PathHiddenSetting, PathNoAutoListSetting</code> <small>constant</small></summary><pre>Path settings: rows of settings/ochazuke.json.
+</pre><pre>const PathSourceWalk = &#34;walk&#34;</pre><a href="../path_walk.go">Source file</a></details><details class="entry searchable"><summary><code>PathStartSetting, PathFieldSetting, PathHiddenSetting, PathNoAutoListSetting, PathRecentDirsSetting</code> <small>constant</small></summary><pre>Path settings: rows of settings/ochazuke.json.
 </pre><pre>const (
 	PathStartSetting      = &#34;path.start&#34;
 	PathFieldSetting      = &#34;path.field&#34;
 	PathHiddenSetting     = &#34;path.hidden&#34;
 	PathNoAutoListSetting = &#34;path.no-auto-list&#34;
+	PathRecentDirsSetting = &#34;path.recent-dirs&#34;
 )</pre><a href="../path_chooser.go">Source file</a></details><details class="entry searchable"><summary><code>PathWalk</code> <small>type</small></summary><pre>PathWalk is what one open walks: its roots in order (a root inside one
 walked before it is listed once, under the first), and Batch, the
 folders read per batch (0 is the default, 64).
@@ -3371,7 +3552,27 @@ never traversal edges.
 place&#39;s noun has the levels the place recorded between it and app (its
 list, its page; the modal noun inside a modal), each answering with its
 noun&#39;s tables, so a list row&#39;s keys from its list and page are there.
-</pre><pre>func PlaceHelp(r *Runtime, place NounPlace, mode ModeState) []HelpRow</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Placement</code> <small>type</small></summary><pre>Placement is one Placed call of a frame: the instance drawn and, when its
+</pre><pre>func PlaceHelp(r *Runtime, place NounPlace, mode ModeState) []HelpRow</pre><a href="../model.go">Source file</a></details><details class="entry searchable"><summary><code>Placeholder</code> <small>type</small></summary><pre>Placeholder is what a list-like component draws in place of rows, as
+data: Empty while it has no rows, Loading while the job that fills it
+runs, so &#34;loading&#34; never reads as &#34;empty&#34;. Every text follows one format
+(UX-RULES R5.19): lower case, no parentheses, the rows&#39; noun named (&#34;no
+panes&#34;, &#34;loading panes…&#34;, &#34;no panes match &#39;x&#39;&#34;).
+</pre><pre>type Placeholder struct {
+	// Plural names the rows (&#34;panes&#34;); &#34;&#34; is &#34;rows&#34;. It fills the default
+	// texts and the no-match line.
+	Plural string `json:&#34;plural,omitempty&#34;`
+	// Empty is the line for no rows at all; &#34;&#34; is EmptyText(Plural).
+	Empty string `json:&#34;empty,omitempty&#34;`
+	// Loading is the line while LoadingJob runs and there are no rows yet;
+	// &#34;&#34; is LoadingText(Plural).
+	Loading string `json:&#34;loading,omitempty&#34;`
+	// LoadingJob names the job that fills the component: while a job runs
+	// in that slot the component draws Loading instead of Empty. The zero
+	// value names none.
+	LoadingJob JobSlot `json:&#34;loadingJob,omitzero&#34;`
+}</pre><a href="../placeholder.go">Source file</a></details><details class="entry searchable"><summary><code>Placeholder.Text</code> <small>function / method</small></summary><pre>Text is the line for a component with no rows: Loading while its job
+runs, else Empty, in the one format.
+</pre><pre>func (p Placeholder) Text(r *Runtime) string</pre><a href="../placeholder.go">Source file</a></details><details class="entry searchable"><summary><code>Placement</code> <small>type</small></summary><pre>Placement is one Placed call of a frame: the instance drawn and, when its
 view reported them (PlacedAt), the lines it covers in the page body and
 the lines inside it that hold the focus (a list&#39;s selected row, a grid&#39;s
 cursor row, an input&#39;s whole box, a terminal&#39;s top line).
@@ -3430,6 +3631,10 @@ so the palette, CLI help and forms read it unchanged; Type is a setting
 type or PropObject (&#34;&#34; is string). A prop whose Parameter.Noun is set is
 a reference: its value is the key of one of that noun&#39;s things.
 
+Aliases are alternate input names for this prop. Reads, writes and filters
+resolve them to Name; lists, forms and choices offer only Name. Alias names
+follow the same clash rules as prop names and never form separate props.
+
 ReadOnly props are never written by set (a Key prop always is);
 CreateOnly ones are written by create only. Role gives the prop a part
 (RoleLabel, RoleOwner). Fallback names another prop of the noun shown in
@@ -3455,7 +3660,8 @@ the list&#39;s filter layer, never on the noun, so set, forms, the palette,
 the CLI and MCP cannot write it. Every field is filterable; only declared
 fields are writable.
 </pre><pre>type PropSpec struct {
-	Name string `json:&#34;name&#34;`
+	Name    string   `json:&#34;name&#34;`
+	Aliases []string `json:&#34;aliases,omitempty&#34;`
 	Parameter
 	ReadOnly   bool   `json:&#34;readOnly,omitempty&#34;`
 	CreateOnly bool   `json:&#34;createOnly,omitempty&#34;`
@@ -3492,9 +3698,10 @@ field is written after a pause (Debounce) and at once when the field is
 left or insert mode ends; a choice, an edit in normal mode, an undo or a
 redo is written at once. A value that is not valid (Required, the type,
 the choices, Validate) is not written, and its label says why. u and
-ctrl&#43;r undo and redo the record&#39;s written changes, each written like any
-other; q and esc leave, and nothing is ever discarded. There is no save
-key.
+ctrl&#43;r walk one chain from any stop: a text input&#39;s own history first,
+then the record&#39;s written changes, each written like any other; past the
+end they do nothing. q and esc leave, and nothing is ever discarded.
+There is no save key.
 
 The editor is an instance of the form noun (id) with a child per field
 (id/name): text fields are inputs of form-field (form-text when
@@ -3538,7 +3745,8 @@ once and closes the field&#39;s undo step.
 </pre><pre>func (e *RecordEditor) Ran() bool</pre><a href="../record_editor.go">Source file</a></details><details class="entry searchable"><summary><code>RecordEditor.Reload</code> <small>function / method</small></summary><pre>Reload loads the record again (Spec.Load) and takes in what changed
 outside the editor; what it does then follows forms.outside-write, as a
 RecordSpec.Watch event does.
-</pre><pre>func (e *RecordEditor) Reload() error</pre><a href="../record_editor.go">Source file</a></details><details class="entry searchable"><summary><code>RecordEditor.Runnable</code> <small>function / method</small></summary><pre>Runnable reports whether form.run would run the form now: it has a
+</pre><pre>func (e *RecordEditor) Reload() error</pre><a href="../record_editor.go">Source file</a></details><details class="entry searchable"><summary><code>RecordEditor.RowView</code> <small>function / method</small></summary><pre>RowView exposes an explicitly declared backing view to shared list verbs.
+</pre><pre>func (e *RecordEditor) RowView() *List</pre><a href="../record_editor.go">Source file</a></details><details class="entry searchable"><summary><code>RecordEditor.Runnable</code> <small>function / method</small></summary><pre>Runnable reports whether form.run would run the form now: it has a
 Submit, is open, and every field is valid.
 </pre><pre>func (e *RecordEditor) Runnable() bool</pre><a href="../record_editor.go">Source file</a></details><details class="entry searchable"><summary><code>RecordEditor.Values</code> <small>function / method</small></summary><pre>Values is every field&#39;s value as shown, valid or not.
 </pre><pre>func (e *RecordEditor) Values() Record</pre><a href="../record_editor.go">Source file</a></details><details class="entry searchable"><summary><code>RecordEditor.WriteError</code> <small>function / method</small></summary><pre>WriteError is the last write&#39;s failure, &#34;&#34; once a write succeeds.
@@ -3560,6 +3768,10 @@ ignored). The rest are text inputs, Multiline ones several lines high.
 </pre><pre>type RecordField struct {
 	Name  string `json:&#34;name&#34;`
 	Label string `json:&#34;label,omitempty&#34;` // shown above the value (default Name)
+	// Hidden keeps backing state in the record without drawing a field or focus stop.
+	Hidden bool `json:&#34;hidden,omitempty&#34;`
+	// KeepOnClear preserves this field when form.clear empties the record.
+	KeepOnClear bool `json:&#34;keepOnClear,omitempty&#34;`
 	Parameter
 	Multiline bool `json:&#34;multiline,omitempty&#34;`
 	// Secret makes the field&#39;s input secret (Input.Secret): what is typed
@@ -3595,6 +3807,21 @@ to load the record and how to write it.
 </pre><pre>type RecordSpec struct {
 	Title  string // the modal&#39;s title; a placed editor&#39;s heading is the application&#39;s
 	Fields []RecordField
+	// State holds backing values used by composed controls, outside the field
+	// schema. They use the same validation, write, clear and undo behavior;
+	// they have no field layout or focus stops unless the composer supplies one.
+	State []RecordField
+	// Render optionally composes the editor with other controls. Block remains
+	// the standard field layout, usable within this callback.
+	Render func(Styles, int, int) Block
+	// RowView is the backing list of a composite record view. Shared list verbs
+	// resolve it from descendants, including embedded choosers.
+	RowView *List
+	// Immediate writes valid typing on every event, for inexpensive view state.
+	// Otherwise text retains the normal debounce behavior.
+	Immediate bool
+	// OnClear resets composed controls after form.clear empties the record.
+	OnClear func() error
 	// Load reads the record when the editor opens (nil: every field empty).
 	Load func() (Record, error)
 	// Save writes one change: Done, Failed, or Pending work that runs off
@@ -3816,15 +4043,18 @@ they return any other.
 	// RoleOwner is the reference prop naming the thing that holds this one
 	// (move writes it).
 	RoleOwner = &#34;owner&#34;
-	// RoleArchive is the boolean prop that says a thing is archived
-	// (archive and restore write it; delete reads it under the
-	// delete.archive setting).
+	// RoleArchive is the boolean prop that says a thing is archived.
+	// Archive and restore write it; standard list hides true values unless
+	// a filter names it or list.hide-archived is off. It declares the
+	// archived saved filter. Delete reads it under delete.archive.
 	RoleArchive = &#34;archive&#34;
 )</pre><a href="../props.go">Source file</a></details><details class="entry searchable"><summary><code>RowSelect</code> <small>function / method</small></summary><pre>RowSelect is a no-op kept for code written against v0.12.0, where every
 table was cell-based unless added with it.
 
 Deprecated: tables select rows unless added with CellSelect; drop it.
-</pre><pre>func RowSelect() InstanceOption</pre><a href="../table_cells.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime</code> <small>type</small></summary><pre>Runtime is owned by one event loop. Transport callers submit messages to
+</pre><pre>func RowSelect() InstanceOption</pre><a href="../table_cells.go">Source file</a></details><details class="entry searchable"><summary><code>RowViewProvider</code> <small>type</small></summary><pre>RowViewProvider lets composite editors declare the row view they control.
+This is explicit context, distinct from their own navigation lists/choosers.
+</pre><pre>type RowViewProvider interface{ RowView() *List }</pre><a href="../chooser_prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime</code> <small>type</small></summary><pre>Runtime is owned by one event loop. Transport callers submit messages to
 that loop. It holds the operation registry (Operations, Modes and their
 guards), the instance registry (Nouns, Instances and their parent links,
 including list rows), the three plain interaction fields Focus, Mode and
@@ -3878,7 +4108,10 @@ another alias (which resolves to its action). An alias may not be the
 name of a registered action, nor of another alias for a different
 action; registering the same alias for the same action again is a
 no-op. Source defaults to app, or framework inside Builtin.
-</pre><pre>func (r *Runtime) AddActionAlias(a ActionAlias) error</pre><a href="../action_names.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddDefaultHooks</code> <small>function / method</small></summary><pre>AddDefaultHooks adds default hook rows, after the ones added before: the
+</pre><pre>func (r *Runtime) AddActionAlias(a ActionAlias) error</pre><a href="../action_names.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddChooser</code> <small>function / method</small></summary><pre>AddChooser places the existing chooser under a parent rather than opening
+a modal. Its search, ranking, keys and rendering are the same. Stay permits
+several choices; the host draws View and owns the surrounding layout.
+</pre><pre>func (r *Runtime) AddChooser(spec ChooserSpec, opts ...InstanceOption) (*Chooser, error)</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddDefaultHooks</code> <small>function / method</small></summary><pre>AddDefaultHooks adds default hook rows, after the ones added before: the
 application&#39;s own (Source &#34;&#34; is &#34;app&#34;) or an extension&#39;s (its catalog&#39;s
 rows, cli.CatalogHooks, with the extension&#39;s name as Source). The user&#39;s
 hooks.json replaces or drops them. A row needs on and do.
@@ -3898,7 +4131,8 @@ own noun as well, NoSpill() for a list whose motions stay inside it,
 SpillToSelection() for one a spill lands in on its selected row,
 NoMarks() for a read-only view, ClearFilterOnEnter() for a list whose
 filter enter chooses a row and clears, Columns(...) for a table, and
-CellSelect() for a table with a current column (table_cells.go).
+CellSelect() for a table with a current column (table_cells.go), and
+NoSort() when a source owns the order of partial or virtualized rows.
 </pre><pre>func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (*List, error)</pre><a href="../list.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.AddNounAlias</code> <small>function / method</small></summary><pre>AddNounAlias registers a noun alias with its fields: Since and
 RemoveAfter (either) make it a deprecated name, accepted for now with a
 one-time notice naming the noun (and a bindings check note for a row
@@ -4095,7 +4329,9 @@ source), without changing the loaded rows.
 </pre><pre>func (r *Runtime) CheckHooks() []string</pre><a href="../hooks.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.CheckRequest</code> <small>function / method</small></summary><pre>CheckRequest resolves arguments, target, subjects, guards and verb checks
 without invoking the handler, opening a modal or recording history. Checks
 should be read-only, as they are when judging an ordinary request.
-</pre><pre>func (r *Runtime) CheckRequest(q Request) error</pre><a href="../agent_rights.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.CheckUserActions</code> <small>function / method</small></summary><pre>CheckUserActions reports what a load of actions.json would skip, without
+</pre><pre>func (r *Runtime) CheckRequest(q Request) error</pre><a href="../agent_rights.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.CheckSourceArgs</code> <small>function / method</small></summary><pre>CheckSourceArgs validates choice dependencies against a complete sibling schema.
+Sources must already be registered. Catalog hosts call it after mounting all verbs.
+</pre><pre>func (r *Runtime) CheckSourceArgs(params map[string]Parameter) error</pre><a href="../params.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.CheckUserActions</code> <small>function / method</small></summary><pre>CheckUserActions reports what a load of actions.json would skip, without
 installing anything: entries that do not parse or validate, and alias
 rows that clash with an action or another alias. An entry the last load
 installed unchanged is not a problem.
@@ -4111,9 +4347,11 @@ actions.json (CheckUserActions) follow.
 the result of its choices source (ChoicesSource), or, for a Noun with no
 list verb, the noun&#39;s live instances. A source that asks for
 confirmation is refused; it must be a read.
-</pre><pre>func (r *Runtime) Choices(c Context, p Parameter) ([]Choice, error)</pre><a href="../params.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ChoicesFor</code> <small>function / method</small></summary><pre>ChoicesFor is Choices for the text typed so far: a source that declares
-ChoicesQueryParameter receives query.
-</pre><pre>func (r *Runtime) ChoicesFor(c Context, p Parameter, query string) ([]Choice, error)</pre><a href="../params.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ChoicesSource</code> <small>function / method</small></summary><pre>ChoicesSource is the operation (noun.verb) a parameter&#39;s choices come
+</pre><pre>func (r *Runtime) Choices(c Context, p Parameter, siblings ...Arguments) ([]Choice, error)</pre><a href="../params.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ChoicesFor</code> <small>function / method</small></summary><pre>ChoicesFor is Choices for the text typed so far: a source that declares
+ChoicesQueryParameter receives query. The optional siblings map supplies
+the surrounding request or form values named by SourceArgs. Pending sources
+are awaited; UI callers use the asynchronous loaders instead.
+</pre><pre>func (r *Runtime) ChoicesFor(c Context, p Parameter, query string, siblings ...Arguments) ([]Choice, error)</pre><a href="../params.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ChoicesSource</code> <small>function / method</small></summary><pre>ChoicesSource is the operation (noun.verb) a parameter&#39;s choices come
 from: its Source, else its Noun&#39;s list verb when that is registered,
 asks for no confirmation and needs no argument; empty when there is
 none (a Noun parameter then lists the noun&#39;s live instances).
@@ -4126,7 +4364,11 @@ none was).
 and on a nil runtime).
 </pre><pre>func (r *Runtime) ChooserMatch() string</pre><a href="../search_match.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ChromeLevel</code> <small>function / method</small></summary><pre>ChromeLevel is the chrome.color value, rich (its default) when it holds
 anything else.
-</pre><pre>func (r *Runtime) ChromeLevel() string</pre><a href="../chrome.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Completer</code> <small>function / method</small></summary><pre>Completer is the inline completion component.
+</pre><pre>func (r *Runtime) ChromeLevel() string</pre><a href="../chrome.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.CloseModal</code> <small>function / method</small></summary><pre>CloseModal closes the top modal the way it says (CloseWith,
+SetModalClose), else pops it: what modal.close runs. A close request
+that closes the same modal again from inside (a request that runs
+modal.close) pops it instead of recurring.
+</pre><pre>func (r *Runtime) CloseModal(c Context) error</pre><a href="../focus.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Completer</code> <small>function / method</small></summary><pre>Completer is the inline completion component.
 </pre><pre>func (r *Runtime) Completer() *Completer</pre><a href="../completion_list.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.CompletionTriggers</code> <small>function / method</small></summary><pre>CompletionTriggers are the triggers an input completes with: its own,
 else its noun&#39;s.
 </pre><pre>func (r *Runtime) CompletionTriggers(id string) []CompletionTrigger</pre><a href="../completion.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Config</code> <small>function / method</small></summary><pre>Config returns the config component.
@@ -4287,7 +4529,11 @@ force is set, and then nothing is written.
 to path, one row per line, in a form hooks.json reads back; &#34;&#34; is
 &lt;config dir&gt;/reference/hooks.reference.json. It never writes over the
 live hooks.json without force.
-</pre><pre>func (r *Runtime) ExportHooks(path string, force bool) (string, error)</pre><a href="../hooks.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.FocusDisplay</code> <small>function / method</small></summary><pre>FocusDisplay is the focus-display value, off when it is undeclared or
+</pre><pre>func (r *Runtime) ExportHooks(path string, force bool) (string, error)</pre><a href="../hooks.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.FindText</code> <small>function / method</small></summary><pre>FindText runs a find at focus: query compiled in mode (search.match for
+&#34;&#34;) with case as search.case says, count times from the cursor, down
+or up with back. It becomes the last find even when nothing matches,
+as in Vim.
+</pre><pre>func (r *Runtime) FindText(focus, query, mode string, back bool, count int) error</pre><a href="../search_find.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.FocusDisplay</code> <small>function / method</small></summary><pre>FocusDisplay is the focus-display value, off when it is undeclared or
 holds anything else.
 </pre><pre>func (r *Runtime) FocusDisplay() string</pre><a href="../focus_display.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.FocusInTopLevel</code> <small>function / method</small></summary><pre>FocusInTopLevel reports the focus invariant: the focus is inside the top
 level, the top modal&#39;s subtree while a modal is open (else the current
@@ -4374,7 +4620,9 @@ whole subtree. A stop is never descended into (a grid is one stop, its
 cells are not); the focus lands on the unit&#39;s remembered child.
 </pre><pre>func (r *Runtime) JumpFocus(steps int, scope string) error</pre><a href="../focus.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.KeyEcho</code> <small>function / method</small></summary><pre>KeyEcho is the keys.echo value, off when it is undeclared or holds
 anything else.
-</pre><pre>func (r *Runtime) KeyEcho() string</pre><a href="../key_echo.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Launch</code> <small>function / method</small></summary><pre>Launch starts a pending result as a job of owner under verb and queues
+</pre><pre>func (r *Runtime) KeyEcho() string</pre><a href="../key_echo.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.LastFind</code> <small>function / method</small></summary><pre>LastFind is the last search.find&#39;s query and direction (&#34;&#34; before the
+first).
+</pre><pre>func (r *Runtime) LastFind() (query string, back bool)</pre><a href="../search_find.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Launch</code> <small>function / method</small></summary><pre>Launch starts a pending result as a job of owner under verb and queues
 its work for the adapter. The completion reaches the owner&#39;s
 Component.HandleMessage and the result&#39;s Then callback when the job is
 still current.
@@ -4534,7 +4782,9 @@ keys and show in the hints.
 it shows its split whole.
 </pre><pre>func (r *Runtime) PaneOnly(page string) string</pre><a href="../panes.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.PaneShift</code> <small>function / method</small></summary><pre>PaneShift is the remembered divider of page (Layout.Shift), 0 for the
 split&#39;s default.
-</pre><pre>func (r *Runtime) PaneShift(page string) int</pre><a href="../panes.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.PathStart</code> <small>function / method</small></summary><pre>PathStart is the folder browse starts in for pick: the field&#39;s value&#39;s
+</pre><pre>func (r *Runtime) PaneShift(page string) int</pre><a href="../panes.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ParameterChoices</code> <small>function / method</small></summary><pre>ParameterChoices lists a request parameter&#39;s choices, including ValueOf
+and Pairs prop parameters, with sibling arguments passed to its source.
+</pre><pre>func (r *Runtime) ParameterChoices(c Context, op Operation, name, query string, args Arguments) ([]Choice, error)</pre><a href="../params.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.PathStart</code> <small>function / method</small></summary><pre>PathStart is the folder browse starts in for pick: the field&#39;s value&#39;s
 folder (the value itself for a folder; a relative value is under Base),
 else the parameter&#39;s Base, else what path.start names. It reads no file system.
 </pre><pre>func (r *Runtime) PathStart(pick PathPick) string</pre><a href="../path_chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.PathWalkOn</code> <small>function / method</small></summary><pre>PathWalkOn reports the setting path.walk (on when not declared).
@@ -4551,16 +4801,12 @@ declared before (not in a mode the user lifted into, such as insert),
 the base mode follows in the same update, so the next frame&#39;s badge
 shows it; under an open modal the mode the outermost modal restores on
 close follows instead. A pin names a registered base mode.
-</pre><pre>func (r *Runtime) PinInstance(id, mode string) error</pre><a href="../mode_pin.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Placed</code> <small>function / method</small></summary><pre>Placed records that the instance id is being drawn now, during its page&#39;s
-render: the order of these calls in a frame is the page&#39;s drawing order,
-which focus jumps (focus.next, focus.previous) and list spills walk, so
-motions follow the screen as drawn and cannot drift from it. List, Input
-(InputBlock), Terminal and grid views call it; a component of the
-application&#39;s own calls it from its view. Outside a page render it does
-nothing. There is no other way to order stops: before the first frame the
-order is the tree&#39;s, and once a frame drew any stop, a stop the last
-frame did not draw is skipped (it is not on screen). A stop drawn by an
-application view that never calls Placed is therefore skipped too.
+</pre><pre>func (r *Runtime) PinInstance(id, mode string) error</pre><a href="../mode_pin.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Placed</code> <small>function / method</small></summary><pre>Placed records that instance id is being drawn during its page or modal&#39;s
+render. Focus jumps and list spills follow these calls in drawing order.
+List, InputBlock, Terminal and grid views call it; an application&#39;s own
+component calls it from its view. Outside a render it does nothing.
+Before the first frame, focus uses tree order. After a frame draws any
+stops, navigation skips stops the frame did not place.
 </pre><pre>func (r *Runtime) Placed(id string)</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.PlacedAt</code> <small>function / method</small></summary><pre>PlacedAt records where the view text of instance id holds the focus
 (lines focus to focus&#43;height of text; a list&#39;s selected row, an input&#39;s
 whole box) and returns text marked so its page finds the body line it
@@ -4698,7 +4944,10 @@ undeclared reads on).
 </pre><pre>func (r *Runtime) SegmentsShown() bool</pre><a href="../segment.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SelectedBackground</code> <small>function / method</small></summary><pre>SelectedBackground is the tones.selected-background setting&#39;s value
 (a row of settings/ochazuke.json, declared when the runtime is made,
 default drop).
-</pre><pre>func (r *Runtime) SelectedBackground() string</pre><a href="../tone.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SelectionMode</code> <small>function / method</small></summary><pre>SelectionMode is the mode that selects shape (&#34;&#34; when none does); of
+</pre><pre>func (r *Runtime) SelectedBackground() string</pre><a href="../tone.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Selection</code> <small>function / method</small></summary><pre>Selection is the Model&#39;s selection painter (Styles.Selection), the
+colourless one before a Model has set its styles. Components and apps
+draw every selection through it (or Styles.Selection), never Reverse.
+</pre><pre>func (r *Runtime) Selection(focused bool) lipgloss.Style</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SelectionMode</code> <small>function / method</small></summary><pre>SelectionMode is the mode that selects shape (&#34;&#34; when none does); of
 several, the first by name.
 </pre><pre>func (r *Runtime) SelectionMode(shape string) string</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SelectionShape</code> <small>function / method</small></summary><pre>SelectionShape is the selection shape of mode, &#34;&#34; when the mode holds
 no selection.
@@ -4721,7 +4970,11 @@ nothing to remove until that default returns). Call on the runtime&#39;s loop.
 page or a modal body. Without a modal, the focus must sit inside the
 current page; a hidden page&#39;s instances are addressed with an explicit
 target.
-</pre><pre>func (r *Runtime) SetFocus(id string) error</pre><a href="../focus.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SetMode</code> <small>function / method</small></summary><pre>SetMode sets the global mode by name and clears its payload, as mode.set
+</pre><pre>func (r *Runtime) SetFocus(id string) error</pre><a href="../focus.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SetModalClose</code> <small>function / method</small></summary><pre>SetModalClose is CloseWith for a modal opened with Push: modal.close
+runs req while id is the top modal, until it is closed (Pop clears it,
+so set it after each Push). A zero Request clears it, so modal.close
+pops again.
+</pre><pre>func (r *Runtime) SetModalClose(id string, req Request) error</pre><a href="../focus.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SetMode</code> <small>function / method</small></summary><pre>SetMode sets the global mode by name and clears its payload, as mode.set
 does (ModeDeclared names the focus&#39;s declared mode, DeclaredMode): a focused input runs its own transition (insert sessions, visual
 anchor), and a pinned input stays in its pinned mode.
 </pre><pre>func (r *Runtime) SetMode(mode string) error</pre><a href="../runtime.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.SetPaneShift</code> <small>function / method</small></summary><pre>SetPaneShift remembers page&#39;s divider, clamped to PaneShiftLimit either
@@ -4789,7 +5042,11 @@ register, &#34;0&#34; for a yank or &#34;1&#34;..&#34;9&#34; and &#34;-&#34; for
 history. A component outside the package (a grid) yanks shapes the editor
 does not know (&#34;column&#34;), which register.set refuses, so it stores through
 this call and the editor still sees the text.
-</pre><pre>func (r *Runtime) StoreYank(y Yank, register string, deletion bool) error</pre><a href="../yank_api.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.TabPages</code> <small>function / method</small></summary><pre>TabPages are the pages the tab row draws and page.next/previous cycle,
+</pre><pre>func (r *Runtime) StoreYank(y Yank, register string, deletion bool) error</pre><a href="../yank_api.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.StylesFor</code> <small>function / method</small></summary><pre>StylesFor is NewStyles(a) with the runtime&#39;s dim and highlight settings
+(modal-dim, dim-unfocused, dim-unfocused-selection, modal-highlights,
+unfocused-selection), for a component drawn in an appearance of its
+own: its Selection follows the user&#39;s settings as the Model&#39;s does.
+</pre><pre>func (r *Runtime) StylesFor(a Appearance) Styles</pre><a href="../model_styles.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.TabPages</code> <small>function / method</small></summary><pre>TabPages are the pages the tab row draws and page.next/previous cycle,
 in registration order: every page not hidden, and the current page even
 when it is (it leaves the tabs once another page opens).
 </pre><pre>func (r *Runtime) TabPages() []*Page</pre><a href="../page_hide.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.TableState</code> <small>function / method</small></summary><pre>TableState is the remembered view of the table with this id (a list&#39;s
@@ -4869,8 +5126,9 @@ at once with the events since (every thing as added when since is
 empty). Stop ends it.
 </pre><pre>func (r *Runtime) Watch(noun string, args Arguments, fn func(WatchEvent)) (*Watch, error)</pre><a href="../standard_watch.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.WithActor</code> <small>function / method</small></summary><pre>WithActor scopes direct API requests, including nested requests, to actor.
 API adapters should validate external identity with ParseActor first.
-</pre><pre>func (r *Runtime) WithActor(actor Actor) (restore func())</pre><a href="../actor.go">Source file</a></details><details class="entry searchable"><summary><code>SavedFilter</code> <small>type</small></summary><pre>SavedFilter is a named AND of conditions. Where is the convenient
-equality form, matching --where; Conditions supplies other operators.
+</pre><pre>func (r *Runtime) WithActor(actor Actor) (restore func())</pre><a href="../actor.go">Source file</a></details><details class="entry searchable"><summary><code>SavedFilter</code> <small>type</small></summary><pre>SavedFilter is a named AND of conditions and an optional view sort.
+Where is the convenient equality form, matching --where; Conditions
+supplies other operators.
 List scopes a row to one list/tree id or chooser kind, Noun to every row view of those rows.
 A list-specific row wins over a noun row with the same name.
 </pre><pre>type SavedFilter struct {
@@ -4879,6 +5137,7 @@ A list-specific row wins over a noun row with the same name.
 	Noun       string         `json:&#34;noun,omitempty&#34;`
 	Where      map[string]any `json:&#34;where,omitempty&#34;`
 	Conditions []PropFilter   `json:&#34;conditions,omitempty&#34;`
+	Sort       []SortKey      `json:&#34;sort,omitempty&#34;`
 }</pre><a href="../prop_filter.go">Source file</a></details><details class="entry searchable"><summary><code>Scheme</code> <small>type</small></summary><pre>Scheme is a named colour scheme: the palette roles NewStyles draws
 pages, panels, inputs and modals with. Background is which side of each
 role it draws: &#34;adaptive&#34; (the terminal&#39;s, the default), &#34;light&#34; or
@@ -4938,7 +5197,9 @@ settings/ochazuke.json.
 	ChooserMatchSetting = &#34;chooser.match&#34;
 	// SearchShowMatchSetting draws the mode&#39;s tag on the search line.
 	SearchShowMatchSetting = &#34;search.show-match&#34;
-)</pre><a href="../search_match.go">Source file</a></details><details class="entry searchable"><summary><code>SearchStrings</code> <small>function / method</small></summary><pre>SearchStrings adapts a search that answers plain strings, for the usual
+)</pre><a href="../search_match.go">Source file</a></details><details class="entry searchable"><summary><code>SearchOpenFoldsSetting</code> <small>constant</small></summary><pre>SearchOpenFoldsSetting opens a closed timeline card a find lands on by
+its body (settings/ochazuke.json), as Vim&#39;s foldopen holds search.
+</pre><pre>const SearchOpenFoldsSetting = &#34;search.open-folds&#34;</pre><a href="../timeline_find.go">Source file</a></details><details class="entry searchable"><summary><code>SearchStrings</code> <small>function / method</small></summary><pre>SearchStrings adapts a search that answers plain strings, for the usual
 case where what the list shows is what is inserted.
 </pre><pre>func SearchStrings(search func(ctx context.Context, query string) ([]string, error)) CompletionSearch</pre><a href="../completion.go">Source file</a></details><details class="entry searchable"><summary><code>Segment</code> <small>type</small></summary><pre>Segment is one status segment row. Format is a template over {{label}}
 and {{value}} (default &#34;{{label}} {{value}}&#34;, or &#34;{{value}}&#34; without a
@@ -5044,7 +5305,10 @@ line-shaped mode is entered on it (list_visual.go).
 	SelectionChar  = &#34;char&#34;  // characters from the anchor to the cursor (visual)
 	SelectionLine  = &#34;line&#34;  // whole lines or list rows (visual-line, V)
 	SelectionBlock = &#34;block&#34; // a rectangle (visual-block)
-)</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>SequenceTimeoutSetting, SequenceUnknownSetting, SequencePass, SequenceSwallow, SequenceInheritedSetting, SequenceDrop, SequenceKeep, RenameSelectSetting, CreateFromFocusSetting, DeleteArchiveSetting, DeleteArchiveConfirmSetting, CLIStandardVerbsSetting, CLIStandardVerbsLine, CLIStandardVerbsList, VisualAfterActionSetting, VisualAfterEnd, VisualAfterKeep, VisualListSetting, VisualListMode, VisualListMarks, RepeatEmptySetting, RepeatEmptyInfo, RepeatEmptySilent</code> <small>constant</small></summary><pre>The framework settings the key resolver reads.
+)</pre><a href="../noun.go">Source file</a></details><details class="entry searchable"><summary><code>SelectionStyle</code> <small>function / method</small></summary><pre>SelectionStyle is Styles.Selection for code with no Styles at hand (a
+component&#39;s colourless defaults, an overlay mark&#39;s fallback, a text
+cursor block): reverse video focused, faint reverse without the focus.
+</pre><pre>func SelectionStyle(focused bool) lipgloss.Style</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>SequenceTimeoutSetting, SequenceUnknownSetting, SequencePass, SequenceSwallow, SequenceInheritedSetting, SequenceDrop, SequenceKeep, RenameSelectSetting, CreateFromFocusSetting, DeleteArchiveSetting, DeleteArchiveConfirmSetting, CLIStandardVerbsSetting, CLIStandardVerbsLine, CLIStandardVerbsList, VisualAfterActionSetting, VisualAfterEnd, VisualAfterKeep, VisualListSetting, VisualListMode, VisualListMarks, RepeatEmptySetting, RepeatEmptyInfo, RepeatEmptySilent</code> <small>constant</small></summary><pre>The framework settings the key resolver reads.
 </pre><pre>const (
 	// SequenceTimeoutSetting is how long every pending key sequence (a
 	// multi-key row&#39;s prefix such as g of g g, and a row entering a
@@ -5142,6 +5406,8 @@ directory.
 	Default     any      `json:&#34;default&#34;`
 	Description string   `json:&#34;description,omitempty&#34;`
 	Enum        []string `json:&#34;enum,omitempty&#34;`
+	// Protected keeps agents from changing this setting, even with the rights gate off.
+	Protected bool `json:&#34;protected,omitempty&#34;`
 	// Owner says which owner (a tab of the Settings page) the setting
 	// belongs to: &#34;&#34; is the declaring application (OwnerApp), unless the
 	// framework declares it (its embedded rows, a feature&#39;s declaration
@@ -5473,7 +5739,12 @@ bindings.reference.json) prints them: by mode (the any-mode rows, mode
 name, then by the request&#39;s verb (a row with no verb, an unbind, after
 every verb), then by keys, a pattern row after the key rows; stable, so
 rows equal on all of these keep their stored order.
-</pre><pre>func SortBindings(rows []Binding)</pre><a href="../resolve.go">Source file</a></details><details class="entry searchable"><summary><code>SourceGo, SourceGenerated</code> <small>constant</small></summary><pre>Source labels of bindings defaults for rows no file declared.
+</pre><pre>func SortBindings(rows []Binding)</pre><a href="../resolve.go">Source file</a></details><details class="entry searchable"><summary><code>SortKey</code> <small>type</small></summary><pre>SortKey is one prop of a list&#39;s view sort. Earlier keys take precedence;
+equal values keep the app&#39;s order. Desc reverses nonblank values only.
+</pre><pre>type SortKey struct {
+	Field string `json:&#34;field&#34;`
+	Desc  bool   `json:&#34;desc,omitempty&#34;`
+}</pre><a href="../list_sort.go">Source file</a></details><details class="entry searchable"><summary><code>SourceGo, SourceGenerated</code> <small>constant</small></summary><pre>Source labels of bindings defaults for rows no file declared.
 </pre><pre>const (
 	// SourceGo is a default row bound in Go (Bind, ModeBuilder.Bind): an
 	// application&#39;s own, or one computed at runtime (an instance&#39;s rows).
@@ -5669,7 +5940,20 @@ lipgloss.Blend1D); with no colour (mono, NO_COLOR) any
 percent above 0 is the faint attribute. 0 is the empty style.
 </pre><pre>func (s Styles) Fade(percent int) lipgloss.Style</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Styles.HasChrome</code> <small>function / method</small></summary><pre>HasChrome reports whether any of the roles has a row at the current
 level.
-</pre><pre>func (s Styles) HasChrome(roles ...string) bool</pre><a href="../chrome.go">Source file</a></details><details class="entry searchable"><summary><code>Styles.Tone</code> <small>function / method</small></summary><pre>Tone is the style a tone draws in outside a list (an application&#39;s own
+</pre><pre>func (s Styles) HasChrome(roles ...string) bool</pre><a href="../chrome.go">Source file</a></details><details class="entry searchable"><summary><code>Styles.Selection</code> <small>function / method</small></summary><pre>Selection is the one selection painter: the style of the selected row,
+cell or item of any component (a list, table, chooser, picker, Doc,
+settings selector, grid, an app&#39;s own rows; UX R5.1). Focused, it is
+reverse video. Without the focus the selection stays marked, faded: the
+bar&#39;s colour (the foreground, which reverse video makes the bar) is
+carried dim-unfocused plus dim-unfocused-selection percent from the
+scheme&#39;s text toward its surface; in mono, NO_COLOR or with no styles
+(a nil receiver) it is the faint reverse bar; under unfocused-selection
+hide it is no style at all. Components and apps never
+call Reverse themselves. A component the page already fades as a whole
+(a page List under dim-unfocused) draws its bar through
+Styles.selectionBar, which leaves the list&#39;s fade to dim it when
+dim-unfocused-selection is 0.
+</pre><pre>func (s *Styles) Selection(focused bool) lipgloss.Style</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Styles.Tone</code> <small>function / method</small></summary><pre>Tone is the style a tone draws in outside a list (an application&#39;s own
 line, a footer): its colour and attributes, the empty style for an
 unknown tone; mono and NO_COLOR keep the attributes alone.
 </pre><pre>func (s Styles) Tone(name string) lipgloss.Style</pre><a href="../tone.go">Source file</a></details><details class="entry searchable"><summary><code>Styles.WithBackdropHighlights</code> <small>function / method</small></summary><pre>WithBackdropHighlights says whether a modal&#39;s backdrop keeps the page&#39;s
@@ -5683,7 +5967,14 @@ every style as it was.
 </pre><pre>func (s Styles) WithChrome(level string, modeRoles []string) Styles</pre><a href="../chrome.go">Source file</a></details><details class="entry searchable"><summary><code>Styles.WithDims</code> <small>function / method</small></summary><pre>WithDims sets Backdrop and Unfocused from percents: the backdrop is the
 fade plus the faint attribute (the look it always had at the default),
 an unfocused list the fade alone.
-</pre><pre>func (s Styles) WithDims(modal, unfocused int) Styles</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Suggestion</code> <small>type</small></summary><pre>Suggestion is one completion a search offers. Text replaces the token
+</pre><pre>func (s Styles) WithDims(modal, unfocused int) Styles</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Styles.WithSelectionDim</code> <small>function / method</small></summary><pre>WithSelectionDim sets how many percent further than the list
+(dim-unfocused) the selected row&#39;s bar of a list without the focus
+fades toward the background (dim-unfocused-selection). 0 fades the bar
+with the list, as before the setting.
+</pre><pre>func (s Styles) WithSelectionDim(percent int) Styles</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Styles.WithUnfocusedSelection</code> <small>function / method</small></summary><pre>WithUnfocusedSelection says whether a selection without the focus is
+drawn (true, the default: unfocused-selection keep) or left plain
+(unfocused-selection hide).
+</pre><pre>func (s Styles) WithUnfocusedSelection(keep bool) Styles</pre><a href="../theme.go">Source file</a></details><details class="entry searchable"><summary><code>Suggestion</code> <small>type</small></summary><pre>Suggestion is one completion a search offers. Text replaces the token
 after its trigger; Label is what the list shows (&#34;&#34; shows Text); Detail
 is drawn muted after the label.
 </pre><pre>type Suggestion struct {
@@ -5813,7 +6104,17 @@ viewer&#39;s topic) and the text.
 	Title  string
 	Label  string
 	Text   string
-}</pre><a href="../text_format.go">Source file</a></details><details class="entry searchable"><summary><code>TextFormatPlain, TextFormatMarkdown, TextFormatPreformatted</code> <small>constant</small></summary><pre>Text formats: how a text shown in a modal is written, and so how it is
+}</pre><a href="../text_format.go">Source file</a></details><details class="entry searchable"><summary><code>TextFinder</code> <small>type</small></summary><pre>TextFinder is a text-like component the jump search moves through: an
+input (the text view), the docs viewer, a Markdown Doc, a timeline.
+search.find and search.next run on the innermost one on the focus path.
+</pre><pre>type TextFinder interface {
+	// FindText moves the component&#39;s cursor to the next place after it
+	// (before it with back) whose text m matches, wrapping once around the
+	// text, and reports whether there was one. A component whose cursor is
+	// a row (a Markdown line, a card) finds rows; an input finds the
+	// match&#39;s first character.
+	FindText(m Matcher, back bool) bool
+}</pre><a href="../search_find.go">Source file</a></details><details class="entry searchable"><summary><code>TextFormatPlain, TextFormatMarkdown, TextFormatPreformatted</code> <small>constant</small></summary><pre>Text formats: how a text shown in a modal is written, and so how it is
 drawn. A verb declares its answer&#39;s format through Operation.Result
 (NounBuilder.TextResult, MarkdownResult, PreformattedResult); a caller
 names it in TextDoc.Format. The CLI and the API return the text as it
@@ -5887,7 +6188,11 @@ nearest card on screen). Scrolling up stops following the end.
 CanScrollLines reports whether the last frame did not show every line
 (LineScroller, view.scroll).
 </pre><pre>func (t *Timeline) CanScrollLines() bool</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.Cards</code> <small>function / method</small></summary><pre>Cards is a copy of the cards in order.
-</pre><pre>func (t *Timeline) Cards() []Card</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.Focus</code> <small>function / method</small></summary><pre>Focus focuses the selected card.
+</pre><pre>func (t *Timeline) Cards() []Card</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.FindText</code> <small>function / method</small></summary><pre>FindText selects the next card shown whose text the query matches
+(search.find): the timeline&#39;s cursor is a card. From inside a card it
+leaves the card first. A card found by its body opens, unless
+search.open-folds is off.
+</pre><pre>func (t *Timeline) FindText(m Matcher, back bool) bool</pre><a href="../timeline_find.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.Focus</code> <small>function / method</small></summary><pre>Focus focuses the selected card.
 </pre><pre>func (t *Timeline) Focus() error</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.FocusTarget</code> <small>function / method</small></summary><pre>FocusTarget is where a jump to the timeline lands: its selected card.
 </pre><pre>func (t *Timeline) FocusTarget() string</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.Folded</code> <small>function / method</small></summary><pre>Folded reports whether section (its Name, Title or number from 1) of the
 card with id is folded.
@@ -5896,7 +6201,17 @@ card with id is folded.
 </pre><pre>func (t *Timeline) ID() string</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.InBody</code> <small>function / method</small></summary><pre>InBody reports whether the focus is inside the selected card.
 </pre><pre>func (t *Timeline) InBody() bool</pre><a href="../timeline_steps.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.IsOpen</code> <small>function / method</small></summary><pre>IsOpen reports whether the card with id is open.
 </pre><pre>func (t *Timeline) IsOpen(id string) bool</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.List</code> <small>function / method</small></summary><pre>List is the list whose rows are the cards (selection, motions, filter).
-</pre><pre>func (t *Timeline) List() *List</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.Patch</code> <small>function / method</small></summary><pre>Patch updates the cards with these ids in place and appends the others
+</pre><pre>func (t *Timeline) List() *List</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.MotionEdges</code> <small>function / method</small></summary><pre>MotionEdges is first and last while there are cards (CursorMotions).
+A timeline does not move sideways.
+</pre><pre>func (t *Timeline) MotionEdges() []SpillEdge</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.MovePage</code> <small>function / method</small></summary><pre>MovePage scrolls the window by lines, the selection (inside a card, the
+step) staying in view (CursorMotions).
+</pre><pre>func (t *Timeline) MovePage(lines int)</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.MoveToEdge</code> <small>function / method</small></summary><pre>MoveToEdge is timeline.goto (CursorMotions): the first or the last card
+(with row, card number row), from the cards or from inside a card, as
+Vim&#39;s gg and G go to the buffer&#39;s ends; the last shows its end and
+resumes following.
+</pre><pre>func (t *Timeline) MoveToEdge(edge SpillEdge, row int)</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.PageLines</code> <small>function / method</small></summary><pre>PageLines is the window&#39;s height while the timeline overflows it
+(CursorMotions).
+</pre><pre>func (t *Timeline) PageLines() int</pre><a href="../timeline.go">Source file</a></details><details class="entry searchable"><summary><code>Timeline.Patch</code> <small>function / method</small></summary><pre>Patch updates the cards with these ids in place and appends the others
 at the end, in order: the cheap path for a streaming last card (bump its
 Revision) or a new one. The list&#39;s rows are rebuilt only when a card is
 added or its noun, label or data changed.
@@ -5932,7 +6247,8 @@ every built-in theme; a themes.json &#34;tones&#34; row restyles either.
 </pre><pre>const (
 	ToneHelpArgKey   = &#34;help.arg.key&#34;
 	ToneHelpArgValue = &#34;help.arg.value&#34;
-)</pre><a href="../help_args.go">Source file</a></details><details class="entry searchable"><summary><code>ToneRows</code> <small>type</small></summary><pre>ToneRows are tone rows by name an application declares
+)</pre><a href="../help_args.go">Source file</a></details><details class="entry searchable"><summary><code>ToneLingering</code> <small>constant</small></summary><pre>ToneLingering marks a changed row that will leave its filter shortly.
+</pre><pre>const ToneLingering = &#34;list.lingering&#34;</pre><a href="../list_filter_linger.go">Source file</a></details><details class="entry searchable"><summary><code>ToneRows</code> <small>type</small></summary><pre>ToneRows are tone rows by name an application declares
 (Appearance.AppTones). The zero value and nil hold none.
 </pre><pre>type ToneRows struct {
 	// contains filtered or unexported fields
@@ -5980,7 +6296,7 @@ or role alone (&#34;#5FAFD7&#34;, &#34;error&#34;).
 	Bold bool        `json:&#34;bold,omitempty&#34;`
 	Dim  bool        `json:&#34;dim,omitempty&#34;`
 }</pre><a href="../tone.go">Source file</a></details><details class="entry searchable"><summary><code>ToneStyle.UnmarshalJSON</code> <small>function / method</small></summary><pre>UnmarshalJSON reads a colour or role alone, or {&#34;fg&#34;, &#34;bg&#34;, &#34;bold&#34;, &#34;dim&#34;}.
-</pre><pre>func (t *ToneStyle) UnmarshalJSON(data []byte) error</pre><a href="../tone.go">Source file</a></details><details class="entry searchable"><summary><code>ToneWorking, ToneNeedsInput, ToneDone, ToneErrored, ToneIdle, ToneExited, ToneStar, ToneQueued, ToneSession, ToneTreeGuide, ToneError, ToneChip, ToneChipFocused, ToneCellIntersect, ToneCellCursor, ToneHeader, ToneHeaderIntersect, ToneRowNumber, ToneRowNumberIntersect</code> <small>constant</small></summary><pre>The tones every built-in theme draws (defaultTones); applications and
+</pre><pre>func (t *ToneStyle) UnmarshalJSON(data []byte) error</pre><a href="../tone.go">Source file</a></details><details class="entry searchable"><summary><code>ToneWorking, ToneNeedsInput, ToneDone, ToneErrored, ToneIdle, ToneExited, ToneStar, ToneQueued, ToneSession, ToneTreeGuide, ToneError, ToneChip, ToneChipFocused, ToneRecordInverted, ToneCellIntersect, ToneCellCursor, ToneHeader, ToneHeaderIntersect, ToneRowNumber, ToneRowNumberIntersect</code> <small>constant</small></summary><pre>The tones every built-in theme draws (defaultTones); applications and
 themes.json add their own names.
 </pre><pre>const (
 	ToneWorking    = &#34;state.working&#34;
@@ -6005,6 +6321,8 @@ themes.json add their own names.
 	// surface on its accent, bold. mono draws the focused chip bold.
 	ToneChip        = &#34;chip&#34;
 	ToneChipFocused = &#34;chip.focused&#34;
+	// ToneRecordInverted marks an Invertible record field in its not state.
+	ToneRecordInverted = &#34;record.inverted&#34;
 	// The table parts: a data cell where two highlight layers cross
 	// (ToneSpan.Layer), the header row, a row-number column
 	// (Column.Part PartRowNumber), and each part&#39;s crossing tone (the
@@ -6217,6 +6535,9 @@ kept, bounded for the inspector.
 Like the rest of Runtime it is called from the update loop; work off the
 loop posts from its Then (which gets a Ctx).
 </pre><pre>type UI struct {
+	// Now is the host clock for timed row presentation; nil uses time.Now.
+	// NewModel connects it to Model.Now, including a headless story clock.
+	Now func() time.Time
 	// contains filtered or unexported fields
 }</pre><a href="../ui.go">Source file</a></details><details class="entry searchable"><summary><code>UI.Attach</code> <small>function / method</small></summary><pre>Attach makes s the sink every later message goes to and returns the one
 it replaces (nil for none). The first attach of the runtime&#39;s life

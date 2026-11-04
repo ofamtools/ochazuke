@@ -72,10 +72,11 @@ func TestMCPBackendRightsDryRunAndIdentity(t *testing.T) {
 			args["args"] = map[string]any{"name": "agents.rights-gate"}
 		}
 		result := mcpCall(t, server, "run", args)
-		if result["status"] != "refused" {
-			t.Fatal(result)
-		}
-		if name == "widget.remove" && !strings.Contains(result["reason"].(string), "needs the owner's confirmation") {
+		if name == "settings.get" {
+			if result["status"] != "done" || result["result"].(map[string]any)["value"] != true {
+				t.Fatal(result)
+			}
+		} else if result["status"] != "refused" || !strings.Contains(result["reason"].(string), "needs the owner's confirmation") {
 			t.Fatal(result)
 		}
 	}
@@ -95,7 +96,7 @@ func TestMCPBackendRightsDryRunAndIdentity(t *testing.T) {
 		t.Fatal("actor argument accepted")
 	}
 	t.Setenv("OCHAZUKE_ACTOR", "owner")
-	result = mcpCall(t, server, "run", map[string]any{"verb": "settings.list"})
+	result = mcpCall(t, server, "run", map[string]any{"verb": "settings.set", "args": map[string]any{"name": "agents.rights-gate", "value": "false"}})
 	if result["status"] != "refused" {
 		t.Fatal("identity changed after startup", result)
 	}
@@ -266,8 +267,35 @@ func TestMCPExplicitIdentityOverridesEnvironment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := mcpCall(t, server, "run", map[string]any{"verb": "settings.list"})
+	result := mcpCall(t, server, "run", map[string]any{"verb": "settings.set", "args": map[string]any{"name": "agents.rights-gate", "value": "false"}})
 	if result["status"] != "refused" {
 		t.Fatal(result)
+	}
+}
+
+func TestMCPAliasEffectHints(t *testing.T) {
+	f, sh, _ := mcpFixture(t)
+	f.r.Define("pane").Verb("kill", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }).Agent(ochazuke.AgentConfirm)
+	f.r.Define("task").Verb("delete", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }).Destructive().Agent(ochazuke.AgentAllow)
+	sh.MCPAliases = []mcp.Alias{
+		{Tool: mcp.Tool{Name: "pane_kill"}, Verb: "pane.kill"},
+		{Tool: mcp.Tool{Name: "task_delete"}, Verb: "task.delete"},
+		{Tool: mcp.Tool{Name: "settings_read"}, Verb: "settings.get"},
+	}
+	server, err := sh.NewMCPServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range server.Tools() {
+		switch tool.Name {
+		case "pane_kill", "task_delete":
+			if tool.Annotations["destructiveHint"] != true {
+				t.Fatal(tool)
+			}
+		case "settings_read":
+			if tool.Annotations["destructiveHint"] != false || tool.Annotations["readOnlyHint"] != true {
+				t.Fatal(tool)
+			}
+		}
 	}
 }

@@ -14,7 +14,7 @@ import (
 // (marked Confirmed so the prompt does not reopen) in the context it came
 // from, n or esc pops, every other key is swallowed.
 func registerConfirm(r *Runtime) {
-	r.Register(Operation{Verb: "accept", Noun: "ochazuke.confirm", Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "accept", Noun: "ochazuke.confirm", Agent: AgentNever, Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		inst := r.Instances[r.TopModal()]
 		if inst == nil || inst.Noun != "ochazuke.confirm" || inst.Payload.Request == nil {
 			return nil, errors.New("no confirm modal is open")
@@ -25,7 +25,7 @@ func registerConfirm(r *Runtime) {
 		}
 		return r.Execute(q)
 	}})
-	r.Register(Operation{Verb: "set", Noun: "ochazuke.confirm", Description: "Add or remove the confirm prompt of an operation ({{id}}, {{noun}}, {{label}} and {{<arg>}} expand; a label argument wins over the instance label); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb", Noun: "ochazuke.operations"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "set", Noun: "ochazuke.confirm", Agent: AgentNever, Description: "Add or remove the confirm prompt of an operation ({{id}}, {{noun}}, {{label}} and {{<arg>}} expand; a label argument wins over the instance label); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb", Noun: "ochazuke.operations"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := StringArg(a, "operation", "")
 		if err := r.SetConfirm(key, StringArg(a, "prompt", "")); err != nil {
 			return nil, err
@@ -78,14 +78,18 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	inst := r.Instances[focusOf(c)]
 	stored := run
 	actor := r.Actor()
+	policy := op
+	if registered, ok := r.Operation(op.Key()); ok {
+		policy = registered
+	}
+	if r.agentPassesPrompt(policy) {
+		stored.Confirmed = true
+		return r.ExecuteAt(c, stored)
+	}
 	if actor.IsAgent() && r.Settings().Bool(AgentRightsGateSetting) {
-		policy := op
-		if registered, ok := r.Operation(op.Key()); ok {
-			policy = registered
-		}
 		right := r.AgentRight(policy, r.agentLive())
 		if right.Right == AgentNever {
-			return nil, &RefusedError{Verb: policy.Key(), Rule: right.Rule, Reason: "agents may never run this verb; ask the owner"}
+			return nil, &RefusedError{Verb: policy.Key(), Rule: right.Rule, Reason: r.agentNeverReason(policy)}
 		}
 		if !r.agentLive() && !r.agentApproved {
 			return nil, &RefusedError{Verb: policy.Key(), Rule: right.Rule, Reason: "needs the owner's confirmation; ask them to run this command"}

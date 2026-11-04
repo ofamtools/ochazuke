@@ -1,0 +1,24 @@
+ |  ◆ o-story                                                                          NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────
+ |          ╭──────────────────────────────────────────────────────────────────────────────╮
+ |          │ Results                                                                      │
+ |          │ demo.list                                                                    │
+ |          │ id  label            retired  title                                          │
+R|          │ t1  Archived parcel  false    Archived parcel                                │
+ |          │ t2  Live parcel      false    Live parcel                                    │
+ |          │                                                                              │
+ |          │                                                                              │
+ |          │                                                                              │
+ |          │                                                                              │
+ |          │                                                                              │
+ |          │                                                                              │
+ |          │                                                                              │
+ |          │                                                                              │
+ |          │                                                                              │
+ |          │                                                                              │
+ |          │ space list.mark · esc modal.close · : palette.open · ? bindings.help · / fi… │
+ |          ╰──────────────────────────────────────────────────────────────────────────────╯
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────
+ |  space list.mark · esc modal.close · : palette.open · ? bindings.help · / filter
+ |

@@ -90,7 +90,7 @@ func (s *Shell) newMCPServer(actor ochazuke.Actor) (*mcp.Server, error) {
 				}
 			}
 		}
-		alias.Tool.Annotations = map[string]any{"readOnlyHint": op.HistoryKindOf() == ochazuke.HistoryFetch, "destructiveHint": op.Destructive, "openWorldHint": true}
+		alias.Tool.Annotations = map[string]any{"readOnlyHint": op.HistoryKindOf() == ochazuke.HistoryFetch, "destructiveHint": op.Destructive || s.Runtime.AgentRight(op, false).Right == ochazuke.AgentConfirm, "openWorldHint": true}
 	}
 	tools := mcp.DefaultTools()
 	for _, alias := range aliases {

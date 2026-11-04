@@ -602,6 +602,16 @@ A noun with props and a store (`props.go`, `standard_verbs.go`) reads one gramma
 
 Compared with Vim: `:task status done` reads like `:set {option}={value}` (`:help :set`), but it acts on a thing, not an option, and the key word is the thing's name; `:set` itself is unchanged and reads only settings and one-value nouns. `--NAME` words have no Vim counterpart on the command line; they mirror the CLI.
 
+A boolean prop with `RoleArchive` derives `archive` and `restore`; both keep the
+record and are undoable when the store supports undo. Standard `list` hides
+archived records by default. `list.hide-archived=false` includes them again.
+An explicit `--where ARCHIVE_PROP=true` or a saved filter that mentions the
+archive prop overrides hiding. The role declares a saved filter named `archived`,
+so `task list --filter archived` reveals them; app and user filter definitions
+can override it. `get` and `set` still address archived records by key.
+Archive and restore have no Vim counterpart.
+
+
 #### Configuring noun instances
 
 `NewPalette` supplies live page instances with `page.open` as their default. Applications can replace that configuration or register sources for their own nouns:
@@ -2655,28 +2665,44 @@ The JSON catalog and `catalog inspect` carry these fields, named guards and
 example templates generated from required parameters when no example is declared.
 Mounted extension verbs retain this metadata; their guards remain checked by
 the extension. `agentDeclared` preserves an explicit right separately from `agent`,
-which describes the derived default: destructive or confirmed verbs ask for
-confirmation; fetches, changes and screen actions allow. Standard delete and
-archive verbs are destructive. The runtime enforces agent rights on every agent request. The inspector’s checked-by-default
+which describes the derived default: destructive verbs refuse agents, prompted
+verbs ask for confirmation, and other verbs allow. `.Destructive()` means a
+verb destroys user data that cannot be recovered. Standard delete is destructive;
+archive and undoable buffer edits are not. The runtime enforces these rights on every agent request. The inspector's checked-by-default
 `agent metadata` control hides or shows the added descriptions and agent fields.
 
 ### Agent rights
 
 The `agent-rights` verb check runs before other checks, even with `force` or
-`Confirmed`. Destructive or confirm-prompted verbs require the owner's approval;
-other verbs allow agents by default, including screen actions when live control
-is enabled. Framework settings, config, bindings, actions, themes and confirmation
-control verbs declare `never` by default. Apps can declare rights per verb with
-`.Agent(...)`. `agent.rights {verb}` lists the effective policy and its source.
+`Confirmed`. Destructive verbs default to `never`, even with a declared `allow`.
+Reads and writes allow agents by default, including settings, config, bindings,
+actions and themes. Prompted verbs default to `confirm`; apps can declare
+`.Agent("allow")` for a prompted write. An effective `allow` passes both the verb's
+prompt and checks that ask for confirmation, live or headless.
+`confirm.accept` and `confirm.set` declare `never` so an agent cannot approve
+itself or remove a prompt. `settings.reset-all` and saved-filter deletion are
+destructive. `agent.rights {verb}` lists the effective policy and its source.
 
 Owner overrides use `agents.rights`, a validated JSON array stored as a string,
 like `list.filters`: `[{"match":"task.*","right":"never","where":"live"}]`.
 Rows match `noun.verb`, `noun.*` or `*`, first match wins; `where` is `live`,
-`headless` or `any`. The `agents.rights-gate` setting defaults to true; false
-restores owner rights. Headless agent calls refuse a confirmation with
-"needs the owner's confirmation"; the agent must ask the owner to run the command.
-Only the owner's acceptance of a live modal approves it. Attribution names the
-agent by default (`agents.confirm-attribution=false` hides it).
+`headless` or `any`. Owner rows beat declarations and the destructive default:
+`[{"match":"task.delete","right":"allow"}]` permits deletion without a prompt.
+The `agents.rights-gate` setting defaults to true; false restores owner rights.
+Headless `confirm` calls refuse with "needs the owner's confirmation"; the agent
+must ask the owner to run the command. Only the owner's acceptance of a live
+modal approves it. Attribution names the agent by default.
+Across an extension mount both gates apply: an owner override in the host
+does not replace the child tool's own `agents.rights` rows.
+
+`Setting.Protected` reserves a setting for the owner at the shared file and
+session writers, independent of the rights gate. The framework marks
+`agents.rights`, `agents.rights-gate` and `agents.confirm-attribution` protected;
+an app can protect its own settings too. Agents can read them but cannot set,
+reset, revert, write or undo an owner's edit. Bulk and section/tab operations
+skip protected settings and report the skipped names. Reload only reads the
+file and stays allowed. Direct edits to settings.json are outside these guard rails.
+
 `agents.status-segment` defaults to false; true shows active agent jobs and
 pending confirmations in the header status segments.
 
@@ -2688,6 +2714,8 @@ and Pi session markers, plus `OCHAZUKE_HARNESS`, `TUIOS_HARNESS` and
 `OCHAZUKE_ACTOR=owner` or `unknown`; explicit identity fields still take
 precedence. A pane or model alone does not imply an agent. Direct in-process API
 requests may still set `Request.Actor`. These are cooperative guard rails, not authentication.
+
+Compared with Vim: not applicable; actor rights have no Vim counterpart.
 
 ### Catalog MCP server
 

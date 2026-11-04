@@ -490,10 +490,17 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	// A store must not limit before the framework applies saved conditions.
+	archive := n.roleProp(RoleArchive)
+	if archive != nil {
+		_, explicit := where[archive.Name]
+		if !r.Settings().Bool("list.hide-archived") || explicit || slices.ContainsFunc(filters, func(f PropFilter) bool { return f.Prop == archive.Name }) {
+			archive = nil
+		}
+	}
+	// Stores must not limit before saved conditions or archive hiding are applied.
 	limit := max(0, IntArg(c.Args, "limit", 0))
 	q := ListQuery{Where: where, Limit: limit}
-	if len(filters) > 0 {
+	if len(filters) > 0 || archive != nil {
 		q.Limit = 0
 	}
 	for name := range n.Store.ListParams {
@@ -511,6 +518,11 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 	key := n.keyProp()
 	rows := []map[string]any{}
 	for _, t := range things {
+		if archive != nil {
+			if v, _ := propValue(*archive, t[archive.Name]); v == true {
+				continue
+			}
+		}
 		if !thingMatches(n, t, where) || !propsMatch(n, t, filters) {
 			continue
 		}

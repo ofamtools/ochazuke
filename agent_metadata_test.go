@@ -9,8 +9,8 @@ func TestAgentMetadataDefaults(t *testing.T) {
 	}{
 		{Operation{}, AgentAllow}, {Operation{HistoryKind: HistoryFetch}, AgentAllow},
 		{Operation{HistoryKind: HistoryChange}, AgentAllow}, {Operation{Motion: true}, AgentAllow},
-		{Operation{Destructive: true}, AgentConfirm}, {Operation{Confirm: "Sure?"}, AgentConfirm},
-		{Operation{Destructive: true, Agent: AgentAllow}, AgentAllow}, {Operation{Agent: AgentNever}, AgentNever},
+		{Operation{Destructive: true}, AgentNever}, {Operation{Confirm: "Sure?"}, AgentConfirm},
+		{Operation{Destructive: true, Agent: AgentAllow}, AgentNever}, {Operation{Agent: AgentNever}, AgentNever},
 	} {
 		for _, live := range []bool{false, true} {
 			if got := tc.op.AgentRightOf(live); got != tc.want {
@@ -21,8 +21,8 @@ func TestAgentMetadataDefaults(t *testing.T) {
 	r := NewRuntime()
 	r.Define("thing").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "archived", Parameter: Parameter{Type: "boolean"}, Role: RoleArchive}).Store(Store{Delete: func(Ctx, string) error { return nil }, Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil }})
 	for _, verb := range []string{"delete", "archive"} {
-		if op, ok := r.Operation("thing." + verb); !ok || !op.Destructive {
-			t.Errorf("%s not destructive: %+v", verb, op)
+		if op, ok := r.Operation("thing." + verb); !ok || op.Destructive != (verb == "delete") {
+			t.Errorf("%s destructive classification: %+v", verb, op)
 		}
 	}
 	op := Operation{Parameters: map[string]Parameter{"required": {Required: true}, "optional": {}}}

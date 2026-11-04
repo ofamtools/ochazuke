@@ -38,16 +38,6 @@ type RefusedError struct {
 
 func (e *RefusedError) Error() string { return fmt.Sprintf("%s: %s (%s)", e.Verb, e.Reason, e.Rule) }
 
-// Framework policy is data, applied at registration, including late verbs.
-var frameworkAgentRights = map[string]string{
-	"ochazuke.settings": AgentNever, "ochazuke.setting": AgentNever,
-	"ochazuke.setting-item": AgentNever, "ochazuke.setting-value": AgentNever,
-	"ochazuke.settings-section": AgentNever, "ochazuke.settings-tab": AgentNever,
-	"ochazuke.config": AgentNever, "ochazuke.bindings": AgentNever,
-	"ochazuke.actions": AgentNever, "ochazuke.themes": AgentNever,
-	"ochazuke.confirm": AgentNever,
-}
-
 func parseAgentRules(value any) ([]AgentRule, error) {
 	text, ok := value.(string)
 	if !ok {
@@ -110,6 +100,9 @@ func (r *Runtime) AgentRight(op Operation, live bool) AgentRight {
 	if op.Agent != "" {
 		out.Rule = "verb declaration"
 	}
+	if op.Destructive {
+		out.Rule = "destructive verb"
+	}
 	rows, _ := parseAgentRules(r.Settings().String(AgentRightsSetting))
 	for i, row := range rows {
 		if row.Where == "live" && !live || row.Where == "headless" && live {
@@ -159,7 +152,7 @@ func (r *Runtime) agentVerdict(c Context, q Request, op Operation) Verdict {
 	}
 	switch right.Right {
 	case AgentNever:
-		return refuse("agents may never run this verb; ask the owner")
+		return refuse(r.agentNeverReason(op))
 	case AgentConfirm:
 		if q.agentApproved || r.agentApproved {
 			return Allow()
@@ -177,6 +170,22 @@ func (r *Runtime) agentVerdict(c Context, q Request, op Operation) Verdict {
 		return AskFirst(prompt)
 	}
 	return Allow()
+}
+
+func (r *Runtime) agentNeverReason(op Operation) string {
+	if op.Destructive {
+		reason := "agents never delete"
+		if archive, ok := r.Operation(op.Noun + ".archive"); ok {
+			return reason + "; run " + r.DisplayKey(archive.Key())
+		}
+		return reason + "; ask the owner"
+	}
+	return "agents may never run this verb; ask the owner"
+}
+
+// An allow right passes prompts, including owner overrides and a disabled gate.
+func (r *Runtime) agentPassesPrompt(op Operation) bool {
+	return r.Actor().IsAgent() && r.AgentRight(op, r.agentLive()).Right == AgentAllow
 }
 
 // agentActivity describes the newest active job, or a pending owner question.

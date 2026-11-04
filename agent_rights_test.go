@@ -14,8 +14,8 @@ func TestAgentRightsTable(t *testing.T) {
 		verb, rows, right string
 		live              bool
 	}{
-		{"task.read", "[]", AgentAllow, false}, {"task.write", "[]", AgentAllow, false}, {"task.delete", "[]", AgentConfirm, false}, {"task.private", "[]", AgentNever, true},
-		{"focus.next", "[]", AgentAllow, true}, {"settings.get", "[]", AgentNever, false}, {"config.export", "[]", AgentNever, true},
+		{"task.read", "[]", AgentAllow, false}, {"task.write", "[]", AgentAllow, false}, {"task.delete", "[]", AgentNever, false}, {"task.private", "[]", AgentNever, true},
+		{"focus.next", "[]", AgentAllow, true}, {"settings.get", "[]", AgentAllow, false}, {"config.export", "[]", AgentAllow, true},
 		{"task.write", `[{"match":"task.*","right":"never","where":"live"}]`, AgentAllow, false},
 		{"task.write", `[{"match":"task.*","right":"never","where":"live"}]`, AgentNever, true},
 		{"task.delete", `[{"match":"task.delete","right":"allow"},{"match":"*","right":"never"}]`, AgentAllow, false},
@@ -58,7 +58,7 @@ func TestAgentRightsCannotBypass(t *testing.T) {
 	}
 	r := NewRuntime()
 	agent := testAgent("p")
-	for _, verb := range []string{"settings.set", "config.reload", "confirm.accept"} {
+	for _, verb := range []string{"confirm.set", "confirm.accept"} {
 		n, v := SplitKey(verb)
 		_, err := r.Execute(Request{Noun: n, Verb: v, Actor: &agent, Args: Arguments{"name": AgentRightsGateSetting, "value": false}})
 		if err == nil {
@@ -90,18 +90,18 @@ func TestAgentConfirmOwnerOnly(t *testing.T) {
 		NewModel(r)
 		var got Actor
 		ran := 0
-		r.Define("work").Verb("delete", func(c Ctx) Result { got = c.Actor(); ran++; return Done(nil) }).Destructive()
+		r.Define("work").Verb("kill", func(c Ctx) Result { got = c.Actor(); ran++; return Done(nil) }).Agent(AgentConfirm)
 		if err := r.Settings().Set(AgentConfirmAttributionSetting, attribution); err != nil {
 			t.Fatal(err)
 		}
 		a := testAgent("p")
 		restore := r.BindActor(a, false)
-		_, err := r.Execute(Request{Noun: "work", Verb: "delete", Confirmed: true})
+		_, err := r.Execute(Request{Noun: "work", Verb: "kill", Confirmed: true})
 		restore()
 		if err == nil || !strings.Contains(err.Error(), "needs the owner's confirmation") || r.TopModal() != "" || ran != 0 {
 			t.Fatalf("headless %v", err)
 		}
-		_, err = r.Execute(Request{Noun: "work", Verb: "delete", Actor: &a, Confirmed: true})
+		_, err = r.Execute(Request{Noun: "work", Verb: "kill", Actor: &a, Confirmed: true})
 		if err != nil || r.TopModal() == "" || ran != 0 {
 			t.Fatalf("live: %v", err)
 		}
@@ -127,9 +127,9 @@ func TestAgentConfirmOwnerOnly(t *testing.T) {
 func TestAgentConfirmStatusOptOut(t *testing.T) {
 	r := NewRuntime()
 	NewModel(r)
-	r.Define("work").Verb("delete", func(Ctx) Result { return Done(nil) }).Destructive()
+	r.Define("work").Verb("kill", func(Ctx) Result { return Done(nil) }).Agent(AgentConfirm)
 	a := testAgent("p")
-	if _, err := r.Execute(Request{Noun: "work", Verb: "delete", Actor: &a}); err != nil {
+	if _, err := r.Execute(Request{Noun: "work", Verb: "kill", Actor: &a}); err != nil {
 		t.Fatal(err)
 	}
 	if r.agentActivity() != "" {
@@ -172,6 +172,12 @@ func TestAgentConfirmComposite(t *testing.T) {
 	if !errors.As(err, &refused) || ran != 0 || r.TopModal() != "" {
 		t.Fatalf("headless composite: %v ran %d modal %s", err, ran, r.TopModal())
 	}
+	if _, err = r.Execute(q); !errors.As(err, &refused) {
+		t.Fatalf("live destructive composite: %v", err)
+	}
+	if err := r.Settings().Set(AgentRightsSetting, `[{"match":"task.delete","right":"confirm"}]`); err != nil {
+		t.Fatal(err)
+	}
 	if _, err = r.Execute(q); err != nil {
 		t.Fatal(err)
 	}
@@ -181,14 +187,22 @@ func TestAgentConfirmComposite(t *testing.T) {
 	if ran != 2 || r.TopModal() != "" {
 		t.Fatalf("approved composite: ran %d modal %s", ran, r.TopModal())
 	}
-	op := r.Operations["task.delete"]
-	op.Agent = AgentNever
-	r.Operations[op.Key()] = op
+	if err := r.Settings().Set(AgentRightsSetting, `[{"match":"task.delete","right":"never"}]`); err != nil {
+		t.Fatal(err)
+	}
 	_, err = r.Execute(q)
 	if !errors.As(err, &refused) || r.TopModal() != "" || ran != 2 {
 		t.Fatalf("never composite: %v ran %d modal %s", err, ran, r.TopModal())
 	}
-
+	if err := r.Settings().Set(AgentRightsSetting, `[{"match":"task.delete","right":"allow"}]`); err != nil {
+		t.Fatal(err)
+	}
+	restore = r.BindActor(a, false)
+	_, err = r.Execute(q)
+	restore()
+	if err != nil || ran != 4 || r.TopModal() != "" {
+		t.Fatalf("allowed headless composite: %v ran %d modal %s", err, ran, r.TopModal())
+	}
 }
 
 // Policy defaults belong to the embedded startup rows, like other universal

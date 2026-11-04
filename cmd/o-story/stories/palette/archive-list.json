@@ -1,0 +1,30 @@
+{
+  "name": "archive lists: hide by default, the archived saved filter reveals records, restore keeps them",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "store": {
+      "props": [
+        {"name":"id","key":true},
+        {"name":"title","role":"label"},
+        {"name":"retired","type":"boolean","role":"archive"}
+      ],
+      "things": [
+        {"id":"t1","title":"Archived parcel","retired":true},
+        {"id":"t2","title":"Live parcel","retired":false}
+      ]
+    }
+  },
+  "script": [
+    ":", {"type":"demo list"}, "enter", "esc",
+    ":", {"type":"demo list --filter archived"}, "enter", "esc",
+    ":", {"type":"demo restore t1"}, "enter",
+    ":", {"type":"demo list"}, "enter"
+  ],
+  "expect": [
+    {"after":3,"contains":["Live parcel"],"lacks":["Archived parcel"]},
+    {"after":7,"contains":["Archived parcel"],"lacks":["Live parcel"]},
+    {"after":14,"contains":["Archived parcel","Live parcel"]}
+  ]
+}

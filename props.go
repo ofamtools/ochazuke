@@ -61,9 +61,10 @@ const (
 	// RoleOwner is the reference prop naming the thing that holds this one
 	// (move writes it).
 	RoleOwner = "owner"
-	// RoleArchive is the boolean prop that says a thing is archived
-	// (archive and restore write it; delete reads it under the
-	// delete.archive setting).
+	// RoleArchive is the boolean prop that says a thing is archived.
+	// Archive and restore write it; standard list hides true values unless
+	// a filter names it or list.hide-archived is off. It declares the
+	// archived saved filter. Delete reads it under delete.archive.
 	RoleArchive = "archive"
 )
 
@@ -543,6 +544,9 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	p.Enum = slices.Clone(p.Enum)
 	p.Aliases = slices.Clone(p.Aliases)
 	n.Props = append(n.Props, p)
+	if p.Role == RoleArchive && !slices.ContainsFunc(n.Filters, func(f SavedFilter) bool { return f.Name == "archived" }) {
+		n.Filters = append([]SavedFilter{{Name: "archived", Noun: n.Name, Where: map[string]any{p.Name: true}}}, n.Filters...)
+	}
 	return nil
 }
 
