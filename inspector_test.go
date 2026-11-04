@@ -83,6 +83,9 @@ func TestInspectorSnapshotAndPanel(t *testing.T) {
 		t.Fatalf("bindings check: %v, %v", problems, err)
 	}
 	motionKeys(t, r, m, "alt+?")
+	if got := r.Inspect().Message; got == nil || got.Text != "copied path" {
+		t.Fatal("next key erased the diagnostic")
+	}
 	if !r.Settings().Bool(InspectorEnabledSetting) || !strings.Contains(m.inspectorLine(), ".items[3].owner.id") {
 		t.Fatal("alt+? did not show inspector")
 	}
@@ -114,6 +117,9 @@ func TestInspectorPendingSelectionAndMessages(t *testing.T) {
 		t.Fatal("lost error tone")
 	}
 	r.UI().Info("")
+	if got := r.Inspect().Message; got == nil || got.Text != "failed" {
+		t.Fatal("clearing chrome erased the last message")
+	}
 	text := strings.Repeat("界", 300)
 	r.StoreYank(Yank{Text: text, Shape: "char"}, "", false)
 	if s := r.Inspect(); !s.Registers[0].Value.Truncated || len([]rune(s.Registers[0].Value.Text)) != 257 {

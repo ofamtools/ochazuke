@@ -1,0 +1,11 @@
+{
+  "name": "terminal/late-answer-keeps-keys",
+  "page": {
+    "lists": [{"id": "a", "rows": 3}],
+    "terminal": {"fake": true, "attach": "a1"},
+    "verbs": [{"verb": "demo.read", "pending": true, "answer": "late answer", "result": "text"}],
+    "bind": [{"noun": "ochazuke.terminal", "mode": "leader_pending", "keys": ":", "do": "ochazuke.palette.open"}, {"noun": "ochazuke.terminal", "mode": "leader_pending", "keys": "F", "do": "demo.finish", "args": {"verb": "demo.read"}}]
+  },
+  "script": ["enter", {"tick": "terminal"}, "ctrl+a", ":", {"type": "demo read"}, "enter", {"paste": "typing-in-pane"}, {"tick": "terminal"}, "ctrl+a", "F", {"job": "demo.read", "state": "done"}, {"paste": "MORE"}, {"tick": "terminal"}],
+  "expect": [{"after": 11, "modal": "", "mode": "terminal", "contains": ["answer not opened"]}, {"modal": "", "mode": "terminal", "contains": ["typing-in-paneMORE"]}]
+}

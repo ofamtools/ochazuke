@@ -7,6 +7,10 @@
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
   {"name":"keys.text-results","section":"keys","type":"boolean","default":true,"description":"Open declared text, Markdown and preformatted answers from key bindings in their viewer; off leaves key results unpresented"},
+  {"name":"text-view.wrap","section":"help","type":"boolean","default":true,"description":"Soft-wrap text answers; off keeps horizontal motion and marks clipped lines with ›"},
+  {"name":"text-view.result-title","section":"help","type":"boolean","default":true,"description":"Use a text answer's returned title; off titles it with the operation name"},
+  {"name":"messages.hint","section":"status","type":"boolean","default":true,"description":"Show the messages.show binding beside a cut status or error; off hides the recovery hint"},
+  {"name":"foreground.hold","section":"keys","type":"string","default":"on-failure","enum":["off","on-failure"],"description":"Keep a failed foreground program on screen until a key is pressed; off resumes immediately"},
   {"name":"list.filter-save","section":"search","type":"boolean","default":true,"description":"Show the name input for saving or replacing conditions and sort in list.filters from the filter form"},
   {"name":"list.filter-layout","section":"search","type":"string","default":"compact","enum":["compact","fields"],"description":"Filter modal layout: compact searches one prop and its values with active condition rows; fields keeps the original field-per-prop form"},
   {"name":"list.filter-picker-sort","section":"search","type":"boolean","default":false,"description":"Offer the shared Sort action in the older prop chooser when rows allow local sorting; off keeps the original prop-only picker"},

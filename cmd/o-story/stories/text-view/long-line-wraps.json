@@ -1,0 +1,38 @@
+{
+  "width": 100,
+  "height": 30,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.read",
+        "answer": "/tmp/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/: No such file or directory",
+        "result": "text"
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "v",
+        "do": "demo.read"
+      }
+    ]
+  },
+  "script": [
+    "v"
+  ],
+  "expect": [
+    {
+      "modal": "text-view",
+      "contains": [
+        "No such file or directory"
+      ]
+    }
+  ],
+  "name": "text-view/long-line-wraps"
+}

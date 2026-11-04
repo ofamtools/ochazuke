@@ -179,6 +179,38 @@ In normal mode, `Ctrl-J` advances and `Ctrl-K` goes back. The demo does not bind
 
 These are suggested starter/demo pages. Domain pages such as Agents, Panes, Projects, and application Settings belong to consuming applications; the framework does not require those names or behaviors.
 
+### Recent messages
+
+`g <` runs `messages.show` and opens the last 32 nonempty notices, status
+messages and errors in full. Clearing the footer does not remove this history.
+When a footer message is cut, it names the effective binding for this verb.
+`messages.hint=false` hides that suffix; remapping or unbinding the row changes it.
+
+Compared with Vim:
+
+| Vim form | Help tag | Ochazuke behavior |
+| --- | --- | --- |
+| `:messages` | `:messages` | Similar. `messages.show` reads a bounded, session-only message history. |
+| `g<` | `g<` | Similar recovery key. Opens recent messages, not Vim's last command-output page. |
+
+### Captured and foreground work
+
+Catalog verbs can declare a `slot` and a duration `timeout`. A slot admits one
+pending invocation per subject row. A second invocation reports that it is
+already running. A zero or omitted timeout uses the host's captured-work default.
+Captured Unix processes have their own process group. Cancellation sends TERM,
+allows one second for record finalization, then kills remaining descendants.
+`jobs.cancel {job}` cancels a running job.
+
+`foreground.hold` defaults to `on-failure`. A failed foreground program waits
+for a key before the host resumes; `off` resumes immediately. Successful exits
+always resume immediately. A bounded stderr tee retains the last line for the
+completion message and preserves terminal stderr on Unix.
+
+`Operation.EnabledSetting` names a boolean setting in the producing runtime.
+The catalog publishes its `disabled` snapshot; hosts do not read the remote
+setting name. Refresh the catalog after changing such a setting.
+
 ### State inspector
 
 `alt+?` toggles a one-line state strip below the body. `inspector.enabled`
@@ -509,9 +541,16 @@ viewers; set it to `false` to retain unpresented key answers.
 only broadens palette answers, never ordinary key results.
 `Runtime.PresentResult(request, value)` is available to other UI adapters and
 reports whether it handled a text result. CLI and API execution still return
-values without opening a viewer. Pending key answers
-run their existing callback first and do not cover a changed page, focus,
-base mode or modal.
+values without opening a viewer. Pending key and palette answers run their
+existing callback first and do not cover a changed page, focus, base mode or
+modal. Answers requested inside a modal open over it and close back to it.
+An unpresented late answer leaves a plain status message and its full body in
+`messages.show`. `Result.OnPresented` runs only after a pending viewer opens.
+
+The text view wraps by default. `text-view.wrap=false` restores horizontal
+scrolling and marks a clipped line with `›`. A declared text result may return
+`TextAnswer{Title, Text}`, encoded as `{"title":"…","text":"…"}`, instead of a
+string. `text-view.result-title=false` uses the operation name for the title.
 
 - `:h bindings`, `:help bindings` and `:bindings help` open the same effective-key help for the originating focus, not the global default-key reference. It shows the actions and arguments that answer there, omitting unavailable and shadowed rows. `/` filters the visible help rows; `Ctrl-U` clears the query while keeping the filter open. `Esc` leaves the filter and clears its query; another `Esc` closes help and restores the originating focus and mode. Use `:docs open bindings` for the global reference.
 - Pending commands present their results after delivery and their existing `Then` callback. Failed, cancelled, orphaned jobs, or results arriving while another modal is open do not open a table; an existing modal is never replaced.

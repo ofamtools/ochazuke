@@ -487,6 +487,7 @@ type BindSpec struct {
 	Keys string         `json:"keys"`
 	Do   string         `json:"do"`
 	Args map[string]any `json:"args,omitempty"`
+	When string         `json:"when,omitempty"`
 }
 
 // StoreSpec is the demo noun's props (ochazuke.PropSpec as JSON) and its
@@ -526,6 +527,11 @@ type VerbSpec struct {
 	RowsBy  map[string][]string `json:"rowsBy,omitempty"`
 	RowsArg string              `json:"rowsArg,omitempty"`
 	Rows    []string            `json:"rows,omitempty"`
+	Answer  any                 `json:"answer,omitempty"`
+	Result  string              `json:"result,omitempty"`
+	Error   string              `json:"error,omitempty"`
+	Pending bool                `json:"pending,omitempty"`
+	Proxy   bool                `json:"proxy,omitempty"`
 	// Aliases are the verb's other names (ochazuke.ActionAlias: alias as
 	// noun.verb, since/removeAfter for a deprecated one; action is the
 	// verb). A run through an alias logs " via=ALIAS" after its arguments.

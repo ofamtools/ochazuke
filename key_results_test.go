@@ -71,22 +71,3 @@ func TestKeyTextResultsAllRequiresDeclaredText(t *testing.T) {
 		}
 	}
 }
-
-func TestInspectorMessageClearsOnNextKey(t *testing.T) {
-	r, m, _, _ := motionPage(t)
-	r.UI().Error("old failure")
-	m.handleKey(MacroKey{Key: "j"})
-	if r.Inspect().Message != nil || m.Status != "" {
-		t.Fatal("inspector retained cleared error")
-	}
-	r.UI().Info("old info")
-	r.UI().Info("")
-	if r.Inspect().Message != nil {
-		t.Fatal("inspector retained cleared info")
-	}
-	id := r.UI().Notify("old notice")
-	r.UI().ClearNotice(id)
-	if r.Inspect().Message != nil {
-		t.Fatal("inspector retained withdrawn notice")
-	}
-}

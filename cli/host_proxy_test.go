@@ -22,7 +22,7 @@ func TestRunMountedCapturedAndForeground(t *testing.T) {
 	}{
 		{name: "text", script: `printf '"one\\ntwo"'`, want: "one\ntwo"},
 		{name: "failure", script: `printf 'remote refusal' >&2; exit 3`, fail: true, want: "remote refusal"},
-		{name: "timeout", script: `sleep 1`, timeout: time.Millisecond, fail: true, want: "failed"},
+		{name: "timeout", script: `sleep 1`, timeout: time.Millisecond, fail: true, want: "limit"},
 		{name: "foreground", foreground: true, timeout: time.Nanosecond},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -74,8 +74,20 @@ func TestMountedRowGuardsDeferToExtension(t *testing.T) {
 	}
 	row := ochazuke.Do("ext.item.read").Guard("remote-only")
 	row.Noun, row.Mode, row.Keys = "ext.item", "normal", "v"
+	if err := r.Bind(row); err == nil {
+		t.Fatal("a host row lost its unknown guard")
+	}
+	row.When = "" // Only the catalog-load path strips producing-runtime guards.
 	if err := r.Bind(row); err != nil {
 		t.Fatal(err)
+	}
+	host := row
+	host.Keys, host.When = "Z", "input"
+	if err := r.Bind(host); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Dispatch(ochazuke.MacroKey{Key: "Z"}); err != nil || calls != 0 {
+		t.Fatal("host guard was not retained")
 	}
 	if _, err := r.Dispatch(ochazuke.MacroKey{Key: "v"}); err == nil || err.Error() != "extension refused" || calls != 1 {
 		t.Fatalf("remote guard: calls=%d err=%v", calls, err)

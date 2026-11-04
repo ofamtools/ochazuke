@@ -693,6 +693,9 @@ func (r *Runtime) Available(q Request, focus string, mode ModeState) bool {
 		}
 		q = pq
 	}
+	if op, ok := r.Operation(q.Key()); ok && (op.Disabled || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)) {
+		return false
+	}
 	for _, name := range r.VerbAvailability(q.Key()) {
 		if guard := r.guard(name); guard != nil && !guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: q.Args}) {
 			return false
@@ -1141,11 +1144,6 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 	}
 	if row.Mode != "" && !r.Modes[row.Mode] && !r.pendingModes[row.Mode] {
 		return row, fmt.Errorf("unknown mode %q", row.Mode)
-	}
-	// Remote guards belong to the producing runtime, not the host, even
-	// when a host happens to declare a guard with the same name.
-	if op, ok := r.Operation(row.Request.Key()); ok && op.CatalogProxy {
-		row.When = ""
 	}
 	if row.When != "" && r.guard(row.When) == nil {
 		return row, fmt.Errorf("unknown guard %q", row.When)

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,18 +40,45 @@ func RunMounted(v CatalogVerb, call ProxyCommand) ochazuke.Result {
 	if v.Foreground {
 		return ochazuke.Foreground(command(context.Background()))
 	}
+	limit := call.Timeout
+	if v.Timeout != "" {
+		declared, err := time.ParseDuration(v.Timeout)
+		if err != nil || declared < 0 {
+			return ochazuke.Failed(fmt.Errorf("invalid execution timeout %q", v.Timeout))
+		}
+		if declared > 0 {
+			limit = declared
+		}
+	}
 	return ochazuke.Pending(func(ctx context.Context) (any, error) {
-		if call.Timeout > 0 {
+		if limit > 0 {
 			var cancel context.CancelFunc
-			ctx, cancel = context.WithTimeout(ctx, call.Timeout)
+			ctx, cancel = context.WithTimeout(ctx, limit)
 			defer cancel()
 		}
 		cmd := command(ctx)
 		cmd.WaitDelay = call.WaitDelay
+		stop := capturedGroup(cmd)
+		defer stop()
 		var out, errOut bytes.Buffer
 		cmd.Stdout, cmd.Stderr = &out, &errOut
 		if err := cmd.Run(); err != nil {
-			return nil, fmt.Errorf("%s failed: %w: %s", strings.Join(cmd.Args[:min(3, len(cmd.Args))], " "), err, strings.TrimSpace(errOut.String()))
+			name := v.Name
+			if name == "" {
+				name = filepath.Base(call.Bin)
+			}
+			reason := strings.TrimSpace(errOut.String())
+			if i := strings.LastIndex(reason, "\n"); i >= 0 {
+				reason = reason[i+1:]
+			}
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				reason = fmt.Sprintf("stopped after %s (limit)", limit)
+			} else if ctx.Err() != nil {
+				reason = "cancelled"
+			} else if reason == "" {
+				reason = err.Error()
+			}
+			return nil, fmt.Errorf("%s: %s", name, reason)
 		}
 		var value any
 		if json.Unmarshal(out.Bytes(), &value) == nil {

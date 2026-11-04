@@ -5,6 +5,7 @@ import (
 	gomaps "maps"
 	"slices"
 	"strings"
+	"time"
 
 	"ofam.dev/ochazuke"
 )
@@ -201,6 +202,15 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 	op.Positional = slices.Clone(v.Positional)
 	op.Quiet, op.Many, op.Repeatable, op.Standard = v.Quiet, v.Many, v.Repeatable, v.Standard
 	op.Foreground = v.Foreground
+	op.Slot = v.Slot
+	op.Disabled = v.Disabled
+	if v.Timeout != "" {
+		limit, err := time.ParseDuration(v.Timeout)
+		if err != nil || limit < 0 {
+			return fmt.Errorf("invalid execution timeout %q", v.Timeout)
+		}
+		op.Timeout = limit
+	}
 	if v.Result != "" {
 		op.Result = v.Result
 	}

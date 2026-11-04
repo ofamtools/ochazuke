@@ -572,6 +572,9 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 			}
 		}
 	}
+	if r.passthroughModes[r.BaseMode()] {
+		r.UI().passthroughInput++
+	}
 	execute := func(q Request) error {
 		present := r.keyResultPresenter(q)
 		r.rowRequest = true

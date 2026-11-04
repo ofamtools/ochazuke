@@ -1,0 +1,6 @@
+{
+  "name": "cli/run-mounted-error-wording",
+  "page": {"lists": [{"id": "a", "rows": 2}], "verbs": [{"verb": "demo.read", "error": "read: child reason"}], "bind": [{"noun": "demo", "keys": "E", "do": "demo.read"}]},
+  "script": ["E", "g", "<"],
+  "expect": [{"after": 1, "contains": ["Error: read: child reason"]}, {"modal": "text-view", "contains": ["error: read: child reason"]}]
+}

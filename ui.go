@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -101,26 +102,39 @@ type UISink interface {
 // is one instance under app (Runtime.UI), never a Runtime field. With no
 // sink it discards, except that until the first sink attaches it keeps
 // the last 32 messages (the startup ring) and replays them, in order, into
-// that sink; after the first attach only the last nonempty message is
-// kept, bounded for the inspector.
+// that sink. Recent nonempty messages are also retained in full for
+// messages.show; the inspector keeps a bounded copy of the last one.
 //
 // Like the rest of Runtime it is called from the update loop; work off the
 // loop posts from its Then (which gets a Ctx).
 type UI struct {
 	// Now is the host clock for timed row presentation; nil uses time.Now.
 	// NewModel connects it to Model.Now, including a headless story clock.
-	Now      func() time.Time
-	last     *UIMessage // last nonempty message for the live inspector
-	sink     UISink
-	attached bool // a sink attached once: the ring is gone for good
-	ring     []UIMessage
-	next     NoticeID
-	captures []*[]UIMessage // HandleCall's open captures, innermost last
+	Now              func() time.Time
+	last             *UIMessage // last nonempty message for the live inspector
+	sink             UISink
+	attached         bool // a sink attached once: the ring is gone for good
+	ring             []UIMessage
+	messages         []UIMessage
+	passthroughInput uint64 // answered rows in any passthrough mode
+	next             NoticeID
+	captures         []*[]UIMessage // HandleCall's open captures, innermost last
 }
 
 func registerUI(r *Runtime) {
 	inst := r.Instance(uiID, Kind("ochazuke.ui"))
 	inst.Component = &UI{}
+	r.Define("ochazuke.messages").Verb("show", func(c Ctx) Result {
+		var lines []string
+		for _, msg := range c.Runtime.UI().messages {
+			lines = append(lines, msg.Line())
+		}
+		_, err := c.Runtime.OpenTextView("Messages", strings.Join(lines, "\n\n"))
+		if err != nil {
+			return Failed(err)
+		}
+		return Done(nil)
+	}, "Read recent messages in full")
 }
 
 // UI returns the UI component: Notify, ClearNotice, Error and Info
@@ -212,10 +226,12 @@ func (u *UI) Info(text string) {
 }
 
 func (u *UI) post(msg UIMessage) {
-	clearStatus := msg.Text == "" && (msg.Kind == UIError || msg.Kind == UIInfo) && u.last != nil && (u.last.Kind == UIError || u.last.Kind == UIInfo)
-	if clearStatus || msg.Kind == UIClearNotice && u.last != nil && u.last.ID == msg.ID {
-		u.last = nil
-	} else if msg.Text != "" && msg.Kind != UIClearNotice {
+	if msg.Text != "" && msg.Kind != UIClearNotice {
+		if len(u.messages) == uiRing {
+			copy(u.messages, u.messages[1:])
+			u.messages = u.messages[:uiRing-1]
+		}
+		u.messages = append(u.messages, msg)
 		v := msg
 		v.Text = inspectText(v.Text).Text
 		u.last = &v
