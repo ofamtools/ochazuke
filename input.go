@@ -252,6 +252,33 @@ func (in *Input) Replace(start, end int, text string) error {
 	return nil
 }
 
+// undoChangesText reports whether some older state of the undo tree holds
+// other text than the input shows now; steps between equal texts are not
+// something a person could see undone.
+func (in *Input) undoChangesText() bool {
+	here := in.History[in.Head].Text
+	for n := in.History[in.Head].Parent; n >= 0; n = in.History[n].Parent {
+		if in.History[n].Text != here {
+			return true
+		}
+	}
+	return false
+}
+
+// redoChangesText is undoChangesText for the states redo would reach (the
+// newest child at each step).
+func (in *Input) redoChangesText() bool {
+	here := in.History[in.Head].Text
+	for n := in.Head; len(in.History[n].Children) > 0; {
+		c := in.History[n].Children
+		n = c[len(c)-1]
+		if in.History[n].Text != here {
+			return true
+		}
+	}
+	return false
+}
+
 func (in *Input) Undo(steps int) error {
 	if steps < 1 {
 		return errors.New("steps must be positive")

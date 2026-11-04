@@ -26,6 +26,15 @@ func formEditingShadows(r *Runtime) []string {
 			continue
 		}
 		r.Focus, r.Mode = id, ModeState{Name: "normal"}
+		// A form key may follow the input's own history (u and ctrl+r fall
+		// through to the record's once the input has nothing to take): judge
+		// the rows with an input that has both an undo and a redo to offer.
+		in := r.Input(id)
+		saved := *in
+		saved.History = slices.Clone(in.History)
+		in.History = []EditNode{{Parent: -1, Children: []int{1}}, {Text: "x", Parent: 0, Children: []int{2}}, {Text: "xy", Parent: 1}}
+		in.Head = 1
+		defer func(in *Input, saved Input) { *in = saved }(in, saved)
 		for _, parent := range r.Ancestry(id) {
 			at := r.Instances[parent]
 			rows := append(slices.Clone(at.Bindings), r.Noun(at.Noun).Bindings["normal"]...)

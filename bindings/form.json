@@ -4,8 +4,8 @@
     {"context": "ochazuke.form/normal", "bindings": [
       {"key": "q", "action": "ochazuke.form.leave", "when": "no-modal", "help": "Leave a form placed on a page; in a modal form q and esc reach the modal noun (modal.close, which leaves it)"},
       {"key": "esc", "action": "ochazuke.form.leave", "when": "no-modal", "help": "Leave a form placed on a page; in a modal form q and esc reach the modal noun (modal.close, which leaves it)"},
-      {"key": "u", "action": "ochazuke.form.undo"},
-      {"key": "ctrl+r", "action": "ochazuke.form.redo"},
+      {"key": "u", "action": "ochazuke.form.undo", "when": "input-no-undo"},
+      {"key": "ctrl+r", "action": "ochazuke.form.redo", "when": "input-no-redo"},
       {"key": "C", "action": "ochazuke.form.clear", "hint": "clear"}
     ]},
     {"context": "ochazuke.form-chips/normal", "bindings": [

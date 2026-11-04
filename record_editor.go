@@ -1563,8 +1563,22 @@ func registerForms(r *Runtime) {
 		op.Parameters = insert
 		r.Operations[FormNoun+"."+verb] = op
 	}
+	// One undo chain in every record form: a text input's own history comes
+	// first, then the same key falls through to the record's history. The
+	// keys' rows yield to the input (input.undo and input.redo answer from
+	// the editor level while it has a step to take); the verbs themselves
+	// stay available, so the palette and the CLI reach the record's history
+	// from any stop.
 	r.DefineGuard("form-record-history", func(r *Runtime, ev KeyEvent) bool {
-		return r.recordEditorOf(ev.Focus) != nil && r.Input(r.Focus) == nil
+		return r.recordEditorOf(ev.Focus) != nil
+	})
+	r.DefineGuard("input-no-undo", func(r *Runtime, ev KeyEvent) bool {
+		in := r.Input(ev.Focus)
+		return in == nil || !in.undoChangesText()
+	})
+	r.DefineGuard("input-no-redo", func(r *Runtime, ev KeyEvent) bool {
+		in := r.Input(ev.Focus)
+		return in == nil || !in.redoChangesText()
 	})
 	_ = r.AddVerbAvailability(FormNoun+".undo", "form-record-history")
 	_ = r.AddVerbAvailability(FormNoun+".redo", "form-record-history")
