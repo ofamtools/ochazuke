@@ -292,6 +292,9 @@ type Operation struct {
 	// by NounBuilder.Many. A verb without it that is asked to act on
 	// several subjects runs once per subject. The catalog's many.
 	Many bool `json:"many,omitempty"`
+	// ByAssociation admits a person's targetless request through a declared
+	// association on the focus path. Programs still need an explicit target.
+	ByAssociation bool `json:"byAssociation,omitempty"`
 	// Aliases are the action's other names (ActionAlias), display
 	// spelling, sorted. Catalog and operations.list fill it; an entry of
 	// Runtime.Operations does not hold it (the alias table does).
@@ -516,6 +519,7 @@ func (r *Runtime) registerFramework() {
 	registerJobs(r)
 	registerConfiguration(r)
 	registerSearchMatch(r)
+	registerAssociations(r)
 	registerChooser(r)
 	registerConfig(r)
 	registerActions(r)
@@ -934,7 +938,7 @@ func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, err
 	depth := r.history.depth
 	from := r.place()
 	r.history.depth++
-	value, err := r.execute(c, q, false, run)
+	value, err := r.execute(c, &q, false, run)
 	r.history.depth--
 	r.record(at, q, ctx, depth, from, value, err)
 	if depth == 0 {
@@ -952,7 +956,8 @@ func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, err
 	return value, err
 }
 
-func (r *Runtime) execute(c Context, q Request, checkOnly bool, run ...operationRunner) (any, error) {
+func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...operationRunner) (value any, err error) {
+	q := *request
 	fromRow := r.rowRequest
 	r.rowRequest = false
 	if q.IsProp() {
@@ -976,6 +981,23 @@ func (r *Runtime) execute(c Context, q Request, checkOnly bool, run ...operation
 	}
 	if err := r.checkArguments(op, q.Args); err != nil {
 		return nil, &ArgumentError{err}
+	}
+	associated, err := r.associationSubject(op, q, focusOf(c))
+	if err != nil {
+		return nil, err
+	}
+	if associated != "" {
+		q.Target = associated
+		request.Target = associated
+		if !checkOnly {
+			top := r.TopModal()
+			defer func() {
+				if inst := r.Instances[associated]; err == nil && inst != nil && r.TopModal() == top {
+					t := r.instanceThing(inst)
+					r.UI().Notify(r.DisplayNoun(op.Noun) + " " + t.Label + " (from the focus)")
+				}
+			}()
+		}
 	}
 	if q.Target != "" && q.Target != "focused-input" {
 		id, err := r.TargetInstance(q.Target)

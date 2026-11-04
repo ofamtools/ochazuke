@@ -638,6 +638,18 @@ func (b *NounBuilder) Many() *NounBuilder {
 	return b
 }
 
+// ByAssociation lets the last verb act through a declared association of
+// the focus (Operation.ByAssociation). It never fills required parameters.
+func (b *NounBuilder) ByAssociation() *NounBuilder {
+	if b.last == "" {
+		panic("ByAssociation must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.ByAssociation = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // Positional names the parameters of the last declared verb that bare
 // words fill first, in order (Operation.Positional): Positional("name")
 // makes BIN project link foo set name even though the boolean all sorts

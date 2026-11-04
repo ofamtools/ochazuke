@@ -519,6 +519,11 @@ func (r *Runtime) rowInstance(lv level, q Request, focus string) string {
 	if lv.inst != nil && lv.inst.ID != focus && lv.noun != nil && lv.noun.Name == q.Noun {
 		return lv.inst.ID
 	}
+	if op, ok := r.Operation(q.Key()); ok && op.byAssociation() && r.nounInstance(op.Noun, focus) == "" {
+		if id, _ := r.nearestOf(op.Noun, focus); id != "" {
+			return id
+		}
+	}
 	return focus
 }
 
@@ -544,7 +549,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 	if q.Target == "" {
 		// A row addresses the instance of the level it matched at when the
 		// operation is that level's own (rowInstance).
-		if at := r.rowInstance(lv, q, ev.Focus); at != ev.Focus {
+		if at := r.rowInstance(lv, q, ev.Focus); at != ev.Focus && lv.inst != nil && at == lv.inst.ID {
 			q.Target = at
 		}
 	}

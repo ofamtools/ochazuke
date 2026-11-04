@@ -214,6 +214,7 @@ func (p *Palette) currentSlot() (paramSlot, bool) {
 // following parameters, cuts the description, then drops what it is from
 // the end; the name is always kept.
 func (p *Palette) paramHeader(s Styles, slot paramSlot, width int) string {
+	defer p.r.Sourced("palette")()
 	param, prop := p.r.choiceParameter(slot.Op, slot.Name, slot.Args)
 	if prop != "" {
 		// A ValueOf parameter is headed by the prop it holds a value of.
@@ -229,6 +230,11 @@ func (p *Palette) paramHeader(s Styles, slot paramSlot, width int) string {
 		facts = append(facts, "required")
 	} else {
 		facts = append(facts, "optional")
+	}
+	if slot.Op.byAssociation() && p.r.nounInstance(slot.Op.Noun, focusOf(p.origin)) == "" {
+		if id, _ := p.r.nearestOf(slot.Op.Noun, focusOf(p.origin)); id != "" {
+			facts = append(facts, "acts on: "+p.r.instanceThing(p.r.Instances[id]).Label)
+		}
 	}
 	if t, ok := p.r.focusValue(slot.Op, slot.Name, focusOf(p.origin)); ok {
 		// Omitted, the value comes from the focus (Parameter.Focus):

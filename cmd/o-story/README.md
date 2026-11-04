@@ -537,6 +537,7 @@ Conformance:
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.finish` `demo.hints` |
 | terminal | focus | `focus.next` |
+| terminal | item | `item.rename` `item.rename-associated` |
 | terminal | mode | `mode.enter` |
 | terminal | palette | `palette.open` |
 | terminal | terminal | `terminal.detach` `terminal.paste` `terminal.send` |
@@ -615,6 +616,8 @@ Mode edges (from → to via):
 - `leader_pending` → `normal` via `focus.next`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `demo.finish`
+- `leader_pending` → `terminal` via `item.rename`
+- `leader_pending` → `terminal` via `item.rename-associated`
 - `leader_pending` → `terminal` via `row x`
 - `leader_pending` → `terminal` via `terminal.send`
 - `leader_pending` → `terminal` via `terminal.send + terminal.send`

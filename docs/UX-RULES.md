@@ -1201,6 +1201,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   focus)`). A required parameter is still never filled. Stories
   `palette/create-from-focus.json`, `palette/create-from-focus-off.json`;
   tests `TestCreateFillsFromTheFocus`, `TestTaskCreateFillsTheFocusedProject`.
+  A subject may also come through a reference prop marked `Association`,
+  when the verb declares `ByAssociation` or an optional `Focus` subject.
+  Only human UI sources opt in (`subject.from-association`, default on);
+  programs still name a target. The nearest level must give one live thing,
+  otherwise ambiguity names the candidates and runs nothing. The palette
+  says `acts on: LABEL`; a form/confirm names the thing, or a completed
+  non-modal action posts `NOUN LABEL (from the focus)`. Required parameters
+  remain unfilled. Tests `TestAssociationFillIsDeclared`; stories
+  `focus/association-subject-row`, `focus/association-subject-palette`,
+  `focus/association-standard-subject`.
 - **R12.6** The palette asks for missing arguments with a form. Enter on a
   line whose verb still lacks a required word, or a key whose row leaves a
   required argument out, opens the args form (`Runtime.OpenArgsForm`, modal
