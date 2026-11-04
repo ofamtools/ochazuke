@@ -484,6 +484,40 @@ func parseWhere(n *Noun, text string) (map[string]any, error) {
 	return out, nil
 }
 
+// HideArchivedSetting hides things whose archive-role prop is true from
+// standard list results and from row-fed lists and trees (default true).
+const HideArchivedSetting = "list.hide-archived"
+
+// archiveName is the name of the noun's archive prop, "" when it has none.
+func archiveName(n *Noun) string {
+	if p := n.roleProp(RoleArchive); p != nil {
+		return p.Name
+	}
+	return ""
+}
+
+// archiveHiding is the archive prop a default view of n's things hides on,
+// or nil when it hides nothing: the noun has no archive prop, the setting
+// is off, the request names the prop (explicit, a where) or one of the
+// filters does. runList and every row-fed list or tree (List.archiveHidden)
+// decide through it, so the rule is one.
+func (r *Runtime) archiveHiding(n *Noun, explicit bool, filters []PropFilter) *PropSpec {
+	if n == nil {
+		return nil
+	}
+	p := n.roleProp(RoleArchive)
+	if p == nil || explicit || !r.Settings().Bool(HideArchivedSetting) || slices.ContainsFunc(filters, func(f PropFilter) bool { return f.Prop == p.Name }) {
+		return nil
+	}
+	return p
+}
+
+// archivedThing reports whether the thing's archive prop is true.
+func archivedThing(p *PropSpec, t Thing) bool {
+	v, _ := propValue(*p, t[p.Name])
+	return v == true
+}
+
 func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 	names, err := pickedProps(n, c.Args)
 	if err != nil {
@@ -497,13 +531,8 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	archive := n.roleProp(RoleArchive)
-	if archive != nil {
-		_, explicit := where[archive.Name]
-		if !r.Settings().Bool("list.hide-archived") || explicit || slices.ContainsFunc(filters, func(f PropFilter) bool { return f.Prop == archive.Name }) {
-			archive = nil
-		}
-	}
+	_, explicit := where[archiveName(n)]
+	archive := r.archiveHiding(n, explicit, filters)
 	// Stores must not limit before saved conditions or archive hiding are applied.
 	limit := max(0, IntArg(c.Args, "limit", 0))
 	q := ListQuery{Where: where, Limit: limit}
@@ -525,10 +554,8 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 	key := n.keyProp()
 	rows := []map[string]any{}
 	for _, t := range things {
-		if archive != nil {
-			if v, _ := propValue(*archive, t[archive.Name]); v == true {
-				continue
-			}
+		if archive != nil && archivedThing(archive, t) {
+			continue
 		}
 		if !thingMatches(n, t, where) || !propsMatch(n, t, filters) {
 			continue

@@ -120,12 +120,12 @@ func (l *List) Filtering() bool {
 // below the list as the filter narrows it.
 func (l *List) Height() int {
 	if l.query != "" || l.editingFilter() || l.propStrip() != "" || l.sortSummary() != "" {
-		return len(l.all) + 1
+		return l.Len() + 1
 	}
 	if l.Filtering() {
-		return max(1, len(l.all))
+		return max(1, l.Len())
 	}
-	return len(l.all)
+	return l.Len()
 }
 
 // Shown is the number of rows the filter lets through (Len without one).
@@ -151,8 +151,15 @@ func (l *List) SetFilter(query string) {
 // refilter recomputes the shown rows from every row and the query, then
 // selects keep when it shows, else the first shown row.
 func (l *List) refilter(keep string) {
+	hidden := l.archiveHidden()
+	l.archived = 0
+	for _, item := range l.all {
+		if hidden[item.ID] {
+			l.archived++
+		}
+	}
 	if t := l.tree(); t != nil && len(l.propFilters) > 0 {
-		kept := t.filterNodes()
+		kept := t.filterNodes(hidden)
 		l.items = make([]ListItem, 0, len(l.all))
 		for _, item := range l.all {
 			if kept[item.ID] {
@@ -161,11 +168,19 @@ func (l *List) refilter(keep string) {
 		}
 	} else if strings.TrimSpace(l.query) == "" && len(l.propFilters) == 0 {
 		l.items = l.all
+		if l.archived > 0 {
+			l.items = make([]ListItem, 0, len(l.all)-l.archived)
+			for _, item := range l.all {
+				if !hidden[item.ID] {
+					l.items = append(l.items, item)
+				}
+			}
+		}
 	} else {
 		m := l.matcher()
 		shown := make([]ListItem, 0, len(l.all))
 		for _, item := range l.all {
-			if l.matchesProps(item) && m.MatchPrepared(l.preparedRow(item, m)) {
+			if !hidden[item.ID] && l.matchesProps(item) && m.MatchPrepared(l.preparedRow(item, m)) {
 				shown = append(shown, item)
 			}
 		}
@@ -253,7 +268,7 @@ func (l *List) filterLine(width int) string {
 		case len(l.items) == 0:
 			right = append(right, "no "+pluralOr(l.placeholder.Plural)+" match")
 		default:
-			right = append(right, strconv.Itoa(len(l.items))+" of "+strconv.Itoa(len(l.all)))
+			right = append(right, strconv.Itoa(len(l.items))+" of "+strconv.Itoa(l.Len()))
 		}
 	}
 	if tag := l.r.matchTagFor(l.MatchMode()); tag != "" && (l.query != "" || editing) {
@@ -288,6 +303,16 @@ func (r *Runtime) focusedList(focus string) *List {
 }
 
 func registerListFilter(r *Runtime) {
+	// Turning list.hide-archived on or off shows or hides archived rows now.
+	r.Settings().Observe(HideArchivedSetting, func(string, any) {
+		for _, inst := range r.Instances {
+			if l, ok := inst.Component.(*List); ok {
+				prev, _ := l.Selected()
+				l.refilter(prev.ID)
+				l.syncFocus(prev, nil)
+			}
+		}
+	})
 	r.DefineGuard("list-filterable", func(r *Runtime, ev KeyEvent) bool { return r.focusedList(ev.Focus) != nil })
 	// list-filtered holds while the focused list has a filter or its line
 	// is open: filter-clear's verb guard, so esc in normal mode on an

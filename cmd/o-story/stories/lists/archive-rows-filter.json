@@ -1,0 +1,35 @@
+{
+  "name": "archive rows: archived rows are hidden by default, the saved archived filter shows them, clearing hides them again",
+  "area": "lists",
+  "width": 100,
+  "height": 14,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "lane",
+        "props": [
+          {"name": "archived", "type": "boolean", "role": "archive"}
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "lanes",
+        "height": -1,
+        "items": [
+          {"id": "a", "noun": "lane", "label": "Live lane", "props": {"archived": false}},
+          {"id": "b", "noun": "lane", "label": "Archived lane", "props": {"archived": true}},
+          {"id": "c", "noun": "lane", "label": "Other live lane", "props": {"archived": false}}
+        ]
+      }
+    ]
+  },
+  "script": ["z", "]", "z", "C"],
+  "expect": [
+    {"after": 0, "contains": ["Live lane", "Other live lane"], "lacks": ["Archived lane"]},
+    {"after": 2, "contains": ["[archived]", "Archived lane"], "lacks": ["Live lane"]},
+    {"after": 4, "contains": ["Live lane", "Other live lane"], "lacks": ["Archived lane", "[archived]"]}
+  ]
+}

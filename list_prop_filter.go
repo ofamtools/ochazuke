@@ -164,6 +164,46 @@ func rowThing(n *Noun, item ListItem) Thing {
 	return thing
 }
 
+// archiveHidden is the ids list.hide-archived hides: the rows of a noun
+// with an archive-role prop (rowThing, so props from a row-fed page and
+// from a store alike) whose prop is true, decided by the same predicate as
+// runList (Runtime.archiveHiding). In a tree an archived node hides its
+// whole subtree: a child cannot stand without its parent, and filterNodes
+// would otherwise bring the archived parent back as context. nil when
+// nothing hides. A prop filter naming the archive prop turns hiding off,
+// so the saved "archived" filter shows the archived rows.
+func (l *List) archiveHidden() map[string]bool {
+	var hidden map[string]bool
+	byNoun := map[string]*PropSpec{}
+	hide := func(item ListItem, parentHidden bool) bool {
+		p, seen := byNoun[item.Noun]
+		if !seen {
+			p = l.r.archiveHiding(l.r.Noun(item.Noun), false, l.propFilters)
+			byNoun[item.Noun] = p
+		}
+		if !parentHidden && (p == nil || !archivedThing(p, l.thing(item))) {
+			return false
+		}
+		if hidden == nil {
+			hidden = map[string]bool{}
+		}
+		hidden[item.ID] = true
+		return true
+	}
+	if t := l.tree(); t != nil {
+		for _, n := range t.nodes { // parents precede children
+			if row := t.rowCache[n.ID]; row != nil {
+				hide(row.item, n.Parent != "" && hidden[n.Parent])
+			}
+		}
+		return hidden
+	}
+	for _, item := range l.all {
+		hide(item, false)
+	}
+	return hidden
+}
+
 func (l *List) matchesProps(item ListItem) bool {
 	if len(l.propFilters) == 0 {
 		return true
@@ -418,12 +458,12 @@ func (l *List) propStrip() string {
 // filterNodes keeps matches and ancestors. Parents precede children, so
 // one reverse pass propagates descendant matches without walking every
 // ancestor for every node.
-func (t *Tree) filterNodes() map[string]bool {
+func (t *Tree) filterNodes(hidden map[string]bool) map[string]bool {
 	kept := map[string]bool{}
 	m := t.list.matcher()
 	for _, n := range t.nodes {
 		item := t.rowCache[n.ID].item
-		if t.list.matchesProps(item) && m.MatchPrepared(t.list.preparedRow(item, m)) {
+		if !hidden[item.ID] && t.list.matchesProps(item) && m.MatchPrepared(t.list.preparedRow(item, m)) {
 			kept[item.ID] = true
 		}
 	}
