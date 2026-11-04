@@ -1608,6 +1608,16 @@ Bindings are rows of mode tables. A row names the noun (or one instance) it belo
 
 Patterns are `digit`, `alpha`, `printable`, `paste`, `any`, a class minus keys (`alpha-q`) or a set (`one-of:h j k l`). `from` fills an argument from the key (`key`, `digit`, `text`) or the mode payload (`count`, `line`, `steps`, `op`, `opcount`, `prefix`); several sources separated by spaces (`"keys": "prefix key"`, `Join` in Go) join their texts with a space. `when` names a guard (`input`, `no-input`, `multiline`, `count`, `no-count`, `self`, `shadow-idle`, `op:<key>`, or one the application registers with `DefineGuard`). A verb takes a guard too: `Define(noun).Verb(verb, h).When(guard)` (`Noun.Guards`, `Runtime.VerbGuard`, `Runtime.VerbShown`) keeps the palette from offering the verb while the guard is false at the focus and mode the palette opened over; a palette noun's default verb is never guarded (`RegisterNoun` refuses one). The palette lists the nouns of that focus stack first, the focused noun first. A row's identity is its noun or instance, mode, keys or pattern, and `when`: a row with the same identity replaces the default in place, a new one adds (a new guarded row goes before the unguarded row on its keys, so it answers while its guard holds), `request: null` unbinds the row with the same identity. A row without `when` therefore never replaces or unbinds a guarded row on the same keys: give it the guarded row's `when` (`bindings list --all` shows every row's guard); the `bindings.json` loader reports a row a guarded default still answers before as a notice. The `input` guard the framework adds to the editor's `input.*` rows (`ImplicitGuard`) is not part of the identity, so `{noun: "editor", mode: "normal", keys: "x", request: null}` unbinds `x`, and an editor row of the user's that runs an `input.*` operation gets the same guard. `ModeBuilder.Unbind` removes the unguarded row, `UnbindGuarded(keys, guard)` the guarded one. Load a file of rows with `bindings.load {path}` or `Runtime.LoadBindings`; `Runtime.Bind` installs rows from Go and the `Define(...).Mode(...).Bind/Pattern/Unbind` builder writes the same tables.
 
+`from: {"name": "row:name"}` reads the acted-on row's data (dotted paths
+work); a missing field falls back to its `ListItem.Props`. Mounted catalog
+rows keep their foreign id in `Data` and their record in `Props`, so `row`
+still supplies the id while `row:name` supplies the record's name. For a
+catalog proxy with no declared `target` parameter, `from.target` is a string
+transport target in `Ctx.Args["target"]`: the host removes it from the JSON
+arguments and forwards it as `--target`. A declared `target` stays an ordinary
+argument. Neither form changes the host's local focus or instance context.
+
+
 The resolver is one stack walk. For each level from the focused instance outward to `app` (the `modal` noun's level sits just inside `app` while a modal is open) and then the `editor` noun as the fallback every stack ends with:
 
 ```js

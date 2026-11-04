@@ -1114,7 +1114,7 @@ func validatePartialArguments(op Operation, args Arguments) error {
 		param.Required = false
 		optional[name] = param
 	}
-	return validateArguments(Operation{Parameters: optional}, args)
+	return validateArguments(Operation{Parameters: optional, CatalogProxy: op.CatalogProxy}, args)
 }
 
 func validateArguments(op Operation, args Arguments) error {
@@ -1125,6 +1125,11 @@ func validateArguments(op Operation, args Arguments) error {
 	}
 	for name, v := range args {
 		p, ok := op.Parameters[name]
+		// A proxy's undeclared target is transport metadata, not a local
+		// instance or a remote verb argument. The host forwards it as --target.
+		if !ok && name == "target" && op.CatalogProxy {
+			p, ok = Parameter{Type: "string"}, true
+		}
 		if !ok {
 			return fmt.Errorf("unknown argument %q", name)
 		}

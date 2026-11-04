@@ -322,6 +322,33 @@ func (r *Runtime) rowData(ev KeyEvent) any {
 	return nil
 }
 
+// rowField reads Data first. A mounted row keeps its foreign handle in Data
+// and its record in Props; fields missing from Data fall back to that record.
+func (r *Runtime) rowField(ev KeyEvent, field string) any {
+	for id := ev.Focus; id != ""; {
+		inst := r.Instances[id]
+		if inst == nil {
+			return nil
+		}
+		if inst.Data != nil {
+			if value := dataField(inst.Data, field); value != nil {
+				return value
+			}
+			if list := r.List(r.rows[id]); list != nil {
+				if row := list.rowCache[id]; row != nil {
+					return dataField(row.item.Props, field)
+				}
+			}
+			return nil
+		}
+		if id == ev.Level {
+			return nil
+		}
+		id = inst.Parent
+	}
+	return nil
+}
+
 // jsonShaped is an application value as its JSON decoding (a struct a
 // map[string]any, numbers float64), so a whole row passes as an object
 // argument the way the CLI would send it; a map[string]any stays as it is.

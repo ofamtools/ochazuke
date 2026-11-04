@@ -482,12 +482,13 @@ type AboutSectionSpec struct {
 
 // BindSpec is an extra binding row: keys on noun in mode run do.
 type BindSpec struct {
-	Noun string         `json:"noun"`
-	Mode string         `json:"mode,omitempty"`
-	Keys string         `json:"keys"`
-	Do   string         `json:"do"`
-	Args map[string]any `json:"args,omitempty"`
-	When string         `json:"when,omitempty"`
+	Noun string            `json:"noun"`
+	Mode string            `json:"mode,omitempty"`
+	Keys string            `json:"keys"`
+	Do   string            `json:"do"`
+	Args map[string]any    `json:"args,omitempty"`
+	When string            `json:"when,omitempty"`
+	From map[string]string `json:"from,omitempty"`
 }
 
 // StoreSpec is the demo noun's props (ochazuke.PropSpec as JSON) and its

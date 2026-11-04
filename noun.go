@@ -1192,7 +1192,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 			return row, err
 		}
 		for arg, source := range row.From {
-			if _, ok := op.Parameters[arg]; !ok {
+			if _, ok := op.Parameters[arg]; !ok && !(arg == "target" && op.CatalogProxy) {
 				return row, fmt.Errorf("%s has no argument %q", op.Key(), arg)
 			}
 			if len(strings.Fields(source)) == 0 {

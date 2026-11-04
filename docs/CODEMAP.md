@@ -433,12 +433,12 @@ Root package `ochazuke` is flat: 172 source files, 207 test files. Each entry li
 
 ### instance.go
 
-- lines: 384
+- lines: 411
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
-- methods: Payload(1), Runtime(11)
+- methods: Payload(1), Runtime(12)
 - funcs: Parent, RowNoun, Kind, Focus, CloseOnDetach, FocusOnClose, NoSpill, SpillToSelection, NoMarks, Guides, ClearFilterOnEnter
-- leans on: runtime.go(21), props.go(7), noun.go(5), completion.go(1)
+- leans on: runtime.go(22), props.go(8), noun.go(5), resolve.go(2)
 
 ### instance_cache.go
 
@@ -877,7 +877,7 @@ Root package `ochazuke` is flat: 172 source files, 207 test files. Each entry li
 - types: KeyEvent, KeyOutcome
 - methods: Binding(1), Runtime(31), level(1), lookResult(1)
 - funcs: SortBindings
-- leans on: runtime.go(115), noun.go(74), instance.go(46), delivery.go(11)
+- leans on: runtime.go(115), noun.go(74), instance.go(45), delivery.go(11)
 
 ### rows_format.go
 
@@ -888,7 +888,7 @@ Root package `ochazuke` is flat: 172 source files, 207 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1314 · tests: runtime_test.go
+- lines: 1319 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(5), Request(4), Runtime(20)
@@ -1264,10 +1264,10 @@ Root package `ochazuke` is flat: 172 source files, 207 test files. Each entry li
 
 ### tree_empty.go
 
-- lines: 125 · tests: tree_empty_test.go
+- lines: 146 · tests: tree_empty_test.go
 - purpose: RemoveEmptyRows is the tree.remove-empty-rows setting (default on).
-- methods: Runtime(1), Tree(5)
-- leans on: tree.go(14), instance.go(1), list.go(1), runtime.go(1)
+- methods: Runtime(1), Tree(6)
+- leans on: tree.go(15), instance.go(1), list.go(1), runtime.go(1)
 
 ### tree_guides.go
 
@@ -1337,7 +1337,7 @@ Root package `ochazuke` is flat: 172 source files, 207 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 43 source files, 43 test files.
+Importable package `cli`: 43 source files, 44 test files.
 
 ### cli/agent_metadata.go
 

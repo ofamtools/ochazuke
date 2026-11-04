@@ -422,7 +422,9 @@ func (ss *session) defineDemo(pages []*Page) error {
 			if mode == "" {
 				mode = "normal"
 			}
-			r.Define(b.Noun).Mode(mode).Bind(b.Keys, ochazuke.Do(b.Do, ochazuke.Arguments(b.Args)).Guard(b.When))
+			row := ochazuke.Do(b.Do, ochazuke.Arguments(b.Args)).Guard(b.When)
+			row.From = b.From
+			r.Define(b.Noun).Mode(mode).Bind(b.Keys, row)
 		}
 	}
 	return nil
