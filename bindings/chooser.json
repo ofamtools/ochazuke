@@ -1,13 +1,19 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "bindings": [
-    {"context":"ochazuke.chooser/insert","bindings":[{"key":"esc","action":"ochazuke.mode.set","args":{"mode":"normal"},"when":"chooser-normal-mode","hidden":true}]},
+    {"context":"ochazuke.chooser/insert","bindings":[{"key":"esc","action":"ochazuke.chooser.normal","hidden":true}]},
+    {"context":"ochazuke.chooser/normal","bindings":[
+      {"key":"j","action":"ochazuke.chooser.move","args":{"delta":1}},
+      {"key":"k","action":"ochazuke.chooser.move","args":{"delta":-1}},
+      {"key":"g g","action":"ochazuke.chooser.move","args":{"to":"first"}},
+      {"key":"G","action":"ochazuke.chooser.move","args":{"to":"last"}}
+    ]},
     {"context": "ochazuke.chooser", "bindings": [
       {"key": "ctrl+f", "action": "ochazuke.list.filter-cycle", "when": "list-prop-filtered", "args": {"step": 1}, "hint": "next filter"},
       {"key": "ctrl+f", "action": "ochazuke.list.filter-prop", "args": {"clear": true}, "hint": "prop filter"},
       {"key": "alt+]", "action": "ochazuke.list.filter-cycle", "args": {"step": 1}, "hint": "next filter"},
       {"key": "alt+[", "action": "ochazuke.list.filter-cycle", "args": {"step": -1}, "hint": "previous filter", "hidden": true},
-      {"key": "alt+backspace", "action": "ochazuke.list.filter-props-clear", "hint": "clear props"},
+      {"key": "alt+backspace", "action": "ochazuke.chooser.clear-props", "hint": "clear props"},
       {"key": "enter", "action": "ochazuke.chooser.open", "when": "chooser-enter-opens"},
       {"key": "enter", "action": "ochazuke.chooser.pick"},
       {"key": "alt+enter", "action": "ochazuke.chooser.pick"},

@@ -171,6 +171,9 @@ type Chooser struct {
 // reached (settings/ochazuke.json).
 const ChooserStableHeightSetting = "chooser.stable-height"
 
+// ChooserHiddenCountSetting shows how many matching rows are off screen.
+const ChooserHiddenCountSetting = "chooser.hidden-count"
+
 // The delivery contract: a chooser runs no jobs of its own (Choose and
 // Create return their own results). Pending work they return belongs to the
 // focus the chooser opened over (runApplication), since the chooser and its
@@ -198,6 +201,10 @@ func registerChooser(r *Runtime) {
 		return c != nil && c.spec.NormalMode
 	})
 	r.DefineGuard("chooser-typing", func(r *Runtime, _ KeyEvent) bool { return r.ModeIs(r.BaseMode(), "insert") })
+	r.DefineGuard("chooser-prop-controls", func(r *Runtime, ev KeyEvent) bool {
+		c := r.chooserAt(r.Instances[ev.Focus])
+		return c != nil && c.propFiltersEnabled()
+	})
 	verb := func(fn func(*Chooser, Ctx) Result) AppHandler {
 		return func(ctx Ctx) Result {
 			c := r.chooserAt(ctx.Instance)
@@ -211,9 +218,28 @@ func registerChooser(r *Runtime) {
 	r.Define(chooserNoun).Pin("insert").
 		Verb("pick", verb(func(c *Chooser, _ Ctx) Result { return c.pick() }), "Take the highlighted row, else the top match, else create from the query").
 		Verb("move", verb(func(c *Chooser, ctx Ctx) Result {
-			c.move(IntArg(ctx.Args, "delta", 0))
+			switch StringArg(ctx.Args, "to", "") {
+			case "first":
+				c.move(-len(c.matches))
+			case "last":
+				c.move(len(c.matches))
+			default:
+				c.move(IntArg(ctx.Args, "delta", 0))
+			}
 			return Done(c.state())
 		}), "Move the highlight; from none, down selects first and up follows chooser.up-from-none").Motion().
+		Verb("clear-props", verb(func(c *Chooser, _ Ctx) Result {
+			if err := c.filters.SetPropFilters(nil); err != nil {
+				return Failed(err)
+			}
+			return Done(nil)
+		}), "Clear this chooser's prop conditions").When("chooser-prop-controls").
+		Verb("normal", verb(func(c *Chooser, _ Ctx) Result {
+			if err := c.r.SetMode("normal"); err != nil {
+				return Failed(err)
+			}
+			return Done(nil)
+		}), "Leave search editing in a chooser that supports normal mode").When("chooser-normal-mode").
 		Verb("cancel", verb(func(c *Chooser, _ Ctx) Result {
 			if err := c.close(); err != nil {
 				return Failed(err)
@@ -221,7 +247,7 @@ func registerChooser(r *Runtime) {
 			return Done(nil)
 		}), "Close without choosing")
 	move := r.Operations["ochazuke.chooser.move"]
-	move.Parameters = map[string]Parameter{"delta": {Type: "integer", Required: true}}
+	move.Parameters = map[string]Parameter{"delta": {Type: "integer"}, "to": {Type: "string", Enum: []string{"first", "last"}}}
 	r.Operations["ochazuke.chooser.move"] = move
 	registerChooserSources(r)
 }
@@ -748,8 +774,16 @@ func (c *Chooser) rowsView(width, height int) Block {
 	case c.cursor >= scroll:
 		offset = c.cursor - scroll + 1
 	}
+	if hidden := max(0, fixedFrom-scroll); hidden > 0 && c.r.Settings().Bool(ChooserHiddenCountSetting) {
+		count := fmt.Sprintf("%d more", hidden)
+		if tail != "" {
+			count = tail + " · " + count
+		}
+		lines[0] = searchLine(prefix+line.Text, count, width)
+	}
 	widths := fitWidths(c.cellWidths(), width-2, c.keep()...)
 	toned := c.toneStyles()
+	focused := c.r.Focus == c.input.ID
 	draw := func(i int) {
 		text := c.matches[i].Label
 		if cells := c.matches[i].Cells; len(cells) > 0 {
@@ -759,11 +793,11 @@ func (c *Chooser) rowsView(width, height int) Block {
 		item.Tones = c.filters.rowTones(ListItem{ID: item.ID, Cells: item.Cells, Tones: item.Tones})
 		row := ansi.Truncate(c.filters.rowGutter(item.ID)+modalLabel(text), width, "…")
 		if segs := chooserSegs(toned, item, widths, ansi.StringWidth(row)); len(segs) > 0 {
-			lines = append(lines, paintLine(row, width, segs, toned, i == c.cursor, false, span{}))
+			lines = append(lines, paintLine(row, width, segs, toned, i == c.cursor, !focused, span{}))
 			return
 		}
 		if i == c.cursor {
-			row = toned.Selection(true).Render(ansi.Truncate(row+strings.Repeat(" ", max(0, width-ansi.StringWidth(row))), width, ""))
+			row = toned.Selection(focused).Render(ansi.Truncate(row+strings.Repeat(" ", max(0, width-ansi.StringWidth(row))), width, ""))
 		}
 		lines = append(lines, row)
 	}
