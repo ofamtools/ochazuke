@@ -57,9 +57,10 @@ func filterHay(item ListItem, m Matcher) string {
 	return m.Prepare(strings.Join(parts, "\n"))
 }
 
-// OnFilter makes fn hear every change of the list's text filter (typing,
-// erasing, clearing, a match mode change, a command that reveals a hidden
-// row), after the rows and selection follow it; nil stops it. For a host
+// OnFilter makes fn hear every change of the list's filter: the text query
+// (typing, erasing, clearing, a match mode change, a command that reveals a
+// hidden row) and the prop conditions (SetPropFilters, ApplyFilter), on flat
+// lists and trees alike, after the rows and selection follow it; nil stops it. For a host
 // that draws something by the list's matches, as the Settings page's
 // settings follow its section list's filter.
 func (l *List) OnFilter(fn func(*List)) { l.onFilter = fn }

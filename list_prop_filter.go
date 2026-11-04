@@ -210,20 +210,27 @@ func (l *List) SetPropFilters(filters []PropFilter) error {
 	if err != nil {
 		return err
 	}
-	return l.replacePropFilters(filters)
+	return l.replacePropFilters(filters, "")
 }
 
-func (l *List) replacePropFilters(filters []PropFilter) error {
+// replacePropFilters swaps the conditions and names the saved filter they
+// came from ("" for none) before the rows follow, so the list's OnFilter
+// hears the new conditions and saved name, on flat lists and trees alike.
+func (l *List) replacePropFilters(filters []PropFilter, saved string) error {
 	l.linger.reset()
 	l.propFilters = filters
-	l.savedFilter = ""
+	l.savedFilter = saved
 	if l.filterChanged != nil {
 		l.filterChanged()
 		return nil
 	}
 	if t := l.tree(); t != nil {
 		t.filterCollapsed = nil
-		return t.refresh("")
+		if err := t.refresh(""); err != nil {
+			return err
+		}
+		l.filterHeard()
+		return nil
 	}
 	l.SetFilter(l.query)
 	return nil
@@ -271,10 +278,9 @@ func (l *List) ApplyFilter(name string) error {
 				return err
 			}
 			l.sort = keys
-			if err := l.replacePropFilters(conditions); err != nil {
+			if err := l.replacePropFilters(conditions, name); err != nil {
 				return err
 			}
-			l.savedFilter = name
 			return nil
 		}
 	}

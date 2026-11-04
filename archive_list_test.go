@@ -116,3 +116,41 @@ func TestAgentArchiveRestoreAndUndo(t *testing.T) {
 		t.Fatal("archive not undone")
 	}
 }
+
+// The derived restore offers archived rows as its subject choices, archive
+// the live ones, through the subject parameter's data (SourceFixed), so a
+// hidden archived row is a choice and its id no longer competes with
+// prefix siblings.
+func TestArchiveRestoreSubjectChoices(t *testing.T) {
+	r := NewRuntime()
+	things := []Thing{{"id": "t1", "retired": true}, {"id": "t10"}, {"id": "t11", "retired": false}}
+	r.Define("parcel").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "retired", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}}).Store(Store{
+		List:  func(Ctx, ListQuery) ([]Thing, error) { return things, nil },
+		Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil },
+	})
+	ids := func(verb string) []string {
+		t.Helper()
+		op, ok := r.Operations["parcel."+verb]
+		if !ok {
+			t.Fatal("no", verb)
+		}
+		choices, err := r.ChoicesFor(r.Context(), op.Parameters["id"], "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := []string{}
+		for _, c := range choices {
+			out = append(out, c.ID)
+		}
+		return out
+	}
+	if got := ids("restore"); !slices.Equal(got, []string{"t1"}) {
+		t.Fatalf("restore %v", got)
+	}
+	if got := ids("archive"); !slices.Equal(got, []string{"t10", "t11"}) {
+		t.Fatalf("archive %v", got)
+	}
+	if err := r.CheckSourceArgs(r.Operations["parcel.restore"].Parameters); err != nil {
+		t.Fatal(err)
+	}
+}

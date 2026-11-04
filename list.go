@@ -102,8 +102,8 @@ type List struct {
 	// callback reapplies that view's text matching without list focus/motions.
 	filterChanged func()
 	filterFocus   string
-	// onFilter, when set (OnFilter), hears every change of the text
-	// filter: a host that draws something by the list's matches follows it.
+	// onFilter, when set (OnFilter), hears every change of the filter
+	// (text query, prop conditions, saved filter): a host that draws something by the list's matches follows it.
 	onFilter func(*List)
 	// placeholder is what the list draws with no rows (SetPlaceholder;
 	// SetMatchNoun sets its Plural): "no settings match 'path'".

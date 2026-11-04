@@ -394,13 +394,18 @@ func (r *Runtime) choicesLoad(c Context, p Parameter, query string, siblings ...
 func (r *Runtime) CheckSourceArgs(params map[string]Parameter) error {
 	for _, name := range slices.Sorted(maps.Keys(params)) {
 		p := params[name]
-		if len(p.SourceArgs) == 0 {
+		if len(p.SourceArgs) == 0 && len(p.SourceFixed) == 0 {
 			continue
 		}
 		source := r.ChoicesSource(p)
 		op, ok := r.Operations[source]
 		if !ok {
 			return fmt.Errorf("%s: unknown choices source %q", name, source)
+		}
+		for _, arg := range slices.Sorted(maps.Keys(p.SourceFixed)) {
+			if _, ok := op.Parameters[arg]; !ok {
+				return fmt.Errorf("%s: choices source %s has no parameter %q", name, source, arg)
+			}
 		}
 		for _, arg := range slices.Sorted(maps.Keys(p.SourceArgs)) {
 			sibling := p.SourceArgs[arg]
@@ -420,6 +425,12 @@ func (r *Runtime) CheckSourceArgs(params map[string]Parameter) error {
 
 func choicesSourceArgs(op Operation, p Parameter, query string, siblings ...Arguments) Arguments {
 	args := choicesQueryArgs(op, query)
+	for arg, value := range p.SourceFixed {
+		if args == nil {
+			args = Arguments{}
+		}
+		args[arg] = value
+	}
 	for arg, name := range p.SourceArgs {
 		if args == nil {
 			args = Arguments{}

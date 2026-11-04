@@ -38,6 +38,10 @@ type Parameter struct {
 	// field. Only set sibling values are forwarded; query is still supplied
 	// automatically unless explicitly mapped here. Register the source first.
 	SourceArgs map[string]string `json:"sourceArgs,omitempty"`
+	// SourceFixed gives a source parameter a constant value on every call
+	// (the standard restore asks its noun's list for archived rows only).
+	// A sibling mapped by SourceArgs wins over it.
+	SourceFixed map[string]any `json:"sourceFixed,omitempty"`
 	// Noun says the value names one of that noun's things: a row of its
 	// list verb (NOUN.list, when it is a read with no required parameter,
 	// stands in for an empty Source), else the id of a live instance of

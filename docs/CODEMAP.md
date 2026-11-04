@@ -506,7 +506,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### list_filter.go
 
-- lines: 422 · tests: list_filter_test.go
+- lines: 423 · tests: list_filter_test.go
 - purpose: filterOpenRow is the row that opens the filter line: "/" on app in normal mode guarded by list-filterable, like J/K detail, so an application's own "/" on an...
 - methods: List(20), Runtime(1)
 - leans on: list.go(44), runtime.go(32), instance.go(7), resolve.go(5)
@@ -547,7 +547,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### list_prop_filter.go
 
-- lines: 702
+- lines: 708
 - purpose: PropFilters returns a copy of the list's active prop conditions.
 - methods: List(23), Runtime(1), Tree(1)
 - leans on: runtime.go(54), list.go(43), prop_filter.go(21), delivery.go(19)
@@ -734,12 +734,12 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### params.go
 
-- lines: 500 · tests: params_test.go
+- lines: 511 · tests: params_test.go
 - purpose: Choice is one value a parameter accepts: ID is the argument value, Label what a pick list shows.
 - types: Choice, ArgumentError
 - methods: ArgumentError(2), Runtime(13)
 - funcs: ParseChoices
-- leans on: runtime.go(63), delivery.go(17), noun.go(11), instance.go(4)
+- leans on: runtime.go(64), delivery.go(17), noun.go(11), instance.go(4)
 
 ### path_chooser.go
 
@@ -888,7 +888,7 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1309 · tests: runtime_test.go
+- lines: 1313 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(5), Request(4), Runtime(20)
@@ -1037,10 +1037,10 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### standard_derived.go
 
-- lines: 499 · tests: standard_derived_test.go
-- purpose: writableRole is the noun's prop with that role when set may write it.
+- lines: 511 · tests: standard_derived_test.go
+- purpose: archivedRows is the subject choices of restore: the noun's list, where the archive prop is true (list.hide-archived hides those rows from the default list, s...
 - methods: Runtime(11), focusFills(1)
-- leans on: props.go(50), noun.go(40), runtime.go(37), standard_verbs.go(20)
+- leans on: props.go(51), noun.go(41), runtime.go(37), standard_verbs.go(20)
 
 ### standard_grammar.go
 
@@ -1061,11 +1061,11 @@ Root package `ochazuke` is flat: 168 source files, 200 test files. Each entry li
 
 ### standard_verbs.go
 
-- lines: 1067 · tests: standard_verbs_test.go
+- lines: 1074 · tests: standard_verbs_test.go
 - purpose: standardVerb is one row of the table: the verb, the store kinds it fits, what it needs of the noun (its store's handler, a writable prop), whether it takes a...
 - methods: Runtime(9), standardVerb(2)
 - funcs: StandardVerbs
-- leans on: runtime.go(76), props.go(72), noun.go(51), params.go(25)
+- leans on: runtime.go(76), props.go(72), noun.go(52), params.go(25)
 
 ### standard_watch.go
 

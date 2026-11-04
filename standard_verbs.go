@@ -41,6 +41,10 @@ type standardVerb struct {
 	Kinds       []string
 	Needs       func(n *Noun) bool
 	Subject     bool
+	// SubjectFixed, when set, gives the subject parameter constant
+	// arguments for its choices source (Parameter.SourceFixed): the rows
+	// the verb applies to, from data of the noun.
+	SubjectFixed func(n *Noun) map[string]any
 	// NoFocus makes the subject optional and never filled from the focus
 	// (watch: omitted, it watches every thing).
 	NoFocus bool
@@ -192,6 +196,9 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 		if v.NoFocus {
 			p.Focus = false
 			p.Description = fmt.Sprintf("The %s's %s: this one alone (default: every %s)", r.DisplayNoun(n.Name), key.Name, r.DisplayNoun(n.Name))
+		}
+		if v.SubjectFixed != nil {
+			p.SourceFixed = v.SubjectFixed(n)
 		}
 		params[key.Name] = p
 		op.Positional = []string{key.Name}

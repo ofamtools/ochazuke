@@ -666,3 +666,38 @@ func TestPropFilterTreeExpandKeepsFilter(t *testing.T) {
 		t.Fatalf("focus %s conditions %v", r.Focus, tree.List().PropFilters())
 	}
 }
+
+// OnFilter hears prop-filter and saved-filter changes on trees and flat
+// lists alike, and sees the new conditions and saved name when it runs.
+func TestPropFilterOnFilterHeardOnTreeAndList(t *testing.T) {
+	r := NewRuntime()
+	r.Define("node").Props(PropSpec{Name: "by"}).Filters(SavedFilter{Name: "owned", Where: map[string]any{"by": "owner"}})
+	tree, err := r.AddTree("tree", []TreeNode{
+		{ID: "root", Label: "Root", Noun: "node", Data: Thing{"by": "agent"}},
+		{ID: "mine", Parent: "root", Label: "Mine", Noun: "node", Data: Thing{"by": "owner"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	flat, err := r.AddList("flat", []ListItem{{ID: "a", Noun: "node", Data: Thing{"by": "agent"}}, {ID: "b", Noun: "node", Data: Thing{"by": "owner"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, l := range []*List{tree.list, flat} {
+		var heard []string
+		var conds []int
+		l.OnFilter(func(l *List) {
+			heard = append(heard, l.savedFilter)
+			conds = append(conds, len(l.PropFilters()))
+		})
+		if err := l.SetPropFilters([]PropFilter{{"by", "=", "owner"}}); err != nil {
+			t.Fatal(err)
+		}
+		if err := l.ApplyFilter("owned"); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(heard, []string{"", "owned"}) || !reflect.DeepEqual(conds, []int{1, 1}) {
+			t.Fatalf("%s heard %v conditions %v", l.id, heard, conds)
+		}
+	}
+}

@@ -68,7 +68,19 @@ var derivedVerbs = []standardVerb{
 	{Verb: "restore", Description: "Restore an archived thing: clear its archive prop",
 		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && writableRole(n, RoleArchive) != nil },
 		Subject: true, Many: true, Repeatable: true, HistoryKind: HistoryChange,
-		Writes: roleWrites(RoleArchive), Run: archiveRun(false)},
+		SubjectFixed: archivedRows,
+		Writes:       roleWrites(RoleArchive), Run: archiveRun(false)},
+}
+
+// archivedRows is the subject choices of restore: the noun's list, where the
+// archive prop is true (list.hide-archived hides those rows from the default
+// list, so the default choices would never offer them). Archive keeps the
+// default list, which hides archived rows.
+func archivedRows(n *Noun) map[string]any {
+	if p := n.roleProp(RoleArchive); p != nil {
+		return map[string]any{"where": p.Name + "=true"}
+	}
+	return nil
 }
 
 // writableRole is the noun's prop with that role when set may write it.
