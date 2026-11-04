@@ -87,10 +87,9 @@ func (t *Tree) dropEmpty(id string, refocus bool) error {
 	}
 	delete(t.fresh, id)
 	step := treeEdit{undo: []TreeChange{inv}}
-	switch n := len(t.undo); {
-	case n > 0 && len(t.undo[n-1].undo) == 1 && t.undo[n-1].undo[0].Op == TreeDelete && t.undo[n-1].undo[0].ID == id:
-		t.undo = t.undo[:n-1] // the add of this row: both vanish
-	default:
+	if k := t.freshAddStep(id); k >= 0 {
+		t.undo = t.undo[:k] // the add and any steps only on this row: all vanish
+	} else {
 		t.undo = append(t.undo, step)
 	}
 	t.redo = nil
@@ -110,6 +109,28 @@ func (t *Tree) dropEmpty(id string, refocus bool) error {
 		}
 	}
 	return werr
+}
+
+// freshAddStep finds the undo step that is the add of id, looking back past
+// steps that change only id (an indent or outdent made before the line
+// closed). It returns that step's index, or -1 when another row's change
+// sits in between, so no other row's step is lost.
+func (t *Tree) freshAddStep(id string) int {
+	for k := len(t.undo) - 1; k >= 0; k-- {
+		s := t.undo[k]
+		if s.action != nil || len(s.steps) > 0 || len(s.undo) == 0 {
+			return -1
+		}
+		for _, c := range s.undo {
+			if c.ID != id {
+				return -1
+			}
+		}
+		if len(s.undo) == 1 && s.undo[0].Op == TreeDelete {
+			return k
+		}
+	}
+	return -1
 }
 
 // keepsText reports whether the open line of id, holding text, must not be

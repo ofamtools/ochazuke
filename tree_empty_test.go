@@ -175,3 +175,44 @@ func TestTreeRemoveEmptyDeclaredFreshRowIsRemoved(t *testing.T) {
 		t.Fatalf("nodes %v writes %v", got, *writes)
 	}
 }
+
+// A new row abandoned blank after tab or shift+tab leaves no undo step: u
+// goes straight to the change before it.
+func TestTreeBlankNewRowAfterIndentLeavesNoUndo(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		keys []string
+	}{
+		{"tab", []string{"tab"}},
+		{"shift+tab", []string{"shift+tab"}},
+		{"tab then shift+tab", []string{"tab", "shift+tab"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, m, tree, writes := treeFixture(t)
+			_ = tree.SetNodes([]TreeNode{
+				{ID: "a", Label: "alpha"},
+				{ID: "b", Parent: "a", Label: "beta"},
+				{ID: "c", Parent: "a", Label: "gamma"},
+			})
+			pressKeys(m, "j", "j", "d", "d", "k", "o")
+			pressKeys(m, tc.keys...)
+			pressKeys(m, "esc")
+			if got := nodeIDs(tree); !slices.Equal(got, []string{"a", "b"}) {
+				t.Fatalf("nodes %v after esc", got)
+			}
+			pressKeys(m, "u")
+			if got := nodeIDs(tree); !slices.Equal(got, []string{"a", "b", "c"}) {
+				t.Fatalf("nodes %v after u, want the deleted c back", got)
+			}
+			if last := (*writes)[len(*writes)-1]; last != "add c under a at 1: gamma" {
+				t.Fatalf("last write %q, writes %v", last, *writes)
+			}
+			pressKeys(m, "ctrl+r")
+			if got := nodeIDs(tree); !slices.Equal(got, []string{"a", "b"}) {
+				t.Fatalf("nodes %v after redo", got)
+			}
+		})
+	}
+}
