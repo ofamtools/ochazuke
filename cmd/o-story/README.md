@@ -458,15 +458,14 @@ Conformance:
 | flat | mode | `mode.set` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
 | insert | bindings | `bindings.help` |
-| insert | chooser | `chooser.move` `chooser.next-source` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
+| insert | chooser | `chooser.clear-props` `chooser.move` `chooser.next-source` `chooser.normal` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.edit` `demo.files` `demo.hide` |
-| insert | filter-form | `filter-form.write-saved` |
+| insert | filter-form | `filter-form.move` `filter-form.write-saved` |
 | insert | find-line | `find-line.commit` |
-| insert | focus | `focus.next` `focus.previous` |
 | insert | form | `form.next` `form.run` `form.suggest` |
 | insert | input | `input.insert` `input.kill` `input.move` |
-| insert | list | `list.filter-cycle` `list.filter-prop` `list.filter-props-clear` |
+| insert | list | `list.filter-cycle` `list.filter-prop` |
 | insert | macro | `macro.record` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | modal | `modal.close` |
@@ -497,7 +496,7 @@ Conformance:
 | normal | detail | `detail.fields` `detail.scroll` |
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
-| normal | filter-form | `filter-form.direction` `filter-form.toggle` |
+| normal | filter-form | `filter-form.delete-saved` `filter-form.direction` `filter-form.edit-condition` `filter-form.focus` `filter-form.move` `filter-form.toggle` |
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
@@ -586,10 +585,10 @@ Mode edges (from → to via):
 - `hints` → `terminal` via `demo.hints-cancel`
 - `insert` → `jq` via `palette.run`
 - `insert` → `normal` via `bindings.help`
+- `insert` → `normal` via `chooser.normal`
 - `insert` → `normal` via `chooser.pick`
+- `insert` → `normal` via `filter-form.move`
 - `insert` → `normal` via `find-line.commit`
-- `insert` → `normal` via `focus.next`
-- `insert` → `normal` via `focus.previous`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `list.filter-prop`
 - `insert` → `normal` via `macro.record`
@@ -626,7 +625,10 @@ Mode edges (from → to via):
 - `normal` → `insert` via `bindings-help.place`
 - `normal` → `insert` via `chooser.pick`
 - `normal` → `insert` via `demo.choose`
-- `normal` → `insert` via `focus.next`
+- `normal` → `insert` via `filter-form.delete-saved`
+- `normal` → `insert` via `filter-form.edit-condition`
+- `normal` → `insert` via `filter-form.focus`
+- `normal` → `insert` via `filter-form.move`
 - `normal` → `insert` via `form.choose`
 - `normal` → `insert` via `form.clear`
 - `normal` → `insert` via `form.next-missing`
@@ -701,6 +703,7 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `markdown.delete`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
+- `normal g` → `normal` via `chooser.move`
 - `normal g` → `normal` via `detail.fields`
 - `normal g` → `normal` via `list.goto`
 - `normal g` → `normal` via `markdown.link-open`

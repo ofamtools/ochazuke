@@ -84,7 +84,7 @@
       "contains": [
         "All (",
         "ochazuke › Appearance",
-        "focus-display                 ‹ off ›",
+        "‹ off ›",
         "Not in settings.json"
       ]
     },
@@ -92,7 +92,8 @@
       "after": 10,
       "focus": "__settings/all/row/focus-display",
       "contains": [
-        "focus-display •               ‹ noun ›",
+        "focus-display •",
+        "‹ noun ›",
         "Set in settings.json.",
         "ochazuke › Palette",
         "forms.single-path"
@@ -102,7 +103,7 @@
       "mode": "normal",
       "focus": "__settings/all/row/focus-display",
       "contains": [
-        "focus-display                 ‹ off ›",
+        "‹ off ›",
         "/path"
       ],
       "lacks": [
