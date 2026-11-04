@@ -213,6 +213,7 @@ func paramHasChoices(p Parameter) bool {
 type recordStep struct {
 	field    string
 	from, to string
+	changes  []recordStep
 }
 
 type recordField struct {
@@ -808,22 +809,40 @@ func (e *RecordEditor) history(redo bool) error {
 	}
 	step := (*from)[len(*from)-1]
 	*from = (*from)[:len(*from)-1]
-	name, inverted := strings.CutSuffix(step.field, RecordInvertSuffix)
-	f := e.field(name)
-	if f == nil {
-		return err
+	steps := step.changes
+	if steps == nil {
+		steps = []recordStep{step}
 	}
-	if inverted {
-		f.not = step.from == "true"
-	} else if serr := e.set(f, step.from); serr != nil {
-		return serr
+	inverse := make([]recordStep, 0, len(steps))
+	var focus *recordField
+	for _, change := range steps {
+		name, inverted := strings.CutSuffix(change.field, RecordInvertSuffix)
+		f := e.field(name)
+		if f == nil {
+			continue
+		}
+		if inverted {
+			f.not = change.from == "true"
+		} else if serr := e.set(f, change.from); serr != nil {
+			return serr
+		}
+		inverse = append(inverse, recordStep{field: change.field, from: change.to, to: change.from})
+		if !f.Hidden {
+			focus = f
+		}
 	}
 	werr := e.flush()
-	f.before = e.written[f.Name]
-	*to = append(*to, recordStep{field: step.field, from: step.to, to: step.from})
+	for _, f := range e.fields {
+		f.before = e.written[f.Name]
+	}
+	if step.changes == nil && len(inverse) == 1 {
+		*to = append(*to, inverse[0])
+	} else {
+		*to = append(*to, recordStep{changes: inverse})
+	}
 	e.seen = e.snapshot()
-	if !f.Hidden && e.r.Focus != f.id {
-		if ferr := e.r.SetFocus(f.id); ferr != nil && werr == nil {
+	if focus != nil && e.r.Focus != focus.id {
+		if ferr := e.r.SetFocus(focus.id); ferr != nil && werr == nil {
 			werr = ferr
 		}
 	}
@@ -1539,6 +1558,11 @@ func registerForms(r *Runtime) {
 		op.Parameters = insert
 		r.Operations[FormNoun+"."+verb] = op
 	}
+	r.DefineGuard("form-record-history", func(r *Runtime, ev KeyEvent) bool {
+		return r.recordEditorOf(ev.Focus) != nil && r.Input(r.Focus) == nil
+	})
+	_ = r.AddVerbAvailability(FormNoun+".undo", "form-record-history")
+	_ = r.AddVerbAvailability(FormNoun+".redo", "form-record-history")
 	r.Define(FormChoiceNoun).Focusable()
 	registerFormChips(r)
 	r.Define(FormOptionNoun).
