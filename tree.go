@@ -29,6 +29,12 @@ type TreeNode struct {
 	// Section is the label line drawn above a run of rows in one section
 	// (ListItem.Section); "" none.
 	Section string `json:"section,omitempty"`
+	// SpaceAbove asks for a blank line above the node's row
+	// (ListItem.SpaceAbove): a visual break between groups, such as the
+	// branches of an outline's top level. Never above the first row
+	// shown; the tree.space-above setting turns every one off. The blank
+	// line is not a row.
+	SpaceAbove bool `json:"spaceAbove,omitempty"`
 	// Search is more text the / filter matches the node by, never drawn
 	// (ListItem.Search).
 	Search []string `json:"search,omitempty"`
@@ -571,7 +577,7 @@ func (t *Tree) refresh(selectID string) error {
 			noun = t.RowNoun
 		}
 		prefix := t.prefix(n)
-		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Props: n.Props, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section, Search: slices.Clone(n.Search)}
+		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Props: n.Props, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section, SpaceAbove: n.SpaceAbove, Search: slices.Clone(n.Search)}
 		if len(n.Cells) > 0 {
 			item.Cells = slices.Clone(n.Cells)
 			item.Cells[0] = prefix + item.Cells[0]
@@ -624,16 +630,10 @@ func (t *Tree) rows(width, height int) Block {
 		return Text(text)
 	}
 	i := t.index(t.editing)
-	if i < 0 || t.list.selected < t.list.offset {
+	if i < 0 || t.list.selLine < 0 {
 		return Text(text)
 	}
-	line := t.list.selected - t.list.offset
-	if height > 1 && t.list.filterLine(width) != "" {
-		line++
-	}
-	if len(t.list.columns) > 0 {
-		line++
-	}
+	line := t.list.selLine // the list placed the selected row's line (header, filter line and blank lines counted)
 	rows := strings.Split(text, "\n")
 	if line >= len(rows) {
 		return Text(text)

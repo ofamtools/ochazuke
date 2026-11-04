@@ -329,6 +329,7 @@ func rowSegs(toned *Styles, tones []ToneSpan, row []string, shown []int, at []ce
 // the rows in the list's window, the "x–y / n" line when they overflow;
 // the focused list's selected row is reversed across the whole width.
 func (l *List) tableView(width, height int) (string, int, int) {
+	l.selLine = -1
 	// Columns without titles (a list of name and value) draw no header.
 	header := height > 1 && slices.ContainsFunc(l.columns, func(c Column) bool { return c.Title != "" })
 	body := height
@@ -405,6 +406,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 	focus, focusHeight := 0, height
 	if l.selected >= l.offset && l.selected < end {
 		focus, focusHeight = top+l.selected-l.offset, 1
+		l.selLine = focus
 	}
 	return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight
 }
@@ -521,6 +523,9 @@ func (l *List) groupedCells(i, top int) []string {
 // tall reports whether the table's rows can take more than one line: a
 // column wraps or breaks at newlines (Lines), or a row opens a section.
 func (l *List) tall() bool {
+	if l.spacing() {
+		return true
+	}
 	for _, c := range l.columns {
 		if c.Wrap || c.Lines {
 			return true
@@ -685,6 +690,10 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	rows := make([][]string, len(l.items))
 	toneLines := make([][][]toneSeg, len(l.items))
 	opens := make([]bool, len(l.items))
+	// gap: row i has a blank line above it when it is not the first drawn
+	// (top), spacing.go.
+	spaced := l.spacing()
+	gap := func(i, top int) bool { return spaced && i > top && l.items[i].SpaceAbove }
 	toned, faded := l.listTones(), l.faded()
 	cursor, bar := l.cursorStyle(span, toned, faded), l.bar(faded)
 	// layRow is item i's lines and tones, its Group cells blanked against
@@ -716,6 +725,9 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 		if opens[i] {
 			total++
 		}
+		if gap(i, 0) {
+			total++
+		}
 	}
 	visible := body
 	if len(l.items) > 1 && body > 1 && total > body {
@@ -733,6 +745,9 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 		for i := from; i <= l.selected; i++ {
 			n += len(rows[i])
 			if opens[i] {
+				n++
+			}
+			if gap(i, from) {
 				n++
 			}
 		}
@@ -755,11 +770,15 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 	focus, focusHeight := 0, height
 	end := l.offset
 	for i := l.offset; i < len(l.items) && len(out) < visible; i++ {
-		if opens[i] {
+		if gap(i, l.offset) {
+			out = append(out, "")
+		}
+		if opens[i] && len(out) < visible {
 			out = append(out, section.Render(modalLabel(l.items[i].Section)))
 		}
 		if i == l.selected && len(out) < visible {
 			focus, focusHeight = top+len(out), min(len(rows[i]), visible-len(out))
+			l.selLine = focus
 		}
 		for k, line := range rows[i] {
 			if len(out) == visible {
@@ -782,7 +801,7 @@ func (l *List) tallView(lines []string, width, height, body int, cols []Column, 
 		}
 	}
 	lines = append(lines, out...)
-	l.window, l.windowed = max(1, end-l.offset), visible < body
+	l.window, l.windowed, l.budget = max(1, end-l.offset), visible < body, visible
 	if visible < body {
 		lines = append(lines, fmt.Sprintf("%d–%d / %d", l.offset+1, end, len(l.items)))
 	}

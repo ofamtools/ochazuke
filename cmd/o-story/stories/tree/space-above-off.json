@@ -1,0 +1,56 @@
+{
+  "name": "tree: tree.space-above off draws the rows with no blank lines",
+  "area": "tree",
+  "width": 40,
+  "height": 10,
+  "chrome": "none",
+  "settings": [
+    {
+      "name": "tree.space-above",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "page": {
+    "noHeadings": true,
+    "trees": [
+      {
+        "id": "t",
+        "nodes": [
+          {
+            "id": "r0",
+            "label": "row0",
+            "spaceAbove": true
+          },
+          {
+            "id": "r1",
+            "label": "row1",
+            "spaceAbove": true
+          },
+          {
+            "id": "r2",
+            "label": "row2",
+            "spaceAbove": true
+          },
+          {
+            "id": "r3",
+            "label": "row3",
+            "spaceAbove": true
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j"
+  ],
+  "expect": {
+    "focus": "r1",
+    "order": [
+      "row0",
+      "row1",
+      "row2",
+      "row3"
+    ]
+  }
+}

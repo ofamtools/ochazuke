@@ -42,6 +42,12 @@ type ListItem struct {
 	// page's section row holds its settings' names, descriptions, values,
 	// defaults and choices).
 	Search []string `json:"search,omitempty"`
+	// SpaceAbove draws a blank line above the row, never above the first
+	// row shown (or the first one drawn in a scrolled window). The blank
+	// line is not a row: motions, marks, visual selection and the window
+	// count rows only. A tree's rows take it from TreeNode.SpaceAbove,
+	// and the tree.space-above setting turns it off.
+	SpaceAbove bool `json:"spaceAbove,omitempty"`
 }
 
 // List owns flat selection, marks and scrolling on the runtime's event loop.
@@ -120,6 +126,11 @@ type List struct {
 	// tree's), starts one undo step for a run over several rows; its end
 	// seals the step (Runtime.undoGroup).
 	undoGroup func() (end func())
+
+	// selLine is the line of the selected row's first line in the last
+	// View's text, -1 when it was not drawn; budget the lines the rows
+	// had (spacing.go).
+	selLine, budget int
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
@@ -609,6 +620,9 @@ func (l *List) View(width, height int) string {
 	}
 	if line != "" {
 		text = line + "\n" + text
+		if l.selLine >= 0 {
+			l.selLine++
+		}
 		if focusHeight == height {
 			focusHeight++ // the whole list
 		} else {
@@ -690,16 +704,26 @@ func (l *List) onPage() bool {
 // window and the "x–y / n" line when they overflow, with the line of the
 // selected row (else 0 and the whole height) the page keeps on screen.
 func (l *List) rowsView(width, height int) (string, int, int) {
+	l.selLine = -1
 	if len(l.items) == 0 {
 		return strings.Join(layoutRows(l.emptyLine(), width, height), "\n"), 0, height
 	}
+	spaced := l.spacing()
 	visible := height
-	if len(l.items) > height && height > 1 {
+	if l.lineCount(spaced) > height && height > 1 {
 		visible--
 	}
-	l.offset = windowOffset(l.offset, l.selected, visible, len(l.items), l.scrolloff())
-	end := min(len(l.items), l.offset+visible)
-	l.window, l.windowed = visible, len(l.items) > visible
+	var end int
+	if spaced {
+		l.offset, end = l.spacedWindow(visible)
+	} else {
+		l.offset = windowOffset(l.offset, l.selected, visible, len(l.items), l.scrolloff())
+		end = min(len(l.items), l.offset+visible)
+	}
+	l.window, l.windowed, l.budget = visible, len(l.items) > visible, visible
+	if spaced {
+		l.window, l.windowed = end-l.offset, l.lineCount(spaced) > visible
+	}
 	rows := make([]string, 0, height)
 	// The selected row is the inverted highlight alone, no cursor marker. A
 	// page list keeps it while unfocused, where View fades the whole list
@@ -709,6 +733,12 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 	toned, faded := l.listTones(), l.faded()
 	bar := l.bar(faded)
 	for i := l.offset; i < end; i++ {
+		if spaced && i > l.offset && l.items[i].SpaceAbove {
+			rows = append(rows, "")
+		}
+		if i == l.selected {
+			l.selLine = len(rows)
+		}
 		text := modalLabel(l.items[i].Label)
 		label := text
 		if gutter {
@@ -725,14 +755,14 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 		}
 		rows = append(rows, row)
 	}
-	if len(l.items) > height && height > 1 {
+	if l.lineCount(spaced) > height && height > 1 {
 		rows = append(rows, fmt.Sprintf("%d–%d / %d", l.offset+1, end, len(l.items)))
 	}
 	// The page keeps the selected row's line on screen; the list has
 	// already kept the row inside its own window above.
 	focus, focusHeight := 0, height
-	if l.selected >= l.offset && l.selected < end {
-		focus, focusHeight = l.selected-l.offset, 1
+	if l.selLine >= 0 {
+		focus, focusHeight = l.selLine, 1
 	}
 	return strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"), focus, focusHeight
 }
