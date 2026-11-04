@@ -20,18 +20,21 @@ func TestSettingThingsAndProps(t *testing.T) {
 	if got := r.Noun("setting").StoreKind(); got != Collection {
 		t.Fatalf("setting kind %q", got)
 	}
+	var props []string
 	for _, p := range r.Props("setting") {
+		props = append(props, p.Name)
 		if !p.Key && p.writable() {
 			t.Fatalf("setting prop %s is writable", p.Name)
 		}
 	}
+	if want := []string{"name", "type", "default", "value", "enum", "protected", "description", "section", "owner", "group", "origin"}; !reflect.DeepEqual(props, want) {
+		t.Fatalf("setting props %v", props)
+	}
 	rec := paletteRequest(t, r, "get", "setting", Arguments{"name": "theme"}).(map[string]any)
 	want := map[string]any{"name": "theme", "type": "string", "default": "dark", "value": "dark", "enum": []string{"dark", "light", "mono"},
-		"description": "Colour theme", "section": "general", "owner": "app", "group": "", "origin": "default"}
-	for name, expected := range want {
-		if !reflect.DeepEqual(rec[name], expected) {
-			t.Fatalf("setting get theme %s = %#v, want %#v", name, rec[name], expected)
-		}
+		"protected": false, "description": "Colour theme", "section": "general", "owner": "app", "group": "", "origin": "default"}
+	if !reflect.DeepEqual(rec, want) {
+		t.Fatalf("setting get theme %#v", rec)
 	}
 	if got := paletteRequest(t, r, "get", "setting", Arguments{"name": "rename.select", "prop": "owner"}); got != "ochazuke" {
 		t.Fatalf("rename.select owner %v", got)
