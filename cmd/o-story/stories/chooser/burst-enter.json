@@ -35,7 +35,10 @@
     {
       "type": "./a.json"
     },
-    "enter"
+    "enter",
+    {
+      "job": "chooser.load"
+    }
   ],
   "expect": [
     {

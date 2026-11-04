@@ -592,6 +592,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `filter-form.move`
 - `insert` → `normal` via `find-line.commit`
 - `insert` → `normal` via `form.run`
+- `insert` → `normal` via `job chooser.load`
 - `insert` → `normal` via `list.filter-prop`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`

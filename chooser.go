@@ -161,9 +161,11 @@ type Chooser struct {
 	base       int
 	claimed    bool
 	suppressed bool
-	loading    bool
-	loadErr    string
-	gen        uint64
+	// pending is an enter held until the load for the query lands.
+	pending bool
+	loading bool
+	loadErr string
+	gen     uint64
 	// tallest is the most lines the rows view has drawn while open: with
 	// chooser.stable-height it pads to it, so typing never resizes it.
 	tallest int
@@ -194,7 +196,7 @@ const ChooserHiddenCountSetting = "chooser.hidden-count"
 // focus the chooser opened over (runApplication), since the chooser and its
 // input are closed before the callback runs.
 func (c *Chooser) HandleMessage(msg tea.Msg) bool { return c.filters.HandleMessage(msg) }
-func (c *Chooser) Close()                         { c.filters.Close() }
+func (c *Chooser) Close()                         { c.pending = false; c.filters.Close() }
 
 // PendingCommand follows the query after every event: a Live source loads
 // again for the edited query, and the work it queues is handed over here
@@ -401,7 +403,12 @@ func (c *Chooser) close() error {
 }
 
 func (c *Chooser) pick() Result {
-	c.settle()
+	if c.waiting() {
+		// Enter on a query whose rows are still loading waits for them
+		// (runPending); typing more, a source switch or esc drops it.
+		c.pending = true
+		return Done(c.state())
+	}
 	row, ok := c.Highlighted()
 	if !ok || row.ID == chooserCreateRow {
 		return c.create()
@@ -491,6 +498,7 @@ func (c *Chooser) sync() {
 	if c.Query() == c.seen && c.propsEnabled == c.propFiltersEnabled() {
 		return
 	}
+	c.pending = false
 	c.claim()
 	if c.live() && c.Query() != c.loadedQuery {
 		c.load()

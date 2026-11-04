@@ -41,7 +41,10 @@
     {
       "type": "x"
     },
-    "enter"
+    "enter",
+    {
+      "job": "chooser.load"
+    }
   ],
   "expect": [
     {

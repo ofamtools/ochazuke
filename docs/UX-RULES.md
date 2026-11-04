@@ -869,12 +869,14 @@ tiers above them. When the two disagree, fix one in the same commit.
   current, and goes back when the query is no longer claimed; a hand
   switch ends the claim until then. The path chooser's typed source claims
   a query starting `/`, `~`, `./` or `../` (a pasted ` /tmp` with a
-  leading space does not); a plain word filters. `enter` takes the rows of
-  the query as typed: a live source's load for it is settled first. A
+  leading space does not); a plain word filters. `enter` acts on the rows of
+  the query as typed: while a live source's load for it runs, the enter
+  waits (nothing blocks) and runs when the rows land; esc, typing more or
+  a source switch drops it, a failed load drops it and shows the error. A
   chooser's `Hint` ends its empty, no-match and refusal lines (path
   choosers: `no known directories; type a path to pick one`). Stories:
   `chooser/path-typed-at-once.json`, `chooser/path-typed-at-once-off.json`,
-  `chooser/stale-enter.json`, `chooser/burst-enter.json`,
+  `chooser/stale-enter.json`, `chooser/stale-open.json`, `chooser/burst-enter.json`,
   `chooser/empty-folder-dir.json`, `chooser/new-trailing.json`,
   `chooser/path-new-missing-parent.json`, `chooser/sources-cycle.json`,
   `chooser/live-source.json`, `chooser/remember-source-on.json`,

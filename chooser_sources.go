@@ -184,12 +184,9 @@ func registerChooserSources(r *Runtime) {
 	})
 	r.DefineGuard(ChooserEnterOpensGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := at(ev)
-		if c == nil || !c.opens() {
-			return false
-		}
-		row, _ := c.Highlighted()
-		v, _ := r.settingValue(ChooserEnterSetting)
-		return row.NoPick || v != "pick"
+		// Enter waits for the rows of the query as typed (pick holds it),
+		// so it never opens an older query's row.
+		return c != nil && !c.waiting() && c.enterOpens()
 	})
 	r.DefineGuard(ChooserUpGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := at(ev)
@@ -267,6 +264,7 @@ func (c *Chooser) cycle(delta int) error {
 	if n < 2 {
 		return errors.New("the chooser has one source")
 	}
+	c.pending = false
 	c.suppressed = c.claimedBy(c.Query()) >= 0
 	c.claimed = false
 	c.source = ((c.source+delta)%n + n) % n
@@ -373,6 +371,14 @@ func (c *Chooser) load() {
 		}
 		c.loading = more.work != nil
 		c.SetRows(rows)
+		if c.pending && !c.loading {
+			if c.loadErr != "" {
+				c.pending = false
+			} else {
+				c.runPending()
+				return
+			}
+		}
 		if more.work != nil || more.value != nil || more.err != nil {
 			launch(more, false)
 		}
@@ -511,31 +517,60 @@ func (c *Chooser) hinted(line string) string {
 	return line + "; " + c.spec.Hint
 }
 
-// settle makes a Live source's rows the answer for the query as it is
-// now, before a pick reads them: rows still loading, or loaded for an
-// older query, are replaced by loading the current query on the spot, so
-// enter never takes a row of what was typed before. The load that was in
-// flight is dropped; a failed load leaves no rows and its error.
-func (c *Chooser) settle() {
-	src := c.current()
-	if src == nil || !src.Live || src.Load == nil || (!c.loading && c.loadedQuery == c.Query()) {
+// waiting reports whether enter must wait: a Live source's rows are still
+// being loaded for the query, so the rows on show may be an older query's.
+func (c *Chooser) waiting() bool {
+	c.sync()
+	return c.live() && c.loading
+}
+
+// enterOpens reports whether enter opens the highlighted row (a row that
+// only opens, else chooser.enter) rather than picking it.
+func (c *Chooser) enterOpens() bool {
+	if !c.opens() {
+		return false
+	}
+	row, _ := c.Highlighted()
+	v, _ := c.r.settingValue(ChooserEnterSetting)
+	return row.NoPick || v != "pick"
+}
+
+// enterNow is enter on the rows as they are: open or pick.
+func (c *Chooser) enterNow() Result {
+	if c.enterOpens() {
+		if err := c.open(); err != nil {
+			return Failed(err)
+		}
+		return Done(c.state())
+	}
+	return c.pick()
+}
+
+// runPending runs the enter that waited for a load, now that the rows of
+// the query as typed have landed. Its result is delivered as a verb's
+// would be: pending work becomes a job of the focus the chooser opened
+// over, an error is shown and the chooser stays.
+func (c *Chooser) runPending() {
+	c.pending = false
+	inst := c.r.Instances[c.spec.Kind]
+	if inst == nil {
 		return
 	}
-	query := c.Query()
-	c.loadedQuery, c.loadErr = query, ""
-	c.gen++
-	res := src.Load(query)
-	value, err := res.value, res.err
-	if res.work != nil {
-		value, err = res.work(context.Background())
+	ancestry := c.r.Ancestry(inst.ID)
+	ctx := Ctx{actor: c.r.Actor(), Runtime: c.r, Context: c.r.contextOf(c.spec.Kind), Instance: inst}
+	res := c.enterNow()
+	switch {
+	case res.err != nil:
+		ctx.Error(res.err.Error())
+	case res.work != nil || res.fg != nil:
+		owner := inst.ID
+		if c.r.Instances[owner] == nil {
+			owner = c.r.survivor(ancestry)
+		}
+		if _, err := c.r.Launch(owner, "ochazuke.chooser.pick", res, ctx); err != nil {
+			ctx.Error(err.Error())
+		}
 	}
-	rows, _ := chooserRowsOf(value)
-	if err != nil {
-		c.loadErr, rows = err.Error(), nil
-	}
-	c.loading = false
-	c.moved = false
-	c.SetRows(rows)
 }
 
 // createFunc and createLabel are the current source's create, else the
