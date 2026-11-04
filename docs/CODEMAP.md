@@ -1106,7 +1106,7 @@ Root package `ochazuke` is flat: 172 source files, 205 test files. Each entry li
 
 ### table.go
 
-- lines: 935 · tests: table_test.go
+- lines: 948 · tests: table_test.go
 - purpose: Align is a column's alignment: AlignLeft (the zero value) or AlignRight.
 - types: Align, Column
 - methods: List(16)
@@ -1249,18 +1249,18 @@ Root package `ochazuke` is flat: 172 source files, 205 test files. Each entry li
 
 ### tree.go
 
-- lines: 1623 · tests: tree_test.go
+- lines: 1759 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
-- methods: Runtime(3), Tree(71), TreeChange(1), TreeNode(1)
+- methods: Runtime(3), Tree(73), TreeChange(1), TreeNode(1)
 - leans on: instance.go(68), runtime.go(45), block.go(36), delivery.go(33)
 
 ### tree_delete.go
 
-- lines: 209 · tests: tree_delete_test.go
+- lines: 230 · tests: tree_delete_test.go
 - purpose: TreeDeleteChildren is the tree.delete-children setting: promote (default), orphan or subtree.
 - methods: Runtime(1), Tree(6)
-- leans on: tree.go(16), instance.go(2), runtime.go(2), list.go(1)
+- leans on: tree.go(16), instance.go(2), runtime.go(2), tree_yank.go(2)
 
 ### tree_empty.go
 
@@ -1278,10 +1278,10 @@ Root package `ochazuke` is flat: 172 source files, 205 test files. Each entry li
 
 ### tree_yank.go
 
-- lines: 135 · tests: tree_yank_test.go
+- lines: 177 · tests: tree_yank_test.go
 - purpose: outlineText is the rows ids (in tree order) as indented lines.
-- methods: Tree(6)
-- leans on: tree.go(7), registers.go(4), block.go(2), runtime.go(2)
+- methods: Tree(7)
+- leans on: tree.go(8), registers.go(4), ui.go(4), block.go(3)
 
 ### tree_zoom.go
 
