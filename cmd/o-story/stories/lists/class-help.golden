@@ -4,7 +4,7 @@
 r|  keep initial
  |  ordinary r╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |  keep merge│ Keys · here                                                                                  │
- |  keep decor│ /class                                                                       6 of 60  substr │
+ |  keep decor│ /class                                                                       6 of 61  substr │
  |  hidden mer│ key             operation                      arguments              description            │
  |  keep merge│ movement                                                                                     │
 R|  ordinary t│ ▾ ]                                                                   waits for the next key │

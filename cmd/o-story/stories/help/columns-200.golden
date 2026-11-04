@@ -30,7 +30,7 @@ R|                    │   q             app.quit                              
  |                    │                                                                  arguments kept; steps replaces its count                                                    │
  |                    │   :             palette.open                                     Open the command line                                                                       │
  |                    │   ?             bindings.help                                    Open the keys the focus answers to, with the operation each runs and its                    │
- |                    │ 1–17 / 54                                                                                                                                                    │
+ |                    │ 1–17 / 55                                                                                                                                                    │
  |                    │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter                                                                     │
  |                    ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  |

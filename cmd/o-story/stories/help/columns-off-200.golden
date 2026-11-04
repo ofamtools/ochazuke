@@ -30,7 +30,7 @@ R|                    │   q             app.quit                              
  |                    │   .             history.repeat      steps 0                Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps  │
  |                    │                                                            replaces its count                                                                                │
  |                    │   :             palette.open                               Open the command line                                                                             │
- |                    │ 1–16 / 54                                                                                                                                                    │
+ |                    │ 1–16 / 55                                                                                                                                                    │
  |                    │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter                                                                     │
  |                    ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  |

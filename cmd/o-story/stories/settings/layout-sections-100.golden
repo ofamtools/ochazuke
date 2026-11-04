@@ -2,7 +2,7 @@
  |   page1  › Settings
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
  |  ╭━ Sections ━━━━━━╮ ╭─ panes (1) ──────────────────────────────────────────────────────────────╮
-r|  ┃ All         126 ┃ │ panes.group    ‹ project ›                                               │
+r|  ┃ All         132 ┃ │ panes.group    ‹ project ›                                               │
  |  ┃ app             ┃ ╰──────────────────────────────────────────────────────────────────────────╯
  |  ┃ General       1 ┃ ╭─ panes ──────────────────────────────────────────────────────────────────╮
 R|  ┃ panes         1 ┃ │ 1 setting in app › panes.                                                │
@@ -11,15 +11,15 @@ R|  ┃ panes         1 ┃ │ 1 setting in app › panes.                     
  |  ┃ git           1 ┃ │                                                                          │
  |  ┃ ochazuke        ┃ │                                                                          │
  |  ┃ Appearance   15 ┃ │                                                                          │
- |  ┃ Keys         16 ┃ │                                                                          │
- |  ┃ Help          8 ┃ │                                                                          │
+ |  ┃ Keys         18 ┃ │                                                                          │
+ |  ┃ Help         10 ┃ │                                                                          │
  |  ┃ Palette       9 ┃ │                                                                          │
  |  ┃ Records       6 ┃ │                                                                          │
- |  ┃ Lists        13 ┃ │                                                                          │
+ |  ┃ Lists        14 ┃ │                                                                          │
  |  ┃ Search       19 ┃ │                                                                          │
  |  ┃ Choosers     16 ┃ │                                                                          │
  |  ┃ Hooks         1 ┃ │                                                                          │
- |  ┃ Status bar    2 ┃ │                                                                          │
+ |  ┃ Status bar    3 ┃ │                                                                          │
  |  ┃ Pages         4 ┃ │                                                                          │
  |  ┃ Agents        5 ┃ │                                                                          │
  |  ┃ About         2 ┃ │                                                                          │

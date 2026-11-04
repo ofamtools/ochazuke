@@ -72,8 +72,8 @@ R|            │ ▾ g                                                       wa
  |            │   alt+?         state.toggle                              Toggle the live state inspector    │
  |            │                                                           strip                              │
  |            │   ctrl+space    palette.open                              Open the command line              │
- |            │ ▾ g                                                       waits for the next key (1 key)     │
- |            │ 1–30 / 61                                                                                    │
+ |            │ ▾ g                                                       waits for the next key (2 keys)    │
+ |            │ 1–30 / 62                                                                                    │
  |            │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter     │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

@@ -47,7 +47,7 @@ R|        │                                                 application  │
  |        │                                                 for fan-out  │
  |        │                                                 verbs        │
  |        │   V           list.visual                       Start a      │
- |        │ 1–9 / 54                                                     │
+ |        │ 1–9 / 55                                                     │
  |        │ space list.mark · S view · esc modal.close · : palette.open… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |

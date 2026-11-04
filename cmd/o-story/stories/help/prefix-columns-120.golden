@@ -73,7 +73,7 @@ R|            │   q             app.quit                                  Exit
  |            │                                                           to, with the operation each runs   │
  |            │                                                           and its description                │
  |            │   '             page.pick                                 Choose a page, most recently       │
- |            │ 1–32 / 66                                                                                    │
+ |            │ 1–32 / 67                                                                                    │
  |            │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter     │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |

@@ -73,7 +73,7 @@ R|        │                                                application   │
  |        │ ▾ g                                            waits for the │
  |        │                                                next key (2   │
  |        │                                                keys)         │
- |        │ 1–16 / 66                                                    │
+ |        │ 1–16 / 67                                                    │
  |        │ space list.mark · S view · esc modal.close · : palette.open… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
