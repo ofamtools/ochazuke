@@ -2624,6 +2624,15 @@ must ask the owner to run the command. Only the owner's acceptance of a live
 modal approves it. Attribution names the agent by default.
 Across an extension mount both gates apply: an owner override in the host
 does not replace the child tool's own `agents.rights` rows.
+
+`Setting.Protected` reserves a setting for the owner at the shared file and
+session writers, independent of the rights gate. The framework marks
+`agents.rights`, `agents.rights-gate` and `agents.confirm-attribution` protected;
+an app can protect its own settings too. Agents can read them but cannot set,
+reset, revert, write or undo an owner's edit. Bulk and section/tab operations
+skip protected settings and report the skipped names. Reload only reads the
+file and stays allowed. Direct edits to settings.json are outside these guard rails.
+
 `agents.status-segment` defaults to false; true shows active agent jobs and
 pending confirmations in the header status segments.
 

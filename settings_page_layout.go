@@ -942,7 +942,7 @@ func runScopeReset(r *Runtime, c Context, a Arguments, units []settingsUnit) (an
 	s := r.Settings()
 	var done []string
 	err = settingsGroup(r, func() error {
-		for _, name := range unitNames(units) {
+		for _, name := range s.writableNames(unitNames(units)) {
 			one := s.find(name)
 			if one == nil || !settingDiffers(s, name) && !s.differsInSession(*one) {
 				continue
@@ -962,7 +962,7 @@ func runScopeReset(r *Runtime, c Context, a Arguments, units []settingsUnit) (an
 
 func runScopeWrite(r *Runtime, c Context, a Arguments, units []settingsUnit) (any, error) {
 	done := []string{}
-	for _, name := range unitNames(units) {
+	for _, name := range r.Settings().writableNames(unitNames(units)) {
 		wrote, err := r.Settings().Write(name)
 		if err != nil {
 			return done, err
@@ -977,7 +977,7 @@ func runScopeWrite(r *Runtime, c Context, a Arguments, units []settingsUnit) (an
 func runScopeRevert(r *Runtime, c Context, a Arguments, units []settingsUnit) (any, error) {
 	s := r.Settings()
 	done := []string{}
-	for _, name := range unitNames(units) {
+	for _, name := range s.writableNames(unitNames(units)) {
 		if _, ok := s.session[name]; !ok {
 			continue
 		}

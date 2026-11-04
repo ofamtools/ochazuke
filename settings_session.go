@@ -194,8 +194,7 @@ func (s *Settings) SetSession(name string, value any) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", one.Name, err)
 	}
-	s.putSession(*one, v, false)
-	return OriginSession, nil
+	return OriginSession, s.putSession(*one, v, false)
 }
 
 // ResetSession sets a setting back to its default for this session (the
@@ -214,16 +213,17 @@ func (s *Settings) ResetSession(name string) (string, error) {
 	if !s.fileHolds(*one) {
 		// Nothing persisted beneath: the default shows once the session
 		// value is gone.
-		_ = s.Revert(one.Name)
-		return OriginSession, nil
+		return OriginSession, s.Revert(one.Name)
 	}
-	s.putSession(*one, one.Default, true)
-	return OriginSession, nil
+	return OriginSession, s.putSession(*one, one.Default, true)
 }
 
 // putSession stores a session value with the running request's origin
 // and tells the observers when the effective value moved.
-func (s *Settings) putSession(one Setting, v any, reset bool) {
+func (s *Settings) putSession(one Setting, v any, reset bool) error {
+	if err := s.checkProtected(one); err != nil {
+		return err
+	}
 	old := s.current(one)
 	if list, ok := v.([]string); ok {
 		v = slices.Clone(list)
@@ -238,6 +238,7 @@ func (s *Settings) putSession(one Setting, v any, reset bool) {
 	s.session[one.Name] = sessionValue{value: v, reset: reset, origin: o}
 	s.changed(one.Name, old)
 	s.relayer()
+	return nil
 }
 
 // Revert drops a setting's session value, so settings.json's value (or
@@ -247,6 +248,9 @@ func (s *Settings) Revert(name string) error {
 	one := s.find(s.canonical(name))
 	if one == nil {
 		return s.unknown(name)
+	}
+	if err := s.checkProtected(*one); err != nil {
+		return err
 	}
 	old := s.current(*one)
 	if s.dropSession(one.Name) {
@@ -259,7 +263,7 @@ func (s *Settings) Revert(name string) error {
 // RevertAll drops every session value; it returns the names reverted.
 func (s *Settings) RevertAll() []string {
 	s.ensure()
-	names := s.sessionNames()
+	names := s.writableNames(s.sessionNames())
 	for _, name := range names {
 		_ = s.Revert(name)
 	}
@@ -274,6 +278,9 @@ func (s *Settings) Write(name string) (bool, error) {
 	one := s.find(s.canonical(name))
 	if one == nil {
 		return false, s.unknown(name)
+	}
+	if err := s.checkProtected(*one); err != nil {
+		return false, err
 	}
 	v, ok := s.session[one.Name]
 	if !ok {
@@ -298,7 +305,7 @@ func (s *Settings) Write(name string) (bool, error) {
 func (s *Settings) WriteAll() ([]string, error) {
 	s.ensure()
 	var done []string
-	for _, name := range s.sessionNames() {
+	for _, name := range s.writableNames(s.sessionNames()) {
 		if _, err := s.Write(name); err != nil {
 			return done, err
 		}
@@ -316,7 +323,7 @@ func (s *Settings) WriteAll() ([]string, error) {
 // it reset.
 func (s *Settings) ResetAll() (string, []string, error) {
 	s.ensure()
-	names := s.notDefault()
+	names := s.writableNames(s.notDefault())
 	if !s.writesFile() {
 		for _, name := range names {
 			if _, err := s.ResetSession(name); err != nil {
@@ -327,7 +334,8 @@ func (s *Settings) ResetAll() (string, []string, error) {
 	}
 	before := map[string]any{}
 	raw := maps.Clone(s.raw)
-	for _, one := range s.declared {
+	for _, name := range names {
+		one := *s.find(name)
 		before[one.Name] = s.current(one)
 		delete(raw, one.Name)
 		for _, old := range one.Deprecated {
@@ -339,12 +347,14 @@ func (s *Settings) ResetAll() (string, []string, error) {
 			return OriginFile, nil, err
 		}
 	}
-	for _, one := range s.declared {
+	for _, name := range names {
+		one := *s.find(name)
 		delete(s.values, one.Name)
 		s.dropSession(one.Name)
 		s.withdrawFor(one.Name)
 	}
-	for _, one := range s.declared {
+	for _, name := range names {
+		one := *s.find(name)
 		s.changed(one.Name, before[one.Name])
 	}
 	s.relayer()

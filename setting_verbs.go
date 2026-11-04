@@ -433,6 +433,7 @@ var settingProps = []PropSpec{
 	{Name: "default", ReadOnly: true, Parameter: Parameter{Description: "The default value, in its file form (a duration as 400ms)"}},
 	{Name: "value", ReadOnly: true, Parameter: Parameter{Description: "The value in effect, in its file form: the session's, else settings.json's, else the default (setting.set writes it)"}},
 	{Name: "enum", ReadOnly: true, Parameter: Parameter{Type: SettingList, Description: "The values allowed, when the setting limits them"}},
+	{Name: "protected", ReadOnly: true, Parameter: Parameter{Type: SettingBoolean, Description: "Only the owner may change this setting, even with the agent rights gate off"}},
 	{Name: "description", ReadOnly: true, Parameter: Parameter{Description: "What the setting does"}},
 	{Name: "section", ReadOnly: true, Parameter: Parameter{Description: "The section of its owner it is filed under (Setting.Section, else the name before its first dot, else general; settings.sections lists them)"}},
 	{Name: "owner", ReadOnly: true, Parameter: Parameter{Description: "The owner it is filed under, a tab of the Settings page: app (the application's), ochazuke (the framework's, also when the application changed its default) or one the application declares (settings.owners lists them)"}},
@@ -482,7 +483,7 @@ func settingThing(r *Runtime, name string) (Thing, error) {
 	}
 	return Thing{
 		"name": v.Name, "type": v.Type, "default": v.Default, "value": v.Value, "enum": enum,
-		"description": v.Description, "section": v.Section, "owner": v.Owner, "group": v.Group, "origin": origin.Layer,
+		"description": v.Description, "section": v.Section, "owner": v.Owner, "group": v.Group, "origin": origin.Layer, "protected": v.Protected,
 	}, nil
 }
 

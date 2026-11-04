@@ -468,6 +468,9 @@ func (s *Settings) restore(sn settingSnap) error {
 	if one == nil {
 		return s.unknown(sn.name)
 	}
+	if err := s.checkProtected(*one); err != nil {
+		return err
+	}
 	old, _ := s.Value(sn.name)
 	if now, has := s.raw[sn.name]; has != sn.had || !bytes.Equal(now, sn.raw) {
 		next := maps.Clone(s.raw)

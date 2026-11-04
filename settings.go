@@ -39,6 +39,8 @@ type Setting struct {
 	Default     any      `json:"default"`
 	Description string   `json:"description,omitempty"`
 	Enum        []string `json:"enum,omitempty"`
+	// Protected keeps agents from changing this setting, even with the rights gate off.
+	Protected bool `json:"protected,omitempty"`
 	// Owner says which owner (a tab of the Settings page) the setting
 	// belongs to: "" is the declaring application (OwnerApp), unless the
 	// framework declares it (its embedded rows, a feature's declaration
@@ -123,6 +125,8 @@ type Settings struct {
 	disk       map[string]time.Time
 	declaredAt map[string]string
 	source     func() (source, via string)
+	actor      func() Actor
+	info       func(string)
 	relayered  func()
 	now        func() time.Time
 	// shown gathers setting.show's lines while a :set line runs
@@ -203,6 +207,7 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 			one.Owner = cmp.Or(one.Owner, framework.Owner)
 			one.Section = cmp.Or(one.Section, framework.Section)
 			one.Group = cmp.Or(one.Group, framework.Group)
+			one.Protected = one.Protected || framework.Protected
 			// The application's own declaration of a framework
 			// setting: its row (default, description) replaces the
 			// embedded one, the embedded check kept when it gives none.
@@ -464,6 +469,9 @@ func (s *Settings) Set(name string, value any) error {
 		return s.unknown(name)
 	}
 	name = one.Name
+	if err := s.checkProtected(*one); err != nil {
+		return err
+	}
 	v, err := coerceSetting(*one, value)
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)
@@ -497,6 +505,9 @@ func (s *Settings) Reset(name string) error {
 		return s.unknown(name)
 	}
 	name = one.Name
+	if err := s.checkProtected(*one); err != nil {
+		return err
+	}
 	names := append([]string{name}, one.Deprecated...)
 	old, _ := s.Value(name)
 	if !slices.ContainsFunc(names, func(n string) bool { _, ok := s.raw[n]; return ok }) {
@@ -683,6 +694,9 @@ func (s *Settings) withdrawFor(name string) {
 // write replaces settings.json atomically with raw: a temp file in the
 // same directory, renamed over the old one.
 func (s *Settings) write(raw map[string]json.RawMessage) error {
+	if err := s.checkProtectedFile(raw); err != nil {
+		return err
+	}
 	if s.path == "" {
 		// No config directory (a sandbox): the values live for the session.
 		s.raw = raw
@@ -884,6 +898,8 @@ func (m *Model) settingsPoll() tea.Cmd {
 
 func registerSettings(r *Runtime) {
 	s := &Settings{config: r.Config(), values: map[string]any{}, raw: map[string]json.RawMessage{}, framework: map[string]bool{}}
+	s.actor = r.Actor
+	s.info = func(text string) { r.UI().Info(text) }
 	// A session value records the request that set it: its history
 	// source (empty is the API) and the name it ran by.
 	s.source = func() (string, string) {
