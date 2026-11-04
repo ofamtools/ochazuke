@@ -392,6 +392,6 @@ func registerFormChips(r *Runtime) {
 	})
 	r.DefineGuard(FormClearableGuard, func(r *Runtime, ev KeyEvent) bool {
 		e := r.recordEditorOf(ev.Focus)
-		return e != nil && e.spec.Clearable && r.Input(ev.Focus) == nil
+		return e != nil && e.spec.Clearable
 	})
 }
