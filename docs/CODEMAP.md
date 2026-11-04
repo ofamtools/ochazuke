@@ -1249,11 +1249,11 @@ Root package `ochazuke` is flat: 172 source files, 205 test files. Each entry li
 
 ### tree.go
 
-- lines: 1613 · tests: tree_test.go
+- lines: 1623 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
 - methods: Runtime(3), Tree(71), TreeChange(1), TreeNode(1)
-- leans on: instance.go(68), runtime.go(45), block.go(35), delivery.go(33)
+- leans on: instance.go(68), runtime.go(45), block.go(36), delivery.go(33)
 
 ### tree_delete.go
 
@@ -1264,10 +1264,10 @@ Root package `ochazuke` is flat: 172 source files, 205 test files. Each entry li
 
 ### tree_empty.go
 
-- lines: 113 · tests: tree_empty_test.go
+- lines: 125 · tests: tree_empty_test.go
 - purpose: RemoveEmptyRows is the tree.remove-empty-rows setting (default on).
-- methods: Runtime(1), Tree(4)
-- leans on: tree.go(12), instance.go(1), list.go(1), runtime.go(1)
+- methods: Runtime(1), Tree(5)
+- leans on: tree.go(14), instance.go(1), list.go(1), runtime.go(1)
 
 ### tree_guides.go
 

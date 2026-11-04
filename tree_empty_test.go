@@ -126,3 +126,52 @@ func TestTreeEmptiedTreeKeepsFocus(t *testing.T) {
 		t.Fatalf("nodes %v focus %q want %q", got, r.Focus, tree.FocusTarget())
 	}
 }
+
+// A row declaring TreeRemoveEmpty that held text stays when its line is
+// left blank: the old text comes back, nothing is written (not even by a
+// flush while the line was blank) and no undo step is left.
+func TestTreeRemoveEmptyDeclaredKeepsRow(t *testing.T) {
+	t.Parallel()
+	_, m, tree, writes := treeFixture(t)
+	_ = tree.SetNodes([]TreeNode{{ID: "a", Label: "alpha"}, {ID: "b", Label: "beta", Fixed: []string{TreeRemoveEmpty}}})
+	pressKeys(m, "j", "i", "backspace")
+	if err := tree.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	pressKeys(m, "esc")
+	if len(*writes) != 0 {
+		t.Fatalf("writes %v, want none", *writes)
+	}
+	if n, ok := tree.Selected(); !ok || n.ID != "b" || n.Label != "beta" {
+		t.Fatalf("selected %+v", n)
+	}
+	if got := nodeIDs(tree); !slices.Equal(got, []string{"a", "b"}) {
+		t.Fatalf("nodes %v", got)
+	}
+	pressKeys(m, "u")
+	if len(*writes) != 0 {
+		t.Fatalf("u wrote %v: the kept row left no undo step", *writes)
+	}
+	// Other ops are not touched by the declaration: rename still works.
+	pressKeys(m, "i", "x", "esc")
+	if want := []string{"rename b: x"}; !slices.Equal(*writes, want) {
+		t.Fatalf("writes %v, want %v", *writes, want)
+	}
+}
+
+// A row just added and never filled in is removed even when it declares
+// TreeRemoveEmpty: nothing existed yet.
+func TestTreeRemoveEmptyDeclaredFreshRowIsRemoved(t *testing.T) {
+	t.Parallel()
+	_, m, tree, writes := treeFixture(t)
+	pressKeys(m, "o")
+	for i := range tree.nodes {
+		if tree.nodes[i].ID == tree.Editing() {
+			tree.nodes[i].Fixed = []string{TreeRemoveEmpty}
+		}
+	}
+	pressKeys(m, "esc")
+	if got := nodeIDs(tree); !slices.Equal(got, []string{"a", "b"}) {
+		t.Fatalf("nodes %v writes %v", got, *writes)
+	}
+}

@@ -44,7 +44,10 @@ type TreeNode struct {
 	// item, whose key is its index, refuses rename alone. The refusal holds
 	// from every path (keys, the palette, the CLI, Tree methods); the verb
 	// is not available on the node (outline-renamable, outline-movable,
-	// outline-deletable), so its hints and help rows drop out.
+	// outline-deletable), so its hints and help rows drop out. Fixed may
+	// also hold TreeRemoveEmpty: a row that held text and has its line left
+	// blank stays, its old text comes back, and nothing is written (a row
+	// just added and never filled in is still removed).
 	Fixed []string `json:"fixed,omitempty"`
 }
 
@@ -70,6 +73,9 @@ const (
 	TreeRename = "rename"
 	TreeMove   = "move"
 	TreeDelete = "delete"
+	// TreeRemoveEmpty is not a change but a declaration in TreeNode.Fixed:
+	// the row stays when its line is left empty (see tree_empty.go).
+	TreeRemoveEmpty = "remove-empty"
 )
 
 // String reads a change in one line: "add n1 under root at 1: text",
@@ -717,7 +723,7 @@ func (t *Tree) flush() error {
 		return nil
 	}
 	text := string(t.input.Text)
-	if text == t.written {
+	if text == t.written || t.keepsText(t.editing, text) {
 		return nil
 	}
 	i := t.index(t.editing)
@@ -998,7 +1004,11 @@ func (t *Tree) closeLineAs(refocus, drop bool) error {
 	id, in := t.editing, t.input
 	// A line left blank is not written: its row goes (dropEmpty), and undo
 	// brings it back as the line opened.
-	dropIt := drop && t.emptyRemovable(id, strings.TrimSpace(string(in.Text)) == "")
+	blank := strings.TrimSpace(string(in.Text)) == ""
+	dropIt := drop && t.emptyRemovable(id, blank)
+	if blank && t.keepsText(id, string(in.Text)) {
+		t.r.UI().Info("kept: this row cannot be emptied")
+	}
 	var err error
 	if dropIt {
 		if i := t.index(id); i >= 0 {

@@ -35,7 +35,7 @@ func (t *Tree) markFresh(id, from string) {
 // Refuse), so nothing is lost and nothing refused is forced. A row that
 // was blank before anyone touched it is left alone.
 func (t *Tree) emptyRemovable(id string, blank bool) bool {
-	if t.index(id) < 0 || !blank || !t.r.RemoveEmptyRows() {
+	if t.index(id) < 0 || !blank || !t.r.RemoveEmptyRows() || t.keepsText(id, "") {
 		return false
 	}
 	if !t.fresh[id] && strings.TrimSpace(t.opened) == "" {
@@ -110,4 +110,16 @@ func (t *Tree) dropEmpty(id string, refocus bool) error {
 		}
 	}
 	return werr
+}
+
+// keepsText reports whether the open line of id, holding text, must not be
+// written: the row declares TreeRemoveEmpty, the text is blank, and the row
+// held text when the line opened and was not just added. The row keeps its
+// old text, nothing is written and no undo step is left.
+func (t *Tree) keepsText(id, text string) bool {
+	i := t.index(id)
+	if i < 0 || strings.TrimSpace(text) != "" || !t.nodes[i].Refuses(TreeRemoveEmpty) {
+		return false
+	}
+	return !t.fresh[id] && strings.TrimSpace(t.opened) != ""
 }
