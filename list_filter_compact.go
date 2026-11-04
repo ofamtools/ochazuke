@@ -668,6 +668,7 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 	var lines []string
 	var cursor *Pos
 	focusLine := 0
+	pickerRows := [2]int{} // the sort picker's rows in lines: [from, to)
 	add := func(b Block, focus string) {
 		if v.l.r.Focus == focus {
 			focusLine = len(lines)
@@ -723,13 +724,17 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 				count = s.Muted.Render(fmt.Sprintf("  %d more", n))
 			}
 		}
-		row := ansi.Truncate(input.Text+strings.Repeat(" ", max(1, inputWidth-ansi.StringWidth(input.Text)+2))+v.l.r.PlacedAt(direction.id, dir, 0, 1)+count, width, "")
+		// The count takes room from the gap, so the row keeps its width.
+		gap := max(1, inputWidth-ansi.StringWidth(input.Text)+2-ansi.StringWidth(count))
+		row := ansi.Truncate(input.Text+strings.Repeat(" ", gap)+v.l.r.PlacedAt(direction.id, dir, 0, 1)+count, width, "")
 		add(Block{Text: row, Cursor: input.Cursor}, v.sortPicker.input.ID)
 		if v.l.r.Focus == direction.id {
 			focusLine = len(lines) - 1
 		}
 		if len(rows) > 1 {
+			pickerRows[0] = len(lines)
 			lines = append(lines, rows[1:]...)
+			pickerRows[1] = len(lines)
 		}
 		if v.l.r.Focus != v.sortPicker.input.ID {
 			lines = append(lines, "", "")
@@ -747,6 +752,18 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 				b.Cursor = &Pos{X: sb.Cursor.X, Y: len(lines) + sb.Cursor.Y}
 			}
 			lines = append(lines, strings.Split(sb.Text, "\n")...)
+		}
+		// The fields layout sizes the modal to its controls; the picker's
+		// rows are drawn at the full width, so they would widen the modal
+		// while the sort query has the focus. They take the controls' width.
+		natural := 0
+		for i, line := range lines {
+			if i < pickerRows[0] || i >= pickerRows[1] {
+				natural = max(natural, ansi.StringWidth(line))
+			}
+		}
+		for i := pickerRows[0]; i < pickerRows[1]; i++ {
+			lines[i] = ansi.Truncate(lines[i], natural, "")
 		}
 		return Block{Text: strings.Join(lines, "\n"), Cursor: b.Cursor}
 	}
