@@ -179,6 +179,38 @@ In normal mode, `Ctrl-J` advances and `Ctrl-K` goes back. The demo does not bind
 
 These are suggested starter/demo pages. Domain pages such as Agents, Panes, Projects, and application Settings belong to consuming applications; the framework does not require those names or behaviors.
 
+### Recent messages
+
+`g <` runs `messages.show` and opens the last 32 nonempty notices, status
+messages and errors in full. Clearing the footer does not remove this history.
+When a footer message is cut, it names the effective binding for this verb.
+`messages.hint=false` hides that suffix; remapping or unbinding the row changes it.
+
+Compared with Vim:
+
+| Vim form | Help tag | Ochazuke behavior |
+| --- | --- | --- |
+| `:messages` | `:messages` | Similar. `messages.show` reads a bounded, session-only message history. |
+| `g<` | `g<` | Similar recovery key. Opens recent messages, not Vim's last command-output page. |
+
+### Captured and foreground work
+
+Catalog verbs can declare a `slot` and a duration `timeout`. A slot admits one
+pending invocation per subject row. A second invocation reports that it is
+already running. A zero or omitted timeout uses the host's captured-work default.
+Captured Unix processes have their own process group. Cancellation sends TERM,
+allows one second for record finalization, then kills remaining descendants.
+`jobs.cancel {job}` cancels a running job.
+
+`foreground.hold` defaults to `on-failure`. A failed foreground program waits
+for a key before the host resumes; `off` resumes immediately. Successful exits
+always resume immediately. A bounded stderr tee retains the last line for the
+completion message and preserves terminal stderr on Unix.
+
+`Operation.EnabledSetting` names a boolean setting in the producing runtime.
+The catalog publishes its `disabled` snapshot; hosts do not read the remote
+setting name. Refresh the catalog after changing such a setting.
+
 ### State inspector
 
 `alt+?` toggles a one-line state strip below the body. `inspector.enabled`
@@ -501,6 +533,25 @@ also selects the last item on `<C-p>` from none (checked on Neovim 0.12.3).
 - Commands returning a JSON array of objects open a read-only Results modal (for example, `operations list` or `jobs list`). This also accepts typed Go slices/arrays and encoded JSON. Columns with fields present in every row come first, followed by less common fields in descending occurrence count; ties sort alphabetically. Missing fields are blank, explicit nulls read `null`, and nested values are compact JSON. Long cells truncate and rare columns drop first at narrow widths. `j/k` navigate; `Esc` closes and restores the originating focus. Empty lists show `No rows`; non-object results are unchanged. Only palette execution presents results: direct bindings, API/CLI calls, refreshes, and completion sources do not open a table.
 - A verb declared with `.TextResult()` (`Operation.Result` `ResultText`, `"text"`; the catalog's `result`, so a host mounting another tool's verbs keeps it) answers text to read and copy: a jq program, a JSON mapping. The palette opens its answer in the text view (`Runtime.OpenTextView(title, text)`, modal `text-view`): a read-only input (`Input.ReadOnly`, the `ReadOnly()` option of `AddInput`), one line when the text is one line, else multiline, cursor at the start in normal mode. A string shows as it is, any other value as indented JSON. The editor's motions, `v`/`V`/`ctrl+v`, `y`/`y y` and `"ay` work there; edits are silent no-ops and the editing verbs are unavailable (guards `input-writable`, `input-operator-writable`), so their rows leave the hints. `q` (a row of `bindings/text-view.json`) or `esc` closes it back on the focus the palette opened over. A text longer than the modal scrolls in a window of fixed height, the header saying which lines show (`1–20 / 60`), and the modal is as wide as the whole text's widest line, so scrolling never resizes it. Setting `palette.text-results`: `editor` (default), `all` (any string answer opens it too, declared or not), `plain` (as before: a text result shows nothing unless it is a JSON array). The CLI and the API return the value unchanged. Stories `palette/text-result-*`. Compared with Vim: the view is a buffer with `'nomodifiable'` set (`:help 'modifiable'`): the same keys move, select and yank, but an edit is refused silently where Vim says E21, and `i`/`a`/`o` do not enter insert mode at all. A focused read-only input owns the editor's keys: the editor table answers right after the input (before the page), so its motions win over page rows in every mode and an edit key is consumed instead of reaching a page row; `Input.SetText` refreshes its text from the program. Opened again while open, the text view shows the new text (`ReplaceOpen`).
 - Help and docs text in a modal is drawn by the Markdown component (setting `help.markdown`, section help, default `true`). A verb declared `.MarkdownResult()` (`Operation.Result` `ResultMarkdown`, `"markdown"`) or `.PreformattedResult()` (`ResultPreformatted`, `"preformatted"`: text laid out for a terminal, such as a `--help` page) opens its answer from the palette in the Markdown viewer instead of the text view, and `docs open` (`:help`, `:h`) opens its page there too, the build as the title and the topic above the page. The viewer is a modal (`markdown-view`, noun `ochazuke.markdown-view`) holding a read-only `markdown.Doc`: headings, lists, tables and code drawn by Glamour, wrapped (`markdown.WrapAll`), the Doc's keys (`j`/`k` by element and link stop, `}`/`{`, `] h`, `g O`, `g g`/`G`, `ctrl+d`/`ctrl+u`, `enter`/`g x` on a link, `y y`, `y l`), `y a` copies the whole text as given (`ochazuke.markdown-view.copy`), `q` or `esc` closes it back on the focus it opened over; opened while open it shows the new text in its place. A read-only Doc leaves out the verbs that write (guard `markdown-writable` on toggle, insert, open, delete, paste, note, resolve, undo, redo), so their keys leave its hints. Preformatted text is never read as Markdown: `markdown.Preformatted` puts each run of lines between blank lines in a code fence of its own (longer than any backtick run in it), so spacing, `*`, `_`, `<>` and `[]` stay as written and `j`/`k` step a paragraph at a time. The modal is as wide as the widest drawn line, and a line wider than the modal (a table with more columns than fit) is cut, never wrapped. Linking package `markdown` registers the viewer (`ochazuke.RegisterTextViewer(format, viewer)`, process-wide; `Runtime.TextViewer(format)`, `Runtime.OpenText(TextDoc{Format, Title, Label, Text})`), so a host that never imports it keeps the text view; `ochazuke.command.help` is preformatted and `ochazuke.agent.instructions` Markdown. With `help.markdown` off every such text opens as before (the text view, the plain docs viewer). The CLI, the API and MCP return the raw text whatever its format. Stories `palette/markdown-result`, `palette/preformatted-result`, `palette/markdown-result-off`, `docs/markdown-viewer`, `commands/help-palette-preformatted`. Compared with Vim: `:help` opens a read-only help buffer (`:help help-buffer-options`, `'modifiable'` off) in which `CTRL-]` follows a tag; here the viewer is the same read-only document, links are focus stops followed with `enter` or `g x` (Vim's `gx`, `:help gx`), and headings are reached with `] h` and `g O` where Vim has tags and `:helpgrep`.
+
+Key bindings now use the same text presenter as the palette. `keys.text-results`
+(default `true`) opts keys into declared text, Markdown and preformatted
+viewers; set it to `false` to retain unpresented key answers.
+`palette.text-results=plain` disables text presentation in both paths; `all`
+only broadens palette answers, never ordinary key results.
+`Runtime.PresentResult(request, value)` is available to other UI adapters and
+reports whether it handled a text result. CLI and API execution still return
+values without opening a viewer. Pending key and palette answers run their
+existing callback first and do not cover a changed page, focus, base mode or
+modal. Answers requested inside a modal open over it and close back to it.
+An unpresented late answer leaves a plain status message and its full body in
+`messages.show`. `Result.OnPresented` runs only after a pending viewer opens.
+
+The text view wraps by default. `text-view.wrap=false` restores horizontal
+scrolling and marks a clipped line with `›`. A declared text result may return
+`TextAnswer{Title, Text}`, encoded as `{"title":"…","text":"…"}`, instead of a
+string. `text-view.result-title=false` uses the operation name for the title.
+
 - `:h bindings`, `:help bindings` and `:bindings help` open the same effective-key help for the originating focus, not the global default-key reference. It shows the actions and arguments that answer there, omitting unavailable and shadowed rows. `/` filters the visible help rows; `Ctrl-U` clears the query while keeping the filter open. `Esc` leaves the filter and clears its query; another `Esc` closes help and restores the originating focus and mode. Use `:docs open bindings` for the global reference.
 - Pending commands present their results after delivery and their existing `Then` callback. Failed, cancelled, orphaned jobs, or results arriving while another modal is open do not open a table; an existing modal is never replaced.
 - Instance sources explicitly declare their default verb and ID argument: `page playground` runs `page.open {id: "playground"}`, and the instances are also the choices of that argument (`open page playground`). The [full-project example](examples/full-project/README.md) configures these defaults in JSON.
@@ -1892,6 +1943,15 @@ r.Define("export").Verb("open", func(c ochazuke.Ctx) ochazuke.Result {
 	return ochazuke.Foreground(exec.Command("o-csv", path)).Label("o-csv")
 })
 ```
+For catalog hosts, declare `.Foreground()` on a verb as well as returning
+`Foreground(cmd)` in its own TUI. `Operation.Foreground` is published as the
+catalog verb's `foreground` and carried by `cli.MountNouns`. A host calls
+`cli.RunMounted(verb, cli.ProxyCommand{Bin, Args, Env, Dir, Timeout, WaitDelay})`:
+foreground verbs receive the terminal, including stdin, without a deadline;
+other verbs run as captured jobs and decode stdout as JSON or text. The host
+retains ownership of argument construction, refresh and callbacks. Mounted
+row guards are checked by the extension, not evaluated in the host.
+
 
 ## Action aliases
 

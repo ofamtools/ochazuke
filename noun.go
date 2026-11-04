@@ -553,6 +553,18 @@ func (b *NounBuilder) Quiet() *NounBuilder {
 	return b
 }
 
+// Foreground marks a verb that catalog hosts run on the real terminal.
+// The handler still chooses Foreground(cmd) when running inside its own TUI.
+func (b *NounBuilder) Foreground() *NounBuilder {
+	if b.last == "" {
+		panic("Foreground must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.Foreground = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // PersistArgs marks the last declared verb's text-like arguments as safe
 // to keep in the history file (Operation.PersistArgs).
 func (b *NounBuilder) PersistArgs() *NounBuilder {
@@ -680,6 +692,9 @@ func (r *Runtime) Available(q Request, focus string, mode ModeState) bool {
 			return false
 		}
 		q = pq
+	}
+	if op, ok := r.Operation(q.Key()); ok && (op.Disabled || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)) {
+		return false
 	}
 	for _, name := range r.VerbAvailability(q.Key()) {
 		if guard := r.guard(name); guard != nil && !guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: q.Args}) {

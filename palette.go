@@ -343,61 +343,13 @@ func (p *Palette) dispatch(q Request) error {
 	if err := p.close(); err != nil {
 		return err
 	}
-	// What the palette opened over: a modal still open beneath it (the
-	// text view, the results) and the page. The answer is presented only
-	// while both are what they were, the same modal instance, so a command
-	// that opened a modal or a page of its own (settings.edit), or opened
-	// the modal beneath again in its place (bindings.help inside the help),
-	// is not covered by its answer, and a second answer over the view the
-	// first opened replaces it.
-	under, page := p.r.Instances[p.r.TopModal()], p.r.Page
+	present := p.r.resultPresenter(q, func(value any) (bool, error) {
+		return p.present(q, value)
+	})
 	value, err := p.r.ExecuteAt(origin, q)
 	if err == nil {
-		present := func(value any) error {
-			if p.r.Instances[p.r.TopModal()] != under || p.r.Page != page {
-				return nil // A command or a newer interaction already opened a modal or a page.
-			}
-			op := p.r.Operations[q.Key()]
-			if value == nil && (q.Verb == "list" || op.Rows != "") {
-				value = []any{}
-			}
-			if run := p.r.Operations[requestOperation(q)]; p.r.showsText(run, value) {
-				// A text answer opens in the text view, Markdown and
-				// preformatted text in their viewer (palette.text-results,
-				// help.markdown).
-				return p.r.OpenText(TextDoc{Format: textFormatOf(run), Title: q.Key(), Text: resultText(value)})
-			}
-			if run := p.r.Operations[requestOperation(q)]; p.r.StandardVerbsView().Record {
-				if row := standardRow(run.Standard); row != nil && row.Record {
-					// One thing's record (a standard get, or NOUN PROP):
-					// prop and value rows in the same results view
-					// (palette.standard-verbs record).
-					if rows, ok := recordRows(p.r.Nouns[run.Noun], value); ok {
-						value = rows
-					} else if prop := cmp.Or(q.Prop, StringArg(q.Args, "prop", "")); prop != "" {
-						value = []map[string]any{{"prop": prop, "value": value}}
-					}
-				}
-			}
-			return p.showResults(q.Key(), value)
-		}
-		if ticket, pending := value.(Ticket); pending {
-			if job := p.r.jobs[ticket.Job]; job != nil {
-				then := job.then
-				job.then = func(c Ctx, value any, workErr error) error {
-					var callbackErr error
-					if then != nil {
-						callbackErr = then(c, value, workErr)
-					}
-					if workErr != nil || callbackErr != nil || p.r.Instances[ticket.Owner] == nil {
-						return callbackErr
-					}
-					return present(value)
-				}
-			}
-		} else {
-			err = present(value)
-		}
+		// Keys and palette share the same focus/mode/page/modal guard.
+		err = present(value)
 	}
 	if err != nil {
 		// Dismiss before dispatch so focus/push/pop act on the originating
@@ -408,6 +360,28 @@ func (p *Palette) dispatch(q Request) error {
 		p.r.restoreMode(ModeState{Name: mode}, nil)
 	}
 	return err
+}
+
+func (p *Palette) present(q Request, value any) (bool, error) {
+	op := p.r.Operations[q.Key()]
+	if value == nil && (q.Verb == "list" || op.Rows != "") {
+		value = []any{}
+	}
+	if shown, err := p.r.PresentResult(q, value); shown || err != nil {
+		return shown, err
+	}
+	if run := p.r.Operations[requestOperation(q)]; p.r.StandardVerbsView().Record {
+		if row := standardRow(run.Standard); row != nil && row.Record {
+			if rows, ok := recordRows(p.r.Nouns[run.Noun], value); ok {
+				value = rows
+			} else if prop := cmp.Or(q.Prop, StringArg(q.Args, "prop", "")); prop != "" {
+				value = []map[string]any{{"prop": prop, "value": value}}
+			}
+		}
+	}
+	before := p.r.Instances[p.r.TopModal()]
+	err := p.showResults(q.Key(), value)
+	return before != p.r.Instances[p.r.TopModal()], err
 }
 
 // sourced records the requests a line runs with the source "palette",

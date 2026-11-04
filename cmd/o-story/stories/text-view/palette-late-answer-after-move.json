@@ -1,0 +1,45 @@
+{
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 3
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.read",
+        "pending": true,
+        "answer": "delayed readable answer",
+        "result": "text"
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "F",
+        "do": "demo.finish",
+        "args": {
+          "verb": "demo.read"
+        }
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {"type": "demo read"},
+    "enter",
+    "j",
+    "F",
+    {"job": "demo.read", "state": "done"}
+  ],
+  "expect": [
+    {
+      "modal": "",
+      "contains": [
+        "answer not opened"
+      ]
+    }
+  ],
+  "name": "text-view/palette-late-answer-after-move"
+}

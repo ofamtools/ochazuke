@@ -174,6 +174,10 @@ type CatalogVerb struct {
 	Result        string                        `json:"result,omitempty"`
 	Confirm       string                        `json:"confirm,omitempty"`
 	Repeatable    bool                          `json:"repeatable,omitempty"`
+	Foreground    bool                          `json:"foreground,omitempty"`
+	Slot          string                        `json:"slot,omitempty"`
+	Timeout       string                        `json:"timeout,omitempty"`
+	Disabled      bool                          `json:"disabled,omitempty"`
 	Rows          string                        `json:"rows,omitempty"`
 	Quiet         bool                          `json:"quiet,omitempty"`
 	Many          bool                          `json:"many,omitempty"`
@@ -367,6 +371,12 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
 		verb := CatalogVerb{Guards: append(slices.Clone(r.VerbAvailability(op.Key())), op.CatalogGuards...), Examples: op.ExamplesOf(), Destructive: op.Destructive, Agent: op.AgentRightOf(false), AgentDeclared: op.Agent, Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key()), Standard: op.Standard}
+		verb.Foreground = op.Foreground
+		verb.Slot = op.Slot
+		verb.Disabled = op.Disabled || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)
+		if op.Timeout > 0 {
+			verb.Timeout = op.Timeout.String()
+		}
 		if len(op.Parameters) > 0 {
 			verb.Params = make(map[string]ochazuke.Parameter, len(op.Parameters))
 			for name, p := range op.Parameters {

@@ -75,14 +75,15 @@ type AppHandler func(Ctx) Result
 
 // Result is what an application handler returns.
 type Result struct {
-	value any
-	err   error
-	work  func(context.Context) (any, error)
-	then  func(Ctx, any, error)
-	slot  string
-	scope string
-	label string
-	fg    *exec.Cmd // Foreground: a program given the terminal (foreground.go)
+	value     any
+	err       error
+	work      func(context.Context) (any, error)
+	then      func(Ctx, any, error)
+	slot      string
+	scope     string
+	label     string
+	fg        *exec.Cmd // Foreground: a program given the terminal (foreground.go)
+	presented func(Ctx)
 }
 
 // Done reports a synchronous result.
@@ -129,6 +130,10 @@ func (res Result) Label(label string) Result { res.label = label; return res }
 // still current; it never runs for a stale or cancelled ticket.
 func (res Result) Then(fn func(Ctx, any, error)) Result { res.then = fn; return res }
 
+// OnPresented runs after a pending UI answer actually opened its viewer.
+// Then still runs first, including when the answer is not presented.
+func (res Result) OnPresented(fn func(Ctx)) Result { res.presented = fn; return res }
+
 // Job states as jobs.list and the snapshot report them.
 const (
 	JobRunning   = "running"
@@ -157,9 +162,10 @@ type JobInfo struct {
 // job is one entry of the runtime's jobs list.
 type job struct {
 	JobInfo
-	cancel context.CancelFunc
-	then   func(Ctx, any, error) error
-	ctx    Ctx
+	cancel    context.CancelFunc
+	then      func(Ctx, any, error) error
+	ctx       Ctx
+	presented func(Ctx)
 }
 
 func (j *job) ticket() Ticket { return Ticket{Owner: j.Owner, Job: j.Job, Slot: j.Slot} }
@@ -233,6 +239,7 @@ func (r *Runtime) Launch(owner, verb string, res Result, c Ctx) (Ticket, error) 
 		}
 	}
 	r.jobs[ticket.Job].Label = res.label
+	r.jobs[ticket.Job].presented = res.presented
 	work := res.work
 	r.commands = append(r.commands, func() tea.Msg {
 		value, err := work(ctx)
@@ -361,6 +368,16 @@ func registerJobs(r *Runtime) {
 			}
 		}
 		return jobs, nil
+	}})
+	r.Register(Operation{Verb: "cancel", Noun: "ochazuke.jobs", Description: "Cancel a running job", Parameters: map[string]Parameter{"job": {Type: "integer", Required: true}}, Run: func(r *Runtime, _ Context, a Arguments) (any, error) {
+		id := uint64(IntArg(a, "job", 0))
+		j := r.jobs[id]
+		if j == nil || j.State != JobRunning {
+			return nil, fmt.Errorf("job %d is not running", id)
+		}
+		r.finish(j, JobCancelled, nil)
+		r.UI().Info(fmt.Sprintf("job %d cancelled", id))
+		return nil, nil
 	}})
 }
 
@@ -548,12 +565,19 @@ func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, 
 	inst := r.Instances[focusOf(c)]
 	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(inst), Invoked: r.Invoked()}
 	ancestry := r.Ancestry(inst.ID)
+	if op.Slot != "" && r.HasRunningJob(inst.ID, op.Slot) {
+		ctx.Info(r.DisplayKey(op.Key()) + " is already running")
+		return nil, nil
+	}
 	res := op.App(ctx)
 	switch {
 	case res.err != nil:
 		return nil, res.err
 	case res.work == nil && res.fg == nil:
 		return res.value, nil
+	}
+	if op.Slot != "" {
+		res.slot = op.Slot
 	}
 	owner := inst.ID
 	if r.Instances[owner] == nil {

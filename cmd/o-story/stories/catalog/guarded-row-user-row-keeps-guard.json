@@ -1,0 +1,6 @@
+{
+  "name": "catalog/guarded-row-user-row-keeps-guard",
+  "page": {"lists": [{"id": "a", "rows": 2}], "verbs": [{"verb": "demo.read", "proxy": true, "result": "text", "answer": "readable proxy result"}], "bind": [{"noun": "app", "keys": "Z", "do": "demo.read", "when": "input"}, {"noun": "app", "keys": "v", "do": "demo.read"}]},
+  "script": ["Z", "v", "esc"],
+  "expect": [{"after": 1, "modal": ""}, {"after": 2, "modal": "text-view", "contains": ["readable proxy result"]}, {"modal": ""}]
+}

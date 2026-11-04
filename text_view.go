@@ -11,9 +11,9 @@ import (
 
 // ResultText is the Operation.Result of a verb whose answer is text to
 // read and copy (a jq program, a JSON mapping), set by
-// NounBuilder.TextResult. The palette shows such an answer in the text
-// view (palette.text-results); the CLI and the API return the value as
-// they return any other.
+// NounBuilder.TextResult. The palette and (with keys.text-results) key
+// bindings show it in the text view (palette.text-results); the CLI and
+// API return the value unchanged.
 const ResultText = "text"
 
 // TextViewID is the text view's modal: the instance id and, canonical as
@@ -30,6 +30,28 @@ const textViewInputID = "__text-view/text"
 // editor, all or plain (settings/ochazuke.json).
 const PaletteTextResultsSetting = "palette.text-results"
 
+// KeyTextResultsSetting enables declared text results from key bindings.
+const KeyTextResultsSetting = "keys.text-results"
+
+// TextAnswer carries a text answer's display title across CLI/catalog calls.
+// Only declared text results interpret this shape as presentation metadata.
+type TextAnswer struct {
+	Title string `json:"title"`
+	Text  string `json:"text"`
+}
+
+func textAnswer(value any) (TextAnswer, bool) {
+	switch v := value.(type) {
+	case TextAnswer:
+		return v, true
+	case map[string]any:
+		title, titled := v["title"].(string)
+		text, written := v["text"].(string)
+		return TextAnswer{Title: title, Text: text}, titled && written
+	}
+	return TextAnswer{}, false
+}
+
 // textView is the text view modal's state: its title and the first line
 // its window shows, kept so the window moves only when the cursor would
 // leave it.
@@ -39,10 +61,84 @@ type textView struct {
 }
 
 // TextResult marks the last declared verb's result as text
-// (Operation.Result ResultText): the palette opens what it answers in the
-// text view, a read-only editor. A string is shown as it is; any other
-// value as indented JSON.
+// (Operation.Result ResultText): UI dispatch opens the answer in the text
+// view, a read-only editor. A string is shown as it is; any other value as
+// indented JSON.
 func (b *NounBuilder) TextResult() *NounBuilder { return b.result("TextResult", ResultText) }
+
+// PresentResult presents a completed answer according to the operation's
+// result format and palette.text-results policy. It reports whether the
+// answer has a text presenter; structured answers remain the caller's.
+// CLI/API execution does not call it.
+func (r *Runtime) PresentResult(q Request, value any) (bool, error) {
+	op := r.Operations[requestOperation(r.CanonicalRequest(q))]
+	if !r.showsText(op, value) || value == nil {
+		return false, nil
+	}
+	doc := TextDoc{Format: textFormatOf(op), Title: q.Key(), Text: resultText(value)}
+	if answer, ok := textAnswer(value); ok && r.Settings().Bool("text-view.result-title") {
+		doc.Title = answer.Title
+	}
+	return true, r.OpenText(doc)
+}
+
+// keyResultPresenter remembers the interaction that asked. A late answer
+// never covers a different page, selection, mode or newly opened modal.
+func (r *Runtime) keyResultPresenter(q Request) func(any) error {
+	op, _ := r.Operation(q.Key())
+	if !r.Settings().Bool(KeyTextResultsSetting) || !IsTextResult(op.Result) || r.Settings().String(PaletteTextResultsSetting) == "plain" {
+		return nil
+	}
+	return r.resultPresenter(q, func(value any) (bool, error) {
+		if !r.Settings().Bool(KeyTextResultsSetting) {
+			return false, nil
+		}
+		return r.PresentResult(q, value)
+	})
+}
+
+// resultPresenter is shared by keys and the palette. Presentation acts for
+// the interaction that asked, not the job's (possibly underlying) owner.
+func (r *Runtime) resultPresenter(q Request, show func(any) (bool, error)) func(any) error {
+	focus, mode, page := r.Focus, r.BaseMode(), r.Instances[r.Page]
+	under := r.Instances[r.TopModal()]
+	input := r.UI().passthroughInput
+	present := func(value any) (bool, error) {
+		if r.Focus != focus || r.BaseMode() != mode || r.Instances[r.Page] != page || r.Instances[r.TopModal()] != under || r.UI().passthroughInput != input {
+			if value != nil {
+				r.UI().Info("answer not opened: " + r.DisplayKey(q.Key()) + " (interaction changed)\n\n" + resultText(value))
+			}
+			return false, nil
+		}
+		defer r.actingFor(focus)()
+		return show(value)
+	}
+	return func(value any) error {
+		if ticket, pending := value.(Ticket); pending {
+			if job := r.jobs[ticket.Job]; job != nil {
+				then := job.then
+				job.then = func(c Ctx, value any, err error) error {
+					if then != nil {
+						if callbackErr := then(c, value, err); callbackErr != nil {
+							return callbackErr
+						}
+					}
+					if err != nil || r.Instances[ticket.Owner] == nil {
+						return nil
+					}
+					shown, presentErr := present(value)
+					if shown && presentErr == nil && job.presented != nil {
+						job.presented(c)
+					}
+					return presentErr
+				}
+			}
+			return nil
+		}
+		_, err := present(value)
+		return err
+	}
+}
 
 func registerTextView(r *Runtime) {
 	r.Define(TextViewNoun)
@@ -60,6 +156,7 @@ func (r *Runtime) OpenTextView(title, text string) (*Input, error) {
 	text = strings.TrimRight(text, "\n")
 	in := NewInput(textViewInputID, text, strings.Contains(text, "\n"))
 	in.ReadOnly = true
+	in.Wrap = r.Settings().Bool("text-view.wrap")
 	inst, err := r.OpenModal(TextViewID, Payload{Prompt: title}, WithInput(in), ReplaceOpen())
 	if err != nil {
 		return nil, err
@@ -71,6 +168,9 @@ func (r *Runtime) OpenTextView(title, text string) (*Input, error) {
 // resultText is a verb's answer as the text view shows it: a string as
 // it is, JSON indented, nil as nothing.
 func resultText(value any) string {
+	if answer, ok := textAnswer(value); ok {
+		return answer.Text
+	}
 	var data []byte
 	switch value := value.(type) {
 	case nil:
@@ -133,9 +233,16 @@ func textViewRender(r *Runtime, inst *Instance, width, height int) Block {
 		view = &textView{title: inst.Payload.Prompt}
 		inst.Data = view
 	}
-	lines := strings.Count(string(in.Text), "\n") + 1
+	in.Wrap = r.Settings().Bool("text-view.wrap")
+	lines := InputRows(in, width)
 	rows := min(lines, max(1, height-1))
 	row, _ := in.rowColumn(in.Cursor)
+	breaks, _ := in.wrapBreaks(width, in.Cursor)
+	for at := range breaks {
+		if at <= in.Cursor {
+			row++
+		}
+	}
 	view.top = min(max(view.top, row-rows+1), row, lines-rows)
 	view.top = max(0, view.top)
 	header := view.title
@@ -146,6 +253,16 @@ func textViewRender(r *Runtime, inst *Instance, width, height int) Block {
 		return Text(header)
 	}
 	body := inputBlockFrom(in, width, rows, view.top)
+	if !in.Wrap {
+		shown := strings.Split(body.Text, "\n")
+		source := strings.Split(string(in.Text), "\n")
+		for i := range shown {
+			if view.top+i < len(source) && cellWidth(source[view.top+i]) >= width {
+				shown[i] = ansi.Truncate(shown[i], max(0, width-1), "") + "›"
+			}
+		}
+		body.Text = strings.Join(shown, "\n")
+	}
 	// As wide as the whole text's widest line (and a cell for the cursor
 	// past its end), not the lines in view, so scrolling never resizes it.
 	wide := cellWidth(header)

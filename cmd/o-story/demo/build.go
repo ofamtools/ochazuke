@@ -421,7 +421,7 @@ func (ss *session) defineDemo(pages []*Page) error {
 			if mode == "" {
 				mode = "normal"
 			}
-			r.Define(b.Noun).Mode(mode).Bind(b.Keys, ochazuke.Do(b.Do, ochazuke.Arguments(b.Args)))
+			r.Define(b.Noun).Mode(mode).Bind(b.Keys, ochazuke.Do(b.Do, ochazuke.Arguments(b.Args)).Guard(b.When))
 		}
 	}
 	return nil
@@ -693,6 +693,26 @@ func (ss *session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 			entry += " subjects=" + strings.Join(c.SubjectIDs(), ",")
 		}
 		ss.Writes = append(ss.Writes, ss.unfiles(entry))
+		if v.Error != "" {
+			return ochazuke.Failed(errors.New(v.Error))
+		}
+		if v.Pending {
+			finish := make(chan error, 1)
+			ss.jobs[key] = append(ss.jobs[key], finish)
+			return ochazuke.Pending(func(ctx context.Context) (any, error) {
+				select {
+				case err := <-finish:
+					return v.Answer, err
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-ss.done:
+					return nil, errors.New("story closed")
+				}
+			})
+		}
+		if v.Answer != nil {
+			return ochazuke.Done(v.Answer)
+		}
 		if v.RowsArg != "" {
 			return ochazuke.Done(v.RowsBy[ochazuke.StringArg(c.Args, v.RowsArg, "")])
 		}
@@ -712,7 +732,10 @@ func (ss *session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 		p.Base = ss.files(p.Base)
 		params[name] = p
 	}
-	ss.R.Operations[key] = withParams(ss.R.Operations[key], params)
+	op := withParams(ss.R.Operations[key], params)
+	op.Result = v.Result
+	op.CatalogProxy = v.Proxy
+	ss.R.Operations[key] = op
 	for _, a := range v.Aliases {
 		a.Action = key
 		if err := ss.R.AddActionAlias(a); err != nil {

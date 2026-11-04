@@ -218,6 +218,17 @@ type Operation struct {
 	Kind          string               `json:"kind"`
 	Confirm       string               `json:"confirm,omitempty"`
 	Repeatable    bool                 `json:"repeatable,omitempty"`
+	// Foreground tells catalog hosts to hand the terminal to this verb.
+	Foreground bool `json:"foreground,omitempty"`
+	// Slot admits only one pending invocation per subject row and slot.
+	// A repeat while it runs reports that fact instead of running user work twice.
+	Slot string `json:"slot,omitempty"`
+	// Timeout is a catalog host's captured execution limit; zero uses its default.
+	Timeout time.Duration `json:"timeout,omitempty"`
+	// EnabledSetting gates a verb on a producing-runtime boolean setting.
+	// Catalog hosts receive its Disabled snapshot, never the setting name.
+	EnabledSetting string `json:"enabledSetting,omitempty"`
+	Disabled       bool   `json:"disabled,omitempty"`
 	// Rows names the noun whose rows the verb's result lists (a list
 	// verb's JSON array of rows of that noun); "" when the result is not
 	// rows. It is data for hosts (the catalog's rows); the runtime does

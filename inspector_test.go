@@ -83,6 +83,9 @@ func TestInspectorSnapshotAndPanel(t *testing.T) {
 		t.Fatalf("bindings check: %v, %v", problems, err)
 	}
 	motionKeys(t, r, m, "alt+?")
+	if got := r.Inspect().Message; got == nil || got.Text != "copied path" {
+		t.Fatal("next key erased the diagnostic")
+	}
 	if !r.Settings().Bool(InspectorEnabledSetting) || !strings.Contains(m.inspectorLine(), ".items[3].owner.id") {
 		t.Fatal("alt+? did not show inspector")
 	}
@@ -114,7 +117,7 @@ func TestInspectorPendingSelectionAndMessages(t *testing.T) {
 		t.Fatal("lost error tone")
 	}
 	r.UI().Info("")
-	if r.Inspect().Message.Text != "failed" {
+	if got := r.Inspect().Message; got == nil || got.Text != "failed" {
 		t.Fatal("clearing chrome erased the last message")
 	}
 	text := strings.Repeat("界", 300)
@@ -198,10 +201,6 @@ func TestInspectorModelErrorsKeepTheirTone(t *testing.T) {
 	m.handleKey(MacroKey{Key: "x"})
 	if m.Status != "cannot copy path" || r.Inspect().Message.Tone != "error" {
 		t.Fatal("model error missing from inspector")
-	}
-	m.handleKey(MacroKey{Key: "j"})
-	if m.Status != "" || r.Inspect().Message.Text != "cannot copy path" {
-		t.Fatal("next key erased the diagnostic")
 	}
 }
 

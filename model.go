@@ -327,7 +327,7 @@ func (m *Model) applyThemeSetting() {
 // handleKey dispatches one key through the runtime's stack walk and shows
 // the error, if any, in the status line.
 func (m *Model) handleKey(key MacroKey) {
-	m.Status, m.Info = "", "" // a key clears the status line; what its handler sets stands
+	m.Runtime.UI().Info("") // a key clears the status line and inspector message
 	r := m.Runtime
 	echo := r.KeyEcho() != KeyEchoOff
 	before := echoKey{key: key, mode: r.Mode, focus: r.Focus, nowSeq: r.history.seq}
@@ -554,7 +554,7 @@ func (m *Model) footer() Footer {
 	jobs := m.JobsTicker(m.Width)
 	notice := m.footerNotice()
 	if m.Status != "" {
-		text := "Error: " + safeText(m.Status)
+		text := m.cutMessage("Error: "+safeText(m.Status), max(1, m.Width-4))
 		if notice != "" {
 			text += " · " + notice
 		}
@@ -598,9 +598,25 @@ func (m *Model) footerInfo() string {
 	}
 	text := safeText(strings.ReplaceAll(m.Info, "\n", " "))
 	if m.Width > 0 {
-		text = ansi.Truncate(text, max(8, max(16, m.Width/2)), "…")
+		text = m.cutMessage(text, max(8, max(16, m.Width/2)))
 	}
 	return text
+}
+
+func (m *Model) cutMessage(text string, width int) string {
+	if ansi.StringWidth(text) <= width {
+		return text
+	}
+	tail := "…"
+	if m.Runtime.Settings().Bool("messages.hint") {
+		for _, row := range m.Runtime.ListBindings(m.Runtime.Focus) {
+			if m.Runtime.CanonicalKey(row.Request.Key()) == "ochazuke.messages.show" && row.Keys != "" {
+				tail += " " + row.Keys
+				break
+			}
+		}
+	}
+	return ansi.Truncate(text, width, tail)
 }
 
 // BindingHints renders the rows a focus answers to in its current mode as a
@@ -1087,9 +1103,9 @@ func (m *Model) render() Block {
 		if id == m.Runtime.TopModal() {
 			switch {
 			case m.Status != "":
-				hint, cells = "Error: "+m.Status, nil
+				hint, cells = m.cutMessage("Error: "+safeText(m.Status), hintWidth), nil
 			case m.Info != "":
-				lead = m.footerInfo()
+				lead = m.cutMessage(m.footerInfo(), hintWidth)
 				hint = ansi.Truncate(lead+" · "+hint, hintWidth, "…")
 			}
 		}
