@@ -457,7 +457,9 @@ func (b *NounBuilder) Pin(mode string) *NounBuilder { b.n.Pin = mode; return b }
 // the state verb's answer (a quota read from a vendor, costly or secret to
 // keep in the inventory). A host that fills a page from the catalog's state
 // leaves the noun's lists out of it and fills them through the noun's row
-// source (CatalogDoc.RowSource) when the page loads or refreshes.
+// source (CatalogDoc.RowSource) on every reload of the page. The noun's tool
+// owns its caching: the row source is called each time, so it must answer
+// from its own cache (with a way to bypass it) when the data is costly.
 func (b *NounBuilder) Live() *NounBuilder { b.n.Live = true; return b }
 
 // Focusable makes every instance of the noun a focus stop.

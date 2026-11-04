@@ -629,10 +629,10 @@ Root package `ochazuke` is flat: 164 source files, 195 test files. Each entry li
 
 ### noun.go
 
-- lines: 1556 · tests: noun_test.go
+- lines: 1568 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, ModeOption (func), Guard (func)
-- methods: Binding(11), ModeBuilder(7), NounBuilder(20), Runtime(28)
+- methods: Binding(11), ModeBuilder(7), NounBuilder(21), Runtime(28)
 - funcs: Do, Enter, Leave, ModeExtends
 - leans on: runtime.go(82), instance.go(24), resolve.go(11), props.go(5)
 
@@ -1283,7 +1283,7 @@ Root package `ochazuke` is flat: 164 source files, 195 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 41 source files, 39 test files.
+Importable package `cli`: 41 source files, 40 test files.
 
 ### cli/agent_metadata.go
 
@@ -1295,7 +1295,7 @@ Importable package `cli`: 41 source files, 39 test files.
 
 ### cli/catalog.go
 
-- lines: 526
+- lines: 529
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(5), CatalogNoun(1)
@@ -1461,16 +1461,16 @@ Importable package `cli`: 41 source files, 39 test files.
 
 ### cli/page.go
 
-- lines: 1164 · tests: page_test.go
+- lines: 1182 · tests: page_test.go
 - purpose: CatalogPage is a page in registration order.
 - types: CatalogPage, CatalogList, CatalogDetail, PageConfig, PageView
-- methods: CatalogPage(1), PageView(31), pageList(1)
+- methods: CatalogPage(1), PageView(33), pageList(1)
 - funcs: DeclarePage, MountPages, MountPage, DecodeRows
 - leans on: rows.go(20), commands.go(10), catalog.go(4), widget.go(4)
 
 ### cli/pagestate.go
 
-- lines: 188 · tests: pagestate_test.go
+- lines: 192 · tests: pagestate_test.go
 - purpose: speaksDelta reports whether Reload asks for deltas: the host gave FetchFlags and the catalog declares the protocol (CatalogDoc.StateDelta).
 - methods: PageView(6)
 - leans on: state.go(12), page.go(7), rows.go(3)
