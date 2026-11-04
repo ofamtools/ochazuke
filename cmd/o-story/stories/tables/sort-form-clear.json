@@ -70,16 +70,22 @@
     "z",
     "/",
     "shift+tab",
+    "shift+tab",
     "r",
     "a",
     "n",
     "k",
     "enter",
     "esc",
+    "shift+tab",
     "C",
     "esc"
   ],
   "expect": [
+    {
+      "after": 9,
+      "contains": ["Sort by ▲"]
+    },
     {
       "order": [
         "rank",

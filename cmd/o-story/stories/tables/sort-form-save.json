@@ -70,6 +70,7 @@
     "z",
     "/",
     "shift+tab",
+    "shift+tab",
     "r",
     "a",
     "n",
@@ -94,9 +95,9 @@
       ]
     },
     {
-      "after": 8,
+      "after": 9,
       "contains": [
-        "Sort ▲"
+        "Sort by ▲"
       ]
     }
   ]

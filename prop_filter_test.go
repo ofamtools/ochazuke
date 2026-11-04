@@ -536,7 +536,7 @@ func TestPropFilterMalformedSettingsLoad(t *testing.T) {
 }
 
 func TestPropFilterSavedManagement(t *testing.T) {
-	r, _, l := propFilterFixture(t)
+	r, m, l := propFilterFixture(t)
 	r.Config().Dir = t.TempDir()
 	_ = l.ApplyFilter("agents")
 	for _, verb := range []string{"filter-save", "filters", "filter-saved-pick"} {
@@ -565,6 +565,10 @@ func TestPropFilterSavedManagement(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-saved-delete", Args: Arguments{"id": l.id, "name": "local"}}); err != nil {
 		t.Fatal(err)
 	}
+	if r.TopModal() != "confirm" {
+		t.Fatalf("delete did not ask for confirmation: %s", r.TopModal())
+	}
+	compactKeys(m, "y")
 	filters, err = l.SavedFilters()
 	if err != nil || len(filters) != 3 {
 		t.Fatalf("delete %+v %v", filters, err)

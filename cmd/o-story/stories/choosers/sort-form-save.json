@@ -61,6 +61,7 @@
   "script": [
     "ctrl+f",
     "shift+tab",
+    "shift+tab",
     "r",
     "a",
     "n",
@@ -84,19 +85,19 @@
   ],
   "expect": [
     {
-      "after": 16,
+      "after": 17,
       "contains": [
         "Applied: ranked",
         "Replace"
       ]
     },
     {
-      "after": 19,
+      "after": 20,
       "contains": [
         "Applied: all"
       ],
       "lacks": [
-        "Sort ▲"
+        "Sort by ▲"
       ]
     },
     {

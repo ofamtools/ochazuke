@@ -148,7 +148,9 @@
     "ctrl+n",
     "ctrl+n",
     "space",
-    "enter"
+    "enter",
+    "esc",
+    "esc"
   ],
   "expect": [
     {
@@ -160,6 +162,11 @@
         "done",
         "rows"
       ]
+    },
+    {
+      "after": 15,
+      "focus": "list-filter-form/field/query",
+      "contains": ["Active conditions", "status in cancelled, done"]
     },
     {
       "contains": [
