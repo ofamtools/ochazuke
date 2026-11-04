@@ -1,0 +1,34 @@
+{
+  "name": "outline: emptying the tree's only row leaves the tree empty with focus on its list, never nowhere",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "i",
+    "backspace",
+    "esc"
+  ],
+  "expect": {
+    "mode": "normal",
+    "focus": "t/list",
+    "writes": [
+      "delete a"
+    ],
+    "lacks": [
+      "alpha",
+      "Error"
+    ]
+  }
+}

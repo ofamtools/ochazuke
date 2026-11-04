@@ -464,14 +464,14 @@ Conformance:
 | insert | filter-form | `filter-form.move` `filter-form.write-saved` |
 | insert | find-line | `find-line.commit` |
 | insert | form | `form.next` `form.run` `form.suggest` |
-| insert | input | `input.insert` `input.kill` `input.move` |
+| insert | input | `input.delete` `input.insert` `input.kill` `input.move` |
 | insert | list | `list.filter-cycle` `list.filter-prop` |
 | insert | macro | `macro.record` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | modal | `modal.close` |
 | insert | mode | `mode.set` |
 | insert | modes | `modes.list` |
-| insert | outline | `outline.leave` `outline.row-key` |
+| insert | outline | `outline.leave` `outline.next` `outline.row-key` |
 | insert | palette | `palette.complete` `palette.move` `palette.run` |
 | insert | search | `search.cycle-match` |
 | insert | setting-value | `setting-value.commit` |

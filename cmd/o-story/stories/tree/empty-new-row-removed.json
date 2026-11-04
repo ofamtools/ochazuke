@@ -1,0 +1,60 @@
+{
+  "name": "outline: o then esc on the blank new row removes it and returns to the row o ran on; nothing is left to undo",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "label": "gamma"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "o",
+    "esc",
+    "u"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "mode": "insert",
+      "writes": [
+        "add t-n1 under root at 1: "
+      ]
+    },
+    {
+      "after": 2,
+      "mode": "normal",
+      "focus": "a",
+      "writes": [
+        "add t-n1 under root at 1: ",
+        "delete t-n1"
+      ],
+      "lacks": [
+        "Error"
+      ]
+    },
+    {
+      "focus": "a",
+      "writes": [
+        "add t-n1 under root at 1: ",
+        "delete t-n1"
+      ]
+    }
+  ]
+}

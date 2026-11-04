@@ -192,6 +192,10 @@ type Tree struct {
 	Debounce time.Duration
 
 	seq       int
+	fresh     map[string]bool   // rows add made that have not held text yet (tree_empty.go)
+	origin    map[string]string // the row a fresh row was added from
+	opened    string            // the open line's text when it opened
+	dropped   string            // the empty row the last closeLine removed
 	undo      []treeEdit
 	redo      []treeEdit
 	failed    map[string]bool
@@ -930,11 +934,16 @@ func (t *Tree) openLine(id string, selected bool) error {
 		if err := t.closeLine(true); err != nil {
 			return err
 		}
+		// Leaving the line may have removed its row, shifting the indexes.
+		if i = t.index(id); i < 0 {
+			return fmt.Errorf("unknown tree node %q", id)
+		}
 	}
 	if err := t.Select(id); err != nil {
 		return err
 	}
 	text := t.nodes[i].Label
+	t.opened = text
 	in := NewInput(t.id+"/line", text, false)
 	if err := t.r.AddInput(in, Parent(t.id), Kind("ochazuke.outline-line"), FocusOnClose(id)); err != nil {
 		return err
@@ -973,14 +982,30 @@ func (t *Tree) rename(id string, selected bool) error {
 }
 
 // closeLine writes the open line, records its rename as one undo step and
-// returns the focus to its row (refocus) in normal mode.
-func (t *Tree) closeLine(refocus bool) error {
+// returns the focus to its row (refocus) in normal mode. A line left empty
+// removes its row (dropEmpty, tree.remove-empty-rows).
+func (t *Tree) closeLine(refocus bool) error { return t.closeLineAs(refocus, true) }
+
+// closeLineAs is closeLine; drop says whether an empty row may be removed.
+// A verb that goes on to act on the row, or runs another verb on it, keeps
+// it (drop false).
+func (t *Tree) closeLineAs(refocus, drop bool) error {
+	t.dropped = ""
 	if t.editing == "" {
 		return nil
 	}
-	err := t.seal()
-	id := t.editing
-	in := t.input
+	id, in := t.editing, t.input
+	// A line left blank is not written: its row goes (dropEmpty), and undo
+	// brings it back as the line opened.
+	dropIt := drop && t.emptyRemovable(id, strings.TrimSpace(string(in.Text)) == "")
+	var err error
+	if dropIt {
+		if i := t.index(id); i >= 0 {
+			t.nodes[i].Label = t.before
+		}
+	} else {
+		err = t.seal()
+	}
 	t.input, t.editing = nil, ""
 	if t.r.Instances[in.ID] != nil {
 		focused := t.r.Focus == in.ID
@@ -989,6 +1014,11 @@ func (t *Tree) closeLine(refocus bool) error {
 		}
 		refocus = refocus || focused
 	}
+	if dropIt {
+		return t.dropEmpty(id, refocus)
+	}
+	delete(t.fresh, id)
+	delete(t.origin, id)
 	if refocus && t.index(id) >= 0 {
 		if serr := t.Select(id); serr == nil {
 			if ferr := t.r.SetFocus(id); ferr != nil && err == nil {
@@ -1038,28 +1068,39 @@ func (t *Tree) targetOf(focus string) string {
 // line; selected opens it with the text selected, a placeholder that
 // typing replaces.
 func (t *Tree) add(c Context, where, text string, selected bool) error {
-	if err := t.closeLine(false); err != nil {
-		return err
-	}
+	// Where the new row goes is read before the open line closes: an empty
+	// line is removed on leaving it, and the new row then takes its place.
 	at := t.target(c)
 	parent, index := "", len(t.children(""))
+	pos, p := 0, ""
 	if at != "" {
-		p := t.parentOf(at)
-		pos := slices.Index(t.children(p), at)
+		p = t.parentOf(at)
+		pos = slices.Index(t.children(p), at)
 		switch where {
 		case "above":
 			parent, index = p, pos
 		case "child":
 			parent, index = at, len(t.children(at))
-			t.setCollapsed(at, false)
 		default:
 			parent, index = p, pos+1
 		}
+	}
+	if err := t.closeLine(false); err != nil {
+		return err
+	}
+	from := at
+	if at != "" && t.dropped == at {
+		parent, index = p, min(pos, len(t.children(p)))
+		from = t.origin[at]
+		delete(t.origin, at)
+	} else if where == "child" && at != "" {
+		t.setCollapsed(at, false)
 	}
 	id := t.newID()
 	if err := t.commit([]TreeChange{{Op: TreeAdd, ID: id, Parent: parent, Index: index, Text: text}}, id); err != nil {
 		t.fail(err)
 	}
+	t.markFresh(id, from)
 	return t.openLine(id, selected)
 }
 
@@ -1126,7 +1167,7 @@ func (t *Tree) rowKey(c Context, key string) error {
 	if !selected {
 		start, end = in.Cursor, in.Cursor
 	}
-	if err := t.closeLine(true); err != nil {
+	if err := t.closeLineAs(true, false); err != nil {
 		return err
 	}
 	_, err := t.r.dispatchIn(t.r.Focus, ModeState{Name: "normal"}, MacroKey{Key: key})
@@ -1151,7 +1192,7 @@ func (t *Tree) rowKey(c Context, key string) error {
 
 // move swaps a node with its previous or next sibling.
 func (t *Tree) move(c Context, delta int) error {
-	if err := t.closeLine(false); err != nil {
+	if err := t.closeLineAs(false, false); err != nil {
 		return err
 	}
 	id := t.target(c)
@@ -1168,7 +1209,7 @@ func (t *Tree) move(c Context, delta int) error {
 // remove deletes a node and its subtree: the deepest nodes first, so each
 // write is a leaf, and undo adds them back root first.
 func (t *Tree) remove(c Context) error {
-	if err := t.closeLine(false); err != nil {
+	if err := t.closeLineAs(false, false); err != nil {
 		return err
 	}
 	id := t.target(c)
@@ -1204,7 +1245,7 @@ func (t *Tree) remove(c Context) error {
 // history undoes (or redoes) one step: its changes are applied and
 // written like any other, and the inverse goes on the other stack.
 func (t *Tree) history(redo bool) error {
-	if err := t.closeLine(true); err != nil {
+	if err := t.closeLineAs(true, false); err != nil {
 		return err
 	}
 	from, to := &t.undo, &t.redo

@@ -1,0 +1,32 @@
+{
+  "name": "outline: a row blank before anyone touched it is not swept: opening and leaving its line keeps it",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          },
+          {
+            "id": "e",
+            "label": ""
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "i",
+    "esc"
+  ],
+  "expect": {
+    "mode": "normal",
+    "focus": "e",
+    "writes": []
+  }
+}

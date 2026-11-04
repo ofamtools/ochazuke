@@ -1,0 +1,45 @@
+{
+  "name": "outline: tree.remove-empty-rows off keeps a blank new row",
+  "area": "tree",
+  "settings": [
+    {
+      "name": "tree.remove-empty-rows",
+      "type": "boolean",
+      "default": false
+    }
+  ],
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "label": "gamma"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "o",
+    "esc"
+  ],
+  "expect": {
+    "mode": "normal",
+    "focus": "t-n1",
+    "writes": [
+      "add t-n1 under root at 1: "
+    ]
+  }
+}
