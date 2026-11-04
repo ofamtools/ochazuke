@@ -439,7 +439,7 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 			rows = append(rows, ChooserRow{ID: name, Label: name})
 		}
 		if l.r.Settings().Bool(ListFilterPickerSortSetting) && l.Sortable() {
-			rows = append(rows, ChooserRow{Label: "Sort…", Fixed: true, Data: Request{Noun: "ochazuke.list", Verb: "sort-column", Args: Arguments{"id": l.id}}})
+			rows = append(rows, ChooserRow{Label: "Sort…", Fixed: true, Data: Request{Noun: "ochazuke.list", Verb: "sort-column", Args: Arguments{"id": l.id, "pick": true}}})
 		}
 		if offerClear && (len(l.propFilters) > 0 || l.savedFilter != "") {
 			rows = append(rows, ChooserRow{Label: "Clear prop filters", Fixed: true})
@@ -695,4 +695,5 @@ func registerListPropFilter(r *Runtime) {
 			r.Nouns["ochazuke.list"].Guards[spec.verb] = spec.guard
 		}
 	}
+	_ = r.SetConfirm("ochazuke.list.filter-saved-delete", "Delete saved filter {{name}}?")
 }

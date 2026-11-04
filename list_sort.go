@@ -365,16 +365,20 @@ func (l *List) sortOrder(items []ListItem) []int {
 	}
 	// Section headings belong to contiguous source runs; a view sort must
 	// never interleave their rows or move one run through another.
-	groups := make([]int, len(items))
+	var groups []int
 	for i := 1; i < len(items); i++ {
-		groups[i] = groups[i-1]
 		if items[i].Section != items[i-1].Section {
-			groups[i]++
+			if groups == nil {
+				groups = make([]int, len(items))
+			}
+			groups[i] = groups[i-1] + 1
+		} else if groups != nil {
+			groups[i] = groups[i-1]
 		}
 	}
 	slices.SortStableFunc(order, func(a, b int) int {
-		if c := cmp.Compare(groups[a], groups[b]); c != 0 {
-			return c
+		if groups != nil && groups[a] != groups[b] {
+			return cmp.Compare(groups[a], groups[b])
 		}
 		for j, key := range l.sort {
 			if c := compareSort(values[a][j], values[b][j], key.Desc); c != 0 {
@@ -459,9 +463,9 @@ func (l *List) cycleSort(field string, desc *bool) error {
 	return l.SetSort([]SortKey{{Field: field}})
 }
 
-func (l *List) sortColumn(desc *bool) error {
+func (l *List) sortColumn(desc *bool, pick bool) error {
 	specs := l.sortSpecs()
-	if l.cellSelect && l.col >= 0 && l.col < len(l.columns) {
+	if !pick && l.cellSelect && l.col >= 0 && l.col < len(l.columns) {
 		name := l.sortColumnField(l.columns[l.col].Title)
 		if _, ok := specs[name]; ok {
 			return l.cycleSort(name, desc)
@@ -524,14 +528,20 @@ func registerListSort(r *Runtime) {
 		run                      func(*List, Arguments) error
 	}{
 		{"sort", "Sort the view stably by comma-separated props; -field descends, empty restores app order", "list-sortable", map[string]Parameter{"by": {Type: "string"}}, func(l *List, a Arguments) error { return l.sortBy(StringArg(a, "by", "")) }},
-		{"sort-column", "Cycle the current column ascending, descending, off; in row mode choose a prop", "list-sortable", map[string]Parameter{"desc": {Type: "boolean", Description: "Set descending or ascending explicitly; omit to cycle"}}, func(l *List, a Arguments) error {
+		{"sort-column", "Cycle the current column ascending, descending, off; in row mode choose a prop", "list-sortable", map[string]Parameter{"pick": {Type: "boolean", Description: "Always choose a field, including in cell mode"}, "desc": {Type: "boolean", Description: "Set descending or ascending explicitly; omit to cycle"}}, func(l *List, a Arguments) error {
 			var desc *bool
 			if v, ok := a["desc"].(bool); ok {
 				desc = &v
 			}
-			return l.sortColumn(desc)
+			pick, _ := a["pick"].(bool)
+			return l.sortColumn(desc, pick)
 		}},
-		{"sort-clear", "Restore the app's row order, keeping filters", "list-sorted", nil, func(l *List, _ Arguments) error { return l.SetSort(nil) }},
+		{"sort-clear", "Restore the app's row order, keeping filters", "", nil, func(l *List, _ Arguments) error {
+			if len(l.sort) == 0 {
+				l.r.UI().Info("Sort already clear")
+			}
+			return l.SetSort(nil)
+		}},
 	} {
 		params := s.params
 		if params == nil {

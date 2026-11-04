@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"path"
 	"slices"
@@ -429,6 +430,10 @@ func parseSavedFilters(text string) ([]SavedFilter, error) {
 	decoder.UseNumber()
 	if err := decoder.Decode(&rows); err != nil {
 		return nil, fmt.Errorf("list.filters must be a JSON array of saved filters: %w", err)
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return nil, fmt.Errorf("list.filters must contain one JSON array of saved filters")
 	}
 	if rows == nil {
 		return nil, fmt.Errorf("list.filters must be a JSON array, use [] for no filters")
