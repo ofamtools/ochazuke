@@ -150,6 +150,8 @@ func (v *PageView) Refresh() error {
 	for _, pl := range v.lists {
 		pl.hash = ""
 	}
+	v.forced = true
+	defer func() { v.forced = false }()
 	return v.Reload()
 }
 
@@ -164,7 +166,7 @@ func (v *PageView) reloadState(noun, verb string, retry bool) error {
 	run := func(ctx context.Context) ([]byte, error) { return fetch(ctx, noun, verb, flags) }
 	var live error
 	if retry { // the first call; the retry fetches only the mismatched lists
-		live = v.reloadLive()
+		live = v.reloadLive(v.forced)
 	}
 	return errors.Join(live, v.launchWith(v.spec.ID, "state", noun, verb, run, func(out []byte, err error) {
 		for _, pl := range v.lists {
