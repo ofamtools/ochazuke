@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"slices"
+	"strings"
 )
 
 // TreeDeleteChildrenSetting says what deleting a node that has children
@@ -101,6 +102,10 @@ func (t *Tree) remove(c Context) error {
 	if t.index(ids[0]) < 0 {
 		return errors.New("tree has no selected node")
 	}
+	// What goes is copied to the register as a yank does (d d then p moves
+	// a row), read before anything is deleted: the rows of the selection
+	// and, where a row takes its subtree with it, the subtree.
+	snapshot := t.snapshotUnder(ids)
 	var failure error
 	for _, id := range ids {
 		if t.index(id) < 0 {
@@ -108,12 +113,66 @@ func (t *Tree) remove(c Context) error {
 		}
 		if err := t.removeOne(id); err != nil {
 			if !selection {
-				return err
+				failure = err
+				break
 			}
 			failure = errors.Join(failure, err)
 		}
 	}
+	if err := t.yankDeleted(snapshot); err != nil {
+		failure = errors.Join(failure, err)
+	}
 	return failure
+}
+
+// snap is a row as it was before a delete: what a yank of it needs.
+type snap struct {
+	id, label string
+	depth     int
+}
+
+// snapshotUnder is the rows at and under ids, in tree order.
+func (t *Tree) snapshotUnder(ids []string) []snap {
+	in := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		in[id] = true
+	}
+	var out []snap
+	for _, n := range t.nodes {
+		for p := n.ID; p != ""; p = t.parentOf(p) {
+			if in[p] {
+				out = append(out, snap{n.ID, n.Label, t.depth(n.ID)})
+				break
+			}
+		}
+	}
+	return out
+}
+
+// yankDeleted puts the snapshot rows that are gone in the registers, as a
+// delete does (the numbered registers, the clipboard only for
+// clipboard=unnamed), indented from the shallowest.
+func (t *Tree) yankDeleted(rows []snap) error {
+	low, n := -1, 0
+	gone := rows[:0:0]
+	for _, row := range rows {
+		if t.index(row.id) >= 0 {
+			continue
+		}
+		gone = append(gone, row)
+		if low < 0 || row.depth < low {
+			low = row.depth
+		}
+		n++
+	}
+	if n == 0 {
+		return nil
+	}
+	var b strings.Builder
+	for _, row := range gone {
+		b.WriteString(strings.Repeat("\t", row.depth-low) + strings.TrimSpace(strings.ReplaceAll(row.label, "\n", " ")) + "\n")
+	}
+	return t.r.storeYank(lineYank(b.String()), "", true)
 }
 
 // removeOne deletes one node by its plan and puts the cursor on the row

@@ -1,0 +1,45 @@
+{
+  "name": "outline: p on a tree emptied by d d puts the register back as its top level, with a fresh id",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "d",
+    "d",
+    "p"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "t/list",
+      "lacks": [
+        "alpha"
+      ]
+    },
+    {
+      "mode": "normal",
+      "order": [
+        "alpha"
+      ],
+      "lacks": [
+        "Error"
+      ],
+      "writes": [
+        "delete a",
+        "add t-n1 under root at 0: alpha"
+      ]
+    }
+  ]
+}

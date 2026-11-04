@@ -261,6 +261,7 @@ func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (
 	}
 	t.list = list
 	list.undoGroup = t.group
+	list.yankRows = t.yankRows
 	if err := t.SetNodes(nodes); err != nil {
 		_ = r.RemoveInstance(id)
 		return nil, err
@@ -1334,20 +1335,54 @@ func (t *Tree) paste(c Context, text string) error {
 	if len(lines) == 0 {
 		return nil
 	}
+	// The slot is read before an open blank line closes: its row goes with
+	// it, and the paste takes its place.
+	at := t.target(c)
+	parent, index := t.slot(at, false)
 	if err := t.closeLine(false); err != nil {
 		return err
 	}
-	at := t.target(c)
-	parent, index := "", len(t.children(""))
-	if at != "" {
-		parent = t.parentOf(at)
-		index = slices.Index(t.children(parent), at) + 1
+	if at != "" && t.dropped == at {
+		index--
 	}
+	_, last, err := t.insertLines(lines, depths, parent, index)
+	_ = t.r.SetFocus(last)
+	return err
+}
+
+// slot is where a block pasted next to node at goes: its parent and index
+// among that parent's children, after at's subtree (before: before at).
+// With no node it is the end of the top level.
+func (t *Tree) slot(at string, before bool) (parent string, index int) {
+	if at == "" {
+		return "", len(t.children(""))
+	}
+	parent = t.parentOf(at)
+	index = slices.Index(t.children(parent), at)
+	if !before {
+		index++
+	}
+	return parent, index
+}
+
+// insertLines adds an indented block (pasteLines) as children of parent from
+// index, nested by its depths, each row with a fresh id through add, as one
+// undo step. It returns the first and the last row added and selects the
+// last.
+func (t *Tree) insertLines(lines []string, depths []int, parent string, index int) (first, last string, err error) {
+	changes := t.blockAdds(lines, depths, parent, index)
+	first, last = changes[0].ID, changes[len(changes)-1].ID
+	return first, last, t.commit(changes, last)
+}
+
+// blockAdds is the adds that make an indented block the children of parent
+// from index; a line nests under the nearest line above it that is
+// shallower.
+func (t *Tree) blockAdds(lines []string, depths []int, parent string, index int) []TreeChange {
 	// stack[d] is the node a line of depth d+1 nests under.
 	stack := []string{}
 	counts := map[string]int{}
 	var changes []TreeChange
-	last := ""
 	for i, line := range lines {
 		d := depths[i]
 		stack = stack[:min(len(stack), d)]
@@ -1364,11 +1399,8 @@ func (t *Tree) paste(c Context, text string) error {
 		}
 		changes = append(changes, TreeChange{Op: TreeAdd, ID: id, Parent: p, Index: idx, Text: line})
 		stack = append(stack, id)
-		last = id
 	}
-	err := t.commit(changes, last)
-	_ = t.r.SetFocus(last)
-	return err
+	return changes
 }
 
 // newIDAvoiding is newID that also skips ids queued in changes.
@@ -1555,6 +1587,11 @@ func registerTrees(r *Runtime) {
 		Verb("undo", edit(func(t *Tree, c Ctx) error { return t.history(false) }), "Undo the last change; the undo is written like any change").When("tree-editable").
 		Verb("redo", edit(func(t *Tree, c Ctx) error { return t.history(true) }), "Redo the last undone change").When("tree-editable").
 		Verb("paste", edit(func(t *Tree, c Ctx) error { return t.paste(c.Context, StringArg(c.Args, "text", "")) }), "Add pasted lines below the node, nested by their indent").When("tree-editable").
+		Verb("yank", edit(func(t *Tree, c Ctx) error { return t.yank(c.Context, StringArg(c.Args, "register", "")) }), "Copy the row and its subtree into a register (the active one, else the unnamed one) as indented lines; the system clipboard gets them as any yank does (the clipboard setting)").When("tree-editable").
+		Verb("put", edit(func(t *Tree, c Ctx) error {
+			before, _ := c.Args["before"].(bool)
+			return t.put(c.Context, before, StringArg(c.Args, "register", ""))
+		}), "Put a register's rows after the row's subtree as its next sibling, or before the row (before), with fresh ids, nested as yanked, as one undo step; on an empty tree they become the top level").When("tree-editable").
 		Verb("row-key", edit(func(t *Tree, c Ctx) error { return t.rowKey(c.Context, StringArg(c.Args, "key", "")) }), "Run what key does on the line's row in normal mode (the row's own rows first), then go on editing the line where the cursor was: tab and shift+tab on an open line indent and outdent it, or do what the application binds them to on the row").When("tree-editable").
 		Verb("leave", edit(func(t *Tree, c Ctx) error { return t.closeLine(true) }), "Leave the line: it is written, never discarded").When("tree-editable").
 		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below", "", false) }), "Write the line and start a new one below it").When("tree-editable")
@@ -1563,6 +1600,8 @@ func registerTrees(r *Runtime) {
 		"edit":    {"select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it; omitted, the rename.select setting decides"}},
 		"move":    {"delta": {Type: "integer", Required: true}},
 		"paste":   {"text": {Type: "string", Required: true}},
+		"yank":    {"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"}},
+		"put":     {"before": {Type: "boolean", Description: "put before the row instead of after its subtree"}, "register": {Type: "string", Description: "Register name; the active register, else the unnamed one"}},
 		"row-key": {"key": {Type: "string", Required: true, Description: "the key, as bindings spell it, to run on the row in normal mode"}},
 	}
 	for verb, p := range params {

@@ -1,0 +1,71 @@
+{
+  "name": "outline: V j j y yanks the selected rows in order and p puts them; a folded selected row brings its hidden rows",
+  "area": "tree",
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "a",
+            "label": "alpha"
+          },
+          {
+            "id": "b",
+            "parent": "a",
+            "label": "beta"
+          },
+          {
+            "id": "c",
+            "parent": "b",
+            "label": "gamma"
+          },
+          {
+            "id": "d",
+            "parent": "b",
+            "label": "delta"
+          },
+          {
+            "id": "e",
+            "parent": "a",
+            "label": "epsilon"
+          },
+          {
+            "id": "f",
+            "label": "zeta"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "V",
+    "j",
+    "j",
+    "y",
+    "G",
+    "p"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "mode": "normal",
+      "register": "beta\n\tgamma\n\tdelta\n"
+    },
+    {
+      "order": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta",
+        "epsilon",
+        "zeta",
+        "beta",
+        "gamma",
+        "delta"
+      ]
+    }
+  ]
+}

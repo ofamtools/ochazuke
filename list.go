@@ -126,6 +126,10 @@ type List struct {
 	// tree's), starts one undo step for a run over several rows; its end
 	// seals the step (Runtime.undoGroup).
 	undoGroup func() (end func())
+	// yankRows, when a component under the list says how its rows copy (a
+	// tree's indented lines), is how list.yank copies a visual selection:
+	// the yank and the number of rows in it.
+	yankRows func(rows []ListItem) (Yank, int)
 
 	// selLine is the line of the selected row's first line in the last
 	// View's text, -1 when it was not drawn; budget the lines the rows
