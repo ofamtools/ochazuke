@@ -153,6 +153,7 @@ func (t *Tree) snapshotUnder(ids []string) []snap {
 // delete does (the numbered registers, the clipboard only for
 // clipboard=unnamed), indented from the shallowest.
 func (t *Tree) yankDeleted(rows []snap) error {
+	t.removed = nil
 	low, n := -1, 0
 	gone := rows[:0:0]
 	for _, row := range rows {
@@ -172,7 +173,16 @@ func (t *Tree) yankDeleted(rows []snap) error {
 	for _, row := range gone {
 		b.WriteString(strings.Repeat("\t", row.depth-low) + strings.TrimSpace(strings.ReplaceAll(row.label, "\n", " ")) + "\n")
 	}
-	return t.r.storeYank(lineYank(b.String()), "", true)
+	if err := t.r.storeYank(lineYank(b.String()), "", true); err != nil {
+		return err
+	}
+	// The rows are remembered with their ids: a put of this very text puts
+	// them back as they were (tree_yank.go), so d d then p moves a row.
+	t.removed = &removedRows{text: b.String()}
+	for _, row := range gone {
+		t.removed.ids = append(t.removed.ids, row.id)
+	}
+	return nil
 }
 
 // removeOne deletes one node by its plan and puts the cursor on the row

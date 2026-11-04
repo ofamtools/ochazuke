@@ -180,3 +180,49 @@ func TestTreeYankReachesTheClipboard(t *testing.T) {
 	}
 	_ = m
 }
+
+// d d then p is a move: the rows of the delete come back with their own
+// ids and structure at the new slot; u takes the put back cleanly; a second
+// p, the memory used up, copies with fresh ids. y y then p stays a copy.
+func TestTreeDeleteThenPutMovesRows(t *testing.T) {
+	t.Parallel()
+	_, m, tree, _ := deleteFixture(t, "")
+	if err := tree.SetCollapsed("b", true); err != nil {
+		t.Fatal(err)
+	}
+	pressKeys(m, "j", "d", "d") // b with c and d, collapsed
+	if got, want := shape(tree), "a<- e<a f<-"; got != want {
+		t.Fatalf("after d d %q, want %q", got, want)
+	}
+	pressKeys(m, "G", "p") // after f
+	if got, want := shape(tree), "a<- e<a f<- b<- c<b d<b"; got != want {
+		t.Fatalf("after p %q, want %q (own ids)", got, want)
+	}
+	if n, _ := tree.Selected(); n.ID != "b" {
+		t.Fatalf("cursor on %q, want the moved row b", n.ID)
+	}
+	pressKeys(m, "u")
+	if got, want := shape(tree), "a<- e<a f<-"; got != want {
+		t.Fatalf("after u %q, want %q", got, want)
+	}
+	pressKeys(m, "p") // the memory was used up by the first put: a copy
+	var ids []string
+	for _, n := range tree.Nodes() {
+		ids = append(ids, n.ID)
+	}
+	if len(ids) != 6 || slices.Contains(ids, "b") || slices.Contains(ids, "c") {
+		t.Fatalf("p after the move: %v (the second put copies with fresh ids)", ids)
+	}
+}
+
+func TestTreeYankThenPutKeepsCopying(t *testing.T) {
+	t.Parallel()
+	_, m, tree, _ := deleteFixture(t, "")
+	pressKeys(m, "G", "y", "y", "p")
+	for _, n := range tree.Nodes() {
+		if n.Label == "f" && n.ID != "f" && tree.depth(n.ID) == 0 {
+			return
+		}
+	}
+	t.Fatalf("y y then p did not copy with a fresh id: %s", shape(tree))
+}

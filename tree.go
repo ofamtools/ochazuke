@@ -204,6 +204,7 @@ type Tree struct {
 	Debounce time.Duration
 
 	seq       int
+	removed   *removedRows      // the rows of the last delete, for a put of them (tree_yank.go)
 	fresh     map[string]bool   // rows add made that have not held text yet (tree_empty.go)
 	origin    map[string]string // the row a fresh row was added from
 	opened    string            // the open line's text when it opened
@@ -1398,6 +1399,12 @@ func (t *Tree) insertLines(lines []string, depths []int, parent string, index in
 // from index; a line nests under the nearest line above it that is
 // shallower.
 func (t *Tree) blockAdds(lines []string, depths []int, parent string, index int) []TreeChange {
+	return t.blockAddsWith(lines, depths, parent, index, nil)
+}
+
+// blockAddsWith is blockAdds with the rows' own ids when ids is given (one
+// per line); otherwise each row gets a fresh one.
+func (t *Tree) blockAddsWith(lines []string, depths []int, parent string, index int, ids []string) []TreeChange {
 	// stack[d] is the node a line of depth d+1 nests under.
 	stack := []string{}
 	counts := map[string]int{}
@@ -1405,7 +1412,12 @@ func (t *Tree) blockAdds(lines []string, depths []int, parent string, index int)
 	for i, line := range lines {
 		d := depths[i]
 		stack = stack[:min(len(stack), d)]
-		id := t.newIDAvoiding(changes)
+		var id string
+		if ids != nil {
+			id = ids[i]
+		} else {
+			id = t.newIDAvoiding(changes)
+		}
 		var p string
 		var idx int
 		if d == 0 {
@@ -1610,7 +1622,7 @@ func registerTrees(r *Runtime) {
 		Verb("put", edit(func(t *Tree, c Ctx) error {
 			before, _ := c.Args["before"].(bool)
 			return t.put(c.Context, before, StringArg(c.Args, "register", ""))
-		}), "Put a register's rows after the row's subtree as its next sibling, or before the row (before), with fresh ids, nested as yanked, as one undo step; on an empty tree they become the top level").When("tree-editable").
+		}), "Put a register's rows after the row's subtree as its next sibling, or before the row (before), with fresh ids (rows of the delete just made, put back as its text, keep their ids: a move, once), nested as yanked, as one undo step; on an empty tree they become the top level").When("tree-editable").
 		Verb("row-key", edit(func(t *Tree, c Ctx) error { return t.rowKey(c.Context, StringArg(c.Args, "key", "")) }), "Run what key does on the line's row in normal mode (the row's own rows first), then go on editing the line where the cursor was: tab and shift+tab on an open line indent and outdent it, or do what the application binds them to on the row").When("tree-editable").
 		Verb("leave", edit(func(t *Tree, c Ctx) error { return t.closeLine(true) }), "Leave the line: it is written, never discarded").When("tree-editable").
 		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below", "", false) }), "Write the line and start a new one below it").When("tree-editable")
