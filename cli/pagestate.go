@@ -24,7 +24,7 @@ func (v *PageView) speaksDelta() bool {
 func (v *PageView) SinceFlags() []string {
 	hashes := map[string]string{}
 	for _, pl := range v.lists {
-		if pl.verbsListed {
+		if pl.verbsListed || pl.live {
 			continue
 		}
 		if h, ok := hashes[pl.spec.Noun]; !ok || h == "" {
@@ -58,7 +58,7 @@ func (v *PageView) ApplyState(a StateAnswer) (mismatched []string, err error) {
 	}
 	var errs []error
 	for _, pl := range v.lists {
-		if pl.verbsListed {
+		if pl.verbsListed || pl.live {
 			continue
 		}
 		noun := pl.spec.Noun
@@ -158,13 +158,17 @@ func (v *PageView) Refresh() error {
 // whose hashes mismatch are fetched again, in full, once.
 func (v *PageView) reloadState(noun, verb string, retry bool) error {
 	for _, pl := range v.lists {
-		pl.loading = !pl.verbsListed
+		pl.loading = !pl.verbsListed && !pl.live
 	}
 	flags, fetch := v.SinceFlags(), v.cfg.FetchFlags
 	run := func(ctx context.Context) ([]byte, error) { return fetch(ctx, noun, verb, flags) }
-	return v.launchWith(v.spec.ID, "state", noun, verb, run, func(out []byte, err error) {
+	var live error
+	if retry { // the first call; the retry fetches only the mismatched lists
+		live = v.reloadLive()
+	}
+	return errors.Join(live, v.launchWith(v.spec.ID, "state", noun, verb, run, func(out []byte, err error) {
 		for _, pl := range v.lists {
-			pl.loading = false
+			pl.loading = pl.live && pl.loading
 		}
 		var a StateAnswer
 		if err == nil {
@@ -179,10 +183,10 @@ func (v *PageView) reloadState(noun, verb string, retry bool) error {
 		}
 		if err != nil {
 			for _, pl := range v.lists {
-				if !pl.verbsListed {
+				if !pl.verbsListed && !pl.live {
 					pl.err = fmt.Sprint(err)
 				}
 			}
 		}
-	})
+	}))
 }
