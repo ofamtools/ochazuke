@@ -504,10 +504,12 @@ also selects the last item on `<C-p>` from none (checked on Neovim 0.12.3).
 
 Key bindings now use the same text presenter as the palette. `keys.text-results`
 (default `true`) opts keys into declared text, Markdown and preformatted
-viewers; set it to `false` to retain unpresented key answers. Both paths honor
-`palette.text-results`. `Runtime.PresentResult(request, value)` is available to
-other UI adapters and reports whether it handled a text result. CLI and API
-execution still return values without opening a viewer. Pending key answers
+viewers; set it to `false` to retain unpresented key answers.
+`palette.text-results=plain` disables text presentation in both paths; `all`
+only broadens palette answers, never ordinary key results.
+`Runtime.PresentResult(request, value)` is available to other UI adapters and
+reports whether it handled a text result. CLI and API execution still return
+values without opening a viewer. Pending key answers
 run their existing callback first and do not cover a changed page, focus,
 base mode or modal.
 

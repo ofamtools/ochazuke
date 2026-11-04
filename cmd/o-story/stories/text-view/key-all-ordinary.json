@@ -1,0 +1,8 @@
+{
+  "name": "palette text-results all does not turn an ordinary key answer into a text viewer",
+  "area": "text-view",
+  "settings": [{"name": "palette.text-results", "type": "string", "default": "all"}],
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": ["enter"],
+  "expect": [{"modal": "", "focus": "a2"}]
+}

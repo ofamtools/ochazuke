@@ -63,7 +63,7 @@ func (r *Runtime) PresentResult(q Request, value any) (bool, error) {
 // never covers a different page, selection, mode or newly opened modal.
 func (r *Runtime) keyResultPresenter(q Request) func(any) error {
 	op, _ := r.Operation(q.Key())
-	if !r.Settings().Bool(KeyTextResultsSetting) || !IsTextResult(op.Result) && r.Settings().String(PaletteTextResultsSetting) != "all" {
+	if !r.Settings().Bool(KeyTextResultsSetting) || !IsTextResult(op.Result) || r.Settings().String(PaletteTextResultsSetting) == "plain" {
 		return nil
 	}
 	focus, mode, page := r.Focus, r.BaseMode(), r.Instances[r.Page]

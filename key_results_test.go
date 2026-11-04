@@ -55,6 +55,23 @@ func TestKeyTextResultsPendingAndLate(t *testing.T) {
 	}
 }
 
+func TestKeyTextResultsAllRequiresDeclaredText(t *testing.T) {
+	for _, answer := range []any{"ordinary answer", map[string]any{"answer": "structured"}} {
+		r, _ := textResultFixture(t)
+		if err := r.Settings().Set(PaletteTextResultsSetting, "all"); err != nil {
+			t.Fatal(err)
+		}
+		r.Define("record").Verb("ordinary", func(Ctx) Result { return Done(answer) }).
+			Mode("normal").Bind("v", Do("record.ordinary"))
+		if _, err := r.Dispatch(MacroKey{Key: "v"}); err != nil {
+			t.Fatal(err)
+		}
+		if r.TopModal() != "" || r.Focus != "origin" {
+			t.Fatalf("ordinary key answer opened modal %q, focus %q", r.TopModal(), r.Focus)
+		}
+	}
+}
+
 func TestInspectorMessageClearsOnNextKey(t *testing.T) {
 	r, m, _, _ := motionPage(t)
 	r.UI().Error("old failure")
