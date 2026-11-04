@@ -172,6 +172,8 @@ func TestProtectedSettingsEveryVerb(t *testing.T) {
 					t.Fatal(err)
 				}
 				actor := testAgent("p")
+				restore := r.BindActor(actor, false)
+				defer restore()
 				args := Arguments{"name": AgentRightsSetting, "value": "[]", "by": 1, "step": 1, "index": 0, "insert": 0, "scope": "file", "line": "agents.rights=[]", "owner": OwnerFramework, "section": "agents", "id": AgentRightsSetting, "prop": "value"}
 				for name := range args {
 					if _, ok := op.Parameters[name]; !ok {

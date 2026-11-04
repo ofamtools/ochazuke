@@ -4043,9 +4043,10 @@ they return any other.
 	// RoleOwner is the reference prop naming the thing that holds this one
 	// (move writes it).
 	RoleOwner = &#34;owner&#34;
-	// RoleArchive is the boolean prop that says a thing is archived
-	// (archive and restore write it; delete reads it under the
-	// delete.archive setting).
+	// RoleArchive is the boolean prop that says a thing is archived.
+	// Archive and restore write it; standard list hides true values unless
+	// a filter names it or list.hide-archived is off. It declares the
+	// archived saved filter. Delete reads it under delete.archive.
 	RoleArchive = &#34;archive&#34;
 )</pre><a href="../props.go">Source file</a></details><details class="entry searchable"><summary><code>RowSelect</code> <small>function / method</small></summary><pre>RowSelect is a no-op kept for code written against v0.12.0, where every
 table was cell-based unless added with it.

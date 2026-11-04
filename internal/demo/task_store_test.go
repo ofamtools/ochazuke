@@ -21,7 +21,10 @@ func runDemo(t *testing.T, args ...string) string {
 	m := New()
 	var stdout, stderr bytes.Buffer
 	app := oden.New("demo", args, oden.WithStdio(strings.NewReader(""), &stdout, &stderr), oden.WithPath(t.TempDir()))
-	cli.Mount(app, cli.New(m.Runtime, "demo", strings.NewReader(""), &stdout, &stderr))
+	sh := cli.New(m.Runtime, "demo", strings.NewReader(""), &stdout, &stderr)
+	owner := ochazuke.Owner()
+	sh.Actor = &owner
+	cli.Mount(app, sh)
 	if err := app.Run(context.Background()); err != nil {
 		t.Fatalf("demo %s: %v\n%s", strings.Join(args, " "), err, stderr.String())
 	}
@@ -161,7 +164,10 @@ func TestTaskWritesFromTheCLI(t *testing.T) {
 	m := New()
 	var stdout, stderr bytes.Buffer
 	app := oden.New("demo", []string{"task", "delete", "t3"}, oden.WithStdio(strings.NewReader("n\n"), &stdout, &stderr), oden.WithPath(t.TempDir()))
-	cli.Mount(app, cli.New(m.Runtime, "demo", strings.NewReader("n\n"), &stdout, &stderr))
+	sh := cli.New(m.Runtime, "demo", strings.NewReader("n\n"), &stdout, &stderr)
+	owner := ochazuke.Owner()
+	sh.Actor = &owner
+	cli.Mount(app, sh)
 	if err := app.Run(context.Background()); err == nil || !strings.Contains(stderr.String(), "Delete task Call the plumber about the sink?") {
 		t.Fatalf("delete without --yes: %v\n%s", err, stderr.String())
 	}

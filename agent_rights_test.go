@@ -194,7 +194,15 @@ func TestAgentConfirmComposite(t *testing.T) {
 	if !errors.As(err, &refused) || r.TopModal() != "" || ran != 2 {
 		t.Fatalf("never composite: %v ran %d modal %s", err, ran, r.TopModal())
 	}
-
+	if err := r.Settings().Set(AgentRightsSetting, `[{"match":"task.delete","right":"allow"}]`); err != nil {
+		t.Fatal(err)
+	}
+	restore = r.BindActor(a, false)
+	_, err = r.Execute(q)
+	restore()
+	if err != nil || ran != 4 || r.TopModal() != "" {
+		t.Fatalf("allowed headless composite: %v ran %d modal %s", err, ran, r.TopModal())
+	}
 }
 
 // Policy defaults belong to the embedded startup rows, like other universal

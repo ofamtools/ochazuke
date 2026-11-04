@@ -551,6 +551,16 @@ A noun with props and a store (`props.go`, `standard_verbs.go`) reads one gramma
 
 Compared with Vim: `:task status done` reads like `:set {option}={value}` (`:help :set`), but it acts on a thing, not an option, and the key word is the thing's name; `:set` itself is unchanged and reads only settings and one-value nouns. `--NAME` words have no Vim counterpart on the command line; they mirror the CLI.
 
+A boolean prop with `RoleArchive` derives `archive` and `restore`; both keep the
+record and are undoable when the store supports undo. Standard `list` hides
+archived records by default. `list.hide-archived=false` includes them again.
+An explicit `--where ARCHIVE_PROP=true` or a saved filter that mentions the
+archive prop overrides hiding. The role declares a saved filter named `archived`,
+so `task list --filter archived` reveals them; app and user filter definitions
+can override it. `get` and `set` still address archived records by key.
+Archive and restore have no Vim counterpart.
+
+
 #### Configuring noun instances
 
 `NewPalette` supplies live page instances with `page.open` as their default. Applications can replace that configuration or register sources for their own nouns:
