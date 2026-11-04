@@ -70,10 +70,11 @@ Free text applies as typed; Enter keeps it and returns to fields. Reentering
 a text field starts insert mode. On active conditions, Enter edits, `d d`
 removes and `!` inverts. `/` shows the ordinary list search line there.
 
-Normal-mode text inputs retain their editing keys: `d d` deletes text,
-`u` and `ctrl+r` undo and redo text, and `C` changes to the end of the line.
-On non-text controls, `C` runs `form.clear`, and `u` / `ctrl+r` undo / redo
-view changes. Cycling saved filters is one undo step. `!` flips a filter
+Normal-mode text inputs retain their editing keys: `d d` deletes text.
+`u` and `ctrl+r` walk one chain from any stop: a text input's own history
+first, then the view's changes; past the end they do nothing. `C` runs
+`form.clear` and `D` `filter-form.delete-saved` from any stop, and the palette
+offers both wherever the keys work. Cycling saved filters is one undo step. `!` flips a filter
 field's is/not. In picker normal mode, `j`, `k`, `g g` and `G` move through
 the choices. `i` resumes editing. Ordinary choosers remain pinned in insert;
 composed choosers opt into these two modes with `ChooserSpec.NormalMode`.

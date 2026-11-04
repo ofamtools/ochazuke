@@ -501,7 +501,7 @@ Conformance:
 | normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history | `history.repeat` |
-| normal | input | `input.begin` `input.move` `input.operator` `input.select` `input.undo` |
+| normal | input | `input.begin` `input.move` `input.operator` `input.redo` `input.select` `input.undo` |
 | normal | key | `key.ignore` |
 | normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.flush-lingering` `list.goto` `list.mark` `list.move` `list.next-class` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.sort-column` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
