@@ -125,10 +125,10 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 
 ### chooser.go
 
-- lines: 995 · tests: chooser_test.go
+- lines: 1005 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
-- methods: Chooser(32), Runtime(4)
+- methods: Chooser(33), Runtime(4)
 - leans on: delivery.go(37), instance.go(33), table.go(15), runtime.go(12)
 
 ### chooser_prop_filter.go
@@ -383,12 +383,12 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 
 ### input.go
 
-- lines: 489
+- lines: 516
 - purpose: EditNode is one state in an input's undo tree: its text, cursor, parent and children.
 - types: EditNode, Input
-- methods: Input(20)
+- methods: Input(22)
 - funcs: NewInput, RegisterInputOperations
-- leans on: runtime.go(41), block.go(22), instance.go(12), noun.go(8)
+- leans on: runtime.go(41), block.go(26), instance.go(14), noun.go(8)
 
 ### input_readonly.go
 
@@ -495,7 +495,7 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 
 ### list_filter_compact.go
 
-- lines: 859 · tests: list_filter_compact_test.go
+- lines: 892 · tests: list_filter_compact_test.go
 - purpose: filterViewForm composes the existing record writer, choosers and list.
 - methods: List(1), filterField(1), filterViewForm(22)
 - leans on: instance.go(37), runtime.go(34), block.go(23), list_filter_form.go(21)
@@ -516,7 +516,7 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 
 ### list_filter_save_form.go
 
-- lines: 76
+- lines: 85
 - methods: filterViewForm(4)
 - leans on: block.go(8), chooser.go(4), list_filter_compact.go(4), runtime.go(4)
 
@@ -532,7 +532,7 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 - lines: 699
 - purpose: PropFilters returns a copy of the list's active prop conditions.
 - methods: List(23), Runtime(1), Tree(1)
-- leans on: runtime.go(54), list.go(45), prop_filter.go(22), noun.go(20)
+- leans on: runtime.go(54), list.go(43), prop_filter.go(21), delivery.go(19)
 
 ### list_props.go
 
@@ -787,12 +787,12 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 
 ### prop_filter.go
 
-- lines: 464 · tests: prop_filter_test.go
+- lines: 470 · tests: prop_filter_test.go
 - purpose: PropFilter is one typed condition on a noun's props.
 - types: PropFilter, SavedFilter
-- methods: NounBuilder(2), PropFilter(2), Runtime(2), SavedFilter(1), Settings(1)
+- methods: NounBuilder(2), PropFilter(2), Runtime(2), SavedFilter(2), Settings(1)
 - funcs: NegateFilterOp
-- leans on: noun.go(13), query.go(11), props.go(9), settings.go(7)
+- leans on: noun.go(15), query.go(11), props.go(9), list.go(7)
 
 ### props.go
 
@@ -814,20 +814,20 @@ Root package `ochazuke` is flat: 164 source files, 193 test files. Each entry li
 
 ### record_chips.go
 
-- lines: 391
+- lines: 397
 - purpose: fieldStyle keeps the value's focus and selection emphasis while the inverted tone supplies its colours and any additional emphasis.
 - methods: RecordEditor(8), recordField(6)
 - funcs: ParseChips, ChipsValue
-- leans on: record_editor.go(43), runtime.go(23), spill_edges.go(10), instance.go(9)
+- leans on: record_editor.go(44), runtime.go(23), spill_edges.go(10), instance.go(9)
 
 ### record_editor.go
 
-- lines: 1652 · tests: record_editor_test.go
+- lines: 1666 · tests: record_editor_test.go
 - purpose: Record is one record's values by field name, as an editor loads and writes them.
 - types: Record, RecordField, RecordWrite, RecordSpec, RecordDebounceMsg, RecordEditor
 - methods: RecordEditor(54), RecordWrite(1), Runtime(6), recordChooser(2), recordField(2)
 - funcs: RecordFields
-- leans on: runtime.go(75), instance.go(46), delivery.go(22), block.go(20)
+- leans on: runtime.go(77), instance.go(47), delivery.go(22), block.go(20)
 
 ### registers.go
 
