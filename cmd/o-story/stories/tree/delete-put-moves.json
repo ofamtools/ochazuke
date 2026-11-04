@@ -63,7 +63,7 @@
       ],
       "writes": [
         "delete f",
-        "add t-n1 under root at 1: zeta"
+        "add f under root at 1: zeta"
       ]
     }
   ]

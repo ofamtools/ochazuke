@@ -1,5 +1,5 @@
 {
-  "name": "outline: p on a tree emptied by d d puts the register back as its top level, with a fresh id",
+  "name": "outline: p on a tree emptied by d d puts the register back as its top level, with the row's own id (a move)",
   "area": "tree",
   "page": {
     "trees": [
@@ -38,7 +38,7 @@
       ],
       "writes": [
         "delete a",
-        "add t-n1 under root at 0: alpha"
+        "add a under root at 0: alpha"
       ]
     }
   ]

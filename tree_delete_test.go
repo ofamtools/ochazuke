@@ -1,6 +1,8 @@
 package ochazuke
 
 import (
+	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -206,5 +208,53 @@ func TestTreeDeleteLastRowKeepsTheFocus(t *testing.T) {
 	pressKeys(m, "d", "d")
 	if r.Focus != tree.FocusTarget() || tree.List().Len() != 0 {
 		t.Fatalf("focus %q rows %d", r.Focus, tree.List().Len())
+	}
+}
+
+// A move in a delete plan that fails (or is refused) stops the plan: the
+// delete is not written and not queued, the rows go back to what the store
+// has, and u undoes only what was written.
+func TestTreeDeletePlanStopsAtAFailedMove(t *testing.T) {
+	t.Parallel()
+	for name, fail := range map[string]error{"failed": errors.New("disk full"), "refused": fmt.Errorf("no: %w", ErrTreeRefused)} {
+		_, m, tree, writes := deleteFixture(t, "")
+		write := tree.OnChange
+		tree.OnChange = func(c TreeChange) error {
+			if c.String() == "move d under a at 1" {
+				return fail
+			}
+			return write(c)
+		}
+		pressKeys(m, "j", "d", "d") // b: move c, move d (fails), delete b
+		if got, want := shape(tree), "a<- c<a b<a d<b e<a f<-"; got != want {
+			t.Fatalf("%s: shape %q, want %q", name, got, want)
+		}
+		if want := []string{"move c under a at 0"}; !slices.Equal(*writes, want) {
+			t.Fatalf("%s: writes %v, want %v", name, *writes, want)
+		}
+		pressKeys(m, "u")
+		if got := shape(tree); got != deleteStart {
+			t.Fatalf("%s: after u %q, want %q", name, got, deleteStart)
+		}
+		// Nothing was queued: the next write goes through alone.
+		before := len(*writes)
+		pressKeys(m, "G", "d", "d")
+		if got := (*writes)[before:]; len(got) != 1 || got[0] != "delete f" {
+			t.Fatalf("%s: later writes %v", name, got)
+		}
+	}
+}
+
+// OrphanParent names the level orphans go to.
+func TestTreeDeleteOrphanParent(t *testing.T) {
+	t.Parallel()
+	_, m, tree, writes := deleteFixture(t, TreeDeleteOrphan)
+	tree.OrphanParent = func(n TreeNode) string { return "a" }
+	pressKeys(m, "j", "d", "d") // b under a: c and d go to a, where b was
+	if got, want := shape(tree), "a<- c<a d<a e<a f<-"; got != want {
+		t.Fatalf("shape %q, want %q", got, want)
+	}
+	if want := []string{"move c under a at 0", "move d under a at 1", "delete b"}; !slices.Equal(*writes, want) {
+		t.Fatalf("writes %v, want %v", *writes, want)
 	}
 }

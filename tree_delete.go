@@ -58,13 +58,24 @@ func (t *Tree) deletePlan(id string) []TreeChange {
 	parent, at := t.parentOf(id), 0
 	switch t.r.TreeDeleteChildren() {
 	case TreeDeleteOrphan:
+		if t.OrphanParent != nil {
+			parent = t.OrphanParent(t.nodes[i])
+		} else {
+			parent = ""
+		}
+		// top is the node's ancestor that sits directly under parent (or
+		// the node itself when it does): the children follow it.
 		top := id
-		for p := t.parentOf(top); p != ""; p = t.parentOf(top) {
+		for p := t.parentOf(top); p != parent && p != ""; p = t.parentOf(top) {
 			top = p
 		}
-		parent, at = "", slices.Index(t.children(""), top)
-		if top != id {
-			at++ // after the ancestor, which stays
+		if t.parentOf(top) == parent {
+			at = slices.Index(t.children(parent), top)
+			if top != id {
+				at++ // after the ancestor, which stays
+			}
+		} else {
+			at = len(t.children(parent)) // parent is not above the node: the end of its children
 		}
 	default:
 		at = slices.Index(t.children(parent), id)
@@ -100,7 +111,7 @@ func (t *Tree) remove(c Context) error {
 		defer t.group()()
 	}
 	if t.index(ids[0]) < 0 {
-		return errors.New("tree has no selected node")
+		return errors.New("no row selected")
 	}
 	// What goes is copied to the register as a yank does (d d then p moves
 	// a row), read before anything is deleted: the rows of the selection
@@ -153,6 +164,7 @@ func (t *Tree) snapshotUnder(ids []string) []snap {
 // delete does (the numbered registers, the clipboard only for
 // clipboard=unnamed), indented from the shallowest.
 func (t *Tree) yankDeleted(rows []snap) error {
+	t.removed = nil
 	low, n := -1, 0
 	gone := rows[:0:0]
 	for _, row := range rows {
@@ -172,7 +184,16 @@ func (t *Tree) yankDeleted(rows []snap) error {
 	for _, row := range gone {
 		b.WriteString(strings.Repeat("\t", row.depth-low) + strings.TrimSpace(strings.ReplaceAll(row.label, "\n", " ")) + "\n")
 	}
-	return t.r.storeYank(lineYank(b.String()), "", true)
+	if err := t.r.storeYank(lineYank(b.String()), "", true); err != nil {
+		return err
+	}
+	// The rows are remembered with their ids: a put of this very text puts
+	// them back as they were (tree_yank.go), so d d then p moves a row.
+	t.removed = &removedRows{text: b.String()}
+	for _, row := range gone {
+		t.removed.ids = append(t.removed.ids, row.id)
+	}
+	return nil
 }
 
 // removeOne deletes one node by its plan and puts the cursor on the row
@@ -198,7 +219,7 @@ func (t *Tree) removeOne(id string) error {
 			next = items[k-1].ID
 		}
 	}
-	err := t.commit(changes, next)
+	err := t.commitPlan(changes, next)
 	switch {
 	case next != "":
 		_ = t.r.SetFocus(next)

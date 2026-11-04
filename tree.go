@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -49,6 +50,12 @@ type TreeNode struct {
 	// blank stays, its old text comes back, and nothing is written (a row
 	// just added and never filled in is still removed).
 	Fixed []string `json:"fixed,omitempty"`
+	// PutInto makes a put at this row (p, P and paste) go under it, as its
+	// first children, instead of beside it: the row is a container the
+	// application wants rows added to, such as a branch of a top level
+	// that must not gain top-level rows of its own kind. It is opened if
+	// it was folded.
+	PutInto bool `json:"putInto,omitempty"`
 }
 
 // Refuses reports whether the node refuses the change op (TreeRename,
@@ -65,6 +72,10 @@ type TreeChange struct {
 	Parent string `json:"parent,omitempty"`
 	Index  int    `json:"index"`
 	Text   string `json:"text,omitempty"`
+	// Undone marks a change that takes back (or, redoing, repeats) an
+	// earlier one: u and ctrl+r write their changes with it set, so an
+	// application can tell an undone add from a delete the user made.
+	Undone bool `json:"undone,omitempty"`
 }
 
 // Tree change operations.
@@ -188,8 +199,15 @@ type Tree struct {
 
 	// OnChange makes the tree editable and receives each change as it is
 	// made; an error keeps the change on screen, marks the row and retries
-	// it before the next change.
+	// it before the next change. An error wrapping ErrTreeRefused is not
+	// retried: the change is dropped.
 	OnChange func(TreeChange) error
+	// OrphanParent is the parent the children of a deleted node go to under
+	// tree.delete-children=orphan: given the node, its id ("" the top
+	// level, the default). The id is a row that exists and is not the
+	// node's own subtree; when it is one of the node's ancestors the
+	// children take the place of the ancestor's branch the node was in.
+	OrphanParent func(TreeNode) string
 	// NewID names a new node (default "<tree>-n<seq>").
 	NewID func() string
 	// RowNoun is the noun of nodes the tree adds (default TreeRowNoun).
@@ -204,6 +222,7 @@ type Tree struct {
 	Debounce time.Duration
 
 	seq       int
+	removed   *removedRows      // the rows of the last delete, for a put of them (tree_yank.go)
 	fresh     map[string]bool   // rows add made that have not held text yet (tree_empty.go)
 	origin    map[string]string // the row a fresh row was added from
 	opened    string            // the open line's text when it opened
@@ -735,16 +754,27 @@ func (t *Tree) flush() error {
 	return t.write([]TreeChange{{Op: TreeRename, ID: t.editing, Text: text}})
 }
 
+// ErrTreeRefused is what OnChange returns (wrapped) for a change the store
+// will never take. It is not retried or marked as failed: the application
+// has put its rows right, the change is dropped and its error is returned.
+// In a delete plan (commitPlan) it stops the plan like any failure.
+var ErrTreeRefused = errors.New("change refused")
+
 // write hands changes to OnChange, retried changes first; a failure keeps
 // the rest queued and marks the rows.
 func (t *Tree) write(changes []TreeChange) error {
 	queue := append(t.retry, changes...)
 	t.retry = nil
+	var refused error
 	for i, c := range queue {
 		if t.OnChange == nil {
 			break
 		}
 		if err := t.OnChange(c); err != nil {
+			if errors.Is(err, ErrTreeRefused) {
+				refused = errors.Join(refused, err)
+				continue
+			}
 			t.retry = slices.Clone(queue[i:])
 			for _, q := range t.retry {
 				t.failed[q.ID] = true
@@ -754,7 +784,83 @@ func (t *Tree) write(changes []TreeChange) error {
 		}
 		delete(t.failed, c.ID)
 	}
-	return t.refresh("")
+	return errors.Join(refused, t.refresh(""))
+}
+
+// commitPlan is commit for a plan whose changes depend on one another (a
+// delete that first moves the children out): the changes are written in
+// order, and the first that fails or is refused stops the plan. The ones
+// after it are not written and not queued to retry; the nodes go back to
+// what they were before the plan with the written changes applied, so
+// screen and store agree, and only the written changes are one undo step.
+// Changes queued by earlier failed writes are still retried first.
+func (t *Tree) commitPlan(changes []TreeChange, selectID string) error {
+	if len(changes) < 2 || t.OnChange == nil {
+		return t.commit(changes, selectID)
+	}
+	for _, c := range changes {
+		if err := t.refuses(c); err != nil {
+			return err
+		}
+	}
+	nodes, collapsed := slices.Clone(t.nodes), maps.Clone(t.collapsed)
+	restore := func(upTo int) {
+		t.nodes, t.idx, t.rowCache, t.collapsed = nodes, nil, nil, collapsed
+		for _, c := range changes[:upTo] {
+			_, _ = t.apply(c)
+		}
+	}
+	invs := make([]TreeChange, 0, len(changes))
+	for _, c := range changes {
+		inv, err := t.apply(c)
+		if err != nil {
+			restore(0)
+			return err
+		}
+		invs = append(invs, inv)
+	}
+	pending := len(t.retry)
+	queue := append(slices.Clone(t.retry), changes...)
+	t.retry = nil
+	var failure error
+	done := len(changes)
+	for i, c := range queue {
+		err := t.OnChange(c)
+		if err == nil || errors.Is(err, ErrTreeRefused) && i < pending {
+			delete(t.failed, c.ID)
+			continue
+		}
+		if i < pending {
+			t.retry = slices.Clone(queue[i:pending])
+			for _, q := range t.retry {
+				t.failed[q.ID] = true
+			}
+		}
+		failure = fmt.Errorf("write %s: %w", c, err)
+		done = max(0, i-pending)
+		break
+	}
+	if failure != nil {
+		restore(done)
+	}
+	if done > 0 {
+		undo := make([]TreeChange, 0, done)
+		for j := done - 1; j >= 0; j-- {
+			undo = append(undo, invs[j])
+		}
+		t.undo = append(t.undo, treeEdit{undo: undo})
+		t.redo = nil
+	}
+	err := t.refresh("")
+	if failure != nil {
+		return errors.Join(failure, err)
+	}
+	if selectID != "" {
+		if serr := t.Select(selectID); err == nil {
+			err = serr
+		}
+	}
+	return err
 }
 
 // apply makes one change on the nodes and returns its inverse.
@@ -1178,6 +1284,8 @@ func (t *Tree) rowKey(c Context, key string) error {
 	if !selected {
 		start, end = in.Cursor, in.Cursor
 	}
+	was, wasFresh, wasOrigin := t.editing, t.fresh[t.editing], t.origin[t.editing]
+	opened := t.opened
 	if err := t.closeLineAs(true, false); err != nil {
 		return err
 	}
@@ -1191,6 +1299,13 @@ func (t *Tree) rowKey(c Context, key string) error {
 	}
 	if oerr := t.openLine(row, false); oerr != nil {
 		return errors.Join(err, oerr)
+	}
+	if wasFresh && (row == was || t.index(was) < 0) {
+		// A new row stays new across the close and reopen a row key makes,
+		// and across the row it makes of it (a conversion), so leaving it
+		// blank still removes it (tree_empty.go).
+		t.markFresh(row, wasOrigin)
+		t.opened = opened
 	}
 	n := len(t.input.Text)
 	start, end = min(start, n), min(end, n)
@@ -1265,7 +1380,11 @@ func (t *Tree) history(redo bool) error {
 		inverse = append([]TreeChange{inv}, inverse...)
 	}
 	*to = append(*to, treeEdit{undo: inverse})
-	err := t.write(step.undo)
+	written := slices.Clone(step.undo)
+	for i := range written {
+		written[i].Undone = true
+	}
+	err := t.write(written)
 	focus := step.undo[len(step.undo)-1].ID
 	if last := step.undo[len(step.undo)-1]; last.Op == TreeDelete {
 		focus = t.parentOf(last.ID)
@@ -1349,10 +1468,16 @@ func (t *Tree) paste(c Context, text string) error {
 	// it, and the paste takes its place.
 	at := t.target(c)
 	parent, index := t.slot(at, false)
+	into := false
+	if i := t.index(at); i >= 0 && t.nodes[i].PutInto {
+		parent, index, into = at, 0, true
+	}
 	if err := t.closeLine(false); err != nil {
 		return err
 	}
-	if at != "" && t.dropped == at {
+	if into {
+		t.setCollapsed(at, false)
+	} else if at != "" && t.dropped == at {
 		index--
 	}
 	_, last, err := t.insertLines(lines, depths, parent, index)
@@ -1389,6 +1514,12 @@ func (t *Tree) insertLines(lines []string, depths []int, parent string, index in
 // from index; a line nests under the nearest line above it that is
 // shallower.
 func (t *Tree) blockAdds(lines []string, depths []int, parent string, index int) []TreeChange {
+	return t.blockAddsWith(lines, depths, parent, index, nil)
+}
+
+// blockAddsWith is blockAdds with the rows' own ids when ids is given (one
+// per line); otherwise each row gets a fresh one.
+func (t *Tree) blockAddsWith(lines []string, depths []int, parent string, index int, ids []string) []TreeChange {
 	// stack[d] is the node a line of depth d+1 nests under.
 	stack := []string{}
 	counts := map[string]int{}
@@ -1396,7 +1527,12 @@ func (t *Tree) blockAdds(lines []string, depths []int, parent string, index int)
 	for i, line := range lines {
 		d := depths[i]
 		stack = stack[:min(len(stack), d)]
-		id := t.newIDAvoiding(changes)
+		var id string
+		if ids != nil {
+			id = ids[i]
+		} else {
+			id = t.newIDAvoiding(changes)
+		}
 		var p string
 		var idx int
 		if d == 0 {
@@ -1601,7 +1737,7 @@ func registerTrees(r *Runtime) {
 		Verb("put", edit(func(t *Tree, c Ctx) error {
 			before, _ := c.Args["before"].(bool)
 			return t.put(c.Context, before, StringArg(c.Args, "register", ""))
-		}), "Put a register's rows after the row's subtree as its next sibling, or before the row (before), with fresh ids, nested as yanked, as one undo step; on an empty tree they become the top level").When("tree-editable").
+		}), "Put a register's rows after the row's subtree as its next sibling, or before the row (before), with fresh ids (rows of the delete just made, put back as its text, keep their ids: a move, once), nested as yanked, as one undo step; on an empty tree they become the top level").When("tree-editable").
 		Verb("row-key", edit(func(t *Tree, c Ctx) error { return t.rowKey(c.Context, StringArg(c.Args, "key", "")) }), "Run what key does on the line's row in normal mode (the row's own rows first), then go on editing the line where the cursor was: tab and shift+tab on an open line indent and outdent it, or do what the application binds them to on the row").When("tree-editable").
 		Verb("leave", edit(func(t *Tree, c Ctx) error { return t.closeLine(true) }), "Leave the line: it is written, never discarded").When("tree-editable").
 		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below", "", false) }), "Write the line and start a new one below it").When("tree-editable")
