@@ -48,13 +48,16 @@ type Input struct {
 	Wrap bool
 	// WrapIndent is how many cells a wrapped line's continuation rows are
 	// indented (nil: the line's leading spaces, Vim's 'breakindent').
-	WrapIndent  func(line string) int
-	Anchor      int
-	History     []EditNode
-	Head        int
-	groupOpen   bool
-	groupNode   int
-	goalColumn  int
+	WrapIndent func(line string) int
+	Anchor     int
+	History    []EditNode
+	Head       int
+	groupOpen  bool
+	groupNode  int
+	goalColumn int
+	// walk says how the head last moved: -1 an undo, 1 a redo, 0 an edit
+	// (or read by a record field, RecordEditor.seal, which clears it).
+	walk        int
 	blockChange *blockChange
 	pin         string // the noun's pinned mode (prompt pins insert)
 	// typeOver is the open select range [start, end) (SelectText): in
@@ -200,6 +203,7 @@ func (in *Input) SetText(text string) {
 	in.History, in.Head = []EditNode{{Text: text, Parent: -1}}, 0
 	in.groupOpen, in.groupNode, in.goalColumn = false, -1, -1
 	in.typeOver, in.blockChange = nil, nil
+	in.walk = 0
 	anchor := in.Cursor
 	in.Cursor = in.Anchor
 	in.clampCursor()
@@ -234,6 +238,7 @@ func (in *Input) Replace(start, end int, text string) error {
 		in.History[in.Head].Cursor = in.Cursor
 	}
 	in.Text = next
+	in.walk = 0
 	in.Cursor = start + len(inserted)
 	in.goalColumn = -1
 	in.clampCursor()
@@ -295,6 +300,7 @@ func (in *Input) Undo(steps int) error {
 			break
 		}
 		in.Head = parent
+		in.walk = -1
 	}
 	in.restore()
 	return nil
@@ -327,9 +333,49 @@ func (in *Input) Redo(steps, branch int) error {
 			branch = -1
 		}
 		in.Head = children[pick]
+		in.walk = 1
 	}
 	in.restore()
 	return nil
+}
+
+// walkTo moves the head to the nearest state holding text, trying older
+// states first, or the newer ones (the newest child at each step) when
+// forward, and reports whether it found one. The text comes back without
+// adding a state, so the tree still reads as what happened.
+func (in *Input) walkTo(text string, forward bool) bool {
+	if string(in.Text) == text {
+		return true
+	}
+	older := func() bool {
+		steps := 0
+		for n := in.History[in.Head].Parent; n >= 0; n = in.History[n].Parent {
+			steps++
+			if in.History[n].Text == text {
+				return in.Undo(steps) == nil
+			}
+		}
+		return false
+	}
+	newer := func() bool {
+		steps := 0
+		for n := in.Head; len(in.History[n].Children) > 0; {
+			c := in.History[n].Children
+			n = c[len(c)-1]
+			steps++
+			if in.History[n].Text == text {
+				return in.Redo(steps, -1) == nil
+			}
+		}
+		return false
+	}
+	first, second := older, newer
+	if forward {
+		first, second = newer, older
+	}
+	found := first() || second()
+	in.walk = 0
+	return found
 }
 
 func (in *Input) restore() {

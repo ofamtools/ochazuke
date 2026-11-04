@@ -1,0 +1,91 @@
+{
+ "name": "form: u and ctrl+r in a text field walk one chain and stop quietly at the end",
+ "area": "forms",
+ "page": {
+  "lists": [
+   {
+    "id": "a",
+    "rows": 2
+   }
+  ],
+  "records": [
+   {
+    "id": "task",
+    "fields": [
+     {
+      "name": "name",
+      "type": "string"
+     },
+     {
+      "name": "note",
+      "type": "string"
+     }
+    ],
+    "values": {
+     "name": "alpha",
+     "note": "beta"
+    }
+   }
+  ],
+  "focus": "task/name"
+ },
+ "script": [
+  "A",
+  {
+   "type": "uc"
+  },
+  "esc",
+  "u",
+  "ctrl+r",
+  "u",
+  "u"
+ ],
+ "expect": [
+  {
+   "after": 3,
+   "contains": [
+    "alphauc"
+   ]
+  },
+  {
+   "after": 4,
+   "contains": [
+    "alpha"
+   ],
+   "lacks": [
+    "alphauc"
+   ]
+  },
+  {
+   "after": 5,
+   "contains": [
+    "alphauc"
+   ]
+  },
+  {
+   "after": 6,
+   "contains": [
+    "alpha"
+   ],
+   "lacks": [
+    "alphauc"
+   ]
+  },
+  {
+   "focus": "task/name",
+   "contains": [
+    "alpha"
+   ],
+   "lacks": [
+    "alphauc",
+    "Error:"
+   ],
+   "writes": [
+    "write name=alphauc",
+    "write name=alpha",
+    "write name=alphauc",
+    "write name=alpha"
+   ]
+  }
+ ]
+}

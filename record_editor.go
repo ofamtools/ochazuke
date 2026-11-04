@@ -259,9 +259,10 @@ func (f *recordField) label() string {
 // left or insert mode ends; a choice, an edit in normal mode, an undo or a
 // redo is written at once. A value that is not valid (Required, the type,
 // the choices, Validate) is not written, and its label says why. u and
-// ctrl+r undo and redo the record's written changes, each written like any
-// other; q and esc leave, and nothing is ever discarded. There is no save
-// key.
+// ctrl+r walk one chain from any stop: a text input's own history first,
+// then the record's written changes, each written like any other; past the
+// end they do nothing. q and esc leave, and nothing is ever discarded.
+// There is no save key.
 //
 // The editor is an instance of the form noun (id) with a child per field
 // (id/name): text fields are inputs of form-field (form-text when
@@ -772,15 +773,73 @@ func (e *RecordEditor) requeue(changed []string) {
 }
 
 // seal writes the record and makes a field's change since its edit began
-// one undo step.
+// one undo step. A change the input's own undo or redo made is a step along
+// the chain, not a new one (walked).
 func (e *RecordEditor) seal(f *recordField) error {
 	err := e.flush()
-	if f != nil && e.written[f.Name] != f.before {
-		e.undo = append(e.undo, recordStep{field: f.Name, from: f.before, to: e.written[f.Name]})
-		e.redo = nil
-		f.before = e.written[f.Name]
+	if f == nil {
+		return err
+	}
+	if to := e.written[f.Name]; to != f.before {
+		if f.input != nil && f.input.walk != 0 {
+			e.walked(f, to)
+		} else {
+			e.undo = append(e.undo, recordStep{field: f.Name, from: f.before, to: to})
+			e.redo = nil
+		}
+		f.before = to
+	}
+	if f.input != nil {
+		f.input.walk = 0
 	}
 	return err
+}
+
+// walked keeps the two histories one chain when a text input takes a step of
+// its own: the step leaves the side it came from and goes on the other, as
+// form.undo and form.redo would move it. The field's latest step is the one
+// taken even when another field's is newer, since the input's history comes
+// first; a step the record no longer holds (a later change dropped the redo)
+// just goes on the other side, so the way back stays.
+func (e *RecordEditor) walked(f *recordField, to string) {
+	from, other := &e.undo, &e.redo
+	if f.input.walk > 0 {
+		from, other = &e.redo, &e.undo
+	}
+	*from, _ = takeStep(*from, f.Name, f.before, to)
+	*other = append(*other, recordStep{field: f.Name, from: f.before, to: to})
+}
+
+// takeStep takes the move of a field from at to now out of the latest of
+// steps that holds the field: a step that goes no further is gone; one that
+// goes on (several input states, one record step) now ends at now.
+func takeStep(steps []recordStep, name, at, now string) ([]recordStep, bool) {
+	for i := len(steps) - 1; i >= 0; i-- {
+		s := &steps[i]
+		if s.changes != nil {
+			changes, found := takeStep(slices.Clone(s.changes), name, at, now)
+			if !found {
+				continue
+			}
+			s.changes = changes
+			if len(changes) == 0 {
+				return slices.Delete(steps, i, i+1), true
+			}
+			return steps, true
+		}
+		if s.field != name {
+			continue
+		}
+		if s.to != at {
+			return steps, false
+		}
+		if s.from == now {
+			return slices.Delete(steps, i, i+1), true
+		}
+		s.to = now
+		return steps, true
+	}
+	return steps, false
 }
 
 // set replaces a field's value as shown.
@@ -794,6 +853,16 @@ func (e *RecordEditor) set(f *recordField, v string) error {
 	}
 	f.input.Cursor = len(f.input.Text)
 	return nil
+}
+
+// restore puts a history step's value in a field: a text field walks its
+// input's undo tree there, so the input's own u and ctrl+r carry on from
+// the same place; a value the tree does not hold is set like any other.
+func (e *RecordEditor) restore(f *recordField, v string, redo bool) error {
+	if f.input != nil && f.input.walkTo(v, redo) {
+		return nil
+	}
+	return e.set(f, v)
 }
 
 // history undoes (or redoes) one written change: the value goes back, is
@@ -827,7 +896,7 @@ func (e *RecordEditor) history(redo bool) error {
 		}
 		if inverted {
 			f.not = change.from == "true"
-		} else if serr := e.set(f, change.from); serr != nil {
+		} else if serr := e.restore(f, change.from, redo); serr != nil {
 			return serr
 		}
 		back := recordStep{field: change.field, from: change.to, to: change.from}
@@ -1493,7 +1562,12 @@ func (e *RecordEditor) outsideWrite() error {
 		typed := f.text() != e.written[f.Name]
 		e.written[f.Name], f.before = v, v
 		if !typed {
-			if err := e.set(f, v); err != nil {
+			if f.input != nil {
+				// Its own history starts over too: it no longer leads to
+				// what is stored.
+				f.input.SetText(v)
+				f.input.Cursor = len(f.input.Text)
+			} else if err := e.set(f, v); err != nil {
 				return err
 			}
 		}
