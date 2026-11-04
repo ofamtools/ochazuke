@@ -624,3 +624,10 @@ func TestPathQueryFolderChooser(t *testing.T) {
 		t.Fatalf("a file for a folder pick: %+v", row)
 	}
 }
+
+// A pasted query with a leading space is not a path query.
+func TestPathQueryLeadingSpaceDoesNotClaim(t *testing.T) {
+	if pathQuery(" /tmp") || !pathQuery("/tmp") || !pathQuery("~") || pathQuery("~user") || pathQuery(".x") {
+		t.Fatal("pathQuery")
+	}
+}

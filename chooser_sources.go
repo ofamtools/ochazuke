@@ -496,11 +496,46 @@ func (c *Chooser) emptyLine() string {
 		}
 		return LoadingText(p.Plural)
 	case src != nil && src.Empty != "":
-		return src.Empty
+		return c.hinted(src.Empty)
 	case p.Empty == "" && p.Plural == "":
 		return ""
 	}
-	return p.Text(c.r)
+	return c.hinted(p.Text(c.r))
+}
+
+// hinted ends an empty or no-match line with the spec's Hint.
+func (c *Chooser) hinted(line string) string {
+	if c.spec.Hint == "" || strings.Contains(line, c.spec.Hint) {
+		return line
+	}
+	return line + "; " + c.spec.Hint
+}
+
+// settle makes a Live source's rows the answer for the query as it is
+// now, before a pick reads them: rows still loading, or loaded for an
+// older query, are replaced by loading the current query on the spot, so
+// enter never takes a row of what was typed before. The load that was in
+// flight is dropped; a failed load leaves no rows and its error.
+func (c *Chooser) settle() {
+	src := c.current()
+	if src == nil || !src.Live || src.Load == nil || (!c.loading && c.loadedQuery == c.Query()) {
+		return
+	}
+	query := c.Query()
+	c.loadedQuery, c.loadErr = query, ""
+	c.gen++
+	res := src.Load(query)
+	value, err := res.value, res.err
+	if res.work != nil {
+		value, err = res.work(context.Background())
+	}
+	rows, _ := chooserRowsOf(value)
+	if err != nil {
+		c.loadErr, rows = err.Error(), nil
+	}
+	c.loading = false
+	c.moved = false
+	c.SetRows(rows)
 }
 
 // createFunc and createLabel are the current source's create, else the

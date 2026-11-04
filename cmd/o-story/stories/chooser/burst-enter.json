@@ -1,0 +1,50 @@
+{
+  "name": "path chooser: burst enter",
+  "area": "chooser",
+  "width": 100,
+  "height": 18,
+  "files": [
+    "a.json"
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "records": [
+      {
+        "id": "doc",
+        "fields": [
+          {
+            "name": "file",
+            "type": "path",
+            "base": "{{files}}"
+          }
+        ]
+      }
+    ],
+    "focus": "doc/file"
+  },
+  "script": [
+    "enter",
+    {
+      "job": "chooser.load"
+    },
+    {
+      "type": "./a.json"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "lacks": [
+        "nothing matches"
+      ],
+      "writes": [
+        "write file={{files}}/a.json"
+      ]
+    }
+  ]
+}

@@ -863,7 +863,20 @@ tiers above them. When the two disagree, fix one in the same commit.
   query, step the source back out. A row that only opens (a folder in a
   file chooser) opens on a pick. The last source used is remembered per
   chooser kind (`chooser.remember-source`, default on; off reopens on the
-  first source). Stories: `chooser/sources-cycle.json`,
+  first source). A source may claim the query (`ChooserSource.Claims`):
+  while `chooser.claim-source` is on (default; off leaves the switch to
+  `ctrl+o`), the chooser shows the first source claiming it, whichever is
+  current, and goes back when the query is no longer claimed; a hand
+  switch ends the claim until then. The path chooser's typed source claims
+  a query starting `/`, `~`, `./` or `../` (a pasted ` /tmp` with a
+  leading space does not); a plain word filters. `enter` takes the rows of
+  the query as typed: a live source's load for it is settled first. A
+  chooser's `Hint` ends its empty, no-match and refusal lines (path
+  choosers: `no known directories; type a path to pick one`). Stories:
+  `chooser/path-typed-at-once.json`, `chooser/path-typed-at-once-off.json`,
+  `chooser/stale-enter.json`, `chooser/burst-enter.json`,
+  `chooser/empty-folder-dir.json`, `chooser/new-trailing.json`,
+  `chooser/path-new-missing-parent.json`, `chooser/sources-cycle.json`,
   `chooser/live-source.json`, `chooser/remember-source-on.json`,
   `chooser/remember-source-off.json`; tests `TestChooserSources*`,
   `TestChooserLiveSource*`, `TestChooserRemembersTheSource`.

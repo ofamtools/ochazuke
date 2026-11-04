@@ -24,6 +24,10 @@ import (
 // lists a folder under path.no-auto-list (external volumes) on its own:
 // only once opened into or typed.
 
+// PathChooserHint is what every path chooser's empty and no-match lines
+// add (ChooserSpec.Hint), whichever source shows.
+const PathChooserHint = "type a path to pick one"
+
 // PathParameterType is the Parameter.Type of a path.
 const PathParameterType = "path"
 
@@ -248,7 +252,7 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		Title:   title,
 		Sources: sources,
 		Source:  spec.Source,
-		Empty:   "nothing here; type a path (/, ~/, ./) to pick one",
+		Hint:    PathChooserHint,
 		Choose: func(row ChooserRow) Result {
 			path, ok := row.Data.(string)
 			if !ok || path == "" {
@@ -527,8 +531,13 @@ func typedRows(query string, pick PathPick, hidden bool, caseMode string) []Choo
 		if !pick.Dir() {
 			rows = append(rows, ChooserRow{ID: path, Label: query, Data: path})
 		}
-	case errors.Is(err, os.ErrNotExist) && pick.Parameter.New && !strings.HasSuffix(query, "/"):
-		if parent, err := os.Stat(filepath.Dir(path)); err == nil && parent.IsDir() {
+	case errors.Is(err, os.ErrNotExist) && pick.Parameter.New && (pick.Dir() || !strings.HasSuffix(query, "/")):
+		// New offers the path as new: a folder pick whatever its parent
+		// (a missing folder is recorded, not refused), a file pick when
+		// the folder to write it in is there.
+		if pick.Dir() {
+			fresh = append(fresh, ChooserRow{ID: path, Label: "new " + query, Data: path})
+		} else if parent, err := os.Stat(filepath.Dir(path)); err == nil && parent.IsDir() {
 			fresh = append(fresh, ChooserRow{ID: path, Label: "new " + query, Data: path})
 		}
 	}

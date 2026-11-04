@@ -121,6 +121,11 @@ type ChooserSpec struct {
 	// else the first.
 	Sources []ChooserSource
 	Source  string
+	// Hint, when set, ends the empty and no-match lines and the refusal
+	// of a pick nothing matches ("no known directories; type a path to
+	// pick one"), whatever the source's own Empty says: one place for
+	// the way out. Lower case, no parentheses (R5.19).
+	Hint string
 }
 
 // ChooserPreviewMin is the width from which a chooser with a Preview
@@ -396,6 +401,7 @@ func (c *Chooser) close() error {
 }
 
 func (c *Chooser) pick() Result {
+	c.settle()
 	row, ok := c.Highlighted()
 	if !ok || row.ID == chooserCreateRow {
 		return c.create()
@@ -426,7 +432,7 @@ func (c *Chooser) pick() Result {
 func (c *Chooser) create() Result {
 	create := c.createFunc()
 	if create == nil {
-		return Failed(errors.New("nothing matches"))
+		return Failed(errors.New(c.hinted("nothing matches")))
 	}
 	query := c.Query()
 	if !c.spec.Stay {
@@ -765,7 +771,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 		// jump wider when they land.
 		lines = append(lines, ansi.Truncate("  "+c.emptyLine()+strings.Repeat(" ", width), width, ""))
 	case c.matched() == 0:
-		lines = append(lines, ansi.Truncate("  "+NoMatchText(c.spec.Plural, c.Query()), width, "…"))
+		lines = append(lines, ansi.Truncate("  "+c.hinted(NoMatchText(c.spec.Plural, c.Query())), width, "…"))
 	}
 	hint := ""
 	if label := c.createLabel(); c.cursor < 0 && c.createFunc() != nil && label != nil {
