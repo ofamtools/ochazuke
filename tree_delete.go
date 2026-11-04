@@ -100,7 +100,7 @@ func (t *Tree) remove(c Context) error {
 		defer t.group()()
 	}
 	if t.index(ids[0]) < 0 {
-		return errors.New("tree has no selected node")
+		return errors.New("no row selected")
 	}
 	// What goes is copied to the register as a yank does (d d then p moves
 	// a row), read before anything is deleted: the rows of the selection

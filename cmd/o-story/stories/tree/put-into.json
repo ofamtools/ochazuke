@@ -1,0 +1,14 @@
+{
+  "name": "outline: p and P on a row that declares putInto add the rows under it, first, not beside it",
+  "area": "tree",
+  "page": {"trees": [{"id": "t", "editable": true, "nodes": [
+    {"id": "r", "label": "root", "putInto": true},
+    {"id": "x", "parent": "r", "label": "xray"},
+    {"id": "s", "label": "sierra", "putInto": true}
+  ]}]},
+  "script": ["j", "y", "y", "j", "p", "k", "k", "P"],
+  "expect": [
+    {"after": 5, "writes": ["add t-n1 under s at 0: xray"], "lacks": ["Error"]},
+    {"writes": ["add t-n1 under s at 0: xray", "add t-n2 under r at 0: xray"], "lacks": ["Error"]}
+  ]
+}

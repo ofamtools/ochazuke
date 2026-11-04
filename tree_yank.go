@@ -84,7 +84,7 @@ func (t *Tree) yank(c Context, register string) error {
 	}
 	id := t.target(c)
 	if t.index(id) < 0 {
-		return errors.New("tree has no selected node")
+		return errors.New("no row selected")
 	}
 	text, n := t.outlineText(t.subtreeIDs(id))
 	if err := t.r.storeYank(lineYank(text), register, false); err != nil {
@@ -94,11 +94,14 @@ func (t *Tree) yank(c Context, register string) error {
 	return nil
 }
 
-func copiedRows(n int) string {
+func copiedRows(n int) string { return "copied " + rowCount(n) }
+
+// rowCount is "1 row" or "n rows".
+func rowCount(n int) string {
 	if n == 1 {
-		return "copied 1 row"
+		return "1 row"
 	}
-	return fmt.Sprintf("copied %d rows", n)
+	return fmt.Sprintf("%d rows", n)
 }
 
 // removedRows are the rows of the tree's last delete: their ids, in tree
@@ -139,12 +142,25 @@ func (t *Tree) put(c Context, before bool, register string) error {
 	}
 	lines, depths := pasteLines(y.Text)
 	if len(lines) == 0 {
-		return errors.New("nothing in the register to put")
+		t.r.UI().Info("nothing in the register to put")
+		return nil
 	}
 	if err := t.closeLineAs(false, false); err != nil {
 		return err
 	}
-	parent, index := t.slot(t.target(c), before)
+	at := t.target(c)
+	if at == "" && len(t.nodes) > 0 {
+		// Rows exist but none is shown (a filter matches nothing): nothing
+		// says where the rows go, and the top level is not a guess.
+		t.r.UI().Info("no row shown to put next to: clear the filter first")
+		return nil
+	}
+	parent, index := t.slot(at, before)
+	if i := t.index(at); i >= 0 && t.nodes[i].PutInto {
+		// The row takes the rows as its first children, opened to show them.
+		parent, index = at, 0
+		t.setCollapsed(at, false)
+	}
 	ids := t.removedIDs(y.Text, len(lines))
 	t.removed = nil // a delete's rows move once; the next put copies
 	changes := t.blockAddsWith(lines, depths, parent, index, ids)
@@ -155,7 +171,7 @@ func (t *Tree) put(c Context, before bool, register string) error {
 	if t.list.shows(first) {
 		t.focusNode(first)
 	} else {
-		t.r.UI().Info(fmt.Sprintf("put %d rows, hidden by the filter", len(lines)))
+		t.r.UI().Info(fmt.Sprintf("put %s, hidden by the filter", rowCount(len(lines))))
 	}
 	return nil
 }

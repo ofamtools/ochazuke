@@ -115,8 +115,12 @@ func TestTreePutOnAnEmptyTree(t *testing.T) {
 	if err := tree.SetNodes(nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: "put", Target: "t"}); err == nil {
-		t.Fatal("put from an empty register must say so")
+	// Nothing went wrong, so nothing fails: it is an Info notice.
+	if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: "put", Target: "t"}); err != nil {
+		t.Fatalf("put from an empty register must only say so: %v", err)
+	}
+	if len(tree.Nodes()) != 0 {
+		t.Fatal("put from an empty register added rows")
 	}
 	if err := r.storeYank(Yank{Text: "one\n\ttwo\nthree\n", Shape: "line"}, "", false); err != nil {
 		t.Fatal(err)

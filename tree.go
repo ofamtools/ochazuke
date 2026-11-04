@@ -49,6 +49,12 @@ type TreeNode struct {
 	// blank stays, its old text comes back, and nothing is written (a row
 	// just added and never filled in is still removed).
 	Fixed []string `json:"fixed,omitempty"`
+	// PutInto makes a put at this row (p, P and paste) go under it, as its
+	// first children, instead of beside it: the row is a container the
+	// application wants rows added to, such as a branch of a top level
+	// that must not gain top-level rows of its own kind. It is opened if
+	// it was folded.
+	PutInto bool `json:"putInto,omitempty"`
 }
 
 // Refuses reports whether the node refuses the change op (TreeRename,
@@ -1359,10 +1365,16 @@ func (t *Tree) paste(c Context, text string) error {
 	// it, and the paste takes its place.
 	at := t.target(c)
 	parent, index := t.slot(at, false)
+	into := false
+	if i := t.index(at); i >= 0 && t.nodes[i].PutInto {
+		parent, index, into = at, 0, true
+	}
 	if err := t.closeLine(false); err != nil {
 		return err
 	}
-	if at != "" && t.dropped == at {
+	if into {
+		t.setCollapsed(at, false)
+	} else if at != "" && t.dropped == at {
 		index--
 	}
 	_, last, err := t.insertLines(lines, depths, parent, index)
