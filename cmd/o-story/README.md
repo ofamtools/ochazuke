@@ -548,6 +548,7 @@ Conformance:
 | visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
 | visual-line | modal | `modal.close` |
 | visual-line | mode | `mode.enter` `mode.leave` |
+| visual-line | outline | `outline.delete` |
 
 Mode edges (from → to via):
 
@@ -766,6 +767,7 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `input.operator`
 - `visual-line` → `normal` via `list.end-visual`
 - `visual-line` → `normal` via `list.yank`
+- `visual-line` → `normal` via `outline.delete`
 - `visual-line` → `register_pending` via `mode.enter`
 - `visual-line` → `replay_pending` via `mode.enter`
 - `visual-line` → `visual-line d` via `row d`

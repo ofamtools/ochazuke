@@ -1206,42 +1206,6 @@ func (t *Tree) move(c Context, delta int) error {
 	return t.commit([]TreeChange{{Op: TreeMove, ID: id, Parent: parent, Index: to}}, id)
 }
 
-// remove deletes a node and its subtree: the deepest nodes first, so each
-// write is a leaf, and undo adds them back root first.
-func (t *Tree) remove(c Context) error {
-	if err := t.closeLineAs(false, false); err != nil {
-		return err
-	}
-	id := t.target(c)
-	i := t.index(id)
-	if i < 0 {
-		return errors.New("tree has no selected node")
-	}
-	sub := slices.Clone(t.nodes[i:t.subtreeEnd(i)])
-	var changes []TreeChange
-	for j := len(sub) - 1; j >= 0; j-- {
-		changes = append(changes, TreeChange{Op: TreeDelete, ID: sub[j].ID})
-	}
-	next := ""
-	items := t.list.Items()
-	if k := slices.IndexFunc(items, func(it ListItem) bool { return it.ID == id }); k >= 0 {
-		for _, it := range items[k+1:] {
-			if !slices.ContainsFunc(sub, func(n TreeNode) bool { return n.ID == it.ID }) {
-				next = it.ID
-				break
-			}
-		}
-		if next == "" && k > 0 {
-			next = items[k-1].ID
-		}
-	}
-	err := t.commit(changes, next)
-	if next != "" {
-		_ = t.r.SetFocus(next)
-	}
-	return err
-}
-
 // history undoes (or redoes) one step: its changes are applied and
 // written like any other, and the inverse goes on the other stack.
 func (t *Tree) history(redo bool) error {
@@ -1587,7 +1551,7 @@ func registerTrees(r *Runtime) {
 		Verb("indent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, true) }), "Nest the node under the node above it").When("outline-movable").
 		Verb("outdent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, false) }), "Move the node out to follow its parent").When("outline-movable").
 		Verb("move", edit(func(t *Tree, c Ctx) error { return t.move(c.Context, IntArg(c.Args, "delta", 1)) }), "Swap the node with its next (delta 1) or previous (-1) sibling").When("outline-movable").
-		Verb("delete", edit(func(t *Tree, c Ctx) error { return t.remove(c.Context) }), "Delete the node and its children; u brings them back").When("outline-deletable").
+		Verb("delete", edit(func(t *Tree, c Ctx) error { return t.remove(c.Context) }), "Delete the node (tree.delete-children says what happens to its children: a collapsed node takes them with it, an expanded one passes them up a level or to the top level); over a visual selection, every selected node, as one undo step; u brings them back").When("outline-deletable").
 		Verb("undo", edit(func(t *Tree, c Ctx) error { return t.history(false) }), "Undo the last change; the undo is written like any change").When("tree-editable").
 		Verb("redo", edit(func(t *Tree, c Ctx) error { return t.history(true) }), "Redo the last undone change").When("tree-editable").
 		Verb("paste", edit(func(t *Tree, c Ctx) error { return t.paste(c.Context, StringArg(c.Args, "text", "")) }), "Add pasted lines below the node, nested by their indent").When("tree-editable").
