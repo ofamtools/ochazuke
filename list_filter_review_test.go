@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -140,5 +141,67 @@ func TestFilterFormKeptIntegerPrecision(t *testing.T) {
 	}
 	if got := l.PropFilters()[0].Label(); got != "score not in [9007199254740993]" {
 		t.Fatal(got)
+	}
+}
+
+func TestFilterFormClearHiddenSortOptions(t *testing.T) {
+	for _, clear := range []bool{false, true} {
+		t.Run(fmt.Sprint(clear), func(t *testing.T) {
+			r, m, l := compactFixture(t)
+			_ = r.Settings().Set(ListFilterSortSetting, false)
+			_ = r.Settings().Set(ListFilterClearHiddenSortSetting, clear)
+			_ = l.SetSort([]SortKey{{Field: "score", Desc: true}})
+			_ = l.SetPropFilters([]PropFilter{{Prop: "status", Value: "todo"}})
+			compactKeys(m, "z", "/")
+			v := filterViewAt(r, r.Focus)
+			if err := v.e.clear(); err != nil {
+				t.Fatal(err)
+			}
+			if len(l.PropFilters()) != 0 {
+				t.Fatal(l.PropFilters())
+			}
+			want := []string{"t6", "t5", "t4", "t3", "t2", "t1"}
+			if clear {
+				want = []string{"t1", "t2", "t3", "t4", "t5", "t6"}
+			}
+			if !reflect.DeepEqual(shownIDs(l), want) {
+				t.Fatal(shownIDs(l))
+			}
+		})
+	}
+}
+
+func TestListSortSectionOptions(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	r.Define("row").Props(PropSpec{Name: "rank", Parameter: Parameter{Type: SettingInteger}})
+	l, err := r.AddList("sections", []ListItem{
+		{ID: "a2", Noun: "row", Section: "A", Data: Thing{"rank": 2}},
+		{ID: "a1", Noun: "row", Section: "A", Data: Thing{"rank": 1}},
+		{ID: "b3", Noun: "row", Section: "B", Data: Thing{"rank": 3}},
+		{ID: "b0", Noun: "row", Section: "B", Data: Thing{"rank": 0}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := l.SetSort([]SortKey{{Field: "rank"}}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(shownIDs(l), []string{"a1", "a2", "b0", "b3"}) {
+		t.Fatal(shownIDs(l))
+	}
+	_ = r.Settings().Set(ListSortSectionsSetting, "off")
+	if l.Sortable() {
+		t.Fatal("section sort still offered")
+	}
+	if err := l.SetSort([]SortKey{{Field: "rank", Desc: true}}); err == nil {
+		t.Fatal("section sort accepted while off")
+	}
+	_ = r.Settings().Set(ListSortSectionsSetting, "within")
+	if err := l.SetSort([]SortKey{{Field: "rank", Desc: true}}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(shownIDs(l), []string{"a2", "a1", "b3", "b0"}) {
+		t.Fatal(shownIDs(l))
 	}
 }

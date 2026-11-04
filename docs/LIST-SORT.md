@@ -34,6 +34,11 @@ including timezone offsets. Other text compares without case. Mixed date/text
 props compare entirely as text. Blanks go last in either direction. Equal
 keys keep the app's order. A tree sorts siblings, keeping subtrees together.
 
+Sectioned tables sort within each contiguous section by default, preserving
+section order and headings. `list.sort-sections=off` disables local sorting
+on sectioned lists; `within` restores it. The rule applies to every list,
+not to particular nouns or applications.
+
 Sorting runs after filtering. `Items()` and the app's source rows retain their
 order; selection, marks and focus follow IDs. `SetItems`, `Patch`, `SetColumns`
 and a tree's `SetNodes` keep the view sort and apply it to the replacement
@@ -71,6 +76,8 @@ and single-Escape close behavior.
 `list.filter-layout` defaults to `compact`; `fields` keeps the previous
 one-field-per-prop form. `list.filter-sort` defaults to true and hides the
 sort section when false.
+`list.filter-clear-hidden-sort` defaults to false: clearing the form preserves
+a sort whose controls are hidden. Set it to true to clear that sort too.
 `list.filter-form=false` keeps the older prop/value chooser flow unchanged.
 `list.filter-picker-sort=true` opts into a Sort entry using the existing
 sort-field chooser; this setting defaults to false. Source-owned views do not offer

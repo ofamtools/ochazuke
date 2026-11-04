@@ -296,6 +296,9 @@ func (e *RecordEditor) clear() error {
 	}
 	var errs []error
 	for _, f := range e.fields {
+		if f.KeepOnClear {
+			continue
+		}
 		if f.not {
 			errs = append(errs, e.invert(f))
 		}

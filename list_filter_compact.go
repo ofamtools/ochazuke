@@ -180,11 +180,15 @@ func (l *List) openViewForm() error {
 	}
 	sortNames := sortedKeys(l.sortSpecs())
 	state := []RecordField{{Name: filterSortField, Label: "Sort", Hidden: true, Parameter: Parameter{Enum: sortNames}}, {Name: filterDirectionField, Label: "Direction", Hidden: true, Parameter: Parameter{Enum: []string{"asc", "desc"}}}}
+	keepSort := (!l.r.Settings().Bool(ListFilterSortSetting) || !l.Sortable()) && !l.r.Settings().Bool(ListFilterClearHiddenSortSetting)
+	for i := range state {
+		state[i].KeepOnClear = keepSort
+	}
 	var schema []RecordField
 	for _, f := range v.fields {
 		schema = append(schema, f.recordField(!v.legacy))
 	}
-	state = append(state, RecordField{Name: filterKeptField, Hidden: true}, RecordField{Name: filterSortKeysField, Hidden: true})
+	state = append(state, RecordField{Name: filterKeptField, Hidden: true}, RecordField{Name: filterSortKeysField, Hidden: true, KeepOnClear: keepSort})
 	e, err := l.r.OpenRecordEditor(listFilterFormID, RecordSpec{Title: "Filter", Fields: schema, State: state, Clearable: true, Immediate: !v.legacy, RowView: l, OnClear: v.clearInputs, Load: v.load, Save: v.write, Render: v.render})
 	if err != nil {
 		return err

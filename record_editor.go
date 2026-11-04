@@ -38,6 +38,8 @@ type RecordField struct {
 	Label string `json:"label,omitempty"` // shown above the value (default Name)
 	// Hidden keeps backing state in the record without drawing a field or focus stop.
 	Hidden bool `json:"hidden,omitempty"`
+	// KeepOnClear preserves this field when form.clear empties the record.
+	KeepOnClear bool `json:"keepOnClear,omitempty"`
 	Parameter
 	Multiline bool `json:"multiline,omitempty"`
 	// Secret makes the field's input secret (Input.Secret): what is typed

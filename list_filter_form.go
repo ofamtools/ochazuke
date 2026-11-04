@@ -29,13 +29,14 @@ import (
 
 // Filter form settings and its modal id.
 const (
-	ListFilterFormSetting       = "list.filter-form"
-	ListFilterChipMaxSetting    = "list.filter-chip-max"
-	ListFilterLayoutSetting     = "list.filter-layout"
-	ListFilterSortSetting       = "list.filter-sort"
-	ListFilterPickerSortSetting = "list.filter-picker-sort"
-	ListFilterSaveSetting       = "list.filter-save"
-	listFilterFormID            = "list-filter-form"
+	ListFilterFormSetting            = "list.filter-form"
+	ListFilterChipMaxSetting         = "list.filter-chip-max"
+	ListFilterLayoutSetting          = "list.filter-layout"
+	ListFilterSortSetting            = "list.filter-sort"
+	ListFilterPickerSortSetting      = "list.filter-picker-sort"
+	ListFilterSaveSetting            = "list.filter-save"
+	ListFilterClearHiddenSortSetting = "list.filter-clear-hidden-sort"
+	listFilterFormID                 = "list-filter-form"
 )
 
 // filterFieldKind is how a filter form field edits its prop.

@@ -14,6 +14,9 @@ import (
 // ListSortIndicatorSetting controls sort arrows and separate labels in row views.
 const ListSortIndicatorSetting = "list.sort-indicator"
 
+// ListSortSectionsSetting chooses local section ordering or no section sorting.
+const ListSortSectionsSetting = "list.sort-sections"
+
 // SortKey is one prop of a list's view sort. Earlier keys take precedence;
 // equal values keep the app's order. Desc reverses nonblank values only.
 type SortKey struct {
@@ -29,6 +32,13 @@ func NoSort() InstanceOption { return func(s *instanceSpec) { s.noSort = true } 
 func (l *List) canSort() bool {
 	if l.noSort {
 		return false
+	}
+	if l.r.Settings().String(ListSortSectionsSetting) == "off" {
+		for _, item := range l.all {
+			if item.Section != "" {
+				return false
+			}
+		}
 	}
 	if l.filterFocus != "" {
 		if c := l.r.Chooser(l.id); c != nil && (c.spec.NoSort || c.live()) {
@@ -353,7 +363,19 @@ func (l *List) sortOrder(items []ListItem) []int {
 			values[i][j] = normalizedSort(l.sortRaw(item, key.Field), types[j])
 		}
 	}
+	// Section headings belong to contiguous source runs; a view sort must
+	// never interleave their rows or move one run through another.
+	groups := make([]int, len(items))
+	for i := 1; i < len(items); i++ {
+		groups[i] = groups[i-1]
+		if items[i].Section != items[i-1].Section {
+			groups[i]++
+		}
+	}
 	slices.SortStableFunc(order, func(a, b int) int {
+		if c := cmp.Compare(groups[a], groups[b]); c != 0 {
+			return c
+		}
 		for j, key := range l.sort {
 			if c := compareSort(values[a][j], values[b][j], key.Desc); c != 0 {
 				return c
