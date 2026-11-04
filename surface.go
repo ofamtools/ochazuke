@@ -8,6 +8,10 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
+// modalHintWidth is how far a modal's footer hints may widen its panel
+// (never past the modal's bounds).
+const modalHintWidth = 48
+
 // ModalSize returns safe body bounds, reserving the same chrome as ComposeModal.
 // Modal chrome uses one horizontal padding cell regardless of page density.
 func ModalSize(width, height int) (contentWidth, contentHeight int) {

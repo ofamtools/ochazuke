@@ -1432,10 +1432,24 @@ func (e *RecordEditor) ModalTitle() string {
 
 func (e *RecordEditor) ModalBlock(s Styles, width, height int) Block {
 	e.Styles = s
+	var b Block
 	if e.spec.Render != nil {
-		return e.spec.Render(s, width, height)
+		b = e.spec.Render(s, width, height)
+	} else {
+		b = e.Block(width, height)
 	}
-	return e.Block(width, height)
+	// The footer's hints widen a narrow panel up to modalHintWidth and they
+	// follow the focus and the mode. A form takes that width from the start,
+	// so its panel does not change size on the way through its stops.
+	first, rest, more := strings.Cut(b.Text, "\n")
+	if pad := min(width, modalHintWidth) - ansi.StringWidth(first); pad > 0 {
+		first += strings.Repeat(" ", pad)
+	}
+	b.Text = first
+	if more {
+		b.Text += "\n" + rest
+	}
+	return b
 }
 
 // HandleMessage writes the record when its pause timer is the latest.

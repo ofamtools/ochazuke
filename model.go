@@ -1077,7 +1077,7 @@ func (m *Model) render() Block {
 		// The hint is the modal focus's own binding rows; it may widen the
 		// panel up to a readable width but never past the modal bounds (an
 		// anchored modal's: its content's).
-		hintWidth := min(modalWidth, max(bodyWidth, 48))
+		hintWidth := min(modalWidth, max(bodyWidth, modalHintWidth))
 		if place != nil {
 			hintWidth = modalWidth
 		}

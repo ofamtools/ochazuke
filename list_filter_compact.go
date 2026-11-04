@@ -702,8 +702,11 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 			}
 			heading += " · then " + strings.Join(extra, ", ")
 		}
-		lines = append(lines, s.Muted.Render(ansi.Truncate(heading, width, "…")))
 		inputWidth := max(8, width-16)
+		// The controls' width holds the longer direction, so reversing it
+		// or opening the picker leaves the row as wide as it was.
+		controls := min(width, inputWidth+2+len("desc"))
+		lines = append(lines, s.Muted.Render(ansi.Truncate(heading, controls, "…")))
 		input := InputBlock(v.sortPicker.input, inputWidth, 1)
 		direction := v.e.field(filterDirectionField)
 		dir := direction.text()
@@ -726,7 +729,8 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 		}
 		// The count takes room from the gap, so the row keeps its width.
 		gap := max(1, inputWidth-ansi.StringWidth(input.Text)+2-ansi.StringWidth(count))
-		row := ansi.Truncate(input.Text+strings.Repeat(" ", gap)+v.l.r.PlacedAt(direction.id, dir, 0, 1)+count, width, "")
+		row := ansi.Truncate(input.Text+strings.Repeat(" ", gap)+v.l.r.PlacedAt(direction.id, dir, 0, 1)+count, controls, "")
+		row += strings.Repeat(" ", max(0, controls-ansi.StringWidth(row)))
 		add(Block{Text: row, Cursor: input.Cursor}, v.sortPicker.input.ID)
 		if v.l.r.Focus == direction.id {
 			focusLine = len(lines) - 1

@@ -8,16 +8,16 @@ r|  a1
  |
  |
  |
- |              ╭──╭────────────────────────────────────────────╮──╮
- |              │ C│ Run demo.move                              │  │
- |              │ :│ from · The file to move                    │  │
- |              │  │   old.txt                                  │  │
- |              │ f│ to · Where it goes · required              │  │
- |              │  │                                            │  │
- |              │  │ force (optional) · Overwrite what is there │  │
- |              │ e│   (none) ▾                                 │… │
- |              ╰──│ enter form.next-missing                    │──╯
- |                 ╰────────────────────────────────────────────╯
+ |              ╭──────────────────────────────────────────────────╮
+ |              │ Run demo.move                                    │
+ |              │ from · The file to move                          │
+ |              │   old.txt                                        │
+ |              │ to · Where it goes · required                    │
+ |              │                                                  │
+ |              │ force (optional) · Overwrite what is there       │
+ |              │   (none) ▾                                       │
+ |              │ enter form.next-missing                          │
+ |              ╰──────────────────────────────────────────────────╯
  |
  |
  |
