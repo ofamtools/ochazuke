@@ -1178,6 +1178,8 @@ func (t *Tree) rowKey(c Context, key string) error {
 	if !selected {
 		start, end = in.Cursor, in.Cursor
 	}
+	was, wasFresh, wasOrigin := t.editing, t.fresh[t.editing], t.origin[t.editing]
+	opened := t.opened
 	if err := t.closeLineAs(true, false); err != nil {
 		return err
 	}
@@ -1191,6 +1193,13 @@ func (t *Tree) rowKey(c Context, key string) error {
 	}
 	if oerr := t.openLine(row, false); oerr != nil {
 		return errors.Join(err, oerr)
+	}
+	if wasFresh && (row == was || t.index(was) < 0) {
+		// A new row stays new across the close and reopen a row key makes,
+		// and across the row it makes of it (a conversion), so leaving it
+		// blank still removes it (tree_empty.go).
+		t.markFresh(row, wasOrigin)
+		t.opened = opened
 	}
 	n := len(t.input.Text)
 	start, end = min(start, n), min(end, n)
