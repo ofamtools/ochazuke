@@ -106,8 +106,6 @@ type About struct {
 	env      AboutEnv
 	shown    []AboutSection
 	from     string
-	owned    bool
-	filled   bool // ensureAboutPage just evaluated the rows
 }
 
 type aboutSource struct {
@@ -411,10 +409,12 @@ type aboutRowRef struct {
 	AboutRow
 }
 
-// refreshAboutPage evaluates the rows again and gives the open page's list
-// them; the selection stays on its row.
+// refreshAboutPage evaluates the rows again and gives the page's list
+// them; the selection stays on its row. It does nothing while another page
+// is current, so a registered but unvisited About page costs nothing: the
+// rows are evaluated when the page opens (OnOpen) and on about.refresh.
 func refreshAboutPage(r *Runtime) {
-	if r.Instances[AboutPageID] == nil {
+	if r.Instances[AboutPageID] == nil || r.Page != AboutPageID {
 		return
 	}
 	a := r.about()
@@ -445,41 +445,35 @@ func refreshAboutPage(r *Runtime) {
 	_ = list.SetItems(items)
 }
 
-// ensureAboutPage registers the page when it is not yet (owned when
-// about.open does) and evaluates its rows.
-func ensureAboutPage(r *Runtime, owned bool) (*Page, error) {
-	a := r.about()
-	if page := r.PageOf(AboutPageID); page != nil {
-		refreshAboutPage(r)
-		return page, nil
+// EnsureAboutPage registers the About page when it is not yet: always
+// there, in the Pages picker, but declared hidden by default so it is not a
+// tab (pages.hidden; page.show brings it back). The rows are not evaluated
+// until the page opens (its list is made then). Model.Init calls it, after the application's pages
+// are registered so About comes last; about.open calls it too. A page
+// already titled About keeps the title and the page is not registered.
+func (r *Runtime) EnsureAboutPage() error {
+	if r.PageOf(AboutPageID) != nil {
+		return nil
 	}
+	a := r.about()
 	r.Instance(AboutPageID, Parent("app"), Kind(aboutPageNoun))
-	refreshAboutPage(r)
-	page := &Page{ID: AboutPageID, Title: "About", Focus: aboutListID, Render: aboutPageView}
+	page := &Page{ID: AboutPageID, Title: "About", Focus: AboutPageID, Render: aboutPageView, DefaultHidden: true}
 	page.OnOpen = func(r *Runtime, from string) {
 		a.from = from
-		// A page registered just now holds fresh rows already.
-		if a.filled {
-			a.filled = false
-			return
-		}
 		refreshAboutPage(r)
+		if list := r.List(aboutListID); list != nil && r.Focus == AboutPageID {
+			r.Focus = list.focusTarget()
+		}
 	}
 	if err := r.RegisterPage(page, Kind(aboutPageNoun)); err != nil {
 		_ = r.RemoveInstance(AboutPageID)
-		return nil, err
+		return err
 	}
 	if _, err := r.AddDetail(aboutDetailID, func() string { return selectedAboutRow(r) }, Parent(AboutPageID)); err != nil {
 		_ = r.RemoveInstance(AboutPageID)
-		return nil, err
+		return err
 	}
-	if list := r.List(aboutListID); list != nil && list.Len() > 0 {
-		if item, ok := list.Selected(); ok {
-			page.Focus = item.ID
-		}
-	}
-	a.owned, a.filled = owned, true
-	return page, nil
+	return nil
 }
 
 // openAboutPage opens (or switches to) the About page.
@@ -488,50 +482,36 @@ func openAboutPage(r *Runtime) error {
 		refreshAboutPage(r)
 		return nil
 	}
-	fresh := r.PageOf(AboutPageID) == nil
-	if _, err := ensureAboutPage(r, fresh); err != nil {
+	if err := r.EnsureAboutPage(); err != nil {
 		return err
 	}
-	if err := r.OpenPage(AboutPageID); err != nil {
-		if fresh {
-			_ = r.RemoveInstance(AboutPageID)
-		}
-		return err
-	}
-	return nil
+	return r.OpenPage(AboutPageID)
 }
 
 // closeAboutPage goes back to the page the About page was opened from
-// (else the first other page) and removes the page when about.open
-// registered it.
+// (else the first other page). The page stays registered.
 func closeAboutPage(r *Runtime) error {
 	if r.PageOf(AboutPageID) == nil {
 		return errors.New("the about page is not open")
 	}
 	a := r.about()
-	if r.Page == AboutPageID {
-		back := a.from
-		if back == AboutPageID || r.PageOf(back) == nil {
-			back = ""
-			for _, page := range r.PageList() {
-				if page.ID != AboutPageID {
-					back = page.ID
-					break
-				}
+	if r.Page != AboutPageID {
+		return nil
+	}
+	back := a.from
+	if back == AboutPageID || r.PageOf(back) == nil {
+		back = ""
+		for _, page := range r.PageList() {
+			if page.ID != AboutPageID {
+				back = page.ID
+				break
 			}
 		}
-		if back == "" {
-			return errors.New("there is no page to go back to")
-		}
-		if err := r.OpenPage(back); err != nil {
-			return err
-		}
 	}
-	if a.owned {
-		a.from = ""
-		return r.RemoveInstance(AboutPageID)
+	if back == "" {
+		return errors.New("there is no page to go back to")
 	}
-	return nil
+	return r.OpenPage(back)
 }
 
 // selectedAboutRow is the list's selected row id (the detail's item).

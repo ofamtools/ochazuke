@@ -11,7 +11,7 @@
   "script": [":", {"type": "page hide p2"}, "enter", ":", {"type": "page list"}, "enter", "esc", ":", {"type": "page set p2 hidden false"}, "enter"],
   "expect": [
     {"after": 3, "page": "p1", "modal": "", "contains": ["› One  Three", "Two is hidden from the tabs"]},
-    {"after": 6, "modal": "palette-results", "contains": ["active  hidden  id  label  title", "false   true    p2  Two    Two"]},
+    {"after": 6, "modal": "palette-results", "contains": ["active  hidden  id       label  title", "false   true    p2       Two    Two", "false   true    __about  About  About"]},
     {"page": "p1", "modal": "", "contains": ["› One  Two  Three", "Two is back in the tabs"]}
   ]
 }
