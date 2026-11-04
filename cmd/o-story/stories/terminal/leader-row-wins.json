@@ -1,0 +1,102 @@
+{
+  "name": "an explicit leader row wins over the associated outside key",
+  "area": "terminal",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "items": [
+          {
+            "id": "a1",
+            "noun": "item",
+            "label": "Build",
+            "data": {
+              "id": "a1",
+              "title": "Build"
+            }
+          }
+        ]
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1",
+      "data": {
+        "subject": "a1"
+      }
+    },
+    "nouns": [
+      {
+        "noun": "terminal",
+        "props": [
+          {
+            "name": "subject",
+            "noun": "item",
+            "readOnly": true,
+            "association": true
+          }
+        ]
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "item.rename-associated",
+        "byAssociation": true,
+        "row": true
+      },
+      {
+        "verb": "item.live-only",
+        "byAssociation": true,
+        "row": true
+      }
+    ],
+    "bind": [
+      {
+        "noun": "item",
+        "mode": "normal",
+        "keys": "r",
+        "do": "item.rename-associated"
+      },
+      {
+        "noun": "item",
+        "mode": "normal",
+        "keys": "enter",
+        "do": "demo.open"
+      },
+      {
+        "noun": "terminal",
+        "mode": "leader_pending",
+        "keys": "r",
+        "do": "item.live-only"
+      }
+    ]
+  },
+  "script": [
+    "enter",
+    "ctrl+a",
+    "r"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "focus": "page1-pane",
+      "mode": "terminal",
+      "writes": []
+    },
+    {
+      "after": 2,
+      "mode": "leader_pending",
+      "writes": []
+    },
+    {
+      "focus": "page1-pane",
+      "mode": "terminal",
+      "writes": [
+        "item.live-only row=a1"
+      ],
+      "contains": [
+        "item Build (from the focus)"
+      ]
+    }
+  ]
+}

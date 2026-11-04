@@ -108,6 +108,9 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 				r.modeExtends[name] = m.Extends
 			}
 		}
+		if err == nil && m.Outside != "" {
+			err = r.DefineMode(name, m.Pending, ModeOutside(m.Outside))
+		}
 		if err != nil {
 			return fmt.Errorf("%s: mode %q: %w", source, name, err)
 		}

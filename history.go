@@ -345,6 +345,7 @@ func (r *Runtime) repeatRequest(focus string, steps int) (Request, error) {
 // guard to hold, an input focused. So typing into a line that has since
 // closed is never replayed outside an input: the change before it is.
 func (r *Runtime) repeatApplies(q Request, focus string) bool {
+	focus = r.rowInstance(level{}, q, focus)
 	if !r.Available(q, focus, r.Mode) {
 		return false
 	}

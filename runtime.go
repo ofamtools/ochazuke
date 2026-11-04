@@ -188,11 +188,15 @@ func (q Request) Empty() bool { return q.Verb == "" && !q.IsProp() }
 type Context struct {
 	Path    []string `json:"path"`
 	InputID string   `json:"inputId,omitempty"`
+	// guardMode is the hypothetical outside mode, without changing live
+	// mode or notifying components. Only outside row dispatch supplies it.
+	guardMode string
 }
 
 // Clone returns a copy whose Path does not share the original's backing array.
 func (c Context) Clone() Context {
-	return Context{Path: append([]string(nil), c.Path...), InputID: c.InputID}
+	c.Path = append([]string(nil), c.Path...)
+	return c
 }
 
 // Handler runs an interaction operation on the UI loop and returns its result.
@@ -267,6 +271,9 @@ type Operation struct {
 	// help and bindings list keep them. Set by NounBuilder.Motion; the
 	// framework's own motions are marked as they register (motionOps).
 	Motion bool `json:"motion,omitempty"`
+	// FocusBound marks operations whose editing/selection mode belongs to
+	// their own focused component, not a hypothetical outside context.
+	FocusBound bool `json:"focusBound,omitempty"`
 	// Typing marks an operation that passes the key that ran it on as
 	// content rather than acting on it as a command: typing into an input
 	// (input.insert), keys forwarded to a pane (terminal.send,
@@ -443,6 +450,7 @@ type Runtime struct {
 	passthroughModes map[string]bool   // base modes in which capture rows stand aside (DefinePassthrough)
 	selectionModes   map[string]string // base modes that hold a selection, and its shape (DefineSelection)
 	modeExtends      map[string]string // the mode a mode falls back to for a noun with no table of its own (ModeExtends)
+	modeOutside      map[string]string // pending mode -> outside base mode (ModeOutside)
 	guards           map[string]Guard
 	predicates       map[string]PredicateFunc // named query predicates (query.go)
 	agentApproved    bool                     // the owner approved this request and its nested work
@@ -490,6 +498,7 @@ func newRuntime() *Runtime {
 		passthroughModes: map[string]bool{},
 		selectionModes:   map[string]string{},
 		modeExtends:      map[string]string{},
+		modeOutside:      map[string]string{},
 		defaults:         defaultSources{rows: map[string]string{}, extends: map[string]string{}},
 		guards:           builtinGuards(),
 		predicates:       builtinPredicates(),
@@ -674,6 +683,14 @@ var motionOps = map[string]bool{
 	"ochazuke.list.column": true, "ochazuke.list.choose-column": true,
 }
 
+// focusBoundOps change a component's editing/selection mode rather than
+// acting independently on a thing. Unlike Motion they still appear in hints.
+var focusBoundOps = map[string]bool{
+	"ochazuke.mode.enter": true, "ochazuke.mode.set": true,
+	"ochazuke.list.visual": true, "ochazuke.list.end-visual": true,
+	"ochazuke.list.filter-open": true,
+}
+
 // typingOps are the framework's operations that pass their key on as
 // content (Operation.Typing).
 var typingOps = map[string]bool{
@@ -738,6 +755,9 @@ func (r *Runtime) Register(o Operation) {
 	}
 	if motionOps[o.Key()] {
 		o.Motion = true
+	}
+	if focusBoundOps[o.Key()] {
+		o.FocusBound = true
 	}
 	if typingOps[o.Key()] {
 		o.Typing = true
@@ -992,12 +1012,13 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 		if !checkOnly {
 			top := r.TopModal()
 			defer func() {
-				if inst := r.Instances[associated]; err == nil && inst != nil && r.TopModal() == top {
-					t := r.instanceThing(inst)
-					r.UI().Notify(r.DisplayNoun(op.Noun) + " " + t.Label + " (from the focus)")
-				}
+				r.notifyAssociation(op.Noun, associated, top, err)
 			}()
 		}
+	}
+	guardMode := r.Mode
+	if c.guardMode != "" {
+		guardMode = ModeState{Name: c.guardMode}
 	}
 	if q.Target != "" && q.Target != "focused-input" {
 		id, err := r.TargetInstance(q.Target)
@@ -1020,7 +1041,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	// Guards are applicability: a verb guarded off where the request acts
 	// (its target, else the caller's focus) is refused, from keys, the
 	// palette, the CLI and the API alike.
-	if !r.Available(q, focus, r.Mode) {
+	if !r.Available(q, focus, guardMode) {
 		return nil, fmt.Errorf("%s is not applicable now", r.DisplayKey(q.Key()))
 	}
 	// A request without a target addresses the nearest instance of its

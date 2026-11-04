@@ -1100,7 +1100,7 @@ The instance starts in the `terminal` base mode, where the noun's `any` and `pas
 | `ctrl+a` then `d` | `terminal.detach`: focus returns to the terminal's parent; the pane keeps running |
 | `ctrl+a` then `ctrl+a` | Sends one literal `ctrl+a` |
 | `ctrl+a` then a bound key | Runs that row's request (bind rows into the `terminal` noun's `leader_pending` table in code or config) |
-| `ctrl+a` then an unbound key | `sequence-unknown` `pass` (default): sends the leader, then handles the key as if typed alone (it reaches the pane), back in terminal mode; `swallow`: sends neither and says `ctrl+a x is not bound` |
+| `ctrl+a` then an unbound key | Try its single-key outside row first (`leader.fall-through`, below); if none qualifies, use `sequence-unknown`: `pass` sends the leader then the key, `swallow` sends neither |
 | `ctrl+a` alone | Waits for the next key (`sequence-timeout` `0`, the default); with a positive `sequence-timeout` it sends the leader alone when that passes, and the next key starts fresh |
 
 Every row under the leader is a `Request`: `d` runs `terminal.detach`, `{terminal-leader}` runs `terminal.send {keys: "{terminal-leader}"}`; there is no catch-all row, since an unbound key is the sequence mechanism's (`sequence-unknown`), and a paste after the leader is one too (pass: the leader, then the paste). The leader is a setting: `terminal-leader` (`TerminalLeaderSetting`, default `ctrl+a` in `settings/ochazuke.json`, one `ctrl+` or `alt+` key) is declared by `Runtime.EnsureTerminalLeader()` unless the application declared it (an application with terminals calls it at setup; `cli.AddCommands` does; an application without terminals never shows the setting), read from `settings.json` and followed on every change (`settings set terminal-leader ctrl+b`, the Settings page, another process's write). The rows follow it because they name it: a binding row's keys, hint, help and string arguments may hold `{setting-name}`, resolved when the row is installed and again whenever the setting is declared or changes (`binding_settings.go`; before the setting is declared, its embedded default). The framework's leader rows are keyed `{terminal-leader}`; an application's own leader row (a richer hint) or a user's `bindings.json` row writes the same `{terminal-leader}` in its keys, prefix and request and moves with it. A row that writes `ctrl+a` literally stays on `ctrl+a`. A row whose new key takes the identity of another row of its table replaces it, as a file row does. The old leader becomes ordinary input that reaches the pane. `Runtime.TerminalLeader()` reads the setting; `Runtime.SetTerminalLeader(key)` sets it. `terminal.attach {id}` focuses a pane from anywhere on its page; `terminal.send {keys}` and `terminal.paste {text, keys?}` are the operations the rows run and are available to the CLI. `bindings list` in terminal mode prints the terminal table alone (the leader, `any`, `paste`); in `leader_pending` it prints the leader table, so the footer shows exactly what the pane will do with the next key. The leader row carries a `hint` (`Binding.Hinted`, config field `hint`), so the attached footer reads `ctrl+a leader: d detaches, ctrl+a sends ctrl+a` instead of its `mode.enter` operation; any row may set one, and `bindings list` returns it with the row. The full-project example's **Console** page is a terminal page added from config rows and the public API only.
@@ -1114,6 +1114,25 @@ For a person's targetless key, palette or macro request whose subject noun is ab
 `Runtime.Associations(focus, noun)` and `association.list {noun}` expose `{noun, key, label, via, from}` rows; an empty noun includes all declared associations. The palette shows `acts on: LABEL`; a successful action that opens no modal posts `NOUN LABEL (from the focus)`. Resolution does not move focus, so closing a verb's form or confirm restores the live surface and its mode. Associations are one hop; they do not consult unrelated selected rows.
 
 Compared with Vim: explicit `<cword>` expansion (`:help <cword>`) is similar to a declared optional `Focus` value, but Vim has no implicit subject-association equivalent. Following a reference (`:help gf`, `:help CTRL-]`) moves Vim's cursor; this resolution does not move focus.
+
+#### Leader outside fall-through
+
+`leader_pending` declares `{"pending": true, "outside": "normal"}`. Any pending mode can opt in with `ModeOutside("normal")`; there is no terminal-specific dispatch branch. An unbound key first tries each association's full outside walk on this page, then the live focus's own outside walk. Guards use that hypothetical focus and outside mode; execution uses its context without temporarily moving the real focus or notifying components of a mode change. A form keeps the associated target but returns to the live focus and mode.
+
+`leader.fall-through` is `no-motions` by default. It excludes `Operation.Motion` and `Operation.FocusBound`. The latter marks component-bound selection/editing (`list.visual`, `list.end-visual`, `list.filter-open`, and mode entry/set operations); apps mark their own with `.FocusBound()`. `all` includes both kinds and can strand focus in another component's mode. `off` restores the old `sequence-unknown` behavior. Turning `subject.from-association` off still lets page/app outside rows answer, but does not look through associations.
+
+Existing leader rows always win, including detach, next-pane and sending the leader itself. Outside multi-key sequences are not entered; excluded, unavailable and unmatched keys still use `sequence-unknown`. `ctrl+a ctrl+a r` sends `ctrl+a r` to the nested program without running outside `r`. No existing verb or leader row is removed. Help does not yet expand the hypothetical outside rows under the leader.
+
+Outside capture rows participate too: with the Model's default captured quit row, `ctrl+a ctrl+c` runs `app.quit`; a plain `ctrl+c` in terminal mode still reaches the program. `leader.fall-through: off` or a doubled leader preserves forwarding for nested tools.
+
+Compared with Vim:
+
+| Form | Vim/Neovim help | Here |
+|---|---|---|
+| Terminal window prefix | `'termwinkey'` | Similar: configurable `terminal-leader` |
+| Prefix twice sends it | `t_CTRL-W_.` | Same: leader twice |
+| Terminal `CTRL-W gt` matches outside `gt` | `t_CTRL-W_gt` | Similar: any eligible single-key outside row, not Vim's fixed set |
+| One normal command, return to the terminal | Neovim `t_CTRL-\_CTRL-O` | Same idea; motions are excluded by default because they would act on another component rather than Vim's terminal buffer |
 
 ### Markdown and checklists
 

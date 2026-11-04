@@ -157,3 +157,12 @@ func (r *Runtime) associationSubject(op Operation, q Request, focus string) (str
 	}
 	return id, nil
 }
+
+// notifyAssociation shows an implicit subject after a successful action
+// unless a modal is already showing what it acts on.
+func (r *Runtime) notifyAssociation(noun, id, modal string, err error) {
+	if inst := r.Instances[id]; err == nil && inst != nil && r.TopModal() == modal {
+		t := r.instanceThing(inst)
+		r.UI().Notify(r.DisplayNoun(noun) + " " + t.Label + " (from the focus)")
+	}
+}

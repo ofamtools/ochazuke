@@ -7,6 +7,7 @@
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
   {"name":"subject.from-association","section":"keys","type":"boolean","default":true,"description":"Let declared human requests act through reference props marked association on the focused thing; off uses only ordinary noun ancestry"},
+  {"name":"leader.fall-through","section":"keys","type":"string","default":"no-motions","enum":["no-motions","all","off"],"description":"Offer unbound leader keys to single-key outside bindings: no-motions excludes motions and focus-bound editing; all includes them; off sends unknown sequences as before"},
   {"name":"keys.text-results","section":"keys","type":"boolean","default":true,"description":"Open declared text, Markdown and preformatted answers from key bindings in their viewer; off leaves key results unpresented"},
   {"name":"text-view.wrap","section":"help","type":"boolean","default":true,"description":"Soft-wrap text answers; off keeps horizontal motion and marks clipped lines with ›"},
   {"name":"text-view.result-title","section":"help","type":"boolean","default":true,"description":"Use a text answer's returned title; off titles it with the operation name"},

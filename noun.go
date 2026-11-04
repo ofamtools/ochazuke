@@ -650,6 +650,18 @@ func (b *NounBuilder) ByAssociation() *NounBuilder {
 	return b
 }
 
+// FocusBound keeps the last verb out of the default outside fall-through:
+// its mode or selection requires focus in its own component.
+func (b *NounBuilder) FocusBound() *NounBuilder {
+	if b.last == "" {
+		panic("FocusBound must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.FocusBound = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // Positional names the parameters of the last declared verb that bare
 // words fill first, in order (Operation.Positional): Positional("name")
 // makes BIN project link foo set name even though the boolean all sorts
@@ -701,7 +713,8 @@ func (r *Runtime) VerbGuard(key string) string {
 // arguments.
 func (r *Runtime) VerbShown(key, focus string, mode ModeState) bool {
 	noun, verb := r.keyParts(key)
-	return r.Available(Request{Noun: noun, Verb: verb}, focus, mode)
+	q := Request{Noun: noun, Verb: verb}
+	return r.Available(q, r.rowInstance(level{}, q, focus), mode)
 }
 
 // Available reports whether an action can run now: its availability (the
@@ -1253,6 +1266,12 @@ func (r *Runtime) DefineMode(name string, pending bool, opts ...ModeOption) erro
 		}
 		defer func() { r.modeExtends[name] = spec.Extends }()
 	}
+	if spec.Outside != "" {
+		if !pending || spec.Outside == name || !r.Modes[spec.Outside] {
+			return fmt.Errorf("mode %q outside must name another base mode", name)
+		}
+		r.modeOutside[name] = spec.Outside
+	}
 	if pending {
 		delete(r.Modes, name)
 		r.pendingModes[name] = true
@@ -1287,6 +1306,11 @@ type ModeOption func(*ModeSpec)
 // extends) replaces the fallback for that noun.
 func ModeExtends(parent string) ModeOption {
 	return func(s *ModeSpec) { s.Extends = parent }
+}
+
+// ModeOutside gives a pending mode an outside base mode for unbound keys.
+func ModeOutside(outside string) ModeOption {
+	return func(s *ModeSpec) { s.Outside = outside }
 }
 
 // ModeParent is the mode name falls back to for a noun with no table of

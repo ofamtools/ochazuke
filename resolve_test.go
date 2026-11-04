@@ -71,9 +71,10 @@ func TestCaptureIsOuterFirst(t *testing.T) {
 
 // The model's ctrl+c is a capture row guarded by no-modal: it quits past an
 // inner any row, inside the palette the palette still closes, and in the
-// terminal's passthrough mode there is no capture pass, so ctrl+c (and
-// ctrl+c under the leader) reaches the pane and the app keeps running.
+// terminal's passthrough mode there is no capture pass. Outside fall-through
+// consults capture rows; disabling it restores leader forwarding.
 func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
+	t.Parallel()
 	r, _, stream := terminalFixture(t)
 	m := NewModel(r)
 	for _, b := range r.ListBindings(r.Focus) {
@@ -87,8 +88,17 @@ func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 	}
 	keytest.Press(m, "ctrl+a")
 	keytest.Press(m, "ctrl+c")
-	if r.Quit || !reflect.DeepEqual(stream.sent[1:], [][]string{{"ctrl+a"}, {"ctrl+c"}}) || r.Mode.Name != "terminal" {
+	if !r.Quit || !reflect.DeepEqual(stream.sent, [][]string{{"ctrl+c"}}) || r.Mode.Name != "terminal" {
 		t.Fatalf("leader then ctrl+c: quit=%v sent=%v mode=%s", r.Quit, stream.sent, r.Mode.Name)
+	}
+	r.Quit = false
+	if err := r.Settings().Set(LeaderFallThroughSetting, "off"); err != nil {
+		t.Fatal(err)
+	}
+	keytest.Press(m, "ctrl+a")
+	keytest.Press(m, "ctrl+c")
+	if r.Quit || !reflect.DeepEqual(stream.sent[1:], [][]string{{"ctrl+a"}, {"ctrl+c"}}) {
+		t.Fatalf("fall-through off: quit=%v sent=%v", r.Quit, stream.sent)
 	}
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)

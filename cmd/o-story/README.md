@@ -535,9 +535,10 @@ Conformance:
 | table | list | `list.move` |
 | table | mode | `mode.pin` |
 | terminal | bindings | `bindings.help` |
-| terminal | demo | `demo.finish` `demo.hints` |
+| terminal | demo | `demo.finish` `demo.hints` `demo.outside` |
 | terminal | focus | `focus.next` |
-| terminal | item | `item.rename` `item.rename-associated` |
+| terminal | item | `item.live-only` `item.rename` `item.rename-associated` |
+| terminal | list | `list.select` |
 | terminal | mode | `mode.enter` |
 | terminal | palette | `palette.open` |
 | terminal | terminal | `terminal.detach` `terminal.paste` `terminal.send` |
@@ -606,18 +607,23 @@ Mode edges (from → to via):
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `settings.edit`
+- `insert` → `terminal` via `form.run`
 - `insert` → `terminal` via `palette.run`
 - `jq` → `insert` via `palette.open`
 - `jq` → `normal` via `list.move`
 - `jq` → `normal` via `mode.set`
 - `leader_pending` → `hints` via `demo.hints`
 - `leader_pending` → `insert` via `palette.open`
+- `leader_pending` → `insert` via `row r`
 - `leader_pending` → `normal` via `bindings.help`
 - `leader_pending` → `normal` via `focus.next`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `demo.finish`
+- `leader_pending` → `terminal` via `demo.outside`
+- `leader_pending` → `terminal` via `item.live-only`
 - `leader_pending` → `terminal` via `item.rename`
 - `leader_pending` → `terminal` via `item.rename-associated`
+- `leader_pending` → `terminal` via `list.select`
 - `leader_pending` → `terminal` via `row x`
 - `leader_pending` → `terminal` via `terminal.send`
 - `leader_pending` → `terminal` via `terminal.send + terminal.send`

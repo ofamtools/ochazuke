@@ -87,6 +87,9 @@ type ModeSpec struct {
 	// Extends is the mode whose rows the mode falls back to for a noun
 	// with no table of its own in it (ModeExtends).
 	Extends string `json:"extends,omitempty"`
+	// Outside is the base mode used for an unbound key after this pending
+	// mode's prefix. It considers single-key rows, never outside sequences.
+	Outside string `json:"outside,omitempty"`
 }
 
 // BindingGroup is one table of a grouped bindings file: a noun's or an
@@ -595,6 +598,11 @@ func (r *Runtime) bindingModes() map[string]ModeSpec {
 	for name, shape := range r.selectionModes {
 		m := modes[name]
 		m.Selection = shape
+		modes[name] = m
+	}
+	for name, outside := range r.modeOutside {
+		m := modes[name]
+		m.Outside = outside
 		modes[name] = m
 	}
 	return modes

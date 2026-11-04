@@ -410,7 +410,7 @@ func (ss *session) defineDemo(pages []*Page) error {
 		}
 		for _, name := range slices.Sorted(maps.Keys(p.Modes)) {
 			spec := p.Modes[name]
-			if err := r.DefineMode(name, spec.Pending, ochazuke.ModeExtends(spec.Extends)); err != nil {
+			if err := r.DefineMode(name, spec.Pending, ochazuke.ModeExtends(spec.Extends), ochazuke.ModeOutside(spec.Outside)); err != nil {
 				return fmt.Errorf("mode %s: %w", name, err)
 			}
 		}

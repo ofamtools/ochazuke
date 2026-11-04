@@ -184,3 +184,33 @@ func TestAssociationModalReturnsToLiveFocus(t *testing.T) {
 		t.Fatalf("return: focus %q mode %q", r.Focus, r.BaseMode())
 	}
 }
+
+func TestAssociationGuardedRepeatFollowsNewSubject(t *testing.T) {
+	t.Parallel()
+	r := associationFixture(t, true)
+	var acted []string
+	r.DefineGuard("thing-row", func(r *Runtime, ev KeyEvent) bool {
+		return r.Instances[ev.Focus].Noun == "thing"
+	})
+	r.Define("thing").Verb("touch", func(c Ctx) Result {
+		acted = append(acted, c.Instance.ID)
+		return Done(nil)
+	}).ByAssociation().When("thing-row")
+	op := r.Operations["thing.touch"]
+	op.Repeatable = true
+	r.Operations[op.Key()] = op
+	if !r.VerbShown(op.Key(), "surface", r.Mode) {
+		t.Fatal("palette hid the associated verb")
+	}
+	defer r.Sourced("key:r")()
+	if _, err := r.Execute(Request{Noun: "thing", Verb: "touch"}); err != nil {
+		t.Fatal(err)
+	}
+	r.Instances["surface"].Data = map[string]any{"subject": "b"}
+	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "repeat"}); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(acted, []string{"row-a", "row-b"}) {
+		t.Fatalf("repeat subjects %v", acted)
+	}
+}

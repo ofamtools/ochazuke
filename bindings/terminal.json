@@ -1,7 +1,7 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "modes": {
-    "leader_pending": {"pending": true},
+    "leader_pending": {"pending": true, "outside": "normal"},
     "terminal": {"passthrough": true}
   },
   "bindings": [

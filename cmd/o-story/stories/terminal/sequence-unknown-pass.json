@@ -1,6 +1,7 @@
 {
   "name": "sequence-unknown pass (the default): ctrl+a then an unbound key sends the leader, then the key alone, and returns to terminal mode",
   "area": "terminal",
+  "settings": [{"name": "leader.fall-through", "type": "string", "default": "off"}],
   "page": {
     "lists": [
       {

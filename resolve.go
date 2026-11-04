@@ -249,7 +249,7 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 		if hit.Request.Key() == NoopAction {
 			outcome = KeyConsumed
 		}
-		return outcome, r.runRow(lv, *hit, ev)
+		return outcome, r.runRow(lv, *hit, ev, "")
 	}
 	drop := r.dropsInheritedSequences()
 	levels := r.walk(focus)
@@ -313,6 +313,11 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 		// typed alone (g v where values does not apply never runs v).
 		r.leavePrefix()
 		return KeyConsumed, nil
+	}
+	if held != "" {
+		if handled, err := r.dispatchOutside(focus, mode, key); handled {
+			return KeyHandled, err
+		}
 	}
 	if held != "" {
 		// A key no row continues the sequence with: sequence-unknown
@@ -535,7 +540,7 @@ var stayingRequests = map[string]bool{"ochazuke.mode.enter": true, "ochazuke.cou
 // consumes it, so the mode returns to the shadowed mode before the request
 // runs (the request may then enter another pending mode) unless the request
 // itself manages modes.
-func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
+func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) error {
 	keys := b.Keys
 	if keys == "" {
 		keys = ev.Key.Key
@@ -586,7 +591,9 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 			present = nil
 		}
 		r.rowRequest = true
-		value, err := r.Execute(q)
+		c := r.contextOf(ev.Focus)
+		c.guardMode = guardMode
+		value, err := r.ExecuteAt(c, q)
 		if err == nil && present != nil {
 			err = present(value)
 		}
@@ -595,7 +602,11 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent) error {
 	// A request lacking a required argument opens the args form for it
 	// (MissingOpensFormSetting); the form runs it as the key's.
 	source := r.history.source
-	formed := r.formForMissing(q, func(q Request) error {
+	formRequest := q
+	if formRequest.Target == "" && ev.Focus != r.Focus {
+		formRequest.Target = ev.Focus
+	}
+	formed := r.formForMissing(formRequest, func(q Request) error {
 		defer r.forceSource(source)()
 		return execute(q)
 	})

@@ -59,9 +59,15 @@ tiers above them. When the two disagree, fix one in the same commit.
   terminal leader) waits as long as one setting says, `sequence-timeout`:
   `0`, the default, waits until a key comes; a positive duration expires
   it and the innermost exact match runs. No mode has a timeout of its own.
-  A key no row continues the sequence with is `sequence-unknown`'s:
-  `pass` (default) runs the exact match and handles the key as if typed
-  alone; `swallow` drops both with a notice naming the keys. A sequence
+  A pending mode with `Outside` first offers a key no row continues with
+  to the associated things' outside walks on this page, then its own.
+  Existing rows win. `leader.fall-through` defaults to `no-motions`
+  (no `Motion` or `FocusBound` operations); `all` includes them and `off`
+  restores forwarding. No outside multi-key prefix is entered. A qualifying
+  row runs at its event context without temporarily moving real focus or
+  mode; a modal returns to the live surface. Otherwise `sequence-unknown`
+  decides: `pass` (default) runs the exact match and handles the key as if
+  typed alone; `swallow` drops both with a notice naming the keys. A sequence
   a level only inherits (a table of the mode its mode extends, such as a
   row noun's normal `d d` read in `visual-line`) does not wait over a row
   the mode binds on its own tables, at any level, for the keys typed (the
@@ -72,6 +78,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   `terminal/sequence-unknown-pass`, `terminal/sequence-unknown-swallow`,
   `tables/visual-line-inherited-sequence-drop`,
   `tables/visual-line-inherited-sequence-keep`.
+  Outside stories: `terminal/leader-falls-through`,
+  `terminal/leader-falls-through-association`, `terminal/leader-motion-passes`,
+  `terminal/leader-fall-through-off`, `terminal/leader-row-wins`,
+  `terminal/leader-association-rename-return`.
 - **R1.7a** A row's key may name a setting (`{terminal-leader}`), as may
   its hint, help and string arguments: the row follows the setting's
   value, declared before or after it, in a defaults file, Go or the
