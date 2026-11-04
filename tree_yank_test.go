@@ -230,3 +230,26 @@ func TestTreeYankThenPutKeepsCopying(t *testing.T) {
 	}
 	t.Fatalf("y y then p did not copy with a fresh id: %s", shape(tree))
 }
+
+// u and ctrl+r write their changes with Undone set; the changes a user
+// makes do not have it.
+func TestTreeChangesOfUndoAreMarked(t *testing.T) {
+	t.Parallel()
+	_, m, tree, _ := deleteFixture(t, "")
+	var got []TreeChange
+	write := tree.OnChange
+	tree.OnChange = func(c TreeChange) error {
+		got = append(got, c)
+		return write(c)
+	}
+	pressKeys(m, "G", "d", "d")
+	pressKeys(m, "u")
+	pressKeys(m, "ctrl+r")
+	var marks []bool
+	for _, c := range got {
+		marks = append(marks, c.Undone)
+	}
+	if want := []bool{false, true, true}; !slices.Equal(marks, want) {
+		t.Fatalf("Undone marks %v for %v, want %v", marks, got, want)
+	}
+}

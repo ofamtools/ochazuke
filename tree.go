@@ -71,6 +71,10 @@ type TreeChange struct {
 	Parent string `json:"parent,omitempty"`
 	Index  int    `json:"index"`
 	Text   string `json:"text,omitempty"`
+	// Undone marks a change that takes back (or, redoing, repeats) an
+	// earlier one: u and ctrl+r write their changes with it set, so an
+	// application can tell an undone add from a delete the user made.
+	Undone bool `json:"undone,omitempty"`
 }
 
 // Tree change operations.
@@ -1281,7 +1285,11 @@ func (t *Tree) history(redo bool) error {
 		inverse = append([]TreeChange{inv}, inverse...)
 	}
 	*to = append(*to, treeEdit{undo: inverse})
-	err := t.write(step.undo)
+	written := slices.Clone(step.undo)
+	for i := range written {
+		written[i].Undone = true
+	}
+	err := t.write(written)
 	focus := step.undo[len(step.undo)-1].ID
 	if last := step.undo[len(step.undo)-1]; last.Op == TreeDelete {
 		focus = t.parentOf(last.ID)
