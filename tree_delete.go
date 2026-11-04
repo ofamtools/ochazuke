@@ -58,13 +58,24 @@ func (t *Tree) deletePlan(id string) []TreeChange {
 	parent, at := t.parentOf(id), 0
 	switch t.r.TreeDeleteChildren() {
 	case TreeDeleteOrphan:
+		if t.OrphanParent != nil {
+			parent = t.OrphanParent(t.nodes[i])
+		} else {
+			parent = ""
+		}
+		// top is the node's ancestor that sits directly under parent (or
+		// the node itself when it does): the children follow it.
 		top := id
-		for p := t.parentOf(top); p != ""; p = t.parentOf(top) {
+		for p := t.parentOf(top); p != parent && p != ""; p = t.parentOf(top) {
 			top = p
 		}
-		parent, at = "", slices.Index(t.children(""), top)
-		if top != id {
-			at++ // after the ancestor, which stays
+		if t.parentOf(top) == parent {
+			at = slices.Index(t.children(parent), top)
+			if top != id {
+				at++ // after the ancestor, which stays
+			}
+		} else {
+			at = len(t.children(parent)) // parent is not above the node: the end of its children
 		}
 	default:
 		at = slices.Index(t.children(parent), id)
@@ -208,7 +219,7 @@ func (t *Tree) removeOne(id string) error {
 			next = items[k-1].ID
 		}
 	}
-	err := t.commit(changes, next)
+	err := t.commitPlan(changes, next)
 	switch {
 	case next != "":
 		_ = t.r.SetFocus(next)

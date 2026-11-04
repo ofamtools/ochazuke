@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -198,8 +199,15 @@ type Tree struct {
 
 	// OnChange makes the tree editable and receives each change as it is
 	// made; an error keeps the change on screen, marks the row and retries
-	// it before the next change.
+	// it before the next change. An error wrapping ErrTreeRefused is not
+	// retried: the change is dropped.
 	OnChange func(TreeChange) error
+	// OrphanParent is the parent the children of a deleted node go to under
+	// tree.delete-children=orphan: given the node, its id ("" the top
+	// level, the default). The id is a row that exists and is not the
+	// node's own subtree; when it is one of the node's ancestors the
+	// children take the place of the ancestor's branch the node was in.
+	OrphanParent func(TreeNode) string
 	// NewID names a new node (default "<tree>-n<seq>").
 	NewID func() string
 	// RowNoun is the noun of nodes the tree adds (default TreeRowNoun).
@@ -746,16 +754,27 @@ func (t *Tree) flush() error {
 	return t.write([]TreeChange{{Op: TreeRename, ID: t.editing, Text: text}})
 }
 
+// ErrTreeRefused is what OnChange returns (wrapped) for a change the store
+// will never take. It is not retried or marked as failed: the application
+// has put its rows right, the change is dropped and its error is returned.
+// In a delete plan (commitPlan) it stops the plan like any failure.
+var ErrTreeRefused = errors.New("change refused")
+
 // write hands changes to OnChange, retried changes first; a failure keeps
 // the rest queued and marks the rows.
 func (t *Tree) write(changes []TreeChange) error {
 	queue := append(t.retry, changes...)
 	t.retry = nil
+	var refused error
 	for i, c := range queue {
 		if t.OnChange == nil {
 			break
 		}
 		if err := t.OnChange(c); err != nil {
+			if errors.Is(err, ErrTreeRefused) {
+				refused = errors.Join(refused, err)
+				continue
+			}
 			t.retry = slices.Clone(queue[i:])
 			for _, q := range t.retry {
 				t.failed[q.ID] = true
@@ -765,7 +784,83 @@ func (t *Tree) write(changes []TreeChange) error {
 		}
 		delete(t.failed, c.ID)
 	}
-	return t.refresh("")
+	return errors.Join(refused, t.refresh(""))
+}
+
+// commitPlan is commit for a plan whose changes depend on one another (a
+// delete that first moves the children out): the changes are written in
+// order, and the first that fails or is refused stops the plan. The ones
+// after it are not written and not queued to retry; the nodes go back to
+// what they were before the plan with the written changes applied, so
+// screen and store agree, and only the written changes are one undo step.
+// Changes queued by earlier failed writes are still retried first.
+func (t *Tree) commitPlan(changes []TreeChange, selectID string) error {
+	if len(changes) < 2 || t.OnChange == nil {
+		return t.commit(changes, selectID)
+	}
+	for _, c := range changes {
+		if err := t.refuses(c); err != nil {
+			return err
+		}
+	}
+	nodes, collapsed := slices.Clone(t.nodes), maps.Clone(t.collapsed)
+	restore := func(upTo int) {
+		t.nodes, t.idx, t.rowCache, t.collapsed = nodes, nil, nil, collapsed
+		for _, c := range changes[:upTo] {
+			_, _ = t.apply(c)
+		}
+	}
+	invs := make([]TreeChange, 0, len(changes))
+	for _, c := range changes {
+		inv, err := t.apply(c)
+		if err != nil {
+			restore(0)
+			return err
+		}
+		invs = append(invs, inv)
+	}
+	pending := len(t.retry)
+	queue := append(slices.Clone(t.retry), changes...)
+	t.retry = nil
+	var failure error
+	done := len(changes)
+	for i, c := range queue {
+		err := t.OnChange(c)
+		if err == nil || errors.Is(err, ErrTreeRefused) && i < pending {
+			delete(t.failed, c.ID)
+			continue
+		}
+		if i < pending {
+			t.retry = slices.Clone(queue[i:pending])
+			for _, q := range t.retry {
+				t.failed[q.ID] = true
+			}
+		}
+		failure = fmt.Errorf("write %s: %w", c, err)
+		done = max(0, i-pending)
+		break
+	}
+	if failure != nil {
+		restore(done)
+	}
+	if done > 0 {
+		undo := make([]TreeChange, 0, done)
+		for j := done - 1; j >= 0; j-- {
+			undo = append(undo, invs[j])
+		}
+		t.undo = append(t.undo, treeEdit{undo: undo})
+		t.redo = nil
+	}
+	err := t.refresh("")
+	if failure != nil {
+		return errors.Join(failure, err)
+	}
+	if selectID != "" {
+		if serr := t.Select(selectID); err == nil {
+			err = serr
+		}
+	}
+	return err
 }
 
 // apply makes one change on the nodes and returns its inverse.
