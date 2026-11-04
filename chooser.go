@@ -200,7 +200,6 @@ func registerChooser(r *Runtime) {
 		c := r.chooserAt(r.Instances[ev.Focus])
 		return c != nil && c.spec.NormalMode
 	})
-	r.DefineGuard("chooser-typing", func(r *Runtime, _ KeyEvent) bool { return r.ModeIs(r.BaseMode(), "insert") })
 	r.DefineGuard("chooser-prop-controls", func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])
 		return c != nil && c.propFiltersEnabled() && (len(c.filters.propFilters) > 0 || c.filters.savedFilter != "")

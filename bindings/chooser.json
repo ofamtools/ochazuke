@@ -1,7 +1,11 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "bindings": [
-    {"context":"ochazuke.chooser/insert","bindings":[{"key":"esc","action":"ochazuke.chooser.normal","hidden":true}]},
+    {"context":"ochazuke.chooser/insert","bindings":[
+      {"key":"esc","action":"ochazuke.chooser.normal","hidden":true},
+      {"key":"printable","action":"ochazuke.input.insert","from":{"text":"text"},"hidden":true},
+      {"key":"paste","action":"ochazuke.input.insert","from":{"text":"text"},"hidden":true}
+    ]},
     {"context":"ochazuke.chooser/normal","bindings":[
       {"key":"j","action":"ochazuke.chooser.move","args":{"delta":1}},
       {"key":"k","action":"ochazuke.chooser.move","args":{"delta":-1}},
@@ -29,8 +33,6 @@
       {"key": "up", "action": "ochazuke.chooser.move", "args": {"delta": -1}},
       {"key": "ctrl+p", "action": "ochazuke.chooser.move", "args": {"delta": -1}},
       {"key": "ctrl+k", "action": "ochazuke.chooser.move", "args": {"delta": -1}},
-      {"key": "printable", "when": "chooser-typing", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},
-      {"key": "paste", "when": "chooser-typing", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},
       {"key": "tab", "action": "ochazuke.search.cycle-match"},
       {"key": "shift+tab", "action": "ochazuke.search.cycle-match", "args": {"step": -1}, "hidden": true}
     ]}
