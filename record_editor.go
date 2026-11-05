@@ -293,25 +293,25 @@ type RecordEditor struct {
 	// editor uses the Model's.
 	Styles Styles
 
-	written   Record   // the record as written, or queued to be
-	saveOwner string   // writes outlive the form instance
-	dirty     []string // fields written in memory, not yet in the store
-	inflight  bool
-	sending   []string // the fields of the write in flight
-	watch     *Watch   // the Watch noun's subscription while open
-	writeErr  string
-	undo      []recordStep
-	redo      []recordStep
-	seq       uint64
-	seen      string
-	focus     string // the focus at the last PendingCommand
-	typing    bool   // whether a text field was being typed in then
-	modal     bool
-	closed    bool
-	loading   bool // outsideWrite is loading the record
+	written     Record   // the record as written, or queued to be
+	saveOwner   string   // writes outlive the form instance
+	dirty       []string // fields written in memory, not yet in the store
+	inflight    bool
+	sending     []string // the fields of the write in flight
+	watch       *Watch   // the Watch noun's subscription while open
+	writeErr    string
+	undo        []recordStep
+	redo        []recordStep
+	seq         uint64
+	seen        string
+	focus       string // the focus at the last PendingCommand
+	typing      bool   // whether a text field was being typed in then
+	modal       bool
+	closed      bool
+	loading     bool // outsideWrite is loading the record
 	reloadAgain bool
-	ran       bool // form.run handed the values to Submit
-	failure   error
+	ran         bool // form.run handed the values to Submit
+	failure     error
 }
 
 // AddRecordEditor places a record editor under Parent (default app); the
@@ -730,6 +730,9 @@ func (e *RecordEditor) flush() error {
 // send hands Save the record when fields are dirty and no write is in
 // flight; a pending write's completion sends what changed meanwhile.
 func (e *RecordEditor) send() error {
+	if e.spec.Submit != nil && (!e.ran || e.spec.WriteKey == "") {
+		return nil
+	}
 	if e.inflight {
 		return nil
 	}
@@ -754,13 +757,18 @@ func (e *RecordEditor) send() error {
 		return nil
 	}
 	e.dirty = slices.DeleteFunc(e.dirty, func(name string) bool { return slices.Contains(changed, name) })
-	if e.spec.Save == nil || e.spec.Submit != nil {
+	if e.spec.Save == nil && e.spec.Submit == nil {
 		e.releaseWrite()
 		return nil
 	}
 	e.sending = changed
 	w := RecordWrite{Values: maps.Clone(e.written), Changed: slices.Clone(changed)}
-	res := e.spec.Save(w)
+	var res Result
+	if e.spec.Submit != nil {
+		res = e.spec.Submit(w.Values)
+	} else {
+		res = e.spec.Save(w)
+	}
 	e.sending = nil
 	if res.err != nil {
 		e.saveFailed(w, res.err)
@@ -1355,6 +1363,27 @@ func (e *RecordEditor) run() error {
 				return err
 			}
 		}
+	}
+	if e.spec.WriteKey != "" {
+		for _, f := range e.fields {
+			if values[f.Name] != e.written[f.Name] {
+				e.requeue([]string{f.Name})
+			}
+		}
+		e.written = values
+		if len(e.dirty) == 0 {
+			for _, f := range e.fields {
+				e.dirty = append(e.dirty, f.Name)
+			}
+		}
+		if err := e.send(); err != nil {
+			e.ran = false
+			return e.runFailed(values, focused, err)
+		}
+		if e.closed && e.spec.OnLeave != nil {
+			e.spec.OnLeave()
+		}
+		return nil
 	}
 	res := e.spec.Submit(values)
 	if res.err != nil {

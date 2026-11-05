@@ -659,6 +659,9 @@ Unfinished values are notices and are printed on stderr outside the alternate
 screen so the record remains after exit. A forced or timed-out write has an
 unconfirmed backend outcome; cancellation cannot reverse a completed backend
 side effect. `0s` opts out of waiting.
+The same per-thing queue covers both change-as-you-type saves and explicitly
+submitted (`forms.edit-apply=confirm`) writes; reopening includes either kind's
+pending values.
 
 Supplying any prop writes directly, without a form:
 `task edit --id t3 --title "New title" --status done`.

@@ -263,7 +263,21 @@ func TestEditGetLandsAfterFocusMoved(t *testing.T) {
 
 func TestReopenOrdersWritesPerThing(t *testing.T) {
 	t.Parallel()
-	r, _, thing := mountedEditFixture(t, "change")
+	for _, mode := range []string{"change", "confirm"} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+			testReopenOrdersWrites(t, mode)
+		})
+	}
+}
+
+func testReopenOrdersWrites(t *testing.T, mode string) {
+	t.Helper()
+	r, _, thing := mountedEditFixture(t, mode)
+	exit := "esc"
+	if mode == "confirm" {
+		exit = "enter"
+	}
 	open := func() {
 		t.Helper()
 		value, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "edit", Args: ochazuke.Arguments{"id": "t1"}})
@@ -286,12 +300,12 @@ func TestReopenOrdersWritesPerThing(t *testing.T) {
 		}
 	}
 	open()
-	press("A", "x", "esc", "esc")
+	press("A", "x", "esc", exit)
 	open()
 	if got := r.RecordEditor("edit-form").Values()["title"]; got != "Originalx" {
 		t.Fatalf("reopened pending value: %q", got)
 	}
-	press("A", "y", "esc", "esc")
+	press("A", "y", "esc", exit)
 	writes := 0
 	for _, j := range r.Jobs() {
 		if j.Verb == "ext-parcel.set" && j.State == ochazuke.JobRunning {
@@ -351,7 +365,7 @@ func TestHistoryUndoDoesNotSkipMountedChange(t *testing.T) {
 	local := ochazuke.Thing{"id": "p1", "title": "Local"}
 	r.Define("local").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title"}).Store(ochazuke.Store{
 		Undo: true,
-		Get: func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return gomaps.Clone(local), nil },
+		Get:  func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return gomaps.Clone(local), nil },
 		Patch: func(_ ochazuke.Ctx, _ string, changes ochazuke.Thing) (ochazuke.Thing, error) {
 			gomaps.Copy(local, changes)
 			return gomaps.Clone(local), nil
@@ -405,7 +419,7 @@ func TestClosedMountedEditFailureIsNotice(t *testing.T) {
 		if j.State == ochazuke.JobRunning {
 			_, _ = r.Deliver(ochazuke.Completion{
 				Ticket: ochazuke.Ticket{Owner: j.Owner, Job: j.Job, Slot: j.Slot},
-				Err: errors.New("backend refused write"),
+				Err:    errors.New("backend refused write"),
 			})
 		}
 	}
