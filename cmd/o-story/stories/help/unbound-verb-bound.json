@@ -1,0 +1,86 @@
+{
+  "name": "b on an unbound row asks for a key, writes the row to bindings.json and loads it: the help lists the verb no more and the key runs it",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {
+    "nouns": [
+      {
+        "noun": "culprit",
+        "verbs": [
+          "clear",
+          "list",
+          "names",
+          "relocate",
+          "show",
+          "size"
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "disk",
+        "height": -1,
+        "items": [
+          {
+            "id": "c1",
+            "noun": "culprit",
+            "label": "~/Library/Caches"
+          },
+          {
+            "id": "c2",
+            "noun": "culprit",
+            "label": "~/.cache/go-build"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "b",
+    "s",
+    "enter",
+    "esc",
+    "s"
+  ],
+  "expect": [
+    {
+      "after": 7,
+      "modal": "args-form",
+      "contains": [
+        "culprit.size"
+      ]
+    },
+    {
+      "after": 9,
+      "modal": "bindings-help",
+      "order": [
+        "culprit.size",
+        "culprit \u00b7 unbound",
+        "culprit.clear"
+      ]
+    },
+    {
+      "after": 10,
+      "modal": "",
+      "writes": []
+    },
+    {
+      "modal": "",
+      "writes": [
+        "culprit.size"
+      ]
+    }
+  ],
+  "config": {
+    "bindings.json": {
+      "bindings": []
+    }
+  }
+}

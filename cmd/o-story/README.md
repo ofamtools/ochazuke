@@ -491,10 +491,11 @@ Conformance:
 | normal | about-row | `about-row.copy` `about-row.open` |
 | normal | app | `app.quit` |
 | normal | bindings | `bindings.help` |
-| normal | bindings-help | `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.view` |
+| normal | bindings-help | `bindings-help.bind` `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.run` `bindings-help.view` |
 | normal | chooser | `chooser.move` `chooser.pick` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
+| normal | culprit | `culprit.size` |
 | normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.check-bindings` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.reload` `demo.send` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
@@ -645,6 +646,7 @@ Mode edges (from → to via):
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `edit` via `mode.set`
 - `normal` → `g_pending` via `mode.enter`
+- `normal` → `insert` via `bindings-help.bind`
 - `normal` → `insert` via `bindings-help.mode`
 - `normal` → `insert` via `bindings-help.noun`
 - `normal` → `insert` via `bindings-help.place`

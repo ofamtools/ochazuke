@@ -141,7 +141,9 @@ func TestHelpCommandBindingsEffectiveFilterAndEscape(t *testing.T) {
 				found := false
 				for _, item := range list.Items() {
 					row := item.Data.(HelpRow)
-					if row.Key == "x" || row.Request == "widget.edit" {
+					// widget.edit lost its key to the instance row on i: it is listed
+					// as an unbound verb, never as a bound row.
+					if row.Key == "x" || row.Request == "widget.edit" && !row.Unbound {
 						t.Fatalf("unavailable or shadowed binding shown: %+v", row)
 					}
 					if row.Key == "i" {

@@ -38,16 +38,16 @@ R|        │                                                 application  │
  |        │   C           demo.choose-column                Choose the   │
  |        │                                                 column the   │
  |        │                                                 row sorts by │
- |        │ list                                                         │
- |        │   space       list.mark                         Toggle the   │
- |        │                                                 mark on a    │
- |        │                                                 row (the     │
- |        │                                                 selected row │
- |        │                                                 by default)  │
- |        │                                                 for fan-out  │
- |        │                                                 verbs        │
- |        │   V           list.visual                       Start a      │
- |        │ 1–9 / 55                                                     │
+ |        │ demo · unbound                                               │
+ |        │               demo.check                        Toggle a [x] │
+ |        │                                                 mark on the  │
+ |        │                                                 outline row, │
+ |        │                                                 an           │
+ |        │                                                 application  │
+ |        │                                                 change on    │
+ |        │                                                 the          │
+ |        │                                                 outline's    │
+ |        │ 1–8 / 64                                                     │
  |        │ space list.mark · S view · esc modal.close · : palette.open… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |

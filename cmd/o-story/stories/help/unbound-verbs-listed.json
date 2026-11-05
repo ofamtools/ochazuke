@@ -1,0 +1,58 @@
+{
+  "name": "? on a row whose noun has verbs no key runs lists them after its keys, key blank, in a \"<noun> \u00b7 unbound\" section (a mounted-style noun: culprit)",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {
+    "nouns": [
+      {
+        "noun": "culprit",
+        "verbs": [
+          "clear",
+          "list",
+          "names",
+          "relocate",
+          "show",
+          "size"
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "disk",
+        "height": -1,
+        "items": [
+          {
+            "id": "c1",
+            "noun": "culprit",
+            "label": "~/Library/Caches"
+          },
+          {
+            "id": "c2",
+            "noun": "culprit",
+            "label": "~/.cache/go-build"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "?"
+  ],
+  "expect": {
+    "modal": "bindings-help",
+    "order": [
+      "culprit \u00b7 unbound",
+      "culprit.clear",
+      "culprit.list",
+      "culprit.names",
+      "culprit.relocate",
+      "culprit.show",
+      "culprit.size"
+    ],
+    "contains": [
+      "enter run",
+      "b bind"
+    ]
+  }
+}

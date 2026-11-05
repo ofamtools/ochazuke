@@ -2,7 +2,7 @@
   "name": "S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists the noun's places after no place, choosing one moves the header to it",
   "area": "help",
   "width": 120,
-  "height": 40,
+  "height": 80,
   "page": {
     "lists": [
       {

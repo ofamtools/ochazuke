@@ -2,7 +2,7 @@
 {
   "bindings": [
     {"context": "ochazuke.binding/normal", "bindings": [
-      {"key": "enter", "action": "ochazuke.outline.fold", "when": "help-tree", "hidden": true}
+      {"key": "enter", "action": "ochazuke.outline.fold", "when": "help-foldable", "hidden": true}
     ]},
     {"context": "ochazuke.bindings-help/normal", "bindings": [
       {"key": "S", "action": "ochazuke.bindings-help.view", "hint": "view"},
@@ -10,7 +10,9 @@
       {"key": "shift+tab", "action": "ochazuke.bindings-help.view", "args": {"step": -1}, "hidden": true, "help": "Previous view"},
       {"key": "n", "action": "ochazuke.bindings-help.noun", "hint": "noun"},
       {"key": "m", "action": "ochazuke.bindings-help.mode", "hint": "mode"},
-      {"key": "p", "action": "ochazuke.bindings-help.place", "hint": "place"}
+      {"key": "p", "action": "ochazuke.bindings-help.place", "hint": "place"},
+      {"key": "enter", "action": "ochazuke.bindings-help.run", "hint": "run"},
+      {"key": "b", "action": "ochazuke.bindings-help.bind", "hint": "bind"}
     ]}
   ]
 }

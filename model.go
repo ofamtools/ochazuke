@@ -818,6 +818,9 @@ type HelpRow struct {
 	// that point: entering a mode, waiting for the next key, then the
 	// final operation. A single key has none.
 	Steps []HelpStep `json:"steps,omitempty"`
+	// Unbound marks a verb of the focused noun that no row binds: its Key
+	// is blank, its Section "<Noun> · unbound" (unbound_verbs.go).
+	Unbound bool `json:"unbound,omitempty"`
 	// cancel marks a generated prefix cancel (d esc), which helpGroups
 	// lists in the section its sequences are in and never counts.
 	cancel bool
@@ -844,7 +847,7 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 			return groupLevelRows(r.scanRows(r.walk(focus), mode, focus, false))
 		},
 	}
-	return helpGroups(r.helpRows(w, r.groupedRows(focus), 0))
+	return r.withUnboundRows(helpGroups(r.helpRows(w, r.groupedRows(focus), 0)), r.UnboundVerbs(focus, r.Mode))
 }
 
 // NounHelp is BindingHelp for a hypothetical focus on noun in mode, with
@@ -869,7 +872,7 @@ func PlaceHelp(r *Runtime, place NounPlace, mode ModeState) []HelpRow {
 			return groupLevelRows(r.nounRows(place, mode))
 		},
 	}
-	return helpGroups(r.helpRows(w, groupLevelRows(r.nounRows(place, mode)), 0))
+	return r.withUnboundRows(helpGroups(r.helpRows(w, groupLevelRows(r.nounRows(place, mode)), 0)), r.PlaceUnboundVerbs(place, mode))
 }
 
 // helpWalk is how helpRows reads a walk: the arguments a row shows, the

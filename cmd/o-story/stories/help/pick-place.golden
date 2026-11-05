@@ -3,7 +3,12 @@
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
  |  a
 r|  a1
- |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+ |  a2
+ |
+ |
+ |
+ |
+ |            ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · pick                                                                                  │
  |            │ noun: demo · mode: normal · place: page1 › demo › list                                       │
  |            │ key             operation                 arguments              description                 │
@@ -18,6 +23,37 @@ R|            │   q             app.quit                                      
  |            │                                                                  naming the row              │
  |            │   x             demo.delete                                      Remove the row from its     │
  |            │                                                                  list                        │
+ |            │ demo · unbound                                                                               │
+ |            │                 demo.check                                       Toggle a [x] mark on the    │
+ |            │                                                                  outline row, an application │
+ |            │                                                                  change on the outline's     │
+ |            │                                                                  undo stack                  │
+ |            │                 demo.choose                                      Open the page's story       │
+ |            │                                                                  chooser again               │
+ |            │                 demo.finish                                      Finish (or fail) the oldest │
+ |            │                                                                  running job of a demo verb  │
+ |            │                 demo.guide                                       Answer a Markdown guide: a  │
+ |            │                                                                  Markdown result, opened in  │
+ |            │                                                                  the palette's Markdown      │
+ |            │                                                                  viewer (help.markdown)      │
+ |            │                 demo.hide                                        Stop drawing a list, tree,  │
+ |            │                                                                  input or the timeline (by   │
+ |            │                                                                  id), or draw it again: a    │
+ |            │                                                                  tab switched away from it   │
+ |            │                 demo.mapping                                     Answer a JSON mapping: a    │
+ |            │                                                                  multiline text result,      │
+ |            │                                                                  opened in the palette's     │
+ |            │                                                                  text view                   │
+ |            │                 demo.ping                                        Add a notice saying ping    │
+ |            │                                                                  and the row                 │
+ |            │                 demo.program                                     Answer a one-line jq        │
+ |            │                                                                  program: a text result,     │
+ |            │                                                                  opened in the palette's     │
+ |            │                                                                  text view                   │
+ |            │                 demo.usage                                       Answer a --help page: a     │
+ |            │                                                                  preformatted result, drawn  │
+ |            │                                                                  as written in the palette's │
+ |            │                                                                  viewer (help.markdown)      │
  |            │ list                                                                                         │
  |            │   space         list.mark ?                                      when list-marks · Toggle    │
  |            │                                                                  the mark on a row (the      │
@@ -29,10 +65,14 @@ R|            │   q             app.quit                                      
  |            │                                                                  the row's cells joined by   │
  |            │                                                                  tabs (what: row, any table) │
  |            │                                                                  into the registers; over a  │
- |            │                                                                  visual selection (V) every  │
- |            │ 1–7 / 120                                                                                    │
+ |            │ 1–16 / 129                                                                                   │
  |            │ space list.mark · S view · n noun · m mode · p place · esc modal.close · : palette.open · ?… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
