@@ -233,3 +233,27 @@ func TestStandardEditWritesAfterRowRemoved(t *testing.T) {
 		t.Fatalf("write after row removal: %v", got)
 	}
 }
+
+func TestStandardEditNoneClearsOptional(t *testing.T) {
+	t.Parallel()
+	r, s := editFixture(t)
+	m := NewModel(r)
+	mustRun(t, r, Request{Noun: "parcel", Verb: "edit"})
+	for _, key := range []string{"j", "enter", "g", "g", "enter"} {
+		keytest.Press(m, key)
+	}
+	if got := s.find("t1"); got["status"] != nil || got["active"] != false || got["title"] != "Original" {
+		t.Fatalf("none must clear only status, not toggle it: %v", got)
+	}
+	mustRun(t, r, Request{Noun: "parcel", Verb: "set", Args: Arguments{"id": "t1", "prop": "active", "toggle": true}})
+	if s.find("t1")["active"] != true {
+		t.Fatalf("a real toggle stopped flipping: %v", s.find("t1"))
+	}
+	mustRun(t, r, Request{Noun: "parcel", Verb: "set", Args: Arguments{"id": "t1", "changes": map[string]any{"active": nil}}})
+	if s.find("t1")["active"] != nil {
+		t.Fatalf("null toggled instead of clearing a boolean: %v", s.find("t1"))
+	}
+	if _, err := r.Execute(Request{Noun: "parcel", Verb: "set", Args: Arguments{"id": "t1", "changes": map[string]any{"title": nil}}}); err == nil || s.find("t1")["title"] != "Original" {
+		t.Fatalf("required null must refuse without writing: %v %v", s.find("t1"), err)
+	}
+}

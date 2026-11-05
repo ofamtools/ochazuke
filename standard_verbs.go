@@ -765,8 +765,11 @@ func setWrites(n *Noun, a Arguments) ([]string, error) {
 	return order, err
 }
 
+// propToggle is distinct from a literal null, which clears an optional prop.
+type propToggle struct{}
+
 // setChanges reads a set request's changes: prop and value (or toggle,
-// answered later against the current value: nil here), the changes
+// answered later against the current value), the changes
 // object, or prop=value words (prop, value and pairs: the several-prop
 // form, quoted values unquoted). The one-prop and several-prop forms do
 // not mix. Each prop must be one set may write; values are typed by it.
@@ -789,7 +792,7 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 		if _, dup := changes[name]; dup {
 			return &ArgumentError{fmt.Errorf("%s is written twice", name)}
 		}
-		if v != nil {
+		if _, toggles := v.(propToggle); !toggles {
 			typed, err := propValue(*p, v)
 			if err != nil {
 				return &ArgumentError{fmt.Errorf("%s %w", name, err)}
@@ -846,7 +849,7 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 			if p := n.prop(prop); p != nil && p.Type != SettingBoolean {
 				return nil, nil, &ArgumentError{fmt.Errorf("%s is %s: only a boolean prop toggles", prop, p.Type)}
 			}
-			return changes, order, add(prop, nil)
+			return changes, order, add(prop, propToggle{})
 		case !hasValue:
 			return nil, nil, &ArgumentError{fmt.Errorf("value is required: set %s VALUE (or toggle a boolean)", prop)}
 		}
@@ -986,7 +989,7 @@ func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
 		return nil, err
 	}
 	for name, v := range changes {
-		if v != nil {
+		if _, toggle := v.(propToggle); !toggle {
 			continue
 		}
 		// toggle: the current value, flipped
