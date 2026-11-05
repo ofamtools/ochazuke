@@ -828,6 +828,25 @@ func (e *RecordEditor) saveFailed(w RecordWrite, err error) {
 			f.writeErr, f.failedValue = err.Error(), w.Values[name]
 		}
 	}
+	if e.closed {
+		e.reportUnsaved(w.Changed, w.Values, err.Error())
+	}
+}
+
+// reportUnsaved preserves values after their field and its inline error are gone.
+// Secrets stay redacted in notices and in the message history.
+func (e *RecordEditor) reportUnsaved(names []string, values Record, reason string) []string {
+	var messages []string
+	for _, name := range names {
+		value := values[name]
+		if f := e.field(name); f != nil && f.Secret {
+			value = "[redacted]"
+		}
+		text := fmt.Sprintf("Not saved: %s · %s = %q: %s", e.spec.Title, name, value, reason)
+		e.r.UI().Notify(text)
+		messages = append(messages, text)
+	}
+	return messages
 }
 
 func (e *RecordEditor) saved(w RecordWrite, err error) {
@@ -1376,6 +1395,9 @@ func (e *RecordEditor) runFailed(values Record, focused string, err error) error
 func (e *RecordEditor) leave() error {
 	err := e.seal(e.fieldOn(e.r.Focus))
 	e.closed = true
+	if e.writeErr != "" {
+		e.reportUnsaved(e.dirty, e.written, e.writeErr)
+	}
 	e.stopWatch()
 	if e.modal && e.r.TopModal() == e.id {
 		if perr := e.r.Pop(); perr != nil {

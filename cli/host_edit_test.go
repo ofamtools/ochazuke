@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	gomaps "maps"
 	"reflect"
 	"strings"
@@ -372,5 +373,41 @@ func TestHistoryUndoDoesNotSkipMountedChange(t *testing.T) {
 	}
 	if thing["title"] != "Originalx" || local["title"] != "Local edited" {
 		t.Fatalf("undo skipped to a different thing: mounted %v local %v", thing, local)
+	}
+}
+
+func TestClosedMountedEditFailureIsNotice(t *testing.T) {
+	t.Parallel()
+	r, m, thing := mountedEditFixture(t, "change")
+	if _, err := r.HandleBinding("i"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	e := r.RecordEditor("edit-form")
+	for _, key := range []string{"A", "x", "esc", "esc"} {
+		if _, err := r.HandleBinding(key); err != nil {
+			t.Fatal(err)
+		}
+		e.PendingCommand()
+	}
+	for _, j := range r.Jobs() {
+		if j.State == ochazuke.JobRunning {
+			_, _ = r.Deliver(ochazuke.Completion{
+				Ticket: ochazuke.Ticket{Owner: j.Owner, Job: j.Job, Slot: j.Slot},
+				Err: errors.New("backend refused write"),
+			})
+		}
+	}
+	m.Update(keytest.Msg("j", false, false)) // A later key must not erase the failed value.
+	notices := strings.Join(m.Notices, "\n")
+	for _, want := range []string{"Edit ext-parcel: Original", "title", `"Originalx"`, "backend refused write"} {
+		if !strings.Contains(notices, want) {
+			t.Fatalf("notice lost %q: %s", want, notices)
+		}
+	}
+	if thing["title"] != "Original" || r.TopModal() != "" {
+		t.Fatalf("failed write changed the thing or reopened a form: %v, %s", thing, r.TopModal())
 	}
 }
