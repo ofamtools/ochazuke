@@ -491,7 +491,7 @@ Conformance:
 | normal | about-row | `about-row.copy` `about-row.open` |
 | normal | app | `app.quit` |
 | normal | bindings | `bindings.help` |
-| normal | bindings-help | `bindings-help.bind` `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.run` `bindings-help.view` |
+| normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.run` `bindings-help.view` |
 | normal | chooser | `chooser.move` `chooser.pick` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
@@ -593,6 +593,7 @@ Mode edges (from → to via):
 - `flat` → `edit` via `mode.set`
 - `g_pending` → `normal` via `input.move`
 - `g_pending` → `normal` via `yank-history.open`
+- `help_bind_pending` → `normal` via `bindings-help.bind-key`
 - `hints` → `terminal` via `demo.hint`
 - `hints` → `terminal` via `demo.hints-cancel`
 - `insert` → `jq` via `palette.run`
@@ -646,7 +647,8 @@ Mode edges (from → to via):
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `edit` via `mode.set`
 - `normal` → `g_pending` via `mode.enter`
-- `normal` → `insert` via `bindings-help.bind`
+- `normal` → `help_bind_pending` via `mode.enter`
+- `normal` → `insert` via `bindings-help.args`
 - `normal` → `insert` via `bindings-help.mode`
 - `normal` → `insert` via `bindings-help.noun`
 - `normal` → `insert` via `bindings-help.place`
