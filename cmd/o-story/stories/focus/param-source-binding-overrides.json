@@ -1,0 +1,9 @@
+{
+  "name": "a binding row's from wins over the parameter's from",
+  "area": "focus",
+  "page": {"lists":[{"id":"a","items":[{"id":"a1","label":"one","data":{"host":"h1","alt":"h2"}}]}],"verbs":[{"verb":"demo.send","description":"Send to a host","parameters":{"to":{"type":"string","required":true,"from":"row:host"}}}],
+    "bind": [{"noun": "demo", "keys": "x", "do": "demo.send", "from": {"to": "row:alt"}}]
+  },
+  "script": ["x"],
+  "expect": [{"writes": ["demo.send to=h2"]}]
+}

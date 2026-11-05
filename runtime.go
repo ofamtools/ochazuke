@@ -73,6 +73,19 @@ type Parameter struct {
 	// and a fill is always shown (the palette slot, the args form). The
 	// catalog's focus.
 	Focus bool `json:"focus,omitempty"`
+	// From declares where an omitted value comes from when no key says:
+	// "row" (the Data of the row the request acts for) or "row:<field>"
+	// (one field of it, dots walking nested ones), the sources of a
+	// binding row's From (Binding.FromRow) that need no key. Every route
+	// reads it the same way (Runtime.parameterSources, in execute): an
+	// argument given wins, then the binding row's From, then this, then
+	// Focus, then the default, and the args form asks for what is still
+	// missing. The row is the innermost instance with Data from the
+	// request's target (else the focus, for a request a person makes: a
+	// key, the palette, the help; a program names its target) outward. A
+	// row without Data or the field fills nothing. A fill is always shown
+	// (the palette slot, the args form). The catalog's from.
+	From string `json:"from,omitempty"`
 	// Edits names the prop of the subject this parameter writes (rename's
 	// name writes the label prop): the args form opens holding the prop's
 	// current value, selected as a rename is (rename.select), or, when it
@@ -795,6 +808,9 @@ func (r *Runtime) Register(o Operation) {
 	if err := checkRestParameter(o); err != nil {
 		panic(err.Error())
 	}
+	if err := CheckParameterSources(o); err != nil {
+		panic(err.Error())
+	}
 	switch o.Kind {
 	case "":
 		o.Kind = KindInteraction
@@ -999,7 +1015,14 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 		}
 		q.Args = args
 	}
-	if err := r.checkArguments(op, q.Args); err != nil {
+	// Parameter sources (Parameter.From) fill what the request omits, for
+	// every route; what a fan-out over several subjects runs is filled
+	// again for each subject's own row.
+	filled, err := r.parameterSources(op, q, focusOf(c))
+	if err != nil {
+		return nil, err
+	}
+	if err := r.checkArguments(op, filled); err != nil {
 		return nil, &ArgumentError{err}
 	}
 	associated, err := r.associationSubject(op, q, focusOf(c))
@@ -1041,7 +1064,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	// Guards are applicability: a verb guarded off where the request acts
 	// (its target, else the caller's focus) is refused, from keys, the
 	// palette, the CLI and the API alike.
-	if !r.Available(q, focus, guardMode) {
+	if !r.Available(withArgs(q, filled), focus, guardMode) {
 		return nil, fmt.Errorf("%s is not applicable now", r.DisplayKey(q.Key()))
 	}
 	// A request without a target addresses the nearest instance of its
@@ -1066,6 +1089,9 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	subjects, err := r.subjectsOf(q, focus)
 	if err != nil {
 		return nil, err
+	}
+	if op.hasSources() && (len(subjects) <= 1 || op.Many) {
+		q.Args, request.Args = filled, filled
 	}
 	defer r.actingFor(focus)()
 	defer r.asking(actions)()
@@ -1370,4 +1396,10 @@ func registerCore(r *Runtime) {
 		return true, nil
 	}})
 	r.Register(Operation{Verb: "ignore", Noun: "ochazuke.key", Description: "The noop: always available, does nothing; a row bound to it consumes its key (DispatchOutcome reports KeyConsumed), how a container clamps a key its children leave unhandled", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+}
+
+// withArgs is q with args as its arguments.
+func withArgs(q Request, args Arguments) Request {
+	q.Args = args
+	return q
 }

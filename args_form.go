@@ -112,6 +112,9 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 	if run == nil {
 		return nil, errors.New("args form needs a run")
 	}
+	// What a parameter's From fills (Parameter.From) starts in its field,
+	// shown as any prefill is, and counts as given.
+	q = r.formSources(q)
 	if r.Instances[ArgsFormID] != nil {
 		return nil, errors.New("an args form is already open")
 	}
@@ -324,7 +327,10 @@ func argumentsFrom(op Operation, base Arguments, rec Record) (Arguments, error) 
 // argument.
 func (r *Runtime) formForMissing(q Request, run func(Request) error) bool {
 	op, ok := r.Operations[q.Key()]
-	if !ok || len(missingRequired(op, q.Args)) == 0 || !r.missingOpensForm() {
+	if !ok || !r.missingOpensForm() {
+		return false
+	}
+	if len(missingRequired(op, r.formSources(q).Args)) == 0 {
 		return false
 	}
 	_, err := r.OpenArgsForm(q, run)

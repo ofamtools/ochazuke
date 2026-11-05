@@ -152,6 +152,9 @@ func (a Action) check(r *Runtime) error {
 	if err := r.CheckSourceArgs(a.Parameters); err != nil {
 		return err
 	}
+	if err := CheckParameterSources(Operation{Noun: a.Noun, Verb: a.Verb, Parameters: a.Parameters}); err != nil {
+		return err
+	}
 	for name, p := range a.Parameters {
 		if name == "" || strings.ContainsAny(name, ". \t\n") || actionPlaceholders[name] {
 			return fmt.Errorf("parameter name %q must be one word, not a dot or a reserved name", name)

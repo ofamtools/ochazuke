@@ -183,6 +183,10 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 			op.Parameters[name] = param(p)
 		}
 	}
+	if err := ochazuke.CheckParameterSources(op); err != nil {
+		delete(r.Operations, key)
+		return err
+	}
 	for _, name := range v.Positional {
 		if _, ok := op.Parameters[name]; !ok {
 			note("positional %s names no parameter; mounted without a positional order", name)

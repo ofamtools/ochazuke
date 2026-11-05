@@ -559,29 +559,9 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 		}
 	}
 	if len(b.From) > 0 {
-		args := Arguments{}
-		for k, v := range q.Args {
-			args[k] = v
-		}
-		for arg, source := range b.From {
-			v := r.argument(source, ev)
-			if field, rowField := rowSourceField(source); rowField {
-				text, isText := v.(string)
-				if v == nil || isText && strings.TrimSpace(text) == "" {
-					if arg == "target" {
-						row := ev.Focus
-						if inst := r.sourceRow(ev); inst != nil {
-							row = inst.ID
-						}
-						return fmt.Errorf("row %q: target field %q is empty", row, field)
-					}
-					delete(args, arg)
-					continue
-				}
-			}
-			if v != nil {
-				args[arg] = v
-			}
+		args, err := r.fillFrom(q.Args, b.From, ev, true)
+		if err != nil {
+			return err
 		}
 		q.Args = args
 		if q.IsProp() {
@@ -614,19 +594,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 	}
 	// A request lacking a required argument opens the args form for it
 	// (MissingOpensFormSetting); the form runs it as the key's.
-	source := r.history.source
-	formRequest := q
-	if formRequest.Target == "" && ev.Focus != r.Focus {
-		formRequest.Target = ev.Focus
-	}
-	formed := r.formForMissing(formRequest, func(q Request) error {
-		defer r.forceSource(source)()
-		return execute(q)
-	})
-	var err error
-	if !formed {
-		err = execute(q)
-	}
+	formed, err := r.runOrAsk(ev.Focus, q, execute)
 	if r.pendingModes[before] && r.modeGeneration == generation && r.Mode.Name == before {
 		r.leaveMode()
 	}

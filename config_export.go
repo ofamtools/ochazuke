@@ -335,7 +335,8 @@ const actionsExample = `[
     "parameters": {
       "mode": {"type": "string", "required": true, "enum": ["fast", "full"], "description": "How to run"},
       "count": {"type": "integer", "description": "How many times"},
-      "verbose": {"type": "boolean", "description": "Say more"}
+      "verbose": {"type": "boolean", "description": "Say more"},
+      "file": {"type": "string", "from": "row:path", "description": "Filled from the row's path field when you give none"}
     },
     "positional": ["mode", "count"],
     "dir": "{{data.dir}}",

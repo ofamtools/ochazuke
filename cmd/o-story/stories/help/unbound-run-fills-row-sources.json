@@ -1,0 +1,13 @@
+{
+  "name": "enter on an unbound verb in the ? help fills the parameter from the row, as its key would",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {"lists":[{"id":"a","items":[{"id":"a1","label":"one","data":{"host":"h1","alt":"h2"}}]}],"verbs":[{"verb":"demo.send","description":"Send to a host","parameters":{"to":{"type":"string","required":true,"from":"row:host"}}}]
+  },
+  "script": ["?", "/", {"type": "demo.send"}, "enter", "enter"],
+  "expect": [
+    {"after": 3, "modal": "bindings-help", "contains": ["demo.send"]},
+    {"writes": ["demo.send to=h1"], "modal": ""}
+  ]
+}

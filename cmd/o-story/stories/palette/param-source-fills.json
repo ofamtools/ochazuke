@@ -1,0 +1,11 @@
+{
+  "name": "the palette shows the row a parameter's from fills, and runs the line without asking",
+  "area": "palette",
+  "page": {"lists":[{"id":"a","items":[{"id":"a1","label":"one","data":{"host":"h1","alt":"h2"}}]}],"verbs":[{"verb":"demo.send","description":"Send to a host","parameters":{"to":{"type":"string","required":true,"from":"row:host"}}}]
+  },
+  "script": [":", {"type": "demo send "}, "enter"],
+  "expect": [
+    {"after": 2, "contains": ["row: h1"]},
+    {"writes": ["demo.send to=h1"], "modal": ""}
+  ]
+}

@@ -161,7 +161,7 @@ func (r *Runtime) RunUnbound(focus string, q Request) error {
 	if r.Instances[focus] == nil {
 		return fmt.Errorf("unknown instance %q", focus)
 	}
-	defer r.forceSource("help")()
+	defer r.forceSource(helpSource)()
 	execute := func(q Request) error {
 		present := r.keyResultPresenter(q)
 		value, err := r.ExecuteAt(r.contextOf(focus), q)
@@ -170,14 +170,33 @@ func (r *Runtime) RunUnbound(focus string, q Request) error {
 		}
 		return err
 	}
+	_, err := r.runOrAsk(focus, q, execute)
+	return err
+}
+
+// helpSource is the history source of a verb run from the help's unbound
+// list: a person's, as a key's.
+const helpSource = "help"
+
+// runOrAsk runs q for the row at focus through execute, or, when it lacks
+// a required argument its parameters' sources do not fill, opens the args
+// form for it (MissingOpensFormSetting); the form's run goes through
+// execute under the source the request started with. It reports whether the
+// form opened. The one place a key's row (runRow) and an unbound verb
+// (RunUnbound) ask or run.
+func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) error) (bool, error) {
 	source := r.history.source
-	if r.formForMissing(q, func(q Request) error {
+	form := q
+	if form.Target == "" && focus != r.Focus {
+		form.Target = focus
+	}
+	if r.formForMissing(form, func(q Request) error {
 		defer r.forceSource(source)()
 		return execute(q)
 	}) {
-		return nil
+		return true, nil
 	}
-	return execute(q)
+	return false, execute(q)
 }
 
 // selectedHelpRow is the help row under the help tree's selection.

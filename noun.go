@@ -1235,12 +1235,8 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 				return row, fmt.Errorf("%s has an empty source", arg)
 			}
 			for _, one := range strings.Fields(source) {
-				switch one {
-				case SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix, SourceLetter, SourceRow:
-				default:
-					if field, ok := rowSourceField(one); !ok || !validRowField(field) {
-						return row, fmt.Errorf("unknown argument source %q", one)
-					}
+				if err := validSource(one); err != nil {
+					return row, err
 				}
 			}
 		}
@@ -1255,6 +1251,19 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 		return row, fmt.Errorf("unknown noun %q", row.Noun)
 	}
 	return row, nil
+}
+
+// validSource checks one binding source word: a named source or
+// "row:<field>" with a well-formed field.
+func validSource(one string) error {
+	switch one {
+	case SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix, SourceLetter, SourceRow:
+		return nil
+	}
+	if field, ok := rowSourceField(one); !ok || !validRowField(field) {
+		return fmt.Errorf("unknown argument source %q", one)
+	}
+	return nil
 }
 
 // DefineMode registers a mode name. A pending mode is exclusive: only rows in
