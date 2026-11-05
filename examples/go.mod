@@ -7,7 +7,7 @@ require (
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/charmbracelet/x/ansi v0.11.9
 	ofam.dev/monogatari v0.4.2
-	ofam.dev/ochazuke v0.89.0
+	ofam.dev/ochazuke v0.90.0
 	ofam.dev/oden v0.2.0
 )
 
