@@ -517,7 +517,7 @@ Conformance:
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
-| normal | parcel | `parcel.set` |
+| normal | parcel | `parcel.get` `parcel.set` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` `setting.write` |
@@ -605,9 +605,10 @@ Mode edges (from → to via):
 - `insert` → `normal` via `modal.close`
 - `insert` → `normal` via `modal.close + demo.synced`
 - `insert` → `normal` via `mode.set`
-- `insert` → `normal` via `mode.set + parcel.set`
+- `insert` → `normal` via `mode.set + parcel.set + parcel.get`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
+- `insert` → `normal` via `palette.run + parcel.get`
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `settings.edit`
@@ -628,6 +629,7 @@ Mode edges (from → to via):
 - `leader_pending` → `terminal` via `item.rename`
 - `leader_pending` → `terminal` via `item.rename-associated`
 - `leader_pending` → `terminal` via `list.select`
+- `leader_pending` → `terminal` via `row r`
 - `leader_pending` → `terminal` via `row x`
 - `leader_pending` → `terminal` via `terminal.send`
 - `leader_pending` → `terminal` via `terminal.send + terminal.send`

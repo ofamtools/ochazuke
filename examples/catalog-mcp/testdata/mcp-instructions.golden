@@ -19,7 +19,7 @@ Good manners
 App: "catalog-mcp".
 About (catalog data): "A tiny task store for exploring the generic catalog MCP server."
 Nouns (catalog data):
-- "task" (8 verbs): "Small tasks used to try catalog discovery, changes and undo"
+- "task" (9 verbs): "Small tasks used to try catalog discovery, changes and undo"
 You are harness "test" in pane "test-pane".
 This session is headless: a fresh in-process runtime with no owner's screen, marks or live modals. Screen-dependent verbs may be unavailable; pass explicit targets.
 

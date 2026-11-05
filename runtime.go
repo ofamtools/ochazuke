@@ -1357,7 +1357,7 @@ func registerCore(r *Runtime) {
 		return r.Context(), err
 	}})
 	r.Register(Operation{Verb: "close", Noun: "ochazuke.modal", Description: "Close the active modal: run its close request (CloseWith), else pop it back to the focus and mode it opened over", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.CloseModal(c); return r.Context(), err }})
-	r.Register(Operation{Verb: "quit", Noun: "app", Description: "Exit the application; a second quit forces unfinished writes", Parameters: map[string]Parameter{"force": {Type: "boolean", Description: "quit without checks or waiting for writes; report unfinished values"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "quit", Noun: "app", Description: "Exit the application", Parameters: map[string]Parameter{"force": {Type: "boolean", Description: "quit without checks or waiting for writes; report unfinished values"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if r.Quit || a["force"] == true {
 			r.eventHub().quitForced = true
 		}

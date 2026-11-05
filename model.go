@@ -83,14 +83,14 @@ type Model struct {
 	// followed is the focus each page surface last scrolled to follow, so a
 	// frame scrolls only when the focus moved (pgup and pgdown may leave it
 	// off screen until the next motion).
-	followed  map[string]string
-	ticker    jobTicker    // the finished jobs the ticker remembers (ticker.go)
-	segTimer  segmentTimer // the status segments' refresh timer (segment_view.go)
-	echo      keyEcho      // the keys the key echo shows (key_echo.go)
-	styles    modelStyles
-	redraw    modelRedraw
-	viewCache modelViewports
-	surfaces  modelSurfaces
+	followed    map[string]string
+	ticker      jobTicker    // the finished jobs the ticker remembers (ticker.go)
+	segTimer    segmentTimer // the status segments' refresh timer (segment_view.go)
+	echo        keyEcho      // the keys the key echo shows (key_echo.go)
+	styles      modelStyles
+	redraw      modelRedraw
+	viewCache   modelViewports
+	surfaces    modelSurfaces
 	quitClosing bool
 	quitReport  []string
 	// Now is the Model's clock: finished jobs, key echoes, changed filter rows and

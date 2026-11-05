@@ -98,12 +98,12 @@ func (m *Model) quitCommand() tea.Cmd {
 }
 
 type quitNotice struct {
-	lines []string
+	lines  []string
 	stderr io.Writer
 }
 
-func (*quitNotice) SetStdin(io.Reader) {}
-func (*quitNotice) SetStdout(io.Writer) {}
+func (*quitNotice) SetStdin(io.Reader)      {}
+func (*quitNotice) SetStdout(io.Writer)     {}
 func (n *quitNotice) SetStderr(w io.Writer) { n.stderr = w }
 func (n *quitNotice) Run() error {
 	for _, text := range n.lines {

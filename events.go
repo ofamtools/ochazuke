@@ -93,9 +93,9 @@ type eventHub struct {
 
 	// quitting: app.quitting was emitted (Model's quit) and the jobs its
 	// hooks started, which the Model waits on until QuitHookWait.
-	quitEmitted  bool
-	quitJobs     []uint64
-	quitDeadline time.Time
+	quitEmitted       bool
+	quitJobs          []uint64
+	quitDeadline      time.Time
 	quitWriteDeadline time.Time
 	quitForced        bool
 }
