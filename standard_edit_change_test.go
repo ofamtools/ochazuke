@@ -264,3 +264,44 @@ func TestStandardEditChangeWalk(t *testing.T) {
 		}
 	}
 }
+
+func TestStandardEditReferenceChoice(t *testing.T) {
+	t.Parallel()
+	r, s := editFixture(t)
+	r.Define("project")
+	r.Instance("p1", Kind("project")).Label = "Alpha"
+	r.Instance("p2", Kind("project")).Label = "Beta"
+	s.find("t1")["project"] = "p1"
+	r.Define("parcel").Props(PropSpec{Name: "project", Parameter: Parameter{Noun: "project", Free: true}})
+	m := NewModel(r)
+	mustRun(t, r, Request{Noun: "parcel", Verb: "edit"})
+	if err := r.SetFocus(editFormID + "/project"); err != nil {
+		t.Fatal(err)
+	}
+	e := r.RecordEditor(editFormID)
+	if text := e.Block(60, 20).Text; !strings.Contains(text, "Alpha") || strings.Contains(text, "p1") {
+		t.Fatalf("reference label: %s", text)
+	}
+	for _, key := range []string{"i", "ctrl+u", "zz", "esc"} {
+		keytest.Press(m, key)
+		if s.find("t1")["project"] != "p1" {
+			t.Fatalf("partial reference after %q: %v", key, s.find("t1"))
+		}
+	}
+	for _, key := range []string{"i", "Beta", "enter"} {
+		keytest.Press(m, key)
+	}
+	if s.find("t1")["project"] != "p2" {
+		t.Fatalf("chosen reference: %v", s.find("t1"))
+	}
+	for _, key := range []string{"i", "(none)", "enter"} {
+		keytest.Press(m, key)
+	}
+	if s.find("t1")["project"] != nil {
+		t.Fatalf("clear reference: %v", s.find("t1"))
+	}
+	keytest.Press(m, "u")
+	if s.find("t1")["project"] != "p2" {
+		t.Fatalf("undo clear: %v", s.find("t1"))
+	}
+}

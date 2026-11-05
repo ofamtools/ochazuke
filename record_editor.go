@@ -25,8 +25,10 @@ type Record map[string]string
 // Source, Noun, Free, Description), so a form can come from a verb's
 // catalog parameters (RecordFields). A field with choices (Enum, Source or
 // Noun: Runtime.Choices) and not Free, or of Type boolean, is edited
-// through a chooser, never as free text. A Free field with choices is a
-// text field with suggestions (form-suggest):
+// through a chooser, never as free text. Noun references always use the
+// searchable chooser, even with Free: typing filters, choosing writes an id,
+// and an optional reference offers an explicit "(none)" to clear it.
+// A Free field with Enum or Source choices is a text field with suggestions (form-suggest):
 // typing stays free text, enter in normal mode or ctrl+space opens the
 // framework chooser over the suggestions (the Enum, then the Source's
 // result, loaded off the loop when the Source verb is Pending), a pick
@@ -269,6 +271,13 @@ func (f *recordField) label() string {
 	return f.Name
 }
 
+func (f *recordField) choiceLabel(c Choice) string {
+	if f.Noun != "" && c.Label != "" {
+		return c.Label
+	}
+	return choiceLabel(c)
+}
+
 // RecordEditor is a form over one record: a field per schema entry, each a
 // focus stop, and every change written as it is made. Typing in a text
 // field is written after a pause (Debounce) and at once when the field is
@@ -417,7 +426,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	for _, field := range fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
 		f.chips = field.Chips && (paramHasChoices(field.Parameter) || field.Type == "boolean")
-		f.choose = !f.chips && (field.Type == "boolean" || (paramHasChoices(field.Parameter) && !field.Free))
+		f.choose = !f.chips && (field.Type == "boolean" || field.Noun != "" || (paramHasChoices(field.Parameter) && !field.Free))
 		f.suggest = !f.chips && !f.choose && paramHasChoices(field.Parameter)
 		if field.Type == PathParameterType {
 			// A path field is a stop that opens the path chooser, or a
@@ -1090,7 +1099,7 @@ func (e *RecordEditor) choose(f *recordField) error {
 	if f.path {
 		return e.choosePath(f)
 	}
-	if len(f.SourceArgs) > 0 || e.r.ChoicesSource(f.Parameter) != "" {
+	if f.Noun != "" || len(f.SourceArgs) > 0 || e.r.ChoicesSource(f.Parameter) != "" {
 		return e.suggest(f)
 	}
 	e.loadChoices(f)
@@ -1102,7 +1111,7 @@ func (e *RecordEditor) choose(f *recordField) error {
 		items = append(items, ListItem{ID: formChooseList + "/0", Label: "(none)", Noun: FormOptionNoun, Data: ""})
 	}
 	for _, c := range f.choices {
-		items = append(items, ListItem{ID: fmt.Sprintf("%s/%d", formChooseList, len(items)), Label: choiceLabel(c), Noun: FormOptionNoun, Data: c.ID})
+		items = append(items, ListItem{ID: fmt.Sprintf("%s/%d", formChooseList, len(items)), Label: f.choiceLabel(c), Noun: FormOptionNoun, Data: c.ID})
 	}
 	inst, err := e.r.OpenModal(formChooseID, Payload{Anchor: f.id})
 	if err != nil {
@@ -1170,7 +1179,7 @@ func (e *RecordEditor) suggest(f *recordField) error {
 					choices, _ := value.([]Choice)
 					out := make([]ChooserRow, 0, len(choices)+len(fixed))
 					for _, ch := range choices {
-						out = append(out, ChooserRow{ID: ch.ID, Label: choiceLabel(ch)})
+						out = append(out, ChooserRow{ID: ch.ID, Label: f.choiceLabel(ch)})
 					}
 					return append(out, fixed...)
 				}
@@ -1223,7 +1232,7 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		}
 		rows := make([]ChooserRow, len(choices))
 		for i, ch := range choices {
-			rows[i] = ChooserRow{ID: ch.ID, Label: choiceLabel(ch)}
+			rows[i] = ChooserRow{ID: ch.ID, Label: f.choiceLabel(ch)}
 		}
 		switch {
 		case err != nil && len(rows) == 0:
@@ -1518,7 +1527,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 		value := "(none)"
 		for _, c := range f.choices {
 			if c.ID == f.value {
-				value = choiceLabel(c)
+				value = f.choiceLabel(c)
 			}
 		}
 		if f.value != "" && value == "(none)" {

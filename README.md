@@ -722,6 +722,13 @@ The same per-thing queue covers both change-as-you-type saves and explicitly
 submitted (`forms.edit-apply=confirm`) writes; reopening includes either kind's
 pending values.
 
+Reference fields (`Parameter.Noun`) show the thing's label, falling back to its
+id when no label is readable. They always open the searchable choice picker,
+even when `Free` is set: typing narrows choices without writing; picking writes
+the chosen id immediately. Escape from the picker leaves the association
+unchanged. Optional references offer an explicit `(none)` choice to clear;
+undo restores it. Plain text and Enum/Source-only free fields keep writing text.
+
 Supplying any prop writes directly, without a form:
 `task edit --id t3 --title "New title" --status done`.
 The CLI and MCP `run` use that same handler. Normal-mode `i` is an app-level

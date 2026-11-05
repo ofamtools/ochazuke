@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -617,5 +618,60 @@ func TestRecordClosedEditorIDIsFree(t *testing.T) {
 	}
 	if r.Instances["ed"] != nil || r.Focus != "t1" {
 		t.Fatalf("after Leave: instance %v focus %s", r.Instances["ed"] != nil, r.Focus)
+	}
+}
+
+func TestRecordReferenceChoices(t *testing.T) {
+	t.Parallel()
+	for _, free := range []bool{false, true} {
+		t.Run(strconv.FormatBool(free), func(t *testing.T) {
+			t.Parallel()
+			r, m, _, _ := recordFixture(t, nil)
+			r.Define("project").Verb("list", func(Ctx) Result {
+				return Pending(func(context.Context) (any, error) {
+					return []Choice{{ID: "p1", Label: "Alpha"}, {ID: "p2", Label: "Beta"}, {ID: "p3"}}, nil
+				})
+			})
+			var writes []string
+			e, err := r.OpenRecordEditor("reference", RecordSpec{
+				Fields: []RecordField{{Name: "project", Parameter: Parameter{Noun: "project", Free: free}}},
+				Load:   func() (Record, error) { return Record{"project": "p1"}, nil },
+				Save: func(w RecordWrite) Result {
+					writes = append(writes, w.String())
+					return Done(nil)
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			drainEditWrites(r)
+			if text := ansi.Strip(e.Block(60, 10).Text); !strings.Contains(text, "Alpha") || strings.Contains(text, "p1") {
+				t.Fatalf("reference label: %s", text)
+			}
+			settle(m, keytest.Press(m, "i"))
+			keytest.Press(m, "ctrl+u")
+			keytest.Type(m, "not-a-project")
+			keytest.Press(m, "enter")
+			if e.Written()["project"] != "p1" || len(writes) != 0 {
+				t.Fatalf("partial reference wrote: %v %v", e.Written(), writes)
+			}
+			keytest.Press(m, "esc")
+			settle(m, keytest.Press(m, "i"))
+			keytest.Type(m, "Beta")
+			keytest.Press(m, "enter")
+			settle(m, keytest.Press(m, "i"))
+			keytest.Type(m, "(none)")
+			keytest.Press(m, "enter")
+			keytest.Press(m, "u")
+			if e.Written()["project"] != "p2" || !slices.Equal(writes, []string{"write project=p2", `write project=""`, "write project=p2"}) {
+				t.Fatalf("pick, clear and undo: %v %v", e.Written(), writes)
+			}
+			settle(m, keytest.Press(m, "i"))
+			keytest.Type(m, "p3")
+			keytest.Press(m, "enter")
+			if e.Written()["project"] != "p3" || e.Problem("project") != "" || !strings.Contains(ansi.Strip(e.Block(60, 10).Text), "p3") {
+				t.Fatalf("unlabelled reference: %v %q", e.Written(), e.Problem("project"))
+			}
+		})
 	}
 }

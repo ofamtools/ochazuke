@@ -1,0 +1,24 @@
+{
+  "name": "reference fields show labels and write only a chosen id, including deliberate clearing and undo",
+  "area": "forms",
+  "page": {
+    "lists": [{"id": "projects", "items": [
+      {"id": "p-001", "label": "alpha", "noun": "project"},
+      {"id": "p-002", "label": "beta", "noun": "project"}
+    ]}],
+    "records": [{"id": "record", "fields": [
+      {"name": "project", "type": "string", "noun": "project", "free": true},
+      {"name": "title", "type": "string"}
+    ], "values": {"project": "p-001"}}],
+    "focus": "record/project"
+  },
+  "script": ["i", "ctrl+u", {"type": "zz"}, "esc", "i", {"type": "bet"}, "enter", "i", {"type": "(none)"}, "enter", "u"],
+  "expect": [
+    {"after": 0, "contains": ["alpha"], "lacks": ["p-001"]},
+    {"after": 3, "modal": "form-suggestions", "writes": []},
+    {"after": 4, "focus": "record/project", "contains": ["alpha"], "lacks": ["p-001"], "writes": []},
+    {"after": 7, "modal": "", "focus": "record/project", "contains": ["beta"], "writes": ["write project=p-002"]},
+    {"after": 10, "writes": ["write project=p-002", "write project=\"\""]},
+    {"contains": ["beta"], "writes": ["write project=p-002", "write project=\"\"", "write project=p-002"]}
+  ]
+}
