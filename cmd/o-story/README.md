@@ -662,6 +662,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `form.next-missing`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
+- `normal` → `insert` via `job demo.send`
 - `normal` → `insert` via `macro.record`
 - `normal` → `insert` via `markdown.insert`
 - `normal` → `insert` via `markdown.note`
