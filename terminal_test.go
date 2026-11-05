@@ -581,3 +581,73 @@ func TestTerminalLeaderMovesApplicationLeaderRows(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestModalReturnHonorsFocusOnClose(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, target, want string
+		inner, chained     bool
+	}{
+		{name: "named", target: "a", want: "a"},
+		{name: "missing", target: "missing", want: "panes"},
+		{name: "removed-with-origin", target: "inner", want: "panes"},
+		{name: "innermost", target: "a", want: "b", inner: true},
+		{name: "chained-removal", target: "bridge", want: "a", chained: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := focusOnCloseFixture(t)
+			if _, err := r.AddTerminal("live", newFakeStream(), Parent("panes"), FocusOnClose(tc.target)); err != nil {
+				t.Fatal(err)
+			}
+			r.Instance("inner", Parent("live"), FocusOnClose("b"))
+			r.Instance("bridge", Parent("panes"), FocusOnClose("a"))
+			from := "live"
+			if tc.inner {
+				from = "inner"
+			}
+			if err := r.SetFocus(from); err != nil {
+				t.Fatal(err)
+			}
+			e, err := r.OpenRecordEditor("rename", RecordSpec{
+				Fields: []RecordField{{Name: "name"}},
+				Insert: true,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.OpenModal("nested", Payload{}); err != nil {
+				t.Fatal(err)
+			}
+			if err := r.RemoveInstance("live"); err != nil {
+				t.Fatal(err)
+			}
+			if tc.chained {
+				if err := r.RemoveInstance("bridge"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if r.Focus != "nested" || r.TopModal() != "nested" {
+				t.Fatalf("removal stole modal focus: %q %q", r.Focus, r.TopModal())
+			}
+			if err := r.Pop(); err != nil {
+				t.Fatal(err)
+			}
+			if r.Focus != "rename/name" || r.BaseMode() != "insert" {
+				t.Fatalf("nested return: focus %q mode %q", r.Focus, r.BaseMode())
+			}
+			if err := e.Leave(); err != nil {
+				t.Fatal(err)
+			}
+			if r.Focus != tc.want || r.BaseMode() != "normal" {
+				t.Fatalf("closed modal: focus %q mode %q, want %q normal", r.Focus, r.BaseMode(), tc.want)
+			}
+			if tc.want == "a" || tc.want == "b" {
+				if selected, ok := r.List("rows").Selected(); !ok || selected.ID != tc.want {
+					t.Fatalf("returned row is not selected: %+v", selected)
+				}
+			}
+			assertPageOnFocusPath(t, r)
+		})
+	}
+}

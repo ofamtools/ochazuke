@@ -576,9 +576,9 @@ func (r *Runtime) dropSubtree(id string) {
 // RemoveInstance closes an instance and its descendants (components closed,
 // jobs cancelled) and drops them. Every focus reference into the removed
 // subtree (Focus, a page's remembered focus, an open modal's return) moves
-// to the nearest surviving ancestor (the Focus itself to a removed
-// instance's FocusOnClose target when that survives); an open modal inside the subtree is
-// kept and reparented there. app cannot be removed.
+// to the nearest surviving ancestor, with Focus and modal returns honoring a
+// removed instance's FocusOnClose target when it survives; an open modal inside
+// the subtree is kept and reparented there. app cannot be removed.
 func (r *Runtime) RemoveInstance(id string) error {
 	r.settlePlacements()
 	return r.removeInstance(id, r.childIndex(), r.PageList())
@@ -636,7 +636,11 @@ func (r *Runtime) removeInstance(id string, kids map[string][]*Instance, pages [
 	}
 	for _, modal := range r.modals {
 		if m := r.Instances[modal]; m != nil && gone[m.Payload.Return] {
-			m.Payload.Return, m.returnMode = parent, ModeState{}
+			back := parent
+			if to := r.closeFocusOf(m.Payload.Return, gone); to != "" {
+				back = to
+			}
+			m.Payload.Return, m.returnMode = back, ModeState{}
 		}
 	}
 	for _, one := range r.subtreeFrom(id, kids) {

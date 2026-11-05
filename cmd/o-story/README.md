@@ -463,7 +463,7 @@ Conformance:
 | insert | bindings | `bindings.help` |
 | insert | chooser | `chooser.clear-props` `chooser.move` `chooser.next-source` `chooser.normal` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
-| insert | demo | `demo.edit` `demo.files` `demo.hide` |
+| insert | demo | `demo.close-origin` `demo.edit` `demo.files` `demo.hide` |
 | insert | filter-form | `filter-form.move` `filter-form.write-saved` |
 | insert | find-line | `find-line.commit` |
 | insert | form | `form.next` `form.run` `form.suggest` |

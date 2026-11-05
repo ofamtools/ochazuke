@@ -1,0 +1,23 @@
+{
+  "name": "focus/modal-return-focus-on-close",
+  "page": {
+    "lists": [{"id": "a", "items": [{"id": "a1", "label": "Build"}, {"id": "a2", "label": "Other"}]}],
+    "terminal": {"fake": true, "attach": "a1"},
+    "store": {
+      "props": [{"name": "id", "key": true}, {"name": "title", "role": "label"}],
+      "things": [{"id": "a1", "title": "Build"}, {"id": "a2", "title": "Other"}]
+    },
+    "verbs": [{"verb": "demo.close-origin", "remove": "page1-pane"}],
+    "bind": [
+      {"noun": "terminal", "mode": "leader_pending", "keys": "r", "do": "demo.rename", "args": {"id": "a1"}},
+      {"noun": "form-field", "mode": "insert", "keys": "ctrl+x", "do": "demo.close-origin"}
+    ]
+  },
+  "script": ["enter", "ctrl+a", "r", "ctrl+x", "esc", "esc", "j"],
+  "expect": [
+    {"after": 3, "modal": "args-form", "focus": "args-form/name", "mode": "insert"},
+    {"after": 4, "modal": "args-form", "focus": "args-form/name", "mode": "insert", "contains": ["Build"]},
+    {"after": 6, "modal": "", "focus": "a1", "mode": "normal", "selected": {"a": "a1"}},
+    {"modal": "", "focus": "a2", "mode": "normal", "selected": {"a": "a2"}}
+  ]
+}

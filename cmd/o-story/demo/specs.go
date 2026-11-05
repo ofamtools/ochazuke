@@ -541,7 +541,9 @@ type VerbSpec struct {
 	Result  string              `json:"result,omitempty"`
 	Error   string              `json:"error,omitempty"`
 	Pending bool                `json:"pending,omitempty"`
-	Proxy   bool                `json:"proxy,omitempty"`
+	// Remove closes an instance through the runtime when this fixture verb runs.
+	Remove string `json:"remove,omitempty"`
+	Proxy  bool   `json:"proxy,omitempty"`
 	// Aliases are the verb's other names (ochazuke.ActionAlias: alias as
 	// noun.verb, since/removeAfter for a deprecated one; action is the
 	// verb). A run through an alias logs " via=ALIAS" after its arguments.

@@ -745,6 +745,11 @@ func (ss *session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 		if v.Error != "" {
 			return ochazuke.Failed(errors.New(v.Error))
 		}
+		if v.Remove != "" {
+			if err := ss.R.RemoveInstance(v.Remove); err != nil {
+				return ochazuke.Failed(err)
+			}
+		}
 		if v.Pending {
 			finish := make(chan error, 1)
 			ss.jobs[key] = append(ss.jobs[key], finish)
