@@ -302,17 +302,16 @@ func rowSourceField(source string) (string, bool) {
 	return strings.CutPrefix(source, SourceRow+":")
 }
 
-// rowData is the Data of the row a key acted on: the innermost instance
-// carrying Data from the focus out to the level that answered (to app for
-// a noun-only level).
-func (r *Runtime) rowData(ev KeyEvent) any {
+// sourceRow is the innermost instance carrying Data from the focus out to
+// the answering level (to app for a noun-only level).
+func (r *Runtime) sourceRow(ev KeyEvent) *Instance {
 	for id := ev.Focus; id != ""; {
 		inst := r.Instances[id]
 		if inst == nil {
 			return nil
 		}
 		if inst.Data != nil {
-			return inst.Data
+			return inst
 		}
 		if id == ev.Level {
 			return nil
@@ -322,29 +321,26 @@ func (r *Runtime) rowData(ev KeyEvent) any {
 	return nil
 }
 
+// rowData is the Data of the row a key acted on.
+func (r *Runtime) rowData(ev KeyEvent) any {
+	if row := r.sourceRow(ev); row != nil {
+		return row.Data
+	}
+	return nil
+}
+
 // rowField reads Data first. A mounted row keeps its foreign handle in Data
 // and its record in Props; fields missing from Data fall back to that record.
 func (r *Runtime) rowField(ev KeyEvent, field string) any {
-	for id := ev.Focus; id != ""; {
-		inst := r.Instances[id]
-		if inst == nil {
-			return nil
+	if row := r.sourceRow(ev); row != nil {
+		if value := dataField(row.Data, field); value != nil {
+			return value
 		}
-		if inst.Data != nil {
-			if value := dataField(inst.Data, field); value != nil {
-				return value
+		if list := r.List(r.rows[row.ID]); list != nil {
+			if cached := list.rowCache[row.ID]; cached != nil {
+				return dataField(map[string]any(cached.item.Props), field)
 			}
-			if list := r.List(r.rows[id]); list != nil {
-				if row := list.rowCache[id]; row != nil {
-					return dataField(map[string]any(row.item.Props), field)
-				}
-			}
-			return nil
 		}
-		if id == ev.Level {
-			return nil
-		}
-		id = inst.Parent
 	}
 	return nil
 }

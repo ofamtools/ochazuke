@@ -564,9 +564,22 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 			args[k] = v
 		}
 		for arg, source := range b.From {
-			// A row source with no value (no Data, no such field) leaves
-			// the argument out rather than passing null.
-			if v := r.argument(source, ev); v != nil {
+			v := r.argument(source, ev)
+			if field, rowField := rowSourceField(source); rowField {
+				text, isText := v.(string)
+				if v == nil || isText && strings.TrimSpace(text) == "" {
+					if arg == "target" {
+						row := ev.Focus
+						if inst := r.sourceRow(ev); inst != nil {
+							row = inst.ID
+						}
+						return fmt.Errorf("row %q: target field %q is empty", row, field)
+					}
+					delete(args, arg)
+					continue
+				}
+			}
+			if v != nil {
 				args[arg] = v
 			}
 		}

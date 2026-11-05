@@ -376,3 +376,65 @@ func TestBindCancelsAPendingPrefixItTouches(t *testing.T) {
 		})
 	}
 }
+
+func TestFromRowEmptyTargetRefuses(t *testing.T) {
+	t.Parallel()
+	for _, data := range []any{nil, map[string]any{}, map[string]any{"doc": nil}, map[string]any{"doc": ""}, map[string]any{"doc": " \t"}} {
+		r := NewRuntime()
+		var sent []string
+		r.Define("doc").Verb("send", func(c Ctx) Result {
+			sent = append(sent, StringArg(c.Args, "target", "UNTARGETED"))
+			return Done(nil)
+		})
+		op := r.Operations["doc.send"]
+		op.Parameters = map[string]Parameter{"target": {Type: "string", Required: true}}
+		r.Operations[op.Key()] = op
+		r.Define("lane").Mode("normal").Bind("s", Do("doc.send").FromRow("target", "doc"))
+		row := r.Instance("lane1", Kind("lane"))
+		row.Data = data
+		r.Instance("child", Parent("lane1"), Kind("detail"))
+		if err := r.SetFocus("child"); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := r.Dispatch(MacroKey{Key: "s"}); err == nil || !strings.Contains(err.Error(), `"doc"`) || !strings.Contains(err.Error(), `"lane1"`) && !strings.Contains(err.Error(), `"child"`) {
+			t.Fatalf("data %#v: error %v", data, err)
+		}
+		if len(sent) != 0 || r.TopModal() != "" {
+			t.Fatalf("empty target ran or opened an args form: %v %s", sent, r.TopModal())
+		}
+		row.Data = map[string]any{"doc": "/fixture/report.md"}
+		if _, err := r.Dispatch(MacroKey{Key: "s"}); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(sent, []string{"/fixture/report.md"}) {
+			t.Fatalf("valid target: %v", sent)
+		}
+	}
+}
+
+func TestFromRowEmptyNonTargetStaysOmitted(t *testing.T) {
+	t.Parallel()
+	r := NewRuntime()
+	var got []Arguments
+	r.Define("lane").Verb("attach", func(c Ctx) Result {
+		got = append(got, c.Args)
+		return Done(nil)
+	})
+	op := r.Operations["lane.attach"]
+	op.Parameters = map[string]Parameter{"pane": {Type: "string"}}
+	r.Operations[op.Key()] = op
+	r.Define("lane").Mode("normal").Bind("a", Do("lane.attach").FromRow("pane", "pane"))
+	row := r.Instance("lane1", Kind("lane"))
+	if err := r.SetFocus("lane1"); err != nil {
+		t.Fatal(err)
+	}
+	for _, data := range []any{map[string]any{}, map[string]any{"pane": ""}, map[string]any{"pane": "working-pane"}} {
+		row.Data = data
+		if _, err := r.Dispatch(MacroKey{Key: "a"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !reflect.DeepEqual(got, []Arguments{{}, {}, {"pane": "working-pane"}}) {
+		t.Fatalf("non-target arguments: %#v", got)
+	}
+}

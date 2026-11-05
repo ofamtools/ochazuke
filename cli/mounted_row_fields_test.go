@@ -2,6 +2,7 @@ package cli
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"ofam.dev/ochazuke"
@@ -70,5 +71,52 @@ func TestMountedProxyTargetSource(t *testing.T) {
 				t.Fatal("transport target changed the verb's parameter schema")
 			}
 		})
+	}
+}
+
+func TestMountedRowEmptyTargetRefuses(t *testing.T) {
+	t.Parallel()
+	for _, declared := range []bool{false, true} {
+		r := ochazuke.NewRuntime()
+		var sent []string
+		verb := CatalogVerb{Name: "send"}
+		if declared {
+			verb.Params = map[string]ochazuke.Parameter{"target": {Type: "string"}}
+		}
+		mounted := MountNouns(r, []CatalogNoun{{Name: "doc", Verbs: []CatalogVerb{verb}}}, HostMount{
+			Local: func(n string) string { return "md." + n },
+			Proxy: func(string, CatalogVerb) any {
+				return func(c ochazuke.Ctx) ochazuke.Result {
+					sent = append(sent, ochazuke.StringArg(c.Args, "target", "UNTARGETED"))
+					return ochazuke.Done(nil)
+				}
+			},
+		})
+		if len(mounted.Warnings) > 0 {
+			t.Fatal(mounted.Warnings)
+		}
+		m := ochazuke.NewModel(r)
+		doc := CatalogDoc{Nouns: []CatalogNoun{{Name: "lane", Verbs: []CatalogVerb{{Name: "list", Rows: "lane"}}}}, Pages: []CatalogPage{{ID: "lanes", Title: "Lanes", Lists: []CatalogList{{ID: "rows", Noun: "lane"}}}}}
+		v, err := MountPage(m, doc, doc.Pages[0], PageConfig{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.Define("lane").Mode("normal").Bind("s", ochazuke.Do("md.doc.send").FromRow("target", "doc"))
+		for _, data := range []map[string]any{{}, {"doc": ""}, {"doc": "/fixture/report.md"}} {
+			if err := v.SetRows("rows", []Row{{ID: "lane1", Label: "Work", Data: data}}); err != nil {
+				t.Fatal(err)
+			}
+			if err := r.SetFocus("rows/lane1"); err != nil {
+				t.Fatal(err)
+			}
+			_, err := r.Dispatch(ochazuke.MacroKey{Key: "s"})
+			if data["doc"] == "/fixture/report.md" {
+				if err != nil || !reflect.DeepEqual(sent, []string{"/fixture/report.md"}) {
+					t.Fatalf("valid mounted target: %v %v", sent, err)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), `"doc"`) || !strings.Contains(err.Error(), `"rows/lane1"`) || len(sent) != 0 {
+				t.Fatalf("empty mounted target: %v %v", sent, err)
+			}
+		}
 	}
 }

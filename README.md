@@ -1789,6 +1789,10 @@ catalog proxy with no declared `target` parameter, `from.target` is a string
 transport target in `Ctx.Args["target"]`: the host removes it from the JSON
 arguments and forwards it as `--target`. A declared `target` stays an ordinary
 argument. Neither form changes the host's local focus or instance context.
+If `from.target` names `row:<field>` and that field is missing, null, empty,
+or whitespace-only, dispatch refuses before confirmation, an argument form,
+or the verb runs, naming the field and row. Other empty `row:<field>` arguments
+are omitted so their verb's normal required-argument and chooser rules apply.
 
 Extensions can declare host-only rows with `cli.PeerBindings(rows...)` in
 their catalog options (`peerBindings`); the producer never installs or
