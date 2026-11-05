@@ -196,10 +196,15 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 	if changes := r.takeChanges(depth); err == nil {
 		entry.Changes = changes
 	}
-	// A declared application change without an inverse is still a change.
-	// Keep a barrier so undo cannot silently revert an older, unrelated thing.
-	if op, ok := r.Operation(q.Key()); ok && err == nil && entry.Kind == HistoryChange && op.Kind == KindApplication && len(entry.Changes) == 0 {
-		entry.Changes = []ThingChange{{Noun: op.Noun}}
+	// Only an actual proxy write without a local inverse is a barrier.
+	// Navigation and wrappers leave their nested changes in their own entries.
+	if op, ok := r.Operation(q.Key()); ok && err == nil && op.CatalogProxy && len(entry.Changes) == 0 {
+		n, row := r.Noun(op.Noun), standardRow(op.Standard)
+		if n != nil && n.Store == nil && row != nil && row.HistoryKind == HistoryChange && row.Subject && row.Writes != nil {
+			if names, writeErr := row.Writes(n, q.Args); writeErr == nil && len(names) > 0 {
+				entry.Changes = []ThingChange{{Noun: op.Noun}}
+			}
+		}
 	}
 	h := &r.history
 	if fetchRing(entry) {
