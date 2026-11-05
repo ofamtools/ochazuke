@@ -18,10 +18,10 @@ import (
 // no rows, is that look exactly.
 //
 // A chrome row's colours may name the palette roles a tone names, plus
-// mode: the colour of the current mode's badge (its row's background,
-// else its foreground). An application's accent (Appearance.Accent)
-// replaces the accent, border and mode roles in chrome rows, as it
-// replaces the accent everywhere else.
+// mode: the current badge's hue (rich background, subtle foreground).
+// An application's accent (Appearance.Accent) replaces the accent,
+// border and mode roles in chrome rows, as it replaces the accent
+// everywhere else.
 //
 // Roles (the fallback is the look before the levels):
 //
@@ -39,6 +39,11 @@ import (
 //	                            the mode it extends, then mode
 //	hint.key, hint.text,        the footer's and every modal's hint line:
 //	hint.sep                    a row's key, its action, the " · " between
+//	tab.active, tab, tab.more    active tab, other tabs, overflow markers
+//	rule                        header and footer hairlines
+//	footer.error                the error status line
+//	job.running, job.done,      job entries (subtle: only the state word)
+//	job.failed
 const (
 	// ChromeColorSetting is the chrome colour level, a row of
 	// settings/ochazuke.json (appearance).
@@ -141,10 +146,22 @@ func chromeTones() map[string]ToneStyle {
 		"chrome.rich.panel.title.focused":      {Fg: chromeMode, Bold: true},
 		"chrome.rich.hint.key":                 {Fg: chromeAccent, Bold: true},
 		"chrome.rich.hint.text":                {Fg: chromeHint},
+		"chrome.rich.tab.active":               {Fg: chromeSurf, Bg: chromeMode, Bold: true},
+		"chrome.rich.tab":                      {Fg: SchemeColor{"muted", "muted"}},
+		"chrome.rich.tab.more":                 {Fg: SchemeColor{"muted", "muted"}},
+		"chrome.rich.rule":                     {Fg: SchemeColor{"border", "border"}},
+		"chrome.rich.footer.error":             {Fg: chromeText, Bg: defaultTones[ToneError].Bg, Bold: true},
+		"chrome.rich.job.running":              {Fg: chromeInsert, Bold: true},
+		"chrome.rich.job.done":                 {Fg: chromeGreen},
+		"chrome.rich.job.failed":               {Fg: chromeRec, Bold: true},
 
 		"chrome.subtle.border.state.needs-input": {Fg: chromeAmber},
 		"chrome.subtle.border.state.errored":     {Fg: chromeError},
 		"chrome.subtle.hint.key":                 {Fg: chromeText},
+		"chrome.subtle.tab.active":               {Fg: chromeMode, Bg: chromeSurf, Bold: true},
+		"chrome.subtle.job.running":              {Fg: chromeInsert, Bold: true},
+		"chrome.subtle.job.done":                 {Fg: chromeGreen},
+		"chrome.subtle.job.failed":               {Fg: chromeRec, Bold: true},
 	}
 	for role, hue := range chromeModes {
 		rows[role] = ToneStyle{Fg: hue}
@@ -223,6 +240,10 @@ func (s Styles) WithChrome(level string, modeRoles []string) Styles {
 		s.Badge = look.over(s.Badge)
 		if s.appAccent == nil {
 			switch {
+			case level == ChromeSubtle && look.fg != nil && !look.fgMode:
+				// Subtle puts the hue in the ink, not the surface
+				// background. Mode-coloured chrome must follow it.
+				s.modeColor = look.fg
 			case look.bg != nil && !look.bgMode:
 				s.modeColor = look.bg
 			case look.fg != nil && !look.fgMode:

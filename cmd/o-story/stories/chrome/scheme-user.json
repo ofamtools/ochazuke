@@ -57,7 +57,7 @@
       "modal": "confirm",
       "colored": {
         "◆ o-story": "#DCE9E3",
-        "› work": "#C9A227",
+        "› work": "#172720",
         "╭": "#C9A227"
       },
       "noColor": [
@@ -71,8 +71,8 @@
         "Error:"
       ],
       "colored": {
-        "Error:": "#FF6F61",
-        "› work": "#C9A227"
+        "Error:": "#DCE9E3",
+        "› work": "#172720"
       },
       "noColor": [
         "#E99B8D",

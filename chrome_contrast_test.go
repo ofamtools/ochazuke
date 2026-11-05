@@ -100,7 +100,12 @@ func TestChromeRowsContrast(t *testing.T) {
 				continue
 			}
 			floor := textFloor
-			if strings.HasPrefix(role, "border") {
+			switch {
+			case role == "rule":
+				// Decorative hairlines use the scheme's existing border
+				// palette, not text ink; preserve its quieter contrast.
+				floor = 1.8
+			case strings.HasPrefix(role, "border"), role == "tab", role == "tab.more":
 				floor = borderFloor
 			}
 			if bg == nil {

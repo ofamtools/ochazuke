@@ -1,0 +1,36 @@
+{
+  "name": "error status uses the error background and keeps its Error prefix",
+  "area": "notices",
+  "width": 80,
+  "height": 12,
+  "theme": "dark",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "E",
+        "do": "focus.set",
+        "args": {
+          "id": "nowhere"
+        }
+      }
+    ]
+  },
+  "script": [
+    "E"
+  ],
+  "expect": {
+    "contains": [
+      "Error:"
+    ],
+    "attrs": {
+      "Error:": "bold"
+    }
+  }
+}

@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"slices"
+	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
@@ -156,6 +157,85 @@ func tickerNewest(rows *[JobTickerRows]JobInfo, n *int, j JobInfo) {
 	*n = min(*n+1, JobTickerRows)
 }
 
+// TickerEntry is a plain ticker message and its job state. TickerEntries
+// retains the state word's position so labels and errors may contain the
+// same word without colouring the wrong text.
+type TickerEntry struct {
+	Text, State string
+	stateAt     int
+}
+
+func tickerEntry(j JobInfo, width int) TickerEntry {
+	prefix := j.Verb + " "
+	if j.Label != "" {
+		prefix += j.Label + " "
+	}
+	text := prefix + j.State
+	if j.Error != "" {
+		text += ": " + j.Error
+	}
+	return TickerEntry{
+		Text:    ansi.Truncate(safeLine(text), max(0, width), "…"),
+		State:   j.State,
+		stateAt: chromeWidth(safeLine(prefix)),
+	}
+}
+
+// TickerEntries is JobsTicker with the job states retained for chrome
+// colour. Text stays plain, including the state word and any error.
+func TickerEntries(jobs []JobInfo, width int) []TickerEntry {
+	entries := make([]TickerEntry, 0, len(jobs))
+	for _, j := range jobs {
+		entries = append(entries, tickerEntry(j, width))
+	}
+	return entries
+}
+
+// TickerEntriesRule draws structured jobs in the same cells as TickerRule.
+// Rich colours each whole entry; subtle colours only its state word.
+// Without a job role it takes the legacy path, including its ANSI bytes.
+func (l Layout) TickerEntriesRule(entries []TickerEntry, width int) string {
+	n := min(len(entries), JobTickerRows)
+	var plain [JobTickerRows]string
+	hasColour := false
+	for i, e := range entries[:n] {
+		plain[i] = e.Text
+		hasColour = hasColour || l.Styles.HasChrome("job."+e.State)
+	}
+	if !hasColour || width < 6 {
+		return l.TickerRule(plain[:n], width)
+	}
+	s := l.Styles
+	rule := s.Chrome("rule", s.Muted)
+	const lead = "── "
+	room := width - chromeWidth(lead) - 2
+	text := ansi.Truncate(modalLabel(strings.Join(plain[:n], " · ")), room, "…")
+	var b strings.Builder
+	b.WriteString(rule.Render(lead))
+	at := 0
+	for i, e := range entries[:n] {
+		if i > 0 {
+			b.WriteString(rule.Render(ansi.Cut(text, at, at+3)))
+			at += 3
+		}
+		end := at + chromeWidth(e.Text)
+		part := ansi.Cut(text, at, end)
+		style := s.Chrome("job."+e.State, s.Muted)
+		if s.ChromeLevel() == ChromeSubtle {
+			start, stop := e.stateAt, e.stateAt+chromeWidth(e.State)
+			b.WriteString(s.Muted.Render(ansi.Cut(part, 0, start)))
+			b.WriteString(style.Render(ansi.Cut(part, start, stop)))
+			b.WriteString(s.Muted.Render(ansi.Cut(part, stop, chromeWidth(part))))
+		} else {
+			b.WriteString(style.Render(part))
+		}
+		at = end
+	}
+	fill := width - chromeWidth(lead) - chromeWidth(text) - 1
+	b.WriteString(rule.Render(" " + strings.Repeat("─", fill)))
+	return b.String()
+}
+
 // JobsTicker renders the ticker's entries: one message per job,
 // "noun.verb state" ("noun.verb label state" when the job has a Label),
 // with ": error" on a failure, each truncated to width
@@ -163,15 +243,7 @@ func tickerNewest(rows *[JobTickerRows]JobInfo, n *int, j JobInfo) {
 func JobsTicker(jobs []JobInfo, width int) []string {
 	lines := make([]string, 0, len(jobs))
 	for _, j := range jobs {
-		line := j.Verb + " "
-		if j.Label != "" {
-			line += j.Label + " "
-		}
-		line += j.State
-		if j.Error != "" {
-			line += ": " + j.Error
-		}
-		lines = append(lines, ansi.Truncate(safeLine(line), max(0, width), "…"))
+		lines = append(lines, tickerEntry(j, width).Text)
 	}
 	return lines
 }
@@ -193,9 +265,19 @@ func safeLine(s string) string {
 func (m *Model) JobsTicker(width int) []string {
 	jobs := m.ticker.rows(m.Runtime, m.clock())
 	for i := range jobs {
-		jobs[i].Verb = m.Runtime.DisplayKey(jobs[i].Verb) // command.help, not ochazuke.command.help
+		jobs[i].Verb = m.Runtime.DisplayKey(jobs[i].Verb)
 	}
 	return JobsTicker(jobs, width)
+}
+
+// TickerEntries is the current ticker with job states retained. Like
+// JobsTicker, observing it neither starts a timer nor changes job state.
+func (m *Model) TickerEntries(width int) []TickerEntry {
+	jobs := m.ticker.rows(m.Runtime, m.clock())
+	for i := range jobs {
+		jobs[i].Verb = m.Runtime.DisplayKey(jobs[i].Verb)
+	}
+	return TickerEntries(jobs, width)
 }
 
 // JobLingerTick is the linger timer in flight, the message its tea.Tick

@@ -1,0 +1,62 @@
+{
+  "name": "job colour follows state without replacing the state word",
+  "area": "ticker",
+  "width": 90,
+  "height": 12,
+  "theme": "dark",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "jobs": [
+      {
+        "verb": "demo.build",
+        "key": "w",
+        "finishOnKey": "W",
+        "failOnKey": "X"
+      }
+    ]
+  },
+  "script": [
+    "w",
+    "W",
+    {
+      "job": "demo.build",
+      "state": "done"
+    },
+    "w",
+    "X",
+    {
+      "job": "demo.build",
+      "state": "failed"
+    }
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "styled": {
+        "demo.build running": "#7CB7E8"
+      },
+      "attrs": {
+        "demo.build running": "bold"
+      }
+    },
+    {
+      "after": 3,
+      "styled": {
+        "demo.build done": "#8BC48A"
+      }
+    },
+    {
+      "styled": {
+        "demo.build failed": "#E99B8D"
+      },
+      "attrs": {
+        "demo.build failed": "bold"
+      }
+    }
+  ]
+}

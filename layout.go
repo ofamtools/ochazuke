@@ -112,14 +112,19 @@ func (l Layout) BodySizeWith(f Footer) (width, height int) {
 // muted, so the chrome still reads as a rule.
 func (l Layout) TickerRule(jobs []string, width int) string {
 	muted := l.Styles.Muted
+	rule := l.Styles.Chrome("rule", muted)
 	const lead = "── "
 	room := width - chromeWidth(lead) - 2
 	if len(jobs) == 0 || room < 1 {
-		return muted.Render(strings.Repeat("─", max(0, width)))
+		return rule.Render(strings.Repeat("─", max(0, width)))
 	}
 	text := ansi.Truncate(modalLabel(strings.Join(jobs[:min(len(jobs), JobTickerRows)], " · ")), room, "…")
 	fill := width - chromeWidth(lead) - chromeWidth(text) - 1
-	return muted.Render(lead + text + " " + strings.Repeat("─", fill))
+	tail := " " + strings.Repeat("─", fill)
+	if !l.Styles.HasChrome("rule") {
+		return muted.Render(lead + text + tail)
+	}
+	return rule.Render(lead) + muted.Render(text) + rule.Render(tail)
 }
 
 // Page renders title, subtitle, body and footer into exactly Width x Height
@@ -175,6 +180,9 @@ type Footer struct {
 	// whole line draws as one muted label.
 	Hints []HintCell
 	Jobs  []string
+	// JobEntries carries job states for chrome colour. When nonempty it
+	// takes precedence over the plain Jobs entries.
+	JobEntries []TickerEntry
 	// Keys is the key echo when keys.echo puts it in the footer: drawn at
 	// the right end in the cells it reserves, the text cut before them.
 	Keys *KeyEchoCell
@@ -196,7 +204,7 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 	cursor := body.Clip(bw, bh)
 	footerStyle := s.Muted
 	if f.Error {
-		footerStyle = s.Error
+		footerStyle = s.Chrome("footer.error", s.Error)
 	}
 	footerText := func(width int) string {
 		if !f.Error {
@@ -226,7 +234,13 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 		if f.Inspector != "" {
 			rows = append(rows, pad+s.Muted.Render(ansi.Truncate(modalLabel(f.Inspector), bw, "…")))
 		}
-		rows = append(rows, pad+l.TickerRule(f.Jobs, bw), pad+footer, "")
+		rule := ""
+		if len(f.JobEntries) > 0 {
+			rule = l.TickerEntriesRule(f.JobEntries, bw)
+		} else {
+			rule = l.TickerRule(f.Jobs, bw)
+		}
+		rows = append(rows, pad+rule, pad+footer, "")
 	} else {
 		rows = append(rows, bodyRows...)
 		if l.Height >= 3 {
@@ -369,17 +383,17 @@ func (l Layout) tabs(titles []string, active, width int) string {
 	total := 0
 	for i, title := range titles {
 		if i == active {
-			cells[i] = s.ActiveTab.Render(modalLabel(title))
+			cells[i] = s.Chrome("tab.active", s.ActiveTab).Render(modalLabel(title))
 		} else {
-			cells[i] = s.Tab.Render(modalLabel(title))
+			cells[i] = s.Chrome("tab", s.Tab).Render(modalLabel(title))
 		}
 		total += chromeWidth(cells[i])
 	}
 	if total <= width {
 		return strings.Join(cells, "")
 	}
-	leftMarker := func(n int) string { return s.Tab.Render(fmt.Sprintf("‹%d", n)) }
-	rightMarker := func(n int) string { return s.Tab.Render(fmt.Sprintf("%d›", n)) }
+	leftMarker := func(n int) string { return s.Chrome("tab.more", s.Tab).Render(fmt.Sprintf("‹%d", n)) }
+	rightMarker := func(n int) string { return s.Chrome("tab.more", s.Tab).Render(fmt.Sprintf("%d›", n)) }
 	// Reserve a marker on each side that may hide pages, as wide as its
 	// largest count; once a side shows every page, give its cells back and
 	// fit again (the other side may then take more).
@@ -410,7 +424,7 @@ func (l Layout) tabs(titles []string, active, width int) string {
 		if last < len(titles)-1 {
 			room -= chromeWidth(rightMarker(len(titles) - 1 - last))
 		}
-		b.WriteString(ansi.Truncate(s.ActiveTab.Render(ansi.Truncate(modalLabel(titles[active]), max(1, room-4), "…")), max(0, room), ""))
+		b.WriteString(ansi.Truncate(s.Chrome("tab.active", s.ActiveTab).Render(ansi.Truncate(modalLabel(titles[active]), max(1, room-4), "…")), max(0, room), ""))
 	} else {
 		b.WriteString(strings.Join(cells[first:last+1], ""))
 	}

@@ -53,7 +53,7 @@
       "after": 1,
       "modal": "confirm",
       "colored": {
-        "› work": "#E8833A",
+        "› work": "#172720",
         "╭": "#E8833A"
       },
       "noColor": [
@@ -64,7 +64,7 @@
     {
       "modal": "",
       "colored": {
-        "Error:": "#FF6F61"
+        "Error:": "#DCE9E3"
       },
       "noColor": [
         "#C9A227"

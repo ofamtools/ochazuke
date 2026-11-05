@@ -102,10 +102,11 @@ const segmentSep = " · "
 // separators muted, so the chrome still reads as a rule.
 func (l Layout) HeaderRule(cells []SegmentCell, width int) string {
 	muted := l.Styles.Muted
+	rule := l.Styles.Chrome("rule", muted)
 	const lead, tail = "── ", " ──"
 	room := width - ansi.StringWidth(lead) - ansi.StringWidth(tail)
 	if len(cells) == 0 || room < 2 {
-		return muted.Render(strings.Repeat("─", max(0, width)))
+		return rule.Render(strings.Repeat("─", max(0, width)))
 	}
 	n, used := 0, 0
 	for i, c := range cells {
@@ -133,11 +134,11 @@ func (l Layout) HeaderRule(cells []SegmentCell, width int) string {
 	} else {
 		for i, c := range cells[:n] {
 			if i > 0 {
-				b.WriteString(muted.Render(segmentSep))
+				b.WriteString(rule.Render(segmentSep))
 			}
 			draw(c, modalLabel(c.Text))
 		}
 	}
 	fill := width - used - ansi.StringWidth(tail) - 1
-	return muted.Render(strings.Repeat("─", fill)+" ") + b.String() + muted.Render(tail)
+	return rule.Render(strings.Repeat("─", fill)+" ") + b.String() + rule.Render(tail)
 }

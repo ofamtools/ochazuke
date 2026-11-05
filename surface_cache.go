@@ -67,7 +67,7 @@ func (m *Model) shellBlock(l Layout, h Header, b Block, f Footer) Block {
 	same := c.valid && c.style == style && sameBlock(c.body, b) &&
 		old.Title == h.Title && old.Subtitle == h.Subtitle && old.Badge == h.Badge && old.Active == h.Active && old.BadgeWidth == h.BadgeWidth &&
 		slices.Equal(old.Focus, h.Focus) && slices.Equal(old.Tabs, h.Tabs) && slices.Equal(old.Segments, h.Segments) && sameEcho(old.Keys, h.Keys) &&
-		foot.Text == f.Text && foot.Inspector == f.Inspector && foot.Error == f.Error && slices.Equal(foot.Hints, f.Hints) && slices.Equal(foot.Jobs, f.Jobs) && sameEcho(foot.Keys, f.Keys)
+		foot.Text == f.Text && foot.Inspector == f.Inspector && foot.Error == f.Error && slices.Equal(foot.Hints, f.Hints) && slices.Equal(foot.Jobs, f.Jobs) && slices.Equal(foot.JobEntries, f.JobEntries) && sameEcho(foot.Keys, f.Keys)
 	if same && m.Runtime.Settings().Int(RenderMaxFPSSetting) > 0 {
 		return copyBlock(c.block)
 	}
@@ -77,6 +77,7 @@ func (m *Model) shellBlock(l Layout, h Header, b Block, f Footer) Block {
 	}
 	h.Focus, h.Tabs, h.Segments, h.Keys = slices.Clone(h.Focus), slices.Clone(h.Tabs), slices.Clone(h.Segments), copyEcho(h.Keys)
 	f.Hints, f.Jobs, f.Keys = slices.Clone(f.Hints), slices.Clone(f.Jobs), copyEcho(f.Keys)
+	f.JobEntries = slices.Clone(f.JobEntries)
 	*c = shellFrame{valid: true, style: style, header: h, footer: f, body: copyBlock(b), block: copyBlock(out)}
 	return out
 }

@@ -1,0 +1,33 @@
+{
+  "expect": {"focus": "needs1", "contains": ["working", "needs", "done"]},
+  "name": "panels: state ink and focused shape · dark",
+  "area": "prettier",
+  "width": 90,
+  "height": 24,
+  "page": {
+    "layout": "panels",
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "working",
+        "rows": 2,
+        "panelTone": "state.working"
+      },
+      {
+        "id": "needs",
+        "rows": 2,
+        "panelTone": "state.needs-input"
+      },
+      {
+        "id": "done",
+        "rows": 2,
+        "panelTone": "state.done"
+      }
+    ]
+  },
+  "script": [
+    "j",
+    "tab"
+  ],
+  "theme": "dark"
+}

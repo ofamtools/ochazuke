@@ -280,7 +280,7 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 	line("")
 	line("A pane's border takes the first of: `border.<tone>` (its state), the application's accent, `border.focused` (focused), `border`, the theme's border. Focus is also marked by heavy lines. The badge takes the first of `mode.<name>`, `mode.pending` (a pending mode), `mode.<extends>`, `mode`. The state tones read as ok (`state.done`), warn (`state.needs-input`), error (`state.errored`) and busy (`state.working`).")
 	line("")
-	line("Compared with Vim: the roles are Vim's highlight groups for the chrome. `border` and `border.split` are `hl-WinSeparator`/`hl-VertSplit`, `border.modal` and `border.completion` Neovim's `hl-FloatBorder`, the title and footer rows `hl-StatusLine` (`hl-StatusLineNC` is the `dim-unfocused` setting). Vim has one `hl-ModeMsg` colour for every mode; a colour per mode (`mode.<name>`) is what statusline plugins add, and a border coloured by its pane's state (`border.<tone>`) is like tmux's `pane-active-border-style`, not Vim. themes.json with `themes reload` is `:colorscheme` and `:highlight`; the rows are edited in the file. Selection stays reverse video, unlike `hl-Visual`.")
+	line("Compared with Vim: the roles are Vim's highlight groups for the chrome. `border` and `border.split` are `hl-WinSeparator`/`hl-VertSplit`, `border.modal` and `border.completion` Neovim's `hl-FloatBorder`, the title and footer rows `hl-StatusLine` (`hl-StatusLineNC` is the `dim-unfocused` setting). `tab.active`, `tab` and `rule` correspond to `hl-TabLineSel`, `hl-TabLine` and `hl-TabLineFill`; `footer.error` is `hl-ErrorMsg`. The active tab keeps its › marker, and errors keep their Error: prefix. Vim has one `hl-ModeMsg` colour for every mode; a colour per mode (`mode.<name>`) is what statusline plugins add, and a border coloured by its pane's state (`border.<tone>`) is like tmux's `pane-active-border-style`, not Vim. themes.json with `themes reload` is `:colorscheme` and `:highlight`; the rows are edited in the file. Selection stays reverse video, unlike `hl-Visual`.")
 	return []byte(b.String())
 }
 
@@ -303,6 +303,14 @@ var chromeRoleHelp = [][2]string{
 	{"hint.key", "a key on a hint line, the footer's and a modal's (rich: the accent, bold; subtle: the text colour)"},
 	{"hint.text", "what the key does"},
 	{"hint.sep", "the ` · ` between hints"},
+	{"tab.active", "the active page tab (rich: surface ink on the mode colour; subtle: mode ink on surface; the › marker stays)"},
+	{"tab", "other page tabs (rich: muted ink, not faint)"},
+	{"tab.more", "the tab row's hidden-page counts"},
+	{"rule", "header and footer hairlines (rich: border ink, not faint)"},
+	{"footer.error", "the error status (rich: text on the error tone's background, bold)"},
+	{"job.running", "a running ticker entry (rich: working ink, bold; subtle: state word only)"},
+	{"job.done", "a completed ticker entry (rich: done ink; subtle: state word only)"},
+	{"job.failed", "a failed ticker entry (rich: error ink, bold; subtle: state word only)"},
 }
 
 // actionsExample is actions.example.json: one entry in the command form,

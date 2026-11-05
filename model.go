@@ -563,14 +563,14 @@ func (m *Model) footerNotice() string {
 // notice. The jobs ticker's entries ride along for the rule line above it
 // (Layout.TickerRule).
 func (m *Model) footer() Footer {
-	jobs := m.JobsTicker(m.Width)
+	jobs := m.TickerEntries(m.Width)
 	notice := m.footerNotice()
 	if m.Status != "" {
 		text := m.cutMessage("Error: "+safeText(m.Status), max(1, m.Width-4))
 		if notice != "" {
 			text += " · " + notice
 		}
-		return Footer{Text: text, Error: true, Jobs: jobs, Keys: m.footerKeys()}
+		return Footer{Text: text, Error: true, JobEntries: jobs, Keys: m.footerKeys()}
 	}
 	var parts []string
 	if info := m.footerInfo(); info != "" {
@@ -583,7 +583,7 @@ func (m *Model) footer() Footer {
 	if hints := JoinHints(cells); hints != "" {
 		parts = append(parts, hints)
 	}
-	return Footer{Text: strings.Join(parts, " · "), Hints: cells, Jobs: jobs, Keys: m.footerKeys()}
+	return Footer{Text: strings.Join(parts, " · "), Hints: cells, JobEntries: jobs, Keys: m.footerKeys()}
 }
 
 // footerKeys is the key echo when keys.echo puts it in the footer.

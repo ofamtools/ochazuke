@@ -1,0 +1,62 @@
+{
+  "expect": {"modal": "", "contains": ["Workspace", "Build", "Ship"]},
+  "name": "tree, table and modal chrome · light",
+  "area": "prettier",
+  "width": 90,
+  "height": 22,
+  "page": {
+    "layout": "stack",
+    "trees": [
+      {
+        "id": "tree",
+        "nodes": [
+          {
+            "id": "parent",
+            "label": "Workspace"
+          },
+          {
+            "id": "child",
+            "parent": "parent",
+            "label": "Notes"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "table",
+        "columns": [
+          {
+            "title": "Name"
+          },
+          {
+            "title": "State"
+          }
+        ],
+        "items": [
+          {
+            "id": "build",
+            "label": "Build",
+            "cells": [
+              "Build",
+              "running"
+            ]
+          },
+          {
+            "id": "ship",
+            "label": "Ship",
+            "cells": [
+              "Ship",
+              "done"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "esc"
+  ],
+  "theme": "light"
+}

@@ -1,0 +1,97 @@
+{
+  "expect": {"contains": ["Error:", "› Activity", "demo.build failed"]},
+  "name": "tabs, jobs and error status · light · subtle",
+  "area": "prettier-optout",
+  "width": 90,
+  "height": 12,
+  "theme": "light",
+  "script": [
+    "w",
+    "W",
+    {
+      "job": "demo.build",
+      "state": "done"
+    },
+    "w",
+    "X",
+    {
+      "job": "demo.build",
+      "state": "failed"
+    },
+    "E"
+  ],
+  "pages": [
+    {
+      "id": "p0",
+      "title": "Overview",
+      "lists": [
+        {
+          "id": "l0",
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "id": "p1",
+      "title": "Workspace",
+      "lists": [
+        {
+          "id": "l1",
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Activity",
+      "lists": [
+        {
+          "id": "l2",
+          "rows": 2
+        }
+      ],
+      "open": true,
+      "jobs": [
+        {
+          "verb": "demo.build",
+          "key": "w",
+          "finishOnKey": "W",
+          "failOnKey": "X"
+        }
+      ],
+      "bind": [
+        {
+          "noun": "demo",
+          "keys": "E",
+          "do": "focus.set",
+          "args": {
+            "id": "nowhere"
+          }
+        }
+      ]
+    },
+    {
+      "id": "p3",
+      "title": "Settings",
+      "lists": [
+        {
+          "id": "l3",
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "About",
+      "lists": [
+        {
+          "id": "l4",
+          "rows": 2
+        }
+      ]
+    }
+  ],
+  "values": {
+    "chrome.color": "subtle"
+  }
+}

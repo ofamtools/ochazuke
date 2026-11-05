@@ -1,0 +1,91 @@
+{
+  "name": "chrome tabs follow the mode and keep the active marker",
+  "area": "chrome",
+  "width": 52,
+  "height": 12,
+  "theme": "dark",
+  "pages": [
+    {
+      "id": "p0",
+      "title": "Overview",
+      "lists": [
+        {
+          "id": "l0",
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "id": "p1",
+      "title": "Workspace",
+      "lists": [
+        {
+          "id": "l1",
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "id": "p2",
+      "title": "Activity",
+      "lists": [
+        {
+          "id": "l2",
+          "rows": 2
+        }
+      ],
+      "open": true
+    },
+    {
+      "id": "p3",
+      "title": "Settings",
+      "lists": [
+        {
+          "id": "l3",
+          "rows": 2
+        }
+      ]
+    },
+    {
+      "id": "p4",
+      "title": "About",
+      "lists": [
+        {
+          "id": "l4",
+          "rows": 2
+        }
+      ]
+    }
+  ],
+  "script": [
+    ":",
+    {
+      "type": "set chrome.color=subtle"
+    },
+    "enter",
+    ":",
+    {
+      "type": "set chrome.color=off"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "contains": [
+        "› Activity"
+      ],
+      "styled": {
+        "› Activity": "#78BFA5"
+      }
+    },
+    {
+      "contains": [
+        "› Activity"
+      ],
+      "styled": {
+        "› Activity": "#78BFA5"
+      }
+    }
+  ]
+}
