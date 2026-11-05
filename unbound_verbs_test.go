@@ -268,3 +268,48 @@ func TestUnboundScopesListOnlyUnboundVerbs(t *testing.T) {
 		t.Fatalf("focus listed %d other verbs", framework)
 	}
 }
+
+// A bind refreshes the open help, which keeps what the reader folded: the
+// state belongs to the row, not to its place in the list.
+func TestHelpRefreshKeepsFoldState(t *testing.T) {
+	r, m, _ := unboundFixture(t)
+	r.Config().Dir = t.TempDir()
+	for _, keys := range []string{"g a", "g b"} {
+		if err := r.Bind(Binding{Noun: "widget", Mode: "normal", Keys: keys, Request: Request{Noun: "widget", Verb: "open"}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	keytest.Press(m, "?")
+	tree := r.Tree(helpTreeID)
+	group := ""
+	for _, n := range tree.Nodes() {
+		if row, ok := n.Data.(HelpRow); ok && row.Group && row.Key == "g" {
+			group = n.ID
+		}
+	}
+	if group == "" {
+		t.Fatal("no g prefix row")
+	}
+	if err := tree.SetCollapsed(group, true); err != nil {
+		t.Fatal(err)
+	}
+	folded := func() map[string]bool {
+		out := map[string]bool{}
+		for _, n := range tree.Nodes() {
+			if row, ok := n.Data.(HelpRow); ok {
+				out[row.Section+"|"+row.Key+"|"+row.Operation] = tree.Collapsed(n.ID)
+			}
+		}
+		return out
+	}
+	before := folded()
+	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "p", "action": "widget.ping"}}); err != nil {
+		t.Fatal(err)
+	}
+	after := folded()
+	for id, was := range before {
+		if now, ok := after[id]; ok && now != was {
+			t.Fatalf("row %q folded %v before the bind, %v after", id, was, now)
+		}
+	}
+}

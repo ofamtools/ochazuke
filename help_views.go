@@ -286,10 +286,26 @@ func (h *helpState) refreshBindings() error {
 		rows = PlaceHelp(r, h.at(), h.mode)
 	}
 	if tree := r.Tree(helpTreeID); tree != nil {
+		// Node ids count rows, so a row added shifts them: the fold state
+		// is carried by the row it belongs to, and a row not seen before
+		// starts as helpNodes says.
+		folded, known := map[string]bool{}, map[string]bool{}
+		for _, n := range tree.Nodes() {
+			if row, ok := n.Data.(HelpRow); ok {
+				known[helpIdentity(row)], folded[helpIdentity(row)] = true, tree.Collapsed(n.ID)
+			}
+		}
 		nodes, collapsed := helpNodes(rows)
-		for _, id := range collapsed {
-			if tree.index(id) < 0 {
-				tree.collapsed[id] = true
+		clear(tree.collapsed)
+		for _, n := range nodes {
+			row, ok := n.Data.(HelpRow)
+			if !ok {
+				continue
+			}
+			if id := helpIdentity(row); known[id] {
+				tree.collapsed[n.ID] = folded[id]
+			} else {
+				tree.collapsed[n.ID] = slices.Contains(collapsed, n.ID)
 			}
 		}
 		return tree.SetNodes(nodes)
@@ -779,4 +795,10 @@ func (r *Runtime) inputNoun(noun string) bool {
 		}
 	}
 	return false
+}
+
+// helpIdentity names the thing a help row stands for, apart from its
+// position: its section, key and operation.
+func helpIdentity(row HelpRow) string {
+	return row.Section + "\x00" + row.Key + "\x00" + row.Operation + "\x00" + fmt.Sprint(row.Unbound)
 }
