@@ -446,6 +446,11 @@ func TestQuitWithHungMountedWriteCanLeave(t *testing.T) {
 				<-ctx.Done()
 				return ctx.Err()
 			})
+			if exit == "ctrl+c" || exit == "q" {
+				if _, err := r.Settings().SetSession("quit.force-after", "0s"); err != nil {
+					t.Fatal(err)
+				}
+			}
 			if exit == "deadline" {
 				if _, err := r.Settings().SetSession("quit.write-wait", "40ms"); err != nil {
 					t.Fatal(err)

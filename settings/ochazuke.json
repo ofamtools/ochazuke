@@ -6,7 +6,8 @@
 // this directory and are declared by the feature that needs them (terminal.json: EnsureTerminalLeader). "deprecated" lists older
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
-  {"name":"quit.write-wait","section":"status","type":"duration","default":"10s","description":"Maximum quit wait for queued writes; 0 leaves immediately. A second quit leaves at once and unfinished values are reported in notices and on stderr"},
+  {"name":"quit.write-wait","section":"status","type":"duration","default":"10s","description":"Maximum quit wait for queued writes; 0 leaves immediately. A deliberate second quit leaves and unfinished values are reported in notices and on stderr"},
+  {"name":"quit.force-after","section":"status","type":"duration","default":"500ms","description":"Minimum time after the first quit before a second press forces exit; 0s accepts any second press. Explicit app.quit --force always leaves immediately"},
   {"name":"bindings.peer-notices","section":"keys","type":"string","default":"user","enum":["user","all","off"],"description":"Missing peer binding notices: user shows user-file warnings, all also shows catalog peer warnings, off keeps both in bindings check only"},
   {"name":"subject.from-association","section":"keys","type":"boolean","default":true,"description":"Let declared human requests act through reference props marked association on the focused thing; off uses only ordinary noun ancestry"},
   {"name":"leader.fall-through","section":"keys","type":"string","default":"no-motions","enum":["no-motions","all","off"],"description":"Offer unbound leader keys to single-key outside bindings: no-motions excludes motions and focus-bound editing; all includes them; off sends unknown sequences as before"},

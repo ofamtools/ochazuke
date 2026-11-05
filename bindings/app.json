@@ -22,8 +22,8 @@
       {"key": "g y", "action": "ochazuke.yank-history.open", "when": "no-input", "hidden": true}
     ]},
     {"context": "app/quit-wait", "bindings": [
-      {"key": "ctrl+c", "action": "app.quit", "args": {"force": true}},
-      {"key": "q", "action": "app.quit", "args": {"force": true}},
+      {"key": "ctrl+c", "action": "app.quit", "confirmed": true},
+      {"key": "q", "action": "app.quit", "confirmed": true},
       {"key": "paste", "action": "ochazuke.key.ignore", "hidden": true},
       {"key": "any", "action": "ochazuke.key.ignore", "hidden": true}
     ]},

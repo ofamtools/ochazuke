@@ -97,6 +97,7 @@ type eventHub struct {
 	quitJobs          []uint64
 	quitDeadline      time.Time
 	quitWriteDeadline time.Time
+	quitRequested     time.Time
 	quitForced        bool
 }
 
