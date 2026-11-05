@@ -458,9 +458,9 @@ func (v *filterViewForm) valueRows(f *filterField) []ChooserRow {
 	chosen, _ := ParseChips(v.e.field(f.prop).text())
 	var rows []ChooserRow
 	for i, label := range f.labels {
-		marker := "○"
+		marker := v.l.r.glyph("check.off")
 		if slices.Contains(chosen, label) {
-			marker = "●"
+			marker = v.l.r.glyph("check.on")
 		}
 		shown := label
 		if shown == "" {
@@ -681,9 +681,9 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 	if v.sortPicker != nil {
 		marker := ""
 		if v.l.r.Settings().Bool(ListSortIndicatorSetting) && len(v.l.sort) > 0 {
-			marker = " ▲"
+			marker = " " + s.Glyph("sort.asc")
 			if v.l.sort[0].Desc {
-				marker = " ▼"
+				marker = " " + s.Glyph("sort.desc")
 			}
 		}
 		heading := "Sort by" + marker
@@ -692,9 +692,9 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 			for i, k := range v.l.sort[1:] {
 				label := k.Field
 				if v.l.r.Settings().Bool(ListSortIndicatorSetting) {
-					arrow := "▲"
+					arrow := s.Glyph("sort.asc")
 					if k.Desc {
-						arrow = "▼"
+						arrow = s.Glyph("sort.desc")
 					}
 					label += fmt.Sprintf(" %s%d", arrow, i+2)
 				}

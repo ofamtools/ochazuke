@@ -292,7 +292,7 @@ func (l Layout) titleRow(h Header, width int) string {
 			reserved = chromeWidth(right) + 1
 		}
 	}
-	title := s.Chrome("title.mark", s.Accent).Render("◆ ") + s.Chrome("title", s.Title).Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved), "…"))
+	title := s.Chrome("title.mark", s.Accent).Render(s.Glyph("title.mark")+" ") + s.Chrome("title", s.Title).Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved), "…"))
 	if right == "" {
 		return title
 	}
@@ -392,8 +392,12 @@ func (l Layout) tabs(titles []string, active, width int) string {
 	if total <= width {
 		return strings.Join(cells, "")
 	}
-	leftMarker := func(n int) string { return s.Chrome("tab.more", s.Tab).Render(fmt.Sprintf("‹%d", n)) }
-	rightMarker := func(n int) string { return s.Chrome("tab.more", s.Tab).Render(fmt.Sprintf("%d›", n)) }
+	leftMarker := func(n int) string {
+		return s.Chrome("tab.more", s.Tab).Render(fmt.Sprintf("%s%d", s.Glyph("tab.more.left"), n))
+	}
+	rightMarker := func(n int) string {
+		return s.Chrome("tab.more", s.Tab).Render(fmt.Sprintf("%d%s", n, s.Glyph("tab.more.right")))
+	}
 	// Reserve a marker on each side that may hide pages, as wide as its
 	// largest count; once a side shows every page, give its cells back and
 	// fit again (the other side may then take more).

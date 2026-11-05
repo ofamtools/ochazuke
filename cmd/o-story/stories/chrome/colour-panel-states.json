@@ -25,8 +25,8 @@
       "modal": "",
       "focus": "working1",
       "colored": {"working": "#7CB7E8", "needs": "#E3B341", "done": "#8BC48A", "shell": "#4F8F7A"},
-      "styled": {"╭━": "#7CB7E8", "╭─": "#E3B341"},
-      "attrs": {"╭━": "bold", "╰─": "-faint"}
+      "styled": {"┏━": "#7CB7E8", "╭─": "#E3B341"},
+      "attrs": {"┏━": "bold", "╰─": "-faint"}
     },
     {
       "after": 6,

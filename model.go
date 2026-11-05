@@ -984,6 +984,9 @@ func (m *Model) View() tea.View {
 	}
 	block := m.render()
 	v := tea.NewView(block.Text)
+	if m.Styles().glyphSet == "ascii" {
+		v.Content = asciiFrame(v.Content)
+	}
 	v.AltScreen = true
 	v.Cursor = m.cursor(block)
 	m.redraw.remember(m, v)

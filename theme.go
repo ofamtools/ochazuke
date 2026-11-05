@@ -38,6 +38,10 @@ type Appearance struct {
 	// laid over the built-in tones and under every themes.json entry, so
 	// a theme still recolours them. A pointer keeps Appearance comparable.
 	AppTones *ToneRows `json:"-"`
+	// Glyphs holds application glyph roles. Use SetGlyph to preserve cell widths.
+	Glyphs                *GlyphRows `json:"-"`
+	glyphEnv, glyphReason string
+	borderSet, glyphSet   string // settings mirrored for consumers calling NewStyles directly
 }
 
 // ToneRows are tone rows by name an application declares
@@ -89,6 +93,7 @@ func NewAppearance(r *Runtime) *Appearance {
 
 func newAppearance(r *Runtime) *Appearance {
 	a := &Appearance{Theme: "adaptive", Density: "comfortable", Dark: true}
+	registerGlyphs(r, a)
 	c := r.Config()
 	c.themeListeners = append(c.themeListeners, func() { a.Schemes = NewSchemeSet(r.Config().Schemes()) })
 	r.Register(Operation{Verb: "get", Noun: "ochazuke.appearance", Description: "Get theme and density", Result: "appearance", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
@@ -193,6 +198,9 @@ type Styles struct {
 	chrome         string              // the chrome level (chrome.color), "" before WithChrome (chrome.go)
 	appAccent      color.Color         // Appearance.Accent when it draws (not mono, not NO_COLOR)
 	modeColor      color.Color         // the mode role: the current mode's badge colour (WithChrome)
+
+	borderSet, glyphSet string
+	glyphRows           *GlyphRows
 }
 
 // Dim defaults, in percent toward the background (the settings modal-dim
@@ -460,10 +468,11 @@ func NewStyles(a Appearance) Styles {
 	if a.Density == "compact" {
 		padding = 0
 	}
-	panel := lipgloss.NewStyle().Foreground(text).Border(lipgloss.RoundedBorder()).BorderForeground(border).Padding(padding, 1)
-	focusedBorder := lipgloss.RoundedBorder()
-	focusedBorder.Top, focusedBorder.Bottom = "━", "━"
-	focusedBorder.Left, focusedBorder.Right = "┃", "┃"
+	glyphSet := a.resolvedGlyphs(a.glyphSet)
+	shape := Styles{borderSet: a.borderSet, glyphSet: glyphSet, glyphRows: a.Glyphs}
+	mark := shape.Glyph("tab.active")
+	panel := lipgloss.NewStyle().Foreground(text).Border(shape.Border(false)).BorderForeground(border).Padding(padding, 1)
+	focusedBorder := shape.Border(true)
 	styles := Styles{
 		Title:        lipgloss.NewStyle().Bold(true).Foreground(title),
 		Subtitle:     lipgloss.NewStyle().Foreground(accent),
@@ -473,7 +482,7 @@ func NewStyles(a Appearance) Styles {
 		Panel:        panel,
 		FocusedPanel: panel.Border(focusedBorder).BorderForeground(accent),
 		Tab:          lipgloss.NewStyle().Foreground(muted).Padding(0, 1),
-		ActiveTab:    lipgloss.NewStyle().Foreground(accent).Background(surface).Bold(true).Padding(0, 1).Transform(func(s string) string { return "› " + s }),
+		ActiveTab:    lipgloss.NewStyle().Foreground(accent).Background(surface).Bold(true).Padding(0, 1).Transform(func(s string) string { return mark + " " + s }),
 		Badge:        lipgloss.NewStyle().Foreground(accent).Background(surface).Padding(0, 1),
 		Padding:      padding,
 		text:         text,
@@ -484,6 +493,9 @@ func NewStyles(a Appearance) Styles {
 		tones:        resolveTones(scheme, plain, pick, appAccent),
 		appAccent:    appAccent,
 		modeColor:    accent,
+		glyphRows:    a.Glyphs,
+		borderSet:    a.borderSet,
+		glyphSet:     glyphSet,
 	}
 	return styles.WithDims(DefaultModalDim, DefaultDimUnfocused).WithSelectionDim(DefaultDimUnfocusedSelection)
 }

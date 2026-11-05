@@ -18,11 +18,18 @@ type styleKey struct {
 	selectionDim        int
 	highlights          bool
 	unfocusedSelection  bool
+	borderSet, glyphSet string
+	glyphRows           *GlyphRows
+	glyphGeneration     uint64
 }
 
 // apply sets the dim and highlight settings the key read on s.
 func (k styleKey) apply(s Styles) Styles {
-	return s.WithDims(k.modalDim, k.unfocused).WithSelectionDim(k.selectionDim).WithBackdropHighlights(k.highlights).WithUnfocusedSelection(k.unfocusedSelection)
+	s = s.WithDims(k.modalDim, k.unfocused).WithSelectionDim(k.selectionDim).WithBackdropHighlights(k.highlights).WithUnfocusedSelection(k.unfocusedSelection).WithBorder(k.borderSet)
+	s.glyphSet, s.glyphRows = k.glyphSet, k.glyphRows
+	mark := s.Glyph("tab.active")
+	s.ActiveTab = s.ActiveTab.Transform(func(text string) string { return mark + " " + text })
+	return s
 }
 
 // settingsKey reads the dim and highlight settings into a key.
@@ -33,6 +40,7 @@ func (r *Runtime) settingsKey() styleKey {
 		selectionDim:       r.dimSetting(DimUnfocusedSelectionSetting, DefaultDimUnfocusedSelection),
 		highlights:         r.Settings().String(ModalBackdropHighlightsSetting) != "plain",
 		unfocusedSelection: r.Settings().String(UnfocusedSelectionSetting) != "hide",
+		borderSet:          r.Settings().String(ChromeBorderSetting),
 	}
 }
 
@@ -41,7 +49,10 @@ func (r *Runtime) settingsKey() styleKey {
 // unfocused-selection), for a component drawn in an appearance of its
 // own: its Selection follows the user's settings as the Model's does.
 func (r *Runtime) StylesFor(a Appearance) Styles {
-	return r.settingsKey().apply(NewStyles(a))
+	k := r.settingsKey()
+	k.glyphSet = a.resolvedGlyphs(r.Settings().String(ChromeGlyphsSetting))
+	k.glyphRows = a.Glyphs
+	return k.apply(NewStyles(a))
 }
 
 type modelStyles struct {
@@ -57,6 +68,11 @@ func (c *modelStyles) get(m *Model) Styles {
 	k := r.settingsKey()
 	k.theme, k.density, k.dark = a.Theme, a.Density, a.Dark
 	k.schemes, k.tones, k.plain = a.Schemes, a.AppTones, os.Getenv("NO_COLOR") != ""
+	k.glyphSet = a.resolvedGlyphs(r.Settings().String(ChromeGlyphsSetting))
+	k.glyphRows = a.Glyphs
+	if a.Glyphs != nil {
+		k.glyphGeneration = a.Glyphs.generation
+	}
 	if a.Accent != nil {
 		k.accent = true
 		k.r, k.g, k.b, k.a = a.Accent.RGBA()

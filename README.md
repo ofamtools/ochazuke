@@ -441,6 +441,50 @@ A host with several page lists sharing one detail view can set `List.UnfocusedSe
 
 Compared with Vim: `'cursorline'` (`hl-CursorLine`) is window-local and drawn at one strength in every window that sets it; Vim has no non-current variant (`hl-NormalNC` covers a window's text, not its cursor line), so plugins toggle `'cursorline'` on `WinLeave`. `dim-unfocused-selection` is that missing `CursorLineNC`: the row stays marked rather than hidden.
 
+### Borders and glyphs
+
+`chrome.border` selects one shape for panels, modals, completions and cards.
+The default `rounded` joins heavy focused lines to heavy corners (`┏━┓`);
+`square` uses square light corners (`┌─┐`), and `classic` restores the old
+mixed-weight focused panel corners (`╭━╮`). Focus remains heavy in every set.
+`Styles.Border(focused)` reads the same table. No cell sizes or keys change.
+
+`chrome.glyphs` defaults to `auto`. Only when stdout is a terminal, it checks
+the first set locale in `LC_ALL`, `LC_CTYPE`, `LANG`. A non-UTF-8 locale or
+`TERM=linux` selects `ascii`; otherwise it selects `unicode`, including when
+no locale is set. Detection runs once. Redirected output stays Unicode.
+`auto` never selects Nerd Font icons.
+
+`unicode` keeps the existing marks. `ascii` converts the complete TUI frame
+at `Model.View`, including application text and embedded terminal panes.
+Known marks get ASCII substitutes; other graphemes become `?` per cell.
+ANSI styles and cursor positions stay intact. CLI results are not converted.
+`nerd` explicitly opts into ten FontAwesome role marks and needs a Nerd Font
+**Mono** variant. A font cannot be detected reliably. Use `glyphs show nerd`
+to inspect the role values and codepoints, and `glyphs list` to see the
+active set and the reason for it.
+
+`Styles.Glyph(role)` reads `title.mark`, `tab.active`, `tab.more.left`,
+`tab.more.right`, `fold.open`, `fold.shut`, `sort.asc`, `sort.desc`,
+`check.on` and `check.off`. Applications may declare one-cell roles with
+`Appearance.SetGlyph(name, GlyphRow{Unicode: "◇", Nerd: "\uf219"})`.
+No user glyph-set file is introduced.
+
+The opt-outs are `:set chrome.border=classic chrome.glyphs=unicode`.
+`chrome.color=off` separately restores the old colour treatment.
+There are no animations, timers, new modes or binding changes.
+
+Compared with Vim:
+
+| Vim form | Help tag | Ochazuke |
+|---|---|---|
+| Separator characters | `'fillchars'` | Similar, named sets instead of per-item characters. |
+| Float borders | Neovim `'winborder'` | Similar, with an additional heavy focused shape. |
+| Encoding fallback | `'encoding'` | Similar, same-width ASCII substitutes before `?`; text data stays unchanged. |
+| Ambiguous width | `'ambiwidth'` | Not applicable, every role must occupy one cell. |
+| Set an option | `:set` | Same command-line setting forms; no new keys. |
+
+
 ### Keyboard guide
 
 The demo starts on Overview in normal mode. Open Playground with `Ctrl-J`; Tab/Shift-Tab cycle its directory, notes, and paths fields. Overview, Commands, and Appearance support `j/k` and up/down scrolling. Demo page shortcuts are normal-mode-only, so insert-mode `Ctrl-K` still kills to line end. The footer of every screen is the live version of this table for the focused instance and its mode: the rows `bindings list` prints, innermost first.

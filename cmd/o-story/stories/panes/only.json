@@ -10,7 +10,7 @@
   "script": ["ctrl+w", "o", "ctrl+w", "o"],
   "expect": [
     {"after": 0, "contains": ["shape", "data"]},
-    {"after": 2, "focus": "shape1", "contains": ["╭━ shape ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"], "lacks": ["data1", "─ data"]},
+    {"after": 2, "focus": "shape1", "contains": ["┏━ shape ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"], "lacks": ["data1", "─ data"]},
     {"focus": "shape1", "contains": ["shape1", "data1"]}
   ]
 }

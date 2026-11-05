@@ -1,0 +1,34 @@
+{
+  "area": "chrome",
+  "width": 60,
+  "height": 20,
+  "theme": "dark",
+  "page": {
+    "layout": "panels",
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "left",
+        "rows": 2
+      },
+      {
+        "id": "right",
+        "rows": 2
+      }
+    ]
+  },
+  "name": "glyphs-unicode",
+  "config": {
+    "settings.json": {
+      "chrome.glyphs": "unicode"
+    }
+  },
+  "expect": {
+    "contains": [
+      "◆ o-story",
+      "› page1"
+    ],
+    "focus": "left1",
+    "mode": "normal"
+  }
+}

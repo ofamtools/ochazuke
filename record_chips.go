@@ -111,10 +111,10 @@ func (f *recordField) chipOn(id string) bool {
 	return slices.Contains(ids, id)
 }
 
-func chipText(c Choice, on bool) string {
-	mark := "○ "
+func (s Styles) chipText(c Choice, on bool) string {
+	mark := s.Glyph("check.off") + " "
 	if on {
-		mark = "● "
+		mark = s.Glyph("check.on") + " "
 	}
 	return " " + mark + modalLabel(choiceLabel(c)) + " "
 }
@@ -126,7 +126,7 @@ func (f *recordField) layoutChips(width int) {
 	var line []int
 	used := 0
 	for i, c := range f.choices {
-		w := ansi.StringWidth(chipText(c, true))
+		w := ansi.StringWidth((Styles{}).chipText(c, true))
 		if len(line) > 0 && used+1+w > width {
 			f.lines = append(f.lines, line)
 			line, used = nil, 0
@@ -177,7 +177,7 @@ func (e *RecordEditor) chipBlock(f *recordField, width, indent int) []string {
 					st = st.Inherit(s.Selection(true))
 				}
 			}
-			parts = append(parts, e.fieldStyle(f, st).Render(chipText(c, on)))
+			parts = append(parts, e.fieldStyle(f, st).Render(s.chipText(c, on)))
 		}
 		out = append(out, ansi.Truncate(strings.Repeat(" ", indent)+strings.Join(parts, " "), width, "…"))
 	}

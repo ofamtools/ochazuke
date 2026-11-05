@@ -609,6 +609,7 @@ func (t *Timeline) measured(c *Card) *cardCache {
 func (t *Timeline) body(c *Card, cc *cardCache) []cardLine {
 	units := foldUnits(c)
 	var key strings.Builder
+	key.WriteString(t.r.glyph("fold.open"))
 	for _, u := range units {
 		if t.folded(c.ID, u) {
 			key.WriteByte('1')
@@ -679,7 +680,8 @@ func (t *Timeline) draw(i int, selected bool) []string {
 	cw, indent := t.cardWidth(c), strings.Repeat(" ", t.width-t.cardWidth(c))
 	open := t.open[c.ID]
 	focusedBorder, selectedBorder, border := s.CardBorders()
-	h, v, tl, tr, bl, br, ml, mr := "─", "│", "╭", "╮", "╰", "╯", "├", "┤"
+	shape := s.Border(false)
+	h, v, tl, tr, bl, br, ml, mr := shape.Top, shape.Left, shape.TopLeft, shape.TopRight, shape.BottomLeft, shape.BottomRight, shape.MiddleLeft, shape.MiddleRight
 	if c.Event {
 		// Something that happened: a dashed, muted border.
 		h, v, border = "┄", "┆", s.Muted
@@ -694,7 +696,9 @@ func (t *Timeline) draw(i int, selected bool) []string {
 	switch {
 	case selected && t.list.Focused():
 		border = focusedBorder
-		h, v, tl, tr, bl, br, ml, mr = "━", "┃", "┏", "┓", "┗", "┛", "┣", "┫"
+		// Cards use joined heavy corners in every set, including classic.
+		shape := (Styles{}).Border(true)
+		h, v, tl, tr, bl, br, ml, mr = shape.Top, shape.Left, shape.TopLeft, shape.TopRight, shape.BottomLeft, shape.BottomRight, shape.MiddleLeft, shape.MiddleRight
 	case selected && t.list.marksSelection():
 		border = selectedBorder
 		h, v, ml, mr = "━", "┃", "┣", "┫"
@@ -714,7 +718,7 @@ func (t *Timeline) draw(i int, selected bool) []string {
 	}
 	top := tl + strings.Repeat(h, max(0, cw-2)) + tr
 	if c.Active && cw >= 6 {
-		top = tl + h + " ● " + strings.Repeat(h, max(0, cw-6)) + tr
+		top = tl + h + " " + s.Glyph("check.on") + " " + strings.Repeat(h, max(0, cw-6)) + tr
 	}
 	out = append(out, indent+border.Render(top))
 	row := func(text string, style lipgloss.Style) string {
@@ -735,9 +739,9 @@ func (t *Timeline) draw(i int, selected bool) []string {
 	case c.Muted:
 		header = s.Muted
 	}
-	mark := "▸ "
+	mark := s.Glyph("fold.shut") + " "
 	if open {
-		mark = "▾ "
+		mark = s.Glyph("fold.open") + " "
 	}
 	lines := cc.lines
 	more := 0

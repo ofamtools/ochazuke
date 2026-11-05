@@ -1524,7 +1524,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 		if f.value != "" && value == "(none)" {
 			value = f.value
 		}
-		value = ansi.Truncate(value+" ▾", inner, "…")
+		value = ansi.Truncate(value+" "+e.Styles.Glyph("fold.open"), inner, "…")
 		value = e.fieldStyle(f, lipgloss.NewStyle()).Render(value)
 		if focused && e.r.Focus == f.id {
 			value = reverseVideo(value)

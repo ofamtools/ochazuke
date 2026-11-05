@@ -113,9 +113,9 @@ func (l *List) sortSummary() string {
 	}
 	var parts []string
 	for i, k := range l.sort {
-		arrow := "▲"
+		arrow := l.r.glyph("sort.asc")
 		if k.Desc {
-			arrow = "▼"
+			arrow = l.r.glyph("sort.desc")
 		}
 		if i > 0 {
 			arrow += strconv.Itoa(i + 1)
@@ -499,9 +499,9 @@ func (l *List) sortTitle(col Column) string {
 	}
 	for i, key := range l.sort {
 		if l.sortColumnField(col.Title) == key.Field {
-			arrow := "▲"
+			arrow := l.r.glyph("sort.asc")
 			if key.Desc {
-				arrow = "▼"
+				arrow = l.r.glyph("sort.desc")
 			}
 			if i > 0 {
 				arrow += strconv.Itoa(i + 1)

@@ -90,7 +90,7 @@ func composeModalAt(background, title string, body Block, footer string, styled 
 			}
 		}
 		rows = append(rows, foot)
-		panel := lipgloss.NewStyle().Foreground(styles.Panel.GetForeground()).Border(lipgloss.RoundedBorder()).BorderForeground(styles.Chrome("border.modal", lipgloss.NewStyle().Foreground(styles.Accent.GetForeground())).GetForeground()).Padding(0, 1)
+		panel := lipgloss.NewStyle().Foreground(styles.Panel.GetForeground()).Border(styles.Border(false)).BorderForeground(styles.Chrome("border.modal", lipgloss.NewStyle().Foreground(styles.Accent.GetForeground())).GetForeground()).Padding(0, 1)
 		lines = strings.Split(panel.Render(strings.Join(rows, "\n")), "\n")
 		panelWidth += 4
 		// Border and padding on the left; border and title row above.

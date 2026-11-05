@@ -106,13 +106,13 @@
       "after": 4,
       "shift": -10,
       "contains": [
-        "╭━ skill (2) ━━━━━━━━━━━━━━━╮ ╭─ record"
+        "┏━ skill (2) ━━━━━━━━━━━━━━━┓ ╭─ record"
       ]
     },
     {
       "shift": 0,
       "contains": [
-        "╭━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━╮ ╭─ record"
+        "┏━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ record"
       ]
     }
   ]

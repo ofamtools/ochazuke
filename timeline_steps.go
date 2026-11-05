@@ -173,9 +173,9 @@ func (t *Timeline) buildBody(c *Card, units []foldUnit) ([]cardLine, []stepSpan)
 		}
 		for k, s := range c.Sections {
 			folded := t.folded(c.ID, units[k])
-			mark := "▾"
+			mark := t.r.glyph("fold.open")
 			if folded {
-				mark = "▸"
+				mark = t.r.glyph("fold.shut")
 			}
 			title := mark + " " + strconv.Itoa(k+1) + " " + s.Title
 			if s.Summary != "" {
@@ -228,9 +228,9 @@ func (t *Timeline) buildBody(c *Card, units []foldUnit) ([]cardLine, []stepSpan)
 			if s.foldable() {
 				fold, folded = n, t.folded(c.ID, units[n])
 				n++
-				m := "▾"
+				m := t.r.glyph("fold.open")
 				if folded {
-					m = "▸"
+					m = t.r.glyph("fold.shut")
 				}
 				title = m + " " + strconv.Itoa(n) + " " + s.Title
 			}

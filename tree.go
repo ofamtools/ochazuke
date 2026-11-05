@@ -196,6 +196,7 @@ type Tree struct {
 	guidesShown bool
 	guideLast   map[string]string // last kept child of each parent
 	zoom        string            // the node the view is zoomed on (tree_zoom.go); "" every level
+	glyphSet    string            // the fold marks in the cached list rows
 
 	// OnChange makes the tree editable and receives each change as it is
 	// made; an error keeps the change on screen, marks the row and retries
@@ -545,9 +546,9 @@ func (t *Tree) visible(n TreeNode) bool {
 func (t *Tree) prefix(n TreeNode) string {
 	marker := "  "
 	if t.hasChildren(n.ID) {
-		marker = "▾ "
+		marker = t.r.glyph("fold.open") + " "
 		if t.folded(n.ID) {
-			marker = "▸ "
+			marker = t.r.glyph("fold.shut") + " "
 		}
 	}
 	if t.failed[n.ID] {
@@ -633,6 +634,10 @@ func (t *Tree) View(width, height int) string { return t.Block(width, height).Te
 // breadcrumb line above the rows (tree.breadcrumb line) when there is room
 // for a row under it; the frame first applies tree.zoom (frameZoom).
 func (t *Tree) Block(width, height int) Block {
+	if set := t.r.Settings().String(ChromeGlyphsSetting); set != t.glyphSet {
+		t.glyphSet = set
+		_ = t.refresh("")
+	}
 	t.frameZoom(width)
 	crumb := ""
 	if height > 1 {
