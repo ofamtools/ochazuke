@@ -475,6 +475,7 @@ type Runtime struct {
 	agentApproved    bool                     // the owner approved this request and its nested work
 	agentTransport   *agentTransport          // scoped adapter identity and execution environment, shared by nested requests
 	history          actionHistory            // the executed-request ring and the current source (history.go)
+	reopening        string                   // the record editor reopening itself over the level it opened over (runFailed)
 	origin           string                   // the instance the running request or completion acts for; a modal opens only from the top level
 	askedAt          string                   // the focus the running request was made at, before it moved to its noun's instance (createFill reads a reference's thing there)
 	rowRequest       bool                     // the next execute is a binding row's own request (runRow's level rule targets it)

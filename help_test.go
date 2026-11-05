@@ -90,12 +90,9 @@ func TestHelpListsTheFocusedRowsVerbsFirst(t *testing.T) {
 	}) {
 		t.Fatalf("frame (highlighted %q):\n%s", lit, frame)
 	}
-	// Read-only: enter does not run widget.open beneath the modal.
+	// enter on a row with children folds it; on a plain operation row it
+	// runs (one rule, bound or not), which is the next test's.
 	keytest.Press(m, "j")
-	keytest.Press(m, "enter")
-	if r.TopModal() != helpID {
-		t.Fatalf("enter left the help: %q", r.TopModal())
-	}
 	keytest.Press(m, "esc")
 	if r.TopModal() != "" || r.Focus != "w1" || r.Instances[helpListID] != nil {
 		t.Fatalf("esc: modal %q focus %q", r.TopModal(), r.Focus)

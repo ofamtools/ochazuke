@@ -1,0 +1,50 @@
+{
+  "name": "enter on an unbound verb that answers with data shows the answer (results.show-data), not nothing",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "items": [
+          {
+            "id": "a1",
+            "label": "one",
+            "data": {
+              "host": "h1"
+            }
+          }
+        ]
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.where",
+        "description": "Say where",
+        "answer": {
+          "where": "h1"
+        },
+        "parameters": {}
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "/",
+    {
+      "type": "demo.where"
+    },
+    "enter",
+    "enter"
+  ],
+  "expect": [
+    {
+      "modal": "",
+      "contains": [
+        "demo.where",
+        "h1"
+      ]
+    }
+  ]
+}

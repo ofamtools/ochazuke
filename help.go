@@ -38,11 +38,11 @@ func registerBindingHelp(r *Runtime) {
 	// in the views drawn as a tree; hidden, so the footer is unchanged
 	// (bindings/help.json).
 	r.DefineGuard("help-tree", func(r *Runtime, _ KeyEvent) bool { return r.Tree(helpTreeID) != nil })
-	// An unbound row has nothing to fold: enter there runs it
+	// A row with children folds on enter; any other operation row runs
 	// (bindings-help.run), as the row after the tree's answers.
 	r.DefineGuard("help-foldable", func(r *Runtime, _ KeyEvent) bool {
 		row, ok := r.selectedHelpRow()
-		return r.Tree(helpTreeID) != nil && !(ok && row.Unbound)
+		return r.Tree(helpTreeID) != nil && !(ok && helpRunnable(row))
 	})
 	r.Register(Operation{Verb: "help", Noun: "ochazuke.bindings", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		focus := focusOf(c)

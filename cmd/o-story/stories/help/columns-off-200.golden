@@ -31,10 +31,10 @@ R|                    │   q             app.quit                              
  |                    │ list                                                                                                                                                         │
  |                    │   space         list.mark                                  Toggle the mark on a row (the selected row by default) for fan-out verbs                          │
  |                    │ 1–17 / 64                                                                                                                                                    │
- |                    │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter                                                                     │
+ |                    │ space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bindings.help · / filter                                                │
  |                    ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter
+ |  space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bindings.help · / filter
  |

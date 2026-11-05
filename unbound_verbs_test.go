@@ -129,20 +129,42 @@ func TestEnterRunsAnUnboundVerb(t *testing.T) {
 	}
 }
 
-// enter on a bound row still folds or does nothing: only an unbound row
-// runs.
-func TestEnterOnABoundRowDoesNotRun(t *testing.T) {
+// enter runs any operation row, bound or not, as one rule; a row with
+// children (a prefix) folds instead and runs nothing.
+func TestEnterRunsABoundRowAndFoldsAPrefix(t *testing.T) {
 	r, m, ran := unboundFixture(t)
-	keytest.Press(m, "?")
-	tree := r.Tree(helpTreeID)
-	for _, n := range tree.Nodes() {
-		if row, ok := n.Data.(HelpRow); ok && row.Operation == "widget.open" {
-			_ = tree.Select(n.ID)
+	for _, b := range []Binding{
+		{Noun: "widget", Mode: "normal", Keys: "p", Request: Request{Noun: "widget", Verb: "ping"}},
+		{Noun: "widget", Mode: "normal", Keys: "g a", Request: Request{Noun: "widget", Verb: "ping"}},
+		{Noun: "widget", Mode: "normal", Keys: "g b", Request: Request{Noun: "widget", Verb: "ping"}},
+	} {
+		if err := r.Bind(b); err != nil {
+			t.Fatal(err)
 		}
 	}
+	selectKey := func(key string) {
+		t.Helper()
+		tree := r.Tree(helpTreeID)
+		for _, n := range tree.Nodes() {
+			if row, ok := n.Data.(HelpRow); ok && row.Key == key && row.Operation != "" || ok && row.Key == key && row.Group {
+				if err := tree.Select(n.ID); err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+		}
+		t.Fatalf("no row for %q", key)
+	}
+	keytest.Press(m, "?")
+	selectKey("g")
 	keytest.Press(m, "enter")
 	if r.TopModal() != helpID || len(*ran) != 0 {
-		t.Fatalf("modal %q ran %v", r.TopModal(), *ran)
+		t.Fatalf("enter on a prefix: modal %q ran %v", r.TopModal(), *ran)
+	}
+	selectKey("p")
+	keytest.Press(m, "enter")
+	if r.TopModal() == helpID || !slices.Equal(*ran, []string{"ping"}) {
+		t.Fatalf("enter on a bound row: modal %q ran %v", r.TopModal(), *ran)
 	}
 }
 
@@ -169,7 +191,7 @@ func TestBindingsBindWritesTheUserFile(t *testing.T) {
 	}
 	// enter is widget.open: taking it needs replace.
 	q := Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "enter", "action": "widget.wipe"}}
-	if _, err := r.Execute(q); err == nil || !strings.Contains(err.Error(), "replace") {
+	if _, err := r.Execute(q); err == nil || !strings.Contains(err.Error(), "enter already runs widget.open here; bind anyway?") {
 		t.Fatalf("err %v", err)
 	}
 	q.Args["replace"] = true
@@ -189,21 +211,105 @@ func TestBindingsBindWritesTheUserFile(t *testing.T) {
 	}
 }
 
-// b on an unbound help row opens the bind form with the action filled; the
-// key typed there is written and the help lists the verb no more.
-func TestHelpBindFormBindsTheSelectedVerb(t *testing.T) {
-	r, m, _ := unboundFixture(t)
+// b on an unbound help row waits for the next key and binds it to the
+// selected verb: the file is written, the key runs the verb and the help
+// lists it no more. esc cancels.
+func TestHelpBindCapturesTheNextKey(t *testing.T) {
+	r, m, ran := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
 	keytest.Press(m, "?")
 	selectHelpRow(t, r, "widget.ping")
 	keytest.Press(m, "b")
-	if r.Instances[ArgsFormID] == nil {
-		t.Fatalf("no form; top %q status %q", r.TopModal(), m.Status)
+	if r.Instances[ArgsFormID] != nil || r.Mode.Name != "help_bind_pending" {
+		t.Fatalf("mode %q, form %v", r.Mode.Name, r.Instances[ArgsFormID] != nil)
 	}
-	keytest.Type(m, "p")
-	keytest.Press(m, "enter")
+	keytest.Press(m, "esc")
+	if r.Mode.Name == "help_bind_pending" || r.TopModal() != helpID {
+		t.Fatalf("after esc: mode %q top %q", r.Mode.Name, r.TopModal())
+	}
+	if _, err := os.Stat(filepath.Join(r.Config().Dir, BindingsFile)); err == nil {
+		t.Fatal("esc wrote the file")
+	}
+	keytest.Press(m, "b")
+	keytest.Press(m, "p")
 	if got := unboundOps(BindingHelp(r, "w1")); !slices.Equal(got, []string{"widget.wipe"}) {
-		t.Fatalf("unbound after the form: %v (status %q, top %q)", got, m.Status, r.TopModal())
+		t.Fatalf("unbound after the key: %v (status %q, top %q)", got, m.Status, r.TopModal())
+	}
+	keytest.Press(m, "esc")
+	keytest.Press(m, "p")
+	if !slices.Equal(*ran, []string{"ping"}) {
+		t.Fatalf("p ran %v", *ran)
+	}
+}
+
+// A key the walk at the focus already answers, at any level, is not taken
+// over without a yes: the question names what answers it now. j and esc
+// are the page's, not the widget's own table.
+func TestHelpBindAsksBeforeTakingAnAnsweredKey(t *testing.T) {
+	r, m, ran := unboundFixture(t)
+	r.Config().Dir = t.TempDir()
+	r.Define("widget").Mode("normal").Bind("x", Do("widget.ping"))
+	keytest.Press(m, "?")
+	selectHelpRow(t, r, "widget.wipe")
+	keytest.Press(m, "b")
+	keytest.Press(m, "j")
+	if top := r.TopModal(); top == helpID || top == "" {
+		t.Fatalf("no confirm: top %q", top)
+	} else if view := m.View().Content; !strings.Contains(view, "j already runs list.move here; bind anyway?") {
+		t.Fatalf("the question does not name what answers j now:\n%s", view)
+	}
+	if _, err := os.Stat(filepath.Join(r.Config().Dir, BindingsFile)); err == nil {
+		t.Fatal("the file was written before the yes")
+	}
+	keytest.Press(m, "n")
+	if _, err := os.Stat(filepath.Join(r.Config().Dir, BindingsFile)); err == nil {
+		t.Fatal("no wrote the file")
+	}
+	keytest.Press(m, "b")
+	keytest.Press(m, "j")
+	keytest.Press(m, "y")
+	if data, err := os.ReadFile(filepath.Join(r.Config().Dir, BindingsFile)); err != nil || !strings.Contains(string(data), `"key": "j"`) {
+		t.Fatalf("yes did not bind j: %q %v", data, err)
+	}
+	_ = ran
+	// Through the verb: refused with the sentence unless replace.
+	_, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "j", "action": "widget.wipe"}})
+	var conflict *BindConflictError
+	if !errors.As(err, &conflict) || conflict.Keys != "j" || !strings.HasSuffix(err.Error(), "here; bind anyway?") {
+		t.Fatalf("err %v", err)
+	}
+	for _, keys := range []string{"esc", ":", "Q"} {
+		_, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": keys, "action": "widget.wipe"}})
+		if !errors.As(err, &conflict) {
+			t.Fatalf("%s: err %v", keys, err)
+		}
+	}
+}
+
+// A form opened over a modal that fails to run stays open with what was
+// typed and one plain sentence (the general rule, not the bind form's).
+func TestFormOverAModalReopensOnAFailedRun(t *testing.T) {
+	r, m, _ := unboundFixture(t)
+	r.Config().Dir = t.TempDir()
+	keytest.Press(m, "?")
+	q := Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"action": "widget.wipe"}}
+	if _, err := r.OpenArgsForm(q, func(q Request) error {
+		_, err := r.ExecuteAt(r.Context(), q)
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	keytest.Type(m, "j")
+	keytest.Press(m, "enter")
+	if r.TopModal() != ArgsFormID {
+		t.Fatalf("the form did not stay: top %q status %q", r.TopModal(), m.Status)
+	}
+	ed := r.RecordEditor(ArgsFormID)
+	if got := ed.Values()["key"]; got != "j" {
+		t.Fatalf("typed key lost: %v", got)
+	}
+	if strings.Contains(m.Status, "\n") || strings.Contains(m.Status, "modal") && !strings.Contains(m.Status, "bind anyway") {
+		t.Fatalf("status %q", m.Status)
 	}
 }
 
@@ -311,5 +417,82 @@ func TestHelpRefreshKeepsFoldState(t *testing.T) {
 		if now, ok := after[id]; ok && now != was {
 			t.Fatalf("row %q folded %v before the bind, %v after", id, was, now)
 		}
+	}
+}
+
+func sendFixture(t *testing.T) (*Runtime, *Model, *[]Arguments) {
+	t.Helper()
+	r, m, _ := unboundFixture(t)
+	var got []Arguments
+	r.Register(Operation{Verb: "send", Noun: "widget", Kind: KindApplication, Description: "Send the widget", Parameters: map[string]Parameter{
+		"to":   {Type: "string", Required: true, Description: "Where to"},
+		"note": {Type: "string", Description: "A note"},
+	}, Positional: []string{"to", "note"}, Result: "JSON value", Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
+		got = append(got, a)
+		return map[string]any{"sent": a["to"]}, nil
+	}})
+	return r, m, &got
+}
+
+// A required argument no source fills opens the form from the help's run
+// (enter), and the form's run goes through the same path as a key's; the
+// verb's data answer is shown, not dropped.
+func TestHelpRunAsksForARequiredArgument(t *testing.T) {
+	r, m, got := sendFixture(t)
+	sink := &RecordingSink{}
+	r.UI().Attach(sink)
+	keytest.Press(m, "?")
+	selectHelpRow(t, r, "widget.send")
+	keytest.Press(m, "enter")
+	if r.TopModal() != ArgsFormID {
+		t.Fatalf("no form: top %q status %q", r.TopModal(), m.Status)
+	}
+	keytest.Type(m, "mars")
+	keytest.Press(m, "enter")
+	if len(*got) != 1 || (*got)[0]["to"] != "mars" {
+		t.Fatalf("ran %v (status %q, top %q)", *got, m.Status, r.TopModal())
+	}
+	if !slices.Contains(sink.Notices(), `widget.send: {"sent":"mars"}`) {
+		t.Fatalf("the answer was not shown: %q", sink.Notices())
+	}
+}
+
+// a opens the form for any verb with parameters besides its target, even
+// when every required one is filled; a verb without parameters has no a.
+func TestHelpArgsOpensTheFormForAVerbWithParameters(t *testing.T) {
+	r, m, got := sendFixture(t)
+	keytest.Press(m, "?")
+	selectHelpRow(t, r, "widget.ping")
+	keytest.Press(m, "a")
+	if r.TopModal() != helpID {
+		t.Fatalf("a on a verb without parameters: top %q", r.TopModal())
+	}
+	selectHelpRow(t, r, "widget.send")
+	keytest.Press(m, "a")
+	if r.TopModal() != ArgsFormID {
+		t.Fatalf("no form: top %q", r.TopModal())
+	}
+	keytest.Type(m, "venus")
+	keytest.Press(m, "enter")
+	if len(*got) != 1 || (*got)[0]["to"] != "venus" {
+		t.Fatalf("ran %v", *got)
+	}
+}
+
+// results.show-data off leaves the answer unshown.
+func TestHelpRunDataAnswerCanBeTurnedOff(t *testing.T) {
+	r, m, _ := sendFixture(t)
+	if err := r.Settings().Set(DataResultsSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	sink := &RecordingSink{}
+	r.UI().Attach(sink)
+	keytest.Press(m, "?")
+	selectHelpRow(t, r, "widget.send")
+	keytest.Press(m, "a")
+	keytest.Type(m, "mars")
+	keytest.Press(m, "enter")
+	if slices.ContainsFunc(sink.Notices(), func(n string) bool { return strings.Contains(n, "sent") }) {
+		t.Fatalf("notices %q", sink.Notices())
 	}
 }

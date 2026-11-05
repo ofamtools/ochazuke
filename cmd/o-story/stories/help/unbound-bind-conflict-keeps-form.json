@@ -1,0 +1,60 @@
+{
+  "name": "a form opened over the help that fails to run stays open with what was typed and one plain sentence",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "items": [
+          {
+            "id": "a1",
+            "label": "one",
+            "data": {
+              "host": "h1"
+            }
+          }
+        ]
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.fail",
+        "description": "Always fails",
+        "error": "boom",
+        "parameters": {
+          "to": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "/",
+    {
+      "type": "demo.fail"
+    },
+    "enter",
+    "a",
+    {
+      "type": "mars"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "modal": "args-form",
+      "contains": [
+        "boom",
+        "mars"
+      ],
+      "lacks": [
+        "modal is open above"
+      ]
+    }
+  ]
+}

@@ -594,7 +594,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 	}
 	// A request lacking a required argument opens the args form for it
 	// (MissingOpensFormSetting); the form runs it as the key's.
-	formed, err := r.runOrAsk(ev.Focus, q, execute)
+	formed, err := r.runOrAsk(ev.Focus, q, execute, false)
 	if r.pendingModes[before] && r.modeGeneration == generation && r.Mode.Name == before {
 		r.leaveMode()
 	}

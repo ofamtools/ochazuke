@@ -1,0 +1,66 @@
+{
+  "name": "a opens the args form for an unbound verb with parameters, holding the fills, and runs it with what is typed",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "items": [
+          {
+            "id": "a1",
+            "label": "one",
+            "data": {
+              "host": "h1"
+            }
+          }
+        ]
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.send",
+        "description": "Send to a host",
+        "parameters": {
+          "to": {
+            "type": "string",
+            "required": true
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "/",
+    {
+      "type": "demo.send"
+    },
+    "enter",
+    "a",
+    {
+      "type": "mars"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "modal": "args-form",
+      "contains": [
+        "to",
+        "note"
+      ]
+    },
+    {
+      "writes": [
+        "demo.send to=mars"
+      ],
+      "modal": ""
+    }
+  ]
+}

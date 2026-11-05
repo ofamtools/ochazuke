@@ -51,7 +51,9 @@
     "modal": "bindings-help",
     "lacks": [
       "culprit.size",
-      "unbound",
+      "unbound"
+    ],
+    "contains": [
       "enter run"
     ]
   }

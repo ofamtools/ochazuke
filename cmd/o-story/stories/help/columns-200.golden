@@ -31,10 +31,10 @@ R|                    │   q             app.quit                              
  |                    │                                                                  viewer (help.markdown)                                                                      │
  |                    │ list                                                                                                                                                         │
  |                    │ 1–16 / 64                                                                                                                                                    │
- |                    │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter                                                                     │
+ |                    │ space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bindings.help · / filter                                                │
  |                    ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · esc modal.close · : palette.open · ? bindings.help · / filter
+ |  space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bindings.help · / filter
  |

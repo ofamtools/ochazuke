@@ -1,0 +1,71 @@
+{
+  "name": "b on an unbound row then a key the page already answers (j) asks \"j already runs list.move here; bind anyway?\" before taking it; n leaves the file alone",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {
+    "nouns": [
+      {
+        "noun": "culprit",
+        "verbs": [
+          "clear",
+          "list",
+          "names",
+          "relocate",
+          "show",
+          "size"
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "disk",
+        "height": -1,
+        "items": [
+          {
+            "id": "c1",
+            "noun": "culprit",
+            "label": "~/Library/Caches"
+          },
+          {
+            "id": "c2",
+            "noun": "culprit",
+            "label": "~/.cache/go-build"
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "b",
+    "j",
+    "n"
+  ],
+  "expect": [
+    {
+      "after": 8,
+      "contains": [
+        "j already runs",
+        "bind anyway?"
+      ]
+    },
+    {
+      "modal": "bindings-help",
+      "order": [
+        "culprit · unbound",
+        "culprit.clear"
+      ]
+    }
+  ],
+  "config": {
+    "bindings.json": {
+      "bindings": []
+    }
+  }
+}

@@ -207,7 +207,7 @@ func (r *Runtime) actingFor(id string) (restore func()) {
 // is its own level and allowed.
 func (r *Runtime) openFromTopLevel(id string) error {
 	top := r.TopModal()
-	if top == "" {
+	if top == "" || id != "" && id == r.reopening {
 		return nil
 	}
 	origin := r.origin

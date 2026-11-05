@@ -59,7 +59,7 @@
         │                                                register the  │
         │                                                next yank,    │
         │ 1–11 / 55                                                    │
-        │ space list.mark · S view · esc modal.close · : palette.open… │
+        │ space list.mark · S view · enter run · esc modal.close · : … │
         ╰──────────────────────────────────────────────────────────────╯
 
 
@@ -68,5 +68,5 @@
 
 
   ────────────────────────────────────────────────────────────────────────────
-  space list.mark · S view · esc modal.close · : palette.open · ? bindings.he…
+  space list.mark · S view · enter run · esc modal.close · : palette.open · ?…
 

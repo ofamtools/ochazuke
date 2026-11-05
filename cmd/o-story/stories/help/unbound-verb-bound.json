@@ -45,29 +45,29 @@
     "j",
     "b",
     "s",
-    "enter",
     "esc",
     "s"
   ],
   "expect": [
     {
       "after": 7,
-      "modal": "args-form",
+      "modal": "bindings-help",
       "contains": [
-        "culprit.size"
+        "key to bind",
+        "cancel"
       ]
     },
     {
-      "after": 9,
+      "after": 8,
       "modal": "bindings-help",
       "order": [
         "culprit.size",
-        "culprit \u00b7 unbound",
+        "culprit · unbound",
         "culprit.clear"
       ]
     },
     {
-      "after": 10,
+      "after": 9,
       "modal": "",
       "writes": []
     },

@@ -1,5 +1,8 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
+  "modes": {
+    "help_bind_pending": {"pending": true}
+  },
   "bindings": [
     {"context": "ochazuke.binding/normal", "bindings": [
       {"key": "enter", "action": "ochazuke.outline.fold", "when": "help-foldable", "hidden": true}
@@ -12,7 +15,12 @@
       {"key": "m", "action": "ochazuke.bindings-help.mode", "hint": "mode"},
       {"key": "p", "action": "ochazuke.bindings-help.place", "hint": "place"},
       {"key": "enter", "action": "ochazuke.bindings-help.run", "hint": "run"},
-      {"key": "b", "action": "ochazuke.bindings-help.bind", "hint": "bind"}
+      {"key": "a", "action": "ochazuke.bindings-help.args", "when": "help-has-args", "hint": "args", "help": "Open the args form for the selected verb before running it"},
+      {"key": "b", "action": "ochazuke.mode.enter", "args": {"mode": "help_bind_pending"}, "when": "help-unbound-row", "hint": "bind", "help": "Bind the next key you press to the selected unbound verb (esc cancels); a key that already runs something asks first"}
+    ]},
+    {"context": "ochazuke.bindings-help/help_bind_pending", "bindings": [
+      {"key": "esc", "action": "ochazuke.mode.leave", "hint": "cancel", "help": "Leave without binding"},
+      {"key": "any", "action": "ochazuke.bindings-help.bind-key", "from": {"key": "key"}, "hint": "key to bind", "help": "Bind this key to the selected unbound verb"}
     ]}
   ]
 }

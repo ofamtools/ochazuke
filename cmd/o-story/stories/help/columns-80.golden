@@ -48,7 +48,7 @@ R|        │                                                 application  │
  |        │                                                 the          │
  |        │                                                 outline's    │
  |        │ 1–8 / 64                                                     │
- |        │ space list.mark · S view · esc modal.close · : palette.open… │
+ |        │ space list.mark · S view · enter run · a args · esc modal.c… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
@@ -56,5 +56,5 @@ R|        │                                                 application  │
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · esc modal.close · : palette.open · ? bindings.he…
+ |  space list.mark · S view · enter run · a args · esc modal.close · : palette…
  |

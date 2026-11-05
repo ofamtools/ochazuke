@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -166,22 +167,34 @@ func (r *Runtime) withUnboundRows(rows []HelpRow, ops []Operation) []HelpRow {
 // RunUnbound runs a request from focus as a key would: the same
 // availability, agent rights and confirm (ExecuteAt), a missing required
 // argument opening its form (MissingOpensFormSetting), a text answer shown
-// as a key's is (keys.text-results). It is what enter does on an unbound
-// help row.
-func (r *Runtime) RunUnbound(focus string, q Request) error {
+// as a key's is (keys.text-results) and any other data answer shown too
+// (results.show-data). It is what enter does on a help row.
+func (r *Runtime) RunUnbound(focus string, q Request) error { return r.runFromHelp(focus, q, false) }
+
+// AskUnbound is RunUnbound that always opens the args form first, holding
+// what the request and the parameters' sources fill, for a verb with
+// parameters (a in the help).
+func (r *Runtime) AskUnbound(focus string, q Request) error { return r.runFromHelp(focus, q, true) }
+
+func (r *Runtime) runFromHelp(focus string, q Request, ask bool) error {
 	if r.Instances[focus] == nil {
 		return fmt.Errorf("unknown instance %q", focus)
 	}
 	defer r.forceSource(helpSource)()
 	execute := func(q Request) error {
 		present := r.keyResultPresenter(q)
+		top := r.TopModal()
 		value, err := r.ExecuteAt(r.contextOf(focus), q)
-		if err == nil && present != nil {
+		switch {
+		case err != nil:
+		case present != nil:
 			err = present(value)
+		case r.TopModal() == top:
+			err = r.presentData(q, value)
 		}
 		return err
 	}
-	_, err := r.runOrAsk(focus, q, execute)
+	_, err := r.runOrAsk(focus, q, execute, ask)
 	return err
 }
 
@@ -195,16 +208,24 @@ const helpSource = "help"
 // execute under the source the request started with. It reports whether the
 // form opened. The one place a key's row (runRow) and an unbound verb
 // (RunUnbound) ask or run.
-func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) error) (bool, error) {
+func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) error, always bool) (bool, error) {
 	source := r.history.source
 	form := q
 	if form.Target == "" && focus != r.Focus {
 		form.Target = focus
 	}
-	if r.formForMissing(form, func(q Request) error {
+	run := func(q Request) error {
 		defer r.forceSource(source)()
 		return execute(q)
-	}) {
+	}
+	if always {
+		if op, ok := r.Operations[form.Key()]; ok && len(op.Parameters) > 0 {
+			if _, err := r.OpenArgsForm(form, run); err == nil {
+				return true, nil
+			}
+		}
+	}
+	if r.formForMissing(form, run) {
 		return true, nil
 	}
 	return false, execute(q)
@@ -230,19 +251,45 @@ func registerUnboundVerbs(r *Runtime) {
 		row, ok := r.selectedHelpRow()
 		return ok && row.Unbound
 	})
-	r.Register(Operation{Verb: "run", Noun: helpID, Description: "Run the selected unbound verb on what the help opened over, as its key would (it asks first where the key would; a missing argument opens its form)", Result: "operation", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
-		h := r.helpOpen()
+	// run and args act on the selected row of the help, bound or not: one
+	// rule for enter on any operation row (a row with children folds
+	// instead, help-foldable).
+	helpRun := func(ask bool) func(*Runtime, Context, Arguments) (any, error) {
+		return func(r *Runtime, _ Context, _ Arguments) (any, error) {
+			row, ok := r.selectedHelpRow()
+			if r.helpOpen() == nil || !ok || !helpRunnable(row) {
+				return nil, errors.New("select a verb in the help")
+			}
+			origin, _ := r.ModalReturn(helpID)
+			noun, verb := r.keyParts(row.Request)
+			q := Request{Noun: noun, Verb: verb}
+			if !row.Unbound {
+				q.Args = cloneArgs(row.Args)
+			}
+			if err := r.Pop(); err != nil {
+				return nil, err
+			}
+			if ask {
+				return row.Request, r.AskUnbound(origin, q)
+			}
+			return row.Request, r.RunUnbound(origin, q)
+		}
+	}
+	r.Register(Operation{Verb: "run", Noun: helpID, Description: "Run the selected verb, bound or not, on what the help opened over, as its key would (it asks first where the key would; a missing argument opens its form)", Result: "operation", Run: helpRun(false)})
+	r.Register(Operation{Verb: "args", Noun: helpID, Description: "Open the args form for the selected verb, holding what its parameters' sources fill, before running it on what the help opened over", Result: "operation", Run: helpRun(true)})
+	r.DefineGuard("help-runnable", func(r *Runtime, _ KeyEvent) bool {
 		row, ok := r.selectedHelpRow()
-		if h == nil || !ok || !row.Unbound {
-			return nil, errors.New("select an unbound verb in the help")
+		return ok && helpRunnable(row)
+	})
+	r.DefineGuard("help-has-args", func(r *Runtime, _ KeyEvent) bool {
+		row, ok := r.selectedHelpRow()
+		if !ok || !helpRunnable(row) {
+			return false
 		}
-		origin, _ := r.ModalReturn(helpID)
 		noun, verb := r.keyParts(row.Request)
-		if err := r.Pop(); err != nil {
-			return nil, err
-		}
-		return row.Request, r.RunUnbound(origin, Request{Noun: noun, Verb: verb})
-	}})
+		op, found := r.Operation(noun + "." + verb)
+		return found && slices.ContainsFunc(slices.Collect(maps.Keys(op.Parameters)), func(name string) bool { return name != "target" })
+	})
 	r.Register(Operation{Verb: "bind", Noun: helpID, Description: "Bind a key to the selected unbound verb: a form asks for the key and writes the row to your bindings.json (bindings.bind)", Result: "operation", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		h := r.helpOpen()
 		row, ok := r.selectedHelpRow()
@@ -256,12 +303,29 @@ func registerUnboundVerbs(r *Runtime) {
 		})
 		return row.Request, err
 	}})
+	r.Register(Operation{Verb: "bind-key", Noun: helpID, Description: "Bind the key just pressed to the selected unbound verb (b waits for it; esc cancels): writes the row to your bindings.json; a key that already runs something asks first", Parameters: map[string]Parameter{
+		"key": {Type: "string", Required: true, Description: "the key, as the bindings file spells it"},
+	}, Result: "binding", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		row, ok := r.selectedHelpRow()
+		if r.helpOpen() == nil || !ok || !row.Unbound {
+			return nil, errors.New("select an unbound verb in the help")
+		}
+		keys := StringArg(a, "key", "")
+		q := Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": keys, "action": row.Request}}
+		if b, conflict := r.bindConflict(keys); conflict {
+			q.Args["replace"] = true
+			return r.openConfirm(c, q, Operation{Noun: "ochazuke.bindings", Verb: "bind", Confirm: (&BindConflictError{Keys: keys, Action: r.displayRequest(b.Request)}).Error()})
+		}
+		return r.Execute(q)
+	}})
 	n := r.Noun(helpID)
 	if n.Guards == nil {
 		n.Guards = map[string]string{}
 	}
-	n.Guards["run"] = "help-unbound-row"
+	n.Guards["run"] = "help-runnable"
+	n.Guards["args"] = "help-has-args"
 	n.Guards["bind"] = "help-unbound-row"
+	n.Guards["bind-key"] = "help-unbound-row"
 
 	r.Register(Operation{Verb: "bind", Noun: "ochazuke.bindings", Description: "Bind a key to an action by writing a row to the user's bindings.json (the first change you make to it from the program: a comment in the file is not kept, the old file is copied to bindings.json.bak) and loading it. The row goes in the action's noun's table in the mode; a key that already answers something else needs replace", Parameters: map[string]Parameter{
 		"key":     {Type: "string", Required: true, Description: "the key or key sequence, as the bindings file spells it: x, ctrl+x, g n"},
@@ -298,9 +362,14 @@ func (r *Runtime) bindUserKey(key, action, noun, mode string, replace bool) (any
 	if err != nil {
 		return nil, err
 	}
-	for _, b := range r.tableRows(row) {
-		if b.same(row) && !isPrefixCancel(b) && !b.Unbind && b.Request.Key() != row.Request.Key() && !replace {
-			return nil, fmt.Errorf("%s is bound to %s in %s/%s; pass replace to take it", row.Keys, r.displayRequest(b.Request), noun, mode)
+	if !replace {
+		if b, conflict := r.bindConflict(row.Keys); conflict {
+			return nil, &BindConflictError{Keys: row.Keys, Action: r.displayRequest(b.Request)}
+		}
+		for _, b := range r.tableRows(row) {
+			if b.same(row) && !isPrefixCancel(b) && !b.Unbind && b.Request.Key() != row.Request.Key() {
+				return nil, &BindConflictError{Keys: row.Keys, Action: r.displayRequest(b.Request)}
+			}
 		}
 	}
 	var doc BindingsDoc
@@ -363,5 +432,46 @@ func (r *Runtime) bindUserKey(key, action, noun, mode string, replace bool) (any
 			return nil, fmt.Errorf("written, but not loaded: %s", p)
 		}
 	}
+	r.UI().Notify(row.Keys + " now runs " + r.displayRequest(row.Request) + " (" + BindingsFile + ")")
 	return map[string]any{"key": row.Keys, "action": r.displayRequest(row.Request), "context": noun + "/" + mode, "file": path}, nil
+}
+
+// BindConflictError says a key already runs something where it is being
+// bound, in one plain sentence that is also the question to ask.
+type BindConflictError struct{ Keys, Action string }
+
+func (e *BindConflictError) Error() string {
+	return e.Keys + " already runs " + e.Action + " here; bind anyway?"
+}
+
+// bindConflict is the row of the walk at the focus the help (else the
+// base focus) is over that already answers keys in the base mode: the same
+// key, a sequence that starts with it, or a shorter row it would start a
+// sequence from. The first such row, nearest the focus first.
+func (r *Runtime) bindConflict(keys string) (Binding, bool) {
+	keys = strings.Join(strings.Fields(keys), " ")
+	focus, mode := r.BaseFocus(), r.BaseMode()
+	if origin, at := r.ModalReturn(helpID); r.Instances[origin] != nil {
+		base, _ := baseAndPrefix(at)
+		focus, mode = origin, base
+	}
+	if keys == "" || r.Instances[focus] == nil {
+		return Binding{}, false
+	}
+	for _, row := range r.scanRows(r.walk(focus), ModeState{Name: mode}, focus, false) {
+		if row.Pattern != "" || row.Keys == "" || isPrefixCancel(row.Binding) || row.Unbind {
+			continue
+		}
+		if row.Keys == keys || strings.HasPrefix(row.Keys, keys+" ") || strings.HasPrefix(keys, row.Keys+" ") {
+			return row.Binding, true
+		}
+	}
+	return Binding{}, false
+}
+
+// helpRunnable reports whether a help row stands for one operation a run
+// can start: not a row with children (a prefix or a sequence, which fold)
+// nor a prefix the help made up.
+func helpRunnable(row HelpRow) bool {
+	return row.Operation != "" && row.Request != "" && !row.Group && len(row.Steps) == 0 && row.Enters == ""
 }

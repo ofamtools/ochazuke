@@ -30,6 +30,10 @@ const textViewInputID = "__text-view/text"
 // editor, all or plain (settings/ochazuke.json).
 const PaletteTextResultsSetting = "palette.text-results"
 
+// DataResultsSetting shows the data answers of verbs run from the help and
+// the palette that no other presenter shows.
+const DataResultsSetting = "results.show-data"
+
 // KeyTextResultsSetting enables declared text results from key bindings.
 const KeyTextResultsSetting = "keys.text-results"
 
@@ -280,4 +284,33 @@ func textViewRender(r *Runtime, inst *Instance, width, height int) Block {
 		}
 	}
 	return Block{Text: strings.Join(out, "\n"), Cursor: body.Cursor}.Offset(0, 1)
+}
+
+// presentData shows a data answer that nothing else presented, for a verb
+// run from the help or the palette: one line in the status line, a longer
+// one in the text view (results.show-data). A pending answer, a text
+// answer (its own presenter), an empty one and the answer of a framework
+// or standard verb are left alone.
+func (r *Runtime) presentData(q Request, value any) error {
+	if value == nil || !r.Settings().Bool(DataResultsSetting) {
+		return nil
+	}
+	if _, pending := value.(Ticket); pending {
+		return nil
+	}
+	// Only an application verb's own answer: the framework's interaction
+	// verbs answer with where they moved, and the standard verbs have their
+	// own views and notices.
+	if op, ok := r.Operation(q.Key()); !ok || IsTextResult(op.Result) || op.Kind != KindApplication || op.Standard != "" || op.Motion {
+		return nil
+	}
+	if compact, err := json.Marshal(value); err == nil && len(compact) <= 160 && string(compact) != "null" && string(compact) != "[]" && string(compact) != "{}" {
+		r.UI().Notify(r.DisplayKey(q.Key()) + ": " + string(compact))
+		return nil
+	}
+	text := resultText(value)
+	if strings.TrimSpace(text) == "" || text == "[]" || text == "{}" {
+		return nil
+	}
+	return r.OpenText(TextDoc{Title: q.Key(), Text: text})
 }

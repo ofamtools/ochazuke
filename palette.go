@@ -344,8 +344,9 @@ func (p *Palette) dispatch(q Request) error {
 	if err := p.close(); err != nil {
 		return err
 	}
+	top := p.r.TopModal()
 	present := p.r.resultPresenter(q, func(value any) (bool, error) {
-		return p.present(q, value)
+		return p.present(q, value, top)
 	})
 	value, err := p.r.ExecuteAt(origin, q)
 	if err == nil {
@@ -355,7 +356,10 @@ func (p *Palette) dispatch(q Request) error {
 	if err != nil {
 		// Dismiss before dispatch so focus/push/pop act on the originating
 		// focus. A failure reopens this same line with its focus and mode.
-		if restoreErr := p.r.Push(paletteID, focus); restoreErr != nil {
+		p.r.reopening = paletteID // its own level: it opened over whatever is open now
+		restoreErr := p.r.Push(paletteID, focus)
+		p.r.reopening = ""
+		if restoreErr != nil {
 			return fmt.Errorf("%w (restoring palette: %v)", err, restoreErr)
 		}
 		p.r.restoreMode(ModeState{Name: mode}, nil)
@@ -363,7 +367,7 @@ func (p *Palette) dispatch(q Request) error {
 	return err
 }
 
-func (p *Palette) present(q Request, value any) (bool, error) {
+func (p *Palette) present(q Request, value any, top string) (bool, error) {
 	op := p.r.Operations[q.Key()]
 	if value == nil && (q.Verb == "list" || op.Rows != "") {
 		value = []any{}
@@ -382,6 +386,9 @@ func (p *Palette) present(q Request, value any) (bool, error) {
 	}
 	before := p.r.Instances[p.r.TopModal()]
 	err := p.showResults(q.Key(), value)
+	if err == nil && before == p.r.Instances[p.r.TopModal()] && p.r.TopModal() == top {
+		err = p.r.presentData(q, value) // a verb that opened a modal (a confirm) has said what it has to
+	}
 	return before != p.r.Instances[p.r.TopModal()], err
 }
 

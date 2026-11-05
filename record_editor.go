@@ -294,8 +294,12 @@ func (f *recordField) choiceLabel(c Choice) string {
 // multiline), choice fields instances of form-choice, whose enter opens the
 // chooser (a modal list of form-option rows).
 type RecordEditor struct {
-	r      *Runtime
-	id     string
+	r  *Runtime
+	id string
+	// over is the modal the editor opened over ("" for none): a failed run
+	// reopens it over the same level, whatever is on top of the focus by
+	// then (runFailed).
+	over   string
 	spec   RecordSpec
 	fields []*recordField
 	// Styles colour the labels (the zero value draws them plain); a modal
@@ -358,6 +362,7 @@ func (r *Runtime) OpenRecordEditor(id string, spec RecordSpec) (*RecordEditor, e
 		return nil, err
 	}
 	e.modal = true
+	e.over = r.TopModal()
 	if err := r.Push(id, e.fields[e.start()].id); err != nil {
 		_ = r.RemoveInstance(id)
 		return nil, err
@@ -1422,6 +1427,10 @@ func (e *RecordEditor) runFailed(values Record, focused string, err error) error
 	spec := e.spec
 	spec.Load = func() (Record, error) { return values, nil }
 	spec.Start = focused
+	if e.r.TopModal() == e.over {
+		defer func(before string) { e.r.reopening = before }(e.r.reopening)
+		e.r.reopening = e.id
+	}
 	again, openErr := e.r.OpenRecordEditor(e.id, spec)
 	if openErr != nil {
 		return errors.Join(err, openErr)
