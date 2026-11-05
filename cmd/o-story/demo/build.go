@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"maps"
 	"os/exec"
+	"path/filepath"
 	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"ofam.dev/monogatari"
@@ -160,6 +162,36 @@ func (ss *session) open1(open string) error {
 	if cs := ss.pages[open].Chooser; cs != nil {
 		if _, err := r.OpenChooser(ss.chooserSpec(cs)); err != nil {
 			return fmt.Errorf("chooser: %w", err)
+		}
+	}
+	if path := ss.pages[open].Picker; path != "" {
+		if ss.filesDir == "" || !strings.HasPrefix(filepath.Clean(ss.files(path)), ss.filesDir+"/") {
+			return errors.New("picker: path must be inside the story's {{files}} tree")
+		}
+		picker := ochazuke.NewPicker(r)
+		ss.M.ModalViews["picker"] = ochazuke.ModalView{Title: "Paths", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Instance, w, h int) ochazuke.Block {
+			block := picker.ViewBlock(w, h)
+			return block.WithText(ss.unfiles(block.Text))
+		}}
+		if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.picker", Verb: "open", Args: ochazuke.Arguments{"path": ss.files(path)}}); err != nil {
+			return fmt.Errorf("picker: %w", err)
+		}
+		// Picker messages predate Completion, so the story driver's job
+		// events cannot deliver them. Settle the isolated initial scan here.
+		cmds := []tea.Cmd{picker.PendingCommand()}
+		for len(cmds) > 0 {
+			cmd := cmds[0]
+			cmds = cmds[1:]
+			if cmd == nil {
+				continue
+			}
+			msg := cmd()
+			if batch, ok := msg.(tea.BatchMsg); ok {
+				cmds = append(cmds, batch...)
+			} else {
+				picker.HandleMessage(msg)
+				cmds = append(cmds, picker.PendingCommand())
+			}
 		}
 	}
 	return nil

@@ -311,6 +311,11 @@ var chromeRoleHelp = [][2]string{
 	{"job.running", "a running ticker entry (rich: working ink, bold; subtle: state word only)"},
 	{"job.done", "a completed ticker entry (rich: done ink; subtle: state word only)"},
 	{"job.failed", "a failed ticker entry (rich: error ink, bold; subtle: state word only)"},
+	{"match", "matching runes in choosers, the path picker and completion (rich: mode colour, bold; subtle: accent, bold; selected: bold alone)"},
+	{"palette.match", "matching runes in command-line completions (rich: mode colour, bold; subtle: accent, bold)"},
+	{"palette.heading", "command-line completion groups (rich: accent, bold; subtle: muted)"},
+	{"palette.marker", "the command-line completion marker"},
+	{"palette.resolve", "the command line's resolved request"},
 }
 
 // actionsExample is actions.example.json: one entry in the command form,

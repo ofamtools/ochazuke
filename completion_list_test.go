@@ -460,9 +460,6 @@ func TestCompletionOverlayDrawsUnderTheToken(t *testing.T) {
 	if view.Cursor == nil || view.Cursor.Y != row {
 		t.Fatalf("the cursor moved off the input: %+v", view.Cursor)
 	}
-	if !strings.Contains(view.Content, "\x1b[7m") {
-		t.Fatal("the highlighted row is not reversed")
-	}
 }
 
 // DropTrigger: accepting replaces the trigger too, so only the

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -454,7 +455,7 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 	case c.Missing != "":
 		fmt.Fprintf(&out, "  missing %s\n", p.describeMissing(c))
 	default:
-		fmt.Fprintf(&out, "  → %s\n", describeRequest(c))
+		fmt.Fprintf(&out, "  %s\n", s.chromeRender("palette.resolve", "→ "+describeRequest(c)))
 	}
 	slot, inSlot := p.currentSlot()
 	if inSlot && p.filter != "" && p.filter != "p" {
@@ -473,6 +474,16 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 		highlight = -1
 	}
 	limit := max(1, height-4)
+	var matcher Matcher
+	markMatches := s.HasChrome("palette.match")
+	if markMatches {
+		tokens, trailing := tokenize(p.Text())
+		partial := ""
+		if !trailing && len(tokens) > 0 {
+			partial = tokens[len(tokens)-1].Text
+		}
+		matcher = NewMatcher(MatchSubstring, SearchCaseIgnore, partial)
+	}
 	start := max(0, highlight-limit+1)
 	group := ""
 	for i := start; i < min(len(entries), start+limit); i++ {
@@ -482,13 +493,18 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 			if heading == "choices" && inSlot {
 				heading, headed = p.paramHeader(s, slot, width), true
 			}
-			out.WriteString(heading + "\n")
+			out.WriteString(s.chromeRender("palette.heading", heading) + "\n")
 		}
 		marker := "  "
 		if i == highlight {
 			marker = "> "
 		}
-		fmt.Fprintf(&out, "%s%s\n", marker, entry.Label)
+		label := entry.Label
+		if markMatches {
+			entry.Match = matcher.positions(label)
+			label = s.tonedText(label, positionSpans(entry.Match, chromeTonePrefix+s.chrome+".palette.match"), lipgloss.NewStyle())
+		}
+		fmt.Fprintf(&out, "%s%s\n", s.chromeRender("palette.marker", marker), label)
 	}
 	hidden := len(entries) - min(len(entries), start+limit)
 	if hidden > 0 {

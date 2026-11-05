@@ -1,0 +1,66 @@
+{
+  "name": "chooser: fuzzy, regex and substring mark matching Unicode runes",
+  "area": "chooser",
+  "width": 70,
+  "height": 18,
+  "theme": "dark",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "chooser": {
+      "kind": "pick",
+      "title": "Pick",
+      "rows": [
+        {
+          "id": "a",
+          "label": "Été 日本"
+        },
+        {
+          "id": "b",
+          "label": "été 日本"
+        }
+      ]
+    }
+  },
+  "script": [
+    {
+      "type": "é日"
+    },
+    "tab",
+    "ctrl+u",
+    {
+      "type": "été|日本"
+    },
+    "tab",
+    "ctrl+u",
+    {
+      "type": "été 日本"
+    }
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "attrs": {
+        "Été": "bold,reverse,-fg,-bg"
+      }
+    },
+    {
+      "after": 4,
+      "attrs": {
+        "Été": "bold,reverse,-fg,-bg"
+      }
+    },
+    {
+      "contains": [
+        "substr"
+      ],
+      "attrs": {
+        "Été": "bold,reverse,-fg,-bg"
+      }
+    }
+  ]
+}

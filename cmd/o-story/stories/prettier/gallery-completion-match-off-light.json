@@ -1,0 +1,56 @@
+{
+  "name": "gallery: inline completion match marks (light) (off)",
+  "area": "prettier",
+  "width": 56,
+  "height": 12,
+  "theme": "light",
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "prompt",
+        "text": "",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "src/main.go",
+              "src/main_test.go"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "script": [
+    "A",
+    {
+      "type": "@src/ma"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    "ctrl+n"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "contains": [
+        "src/main.go",
+        "src/main_test.go"
+      ]
+    },
+    {
+      "contains": [
+        "src/main.go"
+      ],
+      "highlighted": 1
+    }
+  ],
+  "values": {
+    "chrome.color": "off"
+  }
+}

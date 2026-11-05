@@ -475,16 +475,28 @@ func (c *Completer) box(width int, s Styles) string {
 		want = max(want, ansi.StringWidth(label+detail))
 	}
 	inner = min(inner, want)
+	var matcher Matcher
+	if s.HasChrome("match") {
+		matcher = NewMatcher(MatchSubstring, c.r.SearchCase(), c.token.Query)
+	}
 	for i := offset; i < len(c.rows) && i < offset+completionRows; i++ {
 		label, detail := plain(c.rows[i])
 		text := ansi.Truncate(label+detail, inner, "…")
 		pad := strings.Repeat(" ", max(0, inner-ansi.StringWidth(text)))
+		marks := s.matchSpans(matcher, label, "match")
 		if i == c.cursor {
-			lines = append(lines, reverseVideo(text+pad))
+			if len(marks) > 0 {
+				lines = append(lines, paintLine(text+pad, inner, cellSegs(marks, label, 0, min(inner, ansi.StringWidth(label))), &s, true, false, span{}))
+			} else {
+				lines = append(lines, reverseVideo(text+pad))
+			}
 			continue
 		}
 		if cut := ansi.StringWidth(label); detail != "" && cut < ansi.StringWidth(text) {
 			text = ansi.Cut(text, 0, cut) + s.Muted.Render(ansi.Cut(text, cut, inner))
+		}
+		if len(marks) > 0 {
+			text = paintLine(text, inner, cellSegs(marks, label, 0, min(inner, ansi.StringWidth(label))), &s, false, false, span{})
 		}
 		lines = append(lines, text+pad)
 	}

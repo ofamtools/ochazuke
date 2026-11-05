@@ -286,6 +286,83 @@ func fuzzyScore(text string, needle []rune, cm CaseMatch) (int, bool) {
 	return score, matched == len(needle)
 }
 
+// matchPositions returns sorted rune offsets, never byte offsets. Matching
+// uses the same compiled query and greedy fuzzy walk as row filtering.
+func matchPositions(mode, text, query, caseMode string) []int {
+	return NewMatcher(mode, caseMode, query).positions(text)
+}
+
+func (m Matcher) positions(text string) []int {
+	if m.err != nil {
+		return nil
+	}
+	var positions []int
+	switch {
+	case m.re != nil:
+		byteAt, runeAt := 0, 0
+		for _, run := range m.re.FindAllStringIndex(text, -1) {
+			runeAt += utf8.RuneCountInString(text[byteAt:run[0]])
+			for range text[run[0]:run[1]] {
+				positions = append(positions, runeAt)
+				runeAt++
+			}
+			byteAt = run[1]
+		}
+	case len(m.needle) > 0:
+		next, at := 0, 0
+		for _, ch := range text {
+			ch = m.cm.Rune(ch)
+			if ch == m.needle[next] || m.needle[next] == ' ' && fuzzySeparator(ch) {
+				positions = append(positions, at)
+				next++
+				if next == len(m.needle) {
+					return positions
+				}
+			}
+			at++
+		}
+		return nil
+	default:
+		hay := m.Prepare(text)
+		for _, term := range m.terms {
+			if !strings.Contains(hay, term) {
+				return nil
+			}
+			termRunes := utf8.RuneCountInString(term)
+			for start, from := 0, 0; start < len(hay); {
+				offset := strings.Index(hay[start:], term)
+				if offset < 0 {
+					break
+				}
+				from += utf8.RuneCountInString(hay[start : start+offset])
+				start += offset
+				for i := from; i < from+termRunes; i++ {
+					positions = append(positions, i)
+				}
+				_, size := utf8.DecodeRuneInString(hay[start:])
+				start += size
+				from++
+			}
+		}
+		slices.Sort(positions)
+		positions = slices.Compact(positions)
+	}
+	return positions
+}
+
+// positionSpans joins adjacent matches into the existing tone-span format.
+func positionSpans(positions []int, tone string) []ToneSpan {
+	var spans []ToneSpan
+	for _, at := range positions {
+		if n := len(spans); n > 0 && spans[n-1].To == at {
+			spans[n-1].To++
+		} else {
+			spans = append(spans, SpanTone(0, at, at+1, tone))
+		}
+	}
+	return spans
+}
+
 // fuzzySeparator is a rune a space in a fuzzy needle stands for.
 func fuzzySeparator(ch rune) bool {
 	return ch == '/' || ch == '-' || ch == '_' || ch == '.' || unicode.IsSpace(ch)
