@@ -646,6 +646,9 @@ The form uses `RecordSpec.Watch` and the existing `forms.outside-write` policy:
 `reload` refreshes it without losing typing; `close` closes it. Mounted reads
 use `RecordSpec.Reload` asynchronously. `WatchArgs` narrows local snapshots to
 the subject key; proxy nouns receive invalidations through the same watch route.
+History undo stops at the newest application change without an inverse and
+explains the refusal; it never skips to a different thing. Mounted field
+writes currently have no store inverse, so they stop this walk after close.
 
 Supplying any prop writes directly, without a form:
 `task edit --id t3 --title "New title" --status done`.

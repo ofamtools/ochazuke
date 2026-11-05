@@ -334,3 +334,43 @@ func TestMountedEditOutsideWrite(t *testing.T) {
 		})
 	}
 }
+
+func TestHistoryUndoDoesNotSkipMountedChange(t *testing.T) {
+	t.Parallel()
+	r, _, thing := mountedEditFixture(t, "change")
+	local := ochazuke.Thing{"id": "p1", "title": "Local"}
+	r.Define("local").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title"}).Store(ochazuke.Store{
+		Undo: true,
+		Get: func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return gomaps.Clone(local), nil },
+		Patch: func(_ ochazuke.Ctx, _ string, changes ochazuke.Thing) (ochazuke.Thing, error) {
+			gomaps.Copy(local, changes)
+			return gomaps.Clone(local), nil
+		},
+	})
+	if _, err := r.Execute(ochazuke.Request{Noun: "local", Verb: "set", Args: ochazuke.Arguments{"id": "p1", "changes": map[string]any{"title": "Local edited"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.HandleBinding("i"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	e := r.RecordEditor("edit-form")
+	for _, key := range []string{"A", "x", "esc", "esc"} {
+		if _, err := r.HandleBinding(key); err != nil {
+			t.Fatal(err)
+		}
+		e.PendingCommand()
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	_, err := r.Execute(ochazuke.Request{Noun: "ochazuke.history", Verb: "undo"})
+	if err == nil || !strings.Contains(err.Error(), "ext-parcel") {
+		t.Fatalf("newest change must explain why it cannot undo: %v", err)
+	}
+	if thing["title"] != "Originalx" || local["title"] != "Local edited" {
+		t.Fatalf("undo skipped to a different thing: mounted %v local %v", thing, local)
+	}
+}

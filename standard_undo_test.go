@@ -181,11 +181,10 @@ func TestUndoVisualWriteIsOneGroup(t *testing.T) {
 	}
 }
 
-// TestUndoUnavailableWithoutStoreUndo: history.undo is unavailable when
-// the last standard change is on a store without Undo, and when a delete
-// cannot be created again under its key (no AcceptsKey); it never skips
-// that change to undo an older one.
-func TestUndoUnavailableWithoutStoreUndo(t *testing.T) {
+// An unundoable newest change explains its refusal and never writes an older
+// thing. Both stores without Undo and deletes without AcceptsKey are barriers.
+func TestUndoRefusesWithoutInverse(t *testing.T) {
+	t.Parallel()
 	undo := Request{Noun: "ochazuke.history", Verb: "undo"}
 	r, s := newUndoRuntime(t, false, true)
 	reads := len(s.reads)
@@ -201,10 +200,7 @@ func TestUndoUnavailableWithoutStoreUndo(t *testing.T) {
 	if e, _ := r.persistable(r.History(0)[len(r.History(0))-1]); e.Changes != nil {
 		t.Fatalf("a mark reached the file: %+v", e.Changes)
 	}
-	if r.Available(undo, "app", r.Mode) {
-		t.Fatal("undo available on a store without Undo")
-	}
-	if _, err := r.Execute(undo); err == nil || !strings.Contains(err.Error(), "not applicable") {
+	if _, err := r.Execute(undo); err == nil {
 		t.Fatalf("undo ran: %v", err)
 	}
 	if got := taskStatus(s, "t1"); got != "done" {
@@ -214,8 +210,8 @@ func TestUndoUnavailableWithoutStoreUndo(t *testing.T) {
 	r, s = newUndoRuntime(t, true, false)
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "status", "value": "done"}})
 	mustRun(t, r, Request{Noun: "task", Verb: "delete", Confirmed: true, Args: Arguments{"id": "t2"}})
-	if r.Available(undo, "app", r.Mode) {
-		t.Fatal("undo of a delete available without AcceptsKey")
+	if _, err := r.Execute(undo); err == nil {
+		t.Fatal("undo ran a delete's inverse without AcceptsKey")
 	}
 	if got := taskStatus(s, "t1"); got != "done" {
 		t.Fatalf("an older change was undone: status %v", got)

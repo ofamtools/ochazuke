@@ -23,7 +23,7 @@ func init() {
 		Verb: "edit", Description: "Edit a thing's writable props in a form; supplied props write directly without opening a form",
 		Kinds:   []string{Collection, Singleton, Instances},
 		Needs:   func(n *Noun) bool { return n.Store.Get != nil && n.Store.Patch != nil && len(writableProps(n)) > 0 },
-		Subject: true, HistoryKind: HistoryChange, Params: editParams,
+		Subject: true, HistoryKind: HistoryAction, Params: editParams,
 		Handler: func(r *Runtime, n *Noun) AppHandler { return r.EditHandler(n.Name) },
 	})
 }

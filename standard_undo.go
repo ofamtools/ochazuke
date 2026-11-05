@@ -44,9 +44,8 @@ type ThingChange struct {
 	Undone bool           `json:"undone,omitempty"`
 }
 
-// UndoGuard is the guard history.undo is available under: the newest
-// entry holding changes can be undone (undoable), or, with none, some
-// noun's store declares Undo.
+// UndoGuard offers history.undo when a newest change exists, including one
+// the handler must explain it cannot undo; with none, a store declares Undo.
 const UndoGuard = "history-undoable"
 
 // noteChange adds a change to the entry the running request records:
@@ -83,7 +82,7 @@ func (r *Runtime) takeChanges(depth int) []ThingChange {
 // A store that does not declare Undo (or has no Get) is not read around
 // its writes, which would cost it two reads per write for nothing: its
 // change is noted by noun and key alone, a mark with no values, so
-// history.undo stops at it (unavailable) rather than skip to an older one.
+// history.undo explains why it cannot undo rather than skip to an older one.
 func (r *Runtime) runRecording(verb string, n *Noun, c Ctx, run func(*Runtime, *Noun, Ctx) (any, error)) (any, error) {
 	row := standardRow(verb)
 	if row == nil || row.HistoryKind != HistoryChange {
@@ -365,13 +364,13 @@ func (r *Runtime) undo(c Context, a Arguments) (any, error) {
 
 func registerUndo(r *Runtime) {
 	r.DefineGuard(UndoGuard, func(r *Runtime, e KeyEvent) bool {
-		// An explicit target gets a precise refusal from the handler; the
-		// newest change's guard must not hide an older undoable entry.
+		// An unundoable newest change must explain its refusal, not hide
+		// the action or pass over it for an older change.
 		if _, targeted := e.Args["entry"]; targeted {
 			return true
 		}
 		if i := r.undoTarget(); i >= 0 {
-			return r.undoable(i) == nil
+			return true // the handler explains an unundoable newest change
 		}
 		// Nothing to undo: offered (it says so) only where some store
 		// undoes, so an app with none never shows the verb.

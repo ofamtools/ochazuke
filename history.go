@@ -196,6 +196,11 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 	if changes := r.takeChanges(depth); err == nil {
 		entry.Changes = changes
 	}
+	// A declared application change without an inverse is still a change.
+	// Keep a barrier so undo cannot silently revert an older, unrelated thing.
+	if op, ok := r.Operation(q.Key()); ok && err == nil && entry.Kind == HistoryChange && op.Kind == KindApplication && len(entry.Changes) == 0 {
+		entry.Changes = []ThingChange{{Noun: op.Noun}}
+	}
 	h := &r.history
 	if fetchRing(entry) {
 		h.fetches = appendBounded(h.fetches, entry, HistoryFetchLimit)
