@@ -161,11 +161,31 @@ func (p *Picker) resultRows(width, height int) []string {
 		rows = append(rows, lipgloss.NewStyle().Bold(true).Render(ansi.Truncate(head, width, "…")))
 	}
 	start, end := p.window(p.drawnRows)
+	var styles *Styles
+	if p.Runtime != nil {
+		styles = p.Runtime.toneStyles()
+	}
+	var matcher Matcher
+	if styles != nil && styles.HasChrome("match") {
+		matcher = p.matcher()
+	}
 	for i := start; i < end; i++ {
 		stat, _ := p.stats.get(p.statKey(p.Entries[i]))
-		line := tableLine(pickerColumns, pickerCells(p.Entries[i], stat), shown, widths)
+		cells := pickerCells(p.Entries[i], stat)
+		line, slots := tableLineAt(pickerColumns, cells, shown, widths)
 		row := modalCells(ansi.Truncate(line, width, "…"), width)
-		if i == p.Selected {
+		var segs []toneSeg
+		if styles != nil {
+			for j, col := range shown {
+				if col == 0 {
+					segs = cellSegs(styles.matchSpans(matcher, cells[0], "match"), cells[0], slots[j].x, slots[j].w)
+					break
+				}
+			}
+		}
+		if len(segs) > 0 {
+			row = paintLine(row, width, segs, styles, i == p.Selected, false, span{})
+		} else if i == p.Selected {
 			row = p.Runtime.Selection(true).Render(row)
 		}
 		rows = append(rows, row)

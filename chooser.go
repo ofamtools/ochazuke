@@ -814,6 +814,10 @@ func (c *Chooser) rowsView(width, height int) Block {
 	widths := fitWidths(c.cellWidths(), width-2, c.keep()...)
 	toned := c.toneStyles()
 	focused := c.r.Focus == c.input.ID
+	var matcher Matcher
+	if toned != nil && c.matchApplies() && toned.HasChrome("match") {
+		matcher = c.matcher()
+	}
 	draw := func(i int) {
 		text := c.matches[i].Label
 		if cells := c.matches[i].Cells; len(cells) > 0 {
@@ -821,6 +825,22 @@ func (c *Chooser) rowsView(width, height int) Block {
 		}
 		item := c.matches[i]
 		item.Tones = c.filters.rowTones(ListItem{ID: item.ID, Cells: item.Cells, Tones: item.Tones})
+		if toned != nil && c.matchApplies() {
+			// Copy before appending: match marks never mutate caller tones.
+			marks := toned.matchSpans(matcher, modalLabel(item.Label), "match")
+			if len(item.Cells) > 0 {
+				marks = nil
+				for cell, text := range item.Cells {
+					for _, mark := range toned.matchSpans(matcher, modalLabel(text), "match") {
+						mark.Cell = cell
+						marks = append(marks, mark)
+					}
+				}
+			}
+			if len(marks) > 0 {
+				item.Tones = append(slices.Clone(item.Tones), marks...)
+			}
+		}
 		row := ansi.Truncate(c.filters.rowGutter(item.ID)+modalLabel(text), width, "…")
 		if segs := chooserSegs(toned, item, widths, ansi.StringWidth(row)); len(segs) > 0 {
 			lines = append(lines, paintLine(row, width, segs, toned, i == c.cursor, !focused, span{}))

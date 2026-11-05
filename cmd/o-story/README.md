@@ -86,6 +86,9 @@ it to the timer's deadline and delivers the timer's message
   files: ["a.json", "sub/c.json", "sub/deep/"], // a temp file tree of its own (a trailing / is a
                                   // folder); {{files}} in a record field's base or value names it,
                                   // writes show it as {{files}} (forms/path-*)
+  // A page's picker: "{{files}}/smg" opens the framework path picker from
+  // a focused input. Its initial isolated scan settles before the first
+  // frame; later raw picker job messages are not scripted job events.
   state: true,                    // a temp state directory of its own (removed at the end), kept
                                   // across { restart: true } events: what the app remembers (panes.json)
   page: {                         // or pages: [{ id, title, ... }, ...]

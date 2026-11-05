@@ -43,6 +43,9 @@ type PaletteEntry struct {
 	// cursor, adding no space, instead of replacing the word being typed.
 	Splice bool `json:"splice,omitempty"`
 	From   int  `json:"from,omitempty"`
+	// Match holds the drawn label's matching rune offsets. Presentation
+	// only: CLI completion and state JSON keep their existing shape.
+	Match []int `json:"-"`
 }
 
 // RegisterNoun adds or replaces a live instance source without changing operation forms.

@@ -303,6 +303,11 @@ var chromeRoleHelp = [][2]string{
 	{"hint.key", "a key on a hint line, the footer's and a modal's (rich: the accent, bold; subtle: the text colour)"},
 	{"hint.text", "what the key does"},
 	{"hint.sep", "the ` · ` between hints"},
+	{"match", "matching runes in choosers, the path picker and completion (rich: mode colour, bold; subtle: accent, bold; selected: bold alone)"},
+	{"palette.match", "matching runes in command-line completions (rich: mode colour, bold; subtle: accent, bold)"},
+	{"palette.heading", "command-line completion groups (rich: accent, bold; subtle: muted)"},
+	{"palette.marker", "the command-line completion marker"},
+	{"palette.resolve", "the command line's resolved request"},
 }
 
 // actionsExample is actions.example.json: one entry in the command form,

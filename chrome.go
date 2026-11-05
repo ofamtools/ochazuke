@@ -39,6 +39,10 @@ import (
 //	                            the mode it extends, then mode
 //	hint.key, hint.text,        the footer's and every modal's hint line:
 //	hint.sep                    a row's key, its action, the " · " between
+//	match, palette.match        matching runes (selected: bold alone)
+//	palette.heading             command-line completion group headings
+//	palette.marker              command-line completion marker
+//	palette.resolve             the command line's resolved request
 const (
 	// ChromeColorSetting is the chrome colour level, a row of
 	// settings/ochazuke.json (appearance).
@@ -145,6 +149,17 @@ func chromeTones() map[string]ToneStyle {
 		"chrome.subtle.border.state.needs-input": {Fg: chromeAmber},
 		"chrome.subtle.border.state.errored":     {Fg: chromeError},
 		"chrome.subtle.hint.key":                 {Fg: chromeText},
+
+		"chrome.rich.match":             {Fg: chromeMode, Bold: true},
+		"chrome.rich.palette.match":     {Fg: chromeMode, Bold: true},
+		"chrome.rich.palette.heading":   {Fg: chromeAccent, Bold: true},
+		"chrome.rich.palette.marker":    {Fg: chromeMode, Bold: true},
+		"chrome.rich.palette.resolve":   {Fg: chromeHint},
+		"chrome.subtle.match":           {Fg: chromeAccent, Bold: true},
+		"chrome.subtle.palette.match":   {Fg: chromeAccent, Bold: true},
+		"chrome.subtle.palette.heading": {Fg: chromeHint},
+		"chrome.subtle.palette.marker":  {Fg: chromeAccent, Bold: true},
+		"chrome.subtle.palette.resolve": {Fg: chromeHint},
 	}
 	for role, hue := range chromeModes {
 		rows[role] = ToneStyle{Fg: hue}
@@ -347,4 +362,14 @@ func (s Styles) chromeRender(role, text string) string {
 		return text
 	}
 	return look.over(lipgloss.NewStyle()).Render(text)
+}
+
+// matchSpans computes only a drawn row's marks, and none when the role is
+// absent (notably chrome.color=off). The painter keeps selected runs bold
+// alone, without changing the selection bar.
+func (s Styles) matchSpans(m Matcher, text, role string) []ToneSpan {
+	if !s.HasChrome(role) {
+		return nil
+	}
+	return positionSpans(m.positions(text), chromeTonePrefix+s.chrome+"."+role)
 }

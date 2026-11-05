@@ -87,7 +87,10 @@ type Page struct {
 	// Chooser opens a chooser (ochazuke.OpenChooser) over the page's
 	// focus when the story starts.
 	Chooser *ChooserSpec `json:"chooser,omitempty"`
-	Open    bool         `json:"open,omitempty"` // the page opened first (default the first page)
+	// Picker opens the framework path picker from a focused input at
+	// this path; {{files}} names the story's isolated file tree.
+	Picker string `json:"picker,omitempty"`
+	Open   bool   `json:"open,omitempty"` // the page opened first (default the first page)
 	// DefaultHidden declares the page hidden by default (ochazuke.DefaultHidden):
 	// out of the tabs until page.show; a hidden page opened first is left
 	// for the first page in the tabs, as Model.Init does.

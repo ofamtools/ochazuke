@@ -1,0 +1,44 @@
+{
+  "name": "palette: match marks and headings follow chrome.color, without selecting a completion",
+  "area": "palette",
+  "width": 70,
+  "height": 18,
+  "theme": "dark",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ]
+  },
+  "script": [
+    ":",
+    {
+      "type": "pi"
+    },
+    "ctrl+n"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "modal": "palette",
+      "highlighted": 0,
+      "styled": {
+        "verbs": "#78BFA5"
+      },
+      "attrs": {
+        "ping": "bold,-reverse,fg",
+        "verbs": "bold"
+      }
+    },
+    {
+      "contains": [
+        "> pick"
+      ],
+      "attrs": {
+        "ping": "bold,-reverse,fg"
+      }
+    }
+  ]
+}

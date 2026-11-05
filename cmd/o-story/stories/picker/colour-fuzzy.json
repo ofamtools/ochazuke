@@ -1,0 +1,30 @@
+{
+  "name": "picker: fuzzy matching marks path runes, keeping its selected row reversed",
+  "area": "picker",
+  "width": 72,
+  "height": 18,
+  "theme": "dark",
+  "files": [
+    "src/main.go",
+    "src/main_test.go"
+  ],
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "origin",
+        "text": ""
+      }
+    ],
+    "picker": "{{files}}/smg"
+  },
+  "expect": {
+    "modal": "picker",
+    "contains": [
+      "src/main.go"
+    ],
+    "attrs": {
+      "src/main.go": "bold,reverse,-bg"
+    }
+  }
+}
