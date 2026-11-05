@@ -45,13 +45,13 @@
     {
       "after": 1,
       "attrs": {
-        "Été": "bold,reverse,-fg,-bg"
+        "Été": "bold,reverse,-bg"
       }
     },
     {
       "after": 4,
       "attrs": {
-        "Été": "bold,reverse,-fg,-bg"
+        "Été": "bold,reverse,-bg"
       }
     },
     {
@@ -59,7 +59,7 @@
         "substr"
       ],
       "attrs": {
-        "Été": "bold,reverse,-fg,-bg"
+        "Été": "bold,reverse,-bg"
       }
     }
   ]

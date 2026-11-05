@@ -1,0 +1,51 @@
+{
+ "width": 72,
+ "height": 20,
+ "theme": "dark",
+ "values": {
+  "chrome.color": "rich"
+ },
+ "page": {
+  "layout": "panels",
+  "noHeadings": true,
+  "lists": [
+   {
+    "id": "working",
+    "rows": 2,
+    "panelTone": "state.working"
+   }
+  ],
+  "chooser": {
+   "kind": "pick",
+   "title": "Projects",
+   "rows": [
+    {
+     "id": "a",
+     "label": "ochazuke framework"
+    },
+    {
+     "id": "b",
+     "label": "ochazuke examples"
+    },
+    {
+     "id": "c",
+     "label": "monogatari stories"
+    }
+   ]
+  }
+ },
+ "script": [
+  {
+   "type": "oz"
+  },
+  "ctrl+n"
+ ],
+ "name": "modal chooser: the selected row keeps one bar and marked rows keep the panel ink",
+ "area": "chrome",
+ "expect": {
+  "attrs": {
+   "cha": "fg",
+   "uke examples": "fg,reverse"
+  }
+ }
+}

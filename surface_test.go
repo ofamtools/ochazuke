@@ -5,7 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/vt"
 )
 
 func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
@@ -224,5 +226,63 @@ func TestModalBlockOffsetsBodyCursor(t *testing.T) {
 	}
 	if ComposeModalBlock("page", "T", InputBlock(in, 4, 2), "F", 2, 2, styles).Cursor != nil {
 		t.Fatal("tiny terminal reported a cursor")
+	}
+}
+
+func TestModalRowsRestorePanelForeground(t *testing.T) {
+	t.Parallel()
+	for _, level := range []string{ChromeRich, ChromeSubtle} {
+		t.Run(level, func(t *testing.T) {
+			t.Parallel()
+			styles := NewStyles(Appearance{Theme: "dark"}).WithChrome(level, nil)
+			body := "\x1b[7msrc/\x1b[0;7;1mmain\x1b[0;7m_test.go\x1b[m\n" +
+				"\x1b[0;38;2;0;39;0mgreen\x1b[39;1mnormal\x1b[m"
+			frame := ComposeModal("", "Styled rows", body, "", 60, 16, styles)
+			screen := vt.NewEmulator(60, 16)
+			defer screen.Close()
+			if _, err := screen.Write([]byte(strings.ReplaceAll(frame, "\n", "\r\n"))); err != nil {
+				t.Fatal(err)
+			}
+			for _, tc := range []struct {
+				word, colour string
+				reversed     bool
+			}{
+				{"src/main_test.go", "#DCE9E3", true},
+				{"green", "#002700", false},
+				{"normal", "#DCE9E3", false},
+			} {
+				found := false
+				for y, line := range strings.Split(ansi.Strip(frame), "\n") {
+					x := strings.Index(line, tc.word)
+					if x < 0 {
+						continue
+					}
+					found = true
+					x = ansi.StringWidth(line[:x])
+					for i := range len(tc.word) {
+						cell := screen.CellAt(x+i, y)
+						if cell == nil || cell.Style.Fg == nil || hexOf(cell.Style.Fg) != tc.colour || (cell.Style.Attrs&uv.AttrReverse != 0) != tc.reversed {
+							t.Fatalf("%q cell %d lost its foreground/bar: %+v", tc.word, i, cell)
+						}
+					}
+				}
+				if !found {
+					t.Fatalf("frame lacks %q:\n%s", tc.word, frame)
+				}
+			}
+		})
+	}
+}
+
+func TestModalChromeOffKeepsLegacyBytes(t *testing.T) {
+	t.Parallel()
+	body := "\x1b[7msrc/\x1b[39;1mmain\x1b[22m_test.go\x1b[m"
+	for _, theme := range []string{"dark", "light", "mono"} {
+		bare := NewStyles(Appearance{Theme: theme})
+		want := ComposeModal("", "Legacy", body, "esc close", 60, 16, bare)
+		got := ComposeModal("", "Legacy", body, "esc close", 60, 16, bare.WithChrome(ChromeOff, nil))
+		if got != want {
+			t.Fatalf("%s: chrome.color=off changed modal bytes", theme)
+		}
 	}
 }

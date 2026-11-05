@@ -36,14 +36,14 @@
     {
       "after": 1,
       "attrs": {
-        "alpha-beta": "bold,reverse,-fg,-bg",
+        "alpha-beta": "bold,reverse,-bg",
         "amber": "bold,-reverse,fg,-bg"
       }
     },
     {
       "attrs": {
         "alpha-beta": "bold,-reverse,fg,-bg",
-        "amber": "bold,reverse,-fg,-bg"
+        "amber": "bold,reverse,-bg"
       }
     }
   ]

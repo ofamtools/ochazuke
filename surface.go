@@ -90,6 +90,12 @@ func composeModalAt(background, title string, body Block, footer string, styled 
 			}
 		}
 		rows = append(rows, foot)
+		if !styles.plain && (styles.chrome == ChromeRich || styles.chrome == ChromeSubtle) {
+			foreground := strings.Join(ansi.Style(nil).ForegroundColor(styles.Panel.GetForeground()), ";")
+			for i, row := range rows {
+				rows[i] = modalForeground(row, foreground)
+			}
+		}
 		panel := lipgloss.NewStyle().Foreground(styles.Panel.GetForeground()).Border(styles.Border(false)).BorderForeground(styles.Chrome("border.modal", lipgloss.NewStyle().Foreground(styles.Accent.GetForeground())).GetForeground()).Padding(0, 1)
 		lines = strings.Split(panel.Render(strings.Join(rows, "\n")), "\n")
 		panelWidth += 4
@@ -115,6 +121,54 @@ func composeModalAt(background, title string, body Block, footer string, styled 
 	// Canvas.Render trims trailing blanks; every row must stay exactly width cells.
 	text := fitSurface(canvas.Render(), width, height)
 	return cursor.Offset(left, top).WithText(text)
+}
+
+// modalForeground restores the panel ink after full or foreground resets.
+// Keep colour parameters whole: a zero RGB channel is not an SGR reset.
+func modalForeground(text, foreground string) string {
+	if !strings.Contains(text, "\x1b[") {
+		return text
+	}
+	var out strings.Builder
+	for {
+		i := strings.Index(text, "\x1b[")
+		if i < 0 {
+			out.WriteString(text)
+			return out.String()
+		}
+		j := i + 2
+		for j < len(text) && (text[j] >= '0' && text[j] <= '9' || text[j] == ';' || text[j] == ':') {
+			j++
+		}
+		if j >= len(text) || text[j] != 'm' {
+			out.WriteString(text[:j])
+			text = text[j:]
+			continue
+		}
+		out.WriteString(text[:i+2])
+		params := strings.Split(text[i+2:j], ";")
+		for k := 0; k < len(params); k++ {
+			switch params[k] {
+			case "", "0", "39":
+				if params[k] == "" {
+					params[k] = "0"
+				}
+				params[k] += ";" + foreground
+			case "38", "48", "58":
+				if k+1 < len(params) {
+					switch params[k+1] {
+					case "2":
+						k += 4
+					case "5":
+						k += 2
+					}
+				}
+			}
+		}
+		out.WriteString(strings.Join(params, ";"))
+		out.WriteByte('m')
+		text = text[j+1:]
+	}
 }
 
 // dim draws styled text in a dimming style without dropping its own
