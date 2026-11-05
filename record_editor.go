@@ -294,6 +294,7 @@ type RecordEditor struct {
 	Styles Styles
 
 	written     Record   // the record as written, or queued to be
+	baseline    Record   // latest loaded store values, independent of pending edits
 	saveOwner   string   // writes outlive the form instance
 	dirty       []string // fields written in memory, not yet in the store
 	inflight    bool
@@ -411,7 +412,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	if err := r.CheckSourceArgs(params); err != nil {
 		return nil, err
 	}
-	e := &RecordEditor{r: r, id: id, spec: spec, written: Record{}, saveOwner: parent}
+	e := &RecordEditor{r: r, id: id, spec: spec, written: Record{}, baseline: values, saveOwner: parent}
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
 	for _, field := range fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
@@ -785,7 +786,7 @@ func (e *RecordEditor) send() error {
 		j := e.r.jobs[ticket.Job]
 		inner := j.then
 		e.inflight, e.sending = true, changed
-		e.markFlush(j)
+		e.markFlush(j, w)
 		j.then = func(c Ctx, value any, err error) error {
 			if inner != nil {
 				err = errors.Join(err, inner(c, value, err))
@@ -823,7 +824,7 @@ func (e *RecordEditor) send() error {
 		e.releaseWrite()
 		return err
 	}
-	e.markFlush(e.r.jobs[ticket.Job])
+	e.markFlush(e.r.jobs[ticket.Job], w)
 	return nil
 }
 
@@ -1746,7 +1747,11 @@ func (e *RecordEditor) applyLoaded(loaded Record) error {
 	changed := false
 	for _, f := range e.fields {
 		v, ok := loaded[f.Name]
-		if !ok || v == e.written[f.Name] || slices.Contains(e.dirty, f.Name) || slices.Contains(e.sending, f.Name) {
+		if !ok {
+			continue
+		}
+		e.baseline[f.Name] = v
+		if v == e.written[f.Name] || slices.Contains(e.dirty, f.Name) || slices.Contains(e.sending, f.Name) {
 			continue
 		}
 		changed = true

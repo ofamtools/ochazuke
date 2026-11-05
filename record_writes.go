@@ -74,24 +74,41 @@ func (r *Runtime) pendingRecord(key string, values Record) {
 	}
 }
 
-func (e *RecordEditor) markFlush(j *job) {
+func (e *RecordEditor) markFlush(j *job, w RecordWrite) {
 	j.flush = true
 	j.Label = e.spec.Title + " · " + strings.Join(e.sending, ", ")
 	j.abandon = func(reason string) []string {
 		editors := []*RecordEditor{e}
-		if e.spec.WriteKey != "" {
-			editors = e.r.recordWrites().queues[e.spec.WriteKey]
+		if e.r.Quit && e.spec.WriteKey != "" {
+			s := e.r.recordWrites()
+			editors = s.queues[e.spec.WriteKey]
+			delete(s.queues, e.spec.WriteKey)
 		}
 		var messages []string
 		for _, editor := range editors {
-			var names []string
-			for _, f := range editor.fields {
-				if slices.Contains(editor.sending, f.Name) || slices.Contains(editor.dirty, f.Name) {
-					names = append(names, f.Name)
+			names := slices.Clone(editor.dirty)
+			pending := slices.Clone(names)
+			if editor == e {
+				messages = append(messages, editor.reportUnsaved(w.Changed, w.Values, reason)...)
+				pending = slices.DeleteFunc(pending, func(name string) bool {
+					return slices.Contains(w.Changed, name) && editor.written[name] == w.Values[name]
+				})
+				for _, name := range w.Changed {
+					if !slices.Contains(names, name) {
+						names = append(names, name)
+					}
 				}
 			}
-			messages = append(messages, editor.reportUnsaved(names, editor.written, reason)...)
+			editor.inflight, editor.sending = false, nil
+			editor.writeErr = reason
+			editor.requeue(names)
+			for _, name := range names {
+				f := editor.field(name)
+				f.writeErr, f.failedValue = reason, editor.written[name]
+			}
+			messages = append(messages, editor.reportUnsaved(pending, editor.written, reason)...)
 		}
+		e.releaseWrite()
 		return messages
 	}
 }

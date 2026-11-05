@@ -122,7 +122,10 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 			}
 			r.pendingRecord(writeKey, values)
 			label := n.displayLabel(func(name string) any { return thing[name] })
-			if c.Instance != nil && c.Instance.Label != "" {
+			instanceSubject := c
+			instanceSubject.Args = nil
+			key, _ := r.subjectKey(n, instanceSubject)
+			if c.Instance != nil && c.Instance.Noun == n.Name && c.Instance.Label != "" && (n.keyProp() == nil || key == fmt.Sprint(subject[n.keyProp().Name])) {
 				label = c.Instance.Label
 			}
 			if label == "" && n.keyProp() != nil {
@@ -158,11 +161,12 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 				}
 				return res
 			}
+			var editor *RecordEditor
 			if r.Settings().String(EditApplySetting) == "confirm" {
 				spec.Submit = func(rec Record) Result {
 					changed := map[string]any{}
 					for _, f := range fields {
-						if rec[f.Name] != values[f.Name] {
+						if rec[f.Name] != editor.baseline[f.Name] {
 							p := n.prop(f.Name)
 							value, err := editPropValue(*p, rec[f.Name])
 							if err != nil {
@@ -187,7 +191,7 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 					return write(map[string]any{name: value})
 				}
 			}
-			_, err = r.OpenRecordEditor(editFormID, spec)
+			editor, err = r.OpenRecordEditor(editFormID, spec)
 			return err
 		}
 		res, ran := r.readEdit(c, noun, subject)
@@ -307,4 +311,7 @@ func registerStandardEdit(r *Runtime) {
 		}
 		return Done(nil)
 	}, "Cancel a pending edit open without writing").When("edit-opening")
+	op := r.Operations["ochazuke.nouns.cancel-edit"]
+	op.HistoryKind = HistoryAction
+	r.Operations[op.Key()] = op
 }

@@ -46,14 +46,12 @@ func (m *Model) quitHooks() (tea.Cmd, bool) {
 		}
 		for _, j := range r.jobs {
 			if j.flush && j.State == JobRunning {
-				if j.abandon != nil {
-					m.quitReport = append(m.quitReport, j.abandon(reason)...)
-				} else {
+				if j.abandon == nil {
 					text := "Not saved: " + j.Verb + " " + j.Label + ": " + reason
 					r.UI().Notify(text)
 					m.quitReport = append(m.quitReport, text)
 				}
-				r.finish(j, JobCancelled, nil)
+				m.quitReport = append(m.quitReport, r.finish(j, JobCancelled, fmt.Errorf("%s", reason))...)
 			}
 		}
 	}

@@ -167,7 +167,7 @@ type job struct {
 	ctx       Ctx
 	presented func(Ctx)
 	flush     bool                  // a queued editor write the quit path must drain
-	abandon   func(string) []string // reports unfinished values before quit cancels a flush
+	abandon   func(string) []string // releases cancelled work and reports unfinished values
 }
 
 func (j *job) ticket() Ticket { return Ticket{Owner: j.Owner, Job: j.Job, Slot: j.Slot} }
@@ -280,9 +280,22 @@ func (r *Runtime) Settle(t Ticket, err error) bool {
 
 // finish moves a job out of the running state and trims the retained
 // history to jobHistory finished entries, oldest first.
-func (r *Runtime) finish(j *job, state string, err error) {
+func (r *Runtime) finish(j *job, state string, err error) []string {
+	if j.State != JobRunning {
+		return nil
+	}
 	j.cancel()
 	j.State = state
+	var messages []string
+	if state == JobCancelled && j.abandon != nil {
+		reason := "job cancelled; completion was not confirmed"
+		if err != nil {
+			reason = err.Error()
+		}
+		abandon := j.abandon
+		j.abandon = nil
+		messages = abandon(reason)
+	}
 	if err != nil {
 		j.Error = err.Error()
 	}
@@ -301,6 +314,7 @@ func (r *Runtime) finish(j *job, state string, err error) {
 		}
 		delete(r.jobs, oldest)
 	}
+	return messages
 }
 
 // HasRunningJob checks a replacing slot without constructing the sorted

@@ -1,0 +1,115 @@
+{
+ "name": "forms.edit-apply confirm: retyping the opening value after an outside write writes it",
+ "area": "forms",
+ "width": 100,
+ "height": 24,
+ "page": {
+  "focus": "t1",
+  "lists": [
+   {
+    "id": "parcels",
+    "items": [
+     {
+      "id": "t1",
+      "label": "Alpha",
+      "noun": "parcel",
+      "data": {
+       "id": "t1"
+      }
+     },
+     {
+      "id": "t2",
+      "label": "Second",
+      "noun": "parcel",
+      "data": {
+       "id": "t2"
+      }
+     }
+    ]
+   }
+  ],
+  "store": {
+   "noun": "parcel",
+   "props": [
+    {
+     "name": "id",
+     "key": true
+    },
+    {
+     "name": "title",
+     "role": "label",
+     "required": true
+    },
+    {
+     "name": "status",
+     "enum": [
+      "todo",
+      "done"
+     ]
+    },
+    {
+     "name": "count",
+     "type": "integer"
+    },
+    {
+     "name": "stamp",
+     "readOnly": true
+    }
+   ],
+   "things": [
+    {
+     "id": "t1",
+     "title": "Alpha",
+     "status": "todo",
+     "count": 1234567,
+     "stamp": "fixed"
+    },
+    {
+     "id": "t2",
+     "title": "Second",
+     "status": "done",
+     "count": 2,
+     "stamp": "fixed"
+    }
+   ]
+  }
+ },
+ "script": [
+  ":",
+  {
+   "type": "settings set forms.edit-apply confirm"
+  },
+  "enter",
+  "i",
+  ":",
+  {
+   "type": "parcel set t1 title Outside"
+  },
+  "enter",
+  "A",
+  "backspace",
+  "backspace",
+  "backspace",
+  "backspace",
+  "backspace",
+  "backspace",
+  "backspace",
+  {
+   "type": "Alpha"
+  },
+  "esc",
+  "enter",
+  "i"
+ ],
+ "expect": [
+  {
+   "modal": "edit-form",
+   "contains": [
+    "Alpha"
+   ],
+   "lacks": [
+    "Outside"
+   ]
+  }
+ ]
+}
