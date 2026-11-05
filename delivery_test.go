@@ -412,9 +412,12 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	// agentApproved is consent scoped to an executing request and its nested
 	// work, like rowRequest/source; it is restored when that request returns.
 	// Dry-run control is an execute argument, not retained runtime state.
+	// reopening names the modal body reopening itself over the level it was
+	// opened over (a failed form run, the palette restoring); it is set for
+	// that one call and cleared.
 	want := []string{
 		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
-		"askedAt", "bindingVersion", "builtinDepth", "commands", "defaults", "deprecations", "events", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeExtends", "modeGeneration", "modeOutside", "origin", "passthroughModes", "pendingModes", "predicates", "prefix", "renderCache", "rowRequest", "rows", "selectionModes", "seq", "subjects", "watches",
+		"askedAt", "bindingVersion", "builtinDepth", "commands", "defaults", "deprecations", "events", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeExtends", "modeGeneration", "modeOutside", "origin", "passthroughModes", "pendingModes", "predicates", "prefix", "renderCache", "reopening", "rowRequest", "rows", "selectionModes", "seq", "subjects", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)
