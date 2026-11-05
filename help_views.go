@@ -308,7 +308,34 @@ func (h *helpState) refreshBindings() error {
 				tree.collapsed[n.ID] = slices.Contains(collapsed, n.ID)
 			}
 		}
-		return tree.SetNodes(nodes)
+		var was HelpRow
+		var wasSelected bool
+		if node, ok := tree.Selected(); ok {
+			was, wasSelected = node.Data.(HelpRow)
+		}
+		if err := tree.SetNodes(nodes); err != nil {
+			return err
+		}
+		if !wasSelected {
+			return nil
+		}
+		// Keep the selection on the row it was on; a verb that was unbound
+		// and is bound now is followed to its new row.
+		follow := ""
+		for _, n := range tree.Nodes() {
+			row, ok := n.Data.(HelpRow)
+			switch {
+			case !ok:
+			case helpIdentity(row) == helpIdentity(was):
+				return tree.Select(n.ID)
+			case was.Unbound && !row.Unbound && row.Operation == was.Operation && follow == "":
+				follow = n.ID
+			}
+		}
+		if follow != "" {
+			return tree.Select(follow)
+		}
+		return nil
 	}
 	return nil
 }

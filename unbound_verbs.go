@@ -1,9 +1,9 @@
 package ochazuke
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
-	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -142,26 +142,67 @@ func (r *Runtime) unboundHelpRows(ops []Operation) []HelpRow {
 	return out
 }
 
-// withUnboundRows puts each noun's unbound rows after that noun's own
-// rows (the last row it answers with, motions apart), or first when it
-// answers none, so a focused row's verbs stay at the top.
-func (r *Runtime) withUnboundRows(rows []HelpRow, ops []Operation) []HelpRow {
+// withUnboundRows puts each noun's unbound rows by that noun's place in the
+// focus chain (nouns, innermost first), the order the help's levels are
+// in: after the noun's own rows (motions apart), or, when it answers none,
+// before the first row of an outer noun. An outer noun with no keys of its
+// own never goes above the focused row's.
+func (r *Runtime) withUnboundRows(rows []HelpRow, ops []Operation, chain []string) []HelpRow {
 	extra := r.unboundHelpRows(ops)
+	// A level's noun may be spelled by its canonical name or its display
+	// name; compare by the display name a section shows.
+	shown := make([]string, len(chain))
+	for i, noun := range chain {
+		shown[i] = r.DisplayNoun(noun)
+	}
+	pos := func(section string) int {
+		if i := slices.Index(shown, section); i >= 0 {
+			return i
+		}
+		return len(chain)
+	}
 	for len(extra) > 0 {
 		n := 1
 		for n < len(extra) && extra[n].Noun == extra[0].Noun {
 			n++
 		}
-		at := 0
+		noun := extra[0].Noun
+		at, own := 0, false
 		for i, row := range rows {
-			if row.Noun == extra[0].Noun && row.Section != MovementSection && !row.Unbound {
-				at = i + 1
+			if row.Section == r.DisplayNoun(noun) && !row.Unbound {
+				at, own = i+1, true
+			}
+		}
+		if !own {
+			at = len(rows)
+			for i, row := range rows {
+				if !row.Unbound && row.Section != MovementSection && pos(row.Section) > pos(r.DisplayNoun(noun)) {
+					at = i
+					break
+				}
 			}
 		}
 		rows = slices.Insert(rows, at, extra[:n]...)
 		extra = extra[n:]
 	}
 	return rows
+}
+
+// placeChain is a place's nouns, innermost first.
+func (r *Runtime) placeChain(place NounPlace) []string {
+	chain := slices.Clone(r.canonicalPlace(place).Chain())
+	slices.Reverse(chain)
+	return chain
+}
+
+// focusChain is the nouns of the instances from focus out to the root,
+// innermost first.
+func (r *Runtime) focusChain(focus string) []string {
+	var out []string
+	for _, id := range r.Ancestry(focus) {
+		out = append(out, r.Instances[id].Noun)
+	}
+	return out
 }
 
 // RunUnbound runs a request from focus as a key would: the same
@@ -181,20 +222,24 @@ func (r *Runtime) runFromHelp(focus string, q Request, ask bool) error {
 		return fmt.Errorf("unknown instance %q", focus)
 	}
 	defer r.forceSource(helpSource)()
-	execute := func(q Request) error {
-		present := r.keyResultPresenter(q)
-		top := r.TopModal()
-		value, err := r.ExecuteAt(r.contextOf(focus), q)
-		switch {
-		case err != nil:
-		case present != nil:
-			err = present(value)
-		case r.TopModal() == top:
-			err = r.presentData(q, value)
+	// The help closes when the verb is about to run, not before a form
+	// opens: esc on the form comes back to the help, on the same row.
+	leave := func() error {
+		if r.TopModal() == helpID {
+			return r.Pop()
 		}
-		return err
+		return nil
 	}
-	_, err := r.runOrAsk(focus, q, execute, ask)
+	execute := func(q Request) (any, error) {
+		top := r.TopModal()
+		present := r.resultPresenter(q, func(value any) (bool, error) { return r.presentAnswer(q, value, top) })
+		value, err := r.ExecuteAt(r.contextOf(focus), q)
+		if err == nil {
+			err = present(value)
+		}
+		return value, err
+	}
+	_, err := r.runOrAsk(focus, q, execute, ask, leave)
 	return err
 }
 
@@ -203,32 +248,85 @@ func (r *Runtime) runFromHelp(focus string, q Request, ask bool) error {
 const helpSource = "help"
 
 // runOrAsk runs q for the row at focus through execute, or, when it lacks
-// a required argument its parameters' sources do not fill, opens the args
-// form for it (MissingOpensFormSetting); the form's run goes through
-// execute under the source the request started with. It reports whether the
-// form opened. The one place a key's row (runRow) and an unbound verb
-// (RunUnbound) ask or run.
-func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) error, always bool) (bool, error) {
+// a required argument its parameters' sources do not fill (or always), opens
+// the args form for it (MissingOpensFormSetting); the form's run goes
+// through execute under the source the request started with, and a run that
+// fails later (a job) reopens the form with its values. leave, when given,
+// closes what the request was made from (the help) just before it runs. It
+// reports whether the form opened. The one place a key's row (runRow) and a
+// verb run from the help (RunUnbound) ask or run.
+func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, error), always bool, leave func() error) (bool, error) {
 	source := r.history.source
 	form := q
 	if form.Target == "" && focus != r.Focus {
 		form.Target = focus
 	}
-	run := func(q Request) error {
-		defer r.forceSource(source)()
-		return execute(q)
-	}
-	if always {
-		if op, ok := r.Operations[form.Key()]; ok && len(op.Parameters) > 0 {
-			if _, err := r.OpenArgsForm(form, run); err == nil {
-				return true, nil
+	var run func(Request) error
+	run = func(q Request) error {
+		if leave != nil {
+			if err := leave(); err != nil {
+				return err
 			}
 		}
+		defer r.forceSource(source)()
+		value, err := execute(q)
+		if err == nil {
+			r.afterFailure(value, func(late error) {
+				// The form comes back with what was typed and says why;
+				// where it cannot (a modal is open) the error is told.
+				defer r.forceSource(source)()
+				if e, openErr := r.OpenArgsForm(withArgs(form, q.Args), run); openErr == nil && e != nil {
+					e.writeErr = late.Error()
+				} else {
+					r.UI().Error("not run: " + late.Error())
+				}
+			})
+		}
+		return err
+	}
+	if always {
+		if op, ok := r.Operations[form.Key()]; !ok || len(askableParameters(op)) == 0 {
+			return false, fmt.Errorf("%s has no argument to ask for", r.displayRequest(form))
+		}
+		if _, err := r.OpenArgsForm(form, run); err != nil {
+			return false, fmt.Errorf("cannot open the form for %s: %w", r.displayRequest(form), err)
+		}
+		return true, nil
 	}
 	if r.formForMissing(form, run) {
 		return true, nil
 	}
-	return false, execute(q)
+	if leave != nil {
+		if err := leave(); err != nil {
+			return false, err
+		}
+	}
+	_, err := execute(q)
+	return false, err
+}
+
+// afterFailure calls fn with the error when the job a pending answer
+// stands for fails.
+func (r *Runtime) afterFailure(value any, fn func(error)) {
+	ticket, ok := value.(Ticket)
+	if !ok {
+		return
+	}
+	job := r.jobs[ticket.Job]
+	if job == nil {
+		return
+	}
+	then := job.then
+	job.then = func(c Ctx, value any, err error) error {
+		var first error
+		if then != nil {
+			first = then(c, value, err)
+		}
+		if err != nil {
+			fn(err)
+		}
+		return first
+	}
 }
 
 // selectedHelpRow is the help row under the help tree's selection.
@@ -266,9 +364,6 @@ func registerUnboundVerbs(r *Runtime) {
 			if !row.Unbound {
 				q.Args = cloneArgs(row.Args)
 			}
-			if err := r.Pop(); err != nil {
-				return nil, err
-			}
 			if ask {
 				return row.Request, r.AskUnbound(origin, q)
 			}
@@ -288,7 +383,7 @@ func registerUnboundVerbs(r *Runtime) {
 		}
 		noun, verb := r.keyParts(row.Request)
 		op, found := r.Operation(noun + "." + verb)
-		return found && slices.ContainsFunc(slices.Collect(maps.Keys(op.Parameters)), func(name string) bool { return name != "target" })
+		return found && len(askableParameters(op)) > 0
 	})
 	r.Register(Operation{Verb: "bind", Noun: helpID, Description: "Bind a key to the selected unbound verb: a form asks for the key and writes the row to your bindings.json (bindings.bind)", Result: "operation", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		h := r.helpOpen()
@@ -311,12 +406,7 @@ func registerUnboundVerbs(r *Runtime) {
 			return nil, errors.New("select an unbound verb in the help")
 		}
 		keys := StringArg(a, "key", "")
-		q := Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": keys, "action": row.Request}}
-		if b, conflict := r.bindConflict(keys); conflict {
-			q.Args["replace"] = true
-			return r.openConfirm(c, q, Operation{Noun: "ochazuke.bindings", Verb: "bind", Confirm: (&BindConflictError{Keys: keys, Action: r.displayRequest(b.Request)}).Error()})
-		}
-		return r.Execute(q)
+		return r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": keys, "action": row.Request}})
 	}})
 	n := r.Noun(helpID)
 	if n.Guards == nil {
@@ -336,6 +426,34 @@ func registerUnboundVerbs(r *Runtime) {
 	}, Positional: []string{"key", "action"}, Result: "binding", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.bindUserKey(StringArg(a, "key", ""), StringArg(a, "action", ""), StringArg(a, "noun", ""), StringArg(a, "mode", ""), a["replace"] == true)
 	}})
+	if err := r.AddVerbCheck("ochazuke.bindings.bind", VerbCheck{Name: "key-taken", Check: keyTaken}); err != nil {
+		panic(err.Error())
+	}
+}
+
+// keyTaken is the check on bindings.bind: a key the walk at the focus (or
+// the target table) already answers asks "KEY already runs ACTION here; bind
+// anyway?" from every route (the help's b, the form, the palette, the CLI
+// with --yes); replace skips the question.
+func keyTaken(r *Runtime, _ Context, a Arguments) Verdict {
+	if a["replace"] == true {
+		return Allow()
+	}
+	keys := strings.Join(strings.Fields(StringArg(a, "key", "")), " ")
+	if b, taken := r.bindConflict(keys); taken {
+		return AskFirst(keys + " already runs " + r.displayRequest(b.Request) + " here; bind anyway?")
+	}
+	if op, ok := r.Operation(StringArg(a, "action", "")); ok {
+		noun, mode := r.CanonicalNoun(cmp.Or(StringArg(a, "noun", ""), op.Noun)), cmp.Or(StringArg(a, "mode", ""), r.BaseMode())
+		if n := r.Nouns[noun]; n != nil {
+			for _, b := range n.Bindings[mode] {
+				if b.Keys == keys && b.Pattern == "" && !isPrefixCancel(b) && !b.Unbind && b.Request.Key() != op.Key() {
+					return AskFirst(keys + " already runs " + r.displayRequest(b.Request) + " here; bind anyway?")
+				}
+			}
+		}
+	}
+	return Allow()
 }
 
 // bindUserKey is bindings.bind: it validates the row against the live
@@ -361,16 +479,6 @@ func (r *Runtime) bindUserKey(key, action, noun, mode string, replace bool) (any
 	row, err := r.validateRow(Binding{Noun: noun, Mode: mode, Keys: strings.TrimSpace(key), Request: Request{Noun: op.Noun, Verb: op.Verb}})
 	if err != nil {
 		return nil, err
-	}
-	if !replace {
-		if b, conflict := r.bindConflict(row.Keys); conflict {
-			return nil, &BindConflictError{Keys: row.Keys, Action: r.displayRequest(b.Request)}
-		}
-		for _, b := range r.tableRows(row) {
-			if b.same(row) && !isPrefixCancel(b) && !b.Unbind && b.Request.Key() != row.Request.Key() {
-				return nil, &BindConflictError{Keys: row.Keys, Action: r.displayRequest(b.Request)}
-			}
-		}
 	}
 	var doc BindingsDoc
 	old, err := os.ReadFile(path)
@@ -436,14 +544,6 @@ func (r *Runtime) bindUserKey(key, action, noun, mode string, replace bool) (any
 	return map[string]any{"key": row.Keys, "action": r.displayRequest(row.Request), "context": noun + "/" + mode, "file": path}, nil
 }
 
-// BindConflictError says a key already runs something where it is being
-// bound, in one plain sentence that is also the question to ask.
-type BindConflictError struct{ Keys, Action string }
-
-func (e *BindConflictError) Error() string {
-	return e.Keys + " already runs " + e.Action + " here; bind anyway?"
-}
-
 // bindConflict is the row of the walk at the focus the help (else the
 // base focus) is over that already answers keys in the base mode: the same
 // key, a sequence that starts with it, or a shorter row it would start a
@@ -467,6 +567,19 @@ func (r *Runtime) bindConflict(keys string) (Binding, bool) {
 		}
 	}
 	return Binding{}, false
+}
+
+// askableParameters are the parameters a person gives: not the target and
+// not a verb's plumbing (Parameter.Plumbing).
+func askableParameters(op Operation) []string {
+	var out []string
+	for name, p := range op.Parameters {
+		if name != "target" && !p.Plumbing {
+			out = append(out, name)
+		}
+	}
+	slices.Sort(out)
+	return out
 }
 
 // helpRunnable reports whether a help row stands for one operation a run

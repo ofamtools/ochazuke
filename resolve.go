@@ -111,7 +111,17 @@ func (b Binding) Captured() Binding { b.Capture = true; return b }
 // are never consulted.
 func (r *Runtime) stack(focus string) []level {
 	ancestry := r.Ancestry(focus)
-	if top := r.TopModal(); top != "" {
+	// The modal that holds the focus bounds the walk: the top one for the
+	// live focus, a covered one for the focus it keeps (its hint line while
+	// a confirm is over it). A focus in none keeps the top modal's level.
+	top := r.TopModal()
+	for i := len(r.modals) - 1; i >= 0; i-- {
+		if slices.Contains(ancestry, r.modals[i]) {
+			top = r.modals[i]
+			break
+		}
+	}
+	if top != "" {
 		// The live focus is always inside the top modal (focusInTopLevel),
 		// so the cut is at the modal instance and app closes the walk. A
 		// focus named explicitly outside it (bindings.list for the row a
@@ -139,7 +149,7 @@ func (r *Runtime) stack(focus string) []level {
 			}
 		}
 		if i == len(ancestry)-1 && len(r.modals) > 0 {
-			frame := r.Instances[r.TopModal()]
+			frame := r.Instances[top]
 			if frame != nil && onStack[frame.ID] {
 				frame = nil
 			}
@@ -578,7 +588,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 	if r.passthroughModes[r.BaseMode()] {
 		r.UI().passthroughInput++
 	}
-	execute := func(q Request) error {
+	execute := func(q Request) (any, error) {
 		present := r.keyResultPresenter(q)
 		if b.Present != nil && !*b.Present {
 			present = nil
@@ -590,11 +600,11 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 		if err == nil && present != nil {
 			err = present(value)
 		}
-		return err
+		return value, err
 	}
 	// A request lacking a required argument opens the args form for it
 	// (MissingOpensFormSetting); the form runs it as the key's.
-	formed, err := r.runOrAsk(ev.Focus, q, execute, false)
+	formed, err := r.runOrAsk(ev.Focus, q, execute, false, nil)
 	if r.pendingModes[before] && r.modeGeneration == generation && r.Mode.Name == before {
 		r.leaveMode()
 	}

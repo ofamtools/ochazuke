@@ -191,9 +191,10 @@ func TestBindingsBindWritesTheUserFile(t *testing.T) {
 	}
 	// enter is widget.open: taking it needs replace.
 	q := Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "enter", "action": "widget.wipe"}}
-	if _, err := r.Execute(q); err == nil || !strings.Contains(err.Error(), "enter already runs widget.open here; bind anyway?") {
-		t.Fatalf("err %v", err)
+	if _, err := r.Execute(q); err != nil || r.TopModal() == "" || !strings.Contains(m.View().Content, "enter already runs widget.open here; bind anyway?") {
+		t.Fatalf("no question: %v top %q", err, r.TopModal())
 	}
+	keytest.Press(m, "n")
 	q.Args["replace"] = true
 	if _, err := r.Execute(q); err != nil {
 		t.Fatal(err)
@@ -272,17 +273,20 @@ func TestHelpBindAsksBeforeTakingAnAnsweredKey(t *testing.T) {
 		t.Fatalf("yes did not bind j: %q %v", data, err)
 	}
 	_ = ran
-	// Through the verb: refused with the sentence unless replace.
-	_, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "j", "action": "widget.wipe"}})
-	var conflict *BindConflictError
-	if !errors.As(err, &conflict) || conflict.Keys != "j" || !strings.HasSuffix(err.Error(), "here; bind anyway?") {
-		t.Fatalf("err %v", err)
-	}
-	for _, keys := range []string{"esc", ":", "Q"} {
-		_, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": keys, "action": "widget.wipe"}})
-		if !errors.As(err, &conflict) {
-			t.Fatalf("%s: err %v", keys, err)
+	// Every route asks: the verb itself opens the same question, and
+	// replace skips it.
+	for _, keys := range []string{"j", "esc", ":", "Q"} {
+		if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": keys, "action": "widget.wipe"}}); err != nil {
+			t.Fatalf("%s: %v", keys, err)
 		}
+		if r.TopModal() == "" || !strings.Contains(m.View().Content, keys+" already runs") {
+			t.Fatalf("%s: no question (top %q)", keys, r.TopModal())
+		}
+		keytest.Press(m, "n")
+	}
+	_ = ran
+	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "esc", "action": "widget.wipe", "replace": true}}); err != nil || r.TopModal() != helpID {
+		t.Fatalf("replace asked: %v top %q", err, r.TopModal())
 	}
 }
 
@@ -292,7 +296,10 @@ func TestFormOverAModalReopensOnAFailedRun(t *testing.T) {
 	r, m, _ := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
 	keytest.Press(m, "?")
-	q := Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"action": "widget.wipe"}}
+	r.Register(Operation{Verb: "fail", Noun: "widget", Parameters: map[string]Parameter{"key": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) {
+		return nil, errors.New("j already runs list.move here")
+	}})
+	q := Request{Noun: "widget", Verb: "fail"}
 	if _, err := r.OpenArgsForm(q, func(q Request) error {
 		_, err := r.ExecuteAt(r.Context(), q)
 		return err
@@ -308,7 +315,7 @@ func TestFormOverAModalReopensOnAFailedRun(t *testing.T) {
 	if got := ed.Values()["key"]; got != "j" {
 		t.Fatalf("typed key lost: %v", got)
 	}
-	if strings.Contains(m.Status, "\n") || strings.Contains(m.Status, "modal") && !strings.Contains(m.Status, "bind anyway") {
+	if strings.Contains(m.Status, "\n") || strings.Contains(m.Status, "modal is open") {
 		t.Fatalf("status %q", m.Status)
 	}
 }
@@ -494,5 +501,58 @@ func TestHelpRunDataAnswerCanBeTurnedOff(t *testing.T) {
 	keytest.Press(m, "enter")
 	if slices.ContainsFunc(sink.Notices(), func(n string) bool { return strings.Contains(n, "sent") }) {
 		t.Fatalf("notices %q", sink.Notices())
+	}
+}
+
+// Plumbing parameters (a list's id, a row item, the confirmed flag) are
+// never form fields: a confirmed field would skip the verb's confirm. A
+// verb with only plumbing has no args form (and no a in the help).
+func TestPlumbingParametersAreNeverFormFields(t *testing.T) {
+	r, _, _ := unboundFixture(t)
+	fields, err := ArgsFields(r.Operations["ochazuke.list.apply"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range fields {
+		if f.Name == "confirmed" || f.Name == "id" || f.Name == "args" {
+			t.Fatalf("form field %q", f.Name)
+		}
+	}
+	if len(fields) != 1 || fields[0].Name != "verb" {
+		t.Fatalf("fields %v", fields)
+	}
+	if got := askableParameters(r.Operations["ochazuke.list.mark"]); len(got) != 0 {
+		t.Fatalf("list.mark asks for %v", got)
+	}
+}
+
+// An args form that cannot open (one is open already) is a plain refusal,
+// not a silent run of the verb.
+func TestAskUnboundRefusesWhenTheFormCannotOpen(t *testing.T) {
+	r, _, got := sendFixture(t)
+	if _, err := r.OpenArgsForm(Request{Noun: "widget", Verb: "send"}, func(Request) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	err := r.AskUnbound("w1", Request{Noun: "widget", Verb: "send"})
+	if err == nil || len(*got) != 0 || !strings.Contains(err.Error(), "cannot open the form") {
+		t.Fatalf("err %v ran %v", err, *got)
+	}
+}
+
+// A modal covered by a confirm keeps its own focus's hints: the help's, not
+// the page's under it.
+func TestCoveredHelpKeepsItsOwnHints(t *testing.T) {
+	r, m, _ := unboundFixture(t)
+	r.Config().Dir = t.TempDir()
+	keytest.Press(m, "?")
+	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "enter", "action": "widget.wipe"}}); err != nil {
+		t.Fatal(err)
+	}
+	if r.TopModal() == helpID || r.TopModal() == "" {
+		t.Fatalf("no confirm: %q", r.TopModal())
+	}
+	hints := BindingHints(r, r.ModalFocus(helpID))
+	if !strings.Contains(hints, "S") || strings.Contains(hints, "widget.open") {
+		t.Fatalf("covered help hints: %q", hints)
 	}
 }

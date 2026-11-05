@@ -1,0 +1,66 @@
+{
+  "name": "enter on an unbound verb whose data answer arrives later shows it when it lands (results.show-data), as the palette does",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "items": [
+          {
+            "id": "a1",
+            "label": "one",
+            "data": {
+              "host": "h1"
+            }
+          }
+        ]
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.where",
+        "description": "Say where, later",
+        "pending": true,
+        "answer": {
+          "where": "h1"
+        },
+        "parameters": {}
+      }
+    ],
+    "bind": [
+      {
+        "noun": "app",
+        "keys": "F",
+        "do": "demo.finish",
+        "args": {
+          "verb": "demo.where"
+        }
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "/",
+    {
+      "type": "demo.where"
+    },
+    "enter",
+    "enter",
+    "F",
+    {
+      "job": "demo.where",
+      "state": "done"
+    }
+  ],
+  "expect": [
+    {
+      "modal": "",
+      "contains": [
+        "demo.where",
+        "h1"
+      ]
+    }
+  ]
+}

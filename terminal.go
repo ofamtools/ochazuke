@@ -379,10 +379,10 @@ func registerTerminal(r *Runtime) {
 	// Required-parameter metadata for the rows (bindings/terminal.json) and
 	// for the CLI.
 	for verb, params := range map[string]map[string]Parameter{
-		"send":   {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "keys": {Type: "string", Required: true, Description: "Space-separated key names, forwarded in order"}},
-		"paste":  {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "text": {Type: "string", Required: true}, "keys": {Type: "string", Description: "Space-separated key names forwarded before the text"}},
-		"attach": {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
-		"detach": {"id": {Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
+		"send":   {"id": {Plumbing: true, Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "keys": {Type: "string", Required: true, Description: "Space-separated key names, forwarded in order"}},
+		"paste":  {"id": {Plumbing: true, Type: "string", Description: "Terminal instance (defaults to the focused one)"}, "text": {Type: "string", Required: true}, "keys": {Type: "string", Description: "Space-separated key names forwarded before the text"}},
+		"attach": {"id": {Plumbing: true, Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
+		"detach": {"id": {Plumbing: true, Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
 	} {
 		op := r.Operations["ochazuke.terminal."+verb]
 		op.Parameters, op.Result = params, "JSON value"

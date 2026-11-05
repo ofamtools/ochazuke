@@ -14,7 +14,7 @@ const (
 )
 
 // showResults presents JSON object lists without borrowing the source rows' actions.
-func (p *Palette) showResults(operation string, value any) error {
+func (r *Runtime) showResults(operation string, value any) error {
 	var data []byte
 	var err error
 	switch value := value.(type) {
@@ -94,21 +94,21 @@ func (p *Palette) showResults(operation string, value any) error {
 		}
 		items[i] = ListItem{ID: fmt.Sprintf("__palette-results/%d", i), Noun: "palette-result-row", Data: object, Cells: cells}
 	}
-	if p.r.TopModal() != "" {
+	if r.TopModal() != "" {
 		return errModalAbove
 	}
-	inst, err := p.r.OpenModal(paletteResultsID, Payload{}, ReplaceOpen())
+	inst, err := r.OpenModal(paletteResultsID, Payload{}, ReplaceOpen())
 	if err != nil {
 		return err
 	}
 	inst.Data = operation
-	p.r.Define("palette-result-row")
-	list, err := p.r.AddList(paletteResultsListID, items, Parent(paletteResultsID), Columns(columns...))
+	r.Define("palette-result-row")
+	list, err := r.AddList(paletteResultsListID, items, Parent(paletteResultsID), Columns(columns...))
 	if err == nil {
 		err = list.Focus()
 	}
 	if err != nil {
-		_ = p.r.Pop()
+		_ = r.Pop()
 	}
 	return err
 }

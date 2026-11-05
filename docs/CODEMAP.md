@@ -66,7 +66,7 @@ Root package `ochazuke` is flat: 180 source files, 221 test files. Each entry li
 
 ### args_form.go
 
-- lines: 338
+- lines: 341
 - purpose: missingOpensForm reads MissingOpensFormSetting, on when it is not declared.
 - methods: Runtime(7)
 - funcs: ArgsFields
@@ -373,11 +373,11 @@ Root package `ochazuke` is flat: 180 source files, 221 test files. Each entry li
 
 ### help_views.go
 
-- lines: 804 · tests: help_views_test.go
+- lines: 831 · tests: help_views_test.go
 - purpose: HelpCell is one mode's rows for a key in the help's table view: the first answers, the ones after answer when its guard is false.
 - types: HelpCell, HelpKey
 - methods: Runtime(8), helpState(14)
-- leans on: runtime.go(57), help.go(28), noun.go(25), delivery.go(14)
+- leans on: runtime.go(59), help.go(28), noun.go(25), delivery.go(14)
 
 ### highlight.go
 
@@ -704,12 +704,12 @@ Root package `ochazuke` is flat: 180 source files, 221 test files. Each entry li
 
 ### palette.go
 
-- lines: 544 · tests: palette_test.go
+- lines: 555 · tests: palette_test.go
 - purpose: Palette is the ex-mode command line: one prompt input whose text is the source of truth, parsed by the grammar in palette_parse.go, with a completion list fo...
 - types: Palette
-- methods: Palette(25)
+- methods: Palette(25), Runtime(1)
 - funcs: NewPalette
-- leans on: runtime.go(38), block.go(23), palette_nouns.go(7), instance.go(6)
+- leans on: runtime.go(40), block.go(23), palette_nouns.go(7), instance.go(6)
 
 ### palette_choices.go
 
@@ -746,7 +746,7 @@ Root package `ochazuke` is flat: 180 source files, 221 test files. Each entry li
 
 - lines: 129 · tests: palette_results_test.go
 - purpose: showResults presents JSON object lists without borrowing the source rows' actions.
-- methods: Palette(1)
+- methods: Runtime(1)
 - leans on: table.go(9), block.go(5), instance.go(5), list.go(3)
 
 ### panes.go
@@ -919,7 +919,7 @@ Root package `ochazuke` is flat: 180 source files, 221 test files. Each entry li
 
 ### resolve.go
 
-- lines: 1211 · tests: resolve_test.go
+- lines: 1221 · tests: resolve_test.go
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent, KeyOutcome
 - methods: Binding(1), Runtime(31), level(1), lookResult(1)
@@ -935,7 +935,7 @@ Root package `ochazuke` is flat: 180 source files, 221 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1412 · tests: runtime_test.go
+- lines: 1419 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(5), Request(4), Runtime(20)
@@ -1361,11 +1361,10 @@ Root package `ochazuke` is flat: 180 source files, 221 test files. Each entry li
 
 ### unbound_verbs.go
 
-- lines: 477 · tests: unbound_verbs_test.go
+- lines: 590 · tests: unbound_verbs_test.go
 - purpose: UnboundVerbs are the operations the focus's noun (and, by the scope setting, the nouns of its path) has that no row of the focus's walk binds in mode, availa...
-- types: BindConflictError
-- methods: BindConflictError(1), Runtime(12)
-- leans on: runtime.go(96), noun.go(37), model.go(11), help.go(8)
+- methods: Runtime(15)
+- leans on: runtime.go(107), noun.go(37), delivery.go(11), model.go(11)
 
 ### verb_checks.go
 
@@ -1796,7 +1795,7 @@ Importable package `cli/mcp`: 4 source files, 1 test files.
 
 ### cli/mcp/server.go
 
-- lines: 217 · tests: server_test.go
+- lines: 218 · tests: server_test.go
 - purpose: Serve uses the bounded newline JSON-RPC loop from matomeru, with lifecycle validation and negotiated structured results.
 - methods: Server(2)
 - leans on: mcp.go(8)
@@ -2410,7 +2409,6 @@ Exported type -> file.
 - Argv -> actions.go
 - Association -> association.go
 - BareReading -> alias_shadow.go
-- BindConflictError -> unbound_verbs.go
 - Binding -> noun.go
 - BindingGroup -> bindings_file.go
 - BindingPeer -> peer_bindings.go

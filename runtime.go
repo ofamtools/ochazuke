@@ -86,6 +86,13 @@ type Parameter struct {
 	// row without Data or the field fills nothing. A fill is always shown
 	// (the palette slot, the args form). The catalog's from.
 	From string `json:"from,omitempty"`
+	// Plumbing marks a parameter that is the verb's machinery, not
+	// something a person gives: a list's id, the row an action acts on, the
+	// flag that says the confirm was answered. The args form leaves it out
+	// (a confirmed field would skip the verb's confirm), the help does not
+	// offer an args form for a verb that has only these, and a request or
+	// the runtime sets them. The catalog's plumbing.
+	Plumbing bool `json:"plumbing,omitempty"`
 	// Forwards marks a parameter whose argument names a verb of the noun
 	// of the rows the operation acts on (list.apply's verb): the operation
 	// runs that verb for them, so a row requesting the operation with the

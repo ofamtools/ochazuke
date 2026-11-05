@@ -379,7 +379,7 @@ func TestConfigExportExamplesInstallWithoutNotices(t *testing.T) {
 		// prop, set's value and where, which read the noun's props, and
 		// set's toggle, which a value excludes; an action's parameter
 		// does not take them.
-		if !params[f] && f != "focus" && f != "edits" && f != "valueOf" && f != "pairs" && f != "excludes" && f != "forwards" {
+		if !params[f] && f != "focus" && f != "edits" && f != "valueOf" && f != "pairs" && f != "excludes" && f != "forwards" && f != "plumbing" {
 			t.Errorf("actions example lacks parameter field %q", f)
 		}
 	}

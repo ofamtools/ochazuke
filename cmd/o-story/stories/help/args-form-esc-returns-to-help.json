@@ -1,0 +1,59 @@
+{
+  "name": "esc on the args form opened from the help (a) returns to the help on the same row; nothing ran",
+  "area": "help",
+  "width": 110,
+  "height": 40,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "items": [
+          {
+            "id": "a1",
+            "label": "one",
+            "data": {
+              "host": "h1"
+            }
+          }
+        ]
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.send",
+        "description": "Send to a host",
+        "parameters": {
+          "to": {
+            "type": "string",
+            "required": true
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    ]
+  },
+  "script": [
+    "?",
+    "/",
+    {
+      "type": "demo.send"
+    },
+    "enter",
+    "a",
+    "esc",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "modal": "args-form"
+    },
+    {
+      "modal": "bindings-help",
+      "highlightedText": "demo.send",
+      "writes": []
+    }
+  ]
+}

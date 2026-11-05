@@ -1213,8 +1213,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   is filled from the focused thing of its noun when omitted, and the fill
   is visible before it runs (the palette slot says `focus: Work`, the args
   form holds it) and after (create's notice `project Work (from the
-  focus)`). A required parameter is still never filled. Stories
-  `palette/create-from-focus.json`, `palette/create-from-focus-off.json`;
+  focus)`). A required parameter is filled only by what it declares:
+  `Parameter.From` (`row` or `row:<field>`, the row at the request's target,
+  else the focus for a person at the UI) fills the same way on every route
+  (key, the help's enter and `a`, the palette, the args form; a program
+  that names no target reads nothing) and is shown the same way: the
+  palette slot says `row: h1`, the args form opens holding it, and the help's
+  run, which closes the help only when the verb runs, shows an answer as the
+  palette does. A required parameter that declares nothing is still never
+  filled. Stories
+  `palette/create-from-focus.json`, `palette/create-from-focus-off.json`, `palette/param-source-fills.json`, `help/unbound-run-fills-row-sources.json`;
   tests `TestCreateFillsFromTheFocus`, `TestTaskCreateFillsTheFocusedProject`.
   A subject may also come through a reference prop marked `Association`,
   when the verb declares `ByAssociation` or an optional `Focus` subject.

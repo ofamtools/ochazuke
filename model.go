@@ -847,7 +847,7 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 			return groupLevelRows(r.scanRows(r.walk(focus), mode, focus, false))
 		},
 	}
-	return r.withUnboundRows(helpGroups(r.helpRows(w, r.groupedRows(focus), 0)), r.UnboundVerbs(focus, r.Mode))
+	return r.withUnboundRows(helpGroups(r.helpRows(w, r.groupedRows(focus), 0)), r.UnboundVerbs(focus, r.Mode), r.focusChain(focus))
 }
 
 // NounHelp is BindingHelp for a hypothetical focus on noun in mode, with
@@ -872,7 +872,7 @@ func PlaceHelp(r *Runtime, place NounPlace, mode ModeState) []HelpRow {
 			return groupLevelRows(r.nounRows(place, mode))
 		},
 	}
-	return r.withUnboundRows(helpGroups(r.helpRows(w, groupLevelRows(r.nounRows(place, mode)), 0)), r.PlaceUnboundVerbs(place, mode))
+	return r.withUnboundRows(helpGroups(r.helpRows(w, groupLevelRows(r.nounRows(place, mode)), 0)), r.PlaceUnboundVerbs(place, mode), r.placeChain(place))
 }
 
 // helpWalk is how helpRows reads a walk: the arguments a row shows, the

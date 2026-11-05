@@ -368,28 +368,39 @@ func (p *Palette) dispatch(q Request) error {
 }
 
 func (p *Palette) present(q Request, value any, top string) (bool, error) {
-	op := p.r.Operations[q.Key()]
+	return p.r.presentAnswer(q, value, top)
+}
+
+// presentAnswer is the one presenter of an answer for a person's request
+// that is not a key: the palette's, and the help's run. A text answer opens
+// its viewer, rows open as a table, any other data answer of an application
+// verb is shown (presentData); top is the modal level the request started
+// at, so a verb that opened a modal (a confirm) has said what it has to.
+// Wrapped by resultPresenter, an answer that lands later is presented the
+// same way.
+func (r *Runtime) presentAnswer(q Request, value any, top string) (bool, error) {
+	op := r.Operations[q.Key()]
 	if value == nil && (q.Verb == "list" || op.Rows != "") {
 		value = []any{}
 	}
-	if shown, err := p.r.PresentResult(q, value); shown || err != nil {
+	if shown, err := r.PresentResult(q, value); shown || err != nil {
 		return shown, err
 	}
-	if run := p.r.Operations[requestOperation(q)]; p.r.StandardVerbsView().Record {
+	if run := r.Operations[requestOperation(q)]; r.StandardVerbsView().Record {
 		if row := standardRow(run.Standard); row != nil && row.Record {
-			if rows, ok := recordRows(p.r.Nouns[run.Noun], value); ok {
+			if rows, ok := recordRows(r.Nouns[run.Noun], value); ok {
 				value = rows
 			} else if prop := cmp.Or(q.Prop, StringArg(q.Args, "prop", "")); prop != "" {
 				value = []map[string]any{{"prop": prop, "value": value}}
 			}
 		}
 	}
-	before := p.r.Instances[p.r.TopModal()]
-	err := p.showResults(q.Key(), value)
-	if err == nil && before == p.r.Instances[p.r.TopModal()] && p.r.TopModal() == top {
-		err = p.r.presentData(q, value) // a verb that opened a modal (a confirm) has said what it has to
+	before := r.Instances[r.TopModal()]
+	err := r.showResults(q.Key(), value)
+	if err == nil && before == r.Instances[r.TopModal()] && r.TopModal() == top {
+		err = r.presentData(q, value) // a verb that opened a modal (a confirm) has said what it has to
 	}
-	return before != p.r.Instances[p.r.TopModal()], err
+	return before != r.Instances[r.TopModal()], err
 }
 
 // sourced records the requests a line runs with the source "palette",

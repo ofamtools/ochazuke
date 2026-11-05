@@ -377,7 +377,7 @@ func registerListFilter(r *Runtime) {
 		}
 		leave()
 	}
-	id := map[string]Parameter{"id": {Type: "string", Description: "The list (default: the focused one)"}}
+	id := map[string]Parameter{"id": {Plumbing: true, Type: "string", Description: "The list (default: the focused one)"}}
 	with := func(extra map[string]Parameter) map[string]Parameter {
 		out := map[string]Parameter{}
 		for k, v := range id {

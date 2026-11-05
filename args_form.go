@@ -66,6 +66,9 @@ func formable(p Parameter) bool {
 func ArgsFields(op Operation) ([]RecordField, error) {
 	var required, optional []RecordField
 	for _, f := range RecordFields(op) {
+		if f.Plumbing {
+			continue
+		}
 		if !formable(f.Parameter) {
 			if f.Required {
 				return nil, fmt.Errorf("%s (%s) cannot be filled in a form", f.Name, f.Type)

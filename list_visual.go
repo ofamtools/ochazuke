@@ -397,12 +397,12 @@ func registerListVisual(r *Runtime) {
 	// row (bound after this, unguarded), which would otherwise replace it.
 	r.Nouns["ochazuke.list"].Guards["end-visual"] = "list-visual"
 	r.Register(Operation{Verb: "end-visual", Noun: "ochazuke.list", Description: "End the visual row selection (esc), and visual-line with it: the marks go back to the ones it found", Parameters: map[string]Parameter{
-		"id": {Type: "string", Description: "The list (default: the focused one)"},
+		"id": {Plumbing: true, Type: "string", Description: "The list (default: the focused one)"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		return visual(c, Arguments{"id": a["id"], "on": false})
 	}})
 	r.Register(Operation{Verb: "visual", Noun: "ochazuke.list", Description: "Start a visual row selection at the selected row (V, in visual-line), or end it (V again, esc): j/k extend it; a key then acts on every selected row", Parameters: map[string]Parameter{
-		"id": {Type: "string", Description: "The list (default: the focused one)"},
+		"id": {Plumbing: true, Type: "string", Description: "The list (default: the focused one)"},
 		"on": {Type: "boolean", Description: "true starts, false ends; omit to toggle"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		return visual(c, a)
