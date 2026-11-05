@@ -92,7 +92,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 			delete(out.Nouns, n.Name)
 			continue
 		}
-		b.About(n.About)
+		b.About(n.About).EditKey(!n.NoEditKey)
 		if len(n.Columns) > 0 {
 			b.Columns(n.Columns...)
 		}

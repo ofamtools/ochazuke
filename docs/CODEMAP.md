@@ -450,12 +450,12 @@ Root package `ochazuke` is flat: 178 source files, 219 test files. Each entry li
 
 ### instance.go
 
-- lines: 411
+- lines: 407
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
-- methods: Payload(1), Runtime(12)
+- methods: Payload(1), Runtime(13)
 - funcs: Parent, RowNoun, Kind, Focus, CloseOnDetach, FocusOnClose, NoSpill, SpillToSelection, NoMarks, Guides, ClearFilterOnEnter
-- leans on: runtime.go(22), props.go(8), noun.go(5), resolve.go(2)
+- leans on: runtime.go(23), props.go(7), noun.go(5), resolve.go(3)
 
 ### instance_cache.go
 
@@ -671,10 +671,10 @@ Root package `ochazuke` is flat: 178 source files, 219 test files. Each entry li
 
 ### noun.go
 
-- lines: 1610 · tests: noun_test.go
+- lines: 1621 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, ModeOption (func), Guard (func)
-- methods: Binding(12), ModeBuilder(7), NounBuilder(23), Runtime(28)
+- methods: Binding(12), ModeBuilder(7), NounBuilder(24), Runtime(28)
 - funcs: Do, Enter, Leave, ModeExtends, ModeOutside
 - leans on: runtime.go(81), instance.go(24), resolve.go(12), props.go(5)
 
@@ -872,10 +872,10 @@ Root package `ochazuke` is flat: 178 source files, 219 test files. Each entry li
 
 ### record_editor.go
 
-- lines: 1937 · tests: record_editor_test.go
+- lines: 1946 · tests: record_editor_test.go
 - purpose: Record is one record's values by field name, as an editor loads and writes them.
 - types: Record, RecordField, RecordWrite, RecordSpec, RecordDebounceMsg, RecordEditor
-- methods: RecordEditor(60), RecordWrite(1), Runtime(6), recordChooser(2), recordField(2)
+- methods: RecordEditor(60), RecordWrite(1), Runtime(6), recordChooser(2), recordField(3)
 - funcs: RecordFields
 - leans on: runtime.go(80), instance.go(46), delivery.go(30), block.go(25)
 
@@ -911,12 +911,12 @@ Root package `ochazuke` is flat: 178 source files, 219 test files. Each entry li
 
 ### resolve.go
 
-- lines: 1230 · tests: resolve_test.go
+- lines: 1243 · tests: resolve_test.go
 - purpose: KeyEvent is what a row receives: the key, the mode it was resolved in and the focused instance.
 - types: KeyEvent, KeyOutcome
 - methods: Binding(1), Runtime(31), level(1), lookResult(1)
 - funcs: SortBindings
-- leans on: runtime.go(116), noun.go(76), instance.go(49), delivery.go(11)
+- leans on: runtime.go(116), noun.go(76), instance.go(51), delivery.go(11)
 
 ### rows_format.go
 
@@ -1090,10 +1090,10 @@ Root package `ochazuke` is flat: 178 source files, 219 test files. Each entry li
 
 ### standard_edit.go
 
-- lines: 317 · tests: standard_edit_test.go
+- lines: 320 · tests: standard_edit_test.go
 - purpose: EditHandler builds the standard edit handler for a declared noun, including a catalog-mounted noun with get and set proxies but no local Store.
 - methods: Runtime(3)
-- leans on: delivery.go(32), runtime.go(30), props.go(15), instance.go(12)
+- leans on: delivery.go(32), runtime.go(31), props.go(15), instance.go(12)
 
 ### standard_grammar.go
 
@@ -1395,7 +1395,7 @@ Importable package `cli`: 44 source files, 48 test files.
 
 ### cli/catalog.go
 
-- lines: 543
+- lines: 546
 - purpose: CatalogDoc is the catalog answer: what a runtime registers, grouped by noun, in the runtime's own JSON shapes (ochazuke.Parameter and ochazuke.Binding unchan...
 - types: CatalogDoc, CatalogNoun, CatalogVerb
 - methods: CatalogDoc(5), CatalogNoun(1)

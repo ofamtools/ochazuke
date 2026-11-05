@@ -20,10 +20,12 @@
       ]
     }
   },
-  "script": [":", {"type": "demo move"}, "enter", "enter", {"type": "Wo"}, "enter", "enter"],
+  "script": [":", {"type": "demo move"}, "enter", "enter", {"type": "Wo"}, "enter", "enter", ":", {"type": "demo get t1"}, "enter", "esc"],
   "expect": [
     {"after": 3, "modal": "args-form", "focus": "args-form/to", "contains": ["to"]},
     {"after": 4, "contains": ["Choose to", "Home", "Work"]},
-    {"modal": "", "writes": ["set t1 project=work"]}
+    {"after": 7, "modal": ""},
+    {"after": 10, "modal": "palette-results", "contains": ["project", "work"]},
+    {"modal": "", "focus": "t1"}
   ]
 }

@@ -104,6 +104,15 @@
     {
       "type": "Renamed"
     },
+    "enter",
+    "ctrl+a",
+    "d",
+    ":",
+    {"type": "item get a1"},
+    "enter",
+    "esc",
+    ":",
+    {"type": "item get a2"},
     "enter"
   ],
   "expect": [
@@ -140,9 +149,6 @@
       "contains": [
         "Build"
       ],
-      "writes": [
-        "get a1"
-      ],
       "selected": {
         "a": "a2"
       }
@@ -150,21 +156,26 @@
     {
       "after": 6,
       "modal": "args-form",
-      "writes": [
-        "get a1"
-      ]
+      "contains": ["Renamed"]
     },
     {
+      "after": 7,
       "modal": "",
       "focus": "page1-pane",
       "mode": "terminal",
       "selected": {
         "a": "a2"
-      },
-      "writes": [
-        "get a1",
-        "set a1 title=Renamed"
-      ]
+      }
+    },
+    {
+      "after": 12,
+      "modal": "palette-results",
+      "contains": ["title", "Renamed"]
+    },
+    {
+      "modal": "palette-results",
+      "contains": ["title", "Other"],
+      "lacks": ["Renamed"]
     }
   ]
 }

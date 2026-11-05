@@ -1,0 +1,14 @@
+{
+  "name": "forms/standard-edit-key-off",
+  "page": {
+    "focus": "t1",
+    "nouns": [{"noun": "parcel", "noEditKey": true}],
+    "lists": [{"id": "parcels", "items": [{"id": "t1", "label": "Original", "noun": "parcel", "data": {"id": "t1"}}]}],
+    "store": {"noun": "parcel", "props": [{"name": "id", "key": true}, {"name": "title", "role": "label"}], "things": [{"id": "t1", "title": "Original"}]}
+  },
+  "script": ["i", ":", {"type": "parcel edit t1"}, "enter"],
+  "expect": [
+    {"after": 1, "modal": "", "focus": "t1", "writes": []},
+    {"modal": "edit-form", "contains": ["Edit parcel: Original"]}
+  ]
+}

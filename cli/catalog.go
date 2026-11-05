@@ -123,6 +123,8 @@ type CatalogNoun struct {
 	Name  string `json:"name"`
 	Pin   string `json:"pin,omitempty"`
 	Kind  string `json:"kind,omitempty"`
+	// NoEditKey declines only the implicit edit-key fallback, not edit itself.
+	NoEditKey bool `json:"noEditKey,omitempty"`
 	// Live says the noun's rows are outside the state answer (NounBuilder.Live):
 	// a host fills its lists through its row source.
 	Live    bool                   `json:"live,omitempty"`
@@ -362,6 +364,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				}
 				noun.About = n.About
 				noun.Pin, noun.Live, noun.Columns = n.Pin, n.Live, slices.Clone(n.Columns)
+				noun.NoEditKey = n.NoEditKey
 				noun.Filters = slices.Clone(n.Filters)
 				noun.PropsOff = slices.Clone(n.PropsOff)
 				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun)

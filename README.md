@@ -737,6 +737,13 @@ bindings, including outline editing and a page's own `i`, keep precedence.
 `forms.edit` defaults to `true`; set it to `false` before stores are declared
 or catalogs are mounted to omit implicit `edit`. Existing application editors
 are unaffected.
+To decline only the implicit `i` fallback for one noun, declare
+`r.Define("pane").EditKey(false)` (`Noun.NoEditKey`, catalog `noEditKey`).
+The default is enabled; `EditKey(true)` restores it. `pane.edit` remains
+available to the palette, CLI/API and bindings.json, and explicit `i` bindings
+at any level keep their normal precedence. A null/unbind row removes only a
+row at its own level, while a noun-level `key.ignore` also swallows explicit
+outer bindings; neither expresses this fallback-only policy.
 Reopening edit flushes the old form and retargets it. Escape cancels a pending
 open; another edit replaces its read. Late reads never open over a changed
 focus, page, mode or modal.
@@ -752,7 +759,7 @@ Compared with Vim:
 
 | Vim form | Help tag | Ochazuke behavior |
 |---|---|---|
-| `i` | `i` | Text fields keep Insert mode. On a thing with an implicit editor and no inner binding, `i` opens its prop form instead. |
+| `i` | `i` | Text fields keep Insert mode. On a thing with an implicit editor and no inner binding, `i` opens its prop form instead, unless its noun declares `EditKey(false)`. |
 | Escape in insert | `i_<Esc>` | Same, return to normal and retain text. In change mode it flushes the field; a second Escape closes and keeps the writes. Confirm mode instead cancels unsubmitted changes. |
 | Undo | `undo` | Each standard field write is reversible through history.undo when the store supports undo. Vim has buffer undo; this history acts on store records. |
 | Record form application | Not applicable | Vim has no built-in typed record form. Change mode writes through Save; confirm mode offers an explicit Enter application step. |

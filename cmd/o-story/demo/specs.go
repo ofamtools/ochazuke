@@ -518,12 +518,13 @@ type StoreSpec struct {
 // verb's parameter can name it as its Source).
 // NounSpec is one noun of a story's own (Page.Nouns).
 type NounSpec struct {
-	Classes []ochazuke.ClassDecl   `json:"classes,omitempty"`
-	Props   []ochazuke.PropSpec    `json:"props,omitempty"`
-	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
-	Noun    string                 `json:"noun"`
-	Verbs   []string               `json:"verbs,omitempty"`
-	Aliases []ochazuke.NounAlias   `json:"aliases,omitempty"`
+	NoEditKey bool                   `json:"noEditKey,omitempty"`
+	Classes   []ochazuke.ClassDecl   `json:"classes,omitempty"`
+	Props     []ochazuke.PropSpec    `json:"props,omitempty"`
+	Filters   []ochazuke.SavedFilter `json:"filters,omitempty"`
+	Noun      string                 `json:"noun"`
+	Verbs     []string               `json:"verbs,omitempty"`
+	Aliases   []ochazuke.NounAlias   `json:"aliases,omitempty"`
 }
 
 type VerbSpec struct {

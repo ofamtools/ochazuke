@@ -266,3 +266,64 @@ func TestHelpListsStandardVerbsOnOneLine(t *testing.T) {
 		t.Fatalf("list keeps each verb's details:\n%s", listed)
 	}
 }
+
+func TestMountedEditKeyOptOutKeepsCLIAndExplicitBindings(t *testing.T) {
+	t.Parallel()
+	producer := ochazuke.NewRuntime()
+	thing := ochazuke.Thing{"id": "t1", "title": "Original"}
+	producer.Define("item").EditKey(false).Props(
+		ochazuke.PropSpec{Name: "id", Key: true},
+		ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel},
+	).Store(ochazuke.Store{
+		Get: func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return thing, nil },
+		Patch: func(_ ochazuke.Ctx, _ string, changes ochazuke.Thing) (ochazuke.Thing, error) {
+			for key, value := range changes {
+				thing[key] = value
+			}
+			return thing, nil
+		},
+	})
+	raw, err := Catalog(producer, "ext", "v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	r := ochazuke.NewRuntime()
+	ochazuke.NewModel(r)
+	mounted := MountNouns(r, doc.AppNouns(), HostMount{
+		Local: func(n string) string { return "ext-" + n },
+		Proxy: func(noun string, verb CatalogVerb) any {
+			return func(c ochazuke.Ctx) ochazuke.Result {
+				value, err := producer.Execute(ochazuke.Request{Noun: noun, Verb: verb.Name, Args: c.Args})
+				if err != nil {
+					return ochazuke.Failed(err)
+				}
+				return ochazuke.Done(value)
+			}
+		},
+	})
+	if len(mounted.Warnings) != 0 {
+		t.Fatal(mounted.Warnings)
+	}
+	r.Instance("row", ochazuke.Kind("ext-item")).Data = ochazuke.Thing{"id": "t1"}
+	if err := r.SetFocus("row"); err != nil {
+		t.Fatal(err)
+	}
+	if handled, err := r.Dispatch(ochazuke.MacroKey{Key: "i"}); handled || err != nil || r.TopModal() != "" {
+		t.Fatalf("mounted fallback: %t %v %s", handled, err, r.TopModal())
+	}
+	helpOut(t, r, "ext-item", "edit", "t1", "--title", "CLI")
+	if thing["title"] != "CLI" {
+		t.Fatalf("CLI edit unavailable: %v", thing)
+	}
+	r.Define("app").Mode("normal").Bind("i", ochazuke.Do("ext-item.edit"))
+	if _, err := r.Dispatch(ochazuke.MacroKey{Key: "i"}); err != nil {
+		t.Fatal(err)
+	}
+	if e := r.RecordEditor("edit-form"); e == nil || e.Values()["title"] != "CLI" {
+		t.Fatalf("explicit edit did not open on the CLI value: %v", e)
+	}
+}

@@ -495,7 +495,7 @@ Conformance:
 | normal | chooser | `chooser.move` `chooser.pick` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.check-bindings` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.reload` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.check-bindings` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.reload` `demo.send` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
@@ -728,12 +728,14 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `chooser.move`
+- `normal g` → `normal` via `demo.send`
 - `normal g` → `normal` via `detail.fields`
 - `normal g` → `normal` via `list.goto`
 - `normal g` → `normal` via `markdown.link-open`
 - `normal g` → `normal` via `messages.show`
 - `normal g` → `normal` via `mode.leave`
 - `normal g` → `normal` via `row c`
+- `normal g` → `normal` via `row s`
 - `normal g` → `normal` via `settings.tab`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`

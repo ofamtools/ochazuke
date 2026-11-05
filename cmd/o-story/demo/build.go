@@ -588,7 +588,7 @@ func (ss *session) defineNouns(nouns []NounSpec) error {
 		if n.Noun == "" {
 			return errors.New("noun: a name is required")
 		}
-		d := ss.R.Define(n.Noun).Props(n.Props...).Filters(n.Filters...).Classes(n.Classes...)
+		d := ss.R.Define(n.Noun).EditKey(!n.NoEditKey).Props(n.Props...).Filters(n.Filters...).Classes(n.Classes...)
 		for _, verb := range n.Verbs {
 			key := n.Noun + "." + verb
 			d.Verb(verb, func(c ochazuke.Ctx) ochazuke.Result {

@@ -257,3 +257,52 @@ func TestStandardEditNoneClearsOptional(t *testing.T) {
 		t.Fatalf("required null must refuse without writing: %v %v", s.find("t1"), err)
 	}
 }
+
+func TestStandardEditKeyOptOut(t *testing.T) {
+	t.Parallel()
+	for _, explicit := range []string{"none", "noun", "app", "file"} {
+		t.Run(explicit, func(t *testing.T) {
+			t.Parallel()
+			r, s := editFixture(t)
+			m := NewModel(r)
+			// Render before changing the declaration to cover cached hints too.
+			m.View()
+			r.Define("parcel").EditKey(false)
+			if !r.Available(Do("parcel.edit").Request, "row", r.Mode) {
+				t.Fatal("key opt-out changed edit availability")
+			}
+			switch explicit {
+			case "noun", "app":
+				noun := "parcel"
+				if explicit == "app" {
+					noun = "app"
+				}
+				r.Define(noun).Mode("normal").Bind("i", Do("parcel.edit"))
+			case "file":
+				if _, err := r.LoadBindings([]byte(`[{"noun":"app","mode":"normal","keys":"i","request":{"noun":"parcel","verb":"edit"}}]`)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			handled, err := r.Dispatch(MacroKey{Key: "i"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if explicit == "none" {
+				if handled || r.TopModal() != "" {
+					t.Fatalf("implicit i answered: %t %s", handled, r.TopModal())
+				}
+				mustRun(t, r, Request{Noun: "parcel", Verb: "edit", Args: Arguments{"title": "API"}})
+				if s.find("t1")["title"] != "API" {
+					t.Fatalf("direct edit was disabled: %v", s.find("t1"))
+				}
+				r.Define("parcel").EditKey(true)
+				if _, err := r.Dispatch(MacroKey{Key: "i"}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if r.TopModal() != editFormID {
+				t.Fatalf("explicit or re-enabled edit: modal %s", r.TopModal())
+			}
+		})
+	}
+}

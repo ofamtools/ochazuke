@@ -17,10 +17,11 @@
       ]
     }
   },
-  "script": [":", {"type": "demo rename"}, "enter", {"type": "Feed the cat"}, "enter", "j", ":", {"type": "demo rename"}, "enter"],
+  "script": [":", {"type": "demo rename"}, "enter", {"type": "Feed the cat"}, "enter", ":", {"type": "demo get t1"}, "enter", "esc", "j", ":", {"type": "demo rename"}, "enter"],
   "expect": [
-    {"after": 3, "modal": "args-form", "focus": "args-form/name", "mode": "insert", "attrs": {"Water the plants": "reverse"}, "writes": ["get t1"]},
-    {"after": 5, "modal": "", "writes": ["get t1", "set t1 title=Feed the cat"]},
+    {"after": 3, "modal": "args-form", "focus": "args-form/name", "mode": "insert", "attrs": {"Water the plants": "reverse"}},
+    {"after": 5, "modal": ""},
+    {"after": 8, "modal": "palette-results", "contains": ["title", "Feed the cat"]},
     {"modal": "args-form", "focus": "args-form/name", "mode": "insert", "contains": ["Call the plumber"]}
   ]
 }

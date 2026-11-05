@@ -25,6 +25,9 @@ type Noun struct {
 	About string   `json:"about,omitempty"`
 	Verbs []string `json:"verbs,omitempty"`
 	Pin   string   `json:"pin,omitempty"`
+	// NoEditKey declines the app-level implicit edit-key fallback only.
+	// The noun's edit verb and explicit binding rows remain available.
+	NoEditKey bool `json:"noEditKey,omitempty"`
 	// Live marks a noun whose rows are fetched on every call, outside the
 	// state verb's answer (NounBuilder.Live).
 	Live      bool                 `json:"live,omitempty"`
@@ -460,6 +463,14 @@ func (b *NounBuilder) Noun() *Noun { return b.n }
 
 // Pin keeps every instance of the noun in one base mode.
 func (b *NounBuilder) Pin(mode string) *NounBuilder { b.n.Pin = mode; return b }
+
+// EditKey enables the implicit edit-key fallback for this noun (on by
+// default). False keeps edit available to explicit bindings, palette and CLI.
+func (b *NounBuilder) EditKey(enabled bool) *NounBuilder {
+	b.n.NoEditKey = !enabled
+	b.r.renderCache.generation++
+	return b
+}
 
 // Live declares that the noun's rows are fetched on every call, outside
 // the state verb's answer (a quota read from a vendor, costly or secret to

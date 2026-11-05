@@ -286,6 +286,9 @@ func (r *Runtime) focusedEdit(focus string) (Request, bool) {
 		return Request{}, false
 	}
 	noun := inst.Noun
+	if n := r.Noun(noun); n == nil || n.NoEditKey {
+		return Request{}, false
+	}
 	if op, ok := r.Operation(noun + ".edit"); ok && op.Standard == "edit" {
 		q := Request{Noun: noun, Verb: "edit", Target: focus}
 		return q, r.Available(q, focus, r.Mode)
