@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -100,7 +101,10 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 				return err
 			}
 			fields := []RecordField{}
-			values := Record{}
+			values, err := editRecord(n, thing)
+			if err != nil {
+				return err
+			}
 			for _, p := range writableProps(n) {
 				if !r.propShown(p, focusOf(c.Context), r.Mode, c.Args) {
 					continue
@@ -115,22 +119,6 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 					field.Type = AnyParameterType
 				}
 				fields = append(fields, field)
-				if v, ok := thing[p.Name]; ok && v != nil {
-					if p.Type == SettingList || p.Type == PropObject {
-						raw, err := json.Marshal(fileForm(v))
-						if err != nil {
-							return err
-						}
-						values[p.Name] = string(raw)
-					} else {
-						v = fileForm(v)
-						if number, ok := v.(float64); ok {
-							values[p.Name] = strconv.FormatFloat(number, 'f', -1, 64)
-						} else {
-							values[p.Name] = fmt.Sprint(v)
-						}
-					}
-				}
 			}
 			r.pendingRecord(writeKey, values)
 			label := n.displayLabel(func(name string) any { return thing[name] })
@@ -141,6 +129,35 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 				label = fmt.Sprint(subject[n.keyProp().Name])
 			}
 			spec := RecordSpec{Title: "Edit " + r.DisplayNoun(noun) + ": " + label, Fields: fields, WriteKey: writeKey, Load: func() (Record, error) { return values, nil }}
+			spec.Watch = noun
+			spec.WatchArgs = subject
+			spec.Reload = func() Result {
+				res, _ := r.readEdit(c, noun, subject)
+				if res.work == nil {
+					if res.err != nil {
+						return res
+					}
+					loaded, err := editRecord(n, res.value)
+					if err != nil {
+						return Failed(err)
+					}
+					return Done(loaded)
+				}
+				work, then := res.work, res.then
+				var raw any
+				res.work = func(ctx context.Context) (any, error) {
+					var err error
+					raw, err = work(ctx)
+					if err != nil {
+						return nil, err
+					}
+					return editRecord(n, raw)
+				}
+				if then != nil {
+					res.then = func(c Ctx, _ any, err error) { then(c, raw, err) }
+				}
+				return res
+			}
 			if r.Settings().String(EditApplySetting) == "confirm" {
 				spec.Submit = func(rec Record) Result {
 					changed := map[string]any{}
@@ -173,23 +190,9 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 			_, err = r.OpenRecordEditor(editFormID, spec)
 			return err
 		}
-		var res Result
-		ran := false
-		_, err := r.executeAt(r.contextOf("app"), Request{Noun: noun, Verb: "get", Args: subject}, func(op Operation, ctx Context, args Arguments) (any, error) {
-			ran = true
-			if op.App == nil {
-				value, err := op.Run(r, ctx, args)
-				res = Done(value)
-				return value, err
-			}
-			read := c
-			read.Context, read.Args, read.Invoked = ctx, args, r.Invoked()
-			read.Instance = r.Instances[focusOf(ctx)]
-			res = op.App(read)
-			return res.value, res.err
-		})
-		if err != nil {
-			return Failed(err)
+		res, ran := r.readEdit(c, noun, subject)
+		if res.err != nil {
+			return res
 		}
 		if !ran {
 			return Done(nil)
@@ -213,6 +216,54 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 			}
 		})
 	}
+}
+
+func (r *Runtime) readEdit(c Ctx, noun string, subject Arguments) (res Result, ran bool) {
+	_, err := r.executeAt(r.contextOf("app"), Request{Noun: noun, Verb: "get", Args: subject}, func(op Operation, ctx Context, args Arguments) (any, error) {
+		ran = true
+		if op.App == nil {
+			value, err := op.Run(r, ctx, args)
+			res = Done(value)
+			return value, err
+		}
+		c.Context, c.Args, c.Invoked = ctx, args, r.Invoked()
+		c.Instance = r.Instances[focusOf(ctx)]
+		res = op.App(c)
+		return res.value, res.err
+	})
+	if err != nil {
+		res = Failed(err)
+	}
+	return res, ran
+}
+
+func editRecord(n *Noun, value any) (Record, error) {
+	thing, err := ThingOf(value)
+	if err != nil {
+		return nil, err
+	}
+	values := Record{}
+	for _, p := range writableProps(n) {
+		values[p.Name] = ""
+		if v := thing[p.Name]; v != nil {
+			v = fileForm(v)
+			switch {
+			case p.Type == SettingList || p.Type == PropObject:
+				raw, err := json.Marshal(v)
+				if err != nil {
+					return nil, err
+				}
+				values[p.Name] = string(raw)
+			default:
+				if number, ok := v.(float64); ok {
+					values[p.Name] = strconv.FormatFloat(number, 'f', -1, 64)
+				} else {
+					values[p.Name] = fmt.Sprint(v)
+				}
+			}
+		}
+	}
+	return values, nil
 }
 
 func editPropValue(p PropSpec, text string) (any, error) {

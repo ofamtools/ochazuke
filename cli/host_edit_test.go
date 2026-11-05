@@ -298,3 +298,39 @@ func TestReopenOrdersWritesPerThing(t *testing.T) {
 		t.Fatalf("serialized writes lost an edit: %v", thing)
 	}
 }
+
+func TestMountedEditOutsideWrite(t *testing.T) {
+	t.Parallel()
+	for _, policy := range []string{"reload", "close"} {
+		t.Run(policy, func(t *testing.T) {
+			t.Parallel()
+			r, _, thing := mountedEditFixture(t, "change")
+			if err := r.Settings().Set(ochazuke.FormsOutsideWriteSetting, policy); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.HandleBinding("i"); err != nil {
+				t.Fatal(err)
+			}
+			if err := Settle(r, nil); err != nil {
+				t.Fatal(err)
+			}
+			_, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "set", Args: ochazuke.Arguments{"id": "t1", "changes": map[string]any{"title": "Outside"}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := Settle(r, nil); err != nil {
+				t.Fatal(err)
+			}
+			if thing["title"] != "Outside" {
+				t.Fatalf("outside write: %v", thing)
+			}
+			if policy == "close" {
+				if r.TopModal() != "" {
+					t.Fatalf("outside write did not close form: %s", r.TopModal())
+				}
+			} else if got := r.RecordEditor("edit-form").Values()["title"]; got != "Outside" {
+				t.Fatalf("outside write did not reload: %q", got)
+			}
+		})
+	}
+}

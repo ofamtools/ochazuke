@@ -642,6 +642,10 @@ survive closing the form. Quit drains queued editor writes before exiting;
 the existing two-second quit-hook limit does not cancel a queued editor write.
 The queue is shared by noun and key across editor lifetimes; reopening shows
 the pending value instead of a stale store read. Other things write independently.
+The form uses `RecordSpec.Watch` and the existing `forms.outside-write` policy:
+`reload` refreshes it without losing typing; `close` closes it. Mounted reads
+use `RecordSpec.Reload` asynchronously. `WatchArgs` narrows local snapshots to
+the subject key; proxy nouns receive invalidations through the same watch route.
 
 Supplying any prop writes directly, without a form:
 `task edit --id t3 --title "New title" --status done`.

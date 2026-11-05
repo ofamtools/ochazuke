@@ -108,6 +108,10 @@ type RecordSpec struct {
 	OnClear func() error
 	// Load reads the record when the editor opens (nil: every field empty).
 	Load func() (Record, error)
+	// Reload reads outside changes instead of Load when set. It returns a
+	// Record as Done or Pending; pending reads never block editing and are
+	// cancelled when the editor closes.
+	Reload func() Result
 	// Save writes one change: Done, Failed, or Pending work that runs off
 	// the loop. At most one write is in flight; changes made meanwhile go
 	// in the next write. A failed write keeps the values on screen, says
@@ -155,6 +159,8 @@ type RecordSpec struct {
 	// (forms.outside-write: reload keeps it open, close leaves it). ""
 	// watches nothing; Reload does the same on the application's call.
 	Watch string
+	// WatchArgs narrows the existing watch, for example to one subject key.
+	WatchArgs Arguments
 }
 
 // FormsOutsideWriteSetting says what an open record editor does when its
@@ -303,6 +309,7 @@ type RecordEditor struct {
 	modal     bool
 	closed    bool
 	loading   bool // outsideWrite is loading the record
+	reloadAgain bool
 	ran       bool // form.run handed the values to Submit
 	failure   error
 }
@@ -467,7 +474,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	e.seen = e.snapshot()
 	e.focus = r.Focus
 	if spec.Watch != "" {
-		w, err := r.Watch(spec.Watch, Arguments{}, func(WatchEvent) { e.fail(e.outsideWrite()) })
+		w, err := r.Watch(spec.Watch, spec.WatchArgs, func(WatchEvent) { e.fail(e.outsideWrite()) })
 		if err != nil {
 			_ = r.RemoveInstance(id)
 			return nil, fmt.Errorf("record editor watch: %w", err)
@@ -1632,15 +1639,59 @@ func (e *RecordEditor) Reload() error { return e.outsideWrite() }
 // value. With forms.outside-write close the editor then leaves, writing
 // only what was typed. The focus, the field and the mode are kept.
 func (e *RecordEditor) outsideWrite() error {
-	if e.closed || e.spec.Load == nil || e.loading {
+	if e.closed || e.spec.Load == nil && e.spec.Reload == nil {
 		return nil
 	}
-	e.loading = true
-	defer func() { e.loading = false }()
-	loaded, err := e.spec.Load()
-	if err != nil {
-		return fmt.Errorf("load record: %w", err)
+	if e.loading {
+		e.reloadAgain = true
+		return nil
 	}
+	seq := e.seq
+	e.loading = true
+	var res Result
+	if e.spec.Reload != nil {
+		res = e.spec.Reload()
+	} else {
+		value, err := e.spec.Load()
+		res = Done(value)
+		res.err = err
+	}
+	apply := func(value any, err error) error {
+		e.loading = false
+		if e.closed {
+			return nil
+		}
+		if e.reloadAgain || e.seq != seq {
+			e.reloadAgain = false
+			return e.outsideWrite()
+		}
+		if err != nil {
+			return fmt.Errorf("load record: %w", err)
+		}
+		loaded, ok := value.(Record)
+		if !ok {
+			return errors.New("load record must return a Record")
+		}
+		return e.applyLoaded(loaded)
+	}
+	if res.work == nil {
+		return apply(res.value, res.err)
+	}
+	inner := res.then
+	res.then = func(c Ctx, value any, err error) {
+		if inner != nil {
+			inner(c, value, err)
+		}
+		e.fail(apply(value, err))
+	}
+	_, err := e.r.Launch(e.id, "ochazuke.form.load", res, Ctx{Runtime: e.r, Context: e.r.contextOf(e.id)})
+	if err != nil {
+		e.loading = false
+	}
+	return err
+}
+
+func (e *RecordEditor) applyLoaded(loaded Record) error {
 	changed := false
 	for _, f := range e.fields {
 		v, ok := loaded[f.Name]

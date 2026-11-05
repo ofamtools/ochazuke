@@ -173,10 +173,18 @@ func (r *Runtime) Watch(noun string, args Arguments, fn func(WatchEvent)) (*Watc
 
 func (r *Runtime) watch(c Ctx, noun string, fn func(WatchEvent)) (*Watch, error) {
 	n := r.Nouns[r.CanonicalNoun(noun)]
-	if n == nil || n.Store == nil {
+	if n == nil {
 		return nil, fmt.Errorf("%s has no store", noun)
 	}
-	if !watchFits(*n.Store) {
+	keyed := false
+	if key := n.keyProp(); key != nil {
+		keyed = !emptyProp(c.Args[key.Name])
+	}
+	if n.Store == nil {
+		if _, ok := r.Operation(n.Name + ".get"); !ok {
+			return nil, fmt.Errorf("%s has no store or get operation", noun)
+		}
+	} else if !watchFits(*n.Store) && !(keyed && n.Store.Get != nil) {
 		return nil, fmt.Errorf("%s cannot be watched: its store has no Watch, List or (for a singleton) Get", r.DisplayNoun(n.Name))
 	}
 	where, err := parseWhere(n, StringArg(c.Args, "where", ""))
@@ -190,7 +198,7 @@ func (r *Runtime) watch(c Ctx, noun string, fn func(WatchEvent)) (*Watch, error)
 		}
 	}
 	since := StringArg(c.Args, "since", "")
-	if s := n.Store; s.Watch != nil {
+	if s := n.Store; s != nil && s.Watch != nil {
 		w.push, w.signal, w.done = true, make(chan struct{}, 1), make(chan struct{})
 		stop, err := s.Watch(c, WatchQuery{Key: w.key, Where: where, Since: since}, w.emit)
 		if err != nil {
@@ -198,7 +206,7 @@ func (r *Runtime) watch(c Ctx, noun string, fn func(WatchEvent)) (*Watch, error)
 		}
 		w.stopStore = stop
 		r.commands = append(r.commands, w.listen())
-	} else {
+	} else if n.Store != nil {
 		w.scope = watchScope(n.Name, w.key, where)
 		if err := w.start(since); err != nil {
 			return nil, err
@@ -317,7 +325,7 @@ func (w *Watch) snapshot() (watchSnapshot, error) {
 		}
 		things = list
 	case s.Get != nil:
-		t, err := s.Get(w.ctx, "")
+		t, err := s.Get(w.ctx, w.key)
 		if err != nil {
 			return watchSnapshot{}, err
 		}
@@ -384,6 +392,12 @@ func (w *Watch) start(since string) error {
 // refresh lists again and emits the difference; a failing list ends the
 // watch with its error.
 func (w *Watch) refresh() {
+	if w.r.Nouns[w.noun].Store == nil {
+		// A proxy has no local snapshot. Existing change notifications
+		// invalidate its readers, which reload through their own get proxy.
+		w.deliver(WatchEvent{Type: WatchModified, ID: w.key})
+		return
+	}
 	snap, err := w.snapshot()
 	if err != nil {
 		w.fail(err)
