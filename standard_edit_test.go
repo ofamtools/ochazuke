@@ -217,3 +217,19 @@ func TestStandardEditIntegerKey(t *testing.T) {
 		t.Fatalf("integer key: %v", thing)
 	}
 }
+
+func TestStandardEditWritesAfterRowRemoved(t *testing.T) {
+	t.Parallel()
+	r, store := editFixture(t)
+	m := NewModel(r)
+	mustRun(t, r, Request{Noun: "parcel", Verb: "edit"})
+	if err := r.RemoveInstance("row"); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"A", "x", "esc", "esc"} {
+		keytest.Press(m, key)
+	}
+	if got := store.find("t1")["title"]; got != "Originalx" {
+		t.Fatalf("write after row removal: %v", got)
+	}
+}

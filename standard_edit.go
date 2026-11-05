@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"strconv"
 )
 
 // EditFormsSetting enables generation of standard edit verbs. Set it before
@@ -72,7 +73,8 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 		write := func(changes map[string]any) Result {
 			args := maps.Clone(subject)
 			args["changes"] = changes
-			value, err := r.ExecuteAt(c.Context, Request{Noun: noun, Verb: "set", Args: args})
+			// The subject key, not the ephemeral row, identifies this write.
+			value, err := r.ExecuteAt(r.contextOf("app"), Request{Noun: noun, Verb: "set", Args: args})
 			if err != nil {
 				return Failed(err)
 			}
@@ -94,7 +96,7 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 				}
 				field := PropField(p)
 				field.Validate = func(text string) error {
-					_, err := propValue(p, text)
+					_, err := editPropValue(p, text)
 					return err
 				}
 				// Structured props remain JSON text, validated before each save.
@@ -110,18 +112,30 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 						}
 						values[p.Name] = string(raw)
 					} else {
-						values[p.Name] = fmt.Sprint(fileForm(v))
+						v = fileForm(v)
+						if number, ok := v.(float64); ok {
+							values[p.Name] = strconv.FormatFloat(number, 'f', -1, 64)
+						} else {
+							values[p.Name] = fmt.Sprint(v)
+						}
 					}
 				}
 			}
-			spec := RecordSpec{Title: "Edit " + r.DisplayNoun(noun), Fields: fields, Load: func() (Record, error) { return values, nil }}
+			label := n.displayLabel(func(name string) any { return thing[name] })
+			if c.Instance != nil && c.Instance.Label != "" {
+				label = c.Instance.Label
+			}
+			if label == "" && n.keyProp() != nil {
+				label = fmt.Sprint(subject[n.keyProp().Name])
+			}
+			spec := RecordSpec{Title: "Edit " + r.DisplayNoun(noun) + ": " + label, Fields: fields, Load: func() (Record, error) { return values, nil }}
 			if r.Settings().String(EditApplySetting) == "confirm" {
 				spec.Submit = func(rec Record) Result {
 					changed := map[string]any{}
 					for _, f := range fields {
 						if rec[f.Name] != values[f.Name] {
 							p := n.prop(f.Name)
-							value, err := propValue(*p, rec[f.Name])
+							value, err := editPropValue(*p, rec[f.Name])
 							if err != nil {
 								return Failed(fmt.Errorf("%s %w", f.Name, err))
 							}
@@ -137,7 +151,7 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 				spec.FieldWrites = true
 				spec.Save = func(w RecordWrite) Result {
 					name := w.Changed[0]
-					value, err := propValue(*n.prop(name), w.Values[name])
+					value, err := editPropValue(*n.prop(name), w.Values[name])
 					if err != nil {
 						return Failed(err)
 					}
@@ -186,6 +200,13 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 			}
 		})
 	}
+}
+
+func editPropValue(p PropSpec, text string) (any, error) {
+	if text == "" && !p.Required {
+		return nil, nil
+	}
+	return propValue(p, text)
 }
 
 func (r *Runtime) focusedEdit(focus string) (Request, bool) {

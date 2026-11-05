@@ -642,6 +642,12 @@ func checkSchema(n *Noun) error {
 // propValue types a value for a prop: a value of the type, or a word to
 // parse (the CLI's and the palette's), checked against the enum.
 func propValue(p PropSpec, value any) (any, error) {
+	if value == nil {
+		if p.Required || p.Key {
+			return nil, errors.New("required")
+		}
+		return nil, nil
+	}
 	if p.loose {
 		value = looseText(value)
 	}

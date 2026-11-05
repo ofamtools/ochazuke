@@ -621,6 +621,9 @@ standard `edit`. Its own `edit` wins, whether registered before or after the
 store. Key, read-only and create-only props are omitted from the form.
 Types, required fields, enums, sources, references and multiline/secret fields
 come from the prop schema. A pending choices source loads off the update loop.
+The title names the thing (`Edit task: LABEL`); optional props can be cleared
+through the same `set` path, and numeric values retain ordinary decimal text.
+Writes use the subject key even after its row disappears from a refreshed list.
 
 `task edit t3` in the palette opens the record form on that task's current
 values. `forms.edit-apply` is read once when the form opens:
