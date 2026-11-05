@@ -15,6 +15,7 @@ const EditFormsSetting = "forms.edit"
 const EditApplySetting = "forms.edit-apply"
 
 const editFormID = "edit-form"
+const editOpenSlot = "standard-edit-open"
 
 func init() {
 	standardVerbs = append(standardVerbs, standardVerb{
@@ -82,6 +83,12 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 		}
 		if len(changes) > 0 {
 			return write(changes)
+		}
+		if e := r.RecordEditor(editFormID); e != nil {
+			if err := e.Leave(); err != nil {
+				return Failed(err)
+			}
+			defer r.actingFor(r.Focus)()
 		}
 		open := func(value any) error {
 			thing, err := ThingOf(value)
@@ -163,7 +170,7 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 		}
 		var res Result
 		ran := false
-		_, err := r.executeAt(c.Context, Request{Noun: noun, Verb: "get", Args: subject}, func(op Operation, ctx Context, args Arguments) (any, error) {
+		_, err := r.executeAt(r.contextOf("app"), Request{Noun: noun, Verb: "get", Args: subject}, func(op Operation, ctx Context, args Arguments) (any, error) {
 			ran = true
 			if op.App == nil {
 				value, err := op.Run(r, ctx, args)
@@ -188,12 +195,13 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 			}
 			return Done(nil)
 		}
+		focus, page, mode, modal := r.Focus, r.Page, r.Mode.Name, r.TopModal()
 		then := res.then
-		return res.Then(func(ctx Ctx, value any, err error) {
+		return res.ReplacingAt("app", editOpenSlot).Then(func(ctx Ctx, value any, err error) {
 			if then != nil {
 				then(ctx, value, err)
 			}
-			if err == nil {
+			if err == nil && !r.Quit && r.Focus == focus && r.Page == page && r.Mode.Name == mode && r.TopModal() == modal {
 				if err := open(value); err != nil {
 					ctx.Error(err.Error())
 				}
@@ -234,4 +242,13 @@ func registerStandardEdit(r *Runtime) {
 		q, _ := r.focusedEdit(focusOf(c))
 		return r.ExecuteAt(c, q)
 	}, "Open the focused thing's standard edit form; existing inner edit keys take precedence").When("noun-editable")
+	r.DefineGuard("edit-opening", func(r *Runtime, _ KeyEvent) bool {
+		return r.HasRunningJob("app", editOpenSlot)
+	})
+	r.Define("ochazuke.nouns").Verb("cancel-edit", func(c Ctx) Result {
+		if j := r.slotJob("app", editOpenSlot); j != nil {
+			r.finish(j, JobCancelled, nil)
+		}
+		return Done(nil)
+	}, "Cancel a pending edit open without writing").When("edit-opening")
 }

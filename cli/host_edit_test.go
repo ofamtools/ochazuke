@@ -187,3 +187,66 @@ func TestMountedPageChangeEditsSurviveClose(t *testing.T) {
 		t.Fatalf("mounted save %v", thing)
 	}
 }
+
+func TestEditGetLandsAfterFocusMoved(t *testing.T) {
+	t.Parallel()
+	for _, change := range []string{"focus", "page", "mode", "modal", "escape", "repeat"} {
+		t.Run(change, func(t *testing.T) {
+			t.Parallel()
+			r, _, thing := mountedEditFixture(t, "change")
+			if _, err := r.HandleBinding("i"); err != nil {
+				t.Fatal(err)
+			}
+			switch change {
+			case "focus":
+				if err := r.SetFocus("rows"); err != nil {
+					t.Fatal(err)
+				}
+			case "page":
+				if _, err := r.AddPage("other", "Other", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Text("Other") }); err != nil {
+					t.Fatal(err)
+				}
+				if err := r.OpenPage("other"); err != nil {
+					t.Fatal(err)
+				}
+			case "mode":
+				if err := r.SetMode("insert"); err != nil {
+					t.Fatal(err)
+				}
+			case "modal":
+				if _, err := r.OpenModal("other", ochazuke.Payload{}); err != nil {
+					t.Fatal(err)
+				}
+			case "escape":
+				if _, err := r.HandleBinding("esc"); err != nil {
+					t.Fatal(err)
+				}
+			case "repeat":
+				if _, err := r.HandleBinding("i"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			running := 0
+			for _, j := range r.Jobs() {
+				if j.State == ochazuke.JobRunning {
+					running++
+				}
+			}
+			if change == "escape" && running != 0 || change == "repeat" && running != 1 {
+				t.Fatalf("pending opens after %s: %d", change, running)
+			}
+			if err := Settle(r, nil); err != nil {
+				t.Fatal(err)
+			}
+			want := ""
+			if change == "modal" {
+				want = "other"
+			} else if change == "repeat" {
+				want = "edit-form"
+			}
+			if r.TopModal() != want || thing["title"] != "Original" {
+				t.Fatalf("late open after %s: modal %q store %v", change, r.TopModal(), thing)
+			}
+		})
+	}
+}

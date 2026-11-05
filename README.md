@@ -649,6 +649,9 @@ bindings, including outline editing and a page's own `i`, keep precedence.
 `forms.edit` defaults to `true`; set it to `false` before stores are declared
 or catalogs are mounted to omit implicit `edit`. Existing application editors
 are unaffected.
+Reopening edit flushes the old form and retargets it. Escape cancels a pending
+open; another edit replaces its read. Late reads never open over a changed
+focus, page, mode or modal.
 
 Catalog mounts keep the form in the host and run the extension's `get` and
 `set` proxies with the subject key and changes. The no-argument row-source
