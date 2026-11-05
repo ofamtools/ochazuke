@@ -250,3 +250,51 @@ func TestEditGetLandsAfterFocusMoved(t *testing.T) {
 		})
 	}
 }
+
+func TestReopenOrdersWritesPerThing(t *testing.T) {
+	t.Parallel()
+	r, _, thing := mountedEditFixture(t, "change")
+	open := func() {
+		t.Helper()
+		value, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "edit", Args: ochazuke.Arguments{"id": "t1"}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ticket := value.(ochazuke.Ticket)
+		if _, err := r.Deliver(ochazuke.Completion{Ticket: ticket, Value: gomaps.Clone(thing)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	press := func(keys ...string) {
+		t.Helper()
+		e := r.RecordEditor("edit-form")
+		for _, key := range keys {
+			if _, err := r.HandleBinding(key); err != nil {
+				t.Fatal(err)
+			}
+			e.PendingCommand()
+		}
+	}
+	open()
+	press("A", "x", "esc", "esc")
+	open()
+	if got := r.RecordEditor("edit-form").Values()["title"]; got != "Originalx" {
+		t.Fatalf("reopened pending value: %q", got)
+	}
+	press("A", "y", "esc", "esc")
+	writes := 0
+	for _, j := range r.Jobs() {
+		if j.Verb == "ext-parcel.set" && j.State == ochazuke.JobRunning {
+			writes++
+		}
+	}
+	if writes != 1 || thing["title"] != "Original" {
+		t.Fatalf("writes must queue without racing: %d store %v", writes, thing)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	if thing["title"] != "Originalxy" {
+		t.Fatalf("serialized writes lost an edit: %v", thing)
+	}
+}

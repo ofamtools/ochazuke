@@ -60,6 +60,10 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 			}
 			subject[key.Name] = typed
 		}
+		writeKey := noun
+		if key := n.keyProp(); key != nil {
+			writeKey += "\x00" + fmt.Sprint(subject[key.Name])
+		}
 		changes := map[string]any{}
 		for name, value := range c.Args {
 			if key := n.keyProp(); key != nil && name == key.Name {
@@ -128,6 +132,7 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 					}
 				}
 			}
+			r.pendingRecord(writeKey, values)
 			label := n.displayLabel(func(name string) any { return thing[name] })
 			if c.Instance != nil && c.Instance.Label != "" {
 				label = c.Instance.Label
@@ -135,7 +140,7 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 			if label == "" && n.keyProp() != nil {
 				label = fmt.Sprint(subject[n.keyProp().Name])
 			}
-			spec := RecordSpec{Title: "Edit " + r.DisplayNoun(noun) + ": " + label, Fields: fields, Load: func() (Record, error) { return values, nil }}
+			spec := RecordSpec{Title: "Edit " + r.DisplayNoun(noun) + ": " + label, Fields: fields, WriteKey: writeKey, Load: func() (Record, error) { return values, nil }}
 			if r.Settings().String(EditApplySetting) == "confirm" {
 				spec.Submit = func(rec Record) Result {
 					changed := map[string]any{}

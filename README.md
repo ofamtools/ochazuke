@@ -640,6 +640,8 @@ A rejected prop or store write marks its field without stopping other fields.
 Pending mounted writes run off the loop, serialize later field writes and
 survive closing the form. Quit drains queued editor writes before exiting;
 the existing two-second quit-hook limit does not cancel a queued editor write.
+The queue is shared by noun and key across editor lifetimes; reopening shows
+the pending value instead of a stale store read. Other things write independently.
 
 Supplying any prop writes directly, without a form:
 `task edit --id t3 --title "New title" --status done`.

@@ -118,6 +118,10 @@ type RecordSpec struct {
 	// FieldWrites sends Save one changed field at a time. A failed value stays
 	// marked on that field without preventing other fields from being saved.
 	FieldWrites bool
+	// WriteKey identifies the stored thing across editor lifetimes. Nonempty
+	// keys serialize writes from every editor of that thing; unrelated things
+	// never wait for each other.
+	WriteKey string
 	// Debounce is the pause in typing before a text field is written
 	// (DefaultRecordDebounce when zero).
 	Debounce time.Duration
@@ -719,7 +723,14 @@ func (e *RecordEditor) flush() error {
 // send hands Save the record when fields are dirty and no write is in
 // flight; a pending write's completion sends what changed meanwhile.
 func (e *RecordEditor) send() error {
-	if e.inflight || len(e.dirty) == 0 {
+	if e.inflight {
+		return nil
+	}
+	if len(e.dirty) == 0 {
+		e.releaseWrite()
+		return nil
+	}
+	if !e.claimWrite() {
 		return nil
 	}
 	var changed []string
@@ -732,10 +743,12 @@ func (e *RecordEditor) send() error {
 		}
 	}
 	if len(changed) == 0 {
+		e.releaseWrite()
 		return nil
 	}
 	e.dirty = slices.DeleteFunc(e.dirty, func(name string) bool { return slices.Contains(changed, name) })
 	if e.spec.Save == nil || e.spec.Submit != nil {
+		e.releaseWrite()
 		return nil
 	}
 	e.sending = changed
@@ -748,6 +761,7 @@ func (e *RecordEditor) send() error {
 		if e.spec.FieldWrites {
 			return errors.Join(err, e.send())
 		}
+		e.releaseWrite()
 		return err
 	}
 	// Execute returns a ticket when Save dispatches an existing application
@@ -771,6 +785,7 @@ func (e *RecordEditor) send() error {
 		if e.spec.FieldWrites {
 			return e.send()
 		}
+		e.releaseWrite()
 		return nil
 	}
 	owner := e.saveOwner
@@ -790,6 +805,7 @@ func (e *RecordEditor) send() error {
 	if err != nil {
 		e.inflight, e.sending = false, nil
 		e.saveFailed(w, err)
+		e.releaseWrite()
 		return err
 	}
 	e.r.jobs[ticket.Job].flush = true
@@ -812,6 +828,7 @@ func (e *RecordEditor) saved(w RecordWrite, err error) {
 	if err != nil {
 		e.saveFailed(w, err)
 		if !e.spec.FieldWrites {
+			e.releaseWrite()
 			return
 		}
 	} else {
