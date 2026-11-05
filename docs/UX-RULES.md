@@ -1083,6 +1083,11 @@ tiers above them. When the two disagree, fix one in the same commit.
   exits. The exit is always told: `PROGRAM exited` (the plain tone), or
   `Error: PROGRAM exited with status N` with the job failed. Story:
   `foreground/exit-status.json`; tests in `foreground_test.go`.
+- **R10.5** Cancelling a queued write releases its queue head through the
+  general job cancellation route. It preserves the thing, field and attempted
+  value in a persistent `Not saved` notice; later edits still write, and a
+  reopened form shows the store rather than the cancelled overlay. Quit reports
+  every unfinished value. Test `TestCancelledWriteReleasesThing`.
 
 ### R11. Trees and outlines
 
@@ -1221,6 +1226,9 @@ tiers above them. When the two disagree, fix one in the same commit.
   remain unfilled. Tests `TestAssociationFillIsDeclared`; stories
   `focus/association-subject-row`, `focus/association-subject-palette`,
   `focus/association-standard-subject`.
+  An edit form uses an instance label only when that instance is its subject;
+  an explicit other subject uses the fetched thing's label. Story
+  `forms/standard-edit-palette-names-target.json`.
 - **R12.6** The palette asks for missing arguments with a form. Enter on a
   line whose verb still lacks a required word, or a key whose row leaves a
   required argument out, opens the args form (`Runtime.OpenArgsForm`, modal
@@ -1260,6 +1268,15 @@ tiers above them. When the two disagree, fix one in the same commit.
   `palette/form-single-path-esc-cancels.json`,
   `palette/form-single-path-setting-form.json`,
   `palette/form-path-with-optional.json`.
+- **R12.7** History undo refuses the newest real write when it has no inverse.
+  Navigation, framework actions without a write, and application verbs whose
+  nested requests recorded changes do not create barriers. A mounted write
+  without a local store still refuses undo. Tests
+  `TestUndoReachesChangeUnderAppVerb`, `TestHistoryUndoDoesNotSkipMountedChange`.
+- **R12.8** A confirm-mode edit compares submitted values with its latest loaded
+  baseline, including outside reloads. Retyping its opening value writes it
+  when the store has changed. Story
+  `forms/standard-edit-confirm-retype-opening-value.json`.
 
 ### R13. Card timelines: inside a card
 

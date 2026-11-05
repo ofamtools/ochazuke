@@ -621,8 +621,9 @@ standard `edit`. Its own `edit` wins, whether registered before or after the
 store. Key, read-only and create-only props are omitted from the form.
 Types, required fields, enums, sources, references and multiline/secret fields
 come from the prop schema. A pending choices source loads off the update loop.
-The title names the thing (`Edit task: LABEL`); optional props can be cleared
-through the same `set` path, and numeric values retain ordinary decimal text.
+The title names the thing (`Edit task: LABEL`): an instance label is used only
+when that instance is the subject; an explicit other subject uses its fetched
+label. Optional props can be cleared through `set`, and numbers retain decimal text.
 Writes use the subject key even after its row disappears from a refreshed list.
 
 `task edit t3` in the palette opens the record form on that task's current
@@ -635,6 +636,8 @@ values. `forms.edit-apply` is read once when the form opens:
   history. Escape closes without discarding. Undo replaces discard.
 - `confirm` uses `RecordSpec.Submit`. Enter applies changed props together;
   Escape from insert returns to normal, then Escape cancels without writing.
+  Outside reloads also move the comparison baseline, so submitting an earlier
+  value writes it when it differs from the latest store value.
 
 A rejected prop or store write marks its field without stopping other fields.
 Pending mounted writes run off the loop, serialize later field writes and
@@ -646,15 +649,21 @@ The form uses `RecordSpec.Watch` and the existing `forms.outside-write` policy:
 `reload` refreshes it without losing typing; `close` closes it. Mounted reads
 use `RecordSpec.Reload` asynchronously. `WatchArgs` narrows local snapshots to
 the subject key; proxy nouns receive invalidations through the same watch route.
-History undo stops at the newest application change without an inverse and
-explains the refusal; it never skips to a different thing. Mounted field
-writes currently have no store inverse, so they stop this walk after close.
+History undo stops at the newest actual write without an inverse and explains
+the refusal; it never skips to a different thing. Mounted field writes have no
+store inverse, so they stop this walk after close. Navigation and application
+verbs wrapping an undoable `set` do not add barriers of their own.
 A field write that fails after its form closes posts a persistent notice with
 the thing, field and attempted value (secret values are redacted), also retained
 in Messages; a later key cannot erase it.
+Cancelling a write with `jobs cancel` uses the same release and notice route:
+the cancelled value is reported, its queue head is removed, and later edits
+can write. Reopening reads the store rather than the cancelled overlay.
 Quit waits at most `quit.write-wait` (duration, default `10s`) for queued writes,
 with the thing and fields in the status line. During that drain, normal keys
-cannot open a modal; `ctrl+c`, `q`, or `app quit --force` leaves immediately.
+cannot open a modal. A second `ctrl+c` or `q` forces exit only after
+`quit.force-after` (duration, default `500ms`) has elapsed since the first press;
+`0s` accepts any second press. `app quit --force` always leaves immediately.
 Unfinished values are notices and are printed on stderr outside the alternate
 screen so the record remains after exit. A forced or timed-out write has an
 unconfirmed backend outcome; cancellation cannot reverse a completed backend
