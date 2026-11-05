@@ -5,16 +5,20 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	gomaps "maps"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
+
+	tea "charm.land/bubbletea/v2"
 
 	"ofam.dev/ochazuke"
 	"ofam.dev/ochazuke/keytest"
 )
 
-func mountedEditFixture(t *testing.T, mode string) (*ochazuke.Runtime, *ochazuke.Model, ochazuke.Thing) {
+func mountedEditFixture(t *testing.T, mode string, beforeSet ...func(context.Context) error) (*ochazuke.Runtime, *ochazuke.Model, ochazuke.Thing) {
 	t.Helper()
 	ext := ochazuke.NewRuntime()
 	thing := ochazuke.Thing{"id": "t1", "title": "Original", "status": "todo", "active": false, "stamp": "fixed"}
@@ -52,7 +56,12 @@ func mountedEditFixture(t *testing.T, mode string) (*ochazuke.Runtime, *ochazuke
 	mounted := MountNouns(r, doc.AppNouns(), HostMount{Local: local, Proxy: func(noun string, v CatalogVerb) any {
 		return func(c ochazuke.Ctx) ochazuke.Result {
 			if v.Name == "set" {
-				return ochazuke.Pending(func(context.Context) (any, error) {
+				return ochazuke.Pending(func(ctx context.Context) (any, error) {
+					if len(beforeSet) > 0 {
+						if err := beforeSet[0](ctx); err != nil {
+							return nil, err
+						}
+					}
 					return ext.Execute(ochazuke.Request{Noun: noun, Verb: v.Name, Args: c.Args})
 				})
 			}
@@ -409,5 +418,77 @@ func TestClosedMountedEditFailureIsNotice(t *testing.T) {
 	}
 	if thing["title"] != "Original" || r.TopModal() != "" {
 		t.Fatalf("failed write changed the thing or reopened a form: %v, %s", thing, r.TopModal())
+	}
+}
+
+func TestQuitWithHungMountedWriteCanLeave(t *testing.T) {
+	t.Parallel()
+	for _, exit := range []string{"ctrl+c", "q", "force", "deadline"} {
+		t.Run(exit, func(t *testing.T) {
+			t.Parallel()
+			started := make(chan struct{})
+			r, m, thing := mountedEditFixture(t, "change", func(ctx context.Context) error {
+				close(started)
+				<-ctx.Done()
+				return ctx.Err()
+			})
+			if exit == "deadline" {
+				if _, err := r.Settings().SetSession("quit.write-wait", "40ms"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err := r.HandleBinding("i"); err != nil {
+				t.Fatal(err)
+			}
+			if err := Settle(r, nil); err != nil {
+				t.Fatal(err)
+			}
+			e := r.RecordEditor("edit-form")
+			for _, key := range []string{"A", "x", "esc", "esc"} {
+				if _, err := r.HandleBinding(key); err != nil {
+					t.Fatal(err)
+				}
+				e.PendingCommand()
+			}
+			p := tea.NewProgram(m, tea.WithInput(nil), tea.WithOutput(io.Discard), tea.WithoutRenderer(), tea.WithoutSignalHandler())
+			done := make(chan error, 1)
+			go func() {
+				_, err := p.Run()
+				done <- err
+			}()
+			defer p.Kill()
+			select {
+			case <-started:
+			case <-time.After(2 * time.Second):
+				t.Fatal("mounted write did not start")
+			}
+			p.Send(keytest.Msg("ctrl+c", false, false))
+			p.Send(keytest.Msg(":", false, false))
+			if exit == "force" {
+				p.Send(ochazuke.CallMsg{Request: ochazuke.Request{Noun: "app", Verb: "quit", Args: ochazuke.Arguments{"force": true}}, Reply: make(chan ochazuke.Response, 1)})
+			} else if exit != "deadline" {
+				p.Send(keytest.Msg(exit, false, false))
+			}
+			select {
+			case err := <-done:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-time.After(2 * time.Second):
+				t.Fatal("hung write trapped quit")
+			}
+			if r.TopModal() != "" || thing["title"] != "Original" {
+				t.Fatalf("quit opened a modal or wrote: %s %v", r.TopModal(), thing)
+			}
+			if !strings.Contains(m.Info, "Saving Edit ext-parcel: Original") {
+				t.Fatalf("quit did not name its pending write: %s", m.Info)
+			}
+			notices := strings.Join(m.Notices, "\n")
+			for _, want := range []string{"Edit ext-parcel: Original", "title", `"Originalx"`, "completion was not confirmed"} {
+				if !strings.Contains(notices, want) {
+					t.Fatalf("unfinished write lost %q: %s", want, notices)
+				}
+			}
+		})
 	}
 }

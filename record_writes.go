@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"slices"
+	"strings"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -70,5 +71,27 @@ func (r *Runtime) pendingRecord(key string, values Record) {
 				}
 			}
 		}
+	}
+}
+
+func (e *RecordEditor) markFlush(j *job) {
+	j.flush = true
+	j.Label = e.spec.Title + " · " + strings.Join(e.sending, ", ")
+	j.abandon = func(reason string) []string {
+		editors := []*RecordEditor{e}
+		if e.spec.WriteKey != "" {
+			editors = e.r.recordWrites().queues[e.spec.WriteKey]
+		}
+		var messages []string
+		for _, editor := range editors {
+			var names []string
+			for _, f := range editor.fields {
+				if slices.Contains(editor.sending, f.Name) || slices.Contains(editor.dirty, f.Name) {
+					names = append(names, f.Name)
+				}
+			}
+			messages = append(messages, editor.reportUnsaved(names, editor.written, reason)...)
+		}
+		return messages
 	}
 }

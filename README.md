@@ -652,6 +652,13 @@ writes currently have no store inverse, so they stop this walk after close.
 A field write that fails after its form closes posts a persistent notice with
 the thing, field and attempted value (secret values are redacted), also retained
 in Messages; a later key cannot erase it.
+Quit waits at most `quit.write-wait` (duration, default `10s`) for queued writes,
+with the thing and fields in the status line. During that drain, normal keys
+cannot open a modal; `ctrl+c`, `q`, or `app quit --force` leaves immediately.
+Unfinished values are notices and are printed on stderr outside the alternate
+screen so the record remains after exit. A forced or timed-out write has an
+unconfirmed backend outcome; cancellation cannot reverse a completed backend
+side effect. `0s` opts out of waiting.
 
 Supplying any prop writes directly, without a form:
 `task edit --id t3 --title "New title" --status done`.

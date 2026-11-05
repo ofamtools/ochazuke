@@ -96,6 +96,8 @@ type eventHub struct {
 	quitEmitted  bool
 	quitJobs     []uint64
 	quitDeadline time.Time
+	quitWriteDeadline time.Time
+	quitForced        bool
 }
 
 type surfaceCount struct {

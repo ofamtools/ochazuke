@@ -91,6 +91,8 @@ type Model struct {
 	redraw    modelRedraw
 	viewCache modelViewports
 	surfaces  modelSurfaces
+	quitClosing bool
+	quitReport  []string
 	// Now is the Model's clock: finished jobs, key echoes, changed filter rows and
 	// the linger timer read it (time.Now by default, time.Now when nil). A
 	// headless host fakes it, advances it to JobLingerTick's deadline and
@@ -185,6 +187,7 @@ func newModel(r *Runtime) *Model {
 	// it; inside a modal the capture row stands aside and the bubbling row
 	// below answers unless the modal binds ctrl+c. In a passthrough mode (an
 	// attached terminal) there is no capture pass: ctrl+c goes to the pane.
+	_ = r.DefineMode(quitWaitMode, true)
 	r.loadFrameworkBindings("app.json")
 	return m
 }
@@ -282,7 +285,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if cmd, wait := m.quitHooks(); wait {
 			return m, cmd
 		}
-		return m, tea.Quit
+		return m, m.quitCommand()
 	}
 	var commands []tea.Cmd
 	if cmd := m.redraw.schedule(m, msg, changed); cmd != nil {
@@ -329,6 +332,13 @@ func (m *Model) applyThemeSetting() {
 // handleKey dispatches one key through the runtime's stack walk and shows
 // the error, if any, in the status line.
 func (m *Model) handleKey(key MacroKey) {
+	if m.Runtime.Quit {
+		_, err := m.Runtime.dispatchIn("app", ModeState{Name: quitWaitMode}, key)
+		if err != nil {
+			m.Runtime.UI().Error(err.Error())
+		}
+		return
+	}
 	m.Runtime.UI().Info("") // a key clears the status line and inspector message
 	r := m.Runtime
 	echo := r.KeyEcho() != KeyEchoOff

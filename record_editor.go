@@ -775,9 +775,9 @@ func (e *RecordEditor) send() error {
 	// operation. Observe that job instead of treating its queued write as done.
 	if ticket, ok := res.value.(Ticket); ok && e.r.Accepts(ticket) {
 		j := e.r.jobs[ticket.Job]
-		j.flush = true
 		inner := j.then
 		e.inflight, e.sending = true, changed
+		e.markFlush(j)
 		j.then = func(c Ctx, value any, err error) error {
 			if inner != nil {
 				err = errors.Join(err, inner(c, value, err))
@@ -815,7 +815,7 @@ func (e *RecordEditor) send() error {
 		e.releaseWrite()
 		return err
 	}
-	e.r.jobs[ticket.Job].flush = true
+	e.markFlush(e.r.jobs[ticket.Job])
 	return nil
 }
 

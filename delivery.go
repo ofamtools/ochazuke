@@ -167,6 +167,7 @@ type job struct {
 	ctx       Ctx
 	presented func(Ctx)
 	flush     bool // a queued editor write the quit path must drain
+	abandon func(string) []string // reports unfinished values before quit cancels a flush
 }
 
 func (j *job) ticket() Ticket { return Ticket{Owner: j.Owner, Job: j.Job, Slot: j.Slot} }
