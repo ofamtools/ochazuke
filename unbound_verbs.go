@@ -93,8 +93,19 @@ func (r *Runtime) unboundOperations(candidates []string, walk []level, mode Mode
 	bound := map[string]bool{}
 	for _, at := range []string{focus, ""} {
 		for _, row := range r.scanRows(walk, mode, at, false) {
-			if !row.Request.Empty() && !row.Request.IsProp() {
-				bound[r.canonicalRequest(row.Request).Key()] = true
+			if row.Request.Empty() || row.Request.IsProp() {
+				continue
+			}
+			q := r.canonicalRequest(row.Request)
+			bound[q.Key()] = true
+			// An operation that forwards a verb (list.apply {verb: X})
+			// binds X for the nouns of the rows it acts on.
+			for name, p := range r.Operations[q.Key()].Parameters {
+				if verb, ok := q.Args[name].(string); ok && p.Forwards && verb != "" {
+					for _, noun := range nouns {
+						bound[noun+"."+verb] = true
+					}
+				}
 			}
 		}
 	}

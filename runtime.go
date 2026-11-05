@@ -86,6 +86,12 @@ type Parameter struct {
 	// row without Data or the field fills nothing. A fill is always shown
 	// (the palette slot, the args form). The catalog's from.
 	From string `json:"from,omitempty"`
+	// Forwards marks a parameter whose argument names a verb of the noun
+	// of the rows the operation acts on (list.apply's verb): the operation
+	// runs that verb for them, so a row requesting the operation with the
+	// argument counts as binding that verb (the help's unbound list). The
+	// catalog's forwards.
+	Forwards bool `json:"forwards,omitempty"`
 	// Edits names the prop of the subject this parameter writes (rename's
 	// name writes the label prop): the args form opens holding the prop's
 	// current value, selected as a rename is (rename.select), or, when it

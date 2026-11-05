@@ -220,3 +220,51 @@ func TestRunUnboundKeepsAgentRights(t *testing.T) {
 		t.Fatalf("err %v ran %v", err, *ran)
 	}
 }
+
+// A row requesting list.apply {verb: ping} binds ping: the operation
+// declares which argument names the verb it forwards (Parameter.Forwards),
+// so the unbound list counts it with no check of the operation's name.
+func TestUnboundVerbsCountAForwardedVerb(t *testing.T) {
+	r, _, _ := unboundFixture(t)
+	row := Binding{Noun: "widget", Mode: "normal", Keys: "p", Request: Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"verb": "ping"}}}
+	if err := r.Bind(row); err != nil {
+		t.Fatal(err)
+	}
+	if got := unboundOps(BindingHelp(r, "w1")); !slices.Equal(got, []string{"widget.wipe"}) {
+		t.Fatalf("unbound: %v", got)
+	}
+}
+
+// The scope setting decides whose verbs list: focus the focused noun's
+// own, chain the nouns out to the page, all also the framework's. A bound
+// verb is in none of them.
+func TestUnboundScopesListOnlyUnboundVerbs(t *testing.T) {
+	r, _, _ := unboundFixture(t)
+	r.Define("widget").Mode("normal").Bind("p", Do("widget.ping"))
+	count := func(scope string) (own, framework, bound int) {
+		if err := r.Settings().Set(UnboundScopeSetting, scope); err != nil {
+			t.Fatal(err)
+		}
+		for _, row := range BindingHelp(r, "w1") {
+			switch {
+			case !row.Unbound:
+			case row.Operation == "widget.ping":
+				bound++
+			case row.Noun == "widget":
+				own++
+			default:
+				framework++
+			}
+		}
+		return
+	}
+	for _, scope := range []string{UnboundFocus, UnboundChain, UnboundAll} {
+		own, _, bound := count(scope)
+		if own != 1 || bound != 0 {
+			t.Fatalf("scope %s: own %d, bound listed %d", scope, own, bound)
+		}
+	}
+	if _, framework, _ := count(UnboundFocus); framework != 0 {
+		t.Fatalf("focus listed %d other verbs", framework)
+	}
+}
