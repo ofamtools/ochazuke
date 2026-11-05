@@ -126,8 +126,8 @@ func TestPaneDividerMovesTheDrawnSplit(t *testing.T) {
 	m := paneModel(t, "", true)
 	divider := func() int {
 		for _, row := range strings.Split(ansi.Strip(m.View().Content), "\n") {
-			if strings.Count(row, "╭") == 2 {
-				return strings.LastIndex(row, "╭")
+			if at := strings.Index(row, "detail"); at >= 0 {
+				return ansi.StringWidth(row[:at])
 			}
 		}
 		t.Fatal("no split drawn")

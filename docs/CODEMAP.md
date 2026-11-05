@@ -164,12 +164,12 @@ Root package `ochazuke` is flat: 178 source files, 218 test files. Each entry li
 
 ### chrome_shape.go
 
-- lines: 263 · tests: chrome_shape_test.go
+- lines: 267 · tests: chrome_shape_test.go
 - purpose: Border is the panel or focused border selected by chrome.border.
 - types: GlyphRow, GlyphRows
 - methods: Appearance(3), Runtime(1), Styles(3)
 - funcs: DetectGlyphEnv
-- leans on: runtime.go(12), theme.go(10), settings.go(7), history.go(2)
+- leans on: runtime.go(12), theme.go(10), settings.go(6), history.go(2)
 
 ### cli.go
 

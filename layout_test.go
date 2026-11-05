@@ -305,35 +305,21 @@ func TestSplitFocusBlockTakesTheFocusedSide(t *testing.T) {
 	}
 }
 
-// splitDivider is the cell (side by side) or row (stacked) where the second
-// panel of a mono split starts: the column of the second top-left corner on
-// the first body row, or the row of the second top-left corner.
+// splitDivider is the cell (side by side) or row (stacked) where the
+// Preview panel starts, independent of the selected corner glyphs.
 func splitDivider(t *testing.T, view string, stacked bool) int {
 	t.Helper()
 	rows := strings.Split(ansi.Strip(view), "\n")
-	if stacked {
-		seen := 0
-		for i, row := range rows {
-			if strings.Contains(row, "╭") {
-				seen++
-				if seen == 2 {
-					return i
-				}
+	for i, row := range rows {
+		if at := strings.Index(row, "Preview"); at >= 0 {
+			if stacked {
+				return i
 			}
-		}
-		t.Fatalf("no second panel:\n%s", strings.Join(rows, "\n"))
-	}
-	for _, row := range rows {
-		if strings.Count(row, "╭") == 2 {
-			runes := []rune(row)
-			for i := len(runes) - 1; i >= 0; i-- {
-				if runes[i] == '╭' {
-					return i
-				}
-			}
+			// A panel title follows the corner, stroke and space.
+			return ansi.StringWidth(row[:at]) - 3
 		}
 	}
-	t.Fatalf("no panel pair:\n%s", strings.Join(rows, "\n"))
+	t.Fatalf("no Preview panel:\n%s", strings.Join(rows, "\n"))
 	return 0
 }
 

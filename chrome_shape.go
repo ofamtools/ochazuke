@@ -172,7 +172,11 @@ func registerGlyphs(r *Runtime, a *Appearance) {
 	}
 	// Keep direct NewStyles(*appearance) consumers on the same settings as
 	// Model.Styles; shape must not depend on which style entry point an app uses.
-	a.borderSet, a.glyphSet = r.Settings().String(ChromeBorderSetting), r.Settings().String(ChromeGlyphsSetting)
+	// Construction must not read settings.json: hosts finish their config
+	// directory and declarations before Init. current reads only memory.
+	settings := r.Settings()
+	a.borderSet, _ = settings.current(*settings.find(ChromeBorderSetting)).(string)
+	a.glyphSet, _ = settings.current(*settings.find(ChromeGlyphsSetting)).(string)
 	r.Settings().Observe(ChromeBorderSetting, func(_ string, value any) { a.borderSet, _ = value.(string) })
 	r.Settings().Observe(ChromeGlyphsSetting, func(_ string, value any) { a.glyphSet, _ = value.(string) })
 	r.Register(Operation{Noun: "ochazuke.glyphs", Verb: "list", HistoryKind: HistoryFetch, Description: "List glyph sets, the active set and why auto chose it", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
