@@ -106,3 +106,50 @@ func TestDirectStylesFollowChromeSettings(t *testing.T) {
 		t.Fatal("direct active tab missed glyph setting")
 	}
 }
+
+func TestGlyphChangesRefreshDirectTreeList(t *testing.T) {
+	t.Parallel()
+	nodes := []TreeNode{{ID: "root", Label: "Root"}, {ID: "child", Parent: "root", Label: "Child"}}
+	live := NewRuntime()
+	tree, err := live.AddTree("tree", nodes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := tree.List().Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if before := tree.List().View(40, 10); !strings.Contains(before, "▾") {
+		t.Fatalf("initial fold mark missing: %s", before)
+	}
+	focus, mode := live.Focus, live.Mode
+	if err := live.Settings().Set(ChromeGlyphsSetting, "nerd"); err != nil {
+		t.Fatal(err)
+	}
+	got := tree.List().View(40, 10)
+	if !strings.Contains(got, "\uf078") || strings.Contains(got, "▾") {
+		t.Fatalf("direct list retained old fold marks: %s", got)
+	}
+	preset := NewRuntime()
+	if err := preset.Settings().Set(ChromeGlyphsSetting, "nerd"); err != nil {
+		t.Fatal(err)
+	}
+	other, err := preset.AddTree("tree", nodes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := other.List().Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if want := other.List().View(40, 10); got != want {
+		t.Fatalf("preset and live tree frames differ:\n%s\n%s", got, want)
+	}
+	if live.Focus != focus || !reflect.DeepEqual(live.Mode, mode) {
+		t.Fatal("glyph refresh moved focus or changed mode")
+	}
+	if err := live.Settings().Set(ChromeGlyphsSetting, "unicode"); err != nil {
+		t.Fatal(err)
+	}
+	if restored := tree.List().View(40, 10); !strings.Contains(restored, "▾") || strings.Contains(restored, "\uf078") {
+		t.Fatalf("switching back retained Nerd marks: %s", restored)
+	}
+}
