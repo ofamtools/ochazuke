@@ -74,7 +74,7 @@ func TestMCPProtocolValidation(t *testing.T) {
 	calls := 0
 	s := testServer(t, backendFunc(func(context.Context, string, map[string]any) (any, error) { calls++; return nil, nil }))
 	for _, args := range []string{
-		`{"name":"missing"}`, `{"name":"describe","arguments":{}}`, `{"name":"run","arguments":{"verb":"task.set","actor":{"kind":"owner"}}}`, `{"name":"run","arguments":{"verb":""}}`, `{"name":"run","arguments":{"verb":"task.set","args":[]}}`, `{"name":"run","arguments":{"verb":"task.set","dry_run":"yes"}}`, `{"name":"catalog","arguments":{"limit":1.5}}`, `{"name":"catalog","arguments":{"limit":0}}`, `{"name":"catalog","arguments":{"include":""}}`, `{"name":"state","arguments":{"include":["passwords"]}}`, `{"name":"describe","arguments":{"verb":null}}`, `{"name":"state","arguments":{},"actor":"owner"}`,
+		`{"name":"missing"}`, `{"name":"describe","arguments":{}}`, `{"name":"run","arguments":{"verb":"task.set","actor":{"kind":"owner"}}}`, `{"name":"run","arguments":{"verb":""}}`, `{"name":"run","arguments":{"verb":"task.set","args":[]}}`, `{"name":"run","arguments":{"verb":"task.set","dry_run":"yes"}}`, `{"name":"catalog","arguments":{"limit":1.5}}`, `{"name":"catalog","arguments":{"limit":0}}`, `{"name":"catalog","arguments":{"include":""}}`, `{"name":"state","arguments":{"include":["passwords"]}}`, `{"name":"describe","arguments":{"verb":null}}`, `{"name":"state","arguments":{"actor":"owner"}}`, `{"name":"state","arguments":{"unknown":1},"_meta":{"progressToken":1}}`,
 	} {
 		replies := play(t, s, initialized("2025-11-25")+`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":`+args+"}\n")
 		if replies[1]["error"].(map[string]any)["code"] != float64(-32602) {
@@ -152,5 +152,31 @@ func TestMCPProtocolInvalidEnvelope(t *testing.T) {
 	replies := play(t, s, initialized("2025-11-25")+`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"state","arguments":null}}`+"\n")
 	if replies[1]["error"].(map[string]any)["code"] != float64(-32602) {
 		t.Fatal(replies)
+	}
+}
+
+func TestMCPIgnoresUnknownParamFields(t *testing.T) {
+	calls := 0
+	s := testServer(t, backendFunc(func(context.Context, string, map[string]any) (any, error) {
+		calls++
+		return map[string]any{"ok": true}, nil
+	}))
+	in := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"c"},"_meta":{"progressToken":1},"newField":true}}` + "\n" +
+		`{"jsonrpc":"2.0","method":"notifications/initialized"}` + "\n" +
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"state","arguments":{},"_meta":{"progressToken":7},"future":1}}` + "\n" +
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"state","_meta":{"progressToken":"a"}}}` + "\n" +
+		`{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"ochazuke://instructions","_meta":{"progressToken":2}}}` + "\n" +
+		`{"jsonrpc":"2.0","id":5,"method":"prompts/get","params":{"name":"guide","_meta":{"progressToken":3}}}` + "\n"
+	replies := play(t, s, in)
+	if len(replies) != 5 {
+		t.Fatalf("replies: %+v", replies)
+	}
+	for _, r := range replies {
+		if r["error"] != nil {
+			t.Fatalf("rejected: %+v", r)
+		}
+	}
+	if calls != 2 {
+		t.Fatalf("calls = %d", calls)
 	}
 }

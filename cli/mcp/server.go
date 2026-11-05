@@ -207,11 +207,12 @@ func (s *Server) handle(ctx context.Context, req request, protocol string) (any,
 	return nil, &rpcError{-32601, fmt.Sprintf("method %q not found", req.Method)}
 }
 
+// decode reads request params. Unknown top-level fields (such as _meta, or
+// fields a newer protocol revision adds) are ignored as the MCP spec requires;
+// strict checking of tool arguments happens against each tool's schema.
 func decode(raw json.RawMessage, dst any) error {
 	if len(raw) == 0 {
 		raw = json.RawMessage(`{}`)
 	}
-	d := json.NewDecoder(strings.NewReader(string(raw)))
-	d.DisallowUnknownFields()
-	return d.Decode(dst)
+	return json.NewDecoder(strings.NewReader(string(raw))).Decode(dst)
 }
