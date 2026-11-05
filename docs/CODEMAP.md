@@ -1138,10 +1138,10 @@ Root package `ochazuke` is flat: 178 source files, 219 test files. Each entry li
 
 ### surface.go
 
-- lines: 204 · tests: surface_test.go
+- lines: 258 · tests: surface_test.go
 - purpose: ModalSize returns safe body bounds, reserving the same chrome as ComposeModal.
 - funcs: ModalSize, ComposeModal, ComposeModalBlock
-- leans on: block.go(9), model.go(3), theme.go(3), foreground.go(2)
+- leans on: block.go(9), model.go(3), theme.go(3), chrome.go(2)
 
 ### surface_cache.go
 
@@ -1295,7 +1295,7 @@ Root package `ochazuke` is flat: 178 source files, 219 test files. Each entry li
 
 ### tree.go
 
-- lines: 1764 · tests: tree_test.go
+- lines: 1766 · tests: tree_test.go
 - purpose: TreeNode is one node of a tree.
 - types: TreeNode, TreeChange, TreeDebounceMsg, TreeAction, Tree
 - methods: Runtime(3), Tree(73), TreeChange(1), TreeNode(1)

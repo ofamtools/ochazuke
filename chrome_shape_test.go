@@ -38,6 +38,7 @@ func TestASCIIFrameCells(t *testing.T) {
 	for _, c := range []struct{ input, want string }{
 		{"╭─╮┏━┓│┃", "+-++=+||"},
 		{"◆●○›‹▾▸▲▼·…✓✗📌🔒", "**o><v>^v.~xx* * "},
+		{"1–6 / 10 • ◦ ▌ — × ↵", "1-6 / 10 * o | - x <"},
 		{"界 é e\u0301 👩‍💻", "?? ? e ??"},
 		{"\x1b[31m◆\x1b[0m", "\x1b[31m*\x1b[0m"},
 		{"plain\ntext", "plain\ntext"},
