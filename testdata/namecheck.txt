@@ -615,7 +615,6 @@ standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
 standard_undo.go	Runtime.runRecording	cyclo	"-"	26
 standard_verbs.go	Runtime.ensureStandardVerbs	compare	"set"	2
 standard_verbs.go	Runtime.propsAvailable	compare	"set"	1
-standard_verbs.go	Runtime.subjectKey	compare	"instances"	1
 standard_verbs.go	createArgs	compare	"pairs"	1
 standard_verbs.go	setChanges	cyclo	"-"	30
 standard_verbs.go	standardVerb.operation	cyclo	"-"	26

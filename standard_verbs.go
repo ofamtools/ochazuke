@@ -328,7 +328,7 @@ func propNames(n *Noun) []string {
 
 func getParams(n *Noun) map[string]Parameter {
 	return map[string]Parameter{
-		"prop":  {Type: "string", Enum: propNames(n), Free: slices.ContainsFunc(n.Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }), Description: "One prop: answer its value alone"},
+		"prop":  {Type: "string", Enum: slices.Concat(propNames(n), n.roleNames()), Free: slices.ContainsFunc(n.Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }), Description: "One prop (or @role: the prop with that role): answer its value alone"},
 		"props": {Type: "string", Description: "The props to answer, comma-separated (default: every prop but secrets)"},
 	}
 }
@@ -353,42 +353,6 @@ func listPositional(n *Noun) []string {
 	params := listParams(n)
 	delete(params, "filter")
 	return (Operation{Parameters: params}).ParameterOrder()
-}
-
-// subjectKey is the key a request's subject has: the key argument when
-// given, else the instance the request acts for (Ctx.Instance, or the
-// nearest instance of the noun above it; for an instances noun the
-// nearest live thing, liveSubject): an instances noun's instance id; else
-// the key prop in its Data, the Data itself when it is a plain string
-// (a row whose Data is its thing's key, as the Settings page's rows are),
-// else its id. A singleton's is "".
-func (r *Runtime) subjectKey(n *Noun, c Ctx) (string, error) {
-	key := n.keyProp()
-	if key == nil {
-		return "", nil
-	}
-	if v, ok := c.Args[key.Name]; ok && !emptyProp(v) {
-		return fmt.Sprint(v), nil
-	}
-	inst := c.Instance
-	if inst != nil && n.StoreKind() == Instances {
-		inst = r.Instances[r.liveSubject(n, inst.ID)] // its things are live instances
-		if inst != nil {
-			return inst.ID, nil
-		}
-	} else if inst != nil && inst.Noun != n.Name {
-		inst = r.Instances[r.nounInstance(n.Name, inst.ID)]
-	}
-	if inst == nil {
-		return "", &ArgumentError{fmt.Errorf("%s is required: no %s is focused", key.Name, r.DisplayNoun(n.Name))}
-	}
-	if v := dataField(inst.Data, key.Name); !emptyProp(v) {
-		return fmt.Sprint(v), nil
-	}
-	if s, ok := inst.Data.(string); ok && s != "" {
-		return s, nil
-	}
-	return inst.ID, nil
 }
 
 // listWords splits a list argument at commas and spaces.
@@ -965,6 +929,7 @@ func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), name)
 	}
 	filled := r.createFill(n, c, values)
+	n.stamp(values, RoleCreated, RoleUpdated)
 	t, err := n.Store.Create(c, values)
 	if err != nil {
 		return nil, err
@@ -1004,6 +969,7 @@ func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
 		b, _ := current.(bool)
 		changes[name] = !b
 	}
+	n.stamp(Thing(changes), RoleUpdated)
 	t, err := n.Store.Patch(c, key, Thing(changes))
 	if err != nil {
 		return nil, err

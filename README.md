@@ -1056,6 +1056,44 @@ between the form and prop chooser.
 Compared with Vim: prop schema aliases have no Vim motion, option or
 command-line counterpart; they name application record fields.
 
+**Keys: an id and a human key (`thing_keys.go`).** A thing noun has one
+`Key` prop (the id) and a human key: the prop marked `Human: true`, else its
+label-role prop. A verb's key argument may be either. `keyResolvers` is the
+table that reads it, in order: an exact id (the store has the thing), then an
+exact human key (one thing holds that text in its human prop). A text neither
+finds goes to the store as it is, so its own not-found error answers; a
+human key more than one thing holds refuses and lists their ids; nothing is
+ever a prefix (`t1` never names `t10`). A noun whose store is an `Instances`
+store, or has no `Get`, reads its key argument as it is. The result is
+remembered for the one request, so `get`, its confirm and its undo probe the
+store once.
+
+A request with no key argument acts for a row, read by one function
+(`rowKey`, over `rowKeyReaders`): the key prop in the row's `Data`, then in
+its `ListItem.Props` (`Runtime.rowValue`, also what a binding's
+`from: "row:<field>"` reads), then a `Data` that is the key itself. A row
+with none of them is an error naming the row; its instance id is no longer
+taken for the key (an `Instances` noun's rows are the exception by
+declaration: its things are the instances). Rows of a noun with a store must
+carry their key in `Data` or `Props`.
+
+Props are addressed by role: `@label`, `@owner`, `@archive` (any declared
+`Role`) name the noun's prop with that role in `get {prop}`, `set` (`prop`,
+`prop=value` words, `changes`) and `where`; a role the noun lacks is an
+unknown prop. `get`'s prop choices list the `@role` names. A prop name may
+not start with `@`.
+
+`Store.Times` gives the noun the read-only props `created` and `updated`
+(roles `RoleCreated`, `RoleUpdated`; RFC 3339 UTC text), which `create` and
+`set` stamp before the store sees the write; `Store.Stamps` says the store
+writes them itself. A noun that already has a prop with either role keeps its
+own and is stamped. Off by default. `Thing.Into(&rec)` reads a thing into a
+struct by its json tags; it is `ThingOf`'s inverse and round-trips strings,
+numbers, booleans, lists, objects and durations.
+
+Compared with Vim: not applicable; these name application things, not text.
+Opt-out: nothing the screen shows changes; `Times` is opt-in.
+
 **Every field is filterable unless turned off; only declared fields are
 writable.** A prop the row's noun declares (`PropSpec`) keeps its label,
 type, enum and guard. Any other top-level field of the rows (ids included) is

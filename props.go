@@ -106,12 +106,16 @@ type PropSpec struct {
 	Name    string   `json:"name"`
 	Aliases []string `json:"aliases,omitempty"`
 	Parameter
-	ReadOnly   bool   `json:"readOnly,omitempty"`
-	CreateOnly bool   `json:"createOnly,omitempty"`
-	Key        bool   `json:"key,omitempty"`
-	Role       string `json:"role,omitempty"`
-	Fallback   string `json:"fallback,omitempty"`
-	FromFocus  bool   `json:"fromFocus,omitempty"`
+	ReadOnly   bool `json:"readOnly,omitempty"`
+	CreateOnly bool `json:"createOnly,omitempty"`
+	Key        bool `json:"key,omitempty"`
+	// Human marks the noun's human key (a name, a slug): a request may name
+	// a thing by it where it names one by its Key (thing_keys.go). One per
+	// noun; without one, the label-role prop is the human key.
+	Human     bool   `json:"human,omitempty"`
+	Role      string `json:"role,omitempty"`
+	Fallback  string `json:"fallback,omitempty"`
+	FromFocus bool   `json:"fromFocus,omitempty"`
 	// Association lets declared verbs of Noun act through this reference,
 	// read only from the focused instance's Data, never its store.
 	Association bool   `json:"association,omitempty"`
@@ -255,6 +259,18 @@ type Store struct {
 	// registration order. (Pages are ochazuke.page's things whatever noun
 	// their instances have.)
 	Live func(r *Runtime) []string
+
+	// Times gives the noun the base props created and updated (RoleCreated,
+	// RoleUpdated: read-only RFC 3339 text), and create and set stamp them
+	// before the store sees the write. Stamps says the store writes the
+	// times itself, so the framework only declares the props. Off by
+	// default until every store and consumer accepts the two props.
+	Times  bool
+	Stamps bool
+
+	// instanceKeyed is set for an instances store: its things' keys are
+	// runtime instance ids, so a target is never read as a human key.
+	instanceKeyed bool
 }
 
 // propTypes are the types a prop declares.
@@ -263,10 +279,14 @@ var propTypes = map[string]bool{
 	SettingDuration: true, SettingList: true, PropObject: true,
 }
 
-// prop is the noun's prop of that name, nil when it has none.
+// prop is the noun's prop of that name, nil when it has none. "@role" names
+// the prop with that role (@label, @owner, @archive).
 func (n *Noun) prop(name string) *PropSpec {
 	if n == nil {
 		return nil
+	}
+	if role, ok := strings.CutPrefix(name, "@"); ok {
+		return n.roleProp(role)
 	}
 	for i := range n.Props {
 		if n.Props[i].Name == name || slices.Contains(n.Props[i].Aliases, name) {
@@ -342,8 +362,10 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 	s.Confirm, s.When = maps.Clone(s.Confirm), maps.Clone(s.When)
 	if s.Kind == Instances {
 		s = instancesStore(b.n.Name, s)
+		s.instanceKeyed = true
 	}
 	b.n.Store = &s
+	b.r.addBaseProps(b.n)
 	b.r.applyStore(b.n)
 	b.last = ""
 	return b
@@ -517,7 +539,7 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 		return fmt.Errorf("prop %s: only a string prop takes an enum", key)
 	}
 	switch p.Role {
-	case "", RoleLabel:
+	case "", RoleLabel, RoleCreated, RoleUpdated:
 	case RoleOwner:
 		if p.Noun == "" {
 			return fmt.Errorf("prop %s: the owner role needs a reference (Noun)", key)
@@ -560,7 +582,7 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 func (r *Runtime) checkPropName(n *Noun, name string) error {
 	key := n.Name + "." + name
 	switch {
-	case name == "" || strings.ContainsAny(name, " \t\n=\".,") || strings.HasPrefix(name, "-"):
+	case name == "" || strings.ContainsAny(name, " \t\n=\".,") || strings.HasPrefix(name, "-") || strings.HasPrefix(name, "@"):
 		return fmt.Errorf("prop %q of %s must be one word without a dot", name, n.Name)
 	case slices.Contains(reservedStandardVerbs, name):
 		return fmt.Errorf("prop %s of %s takes a standard verb's name", name, n.Name)
@@ -600,6 +622,9 @@ func checkSchema(n *Noun) error {
 		if p.Name == "label" && p.Role != RoleLabel {
 			return fmt.Errorf("prop %s.label: a prop named label has the label role (list rows carry the label as label)", n.Name)
 		}
+	}
+	if err := checkHumanKey(n); err != nil {
+		return err
 	}
 	s := n.Store
 	if s == nil {

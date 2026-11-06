@@ -333,13 +333,21 @@ func (r *Runtime) rowData(ev KeyEvent) any {
 // and its record in Props; fields missing from Data fall back to that record.
 func (r *Runtime) rowField(ev KeyEvent, field string) any {
 	if row := r.sourceRow(ev); row != nil {
-		if value := dataField(row.Data, field); value != nil {
-			return value
-		}
-		if list := r.List(r.rows[row.ID]); list != nil {
-			if cached := list.rowCache[row.ID]; cached != nil {
-				return dataField(map[string]any(cached.item.Props), field)
-			}
+		return r.rowValue(row, field)
+	}
+	return nil
+}
+
+// rowValue reads a field of the thing a row stands for: its Data, else the
+// row's ListItem.Props. It is the one row-to-thing read: a binding's From
+// "row:<field>" and a request's subject key (rowKey) both use it.
+func (r *Runtime) rowValue(row *Instance, field string) any {
+	if value := dataField(row.Data, field); value != nil {
+		return value
+	}
+	if list := r.List(r.rows[row.ID]); list != nil {
+		if cached := list.rowCache[row.ID]; cached != nil {
+			return dataField(map[string]any(cached.item.Props), field)
 		}
 	}
 	return nil

@@ -3,21 +3,91 @@
   "area": "palette",
   "width": 110,
   "height": 30,
-  "settings": [{"name": "delete.archive", "type": "boolean", "default": true}],
+  "settings": [
+    {
+      "name": "delete.archive",
+      "type": "boolean",
+      "default": true
+    }
+  ],
   "page": {
     "store": {
       "props": [
-        {"name": "id", "key": true},
-        {"name": "title", "role": "label"},
-        {"name": "archived", "type": "boolean", "role": "archive"}
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "title",
+          "role": "label"
+        },
+        {
+          "name": "archived",
+          "type": "boolean",
+          "role": "archive"
+        }
       ],
-      "things": [{"id": "t1", "title": "Water the plants", "archived": false}]
+      "things": [
+        {
+          "id": "t1",
+          "title": "Water the plants",
+          "archived": false
+        }
+      ]
     }
   },
-  "script": [":", {"type": "demo delete t1"}, "enter", "y", ":", {"type": "demo delete t1"}, "enter"],
+  "script": [
+    ":",
+    {
+      "type": "demo delete t1"
+    },
+    "enter",
+    "y",
+    ":",
+    {
+      "type": "demo delete t1"
+    },
+    "enter"
+  ],
   "expect": [
-    {"after": 3, "contains": ["Archive demo Water the plants? (delete it again to delete it for good)"], "lacks": ["Delete demo"], "writes": ["list", "get t1", "get t1"]},
-    {"after": 4, "modal": "", "writes": ["list", "get t1", "get t1", "get t1", "set t1 archived=true"], "contains": ["archived demo Water the plants"]},
-    {"contains": ["Delete demo Water the plants?"], "lacks": ["Archive demo"]}
+    {
+      "after": 3,
+      "contains": [
+        "Archive demo Water the plants? (delete it again to delete it for good)"
+      ],
+      "lacks": [
+        "Delete demo"
+      ],
+      "writes": [
+        "list",
+        "get t1",
+        "get t1",
+        "get t1"
+      ]
+    },
+    {
+      "after": 4,
+      "modal": "",
+      "writes": [
+        "list",
+        "get t1",
+        "get t1",
+        "get t1",
+        "get t1",
+        "get t1",
+        "set t1 archived=true"
+      ],
+      "contains": [
+        "archived demo Water the plants"
+      ]
+    },
+    {
+      "contains": [
+        "Delete demo Water the plants?"
+      ],
+      "lacks": [
+        "Archive demo"
+      ]
+    }
   ]
 }

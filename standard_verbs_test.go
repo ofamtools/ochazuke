@@ -223,8 +223,11 @@ func TestSubjectOrder(t *testing.T) {
 	}
 	get(Request{})                                             // focus: row-1's Data
 	get(Request{Target: "row-3"})                              // target over focus
-	get(Request{Target: "row-3", Args: Arguments{"id": "t2"}}) // key over target
-	get(Request{Target: "t2"})                                 // no Data: the instance id
+	get(Request{Target: "row-3", Args: Arguments{"id": "t2"}}) // key over target: read once to tell an id from a human key, once to get
+	// A row that holds no key is an error, never its instance id.
+	if _, err := r.Execute(Request{Noun: "task", Verb: "get", Target: "t2"}); err == nil || !strings.Contains(err.Error(), `holds no id`) {
+		t.Fatalf("a row without the key: %v", err)
+	}
 	if want := []string{"t1", "t3", "t2", "t2"}; !reflect.DeepEqual(s.reads, want) {
 		t.Fatalf("reads %v, want %v", s.reads, want)
 	}

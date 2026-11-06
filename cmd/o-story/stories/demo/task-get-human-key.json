@@ -1,0 +1,121 @@
+{
+  "name": "standard get names a thing by its human key: :demo get Notes reads t2 (the label prop is the human key unless a prop says human), an id wins over a name, and a text that is neither is the store's own not-found, never a prefix match",
+  "area": "demo",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [
+      {
+        "id": "tasks",
+        "items": [
+          {
+            "id": "t1",
+            "label": "t1",
+            "props": {
+              "id": "t1"
+            }
+          },
+          {
+            "id": "t2",
+            "label": "t2",
+            "props": {
+              "id": "t2"
+            }
+          },
+          {
+            "id": "t3",
+            "label": "t3",
+            "props": {
+              "id": "t3"
+            }
+          },
+          {
+            "id": "t4",
+            "label": "t4",
+            "props": {
+              "id": "t4"
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "t1",
+    "store": {
+      "props": [
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "title",
+          "role": "label"
+        },
+        {
+          "name": "status",
+          "enum": [
+            "todo",
+            "doing",
+            "done"
+          ]
+        }
+      ],
+      "things": [
+        {
+          "id": "t1",
+          "title": "Water",
+          "status": "todo"
+        },
+        {
+          "id": "t2",
+          "title": "Notes",
+          "status": "doing"
+        },
+        {
+          "id": "t3",
+          "title": "Twin",
+          "status": "todo"
+        },
+        {
+          "id": "t4",
+          "title": "Twin",
+          "status": "done"
+        }
+      ]
+    }
+  },
+  "script": [
+    ":",
+    {
+      "type": "demo get Notes"
+    },
+    "enter",
+    "esc",
+    ":",
+    {
+      "type": "demo get t3"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "modal": "palette-results",
+      "contains": [
+        "Notes",
+        "doing"
+      ],
+      "noNotices": true
+    },
+    {
+      "after": 4,
+      "modal": ""
+    },
+    {
+      "modal": "palette-results",
+      "contains": [
+        "Twin",
+        "todo"
+      ]
+    }
+  ]
+}

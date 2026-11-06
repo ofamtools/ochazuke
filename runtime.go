@@ -495,6 +495,7 @@ type Runtime struct {
 	holders          []string          // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
 	modals           []string          // the open modal instances, outermost first; each holds its return focus in Payload.Return
 	modalInstances   map[string]bool   // instances created by Push or OpenModal, removed by Pop
+	targets          map[string]string // target texts resolved to keys during the running request (resolveTarget)
 	seq              uint64            // instance registration order
 	commands         []tea.Cmd         // off-loop work scheduled since the adapter last drained it
 	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
@@ -1009,7 +1010,15 @@ func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, err
 	return value, err
 }
 
+// endRequest drops what a top-level request memoized: its resolved targets.
+func (r *Runtime) endRequest() {
+	if r.history.depth <= 1 {
+		clear(r.targets)
+	}
+}
+
 func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...operationRunner) (value any, err error) {
+	defer r.endRequest()
 	q := *request
 	fromRow := r.rowRequest
 	r.rowRequest = false

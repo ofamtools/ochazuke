@@ -189,9 +189,10 @@ func TestUndoRefusesWithoutInverse(t *testing.T) {
 	r, s := newUndoRuntime(t, false, true)
 	reads := len(s.reads)
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "status", "value": "done"}})
-	// Not read around the write (set's own read back only), and marked
-	// by noun and key alone.
-	if got := len(s.reads) - reads; got != 1 {
+	// Not read around the write: the probe that tells an id from a human
+	// key (once per request) and set's own read back; marked by noun and
+	// key alone.
+	if got := len(s.reads) - reads; got != 2 {
 		t.Fatalf("a store without Undo was read %d times for one set", got)
 	}
 	if got := lastChanges(r); !reflect.DeepEqual(got, []ThingChange{{Noun: "task", Key: "t1"}}) {

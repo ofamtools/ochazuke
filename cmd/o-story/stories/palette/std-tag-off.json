@@ -3,28 +3,104 @@
   "area": "palette",
   "width": 100,
   "height": 44,
-  "values": {"palette.standard-verbs": []},
+  "values": {
+    "palette.standard-verbs": []
+  },
   "page": {
-    "lists": [{"id": "tasks", "items": [{"id": "t1", "label": "t1"}]}],
+    "lists": [
+      {
+        "id": "tasks",
+        "items": [
+          {
+            "id": "t1",
+            "label": "t1",
+            "props": {
+              "id": "t1"
+            }
+          }
+        ]
+      }
+    ],
     "focus": "t1",
-    "verbs": [{"verb": "demo.archive", "description": "Archive the task"}],
+    "verbs": [
+      {
+        "verb": "demo.archive",
+        "description": "Archive the task"
+      }
+    ],
     "store": {
       "props": [
-        {"name": "id", "key": true},
-        {"name": "title", "role": "label"},
-        {"name": "status", "enum": ["todo", "doing", "done"]},
-        {"name": "starred", "type": "boolean"}
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "title",
+          "role": "label"
+        },
+        {
+          "name": "status",
+          "enum": [
+            "todo",
+            "doing",
+            "done"
+          ]
+        },
+        {
+          "name": "starred",
+          "type": "boolean"
+        }
       ],
       "things": [
-        {"id": "t1", "title": "Water the plants", "status": "todo", "starred": false},
-        {"id": "t2", "title": "Write notes", "status": "doing", "starred": false},
-        {"id": "t3", "title": "Call the plumber", "status": "todo", "starred": true}
+        {
+          "id": "t1",
+          "title": "Water the plants",
+          "status": "todo",
+          "starred": false
+        },
+        {
+          "id": "t2",
+          "title": "Write notes",
+          "status": "doing",
+          "starred": false
+        },
+        {
+          "id": "t3",
+          "title": "Call the plumber",
+          "status": "todo",
+          "starred": true
+        }
       ]
     }
   },
-  "script": [":", {"type": "demo "}, "ctrl+u", {"type": "demo get"}, "enter"],
+  "script": [
+    ":",
+    {
+      "type": "demo "
+    },
+    "ctrl+u",
+    {
+      "type": "demo get"
+    },
+    "enter"
+  ],
   "expect": [
-    {"after": 2, "order": ["archive", "create", "delete", "get", "list", "set"], "lacks": ["std"]},
-    {"modal": ""}
+    {
+      "after": 2,
+      "order": [
+        "archive",
+        "create",
+        "delete",
+        "get",
+        "list",
+        "set"
+      ],
+      "lacks": [
+        "std"
+      ]
+    },
+    {
+      "modal": ""
+    }
   ]
 }
