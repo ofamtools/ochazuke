@@ -84,6 +84,12 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 		if err != nil {
 			return Failed(err)
 		}
+		if human := n.humanProp(); human != nil && only != nil && only.Name == human.Name && len(others) > 0 {
+			// A human key names one thing: typed once, it is not every
+			// selected row's name. The focused row takes it; the rest stay.
+			r.UI().Info(fmt.Sprintf("left %d as they were: %s names one row", len(others), human.Name))
+			others = nil
+		}
 		write := r.editWriter(n, subject, others, r.newHistoryGroup("edit "+writeKey))
 		if len(changes) > 0 {
 			return write(changes)
@@ -231,24 +237,54 @@ func (r *Runtime) editSubjects(n *Noun, c Ctx) (Arguments, []any, error) {
 
 // editWriter is the form's write: set {props} on the subject and on each
 // other subject, every one recorded in group, so history.undo takes the
-// whole form back in one step.
+// whole form back in one step. The noun's human key (humanProp) is
+// written to the subject alone: one name typed is never every row's. A
+// write over several subjects posts the one notice a run over many does
+// (subjectsNotice: done on N rows, or how many failed).
 func (r *Runtime) editWriter(n *Noun, subject Arguments, others []any, group string) func(map[string]any) Result {
 	return func(changes map[string]any) Result {
 		defer r.inHistoryGroup(group)()
+		name := r.DisplayKey(n.Name + ".edit")
 		var value any
+		var applied, skipped []string
+		var first error
 		for i, target := range append([]any{nil}, others...) {
 			args := maps.Clone(subject)
+			props := maps.Clone(changes)
 			if i > 0 {
 				args[n.keyProp().Name] = target
+				if human := n.humanProp(); human != nil {
+					delete(props, human.Name)
+				}
+				if len(props) == 0 {
+					continue
+				}
 			}
-			args["props"] = maps.Clone(changes)
+			args["props"] = props
 			// The subject key, not the ephemeral row, identifies this write.
 			v, err := r.ExecuteAt(r.contextOf("app"), Request{Noun: n.Name, Verb: "set", Args: args})
-			if err != nil {
-				return Failed(err)
+			id := ""
+			if key := n.keyProp(); key != nil {
+				id = fmt.Sprint(args[key.Name])
 			}
+			switch {
+			case err != nil && i == 0:
+				return Failed(err)
+			case err != nil:
+				skipped = append(skipped, id+": "+err.Error())
+				if first == nil {
+					first = err
+				}
+				continue
+			}
+			applied = append(applied, id)
 			if i == 0 {
 				value = v
+			}
+		}
+		if len(applied)+len(skipped) > 1 {
+			if err := r.subjectsNotice(name, applied, skipped, first); err != nil {
+				return Failed(err)
 			}
 		}
 		return Done(value)

@@ -559,3 +559,21 @@ func TestPaletteExactKeyBeatsPrefix(t *testing.T) {
 		t.Fatalf("t10 not written: %v", s.log)
 	}
 }
+
+// edit over several subjects writes every field to each, but the human key
+// (the label here) to the subject alone: one name typed is not every row's.
+// Given field @label, the others are left as they were.
+func TestEditOverSubjectsKeepsTheHumanKeyToOne(t *testing.T) {
+	r, s := newDerivedRuntime(t)
+	subjects := []string{"row-t1", "row-t2"}
+	mustRun(t, r, Request{Noun: "task", Verb: "edit", Target: "row-t1", Subjects: subjects, Args: Arguments{"title": "Renamed", "status": "done"}})
+	t1, t2 := s.find("t1"), s.find("t2")
+	if t1["title"] != "Renamed" || t1["status"] != "done" || t2["title"] != "Write notes" || t2["status"] != "done" {
+		t.Fatalf("fan-out: t1 %v t2 %v", t1, t2)
+	}
+	t2["status"] = "todo"
+	mustRun(t, r, Request{Noun: "task", Verb: "edit", Target: "row-t1", Subjects: subjects, Args: Arguments{"field": "@label", "title": "Again", "status": "done"}})
+	if t1["title"] != "Again" || t2["title"] != "Write notes" || t2["status"] != "todo" {
+		t.Fatalf("field @label: t1 %v t2 %v", t1, t2)
+	}
+}

@@ -215,6 +215,12 @@
    ]
   },
   {
+   "after": 6,
+   "contains": [
+    "done on 2 rows"
+   ]
+  },
+  {
    "after": 7,
    "modal": ""
   },
