@@ -125,3 +125,29 @@ func TestGeneratedVerbsFollowTheTable(t *testing.T) {
 		t.Fatalf("generated %v", got)
 	}
 }
+
+// A line the removed list answers heads no parameter: the slot under it
+// is not the misread of its words (note read as another noun's verb note,
+// associate as that verb's argument), however the line is read.
+func TestRemovedLineHeadsNoParameter(t *testing.T) {
+	r := NewRuntime()
+	r.Define("note").Props(derivedProps()...).Store((&derivedStore{key: "id"}).store())
+	r.Define("doc").Verb("note", func(Ctx) Result { return Done(nil) }, "Note a doc").Positional("id", "text")
+	op := r.Operations["doc.note"]
+	op.Parameters = map[string]Parameter{"id": {Type: "string", Description: "The doc instance"}, "text": {Type: "string", Description: "The note text"}}
+	r.Operations["doc.note"] = op
+	if err := r.AddRemovedVerbs(namecheck.Removed{Noun: "note", Verb: "associate", Replacement: "note.set {props: {project: ID}}", Since: "v2"}); err != nil {
+		t.Fatal(err)
+	}
+	p := NewPalette(r)
+	paletteRequest(t, r, "open", "palette", nil)
+	for _, line := range []string{"note associate ", "note associate x "} {
+		paletteRequest(t, r, "fill", "palette", Arguments{"text": line})
+		if c := p.parse(line); c.Err == nil || !strings.Contains(c.Err.Error(), "removed") {
+			t.Fatalf("%q: %v", line, c.Err)
+		}
+		if slot, ok := p.currentSlot(); ok {
+			t.Fatalf("%q heads %s %s", line, slot.Op.Key(), slot.Name)
+		}
+	}
+}

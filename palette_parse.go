@@ -585,8 +585,16 @@ func paramOrder(op Operation) []string { return op.ParameterOrder() }
 // parse resolves a line in the palette's origin context.
 func (p *Palette) parse(line string) commandLine {
 	tokens, _ := tokenize(line)
-	// A removed noun.verb (a renamed command verb, a merged plural noun)
-	// says what to write instead before its words resolve.
+	return p.parseTokens(p.index(), tokens)
+}
+
+// parseTokens resolves a line's words. Every reader of the line (the run,
+// the parameter heading, completions, a rest parameter's place) parses
+// through here, so a line the removed list answers is that answer for
+// all of them: a removed noun.verb (a renamed command verb, a merged
+// plural noun) says what to write instead before its words resolve, and
+// no misread of its words heads a parameter or offers choices.
+func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 	if err := p.r.RemovedWords(tokenTexts(tokens)); err != nil {
 		c := commandLine{Args: Arguments{}, Err: err, Missing: "verb"}
 		for _, t := range tokens[:min(2, len(tokens))] {
@@ -594,10 +602,6 @@ func (p *Palette) parse(line string) commandLine {
 		}
 		return c
 	}
-	return p.parseTokens(p.index(), tokens)
-}
-
-func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 	c := commandLine{Args: Arguments{}}
 	if len(tokens) == 0 {
 		c.Missing = "verb or noun"
