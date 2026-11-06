@@ -1,0 +1,12 @@
+[
+  {"verb": "rename", "replacement": "edit {field: \"@label\"}, or set {\"@label\": value}", "since": "R1", "note": "DESIGN-001: purged with no alias; the label is a prop addressed by its role"},
+  {"verb": "move", "replacement": "edit {field: \"@owner\"}, or set {\"@owner\": id}", "since": "R1", "note": "DESIGN-001: purged with no alias; a noun's own motion or verb named move stays"},
+  {"verb": "restore", "replacement": "set {\"@archive\": false}", "since": "R1", "note": "DESIGN-001: purged with no alias; a noun's own verb named restore (pane.restore) stays"},
+  {"verb": "duplicate", "replacement": "create with the thing's props", "since": "R1", "note": "DESIGN-001: purged with no alias"},
+  {"verb": "patch", "replacement": "set", "since": "R1", "note": "DESIGN-001: purged with no alias; set always merges"},
+  {"noun": "ochazuke.focus", "verb": "set", "replacement": "ochazuke.focus.to {id}", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb"},
+  {"noun": "ochazuke.mode", "verb": "set", "replacement": "ochazuke.mode.switch {mode}", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb"},
+  {"noun": "ochazuke.palette", "verb": "set", "replacement": "ochazuke.palette.fill {text}", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb"},
+  {"noun": "ochazuke.confirm", "verb": "set", "replacement": "ochazuke.confirm.answer", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb"},
+  {"noun": "ochazuke.input", "verb": "delete", "replacement": "ochazuke.input.erase", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb"}
+]

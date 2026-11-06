@@ -7,6 +7,8 @@ import (
 	"slices"
 	"sort"
 	"strings"
+
+	"ofam.dev/ochazuke/namecheck"
 )
 
 // The action table is flat: Runtime.Operations maps a name (an operation
@@ -200,6 +202,7 @@ type actionNames struct {
 	noticed    map[string]bool        // deprecated aliases whose notice was posted
 	problems   []string               // aliases dropped because an action took their name
 	nouns      nounNames              // the noun aliases' reverse index, deprecated fields and notices (namespace.go)
+	removed    []namecheck.Removed    // the application's removed verbs (verb_check.go), beside the framework's
 }
 
 // Invoked is the name the running request named its action by (the

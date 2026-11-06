@@ -458,6 +458,7 @@ func (r *Runtime) CheckUserActions() []string {
 		installed[a.Key()] = a
 	}
 	entries, problems := readActions(path)
+	problems = append(problems, r.removedActionNotes(entries)...)
 	// The last load's alias rows stand aside while the file is checked, so
 	// a row is judged against the framework's and the application's names
 	// and the rows before it, not against its own earlier install.

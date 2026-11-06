@@ -88,7 +88,7 @@ func registerConfiguration(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "check", Noun: "ochazuke.bindings", Description: "Report the rows of the user bindings file that would be skipped, any merged row that does not validate, and as warnings the file's guard rows (debts) and any row that can never answer; with debts, every guard row of every table too; the status line names the format read (grouped or rows)", Parameters: map[string]Parameter{"debts": {Type: "boolean", Description: "Also list every table's guard rows (rows with when), the debts left to move onto actions' availability"}}, Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "check", Noun: "ochazuke.bindings", Description: "Report the rows of the user bindings file that would be skipped, any merged row that does not validate, rows (and actions.json entries) that name a removed verb with what to use instead, and as warnings the file's guard rows (debts) and any row that can never answer; with debts, every guard row of every table too; the status line names the format read (grouped or rows)", Parameters: map[string]Parameter{"debts": {Type: "boolean", Description: "Also list every table's guard rows (rows with when), the debts left to move onto actions' availability"}}, Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := append(r.CheckUserBindings(), r.StandardShadows()...)
 		if debts, _ := a["debts"].(bool); debts {
 			lines := r.BindingDebts()
@@ -425,7 +425,7 @@ func (r *Runtime) CheckUserBindings() []string {
 	var problems []string
 	if path != "" {
 		rows, bad := r.readUserBindings(path)
-		problems = bad
+		problems = append(bad, r.removedBindingNotes(rows)...)
 		for _, f := range rows {
 			row, err := r.validateRow(f.row)
 			if err != nil {
