@@ -42,6 +42,13 @@ type factsSpec struct {
 	// Get answers the thing with that key; nil looks it up in List's
 	// answer to no arguments.
 	Get func(Ctx, string) (Thing, error)
+	// KeyPrefix lets the default Get also find a thing by its key without
+	// this prefix ("branch/" for branch/repo:topic); "" none.
+	KeyPrefix string
+	// Own declares the noun with DefineOwn (an application's own noun)
+	// instead of Define; Remote marks the store Remote (List reads through
+	// Ctx.Await).
+	Own, Remote bool
 }
 
 // defineFacts declares the noun, its props and its facts store. The
@@ -51,7 +58,9 @@ type factsSpec struct {
 func (r *Runtime) defineFacts(f factsSpec) {
 	var props []PropSpec
 	props = append(props, f.Extra...)
-	props = append(props, jsonProps(reflect.TypeOf(f.Sample), f.Docs)...)
+	if f.Sample != nil {
+		props = append(props, jsonProps(reflect.TypeOf(f.Sample), f.Docs)...)
+	}
 	for i := range props {
 		if to, ok := f.Rename[props[i].Name]; ok {
 			props[i].Name = to
@@ -100,15 +109,19 @@ func (r *Runtime) defineFacts(f factsSpec) {
 				return nil, err
 			}
 			for _, t := range things {
-				if fmt.Sprint(t[keyName]) == key {
+				if id := fmt.Sprint(t[keyName]); id == key || f.KeyPrefix != "" && strings.TrimPrefix(id, f.KeyPrefix) == key {
 					return t, nil
 				}
 			}
 			return nil, fmt.Errorf("unknown %s %q", c.Runtime.DisplayNoun(f.Noun), key)
 		}
 	}
-	r.Define(f.Noun).Props(props...).Store(Store{
-		Kind: Collection, Facts: true, ListParams: f.ListParams, List: f.List, Get: get,
+	define := r.Define
+	if f.Own {
+		define = r.DefineOwn
+	}
+	define(f.Noun).Props(props...).Store(Store{
+		Kind: Collection, Facts: true, Remote: f.Remote, ListParams: f.ListParams, List: f.List, Get: get,
 	})
 }
 
