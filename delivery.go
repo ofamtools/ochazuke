@@ -175,6 +175,27 @@ func (res Result) Map(fn func(value any, err error) (any, error)) Result {
 	return res
 }
 
+// mapOnLoop is Map run on the loop once the steps (Continue) end, so fn
+// may read the runtime's state (what is open when the work lands).
+func (res Result) mapOnLoop(fn func(value any, err error) (any, error)) Result {
+	if res.work == nil {
+		return res
+	}
+	inner := res.cont
+	res.cont = func(value any, err error) (func(context.Context) (any, error), any, error) {
+		if inner != nil {
+			more, v, e := inner(value, err)
+			if more != nil {
+				return more, v, e
+			}
+			value, err = v, e
+		}
+		value, err = fn(value, err)
+		return nil, value, err
+	}
+	return res
+}
+
 // continuation is called on the loop with a job's completion: it answers
 // the work to run next (the job stays running, under the same ticket), or
 // nil with the value and error the job finishes with.

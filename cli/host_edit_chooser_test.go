@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"context"
+	"strings"
 	"testing"
 
 	"ofam.dev/ochazuke"
@@ -100,5 +102,85 @@ func TestMountedEditFieldChooserOpensBeforeTheGet(t *testing.T) {
 	}
 	if row, ok := r.Chooser(ochazuke.EditChooserKind).Highlighted(); !ok || row.ID != "done" {
 		t.Fatalf("highlight after the get: %+v %t", row, ok)
+	}
+}
+
+// Enter before the get lands, with nothing typed and the highlight not
+// moved, is no choice: the chooser says the value is loading and holds
+// the enter until the get lands, then takes the value the thing holds,
+// so nothing is written (UX R2 N1). A moved highlight is a choice and
+// writes at once.
+func TestMountedEditChooserEnterBeforeTheGetLands(t *testing.T) {
+	t.Parallel()
+	var sets int
+	r, _, thing := mountedEditFixture(t, "change", func(context.Context) error { sets++; return nil })
+	thing["status"] = "done"
+	if _, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "edit", Args: ochazuke.Arguments{"field": "status"}}); err != nil {
+		t.Fatal(err)
+	}
+	c := r.Chooser(ochazuke.EditChooserKind)
+	if c == nil || !strings.Contains(c.Title(), "loading current value") {
+		t.Fatalf("the chooser shows the value is loading: %v", c)
+	}
+	if _, err := r.HandleBinding("enter"); err != nil {
+		t.Fatal(err)
+	}
+	if r.Chooser(ochazuke.EditChooserKind) != c || sets != 0 {
+		t.Fatalf("enter before the get is held: modal %q sets %d", r.TopModal(), sets)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	if thing["status"] != "done" || sets != 0 || r.TopModal() != "" || r.Focus != "rows/t1" {
+		t.Fatalf("held enter took the loaded value: %v sets %d modal %q focus %q", thing["status"], sets, r.TopModal(), r.Focus)
+	}
+	// A moved highlight is the user's choice: it writes.
+	if _, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "edit", Args: ochazuke.Arguments{"field": "status"}}); err != nil {
+		t.Fatal(err)
+	}
+	c = r.Chooser(ochazuke.EditChooserKind)
+	if _, err := r.HandleBinding("down"); err != nil || !c.Moved() {
+		t.Fatalf("down: %v moved %t", err, c.Moved())
+	}
+	row, _ := c.Highlighted()
+	if _, err := r.HandleBinding("enter"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	if thing["status"] != row.ID || sets != 1 || r.TopModal() != "" {
+		t.Fatalf("moved pick: %v want %q sets %d modal %q", thing["status"], row.ID, sets, r.TopModal())
+	}
+}
+
+// When the get fails after the chooser picked, the pick's write is the
+// result: the get's failure is not reported (UX R2 N2). While the
+// chooser is still open, a failed get closes it and is reported.
+func TestMountedEditChooserGetFailsAfterPick(t *testing.T) {
+	t.Parallel()
+	r, _, thing := mountedEditFixture(t, "change")
+	thing["get-error"] = "backend down: cannot read parcel"
+	if _, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "edit", Args: ochazuke.Arguments{"field": "status"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.HandleBinding("down"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.HandleBinding("enter"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatalf("the get's failure after the pick is not the result: %v", err)
+	}
+	if thing["status"] == "todo" || r.TopModal() != "" {
+		t.Fatalf("pick written: %v modal %q", thing["status"], r.TopModal())
+	}
+	// Still open when the get fails: it closes and the failure is shown.
+	if _, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "edit", Args: ochazuke.Arguments{"field": "status"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(r, nil); err == nil || !strings.Contains(err.Error(), "backend down") || r.TopModal() != "" {
+		t.Fatalf("open chooser's failed get: %v modal %q", err, r.TopModal())
 	}
 }

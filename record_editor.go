@@ -67,10 +67,14 @@ type RecordField struct {
 
 // RecordWrite is one write an editor hands Save: the record as it is to be
 // stored (every field's last valid value) and the fields this write
-// changes, in schema order.
+// changes, in schema order. Walk says the write is form.undo's (-1) or
+// form.redo's (+1) of its field, 0 for an edit, so a Save that writes
+// several things can put each back to its own value rather than the
+// form's (the standard edit over a selection does).
 type RecordWrite struct {
 	Values  Record
 	Changed []string
+	Walk    int
 }
 
 // String reads a write in one line: "write title=milk status=doing", the
@@ -297,6 +301,9 @@ type recordField struct {
 	lines                 [][]int
 	not                   bool // an Invertible field's state as shown
 	writeErr, failedValue string
+	// walk is the form.undo (-1) or form.redo (+1) that queued the field's
+	// pending write, 0 for an edit (RecordWrite.Walk).
+	walk int
 }
 
 func (f *recordField) text() string {
@@ -370,6 +377,7 @@ type RecordEditor struct {
 	closed      bool
 	loading     bool // outsideWrite is loading the record
 	reloadAgain bool
+	walking     int  // history's undo (-1) or redo (+1) while it flushes
 	ran         bool // form.run handed the values to Submit
 	failure     error
 }
@@ -773,6 +781,7 @@ func (e *RecordEditor) flush() error {
 			continue
 		}
 		e.written[f.Name] = v
+		f.walk = e.walking
 		e.requeue([]string{f.Name})
 	}
 	return e.send()
@@ -813,7 +822,7 @@ func (e *RecordEditor) send() error {
 		return nil
 	}
 	e.sending = changed
-	w := RecordWrite{Values: maps.Clone(e.written), Changed: slices.Clone(changed)}
+	w := e.recordWrite(changed)
 	var res Result
 	if e.spec.Submit != nil {
 		res = e.spec.Submit(w.Values)
@@ -876,6 +885,17 @@ func (e *RecordEditor) send() error {
 	}
 	e.markFlush(e.r.jobs[ticket.Job], w)
 	return nil
+}
+
+// recordWrite is the write of changed: the record as written and, for a
+// field write, the form.undo or form.redo that queued it (Walk).
+func (e *RecordEditor) recordWrite(changed []string) RecordWrite {
+	w := RecordWrite{Values: maps.Clone(e.written), Changed: slices.Clone(changed)}
+	if e.spec.FieldWrites {
+		f := e.field(changed[0])
+		w.Walk, f.walk = f.walk, 0
+	}
+	return w
 }
 
 func (e *RecordEditor) saveFailed(w RecordWrite, err error) {
@@ -1069,7 +1089,12 @@ func (e *RecordEditor) history(redo bool) error {
 			focus = f
 		}
 	}
+	e.walking = 1
+	if !redo {
+		e.walking = -1
+	}
 	werr := e.flush()
+	e.walking = 0
 	for _, f := range e.fields {
 		f.before = e.written[f.Name]
 	}

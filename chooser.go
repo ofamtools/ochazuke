@@ -130,6 +130,14 @@ type ChooserSpec struct {
 	// query is empty and the user has not moved it (a field's current
 	// value), as rows arrive; else the top row.
 	Start func(ChooserRow) bool
+	// Hold, when set, holds an enter the user made no choice for (an
+	// empty query, the highlight not moved) while it reports true, as
+	// enter waits for a Live source's rows: what the highlight starts on
+	// is not known yet (Start's value is still loading). The owner calls
+	// Release once Hold turns false; the held enter then takes the
+	// highlight as it is. A typed query or a moved highlight is a choice
+	// and is taken at once.
+	Hold func() bool
 }
 
 // ChooserPreviewMin is the width from which a chooser with a Preview
@@ -407,9 +415,10 @@ func (c *Chooser) close() error {
 }
 
 func (c *Chooser) pick() Result {
-	if c.waiting() {
+	if c.waiting() || c.holding() {
 		// Enter on a query whose rows are still loading waits for them
-		// (runPending); typing more, a source switch or esc drops it.
+		// (runPending), as one with no choice made waits for Hold
+		// (Release); typing more, a source switch or esc drops it.
 		c.pending = true
 		return Done(c.state())
 	}
@@ -453,6 +462,21 @@ func (c *Chooser) create() Result {
 	}
 	defer c.r.actingFor(c.r.Focus)()
 	return create(query)
+}
+
+// holding reports whether enter is held for the spec's Hold: no choice
+// made (an empty query, the highlight not moved) and Hold true.
+func (c *Chooser) holding() bool {
+	c.sync()
+	return c.spec.Hold != nil && c.Query() == "" && !c.moved && c.spec.Hold()
+}
+
+// Release runs an enter held for the spec's Hold (or for a load) once
+// nothing holds it any more; with none held it does nothing.
+func (c *Chooser) Release() {
+	if c.pending && !c.loading && !c.holding() {
+		c.runPending()
+	}
 }
 
 // SetRows replaces the rows (a background load landing); the highlight

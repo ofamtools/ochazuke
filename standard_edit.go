@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 )
 
@@ -42,6 +43,10 @@ const editChooserParam = "chooser"
 // EditChooserKind is the kind of the chooser edit {field} opens on a
 // choice field (Runtime.Chooser(EditChooserKind) while it is open).
 const EditChooserKind = "edit-choose"
+
+// editLoadingValue ends the edit chooser's title while the thing's
+// current value is loading.
+const editLoadingValue = "loading current value…"
 
 const editFormID = "edit-form"
 const editOpenSlot = "standard-edit-open"
@@ -107,7 +112,8 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 		others = r.humanKeyAlone(n, only, others)
 		write := r.editWriter(n, subject, others, r.newHistoryGroup("edit "+writeKey))
 		if len(changes) > 0 {
-			return write(changes, false)
+			res, _ := write(changes, false, 0)
+			return res
 		}
 		if e := r.RecordEditor(editFormID); e != nil {
 			if err := e.Leave(); err != nil {
@@ -127,7 +133,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			fieldOnly := only != nil && r.Settings().Bool(EditFieldOnlySetting)
 			fields := r.editFields(n, c, thing, only, fieldOnly)
 			if field, ok := r.editByChooser(c.Args, only, fieldOnly, fields); ok {
-				_, err := r.openEditChooser(c, n, field, values, r.editChooserTitle(n, c, thing, subject, only), write)
+				_, _, err := r.openEditChooser(c, n, field, values, r.editChooserTitle(n, c, thing, subject, only), write)
 				return err
 			}
 			r.pendingRecord(writeKey, values)
@@ -179,7 +185,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 					if len(changed) == 0 {
 						return Done(nil)
 					}
-					return write(changed, false)
+					return editSaved(write(changed, false, 0))
 				}
 			} else {
 				spec.FieldWrites = true
@@ -189,7 +195,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 					if err != nil {
 						return Failed(err)
 					}
-					return write(map[string]any{name: value}, false)
+					return editSaved(write(map[string]any{name: value}, false, w.Walk))
 				}
 			}
 			editor, err = r.OpenRecordEditor(editFormID, spec)
@@ -244,7 +250,10 @@ func (r *Runtime) editChooserTitle(n *Noun, c Ctx, thing Thing, subject Argument
 // keys typed meanwhile reach the chooser's query and never the page
 // behind it; the get's answer fills it (the current value highlighted,
 // the title) when it lands, and a failed get closes it (the job reports
-// the error).
+// the error). Until it lands the title says the value is loading
+// (editLoadingValue) and an enter with no choice made waits for it
+// (openEditChooser). Once the chooser has picked or closed, a failed get
+// is not reported: the pick's write is the result.
 // ok is false where the field opens the form, which still waits for the
 // get.
 func (r *Runtime) editChooserEarly(c Ctx, n *Noun, only *PropSpec, subject Arguments, write editWrite, res Result) (Result, bool) {
@@ -253,14 +262,27 @@ func (r *Runtime) editChooserEarly(c Ctx, n *Noun, only *PropSpec, subject Argum
 	if !ok {
 		return Result{}, false
 	}
-	fill, err := r.openEditChooser(c, n, field, nil, r.editChooserTitle(n, c, Thing{}, subject, only), write)
+	ch, fill, err := r.openEditChooser(c, n, field, nil, r.editChooserTitle(n, c, Thing{}, subject, only)+" · "+editLoadingValue, write)
 	if err != nil {
 		return Failed(err), true
 	}
+	open := func() bool { return r.Chooser(EditChooserKind) == ch }
 	then := res.then
+	// Once the chooser has picked or closed, the get is no longer the
+	// verb's answer: its failure is dropped, and the pick's own result
+	// (its write) is what is shown.
+	res = res.mapOnLoop(func(value any, err error) (any, error) {
+		if err != nil && !open() {
+			return nil, nil
+		}
+		return value, err
+	})
 	return res.ReplacingAt("app", editOpenSlot).Then(func(ctx Ctx, value any, err error) {
 		if then != nil {
 			then(ctx, value, err)
+		}
+		if !open() {
+			return
 		}
 		var thing Thing
 		var values Record
@@ -329,7 +351,77 @@ func (r *Runtime) editSubjects(n *Noun, c Ctx) (Arguments, []any, error) {
 
 // editWrite writes changes to an edit's subjects; held says the subject
 // (the focused one) already holds them, so only the others are written.
-type editWrite func(changes map[string]any, held bool) Result
+// walk is a form's undo (-1) or redo (+1) of one field (RecordWrite.Walk),
+// 0 for an edit. own is the focused subject's refusal when other subjects
+// took the write (the result is then Done and the notice counts them).
+type editWrite func(changes map[string]any, held bool, walk int) (res Result, own error)
+
+// editStep is one write of a field by an edit: the rows it reached, each
+// with the value it held before (read from the write's history change).
+type editStep struct {
+	field string
+	rows  []editRow
+}
+
+// editRow is a subject an edit wrote: key nil for the one it opened on;
+// before is the value it held, known when the store recorded it.
+type editRow struct {
+	key    any
+	before any
+	known  bool
+}
+
+// editLog is an edit's writes of each field, newest last (editStep):
+// done the ones a form.undo takes back, undone the ones a form.redo
+// writes again.
+type editLog struct{ done, undone []editStep }
+
+// rows are the subjects a write of changes reaches, and the field a
+// form.undo or form.redo (walk) walks: for an edit, the subject and
+// every other; for a walk of one field, the rows its newest step reached
+// (the focused row alone when none was recorded), taken off its stack.
+func (l *editLog) rows(changes map[string]any, others []any, walk int) ([]editRow, string) {
+	if walk == 0 || len(changes) != 1 {
+		rows := []editRow{{}}
+		for _, k := range others {
+			rows = append(rows, editRow{key: k})
+		}
+		return rows, ""
+	}
+	field := ""
+	for f := range changes {
+		field = f
+	}
+	from := &l.done
+	if walk > 0 {
+		from = &l.undone
+	}
+	i := lastEditStep(*from, field)
+	if i < 0 {
+		return []editRow{{}}, field
+	}
+	rows := (*from)[i].rows
+	*from = slices.Delete(*from, i, i+1)
+	return rows, field
+}
+
+// push records a write's rows per field: an undo's on undone, any other
+// on done; an edit drops the field's undone steps, as a new change drops
+// a redo.
+func (l *editLog) push(changes map[string]any, wrote map[string][]editRow, walk int) {
+	for f := range changes {
+		step := editStep{field: f, rows: wrote[f]}
+		switch {
+		case walk < 0 && len(changes) == 1:
+			l.undone = append(l.undone, step)
+		default:
+			l.done = append(l.done, step)
+			if walk == 0 {
+				l.undone = slices.DeleteFunc(l.undone, func(s editStep) bool { return s.field == f })
+			}
+		}
+	}
+}
 
 // editWriter is the form's write: set {props} on the subject and on each
 // other subject, every one recorded in group, so history.undo takes the
@@ -339,52 +431,148 @@ type editWrite func(changes map[string]any, held bool) Result
 // focused one as any other: a write over several subjects posts the one
 // notice a run over many does (subjectsNotice: done on N rows, or how
 // many failed), and fails only when none applied.
+//
+// It keeps each field's writes (editLog) so a form's undo of a field
+// (walk -1) puts every row it reached back to that row's own earlier
+// value, as history.undo does, and leaves the rows it did not reach (a
+// refusal) alone; a redo (walk +1) writes again only the rows the undo
+// reached. A row whose earlier value the store did not record is left as
+// it is, and a notice says so.
 func (r *Runtime) editWriter(n *Noun, subject Arguments, others []any, group string) editWrite {
-	return func(changes map[string]any, held bool) Result {
+	var log editLog
+	return func(changes map[string]any, held bool, walk int) (Result, error) {
 		defer r.inHistoryGroup(group)()
-		name := r.DisplayKey(n.Name + ".edit")
-		var value any
-		var applied, skipped []string
-		var first error
-		for i, target := range append([]any{nil}, others...) {
-			args := maps.Clone(subject)
-			props := maps.Clone(changes)
-			if i > 0 {
-				args[n.keyProp().Name] = target
-				if human := n.humanProp(); human != nil {
-					delete(props, human.Name)
-				}
-			}
-			if len(props) == 0 || i == 0 && held {
+		rows, field := log.rows(changes, others, walk)
+		var w editWriting
+		for _, row := range rows {
+			props, ok := r.editProps(n, row, changes, field, walk)
+			if !ok {
+				w.unknown++
 				continue
 			}
-			args["props"] = props
-			// The subject key, not the ephemeral row, identifies this write.
-			v, err := r.ExecuteAt(r.contextOf("app"), Request{Noun: n.Name, Verb: "set", Args: args})
-			id := ""
-			if key := n.keyProp(); key != nil {
-				id = fmt.Sprint(args[key.Name])
-			}
-			if err != nil {
-				skipped = append(skipped, id+": "+err.Error())
-				first = cmp.Or(first, err)
+			if len(props) == 0 || row.key == nil && held {
 				continue
 			}
-			applied = append(applied, id)
-			if i == 0 {
-				value = v
-			}
+			w.write(r, n, subject, row, props)
+		}
+		log.push(changes, w.wrote, walk)
+		if w.unknown > 0 {
+			r.UI().Info(fmt.Sprintf("left %d as they were: their earlier %s is not known", w.unknown, field))
 		}
 		switch {
-		case len(applied) == 0 && len(skipped) == 1:
-			return Failed(first)
-		case len(applied)+len(skipped) > 1:
-			if err := r.subjectsNotice(name, applied, skipped, first); err != nil {
-				return Failed(err)
+		case len(w.applied) == 0 && len(w.skipped) == 1:
+			return Failed(w.first), nil
+		case len(w.applied)+len(w.skipped) > 1:
+			if err := r.subjectsNotice(r.DisplayKey(n.Name+".edit"), w.applied, w.skipped, w.first); err != nil {
+				return Failed(err), nil
 			}
 		}
-		return Done(value)
+		return Done(w.value), w.own
 	}
+}
+
+// editProps are the props a write gives row: the changes, less the human
+// key on a row other than the focused one; a form.undo of field gives
+// each other row its own earlier value, and ok is false when that is not
+// known.
+func (r *Runtime) editProps(n *Noun, row editRow, changes map[string]any, field string, walk int) (map[string]any, bool) {
+	props := maps.Clone(changes)
+	if row.key == nil {
+		return props, true
+	}
+	if human := n.humanProp(); human != nil {
+		delete(props, human.Name)
+	}
+	if field != "" && walk < 0 {
+		return map[string]any{field: row.before}, row.known
+	}
+	return props, true
+}
+
+// editWriting is one editWriter write as it goes: the rows applied and
+// skipped, the first failure and the focused row's own, the focused
+// row's answer, the rows written per field, and the rows left because
+// their earlier value is not known.
+type editWriting struct {
+	value            any
+	applied, skipped []string
+	first, own       error
+	wrote            map[string][]editRow
+	unknown          int
+}
+
+// write sets props on row (the subject when its key is nil) and notes
+// what it held before.
+func (w *editWriting) write(r *Runtime, n *Noun, subject Arguments, row editRow, props map[string]any) {
+	key := n.keyProp()
+	args := maps.Clone(subject)
+	if row.key != nil {
+		args[key.Name] = row.key
+	}
+	args["props"] = props
+	since := r.history.seq
+	// The subject key, not the ephemeral row, identifies this write.
+	v, err := r.ExecuteAt(r.contextOf("app"), Request{Noun: n.Name, Verb: "set", Args: args})
+	id := ""
+	if key != nil {
+		id = fmt.Sprint(args[key.Name])
+	}
+	if err != nil {
+		w.skipped = append(w.skipped, id+": "+err.Error())
+		w.first = cmp.Or(w.first, err)
+		if row.key == nil {
+			w.own = err
+		}
+		return
+	}
+	w.applied = append(w.applied, id)
+	if row.key == nil {
+		w.value = v
+	}
+	before, known := r.editBefore(since, n.Name, id)
+	if w.wrote == nil {
+		w.wrote = map[string][]editRow{}
+	}
+	for f := range props {
+		w.wrote[f] = append(w.wrote[f], editRow{key: row.key, before: before[f], known: known})
+	}
+}
+
+// lastEditStep is the index of the newest of steps that wrote field, -1
+// for none.
+func lastEditStep(steps []editStep, field string) int {
+	for i := len(steps) - 1; i >= 0; i-- {
+		if steps[i].field == field {
+			return i
+		}
+	}
+	return -1
+}
+
+// editBefore is what the thing key of noun held before the write recorded
+// after since (its history change's Before); known is false when the
+// write recorded no values (a store without Undo, a remote write still
+// running).
+func (r *Runtime) editBefore(since uint64, noun, key string) (map[string]any, bool) {
+	entries := r.history.entries
+	for i := len(entries) - 1; i >= 0 && entries[i].Seq > since; i-- {
+		for _, ch := range entries[i].Changes {
+			if ch.Noun == noun && ch.Key == key && ch.Before != nil {
+				return ch.Before, true
+			}
+		}
+	}
+	return nil, false
+}
+
+// editSaved is a form's write result: a focused subject that refused
+// leaves the form's field not written (its label says why), even when
+// the other subjects took the write (the notice counts them).
+func editSaved(res Result, own error) Result {
+	if res.err == nil && own != nil {
+		return Failed(own)
+	}
+	return res
 }
 
 // otherSubjectKeys are the keys of the request's subjects (Ctx.Subjects,

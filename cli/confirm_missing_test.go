@@ -40,6 +40,15 @@ func TestConfirmRefusesAMissingThing(t *testing.T) {
 			t.Fatalf("%v: err %v, stderr %q", args, err, errOut)
 		}
 	}
+	// No key and no row to act for (no target, or a target that is not a
+	// chore: the app) fails first, in the verb's own words, not after a
+	// prompt about the app (UX R2 N6).
+	for _, args := range [][]string{{"chore", "delete"}, {"chore", "delete", "--target", "app"}} {
+		_, errOut, err := f.run("y\n", args...)
+		if err == nil || !strings.Contains(err.Error(), "no chore is focused") || strings.Contains(errOut, "[y/N]") {
+			t.Fatalf("%v: err %v, stderr %q", args, err, errOut)
+		}
+	}
 	if len(deleted) != 0 || f.r.TopModal() != "" {
 		t.Fatalf("deleted %v, modal %q", deleted, f.r.TopModal())
 	}

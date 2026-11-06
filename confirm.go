@@ -252,22 +252,37 @@ func (r *Runtime) storeLabel(c Context, q Request, inst *Instance, known Thing) 
 // or a target read as the key), read from its noun's store where it runs,
 // so a confirmation never asks about a thing that does not exist: a key
 // the store does not hold is the store's own answer (unknown task
-// "typo"), returned before anything is asked. A remote store, whose
-// answer comes later, is not probed; nil, nil when the request names no
-// thing by key.
+// "typo"), returned before anything is asked. A request that gives no
+// key acts for the row it addresses (subjectKey); with none (a CLI call
+// with no target, a target that is a page) it fails the way the verb
+// would (id is required: no task is focused), before anything is asked.
+// A remote store, whose answer comes later, is not probed; nil, nil when
+// the request names no thing by key.
 func (r *Runtime) namedThing(c Context, q Request) (Thing, error) {
 	op, ok := r.Operations[q.Key()]
 	n := r.Noun(q.Noun)
-	if !ok || n == nil || !n.resolvable() || n.Store.Remote {
+	if !ok || n == nil || !n.resolvable() {
 		return nil, nil
 	}
 	key := n.keyProp()
 	p, takes := op.Parameters[key.Name]
 	v := q.Args[key.Name]
-	if !takes || !p.Focus || p.Noun != n.Name || emptyProp(v) {
+	if !takes || !p.Focus || p.Noun != n.Name {
 		return nil, nil
 	}
 	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c}
+	if emptyProp(v) {
+		if len(q.Subjects) == 0 {
+			ctx.Instance = r.Instances[focusOf(c)]
+			if _, err := r.subjectKey(n, ctx); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	}
+	if n.Store.Remote {
+		return nil, nil
+	}
 	id, err := r.resolveTarget(n, ctx, fmt.Sprint(v))
 	if err != nil {
 		return nil, err

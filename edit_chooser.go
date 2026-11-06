@@ -44,8 +44,12 @@ func (r *Runtime) editByChooser(args Arguments, only *PropSpec, fieldOnly bool, 
 // values may be nil while the thing's get is pending: the chooser opens
 // at once (its rows load meanwhile, so keys typed reach its query and
 // never the page), and fill gives it the thing's values and title when
-// the get lands, or closes it when the get failed.
-func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Record, title string, write editWrite) (fill func(Record, string, error), err error) {
+// the get lands, or closes it when the get failed. Until then the value
+// it holds is not known, so an enter with no choice made (nothing typed,
+// the highlight not moved) is held (ChooserSpec.Hold) and taken when the
+// get lands, on the value it holds then: no write unless the selection
+// has rows that differ. A typed query or a moved highlight writes at once.
+func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Record, title string, write editWrite) (ch *Chooser, fill func(Record, string, error), err error) {
 	p := n.prop(field.Name)
 	cur := values
 	held := func(text string) bool { return cur != nil && text == cur[field.Name] }
@@ -53,17 +57,19 @@ func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Reco
 	if !field.Required {
 		fixed = append(fixed, ChooserRow{ID: "", Label: "(none)", Fixed: true})
 	}
-	ch, err := r.openChoiceChooser(ChooserSpec{
+	ch, err = r.openChoiceChooser(ChooserSpec{
 		Kind:  EditChooserKind,
 		Title: title,
 		Empty: "loading…",
 		Start: func(row ChooserRow) bool { return held(row.ID) },
+		Hold:  func() bool { return cur == nil },
 		Choose: func(row ChooserRow) Result {
 			value, err := editPropValue(*p, row.ID)
 			if err != nil {
 				return Failed(err)
 			}
-			return write(map[string]any{field.Name: value}, held(row.ID))
+			res, _ := write(map[string]any{field.Name: value}, held(row.ID), 0)
+			return res
 		},
 	}, choiceLoad{
 		ctx:      c.Context,
@@ -73,9 +79,9 @@ func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Reco
 		fixed:    fixed,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return func(loaded Record, title string, err error) {
+	return ch, func(loaded Record, title string, err error) {
 		if r.Chooser(EditChooserKind) != ch {
 			return // closed or replaced before the get landed
 		}
@@ -90,9 +96,10 @@ func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Reco
 			// A dependent source reads the siblings just loaded.
 			ch.SetRows(nil)
 			ch.load()
-			return
+		} else {
+			ch.SetRows(ch.spec.Rows)
 		}
-		ch.SetRows(ch.spec.Rows)
+		ch.Release()
 	}, nil
 }
 

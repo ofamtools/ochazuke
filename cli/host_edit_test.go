@@ -70,7 +70,14 @@ func mountedEditFixture(t *testing.T, mode string, beforeSet ...func(context.Con
 				return ochazuke.Failed(err)
 			}
 			if v.Name == "get" {
-				return ochazuke.Pending(func(context.Context) (any, error) { return value, nil })
+				// A test sets get-error on the thing to make the remote get fail.
+				failure, _ := thing["get-error"].(string)
+				return ochazuke.Pending(func(context.Context) (any, error) {
+					if failure != "" {
+						return nil, errors.New(failure)
+					}
+					return value, nil
+				})
 			}
 			return ochazuke.Done(value)
 		}
