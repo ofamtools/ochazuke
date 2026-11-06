@@ -30,6 +30,7 @@ func (s *derivedStore) find(id string) Thing {
 
 func (s *derivedStore) store() Store {
 	return Store{
+		Stamps: true, // the log shows the writes the test makes, not the framework's times
 		Get: func(_ Ctx, id string) (Thing, error) {
 			if t := s.find(id); t != nil {
 				return maps.Clone(t), nil

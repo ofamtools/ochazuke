@@ -120,7 +120,12 @@ func TestThemeSettingSelectsUserScheme(t *testing.T) {
 	if err != nil || !slices.Equal(v.Enum, []string{"adaptive", "dark", "light", "mono", "kombu"}) {
 		t.Fatalf("enum %v %v", v.Enum, err)
 	}
-	if got, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.themes"}); !slices.Equal(got.([]string), v.Enum) {
+	var names []string
+	got, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.themes"})
+	for _, row := range got.([]map[string]any) {
+		names = append(names, row["id"].(string))
+	}
+	if !slices.Equal(names, v.Enum) {
 		t.Fatalf("themes.list %v", got)
 	}
 	if !sameColor(NewStyles(*m.Appearance).ActiveTab.GetForeground(), lipgloss.Color("#C9A227")) {

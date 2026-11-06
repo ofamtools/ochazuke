@@ -299,21 +299,22 @@ const (
 )
 
 // baseProps are the props a thing noun has beside its key, human key and
-// archive prop when its store declares Times: read-only times, as RFC 3339
-// text. A noun that already names a prop (or a role) of its own keeps its
+// archive prop: read-only times, as RFC 3339 text. Every thing noun has
+// them but a facts store's (Store.Facts). A noun that already names a prop (or a role) of its own keeps its
 // own, and the framework stamps that one.
 var baseProps = []PropSpec{
 	{Name: RoleCreated, Role: RoleCreated, ReadOnly: true, Parameter: Parameter{Description: "When the thing was made (RFC 3339, UTC)"}},
 	{Name: RoleUpdated, Role: RoleUpdated, ReadOnly: true, Parameter: Parameter{Description: "When the thing was last written (RFC 3339, UTC)"}},
 }
 
-// addBaseProps declares baseProps on a noun whose store declares Times.
+// addBaseProps declares baseProps on a thing noun with keys of its own: not
+// a facts store's, a singleton's or an instances noun's, and not one whose
+// store neither writes things (Create, Patch) nor says it keeps its own
+// times (Stamps): nothing would ever fill the props.
 func (r *Runtime) addBaseProps(n *Noun) {
-	if !n.Store.Times {
+	s := n.Store
+	if s.Facts || n.keyProp() == nil || s.instanceKeyed || s.Create == nil && s.Patch == nil && !s.Stamps {
 		return
-	}
-	if n.keyProp() == nil || n.Store.instanceKeyed {
-		panic(n.Name + ": Times is for things with keys of their own (not a singleton or an instances noun)")
 	}
 	for _, p := range baseProps {
 		if n.prop(p.Name) != nil || n.roleProp(p.Role) != nil {
@@ -326,10 +327,10 @@ func (r *Runtime) addBaseProps(n *Noun) {
 }
 
 // stamp writes the current time into the props that have the roles, before
-// the store sees the write; only a store that declares Times and not Stamps
+// the store sees the write; only a store that is not facts and does not declare Stamps
 // is stamped for, and a prop that is not text is left alone.
 func (n *Noun) stamp(t Thing, roles ...string) {
-	if !n.Store.Times || n.Store.Stamps {
+	if n.Store.Facts || n.Store.Stamps {
 		return
 	}
 	now := time.Now().UTC().Format(time.RFC3339)

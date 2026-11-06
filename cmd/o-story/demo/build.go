@@ -649,6 +649,7 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 		delete(ss.R.Operations, del)
 	}
 	d.Props(spec.Props...).Store(ochazuke.Store{
+		Stamps: true, // story frames and write logs show the story's own writes, not the clock
 		Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
 			ss.Writes = append(ss.Writes, "get "+id)
 			for _, t := range things {

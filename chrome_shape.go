@@ -179,14 +179,16 @@ func registerGlyphs(r *Runtime, a *Appearance) {
 	a.glyphSet, _ = settings.current(*settings.find(ChromeGlyphsSetting)).(string)
 	r.Settings().Observe(ChromeBorderSetting, func(_ string, value any) { a.borderSet, _ = value.(string) })
 	r.Settings().Observe(ChromeGlyphsSetting, func(_ string, value any) { a.glyphSet, _ = value.(string) })
-	r.Register(Operation{Noun: "ochazuke.glyphs", Verb: "list", HistoryKind: HistoryFetch, Description: "List glyph sets, the active set and why auto chose it", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
-		active, reason := a.glyphChoice(r.Settings().String(ChromeGlyphsSetting))
-		rows := make([]map[string]any, 0, 4)
-		for _, set := range []string{"auto", "ascii", "unicode", "nerd"} {
-			rows = append(rows, map[string]any{"set": set, "active": set == active, "resolved": active, "reason": reason})
-		}
-		return rows, nil
-	}})
+	r.defineFacts(factsSpec{Noun: "ochazuke.glyphs", Sample: glyphFact{}, Key: "name", Label: "name",
+		Docs: map[string]string{"name": "The glyph set: auto, ascii, unicode or nerd", "active": "The set in effect", "resolved": "The set auto resolves to", "reason": "Why auto chose it"},
+		List: func(Ctx, ListQuery) ([]Thing, error) {
+			active, reason := a.glyphChoice(r.Settings().String(ChromeGlyphsSetting))
+			var rows []glyphFact
+			for _, set := range []string{"auto", "ascii", "unicode", "nerd"} {
+				rows = append(rows, glyphFact{Name: set, Active: set == active, Resolved: active, Reason: reason})
+			}
+			return factThings(rows, nil)
+		}})
 	r.Register(Operation{Noun: "ochazuke.glyphs", Verb: "show", HistoryKind: HistoryFetch, Description: "Show every glyph role and codepoint; nerd needs a Nerd Font Mono", Parameters: map[string]Parameter{"set": {Type: "string", Enum: []string{"auto", "ascii", "unicode", "nerd"}}}, Positional: []string{"set"}, Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
 		set := StringArg(args, "set", "")
 		if set == "" || set == "auto" {
@@ -264,4 +266,12 @@ func asciiFrame(text string) string {
 		text = text[n:]
 	}
 	return out.String()
+}
+
+// glyphFact is a glyph set as a thing.
+type glyphFact struct {
+	Name     string `json:"name"`
+	Active   bool   `json:"active"`
+	Resolved string `json:"resolved"`
+	Reason   string `json:"reason"`
 }

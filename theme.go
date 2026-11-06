@@ -121,9 +121,15 @@ func newAppearance(r *Runtime) *Appearance {
 		*a = next
 		return next, nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.themes", Description: "List the colour schemes: the built-in themes, then those of themes.json", Result: "string[]", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
-		return a.ThemeNames(), nil
-	}})
+	r.defineFacts(factsSpec{Noun: "ochazuke.themes", Sample: themeFact{}, Key: "name", Label: "name",
+		Docs: map[string]string{"name": "The colour scheme's name: a built-in theme, or one of themes.json"},
+		List: func(Ctx, ListQuery) ([]Thing, error) {
+			var names []themeFact
+			for _, name := range a.ThemeNames() {
+				names = append(names, themeFact{Name: name})
+			}
+			return factThings(names, nil)
+		}})
 	r.Register(Operation{Verb: "reload", Noun: "ochazuke.themes", HistoryKind: HistoryFetch, Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		problems := r.reloadThemes()
 		if problems == nil {
@@ -139,6 +145,11 @@ func newAppearance(r *Runtime) *Appearance {
 		return path, nil
 	}})
 	return a
+}
+
+// themeFact is a colour scheme as a thing.
+type themeFact struct {
+	Name string `json:"name"`
 }
 
 // ThemeNames are the schemes Theme can name: the built-in themes, then the

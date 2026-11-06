@@ -302,10 +302,10 @@ func TestBindingsFileJSONC(t *testing.T) {
 		t.Fatal(err)
 	}
 	var a, x bool
-	for _, row := range got.([]Binding) {
-		if row.Noun == "app" && row.Mode == "normal" {
-			a = a || row.Keys == "a" && row.Request.Key() == "test.beta"
-			x = x || row.Keys == "x"
+	for _, row := range got.([]map[string]any) {
+		if req, _ := row["request"].(map[string]any); row["noun"] == "app" && row["mode"] == "normal" {
+			a = a || row["keys"] == "a" && req["noun"] == "test" && req["verb"] == "beta"
+			x = x || row["keys"] == "x"
 		}
 	}
 	if !a || x {

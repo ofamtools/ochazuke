@@ -666,13 +666,6 @@ func readActions(path string) ([]fileAction, []string) {
 }
 
 func registerActions(r *Runtime) {
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.actions", Description: "List the actions installed from actions.json: verbs that run an external command", Result: "action[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		out := r.UserActions()
-		if out == nil {
-			out = []Action{}
-		}
-		return out, nil
-	}})
 	r.Register(Operation{Verb: "reload", Noun: "ochazuke.actions", HistoryKind: HistoryFetch, Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadUserActions()
 		if r.Config().bindingsLoaded {
@@ -700,4 +693,15 @@ func registerActions(r *Runtime) {
 		}
 		return path, nil
 	}})
+}
+
+// registerActionFacts declares the actions noun.
+func registerActionFacts(r *Runtime) {
+	r.defineFacts(factsSpec{Noun: "ochazuke.actions", Sample: Action{}, Key: "key", Label: "label", Extra: []PropSpec{{Name: "key"}},
+		Docs: map[string]string{"key": "The verb the action adds (noun.verb)", "noun": "Its noun", "verb": "Its verb", "description": "What it does", "command": "The command it runs",
+			"label": "The label of its thing in the prompt"},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			acts := c.Runtime.UserActions()
+			return factThings(acts, func(i int, t Thing) { t["key"] = acts[i].Noun + "." + acts[i].Verb })
+		}})
 }

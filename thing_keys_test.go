@@ -342,21 +342,22 @@ func newTimesRuntime(t *testing.T, store func(*Store), props ...PropSpec) (*Runt
 	return r, s
 }
 
-// Times is opt in: a store without it has no created or updated prop, and
-// nothing is stamped. With it the props are read-only text, create stamps
-// both and set stamps updated; Stamps leaves the times to the store.
-func TestBaseTimesAreOptIn(t *testing.T) {
+// Every thing noun whose store writes has the base times: read-only text,
+// create stamps both and set stamps updated; Stamps leaves the times to
+// the store; a facts store (system facts) and a store that writes nothing
+// have none.
+func TestBaseTimesOnThingNouns(t *testing.T) {
 	t.Parallel()
-	r, s := newTimesRuntime(t, nil)
+	r, _ := newTimesRuntime(t, func(st *Store) { st.Facts = true })
 	if p := r.Noun("note").prop("created"); p != nil {
-		t.Fatalf("a store without Times declares %+v", p)
+		t.Fatalf("a facts store declares %+v", p)
 	}
-	mustRun(t, r, Request{Noun: "note", Verb: "set", Args: Arguments{"id": "t1", "prop": "owner", "value": "p5"}})
-	if _, ok := s.find("t1")["updated"]; ok {
-		t.Fatalf("stamped without Times: %v", s.find("t1"))
+	r, _ = newTimesRuntime(t, func(st *Store) { st.Create, st.Patch = nil, nil })
+	if p := r.Noun("note").prop("created"); p != nil {
+		t.Fatalf("a store that writes nothing declares %+v", p)
 	}
 
-	r, s = newTimesRuntime(t, func(st *Store) { st.Times = true })
+	r, s := newTimesRuntime(t, nil)
 	for _, name := range []string{"created", "updated"} {
 		if p := r.Noun("note").prop("@" + name); p == nil || !p.ReadOnly || p.Name != name {
 			t.Fatalf("@%s = %+v", name, p)
@@ -378,7 +379,7 @@ func TestBaseTimesAreOptIn(t *testing.T) {
 		t.Fatal("the times are read-only")
 	}
 
-	r, s = newTimesRuntime(t, func(st *Store) { st.Times, st.Stamps = true, true })
+	r, s = newTimesRuntime(t, func(st *Store) { st.Stamps = true })
 	mustRun(t, r, Request{Noun: "note", Verb: "set", Args: Arguments{"id": "t1", "prop": "owner", "value": "p5"}})
 	if _, ok := s.find("t1")["updated"]; ok {
 		t.Fatalf("Stamps leaves the time to the store: %v", s.find("t1"))
@@ -386,7 +387,7 @@ func TestBaseTimesAreOptIn(t *testing.T) {
 
 	// A noun's own prop with the role is stamped, not duplicated.
 	own := append(keyedProps(), PropSpec{Name: "made", Role: RoleCreated, ReadOnly: true})
-	r, s = newTimesRuntime(t, func(st *Store) { st.Times = true }, own...)
+	r, s = newTimesRuntime(t, nil, own...)
 	if r.Noun("note").prop("created") != nil {
 		t.Fatal("a noun with its own created-role prop declares no second one")
 	}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -473,19 +474,22 @@ func (r *Runtime) ExportHooks(path string, force bool) (string, error) {
 
 // registerHooks registers the hooks and events nouns' verbs.
 func registerHooks(r *Runtime) {
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.hooks", Description: "List the hook rows in the order they run: the application's and its extensions' defaults with hooks.json applied, each with its source", Parameters: map[string]Parameter{
-		"event": {Type: "string", Description: "Only the rows on this event"},
-	}, Positional: []string{"event"}, Result: "hook[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		r.EnsureHooks()
-		event := StringArg(a, "event", "")
-		out := []HookRow{}
-		for _, row := range r.HookRows() {
-			if event == "" || row.On == event {
-				out = append(out, row)
+	r.defineFacts(factsSpec{Noun: "ochazuke.hooks", Sample: HookRow{}, Key: "id", Extra: []PropSpec{{Name: "id"}},
+		Docs: map[string]string{"id": "The row's place in the order they run", "on": "The event it runs on", "where": "The fields the event must have", "do": "The verb it runs",
+			"args": "The arguments it passes", "from": "Event fields it passes as arguments", "off": "Switched off", "source": "Who declared it: user (hooks.json), app or an extension"},
+		ListParams: map[string]Parameter{"event": {Type: "string", Description: "Only the rows on this event"}},
+		List: func(c Ctx, q ListQuery) ([]Thing, error) {
+			r := c.Runtime
+			r.EnsureHooks()
+			event := StringArg(q.Args, "event", "")
+			out := []HookRow{}
+			for _, row := range r.HookRows() {
+				if event == "" || row.On == event {
+					out = append(out, row)
+				}
 			}
-		}
-		return out, nil
-	}})
+			return factThings(out, func(i int, t Thing) { t["id"] = strconv.Itoa(i + 1) })
+		}})
 	r.Register(Operation{Verb: "check", Noun: "ochazuke.hooks", Description: "Report the hook rows that would be skipped (no on or do, an unknown verb, an argument the verb does not take) and as warnings the rows on an unknown event or with a where key or from field the event does not carry; hooks.json's rows and the defaults", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.CheckHooks(), nil
 	}})
@@ -511,9 +515,9 @@ func registerHooks(r *Runtime) {
 		}
 		return path, nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.events", Description: "List the declared events (the framework's surface.opened, surface.left and app.quitting, then the application's and its extensions'), with their fields", Result: "event[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.Events(), nil
-	}})
+	r.defineFacts(factsSpec{Noun: "ochazuke.events", Sample: EventSpec{}, Key: "name", Label: "name",
+		Docs: map[string]string{"name": "The event's name (noun.happening)", "description": "What it means", "fields": "The fields it carries", "source": "Who declared it"},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) { return factThings(c.Runtime.Events(), nil) }})
 	r.Register(Operation{Verb: "emit", Noun: "ochazuke.events", Description: "Emit an event: the hook rows on it whose where matches the fields run", Parameters: map[string]Parameter{
 		"event":  {Type: "string", Required: true, Description: "The event's name (noun.happening)"},
 		"fields": {Type: "string", Description: "The event's fields as a JSON object"},

@@ -261,12 +261,13 @@ type Store struct {
 	// their instances have.)
 	Live func(r *Runtime) []string
 
-	// Times gives the noun the base props created and updated (RoleCreated,
-	// RoleUpdated: read-only RFC 3339 text), and create and set stamp them
-	// before the store sees the write. Stamps says the store writes the
-	// times itself, so the framework only declares the props. Off by
-	// default until every store and consumer accepts the two props.
-	Times  bool
+	// Facts says the things are system facts, read from the registry
+	// (modes, operations, themes ...): create, set, delete and archive are
+	// on the noun but unavailable, with the reason FactReason. A facts
+	// store has no times (no created or updated prop).
+	Facts bool
+	// Stamps says the store writes the base times (created, updated)
+	// itself, so create and set do not stamp them; the props stay.
 	Stamps bool
 
 	// instanceKeyed is set for an instances store: its things' keys are

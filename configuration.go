@@ -15,6 +15,12 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+// modeFact is a registered interaction mode as a thing.
+type modeFact struct {
+	Name    string `json:"name"`
+	Pending bool   `json:"pending"`
+}
+
 func registerConfiguration(r *Runtime) {
 	r.Register(Operation{Verb: "register", Noun: "ochazuke.mode", Description: "Register an application-defined mode name; pending modes are exclusive and one-shot", Parameters: map[string]Parameter{"name": {Type: "string", Required: true}, "pending": {Type: "boolean"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		name := StringArg(a, "name", "")
@@ -23,17 +29,6 @@ func registerConfiguration(r *Runtime) {
 			return nil, err
 		}
 		return name, nil
-	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.modes", Description: "List registered interaction modes, pending modes included", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		names := make([]string, 0, len(r.Modes)+len(r.pendingModes))
-		for name := range r.Modes {
-			names = append(names, name)
-		}
-		for name := range r.pendingModes {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-		return names, nil
 	}})
 	r.Register(Operation{Verb: "load", Noun: "ochazuke.bindings", Description: "Install binding rows from a bindings file (JSONC): the grouped format {bindings: [{context, bindings: {key: action}}]} or an array of rows", Parameters: map[string]Parameter{"path": {Type: "string", Required: true}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		data, err := os.ReadFile(StringArg(a, "path", ""))
@@ -764,4 +759,26 @@ func (r *Runtime) unapplyBindingRows(applied []appliedRow) {
 	if len(applied) > 0 {
 		r.CancelPendingBinding()
 	}
+}
+
+// registerModeFacts declares the modes noun.
+func registerModeFacts(r *Runtime) {
+	r.defineFacts(factsSpec{Noun: "ochazuke.modes", Sample: modeFact{}, Key: "name", Label: "name",
+		Docs: map[string]string{"name": "The mode's name", "pending": "A pending mode: exclusive and one-shot"},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			r := c.Runtime
+			names := make([]string, 0, len(r.Modes)+len(r.pendingModes))
+			for name := range r.Modes {
+				names = append(names, name)
+			}
+			for name := range r.pendingModes {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			var facts []modeFact
+			for _, name := range slices.Compact(names) {
+				facts = append(facts, modeFact{Name: name, Pending: r.pendingModes[name]})
+			}
+			return factThings(facts, nil)
+		}})
 }

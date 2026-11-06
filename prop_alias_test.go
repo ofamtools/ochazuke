@@ -186,7 +186,7 @@ func TestPropAliasStandardRequests(t *testing.T) {
 		if _, err := r.Execute(Request{Noun: "ticket", Verb: "set", Args: args}); err != nil {
 			t.Fatal(err)
 		}
-		if thing["state"] != "done" || len(thing) != 2 {
+		if thing["state"] != "done" || thing["status"] != nil {
 			t.Fatal(thing)
 		}
 	}
@@ -196,7 +196,7 @@ func TestPropAliasStandardRequests(t *testing.T) {
 	if p, ok := r.PropOf("ticket", "status"); !ok || p.Name != "state" {
 		t.Fatal(p, ok)
 	}
-	if names := propNames(r.Noun("ticket")); !slices.Equal(names, []string{"id", "state"}) {
+	if names := propNames(r.Noun("ticket")); !slices.Equal(names, []string{"id", "state", "created", "updated"}) {
 		t.Fatal(names)
 	}
 	if _, _, err := setChanges(r.Noun("ticket"), Arguments{"changes": map[string]any{"state": "todo", "status": "done"}}); err == nil {
@@ -273,6 +273,7 @@ func TestPropAliasReferenceListsMainOnce(t *testing.T) {
 	if i < 0 || len(model.Nouns[i].Props) != 1 || !slices.Equal(model.Nouns[i].Props[0].Aliases, []string{"status"}) {
 		t.Fatal(model.Nouns)
 	}
+	model.Nouns = model.Nouns[i : i+1]
 	text := refdoc.Render(model, refdoc.Options{})[refdoc.StandardVerbsFile]
 	if strings.Count(text, "| `state` |") != 1 || strings.Contains(text, "| `status` |") || !strings.Contains(text, "also: status") {
 		t.Fatal(text)

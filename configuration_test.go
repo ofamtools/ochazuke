@@ -117,8 +117,9 @@ func TestUserBindingsRebindUnbindAndReportBadRows(t *testing.T) {
 	}
 	listed, _ := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "list"})
 	found := false
-	for _, b := range listed.([]Binding) {
-		found = found || b.Keys == "a" && b.Request.Key() == "test.gamma"
+	for _, b := range listed.([]map[string]any) {
+		req, _ := b["request"].(map[string]any)
+		found = found || b["keys"] == "a" && req["noun"] == "test" && req["verb"] == "gamma"
 	}
 	if !found {
 		t.Fatalf("bindings.list lacks the override: %+v", listed)

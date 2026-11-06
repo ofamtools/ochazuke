@@ -230,13 +230,15 @@ func (r *Runtime) fileChanges(changes []ThingChange) []ThingChange {
 
 // simpleChanges reports whether every prop a set of changes records is
 // simple (PropSpec.simple, owner decision 12): only then does the history
-// file keep them, by the test that decides the line itself.
+// file keep them, by the test that decides the line itself. The base times
+// the framework stamps (created, updated) are not the writer's values and
+// never make a write unsimple.
 func (r *Runtime) simpleChanges(changes []ThingChange) bool {
 	for _, c := range changes {
 		n := r.Nouns[c.Noun]
 		for _, m := range []map[string]any{c.Before, c.After} {
 			for name := range m {
-				if p := n.prop(name); p == nil || !p.simple() {
+				if p := n.prop(name); p == nil || !p.simple() && p.Role != RoleCreated && p.Role != RoleUpdated {
 					return false
 				}
 			}

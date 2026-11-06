@@ -19,7 +19,8 @@ func TestCreateTakesPropValueWords(t *testing.T) {
 		ochazuke.PropSpec{Name: "project"},
 		ochazuke.PropSpec{Name: "size", Parameter: ochazuke.Parameter{Type: ochazuke.SettingInteger}},
 	).Store(ochazuke.Store{
-		Get: func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return nil, fmt.Errorf("none") },
+		Stamps: true, // the test reads exactly what create was given
+		Get:    func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return nil, fmt.Errorf("none") },
 		Create: func(_ ochazuke.Ctx, v ochazuke.Thing) (ochazuke.Thing, error) {
 			t := ochazuke.Thing{"id": fmt.Sprintf("n%d", len(made)+1)}
 			for k, x := range v {

@@ -148,6 +148,16 @@ var (
 		func(r *Runtime, _ *Noun) bool { return r.Settings().Bool(EditFormsSetting) }}
 )
 
+// FactReason is why a facts store's writing verbs are unavailable.
+const FactReason = "a system fact"
+
+// needWriter is the need of a store whose things can be written: not a
+// system fact (Store.Facts), whose things the registry holds. The writing
+// verbs list it first, so a facts store has them unavailable with this
+// reason.
+var needWriter = storeNeed{"a store that is not a system fact (Store.Facts)", FactReason,
+	func(_ *Runtime, n *Noun) bool { return !n.Store.Facts }}
+
 // needRole is the need of a writable prop with that role.
 func needRole(role string) storeNeed {
 	return storeNeed{
@@ -170,21 +180,21 @@ func coreVerbs() []standardVerb {
 			Rows: true, HistoryKind: HistoryFetch, ParamNames: []string{"filter", "where", "props", "limit"},
 			Params: listParams, Positional: listPositional, Run: runList},
 		{Verb: "create", Description: "Create a thing from the props given (each omitted one its default); answers the new thing",
-			Kinds: []string{Collection}, Needs: []storeNeed{needCreate, needCreateProp},
+			Kinds: []string{Collection}, Needs: []storeNeed{needWriter, needCreate, needCreateProp},
 			Creates: true, Undo: undoByDelete, HistoryKind: HistoryChange, FocusSetting: CreateFromFocusSetting, ParamNames: []string{"pairs"},
 			Positional: createPositional, Params: createParams, ReadArgs: createArgs, Writes: createWrites, Run: runCreate},
 		{Verb: "set", Description: "Write a thing's props: one prop (prop and value, or toggle on a boolean), or several (changes, or prop=value words); answers the thing after the write",
-			Kinds: []string{Collection, Singleton, Instances}, Needs: []storeNeed{needPatch, needWritable},
+			Kinds: []string{Collection, Singleton, Instances}, Needs: []storeNeed{needWriter, needPatch, needWritable},
 			TakesSubject: true, Many: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange,
 			Aliases: []string{"patch"}, ParamNames: []string{"prop", "value", "toggle", "changes", "pairs"},
 			Positional: func(*Noun) []string { return []string{"prop", "value", "pairs"} },
 			Params:     setParams, Writes: setWrites, Run: runSet},
 		{Verb: "delete", Description: "Delete a thing (asks first)",
-			Kinds: []string{Collection}, Needs: []storeNeed{needDelete},
+			Kinds: []string{Collection}, Needs: []storeNeed{needWriter, needDelete},
 			TakesSubject: true, Many: true, Undo: undoByRecreate, Destructive: true, HistoryKind: HistoryChange,
 			Confirm: DefaultDeleteConfirm, ConfirmFor: deleteConfirm, Run: runDelete},
 		{Verb: "archive", Description: "Archive a thing: set its archive prop",
-			Kinds: []string{Collection}, Needs: []storeNeed{needPatch, needRole(RoleArchive)},
+			Kinds: []string{Collection}, Needs: []storeNeed{needWriter, needPatch, needRole(RoleArchive)},
 			TakesSubject: true, Many: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange,
 			Writes: roleWrites(RoleArchive), Run: archiveRun(true)},
 		{Verb: "edit", Description: "Edit a thing's writable props in a form; supplied props write directly without opening a form",

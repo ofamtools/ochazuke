@@ -68,8 +68,8 @@ func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 		t.Fatal(err)
 	}
 	keys := map[string]bool{}
-	for _, op := range ops.([]Operation) {
-		keys[op.Key()] = true
+	for _, op := range ops.([]map[string]any) {
+		keys[op["key"].(string)] = true
 	}
 	if !keys["ochazuke.settings.set"] || keys["settings.set"] || !keys["app.quit"] {
 		t.Fatalf("operations.list is not canonical")

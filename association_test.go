@@ -144,7 +144,7 @@ func TestAssociationListReadsDataOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []Association{{Noun: "thing", Key: "a", Label: "Alpha", Via: "subject", From: "surface", id: "row-a"}}
+	want := []map[string]any{{"id": "surface/subject/thing/a", "noun": "thing", "key": "a", "label": "Alpha", "via": "subject", "from": "surface"}}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("associations %+v, want %+v", got, want)
 	}

@@ -858,10 +858,13 @@ func registerSegments(r *Runtime) {
 		}
 		return names, nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.segment", Description: "List the status segments in drawing order: source, whether each shows, its last text or error", Result: "segment[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		r.EnsureSegments()
-		return r.Segments(), nil
-	}})
+	r.defineFacts(factsSpec{Noun: "ochazuke.segment", Sample: Segment{}, Key: "id", Label: "label",
+		Docs: map[string]string{"id": "The segment's id", "label": "Its label", "description": "What it shows", "provider": "Where its text comes from", "order": "Its place among the others",
+			"enabled": "Whether it shows by default", "owner": "The settings owner of its setting"},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			c.Runtime.EnsureSegments()
+			return factThings(c.Runtime.Segments(), nil)
+		}})
 	r.Register(Operation{Verb: "show", Noun: "ochazuke.segment", Description: "Show one status segment: its row, source, setting and last answer", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "segment", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		r.EnsureSegments()
 		return find(r, a)

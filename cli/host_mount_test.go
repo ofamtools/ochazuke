@@ -92,7 +92,7 @@ func TestMountNounsPropsAndStandardVerbs(t *testing.T) {
 		t.Fatalf("nouns %v", got.Nouns)
 	}
 	props := r.Props("ext-task")
-	if len(props) != 4 || !props[0].Key || props[1].Role != ochazuke.RoleLabel {
+	if len(props) != 6 || !props[0].Key || props[1].Role != ochazuke.RoleLabel {
 		t.Fatalf("props %+v", props)
 	}
 	if p, _ := r.PropOf("ext-task", "project"); p.Noun != "ext-project" || p.Role != ochazuke.RoleOwner {

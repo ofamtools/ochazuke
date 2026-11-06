@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"encoding/json"
 	"errors"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -477,25 +478,22 @@ func (w *placementWriter) failure() error {
 }
 
 func registerPlacements(r *Runtime) {
-	r.Define("ochazuke.nouns")
+	r.defineFacts(factsSpec{Noun: "ochazuke.nouns", Sample: nounFact{}, Key: "noun", Label: "noun",
+		Docs: map[string]string{"noun": "The noun's name", "verbs": "Its verbs", "seen": "How many places it was seen in (nouns places lists them)"},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			r := c.Runtime
+			places := map[string]int{}
+			for _, one := range r.NounPlaces("") {
+				places[one.Noun]++
+			}
+			var rows []nounFact
+			for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
+				rows = append(rows, nounFact{Noun: name, Verbs: slices.Clone(r.Nouns[name].Verbs), Places: places[name]})
+			}
+			return factThings(rows, nil)
+		}})
 	r.Register(Operation{Verb: "places", Noun: "ochazuke.nouns", Description: "List where a noun was seen (every noun without one): each distinct chain of ancestor nouns, outermost first, with its page or modal, how often and when last; kept across runs in " + NounPlacesFile, Parameters: map[string]Parameter{"noun": {Type: "string", Description: "The noun (default every noun)"}}, Positional: []string{"noun"}, HistoryKind: HistoryFetch, Result: "placement[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.NounPlaces(StringArg(a, "noun", "")), nil
-	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.nouns", Description: "List the defined nouns with their verbs and how many places each was seen in", HistoryKind: HistoryFetch, Result: "noun[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		places := map[string]int{}
-		for _, one := range r.NounPlaces("") {
-			places[one.Noun]++
-		}
-		names := make([]string, 0, len(r.Nouns))
-		for name := range r.Nouns {
-			names = append(names, name)
-		}
-		slices.Sort(names)
-		out := make([]map[string]any, 0, len(names))
-		for _, name := range names {
-			out = append(out, map[string]any{"noun": name, "verbs": slices.Clone(r.Nouns[name].Verbs), "places": places[name]})
-		}
-		return out, nil
 	}})
 	r.Register(Operation{Verb: "places-path", Noun: "ochazuke.nouns", Description: "Print the placements file: $XDG_STATE_HOME/<app>/" + NounPlacesFile + ", else ~/.local/state/<app>/" + NounPlacesFile, HistoryKind: HistoryFetch, Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		cfg := r.Config()
@@ -504,4 +502,11 @@ func registerPlacements(r *Runtime) {
 		}
 		return cfg.NounPlacesPath(), nil
 	}})
+}
+
+// nounFact is a defined noun as a thing.
+type nounFact struct {
+	Noun   string   `json:"noun"`
+	Verbs  []string `json:"verbs"`
+	Places int      `json:"seen"`
 }

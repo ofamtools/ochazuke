@@ -445,7 +445,7 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("row verb by explicit target", call("open", "worktree", "main", nil), map[string]any{"verb": "open", "noun": "worktree", "row": "main"})
 	keysFor := func(target string) []string {
 		var keys []string
-		rows, _ := call("list", "bindings", target, nil).([]ochazuke.Binding)
+		rows := bindingRows(call("list", "bindings", target, nil))
 		for _, b := range rows {
 			if b.Request.Noun == "repo" || b.Request.Noun == "worktree" || b.Request.Noun == "branch" {
 				keys = append(keys, b.Keys+"="+b.Request.Key())
@@ -510,7 +510,7 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("palette returns to the pane", r.Focus, "pane")
 	terminalKeys := func() []string {
 		var keys []string
-		rows, _ := call("list", "bindings", "pane", nil).([]ochazuke.Binding)
+		rows := bindingRows(call("list", "bindings", "pane", nil))
 		for _, b := range rows {
 			keys = append(keys, b.Keys+b.Pattern+"="+b.Request.Verb)
 		}
@@ -567,4 +567,16 @@ func reportDeprecations(r *ochazuke.Runtime) error {
 		fmt.Fprintln(os.Stderr, "full-project: deprecated:", warning)
 	}
 	return nil
+}
+
+// bindingRows reads what bindings list answers (one thing per row) as
+// bindings.
+func bindingRows(listed any) []ochazuke.Binding {
+	data, err := json.Marshal(listed)
+	if err != nil {
+		return nil
+	}
+	var rows []ochazuke.Binding
+	_ = json.Unmarshal(data, &rows)
+	return rows
 }

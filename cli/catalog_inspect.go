@@ -213,11 +213,7 @@ func (s *Shell) inspectData(ctx context.Context, bins, files, namespaces []strin
 	}
 	// The effective rows: bindings list --all, what config export writes
 	// to bindings.reference.json.
-	all, err := r.Execute(ochazuke.Request{Noun: "ochazuke.bindings", Verb: "list", Args: ochazuke.Arguments{"all": true}})
-	if err != nil {
-		return nil, nil, err
-	}
-	rows, err := recode[[]inspect.Binding](all)
+	rows, err := recode[[]inspect.Binding](r.AllBindings())
 	if err != nil {
 		return nil, nil, err
 	}

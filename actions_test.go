@@ -305,7 +305,7 @@ func TestActionBoundFromUserBindingsAndReloaded(t *testing.T) {
 		t.Fatalf("argv after reload %v", out["argv"])
 	}
 	listed, err := r.Execute(Request{Noun: "ochazuke.actions", Verb: "list"})
-	if err != nil || len(listed.([]Action)) != 1 {
+	if err != nil || len(listed.([]map[string]any)) != 1 {
 		t.Fatalf("list %v %v", listed, err)
 	}
 }

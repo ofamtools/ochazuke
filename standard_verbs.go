@@ -82,6 +82,19 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 	}
 }
 
+// standardOperation is the noun's operation for a standard verb of the
+// table, whether the framework generated it or the application registered
+// its own under the row's name; false when the verb is not in the table or
+// the noun has no such operation.
+func (r *Runtime) standardOperation(noun, verb string) (Operation, bool) {
+	row := standardRow(verb)
+	if row == nil {
+		return Operation{}, false
+	}
+	op, ok := r.Operations[r.CanonicalNoun(noun)+"."+row.Verb]
+	return op, ok
+}
+
 // nameTaken reports whether key names something the application declared
 // that is not an operation: an alias it (or the user) registered, or a
 // noun nested under the noun.

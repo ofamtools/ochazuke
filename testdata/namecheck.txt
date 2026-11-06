@@ -107,7 +107,7 @@ cli/sides.go	var sideVariables	table	"project"	1	template variable names for the
 cli/widget.go	PageView.widgetsBlock	compare	"status"	3
 cli/widget.go	widgetState.lines	compare	"status"	2
 configuration.go	registerConfiguration	compare	"app"	1
-configuration.go	registerConfiguration	cyclo	"-"	30
+configuration.go	registerConfiguration	cyclo	"-"	28
 confirm.go	Runtime.openConfirmAbout	case	"id"	2
 confirm.go	Runtime.openConfirmAbout	compare	"id"	1
 confirm.go	Runtime.openConfirmAbout	compare	"noun"	1
@@ -461,13 +461,11 @@ runtime.go	var focusBoundOps	table	"ochazuke.mode.enter"	1
 runtime.go	var focusBoundOps	table	"ochazuke.mode.set"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.aliases"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.check"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.list"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.path"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.reload"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.appearance.get"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.appearance.set"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.check"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.list"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.load"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.path"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.reload"	1
@@ -492,9 +490,6 @@ runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.reset-columns"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.resize-column"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.yank"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.mode.register"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.modes.list"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.notice.list"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.operations.list"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.outline.fold"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.pages.list"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.register.get"	1
@@ -513,7 +508,6 @@ runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.set"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.state.get"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.terminal.paste"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.terminal.send"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.themes.list"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.themes.path"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.themes.reload"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.yank-history.select"	1

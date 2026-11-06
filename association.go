@@ -20,13 +20,18 @@ type Association struct {
 	id    string
 }
 
+// registerAssociations declares the association noun.
 func registerAssociations(r *Runtime) {
-	r.Define("ochazuke.association").Verb("list", func(c Ctx) Result {
-		return Done(c.Runtime.Associations(focusOf(c.Context), StringArg(c.Args, "noun", "")))
-	}, "List live associations of the focus; optionally filter by noun").Fetch()
-	op := r.Operations["ochazuke.association.list"]
-	op.Parameters = map[string]Parameter{"noun": {Type: "string", Description: "Only associations of this noun"}}
-	r.Operations[op.Key()] = op
+	r.defineFacts(factsSpec{Noun: "ochazuke.association", Sample: Association{}, Key: "id", Label: "label", Extra: []PropSpec{{Name: "id"}},
+		Docs: map[string]string{"id": "The association's place: referring instance, prop, noun and key", "noun": "The referenced thing's noun", "key": "The referenced thing's key",
+			"label": "The referenced thing's label", "via": "The referring prop", "from": "The referring instance"},
+		ListParams: map[string]Parameter{"noun": {Type: "string", Description: "Only associations of this noun"}},
+		List: func(c Ctx, q ListQuery) ([]Thing, error) {
+			rows := c.Runtime.Associations(focusOf(c.Context), StringArg(q.Args, "noun", ""))
+			return factThings(rows, func(i int, t Thing) {
+				t["id"] = strings.Join([]string{rows[i].From, rows[i].Via, rows[i].Noun, rows[i].Key}, "/")
+			})
+		}})
 }
 
 // Associations reads declared reference props from each instance's Data,

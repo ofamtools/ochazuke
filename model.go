@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -170,9 +171,15 @@ func newModel(r *Runtime) *Model {
 		m.scroll[key] = view.YOffset()
 		return view.YOffset(), nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.notice", Description: "List the persistent notices shown in the footer", Result: "string[]", Run: func(*Runtime, Context, Arguments) (any, error) {
-		return append([]string{}, m.Notices...), nil
-	}})
+	r.defineFacts(factsSpec{Noun: "ochazuke.notice", Sample: noticeFact{}, Key: "id", Label: "text",
+		Docs: map[string]string{"id": "The notice's place in the footer", "text": "The notice"},
+		List: func(Ctx, ListQuery) ([]Thing, error) {
+			var rows []noticeFact
+			for i, text := range m.Notices {
+				rows = append(rows, noticeFact{ID: strconv.Itoa(i + 1), Text: text})
+			}
+			return factThings(rows, nil)
+		}})
 	r.Register(Operation{Verb: "clear", Noun: "ochazuke.notice", Description: "Clear the persistent notices from the footer", Result: "cleared count", Run: func(*Runtime, Context, Arguments) (any, error) {
 		n := len(m.Notices)
 		m.Notices, m.noticeIDs = nil, nil
@@ -1437,4 +1444,10 @@ func (m *Model) inspectorLine() string {
 		return ""
 	}
 	return m.Runtime.Inspect().Compact()
+}
+
+// noticeFact is a persistent footer notice as a thing.
+type noticeFact struct {
+	ID   string `json:"id"`
+	Text string `json:"text"`
 }

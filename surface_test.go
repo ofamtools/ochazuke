@@ -64,9 +64,13 @@ func TestListedThemesCanBeSelected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	themes, ok := got.([]string)
+	rows, ok := got.([]map[string]any)
 	if !ok {
 		t.Fatalf("themes.list returned %T", got)
+	}
+	var themes []string
+	for _, row := range rows {
+		themes = append(themes, row["id"].(string))
 	}
 	seen := map[string]bool{}
 	for _, theme := range themes {
@@ -84,9 +88,9 @@ func TestListedThemesCanBeSelected(t *testing.T) {
 		}
 	}
 	// A caller may edit a list result without corrupting the next request.
-	themes[0] = "changed"
+	rows[0]["id"] = "changed"
 	next, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.themes"})
-	if err != nil || next.([]string)[0] == "changed" {
+	if err != nil || next.([]map[string]any)[0]["id"] == "changed" {
 		t.Fatalf("theme list aliases mutable state: %#v, %v", next, err)
 	}
 }

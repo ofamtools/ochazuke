@@ -121,8 +121,8 @@ func (r *Runtime) ChoicesSource(p Parameter) string {
 	if p.Noun == "" {
 		return ""
 	}
-	key := r.CanonicalNoun(p.Noun) + ".list"
-	op, ok := r.Operations[key]
+	op, ok := r.standardOperation(p.Noun, "list")
+	key := op.Key()
 	if !ok || op.Confirm != "" {
 		return ""
 	}
