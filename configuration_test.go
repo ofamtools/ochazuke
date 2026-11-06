@@ -117,7 +117,7 @@ func TestUserBindingsRebindUnbindAndReportBadRows(t *testing.T) {
 	}
 	listed, _ := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "list"})
 	found := false
-	for _, b := range listed.([]map[string]any) {
+	for _, b := range AnswerRows(listed).([]map[string]any) {
 		req, _ := b["request"].(map[string]any)
 		found = found || b["keys"] == "a" && req["noun"] == "test" && req["verb"] == "gamma"
 	}

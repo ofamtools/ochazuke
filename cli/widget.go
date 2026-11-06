@@ -273,6 +273,11 @@ func statusText(data any, width int) string {
 
 // tableWidget is a table widget's lines: the header and up to Rows rows.
 func tableWidget(spec CatalogWidget, data any, width int) []string {
+	if page, ok := data.(map[string]any); ok { // a list answer: the rows of its page
+		if _, paged := page["per_page"]; paged {
+			data = page["items"]
+		}
+	}
 	items, _ := data.([]any)
 	limit := spec.Rows
 	if limit <= 0 {

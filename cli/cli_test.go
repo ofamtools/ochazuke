@@ -127,10 +127,13 @@ func TestShellListsAllBindingTables(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var rows []ochazuke.Binding
-	if err := json.Unmarshal([]byte(out), &rows); err != nil {
+	var page struct {
+		Items []ochazuke.Binding `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(out), &page); err != nil {
 		t.Fatal(err)
 	}
+	rows := page.Items
 	var detached, instance bool
 	for _, row := range rows {
 		if row.Noun == "detached" && row.Mode == "insert" && row.Keys == "ctrl+x" {
@@ -153,7 +156,11 @@ func TestShellListsAllBindingTables(t *testing.T) {
 	if err != nil || again != out {
 		t.Fatalf("all tables depend on the active mode or map iteration: %v", err)
 	}
-	if _, err := f.r.LoadBindings([]byte(out)); err != nil {
+	items, err := json.Marshal(page.Items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.r.LoadBindings(items); err != nil {
 		t.Fatalf("export is not loadable binding JSON: %v", err)
 	}
 }

@@ -65,7 +65,7 @@ func TestSystemFactsListAndGet(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s.list: %v", name, err)
 		}
-		for _, row := range got.([]map[string]any) {
+		for _, row := range AnswerRows(got).([]map[string]any) {
 			if row["id"] == nil || row["id"] == "" {
 				t.Fatalf("%s.list: row without an id: %v", name, row)
 			}
@@ -76,7 +76,7 @@ func TestSystemFactsListAndGet(t *testing.T) {
 		t.Fatal(err)
 	}
 	var pending []string
-	for _, row := range rows.([]map[string]any) {
+	for _, row := range AnswerRows(rows).([]map[string]any) {
 		pending = append(pending, row["id"].(string))
 	}
 	if !slices.Contains(pending, quitWaitMode) {

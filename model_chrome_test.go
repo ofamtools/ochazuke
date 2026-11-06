@@ -136,7 +136,7 @@ func TestModelNoticePersistsUntilCleared(t *testing.T) {
 	if m.Status != "" || !strings.Contains(footer(), "Notice: ext: noun x skipped") || !strings.Contains(ansi.Strip(m.View().Content), "Notice: ext: noun x skipped") {
 		t.Fatalf("after the next key: footer %q", footer())
 	}
-	if got, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.notice"}); err != nil || fmt.Sprint(got) != "[map[id:1 label:ext: noun x skipped text:ext: noun x skipped]]" {
+	if got, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.notice"}); err != nil || fmt.Sprint(AnswerRows(got)) != "[map[id:1 label:ext: noun x skipped text:ext: noun x skipped]]" {
 		t.Fatalf("notice.list = %v, %v", got, err)
 	}
 	if got, err := r.Execute(Request{Verb: "clear", Noun: "ochazuke.notice"}); err != nil || got != 1 || len(m.Notices) != 0 || strings.Contains(footer(), "Notice") {

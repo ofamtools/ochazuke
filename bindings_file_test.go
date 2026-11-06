@@ -302,7 +302,7 @@ func TestBindingsFileJSONC(t *testing.T) {
 		t.Fatal(err)
 	}
 	var a, x bool
-	for _, row := range got.([]map[string]any) {
+	for _, row := range AnswerRows(got).([]map[string]any) {
 		if req, _ := row["request"].(map[string]any); row["noun"] == "app" && row["mode"] == "normal" {
 			a = a || row["keys"] == "a" && req["noun"] == "test" && req["verb"] == "beta"
 			x = x || row["keys"] == "x"

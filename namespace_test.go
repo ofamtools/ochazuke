@@ -68,7 +68,7 @@ func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 		t.Fatal(err)
 	}
 	keys := map[string]bool{}
-	for _, op := range ops.([]map[string]any) {
+	for _, op := range AnswerRows(ops).([]map[string]any) {
 		keys[op["key"].(string)] = true
 	}
 	if !keys["ochazuke.settings.set"] || keys["settings.set"] || !keys["app.quit"] {

@@ -122,7 +122,7 @@ func TestThemeSettingSelectsUserScheme(t *testing.T) {
 	}
 	var names []string
 	got, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.themes"})
-	for _, row := range got.([]map[string]any) {
+	for _, row := range AnswerRows(got).([]map[string]any) {
 		names = append(names, row["id"].(string))
 	}
 	if !slices.Equal(names, v.Enum) {

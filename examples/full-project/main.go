@@ -572,7 +572,7 @@ func reportDeprecations(r *ochazuke.Runtime) error {
 // bindingRows reads what bindings list answers (one thing per row) as
 // bindings.
 func bindingRows(listed any) []ochazuke.Binding {
-	data, err := json.Marshal(listed)
+	data, err := json.Marshal(ochazuke.AnswerRows(listed))
 	if err != nil {
 		return nil
 	}
