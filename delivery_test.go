@@ -201,21 +201,22 @@ func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 	if len(pane.received) != 2 || pane.received[0].Value != "new" || pane.received[0].Ticket != newTicket || pane.received[1].Value != "index" || len(other.received) != 1 || other.received[0].Value != "other" {
 		t.Fatalf("delivered: pane=%+v other=%+v", pane.received, other.received)
 	}
-	// jobs.list returns the finished entries once, then drops them.
-	value, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.jobs"})
+	// job.list lists the finished jobs, and keeps them after a read (Q2:
+	// jobs are kept after they end, up to jobHistory).
+	value, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.job"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	listed := value.([]JobInfo)
+	listed := rowsOf[JobInfo](t, value)
 	states := map[string]int{}
 	for _, j := range listed {
 		states[j.State]++
 	}
 	if len(listed) != 4 || states[JobCancelled] != 1 || states[JobDone] != 3 || listed[0].Verb != "preview" || listed[0].Owner != "pane" || listed[0].Started.IsZero() {
-		t.Fatalf("jobs.list: %+v", listed)
+		t.Fatalf("job.list: %+v", listed)
 	}
-	if again, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.jobs"}); len(again.([]JobInfo)) != 0 {
-		t.Fatalf("finished jobs retained after a read: %+v", again)
+	if again, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.job"}); len(rowsOf[JobInfo](t, again)) != 4 {
+		t.Fatalf("finished jobs dropped after a read: %+v", again)
 	}
 	// A failed job reports its error and a running one shows in the snapshot.
 	failRelease := make(chan struct{})
@@ -236,7 +237,7 @@ func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 			t.Fatalf("failed job: %v %v", handled, err)
 		}
 	}
-	if jobs := r.Jobs(); len(jobs) != 1 || jobs[0].Job != failTicket.Job || jobs[0].State != JobFailed || jobs[0].Error != "boom" {
+	if jobs := r.Jobs(); len(jobs) != 5 || jobs[4].Job != failTicket.Job || jobs[4].State != JobFailed || jobs[4].Error != "boom" {
 		t.Fatalf("failed job listed: %+v", jobs)
 	}
 	if _, err := r.Launch("nobody", "x", Pending(func(context.Context) (any, error) { return nil, nil }), Ctx{}); err == nil {
@@ -330,7 +331,7 @@ func TestApplicationVerbRunsOffTheLoop(t *testing.T) {
 
 // Confirm compiles to the framework confirm noun: a modal instance parented
 // at the focus with the prompt and the stored request in its payload; y runs
-// it, n and esc pop, other keys are swallowed; confirm.set adds or removes it.
+// it, n and esc pop, other keys are swallowed; confirm.require adds or removes it.
 func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	r, list, _, _ := listFixture(t)
 	var removed []string
@@ -373,19 +374,19 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "remove", Noun: "a", Target: "one", Confirmed: true}); err != nil || len(removed) != 2 {
 		t.Fatalf("confirmed request: %v %v", err, removed)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.confirm", Args: Arguments{"operation": "a.remove", "prompt": ""}}); err != nil || r.Operations["a.remove"].Confirm != "" {
-		t.Fatalf("confirm.set removal: %v", err)
+	if _, err := r.Execute(Request{Verb: "require", Noun: "ochazuke.confirm", Args: Arguments{"operation": "a.remove", "prompt": ""}}); err != nil || r.Operations["a.remove"].Confirm != "" {
+		t.Fatalf("confirm.require removal: %v", err)
 	}
 	editorTestKeys(t, r, "d")
 	if len(r.Modals()) != 0 || len(removed) != 3 {
 		t.Fatal("a removed confirm runs the verb directly")
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.confirm", Args: Arguments{"operation": "a.remove", "prompt": "Sure?"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "require", Noun: "ochazuke.confirm", Args: Arguments{"operation": "a.remove", "prompt": "Sure?"}}); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "d")
 	if r.Focus != "confirm" || r.Instances["confirm"].Payload.Prompt != "Sure?" {
-		t.Fatal("confirm.set must add a prompt")
+		t.Fatal("confirm.require must add a prompt")
 	}
 	if body, err := r.OpenModal("confirm", Payload{}); err == nil || body != nil {
 		t.Fatal("a second modal of the same kind is refused while open")
@@ -441,7 +442,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	if regs == nil || r.Instances[registersID].Parent != "app" || r.Instances[registersID].Component != regs {
 		t.Fatal("registers must be one instance under app")
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.register", Args: Arguments{"name": "a", "text": "shared"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.register", Args: Arguments{"name": "a", "prop": "text", "value": "shared"}}); err != nil {
 		t.Fatal(err)
 	}
 	snapshot := r.Snapshot()

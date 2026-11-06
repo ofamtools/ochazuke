@@ -393,7 +393,7 @@ func TestModelModalViewOverrideParity(t *testing.T) {
 				fallback, registered := m.ModalViews[id]
 				if id == "palette" {
 					paletteRequest(t, r, "open", "palette", nil)
-					paletteRequest(t, r, "set", "palette", Arguments{"text": "palette"})
+					paletteRequest(t, r, "fill", "palette", Arguments{"text": "palette"})
 				} else if _, err := r.OpenChooser(ChooserSpec{
 					Kind: id, Title: "Original chooser",
 					Rows: []ChooserRow{{ID: "first", Label: "Original choice"}},

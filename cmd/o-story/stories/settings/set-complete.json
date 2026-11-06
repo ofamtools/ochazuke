@@ -12,7 +12,7 @@
   "page": {"lists": [{"id": "a", "rows": 1}]},
   "script": [":", {"type": "set nowrap scr"}, "tab", {"type": "="}, "tab", {"type": " stack="}],
   "expect": [
-    {"after": 2, "contains": ["line · string · optional · from settings.complete", "scrolloff · integer · 2"]},
+    {"after": 2, "contains": ["line · string · optional · from setting.complete", "scrolloff · integer · 2"]},
     {"after": 3, "contains": ["line=nowrap scrolloff ("]},
     {"after": 5, "contains": [": set nowrap scrolloff=2"]},
     {"contains": [": set nowrap scrolloff=2 stack=", "tabs · current", "stack", "grid"]}

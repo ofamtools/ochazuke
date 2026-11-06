@@ -1,5 +1,5 @@
 {
-  "name": "about.tab off: the Settings page has no About tab (] and [ stay among the owners) and about.open opens the About page on its own, with no tab row and no settings.tab hint; q goes back",
+  "name": "about.tab off: the Settings page has no About tab (] and [ stay among the owners) and about.open opens the About page on its own, with no tab row and no setting.show-tab hint; q goes back",
   "area": "about",
   "width": 100,
   "height": 30,
@@ -10,7 +10,7 @@
   "page": {
     "lists": [{"id": "a", "rows": 2}],
     "bind": [
-      {"noun": "demo", "keys": ",", "do": "settings.edit"},
+      {"noun": "demo", "keys": ",", "do": "setting.open"},
       {"noun": "demo", "keys": "A", "do": "ochazuke.about.open"}
     ],
     "about": {
@@ -28,7 +28,7 @@
     {"after": 1, "page": "__settings", "lacks": ["About"]},
     {"after": 2, "page": "__settings"},
     {"after": 3, "page": "__settings"},
-    {"after": 5, "page": "__about", "contains": ["github.com/unixsuperhero/demo", "4242", "5m0s"], "lacks": ["settings.tab", "› app"]},
+    {"after": 5, "page": "__about", "contains": ["github.com/unixsuperhero/demo", "4242", "5m0s"], "lacks": ["setting.show-tab", "› app"]},
     {"page": "page1", "focus": "a1"}
   ]
 }

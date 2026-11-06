@@ -14,7 +14,7 @@
     "title": "Tasks",
     "lists": [{"id": "a", "rows": 3}],
     "focus": "a2",
-    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+    "bind": [{"noun": "demo", "keys": ",", "do": "setting.open"}]
   },
   "config": {"settings.json": {"settings.all-section": false}},
   "script": [",", ","],

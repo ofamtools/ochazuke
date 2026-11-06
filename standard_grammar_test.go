@@ -22,7 +22,7 @@ func grammarRuntime(t *testing.T) (*Runtime, *Palette, *writeStore) {
 
 func setLine(t *testing.T, r *Runtime, line string) {
 	t.Helper()
-	paletteRequest(t, r, "set", "palette", Arguments{"text": line})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": line})
 }
 
 // TestNounWordPrecedence: the word after a noun is a verb, then a prop,
@@ -216,12 +216,12 @@ func TestSetReadsOnlyOneValueNouns(t *testing.T) {
 	if reading, _, err := r.ReadBareAlias(r.Context(), words("set theme name x"), nil); err != nil || reading.Noun != "theme" {
 		t.Fatalf("set theme = %+v %v: a singleton is", reading, err)
 	}
-	if reading, _, err := r.ReadBareAlias(r.Context(), words("set mode normal"), nil); err != nil || reading.Noun != "mode" {
-		t.Fatalf("set mode = %+v %v: a named set is", reading, err)
+	if reading, _, err := r.ReadBareAlias(r.Context(), words("set setting theme mono"), nil); err != nil || reading.Noun != "setting" {
+		t.Fatalf("set setting = %+v %v: a named set is", reading, err)
 	}
-	_, _, err := r.ReadBareAlias(r.Context(), words("set pa"), nil)
-	if err == nil || strings.Contains(err.Error(), "parcel") {
-		t.Fatalf("set pa = %v: palette and the settings, never parcel", err)
+	reading, _, err := r.ReadBareAlias(r.Context(), words("set pa"), nil)
+	if reading.Noun == "parcel" || err != nil && strings.Contains(err.Error(), "parcel") {
+		t.Fatalf("set pa = %+v %v: the settings, never parcel", reading, err)
 	}
 	// The collision check: every setting reads as a setting.
 	for _, one := range r.Settings().Declared() {
@@ -245,7 +245,7 @@ func TestSetReadsOnlyOneValueNouns(t *testing.T) {
 	paletteRequest(t, r, "open", "palette", nil)
 	setLine(t, r, "set pa")
 	got := completionValues(m.Palette)
-	if slices.Contains(got, "noun:parcel") || !slices.Contains(got, "noun:palette") || !slices.Contains(got, "choice:palette.standard-verbs") {
+	if slices.Contains(got, "noun:parcel") || slices.Contains(got, "noun:palette") || !slices.Contains(got, "choice:palette.standard-verbs") {
 		t.Fatalf("set pa completes %v", got)
 	}
 }

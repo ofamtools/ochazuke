@@ -8,7 +8,7 @@
   ],
   "page": {
     "lists": [{"id": "a", "rows": 1}],
-    "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
+    "bind": [{"noun": "demo", "keys": "S", "do": "setting.open"}]
   },
   "script": ["S", "enter", "ctrl+u", {"type": "soon"}, "enter", "ctrl+u", {"type": "2s"}, "enter", "j", "enter", "ctrl+u", {"type": "nvim"}, "enter"],
   "expect": [

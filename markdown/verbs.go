@@ -30,7 +30,7 @@ func Register(r *ochazuke.Runtime) {
 // writingVerbs are the normal-mode verbs it guards.
 const writableGuard = "markdown-writable"
 
-var writingVerbs = []string{"toggle", "undo", "redo", "insert", "open", "delete", "paste", "note", "resolve"}
+var writingVerbs = []string{"toggle", "undo", "redo", "insert", "open", "cut", "paste", "note", "resolve"}
 
 // docOf is the Doc the event's focus is in (an input of it included).
 func docOf(r *ochazuke.Runtime, focus string) *Doc {
@@ -187,8 +187,8 @@ func register(r *ochazuke.Runtime) {
 		Verb("previous-kind", byKind(-1), "Move the cursor to the previous block of a kind (see next-kind)").Motion().
 		Verb("insert", on(func(d *Doc, a ochazuke.Arguments) error { return d.Insert(ochazuke.StringArg(a, "at", "cursor")) }), "Edit the block under the cursor as Markdown, in place: at the start of the cursor line's text (cursor), the end of the block (after), the start of the line (start) or its end (end); written as you type").
 		Verb("open", on(func(d *Doc, a ochazuke.Arguments) error { return d.Open(ochazuke.StringArg(a, "where", "below")) }), "Open a new line below or above the block in insert mode, continuing its structure: a list item with the same marker, a table row, a note, else a paragraph").
-		Verb("delete", plain((*Doc).Delete), "Delete the cursor's line or block (an item with its notes and nested items, a heading's line only); yanked, written at once").
-		Verb("yank", plain((*Doc).Yank), "Yank the cursor's line or block as lines (what delete would take)").
+		Verb("cut", plain((*Doc).Delete), "Cut the cursor's line or block (an item with its notes and nested items, a heading's line only); yanked, written at once").
+		Verb("yank", plain((*Doc).Yank), "Yank the cursor's line or block as lines (what cut would take)").
 		Verb("paste", on(func(d *Doc, a ochazuke.Arguments) error {
 			return d.Paste(ochazuke.StringArg(a, "where", "below") != "above")
 		}), "Paste the yanked lines below (or above) the block; written at once").

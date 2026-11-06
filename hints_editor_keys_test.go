@@ -8,8 +8,8 @@ import (
 
 // An input's hint line names the keys of what holds it (a modal's own
 // rows), never the editor's insert-mode keys (ctrl+k input.kill, ctrl+y
-// input.paste, backspace input.delete, tab completion.open, esc
-// mode.set) or the palette key (ctrl+space palette.open): they are hidden
+// input.paste, backspace input.erase, tab completion.open, esc
+// mode.switch) or the palette key (ctrl+space palette.open): they are hidden
 // rows, as motions are, and bindings list and ? help still list them
 // (found by o-json's edit modal).
 func TestInputHintsLeaveOutEditorInsertKeys(t *testing.T) {
@@ -27,7 +27,7 @@ func TestInputHintsLeaveOutEditorInsertKeys(t *testing.T) {
 	if !strings.Contains(hints, "enter ask.submit") {
 		t.Fatalf("the modal's own key is missing: %q", hints)
 	}
-	for _, op := range []string{"input.kill", "input.paste", "input.delete", "input.insert", "palette.open", "completion.open", "mode.set"} {
+	for _, op := range []string{"input.kill", "input.paste", "input.erase", "input.insert", "palette.open", "completion.open", "mode.switch"} {
 		if strings.Contains(hints, op) {
 			t.Errorf("hints name %s: %q", op, hints)
 		}

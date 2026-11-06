@@ -36,13 +36,13 @@ func savedSettings(t *testing.T, dir string) map[string]any {
 // needed for a :set line, from the shell and through Mount.
 func TestCLIRestParameterJoinsTheWords(t *testing.T) {
 	f, dir := setFixture(t)
-	if _, errOut, err := f.run("", "settings", "apply", "modal-dim=40", "nohelp.pick-view", "--yes"); err != nil {
+	if _, errOut, err := f.run("", "setting", "apply", "modal-dim=40", "nohelp.pick-view", "--yes"); err != nil {
 		t.Fatalf("apply: %v\n%s", err, errOut)
 	}
 	if got := savedSettings(t, dir); got["modal-dim"] != 40.0 || got["help.pick-view"] != false {
 		t.Fatalf("saved %v", got)
 	}
-	if _, errOut, err := f.mounted(t, "settings", "apply", "dim-unfocused=30", "modal-dim=10", "--yes"); err != nil {
+	if _, errOut, err := f.mounted(t, "setting", "apply", "dim-unfocused=30", "modal-dim=10", "--yes"); err != nil {
 		t.Fatalf("mounted apply: %v\n%s", err, errOut)
 	}
 	if got := savedSettings(t, dir); got["modal-dim"] != 10.0 || got["dim-unfocused"] != 30.0 {
@@ -65,16 +65,13 @@ func TestCLIBareSet(t *testing.T) {
 		if got := savedSettings(t, dir); got["modal-dim"] != 20.0 {
 			t.Fatalf("mount %v saved %v", mount, got)
 		}
-		out, errOut, err := run("", "set", "mode", "normal")
-		if err != nil || !strings.Contains(out, `"normal"`) {
-			t.Fatalf("mount %v set mode normal: %v\n%s\n%s", mount, err, out, errOut)
+		// set NOUN runs a noun's named set: set setting NAME VALUE.
+		if _, errOut, err := run("", "set", "setting", "modal-dim", "30", "--yes"); err != nil || savedSettings(t, dir)["modal-dim"] != 30.0 {
+			t.Fatalf("mount %v set setting modal-dim 30: %v %v\n%s", mount, err, savedSettings(t, dir), errOut)
 		}
-		_, errOut, err = run("", "verbose", "set", "dim-unfocused?")
+		_, errOut, err := run("", "verbose", "set", "dim-unfocused?")
 		if err != nil || !strings.Contains(errOut, "dim-unfocused=20 — default") {
 			t.Fatalf("mount %v verbose set: %v\n%s", mount, err, errOut)
-		}
-		if _, _, err := run("", "set", "foc"); err == nil || !strings.Contains(err.Error(), `"foc" is ambiguous: noun focus (focus set), or line focus-display`) {
-			t.Fatalf("mount %v set foc: %v", mount, err)
 		}
 	}
 }
@@ -83,8 +80,8 @@ func TestCLIBareSet(t *testing.T) {
 // so (exit 0) and points at settings diff.
 func TestCLISettingsReviewHasNoSession(t *testing.T) {
 	f, _ := setFixture(t)
-	out, errOut, err := f.run("", "settings", "review")
-	if err != nil || !strings.Contains(out, "no session to review") || !strings.Contains(out, "settings diff") {
+	out, errOut, err := f.run("", "setting", "review")
+	if err != nil || !strings.Contains(out, "no session to review") || !strings.Contains(out, "setting diff") {
 		t.Fatalf("review: %q %q %v", out, errOut, err)
 	}
 }
@@ -93,7 +90,7 @@ func TestCLIExplicitShadowVerb(t *testing.T) {
 	for _, mount := range []bool{false, true} {
 		f, dir := setFixture(t)
 		if err := f.r.AddActionAlias(ochazuke.ActionAlias{
-			Alias: "adjust", Action: "ochazuke.settings.apply", ShadowVerb: "set",
+			Alias: "adjust", Action: "ochazuke.setting.apply", ShadowVerb: "set",
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -101,11 +98,8 @@ func TestCLIExplicitShadowVerb(t *testing.T) {
 		if mount {
 			run = func(_ string, args ...string) (string, string, error) { return f.mounted(t, args...) }
 		}
-		if _, errOut, err := run("", "adjust", "mode", "insert"); err != nil {
-			t.Fatalf("mount %v adjust mode: %v\n%s", mount, err, errOut)
-		}
-		if f.r.Mode.Name != "insert" {
-			t.Fatalf("mount %v mode %q, want insert", mount, f.r.Mode.Name)
+		if _, errOut, err := run("", "adjust", "setting", "modal-dim", "25", "--yes"); err != nil || savedSettings(t, dir)["modal-dim"] != 25.0 {
+			t.Fatalf("mount %v adjust setting: %v\n%s", mount, err, errOut)
 		}
 		if _, errOut, err := run("", "adjust", "modal-dim=35", "--yes"); err != nil {
 			t.Fatalf("mount %v adjust setting: %v\n%s", mount, err, errOut)

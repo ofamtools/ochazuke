@@ -11,11 +11,11 @@
   ],
   "page": {
     "lists": [{"id": "a", "rows": 2}],
-    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+    "bind": [{"noun": "demo", "keys": ",", "do": "setting.open"}]
   },
   "script": [",", "tab", "tab", "tab", "tab", "shift+tab", "shift+tab", "shift+tab", "[", "[", "]", "]", "]", "g", "t", "g", "T", "shift+tab"],
   "expect": [
-    {"after": 1, "focus": "__settings/row/scrolloff", "order": ["› app", "extensions", "ochazuke", "Sections", "General (1)", "General", "1", "panes", "2", "scrolloff"], "contains": ["]/[ settings.tab"]},
+    {"after": 1, "focus": "__settings/row/scrolloff", "order": ["› app", "extensions", "ochazuke", "Sections", "General (1)", "General", "1", "panes", "2", "scrolloff"], "contains": ["]/[ setting.show-tab"]},
     {"after": 2, "focus": "__settings/row/panes.group", "order": ["› app", "panes (2)", "panes.group", "panes.percent"]},
     {"after": 3, "focus": "__settings/row/ext.ai.model", "order": ["app", "› extensions", "ochazuke", "ai (1)", "ext.ai.model"], "contains": ["git", "Sections"], "lacks": ["panes"]},
     {"after": 4, "focus": "__settings/row/ext.git.fetch", "contains": ["› extensions", "git (1)"]},

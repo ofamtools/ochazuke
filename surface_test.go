@@ -10,25 +10,28 @@ import (
 	"github.com/charmbracelet/x/vt"
 )
 
+// The appearance is a singleton thing: set writes theme and density at
+// once (changes) and answers the record; a write that fails changes
+// nothing; get answers the record.
 func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 	r := NewRuntime()
 	a := NewAppearance(r)
-	result, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"theme": "dark", "density": "compact"}})
+	result, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"changes": map[string]any{"theme": "dark", "density": "compact"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshot, ok := result.(Appearance)
-	if !ok || snapshot.Theme != "dark" || snapshot.Density != "compact" || !snapshot.Dark {
-		t.Fatalf("set returned %T %#v, want an appearance value", result, result)
+	snapshot, ok := result.(map[string]any)
+	if !ok || snapshot["theme"] != "dark" || snapshot["density"] != "compact" || snapshot["dark"] != true {
+		t.Fatalf("set returned %T %#v, want the appearance's props", result, result)
 	}
 	for _, args := range []Arguments{
-		{"theme": "light", "density": "crowded"},
-		{"theme": "missing", "density": "comfortable"},
-		{"theme": ""},
-		{"density": ""},
-		{"theme": 3, "density": "comfortable"},
-		{"density": false, "theme": "light"},
-		{"unknown": "light"},
+		{"changes": map[string]any{"theme": "light", "density": "crowded"}},
+		{"changes": map[string]any{"theme": "missing", "density": "comfortable"}},
+		{"prop": "theme", "value": ""},
+		{"prop": "density", "value": ""},
+		{"changes": map[string]any{"density": false, "theme": "light"}},
+		{"prop": "dark", "value": false},
+		{"prop": "unknown", "value": "light"},
 	} {
 		if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: args}); err == nil {
 			t.Fatalf("accepted invalid appearance %#v", args)
@@ -41,19 +44,17 @@ func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	before, ok := got.(Appearance)
-	if !ok {
-		t.Fatalf("get returned %T, want an appearance value", got)
+	if before, ok := got.(map[string]any); !ok || before["theme"] != "dark" || before["density"] != "compact" {
+		t.Fatalf("get returned %#v, want the appearance's props", got)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"theme": "light"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"prop": "theme", "value": "light"}}); err != nil {
 		t.Fatal(err)
 	}
-	if a.Theme != "light" || a.Density != "compact" || !a.Dark || before != snapshot {
-		t.Fatalf("partial update lost density or mutated prior snapshot: live=%#v before=%#v set=%#v", *a, before, snapshot)
+	if a.Theme != "light" || a.Density != "compact" || !a.Dark {
+		t.Fatalf("partial update lost density: %#v", *a)
 	}
-	before.Theme = "mono"
-	if a.Theme != "light" {
-		t.Fatal("editing returned snapshot changed live appearance")
+	if theme, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.appearance", Args: Arguments{"prop": "theme"}}); err != nil || theme != "light" {
+		t.Fatalf("get theme: %v %v", theme, err)
 	}
 }
 
@@ -78,7 +79,7 @@ func TestListedThemesCanBeSelected(t *testing.T) {
 			t.Fatalf("duplicate theme %q", theme)
 		}
 		seen[theme] = true
-		if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"theme": theme}}); err != nil || a.Theme != theme {
+		if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"prop": "theme", "value": theme}}); err != nil || a.Theme != theme {
 			t.Fatalf("listed theme %q cannot be selected: %#v, %v", theme, *a, err)
 		}
 	}

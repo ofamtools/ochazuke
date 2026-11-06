@@ -213,7 +213,7 @@ func (m *Model) Init() tea.Cmd {
 	m.Runtime.EnsureUserBindings()
 	m.Runtime.EnsureHooks()
 	m.Runtime.EnsureConfigSettings()
-	m.Runtime.Settings().ensure()
+	m.Runtime.Settings().ensureCurrent()
 	// A running UI has a session: session values live until it exits.
 	m.Runtime.Settings().StartSession()
 	m.applyThemeSetting()

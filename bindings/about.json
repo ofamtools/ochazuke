@@ -7,10 +7,10 @@
       {"key": "o", "action": "ochazuke.about-row.open", "when": "about-row-path", "hidden": true}
     ]},
     {"context": "ochazuke.about-page/normal", "bindings": [
-      {"key": "]", "action": "ochazuke.settings.tab", "args": {"step": 1}, "when": "about-tab", "hint": "]/[ settings.tab"},
-      {"key": "[", "action": "ochazuke.settings.tab", "args": {"step": -1}, "when": "about-tab", "hidden": true},
-      {"key": "g t", "action": "ochazuke.settings.tab", "args": {"step": 1}, "when": "about-tab", "hidden": true},
-      {"key": "g T", "action": "ochazuke.settings.tab", "args": {"step": -1}, "when": "about-tab", "hidden": true},
+      {"key": "]", "action": "ochazuke.setting.show-tab", "args": {"step": 1}, "when": "about-tab", "hint": "]/[ setting.show-tab"},
+      {"key": "[", "action": "ochazuke.setting.show-tab", "args": {"step": -1}, "when": "about-tab", "hidden": true},
+      {"key": "g t", "action": "ochazuke.setting.show-tab", "args": {"step": 1}, "when": "about-tab", "hidden": true},
+      {"key": "g T", "action": "ochazuke.setting.show-tab", "args": {"step": -1}, "when": "about-tab", "hidden": true},
       {"key": "Y", "action": "ochazuke.about.copy"},
       {"key": "r", "action": "ochazuke.about.refresh"},
       {"key": "q", "action": "ochazuke.about.close"},

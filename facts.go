@@ -1,8 +1,10 @@
 package ochazuke
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -37,6 +39,9 @@ type factsSpec struct {
 	ListParams map[string]Parameter
 	// List answers the things, in order.
 	List func(Ctx, ListQuery) ([]Thing, error)
+	// Get answers the thing with that key; nil looks it up in List's
+	// answer to no arguments.
+	Get func(Ctx, string) (Thing, error)
 }
 
 // defineFacts declares the noun, its props and its facts store. The
@@ -87,9 +92,9 @@ func (r *Runtime) defineFacts(f factsSpec) {
 		}
 	}
 	keyName := f.Key
-	r.Define(f.Noun).Props(props...).Store(Store{
-		Kind: Collection, Facts: true, ListParams: f.ListParams, List: f.List,
-		Get: func(c Ctx, key string) (Thing, error) {
+	get := f.Get
+	if get == nil {
+		get = func(c Ctx, key string) (Thing, error) {
 			things, err := f.List(c, ListQuery{Args: Arguments{}})
 			if err != nil {
 				return nil, err
@@ -100,7 +105,10 @@ func (r *Runtime) defineFacts(f factsSpec) {
 				}
 			}
 			return nil, fmt.Errorf("unknown %s %q", c.Runtime.DisplayNoun(f.Noun), key)
-		},
+		}
+	}
+	r.Define(f.Noun).Props(props...).Store(Store{
+		Kind: Collection, Facts: true, ListParams: f.ListParams, List: f.List, Get: get,
 	})
 }
 
@@ -168,7 +176,7 @@ func propTypeOf(t reflect.Type) string {
 		return SettingString
 	case reflect.Bool:
 		return SettingBoolean
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return SettingInteger
 	case reflect.Float32, reflect.Float64:
 		return SettingNumber
@@ -210,4 +218,71 @@ func registerFactNouns(r *Runtime) {
 	registerModeFacts(r)
 	registerAssociations(r)
 	registerActionFacts(r)
+	registerStateFacts(r)
+	registerJobFacts(r)
+	registerRegisterThings(r)
+}
+
+// stateProps are the state noun's props: the snapshot's fields
+// (Runtime.Snapshot), each read-only.
+var stateProps = []PropSpec{
+	{Name: "page", Parameter: Parameter{Description: "The current page's id"}},
+	{Name: "pages", Parameter: Parameter{Type: PropObject, Description: "The registered pages by id"}},
+	{Name: "focus", Parameter: Parameter{Description: "The focused instance's id"}},
+	{Name: "context", Parameter: Parameter{Type: PropObject, Description: "The focus path, page and mode"}},
+	{Name: "mode", Parameter: Parameter{Description: "The interaction mode's name"}},
+	{Name: "modeState", Parameter: Parameter{Type: PropObject, Description: "The mode with its payload (count, operator, prefix)"}},
+	{Name: "modes", Parameter: Parameter{Type: SettingList, Description: "Every mode's name"}},
+	{Name: "modals", Parameter: Parameter{Type: SettingList, Description: "The open modals, bottom first"}},
+	{Name: "pending", Parameter: Parameter{Type: PropObject, Description: "The pending key sequence"}},
+	{Name: "quit", Parameter: Parameter{Type: SettingBoolean, Description: "Whether the application is quitting"}},
+	{Name: "bindings", Parameter: Parameter{Type: PropObject, Description: "The rows the focus answers to"}},
+	{Name: "inputs", Parameter: Parameter{Type: PropObject, Description: "The inputs by id: text, cursor, mode"}},
+	{Name: "lists", Parameter: Parameter{Type: PropObject, Description: "The lists by id: rows, selection, filter"}},
+	{Name: "registers", Parameter: Parameter{Type: PropObject, Description: "The named registers"}},
+	{Name: "yankHistory", Parameter: Parameter{Type: PropObject, Description: "The yank history, newest first"}},
+	{Name: "activeRegister", Parameter: Parameter{Description: "The register the next yank, delete or paste uses"}},
+	{Name: "macro", Parameter: Parameter{Type: PropObject, Description: "The macro being recorded or played"}},
+	{Name: "nouns", Parameter: Parameter{Type: PropObject, Description: "The nouns by name: verbs, bindings, actions, pin"}},
+	{Name: "instances", Parameter: Parameter{Type: PropObject, Description: "The live instances by id: noun, parent, payload"}},
+	{Name: "components", Parameter: Parameter{Type: PropObject, Description: "The components by instance id"}},
+	{Name: "jobs", Parameter: Parameter{Type: PropObject, Description: "The running jobs (job.list lists the finished ones too)"}},
+	{Name: "history", Parameter: Parameter{Type: PropObject, Description: "The last 50 actions and changes (history.list reads more)"}},
+}
+
+// registerStateFacts declares the state noun: a read-only singleton (a
+// system fact) whose props are the public state, so get {prop} reads one
+// field and a dotted path reads inside it (state get
+// instances.editor.noun), as the JSON Pointer of the old state.get did.
+func registerStateFacts(r *Runtime) {
+	props := slices.Clone(stateProps)
+	for i := range props {
+		props[i].ReadOnly = true
+	}
+	r.Define("ochazuke.state").Props(props...).Store(Store{
+		Kind: Singleton, Facts: true,
+		// The snapshot in its JSON form, as the old JSON Pointer read it:
+		// what a CLI or an agent sees, never a live Go value.
+		Get: func(c Ctx, _ string) (Thing, error) {
+			data, err := json.Marshal(c.Runtime.Snapshot())
+			if err != nil {
+				return nil, err
+			}
+			var t Thing
+			return t, json.Unmarshal(data, &t)
+		},
+	})
+}
+
+// registerJobFacts declares the job noun: the off-loop jobs, running and
+// finished (done, failed or cancelled, with the error), kept after they
+// end up to jobHistory finished ones; job.cancel stops a running one.
+func registerJobFacts(r *Runtime) {
+	r.defineFacts(factsSpec{Noun: "ochazuke.job", Sample: JobInfo{}, Key: "job", Label: "label",
+		Docs: map[string]string{"job": "The job's number", "owner": "The instance that started it", "verb": "The verb it runs", "label": "What it says it does",
+			"slot": "Its replacing slot, when it has one", "scope": "The scope of its slot", "started": "When it started",
+			"state": "running, done, failed or cancelled", "error": "Why it failed, when it did"},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			return factThings(c.Runtime.Jobs(), nil)
+		}})
 }

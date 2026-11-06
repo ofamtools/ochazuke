@@ -3,6 +3,8 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -34,6 +36,90 @@ type Registers struct {
 func registerRegisters(r *Runtime) {
 	inst := r.Instance(registersID, Kind("ochazuke.registers"))
 	inst.Component = &Registers{Named: map[string]Register{}}
+}
+
+// registerThingProps are a register's props as the register noun's
+// things answer them.
+var registerThingProps = []PropSpec{
+	{Name: "name", Key: true, Human: true, Parameter: Parameter{Description: "The register: a-z (A-Z appends to it), 0-9, \" (unnamed), - (small delete), + or * (the system clipboard), _ (discards)"}},
+	{Name: "text", Parameter: Parameter{Description: "The text it holds"}},
+	{Name: "shape", Parameter: Parameter{Enum: []string{"char", "line", "block"}, Description: "How it pastes: char, line or block"}},
+	{Name: "width", Parameter: Parameter{Type: SettingInteger, Description: "A block's width in cells (computed from the text when larger)"}},
+	{Name: "keys", ReadOnly: true, Parameter: Parameter{Type: PropObject, Description: "The keys of a macro recorded into it"}},
+}
+
+// registerRegisterThings declares the register noun: the named registers
+// are things keyed by name; set writes one (an uppercase name appends, _
+// discards), get and list read them, register.select picks the one the
+// next yank, delete or paste uses.
+func registerRegisterThings(r *Runtime) {
+	thing := func(key string, reg Register) Thing {
+		t := Thing{"name": key, "text": reg.Yank.Text, "shape": reg.Yank.Shape, "width": reg.Yank.Width}
+		if len(reg.Keys) > 0 {
+			t["keys"] = reg.Keys
+		}
+		return t
+	}
+	r.Define("ochazuke.register").Props(registerThingProps...).Store(Store{
+		Kind: Collection, Stamps: true,
+		Get: func(c Ctx, name string) (Thing, error) {
+			key, _, err := registerName(name)
+			if err != nil {
+				return nil, err
+			}
+			reg, ok := c.Runtime.Registers().Named[key]
+			if !ok {
+				return Thing{"name": key, "text": "", "shape": "char", "width": 0}, nil
+			}
+			return thing(key, reg), nil
+		},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			named := c.Runtime.Registers().Named
+			out := []Thing{}
+			for _, key := range slices.Sorted(maps.Keys(named)) {
+				out = append(out, thing(key, named[key]))
+			}
+			return out, nil
+		},
+		Patch: func(c Ctx, name string, changes Thing) (Thing, error) {
+			key, appendMode, err := registerName(name)
+			if err != nil {
+				return nil, err
+			}
+			current := c.Runtime.Registers().Named[key].Yank
+			y := Yank{Text: current.Text, Shape: current.Shape, Width: current.Width}
+			if appendMode {
+				y = Yank{Shape: "char"}
+			}
+			if v, ok := changes["text"].(string); ok {
+				y.Text = v
+			}
+			if v, ok := changes["shape"].(string); ok {
+				y.Shape = v
+			}
+			if v, ok := changes["width"]; ok {
+				y.Width = IntArg(Arguments{"width": v}, "width", 0)
+			}
+			if y.Shape == "" {
+				y.Shape = "char"
+			}
+			if y.Width < 0 {
+				return nil, errors.New("width must be nonnegative")
+			}
+			if y.Shape == "line" && !strings.HasSuffix(y.Text, "\n") {
+				y.Text += "\n"
+			}
+			if y.Shape == "block" {
+				for _, line := range strings.Split(y.Text, "\n") {
+					y.Width = max(y.Width, cellWidth(line))
+				}
+			}
+			if err := c.Runtime.storeYank(y, name, false); err != nil {
+				return nil, err
+			}
+			return thing(key, c.Runtime.Registers().Named[key]), nil
+		},
+	})
 }
 
 // Registers returns the registers component.

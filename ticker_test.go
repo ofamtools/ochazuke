@@ -69,8 +69,8 @@ func TestJobsTickerRunningOnTopFinishedSlidesDown(t *testing.T) {
 	// A failure carries its error and stays below the running job.
 	r.Settle(a, errors.New("boom"))
 	tickerIs(t, m, "thing.build running", "thing.build failed: boom")
-	// jobs.list deletes finished jobs on read; the ticker remembers them.
-	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.jobs"}); err != nil {
+	// A job.list read changes nothing the ticker shows.
+	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.job"}); err != nil {
 		t.Fatal(err)
 	}
 	tickerIs(t, m, "thing.build running", "thing.build failed: boom")
@@ -186,7 +186,7 @@ func TestNewModelClockDefaultsToTimeNow(t *testing.T) {
 }
 
 // A job's Label rides between the verb and the state on the ticker and in
-// jobs.list: which of a verb's jobs this is.
+// job.list: which of a verb's jobs this is.
 func TestJobsTickerShowsJobLabel(t *testing.T) {
 	r, m, _ := tickerFixture(t)
 	ticket, err := r.Launch("owner", "thing.build", Pending(func(context.Context) (any, error) { return nil, nil }).Label("claude"), Ctx{})
@@ -194,12 +194,12 @@ func TestJobsTickerShowsJobLabel(t *testing.T) {
 		t.Fatal(err)
 	}
 	tickerIs(t, m, "thing.build claude running")
-	value, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.jobs"})
+	value, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.job"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if jobs := value.([]JobInfo); len(jobs) != 1 || jobs[0].Label != "claude" {
-		t.Fatalf("jobs.list = %+v, want the label", jobs)
+	if jobs := rowsOf[JobInfo](t, value); len(jobs) != 1 || jobs[0].Label != "claude" {
+		t.Fatalf("job.list = %+v, want the label", jobs)
 	}
 	r.Settle(ticket, nil)
 	tickerIs(t, m, "thing.build claude done")

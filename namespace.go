@@ -129,7 +129,7 @@ func (r *Runtime) ownsNoun(name string) bool {
 }
 
 // CanonicalKey is an operation key with its noun resolved (CanonicalNoun):
-// settings.set is ochazuke.settings.set unless the application has a settings
+// setting.set is ochazuke.setting.set unless the application has a settings
 // noun of its own. A name is looked up whole first: a registered action or
 // action alias keeps its name, and a dotted verb (dirs.base.add) resolves
 // where it was declared; otherwise each dot, last first, is tried as the
@@ -214,7 +214,7 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 func (r *Runtime) CanonicalRequest(q Request) Request { return r.canonicalRequest(q) }
 
 // Operation is the registered operation a key names, aliases resolved:
-// noun aliases (settings.set) and action aliases (an old verb name) alike.
+// noun aliases (setting.set) and action aliases (an old verb name) alike.
 func (r *Runtime) Operation(key string) (Operation, bool) {
 	op, _, ok := r.ResolveAction(key)
 	return op, ok

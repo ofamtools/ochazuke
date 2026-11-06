@@ -58,7 +58,7 @@ func TestHistoryEntriesHaveKinds(t *testing.T) {
 	run(t, r, "w.remove", nil)
 	run(t, r, "w.show", nil)
 	run(t, r, "w.rows", nil)
-	run(t, r, "ochazuke.state.get", Arguments{"path": "/focus"})
+	run(t, r, "ochazuke.state.get", Arguments{"prop": "focus"})
 	if got, want := historyKeys(r.History(0)), "action:ochazuke.list.move change:w.remove fetch:w.show fetch:w.rows fetch:ochazuke.state.get"; !strings.HasSuffix(got, want) {
 		t.Fatalf("history %s, want it to end %s", got, want)
 	}
@@ -72,7 +72,7 @@ func TestHistoryEntriesHaveKinds(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got := historyKeys(out.([]HistoryEntry))
+		got := historyKeys(rowsOf[HistoryEntry](t, out))
 		fetches := arg == "all" || strings.Contains(arg, "fetch")
 		if !strings.Contains(got, want) || !fetches && strings.Contains(got, "fetch:") || arg == "fetch" && strings.Contains(got, "change:") {
 			t.Fatalf("history.list kind %q: %s, want %s", arg, got, want)
@@ -123,16 +123,16 @@ func TestHistoryFileKeepsFetchesOnlyWhenAsked(t *testing.T) {
 			}
 		}
 		r := historyModel(t, config, state).Runtime
-		run(t, r, "ochazuke.jobs.list", nil)
+		run(t, r, "ochazuke.job.list", nil)
 		runPaletteLine(t, r, Request{Noun: "ochazuke.modes", Verb: "list"})
 		run(t, r, "ochazuke.notice.clear", nil)
 		text := fileText(t, r)
-		if !strings.Contains(text, `"noun":"ochazuke.modes"`) || !strings.Contains(text, `"noun":"ochazuke.notice"`) || strings.Contains(text, `"noun":"ochazuke.jobs"`) != on {
+		if !strings.Contains(text, `"noun":"ochazuke.modes"`) || !strings.Contains(text, `"noun":"ochazuke.notice"`) || strings.Contains(text, `"noun":"ochazuke.job"`) != on {
 			t.Fatalf("history-fetches %v: %s", on, text)
 		}
 		if on {
 			next := historyModel(t, config, state).Runtime
-			if got := historyKeys(next.HistoryOf(0, HistoryFetch)); !strings.Contains(got, "fetch:ochazuke.jobs.list") {
+			if got := historyKeys(next.HistoryOf(0, HistoryFetch)); !strings.Contains(got, "fetch:ochazuke.job.list") {
 				t.Fatalf("restored fetches: %s", got)
 			}
 		}
@@ -144,7 +144,7 @@ func TestHistoryFileKeepsFetchesOnlyWhenAsked(t *testing.T) {
 func TestDotSkipsActionsAndFetches(t *testing.T) {
 	r, in := editorTestRuntime(t, "abcdef", false)
 	editorTestKeys(t, r, "x")
-	run(t, r, "ochazuke.jobs.list", nil)
+	run(t, r, "ochazuke.job.list", nil)
 	editorTestKeys(t, r, "l", ".")
 	if string(in.Text) != "bdef" {
 		t.Fatalf("text %q", in.Text)
@@ -187,14 +187,14 @@ func TestBuiltinHistoryKeepsRegistrationAnnotations(t *testing.T) {
 	}
 }
 
-// messages.show reads and jobs.cancel acts: neither is a recorded change,
+// messages.show reads and job.cancel acts: neither is a recorded change,
 // and neither is destructive.
 func TestMountedVerbHistoryKinds(t *testing.T) {
 	r := NewRuntime()
 	for key, want := range map[string]string{
 		"ochazuke.messages.show": HistoryFetch,
-		"ochazuke.jobs.cancel":   HistoryAction,
-		"ochazuke.jobs.list":     HistoryFetch,
+		"ochazuke.job.cancel":    HistoryAction,
+		"ochazuke.job.list":      HistoryFetch,
 	} {
 		op, ok := r.Operations[key]
 		if !ok || op.Destructive || op.HistoryKindOf() != want {

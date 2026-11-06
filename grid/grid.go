@@ -65,7 +65,7 @@ func ParseID(id string) (ref Ref, kind string, ok bool) {
 }
 
 // Selection shapes: the global modes a visual selection is active in, set
-// with mode.set like any other mode. The shape decides which cells the
+// with mode.switch like any other mode. The shape decides which cells the
 // anchor and cursor span; marks add cells of any shape on top.
 const (
 	ShapeBlock  = "visual-block"
@@ -330,7 +330,7 @@ func (g *Grid) ModeChanged(from, to string) {
 }
 
 // Select starts a selection of shape at the cursor, or switches the shape of
-// the active selection keeping its anchor and marks: mode.set to the shape.
+// the active selection keeping its anchor and marks: mode.switch to the shape.
 func (g *Grid) Select(shape string) error {
 	if !isShape(shape) {
 		return fmt.Errorf("unknown selection shape %q", shape)
@@ -338,7 +338,7 @@ func (g *Grid) Select(shape string) error {
 	return g.r.SetMode(shape)
 }
 
-// Cancel ends the selection and drops its marks: mode.set normal.
+// Cancel ends the selection and drops its marks: mode.switch normal.
 func (g *Grid) Cancel() {
 	if g.Shape() != "" {
 		_ = g.r.SetMode("normal")

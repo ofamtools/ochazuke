@@ -139,7 +139,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   entering a stop beneath it with no nearer pin, enters that mode; a re-pin
   of the focused pane applies in the same update when the runtime stands in
   the mode it declared before (a lifted mode such as insert is kept), never
-  a frame later. An `esc` row returns with `mode.set {mode: declared}`, so
+  a frame later. An `esc` row returns with `mode.switch {mode: declared}`, so
   no row names a pane's mode. Story: `modes/instance-pin-focus.json`,
   `modes/instance-pin-live.json`, `modes/esc-declared.json`.
 - **R2.8** A passthrough mode has no capture pass: while `terminal` is the
@@ -301,7 +301,7 @@ tiers above them. When the two disagree, fix one in the same commit.
 ### R4. Modals
 
 - **R4.1** While a modal is open, `Runtime.Focus` is the top modal or a
-  descendant. `focus.set` outside it is refused with an error result.
+  descendant. `focus.to` outside it is refused with an error result.
   Check: focus tests assert `focusInTopLevel`.
 - **R4.2** The top modal is a boundary: the walk stops at the modal instance,
   then reads `modal` and `app`. Rows beneath never answer. Story: needed
@@ -821,7 +821,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   the focus is, R6.8) and goes when another page opens. `page.hide` refuses
   the last page in the tabs; a start page the user hid gives way at start
   (`Model.Init`, `OpenVisibleStart`) to the first page in the tabs.
-  `page.show` brings a page back in its registration place; `pages.list`
+  `page.show` brings a page back in its registration place; `page.list`
   marks hidden pages. Read every frame, so `settings set`, `config.reload`
   and the verbs apply live. Stories `pages/hide-tab-gone.json`,
   `pages/hidden-opens-from-palette.json`, `pages/default-hidden.json`;

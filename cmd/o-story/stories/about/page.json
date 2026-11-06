@@ -8,7 +8,7 @@
   ],
   "page": {
     "lists": [{"id": "a", "rows": 2}],
-    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}],
+    "bind": [{"noun": "demo", "keys": ",", "do": "setting.open"}],
     "about": {
       "module": "github.com/unixsuperhero/demo",
       "version": "v1.2.3",
@@ -36,7 +36,7 @@
   },
   "script": [",", "[", "y", "j", "j", "j", "j", "j", "j", "enter", "]", "[", "q"],
   "expect": [
-    {"after": 2, "page": "__about", "focus": "__about/row/Build/module", "contains": ["› About", "app", "ochazuke", "github.com/unixsuperhero/demo", "v1.2.3", "0123456789ab", "go1.26.0", "/usr/local/bin/demo", "Data", "/tmp/demo/demo.db", "not connected", "Dependencies", "../ochazuke  (local replace of v0.74.0)", "devel  (local build (go.work))", "v0.3.1", "Runtime", "4242", "2026-10-31 09:00:00", "1h30m0s", "]/[ settings.tab", "y about-row.copy"], "lacks": ["bubbletea"]},
+    {"after": 2, "page": "__about", "focus": "__about/row/Build/module", "contains": ["› About", "app", "ochazuke", "github.com/unixsuperhero/demo", "v1.2.3", "0123456789ab", "go1.26.0", "/usr/local/bin/demo", "Data", "/tmp/demo/demo.db", "not connected", "Dependencies", "../ochazuke  (local replace of v0.74.0)", "devel  (local build (go.work))", "v0.3.1", "Runtime", "4242", "2026-10-31 09:00:00", "1h30m0s", "]/[ setting.show-tab", "y about-row.copy"], "lacks": ["bubbletea"]},
     {"after": 3, "register": "github.com/unixsuperhero/demo"},
     {"after": 9, "focus": "__about/row/Build/binary", "contains": ["enter about-row.open"]},
     {"after": 10, "writes": ["open /usr/local/bin/demo"]},

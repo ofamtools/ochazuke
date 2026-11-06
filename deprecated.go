@@ -49,7 +49,7 @@ const DefaultBindingTimeout = 1000 * time.Millisecond
 
 // TerminalLeaderTimeoutSetting is the old name of sequence-timeout, which
 // now governs the terminal leader as every other pending sequence:
-// settings.get/set/reset, a declaration and a settings.json key under
+// setting.get/set/reset, a declaration and a settings.json key under
 // this name read and write sequence-timeout, warning once.
 //
 // Deprecated: use SequenceTimeoutSetting.

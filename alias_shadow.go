@@ -25,7 +25,7 @@ import (
 // "The rest reads WORD" asks the action's rest parameter's choices
 // source (Parameter.Rest) for WORD with the cursor at its end: any choice
 // means it reads, a choice whose id is WORD itself means exactly. For set
-// (settings.apply), that is an exact noun name, then a setting name
+// (setting.apply), that is an exact noun name, then a setting name
 // (exact, then a unique prefix); a word that is both a noun's prefix and
 // a setting's is ambiguous.
 //
@@ -38,7 +38,7 @@ import (
 // BareReading is how a command line that starts with a bare alias reads
 // (ReadBareAlias): the alias and its presets, with the presets of any
 // further bare aliases of the same action right after it (verbose set is
-// settings.apply {verbose: true}), Skip the words they took; or, for an
+// setting.apply {verbose: true}), Skip the words they took; or, for an
 // alias that yields to a verb, Noun: the line is that noun's ShadowedVerb
 // (set mode normal is mode set normal).
 type BareReading struct {

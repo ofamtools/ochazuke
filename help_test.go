@@ -105,7 +105,7 @@ func TestHelpKeepsOwnerGroupVisibleWhileScrolling(t *testing.T) {
 	for _, key := range []string{"a", "b", "c", "d", "e", "f"} {
 		widget.Bind(key, Do("widget.open"))
 	}
-	widget.Bind("c", Do("ochazuke.mode.set", Arguments{"mode": "normal"}))
+	widget.Bind("c", Do("ochazuke.mode.switch", Arguments{"mode": "normal"}))
 	keytest.Press(m, "?")
 	for range 4 {
 		keytest.Press(m, "j")
@@ -117,7 +117,7 @@ func TestHelpKeepsOwnerGroupVisibleWhileScrolling(t *testing.T) {
 	if strings.Join(strings.Fields(lines[0]), " ") != "key operation arguments description" || strings.TrimSpace(lines[1]) != "widget" {
 		t.Fatalf("scrolled help lost its header or binding owner:\n%s", frame)
 	}
-	if lit := highlightedLines(raw); len(lit) == 0 || !strings.HasPrefix(strings.Join(strings.Fields(lit[0]), " "), "c mode.set") {
+	if lit := highlightedLines(raw); len(lit) == 0 || !strings.HasPrefix(strings.Join(strings.Fields(lit[0]), " "), "c mode.switch") {
 		t.Fatalf("selected binding is not highlighted beneath its owner (%q):\n%s", lit, frame)
 	}
 	if len(lines) > 5 {

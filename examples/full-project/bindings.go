@@ -36,7 +36,7 @@ func registerBindings(r *ochazuke.Runtime, cfg Config) error {
 			if r.Input(input) == nil {
 				return fmt.Errorf("binding %q: unknown modal input %q", row.Keys, input)
 			}
-		case "mode.set":
+		case "mode.switch":
 			mode := ochazuke.StringArg(q.Args, "mode", "")
 			if !r.Modes[mode] {
 				return fmt.Errorf("binding %q: unknown mode %q", row.Keys, mode)

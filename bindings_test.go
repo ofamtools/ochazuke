@@ -193,7 +193,7 @@ func TestOldVerbNounSpellingIsRewrittenOnce(t *testing.T) {
 	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "ctrl+r", Request: Request{Verb: "input", Noun: "redo"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.LoadBindings([]byte(`[{"noun":"app","mode":"normal","keys":"x","request":{"verb":"input","noun":"delete"}}]`)); err != nil {
+	if _, err := r.LoadBindings([]byte(`[{"noun":"app","mode":"normal","keys":"x","request":{"verb":"input","noun":"erase"}}]`)); err != nil {
 		t.Fatal(err)
 	}
 	keys := map[string]string{}
@@ -202,7 +202,7 @@ func TestOldVerbNounSpellingIsRewrittenOnce(t *testing.T) {
 			keys[row.Keys] = row.Request.Key()
 		}
 	}
-	want := map[string]string{"u": "ochazuke.input.undo", "ctrl+r": "ochazuke.input.redo", "x": "ochazuke.input.delete"}
+	want := map[string]string{"u": "ochazuke.input.undo", "ctrl+r": "ochazuke.input.redo", "x": "ochazuke.input.erase"}
 	if !reflect.DeepEqual(keys, want) {
 		t.Fatalf("rows = %v, want %v", keys, want)
 	}

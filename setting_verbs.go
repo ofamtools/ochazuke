@@ -13,7 +13,7 @@ import (
 // The setting verbs (lane C of the :set plan): one verb of the
 // ochazuke.setting noun per thing a setting's value can do, each taking
 // the setting's name (the focused Settings row when omitted), the value or
-// amount it needs and the scope it writes. The :set line (settings.apply),
+// amount it needs and the scope it writes. The :set line (setting.apply),
 // the Settings page's keys, the palette, the CLI and the API run the same
 // handler per verb. Which verbs a setting takes comes from the type table
 // (setTable in set_line.go): a verb fits the classes some :set form maps
@@ -27,7 +27,7 @@ import (
 // settings.autosave is off, else settings.json), or file (settings.json at
 // once, as the Settings page's keys do: their binding rows pass scope
 // file). Every write is one undo step on the Settings page (pageChange);
-// settings.apply folds a whole line into one.
+// setting.apply folds a whole line into one.
 
 // The scopes a setting verb writes (the scope argument).
 const (
@@ -382,7 +382,7 @@ func settingWritePrompt(v settingVerb) func(r *Runtime, a Arguments) string {
 // and its own.
 func settingParams(v settingVerb) map[string]Parameter {
 	params := map[string]Parameter{
-		"name": {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.settings.names"},
+		"name": {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.names"},
 	}
 	if v.Next != nil {
 		params["scope"] = Parameter{Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the value is written: session (the default: settings.json when there is no running session or settings.autosave is on) or file"}
@@ -402,6 +402,10 @@ func registerSettingVerbs(r *Runtime) {
 		op := Operation{Verb: v.Verb, Noun: "ochazuke.setting", Description: v.Description, Parameters: settingParams(v), Positional: []string{"name"}, Result: "setting", Run: runSettingVerb(v)}
 		if v.Arg != "" {
 			op.Positional = append(op.Positional, v.Arg)
+			// The value is a setting's, never a typed secret: the history
+			// file keeps it, so a recalled line still holds it (as
+			// the plural settings noun's set did before the merge).
+			op.PersistArgs = true
 		}
 		if v.Next != nil {
 			op.Checks = []VerbCheck{cliWriteCheck(settingWritePrompt(v))}
@@ -435,8 +439,8 @@ var settingProps = []PropSpec{
 	{Name: "enum", ReadOnly: true, Parameter: Parameter{Type: SettingList, Description: "The values allowed, when the setting limits them"}},
 	{Name: "protected", ReadOnly: true, Parameter: Parameter{Type: SettingBoolean, Description: "Only the owner may change this setting, even with the agent rights gate off"}},
 	{Name: "description", ReadOnly: true, Parameter: Parameter{Description: "What the setting does"}},
-	{Name: "section", ReadOnly: true, Parameter: Parameter{Description: "The section of its owner it is filed under (Setting.Section, else the name before its first dot, else general; settings.sections lists them)"}},
-	{Name: "owner", ReadOnly: true, Parameter: Parameter{Description: "The owner it is filed under, a tab of the Settings page: app (the application's), ochazuke (the framework's, also when the application changed its default) or one the application declares (settings.owners lists them)"}},
+	{Name: "section", ReadOnly: true, Parameter: Parameter{Description: "The section of its owner it is filed under (Setting.Section, else the name before its first dot, else general; setting.sections lists them)"}},
+	{Name: "owner", ReadOnly: true, Parameter: Parameter{Description: "The owner it is filed under, a tab of the Settings page: app (the application's), ochazuke (the framework's, also when the application changed its default) or one the application declares (setting.owners lists them)"}},
 	{Name: "group", ReadOnly: true, Parameter: Parameter{Description: "The heading it sits under inside its section, when it has one"}},
 	{Name: "origin", ReadOnly: true, Parameter: Parameter{Enum: []string{OriginDefault, OriginFile, OriginSession}, Description: "Where the value in effect comes from: the default, settings.json or this session (setting.show --verbose says more)"}},
 }
@@ -541,7 +545,7 @@ func showSetting(r *Runtime, one Setting, verbose bool) (SettingShown, error) {
 	return out, nil
 }
 
-// SettingsApplied is settings.apply's answer for a line that is not a
+// SettingsApplied is setting.apply's answer for a line that is not a
 // list form: what it showed and the settings it changed, with their
 // values after.
 type SettingsApplied struct {
@@ -553,7 +557,7 @@ type SettingsApplied struct {
 // it and no setting is named so.
 var setVerboseWords = []string{"verbose", "verb"}
 
-// applyLine is a settings.apply line read: its operations, whether it is
+// applyLine is a setting.apply line read: its operations, whether it is
 // verbose, and what each writing operation would leave its setting at.
 type applyLine struct {
 	ops     []setOp
@@ -632,12 +636,12 @@ func opArgs(op setOp, scope string, verbose bool) Arguments {
 	return args
 }
 
-// applyCheck asks before settings.apply runs when one of its operations
+// applyCheck asks before setting.apply runs when one of its operations
 // would ask: from a CLI process with no session, one question naming
 // every change the line writes to settings.json; the other operations'
-// own checks (settings.reset-all's) add theirs. A line that does not
+// own checks (setting.reset-all's) add theirs. A line that does not
 // parse or check allows, and the verb then fails with the reason.
-var applyCheck = VerbCheck{Name: "settings.apply", Check: func(r *Runtime, c Context, a Arguments) Verdict {
+var applyCheck = VerbCheck{Name: "setting.apply", Check: func(r *Runtime, c Context, a Arguments) Verdict {
 	line, err := readApplyLine(r, a)
 	if err != nil {
 		return Allow()
@@ -705,7 +709,7 @@ func settingsApply(r *Runtime, c Context, a Arguments) (any, error) {
 				}
 				return &setLineError{Word: op.Word, Err: err}
 			}
-			if op.Noun == setSettingsNoun && (op.Verb == "diff" || op.Verb == "list") {
+			if op.Noun == setSettingNoun && (op.Verb == "diff" || op.Verb == "list") {
 				listed, listing = got, true
 			}
 		}
@@ -730,33 +734,33 @@ func settingsApply(r *Runtime, c Context, a Arguments) (any, error) {
 	return out, nil
 }
 
-// registerSettingsApply registers settings.apply, the :set front-end.
+// registerSettingsApply registers setting.apply, the :set front-end.
 func registerSettingsApply(r *Runtime) {
-	r.Register(Operation{Verb: "apply", Noun: "ochazuke.settings", Checks: []VerbCheck{applyCheck},
+	r.Register(Operation{Verb: "apply", Noun: "ochazuke.setting", Checks: []VerbCheck{applyCheck},
 		Description: "Run a :set line over the settings (opt, noopt, opt!, opt?, opt&, opt<, opt=v, opt+=v, opt-=v, opt^=v, all, all&; several words, all or nothing); a leading verbose adds where values were set",
 		Parameters: map[string]Parameter{
-			"line":    {Type: "string", Rest: true, Free: true, Source: "ochazuke.settings.complete", Description: "The :set line, the rest of the command: scrolloff=5 nowrap (empty: the settings that differ from their saved values)"},
+			"line":    {Type: "string", Rest: true, Free: true, Source: "ochazuke.setting.complete", Description: "The :set line, the rest of the command: scrolloff=5 nowrap (empty: the settings that differ from their saved values)"},
 			"verbose": {Type: "boolean", Description: "Add where each shown value was set (:verbose)"},
 			"scope":   {Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the line's values are written: session (the default) or file"},
 		},
 		Positional: []string{"line"}, Result: "JSON value", Run: settingsApply})
 	registerSettingsComplete(r)
 	// Vim's command names for the line (plan decision 3: settings are
-	// global, so the local and global forms are :set). set is also a verb
-	// of mode, focus, confirm, appearance and settings, so its row shadows
-	// that verb by what follows (ActionAlias.Shadows, plan decision 4):
-	// set mode normal is mode set normal.
+	// global, so the local and global forms are :set). set is also the verb
+	// of a noun with a named set or a singleton store (appearance, setting),
+	// so its row shadows that verb by what follows (ActionAlias.Shadows, plan
+	// decision 4): set appearance theme mono is appearance set theme mono.
 	for _, a := range []ActionAlias{
-		{Alias: "set", Action: "ochazuke.settings.apply", Shadows: true, Note: "Vim's :set; set NOUN ... runs NOUN set"},
-		{Alias: "se", Action: "ochazuke.settings.apply", Note: "Vim's :se"},
-		{Alias: "setlocal", Action: "ochazuke.settings.apply", Note: "Vim's :setlocal; settings are global, so it is :set"},
-		{Alias: "setl", Action: "ochazuke.settings.apply", Note: "Vim's :setl; settings are global, so it is :set"},
-		{Alias: "setglobal", Action: "ochazuke.settings.apply", Note: "Vim's :setglobal; settings are global, so it is :set"},
-		{Alias: "setg", Action: "ochazuke.settings.apply", Note: "Vim's :setg; settings are global, so it is :set"},
-		{Alias: "verbose", Action: "ochazuke.settings.apply", Args: Arguments{"verbose": true}, Note: "Vim's :verbose before a set word: verbose set opt?"},
-		{Alias: "verb", Action: "ochazuke.settings.apply", Args: Arguments{"verbose": true}, Note: "Vim's :verb before a set word"},
-		{Alias: "options", Action: "ochazuke.settings.edit", Note: "Vim's :options: the Settings page"},
-		{Alias: "opt", Action: "ochazuke.settings.edit", Note: "Vim's :opt: the Settings page"},
+		{Alias: "set", Action: "ochazuke.setting.apply", Shadows: true, Note: "Vim's :set; set NOUN ... runs NOUN set"},
+		{Alias: "se", Action: "ochazuke.setting.apply", Note: "Vim's :se"},
+		{Alias: "setlocal", Action: "ochazuke.setting.apply", Note: "Vim's :setlocal; settings are global, so it is :set"},
+		{Alias: "setl", Action: "ochazuke.setting.apply", Note: "Vim's :setl; settings are global, so it is :set"},
+		{Alias: "setglobal", Action: "ochazuke.setting.apply", Note: "Vim's :setglobal; settings are global, so it is :set"},
+		{Alias: "setg", Action: "ochazuke.setting.apply", Note: "Vim's :setg; settings are global, so it is :set"},
+		{Alias: "verbose", Action: "ochazuke.setting.apply", Args: Arguments{"verbose": true}, Note: "Vim's :verbose before a set word: verbose set opt?"},
+		{Alias: "verb", Action: "ochazuke.setting.apply", Args: Arguments{"verbose": true}, Note: "Vim's :verb before a set word"},
+		{Alias: "options", Action: "ochazuke.setting.open", Note: "Vim's :options: the Settings page"},
+		{Alias: "opt", Action: "ochazuke.setting.open", Note: "Vim's :opt: the Settings page"},
 	} {
 		if err := r.AddActionAlias(a); err != nil {
 			panic(err)

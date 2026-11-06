@@ -66,13 +66,13 @@ func TestMCPBackendDiscoveryAndRun(t *testing.T) {
 }
 func TestMCPBackendRightsDryRunAndIdentity(t *testing.T) {
 	f, _, server := mcpFixture(t)
-	for _, name := range []string{"widget.remove", "settings.get"} {
+	for _, name := range []string{"widget.remove", "setting.get"} {
 		args := map[string]any{"verb": name, "target": "w1"}
-		if name == "settings.get" {
+		if name == "setting.get" {
 			args["args"] = map[string]any{"name": "agents.rights-gate"}
 		}
 		result := mcpCall(t, server, "run", args)
-		if name == "settings.get" {
+		if name == "setting.get" {
 			if result["status"] != "done" || result["result"].(map[string]any)["value"] != true {
 				t.Fatal(result)
 			}
@@ -96,7 +96,7 @@ func TestMCPBackendRightsDryRunAndIdentity(t *testing.T) {
 		t.Fatal("actor argument accepted")
 	}
 	t.Setenv("OCHAZUKE_ACTOR", "owner")
-	result = mcpCall(t, server, "run", map[string]any{"verb": "settings.set", "args": map[string]any{"name": "agents.rights-gate", "value": "false"}})
+	result = mcpCall(t, server, "run", map[string]any{"verb": "setting.set", "args": map[string]any{"name": "agents.rights-gate", "value": "false"}})
 	if result["status"] != "refused" {
 		t.Fatal("identity changed after startup", result)
 	}
@@ -267,7 +267,7 @@ func TestMCPExplicitIdentityOverridesEnvironment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := mcpCall(t, server, "run", map[string]any{"verb": "settings.set", "args": map[string]any{"name": "agents.rights-gate", "value": "false"}})
+	result := mcpCall(t, server, "run", map[string]any{"verb": "setting.set", "args": map[string]any{"name": "agents.rights-gate", "value": "false"}})
 	if result["status"] != "refused" {
 		t.Fatal(result)
 	}
@@ -280,7 +280,7 @@ func TestMCPAliasEffectHints(t *testing.T) {
 	sh.MCPAliases = []mcp.Alias{
 		{Tool: mcp.Tool{Name: "pane_kill"}, Verb: "pane.kill"},
 		{Tool: mcp.Tool{Name: "task_delete"}, Verb: "task.delete"},
-		{Tool: mcp.Tool{Name: "settings_read"}, Verb: "settings.get"},
+		{Tool: mcp.Tool{Name: "settings_read"}, Verb: "setting.get"},
 	}
 	server, err := sh.NewMCPServer()
 	if err != nil {

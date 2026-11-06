@@ -108,7 +108,7 @@ func themeModel(t *testing.T, themes, settings string) *Model {
 }
 
 // The framework declares theme with the built-in themes and themes.json's
-// as its choices; settings.json selects one at start, settings.set and
+// as its choices; settings.json selects one at start, setting.set and
 // themes.list follow it.
 func TestThemeSettingSelectsUserScheme(t *testing.T) {
 	m := themeModel(t, `{"kombu": {"accent": "#C9A227"}}`, `{"theme": "kombu"}`)
@@ -131,10 +131,10 @@ func TestThemeSettingSelectsUserScheme(t *testing.T) {
 	if !sameColor(NewStyles(*m.Appearance).ActiveTab.GetForeground(), lipgloss.Color("#C9A227")) {
 		t.Fatal("kombu is not drawn")
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.settings", Args: Arguments{"name": ThemeSetting, "value": "light"}}); err != nil || m.Appearance.Theme != "light" {
-		t.Fatalf("settings.set: %q %v", m.Appearance.Theme, err)
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.setting", Args: Arguments{"name": ThemeSetting, "value": "light"}}); err != nil || m.Appearance.Theme != "light" {
+		t.Fatalf("setting.set: %q %v", m.Appearance.Theme, err)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"theme": "nope"}}); err == nil || !strings.Contains(err.Error(), "kombu") {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"prop": "theme", "value": "nope"}}); err == nil || !strings.Contains(err.Error(), "kombu") {
 		t.Fatalf("appearance.set unknown: %v", err)
 	}
 }

@@ -144,7 +144,7 @@ func TestSettingVerbErrors(t *testing.T) {
 	}
 }
 
-// settings.apply runs each form of a :set line as a request to its verb,
+// setting.apply runs each form of a :set line as a request to its verb,
 // and gives the same values as the verbs run directly (parity).
 func TestSettingsApplyMatchesTheVerbs(t *testing.T) {
 	rows := []struct {
@@ -176,7 +176,7 @@ func TestSettingsApplyMatchesTheVerbs(t *testing.T) {
 	names := []string{"wrap", "scrolloff", "debounce", "ratio", "theme", "title", "paths"}
 	for _, row := range rows {
 		viaLine, _, _ := verbsFixture(t)
-		if _, err := viaLine.Execute(Request{Noun: "ochazuke.settings", Verb: "apply", Args: Arguments{"line": row.line}}); err != nil {
+		if _, err := viaLine.Execute(Request{Noun: "ochazuke.setting", Verb: "apply", Args: Arguments{"line": row.line}}); err != nil {
 			t.Fatalf("apply %q: %v", row.line, err)
 		}
 		direct, _, _ := verbsFixture(t)
@@ -203,7 +203,7 @@ func TestSettingsApplyAllOrNothing(t *testing.T) {
 	r, _, _ := verbsFixture(t)
 	s := r.Settings()
 	apply := func(line string) error {
-		_, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "apply", Args: Arguments{"line": line}})
+		_, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "apply", Args: Arguments{"line": line}})
 		return err
 	}
 	if err := apply("scrolloff=5 level+=20"); err == nil || err.Error() != "level: must be at most 9; nothing was changed" {
@@ -229,7 +229,7 @@ func TestSettingsApplyIsOneUndoStep(t *testing.T) {
 	_ = s.Set("title", "saved")
 	_, _ = s.SetSession("wrap", true)
 	before := len(s.page.undo)
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "apply", Args: Arguments{"line": "scrolloff=5 nowrap title&"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "apply", Args: Arguments{"line": "scrolloff=5 nowrap title&"}}); err != nil {
 		t.Fatal(err)
 	}
 	if len(s.page.undo) != before+1 || s.Int("scrolloff") != 5 || s.Bool("wrap") || s.String("title") != "main" {
@@ -238,7 +238,7 @@ func TestSettingsApplyIsOneUndoStep(t *testing.T) {
 	if readSettingsFile(t, dir)["scrolloff"] != nil {
 		t.Fatal("a session line wrote settings.json")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "undo"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "undo"}); err != nil {
 		t.Fatal(err)
 	}
 	if s.Int("scrolloff") != 2 || !s.Bool("wrap") || s.String("title") != "saved" || readSettingsFile(t, dir)["title"] != "saved" {
@@ -249,7 +249,7 @@ func TestSettingsApplyIsOneUndoStep(t *testing.T) {
 	}
 	// With settings.autosave on, the line writes the file at once.
 	_ = s.Set(SettingsAutosaveSetting, true)
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "apply", Args: Arguments{"line": "scrolloff=6"}}); err != nil || readSettingsFile(t, dir)["scrolloff"] != 6.0 {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "apply", Args: Arguments{"line": "scrolloff=6"}}); err != nil || readSettingsFile(t, dir)["scrolloff"] != 6.0 {
 		t.Fatalf("autosave: %v %v", err, readSettingsFile(t, dir))
 	}
 }
@@ -260,7 +260,7 @@ func TestSettingsApplyIsOneUndoStep(t *testing.T) {
 func TestSettingsApplyShowsAndLists(t *testing.T) {
 	r, _, sink := verbsFixture(t)
 	apply := func(line string) (any, error) {
-		return r.Execute(Request{Noun: "ochazuke.settings", Verb: "apply", Args: Arguments{"line": line}})
+		return r.Execute(Request{Noun: "ochazuke.setting", Verb: "apply", Args: Arguments{"line": line}})
 	}
 	got, err := apply("scrolloff=4 scrolloff? wrap? title paths")
 	if err != nil || sink.LastInfo() != "scrolloff=4  nowrap  title=main  paths=a" {
@@ -269,16 +269,16 @@ func TestSettingsApplyShowsAndLists(t *testing.T) {
 	if a, ok := got.(SettingsApplied); !ok || len(a.Changed) != 1 || a.Changed[0].Name != "scrolloff" || len(a.Shown) != 4 {
 		t.Fatalf("answer %#v", got)
 	}
-	if _, err := apply("verbose scrolloff?"); err != nil || !strings.HasPrefix(sink.LastInfo(), "scrolloff=4 — set this session by ochazuke.settings.apply (api, ") {
+	if _, err := apply("verbose scrolloff?"); err != nil || !strings.HasPrefix(sink.LastInfo(), "scrolloff=4 — set this session by ochazuke.setting.apply (api, ") {
 		t.Fatalf("verbose %q %v", sink.LastInfo(), err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "apply", Args: Arguments{"line": "modal-dim", "verbose": true}}); err != nil || sink.LastInfo() != "modal-dim=35 — default, settings/ochazuke.json (ochazuke)" {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "apply", Args: Arguments{"line": "modal-dim", "verbose": true}}); err != nil || sink.LastInfo() != "modal-dim=35 — default, settings/ochazuke.json (ochazuke)" {
 		t.Fatalf("verbose argument %q %v", sink.LastInfo(), err)
 	}
 	if got, err := apply(""); err != nil || len(got.([]SettingDiff)) != 1 {
 		t.Fatalf("empty line %#v %v", got, err)
 	}
-	if got, err := apply("all"); err != nil || len(got.([]SettingValue)) != len(r.Settings().Declared()) {
+	if got, err := apply("all"); err != nil || len(got.([]map[string]any)) != len(r.Settings().Declared()) {
 		t.Fatalf("all %T %v", got, err)
 	}
 	if _, err := apply("all& wrap"); err != nil || r.TopModal() != "confirm" || r.Instances[r.TopModal()].Payload.Prompt != "Reset all 1 changed setting to their defaults for this session?" {
@@ -297,7 +297,7 @@ func TestSettingsPageKeysRunTheSettingVerbs(t *testing.T) {
 	if !r.Settings().HasSession() {
 		t.Fatal("the page fixture has no session")
 	}
-	_, _ = r.Execute(Request{Noun: "ochazuke.settings", Verb: "edit"})
+	_, _ = r.Execute(Request{Noun: "ochazuke.setting", Verb: "open"})
 	_ = r.SetFocus(settingRowPrefix + "scrolloff")
 	for _, key := range []string{"l", "l", "h"} {
 		keytest.Press(m, key)

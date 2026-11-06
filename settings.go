@@ -63,14 +63,14 @@ type Setting struct {
 	// default, as a value of the wrong type does.
 	Validate func(value any) error `json:"-"`
 	// Deprecated are older names of the setting, kept for one release:
-	// settings.get, set and reset, Value and settings.json read them as
+	// setting.get, set and reset, Value and settings.json read them as
 	// this setting, each warning once, and a write moves the file's value
 	// to this name. A declaration under an old name declares this one.
 	Deprecated []string `json:"deprecated,omitempty"`
 }
 
-// SettingValue is a setting with its current value, as settings.list and
-// settings.get answer: Value and Default in their file form (a duration
+// SettingValue is a setting with its current value, as setting.list and
+// setting.get answer: Value and Default in their file form (a duration
 // as "400ms"), Set when settings.json holds a value for it. Session is set
 // when the value is a session value (settings_session.go), and Saved is
 // then the persisted value beneath it (settings.json's, else the default).
@@ -601,6 +601,20 @@ func (s *Settings) ensure() {
 	}
 }
 
+// ensureCurrent is ensure, and reads settings.json again when it changed
+// since it was read: a setting read while the runtime was being built (a
+// store's verbs ask forms.edit) must not keep a file written before the
+// Model starts from being read (Model.Init).
+func (s *Settings) ensureCurrent() {
+	if s.loaded && s.path != "" && s.path == s.config.Path(SettingsFile) {
+		if now := statFile(s.path); now.ok != s.stamp.ok || now.size != s.stamp.size || !now.mod.Equal(s.stamp.mod) {
+			s.Reload()
+			return
+		}
+	}
+	s.ensure()
+}
+
 func (s *Settings) load() {
 	for _, p := range s.problems {
 		if s.config.Withdraw != nil {
@@ -908,7 +922,7 @@ func registerSettings(r *Runtime) {
 			source = "api"
 		}
 		if s.applying != "" {
-			// A :set line's words record the line's name (settings.apply,
+			// A :set line's words record the line's name (setting.apply,
 			// or the alias it was typed as), not each word's verb.
 			return source, s.applying
 		}
@@ -930,42 +944,21 @@ func registerSettings(r *Runtime) {
 	registerSettingLayout(r)
 	// Rows naming a setting ({terminal-leader}) follow its value.
 	r.Config().settings.Observe("", func(name string, _ any) { r.rebindSettingRows(name) })
-	name := Parameter{Type: "string", Required: true, Description: "Setting name", Source: "ochazuke.settings.names"}
-	r.Register(Operation{Verb: "names", Noun: "ochazuke.settings", Description: "List the names of the declared settings", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "names", Noun: "ochazuke.setting", Description: "List the names of the declared settings", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names := []string{}
 		for _, one := range r.Settings().declared {
 			names = append(names, one.Name)
 		}
 		return names, nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.settings", Description: "List the declared settings with their values, defaults and descriptions", Result: "setting[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.Settings().List(), nil
-	}})
-	r.Register(Operation{Verb: "get", Noun: "ochazuke.settings", Description: "Show one setting and its value", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.Settings().Get(StringArg(a, "name", ""))
-	}})
-	r.Register(Operation{Verb: "set", Noun: "ochazuke.settings", PersistArgs: true, Checks: []VerbCheck{cliWriteCheck(setPrompt)}, Description: "Set a setting, checked against its type and allowed values, and save settings.json", Parameters: map[string]Parameter{"name": name, "value": {Type: "string", Required: true, Description: "The value: text, a number, true or false, a duration such as 400ms, or a JSON array of strings for a list"}}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		s := r.Settings()
-		if err := s.Set(StringArg(a, "name", ""), a["value"]); err != nil {
-			return nil, err
-		}
-		return s.Get(StringArg(a, "name", ""))
-	}})
-	r.Register(Operation{Verb: "reset", Noun: "ochazuke.settings", Checks: []VerbCheck{cliWriteCheck(resetPrompt)}, Description: "Remove a setting's value from settings.json so it reads its default", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		s := r.Settings()
-		if err := s.Reset(StringArg(a, "name", "")); err != nil {
-			return nil, err
-		}
-		return s.Get(StringArg(a, "name", ""))
-	}})
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.settings", HistoryKind: HistoryFetch, Description: "Read settings.json again; observers see every value that changed", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reload", Noun: "ochazuke.setting", HistoryKind: HistoryFetch, Description: "Read settings.json again; observers see every value that changed", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.Settings().Reload()
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "ochazuke.settings", Description: "Print the settings file: settings.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "path", Noun: "ochazuke.setting", Description: "Print the settings file: settings.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(SettingsFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

@@ -375,13 +375,13 @@ func TestPropFilterStandardPositionalOrder(t *testing.T) {
 
 func TestPropFilterFocusRevealsHiddenRow(t *testing.T) {
 	r, _, l := propFilterFixture(t)
-	for _, via := range []string{"focus.set", "job focus"} {
+	for _, via := range []string{"focus.to", "job focus"} {
 		t.Run(via, func(t *testing.T) {
 			if err := l.ApplyFilter("mine"); err != nil {
 				t.Fatal(err)
 			}
-			if via == "focus.set" {
-				if _, err := r.Execute(Request{Noun: "focus", Verb: "set", Args: Arguments{"id": "r2"}}); err != nil {
+			if via == "focus.to" {
+				if _, err := r.Execute(Request{Noun: "focus", Verb: "to", Args: Arguments{"id": "r2"}}); err != nil {
 					t.Fatal(err)
 				}
 			} else if err := r.SetFocus("r2"); err != nil {

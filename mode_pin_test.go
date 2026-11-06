@@ -31,8 +31,8 @@ func TestFocusMovedInstancePin(t *testing.T) {
 	if r.Mode.Name != "edit" {
 		t.Fatalf("a move inside the stop left the lifted mode: %q", r.Mode.Name)
 	}
-	// mode.set declared lands on the pin.
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.mode", Args: Arguments{"mode": ModeDeclared}}); err != nil {
+	// mode.switch declared lands on the pin.
+	if _, err := r.Execute(Request{Verb: "switch", Noun: "ochazuke.mode", Args: Arguments{"mode": ModeDeclared}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Mode.Name != "table" {

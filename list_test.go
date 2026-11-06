@@ -399,7 +399,7 @@ func TestListViewKeepsTwoRowsBelowTheSelection(t *testing.T) {
 }
 
 // Focusing a row instance selects it in its list, however the focus got
-// there (focus.set, RetargetFocus, a FocusOnClose landing): the highlight,
+// there (focus.to, RetargetFocus, a FocusOnClose landing): the highlight,
 // Selected and the keys that answer agree.
 func TestFocusingARowSelectsIt(t *testing.T) {
 	r := NewRuntime()
@@ -428,7 +428,7 @@ func TestFocusingARowSelectsIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	selected("r3")
-	if _, err := r.Execute(Request{Noun: "ochazuke.focus", Verb: "set", Args: Arguments{"id": "r2"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.focus", Verb: "to", Args: Arguments{"id": "r2"}}); err != nil {
 		t.Fatal(err)
 	}
 	selected("r2")

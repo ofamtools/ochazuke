@@ -64,7 +64,7 @@ func TestReadlineOnlyKeepsTypingAfterEscapeAndModeChanges(t *testing.T) {
 	editorTestKeys(t, r, "ctrl+e", "esc", "j", "k")
 	editorTestState(t, in, "pathjk", 6, "insert")
 	for _, mode := range []string{"normal", "visual", "visual-line", "visual-block"} {
-		result, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.mode", Args: Arguments{"mode": mode}})
+		result, err := r.Execute(Request{Verb: "switch", Noun: "ochazuke.mode", Args: Arguments{"mode": mode}})
 		if err != nil || result != "insert" {
 			t.Fatalf("set mode %s: result=%v err=%v", mode, result, err)
 		}
@@ -356,7 +356,7 @@ func TestEditorModeHookAndCustomMode(t *testing.T) {
 	}
 	setMode := func(mode string) {
 		t.Helper()
-		if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.mode", Args: Arguments{"mode": mode}}); err != nil {
+		if _, err := r.Execute(Request{Verb: "switch", Noun: "ochazuke.mode", Args: Arguments{"mode": mode}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -370,7 +370,7 @@ func TestEditorModeHookAndCustomMode(t *testing.T) {
 		t.Fatalf("custom mode key: handled=%v err=%v", handled, err)
 	}
 	editorTestState(t, in, "cat", 0, "search")
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.mode", Args: Arguments{"mode": "unknown"}}); err == nil {
+	if _, err := r.Execute(Request{Verb: "switch", Noun: "ochazuke.mode", Args: Arguments{"mode": "unknown"}}); err == nil {
 		t.Fatal("unregistered mode accepted")
 	}
 	setMode("normal")

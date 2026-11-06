@@ -7,7 +7,7 @@
   "pages": [
     {"id": "one", "title": "One", "lists": [{"id": "a", "rows": 2}]},
     {"id": "two", "title": "Two", "lists": [{"id": "b", "rows": 3}], "inputs": [{"id": "name", "label": "name", "text": "hello"}],
-     "bind": [{"noun": "demo", "mode": "insert", "keys": "ctrl+o", "do": "settings.edit"}]}
+     "bind": [{"noun": "demo", "mode": "insert", "keys": "ctrl+o", "do": "setting.open"}]}
   ],
   "script": ["ctrl+j", "j", "j", "j", "i", "ctrl+o", "space", "q", "ctrl+o", "esc"],
   "expect": [

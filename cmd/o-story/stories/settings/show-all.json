@@ -1,5 +1,5 @@
 {
-  "name": "settings page: A (settings.all) shows the All section: every setting of every tab in one list, each under its tab and section heading, its first setting focused; G walks to the last tab's settings",
+  "name": "settings page: A (setting.all) shows the All section: every setting of every tab in one list, each under its tab and section heading, its first setting focused; G walks to the last tab's settings",
   "area": "settings",
   "width": 100,
   "height": 30,
@@ -59,7 +59,7 @@
       {
         "noun": "demo",
         "keys": ",",
-        "do": "settings.edit"
+        "do": "setting.open"
       }
     ]
   },
@@ -73,7 +73,7 @@
       "after": 1,
       "focus": "__settings/row/scrolloff",
       "contains": [
-        "A settings.all"
+        "A setting.all"
       ]
     },
     {

@@ -7,8 +7,8 @@ import (
 )
 
 // Completion of a :set line (Vim's cmdline-completion and
-// complete-set-option), the choices source of settings.apply's line
-// (settings.complete). The word under the cursor (setCursorAt) decides
+// complete-set-option), the choices source of setting.apply's line
+// (setting.complete). The word under the cursor (setCursorAt) decides
 // what is offered:
 //
 //	a name           the settings whose name starts with it, then noNAME
@@ -161,10 +161,10 @@ func setEscape(text string, item bool) string {
 	return b.String()
 }
 
-// registerSettingsComplete registers settings.complete, the :set line's
+// registerSettingsComplete registers setting.complete, the :set line's
 // completion source.
 func registerSettingsComplete(r *Runtime) {
-	r.Register(Operation{Verb: "complete", Noun: "ochazuke.settings", HistoryKind: HistoryFetch,
+	r.Register(Operation{Verb: "complete", Noun: "ochazuke.setting", HistoryKind: HistoryFetch,
 		Description: "Complete a :set line at the cursor: setting names (noNAME and invNAME for on/off ones, all, all&), the current value after =, an enum's values, true and false, a list's items after -=; each id is the line up to the cursor completed",
 		Parameters: map[string]Parameter{
 			ChoicesQueryParameter:  {Type: "string", Description: "The :set line (the text after set)"},

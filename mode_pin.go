@@ -6,7 +6,7 @@ import (
 	"slices"
 )
 
-// ModeDeclared is the mode name mode.set reads as "the declared mode of the
+// ModeDeclared is the mode name mode.switch reads as "the declared mode of the
 // focus" (DeclaredMode): an esc row written {mode: declared} lands on the
 // mode the focused pane declares (an instance's Pin, its noun's Pin), or
 // normal where nothing declares one, so no row names a pane's mode. It is
@@ -49,7 +49,7 @@ func (r *Runtime) declaredPin(id string) (string, bool) {
 
 // DeclaredMode is the base mode the focus at id declares: the pin of the
 // instance, its noun or the nearest pinning ancestor (Instance.Pin,
-// Define(noun).Pin), normal when none declares one. mode.set {mode:
+// Define(noun).Pin), normal when none declares one. mode.switch {mode:
 // declared} sets the focus's.
 func (r *Runtime) DeclaredMode(id string) string {
 	if pin, _ := r.declaredPin(id); pin != "" {
@@ -60,7 +60,7 @@ func (r *Runtime) DeclaredMode(id string) string {
 
 // PinInstance makes id declare mode as its base mode (Instance.Pin), "" to
 // drop the pin. The focus landing on id, or entering a stop beneath it
-// with no nearer pin, puts the runtime in mode; mode.set {mode: declared}
+// with no nearer pin, puts the runtime in mode; mode.switch {mode: declared}
 // returns to it. A re-pin applies at once: when the focus beneath any
 // modal declares through id and the runtime stands in the mode it
 // declared before (not in a mode the user lifted into, such as insert),
@@ -109,7 +109,7 @@ func (r *Runtime) PinInstance(id, mode string) error {
 	return nil
 }
 
-// resolveDeclared reads mode.set's ModeDeclared as the declared mode of the
+// resolveDeclared reads mode.switch's ModeDeclared as the declared mode of the
 // focus; any other name is itself.
 func (r *Runtime) resolveDeclared(mode string) string {
 	if mode == ModeDeclared {
@@ -119,7 +119,7 @@ func (r *Runtime) resolveDeclared(mode string) string {
 }
 
 func registerModePin(r *Runtime) {
-	r.Register(Operation{Verb: "pin", Noun: "ochazuke.mode", Description: "Make an instance declare its base mode (Instance.Pin): focus on it, or entering a stop beneath it, puts the runtime in that mode, and mode.set {mode: declared} returns to it; a re-pin of the focused pane applies at once; an empty mode drops the pin",
+	r.Register(Operation{Verb: "pin", Noun: "ochazuke.mode", Description: "Make an instance declare its base mode (Instance.Pin): focus on it, or entering a stop beneath it, puts the runtime in that mode, and mode.switch {mode: declared} returns to it; a re-pin of the focused pane applies at once; an empty mode drops the pin",
 		Parameters: map[string]Parameter{
 			"mode":     {Type: "string", Description: "The base mode to declare; empty drops the pin", Noun: "ochazuke.modes"},
 			"instance": {Type: "string", Description: "The instance (default the focused stop)"},

@@ -496,7 +496,7 @@ func RegisterInputOperations(r *Runtime) {
 			return in.move(StringArg(a, "motion", ""), IntArg(a, "steps", 1), IntArg(a, "line", 0))
 		}, false},
 		{"begin", "Enter insert mode at insert/append/first/end/below/above", map[string]Parameter{"position": {Type: "string"}}, func(in *Input, a Arguments) error { return in.begin(StringArg(a, "position", "insert")) }, true},
-		{"delete", "Delete forward/backward runes without crossing a normal-mode line; deletes an open select range", map[string]Parameter{"direction": {Type: "string"}, "steps": {Type: "integer"}}, func(in *Input, a Arguments) error {
+		{"erase", "Erase forward/backward runes without crossing a normal-mode line; deletes an open select range", map[string]Parameter{"direction": {Type: "string"}, "steps": {Type: "integer"}}, func(in *Input, a Arguments) error {
 			direction, steps := StringArg(a, "direction", "forward"), IntArg(a, "steps", 1)
 			if lo, hi, ok := in.SelectedText(); ok {
 				in.resetKeys()

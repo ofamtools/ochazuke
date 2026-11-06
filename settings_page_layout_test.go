@@ -27,46 +27,46 @@ func layoutFixture(t *testing.T) (*Runtime, *Model) {
 	return r, m
 }
 
-// settings.section steps within the shown tab, wrapping, or with across
-// over every tab; settings.tab steps the owners and reopens a tab on the
+// setting.show-section steps within the shown tab, wrapping, or with across
+// over every tab; setting.show-tab steps the owners and reopens a tab on the
 // section it last showed.
 func TestSettingsSectionAndTabSteps(t *testing.T) {
 	r, _ := layoutFixture(t)
 	run := func(verb string, a Arguments) string {
 		t.Helper()
-		if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: verb, Args: a}); err != nil {
+		if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: verb, Args: a}); err != nil {
 			t.Fatal(err)
 		}
 		return r.Settings().page.section
 	}
-	if got := run("section", Arguments{"step": 1}); got != "app/panes" {
+	if got := run("show-section", Arguments{"step": 1}); got != "app/panes" {
 		t.Fatalf("section +1 %q", got)
 	}
 	// The All section (settings.all-section) is the first row of every
 	// tab's section list, so the steps go through it.
-	if got := run("section", Arguments{"step": 1}); got != "/all" {
+	if got := run("show-section", Arguments{"step": 1}); got != "/all" {
 		t.Fatalf("section +1 wraps inside the tab to All: %q", got)
 	}
-	if got := run("section", Arguments{"step": 1}); got != "app/general" {
+	if got := run("show-section", Arguments{"step": 1}); got != "app/general" {
 		t.Fatalf("section +1 from All: %q", got)
 	}
-	if got := run("section", Arguments{"step": -1, "across": true}); got != "/all" {
+	if got := run("show-section", Arguments{"step": -1, "across": true}); got != "/all" {
 		t.Fatalf("section -1 across from the first section: %q", got)
 	}
-	if got := run("section", Arguments{"step": -1, "across": true}); got != "ochazuke/settings" {
+	if got := run("show-section", Arguments{"step": -1, "across": true}); got != "ochazuke/settings" {
 		t.Fatalf("section -1 across wraps to the last tab's last section: %q", got)
 	}
-	if got := run("section", Arguments{"step": 1, "across": true}); got != "/all" {
+	if got := run("show-section", Arguments{"step": 1, "across": true}); got != "/all" {
 		t.Fatalf("section +1 across wraps to the first: %q", got)
 	}
-	run("section", Arguments{"name": "panes"})
-	if got := run("tab", Arguments{"step": 1}); got != "extensions/ai" {
+	run("show-section", Arguments{"name": "panes"})
+	if got := run("show-tab", Arguments{"step": 1}); got != "extensions/ai" {
 		t.Fatalf("tab +1 %q", got)
 	}
-	if got := run("tab", Arguments{"name": "app"}); got != "app/panes" {
+	if got := run("show-tab", Arguments{"name": "app"}); got != "app/panes" {
 		t.Fatalf("tab app reopens on its last section: %q", got)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "tab", Args: Arguments{"name": "nobody"}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "show-tab", Args: Arguments{"name": "nobody"}}); err == nil {
 		t.Fatal("an unknown tab")
 	}
 	if r.Focus != settingRowPrefix+"panes.group" {
@@ -97,7 +97,7 @@ func TestSettingsSectionAndTabVerbs(t *testing.T) {
 	if len(s.page.undo) != undo+1 {
 		t.Fatalf("reset is %d undo steps", len(s.page.undo)-undo)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "undo"}); err != nil || s.String("panes.group") != "b" || s.Int("panes.width") != 5 {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "undo"}); err != nil || s.String("panes.group") != "b" || s.Int("panes.width") != 5 {
 		t.Fatalf("undo of a section reset: %v %q %d", err, s.String("panes.group"), s.Int("panes.width"))
 	}
 	if _, err := s.SetSession("ext.ai.model", "small"); err != nil {
@@ -260,7 +260,7 @@ func TestSettingsSearchValues(t *testing.T) {
 // The All section (settings.all-section): a / search in the section list
 // lands on it, so the settings pane shows every match from every section
 // in one list, each under its tab and section; a result is edited in
-// place, the focus staying in the All list; settings.all shows it; off,
+// place, the focus staying in the All list; setting.all shows it; off,
 // there is no All section and the search is section by section.
 func TestSettingsAllSection(t *testing.T) {
 	r, m := layoutFixture(t)
@@ -311,22 +311,22 @@ func TestSettingsAllSection(t *testing.T) {
 	if !r.Settings().Bool("panes.path") || r.Focus != row {
 		t.Fatalf("edited %v, focus %q", r.Settings().Bool("panes.path"), r.Focus)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "undo"}); err != nil || r.Settings().Bool("panes.path") || r.Focus != row {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "undo"}); err != nil || r.Settings().Bool("panes.path") || r.Focus != row {
 		t.Fatalf("undo stays in All: %v, focus %q", err, r.Focus)
 	}
 	sections.SetFilter("")
-	// settings.all shows the whole list.
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "all"}); err != nil {
+	// setting.all shows the whole list.
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "all"}); err != nil {
 		t.Fatal(err)
 	}
 	if currentSection(r) != "/all" || all.Shown() < len(r.Settings().Declared()) {
-		t.Fatalf("settings.all: section %q, %d shown of %d", currentSection(r), all.Shown(), len(r.Settings().Declared()))
+		t.Fatalf("setting.all: section %q, %d shown of %d", currentSection(r), all.Shown(), len(r.Settings().Declared()))
 	}
 	// Off: no All section; the search stays section by section.
 	if err := r.Settings().Set(SettingsAllSectionSetting, false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "section", Args: Arguments{"name": "panes"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "show-section", Args: Arguments{"name": "panes"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := sections.Focus(); err != nil {
@@ -341,7 +341,7 @@ func TestSettingsAllSection(t *testing.T) {
 	if currentSection(r) == "/all" {
 		t.Fatal("off, the search does not land on All")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "all"}); err == nil {
-		t.Fatal("settings.all with the All section off")
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "all"}); err == nil {
+		t.Fatal("setting.all with the All section off")
 	}
 }

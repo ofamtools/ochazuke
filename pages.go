@@ -454,10 +454,7 @@ func (r *Runtime) movePage(delta int) error {
 
 func registerPages(r *Runtime) {
 	r.Define("ochazuke.page")
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.pages", Description: "List pages in registration order, each marked active and hidden (out of the tabs: pages.hidden)", Result: "page[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.pageRows(), nil
-	}})
-	r.Register(Operation{Verb: "open", Noun: "ochazuke.page", Description: "Open a registered page, a hidden one too", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.pages"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "open", Noun: "ochazuke.page", Description: "Open a registered page, a hidden one too", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.page"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "id", "")
 		if err := r.OpenPage(id); err != nil {
 			return r.Context(), err

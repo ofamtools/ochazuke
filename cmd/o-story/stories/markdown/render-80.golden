@@ -20,5 +20,5 @@ R|    # Release checklist
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  i markdown.insert · o markdown.open · d d markdown.delete · p markdown.past…
+ |  i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste ·…
  |

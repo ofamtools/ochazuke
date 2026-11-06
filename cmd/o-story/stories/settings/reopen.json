@@ -9,7 +9,7 @@
   ],
   "page": {
     "lists": [{"id": "a", "rows": 2}],
-    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+    "bind": [{"noun": "demo", "keys": ",", "do": "setting.open"}]
   },
   "script": [",", "tab", "j", "q", ","],
   "expect": [

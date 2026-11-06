@@ -519,7 +519,7 @@ func rowsForMode(rows []Binding, mode string, exclusive bool) []Binding {
 // none leaves the focus, and Execute reports it), else the level's
 // instance when the operation is that level's own (d d → row.delete on
 // the row noun deletes that row and its confirm names it), else the
-// focus. Shared operations a level binds (mode.set, input.*, focus.next)
+// focus. Shared operations a level binds (mode.switch, input.*, focus.next)
 // keep the focus. The resolver and the live listings ask Available here,
 // so a row its target refuses (list.move at a trapped edge of the list a
 // child's level reaches) stands aside rather than winning the key and

@@ -15,11 +15,11 @@ func TestAgentRightsTable(t *testing.T) {
 		live              bool
 	}{
 		{"task.read", "[]", AgentAllow, false}, {"task.write", "[]", AgentAllow, false}, {"task.delete", "[]", AgentNever, false}, {"task.private", "[]", AgentNever, true},
-		{"focus.next", "[]", AgentAllow, true}, {"settings.get", "[]", AgentAllow, false}, {"config.export", "[]", AgentAllow, true},
+		{"focus.next", "[]", AgentAllow, true}, {"setting.get", "[]", AgentAllow, false}, {"config.export", "[]", AgentAllow, true},
 		{"task.write", `[{"match":"task.*","right":"never","where":"live"}]`, AgentAllow, false},
 		{"task.write", `[{"match":"task.*","right":"never","where":"live"}]`, AgentNever, true},
 		{"task.delete", `[{"match":"task.delete","right":"allow"},{"match":"*","right":"never"}]`, AgentAllow, false},
-		{"settings.get", `[{"match":"settings.*","right":"allow"}]`, AgentAllow, false},
+		{"setting.get", `[{"match":"settings.*","right":"allow"}]`, AgentAllow, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.verb+tt.rows, func(t *testing.T) {
@@ -58,7 +58,7 @@ func TestAgentRightsCannotBypass(t *testing.T) {
 	}
 	r := NewRuntime()
 	agent := testAgent("p")
-	for _, verb := range []string{"confirm.set", "confirm.accept"} {
+	for _, verb := range []string{"confirm.require", "confirm.accept"} {
 		n, v := SplitKey(verb)
 		_, err := r.Execute(Request{Noun: n, Verb: v, Actor: &agent, Args: Arguments{"name": AgentRightsGateSetting, "value": false}})
 		if err == nil {

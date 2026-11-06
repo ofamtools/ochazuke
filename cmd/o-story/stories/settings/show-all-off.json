@@ -64,7 +64,7 @@
       {
         "noun": "demo",
         "keys": ",",
-        "do": "settings.edit"
+        "do": "setting.open"
       }
     ]
   },
@@ -79,7 +79,7 @@
       "focus": "__settings/row/scrolloff",
       "lacks": [
         "All (",
-        "A settings.all"
+        "A setting.all"
       ]
     },
     {

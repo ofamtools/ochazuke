@@ -8,7 +8,7 @@ import (
 // bind installs the mode tables of the sketch. With a cell focused the stack
 // is [cell, row, column, grid, sheet, app]: dd resolves on row, s on column,
 // i on cell, ctrl+s on sheet. A selection is a global mode (the grid's
-// shapes), entered and left with mode.set. The visual-block table on the
+// shapes), entered and left with mode.switch. The visual-block table on the
 // grid noun holds the selection rows; visual-row and visual-column extend
 // it. Motions take counts through count_pending, which is exclusive, so the
 // cell's count_pending extends its normal table. } and tab leave the grid
@@ -30,7 +30,7 @@ func (a *App) bind() {
 			Bind("$", move("row-end")).Bind("end", move("row-end")).
 			Bind("g g", line("top")).Bind("G", line("bottom"))
 	}
-	shape := func(s string) ochazuke.Binding { return ochazuke.Do("mode.set", ochazuke.Arguments{"mode": s}) }
+	shape := func(s string) ochazuke.Binding { return ochazuke.Do("mode.switch", ochazuke.Arguments{"mode": s}) }
 	// Every noun that resolves to a cell set (cell, row, column, selection)
 	// has transform and the same t rows; the one on the stack answers.
 	transforms := func(m *ochazuke.ModeBuilder, noun string) {
@@ -68,7 +68,7 @@ func (a *App) bind() {
 	transforms(m, "selection")
 	m.Bind("o", ochazuke.Do("selection.swap")).
 		Bind("v", shape(grid.ShapeBlock)).Bind("V", shape(grid.ShapeRow)).Bind("ctrl+v", shape(grid.ShapeColumn)).
-		Bind("esc", ochazuke.Do("mode.set", ochazuke.Arguments{"mode": "normal"})).
+		Bind("esc", ochazuke.Do("mode.switch", ochazuke.Arguments{"mode": "normal"})).
 		Bind("y", ochazuke.Do("selection.yank")).
 		Bind("d", ochazuke.Do("selection.delete")).
 		Bind("p", ochazuke.Do("selection.paste")).

@@ -9,8 +9,8 @@
   ],
   "session": {"scrolloff": 2},
   "page": {"lists": [{"id": "a", "rows": 1}]},
-  "script": [":", {"type": "settings apply all"}, "enter"],
+  "script": [":", {"type": "setting apply all"}, "enter"],
   "expect": [
-    {"modal": "palette-results", "contains": ["scrolloff", "ochazuke.settings.apply", "Rows kept a"]}
+    {"modal": "palette-results", "contains": ["scrolloff", "ochazuke.setting.apply", "Rows kept a"]}
   ]
 }

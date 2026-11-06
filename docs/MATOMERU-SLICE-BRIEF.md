@@ -30,7 +30,7 @@ Store and daemon client are lifted from `matomeru-old/internal/store` and `inter
 
 ## Off-loop work (the delivery contract)
 
-- `agent.launch` → `Pending(work)`, accumulate; its completion refreshes the pane list and shows up in `jobs.list` (the status rail renders that list).
+- `agent.launch` → `Pending(work)`, accumulate; its completion refreshes the pane list and shows up in `job.list` (the status rail renders that list).
 - `pane.preview` → `Pending(work).Replacing("preview")`; a newer preview cancels the older.
 - Attach: `AddTerminal(id, Parent(panesPage), stream)` with the daemon's `stream-pane`; the terminal noun's leader contract handles detach. Size lease released on `Close`.
 - Everything else runs on the loop and returns `Done`.

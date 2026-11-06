@@ -9,9 +9,9 @@
     "bind": [
       {"noun": "demo", "mode": "table", "keys": "D", "do": "ochazuke.mode.pin", "args": {"instance": "data", "mode": "flat"}},
       {"noun": "demo", "mode": "flat", "keys": "D", "do": "ochazuke.mode.pin", "args": {"instance": "data", "mode": "table"}},
-      {"noun": "demo", "mode": "flat", "keys": "i", "do": "ochazuke.mode.set", "args": {"mode": "edit"}},
+      {"noun": "demo", "mode": "flat", "keys": "i", "do": "ochazuke.mode.switch", "args": {"mode": "edit"}},
       {"noun": "demo", "mode": "edit", "keys": "D", "do": "ochazuke.mode.pin", "args": {"instance": "data", "mode": "table"}},
-      {"noun": "demo", "mode": "edit", "keys": "esc", "do": "ochazuke.mode.set", "args": {"mode": "declared"}}
+      {"noun": "demo", "mode": "edit", "keys": "esc", "do": "ochazuke.mode.switch", "args": {"mode": "declared"}}
     ]
   },
   "script": ["D", "i", "D", "esc"],

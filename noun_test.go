@@ -428,11 +428,11 @@ func TestModeIsGlobal(t *testing.T) {
 	if err := list.Focus(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.mode", Args: Arguments{"mode": "review"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "switch", Noun: "ochazuke.mode", Args: Arguments{"mode": "review"}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Mode.Name != "review" {
-		t.Fatalf("mode.set must write Runtime.Mode: %+v", r.Mode)
+		t.Fatalf("mode.switch must write Runtime.Mode: %+v", r.Mode)
 	}
 	// Another row of the same list is the same focus stop: the mode stays.
 	list.Move(1)
@@ -523,7 +523,7 @@ func TestRowAddressesItsLevelInstance(t *testing.T) {
 	r.Define("row").Verb("drop", func(_ *Runtime, c Context, _ Arguments) (any, error) {
 		targets = append(targets, focusOf(c))
 		return nil, nil
-	}).Confirm("Drop {{id}}?").Mode("normal").Bind("d d", Do("row.drop")).Bind("m", Do("ochazuke.mode.set", Arguments{"mode": "insert"}))
+	}).Confirm("Drop {{id}}?").Mode("normal").Bind("d d", Do("row.drop")).Bind("m", Do("ochazuke.mode.switch", Arguments{"mode": "insert"}))
 	r.Instance("r1", Kind("row"))
 	r.Instance("r1:c0", Parent("r1"), Kind("cell"))
 	if err := r.SetFocus("r1:c0"); err != nil {
@@ -545,7 +545,7 @@ func TestRowAddressesItsLevelInstance(t *testing.T) {
 	}
 	// A shared operation bound on the level still addresses the focus.
 	if _, err := r.Dispatch(MacroKey{Key: "m"}); err != nil || r.Mode.Name != "insert" {
-		t.Fatalf("mode.set from the row level: %v %+v", err, r.Mode)
+		t.Fatalf("mode.switch from the row level: %v %+v", err, r.Mode)
 	}
 }
 

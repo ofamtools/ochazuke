@@ -10,7 +10,7 @@
   "session": {"stack": "stack"},
   "page": {
     "lists": [{"id": "a", "rows": 1}],
-    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+    "bind": [{"noun": "demo", "keys": ",", "do": "setting.open"}]
   },
   "script": [","],
   "expect": [

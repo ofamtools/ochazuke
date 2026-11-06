@@ -36,7 +36,7 @@
       {
         "noun": "demo",
         "keys": "S",
-        "do": "settings.edit"
+        "do": "setting.open"
       }
     ]
   },

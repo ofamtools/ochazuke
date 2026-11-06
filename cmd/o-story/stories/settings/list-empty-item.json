@@ -7,7 +7,7 @@
   ],
   "page": {
     "lists": [{"id": "a", "rows": 1}],
-    "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
+    "bind": [{"noun": "demo", "keys": "S", "do": "setting.open"}]
   },
   "script": ["S", "n", "enter", "esc"],
   "expect": [

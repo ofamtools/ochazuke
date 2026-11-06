@@ -22,7 +22,7 @@ func TestHistoryRecordsRequestsWithSource(t *testing.T) {
 	r, _ := editorTestRuntime(t, "one two", false)
 	editorTestKeys(t, r, "x")
 	e := lastEntry(t, r)
-	if e.Request.Key() != "ochazuke.input.delete" || e.Context.Source != "key:x" || e.Context.Focus != "editor" || e.Context.Mode != "normal" || !e.Result.OK {
+	if e.Request.Key() != "ochazuke.input.erase" || e.Context.Source != "key:x" || e.Context.Focus != "editor" || e.Context.Mode != "normal" || !e.Result.OK {
 		t.Fatalf("key entry: %+v", e)
 	}
 	// g enters g_pending; the second g is the row that answers there (the
@@ -60,7 +60,7 @@ func TestHistoryMacroReplaySource(t *testing.T) {
 	}
 	found := false
 	for _, e := range r.History(0) {
-		found = found || e.Request.Key() == "ochazuke.input.delete" && e.Context.Source == "macro:a"
+		found = found || e.Request.Key() == "ochazuke.input.erase" && e.Context.Source == "macro:a"
 	}
 	if !found {
 		t.Fatalf("no macro-sourced delete in %+v", r.History(10))
@@ -82,10 +82,10 @@ func TestHistoryRingListAndSnapshot(t *testing.T) {
 		t.Fatalf("ring: %d entries, first %d", len(all), all[0].Seq)
 	}
 	listed, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.history", Args: Arguments{"last": 3}})
-	if err != nil || len(listed.([]HistoryEntry)) != 3 {
+	if err != nil || len(rowsOf[HistoryEntry](t, listed)) != 3 {
 		t.Fatalf("history.list: %v %v", listed, err)
 	}
-	state, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.state", Args: Arguments{"path": "/history"}})
+	state, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.state", Args: Arguments{"prop": "history"}})
 	if err != nil || len(state.([]any)) != 50 {
 		t.Fatalf("/history: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestDotRetargetsToFocusUnlessCLI(t *testing.T) {
 	if err := r.AddInput(other); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "delete", Noun: "ochazuke.input", Target: "other"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "erase", Noun: "ochazuke.input", Target: "other"}); err != nil {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, ".")
@@ -210,7 +210,7 @@ func TestDotRetargetsToFocusUnlessCLI(t *testing.T) {
 		t.Fatalf("api target re-resolves to focus: %q %q", focused.Text, other.Text)
 	}
 	reply := make(chan Response, 1)
-	r.HandleCall(CallMsg{Request: Request{Verb: "delete", Noun: "ochazuke.input", Target: "other"}, Reply: reply})
+	r.HandleCall(CallMsg{Request: Request{Verb: "erase", Noun: "ochazuke.input", Target: "other"}, Reply: reply})
 	<-reply
 	editorTestKeys(t, r, ".")
 	if string(focused.Text) != "xxx" || string(other.Text) != "y" {
@@ -294,7 +294,7 @@ func TestHistoryMotionRecordsTheMoveNotTheList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := out.([]HistoryEntry); len(got) != 1 || got[0].Request.Key() != "ochazuke.list.mark" || !got[0].Result.OK || got[0].Moved != nil {
+	if got := rowsOf[HistoryEntry](t, out); len(got) != 1 || got[0].Request.Key() != "ochazuke.list.mark" || !got[0].Result.OK || got[0].Moved != nil {
 		t.Fatalf("history.list: %+v", got)
 	}
 	if encoded != 0 {

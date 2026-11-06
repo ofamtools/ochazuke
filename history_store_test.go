@@ -255,7 +255,7 @@ func TestHistoryFileKeepsPaletteLines(t *testing.T) {
 	if err := r.DeclareSetting(Setting{Name: "wrap", Type: SettingBoolean, Default: false}); err != nil {
 		t.Fatal(err)
 	}
-	runPaletteLine(t, r, Request{Verb: "set", Noun: "ochazuke.settings", Args: Arguments{"name": "wrap", "value": "true"}})
+	runPaletteLine(t, r, Request{Verb: "set", Noun: "ochazuke.setting", Args: Arguments{"name": "wrap", "value": "true"}})
 	text := fileText(t, r)
 	if !strings.Contains(text, `"value":"true"`) || strings.Contains(text, `"result":{"ok":true,"value"`) {
 		t.Fatalf("file: %s", text)
@@ -264,7 +264,7 @@ func TestHistoryFileKeepsPaletteLines(t *testing.T) {
 	if _, err := next.Runtime.Execute(Request{Verb: "open", Noun: "ochazuke.palette"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := next.Palette.recallLine(1); err != nil || next.Palette.Text() != "set settings wrap true" {
+	if err := next.Palette.recallLine(1); err != nil || next.Palette.Text() != "set setting wrap true" {
 		t.Fatalf("recall %q %v", next.Palette.Text(), err)
 	}
 }

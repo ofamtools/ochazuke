@@ -10,7 +10,7 @@ import (
 
 // reviewFixture is the Settings page fixture with a session, two session
 // values (theme over settings.json's light, scrolloff over the default)
-// and settings.review on ctrl+r.
+// and setting.review on ctrl+r.
 func reviewFixture(t *testing.T) (*Runtime, *Model, string) {
 	t.Helper()
 	r, m, dir := settingsPageFixture(t)
@@ -24,11 +24,11 @@ func reviewFixture(t *testing.T) (*Runtime, *Model, string) {
 	if _, err := s.SetSession("theme", "mono"); err != nil {
 		t.Fatal(err)
 	}
-	r.Define("app").Mode("normal").Bind("ctrl+r", Do("ochazuke.settings.review"))
+	r.Define("app").Mode("normal").Bind("ctrl+r", Do("ochazuke.setting.review"))
 	return r, m, dir
 }
 
-// settings.review lists each session value beside its saved one, the
+// setting.review lists each session value beside its saved one, the
 // detail saying what writing changes; w writes the focused row, r reverts
 // it, each dropping out, and the last one closes the review with a notice.
 func TestSettingsReviewWritesAndRevertsOneByOne(t *testing.T) {
@@ -41,7 +41,7 @@ func TestSettingsReviewWritesAndRevertsOneByOne(t *testing.T) {
 		t.Fatalf("body noun %q", n)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"Review settings", "2 session values differ", "Setting", "Saved", "Session", "scrolloff", "2 (default)", "5", "theme", "light (file)", "mono", "Writing adds 5 to settings.json", "w setting.write", "r setting.revert", "s skip", "W settings.write", "R settings.revert"} {
+	for _, want := range []string{"Review settings", "2 session values differ", "Setting", "Saved", "Session", "scrolloff", "2 (default)", "5", "theme", "light (file)", "mono", "Writing adds 5 to settings.json", "w setting.write", "r setting.revert", "s skip", "W setting.write-all", "R setting.revert-all"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}
@@ -121,14 +121,14 @@ func TestSettingsReviewCloses(t *testing.T) {
 // diff.
 func TestSettingsReviewEmptyAndNoSession(t *testing.T) {
 	r, m, _ := settingsPageFixture(t)
-	r.Define("app").Mode("normal").Bind("ctrl+r", Do("ochazuke.settings.review"))
+	r.Define("app").Mode("normal").Bind("ctrl+r", Do("ochazuke.setting.review"))
 	keytest.Press(m, "ctrl+r")
 	if r.TopModal() != "" || m.Info != "No session changes to review" || m.Status != "" {
 		t.Fatalf("empty: modal %q info %q status %q", r.TopModal(), m.Info, m.Status)
 	}
 	plain, _, _ := settingsFixture(t)
-	got, err := plain.Execute(Request{Noun: "ochazuke.settings", Verb: "review"})
-	if text, _ := got.(string); err != nil || !strings.Contains(text, "no session to review") || !strings.Contains(text, "settings diff") {
+	got, err := plain.Execute(Request{Noun: "ochazuke.setting", Verb: "review"})
+	if text, _ := got.(string); err != nil || !strings.Contains(text, "no session to review") || !strings.Contains(text, "setting diff") {
 		t.Fatalf("no session: %v %v", got, err)
 	}
 }

@@ -25,22 +25,22 @@ func setPalette(t *testing.T) (*Runtime, *Palette, string) {
 func TestRestParameterTakesTheLineVerbatim(t *testing.T) {
 	r, p, _ := setPalette(t)
 	for _, tc := range []struct{ line, rest string }{
-		{"settings apply scrolloff=5 wrap", "scrolloff=5 wrap"},
-		{"apply settings  scrolloff=5   nowrap ", "scrolloff=5   nowrap "},
+		{"setting apply scrolloff=5 wrap", "scrolloff=5 wrap"},
+		{"apply setting  scrolloff=5   nowrap ", "scrolloff=5   nowrap "},
 		{`set theme=light paths="x y",z`, `theme=light paths="x y",z`},
 		{`se paths=a\ b`, `paths=a\ b`},
 	} {
 		c := p.parse(tc.line)
-		if c.Err != nil || c.Op.Key() != "ochazuke.settings.apply" || c.Args["line"] != tc.rest {
+		if c.Err != nil || c.Op.Key() != "ochazuke.setting.apply" || c.Args["line"] != tc.rest {
 			t.Fatalf("%q: op %s args %v err %v", tc.line, c.Op.Key(), c.Args, c.Err)
 		}
 	}
-	paletteLine(t, r, "settings apply scrolloff=5 wrap")
+	paletteLine(t, r, "setting apply scrolloff=5 wrap")
 	if r.Settings().Int("scrolloff") != 5 || !r.Settings().Bool("wrap") {
 		t.Fatalf("scrolloff %d wrap %v", r.Settings().Int("scrolloff"), r.Settings().Bool("wrap"))
 	}
 	// Quoting stays as it was for every other parameter.
-	if c := p.parse(`settings set theme "light"`); c.Err != nil || c.Args["value"] != "light" {
+	if c := p.parse(`setting set theme "light"`); c.Err != nil || c.Args["value"] != "light" {
 		t.Fatalf("quoted word: %v %v", c.Args, c.Err)
 	}
 }
@@ -71,16 +71,16 @@ func TestSetAliases(t *testing.T) {
 	_, p, _ := setPalette(t)
 	for _, word := range []string{"set", "se", "setl", "setlocal", "setg", "setglobal"} {
 		c := p.parse(word + " scrolloff?")
-		if c.Err != nil || c.Op.Key() != "ochazuke.settings.apply" || c.Args["line"] != "scrolloff?" || c.Via != word && c.Via != "ochazuke.settings."+word {
+		if c.Err != nil || c.Op.Key() != "ochazuke.setting.apply" || c.Args["line"] != "scrolloff?" || c.Via != word && c.Via != "ochazuke.setting."+word {
 			t.Fatalf("%s: %s %v via %q err %v", word, c.Op.Key(), c.Args, c.Via, c.Err)
 		}
 	}
 	for _, word := range []string{"options", "opt"} {
-		if c := p.parse(word); !c.Complete() || c.Op.Key() != "ochazuke.settings.edit" {
+		if c := p.parse(word); !c.Complete() || c.Op.Key() != "ochazuke.setting.open" {
 			t.Fatalf("%s: %s %v", word, c.Op.Key(), c.Err)
 		}
 	}
-	if c := p.parse("set"); !c.Complete() || c.Op.Key() != "ochazuke.settings.apply" || len(c.Args) != 0 {
+	if c := p.parse("set"); !c.Complete() || c.Op.Key() != "ochazuke.setting.apply" || len(c.Args) != 0 {
 		t.Fatalf("bare set: %s %v %v", c.Op.Key(), c.Args, c.Err)
 	}
 }
@@ -93,22 +93,25 @@ func TestSetResolvesByTheWordAfterIt(t *testing.T) {
 	if err := r.DeclareSetting(
 		Setting{Name: "mode-line", Type: SettingBoolean, Default: false, Description: "A setting named like a noun's prefix"},
 		Setting{Name: "con", Type: SettingBoolean, Default: false, Description: "A setting that is a noun's prefix"},
+		Setting{Name: "appeal", Type: SettingBoolean, Default: false, Description: "A setting sharing a prefix with a noun"},
 	); err != nil {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct{ line, op, err string }{
-		{"set mode normal", "ochazuke.mode.set", ""},
-		{"set focus", "ochazuke.focus.set", ""}, // exact noun over focus-display
-		{"set settings theme light", "ochazuke.settings.set", ""},
+		// mode, focus and confirm have no set verb (och-command-nouns:
+		// mode.switch, focus.to, confirm.require): set reads them as a
+		// :set line.
+		{"set mode normal", "ochazuke.setting.apply", ""},
+		{"set focus", "ochazuke.setting.apply", ""},
+		{"set setting theme light", "ochazuke.setting.set", ""},
 		{"set appearance", "ochazuke.appearance.set", ""},
-		{"set con", "ochazuke.settings.apply", ""}, // an exact setting over the noun confirm
-		{"set foc", "", `"foc" is ambiguous: noun focus (focus set), or line focus-display`},
-		{"set mod", "", `"mod" is ambiguous: noun mode (mode set), or line modal-dim, modal-highlights, modal.anchor, mode-badge.key-case, mode-badge.width, …`},
-		{"set focus-display=stack", "ochazuke.settings.apply", ""},
-		{"set scroll", "ochazuke.settings.apply", ""}, // a setting's prefix only
-		{"set conf", "ochazuke.confirm.set", ""},      // a noun's prefix only
-		{"set zzz", "ochazuke.settings.apply", ""},    // neither: the line says what is wrong
-		{"set nowrap scrolloff=3", "ochazuke.settings.apply", ""},
+		{"set con", "ochazuke.setting.apply", ""}, // an exact setting
+		{"set appe", "", `"appe" is ambiguous: noun appearance (appearance set), or line appeal`},
+		{"set focus-display=stack", "ochazuke.setting.apply", ""},
+		{"set scroll", "ochazuke.setting.apply", ""},  // a setting's prefix only
+		{"set appear", "ochazuke.appearance.set", ""}, // a noun's prefix only
+		{"set zzz", "ochazuke.setting.apply", ""},     // neither: the line says what is wrong
+		{"set nowrap scrolloff=3", "ochazuke.setting.apply", ""},
 	} {
 		c := p.parse(tc.line)
 		if tc.err != "" {
@@ -121,20 +124,20 @@ func TestSetResolvesByTheWordAfterIt(t *testing.T) {
 			t.Errorf("%q: %s err %v, want %s", tc.line, c.Op.Key(), c.Err, tc.op)
 		}
 	}
-	paletteLine(t, r, "set mode normal")
-	if r.Mode.Name != "normal" {
-		t.Fatalf("mode %q", r.Mode.Name)
+	paletteLine(t, r, "set appearance density compact")
+	if got, err := r.Execute(Request{Noun: "ochazuke.appearance", Verb: "get", Args: Arguments{"prop": "density"}}); err != nil || got != "compact" {
+		t.Fatalf("set appearance density compact: %v %v", got, err)
 	}
 }
 
-// :verbose set opt? is settings.apply {verbose: true} over opt?.
+// :verbose set opt? is setting.apply {verbose: true} over opt?.
 func TestVerboseSet(t *testing.T) {
 	r, p, _ := setPalette(t)
 	sink := &RecordingSink{}
 	r.UI().Attach(sink)
 	for _, line := range []string{"verbose set scrolloff?", "verb se scrolloff?", "verbose scrolloff?"} {
 		c := p.parse(line)
-		if c.Err != nil || c.Op.Key() != "ochazuke.settings.apply" || c.Args["line"] != "scrolloff?" || c.Args["verbose"] != true {
+		if c.Err != nil || c.Op.Key() != "ochazuke.setting.apply" || c.Args["line"] != "scrolloff?" || c.Args["verbose"] != true {
 			t.Fatalf("%q: %s %v %v", line, c.Op.Key(), c.Args, c.Err)
 		}
 	}
@@ -188,7 +191,7 @@ func TestSetLineCompletion(t *testing.T) {
 
 	// On the palette, tab splices the choice over the rest's text, with
 	// no space after it, so = can follow.
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "set nowrap scr"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "set nowrap scr"})
 	entries := p.completions()
 	if len(entries) != 1 || entries[0].Value != "nowrap scrolloff" || !entries[0].Splice || entries[0].From != 4 {
 		t.Fatalf("entries %+v", entries)
@@ -197,13 +200,13 @@ func TestSetLineCompletion(t *testing.T) {
 	if p.Text() != "set nowrap scrolloff" {
 		t.Fatalf("after tab: %q", p.Text())
 	}
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "set scrolloff="})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "set scrolloff="})
 	paletteRequest(t, r, "complete", "palette", nil)
 	if p.Text() != "set scrolloff=2" {
 		t.Fatalf("= tab: %q", p.Text())
 	}
 	// set and a space completes the names; the header names the line.
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "set "})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "set "})
 	if entries := p.completions(); len(entries) < 5 || !slices.ContainsFunc(entries, func(e PaletteEntry) bool { return e.Value == "scrolloff" }) || entries[len(entries)-1].Value != "all&" {
 		t.Fatalf("set space: %+v", entries)
 	}
@@ -216,22 +219,19 @@ func TestSetLineCompletion(t *testing.T) {
 // palette does.
 func TestSetFromCLIRequests(t *testing.T) {
 	r, _, _ := setPalette(t)
-	reading, ok, err := r.ReadBareAlias(r.Context(), []string{"set", "mode", "normal"}, nil)
-	if err != nil || !ok || reading.Noun != "mode" {
-		t.Fatalf("set mode: %+v %v %v", reading, ok, err)
+	reading, ok, err := r.ReadBareAlias(r.Context(), []string{"set", "appearance", "theme", "mono"}, nil)
+	if err != nil || !ok || reading.Noun != "appearance" {
+		t.Fatalf("set appearance: %+v %v %v", reading, ok, err)
 	}
 	reading, ok, err = r.ReadBareAlias(r.Context(), []string{"verbose", "set", "scrolloff?"}, nil)
 	if err != nil || !ok || reading.Skip != 2 || reading.Args["verbose"] != true || reading.Noun != "" {
 		t.Fatalf("verbose set: %+v %v %v", reading, ok, err)
 	}
-	if _, _, err := r.ReadBareAlias(r.Context(), []string{"set", "foc"}, nil); err == nil {
-		t.Fatal("set foc read without an ambiguity")
-	}
 	q := r.CanonicalRequest(Request{Verb: "set"})
-	if q.Key() != "ochazuke.settings.apply" || q.Via != "set" {
+	if q.Key() != "ochazuke.setting.apply" || q.Via != "set" {
 		t.Fatalf("bare set request: %+v", q)
 	}
-	if q := r.CanonicalRequest(Request{Noun: "settings", Verb: "set"}); q.Key() != "ochazuke.settings.set" {
+	if q := r.CanonicalRequest(Request{Noun: "setting", Verb: "set"}); q.Key() != "ochazuke.setting.set" {
 		t.Fatalf("settings set: %+v", q)
 	}
 }
@@ -281,7 +281,7 @@ func TestSetCollisionsAcrossTheFamily(t *testing.T) {
 	for _, row := range rows {
 		c := p.parse("set " + row.Noun)
 		got := "line"
-		if c.Op.Key() != "ochazuke.settings.apply" {
+		if c.Op.Key() != "ochazuke.setting.apply" {
 			got = p.r.DisplayNoun(c.Op.Noun) + " " + c.Op.Verb
 		}
 		if c.Err != nil || got != row.Reads {
@@ -302,7 +302,7 @@ func TestSetCollisionsAcrossTheFamily(t *testing.T) {
 		}
 	}
 	slices.Sort(own)
-	if want := []string{"focus", "palette", "setting", "settings"}; !reflect.DeepEqual(own, want) {
+	if want := []string{"setting"}; !reflect.DeepEqual(own, want) {
 		t.Fatalf("framework collisions %v, want %v", own, want)
 	}
 }
@@ -328,7 +328,7 @@ func TestBareAliasGivesWayToALaterNoun(t *testing.T) {
 	if _, ok := r.bareAlias("verb"); ok {
 		t.Fatal("the verb alias outlived the verb noun")
 	}
-	if got := r.ActionAliasProblems(); !slices.Contains(got, "alias verb of settings.apply dropped: a noun of that name is registered") {
+	if got := r.ActionAliasProblems(); !slices.Contains(got, "alias verb of setting.apply dropped: a noun of that name is registered") {
 		t.Fatalf("problems %q", got)
 	}
 	p := NewPalette(r)
@@ -336,7 +336,7 @@ func TestBareAliasGivesWayToALaterNoun(t *testing.T) {
 	if c := p.parse("verb list"); c.Op.Key() != "verb.list" {
 		t.Fatalf("verb list: %s %v", c.Op.Key(), c.Err)
 	}
-	if c := p.parse("verbose set scrolloff?"); c.Op.Key() != "ochazuke.settings.apply" {
+	if c := p.parse("verbose set scrolloff?"); c.Op.Key() != "ochazuke.setting.apply" {
 		t.Fatalf("verbose still: %s %v", c.Op.Key(), c.Err)
 	}
 }

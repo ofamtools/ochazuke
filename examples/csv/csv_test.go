@@ -389,7 +389,7 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	}
 	// Hints are the bound rows of the mode: a hint never names an unbound key.
 	hints := ochazuke.BindingHints(a.r, "r0:c0")
-	for _, want := range []string{"d d row.delete", "t u cell.transform", "ctrl+s sheet.save", "v mode.set"} {
+	for _, want := range []string{"d d row.delete", "t u cell.transform", "ctrl+s sheet.save", "v mode.switch"} {
 		if !strings.Contains(hints, want) {
 			t.Fatalf("hints lack %q: %s", want, hints)
 		}
@@ -697,7 +697,7 @@ func TestDeleteColumnConfirmNamesTheHeader(t *testing.T) {
 // reversed). Rendering changes no state: the focus stays on the line.
 func TestGridHighlightsStayVisibleUnderThePalette(t *testing.T) {
 	a := open(t)
-	if _, err := a.r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"theme": "mono"}}); err != nil {
+	if _, err := a.r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"prop": "theme", "value": "mono"}}); err != nil {
 		t.Fatal(err)
 	}
 	press(t, a, "v", "j", ":")

@@ -59,7 +59,7 @@
       {
         "noun": "demo",
         "keys": ",",
-        "do": "settings.edit"
+        "do": "setting.open"
       }
     ]
   },

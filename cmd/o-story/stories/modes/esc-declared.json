@@ -1,5 +1,5 @@
 {
-  "name": "modes: esc bound to mode.set {mode: declared} names no mode: it lands on the pin of the focused list, and on normal where nothing is pinned",
+  "name": "modes: esc bound to mode.switch {mode: declared} names no mode: it lands on the pin of the focused list, and on normal where nothing is pinned",
   "area": "modes",
   "width": 60,
   "height": 12,
@@ -7,9 +7,9 @@
     "modes": {"shape": {"extends": "normal"}, "edit": {"extends": "normal"}},
     "lists": [{"id": "tree", "rows": 1, "pin": "shape"}, {"id": "plain", "rows": 1}],
     "bind": [
-      {"noun": "demo", "mode": "shape", "keys": "e", "do": "ochazuke.mode.set", "args": {"mode": "edit"}},
-      {"noun": "demo", "keys": "e", "do": "ochazuke.mode.set", "args": {"mode": "edit"}},
-      {"noun": "demo", "mode": "edit", "keys": "esc", "do": "ochazuke.mode.set", "args": {"mode": "declared"}}
+      {"noun": "demo", "mode": "shape", "keys": "e", "do": "ochazuke.mode.switch", "args": {"mode": "edit"}},
+      {"noun": "demo", "keys": "e", "do": "ochazuke.mode.switch", "args": {"mode": "edit"}},
+      {"noun": "demo", "mode": "edit", "keys": "esc", "do": "ochazuke.mode.switch", "args": {"mode": "declared"}}
     ]
   },
   "script": ["e", "esc", "j", "e", "esc"],

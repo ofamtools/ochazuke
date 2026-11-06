@@ -16,7 +16,7 @@ var defaultBindings []byte
 // Register defines the grid and selection operations and the selection
 // shape modes once per runtime. The grid noun answers move and goto; the
 // selection noun answers swap, mark, unmark and all. A selection starts and
-// ends with mode.set (a shape, or normal); the grid follows the mode. Each resolves the grid from args.id or the nearest
+// ends with mode.switch (a shape, or normal); the grid follows the mode. Each resolves the grid from args.id or the nearest
 // grid on the context's ancestry, so a cell, row or column focus reaches it.
 // The application binds keys to these rows; the grid binds only its column
 // width keys (z >, z <, z =) on the grid noun.

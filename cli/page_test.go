@@ -671,7 +671,7 @@ func TestMountPageRanksOnlyItsSuccessfulMappedNouns(t *testing.T) {
 		}
 		for _, q := range []ochazuke.Request{
 			{Noun: "ochazuke.palette", Verb: "open"},
-			{Noun: "ochazuke.palette", Verb: "set", Args: ochazuke.Arguments{"text": "zz-"}},
+			{Noun: "ochazuke.palette", Verb: "fill", Args: ochazuke.Arguments{"text": "zz-"}},
 		} {
 			state, err := r.Execute(q)
 			if err != nil {

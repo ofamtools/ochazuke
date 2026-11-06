@@ -201,7 +201,7 @@ func TestUserAliasShadowVerbRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 	var rows []AliasRow
-	if err := json.Unmarshal([]byte(`[{"alias":"adjust","action":"ochazuke.settings.apply","shadowVerb":"set"}]`), &rows); err != nil {
+	if err := json.Unmarshal([]byte(`[{"alias":"adjust","action":"ochazuke.setting.apply","shadowVerb":"set"}]`), &rows); err != nil {
 		t.Fatal(err)
 	}
 	data, err := json.Marshal(rows)
@@ -213,9 +213,9 @@ func TestUserAliasShadowVerbRoundTrip(t *testing.T) {
 	}
 	m.Init()
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteLine(t, r, "adjust mode insert")
-	if r.Mode.Name != "insert" {
-		t.Fatalf("declared shadow verb did not change mode: %q", r.Mode.Name)
+	paletteLine(t, r, "adjust appearance density compact")
+	if got, err := r.Execute(Request{Noun: "ochazuke.appearance", Verb: "get", Args: Arguments{"prop": "density"}}); err != nil || got != "compact" {
+		t.Fatalf("declared shadow verb did not run appearance set: %v %v", got, err)
 	}
 	paletteRequest(t, r, "open", "palette", nil)
 	paletteLine(t, r, "adjust demo-limit=7")

@@ -484,17 +484,17 @@ func TestBindingsFileBadKeySkipped(t *testing.T) {
 	}
 }
 
-// settings.set edits settings.json in place: the user's comments, layout
+// setting.set edits settings.json in place: the user's comments, layout
 // and trailing comma stay; a changed value is replaced where it stands, a
 // new one appended at the file's indent.
 func TestSettingsWriteKeepsComments(t *testing.T) {
 	r, dir := exportFixture(t)
 	writeConfig(t, dir, SettingsFile, "// my settings\n{\n    // which pager\n    \"pager\": \"more\", // less is more\n    /* rows */\n    \"lines\": 30,\n}\n")
 	r.Settings().Reload()
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "set", Args: Arguments{"name": "pager", "value": "less"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "set", Args: Arguments{"name": "pager", "value": "less"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "set", Args: Arguments{"name": "delay", "value": "1s"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "set", Args: Arguments{"name": "delay", "value": "1s"}}); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(filepath.Join(dir, SettingsFile))

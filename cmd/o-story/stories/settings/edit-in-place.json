@@ -9,7 +9,7 @@
   ],
   "page": {
     "lists": [{"id": "a", "rows": 2}],
-    "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
+    "bind": [{"noun": "demo", "keys": "S", "do": "setting.open"}]
   },
   "config": {"settings.json": {"settings.all-section": false}},
   "script": ["S", "l", "j", "enter", "h", "j", "space", "r", "esc"],
@@ -20,7 +20,7 @@
       "modal": "",
       "focus": "__settings/row/scrolloff",
       "order": ["Settings", "Sections", "General (3)", "General", "3", "scrolloff", "‹ 2 ›", "theme", "‹ dark ›", "wrap", "‹ false ›", "Rows kept around the focus", "Default is 2."],
-      "contains": ["enter setting.edit", "h/l setting.cycle", "r setting.reset", "]/[ settings.tab"], "lacks": ["Source"]
+      "contains": ["enter setting.edit", "h/l setting.cycle", "r setting.reset", "]/[ setting.show-tab"], "lacks": ["Source"]
     },
     {"after": 2, "contains": ["scrolloff •  ‹ 3 ›", "Set in settings.json."]},
     {"after": 4, "focus": "__settings/row/theme", "contains": ["theme •      ‹ light ›"]},

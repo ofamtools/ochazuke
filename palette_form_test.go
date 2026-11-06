@@ -49,7 +49,7 @@ func formRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 
 func TestPaletteMissingParamOpensArgsForm(t *testing.T) {
 	r, p, ran := formRuntime(t)
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "note add"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "note add"})
 	paletteRequest(t, r, "run", "palette", nil)
 	if r.TopModal() != ArgsFormID || r.Focus != ArgsFormID+"/text" || r.Mode.Name != "insert" {
 		t.Fatalf("form not open on text in insert: top=%q focus=%q mode=%q", r.TopModal(), r.Focus, r.Mode.Name)
@@ -173,7 +173,7 @@ func TestArgsFormSettingOffNamesTheMissingWord(t *testing.T) {
 	if err := r.DeclareSetting(Setting{Name: MissingOpensFormSetting, Type: SettingBoolean, Default: false}); err != nil {
 		t.Fatal(err)
 	}
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "note add"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "note add"})
 	_, err := r.Execute(Request{Verb: "run", Noun: "ochazuke.palette"})
 	if err == nil || !strings.Contains(err.Error(), "missing text (string)") {
 		t.Fatalf("err %v", err)

@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -320,7 +321,7 @@ func propNames(n *Noun) []string {
 
 func getParams(n *Noun) map[string]Parameter {
 	return map[string]Parameter{
-		"prop":  {Type: "string", Enum: slices.Concat(propNames(n), n.roleNames()), Free: slices.ContainsFunc(n.Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }), Description: "One prop (or @role: the prop with that role): answer its value alone"},
+		"prop":  {Type: "string", Enum: slices.Concat(propNames(n), n.roleNames()), Free: true, Description: "One prop (or @role: the prop with that role): answer its value alone; a dotted path (prop.key.0.key) reads inside an object or list prop"},
 		"props": {Type: "string", Description: "The props to answer, comma-separated (default: every prop but secrets)"},
 	}
 }
@@ -391,7 +392,7 @@ func thingRecord(n *Noun, t Thing, names []string) map[string]any {
 }
 
 func runGet(r *Runtime, n *Noun, c Ctx) (any, error) {
-	prop := StringArg(c.Args, "prop", "")
+	prop, path := propPath(n, StringArg(c.Args, "prop", ""))
 	names, err := pickedProps(n, c.Args)
 	switch {
 	case err != nil:
@@ -430,10 +431,74 @@ func runGet(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if t == nil {
 		return nil, fmt.Errorf("no %s %q", r.DisplayNoun(n.Name), id)
 	}
+	if prop != "" && len(path) > 0 {
+		v, err := nestedValue(t[prop], path)
+		if err != nil {
+			return nil, &ArgumentError{fmt.Errorf("%s.%s: %w", r.DisplayNoun(n.Name), StringArg(c.Args, "prop", ""), err)}
+		}
+		return v, nil
+	}
 	if prop != "" {
 		return fileForm(t[prop]), nil
 	}
 	return thingRecord(n, t, names), nil
+}
+
+// propPath reads get's prop argument: a prop (or @role), or a dotted path
+// whose first segments name a prop and the rest a place inside its value
+// (state get modeState.payload.count). A prop whose name holds a dot is
+// read whole first; otherwise the longest prefix that is a prop names it.
+// A prop the noun lacks comes back whole, so the caller says so.
+func propPath(n *Noun, arg string) (string, []string) {
+	if arg == "" || n.prop(arg) != nil || !strings.Contains(arg, ".") {
+		return arg, nil
+	}
+	segs := strings.Split(arg, ".")
+	for i := len(segs) - 1; i >= 1; i-- {
+		if n.prop(strings.Join(segs[:i], ".")) != nil {
+			return strings.Join(segs[:i], "."), segs[i:]
+		}
+	}
+	return arg, nil
+}
+
+// nestedValue reads a place inside a prop's value by path segments, over
+// its JSON form: an object's key (the longest run of segments that is a
+// key, so a key holding dots is reached: nouns.ochazuke.list.verbs), a
+// list's 0-based index.
+func nestedValue(v any, path []string) (any, error) {
+	data, err := json.Marshal(fileForm(v))
+	if err != nil {
+		return nil, err
+	}
+	var node any
+	if err := json.Unmarshal(data, &node); err != nil {
+		return nil, err
+	}
+	for len(path) > 0 {
+		switch at := node.(type) {
+		case map[string]any:
+			found := false
+			for i := len(path); i >= 1; i-- {
+				if next, ok := at[strings.Join(path[:i], ".")]; ok {
+					node, path, found = next, path[i:], true
+					break
+				}
+			}
+			if !found {
+				return nil, fmt.Errorf("no key %q", path[0])
+			}
+		case []any:
+			i, err := strconv.Atoi(path[0])
+			if err != nil || i < 0 || i >= len(at) {
+				return nil, fmt.Errorf("no index %q (a list of %d)", path[0], len(at))
+			}
+			node, path = at[i], path[1:]
+		default:
+			return nil, fmt.Errorf("cannot read %q inside a %T", path[0], node)
+		}
+	}
+	return node, nil
 }
 
 // parseWhere reads a where argument: prop=value pairs, each value typed by

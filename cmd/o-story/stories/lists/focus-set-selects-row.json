@@ -1,5 +1,5 @@
 {
-  "name": "focus.set on a row selects it: the highlight follows the focus",
+  "name": "focus.to on a row selects it: the highlight follows the focus",
   "area": "lists",
   "page": {
     "focus": "a2",
@@ -14,7 +14,7 @@
         "noun": "app",
         "mode": "normal",
         "keys": "z",
-        "do": "focus.set",
+        "do": "focus.to",
         "args": {
           "id": "a4"
         }

@@ -225,7 +225,7 @@ func TestAboutTabOnSettingsPage(t *testing.T) {
 		t.Fatalf("] from the last owner: page %q settings %v", r.Page, r.PageOf(SettingsPageID) != nil)
 	}
 	view := ansi.Strip(m.View().Content)
-	if !strings.Contains(view, "About") || !strings.Contains(view, "ochazuke") || !strings.Contains(view, "]/[ settings.tab") {
+	if !strings.Contains(view, "About") || !strings.Contains(view, "ochazuke") || !strings.Contains(view, "]/[ setting.show-tab") {
 		t.Fatalf("about view:\n%s", view)
 	}
 	keytest.Press(m, "]")
@@ -236,10 +236,10 @@ func TestAboutTabOnSettingsPage(t *testing.T) {
 	if r.Page != AboutPageID {
 		t.Fatalf("[ from the first owner: page %q", r.Page)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "tab", Args: Arguments{"name": "extensions"}}); err != nil || r.Page != SettingsPageID || r.Settings().page.section != "extensions/ai" {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "show-tab", Args: Arguments{"name": "extensions"}}); err != nil || r.Page != SettingsPageID || r.Settings().page.section != "extensions/ai" {
 		t.Fatalf("tab extensions from About: %v page %q section %q", err, r.Page, r.Settings().page.section)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "tab", Args: Arguments{"name": "about"}}); err != nil || r.Page != AboutPageID {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "show-tab", Args: Arguments{"name": "about"}}); err != nil || r.Page != AboutPageID {
 		t.Fatalf("tab about: %v page %q", err, r.Page)
 	}
 	keytest.Press(m, "q")
@@ -263,7 +263,7 @@ func TestAboutTabOnSettingsPage(t *testing.T) {
 		t.Fatal(err)
 	}
 	view = ansi.Strip(m.View().Content)
-	if strings.Contains(view, "extensions") || strings.Contains(view, "settings.tab") {
+	if strings.Contains(view, "extensions") || strings.Contains(view, "setting.show-tab") {
 		t.Fatalf("about.tab off draws the tabs:\n%s", view)
 	}
 }

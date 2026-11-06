@@ -6,7 +6,7 @@
       {"key":"enter", "action":"ochazuke.filter-form.next", "capture":true}
     ]},
     {"context":"ochazuke.filter-form/insert", "bindings":[
-      {"key":"esc", "action":"ochazuke.mode.set", "args":{"mode":"normal"}, "when":"filter-form-text", "hidden":true}
+      {"key":"esc", "action":"ochazuke.mode.switch", "args":{"mode":"normal"}, "when":"filter-form-text", "hidden":true}
     ]},
     {"context":"ochazuke.filter-form/normal", "bindings":[
       {"key":"esc", "action":"ochazuke.filter-form.focus", "args":{"part":"field"}, "when":"filter-form-text", "hint":"fields"},
@@ -27,7 +27,7 @@
       {"key":"!", "action":"ochazuke.filter-form.invert-condition", "hint":"is/not"}
     ]},
     {"context":"ochazuke.filter-save/insert", "bindings":[
-      {"key":"esc", "action":"ochazuke.mode.set", "args":{"mode":"normal"}, "hidden":true}
+      {"key":"esc", "action":"ochazuke.mode.switch", "args":{"mode":"normal"}, "hidden":true}
     ]},
     {"context":"ochazuke.filter-save", "bindings":[
       {"key":"enter", "action":"ochazuke.filter-form.write-saved", "hint":"save"}

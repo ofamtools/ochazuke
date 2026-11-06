@@ -37,8 +37,7 @@ import (
 
 // The nouns a :set line's operations run on.
 const (
-	setSettingNoun  = "ochazuke.setting"
-	setSettingsNoun = "ochazuke.settings"
+	setSettingNoun = "ochazuke.setting"
 )
 
 // setOp is one operation of a :set line: the verb Noun.Verb runs with the
@@ -357,7 +356,9 @@ var setTable = func() map[string]map[string]setCell {
 // setLineForms are the words that are line forms rather than settings,
 // typed whole.
 var setLineForms = map[string]setCell{
-	"all":  {Verb: "list"},
+	// all lists every setting by name and value first (setting.list's
+	// props), as :set all reads.
+	"all":  {Verb: "list", Arg: "props", Fixed: "name,value,default,description"},
 	"all&": {Verb: "reset-all"},
 }
 
@@ -385,11 +386,11 @@ const setAmbiguousShown = 5
 // parseSetLine reads a :set line (the text after the command word) over
 // the declared settings: one operation per word, or one error for the
 // first word that fails and no operations. An empty line is one
-// settings.diff.
+// setting.diff.
 func parseSetLine(line string, settings []Setting) ([]setOp, error) {
 	words := setWords(line)
 	if len(words) == 0 {
-		return []setOp{{Word: -1, Form: "line", Noun: setSettingsNoun, Verb: "diff"}}, nil
+		return []setOp{{Word: -1, Form: "line", Noun: setSettingNoun, Verb: "diff"}}, nil
 	}
 	ops := make([]setOp, 0, len(words))
 	for i, w := range words {
@@ -409,7 +410,7 @@ func parseSetLine(line string, settings []Setting) ([]setOp, error) {
 // parseSetWord reads one word.
 func parseSetWord(w setWord, settings []Setting) (setOp, error) {
 	if cell, ok := setLineForms[w.Text]; ok {
-		return setOp{Form: w.Text, Noun: setSettingsNoun, Verb: cell.Verb}, nil
+		return setOp{Form: w.Text, Noun: setSettingNoun, Verb: cell.Verb, Arg: cell.Arg, Value: cell.Fixed}, nil
 	}
 	one, prefix, err := resolveSetName(w.Name, settings)
 	if err != nil {

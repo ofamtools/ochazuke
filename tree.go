@@ -1763,4 +1763,54 @@ func registerTrees(r *Runtime) {
 		r.Operations["ochazuke.outline."+verb] = op
 	}
 	r.Define(TreeRowNoun)
+	registerOutlineThings(r)
+}
+
+// registerOutlineThings makes the outline a thing noun: its things are the
+// nodes of the focused tree, keyed by id, so get and list read them. Its
+// own delete and edit (above) are the core verbs of the noun: they act
+// through the tree (its undo, its children rule, one undo step over a
+// selection), not through a store write; create, set and archive are
+// unavailable, as the tree adds and writes lines with add and edit.
+func registerOutlineThings(r *Runtime) {
+	node := func(n TreeNode) Thing {
+		return Thing{"id": n.ID, "label": n.Label, "parent": n.Parent, "noun": n.Noun}
+	}
+	tree := func(c Ctx) (*Tree, error) {
+		if t := c.Runtime.treeOf(focusOf(c.Context)); t != nil {
+			return t, nil
+		}
+		return nil, errors.New("no focused tree")
+	}
+	r.Define("ochazuke.outline").Props(
+		PropSpec{Name: "id", Key: true, Parameter: Parameter{Description: "The node's id"}},
+		PropSpec{Name: "label", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The node's line"}},
+		PropSpec{Name: "parent", ReadOnly: true, Parameter: Parameter{Description: "The parent node's id (empty at the top level)"}},
+		PropSpec{Name: "noun", ReadOnly: true, Parameter: Parameter{Description: "The row's noun (ochazuke.outline-row unless the application names its own)"}},
+	).Store(Store{
+		Kind: Collection,
+		Get: func(c Ctx, id string) (Thing, error) {
+			t, err := tree(c)
+			if err != nil {
+				return nil, err
+			}
+			for _, n := range t.Nodes() {
+				if n.ID == id {
+					return node(n), nil
+				}
+			}
+			return nil, fmt.Errorf("no node %q", id)
+		},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			t, err := tree(c)
+			if err != nil {
+				return nil, err
+			}
+			out := []Thing{}
+			for _, n := range t.Nodes() {
+				out = append(out, node(n))
+			}
+			return out, nil
+		},
+	})
 }

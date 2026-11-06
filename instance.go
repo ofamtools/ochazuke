@@ -20,7 +20,7 @@ import (
 // (a list row's ListItem.Data); the framework never reads it. Pin is the
 // base mode the instance declares (Runtime.PinInstance): focus landing on
 // it, or beneath it with no nearer pin, puts the runtime in that mode, and
-// mode.set {mode: declared} returns to it.
+// mode.switch {mode: declared} returns to it.
 type Instance struct {
 	ID          string    `json:"id"`
 	Noun        string    `json:"noun"`

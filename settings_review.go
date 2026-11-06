@@ -7,16 +7,16 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// The review of this session's settings (settings.review): a modal over
+// The review of this session's settings (setting.review): a modal over
 // whatever is open, one row per setting whose session value differs from
-// the persisted one (settings.diff), with the saved value and where it is
+// the persisted one (setting.diff), with the saved value and where it is
 // saved, the session value and where it came from side by side. Under the
 // rows the selected setting's description, its default and what writing
 // or reverting it changes. The rows are the setting-change noun; their
 // keys run the setting noun's own verbs with the row's name
 // (bindings/settings-editor.json: setting.write, setting.revert, a skip
 // that moves on), and the modal's run the all-at-once verbs
-// (settings.write, settings.revert). A row that is written or reverted
+// (setting.write-all, setting.revert-all). A row that is written or reverted
 // drops out as the layers move (the same refresh the Settings page uses);
 // when none is left the review closes and says so.
 //
@@ -33,16 +33,16 @@ const (
 	settingChangePrefix  = "__settings-review/row/"
 )
 
-// noSessionReview is settings.review's answer in a runtime without a
+// noSessionReview is setting.review's answer in a runtime without a
 // session (a one-shot CLI process).
-const noSessionReview = "no session to review: a CLI process holds no session values, so every write already went to " + SettingsFile + ". In a running app, settings review (or settings diff) shows the session values."
+const noSessionReview = "no session to review: a CLI process holds no session values, so every write already went to " + SettingsFile + ". In a running app, setting review (or setting diff) shows the session values."
 
-// registerSettingsReview registers settings.review, the review's nouns
+// registerSettingsReview registers setting.review, the review's nouns
 // and the refresh that drops reviewed rows.
 func registerSettingsReview(r *Runtime) {
 	r.Define(settingsReviewNoun)
 	r.Define(settingChangeNoun)
-	r.Register(Operation{Verb: "review", Noun: "ochazuke.settings", Description: "Review this session's settings: each session value beside its saved one, to write or revert one at a time or all at once", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "review", Noun: "ochazuke.setting", Description: "Review this session's settings: each session value beside its saved one, to write or revert one at a time or all at once", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if !s.HasSession() {
 			return noSessionReview, nil

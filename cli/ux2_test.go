@@ -57,7 +57,7 @@ func TestCancelledWriteReleasesThing(t *testing.T) {
 	if job == 0 {
 		t.Fatal("no running set job")
 	}
-	if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.jobs", Verb: "cancel", Args: ochazuke.Arguments{"job": int(job)}}); err != nil {
+	if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.job", Verb: "cancel", Args: ochazuke.Arguments{"job": int(job)}}); err != nil {
 		t.Fatal(err)
 	}
 	if notices := strings.Join(m.Notices, "\n"); !strings.Contains(notices, `title = "Originalx"`) || !strings.Contains(notices, "cancelled") {

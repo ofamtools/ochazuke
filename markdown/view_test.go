@@ -43,7 +43,7 @@ func TestOpenTextShowsMarkdownInTheViewer(t *testing.T) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}
 	}
-	for _, edit := range []string{"markdown.insert", "markdown.toggle", "markdown.delete", "markdown.undo", "```"} {
+	for _, edit := range []string{"markdown.insert", "markdown.toggle", "markdown.cut", "markdown.undo", "```"} {
 		if strings.Contains(frame, edit) {
 			t.Fatalf("frame shows %q:\n%s", edit, frame)
 		}

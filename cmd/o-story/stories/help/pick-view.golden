@@ -13,11 +13,11 @@ R|            │                                                             ap
  |            │   ctrl+space       palette.open                             Open the command line            │
  |            │   ctrl+c           app.quit                                 Exit the application             │
  |            │ editor                                                                                       │
- |            │   esc              mode.set           mode declared         Set the global interaction mode  │
- |            │                                                             (a registered mode, or declared: │
- |            │                                                             the mode the focus declares,     │
- |            │                                                             normal if none) and clear any    │
- |            │                                                             pending payload                  │
+ |            │   esc              mode.switch        mode declared         Switch the global interaction    │
+ |            │                                                             mode (a registered mode, or      │
+ |            │                                                             declared: the mode the focus     │
+ |            │                                                             declares, normal if none) and    │
+ |            │                                                             clear any pending payload        │
  |            │   tab              completion.open ?                        when completion-available ·      │
  |            │                                                             Offer suggestions for the        │
  |            │                                                             trigger token at the cursor now  │

@@ -131,7 +131,7 @@ func TestRound3SingleFlightAndCancel(t *testing.T) {
 	if calls != 1 {
 		t.Fatal("ran twice")
 	}
-	if _, err = r.Execute(Request{Noun: "ochazuke.jobs", Verb: "cancel", Args: Arguments{"job": int(ticket.Job)}}); err != nil {
+	if _, err = r.Execute(Request{Noun: "ochazuke.job", Verb: "cancel", Args: Arguments{"job": int(ticket.Job)}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Accepts(ticket) {

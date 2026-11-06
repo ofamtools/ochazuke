@@ -21,9 +21,10 @@ const JobTickerRows = 2
 // too, and a newer job can push it off sooner.
 const JobLinger = 4 * time.Second
 
-// jobTicker is the Model's short memory of finished jobs: jobs.list deletes
-// finished jobs on read, so the ticker keeps its own copy for JobLinger.
-// It reads the runtime through Jobs, never through jobs.list.
+// jobTicker is the Model's short memory of finished jobs: the jobs list
+// keeps only the last jobHistory finished ones, so the ticker keeps its own
+// copy for JobLinger.
+// It reads the runtime through Jobs, never through job.list.
 type jobTicker struct {
 	finished []tickerJob     // newest finish first
 	seen     map[uint64]bool // finished jobs already remembered (or expired)

@@ -253,14 +253,3 @@ func patchPage(c Ctx, id string, changes Thing) (Thing, error) {
 	}
 	return nil, nil
 }
-
-// pageRows are pages.list's rows: every page in registration order with
-// whether it is current and whether it is hidden from the tabs.
-func (r *Runtime) pageRows() []map[string]any {
-	hidden := r.HiddenPages()
-	out := make([]map[string]any, 0)
-	for _, page := range r.PageList() {
-		out = append(out, map[string]any{"id": page.ID, "title": page.Title, "active": page.ID == r.Page, "hidden": slices.Contains(hidden, page.ID)})
-	}
-	return out
-}

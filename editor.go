@@ -546,30 +546,5 @@ func registerEditorOperations(r *Runtime) {
 		r.Registers().Active = name
 		return name, nil
 	})
-	register("set", "register", "Set a text register; uppercase appends, underscore discards", map[string]Parameter{"name": {Type: "string", Required: true}, "text": {Type: "string", Required: true}, "shape": {Type: "string"}, "width": {Type: "integer"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
-		shape := StringArg(a, "shape", "char")
-		if shape != "char" && shape != "line" && shape != "block" {
-			return nil, errors.New("unknown yank shape")
-		}
-		text := StringArg(a, "text", "")
-		width := IntArg(a, "width", 0)
-		if width < 0 {
-			return nil, errors.New("width must be nonnegative")
-		}
-		if shape == "line" && !strings.HasSuffix(text, "\n") {
-			text += "\n"
-		}
-		if shape == "block" {
-			for _, line := range strings.Split(text, "\n") {
-				width = max(width, cellWidth(line))
-			}
-		}
-		err := r.storeYank(Yank{Text: text, Shape: shape, Width: width}, StringArg(a, "name", ""), false)
-		return r.Registers, err
-	})
-	register("get", "register", "Inspect a shared register", map[string]Parameter{"name": {Type: "string"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
-		key, _, err := registerName(StringArg(a, "name", ""))
-		return r.Registers().Named[key], err
-	})
 	registerReadOnlyInputs(r)
 }

@@ -160,9 +160,9 @@ func TestBindingsResolve(t *testing.T) {
 	if k := find("host", "enter"); k.VerbID != "host:pane#attach" {
 		t.Fatalf("enter = %+v", k)
 	}
-	// Requests naming no verb stay unresolved (o-ext's settings.undo, host's pane.gone).
+	// Requests naming no verb stay unresolved (o-ext's setting.undo, host's pane.gone).
 	if k := find("o-ext", "u"); k.VerbID != "" || k.Scope != "o-ext:settings" {
-		t.Fatalf("settings.undo = %+v", k)
+		t.Fatalf("setting.undo = %+v", k)
 	}
 	if k := find("host", "x"); k.VerbID != "" {
 		t.Fatalf("pane.gone = %+v", k)

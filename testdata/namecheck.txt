@@ -81,7 +81,6 @@ cli/ptykeys.go	var keyCodes	table	"enter"	1	key names mapped to terminal byte se
 cli/ptykeys.go	var keyCodes	table	"insert"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
 cli/ptykeys.go	var keyCodes	table	"left"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
 cli/ptykeys.go	var keyCodes	table	"right"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
-cli/ptykeys.go	var keyCodes	table	"tab"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
 cli/ptykeys.go	var keyCodes	table	"up"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
 cli/setup.go	DeclareSetup	compare	"copy"	4
 cli/setup.go	DeclareSetup	compare	"list"	1
@@ -158,13 +157,13 @@ editor.go	registerEditorOperations	case	"word-next"	1
 editor.go	registerEditorOperations	compare	"down"	1
 editor.go	registerEditorOperations	compare	"first-line"	1
 editor.go	registerEditorOperations	compare	"last-line"	1
-editor.go	registerEditorOperations	compare	"line"	7
+editor.go	registerEditorOperations	compare	"line"	5
 editor.go	registerEditorOperations	compare	"line-end"	2
 editor.go	registerEditorOperations	compare	"up"	1
 editor.go	registerEditorOperations	compare	"word-end"	2
 editor.go	registerEditorOperations	compare	"word-forward"	1
 editor.go	registerEditorOperations	compare	"word-next"	1
-editor.go	registerEditorOperations	cyclo	"-"	95
+editor.go	registerEditorOperations	cyclo	"-"	87
 events.go	EventSpec.Field	compare	"event"	1
 focus.go	Runtime.JumpFocus	case	"stop"	1
 focus.go	Runtime.removeInstance	compare	"app"	1
@@ -326,7 +325,6 @@ noun.go	printableKey	case	"enter"	1
 noun.go	printableKey	case	"insert"	1
 noun.go	printableKey	case	"left"	1
 noun.go	printableKey	case	"right"	1
-noun.go	printableKey	case	"tab"	1
 noun.go	printableKey	case	"up"	1
 noun.go	validSource	case	"count"	1
 noun.go	validSource	case	"digit"	1
@@ -339,7 +337,6 @@ noun.go	validSource	case	"row"	1
 noun.go	validSource	case	"steps"	1
 noun.go	validSource	case	"text"	1
 noun.go	var keyTexts	table	"enter"	1	key names mapped to their text; the words coincide with vocabulary names, no name branch
-noun.go	var keyTexts	table	"tab"	1	key names mapped to their text; the words coincide with vocabulary names, no name branch
 noun.go	withImplicitGuard	compare	"ochazuke.editor"	1
 noun_places.go	Runtime.placementOf	compare	"app"	1
 pages.go	Runtime.AddPage	compare	"app"	1
@@ -421,6 +418,7 @@ record_editor.go	Runtime.newRecordEditor	compare	"text"	2
 record_editor.go	Runtime.newRecordEditor	cyclo	"-"	36
 registers.go	Runtime.storeYank	compare	"line"	1
 registers.go	appendYank	compare	"line"	2
+registers.go	registerRegisterThings	compare	"line"	1
 registers.go	yankReport	case	"line"	1
 resolve.go	Runtime.argument	case	"count"	1
 resolve.go	Runtime.argument	case	"digit"	1
@@ -458,13 +456,11 @@ runtime.go	var focusBoundOps	table	"ochazuke.list.end-visual"	1
 runtime.go	var focusBoundOps	table	"ochazuke.list.filter-open"	1
 runtime.go	var focusBoundOps	table	"ochazuke.list.visual"	1
 runtime.go	var focusBoundOps	table	"ochazuke.mode.enter"	1
-runtime.go	var focusBoundOps	table	"ochazuke.mode.set"	1
+runtime.go	var focusBoundOps	table	"ochazuke.mode.switch"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.aliases"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.check"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.path"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.reload"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.appearance.get"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.appearance.set"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.check"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.load"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.path"	1
@@ -474,38 +470,29 @@ runtime.go	var frameworkHistoryKinds	table	"ochazuke.chooser.cancel"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.config.export"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.config.path"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.config.reload"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.confirm.set"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.confirm.require"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.form-option.pick"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.form.redo"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.form.suggest"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.form.undo"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.history.list"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.history.path"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.input.redo"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.input.undo"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.input.yank"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.instances.query"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.jobs.list"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.reset-columns"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.resize-column"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.yank"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.mode.register"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.outline.fold"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.pages.list"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.register.get"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.register.set"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting-value.commit"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.cycle"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.edit"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.names"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.path"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.reload"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.reset"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.get"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.list"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.names"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.path"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.reload"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.reset"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.set"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.state.get"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.set"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.terminal.paste"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.terminal.send"	1
 runtime.go	var frameworkHistoryKinds	table	"ochazuke.themes.path"	1
@@ -560,7 +547,7 @@ setting_verbs.go	readApplyLine	compare	"ochazuke.setting"	1
 setting_verbs.go	settingArg	compare	"list"	1
 setting_verbs.go	settingsApply	compare	"diff"	1
 setting_verbs.go	settingsApply	compare	"list"	1
-setting_verbs.go	settingsApply	compare	"ochazuke.settings"	1
+setting_verbs.go	settingsApply	compare	"ochazuke.setting"	1
 setting_verbs.go	var applyCheck	compare	"ochazuke.setting"	1
 settings.go	coerceType	case	"list"	1
 settings_page_layout.go	Settings.shownLinks	compare	"sections"	1

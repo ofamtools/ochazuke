@@ -35,7 +35,7 @@ func editorOperatorChanges(op string) bool {
 
 // editorEditVerbs are the input verbs that change the text (input.operator
 // has its own guard).
-var editorEditVerbs = []string{"insert", "replace", "delete", "kill", "paste", "begin", "undo", "redo"}
+var editorEditVerbs = []string{"insert", "replace", "erase", "kill", "paste", "begin", "undo", "redo"}
 
 // ReadOnly makes AddInput's input read-only (Input.ReadOnly).
 func ReadOnly() InstanceOption {

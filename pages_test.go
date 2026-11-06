@@ -48,21 +48,21 @@ func TestPageRegistrationAndPublicSnapshot(t *testing.T) {
 	if pages := r.PageList(); len(pages) != 2 || pages[0] != alpha || pages[1].ID != "beta" || r.PageOf("alpha") != alpha {
 		t.Fatalf("registration did not retain page order and identity: %v", pages)
 	}
-	want := []map[string]any{{"id": "alpha", "title": "ALPHA", "active": false, "hidden": false}, {"id": "beta", "title": "BETA", "active": false, "hidden": false}}
-	if got := paletteRequest(t, r, "list", "pages", nil); !reflect.DeepEqual(got, want) {
+	want := []map[string]any{{"id": "alpha", "label": "ALPHA", "title": "ALPHA", "active": false, "hidden": false}, {"id": "beta", "label": "BETA", "title": "BETA", "active": false, "hidden": false}}
+	if got := paletteRequest(t, r, "list", "page", nil); !reflect.DeepEqual(got, want) {
 		t.Fatalf("pages=%v; want %v", got, want)
 	}
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
 	want[0]["active"] = true
-	if got := paletteRequest(t, r, "list", "pages", nil); !reflect.DeepEqual(got, want) {
+	if got := paletteRequest(t, r, "list", "page", nil); !reflect.DeepEqual(got, want) {
 		t.Fatalf("pages=%v; want %v", got, want)
 	}
-	for path, want := range map[string]any{"/page": "alpha", "/pages/alpha/id": "alpha", "/pages/alpha/title": "ALPHA", "/pages/alpha/remembered": "alpha", "/instances/alpha/noun": "alpha", "/instances/alpha-input/parent": "alpha-editor"} {
-		if got := paletteRequest(t, r, "get", "state", Arguments{"path": path}); !reflect.DeepEqual(got, want) {
+	for path, want := range map[string]any{"page": "alpha", "pages.alpha.id": "alpha", "pages.alpha.title": "ALPHA", "pages.alpha.remembered": "alpha", "instances.alpha.noun": "alpha", "instances.alpha-input.parent": "alpha-editor"} {
+		if got := paletteRequest(t, r, "get", "state", Arguments{"prop": path}); !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s=%v; want %v", path, got, want)
 		}
 	}
-	if _, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.state", Args: Arguments{"path": "/pages/alpha/render"}}); err == nil {
+	if _, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.state", Args: Arguments{"prop": "pages.alpha.render"}}); err == nil {
 		t.Fatal("renderer must not be exposed through public state")
 	}
 }
@@ -75,12 +75,12 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 	paletteRequest(t, r, "focus", "input", Arguments{"id": "alpha-input"})
 	in := r.Input("alpha-input")
 	in.Cursor = 2
-	paletteRequest(t, r, "set", "mode", Arguments{"mode": "insert"})
+	paletteRequest(t, r, "switch", "mode", Arguments{"mode": "insert"})
 	paletteRequest(t, r, "insert", "input", Arguments{"text": "X"})
 	before := paletteInputSnapshot(t, in)
 	context := r.Context()
 	paletteRequest(t, r, "open", "page", Arguments{"id": "beta"})
-	paletteRequest(t, r, "set", "mode", Arguments{"mode": "insert"})
+	paletteRequest(t, r, "switch", "mode", Arguments{"mode": "insert"})
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
 	if len(r.Modals()) != 0 || r.Page != alpha.ID || r.Input(r.Context().InputID) != in || !reflect.DeepEqual(r.Context(), context) {
 		t.Fatalf("page identity or nested focus was lost: %+v", r.Context())
@@ -203,7 +203,7 @@ func TestPageNavigationWrapsAndRejectsInvalidRequests(t *testing.T) {
 	}
 	r.Pending = "g"
 	before := pageTestSnapshot(t, r)
-	for _, q := range []Request{{Verb: "open", Noun: "ochazuke.page"}, {Verb: "open", Noun: "ochazuke.page", Args: Arguments{"id": 1}}, {Verb: "open", Noun: "ochazuke.page", Args: Arguments{"id": "missing"}}, {Verb: "list", Noun: "ochazuke.pages", Args: Arguments{"extra": true}}, {Verb: "next", Noun: "ochazuke.page", Args: Arguments{"id": "alpha"}}, {Verb: "previous", Noun: "ochazuke.page", Args: Arguments{"extra": true}}} {
+	for _, q := range []Request{{Verb: "open", Noun: "ochazuke.page"}, {Verb: "open", Noun: "ochazuke.page", Args: Arguments{"id": 1}}, {Verb: "open", Noun: "ochazuke.page", Args: Arguments{"id": "missing"}}, {Verb: "list", Noun: "ochazuke.page", Args: Arguments{"extra": true}}, {Verb: "next", Noun: "ochazuke.page", Args: Arguments{"id": "alpha"}}, {Verb: "previous", Noun: "ochazuke.page", Args: Arguments{"extra": true}}} {
 		if _, err := r.Execute(q); err == nil || pageTestSnapshot(t, r) != before {
 			t.Fatalf("%+v must fail without mutation: %v", q, err)
 		}

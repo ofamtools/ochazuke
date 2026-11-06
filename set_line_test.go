@@ -43,7 +43,7 @@ func setLineSettings() []Setting {
 }
 
 // setGot is an operation as the tests compare it: the key without the
-// framework namespace (setting.toggle, settings.diff), the name, the
+// framework namespace (setting.toggle, setting.diff), the name, the
 // argument and the value.
 type setGot struct {
 	Form, Key, Name, Arg string
@@ -78,10 +78,10 @@ func TestSetLineForms(t *testing.T) {
 		line string
 		want []setGot
 	}{
-		{1, "", []setGot{{"line", "settings.diff", "", "", nil}}},
-		{1, "   ", []setGot{{"line", "settings.diff", "", "", nil}}},
-		{3, "all", []setGot{{"all", "settings.list", "", "", nil}}},
-		{4, "all&", []setGot{{"all&", "settings.reset-all", "", "", nil}}},
+		{1, "", []setGot{{"line", "setting.diff", "", "", nil}}},
+		{1, "   ", []setGot{{"line", "setting.diff", "", "", nil}}},
+		{3, "all", []setGot{{"all", "setting.list", "", "props", "name,value,default,description"}}},
+		{4, "all&", []setGot{{"all&", "setting.reset-all", "", "", nil}}},
 		{5, "modal-dim?", []setGot{wantQuery("modal-dim")}},
 		{5, "help.pick-view?", []setGot{wantQuery("help.pick-view")}},
 		{6, "help.pick-view", []setGot{wantSet("", "help.pick-view", true)}},
@@ -108,7 +108,7 @@ func TestSetLineForms(t *testing.T) {
 		{18, "path.no-auto-list-=a,b", []setGot{{"-=", "setting.remove", "path.no-auto-list", "value", []string{"a", "b"}}}},
 		{19, "modal-dim<", []setGot{{"<", "setting.revert", "modal-dim", "", nil}}},
 		{20, "help.pick-view notree.zoom modal-dim=3 all", []setGot{
-			wantSet("", "help.pick-view", true), wantSet("no", "tree.zoom", false), wantSet("=", "modal-dim", 3), {"all", "settings.list", "", "", nil},
+			wantSet("", "help.pick-view", true), wantSet("no", "tree.zoom", false), wantSet("=", "modal-dim", 3), {"all", "setting.list", "", "props", "name,value,default,description"},
 		}},
 		{24, `title=a\ b`, []setGot{wantSet("=", "title", "a b")}},
 		{24, `title="a b"`, []setGot{wantSet("=", "title", "a b")}},
@@ -357,7 +357,7 @@ func TestSetOpRequest(t *testing.T) {
 	}
 	want := []Request{
 		{Noun: "ochazuke.setting", Verb: "increase", Args: Arguments{"name": "modal-dim", "by": 5}},
-		{Noun: "ochazuke.settings", Verb: "list"},
+		{Noun: "ochazuke.setting", Verb: "list", Args: Arguments{"props": "name,value,default,description"}},
 		{Noun: "ochazuke.setting", Verb: "toggle", Args: Arguments{"name": "help.pick-view"}},
 	}
 	for i, op := range ops {

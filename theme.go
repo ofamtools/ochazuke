@@ -96,31 +96,32 @@ func newAppearance(r *Runtime) *Appearance {
 	registerGlyphs(r, a)
 	c := r.Config()
 	c.themeListeners = append(c.themeListeners, func() { a.Schemes = NewSchemeSet(r.Config().Schemes()) })
-	r.Register(Operation{Verb: "get", Noun: "ochazuke.appearance", Description: "Get theme and density", Result: "appearance", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
-		return *a, nil
-	}})
-	r.Register(Operation{Verb: "set", Noun: "ochazuke.appearance", Description: "Set theme and density atomically", Parameters: map[string]Parameter{
-		"theme":   {Type: "string", Description: "A colour scheme: adaptive, dark, light, mono, or one from themes.json"},
-		"density": {Type: "string", Description: "comfortable or compact"},
-	}, Result: "appearance", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
-		next := *a
-		if theme, ok := args["theme"].(string); ok {
-			if !slices.Contains(a.ThemeNames(), theme) {
-				return nil, fmt.Errorf("unknown theme %q: use %s", theme, strings.Join(a.ThemeNames(), ", "))
+	// The appearance is a thing (a singleton): get reads theme, density
+	// and dark, set writes theme and density, both at once with changes.
+	r.Define("ochazuke.appearance").Props(
+		PropSpec{Name: "theme", Parameter: Parameter{Description: "The colour scheme: adaptive, dark, light, mono, or one from themes.json"}},
+		PropSpec{Name: "density", Parameter: Parameter{Enum: []string{"comfortable", "compact"}, Description: "comfortable or compact"}},
+		PropSpec{Name: "dark", ReadOnly: true, Parameter: Parameter{Type: SettingBoolean, Description: "Whether the terminal's background is dark (what adaptive follows)"}},
+	).Store(Store{
+		Kind: Singleton, Stamps: true,
+		Get: func(Ctx, string) (Thing, error) {
+			return Thing{"theme": a.Theme, "density": a.Density, "dark": a.Dark}, nil
+		},
+		Patch: func(_ Ctx, _ string, changes Thing) (Thing, error) {
+			next := *a
+			if theme, ok := changes["theme"].(string); ok {
+				if !slices.Contains(a.ThemeNames(), theme) {
+					return nil, fmt.Errorf("unknown theme %q: use %s", theme, strings.Join(a.ThemeNames(), ", "))
+				}
+				next.Theme = theme
 			}
-			next.Theme = theme
-		}
-		if density, ok := args["density"].(string); ok {
-			switch density {
-			case "comfortable", "compact":
+			if density, ok := changes["density"].(string); ok {
 				next.Density = density
-			default:
-				return nil, fmt.Errorf("unknown density %q: use comfortable or compact", density)
 			}
-		}
-		*a = next
-		return next, nil
-	}})
+			*a = next
+			return Thing{"theme": a.Theme, "density": a.Density, "dark": a.Dark}, nil
+		},
+	})
 	r.defineFacts(factsSpec{Noun: "ochazuke.themes", Sample: themeFact{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The colour scheme's name: a built-in theme, or one of themes.json"},
 		List: func(Ctx, ListQuery) ([]Thing, error) {

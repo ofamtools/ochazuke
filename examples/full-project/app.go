@@ -63,15 +63,17 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 	m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Instance, w, h int) ochazuke.Block {
 		return picker.ViewBlock(w, h)
 	}}
-	appearance := ochazuke.Arguments{}
+	appearance := map[string]any{}
 	if cfg.App.Appearance.Theme != "" {
 		appearance["theme"] = cfg.App.Appearance.Theme
 	}
 	if cfg.App.Appearance.Density != "" {
 		appearance["density"] = cfg.App.Appearance.Density
 	}
-	if _, err := r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: appearance}); err != nil {
-		return nil, err
+	if len(appearance) > 0 {
+		if _, err := r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"changes": appearance}}); err != nil {
+			return nil, err
+		}
 	}
 	if err := registerPages(m, cfg.Pages); err != nil {
 		return nil, err

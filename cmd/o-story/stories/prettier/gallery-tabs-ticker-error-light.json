@@ -63,7 +63,7 @@
         {
           "noun": "demo",
           "keys": "E",
-          "do": "focus.set",
+          "do": "focus.to",
           "args": {
             "id": "nowhere"
           }

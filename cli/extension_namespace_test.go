@@ -25,7 +25,7 @@ func TestExtensionNamespace(t *testing.T) {
 			t.Errorf("ExtensionNamespace(%q) = %q, %v; want %q", bin, got, err, want)
 		}
 	}
-	for _, bin := range []string{"", "o-", "ochazuke", "o-ochazuke", "app", "o-app", "o-settings", "list", "o-9x", "o-a.b", "o-a_b"} {
+	for _, bin := range []string{"", "o-", "ochazuke", "o-ochazuke", "app", "o-app", "o-setting", "list", "o-9x", "o-a.b", "o-a_b"} {
 		if got, err := ExtensionNamespace(bin); err == nil {
 			t.Errorf("ExtensionNamespace(%q) = %q, want an error", bin, got)
 		}
@@ -52,8 +52,8 @@ func TestExtensionNamespaceRefusesLazyFrameworkNamesBeforeUse(t *testing.T) {
 
 func TestExtensionNamespaceRefusesFrameworkReservationAfterCache(t *testing.T) {
 	// Build the eager-name cache before a new lazy constructor is declared.
-	if _, err := ExtensionNamespace("o-settings"); err == nil {
-		t.Fatal("settings is accepted")
+	if _, err := ExtensionNamespace("o-setting"); err == nil {
+		t.Fatal("setting is accepted")
 	}
 	const noun = "ochazuke.lazy-namespace-test"
 	ochazuke.ReserveFrameworkNouns(noun)

@@ -111,7 +111,7 @@ func TestPaletteNamespaceCompletion(t *testing.T) {
 	if got := completionValues(p); !slices.Contains(got, "verb:rows") {
 		t.Errorf("after 'json doc ': %v lacks verb:rows", got)
 	}
-	paletteRequest(t, p.r, "set", "palette", Arguments{"text": "js"})
+	paletteRequest(t, p.r, "fill", "palette", Arguments{"text": "js"})
 	if got := completionValues(p); !slices.Contains(got, "noun:json") {
 		t.Errorf("js: %v lacks the namespace json", got)
 	}
@@ -150,7 +150,7 @@ func TestPaletteDeprecatedNounAlias(t *testing.T) {
 		t.Errorf("notices %q, want one naming the noun", notices)
 	}
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "jd"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "jd"})
 	for _, e := range p.completions() {
 		if strings.Contains(e.Value, "jdoc") {
 			t.Errorf("a deprecated alias is completed: %+v", e)
@@ -260,7 +260,7 @@ func TestPalettePageOpenOffersTitles(t *testing.T) {
 		}
 	}
 	// Taking a title with a space quotes it.
-	paletteRequest(t, r, "set", "palette", Arguments{"text": `page open "Pull`})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": `page open "Pull`})
 	for _, e := range p.completions() {
 		if e.ID == "ext/pulls" {
 			if err := p.accept(e); err != nil {
@@ -274,7 +274,7 @@ func TestPalettePageOpenOffersTitles(t *testing.T) {
 	if err := r.Settings().Set(PaletteChoiceWordsSetting, "id"); err != nil {
 		t.Fatal(err)
 	}
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "page open "})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "page open "})
 	if got := completionValues(p); !slices.Contains(got, "choice:ext/json") {
 		t.Errorf("choice-words id offers %v, want the ids", got)
 	}

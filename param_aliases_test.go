@@ -102,7 +102,7 @@ func TestPaletteParamAlias(t *testing.T) {
 		t.Fatalf("notices %q", got)
 	}
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "task star t1 --"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "task star t1 --"})
 	for _, e := range p.completions() {
 		if strings.Contains(e.Value, "starred") && e.Kind != "instance" {
 			t.Errorf("the old name is completed: %+v", e)

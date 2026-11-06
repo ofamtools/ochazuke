@@ -12,11 +12,11 @@
   ],
   "page": {
     "lists": [{"id": "a", "rows": 2}],
-    "bind": [{"noun": "demo", "keys": ",", "do": "settings.edit"}]
+    "bind": [{"noun": "demo", "keys": ",", "do": "setting.open"}]
   },
   "script": [",", "j", "tab", "j", "tab", "tab", "shift+tab", "[", "]", "]", "[", "[", "[", "shift+tab", "tab"],
   "expect": [
-    {"after": 1, "focus": "__settings/row/scrolloff", "order": ["› General", "ai", "git", "Appearance", "General (2)", "scrolloff", "‹ 2 ›", "theme", "‹ dark ›"], "lacks": ["Sections", "poll-every"], "contains": ["]/[ settings.tab"]},
+    {"after": 1, "focus": "__settings/row/scrolloff", "order": ["› General", "ai", "git", "Appearance", "General (2)", "scrolloff", "‹ 2 ›", "theme", "‹ dark ›"], "lacks": ["Sections", "poll-every"], "contains": ["]/[ setting.show-tab"]},
     {"after": 2, "focus": "__settings/row/theme"},
     {"after": 3, "focus": "__settings/row/ext.ai.poll-every", "order": ["General", "› ai", "git", "ai (2)", "ext.ai.poll-every", "30s", "ext.ai.model", "‹ large ›", "How often the AI extension refreshes its rows"], "lacks": ["scrolloff"]},
     {"after": 4, "focus": "__settings/row/ext.ai.model"},

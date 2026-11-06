@@ -97,7 +97,7 @@ func TestReadOnlyInputHidesEditingRows(t *testing.T) {
 	r, in := readOnlyTestRuntime(t, "text", false)
 	NewModel(r)
 	hints := BindingHints(r, in.ID)
-	for _, op := range []string{"input.begin", "input.delete", "input.paste", "input.undo", "input.redo"} {
+	for _, op := range []string{"input.begin", "input.erase", "input.paste", "input.undo", "input.redo"} {
 		if strings.Contains(hints, op) {
 			t.Errorf("read-only hints name %s: %q", op, hints)
 		}

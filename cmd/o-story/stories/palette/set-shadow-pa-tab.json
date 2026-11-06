@@ -1,5 +1,5 @@
 {
-  "name": "set pa then tab: :set reads only one-value nouns (owner decision 17), so a collection named parcel, whose set is the standard one, is never offered; the palette noun (its own set) and the palette.* and path.* settings are (path.start is below the window since the v0.57 palette settings)",
+  "name": "set pa then tab: :set reads only one-value nouns (owner decision 17), so a collection named parcel, whose set is the standard one, is never offered; nor is the palette noun (palette.fill is its line verb, not a set); the palette.* and path.* settings are (path.start is below the window since the v0.57 palette settings)",
   "area": "palette",
   "width": 100,
   "height": 24,

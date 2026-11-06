@@ -32,7 +32,7 @@ import (
 // Every refresh runs off the loop (a tea.Cmd, as a job's work does) with
 // its own timeout, one run per segment at a time, so a slow source never
 // blocks a key; the header keeps the last text until the next answer.
-// Refreshes are not jobs: they would fill jobs.list and the history every
+// Refreshes are not jobs: they would fill job.list and the history every
 // few seconds.
 //
 // Opting out: the status.segments setting hides the whole area (and stops

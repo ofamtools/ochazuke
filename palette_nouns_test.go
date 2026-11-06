@@ -21,7 +21,7 @@ func TestPalettePageInstancesAreLive(t *testing.T) {
 	}
 	paletteRequest(t, r, "open", "page", Arguments{"id": "page-00"})
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "page "})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "page "})
 	instances := 0
 	for _, entry := range p.completions() {
 		if entry.Kind == "choice" {
@@ -32,7 +32,7 @@ func TestPalettePageInstancesAreLive(t *testing.T) {
 		t.Fatalf("page completes %d instances, want 60", instances)
 	}
 	pageTestRegister(t, r, "late-page").Title = "Newly registered workspace"
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "page late"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "page late"})
 	entries := p.completions()
 	if len(entries) != 1 || entries[0].ID != "late-page" || !strings.Contains(entries[0].Label, "Newly registered workspace") {
 		t.Fatalf("live instance = %#v", entries)
@@ -114,7 +114,7 @@ func TestPaletteInstanceFailurePreservesModalAndOrigin(t *testing.T) {
 	origin := r.Context()
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "page target"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "page target"})
 	_, err := r.Execute(Request{Verb: "run", Noun: "ochazuke.palette"})
 	if err == nil || !strings.Contains(err.Error(), "modal") || !p.IsOpen() || len(r.Modals()) != 2 || r.Modals()[0].ID != "dialog" || r.Page != "home" || !reflect.DeepEqual(p.origin, origin) || p.Text() != "page target" {
 		t.Fatalf("failed instance lost modal/origin: err=%v state=%#v", err, p.state())
@@ -148,7 +148,7 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 		t.Fatal(err)
 	}
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "thing x"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "thing x"})
 	_, err := r.Execute(Request{Verb: "run", Noun: "ochazuke.palette"})
 	if err == nil || err.Error() != "thing rejected" || !p.IsOpen() || !reflect.DeepEqual(captured, origin) || !reflect.DeepEqual(sourceContext, origin) || p.Text() != "thing x" {
 		t.Fatalf("failure dispatch/restoration: %v %#v", err, p.state())
@@ -217,7 +217,7 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 		return out
 	}
 	values := func(line string) []string {
-		paletteRequest(t, r, "set", "palette", Arguments{"text": line})
+		paletteRequest(t, r, "fill", "palette", Arguments{"text": line})
 		return completionValues(p)
 	}
 	if err := r.SetFocus("cell"); err != nil {
@@ -336,7 +336,7 @@ func TestPaletteActivePageOrdering(t *testing.T) {
 				t.Fatal(err)
 			}
 			paletteRequest(t, r, "open", "palette", nil)
-			paletteRequest(t, r, "set", "palette", Arguments{"text": tc.line})
+			paletteRequest(t, r, "fill", "palette", Arguments{"text": tc.line})
 			var got []string
 			for _, entry := range p.completions() {
 				if entry.Kind == tc.kind && slices.Contains([]string{"rebuild", "record", "recording", "restore", "revise", "readout", "zapper", "active-alpha", "active-zeta", "elsewhere"}, entry.Value) {
@@ -373,18 +373,18 @@ func TestPaletteActivePagePreservesFocusGuardsAndExecution(t *testing.T) {
 	}
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "revise "})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "revise "})
 	if got := completionValues(p); !slices.Equal(got, []string{"noun:foreign", "noun:active"}) {
 		t.Fatalf("active-page preference displaced the focus noun: %v", got)
 	}
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "restr"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "restr"})
 	if got := completionValues(p); len(got) != 0 {
 		t.Fatalf("active-page preference exposed a guarded verb: %v", got)
 	}
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "revise"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "revise"})
 	paletteRequest(t, r, "run", "palette", nil)
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "active revise"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "active revise"})
 	paletteRequest(t, r, "run", "palette", nil)
 	if !slices.Equal(ran, []string{"foreign", "active"}) {
 		t.Fatalf("implied and explicit execution = %v, want foreign then active", ran)

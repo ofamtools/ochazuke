@@ -26,5 +26,5 @@ R|  ┃ panes         1 ┃ │ 1 setting in app › panes.                     
  |  ┃ Settings      6 ┃ │                                                                          │
  |  ┗━━━━━━━━━━━━━━━━━┛ ╰──────────────────────────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
- |  l/enter settings-section.open · ]/[ settings.tab · A settings.all · q settings.close · ctrl+w >…
+ |  l/enter settings-section.open · ]/[ setting.show-tab · A setting.all · q setting.close · ctrl+w…
  |

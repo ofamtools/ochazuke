@@ -29,7 +29,7 @@ import (
 // list, so j past its last row spills into the settings (R3.4). A section
 // row's verbs (open, reset, write, revert, copy, pick) have twins at owner
 // level on ochazuke.settings-tab, sharing the handlers. ] and [
-// (settings.tab) step the tabs; tab and shift+tab (settings.section
+// (setting.show-tab) step the tabs; tab and shift+tab (setting.show-section
 // {across}) walk every section in drawing order.
 const (
 	// SettingsLayoutSetting is the Settings page's layout:
@@ -579,7 +579,7 @@ func showSettingsSection(r *Runtime, name string, step int, across bool) error {
 // setting; "" always) is on and settings.layout draws tabs. ] and [ step
 // onto it by running Open, and from its page back onto the Settings page;
 // a step leaving either page runs the page's close first (Close, or
-// settings.close), so the page the pair was opened from stays the one q
+// setting.close), so the page the pair was opened from stays the one q
 // goes back to. The linked page draws the tab row itself
 // (SettingsTabTitles).
 type SettingsTabLink struct {
@@ -739,7 +739,7 @@ func showSettingsTab(r *Runtime, name string, step int) error {
 	return focusUnit(r, target)
 }
 
-// stepSettingsLink runs settings.tab where a link (LinkSettingsTab) is
+// stepSettingsLink runs setting.show-tab where a link (LinkSettingsTab) is
 // involved: a name naming a link, a name or step from a linked page, or a
 // step from the Settings page that lands past its owners' tabs. done is
 // false when no link is involved, for showSettingsTab's own steps.
@@ -785,7 +785,7 @@ func stepSettingsLink(r *Runtime, name string, step int) (bool, error) {
 		if err := leaveSettingsTab(r, links, n, cur); err != nil {
 			return true, err
 		}
-		if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "edit"}); err != nil {
+		if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "open"}); err != nil {
 			return true, err
 		}
 		return true, showSettingsTab(r, name, 0)
@@ -836,7 +836,7 @@ func switchSettingsTab(r *Runtime, target int, links []SettingsTabLink, n int) e
 		return err
 	}
 	s := r.Settings()
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "edit"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "open"}); err != nil {
 		return err
 	}
 	if settingsLayout(s) == SettingsLayoutTabs {
@@ -912,7 +912,7 @@ var settingsScopeVerbs = []struct {
 
 func runScopeOpen(r *Runtime, c Context, a Arguments, units []settingsUnit) (any, error) {
 	if r.PageOf(SettingsPageID) == nil {
-		if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "edit"}); err != nil {
+		if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "open"}); err != nil {
 			return nil, err
 		}
 	}
@@ -1039,10 +1039,10 @@ func openSectionPicker(r *Runtime) error {
 	return err
 }
 
-// registerSettingsLayoutView registers settings.tab, settings.section, the
+// registerSettingsLayoutView registers setting.show-tab, setting.show-section, the
 // section and tab nouns' verbs and the settings-narrow guard.
 func registerSettingsLayoutView(r *Runtime) {
-	r.Register(Operation{Verb: "section", Noun: "ochazuke.settings", Description: "Show the next or previous section of the Settings page (wrapping), or the one named: within the shown tab, or across every tab in drawing order", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "show-section", Noun: "ochazuke.setting", Description: "Show the next or previous section of the Settings page (wrapping), or the one named: within the shown tab, or across every tab in drawing order", Parameters: map[string]Parameter{
 		"step":   {Type: "integer", Description: "1 for the next section, -1 for the previous"},
 		"name":   {Type: "string", Description: "The section to show: its title or id (General for the settings without one)"},
 		"across": {Type: "boolean", Description: "Step over every tab's sections in drawing order, crossing into the next tab after a tab's last section"},
@@ -1050,13 +1050,13 @@ func registerSettingsLayoutView(r *Runtime) {
 		across, _ := a["across"].(bool)
 		return r.Context(), showSettingsSection(r, StringArg(a, "name", ""), IntArg(a, "step", 1), across)
 	}})
-	r.Register(Operation{Verb: "tab", Noun: "ochazuke.settings", Description: "Show the next or previous tab of the Settings page (wrapping), or the one named, on the section it last showed", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "show-tab", Noun: "ochazuke.setting", Description: "Show the next or previous tab of the Settings page (wrapping), or the one named, on the section it last showed", Parameters: map[string]Parameter{
 		"step": {Type: "integer", Description: "1 for the next tab, -1 for the previous"},
 		"name": {Type: "string", Description: "The tab to show: an owner's id or title (app, ochazuke, ...)"},
 	}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), showSettingsTab(r, StringArg(a, "name", ""), IntArg(a, "step", 1))
 	}})
-	r.Register(Operation{Verb: "all", Noun: "ochazuke.settings", Description: "Show the Settings page's All section: every setting in one list, each under its tab and section (opens the page when it is closed)", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "all", Noun: "ochazuke.setting", Description: "Show the Settings page's All section: every setting in one list, each under its tab and section (opens the page when it is closed)", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if !r.Settings().Bool(SettingsAllSectionSetting) {
 			return nil, errors.New("there is no All section: settings.all-section is off")
 		}
@@ -1068,7 +1068,7 @@ func registerSettingsLayoutView(r *Runtime) {
 	r.DefineGuard("settings-all-section", func(r *Runtime, ev KeyEvent) bool {
 		return r.Settings().Bool(SettingsAllSectionSetting)
 	})
-	r.SetAvailability("ochazuke.settings.all", "settings-all-section")
+	r.SetAvailability("ochazuke.setting.all", "settings-all-section")
 	r.DefineGuard("settings-narrow", func(r *Runtime, ev KeyEvent) bool {
 		return r.Settings().page.narrow
 	})
@@ -1081,7 +1081,7 @@ func registerSettingsLayoutView(r *Runtime) {
 			what := v.section
 			if owner {
 				noun, params = settingsTabNoun, map[string]Parameter{
-					"owner": {Type: "string", Description: "The tab: an owner's id or title (default: the shown tab; settings.owners lists them)"},
+					"owner": {Type: "string", Description: "The tab: an owner's id or title (default: the shown tab; setting.owners lists them)"},
 				}
 				what = v.tab
 			}

@@ -61,23 +61,23 @@ func TestVisualIsAModeWithALineShape(t *testing.T) {
 	if r.Mode.Name != "normal" || a.Visual() || strings.Join(ids(a.Marked()), " ") != "a1" {
 		t.Fatalf("esc: mode %s visual %v marks %v", r.Mode.Name, a.Visual(), ids(a.Marked()))
 	}
-	// V again leaves it too; mode.set visual-line enters it from anywhere
+	// V again leaves it too; mode.switch visual-line enters it from anywhere
 	// (the palette, the API): the list follows the mode.
 	motionKeys(t, r, m, "V V")
 	if r.Mode.Name != "normal" || a.Visual() {
 		t.Fatalf("V V: mode %s visual %v", r.Mode.Name, a.Visual())
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.mode", Verb: "set", Args: Arguments{"mode": "visual-line"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.mode", Verb: "switch", Args: Arguments{"mode": "visual-line"}}); err != nil {
 		t.Fatal(err)
 	}
 	if !a.Visual() {
-		t.Fatal("mode.set visual-line did not start the selection")
+		t.Fatal("mode.switch visual-line did not start the selection")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.mode", Verb: "set", Args: Arguments{"mode": "normal"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.mode", Verb: "switch", Args: Arguments{"mode": "normal"}}); err != nil {
 		t.Fatal(err)
 	}
 	if a.Visual() {
-		t.Fatal("mode.set normal did not end the selection")
+		t.Fatal("mode.switch normal did not end the selection")
 	}
 }
 

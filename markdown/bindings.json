@@ -32,7 +32,7 @@
       {"key": "i", "action": "ochazuke.markdown.insert", "args": {"at": "cursor"}},
       {"key": "o", "action": "ochazuke.markdown.open", "args": {"where": "below"}},
       {"key": "n", "action": "ochazuke.markdown.note", "when": "markdown-on-item"},
-      {"key": "d d", "action": "ochazuke.markdown.delete"},
+      {"key": "d d", "action": "ochazuke.markdown.cut"},
       {"key": "p", "action": "ochazuke.markdown.paste", "args": {"where": "below"}},
       {"key": "z a", "action": "ochazuke.markdown.fold", "when": "markdown-has-notes"},
       {"key": "g O", "action": "ochazuke.markdown.outline"},

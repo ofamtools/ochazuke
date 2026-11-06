@@ -1167,7 +1167,7 @@ func (r *Runtime) ValidateBindings() ([]string, error) {
 // "input". When that two-word key is unknown but its reversal is
 // registered, the request is rewritten and the move recorded once per key;
 // ValidateBindings returns the list. A key of three or more words (a dotted
-// noun: ochazuke.settings.set) is never swapped.
+// noun: ochazuke.setting.set) is never swapped.
 func (r *Runtime) modernRequest(q Request) Request {
 	q = r.canonicalRequest(q)
 	if _, ok := r.Operations[q.Key()]; ok || q.Verb == "" || strings.Contains(q.Noun, ".") {
@@ -1275,7 +1275,7 @@ func (r *Runtime) DefineMode(name string, pending bool, opts ...ModeOption) erro
 		return errors.New("mode name cannot be empty")
 	}
 	if name == ModeDeclared {
-		return fmt.Errorf("mode name %q is reserved (mode.set reads it as the focus's declared mode)", name)
+		return fmt.Errorf("mode name %q is reserved (mode.switch reads it as the focus's declared mode)", name)
 	}
 	var spec ModeSpec
 	for _, opt := range opts {

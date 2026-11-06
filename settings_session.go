@@ -39,7 +39,7 @@ import (
 const (
 	// SettingsAutosaveSetting makes every session write go to
 	// settings.json at once (boolean, default false: session values stay
-	// in memory until settings.write).
+	// in memory until setting.write-all).
 	SettingsAutosaveSetting = "settings.autosave"
 	// SettingsMarkSessionSetting draws a session value bold on the
 	// Settings page with the persisted value beside it (boolean, default
@@ -63,7 +63,7 @@ const (
 // source of the request that set it ("palette", "key:<keys>", "cli",
 // "api", "macro:<r>"), Via the name it ran by (an alias such as
 // setting.save, or the action's key) and At the time. Disk, when set, is
-// when the poll (or settings.reload) read another value for the setting
+// when the poll (or setting.reload) read another value for the setting
 // from settings.json: another process changed it under this runtime.
 type Origin struct {
 	Layer  string    `json:"layer"`
@@ -122,7 +122,7 @@ func (o Origin) String() string {
 }
 
 // SettingDiff is one setting whose session value differs from its
-// persisted one, as settings.diff answers: the name, the persisted value
+// persisted one, as setting.diff answers: the name, the persisted value
 // (settings.json's, else the default: SavedIn says which, "file" or
 // "default"), the session value, both in their file form, and the
 // session value's origin.
@@ -386,7 +386,7 @@ func (s *Settings) fileHolds(one Setting) bool {
 }
 
 // Diff lists the settings whose session value differs from the persisted
-// one, in declaration order: what settings.write would write and the
+// one, in declaration order: what setting.write-all would write and the
 // review screen shows.
 func (s *Settings) Diff() []SettingDiff {
 	s.ensure()
@@ -575,32 +575,6 @@ func cliWriteCheck(prompt func(r *Runtime, a Arguments) string) VerbCheck {
 	}}
 }
 
-// setPrompt is settings set's question: the value it would write.
-func setPrompt(r *Runtime, a Arguments) string {
-	s := r.Settings()
-	s.ensure()
-	one := s.find(s.canonical(StringArg(a, "name", "")))
-	if one == nil {
-		return ""
-	}
-	v, err := coerceSetting(*one, a["value"])
-	if err != nil {
-		return ""
-	}
-	return fmt.Sprintf("Write %s = %s to %s?", one.Name, settingWord(v), r.Config().Path(SettingsFile))
-}
-
-// resetPrompt is settings reset's question, when the file holds the key.
-func resetPrompt(r *Runtime, a Arguments) string {
-	s := r.Settings()
-	s.ensure()
-	one := s.find(s.canonical(StringArg(a, "name", "")))
-	if one == nil || !s.fileHolds(*one) {
-		return ""
-	}
-	return fmt.Sprintf("Remove %s from %s (its default is %s)?", one.Name, r.Config().Path(SettingsFile), settingWord(one.Default))
-}
-
 // writePrompt is the write verbs' question: the session values they
 // would write (a CLI process holds none, so it never asks there today).
 func writePrompt(r *Runtime, a Arguments) string {
@@ -660,7 +634,7 @@ func registerSettingsSession(r *Runtime) {
 		refreshSettingsPage(r)
 		refreshSettingsReview(r)
 	}
-	name := Parameter{Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.settings.names"}
+	name := Parameter{Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.names"}
 	r.Register(Operation{Verb: "revert", Noun: "ochazuke.setting", Description: "Drop the setting's session value, so its saved value shows again", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		one, err := settingOfArgs(r, c, a)
 		if err != nil {
@@ -681,24 +655,24 @@ func registerSettingsSession(r *Runtime) {
 		}
 		return r.Settings().Get(one.Name)
 	}})
-	r.Register(Operation{Verb: "write", Noun: "ochazuke.settings", Checks: []VerbCheck{cliWriteCheck(writePrompt)}, Description: "Write every session value to settings.json", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "write-all", Noun: "ochazuke.setting", Checks: []VerbCheck{cliWriteCheck(writePrompt)}, Description: "Write every session value to settings.json", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names, err := r.Settings().WriteAll()
 		if names == nil {
 			names = []string{}
 		}
 		return names, err
 	}})
-	r.Register(Operation{Verb: "revert", Noun: "ochazuke.settings", Checks: []VerbCheck{revertAllCheck}, Description: "Drop every session value, so the saved values show again (asks first)", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "revert-all", Noun: "ochazuke.setting", Checks: []VerbCheck{revertAllCheck}, Description: "Drop every session value, so the saved values show again (asks first)", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names := r.Settings().RevertAll()
 		if names == nil {
 			names = []string{}
 		}
 		return names, nil
 	}})
-	r.Register(Operation{Verb: "diff", Noun: "ochazuke.settings", HistoryKind: HistoryFetch, Description: "List the settings whose session value differs from the saved one: name, saved value, session value and origin", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "diff", Noun: "ochazuke.setting", HistoryKind: HistoryFetch, Description: "List the settings whose session value differs from the saved one: name, saved value, session value and origin", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().Diff(), nil
 	}})
-	r.Register(Operation{Verb: "reset-all", Noun: "ochazuke.settings", Destructive: true, Checks: []VerbCheck{resetAllCheck}, Description: "Reset every setting to its default: for this session, or in settings.json without a session or with settings.autosave", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "reset-all", Noun: "ochazuke.setting", Destructive: true, Checks: []VerbCheck{resetAllCheck}, Description: "Reset every setting to its default: for this session, or in settings.json without a session or with settings.autosave", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		_, names, err := r.Settings().ResetAll()
 		if names == nil {
 			names = []string{}
@@ -709,8 +683,8 @@ func registerSettingsSession(r *Runtime) {
 	// (after Vim's :mkvimrc).
 	for _, a := range []ActionAlias{
 		{Alias: "ochazuke.setting.save", Action: "ochazuke.setting.write"},
-		{Alias: "ochazuke.settings.save", Action: "ochazuke.settings.write"},
-		{Alias: "mksettings", Action: "ochazuke.settings.write", Note: "after Vim's :mkvimrc"},
+		{Alias: "ochazuke.setting.save-all", Action: "ochazuke.setting.write-all"},
+		{Alias: "mksettings", Action: "ochazuke.setting.write-all", Note: "after Vim's :mkvimrc"},
 	} {
 		if err := r.AddActionAlias(a); err != nil {
 			panic(err)
@@ -718,10 +692,10 @@ func registerSettingsSession(r *Runtime) {
 	}
 }
 
-// revertAllCheck asks before settings.revert drops session values that
+// revertAllCheck asks before setting.revert-all drops session values that
 // differ from the saved ones (nothing takes a revert back), naming them;
 // none runs at once.
-var revertAllCheck = VerbCheck{Name: "settings.revert", Check: func(r *Runtime, _ Context, _ Arguments) Verdict {
+var revertAllCheck = VerbCheck{Name: "setting.revert-all", Check: func(r *Runtime, _ Context, _ Arguments) Verdict {
 	diff := r.Settings().Diff()
 	if len(diff) == 0 {
 		return Allow()
@@ -737,9 +711,9 @@ var revertAllCheck = VerbCheck{Name: "settings.revert", Check: func(r *Runtime, 
 	return AskFirst(fmt.Sprintf("Revert %d %s (%s) to the saved ones?", len(diff), noun, strings.Join(names, ", ")))
 }}
 
-// resetAllCheck asks before settings.reset-all from every path, naming
+// resetAllCheck asks before setting.reset-all from every path, naming
 // how many settings it resets and where; nothing to reset runs at once.
-var resetAllCheck = VerbCheck{Name: "settings.reset-all", Check: func(r *Runtime, _ Context, _ Arguments) Verdict {
+var resetAllCheck = VerbCheck{Name: "setting.reset-all", Check: func(r *Runtime, _ Context, _ Arguments) Verdict {
 	s := r.Settings()
 	s.ensure()
 	n := len(s.notDefault())

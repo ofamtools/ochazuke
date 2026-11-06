@@ -164,11 +164,11 @@ func TestFrameworkRowsHaveDeclaredSections(t *testing.T) {
 	}
 }
 
-// settings list --json, settings.owners, settings.sections and the
+// settings list --json, setting.owners, setting.sections and the
 // setting things carry owner, section and group.
 func TestSettingLayoutVerbsAndOutput(t *testing.T) {
 	r := ownersFixture(t)
-	list, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "list"})
+	list, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "list"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,17 +185,17 @@ func TestSettingLayoutVerbsAndOutput(t *testing.T) {
 	if row := by["tree.zoom"]; row["owner"] != OwnerFramework || row["section"] != "lists" {
 		t.Fatalf("framework list row %v", row)
 	}
-	owners, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "owners"})
+	owners, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "owners"})
 	if err != nil || len(owners.([]SettingOwnerInfo)) != 3 {
-		t.Fatalf("settings.owners %v %v", owners, err)
+		t.Fatalf("setting.owners %v %v", owners, err)
 	}
-	secs, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "sections", Args: Arguments{"owner": "extensions"}})
+	secs, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "sections", Args: Arguments{"owner": "extensions"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := secs.([]SettingSectionInfo)
 	if len(got) != 2 || got[0].ID != "md" || got[0].Owner != "extensions" || !reflect.DeepEqual(got[0].Settings, []string{"ext.md.scope"}) {
-		t.Fatalf("settings.sections extensions %+v", got)
+		t.Fatalf("setting.sections extensions %+v", got)
 	}
 	thing, err := settingThing(r, "schedule.gh.interval")
 	if err != nil || thing["owner"] != OwnerApp || thing["section"] != "schedules" || thing["group"] != "gh" {

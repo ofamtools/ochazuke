@@ -80,7 +80,7 @@ func TestSettingsSetValidatesPersistsAndNotifies(t *testing.T) {
 	var themes []any
 	s.Observe("theme", func(_ string, v any) { themes = append(themes, v) })
 	for _, step := range [][2]string{{"scrolloff", "5"}, {"theme", "light"}, {"wrap", "true"}, {"debounce", "1s"}, {"ratio", "0.25"}} {
-		if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "set", Args: Arguments{"name": step[0], "value": step[1]}}); err != nil {
+		if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "set", Args: Arguments{"name": step[0], "value": step[1]}}); err != nil {
 			t.Fatalf("set %v: %v", step, err)
 		}
 	}
@@ -95,15 +95,15 @@ func TestSettingsSetValidatesPersistsAndNotifies(t *testing.T) {
 		t.Fatalf("observers %v %v", seen, themes)
 	}
 	for _, bad := range [][2]string{{"scrolloff", "five"}, {"theme", "neon"}, {"wrap", "maybe"}, {"debounce", "soon"}, {"nope", "1"}} {
-		if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "set", Args: Arguments{"name": bad[0], "value": bad[1]}}); err == nil {
+		if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "set", Args: Arguments{"name": bad[0], "value": bad[1]}}); err == nil {
 			t.Fatalf("accepted %v", bad)
 		}
 	}
 	if got := readSettingsFile(t, dir); !reflect.DeepEqual(got, want) {
 		t.Fatalf("a refused set changed the file: %v", got)
 	}
-	got, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "reset", Args: Arguments{"name": "theme"}})
-	if err != nil || got.(SettingValue).Value != "dark" || got.(SettingValue).Set || s.String("theme") != "dark" {
+	got, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "reset", Args: Arguments{"name": "theme"}})
+	if err != nil || got.(SettingWritten).Value != "dark" || got.(SettingWritten).Set || s.String("theme") != "dark" {
 		t.Fatalf("reset %+v %v", got, err)
 	}
 	if _, ok := readSettingsFile(t, dir)["theme"]; ok || !reflect.DeepEqual(themes, []any{"light", "dark"}) {
@@ -113,10 +113,10 @@ func TestSettingsSetValidatesPersistsAndNotifies(t *testing.T) {
 	if len(entries) != 1 {
 		t.Fatalf("temp files left: %v", entries)
 	}
-	list, _ := r.Execute(Request{Noun: "ochazuke.settings", Verb: "list"})
+	list, _ := r.Execute(Request{Noun: "ochazuke.setting", Verb: "list"})
 	// The application's five come first, then the framework's own
 	// (settings/ochazuke.json), declared when the runtime was made.
-	if rows := list.([]SettingValue); len(rows) != 5+len(startupSettings()) || rows[3].Value != "1s" || rows[3].Default != "400ms" || !rows[3].Set || rows[4].Name != "ratio" {
+	if rows := list.([]map[string]any); len(rows) != 5+len(startupSettings()) || rows[3]["value"] != "1s" || rows[3]["default"] != "400ms" || rows[3]["origin"] != OriginFile || rows[4]["name"] != "ratio" {
 		t.Fatalf("list %+v", list)
 	}
 }
@@ -173,7 +173,7 @@ func TestSettingsPollPicksUpAnotherProcessWrite(t *testing.T) {
 	if err := other.DeclareSetting(Setting{Name: "scrolloff", Type: SettingInteger, Default: 2}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := other.Execute(Request{Noun: "ochazuke.settings", Verb: "set", Args: Arguments{"name": "scrolloff", "value": "7"}}); err != nil {
+	if _, err := other.Execute(Request{Noun: "ochazuke.setting", Verb: "set", Args: Arguments{"name": "scrolloff", "value": "7"}}); err != nil {
 		t.Fatal(err)
 	}
 	_, cmd := m.Update(SettingsPollMsg{})
@@ -198,7 +198,7 @@ func TestSettingsWithoutADirectory(t *testing.T) {
 }
 
 // settingsPageFixture is settingsFixture with a page of its own (a list
-// of two rows, the second focused) and ctrl+o bound to settings.edit.
+// of two rows, the second focused) and ctrl+o bound to setting.open.
 func settingsPageFixture(t *testing.T) (*Runtime, *Model, string) {
 	t.Helper()
 	r, m, dir := settingsFixture(t)
@@ -210,7 +210,7 @@ func settingsPageFixture(t *testing.T) (*Runtime, *Model, string) {
 	if err := r.RegisterPage(&Page{ID: "main", Title: "Main", Focus: "rows", Render: func(r *Runtime, w, h int) Block { return Text(r.List("rows").View(w, h)) }}); err != nil {
 		t.Fatal(err)
 	}
-	r.Define("app").Mode("normal").Bind("ctrl+o", Do("ochazuke.settings.edit"))
+	r.Define("app").Mode("normal").Bind("ctrl+o", Do("ochazuke.setting.open"))
 	m.Width, m.Height = 100, 24
 	m.Init()
 	if err := r.OpenPage("main"); err != nil {
@@ -322,14 +322,14 @@ func TestSettingSections(t *testing.T) {
 	}
 }
 
-// esc and q leave the page; settings.edit on the page stays; a permanent
+// esc and q leave the page; setting.open on the page stays; a permanent
 // page (AddSettingsPage) stays registered after it is left.
 func TestSettingsPageLeaving(t *testing.T) {
 	r, m, _ := settingsPageFixture(t)
 	keytest.Press(m, "ctrl+o")
 	keytest.Press(m, "ctrl+o")
 	if r.Page != SettingsPageID {
-		t.Fatalf("settings.edit on the page left it: %q", r.Page)
+		t.Fatalf("setting.open on the page left it: %q", r.Page)
 	}
 	keytest.Press(m, "esc")
 	if r.Page != "main" || r.Focus != "b" || r.PageOf(SettingsPageID) != nil {
@@ -380,7 +380,7 @@ func TestListSetting(t *testing.T) {
 	}
 	var seen [][]string
 	s.Observe("paths", func(_ string, v any) { seen = append(seen, v.([]string)) })
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "set", Args: Arguments{"name": "paths", "value": `["~/proj", "~/work"]`}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "set", Args: Arguments{"name": "paths", "value": `["~/proj", "~/work"]`}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.Set("paths", []string{"~/proj", "~/work"}); err != nil {
@@ -397,8 +397,8 @@ func TestListSetting(t *testing.T) {
 			t.Fatalf("accepted %q", bad)
 		}
 	}
-	got, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "reset", Args: Arguments{"name": "paths"}})
-	if err != nil || !reflect.DeepEqual(got.(SettingValue).Value, []string{"~/proj"}) || len(seen) != 2 {
+	got, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "reset", Args: Arguments{"name": "paths"}})
+	if err != nil || !reflect.DeepEqual(got.(SettingWritten).Value, []string{"~/proj"}) || len(seen) != 2 {
 		t.Fatalf("reset %+v %v %q", got, err, seen)
 	}
 	writeConfig(t, dir, SettingsFile, `{"ignore": ["*.tmp"], "paths": "oops"}`)
@@ -431,10 +431,10 @@ func TestSettingsPageSourceAndUndo(t *testing.T) {
 	if !strings.Contains(ansi.Strip(m.View().Content), "holds an invalid value") {
 		t.Fatal("undo did not bring back the invalid value's problem")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "undo"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "undo"}); err == nil {
 		t.Fatal("undo with nothing to undo succeeded")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "section", Args: Arguments{"name": "nope"}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "show-section", Args: Arguments{"name": "nope"}}); err == nil {
 		t.Fatal("an unknown section was shown")
 	}
 }

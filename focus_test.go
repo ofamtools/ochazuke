@@ -221,9 +221,9 @@ func TestFocusJumpsStopToStopInTreeOrder(t *testing.T) {
 	if err := r.JumpFocus(1, "stop"); err != nil || r.Focus != "i2" {
 		t.Fatalf("opted-out input still a stop: %q", r.Focus)
 	}
-	// focus.set is the operation handlers use.
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.focus", Args: Arguments{"id": "status"}}); err != nil || r.Focus != "status" {
-		t.Fatalf("focus.set: %q %v", r.Focus, err)
+	// focus.to is the operation handlers use.
+	if _, err := r.Execute(Request{Verb: "to", Noun: "ochazuke.focus", Args: Arguments{"id": "status"}}); err != nil || r.Focus != "status" {
+		t.Fatalf("focus.to: %q %v", r.Focus, err)
 	}
 }
 
@@ -307,8 +307,8 @@ func TestFocusNeverLeavesTopModal(t *testing.T) {
 	if err := r.SetFocus("panel"); err == nil || err.Error() != "focus is outside the open modal" {
 		t.Fatalf("SetFocus outside: %v", err)
 	}
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.focus", Args: Arguments{"id": "field"}}); err == nil {
-		t.Fatal("focus.set outside the modal must fail")
+	if _, err := r.Execute(Request{Verb: "to", Noun: "ochazuke.focus", Args: Arguments{"id": "field"}}); err == nil {
+		t.Fatal("focus.to outside the modal must fail")
 	}
 	check("refused")
 	if err := r.SetFocus("ask"); err != nil {

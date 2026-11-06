@@ -77,7 +77,7 @@
  "script": [
   ":",
   {
-   "type": "settings set forms.edit-apply confirm"
+   "type": "setting set forms.edit-apply confirm"
   },
   "enter",
   "i",

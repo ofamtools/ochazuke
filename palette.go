@@ -82,7 +82,7 @@ func newPalette(r *Runtime) *Palette {
 		return nil
 	})
 	register("close", "Close the command line without running it", nil, func(Arguments) error { return p.close() })
-	register("set", "Replace the command line's text", map[string]Parameter{"text": {Type: "string", Required: true}}, func(a Arguments) error {
+	register("fill", "Fill the command line: replace its text", map[string]Parameter{"text": {Type: "string", Required: true}}, func(a Arguments) error {
 		if err := p.requireOpen(); err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -308,7 +309,7 @@ func historyKinds(arg string) ([]string, error) {
 // repeatableOperations are the framework's repeatable changes: the
 // editor's text edits. Motions, focus, pages, modals, lists and the history
 // itself are not.
-var repeatableOperations = []string{"ochazuke.input.insert", "ochazuke.input.delete", "ochazuke.input.kill", "ochazuke.input.paste", "ochazuke.input.operator", "ochazuke.input.replace"}
+var repeatableOperations = []string{"ochazuke.input.insert", "ochazuke.input.erase", "ochazuke.input.kill", "ochazuke.input.paste", "ochazuke.input.operator", "ochazuke.input.replace"}
 
 // markRepeatable flags registered framework operations as repeatable.
 func markRepeatable(r *Runtime, keys ...string) {
@@ -411,13 +412,46 @@ func registerHistory(r *Runtime) {
 		}
 		return r.ExecuteAt(c, q)
 	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.history", Description: "List the last executed requests, oldest first, with their kind, context, source and result; by default the user's actions and changes", Parameters: map[string]Parameter{"last": {Type: "integer", Description: "How many entries (default 50, 0 for all)"}, "limit": {Type: "integer", Description: "How many matching entries; overrides last"}, "actor": {Type: "string", Description: "Actor kind (owner, agent, unknown), self, or exact actor JSON; empty means all"}, "kind": {Type: "string", Description: "Kinds separated by commas (action, change, fetch, system) or all; default action,change"}}, Result: "history[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		kinds, err := historyKinds(StringArg(a, "kind", ""))
-		if err != nil {
-			return nil, err
-		}
-		return r.historyByActor(IntArg(a, "limit", IntArg(a, "last", 50)), kinds, StringArg(a, "actor", ""))
-	}})
+	// The history's entries are things (a system fact): list is the
+	// standard list, with last, actor and kind as its own parameters.
+	r.defineFacts(factsSpec{Noun: "ochazuke.history", Sample: HistoryEntry{}, Key: "seq",
+		Docs: map[string]string{"seq": "The entry's number, in the order requests ran", "at": "When it ran", "kind": "action, change, fetch or system",
+			"request": "The request: noun, verb, arguments, target", "context": "Where it ran: actor, focus, page, mode, source",
+			"result": "ok, or the error; the value when it is small", "moved": "Where a motion moved the focus from and to",
+			"job": "The job it started, when it ran off the loop", "depth": "How many requests enclose it (a choices source, a macro's keys)",
+			"restored": "Read from the history file at start: an earlier session ran it", "changes": "What a standard write did to each thing, before and after"},
+		ListParams: map[string]Parameter{
+			"last":  {Type: "integer", Description: "How many entries (default 50, 0 for all); limit overrides it"},
+			"actor": {Type: "string", Description: "Actor kind (owner, agent, unknown), self, or exact actor JSON; empty means all"},
+			"kind":  {Type: "string", Description: "Kinds separated by commas (action, change, fetch, system) or all; default action,change"},
+		},
+		List: func(c Ctx, q ListQuery) ([]Thing, error) {
+			kinds, err := historyKinds(StringArg(q.Args, "kind", ""))
+			if err != nil {
+				return nil, err
+			}
+			limit := q.Limit
+			if limit == 0 {
+				limit = IntArg(q.Args, "last", 50)
+			}
+			entries, err := c.Runtime.historyByActor(limit, kinds, StringArg(q.Args, "actor", ""))
+			if err != nil {
+				return nil, err
+			}
+			return factThings(entries, nil)
+		},
+		Get: func(c Ctx, key string) (Thing, error) {
+			entries, err := c.Runtime.historyByActor(0, nil, "")
+			if err != nil {
+				return nil, err
+			}
+			for _, e := range entries {
+				if strconv.FormatUint(e.Seq, 10) == key {
+					return ThingOf(e)
+				}
+			}
+			return nil, fmt.Errorf("no history entry %q", key)
+		}})
 	r.Register(Operation{Verb: "path", Noun: "ochazuke.history", Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().HistoryPath()
 		if path == "" {

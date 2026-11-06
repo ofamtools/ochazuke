@@ -6,7 +6,7 @@
   "page": {
     "noHeadings": true,
     "modes": {"jq": {"extends": "insert"}},
-    "bind": [{"noun": "ochazuke.editor", "keys": "J", "do": "ochazuke.mode.set", "args": {"mode": "jq"}}],
+    "bind": [{"noun": "ochazuke.editor", "keys": "J", "do": "ochazuke.mode.switch", "args": {"mode": "jq"}}],
     "inputs": [
       {
         "id": "query",

@@ -21,7 +21,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 		return Text(strings.TrimSuffix(strings.Repeat(strings.Repeat("░", width)+"\n", height), "\n"))
 	}
 	m := NewModel(r)
-	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"theme": "mono"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "set", Noun: "ochazuke.appearance", Args: Arguments{"prop": "theme", "value": "mono"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.OpenPage("alpha"); err != nil {

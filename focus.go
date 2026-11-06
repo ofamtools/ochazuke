@@ -176,7 +176,7 @@ func (r *Runtime) setFocus(id string) {
 
 // selectFocusedRow makes a focused list row its list's selection (by its
 // stable id), so the highlight, List.Selected and the keys that answer
-// agree however the focus got there: focus.set, RetargetFocus, a jump, a
+// agree however the focus got there: focus.to, RetargetFocus, a jump, a
 // FocusOnClose landing. Moving within the list already selects first.
 func (r *Runtime) selectFocusedRow(id string) {
 	inst := r.Instances[id]
@@ -228,7 +228,7 @@ func (r *Runtime) focusInTopLevel() bool {
 }
 
 // clampFocus keeps an internal focus move inside the top modal: a target
-// outside it becomes the modal instance. Explicit focus.set is refused by
+// outside it becomes the modal instance. Explicit focus.to is refused by
 // validateFocus instead.
 func (r *Runtime) clampFocus(id string) string {
 	if top := r.TopModal(); top != "" && !slices.Contains(r.Ancestry(id), top) {
@@ -873,7 +873,7 @@ func registerFocus(r *Runtime) {
 		err := r.JumpFocus(-max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "set", Noun: "ochazuke.focus", Description: "Focus an instance; the one way handlers move focus", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "to", Noun: "ochazuke.focus", Description: "Move the focus to an instance; the one way handlers move focus", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.SetFocus(StringArg(a, "id", ""))
 		return r.Context(), err
 	}})

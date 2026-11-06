@@ -59,7 +59,7 @@ func TestCatalogInspectWritesTheAppsNouns(t *testing.T) {
 	if d.Host != "tool" || nouns["tool:widget"] == nil || nouns["tool:widget"].Owner != "tool" {
 		t.Fatalf("host %q widget %+v", d.Host, nouns["tool:widget"])
 	}
-	if n := nouns["ochazuke:ochazuke.settings"]; n == nil || n.Owner != "ochazuke" {
+	if n := nouns["ochazuke:ochazuke.setting"]; n == nil || n.Owner != "ochazuke" {
 		t.Fatalf("framework noun ochazuke.settings = %+v", n)
 	}
 	var host *inspect.ToolInfo

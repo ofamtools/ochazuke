@@ -374,7 +374,7 @@ func TestUserRowsReplaceEditorDefaultsDespiteTheImplicitGuard(t *testing.T) {
 	if !slices.Equal(*calls, []string{"hello"}) || string(in.Text) != "abc" {
 		t.Fatalf("calls %v text %q", *calls, in.Text)
 	}
-	writeConfig(t, dir, BindingsFile, `[{"noun": "editor", "mode": "normal", "keys": "x", "request": {"noun": "input", "verb": "delete", "args": {"direction": "backward"}}}]`)
+	writeConfig(t, dir, BindingsFile, `[{"noun": "editor", "mode": "normal", "keys": "x", "request": {"noun": "input", "verb": "erase", "args": {"direction": "backward"}}}]`)
 	if problems := r.ReloadUserBindings(); len(problems) != 0 {
 		t.Fatal(problems)
 	}

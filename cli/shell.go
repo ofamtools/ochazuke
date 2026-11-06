@@ -219,7 +219,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	}
 	r.EnsureConfigSettings()
 	// The noun is the longest run of leading words naming one: app
-	// settings, ochazuke.settings and settings (an alias) are ochazuke.settings.
+	// setting, ochazuke.setting and setting (an alias) are ochazuke.setting.
 	var noun, verb string
 	var flags []string
 	var presets ochazuke.Arguments

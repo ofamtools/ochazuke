@@ -73,14 +73,14 @@
       {
         "noun": "app",
         "keys": "f",
-        "do": "ochazuke.focus.set",
+        "do": "ochazuke.focus.to",
         "args": {
           "id": "n2"
         }
       }
     ]
   },
-  "name": "prop filter: focus.set reveals a hidden row with no text query",
+  "name": "prop filter: focus.to reveals a hidden row with no text query",
   "script": [
     "z",
     "]",

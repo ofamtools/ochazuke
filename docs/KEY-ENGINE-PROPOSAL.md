@@ -5,7 +5,7 @@ Status: proposal, not scheduled (2026-10-26). Nothing here is decided for ochazu
 A prototype lives outside ochazuke in `~/proj/o-modal` (engine in `modal/`, a CSV app in `cmd/csv/`). What it covers so far:
 
 - **Built:** a pure `Feed` returning a list of steps; prefixes, fallbacks and counts; capture rows; key classes; guards; `Step.Replay`; the host-side confirm; the copy-and-run preview (`App.Simulate`, `Sheet.Fork`).
-- **Designed, not built yet:** `mode.set` as an event with the host as only writer (the prototype's engine still applies `modal.mode` rows itself); macros and dot-repeat in the host (the prototype's engine still records macros); the round-trip rule; the branching preview with `preview.possibleModes`.
+- **Designed, not built yet:** `mode.switch` as an event with the host as only writer (the prototype's engine still applies `modal.mode` rows itself); macros and dot-repeat in the host (the prototype's engine still records macros); the round-trip rule; the branching preview with `preview.possibleModes`.
 
 ## Background
 
@@ -15,7 +15,7 @@ A prototype lives outside ochazuke in `~/proj/o-modal` (engine in `modal/`, a CS
 ## The design
 
 1. **The engine has no side effects.** `Feed(state, env, key) → (state, steps)`. It always returns a list of steps, usually one.
-2. **The engine reads the mode and never writes it.** The mode is input (`Env.Mode`), like guards. A row that changes the mode emits a `mode.set` event, and the host decides whether to apply it. The host is the only writer of the mode.
+2. **The engine reads the mode and never writes it.** The mode is input (`Env.Mode`), like guards. A row that changes the mode emits a `mode.switch` event, and the host decides whether to apply it. The host is the only writer of the mode.
 3. **The engine's memory is key-level only:** a pending sequence prefix, its fallback, and a count.
 4. **The engine still replays keys itself in one case.** When a sequence breaks off (`y j`), the fallback runs and the key is offered again (`Step.Replay`). The host feeds it back after running the steps before it, so the key sees their effects.
 5. **Macros and dot-repeat belong to the host, as replayed keys.** The host owns the input loop, so it records keys before handing them over and replays them by pressing them again. Dot-repeat uses a round-trip rule:
@@ -90,7 +90,7 @@ These are preview-only data on operations. The host's own code makes the real ch
 ### What maps over cleanly
 
 - **Steps out:** `dispatchIn` becomes a pure function that returns steps, and `Dispatch` becomes "resolve, then run". `Binding.Replay` and the re-dispatch when a sequence breaks off both become `Step.Replay`.
-- **`mode.set` as an event:** the operations already exist (`mode.enter`, `mode.leave`, `mode.set`). What changes is a single writer. Today the mode is written by `setMode`, `SetMode`, `leaveMode`, `enterPrefix`, and `runRow` leaving a pending mode before and after.
+- **`mode.switch` as an event:** the operations already exist (`mode.enter`, `mode.leave`, `mode.switch`). What changes is a single writer. Today the mode is written by `setMode`, `SetMode`, `leaveMode`, `enterPrefix`, and `runRow` leaving a pending mode before and after.
 - **Atomic rows:** unchanged. `TestBindingRowsAreAtomic` stays.
 - **`ochazuke bindings explain "d d"`:** the branching preview with `NoForks` or `FollowAll`. The `?` help and the pending-key hints in the footer could use it too.
 - **The sequence timer:** stays in the host (`BindingTimeoutCommand`).
@@ -156,12 +156,12 @@ Define("row").Verb("archive", arc).Forks("confirm")      // an explicit fork, sa
 
 Moving pending conditions out of `Runtime.Mode` was a choice made for o-modal, not something the design requires. Instead:
 
-- The engine emits `mode.set "normal g"` when a sequence starts, and `mode.set normal` when it finishes or times out.
+- The engine emits `mode.switch "normal g"` when a sequence starts, and `mode.switch normal` when it finishes or times out.
 - The Runtime applies them like any other mode change.
 - Pending conditions stay modes with a payload, as `AGENTS.md` says.
 - `bindings.list` per pending mode, the footer hints and `terminal.go`'s `leader_pending` keep working.
 
-The costs: more `mode.set` events (one per prefix key), and a pending mode the host could refuse, which is meaningless, so the host accepts them. That's cheaper than rewriting the invariant.
+The costs: more `mode.switch` events (one per prefix key), and a pending mode the host could refuse, which is meaningless, so the host accepts them. That's cheaper than rewriting the invariant.
 
 ### Dot-repeat as keys
 

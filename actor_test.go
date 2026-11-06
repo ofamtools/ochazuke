@@ -176,7 +176,7 @@ func TestActorHistoryFilterAndPersistence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entries := result.([]HistoryEntry)
+	entries := rowsOf[HistoryEntry](t, result)
 	if len(entries) != 1 || entries[0].Context.Actor != a || entries[0].Seq != 4 {
 		t.Fatalf("filter before limit: %+v", entries)
 	}

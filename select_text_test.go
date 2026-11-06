@@ -74,13 +74,13 @@ func TestSelectTextTypingReplaces(t *testing.T) {
 func TestSelectTextDeleteAndPaste(t *testing.T) {
 	for _, direction := range []string{"backward", "forward"} {
 		r, in := selectFixture(t, "new-key")
-		runInput(t, r, "delete", Arguments{"direction": direction})
+		runInput(t, r, "erase", Arguments{"direction": direction})
 		if string(in.Text) != "" || in.Mode != "insert" {
 			t.Fatalf("%s: text %q mode %q", direction, string(in.Text), in.Mode)
 		}
 	}
 	r, in := selectFixture(t, "new-key")
-	if _, err := r.Execute(Request{Noun: "ochazuke.register", Verb: "set", Args: Arguments{"name": "a", "text": "name"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.register", Verb: "set", Args: Arguments{"name": "a", "prop": "text", "value": "name"}}); err != nil {
 		t.Fatal(err)
 	}
 	runInput(t, r, "paste", Arguments{"register": "a", "before": true, "literal": true})

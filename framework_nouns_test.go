@@ -104,7 +104,7 @@ func TestNamedSettingSetStillWins(t *testing.T) {
 	}
 	// :set still reads settings and the one-value nouns.
 	r.Settings().Set("theme", "dark")
-	paletteRequest(t, r, "apply", "settings", Arguments{"line": "theme=mono"})
+	paletteRequest(t, r, "apply", "setting", Arguments{"line": "theme=mono"})
 	if v := r.Settings().String("theme"); v != "mono" {
 		t.Fatalf(":set theme=mono left %q", v)
 	}

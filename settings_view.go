@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 )
 
-// The Settings page: settings.edit opens (or switches to) a framework page
+// The Settings page: setting.open opens (or switches to) a framework page
 // of the declared settings, laid out by settings.layout
 // (settings_page_layout.go): by default the owners are tabs across the top
 // (the application, its declared owners, ochazuke; ] and [ step them), the
@@ -32,12 +33,12 @@ import (
 // item to a list, r (or backspace, delete) resets to the default. On an
 // item row enter or i edits the item, n adds one after it, d d deletes
 // it, r resets the whole list. u (or ctrl+z) takes back the last change
-// made on the page. q or esc (settings.close) goes back to the page the
+// made on the page. q or esc (setting.close) goes back to the page the
 // Settings page was opened from, with its remembered focus and mode; the
 // page reopens on the section and row it was left on. A value another
 // process sets (the poll) redraws the open lists.
 //
-// settings.edit registers the page on first use and settings.close
+// setting.open registers the page on first use and setting.close
 // removes it again, so it is a tab only while it is open; an application
 // that wants it as a permanent tab calls AddSettingsPage.
 const (
@@ -60,13 +61,13 @@ const (
 type settingsPage struct {
 	// styles draws the page in the Model's appearance (NewModel sets it).
 	styles func() Styles
-	// from is the page settings.close returns to; owned is set when
-	// settings.edit registered the page, so settings.close removes it.
+	// from is the page setting.close returns to; owned is set when
+	// setting.open registered the page, so setting.close removes it.
 	from  string
 	owned bool
 	// section is the shown section (unitKey: owner and section); last
 	// the row the page was left on, where it reopens; lastOf the section
-	// each tab last showed, where settings.tab lands; narrow is set while
+	// each tab last showed, where setting.show-tab lands; narrow is set while
 	// the last frame folded the section list into its selector line
 	// (settings.narrow-width), which the settings-narrow guard reads.
 	section string
@@ -81,7 +82,7 @@ type settingsPage struct {
 	// none) follows the next one; one the user filtered itself keeps its own.
 	searched string
 	// undo is every change made on the page, oldest first; group is the
-	// step a settings.apply line is gathering (settingsGroup).
+	// step a setting.apply line is gathering (settingsGroup).
 	undo  []settingUndo
 	group *settingUndo
 	// links are the tabs that are pages of their own (LinkSettingsTab).
@@ -125,7 +126,7 @@ func (s Setting) SectionName() string {
 }
 
 func registerSettingsEditor(r *Runtime) {
-	r.Register(Operation{Verb: "edit", Noun: "ochazuke.settings", Description: "Open the Settings page (or switch to it): every change is saved as it is made", Result: "setting[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "open", Noun: "ochazuke.setting", Description: "Open the Settings page (or switch to it): every change is saved as it is made", Result: "setting[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if len(s.Declared()) == 0 {
 			return nil, errors.New("this application declares no settings")
@@ -147,10 +148,10 @@ func registerSettingsEditor(r *Runtime) {
 		}
 		return s.List(), nil
 	}})
-	r.Register(Operation{Verb: "close", Noun: "ochazuke.settings", Description: "Leave the Settings page for the page it was opened from", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "close", Noun: "ochazuke.setting", Description: "Leave the Settings page for the page it was opened from", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), closeSettingsPage(r)
 	}})
-	r.Register(Operation{Verb: "undo", Noun: "ochazuke.settings", Description: "Take back the last change made on the Settings page", Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "undo", Noun: "ochazuke.setting", Description: "Take back the last change made on the Settings page", Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return undoSettingChange(r)
 	}})
 	r.DefineGuard("setting-steps", func(r *Runtime, ev KeyEvent) bool {
@@ -174,7 +175,7 @@ func registerSettingsEditor(r *Runtime) {
 		return nil, errors.New("no setting is focused")
 	}
 	editParams := map[string]Parameter{
-		"name":  {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.settings.names"},
+		"name":  {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.names"},
 		"scope": {Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the value is written: session (the default) or file (the Settings page's keys)"},
 	}
 	r.Register(Operation{Verb: "edit", Noun: "ochazuke.setting", Description: "Edit the setting: flip a boolean, take an enum's next value, add an item to a list, else type a new value", Parameters: editParams, Positional: []string{"name"}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -272,6 +273,7 @@ func registerSettingsEditor(r *Runtime) {
 			}
 			return r.Settings().Get(one.Name)
 		}, "Reset the whole list to its default")
+	registerSettingItemThings(r)
 	r.Define("ochazuke.setting-value").Pin("insert").
 		Verb("commit", func(r *Runtime, c Context, a Arguments) (any, error) {
 			body := r.Instances[r.TopModal()]
@@ -500,17 +502,17 @@ func (s *Settings) restore(sn settingSnap) error {
 }
 
 // AddSettingsPage registers the Settings page as a permanent page, a tab
-// in registration order like the application's own; settings.edit then
-// switches to it and settings.close goes back without removing it.
-// Without it, settings.edit registers the page when it opens and
-// settings.close removes it.
+// in registration order like the application's own; setting.open then
+// switches to it and setting.close goes back without removing it.
+// Without it, setting.open registers the page when it opens and
+// setting.close removes it.
 func (r *Runtime) AddSettingsPage() (*Page, error) {
 	r.Settings().page.owned = false
 	return ensureSettingsPage(r, false)
 }
 
 // ensureSettingsPage registers the page when it is not yet (owned when
-// settings.edit does) and brings its lists up to date. A new page opens on
+// setting.open does) and brings its lists up to date. A new page opens on
 // the row the last one was left on.
 func ensureSettingsPage(r *Runtime, owned bool) (*Page, error) {
 	view := &r.Settings().page
@@ -543,7 +545,7 @@ func ensureSettingsPage(r *Runtime, owned bool) (*Page, error) {
 }
 
 // closeSettingsPage goes back to the page the Settings page was opened
-// from (else the first other page) and removes the page when settings.edit
+// from (else the first other page) and removes the page when setting.open
 // registered it, remembering the row it was left on.
 func closeSettingsPage(r *Runtime) error {
 	if r.PageOf(SettingsPageID) == nil {
@@ -823,7 +825,7 @@ func openItemPrompt(r *Runtime, one Setting, index, insert int) error {
 	}
 	in := NewInput(settingValueID, text, false)
 	in.Cursor = len(in.Text)
-	request := &Request{Noun: "ochazuke.settings", Verb: "set", Args: args}
+	request := &Request{Noun: "ochazuke.setting", Verb: "set", Args: args}
 	_, err := r.OpenModal(settingPromptID, Payload{Prompt: prompt, Request: request}, WithInput(in, Kind("ochazuke.setting-value")))
 	return err
 }
@@ -836,4 +838,47 @@ func settingPromptView(r *Runtime, body *Instance, width, height int) Block {
 	}
 	field := InputBlock(in, max(1, width), 1)
 	return field.Offset(0, 2).WithText(body.Payload.Prompt + "\n\n" + field.Text)
+}
+
+// registerSettingItemThings makes the setting-item noun a thing noun: its
+// things are the items of every list setting, keyed setting/index, so get
+// and list read them. Its own edit and delete (above) are the core verbs
+// of the noun: they edit an item in the Settings page's prompt and drop
+// it through the page's undo; create, set and archive are unavailable
+// (add and setting.append add items).
+func registerSettingItemThings(r *Runtime) {
+	item := func(name string, i int, text string) Thing {
+		return Thing{"id": fmt.Sprintf("%s/%d", name, i), "setting": name, "index": i, "text": text}
+	}
+	r.Define(settingItemNoun).Props(
+		PropSpec{Name: "id", Key: true, Parameter: Parameter{Description: "The list setting's name and the item's 0-based index: name/index"}},
+		PropSpec{Name: "setting", ReadOnly: true, Parameter: Parameter{Description: "The list setting it is an item of"}},
+		PropSpec{Name: "index", ReadOnly: true, Parameter: Parameter{Type: SettingInteger, Description: "Its 0-based place in the list"}},
+		PropSpec{Name: "text", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The item"}},
+	).Store(Store{
+		Kind: Collection,
+		Get: func(c Ctx, id string) (Thing, error) {
+			cut := strings.LastIndex(id, "/")
+			if cut < 0 {
+				return nil, fmt.Errorf("a setting item is named setting/index, not %q", id)
+			}
+			name := id[:cut]
+			i, err := strconv.Atoi(id[cut+1:])
+			items := c.Runtime.Settings().Strings(name)
+			if err != nil || i < 0 || i >= len(items) {
+				return nil, fmt.Errorf("no setting item %q", id)
+			}
+			return item(name, i, items[i]), nil
+		},
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			s := c.Runtime.Settings()
+			out := []Thing{}
+			for _, one := range s.Declared() {
+				for i, text := range s.Strings(one.Name) { // a list setting's items; none for the rest
+					out = append(out, item(one.Name, i, text))
+				}
+			}
+			return out, nil
+		},
+	})
 }

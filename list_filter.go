@@ -219,7 +219,7 @@ func (l *List) shows(id string) bool {
 }
 
 // reveal clears the filter when id is a row it hides, so a command that
-// lands on that row (Select, focus.set, a job's focus) shows it. The
+// lands on that row (Select, focus.to, a job's focus) shows it. The
 // selection is the caller's to set.
 func (l *List) reveal(id string) {
 	if l.shows(id) || (!slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) && !l.treeHasNode(id)) {

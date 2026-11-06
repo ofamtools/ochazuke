@@ -47,7 +47,7 @@ func TestConfiguredPaletteSourcesDispatchRealOperations(t *testing.T) {
 	}
 	line := func(text string) error {
 		t.Helper()
-		call("set", "palette", ochazuke.Arguments{"text": text})
+		call("fill", "palette", ochazuke.Arguments{"text": text})
 		_, err := m.Runtime.Execute(ochazuke.Request{Verb: "run", Noun: "palette"})
 		return err
 	}

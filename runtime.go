@@ -59,7 +59,7 @@ type Parameter struct {
 	// verbatim: the palette hands it the text from its first word to the
 	// end, quotes and spaces as typed, and the CLI joins the remaining
 	// words with spaces. A verb has at most one, the last its words fill
-	// (settings.apply's line: :set scrolloff=5 nowrap). Its Source is asked
+	// (setting.apply's line: :set scrolloff=5 nowrap). Its Source is asked
 	// with the text as the query and, when it declares
 	// ChoicesCursorParameter, the cursor in it; each choice's id is the
 	// text up to the cursor with the completion in place.
@@ -314,7 +314,7 @@ type Operation struct {
 	// PersistArgs lets the history file keep this operation's arguments
 	// named like text (text, value, keys, args, password, secret, token), which
 	// it otherwise leaves out; set by NounBuilder.PersistArgs. Only for an
-	// operation whose arguments are never typed secrets (settings.set).
+	// operation whose arguments are never typed secrets (setting.set).
 	PersistArgs bool `json:"persistArgs,omitempty"`
 	// Motion marks movement (list.move, focus.next, surface.scroll,
 	// page.next): the footer's hint line leaves its rows out, since motions
@@ -479,7 +479,7 @@ type Runtime struct {
 	Nouns      map[string]*Noun
 	Instances  map[string]*Instance
 	Focus      string    // the focused instance; Context() is derived from it
-	Mode       ModeState // the one interaction mode; mode.set writes it, a focus change to another stop resets it
+	Mode       ModeState // the one interaction mode; mode.switch writes it, a focus change to another stop resets it
 	Page       string    // the current page instance; always an ancestor of BaseFocus()
 	Modes      map[string]bool
 	Operations map[string]Operation
@@ -523,7 +523,7 @@ type Runtime struct {
 	targets          map[string]string // target texts resolved to keys during the running request (resolveTarget)
 	seq              uint64            // instance registration order
 	commands         []tea.Cmd         // off-loop work scheduled since the adapter last drained it
-	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for jobs.list
+	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for job.list
 	watches          *watchHub         // the watches of nouns' things (standard_watch.go), made on first use
 	events           *eventHub         // declared events, open surfaces' change counts, hook rows (events.go, hooks.go), made on first use
 	jobSeq           uint64            // last issued job id
@@ -712,7 +712,7 @@ func (r *Runtime) setMode(m ModeState, extra ...string) {
 	}
 }
 
-// SetMode sets the global mode by name and clears its payload, as mode.set
+// SetMode sets the global mode by name and clears its payload, as mode.switch
 // does (ModeDeclared names the focus's declared mode, DeclaredMode): a focused input runs its own transition (insert sessions, visual
 // anchor), and a pinned input stays in its pinned mode.
 func (r *Runtime) SetMode(mode string) error {
@@ -742,7 +742,7 @@ var motionOps = map[string]bool{
 // focusBoundOps change a component's editing/selection mode rather than
 // acting independently on a thing. Unlike Motion they still appear in hints.
 var focusBoundOps = map[string]bool{
-	"ochazuke.mode.enter": true, "ochazuke.mode.set": true,
+	"ochazuke.mode.enter": true, "ochazuke.mode.switch": true,
 	"ochazuke.list.visual": true, "ochazuke.list.end-visual": true,
 	"ochazuke.list.filter-open": true,
 }
@@ -760,25 +760,24 @@ var typingOps = map[string]bool{
 // or fold are actions.
 var frameworkHistoryKinds = map[string]string{
 	"ochazuke.actions.aliases": HistoryFetch, "ochazuke.actions.check": HistoryFetch, "ochazuke.actions.path": HistoryFetch, "ochazuke.actions.reload": HistoryFetch,
-	"ochazuke.appearance.get": HistoryFetch, "ochazuke.bindings.check": HistoryFetch,
-	"ochazuke.bindings.path": HistoryFetch, "ochazuke.bindings.reload": HistoryFetch, "ochazuke.bindings.stops": HistoryFetch,
-	"ochazuke.config.path": HistoryFetch, "ochazuke.config.reload": HistoryFetch, "ochazuke.history.list": HistoryFetch, "ochazuke.history.path": HistoryFetch,
-	"ochazuke.instances.query": HistoryFetch, "ochazuke.jobs.list": HistoryFetch,
-	"ochazuke.pages.list":   HistoryFetch,
-	"ochazuke.register.get": HistoryFetch, "ochazuke.settings.get": HistoryFetch, "ochazuke.settings.list": HistoryFetch,
-	"ochazuke.settings.names": HistoryFetch, "ochazuke.settings.path": HistoryFetch, "ochazuke.settings.reload": HistoryFetch,
-	"ochazuke.state.get": HistoryFetch, "ochazuke.themes.path": HistoryFetch,
+	"ochazuke.bindings.check": HistoryFetch,
+	"ochazuke.bindings.path":  HistoryFetch, "ochazuke.bindings.reload": HistoryFetch, "ochazuke.bindings.stops": HistoryFetch,
+	"ochazuke.config.path": HistoryFetch, "ochazuke.config.reload": HistoryFetch, "ochazuke.history.path": HistoryFetch,
+	"ochazuke.instances.query": HistoryFetch,
+
+	"ochazuke.setting.names": HistoryFetch, "ochazuke.setting.path": HistoryFetch, "ochazuke.setting.reload": HistoryFetch,
+	"ochazuke.themes.path":   HistoryFetch,
 	"ochazuke.themes.reload": HistoryFetch,
 
 	"ochazuke.list.yank": HistoryChange, "ochazuke.list.resize-column": HistoryChange, "ochazuke.list.reset-columns": HistoryChange,
 
-	"ochazuke.appearance.set": HistoryChange, "ochazuke.bindings.load": HistoryChange, "ochazuke.confirm.set": HistoryChange,
+	"ochazuke.bindings.load": HistoryChange, "ochazuke.confirm.require": HistoryChange,
 	"ochazuke.config.export": HistoryChange, "ochazuke.form-option.pick": HistoryChange, "ochazuke.form.redo": HistoryChange,
 	"ochazuke.form.suggest": HistoryChange, "ochazuke.form.undo": HistoryChange, "ochazuke.input.redo": HistoryChange,
 	"ochazuke.input.undo": HistoryChange, "ochazuke.input.yank": HistoryChange, "ochazuke.mode.register": HistoryChange,
-	"ochazuke.register.set": HistoryChange, "ochazuke.setting-value.commit": HistoryChange, "ochazuke.setting.cycle": HistoryChange,
-	"ochazuke.setting.edit": HistoryChange, "ochazuke.setting.reset": HistoryChange, "ochazuke.settings.reset": HistoryChange,
-	"ochazuke.settings.set": HistoryChange, "ochazuke.terminal.paste": HistoryChange, "ochazuke.terminal.send": HistoryChange,
+	"ochazuke.setting-value.commit": HistoryChange, "ochazuke.setting.cycle": HistoryChange,
+	"ochazuke.setting.edit": HistoryChange, "ochazuke.setting.reset": HistoryChange,
+	"ochazuke.setting.set": HistoryChange, "ochazuke.terminal.paste": HistoryChange, "ochazuke.terminal.send": HistoryChange,
 	"ochazuke.yank-history.select": HistoryChange,
 
 	"ochazuke.chooser.cancel": HistoryAction, "ochazuke.outline.fold": HistoryAction,
@@ -1384,9 +1383,6 @@ func JSONPointer(value any, path string) (any, error) {
 }
 
 func registerCore(r *Runtime) {
-	r.Register(Operation{Verb: "get", Noun: "ochazuke.state", Description: "Inspect public state using a JSON Pointer", Parameters: map[string]Parameter{"path": {Type: "string"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return JSONPointer(r.Snapshot(), StringArg(a, "path", ""))
-	}})
 	r.Register(Operation{Verb: "defaults", Noun: "ochazuke.bindings", HistoryKind: HistoryFetch, Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		data, err := FormatBindings(r.defaultBindingsDoc())
 		return Verbatim(data), err
@@ -1402,7 +1398,7 @@ func registerCore(r *Runtime) {
 		err := r.SetFocus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "set", Noun: "ochazuke.mode", Description: "Set the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "switch", Noun: "ochazuke.mode", Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := r.resolveDeclared(StringArg(a, "mode", ""))
 		if !r.Modes[mode] {
 			return nil, fmt.Errorf("unknown mode %q", mode)

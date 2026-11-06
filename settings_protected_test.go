@@ -82,7 +82,7 @@ func TestProtectedSettingsWriters(t *testing.T) {
 }
 
 func TestProtectedSettingsBulkSkips(t *testing.T) {
-	for _, verb := range []string{"write", "revert", "reset-all"} {
+	for _, verb := range []string{"write-all", "revert-all", "reset-all"} {
 		for _, session := range []bool{false, true} {
 			r, _ := protectedFixture(t)
 			s := r.Settings()
@@ -104,7 +104,7 @@ func TestProtectedSettingsBulkSkips(t *testing.T) {
 			sink := &RecordingSink{}
 			r.UI().Attach(sink)
 			restore := r.BindActor(testAgent("p"), false)
-			value, err := r.Execute(Request{Noun: "settings", Verb: verb})
+			value, err := r.Execute(Request{Noun: "setting", Verb: verb})
 			restore()
 			if err != nil {
 				t.Fatalf("%s: %v", verb, err)
@@ -116,7 +116,7 @@ func TestProtectedSettingsBulkSkips(t *testing.T) {
 				t.Fatalf("missing skipped answer %s: %v %s", verb, value, sink.LastInfo())
 			}
 			want := "saved"
-			if verb == "write" && session {
+			if verb == "write-all" && session {
 				want = "session"
 			}
 			if verb == "reset-all" {
@@ -132,7 +132,7 @@ func TestProtectedSettingsBulkSkips(t *testing.T) {
 // Every registered verb on these nouns is exercised against the owner's rights,
 // including newly added verbs. The file and effective value must stay unchanged.
 func TestProtectedSettingsEveryVerb(t *testing.T) {
-	nouns := []string{"ochazuke.settings", "ochazuke.setting", "ochazuke.setting-item", "ochazuke.setting-value", "ochazuke.settings-section", "ochazuke.settings-tab", "ochazuke.settings-page"}
+	nouns := []string{"ochazuke.setting", "ochazuke.setting-item", "ochazuke.setting-value", "ochazuke.settings-section", "ochazuke.settings-tab", "ochazuke.settings-page"}
 	catalog := NewRuntime()
 	NewModel(catalog)
 	for _, op := range catalog.Catalog() {
@@ -146,7 +146,7 @@ func TestProtectedSettingsEveryVerb(t *testing.T) {
 				if err := s.Set(AgentRightsGateSetting, gate); err != nil {
 					t.Fatal(err)
 				}
-				_, err := r.Execute(Request{Noun: "settings", Verb: "edit"})
+				_, err := r.Execute(Request{Noun: "setting", Verb: "open"})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -212,7 +212,7 @@ func TestProtectedRightsDeclarations(t *testing.T) {
 			if name == AgentRightsSetting {
 				value = `[{"match":"*","right":"allow"}]`
 			}
-			_, err := r.Execute(Request{Noun: "settings", Verb: "set", Actor: &actor, Args: Arguments{"name": name, "value": value}, Confirmed: true})
+			_, err := r.Execute(Request{Noun: "setting", Verb: "set", Actor: &actor, Args: Arguments{"name": name, "value": value}, Confirmed: true})
 			var refused *RefusedError
 			if !errors.As(err, &refused) {
 				t.Fatalf("%s gate=%v: %v", name, gate, err)

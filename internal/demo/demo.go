@@ -167,7 +167,7 @@ func newWith(task *demoTask) *ochazuke.Model {
 		return r.Context(), err
 	})
 	// Theme and density are user settings: settings.json keeps them across
-	// runs, settings.edit (s on the Appearance page) opens the Settings
+	// runs, setting.open (s on the Appearance page) opens the Settings
 	// page, which saves each change as it is made (q goes back here),
 	// and t and d step them. theme is the framework's setting (its choices
 	// are the built-in themes and the user's themes.json), declared here so
@@ -188,7 +188,7 @@ func newWith(task *demoTask) *ochazuke.Model {
 		// The page instance "appearance" (created before NewModel) is a noun
 		// of the demo's own, so the framework's appearance noun is reached by
 		// its canonical name.
-		_, _ = r.Execute(ochazuke.Request{Verb: "set", Noun: "ochazuke.appearance", Args: ochazuke.Arguments{"density": value}})
+		_, _ = r.Execute(ochazuke.Request{Verb: "set", Noun: "ochazuke.appearance", Args: ochazuke.Arguments{"prop": "density", "value": value}})
 	}
 	r.Settings().Observe("density", applyDensity)
 	applyDensity("density", r.Settings().String("density"))
@@ -200,7 +200,7 @@ func newWith(task *demoTask) *ochazuke.Model {
 				next = (i + 1) % len(themes)
 			}
 		}
-		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "settings", Args: ochazuke.Arguments{"name": "theme", "value": themes[next]}})
+		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "setting", Args: ochazuke.Arguments{"name": "theme", "value": themes[next]}})
 	})
 	register("cycle", "accent", "Toggle an orange accent over the theme (Appearance.Accent), as an app does for a pin state", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		if m.Appearance.Accent != nil {
@@ -215,7 +215,7 @@ func newWith(task *demoTask) *ochazuke.Model {
 		if m.Appearance.Density == "compact" {
 			density = "comfortable"
 		}
-		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "settings", Args: ochazuke.Arguments{"name": "density", "value": density}})
+		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "setting", Args: ochazuke.Arguments{"name": "density", "value": density}})
 	})
 	// bind puts a row on a noun, or on an input instance when id names one.
 	bind := func(id, mode, key, verb, noun string, args ochazuke.Arguments) {
@@ -249,7 +249,7 @@ func newWith(task *demoTask) *ochazuke.Model {
 	bind("playground", "normal", "ctrl+x", "inspect", "selection", nil)
 	bind("appearance", "normal", "t", "cycle", "theme", nil)
 	bind("appearance", "normal", "d", "cycle", "density", nil)
-	bind("appearance", "normal", "s", "edit", "settings", nil)
+	bind("appearance", "normal", "s", "open", "setting", nil)
 	bind("appearance", "normal", "a", "cycle", "accent", nil)
 	r.Define("task").Verb("edit", func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		return nil, task.edit(r)

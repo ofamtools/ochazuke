@@ -14,11 +14,11 @@ R|        │ stack    grid (file)   stack    set this session (api, 00:0… │
  |        │ Default tabs. Set this session (api, 00:00).                 │
  |        │ Writing puts stack in settings.json in place of grid;        │
  |        │ reverting shows grid again.                                  │
- |        │ w setting.write · r setting.revert · s skip · W settings.wr… │
+ |        │ w setting.write · r setting.revert · s skip · W setting.wri… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  w setting.write · r setting.revert · s skip · W settings.write · R settings…
+ |  w setting.write · r setting.revert · s skip · W setting.write-all · R setti…
  |

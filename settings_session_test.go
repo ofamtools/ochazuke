@@ -216,14 +216,14 @@ func TestSettingOrigins(t *testing.T) {
 }
 
 // The verbs: setting.revert and setting.write (alias save) on one
-// setting, by name or the focused row; settings.write (save, mksettings),
-// settings.revert, settings.diff and settings.reset-all (asks first).
+// setting, by name or the focused row; setting.write-all (save, mksettings),
+// setting.revert-all, setting.diff and setting.reset-all (asks first).
 func TestSessionVerbs(t *testing.T) {
 	r, _, dir := sessionFixture(t)
 	s := r.Settings()
 	_, _ = s.SetSession("scrolloff", 5)
 	_, _ = s.SetSession("theme", "light")
-	diff, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "diff"})
+	diff, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "diff"})
 	if rows, _ := diff.([]SettingDiff); err != nil || len(rows) != 2 || rows[0].Name != "scrolloff" || rows[0].Saved != 2 || rows[0].Session != 5 || rows[0].SavedIn != OriginDefault {
 		t.Fatalf("diff %+v %v", diff, err)
 	}
@@ -234,21 +234,21 @@ func TestSessionVerbs(t *testing.T) {
 		t.Fatalf("mksettings: %v %v", got, err)
 	}
 	_, _ = s.SetSession("wrap", true)
-	// settings.revert asks first, naming what it drops.
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "revert"}); err != nil || r.TopModal() != "confirm" || r.Instances["confirm"].Payload.Prompt != "Revert 1 session value (wrap) to the saved ones?" {
+	// setting.revert-all asks first, naming what it drops.
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "revert-all"}); err != nil || r.TopModal() != "confirm" || r.Instances["confirm"].Payload.Prompt != "Revert 1 session value (wrap) to the saved ones?" {
 		t.Fatalf("settings revert did not ask: %q %v", r.TopModal(), err)
 	}
 	if got, err := r.Execute(Request{Noun: "ochazuke.confirm", Verb: "accept"}); err != nil || !reflect.DeepEqual(got, []string{"wrap"}) {
 		t.Fatalf("settings revert: %v %v", got, err)
 	}
 	_, _ = s.SetSession("wrap", true)
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "save"}); err != nil || readSettingsFile(t, dir)["wrap"] != true {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "save-all"}); err != nil || readSettingsFile(t, dir)["wrap"] != true {
 		t.Fatalf("settings save: %v", err)
 	}
 	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "write"}); err == nil {
 		t.Fatal("setting write with no name and no focused row")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "reset-all"}); err != nil || r.TopModal() != "confirm" {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "reset-all"}); err != nil || r.TopModal() != "confirm" {
 		t.Fatalf("reset-all did not ask: %q %v", r.TopModal(), err)
 	}
 	if p := r.Instances[r.TopModal()].Payload.Prompt; p != "Reset all 2 changed settings to their defaults for this session?" {
@@ -257,7 +257,7 @@ func TestSessionVerbs(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "ochazuke.confirm", Verb: "accept"}); err != nil || s.Int("scrolloff") != 2 || s.Bool("wrap") {
 		t.Fatalf("accept: %v", err)
 	}
-	for _, alias := range []string{"ochazuke.setting.save", "ochazuke.settings.save", "ochazuke.settings.mksettings"} {
+	for _, alias := range []string{"ochazuke.setting.save", "ochazuke.setting.save-all", "ochazuke.setting.mksettings"} {
 		if a, ok := r.ActionAlias(alias); !ok || a.Source != AliasFramework {
 			t.Fatalf("alias %s: %+v %v", alias, a, ok)
 		}
@@ -268,7 +268,7 @@ func TestSessionVerbs(t *testing.T) {
 // asking, as before; only a CLI process asks (cli tests).
 func TestSettingsSetFromTheAPIDoesNotAsk(t *testing.T) {
 	r, _, dir := settingsFixture(t)
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "set", Args: Arguments{"name": "scrolloff", "value": "4"}}); err != nil || r.TopModal() != "" || readSettingsFile(t, dir)["scrolloff"] != 4.0 {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "set", Args: Arguments{"name": "scrolloff", "value": "4"}}); err != nil || r.TopModal() != "" || readSettingsFile(t, dir)["scrolloff"] != 4.0 {
 		t.Fatalf("api set: %q %v", r.TopModal(), err)
 	}
 }
@@ -278,7 +278,7 @@ func TestSettingsSetFromTheAPIDoesNotAsk(t *testing.T) {
 func TestSettingsPageMarksSessionValues(t *testing.T) {
 	r, _, _ := settingsPageFixture(t)
 	s := r.Settings()
-	if _, err := r.Execute(Request{Noun: "ochazuke.settings", Verb: "edit"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "open"}); err != nil {
 		t.Fatal(err)
 	}
 	row := func() ListItem {

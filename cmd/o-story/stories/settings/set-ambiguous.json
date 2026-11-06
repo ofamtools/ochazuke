@@ -5,8 +5,8 @@
   "width": 80,
   "height": 10,
   "page": {"lists": [{"id": "a", "rows": 1}]},
-  "script": [":", {"type": "set foc"}, "enter"],
+  "script": [":", {"type": "set sett"}, "enter"],
   "expect": [
-    {"contains": ["\"foc\" is ambiguous: noun focus (focus set), or line", "focus-display"]}
+    {"contains": ["\"sett\" is ambiguous: noun setting (setting set), or line", "settings."]}
   ]
 }

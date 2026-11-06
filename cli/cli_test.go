@@ -149,7 +149,7 @@ func TestShellListsAllBindingTables(t *testing.T) {
 	if strings.Contains(current, "ctrl+x") || strings.Contains(current, "ctrl+z") {
 		t.Fatalf("inactive bindings leaked into the default listing:\n%s", current)
 	}
-	if _, err := f.r.Execute(ochazuke.Request{Noun: "ochazuke.mode", Verb: "set", Args: ochazuke.Arguments{"mode": "insert"}}); err != nil {
+	if _, err := f.r.Execute(ochazuke.Request{Noun: "ochazuke.mode", Verb: "switch", Args: ochazuke.Arguments{"mode": "insert"}}); err != nil {
 		t.Fatal(err)
 	}
 	again, _, err := f.run("", "bindings", "list", "--all")
@@ -595,7 +595,7 @@ func TestCatalogGolden(t *testing.T) {
 	}
 	// Every framework noun is ochazuke.<noun> with its short name as an alias;
 	// the golden keeps the test noun's part, so the aliases are checked here.
-	if doc.Aliases["settings"] != "ochazuke.settings" || doc.Aliases["confirm"] != "ochazuke.confirm" || doc.CanonicalNoun("history") != "ochazuke.history" {
+	if doc.Aliases["setting"] != "ochazuke.setting" || doc.Aliases["confirm"] != "ochazuke.confirm" || doc.CanonicalNoun("history") != "ochazuke.history" {
 		t.Fatalf("aliases %v", doc.Aliases)
 	}
 	doc.Nouns, doc.Bindings, doc.Aliases, doc.Commands = nouns, rows, nil, nil
@@ -839,20 +839,20 @@ func TestShellSetsASetting(t *testing.T) {
 	if err := f.r.DeclareSetting(ochazuke.Setting{Name: "scrolloff", Type: ochazuke.SettingInteger, Default: 2, Description: "Rows around the focus"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, errOut, err := f.run("", "settings", "set", "scrolloff", "4"); err == nil || !strings.Contains(err.Error(), "declined") || !strings.Contains(errOut, "Write scrolloff = 4 to "+filepath.Join(dir, "settings.json")+"? [y/N]") {
+	if _, errOut, err := f.run("", "setting", "set", "scrolloff", "4"); err == nil || !strings.Contains(err.Error(), "declined") || !strings.Contains(errOut, "Write scrolloff = 4 to "+filepath.Join(dir, "settings.json")+"? [y/N]") {
 		t.Fatalf("unanswered set: %s %v", errOut, err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "settings.json")); err == nil {
 		t.Fatal("a declined set wrote settings.json")
 	}
-	out, _, err := f.run("y\n", "settings", "set", "scrolloff", "5")
+	out, _, err := f.run("y\n", "setting", "set", "scrolloff", "5")
 	if err != nil || !strings.Contains(out, `"value": 5`) {
 		t.Fatalf("set: %s %v", out, err)
 	}
-	if _, _, err := f.run("", "settings", "set", "scrolloff", "many"); err == nil || !strings.Contains(err.Error(), "must be an integer") {
+	if _, _, err := f.run("", "setting", "set", "scrolloff", "many"); err == nil || !strings.Contains(err.Error(), "must be an integer") {
 		t.Fatalf("bad value: %v", err)
 	}
-	if _, _, err := f.run("", "settings", "get", "nope"); err == nil {
+	if _, _, err := f.run("", "setting", "get", "nope"); err == nil {
 		t.Fatal("got an unknown setting")
 	}
 	data, err := os.ReadFile(filepath.Join(dir, "settings.json"))
@@ -860,26 +860,26 @@ func TestShellSetsASetting(t *testing.T) {
 		t.Fatalf("file %s %v", data, err)
 	}
 	// reset asks too, --yes answers; with nothing in the file it does not ask.
-	if _, _, err := f.run("", "settings", "reset", "scrolloff"); err == nil || !strings.Contains(err.Error(), "Remove scrolloff from") {
+	if _, _, err := f.run("", "setting", "reset", "scrolloff"); err == nil || !strings.Contains(err.Error(), "Write remove scrolloff to") {
 		t.Fatalf("unanswered reset: %v", err)
 	}
-	if out, _, err := f.run("", "settings", "reset", "scrolloff", "--yes"); err != nil || !strings.Contains(out, `"value": 2`) {
+	if out, _, err := f.run("", "setting", "reset", "scrolloff", "--yes"); err != nil || !strings.Contains(out, `"value": 2`) {
 		t.Fatalf("reset --yes: %s %v", out, err)
 	}
-	if _, _, err := f.run("", "settings", "reset", "scrolloff"); err != nil {
+	if _, _, err := f.run("", "setting", "reset", "scrolloff"); err != nil {
 		t.Fatalf("reset of an unset setting asked: %v", err)
 	}
 	// reset-all asks how many it resets; write has no session values here.
-	if _, _, err := f.run("", "settings", "set", "scrolloff", "6", "-y"); err != nil {
+	if _, _, err := f.run("", "setting", "set", "scrolloff", "6", "-y"); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := f.run("n\n", "settings", "reset-all"); err == nil || !strings.Contains(err.Error(), "Reset all 1 changed setting to their defaults in "+filepath.Join(dir, "settings.json")) {
+	if _, _, err := f.run("n\n", "setting", "reset-all"); err == nil || !strings.Contains(err.Error(), "Reset all 1 changed setting to their defaults in "+filepath.Join(dir, "settings.json")) {
 		t.Fatalf("reset-all: %v", err)
 	}
-	if out, _, err := f.run("", "settings", "save"); err != nil || strings.TrimSpace(out) != "[]" {
+	if out, _, err := f.run("", "setting", "save-all"); err != nil || strings.TrimSpace(out) != "[]" {
 		t.Fatalf("save with no session: %s %v", out, err)
 	}
-	if out, _, err := f.run("yes\n", "settings", "reset-all"); err != nil || !strings.Contains(out, "scrolloff") {
+	if out, _, err := f.run("yes\n", "setting", "reset-all"); err != nil || !strings.Contains(out, "scrolloff") {
 		t.Fatalf("reset-all yes: %s %v", out, err)
 	}
 	if data, _ := os.ReadFile(filepath.Join(dir, "settings.json")); strings.Contains(string(data), "scrolloff") {
@@ -913,26 +913,26 @@ func TestShellAppliesASetLine(t *testing.T) {
 		}
 		return got
 	}
-	if _, errOut, err := f.run("", "settings", "apply", "scrolloff=5 nowrap paths+=b"); err == nil || !strings.Contains(errOut, "Write scrolloff = 5, wrap = false, paths = a,b to "+file+"? [y/N]") {
+	if _, errOut, err := f.run("", "setting", "apply", "scrolloff=5 nowrap paths+=b"); err == nil || !strings.Contains(errOut, "Write scrolloff = 5, wrap = false, paths = a,b to "+file+"? [y/N]") {
 		t.Fatalf("unanswered apply: %s %v", errOut, err)
 	}
 	if read() != nil {
 		t.Fatal("a declined line wrote settings.json")
 	}
-	out, _, err := f.run("", "settings", "apply", "scrolloff=5 nowrap paths+=b", "-y")
+	out, _, err := f.run("", "setting", "apply", "scrolloff=5 nowrap paths+=b", "-y")
 	if err != nil || !strings.Contains(out, `"changed"`) {
 		t.Fatalf("apply -y: %s %v", out, err)
 	}
 	if got := read(); got["scrolloff"] != 5.0 || got["wrap"] != false || !reflect.DeepEqual(got["paths"], []any{"a", "b"}) {
 		t.Fatalf("file %v", got)
 	}
-	if _, errOut, err := f.run("", "settings", "apply", "scrolloff? wrap?"); err != nil || !strings.Contains(errOut, "status: scrolloff=5  nowrap") {
+	if _, errOut, err := f.run("", "setting", "apply", "scrolloff? wrap?"); err != nil || !strings.Contains(errOut, "status: scrolloff=5  nowrap") {
 		t.Fatalf("show: %s %v", errOut, err)
 	}
-	if _, errOut, err := f.run("", "settings", "apply", "verbose scrolloff?"); err != nil || !strings.Contains(errOut, "status: scrolloff=5 — set in "+file+" line ") {
+	if _, errOut, err := f.run("", "setting", "apply", "verbose scrolloff?"); err != nil || !strings.Contains(errOut, "status: scrolloff=5 — set in "+file+" line ") {
 		t.Fatalf("verbose show: %s %v", errOut, err)
 	}
-	if _, _, err := f.run("", "settings", "apply", "scrolloff=x wrap"); err == nil || !strings.Contains(err.Error(), "scrolloff takes a whole number: x; nothing was changed") {
+	if _, _, err := f.run("", "setting", "apply", "scrolloff=x wrap"); err == nil || !strings.Contains(err.Error(), "scrolloff takes a whole number: x; nothing was changed") {
 		t.Fatalf("bad line: %v", err)
 	}
 	// The same through each verb directly.
@@ -1086,8 +1086,8 @@ func TestShellAndMountReadNamespacedNouns(t *testing.T) {
 		}
 		return out
 	}
-	want := answer("ochazuke", "settings", "names")
-	for _, args := range [][]string{{"ochazuke.settings", "names"}, {"settings", "names"}, {"ochazuke", "settings", "na"}, {"app", "settings", "names"}, {"app.settings", "names"}} {
+	want := answer("ochazuke", "setting", "names")
+	for _, args := range [][]string{{"ochazuke.setting", "names"}, {"setting", "names"}, {"ochazuke", "setting", "na"}, {"app", "setting", "names"}, {"app.setting", "names"}} {
 		if got := answer(args...); got != want {
 			t.Fatalf("tool %s = %q, want %q", strings.Join(args, " "), got, want)
 		}
@@ -1096,14 +1096,14 @@ func TestShellAndMountReadNamespacedNouns(t *testing.T) {
 		}
 	}
 	help := answer("ochazuke")
-	if !strings.Contains(help, "settings") || strings.Contains(help, "quit") {
+	if !strings.Contains(help, "setting") || strings.Contains(help, "quit") {
 		t.Fatalf("tool ochazuke lists no nested nouns (or app's verbs):\n%s", help)
 	}
-	f.r.DefineOwn("settings").Verb("names", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("own") }, "The tool's own settings")
-	if got := answer("settings", "names"); strings.TrimSpace(got) != `"own"` {
+	f.r.DefineOwn("setting").Verb("names", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("own") }, "The tool's own settings")
+	if got := answer("setting", "names"); strings.TrimSpace(got) != `"own"` {
 		t.Fatalf("tool settings names = %q", got)
 	}
-	if got := answer("ochazuke", "settings", "names"); got != want {
+	if got := answer("ochazuke", "setting", "names"); got != want {
 		t.Fatalf("tool ochazuke settings names = %q, want the framework's %q", got, want)
 	}
 	out := answer("catalog")
@@ -1111,12 +1111,12 @@ func TestShellAndMountReadNamespacedNouns(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &doc); err != nil {
 		t.Fatal(err)
 	}
-	own, okOwn := doc.noun("settings")
-	framework, okFramework := doc.noun("ochazuke.settings")
-	if !okOwn || !okFramework || own.Name != "settings" || framework.Name != "ochazuke.settings" || len(own.Verbs) != 1 || own.Verbs[0].Builtin || len(framework.AppVerbs()) != 0 {
+	own, okOwn := doc.noun("setting")
+	framework, okFramework := doc.noun("ochazuke.setting")
+	if !okOwn || !okFramework || own.Name != "setting" || framework.Name != "ochazuke.setting" || len(own.Verbs) != 1 || own.Verbs[0].Builtin || len(framework.AppVerbs()) != 0 {
 		t.Fatalf("catalog settings %+v / ochazuke.settings %+v", own, framework)
 	}
-	if _, aliased := doc.Aliases["settings"]; aliased || doc.Aliases["list"] != "ochazuke.list" {
+	if _, aliased := doc.Aliases["setting"]; aliased || doc.Aliases["list"] != "ochazuke.list" {
 		t.Fatalf("aliases %v", doc.Aliases)
 	}
 }

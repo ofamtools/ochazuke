@@ -43,7 +43,7 @@ const (
 // alone reaches it in the palette, the CLI and the API (Request{Verb:
 // "w!"}); a binding row names it by its full name (restructure.w!).
 // Shadows marks a bare alias that may take the name of a verb and yields
-// to it by what follows (set for settings.apply beside mode set): typed
+// to it by what follows (set for setting.apply beside mode set): typed
 // alone, or followed by words its action's rest parameter reads, it is
 // the alias; followed by a noun that has the verb of its name, the line
 // is that noun's verb (set mode normal is mode set normal). Its name is
@@ -592,8 +592,8 @@ func (r *Runtime) ActionAlias(name string) (ActionAlias, bool) {
 }
 
 // ResolveAction is the action a name runs and how it was named: the
-// action's own key (noun aliases resolved: settings.set is
-// ochazuke.settings.set) or an alias of it.
+// action's own key (noun aliases resolved: setting.set is
+// ochazuke.setting.set) or an alias of it.
 func (r *Runtime) ResolveAction(name string) (Operation, Invocation, bool) {
 	if a, ok := r.bareAlias(strings.TrimPrefix(name, ".")); ok && !strings.Contains(strings.TrimPrefix(name, "."), ".") {
 		name = a.Alias

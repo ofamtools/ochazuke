@@ -16,7 +16,7 @@ func TestVerbCatalog(t *testing.T) {
 	r, _ := newDerivedRuntime(t)
 	c := r.VerbCatalog()
 	cp := &c
-	for ref, std := range map[string]string{"task.set": "set", "task.edit": "edit", "task.title": "", "ochazuke.list.move": "", "list.move": "", "ochazuke.focus.set": ""} {
+	for ref, std := range map[string]string{"task.set": "set", "task.edit": "edit", "task.title": "", "ochazuke.list.move": "", "list.move": "", "ochazuke.focus.to": ""} {
 		if got, ok := c.Known[ref]; !ok || got != std {
 			t.Errorf("Known[%s] = %q, %v; want %q", ref, got, ok, std)
 		}
@@ -32,7 +32,7 @@ func TestVerbCatalog(t *testing.T) {
 	rm := r.RemovedVerbs()
 	for ref, want := range map[string]string{
 		"task.rename": namecheck.StateRemoved, "task.patch": namecheck.StateRemoved, "list.move": "", "task.set": "",
-		"ochazuke.focus.set": namecheck.StatePending, "worker.rename": namecheck.StateRemoved, "pane.nonesuch": namecheck.StateUnknown,
+		"ochazuke.focus.set": namecheck.StateRemoved, "worker.rename": namecheck.StateRemoved, "pane.nonesuch": namecheck.StateUnknown,
 	} {
 		noun, verb := SplitKey(ref)
 		if got, _ := cp.Classify(noun, verb, rm); got != want {

@@ -8,16 +8,16 @@
   ],
   "page": {
     "lists": [{"id": "a", "rows": 1}],
-    "bind": [{"noun": "demo", "keys": "S", "do": "settings.edit"}]
+    "bind": [{"noun": "demo", "keys": "S", "do": "setting.open"}]
   },
   "script": ["S", "l", "l", "tab", "space", "u", "ctrl+z", "u", "u"],
   "expect": [
-    {"after": 1, "lacks": ["settings.undo"]},
-    {"after": 3, "contains": ["scrolloff •  ‹ 4 ›", "u settings.undo"]},
+    {"after": 1, "lacks": ["setting.undo"]},
+    {"after": 3, "contains": ["scrolloff •  ‹ 4 ›", "u setting.undo"]},
     {"after": 5, "focus": "__settings/row/ext.git.fetch", "contains": ["ext.git.fetch •  ‹ false ›"]},
     {"after": 6, "focus": "__settings/row/ext.git.fetch", "contains": ["ext.git.fetch    ‹ true ›"], "lacks": ["•"]},
     {"after": 7, "focus": "__settings/row/scrolloff", "contains": ["› app", "General (1)", "scrolloff •  ‹ 3 ›"]},
-    {"after": 8, "focus": "__settings/row/scrolloff", "contains": ["scrolloff    ‹ 2 ›", "Not in settings.json"], "lacks": ["settings.undo", "•"]},
-    {"focus": "__settings/row/scrolloff", "contains": ["scrolloff    ‹ 2 ›"], "lacks": ["settings.undo", "undo"]}
+    {"after": 8, "focus": "__settings/row/scrolloff", "contains": ["scrolloff    ‹ 2 ›", "Not in settings.json"], "lacks": ["setting.undo", "•"]},
+    {"focus": "__settings/row/scrolloff", "contains": ["scrolloff    ‹ 2 ›"], "lacks": ["setting.undo", "undo"]}
   ]
 }

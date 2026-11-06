@@ -63,7 +63,7 @@ type SettingSection struct {
 	Description string `json:"description,omitempty"`
 }
 
-// SettingOwnerInfo is an owner as settings.owners answers: the declaration
+// SettingOwnerInfo is an owner as setting.owners answers: the declaration
 // filled in (the title resolved), with its section and setting counts and
 // how many of its settings hold a session value.
 type SettingOwnerInfo struct {
@@ -73,7 +73,7 @@ type SettingOwnerInfo struct {
 	Session  int `json:"session,omitempty"`
 }
 
-// SettingSectionInfo is a section as settings.sections answers: the
+// SettingSectionInfo is a section as setting.sections answers: the
 // declaration filled in (owner and title resolved) with its settings'
 // names in page order (by group, each group in declaration order) and how
 // many hold a session value that differs from the saved one.
@@ -207,7 +207,7 @@ type settingsOwnerTab struct {
 
 // tabs is every owner holding a setting, in drawing order, each with its
 // sections in order and each section's settings by group: the Settings
-// page's layout and the answer of settings.owners and settings.sections.
+// page's layout and the answer of setting.owners and setting.sections.
 func (s *Settings) tabs() []settingsOwnerTab {
 	type place struct{ order, at int }
 	var owners []string
@@ -333,12 +333,12 @@ func (s *Settings) unknownOwner(owner string) error {
 	return fmt.Errorf("no settings owner %q: one of %s", owner, strings.Join(ids, ", "))
 }
 
-// registerSettingLayout registers settings.owners and settings.sections.
+// registerSettingLayout registers setting.owners and setting.sections.
 func registerSettingLayout(r *Runtime) {
-	r.Register(Operation{Verb: "owners", Noun: "ochazuke.settings", HistoryKind: HistoryFetch, Description: "List the owners of the settings (the Settings page's tabs) in order: id, title, description, and how many sections and settings each has", Result: "setting-owner[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "owners", Noun: "ochazuke.setting", HistoryKind: HistoryFetch, Description: "List the owners of the settings (the Settings page's tabs) in order: id, title, description, and how many sections and settings each has", Result: "setting-owner[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().Owners(), nil
 	}})
-	r.Register(Operation{Verb: "sections", Noun: "ochazuke.settings", HistoryKind: HistoryFetch, Description: "List an owner's sections of settings in the Settings page's order (every owner's without one): owner, id, title, description and the settings in each", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "sections", Noun: "ochazuke.setting", HistoryKind: HistoryFetch, Description: "List an owner's sections of settings in the Settings page's order (every owner's without one): owner, id, title, description and the settings in each", Parameters: map[string]Parameter{
 		"owner": {Type: "string", Description: "The owner (a tab of the Settings page): app, ochazuke, or one an application declares; default every owner"},
 	}, Result: "setting-section[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().Sections(StringArg(a, "owner", ""))

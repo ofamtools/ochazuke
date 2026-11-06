@@ -21,7 +21,7 @@ func paletteRequest(t *testing.T, r *Runtime, verb, noun string, args Arguments)
 // paletteLine replaces the command line and runs it.
 func paletteLine(t *testing.T, r *Runtime, line string) {
 	t.Helper()
-	paletteRequest(t, r, "set", "palette", Arguments{"text": line})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": line})
 	paletteRequest(t, r, "run", "palette", nil)
 }
 
@@ -133,7 +133,7 @@ func TestPaletteLineGrammar(t *testing.T) {
 		{line: "transform row", op: "row.transform", args: Arguments{}, missing: "name"},
 		{line: "row", missing: "verb"},
 		{line: "", missing: "verb or noun"},
-		{line: "t r up", err: `"t" is ambiguous: tab, tidy, toggle, transform, terminal, text, timeline`},
+		{line: "t r up", err: `"t" is ambiguous: tidy, to, toggle, transform, terminal, text, timeline`},
 		{line: "transform c up", err: `"c" is ambiguous: cell, column`},
 		{line: "transform row t", op: "row.transform", err: `name: "t" is ambiguous: title, trim`},
 		{line: "transform row purple", op: "row.transform", err: "name must be one of upper, lower, title, trim"},
@@ -179,7 +179,7 @@ func completionValues(p *Palette) (out []string) {
 // narrows it by prefix.
 func TestPaletteCompletionsPerPosition(t *testing.T) {
 	r, p, _ := lineRuntime(t)
-	set := func(line string) { paletteRequest(t, r, "set", "palette", Arguments{"text": line}) }
+	set := func(line string) { paletteRequest(t, r, "fill", "palette", Arguments{"text": line}) }
 	all := completionValues(p)
 	split := slices.IndexFunc(all, func(v string) bool { return strings.HasPrefix(v, "noun:") })
 	if split < 1 || !slices.Contains(all, "verb:transform") || slices.ContainsFunc(all[split:], func(v string) bool { return !strings.HasPrefix(v, "noun:") }) {
@@ -193,7 +193,7 @@ func TestPaletteCompletionsPerPosition(t *testing.T) {
 		line string
 		want []string
 	}{
-		{"t", []string{"verb:tab", "verb:tidy", "verb:toggle", "verb:transform", "noun:terminal", "noun:text", "noun:timeline", "noun:transformations"}},
+		{"t", []string{"verb:tidy", "verb:to", "verb:toggle", "verb:transform", "noun:terminal", "noun:text", "noun:timeline", "noun:transformations"}},
 		{"tr", []string{"verb:transform", "noun:transformations"}},
 		{"transform ", []string{"noun:cell", "noun:row", "noun:column", "choice:upper", "choice:lower", "choice:title", "choice:trim"}},
 		{"transform c", []string{"noun:cell", "noun:column"}},
@@ -451,7 +451,7 @@ func TestPaletteRecursiveExecutionIsVisibleAndCancelable(t *testing.T) {
 	r := NewRuntime()
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteRequest(t, r, "set", "palette", Arguments{"text": "run palette"})
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "run palette"})
 	if _, err := r.Execute(Request{Verb: "run", Noun: "ochazuke.palette"}); err == nil || !p.IsOpen() || !strings.Contains(p.View(), "recursive palette execution") {
 		t.Fatalf("recursive execution: %v\n%s", err, p.View())
 	}
@@ -532,7 +532,7 @@ func TestPaletteNounParameterChoices(t *testing.T) {
 	}
 	r.Register(Operation{Verb: "tint", Noun: "sheet", Parameters: map[string]Parameter{"shade": {Type: "string", Required: true, Noun: "shade"}}, Run: run})
 	r.Register(Operation{Verb: "pick", Noun: "sheet", Parameters: map[string]Parameter{"swatch": {Type: "string", Required: true, Noun: "swatch"}}, Run: run})
-	set := func(line string) { paletteRequest(t, r, "set", "palette", Arguments{"text": line}) }
+	set := func(line string) { paletteRequest(t, r, "fill", "palette", Arguments{"text": line}) }
 	for _, tc := range []struct {
 		line string
 		want []string

@@ -124,7 +124,7 @@ func (res Result) ReplacingAt(scope, slot string) Result {
 }
 
 // Label names this job for people reading the jobs list: the ticker shows
-// it after the verb ("agent.launch claude running") and jobs.list carries
+// it after the verb ("agent.launch claude running") and job.list carries
 // it. It says which of a verb's jobs this is (the program a launch starts,
 // the file a build writes); "" leaves the verb alone.
 func (res Result) Label(label string) Result { res.label = label; return res }
@@ -137,7 +137,7 @@ func (res Result) Then(fn func(Ctx, any, error)) Result { res.then = fn; return 
 // Then still runs first, including when the answer is not presented.
 func (res Result) OnPresented(fn func(Ctx)) Result { res.presented = fn; return res }
 
-// Job states as jobs.list and the snapshot report them.
+// Job states as job.list and the snapshot report them.
 const (
 	JobRunning   = "running"
 	JobDone      = "done"
@@ -148,7 +148,7 @@ const (
 // jobHistory bounds the finished jobs the list retains between reads.
 const jobHistory = 32
 
-// JobInfo is one row of the jobs list: what jobs.list returns and what
+// JobInfo is one row of the jobs list: what job.list returns and what
 // the snapshot's /jobs holds for running jobs.
 type JobInfo struct {
 	Job     uint64    `json:"job"`
@@ -357,7 +357,7 @@ func (r *Runtime) jobList(keep func(*job) bool) []*job {
 }
 
 // Jobs lists every job the runtime knows in start order: the running ones
-// and the finished ones retained since the last jobs.list read.
+// and the finished ones retained since the last job.list read.
 func (r *Runtime) Jobs() []JobInfo {
 	out := []JobInfo{}
 	for _, j := range r.jobList(func(*job) bool { return true }) {
@@ -375,20 +375,12 @@ func (r *Runtime) runningJobs() []JobInfo {
 	return out
 }
 
-// registerJobs adds list.jobs. Finished entries (done, failed, cancelled)
-// stay in the list until a jobs.list read returns them, bounded to
-// jobHistory entries meanwhile; the snapshot's /jobs shows running jobs only.
+// registerJobs adds job.cancel. The job noun's things (registerJobFacts)
+// are the running jobs and the finished ones (done, failed, cancelled),
+// kept after they end, bounded to jobHistory; the snapshot's /jobs shows
+// running jobs only.
 func registerJobs(r *Runtime) {
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.jobs", Description: "List off-loop jobs: running ones and those finished since the last read (done, failed or cancelled, with the error)", Result: "job[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		jobs := r.Jobs()
-		for _, j := range jobs {
-			if j.State != JobRunning {
-				delete(r.jobs, j.Job)
-			}
-		}
-		return jobs, nil
-	}})
-	r.Register(Operation{Verb: "cancel", Noun: "ochazuke.jobs", Description: "Cancel a running job", Parameters: map[string]Parameter{"job": {Type: "integer", Required: true}}, Run: func(r *Runtime, _ Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "cancel", Noun: "ochazuke.job", Description: "Cancel a running job", Parameters: map[string]Parameter{"job": {Type: "integer", Required: true, Noun: "ochazuke.job"}}, Run: func(r *Runtime, _ Context, a Arguments) (any, error) {
 		id := uint64(IntArg(a, "job", 0))
 		j := r.jobs[id]
 		if j == nil || j.State != JobRunning {

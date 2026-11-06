@@ -1,5 +1,5 @@
 {
-  "name": "a count then an app focus.set row inside the help modal neither fails nor hints mode.leave as the answer",
+  "name": "a count then an app focus.to row inside the help modal neither fails nor hints mode.leave as the answer",
   "skip": "gap: honest-hints: <any> mode.leave fails when pressed: focus is outside the open modal",
   "page": {
     "focus": "a2",
@@ -14,7 +14,7 @@
         "noun": "app",
         "mode": "normal",
         "keys": "z",
-        "do": "focus.set",
+        "do": "focus.to",
         "args": {
           "id": "a4"
         }
