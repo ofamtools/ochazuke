@@ -608,3 +608,31 @@ func TestPaletteUndoSaysOneLine(t *testing.T) {
 		t.Fatalf("undo lines %q", lines)
 	}
 }
+
+// A request shape the operation does not declare is refused, naming the
+// argument, on every core verb and on the framework's register (o-git's
+// old {name, text}), never run as if it were not there.
+func TestUndeclaredArgumentsAreRefused(t *testing.T) {
+	r, s := newDerivedRuntime(t)
+	before := len(s.log)
+	for _, verb := range CoreVerbs() {
+		args := Arguments{"bogus": "x"}
+		if _, takes := r.Operations["task."+verb].Parameters["id"]; takes {
+			args["id"] = "t1"
+		}
+		_, err := r.Execute(Request{Noun: "task", Verb: verb, Args: args})
+		if err == nil || !strings.Contains(err.Error(), `"bogus"`) {
+			t.Errorf("task.%s {bogus}: %v", verb, err)
+		}
+	}
+	if len(s.log) != before {
+		t.Fatalf("a refused request wrote: %v", s.log[before:])
+	}
+	_, err := r.Execute(Request{Noun: "ochazuke.register", Verb: "set", Args: Arguments{"name": "\"", "text": "hello"}})
+	if err == nil || !strings.Contains(err.Error(), `"text"`) {
+		t.Fatalf("register set {name, text}: %v", err)
+	}
+	if got, _ := r.Execute(Request{Noun: "ochazuke.register", Verb: "get", Args: Arguments{"name": "\"", "prop": "text"}}); got != "" {
+		t.Fatalf("register written: %v", got)
+	}
+}
