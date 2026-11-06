@@ -636,3 +636,26 @@ func TestUndeclaredArgumentsAreRefused(t *testing.T) {
 		t.Fatalf("register written: %v", got)
 	}
 }
+
+// The prop's own set may share its name whichever form of set it presets:
+// prop (`{prop: status}`) or props (`{props: {status: done}}`); a props
+// object that writes another prop, or more than that one, still clashes.
+func TestAliasPropClashPropsForm(t *testing.T) {
+	t.Parallel()
+	r, s := newDerivedRuntime(t)
+	if err := r.AddActionAlias(ActionAlias{Alias: "task.status", Action: "task.set", Args: Arguments{"props": map[string]any{"status": "done"}}}); err != nil {
+		t.Fatalf("the prop's own set by props: %v", err)
+	}
+	if err := r.AddActionAlias(ActionAlias{Alias: "task.title", Action: "task.set", Args: Arguments{"props": map[string]any{"status": "done"}}}); err == nil || !strings.Contains(err.Error(), "clashes with the prop title") {
+		t.Fatalf("another prop's set by props: %v", err)
+	}
+	if err := r.AddActionAlias(ActionAlias{Alias: "task.archived", Action: "task.set", Args: Arguments{"props": map[string]any{"archived": true, "status": "done"}}}); err == nil || !strings.Contains(err.Error(), "clashes with the prop archived") {
+		t.Fatalf("a set of two props named like one: %v", err)
+	}
+	if _, err := r.Execute(Request{Noun: "task", Verb: "status", Args: Arguments{"id": "t1"}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.things[0]["status"]; got != "done" {
+		t.Fatalf("task.status by props wrote %v", got)
+	}
+}

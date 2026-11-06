@@ -262,15 +262,32 @@ func (r *Runtime) propAliasClash(n *Noun, prop string) error {
 
 // propSetAlias reports whether an alias named noun.prop is that prop's
 // write: its action is a standard verb of the noun that writes props
-// (WritesProps: set) with the preset prop the alias's own name. Only that
-// alias may share a prop's name.
+// (WritesProps: set) whose presets write that prop alone, named either
+// way set takes one: prop (`{prop: read, value: true}`) or props
+// (`{props: {read: true}}`). Only that alias may share a prop's name.
 func (r *Runtime) propSetAlias(noun, prop string, a ActionAlias) bool {
 	op, ok := r.Operations[a.Action]
 	if !ok || op.Noun != noun {
 		return false
 	}
 	row := standardRow(op.Standard)
-	return row != nil && row.WritesProps && fmt.Sprint(a.Args["prop"]) == prop
+	return row != nil && row.WritesProps && slices.Equal(presetWrites(a.Args), []string{prop})
+}
+
+// presetWrites are the props an alias's preset arguments write, by
+// either of set's forms: the prop argument, the keys of the props object.
+func presetWrites(args Arguments) []string {
+	var out []string
+	if p, ok := args["prop"].(string); ok && p != "" {
+		out = append(out, p)
+	}
+	props, _ := args["props"].(map[string]any)
+	for _, name := range slices.Sorted(maps.Keys(props)) {
+		if !slices.Contains(out, name) {
+			out = append(out, name)
+		}
+	}
+	return out
 }
 
 // aliasPropClash is the clash of an alias named after a prop of its noun
