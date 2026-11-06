@@ -33,6 +33,12 @@ func formatRuntime() *ochazuke.Runtime {
 		{"id": "a", "label": "alpha", "data": map[string]any{"size": 12, "path": "/a, b", "tags": []string{"x"}}},
 		{"id": "b", "label": "beta", "data": map[string]any{"size": 3456, "path": "/b|c", "id": "dup"}},
 	}
+	// task answers its rows as a list page that crossed JSON (a mounted
+	// host's or an application daemon's answer): a map, not a ListAnswer.
+	r.Define("task").Verb("list", done(map[string]any{
+		"items": []any{map[string]any{"id": "t1", "label": "write"}, map[string]any{"id": "t2", "label": "read"}},
+		"page":  float64(1), "per_page": float64(0), "total": float64(2),
+	}), "List tasks").Rows("task")
 	r.Define("item").Verb("list", done(items), "List items").Rows("item").
 		Verb("none", done([]map[string]any{}), "No items").Rows("item")
 	r.Define("thing").Verb("state", done(Lines{
@@ -167,6 +173,19 @@ func TestFormatTableWidth(t *testing.T) {
 	out, _, err := runFormat(t, 0, "pane", "list", "--format", "table")
 	if err != nil || !strings.Contains(out, "~/hub/o-plans/plans") || strings.Contains(out, "…") {
 		t.Fatalf("no tty cut: %v\n%s", err, out)
+	}
+}
+
+// TestFormatTableReadsAPageMap: a list page decoded from JSON (an object
+// of items, page, per_page and total) prints as a table, as a ListAnswer
+// does.
+func TestFormatTableReadsAPageMap(t *testing.T) {
+	out, errs, err := runFormat(t, -1, "task", "list", "--format", "table")
+	if err != nil || errs != "" {
+		t.Fatalf("%v: %q", err, errs)
+	}
+	if !strings.Contains(out, "write") || !strings.Contains(out, "read") || strings.Contains(out, "per_page") {
+		t.Fatalf("table:\n%s", out)
 	}
 }
 

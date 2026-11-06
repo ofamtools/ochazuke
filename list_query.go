@@ -1,9 +1,12 @@
 package ochazuke
 
 import (
+	"bytes"
 	"cmp"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -92,9 +95,12 @@ type ListAnswer struct {
 	Next    int              `json:"next,omitempty"`
 }
 
-// AnswerRows is the rows a list answer holds: a ListAnswer's Items, else
-// the value as it is. Callers that show a list verb's answer as rows (the
-// palette, the shell's tables, a catalog fill) read it through here.
+// AnswerRows is the rows a list answer holds: a ListAnswer's Items, the
+// items of the same page decoded from JSON (an object holding items, page,
+// per_page and total, as a mounted host's or an application's answer
+// arrives), else the value as it is. Callers that show a list verb's
+// answer as rows (the palette, the shell's tables, a catalog fill) read it
+// through here.
 func AnswerRows(value any) any {
 	switch a := value.(type) {
 	case ListAnswer:
@@ -103,8 +109,59 @@ func AnswerRows(value any) any {
 		if a != nil {
 			return a.Items
 		}
+	case map[string]any:
+		if items, ok := pageObjectItems(a); ok {
+			return items
+		}
+	case Thing:
+		if items, ok := pageObjectItems(a); ok {
+			return items
+		}
+	default:
+		// Raw JSON text (json.RawMessage, jsontext.Value: the shell's
+		// answers): a page object's items, decoded.
+		if raw, ok := rawJSON(value); ok && bytes.HasPrefix(bytes.TrimSpace(raw), []byte("{")) {
+			var m map[string]any
+			if json.Unmarshal(raw, &m) == nil {
+				if items, ok := pageObjectItems(m); ok {
+					return items
+				}
+			}
+		}
 	}
 	return value
+}
+
+// rawJSON is value's bytes when it is a byte slice of any named type (raw
+// JSON text), false otherwise.
+func rawJSON(value any) ([]byte, bool) {
+	v := reflect.ValueOf(value)
+	if !v.IsValid() || v.Kind() != reflect.Slice || v.Type().Elem().Kind() != reflect.Uint8 {
+		return nil, false
+	}
+	return v.Bytes(), true
+}
+
+// pageObjectItems is the items of a ListAnswer that crossed JSON: an
+// object with every one of items (an array or null), page, per_page and
+// total, false for any other object (a thing with a prop named items).
+func pageObjectItems(m map[string]any) (any, bool) {
+	for _, key := range []string{"page", "per_page", "total"} {
+		if _, ok := m[key]; !ok {
+			return nil, false
+		}
+	}
+	items, ok := m["items"]
+	if !ok {
+		return nil, false
+	}
+	switch items.(type) {
+	case nil:
+		return []any{}, true
+	case []any, []map[string]any, []Thing:
+		return items, true
+	}
+	return nil, false
 }
 
 // queryRows is the rows a query runs over, read by index: the same

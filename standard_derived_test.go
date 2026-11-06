@@ -526,3 +526,36 @@ func TestCreateRequiredPropComesBeforePairs(t *testing.T) {
 		t.Fatalf("order %v: type after pairs", order)
 	}
 }
+
+// An exact key wins over a prefix of other keys in the palette, whether or
+// not its thing is listed: an archived t1 beside live t10, t11 and t12 is
+// t1 (it was "ambiguous: t10, t11, t12"), and a live t1 is never read as
+// another key it prefixes.
+func TestPaletteExactKeyBeatsPrefix(t *testing.T) {
+	r, s := newDerivedRuntime(t)
+	s.find("t1")["archived"] = true
+	for _, id := range []string{"t10", "t11", "t12"} {
+		s.things = append(s.things, Thing{"id": id, "title": "Task " + id, "status": "todo", "project": "work", "archived": false})
+	}
+	NewPalette(r)
+	for _, line := range []string{"task set --id t1 status=done", "task set t1 status=done"} {
+		s.find("t1")["status"] = "todo"
+		paletteRequest(t, r, "open", "palette", nil)
+		paletteLine(t, r, line)
+		if got := s.find("t1")["status"]; got != "done" {
+			t.Fatalf("%s: t1 status %v, log %v", line, got, s.log)
+		}
+		for _, id := range []string{"t10", "t11", "t12"} {
+			if s.find(id)["status"] != "todo" {
+				t.Fatalf("%s: wrote %s", line, id)
+			}
+		}
+	}
+	// A word that is no key still reads as the prefix of one.
+	s.find("t11")["archived"], s.find("t12")["archived"] = true, true
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteLine(t, r, "task set t10 status=done")
+	if s.find("t10")["status"] != "done" {
+		t.Fatalf("t10 not written: %v", s.log)
+	}
+}

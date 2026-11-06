@@ -132,6 +132,27 @@ func (r *Runtime) findTarget(n *Noun, c Ctx, text string) (string, error) {
 	return text, nil
 }
 
+// namesThingExactly reports whether a word names one of a noun's things
+// exactly, by a keyResolver (its key, or a human key one thing holds),
+// whether or not the thing is in the noun's list (an archived one is
+// not). The palette reads such a word as typed before it reads it as a
+// prefix of other things' keys: an archived t1 beside live t10 and t11 is
+// t1, never ambiguous and never t10. A remote store is not probed while a
+// line is read (its answer comes later): its word reads as before.
+func (r *Runtime) namesThingExactly(noun string, c Context, word string) bool {
+	n := r.Noun(noun)
+	if word == "" || n == nil || !n.resolvable() || n.Store.Remote {
+		return false
+	}
+	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c}
+	for _, res := range keyResolvers {
+		if keys, err := res.find(n, ctx, word); err == nil && len(keys) == 1 {
+			return true
+		}
+	}
+	return false
+}
+
 // candidates lists keys for a refusal, the first eight.
 func candidates(keys []string) string {
 	const most = 8

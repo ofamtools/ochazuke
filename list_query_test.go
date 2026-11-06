@@ -1,7 +1,9 @@
 package ochazuke
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -89,6 +91,38 @@ func TestListAnswerShape(t *testing.T) {
 	a = f.list(t, Arguments{"limit": 2})
 	if a.Total != 8 || !slices.Equal(answerIDs(a), []string{"a1", "a2"}) {
 		t.Fatalf("limit %+v", a)
+	}
+}
+
+// TestAnswerRowsReadsEveryPageForm: AnswerRows unwraps a ListAnswer, its
+// pointer, and the same page decoded from JSON (a map or a Thing), and
+// leaves an object that is not a page (a thing with a prop named items).
+func TestAnswerRowsReadsEveryPageForm(t *testing.T) {
+	items := []map[string]any{{"id": "a"}}
+	if got := AnswerRows(ListAnswer{Items: items}); !reflect.DeepEqual(got, items) {
+		t.Fatalf("ListAnswer %v", got)
+	}
+	if got := AnswerRows(&ListAnswer{Items: items}); !reflect.DeepEqual(got, items) {
+		t.Fatalf("*ListAnswer %v", got)
+	}
+	decoded := []any{map[string]any{"id": "a"}}
+	page := map[string]any{"items": decoded, "page": 1.0, "per_page": 0.0, "total": 1.0}
+	if got := AnswerRows(page); !reflect.DeepEqual(got, decoded) {
+		t.Fatalf("map page %v", got)
+	}
+	if got := AnswerRows(Thing(page)); !reflect.DeepEqual(got, decoded) {
+		t.Fatalf("Thing page %v", got)
+	}
+	empty := map[string]any{"items": nil, "page": 1.0, "per_page": 0.0, "total": 0.0}
+	if got := AnswerRows(empty); !reflect.DeepEqual(got, []any{}) {
+		t.Fatalf("empty page %v", got)
+	}
+	if got := AnswerRows(json.RawMessage(`{"items":[{"id":"a"}],"page":1,"per_page":0,"total":1}`)); !reflect.DeepEqual(got, decoded) {
+		t.Fatalf("raw page %v", got)
+	}
+	thing := map[string]any{"id": "box", "items": []any{"x"}}
+	if got := AnswerRows(thing); !reflect.DeepEqual(got, thing) {
+		t.Fatalf("a thing with items is not a page: %v", got)
 	}
 }
 

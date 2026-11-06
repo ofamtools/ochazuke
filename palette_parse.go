@@ -998,7 +998,10 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 	// A ValueOf parameter is checked against the prop it holds a value of.
 	check, _ := p.r.choiceParameter(op, name, args)
 	if len(choices) > 0 || p.r.ChoicesSource(check) != "" {
-		hit, matches, _ := matchWord(word, p.choiceOptions("argument", choices))
+		hit, matches, exact := matchWord(word, p.choiceOptions("argument", choices))
+		if !exact && check.Noun != "" && p.r.namesThingExactly(check.Noun, p.origin.Clone(), word) {
+			hit, matches = option{Kind: "argument", Value: word}, nil // an exact key beats a prefix
+		}
 		switch {
 		case hit.Value != "":
 			text = hit.Value
