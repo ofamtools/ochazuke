@@ -668,6 +668,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `job demo.send`
+- `normal` → `insert` via `list.apply`
 - `normal` → `insert` via `macro.record`
 - `normal` → `insert` via `markdown.insert`
 - `normal` → `insert` via `markdown.note`
@@ -794,7 +795,6 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `bindings.help`
 - `visual-line` → `normal` via `confirm.accept`
 - `visual-line` → `normal` via `demo.check`
-- `visual-line` → `normal` via `demo.edit`
 - `visual-line` → `normal` via `demo.nest`
 - `visual-line` → `normal` via `demo.set`
 - `visual-line` → `normal` via `demo.tag`
