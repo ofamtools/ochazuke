@@ -292,7 +292,26 @@ func mountAlias(r *ochazuke.Runtime, a ochazuke.ActionAlias, action string, noun
 	if alias.Source == "" || alias.Source == ochazuke.AliasFramework {
 		alias.Source = ochazuke.AliasApp
 	}
+	if designedCoreDrop(r, alias, a.Verb) {
+		return nil
+	}
 	return r.AddActionAlias(alias)
+}
+
+// designedCoreDrop reports whether a mounted alias's name is now one of
+// the host's generated core verbs (the noun has a store here) and the
+// alias would run that same core verb on its own noun: o-questions'
+// review.archive for question.archive once review is a thing noun. The
+// generated verb answers the word as the alias meant, so the alias is
+// dropped without a warning; any other alias over a core verb's name (a
+// different verb, a preset) is a real conflict and still warns.
+func designedCoreDrop(r *ochazuke.Runtime, alias ochazuke.ActionAlias, verb string) bool {
+	core, ok := r.Operations[r.CanonicalKey(alias.Alias)]
+	if !ok || core.Standard == "" || core.Standard != verb || len(alias.Args) > 0 {
+		return false
+	}
+	target, ok := r.Operations[r.CanonicalKey(alias.Action)]
+	return ok && (target.Standard == verb || target.Verb == verb)
 }
 
 // MountParameter is a mounted parameter (or prop parameter) as the host

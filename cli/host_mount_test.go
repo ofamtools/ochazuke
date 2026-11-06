@@ -164,6 +164,49 @@ func TestMountNounsReregistersAliases(t *testing.T) {
 	}
 }
 
+// An extension alias named like a core verb the host generates for its
+// noun (review.archive for task.archive, once review has a key and a
+// store) is a designed drop: no warning, and the word runs the noun's own
+// core verb. An alias over a core name that runs another verb still warns.
+func TestMountNounsDropsACoreAliasQuietly(t *testing.T) {
+	doc := hostTestCatalog(t)
+	nouns := doc.AppNouns()
+	var task, project CatalogNoun
+	for _, n := range nouns {
+		switch n.Name {
+		case "task":
+			task = n
+		case "project":
+			project = n
+		}
+	}
+	review := task
+	review.Name = "review"
+	review.Verbs = slices.Clone(task.Verbs)
+	for i := range task.Verbs {
+		task.Verbs[i].Aliases = nil
+		switch task.Verbs[i].Name {
+		case "archive":
+			task.Verbs[i].Aliases = []ochazuke.ActionAlias{{Alias: "review.archive", Noun: "review", Verb: "archive"}}
+		case "get":
+			task.Verbs[i].Aliases = []ochazuke.ActionAlias{{Alias: "review.delete", Noun: "review", Verb: "delete"}}
+		}
+	}
+	r := ochazuke.NewRuntime()
+	got := MountNouns(r, []CatalogNoun{project, task, review}, HostMount{
+		Local: func(noun string) string { return "ext-" + noun },
+		Proxy: func(noun string, v CatalogVerb) any {
+			return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+		},
+	})
+	if op := r.Operations["ext-review.archive"]; op.Standard != "archive" {
+		t.Fatalf("ext-review.archive %+v", op)
+	}
+	if len(got.Warnings) != 1 || !strings.Contains(got.Warnings[0], "alias review.delete") {
+		t.Fatalf("warnings: %q", got.Warnings)
+	}
+}
+
 // A bad verb, prop or alias is skipped with a warning; the rest mounts and
 // nothing panics. A noun whose host name is taken is skipped too.
 func TestMountNounsSkipsBadEntriesWithAWarning(t *testing.T) {
