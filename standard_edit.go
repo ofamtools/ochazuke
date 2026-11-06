@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -23,8 +24,7 @@ const EditApplySetting = "forms.edit-apply"
 const EditFieldOnlySetting = "edit.field-only"
 
 // EditFieldChooserSetting: edit with a field that takes a choice (an
-// enum, a choice source, a noun reference, a boolean, a path under
-// path.field picker) opens that field's chooser in place of the one-field
+// enum, a choice source, a noun reference, a boolean) opens that field's chooser in place of the one-field
 // form; the pick is the write (one undo step) and closes it, esc closes it
 // with nothing written. Read with edit.field-only: off, or edit.field-only
 // off, the form opens as before. A request's chooser argument overrides
@@ -107,7 +107,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 		others = r.humanKeyAlone(n, only, others)
 		write := r.editWriter(n, subject, others, r.newHistoryGroup("edit "+writeKey))
 		if len(changes) > 0 {
-			return write(changes)
+			return write(changes, false)
 		}
 		if e := r.RecordEditor(editFormID); e != nil {
 			if err := e.Leave(); err != nil {
@@ -127,8 +127,8 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			fieldOnly := only != nil && r.Settings().Bool(EditFieldOnlySetting)
 			fields := r.editFields(n, c, thing, only, fieldOnly)
 			if field, ok := r.editByChooser(c.Args, only, fieldOnly, fields); ok {
-				label := r.editLabel(n, c, thing, subject)
-				return r.openEditChooser(c, n, field, values, "Edit "+r.DisplayNoun(noun)+" "+only.Name+": "+label, write)
+				_, err := r.openEditChooser(c, n, field, values, r.editChooserTitle(n, c, thing, subject, only), write)
+				return err
 			}
 			r.pendingRecord(writeKey, values)
 			label := r.editLabel(n, c, thing, subject)
@@ -179,7 +179,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 					if len(changed) == 0 {
 						return Done(nil)
 					}
-					return write(changed)
+					return write(changed, false)
 				}
 			} else {
 				spec.FieldWrites = true
@@ -189,7 +189,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 					if err != nil {
 						return Failed(err)
 					}
-					return write(map[string]any{name: value})
+					return write(map[string]any{name: value}, false)
 				}
 			}
 			editor, err = r.OpenRecordEditor(editFormID, spec)
@@ -208,19 +208,72 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			}
 			return Done(nil)
 		}
-		focus, page, mode, modal := r.Focus, r.Page, r.Mode.Name, r.TopModal()
-		then := res.then
-		return res.ReplacingAt("app", editOpenSlot).Then(func(ctx Ctx, value any, err error) {
-			if then != nil {
-				then(ctx, value, err)
-			}
-			if err == nil && !r.Quit && r.Focus == focus && r.Page == page && r.Mode.Name == mode && r.TopModal() == modal {
-				if err := open(value); err != nil {
-					ctx.Error(err.Error())
-				}
-			}
-		})
+		if early, ok := r.editChooserEarly(c, n, only, subject, write, res); ok {
+			return early
+		}
+		return r.editOpenLater(res, open)
 	}
+}
+
+// editOpenLater opens the form (open) when a pending get lands, only
+// where the user still is: the same focus, page, mode and top modal, and
+// the program not quitting.
+func (r *Runtime) editOpenLater(res Result, open func(any) error) Result {
+	focus, page, mode, modal := r.Focus, r.Page, r.Mode.Name, r.TopModal()
+	then := res.then
+	return res.ReplacingAt("app", editOpenSlot).Then(func(ctx Ctx, value any, err error) {
+		if then != nil {
+			then(ctx, value, err)
+		}
+		if err == nil && !r.Quit && r.Focus == focus && r.Page == page && r.Mode.Name == mode && r.TopModal() == modal {
+			if err := open(value); err != nil {
+				ctx.Error(err.Error())
+			}
+		}
+	})
+}
+
+// editChooserTitle is the edit chooser's title: the noun, the field and
+// the thing (editLabel).
+func (r *Runtime) editChooserTitle(n *Noun, c Ctx, thing Thing, subject Arguments, only *PropSpec) string {
+	return "Edit " + r.DisplayNoun(n.Name) + " " + only.Name + ": " + r.editLabel(n, c, thing, subject)
+}
+
+// editChooserEarly opens edit {field}'s chooser while the thing's get is
+// still pending (res, off the loop: a mounted noun's remote get), so the
+// keys typed meanwhile reach the chooser's query and never the page
+// behind it; the get's answer fills it (the current value highlighted,
+// the title) when it lands, and a failed get closes it (the job reports
+// the error).
+// ok is false where the field opens the form, which still waits for the
+// get.
+func (r *Runtime) editChooserEarly(c Ctx, n *Noun, only *PropSpec, subject Arguments, write editWrite, res Result) (Result, bool) {
+	fieldOnly := only != nil && r.Settings().Bool(EditFieldOnlySetting)
+	field, ok := r.editByChooser(c.Args, only, fieldOnly, r.editFields(n, c, Thing{}, only, fieldOnly))
+	if !ok {
+		return Result{}, false
+	}
+	fill, err := r.openEditChooser(c, n, field, nil, r.editChooserTitle(n, c, Thing{}, subject, only), write)
+	if err != nil {
+		return Failed(err), true
+	}
+	then := res.then
+	return res.ReplacingAt("app", editOpenSlot).Then(func(ctx Ctx, value any, err error) {
+		if then != nil {
+			then(ctx, value, err)
+		}
+		var thing Thing
+		var values Record
+		if err == nil {
+			if thing, err = ThingOf(value); err == nil {
+				values, err = editRecord(n, thing)
+			}
+			if err != nil {
+				ctx.Error(err.Error())
+			}
+		}
+		fill(values, r.editChooserTitle(n, c, thing, subject, only), err)
+	}), true
 }
 
 // editLabel names the thing an edit opens on: the focused row's label
@@ -274,14 +327,20 @@ func (r *Runtime) editSubjects(n *Noun, c Ctx) (Arguments, []any, error) {
 	return subject, others, err
 }
 
+// editWrite writes changes to an edit's subjects; held says the subject
+// (the focused one) already holds them, so only the others are written.
+type editWrite func(changes map[string]any, held bool) Result
+
 // editWriter is the form's write: set {props} on the subject and on each
 // other subject, every one recorded in group, so history.undo takes the
 // whole form back in one step. The noun's human key (humanProp) is
 // written to the subject alone: one name typed is never every row's. A
-// write over several subjects posts the one notice a run over many does
-// (subjectsNotice: done on N rows, or how many failed).
-func (r *Runtime) editWriter(n *Noun, subject Arguments, others []any, group string) func(map[string]any) Result {
-	return func(changes map[string]any) Result {
+// subject that refuses is counted and the rest are still written, the
+// focused one as any other: a write over several subjects posts the one
+// notice a run over many does (subjectsNotice: done on N rows, or how
+// many failed), and fails only when none applied.
+func (r *Runtime) editWriter(n *Noun, subject Arguments, others []any, group string) editWrite {
+	return func(changes map[string]any, held bool) Result {
 		defer r.inHistoryGroup(group)()
 		name := r.DisplayKey(n.Name + ".edit")
 		var value any
@@ -295,9 +354,9 @@ func (r *Runtime) editWriter(n *Noun, subject Arguments, others []any, group str
 				if human := n.humanProp(); human != nil {
 					delete(props, human.Name)
 				}
-				if len(props) == 0 {
-					continue
-				}
+			}
+			if len(props) == 0 || i == 0 && held {
+				continue
 			}
 			args["props"] = props
 			// The subject key, not the ephemeral row, identifies this write.
@@ -306,14 +365,9 @@ func (r *Runtime) editWriter(n *Noun, subject Arguments, others []any, group str
 			if key := n.keyProp(); key != nil {
 				id = fmt.Sprint(args[key.Name])
 			}
-			switch {
-			case err != nil && i == 0:
-				return Failed(err)
-			case err != nil:
+			if err != nil {
 				skipped = append(skipped, id+": "+err.Error())
-				if first == nil {
-					first = err
-				}
+				first = cmp.Or(first, err)
 				continue
 			}
 			applied = append(applied, id)
@@ -321,7 +375,10 @@ func (r *Runtime) editWriter(n *Noun, subject Arguments, others []any, group str
 				value = v
 			}
 		}
-		if len(applied)+len(skipped) > 1 {
+		switch {
+		case len(applied) == 0 && len(skipped) == 1:
+			return Failed(first)
+		case len(applied)+len(skipped) > 1:
 			if err := r.subjectsNotice(name, applied, skipped, first); err != nil {
 				return Failed(err)
 			}

@@ -31,53 +31,69 @@ func (r *Runtime) editByChooser(args Arguments, only *PropSpec, fieldOnly bool, 
 	return field, fieldOnly && r.Settings().Bool(EditFieldChooserSetting)
 }
 
-// openEditChooser opens the chooser of one choice field for edit {field}:
-// the framework chooser over the field's choices (the one a form's choice
-// field opens, openChoiceChooser), or the path chooser for a path field.
-// A pick is the write (write: set on the subject and the selection, one
-// history group, so history.undo takes it back in one step) and closes the
-// chooser, the focus back where edit ran; picking the value the thing
-// already holds writes nothing. esc (modal.close, the chooser's cancel)
-// closes it with nothing written. An optional field offers "(none)", which
-// clears it.
-func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Record, title string, write func(map[string]any) Result) error {
+// openEditChooser opens the framework chooser over one choice field's
+// choices for edit {field} (the one a form's choice field opens,
+// openChoiceChooser), highlighting the value the thing holds. A pick is
+// the write (write: set on the subject and the selection, one history
+// group, so history.undo takes it back in one step) and closes the
+// chooser, the focus back where edit ran; a subject already holding the
+// pick is not written, the rest of the selection still is. esc
+// (modal.close, the chooser's cancel) closes it with nothing written. An
+// optional field offers "(none)", which clears it.
+//
+// values may be nil while the thing's get is pending: the chooser opens
+// at once (its rows load meanwhile, so keys typed reach its query and
+// never the page), and fill gives it the thing's values and title when
+// the get lands, or closes it when the get failed.
+func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Record, title string, write editWrite) (fill func(Record, string, error), err error) {
 	p := n.prop(field.Name)
-	pick := func(text string) Result {
-		if text == values[field.Name] {
-			return Done(nil)
-		}
-		value, err := editPropValue(*p, text)
-		if err != nil {
-			return Failed(err)
-		}
-		return write(map[string]any{field.Name: value})
-	}
-	if r.editKindOf(field).path {
-		_, err := r.OpenPathChooser(PathChooserSpec{
-			Kind:   EditChooserKind,
-			Title:  title,
-			Pick:   PathPick{Name: field.Name, Parameter: field.Parameter, Value: values[field.Name]},
-			Choose: pick,
-		})
-		return err
-	}
+	cur := values
+	held := func(text string) bool { return cur != nil && text == cur[field.Name] }
 	var fixed []ChooserRow
 	if !field.Required {
 		fixed = append(fixed, ChooserRow{ID: "", Label: "(none)", Fixed: true})
 	}
-	_, err := r.openChoiceChooser(ChooserSpec{
-		Kind:   EditChooserKind,
-		Title:  title,
-		Empty:  "loading…",
-		Choose: func(row ChooserRow) Result { return pick(row.ID) },
+	ch, err := r.openChoiceChooser(ChooserSpec{
+		Kind:  EditChooserKind,
+		Title: title,
+		Empty: "loading…",
+		Start: func(row ChooserRow) bool { return held(row.ID) },
+		Choose: func(row ChooserRow) Result {
+			value, err := editPropValue(*p, row.ID)
+			if err != nil {
+				return Failed(err)
+			}
+			return write(map[string]any{field.Name: value}, held(row.ID))
+		},
 	}, choiceLoad{
 		ctx:      c.Context,
 		param:    field.Parameter,
 		label:    field.choiceLabel,
-		siblings: func() Arguments { return r.recordArguments(n, values) },
+		siblings: func() Arguments { return r.recordArguments(n, cur) },
 		fixed:    fixed,
 	})
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return func(loaded Record, title string, err error) {
+		if r.Chooser(EditChooserKind) != ch {
+			return // closed or replaced before the get landed
+		}
+		if err != nil {
+			if r.TopModal() == EditChooserKind {
+				_ = ch.close()
+			}
+			return
+		}
+		cur, ch.spec.Title = loaded, title
+		if len(field.SourceArgs) > 0 {
+			// A dependent source reads the siblings just loaded.
+			ch.SetRows(nil)
+			ch.load()
+			return
+		}
+		ch.SetRows(ch.spec.Rows)
+	}, nil
 }
 
 // recordArguments are a thing's values typed as arguments, the siblings a

@@ -75,6 +75,10 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 // over the rows), and y runs run (the list.apply that asked, confirmed),
 // so {{label}} never reads the asking verb's own arguments.
 func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any, error) {
+	thing, err := r.namedThing(c, q)
+	if err != nil {
+		return nil, err
+	}
 	inst := r.Instances[focusOf(c)]
 	stored := run
 	actor := r.Actor()
@@ -102,12 +106,7 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	// A request that names its thing by the noun's key argument (task
 	// delete --id t2) is about that thing, whatever instance it targets
 	// (the CLI's owner of the noun's rows, a list) or the focus is.
-	named := ""
-	if n := r.Nouns[op.Noun]; n != nil {
-		if kp := n.keyProp(); kp != nil && !emptyProp(q.Args[kp.Name]) {
-			named = fmt.Sprint(q.Args[kp.Name])
-		}
-	}
+	named := r.namedKey(op.Noun, q)
 	addressed := named == "" && (q.Target != "" || inst.Noun == op.Noun)
 	prompt := promptField.ReplaceAllStringFunc(op.Confirm, func(m string) string {
 		name := promptField.FindStringSubmatch(m)[1]
@@ -115,7 +114,7 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 			// A standard verb's thing is shown by its label prop, else
 			// its Fallback, read from the store (a key argument or the
 			// instance the request acts for).
-			if label := r.storeLabel(c, q, inst); label != "" {
+			if label := r.storeLabel(c, q, inst, thing); label != "" {
 				return label
 			}
 		}
@@ -123,7 +122,7 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 			// Several subjects name the first by its store label, as one
 			// does, and count the rest (subjectsLabel's form).
 			if first := r.Instances[q.Subjects[0]]; first != nil {
-				if label := r.storeLabel(c, q, first); label != "" {
+				if label := r.storeLabel(c, q, first, nil); label != "" {
 					return fmt.Sprintf("%s and %d more", label, len(q.Subjects)-1)
 				}
 			}
@@ -181,6 +180,19 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	return map[string]any{"confirm": body.ID, "prompt": prompt, "request": stored}, nil
 }
 
+// namedKey is the key a request names its noun's thing by (its key
+// argument), "" when it gives none.
+func (r *Runtime) namedKey(noun string, q Request) string {
+	n := r.Nouns[noun]
+	if n == nil {
+		return ""
+	}
+	if kp := n.keyProp(); kp != nil && !emptyProp(q.Args[kp.Name]) {
+		return fmt.Sprint(q.Args[kp.Name])
+	}
+	return ""
+}
+
 // firstArgument is the request's first argument with a value: in the
 // operation's parameter order, then any other argument by name.
 func firstArgument(op Operation, args Arguments) (any, bool) {
@@ -213,21 +225,56 @@ func confirmView(r *Runtime, inst *Instance, width, height int) Block {
 // storeLabel is the label of the thing a standard verb's request acts on,
 // read from its noun's store: the label prop, else its Fallback. "" when
 // the request's operation is not a standard verb, the store reads no
-// things, or the thing has no label.
-func (r *Runtime) storeLabel(c Context, q Request, inst *Instance) string {
+// things, or the thing has no label. known, when set, is the thing already
+// read (namedThing), so the store is not asked twice.
+func (r *Runtime) storeLabel(c Context, q Request, inst *Instance, known Thing) string {
 	op := r.Operations[q.Key()]
 	n := r.Nouns[op.Noun]
 	if op.Standard == "" || n == nil || n.Store == nil || n.Store.Get == nil || n.roleProp(RoleLabel) == nil {
 		return ""
 	}
-	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: q.Args, Instance: inst}
-	key, err := r.subjectKey(n, ctx)
-	if err != nil {
-		return ""
-	}
-	t, err := n.Store.Get(ctx, key)
-	if err != nil || t == nil {
-		return ""
+	t := known
+	if t == nil {
+		ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: q.Args, Instance: inst}
+		key, err := r.subjectKey(n, ctx)
+		if err != nil {
+			return ""
+		}
+		if t, err = n.Store.Get(ctx, key); err != nil || t == nil {
+			return ""
+		}
 	}
 	return n.displayLabel(func(name string) any { return t[name] })
+}
+
+// namedThing is the thing a request about to be confirmed names by key
+// (the key argument the verb takes its subject by: task delete --id t2,
+// or a target read as the key), read from its noun's store where it runs,
+// so a confirmation never asks about a thing that does not exist: a key
+// the store does not hold is the store's own answer (unknown task
+// "typo"), returned before anything is asked. A remote store, whose
+// answer comes later, is not probed; nil, nil when the request names no
+// thing by key.
+func (r *Runtime) namedThing(c Context, q Request) (Thing, error) {
+	op, ok := r.Operations[q.Key()]
+	n := r.Noun(q.Noun)
+	if !ok || n == nil || !n.resolvable() || n.Store.Remote {
+		return nil, nil
+	}
+	key := n.keyProp()
+	p, takes := op.Parameters[key.Name]
+	v := q.Args[key.Name]
+	if !takes || !p.Focus || p.Noun != n.Name || emptyProp(v) {
+		return nil, nil
+	}
+	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c}
+	id, err := r.resolveTarget(n, ctx, fmt.Sprint(v))
+	if err != nil {
+		return nil, err
+	}
+	t, err := n.Store.Get(ctx, id)
+	if errors.Is(err, ErrNotLoaded) {
+		return nil, nil
+	}
+	return t, err
 }

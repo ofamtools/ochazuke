@@ -109,7 +109,7 @@ configuration.go	registerConfiguration	cyclo	"-"	28
 confirm.go	Runtime.openConfirmAbout	case	"id"	2
 confirm.go	Runtime.openConfirmAbout	compare	"id"	1
 confirm.go	Runtime.openConfirmAbout	compare	"noun"	1
-confirm.go	Runtime.openConfirmAbout	cyclo	"-"	42
+confirm.go	Runtime.openConfirmAbout	cyclo	"-"	40
 confirm.go	registerConfirm	compare	"ochazuke.confirm"	1
 default_bindings.go	Runtime.CheckDefaultBindings	compare	"ochazuke.mode.enter"	1
 default_bindings.go	Runtime.loadDefaultDoc	cyclo	"-"	38
@@ -567,7 +567,7 @@ settings_view.go	settingAllowed	compare	"list"	1
 settings_view.go	settingOfRow	compare	"ochazuke.setting"	1
 standard_edit.go	Runtime.editFields	compare	"list"	1
 standard_edit.go	Runtime.editHandler	compare	"confirm"	1
-standard_edit.go	Runtime.editHandler	cyclo	"-"	34
+standard_edit.go	Runtime.editHandler	cyclo	"-"	27
 standard_edit.go	editRecord	compare	"list"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1

@@ -1,6 +1,8 @@
 package ochazuke
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"ofam.dev/ochazuke/keytest"
@@ -163,6 +165,59 @@ func TestEditFieldChooserWritesTheSelection(t *testing.T) {
 	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
 	if s.find("t1")["status"] != "todo" || s.find("t2")["status"] != "todo" {
 		t.Fatalf("one undo: %v %v", s.find("t1"), s.find("t2"))
+	}
+}
+
+// A row that refuses the pick does not stop the others, the focused one
+// as any: the rest are written, one notice counts the done and the
+// failed, and history.undo takes back what applied in one step. The
+// chooser opens on the value the focused row holds.
+func TestEditFieldChooserFocusedRowRefuses(t *testing.T) {
+	t.Parallel()
+	r := NewRuntime()
+	s := &derivedStore{key: "id", things: []Thing{{"id": "t1", "status": "todo"}, {"id": "t2", "status": "todo"}}}
+	st := s.store()
+	st.Undo = true
+	patch := st.Patch
+	st.Patch = func(c Ctx, id string, changes Thing) (Thing, error) {
+		if id == "t1" && changes["status"] == "done" {
+			return nil, fmt.Errorf("parcel %s is locked", id)
+		}
+		return patch(c, id, changes)
+	}
+	r.Define("parcel").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "status", Parameter: Parameter{Enum: []string{"todo", "done"}}}).Store(st)
+	if _, err := r.AddList("rows", []ListItem{{ID: "t1", Noun: "parcel", Data: Thing{"id": "t1"}}, {ID: "t2", Noun: "parcel", Data: Thing{"id": "t2"}}}); err != nil {
+		t.Fatal(err)
+	}
+	m := NewModel(r)
+	if err := r.SetFocus("t1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Bind(Binding{Noun: "parcel", Mode: "normal", Keys: "m", Request: Request{Noun: "parcel", Verb: "edit", Args: Arguments{"field": "status"}}}); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"V", "j", "m"} {
+		keytest.Press(m, key)
+	}
+	c := r.Chooser(EditChooserKind)
+	if c == nil {
+		t.Fatalf("chooser: modal %q", r.TopModal())
+	}
+	if row, ok := c.Highlighted(); !ok || row.ID != "todo" {
+		t.Fatalf("opens on %+v, want the value t1 holds", row)
+	}
+	notices := r.UI().capture()
+	keytest.Type(m, "done")
+	keytest.Press(m, "enter")
+	if s.find("t1")["status"] != "todo" || s.find("t2")["status"] != "done" || r.TopModal() != "" {
+		t.Fatalf("one refused: %v %v modal %q", s.find("t1"), s.find("t2"), r.TopModal())
+	}
+	if got := notices(); len(got) == 0 || !strings.Contains(got[len(got)-1].Text, "1 done, 1 failed (t1: ") || !strings.Contains(got[len(got)-1].Text, "parcel t1 is locked") {
+		t.Fatalf("notice %+v", got)
+	}
+	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	if s.find("t2")["status"] != "todo" {
+		t.Fatalf("one undo: %v", s.find("t2"))
 	}
 }
 
