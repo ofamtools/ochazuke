@@ -65,37 +65,23 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 	r.Builtin(func() {
 		r.DeclareSetting(ochazuke.Setting{Name: SetupSkipSetting, Type: ochazuke.SettingList, Default: []string{}, Description: "Setup item ids to skip", Section: "setup"})
 		b := r.Define("setup").Columns(ochazuke.Column{Title: "Item"}, ochazuke.Column{Title: "Kind"}, ochazuke.Column{Title: "State"}, ochazuke.Column{Title: "Target"}, ochazuke.Column{Title: "Next step", Wrap: true})
+		b.Props(setupProps...).Store(ochazuke.Store{Kind: ochazuke.Collection, Facts: true,
+			List: func(c ochazuke.Ctx, _ ochazuke.ListQuery) ([]ochazuke.Thing, error) { return d.things(r, "", nil) },
+			Get: func(c ochazuke.Ctx, id string) (ochazuke.Thing, error) {
+				things, err := d.things(r, "", []string{id})
+				if err != nil {
+					return nil, err
+				}
+				if len(things) != 1 {
+					return nil, fmt.Errorf("unknown setup item %q", id)
+				}
+				return things[0], nil
+			}})
 		for _, verb := range setupVerbs {
 			v := verb.name
 			b.Verb(v, func(c ochazuke.Ctx) ochazuke.Result {
-				opts := d.options
-				if home, _ := c.Args["home"].(string); home != "" {
-					opts.Home = home
-				}
-				opts.Skip = append(append([]string(nil), opts.Skip...), r.Settings().Strings(SetupSkipSetting)...)
-				items := append([]setup.Item(nil), d.items...)
-				config := r.Config().Path("setup.json")
-				if opts.Home != "" {
-					dir := opts.Env["XDG_CONFIG_HOME"]
-					if dir == "" {
-						dir = filepath.Join(opts.Home, ".config")
-					}
-					config = filepath.Join(dir, opts.Tool, "setup.json")
-				}
-				if config != "" {
-					f, err := os.Open(config)
-					if err == nil {
-						user, e := setup.Decode(f)
-						_ = f.Close()
-						if e != nil {
-							return ochazuke.Failed(fmt.Errorf("setup.json: %w", e))
-						}
-						items = append(items, user...)
-					} else if !errors.Is(err, os.ErrNotExist) {
-						return ochazuke.Failed(err)
-					}
-				}
-				engine, err := setup.New(items, opts)
+				home, _ := c.Args["home"].(string)
+				engine, err := d.engine(r, home)
 				if err != nil {
 					return ochazuke.Failed(err)
 				}
@@ -160,6 +146,79 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 
 var setupVerbs = []struct{ name, description string }{
 	{"status", "Setup state and exact next steps"}, {"list", "List setup items and states"}, {"show", "Show one setup item in full"}, {"plan", "Show all writes and argv without installing"}, {"install", "Install the selected setup items"}, {"uninstall", "Remove only the selected owned integrations"}, {"copy", "Print an item's content or advice for pasting"},
+}
+
+// setupProps are the setup noun's props: one thing per declared item (and
+// each of the user's setup.json), read-only (a system fact), with its
+// state as setup list answers it.
+var setupProps = []ochazuke.PropSpec{
+	{Name: "id", Key: true, Human: true, ReadOnly: true, Parameter: ochazuke.Parameter{Description: "The item's id"}},
+	{Name: "name", Role: ochazuke.RoleLabel, ReadOnly: true, Parameter: ochazuke.Parameter{Description: "What the item is called"}},
+	{Name: "description", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "What it sets up"}},
+	{Name: "kind", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "How it is set up (block, file, json, command ...)"}},
+	{Name: "group", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "Its group, when it has one"}},
+	{Name: "path", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "The file it writes or probes"}},
+	{Name: "state", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "installed, missing, outdated, manual ..."}},
+	{Name: "reason", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "Why it is in that state, when it says"}},
+	{Name: "next", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "The exact next step"}},
+	{Name: "opt_in", ReadOnly: true, Parameter: ochazuke.Parameter{Type: ochazuke.SettingBoolean, Description: "Whether only an explicit install selects it"}},
+}
+
+// engine is the setup engine for one request: the declared items and the
+// user's setup.json, the options with home (when given) and the skip
+// setting.
+func (d *setupDeclaration) engine(r *ochazuke.Runtime, home string) (*setup.Setup, error) {
+	opts := d.options
+	if home != "" {
+		opts.Home = home
+	}
+	opts.Skip = append(append([]string(nil), opts.Skip...), r.Settings().Strings(SetupSkipSetting)...)
+	items := append([]setup.Item(nil), d.items...)
+	config := r.Config().Path("setup.json")
+	if opts.Home != "" {
+		dir := opts.Env["XDG_CONFIG_HOME"]
+		if dir == "" {
+			dir = filepath.Join(opts.Home, ".config")
+		}
+		config = filepath.Join(dir, opts.Tool, "setup.json")
+	}
+	if config != "" {
+		f, err := os.Open(config)
+		if err == nil {
+			user, e := setup.Decode(f)
+			_ = f.Close()
+			if e != nil {
+				return nil, fmt.Errorf("setup.json: %w", e)
+			}
+			items = append(items, user...)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+	}
+	return setup.New(items, opts)
+}
+
+// things are the setup items (ids, else the default set) as the setup
+// noun's things: their plan's status rows, the declared props only.
+func (d *setupDeclaration) things(r *ochazuke.Runtime, home string, ids []string) ([]ochazuke.Thing, error) {
+	engine, err := d.engine(r, home)
+	if err != nil {
+		return nil, err
+	}
+	plan, err := engine.Plan(context.Background(), setup.Selection{IDs: ids})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ochazuke.Thing, 0, len(plan.Items))
+	for _, st := range plan.Items {
+		path := st.Path
+		if path == "" && st.Probe != nil {
+			path = st.Probe.Path
+		}
+		out = append(out, ochazuke.Thing{"id": st.ID, "name": st.Name, "description": st.Description, "kind": string(st.Kind), "group": st.Group,
+			"path": path, "state": string(st.State), "reason": st.Reason, "next": st.Next, "opt_in": st.OptIn})
+	}
+	return out, nil
 }
 
 // mountSetup is only presentation: every command still uses Shell.Run and the

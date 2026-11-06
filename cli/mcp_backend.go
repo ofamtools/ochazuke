@@ -504,6 +504,7 @@ func (s *Shell) registerMCPVerbs() {
 				})
 			}, "MCP "+name).Fetch().Quiet()
 		}
+		s.defineCatalogFacts()
 		r.Register(ochazuke.Operation{Noun: "ochazuke.catalog", Verb: "list", Description: "Discover nouns, verbs and effective agent rights", HistoryKind: ochazuke.HistoryFetch, Parameters: map[string]ochazuke.Parameter{"noun": {Type: "string"}, "search": {Type: "string"}, "include": {Type: "string", Enum: []string{"app", "builtin", "all"}}, "limit": {Type: "integer"}, "offset": {Type: "integer"}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			return (&mcpBackend{shell: s, actor: r.Actor()}).catalog(a)
 		}})
@@ -581,4 +582,57 @@ func (s *Shell) mcpCommandWords() []string {
 		return s.MCPCommand
 	}
 	return []string{s.Bin}
+}
+
+// catalogProps are the catalog noun's props: one thing per noun the
+// catalog document lists, read-only (a system fact).
+var catalogProps = []ochazuke.PropSpec{
+	{Name: "name", Key: true, Human: true, ReadOnly: true, Parameter: ochazuke.Parameter{Description: "The noun's name"}},
+	{Name: "about", Role: ochazuke.RoleLabel, ReadOnly: true, Parameter: ochazuke.Parameter{Description: "What the noun is"}},
+	{Name: "kind", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "Its store's kind (collection, singleton, instances), when it has one"}},
+	{Name: "verbs", ReadOnly: true, Parameter: ochazuke.Parameter{Type: ochazuke.SettingList, Description: "The names of its verbs"}},
+}
+
+// defineCatalogFacts makes ochazuke.catalog a thing noun over the
+// catalog document's nouns, with a facts store: get reads one noun
+// (catalog get ochazuke.register), create, set, delete and archive are
+// unavailable (a system fact). Its list and describe stay the discovery
+// verbs registered beside it (an application verb under a core name wins:
+// list keeps its search and agent rights).
+func (s *Shell) defineCatalogFacts() {
+	list := func(c ochazuke.Ctx, _ ochazuke.ListQuery) ([]ochazuke.Thing, error) {
+		raw, err := Catalog(c.Runtime, s.Bin, s.version(), s.catalogOptions...)
+		if err != nil {
+			return nil, err
+		}
+		var doc CatalogDoc
+		if err := json.Unmarshal(raw, &doc); err != nil {
+			return nil, err
+		}
+		out := make([]ochazuke.Thing, 0, len(doc.Nouns))
+		for _, n := range doc.Nouns {
+			verbs := make([]string, len(n.Verbs))
+			for i, v := range n.Verbs {
+				verbs[i] = v.Name
+			}
+			out = append(out, ochazuke.Thing{"name": n.Name, "about": n.About, "kind": n.Kind, "verbs": verbs})
+		}
+		return out, nil
+	}
+	s.Runtime.Define("ochazuke.catalog").Props(catalogProps...).Store(ochazuke.Store{
+		Kind: ochazuke.Collection, Facts: true, List: list,
+		Get: func(c ochazuke.Ctx, name string) (ochazuke.Thing, error) {
+			things, err := list(c, ochazuke.ListQuery{})
+			if err != nil {
+				return nil, err
+			}
+			want := c.Runtime.CanonicalNoun(name)
+			for _, t := range things {
+				if t["name"] == name || t["name"] == want {
+					return t, nil
+				}
+			}
+			return nil, fmt.Errorf("unknown noun %q", name)
+		},
+	})
 }

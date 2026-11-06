@@ -2590,6 +2590,10 @@ Applications declare integrations once with `cli.DeclareSetup`, before
 `cli.Mount`. The `ochazuke/setup` package also works on its own and imports no
 TUI code. The app owns its item data; the library owns inspection, planning,
 ownership, backups and installation. No binding, page or default key is added.
+`ochazuke.setup` is a thing noun with a facts store: one read-only thing per
+item (`id`, `name`, `kind`, `group`, `path`, `state`, `reason`, `next`,
+`opt_in`), so `setup get rules` reads one item's state; `setup list` and the
+other setup verbs answer as before.
 
 ```go
 items := []setup.Item{
@@ -3069,6 +3073,10 @@ until the owner enables it, so each extension can use its own server.
 Visible aliases are listed, hidden aliases still answer; both use `run` and the
 same gate. Alias annotations derive from the verb's history/destructive metadata.
 The palette and CLI can also use `ochazuke.catalog.list` and `.describe`.
+`ochazuke.catalog` is a thing noun with a facts store (a system fact): one
+thing per noun of the catalog (`name`, `about`, `kind`, `verbs`), so
+`ochazuke catalog get ochazuke.register` reads one; its own `list` stays the
+search above.
 
 The server negotiates protocol versions, serves `ochazuke://catalog` and
 `ochazuke://instructions` resources, and offers a `guide` prompt. Initialization,
