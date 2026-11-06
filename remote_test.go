@@ -207,7 +207,7 @@ func TestRemoteCancelMidSequence(t *testing.T) {
 	if job == 0 {
 		t.Fatal("the set ended after one call")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.jobs", Verb: "cancel", Args: Arguments{"job": int(job)}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.job", Verb: "cancel", Args: Arguments{"job": int(job)}}); err != nil {
 		t.Fatal(err)
 	}
 	pumpRemote(t, r)
