@@ -108,14 +108,26 @@ func TestGetReadsANestedPropPath(t *testing.T) {
 	}
 }
 
-// Registers are things: set writes one (an uppercase name appends), get
-// and list read them.
+// Registers are things: set writes one (an uppercase name is the same
+// register) and undo puts its old text back; register.append adds to one;
+// get and list read them.
 func TestRegisterThings(t *testing.T) {
 	r := NewRuntime()
+	text := func(name string) any {
+		return mustRun(t, r, Request{Noun: "ochazuke.register", Verb: "get", Args: Arguments{"name": name, "prop": "text"}})
+	}
 	mustRun(t, r, Request{Noun: "ochazuke.register", Verb: "set", Args: Arguments{"name": "a", "prop": "text", "value": "one"}})
 	mustRun(t, r, Request{Noun: "ochazuke.register", Verb: "set", Args: Arguments{"name": "A", "prop": "text", "value": "two"}})
-	if got := mustRun(t, r, Request{Noun: "ochazuke.register", Verb: "get", Args: Arguments{"name": "a", "prop": "text"}}); got != "onetwo" {
-		t.Fatalf("register a = %v", got)
+	if got := text("a"); got != "two" {
+		t.Fatalf("register a after set A = %v", got)
+	}
+	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	if got := text("a"); got != "one" {
+		t.Fatalf("register a after undo = %v", got)
+	}
+	mustRun(t, r, Request{Noun: "ochazuke.register", Verb: "append", Args: Arguments{"name": "a", "text": "two"}})
+	if got := text("a"); got != "onetwo" {
+		t.Fatalf("register a after append = %v", got)
 	}
 	mustRun(t, r, Request{Noun: "ochazuke.register", Verb: "set", Args: Arguments{"name": "b", "changes": map[string]any{"text": "x", "shape": "line"}}})
 	if got := mustRun(t, r, Request{Noun: "ochazuke.register", Verb: "get", Args: Arguments{"name": "b"}}).(map[string]any); got["text"] != "x\n" || got["shape"] != "line" {
@@ -177,5 +189,19 @@ func TestOutlineAndSettingItemAreThingNouns(t *testing.T) {
 	}
 	if got := mustRun(t, r, Request{Noun: "ochazuke.setting-item", Verb: "get", Args: Arguments{"id": "paths/1", "prop": "text"}}); got != "b" {
 		t.Fatalf("setting-item paths/1 = %v", got)
+	}
+}
+
+// The appearance's set is undone like any standard write.
+func TestAppearanceSetIsUndone(t *testing.T) {
+	r := NewRuntime()
+	a := NewAppearance(r)
+	mustRun(t, r, Request{Noun: "ochazuke.appearance", Verb: "set", Args: Arguments{"prop": "density", "value": "compact"}})
+	if a.Density != "compact" {
+		t.Fatalf("density %q", a.Density)
+	}
+	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	if a.Density != "comfortable" || a.Theme != "adaptive" {
+		t.Fatalf("after undo: %+v", *a)
 	}
 }

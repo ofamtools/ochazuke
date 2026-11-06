@@ -97,13 +97,14 @@ func newAppearance(r *Runtime) *Appearance {
 	c := r.Config()
 	c.themeListeners = append(c.themeListeners, func() { a.Schemes = NewSchemeSet(r.Config().Schemes()) })
 	// The appearance is a thing (a singleton): get reads theme, density
-	// and dark, set writes theme and density, both at once with changes.
+	// and dark, set writes theme and density, both at once with changes,
+	// and history.undo writes the old values back.
 	r.Define("ochazuke.appearance").Props(
 		PropSpec{Name: "theme", Parameter: Parameter{Description: "The colour scheme: adaptive, dark, light, mono, or one from themes.json"}},
 		PropSpec{Name: "density", Parameter: Parameter{Enum: []string{"comfortable", "compact"}, Description: "comfortable or compact"}},
 		PropSpec{Name: "dark", ReadOnly: true, Parameter: Parameter{Type: SettingBoolean, Description: "Whether the terminal's background is dark (what adaptive follows)"}},
 	).Store(Store{
-		Kind: Singleton, Stamps: true,
+		Kind: Singleton, Stamps: true, Undo: true,
 		Get: func(Ctx, string) (Thing, error) {
 			return Thing{"theme": a.Theme, "density": a.Density, "dark": a.Dark}, nil
 		},

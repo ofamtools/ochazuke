@@ -41,7 +41,7 @@ func registerRegisters(r *Runtime) {
 // registerThingProps are a register's props as the register noun's
 // things answer them.
 var registerThingProps = []PropSpec{
-	{Name: "name", Key: true, Human: true, Parameter: Parameter{Description: "The register: a-z (A-Z appends to it), 0-9, \" (unnamed), - (small delete), + or * (the system clipboard), _ (discards)"}},
+	{Name: "name", Key: true, Human: true, Parameter: Parameter{Description: "The register: a-z (A-Z names the same one; register.append adds to it), 0-9, \" (unnamed), - (small delete), + or * (the system clipboard), _ (discards)"}},
 	{Name: "text", Parameter: Parameter{Description: "The text it holds"}},
 	{Name: "shape", Parameter: Parameter{Enum: []string{"char", "line", "block"}, Description: "How it pastes: char, line or block"}},
 	{Name: "width", Parameter: Parameter{Type: SettingInteger, Description: "A block's width in cells (computed from the text when larger)"}},
@@ -49,9 +49,11 @@ var registerThingProps = []PropSpec{
 }
 
 // registerRegisterThings declares the register noun: the named registers
-// are things keyed by name; set writes one (an uppercase name appends, _
-// discards), get and list read them, register.select picks the one the
-// next yank, delete or paste uses.
+// are things keyed by name; set writes one (an uppercase name is the same
+// register, _ discards) and history.undo puts its old text back;
+// register.append adds text to one, as an uppercase yank does; get and
+// list read them; register.select picks the one the next yank, delete or
+// paste uses.
 func registerRegisterThings(r *Runtime) {
 	thing := func(key string, reg Register) Thing {
 		t := Thing{"name": key, "text": reg.Yank.Text, "shape": reg.Yank.Shape, "width": reg.Yank.Width}
@@ -61,7 +63,7 @@ func registerRegisterThings(r *Runtime) {
 		return t
 	}
 	r.Define("ochazuke.register").Props(registerThingProps...).Store(Store{
-		Kind: Collection, Stamps: true,
+		Kind: Collection, Stamps: true, Undo: true,
 		Get: func(c Ctx, name string) (Thing, error) {
 			key, _, err := registerName(name)
 			if err != nil {
@@ -82,15 +84,12 @@ func registerRegisterThings(r *Runtime) {
 			return out, nil
 		},
 		Patch: func(c Ctx, name string, changes Thing) (Thing, error) {
-			key, appendMode, err := registerName(name)
+			key, _, err := registerName(name)
 			if err != nil {
 				return nil, err
 			}
 			current := c.Runtime.Registers().Named[key].Yank
 			y := Yank{Text: current.Text, Shape: current.Shape, Width: current.Width}
-			if appendMode {
-				y = Yank{Shape: "char"}
-			}
 			if v, ok := changes["text"].(string); ok {
 				y.Text = v
 			}
@@ -114,12 +113,33 @@ func registerRegisterThings(r *Runtime) {
 					y.Width = max(y.Width, cellWidth(line))
 				}
 			}
-			if err := c.Runtime.storeYank(y, name, false); err != nil {
+			// The lowercase name: a set replaces, so undo can write the old
+			// values back; appending is register.append.
+			if err := c.Runtime.storeYank(y, key, false); err != nil {
 				return nil, err
 			}
 			return thing(key, c.Runtime.Registers().Named[key]), nil
 		},
 	})
+	r.Define("ochazuke.register").Verb("append", func(r *Runtime, c Context, a Arguments) (any, error) {
+		key, _, err := registerName(StringArg(a, "name", ""))
+		if err != nil {
+			return nil, err
+		}
+		shape := StringArg(a, "shape", "char")
+		if err := r.storeYank(Yank{Text: StringArg(a, "text", ""), Shape: shape}, strings.ToUpper(key), false); err != nil {
+			return nil, err
+		}
+		return thing(key, r.Registers().Named[key]), nil
+	}, "Add text to the end of a register, as an uppercase register name does for a yank (A-Z)")
+	op := r.Operations["ochazuke.register.append"]
+	op.Parameters = map[string]Parameter{
+		"name":  {Type: "string", Required: true, Noun: "ochazuke.register", Description: "The register to add to: a-z"},
+		"text":  {Type: "string", Required: true, Description: "The text to add"},
+		"shape": {Type: "string", Enum: []string{"char", "line", "block"}, Description: "How the added text pastes (default char)"},
+	}
+	op.Positional = []string{"name", "text"}
+	r.Operations["ochazuke.register.append"] = op
 }
 
 // Registers returns the registers component.

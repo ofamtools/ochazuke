@@ -484,3 +484,27 @@ func TestDemoNotesComplete(t *testing.T) {
 		t.Fatalf("tab with the list closed moved to %s, want the next field", r.Focus)
 	}
 }
+
+// In a running session (Init starts one) t and d still write settings.json:
+// the demo's cycle verbs write the file scope, as the plural settings set
+// did before it merged into setting.set (whose default is the session).
+func TestDemoThemeCycleSavesToTheFileInASession(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, "config"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "state"))
+	m := New()
+	r := m.Runtime
+	r.Config().App = "ochazuke-demo"
+	m.Init()
+	t.Cleanup(func() { _ = r.Config().Flush() })
+	for _, verb := range []string{"theme", "density"} {
+		if _, err := r.Execute(ochazuke.Request{Verb: "cycle", Noun: verb}); err != nil {
+			t.Fatalf("%s.cycle: %v", verb, err)
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(home, "config", "ochazuke-demo", "settings.json"))
+	if err != nil || !strings.Contains(string(data), `"theme": "`+m.Appearance.Theme+`"`) || !strings.Contains(string(data), `"density": "`+m.Appearance.Density+`"`) {
+		t.Fatalf("settings.json after theme.cycle and density.cycle: %s %v", data, err)
+	}
+}

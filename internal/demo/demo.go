@@ -200,7 +200,7 @@ func newWith(task *demoTask) *ochazuke.Model {
 				next = (i + 1) % len(themes)
 			}
 		}
-		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "setting", Args: ochazuke.Arguments{"name": "theme", "value": themes[next]}})
+		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "setting", Args: ochazuke.Arguments{"name": "theme", "value": themes[next], "scope": ochazuke.ScopeFile}})
 	})
 	register("cycle", "accent", "Toggle an orange accent over the theme (Appearance.Accent), as an app does for a pin state", nil, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		if m.Appearance.Accent != nil {
@@ -215,7 +215,7 @@ func newWith(task *demoTask) *ochazuke.Model {
 		if m.Appearance.Density == "compact" {
 			density = "comfortable"
 		}
-		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "setting", Args: ochazuke.Arguments{"name": "density", "value": density}})
+		return r.ExecuteAt(c, ochazuke.Request{Verb: "set", Noun: "setting", Args: ochazuke.Arguments{"name": "density", "value": density, "scope": ochazuke.ScopeFile}})
 	})
 	// bind puts a row on a noun, or on an input instance when id names one.
 	bind := func(id, mode, key, verb, noun string, args ochazuke.Arguments) {

@@ -233,12 +233,17 @@ func TestUndoSkipsRestoredEntries(t *testing.T) {
 	}
 }
 
-// TestUndoUnavailableWithoutAnyUndoStore: in an application where no store
-// declares Undo, history.undo is never offered.
-func TestUndoUnavailableWithoutAnyUndoStore(t *testing.T) {
+// TestUndoOfferedForTheFrameworkStores: history.undo is offered only where
+// some store declares Undo; the framework's register and appearance stores
+// do (och-command-nouns), so an application with no undo store of its own
+// still offers it, and with nothing to undo it runs without an error.
+func TestUndoOfferedForTheFrameworkStores(t *testing.T) {
 	r, _ := newWriteRuntime(t)
-	if r.Available(Request{Noun: "ochazuke.history", Verb: "undo"}, "app", r.Mode) {
-		t.Fatal("undo offered with no store that undoes")
+	if !r.Available(Request{Noun: "ochazuke.history", Verb: "undo"}, "app", r.Mode) {
+		t.Fatal("undo not offered though the register store undoes")
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo"}); err != nil {
+		t.Fatalf("undo with nothing to undo: %v", err)
 	}
 }
 
