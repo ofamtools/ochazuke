@@ -789,6 +789,7 @@ Mode edges (from → to via):
 - `visual` → `normal` via `input.cancel`
 - `visual` → `normal` via `input.operator`
 - `visual-line` → `count_pending` via `mode.enter`
+- `visual-line` → `insert` via `demo.edit`
 - `visual-line` → `macro_pending` via `mode.enter`
 - `visual-line` → `normal` via `bindings.help`
 - `visual-line` → `normal` via `confirm.accept`

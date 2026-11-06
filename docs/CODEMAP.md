@@ -807,10 +807,10 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### palette_parse.go
 
-- lines: 1043
+- lines: 1053
 - purpose: lineToken is one word of the line; Text is unquoted.
 - types: PaletteWord
-- methods: Palette(12), commandLine(3), lineIndex(10), option(1)
+- methods: Palette(13), commandLine(3), lineIndex(10), option(1)
 - leans on: block.go(62), instance.go(41), thing_keys.go(30), runtime.go(24)
 
 ### palette_results.go
@@ -1177,10 +1177,10 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### standard_edit.go
 
-- lines: 485 · tests: standard_edit_test.go
+- lines: 493 · tests: standard_edit_test.go
 - purpose: EditHandler builds the standard edit handler for a declared noun, including a catalog-mounted noun with get and set proxies but no local Store.
-- methods: Runtime(8)
-- leans on: runtime.go(38), delivery.go(36), props.go(17), noun.go(15)
+- methods: Runtime(9)
+- leans on: runtime.go(39), delivery.go(36), props.go(18), noun.go(16)
 
 ### standard_grammar.go
 

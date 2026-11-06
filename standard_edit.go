@@ -84,12 +84,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 		if err != nil {
 			return Failed(err)
 		}
-		if human := n.humanProp(); human != nil && only != nil && only.Name == human.Name && len(others) > 0 {
-			// A human key names one thing: typed once, it is not every
-			// selected row's name. The focused row takes it; the rest stay.
-			r.UI().Info(fmt.Sprintf("left %d as they were: %s names one row", len(others), human.Name))
-			others = nil
-		}
+		others = r.humanKeyAlone(n, only, others)
 		write := r.editWriter(n, subject, others, r.newHistoryGroup("edit "+writeKey))
 		if len(changes) > 0 {
 			return write(changes)
@@ -211,6 +206,19 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			}
 		})
 	}
+}
+
+// humanKeyAlone is the other subjects an edit of field only writes: none
+// when only is the noun's human key (humanProp), which names one thing, so
+// one name typed is not every selected row's. The focused row takes it,
+// and the notice says the rest were left as they were.
+func (r *Runtime) humanKeyAlone(n *Noun, only *PropSpec, others []any) []any {
+	human := n.humanProp()
+	if human == nil || only == nil || only.Name != human.Name || len(others) == 0 {
+		return others
+	}
+	r.UI().Info(fmt.Sprintf("left %d as they were: %s names one row", len(others), human.Name))
+	return nil
 }
 
 // editSubjects are the subject the edit form opens on (its key as an

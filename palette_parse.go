@@ -588,6 +588,20 @@ func (p *Palette) parse(line string) commandLine {
 	return p.parseTokens(p.index(), tokens)
 }
 
+// removedLine is the parse of a line whose leading words name a removed
+// verb (Runtime.RemovedWords): its error, and no resolved word.
+func (p *Palette) removedLine(tokens []lineToken) (commandLine, bool) {
+	err := p.r.RemovedWords(tokenTexts(tokens))
+	if err == nil {
+		return commandLine{}, false
+	}
+	c := commandLine{Args: Arguments{}, Err: err, Missing: "verb"}
+	for _, t := range tokens[:min(2, len(tokens))] {
+		c.Words = append(c.Words, PaletteWord{Text: t.Text})
+	}
+	return c, true
+}
+
 // parseTokens resolves a line's words. Every reader of the line (the run,
 // the parameter heading, completions, a rest parameter's place) parses
 // through here, so a line the removed list answers is that answer for
@@ -595,11 +609,7 @@ func (p *Palette) parse(line string) commandLine {
 // plural noun) says what to write instead before its words resolve, and
 // no misread of its words heads a parameter or offers choices.
 func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
-	if err := p.r.RemovedWords(tokenTexts(tokens)); err != nil {
-		c := commandLine{Args: Arguments{}, Err: err, Missing: "verb"}
-		for _, t := range tokens[:min(2, len(tokens))] {
-			c.Words = append(c.Words, PaletteWord{Text: t.Text})
-		}
+	if c, removed := p.removedLine(tokens); removed {
 		return c
 	}
 	c := commandLine{Args: Arguments{}}
