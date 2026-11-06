@@ -202,9 +202,9 @@ func coreVerbs() []standardVerb {
 			Kinds: []string{Collection}, Needs: []storeNeed{needWriter, needPatch, needRole(RoleArchive)},
 			TakesSubject: true, Many: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange,
 			Writes: roleWrites(RoleArchive), Run: runArchive},
-		{Verb: "edit", Description: "Edit a thing's writable props in a form, or one of them (field, a prop or @role: with edit.field-only the form holds only it, else it is focused); supplied props write directly without opening a form",
+		{Verb: "edit", Description: "Edit a thing's writable props in a form, or one of them (field, a prop or @role: with edit.field-only the form holds only it, else it is focused; a field that takes a choice opens its chooser instead, edit.field-chooser or chooser); supplied props write directly without opening a form",
 			Kinds: []string{Collection, Singleton, Instances}, Needs: []storeNeed{needGet, needPatch, needWritable, needEditForms},
-			TakesSubject: true, Many: true, Form: true, HistoryKind: HistoryAction, ParamNames: []string{editFieldParam}, FieldParam: editFieldParam, Params: editParams,
+			TakesSubject: true, Many: true, Form: true, HistoryKind: HistoryAction, ParamNames: []string{editFieldParam, editChooserParam}, FieldParam: editFieldParam, Params: editParams,
 			Handler: func(r *Runtime, n *Noun) AppHandler { return r.editHandler(n.Name) }},
 	}
 }

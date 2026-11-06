@@ -1,5 +1,5 @@
 {
- "name": "marked rows (space) and list.apply {verb: edit, args: {field: @owner}}: the owner form opens once and the pick goes to each marked row",
+ "name": "marked rows (space) and list.apply {verb: edit, args: {field: @owner}}: the owner chooser opens once and the pick goes to each marked row",
  "area": "verbs",
  "width": 100,
  "height": 28,
@@ -193,12 +193,10 @@
   "j",
   "space",
   "M",
-  "enter",
   {
    "type": "Wo"
   },
   "enter",
-  "esc",
   ":",
   {
    "type": "demo get t1"
@@ -214,10 +212,14 @@
  "expect": [
   {
    "after": 4,
-   "modal": "edit-form"
+   "modal": "edit-choose"
   },
   {
-   "after": 11,
+   "after": 6,
+   "modal": ""
+  },
+  {
+   "after": 9,
    "modal": "palette-results",
    "contains": [
     "project",

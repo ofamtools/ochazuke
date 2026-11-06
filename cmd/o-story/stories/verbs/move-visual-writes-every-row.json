@@ -1,5 +1,5 @@
 {
- "name": "m over a visual selection opens the owner form once and writes the pick to every selected row, one undo step",
+ "name": "m over a visual selection opens the owner chooser once and writes the pick to every selected row, one undo step",
  "area": "verbs",
  "width": 100,
  "height": 28,
@@ -181,12 +181,10 @@
   "V",
   "j",
   "m",
-  "enter",
   {
    "type": "Wo"
   },
   "enter",
-  "esc",
   ":",
   {
    "type": "demo get t2"
@@ -209,23 +207,20 @@
  "expect": [
   {
    "after": 3,
-   "modal": "edit-form",
+   "modal": "edit-choose",
    "contains": [
     "Edit demo project"
    ]
   },
   {
-   "after": 6,
+   "after": 5,
+   "modal": "",
    "contains": [
     "done on 2 rows"
    ]
   },
   {
-   "after": 7,
-   "modal": ""
-  },
-  {
-   "after": 10,
+   "after": 8,
    "modal": "palette-results",
    "contains": [
     "project",
@@ -233,7 +228,7 @@
    ]
   },
   {
-   "after": 14,
+   "after": 12,
    "modal": "palette-results",
    "contains": [
     "project",

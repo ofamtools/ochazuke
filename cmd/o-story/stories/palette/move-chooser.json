@@ -1,5 +1,5 @@
 {
-  "name": "m bound to edit {field: @owner} opens a one-field form on the owner reference, a choice of the owner noun's things (the project rows); the pick writes the owner reference",
+  "name": "m bound to edit {field: @owner} opens the owner reference's chooser (the owner noun's things, the project rows) in place of a one-field form; the pick writes the owner reference, closes the chooser and returns the focus to the row",
   "area": "palette",
   "width": 100,
   "height": 30,
@@ -84,12 +84,10 @@
   },
   "script": [
     "m",
-    "enter",
     {
       "type": "Wo"
     },
     "enter",
-    "esc",
     ":",
     {
       "type": "demo get t1"
@@ -100,22 +98,21 @@
   "expect": [
     {
       "after": 1,
-      "modal": "edit-form",
-      "focus": "edit-form/project",
+      "modal": "edit-choose",
       "contains": [
         "Edit demo project: t1",
-        "Home"
-      ]
-    },
-    {
-      "after": 2,
-      "contains": [
         "Home",
         "Work"
       ]
     },
     {
-      "after": 8,
+      "after": 3,
+      "modal": "",
+      "focus": "t1",
+      "mode": "normal"
+    },
+    {
+      "after": 6,
       "modal": "palette-results",
       "contains": [
         "project",

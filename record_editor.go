@@ -233,6 +233,38 @@ func (e *RecordEditor) shownFields() int {
 	return n
 }
 
+// editKind is how a form edits a field: through a chooser (choose), as
+// free text with suggestions (suggest), as chips (chips), and whether its
+// chooser is the path chooser (path). Neither choose nor suggest nor chips
+// is a plain text input.
+type editKind struct {
+	choose  bool // a choice field: a stop whose enter opens its chooser
+	suggest bool // a free text field with suggestions
+	path    bool // a path field: its chooser is the path chooser
+	chips   bool // a choice field that takes several choices (Chips)
+}
+
+// editKindOf is the one test of how a field is edited, read by the form
+// and by edit {field} (which opens a choice field's chooser in place of
+// the form, edit.field-chooser): a boolean, a noun reference, or a field
+// with choices that is not Free is a choice field; a path field follows
+// path.field.
+func (r *Runtime) editKindOf(field RecordField) editKind {
+	var k editKind
+	k.chips = field.Chips && (paramHasChoices(field.Parameter) || field.Type == "boolean")
+	k.choose = !k.chips && (field.Type == "boolean" || field.Noun != "" || (paramHasChoices(field.Parameter) && !field.Free))
+	k.suggest = !k.chips && !k.choose && paramHasChoices(field.Parameter)
+	if field.Type == PathParameterType {
+		// A path field is a stop that opens the path chooser, or a
+		// text field whose suggestions are the path chooser
+		// (path.field).
+		k.path = true
+		v, _ := r.settingValue(PathFieldSetting)
+		k.choose, k.suggest = v != "text", v == "text"
+	}
+	return k
+}
+
 // paramHasChoices reports whether a parameter's values come from a list:
 // an Enum, a Source, or a Noun's things (Runtime.Choices).
 func paramHasChoices(p Parameter) bool {
@@ -258,11 +290,8 @@ type recordField struct {
 	choicesReady  bool
 	choiceLoading bool
 	choices       []Choice
-	choose        bool
-	suggest       bool // a free text field with suggestions
-	path          bool // a path field: its chooser is the path chooser
-	chips         bool // a choice field that takes several choices (Chips)
-	chip          int  // the chip under the cursor, an index into choices
+	editKind
+	chip int // the chip under the cursor, an index into choices
 	// lines are the chips' rows as last drawn (indexes into choices), so
 	// j and k move by what is on screen.
 	lines                 [][]int
@@ -284,7 +313,11 @@ func (f *recordField) label() string {
 	return f.Name
 }
 
-func (f *recordField) choiceLabel(c Choice) string {
+func (f *recordField) choiceLabel(c Choice) string { return f.RecordField.choiceLabel(c) }
+
+// choiceLabel is how a field shows one of its choices: a noun
+// reference's thing by its label, any other choice as choiceLabel does.
+func (f RecordField) choiceLabel(c Choice) string {
 	if f.Noun != "" && c.Label != "" {
 		return c.Label
 	}
@@ -443,17 +476,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
 	for _, field := range fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
-		f.chips = field.Chips && (paramHasChoices(field.Parameter) || field.Type == "boolean")
-		f.choose = !f.chips && (field.Type == "boolean" || field.Noun != "" || (paramHasChoices(field.Parameter) && !field.Free))
-		f.suggest = !f.chips && !f.choose && paramHasChoices(field.Parameter)
-		if field.Type == PathParameterType {
-			// A path field is a stop that opens the path chooser, or a
-			// text field whose suggestions are the path chooser
-			// (path.field).
-			f.path = true
-			v, _ := r.settingValue(PathFieldSetting)
-			f.choose, f.suggest = v != "text", v == "text"
-		}
+		f.editKind = r.editKindOf(field)
 		v := values[field.Name]
 		e.written[field.Name], f.before = v, v
 		if field.Invertible {
@@ -666,7 +689,7 @@ func (e *RecordEditor) loadChoices(f *recordField) {
 		return
 	}
 	if f.Type == "boolean" && len(f.Enum) == 0 && f.Source == "" {
-		f.choices = []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}
+		f.choices = booleanChoices()
 		return
 	}
 	if !paramHasChoices(f.Parameter) {
@@ -1185,29 +1208,73 @@ func (e *RecordEditor) suggest(f *recordField) error {
 			fixed = append(fixed, ChooserRow{ID: "", Label: "(none)", Fixed: true})
 		}
 	}
+	c, err := e.r.openChoiceChooser(spec, choiceLoad{
+		ctx:      e.r.contextOf(f.id),
+		param:    f.Parameter,
+		label:    f.choiceLabel,
+		siblings: e.arguments,
+		fixed:    fixed,
+		landed: func(choices []Choice) {
+			if len(f.SourceArgs) == 0 {
+				f.choices = choices
+			}
+		},
+	})
 	if e.r.ChoicesTakeQuery(f.Parameter) || len(f.SourceArgs) > 0 {
+		f.chooser = c
+	}
+	return err
+}
+
+// choiceLoad is where a choice chooser's rows come from: a parameter's
+// choices (its Enum, then its Source's result, loaded off the loop when the
+// source is Pending; true and false for a boolean without choices), read
+// in ctx with the siblings a dependent source takes, each labelled by
+// label, then the fixed rows ("(none)"). landed gets the choices each load
+// produced.
+type choiceLoad struct {
+	ctx      Context
+	param    Parameter
+	label    func(Choice) string
+	siblings func() Arguments
+	fixed    []ChooserRow
+	landed   func([]Choice)
+}
+
+// openChoiceChooser opens the framework chooser (spec) over a parameter's
+// choices: the form's choice and suggestion fields and edit {field} on a
+// choice field (edit.field-chooser) open it alike. A source that takes the
+// query, or one that depends on siblings, reloads as the chooser's source
+// (while typing, and when a sibling changes); otherwise the choices load
+// once, as a job of the chooser (closing it cancels the load).
+func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, error) {
+	landed := func(choices []Choice) {
+		if l.landed != nil {
+			l.landed(choices)
+		}
+	}
+	if r.ChoicesTakeQuery(l.param) || len(l.param.SourceArgs) > 0 {
 		// Query sources reload while typing; dependent sources also reload
 		// when a sibling changes while their chooser is open.
 		spec.Sources = []ChooserSource{{
 			Name: "suggestions",
-			Live: e.r.ChoicesTakeQuery(f.Parameter),
+			Live: r.ChoicesTakeQuery(l.param),
 			Load: func(query string) Result {
-				res := e.r.choicesLoad(e.r.contextOf(f.id), f.Parameter, query, e.arguments())
+				res := r.choicesLoad(l.ctx, l.param, query, l.siblings())
 				rows := func(value any) []ChooserRow {
 					choices, _ := value.([]Choice)
-					out := make([]ChooserRow, 0, len(choices)+len(fixed))
+					out := make([]ChooserRow, 0, len(choices)+len(l.fixed))
 					for _, ch := range choices {
-						out = append(out, ChooserRow{ID: ch.ID, Label: f.choiceLabel(ch)})
+						out = append(out, ChooserRow{ID: ch.ID, Label: l.label(ch)})
 					}
-					return append(out, fixed...)
+					return append(out, l.fixed...)
 				}
 				if res.work == nil {
 					if res.err != nil {
 						return res
 					}
-					if len(f.SourceArgs) == 0 {
-						f.choices, _ = res.value.([]Choice)
-					}
+					choices, _ := res.value.([]Choice)
+					landed(choices)
 					return Done(rows(res.value))
 				}
 				return res.bare().Map(func(value any, err error) (any, error) {
@@ -1218,37 +1285,31 @@ func (e *RecordEditor) suggest(f *recordField) error {
 				}).Then(func(_ Ctx, value any, _ error) {
 					// value is the rows; the choices they came from are
 					// their ids.
-					if len(f.SourceArgs) > 0 {
-						return
-					}
 					got, _ := value.([]ChooserRow)
-					f.choices = f.choices[:0]
+					var choices []Choice
 					for _, row := range got {
 						if !row.Fixed {
-							f.choices = append(f.choices, Choice{ID: row.ID, Label: row.Label})
+							choices = append(choices, Choice{ID: row.ID, Label: row.Label})
 						}
 					}
+					landed(choices)
 				})
 			},
 		}}
-		c, err := e.r.OpenChooser(spec)
-		f.chooser = c
-		return err
+		return r.OpenChooser(spec)
 	}
-	c, err := e.r.OpenChooser(spec)
+	c, err := r.OpenChooser(spec)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	done := func(choices []Choice, err error) {
-		if e.r.Chooser(FormSuggestionsKind) != c {
+		if r.Chooser(spec.Kind) != c {
 			return
 		}
-		if len(f.SourceArgs) == 0 {
-			f.choices = choices
-		}
+		landed(choices)
 		rows := make([]ChooserRow, len(choices))
 		for i, ch := range choices {
-			rows[i] = ChooserRow{ID: ch.ID, Label: f.choiceLabel(ch)}
+			rows[i] = ChooserRow{ID: ch.ID, Label: l.label(ch)}
 		}
 		switch {
 		case err != nil && len(rows) == 0:
@@ -1256,15 +1317,19 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		case len(rows) == 0:
 			c.spec.Empty = "no suggestions"
 		}
-		c.SetRows(append(rows, fixed...))
+		c.SetRows(append(rows, l.fixed...))
 	}
-	if f.Type == "boolean" && !paramHasChoices(f.Parameter) {
-		e.loadChoices(f)
-		done(f.choices, nil)
-		return nil
+	if l.param.Type == "boolean" && !paramHasChoices(l.param) {
+		done(booleanChoices(), nil)
+		return c, nil
 	}
-	e.r.loadChoices(e.r.contextOf(f.id), f.Parameter, FormSuggestionsKind, done, e.arguments())
-	return nil
+	r.loadChoices(l.ctx, l.param, spec.Kind, done, l.siblings())
+	return c, nil
+}
+
+// booleanChoices are a boolean field's choices: true and false.
+func booleanChoices() []Choice {
+	return []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}
 }
 
 // choosePath opens the path chooser for a path field; the chosen path
