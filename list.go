@@ -63,6 +63,8 @@ type List struct {
 	r            *Runtime
 	id           string
 	all          []ListItem // every row, as SetItems gave them
+	from         string     // From: the noun whose store feeds the rows, "" for SetItems
+	refills      int        // reads of that store (tests count them)
 	archived     int        // rows of all that list.hide-archived hides (archiveHidden)
 	headerTones  []ToneSpan // the header row's tones (SetHeaderTones)
 	items        []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
@@ -167,10 +169,29 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[spec.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", spec.parent)
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect, noSort: spec.noSort, declaredNoun: spec.rowNoun}
+	if spec.from != "" {
+		src, err := r.listSource(spec.from)
+		if err != nil {
+			return nil, err
+		}
+		if len(items) > 0 {
+			return nil, fmt.Errorf("list %q: a list from %s takes no rows", id, r.DisplayNoun(src.Name))
+		}
+		spec.from, spec.rowNoun = src.Name, src.Name
+		if spec.columns == nil {
+			spec.columns = src.Columns
+		}
+	}
+	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect, noSort: spec.noSort, declaredNoun: spec.rowNoun, from: spec.from}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
-	if err := list.SetItems(items); err != nil {
+	var err error
+	if spec.from != "" {
+		err = list.feed()
+	} else {
+		err = list.SetItems(items)
+	}
+	if err != nil {
 		_ = r.RemoveInstance(id)
 		return nil, err
 	}

@@ -106,6 +106,8 @@ type watchHub struct {
 	watches    []*Watch
 	versions   WatchVersions
 	refreshing bool
+	// from are the watch and lists of each noun a From list shows (list_from.go).
+	from map[string]*fromHub
 	// changed is set when a request of the change kind ran inside the
 	// top-level request still running (a palette line's verb).
 	changed bool
@@ -153,6 +155,9 @@ type Watch struct {
 	signal    chan struct{}
 	done      chan struct{}
 	stopStore func()
+	// batch, when set, runs after each batch of events reached fn (a
+	// fallback watch's difference, a store's pushed batch).
+	batch func()
 }
 
 // watchKnown is what a fallback watch knows of a thing: its record hash
@@ -445,6 +450,9 @@ func (w *Watch) apply(snap watchSnapshot, first bool) {
 		e.Hash = hash
 		w.deliver(e)
 	}
+	if len(events) > 0 && !first && w.batch != nil {
+		w.batch()
+	}
 }
 
 // deliver hands one event to the subscriber.
@@ -521,6 +529,9 @@ func (m watchMsg) deliver(r *Runtime) {
 			e.Thing = thingRecord(n, e.Thing, nil)
 		}
 		w.deliver(e)
+	}
+	if w.batch != nil && !w.ended {
+		w.batch()
 	}
 	if !w.ended {
 		r.commands = append(r.commands, w.listen())

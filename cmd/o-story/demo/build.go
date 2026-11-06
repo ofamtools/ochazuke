@@ -951,6 +951,13 @@ func (ss *session) addPage(p *Page) error {
 			opts = append(opts, ochazuke.Columns(l.Columns...))
 		}
 		items := rowsOf(l)
+		if l.From {
+			if ss.storeNoun == "" {
+				return fmt.Errorf("list %s: from needs the page's store", l.ID)
+			}
+			items = nil
+			opts = append(opts, ochazuke.From(ss.storeNoun))
+		}
 		for _, it := range items {
 			if it.Noun != Demo && r.Noun(it.Noun) == nil {
 				r.Define(it.Noun) // a row of another noun: a thing a reference names

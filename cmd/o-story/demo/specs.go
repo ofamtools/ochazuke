@@ -159,12 +159,16 @@ type ChooserRowSpec struct {
 // ListSpec is one list: rows a1..aN labelled by id unless Labels or Items
 // say otherwise.
 type ListSpec struct {
-	ID      string     `json:"id"`
-	Rows    int        `json:"rows,omitempty"`
-	Labels  []string   `json:"labels,omitempty"`
-	Items   []ItemSpec `json:"items,omitempty"` // explicit ids and labels (a snapshot writes these)
-	NoSpill bool       `json:"noSpill,omitempty"`
-	NoMarks bool       `json:"noMarks,omitempty"` // a read-only view: space does not mark
+	ID     string     `json:"id"`
+	Rows   int        `json:"rows,omitempty"`
+	Labels []string   `json:"labels,omitempty"`
+	Items  []ItemSpec `json:"items,omitempty"` // explicit ids and labels (a snapshot writes these)
+	// From makes the list the view of the page's store (ochazuke.From): its
+	// rows are the store's things, filled again after any change of them,
+	// "LIST/KEY" each; the list has no rows of its own.
+	From    bool `json:"from,omitempty"`
+	NoSpill bool `json:"noSpill,omitempty"`
+	NoMarks bool `json:"noMarks,omitempty"` // a read-only view: space does not mark
 	// ClearFilterOnEnter: enter in the filter line chooses the match and
 	// clears the filter (ochazuke.ClearFilterOnEnter).
 	ClearFilterOnEnter bool `json:"clearFilterOnEnter,omitempty"`

@@ -42,7 +42,8 @@ type Noun struct {
 	Actions      map[string]Handler  `json:"-"`
 	// Columns are the table columns a list of the noun's rows draws
 	// (NounBuilder.Columns, the catalog's columns): declared data a host
-	// passes to Columns when it builds the list, never applied on its own.
+	// passes to Columns when it builds a list of rows it fills itself; a
+	// list From the noun's store applies them on its own (From).
 	Columns []Column `json:"columns,omitempty"`
 	// Completions are the completion triggers of the noun's inputs that
 	// declare none of their own (NounBuilder.Completions).

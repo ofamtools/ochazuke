@@ -73,6 +73,7 @@ type instanceSpec struct {
 	parent, noun, focus, closeFocus string
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
+	from                            string // From: a list fed by a noun's store
 	rowNoun                         string // RowNoun: the noun of a list's rows while it has none
 	noSort                          bool   // NoSort: the source owns the row order
 	guides                          bool   // Guides: draw a tree's branch lines
