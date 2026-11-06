@@ -9,12 +9,7 @@ import (
 func TestArchiveListVisibilityAndLimit(t *testing.T) {
 	r := NewRuntime()
 	things := []Thing{{"id": "old", "retired": true}, {"id": "legacy"}, {"id": "live", "retired": false}, {"id": "text", "retired": "true"}}
-	r.Define("parcel").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "retired", Aliases: []string{"hidden"}, Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}}).Store(Store{List: func(_ Ctx, q ListQuery) ([]Thing, error) {
-		if q.Limit > 0 {
-			return things[:min(len(things), q.Limit)], nil
-		}
-		return things, nil
-	}})
+	r.Define("parcel").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "retired", Aliases: []string{"hidden"}, Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}}).Store(Store{List: func(Ctx, ListQuery) ([]Thing, error) { return things, nil }})
 	ids := func(args Arguments) []string {
 		t.Helper()
 		v, err := r.Execute(Request{Noun: "parcel", Verb: "list", Args: args})
@@ -22,7 +17,7 @@ func TestArchiveListVisibilityAndLimit(t *testing.T) {
 			t.Fatal(err)
 		}
 		out := []string{}
-		for _, row := range v.([]map[string]any) {
+		for _, row := range AnswerRows(v).([]map[string]any) {
 			out = append(out, row["id"].(string))
 		}
 		return out
@@ -94,12 +89,12 @@ func TestAgentArchiveRestoreAndUndo(t *testing.T) {
 		return got
 	}
 	run("archive", Arguments{"id": "t1"})
-	rows := run("list", nil).([]map[string]any)
+	rows := AnswerRows(run("list", nil)).([]map[string]any)
 	if len(rows) != 1 || rows[0]["id"] != "t2" {
 		t.Fatal(rows)
 	}
 	run("restore", Arguments{"id": "t1"})
-	rows = run("list", nil).([]map[string]any)
+	rows = AnswerRows(run("list", nil)).([]map[string]any)
 	if len(rows) != 2 || rows[0]["id"] != "t1" {
 		t.Fatal(rows)
 	}

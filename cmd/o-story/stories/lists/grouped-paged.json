@@ -1,0 +1,48 @@
+{
+  "name": "grouped and paged: group headings over the rows, a page counts rows, the page indicator and list.page-next move between pages",
+  "area": "lists",
+  "width": 60,
+  "height": 12,
+  "chrome": "none",
+  "settings": [
+    {"name": "list.per-page", "type": "integer", "default": 3},
+    {"name": "list.group-by", "type": "string", "default": "status"}
+  ],
+  "page": {
+    "noHeadings": true,
+    "nouns": [
+      {
+        "noun": "chore",
+        "props": [
+          {"name": "status", "enum": ["todo", "doing", "done"]}
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "chores",
+        "height": -1,
+        "items": [
+          {"id": "c1", "label": "Water the plants", "noun": "chore", "data": {"status": "todo"}},
+          {"id": "c2", "label": "Write notes", "noun": "chore", "data": {"status": "doing"}},
+          {"id": "c3", "label": "Call the plumber", "noun": "chore", "data": {"status": "done"}},
+          {"id": "c4", "label": "Buy milk", "noun": "chore", "data": {"status": "todo"}},
+          {"id": "c5", "label": "Pay rent", "noun": "chore", "data": {"status": "done"}},
+          {"id": "c6", "label": "Sweep the floor", "noun": "chore", "data": {"status": "todo"}},
+          {"id": "c7", "label": "Fix the bike", "noun": "chore", "data": {"status": "doing"}}
+        ]
+      }
+    ],
+    "bind": [
+      {"noun": "chore", "keys": "n", "do": "ochazuke.list.page-next"},
+      {"noun": "chore", "keys": "p", "do": "ochazuke.list.page-prev"}
+    ]
+  },
+  "script": ["p", "n", "n", "p"],
+  "expect": [
+    {"after": 1, "contains": ["todo", "Water the plants", "Buy milk", "Sweep the floor", "page 1/3"], "lacks": ["doing", "Write notes"]},
+    {"after": 2, "contains": ["doing", "Write notes", "Fix the bike", "done", "Call the plumber", "page 2/3"], "lacks": ["Water the plants", "Pay rent"]},
+    {"after": 3, "contains": ["done", "Pay rent", "page 3/3"], "lacks": ["Call the plumber", "Fix the bike"]},
+    {"after": 4, "contains": ["page 2/3", "doing", "Write notes"], "lacks": ["Pay rent"]}
+  ]
+}

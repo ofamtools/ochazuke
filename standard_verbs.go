@@ -271,10 +271,16 @@ func getParams(n *Noun) map[string]Parameter {
 
 func listParams(n *Noun) map[string]Parameter {
 	params := map[string]Parameter{
-		"filter": {Type: "string", Description: "Apply a named saved prop filter for this noun, ANDed with where"},
-		"where":  {Type: "string", Free: true, Pairs: true, Description: "prop=value pairs, comma- or space-separated: keep the things whose props equal every value"},
-		"props":  {Type: "string", Description: "The props each row holds besides id and label, comma-separated (default: every prop but secrets)"},
-		"limit":  {Type: "integer", Description: "At most this many rows (0: every row)"},
+		"filter":     {Type: "string", Free: true, Description: "Keep the things that meet every condition: words prop=value, prop!=value, prop~value (contains), prop!~value, with a|b for alternatives; or the name of a saved prop filter for this noun. ANDed with where"},
+		"where":      {Type: "string", Free: true, Pairs: true, Description: "prop=value pairs, comma- or space-separated: keep the things whose props equal every value"},
+		"props":      {Type: "string", Description: "The props each row holds besides id and label, comma-separated (default: every prop but secrets)"},
+		"limit":      {Type: "integer", Description: "At most this many rows: the first page of that size (0: every row)"},
+		"sort":       {Type: "string", Free: true, Description: "Order the rows by props, comma-separated, each prop[:desc]; ties keep the store's order"},
+		"group-by":   {Type: "string", Free: true, Description: "Gather the rows that share these props' values into groups (comma-separated props); each row names its group"},
+		"group-sort": {Type: "string", Free: true, Description: "Order the groups by group-by props, each prop[:desc] (default: the order the groups first appear in)"},
+		"page":       {Type: "integer", Description: "The page to answer, from 1 (with per-page)"},
+		"per-page":   {Type: "integer", Description: "Rows per page, counting rows, never groups (0: one page of every row)"},
+		"archived":   {Type: "boolean", Description: "Include the archived things list.hide-archived hides by default"},
 	}
 	for name, p := range n.Store.ListParams {
 		params[name] = p
@@ -287,7 +293,9 @@ func listParams(n *Noun) map[string]Parameter {
 // continues to mean limit, props, where. Store parameters keep their order too.
 func listPositional(n *Noun) []string {
 	params := listParams(n)
-	delete(params, "filter")
+	for _, name := range []string{"filter", "sort", "group-by", "group-sort", "page", "per-page", "archived"} {
+		delete(params, name)
+	}
 	return (Operation{Parameters: params}).ParameterOrder()
 }
 
@@ -408,15 +416,16 @@ func archiveName(n *Noun) string {
 
 // archiveHiding is the archive prop a default view of n's things hides on,
 // or nil when it hides nothing: the noun has no archive prop, the setting
-// is off, the request names the prop (explicit, a where) or one of the
-// filters does. runList and every row-fed list or tree (List.archiveHidden)
-// decide through it, so the rule is one.
-func (r *Runtime) archiveHiding(n *Noun, explicit bool, filters []PropFilter) *PropSpec {
+// is off, the query includes archived things (Archived) or one of its
+// conditions names the prop (a where, a filter). queryAll and every
+// row-fed list or tree (List.archiveHidden) decide through it, so the
+// rule is one.
+func (r *Runtime) archiveHiding(n *Noun, q ListQuery) *PropSpec {
 	if n == nil {
 		return nil
 	}
 	p := n.roleProp(RoleArchive)
-	if p == nil || explicit || !r.Settings().Bool(HideArchivedSetting) || slices.ContainsFunc(filters, func(f PropFilter) bool { return f.Prop == p.Name }) {
+	if p == nil || q.Archived || !r.Settings().Bool(HideArchivedSetting) || slices.ContainsFunc(q.Filters, func(f PropFilter) bool { return f.Prop == p.Name }) {
 		return nil
 	}
 	return p
@@ -433,56 +442,15 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	where, err := parseWhere(n, StringArg(c.Args, "where", ""))
+	q, err := r.listQueryOf(n, c.Args)
 	if err != nil {
 		return nil, err
 	}
-	filters, err := r.namedPropFilter(n, StringArg(c.Args, "filter", ""))
+	page, err := r.queryThings(c, n, q)
 	if err != nil {
 		return nil, err
 	}
-	_, explicit := where[archiveName(n)]
-	archive := r.archiveHiding(n, explicit, filters)
-	// Stores must not limit before saved conditions or archive hiding are applied.
-	limit := max(0, IntArg(c.Args, "limit", 0))
-	q := ListQuery{Where: where, Limit: limit}
-	if len(filters) > 0 || archive != nil {
-		q.Limit = 0
-	}
-	for name := range n.Store.ListParams {
-		if v, ok := c.Args[name]; ok {
-			if q.Args == nil {
-				q.Args = Arguments{}
-			}
-			q.Args[name] = v
-		}
-	}
-	things, err := n.Store.List(c, q)
-	if err != nil {
-		return nil, err
-	}
-	key := n.keyProp()
-	rows := []map[string]any{}
-	for _, t := range things {
-		if archive != nil && archivedThing(archive, t) {
-			continue
-		}
-		if !thingMatches(n, t, where) || !propsMatch(n, t, filters) {
-			continue
-		}
-		row := thingRecord(n, t, names)
-		if key != nil {
-			row["id"] = fmt.Sprint(t[key.Name])
-		}
-		if label := n.displayLabel(func(name string) any { return t[name] }); label != "" {
-			row["label"] = label
-		}
-		rows = append(rows, row)
-		if limit > 0 && len(rows) == limit {
-			break
-		}
-	}
-	return rows, nil
+	return answerOf(n, page, q, names), nil
 }
 
 // thingMatches reports whether a thing's props equal every where value.

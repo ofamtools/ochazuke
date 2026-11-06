@@ -11,7 +11,7 @@ import (
 )
 
 // PropFilters returns a copy of the list's active prop conditions.
-func (l *List) PropFilters() []PropFilter { return clonePropFilters(l.propFilters) }
+func (l *List) PropFilters() []PropFilter { return clonePropFilters(l.vs.Filters) }
 
 func (l *List) tree() *Tree {
 	if inst := l.r.Instances[l.id]; inst != nil && inst.Component == l {
@@ -178,7 +178,7 @@ func (l *List) archiveHidden() map[string]bool {
 	hide := func(item ListItem, parentHidden bool) bool {
 		p, seen := byNoun[item.Noun]
 		if !seen {
-			p = l.r.archiveHiding(l.r.Noun(item.Noun), false, l.propFilters)
+			p = l.r.archiveHiding(l.r.Noun(item.Noun), l.vs)
 			byNoun[item.Noun] = p
 		}
 		if !parentHidden && (p == nil || !archivedThing(p, l.thing(item))) {
@@ -205,7 +205,7 @@ func (l *List) archiveHidden() map[string]bool {
 }
 
 func (l *List) matchesProps(item ListItem) bool {
-	if len(l.propFilters) == 0 {
+	if len(l.vs.Filters) == 0 {
 		return true
 	}
 	n := l.r.Noun(item.Noun)
@@ -213,7 +213,7 @@ func (l *List) matchesProps(item ListItem) bool {
 		return false
 	}
 	t := l.thing(item)
-	for _, f := range l.propFilters {
+	for _, f := range l.vs.Filters {
 		p := l.filterProp(n, f.Prop)
 		if p == nil {
 			return false
@@ -264,8 +264,8 @@ func (l *List) SetPropFilters(filters []PropFilter) error {
 // hears the new conditions and saved name, on flat lists and trees alike.
 func (l *List) replacePropFilters(filters []PropFilter, saved string) error {
 	l.linger.reset()
-	l.propFilters = filters
-	l.savedFilter = saved
+	l.vs.Filters = filters
+	l.vs.Saved = saved
 	if l.filterChanged != nil {
 		l.filterChanged()
 		return nil
@@ -278,7 +278,7 @@ func (l *List) replacePropFilters(filters []PropFilter, saved string) error {
 		l.filterHeard()
 		return nil
 	}
-	l.SetFilter(l.query)
+	l.SetFilter(l.vs.Text)
 	return nil
 }
 
@@ -323,7 +323,7 @@ func (l *List) ApplyFilter(name string) error {
 			if err != nil {
 				return err
 			}
-			l.sort = keys
+			l.vs.Sort = keys
 			if err := l.replacePropFilters(conditions, name); err != nil {
 				return err
 			}
@@ -362,7 +362,7 @@ func (l *List) SaveFilter(name string) error {
 	if err := l.r.Settings().Set("list.filters", string(raw)); err != nil {
 		return err
 	}
-	l.savedFilter = name
+	l.vs.Saved = name
 	return nil
 }
 
@@ -394,8 +394,8 @@ func (l *List) DeleteSavedFilter(name string) error {
 	if err := l.r.Settings().Set("list.filters", string(raw)); err != nil {
 		return err
 	}
-	if l.savedFilter == name {
-		l.savedFilter = ""
+	if l.vs.Saved == name {
+		l.vs.Saved = ""
 	}
 	return nil
 }
@@ -418,27 +418,25 @@ func (l *List) pickSavedFilter() error {
 	return err
 }
 
-func (r *Runtime) namedPropFilter(n *Noun, name string) ([]PropFilter, error) {
-	if name == "" {
-		return nil, nil
-	}
+// savedFilterNamed is the typed conditions of the saved filter called name
+// for n; found is false when there is none.
+func (r *Runtime) savedFilterNamed(n *Noun, name string) ([]PropFilter, bool, error) {
 	filters, err := r.SavedFilters("", n.Name)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	for _, f := range filters {
 		if f.Name == name {
 			out := f.conditions()
 			for i, c := range out {
-				out[i], err = typedFilter(n, c)
-				if err != nil {
-					return nil, err
+				if out[i], err = typedFilter(n, c); err != nil {
+					return nil, true, err
 				}
 			}
-			return out, nil
+			return out, true, nil
 		}
 	}
-	return nil, fmt.Errorf("unknown saved filter %q for %s", name, n.Name)
+	return nil, false, nil
 }
 
 func (l *List) propStrip() string {
@@ -446,10 +444,10 @@ func (l *List) propStrip() string {
 		return ""
 	}
 	var parts []string
-	if l.savedFilter != "" {
-		parts = append(parts, "["+modalLabel(l.savedFilter)+"]")
+	if l.vs.Saved != "" {
+		parts = append(parts, "["+modalLabel(l.vs.Saved)+"]")
 	}
-	for _, f := range l.propFilters {
+	for _, f := range l.vs.Filters {
 		parts = append(parts, "["+modalLabel(f.Label())+"]")
 	}
 	return strings.Join(parts, " ")
@@ -493,7 +491,7 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 		if l.r.Settings().Bool(ListFilterPickerSortSetting) && l.Sortable() {
 			rows = append(rows, ChooserRow{Label: "Sort…", Fixed: true, Data: Request{Noun: "ochazuke.list", Verb: "sort-column", Args: Arguments{"id": l.id, "pick": true}}})
 		}
-		if offerClear && (len(l.propFilters) > 0 || l.savedFilter != "") {
+		if offerClear && (len(l.vs.Filters) > 0 || l.vs.Saved != "") {
 			rows = append(rows, ChooserRow{Label: "Clear prop filters", Fixed: true})
 		}
 		if len(rows) == 0 {
@@ -601,14 +599,14 @@ func registerListPropFilter(r *Runtime) {
 		}
 		return r.propFilterList(ev.Focus)
 	}
-	r.DefineGuard("list-prop-conditions", func(_ *Runtime, ev KeyEvent) bool { l := guardList(ev); return l != nil && len(l.propFilters) > 0 })
+	r.DefineGuard("list-prop-conditions", func(_ *Runtime, ev KeyEvent) bool { l := guardList(ev); return l != nil && len(l.vs.Filters) > 0 })
 	r.DefineGuard("list-props", func(r *Runtime, ev KeyEvent) bool {
 		l := guardList(ev)
 		return l != nil && (len(l.filterProps()) > 0 || l.r.Settings().Bool(ListFilterSortSetting) && l.Sortable())
 	})
 	r.DefineGuard("list-prop-filtered", func(r *Runtime, ev KeyEvent) bool {
 		l := guardList(ev)
-		return l != nil && (len(l.propFilters) > 0 || l.savedFilter != "")
+		return l != nil && (len(l.vs.Filters) > 0 || l.vs.Saved != "")
 	})
 	r.DefineGuard("list-saved-filters", func(r *Runtime, ev KeyEvent) bool {
 		l := guardList(ev)
@@ -669,10 +667,10 @@ func registerListPropFilter(r *Runtime) {
 				if err != nil {
 					return err
 				}
-				return clear(slices.IndexFunc(l.propFilters, func(f PropFilter) bool { return f.Prop == prop }))
+				return clear(slices.IndexFunc(l.vs.Filters, func(f PropFilter) bool { return f.Prop == prop }))
 			}
 			rows := []ChooserRow{}
-			for i, f := range l.propFilters {
+			for i, f := range l.vs.Filters {
 				rows = append(rows, ChooserRow{ID: strconv.Itoa(i), Label: f.Label(), Data: i})
 			}
 			_, err := r.OpenChooser(ChooserSpec{Kind: "list-filter-remove", Title: "Clear prop filter", Rows: rows, Choose: func(row ChooserRow) Result {
@@ -696,7 +694,7 @@ func registerListPropFilter(r *Runtime) {
 			if len(filters) == 0 {
 				return errors.New("no saved filters")
 			}
-			i := slices.IndexFunc(filters, func(f SavedFilter) bool { return f.Name == l.savedFilter })
+			i := slices.IndexFunc(filters, func(f SavedFilter) bool { return f.Name == l.vs.Saved })
 			step := IntArg(a, "step", 1)
 			if i < 0 {
 				if step < 0 {

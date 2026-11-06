@@ -76,6 +76,7 @@ type record struct {
 // tablesOf groups value's rows into tables, false when value is not
 // tabular. rowsNoun is the noun the verb declares its rows belong to.
 func tablesOf(r *ochazuke.Runtime, rowsNoun string, value any) ([]table, bool) {
+	value = ochazuke.AnswerRows(value)
 	recs, ok := recordsOf(value)
 	if !ok {
 		return nil, false

@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -66,11 +67,11 @@ type List struct {
 	headerTones  []ToneSpan // the header row's tones (SetHeaderTones)
 	items        []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
 	linger       filterLinger
-	query        string       // the filter query; "" shows every row
-	propFilters  []PropFilter // typed prop conditions, ANDed with the text query
-	sort         []SortKey    // stable view order, applied after filtering
-	noSort       bool         // source-owned or virtualized rows cannot sort locally
-	savedFilter  string       // the applied saved filter's name; empty after an ad-hoc change
+	vs           ListQuery // the view state: text query, prop conditions, sort, saved filter name, groups and page (list_query.go)
+	total        int       // rows the view matches before it pages them (items holds the page)
+	grouped      bool      // the view grouped the shown rows: each carries its group in Section
+	pages        int       // pages of total rows when the view pages (0: not paged; vs.Page is the shown one)
+	noSort       bool      // source-owned or virtualized rows cannot sort locally
 	rowCache     map[string]*filterRow
 	derived      fieldProps // the rows' undeclared fields as props (list_props.go); nil until asked, cleared with the rows
 	nouns        []string
@@ -450,7 +451,7 @@ func (l *List) Select(id string) error {
 func (l *List) selectID(id string) {
 	at := func(item ListItem) bool { return item.ID == id }
 	i := slices.IndexFunc(l.items, at)
-	if i < 0 && (l.query != "" || len(l.propFilters) > 0) {
+	if i < 0 && (l.vs.Text != "" || len(l.vs.Filters) > 0) {
 		l.reveal(id)
 		i = slices.IndexFunc(l.items, at)
 	}
@@ -568,16 +569,16 @@ func (l *List) state() map[string]any {
 		}
 	}
 	out := map[string]any{"id": l.id, "items": slices.Clip(l.items), "selected": l.selected, "selectedId": selected.ID, "offset": l.offset, "focused": l.Focused(), "marked": marked}
-	if len(l.sort) > 0 {
+	if len(l.vs.Sort) > 0 {
 		out["sort"] = l.Sort()
 	}
-	if l.query != "" || len(l.propFilters) > 0 || l.savedFilter != "" {
-		out["filter"], out["total"] = l.query, l.Len()
-		if len(l.propFilters) > 0 {
+	if l.vs.Text != "" || len(l.vs.Filters) > 0 || l.vs.Saved != "" {
+		out["filter"], out["total"] = l.vs.Text, l.Len()
+		if len(l.vs.Filters) > 0 {
 			out["propFilters"] = l.PropFilters()
 		}
-		if l.savedFilter != "" {
-			out["savedFilter"] = l.savedFilter
+		if l.vs.Saved != "" {
+			out["savedFilter"] = l.vs.Saved
 		}
 	}
 	if len(l.columns) > 0 {
@@ -737,9 +738,13 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 	marked, gutter := l.marksSelection(), l.hasGutter()
 	toned, faded := l.listTones(), l.faded()
 	bar := l.bar(faded)
+	headed, heading := l.headed(), lipgloss.NewStyle().Bold(true).Underline(true)
 	for i := l.offset; i < end; i++ {
-		if spaced && i > l.offset && l.items[i].SpaceAbove {
+		if spaced && l.gapAbove(i) && i > l.offset {
 			rows = append(rows, "")
+		}
+		if headed && (i == l.offset || l.opensGroup(i)) {
+			rows = append(rows, ansi.Truncate(heading.Render(modalLabel(l.items[i].Section)), width, "…"))
 		}
 		if i == l.selected {
 			l.selLine = len(rows)
@@ -794,7 +799,7 @@ func (l *List) emptyLine() string {
 	p := l.placeholder
 	text := p.Text(l.r)
 	if l.Len() > 0 {
-		text = NoMatchText(p.Plural, l.query)
+		text = NoMatchText(p.Plural, l.vs.Text)
 		if l.Filtering() && !l.r.Settings().Bool("list.filter-strip") {
 			text += fmt.Sprintf(", 0 of %d", l.Len()) // no strip to count them
 		}
@@ -939,6 +944,7 @@ func registerLists(r *Runtime) {
 	registerListFilter(r)
 	registerListPropFilter(r)
 	registerListSort(r)
+	registerListQuery(r)
 	for _, verb := range []string{"ochazuke.list.column", "ochazuke.list.scroll-columns"} {
 		if err := r.AddVerbAvailability(verb, "list-column-moves"); err != nil {
 			panic(err)

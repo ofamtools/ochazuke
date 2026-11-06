@@ -203,7 +203,7 @@ func TestNounPlacesVerb(t *testing.T) {
 		t.Fatalf("every noun: %v", all)
 	}
 	list, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.nouns"})
-	for _, row := range list.([]map[string]any) {
+	for _, row := range AnswerRows(list).([]map[string]any) {
 		if row["noun"] == "item" && row["seen"] != float64(1) {
 			t.Fatalf("nouns.list item: %v", row)
 		}

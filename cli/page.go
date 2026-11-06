@@ -801,8 +801,8 @@ func (v *PageView) launchWith(owner, slot, noun, verb string, fetch func(context
 	return err
 }
 
-// DecodeRows reads a list answer: a JSON array of rows or JSON Lines of
-// them. A row is an object ({id, label, cells, data}, or any record whose
+// DecodeRows reads a list answer: a JSON array of rows, a page object
+// ({items, page, per_page, total}) or JSON Lines of them. A row is an object ({id, label, cells, data}, or any record whose
 // id is its first of id or ID and label its first of label, Label, name,
 // Name, title or Title; either stands in for the other) or a scalar (id and
 // label both). An object's data is its data field when it has one, else
@@ -814,7 +814,9 @@ func DecodeRows(noun string, out []byte) ([]Row, error) {
 		return nil, nil
 	}
 	var values []any
-	if out[0] == '[' {
+	if page, ok := pageItems(out); ok {
+		values = page
+	} else if out[0] == '[' {
 		if err := json.Unmarshal(out, &values); err != nil {
 			return nil, fmt.Errorf("rows: %w", err)
 		}
@@ -838,6 +840,25 @@ func DecodeRows(noun string, out []byte) ([]Row, error) {
 		rows = append(rows, rowOf(noun, value))
 	}
 	return rows, nil
+}
+
+// pageItems are the rows of a list answer written as one JSON object
+// ({items, page, per_page, total}: ochazuke.ListAnswer), false for any
+// other text.
+func pageItems(out []byte) ([]any, bool) {
+	if out[0] != '{' {
+		return nil, false
+	}
+	var page struct {
+		Items   []any `json:"items"`
+		Page    *int  `json:"page"`
+		PerPage *int  `json:"per_page"`
+		Total   *int  `json:"total"`
+	}
+	if json.Unmarshal(out, &page) != nil || page.Items == nil || page.Page == nil || page.PerPage == nil || page.Total == nil {
+		return nil, false
+	}
+	return page.Items, true
 }
 
 // The record fields a row's id and label are read from, first present wins.

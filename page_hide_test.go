@@ -64,7 +64,7 @@ func TestPageHideLeavesTabsAndCycling(t *testing.T) {
 	if r.Page != "alpha" {
 		t.Fatalf("ctrl+k opened %q, want alpha", r.Page)
 	}
-	rows := paletteRequest(t, r, "list", "pages", nil).([]map[string]any)
+	rows := AnswerRows(paletteRequest(t, r, "list", "pages", nil)).([]map[string]any)
 	if rows[1]["id"] != "beta" || rows[1]["hidden"] != true || rows[0]["hidden"] != false {
 		t.Fatalf("pages.list %v", rows)
 	}

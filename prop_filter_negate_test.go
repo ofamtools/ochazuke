@@ -82,8 +82,8 @@ func TestPropFilterVerbNotAndSavedNotIn(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-prop", Args: Arguments{"id": l.id, "prop": "by", "value": "agent", "not": true}}); err != nil {
 		t.Fatal(err)
 	}
-	if l.Shown() != 3 || l.propFilters[0].Op != "!=" {
-		t.Fatalf("not: %v shown %d", l.propFilters, l.Shown())
+	if l.Shown() != 3 || l.vs.Filters[0].Op != "!=" {
+		t.Fatalf("not: %v shown %d", l.vs.Filters, l.Shown())
 	}
 	_ = l.SetPropFilters([]PropFilter{{Prop: "by", Op: "not-in", Value: []any{"agent"}}})
 	if err := l.SaveFilter("humans"); err != nil {

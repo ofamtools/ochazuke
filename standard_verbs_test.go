@@ -328,7 +328,7 @@ func TestListRows(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		return v.([]map[string]any)
+		return AnswerRows(v).([]map[string]any)
 	}
 	rows := list(nil)
 	var labels []string

@@ -43,8 +43,8 @@ func (v *filterViewForm) saveBlock(s Styles, width int) Block {
 			break
 		}
 	}
-	if v.l.savedFilter != "" {
-		label = "Applied: " + v.l.savedFilter + " · " + label
+	if v.l.vs.Saved != "" {
+		label = "Applied: " + v.l.vs.Saved + " · " + label
 	}
 	b := InputBlock(v.saveInput, width, 1)
 	v.l.r.PlacedAt(v.saveInput.ID, b.Text, 0, 1)

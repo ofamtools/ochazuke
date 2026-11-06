@@ -220,7 +220,7 @@ func (l *List) layoutColumns() []Column {
 			cursor = c
 		}
 	}
-	if len(l.colWidths) == 0 && cursor < 0 && len(l.sort) == 0 {
+	if len(l.colWidths) == 0 && cursor < 0 && len(l.vs.Sort) == 0 {
 		return l.columns
 	}
 	cols := slices.Clone(l.columns)

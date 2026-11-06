@@ -116,30 +116,30 @@ func TestPropFilterPickerCycleAndStrip(t *testing.T) {
 		t.Fatal("missing value picker")
 	}
 	pressKeys(m, "enter")
-	if l.Shown() != 2 || len(l.propFilters) != 1 {
-		t.Fatalf("shown %d filters %v", l.Shown(), l.propFilters)
+	if l.Shown() != 2 || len(l.vs.Filters) != 1 {
+		t.Fatalf("shown %d filters %v", l.Shown(), l.vs.Filters)
 	}
 	if text := ansi.Strip(l.View(90, 10)); !strings.Contains(text, "[by = agent]") {
 		t.Fatal(text)
 	}
 	pressKeys(m, "z", "C", "z", "]")
-	if l.savedFilter != "mine" || l.Shown() != 3 {
-		t.Fatalf("saved %s shown %d", l.savedFilter, l.Shown())
+	if l.vs.Saved != "mine" || l.Shown() != 3 {
+		t.Fatalf("saved %s shown %d", l.vs.Saved, l.Shown())
 	}
 	// z / is hidden from the footer (every list with data offers it; ? lists it).
 	if hints := BindingHints(r, r.Focus); strings.Contains(hints, "z / prop filter") || strings.Contains(hints, "z ! clear prop") {
 		t.Fatal(hints)
 	}
 	pressKeys(m, "z", "]")
-	if l.savedFilter != "agents" || l.Shown() != 2 {
+	if l.vs.Saved != "agents" || l.Shown() != 2 {
 		t.Fatal("cycle agents")
 	}
 	pressKeys(m, "z", "]")
-	if l.savedFilter != "all" || l.Shown() != 5 {
+	if l.vs.Saved != "all" || l.Shown() != 5 {
 		t.Fatal("cycle all")
 	}
 	pressKeys(m, "z", "[")
-	if l.savedFilter != "agents" {
+	if l.vs.Saved != "agents" {
 		t.Fatal("reverse")
 	}
 	if err := r.Settings().Set("list.filter-strip", false); err != nil {
@@ -159,20 +159,15 @@ func TestPropFilterPickerCycleAndStrip(t *testing.T) {
 func TestPropFilterSavedSettingsAndCLI(t *testing.T) {
 	r, s := newTaskRuntime(t)
 	r.Define("task").Filters(SavedFilter{Name: "todo", Where: map[string]any{"status": "todo"}}, SavedFilter{Name: "all"})
-	// A store which limits eagerly must see no limit until saved conditions
-	// have run. The first thing doesn't match the named filter.
+	// The limit applies after saved conditions have run. The first thing
+	// doesn't match the named filter.
 	s.things[0]["status"] = "doing"
-	r.Define("task").Store(Store{List: func(_ Ctx, q ListQuery) ([]Thing, error) {
-		if q.Limit > 0 {
-			return s.things[:q.Limit], nil
-		}
-		return s.things, nil
-	}})
+	r.Define("task").Store(Store{List: func(Ctx, ListQuery) ([]Thing, error) { return s.things, nil }})
 	result, err := r.Execute(Request{Noun: "task", Verb: "list", Args: Arguments{"filter": "todo", "where": "estimate=1", "limit": 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	rows := result.([]map[string]any)
+	rows := AnswerRows(result).([]map[string]any)
 	if len(rows) != 1 || rows[0]["id"] != "t3" {
 		t.Fatal(rows)
 	}
@@ -290,7 +285,7 @@ func TestPropFilterTargetAndClearOne(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-prop-clear", Args: Arguments{"id": l.id, "index": 2}}); err != nil {
 		t.Fatal(err)
 	}
-	if l.Shown() != 3 || len(l.propFilters) != 1 {
+	if l.Shown() != 3 || len(l.vs.Filters) != 1 {
 		t.Fatal("clear removed more than one condition")
 	}
 	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-props-clear", Args: Arguments{"id": l.id}}); err != nil {
@@ -311,7 +306,7 @@ func TestPropFilterPickerVisibleValuesOnly(t *testing.T) {
 		t.Fatal("picker used hidden rows")
 	}
 	pressKeys(m, "esc")
-	if len(l.propFilters) != 0 || l.Filter() != "beta" {
+	if len(l.vs.Filters) != 0 || l.Filter() != "beta" {
 		t.Fatal("cancel changed filters")
 	}
 }
@@ -323,7 +318,7 @@ func TestPropFilterSavedOperatorsAndMissingProps(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rows := answer.([]map[string]any)
+	rows := AnswerRows(answer).([]map[string]any)
 	if len(rows) != 1 || rows[0]["id"] != "t2" {
 		t.Fatal(rows)
 	}
@@ -368,12 +363,12 @@ func TestPropFilterDurationAndCopies(t *testing.T) {
 func TestPropFilterStandardPositionalOrder(t *testing.T) {
 	r, _ := newTaskRuntime(t)
 	op, _ := r.Operation("task.list")
-	if want := []string{"limit", "props", "where", "filter"}; !reflect.DeepEqual(op.ParameterOrder(), want) {
+	if want := []string{"limit", "props", "where", "archived", "filter", "group-by", "group-sort", "page", "per-page", "sort"}; !reflect.DeepEqual(op.ParameterOrder(), want) {
 		t.Fatalf("order %v want %v", op.ParameterOrder(), want)
 	}
 	r.Define("task").Store(Store{List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }, ListParams: map[string]Parameter{"project": {Type: "string", Required: true}}})
 	op, _ = r.Operation("task.list")
-	if want := []string{"project", "limit", "props", "where", "filter"}; !reflect.DeepEqual(op.ParameterOrder(), want) {
+	if want := []string{"project", "limit", "props", "where", "archived", "filter", "group-by", "group-sort", "page", "per-page", "sort"}; !reflect.DeepEqual(op.ParameterOrder(), want) {
 		t.Fatalf("order %v want %v", op.ParameterOrder(), want)
 	}
 }
@@ -505,13 +500,13 @@ func TestPropFilterCycleInvalidAndEmpty(t *testing.T) {
 	}
 	_ = l.ApplyFilter("all")
 	pressKeys(m, "z", "]")
-	if l.savedFilter != "mine" || !strings.Contains(m.Info, "Skipped saved filters: broken") {
-		t.Fatalf("saved %s info %s", l.savedFilter, m.Info)
+	if l.vs.Saved != "mine" || !strings.Contains(m.Info, "Skipped saved filters: broken") {
+		t.Fatalf("saved %s info %s", l.vs.Saved, m.Info)
 	}
 	_ = l.ApplyFilter("mine")
 	pressKeys(m, "z", "[")
-	if l.savedFilter != "all" || !strings.Contains(m.Info, "broken") {
-		t.Fatalf("reverse %s info %s", l.savedFilter, m.Info)
+	if l.vs.Saved != "all" || !strings.Contains(m.Info, "broken") {
+		t.Fatalf("reverse %s info %s", l.vs.Saved, m.Info)
 	}
 	_ = r.Settings().Set("list.filter-strip", false)
 	_ = l.SetPropFilters([]PropFilter{{"by", "=", "none"}})
@@ -687,7 +682,7 @@ func TestPropFilterOnFilterHeardOnTreeAndList(t *testing.T) {
 		var heard []string
 		var conds []int
 		l.OnFilter(func(l *List) {
-			heard = append(heard, l.savedFilter)
+			heard = append(heard, l.vs.Saved)
 			conds = append(conds, len(l.PropFilters()))
 		})
 		if err := l.SetPropFilters([]PropFilter{{"by", "=", "owner"}}); err != nil {

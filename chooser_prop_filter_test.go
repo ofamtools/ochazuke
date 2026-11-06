@@ -147,7 +147,7 @@ func TestChooserPropFilterRepeatCtrlFAndClearFallback(t *testing.T) {
 	keytest.Press(m, "esc")
 	keytest.Press(m, "alt+]")
 	keytest.Press(m, "ctrl+f")
-	if c.filters.savedFilter != "agents" || r.TopModal() != c.Kind() {
+	if c.filters.vs.Saved != "agents" || r.TopModal() != c.Kind() {
 		t.Fatal(c.state())
 	}
 	if err := r.Settings().Set("list.filter-cycle", "false"); err != nil {
@@ -180,7 +180,7 @@ func TestChooserPropFiltersEmptyAndSourceReload(t *testing.T) {
 	_, m, c := chooserPropFixture(t)
 	c.SetRows(nil)
 	keytest.Press(m, "alt+]")
-	if c.filters.savedFilter != "mine" || len(c.Matches()) != 0 {
+	if c.filters.vs.Saved != "mine" || len(c.Matches()) != 0 {
 		t.Fatal(c.state())
 	}
 	c.spec.Sources = []ChooserSource{

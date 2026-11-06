@@ -48,7 +48,7 @@ func TestSettingThingsAndProps(t *testing.T) {
 	if rec["value"] != 5 || rec["origin"] != OriginFile {
 		t.Fatalf("scrolloff after a file write %#v", rec)
 	}
-	rows := paletteRequest(t, r, "list", "setting", Arguments{"where": "owner=app", "props": "type"}).([]map[string]any)
+	rows := AnswerRows(paletteRequest(t, r, "list", "setting", Arguments{"where": "owner=app", "props": "type"})).([]map[string]any)
 	var ids []string
 	for _, row := range rows {
 		ids = append(ids, row["id"].(string))
@@ -59,7 +59,7 @@ func TestSettingThingsAndProps(t *testing.T) {
 	if rows[0]["type"] != "integer" {
 		t.Fatalf("row %#v", rows[0])
 	}
-	all := paletteRequest(t, r, "list", "setting", nil).([]map[string]any)
+	all := AnswerRows(paletteRequest(t, r, "list", "setting", nil)).([]map[string]any)
 	if len(all) != len(r.Settings().List()) {
 		t.Fatalf("setting list has %d rows, %d settings declared", len(all), len(r.Settings().List()))
 	}
@@ -148,7 +148,7 @@ func TestPageThings(t *testing.T) {
 	if got := r.Noun("page").StoreKind(); got != Instances {
 		t.Fatalf("page kind %q", got)
 	}
-	rows := paletteRequest(t, r, "list", "page", nil).([]map[string]any)
+	rows := AnswerRows(paletteRequest(t, r, "list", "page", nil)).([]map[string]any)
 	if len(rows) != 3 || rows[0]["id"] != "alpha" || rows[0]["label"] != "ALPHA" || rows[0]["active"] != true || rows[1]["hidden"] != false {
 		t.Fatalf("page list %v", rows)
 	}
@@ -241,7 +241,7 @@ func TestInstancesStoreReadsLiveInstances(t *testing.T) {
 	if op := r.Operations["widget.set"]; op.Unavailable != "its store writes no props (no Store.Patch)" {
 		t.Fatalf("widget.set without Patch: unavailable %q", op.Unavailable)
 	}
-	rows := paletteRequest(t, r, "list", "widget", nil).([]map[string]any)
+	rows := AnswerRows(paletteRequest(t, r, "list", "widget", nil)).([]map[string]any)
 	if len(rows) != 2 || rows[0]["id"] != "w1" || rows[0]["label"] != "First" || rows[0]["size"] != 3 || rows[1]["id"] != "w2" {
 		t.Fatalf("widget list %v", rows)
 	}

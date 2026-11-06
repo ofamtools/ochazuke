@@ -13,6 +13,9 @@ import "slices"
 // row after the first has SpaceAbove and the list's setting allows it (a
 // tree's tree.space-above).
 func (l *List) spacing() bool {
+	if l.headed() {
+		return true
+	}
 	if len(l.items) < 2 || !slices.ContainsFunc(l.items[1:], func(it ListItem) bool { return it.SpaceAbove }) {
 		return false
 	}
@@ -31,10 +34,13 @@ func (l *List) spaceAllowed() bool {
 // hidden ones too, so a host sizing the list by Height does not resize as
 // the filter narrows it) would take.
 func (l *List) spaceLines() int {
-	if len(l.all) < 2 || !l.spaceAllowed() {
-		return 0
-	}
 	n := 0
+	if l.headed() {
+		n = l.headings(0, len(l.items)-1, false)
+	}
+	if len(l.all) < 2 || !l.spaceAllowed() {
+		return n
+	}
 	for _, it := range l.all[1:] {
 		if it.SpaceAbove {
 			n++
@@ -48,10 +54,43 @@ func (l *List) spaceLines() int {
 func (l *List) lineCount(spaced bool) int {
 	n := len(l.items)
 	if spaced {
-		for _, it := range l.items[1:] {
-			if it.SpaceAbove {
+		for i := 1; i < len(l.items); i++ {
+			if l.gapAbove(i) {
 				n++
 			}
+		}
+		if l.headed() {
+			n += l.headings(0, len(l.items)-1, false)
+		}
+	}
+	return n
+}
+
+// headed reports whether a plain list draws a heading line over each group
+// of its rows (the view groups them, list_query_view.go); a table draws its
+// Section labels itself.
+func (l *List) headed() bool { return l.grouped && len(l.columns) == 0 && len(l.items) > 0 }
+
+// opensGroup reports whether row i starts a group: the first row, or one
+// whose group differs from the row above's.
+func (l *List) opensGroup(i int) bool {
+	return i == 0 || l.items[i-1].Section != l.items[i].Section
+}
+
+// gapAbove reports whether a blank line goes above row i (not the first).
+func (l *List) gapAbove(i int) bool { return i > 0 && l.items[i].SpaceAbove }
+
+// headings is the heading lines rows from..to take when from is the first
+// row drawn: its group's, repeated when from is not its group's first row
+// (sticky), and one for each later group they open.
+func (l *List) headings(from, to int, sticky bool) int {
+	n := 0
+	if sticky || l.opensGroup(from) {
+		n++
+	}
+	for i := from + 1; i <= to; i++ {
+		if l.opensGroup(i) {
+			n++
 		}
 	}
 	return n
@@ -62,9 +101,12 @@ func (l *List) lineCount(spaced bool) int {
 func (l *List) rowSpan(from, to int) int {
 	n := to - from + 1
 	for i := from + 1; i <= to; i++ {
-		if l.items[i].SpaceAbove {
+		if l.gapAbove(i) {
 			n++
 		}
+	}
+	if l.headed() {
+		n += l.headings(from, to, true)
 	}
 	return n
 }

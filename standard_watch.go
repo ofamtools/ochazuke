@@ -319,7 +319,7 @@ func (w *Watch) snapshot() (watchSnapshot, error) {
 	var things []Thing
 	switch s := n.Store; {
 	case s.List != nil:
-		list, err := s.List(w.ctx, ListQuery{Where: w.where})
+		list, err := s.List(w.ctx, ListQuery{Filters: whereFilters(w.where)})
 		if err != nil {
 			return watchSnapshot{}, err
 		}

@@ -26,6 +26,7 @@ type Choice struct {
 // (and word "word", Choice.Word),
 // or []any of strings or such maps (the JSON-decoded form).
 func ParseChoices(result any) ([]Choice, error) {
+	result = AnswerRows(result)
 	var out []Choice
 	add := func(v any) error {
 		switch item := v.(type) {

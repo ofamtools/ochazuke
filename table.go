@@ -125,7 +125,7 @@ func (l *List) SetColumns(cols ...Column) {
 	l.columns = slices.Clone(cols)
 	l.widest = nil
 	l.cacheRows()
-	if len(l.sort) > 0 {
+	if len(l.vs.Sort) > 0 {
 		l.refilter(previous.ID)
 		l.syncFocus(previous, nil)
 	}

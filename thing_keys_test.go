@@ -212,7 +212,7 @@ func TestPropsAddressedByRole(t *testing.T) {
 		t.Fatalf("set @owner=p7: %v", s.find("t1"))
 	}
 	rows, err := r.Execute(Request{Noun: "note", Verb: "list", Args: Arguments{"where": "@owner=p7"}})
-	if err != nil || len(rows.([]map[string]any)) != 1 {
+	if err != nil || len(AnswerRows(rows).([]map[string]any)) != 1 {
 		t.Fatalf("list where @owner: %v, %v", rows, err)
 	}
 	// A role the noun does not declare is an unknown prop, not a guess.

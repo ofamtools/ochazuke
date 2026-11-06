@@ -107,7 +107,7 @@ func (c *Chooser) ApplyFilter(name string) error { return c.filters.ApplyFilter(
 // the source records or ranking. Anonymous rows lack stable identity and
 // are never retained, but stay distinct while matching.
 func (c *Chooser) lingerRows() {
-	if c.seen == "" && len(c.filters.propFilters) == 0 || c.r.Settings().Duration(ListFilterLingerSetting) <= 0 {
+	if c.seen == "" && len(c.filters.vs.Filters) == 0 || c.r.Settings().Duration(ListFilterLingerSetting) <= 0 {
 		c.filters.linger.reset()
 		return
 	}

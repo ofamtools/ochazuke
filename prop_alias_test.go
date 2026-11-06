@@ -147,7 +147,7 @@ func TestPropAliasSavedFilterLoadAndSave(t *testing.T) {
 		t.Fatal(rows)
 	}
 	r.Define("ticket").Filters(SavedFilter{Name: "default", Where: map[string]any{"status": "todo"}})
-	filters, err := r.namedPropFilter(r.Noun("ticket"), "default")
+	filters, _, err := r.savedFilterNamed(r.Noun("ticket"), "default")
 	if err != nil || len(filters) != 1 || filters[0].Prop != "state" {
 		t.Fatalf("%v %v", filters, err)
 	}
@@ -178,7 +178,7 @@ func TestPropAliasStandardRequests(t *testing.T) {
 		}
 	}
 	v, err := r.Execute(Request{Noun: "ticket", Verb: "list", Args: Arguments{"where": "status=todo", "props": "status"}})
-	if err != nil || !reflect.DeepEqual(query.Where, map[string]any{"state": "todo"}) {
+	if err != nil || !reflect.DeepEqual(query.Filters, []PropFilter{{Prop: "state", Op: "=", Value: "todo"}}) {
 		t.Fatalf("%v %v %v", v, query, err)
 	}
 	for _, args := range []Arguments{{"prop": "status", "value": "done"}, {"changes": map[string]any{"status": "done"}}, {"prop": "status=done"}} {

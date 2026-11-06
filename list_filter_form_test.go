@@ -78,29 +78,29 @@ func TestFilterFormFieldsAndChips(t *testing.T) {
 	// j from score (a text field) lands on status's chips: cancelled first.
 	pressKeys(m, "j", "space")
 	if got := shownIDs(l); !slices.Equal(got, []string{"t5"}) {
-		t.Fatalf("one chip: %v %v", got, l.propFilters)
+		t.Fatalf("one chip: %v %v", got, l.vs.Filters)
 	}
 	pressKeys(m, "l", "l", "space") // doing? order is sorted: cancelled doing done todo
-	if l.propFilters[0].Op != "in" || !slices.Equal(shownIDs(l), []string{"t3", "t5", "t6"}) {
-		t.Fatalf("two chips: %v %v", l.propFilters, shownIDs(l))
+	if l.vs.Filters[0].Op != "in" || !slices.Equal(shownIDs(l), []string{"t3", "t5", "t6"}) {
+		t.Fatalf("two chips: %v %v", l.vs.Filters, shownIDs(l))
 	}
 	pressKeys(m, "!")
-	if l.propFilters[0].Op != "not-in" || !slices.Equal(shownIDs(l), []string{"t1", "t2", "t4"}) {
-		t.Fatalf("inverted: %v %v", l.propFilters, shownIDs(l))
+	if l.vs.Filters[0].Op != "not-in" || !slices.Equal(shownIDs(l), []string{"t1", "t2", "t4"}) {
+		t.Fatalf("inverted: %v %v", l.vs.Filters, shownIDs(l))
 	}
 	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "status · not") || !strings.Contains(view, "● done") {
 		t.Fatal(view)
 	}
 	pressKeys(m, "u")
-	if l.propFilters[0].Op != "in" {
-		t.Fatalf("undo invert: %v", l.propFilters)
+	if l.vs.Filters[0].Op != "in" {
+		t.Fatalf("undo invert: %v", l.vs.Filters)
 	}
 	pressKeys(m, "esc")
 	if r.RecordEditor(listFilterFormID) != nil && !r.RecordEditor(listFilterFormID).Closed() {
 		t.Fatal("esc kept the form open")
 	}
-	if len(l.propFilters) != 1 {
-		t.Fatalf("esc dropped the conditions: %v", l.propFilters)
+	if len(l.vs.Filters) != 1 {
+		t.Fatalf("esc dropped the conditions: %v", l.vs.Filters)
 	}
 	// Reopening shows the conditions: the chips are on.
 	pressKeys(m, "z", "/")
@@ -108,8 +108,8 @@ func TestFilterFormFieldsAndChips(t *testing.T) {
 		t.Fatal(view)
 	}
 	pressKeys(m, "j", "C")
-	if len(l.propFilters) != 0 || len(shownIDs(l)) != 6 {
-		t.Fatalf("clear: %v", l.propFilters)
+	if len(l.vs.Filters) != 0 || len(shownIDs(l)) != 6 {
+		t.Fatalf("clear: %v", l.vs.Filters)
 	}
 }
 
@@ -171,17 +171,17 @@ func TestFilterFormTextFieldContainsAndInvert(t *testing.T) {
 		t.Fatalf("focus %s", r.Focus)
 	}
 	pressRun(t, r, "i", "i", "k", "esc") // title contains ik: Fix bike
-	if len(l.propFilters) != 1 || l.propFilters[0].Op != "contains" || !slices.Equal(shownIDs(l), []string{"t3"}) {
-		t.Fatalf("contains: %v %v", l.propFilters, shownIDs(l))
+	if len(l.vs.Filters) != 1 || l.vs.Filters[0].Op != "contains" || !slices.Equal(shownIDs(l), []string{"t3"}) {
+		t.Fatalf("contains: %v %v", l.vs.Filters, shownIDs(l))
 	}
 	pressRun(t, r, "!")
-	if l.propFilters[0].Op != "not-contains" || !slices.Equal(shownIDs(l), []string{"t1", "t2", "t4", "t5", "t6"}) {
-		t.Fatalf("not-contains: %v %v", l.propFilters, shownIDs(l))
+	if l.vs.Filters[0].Op != "not-contains" || !slices.Equal(shownIDs(l), []string{"t1", "t2", "t4", "t5", "t6"}) {
+		t.Fatalf("not-contains: %v %v", l.vs.Filters, shownIDs(l))
 	}
 	// A number field takes =; a value that is not a number is not written.
 	pressRun(t, r, "k", "k", "k", "i", "x", "esc")
-	if e := r.RecordEditor(listFilterFormID); e.Problem("score") == "" || len(l.propFilters) != 1 {
-		t.Fatalf("bad number written: %v", l.propFilters)
+	if e := r.RecordEditor(listFilterFormID); e.Problem("score") == "" || len(l.vs.Filters) != 1 {
+		t.Fatalf("bad number written: %v", l.vs.Filters)
 	}
 }
 
@@ -189,12 +189,12 @@ func TestFilterFormListPropChipsAreContainsEach(t *testing.T) {
 	_, m, l := filterFormFixture(t)
 	pressKeys(m, "z", "/", "j", "j") // tags: desk home phone shop
 	pressKeys(m, "l", "space", "$", "space")
-	if len(l.propFilters) != 2 || l.propFilters[0].Op != "contains" || !slices.Equal(shownIDs(l), []string{"t2"}) {
-		t.Fatalf("home and shop: %v %v", l.propFilters, shownIDs(l))
+	if len(l.vs.Filters) != 2 || l.vs.Filters[0].Op != "contains" || !slices.Equal(shownIDs(l), []string{"t2"}) {
+		t.Fatalf("home and shop: %v %v", l.vs.Filters, shownIDs(l))
 	}
 	pressKeys(m, "!")
-	if l.propFilters[1].Op != "not-contains" || !slices.Equal(shownIDs(l), []string{"t4", "t6"}) {
-		t.Fatalf("neither: %v %v", l.propFilters, shownIDs(l))
+	if l.vs.Filters[1].Op != "not-contains" || !slices.Equal(shownIDs(l), []string{"t4", "t6"}) {
+		t.Fatalf("neither: %v %v", l.vs.Filters, shownIDs(l))
 	}
 }
 
@@ -262,8 +262,8 @@ func TestFilterFormManyValuesComplete(t *testing.T) {
 		t.Fatalf("second value %q", got)
 	}
 	settleAll(t, r)
-	if len(l.propFilters) != 1 || l.propFilters[0].Op != "in" || !slices.Equal(shownIDs(l), []string{"t1", "t2", "t4"}) {
-		t.Fatalf("in: %v %v", l.propFilters, shownIDs(l))
+	if len(l.vs.Filters) != 1 || l.vs.Filters[0].Op != "in" || !slices.Equal(shownIDs(l), []string{"t1", "t2", "t4"}) {
+		t.Fatalf("in: %v %v", l.vs.Filters, shownIDs(l))
 	}
 }
 
@@ -361,7 +361,7 @@ func TestFilterFormTree(t *testing.T) {
 	}
 	pressRun(t, r, "l", "space") // owner
 	if !tree.List().shows("deep") || tree.List().shows("other") {
-		t.Fatalf("tree filter %v", tree.List().propFilters)
+		t.Fatalf("tree filter %v", tree.List().vs.Filters)
 	}
 }
 

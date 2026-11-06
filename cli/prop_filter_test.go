@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 
@@ -22,11 +23,17 @@ func TestPropFilterShellAndCatalog(t *testing.T) {
 	if err := shell.Run(context.Background(), []string{"note", "list", "--filter", "mine", "--where", "by=owner"}); err != nil {
 		t.Fatal(err)
 	}
-	var rows []map[string]any
-	if err := json.Unmarshal(out.Bytes(), &rows); err != nil {
+	var page struct {
+		Items   []map[string]any `json:"items"`
+		Page    int              `json:"page"`
+		PerPage int              `json:"per_page"`
+		Total   int              `json:"total"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &page); err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) != 1 || rows[0]["id"] != "b" {
+	rows := page.Items
+	if len(rows) != 1 || rows[0]["id"] != "b" || page.Page != 1 || page.Total != 1 {
 		t.Fatal(out.String())
 	}
 	raw, err := Catalog(r, "test", "test")
@@ -196,7 +203,7 @@ func TestPropAliasCatalogAndCLI(t *testing.T) {
 	r.Config().Disable()
 	r.Define("ticket").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "state", Aliases: []string{"status"}}).Store(ochazuke.Store{
 		List: func(_ ochazuke.Ctx, q ochazuke.ListQuery) ([]ochazuke.Thing, error) {
-			if q.Where["state"] != "todo" {
+			if len(q.Filters) == 0 || slices.ContainsFunc(q.Filters, func(f ochazuke.PropFilter) bool { return f.Prop != "state" || f.Value != "todo" }) {
 				t.Fatalf("store got alias in where: %v", q)
 			}
 			return []ochazuke.Thing{{"id": "a", "state": "todo", "status": "done"}, {"id": "b", "state": "done", "status": "todo"}}, nil

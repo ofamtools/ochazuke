@@ -71,7 +71,7 @@ func humanFinder(n *Noun, c Ctx, text string) ([]string, error) {
 	if human == nil || human == key || human.Secret || n.Store.List == nil {
 		return nil, nil
 	}
-	things, err := n.Store.List(c, ListQuery{Where: map[string]any{human.Name: text}})
+	things, err := n.Store.List(c, ListQuery{Filters: whereFilters(map[string]any{human.Name: text})})
 	if err != nil {
 		return nil, err
 	}

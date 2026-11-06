@@ -390,14 +390,14 @@ func (t *Tree) Collapsed(id string) bool { return t.collapsed[id] }
 
 // folded reads the filter's temporary folds while props reveal context.
 func (t *Tree) folded(id string) bool {
-	if len(t.list.propFilters) > 0 {
+	if len(t.list.vs.Filters) > 0 {
 		return t.filterCollapsed[id]
 	}
 	return t.collapsed[id]
 }
 
 func (t *Tree) setCollapsed(id string, folded bool) {
-	if len(t.list.propFilters) > 0 {
+	if len(t.list.vs.Filters) > 0 {
 		if t.filterCollapsed == nil {
 			t.filterCollapsed = map[string]bool{}
 		}

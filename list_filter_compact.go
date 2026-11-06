@@ -67,7 +67,7 @@ func (f *filterField) recordField(hidden bool) RecordField {
 }
 
 func (v *filterViewForm) load() (Record, error) {
-	return v.loadConditions(v.l.propFilters)
+	return v.loadConditions(v.l.vs.Filters)
 }
 
 func (v *filterViewForm) loadConditions(conditions []PropFilter) (Record, error) {
@@ -195,7 +195,7 @@ func (l *List) openViewForm() error {
 	}
 	for _, f := range v.fields {
 		var conditions []PropFilter
-		for _, c := range l.propFilters {
+		for _, c := range l.vs.Filters {
 			if c.Prop == f.prop {
 				conditions = append(conditions, c)
 			}
@@ -274,7 +274,7 @@ func (l *List) openViewForm() error {
 		}
 	}
 	if l.r.Settings().Bool(ListFilterSaveSetting) {
-		v.saveInput = NewInput(e.id+"/save", l.savedFilter, false)
+		v.saveInput = NewInput(e.id+"/save", l.vs.Saved, false)
 		if err := l.r.AddInput(v.saveInput, Parent(e.id), Kind(filterSaveNoun)); err != nil {
 			_ = e.Leave()
 			return err
@@ -317,7 +317,7 @@ func (v *filterViewForm) signature() string {
 		Conditions []PropFilter
 		Sort       []SortKey
 		Name       string
-	}{v.l.propFilters, v.l.sort, v.l.savedFilter})
+	}{v.l.vs.Filters, v.l.vs.Sort, v.l.vs.Saved})
 	return string(raw)
 }
 
@@ -543,7 +543,7 @@ func (v *filterViewForm) refreshConditions() {
 func (v *filterViewForm) selectedCondition() (int, error) {
 	if v.conditions != nil {
 		if row, ok := v.conditions.Selected(); ok {
-			if i, ok := row.Data.(int); ok && i < len(v.l.propFilters) {
+			if i, ok := row.Data.(int); ok && i < len(v.l.vs.Filters) {
 				return i, nil
 			}
 		}
@@ -641,8 +641,8 @@ func (v *filterViewForm) PendingCommand() tea.Cmd {
 			v.e.undo = append(v.e.undo, recordStep{changes: changes})
 			v.e.redo = nil
 		}
-		if v.saveInput != nil && len(v.saveInput.Text) == 0 && v.l.savedFilter != "" {
-			_ = v.saveInput.Replace(0, len(v.saveInput.Text), v.l.savedFilter)
+		if v.saveInput != nil && len(v.saveInput.Text) == 0 && v.l.vs.Saved != "" {
+			_ = v.saveInput.Replace(0, len(v.saveInput.Text), v.l.vs.Saved)
 		}
 		v.seen = v.signature()
 		v.refreshConditions()
@@ -680,16 +680,16 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 	}
 	if v.sortPicker != nil {
 		marker := ""
-		if v.l.r.Settings().Bool(ListSortIndicatorSetting) && len(v.l.sort) > 0 {
+		if v.l.r.Settings().Bool(ListSortIndicatorSetting) && len(v.l.vs.Sort) > 0 {
 			marker = " " + s.Glyph("sort.asc")
-			if v.l.sort[0].Desc {
+			if v.l.vs.Sort[0].Desc {
 				marker = " " + s.Glyph("sort.desc")
 			}
 		}
 		heading := "Sort by" + marker
-		if len(v.l.sort) > 1 {
+		if len(v.l.vs.Sort) > 1 {
 			var extra []string
-			for i, k := range v.l.sort[1:] {
+			for i, k := range v.l.vs.Sort[1:] {
 				label := k.Field
 				if v.l.r.Settings().Bool(ListSortIndicatorSetting) {
 					arrow := s.Glyph("sort.asc")

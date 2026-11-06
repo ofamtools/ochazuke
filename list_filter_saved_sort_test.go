@@ -76,12 +76,12 @@ func TestSavedFilterInvalidSortIsAtomicAndCycleSkips(t *testing.T) {
 		t.Fatal(before, l.Snapshot())
 	}
 	pressRun(t, r, "z", "]")
-	if l.savedFilter != "open" {
-		t.Fatal(l.savedFilter)
+	if l.vs.Saved != "open" {
+		t.Fatal(l.vs.Saved)
 	}
 	pressRun(t, r, "z", "[") // wraps past invalid last entry to all
-	if l.savedFilter != "all" || len(l.Sort()) != 0 {
-		t.Fatal(l.savedFilter, l.Sort())
+	if l.vs.Saved != "all" || len(l.Sort()) != 0 {
+		t.Fatal(l.vs.Saved, l.Sort())
 	}
 }
 
@@ -94,8 +94,8 @@ func TestCompactSavedFilterSaveCycleDelete(t *testing.T) {
 	compactKeys(m, "enter")
 	compactPart(t, m, "save")
 	compactKeys(m, "r", "a", "n", "k", "e", "d", "enter")
-	if l.savedFilter != "ranked" || len(l.Sort()) != 1 {
-		t.Fatal(l.savedFilter, l.Sort())
+	if l.vs.Saved != "ranked" || len(l.Sort()) != 1 {
+		t.Fatal(l.vs.Saved, l.Sort())
 	}
 	frame := ansi.Strip(m.View().Content)
 	if !strings.Contains(frame, "Applied: ranked") || !strings.Contains(frame, "Replace") {
@@ -104,12 +104,12 @@ func TestCompactSavedFilterSaveCycleDelete(t *testing.T) {
 	compactKeys(m, "esc", "esc", "z", "/")
 	compactPart(t, m, "conditions")
 	compactKeys(m, "z", "]")
-	if l.savedFilter != "open" || len(l.Sort()) != 0 {
-		t.Fatal(l.savedFilter, l.Sort())
+	if l.vs.Saved != "open" || len(l.Sort()) != 0 {
+		t.Fatal(l.vs.Saved, l.Sort())
 	}
 	compactKeys(m, "z", "[")
-	if l.savedFilter != "ranked" || !l.Sort()[0].Desc {
-		t.Fatal(l.savedFilter, l.Sort())
+	if l.vs.Saved != "ranked" || !l.Sort()[0].Desc {
+		t.Fatal(l.vs.Saved, l.Sort())
 	}
 	compactPart(t, m, "save")
 	compactKeys(m, "C")
@@ -198,7 +198,7 @@ func TestSavedSortInvalidConditionsLeaveSortAndName(t *testing.T) {
 	if err := r.Settings().Set("list.filters", raw); err != nil {
 		t.Fatal(err)
 	}
-	if err := l.ApplyFilter("bad"); err == nil || l.savedFilter != "ranked" || !l.Sort()[0].Desc || l.Sort()[0].Field != "score" {
+	if err := l.ApplyFilter("bad"); err == nil || l.vs.Saved != "ranked" || !l.Sort()[0].Desc || l.Sort()[0].Field != "score" {
 		t.Fatal(err, l.Snapshot())
 	}
 }
@@ -212,15 +212,15 @@ func TestCompactSavedFilterChooserUsesSameSaveAndCycle(t *testing.T) {
 	compactKeys(m, "enter")
 	compactPart(t, m, "save")
 	compactKeys(m, "r", "a", "n", "k", "e", "d", "enter", "esc")
-	if c.filters.savedFilter != "ranked" || !slices.Equal(chooserIDs(c), []string{"c", "b", "a"}) {
+	if c.filters.vs.Saved != "ranked" || !slices.Equal(chooserIDs(c), []string{"c", "b", "a"}) {
 		t.Fatal(c.state())
 	}
 	compactKeys(m, "z", "]")
-	if c.filters.savedFilter != "mine" || len(c.Sort()) != 0 || !slices.Equal(chooserIDs(c), []string{"a", "c"}) {
+	if c.filters.vs.Saved != "mine" || len(c.Sort()) != 0 || !slices.Equal(chooserIDs(c), []string{"a", "c"}) {
 		t.Fatal(c.state())
 	}
 	compactKeys(m, "z", "[")
-	if c.filters.savedFilter != "ranked" || len(c.Sort()) != 1 || !c.Sort()[0].Desc {
+	if c.filters.vs.Saved != "ranked" || len(c.Sort()) != 1 || !c.Sort()[0].Desc {
 		t.Fatal(c.state())
 	}
 	_ = r

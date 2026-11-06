@@ -196,23 +196,15 @@ func ThingOf(v any) (Thing, error) {
 	return out, nil
 }
 
-// ListQuery is what list hands its store: the where pairs (prop to typed
-// value, equality, all of them), the limit (0 for none) and the store's
-// own ListParams the request gave. A store may use them to read less; the
-// runtime applies where and limit to the answer either way, so a store
-// that ignores them is still right.
-type ListQuery struct {
-	Where map[string]any
-	Limit int
-	Args  Arguments
-}
-
 // Store is a noun's row in the handler table: its kind and the handlers
 // that read and write its things, each optional. Every core verb exists
 // on the noun; one whose handler is not set is unavailable with the
 // reason (core_verbs.go, the row's Needs). Get
 // answers the thing with that key ("" for a singleton); List answers the
-// things. ListParams are list's parameters beside where, props and limit.
+// things. Query, when set, runs a whole list request (conditions, sort,
+// groups, paging) itself and answers the page; without it list filters,
+// sorts, groups and pages what List answers (queryAll, list_query.go).
+// ListParams are list's parameters beside the query's own.
 //
 // Create stores a new thing from the props given (typed, each prop's
 // Default filling an omitted one) and answers it, its key filled. Patch
@@ -233,6 +225,7 @@ type Store struct {
 	Kind       string
 	Get        func(Ctx, string) (Thing, error)
 	List       func(Ctx, ListQuery) ([]Thing, error)
+	Query      func(Ctx, ListQuery) (ListPage, error)
 	Create     func(Ctx, Thing) (Thing, error)
 	Patch      func(Ctx, string, Thing) (Thing, error)
 	Delete     func(Ctx, string) error

@@ -93,24 +93,24 @@ func (l *List) MatchMode() string {
 }
 
 // matcher is the filter query compiled in the list's match mode.
-func (l *List) matcher() Matcher { return l.r.Matcher(l.MatchMode(), l.query) }
+func (l *List) matcher() Matcher { return l.r.Matcher(l.MatchMode(), l.vs.Text) }
 
 // The matchSearcher contract (search_match.go): the mode decides the
 // filter while its line shows.
 func (l *List) matchMode() string  { return l.MatchMode() }
-func (l *List) matchApplies() bool { return l.query != "" || l.editingFilter() }
+func (l *List) matchApplies() bool { return l.vs.Text != "" || l.editingFilter() }
 func (l *List) setMatchMode(mode string) {
 	l.match = mode
-	l.SetFilter(l.query)
+	l.SetFilter(l.vs.Text)
 }
 
 // Filter is the list's filter query ("" when every row is shown).
-func (l *List) Filter() string { return l.query }
+func (l *List) Filter() string { return l.vs.Text }
 
 // Filtering reports whether the filter line shows: a filter is set, or
 // its query is being typed on this list.
 func (l *List) Filtering() bool {
-	return l.query != "" || l.editingFilter() || len(l.propFilters) > 0 || l.savedFilter != ""
+	return l.vs.Text != "" || l.editingFilter() || len(l.vs.Filters) > 0 || l.vs.Saved != ""
 }
 
 // Height is the lines the list needs to draw every row without
@@ -121,7 +121,7 @@ func (l *List) Filtering() bool {
 // below the list as the filter narrows it.
 func (l *List) Height() int {
 	gaps := l.spaceLines() // blank lines above SpaceAbove rows
-	if l.query != "" || l.editingFilter() || l.propStrip() != "" || l.sortSummary() != "" {
+	if l.vs.Text != "" || l.editingFilter() || l.propStrip() != "" || l.viewSummary() != "" {
 		return l.Len() + gaps + 1
 	}
 	if l.Filtering() {
@@ -140,7 +140,7 @@ func (l *List) Shown() int { return len(l.items) }
 func (l *List) SetFilter(query string) {
 	previous, _ := l.Selected()
 	l.linger.reset()
-	l.query = query
+	l.vs.Text = query
 	keep := previous.ID
 	if keep == "" {
 		keep = l.back // nothing matched: widening the query finds the row / started on
@@ -160,7 +160,7 @@ func (l *List) refilter(keep string) {
 			l.archived++
 		}
 	}
-	if t := l.tree(); t != nil && len(l.propFilters) > 0 {
+	if t := l.tree(); t != nil && len(l.vs.Filters) > 0 {
 		kept := t.filterNodes(hidden)
 		l.items = make([]ListItem, 0, len(l.all))
 		for _, item := range l.all {
@@ -168,7 +168,7 @@ func (l *List) refilter(keep string) {
 				l.items = append(l.items, item)
 			}
 		}
-	} else if strings.TrimSpace(l.query) == "" && len(l.propFilters) == 0 {
+	} else if strings.TrimSpace(l.vs.Text) == "" && len(l.vs.Filters) == 0 {
 		l.items = l.all
 		if l.archived > 0 {
 			l.items = make([]ListItem, 0, len(l.all)-l.archived)
@@ -188,7 +188,7 @@ func (l *List) refilter(keep string) {
 		}
 		l.items = shown
 	}
-	l.items = l.sortedRows(l.lingerRows(l.items))
+	l.items = l.arrange(l.sortedRows(l.lingerRows(l.items)), keep)
 	if t := l.tree(); t != nil {
 		t.guideRows()
 	}
@@ -216,11 +216,11 @@ func (l *List) shows(id string) bool {
 // lands on that row (Select, focus.set, a job's focus) shows it. The
 // selection is the caller's to set.
 func (l *List) reveal(id string) {
-	if (l.query == "" && len(l.propFilters) == 0) || l.shows(id) || (!slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) && !l.treeHasNode(id)) {
+	if (l.vs.Text == "" && len(l.vs.Filters) == 0) || l.shows(id) || (!slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) && !l.treeHasNode(id)) {
 		return
 	}
 	l.linger.reset()
-	l.query, l.back, l.propFilters, l.savedFilter = "", "", nil, ""
+	l.vs.Text, l.back, l.vs.Filters, l.vs.Saved = "", "", nil, ""
 	l.refilter(id)
 	if t := l.tree(); t != nil {
 		_ = t.Select(id)
@@ -242,16 +242,16 @@ func (l *List) editingFilter() bool {
 func (l *List) filterLine(width int) string {
 	editing := l.editingFilter()
 	strip := l.propStrip()
-	sort := l.sortSummary()
-	if l.query == "" && !editing && strip == "" && sort == "" {
+	sort := l.viewSummary()
+	if l.vs.Text == "" && !editing && strip == "" && sort == "" {
 		return ""
 	}
 	left := strip
-	if l.query != "" || editing {
+	if l.vs.Text != "" || editing {
 		if left != "" {
 			left += " "
 		}
-		left += "/" + modalLabel(l.query)
+		left += "/" + modalLabel(l.vs.Text)
 	}
 	if editing {
 		left += SelectionStyle(true).Render(" ")
@@ -263,17 +263,17 @@ func (l *List) filterLine(width int) string {
 		left += sort
 	}
 	var right []string
-	if strings.TrimSpace(l.query) != "" || strip != "" {
+	if strings.TrimSpace(l.vs.Text) != "" || strip != "" {
 		switch err := l.matcher().Err(); {
 		case err != nil:
 			right = append(right, err.Error())
 		case len(l.items) == 0:
 			right = append(right, "no "+pluralOr(l.placeholder.Plural)+" match")
 		default:
-			right = append(right, strconv.Itoa(len(l.items))+" of "+strconv.Itoa(l.Len()))
+			right = append(right, strconv.Itoa(l.total)+" of "+strconv.Itoa(l.Len()))
 		}
 	}
-	if tag := l.r.matchTagFor(l.MatchMode()); tag != "" && (l.query != "" || editing) {
+	if tag := l.r.matchTagFor(l.MatchMode()); tag != "" && (l.vs.Text != "" || editing) {
 		right = append(right, tag)
 	}
 	return searchLine(left, strings.Join(right, "  "), width)
@@ -322,14 +322,14 @@ func registerListFilter(r *Runtime) {
 	// pop, a page's close) in the walk and on the footer alike.
 	r.DefineGuard("list-filtered", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
-		return l != nil && (l.query != "" || ev.Mode.Name == ListFilterMode)
+		return l != nil && (l.vs.Text != "" || ev.Mode.Name == ListFilterMode)
 	})
 	// list-query holds while the query has text: filter-erase's verb
 	// guard, so on an empty query backspace is the list-unfiltered row
 	// that leaves the line.
 	r.DefineGuard("list-query", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
-		return l != nil && l.query != ""
+		return l != nil && l.vs.Text != ""
 	})
 	// list-chooses holds on a ClearFilterOnEnter list with a row
 	// selected: filter-choose's verb guard, so enter on any other list,
@@ -342,7 +342,7 @@ func registerListFilter(r *Runtime) {
 	})
 	r.DefineGuard("list-unfiltered", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
-		return l != nil && l.query == ""
+		return l != nil && l.vs.Text == ""
 	})
 
 	resolve := func(c Context, args Arguments) (*List, error) {
@@ -410,13 +410,13 @@ func registerListFilter(r *Runtime) {
 			return r.SetMode(ListFilterMode)
 		}},
 		{"filter-type", "Type text at the end of the filter query", with(map[string]Parameter{"text": {Type: "string", Required: true}}), func(l *List, a Arguments) error {
-			l.SetFilter(l.query + StringArg(a, "text", ""))
+			l.SetFilter(l.vs.Text + StringArg(a, "text", ""))
 			return nil
 		}},
 		{"filter-erase", "Erase the filter query's last character", id, func(l *List, _ Arguments) error {
-			if l.query != "" {
-				_, size := utf8.DecodeLastRuneInString(l.query)
-				l.SetFilter(l.query[:len(l.query)-size])
+			if l.vs.Text != "" {
+				_, size := utf8.DecodeLastRuneInString(l.vs.Text)
+				l.SetFilter(l.vs.Text[:len(l.vs.Text)-size])
 			}
 			return nil
 		}},

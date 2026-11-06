@@ -55,7 +55,7 @@ func (l *List) Sortable() bool { return l.canSort() && len(l.sortSpecs()) > 0 }
 
 // Sort returns a copy of the view's sort keys. They are in-memory state,
 // preserved by SetItems, Patch and column changes and included in saved filters.
-func (l *List) Sort() []SortKey { return slices.Clone(l.sort) }
+func (l *List) Sort() []SortKey { return slices.Clone(l.vs.Sort) }
 
 // SetSort replaces the view sort without changing Items, marks or the app's
 // order. An empty sort restores that order. Selection and focus follow IDs;
@@ -65,10 +65,7 @@ func (l *List) SetSort(keys []SortKey) error {
 	if err != nil {
 		return err
 	}
-	if !slices.Equal(l.sort, keys) {
-		l.savedFilter = ""
-	}
-	l.sort = keys
+	l.vs = l.vs.WithSort(keys)
 	if l.filterChanged != nil {
 		l.filterChanged()
 		return nil
@@ -112,7 +109,7 @@ func (l *List) sortSummary() string {
 		return ""
 	}
 	var parts []string
-	for i, k := range l.sort {
+	for i, k := range l.vs.Sort {
 		arrow := l.r.glyph("sort.asc")
 		if k.Desc {
 			arrow = l.r.glyph("sort.desc")
@@ -326,72 +323,38 @@ func compareSort(a, b sortValue, desc bool) int {
 // dates (or time.Time) compare chronologically, including timezone offsets;
 // mixed date/text props compare entirely as text, preserving transitivity.
 func (l *List) sortOrder(items []ListItem) []int {
-	order := make([]int, len(items))
-	for i := range order {
-		order[i] = i
+	if len(l.vs.Sort) == 0 || !l.canSort() {
+		return orderRows(len(items), nil, nil, nil, nil)
 	}
-	if len(l.sort) == 0 || !l.canSort() {
-		return order
+	idx := make([]int, len(items))
+	for i := range idx {
+		idx[i] = i
 	}
+	return orderQuery(l.queryRows(items), idx, l.vs.Sort)
+}
+
+// queryRows reads rows as the one query function does (list_query.go):
+// props from the rows' records or titled columns, section runs that sort
+// never crosses.
+func (l *List) queryRows(items []ListItem) queryRows {
 	specs := l.sortSpecs()
-	types := make([]PropSpec, len(l.sort))
-	for i, key := range l.sort {
-		p := specs[key.Field]
-		if len(p.Enum) == 0 && (p.Type == "" || p.Type == SettingString) {
-			date, seen := true, false
+	return queryRows{
+		count: len(items),
+		spec:  func(field string) PropSpec { return specs[field] },
+		raw:   func(i int, field string) any { return l.sortRaw(items[i], field) },
+		// Section headings belong to contiguous source runs; a view sort
+		// must never interleave their rows or move one run through another.
+		run: func(i int) string { return items[i].Section },
+		scan: func(field string, yield func(any)) {
 			for _, item := range l.filterRows() {
-				v := l.sortRaw(item, key.Field)
-				if sortBlank(v) {
-					continue
-				}
-				seen = true
-				if _, ok := sortDate(v); !ok {
-					date = false
-					break
-				}
+				yield(l.sortRaw(item, field))
 			}
-			if date && seen {
-				p.Type = "date"
-			}
-		}
-		types[i] = p
+		},
 	}
-	values := make([][]sortValue, len(items))
-	for i, item := range items {
-		values[i] = make([]sortValue, len(l.sort))
-		for j, key := range l.sort {
-			values[i][j] = normalizedSort(l.sortRaw(item, key.Field), types[j])
-		}
-	}
-	// Section headings belong to contiguous source runs; a view sort must
-	// never interleave their rows or move one run through another.
-	var groups []int
-	for i := 1; i < len(items); i++ {
-		if items[i].Section != items[i-1].Section {
-			if groups == nil {
-				groups = make([]int, len(items))
-			}
-			groups[i] = groups[i-1] + 1
-		} else if groups != nil {
-			groups[i] = groups[i-1]
-		}
-	}
-	slices.SortStableFunc(order, func(a, b int) int {
-		if groups != nil && groups[a] != groups[b] {
-			return cmp.Compare(groups[a], groups[b])
-		}
-		for j, key := range l.sort {
-			if c := compareSort(values[a][j], values[b][j], key.Desc); c != 0 {
-				return c
-			}
-		}
-		return 0
-	})
-	return order
 }
 
 func (l *List) sortedRows(items []ListItem) []ListItem {
-	if len(l.sort) == 0 || !l.canSort() {
+	if len(l.vs.Sort) == 0 || !l.canSort() {
 		return items
 	}
 	if t := l.tree(); t != nil {
@@ -413,7 +376,7 @@ func (l *List) sortedRows(items []ListItem) []ListItem {
 // sortedNodes keeps each subtree intact. The source nodes, collapse state,
 // zoom and filter ancestry remain in their original representation.
 func (t *Tree) sortedNodes() []TreeNode {
-	if len(t.list.sort) == 0 || !t.list.canSort() {
+	if len(t.list.vs.Sort) == 0 || !t.list.canSort() {
 		return t.nodes
 	}
 	items := make([]ListItem, len(t.nodes))
@@ -454,8 +417,8 @@ func (l *List) cycleSort(field string, desc *bool) error {
 	if desc != nil {
 		return l.SetSort([]SortKey{{Field: field, Desc: *desc}})
 	}
-	if len(l.sort) == 1 && l.sort[0].Field == field {
-		if l.sort[0].Desc {
+	if len(l.vs.Sort) == 1 && l.vs.Sort[0].Field == field {
+		if l.vs.Sort[0].Desc {
 			return l.SetSort(nil)
 		}
 		return l.SetSort([]SortKey{{Field: field, Desc: true}})
@@ -497,7 +460,7 @@ func (l *List) sortTitle(col Column) string {
 	if !l.r.Settings().Bool(ListSortIndicatorSetting) || !l.canSort() {
 		return title
 	}
-	for i, key := range l.sort {
+	for i, key := range l.vs.Sort {
 		if l.sortColumnField(col.Title) == key.Field {
 			arrow := l.r.glyph("sort.asc")
 			if key.Desc {
@@ -516,11 +479,11 @@ func registerListSort(r *Runtime) {
 	resolve := func(focus string, a Arguments) *List { return r.rowFilterList(StringArg(a, "id", focus)) }
 	r.DefineGuard("list-sortable", func(_ *Runtime, ev KeyEvent) bool {
 		l := resolve(ev.Focus, ev.Args)
-		return l != nil && l.canSort() && (l.Sortable() || len(l.sort) > 0)
+		return l != nil && l.canSort() && (l.Sortable() || len(l.vs.Sort) > 0)
 	})
 	r.DefineGuard("list-sorted", func(_ *Runtime, ev KeyEvent) bool {
 		l := resolve(ev.Focus, ev.Args)
-		return l != nil && len(l.sort) > 0
+		return l != nil && len(l.vs.Sort) > 0
 	})
 	for _, s := range []struct {
 		verb, description, guard string
@@ -537,7 +500,7 @@ func registerListSort(r *Runtime) {
 			return l.sortColumn(desc, pick)
 		}},
 		{"sort-clear", "Restore the app's row order, keeping filters", "", nil, func(l *List, _ Arguments) error {
-			if len(l.sort) == 0 {
+			if len(l.vs.Sort) == 0 {
 				l.r.UI().Info("Sort already clear")
 			}
 			return l.SetSort(nil)
@@ -572,7 +535,7 @@ func (c *Chooser) Sort() []SortKey              { return c.filters.Sort() }
 func (c *Chooser) SetSort(keys []SortKey) error { return c.filters.SetSort(keys) }
 
 func (c *Chooser) sortedRows(rows []ChooserRow) []ChooserRow {
-	if len(c.filters.sort) == 0 || !c.filters.canSort() {
+	if len(c.filters.vs.Sort) == 0 || !c.filters.canSort() {
 		return rows
 	}
 	items := make([]ListItem, len(rows))

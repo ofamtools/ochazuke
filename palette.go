@@ -379,6 +379,7 @@ func (p *Palette) present(q Request, value any, top string) (bool, error) {
 // Wrapped by resultPresenter, an answer that lands later is presented the
 // same way.
 func (r *Runtime) presentAnswer(q Request, value any, top string) (bool, error) {
+	value = AnswerRows(value)
 	op := r.Operations[q.Key()]
 	if value == nil && (q.Verb == "list" || op.Rows != "") {
 		value = []any{}

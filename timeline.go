@@ -537,7 +537,7 @@ func (t *Timeline) apply(cards []Card, byID map[string]int, items []ListItem) er
 		}
 	}
 	t.cards, t.byID = cards, byID
-	if t.tail && t.follow && wasLast && len(items) > 0 && t.list.query == "" {
+	if t.tail && t.follow && wasLast && len(items) > 0 && t.list.vs.Text == "" {
 		_ = t.list.Select(items[len(items)-1].ID)
 	}
 	return nil

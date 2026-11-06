@@ -219,7 +219,7 @@ func registerChooser(r *Runtime) {
 	})
 	r.DefineGuard("chooser-prop-controls", func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])
-		return c != nil && c.propFiltersEnabled() && (len(c.filters.propFilters) > 0 || c.filters.savedFilter != "")
+		return c != nil && c.propFiltersEnabled() && (len(c.filters.vs.Filters) > 0 || c.filters.vs.Saved != "")
 	})
 	verb := func(fn func(*Chooser, Ctx) Result) AppHandler {
 		return func(ctx Ctx) Result {
@@ -539,7 +539,7 @@ func (c *Chooser) refilter() {
 	// A row whose label holds the query whole outranks a scattered fuzzy
 	// match, so the top match is the one the query spells.
 	// A Live source ranked its rows itself.
-	if !c.live() && (len(c.filters.sort) == 0 || !c.filters.canSort()) {
+	if !c.live() && (len(c.filters.vs.Sort) == 0 || !c.filters.canSort()) {
 		slices.SortStableFunc(head, func(x, y ChooserRow) int {
 			return cmpBool(cm.Contains(y.Label, c.seen), cm.Contains(x.Label, c.seen))
 		})
@@ -673,8 +673,8 @@ func (c *Chooser) move(delta int) {
 
 func (c *Chooser) state() map[string]any {
 	row, _ := c.Highlighted()
-	state := map[string]any{"propFilters": c.PropFilters(), "savedFilter": c.filters.savedFilter, "query": c.Query(), "matches": len(c.matches), "highlighted": row.ID, "moved": c.moved}
-	if len(c.filters.sort) > 0 {
+	state := map[string]any{"propFilters": c.PropFilters(), "savedFilter": c.filters.vs.Saved, "query": c.Query(), "matches": len(c.matches), "highlighted": row.ID, "moved": c.moved}
+	if len(c.filters.vs.Sort) > 0 {
 		state["sort"] = c.filters.Sort()
 	}
 	if len(c.spec.Sources) > 0 {
