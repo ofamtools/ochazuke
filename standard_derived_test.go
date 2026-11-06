@@ -577,3 +577,34 @@ func TestEditOverSubjectsKeepsTheHumanKeyToOne(t *testing.T) {
 		t.Fatalf("field @label: t1 %v t2 %v", t1, t2)
 	}
 }
+
+// history.undo from the palette posts its one plain line (its Summary),
+// naming the thing by its label, and never its answer's JSON.
+func TestPaletteUndoSaysOneLine(t *testing.T) {
+	r, s := newDerivedRuntime(t)
+	n := r.Noun("task")
+	st := *n.Store
+	st.Undo = true
+	n.Store = &st
+	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t2", "props": map[string]any{"@label": "Renamed"}}})
+	NewPalette(r)
+	stop := r.UI().capture()
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteLine(t, r, "history undo")
+	got := stop()
+	if s.find("t2")["title"] != "Write notes" {
+		t.Fatalf("not undone: %v", s.log)
+	}
+	var lines []string
+	for _, m := range got {
+		if strings.Contains(m.Text, "{") || m.Kind == UINotice {
+			t.Fatalf("the answer was dumped: %+v", got)
+		}
+		if strings.HasPrefix(m.Text, "undid") {
+			lines = append(lines, m.Text)
+		}
+	}
+	if len(lines) == 0 || lines[len(lines)-1] != "undid task.set on Write notes" {
+		t.Fatalf("undo lines %q", lines)
+	}
+}

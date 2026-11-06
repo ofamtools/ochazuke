@@ -288,6 +288,13 @@ type Operation struct {
 	// thing noun has every core verb) but never available, and running it
 	// fails with the reason. The catalog's unavailable.
 	Unavailable string `json:"unavailable,omitempty"`
+	// Summary names the field of the verb's answer (an object) that holds
+	// the one line a person reads for it ("undid task.set on Groceries").
+	// Shown to a person (the palette, the help's run), the answer is that
+	// line in the status line, never its JSON; programs (the CLI, MCP, an
+	// app's Execute) still get the whole answer. "" when the answer has no
+	// such line.
+	Summary string `json:"summary,omitempty"`
 	// Rows names the noun whose rows the verb's result lists (a list
 	// verb's JSON array of rows of that noun); "" when the result is not
 	// rows. It is data for hosts (the catalog's rows); the runtime does

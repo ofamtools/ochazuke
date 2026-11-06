@@ -301,7 +301,15 @@ func (r *Runtime) presentData(q Request, value any) error {
 	// Only an application verb's own answer: the framework's interaction
 	// verbs answer with where they moved, and the standard verbs have their
 	// own views and notices.
-	if op, ok := r.Operation(q.Key()); !ok || IsTextResult(op.Result) || op.Kind != KindApplication || op.Standard != "" || op.Motion {
+	op, ok := r.Operation(q.Key())
+	if !ok || IsTextResult(op.Result) || op.Kind != KindApplication || op.Standard != "" || op.Motion {
+		return nil
+	}
+	if op.Summary != "" {
+		// The verb names its human line: that, never the JSON.
+		if line := summaryLine(value, op.Summary); line != "" {
+			r.UI().Info(line)
+		}
 		return nil
 	}
 	if compact, err := json.Marshal(value); err == nil && len(compact) <= 160 && string(compact) != "null" && string(compact) != "[]" && string(compact) != "{}" {
@@ -313,4 +321,19 @@ func (r *Runtime) presentData(q Request, value any) error {
 		return nil
 	}
 	return r.OpenText(TextDoc{Title: q.Key(), Text: text})
+}
+
+// summaryLine is the text an answer holds in its field (Operation.Summary),
+// "" when it holds none: the answer as a Go map, or any value whose JSON is
+// an object.
+func summaryLine(value any, field string) string {
+	m, ok := value.(map[string]any)
+	if !ok {
+		data, err := json.Marshal(value)
+		if err != nil || json.Unmarshal(data, &m) != nil {
+			return ""
+		}
+	}
+	s, _ := m[field].(string)
+	return s
 }

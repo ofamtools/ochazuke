@@ -354,6 +354,32 @@ type undoRun struct {
 	keys []string
 }
 
+// labels names each undone thing (keys, in order) for a person: its label
+// when a reverted change holds it (a rename's before or after), else its
+// key.
+func (out *undoRun) labels(r *Runtime, keys []string) []string {
+	names := slices.Clone(keys)
+	for i, key := range keys {
+		for _, d := range out.done {
+			e := r.entryOf(d.seq)
+			if e == nil {
+				continue
+			}
+			ch := e.Changes[d.at]
+			n := r.Noun(ch.Noun)
+			if ch.Key != key || n == nil {
+				continue
+			}
+			for _, side := range []map[string]any{ch.After, ch.Before} {
+				if label := n.displayLabel(func(name string) any { return side[name] }); label != "" {
+					names[i] = label
+				}
+			}
+		}
+	}
+	return names
+}
+
 type undoneChange struct {
 	seq uint64
 	at  int
@@ -465,8 +491,9 @@ func (r *Runtime) undoFinish(seq uint64, out *undoRun) func(any, error) (any, er
 		keys := slices.Clone(out.keys)
 		slices.Reverse(keys)
 		name := r.DisplayKey(e.Request.Key())
-		r.UI().Info(fmt.Sprintf("undid %s on %s", name, strings.Join(keys, ", ")))
-		return map[string]any{"undone": e.Seq, "verb": name, "things": keys}, nil
+		summary := fmt.Sprintf("undid %s on %s", name, strings.Join(out.labels(r, keys), ", "))
+		r.UI().Info(summary)
+		return map[string]any{"undone": e.Seq, "verb": name, "things": keys, "summary": summary}, nil
 	}
 }
 
@@ -524,7 +551,7 @@ func registerUndo(r *Runtime) {
 	r.Register(Operation{Verb: "undo", Noun: "ochazuke.history", HistoryKind: HistoryChange,
 		Description: "Undo a standard change by entry seq, or the newest change; agents undo only their own entries. Only on a store that declares Undo",
 		Parameters:  map[string]Parameter{"entry": {Type: "integer", Description: "History entry seq; omitted, the newest change by this actor (owner: any actor)"}},
-		Result:      "JSON value", App: r.undoVerb})
+		Result:      "JSON value", Summary: "summary", App: r.undoVerb})
 	r.SetAvailability("ochazuke.history.undo", UndoGuard)
 }
 
