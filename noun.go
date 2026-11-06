@@ -749,7 +749,7 @@ func (r *Runtime) Available(q Request, focus string, mode ModeState) bool {
 		}
 		q = pq
 	}
-	if op, ok := r.Operation(q.Key()); ok && (op.Disabled || op.Unavailable != "" || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)) {
+	if op, ok := r.Operation(q.Key()); ok && (op.Disabled || r.unavailableFor(op, q.Args) != "" || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)) {
 		return false
 	}
 	for _, name := range r.VerbAvailability(q.Key()) {
@@ -1219,7 +1219,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 		row.Request = r.modernRequest(row.Request)
 		op, ok := r.Operations[row.Request.Key()]
 		if !ok {
-			return row, fmt.Errorf("unknown operation %q", row.Request.Key())
+			return row, r.unknownOperation(row.Request.Noun, row.Request.Verb)
 		}
 		// A row may leave a required argument out: the key opens the args
 		// form for it (MissingOpensFormSetting), or, with the form off,

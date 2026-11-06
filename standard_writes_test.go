@@ -166,7 +166,7 @@ func TestSetOneAndSeveralProps(t *testing.T) {
 		{Arguments{"id": "t1", "prop": "status", "value": "done", "changes": map[string]any{"title": "x"}}, "not both"},
 		{Arguments{"id": "t1", "props": map[string]any{"title": "x"}, "changes": map[string]any{"title": "x"}}, "not changes too"},
 		{Arguments{"id": "t1", "props": map[string]any{"title": "x"}, "prop": "status", "value": "done"}, "not both"},
-		{Arguments{"id": "t1", "props": map[string]any{"@owner": "x"}}, "not applicable"}, // no owner role: unavailable, as move was
+		{Arguments{"id": "t1", "props": map[string]any{"@owner": "x"}}, "no writable prop with the role owner"}, // unavailable, as move was, and says why
 		{Arguments{"id": "t1", "props": map[string]any{"summary": "x"}}, "read-only"},
 		{Arguments{"id": "t1"}, "set needs props"},
 	} {

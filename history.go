@@ -56,6 +56,27 @@ type HistoryEntry struct {
 	// Changes are what a standard write did to each thing, before and
 	// after (standard_undo.go): what history.undo reverts.
 	Changes []ThingChange `json:"changes,omitempty"`
+	// Group joins entries that undo as one step (history.undo reverts
+	// every entry of the newest one's group): the writes one edit form
+	// makes, over every subject and every save. "" for none.
+	Group string `json:"group,omitempty"`
+}
+
+// newHistoryGroup is a new group name for entries that undo together;
+// what names its source (an edit form's thing) for reading.
+func (r *Runtime) newHistoryGroup(what string) string {
+	r.history.groups++
+	return fmt.Sprintf("%s #%d", what, r.history.groups)
+}
+
+// inHistoryGroup makes the entries recorded until restore join group,
+// unless an enclosing call already set one.
+func (r *Runtime) inHistoryGroup(group string) (restore func()) {
+	if r.history.group != "" {
+		return func() {}
+	}
+	r.history.group = group
+	return func() { r.history.group = "" }
 }
 
 // HistoryContext is the interaction state a request ran in. Source is
@@ -111,6 +132,8 @@ type actionHistory struct {
 	depth   int                   // requests running now
 	changes map[int][]ThingChange // the changes noted for the entry at each depth (noteChange)
 	limit   int                   // the ring's bound while persisted (history-limit); 0 is HistoryLimit
+	group   string                // the group the entries recorded now join (inHistoryGroup)
+	groups  uint64                // groups made (newHistoryGroup)
 }
 
 // ringLimit is how many entries the ring keeps.
@@ -183,7 +206,7 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 		q.Args = args
 	}
 	r.history.seq++
-	entry := HistoryEntry{Seq: r.history.seq, At: at, Kind: r.historyKind(q), Request: q, Context: ctx, Depth: depth, Result: HistoryResult{OK: err == nil}}
+	entry := HistoryEntry{Seq: r.history.seq, At: at, Kind: r.historyKind(q), Request: q, Context: ctx, Depth: depth, Result: HistoryResult{OK: err == nil}, Group: r.history.group}
 	if err != nil {
 		entry.Result.Error = err.Error()
 	}

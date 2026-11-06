@@ -253,15 +253,10 @@ func TestStandardEditChangeWalk(t *testing.T) {
 			t.Fatalf("after %q store %v want %v", step.key, s.find("t1"), want)
 		}
 	}
-	for _, want := range []Thing{
-		{"id": "t1", "title": "Edited", "status": "done", "active": false, "stamp": "fixed"},
-		{"id": "t1", "title": "Edited", "status": "todo", "active": false, "stamp": "fixed"},
-		{"id": "t1", "title": "Original", "status": "todo", "active": false, "stamp": "fixed"},
-	} {
-		mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
-		if !reflect.DeepEqual(s.find("t1"), want) {
-			t.Fatalf("undo store %v want %v", s.find("t1"), want)
-		}
+	// The form's writes are one history group: one undo takes it back.
+	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	if want := (Thing{"id": "t1", "title": "Original", "status": "todo", "active": false, "stamp": "fixed"}); !reflect.DeepEqual(s.find("t1"), want) {
+		t.Fatalf("undo store %v want %v", s.find("t1"), want)
 	}
 }
 

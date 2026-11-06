@@ -812,6 +812,9 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 	}
 	c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Candidates: optionValues(candidates)})
 	c.Err = unresolvedError(rest[0].Text, "verb of "+noun, candidates)
+	if err := p.r.removedVerbError(noun, rest[0].Text); err != nil && len(candidates) == 0 {
+		c.Err = err // a removed verb says what to write instead
+	}
 	c.Missing = "verb"
 	return c
 }

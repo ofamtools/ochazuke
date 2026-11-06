@@ -51,8 +51,12 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 	for _, v := range standardTable() {
 		key := n.Name + "." + v.Verb
 		existing, ok := r.Operations[key]
-		if ok && existing.Standard == "" || !ok && r.nameTaken(key) {
-			continue // the application's verb (or alias, or noun) wins
+		if ok && existing.Standard == "" {
+			r.adoptFieldParam(key) // the application's verb wins, the row's field still reaches its form
+			continue
+		}
+		if !ok && r.nameTaken(key) {
+			continue // the application's alias or noun wins
 		}
 		if ok {
 			delete(r.Operations, key)
@@ -93,6 +97,61 @@ func (r *Runtime) standardOperation(noun, verb string) (Operation, bool) {
 	}
 	op, ok := r.Operations[r.CanonicalNoun(noun)+"."+row.Verb]
 	return op, ok
+}
+
+// adoptFieldParam gives the application's own verb registered under a
+// core row's name the row's FieldParam (edit's field): a request giving
+// it runs the row's own handler (the one-field form, which every thing
+// noun's r and m keys reach), any other the application's verb. Read off
+// the row (FieldParam, Handler), never a verb's name; a no-op for a noun
+// without a store, a row without a FieldParam, or a verb that declares
+// the parameter itself.
+func (r *Runtime) adoptFieldParam(key string) {
+	op, ok := r.Operations[key]
+	if !ok || op.Standard != "" {
+		return
+	}
+	row, n := standardRow(op.Verb), r.Nouns[op.Noun]
+	if row == nil || row.optional || row.FieldParam == "" || row.Handler == nil || n == nil || n.Store == nil {
+		return
+	}
+	field := row.FieldParam
+	if _, declared := op.Parameters[field]; declared {
+		return
+	}
+	std := row.operation(r, n, "")
+	params := maps.Clone(op.Parameters)
+	if params == nil {
+		params = map[string]Parameter{}
+	}
+	params[field] = std.Parameters[field]
+	if kp := n.keyProp(); kp != nil {
+		if _, has := params[kp.Name]; !has {
+			params[kp.Name] = std.Parameters[kp.Name]
+		}
+	}
+	own, run, form := op.App, op.Run, row.Handler(r, n)
+	op.Parameters = params
+	op.App = func(c Ctx) Result {
+		if v, given := c.Args[field]; given && !emptyProp(v) {
+			return form(c)
+		}
+		if own != nil {
+			return own(c)
+		}
+		v, err := run(c.Runtime, c.Context, c.Args)
+		if err != nil {
+			return Failed(err)
+		}
+		return Done(v)
+	}
+	if own == nil {
+		op.Kind = KindApplication
+		op.Run = func(r *Runtime, c Context, a Arguments) (any, error) {
+			return r.runApplication(r.Operations[key], c, a)
+		}
+	}
+	r.Operations[key] = op
 }
 
 // nameTaken reports whether key names something the application declared
@@ -164,7 +223,7 @@ func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 		op.Rows = name
 		op.Result = "rows"
 	}
-	op.App = v.handler(r, n, reason)
+	op.App = v.handler(r, n, v.hardReason(r, n))
 	return op
 }
 
@@ -1090,11 +1149,48 @@ func (r *Runtime) repeatableStandard(q Request) bool {
 	return r.simpleWrite(q)
 }
 
+// missingRole is the error of a request addressing a role its noun has no
+// writable prop for (propMissingError): through the props it writes (a
+// row's Writes) or the one prop it opens (a row's FieldParam, also on an
+// application's own verb that adopted it). nil otherwise. Execute says it
+// instead of "not applicable"; availability reads it.
+func (r *Runtime) missingRole(q Request) error {
+	op, ok := r.Operations[q.Key()]
+	if !ok {
+		return nil
+	}
+	n := r.Nouns[op.Noun]
+	row := standardRow(op.Standard)
+	if row == nil {
+		row = standardRow(op.Verb) // an application's verb that adopted the row's field
+		if row != nil && row.Writes != nil {
+			row = nil
+		}
+	}
+	if row == nil || n == nil || n.Store == nil {
+		return nil
+	}
+	if row.Writes != nil {
+		if _, err := row.Writes(n, q.Args); errors.As(err, new(propMissingError)) {
+			return err
+		}
+	}
+	if field := StringArg(q.Args, row.FieldParam, ""); row.FieldParam != "" && field != "" {
+		if _, err := writeTarget(n, field); errors.As(err, new(propMissingError)) {
+			return err
+		}
+	}
+	return nil
+}
+
 // propsAvailable is the per-prop layer of a standard verb's availability
 // (PropSpec.When): a request naming a prop the guard hides at focus is
 // unavailable, and so is a prop write (WritesProps) naming none when no
 // prop it could write is offered there.
 func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState) bool {
+	if r.missingRole(q) != nil {
+		return false // a role the noun cannot write: as the verb that wrote it was
+	}
 	op, ok := r.Operations[q.Key()]
 	if !ok || op.Standard == "" {
 		return true
@@ -1109,22 +1205,13 @@ func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState) bool {
 	}
 	var names []string
 	if row.Writes != nil {
-		var err error
-		if names, err = row.Writes(n, q.Args); errors.As(err, new(propMissingError)) {
-			return false // a prop (or role) the noun cannot write
-		}
+		names, _ = row.Writes(n, q.Args)
 	} else if p := StringArg(q.Args, "prop", ""); p != "" {
 		names = []string{p}
 	}
 	if row.FieldParam != "" {
-		if field := StringArg(q.Args, row.FieldParam, ""); field != "" {
-			p, err := writeTarget(n, field)
-			if errors.As(err, new(propMissingError)) {
-				return false
-			}
-			if p != nil {
-				names = append(names, p.Name)
-			}
+		if p, err := writeTarget(n, StringArg(q.Args, row.FieldParam, "")); err == nil {
+			names = append(names, p.Name)
 		}
 	}
 	shown := func(p PropSpec) bool { return r.propShown(p, focus, mode, q.Args) }

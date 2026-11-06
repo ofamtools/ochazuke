@@ -863,6 +863,7 @@ func (r *Runtime) Register(o Operation) {
 	}
 	o.Checks = append([]VerbCheck{{Name: "agent-rights", requestCheck: (*Runtime).agentVerdict}}, o.Checks...)
 	r.Operations[o.Key()] = o
+	r.adoptFieldParam(o.Key())
 }
 
 // AddInput registers an editor instance. Options: Parent(id) (default app),
@@ -1057,7 +1058,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	}
 	op, ok := r.Operations[q.Key()]
 	if !ok {
-		return nil, fmt.Errorf("unknown operation %q", q.Key())
+		return nil, r.unknownOperation(q.Noun, q.Verb)
 	}
 	if q.Args, err = r.standardArgs(op, q); err != nil {
 		return nil, err
@@ -1112,7 +1113,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	// (its target, else the caller's focus) is refused, from keys, the
 	// palette, the CLI and the API alike.
 	if !r.Available(withArgs(q, filled), focus, guardMode) {
-		return nil, fmt.Errorf("%s is not applicable now", r.DisplayKey(q.Key()))
+		return nil, r.notApplicable(withArgs(q, filled))
 	}
 	// A request without a target addresses the nearest instance of its
 	// operation's noun on the focus path (row.delete chosen in the palette
@@ -1438,6 +1439,16 @@ func registerCore(r *Runtime) {
 	r.Register(Operation{Verb: "ignore", Noun: "ochazuke.key", Description: "The noop: always available, does nothing; a row bound to it consumes its key (DispatchOutcome reports KeyConsumed), how a container clamps a key its children leave unhandled", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 }
 
+// notApplicable is why execute refuses a request that is not available:
+// the role it addresses that its noun lacks (missingRole), else that it
+// does not apply now.
+func (r *Runtime) notApplicable(q Request) error {
+	if err := r.missingRole(q); err != nil {
+		return err
+	}
+	return fmt.Errorf("%s is not applicable now", r.DisplayKey(q.Key()))
+}
+
 // withArgs is q with args as its arguments.
 func withArgs(q Request, args Arguments) Request {
 	q.Args = args
@@ -1450,8 +1461,8 @@ func withArgs(q Request, args Arguments) Request {
 // (ReadArgs: create's prop aliases and prop=value words) does so on a
 // noun whose props have aliases. Any other operation's arguments are q's.
 func (r *Runtime) standardArgs(op Operation, q Request) (Arguments, error) {
-	if op.Unavailable != "" {
-		return nil, fmt.Errorf("%s is unavailable: %s", r.DisplayKey(q.Key()), op.Unavailable)
+	if reason := r.unavailableFor(op, q.Args); reason != "" {
+		return nil, fmt.Errorf("%s is unavailable: %s", r.DisplayKey(q.Key()), reason)
 	}
 	row, n := standardRow(op.Standard), r.Noun(op.Noun)
 	if row == nil || row.ReadArgs == nil || n == nil || !slices.ContainsFunc(n.Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }) {

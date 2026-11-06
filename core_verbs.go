@@ -123,27 +123,32 @@ type storeNeed struct {
 	Doc   string
 	Lacks string
 	Has   func(r *Runtime, n *Noun) bool
+	// WaivedBy names a parameter whose value, given, waives the need for
+	// that request (edit's field waives forms.edit: the setting controls
+	// the generated full form, not the one-field form). The verb is still
+	// registered unavailable with Lacks; a request giving it runs.
+	WaivedBy string
 }
 
 var (
-	needGet = storeNeed{"Store.Get", "its store reads no single thing (no Store.Get)",
-		func(_ *Runtime, n *Noun) bool { return n.Store.Get != nil }}
-	needList = storeNeed{"Store.List", "its store lists no things (no Store.List)",
-		func(_ *Runtime, n *Noun) bool { return n.Store.List != nil }}
-	needCreate = storeNeed{"Store.Create", "its store creates no things (no Store.Create)",
-		func(_ *Runtime, n *Noun) bool { return n.Store.Create != nil }}
-	needPatch = storeNeed{"Store.Patch", "its store writes no props (no Store.Patch)",
-		func(_ *Runtime, n *Noun) bool { return n.Store.Patch != nil }}
-	needDelete = storeNeed{"Store.Delete", "its store deletes no things (no Store.Delete)",
-		func(_ *Runtime, n *Noun) bool { return n.Store.Delete != nil }}
-	needCreateProp = storeNeed{"a prop create writes", "it has no prop create writes",
-		func(_ *Runtime, n *Noun) bool { return len(createProps(n)) > 0 }}
-	needWritable = storeNeed{"a writable prop", "it has no writable prop",
-		func(_ *Runtime, n *Noun) bool { return len(writableProps(n)) > 0 }}
-	needWatch = storeNeed{"Store.Watch, else Store.List (a singleton: Store.Get)", "its store has no Watch, List or (for a singleton) Get",
-		func(_ *Runtime, n *Noun) bool { return watchFits(*n.Store) }}
-	needEditForms = storeNeed{"forms.edit", "forms.edit is off",
-		func(r *Runtime, _ *Noun) bool { return r.Settings().Bool(EditFormsSetting) }}
+	needGet = storeNeed{Doc: "Store.Get", Lacks: "its store reads no single thing (no Store.Get)",
+		Has: func(_ *Runtime, n *Noun) bool { return n.Store.Get != nil }}
+	needList = storeNeed{Doc: "Store.List", Lacks: "its store lists no things (no Store.List)",
+		Has: func(_ *Runtime, n *Noun) bool { return n.Store.List != nil }}
+	needCreate = storeNeed{Doc: "Store.Create", Lacks: "its store creates no things (no Store.Create)",
+		Has: func(_ *Runtime, n *Noun) bool { return n.Store.Create != nil }}
+	needPatch = storeNeed{Doc: "Store.Patch", Lacks: "its store writes no props (no Store.Patch)",
+		Has: func(_ *Runtime, n *Noun) bool { return n.Store.Patch != nil }}
+	needDelete = storeNeed{Doc: "Store.Delete", Lacks: "its store deletes no things (no Store.Delete)",
+		Has: func(_ *Runtime, n *Noun) bool { return n.Store.Delete != nil }}
+	needCreateProp = storeNeed{Doc: "a prop create writes", Lacks: "it has no prop create writes",
+		Has: func(_ *Runtime, n *Noun) bool { return len(createProps(n)) > 0 }}
+	needWritable = storeNeed{Doc: "a writable prop", Lacks: "it has no writable prop",
+		Has: func(_ *Runtime, n *Noun) bool { return len(writableProps(n)) > 0 }}
+	needWatch = storeNeed{Doc: "Store.Watch, else Store.List (a singleton: Store.Get)", Lacks: "its store has no Watch, List or (for a singleton) Get",
+		Has: func(_ *Runtime, n *Noun) bool { return watchFits(*n.Store) }}
+	needEditForms = storeNeed{Doc: "forms.edit (unless field is given)", Lacks: "forms.edit is off",
+		Has: func(r *Runtime, _ *Noun) bool { return r.Settings().Bool(EditFormsSetting) }, WaivedBy: editFieldParam}
 )
 
 // FactReason is why a facts store's writing verbs are unavailable.
@@ -153,8 +158,8 @@ const FactReason = "a system fact"
 // system fact (Store.Facts), whose things the registry holds. The writing
 // verbs list it first, so a facts store has them unavailable with this
 // reason.
-var needWriter = storeNeed{"a store that is not a system fact (Store.Facts)", FactReason,
-	func(_ *Runtime, n *Noun) bool { return !n.Store.Facts }}
+var needWriter = storeNeed{Doc: "a store that is not a system fact (Store.Facts)", Lacks: FactReason,
+	Has: func(_ *Runtime, n *Noun) bool { return !n.Store.Facts }}
 
 // needRole is the need of a writable prop with that role.
 func needRole(role string) storeNeed {
@@ -197,8 +202,8 @@ func coreVerbs() []standardVerb {
 			Writes: roleWrites(RoleArchive), Run: runArchive},
 		{Verb: "edit", Description: "Edit a thing's writable props in a form, or one of them (field, a prop or @role: with edit.field-only the form holds only it, else it is focused); supplied props write directly without opening a form",
 			Kinds: []string{Collection, Singleton, Instances}, Needs: []storeNeed{needGet, needPatch, needWritable, needEditForms},
-			TakesSubject: true, Form: true, HistoryKind: HistoryAction, ParamNames: []string{editFieldParam}, FieldParam: editFieldParam, Params: editParams,
-			Handler: func(r *Runtime, n *Noun) AppHandler { return r.EditHandler(n.Name) }},
+			TakesSubject: true, Many: true, Form: true, HistoryKind: HistoryAction, ParamNames: []string{editFieldParam}, FieldParam: editFieldParam, Params: editParams,
+			Handler: func(r *Runtime, n *Noun) AppHandler { return r.editHandler(n.Name) }},
 	}
 }
 
@@ -297,16 +302,56 @@ func standardParams() []string {
 
 // unmet is why the row's verb cannot run on noun n ("" when it can): the
 // store's kind is not one the row is for, or the first need it lacks.
-func (v standardVerb) unmet(r *Runtime, n *Noun) string {
+func (v standardVerb) unmet(r *Runtime, n *Noun) string { return v.unmetGiven(r, n, nil) }
+
+// unmetGiven is unmet for a request giving args: a need its WaivedBy
+// parameter waives is not asked. waiveAll asks none of the waivable needs
+// (the reason no request can get past: what the handler fails with).
+func (v standardVerb) unmetGiven(r *Runtime, n *Noun, args Arguments) string {
 	if !slices.Contains(v.Kinds, n.Store.Kind) {
 		return fmt.Sprintf("its store is a %s; %s is for a %s", n.Store.Kind, v.Verb, strings.Join(v.Kinds, " or "))
 	}
 	for _, need := range v.Needs {
+		if need.WaivedBy != "" {
+			if val, given := args[need.WaivedBy]; given && (val == waiveAll || !emptyProp(val)) {
+				continue
+			}
+		}
 		if !need.Has(r, n) {
 			return need.Lacks
 		}
 	}
 	return ""
+}
+
+// waiveAll is the argument value unmetGiven reads as "waived" for every
+// waivable need (hardReason).
+var waiveAll any = struct{ all bool }{true}
+
+// hardReason is why the row's verb cannot run on n whatever a request
+// gives: unmet with every waivable need waived.
+func (v standardVerb) hardReason(r *Runtime, n *Noun) string {
+	args := Arguments{}
+	for _, need := range v.Needs {
+		if need.WaivedBy != "" {
+			args[need.WaivedBy] = waiveAll
+		}
+	}
+	return v.unmetGiven(r, n, args)
+}
+
+// unavailableFor is why op cannot run for a request giving args ("" when
+// it can): its registered reason, unless the request waives every need
+// that is missing (storeNeed.WaivedBy).
+func (r *Runtime) unavailableFor(op Operation, args Arguments) string {
+	if op.Unavailable == "" {
+		return ""
+	}
+	row, n := standardRow(op.Standard), r.Nouns[op.Noun]
+	if row == nil || n == nil || n.Store == nil {
+		return op.Unavailable
+	}
+	return row.unmetGiven(r, n, args)
 }
 
 // needsDoc is the row's Needs in words, as the reference prints them.

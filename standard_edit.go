@@ -60,19 +60,22 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 	if !r.Settings().Bool(EditFormsSetting) {
 		return nil
 	}
+	return r.editHandler(noun)
+}
+
+// editHandler is the edit verb's handler whatever forms.edit says: the
+// setting makes the full form unavailable (needEditForms), and a request
+// giving field (the one-field form) waives it. Over several subjects (a
+// visual selection, marks: edit is Many) the form opens on the focused
+// one and every write goes to each subject. All the writes of one form
+// (every subject, every debounced save) are one history group, so
+// history.undo takes the form back in one step.
+func (r *Runtime) editHandler(noun string) AppHandler {
 	return func(c Ctx) Result {
 		n := r.Noun(noun)
-		subject := Arguments{}
-		if key := n.keyProp(); key != nil {
-			value, err := r.subjectKey(n, c)
-			if err != nil {
-				return Failed(err)
-			}
-			typed, err := propValue(*key, value)
-			if err != nil {
-				return Failed(err)
-			}
-			subject[key.Name] = typed
+		subject, others, err := r.editSubjects(n, c)
+		if err != nil {
+			return Failed(err)
 		}
 		writeKey := noun
 		if key := n.keyProp(); key != nil {
@@ -82,16 +85,7 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 		if err != nil {
 			return Failed(err)
 		}
-		write := func(changes map[string]any) Result {
-			args := maps.Clone(subject)
-			args["props"] = changes
-			// The subject key, not the ephemeral row, identifies this write.
-			value, err := r.ExecuteAt(r.contextOf("app"), Request{Noun: noun, Verb: "set", Args: args})
-			if err != nil {
-				return Failed(err)
-			}
-			return Done(value)
-		}
+		write := r.editWriter(n, subject, others, r.newHistoryGroup("edit "+writeKey))
 		if len(changes) > 0 {
 			return write(changes)
 		}
@@ -213,6 +207,79 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 			}
 		})
 	}
+}
+
+// editSubjects are the subject the edit form opens on (its key as an
+// argument) and the keys of the request's other subjects (a selection),
+// each write going to all of them.
+func (r *Runtime) editSubjects(n *Noun, c Ctx) (Arguments, []any, error) {
+	subject := Arguments{}
+	key := n.keyProp()
+	if key == nil {
+		return subject, nil, nil
+	}
+	value, err := r.subjectKey(n, c)
+	if err != nil {
+		return nil, nil, err
+	}
+	typed, err := propValue(*key, value)
+	if err != nil {
+		return nil, nil, err
+	}
+	subject[key.Name] = typed
+	others, err := r.otherSubjectKeys(n, c, *key, value)
+	return subject, others, err
+}
+
+// editWriter is the form's write: set {props} on the subject and on each
+// other subject, every one recorded in group, so history.undo takes the
+// whole form back in one step.
+func (r *Runtime) editWriter(n *Noun, subject Arguments, others []any, group string) func(map[string]any) Result {
+	return func(changes map[string]any) Result {
+		defer r.inHistoryGroup(group)()
+		var value any
+		for i, target := range append([]any{nil}, others...) {
+			args := maps.Clone(subject)
+			if i > 0 {
+				args[n.keyProp().Name] = target
+			}
+			args["props"] = maps.Clone(changes)
+			// The subject key, not the ephemeral row, identifies this write.
+			v, err := r.ExecuteAt(r.contextOf("app"), Request{Noun: n.Name, Verb: "set", Args: args})
+			if err != nil {
+				return Failed(err)
+			}
+			if i == 0 {
+				value = v
+			}
+		}
+		return Done(value)
+	}
+}
+
+// otherSubjectKeys are the keys of the request's subjects (Ctx.Subjects,
+// a selection) other than the one it acts for (primary), typed by the key
+// prop, in order.
+func (r *Runtime) otherSubjectKeys(n *Noun, c Ctx, key PropSpec, primary string) ([]any, error) {
+	if len(c.Subjects) <= 1 {
+		return nil, nil
+	}
+	var out []any
+	for _, s := range c.Subjects {
+		k, err := r.rowKey(n, s)
+		if err != nil {
+			return nil, err
+		}
+		if k == primary {
+			continue
+		}
+		typed, err := propValue(key, k)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, typed)
+	}
+	return out, nil
 }
 
 // editArgs reads an edit request's arguments beside the subject's key:

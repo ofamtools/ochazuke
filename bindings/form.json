@@ -43,6 +43,7 @@
     {"context": "ochazuke.form-field/insert", "bindings": [
       {"key": "enter", "action": "ochazuke.form.run"},
       {"key": "enter", "action": "ochazuke.form.next-missing", "args": {"insert": true}},
+      {"key": "enter", "action": "ochazuke.form.leave", "when": "form-one-field", "help": "In a form of one field that writes each change (edit {field}: r, m), enter writes it and closes the form"},
       {"key": "enter", "action": "ochazuke.form.next", "args": {"insert": true}},
       {"key": "tab", "action": "ochazuke.form.next", "args": {"insert": true}},
       {"key": "shift+tab", "action": "ochazuke.form.previous", "args": {"insert": true}}
@@ -51,6 +52,7 @@
       {"key": "!", "action": "ochazuke.form.invert", "hint": "not"},
       {"key": "enter", "action": "ochazuke.form.run"},
       {"key": "enter", "action": "ochazuke.form.next-missing"},
+      {"key": "enter", "action": "ochazuke.form.leave", "when": "form-one-field", "help": "In a form of one field that writes each change (edit {field}: r, m), enter writes it and closes the form"},
       {"key": "j", "action": "ochazuke.form.next"},
       {"key": "down", "action": "ochazuke.form.next"},
       {"key": "k", "action": "ochazuke.form.previous"},

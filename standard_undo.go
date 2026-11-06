@@ -343,29 +343,64 @@ func (r *Runtime) undo(c Context, a Arguments) (any, error) {
 		}
 		return nil, err
 	}
-	e := &r.history.entries[i]
-	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: Arguments{}, Instance: r.Instances[focusOf(c)]}
-	if _, targeted := a["entry"]; targeted || r.Actor().IsAgent() {
-		if err := r.undoCurrent(ctx, e.Changes); err != nil {
+	group := r.undoGroupOf(i)
+	for _, j := range group {
+		if err := r.undoable(j); err != nil {
 			return nil, err
 		}
 	}
+	e := &r.history.entries[i]
+	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: Arguments{}, Instance: r.Instances[focusOf(c)]}
+	if _, targeted := a["entry"]; targeted || r.Actor().IsAgent() {
+		for _, j := range group {
+			if err := r.undoCurrent(ctx, r.history.entries[j].Changes); err != nil {
+				return nil, err
+			}
+		}
+	}
 	var keys []string
-	for j := len(e.Changes) - 1; j >= 0; j-- {
-		ch := &e.Changes[j]
-		if ch.Undone {
-			continue
+	for _, j := range group {
+		changes := r.history.entries[j].Changes
+		for k := len(changes) - 1; k >= 0; k-- {
+			ch := &changes[k]
+			if ch.Undone {
+				continue
+			}
+			if err := r.undoChange(ctx, *ch); err != nil {
+				return nil, fmt.Errorf("undo %s %s: %w", r.DisplayNoun(ch.Noun), ch.Key, err)
+			}
+			ch.Undone = true
+			if !slices.Contains(keys, ch.Key) {
+				keys = append(keys, ch.Key)
+			}
 		}
-		if err := r.undoChange(ctx, *ch); err != nil {
-			return nil, fmt.Errorf("undo %s %s: %w", r.DisplayNoun(ch.Noun), ch.Key, err)
-		}
-		ch.Undone = true
-		keys = append(keys, ch.Key)
 	}
 	slices.Reverse(keys)
 	name := r.DisplayKey(e.Request.Key())
 	r.UI().Info(fmt.Sprintf("undid %s on %s", name, strings.Join(keys, ", ")))
 	return map[string]any{"undone": e.Seq, "verb": name, "things": keys}, nil
+}
+
+// undoGroupOf is the entries history.undo reverts with the one at i,
+// newest first: i alone, or every entry of its group (HistoryEntry.Group)
+// with changes left to undo, the same actor's when an agent undoes.
+func (r *Runtime) undoGroupOf(i int) []int {
+	entries := r.history.entries
+	group := entries[i].Group
+	if group == "" {
+		return []int{i}
+	}
+	var out []int
+	for j := i; j >= 0; j-- {
+		e := entries[j]
+		if e.Group != group || e.Restored || !e.Result.OK || (r.Actor().IsAgent() && !r.Actor().SameAgent(e.Context.Actor)) {
+			continue
+		}
+		if slices.ContainsFunc(e.Changes, func(c ThingChange) bool { return !c.Undone }) {
+			out = append(out, j)
+		}
+	}
+	return out
 }
 
 func registerUndo(r *Runtime) {

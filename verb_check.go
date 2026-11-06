@@ -259,3 +259,31 @@ func (r *Runtime) removedActionNotes(entries []fileAction) []string {
 	}
 	return out
 }
+
+// removedVerbError is the error for a request naming a verb a release
+// removed (removed_verbs.json, AddRemovedVerbs) that its noun has not (the
+// caller found no operation): what to write instead. nil when noun.verb
+// is not one.
+func (r *Runtime) removedVerbError(noun, verb string) error {
+	canon := r.CanonicalNoun(noun)
+	for _, row := range r.RemovedVerbs() {
+		if row.Param != "" || row.Verb != verb || row.Noun != "" && r.CanonicalNoun(row.Noun) != canon {
+			continue
+		}
+		msg := fmt.Sprintf("%s %s was removed", r.DisplayNoun(canon), verb)
+		if row.Since != "" {
+			msg += " in " + row.Since
+		}
+		return fmt.Errorf("%s: use %s", msg, row.Replacement)
+	}
+	return nil
+}
+
+// unknownOperation is the error for a request no operation answers: a
+// removed verb's (what to write instead), else unknown operation.
+func (r *Runtime) unknownOperation(noun, verb string) error {
+	if err := r.removedVerbError(noun, verb); err != nil {
+		return err
+	}
+	return fmt.Errorf("unknown operation %q", noun+"."+verb)
+}

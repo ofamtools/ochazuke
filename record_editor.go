@@ -218,7 +218,21 @@ const (
 const (
 	FormRunnableGuard = "form-runnable"
 	FormMissingGuard  = "form-missing"
+	// FormOneFieldGuard holds in a form of one shown field that writes
+	// each change: enter closes it (bindings/form.json).
+	FormOneFieldGuard = "form-one-field"
 )
+
+// shownFields counts the fields the form draws (not Hidden).
+func (e *RecordEditor) shownFields() int {
+	n := 0
+	for _, f := range e.fields {
+		if !f.Hidden {
+			n++
+		}
+	}
+	return n
+}
 
 // paramHasChoices reports whether a parameter's values come from a list:
 // an Enum, a Source, or a Noun's things (Runtime.Choices).
@@ -1845,6 +1859,13 @@ func registerForms(r *Runtime) {
 	r.DefineGuard(FormRunnableGuard, func(r *Runtime, ev KeyEvent) bool {
 		e := r.recordEditorOf(ev.Focus)
 		return e != nil && e.Runnable()
+	})
+	// A form of one field that writes each change (no Submit: edit
+	// {field}) has nothing to move to: enter closes it (form.leave, which
+	// writes what is typed).
+	r.DefineGuard(FormOneFieldGuard, func(r *Runtime, ev KeyEvent) bool {
+		e := r.recordEditorOf(ev.Focus)
+		return e != nil && e.spec.Submit == nil && !e.closed && e.shownFields() == 1
 	})
 	for _, verb := range []string{"next", "previous", "next-missing"} {
 		op := r.Operations[FormNoun+"."+verb]
