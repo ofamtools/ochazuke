@@ -11,7 +11,6 @@
     {"context": "app/normal", "fallback": true, "bindings": [
       {"key": ":", "action": "ochazuke.palette.open"},
       {"key": "?", "action": "ochazuke.bindings.help"},
-      {"key": "i", "action": "ochazuke.nouns.edit", "hint": "edit"},
       {"key": "esc", "action": "ochazuke.nouns.cancel-edit", "capture": true},
       {"key": "g <", "action": "ochazuke.messages.show", "when": "no-input", "hidden": true},
       {"key": "'", "action": "ochazuke.page.pick", "when": "no-modal"},
