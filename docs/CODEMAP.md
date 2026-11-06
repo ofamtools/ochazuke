@@ -133,10 +133,10 @@ Root package `ochazuke` is flat: 195 source files, 237 test files. Each entry li
 
 ### chooser.go
 
-- lines: 1046 · tests: chooser_test.go
+- lines: 1062 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
-- methods: Chooser(33), Runtime(4)
+- methods: Chooser(34), Runtime(4)
 - leans on: delivery.go(38), instance.go(33), table.go(15), runtime.go(12)
 
 ### chooser_prop_filter.go
@@ -220,10 +220,10 @@ Root package `ochazuke` is flat: 195 source files, 237 test files. Each entry li
 
 ### confirm.go
 
-- lines: 233 · tests: confirm_test.go
+- lines: 280 · tests: confirm_test.go
 - purpose: The confirm noun: a framework modal a verb with a Confirm prompt opens before it runs.
-- methods: Runtime(4)
-- leans on: runtime.go(33), noun.go(9), instance.go(8), props.go(8)
+- methods: Runtime(6)
+- leans on: runtime.go(40), props.go(13), noun.go(12), instance.go(9)
 
 ### copy_refresh.go
 
@@ -292,10 +292,10 @@ Root package `ochazuke` is flat: 195 source files, 237 test files. Each entry li
 
 ### edit_chooser.go
 
-- lines: 99 · tests: edit_chooser_test.go
+- lines: 115 · tests: edit_chooser_test.go
 - purpose: editByChooser reports whether edit {field} opens the field's chooser in place of the one-field form, and the field it opens on: only when the field takes a c...
 - methods: Runtime(3)
-- leans on: runtime.go(14), record_editor.go(10), delivery.go(6), standard_edit.go(5)
+- leans on: record_editor.go(12), runtime.go(12), standard_edit.go(7), chooser.go(6)
 
 ### editing.go
 
@@ -1192,10 +1192,10 @@ Root package `ochazuke` is flat: 195 source files, 237 test files. Each entry li
 
 ### standard_edit.go
 
-- lines: 525 · tests: standard_edit_test.go
+- lines: 582 · tests: standard_edit_test.go
 - purpose: EditHandler builds the standard edit handler for a declared noun, including a catalog-mounted noun with get and set proxies but no local Store.
-- methods: Runtime(10)
-- leans on: runtime.go(42), delivery.go(37), props.go(19), noun.go(17)
+- methods: Runtime(13)
+- leans on: runtime.go(47), delivery.go(46), props.go(26), noun.go(19)
 
 ### standard_grammar.go
 
@@ -1512,7 +1512,7 @@ Root package `ochazuke` is flat: 195 source files, 237 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 45 source files, 54 test files.
+Importable package `cli`: 45 source files, 55 test files.
 
 ### cli/agent_metadata.go
 

@@ -126,6 +126,10 @@ type ChooserSpec struct {
 	// pick one"), whatever the source's own Empty says: one place for
 	// the way out. Lower case, no parentheses (R5.19).
 	Hint string
+	// Start, when set, picks the row the highlight starts on while the
+	// query is empty and the user has not moved it (a field's current
+	// value), as rows arrive; else the top row.
+	Start func(ChooserRow) bool
 }
 
 // ChooserPreviewMin is the width from which a chooser with a Preview
@@ -592,6 +596,18 @@ func (c *Chooser) refilter() {
 		c.cursor = len(head) + len(tail)
 	case len(head) > 0 || c.seen != "" && len(tail) > 0:
 		c.cursor = 0
+	}
+	c.startAt()
+}
+
+// startAt puts the highlight on the spec's Start row while the query is
+// empty: a pick opens on what is already there.
+func (c *Chooser) startAt() {
+	if c.spec.Start == nil || c.seen != "" {
+		return
+	}
+	if i := slices.IndexFunc(c.matches, c.spec.Start); i >= 0 {
+		c.cursor = i
 	}
 }
 
