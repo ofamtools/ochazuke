@@ -625,12 +625,12 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### list_query.go
 
-- lines: 644 · tests: list_query_test.go
+- lines: 701 · tests: list_query_test.go
 - purpose: ListQuery is one view of a noun's things: what the standard list verb takes, what a store's Query runs, and the whole view state of a List widget.
 - types: ListQuery, ListPage, ListAnswer
 - methods: ListQuery(4), Runtime(5)
 - funcs: AnswerRows
-- leans on: list_sort.go(17), props.go(17), pages.go(16), runtime.go(15)
+- leans on: props.go(19), list_sort.go(17), pages.go(16), runtime.go(15)
 
 ### list_query_view.go
 
@@ -807,11 +807,11 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### palette_parse.go
 
-- lines: 1036
+- lines: 1043
 - purpose: lineToken is one word of the line; Text is unquoted.
 - types: PaletteWord
 - methods: Palette(12), commandLine(3), lineIndex(10), option(1)
-- leans on: block.go(62), instance.go(40), thing_keys.go(30), runtime.go(24)
+- leans on: block.go(62), instance.go(41), thing_keys.go(30), runtime.go(24)
 
 ### palette_results.go
 
@@ -1014,7 +1014,7 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1472 · tests: runtime_test.go
+- lines: 1479 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(6), Request(4), Runtime(23)
@@ -1177,10 +1177,10 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### standard_edit.go
 
-- lines: 449 · tests: standard_edit_test.go
+- lines: 485 · tests: standard_edit_test.go
 - purpose: EditHandler builds the standard edit handler for a declared noun, including a catalog-mounted noun with get and set proxies but no local Store.
 - methods: Runtime(8)
-- leans on: runtime.go(38), delivery.go(35), props.go(17), noun.go(15)
+- leans on: runtime.go(38), delivery.go(36), props.go(17), noun.go(15)
 
 ### standard_grammar.go
 
@@ -1200,11 +1200,11 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### standard_undo.go
 
-- lines: 607 · tests: standard_undo_test.go
+- lines: 634 · tests: standard_undo_test.go
 - purpose: ThingChange is what one standard write did to one thing: its noun and key, and the props it changed with their values before and after, in their file form.
 - types: ThingChange
-- methods: Runtime(16)
-- leans on: props.go(31), runtime.go(27), noun.go(26), delivery.go(17)
+- methods: Runtime(16), undoRun(1)
+- leans on: props.go(31), noun.go(28), runtime.go(28), delivery.go(17)
 
 ### standard_verbs.go
 
@@ -1319,7 +1319,7 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### text_view.go
 
-- lines: 316 · tests: text_view_test.go
+- lines: 339 · tests: text_view_test.go
 - purpose: TextAnswer carries a text answer's display title across CLI/catalog calls.
 - types: TextAnswer
 - methods: NounBuilder(1), Runtime(6)
@@ -1336,10 +1336,10 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### thing_keys.go
 
-- lines: 345 · tests: thing_keys_test.go
+- lines: 366 · tests: thing_keys_test.go
 - purpose: humanProp is the noun's human key: the prop marked Human, else the prop with the label role; nil when it has neither.
-- methods: Noun(4), Runtime(6), Thing(1)
-- leans on: props.go(23), noun.go(19), runtime.go(14), instance.go(9)
+- methods: Noun(4), Runtime(7), Thing(1)
+- leans on: props.go(24), noun.go(20), runtime.go(18), instance.go(9)
 
 ### ticker.go
 
@@ -1637,7 +1637,7 @@ Importable package `cli`: 45 source files, 52 test files.
 
 ### cli/host_mount.go
 
-- lines: 336 · tests: host_mount_test.go
+- lines: 355 · tests: host_mount_test.go
 - purpose: HostMount says how a host (mtm, nabe) mounts an extension's catalog nouns into its own runtime with MountNouns: the host's name for each catalog noun and the...
 - types: HostMount, MountedNouns
 - funcs: MountNouns, MountParameter
