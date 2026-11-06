@@ -114,7 +114,7 @@ confirm.go	Runtime.openConfirmAbout	compare	"noun"	1
 confirm.go	Runtime.openConfirmAbout	cyclo	"-"	42
 confirm.go	registerConfirm	compare	"ochazuke.confirm"	1
 default_bindings.go	Runtime.CheckDefaultBindings	compare	"ochazuke.mode.enter"	1
-default_bindings.go	Runtime.LoadDefaultBindings	cyclo	"-"	39
+default_bindings.go	Runtime.loadDefaultDoc	cyclo	"-"	38
 detail.go	Detail.MoveToEdge	compare	"last"	1
 docs_reference.go	var standardAliases	table	"set"	1
 docs_reference.go	var standardNeeds	table	"archive"	1
