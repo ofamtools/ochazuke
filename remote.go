@@ -59,6 +59,12 @@ type tape struct {
 	done  []tapeAnswer
 	next  int
 	notes []func()
+	// missing and filled keep a copy store's runs alike (copy_store.go):
+	// the things its copy lacked when the plan first read them, and those
+	// the current run has filled from the source, so every run makes the
+	// same source calls whatever earlier runs wrote to the copy.
+	missing map[string]bool
+	filled  map[string]bool
 }
 
 type tapeAnswer struct {
@@ -458,6 +464,7 @@ func (s *remoteRun) pass(c Ctx, body func(Ctx) (any, error)) (value any, err err
 	r := s.r
 	s.tape.next = 0
 	s.tape.notes = nil
+	s.tape.filled = nil
 	r.targets = nil // a target probe is a store call: every run makes the same ones
 	if s.pinned && s.pinKey != "" {
 		r.targets = map[string]string{s.noun + "\x00" + s.pinKey: s.pinKey}

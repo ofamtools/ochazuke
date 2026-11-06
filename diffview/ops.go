@@ -58,5 +58,6 @@ func Register(r *ochazuke.Runtime) {
 		op("scroll-columns", "Scroll source text horizontally, preserving line numbers", params, func(v *View, a ochazuke.Arguments) { v.ScrollColumns(delta(a)) })
 		op("show", "Describe the diff viewport", nil, func(*View, ochazuke.Arguments) {})
 		r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"diffview/bindings.json", defaultBindings)
+		r.SetDiffRenderer(RenderText)
 	})
 }

@@ -100,7 +100,7 @@ func (r *Runtime) thingItems(n *Noun, list string, things []Thing, columns []Col
 				}
 			}
 		}
-		items = append(items, item)
+		items = append(items, r.copyRowMark(n, t, item))
 	}
 	return items
 }

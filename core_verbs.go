@@ -210,7 +210,8 @@ func coreVerbs() []standardVerb {
 }
 
 // legacyVerbs are the rows offered only where their needs are met: watch,
-// where the store can be watched. (rename, move, duplicate, restore and
+// where the store can be watched, and refresh, where it is a copy of a
+// source (copy_refresh.go). (rename, move, duplicate, restore and
 // set's alias patch were purged in R1: removed_verbs.json says what
 // replaces each.)
 func legacyVerbs() []standardVerb {
@@ -219,6 +220,10 @@ func legacyVerbs() []standardVerb {
 			Kinds: []string{Collection, Singleton, Instances}, Needs: []storeNeed{needWatch},
 			TakesSubject: true, NoFocus: true, HistoryKind: HistoryFetch, ParamNames: []string{"where", "since"},
 			Params: watchParams, Run: runWatch},
+		{Verb: "refresh", Description: "Compare copies with their source: one thing (its key) or every one; a plain diff (- the copy, + the source) opens with a pick per prop, local or source, that writes through set. Differences never block: at most a mark on the row (copies.marks)",
+			Kinds: []string{Collection}, Needs: []storeNeed{needCopy},
+			TakesSubject: true, NoFocus: true, HistoryKind: HistoryFetch,
+			Handler: func(r *Runtime, n *Noun) AppHandler { return r.refreshHandler(n.Name) }},
 	}
 }
 

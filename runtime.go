@@ -522,6 +522,8 @@ type Runtime struct {
 	modalInstances   map[string]bool           // instances created by Push or OpenModal, removed by Pop
 	remoteSeen       map[string]map[string]any // the last answer of each read of a remote store (Ctx.Await)
 	remoteQueue      []*remoteRun              // remote writes in flight, in order, per thing
+	copyMarks        map[string]*copyMarks     // by noun, what each copy noun's last refresh read (copy_refresh.go)
+	diffRenderer     DiffRenderer              // draws a plain diff (SetDiffRenderer); nil draws - and + lines
 	targets          map[string]string         // target texts resolved to keys during the running request (resolveTarget)
 	seq              uint64                    // instance registration order
 	commands         []tea.Cmd                 // off-loop work scheduled since the adapter last drained it

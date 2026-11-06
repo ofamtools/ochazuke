@@ -58,13 +58,13 @@ func (v *View) View(s ochazuke.Styles, width, height int) string {
 				h := v.file.Hunks[r.hunk]
 				title := fmt.Sprintf("@@ -%d,%d +%d,%d @@ %s", h.OldStart, h.OldCount, h.NewStart, h.NewCount, printable(h.Header))
 				st := s.Muted.Bold(true)
-				if v.r.Focus == v.id && i == v.cursor {
+				if v.r != nil && v.r.Focus == v.id && i == v.cursor {
 					st = st.Inherit(v.r.Selection(true))
 				}
 				lines = append(lines, st.Render(fit(title, width)))
 				continue
 			}
-			focused := v.r.Focus == v.id && i == v.cursor
+			focused := v.r != nil && v.r.Focus == v.id && i == v.cursor
 			if v.layout == Split {
 				left := (width - 1) / 2
 				right := width - 1 - left
@@ -83,6 +83,9 @@ func (v *View) View(s ochazuke.Styles, width, height int) string {
 		lines = append(lines, strings.Repeat(" ", width))
 	}
 	out := strings.Join(lines, "\n")
+	if v.r == nil {
+		return out // drawn for a host's text (RenderText), not as an instance
+	}
 	v.r.Placed(v.id)
 	return v.r.PlacedAt(v.id, out, max(0, v.cursor-v.top)+1, 1)
 }

@@ -125,6 +125,12 @@ type PropSpec struct {
 	When        string `json:"availability,omitempty"`
 	NoFilter    bool   `json:"noFilter,omitempty"`
 	Derived     bool   `json:"derived,omitempty"`
+	// Through, on a noun whose store is a copy (CopyStore), sends set's
+	// writes of the prop on to the source as well (its Patch) after the
+	// copy is written; every other prop is the copy's alone (owner
+	// decisions Q1, Q3). Data, never code: a noun says which props write
+	// through. A key or read-only prop cannot (set never writes it).
+	Through bool `json:"through,omitempty"`
 	// loose marks a derived prop whose rows hold values of several kinds:
 	// propValue reads every scalar as its text, so they compare as strings.
 	loose bool
@@ -279,6 +285,11 @@ type Store struct {
 	// itself, so create and set do not stamp them; the props stay.
 	Stamps bool
 
+	// copy is set on a copy store (CopyStore): the source it copies from
+	// and the local copies; NounBuilder.Store binds it to its noun, and the
+	// noun gets refresh (copy_store.go).
+	copy *copyStore
+
 	// instanceKeyed is set for an instances store: its things' keys are
 	// runtime instance ids, so a target is never read as a human key.
 	instanceKeyed bool
@@ -374,6 +385,9 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 	if s.Kind == Instances {
 		s = instancesStore(b.n.Name, s)
 		s.instanceKeyed = true
+	}
+	if s.copy != nil {
+		s = s.copy.bind(b.n.Name, s)
 	}
 	b.n.Store = &s
 	b.r.addBaseProps(b.n)
@@ -567,6 +581,9 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	}
 	if p.Association && p.Noun == "" {
 		return fmt.Errorf("prop %s: association is for a reference (Noun)", key)
+	}
+	if p.Through && !p.writable() {
+		return fmt.Errorf("prop %s: through is for a prop set writes (not a key, read-only or create-only)", key)
 	}
 	if err := r.propAliasClash(n, p.Name); err != nil {
 		return err
