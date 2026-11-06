@@ -214,10 +214,13 @@ func TestPropAliasCatalogAndCLI(t *testing.T) {
 	if err := sh.Run(context.Background(), []string{"ticket", "list", "--where", "status=todo", "--filter", "old", "--props", "status"}); err != nil {
 		t.Fatal(err)
 	}
-	var rows []map[string]any
-	if err := json.Unmarshal(out.Bytes(), &rows); err != nil {
+	var answer struct {
+		Items []map[string]any `json:"items"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &answer); err != nil {
 		t.Fatal(err)
 	}
+	rows := answer.Items
 	if len(rows) != 1 || rows[0]["state"] != "todo" {
 		t.Fatal(out.String())
 	}
