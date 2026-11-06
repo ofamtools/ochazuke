@@ -1,6 +1,8 @@
 package ochazuke
 
 import (
+	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -316,5 +318,94 @@ func TestModeExtendsFallsBackForNounsWithoutATable(t *testing.T) {
 	motionKeys(t, r2, m2, "V j z")
 	if strings.Join(zapped, " ") != "a1 a2" || a2.Visual() || r2.Mode.Name != "normal" {
 		t.Fatalf("normal z in visual-line: %v visual %v mode %s", zapped, a2.Visual(), r2.Mode.Name)
+	}
+}
+
+// G16: a visual selection fans a standard verb out only when its row
+// takes a subject and many of them (standardVerb.fansOut). create, list
+// and get over two selected rows run once, on the focus, and answer as
+// themselves; set (Many) still writes every selected row.
+func TestVisualFanOutReadsTheVerbRow(t *testing.T) {
+	r := NewRuntime()
+	m := NewModel(r)
+	counts := map[string]int{}
+	things := []Thing{}
+	var items []ListItem
+	for i := 1; i <= 4; i++ {
+		id := "a" + string(rune('0'+i))
+		things = append(things, Thing{"id": id, "title": id, "status": "todo"})
+		items = append(items, ListItem{ID: id, Label: id, Noun: "row", Data: map[string]any{"id": id}})
+	}
+	find := func(id string) Thing {
+		for _, t := range things {
+			if t["id"] == id {
+				return t
+			}
+		}
+		return nil
+	}
+	r.Define("row").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}, PropSpec{Name: "status"}).
+		Store(Store{
+			Get:  func(_ Ctx, id string) (Thing, error) { counts["get"]++; return find(id), nil },
+			List: func(Ctx, ListQuery) ([]Thing, error) { counts["list"]++; return things, nil },
+			Create: func(_ Ctx, v Thing) (Thing, error) {
+				counts["create"]++
+				t := Thing{"id": fmt.Sprintf("n%d", counts["create"]), "title": v["title"]}
+				things = append(things, t)
+				return t, nil
+			},
+			Patch: func(_ Ctx, id string, c Thing) (Thing, error) {
+				counts["set"]++
+				maps.Copy(find(id), c)
+				return nil, nil
+			},
+		}).
+		Mode("visual-line").
+		Bind("&", Do("row.create")).
+		Bind("%", Do("row.get")).
+		Bind("~", Do("row.list")).
+		Bind("!", Binding{Request: Request{Noun: "row", Verb: "set", Args: Arguments{"prop": "status", "value": "done"}}})
+	if _, err := r.AddPage("p", "P", func(_ *Runtime, w, h int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	a, err := r.AddList("a", items, Parent("p"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("p"); err != nil {
+		t.Fatal(err)
+	}
+	if err := a.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	m.Width, m.Height = 40, 24
+	r.EnsureConfigSettings()
+	applies := func() int {
+		n := 0
+		for _, e := range slices.Concat(r.history.entries, r.history.fetches) {
+			if e.Request.Key() == "ochazuke.list.apply" {
+				n++
+			}
+		}
+		return n
+	}
+	for _, c := range []struct{ key, verb string }{{"&", "create"}, {"%", "get"}, {"~", "list"}} {
+		clear(counts)
+		before := applies()
+		motionKeys(t, r, m, "g g V j "+c.key)
+		if counts[c.verb] != 1 {
+			t.Fatalf("%s over two selected rows ran %d times, want once: %v", c.verb, counts[c.verb], counts)
+		}
+		if applies() != before {
+			t.Fatalf("%s went through list.apply", c.verb)
+		}
+		if a.Visual() {
+			motionKeys(t, r, m, "esc")
+		}
+	}
+	clear(counts)
+	motionKeys(t, r, m, "g g V j !")
+	if counts["set"] != 2 || find("a1")["status"] != "done" || find("a2")["status"] != "done" {
+		t.Fatalf("set over two selected rows: %v, a1 %v a2 %v", counts, find("a1")["status"], find("a2")["status"])
 	}
 }
