@@ -162,9 +162,9 @@ func TestMountedStandardEditOptOut(t *testing.T) {
 	if _, err := r.Execute(ochazuke.Request{Noun: "ext-task", Verb: "edit", Args: ochazuke.Arguments{"id": "t1"}}); err == nil {
 		t.Fatal("disabled mounted editor ran")
 	}
-	value, err := r.Execute(ochazuke.Request{Noun: "ext-task", Verb: "set", Args: ochazuke.Arguments{"id": "t1", "prop": "title", "value": "Still writable"}})
-	if err != nil || value != "proxy set" {
-		t.Fatalf("existing write %v %v", value, err)
+	// set runs here over the proxy store, whose set the proxy answers.
+	if _, err := r.Execute(ochazuke.Request{Noun: "ext-task", Verb: "set", Args: ochazuke.Arguments{"id": "t1", "prop": "title", "value": "Still writable"}}); err != nil {
+		t.Fatalf("existing write: %v", err)
 	}
 }
 
@@ -273,22 +273,21 @@ func TestReopenOrdersWritesPerThing(t *testing.T) {
 
 func testReopenOrdersWrites(t *testing.T, mode string) {
 	t.Helper()
-	r, _, thing := mountedEditFixture(t, mode)
+	// The first write waits at the extension, as a slow one would.
+	gate := make(chan struct{})
+	r, _, thing := mountedEditFixture(t, mode, func(ctx context.Context) error {
+		select {
+		case <-gate:
+		case <-ctx.Done():
+		}
+		return nil
+	})
 	exit := "esc"
 	if mode == "confirm" {
 		exit = "enter"
 	}
-	open := func() {
-		t.Helper()
-		value, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "edit", Args: ochazuke.Arguments{"id": "t1"}})
-		if err != nil {
-			t.Fatal(err)
-		}
-		ticket := value.(ochazuke.Ticket)
-		if _, err := r.Deliver(ochazuke.Completion{Ticket: ticket, Value: gomaps.Clone(thing)}); err != nil {
-			t.Fatal(err)
-		}
-	}
+	pump := newPump(t, r)
+	open := func() { t.Helper(); pump.open() }
 	press := func(keys ...string) {
 		t.Helper()
 		e := r.RecordEditor("edit-form")
@@ -315,9 +314,8 @@ func testReopenOrdersWrites(t *testing.T, mode string) {
 	if writes != 1 || thing["title"] != "Original" {
 		t.Fatalf("writes must queue without racing: %d store %v", writes, thing)
 	}
-	if err := Settle(r, nil); err != nil {
-		t.Fatal(err)
-	}
+	close(gate)
+	pump.until("the writes to end", pump.idle)
 	if thing["title"] != "Originalxy" {
 		t.Fatalf("serialized writes lost an edit: %v", thing)
 	}
@@ -391,17 +389,22 @@ func TestHistoryUndoDoesNotSkipMountedChange(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := r.Execute(ochazuke.Request{Noun: "ochazuke.history", Verb: "undo"})
-	if err == nil || !strings.Contains(err.Error(), "ext-parcel") {
-		t.Fatalf("newest change must explain why it cannot undo: %v", err)
+	if err == nil {
+		err = Settle(r, nil) // over a remote store the undo is a job
 	}
-	if thing["title"] != "Originalx" || local["title"] != "Local edited" {
+	// The mounted change records its inverse like a local one, so undo
+	// reverts it and leaves the local thing alone.
+	if err != nil {
+		t.Fatalf("mounted change must undo: %v", err)
+	}
+	if thing["title"] != "Original" || local["title"] != "Local edited" {
 		t.Fatalf("undo skipped to a different thing: mounted %v local %v", thing, local)
 	}
 }
 
 func TestClosedMountedEditFailureIsNotice(t *testing.T) {
 	t.Parallel()
-	r, m, thing := mountedEditFixture(t, "change")
+	r, m, thing := mountedEditFixture(t, "change", func(context.Context) error { return errors.New("backend refused write") })
 	if _, err := r.HandleBinding("i"); err != nil {
 		t.Fatal(err)
 	}
@@ -415,14 +418,7 @@ func TestClosedMountedEditFailureIsNotice(t *testing.T) {
 		}
 		e.PendingCommand()
 	}
-	for _, j := range r.Jobs() {
-		if j.State == ochazuke.JobRunning {
-			_, _ = r.Deliver(ochazuke.Completion{
-				Ticket: ochazuke.Ticket{Owner: j.Owner, Job: j.Job, Slot: j.Slot},
-				Err:    errors.New("backend refused write"),
-			})
-		}
-	}
+	_ = Settle(r, nil)                       // the failed job ends: its error reaches the editor
 	m.Update(keytest.Msg("j", false, false)) // A later key must not erase the failed value.
 	notices := strings.Join(m.Notices, "\n")
 	for _, want := range []string{"Edit ext-parcel: Original", "title", `"Originalx"`, "backend refused write"} {

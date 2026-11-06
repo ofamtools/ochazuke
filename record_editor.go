@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1211,9 +1210,7 @@ func (e *RecordEditor) suggest(f *recordField) error {
 					}
 					return Done(rows(res.value))
 				}
-				work := res.work
-				return Pending(func(ctx context.Context) (any, error) {
-					value, err := work(ctx)
+				return res.bare().Map(func(value any, err error) (any, error) {
 					if err != nil {
 						return nil, err
 					}

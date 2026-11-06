@@ -59,7 +59,6 @@ cli/format.go	writeMarkdown	compare	"right"	1
 cli/host_mount.go	MountNouns	cyclo	"-"	26
 cli/host_mount.go	mountVerb	case	"action"	1
 cli/host_mount.go	mountVerb	case	"confirm"	1
-cli/host_mount.go	mountVerb	compare	"edit"	1
 cli/mcp_backend.go	Shell.mcpValue	case	"config"	1
 cli/mcp_backend.go	Shell.newMCPServer	compare	"confirm"	1
 cli/mcp_backend.go	mcpBackend.Call	case	"run"	1
@@ -575,7 +574,6 @@ standard_edit.go	editRecord	compare	"list"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
-standard_undo.go	Runtime.runRecording	cyclo	"-"	26
 standard_verbs.go	createArgs	compare	"pairs"	1
 standard_verbs.go	setChanges	cyclo	"-"	28
 table.go	List.tallView	cyclo	"-"	43

@@ -55,6 +55,9 @@ type Ctx struct {
 	// standard is the key of the standard verb whose row handler runs
 	// (standardVerb.operation), "" outside one.
 	standard string
+	// tape, set while a remote store's standard verb plans (remote.go),
+	// holds the answers of the store calls made so far.
+	tape     *tape
 	Runtime  *Runtime
 	Context  Context
 	Args     Arguments
@@ -87,6 +90,9 @@ type Result struct {
 	label     string
 	fg        *exec.Cmd // Foreground: a program given the terminal (foreground.go)
 	presented func(Ctx)
+	launched  func(Ticket)
+	cont      continuation
+	owner     string
 }
 
 // Done reports a synchronous result.
@@ -104,6 +110,94 @@ func Failed(err error) Result {
 // beside the owner's other jobs and its completion is delivered whenever it
 // finishes. The context is cancelled when the owning instance closes.
 func Pending(work func(context.Context) (any, error)) Result { return Result{work: work} }
+
+// Await answers the result's value on the calling goroutine: a Done value
+// as it is, a Failed result's error, pending work run to completion under
+// ctx. It is for code that needs the answer where an application handler
+// returned work (a store over a mounted extension's verbs); a result that
+// hands the terminal to a program (Foreground) cannot be awaited.
+func (res Result) Await(ctx context.Context) (any, error) {
+	switch {
+	case res.err != nil:
+		return nil, res.err
+	case res.fg != nil:
+		return nil, errors.New("the verb needs the terminal and cannot be awaited")
+	case res.work == nil:
+		return res.value, nil
+	}
+	work := res.work
+	for {
+		value, err := work(ctx)
+		if res.cont == nil {
+			return value, err
+		}
+		more, result, failure := res.cont(value, err) // a job in steps (Continue)
+		if more == nil {
+			return result, failure
+		}
+		work = more
+	}
+}
+
+// bare is the result's work alone, in steps when it has them: no Then,
+// slot, label or owner. Code that makes a new result from another's work
+// starts from it.
+func (res Result) bare() Result {
+	out := Pending(res.work)
+	out.cont, out.launched = res.cont, res.launched
+	return out
+}
+
+// Map transforms the value a pending result delivers: fn gets the work's
+// value and error and answers the ones to deliver. It composes with
+// Continue (it applies to the end of the steps), so code that wraps a
+// handler's result uses Map, never the work it holds.
+func (res Result) Map(fn func(value any, err error) (any, error)) Result {
+	if res.work == nil {
+		return res
+	}
+	if res.cont == nil {
+		work := res.work
+		res.work = func(ctx context.Context) (any, error) {
+			value, err := work(ctx)
+			return fn(value, err)
+		}
+		return res
+	}
+	cont := res.cont
+	res.cont = func(value any, err error) (func(context.Context) (any, error), any, error) {
+		more, result, failure := cont(value, err)
+		if more == nil {
+			result, failure = fn(result, failure)
+		}
+		return more, result, failure
+	}
+	return res
+}
+
+// continuation is called on the loop with a job's completion: it answers
+// the work to run next (the job stays running, under the same ticket), or
+// nil with the value and error the job finishes with.
+type continuation func(value any, err error) (more func(context.Context) (any, error), result any, failure error)
+
+// Continue lets a pending result run in steps under one job: when its work
+// completes, fn runs on the loop with the answer and either returns more
+// work (the job stays running, cancellable and queued as before, and that
+// work's completion comes back to fn) or the value and error the job
+// finishes with. A cancelled job never reaches fn again.
+func (res Result) Continue(fn func(value any, err error) (more func(context.Context) (any, error), result any, failure error)) Result {
+	res.cont = fn
+	return res
+}
+
+// OwnedBy makes the job the result launches belong to the instance id
+// (default: the one the verb ran on), so closing that one does not cancel
+// it.
+func (res Result) OwnedBy(id string) Result { res.owner = id; return res }
+
+// Launched runs fn with the job's ticket when the result is launched as a
+// job, before any of its work completes.
+func (res Result) Launched(fn func(Ticket)) Result { res.launched = fn; return res }
 
 // Replacing puts the pending work in a slot on its owner: starting it
 // cancels the owner's running job in the same slot, and a newer job in the
@@ -171,6 +265,8 @@ type job struct {
 	presented func(Ctx)
 	flush     bool                  // a queued editor write the quit path must drain
 	abandon   func(string) []string // releases cancelled work and reports unfinished values
+	cont      continuation
+	run       context.Context // the context the job's work runs under
 }
 
 func (j *job) ticket() Ticket { return Ticket{Owner: j.Owner, Job: j.Job, Slot: j.Slot} }
@@ -243,6 +339,10 @@ func (r *Runtime) Launch(owner, verb string, res Result, c Ctx) (Ticket, error) 
 			return nil
 		}
 	}
+	if res.launched != nil {
+		res.launched(ticket)
+	}
+	r.jobs[ticket.Job].cont, r.jobs[ticket.Job].run = res.cont, ctx
 	r.jobs[ticket.Job].Label = res.label
 	r.jobs[ticket.Job].presented = res.presented
 	work := res.work
@@ -410,9 +510,27 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 		m.deliver(r)
 		return true, nil
 	}
+
 	if done, ok := msg.(Completion); ok {
 		// Settling may evict this job from the bounded history.
 		j := r.jobs[done.Job]
+		if j != nil && j.cont != nil && r.Accepts(done.Ticket) {
+			// A job that runs in steps: its next step, or its end.
+			restore := []func(){r.WithActor(j.ctx.Actor()), r.forceSource(j.ctx.source)}
+			more, value, err := j.cont(done.Value, done.Err)
+			for _, f := range restore {
+				f()
+			}
+			if more != nil {
+				ticket, run := done.Ticket, j.run
+				r.commands = append(r.commands, func() tea.Msg {
+					v, err := more(run)
+					return Completion{Ticket: ticket, Value: v, Err: err}
+				})
+				return true, nil
+			}
+			done.Value, done.Err = value, err
+		}
 		if !r.Settle(done.Ticket, done.Err) {
 			return true, nil
 		}
@@ -592,6 +710,9 @@ func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, 
 		res.slot = op.Slot
 	}
 	owner := inst.ID
+	if res.owner != "" && r.Instances[res.owner] != nil {
+		owner = res.owner
+	}
 	if r.Instances[owner] == nil {
 		// The handler removed its own instance (a chooser's pick closes
 		// its modal, input and all, before Choose launches): the job

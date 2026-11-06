@@ -22,20 +22,8 @@ func TestCancelledWriteReleasesThing(t *testing.T) {
 		}
 		return nil
 	})
-	open := func() {
-		t.Helper()
-		value, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "edit", Args: ochazuke.Arguments{"id": "t1"}})
-		if err != nil {
-			t.Fatal(err)
-		}
-		c := ochazuke.Thing{}
-		for k, v := range thing {
-			c[k] = v
-		}
-		if _, err := r.Deliver(ochazuke.Completion{Ticket: value.(ochazuke.Ticket), Value: c}); err != nil {
-			t.Fatal(err)
-		}
-	}
+	pump := newPump(t, r)
+	open := func() { t.Helper(); pump.open() }
 	press := func(keys ...string) {
 		t.Helper()
 		e := r.RecordEditor("edit-form")
@@ -69,9 +57,7 @@ func TestCancelledWriteReleasesThing(t *testing.T) {
 		t.Fatalf("reopen overlaid cancelled value: %q", got)
 	}
 	press("A", "y", "esc", "esc")
-	if err := Settle(r, nil); err != nil {
-		t.Fatal(err)
-	}
+	pump.until("the writes to end", pump.idle)
 	if title, _ := thing["title"].(string); title != "Originaly" {
 		t.Errorf("edit after cancel never reached the store: store %q", title)
 	}

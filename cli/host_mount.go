@@ -26,6 +26,9 @@ type HostMount struct {
 	// each prop's parameter after the default rewrite (MountParameter),
 	// for a host that mounts its own choice sources.
 	Param func(p ochazuke.Parameter) ochazuke.Parameter
+	// CallTimeout limits one call of a proxy store to the extension
+	// (DefaultProxyTimeout when 0).
+	CallTimeout time.Duration
 }
 
 // MountedNouns is what MountNouns mounted: each catalog noun's host
@@ -103,6 +106,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 				warn("%s prop %s skipped: %v", n.Name, p.Name, err)
 			}
 		}
+		mountStore(b, n, local, h, warn)
 		if len(n.PropsOff) > 0 {
 			if err := try(func() { b.PropsOff(n.PropsOff...) }); err != nil {
 				warn("%s propsOff skipped: %v", n.Name, err)
@@ -156,15 +160,40 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 	return out
 }
 
+// mountStore gives a proxied noun its store: the standard verbs run here,
+// over a store that calls the extension's own get, list, create, set and
+// delete.
+func mountStore(b *ochazuke.NounBuilder, n CatalogNoun, local string, h HostMount, warn func(string, ...any)) {
+	if !proxied(n, h) {
+		return
+	}
+	if err := try(func() { b.Store(proxyStore(n, local, keyOf(n.Props), h)) }); err != nil {
+		warn("%s store skipped: %v", n.Name, err)
+	}
+}
+
+// proxied says a catalog noun mounts with a proxy store: it has props and
+// a store of a kind that lives in the extension (not live instances), and
+// the host gave a proxy to call.
+func proxied(n CatalogNoun, h HostMount) bool {
+	return h.Proxy != nil && len(n.Props) > 0 && slices.Contains(proxiedKinds, n.Kind)
+}
+
+// keyOf is the name of the Key prop, "" for a singleton.
+func keyOf(props []ochazuke.PropSpec) string {
+	for _, p := range props {
+		if p.Key {
+			return p.Name
+		}
+	}
+	return ""
+}
+
 // mountVerb registers one catalog verb of a mounted noun as a proxy; an
 // error skips it, note reports what it mounted differently.
 func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string, v CatalogVerb, h HostMount, nouns map[string]string, param func(ochazuke.Parameter) ochazuke.Parameter, note func(format string, a ...any)) error {
-	var edit ochazuke.AppHandler
-	if v.Standard == "edit" {
-		edit = r.EditHandler(local)
-		if edit == nil {
-			return nil
-		}
+	if v.Standard != "" && r.StoreServes(local, v.Standard) {
+		return nil // the noun's proxy store generates it
 	}
 	if err := try(func() { b.Verb(v.Name, h.Proxy(noun, v), v.Description) }); err != nil {
 		return err
@@ -214,9 +243,6 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 	op.Quiet, op.Many, op.Repeatable, op.Standard = v.Quiet, v.Many, v.Repeatable, v.Standard
 	op.ByAssociation = v.ByAssociation
 	op.FocusBound = v.FocusBound
-	if edit != nil {
-		op.App = edit
-	}
 	op.Foreground = v.Foreground
 	op.Slot = v.Slot
 	op.Disabled = v.Disabled

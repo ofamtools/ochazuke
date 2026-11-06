@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -118,6 +119,8 @@ func (r *Runtime) findTarget(n *Noun, c Ctx, text string) (string, error) {
 	for _, res := range keyResolvers {
 		keys, err := res.find(n, c, text)
 		switch {
+		case errors.Is(err, ErrNotLoaded):
+			continue // a remote store's answer is not known: the text stands
 		case err != nil:
 			return "", err
 		case len(keys) == 1:

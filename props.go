@@ -243,6 +243,22 @@ type Store struct {
 	// replacing the standard verb. nil asks the prompt as it is.
 	ConfirmFor func(c Ctx, verb string, keys []string, prompt string) string
 	When       map[string]string
+	// Missing names the standard verbs the store cannot do and why (verb
+	// to reason): a store over an outside source (a mounted extension's
+	// CLI) that lacks one of get, list, create, set (Patch) or delete says
+	// so as data, and the call itself refuses with the reason. The verb
+	// table shows such a verb unavailable with it.
+	Missing map[string]string
+	// Remote says the store's calls leave the process and may be slow: the
+	// standard verbs over it run each call as a job off the loop, planning
+	// and recording on the loop (remote.go), and the store makes its calls
+	// with Ctx.Await and nothing else. Store code must not recover the panic
+	// Await uses to stop a plan. Writes to one thing run in order, one job
+	// each, owned by the app: a write started outside the editor is reported
+	// on quit like the editor's ("Not saved"). A remote store's watch is its
+	// own Store.Watch; without one a watcher is told to reload when anything
+	// changes, and the verb watch is left to the source.
+	Remote bool
 	// Undo lets history.undo revert this store's standard changes
 	// (standard_undo.go); AcceptsKey says Create keeps a key the values
 	// give, so a delete can be undone under its old key.
@@ -354,7 +370,7 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 		s.Kind = Collection
 	}
 	s.ListParams = cloneParams(s.ListParams)
-	s.Confirm, s.When = maps.Clone(s.Confirm), maps.Clone(s.When)
+	s.Confirm, s.When, s.Missing = maps.Clone(s.Confirm), maps.Clone(s.When), maps.Clone(s.Missing)
 	if s.Kind == Instances {
 		s = instancesStore(b.n.Name, s)
 		s.instanceKeyed = true

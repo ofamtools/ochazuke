@@ -516,22 +516,24 @@ type Runtime struct {
 	bindingVersion   uint64
 	renderCache      runtimeRenderCache
 	modeGeneration   uint64
-	rows             map[string]string // list row instance id -> owning list id
-	holders          []string          // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
-	modals           []string          // the open modal instances, outermost first; each holds its return focus in Payload.Return
-	modalInstances   map[string]bool   // instances created by Push or OpenModal, removed by Pop
-	targets          map[string]string // target texts resolved to keys during the running request (resolveTarget)
-	seq              uint64            // instance registration order
-	commands         []tea.Cmd         // off-loop work scheduled since the adapter last drained it
-	jobs             map[uint64]*job   // the jobs list: running jobs and the finished ones retained for job.list
-	watches          *watchHub         // the watches of nouns' things (standard_watch.go), made on first use
-	events           *eventHub         // declared events, open surfaces' change counts, hook rows (events.go, hooks.go), made on first use
-	jobSeq           uint64            // last issued job id
-	defaults         defaultSources    // where each default row and extends came from (bindings defaults)
-	deprecations     []string          // rows that named an operation by its old verb.noun spelling, rewritten once
-	aliases          map[string]string // registry: a short noun name -> the noun it names (settings -> ochazuke.settings; namespace.go)
-	builtinDepth     int               // >0 while Builtin runs: framework registration, whose nouns are ochazuke.<noun>
-	actionNames      actionNames       // the action alias table and the running request's name (action_names.go)
+	rows             map[string]string         // list row instance id -> owning list id
+	holders          []string                  // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
+	modals           []string                  // the open modal instances, outermost first; each holds its return focus in Payload.Return
+	modalInstances   map[string]bool           // instances created by Push or OpenModal, removed by Pop
+	remoteSeen       map[string]map[string]any // the last answer of each read of a remote store (Ctx.Await)
+	remoteQueue      []*remoteRun              // remote writes in flight, in order, per thing
+	targets          map[string]string         // target texts resolved to keys during the running request (resolveTarget)
+	seq              uint64                    // instance registration order
+	commands         []tea.Cmd                 // off-loop work scheduled since the adapter last drained it
+	jobs             map[uint64]*job           // the jobs list: running jobs and the finished ones retained for job.list
+	watches          *watchHub                 // the watches of nouns' things (standard_watch.go), made on first use
+	events           *eventHub                 // declared events, open surfaces' change counts, hook rows (events.go, hooks.go), made on first use
+	jobSeq           uint64                    // last issued job id
+	defaults         defaultSources            // where each default row and extends came from (bindings defaults)
+	deprecations     []string                  // rows that named an operation by its old verb.noun spelling, rewritten once
+	aliases          map[string]string         // registry: a short noun name -> the noun it names (settings -> ochazuke.settings; namespace.go)
+	builtinDepth     int                       // >0 while Builtin runs: framework registration, whose nouns are ochazuke.<noun>
+	actionNames      actionNames               // the action alias table and the running request's name (action_names.go)
 
 	// namedSettings indexes the settings rows name (binding_settings.go).
 	namedSettings map[string]bool

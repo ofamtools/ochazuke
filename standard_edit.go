@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -133,16 +132,15 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 					}
 					return Done(loaded)
 				}
-				work, then := res.work, res.then
+				then := res.then
 				var raw any
-				res.work = func(ctx context.Context) (any, error) {
-					var err error
-					raw, err = work(ctx)
+				res = res.Map(func(value any, err error) (any, error) {
 					if err != nil {
 						return nil, err
 					}
+					raw = value
 					return editRecord(n, raw)
-				}
+				})
 				if then != nil {
 					res.then = func(c Ctx, _ any, err error) { then(c, raw, err) }
 				}

@@ -267,7 +267,13 @@ func (u *UI) capture() (stop func() []UIMessage) {
 
 // Notify posts a persistent notice through the runtime's UI (the footer in
 // the TUI, a notice: line on the CLI) and returns its id.
-func (c Ctx) Notify(text string) NoticeID { return c.Runtime.UI().Notify(text) }
+func (c Ctx) Notify(text string) NoticeID {
+	if c.tape != nil {
+		c.tape.notes = append(c.tape.notes, func() { c.Runtime.UI().Notify(text) }) // posted by the run that finishes
+		return 0
+	}
+	return c.Runtime.UI().Notify(text)
+}
 
 // ClearNotice takes back a notice Notify posted.
 func (c Ctx) ClearNotice(id NoticeID) { c.Runtime.UI().ClearNotice(id) }
@@ -276,12 +282,24 @@ func (c Ctx) ClearNotice(id NoticeID) { c.Runtime.UI().ClearNotice(id) }
 // TUI's "Error: TEXT" until the next key, an error: line on the CLI); ""
 // clears it. A verb that fails returns Failed instead; Error is for what
 // fails beside the result (a job's Then, a refresh).
-func (c Ctx) Error(text string) { c.Runtime.UI().Error(text) }
+func (c Ctx) Error(text string) {
+	if c.tape != nil {
+		c.tape.notes = append(c.tape.notes, func() { c.Runtime.UI().Error(text) })
+		return
+	}
+	c.Runtime.UI().Error(text)
+}
 
 // Info sets the status line to a plain message through the runtime's UI
 // (before the hints until the next key, a status: line on the CLI); ""
 // clears it. Notify is the notice that stays.
-func (c Ctx) Info(text string) { c.Runtime.UI().Info(text) }
+func (c Ctx) Info(text string) {
+	if c.tape != nil {
+		c.tape.notes = append(c.tape.notes, func() { c.Runtime.UI().Info(text) })
+		return
+	}
+	c.Runtime.UI().Info(text)
+}
 
 // RecordingSink is a UISink that keeps every message, for tests. Attach it
 // with r.UI().Attach(&ochazuke.RecordingSink{}).

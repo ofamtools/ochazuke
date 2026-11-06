@@ -236,7 +236,11 @@ func (v standardVerb) handler(r *Runtime, n *Noun, reason string) AppHandler {
 		return func(Ctx) Result { return Failed(errors.New(reason)) }
 	}
 	if v.Handler != nil {
-		return v.Handler(r, n)
+		h := v.Handler(r, n)
+		if h == nil {
+			return nil
+		}
+		return r.resolvingHandler(v, n.Name, h)
 	}
 	name := n.Name
 	row, many, key := v, v.Many, name+"."+v.Verb
@@ -253,6 +257,13 @@ func (v standardVerb) handler(r *Runtime, n *Noun, reason string) AppHandler {
 		return Done(value)
 	}
 	return func(c Ctx) Result {
+		noun := c.Runtime.Nouns[name]
+		if noun == nil || noun.Store == nil {
+			return Failed(fmt.Errorf("%s has no store", name))
+		}
+		if noun.Store.Remote {
+			return c.Runtime.runRemote(row, noun, c)
+		}
 		if many && len(c.Subjects) > 1 {
 			// A visual selection: one write per row, one undo group
 			// (Ctx.Each); each row's subject is that row, never a key

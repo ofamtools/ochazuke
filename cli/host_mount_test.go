@@ -80,6 +80,17 @@ func mountHost(t *testing.T, doc CatalogDoc) (*ochazuke.Runtime, MountedNouns, *
 	return r, got, &calls
 }
 
+// callsOf are the calls to the extension's verb.
+func callsOf(calls []hostCall, verb string) []hostCall {
+	var out []hostCall
+	for _, c := range calls {
+		if c.verb == verb {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
 // A mounted noun gets its props and its generated verbs, marked standard,
 // with no host code per noun: the host names references by its own
 // names and drops the extension's guards.

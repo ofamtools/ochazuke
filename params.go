@@ -380,9 +380,7 @@ func (r *Runtime) choicesLoad(c Context, p Parameter, query string, siblings ...
 		}
 		return Done(choices)
 	}
-	work := res.work
-	return Pending(func(ctx context.Context) (any, error) {
-		value, err := work(ctx)
+	return res.bare().Map(func(value any, err error) (any, error) {
 		if err != nil {
 			return nil, fmt.Errorf("choices source %q: %w", source, err)
 		}
@@ -507,7 +505,7 @@ func (r *Runtime) awaitChoices(op Operation, c Context, args Arguments) (any, er
 	if res.work == nil {
 		return res.value, nil
 	}
-	value, err := res.work(context.Background())
+	value, err := res.Await(context.Background())
 	if res.then != nil {
 		res.then(ctx, value, err)
 	}

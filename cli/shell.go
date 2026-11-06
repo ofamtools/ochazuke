@@ -897,7 +897,9 @@ func deliver(r *ochazuke.Runtime, cmd tea.Cmd, seen func(ochazuke.Completion)) e
 	case ochazuke.Completion:
 		current := r.Accepts(msg.Ticket)
 		_, err := r.Deliver(msg)
-		if current && seen != nil {
+		// A job that runs in steps (Result.Continue) is still running after
+		// a step: only its last completion is its result.
+		if current && !r.Accepts(msg.Ticket) && seen != nil {
 			seen(msg)
 		}
 		return err

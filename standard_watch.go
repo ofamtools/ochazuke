@@ -213,8 +213,13 @@ func (r *Runtime) watch(c Ctx, noun string, fn func(WatchEvent)) (*Watch, error)
 		r.commands = append(r.commands, w.listen())
 	} else if n.Store != nil {
 		w.scope = watchScope(n.Name, w.key, where)
-		if err := w.start(since); err != nil {
-			return nil, err
+		w.known = map[string]watchKnown{}
+		// A remote store is not listed on the loop: its watcher is told to
+		// reload when something changed (refresh), and starts knowing nothing.
+		if !n.Store.Remote {
+			if err := w.start(since); err != nil {
+				return nil, err
+			}
 		}
 	}
 	h := r.watchHub()
@@ -397,7 +402,7 @@ func (w *Watch) start(since string) error {
 // refresh lists again and emits the difference; a failing list ends the
 // watch with its error.
 func (w *Watch) refresh() {
-	if w.r.Nouns[w.noun].Store == nil {
+	if st := w.r.Nouns[w.noun].Store; st == nil || st.Remote {
 		// A proxy has no local snapshot. Existing change notifications
 		// invalidate its readers, which reload through their own get proxy.
 		w.deliver(WatchEvent{Type: WatchModified, ID: w.key})

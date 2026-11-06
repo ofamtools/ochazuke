@@ -145,8 +145,8 @@ var (
 		Has: func(_ *Runtime, n *Noun) bool { return len(createProps(n)) > 0 }}
 	needWritable = storeNeed{Doc: "a writable prop", Lacks: "it has no writable prop",
 		Has: func(_ *Runtime, n *Noun) bool { return len(writableProps(n)) > 0 }}
-	needWatch = storeNeed{Doc: "Store.Watch, else Store.List (a singleton: Store.Get)", Lacks: "its store has no Watch, List or (for a singleton) Get",
-		Has: func(_ *Runtime, n *Noun) bool { return watchFits(*n.Store) }}
+	needWatch = storeNeed{Doc: "Store.Watch, else Store.List (a singleton: Store.Get); a remote store: Store.Watch", Lacks: "its store has no Watch, List or (for a singleton) Get (a remote store: no Watch)",
+		Has: func(_ *Runtime, n *Noun) bool { return watchFits(*n.Store) && (!n.Store.Remote || n.Store.Watch != nil) }}
 	needEditForms = storeNeed{Doc: "forms.edit (unless field is given)", Lacks: "forms.edit is off",
 		Has: func(r *Runtime, _ *Noun) bool { return r.Settings().Bool(EditFormsSetting) }, WaivedBy: editFieldParam}
 )
@@ -308,6 +308,9 @@ func (v standardVerb) unmet(r *Runtime, n *Noun) string { return v.unmetGiven(r,
 // parameter waives is not asked. waiveAll asks none of the waivable needs
 // (the reason no request can get past: what the handler fails with).
 func (v standardVerb) unmetGiven(r *Runtime, n *Noun, args Arguments) string {
+	if why := n.Store.Missing[v.Verb]; why != "" {
+		return why // a source that lacks the call says so (Store.Missing)
+	}
 	if !slices.Contains(v.Kinds, n.Store.Kind) {
 		return fmt.Sprintf("its store is a %s; %s is for a %s", n.Store.Kind, v.Verb, strings.Join(v.Kinds, " or "))
 	}

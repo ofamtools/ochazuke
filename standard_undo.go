@@ -138,11 +138,32 @@ func (r *Runtime) runRecording(row standardVerb, n *Noun, c Ctx) (any, error) {
 			return value, nil
 		}
 	}
+	r.noteAfter(row, n, key, value, read, before, whole, names)
+	return value, nil
+}
+
+// noteAfter notes the change a standard write made, once it has run: the
+// thing after it is the source's own answer when the store is remote (no
+// second call), else read back. A thing that cannot be read back is kept as
+// a mark (noun and key), never as a delete.
+func (r *Runtime) noteAfter(row standardVerb, n *Noun, key string, value any, read func(string) Thing, before, whole map[string]any, names []string) {
 	var after map[string]any
 	if before == nil {
 		names = nil // a new thing: all of it
 	}
-	if t := read(key); t != nil {
+	t, readFailed := Thing(nil), false
+	if answer, ok := value.(map[string]any); ok && n.Store.Remote && len(answer) > 0 && row.Undo != undoByRecreate {
+		t = Thing(answer) // the source's own answer after the write: no second call
+	} else if t = read(key); t == nil && row.Undo != undoByRecreate {
+		readFailed = true
+	}
+	if readFailed && before != nil {
+		// The thing after could not be read: keep the change as a mark, as for
+		// a store that does not undo, rather than lose it or record a delete.
+		r.noteChange(ThingChange{Noun: n.Name, Key: key})
+		return
+	}
+	if t != nil {
 		if whole != nil {
 			// The store may change more than the request wrote (a move
 			// that clears the parent): every writable prop that changed
@@ -160,7 +181,6 @@ func (r *Runtime) runRecording(row standardVerb, n *Noun, c Ctx) (any, error) {
 	if before != nil || after != nil {
 		r.noteChange(ThingChange{Noun: n.Name, Key: key, Before: before, After: after})
 	}
-	return value, nil
 }
 
 // sideChanges are the writable props, beside the written ones, whose
@@ -327,58 +347,125 @@ func (r *Runtime) undoChange(c Ctx, ch ThingChange) error {
 	}
 }
 
-// undo reverts the selected entry (undoEntry): its changes' inverses
-// in reverse order, each marked undone as it succeeds, so an undo that
-// fails part way can be run again for the rest. One notice says what was
-// undone.
-func (r *Runtime) undo(c Context, a Arguments) (any, error) {
+// undoRun is what one run of an undo's body did: the changes it reverted
+// (the entry's seq and the change's index in it) and the keys of their things.
+type undoRun struct {
+	done []undoneChange
+	keys []string
+}
+
+type undoneChange struct {
+	seq uint64
+	at  int
+}
+
+// undoVerb reverts the selected entry and the entries of its group
+// (undoGroupOf): their changes' inverses in reverse order, each marked
+// undone as it succeeds, so an undo that fails part way can be run again
+// for the rest. One notice says what was undone. Over a remote store the
+// inverses are store calls, so the undo runs as a job (remote.go) and marks
+// and notices only when it ends.
+func (r *Runtime) undoVerb(c Ctx) Result {
+	a := c.Args
 	i, err := r.undoEntry(a)
 	if err != nil {
-		return nil, err
+		return Failed(err)
 	}
 	if err := r.undoable(i); err != nil {
 		if errors.Is(err, errNothingToUndo) {
 			r.UI().Info(err.Error())
-			return nil, nil
+			return Done(nil)
 		}
-		return nil, err
+		return Failed(err)
 	}
-	group := r.undoGroupOf(i)
-	for _, j := range group {
+	var seqs []uint64
+	remote := false
+	for _, j := range r.undoGroupOf(i) {
 		if err := r.undoable(j); err != nil {
-			return nil, err
+			return Failed(err)
 		}
-	}
-	e := &r.history.entries[i]
-	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: Arguments{}, Instance: r.Instances[focusOf(c)]}
-	if _, targeted := a["entry"]; targeted || r.Actor().IsAgent() {
-		for _, j := range group {
-			if err := r.undoCurrent(ctx, r.history.entries[j].Changes); err != nil {
-				return nil, err
+		e := r.history.entries[j]
+		seqs = append(seqs, e.Seq)
+		for _, ch := range e.Changes {
+			if n := r.Nouns[ch.Noun]; n != nil && n.Store != nil && n.Store.Remote {
+				remote = true
 			}
 		}
 	}
-	var keys []string
-	for _, j := range group {
-		changes := r.history.entries[j].Changes
-		for k := len(changes) - 1; k >= 0; k-- {
-			ch := &changes[k]
-			if ch.Undone {
+	seq := r.history.entries[i].Seq
+	_, targeted := a["entry"]
+	targeted = targeted || r.Actor().IsAgent()
+	var out undoRun
+	body := func(ctx Ctx) (any, error) {
+		out = undoRun{}
+		if targeted {
+			for _, s := range seqs {
+				if e := r.entryOf(s); e != nil {
+					if err := r.undoCurrent(ctx, e.Changes); err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+		for _, s := range seqs {
+			e := r.entryOf(s)
+			if e == nil {
 				continue
 			}
-			if err := r.undoChange(ctx, *ch); err != nil {
-				return nil, fmt.Errorf("undo %s %s: %w", r.DisplayNoun(ch.Noun), ch.Key, err)
-			}
-			ch.Undone = true
-			if !slices.Contains(keys, ch.Key) {
-				keys = append(keys, ch.Key)
+			for k := len(e.Changes) - 1; k >= 0; k-- {
+				ch := e.Changes[k]
+				if ch.Undone {
+					continue
+				}
+				if err := r.undoChange(ctx, ch); err != nil {
+					return nil, fmt.Errorf("undo %s %s: %w", r.DisplayNoun(ch.Noun), ch.Key, err)
+				}
+				out.done = append(out.done, undoneChange{s, k})
+				if !slices.Contains(out.keys, ch.Key) {
+					out.keys = append(out.keys, ch.Key)
+				}
 			}
 		}
+		return nil, nil
 	}
-	slices.Reverse(keys)
-	name := r.DisplayKey(e.Request.Key())
-	r.UI().Info(fmt.Sprintf("undid %s on %s", name, strings.Join(keys, ", ")))
-	return map[string]any{"undone": e.Seq, "verb": name, "things": keys}, nil
+	finish := func(_ any, err error) (any, error) {
+		for _, d := range out.done {
+			if e := r.entryOf(d.seq); e != nil {
+				e.Changes[d.at].Undone = true // each one that succeeded, even when a later one failed
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+		e := r.entryOf(seq)
+		if e == nil {
+			return nil, nil
+		}
+		keys := slices.Clone(out.keys)
+		slices.Reverse(keys)
+		name := r.DisplayKey(e.Request.Key())
+		r.UI().Info(fmt.Sprintf("undid %s on %s", name, strings.Join(keys, ", ")))
+		return map[string]any{"undone": e.Seq, "verb": name, "things": keys}, nil
+	}
+	if !remote {
+		_, err := body(c)
+		value, err := finish(nil, err)
+		if err != nil {
+			return Failed(err)
+		}
+		return Done(value)
+	}
+	return r.runSteppedBody(c, "ochazuke.history.undo", body, finish)
+}
+
+// entryOf is the history entry with that seq, nil when the ring dropped it.
+func (r *Runtime) entryOf(seq uint64) *HistoryEntry {
+	for i := range r.history.entries {
+		if r.history.entries[i].Seq == seq {
+			return &r.history.entries[i]
+		}
+	}
+	return nil
 }
 
 // undoGroupOf is the entries history.undo reverts with the one at i,
@@ -425,7 +512,7 @@ func registerUndo(r *Runtime) {
 	r.Register(Operation{Verb: "undo", Noun: "ochazuke.history", HistoryKind: HistoryChange,
 		Description: "Undo a standard change by entry seq, or the newest change; agents undo only their own entries. Only on a store that declares Undo",
 		Parameters:  map[string]Parameter{"entry": {Type: "integer", Description: "History entry seq; omitted, the newest change by this actor (owner: any actor)"}},
-		Result:      "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.undo(c, a) }})
+		Result:      "JSON value", App: r.undoVerb})
 	r.SetAvailability("ochazuke.history.undo", UndoGuard)
 }
 

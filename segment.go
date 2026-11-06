@@ -746,7 +746,10 @@ func (r *Runtime) segmentVerb(seg Segment) (any, func(context.Context) (any, err
 	c := r.contextOf("app")
 	if op.App != nil {
 		res := op.App(Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: args, Instance: r.Instances["app"]})
-		return res.value, res.work, res.err
+		if res.work == nil {
+			return res.value, nil, res.err
+		}
+		return res.value, func(ctx context.Context) (any, error) { return res.Await(ctx) }, res.err
 	}
 	if op.Run == nil {
 		return nil, nil, fmt.Errorf("%s has no handler", seg.Verb)
