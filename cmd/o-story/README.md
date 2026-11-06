@@ -463,10 +463,10 @@ Conformance:
 | insert | bindings | `bindings.help` |
 | insert | chooser | `chooser.clear-props` `chooser.move` `chooser.next-source` `chooser.normal` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
-| insert | demo | `demo.close-origin` `demo.edit` `demo.files` `demo.hide` |
+| insert | demo | `demo.close-origin` `demo.edit` `demo.files` `demo.get` `demo.hide` `demo.set` |
 | insert | filter-form | `filter-form.move` `filter-form.write-saved` |
 | insert | find-line | `find-line.commit` |
-| insert | form | `form.next` `form.run` `form.suggest` |
+| insert | form | `form.leave` `form.next` `form.run` `form.suggest` |
 | insert | input | `input.delete` `input.insert` `input.kill` `input.move` |
 | insert | list | `list.filter-cycle` `list.filter-prop` |
 | insert | macro | `macro.record` |
@@ -504,11 +504,11 @@ Conformance:
 | normal | focus | `focus.next` `focus.previous` `focus.set` |
 | normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
-| normal | history | `history.repeat` |
+| normal | history | `history.repeat` `history.undo` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.redo` `input.select` `input.undo` |
 | normal | item | `item.get` `item.set` |
 | normal | key | `key.ignore` |
-| normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.flush-lingering` `list.goto` `list.group` `list.group-clear` `list.mark` `list.move` `list.next-class` `list.page-next` `list.page-prev` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.sort-column` `list.toggle-pin-column` `list.visual` `list.yank` |
+| normal | list | `list.apply` `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.flush-lingering` `list.goto` `list.group` `list.group-clear` `list.mark` `list.move` `list.next-class` `list.page-next` `list.page-prev` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.sort-column` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.copy` |
@@ -553,7 +553,7 @@ Conformance:
 | visual | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | bindings | `bindings.help` |
 | visual-line | confirm | `confirm.accept` |
-| visual-line | demo | `demo.check` `demo.delete` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
+| visual-line | demo | `demo.check` `demo.delete` `demo.edit` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
 | visual-line | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
 | visual-line | modal | `modal.close` |
@@ -604,6 +604,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `chooser.pick + demo.get`
 - `insert` → `normal` via `filter-form.move`
 - `insert` → `normal` via `find-line.commit`
+- `insert` → `normal` via `form.leave`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `job chooser.load`
 - `insert` → `normal` via `list.filter-prop`
@@ -793,6 +794,7 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `bindings.help`
 - `visual-line` → `normal` via `confirm.accept`
 - `visual-line` → `normal` via `demo.check`
+- `visual-line` → `normal` via `demo.edit`
 - `visual-line` → `normal` via `demo.nest`
 - `visual-line` → `normal` via `demo.set`
 - `visual-line` → `normal` via `demo.tag`
