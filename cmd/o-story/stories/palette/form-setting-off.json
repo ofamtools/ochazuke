@@ -18,7 +18,7 @@
     ],
     "verbs": [
       {
-        "verb": "demo.rename",
+        "verb": "demo.retitle",
         "description": "Rename the row",
         "parameters": {
           "name": {
@@ -33,7 +33,7 @@
   "script": [
     ":",
     {
-      "type": "rename"
+      "type": "retitle"
     },
     "enter"
   ],

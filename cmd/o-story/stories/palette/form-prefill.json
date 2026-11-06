@@ -11,7 +11,7 @@
     ],
     "verbs": [
       {
-        "verb": "demo.move",
+        "verb": "demo.relocate",
         "description": "Move a file",
         "positional": [
           "from",
@@ -33,7 +33,7 @@
   "script": [
     ":",
     {
-      "type": "move old.txt"
+      "type": "relocate old.txt"
     },
     "enter",
     {
@@ -54,7 +54,7 @@
     {
       "modal": "",
       "writes": [
-        "demo.move from=old.txt to=new.txt"
+        "demo.relocate from=old.txt to=new.txt"
       ]
     }
   ]

@@ -1,5 +1,5 @@
 {
-  "name": "a standard rename subject follows the terminal association and writes only that record",
+  "name": "a standard set of the label (set {props: {@label}}) subject follows the terminal association and writes only that record",
   "area": "focus",
   "page": {
     "lists": [
@@ -43,9 +43,9 @@
         "noun": "terminal",
         "mode": "leader_pending",
         "keys": "r",
-        "do": "item.rename",
+        "do": "item.set",
         "args": {
-          "name": "Renamed"
+          "props": {"@label": "Renamed"}
         }
       },
       {

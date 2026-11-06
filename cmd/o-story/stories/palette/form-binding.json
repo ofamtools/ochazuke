@@ -11,7 +11,7 @@
     ],
     "verbs": [
       {
-        "verb": "demo.rename",
+        "verb": "demo.retitle",
         "description": "Rename the row",
         "parameters": {
           "name": {
@@ -26,7 +26,7 @@
       {
         "noun": "app",
         "keys": "R",
-        "do": "demo.rename"
+        "do": "demo.retitle"
       }
     ]
   },
@@ -49,7 +49,7 @@
       "focus": "a1",
       "mode": "normal",
       "writes": [
-        "demo.rename name=web"
+        "demo.retitle name=web"
       ]
     }
   ]

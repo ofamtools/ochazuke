@@ -1,5 +1,5 @@
 {
-  "name": "archive lists: hide by default, the archived saved filter reveals records, restore keeps them",
+  "name": "archive lists: hide by default, the archived saved filter reveals records, set @archive=false un-archives them",
   "area": "palette",
   "width": 100,
   "height": 24,
@@ -19,7 +19,7 @@
   "script": [
     ":", {"type":"demo list"}, "enter", "esc",
     ":", {"type":"demo list --filter archived"}, "enter", "esc",
-    ":", {"type":"demo restore t1"}, "enter",
+    ":", {"type":"demo set t1 @archive=false"}, "enter",
     ":", {"type":"demo list"}, "enter"
   ],
   "expect": [

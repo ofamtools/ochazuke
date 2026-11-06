@@ -138,9 +138,9 @@ it to the timer's deadline and delivers the timer's message
     store: { props: [{ name: "id", key: true }, { name: "title", role: "label", fallback: "summary" }],
              things: [{ id: "a1", title: "", summary: "first line" }] },
                                      // the demo noun's props and an in-memory store (PropSpec rows):
-                                     // demo.get, list, create, set (patch) and delete are then
-                                     // standard verbs, and rename, move, duplicate, archive and
-                                     // restore with the label, owner and archive roles; each call
+                                     // demo.get, list, create, set, delete, archive and edit are
+                                     // then standard verbs (set and edit address the label, owner
+                                     // and archive props by role: @label, @owner, @archive); each call
                                      // logs "list", "get KEY", "set KEY p=v", "create KEY p=v" or
                                      // "delete KEY" (writes); rows stand for things by id
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
@@ -496,7 +496,7 @@ Conformance:
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | culprit | `culprit.size` |
-| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.check-bindings` `demo.choose` `demo.delete` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.reload` `demo.send` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
+| normal | demo | `demo.add-base` `demo.build` `demo.check` `demo.check-bindings` `demo.choose` `demo.delete` `demo.edit` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.get` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.reload` `demo.send` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
@@ -506,6 +506,7 @@ Conformance:
 | normal | form-option | `form-option.pick` |
 | normal | history | `history.repeat` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.redo` `input.select` `input.undo` |
+| normal | item | `item.get` `item.set` |
 | normal | key | `key.ignore` |
 | normal | list | `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.flush-lingering` `list.goto` `list.group` `list.group-clear` `list.mark` `list.move` `list.next-class` `list.page-next` `list.page-prev` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.sort-column` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
@@ -521,7 +522,7 @@ Conformance:
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
-| normal | parcel | `parcel.get` `parcel.set` |
+| normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` `setting.write` |
@@ -542,9 +543,9 @@ Conformance:
 | table | list | `list.move` |
 | table | mode | `mode.pin` |
 | terminal | bindings | `bindings.help` |
-| terminal | demo | `demo.finish` `demo.hints` `demo.outside` |
+| terminal | demo | `demo.edit` `demo.finish` `demo.hints` `demo.outside` |
 | terminal | focus | `focus.next` |
-| terminal | item | `item.live-only` `item.rename` `item.rename-associated` |
+| terminal | item | `item.edit` `item.live-only` `item.rename-associated` `item.set` |
 | terminal | list | `list.select` |
 | terminal | mode | `mode.enter` |
 | terminal | palette | `palette.open` |
@@ -600,6 +601,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `bindings.help`
 - `insert` → `normal` via `chooser.normal`
 - `insert` → `normal` via `chooser.pick`
+- `insert` → `normal` via `chooser.pick + demo.get`
 - `insert` → `normal` via `filter-form.move`
 - `insert` → `normal` via `find-line.commit`
 - `insert` → `normal` via `form.run`
@@ -610,6 +612,8 @@ Mode edges (from → to via):
 - `insert` → `normal` via `modal.close`
 - `insert` → `normal` via `modal.close + demo.synced`
 - `insert` → `normal` via `mode.set`
+- `insert` → `normal` via `mode.set + demo.set + demo.get`
+- `insert` → `normal` via `mode.set + item.set + item.get`
 - `insert` → `normal` via `mode.set + parcel.set + parcel.get`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
@@ -617,22 +621,22 @@ Mode edges (from → to via):
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `settings.edit`
-- `insert` → `terminal` via `form.run`
 - `insert` → `terminal` via `palette.run`
 - `jq` → `insert` via `palette.open`
 - `jq` → `normal` via `list.move`
 - `jq` → `normal` via `mode.set`
 - `leader_pending` → `hints` via `demo.hints`
+- `leader_pending` → `insert` via `demo.edit`
+- `leader_pending` → `insert` via `item.edit`
 - `leader_pending` → `insert` via `palette.open`
-- `leader_pending` → `insert` via `row r`
 - `leader_pending` → `normal` via `bindings.help`
 - `leader_pending` → `normal` via `focus.next`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `demo.finish`
 - `leader_pending` → `terminal` via `demo.outside`
 - `leader_pending` → `terminal` via `item.live-only`
-- `leader_pending` → `terminal` via `item.rename`
 - `leader_pending` → `terminal` via `item.rename-associated`
+- `leader_pending` → `terminal` via `item.set`
 - `leader_pending` → `terminal` via `list.select`
 - `leader_pending` → `terminal` via `row r`
 - `leader_pending` → `terminal` via `row x`
@@ -654,6 +658,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `bindings-help.place`
 - `normal` → `insert` via `chooser.pick`
 - `normal` → `insert` via `demo.choose`
+- `normal` → `insert` via `demo.edit`
 - `normal` → `insert` via `filter-form.delete-saved`
 - `normal` → `insert` via `filter-form.edit-condition`
 - `normal` → `insert` via `filter-form.focus`
@@ -672,6 +677,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
+- `normal` → `insert` via `parcel.edit`
 - `normal` → `insert` via `row R`
 - `normal` → `insert` via `row W`
 - `normal` → `insert` via `row e`
@@ -702,6 +708,7 @@ Mode edges (from → to via):
 - `normal` → `table` via `list.move`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
+- `normal` → `terminal` via `modal.close`
 - `normal` → `visual` via `input.select`
 - `normal` → `visual-line` via `input.select`
 - `normal` → `visual-line` via `list.visual`
@@ -749,6 +756,7 @@ Mode edges (from → to via):
 - `normal y` → `normal` via `markdown-view.copy`
 - `normal y` → `normal` via `markdown.link-copy`
 - `normal y` → `normal` via `outline.yank`
+- `normal y` → `normal` via `parcel.create`
 - `normal z` → `insert` via `list.filter-prop`
 - `normal z` → `insert` via `list.filter-prop-clear`
 - `normal z` → `insert` via `list.sort-column`

@@ -9,14 +9,14 @@
     },
     "verbs": [{"verb": "demo.close-origin", "remove": "page1-pane"}],
     "bind": [
-      {"noun": "terminal", "mode": "leader_pending", "keys": "r", "do": "demo.rename", "args": {"id": "a1"}},
+      {"noun": "terminal", "mode": "leader_pending", "keys": "r", "do": "demo.edit", "args": {"id": "a1", "field": "@label"}},
       {"noun": "form-field", "mode": "insert", "keys": "ctrl+x", "do": "demo.close-origin"}
     ]
   },
   "script": ["enter", "ctrl+a", "r", "ctrl+x", "esc", "esc", "j"],
   "expect": [
-    {"after": 3, "modal": "args-form", "focus": "args-form/name", "mode": "insert"},
-    {"after": 4, "modal": "args-form", "focus": "args-form/name", "mode": "insert", "contains": ["Build"]},
+    {"after": 3, "modal": "edit-form", "focus": "edit-form/title", "mode": "insert"},
+    {"after": 4, "modal": "edit-form", "focus": "edit-form/title", "mode": "insert", "contains": ["Build"]},
     {"after": 6, "modal": "", "focus": "a1", "mode": "normal", "selected": {"a": "a1"}},
     {"modal": "", "focus": "a2", "mode": "normal", "selected": {"a": "a2"}}
   ]

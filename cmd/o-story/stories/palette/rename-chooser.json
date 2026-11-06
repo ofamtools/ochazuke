@@ -1,5 +1,5 @@
 {
-  "name": "standard rename with no name opens the args form on the old name, selected (rename.select), so typing replaces it; on an untitled row the field starts empty with the fallback (the summary) as its placeholder",
+  "name": "r bound to edit {field: @label} opens a one-field form on the old label, selected (rename.select), so typing replaces it; on an untitled row the field starts empty with the fallback (the summary) as its placeholder",
   "area": "palette",
   "width": 100,
   "height": 30,
@@ -53,18 +53,26 @@
           "summary": "Call the plumber"
         }
       ]
-    }
+    },
+    "bind": [
+      {
+        "noun": "demo",
+        "mode": "normal",
+        "keys": "r",
+        "do": "demo.edit",
+        "args": {
+          "field": "@label"
+        }
+      }
+    ]
   },
   "script": [
-    ":",
-    {
-      "type": "demo rename"
-    },
-    "enter",
+    "r",
     {
       "type": "Feed the cat"
     },
-    "enter",
+    "esc",
+    "esc",
     ":",
     {
       "type": "demo get t1"
@@ -72,28 +80,24 @@
     "enter",
     "esc",
     "j",
-    ":",
-    {
-      "type": "demo rename"
-    },
-    "enter"
+    "r"
   ],
   "expect": [
     {
-      "after": 3,
-      "modal": "args-form",
-      "focus": "args-form/name",
+      "after": 1,
+      "modal": "edit-form",
+      "focus": "edit-form/title",
       "mode": "insert",
       "attrs": {
         "Water the plants": "reverse"
       }
     },
     {
-      "after": 5,
+      "after": 4,
       "modal": ""
     },
     {
-      "after": 8,
+      "after": 7,
       "modal": "palette-results",
       "contains": [
         "title",
@@ -101,8 +105,8 @@
       ]
     },
     {
-      "modal": "args-form",
-      "focus": "args-form/name",
+      "modal": "edit-form",
+      "focus": "edit-form/title",
       "mode": "insert",
       "contains": [
         "Call the plumber"

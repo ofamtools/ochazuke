@@ -1,5 +1,5 @@
 {
-  "name": "a live outside rename edits its associated thing rather than another selected row and its form returns to terminal mode",
+  "name": "a live outside r (edit {field: @label}) edits its associated thing rather than another selected row and its form returns to terminal mode",
   "area": "terminal",
   "page": {
     "lists": [
@@ -52,7 +52,10 @@
         "noun": "item",
         "mode": "normal",
         "keys": "r",
-        "do": "item.rename"
+        "do": "item.edit",
+        "args": {
+          "field": "@label"
+        }
       },
       {
         "noun": "item",
@@ -104,15 +107,20 @@
     {
       "type": "Renamed"
     },
-    "enter",
+    "esc",
+    "esc",
     "ctrl+a",
     "d",
     ":",
-    {"type": "item get a1"},
+    {
+      "type": "item get a1"
+    },
     "enter",
     "esc",
     ":",
-    {"type": "item get a2"},
+    {
+      "type": "item get a2"
+    },
     "enter"
   ],
   "expect": [
@@ -143,8 +151,8 @@
     },
     {
       "after": 5,
-      "modal": "args-form",
-      "focus": "args-form/name",
+      "modal": "edit-form",
+      "focus": "edit-form/title",
       "mode": "insert",
       "contains": [
         "Build"
@@ -155,11 +163,13 @@
     },
     {
       "after": 6,
-      "modal": "args-form",
-      "contains": ["Renamed"]
+      "modal": "edit-form",
+      "contains": [
+        "Renamed"
+      ]
     },
     {
-      "after": 7,
+      "after": 8,
       "modal": "",
       "focus": "page1-pane",
       "mode": "terminal",
@@ -168,14 +178,22 @@
       }
     },
     {
-      "after": 12,
+      "after": 13,
       "modal": "palette-results",
-      "contains": ["title", "Renamed"]
+      "contains": [
+        "title",
+        "Renamed"
+      ]
     },
     {
       "modal": "palette-results",
-      "contains": ["title", "Other"],
-      "lacks": ["Renamed"]
+      "contains": [
+        "title",
+        "Other"
+      ],
+      "lacks": [
+        "Renamed"
+      ]
     }
   ]
 }

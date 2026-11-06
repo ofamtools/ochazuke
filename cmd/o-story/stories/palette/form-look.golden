@@ -9,7 +9,7 @@ r|  a1
  |
  |
  |              ╭──────────────────────────────────────────────────╮
- |              │ Run demo.move                                    │
+ |              │ Run demo.relocate                                │
  |              │ from · The file to move                          │
  |              │   old.txt                                        │
  |              │ to · Where it goes · required                    │

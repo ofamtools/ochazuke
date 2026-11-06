@@ -10,7 +10,7 @@ r|  a1
  |
  |              ╭──────────────────────────────────────────────────╮
  |              │ Command palette                                  │
- |              │ : rename                                         │
+ |              │ : retitle                                        │
  |              │   missing name (string): The new name            │
  |              │ nouns                                            │
  |              │   demo                                           │

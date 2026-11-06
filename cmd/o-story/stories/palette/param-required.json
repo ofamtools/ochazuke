@@ -4,8 +4,8 @@
   "height": 30,
   "page": {
     "lists": [{"id": "a", "rows": 3}],
-    "verbs": [{"verb": "demo.rename", "description": "Rename the row",
+    "verbs": [{"verb": "demo.retitle", "description": "Rename the row",
                "parameters": {"name": {"type": "string", "required": true, "description": "The new name"}}}]
   },
-  "script": [":", {"type": "rename "}]
+  "script": [":", {"type": "retitle "}]
 }
