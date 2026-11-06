@@ -131,8 +131,8 @@ func TestMountNounsPropsAndStandardVerbs(t *testing.T) {
 	if _, err := r.Execute(ochazuke.Request{Noun: "ext-task", Prop: "status", Value: "done", Args: ochazuke.Arguments{"id": "t1"}}); err != nil {
 		t.Fatal(err)
 	}
-	if last := (*calls)[len(*calls)-1]; last.verb != "set" || fmt.Sprint(last.args["props"]) != "map[status:done]" {
-		t.Fatalf("prop request forwarded as %+v", last)
+	if sets := callsOf(*calls, "set"); len(sets) != 1 || fmt.Sprint(sets[0].args["props"]) != "map[status:done]" {
+		t.Fatalf("prop request forwarded as %+v", *calls)
 	}
 	// The host's own nouns are untouched.
 	if _, ok := r.Operations["project.open"]; !ok {
@@ -159,8 +159,8 @@ func TestMountNounsReregistersAliases(t *testing.T) {
 	if _, err := r.Execute(ochazuke.Request{Noun: "ext-task", Verb: "done", Args: ochazuke.Arguments{"id": "t1"}}); err != nil {
 		t.Fatal(err)
 	}
-	if last := (*calls)[len(*calls)-1]; last.verb != "set" || fmt.Sprint(last.args["props"]) != "map[status:done]" {
-		t.Fatalf("done runs set with its presets: %+v", last)
+	if sets := callsOf(*calls, "set"); len(sets) != 1 || fmt.Sprint(sets[0].args["props"]) != "map[status:done]" {
+		t.Fatalf("done runs set with its presets: %+v", *calls)
 	}
 }
 
@@ -247,8 +247,8 @@ func TestHelpListsStandardVerbsOnOneLine(t *testing.T) {
 		t.Fatalf("a standard verb's own help is whole:\n%s", sub)
 	}
 	helpOut(t, r, "ext-task", "set", "t1", "title=Fern")
-	if last := (*calls)[len(*calls)-1]; last.verb != "set" {
-		t.Fatalf("a standard verb still runs from the CLI: %+v", last)
+	if len(callsOf(*calls, "set")) != 1 {
+		t.Fatalf("a standard verb still runs from the CLI: %+v", *calls)
 	}
 	var stdout, top bytes.Buffer
 	app := oden.New("tool", nil, oden.WithStdio(strings.NewReader(""), &stdout, &top), oden.WithPath(t.TempDir()))

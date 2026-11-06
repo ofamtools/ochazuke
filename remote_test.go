@@ -116,7 +116,7 @@ func hasRunning(r *Runtime) bool {
 
 func set(t *testing.T, r *Runtime, id string, changes map[string]any) {
 	t.Helper()
-	if _, err := r.Execute(Request{Noun: "box", Verb: "set", Args: Arguments{"id": id, "changes": changes}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "box", Verb: "set", Args: Arguments{"id": id, "props": changes}}); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -173,7 +173,7 @@ func TestRemoteSeveralSubjects(t *testing.T) {
 	r, b, sink := remoteFixture(t)
 	r.Instance("ra", Kind("box")).Data = map[string]any{"id": "a"}
 	r.Instance("rb", Kind("box")).Data = map[string]any{"id": "b"}
-	if _, err := r.Execute(Request{Noun: "box", Verb: "set", Target: "ra", Subjects: []string{"ra", "rb"}, Args: Arguments{"changes": map[string]any{"title": "X"}}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "box", Verb: "set", Target: "ra", Subjects: []string{"ra", "rb"}, Args: Arguments{"props": map[string]any{"title": "X"}}}); err != nil {
 		t.Fatal(err)
 	}
 	pumpRemote(t, r)

@@ -146,7 +146,7 @@ func (px *proxyCalls) create(c ochazuke.Ctx, t ochazuke.Thing) (ochazuke.Thing, 
 
 func (px *proxyCalls) patch(c ochazuke.Ctx, id string, changes ochazuke.Thing) (ochazuke.Thing, error) {
 	args := px.subject(id)
-	args["changes"] = map[string]any(changes)
+	args["props"] = map[string]any(changes)
 	v, err := px.call(c, "set", args)
 	return proxyThing(v), err
 }
@@ -172,8 +172,9 @@ func proxyThing(v any) ochazuke.Thing {
 // a page object holding them as items.
 func proxyThings(v any) []ochazuke.Thing {
 	out := []ochazuke.Thing{}
+	v = ochazuke.AnswerRows(v) // a list answered as a page: {items, page, per_page, total}
 	if page, ok := v.(map[string]any); ok {
-		v = page["items"] // a list answered as a page: {items, page, per_page, total}
+		v = page["items"] // the same page, decoded from JSON
 	}
 	switch rows := v.(type) {
 	case []ochazuke.Thing:

@@ -507,3 +507,38 @@ func TestQuitWithHungMountedWriteCanLeave(t *testing.T) {
 		})
 	}
 }
+
+// A remote edit form's writes are one history group: one undo, run as one
+// job, puts every field back.
+func TestMountedEditFormUndoesAsOneJob(t *testing.T) {
+	t.Parallel()
+	r, _, thing := mountedEditFixture(t, "change")
+	if _, err := r.HandleBinding("i"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	e := r.RecordEditor("edit-form")
+	for _, key := range []string{"A", "x", "esc", "j", "space", "j", "enter", "esc"} {
+		if _, err := r.HandleBinding(key); err != nil {
+			t.Fatal(err)
+		}
+		e.PendingCommand()
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	if thing["title"] != "Originalx" || thing["status"] != "done" {
+		t.Fatalf("form writes: %v", thing)
+	}
+	if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.history", Verb: "undo"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	if thing["title"] != "Original" || thing["status"] != "todo" {
+		t.Fatalf("one undo should put both fields back: %v", thing)
+	}
+}
