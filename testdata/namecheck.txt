@@ -410,10 +410,9 @@ record_editor.go	RecordEditor.nextMissing	compare	"insert"	2
 record_editor.go	RecordEditor.problem	cyclo	"-"	26
 record_editor.go	RecordEditor.send	cyclo	"-"	27
 record_editor.go	RecordEditor.startInsert	compare	"insert"	1
-record_editor.go	RecordEditor.suggest	cyclo	"-"	27
-record_editor.go	Runtime.newRecordEditor	compare	"path"	1
-record_editor.go	Runtime.newRecordEditor	compare	"text"	2
-record_editor.go	Runtime.newRecordEditor	cyclo	"-"	36
+record_editor.go	Runtime.editKindOf	compare	"path"	1
+record_editor.go	Runtime.editKindOf	compare	"text"	2
+record_editor.go	Runtime.newRecordEditor	cyclo	"-"	27
 registers.go	Runtime.storeYank	compare	"line"	1
 registers.go	appendYank	compare	"line"	2
 registers.go	registerRegisterThings	compare	"line"	1
@@ -568,7 +567,7 @@ settings_view.go	settingAllowed	compare	"list"	1
 settings_view.go	settingOfRow	compare	"ochazuke.setting"	1
 standard_edit.go	Runtime.editFields	compare	"list"	1
 standard_edit.go	Runtime.editHandler	compare	"confirm"	1
-standard_edit.go	Runtime.editHandler	cyclo	"-"	40
+standard_edit.go	Runtime.editHandler	cyclo	"-"	34
 standard_edit.go	editRecord	compare	"list"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1

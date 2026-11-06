@@ -52,7 +52,7 @@ func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Reco
 		}
 		return write(map[string]any{field.Name: value})
 	}
-	if field.Type == PathParameterType {
+	if r.editKindOf(field).path {
 		_, err := r.OpenPathChooser(PathChooserSpec{
 			Kind:   EditChooserKind,
 			Title:  title,
