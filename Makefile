@@ -17,21 +17,21 @@ reference:
 NESTED := cmd/o-story examples
 
 # test is the gate: gofmt, vet and test of the root module and of every
-# nested module. A bare go test ./... at the root runs the root module only
-# and fails TestNestedModulesRunToo; test sets OCHAZUKE_NESTED_TESTS=1 for
-# it. Run it as GOWORK=off make test against the tags (a release's step 3).
+# nested module, once, under -race (no separate plain run). A bare
+# go test ./... at the root runs the root module only and fails
+# TestNestedModulesRunToo; test sets OCHAZUKE_NESTED_TESTS=1 for it. Run it
+# as GOWORK=off make test against the tags (a release's step 3).
 test:
 	@out=$$(gofmt -l .); if [ -n "$$out" ]; then echo "gofmt:"; echo "$$out"; exit 1; fi
 	go vet ./...
-	OCHAZUKE_NESTED_TESTS=1 go test ./...
-	for d in $(NESTED); do (cd $$d && go vet ./... && go test ./...) || exit 1; done
+	OCHAZUKE_NESTED_TESTS=1 go test -race ./...
+	for d in $(NESTED); do (cd $$d && go vet ./... && go test -race ./...) || exit 1; done
 
 # Explorer surveys are not part of go test ./...: their tests carry the
 # explore build tag. explore-quick runs them at the small survey budget
-# (depth 3, 2000 steps; the examples' TestExplore and TestExploreGaps, the
-# explore package's slow tests, o-story's explore test).
+# (depth 3, 2000 steps; the examples' TestExplore and TestExploreGaps and
+# o-story's explore test, all on monogatari's explore package).
 explore-quick:
-	go test -tags explore -count=1 -timeout 0 ./explore/...
 	for d in $(NESTED); do (cd $$d && go test -tags explore -count=1 -timeout 0 ./...) || exit 1; done
 
 # explore-quick, then the deep state-explorer survey (depth 6, 20000 steps)
