@@ -496,7 +496,7 @@ Conformance:
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | culprit | `culprit.size` |
-| normal | demo | `demo.add-base` `demo.archive` `demo.build` `demo.check` `demo.check-bindings` `demo.choose` `demo.create` `demo.delete` `demo.edit` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.get` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.reload` `demo.send` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
+| normal | demo | `demo.add-base` `demo.archive` `demo.build` `demo.change-source` `demo.check` `demo.check-bindings` `demo.choose` `demo.create` `demo.delete` `demo.edit` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.get` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.refresh` `demo.reload` `demo.send` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |

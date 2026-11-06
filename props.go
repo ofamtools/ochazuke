@@ -295,6 +295,20 @@ type Store struct {
 	instanceKeyed bool
 }
 
+// propFlagError is what is wrong with the prop's flags: fromFocus and
+// association need a reference, through a prop set writes.
+func propFlagError(key string, p PropSpec) error {
+	switch {
+	case p.FromFocus && p.Noun == "":
+		return fmt.Errorf("prop %s: fromFocus is for a reference (Noun)", key)
+	case p.Association && p.Noun == "":
+		return fmt.Errorf("prop %s: association is for a reference (Noun)", key)
+	case p.Through && !p.writable():
+		return fmt.Errorf("prop %s: through is for a prop set writes (not a key, read-only or create-only)", key)
+	}
+	return nil
+}
+
 // propTypes are the types a prop declares.
 var propTypes = map[string]bool{
 	SettingString: true, SettingInteger: true, SettingNumber: true, SettingBoolean: true,
@@ -576,14 +590,8 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	default:
 		return fmt.Errorf("prop %s: unknown role %q", key, p.Role)
 	}
-	if p.FromFocus && p.Noun == "" {
-		return fmt.Errorf("prop %s: fromFocus is for a reference (Noun)", key)
-	}
-	if p.Association && p.Noun == "" {
-		return fmt.Errorf("prop %s: association is for a reference (Noun)", key)
-	}
-	if p.Through && !p.writable() {
-		return fmt.Errorf("prop %s: through is for a prop set writes (not a key, read-only or create-only)", key)
+	if err := propFlagError(key, p); err != nil {
+		return err
 	}
 	if err := r.propAliasClash(n, p.Name); err != nil {
 		return err

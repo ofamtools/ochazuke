@@ -518,6 +518,17 @@ type StoreSpec struct {
 	// Undo makes the store declare Store.Undo, so history.undo reverts
 	// its writes (a story about undo).
 	Undo bool `json:"undo,omitempty"`
+	// Copy makes the noun's store a copy of these things
+	// (ochazuke.CopyStore over an in-memory copy): the things are the
+	// source, read once into the copy, and the noun gets refresh.
+	Copy *CopySpec `json:"copy,omitempty"`
+}
+
+// CopySpec is a copy store's demo source. Change is what the noun's
+// change-source verb writes at the source (key to props), so a story can
+// make the source differ from the copy.
+type CopySpec struct {
+	Change map[string]ochazuke.Thing `json:"change,omitempty"`
 }
 
 // VerbSpec is a demo application verb with parameters: running it logs

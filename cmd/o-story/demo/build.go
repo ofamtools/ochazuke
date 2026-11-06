@@ -21,6 +21,7 @@ import (
 	"ofam.dev/monogatari"
 	"ofam.dev/ochazuke"
 	"ofam.dev/ochazuke/cli"
+	"ofam.dev/ochazuke/diffview"
 	"ofam.dev/ochazuke/markdown"
 	"ofam.dev/ochazuke/markdown/cliview"
 )
@@ -648,7 +649,7 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 	if op, ok := ss.R.Operations[del]; ok && op.Standard == "" {
 		delete(ss.R.Operations, del)
 	}
-	d.Props(spec.Props...).Store(ochazuke.Store{
+	st := ochazuke.Store{
 		Stamps: true, // story frames and write logs show the story's own writes, not the clock
 		Undo:   spec.Undo,
 		Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
@@ -703,7 +704,24 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 			ss.Writes = append(ss.Writes, "delete "+id)
 			return nil
 		},
-	})
+	}
+	if spec.Copy == nil {
+		d.Props(spec.Props...).Store(st)
+		return nil
+	}
+	// A copy store: the things above are its source; the copy draws its
+	// refresh diff with the diffview renderer.
+	diffview.Register(ss.R)
+	d.Props(spec.Props...).Store(ochazuke.CopyStore(st, ochazuke.NewMemoryLocal()))
+	d.Verb("change-source", func(ochazuke.Ctx) ochazuke.Result {
+		for _, t := range things {
+			if ch, ok := spec.Copy.Change[fmt.Sprint(t[key])]; ok {
+				maps.Copy(t, ch)
+				ss.Writes = append(ss.Writes, "source "+fmt.Sprint(t[key])+storeValues(spec.Props, ch))
+			}
+		}
+		return ochazuke.Done(nil)
+	}, "Change the copy store's source (the story's copy.change), not the copy")
 	return nil
 }
 

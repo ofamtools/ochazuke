@@ -281,7 +281,7 @@ func (r *Runtime) showRefresh(n *Noun, c Ctx, diffs []copyDiff, here bool) (any,
 		c.Info(name + ": no differences from the source")
 		return answer, nil
 	case !here:
-		c.Info(fmt.Sprintf("%s: %d differences from the source; refresh again here to pick", name, len(diffs)))
+		c.Info(fmt.Sprintf("%s: %s from the source; refresh again here to pick", name, differences(len(diffs))))
 		return answer, nil
 	}
 	if e := r.RecordEditor(copyRefreshFormID); e != nil {
@@ -306,9 +306,9 @@ func (r *Runtime) showRefresh(n *Noun, c Ctx, diffs []copyDiff, here bool) (any,
 		fields[i] = f
 		byField[f.Name] = d
 	}
-	title := fmt.Sprintf("Refresh %s: %d differences", name, len(diffs))
+	title := fmt.Sprintf("Refresh %s: %s", name, differences(len(diffs)))
 	if one {
-		title = fmt.Sprintf("Refresh %s %s: %d differences", name, diffs[0].Label, len(diffs))
+		title = fmt.Sprintf("Refresh %s %s: %s", name, diffs[0].Label, differences(len(diffs)))
 	}
 	text := copyDiffText(diffs)
 	var editor *RecordEditor
@@ -467,4 +467,12 @@ func (r *Runtime) copyRowMark(n *Noun, t Thing, item ListItem) ListItem {
 		item.Cells[0] += copyMarkText
 	}
 	return item
+}
+
+// differences is a count of differences in words.
+func differences(n int) string {
+	if n == 1 {
+		return "1 difference"
+	}
+	return fmt.Sprintf("%d differences", n)
 }

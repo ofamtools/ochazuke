@@ -67,26 +67,34 @@ func generatedVerbs() map[string]bool {
 		r := NewRuntime()
 		noop := func(Ctx, string) (Thing, error) { return nil, nil }
 		r.Define("probe-owner").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", Role: RoleLabel})
-		r.Define("probe").Props(
-			PropSpec{Name: "id", Key: true},
-			PropSpec{Name: "title", Role: RoleLabel},
-			PropSpec{Name: "owner", Role: RoleOwner, Parameter: Parameter{Noun: "probe-owner"}},
-			PropSpec{Name: "archived", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}},
-		).Store(Store{
+		props := []PropSpec{
+			{Name: "id", Key: true},
+			{Name: "title", Role: RoleLabel},
+			{Name: "owner", Role: RoleOwner, Parameter: Parameter{Noun: "probe-owner"}},
+			{Name: "archived", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}},
+		}
+		store := Store{
 			Get:    noop,
 			List:   func(Ctx, ListQuery) ([]Thing, error) { return nil, nil },
 			Create: func(Ctx, Thing) (Thing, error) { return nil, nil },
 			Patch:  func(Ctx, string, Thing) (Thing, error) { return nil, nil },
 			Delete: func(Ctx, string) error { return nil },
-		})
+		}
+		// Two probes: a store of its own, and a copy of one (refresh).
+		probes := map[string]Store{"probe": store, "probe-copy": CopyStore(store, NewMemoryLocal())}
+		for name, s := range probes {
+			r.Define(name).Props(props...).Store(s)
+		}
 		for _, op := range r.Operations {
-			if op.Noun == "probe" && op.Standard != "" {
+			if _, probe := probes[op.Noun]; probe && op.Standard != "" {
 				generatedSet[op.Standard] = true
 			}
 		}
 		for _, a := range r.actionNames.aliases {
-			if noun, verb, ok := r.splitNounName(a.Alias); ok && noun == "probe" && a.Source == AliasStandard {
-				generatedSet[verb] = true
+			if noun, verb, ok := r.splitNounName(a.Alias); ok && a.Source == AliasStandard {
+				if _, probe := probes[noun]; probe {
+					generatedSet[verb] = true
+				}
 			}
 		}
 	})
