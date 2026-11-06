@@ -506,6 +506,9 @@ type Runtime struct {
 	aliases          map[string]string // registry: a short noun name -> the noun it names (settings -> ochazuke.settings; namespace.go)
 	builtinDepth     int               // >0 while Builtin runs: framework registration, whose nouns are ochazuke.<noun>
 	actionNames      actionNames       // the action alias table and the running request's name (action_names.go)
+
+	// namedSettings indexes the settings rows name (binding_settings.go).
+	namedSettings map[string]bool
 }
 
 // NewRuntime returns a runtime with the framework nouns registered and focus on the app instance.

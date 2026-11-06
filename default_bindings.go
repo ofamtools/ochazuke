@@ -34,14 +34,7 @@ var frameworkBindingFiles = []string{
 // declares (editor.json "modes"): what SelectionShape answers for an input
 // no runtime holds (NewInput alone, as in a unit test).
 var builtinSelections = sync.OnceValue(func() map[string]string {
-	data, err := frameworkBindings.ReadFile("bindings/editor.json")
-	if err != nil {
-		panic(err)
-	}
-	file, _, err := ParseBindings(data)
-	if err != nil {
-		panic(err)
-	}
+	file := frameworkBindingDoc("editor.json")
 	out := map[string]string{}
 	for name, m := range file.Modes {
 		if m.Selection != "" {
@@ -59,11 +52,84 @@ const FrameworkBindingsSource = "ochazuke/"
 // does not load is a framework bug, so it panics at startup (every test
 // that builds a runtime catches it).
 func (r *Runtime) loadFrameworkBindings(name string) {
-	data, err := frameworkBindings.ReadFile("bindings/" + name)
+	source := FrameworkBindingsSource + "bindings/" + name
+	if err := r.loadDefaultDoc(source, frameworkBindingDoc(name)); err != nil {
+		panic(fmt.Sprintf("default bindings: %v", err))
+	}
+}
+
+// frameworkBindingDocs are the embedded files parsed once per process, by
+// file name. The result is shared by every runtime and is immutable: a
+// loader copies a row (cloneBinding) before it changes or keeps it.
+var frameworkBindingDocs = sync.OnceValue(func() map[string]BindingsDoc {
+	entries, err := frameworkBindings.ReadDir("bindings")
 	if err != nil {
 		panic(err)
 	}
-	r.MustLoadDefaultBindings(FrameworkBindingsSource+"bindings/"+name, data)
+	docs := make(map[string]BindingsDoc, len(entries))
+	for _, e := range entries {
+		data, err := frameworkBindings.ReadFile("bindings/" + e.Name())
+		if err != nil {
+			panic(err)
+		}
+		doc, _, err := ParseBindings(data)
+		if err != nil {
+			panic(fmt.Sprintf("default bindings: %sbindings/%s: %v", FrameworkBindingsSource, e.Name(), err))
+		}
+		docs[e.Name()] = doc
+	}
+	return docs
+})
+
+// frameworkBindingDoc is the parsed embedded file name; it panics for a
+// file that does not exist (a framework bug).
+func frameworkBindingDoc(name string) BindingsDoc {
+	doc, ok := frameworkBindingDocs()[name]
+	if !ok {
+		panic("default bindings: no embedded file " + name)
+	}
+	return doc
+}
+
+// cloneBinding is a row sharing no map, slice or pointer with the original,
+// so a runtime can keep and change it without touching the parsed copy
+// other runtimes read.
+func cloneBinding(b Binding) Binding {
+	b.Request.Args = deepCloneArgs(b.Request.Args)
+	b.From = maps.Clone(b.From)
+	b.Aliases = slices.Clone(b.Aliases)
+	if b.Present != nil {
+		v := *b.Present
+		b.Present = &v
+	}
+	return b
+}
+
+func deepCloneArgs(a Arguments) Arguments {
+	if a == nil {
+		return nil
+	}
+	return Arguments(cloneValue(map[string]any(a)).(map[string]any))
+}
+
+func cloneValue(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, x := range t {
+			out[k] = cloneValue(x)
+		}
+		return out
+	case Arguments:
+		return deepCloneArgs(t)
+	case []any:
+		out := make([]any, len(t))
+		for i, x := range t {
+			out[i] = cloneValue(x)
+		}
+		return out
+	}
+	return v
 }
 
 // LoadDefaultBindings installs a default bindings file (the grouped
@@ -87,6 +153,12 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", source, err)
 	}
+	return r.loadDefaultDoc(source, file)
+}
+
+// loadDefaultDoc installs a parsed file. It treats file as read-only: the
+// doc may be the shared parse of an embedded file.
+func (r *Runtime) loadDefaultDoc(source string, file BindingsDoc) (err error) {
 	for _, name := range slices.Sorted(maps.Keys(file.Modes)) {
 		m := file.Modes[name]
 		switch {
@@ -143,6 +215,7 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 			return fmt.Errorf("%s: %s: unknown mode %q", source, g.label(), g.Mode)
 		}
 		for _, row := range g.Rows {
+			row = cloneBinding(row)
 			row.Noun = nouns[i]
 			if g.Fallback && bound[fallbackKey(nouns[i], g.Instance, row)] {
 				continue
@@ -370,18 +443,37 @@ type DefaultBinding struct {
 // place, the rows it added left out), each with its source: nouns by name,
 // each noun's modes by name, then instances by id, rows in table order.
 func (r *Runtime) DefaultBindings() []DefaultBinding {
+	return r.defaultRows(func(string, string) bool { return true }, true)
+}
+
+// RowsOf are the default rows of one noun's table in mode, as
+// DefaultBindings lists them, without building the other tables. An unknown
+// noun or mode has none.
+func (r *Runtime) RowsOf(noun, mode string) []DefaultBinding {
+	return r.defaultRows(func(n, m string) bool { return n == noun && m == mode }, false)
+}
+
+// defaultRows is DefaultBindings for the noun tables want accepts; all also
+// lists the instance tables and keeps a table a user row created.
+func (r *Runtime) defaultRows(want func(noun, mode string) bool, all bool) []DefaultBinding {
 	nouns := map[string]map[string][]Binding{}
 	for name, n := range r.Nouns {
 		tables := map[string][]Binding{}
 		for mode, rows := range n.Bindings {
-			tables[mode] = slices.Clone(rows)
+			if want(name, mode) {
+				tables[mode] = slices.Clone(rows)
+			}
 		}
-		nouns[name] = tables
+		if all || len(tables) > 0 {
+			nouns[name] = tables
+		}
 	}
 	instances := map[string][]Binding{}
-	for id, inst := range r.Instances {
-		if len(inst.Bindings) > 0 {
-			instances[id] = slices.Clone(inst.Bindings)
+	if all {
+		for id, inst := range r.Instances {
+			if len(inst.Bindings) > 0 {
+				instances[id] = slices.Clone(inst.Bindings)
+			}
 		}
 	}
 	if c := r.Config(); c != nil {
@@ -399,7 +491,9 @@ func (r *Runtime) DefaultBindings() []DefaultBinding {
 					instances[a.row.Instance] = restore(rows)
 				}
 			} else if tables, ok := nouns[a.row.Noun]; ok {
-				tables[a.row.Mode] = restore(tables[a.row.Mode])
+				if _, has := tables[a.row.Mode]; has || all {
+					tables[a.row.Mode] = restore(tables[a.row.Mode])
+				}
 			}
 		}
 	}

@@ -187,6 +187,12 @@ func (r *Runtime) resolveNamedRow(row Binding) (Binding, error) {
 	if len(n.names) == 0 {
 		return row, nil
 	}
+	if r.namedSettings == nil {
+		r.namedSettings = map[string]bool{}
+	}
+	for _, name := range n.names {
+		r.namedSettings[name] = true
+	}
 	row.named = &n
 	return r.applyNamed(row), nil
 }
@@ -217,12 +223,19 @@ func (r *Runtime) applyNamed(row Binding) Binding {
 	return row
 }
 
+// namedSettings (Runtime) is the index of rebindSettingRows: every setting
+// a row resolved by this runtime names. It only grows, so it may list a
+// setting whose rows are gone, never miss one that has rows.
+//
 // rebindSettingRows resolves again every row naming setting name, on every
 // noun and instance table: a row whose keys moved takes the place of the
 // row of its table that had its new identity (that row gives way, as a
 // file row replaces one), and a key sequence in progress is cancelled.
 // DeclareSetting and every change of a setting's value call it.
 func (r *Runtime) rebindSettingRows(name string) {
+	if !r.namedSettings[name] {
+		return // no row this runtime resolved names the setting
+	}
 	changed := false
 	for _, noun := range slices.Sorted(maps.Keys(r.Nouns)) {
 		n := r.Nouns[noun]
