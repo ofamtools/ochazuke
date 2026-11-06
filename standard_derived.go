@@ -1,29 +1,16 @@
 package ochazuke
 
 import (
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
 	"strings"
 )
 
-// The derived standard verbs (lane S4): rows of the verb tables
-// (core_verbs.go: archive in the core table, the rest in legacyVerbs)
-// read from a prop's role or from the store's handlers, each running the
-// standard set or create, so history, watch, availability and the store
-// are those verbs'.
-//
-//   - rename writes the label prop (RoleLabel): its argument is name, or
-//     to when the noun's key prop is named name (the key's name is
-//     reserved on the noun's verbs). The args form opens holding the old
-//     name, selected (rename.select); an empty label opens empty with its
-//     Fallback as the placeholder (Parameter.Edits).
-//   - move writes the owner reference (RoleOwner): to, one of the
-//     reference noun's things.
-//   - duplicate creates a copy of the thing: every prop create writes,
-//     read from the thing, with prop=value overrides.
-//   - archive and restore set the archive prop (RoleArchive) true and false.
+// The role-derived row (archive, in the core table, core_verbs.go) reads
+// its prop from a role and runs the standard set, so history, watch,
+// availability and the store are set's: archive sets the archive prop
+// (RoleArchive) true. Un-archiving is set {props: {"@archive": false}}.
 //
 // And the two behaviour settings of create and delete:
 //
@@ -35,17 +22,6 @@ import (
 //     (archiveOnDelete). The confirm says which (deleteConfirm): the
 //     archive asks DefaultArchiveConfirm, or nothing with
 //     delete.archive-confirm off; the real delete asks the delete prompt.
-
-// archivedRows is the subject choices of restore: the noun's list, where the
-// archive prop is true (list.hide-archived hides those rows from the default
-// list, so the default choices would never offer them). Archive keeps the
-// default list, which hides archived rows.
-func archivedRows(n *Noun) map[string]any {
-	if p := n.roleProp(RoleArchive); p != nil {
-		return map[string]any{"where": p.Name + "=true"}
-	}
-	return nil
-}
 
 // writableRole is the noun's prop with that role when set may write it.
 func writableRole(n *Noun, role string) *PropSpec {
@@ -65,46 +41,11 @@ func roleWrites(role string) func(n *Noun, a Arguments) ([]string, error) {
 	}
 }
 
-// renameArg is rename's argument: name, or to when the key prop takes
-// name (the key's name means the subject on every verb of the noun).
-func renameArg(n *Noun) string {
-	if key := n.keyProp(); key != nil && key.Name == "name" {
-		return "to"
-	}
-	return "name"
-}
-
-func renameParams(n *Noun) map[string]Parameter {
-	label := n.roleProp(RoleLabel)
-	param := propParameter(*label)
-	param.Required, param.Edits = true, label.Name
-	param.Description = fmt.Sprintf("The new %s (an empty one is allowed)", label.Name)
-	if label.Fallback != "" {
-		param.Description += fmt.Sprintf("; empty shows the %s", label.Fallback)
-	}
-	return map[string]Parameter{renameArg(n): param}
-}
-
-func moveParams(n *Noun) map[string]Parameter {
-	owner := n.roleProp(RoleOwner)
-	param := propParameter(*owner)
-	param.Required = true
-	param.Description = fmt.Sprintf("The %s to move to (written to %s)", owner.Noun, owner.Name)
-	return map[string]Parameter{"to": param}
-}
-
-func duplicateParams(n *Noun) map[string]Parameter {
-	return map[string]Parameter{
-		"pairs":   {Type: "string", Rest: true, Description: "prop=value overrides, written in place of the thing's values"},
-		"changes": {Type: "object", Description: "Overrides as an object of prop to value"},
-	}
-}
-
 // setVia runs the standard set on c's subject with prop written to value:
-// the derived verbs are set under another name. Only the subject's key
-// goes through from the request's arguments.
+// a derived verb is set under another name. Only the subject's key goes
+// through from the request's arguments.
 func (r *Runtime) setVia(n *Noun, c Ctx, prop string, value any) (any, error) {
-	args := Arguments{"prop": prop, "value": value}
+	args := Arguments{"props": map[string]any{prop: value}}
 	if key := n.keyProp(); key != nil {
 		if v, ok := c.Args[key.Name]; ok {
 			args[key.Name] = v
@@ -114,130 +55,9 @@ func (r *Runtime) setVia(n *Noun, c Ctx, prop string, value any) (any, error) {
 	return runSet(r, n, c)
 }
 
-func runRename(r *Runtime, n *Noun, c Ctx) (any, error) {
-	arg := renameArg(n)
-	v, ok := c.Args[arg]
-	if !ok {
-		return nil, &ArgumentError{fmt.Errorf("%s is required", arg)}
-	}
-	return r.setVia(n, c, n.roleProp(RoleLabel).Name, fmt.Sprint(v))
-}
-
-func runMove(r *Runtime, n *Noun, c Ctx) (any, error) {
-	v, ok := c.Args["to"]
-	if !ok {
-		return nil, &ArgumentError{errors.New("to is required")}
-	}
-	return r.setVia(n, c, n.roleProp(RoleOwner).Name, fmt.Sprint(v))
-}
-
-func archiveRun(on bool) func(r *Runtime, n *Noun, c Ctx) (any, error) {
-	return func(r *Runtime, n *Noun, c Ctx) (any, error) {
-		return r.setVia(n, c, n.roleProp(RoleArchive).Name, on)
-	}
-}
-
-// duplicateOverrides reads duplicate's overrides: prop=value words (pairs)
-// or a changes object, never both; each a prop create writes, typed by it.
-func duplicateOverrides(n *Noun, a Arguments) (map[string]any, []string, error) {
-	pairs := StringArg(a, "pairs", "")
-	obj, hasChanges := a["changes"]
-	raw := map[string]any{}
-	var order []string
-	switch {
-	case hasChanges && pairs != "":
-		return nil, nil, &ArgumentError{errors.New("duplicate takes pairs or changes, not both")}
-	case hasChanges:
-		m, err := propValue(PropSpec{Name: "changes", Parameter: Parameter{Type: PropObject}}, obj)
-		if err != nil {
-			return nil, nil, &ArgumentError{fmt.Errorf("changes %w", err)}
-		}
-		raw = m.(map[string]any)
-		order = slices.Sorted(maps.Keys(raw))
-		slices.SortStableFunc(order, func(x, y string) int { return propIndex(n, x) - propIndex(n, y) })
-	default:
-		for _, w := range splitPairs(pairs) {
-			name, v, ok := strings.Cut(w, "=")
-			if !ok {
-				return nil, nil, &ArgumentError{fmt.Errorf("%q is not prop=value", w)}
-			}
-			if _, dup := raw[name]; dup {
-				return nil, nil, &ArgumentError{fmt.Errorf("%s is written twice", name)}
-			}
-			raw[name] = unquoteWord(v)
-			order = append(order, name)
-		}
-	}
-	out := map[string]any{}
-	for _, name := range order {
-		p := n.prop(name)
-		switch {
-		case p == nil:
-			return nil, nil, &ArgumentError{fmt.Errorf("%s has no prop %q", n.Name, name)}
-		case p.ReadOnly || p.Key:
-			return nil, nil, &ArgumentError{fmt.Errorf("%s.%s is read-only", n.Name, name)}
-		}
-		typed, err := propValue(*p, raw[name])
-		if err != nil {
-			return nil, nil, &ArgumentError{fmt.Errorf("%s %w", name, err)}
-		}
-		if _, exists := out[p.Name]; exists {
-			return nil, nil, &ArgumentError{fmt.Errorf("%s is written twice", p.Name)}
-		}
-		out[p.Name] = typed
-	}
-	for i, name := range order {
-		order[i] = n.prop(name).Name
-	}
-	return out, order, nil
-}
-
-func duplicateWrites(n *Noun, a Arguments) ([]string, error) {
-	_, order, err := duplicateOverrides(n, a)
-	return order, err
-}
-
-func runDuplicate(r *Runtime, n *Noun, c Ctx) (any, error) {
-	overrides, order, err := duplicateOverrides(n, c.Args)
-	if err != nil {
-		return nil, err
-	}
-	if name := r.unshownProp(n, c, order); name != "" {
-		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), name)
-	}
-	key, err := r.subjectKey(n, c)
-	if err != nil {
-		return nil, err
-	}
-	t, err := n.Store.Get(c, key)
-	if err != nil {
-		return nil, err
-	}
-	if t == nil {
-		return nil, fmt.Errorf("no %s %q", r.DisplayNoun(n.Name), key)
-	}
-	values := Thing{}
-	for _, p := range createProps(n) {
-		if v, ok := overrides[p.Name]; ok {
-			values[p.Name] = v
-			continue
-		}
-		if v, ok := t[p.Name]; ok && v != nil {
-			typed, err := propValue(p, v)
-			if err != nil {
-				typed = v // the store's own form: create judges it
-			}
-			values[p.Name] = typed
-		}
-	}
-	made, err := n.Store.Create(c, values)
-	if err != nil {
-		return nil, err
-	}
-	if made == nil {
-		made = values
-	}
-	return thingRecord(n, made, nil), nil
+// runArchive sets the archive prop true.
+func runArchive(r *Runtime, n *Noun, c Ctx) (any, error) {
+	return r.setVia(n, c, n.roleProp(RoleArchive).Name, true)
 }
 
 // createPositional is create's words: the label prop, then the props

@@ -73,7 +73,7 @@ func TestArchiveSavedFilterOverrides(t *testing.T) {
 	}
 }
 
-func TestAgentArchiveRestoreAndUndo(t *testing.T) {
+func TestAgentArchiveUnarchiveAndUndo(t *testing.T) {
 	r, s := newDerivedRuntime(t)
 	store := s.store()
 	store.Undo = true
@@ -93,7 +93,7 @@ func TestAgentArchiveRestoreAndUndo(t *testing.T) {
 	if len(rows) != 1 || rows[0]["id"] != "t2" {
 		t.Fatal(rows)
 	}
-	run("restore", Arguments{"id": "t1"})
+	run("set", Arguments{"id": "t1", "props": map[string]any{"@archive": false}}) // un-archive
 	rows = AnswerRows(run("list", nil)).([]map[string]any)
 	if len(rows) != 2 || rows[0]["id"] != "t1" {
 		t.Fatal(rows)
@@ -102,7 +102,7 @@ func TestAgentArchiveRestoreAndUndo(t *testing.T) {
 		t.Fatal(err)
 	}
 	if s.find("t1")["archived"] != true {
-		t.Fatal("restore not undone")
+		t.Fatal("un-archive not undone")
 	}
 	if _, err := r.Execute(Request{Noun: "history", Verb: "undo"}); err != nil {
 		t.Fatal(err)
@@ -112,55 +112,26 @@ func TestAgentArchiveRestoreAndUndo(t *testing.T) {
 	}
 }
 
-// The derived restore offers archived rows as its subject choices, archive
-// the live ones, through the subject parameter's data (SourceFixed), so a
-// hidden archived row is a choice and its id no longer competes with
-// prefix siblings.
-func TestArchiveRestoreSubjectChoices(t *testing.T) {
+// archive's subject choices are the live things: the default list hides
+// the archived ones, so an archived id never competes with its prefix
+// siblings.
+func TestArchiveSubjectChoices(t *testing.T) {
 	r := NewRuntime()
 	things := []Thing{{"id": "t1", "retired": true}, {"id": "t10"}, {"id": "t11", "retired": false}}
 	r.Define("parcel").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "retired", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}}).Store(Store{
 		List:  func(Ctx, ListQuery) ([]Thing, error) { return things, nil },
 		Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil },
 	})
-	ids := func(verb string) []string {
-		t.Helper()
-		op, ok := r.Operations["parcel."+verb]
-		if !ok {
-			t.Fatal("no", verb)
-		}
-		choices, err := r.ChoicesFor(r.Context(), op.Parameters["id"], "")
-		if err != nil {
-			t.Fatal(err)
-		}
-		out := []string{}
-		for _, c := range choices {
-			out = append(out, c.ID)
-		}
-		return out
+	choices, err := r.ChoicesFor(r.Context(), r.Operations["parcel.archive"].Parameters["id"], "")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if got := ids("restore"); !slices.Equal(got, []string{"t1"}) {
-		t.Fatalf("restore %v", got)
+	var got []string
+	for _, c := range choices {
+		got = append(got, c.ID)
 	}
-	if got := ids("archive"); !slices.Equal(got, []string{"t10", "t11"}) {
+	if !slices.Equal(got, []string{"t10", "t11"}) {
 		t.Fatalf("archive %v", got)
-	}
-	if err := r.CheckSourceArgs(r.Operations["parcel.restore"].Parameters); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// A noun with no list verb has no choices source for restore's subject: the
-// fixed arguments are moot, not an unknown source.
-func TestArchiveRestoreWithoutListHasNoSourceError(t *testing.T) {
-	r := NewRuntime()
-	r.Define("thing").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "gone", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}}).Store(Store{Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil }})
-	op, ok := r.Operations["thing.restore"]
-	if !ok {
-		t.Fatal("no thing.restore")
-	}
-	if err := r.CheckSourceArgs(op.Parameters); err != nil {
-		t.Fatal(err)
 	}
 }
 

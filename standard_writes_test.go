@@ -98,16 +98,13 @@ func mustRun(t *testing.T, r *Runtime, q Request) any {
 }
 
 // TestStandardWriteVerbs: create, set and delete appear with their store
-// handlers; patch is set's alias; create's first word is the label prop.
+// handlers; create's first word is the label prop.
 func TestStandardWriteVerbs(t *testing.T) {
 	r, _ := newWriteRuntime(t)
 	for _, verb := range []string{"create", "set", "delete"} {
 		if op := r.Operations["task."+verb]; op.Standard != verb {
 			t.Fatalf("task.%s standard %q", verb, op.Standard)
 		}
-	}
-	if a, ok := r.ActionAlias("task.patch"); !ok || a.Action != "task.set" || a.Source != AliasStandard {
-		t.Fatalf("task.patch alias = %+v %v", a, ok)
 	}
 	create := r.Operations["task.create"]
 	if !slices.Equal(create.Positional, []string{"title", "pairs"}) {
@@ -134,22 +131,12 @@ func TestStandardWriteVerbs(t *testing.T) {
 	if _, err := r2.Execute(Request{Noun: "ro", Verb: "set", Args: Arguments{"id": "x", "prop": "name", "value": "y"}}); err == nil || !strings.Contains(err.Error(), "it has no writable prop") {
 		t.Fatalf("unavailable set ran: %v", err)
 	}
-	// The application's own patch wins over the generated alias, silently.
-	r3 := NewRuntime()
-	r3.Define("task").Verb("patch", func(Ctx) Result { return Done("mine") })
-	s3 := &writeStore{taskStore: newTaskStore()}
-	r3.Define("task").Props(taskWriteProps()...).Store(s3.store())
-	if v, err := r3.Execute(Request{Noun: "task", Verb: "patch"}); err != nil || v != "mine" {
-		t.Fatalf("app patch = %v %v", v, err)
-	}
-	if len(r3.ActionAliasProblems()) > 0 {
-		t.Fatalf("problems %v", r3.ActionAliasProblems())
-	}
 }
 
-// TestSetOneAndSeveralProps: set's one-prop form (prop and value, typed by
-// the prop; toggle on a boolean) and its several-prop forms (changes, and
-// prop=value words) share one handler; patch runs set.
+// TestSetOneAndSeveralProps: set's one shape is props (a subset or all of
+// them, @role names a prop by its role); prop=value words fill it; toggle
+// flips a boolean; the old one-prop form (prop and value) and changes
+// (props' old name) still work for a release. One handler.
 func TestSetOneAndSeveralProps(t *testing.T) {
 	r, s := newWriteRuntime(t)
 	got := mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "estimate", "value": "5"}}).(map[string]any)
@@ -159,8 +146,10 @@ func TestSetOneAndSeveralProps(t *testing.T) {
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "starred", "toggle": true}})
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t2", "changes": map[string]any{"status": "done", "title": "Ship"}}})
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t3", "prop": "title=Buy milk", "value": "status=doing", "pairs": `notes="two words" estimate=4`}})
-	mustRun(t, r, Request{Noun: "task", Verb: "patch", Args: Arguments{"id": "t3", "prop": "status", "value": "todo"}})
-	want := []string{"set t1 estimate=5", "set t1 starred=true", "set t2 title=Ship status=done", "set t3 title=Buy milk status=doing estimate=4 notes=two words", "set t3 status=todo"}
+	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t3", "props": map[string]any{"status": "todo"}}})
+	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t2", "props": map[string]any{"@label": "Shipped", "estimate": "2"}}})
+	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "pairs": "status=doing"}})
+	want := []string{"set t1 estimate=5", "set t1 starred=true", "set t2 title=Ship status=done", "set t3 title=Buy milk status=doing estimate=4 notes=two words", "set t3 status=todo", "set t2 title=Shipped estimate=2", "set t1 status=doing"}
 	if !reflect.DeepEqual(s.log, want) {
 		t.Fatalf("log\n%q\nwant\n%q", s.log, want)
 	}
@@ -175,7 +164,11 @@ func TestSetOneAndSeveralProps(t *testing.T) {
 		{Arguments{"id": "t1", "prop": "title", "toggle": true}, "only a boolean prop toggles"},
 		{Arguments{"id": "t1", "prop": "title=a", "value": "status"}, "do not mix"},
 		{Arguments{"id": "t1", "prop": "status", "value": "done", "changes": map[string]any{"title": "x"}}, "not both"},
-		{Arguments{"id": "t1"}, "set needs a prop"},
+		{Arguments{"id": "t1", "props": map[string]any{"title": "x"}, "changes": map[string]any{"title": "x"}}, "not changes too"},
+		{Arguments{"id": "t1", "props": map[string]any{"title": "x"}, "prop": "status", "value": "done"}, "not both"},
+		{Arguments{"id": "t1", "props": map[string]any{"@owner": "x"}}, "not applicable"}, // no owner role: unavailable, as move was
+		{Arguments{"id": "t1", "props": map[string]any{"summary": "x"}}, "read-only"},
+		{Arguments{"id": "t1"}, "set needs props"},
 	} {
 		if _, err := r.Execute(Request{Noun: "task", Verb: "set", Args: bad.args}); err == nil || !strings.Contains(err.Error(), bad.want) {
 			t.Fatalf("set %v: %v, want %q", bad.args, err, bad.want)

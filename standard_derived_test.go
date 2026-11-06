@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"errors"
 	"fmt"
 	"maps"
 	"reflect"
@@ -114,39 +113,52 @@ func newDerivedRuntime(t *testing.T) (*Runtime, *derivedStore) {
 	return r, s
 }
 
-// The derived rows appear exactly when the roles and handlers they read
-// are there.
+// archive is the role-derived row; the purged verbs (rename, move,
+// duplicate, restore, set's alias patch) are gone, and a request that
+// addresses a role the noun lacks is unavailable, as the verb was.
 func TestDerivedVerbsFollowTheRoles(t *testing.T) {
 	r, _ := newDerivedRuntime(t)
-	for _, verb := range []string{"rename", "move", "duplicate", "archive", "restore"} {
-		if op := r.Operations["task."+verb]; op.Standard != verb {
-			t.Fatalf("task.%s standard %q", verb, op.Standard)
+	if op := r.Operations["task.archive"]; op.Standard != "archive" {
+		t.Fatalf("task.archive standard %q", op.Standard)
+	}
+	for _, verb := range []string{"rename", "move", "duplicate", "restore", "patch"} {
+		if _, ok := r.Operation("task." + verb); ok || slices.Contains(StandardVerbs(), verb) || slices.Contains(reservedVerbNames(), verb) {
+			t.Fatalf("task.%s is still a verb", verb)
 		}
 	}
-	if !slices.Contains(StandardVerbs(), "archive") || !slices.Contains(reservedVerbNames(), "restore") {
-		t.Fatalf("table %v reserved %v", StandardVerbs(), reservedVerbNames())
+	role := func(q Request) bool { return r.Available(q, "", r.Mode) }
+	label := Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "props": map[string]any{"@label": "x"}}}
+	owner := Request{Noun: "task", Verb: "edit", Args: Arguments{"id": "t1", "field": "@owner"}}
+	if !role(label) || !role(owner) {
+		t.Fatal("role requests unavailable on a noun with the roles")
 	}
 	for _, c := range []struct {
 		name   string
 		props  []PropSpec
 		store  func(Store) Store
 		absent []string
+		roles  []Request
 	}{
-		{"no roles", []PropSpec{{Name: "id", Key: true}, {Name: "status"}}, nil, []string{"rename", "move", "archive", "restore"}},
-		{"read-only label", []PropSpec{{Name: "id", Key: true}, {Name: "title", Role: RoleLabel, ReadOnly: true}, {Name: "status"}}, nil, []string{"rename"}},
-		{"no patch", derivedProps(), func(s Store) Store { s.Patch = nil; return s }, []string{"rename", "move", "archive", "restore", "set"}},
-		{"no create", derivedProps(), func(s Store) Store { s.Create = nil; return s }, []string{"duplicate", "create"}},
-		{"no get", derivedProps(), func(s Store) Store { s.Get = nil; return s }, []string{"duplicate"}},
+		{"no roles", []PropSpec{{Name: "id", Key: true}, {Name: "status"}}, nil, []string{"archive"}, []Request{label, owner}},
+		{"read-only label", []PropSpec{{Name: "id", Key: true}, {Name: "title", Role: RoleLabel, ReadOnly: true}, {Name: "status"}}, nil, nil, []Request{label}},
+		{"no patch", derivedProps(), func(s Store) Store { s.Patch = nil; return s }, []string{"archive", "set", "edit"}, nil},
+		{"no create", derivedProps(), func(s Store) Store { s.Create = nil; return s }, []string{"create"}, nil},
 	} {
 		r := NewRuntime()
-		st := (&derivedStore{key: "id"}).store()
+		st := (&derivedStore{key: "id", things: []Thing{{"id": "t1", "status": "todo"}}}).store()
 		if c.store != nil {
 			st = c.store(st)
 		}
+		r.Define("project").Props(PropSpec{Name: "id", Key: true})
 		r.Define("task").Props(c.props...).Store(st)
 		for _, verb := range c.absent {
 			if r.offers("task." + verb) {
 				t.Fatalf("%s: task.%s is offered", c.name, verb)
+			}
+		}
+		for _, q := range c.roles {
+			if r.Available(q, "", r.Mode) {
+				t.Fatalf("%s: %s %v is available", c.name, q.Verb, q.Args)
 			}
 		}
 	}
@@ -161,18 +173,29 @@ func TestDerivedVerbsFollowTheRoles(t *testing.T) {
 	})
 }
 
-// rename writes the label prop, move the owner, archive and restore the
-// archive prop, each through set; duplicate creates a copy with overrides.
-func TestDerivedVerbsWrite(t *testing.T) {
+// What the purged verbs did, through the core verbs: set writes a prop
+// addressed by its role (@label: rename, @owner: move, @archive false:
+// restore), archive sets the archive prop, and create {from} copies a
+// thing with overrides (duplicate).
+func TestRoleWritesReplaceThePurgedVerbs(t *testing.T) {
 	r, s := newDerivedRuntime(t)
-	mustRun(t, r, Request{Noun: "task", Verb: "rename", Args: Arguments{"id": "t1", "name": "Feed the cat"}})
-	mustRun(t, r, Request{Noun: "task", Verb: "rename", Args: Arguments{"id": "t2", "name": ""}}) // an empty label is a value
-	mustRun(t, r, Request{Noun: "task", Verb: "move", Args: Arguments{"id": "t1", "to": "work"}})
+	set := func(id string, props map[string]any) Request {
+		return Request{Noun: "task", Verb: "set", Args: Arguments{"id": id, "props": props}}
+	}
+	mustRun(t, r, set("t1", map[string]any{"@label": "Feed the cat"}))
+	mustRun(t, r, set("t2", map[string]any{"@label": ""})) // an empty label is a value
+	mustRun(t, r, set("t1", map[string]any{"@owner": "work"}))
 	mustRun(t, r, Request{Noun: "task", Verb: "archive", Args: Arguments{"id": "t1"}})
-	mustRun(t, r, Request{Noun: "task", Verb: "restore", Args: Arguments{"id": "t3"}})
-	got := mustRun(t, r, Request{Noun: "task", Verb: "duplicate", Args: Arguments{"id": "t1", "pairs": `title="A copy" status=done`}}).(map[string]any)
+	mustRun(t, r, set("t3", map[string]any{"@archive": false}))
+	got := mustRun(t, r, Request{Noun: "task", Verb: "create", Args: Arguments{"from": "t1", "pairs": `title="A copy" status=done`}}).(map[string]any)
 	if got["id"] != "t4" || got["title"] != "A copy" || got["status"] != "done" || got["project"] != "work" || got["archived"] != true {
-		t.Fatalf("duplicate = %v", got)
+		t.Fatalf("create from = %v", got)
+	}
+	// from names the thing by its human key too, or is a row's Data.
+	byLabel := mustRun(t, r, Request{Noun: "task", Verb: "create", Args: Arguments{"from": "Feed the cat"}}).(map[string]any)
+	byRow := mustRun(t, r, Request{Noun: "task", Verb: "create", Args: Arguments{"from": map[string]any{"id": "t2"}, "status": "done"}}).(map[string]any)
+	if byLabel["title"] != "Feed the cat" || byLabel["project"] != "work" || byRow["status"] != "done" || byRow["project"] != "work" {
+		t.Fatalf("by label %v, by row %v", byLabel, byRow)
 	}
 	want := []string{
 		"set t1 title=Feed the cat",
@@ -181,78 +204,86 @@ func TestDerivedVerbsWrite(t *testing.T) {
 		"set t1 archived=true",
 		"set t3 archived=false",
 		"create t4 archived=true project=work status=done title=A copy",
+		"create t5 archived=true project=work status=todo title=Feed the cat",
+		"create t6 archived=false project=work status=done title=",
 	}
 	if !reflect.DeepEqual(s.log, want) {
 		t.Fatalf("log\n%q\nwant\n%q", s.log, want)
 	}
-	// The subject comes from the focus, as set's does.
+	// The subject comes from the focus.
 	if err := r.SetFocus("row-t2"); err != nil {
 		t.Fatal(err)
 	}
-	mustRun(t, r, Request{Noun: "task", Verb: "rename", Args: Arguments{"name": "Focused"}})
+	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"props": map[string]any{"@label": "Focused"}}})
 	if s.find("t2")["title"] != "Focused" {
 		t.Fatalf("t2 %v", s.find("t2"))
 	}
 	for _, q := range []Request{
-		{Noun: "task", Verb: "rename", Args: Arguments{"id": "t1"}},
-		{Noun: "task", Verb: "move", Args: Arguments{"id": "t1"}},
-	} {
-		var argErr *ArgumentError
-		if _, err := r.Execute(q); !errors.As(err, &argErr) || !strings.Contains(err.Error(), "required") {
-			t.Fatalf("%s without its argument: %v", q.Verb, err)
-		}
-	}
-	for _, q := range []Request{
-		{Noun: "task", Verb: "duplicate", Args: Arguments{"id": "t1", "pairs": "summary=x"}},
-		{Noun: "task", Verb: "duplicate", Args: Arguments{"id": "t1", "pairs": "nope=x"}},
-		{Noun: "task", Verb: "duplicate", Args: Arguments{"id": "t1", "pairs": "status=x"}},
-		{Noun: "task", Verb: "duplicate", Args: Arguments{"id": "t1", "pairs": "status=done", "changes": map[string]any{"title": "x"}}},
+		set("t1", map[string]any{"@nope": "x"}),
+		set("t1", map[string]any{"summary": "x"}),
+		{Noun: "task", Verb: "create", Args: Arguments{"from": "t1", "pairs": "summary=x"}},
+		{Noun: "task", Verb: "create", Args: Arguments{"from": "t1", "pairs": "nope=x"}},
+		{Noun: "task", Verb: "create", Args: Arguments{"from": "t1", "pairs": "status=x"}},
+		{Noun: "task", Verb: "create", Args: Arguments{"from": "nonesuch"}},
+		{Noun: "task", Verb: "create", Args: Arguments{"from": map[string]any{"title": "no key"}}},
 	} {
 		if _, err := r.Execute(q); err == nil {
-			t.Fatalf("duplicate %v: no error", q.Args)
+			t.Fatalf("%s %v: no error", q.Verb, q.Args)
 		}
 	}
-	// History and repeat: the archive write is simple, a rename or a move
-	// never is (text, a reference).
+	// History and repeat: the archive write is simple, a label or an owner
+	// never is (text, a reference); a create is never repeated.
 	for _, c := range []struct {
-		q      Request
-		simple bool
+		q                  Request
+		simple, repeatable bool
 	}{
-		{Request{Noun: "task", Verb: "archive", Args: Arguments{"id": "t1"}}, true},
-		{Request{Noun: "task", Verb: "restore"}, true},
-		{Request{Noun: "task", Verb: "rename", Args: Arguments{"name": "x"}}, false},
-		{Request{Noun: "task", Verb: "move", Args: Arguments{"to": "home"}}, false},
-		{Request{Noun: "task", Verb: "duplicate", Args: Arguments{"pairs": "status=done"}}, true},
+		{Request{Noun: "task", Verb: "archive", Args: Arguments{"id": "t1"}}, true, true},
+		{set("", map[string]any{"@archive": false}), true, true},
+		{set("", map[string]any{"@label": "x"}), false, false},
+		{set("", map[string]any{"@owner": "home"}), false, false},
+		{Request{Noun: "task", Verb: "create", Args: Arguments{"from": "t1", "pairs": "status=done"}}, true, false},
 	} {
 		if got := r.simpleWrite(c.q); got != c.simple {
-			t.Fatalf("simpleWrite(%s) = %v", c.q.Verb, got)
+			t.Fatalf("simpleWrite(%s %v) = %v", c.q.Verb, c.q.Args, got)
 		}
-		if got := r.repeatableStandard(c.q); got != (c.simple && c.q.Verb != "duplicate") {
-			t.Fatalf("repeatable(%s) = %v", c.q.Verb, got)
+		if got := r.repeatableStandard(c.q); got != c.repeatable {
+			t.Fatalf("repeatable(%s %v) = %v", c.q.Verb, c.q.Args, got)
 		}
 	}
 }
 
-// The key prop's name is reserved: rename's argument is to on a noun
-// keyed by name, and no key may take to (move's argument).
-func TestRenameArgumentAvoidsTheKey(t *testing.T) {
+// A copy is undone by deleting it, as any create is.
+func TestCreateFromIsUndoneByDelete(t *testing.T) {
+	r, s := newUndoRuntime(t, true, false)
+	before := len(s.things)
+	got := mustRun(t, r, Request{Noun: "task", Verb: "create", Args: Arguments{"from": "t1"}}).(map[string]any)
+	if len(s.things) != before+1 || got["title"] != s.find("t1")["title"] {
+		t.Fatalf("copy %v of %v", got, s.find("t1"))
+	}
+	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	if len(s.things) != before || s.find(fmt.Sprint(got["id"])) != nil {
+		t.Fatalf("the copy %v is still there: %q", got["id"], s.log)
+	}
+}
+
+// The key prop's name is reserved, and so are the core verbs' own
+// parameters (props, field, from): no key takes one.
+func TestStandardParamsAvoidTheKey(t *testing.T) {
 	r := NewRuntime()
 	s := &derivedStore{key: "name", things: []Thing{{"name": "nightly", "title": "Nightly build"}}}
 	r.Define("schedule").Props(PropSpec{Name: "name", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(s.store())
-	op := r.Operations["schedule.rename"]
-	if _, ok := op.Parameters["to"]; !ok || !slices.Equal(op.Positional, []string{"name", "to"}) {
-		t.Fatalf("schedule.rename params %v positional %v", op.Parameters, op.Positional)
-	}
-	mustRun(t, r, Request{Noun: "schedule", Verb: "rename", Args: Arguments{"name": "nightly", "to": "Every night"}})
+	mustRun(t, r, Request{Noun: "schedule", Verb: "set", Args: Arguments{"name": "nightly", "props": map[string]any{"@label": "Every night"}}})
 	if s.find("nightly")["title"] != "Every night" {
 		t.Fatalf("%v", s.things)
 	}
-	if op := (newDerived(t)).Operations["task.rename"]; !slices.Equal(op.Positional, []string{"id", "name"}) || op.Parameters["name"].Edits != "title" {
-		t.Fatalf("task.rename %+v", op)
+	if p := r.Operations["schedule.edit"].Parameters["field"]; !slices.Equal(p.Enum, []string{"title", "@label"}) {
+		t.Fatalf("schedule.edit field %+v", p)
 	}
-	mustPanic(t, "standard verb's parameter", func() {
-		NewRuntime().Define("x").Props(PropSpec{Name: "to", Key: true})
-	})
+	for _, name := range []string{"props", "field", "from"} {
+		mustPanic(t, "standard verb's parameter", func() {
+			NewRuntime().Define("x").Props(PropSpec{Name: name, Key: true})
+		})
+	}
 }
 
 func newDerived(t *testing.T) *Runtime {
@@ -441,13 +472,13 @@ func TestAliasPropClashException(t *testing.T) {
 // checks report a named verb that shadows a standard one, as info.
 func TestChecksReportShadowedStandardVerbs(t *testing.T) {
 	r := NewRuntime()
-	r.Define("task").Verb("rename", func(Ctx) Result { return Done("mine") }, "The app's rename")
+	r.Define("task").Verb("archive", func(Ctx) Result { return Done("mine") }, "The app's archive")
 	s := &derivedStore{key: "id"}
 	r.Define("task").Props(derivedProps()...).Store(s.store())
-	if op := r.Operations["task.rename"]; op.Standard != "" {
-		t.Fatalf("the app's rename lost: %+v", op)
+	if op := r.Operations["task.archive"]; op.Standard != "" {
+		t.Fatalf("the app's archive lost: %+v", op)
 	}
-	want := "info: task.rename is a named verb: it shadows the standard rename of task"
+	want := "info: task.archive is a named verb: it shadows the standard archive of task"
 	if got := r.StandardShadows(); !slices.Equal(got, []string{want}) {
 		t.Fatalf("shadows %q", got)
 	}

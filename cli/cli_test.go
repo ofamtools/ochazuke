@@ -49,7 +49,7 @@ func newFixture(t *testing.T) *fixture {
 			return ochazuke.Done(Lines{Row{Noun: "widget", ID: "w1"}, Row{Noun: "widget", ID: "w2"}})
 		}, "Every list's rows in one call").State().
 		Verb("show", record, "Show a widget").
-		Verb("rename", record, "Rename a widget").
+		Verb("relabel", record, "Rename a widget").
 		Verb("paint", record, "Paint a widget").
 		Verb("link", record, "Link a widget by name").Positional("name").
 		Verb("tag", record, "Tag a widget").
@@ -68,7 +68,7 @@ func newFixture(t *testing.T) *fixture {
 			return ochazuke.Done(nil)
 		}, "Ask in a modal").
 		Mode("normal").Bind("enter", ochazuke.Do("widget.show")).Bind("x", ochazuke.Do("widget.remove"))
-	op := f.r.Operations["widget.rename"]
+	op := f.r.Operations["widget.relabel"]
 	op.Parameters = map[string]ochazuke.Parameter{
 		"name":  {Type: "string", Required: true},
 		"count": {Type: "integer"},
@@ -76,7 +76,7 @@ func newFixture(t *testing.T) *fixture {
 		"tags":  {Type: "array"},
 		"like":  {Type: "string", Source: "widget.list"},
 	}
-	f.r.Operations["widget.rename"] = op
+	f.r.Operations["widget.relabel"] = op
 	op = f.r.Operations["widget.paint"]
 	op.Parameters = map[string]ochazuke.Parameter{"color": {Type: "string", Required: true}, "coats": {Type: "integer"}}
 	f.r.Operations["widget.paint"] = op
@@ -167,9 +167,9 @@ func TestShellListsAllBindingTables(t *testing.T) {
 
 func TestShellTypesFlagsByTheOperationsParameters(t *testing.T) {
 	f := newFixture(t)
-	out, errOut, err := f.run("", "widget", "rename", "--target", "w1", "--name", "uno", "--count=3", "--loud", "--tags", `["a","b"]`)
+	out, errOut, err := f.run("", "widget", "relabel", "--target", "w1", "--name", "uno", "--count=3", "--loud", "--tags", `["a","b"]`)
 	if err != nil {
-		t.Fatalf("rename: %v\n%s", err, errOut)
+		t.Fatalf("relabel: %v\n%s", err, errOut)
 	}
 	args := f.calls[0].Args
 	if f.calls[0].Target != "w1" || args["name"] != "uno" || args["count"] != 3 || args["loud"] != true || len(args["tags"].([]any)) != 2 {
@@ -179,7 +179,7 @@ func TestShellTypesFlagsByTheOperationsParameters(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &got); err != nil || got.Target != "w1" {
 		t.Fatalf("stdout %q (%v)", out, err)
 	}
-	if _, _, err := f.run("", "widget", "rename", "--target", "w1", "--count", "many"); err == nil || !strings.Contains(err.Error(), "--count: ") {
+	if _, _, err := f.run("", "widget", "relabel", "--target", "w1", "--count", "many"); err == nil || !strings.Contains(err.Error(), "--count: ") {
 		t.Fatalf("bad integer: %v", err)
 	}
 }
@@ -251,8 +251,8 @@ func TestShellPositionalArguments(t *testing.T) {
 
 func TestShellJSONArgumentsAndHistorySource(t *testing.T) {
 	f := newFixture(t)
-	if _, errOut, err := f.run("", "widget", "rename", "--target", "w2", "--json", `{"name":"dos","count":2}`); err != nil {
-		t.Fatalf("rename: %v\n%s", err, errOut)
+	if _, errOut, err := f.run("", "widget", "relabel", "--target", "w2", "--json", `{"name":"dos","count":2}`); err != nil {
+		t.Fatalf("relabel: %v\n%s", err, errOut)
 	}
 	if a := f.calls[0].Args; a["name"] != "dos" || a["count"] != float64(2) {
 		t.Fatalf("args = %+v", a)
@@ -267,7 +267,7 @@ func TestShellJSONArgumentsAndHistorySource(t *testing.T) {
 	}
 	found := false
 	for _, e := range entries {
-		found = found || (e.Request.Key() == "widget.rename" && e.Context.Source == "cli")
+		found = found || (e.Request.Key() == "widget.relabel" && e.Context.Source == "cli")
 	}
 	if !found {
 		t.Fatalf("history lacks the cli rename: %+v", entries)
@@ -284,9 +284,9 @@ func TestShellJSONArgumentsAndHistorySource(t *testing.T) {
 // through the oden mount.
 func TestShellBareJSONAsksForJSONOutput(t *testing.T) {
 	for _, args := range [][]string{
-		{"widget", "rename", "--target", "w1", "--name", "uno", "--json"},
-		{"widget", "rename", "--json", "--target", "w1", "--name", "uno"},
-		{"widget", "rename", "--json", "--target", "w1", "uno"},
+		{"widget", "relabel", "--target", "w1", "--name", "uno", "--json"},
+		{"widget", "relabel", "--json", "--target", "w1", "--name", "uno"},
+		{"widget", "relabel", "--json", "--target", "w1", "uno"},
 	} {
 		f := newFixture(t)
 		out, errOut, err := f.run("", args...)
@@ -299,15 +299,15 @@ func TestShellBareJSONAsksForJSONOutput(t *testing.T) {
 		}
 	}
 	f := newFixture(t)
-	if _, errOut, err := f.run("", "widget", "rename", "--json", `{"name":"dos"}`, "--target", "w2"); err != nil || len(f.calls) != 1 || f.calls[0].Args["name"] != "dos" {
+	if _, errOut, err := f.run("", "widget", "relabel", "--json", `{"name":"dos"}`, "--target", "w2"); err != nil || len(f.calls) != 1 || f.calls[0].Args["name"] != "dos" {
 		t.Fatalf("--json arguments: %v %+v\n%s", err, f.calls, errOut)
 	}
-	if _, _, err := f.run("", "widget", "rename", "--target", "w1", "--json", "uno"); err == nil {
+	if _, _, err := f.run("", "widget", "relabel", "--target", "w1", "--json", "uno"); err == nil {
 		t.Fatal("--json WORD is still the arguments and must fail to parse")
 	}
 	f = newFixture(t)
 	var out bytes.Buffer
-	app := oden.New("tool", []string{"widget", "rename", "--target", "w1", "--name", "tres", "--json"},
+	app := oden.New("tool", []string{"widget", "relabel", "--target", "w1", "--name", "tres", "--json"},
 		oden.WithStdio(strings.NewReader(""), &out, io.Discard), oden.WithPath(t.TempDir()))
 	Mount(app, New(f.r, "tool", strings.NewReader(""), &out, io.Discard))
 	if err := app.Run(context.Background()); err != nil || len(f.calls) != 1 || f.calls[0].Args["name"] != "tres" {
@@ -320,7 +320,7 @@ func TestShellVerbPrefix(t *testing.T) {
 	if _, errOut, err := f.run("", "widget", "sh", "--target", "w1"); err != nil || len(f.calls) != 1 {
 		t.Fatalf("widget sh: %v %+v\n%s", err, f.calls, errOut)
 	}
-	if _, _, err := f.run("", "widget", "re", "--target", "w1"); err == nil || err.Error() != "widget re is ambiguous: refresh, remove, rename" {
+	if _, _, err := f.run("", "widget", "re", "--target", "w1"); err == nil || err.Error() != "widget re is ambiguous: refresh, relabel, remove" {
 		t.Fatalf("widget re: %v", err)
 	}
 }
@@ -488,8 +488,8 @@ func TestShellErrors(t *testing.T) {
 		{[]string{"nope", "list"}, `unknown operation "nope.list"`},
 		{[]string{"widget", "fly"}, `unknown operation "widget.fly"`},
 		{[]string{"widget", "show", "--target", "w99"}, `unknown target "w99"`},
-		{[]string{"widget", "rename", "--target", "w1", "--colour", "red"}, `widget.rename has no parameter "colour"`},
-		{[]string{"widget", "rename", "--target", "w1", "--name"}, "--name needs a value"},
+		{[]string{"widget", "relabel", "--target", "w1", "--colour", "red"}, `widget.relabel has no parameter "colour"`},
+		{[]string{"widget", "relabel", "--target", "w1", "--name"}, "--name needs a value"},
 		{[]string{"widget", "show", "w1"}, `unexpected argument "w1"`},
 		{[]string{"widget", "show", "--json", "[1]"}, "arguments"},
 		{[]string{"widget", "ask", "--target", "w1"}, "widget.ask opened a question modal, which needs the TUI; pass its arguments instead (tool operations list)"},
@@ -602,7 +602,7 @@ func TestCatalogGolden(t *testing.T) {
 	// A pick list's source stays the producing runtime's noun.verb,
 	// verbatim: a host runs it through the extension's bin.
 	for _, v := range nouns[0].Verbs {
-		if v.Name == "rename" && v.Params["like"].Source != "widget.list" {
+		if v.Name == "relabel" && v.Params["like"].Source != "widget.list" {
 			t.Fatalf("rename like source = %q", v.Params["like"].Source)
 		}
 	}
@@ -714,18 +714,18 @@ func TestCatalogListsEachNounOnce(t *testing.T) {
 func TestMountContextualHelpAndDispatch(t *testing.T) {
 	for _, args := range [][]string{
 		{"help"}, {"widget"}, {"widget", "-h"}, {"widget", "--help"},
-		{"widget", "rename", "-h"}, {"widget", "rename", "--help"},
+		{"widget", "relabel", "-h"}, {"widget", "relabel", "--help"},
 		{"binding"}, {"orphan"}, {"widget", "list"},
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			f := newFixture(t)
 			f.r.Define("ochazuke.binding")
-			op := f.r.Operations["widget.rename"]
+			op := f.r.Operations["widget.relabel"]
 			op.Parameters["name"] = ochazuke.Parameter{
 				Type: "string", Required: true, Description: "Widget name",
 				Enum: []string{"one", "two"}, Source: "widget.list", Free: true,
 			}
-			f.r.Operations["widget.rename"] = op
+			f.r.Operations["widget.relabel"] = op
 			orphan := f.r.Operations["widget.list"]
 			orphan.Noun = "orphan"
 			f.r.Operations["orphan.list"] = orphan

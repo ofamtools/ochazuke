@@ -19,7 +19,7 @@ func TestShellActorEnvironment(t *testing.T) {
 	t.Setenv("OCHAZUKE_HARNESS", "test")
 	t.Setenv("TUIOS_PANE_ID", "p")
 	t.Setenv("TUIOS_SESSION", "s")
-	if _, _, err := f.run("", "widget", "rename", "--name", "new", "--target", "w1"); err != nil {
+	if _, _, err := f.run("", "widget", "relabel", "--name", "new", "--target", "w1"); err != nil {
 		t.Fatal(err)
 	}
 	entries := f.r.History(0)

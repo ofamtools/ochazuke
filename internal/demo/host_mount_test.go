@@ -57,7 +57,7 @@ func demoHost(t *testing.T) (host *ochazuke.Model, ext *ochazuke.Model) {
 func TestMountedTaskHasItsStandardVerbsInTheHost(t *testing.T) {
 	host, ext := demoHost(t)
 	r := host.Runtime
-	for _, verb := range []string{"get", "list", "create", "set", "delete", "rename", "move", "duplicate", "archive", "restore", "watch", "edit"} {
+	for _, verb := range []string{"get", "list", "create", "set", "delete", "archive", "watch", "edit"} {
 		if _, ok := r.Operations["demo-task."+verb]; !ok {
 			t.Fatalf("demo-task.%s is not mounted", verb)
 		}
@@ -100,7 +100,7 @@ func paletteFrame(m *ochazuke.Model, line string) string {
 func TestMountedStandardVerbsFollowTheHostsPaletteSetting(t *testing.T) {
 	host, _ := demoHost(t)
 	frame := paletteFrame(host, "demo-task ")
-	if !strings.Contains(frame, "edit") || !strings.Contains(frame, "rename") {
+	if !strings.Contains(frame, "edit") || !strings.Contains(frame, "archive") {
 		t.Fatalf("the verb column lists the noun's verbs and its standard ones:\n%s", frame)
 	}
 	const setting = "palette.standard-verbs"

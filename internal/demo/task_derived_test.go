@@ -10,10 +10,10 @@ import (
 	"ofam.dev/ochazuke/keytest"
 )
 
-// The demo's task gets rename (its title), move (its project),
-// duplicate, archive and restore from its props' roles and its store,
-// with no code of its own.
-func TestTaskDerivedVerbsFromTheCLI(t *testing.T) {
+// The demo's task writes its title, its project and its archive flag by
+// role through set, and copies itself through create {from}, from its
+// props' roles and its store, with no code of its own.
+func TestTaskRoleWritesFromTheCLI(t *testing.T) {
 	read := func(args ...string) map[string]any {
 		t.Helper()
 		var out map[string]any
@@ -22,23 +22,23 @@ func TestTaskDerivedVerbsFromTheCLI(t *testing.T) {
 		}
 		return out
 	}
-	if got := read("task", "rename", "t1", "Feed the cat"); got["title"] != "Feed the cat" {
-		t.Fatalf("rename = %v", got)
+	if got := read("task", "set", "t1", "@label=Feed the cat"); got["title"] != "Feed the cat" {
+		t.Fatalf("set @label = %v", got)
 	}
-	if got := read("task", "move", "t1", "work"); got["project"] != "work" {
-		t.Fatalf("move = %v", got)
+	if got := read("task", "set", "t1", "@owner=work"); got["project"] != "work" {
+		t.Fatalf("set @owner = %v", got)
 	}
-	if got := read("task", "duplicate", "t2", "title=Copy"); got["id"] != "t4" || got["title"] != "Copy" || got["status"] != "doing" || got["project"] != "work" || got["notes"] != "Start from the CHANGELOG." {
-		t.Fatalf("duplicate = %v", got)
+	if got := read("task", "create", "--from", "t2", "title=Copy"); got["id"] != "t4" || got["title"] != "Copy" || got["status"] != "doing" || got["project"] != "work" || got["notes"] != "Start from the CHANGELOG." {
+		t.Fatalf("create --from = %v", got)
 	}
 	if got := read("task", "archive", "t3"); got["archived"] != true {
 		t.Fatalf("archive = %v", got)
 	}
-	if got := read("task", "restore", "t3"); got["archived"] != false {
-		t.Fatalf("restore = %v", got)
+	if got := read("task", "set", "t3", "@archive=false"); got["archived"] != false {
+		t.Fatalf("set @archive=false = %v", got)
 	}
 	// The project noun is a read-only store: the core writes are listed,
-	// unavailable with the reason, and the legacy ones are absent.
+	// unavailable with the reason, and the purged ones are absent.
 	m := New()
 	for _, verb := range []string{"archive", "set", "create", "delete"} {
 		if op, ok := m.Runtime.Operations["project."+verb]; !ok || op.Unavailable == "" || m.Runtime.Available(ochazuke.Request{Noun: "project", Verb: verb}, "app", m.Runtime.Mode) {
@@ -103,41 +103,6 @@ func TestTaskCreateFillsTheFocusedProject(t *testing.T) {
 		case !on && (project != "" || strings.Contains(frame, "from the focus")):
 			t.Fatalf("off: project %v\n%s", project, frame)
 		}
-	}
-}
-
-// task rename with no name opens the form on the old title, selected;
-// an untitled task opens it empty with its summary as the placeholder.
-func TestTaskRenameFormStartsOnTheOldName(t *testing.T) {
-	m := New()
-	m.Width, m.Height = 120, 24
-	m.Appearance.Theme = "mono"
-	r := m.Runtime
-	if err := r.OpenPage("task"); err != nil {
-		t.Fatal(err)
-	}
-	m.View()
-	keytest.Press(m, "esc")
-	keytest.Press(m, ":")
-	keytest.Type(m, "task rename")
-	keytest.Press(m, "enter")
-	form := r.RecordEditor(ochazuke.ArgsFormID)
-	if form == nil || form.Values()["name"] != "Water the plants" || r.Mode.Name != "insert" {
-		t.Fatalf("form %v mode %q", form, r.Mode.Name)
-	}
-	keytest.Type(m, "Feed the cat")
-	keytest.Press(m, "enter")
-	if got, _ := r.Execute(ochazuke.Request{Noun: "task", Verb: "get", Args: ochazuke.Arguments{"id": "t1", "prop": "title"}}); got != "Feed the cat" {
-		t.Fatalf("typing replaced the old name: title %v", got)
-	}
-	r.Instances["task"].Data = ochazuke.Thing{"id": "t3"}
-	keytest.Press(m, ":")
-	keytest.Type(m, "task rename")
-	keytest.Press(m, "enter")
-	form = r.RecordEditor(ochazuke.ArgsFormID)
-	frame := ansi.Strip(m.View().Content)
-	if form == nil || form.Values()["name"] != "" || !strings.Contains(frame, "Call the plumber about the sink") {
-		t.Fatalf("untitled: values %v\n%s", form.Values(), frame)
 	}
 }
 

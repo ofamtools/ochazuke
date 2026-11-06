@@ -38,7 +38,7 @@ func TestTaskArchiveListRoundTrip(t *testing.T) {
 	if got := run("get", ochazuke.Arguments{"id": "t2", "prop": "archived"}); got != true {
 		t.Fatal(got)
 	}
-	run("restore", ochazuke.Arguments{"id": "t2"})
+	run("set", ochazuke.Arguments{"id": "t2", "props": map[string]any{"@archive": false}})
 	if got := ids(nil); !reflect.DeepEqual(got, []string{"t1", "t2", "t3"}) {
 		t.Fatal(got)
 	}

@@ -135,23 +135,6 @@
         {
           "examples": [
             {
-              "args": {},
-              "note": "Template: replace placeholder values before running"
-            }
-          ],
-          "destructive": false,
-          "agent": "confirm",
-          "name": "remove",
-          "description": "Remove a widget",
-          "kind": "application",
-          "result": "JSON value",
-          "confirm": "Remove {{label}}?",
-          "history": "change",
-          "builtin": false
-        },
-        {
-          "examples": [
-            {
               "args": {
                 "name": "\u003cname\u003e"
               },
@@ -160,7 +143,7 @@
           ],
           "destructive": false,
           "agent": "allow",
-          "name": "rename",
+          "name": "relabel",
           "description": "Rename a widget",
           "kind": "application",
           "params": {
@@ -183,6 +166,23 @@
             }
           },
           "result": "JSON value",
+          "history": "change",
+          "builtin": false
+        },
+        {
+          "examples": [
+            {
+              "args": {},
+              "note": "Template: replace placeholder values before running"
+            }
+          ],
+          "destructive": false,
+          "agent": "confirm",
+          "name": "remove",
+          "description": "Remove a widget",
+          "kind": "application",
+          "result": "JSON value",
+          "confirm": "Remove {{label}}?",
           "history": "change",
           "builtin": false
         },

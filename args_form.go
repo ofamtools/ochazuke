@@ -42,7 +42,7 @@ func (r *Runtime) missingOpensForm() bool { return r.helpFlag(MissingOpensFormSe
 func missingRequired(op Operation, args Arguments) []string {
 	var out []string
 	for _, name := range op.ParameterOrder() {
-		if _, set := args[name]; op.Parameters[name].Required && !set {
+		if op.lacks(name, args) {
 			out = append(out, name)
 		}
 	}

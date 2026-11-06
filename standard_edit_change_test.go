@@ -120,7 +120,7 @@ func TestStandardEditPendingWriteFlushes(t *testing.T) {
 			sent := 0
 			r.Register(Operation{Noun: "parcel", Verb: "set", Parameters: op.Parameters, HistoryKind: HistoryChange, App: func(c Ctx) Result {
 				sent++
-				changes := maps.Clone(c.Args["changes"].(map[string]any))
+				changes := maps.Clone(c.Args["props"].(map[string]any))
 				return Pending(func(context.Context) (any, error) {
 					if boundary == "failed-older-value" && changes["title"] == "Originalx" {
 						return nil, errors.New("remote refused older value")
@@ -218,7 +218,7 @@ func TestStandardEditModelReturnsPendingSave(t *testing.T) {
 	op, _ := r.Operation("parcel.set")
 	r.Register(Operation{Noun: "parcel", Verb: "set", Parameters: op.Parameters, App: func(c Ctx) Result {
 		return Pending(func(context.Context) (any, error) {
-			maps.Copy(s.find("t1"), c.Args["changes"].(map[string]any))
+			maps.Copy(s.find("t1"), c.Args["props"].(map[string]any))
 			return nil, nil
 		})
 	}})

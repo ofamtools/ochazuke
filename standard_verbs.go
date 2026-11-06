@@ -128,9 +128,6 @@ func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 			p.Focus = false
 			p.Description = fmt.Sprintf("The %s's %s: this one alone (default: every %s)", r.DisplayNoun(n.Name), key.Name, r.DisplayNoun(n.Name))
 		}
-		if v.SubjectFixed != nil {
-			p.SourceFixed = v.SubjectFixed(n)
-		}
 		params[key.Name] = p
 		op.Positional = []string{key.Name}
 	}
@@ -522,7 +519,42 @@ func createParams(n *Noun) map[string]Parameter {
 		params[p.Name] = param
 	}
 	params["pairs"] = Parameter{Type: "string", Rest: true, Pairs: true, Description: "prop=value words for the props (plan 2.6: NOUN create [p=v ...]), after the label"}
+	if n.keyProp() != nil && n.Store.Get != nil {
+		params["from"] = Parameter{Type: AnyParameterType, Noun: n.Name, Free: true, Covers: true, Description: "Copy this thing (an id or a human key, or a row holding its key): every prop create writes, read from it, unless given"}
+	}
 	return params
+}
+
+// createSource is the thing create {from} copies: from names it by an id
+// or a human key (resolveTarget), or is a row's Data holding its key.
+func (r *Runtime) createSource(n *Noun, c Ctx, from any) (Thing, error) {
+	key := n.keyProp()
+	if key == nil || n.Store.Get == nil {
+		return nil, &ArgumentError{fmt.Errorf("%s create takes no from: its things are not read by key", r.DisplayNoun(n.Name))}
+	}
+	var text string
+	switch v := from.(type) {
+	case string, int, int64, float64:
+		text = fmt.Sprint(v)
+	default:
+		row, err := ThingOf(v)
+		if err != nil || emptyProp(row[key.Name]) {
+			return nil, &ArgumentError{fmt.Errorf("from names no %s: give an id, a human key or a row holding its %s", r.DisplayNoun(n.Name), key.Name)}
+		}
+		text = fmt.Sprint(row[key.Name])
+	}
+	id, err := r.resolveTarget(n, c, text)
+	if err != nil {
+		return nil, err
+	}
+	t, err := n.Store.Get(c, id)
+	if err != nil {
+		return nil, err
+	}
+	if t == nil {
+		return nil, fmt.Errorf("no %s %q", r.DisplayNoun(n.Name), text)
+	}
+	return t, nil
 }
 
 // createArgs reads a create request's props as create writes them: the
@@ -604,11 +636,12 @@ func setParams(n *Noun) map[string]Parameter {
 		names = append(names, p.Name)
 	}
 	return map[string]Parameter{
-		"prop":    {Type: "string", Enum: names, Free: true, Pairs: true, Description: "The prop to write (with value or toggle); a prop=value word starts the several-prop form"},
-		"value":   {Type: AnyParameterType, ValueOf: "prop", Description: "The prop's new value, typed by the prop (a word such as 3, true or 400ms, a JSON array or object)"},
+		"props":   {Type: "object", Description: "The props to write: an object of prop (or @role: @label, @owner, @archive) to value, a subset or all of them; the others keep their values"},
+		"prop":    {Type: "string", Enum: names, Free: true, Pairs: true, Description: "The prop toggle flips; a prop=value word fills props (with value, the one-prop form props replaces)"},
+		"value":   {Type: AnyParameterType, ValueOf: "prop", Description: "The prop's new value, typed by the prop (a word such as 3, true or 400ms, a JSON array or object); props replaces it"},
 		"toggle":  {Type: "boolean", Excludes: []string{"value"}, Description: "Flip the boolean prop instead of giving a value"},
-		"changes": {Type: "object", Description: "Several props at once: an object of prop to value"},
-		"pairs":   {Type: "string", Rest: true, Description: "More prop=value words after prop and value (the several-prop form)"},
+		"changes": {Type: "object", Description: "The old name of props (accepted for one release)"},
+		"pairs":   {Type: "string", Rest: true, Description: "More prop=value words after the first, filling props"},
 	}
 }
 
@@ -627,20 +660,79 @@ func createWrites(n *Noun, a Arguments) ([]string, error) {
 	return out, nil
 }
 
-// setWrites are the props a set request writes, in its order.
+// setWrites are the props a set request writes, in its order; none (and
+// no error) for a request that names no prop yet (set's args form).
 func setWrites(n *Noun, a Arguments) ([]string, error) {
+	if !setNamesProps(a) {
+		return nil, nil
+	}
 	_, order, err := setChanges(n, a)
 	return order, err
+}
+
+// setNamesProps reports whether a set request names any prop to write.
+func setNamesProps(a Arguments) bool {
+	for _, name := range []string{"props", "changes", "prop", "pairs"} {
+		if v, ok := a[name]; ok && !emptyProp(v) {
+			return true
+		}
+	}
+	return false
+}
+
+// setWritten is the value a set request's arguments write to the prop
+// named name: from props (or changes), or the one-prop form's prop and
+// value; false when it writes none.
+func setWritten(a Arguments, name string) (any, bool) {
+	for _, obj := range []string{"props", "changes"} {
+		if m, ok := a[obj].(map[string]any); ok {
+			v, ok := m[name]
+			return v, ok
+		}
+	}
+	if StringArg(a, "prop", "") != name {
+		return nil, false
+	}
+	v, ok := a["value"]
+	return v, ok
 }
 
 // propToggle is distinct from a literal null, which clears an optional prop.
 type propToggle struct{}
 
-// setChanges reads a set request's changes: prop and value (or toggle,
-// answered later against the current value), the changes
-// object, or prop=value words (prop, value and pairs: the several-prop
-// form, quoted values unquoted). The one-prop and several-prop forms do
-// not mix. Each prop must be one set may write; values are typed by it.
+// propMissingError is a write addressing a role (@label, @owner,
+// @archive) the noun has no writable prop for (inside an ArgumentError):
+// availability reads it (propsAvailable), so a request bound to a role is
+// unavailable on a noun without it, as the verb that wrote the role was. A
+// prop named by its name that is missing or read-only is an error.
+type propMissingError struct{ error }
+
+func (e propMissingError) Unwrap() error { return e.error }
+
+// writeTarget is the writable prop a write names (a name, an alias or
+// @role).
+func writeTarget(n *Noun, name string) (*PropSpec, error) {
+	p := n.prop(name)
+	if role, ok := strings.CutPrefix(name, "@"); ok && (p == nil || !p.writable()) {
+		return nil, &ArgumentError{propMissingError{fmt.Errorf("%s has no writable prop with the role %s", n.Name, role)}}
+	}
+	switch {
+	case p == nil:
+		return nil, &ArgumentError{fmt.Errorf("%s has no prop %q; only declared props are writable", n.Name, name)}
+	case !p.writable():
+		return nil, &ArgumentError{fmt.Errorf("%s.%s is read-only", n.Name, p.Name)}
+	}
+	return p, nil
+}
+
+// setChanges reads a set request's changes. The one shape is props, an
+// object of prop to value; prop=value words (prop, value and pairs, quoted
+// values unquoted) fill it the same way. toggle flips the one boolean
+// prop named by prop, answered later against the current value. The old
+// one-prop form (prop and value) and changes (props' old name) are
+// accepted for one release (removed_verbs.json lists them as deprecated
+// parameters). The forms do not mix. Each prop must be one set may
+// write; values are typed by it.
 func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 	prop, _ := a["prop"].(string)
 	value, hasValue := a["value"]
@@ -649,12 +741,9 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 	changes := map[string]any{}
 	var order []string
 	add := func(name string, v any) error {
-		p := n.prop(name)
-		switch {
-		case p == nil:
-			return &ArgumentError{fmt.Errorf("%s has no prop %q; only declared props are writable", n.Name, name)}
-		case !p.writable():
-			return &ArgumentError{fmt.Errorf("%s.%s is read-only", n.Name, name)}
+		p, err := writeTarget(n, name)
+		if err != nil {
+			return err
 		}
 		name = p.Name
 		if _, dup := changes[name]; dup {
@@ -671,41 +760,29 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 		order = append(order, name)
 		return nil
 	}
-	obj, hasChanges := a["changes"]
+	obj, objName, err := setObject(a)
+	if err != nil {
+		return nil, nil, err
+	}
 	switch {
-	case hasChanges:
+	case objName != "":
 		if prop != "" || hasValue || toggle || pairs != "" {
-			return nil, nil, &ArgumentError{errors.New("set takes changes or prop with a value, not both")}
+			return nil, nil, &ArgumentError{fmt.Errorf("set takes %s or prop words, not both", objName)}
 		}
-		m, err := propValue(PropSpec{Name: "changes", Parameter: Parameter{Type: PropObject}}, obj)
-		if err != nil {
-			return nil, nil, &ArgumentError{fmt.Errorf("changes %w", err)}
-		}
-		names := slices.Sorted(maps.Keys(m.(map[string]any)))
+		names := slices.Sorted(maps.Keys(obj))
 		// Declaration order, so a write reads the same every time.
 		slices.SortStableFunc(names, func(x, y string) int { return propIndex(n, x) - propIndex(n, y) })
 		for _, name := range names {
-			if err := add(name, m.(map[string]any)[name]); err != nil {
+			if err := add(name, obj[name]); err != nil {
 				return nil, nil, err
 			}
 		}
-	case strings.Contains(prop, "="):
-		words := []string{prop}
-		if hasValue {
-			words = append(words, fmt.Sprint(value))
-		}
-		words = append(words, splitPairs(pairs)...)
+	case strings.Contains(prop, "=") || prop == "" && pairs != "":
 		if toggle {
 			return nil, nil, &ArgumentError{errors.New("toggle goes with one prop, not prop=value words")}
 		}
-		for _, w := range words {
-			name, v, ok := strings.Cut(w, "=")
-			if !ok {
-				return nil, nil, &ArgumentError{fmt.Errorf("%q is not prop=value: the one-prop and several-prop forms do not mix", w)}
-			}
-			if err := add(name, unquoteWord(v)); err != nil {
-				return nil, nil, err
-			}
+		if err := addPairWords(setPairWords(prop, value, hasValue, pairs), add); err != nil {
+			return nil, nil, err
 		}
 	case prop != "":
 		switch {
@@ -728,9 +805,56 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 			return nil, nil, err
 		}
 	default:
-		return nil, nil, &ArgumentError{errors.New("set needs a prop and a value, prop=value words or changes")}
+		return nil, nil, &ArgumentError{errors.New("set needs props (an object of prop to value), prop=value words, or a prop to toggle")}
 	}
 	return changes, order, nil
+}
+
+// setObject is a set request's props object and the parameter that gave
+// it: props, or changes (its old name); "" for neither.
+func setObject(a Arguments) (map[string]any, string, error) {
+	obj, name := a["props"], "props"
+	if old, ok := a["changes"]; ok {
+		if obj != nil {
+			return nil, "", &ArgumentError{errors.New("set takes props, not changes too (changes is props' old name)")}
+		}
+		obj, name = old, "changes"
+	}
+	if obj == nil {
+		return nil, "", nil
+	}
+	m, err := propValue(PropSpec{Name: name, Parameter: Parameter{Type: PropObject}}, obj)
+	if err != nil {
+		return nil, "", &ArgumentError{fmt.Errorf("%s %w", name, err)}
+	}
+	return m.(map[string]any), name, nil
+}
+
+// setPairWords are a set request's prop=value words: prop, value (the line's
+// second word) and the pairs rest.
+func setPairWords(prop string, value any, hasValue bool, pairs string) []string {
+	var words []string
+	if prop != "" {
+		words = append(words, prop)
+	}
+	if hasValue {
+		words = append(words, fmt.Sprint(value))
+	}
+	return append(words, splitPairs(pairs)...)
+}
+
+// addPairWords adds each prop=value word (quoted values unquoted).
+func addPairWords(words []string, add func(string, any) error) error {
+	for _, w := range words {
+		name, v, ok := strings.Cut(w, "=")
+		if !ok {
+			return &ArgumentError{fmt.Errorf("%q is not prop=value: the one-prop and several-prop forms do not mix", w)}
+		}
+		if err := add(name, unquoteWord(v)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // propIndex is a prop's place in its noun's declaration order.
@@ -813,9 +937,25 @@ func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 		return nil, err
 	}
 	c.Args = args
+	var source Thing
+	if from, ok := c.Args["from"]; ok && !emptyProp(from) {
+		if source, err = r.createSource(n, c, from); err != nil {
+			return nil, err
+		}
+	}
 	values := Thing{}
 	for _, p := range createProps(n) {
 		v, ok := c.Args[p.Name]
+		if !ok && source != nil && source[p.Name] != nil {
+			// A copy: the source's value, in the store's own form when
+			// the prop does not read it (create judges it).
+			if typed, err := propValue(p, source[p.Name]); err == nil {
+				values[p.Name] = typed
+			} else {
+				values[p.Name] = source[p.Name]
+			}
+			continue
+		}
 		if !ok {
 			if p.Default == nil {
 				continue
@@ -832,7 +972,10 @@ func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if name := r.unshownProp(n, c, given); name != "" {
 		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), name)
 	}
-	filled := r.createFill(n, c, values)
+	var filled focusFills
+	if source == nil { // a copy keeps its source's references
+		filled = r.createFill(n, c, values)
+	}
 	n.stamp(values, RoleCreated, RoleUpdated)
 	t, err := n.Store.Create(c, values)
 	if err != nil {
@@ -966,9 +1109,23 @@ func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState) bool {
 	}
 	var names []string
 	if row.Writes != nil {
-		names, _ = row.Writes(n, q.Args)
+		var err error
+		if names, err = row.Writes(n, q.Args); errors.As(err, new(propMissingError)) {
+			return false // a prop (or role) the noun cannot write
+		}
 	} else if p := StringArg(q.Args, "prop", ""); p != "" {
 		names = []string{p}
+	}
+	if row.FieldParam != "" {
+		if field := StringArg(q.Args, row.FieldParam, ""); field != "" {
+			p, err := writeTarget(n, field)
+			if errors.As(err, new(propMissingError)) {
+				return false
+			}
+			if p != nil {
+				names = append(names, p.Name)
+			}
+		}
 	}
 	shown := func(p PropSpec) bool { return r.propShown(p, focus, mode, q.Args) }
 	for _, name := range names {

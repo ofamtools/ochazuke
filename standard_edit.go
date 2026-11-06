@@ -17,16 +17,34 @@ const EditFormsSetting = "forms.edit"
 // EditApplySetting chooses immediate debounced writes or one confirmed write.
 const EditApplySetting = "forms.edit-apply"
 
+// EditFieldOnlySetting: edit with a field (edit {field: "@label"}) opens a
+// form holding only that field, opened as a rename (RecordSpec.Rename: its
+// value selected under rename.select). Off, the full form opens with that
+// field focused. Default on.
+const EditFieldOnlySetting = "edit.field-only"
+
+// editFieldParam is edit's parameter naming the one prop to edit.
+const editFieldParam = "field"
+
 const editFormID = "edit-form"
 const editOpenSlot = "standard-edit-open"
 
 func editParams(n *Noun) map[string]Parameter {
 	params := map[string]Parameter{}
+	var fields []string
 	for _, p := range writableProps(n) {
 		param := propParameter(p)
 		param.Required = false // omitted props keep their values; the form enforces Required
 		params[p.Name] = param
+		fields = append(fields, p.Name)
 	}
+	for _, role := range n.roleNames() {
+		if p := n.prop(role); p != nil && p.writable() {
+			fields = append(fields, role)
+		}
+	}
+	params[editFieldParam] = Parameter{Type: "string", Enum: fields, Plumbing: true,
+		Description: "The one prop to edit (a name, or @label, @owner, @archive for the prop with that role): with edit.field-only the form holds only it, else the full form opens on it"}
 	return params
 }
 
@@ -57,20 +75,13 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 		if key := n.keyProp(); key != nil {
 			writeKey += "\x00" + fmt.Sprint(subject[key.Name])
 		}
-		changes := map[string]any{}
-		for name, value := range c.Args {
-			if key := n.keyProp(); key != nil && name == key.Name {
-				continue
-			}
-			p := n.prop(name)
-			if p == nil || !p.writable() {
-				return Failed(fmt.Errorf("%s.%s is not writable", noun, name))
-			}
-			changes[name] = value
+		only, changes, err := editArgs(n, c.Args)
+		if err != nil {
+			return Failed(err)
 		}
 		write := func(changes map[string]any) Result {
 			args := maps.Clone(subject)
-			args["changes"] = changes
+			args["props"] = changes
 			// The subject key, not the ephemeral row, identifies this write.
 			value, err := r.ExecuteAt(r.contextOf("app"), Request{Noun: noun, Verb: "set", Args: args})
 			if err != nil {
@@ -92,26 +103,12 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 			if err != nil {
 				return err
 			}
-			fields := []RecordField{}
 			values, err := editRecord(n, thing)
 			if err != nil {
 				return err
 			}
-			for _, p := range writableProps(n) {
-				if !r.propShown(p, focusOf(c.Context), r.Mode, c.Args) {
-					continue
-				}
-				field := PropField(p)
-				field.Validate = func(text string) error {
-					_, err := editPropValue(p, text)
-					return err
-				}
-				// Structured props remain JSON text, validated before each save.
-				if p.Type == SettingList || p.Type == PropObject || p.Type == SettingDuration {
-					field.Type = AnyParameterType
-				}
-				fields = append(fields, field)
-			}
+			fieldOnly := only != nil && r.Settings().Bool(EditFieldOnlySetting)
+			fields := r.editFields(n, c, thing, only, fieldOnly)
 			r.pendingRecord(writeKey, values)
 			label := n.displayLabel(func(name string) any { return thing[name] })
 			instanceSubject := c
@@ -124,6 +121,7 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 				label = fmt.Sprint(subject[n.keyProp().Name])
 			}
 			spec := RecordSpec{Title: "Edit " + r.DisplayNoun(noun) + ": " + label, Fields: fields, WriteKey: writeKey, Load: func() (Record, error) { return values, nil }}
+			editStart(&spec, only, fieldOnly, r.DisplayNoun(noun), label)
 			spec.Watch = noun
 			spec.WatchArgs = subject
 			spec.Reload = func() Result {
@@ -211,6 +209,74 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 				}
 			}
 		})
+	}
+}
+
+// editArgs reads an edit request's arguments beside the subject's key:
+// the one prop it opens on (field: a name or @role), and the props it
+// writes directly instead of opening the form.
+func editArgs(n *Noun, args Arguments) (*PropSpec, map[string]any, error) {
+	rest := maps.Clone(args)
+	delete(rest, editFieldParam)
+	if key := n.keyProp(); key != nil {
+		delete(rest, key.Name)
+	}
+	var only *PropSpec
+	if field := StringArg(args, editFieldParam, ""); field != "" {
+		p, err := writeTarget(n, field)
+		if err != nil {
+			return nil, nil, err
+		}
+		only = p
+	}
+	changes := map[string]any{}
+	for name, value := range rest {
+		p := n.prop(name)
+		if p == nil || !p.writable() {
+			return nil, nil, fmt.Errorf("%s.%s is not writable", n.Name, name)
+		}
+		changes[name] = value
+	}
+	return only, changes, nil
+}
+
+// editFields are the form's fields: every writable prop shown where the
+// request acts, or only the one it opens on (fieldOnly). An empty prop
+// with a Fallback shows the fallback's value as its placeholder, as the
+// rows do.
+func (r *Runtime) editFields(n *Noun, c Ctx, thing Thing, only *PropSpec, fieldOnly bool) []RecordField {
+	fields := []RecordField{}
+	for _, p := range writableProps(n) {
+		if !r.propShown(p, focusOf(c.Context), r.Mode, c.Args) || fieldOnly && p.Name != only.Name {
+			continue
+		}
+		field := PropField(p)
+		if v := thing[p.Fallback]; p.Fallback != "" && v != nil {
+			field.Placeholder = fmt.Sprint(v)
+		}
+		field.Validate = func(text string) error {
+			_, err := editPropValue(p, text)
+			return err
+		}
+		// Structured props remain JSON text, validated before each save.
+		if p.Type == SettingList || p.Type == PropObject || p.Type == SettingDuration {
+			field.Type = AnyParameterType
+		}
+		fields = append(fields, field)
+	}
+	return fields
+}
+
+// editStart opens a form on one prop (edit {field}) as a rename opened:
+// that field first, its value selected (rename.select) so typing replaces
+// it; a one-field form's title names the prop.
+func editStart(spec *RecordSpec, only *PropSpec, fieldOnly bool, noun, label string) {
+	if only == nil {
+		return
+	}
+	spec.Start, spec.Rename = only.Name, true
+	if fieldOnly {
+		spec.Title = "Edit " + noun + " " + only.Name + ": " + label
 	}
 }
 

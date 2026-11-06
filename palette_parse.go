@@ -844,7 +844,7 @@ func (p *Palette) parseParams(c *commandLine, tokens []lineToken, preset string)
 		c.Args = c.Op.WithPresets(c.Args, a.Args)
 	}
 	for _, name := range remainingParams(*c) {
-		if c.Op.Parameters[name].Required {
+		if c.Op.lacks(name, c.Args) {
 			if _, filled := p.r.sourceValue(c.Op, name, focusOf(p.origin)); filled {
 				continue // its source fills it when the line runs
 			}

@@ -102,13 +102,12 @@ func main() {
 }
 
 func show(dir string, rep namecheck.VerbReport) {
-	v, p := rep.Violations(), rep.Pending()
-	fmt.Printf("== %s: %d violations, %d pending\n", dir, len(v), len(p))
-	for _, h := range v {
-		fmt.Println("  " + h.String())
-	}
-	for _, h := range p {
-		fmt.Println("  " + h.String())
+	v, p, d := rep.Violations(), rep.Pending(), rep.Deprecated()
+	fmt.Printf("== %s: %d violations, %d pending, %d deprecated parameters\n", dir, len(v), len(p), len(d))
+	for _, list := range [][]namecheck.VerbHit{v, p, d} {
+		for _, h := range list {
+			fmt.Println("  " + h.String())
+		}
 	}
 }
 

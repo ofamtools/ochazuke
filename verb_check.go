@@ -207,9 +207,22 @@ func (r *Runtime) removedBindingNotes(rows []fileRow) []string {
 		if q.Empty() || q.Verb == "" {
 			continue
 		}
-		if note := removedRefNote(cat, removed, BindingsFile, f.where+" "+f.row.Keys+f.row.Pattern, q.Noun, q.Verb); note != "" {
+		where := f.where + " " + f.row.Keys + f.row.Pattern
+		if note := removedRefNote(cat, removed, BindingsFile, where, q.Noun, q.Verb); note != "" {
 			out = append(out, note)
 		}
+		out = append(out, deprecatedParamNotes(cat, removed, BindingsFile, where, q.Noun, q.Verb, q.Args)...)
+	}
+	return out
+}
+
+// deprecatedParamNotes are the warnings for a request that gives a
+// deprecated parameter of its verb (a removed_verbs.json row with param):
+// it works until the row's release.
+func deprecatedParamNotes(cat *namecheck.Catalog, removed []namecheck.Removed, file, where, noun, verb string, args Arguments) []string {
+	var out []string
+	for _, row := range cat.DeprecatedParams(noun, verb, slices.Collect(maps.Keys(args)), removed) {
+		out = append(out, fmt.Sprintf("warning: %s: %s: %s.%s: %s", file, where, noun, verb, row.ParamNote()))
 	}
 	return out
 }
@@ -234,6 +247,7 @@ func (r *Runtime) removedActionNotes(entries []fileAction) []string {
 			where := fmt.Sprintf("alias %d (%s)", f.n, f.alias.Alias)
 			if n, v := SplitKey(f.alias.Action); v != "" {
 				note(where, n, v)
+				out = append(out, deprecatedParamNotes(cat, removed, ActionsFile, where, n, v, f.alias.Args)...)
 			}
 			continue
 		}

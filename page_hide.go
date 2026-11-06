@@ -191,8 +191,8 @@ func registerPageHiding(r *Runtime) {
 		When:  map[string]string{"set": "page-set-changes"},
 	})
 	for _, alias := range []ActionAlias{
-		{Alias: "ochazuke.page.hide", Action: "ochazuke.page.set", Args: Arguments{"prop": "hidden", "value": true}, Note: "Hide a page from the tabs and ctrl+j/k (the pages.hidden setting); page.open still opens it"},
-		{Alias: "ochazuke.page.show", Action: "ochazuke.page.set", Args: Arguments{"prop": "hidden", "value": false}, Note: "Bring a hidden page back into the tabs and ctrl+j/k"},
+		{Alias: "ochazuke.page.hide", Action: "ochazuke.page.set", Args: Arguments{"props": map[string]any{"hidden": true}}, Note: "Hide a page from the tabs and ctrl+j/k (the pages.hidden setting); page.open still opens it"},
+		{Alias: "ochazuke.page.show", Action: "ochazuke.page.set", Args: Arguments{"props": map[string]any{"hidden": false}}, Note: "Bring a hidden page back into the tabs and ctrl+j/k"},
 	} {
 		if err := r.AddActionAlias(alias); err != nil {
 			panic(err.Error())
@@ -200,8 +200,8 @@ func registerPageHiding(r *Runtime) {
 	}
 	r.DefineGuard("page-set-changes", func(r *Runtime, ev KeyEvent) bool {
 		target := StringArg(ev.Args, "id", "")
-		value, given := ev.Args["value"]
-		if target == "" || !given || StringArg(ev.Args, "prop", "") != "hidden" || r.PageOf(target) == nil {
+		value, given := setWritten(ev.Args, "hidden")
+		if target == "" || !given || r.PageOf(target) == nil {
 			return true
 		}
 		hide, err := propValue(pageProps[2], value)

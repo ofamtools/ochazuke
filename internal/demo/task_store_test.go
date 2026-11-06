@@ -125,7 +125,7 @@ func TestTaskCatalogRoundTrip(t *testing.T) {
 		standard[v.Name] = v.Standard
 	}
 	if want := map[string]string{"edit": "", "get": "get", "list": "list", "watch": "watch", "create": "create", "set": "set", "delete": "delete",
-		"rename": "rename", "move": "move", "duplicate": "duplicate", "archive": "archive", "restore": "restore"}; !reflect.DeepEqual(standard, want) {
+		"archive": "archive"}; !reflect.DeepEqual(standard, want) {
 		t.Fatalf("standard %v, want %v", standard, want)
 	}
 	if verb, rows := doc.RowSource("task"); verb != "list" || rows != "task" {
@@ -137,7 +137,7 @@ func TestTaskCatalogRoundTrip(t *testing.T) {
 	}
 }
 
-// The demo's task creates, sets (patch is set's alias) and deletes from
+// The demo's task creates, sets and deletes from
 // the CLI with no handler of its own; delete asks first, naming the task
 // by its title, else its summary, and --yes answers.
 func TestTaskWritesFromTheCLI(t *testing.T) {
@@ -158,8 +158,8 @@ func TestTaskWritesFromTheCLI(t *testing.T) {
 	if got := read("task", "set", "t2", "title=Ship it", "estimate=5"); got["title"] != "Ship it" || got["estimate"] != float64(5) {
 		t.Fatalf("set pairs = %v", got)
 	}
-	if got := read("task", "patch", "t2", "--changes", `{"status": "doing", "notes": "x"}`); got["status"] != "doing" || got["notes"] != "x" {
-		t.Fatalf("patch = %v", got)
+	if got := read("task", "set", "t2", "--props", `{"status": "doing", "notes": "x"}`); got["status"] != "doing" || got["notes"] != "x" {
+		t.Fatalf("set --props = %v", got)
 	}
 	if got := read("task", "delete", "t3", "--yes"); got["deleted"] != "t3" {
 		t.Fatalf("delete = %v", got)

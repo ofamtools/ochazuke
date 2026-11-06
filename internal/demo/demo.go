@@ -292,9 +292,10 @@ func newDemoTask() *demoTask {
 
 // taskProps are the task noun's props: the record's fields (taskFields)
 // as data, its key id, a read-only summary (the first line of the notes)
-// that stands in for an empty title, the project that owns it (move
-// writes it; create fills it from a focused project) and whether it is
-// archived (archive and restore write it).
+// that stands in for an empty title, the project that owns it (set
+// {props: {"@owner": ...}} writes it; create fills it from a focused
+// project) and whether it is archived (archive sets it, set
+// {props: {"@archive": false}} clears it).
 func taskProps() []ochazuke.PropSpec {
 	props := []ochazuke.PropSpec{{Name: "id", Key: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The task's key"}}}
 	for _, f := range taskFields() {
@@ -317,9 +318,10 @@ func taskProps() []ochazuke.PropSpec {
 }
 
 // define gives the task noun its props and its store: task get, list,
-// create, set (alias patch), delete, rename (the title), move (the
-// project), duplicate, archive and restore are then standard verbs, with
-// no handler of the demo's own, and delete asks first (the default
+// create (and a copy, create {from}), set (the title, the project and
+// the archive flag also by role: @label, @owner, @archive), delete,
+// archive and edit are then standard verbs, with no handler of the
+// demo's own, and delete asks first (the default
 // prompt). The project noun is a read-only store of two projects, the
 // choices of task.project.
 // The Record page stands for the task it edits, so task get and task set

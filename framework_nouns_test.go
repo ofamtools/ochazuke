@@ -85,7 +85,7 @@ func TestNamedSettingSetStillWins(t *testing.T) {
 		}
 	}
 	// A read-only collection: the core writes are listed, unavailable
-	// with the reason; the legacy ones are absent.
+	// with the reason; the purged ones are absent.
 	for _, verb := range []string{"create", "delete"} {
 		if op, ok := r.Operations["ochazuke.setting."+verb]; !ok || op.Unavailable == "" || r.offers(op.Key()) {
 			t.Fatalf("setting.%s: ok %v unavailable %q", verb, ok, op.Unavailable)
@@ -181,7 +181,7 @@ func TestPageHideShowAreAliasesOfSet(t *testing.T) {
 	r, _ := pageHideFixture(t)
 	for name, value := range map[string]bool{"ochazuke.page.hide": true, "ochazuke.page.show": false} {
 		a, ok := r.ActionAlias(name)
-		if !ok || a.Action != "ochazuke.page.set" || a.Args["prop"] != "hidden" || a.Args["value"] != value {
+		if !ok || a.Action != "ochazuke.page.set" || a.Args["props"].(map[string]any)["hidden"] != value {
 			t.Fatalf("%s: %#v %v", name, a, ok)
 		}
 		if _, ok := r.Operations[name]; ok {

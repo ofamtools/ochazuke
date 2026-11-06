@@ -36,7 +36,7 @@ func formRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	t.Helper()
 	r, p, ran := lineRuntime(t)
 	run := r.Operations["note.add"].Run
-	r.Register(Operation{Verb: "rename", Noun: "sheet", Positional: []string{"from", "to"}, Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "retitle", Noun: "sheet", Positional: []string{"from", "to"}, Parameters: map[string]Parameter{
 		"from": {Type: "string", Required: true},
 		"to":   {Type: "string", Required: true, Description: "The new name"},
 	}, Run: run})
@@ -73,7 +73,7 @@ func TestPaletteMissingParamOpensArgsForm(t *testing.T) {
 
 func TestArgsFormPrefillsTypedWordsAndStartsOnTheMissingOne(t *testing.T) {
 	r, _, ran := formRuntime(t)
-	paletteLine(t, r, "sheet rename old")
+	paletteLine(t, r, "sheet retitle old")
 	ed := r.RecordEditor(ArgsFormID)
 	if ed == nil || r.Focus != ArgsFormID+"/to" {
 		t.Fatalf("focus %q, want the missing to field", r.Focus)
@@ -96,7 +96,7 @@ func TestArgsFormPrefillsTypedWordsAndStartsOnTheMissingOne(t *testing.T) {
 // enter on a valid field moves to the field that still needs a value.
 func TestArgsFormEnterMovesToTheNextMissingField(t *testing.T) {
 	r, _, ran := formRuntime(t)
-	paletteLine(t, r, "sheet rename")
+	paletteLine(t, r, "sheet retitle")
 	if r.Focus != ArgsFormID+"/from" {
 		t.Fatalf("focus %q", r.Focus)
 	}
@@ -157,10 +157,10 @@ func TestArgsFormChoicesParam(t *testing.T) {
 
 func TestArgsFormEscCancelsBackToTheLine(t *testing.T) {
 	r, p, ran := formRuntime(t)
-	paletteLine(t, r, "sheet rename old")
+	paletteLine(t, r, "sheet retitle old")
 	typeKeys(t, r, "x")
 	formKeys(t, r, "esc", "esc")
-	if r.TopModal() != paletteID || p.Text() != "sheet rename old" || len(*ran) != 0 {
+	if r.TopModal() != paletteID || p.Text() != "sheet retitle old" || len(*ran) != 0 {
 		t.Fatalf("top=%q line=%q ran=%v", r.TopModal(), p.Text(), *ran)
 	}
 	if r.Instances[ArgsFormID] != nil {
@@ -186,7 +186,7 @@ func TestArgsFormSettingOffNamesTheMissingWord(t *testing.T) {
 func TestArgsFormForABindingWithMissingArgs(t *testing.T) {
 	r, p, ran := formRuntime(t)
 	p.Close()
-	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "R", Request: Request{Noun: "sheet", Verb: "rename", Args: Arguments{"from": "a"}}}); err != nil {
+	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "R", Request: Request{Noun: "sheet", Verb: "retitle", Args: Arguments{"from": "a"}}}); err != nil {
 		t.Fatal(err)
 	}
 	formKeys(t, r, "R")
@@ -201,7 +201,7 @@ func TestArgsFormForABindingWithMissingArgs(t *testing.T) {
 	if r.Focus != "r1:c1" || r.Mode.Name != "normal" {
 		t.Fatalf("focus=%q mode=%q", r.Focus, r.Mode.Name)
 	}
-	i := slices.IndexFunc(r.history.entries, func(e HistoryEntry) bool { return e.Request.Key() == "sheet.rename" })
+	i := slices.IndexFunc(r.history.entries, func(e HistoryEntry) bool { return e.Request.Key() == "sheet.retitle" })
 	if i < 0 || r.history.entries[i].Context.Source != "key:R" {
 		t.Fatalf("history %+v", r.history.entries)
 	}

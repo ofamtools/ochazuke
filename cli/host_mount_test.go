@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"slices"
 	"strings"
@@ -37,7 +38,7 @@ func hostTestCatalog(t *testing.T) CatalogDoc {
 		},
 		Patch: func(_ ochazuke.Ctx, id string, c ochazuke.Thing) (ochazuke.Thing, error) { return things[id], nil },
 	}).Verb("launch", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }, "Launch a task").Positional()
-	if err := r.AddActionAlias(ochazuke.ActionAlias{Alias: "task.done", Action: "task.set", Args: ochazuke.Arguments{"prop": "status", "value": "done"}}); err != nil {
+	if err := r.AddActionAlias(ochazuke.ActionAlias{Alias: "task.done", Action: "task.set", Args: ochazuke.Arguments{"props": map[string]any{"status": "done"}}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.AddActionAlias(ochazuke.ActionAlias{Alias: "go!", Action: "task.launch"}); err != nil {
@@ -101,7 +102,7 @@ func TestMountNounsPropsAndStandardVerbs(t *testing.T) {
 	if p, _ := r.PropOf("ext-task", "status"); p.When != "" {
 		t.Fatalf("the extension's guard is the extension's: %+v", p)
 	}
-	for verb, standard := range map[string]string{"get": "get", "list": "list", "set": "set", "rename": "rename", "move": "move", "launch": ""} {
+	for verb, standard := range map[string]string{"get": "get", "list": "list", "set": "set", "edit": "edit", "launch": ""} {
 		op, ok := r.Operations["ext-task."+verb]
 		if !ok || op.Standard != standard {
 			t.Fatalf("ext-task.%s: %v %q, want standard %q", verb, ok, op.Standard, standard)
@@ -110,14 +111,16 @@ func TestMountNounsPropsAndStandardVerbs(t *testing.T) {
 	if op := r.Operations["ext-task.set"]; !op.Many || op.HistoryKind != ochazuke.HistoryChange {
 		t.Fatalf("set keeps the catalog's flags: %+v", op)
 	}
-	if p := r.Operations["ext-task.move"].Parameters["to"]; p.Noun != "ext-project" || p.Source != "ext-project.list" {
-		t.Fatalf("move's to names the host's project: %+v", p)
+	for _, verb := range []string{"rename", "move", "patch"} {
+		if _, ok := r.Operation("ext-task." + verb); ok {
+			t.Fatalf("ext-task.%s: a purged verb was mounted", verb)
+		}
 	}
 	// A prop-shaped request runs the forwarded set, as on the extension.
 	if _, err := r.Execute(ochazuke.Request{Noun: "ext-task", Prop: "status", Value: "done", Args: ochazuke.Arguments{"id": "t1"}}); err != nil {
 		t.Fatal(err)
 	}
-	if last := (*calls)[len(*calls)-1]; last.verb != "set" || last.args["prop"] != "status" || last.args["value"] != "done" {
+	if last := (*calls)[len(*calls)-1]; last.verb != "set" || fmt.Sprint(last.args["props"]) != "map[status:done]" {
 		t.Fatalf("prop request forwarded as %+v", last)
 	}
 	// The host's own nouns are untouched.
@@ -126,21 +129,18 @@ func TestMountNounsPropsAndStandardVerbs(t *testing.T) {
 	}
 }
 
-// The catalog's aliases are registered again under the host names: patch
-// (standard), a preset alias, and a bare alias under its noun.
+// The catalog's aliases are registered again under the host names: a
+// preset alias, and a bare alias under its noun.
 func TestMountNounsReregistersAliases(t *testing.T) {
 	r, got, calls := mountHost(t, hostTestCatalog(t))
 	if len(got.Warnings) != 0 {
 		t.Fatalf("warnings: %v", got.Warnings)
 	}
-	for alias, action := range map[string]string{"ext-task.patch": "ext-task.set", "ext-task.done": "ext-task.set", "ext-task.go!": "ext-task.launch"} {
+	for alias, action := range map[string]string{"ext-task.done": "ext-task.set", "ext-task.go!": "ext-task.launch"} {
 		a, ok := r.ActionAlias(alias)
 		if !ok || a.Action != action {
 			t.Fatalf("%s: %+v %v", alias, a, ok)
 		}
-	}
-	if a, _ := r.ActionAlias("ext-task.patch"); a.Source != ochazuke.AliasStandard {
-		t.Fatalf("patch stays a standard alias: %+v", a)
 	}
 	if _, ok := r.ActionAlias("go!"); ok {
 		t.Fatal("an extension's bare alias must not take a global name in the host")
@@ -148,7 +148,7 @@ func TestMountNounsReregistersAliases(t *testing.T) {
 	if _, err := r.Execute(ochazuke.Request{Noun: "ext-task", Verb: "done", Args: ochazuke.Arguments{"id": "t1"}}); err != nil {
 		t.Fatal(err)
 	}
-	if last := (*calls)[len(*calls)-1]; last.verb != "set" || last.args["value"] != "done" || last.args["prop"] != "status" {
+	if last := (*calls)[len(*calls)-1]; last.verb != "set" || fmt.Sprint(last.args["props"]) != "map[status:done]" {
 		t.Fatalf("done runs set with its presets: %+v", last)
 	}
 }
@@ -221,7 +221,7 @@ func TestHelpListsStandardVerbsOnOneLine(t *testing.T) {
 			line = l
 		}
 	}
-	for _, verb := range []string{"get", "list", "set (patch)", "rename", "move", "watch"} {
+	for _, verb := range []string{"get", "list", "set", "edit", "watch"} {
 		if !strings.Contains(line, " "+verb) {
 			t.Fatalf("the standard verbs line lacks %s: %q\n%s", verb, line, help)
 		}
@@ -229,14 +229,14 @@ func TestHelpListsStandardVerbsOnOneLine(t *testing.T) {
 	if !strings.Contains(help, "  launch, go!") || !strings.Contains(help, "  done ") {
 		t.Fatalf("named verbs and preset aliases keep their entries:\n%s", help)
 	}
-	if strings.Contains(help, "  rename ") || strings.Contains(help, "  get ") || strings.Contains(help, "--where <string>") {
+	if strings.Contains(help, "  set ") || strings.Contains(help, "  get ") || strings.Contains(help, "--where <string>") {
 		t.Fatalf("standard verbs are not listed one by one:\n%s", help)
 	}
 	if sub := helpOut(t, r, "ext-task", "set", "--help"); !strings.Contains(sub, "--prop <string>") {
 		t.Fatalf("a standard verb's own help is whole:\n%s", sub)
 	}
-	helpOut(t, r, "ext-task", "rename", "t1", "Fern")
-	if last := (*calls)[len(*calls)-1]; last.verb != "rename" {
+	helpOut(t, r, "ext-task", "set", "t1", "title=Fern")
+	if last := (*calls)[len(*calls)-1]; last.verb != "set" {
 		t.Fatalf("a standard verb still runs from the CLI: %+v", last)
 	}
 	var stdout, top bytes.Buffer
@@ -247,7 +247,7 @@ func TestHelpListsStandardVerbsOnOneLine(t *testing.T) {
 	for _, l := range strings.Split(top.String(), "\n") {
 		if strings.HasPrefix(strings.TrimSpace(l), "ext-task ") {
 			seen = true
-			if !strings.Contains(l, "launch done · std get list set edit watch rename move") {
+			if !strings.Contains(l, "launch done · std get list set edit watch") {
 				t.Fatalf("the noun's summary names its own verbs first: %q", l)
 			}
 		}
@@ -259,7 +259,7 @@ func TestHelpListsStandardVerbsOnOneLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	listed := helpOut(t, r, "ext-task", "--help")
-	if strings.Contains(listed, "Standard verbs") || !strings.Contains(listed, "  rename ") {
+	if strings.Contains(listed, "Standard verbs") || !strings.Contains(listed, "  archive ") {
 		t.Fatalf("cli.standard-verbs list lists each verb:\n%s", listed)
 	}
 	if !slices.Contains(strings.Fields(listed), "--prop") && !strings.Contains(listed, "--prop <string>") {

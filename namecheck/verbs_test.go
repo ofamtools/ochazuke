@@ -129,7 +129,7 @@ func TestVerbsChangelogHistoryIsExempt(t *testing.T) {
 	cat := verbCatalog()
 	delete(cat.Known, "task.rename")
 	root := verbFixture(t, map[string]string{
-		"CHANGELOG.md": "# Changelog\n\n## Unreleased\n\n- Removed task.rename in favour of edit.\n\n## v0.5.0 (2026-01-01)\n\n- Added task.rename.\n\n## v0.4.0\n\n- task.rename again.\n\n## 2025-12-31\n\n- task.rename once more.\n",
+		"CHANGELOG.md": "# Changelog\n\n## Unreleased\n\n- Removed task.rename in favour of edit.\n\n## v0.5.0 (2026-01-01)\n\n- Added task.rename.\n\n## v0.4.0\n\n- task.rename again.\n\n## 2025-12-31\n\n- task.rename once more.\n\n## Historical notes\n\n- task.rename in old notes.\n",
 		"docs/x.md":    "task.rename\n",
 	})
 	rep, err := Verbs(VerbsConfig{Catalog: cat, Removed: verbRemoved(), Root: root, Files: []string{"CHANGELOG.md", "docs/x.md"}})

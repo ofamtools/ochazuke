@@ -775,7 +775,7 @@ func (r *Runtime) thingLabel(inst *Instance) string {
 // are the verbs'; history keeps the request as it was sent.
 
 // propVerbRequest is the verb-shaped request a prop-shaped one runs as:
-// get {prop} for a read, set {prop, value} or set {prop, toggle} for a
+// get {prop} for a read, set {props: {prop: value}} or set {prop, toggle} for a
 // write, with its target, subjects, confirmation and subject key kept.
 func (r *Runtime) propVerbRequest(q Request) (Request, error) {
 	n, p, err := r.requestProp(q)
@@ -793,7 +793,8 @@ func (r *Runtime) propVerbRequest(q Request) (Request, error) {
 		if q.Toggle {
 			out.Args["toggle"] = true
 		} else {
-			out.Args["value"] = q.Value
+			delete(out.Args, "prop")
+			out.Args["props"] = map[string]any{p.Name: q.Value}
 		}
 	}
 	if _, ok := r.Operations[out.Key()]; !ok {

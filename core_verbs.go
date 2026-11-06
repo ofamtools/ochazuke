@@ -17,9 +17,8 @@ import (
 // Code that asks what a standard verb does reads these fields, never its
 // name.
 //
-// legacyVerbs is a second table of the same rows for the verbs the purge
-// lane (och-purge-verbs) removes, plus watch: a legacy row is offered only
-// where its needs are met, as before.
+// legacyVerbs is a second table of the same rows for the verbs offered
+// only where their needs are met (watch).
 //
 // The tables are built on first use (standardTable), not at package
 // initialisation, because the handlers they hold reach code that reads
@@ -40,6 +39,9 @@ import (
 //     verbs that run as set); with Writes, a request naming no prop needs
 //     a writable prop offered where it acts;
 //   - Form: it opens the thing's edit form (the implicit edit key runs it);
+//   - FieldParam: the parameter naming the one writable prop the verb
+//     acts on (edit's field: a prop name or @role); a request naming a
+//     prop the noun cannot write is unavailable;
 //   - Undo: how history.undo reverts the change it makes.
 type standardVerb struct {
 	Verb        string
@@ -49,10 +51,6 @@ type standardVerb struct {
 	// first one missing makes the verb unavailable with its reason.
 	Needs        []storeNeed
 	TakesSubject bool
-	// SubjectFixed, when set, gives the subject parameter constant
-	// arguments for its choices source (Parameter.SourceFixed): the rows
-	// the verb applies to, from data of the noun.
-	SubjectFixed func(n *Noun) map[string]any
 	// NoFocus makes the subject optional and never filled from the focus
 	// (watch: omitted, it watches every thing).
 	NoFocus     bool
@@ -62,14 +60,14 @@ type standardVerb struct {
 	Creates     bool
 	WritesProps bool
 	Form        bool
+	FieldParam  string
 	Undo        undoShape
 	Repeatable  bool
 	HistoryKind string
 	Destructive bool
 	Confirm     string
 	// Aliases are other verb names the row is registered under on every
-	// noun that has it (set's patch), unless the noun has a verb of that
-	// name.
+	// noun that has it, unless the noun has a verb of that name.
 	Aliases []string
 	// ParamNames are the parameters the row takes beside the subject and
 	// the noun's props: no key prop and no store list parameter may take
@@ -179,14 +177,14 @@ func coreVerbs() []standardVerb {
 			Kinds: []string{Collection, Instances}, Needs: []storeNeed{needList},
 			Rows: true, HistoryKind: HistoryFetch, ParamNames: []string{"filter", "where", "props", "limit", "sort", "group-by", "group-sort", "page", "per-page", "archived"},
 			Params: listParams, Positional: listPositional, Run: runList},
-		{Verb: "create", Description: "Create a thing from the props given (each omitted one its default); answers the new thing",
+		{Verb: "create", Description: "Create a thing from the props given (each omitted one its default), or a copy of the thing from names (its props create writes, the props given in place of its values); answers the new thing",
 			Kinds: []string{Collection}, Needs: []storeNeed{needWriter, needCreate, needCreateProp},
-			Creates: true, Undo: undoByDelete, HistoryKind: HistoryChange, FocusSetting: CreateFromFocusSetting, ParamNames: []string{"pairs"},
+			Creates: true, Undo: undoByDelete, HistoryKind: HistoryChange, FocusSetting: CreateFromFocusSetting, ParamNames: []string{"pairs", "from"},
 			Positional: createPositional, Params: createParams, ReadArgs: createArgs, Writes: createWrites, Run: runCreate},
-		{Verb: "set", Description: "Write a thing's props: one prop (prop and value, or toggle on a boolean), or several (changes, or prop=value words); answers the thing after the write",
+		{Verb: "set", Description: "Write a thing's props: props, an object of prop to value (a subset or all of them; @label, @owner and @archive name a prop by its role), or prop=value words; toggle flips one boolean prop; answers the thing after the write",
 			Kinds: []string{Collection, Singleton, Instances}, Needs: []storeNeed{needWriter, needPatch, needWritable},
 			TakesSubject: true, Many: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange,
-			Aliases: []string{"patch"}, ParamNames: []string{"prop", "value", "toggle", "changes", "pairs"},
+			ParamNames: []string{"props", "prop", "value", "toggle", "changes", "pairs"},
 			Positional: func(*Noun) []string { return []string{"prop", "value", "pairs"} },
 			Params:     setParams, Writes: setWrites, Run: runSet},
 		{Verb: "delete", Description: "Delete a thing (asks first)",
@@ -196,43 +194,24 @@ func coreVerbs() []standardVerb {
 		{Verb: "archive", Description: "Archive a thing: set its archive prop",
 			Kinds: []string{Collection}, Needs: []storeNeed{needWriter, needPatch, needRole(RoleArchive)},
 			TakesSubject: true, Many: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange,
-			Writes: roleWrites(RoleArchive), Run: archiveRun(true)},
-		{Verb: "edit", Description: "Edit a thing's writable props in a form; supplied props write directly without opening a form",
+			Writes: roleWrites(RoleArchive), Run: runArchive},
+		{Verb: "edit", Description: "Edit a thing's writable props in a form, or one of them (field, a prop or @role: with edit.field-only the form holds only it, else it is focused); supplied props write directly without opening a form",
 			Kinds: []string{Collection, Singleton, Instances}, Needs: []storeNeed{needGet, needPatch, needWritable, needEditForms},
-			TakesSubject: true, Form: true, HistoryKind: HistoryAction, Params: editParams,
+			TakesSubject: true, Form: true, HistoryKind: HistoryAction, ParamNames: []string{editFieldParam}, FieldParam: editFieldParam, Params: editParams,
 			Handler: func(r *Runtime, n *Noun) AppHandler { return r.EditHandler(n.Name) }},
 	}
 }
 
-// legacyVerbs are removed by och-purge-verbs (rename, move, duplicate,
-// restore; patch is set's alias), except watch, which stays where the
-// store can be watched. Each is offered only where its needs are met.
+// legacyVerbs are the rows offered only where their needs are met: watch,
+// where the store can be watched. (rename, move, duplicate, restore and
+// set's alias patch were purged in R1: removed_verbs.json says what
+// replaces each.)
 func legacyVerbs() []standardVerb {
 	return []standardVerb{
 		{Verb: "watch", Description: "Stream what happens to the things (one, or those where matches): a JSON line per thing added, modified or deleted, from since when given; the CLI streams until interrupted",
 			Kinds: []string{Collection, Singleton, Instances}, Needs: []storeNeed{needWatch},
 			TakesSubject: true, NoFocus: true, HistoryKind: HistoryFetch, ParamNames: []string{"where", "since"},
 			Params: watchParams, Run: runWatch},
-		{Verb: "rename", Description: "Rename a thing: write its label prop (name; to when the key prop is named name); the form opens on the old name",
-			Kinds: []string{Collection, Singleton}, Needs: []storeNeed{needPatch, needRole(RoleLabel)},
-			TakesSubject: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange, ParamNames: []string{"to"},
-			Positional: func(n *Noun) []string { return []string{renameArg(n)} },
-			Params:     renameParams, Writes: roleWrites(RoleLabel), Run: runRename},
-		{Verb: "move", Description: "Move a thing to another owner: write its owner reference (to)",
-			Kinds: []string{Collection}, Needs: []storeNeed{needPatch, needRole(RoleOwner)},
-			TakesSubject: true, Many: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange, ParamNames: []string{"to"},
-			Positional: func(*Noun) []string { return []string{"to"} },
-			Params:     moveParams, Writes: roleWrites(RoleOwner), Run: runMove},
-		{Verb: "duplicate", Description: "Create a copy of a thing: every prop create writes, from the thing, with prop=value overrides (pairs or changes); answers the new thing",
-			Kinds: []string{Collection}, Needs: []storeNeed{needGet, needCreate, needCreateProp},
-			TakesSubject: true, Many: true, Creates: true, Undo: undoByDelete, HistoryKind: HistoryChange, ParamNames: []string{"pairs", "changes"},
-			Positional: func(*Noun) []string { return []string{"pairs"} },
-			Params:     duplicateParams, Writes: duplicateWrites, Run: runDuplicate},
-		{Verb: "restore", Description: "Restore an archived thing: clear its archive prop",
-			Kinds: []string{Collection}, Needs: []storeNeed{needPatch, needRole(RoleArchive)},
-			TakesSubject: true, Many: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange,
-			SubjectFixed: archivedRows,
-			Writes:       roleWrites(RoleArchive), Run: archiveRun(false)},
 	}
 }
 

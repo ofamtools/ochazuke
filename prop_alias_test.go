@@ -249,10 +249,6 @@ func TestPropAliasCreateAndDuplicate(t *testing.T) {
 			t.Fatal(written)
 		}
 	}
-	changes, order, err := duplicateOverrides(r.Noun("ticket"), Arguments{"pairs": "status=done"})
-	if err != nil || changes["state"] != "done" || !slices.Equal(order, []string{"state"}) {
-		t.Fatal(changes, order, err)
-	}
 }
 
 func TestPropAliasFilterOptOut(t *testing.T) {

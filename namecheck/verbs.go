@@ -28,12 +28,71 @@ import (
 // every thing noun (the standard verb), which leaves a noun's own verb of
 // that name alone (list.move, a motion, stays). Replacement says what to
 // write instead; Since is the release that removes it; Note is free text.
+//
+// A row with Param is a deprecated parameter, not a removed verb: the verb
+// stays, and a request to it that gives Param (with every one of With
+// given too) is reported, with Replacement (the parameter to use).
 type Removed struct {
-	Noun        string `json:"noun,omitempty"`
-	Verb        string `json:"verb"`
-	Replacement string `json:"replacement"`
-	Since       string `json:"since,omitempty"`
-	Note        string `json:"note,omitempty"`
+	Noun        string   `json:"noun,omitempty"`
+	Verb        string   `json:"verb"`
+	Param       string   `json:"param,omitempty"`
+	With        []string `json:"with,omitempty"`
+	Replacement string   `json:"replacement"`
+	Since       string   `json:"since,omitempty"`
+	Note        string   `json:"note,omitempty"`
+}
+
+// verbRows are the rows that remove a verb (no Param).
+func verbRows(removed []Removed) []Removed {
+	return slices.DeleteFunc(slices.Clone(removed), func(r Removed) bool { return r.Param != "" })
+}
+
+// DeprecatedParams are the rows of removed that a request to noun.verb
+// giving the arguments named in args matches: a deprecated parameter of
+// that verb (of every thing noun's standard verb when the row has no
+// noun), given with every one of its With.
+func (c *Catalog) DeprecatedParams(noun, verb string, args []string, removed []Removed) []Removed {
+	ref := noun + "." + verb
+	std, inCatalog := c.Known[ref]
+	canon := noun
+	if k, ok := c.Nouns[noun]; ok {
+		canon = k
+	}
+	var out []Removed
+	for _, r := range removed {
+		if r.Param == "" || r.Verb != verb || !slices.Contains(args, r.Param) {
+			continue
+		}
+		if r.Noun != "" {
+			rn := r.Noun
+			if k, ok := c.Nouns[rn]; ok {
+				rn = k
+			}
+			if rn != canon {
+				continue
+			}
+		} else if !inCatalog || std != verb {
+			continue // only the standard verb of that name
+		}
+		if slices.ContainsFunc(r.With, func(w string) bool { return !slices.Contains(args, w) }) {
+			continue
+		}
+		out = append(out, r)
+	}
+	return out
+}
+
+// ParamNote is how a report says a deprecated parameter row.
+func (r Removed) ParamNote() string {
+	param := r.Param
+	if len(r.With) > 0 {
+		param += " with " + strings.Join(r.With, " and ")
+	}
+	msg := fmt.Sprintf("parameter %s of %s is deprecated", param, r.Verb)
+	if r.Since != "" {
+		msg += " (removed in " + r.Since + ")"
+	}
+	return msg + "; use " + r.Replacement
 }
 
 // Catalog is what the verb check knows, from the application's runtime
@@ -76,6 +135,9 @@ const (
 	// StatePending names a removed verb the catalog still has: it works
 	// now and fails at the release that removes it.
 	StatePending = "pending"
+	// StateDeprecated names a request that gives a deprecated parameter
+	// (a Removed row with Param): it works until the row's release.
+	StateDeprecated = "deprecated"
 )
 
 // Ref is one dotted reference found in text.
@@ -129,7 +191,7 @@ func (c *Catalog) FindRefs(text string, removed []Removed) []Ref {
 func (c *Catalog) findRefs(text string, removed []Removed, firstOnly bool) []Ref {
 	var out []Ref
 	rowVerbs := map[string]bool{}
-	for _, r := range removed {
+	for _, r := range verbRows(removed) {
 		rowVerbs[r.Verb] = true
 	}
 	for _, loc := range tokenRE.FindAllStringIndex(text, -1) {
@@ -178,7 +240,7 @@ func (c *Catalog) Classify(noun, verb string, removed []Removed) (string, Remove
 		canon = noun
 	}
 	std, inCatalog := c.Known[noun+"."+verb]
-	for _, r := range removed {
+	for _, r := range verbRows(removed) {
 		if r.Verb != verb {
 			continue
 		}
@@ -223,6 +285,8 @@ func (h VerbHit) String() string {
 	switch h.State {
 	case StateUnknown:
 		msg += " (the catalog has no such verb)"
+	case StateDeprecated:
+		msg = fmt.Sprintf("%s:%d: %s: %s", h.File, h.Line, h.Ref, h.Note)
 	default:
 		if h.Since != "" {
 			msg += " since " + h.Since
@@ -271,9 +335,15 @@ type VerbReport struct {
 }
 
 // Violations are the hits that fail a check: unknown and removed
-// references. Pending ones still work; they are the work list.
+// references. Pending ones and deprecated parameters still work; they are
+// the work list.
 func (r VerbReport) Violations() []VerbHit {
-	return slices.DeleteFunc(slices.Clone(r.Hits), func(h VerbHit) bool { return h.State == StatePending })
+	return slices.DeleteFunc(slices.Clone(r.Hits), func(h VerbHit) bool { return h.State == StatePending || h.State == StateDeprecated })
+}
+
+// Deprecated are the hits on a request giving a deprecated parameter.
+func (r VerbReport) Deprecated() []VerbHit {
+	return slices.DeleteFunc(slices.Clone(r.Hits), func(h VerbHit) bool { return h.State != StateDeprecated })
 }
 
 // Pending are the hits on a removed verb the catalog still has.
@@ -283,8 +353,10 @@ func (r VerbReport) Pending() []VerbHit {
 
 // Verbs scans tracked Go, JSON and Markdown for references to a verb the
 // catalog lacks or a removed row names. Go is read as its string
-// literals and comments; JSON and Markdown as text. A dated or versioned
-// CHANGELOG section is history and is skipped; Unreleased is scanned.
+// literals and comments; JSON and Markdown as text. A CHANGELOG section
+// other than Unreleased is history and is skipped. A request that gives a
+// deprecated parameter (a row with Param) on one line of JSON or Go,
+// outside tests, is reported as deprecated.
 func Verbs(cfg VerbsConfig) (VerbReport, error) {
 	exts := cfg.Exts
 	if len(exts) == 0 {
@@ -351,6 +423,13 @@ func Verbs(cfg VerbsConfig) (VerbReport, error) {
 				report(seg, ref)
 			}
 		}
+		if !strings.HasSuffix(f, "_test.go") {
+			for _, h := range cat.paramHits(f, data, cfg.Removed) {
+				if !allow[h.Ref] {
+					rep.Hits = append(rep.Hits, h)
+				}
+			}
+		}
 	}
 	sort.SliceStable(rep.Hits, func(i, j int) bool {
 		a, b := rep.Hits[i], rep.Hits[j]
@@ -371,6 +450,9 @@ func VerbsCheck(t testing.TB, cfg VerbsConfig) {
 	}
 	if p := rep.Pending(); len(p) > 0 {
 		t.Logf("namecheck: %d references to verbs still in the catalog that a release removes", len(p))
+	}
+	if d := rep.Deprecated(); len(d) > 0 {
+		t.Logf("namecheck: %d requests give a deprecated parameter", len(d))
 	}
 	v := rep.Violations()
 	if len(v) == 0 {
@@ -544,12 +626,13 @@ func goSegments(file string, data []byte) (all, lits []segment) {
 }
 
 var (
-	headingRE = regexp.MustCompile(`^##\s`)
-	datedRE   = regexp.MustCompile(`\d{4}-\d{2}-\d{2}|\bv?\d+\.\d+(\.\d+)?\b`)
+	headingRE    = regexp.MustCompile(`^##\s`)
+	unreleasedRE = regexp.MustCompile(`(?i)^##\s+unreleased\b`)
 )
 
-// changelogSegments are a changelog's lines outside its dated or
-// versioned sections: the preamble and Unreleased.
+// changelogSegments are a changelog's lines outside its history: the
+// preamble and Unreleased. Every other section (dated, versioned, or
+// historical notes) is history.
 func changelogSegments(data []byte) []segment {
 	var out []segment
 	history := false
@@ -564,7 +647,7 @@ func changelogSegments(data []byte) []segment {
 	for i, line := range strings.Split(string(data), "\n") {
 		if headingRE.MatchString(line) {
 			flush()
-			history = datedRE.MatchString(line)
+			history = !unreleasedRE.MatchString(line)
 		}
 		if history {
 			continue
@@ -576,4 +659,69 @@ func changelogSegments(data []byte) []segment {
 	}
 	flush()
 	return out
+}
+
+var (
+	// A request named on one line of JSON or Go: the action string of a
+	// row ("action"/"do"/"call": "noun.verb"), a "noun"/"verb" pair
+	// (nounVerbRE), or Go's Noun: and Verb: fields.
+	actionRefRE = regexp.MustCompile(`"(?:action|do|call)"\s*:\s*"([a-z][a-z0-9.-]*)`)
+	goNounRE    = regexp.MustCompile(`\bNoun:\s*"([^"\n]*)"`)
+	goVerbRE    = regexp.MustCompile(`\bVerb:\s*"([^"\n]*)"`)
+	argKeyRE    = regexp.MustCompile(`"([a-z][a-zA-Z0-9_-]*)"\s*:`)
+)
+
+// paramHits are the lines of a JSON or Go file that name a request and,
+// on the same line, give a deprecated parameter of its verb (a key of its
+// arguments). A line is the unit: a binding row, an alias row, a Request
+// literal.
+func (c *Catalog) paramHits(file string, data []byte, removed []Removed) []VerbHit {
+	ext := strings.ToLower(path.Ext(file))
+	if ext != ".json" && ext != ".go" || !slices.ContainsFunc(removed, func(r Removed) bool { return r.Param != "" }) {
+		return nil
+	}
+	var out []VerbHit
+	for i, line := range strings.Split(string(data), "\n") {
+		var refs [][2]string
+		for _, m := range actionRefRE.FindAllStringSubmatch(line, -1) {
+			if n, v, ok := cutLast(m[1]); ok {
+				refs = append(refs, [2]string{n, v})
+			}
+		}
+		if ext == ".go" {
+			if n, v := goNounRE.FindStringSubmatch(line), goVerbRE.FindStringSubmatch(line); n != nil && v != nil {
+				refs = append(refs, [2]string{n[1], v[1]})
+			}
+		} else {
+			for _, m := range nounVerbRE.FindAllStringSubmatch(line, -1) {
+				refs = append(refs, [2]string{m[1], m[2]})
+			}
+			for _, m := range verbNounRE.FindAllStringSubmatch(line, -1) {
+				refs = append(refs, [2]string{m[2], m[1]})
+			}
+		}
+		if len(refs) == 0 {
+			continue
+		}
+		var keys []string
+		for _, m := range argKeyRE.FindAllStringSubmatch(line, -1) {
+			keys = append(keys, m[1])
+		}
+		for _, ref := range refs {
+			for _, row := range c.DeprecatedParams(ref[0], ref[1], keys, removed) {
+				out = append(out, VerbHit{File: file, Line: i + 1, Ref: ref[0] + "." + ref[1], State: StateDeprecated,
+					Replacement: row.Replacement, Since: row.Since, Note: row.ParamNote()})
+			}
+		}
+	}
+	return out
+}
+
+// cutLast splits noun.verb at its last dot.
+func cutLast(ref string) (string, string, bool) {
+	i := strings.LastIndex(ref, ".")
+	if i <= 0 || i == len(ref)-1 {
+		return "", "", false
+	}
+	return ref[:i], ref[i+1:], true
 }

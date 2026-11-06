@@ -283,20 +283,20 @@ func TestWritesAreNeverSilentlyFilled(t *testing.T) {
 	r := NewRuntime()
 	m := NewModel(r)
 	var ran []Arguments
-	r.Define("worker").Verb("rename", func(c Ctx) Result {
+	r.Define("worker").Verb("retitle", func(c Ctx) Result {
 		ran = append(ran, c.Args)
 		return Done(nil)
 	}, "Rename the worker").Alias("title")
-	op := r.Operations["worker.rename"]
+	op := r.Operations["worker.retitle"]
 	op.Parameters = map[string]Parameter{"name": {Type: "string", Required: true}}
-	r.Operations["worker.rename"] = op
+	r.Operations["worker.retitle"] = op
 	if _, err := r.AddList("panes", []ListItem{{ID: "p1", Label: "build", Noun: "worker", Data: map[string]any{"name": "build"}}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.SetFocus("p1"); err != nil {
 		t.Fatal(err)
 	}
-	for _, verb := range []string{"rename", "title"} {
+	for _, verb := range []string{"retitle", "title"} {
 		_, err := r.Execute(Request{Noun: "worker", Verb: verb})
 		var argErr *ArgumentError
 		if !errors.As(err, &argErr) || !strings.Contains(err.Error(), "name is required") {
@@ -314,7 +314,7 @@ func TestWritesAreNeverSilentlyFilled(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := m.Palette.parse("title")
-	if c.Op.Key() != "worker.rename" || c.Via != "worker.title" || c.Missing != "name" || c.Complete() {
+	if c.Op.Key() != "worker.retitle" || c.Via != "worker.title" || c.Missing != "name" || c.Complete() {
 		t.Fatalf("palette parse %+v", c)
 	}
 	if err := m.Palette.run(); err != nil || r.TopModal() != ArgsFormID {

@@ -242,6 +242,7 @@ list_filter_compact.go	filterViewForm.conditionAction	case	"edit"	1
 list_filter_compact.go	filterViewForm.conditionAction	case	"invert"	1
 list_filter_compact.go	filterViewForm.conditionAction	case	"remove"	1
 list_filter_compact.go	filterViewForm.flipDirection	compare	"desc"	1
+list_filter_compact.go	filterViewForm.focusPart	case	"field"	1	the filter form's own part names (field, sort, conditions); "field" reads as a parameter only because edit takes one
 list_filter_compact.go	filterViewForm.focusPart	case	"sort"	1
 list_filter_compact.go	filterViewForm.render	cyclo	"-"	42
 list_filter_compact.go	filterViewForm.write	compare	"desc"	1
@@ -341,7 +342,6 @@ noun.go	var keyTexts	table	"enter"	1	key names mapped to their text; the words c
 noun.go	var keyTexts	table	"tab"	1	key names mapped to their text; the words coincide with vocabulary names, no name branch
 noun.go	withImplicitGuard	compare	"ochazuke.editor"	1
 noun_places.go	Runtime.placementOf	compare	"app"	1
-page_hide.go	registerPageHiding	compare	"hidden"	1
 pages.go	Runtime.AddPage	compare	"app"	1
 pages.go	Runtime.PageList	compare	"app"	1
 pages.go	Runtime.RegisterPage	compare	"app"	1
@@ -581,17 +581,16 @@ settings_view.go	registerSettingsEditor	compare	"ochazuke.setting-item"	2
 settings_view.go	registerSettingsEditor	cyclo	"-"	39
 settings_view.go	settingAllowed	compare	"list"	1
 settings_view.go	settingOfRow	compare	"ochazuke.setting"	1
-standard_derived.go	renameArg	compare	"name"	1
 standard_edit.go	Runtime.EditHandler	compare	"confirm"	1
-standard_edit.go	Runtime.EditHandler	compare	"list"	1
-standard_edit.go	Runtime.EditHandler	cyclo	"-"	52
+standard_edit.go	Runtime.EditHandler	cyclo	"-"	44
+standard_edit.go	Runtime.editFields	compare	"list"	1
 standard_edit.go	editRecord	compare	"list"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
 standard_undo.go	Runtime.runRecording	cyclo	"-"	26
 standard_verbs.go	createArgs	compare	"pairs"	1
-standard_verbs.go	setChanges	cyclo	"-"	30
+standard_verbs.go	setChanges	cyclo	"-"	28
 table.go	List.tallView	cyclo	"-"	43
 table.go	tableLineAt	compare	"right"	1
 table_cells.go	List.columnTo	compare	"last"	1
@@ -609,17 +608,14 @@ tone.go	resolveTones	compare	"mode"	2
 tree.go	Tree.apply	case	"add"	1
 tree.go	Tree.apply	case	"delete"	1
 tree.go	Tree.apply	case	"move"	1
-tree.go	Tree.apply	case	"rename"	1
 tree.go	Tree.closeLineAs	compare	"normal"	1
 tree.go	Tree.fixedFor	compare	"delete"	1
 tree.go	Tree.history	compare	"delete"	1
 tree.go	Tree.refuses	compare	"add"	1
 tree.go	TreeChange.String	case	"add"	1
 tree.go	TreeChange.String	case	"move"	1
-tree.go	TreeChange.String	case	"rename"	1
 tree.go	changeVerb	case	"delete"	1
 tree.go	changeVerb	case	"move"	1
-tree.go	changeVerb	case	"rename"	1
 tree_delete.go	Tree.removeOne	compare	"delete"	1
 tree_empty.go	Tree.dropEmpty	compare	"normal"	1
 tree_empty.go	Tree.freshAddStep	compare	"delete"	1

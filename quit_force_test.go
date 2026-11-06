@@ -18,7 +18,7 @@ func TestQuitForceAfterProtectsPendingWrite(t *testing.T) {
 			r, s := editFixture(t)
 			op, _ := r.Operation("parcel.set")
 			r.Register(Operation{Noun: "parcel", Verb: "set", Parameters: op.Parameters, App: func(c Ctx) Result {
-				changes := maps.Clone(c.Args["changes"].(map[string]any))
+				changes := maps.Clone(c.Args["props"].(map[string]any))
 				return Pending(func(ctx context.Context) (any, error) {
 					if err := ctx.Err(); err != nil {
 						return nil, err

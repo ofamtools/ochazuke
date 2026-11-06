@@ -120,6 +120,25 @@ type Parameter struct {
 	// caller's argument excludes, or that excludes it, yields to the
 	// caller's (Operation.WithPresets). The catalog's excludes.
 	Excludes []string `json:"excludes,omitempty"`
+	// Covers marks a parameter that, given, stands in for every required
+	// parameter of its verb: create's from, whose thing holds their
+	// values. A request giving it lacks none (Operation.lacks). The
+	// catalog's covers.
+	Covers bool `json:"covers,omitempty"`
+}
+
+// lacks reports whether args lack the required parameter name: it is
+// required, not given, and no given parameter Covers it.
+func (o Operation) lacks(name string, args Arguments) bool {
+	if _, given := args[name]; given || !o.Parameters[name].Required {
+		return false
+	}
+	for other, v := range args {
+		if o.Parameters[other].Covers && !emptyProp(v) {
+			return false
+		}
+	}
+	return true
 }
 
 // WithPresets is args with presets (an action alias's arguments) filling
@@ -1215,8 +1234,8 @@ func validatePartialArguments(op Operation, args Arguments) error {
 }
 
 func validateArguments(op Operation, args Arguments) error {
-	for name, p := range op.Parameters {
-		if _, ok := args[name]; p.Required && !ok {
+	for name := range op.Parameters {
+		if op.lacks(name, args) {
 			return fmt.Errorf("%s is required", name)
 		}
 	}

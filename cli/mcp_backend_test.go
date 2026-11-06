@@ -35,7 +35,7 @@ func mcpFixture(t *testing.T) (*fixture, *Shell, *mcp.Server) {
 }
 func TestMCPBackendDiscoveryAndRun(t *testing.T) {
 	f, _, server := mcpFixture(t)
-	catalog := mcpCall(t, server, "catalog", map[string]any{"search": "rename"})
+	catalog := mcpCall(t, server, "catalog", map[string]any{"search": "relabel"})
 	if catalog["live"] != false || len(catalog["nouns"].([]map[string]any)) != 1 {
 		t.Fatal(catalog)
 	}
@@ -47,11 +47,11 @@ func TestMCPBackendDiscoveryAndRun(t *testing.T) {
 	if first["hash"] != next["hash"] {
 		t.Fatal("unstable catalog hash")
 	}
-	desc := mcpCall(t, server, "describe", map[string]any{"verb": "widget.ren"})
-	if desc["verb"] != "widget.rename" || desc["right"] != "allow" || desc["inputSchema"] == nil {
+	desc := mcpCall(t, server, "describe", map[string]any{"verb": "widget.rel"})
+	if desc["verb"] != "widget.relabel" || desc["right"] != "allow" || desc["inputSchema"] == nil {
 		t.Fatal(desc)
 	}
-	result := mcpCall(t, server, "run", map[string]any{"verb": "widget.rename", "target": "w1", "args": map[string]any{"name": "changed"}})
+	result := mcpCall(t, server, "run", map[string]any{"verb": "widget.relabel", "target": "w1", "args": map[string]any{"name": "changed"}})
 	if result["status"] != "done" || len(f.calls) != 1 || f.calls[0].Target != "w1" || result["entry"] == nil {
 		t.Fatal(result, f.calls)
 	}
@@ -81,18 +81,18 @@ func TestMCPBackendRightsDryRunAndIdentity(t *testing.T) {
 		}
 	}
 	before := len(f.r.HistoryOf(0, ochazuke.HistoryAction, ochazuke.HistoryChange, ochazuke.HistoryFetch))
-	result := mcpCall(t, server, "run", map[string]any{"verb": "widget.rename", "target": "w1", "args": map[string]any{"name": "dry"}, "dry_run": true})
+	result := mcpCall(t, server, "run", map[string]any{"verb": "widget.relabel", "target": "w1", "args": map[string]any{"name": "dry"}, "dry_run": true})
 	if result["status"] != "done" || len(f.calls) != 0 || result["entry"] != nil {
 		t.Fatal(result, f.calls)
 	}
 	if len(f.r.HistoryOf(0, ochazuke.HistoryAction, ochazuke.HistoryChange, ochazuke.HistoryFetch)) != before {
 		t.Fatal("dry run recorded history")
 	}
-	result = mcpCall(t, server, "run", map[string]any{"verb": "widget.rename", "target": "missing", "args": map[string]any{"name": "dry"}, "dry_run": true})
+	result = mcpCall(t, server, "run", map[string]any{"verb": "widget.relabel", "target": "missing", "args": map[string]any{"name": "dry"}, "dry_run": true})
 	if result["status"] != "failed" {
 		t.Fatal("invalid target accepted", result)
 	}
-	if _, err := server.Call(context.Background(), "run", map[string]any{"verb": "widget.rename", "actor": map[string]any{"kind": "owner"}}); err == nil {
+	if _, err := server.Call(context.Background(), "run", map[string]any{"verb": "widget.relabel", "actor": map[string]any{"kind": "owner"}}); err == nil {
 		t.Fatal("actor argument accepted")
 	}
 	t.Setenv("OCHAZUKE_ACTOR", "owner")
@@ -121,7 +121,7 @@ func TestMCPBackendPendingModalMessagesAndAliases(t *testing.T) {
 	if result["status"] != "refused" {
 		t.Fatal(result)
 	}
-	if err := f.r.AddActionAlias(ochazuke.ActionAlias{Alias: "widget.retitle", Action: "widget.rename", Args: ochazuke.Arguments{"name": "preset"}}); err != nil {
+	if err := f.r.AddActionAlias(ochazuke.ActionAlias{Alias: "widget.retitle", Action: "widget.relabel", Args: ochazuke.Arguments{"name": "preset"}}); err != nil {
 		t.Fatal(err)
 	}
 	sh.MCPAliases = []mcp.Alias{{Tool: mcp.Tool{Name: "widget_retitle"}, Verb: "widget.retitle"}}
@@ -166,7 +166,7 @@ func TestMCPShellCommandsAndMirrors(t *testing.T) {
 func TestMCPBackendDryRunGuardAndPolicyHash(t *testing.T) {
 	f, _, server := mcpFixture(t)
 	before := mcpCall(t, server, "catalog", map[string]any{})["hash"]
-	if err := f.r.Settings().Set(ochazuke.AgentRightsSetting, `[{"match":"widget.rename","right":"never"}]`); err != nil {
+	if err := f.r.Settings().Set(ochazuke.AgentRightsSetting, `[{"match":"widget.relabel","right":"never"}]`); err != nil {
 		t.Fatal(err)
 	}
 	after := mcpCall(t, server, "catalog", map[string]any{})["hash"]
@@ -176,15 +176,15 @@ func TestMCPBackendDryRunGuardAndPolicyHash(t *testing.T) {
 	if err := f.r.Settings().Set(ochazuke.AgentRightsGateSetting, false); err != nil {
 		t.Fatal(err)
 	}
-	desc := mcpCall(t, server, "describe", map[string]any{"verb": "widget.rename"})
+	desc := mcpCall(t, server, "describe", map[string]any{"verb": "widget.relabel"})
 	if desc["right"] != "allow" {
 		t.Fatal(desc)
 	}
 	f.r.DefineGuard("mcp-ready", func(*ochazuke.Runtime, ochazuke.KeyEvent) bool { return false })
-	if err := f.r.AddVerbAvailability("widget.rename", "mcp-ready"); err != nil {
+	if err := f.r.AddVerbAvailability("widget.relabel", "mcp-ready"); err != nil {
 		t.Fatal(err)
 	}
-	result := mcpCall(t, server, "run", map[string]any{"verb": "widget.rename", "target": "w1", "args": map[string]any{"name": "dry"}, "dry_run": true})
+	result := mcpCall(t, server, "run", map[string]any{"verb": "widget.relabel", "target": "w1", "args": map[string]any{"name": "dry"}, "dry_run": true})
 	if result["status"] != "failed" || !strings.Contains(result["reason"].(string), "not applicable") {
 		t.Fatal(result)
 	}
