@@ -122,8 +122,8 @@ func TestDerivedVerbsFollowTheRoles(t *testing.T) {
 			t.Fatalf("task.%s standard %q", verb, op.Standard)
 		}
 	}
-	if !slices.Contains(StandardVerbs(), "archive") || !slices.Contains(reservedStandardVerbs, "restore") {
-		t.Fatalf("table %v reserved %v", StandardVerbs(), reservedStandardVerbs)
+	if !slices.Contains(StandardVerbs(), "archive") || !slices.Contains(reservedVerbNames(), "restore") {
+		t.Fatalf("table %v reserved %v", StandardVerbs(), reservedVerbNames())
 	}
 	for _, c := range []struct {
 		name   string
@@ -144,8 +144,8 @@ func TestDerivedVerbsFollowTheRoles(t *testing.T) {
 		}
 		r.Define("task").Props(c.props...).Store(st)
 		for _, verb := range c.absent {
-			if _, ok := r.Operations["task."+verb]; ok {
-				t.Fatalf("%s: task.%s exists", c.name, verb)
+			if r.offers("task." + verb) {
+				t.Fatalf("%s: task.%s is offered", c.name, verb)
 			}
 		}
 	}

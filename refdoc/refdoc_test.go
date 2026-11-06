@@ -227,7 +227,7 @@ func TestRenderStandardVerbs(t *testing.T) {
 	m := sample()
 	m.StandardVerbs = []StandardVerb{{Verb: "set", Kinds: []string{"collection"}, Needs: "Store.Patch", Aliases: []string{"patch"}, Subject: true, Many: true, History: "change", Description: "Write props"}}
 	page := Body(Render(m, Options{Stamp: Stamp{Tool: "mtm"}})[StandardVerbsFile])
-	for _, want := range []string{"# Standard verbs", "| `set` (`patch`) | collection | Store.Patch | yes | yes |  | change |  | Write props |", "No noun of mtm declares props."} {
+	for _, want := range []string{"# Standard verbs", "| `set` (`patch`) |  | collection | Store.Patch | yes | yes |  | change |  |  | Write props |", "No noun of mtm declares props."} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("lacks %q:\n%s", want, page)
 		}

@@ -289,7 +289,8 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 
 // visualApply is list.apply standing in for q when q is the own verb of a
 // row in a list's visual selection (an application verb of the row's
-// noun, not a motion): the verb then acts on every selected row. focus is
+// noun, not a motion, and for a standard verb one whose row fans out):
+// the verb then acts on every selected row. focus is
 // the instance execute resolved q to. Anything else (a motion, a framework
 // verb: its noun is not the row's; a row outside a selection; a request
 // list.apply itself runs) is not replaced.
@@ -301,6 +302,12 @@ func (r *Runtime) visualApply(q Request, op Operation, focus string) (Request, b
 	l := r.List(owner)
 	inst := r.Instances[focus]
 	if l == nil || !l.visual || l.applying || inst == nil || inst.Noun != q.Noun || op.Kind != KindApplication || op.Motion {
+		return q, false
+	}
+	// A standard verb fans out only when its row takes a subject and many
+	// of them (standardVerb.fansOut): create, list and get act once, on
+	// the focus, never once per selected row.
+	if row := standardRow(op.Standard); row != nil && !row.fansOut() {
 		return q, false
 	}
 	args := Arguments{"id": l.id, "verb": q.Verb}

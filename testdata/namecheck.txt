@@ -39,7 +39,7 @@ chrome.go	isModeHue	compare	"mode"	1
 chrome.go	var chromeModes	table	"mode"	1
 cli/catalog.go	CatalogDoc.RowSource	compare	"list"	2
 cli/catalog.go	ExtensionNamespace	compare	"app"	1
-cli/catalog.go	catalog	cyclo	"-"	39
+cli/catalog.go	catalog	cyclo	"-"	37
 cli/catalog_inspect.go	Shell.catalogCommand	compare	"inspect"	1
 cli/commands.go	Commands.showsRun	compare	"run"	1
 cli/detail_fields.go	PageView.hasMetadata	compare	"fields"	1
@@ -71,7 +71,7 @@ cli/mcp_backend.go	mcpBackend.run	cyclo	"-"	33
 cli/mcp_backend.go	parameterSchema	case	"list"	1
 cli/mount.go	Mount	compare	"app"	1
 cli/mount.go	Mount	compare	"list"	1
-cli/mount.go	Mount	cyclo	"-"	61
+cli/mount.go	Mount	cyclo	"-"	56
 cli/page.go	MountPage	cyclo	"-"	31
 cli/pagestate.go	PageView.ApplyState	case	"delta"	1
 cli/ptykeys.go	var keyCodes	table	"delete"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
@@ -116,19 +116,6 @@ confirm.go	registerConfirm	compare	"ochazuke.confirm"	1
 default_bindings.go	Runtime.CheckDefaultBindings	compare	"ochazuke.mode.enter"	1
 default_bindings.go	Runtime.loadDefaultDoc	cyclo	"-"	38
 detail.go	Detail.MoveToEdge	compare	"last"	1
-docs_reference.go	var standardAliases	table	"set"	1
-docs_reference.go	var standardNeeds	table	"archive"	1
-docs_reference.go	var standardNeeds	table	"create"	1
-docs_reference.go	var standardNeeds	table	"delete"	1
-docs_reference.go	var standardNeeds	table	"duplicate"	1
-docs_reference.go	var standardNeeds	table	"edit"	1
-docs_reference.go	var standardNeeds	table	"get"	1
-docs_reference.go	var standardNeeds	table	"list"	1
-docs_reference.go	var standardNeeds	table	"move"	1
-docs_reference.go	var standardNeeds	table	"rename"	1
-docs_reference.go	var standardNeeds	table	"restore"	1
-docs_reference.go	var standardNeeds	table	"set"	1
-docs_reference.go	var standardNeeds	table	"watch"	1
 editing.go	Input.begin	case	"append"	2
 editing.go	Input.begin	case	"end"	2
 editing.go	Input.begin	case	"insert"	1
@@ -464,8 +451,7 @@ runtime.go	Runtime.AddInput	case	"dir"	1
 runtime.go	Runtime.AddInput	case	"path"	1
 runtime.go	Runtime.AddInput	case	"text"	1
 runtime.go	Runtime.Register	case	"action"	1
-runtime.go	Runtime.execute	compare	"create"	1
-runtime.go	Runtime.execute	cyclo	"-"	50
+runtime.go	Runtime.execute	cyclo	"-"	48
 runtime.go	Runtime.nounInstance	compare	"app"	1
 runtime.go	validateArguments	case	"path"	1
 runtime.go	var focusBoundOps	table	"ochazuke.list.end-visual"	1
@@ -601,23 +587,17 @@ settings_view.go	registerSettingsEditor	compare	"ochazuke.setting-item"	2
 settings_view.go	registerSettingsEditor	cyclo	"-"	39
 settings_view.go	settingAllowed	compare	"list"	1
 settings_view.go	settingOfRow	compare	"ochazuke.setting"	1
-standard_derived.go	Runtime.createFill	compare	"create"	1
-standard_derived.go	Runtime.propSetAlias	compare	"set"	1
 standard_derived.go	renameArg	compare	"name"	1
 standard_edit.go	Runtime.EditHandler	compare	"confirm"	1
 standard_edit.go	Runtime.EditHandler	compare	"list"	1
 standard_edit.go	Runtime.EditHandler	cyclo	"-"	52
-standard_edit.go	Runtime.focusedEdit	compare	"edit"	1
 standard_edit.go	editRecord	compare	"list"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
 standard_undo.go	Runtime.runRecording	cyclo	"-"	26
-standard_verbs.go	Runtime.ensureStandardVerbs	compare	"set"	2
-standard_verbs.go	Runtime.propsAvailable	compare	"set"	1
 standard_verbs.go	createArgs	compare	"pairs"	1
 standard_verbs.go	setChanges	cyclo	"-"	30
-standard_verbs.go	standardVerb.operation	cyclo	"-"	26
 table.go	List.tallView	cyclo	"-"	43
 table.go	tableLineAt	compare	"right"	1
 table_cells.go	List.columnTo	compare	"last"	1

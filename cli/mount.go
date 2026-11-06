@@ -119,17 +119,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 				Required: p.Required, Choices: p.Enum, Source: r.ChoicesSource(p), Free: p.Free,
 			})
 		}
-		kind := op.Kind
-		if kind == "" {
-			kind = "interaction"
-		}
-		details := fmt.Sprintf("Kind: %s", kind)
-		if op.Result != "" {
-			details += "\nResult: " + op.Result
-		}
-		if op.Confirm != "" {
-			details += "\nConfirmation: " + op.Confirm
-		}
+		details := verbDetails(op)
 		noun, verb := op.Noun, op.Verb
 		// An alias on the same noun is an oden alias of the verb's command
 		// (help lists it beside the name, once); an alias under another
@@ -176,12 +166,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		}
 		g := root.at(noun)
 		g.noun = true
-		if op.Standard != "" {
-			if g.std == nil {
-				g.std = map[string]string{}
-			}
-			g.std[verb] = op.Standard
-		}
+		g.markStandard(verb, op)
 		g.verbs = append(g.verbs, oden.Command{
 			Name: verb, Aliases: aliases, Summary: op.Description, Source: op.Key(),
 			Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--format F] [--yes]",
@@ -330,6 +315,22 @@ type nounGroup struct {
 	// listing (standardLine names them).
 	std     map[string]string
 	listing bool
+	// unavailable marks the standard verbs that cannot run on the noun
+	// (Operation.Unavailable): commands that say why, never listed.
+	unavailable map[string]bool
+}
+
+// markStandard records verb as g's standard verb op.Standard, and as
+// unavailable when op cannot run on its noun; a named verb is left out.
+func (g *nounGroup) markStandard(verb string, op ochazuke.Operation) {
+	if op.Standard == "" {
+		return
+	}
+	if g.std == nil {
+		g.std, g.unavailable = map[string]string{}, map[string]bool{}
+	}
+	g.std[verb] = op.Standard
+	g.unavailable[verb] = op.Unavailable != ""
 }
 
 // at is the group of a dotted noun name, made as needed.
@@ -377,11 +378,12 @@ func (g *nounGroup) command(name string, line bool) oden.Command {
 	children := make([]oden.Command, 0, len(g.verbs)+len(g.children))
 	summary := make([]string, 0, len(g.verbs)+len(g.children)+1)
 	for _, verb := range g.verbs {
-		if line && g.std[verb.Name] != "" {
+		switch {
+		case g.unavailable[verb.Name] || line && g.std[verb.Name] != "":
 			if g.listing {
 				continue
 			}
-		} else {
+		default:
 			summary = append(summary, verb.Name)
 		}
 		children = append(children, verb)
@@ -409,12 +411,13 @@ func (g *nounGroup) command(name string, line bool) oden.Command {
 	return oden.Command{Name: name, Summary: strings.Join(summary, " "), Source: source, Children: children}
 }
 
-// standardVerbs are g's standard verbs in the standard verb table's
-// order (ochazuke.StandardVerbs), a verb of an unknown row last.
+// standardVerbs are g's standard verbs that can run, in the standard
+// verb table's order (ochazuke.StandardVerbs), a verb of an unknown row
+// last.
 func (g *nounGroup) standardVerbs() []oden.Command {
 	var out []oden.Command
 	for _, verb := range g.verbs {
-		if g.std[verb.Name] != "" {
+		if g.std[verb.Name] != "" && !g.unavailable[verb.Name] {
 			out = append(out, verb)
 		}
 	}
@@ -501,4 +504,24 @@ func presetDetails(a ochazuke.ActionAlias) string {
 		parts[i] = fmt.Sprintf("%s=%v", k, a.Args[k])
 	}
 	return "\nPresets: " + strings.Join(parts, " ")
+}
+
+// verbDetails is a verb command's details in help: its kind, its result,
+// the confirmation it asks and why it is unavailable, each when it has one.
+func verbDetails(op ochazuke.Operation) string {
+	kind := op.Kind
+	if kind == "" {
+		kind = "interaction"
+	}
+	details := fmt.Sprintf("Kind: %s", kind)
+	if op.Result != "" {
+		details += "\nResult: " + op.Result
+	}
+	if op.Confirm != "" {
+		details += "\nConfirmation: " + op.Confirm
+	}
+	if op.Unavailable != "" {
+		details += "\nUnavailable: " + op.Unavailable
+	}
+	return details
 }

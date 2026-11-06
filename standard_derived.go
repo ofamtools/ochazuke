@@ -8,7 +8,8 @@ import (
 	"strings"
 )
 
-// The derived standard verbs (lane S4): rows of the standard verb table
+// The derived standard verbs (lane S4): rows of the verb tables
+// (core_verbs.go: archive in the core table, the rest in legacyVerbs)
 // read from a prop's role or from the store's handlers, each running the
 // standard set or create, so history, watch, availability and the store
 // are those verbs'.
@@ -34,43 +35,6 @@ import (
 //     (archiveOnDelete). The confirm says which (deleteConfirm): the
 //     archive asks DefaultArchiveConfirm, or nothing with
 //     delete.archive-confirm off; the real delete asks the delete prompt.
-
-func init() {
-	standardVerbs = append(standardVerbs, derivedVerbs...)
-	for _, v := range standardVerbs {
-		if v.FocusSetting != "" {
-			focusSettings[v.Verb] = v.FocusSetting
-		}
-	}
-}
-
-// focusSettings are the rows' FocusSetting by verb (read without the
-// table, which refers to the handlers that read it).
-var focusSettings = map[string]string{}
-
-var derivedVerbs = []standardVerb{
-	{Verb: "rename", Description: "Rename a thing: write its label prop (name; to when the key prop is named name); the form opens on the old name",
-		Kinds: []string{Collection, Singleton}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && writableRole(n, RoleLabel) != nil },
-		Subject: true, Repeatable: true, HistoryKind: HistoryChange, Positional: func(n *Noun) []string { return []string{renameArg(n)} },
-		Params: renameParams, Writes: roleWrites(RoleLabel), Run: runRename},
-	{Verb: "move", Description: "Move a thing to another owner: write its owner reference (to)",
-		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && writableRole(n, RoleOwner) != nil },
-		Subject: true, Many: true, Repeatable: true, HistoryKind: HistoryChange, Positional: func(*Noun) []string { return []string{"to"} },
-		Params: moveParams, Writes: roleWrites(RoleOwner), Run: runMove},
-	{Verb: "duplicate", Description: "Create a copy of a thing: every prop create writes, from the thing, with prop=value overrides (pairs or changes); answers the new thing",
-		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Get != nil && n.Store.Create != nil && len(createProps(n)) > 0 },
-		Subject: true, HistoryKind: HistoryChange, Positional: func(*Noun) []string { return []string{"pairs"} },
-		Params: duplicateParams, Writes: duplicateWrites, Run: runDuplicate},
-	{Verb: "archive", Description: "Archive a thing: set its archive prop",
-		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && writableRole(n, RoleArchive) != nil },
-		Subject: true, Many: true, Repeatable: true, HistoryKind: HistoryChange,
-		Writes: roleWrites(RoleArchive), Run: archiveRun(true)},
-	{Verb: "restore", Description: "Restore an archived thing: clear its archive prop",
-		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && writableRole(n, RoleArchive) != nil },
-		Subject: true, Many: true, Repeatable: true, HistoryKind: HistoryChange,
-		SubjectFixed: archivedRows,
-		Writes:       roleWrites(RoleArchive), Run: archiveRun(false)},
-}
 
 // archivedRows is the subject choices of restore: the noun's list, where the
 // archive prop is true (list.hide-archived hides those rows from the default
@@ -336,7 +300,7 @@ func (r *Runtime) focusValue(op Operation, name, focus string) (focusThing, bool
 	if !ok || !param.Focus || param.Required || param.Noun == "" || focus == "" {
 		return focusThing{}, false
 	}
-	if setting := focusSettings[op.Standard]; setting != "" && param.Noun != op.Noun && !r.helpFlag(setting, true) {
+	if row := standardRow(op.Standard); row != nil && row.FocusSetting != "" && param.Noun != op.Noun && !r.helpFlag(row.FocusSetting, true) {
 		return focusThing{}, false
 	}
 	id := r.nounInstance(r.CanonicalNoun(param.Noun), focus)
@@ -367,11 +331,12 @@ func (f focusFills) notify(c Ctx) {
 }
 
 // createFill fills values' omitted FromFocus props from the focus the
-// request was made at (focusValue), and answers what it filled, each as
-// "prop label".
+// request was made at (focusValue, with the parameters of the standard
+// verb running: Ctx.standard), and answers what it filled, each as "prop
+// label".
 func (r *Runtime) createFill(n *Noun, c Ctx, values Thing) focusFills {
-	op, ok := r.Operations[n.Name+".create"]
-	if !ok || op.Standard != "create" {
+	op, ok := r.Operations[c.standard]
+	if !ok {
 		return nil
 	}
 	focus := r.askedAt
@@ -476,11 +441,16 @@ func (r *Runtime) propAliasClash(n *Noun, prop string) error {
 }
 
 // propSetAlias reports whether an alias named noun.prop is that prop's
-// set: its action noun's standard set with the preset prop the alias's
-// own name. Only that alias may share a prop's name.
+// write: its action is a standard verb of the noun that writes props
+// (WritesProps: set) with the preset prop the alias's own name. Only that
+// alias may share a prop's name.
 func (r *Runtime) propSetAlias(noun, prop string, a ActionAlias) bool {
 	op, ok := r.Operations[a.Action]
-	return ok && op.Noun == noun && op.Standard == "set" && fmt.Sprint(a.Args["prop"]) == prop
+	if !ok || op.Noun != noun {
+		return false
+	}
+	row := standardRow(op.Standard)
+	return row != nil && row.WritesProps && fmt.Sprint(a.Args["prop"]) == prop
 }
 
 // aliasPropClash is the clash of an alias named after a prop of its noun
@@ -503,9 +473,9 @@ func (r *Runtime) StandardShadows() []string {
 		if n.Store == nil {
 			continue
 		}
-		for _, v := range standardVerbs {
+		for _, v := range standardTable() {
 			op, ok := r.Operations[name+"."+v.Verb]
-			if ok && op.Standard == "" && v.fits(n) {
+			if ok && op.Standard == "" && v.unmet(r, n) == "" {
 				out = append(out, fmt.Sprintf("info: %s is a named verb: it shadows the standard %s of %s", r.DisplayKey(op.Key()), v.Verb, r.DisplayNoun(name)))
 			}
 		}

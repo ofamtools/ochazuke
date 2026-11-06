@@ -185,14 +185,18 @@ type CatalogVerb struct {
 	Slot          string                        `json:"slot,omitempty"`
 	Timeout       string                        `json:"timeout,omitempty"`
 	Disabled      bool                          `json:"disabled,omitempty"`
-	Rows          string                        `json:"rows,omitempty"`
-	Quiet         bool                          `json:"quiet,omitempty"`
-	Many          bool                          `json:"many,omitempty"`
-	ByAssociation bool                          `json:"byAssociation,omitempty"`
-	FocusBound    bool                          `json:"focusBound,omitempty"`
-	Positional    []string                      `json:"positional,omitempty"`
-	History       string                        `json:"history,omitempty"`
-	Builtin       bool                          `json:"builtin"`
+	// Unavailable is why the verb cannot run on its noun (a core verb its
+	// store lacks a handler for; Operation.Unavailable); Disabled is then
+	// true too.
+	Unavailable   string   `json:"unavailable,omitempty"`
+	Rows          string   `json:"rows,omitempty"`
+	Quiet         bool     `json:"quiet,omitempty"`
+	Many          bool     `json:"many,omitempty"`
+	ByAssociation bool     `json:"byAssociation,omitempty"`
+	FocusBound    bool     `json:"focusBound,omitempty"`
+	Positional    []string `json:"positional,omitempty"`
+	History       string   `json:"history,omitempty"`
+	Builtin       bool     `json:"builtin"`
 	// Aliases are the verb's other names (ochazuke.ActionAlias: the alias
 	// as noun.verb, its noun and verb, a deprecated one's since and
 	// removeAfter). A host mounting the catalog may register them as
@@ -385,7 +389,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		verb.ByAssociation = op.ByAssociation
 		verb.FocusBound = op.FocusBound
 		verb.Slot = op.Slot
-		verb.Disabled = op.Disabled || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)
+		verb.Disabled, verb.Unavailable = verbDisabled(r, op), op.Unavailable
 		if op.Timeout > 0 {
 			verb.Timeout = op.Timeout.String()
 		}
@@ -544,3 +548,10 @@ var frameworkShortNames = sync.OnceValue(func() map[string]bool {
 	}
 	return names
 })
+
+// verbDisabled is a catalog verb's disabled: the operation is disabled,
+// unavailable on its noun (Operation.Unavailable) or gated by a boolean
+// setting that is off.
+func verbDisabled(r *ochazuke.Runtime, op ochazuke.Operation) bool {
+	return op.Disabled || op.Unavailable != "" || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)
+}

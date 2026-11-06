@@ -8,8 +8,10 @@ import (
 	"strconv"
 )
 
-// EditFormsSetting enables generation of standard edit verbs. Set it before
-// declaring stores or mounting a catalog; an application's own edit is unchanged.
+// EditFormsSetting makes the standard edit verbs available: off, every
+// thing noun still has edit, unavailable with the reason "forms.edit is
+// off". Set it before declaring stores or mounting a catalog; an
+// application's own edit is unchanged.
 const EditFormsSetting = "forms.edit"
 
 // EditApplySetting chooses immediate debounced writes or one confirmed write.
@@ -17,16 +19,6 @@ const EditApplySetting = "forms.edit-apply"
 
 const editFormID = "edit-form"
 const editOpenSlot = "standard-edit-open"
-
-func init() {
-	standardVerbs = append(standardVerbs, standardVerb{
-		Verb: "edit", Description: "Edit a thing's writable props in a form; supplied props write directly without opening a form",
-		Kinds:   []string{Collection, Singleton, Instances},
-		Needs:   func(n *Noun) bool { return n.Store.Get != nil && n.Store.Patch != nil && len(writableProps(n)) > 0 },
-		Subject: true, HistoryKind: HistoryAction, Params: editParams,
-		Handler: func(r *Runtime, n *Noun) AppHandler { return r.EditHandler(n.Name) },
-	})
-}
 
 func editParams(n *Noun) map[string]Parameter {
 	params := map[string]Parameter{}
@@ -289,9 +281,12 @@ func (r *Runtime) focusedEdit(focus string) (Request, bool) {
 	if n := r.Noun(noun); n == nil || n.NoEditKey {
 		return Request{}, false
 	}
-	if op, ok := r.Operation(noun + ".edit"); ok && op.Standard == "edit" {
-		q := Request{Noun: noun, Verb: "edit", Target: focus}
-		return q, r.Available(q, focus, r.Mode)
+	// The noun's standard verb that opens its form (a Form row: edit).
+	for _, v := range standardTable() {
+		if op, ok := r.Operation(noun + "." + v.Verb); v.Form && ok && op.Standard == v.Verb {
+			q := Request{Noun: noun, Verb: v.Verb, Target: focus}
+			return q, r.Available(q, focus, r.Mode)
+		}
 	}
 	return Request{}, false
 }

@@ -247,7 +247,7 @@ func TestHelpListsStandardVerbsOnOneLine(t *testing.T) {
 	for _, l := range strings.Split(top.String(), "\n") {
 		if strings.HasPrefix(strings.TrimSpace(l), "ext-task ") {
 			seen = true
-			if !strings.Contains(l, "launch done · std get list watch set rename move") {
+			if !strings.Contains(l, "launch done · std get list set edit watch rename move") {
 				t.Fatalf("the noun's summary names its own verbs first: %q", l)
 			}
 		}

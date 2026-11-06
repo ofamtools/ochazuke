@@ -124,14 +124,15 @@ func TestStandardWriteVerbs(t *testing.T) {
 	if del := r.Operations["task.delete"]; !del.Many || del.Confirm != DefaultDeleteConfirm {
 		t.Fatalf("delete many %v confirm %q", del.Many, del.Confirm)
 	}
-	// A store without the handler, or with nothing writable, has no verb.
+	// A store without the handler, or with nothing writable, has the verb,
+	// unavailable with the reason; running it fails with that reason.
 	r2 := NewRuntime()
 	r2.Define("ro").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", ReadOnly: true}).Store(Store{Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil }})
-	if _, ok := r2.Operations["ro.set"]; ok {
-		t.Fatal("set on a noun with no writable prop")
+	if op := r2.Operations["ro.set"]; op.Unavailable != "it has no writable prop" {
+		t.Fatalf("set on a noun with no writable prop: %q", op.Unavailable)
 	}
-	if _, ok := r2.ActionAlias("ro.patch"); ok {
-		t.Fatal("patch without set")
+	if _, err := r2.Execute(Request{Noun: "ro", Verb: "set", Args: Arguments{"id": "x", "prop": "name", "value": "y"}}); err == nil || !strings.Contains(err.Error(), "it has no writable prop") {
+		t.Fatalf("unavailable set ran: %v", err)
 	}
 	// The application's own patch wins over the generated alias, silently.
 	r3 := NewRuntime()

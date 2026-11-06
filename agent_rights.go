@@ -175,13 +175,13 @@ func (r *Runtime) agentVerdict(c Context, q Request, op Operation) Verdict {
 func (r *Runtime) agentNeverReason(op Operation) string {
 	if op.Destructive {
 		reason := "agents never delete"
-		if archive, ok := r.Operation(op.Noun + ".archive"); ok {
+		if archive, ok := r.Operation(op.Noun + ".archive"); ok && archive.Unavailable == "" {
 			return reason + "; run " + r.DisplayKey(archive.Key())
 		}
 		return reason + "; ask the owner"
 	}
 	reason := "agents may never run this verb; ask the owner"
-	if archive, ok := r.Operation(op.Noun + ".archive"); ok && archive.Key() != op.Key() {
+	if archive, ok := r.Operation(op.Noun + ".archive"); ok && archive.Unavailable == "" && archive.Key() != op.Key() {
 		reason += ", or run " + r.DisplayKey(archive.Key())
 	}
 	return reason

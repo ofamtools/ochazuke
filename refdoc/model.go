@@ -28,7 +28,8 @@ type Model struct {
 // props, its aliases, whether it takes a subject (the key prop's
 // parameter, filled from the focus), lists rows, runs once over a
 // selection (many), repeats with . (a simple-value write), its history
-// kind and the confirm it asks by default.
+// kind, the confirm it asks by default, how its change is undone and
+// whether it is a core verb.
 type StandardVerb struct {
 	Verb        string   `json:"verb"`
 	Description string   `json:"description,omitempty"`
@@ -41,6 +42,14 @@ type StandardVerb struct {
 	Repeatable  bool     `json:"repeatable,omitempty"`
 	History     string   `json:"history,omitempty"`
 	Confirm     string   `json:"confirm,omitempty"`
+	// Undo is how history.undo reverts the verb's change: delete (it
+	// made a thing), restore (it wrote props), recreate (it removed a
+	// thing); "" for a verb that records no change.
+	Undo string `json:"undo,omitempty"`
+	// Core marks the verbs every thing noun has (unavailable with a
+	// reason where its store lacks what the verb needs); the others are
+	// offered only where the store has it.
+	Core bool `json:"core,omitempty"`
 }
 
 // Noun is a noun that declares props: its store's kind ("" without a
@@ -81,6 +90,9 @@ type Verb struct {
 	Name     string   `json:"name"`
 	Standard string   `json:"standard,omitempty"`
 	Aliases  []string `json:"aliases,omitempty"`
+	// Unavailable is why the verb cannot run on this noun ("" when it
+	// can): a core verb its store lacks a handler for.
+	Unavailable string `json:"unavailable,omitempty"`
 }
 
 // Setting is one declared setting: its name, type, default (in its file

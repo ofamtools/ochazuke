@@ -50,8 +50,11 @@ type Completion struct {
 // request runs in, its arguments and the instance it addresses (id, noun,
 // payload).
 type Ctx struct {
-	actor    Actor
-	source   string
+	actor  Actor
+	source string
+	// standard is the key of the standard verb whose row handler runs
+	// (standardVerb.operation), "" outside one.
+	standard string
 	Runtime  *Runtime
 	Context  Context
 	Args     Arguments

@@ -89,9 +89,7 @@ func (r *Runtime) propOptions(noun string) []option {
 	if n == nil || n.Store == nil {
 		return nil
 	}
-	_, get := r.Operations[n.Name+".get"]
-	_, set := r.Operations[n.Name+".set"]
-	if !get && !set {
+	if !r.offers(n.Name+".get") && !r.offers(n.Name+".set") {
 		return nil
 	}
 	out := make([]option, len(n.Props))

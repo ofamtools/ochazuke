@@ -208,8 +208,9 @@ type ListQuery struct {
 }
 
 // Store is a noun's row in the handler table: its kind and the handlers
-// that read and write its things, each optional. A standard verb exists on
-// the noun exactly when its handler is set (standardVerbs' Needs). Get
+// that read and write its things, each optional. Every core verb exists
+// on the noun; one whose handler is not set is unavailable with the
+// reason (core_verbs.go, the row's Needs). Get
 // answers the thing with that key ("" for a singleton); List answers the
 // things. ListParams are list's parameters beside where, props and limit.
 //
@@ -564,7 +565,7 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 		if p.Type != SettingString && p.Type != SettingInteger {
 			return fmt.Errorf("prop %s: a key is a string or an integer, not %s", key, p.Type)
 		}
-		if slices.Contains(standardParamNames, p.Name) {
+		if slices.Contains(standardParams(), p.Name) {
 			return fmt.Errorf("prop %s: a key may not take the name %s, a standard verb's parameter", key, p.Name)
 		}
 		p.ReadOnly = true // a key is the thing's identity: never written by set
@@ -584,7 +585,7 @@ func (r *Runtime) checkPropName(n *Noun, name string) error {
 	switch {
 	case name == "" || strings.ContainsAny(name, " \t\n=\".,") || strings.HasPrefix(name, "-") || strings.HasPrefix(name, "@"):
 		return fmt.Errorf("prop %q of %s must be one word without a dot", name, n.Name)
-	case slices.Contains(reservedStandardVerbs, name):
+	case slices.Contains(reservedVerbNames(), name):
 		return fmt.Errorf("prop %s of %s takes a standard verb's name", name, n.Name)
 	case n.prop(name) != nil:
 		return fmt.Errorf("prop %s is already declared", key)
@@ -647,7 +648,7 @@ func checkSchema(n *Noun) error {
 		by    map[string]string
 	}{{"Confirm", s.Confirm}, {"When", s.When}} {
 		for verb := range m.by {
-			if !slices.Contains(reservedStandardVerbs, verb) {
+			if !slices.Contains(reservedVerbNames(), verb) {
 				return fmt.Errorf("%s: store %s names %q, not a standard verb", n.Name, m.field, verb)
 			}
 		}
@@ -655,7 +656,7 @@ func checkSchema(n *Noun) error {
 	key := n.keyProp()
 	for name := range s.ListParams {
 		switch {
-		case slices.Contains(standardParamNames, name):
+		case slices.Contains(standardParams(), name):
 			return fmt.Errorf("%s: list parameter %s takes a standard parameter's name", n.Name, name)
 		case key != nil && name == key.Name:
 			return fmt.Errorf("%s: list parameter %s takes the key's name, which is reserved", n.Name, name)

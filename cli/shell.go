@@ -457,7 +457,7 @@ func (s *Shell) propRequest(noun, prop string, flags []string) (ochazuke.Request
 	r := s.Runtime
 	n := r.Noun(noun)
 	base, ok := r.Operations[n.Name+".set"]
-	if !ok {
+	if !ok || base.Unavailable != "" {
 		base, ok = r.Operations[n.Name+".get"]
 	}
 	if !ok {

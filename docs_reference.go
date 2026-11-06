@@ -59,39 +59,18 @@ func (r *Runtime) ReferenceModel() refdoc.Model {
 	return m
 }
 
-// standardNeeds says what each standard verb needs of a noun, as the
-// reference prints it: the row's Needs, in words (a test keeps one entry
-// per row).
-var standardNeeds = map[string]string{
-	"get":       "Store.Get",
-	"list":      "Store.List",
-	"watch":     "Store.Watch, else Store.List (a singleton: Store.Get)",
-	"create":    "Store.Create and a prop create writes",
-	"set":       "Store.Patch and a writable prop",
-	"edit":      "Store.Get, Store.Patch, a writable prop and forms.edit",
-	"delete":    "Store.Delete",
-	"rename":    "Store.Patch and a writable label prop (role label)",
-	"move":      "Store.Patch and a writable owner reference (role owner)",
-	"duplicate": "Store.Get, Store.Create and a prop create writes",
-	"archive":   "Store.Patch and a writable archive prop (role archive)",
-	"restore":   "Store.Patch and a writable archive prop (role archive)",
-}
-
-// standardAliases are the aliases a standard verb is registered with
-// (patch with set, owner decision 1), as the reference names them.
-var standardAliases = map[string][]string{"set": {"patch"}}
-
-// referenceStandardVerbs are the standard verb table's rows as the
-// reference shows them, in the table's order.
+// referenceStandardVerbs are the verb tables' rows as the reference shows
+// them, in the tables' order: what each needs (the row's Needs in words)
+// and its aliases come from the row.
 func referenceStandardVerbs() []refdoc.StandardVerb {
-	out := make([]refdoc.StandardVerb, 0, len(standardVerbs))
-	for _, v := range standardVerbs {
-		row := refdoc.StandardVerb{
-			Verb: v.Verb, Description: v.Description, Kinds: slices.Clone(v.Kinds), Needs: standardNeeds[v.Verb],
-			Subject: v.Subject, Rows: v.Rows, Many: v.Many, Repeatable: v.Repeatable, History: v.HistoryKind, Confirm: v.Confirm,
-		}
-		row.Aliases = slices.Clone(standardAliases[v.Verb])
-		out = append(out, row)
+	table := standardTable()
+	out := make([]refdoc.StandardVerb, 0, len(table))
+	for _, v := range table {
+		out = append(out, refdoc.StandardVerb{
+			Verb: v.Verb, Description: v.Description, Kinds: slices.Clone(v.Kinds), Needs: v.needsDoc(), Aliases: slices.Clone(v.Aliases),
+			Subject: v.TakesSubject, Rows: v.Rows, Many: v.Many, Repeatable: v.Repeatable, History: v.HistoryKind, Confirm: v.Confirm,
+			Undo: string(v.Undo), Core: !v.optional,
+		})
 	}
 	return out
 }
@@ -123,7 +102,7 @@ func (r *Runtime) referenceNouns() []refdoc.Noun {
 		slices.Sort(verbs)
 		for _, key := range verbs {
 			op := r.Operations[key]
-			verb := refdoc.Verb{Name: op.Verb, Standard: op.Standard}
+			verb := refdoc.Verb{Name: op.Verb, Standard: op.Standard, Unavailable: op.Unavailable}
 			for _, a := range r.AliasesOf(key) {
 				if a.Noun == name && !a.Bare {
 					verb.Aliases = append(verb.Aliases, a.Verb)

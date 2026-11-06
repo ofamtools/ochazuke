@@ -96,8 +96,8 @@ func TestStandardEditOptOutAndReadOnly(t *testing.T) {
 	}
 	s := (&derivedStore{key: "id"}).store()
 	r.Define("disabled").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title"}).Store(s)
-	if _, ok := r.Operation("disabled.edit"); ok {
-		t.Fatal("disabled noun unexpectedly offers edit")
+	if op, ok := r.Operation("disabled.edit"); !ok || op.Unavailable != "forms.edit is off" {
+		t.Fatalf("disabled noun's edit %+v, want unavailable: forms.edit is off", op)
 	}
 	r.Define("disabled").Verb("edit", func(Ctx) Result { return Done("own editor") })
 	if got := mustRun(t, r, Request{Noun: "disabled", Verb: "edit"}); got != "own editor" {
@@ -105,7 +105,7 @@ func TestStandardEditOptOutAndReadOnly(t *testing.T) {
 	}
 	on := NewRuntime()
 	on.Define("readonly").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", ReadOnly: true}).Store(s)
-	if _, ok := on.Operation("readonly.edit"); ok {
+	if on.offers("readonly.edit") {
 		t.Fatal("read-only noun unexpectedly offers edit")
 	}
 	on.Define("own").Verb("edit", func(Ctx) Result { return Done("existing editor") }).Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title"}).Store(s)

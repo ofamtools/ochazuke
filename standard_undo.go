@@ -9,8 +9,9 @@ import (
 )
 
 // Undo of the standard writes (standard verbs phase 1, lane S2b; plan
-// 2.8). Every standard change entry (create, set, delete, and the prop
-// rows that run as set) records what it changed: one ThingChange per
+// 2.8). Every standard change entry (a row with an Undo shape: create,
+// set, delete, archive, and the prop rows that run as set) records what it
+// changed: one ThingChange per
 // thing, with the changed props' values before and after, in the shape of
 // the csv example's Patch (examples/csv/app.go): a create has no Before, a
 // delete no After. A visual selection's write is one entry (Ctx.Each), so
@@ -68,31 +69,34 @@ func (r *Runtime) takeChanges(depth int) []ThingChange {
 	return out
 }
 
-// runRecording runs a standard verb's handler and, when its row is a
-// change (HistoryKind), notes what it did to the thing, read with the
-// store's Get around the run: the thing before (a verb with a subject),
-// and the thing after under the subject's key, or under the key prop of
-// the thing it answers (create). A thing that was not there before has no
-// Before, one that is gone after no After; when both are there, the props
-// the request writes (the row's Writes) are kept, and every other writable
-// prop whose value the write changed (sideChanges: what the store did on
-// its own, as a move clearing a parent), so undo restores all of them. No verb is named:
-// the shapes come from the table and the store.
+// runRecording runs a standard verb's handler and, when its row records a
+// change (Undo), notes what it did to the thing, read with the store's Get
+// around the run: the thing before (a verb that acts on an existing
+// thing), and the thing after under the subject's key, or under the key
+// prop of the thing it answers (a verb that Creates one: undo deletes it).
+// A thing that was not there before has no Before, one that is gone after
+// no After; when both are there, the props the request writes (the row's
+// Writes) are kept, and every other writable prop whose value the write
+// changed (sideChanges: what the store did on its own, as a move clearing
+// a parent), so undo restores all of them. No verb is named: the shapes
+// come from the row (Undo, Creates) and the store.
 //
 // A store that does not declare Undo (or has no Get) is not read around
 // its writes, which would cost it two reads per write for nothing: its
 // change is noted by noun and key alone, a mark with no values, so
 // history.undo explains why it cannot undo rather than skip to an older one.
-func (r *Runtime) runRecording(verb string, n *Noun, c Ctx, run func(*Runtime, *Noun, Ctx) (any, error)) (any, error) {
-	row := standardRow(verb)
-	if row == nil || row.HistoryKind != HistoryChange {
+func (r *Runtime) runRecording(row standardVerb, n *Noun, c Ctx) (any, error) {
+	run := row.Run
+	if row.Undo == undoNone {
 		return run(r, n, c)
 	}
+	// The thing it acts on: its subject, or (Creates) the one it answers.
+	subject := row.TakesSubject && !row.Creates
 	if !n.Store.Undo || n.Store.Get == nil {
 		key, _ := r.subjectKey(n, c)
 		value, err := run(r, n, c)
 		if err == nil {
-			if !row.Subject {
+			if !subject {
 				key = answerKey(n, value)
 			}
 			r.noteChange(ThingChange{Noun: n.Name, Key: key})
@@ -106,12 +110,12 @@ func (r *Runtime) runRecording(verb string, n *Noun, c Ctx, run func(*Runtime, *
 		return nil
 	}
 	var names []string
-	if row.Writes != nil && row.Subject {
+	if row.Writes != nil && subject {
 		names, _ = row.Writes(n, c.Args)
 	}
 	key, keyed := "", false
 	var before, whole map[string]any
-	if row.Subject {
+	if subject {
 		if k, err := r.subjectKey(n, c); err == nil {
 			key, keyed = k, true
 			if t := read(k); t != nil {

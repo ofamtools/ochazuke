@@ -71,8 +71,9 @@ func mustPanic(t *testing.T, want string, fn func()) {
 	fn()
 }
 
-// TestStandardVerbsNeeds: a row is registered exactly when its kind fits
-// and the store has its handler.
+// TestStandardVerbsNeeds: a row is offered (registered and available)
+// exactly when its kind fits and the store has its handler; every core
+// verb is registered anyway, unavailable with the reason.
 func TestStandardVerbsNeeds(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -96,7 +97,16 @@ func TestStandardVerbsNeeds(t *testing.T) {
 					if op.Standard != verb || op.Builtin {
 						t.Fatalf("%s: standard %q builtin %v", verb, op.Standard, op.Builtin)
 					}
-					got = append(got, verb)
+					if op.Unavailable == "" {
+						got = append(got, verb)
+					} else if r.Available(Request{Noun: "thing", Verb: verb}, "app", r.Mode) {
+						t.Fatalf("%s is available although unavailable: %s", verb, op.Unavailable)
+					}
+				}
+			}
+			for _, verb := range CoreVerbs() {
+				if _, ok := r.Operations["thing."+verb]; !ok {
+					t.Fatalf("core verb %s missing", verb)
 				}
 			}
 			if !reflect.DeepEqual(got, c.want) {
@@ -179,7 +189,7 @@ func TestPropClashRules(t *testing.T) {
 // other parameter of the standard verbs may take it (owner decisions 4, 18).
 func TestKeyNameReserved(t *testing.T) {
 	ok := Store{List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}
-	for _, name := range standardParamNames {
+	for _, name := range standardParams() {
 		mustPanic(t, "a standard verb's parameter", func() { NewRuntime().Define("x").Props(PropSpec{Name: name, Key: true}) })
 	}
 	mustPanic(t, "takes the key's name", func() {

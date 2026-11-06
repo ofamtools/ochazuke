@@ -263,10 +263,10 @@ func renderStandardVerbs(m Model, opts Options) string {
 	line := func(format string, a ...any) { fmt.Fprintf(&b, format+"\n", a...) }
 	line("# Standard verbs")
 	line("")
-	line("A noun that declares props and a store gets the standard verbs its store supports, with no handler of its own: a verb exists on a noun exactly when the row's kind fits the store and the store has what the row needs. A verb the noun declares by hand under a standard name replaces the generated one. A host mounting a tool's catalog gets the same verbs, forwarded.")
+	line("A noun that declares props and a store is a thing noun: it gets the standard verbs with no handler of its own. Every thing noun has each core verb; where the row's kind does not fit the store, or the store lacks what the row needs, the verb is listed but unavailable, with the reason. A verb that is not core exists on a noun only where the store has what it needs. A verb the noun declares by hand under a standard name replaces the generated one. A host mounting a tool's catalog gets the same verbs, forwarded.")
 	line("")
-	line("| Verb | Kinds | Needs | Subject | Many | Repeat | History | Confirm | What it does |")
-	line("|---|---|---|---|---|---|---|---|---|")
+	line("| Verb | Core | Kinds | Needs | Subject | Many | Repeat | History | Undo | Confirm | What it does |")
+	line("|---|---|---|---|---|---|---|---|---|---|---|")
 	yes := func(v bool) string {
 		if v {
 			return "yes"
@@ -276,10 +276,10 @@ func renderStandardVerbs(m Model, opts Options) string {
 	for _, v := range m.StandardVerbs {
 		name := code(v.Verb)
 		name += aliasList(v.Aliases)
-		line("| %s | %s | %s | %s | %s | %s | %s | %s | %s |", cell(name), cell(strings.Join(v.Kinds, ", ")), cell(v.Needs), yes(v.Subject), yes(v.Many), yes(v.Repeatable), cell(v.History), cell(codeOrEmpty(v.Confirm)), cell(v.Description))
+		line("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |", cell(name), yes(v.Core), cell(strings.Join(v.Kinds, ", ")), cell(v.Needs), yes(v.Subject), yes(v.Many), yes(v.Repeatable), cell(v.History), cell(v.Undo), cell(codeOrEmpty(v.Confirm)), cell(v.Description))
 	}
 	line("")
-	line("The subject is the parameter named after the noun's key prop: given, it names the thing; left out, it is the thing the request acts for (the focus). Many runs once over a visual selection, as one undo step. Repeat: `.` repeats the write when it writes only simple values (enum, boolean, number, duration).")
+	line("The subject is the parameter named after the noun's key prop: given, it names the thing; left out, it is the thing the request acts for (the focus). Many runs once over a visual selection, as one undo step; a verb without both a subject and many is never run over a selection. Undo says how history.undo reverts the change: delete the thing made, restore the props written, or recreate the thing removed. Repeat: `.` repeats the write when it writes only simple values (enum, boolean, number, duration).")
 	line("")
 	line("## Nouns with props")
 	if len(m.Nouns) == 0 {
@@ -300,6 +300,9 @@ func renderStandardVerbs(m Model, opts Options) string {
 		for _, v := range n.Verbs {
 			text := code(v.Name)
 			text += aliasList(v.Aliases)
+			if v.Unavailable != "" {
+				text += " (unavailable: " + v.Unavailable + ")"
+			}
 			if v.Standard != "" {
 				std = append(std, text)
 			} else {

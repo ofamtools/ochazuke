@@ -9,12 +9,14 @@ import (
 	"strings"
 )
 
-// The standard verbs: one table (standardVerbs), one row per verb, like
-// the setting verbs (setting_verbs.go). A noun that declares props and a
-// store (props.go) gets NOUN.VERB for every row that fits its store's kind
-// and whose handler the store has (Needs); the result is marked
-// Operation.Standard with the row's name. Which nouns support which verb is
-// a query over this table, and the catalog publishes it (standard).
+// The standard verbs: the core verb table and the legacy one
+// (core_verbs.go), one row per verb, like the setting verbs
+// (setting_verbs.go). A noun that declares props and a store (props.go)
+// gets NOUN.VERB for every core row, unavailable with a reason where its
+// store lacks what the row needs, and for every legacy row its store
+// meets; each is marked Operation.Standard with the row's name. Which
+// nouns support which verb is a query over the tables, and the catalog
+// publishes it (standard, unavailable).
 //
 // The application wins: a verb it registers under a standard verb's name
 // replaces the generated one, before or after (Register; the generated
@@ -27,50 +29,6 @@ import (
 // above it), read as the key prop in its Data, else its id. So a key
 // argument wins over a target, and a target over the focus.
 
-// standardVerb is one row of the table: the verb, the store kinds it fits,
-// what it needs of the noun (its store's handler, a writable prop),
-// whether it takes a subject, whether its answer is rows of the noun,
-// whether a visual selection runs it once over every row (Many), its
-// history kind, whether . repeats it (only ever a simple-value write,
-// simpleWrite), the confirm prompt it asks by default, its own parameters
-// and its handler. Writes names the props a request writes, for a verb
-// that writes values (create, set): the simple-value test reads them.
-type standardVerb struct {
-	Verb        string
-	Description string
-	Kinds       []string
-	Needs       func(n *Noun) bool
-	Subject     bool
-	// SubjectFixed, when set, gives the subject parameter constant
-	// arguments for its choices source (Parameter.SourceFixed): the rows
-	// the verb applies to, from data of the noun.
-	SubjectFixed func(n *Noun) map[string]any
-	// NoFocus makes the subject optional and never filled from the focus
-	// (watch: omitted, it watches every thing).
-	NoFocus bool
-	Rows    bool
-	// Record marks a verb whose answer is one thing's props: the palette
-	// shows it as prop and value rows (palette.standard-verbs record).
-	Record      bool
-	Many        bool
-	Repeatable  bool
-	HistoryKind string
-	Destructive bool
-	Confirm     string
-	// FocusSetting names the boolean setting that turns off the row's
-	// focus fills of values (a parameter with Focus that is not the
-	// subject: create's FromFocus props); "" for none.
-	FocusSetting string
-	Positional   func(n *Noun) []string
-	Params       func(n *Noun) map[string]Parameter
-	Writes       func(n *Noun, a Arguments) ([]string, error)
-	Run          func(r *Runtime, n *Noun, c Ctx) (any, error)
-	Handler      func(*Runtime, *Noun) AppHandler
-	// ConfirmFor is the row's Operation.ConfirmFor on noun n, set when the
-	// operation asks at all (Confirm, or the store's prompt, not "").
-	ConfirmFor func(r *Runtime, n *Noun, c Context, q Request, prompt string) string
-}
-
 // DefaultDeleteConfirm is the prompt a standard delete asks before it runs
 // unless the store names its own (Store.Confirm["delete"]; "" asks
 // nothing): a delete is never silent.
@@ -81,105 +39,57 @@ const DefaultDeleteConfirm = "Delete {{noun}} {{label}}?"
 // happens. delete.archive-confirm off archives without asking.
 const DefaultArchiveConfirm = "Archive {{noun}} {{label}}? (delete it again to delete it for good)"
 
-// standardVerbs are the standard verbs this phase implements, in the order
-// help lists them. patch is not a row: it is an alias of set (owner
-// decision 1), registered with it.
-var standardVerbs = []standardVerb{
-	{Verb: "get", Description: "Read a thing's props: every prop as an object, one prop's value (prop), or some props (props)",
-		Kinds: []string{Collection, Singleton, Instances}, Needs: func(n *Noun) bool { return n.Store.Get != nil },
-		Subject: true, Record: true, HistoryKind: HistoryFetch, Positional: func(*Noun) []string { return []string{"prop"} }, Params: getParams, Run: runGet},
-	{Verb: "list", Description: "List the things, each its props with id and label; where keeps the things whose props equal the values given; filter applies a named saved prop filter",
-		Kinds: []string{Collection, Instances}, Needs: func(n *Noun) bool { return n.Store.List != nil },
-		Rows: true, HistoryKind: HistoryFetch, Params: listParams, Positional: listPositional, Run: runList},
-	{Verb: "watch", Description: "Stream what happens to the things (one, or those where matches): a JSON line per thing added, modified or deleted, from since when given; the CLI streams until interrupted",
-		Kinds: []string{Collection, Singleton, Instances}, Needs: func(n *Noun) bool { return watchFits(*n.Store) },
-		Subject: true, NoFocus: true, HistoryKind: HistoryFetch, Params: watchParams, Run: runWatch},
-	{Verb: "create", Description: "Create a thing from the props given (each omitted one its default); answers the new thing",
-		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Create != nil && len(createProps(n)) > 0 },
-		HistoryKind: HistoryChange, FocusSetting: CreateFromFocusSetting, Positional: createPositional, Params: createParams, Writes: createWrites, Run: runCreate},
-	{Verb: "set", Description: "Write a thing's props: one prop (prop and value, or toggle on a boolean), or several (changes, or prop=value words); answers the thing after the write",
-		Kinds: []string{Collection, Singleton, Instances}, Needs: func(n *Noun) bool { return n.Store.Patch != nil && len(writableProps(n)) > 0 },
-		Subject: true, Many: true, Repeatable: true, HistoryKind: HistoryChange, Positional: func(*Noun) []string { return []string{"prop", "value", "pairs"} },
-		Params: setParams, Writes: setWrites, Run: runSet},
-	{Verb: "delete", Description: "Delete a thing (asks first)",
-		Kinds: []string{Collection}, Needs: func(n *Noun) bool { return n.Store.Delete != nil },
-		Subject: true, Many: true, Destructive: true, HistoryKind: HistoryChange, Confirm: DefaultDeleteConfirm, ConfirmFor: deleteConfirm, Run: runDelete},
-}
-
-// reservedStandardVerbs are the names of every standard verb, those later
-// phases add included: no prop takes one.
-var reservedStandardVerbs = []string{"get", "list", "create", "set", "patch", "edit", "delete", "watch", "rename", "move", "duplicate", "archive", "restore"}
-
-// standardParamNames are the parameters the standard verbs take beside the
-// subject: no key prop and no store list parameter takes one.
-var standardParamNames = []string{"prop", "props", "where", "filter", "limit", "since", "value", "toggle", "changes", "pairs", "to"}
-
-// StandardVerbs lists the verbs of the standard verb table, in order.
-func StandardVerbs() []string {
-	out := make([]string, len(standardVerbs))
-	for i, v := range standardVerbs {
-		out[i] = v.Verb
-	}
-	return out
-}
-
-// standardRow is the table's row of that verb, nil when none is.
-func standardRow(verb string) *standardVerb {
-	for i := range standardVerbs {
-		if standardVerbs[i].Verb == verb {
-			return &standardVerbs[i]
-		}
-	}
-	return nil
-}
-
-// fits reports whether a row applies to a noun with a store.
-func (v standardVerb) fits(n *Noun) bool {
-	return slices.Contains(v.Kinds, n.Store.Kind) && v.Needs(n)
-}
-
-// ensureStandardVerbs registers, refreshes or drops the generated verbs of
-// a noun with a store: a row that fits is registered (or re-registered with
-// the noun's current props); one that no longer fits is dropped; a verb the
-// application registered under the row's name is left alone. set brings
-// its alias patch, unless the noun has a verb of that name.
+// ensureStandardVerbs registers or refreshes the generated verbs of a
+// noun with a store: every core row (core_verbs.go), available when the
+// store meets its needs and otherwise registered unavailable with the
+// reason (Operation.Unavailable); a legacy row only where it is met, and
+// dropped where it no longer is. A verb the application registered under
+// the row's name is left alone, and so is a name the application gave an
+// alias or a nested noun. A row's Aliases come with it, unless the noun
+// has a verb of that name.
 func (r *Runtime) ensureStandardVerbs(n *Noun) {
-	for _, v := range standardVerbs {
+	for _, v := range standardTable() {
 		key := n.Name + "." + v.Verb
 		existing, ok := r.Operations[key]
-		if ok && existing.Standard == "" {
-			continue // the application's verb wins
+		if ok && existing.Standard == "" || !ok && r.nameTaken(key) {
+			continue // the application's verb (or alias, or noun) wins
 		}
 		if ok {
 			delete(r.Operations, key)
 		}
-		if !v.fits(n) {
+		reason := v.unmet(r, n)
+		if reason != "" && v.optional {
 			n.Verbs = slices.DeleteFunc(n.Verbs, func(verb string) bool { return verb == v.Verb })
-			if v.Verb == "set" {
-				r.dropStandardAlias(n.Name + ".patch")
+			for _, alias := range v.Aliases {
+				r.dropStandardAlias(n.Name + "." + alias)
 			}
 			continue
 		}
-		op := v.operation(r, n)
-		if v.Handler != nil && op.App == nil {
-			n.Verbs = slices.DeleteFunc(n.Verbs, func(verb string) bool { return verb == v.Verb })
-			continue
-		}
-		r.Register(op)
+		r.Register(v.operation(r, n, reason))
 		if g := n.Store.When[v.Verb]; g != "" {
 			r.SetAvailability(key, g)
 		}
 		if !slices.Contains(n.Verbs, v.Verb) {
 			n.Verbs = append(n.Verbs, v.Verb)
 		}
-		if v.Verb == "set" {
-			if _, taken := r.Operations[n.Name+".patch"]; !taken {
-				if err := r.AddActionAlias(ActionAlias{Alias: n.Name + ".patch", Action: key, Source: AliasStandard}); err != nil {
+		for _, alias := range v.Aliases {
+			if _, taken := r.Operations[n.Name+"."+alias]; !taken {
+				if err := r.AddActionAlias(ActionAlias{Alias: n.Name + "." + alias, Action: key, Source: AliasStandard}); err != nil {
 					panic(err.Error())
 				}
 			}
 		}
 	}
+}
+
+// nameTaken reports whether key names something the application declared
+// that is not an operation: an alias it (or the user) registered, or a
+// noun nested under the noun.
+func (r *Runtime) nameTaken(key string) bool {
+	if a, ok := r.actionNames.aliases[key]; ok && a.Source != AliasStandard {
+		return true
+	}
+	return r.Nouns[key] != nil
 }
 
 // dropStandardAlias removes a generated alias of that name, if there is one.
@@ -189,15 +99,17 @@ func (r *Runtime) dropStandardAlias(name string) {
 	}
 }
 
-// operation is the row's operation on noun n.
-func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
+// operation is the row's operation on noun n; reason, when not "", is why
+// it cannot run there (Operation.Unavailable): the operation is listed,
+// never available, and fails with the reason if run.
+func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 	name := n.Name
 	params := map[string]Parameter{}
 	if v.Params != nil {
 		params = v.Params(n)
 	}
-	op := Operation{Verb: v.Verb, Noun: name, Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Many: v.Many, Destructive: v.Destructive}
-	if key := n.keyProp(); v.Subject && key != nil {
+	op := Operation{Verb: v.Verb, Noun: name, Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Many: v.Many, Destructive: v.Destructive, Unavailable: reason}
+	if key := n.keyProp(); v.TakesSubject && key != nil {
 		p := subjectParameter(r, n, *key)
 		if v.NoFocus {
 			p.Focus = false
@@ -242,23 +154,35 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 		op.Rows = name
 		op.Result = "rows"
 	}
-	if v.Handler != nil {
-		op.App = v.Handler(r, n)
-		return op
+	op.App = v.handler(r, n, reason)
+	return op
+}
+
+// handler is the row's AppHandler on noun n: one that fails with reason
+// when the verb is unavailable there, the row's own Handler, else Run
+// through runRecording, once per selected row for a Many verb.
+func (v standardVerb) handler(r *Runtime, n *Noun, reason string) AppHandler {
+	if reason != "" {
+		return func(Ctx) Result { return Failed(errors.New(reason)) }
 	}
-	run, many, verb := v.Run, v.Many, v.Verb
+	if v.Handler != nil {
+		return v.Handler(r, n)
+	}
+	name := n.Name
+	row, many, key := v, v.Many, name+"."+v.Verb
 	one := func(c Ctx) Result {
 		noun := c.Runtime.Nouns[name]
 		if noun == nil || noun.Store == nil {
 			return Failed(fmt.Errorf("%s has no store", name))
 		}
-		value, err := c.Runtime.runRecording(verb, noun, c, run) // standard_undo.go
+		c.standard = key
+		value, err := c.Runtime.runRecording(row, noun, c) // standard_undo.go
 		if err != nil {
 			return Failed(err)
 		}
 		return Done(value)
 	}
-	op.App = func(c Ctx) Result {
+	return func(c Ctx) Result {
 		if many && len(c.Subjects) > 1 {
 			// A visual selection: one write per row, one undo group
 			// (Ctx.Each); each row's subject is that row, never a key
@@ -271,7 +195,6 @@ func (v standardVerb) operation(r *Runtime, n *Noun) Operation {
 		}
 		return one(c)
 	}
-	return op
 }
 
 // confirmKeys are the context a store's ConfirmFor reads and the keys of
@@ -1045,8 +968,8 @@ func (r *Runtime) repeatableStandard(q Request) bool {
 
 // propsAvailable is the per-prop layer of a standard verb's availability
 // (PropSpec.When): a request naming a prop the guard hides at focus is
-// unavailable, and so is set naming none when no prop it could write is
-// offered there.
+// unavailable, and so is a prop write (WritesProps) naming none when no
+// prop it could write is offered there.
 func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState) bool {
 	op, ok := r.Operations[q.Key()]
 	if !ok || op.Standard == "" {
@@ -1056,16 +979,15 @@ func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState) bool {
 	if n == nil || n.Store == nil {
 		return true
 	}
-	var names []string
-	switch row := standardRow(op.Standard); {
-	case row == nil:
+	row := standardRow(op.Standard)
+	if row == nil {
 		return true
-	case row.Writes != nil:
+	}
+	var names []string
+	if row.Writes != nil {
 		names, _ = row.Writes(n, q.Args)
-	default:
-		if p := StringArg(q.Args, "prop", ""); p != "" {
-			names = []string{p}
-		}
+	} else if p := StringArg(q.Args, "prop", ""); p != "" {
+		names = []string{p}
 	}
 	shown := func(p PropSpec) bool { return r.propShown(p, focus, mode, q.Args) }
 	for _, name := range names {
@@ -1073,7 +995,9 @@ func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState) bool {
 			return false
 		}
 	}
-	if op.Standard == "set" && len(names) == 0 {
+	if row.WritesProps && row.Writes != nil && len(names) == 0 {
+		// A write naming no prop yet (set's args form) needs one it could
+		// write offered here.
 		return slices.ContainsFunc(writableProps(n), shown)
 	}
 	return true

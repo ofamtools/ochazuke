@@ -749,7 +749,7 @@ func (r *Runtime) Available(q Request, focus string, mode ModeState) bool {
 		}
 		q = pq
 	}
-	if op, ok := r.Operation(q.Key()); ok && (op.Disabled || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)) {
+	if op, ok := r.Operation(q.Key()); ok && (op.Disabled || op.Unavailable != "" || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)) {
 		return false
 	}
 	for _, name := range r.VerbAvailability(q.Key()) {

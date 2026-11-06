@@ -220,6 +220,7 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 	op.Foreground = v.Foreground
 	op.Slot = v.Slot
 	op.Disabled = v.Disabled
+	op.Unavailable = v.Unavailable
 	if v.Timeout != "" {
 		limit, err := time.ParseDuration(v.Timeout)
 		if err != nil || limit < 0 {

@@ -263,6 +263,12 @@ type Operation struct {
 	// Catalog hosts receive its Disabled snapshot, never the setting name.
 	EnabledSetting string `json:"enabledSetting,omitempty"`
 	Disabled       bool   `json:"disabled,omitempty"`
+	// Unavailable, when not "", is why the verb cannot run on its noun:
+	// a core verb whose store lacks what it needs (core_verbs.go: "its
+	// store creates no things (no Store.Create)"). The verb is listed (a
+	// thing noun has every core verb) but never available, and running it
+	// fails with the reason. The catalog's unavailable.
+	Unavailable string `json:"unavailable,omitempty"`
 	// Rows names the noun whose rows the verb's result lists (a list
 	// verb's JSON array of rows of that noun); "" when the result is not
 	// rows. It is data for hosts (the catalog's rows); the runtime does
@@ -1034,12 +1040,8 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
 	}
-	if op.Standard == "create" && slices.ContainsFunc(r.Noun(op.Noun).Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }) {
-		args, err := createArgs(r.Noun(op.Noun), q.Args)
-		if err != nil {
-			return nil, err
-		}
-		q.Args = args
+	if q.Args, err = r.standardArgs(op, q); err != nil {
+		return nil, err
 	}
 	// Parameter sources (Parameter.From) fill what the request omits, for
 	// every route; what a fan-out over several subjects runs is filled
@@ -1428,4 +1430,20 @@ func registerCore(r *Runtime) {
 func withArgs(q Request, args Arguments) Request {
 	q.Args = args
 	return q
+}
+
+// standardArgs are a request's arguments as a standard verb reads them,
+// before parameter sources fill them: an unavailable verb fails with its
+// reason (Operation.Unavailable), and a row that reads its words itself
+// (ReadArgs: create's prop aliases and prop=value words) does so on a
+// noun whose props have aliases. Any other operation's arguments are q's.
+func (r *Runtime) standardArgs(op Operation, q Request) (Arguments, error) {
+	if op.Unavailable != "" {
+		return nil, fmt.Errorf("%s is unavailable: %s", r.DisplayKey(q.Key()), op.Unavailable)
+	}
+	row, n := standardRow(op.Standard), r.Noun(op.Noun)
+	if row == nil || row.ReadArgs == nil || n == nil || !slices.ContainsFunc(n.Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }) {
+		return q.Args, nil
+	}
+	return row.ReadArgs(n, q.Args)
 }

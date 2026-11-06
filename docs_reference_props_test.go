@@ -12,17 +12,12 @@ import (
 	"ofam.dev/ochazuke/refdoc"
 )
 
-// Every row of the standard verb table says in words what it needs, so
-// the reference's standard-verbs page never prints an empty Needs.
+// Every row of the verb tables says in words what it needs, so the
+// reference's standard-verbs page never prints an empty Needs.
 func TestStandardNeedsCoverEveryRow(t *testing.T) {
-	for _, v := range standardVerbs {
-		if standardNeeds[v.Verb] == "" {
-			t.Errorf("standardNeeds has no entry for %s", v.Verb)
-		}
-	}
-	for verb := range standardNeeds {
-		if standardRow(verb) == nil {
-			t.Errorf("standardNeeds names %s, which is not a row", verb)
+	for _, v := range standardTable() {
+		if v.needsDoc() == "" {
+			t.Errorf("row %s has no Needs", v.Verb)
 		}
 	}
 }
@@ -34,7 +29,7 @@ func TestReferenceModelHasPropsKindAndStandard(t *testing.T) {
 	r, _ := newTaskRuntime(t)
 	r.Define("task").Verb("launch", func(Ctx) Result { return Done(nil) })
 	m := r.ReferenceModel()
-	if got := len(m.StandardVerbs); got != len(standardVerbs) || m.StandardVerbs[0].Verb != "get" || m.StandardVerbs[0].Needs != "Store.Get" {
+	if got := len(m.StandardVerbs); got != len(standardTable()) || m.StandardVerbs[0].Verb != "get" || m.StandardVerbs[0].Needs != "Store.Get" {
 		t.Fatalf("standard verbs %+v", m.StandardVerbs)
 	}
 	i := slices.IndexFunc(m.Nouns, func(n refdoc.Noun) bool { return n.Name == "task" })
@@ -115,8 +110,8 @@ func TestConfigExportWritesThePropsReference(t *testing.T) {
 	if want := model(r); !reflect.DeepEqual(got, want) {
 		t.Fatalf("props reference differs from the reference model:\n got %+v\nwant %+v", got, want)
 	}
-	if len(got.StandardVerbs) != len(standardVerbs) {
-		t.Fatalf("%d standard verbs, the table has %d", len(got.StandardVerbs), len(standardVerbs))
+	if len(got.StandardVerbs) != len(standardTable()) {
+		t.Fatalf("%d standard verbs, the table has %d", len(got.StandardVerbs), len(standardTable()))
 	}
 	i := slices.IndexFunc(got.Nouns, func(n refdoc.Noun) bool { return n.Name == "task" })
 	if i < 0 || got.Nouns[i].Kind != Collection || len(got.Nouns[i].Props) != len(taskTestProps()) {

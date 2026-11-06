@@ -200,7 +200,7 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 	// Navigation and wrappers leave their nested changes in their own entries.
 	if op, ok := r.Operation(q.Key()); ok && err == nil && op.CatalogProxy && len(entry.Changes) == 0 {
 		n, row := r.Noun(op.Noun), standardRow(op.Standard)
-		if n != nil && n.Store == nil && row != nil && row.HistoryKind == HistoryChange && row.Subject && row.Writes != nil {
+		if n != nil && n.Store == nil && row != nil && row.HistoryKind == HistoryChange && row.TakesSubject && row.Writes != nil {
 			if names, writeErr := row.Writes(n, q.Args); writeErr == nil && len(names) > 0 {
 				entry.Changes = []ThingChange{{Noun: op.Noun}}
 			}
