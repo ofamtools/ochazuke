@@ -1,0 +1,670 @@
+# namecheck baseline: file, function, kind, literal, count, reason (tab separated).
+# A row with a reason is a legitimate use that stays. A row without one is debt that may only shrink:
+# NAMECHECK_UPDATE=1 removes rows and lowers counts, never adds them. Adding a row is a reviewed edit.
+about.go	aboutRowOf	compare	"ochazuke.about-row"	1
+about.go	registerAbout	compare	"ochazuke.about-row"	1
+about.go	registerAbout	compare	"path"	2
+action_names.go	Runtime.checkAlias	cyclo	"-"	35
+actions.go	Action.check	case	"action"	1
+actions.go	Action.check	cyclo	"-"	41
+actions.go	Action.values	case	"args"	1
+actions.go	Action.values	case	"id"	1
+actions.go	Action.values	case	"noun"	1
+actions.go	Action.values	case	"verb"	1
+actions.go	Runtime.checkUserAlias	compare	"config"	1
+actions.go	var actionPlaceholders	table	"args"	1
+actions.go	var actionPlaceholders	table	"id"	1
+actions.go	var actionPlaceholders	table	"noun"	1
+actions.go	var actionPlaceholders	table	"verb"	1
+actions.go	var actionTypes	table	"path"	1	action parameter type names; "path" is a type here
+actor.go	Actor.IsAgent	compare	"agent"	1
+actor.go	Actor.String	compare	"owner"	1
+actor.go	Actor.validate	case	"agent"	1
+actor.go	Actor.validate	case	"owner"	1
+actor.go	ParseActor	case	"agent"	1
+actor.go	ParseActor	case	"owner"	1
+agent_metadata.go	NounBuilder.Agent	case	"confirm"	1
+agent_rights.go	Runtime.agentVerdict	case	"confirm"	1
+agent_rights.go	parseAgentRules	case	"confirm"	1
+args_form.go	Runtime.singlePath	compare	"form"	1
+args_form.go	Runtime.singlePath	compare	"path"	1
+args_form.go	formable	case	"path"	1
+association.go	Runtime.nearestOf	compare	"app"	1
+binding_render_cache.go	runtimeRenderCache.scan	cyclo	"-"	33
+chooser.go	Chooser.refilter	cyclo	"-"	31
+chooser.go	Chooser.rowsView	cyclo	"-"	44
+chooser.go	registerChooser	case	"last"	1
+chooser_sources.go	Chooser.enterOpens	compare	"pick"	1
+chrome.go	isModeHue	compare	"mode"	1
+chrome.go	var chromeModes	table	"mode"	1
+cli/catalog.go	CatalogDoc.RowSource	compare	"list"	2
+cli/catalog.go	ExtensionNamespace	compare	"app"	1
+cli/catalog.go	catalog	cyclo	"-"	39
+cli/catalog_inspect.go	Shell.catalogCommand	compare	"inspect"	1
+cli/commands.go	Commands.showsRun	compare	"run"	1
+cli/detail_fields.go	PageView.hasMetadata	compare	"fields"	1
+cli/detail_fields.go	PageView.metadata	compare	"fields"	1
+cli/detail_kind.go	RegisterDetailKind	compare	"record"	1
+cli/detail_kind.go	isRecord	compare	"record"	1
+cli/detail_sections.go	PageView.sectionText	case	"fields"	1
+cli/detail_sections.go	PageView.sectionText	case	"markdown"	1
+cli/detail_sections.go	checkDetailSections	case	"fields"	1
+cli/detail_sections.go	checkDetailSections	case	"markdown"	1
+cli/detail_sections.go	formatDetail	case	"path"	1
+cli/format.go	Shell.output	case	"markdown"	1
+cli/format.go	tableOf	case	"id"	1
+cli/format.go	tableOf	compare	"noun"	1
+cli/format.go	tableOf	cyclo	"-"	31
+cli/format.go	writeMarkdown	compare	"right"	1
+cli/host_mount.go	MountNouns	cyclo	"-"	26
+cli/host_mount.go	mountVerb	case	"action"	1
+cli/host_mount.go	mountVerb	case	"confirm"	1
+cli/host_mount.go	mountVerb	compare	"edit"	1
+cli/mcp_backend.go	Shell.mcpValue	case	"config"	1
+cli/mcp_backend.go	Shell.newMCPServer	compare	"confirm"	1
+cli/mcp_backend.go	mcpBackend.Call	case	"run"	1
+cli/mcp_backend.go	mcpBackend.Call	case	"state"	1
+cli/mcp_backend.go	mcpBackend.catalog	compare	"app"	1
+cli/mcp_backend.go	mcpBackend.run	compare	"confirm"	1
+cli/mcp_backend.go	mcpBackend.run	compare	"focus"	1
+cli/mcp_backend.go	mcpBackend.run	cyclo	"-"	33
+cli/mcp_backend.go	parameterSchema	case	"list"	1
+cli/mount.go	Mount	compare	"app"	1
+cli/mount.go	Mount	compare	"list"	1
+cli/mount.go	Mount	cyclo	"-"	61
+cli/page.go	MountPage	cyclo	"-"	31
+cli/pagestate.go	PageView.ApplyState	case	"delta"	1
+cli/ptykeys.go	var keyCodes	table	"delete"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/ptykeys.go	var keyCodes	table	"down"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/ptykeys.go	var keyCodes	table	"end"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/ptykeys.go	var keyCodes	table	"enter"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/ptykeys.go	var keyCodes	table	"insert"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/ptykeys.go	var keyCodes	table	"left"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/ptykeys.go	var keyCodes	table	"right"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/ptykeys.go	var keyCodes	table	"tab"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/ptykeys.go	var keyCodes	table	"up"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/setup.go	DeclareSetup	compare	"copy"	4
+cli/setup.go	DeclareSetup	compare	"list"	1
+cli/setup.go	DeclareSetup	compare	"show"	2
+cli/setup.go	DeclareSetup	compare	"status"	1
+cli/setup.go	DeclareSetup	cyclo	"-"	33
+cli/setup.go	printSetup	case	"copy"	1
+cli/setup.go	printSetup	case	"show"	1
+cli/setup.go	printSetup	compare	"list"	1
+cli/setup.go	printSetup	compare	"status"	1
+cli/shell.go	Shell.Run	compare	"ochazuke.confirm"	1
+cli/shell.go	Shell.Run	cyclo	"-"	63
+cli/shell.go	Shell.nounWord	case	"prop"	1
+cli/shell.go	Shell.nounWord	case	"verb"	1
+cli/shell.go	Shell.ownersOf	compare	"app"	1
+cli/shell.go	Shell.parseFlags	compare	"since"	1
+cli/shell.go	Shell.parseFlags	cyclo	"-"	44
+cli/shell.go	Shell.propRequest	compare	"toggle"	1
+cli/shell.go	Shell.propRequest	compare	"value"	1
+cli/sides.go	var sideVariables	table	"dir"	1	template variable names for the sides of a command, not nouns
+cli/sides.go	var sideVariables	table	"pane"	1	template variable names for the sides of a command, not nouns
+cli/sides.go	var sideVariables	table	"project"	1	template variable names for the sides of a command, not nouns
+cli/widget.go	PageView.widgetsBlock	compare	"status"	3
+cli/widget.go	widgetState.lines	compare	"status"	2
+configuration.go	registerConfiguration	compare	"app"	1
+configuration.go	registerConfiguration	cyclo	"-"	30
+confirm.go	Runtime.openConfirmAbout	case	"id"	2
+confirm.go	Runtime.openConfirmAbout	compare	"id"	1
+confirm.go	Runtime.openConfirmAbout	compare	"noun"	1
+confirm.go	Runtime.openConfirmAbout	cyclo	"-"	42
+confirm.go	registerConfirm	compare	"ochazuke.confirm"	1
+default_bindings.go	Runtime.CheckDefaultBindings	compare	"ochazuke.mode.enter"	1
+default_bindings.go	Runtime.LoadDefaultBindings	cyclo	"-"	39
+detail.go	Detail.MoveToEdge	compare	"last"	1
+docs_reference.go	var standardAliases	table	"set"	1
+docs_reference.go	var standardNeeds	table	"archive"	1
+docs_reference.go	var standardNeeds	table	"create"	1
+docs_reference.go	var standardNeeds	table	"delete"	1
+docs_reference.go	var standardNeeds	table	"duplicate"	1
+docs_reference.go	var standardNeeds	table	"edit"	1
+docs_reference.go	var standardNeeds	table	"get"	1
+docs_reference.go	var standardNeeds	table	"list"	1
+docs_reference.go	var standardNeeds	table	"move"	1
+docs_reference.go	var standardNeeds	table	"rename"	1
+docs_reference.go	var standardNeeds	table	"restore"	1
+docs_reference.go	var standardNeeds	table	"set"	1
+docs_reference.go	var standardNeeds	table	"watch"	1
+editing.go	Input.begin	case	"append"	2
+editing.go	Input.begin	case	"end"	2
+editing.go	Input.begin	case	"insert"	1
+editing.go	Input.clampCursor	compare	"normal"	1
+editing.go	Input.deleteRunes	compare	"normal"	1
+editing.go	Input.killRange	case	"line-end"	1
+editing.go	Input.killRange	case	"line-start"	1
+editing.go	Input.killRange	case	"word-backward"	1
+editing.go	Input.killRange	case	"word-next"	1
+editing.go	Input.killRange	case	"word-previous"	1
+editing.go	Input.move	case	"down"	2
+editing.go	Input.move	case	"first-line"	2
+editing.go	Input.move	case	"last-line"	2
+editing.go	Input.move	case	"left"	3
+editing.go	Input.move	case	"line-end"	2
+editing.go	Input.move	case	"line-start"	2
+editing.go	Input.move	case	"right"	3
+editing.go	Input.move	case	"up"	2
+editing.go	Input.move	case	"word-backward"	3
+editing.go	Input.move	case	"word-end"	3
+editing.go	Input.move	case	"word-forward"	3
+editing.go	Input.move	case	"word-next"	3
+editing.go	Input.move	case	"word-previous"	3
+editing.go	Input.move	compare	"down"	1
+editing.go	Input.move	compare	"last-line"	1
+editing.go	Input.move	compare	"normal"	3
+editing.go	Input.move	compare	"up"	2
+editing.go	Input.move	cyclo	"-"	41
+editor.go	Input.pasteYank	case	"line"	1
+editor.go	Input.pasteYank	compare	"line"	1
+editor.go	Input.pasteYank	cyclo	"-"	30
+editor.go	Input.removeSelection	compare	"line"	2
+editor.go	Input.selectionRange	compare	"line"	1
+editor.go	Input.selectionSnapshot	compare	"line"	1
+editor.go	Input.selectionYank	compare	"line"	1
+editor.go	editorShape	case	"line"	1
+editor.go	registerEditorOperations	case	"right"	1
+editor.go	registerEditorOperations	case	"word-forward"	1
+editor.go	registerEditorOperations	case	"word-next"	1
+editor.go	registerEditorOperations	compare	"down"	1
+editor.go	registerEditorOperations	compare	"first-line"	1
+editor.go	registerEditorOperations	compare	"last-line"	1
+editor.go	registerEditorOperations	compare	"line"	7
+editor.go	registerEditorOperations	compare	"line-end"	2
+editor.go	registerEditorOperations	compare	"up"	1
+editor.go	registerEditorOperations	compare	"word-end"	2
+editor.go	registerEditorOperations	compare	"word-forward"	1
+editor.go	registerEditorOperations	compare	"word-next"	1
+editor.go	registerEditorOperations	cyclo	"-"	95
+events.go	EventSpec.Field	compare	"event"	1
+focus.go	Runtime.JumpFocus	case	"stop"	1
+focus.go	Runtime.removeInstance	compare	"app"	1
+focus.go	Runtime.validateFocus	compare	"app"	1
+focus_display.go	Runtime.focusDisplayLevels	case	"noun"	1
+focus_display.go	Runtime.focusPathIDs	compare	"app"	1
+grid/grid.go	Grid.At	compare	"cell"	1
+grid/grid.go	Grid.Move	case	"down"	1
+grid/grid.go	Grid.Move	case	"left"	1
+grid/grid.go	Grid.Move	case	"right"	1
+grid/grid.go	Grid.Move	case	"up"	1
+grid/grid.go	Grid.View	compare	"visual-column"	1
+grid/grid.go	Grid.View	cyclo	"-"	27
+grid/grid.go	Grid.shapeCells	case	"visual-column"	1
+grid/grid.go	Grid.shapeCells	case	"visual-row"	1
+grid/grid.go	isShape	compare	"visual-block"	1
+grid/grid.go	isShape	compare	"visual-column"	1
+grid/grid.go	isShape	compare	"visual-row"	1
+help.go	bindingHelpArgs	compare	"digit"	1
+help.go	bindingHelpArgs	compare	"key"	1
+help.go	bindingHelpArgs	compare	"text"	1
+help.go	patternLabel	compare	"digit"	1
+help.go	registerBindingHelp	compare	"bindings-help"	1
+help_modes.go	Runtime.helpEnters	compare	"ochazuke.mode.enter"	1
+help_views.go	Runtime.HelpTable	compare	"app"	1
+help_views.go	Runtime.helpBaseModes	compare	"insert"	1
+help_views.go	Runtime.helpBaseModes	compare	"normal"	1
+help_views.go	Runtime.helpPendingModes	compare	"macro_recording"	1
+help_views.go	Runtime.inputNoun	compare	"insert"	1
+help_views.go	Runtime.inputNoun	compare	"ochazuke.editor"	1
+help_views.go	helpCellText	compare	"app"	3
+help_views.go	helpState.header	case	"pick"	1
+help_views.go	helpState.refreshBindings	compare	"pick"	1
+help_views.go	helpState.show	case	"pick"	1
+help_views.go	registerHelpViews	compare	"pick"	3
+history.go	fetchRing	compare	"palette"	1
+history.go	historyKinds	case	"action"	1
+history.go	historyKinds	case	"all"	1
+history.go	personSource	compare	"help"	1
+history.go	personSource	compare	"palette"	1
+history_actor.go	Runtime.historyByActor	case	"agent"	1
+history_actor.go	Runtime.historyByActor	case	"all"	1
+history_actor.go	Runtime.historyByActor	case	"owner"	1
+history_store.go	Runtime.persistable	compare	"palette"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.count"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.editor"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.input"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.key"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.macro"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.mode"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.palette"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.register"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.terminal"	1
+history_store.go	var unpersistedNouns	table	"ochazuke.yank-history"	1
+input.go	Input.Pending	case	"g_pending"	1
+input.go	Input.Pending	case	"operator_g_pending"	1
+input.go	Input.Pending	case	"operator_pending"	1
+input.go	Input.Pending	case	"register_pending"	1
+input.go	Input.SelectText	compare	"insert"	1
+input.go	RegisterInputOperations	compare	"normal"	1
+inspector.go	Inspection.Parts	compare	"app"	1
+inspector.go	Runtime.Inspect	compare	"status"	1
+inspector.go	inspectPreview	cyclo	"-"	28
+instance.go	Runtime.Instance	compare	"app"	1
+key_echo.go	echoEntry.label	compare	"count"	1
+key_echo.go	keyEcho.observe	compare	"palette"	1
+key_echo.go	keyEcho.observe	cyclo	"-"	40
+leader_outside.go	Runtime.dispatchOutside	compare	"all"	1
+list.go	registerLists	cyclo	"-"	29
+list_filter.go	List.editingFilter	compare	"list_filter"	1
+list_filter.go	registerListFilter	compare	"list_filter"	2
+list_filter_compact.go	List.openViewForm	compare	"fields"	1
+list_filter_compact.go	List.openViewForm	cyclo	"-"	37
+list_filter_compact.go	filterViewForm.conditionAction	case	"edit"	1
+list_filter_compact.go	filterViewForm.conditionAction	case	"invert"	1
+list_filter_compact.go	filterViewForm.conditionAction	case	"remove"	1
+list_filter_compact.go	filterViewForm.flipDirection	compare	"desc"	1
+list_filter_compact.go	filterViewForm.focusPart	case	"sort"	1
+list_filter_compact.go	filterViewForm.render	cyclo	"-"	42
+list_filter_compact.go	filterViewForm.write	compare	"desc"	1
+list_filter_form.go	List.filterFields	compare	"list"	1
+list_motions.go	registerListMotions	compare	"last"	1
+list_prop_filter.go	List.pickPropFilter	cyclo	"-"	30
+list_prop_filter.go	registerListPropFilter	cyclo	"-"	40
+list_visual.go	List.ModeChanged	compare	"line"	1
+list_visual.go	List.apply	cyclo	"-"	34
+list_visual.go	Runtime.endSelection	compare	"line"	1
+markdown/cursor.go	Doc.MoveCursor	cyclo	"-"	28
+markdown/cursor.go	Doc.highlight	compare	"text"	1
+markdown/cursor.go	Doc.itemCursor	compare	"line"	1
+markdown/doc.go	Doc.Block	cyclo	"-"	29
+markdown/doc.go	Doc.Select	compare	"task"	1
+markdown/doc.go	Doc.relayout	case	"note"	1
+markdown/doc.go	Doc.relayout	case	"task"	1
+markdown/doc.go	Doc.relayout	cyclo	"-"	28
+markdown/doc.go	Doc.selected	compare	"task"	1
+markdown/done.go	Doc.SetDone	case	"show"	1
+markdown/done.go	Doc.SetDone	case	"toggle"	1
+markdown/done.go	Doc.hiddenElements	compare	"task"	1
+markdown/edit.go	Component	compare	"note"	1
+markdown/edit.go	Doc.AddNote	compare	"note"	1
+markdown/edit.go	Doc.Fold	compare	"note"	2
+markdown/edit.go	Doc.Insert	case	"end"	1
+markdown/edit.go	Doc.Insert	case	"start"	1
+markdown/edit.go	Doc.Move	cyclo	"-"	26
+markdown/edit.go	Doc.Resolve	compare	"note"	1
+markdown/edit.go	Doc.leave	compare	"note"	1
+markdown/edit.go	Doc.openAt	compare	"note"	2
+markdown/edit.go	Doc.refocus	compare	"normal"	1
+markdown/edit.go	itemMarkerFor	compare	"task"	1
+markdown/edit.go	opened	compare	"note"	1
+markdown/edit.go	subtreeEnd	compare	"note"	1
+markdown/elements.go	Element.IsItem	compare	"task"	1
+markdown/elements.go	elementParser.item	compare	"task"	1
+markdown/elements.go	elementParser.item	cyclo	"-"	30
+markdown/elements.go	elementParser.node	cyclo	"-"	29
+markdown/layout.go	layoutOf	compare	"note"	2
+markdown/layout.go	layoutOf	cyclo	"-"	37
+markdown/layout.go	markedSource	compare	"note"	3
+markdown/links.go	layoutLinks	compare	"note"	1
+markdown/links.go	layoutLinks	cyclo	"-"	54
+markdown/notes.go	Notes	compare	"note"	1
+markdown/notes.go	Notes	compare	"task"	1
+markdown/notes.go	ReplyNote	compare	"note"	1
+markdown/notes.go	SetFlags	compare	"note"	1
+markdown/notes.go	noteInsertion	compare	"note"	1
+markdown/table.go	align	case	"right"	1
+markdown/verbs.go	register	case	"link-copy"	1
+markdown/verbs.go	register	case	"link-open"	1
+markdown/verbs.go	register	case	"next-link"	1
+markdown/verbs.go	register	case	"previous-link"	1
+markdown/verbs.go	register	compare	"note"	1
+markdown/verbs.go	register	compare	"ochazuke.markdown"	1
+markdown/verbs.go	register	compare	"task"	1
+markdown/verbs.go	register	cyclo	"-"	34
+model.go	Model.Update	cyclo	"-"	29
+model.go	Model.cutMessage	compare	"ochazuke.messages.show"	1
+model.go	inputBlockFrom	cyclo	"-"	57
+motion_scroll.go	List.MoveToEdge	compare	"last"	1
+motion_scroll.go	registerViewMotions	compare	"last"	1
+name_vocab.go	Runtime.NameVocab	compare	"motion"	1
+namespace.go	frameworkName	compare	"app"	1
+noun.go	Binding.identityGuard	compare	"input"	1
+noun.go	Binding.identityGuard	compare	"ochazuke.editor"	1
+noun.go	Runtime.validateRow	cyclo	"-"	30
+noun.go	builtinGuards	compare	"normal"	1
+noun.go	implicitlyGuarded	compare	"cancel"	1
+noun.go	implicitlyGuarded	compare	"ochazuke.input"	1
+noun.go	isPattern	case	"digit"	1
+noun.go	isPattern	case	"paste"	1
+noun.go	isPrefixCancel	compare	"ochazuke.mode.leave"	1
+noun.go	matchesPattern	case	"digit"	1
+noun.go	matchesPattern	case	"paste"	1
+noun.go	printableKey	case	"delete"	1
+noun.go	printableKey	case	"down"	1
+noun.go	printableKey	case	"end"	1
+noun.go	printableKey	case	"enter"	1
+noun.go	printableKey	case	"insert"	1
+noun.go	printableKey	case	"left"	1
+noun.go	printableKey	case	"right"	1
+noun.go	printableKey	case	"tab"	1
+noun.go	printableKey	case	"up"	1
+noun.go	validSource	case	"count"	1
+noun.go	validSource	case	"digit"	1
+noun.go	validSource	case	"key"	1
+noun.go	validSource	case	"line"	1
+noun.go	validSource	case	"op"	1
+noun.go	validSource	case	"opcount"	1
+noun.go	validSource	case	"prefix"	1
+noun.go	validSource	case	"row"	1
+noun.go	validSource	case	"steps"	1
+noun.go	validSource	case	"text"	1
+noun.go	var keyTexts	table	"enter"	1	key names mapped to their text; the words coincide with vocabulary names, no name branch
+noun.go	var keyTexts	table	"tab"	1	key names mapped to their text; the words coincide with vocabulary names, no name branch
+noun.go	withImplicitGuard	compare	"ochazuke.editor"	1
+noun_places.go	Runtime.placementOf	compare	"app"	1
+page_hide.go	registerPageHiding	compare	"hidden"	1
+pages.go	Runtime.AddPage	compare	"app"	1
+pages.go	Runtime.PageList	compare	"app"	1
+pages.go	Runtime.RegisterPage	compare	"app"	1
+palette.go	Palette.IsActive	compare	"palette"	1
+palette.go	Palette.close	compare	"palette"	1
+palette.go	Palette.requireOpen	compare	"palette"	1
+palette.go	Palette.viewBlock	cyclo	"-"	28
+palette.go	Runtime.presentAnswer	compare	"list"	1
+palette.go	newPalette	compare	"open"	1
+palette_choices.go	Palette.choiceWords	compare	"id"	1
+palette_choices.go	Palette.paramHeader	cyclo	"-"	26
+palette_choices.go	Palette.slot	compare	"noun"	1
+palette_editing.go	Palette.recallLines	compare	"palette"	2
+palette_nouns.go	Palette.completions	compare	"noun"	1
+palette_nouns.go	Palette.completions	compare	"verb"	1
+palette_nouns.go	Palette.completions	cyclo	"-"	42
+palette_nouns.go	Palette.preferActivePage	case	"noun"	1
+palette_nouns.go	Palette.preferActivePage	case	"verb"	1
+palette_nouns.go	Palette.preferActivePage	compare	"last"	1
+palette_nouns.go	Palette.preferActivePage	compare	"noun"	1
+palette_nouns.go	Palette.preferActivePage	cyclo	"-"	29
+palette_nouns.go	lineIndex.orderVerbs	compare	"hidden"	1
+palette_parse.go	Palette.argument	case	"path"	1
+palette_parse.go	Palette.parseRest	case	"prop"	1
+palette_parse.go	Palette.parseRest	case	"verb"	1
+palette_parse.go	Palette.parseRest	compare	"verb"	1
+palette_parse.go	Palette.parseTokens	compare	"noun"	1
+palette_parse.go	Palette.parseTokens	compare	"verb"	1
+palette_parse.go	commandLine.Request	compare	"prop"	1
+palette_parse.go	commandLine.Request	compare	"toggle"	1
+palette_parse.go	commandLine.Request	compare	"value"	1
+palette_parse.go	nounReads	case	"instance"	1
+palette_parse.go	nounReads	case	"prop"	1
+palette_parse.go	nounReads	case	"verb"	1
+palette_parse.go	nounReads	compare	"noun"	1
+palette_results.go	Runtime.showResults	cyclo	"-"	29
+param_sources.go	isRowSource	compare	"row"	1
+path_chooser.go	PathPick.Dir	compare	"dir"	1
+peer_bindings.go	Runtime.syncPeerNotices	compare	"all"	1
+picker.go	Picker.choose	compare	"dir"	1
+picker.go	Picker.open	case	"path"	1
+picker.go	Picker.open	compare	"dir"	1
+picker.go	Picker.open	compare	"path"	1
+picker.go	Picker.require	compare	"picker"	1
+picker.go	newPicker	compare	"ochazuke.input"	1
+picker_search.go	searchPickerMatch	compare	"dir"	1
+picker_view.go	Picker.bindingHelp	compare	"ochazuke.picker"	1
+prop_filter.go	propTest	compare	"list"	1
+prop_filter.go	typedPropFilter	compare	"list"	1
+props.go	NounBuilder.Store	compare	"instances"	1
+props.go	Runtime.addProp	case	"archive"	1
+props.go	Runtime.addProp	case	"owner"	1
+props.go	Runtime.addProp	compare	"archive"	1
+props.go	Runtime.addProp	compare	"archived"	1
+props.go	Runtime.addProp	cyclo	"-"	26
+props.go	Runtime.validatePropRow	compare	"value"	1
+props.go	checkSchema	case	"instances"	1
+props.go	checkSchema	compare	"id"	1
+props.go	var propTypes	table	"list"	1	property type names, not a noun table; "list" is a type here
+query.go	Runtime.Query	compare	"app"	1
+query.go	Runtime.match	case	"all"	1
+query.go	Runtime.match	case	"not"	1
+query.go	isCombinator	compare	"all"	1
+query.go	isCombinator	compare	"not"	1
+record_chips.go	recordField.chipEdge	case	"last"	1
+record_editor.go	RecordEditor.Block	cyclo	"-"	31
+record_editor.go	RecordEditor.PendingCommand	compare	"insert"	1
+record_editor.go	RecordEditor.applyLoaded	compare	"close"	1
+record_editor.go	RecordEditor.move	compare	"insert"	1
+record_editor.go	RecordEditor.nextMissing	compare	"insert"	2
+record_editor.go	RecordEditor.problem	cyclo	"-"	26
+record_editor.go	RecordEditor.send	cyclo	"-"	27
+record_editor.go	RecordEditor.startInsert	compare	"insert"	1
+record_editor.go	RecordEditor.suggest	cyclo	"-"	27
+record_editor.go	Runtime.newRecordEditor	compare	"path"	1
+record_editor.go	Runtime.newRecordEditor	compare	"text"	2
+record_editor.go	Runtime.newRecordEditor	cyclo	"-"	36
+registers.go	Runtime.storeYank	compare	"line"	1
+registers.go	appendYank	compare	"line"	2
+registers.go	yankReport	case	"line"	1
+resolve.go	Runtime.argument	case	"count"	1
+resolve.go	Runtime.argument	case	"digit"	1
+resolve.go	Runtime.argument	case	"key"	1
+resolve.go	Runtime.argument	case	"line"	1
+resolve.go	Runtime.argument	case	"op"	1
+resolve.go	Runtime.argument	case	"opcount"	1
+resolve.go	Runtime.argument	case	"prefix"	1
+resolve.go	Runtime.argument	case	"row"	1
+resolve.go	Runtime.argument	case	"steps"	1
+resolve.go	Runtime.argument	case	"text"	1
+resolve.go	Runtime.dispatchIn	compare	"ochazuke.key.ignore"	1
+resolve.go	Runtime.dispatchIn	cyclo	"-"	33
+resolve.go	Runtime.lookup	cyclo	"-"	46
+resolve.go	Runtime.nounWalk	compare	"app"	1
+resolve.go	Runtime.nounWalk	compare	"ochazuke.editor"	1
+resolve.go	Runtime.scanRowsUncached	compare	"input"	1
+resolve.go	Runtime.scanRowsUncached	cyclo	"-"	39
+resolve.go	Runtime.stack	compare	"ochazuke.editor"	1
+resolve.go	Runtime.walkOf	compare	"ochazuke.editor"	1
+resolve.go	var stayingRequests	table	"ochazuke.count.append"	1
+resolve.go	var stayingRequests	table	"ochazuke.input.cancel"	1
+resolve.go	var stayingRequests	table	"ochazuke.key.dispatch"	1
+resolve.go	var stayingRequests	table	"ochazuke.macro.record"	1
+resolve.go	var stayingRequests	table	"ochazuke.mode.enter"	1
+resolve.go	var stayingRequests	table	"ochazuke.mode.leave"	1
+runtime.go	Runtime.AddInput	case	"dir"	1
+runtime.go	Runtime.AddInput	case	"path"	1
+runtime.go	Runtime.AddInput	case	"text"	1
+runtime.go	Runtime.Register	case	"action"	1
+runtime.go	Runtime.execute	compare	"create"	1
+runtime.go	Runtime.execute	cyclo	"-"	50
+runtime.go	Runtime.nounInstance	compare	"app"	1
+runtime.go	validateArguments	case	"path"	1
+runtime.go	var focusBoundOps	table	"ochazuke.list.end-visual"	1
+runtime.go	var focusBoundOps	table	"ochazuke.list.filter-open"	1
+runtime.go	var focusBoundOps	table	"ochazuke.list.visual"	1
+runtime.go	var focusBoundOps	table	"ochazuke.mode.enter"	1
+runtime.go	var focusBoundOps	table	"ochazuke.mode.set"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.aliases"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.check"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.path"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.reload"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.appearance.get"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.appearance.set"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.check"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.load"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.path"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.reload"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.stops"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.chooser.cancel"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.config.export"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.config.path"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.config.reload"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.confirm.set"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.form-option.pick"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.form.redo"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.form.suggest"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.form.undo"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.history.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.history.path"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.input.redo"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.input.undo"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.input.yank"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.instances.query"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.jobs.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.reset-columns"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.resize-column"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.yank"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.mode.register"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.modes.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.notice.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.operations.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.outline.fold"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.pages.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.register.get"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.register.set"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting-value.commit"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.cycle"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.edit"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.reset"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.get"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.names"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.path"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.reload"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.reset"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.settings.set"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.state.get"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.terminal.paste"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.terminal.send"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.themes.list"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.themes.path"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.themes.reload"	1
+runtime.go	var frameworkHistoryKinds	table	"ochazuke.yank-history.select"	1
+runtime.go	var motionOps	table	"ochazuke.detail.scroll"	1
+runtime.go	var motionOps	table	"ochazuke.focus.next"	1
+runtime.go	var motionOps	table	"ochazuke.focus.previous"	1
+runtime.go	var motionOps	table	"ochazuke.grid.goto"	1
+runtime.go	var motionOps	table	"ochazuke.grid.move"	1
+runtime.go	var motionOps	table	"ochazuke.input.move"	1
+runtime.go	var motionOps	table	"ochazuke.list.choose-column"	1
+runtime.go	var motionOps	table	"ochazuke.list.column"	1
+runtime.go	var motionOps	table	"ochazuke.list.goto"	1
+runtime.go	var motionOps	table	"ochazuke.list.move"	1
+runtime.go	var motionOps	table	"ochazuke.list.scroll"	1
+runtime.go	var motionOps	table	"ochazuke.list.scroll-columns"	1
+runtime.go	var motionOps	table	"ochazuke.page.next"	1
+runtime.go	var motionOps	table	"ochazuke.page.previous"	1
+runtime.go	var motionOps	table	"ochazuke.palette.move"	1
+runtime.go	var motionOps	table	"ochazuke.picker.move"	1
+runtime.go	var motionOps	table	"ochazuke.surface.scroll"	1
+runtime.go	var motionOps	table	"ochazuke.yank-history.move"	1
+runtime.go	var typingOps	table	"ochazuke.input.insert"	1
+runtime.go	var typingOps	table	"ochazuke.terminal.paste"	1
+runtime.go	var typingOps	table	"ochazuke.terminal.send"	1
+search_case.go	CaseFor	case	"ignore"	1
+search_case.go	Runtime.SearchCase	case	"ignore"	1
+search_find.go	registerSearchFind	compare	"find-line"	2
+search_match.go	regexFolds	case	"ignore"	1
+segment.go	Runtime.startSegment	case	"verb"	1
+segment.go	segmentMove	case	"down"	1
+segment.go	segmentMove	case	"last"	1
+segment.go	segmentMove	case	"up"	1
+segment.go	segmentText	case	"value"	1
+set_complete.go	settingsCompletions	case	"list"	1
+set_complete.go	settingsCompletions	case	"name"	1
+set_complete.go	settingsCompletions	case	"value"	1
+set_complete.go	settingsCompletions	cyclo	"-"	29
+set_line.go	setValue	case	"list"	1
+set_line.go	setValue	compare	"set"	1
+set_line.go	var setClasses	table	"list"	1
+set_line.go	var setLineForms	table	"all"	1
+setting_verbs.go	edits	case	"append"	1
+setting_verbs.go	edits	case	"prepend"	1
+setting_verbs.go	edits	compare	"prepend"	1
+setting_verbs.go	edits	compare	"remove"	1
+setting_verbs.go	fitError	compare	"toggle"	1
+setting_verbs.go	nextSet	compare	"list"	1
+setting_verbs.go	opArgs	compare	"ochazuke.setting"	1
+setting_verbs.go	readApplyLine	compare	"ochazuke.setting"	1
+setting_verbs.go	settingArg	compare	"list"	1
+setting_verbs.go	settingsApply	compare	"diff"	1
+setting_verbs.go	settingsApply	compare	"list"	1
+setting_verbs.go	settingsApply	compare	"ochazuke.settings"	1
+setting_verbs.go	var applyCheck	compare	"ochazuke.setting"	1
+settings.go	coerceType	case	"list"	1
+settings_page_layout.go	Settings.shownLinks	compare	"sections"	1
+settings_page_layout.go	listedUnits	case	"sections"	1
+settings_page_layout.go	settingsLayout	case	"sections"	1
+settings_page_layout.go	settingsOwnerTabs	compare	"sections"	1
+settings_page_layout.go	settingsPanels	compare	"sections"	1
+settings_page_layout.go	syncSectionList	compare	"sections"	1
+settings_page_layout.go	unitsOfArgs	compare	"ochazuke.settings-section"	1
+settings_review.go	refreshSettingsReview	compare	"settings-review"	1
+settings_session.go	Origin.String	compare	"app"	1
+settings_view.go	closeSettingsPage	compare	"ochazuke.setting"	1
+settings_view.go	closeSettingsPage	compare	"ochazuke.setting-item"	1
+settings_view.go	closeSettingsPage	compare	"ochazuke.settings-section"	1
+settings_view.go	focusedSetting	compare	"ochazuke.setting"	1
+settings_view.go	registerSettingsEditor	compare	"list"	3
+settings_view.go	registerSettingsEditor	compare	"ochazuke.setting-item"	2
+settings_view.go	registerSettingsEditor	cyclo	"-"	39
+settings_view.go	settingAllowed	compare	"list"	1
+settings_view.go	settingOfRow	compare	"ochazuke.setting"	1
+standard_derived.go	Runtime.createFill	compare	"create"	1
+standard_derived.go	Runtime.propSetAlias	compare	"set"	1
+standard_derived.go	renameArg	compare	"name"	1
+standard_edit.go	Runtime.EditHandler	compare	"confirm"	1
+standard_edit.go	Runtime.EditHandler	compare	"list"	1
+standard_edit.go	Runtime.EditHandler	cyclo	"-"	52
+standard_edit.go	Runtime.focusedEdit	compare	"edit"	1
+standard_edit.go	editRecord	compare	"list"	1
+standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
+standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
+standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
+standard_undo.go	Runtime.runRecording	cyclo	"-"	26
+standard_verbs.go	Runtime.ensureStandardVerbs	compare	"set"	2
+standard_verbs.go	Runtime.propsAvailable	compare	"set"	1
+standard_verbs.go	Runtime.subjectKey	compare	"instances"	1
+standard_verbs.go	createArgs	compare	"pairs"	1
+standard_verbs.go	setChanges	cyclo	"-"	30
+standard_verbs.go	standardVerb.operation	cyclo	"-"	26
+table.go	List.tallView	cyclo	"-"	43
+table.go	tableLineAt	compare	"right"	1
+table_cells.go	List.columnTo	compare	"last"	1
+table_cells.go	registerTableCells	compare	"last"	1
+table_cells.go	registerTableCells	compare	"row"	5
+table_cells.go	registerTableCells	cyclo	"-"	44
+table_columns.go	List.scrollColumns	case	"last"	1
+text_view.go	Runtime.showsText	case	"all"	1
+timeline.go	Timeline.draw	compare	"accent"	1
+timeline.go	Timeline.draw	cyclo	"-"	37
+timeline_steps.go	Timeline.buildBody	cyclo	"-"	41
+timeline_steps.go	registerTimelineSteps	cyclo	"-"	28
+tone.go	paintLine	cyclo	"-"	48
+tone.go	resolveTones	compare	"mode"	2
+tree.go	Tree.apply	case	"add"	1
+tree.go	Tree.apply	case	"delete"	1
+tree.go	Tree.apply	case	"move"	1
+tree.go	Tree.apply	case	"rename"	1
+tree.go	Tree.closeLineAs	compare	"normal"	1
+tree.go	Tree.fixedFor	compare	"delete"	1
+tree.go	Tree.history	compare	"delete"	1
+tree.go	Tree.refuses	compare	"add"	1
+tree.go	TreeChange.String	case	"add"	1
+tree.go	TreeChange.String	case	"move"	1
+tree.go	TreeChange.String	case	"rename"	1
+tree.go	changeVerb	case	"delete"	1
+tree.go	changeVerb	case	"move"	1
+tree.go	changeVerb	case	"rename"	1
+tree_delete.go	Tree.removeOne	compare	"delete"	1
+tree_empty.go	Tree.dropEmpty	compare	"normal"	1
+tree_empty.go	Tree.freshAddStep	compare	"delete"	1
+tree_zoom.go	Runtime.titleCrumb	compare	"title"	1
+tree_zoom.go	Tree.Height	compare	"line"	1
+tree_zoom.go	Tree.crumbLine	compare	"line"	1
+tree_zoom.go	Tree.rootRow	compare	"row"	1
+typing_check.go	Runtime.typingShadowsAt	cyclo	"-"	27
+ui.go	RecordingSink.Notices	case	"clear"	1
+ui.go	RecordingSink.Notices	case	"notice"	1
+ui.go	UI.post	compare	"clear"	1
+ui.go	UIMessage.Apply	case	"clear"	1
+ui.go	UIMessage.Apply	case	"notice"	1
+ui.go	UIMessage.Apply	case	"status"	1
+ui.go	UIMessage.Line	case	"notice"	1
+ui.go	UIMessage.Line	case	"status"	1
+unbound_verbs.go	Runtime.bindUserKey	cyclo	"-"	27
+unbound_verbs.go	Runtime.runFromHelp	compare	"bindings-help"	1
+unbound_verbs.go	Runtime.unboundOperations	compare	"all"	2
+unbound_verbs.go	Runtime.unboundOperations	compare	"app"	1
+yank_history.go	yankHistory.MoveToEdge	compare	"last"	1
