@@ -148,11 +148,11 @@ What the framework will not do for you: persistence, domain validation, daemon p
 
 ## Checks
 
-The gate is `make test`: gofmt, `go vet` and `go test -race` (one run, no separate plain run) of the root module and of both nested modules (`cmd/o-story`: o-story, the demo app and its stories; `examples`). A bare `go test ./...` at the root runs only the root module, so it skips every story; it fails `TestNestedModulesRunToo` saying so, unless `OCHAZUKE_NESTED_TESTS=1` is set, which `make test` sets.
+The gate is `make test`: gofmt, `go vet` and `go test -race` (one run, no separate plain run; the Makefile sets `-timeout 60m`, because the root package alone needs over Go's 10-minute default under `-race`) of the root module and of both nested modules (`cmd/o-story`: o-story, the demo app and its stories; `examples`). A bare `go test ./...` at the root runs only the root module, so it skips every story; it fails `TestNestedModulesRunToo` saying so, unless `OCHAZUKE_NESTED_TESTS=1` is set, which `make test` sets.
 
 ```sh
 make test
-OCHAZUKE_NESTED_TESTS=1 go test -race ./...   # the root module only (make test runs every module, also under -race)
+OCHAZUKE_NESTED_TESTS=1 go test -race -timeout 60m ./...   # the root module only (make test runs every module, also under -race)
 go run ./examples/core
 go run ./examples/full-project --smoke
 ```
