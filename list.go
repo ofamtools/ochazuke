@@ -70,6 +70,7 @@ type List struct {
 	vs           ListQuery // the view state: text query, prop conditions, sort, saved filter name, groups and page (list_query.go)
 	total        int       // rows the view matches before it pages them (items holds the page)
 	grouped      bool      // the view grouped the shown rows: each carries its group in Section
+	headCap      int       // the most group headings any page takes (Height keeps the list that tall)
 	pages        int       // pages of total rows when the view pages (0: not paged; vs.Page is the shown one)
 	noSort       bool      // source-owned or virtualized rows cannot sort locally
 	rowCache     map[string]*filterRow
@@ -451,7 +452,7 @@ func (l *List) Select(id string) error {
 func (l *List) selectID(id string) {
 	at := func(item ListItem) bool { return item.ID == id }
 	i := slices.IndexFunc(l.items, at)
-	if i < 0 && (l.vs.Text != "" || len(l.vs.Filters) > 0) {
+	if i < 0 {
 		l.reveal(id)
 		i = slices.IndexFunc(l.items, at)
 	}

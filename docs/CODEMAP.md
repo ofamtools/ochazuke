@@ -519,7 +519,7 @@ Root package `ochazuke` is flat: 188 source files, 229 test files. Each entry li
 
 ### list.go
 
-- lines: 953 · tests: list_test.go
+- lines: 954 · tests: list_test.go
 - purpose: ListItem is application-owned identity, display text, and the registered noun the row answers to.
 - types: ListItem, List
 - methods: List(32), Runtime(2)
@@ -545,7 +545,7 @@ Root package `ochazuke` is flat: 188 source files, 229 test files. Each entry li
 
 ### list_filter.go
 
-- lines: 450 · tests: list_filter_test.go
+- lines: 463 · tests: list_filter_test.go
 - purpose: filterOpenRow is the row that opens the filter line: "/" on app in normal mode guarded by list-filterable, like J/K detail, so an application's own "/" on an...
 - methods: List(20), Runtime(1)
 - leans on: list.go(46), runtime.go(32), block.go(23), instance.go(7)
@@ -600,7 +600,7 @@ Root package `ochazuke` is flat: 188 source files, 229 test files. Each entry li
 
 ### list_query.go
 
-- lines: 626 · tests: list_query_test.go
+- lines: 644 · tests: list_query_test.go
 - purpose: ListQuery is one view of a noun's things: what the standard list verb takes, what a store's Query runs, and the whole view state of a List widget.
 - types: ListQuery, ListPage, ListAnswer
 - methods: ListQuery(4), Runtime(5)
@@ -609,7 +609,7 @@ Root package `ochazuke` is flat: 188 source files, 229 test files. Each entry li
 
 ### list_query_view.go
 
-- lines: 265
+- lines: 270
 - purpose: ListView is a copy of the list's view state: the one ListQuery the list is filtered, sorted, grouped and paged by, the same value (and the same functions, li...
 - methods: List(12), Runtime(1)
 - leans on: runtime.go(26), list.go(25), pages.go(11), list_query.go(7)

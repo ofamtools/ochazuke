@@ -1,0 +1,170 @@
+{
+ "name": "list.group keeps the selected row (by id) and shows it",
+ "area": "lists",
+ "width": 80,
+ "height": 30,
+ "chrome": "full",
+ "settings": [
+  {
+   "name": "list.per-page",
+   "type": "integer",
+   "default": 0
+  },
+  {
+   "name": "list.group-by",
+   "type": "string",
+   "default": ""
+  }
+ ],
+ "page": {
+  "nouns": [
+   {
+    "noun": "chore",
+    "props": [
+     {
+      "name": "status",
+      "enum": [
+       "todo",
+       "doing",
+       "done"
+      ]
+     }
+    ]
+   }
+  ],
+  "lists": [
+   {
+    "id": "top",
+    "rows": 2
+   },
+   {
+    "id": "chores",
+    "items": [
+     {
+      "id": "c1",
+      "label": "Water the plants",
+      "noun": "chore",
+      "data": {
+       "status": "todo"
+      }
+     },
+     {
+      "id": "c2",
+      "label": "Write notes",
+      "noun": "chore",
+      "data": {
+       "status": "doing"
+      }
+     },
+     {
+      "id": "c3",
+      "label": "Call the plumber",
+      "noun": "chore",
+      "data": {
+       "status": "done"
+      }
+     },
+     {
+      "id": "c4",
+      "label": "Buy milk",
+      "noun": "chore",
+      "data": {
+       "status": "todo"
+      }
+     },
+     {
+      "id": "c5",
+      "label": "Pay rent",
+      "noun": "chore",
+      "data": {
+       "status": "done"
+      }
+     },
+     {
+      "id": "c6",
+      "label": "Sweep the floor",
+      "noun": "chore",
+      "data": {
+       "status": "todo"
+      }
+     },
+     {
+      "id": "c7",
+      "label": "Fix the bike",
+      "noun": "chore",
+      "data": {
+       "status": "doing"
+      }
+     }
+    ]
+   },
+   {
+    "id": "after",
+    "items": [
+     {
+      "id": "z1",
+      "label": "AFTER-ROW"
+     }
+    ]
+   }
+  ],
+  "bind": [
+   {
+    "noun": "chore",
+    "keys": "n",
+    "do": "ochazuke.list.page-next"
+   },
+   {
+    "noun": "chore",
+    "keys": "p",
+    "do": "ochazuke.list.page-prev"
+   },
+   {
+    "noun": "app",
+    "keys": "F",
+    "do": "ochazuke.focus.set",
+    "args": {
+     "id": "c7"
+    }
+   },
+   {
+    "noun": "chore",
+    "keys": "Y",
+    "do": "ochazuke.list.group",
+    "args": {
+     "by": "status"
+    }
+   },
+   {
+    "noun": "chore",
+    "keys": "U",
+    "do": "ochazuke.list.group-clear"
+   }
+  ],
+  "focus": "c1"
+ },
+ "script": [
+  "j",
+  "j",
+  "j",
+  "j",
+  "Y",
+  "U"
+ ],
+ "expect": [
+  {
+   "after": 4,
+   "focus": "c5",
+   "highlightedText": "Pay rent"
+  },
+  {
+   "after": 5,
+   "focus": "c5",
+   "highlightedText": "Pay rent"
+  },
+  {
+   "focus": "c5",
+   "highlightedText": "Pay rent"
+  }
+ ]
+}

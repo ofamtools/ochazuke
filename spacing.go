@@ -36,7 +36,7 @@ func (l *List) spaceAllowed() bool {
 func (l *List) spaceLines() int {
 	n := 0
 	if l.headed() {
-		n = l.headings(0, len(l.items)-1, false)
+		n = l.headCap
 	}
 	if len(l.all) < 2 || !l.spaceAllowed() {
 		return n

@@ -118,16 +118,22 @@ func (l *List) Filtering() bool {
 // ask for space (ListItem.SpaceAbove) and the filter line while it
 // shows. A host that sizes a list to its rows sizes it with Height, so
 // opening the filter line neither windows the rows nor moves what is drawn
-// below the list as the filter narrows it.
+// below the list as the filter narrows it. A paged list is one page tall
+// (its rows, the most headings any page takes, and the page indicator), on
+// every page.
 func (l *List) Height() int {
 	gaps := l.spaceLines() // blank lines above SpaceAbove rows
+	rows := l.Len()
+	if perPage := l.effectiveView().PerPage; perPage > 0 {
+		rows = min(rows, perPage) // a paged list is one page tall whichever page shows
+	}
 	if l.vs.Text != "" || l.editingFilter() || l.propStrip() != "" || l.viewSummary() != "" {
-		return l.Len() + gaps + 1
+		return rows + gaps + 1
 	}
 	if l.Filtering() {
-		return max(1, l.Len()+gaps)
+		return max(1, rows+gaps)
 	}
-	return l.Len() + gaps
+	return rows + gaps
 }
 
 // Shown is the number of rows the filter lets through (Len without one).
@@ -216,7 +222,14 @@ func (l *List) shows(id string) bool {
 // lands on that row (Select, focus.set, a job's focus) shows it. The
 // selection is the caller's to set.
 func (l *List) reveal(id string) {
-	if (l.vs.Text == "" && len(l.vs.Filters) == 0) || l.shows(id) || (!slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) && !l.treeHasNode(id)) {
+	if l.shows(id) || (!slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) && !l.treeHasNode(id)) {
+		return
+	}
+	if l.vs.Text == "" && len(l.vs.Filters) == 0 {
+		if l.pages > 1 { // a row of another page: show its page
+			l.refilter(id)
+			l.filterHeard()
+		}
 		return
 	}
 	l.linger.reset()

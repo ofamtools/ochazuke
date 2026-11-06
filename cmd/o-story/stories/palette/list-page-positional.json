@@ -1,0 +1,157 @@
+{
+ "name": "the page verb takes the page as its first word: page 3 in the palette shows page 3",
+ "area": "palette",
+ "width": 80,
+ "height": 30,
+ "chrome": "full",
+ "settings": [
+  {
+   "name": "list.per-page",
+   "type": "integer",
+   "default": 3
+  },
+  {
+   "name": "list.group-by",
+   "type": "string",
+   "default": ""
+  }
+ ],
+ "page": {
+  "nouns": [
+   {
+    "noun": "chore",
+    "props": [
+     {
+      "name": "status",
+      "enum": [
+       "todo",
+       "doing",
+       "done"
+      ]
+     }
+    ]
+   }
+  ],
+  "lists": [
+   {
+    "id": "top",
+    "rows": 2
+   },
+   {
+    "id": "chores",
+    "items": [
+     {
+      "id": "c1",
+      "label": "Water the plants",
+      "noun": "chore",
+      "data": {
+       "status": "todo"
+      }
+     },
+     {
+      "id": "c2",
+      "label": "Write notes",
+      "noun": "chore",
+      "data": {
+       "status": "doing"
+      }
+     },
+     {
+      "id": "c3",
+      "label": "Call the plumber",
+      "noun": "chore",
+      "data": {
+       "status": "done"
+      }
+     },
+     {
+      "id": "c4",
+      "label": "Buy milk",
+      "noun": "chore",
+      "data": {
+       "status": "todo"
+      }
+     },
+     {
+      "id": "c5",
+      "label": "Pay rent",
+      "noun": "chore",
+      "data": {
+       "status": "done"
+      }
+     },
+     {
+      "id": "c6",
+      "label": "Sweep the floor",
+      "noun": "chore",
+      "data": {
+       "status": "todo"
+      }
+     },
+     {
+      "id": "c7",
+      "label": "Fix the bike",
+      "noun": "chore",
+      "data": {
+       "status": "doing"
+      }
+     }
+    ]
+   },
+   {
+    "id": "after",
+    "items": [
+     {
+      "id": "z1",
+      "label": "AFTER-ROW"
+     }
+    ]
+   }
+  ],
+  "bind": [
+   {
+    "noun": "chore",
+    "keys": "n",
+    "do": "ochazuke.list.page-next"
+   },
+   {
+    "noun": "chore",
+    "keys": "p",
+    "do": "ochazuke.list.page-prev"
+   },
+   {
+    "noun": "app",
+    "keys": "F",
+    "do": "ochazuke.focus.set",
+    "args": {
+     "id": "c7"
+    }
+   },
+   {
+    "noun": "chore",
+    "keys": "Y",
+    "do": "ochazuke.list.group",
+    "args": {
+     "by": "status"
+    }
+   }
+  ],
+  "focus": "c1"
+ },
+ "script": [
+  ":",
+  {
+   "type": "page 3"
+  },
+  "enter"
+ ],
+ "expect": [
+  {
+   "contains": [
+    "page 3/3",
+    "Fix the bike"
+   ],
+   "modal": ""
+  }
+ ]
+}

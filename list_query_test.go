@@ -308,8 +308,8 @@ func TestListQueryWidgetGroupedPaged(t *testing.T) {
 	if err := l.SetGroupBy([]string{"status"}, []SortKey{{Field: "status", Desc: true}}); err != nil {
 		t.Fatal(err)
 	}
-	if got, want := widgetIDs(l), []string{"a3", "a5", "a2"}; !slices.Equal(got, want) {
-		t.Fatalf("groups ordered by status desc: %v want %v", got, want)
+	if got, want := widgetIDs(l), []string{"a6", "a8"}; !slices.Equal(got, want) {
+		t.Fatalf("groups ordered by status desc (the selected a8 keeps its place): %v want %v", got, want)
 	}
 	// Turning the settings off restores the plain list.
 	if err := l.SetGroupBy(nil, nil); err != nil {
@@ -334,5 +334,65 @@ func TestListQueryWidgetPageFollowsSelection(t *testing.T) {
 	}
 	if sel, _ := l.Selected(); sel.ID != "a7" {
 		t.Fatalf("selected %q", sel.ID)
+	}
+}
+
+// A paged list is one page tall on every page and with any page count, so a
+// host that sizes it by Height does not move what is drawn below it.
+func TestListQueryPagedHeightIsStable(t *testing.T) {
+	f := newLQFixture(t, nil)
+	l := f.widget(t)
+	plain := l.Height()
+	f.r.Settings().Set(ListPerPageSetting, 3)
+	f.r.Settings().Set(ListGroupBySetting, "status")
+	l.refilter("")
+	want := l.Height()
+	if want != 3+2+1 { // three rows, up to two headings on a page, the indicator
+		t.Fatalf("paged height %d (unpaged %d)", want, plain)
+	}
+	for _, page := range []int{2, 3, 1} {
+		if err := l.SetPage(page); err != nil {
+			t.Fatal(err)
+		}
+		if got := l.Height(); got != want {
+			t.Fatalf("page %d height %d, want %d", page, got, want)
+		}
+	}
+	f.r.Settings().Set(ListGroupBySetting, "")
+	f.r.Settings().Set(ListPerPageSetting, 20)
+	l.refilter("")
+	if page, pages := l.Page(); page != 1 || pages != 1 || l.pageSummary() != "page 1/1" {
+		t.Fatalf("one page: %d/%d %q", page, pages, l.pageSummary())
+	}
+	if got := l.Height(); got != 8+1 {
+		t.Fatalf("one-page height %d", got)
+	}
+}
+
+// Select and regrouping keep the selection and show its page.
+func TestListQuerySelectAndRegroupFollowTheRow(t *testing.T) {
+	f := newLQFixture(t, nil)
+	l := f.widget(t)
+	f.r.Settings().Set(ListPerPageSetting, 3)
+	if err := l.Select("a7"); err != nil {
+		t.Fatal(err)
+	}
+	if page, _ := l.Page(); page != 3 {
+		t.Fatalf("Select left page %d", page)
+	}
+	if sel, _ := l.Selected(); sel.ID != "a7" {
+		t.Fatalf("selected %q", sel.ID)
+	}
+	if err := l.SetGroupBy([]string{"status"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if sel, _ := l.Selected(); sel.ID != "a7" {
+		t.Fatalf("regroup moved the selection to %q", sel.ID)
+	}
+	if err := l.SetGroupBy(nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if sel, _ := l.Selected(); sel.ID != "a7" {
+		t.Fatalf("group-clear moved the selection to %q", sel.ID)
 	}
 }

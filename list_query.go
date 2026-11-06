@@ -139,6 +139,9 @@ type queryOut struct {
 	Page    int
 	PerPage int
 	Pages   int
+	// MaxRuns is the most groups any one page shows (a group that runs on
+	// across a page edge counts on both pages); 0 when not grouped.
+	MaxRuns int
 }
 
 // selectRows are the indexes of the rows the default view shows and the
@@ -166,6 +169,21 @@ func arrangeRows(rows queryRows, idx []int, q ListQuery) queryOut {
 		order, out.Groups = groupQuery(rows, order, q.GroupBy, q.GroupSort)
 	}
 	out.Page = 1
+	if out.Groups != nil {
+		step := len(order)
+		if out.PerPage > 0 {
+			step = out.PerPage
+		}
+		for lo := 0; lo < len(order); lo += max(step, 1) {
+			runs := 1
+			for i := lo + 1; i < min(lo+step, len(order)); i++ {
+				if out.Groups[i] != out.Groups[i-1] {
+					runs++
+				}
+			}
+			out.MaxRuns = max(out.MaxRuns, runs)
+		}
+	}
 	if out.PerPage > 0 {
 		out.Pages = max(1, (len(order)+out.PerPage-1)/out.PerPage)
 		out.Page = min(max(q.Page, 1), out.Pages)
