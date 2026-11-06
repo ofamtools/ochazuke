@@ -41,9 +41,10 @@ func TestVerbReferences(t *testing.T) {
 		Catalog: cat,
 		Removed: ochazuke.NewRuntime().RemovedVerbs(),
 		Root:    ".",
-		// The removed list and the check's own tests name removed verbs on purpose, as
+		// The removed list, the check's own tests and the story of a row naming a
+		// removed verb name removed verbs on purpose, as
 		// testdata does.
-		Skip: []string{"docs/reference/", "removed_verbs.json", "verb_check_test.go", "namecheck/verbs_test.go"},
+		Skip: []string{"docs/reference/", "removed_verbs.json", "verb_check_test.go", "namecheck/verbs_test.go", "cmd/o-story/stories/actions/peer-row-removed-verb.json"},
 		Allow: []string{
 			// Registered by cli.PageView when a catalog page mounts; no
 			// runtime built here has it.
