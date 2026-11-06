@@ -146,7 +146,9 @@ var (
 	needWritable = storeNeed{Doc: "a writable prop", Lacks: "it has no writable prop",
 		Has: func(_ *Runtime, n *Noun) bool { return len(writableProps(n)) > 0 }}
 	needWatch = storeNeed{Doc: "Store.Watch, else Store.List (a singleton: Store.Get); a remote store: Store.Watch", Lacks: "its store has no Watch, List or (for a singleton) Get (a remote store: no Watch)",
-		Has: func(_ *Runtime, n *Noun) bool { return watchFits(*n.Store) && (!n.Store.Remote || n.Store.Watch != nil) }}
+		Has: func(_ *Runtime, n *Noun) bool {
+			return watchFits(*n.Store) && (!n.Store.Remote || n.Store.Watch != nil)
+		}}
 	needEditForms = storeNeed{Doc: "forms.edit (unless field is given)", Lacks: "forms.edit is off",
 		Has: func(r *Runtime, _ *Noun) bool { return r.Settings().Bool(EditFormsSetting) }, WaivedBy: editFieldParam}
 )

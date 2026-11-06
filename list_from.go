@@ -62,6 +62,9 @@ func (l *List) Refill() error {
 	}
 	n := l.r.Nouns[l.from]
 	c := Ctx{actor: l.r.Actor(), Runtime: l.r, Context: l.r.Context()}
+	if n.Store.Remote {
+		return l.refillRemote(n, c)
+	}
 	page, err := l.r.queryThings(c, n, ListQuery{Archived: true})
 	if err != nil {
 		return err
@@ -180,4 +183,36 @@ func (h *fromHub) flush() {
 		h.watch.Stop()
 		delete(r.watchHub().from, h.noun)
 	}
+}
+
+// refillRemote fills the list from a remote store without waiting for it:
+// the read is a job (remote.go) that shows the things when it is answered.
+func (l *List) refillRemote(n *Noun, c Ctx) error {
+	r := l.r
+	var page ListPage
+	body := func(c Ctx) (any, error) {
+		p, err := r.queryThings(c, n, ListQuery{Archived: true})
+		page = p
+		return nil, err
+	}
+	finish := func(_ any, err error) (any, error) {
+		if err != nil {
+			return nil, err
+		}
+		l.refills++
+		return nil, l.SetItems(r.thingItems(n, l.id, page.Items, l.columns))
+	}
+	res := r.runSteppedBody(c, n.Name+".list", body, finish)
+	if res.err != nil {
+		return res.err
+	}
+	if res.work == nil {
+		return nil // answered at once
+	}
+	_, err := r.Launch("app", n.Name+".list", res.Then(func(c Ctx, _ any, err error) {
+		if err != nil {
+			c.Error(fmt.Sprintf("%s list: %v", r.DisplayNoun(n.Name), err))
+		}
+	}), c)
+	return err
 }

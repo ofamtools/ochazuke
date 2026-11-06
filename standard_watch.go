@@ -406,6 +406,9 @@ func (w *Watch) refresh() {
 		// A proxy has no local snapshot. Existing change notifications
 		// invalidate its readers, which reload through their own get proxy.
 		w.deliver(WatchEvent{Type: WatchModified, ID: w.key})
+		if w.batch != nil && !w.ended {
+			w.batch()
+		}
 		return
 	}
 	snap, err := w.snapshot()

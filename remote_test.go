@@ -330,3 +330,31 @@ func TestRemoteReadsOutsideAPlanNeverCall(t *testing.T) {
 		t.Fatal("the get never called the source")
 	}
 }
+
+// A list fed by a remote store fills as a job and fills again as one after
+// a change: the loop never waits for the source.
+func TestRemoteFromListFillsAsAJob(t *testing.T) {
+	r, b, _ := remoteFixture(t)
+	l, err := r.AddList("boxes", nil, From("box"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(b.calls) != 0 || len(l.Items()) != 0 {
+		t.Fatalf("filled on the loop: calls %v rows %d", b.calls, len(l.Items()))
+	}
+	pumpRemote(t, r)
+	if len(l.Items()) != 2 {
+		t.Fatalf("filled by a job: %d rows (calls %v)", len(l.Items()), b.calls)
+	}
+	set(t, r, "a", map[string]any{"title": "Renamed"})
+	pumpRemote(t, r)
+	found := false
+	for _, it := range l.Items() {
+		if it.Label == "Renamed" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("the list did not fill again after the change: %+v", l.Items())
+	}
+}

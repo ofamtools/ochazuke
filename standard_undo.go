@@ -396,8 +396,25 @@ func (r *Runtime) undoVerb(c Ctx) Result {
 	_, targeted := a["entry"]
 	targeted = targeted || r.Actor().IsAgent()
 	var out undoRun
-	body := func(ctx Ctx) (any, error) {
-		out = undoRun{}
+	body := r.undoBody(seqs, targeted, &out)
+	finish := r.undoFinish(seq, &out)
+	if !remote {
+		_, err := body(c)
+		value, err := finish(nil, err)
+		if err != nil {
+			return Failed(err)
+		}
+		return Done(value)
+	}
+	return r.runSteppedBody(c, "ochazuke.history.undo", body, finish)
+}
+
+// undoBody is the work of an undo over the entries seqs: the inverse of each
+// change not yet undone, newest first. It notes what it reverted in out, and
+// is repeatable (a remote store runs it again for each answer).
+func (r *Runtime) undoBody(seqs []uint64, targeted bool, out *undoRun) func(Ctx) (any, error) {
+	return func(ctx Ctx) (any, error) {
+		*out = undoRun{}
 		if targeted {
 			for _, s := range seqs {
 				if e := r.entryOf(s); e != nil {
@@ -428,7 +445,11 @@ func (r *Runtime) undoVerb(c Ctx) Result {
 		}
 		return nil, nil
 	}
-	finish := func(_ any, err error) (any, error) {
+}
+
+// undoFinish marks the changes an undo reverted and says so, once it ends.
+func (r *Runtime) undoFinish(seq uint64, out *undoRun) func(any, error) (any, error) {
+	return func(_ any, err error) (any, error) {
 		for _, d := range out.done {
 			if e := r.entryOf(d.seq); e != nil {
 				e.Changes[d.at].Undone = true // each one that succeeded, even when a later one failed
@@ -447,15 +468,6 @@ func (r *Runtime) undoVerb(c Ctx) Result {
 		r.UI().Info(fmt.Sprintf("undid %s on %s", name, strings.Join(keys, ", ")))
 		return map[string]any{"undone": e.Seq, "verb": name, "things": keys}, nil
 	}
-	if !remote {
-		_, err := body(c)
-		value, err := finish(nil, err)
-		if err != nil {
-			return Failed(err)
-		}
-		return Done(value)
-	}
-	return r.runSteppedBody(c, "ochazuke.history.undo", body, finish)
 }
 
 // entryOf is the history entry with that seq, nil when the ring dropped it.
