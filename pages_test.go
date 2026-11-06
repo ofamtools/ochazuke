@@ -49,12 +49,12 @@ func TestPageRegistrationAndPublicSnapshot(t *testing.T) {
 		t.Fatalf("registration did not retain page order and identity: %v", pages)
 	}
 	want := []map[string]any{{"id": "alpha", "label": "ALPHA", "title": "ALPHA", "active": false, "hidden": false}, {"id": "beta", "label": "BETA", "title": "BETA", "active": false, "hidden": false}}
-	if got := paletteRequest(t, r, "list", "page", nil); !reflect.DeepEqual(got, want) {
+	if got := AnswerRows(paletteRequest(t, r, "list", "page", nil)); !reflect.DeepEqual(got, want) {
 		t.Fatalf("pages=%v; want %v", got, want)
 	}
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
 	want[0]["active"] = true
-	if got := paletteRequest(t, r, "list", "page", nil); !reflect.DeepEqual(got, want) {
+	if got := AnswerRows(paletteRequest(t, r, "list", "page", nil)); !reflect.DeepEqual(got, want) {
 		t.Fatalf("pages=%v; want %v", got, want)
 	}
 	for path, want := range map[string]any{"page": "alpha", "pages.alpha.id": "alpha", "pages.alpha.title": "ALPHA", "pages.alpha.remembered": "alpha", "instances.alpha.noun": "alpha", "instances.alpha-input.parent": "alpha-editor"} {

@@ -1,5 +1,5 @@
 {
- "name": "grouped+paged: focus.set on a row of another page shows its page",
+ "name": "grouped+paged: focus.to on a row of another page shows its page",
  "area": "lists",
  "width": 80,
  "height": 30,
@@ -122,7 +122,7 @@
    {
     "noun": "app",
     "keys": "F",
-    "do": "ochazuke.focus.set",
+    "do": "ochazuke.focus.to",
     "args": {
      "id": "c7"
     }

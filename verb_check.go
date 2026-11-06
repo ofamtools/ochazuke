@@ -195,14 +195,18 @@ func removedRefNote(cat *namecheck.Catalog, removed []namecheck.Removed, file, w
 // request names a removed verb, with the replacement. It reads the row as
 // the file wrote it, before it is validated, so a row the catalog already
 // rejects is still told what to use.
-func (r *Runtime) removedBindingNotes(rows []fileRow) []string {
+// The second answer marks the rows (by index) that name a removed verb no
+// operation answers any more, so the caller does not report the row's
+// validation error, the same removed verb, a second time.
+func (r *Runtime) removedBindingNotes(rows []fileRow) ([]string, map[int]bool) {
 	if len(rows) == 0 {
-		return nil
+		return nil, nil
 	}
 	var out []string
+	told := map[int]bool{}
 	vc, removed := r.VerbCatalog(), r.RemovedVerbs()
 	cat := &vc
-	for _, f := range rows {
+	for i, f := range rows {
 		q := f.row.Request
 		if q.Empty() || q.Verb == "" {
 			continue
@@ -210,10 +214,13 @@ func (r *Runtime) removedBindingNotes(rows []fileRow) []string {
 		where := f.where + " " + f.row.Keys + f.row.Pattern
 		if note := removedRefNote(cat, removed, BindingsFile, where, q.Noun, q.Verb); note != "" {
 			out = append(out, note)
+			if !strings.HasPrefix(note, "warning: ") {
+				told[i] = true
+			}
 		}
 		out = append(out, deprecatedParamNotes(cat, removed, BindingsFile, where, q.Noun, q.Verb, q.Args)...)
 	}
-	return out
+	return out, told
 }
 
 // deprecatedParamNotes are the warnings for a request that gives a
@@ -275,6 +282,45 @@ func (r *Runtime) removedVerbError(noun, verb string) error {
 			msg += " in " + row.Since
 		}
 		return fmt.Errorf("%s: use %s", msg, row.Replacement)
+	}
+	return nil
+}
+
+// RemovedWords is the error for a command line whose leading words name a
+// removed noun.verb (removed_verbs.json, AddRemovedVerbs) that nothing
+// registered answers: what to write instead. The words are read as NOUN
+// VERB, as one dotted word NOUN.VERB, or as a noun of two words (ochazuke
+// settings list). The palette and the CLI read it before they resolve the
+// words against the catalog, so a renamed verb or a merged noun (settings
+// edit, jobs list) names its replacement instead of failing as an unknown
+// or ambiguous word. nil when the words name no removed verb, or when an
+// operation or an alias answers them.
+func (r *Runtime) RemovedWords(words []string) error {
+	var tries [][2]string
+	if len(words) >= 1 && strings.Contains(words[0], ".") {
+		noun, verb := SplitKey(words[0])
+		tries = append(tries, [2]string{noun, verb})
+	}
+	if len(words) >= 2 {
+		tries = append(tries, [2]string{words[0], words[1]})
+	}
+	if len(words) >= 3 {
+		tries = append(tries, [2]string{words[0] + "." + words[1], words[2]})
+	}
+	for _, t := range tries {
+		noun, verb := t[0], t[1]
+		if noun == "" || verb == "" {
+			continue
+		}
+		if _, ok := r.Operation(noun + "." + verb); ok {
+			return nil
+		}
+		if r.aliasNamed(r.CanonicalNoun(noun) + "." + verb) {
+			return nil
+		}
+		if err := r.removedVerbError(noun, verb); err != nil {
+			return err
+		}
 	}
 	return nil
 }

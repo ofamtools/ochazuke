@@ -261,10 +261,11 @@ func TestShellJSONArgumentsAndHistorySource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var entries []ochazuke.HistoryEntry
-	if err := json.Unmarshal([]byte(out), &entries); err != nil {
+	var page struct{ Items []ochazuke.HistoryEntry }
+	if err := json.Unmarshal([]byte(out), &page); err != nil {
 		t.Fatal(err)
 	}
+	entries := page.Items
 	found := false
 	for _, e := range entries {
 		found = found || (e.Request.Key() == "widget.relabel" && e.Context.Source == "cli")
@@ -273,8 +274,9 @@ func TestShellJSONArgumentsAndHistorySource(t *testing.T) {
 		t.Fatalf("history lacks the cli rename: %+v", entries)
 	}
 	// A list result prints one compact element per line.
-	if !strings.HasPrefix(out, "[\n  {") || strings.Count(out, "\n") != len(entries)+2 {
-		t.Fatalf("list output:\n%s", out)
+	out, _, err = f.run("", "widget", "list")
+	if err != nil || !strings.HasPrefix(out, "[\n  {") || strings.Count(out, "\n") != 2+2 {
+		t.Fatalf("list output:\n%s %v", out, err)
 	}
 }
 

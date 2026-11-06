@@ -421,7 +421,7 @@ func registerHistory(r *Runtime) {
 			"job": "The job it started, when it ran off the loop", "depth": "How many requests enclose it (a choices source, a macro's keys)",
 			"restored": "Read from the history file at start: an earlier session ran it", "changes": "What a standard write did to each thing, before and after"},
 		ListParams: map[string]Parameter{
-			"last":  {Type: "integer", Description: "How many entries (default 50, 0 for all); limit overrides it"},
+			"last":  {Type: "integer", Description: "How many of the newest entries the list reads (default 50, 0 for all), before page and per_page"},
 			"actor": {Type: "string", Description: "Actor kind (owner, agent, unknown), self, or exact actor JSON; empty means all"},
 			"kind":  {Type: "string", Description: "Kinds separated by commas (action, change, fetch, system) or all; default action,change"},
 		},
@@ -430,11 +430,7 @@ func registerHistory(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			limit := q.Limit
-			if limit == 0 {
-				limit = IntArg(q.Args, "last", 50)
-			}
-			entries, err := c.Runtime.historyByActor(limit, kinds, StringArg(q.Args, "actor", ""))
+			entries, err := c.Runtime.historyByActor(IntArg(q.Args, "last", 50), kinds, StringArg(q.Args, "actor", ""))
 			if err != nil {
 				return nil, err
 			}

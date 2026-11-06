@@ -457,8 +457,8 @@ Conformance:
 |---|---|---|
 | count_pending | count | `count.append` |
 | count_pending | mode | `mode.enter` |
-| edit | mode | `mode.pin` `mode.set` |
-| flat | mode | `mode.set` |
+| edit | mode | `mode.pin` `mode.switch` |
+| flat | mode | `mode.switch` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
 | insert | bindings | `bindings.help` |
 | insert | chooser | `chooser.clear-props` `chooser.move` `chooser.next-source` `chooser.normal` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
@@ -467,22 +467,22 @@ Conformance:
 | insert | filter-form | `filter-form.move` `filter-form.write-saved` |
 | insert | find-line | `find-line.commit` |
 | insert | form | `form.leave` `form.next` `form.run` `form.suggest` |
-| insert | input | `input.delete` `input.insert` `input.kill` `input.move` |
+| insert | input | `input.erase` `input.insert` `input.kill` `input.move` |
 | insert | list | `list.filter-cycle` `list.filter-prop` |
 | insert | macro | `macro.record` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | modal | `modal.close` |
-| insert | mode | `mode.set` |
+| insert | mode | `mode.switch` |
 | insert | modes | `modes.list` |
 | insert | outline | `outline.leave` `outline.next` `outline.row-key` |
 | insert | palette | `palette.complete` `palette.move` `palette.run` |
 | insert | search | `search.cycle-match` |
+| insert | setting | `setting.complete` `setting.open` |
 | insert | setting-value | `setting-value.commit` |
-| insert | settings | `settings.complete` `settings.edit` |
 | jq | completion | `completion.dismiss` |
 | jq | input | `input.insert` |
 | jq | list | `list.move` |
-| jq | mode | `mode.set` |
+| jq | mode | `mode.switch` |
 | jq | palette | `palette.open` |
 | list_filter | list | `list.filter` `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
 | list_filter | search | `search.cycle-match` |
@@ -501,7 +501,7 @@ Conformance:
 | normal | detail-field | `detail-field.copy` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
 | normal | filter-form | `filter-form.delete-saved` `filter-form.direction` `filter-form.edit-condition` `filter-form.focus` `filter-form.move` `filter-form.toggle` |
-| normal | focus | `focus.next` `focus.previous` `focus.set` |
+| normal | focus | `focus.next` `focus.previous` `focus.to` |
 | normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history | `history.repeat` `history.undo` |
@@ -510,12 +510,12 @@ Conformance:
 | normal | key | `key.ignore` |
 | normal | list | `list.apply` `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.flush-lingering` `list.goto` `list.group` `list.group-clear` `list.mark` `list.move` `list.next-class` `list.page-next` `list.page-prev` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.sort-column` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
-| normal | markdown | `markdown.delete` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
+| normal | markdown | `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.copy` |
 | normal | md.doc | `md.doc.show` |
 | normal | messages | `messages.show` |
 | normal | modal | `modal.close` |
-| normal | mode | `mode.enter` `mode.leave` `mode.set` |
+| normal | mode | `mode.enter` `mode.leave` `mode.switch` |
 | normal | notice | `notice.clear` |
 | normal | nouns | `nouns.edit` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
@@ -525,9 +525,8 @@ Conformance:
 | normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
-| normal | setting | `setting.add` `setting.cycle` `setting.edit` `setting.reset` `setting.revert` `setting.write` |
+| normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.review` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
-| normal | settings | `settings.all` `settings.close` `settings.edit` `settings.review` `settings.section` `settings.tab` `settings.undo` `settings.write` |
 | normal | settings-section | `settings-section.open` `settings-section.pick` |
 | normal | state | `state.toggle` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
@@ -539,7 +538,7 @@ Conformance:
 | register_pending | mode | `mode.leave` |
 | replay_pending | mode | `mode.leave` |
 | shape | list | `list.move` |
-| shape | mode | `mode.set` |
+| shape | mode | `mode.switch` |
 | table | list | `list.move` |
 | table | mode | `mode.pin` |
 | terminal | bindings | `bindings.help` |
@@ -588,10 +587,10 @@ Mode edges (from → to via):
 - `count_pending ctrl+w` → `normal` via `pane.shrink`
 - `count_pending g` → `normal` via `list.goto`
 - `count_pending z` → `normal` via `diff.scroll-columns`
-- `edit` → `normal` via `mode.set`
-- `edit` → `shape` via `mode.set`
-- `edit` → `table` via `mode.set`
-- `flat` → `edit` via `mode.set`
+- `edit` → `normal` via `mode.switch`
+- `edit` → `shape` via `mode.switch`
+- `edit` → `table` via `mode.switch`
+- `flat` → `edit` via `mode.switch`
 - `g_pending` → `normal` via `input.move`
 - `g_pending` → `normal` via `yank-history.open`
 - `help_bind_pending` → `normal` via `bindings-help.bind-key`
@@ -612,20 +611,20 @@ Mode edges (from → to via):
 - `insert` → `normal` via `markdown.leave`
 - `insert` → `normal` via `modal.close`
 - `insert` → `normal` via `modal.close + demo.synced`
-- `insert` → `normal` via `mode.set`
-- `insert` → `normal` via `mode.set + demo.set + demo.get`
-- `insert` → `normal` via `mode.set + item.set + item.get`
-- `insert` → `normal` via `mode.set + parcel.set + parcel.get`
+- `insert` → `normal` via `mode.switch`
+- `insert` → `normal` via `mode.switch + demo.set + demo.get`
+- `insert` → `normal` via `mode.switch + item.set + item.get`
+- `insert` → `normal` via `mode.switch + parcel.set + parcel.get`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `palette.run + parcel.get`
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.commit`
-- `insert` → `normal` via `settings.edit`
+- `insert` → `normal` via `setting.open`
 - `insert` → `terminal` via `palette.run`
 - `jq` → `insert` via `palette.open`
 - `jq` → `normal` via `list.move`
-- `jq` → `normal` via `mode.set`
+- `jq` → `normal` via `mode.switch`
 - `leader_pending` → `hints` via `demo.hints`
 - `leader_pending` → `insert` via `demo.edit`
 - `leader_pending` → `insert` via `item.edit`
@@ -650,7 +649,7 @@ Mode edges (from → to via):
 - `macro_pending` → `normal` via `macro.start`
 - `macro_pending` → `visual-line` via `mode.leave`
 - `normal` → `count_pending` via `mode.enter`
-- `normal` → `edit` via `mode.set`
+- `normal` → `edit` via `mode.switch`
 - `normal` → `g_pending` via `mode.enter`
 - `normal` → `help_bind_pending` via `mode.enter`
 - `normal` → `insert` via `bindings-help.args`
@@ -686,11 +685,11 @@ Mode edges (from → to via):
 - `normal` → `insert` via `setting-item.add`
 - `normal` → `insert` via `setting-item.edit`
 - `normal` → `insert` via `setting.add`
+- `normal` → `insert` via `setting.close`
 - `normal` → `insert` via `setting.edit`
 - `normal` → `insert` via `settings-section.pick`
-- `normal` → `insert` via `settings.close`
 - `normal` → `jq` via `list.move`
-- `normal` → `jq` via `mode.set`
+- `normal` → `jq` via `mode.switch`
 - `normal` → `list_filter` via `list.filter-open`
 - `normal` → `macro_pending` via `mode.enter`
 - `normal` → `normal <` via `row <`
@@ -737,7 +736,7 @@ Mode edges (from → to via):
 - `normal ctrl+w` → `normal` via `pane.restore`
 - `normal ctrl+w` → `normal` via `pane.shrink`
 - `normal ctrl+w` → `normal` via `row >`
-- `normal d` → `normal` via `markdown.delete`
+- `normal d` → `normal` via `markdown.cut`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `chooser.move`
@@ -749,7 +748,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `mode.leave`
 - `normal g` → `normal` via `row c`
 - `normal g` → `normal` via `row s`
-- `normal g` → `normal` via `settings.tab`
+- `normal g` → `normal` via `setting.show-tab`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
 - `normal g` → `normal` via `view.edge`
@@ -782,7 +781,7 @@ Mode edges (from → to via):
 - `operator_pending` → `normal` via `input.operator`
 - `register_pending` → `visual-line` via `mode.leave`
 - `replay_pending` → `visual-line` via `mode.leave`
-- `shape` → `edit` via `mode.set`
+- `shape` → `edit` via `mode.switch`
 - `shape` → `normal` via `list.move`
 - `table` → `flat` via `mode.pin`
 - `table` → `normal` via `list.move`

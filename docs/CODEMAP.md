@@ -1111,7 +1111,7 @@ Root package `ochazuke` is flat: 189 source files, 231 test files. Each entry li
 ### settings_review.go
 
 - lines: 195 · tests: settings_review_test.go
-- purpose: registerSettingsReview registers settings.review, the review's nouns and the refresh that drops reviewed rows.
+- purpose: registerSettingsReview registers setting.review, the review's nouns and the refresh that drops reviewed rows.
 - leans on: settings.go(8), runtime.go(7), list.go(6), settings_session.go(6)
 
 ### settings_session.go
@@ -1312,7 +1312,7 @@ Root package `ochazuke` is flat: 189 source files, 231 test files. Each entry li
 ### ticker.go
 
 - lines: 313 · tests: ticker_test.go
-- purpose: jobTicker is the Model's short memory of finished jobs: jobs.list deletes finished jobs on read, so the ticker keeps its own copy for JobLinger.
+- purpose: jobTicker is the Model's short memory of finished jobs: job.list deletes finished jobs on read, so the ticker keeps its own copy for JobLinger.
 - types: JobLingerMsg, TickerEntry
 - methods: Layout(1), Model(4), jobTicker(4)
 - funcs: TickerEntries, JobsTicker

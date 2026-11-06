@@ -278,7 +278,7 @@ func TestSettingsApplyShowsAndLists(t *testing.T) {
 	if got, err := apply(""); err != nil || len(got.([]SettingDiff)) != 1 {
 		t.Fatalf("empty line %#v %v", got, err)
 	}
-	if got, err := apply("all"); err != nil || len(got.([]map[string]any)) != len(r.Settings().Declared()) {
+	if got, err := apply("all"); err != nil || len(AnswerRows(got).([]map[string]any)) != len(r.Settings().Declared()) {
 		t.Fatalf("all %T %v", got, err)
 	}
 	if _, err := apply("all& wrap"); err != nil || r.TopModal() != "confirm" || r.Instances[r.TopModal()].Payload.Prompt != "Reset all 1 changed setting to their defaults for this session?" {

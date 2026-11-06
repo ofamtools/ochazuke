@@ -71,7 +71,7 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 		appearance["density"] = cfg.App.Appearance.Density
 	}
 	if len(appearance) > 0 {
-		if _, err := r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"changes": appearance}}); err != nil {
+		if _, err := r.Execute(ochazuke.Request{Verb: "set", Noun: "appearance", Args: ochazuke.Arguments{"props": appearance}}); err != nil {
 			return nil, err
 		}
 	}

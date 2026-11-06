@@ -35,10 +35,11 @@ func TestShellActorEnvironment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var got []ochazuke.HistoryEntry
-	if err := json.Unmarshal([]byte(out), &got); err != nil {
+	var page struct{ Items []ochazuke.HistoryEntry }
+	if err := json.Unmarshal([]byte(out), &page); err != nil {
 		t.Fatal(err)
 	}
+	got := page.Items
 	if len(got) != 1 || got[0].Context.Actor != want {
 		t.Fatalf("history output: %s", out)
 	}

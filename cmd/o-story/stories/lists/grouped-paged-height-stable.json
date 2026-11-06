@@ -122,7 +122,7 @@
    {
     "noun": "app",
     "keys": "F",
-    "do": "ochazuke.focus.set",
+    "do": "ochazuke.focus.to",
     "args": {
      "id": "c7"
     }

@@ -116,7 +116,7 @@ func TestSettingsSetValidatesPersistsAndNotifies(t *testing.T) {
 	list, _ := r.Execute(Request{Noun: "ochazuke.setting", Verb: "list"})
 	// The application's five come first, then the framework's own
 	// (settings/ochazuke.json), declared when the runtime was made.
-	if rows := list.([]map[string]any); len(rows) != 5+len(startupSettings()) || rows[3]["value"] != "1s" || rows[3]["default"] != "400ms" || rows[3]["origin"] != OriginFile || rows[4]["name"] != "ratio" {
+	if rows := AnswerRows(list).([]map[string]any); len(rows) != 5+len(startupSettings()) || rows[3]["value"] != "1s" || rows[3]["default"] != "400ms" || rows[3]["origin"] != OriginFile || rows[4]["name"] != "ratio" {
 		t.Fatalf("list %+v", list)
 	}
 }

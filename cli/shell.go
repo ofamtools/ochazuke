@@ -223,7 +223,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	var noun, verb string
 	var flags []string
 	var presets ochazuke.Arguments
-	reading, bare, err := r.ReadBareAlias(r.Context(), args, nil)
+	reading, bare, err := readCommandWords(r, args)
 	if err != nil {
 		return err
 	}
@@ -979,4 +979,15 @@ func resolves(r *ochazuke.Runtime, target string) bool {
 func (s *Shell) bareAlias(word string) bool {
 	a, ok := s.Runtime.ActionAlias(word)
 	return ok && a.Bare && a.Verb == word && !a.Palette
+}
+
+// readCommandWords reads a command line's leading words: a removed verb (a
+// renamed command verb, a merged plural noun: bin settings list) is an
+// error that says what to write instead, before the words resolve; else
+// the words as a bare alias reads them (ReadBareAlias).
+func readCommandWords(r *ochazuke.Runtime, args []string) (ochazuke.BareReading, bool, error) {
+	if err := r.RemovedWords(args); err != nil {
+		return ochazuke.BareReading{}, false, err
+	}
+	return r.ReadBareAlias(r.Context(), args, nil)
 }

@@ -420,11 +420,15 @@ func (r *Runtime) CheckUserBindings() []string {
 	var problems []string
 	if path != "" {
 		rows, bad := r.readUserBindings(path)
-		problems = append(bad, r.removedBindingNotes(rows)...)
-		for _, f := range rows {
+		notes, told := r.removedBindingNotes(rows)
+		problems = append(bad, notes...)
+		for i, f := range rows {
 			row, err := r.validateRow(f.row)
 			if err != nil {
-				problems = append(problems, r.userRowProblem(f.where, f.row, err))
+				// A removed verb's row is reported once, by its note.
+				if !told[i] {
+					problems = append(problems, r.userRowProblem(f.where, f.row, err))
+				}
 				continue
 			}
 			if note := r.aliasRowNote(f.where, row); note != "" {

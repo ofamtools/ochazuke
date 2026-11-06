@@ -172,7 +172,7 @@ func TestSettingLayoutVerbsAndOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, _ := json.Marshal(list)
+	data, _ := json.Marshal(AnswerRows(list))
 	var rows []map[string]any
 	_ = json.Unmarshal(data, &rows)
 	by := map[string]map[string]any{}

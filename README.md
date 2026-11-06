@@ -1801,7 +1801,7 @@ The system clipboard: the clipboard register `+` (and `*`, the same register her
 /tmp/ochazuke yank-history open
 /tmp/ochazuke yank-history select --json '{"index":0}'
 /tmp/ochazuke register get --json '{"name":"a"}'
-/tmp/ochazuke register set --json '{"name":"a","changes":{"text":"shared","shape":"char"}}'
+/tmp/ochazuke register set --json '{"name":"a","props":{"text":"shared","shape":"char"}}'
 /tmp/ochazuke input paste --json '{"register":"a"}'
 /tmp/ochazuke macro replay --json '{"register":"a","steps":2}'
 ```

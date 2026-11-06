@@ -12,7 +12,7 @@ import (
 // label) back into the struct its props came from.
 func rowsOf[T any](t testing.TB, v any) []T {
 	t.Helper()
-	data, err := json.Marshal(v)
+	data, err := json.Marshal(AnswerRows(v))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -203,5 +203,58 @@ func TestAppearanceSetIsUndone(t *testing.T) {
 	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
 	if a.Density != "comfortable" || a.Theme != "adaptive" {
 		t.Fatalf("after undo: %+v", *a)
+	}
+}
+
+// A palette line naming a removed verb (a renamed command verb, a verb of
+// a merged plural noun) says what to write instead before its words
+// resolve, in every spelling; a line the catalog answers is untouched.
+func TestPaletteNamesTheReplacementOfARemovedVerb(t *testing.T) {
+	_, p, _ := setPalette(t)
+	for line, want := range map[string]string{
+		"settings edit":                 "use ochazuke.setting.open",
+		"jobs list":                     "use ochazuke.job.list",
+		"focus set overview":            "use ochazuke.focus.to {id}",
+		"pages list":                    "use ochazuke.page.list",
+		"ochazuke settings list":        "use ochazuke.setting.list",
+		"ochazuke.settings" + ".review": "use ochazuke.setting.review",
+		"mode set normal":               "use ochazuke.mode.switch {mode}",
+	} {
+		c := p.parse(line)
+		if c.Err == nil || !strings.Contains(c.Err.Error(), "was removed") || !strings.Contains(c.Err.Error(), want) {
+			t.Errorf("%q: err %v, want %q", line, c.Err, want)
+		}
+	}
+	for _, line := range []string{"setting open", "job list", "focus to x", "list move 1", "set scrolloff=3", "settings"} {
+		if c := p.parse(line); c.Err != nil && strings.Contains(c.Err.Error(), "was removed") {
+			t.Errorf("%q reads as removed: %v", line, c.Err)
+		}
+	}
+}
+
+// A user's bindings.json row naming a removed verb is a start-up notice
+// that names the replacement, and bindings check reports it once.
+func TestRemovedVerbRowIsOneNotice(t *testing.T) {
+	r := NewRuntime()
+	NewModel(r)
+	dir := t.TempDir()
+	r.Config().Dir = dir
+	writeConfig(t, dir, BindingsFile, `[{"noun": "app", "mode": "normal", "keys": "z", "request": {"noun": "settings", "verb": "edit"}}]`)
+	problems := r.ReloadUserBindings()
+	if len(problems) != 1 || !strings.Contains(problems[0], "use ochazuke.setting.open") {
+		t.Fatalf("start-up notices %q", problems)
+	}
+	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := 0
+	for _, line := range got.([]string) {
+		if strings.Contains(line, "ochazuke.setting.open") {
+			n++
+		}
+	}
+	if n != 1 {
+		t.Fatalf("bindings check names the removed row %d times:\n%s", n, strings.Join(got.([]string), "\n"))
 	}
 }

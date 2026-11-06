@@ -1,0 +1,13 @@
+{
+  "name": "palette: a line naming a removed verb of a merged plural noun or a renamed command verb (settings edit, jobs list, focus set) says what to write instead and runs nothing",
+  "area": "palette",
+  "width": 100,
+  "height": 12,
+  "page": {"lists": [{"id": "a", "rows": 2}]},
+  "script": [":", {"type": "settings edit"}, "enter", "esc", {"type": "jobs list"}, "enter", "esc", {"type": "focus set a2"}, "enter"],
+  "expect": [
+    {"after": 3, "modal": "palette", "contains": ["settings edit was removed in R1: use ochazuke.setting.open"]},
+    {"after": 6, "modal": "palette", "contains": ["jobs list was removed in R1: use ochazuke.job.list"]},
+    {"modal": "palette", "contains": ["focus set was removed in R1: use ochazuke.focus.to {id}"], "lacks": ["Settings"]}
+  ]
+}

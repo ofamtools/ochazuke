@@ -585,6 +585,15 @@ func paramOrder(op Operation) []string { return op.ParameterOrder() }
 // parse resolves a line in the palette's origin context.
 func (p *Palette) parse(line string) commandLine {
 	tokens, _ := tokenize(line)
+	// A removed noun.verb (a renamed command verb, a merged plural noun)
+	// says what to write instead before its words resolve.
+	if err := p.r.RemovedWords(tokenTexts(tokens)); err != nil {
+		c := commandLine{Args: Arguments{}, Err: err, Missing: "verb"}
+		for _, t := range tokens[:min(2, len(tokens))] {
+			c.Words = append(c.Words, PaletteWord{Text: t.Text})
+		}
+		return c
+	}
 	return p.parseTokens(p.index(), tokens)
 }
 
@@ -1015,4 +1024,13 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 		return text == "true", text, nil, nil
 	}
 	return nil, "", nil, fmt.Errorf("unsupported argument type %q for %s", param.Type, name)
+}
+
+// tokenTexts are the tokens' texts.
+func tokenTexts(tokens []lineToken) []string {
+	out := make([]string, len(tokens))
+	for i, t := range tokens {
+		out[i] = t.Text
+	}
+	return out
 }

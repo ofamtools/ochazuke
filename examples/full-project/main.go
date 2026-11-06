@@ -315,7 +315,7 @@ func smokeExample(m *ochazuke.Model) error {
 	call("run", "palette", "", nil)
 	expect("palette action", pageState("overview")["greeting"], "Hello, Lin!")
 	expect("palette restores page", r.Context().InputID, "notes")
-	call("set", "appearance", "", ochazuke.Arguments{"changes": map[string]any{"theme": "mono", "density": "compact"}})
+	call("set", "appearance", "", ochazuke.Arguments{"props": map[string]any{"theme": "mono", "density": "compact"}})
 	appearance, ok := call("get", "appearance", "", nil).(map[string]any)
 	expect("appearance value", ok, true)
 	expect("live theme", appearance["theme"], "mono")

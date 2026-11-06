@@ -128,6 +128,15 @@ func (r *Runtime) bindingPeer(noun string) (BindingPeer, bool) {
 // peerBindingReason uses presence, not version comparisons. Versions only
 // explain an installed peer that lacks the verb/argument the row needs.
 func (r *Runtime) peerBindingReason(row Binding, fallback error) string {
+	// A removed verb (a renamed command verb, a merged noun) says what to
+	// write instead, whether or not its noun is still there.
+	if !row.Unbind && !row.Request.Empty() {
+		if _, found := r.Operation(row.Request.Key()); !found {
+			if err := r.removedVerbError(row.Request.Noun, row.Request.Verb); err != nil {
+				return err.Error()
+			}
+		}
+	}
 	noun := r.CanonicalNoun(row.Request.Noun)
 	peer, known := r.bindingPeer(noun)
 	if r.Noun(noun) == nil {
