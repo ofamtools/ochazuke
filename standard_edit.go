@@ -22,8 +22,26 @@ const EditApplySetting = "forms.edit-apply"
 // field focused. Default on.
 const EditFieldOnlySetting = "edit.field-only"
 
+// EditFieldChooserSetting: edit with a field that takes a choice (an
+// enum, a choice source, a noun reference, a boolean, a path under
+// path.field picker) opens that field's chooser in place of the one-field
+// form; the pick is the write (one undo step) and closes it, esc closes it
+// with nothing written. Read with edit.field-only: off, or edit.field-only
+// off, the form opens as before. A request's chooser argument overrides
+// both. Default on.
+const EditFieldChooserSetting = "edit.field-chooser"
+
 // editFieldParam is edit's parameter naming the one prop to edit.
 const editFieldParam = "field"
+
+// editChooserParam is edit's parameter choosing, for a field that takes a
+// choice, its chooser (true) or the one-field form (false); omitted,
+// edit.field-chooser decides.
+const editChooserParam = "chooser"
+
+// EditChooserKind is the kind of the chooser edit {field} opens on a
+// choice field (Runtime.Chooser(EditChooserKind) while it is open).
+const EditChooserKind = "edit-choose"
 
 const editFormID = "edit-form"
 const editOpenSlot = "standard-edit-open"
@@ -47,6 +65,8 @@ func editParams(n *Noun) map[string]Parameter {
 	// rejected row.
 	params[editFieldParam] = Parameter{Type: "string", Enum: fields, Free: true, Plumbing: true,
 		Description: "The one prop to edit (a name, or @label, @owner, @archive for the prop with that role): with edit.field-only the form holds only it, else the full form opens on it"}
+	params[editChooserParam] = Parameter{Type: SettingBoolean, Plumbing: true,
+		Description: "With field on a prop that takes a choice: true opens its chooser (the pick writes and closes), false the one-field form; omitted, edit.field-chooser decides"}
 	return params
 }
 
@@ -106,17 +126,12 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			}
 			fieldOnly := only != nil && r.Settings().Bool(EditFieldOnlySetting)
 			fields := r.editFields(n, c, thing, only, fieldOnly)
+			if field, ok := r.editByChooser(c.Args, only, fieldOnly, fields); ok {
+				label := r.editLabel(n, c, thing, subject)
+				return r.openEditChooser(c, n, field, values, "Edit "+r.DisplayNoun(noun)+" "+only.Name+": "+label, write)
+			}
 			r.pendingRecord(writeKey, values)
-			label := n.displayLabel(func(name string) any { return thing[name] })
-			instanceSubject := c
-			instanceSubject.Args = nil
-			key, _ := r.subjectKey(n, instanceSubject)
-			if c.Instance != nil && c.Instance.Noun == n.Name && c.Instance.Label != "" && (n.keyProp() == nil || key == fmt.Sprint(subject[n.keyProp().Name])) {
-				label = c.Instance.Label
-			}
-			if label == "" && n.keyProp() != nil {
-				label = fmt.Sprint(subject[n.keyProp().Name])
-			}
+			label := r.editLabel(n, c, thing, subject)
 			spec := RecordSpec{Title: "Edit " + r.DisplayNoun(noun) + ": " + label, Fields: fields, WriteKey: writeKey, Load: func() (Record, error) { return values, nil }}
 			editStart(&spec, only, fieldOnly, r.DisplayNoun(noun), label)
 			spec.Watch = noun
@@ -206,6 +221,22 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			}
 		})
 	}
+}
+
+// editLabel names the thing an edit opens on: the focused row's label
+// when the row is that thing, else the thing's label, else its key.
+func (r *Runtime) editLabel(n *Noun, c Ctx, thing Thing, subject Arguments) string {
+	label := n.displayLabel(func(name string) any { return thing[name] })
+	instanceSubject := c
+	instanceSubject.Args = nil
+	key, _ := r.subjectKey(n, instanceSubject)
+	if c.Instance != nil && c.Instance.Noun == n.Name && c.Instance.Label != "" && (n.keyProp() == nil || key == fmt.Sprint(subject[n.keyProp().Name])) {
+		label = c.Instance.Label
+	}
+	if label == "" && n.keyProp() != nil {
+		label = fmt.Sprint(subject[n.keyProp().Name])
+	}
+	return label
 }
 
 // humanKeyAlone is the other subjects an edit of field only writes: none
@@ -330,6 +361,7 @@ func (r *Runtime) otherSubjectKeys(n *Noun, c Ctx, key PropSpec, primary string)
 func editArgs(n *Noun, args Arguments) (*PropSpec, map[string]any, error) {
 	rest := maps.Clone(args)
 	delete(rest, editFieldParam)
+	delete(rest, editChooserParam)
 	if key := n.keyProp(); key != nil {
 		delete(rest, key.Name)
 	}

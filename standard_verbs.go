@@ -125,7 +125,15 @@ func (r *Runtime) adoptFieldParam(key string) {
 	if params == nil {
 		params = map[string]Parameter{}
 	}
-	params[field] = std.Parameters[field]
+	// The field and the row's other parameters that go with it (edit's
+	// chooser), each one the app's verb does not declare itself.
+	for _, name := range append([]string{field}, row.ParamNames...) {
+		if _, has := params[name]; !has {
+			if p, ok := std.Parameters[name]; ok {
+				params[name] = p
+			}
+		}
+	}
 	if kp := n.keyProp(); kp != nil {
 		if _, has := params[kp.Name]; !has {
 			params[kp.Name] = std.Parameters[kp.Name]
