@@ -373,13 +373,13 @@ func TestConfigExportExamplesInstallWithoutNotices(t *testing.T) {
 		t.Error("the example alias row did not install")
 	}
 	for _, f := range jsonFields(Parameter{}) {
-		// focus, edits, valueOf, pairs, excludes and forwards are declared by the
-		// standard verbs' parameters (standard_verbs.go,
-		// standard_derived.go): the subject the runtime fills, rename's
-		// prop, set's value and where, which read the noun's props, and
-		// set's toggle, which a value excludes; an action's parameter
-		// does not take them.
-		if !params[f] && f != "focus" && f != "edits" && f != "valueOf" && f != "pairs" && f != "excludes" && f != "forwards" && f != "plumbing" {
+		// focus, edits, valueOf, pairs, excludes, covers and forwards are
+		// declared by the standard verbs' parameters (standard_verbs.go,
+		// standard_derived.go): the subject the runtime fills, set's
+		// value and where, which read the noun's props, set's toggle,
+		// which a value excludes, and create's from, which covers the
+		// required props; an action's parameter does not take them.
+		if !params[f] && f != "focus" && f != "edits" && f != "valueOf" && f != "pairs" && f != "excludes" && f != "covers" && f != "forwards" && f != "plumbing" {
 			t.Errorf("actions example lacks parameter field %q", f)
 		}
 	}
