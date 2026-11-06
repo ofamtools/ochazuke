@@ -1,32 +1,20 @@
 # nouncheck baseline: kind, noun, verb (tab separated), one row per accepted break of the thing and command noun rules.
 # It only shrinks: NOUNCHECK_UPDATE=1 removes rows that no longer match, never adds them. Adding a row is a reviewed edit.
-command-core-verb	ochazuke.actions	list
 command-core-verb	ochazuke.appearance	get
 command-core-verb	ochazuke.appearance	set
-command-core-verb	ochazuke.association	list
-command-core-verb	ochazuke.bindings	list
 command-core-verb	ochazuke.confirm	set
-command-core-verb	ochazuke.events	list
 command-core-verb	ochazuke.focus	set
-command-core-verb	ochazuke.glyphs	list
 command-core-verb	ochazuke.history	list
-command-core-verb	ochazuke.hooks	list
 command-core-verb	ochazuke.input	delete
 command-core-verb	ochazuke.jobs	list
 command-core-verb	ochazuke.markdown	delete
 command-core-verb	ochazuke.mode	set
-command-core-verb	ochazuke.modes	list
-command-core-verb	ochazuke.notice	list
-command-core-verb	ochazuke.nouns	edit
-command-core-verb	ochazuke.nouns	list
-command-core-verb	ochazuke.operations	list
 command-core-verb	ochazuke.outline	delete
 command-core-verb	ochazuke.outline	edit
 command-core-verb	ochazuke.pages	list
 command-core-verb	ochazuke.palette	set
 command-core-verb	ochazuke.register	get
 command-core-verb	ochazuke.register	set
-command-core-verb	ochazuke.segment	list
 command-core-verb	ochazuke.setting-item	delete
 command-core-verb	ochazuke.setting-item	edit
 command-core-verb	ochazuke.settings	edit
@@ -34,4 +22,3 @@ command-core-verb	ochazuke.settings	get
 command-core-verb	ochazuke.settings	list
 command-core-verb	ochazuke.settings	set
 command-core-verb	ochazuke.state	get
-command-core-verb	ochazuke.themes	list

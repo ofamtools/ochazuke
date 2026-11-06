@@ -565,11 +565,11 @@ func (r *Runtime) registerFramework() {
 	registerJobs(r)
 	registerConfiguration(r)
 	registerSearchMatch(r)
-	registerAssociations(r)
 	registerChooser(r)
 	registerConfig(r)
 	registerActions(r)
 	registerSettings(r)
+	registerFactNouns(r)
 	registerAgentRights(r)
 	registerSettingsEditor(r)
 	registerAbout(r)
@@ -740,15 +740,15 @@ var typingOps = map[string]bool{
 // record or a pane are changes, and the application verbs that only close
 // or fold are actions.
 var frameworkHistoryKinds = map[string]string{
-	"ochazuke.actions.aliases": HistoryFetch, "ochazuke.actions.check": HistoryFetch, "ochazuke.actions.list": HistoryFetch, "ochazuke.actions.path": HistoryFetch, "ochazuke.actions.reload": HistoryFetch,
-	"ochazuke.appearance.get": HistoryFetch, "ochazuke.bindings.check": HistoryFetch, "ochazuke.bindings.list": HistoryFetch,
+	"ochazuke.actions.aliases": HistoryFetch, "ochazuke.actions.check": HistoryFetch, "ochazuke.actions.path": HistoryFetch, "ochazuke.actions.reload": HistoryFetch,
+	"ochazuke.appearance.get": HistoryFetch, "ochazuke.bindings.check": HistoryFetch,
 	"ochazuke.bindings.path": HistoryFetch, "ochazuke.bindings.reload": HistoryFetch, "ochazuke.bindings.stops": HistoryFetch,
 	"ochazuke.config.path": HistoryFetch, "ochazuke.config.reload": HistoryFetch, "ochazuke.history.list": HistoryFetch, "ochazuke.history.path": HistoryFetch,
-	"ochazuke.instances.query": HistoryFetch, "ochazuke.jobs.list": HistoryFetch, "ochazuke.modes.list": HistoryFetch,
-	"ochazuke.notice.list": HistoryFetch, "ochazuke.operations.list": HistoryFetch, "ochazuke.pages.list": HistoryFetch,
+	"ochazuke.instances.query": HistoryFetch, "ochazuke.jobs.list": HistoryFetch,
+	"ochazuke.pages.list":   HistoryFetch,
 	"ochazuke.register.get": HistoryFetch, "ochazuke.settings.get": HistoryFetch, "ochazuke.settings.list": HistoryFetch,
 	"ochazuke.settings.names": HistoryFetch, "ochazuke.settings.path": HistoryFetch, "ochazuke.settings.reload": HistoryFetch,
-	"ochazuke.state.get": HistoryFetch, "ochazuke.themes.list": HistoryFetch, "ochazuke.themes.path": HistoryFetch,
+	"ochazuke.state.get": HistoryFetch, "ochazuke.themes.path": HistoryFetch,
 	"ochazuke.themes.reload": HistoryFetch,
 
 	"ochazuke.list.yank": HistoryChange, "ochazuke.list.resize-column": HistoryChange, "ochazuke.list.reset-columns": HistoryChange,
@@ -1366,13 +1366,6 @@ func JSONPointer(value any, path string) (any, error) {
 func registerCore(r *Runtime) {
 	r.Register(Operation{Verb: "get", Noun: "ochazuke.state", Description: "Inspect public state using a JSON Pointer", Parameters: map[string]Parameter{"path": {Type: "string"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return JSONPointer(r.Snapshot(), StringArg(a, "path", ""))
-	}})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.operations", Description: "List registered verbs, nouns, kinds (interaction or application), confirm prompts and argument schemas", Result: "operation[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) { return r.Catalog(), nil }})
-	r.Register(Operation{Verb: "list", Noun: "ochazuke.bindings", Description: "List the rows the current stack and mode answer to; all includes every stored noun and instance mode table", Parameters: map[string]Parameter{"all": {Type: "boolean", Description: "Return every stored binding row, including inactive modes and contexts, in configuration JSON format"}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		if all, _ := a["all"].(bool); all {
-			return r.allBindings(), nil
-		}
-		return r.ListBindings(focusOf(c)), nil
 	}})
 	r.Register(Operation{Verb: "defaults", Noun: "ochazuke.bindings", HistoryKind: HistoryFetch, Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		data, err := FormatBindings(r.defaultBindingsDoc())
