@@ -1070,16 +1070,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if !ok {
 		return nil, r.unknownOperation(q.Noun, q.Verb)
 	}
-	if key, ok := r.targetThingKey(op, q); ok {
-		// A target naming a thing, not an instance: the subject's key.
-		args := maps.Clone(q.Args)
-		if args == nil {
-			args = Arguments{}
-		}
-		args[key] = q.Target
-		q.Args, q.Target = args, ""
-		request.Args, request.Target = args, ""
-	}
+	r.targetAsKey(op, &q, request)
 	if q.Args, err = r.standardArgs(op, q); err != nil {
 		return nil, err
 	}
@@ -1232,6 +1223,23 @@ func (r *Runtime) targetThingKey(op Operation, q Request) (string, bool) {
 		return "", false
 	}
 	return key.Name, true
+}
+
+// targetAsKey moves a target that names a thing, not an instance
+// (targetThingKey), into the subject's key argument, in the request being
+// run and the one history records.
+func (r *Runtime) targetAsKey(op Operation, q, request *Request) {
+	key, ok := r.targetThingKey(op, *q)
+	if !ok {
+		return
+	}
+	args := maps.Clone(q.Args)
+	if args == nil {
+		args = Arguments{}
+	}
+	args[key] = q.Target
+	q.Args, q.Target = args, ""
+	request.Args, request.Target = args, ""
 }
 
 // TargetInstance is the instance a request target names: the target when

@@ -85,7 +85,7 @@ cli/setup.go	DeclareSetup	compare	"copy"	4
 cli/setup.go	DeclareSetup	compare	"list"	1
 cli/setup.go	DeclareSetup	compare	"show"	2
 cli/setup.go	DeclareSetup	compare	"status"	1
-cli/setup.go	DeclareSetup	cyclo	"-"	33
+cli/setup.go	DeclareSetup	cyclo	"-"	28
 cli/setup.go	printSetup	case	"copy"	1
 cli/setup.go	printSetup	case	"show"	1
 cli/setup.go	printSetup	compare	"list"	1

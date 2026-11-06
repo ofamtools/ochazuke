@@ -1014,10 +1014,10 @@ Root package `ochazuke` is flat: 193 source files, 235 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1516 · tests: runtime_test.go
+- lines: 1524 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
-- methods: Context(1), Operation(6), Request(4), Runtime(24)
+- methods: Context(1), Operation(6), Request(4), Runtime(25)
 - funcs: NewRuntime, StringArg, IntArg, JSONPointer
 - leans on: history.go(55), noun.go(43), instance.go(34), delivery.go(25)
 
