@@ -148,11 +148,11 @@ What the framework will not do for you: persistence, domain validation, daemon p
 
 ## Checks
 
-The gate is `make test`: gofmt, `go vet` and `go test -race` (one run, no separate plain run; the Makefile sets `-timeout 60m`, because the root package alone needs over Go's 10-minute default under `-race`) of the root module and of both nested modules (`cmd/o-story`: o-story, the demo app and its stories; `examples`). A bare `go test ./...` at the root runs only the root module, so it skips every story; it fails `TestNestedModulesRunToo` saying so, unless `OCHAZUKE_NESTED_TESTS=1` is set, which `make test` sets.
+The gate is `make test`: gofmt, `go vet` and `go test -race` (the root module once under `-race` with `-timeout 60m`, no plain run, because the root package alone needs over Go's 10-minute default; the nested modules run plain: o-story under `-race` took 1707 s) of the root module and of both nested modules (`cmd/o-story`: o-story, the demo app and its stories; `examples`). A bare `go test ./...` at the root runs only the root module, so it skips every story; it fails `TestNestedModulesRunToo` saying so, unless `OCHAZUKE_NESTED_TESTS=1` is set, which `make test` sets.
 
 ```sh
 make test
-OCHAZUKE_NESTED_TESTS=1 go test -race -timeout 60m ./...   # the root module only (make test runs every module, also under -race)
+OCHAZUKE_NESTED_TESTS=1 go test -race -timeout 60m ./...   # the root module only (make test races the root module and runs the nested modules plain)
 go run ./examples/core
 go run ./examples/full-project --smoke
 ```
@@ -165,7 +165,7 @@ Semver tags on `main`; the family bins require the tag. ochazuke requires a tagg
 
 1. Pick the version (`v0.x.y`: minor for API changes, patch for fixes).
 2. Add a `## vX.Y.Z (DATE)` section to CHANGELOG.md above o-inventory's dated entries, with the highlights.
-3. Run the checks above with `GOWORK=off` (the build a fresh clone gets: `GOWORK=off make test`, the single `-race` run, which tests the nested modules against the tags they require) and `go mod tidy` (no diff); commit and push.
+3. Run the checks above with `GOWORK=off` (the build a fresh clone gets: `GOWORK=off make test`, the root module under `-race`, nested modules plain, which tests the nested modules against the tags they require) and `go mod tidy` (no diff); commit and push.
 4. `git tag -a vX.Y.Z -m "..."` on that exact commit, `git push origin vX.Y.Z`, `gh release create vX.Y.Z --notes ...`. Never move or delete a pushed tag; fix forward with the next patch.
 5. Check the proxy: `GOPROXY=https://proxy.golang.org GOFLAGS=-mod=mod go list -m ofam.dev/ochazuke@vX.Y.Z`.
 6. Bump consumers (matomeru, nabe, the o-* bins, mtm-mermaid): `go get ofam.dev/ochazuke@vX.Y.Z && go mod tidy`, gate with `GOWORK=off`, commit and push.
