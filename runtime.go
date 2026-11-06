@@ -1070,6 +1070,16 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if !ok {
 		return nil, r.unknownOperation(q.Noun, q.Verb)
 	}
+	if key, ok := r.targetThingKey(op, q); ok {
+		// A target naming a thing, not an instance: the subject's key.
+		args := maps.Clone(q.Args)
+		if args == nil {
+			args = Arguments{}
+		}
+		args[key] = q.Target
+		q.Args, q.Target = args, ""
+		request.Args, request.Target = args, ""
+	}
 	if q.Args, err = r.standardArgs(op, q); err != nil {
 		return nil, err
 	}
@@ -1195,6 +1205,33 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 		return run[0](op, c, q.Args)
 	}
 	return op.Run(r, c, q.Args)
+}
+
+// targetThingKey is the key parameter a request's target fills when the
+// target names no instance (TargetInstance fails) but the operation takes
+// its noun's thing by key (a subject parameter named after the key prop:
+// Parameter.Focus with the noun) and the request gives no key: the target
+// is then a thing's key or human key, read as that argument, so
+// `register set --target a` names register a as `--name a` does, whether
+// or not it exists yet (the store answers for a new key). An instance id,
+// or a target the application's ResolveTarget maps, keeps its instance.
+func (r *Runtime) targetThingKey(op Operation, q Request) (string, bool) {
+	if q.Target == "" || q.Target == "focused-input" {
+		return "", false
+	}
+	n := r.Noun(op.Noun)
+	if n == nil || !n.resolvable() {
+		return "", false
+	}
+	key := n.keyProp()
+	p, ok := op.Parameters[key.Name]
+	if !ok || !p.Focus || p.Noun != n.Name || !emptyProp(q.Args[key.Name]) {
+		return "", false
+	}
+	if _, err := r.TargetInstance(q.Target); err == nil {
+		return "", false
+	}
+	return key.Name, true
 }
 
 // TargetInstance is the instance a request target names: the target when
