@@ -23,7 +23,7 @@ func TestTaskArchiveListRoundTrip(t *testing.T) {
 	ids := func(args ochazuke.Arguments) []string {
 		t.Helper()
 		out := []string{}
-		for _, row := range run("list", args).([]map[string]any) {
+		for _, row := range ochazuke.AnswerRows(run("list", args)).([]map[string]any) {
 			out = append(out, row["id"].(string))
 		}
 		return out

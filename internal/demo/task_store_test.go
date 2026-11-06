@@ -35,10 +35,13 @@ func runDemo(t *testing.T, args ...string) string {
 // with no handler of the demo's own: from the CLI, list answers the three
 // tasks (the untitled one by its summary) and get one by its key.
 func TestTaskStoreFromTheCLI(t *testing.T) {
-	var rows []map[string]any
-	if err := json.Unmarshal([]byte(runDemo(t, "task", "list")), &rows); err != nil {
+	var page struct {
+		Items []map[string]any `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(runDemo(t, "task", "list")), &page); err != nil {
 		t.Fatal(err)
 	}
+	rows := page.Items
 	var labels []string
 	for _, row := range rows {
 		labels = append(labels, row["label"].(string))
@@ -220,7 +223,7 @@ func TestTaskWritesFromThePalette(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rows.([]map[string]any)) != 0 {
+	if len(ochazuke.AnswerRows(rows).([]map[string]any)) != 0 {
 		t.Fatalf("where is equality: %v", rows)
 	}
 	if v := get("t4", "title"); v != "Buy milk" {
