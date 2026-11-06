@@ -84,7 +84,14 @@ func TestNamedSettingSetStillWins(t *testing.T) {
 			t.Fatalf("setting.%s standard %q", verb, op.Standard)
 		}
 	}
-	for _, verb := range []string{"create", "delete", "rename", "duplicate"} {
+	// A read-only collection: the core writes are listed, unavailable
+	// with the reason; the legacy ones are absent.
+	for _, verb := range []string{"create", "delete"} {
+		if op, ok := r.Operations["ochazuke.setting."+verb]; !ok || op.Unavailable == "" || r.offers(op.Key()) {
+			t.Fatalf("setting.%s: ok %v unavailable %q", verb, ok, op.Unavailable)
+		}
+	}
+	for _, verb := range []string{"rename", "duplicate"} {
 		if _, ok := r.Operations["ochazuke.setting."+verb]; ok {
 			t.Fatalf("setting.%s is registered", verb)
 		}
@@ -231,8 +238,8 @@ func TestInstancesStoreReadsLiveInstances(t *testing.T) {
 			t.Fatalf("widget.%s is not generated", verb)
 		}
 	}
-	if _, ok := r.Operations["widget.set"]; ok {
-		t.Fatal("widget.set without Patch")
+	if op := r.Operations["widget.set"]; op.Unavailable != "its store writes no props (no Store.Patch)" {
+		t.Fatalf("widget.set without Patch: unavailable %q", op.Unavailable)
 	}
 	rows := paletteRequest(t, r, "list", "widget", nil).([]map[string]any)
 	if len(rows) != 2 || rows[0]["id"] != "w1" || rows[0]["label"] != "First" || rows[0]["size"] != 3 || rows[1]["id"] != "w2" {

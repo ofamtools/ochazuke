@@ -37,9 +37,15 @@ func TestTaskDerivedVerbsFromTheCLI(t *testing.T) {
 	if got := read("task", "restore", "t3"); got["archived"] != false {
 		t.Fatalf("restore = %v", got)
 	}
-	// The project noun has no writable prop: none of the writes.
+	// The project noun is a read-only store: the core writes are listed,
+	// unavailable with the reason, and the legacy ones are absent.
 	m := New()
-	for _, verb := range []string{"rename", "move", "archive", "set", "create", "delete"} {
+	for _, verb := range []string{"archive", "set", "create", "delete"} {
+		if op, ok := m.Runtime.Operations["project."+verb]; !ok || op.Unavailable == "" || m.Runtime.Available(ochazuke.Request{Noun: "project", Verb: verb}, "app", m.Runtime.Mode) {
+			t.Fatalf("project.%s: ok %v unavailable %q", verb, ok, op.Unavailable)
+		}
+	}
+	for _, verb := range []string{"rename", "move"} {
 		if _, ok := m.Runtime.Operations["project."+verb]; ok {
 			t.Fatalf("project.%s exists", verb)
 		}
