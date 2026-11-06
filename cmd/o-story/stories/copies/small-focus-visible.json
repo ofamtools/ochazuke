@@ -1,0 +1,119 @@
+{
+  "name": "in a short window the refresh modal keeps the focused pick drawn and highlighted as j and k move, with its own - and + lines above it",
+  "area": "copies",
+  "width": 100,
+  "height": 14,
+  "chrome": "full",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "tasks",
+        "from": true,
+        "height": -1
+      }
+    ],
+    "store": {
+      "props": [
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "title",
+          "role": "label",
+          "type": "string"
+        },
+        {
+          "name": "status",
+          "type": "string"
+        }
+      ],
+      "things": [
+        {
+          "id": "t1",
+          "title": "Water the plants",
+          "status": "todo"
+        },
+        {
+          "id": "t2",
+          "title": "Write notes",
+          "status": "todo"
+        },
+        {
+          "id": "t3",
+          "title": "Call mom",
+          "status": "todo"
+        }
+      ],
+      "copy": {
+        "change": {
+          "t1": {
+            "title": "Water the ferns",
+            "status": "done"
+          },
+          "t2": {
+            "status": "doing"
+          }
+        }
+      }
+    },
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "S",
+        "do": "demo.change-source"
+      },
+      {
+        "noun": "demo",
+        "keys": "F",
+        "do": "demo.refresh"
+      }
+    ]
+  },
+  "script": [
+    "S",
+    "F",
+    "j",
+    "j",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "copies-refresh/d1",
+      "highlightedText": "local",
+      "contains": [
+        "- title: Water the plants",
+        "+ title: Water the ferns"
+      ]
+    },
+    {
+      "after": 3,
+      "focus": "copies-refresh/d2",
+      "highlightedText": "local",
+      "contains": [
+        "Water the plants · status",
+        "- status: todo",
+        "+ status: done"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "copies-refresh/d3",
+      "highlightedText": "local",
+      "contains": [
+        "Write notes · status",
+        "- status: todo",
+        "+ status: doing"
+      ]
+    },
+    {
+      "focus": "copies-refresh/d2",
+      "highlightedText": "local",
+      "contains": [
+        "Water the plants · status"
+      ]
+    }
+  ]
+}

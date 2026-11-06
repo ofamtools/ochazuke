@@ -227,11 +227,11 @@ Root package `ochazuke` is flat: 193 source files, 234 test files. Each entry li
 
 ### copy_refresh.go
 
-- lines: 478
+- lines: 524
 - purpose: copyDiff is one prop of one thing whose copy differs from its source.
 - types: DiffText, DiffSection, DiffLine, DiffRenderer (func)
-- methods: Runtime(11)
-- leans on: props.go(22), runtime.go(18), delivery.go(14), noun.go(10)
+- methods: Runtime(13)
+- leans on: props.go(23), runtime.go(22), delivery.go(14), block.go(13)
 
 ### copy_store.go
 

@@ -65,7 +65,6 @@
     "F",
     "enter",
     "j",
-    "j",
     "enter",
     "esc"
   ],
@@ -86,6 +85,9 @@
         "Refresh demo Water the plants: 1 difference",
         "- title: Water the plants",
         "+ title: Water the ferns",
+        "local ▾"
+      ],
+      "lacks": [
         "(none)"
       ]
     },
@@ -105,7 +107,7 @@
       ]
     },
     {
-      "after": 10,
+      "after": 9,
       "contains": [
         "Water the ferns",
         "source ▾"

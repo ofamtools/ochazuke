@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
@@ -14,11 +15,13 @@ import (
 // loop) and compares each copy's props with the source's, prop by prop:
 // only the props the source holds, never the key, the base times (the
 // copy's own), a secret or a derived prop. What differs opens one modal: a
-// plain diff (- the copy's value, + the source's) above a choice per prop,
-// local or source. A pick writes through set, so it is undone like any
-// set; leaving the modal picks nothing. Differences never block anything:
-// at most a mark on the thing's list rows (copies.marks) while its copy
-// differs from what the last refresh read and no pick kept it.
+// pick per differing prop, local or source, showing what the copy holds
+// now (local at first), under the focused pick's plain diff (- the copy's
+// value, + the source's). A pick writes through set, so form.undo and
+// history.undo both put the copy's value back; leaving the modal picks
+// nothing. Differences never block anything: at most a mark on the
+// thing's list rows (copies.marks) while its copy differs from what the
+// last refresh read.
 //
 // What the last refresh read is kept in memory for the marks only, never
 // stored: no original values are remembered (the owner's trade-off), so a
@@ -34,10 +37,9 @@ type copyDiff struct {
 }
 
 // copyMarks is what a noun's last refresh read: by key, the source's
-// values of the props it compared, and the props a pick kept local.
+// values of the props it compared.
 type copyMarks struct {
 	seen map[string]map[string]any
-	kept map[string]map[string]bool
 }
 
 // copyRefreshFormID is the refresh modal's record editor.
@@ -63,7 +65,7 @@ func (r *Runtime) marksOf(noun string) *copyMarks {
 	}
 	m := r.copyMarks[noun]
 	if m == nil {
-		m = &copyMarks{seen: map[string]map[string]any{}, kept: map[string]map[string]bool{}}
+		m = &copyMarks{seen: map[string]map[string]any{}}
 		r.copyMarks[noun] = m
 	}
 	return m
@@ -180,23 +182,18 @@ func (r *Runtime) readRefresh(n *Noun, c Ctx, key string) (copyRefresh, error) {
 }
 
 // noteRefresh keeps what a refresh read for the marks: a refresh of every
-// thing replaces all of it, of one thing that thing's; picks kept before
-// are forgotten for what it read.
+// thing replaces all of it, of one thing that thing's.
 func (r *Runtime) noteRefresh(n *Noun, read copyRefresh) {
 	m := r.marksOf(n.Name)
 	if read.all {
-		m.seen, m.kept = map[string]map[string]any{}, map[string]map[string]bool{}
+		m.seen = map[string]map[string]any{}
 	}
-	for k, seen := range read.seen {
-		m.seen[k] = seen
-		delete(m.kept, k)
-	}
+	maps.Copy(m.seen, read.seen)
 	r.refillFrom(n.Name)
 }
 
 // copyMarked reports whether a thing's rows carry the mark: copies.marks
-// is on and a prop the last refresh read differs from its copy, with no
-// pick that kept it.
+// is on and a prop the last refresh read differs from its copy.
 func (r *Runtime) copyMarked(n *Noun, t Thing) bool {
 	if n.Store == nil || n.Store.copy == nil || r.copyMarks[n.Name] == nil || !r.Settings().Bool(CopiesMarksSetting) {
 		return false
@@ -205,7 +202,7 @@ func (r *Runtime) copyMarked(n *Noun, t Thing) bool {
 	k := thingKey(n.keyProp(), t)
 	for name, sv := range m.seen[k] {
 		p := n.prop(name)
-		if p == nil || m.kept[k][name] {
+		if p == nil {
 			continue
 		}
 		if !samePropValue(*p, t[name], sv) {
@@ -300,9 +297,11 @@ func (r *Runtime) showRefresh(n *Noun, c Ctx, diffs []copyDiff, here bool) (any,
 		if !one {
 			label = d.Label + " · " + d.Prop
 		}
-		f := RecordField{Name: fmt.Sprintf("d%d", i+1), Label: label, Placeholder: "local or source",
-			Parameter: Parameter{Type: SettingString, Enum: []string{copyPickLocal, copyPickSource},
-				Description: "Keep the copy's value (local) or take the source's (source)"}}
+		// Required: the pick is always one of the two values the copy
+		// can hold, never an empty "(none)" the store does not hold.
+		f := RecordField{Name: fmt.Sprintf("d%d", i+1), Label: label,
+			Parameter: Parameter{Type: SettingString, Required: true, Enum: []string{copyPickLocal, copyPickSource},
+				Description: "The copy's value (local) or the source's (source)"}}
 		fields[i] = f
 		byField[f.Name] = d
 	}
@@ -310,19 +309,18 @@ func (r *Runtime) showRefresh(n *Noun, c Ctx, diffs []copyDiff, here bool) (any,
 	if one {
 		title = fmt.Sprintf("Refresh %s %s: %s", name, diffs[0].Label, differences(len(diffs)))
 	}
-	text := copyDiffText(diffs)
 	var editor *RecordEditor
-	spec := RecordSpec{Title: title, Fields: fields, FieldWrites: true,
-		Load: func() (Record, error) { return Record{}, nil },
+	spec := RecordSpec{Title: title, Fields: fields, FieldWrites: true, Watch: n.Name,
+		// Each pick shows what the copy holds now: source when its value
+		// is the source's, else local. A pick, form.undo, history.undo or
+		// an outside write all read back the same way.
+		Load: func() (Record, error) { return r.copyPicks(n, fields, byField), nil },
 		Save: func(w RecordWrite) Result {
 			name := w.Changed[0]
 			return r.pickCopy(n, byField[name], w.Values[name])
 		},
 		Render: func(s Styles, width, height int) Block {
-			diff := r.renderDiff(s, text, width, max(1, min(height/2, diffHeight(text))))
-			top := strings.Count(diff, "\n") + 2
-			b := editor.Block(width, max(1, height-top))
-			return Block{Text: diff + "\n\n" + b.Text, Cursor: b.Offset(0, top).Cursor}
+			return r.refreshBlock(s, editor, byField, width, height)
 		},
 	}
 	var err error
@@ -332,29 +330,66 @@ func (r *Runtime) showRefresh(n *Noun, c Ctx, diffs []copyDiff, here bool) (any,
 	return answer, nil
 }
 
-// pickCopy applies one pick: source writes the source's value to the copy
-// (set), local writes the copy's value back if it changed since and keeps
-// it (no mark); an empty pick keeps nothing.
-func (r *Runtime) pickCopy(n *Noun, d copyDiff, pick string) Result {
-	m := r.marksOf(n.Name)
-	value := d.Source
-	switch pick {
-	case copyPickSource:
-		delete(m.kept[d.Key], d.Prop)
-	case copyPickLocal:
-		value = d.Local
-		if m.kept[d.Key] == nil {
-			m.kept[d.Key] = map[string]bool{}
+// copyPicks are the refresh modal's values: each field's pick as the copy
+// holds it now.
+func (r *Runtime) copyPicks(n *Noun, fields []RecordField, byField map[string]copyDiff) Record {
+	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.contextOf("app")}
+	out := Record{}
+	for _, f := range fields {
+		d := byField[f.Name]
+		out[f.Name] = copyPickLocal
+		if p := n.prop(d.Prop); p != nil {
+			if cur, err := n.Store.Get(c, d.Key); err == nil && samePropValue(*p, cur[d.Prop], d.Source) {
+				out[f.Name] = copyPickSource
+			}
 		}
-		m.kept[d.Key][d.Prop] = true
+	}
+	return out
+}
+
+// refreshBlock draws the refresh modal: the focused pick's own diff (its
+// thing and prop, - the copy's value, + the source's) above the picks,
+// which scroll to keep the focused one in view. The diff follows the
+// focus, so every difference can be read, at any height.
+func (r *Runtime) refreshBlock(s Styles, e *RecordEditor, byField map[string]copyDiff, width, height int) Block {
+	if e == nil {
+		return Block{}
+	}
+	d, ok := copyDiff{}, false
+	if f := e.fieldOn(r.Focus); f != nil {
+		d, ok = byField[f.Name]
+	}
+	if !ok {
+		return e.Block(width, height)
+	}
+	text := copyDiffText([]copyDiff{d})
+	// The picks keep at least three lines, so the focused pick's label and
+	// value are both drawn (Block centres the focus). The diff takes what is
+	// left: whole (the renderer's), else its - and + lines alone.
+	var diff string
+	switch full := diffHeight(text); {
+	case height >= full+1+4:
+		diff = r.renderDiff(s, text, width, full)
+	case height >= 2+1+3:
+		diff = plainDiffLines(s, text, width, false)
 	default:
-		delete(m.kept[d.Key], d.Prop)
-		r.refillFrom(n.Name)
-		return Done(nil)
+		return e.Block(width, height)
+	}
+	top := strings.Count(diff, "\n") + 2
+	b := e.Block(width, max(3, height-top))
+	return Block{Text: diff + "\n\n" + b.Text, Cursor: b.Offset(0, top).Cursor}
+}
+
+// pickCopy writes one pick to the copy through set: source the source's
+// value, local the copy's value as the refresh read it. A pick the copy
+// already holds writes nothing. The mark follows what the copy holds.
+func (r *Runtime) pickCopy(n *Noun, d copyDiff, pick string) Result {
+	value := d.Source
+	if pick != copyPickSource {
+		value = d.Local
 	}
 	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.contextOf("app")}
 	if cur, err := n.Store.Get(c, d.Key); err == nil && samePropValue(*n.prop(d.Prop), cur[d.Prop], value) {
-		r.refillFrom(n.Name)
 		return Done(nil)
 	}
 	kp := n.keyProp()
@@ -363,7 +398,6 @@ func (r *Runtime) pickCopy(n *Noun, d copyDiff, pick string) Result {
 	if err != nil {
 		return Failed(err)
 	}
-	r.refillFrom(n.Name)
 	return Done(v)
 }
 
@@ -433,9 +467,24 @@ func (r *Runtime) renderDiff(s Styles, d DiffText, width, height int) string {
 	if r.diffRenderer != nil {
 		return r.diffRenderer(s, d, width, height)
 	}
-	lines := []string{s.Muted.Render("- " + d.Old + "  + " + d.New)}
+	lines := strings.Split(plainDiffLines(s, d, width, true), "\n")
+	if len(lines) > height {
+		lines = lines[:height]
+	}
+	return strings.Join(lines, "\n")
+}
+
+// plainDiffLines draws d as - and + lines, with the sides and each
+// section's header when headed.
+func plainDiffLines(s Styles, d DiffText, width int, headed bool) string {
+	var lines []string
+	if headed {
+		lines = append(lines, s.Muted.Render("- "+d.Old+"  + "+d.New))
+	}
 	for _, sec := range d.Sections {
-		lines = append(lines, s.Title.Render(sec.Header))
+		if headed {
+			lines = append(lines, s.Title.Render(sec.Header))
+		}
 		for _, l := range sec.Lines {
 			sign := "  "
 			switch l.Side {
@@ -446,9 +495,6 @@ func (r *Runtime) renderDiff(s Styles, d DiffText, width, height int) string {
 			}
 			lines = append(lines, sign+l.Text)
 		}
-	}
-	if len(lines) > height {
-		lines = lines[:height]
 	}
 	for i, l := range lines {
 		lines[i] = ansi.Truncate(l, width, "…")

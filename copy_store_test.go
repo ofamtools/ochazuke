@@ -254,12 +254,22 @@ func TestCopyRefreshDiffPickUndo(t *testing.T) {
 	if !strings.HasSuffix(l.Items()[0].Label, copyMarkText) {
 		t.Fatalf("the mark did not come back with the undo: %q", l.Items()[0].Label)
 	}
-	// Picking local keeps the copy's value and clears the mark.
+	// The picks show what the copy holds; picking local after source puts
+	// the copy's value back, and the mark with it.
+	if v := r.copyPicks(r.Nouns["item"], e.spec.Fields, map[string]copyDiff{"d1": {Key: "a", Prop: "title", Local: "Alpha", Source: "Alpha at the source"}}); v["d1"] != copyPickLocal {
+		t.Fatalf("pick after undo shows %q, want local", v["d1"])
+	}
+	if res := e.spec.Save(RecordWrite{Values: Record{"d1": copyPickSource}, Changed: []string{"d1"}}); res.err != nil {
+		t.Fatal(res.err)
+	}
 	if res := e.spec.Save(RecordWrite{Values: Record{"d1": copyPickLocal}, Changed: []string{"d1"}}); res.err != nil {
 		t.Fatal(res.err)
 	}
-	if strings.HasSuffix(l.Items()[0].Label, copyMarkText) {
-		t.Fatalf("a local pick left the mark: %q", l.Items()[0].Label)
+	if got := runItem(t, r, "get", Arguments{"id": "a"}).(map[string]any); got["title"] != "Alpha" {
+		t.Fatalf("pick local left %v", got)
+	}
+	if !strings.HasSuffix(l.Items()[0].Label, copyMarkText) {
+		t.Fatalf("pick local did not bring the mark back: %q", l.Items()[0].Label)
 	}
 	// Refresh of one thing, nothing differing: a notice, no modal.
 	if err := e.Leave(); err != nil {
