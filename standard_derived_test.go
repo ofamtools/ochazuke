@@ -160,6 +160,10 @@ func TestDerivedVerbsFollowTheRoles(t *testing.T) {
 			if r.Available(q, "", r.Mode) {
 				t.Fatalf("%s: %s %v is available", c.name, q.Verb, q.Args)
 			}
+			// A key row may still name it: the row is unavailable, not refused.
+			if err := r.Bind(Binding{Noun: "task", Mode: "normal", Keys: "r", Request: q}); err != nil {
+				t.Fatalf("%s: binding %s %v: %v", c.name, q.Verb, q.Args, err)
+			}
 		}
 	}
 	mustPanic(t, "archive role is a boolean", func() {

@@ -43,7 +43,10 @@ func editParams(n *Noun) map[string]Parameter {
 			fields = append(fields, role)
 		}
 	}
-	params[editFieldParam] = Parameter{Type: "string", Enum: fields, Plumbing: true,
+	// Free: a key row may name a role the noun lacks; the request is then
+	// unavailable there (propsAvailable), as the purged verb was, not a
+	// rejected row.
+	params[editFieldParam] = Parameter{Type: "string", Enum: fields, Free: true, Plumbing: true,
 		Description: "The one prop to edit (a name, or @label, @owner, @archive for the prop with that role): with edit.field-only the form holds only it, else the full form opens on it"}
 	return params
 }
