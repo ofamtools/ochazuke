@@ -15,18 +15,18 @@ Family plans, todos and the roadmap live in `~/hub/o-plans/` (`README.md` is the
 ## Read in this order
 
 1. This file.
-2. `docs/CODEMAP.md`: generated, one entry per source file with declared types, methods, and the sibling files it leans on. Open the two or three files it points at instead of grepping the package.
+2. `docs/CODEMAP.md`: generated on demand and not committed (gitignored): run `make codemap` first, then read it. One entry per source file with declared types, methods, and the sibling files it leans on. Open the two or three files it points at instead of grepping the package.
 3. `docs/MIGRATION-PLAN.md` is the completed migration record (all phases done, each with its commit and decisions). Read it for why something is the way it is and for the after-phase-7 items, not for work in progress.
 4. README.md only for the section you need. The "API and ownership" section has the file-to-responsibility table and the ownership rules below in long form.
 
 Regenerate the maps after adding, removing, or renaming files:
 
 ```sh
-make codemap     # writes docs/CODEMAP.md and docs/CHARM-INVENTORY.md
+make codemap     # writes docs/CODEMAP.md (ignored, not committed) and docs/CHARM-INVENTORY.md (committed)
 make reference   # writes docs/reference/ (TestReference fails when it is stale)
 ```
 
-Do not hand-edit either generated file. If a map entry is wrong, fix the code or the generator in `cmd/codemap` or `cmd/charmrefs`.
+Do not hand-edit either generated file; never commit CODEMAP.md. If a map entry is wrong, fix the code or the generator in `cmd/codemap` or `cmd/charmrefs`.
 
 ## Where does X live
 

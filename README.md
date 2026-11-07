@@ -39,7 +39,7 @@ The [keybinding walkthrough](docs/keybinding-walkthrough.html) is preserved as a
 |---|---|
 | Authored field and extension guides | Edit `docs/architecture.html` and `docs/extensibility.html` against current source; preserve search, journeys and labs. |
 | Actions, bindings, root Go API, transport HTML | `go run ./cmd/docgen`; layout and prose are in `cmd/docgen/main.go`. Do not hand-edit the four generated pages. |
-| Code map and Charm inventory | `make codemap` runs `cmd/codemap` and `cmd/charmrefs`. CODEMAP is a declaration inventory; its identifier-count hints are not a type-resolved dependency graph. Charm inventory depends on locally available reference checkouts. |
+| Code map and Charm inventory | `make codemap` runs `cmd/codemap` and `cmd/charmrefs`. CODEMAP is a declaration inventory, generated on demand and gitignored (not committed); its identifier-count hints are not a type-resolved dependency graph. Charm inventory depends on locally available reference checkouts. |
 | Settings/default-bindings Markdown reference | `make reference` (`go run ./cmd/docgen -ref docs/reference`); this is separate from the HTML catalogs. |
 | Architecture map and relationship exports | Edit the map JSON and Mermaid sources, then follow [docs/relationships/README.md](docs/relationships/README.md) for the reproducible renderer/export recipe. |
 | Keybinding execution explorer | Review `docs/keybinding-explorer/trace.json` paths, descriptions, ranges and highlights after source changes. Then update source hashes with `python3 docs/keybinding-explorer/generate.py --pin` and build with `python3 docs/keybinding-explorer/generate.py`. Repinning alone does not repair stale mappings. |
