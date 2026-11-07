@@ -64,14 +64,7 @@ func (r *Runtime) AddDetail(id string, item func() string, opts ...InstanceOptio
 }
 
 // Detail returns the detail an instance fronts, or nil.
-func (r *Runtime) Detail(id string) *Detail {
-	if inst := r.Instances[id]; inst != nil {
-		if d, ok := inst.Component.(*Detail); ok {
-			return d
-		}
-	}
-	return nil
-}
+func (r *Runtime) Detail(id string) *Detail { return componentAt[*Detail](r, id) }
 
 // ID is the detail's instance id.
 func (d *Detail) ID() string { return d.id }

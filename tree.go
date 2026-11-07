@@ -295,24 +295,10 @@ func (r *Runtime) AddTree(id string, nodes []TreeNode, opts ...InstanceOption) (
 }
 
 // Tree is the tree with this id, or nil.
-func (r *Runtime) Tree(id string) *Tree {
-	if inst := r.Instances[id]; inst != nil {
-		if t, ok := inst.Component.(*Tree); ok {
-			return t
-		}
-	}
-	return nil
-}
+func (r *Runtime) Tree(id string) *Tree { return componentAt[*Tree](r, id) }
 
 // treeOf is the tree on a focus's ancestry, or nil.
-func (r *Runtime) treeOf(focus string) *Tree {
-	for _, id := range r.Ancestry(focus) {
-		if t := r.Tree(id); t != nil {
-			return t
-		}
-	}
-	return nil
-}
+func (r *Runtime) treeOf(focus string) *Tree { return nearestComponent[*Tree](r, focus) }
 
 // ID is the tree's instance id.
 func (t *Tree) ID() string { return t.id }

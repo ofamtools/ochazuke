@@ -255,24 +255,10 @@ func (r *Runtime) AddTimeline(id string, cards []Card, opts ...InstanceOption) (
 }
 
 // Timeline is the timeline with this id, or nil.
-func (r *Runtime) Timeline(id string) *Timeline {
-	if inst := r.Instances[id]; inst != nil {
-		if t, ok := inst.Component.(*Timeline); ok {
-			return t
-		}
-	}
-	return nil
-}
+func (r *Runtime) Timeline(id string) *Timeline { return componentAt[*Timeline](r, id) }
 
 // timelineOf is the timeline on a focus's ancestry, or nil.
-func (r *Runtime) timelineOf(focus string) *Timeline {
-	for _, id := range r.Ancestry(focus) {
-		if t := r.Timeline(id); t != nil {
-			return t
-		}
-	}
-	return nil
-}
+func (r *Runtime) timelineOf(focus string) *Timeline { return nearestComponent[*Timeline](r, focus) }
 
 // ID is the timeline's instance id.
 func (t *Timeline) ID() string { return t.id }

@@ -550,23 +550,11 @@ func RecordFields(op Operation) []RecordField {
 }
 
 // RecordEditor is the record editor with this id, or nil.
-func (r *Runtime) RecordEditor(id string) *RecordEditor {
-	if inst := r.Instances[id]; inst != nil {
-		if e, ok := inst.Component.(*RecordEditor); ok {
-			return e
-		}
-	}
-	return nil
-}
+func (r *Runtime) RecordEditor(id string) *RecordEditor { return componentAt[*RecordEditor](r, id) }
 
 // recordEditorOf is the editor on a focus's ancestry, or nil.
 func (r *Runtime) recordEditorOf(focus string) *RecordEditor {
-	for _, id := range r.Ancestry(focus) {
-		if e := r.RecordEditor(id); e != nil {
-			return e
-		}
-	}
-	return nil
+	return nearestComponent[*RecordEditor](r, focus)
 }
 
 // ID is the editor's instance id.

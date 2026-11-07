@@ -123,9 +123,11 @@ func composeModalAt(background, title string, body Block, footer string, styled 
 	return cursor.Offset(left, top).WithText(text)
 }
 
-// modalForeground restores the panel ink after full or foreground resets.
-// Keep colour parameters whole: a zero RGB channel is not an SGR reset.
-func modalForeground(text, foreground string) string {
+// rewriteSGR passes other text through and replaces each CSI m sequence by
+// edit's result, given the sequence's parameters split on ";" (a colon
+// sub-parameter stays inside its parameter). edit returns the whole
+// replacement sequence, or "" to drop it.
+func rewriteSGR(text string, edit func(params []string) string) string {
 	if !strings.Contains(text, "\x1b[") {
 		return text
 	}
@@ -145,8 +147,16 @@ func modalForeground(text, foreground string) string {
 			text = text[j:]
 			continue
 		}
-		out.WriteString(text[:i+2])
-		params := strings.Split(text[i+2:j], ";")
+		out.WriteString(text[:i])
+		out.WriteString(edit(strings.Split(text[i+2:j], ";")))
+		text = text[j+1:]
+	}
+}
+
+// modalForeground restores the panel ink after full or foreground resets.
+// Keep colour parameters whole: a zero RGB channel is not an SGR reset.
+func modalForeground(text, foreground string) string {
+	return rewriteSGR(text, func(params []string) string {
 		for k := 0; k < len(params); k++ {
 			switch params[k] {
 			case "", "0", "39":
@@ -165,10 +175,8 @@ func modalForeground(text, foreground string) string {
 				}
 			}
 		}
-		out.WriteString(strings.Join(params, ";"))
-		out.WriteByte('m')
-		text = text[j+1:]
-	}
+		return "\x1b[" + strings.Join(params, ";") + "m"
+	})
 }
 
 // dim draws styled text in a dimming style without dropping its own
@@ -196,27 +204,7 @@ func dim(text string, muted lipgloss.Style) string {
 // the backdrop under modal-highlights plain. Adapted from
 // o-json's unreverse (detail.go).
 func unhighlight(text string) string {
-	if !strings.Contains(text, "\x1b[") {
-		return text
-	}
-	var out strings.Builder
-	for {
-		i := strings.Index(text, "\x1b[")
-		if i < 0 {
-			out.WriteString(text)
-			return out.String()
-		}
-		j := i + 2
-		for j < len(text) && (text[j] >= '0' && text[j] <= '9' || text[j] == ';' || text[j] == ':') {
-			j++
-		}
-		if j >= len(text) || text[j] != 'm' {
-			out.WriteString(text[:j])
-			text = text[j:]
-			continue
-		}
-		out.WriteString(text[:i])
-		params := strings.Split(text[i+2:j], ";")
+	return rewriteSGR(text, func(params []string) string {
 		var kept []string
 		for k := 0; k < len(params); k++ {
 			p := params[k]
@@ -236,10 +224,10 @@ func unhighlight(text string) string {
 			kept = append(kept, p)
 		}
 		if len(kept) > 0 || len(params) == 1 && params[0] == "" {
-			out.WriteString("\x1b[" + strings.Join(kept, ";") + "m")
+			return "\x1b[" + strings.Join(kept, ";") + "m"
 		}
-		text = text[j+1:]
-	}
+		return ""
+	})
 }
 
 // modalCells pads or truncates a line to exactly width cells. Trusted styles
