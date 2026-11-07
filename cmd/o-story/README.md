@@ -456,7 +456,7 @@ Conformance:
 | mode | noun | verbs |
 |---|---|---|
 | count_pending | count | `count.append` |
-| count_pending | mode | `mode.enter` |
+| count_pending | mode | `mode.enter` `mode.leave` |
 | edit | focus | `focus.previous` |
 | edit | list | `list.move` |
 | edit | mode | `mode.pin` `mode.switch` |
@@ -542,7 +542,7 @@ Conformance:
 | shape | list | `list.move` |
 | shape | mode | `mode.switch` |
 | table | list | `list.move` |
-| table | mode | `mode.pin` `mode.switch` |
+| table | mode | `mode.enter` `mode.leave` `mode.pin` `mode.switch` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.edit` `demo.finish` `demo.hints` `demo.outside` |
 | terminal | focus | `focus.next` |
@@ -579,6 +579,8 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `timeline.step`
 - `count_pending` → `normal` via `view.edge`
 - `count_pending` → `normal` via `view.scroll`
+- `count_pending` → `table` via `mode.leave`
+- `count_pending` → `visual` via `mode.switch`
 - `count_pending` → `visual-line` via `list.move`
 - `count_pending [` → `normal` via `diff.hunk`
 - `count_pending [` → `normal` via `list.previous-class`
@@ -789,9 +791,12 @@ Mode edges (from → to via):
 - `replay_pending` → `visual-line` via `mode.leave`
 - `shape` → `edit` via `mode.switch`
 - `shape` → `normal` via `list.move`
+- `table` → `count_pending` via `mode.enter`
 - `table` → `edit` via `mode.switch`
 - `table` → `flat` via `mode.pin`
 - `table` → `normal` via `list.move`
+- `table` → `table g` via `row g`
+- `table g` → `table` via `mode.leave`
 - `terminal` → `leader_pending` via `mode.enter`
 - `visual` → `normal` via `input.cancel`
 - `visual` → `normal` via `input.operator`

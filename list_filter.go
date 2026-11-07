@@ -374,7 +374,7 @@ func registerListFilter(r *Runtime) {
 	}
 	leave := func() {
 		if r.Mode.Name == ListFilterMode {
-			r.setMode(ModeState{Name: "normal"})
+			r.changeMode(ModeState{Name: "normal"}, modeSelectionEnd)
 		}
 	}
 	// unfilter clears the filter and closes the line, selecting the row the

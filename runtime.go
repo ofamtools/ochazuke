@@ -586,7 +586,7 @@ func NewRuntime() *Runtime {
 func newRuntime() *Runtime {
 	r := &Runtime{
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
-		Focus: "app", Mode: ModeState{Name: "normal"},
+		Focus: "app",
 		Modes: map[string]bool{}, Operations: map[string]Operation{},
 		modes:          modeTable{},
 		defaults:       defaultSources{rows: map[string]string{}, extends: map[string]string{}},
@@ -596,6 +596,7 @@ func newRuntime() *Runtime {
 		aliases:        map[string]string{},
 	}
 	r.ensureBuiltinModes()
+	r.changeMode(ModeState{Name: "normal"}, modeInit)
 	return r
 }
 
@@ -726,44 +727,14 @@ type ModeObserver interface {
 	ModeChanged(from, to string)
 }
 
-// setMode replaces the global mode and tells the observers on the focus path
-// (and on extra, the path focus is leaving) when the base mode changed.
-func (r *Runtime) setMode(m ModeState, extra ...string) {
-	before := r.BaseMode()
-	r.Mode = m
-	r.modeGeneration++
-	after := r.BaseMode()
-	if before == after {
-		return
-	}
-	seen := map[string]bool{}
-	for _, id := range append(r.Ancestry(r.Focus), extra...) {
-		if seen[id] {
-			continue
-		}
-		seen[id] = true
-		if inst := r.Instances[id]; inst != nil {
-			if obs, ok := inst.Component.(ModeObserver); ok {
-				obs.ModeChanged(before, after)
-			}
-		}
-	}
-}
-
-// SetMode sets the global mode by name and clears its payload, as mode.switch
-// does (ModeDeclared names the focus's declared mode, DeclaredMode): a focused input runs its own transition (insert sessions, visual
-// anchor), and a pinned input stays in its pinned mode.
+// SetMode sets the global mode by name and clears its payload: the same
+// request as mode.switch (switchMode), at the focus's input. ModeDeclared
+// names the focus's declared mode (DeclaredMode); a focused input runs its
+// own transition (insert sessions, visual anchor), a pinned input stays in
+// its pinned mode, and the mode generation advances even for the same name.
 func (r *Runtime) SetMode(mode string) error {
-	mode = r.resolveDeclared(mode)
-	if !r.IsBaseMode(mode) {
-		return fmt.Errorf("unknown mode %q", mode)
-	}
-	if in := r.Input(r.Focus); in != nil {
-		in.SetMode(mode)
-		return nil
-	}
-	r.setMode(ModeState{Name: mode})
-	return nil
+	_, err := r.switchMode(mode, r.Input(r.Focus))
+	return err
 }
 
 // Register adds an operation. An operation with App set is of kind
@@ -1370,16 +1341,10 @@ func registerCore(r *Runtime) {
 		return r.Context(), err
 	}})
 	r.Register(Operation{Verb: "switch", Noun: "ochazuke.mode", FocusBound: true, HistoryKind: HistoryAction, Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		mode := r.resolveDeclared(StringArg(a, "mode", ""))
-		if !r.IsBaseMode(mode) {
-			return nil, fmt.Errorf("unknown mode %q", mode)
+		mode, err := r.switchMode(StringArg(a, "mode", ""), r.Input(c.InputID))
+		if err != nil {
+			return nil, err
 		}
-		r.modeGeneration++
-		if in := r.Input(c.InputID); in != nil {
-			in.SetMode(mode)
-			return in.Mode, nil
-		}
-		r.setMode(ModeState{Name: mode})
 		return mode, nil
 	}})
 	r.Register(Operation{Verb: "push", Noun: "ochazuke.modal", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

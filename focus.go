@@ -102,10 +102,10 @@ func (r *Runtime) focusMoved(fromStop string, fromPath []string, to string) {
 	switch {
 	case pin != "" && (own || stopChanged):
 		if r.BaseMode() != pin || !r.Mode.Payload.empty() {
-			r.setMode(ModeState{Name: pin}, fromPath...)
+			r.changeMode(ModeState{Name: pin}, modeFocusLanding, fromPath...)
 		}
 	case stopChanged:
-		r.setMode(ModeState{Name: "normal"}, fromPath...)
+		r.changeMode(ModeState{Name: "normal"}, modeFocusLanding, fromPath...)
 	}
 	r.paneOnlyFollow(to)
 	if in != nil && in.Mode != r.BaseMode() {
@@ -119,7 +119,7 @@ func (r *Runtime) restoreMode(m ModeState, leaving []string) {
 	if m.Name == "" {
 		m.Name = "normal"
 	}
-	r.setMode(m, leaving...)
+	r.changeMode(m, modeRestore, leaving...)
 	if in := r.Input(r.Focus); in != nil && in.Mode != r.BaseMode() {
 		in.transition(r.BaseMode(), false)
 	}

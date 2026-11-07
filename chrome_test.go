@@ -121,7 +121,7 @@ func TestModeRoles(t *testing.T) {
 		{ModeState{Name: "normal g", Payload: Payload{Prefix: "g"}}, []string{"mode.normal", "mode"}},
 	}
 	for _, c := range cases {
-		r.Mode = c.mode
+		forceMode(r, c.mode)
 		if got := r.modeRoles(); !slices.Equal(got, c.want) {
 			t.Errorf("%s: %v, want %v", c.mode.Name, got, c.want)
 		}

@@ -314,7 +314,7 @@ func TestModelViewCursorFollowsCustomFocus(t *testing.T) {
 		shape tea.CursorShape
 	}{{"normal", tea.CursorBlock}, {"visual", tea.CursorUnderline}, {"visual-line", tea.CursorUnderline}, {"visual-block", tea.CursorUnderline}} {
 		t.Run(tc.mode, func(t *testing.T) {
-			r.Mode.Name = tc.mode
+			forceMode(r, ModeState{Name: tc.mode, Payload: r.Mode.Payload})
 			view := m.View()
 			if view.Cursor == nil {
 				t.Fatal("custom focus reported no cursor")

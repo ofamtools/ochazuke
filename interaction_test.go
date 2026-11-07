@@ -74,7 +74,7 @@ func TestInteractionSnapshotsDetached(t *testing.T) {
 			Actor: &Actor{Kind: "agent", Name: "one", Via: &Actor{Kind: "owner"}},
 		}
 		shadow := &ModeState{Name: "normal", Payload: Payload{Request: &Request{Noun: "n", Verb: "v", Args: Arguments{"s": "t"}}}}
-		r.Mode = ModeState{Name: "normal", Payload: Payload{Prefix: "g", Request: stored, Shadow: shadow}}
+		forceMode(r, ModeState{Name: "normal", Payload: Payload{Prefix: "g", Request: stored, Shadow: shadow}})
 		before := interactionState(r)
 
 		got := r.CurrentMode()

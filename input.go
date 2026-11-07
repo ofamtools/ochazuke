@@ -180,7 +180,7 @@ func (in *Input) transition(mode string, stepBack bool) {
 func (in *Input) storeMode(mode string) {
 	in.Mode = mode
 	if in.focused() {
-		in.r.setMode(ModeState{Name: mode})
+		in.r.changeMode(ModeState{Name: mode}, modeInputEdit)
 	}
 }
 
@@ -399,7 +399,7 @@ func (in *Input) endGroup() {
 // returns to the editing mode Input.Mode names.
 func (in *Input) resetKeys() {
 	if in.focused() && (in.r.Mode.Name != in.Mode || !in.r.Mode.Payload.empty()) {
-		in.r.setMode(ModeState{Name: in.Mode})
+		in.r.changeMode(ModeState{Name: in.Mode}, modeInputEdit)
 	}
 }
 
@@ -554,7 +554,7 @@ func RegisterInputOperations(r *Runtime) {
 			} else {
 				in.resetKeys()
 			}
-			r.modeGeneration++
+			r.changeMode(r.Mode, modeInputEdit) // a cancel counts as a mode change (runRow)
 			return in.Mode, nil
 		}
 		if r.pending() {
