@@ -291,11 +291,7 @@ func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, do
 		done(parse(res.value, res.err))
 		return false
 	}
-	inner := res.then
-	res = res.Then(func(c Ctx, value any, err error) {
-		if inner != nil {
-			inner(c, value, err)
-		}
+	res = res.also(func(c Ctx, value any, err error) {
 		done(parse(value, err))
 	})
 	if _, err := r.Launch(owner, op.Key(), res, ctx); err != nil {
@@ -339,11 +335,7 @@ func (r *Runtime) startChoices(c Context, p Parameter, query, owner, slot string
 		if err != nil || res.work == nil {
 			return res.value, err
 		}
-		inner := res.then
-		res = res.Replacing(slot).Then(func(c Ctx, value any, err error) {
-			if inner != nil {
-				inner(c, value, err)
-			}
+		res = res.Replacing(slot).also(func(c Ctx, value any, err error) {
 			done(parse(value, err))
 		})
 		if _, err := r.Launch(owner, op.Key(), res, ctx); err != nil {

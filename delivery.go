@@ -248,6 +248,20 @@ func (res Result) Label(label string) Result { res.label = label; return res }
 // still current; it never runs for a stale or cancelled ticket.
 func (res Result) Then(fn func(Ctx, any, error)) Result { res.then = fn; return res }
 
+// also runs fn after any callback already set (Then replaces; also
+// chains), so a caller that adds its own step never drops the
+// application's. fn gets the same completion.
+func (res Result) also(fn func(Ctx, any, error)) Result {
+	prev := res.then
+	res.then = func(c Ctx, value any, err error) {
+		if prev != nil {
+			prev(c, value, err)
+		}
+		fn(c, value, err)
+	}
+	return res
+}
+
 // OnPresented runs after a pending UI answer actually opened its viewer.
 // Then still runs first, including when the answer is not presented.
 func (res Result) OnPresented(fn func(Ctx)) Result { res.presented = fn; return res }
@@ -288,6 +302,19 @@ type job struct {
 	abandon   func(string) []string // releases cancelled work and reports unfinished values
 	cont      continuation
 	run       context.Context // the context the job's work runs under
+}
+
+// alsoThen runs fn after any callback already set on the job. The earlier
+// callback's error is joined into the one fn sees, so a failed step still
+// reaches fn and what fn returns is the job's error.
+func (j *job) alsoThen(fn func(Ctx, any, error) error) {
+	prev := j.then
+	j.then = func(c Ctx, value any, err error) error {
+		if prev != nil {
+			err = errors.Join(err, prev(c, value, err))
+		}
+		return fn(c, value, err)
+	}
 }
 
 func (j *job) ticket() Ticket { return Ticket{Owner: j.Owner, Job: j.Job, Slot: j.Slot} }

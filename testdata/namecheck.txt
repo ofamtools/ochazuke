@@ -408,7 +408,6 @@ record_editor.go	RecordEditor.applyLoaded	compare	"close"	1
 record_editor.go	RecordEditor.move	compare	"insert"	1
 record_editor.go	RecordEditor.nextMissing	compare	"insert"	2
 record_editor.go	RecordEditor.problem	cyclo	"-"	26
-record_editor.go	RecordEditor.send	cyclo	"-"	27
 record_editor.go	RecordEditor.startInsert	compare	"insert"	1
 record_editor.go	Runtime.editKindOf	compare	"path"	1
 record_editor.go	Runtime.editKindOf	compare	"text"	2
@@ -566,8 +565,7 @@ settings_view.go	registerSettingsEditor	cyclo	"-"	39
 settings_view.go	settingAllowed	compare	"list"	1
 settings_view.go	settingOfRow	compare	"ochazuke.setting"	1
 standard_edit.go	Runtime.editFields	compare	"list"	1
-standard_edit.go	Runtime.editHandler	compare	"confirm"	1
-standard_edit.go	Runtime.editHandler	cyclo	"-"	27
+standard_edit.go	editSession.bindWrites	compare	"confirm"	1	moved from editHandler (was debt there): forms.edit-apply is a two-value setting read once to pick the submit or per-field writer
 standard_edit.go	editRecord	compare	"list"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1

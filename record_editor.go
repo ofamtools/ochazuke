@@ -843,16 +843,12 @@ func (e *RecordEditor) send() error {
 	// operation. Observe that job instead of treating its queued write as done.
 	if ticket, ok := res.value.(Ticket); ok && e.r.Accepts(ticket) {
 		j := e.r.jobs[ticket.Job]
-		inner := j.then
 		e.inflight, e.sending = true, changed
 		e.markFlush(j, w)
-		j.then = func(c Ctx, value any, err error) error {
-			if inner != nil {
-				err = errors.Join(err, inner(c, value, err))
-			}
+		j.alsoThen(func(c Ctx, value any, err error) error {
 			e.saved(w, err)
 			return err
-		}
+		})
 		return nil
 	}
 	if res.work == nil {
@@ -867,13 +863,7 @@ func (e *RecordEditor) send() error {
 	if e.r.Instances[owner] == nil {
 		owner = "app"
 	}
-	inner := res.then
-	res.then = func(c Ctx, value any, err error) {
-		if inner != nil {
-			inner(c, value, err)
-		}
-		e.saved(w, err)
-	}
+	res = res.also(func(c Ctx, value any, err error) { e.saved(w, err) })
 	e.inflight, e.sending = true, changed
 	c := Ctx{actor: e.r.Actor(), Runtime: e.r, Context: e.r.contextOf(owner), Instance: e.r.Instances[owner]}
 	ticket, err := e.r.Launch(owner, formWriteVerb, res, c)
@@ -1859,13 +1849,7 @@ func (e *RecordEditor) outsideWrite() error {
 	if res.work == nil {
 		return apply(res.value, res.err)
 	}
-	inner := res.then
-	res.then = func(c Ctx, value any, err error) {
-		if inner != nil {
-			inner(c, value, err)
-		}
-		e.fail(apply(value, err))
-	}
+	res = res.also(func(c Ctx, value any, err error) { e.fail(apply(value, err)) })
 	_, err := e.r.Launch(e.id, "ochazuke.form.load", res, Ctx{Runtime: e.r, Context: e.r.contextOf(e.id)})
 	if err != nil {
 		e.loading = false

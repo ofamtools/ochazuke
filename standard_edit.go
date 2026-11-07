@@ -18,6 +18,9 @@ const EditFormsSetting = "forms.edit"
 // EditApplySetting chooses immediate debounced writes or one confirmed write.
 const EditApplySetting = "forms.edit-apply"
 
+// editApplyConfirm is the forms.edit-apply value that writes once, on submit.
+const editApplyConfirm = "confirm"
+
 // EditFieldOnlySetting: edit with a field (edit {field: "@label"}) opens a
 // form holding only that field, opened as a rename (RecordSpec.Rename: its
 // value selected under rename.select). Off, the full form opens with that
@@ -97,23 +100,12 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 // history.undo takes the form back in one step.
 func (r *Runtime) editHandler(noun string) AppHandler {
 	return func(c Ctx) Result {
-		n := r.Noun(noun)
-		subject, others, err := r.editSubjects(n, c)
+		es, changes, err := r.newEditSession(noun, c)
 		if err != nil {
 			return Failed(err)
 		}
-		writeKey := noun
-		if key := n.keyProp(); key != nil {
-			writeKey += "\x00" + fmt.Sprint(subject[key.Name])
-		}
-		only, changes, err := editArgs(n, c.Args)
-		if err != nil {
-			return Failed(err)
-		}
-		others = r.humanKeyAlone(n, only, others)
-		write := r.editWriter(n, subject, others, r.newHistoryGroup("edit "+writeKey))
 		if len(changes) > 0 {
-			res, _ := write(changes, false, 0)
+			res, _ := es.write(changes, false, 0)
 			return res
 		}
 		if e := r.RecordEditor(editFormID); e != nil {
@@ -122,90 +114,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			}
 			defer r.actingFor(r.Focus)()
 		}
-		open := func(value any) error {
-			thing, err := ThingOf(value)
-			if err != nil {
-				return err
-			}
-			values, err := editRecord(n, thing)
-			if err != nil {
-				return err
-			}
-			fieldOnly := only != nil && r.Settings().Bool(EditFieldOnlySetting)
-			fields := r.editFields(n, c, thing, only, fieldOnly)
-			if field, ok := r.editByChooser(c.Args, only, fieldOnly, fields); ok {
-				_, _, err := r.openEditChooser(c, n, field, values, r.editChooserTitle(n, c, thing, subject, only, 1+len(others)), write)
-				return err
-			}
-			r.pendingRecord(writeKey, values)
-			label := r.editLabel(n, c, thing, subject)
-			spec := RecordSpec{Title: "Edit " + r.DisplayNoun(noun) + ": " + label, Fields: fields, WriteKey: writeKey, Load: func() (Record, error) { return values, nil }}
-			editStart(&spec, only, fieldOnly, r.DisplayNoun(noun), label)
-			spec.Watch = noun
-			spec.WatchArgs = subject
-			spec.Reload = func() Result {
-				res, _ := r.readEdit(c, noun, subject)
-				if res.work == nil {
-					if res.err != nil {
-						return res
-					}
-					loaded, err := editRecord(n, res.value)
-					if err != nil {
-						return Failed(err)
-					}
-					return Done(loaded)
-				}
-				then := res.then
-				var raw any
-				res = res.Map(func(value any, err error) (any, error) {
-					if err != nil {
-						return nil, err
-					}
-					raw = value
-					return editRecord(n, raw)
-				})
-				if then != nil {
-					res.then = func(c Ctx, _ any, err error) { then(c, raw, err) }
-				}
-				return res
-			}
-			var editor *RecordEditor
-			if r.Settings().String(EditApplySetting) == "confirm" {
-				spec.Submit = func(rec Record) Result {
-					changed := map[string]any{}
-					for _, f := range fields {
-						if rec[f.Name] != editor.baseline[f.Name] {
-							p := n.prop(f.Name)
-							value, err := editPropValue(*p, rec[f.Name])
-							if err != nil {
-								return Failed(fmt.Errorf("%s %w", f.Name, err))
-							}
-							changed[f.Name] = value
-						}
-					}
-					if len(changed) == 0 {
-						return Done(nil)
-					}
-					res, own := write(changed, false, 0)
-					return editor.editSaved(changed, res, own)
-				}
-			} else {
-				spec.FieldWrites = true
-				spec.Save = func(w RecordWrite) Result {
-					name := w.Changed[0]
-					value, err := editPropValue(*n.prop(name), w.Values[name])
-					if err != nil {
-						return Failed(err)
-					}
-					changes := map[string]any{name: value}
-					res, own := write(changes, false, w.Walk)
-					return editor.editSaved(changes, res, own)
-				}
-			}
-			editor, err = r.OpenRecordEditor(editFormID, spec)
-			return err
-		}
-		res, ran := r.readEdit(c, noun, subject)
+		res, ran := r.readEdit(c, noun, es.key)
 		if res.err != nil {
 			return res
 		}
@@ -213,15 +122,168 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			return Done(nil)
 		} // a check or confirmation took over
 		if res.work == nil {
-			if err := open(res.value); err != nil {
+			if err := es.open(res.value); err != nil {
 				return Failed(err)
 			}
 			return Done(nil)
 		}
-		if early, ok := r.editChooserEarly(c, n, only, subject, 1+len(others), write, res); ok {
+		if early, ok := r.editChooserEarly(c, es.n, es.only, es.key, es.count(), es.write, res); ok {
 			return early
 		}
-		return r.editOpenLater(res, open)
+		return r.editOpenLater(res, es.open)
+	}
+}
+
+// editSession is one run of the edit verb: the subjects it writes to
+// (editSubject), the one prop asked for (only, nil for the full form),
+// and the writer that applies a change to every subject as one history
+// group.
+type editSession struct {
+	editSubject
+	c     Ctx
+	only  *PropSpec
+	write editWrite
+}
+
+// editSubject is the thing an edit opens on and the others it writes to
+// too (a selection, marks): the noun, the focused subject's key, the
+// rest, and the history/write key one form's writes share.
+type editSubject struct {
+	r        *Runtime
+	n        *Noun
+	key      Arguments
+	others   []any
+	writeKey string
+}
+
+// newEditSession reads the request's subjects and arguments. changes are
+// the props the request supplies (written without a form).
+func (r *Runtime) newEditSession(noun string, c Ctx) (editSession, map[string]any, error) {
+	n := r.Noun(noun)
+	key, others, err := r.editSubjects(n, c)
+	if err != nil {
+		return editSession{}, nil, err
+	}
+	writeKey := noun
+	if kp := n.keyProp(); kp != nil {
+		writeKey += "\x00" + fmt.Sprint(key[kp.Name])
+	}
+	only, changes, err := editArgs(n, c.Args)
+	if err != nil {
+		return editSession{}, nil, err
+	}
+	s := editSubject{r: r, n: n, key: key, others: r.humanKeyAlone(n, only, others), writeKey: writeKey}
+	write := r.editWriter(n, key, s.others, r.newHistoryGroup("edit "+writeKey))
+	return editSession{editSubject: s, c: c, only: only, write: write}, changes, nil
+}
+
+// count is how many subjects a write reaches.
+func (s editSubject) count() int { return 1 + len(s.others) }
+
+// reload re-reads the subject for an open form (spec.Reload).
+func (s editSubject) reload(c Ctx) Result {
+	res, _ := s.r.readEdit(c, s.n.Name, s.key)
+	if res.work == nil {
+		if res.err != nil {
+			return res
+		}
+		loaded, err := editRecord(s.n, res.value)
+		if err != nil {
+			return Failed(err)
+		}
+		return Done(loaded)
+	}
+	var raw any
+	res = res.Map(func(value any, err error) (any, error) {
+		if err != nil {
+			return nil, err
+		}
+		raw = value
+		return editRecord(s.n, raw)
+	})
+	if then := res.then; then != nil {
+		res.then = func(c Ctx, _ any, err error) { then(c, raw, err) }
+	}
+	return res
+}
+
+// open shows the edit for the loaded value: the field chooser when the
+// request asks for one, else the form.
+func (es editSession) open(value any) error {
+	r, n, c := es.r, es.n, es.c
+	thing, err := ThingOf(value)
+	if err != nil {
+		return err
+	}
+	values, err := editRecord(n, thing)
+	if err != nil {
+		return err
+	}
+	fieldOnly := es.only != nil && r.Settings().Bool(EditFieldOnlySetting)
+	fields := r.editFields(n, c, thing, es.only, fieldOnly)
+	if field, ok := r.editByChooser(c.Args, es.only, fieldOnly, fields); ok {
+		_, _, err := r.openEditChooser(c, n, field, values, r.editChooserTitle(n, c, thing, es.key, es.only, es.count()), es.write)
+		return err
+	}
+	r.pendingRecord(es.writeKey, values)
+	label := r.editLabel(n, c, thing, es.key)
+	noun := r.DisplayNoun(n.Name)
+	spec := RecordSpec{Title: "Edit " + noun + ": " + label, Fields: fields, WriteKey: es.writeKey, Load: func() (Record, error) { return values, nil }}
+	editStart(&spec, es.only, fieldOnly, noun, label)
+	spec.Watch = n.Name
+	spec.WatchArgs = es.key
+	spec.Reload = func() Result { return es.reload(c) }
+	var editor *RecordEditor
+	es.bindWrites(&spec, fields, &editor)
+	editor, err = r.OpenRecordEditor(editFormID, spec)
+	return err
+}
+
+// bindWrites sets how the form writes, by forms.edit-apply: confirm sends
+// the changed fields at once on submit; the default writes each field as
+// it changes. editor is the form once opened (the writers read its
+// baseline).
+func (es editSession) bindWrites(spec *RecordSpec, fields []RecordField, editor **RecordEditor) {
+	if es.r.Settings().String(EditApplySetting) == editApplyConfirm {
+		es.bindSubmit(spec, fields, editor)
+		return
+	}
+	es.bindFieldWrites(spec, fields, editor)
+}
+
+// bindSubmit writes every changed field at once when the form submits.
+func (es editSession) bindSubmit(spec *RecordSpec, fields []RecordField, editor **RecordEditor) {
+	spec.Submit = func(rec Record) Result {
+		changed := map[string]any{}
+		for _, f := range fields {
+			if rec[f.Name] != (*editor).baseline[f.Name] {
+				value, err := editPropValue(*es.n.prop(f.Name), rec[f.Name])
+				if err != nil {
+					return Failed(fmt.Errorf("%s %w", f.Name, err))
+				}
+				changed[f.Name] = value
+			}
+		}
+		if len(changed) == 0 {
+			return Done(nil)
+		}
+		res, own := es.write(changed, false, 0)
+		return (*editor).editSaved(changed, res, own)
+	}
+}
+
+// bindFieldWrites writes each field as it changes.
+func (es editSession) bindFieldWrites(spec *RecordSpec, _ []RecordField, editor **RecordEditor) {
+	spec.FieldWrites = true
+	spec.Save = func(w RecordWrite) Result {
+		name := w.Changed[0]
+		value, err := editPropValue(*es.n.prop(name), w.Values[name])
+		if err != nil {
+			return Failed(err)
+		}
+		changes := map[string]any{name: value}
+		res, own := es.write(changes, false, w.Walk)
+		return (*editor).editSaved(changes, res, own)
 	}
 }
 
@@ -230,11 +292,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 // the program not quitting.
 func (r *Runtime) editOpenLater(res Result, open func(any) error) Result {
 	focus, page, mode, modal := r.Focus, r.Page, r.Mode.Name, r.TopModal()
-	then := res.then
-	return res.ReplacingAt("app", editOpenSlot).Then(func(ctx Ctx, value any, err error) {
-		if then != nil {
-			then(ctx, value, err)
-		}
+	return res.ReplacingAt("app", editOpenSlot).also(func(ctx Ctx, value any, err error) {
 		if err == nil && !r.Quit && r.Focus == focus && r.Page == page && r.Mode.Name == mode && r.TopModal() == modal {
 			if err := open(value); err != nil {
 				ctx.Error(err.Error())
@@ -276,7 +334,6 @@ func (r *Runtime) editChooserEarly(c Ctx, n *Noun, only *PropSpec, subject Argum
 		return Failed(err), true
 	}
 	open := func() bool { return r.Chooser(EditChooserKind) == ch }
-	then := res.then
 	// Once the chooser has picked or closed, the get is no longer the
 	// verb's answer: its failure is dropped, and the pick's own result
 	// (its write) is what is shown.
@@ -286,10 +343,7 @@ func (r *Runtime) editChooserEarly(c Ctx, n *Noun, only *PropSpec, subject Argum
 		}
 		return value, err
 	})
-	return res.ReplacingAt("app", editOpenSlot).Then(func(ctx Ctx, value any, err error) {
-		if then != nil {
-			then(ctx, value, err)
-		}
+	return res.ReplacingAt("app", editOpenSlot).also(func(ctx Ctx, value any, err error) {
 		if !open() {
 			return
 		}

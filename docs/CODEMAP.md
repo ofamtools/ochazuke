@@ -149,7 +149,7 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### chooser_sources.go
 
-- lines: 599 · tests: chooser_sources_test.go
+- lines: 595 · tests: chooser_sources_test.go
 - purpose: ChooserSource is one source of a chooser's rows.
 - types: ChooserSource, ChooserBatch
 - methods: Chooser(26), Runtime(2), chooserState(3)
@@ -260,10 +260,10 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### delivery.go
 
-- lines: 774 · tests: delivery_test.go
+- lines: 801 · tests: delivery_test.go
 - purpose: Component is the delivery contract every instance that works off the loop implements through Instance.Component.
 - types: Component (iface), Ticket, Completion, Ctx, AppHandler (func), Result, JobInfo
-- methods: Result(12), Runtime(21), job(1)
+- methods: Result(13), Runtime(21), job(2)
 - funcs: Done, Failed, Pending
 - leans on: runtime.go(55), actor.go(17), props.go(11), instance.go(8)
 
@@ -852,7 +852,7 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### params.go
 
-- lines: 583 · tests: params_test.go
+- lines: 575 · tests: params_test.go
 - purpose: Choice is one value a parameter accepts: ID is the argument value, Label what a pick list shows.
 - types: Choice, ArgumentError
 - methods: ArgumentError(2), Runtime(15)
@@ -966,7 +966,7 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### record_editor.go
 
-- lines: 2074 · tests: record_editor_test.go
+- lines: 2058 · tests: record_editor_test.go
 - purpose: Record is one record's values by field name, as an editor loads and writes them.
 - types: Record, RecordField, RecordWrite, RecordSpec, RecordDebounceMsg, RecordEditor
 - methods: RecordEditor(63), RecordField(1), RecordWrite(1), Runtime(8), recordChooser(2), recordField(3)
@@ -1192,10 +1192,10 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### standard_edit.go
 
-- lines: 781 · tests: standard_edit_test.go
+- lines: 835 · tests: standard_edit_test.go
 - purpose: EditHandler builds the standard edit handler for a declared noun, including a catalog-mounted noun with get and set proxies but no local Store.
-- methods: RecordEditor(1), Runtime(15), editLog(2), editWriting(1)
-- leans on: runtime.go(51), delivery.go(48), props.go(26), noun.go(22)
+- methods: RecordEditor(1), Runtime(16), editLog(2), editSession(4), editSubject(2), editWriting(1)
+- leans on: runtime.go(54), delivery.go(51), props.go(27), noun.go(23)
 
 ### standard_grammar.go
 

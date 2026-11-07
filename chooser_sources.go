@@ -389,11 +389,7 @@ func (c *Chooser) load() {
 			return
 		}
 		c.loading = true
-		inner := res.then
-		res = res.Replacing("source").Then(func(ctx Ctx, value any, err error) {
-			if inner != nil {
-				inner(ctx, value, err)
-			}
+		res = res.Replacing("source").also(func(ctx Ctx, value any, err error) {
 			if c.r.Chooser(c.spec.Kind) != c || gen != c.gen {
 				return
 			}
