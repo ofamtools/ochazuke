@@ -354,7 +354,7 @@ const actionsExample = `[
     "parameters": {
       "name": {"type": "string", "source": "setting.names", "sourceArgs": {}, "sourceFixed": {}, "free": true, "description": "A setting name; free accepts one the source does not list"},
       "page": {"type": "string", "noun": "page", "description": "A page; noun lists the noun's rows (page.list) or its live instances"},
-      "out": {"type": "path", "path": "file", "base": "~", "new": true, "description": "A file to write; a path field opens the path chooser (browse from base, recent, typed); new allows a file not there yet"}
+      "out": {"type": "path", "path": "file", "base": "~", "new": true, "named": true, "description": "A file to write; a path field opens the path chooser (browse from base, recent, typed); new allows a file not there yet; named takes no bare word, only out=PATH or --out"}
     },
     "quiet": true,
     "history": "fetch"
