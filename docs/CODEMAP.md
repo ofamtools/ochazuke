@@ -717,10 +717,10 @@ Root package `ochazuke` is flat: 202 source files, 248 test files. Each entry li
 
 ### mode_table.go
 
-- lines: 126 · tests: mode_table_test.go
+- lines: 137 · tests: mode_table_test.go
 - purpose: modeTable is every defined mode by name with its traits (ModeSpec): one entry per mode, base or pending.
-- methods: Runtime(8)
-- leans on: bindings_file.go(12), runtime.go(12), delivery.go(4)
+- methods: Runtime(10)
+- leans on: runtime.go(14), bindings_file.go(13), delivery.go(5)
 
 ### model.go
 

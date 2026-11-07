@@ -120,6 +120,17 @@ func (r *Runtime) baseModeNames() []string {
 	return r.modeNames(func(s ModeSpec) bool { return !s.Pending })
 }
 
+// BaseModeNames lists the defined base modes, sorted. Prefer it to reading
+// Runtime.Modes: it is the same set without depending on a field that is
+// only a view.
+func (r *Runtime) BaseModeNames() []string { return r.baseModeNames() }
+
+// PendingModeNames lists the defined pending modes (count_pending,
+// operator_pending, ...), sorted.
+func (r *Runtime) PendingModeNames() []string {
+	return r.modeNames(func(s ModeSpec) bool { return s.Pending })
+}
+
 // allModeNames are every defined mode, base and pending, sorted.
 func (r *Runtime) allModeNames() []string {
 	return r.modeNames(func(ModeSpec) bool { return true })

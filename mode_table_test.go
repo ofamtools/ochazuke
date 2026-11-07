@@ -82,3 +82,25 @@ func TestModeTableTraits(t *testing.T) {
 		t.Fatal("the built-in traits without a runtime")
 	}
 }
+
+// BaseModeNames and PendingModeNames partition the defined modes, sorted.
+func TestModeNameLists(t *testing.T) {
+	r := NewRuntime()
+	base, pending := r.BaseModeNames(), r.PendingModeNames()
+	if !slices.IsSorted(base) || !slices.IsSorted(pending) {
+		t.Fatalf("not sorted: %v %v", base, pending)
+	}
+	if !slices.Contains(base, "normal") || !slices.Contains(pending, "count_pending") {
+		t.Fatalf("base %v, pending %v", base, pending)
+	}
+	for _, n := range base {
+		if !r.IsBaseMode(n) || slices.Contains(pending, n) {
+			t.Errorf("%q listed as base but is not", n)
+		}
+	}
+	for _, n := range pending {
+		if !r.IsPendingMode(n) {
+			t.Errorf("%q listed as pending but is not", n)
+		}
+	}
+}
