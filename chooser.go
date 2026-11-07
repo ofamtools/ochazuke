@@ -136,6 +136,11 @@ type ChooserSpec struct {
 // draws it beside the rows.
 const ChooserPreviewMin = 60
 
+// hasOwnRows reports whether the chooser has a row besides its fixed ones.
+func (c *Chooser) hasOwnRows() bool {
+	return slices.ContainsFunc(c.spec.Rows, func(row ChooserRow) bool { return !row.Fixed })
+}
+
 // chooserNoun is the noun of every chooser's search input; its rows are
 // the chooser's keys.
 const chooserNoun = "ochazuke.chooser"
@@ -790,8 +795,9 @@ func (c *Chooser) rowsView(width, height int) Block {
 	}
 	rowsHeight := max(1, height-2)
 	switch {
-	case len(c.spec.Rows) == 0 && c.emptyLine() != "":
-		// Padded to the width the rows will take, so the panel does not
+	case !c.hasOwnRows() && c.emptyLine() != "":
+		// No rows but the fixed ones ("(none)"): the empty line still
+		// says why (a failed source's error, R5.19). Padded to the width the rows will take, so the panel does not
 		// jump wider when they land.
 		lines = append(lines, ansi.Truncate("  "+c.emptyLine()+strings.Repeat(" ", width), width, ""))
 	case c.matched() == 0:

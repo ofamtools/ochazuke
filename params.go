@@ -2,9 +2,11 @@ package ochazuke
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
+	"reflect"
 	"slices"
 	"strings"
 )
@@ -20,85 +22,91 @@ type Choice struct {
 	Word string `json:"word,omitempty"`
 }
 
-// ParseChoices reads a source operation's result: []string, []Choice,
-// []PaletteInstance, []Operation (the id is noun.verb), []map whose id is
-// "id", else "key", else "name" and whose label is "label", else "title"
-// (and word "word", Choice.Word),
-// or []any of strings or such maps (the JSON-decoded form).
+// ParseChoices reads a source operation's result: a slice of strings,
+// Choices, PaletteInstances, Operations (the id is noun.verb), ListItems (a
+// list verb's rows, rowChoice), maps whose id is "id", else
+// "key", else "name" and whose label is "label", else "title" (and word
+// "word", Choice.Word), or of any value that encodes as such a map (a list
+// verb's own row struct, a Thing); []any of them is the JSON-decoded form.
+// A list answer (ListAnswer, a page object) reads as its items.
 func ParseChoices(result any) ([]Choice, error) {
 	result = AnswerRows(result)
-	var out []Choice
-	add := func(v any) error {
-		switch item := v.(type) {
-		case string:
-			out = append(out, Choice{ID: item, Label: item})
-		case Choice:
-			out = append(out, item)
-		case PaletteInstance:
-			out = append(out, Choice(item))
-		case Operation:
-			out = append(out, Choice{ID: item.Key()})
-		case map[string]any:
-			id, ok := firstString(item, "id", "key", "name")
-			if !ok {
-				return errors.New("choice map needs a string id, key or name")
-			}
-			label, _ := firstString(item, "label", "title")
-			word, _ := firstString(item, "word")
-			out = append(out, Choice{ID: id, Label: label, Word: word})
-		case map[string]string:
-			id, ok := firstString(item, "id", "key", "name")
-			if !ok {
-				return errors.New("choice map needs a string id, key or name")
-			}
-			label, _ := firstString(item, "label", "title")
-			word, _ := firstString(item, "word")
-			out = append(out, Choice{ID: id, Label: label, Word: word})
-		default:
-			return fmt.Errorf("unsupported choice %T", v)
-		}
-		return nil
-	}
-	var err error
-	switch list := result.(type) {
-	case []string:
-		for _, v := range list {
-			err = errors.Join(err, add(v))
-		}
-	case []Choice:
-		out = append(out, list...)
-	case []PaletteInstance:
-		for _, v := range list {
-			err = errors.Join(err, add(v))
-		}
-	case []Operation:
-		for _, v := range list {
-			err = errors.Join(err, add(v))
-		}
-	case []map[string]any:
-		for _, v := range list {
-			err = errors.Join(err, add(v))
-		}
-	case []map[string]string:
-		for _, v := range list {
-			err = errors.Join(err, add(v))
-		}
-	case []any:
-		for _, v := range list {
-			err = errors.Join(err, add(v))
-		}
-	default:
+	v := reflect.ValueOf(result)
+	if !v.IsValid() || v.Kind() != reflect.Slice || v.Type().Elem().Kind() == reflect.Uint8 {
 		return nil, fmt.Errorf("unsupported choices result %T", result)
+	}
+	out := make([]Choice, 0, v.Len())
+	var err error
+	for i := range v.Len() {
+		choice, e := parseChoice(v.Index(i).Interface())
+		err = errors.Join(err, e)
+		if choice.Label == "" {
+			choice.Label = choice.ID
+		}
+		out = append(out, choice)
 	}
 	if err != nil {
 		return nil, err
 	}
-	for i := range out {
-		if out[i].Label == "" {
-			out[i].Label = out[i].ID
+	return out, nil
+}
+
+// parseChoice reads one item of a choices result (ParseChoices).
+func parseChoice(v any) (Choice, error) {
+	switch item := v.(type) {
+	case string:
+		return Choice{ID: item, Label: item}, nil
+	case Choice:
+		return item, nil
+	case PaletteInstance:
+		return Choice(item), nil
+	case Operation:
+		return Choice{ID: item.Key()}, nil
+	case ListItem:
+		return rowChoice(item), nil
+	case *ListItem:
+		if item != nil {
+			return rowChoice(*item), nil
+		}
+	case map[string]any:
+		return mapChoice(item)
+	case map[string]string:
+		return mapChoice(item)
+	case Thing:
+		return mapChoice(item)
+	}
+	if k := reflect.Indirect(reflect.ValueOf(v)).Kind(); k == reflect.Struct || k == reflect.Map {
+		// A row of another type (*ListItem, an application's row struct):
+		// read through its JSON form.
+		var m map[string]any
+		if raw, err := json.Marshal(v); err == nil && json.Unmarshal(raw, &m) == nil {
+			return mapChoice(m)
 		}
 	}
-	return out, nil
+	return Choice{}, fmt.Errorf("unsupported choice %T", v)
+}
+
+// rowChoice is a list row as a choice: the thing it names is its Data when
+// that is a plain string (the row's key itself, as rowKeyReaders read it:
+// a Commands row is command:greet holding greet), else its id; its label
+// the row's.
+func rowChoice(item ListItem) Choice {
+	if key, ok := item.Data.(string); ok && key != "" {
+		return Choice{ID: key, Label: item.Label}
+	}
+	return Choice{ID: item.ID, Label: item.Label}
+}
+
+// mapChoice reads a choice map: its id ("id", else "key", else "name"),
+// label ("label", else "title") and word.
+func mapChoice[V any](m map[string]V) (Choice, error) {
+	id, ok := firstString(m, "id", "key", "name")
+	if !ok {
+		return Choice{}, errors.New("choice map needs a string id, key or name")
+	}
+	label, _ := firstString(m, "label", "title")
+	word, _ := firstString(m, "word")
+	return Choice{ID: id, Label: label, Word: word}, nil
 }
 
 // firstString is the first of keys whose value in m is a non-empty string.
@@ -297,6 +305,61 @@ func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, do
 	return true
 }
 
+// startChoices is ChoicesFor that never waits: the source runs through
+// ExecuteAt (admission, overrides, history) as ChoicesFor's does, and when
+// its verb returns Pending the work launches as a job of owner in slot
+// (Result.Replacing: one in flight, a newer one replacing it) instead of
+// being awaited. It then answers the parameter's Enum and true, and done
+// gets the choices (or the error) when the job lands; never for a
+// cancelled one. Otherwise it answers what ChoicesFor would, and false.
+func (r *Runtime) startChoices(c Context, p Parameter, query, owner, slot string, done func([]Choice, error), siblings ...Arguments) ([]Choice, bool, error) {
+	source := r.ChoicesSource(p)
+	op, ok := r.Operations[source]
+	if source == "" || !ok || op.Confirm != "" {
+		choices, err := r.ChoicesFor(c, p, query, siblings...)
+		return choices, false, err
+	}
+	enum := enumChoices(p)
+	parse := func(value any, err error) ([]Choice, error) {
+		if err != nil {
+			return enum, fmt.Errorf("choices source %q: %w", source, err)
+		}
+		more, err := ParseChoices(value)
+		if err != nil {
+			return enum, fmt.Errorf("choices source %q: %w", source, err)
+		}
+		return append(slices.Clone(enum), more...), nil
+	}
+	pending := false
+	launch := func(op Operation, c Context, args Arguments) (any, error) {
+		if op.App == nil {
+			return op.Run(r, c, args)
+		}
+		res, ctx, err := r.runChoicesApp(op, c, args)
+		if err != nil || res.work == nil {
+			return res.value, err
+		}
+		inner := res.then
+		res = res.Replacing(slot).Then(func(c Ctx, value any, err error) {
+			if inner != nil {
+				inner(c, value, err)
+			}
+			done(parse(value, err))
+		})
+		if _, err := r.Launch(owner, op.Key(), res, ctx); err != nil {
+			return nil, err
+		}
+		pending = true
+		return nil, nil
+	}
+	value, err := r.executeAt(c, Request{Verb: op.Verb, Noun: op.Noun, Args: choicesSourceArgs(op, p, query, siblings...)}, launch)
+	if pending && err == nil {
+		return enum, true, nil
+	}
+	choices, err := parse(value, err)
+	return choices, false, err
+}
+
 // ArgumentError is a request refused for its arguments (a missing required
 // one, a wrong type, a value outside the enum or the source's choices)
 // before any instance was chosen, so a caller never blames the target for
@@ -487,23 +550,30 @@ func (r *Runtime) ParameterChoices(c Context, op Operation, name, query string, 
 	return r.ChoicesFor(c, p, query, args)
 }
 
+// runChoicesApp runs an application choices source's verb in c, as
+// ExecuteAt's runner does: its result, and the Ctx it ran in for a job.
+func (r *Runtime) runChoicesApp(op Operation, c Context, args Arguments) (Result, Ctx, error) {
+	inst := r.Instances[focusOf(c)]
+	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(inst), Invoked: r.Invoked()}
+	res := op.App(ctx)
+	if res.err != nil {
+		return Result{}, ctx, res.err
+	}
+	if res.fg != nil {
+		return Result{}, ctx, errors.New("a choices source cannot run a foreground program")
+	}
+	return res, ctx, nil
+}
+
 // awaitChoices preserves ExecuteAt's admission, overrides and history while
 // waiting for an application's read result instead of returning its job ticket.
 func (r *Runtime) awaitChoices(op Operation, c Context, args Arguments) (any, error) {
 	if op.App == nil {
 		return op.Run(r, c, args)
 	}
-	inst := r.Instances[focusOf(c)]
-	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(inst), Invoked: r.Invoked()}
-	res := op.App(ctx)
-	if res.err != nil {
-		return nil, res.err
-	}
-	if res.fg != nil {
-		return nil, errors.New("a choices source cannot run a foreground program")
-	}
-	if res.work == nil {
-		return res.value, nil
+	res, ctx, err := r.runChoicesApp(op, c, args)
+	if err != nil || res.work == nil {
+		return res.value, err
 	}
 	value, err := res.Await(context.Background())
 	if res.then != nil {

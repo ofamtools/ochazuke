@@ -853,6 +853,20 @@ func remainingParams(c commandLine) []string {
 	return out
 }
 
+// positionalFor is the index in order of the parameter a bare word fills:
+// the first one, passing over a boolean the word is not true or false for
+// (as --NAME takes no word but those), so task edit a status false fills
+// field with status and chooser with false; the first one when none takes
+// it (its refusal then says why).
+func positionalFor(op Operation, order []string, word string) int {
+	for i, name := range order {
+		if op.Parameters[name].Type != "boolean" || word == "true" || word == "false" {
+			return i
+		}
+	}
+	return 0
+}
+
 // parseParams fills the operation's parameters from the words in order,
 // skipping preset (an instance word's argument), and names the first
 // missing required one. A --NAME word naming a parameter sets it from the
@@ -895,7 +909,12 @@ func (p *Palette) fillParams(c *commandLine, tokens []lineToken, order []string)
 			c.Rest = &restSpan{Param: name, Start: token.Start}
 			return true
 		}
-		if name, value, inline, ok := p.flagWord(c, token.Text); ok {
+		flag, flagValue, inline, ok := p.flagWord(c, token.Text)
+		if !ok {
+			flag, flagValue, ok = p.namedWord(c, token.Text, order)
+			inline = ok
+		}
+		if name, value := flag, flagValue; ok {
 			word := PaletteWord{Text: token.Text, Kind: "flag", Value: "--" + name, Param: name}
 			order = slices.DeleteFunc(order, func(n string) bool { return n == name })
 			if !inline {
@@ -935,8 +954,9 @@ func (p *Palette) fillParams(c *commandLine, tokens []lineToken, order []string)
 			c.Err = fmt.Errorf("unexpected word %q: %s takes %d argument(s)", token.Text, c.Op.Key(), len(c.Op.Parameters))
 			return false
 		}
-		name := order[0]
-		order = order[1:]
+		at := positionalFor(c.Op, order, token.Text)
+		name := order[at]
+		order = slices.Delete(slices.Clone(order), at, at+1)
 		value, display, candidates, err := p.argument(c.Op, name, token.Text, c.Args)
 		word := PaletteWord{Text: token.Text, Kind: "argument", Param: name, Value: display, Candidates: candidates}
 		c.Words = append(c.Words, word)
@@ -971,6 +991,22 @@ func (p *Palette) flagWord(c *commandLine, word string) (name, value string, inl
 		}
 	}
 	return "", "", false, false
+}
+
+// namedWord reads NAME=VALUE naming a parameter of op, the way the line's
+// request is spelled back (task.edit chooser=false), as --NAME=VALUE: the
+// value is the parameter's, typed by it (a boolean's true or false), and
+// fills no positional slot. A word for a next positional parameter that
+// takes NAME=VALUE pairs itself (Pairs) stays that parameter's.
+func (p *Palette) namedWord(c *commandLine, word string, order []string) (name, value string, ok bool) {
+	if strings.HasPrefix(word, "-") || !strings.Contains(word, "=") {
+		return "", "", false
+	}
+	if len(order) > 0 && c.Op.Parameters[order[0]].Pairs {
+		return "", "", false
+	}
+	name, value, _, ok = p.flagWord(c, "--"+word)
+	return name, value, ok
 }
 
 // parseProp reads the words after NOUN PROP (plan 2.6): none reads the
