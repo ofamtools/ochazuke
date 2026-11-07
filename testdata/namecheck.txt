@@ -261,7 +261,7 @@ markdown/layout.go	layoutOf	compare	"note"	2
 markdown/layout.go	layoutOf	cyclo	"-"	37
 markdown/layout.go	markedSource	compare	"note"	3
 markdown/links.go	layoutLinks	compare	"note"	1
-markdown/links.go	layoutLinks	cyclo	"-"	54
+markdown/links.go	layoutLinks	cyclo	"-"	48
 markdown/notes.go	Notes	compare	"note"	1
 markdown/notes.go	Notes	compare	"task"	1
 markdown/notes.go	ReplyNote	compare	"note"	1

@@ -2151,7 +2151,7 @@ Importable package `keytest`: 1 source files, 0 test files.
 
 ## Package markdown
 
-Importable package `markdown`: 17 source files, 15 test files.
+Importable package `markdown`: 18 source files, 16 test files.
 
 ### markdown/cursor.go
 
@@ -2162,7 +2162,7 @@ Importable package `markdown`: 17 source files, 15 test files.
 
 ### markdown/doc.go
 
-- lines: 987 · tests: doc_test.go
+- lines: 992 · tests: doc_test.go
 - purpose: Source is where a Doc's Markdown lives: Load reads it as it is now and Save stores a new text.
 - types: Source, DebounceMsg, Doc
 - methods: Doc(45), refusal(2)
@@ -2214,9 +2214,17 @@ Importable package `markdown`: 17 source files, 15 test files.
 - methods: layout(2)
 - leans on: tasks.go(51), elements.go(15), table.go(8), verbs.go(3)
 
+### markdown/link_urls.go
+
+- lines: 226 · tests: link_urls_test.go
+- purpose: HideLinkURLs draws only a link's text, not the URL Glamour prints after it (what markdown.link-urls does for a Doc, for Block's callers).
+- methods: Doc(3), hidingRenderer(1), linkTextTransformer(1)
+- funcs: HideLinkURLs
+- leans on: doc.go(6), render.go(6), links.go(2), verbs.go(2)
+
 ### markdown/links.go
 
-- lines: 401 · tests: links_test.go
+- lines: 408 · tests: links_test.go
 - purpose: Link is a rendered link in a document element.
 - types: Link
 - methods: Doc(7)
@@ -2237,17 +2245,17 @@ Importable package `markdown`: 17 source files, 15 test files.
 - types: Option (func)
 - methods: options(1)
 - funcs: StyleOf, PreserveNewlines, WrapAll, Block
-- leans on: table.go(5), tasks.go(3), verbs.go(2), render_chunks.go(1)
+- leans on: table.go(5), link_urls.go(4), tasks.go(3), verbs.go(2)
 
 ### markdown/render_chunks.go
 
-- lines: 319 · tests: render_chunks_test.go
+- lines: 318 · tests: render_chunks_test.go
 - purpose: chunkKey names a drawn run: the renderer and the text drawn, its markers renumbered from 0; or, with given set, the run as given, its lead before it and its ...
 - leans on: tasks.go(25), table.go(12), edit.go(11), render.go(5)
 
 ### markdown/table.go
 
-- lines: 621 · tests: table_test.go
+- lines: 623 · tests: table_test.go
 - purpose: srcTable is one table cut out of a source.
 - methods: inline(4)
 - leans on: tidy.go(6), tasks.go(5), verbs.go(4), links.go(3)
@@ -2268,7 +2276,7 @@ Importable package `markdown`: 17 source files, 15 test files.
 
 ### markdown/verbs.go
 
-- lines: 407
+- lines: 408
 - purpose: Register defines the markdown nouns, their verbs and keys once per runtime (see Doc for the keys).
 - funcs: Register
 - leans on: doc.go(75), insert.go(15), elements.go(9), edit.go(7)

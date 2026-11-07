@@ -459,8 +459,9 @@ func (d *Doc) relayout(e, off int) error {
 	}
 	d.dirty = false
 	hidden, count := d.hiddenElements()
+	d.opts.hideURLs = d.linkURLs() != LinkURLsAlways
 	d.lay = layoutOf(d.text, d.elems, d.width, d.style, d.opts, d.folded, hidden, d.r.Settings().Bool(ExtraSpaceSetting))
-	d.links = layoutLinks(d.text, d.elems, d.lay)
+	d.links = layoutLinks(d.text, d.elems, d.lay, d.opts.hideURLs)
 	d.doneHidden = count
 	if len(d.lay.rows) == 0 && (d.Editable() || count > 0) {
 		// An empty document still has a line to stand on.
@@ -752,7 +753,9 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 	id := d.ListID()
 	d.r.Placed(id)
 	width = max(1, width)
-	if style, opts := StyleOf(a), d.opts.withTones(a); d.edit == nil && (width != d.width || style != d.style || opts != d.opts || d.dirty) {
+	opts := d.opts.withTones(a)
+	opts.hideURLs = d.linkURLs() != LinkURLsAlways
+	if style := StyleOf(a); d.edit == nil && (width != d.width || style != d.style || opts != d.opts || d.dirty) {
 		e, off := d.cursor()
 		d.width, d.style, d.opts = width, style, opts
 		_ = d.relayout(e, off)
@@ -762,6 +765,7 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 	if indicator != "" && height > 1 {
 		height--
 	}
+	footer, height := d.footerFits(width, height)
 	var lines []string
 	focus, focusHeight := 0, 1
 	var cursor *ochazuke.Pos
@@ -832,6 +836,7 @@ func (d *Doc) Block(width, height int, a ochazuke.Appearance) ochazuke.Block {
 			lines, cursor, focus, focusHeight = lines[:1], nil, 0, 1
 		}
 	}
+	lines = append(lines, footerLines(footer)...)
 	out := ochazuke.Block{Text: d.r.PlacedAt(id, strings.Join(lines, "\n"), focus, focusHeight), Cursor: cursor}
 	return out
 }

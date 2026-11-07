@@ -4,10 +4,10 @@
  |    # Table
  |
  |     name  | target
- |    -------|----------------------------------------
-C|     first | before cell https://cell.example after
+ |    -------|-------------------
+C|     first | before cell after
  |     last  | done
- |
+ |    → https://cell.example
  |
  |
  |

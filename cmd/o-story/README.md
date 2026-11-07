@@ -511,7 +511,7 @@ Conformance:
 | normal | key | `key.ignore` |
 | normal | list | `list.apply` `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.flush-lingering` `list.goto` `list.group` `list.group-clear` `list.mark` `list.move` `list.next-class` `list.page-next` `list.page-prev` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.sort-column` `list.toggle-pin-column` `list.visual` `list.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
-| normal | markdown | `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
+| normal | markdown | `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-link` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.copy` |
 | normal | md.doc | `md.doc.show` |
 | normal | messages | `messages.show` |
@@ -734,6 +734,7 @@ Mode edges (from → to via):
 - `normal ]` → `normal` via `diff.hunk`
 - `normal ]` → `normal` via `list.next-class`
 - `normal ]` → `normal` via `markdown.next-kind`
+- `normal ]` → `normal` via `markdown.next-link`
 - `normal ]` → `normal` via `markdown.next-same`
 - `normal ctrl+a` → `normal` via `focus.next`
 - `normal ctrl+w` → `normal` via `focus.next`

@@ -4,7 +4,6 @@ import (
 	"regexp"
 	"strings"
 
-	"charm.land/glamour/v2"
 	"github.com/yuin/goldmark"
 	gast "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -56,7 +55,7 @@ var listLine = regexp.MustCompile(`^(?:[-+*](?:[ \t]|$)|[0-9]{1,9}[.)](?:[ \t]|$
 
 // renderRuns draws text with tr (rk names it) run by run, each run from
 // the cache when it is there; the caller holds the cache lock.
-func renderRuns(tr *glamour.TermRenderer, rk rendererKey, text string) (string, error) {
+func renderRuns(tr mdRenderer, rk rendererKey, text string) (string, error) {
 	runs := splitRuns(text)
 	if len(runs) < 2 {
 		return tr.Render(text)
@@ -103,7 +102,7 @@ const afterLine = "x\n\n"
 
 // cached is text drawn by tr without Glamour's first and last "\n", from
 // the cache when it is there.
-func cached(tr *glamour.TermRenderer, rk rendererKey, text string) (string, error) {
+func cached(tr mdRenderer, rk rendererKey, text string) (string, error) {
 	key := chunkKey{rk, text, false}
 	if out, ok := chunkCache.runs[key]; ok {
 		return out, nil
@@ -133,7 +132,7 @@ func keep(key chunkKey, out string) {
 // a run after the first is drawn behind the sentinel lead, which is cut
 // off again. False when the sentinel is not drawn as alone, or leaves its
 // last line started (the caller draws the whole text).
-func renderRun(tr *glamour.TermRenderer, rk rendererKey, run, lead string) (string, bool, error) {
+func renderRun(tr mdRenderer, rk rendererKey, run, lead string) (string, bool, error) {
 	given := chunkKey{rk, lead + run, true}
 	if out, ok := chunkCache.runs[given]; ok {
 		return out, true, nil
@@ -145,7 +144,7 @@ func renderRun(tr *glamour.TermRenderer, rk rendererKey, run, lead string) (stri
 	return out, ok, err
 }
 
-func renderNormalized(tr *glamour.TermRenderer, rk rendererKey, run, lead string) (string, bool, error) {
+func renderNormalized(tr mdRenderer, rk rendererKey, run, lead string) (string, bool, error) {
 	norm, base := normalizeMarkers(run)
 	if lead == "" {
 		out, err := cached(tr, rk, norm)
