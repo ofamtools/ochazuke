@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -118,63 +119,49 @@ var actionPlaceholders = map[string]bool{"target": true, "id": true, "label": tr
 
 var actionField = regexp.MustCompile(`\{\{\s*([\w.-]+)\s*\}\}`)
 
-// check reports why an action cannot be installed on r, nil when it can.
-func (a Action) check(r *Runtime) error {
-	switch {
-	case a.Noun == "" || a.Verb == "":
-		return errors.New("noun and verb are required")
-	case strings.ContainsAny(a.Verb, ". \t\n"):
-		return fmt.Errorf("verb %q must be one word without a dot", a.Verb)
-	case r.Nouns[a.Noun] == nil:
-		return fmt.Errorf("unknown noun %q (an action adds a verb to an existing noun)", a.spelled())
-	case r.Operations[a.Key()].Noun != "":
-		return fmt.Errorf("%s is already defined", a.writtenKey())
-	case r.Nouns[a.Noun].prop(a.Verb) != nil:
-		return fmt.Errorf("%s is a prop of %s, not a verb", a.Verb, a.spelled())
-	case len(a.Command) > 0 && len(a.Base) > 0:
-		return errors.New("command and base exclude each other")
-	case len(a.Command) == 0 && len(a.Base) == 0:
-		return errors.New("command or base is required")
-	case len(a.Command) > 0 && (a.Call != "" || a.Target != ""):
-		return errors.New("call and target go with base, not command")
-	case len(a.Base) > 0 && a.JSON:
-		return errors.New("json goes with command; base always passes --json")
-	case a.Foreground && a.Timeout != "":
-		return errors.New("foreground takes no timeout: the program runs until it exits")
-	case a.Foreground && a.JSON:
-		return errors.New("json goes with a captured command, not foreground")
-	case a.Call != "" && len(strings.Fields(a.Call)) < 2:
-		return fmt.Errorf("call %q must be the noun's words and the verb", a.Call)
+// actionRule is one row of Action.check: a name, a test that answers the
+// failure message ("" when the action passes) and nothing else. Rules run in
+// order; the first failure is the answer.
+type actionRule struct {
+	name string
+	test func(a Action, r *Runtime) string
+}
+
+// when answers msg when bad holds, else "".
+func when(bad bool, format string, args ...any) string {
+	if !bad {
+		return ""
 	}
-	if err := r.CheckSourceArgs(a.Parameters); err != nil {
-		return err
+	return fmt.Sprintf(format, args...)
+}
+
+// errorText is err's text, "" for nil.
+func errorText(err error) string {
+	if err == nil {
+		return ""
 	}
-	if err := CheckParameterSources(Operation{Noun: a.Noun, Verb: a.Verb, Parameters: a.Parameters}); err != nil {
-		return err
-	}
-	for name, p := range a.Parameters {
-		if name == "" || strings.ContainsAny(name, ". \t\n") || actionPlaceholders[name] {
-			return fmt.Errorf("parameter name %q must be one word, not a dot or a reserved name", name)
-		}
-		if !kindOf(p.Type).action {
-			return fmt.Errorf("parameter %s: type must be string, integer, boolean or path", name)
+	return err.Error()
+}
+
+// invalidParameterName reports a parameter name an action cannot use.
+func invalidParameterName(name string) bool {
+	return name == "" || strings.ContainsAny(name, ". \t\n") || actionPlaceholders[name]
+}
+
+// firstParameter is the message of the first parameter (by name) that bad
+// reports, "" when none does.
+func (a Action) firstParameter(bad func(name string, p Parameter) string) string {
+	for _, name := range slices.Sorted(maps.Keys(a.Parameters)) {
+		if msg := bad(name, a.Parameters[name]); msg != "" {
+			return msg
 		}
 	}
-	for _, name := range a.Positional {
-		if _, ok := a.Parameters[name]; !ok {
-			return fmt.Errorf("positional %q is not a declared parameter", name)
-		}
-	}
-	switch a.History {
-	case "", HistoryAction, HistoryChange, HistoryFetch:
-	default:
-		return fmt.Errorf("history %q must be action, change or fetch", a.History)
-	}
-	if a.Timeout != "" {
-		if d, err := time.ParseDuration(a.Timeout); err != nil || d <= 0 {
-			return fmt.Errorf("timeout %q must be a duration such as \"30s\"", a.Timeout)
-		}
-	}
+	return ""
+}
+
+// unknownPlaceholder is the first template placeholder that is neither a
+// declared parameter nor a reserved name, "" when all are known.
+func (a Action) unknownPlaceholder() string {
 	templates := append(append(append([]string{}, a.Command...), a.Base...), a.Label, a.Dir, a.Target)
 	for _, t := range templates {
 		for _, m := range actionField.FindAllStringSubmatch(t, -1) {
@@ -182,7 +169,139 @@ func (a Action) check(r *Runtime) error {
 			if _, declared := a.Parameters[name]; declared || actionPlaceholders[name] || strings.HasPrefix(name, "data.") && len(name) > len("data.") {
 				continue
 			}
-			return fmt.Errorf("unknown placeholder {{%s}}", name)
+			return name
+		}
+	}
+	return ""
+}
+
+// actionRules are the rows Action.check evaluates, in order.
+var actionRules = []actionRule{
+	{"noun and verb", ruleNounAndVerb},
+	{"verb one word", ruleVerbOneWord},
+	{"noun exists", ruleNounExists},
+	{"verb free", ruleVerbFree},
+	{"verb not a prop", ruleVerbNotAProp},
+	{"command xor base", ruleCommandXorBase},
+	{"command or base", ruleCommandOrBase},
+	{"call and target go with base", ruleCallAndTargetGoWithBase},
+	{"json goes with command", ruleJsonGoesWithCommand},
+	{"foreground no timeout", ruleForegroundNoTimeout},
+	{"foreground no json", ruleForegroundNoJson},
+	{"call words", ruleCallWords},
+	{"source args", ruleSourceArgs},
+	{"parameter sources", ruleParameterSources},
+	{"parameter names", ruleParameterNames},
+	{"parameter types", ruleParameterTypes},
+	{"positional declared", rulePositionalDeclared},
+	{"history", ruleHistory},
+	{"timeout", ruleTimeout},
+	{"placeholders", rulePlaceholders},
+}
+
+func ruleNounAndVerb(a Action, r *Runtime) string {
+	return when(a.Noun == "" || a.Verb == "", "noun and verb are required")
+}
+
+func ruleVerbOneWord(a Action, r *Runtime) string {
+	return when(strings.ContainsAny(a.Verb, ". \t\n"), "verb %q must be one word without a dot", a.Verb)
+}
+
+func ruleNounExists(a Action, r *Runtime) string {
+	return when(r.Nouns[a.Noun] == nil, "unknown noun %q (an action adds a verb to an existing noun)", a.spelled())
+}
+
+func ruleVerbFree(a Action, r *Runtime) string {
+	return when(r.Operations[a.Key()].Noun != "", "%s is already defined", a.writtenKey())
+}
+
+func ruleVerbNotAProp(a Action, r *Runtime) string {
+	return when(r.Nouns[a.Noun].prop(a.Verb) != nil, "%s is a prop of %s, not a verb", a.Verb, a.spelled())
+}
+
+func ruleCommandXorBase(a Action, r *Runtime) string {
+	return when(len(a.Command) > 0 && len(a.Base) > 0, "command and base exclude each other")
+}
+
+func ruleCommandOrBase(a Action, r *Runtime) string {
+	return when(len(a.Command) == 0 && len(a.Base) == 0, "command or base is required")
+}
+
+func ruleCallAndTargetGoWithBase(a Action, r *Runtime) string {
+	return when(len(a.Command) > 0 && (a.Call != "" || a.Target != ""), "call and target go with base, not command")
+}
+
+func ruleJsonGoesWithCommand(a Action, r *Runtime) string {
+	return when(len(a.Base) > 0 && a.JSON, "json goes with command; base always passes --json")
+}
+
+func ruleForegroundNoTimeout(a Action, r *Runtime) string {
+	return when(a.Foreground && a.Timeout != "", "foreground takes no timeout: the program runs until it exits")
+}
+
+func ruleForegroundNoJson(a Action, r *Runtime) string {
+	return when(a.Foreground && a.JSON, "json goes with a captured command, not foreground")
+}
+
+func ruleCallWords(a Action, r *Runtime) string {
+	return when(a.Call != "" && len(strings.Fields(a.Call)) < 2, "call %q must be the noun's words and the verb", a.Call)
+}
+
+func ruleSourceArgs(a Action, r *Runtime) string {
+	return errorText(r.CheckSourceArgs(a.Parameters))
+}
+
+func ruleParameterSources(a Action, r *Runtime) string {
+	return errorText(CheckParameterSources(Operation{Noun: a.Noun, Verb: a.Verb, Parameters: a.Parameters}))
+}
+
+func ruleParameterNames(a Action, r *Runtime) string {
+	return a.firstParameter(func(name string, p Parameter) string {
+		return when(invalidParameterName(name), "parameter name %q must be one word, not a dot or a reserved name", name)
+	})
+
+}
+
+func ruleParameterTypes(a Action, r *Runtime) string {
+	return a.firstParameter(func(name string, p Parameter) string {
+		return when(!kindOf(p.Type).action, "parameter %s: type must be string, integer, boolean or path", name)
+	})
+
+}
+
+func rulePositionalDeclared(a Action, r *Runtime) string {
+	for _, name := range a.Positional {
+		if _, ok := a.Parameters[name]; !ok {
+			return fmt.Sprintf("positional %q is not a declared parameter", name)
+		}
+	}
+	return ""
+
+}
+
+func ruleHistory(a Action, r *Runtime) string {
+	return when(!slices.Contains([]string{"", HistoryAction, HistoryChange, HistoryFetch}, a.History), "history %q must be action, change or fetch", a.History)
+}
+
+func ruleTimeout(a Action, r *Runtime) string {
+	if a.Timeout == "" {
+		return ""
+	}
+	d, err := time.ParseDuration(a.Timeout)
+	return when(err != nil || d <= 0, "timeout %q must be a duration such as \"30s\"", a.Timeout)
+
+}
+
+func rulePlaceholders(a Action, r *Runtime) string {
+	return when(a.unknownPlaceholder() != "", "unknown placeholder {{%s}}", a.unknownPlaceholder())
+}
+
+// check reports why an action cannot be installed on r, nil when it can:
+// the message of the first actionRules row it fails.
+func (a Action) check(r *Runtime) error {
+	for _, rule := range actionRules {
+		if msg := rule.test(a, r); msg != "" {
+			return errors.New(msg)
 		}
 	}
 	return nil

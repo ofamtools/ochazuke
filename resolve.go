@@ -637,6 +637,68 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 	return err
 }
 
+// argSource reads one From source word for a key event: p is the payload of
+// the pending mode (its shadowed mode's when it shadows one), field the part
+// after "row:" (empty for a named source).
+type argSource func(r *Runtime, ev KeyEvent, p Payload, field string) any
+
+// argSourceRows are the named From sources: one row per source kind.
+var argSourceRows = []struct {
+	name string
+	read argSource
+}{
+	{SourceKey, func(r *Runtime, ev KeyEvent, p Payload, _ string) any { return ev.Key.Key }},
+	{SourceDigit, func(r *Runtime, ev KeyEvent, p Payload, _ string) any {
+		n, _ := strconv.Atoi(ev.Key.Key)
+		return n
+	}},
+	{SourceText, func(r *Runtime, ev KeyEvent, p Payload, _ string) any {
+		if !ev.Key.Paste {
+			return ev.Key.Key
+		}
+		return strings.ReplaceAll(strings.ReplaceAll(pasteText(ev.Key.Key), "\r\n", "\n"), "\r", "\n")
+	}},
+	{SourceCount, func(r *Runtime, ev KeyEvent, p Payload, _ string) any { return max(1, p.Count) }},
+	{SourceLine, func(r *Runtime, ev KeyEvent, p Payload, _ string) any {
+		if p.Count > 0 {
+			return p.Count
+		}
+		return p.OpCount
+	}},
+	{SourceSteps, func(r *Runtime, ev KeyEvent, p Payload, _ string) any { return max(1, p.Count) * max(1, p.OpCount) }},
+	{SourceOp, func(r *Runtime, ev KeyEvent, p Payload, _ string) any { return p.Op }},
+	{SourceOpCount, func(r *Runtime, ev KeyEvent, p Payload, _ string) any { return p.OpCount }},
+	{SourcePrefix, func(r *Runtime, ev KeyEvent, p Payload, _ string) any { return p.Prefix }},
+	{SourceLetter, func(r *Runtime, ev KeyEvent, p Payload, _ string) any { return keyLetter(ev.Key.Key) }},
+	{SourceRow, func(r *Runtime, ev KeyEvent, p Payload, _ string) any { return jsonShaped(r.rowData(ev)) }},
+}
+
+// argSources indexes argSourceRows by source word.
+var argSources = func() map[string]argSource {
+	m := make(map[string]argSource, len(argSourceRows))
+	for _, row := range argSourceRows {
+		m[row.name] = row.read
+	}
+	return m
+}()
+
+// rowFieldSource is the source "row:<field>"; the word's field is passed.
+func rowFieldSource(r *Runtime, ev KeyEvent, p Payload, field string) any {
+	return r.rowField(ev, field)
+}
+
+// parseSource is the reader of one source word and its field: a named
+// source from argSources, or "row:<field>" (field checked by validSource).
+func parseSource(word string) (argSource, string, bool) {
+	if read, ok := argSources[word]; ok {
+		return read, "", true
+	}
+	if field, ok := rowSourceField(word); ok {
+		return rowFieldSource, field, true
+	}
+	return nil, "", false
+}
+
 // argument resolves a From source for a key event. Several sources
 // separated by spaces resolve each and join their texts with a space.
 func (r *Runtime) argument(source string, ev KeyEvent) any {
@@ -649,46 +711,15 @@ func (r *Runtime) argument(source string, ev KeyEvent) any {
 		}
 		return strings.Join(parts, " ")
 	}
+	read, field, ok := parseSource(source)
+	if !ok {
+		return nil
+	}
 	p := ev.Mode.Payload
 	if p.Shadow != nil {
 		p = p.Shadow.Payload
 	}
-	switch source {
-	case SourceKey:
-		return ev.Key.Key
-	case SourceDigit:
-		n, _ := strconv.Atoi(ev.Key.Key)
-		return n
-	case SourceText:
-		if ev.Key.Paste {
-			text := pasteText(ev.Key.Key)
-			return strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\r", "\n")
-		}
-		return ev.Key.Key
-	case SourceCount:
-		return max(1, p.Count)
-	case SourceLine:
-		if p.Count > 0 {
-			return p.Count
-		}
-		return p.OpCount
-	case SourceSteps:
-		return max(1, p.Count) * max(1, p.OpCount)
-	case SourceOp:
-		return p.Op
-	case SourceOpCount:
-		return p.OpCount
-	case SourcePrefix:
-		return p.Prefix
-	case SourceLetter:
-		return keyLetter(ev.Key.Key)
-	case SourceRow:
-		return jsonShaped(r.rowData(ev))
-	}
-	if field, ok := rowSourceField(source); ok {
-		return r.rowField(ev, field)
-	}
-	return nil
+	return read(r, ev, p, field)
 }
 
 // enterMode puts the runtime into a pending mode. The base mode it shadows

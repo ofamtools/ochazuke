@@ -1230,8 +1230,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 // validSource checks one binding source word: a named source or
 // "row:<field>" with a well-formed field.
 func validSource(one string) error {
-	switch one {
-	case SourceKey, SourceDigit, SourceText, SourceCount, SourceLine, SourceSteps, SourceOp, SourceOpCount, SourcePrefix, SourceLetter, SourceRow:
+	if _, ok := argSources[one]; ok {
 		return nil
 	}
 	if field, ok := rowSourceField(one); !ok || !validRowField(field) {

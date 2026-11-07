@@ -5,8 +5,6 @@ about.go	aboutRowOf	compare	"ochazuke.about-row"	1
 about.go	registerAbout	compare	"ochazuke.about-row"	1
 about.go	registerAbout	compare	"path"	2
 action_names.go	Runtime.checkAlias	cyclo	"-"	35
-actions.go	Action.check	case	"action"	1
-actions.go	Action.check	cyclo	"-"	41
 actions.go	Action.values	case	"args"	1
 actions.go	Action.values	case	"id"	1
 actions.go	Action.values	case	"noun"	1
@@ -309,16 +307,6 @@ noun.go	printableKey	case	"insert"	1
 noun.go	printableKey	case	"left"	1
 noun.go	printableKey	case	"right"	1
 noun.go	printableKey	case	"up"	1
-noun.go	validSource	case	"count"	1
-noun.go	validSource	case	"digit"	1
-noun.go	validSource	case	"key"	1
-noun.go	validSource	case	"line"	1
-noun.go	validSource	case	"op"	1
-noun.go	validSource	case	"opcount"	1
-noun.go	validSource	case	"prefix"	1
-noun.go	validSource	case	"row"	1
-noun.go	validSource	case	"steps"	1
-noun.go	validSource	case	"text"	1
 noun.go	var keyTexts	table	"enter"	1	key names mapped to their text; the words coincide with vocabulary names, no name branch
 noun_places.go	Runtime.placementOf	compare	"app"	1
 pages.go	Runtime.AddPage	compare	"app"	1
@@ -398,16 +386,6 @@ registers.go	Runtime.storeYank	compare	"line"	1
 registers.go	appendYank	compare	"line"	2
 registers.go	registerRegisterThings	compare	"line"	1
 registers.go	yankReport	case	"line"	1
-resolve.go	Runtime.argument	case	"count"	1
-resolve.go	Runtime.argument	case	"digit"	1
-resolve.go	Runtime.argument	case	"key"	1
-resolve.go	Runtime.argument	case	"line"	1
-resolve.go	Runtime.argument	case	"op"	1
-resolve.go	Runtime.argument	case	"opcount"	1
-resolve.go	Runtime.argument	case	"prefix"	1
-resolve.go	Runtime.argument	case	"row"	1
-resolve.go	Runtime.argument	case	"steps"	1
-resolve.go	Runtime.argument	case	"text"	1
 resolve.go	Runtime.dispatchIn	compare	"ochazuke.key.ignore"	1
 resolve.go	Runtime.dispatchIn	cyclo	"-"	33
 resolve.go	Runtime.lookup	cyclo	"-"	46
