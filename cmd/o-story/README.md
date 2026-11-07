@@ -457,6 +457,8 @@ Conformance:
 |---|---|---|
 | count_pending | count | `count.append` |
 | count_pending | mode | `mode.enter` |
+| edit | focus | `focus.previous` |
+| edit | list | `list.move` |
 | edit | mode | `mode.pin` `mode.switch` |
 | flat | mode | `mode.switch` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
@@ -540,7 +542,7 @@ Conformance:
 | shape | list | `list.move` |
 | shape | mode | `mode.switch` |
 | table | list | `list.move` |
-| table | mode | `mode.pin` |
+| table | mode | `mode.pin` `mode.switch` |
 | terminal | bindings | `bindings.help` |
 | terminal | demo | `demo.edit` `demo.finish` `demo.hints` `demo.outside` |
 | terminal | focus | `focus.next` |
@@ -587,6 +589,7 @@ Mode edges (from → to via):
 - `count_pending ctrl+w` → `normal` via `pane.shrink`
 - `count_pending g` → `normal` via `list.goto`
 - `count_pending z` → `normal` via `diff.scroll-columns`
+- `edit` → `normal` via `focus.previous`
 - `edit` → `normal` via `mode.switch`
 - `edit` → `shape` via `mode.switch`
 - `edit` → `table` via `mode.switch`
@@ -785,6 +788,7 @@ Mode edges (from → to via):
 - `replay_pending` → `visual-line` via `mode.leave`
 - `shape` → `edit` via `mode.switch`
 - `shape` → `normal` via `list.move`
+- `table` → `edit` via `mode.switch`
 - `table` → `flat` via `mode.pin`
 - `table` → `normal` via `list.move`
 - `terminal` → `leader_pending` via `mode.enter`

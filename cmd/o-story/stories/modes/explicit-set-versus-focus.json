@@ -1,0 +1,24 @@
+{
+  "name": "modes: an explicit mode switch holds while the focus moves inside its stop; a focus move to another stop drops it for that stop's declared mode, coming back lands on the pin (not the switched mode), and esc to declared returns to the pin",
+  "area": "modes",
+  "width": 60,
+  "height": 12,
+  "page": {
+    "modes": {"table": {"extends": "normal"}, "edit": {"extends": "normal"}},
+    "lists": [{"id": "shape", "rows": 2}, {"id": "data", "rows": 3, "pin": "table"}],
+    "bind": [
+      {"noun": "demo", "mode": "table", "keys": "e", "do": "ochazuke.mode.switch", "args": {"mode": "edit"}},
+      {"noun": "demo", "mode": "edit", "keys": "esc", "do": "ochazuke.mode.switch", "args": {"mode": "declared"}}
+    ]
+  },
+  "script": ["}", "e", "j", "{", "}", "e", "esc"],
+  "expect": [
+    {"after": 1, "focus": "data1", "mode": "table", "badge": "TABLE"},
+    {"after": 2, "focus": "data1", "mode": "edit", "badge": "EDIT"},
+    {"after": 3, "focus": "data2", "mode": "edit", "badge": "EDIT"},
+    {"after": 4, "focus": "shape1", "mode": "normal", "badge": "NORMAL"},
+    {"after": 5, "focus": "data2", "mode": "table", "badge": "TABLE"},
+    {"after": 6, "focus": "data2", "mode": "edit", "badge": "EDIT"},
+    {"focus": "data2", "mode": "table", "badge": "TABLE"}
+  ]
+}
