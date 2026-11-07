@@ -26,15 +26,6 @@ const HistorySetting = "history-limit"
 // reads a fetch back after a restart.
 const HistoryFetchesSetting = "history-fetches"
 
-// unpersistedNouns are the nouns whose entries never reach the history
-// file: text editing and its plumbing (the input and editor, raw keys,
-// counts, registers, macros, yank history, modes), the palette's own line
-// editing, and the keys sent to a terminal.
-var unpersistedNouns = map[string]bool{
-	"ochazuke.input": true, "ochazuke.editor": true, "ochazuke.key": true, "ochazuke.count": true, "ochazuke.register": true, "ochazuke.macro": true,
-	"ochazuke.yank-history": true, "ochazuke.mode": true, "ochazuke.palette": true, "ochazuke.terminal": true,
-}
-
 // textLikeArgs are the argument names whose values the history file leaves
 // out unless the operation sets PersistArgs: what a user typed (args is a
 // command line, as command.run takes, which can carry a secret).
@@ -43,11 +34,11 @@ var textLikeArgs = []string{"text", "value", "keys", "args", "password", "secret
 // persistable is the line an entry writes, or false when it writes none.
 // The file keeps palette lines (source "palette", failed ones too, so a
 // mistyped line can be recalled and fixed) and other completed operations,
-// never text editing (unpersistedNouns), and fetches only while
+// never text editing (Noun.Unpersisted), and fetches only while
 // history-fetches is on; arguments named like text are dropped unless the
 // operation opts in.
 func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
-	if unpersistedNouns[e.Request.Noun] {
+	if n := r.Nouns[e.Request.Noun]; n != nil && n.Unpersisted {
 		return e, false
 	}
 	if fetchRing(e) {

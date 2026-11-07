@@ -23,40 +23,24 @@ func (b *NounBuilder) About(text string) *NounBuilder { b.n.About = text; return
 
 // Destructive marks the last verb as destroying user data that cannot be recovered.
 func (b *NounBuilder) Destructive() *NounBuilder {
-	if b.last == "" {
-		panic("Destructive must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.Destructive = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Destructive", func(o *Operation) { o.Destructive = true })
 }
 
 // Agent declares the last verb's agent right. An empty right restores the default.
 func (b *NounBuilder) Agent(right string) *NounBuilder {
-	if b.last == "" {
-		panic("Agent must follow Verb")
-	}
 	switch right {
 	case "", AgentAllow, AgentConfirm, AgentNever:
 	default:
 		panic("Agent: expected allow, confirm or never")
 	}
-	op := b.r.Operations[b.last]
-	op.Agent = right
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Agent", func(o *Operation) { o.Agent = right })
 }
 
 // Example adds an example to the last verb. The caller keeps ownership of args.
 func (b *NounBuilder) Example(args Arguments, note string) *NounBuilder {
-	if b.last == "" {
-		panic("Example must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.Examples = append(slices.Clone(op.Examples), Example{Args: maps.Clone(args), Note: note})
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Example", func(o *Operation) {
+		o.Examples = append(slices.Clone(o.Examples), Example{Args: maps.Clone(args), Note: note})
+	})
 }
 
 // AgentRightOf refuses destructive verbs before consulting declarations, then

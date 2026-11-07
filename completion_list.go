@@ -123,12 +123,9 @@ func registerCompletion(r *Runtime) {
 	r.Define(CompletionNoun).
 		Verb("open", on(func(c *Completer, ctx Context, _ Arguments) error { return c.openAt(focusOf(ctx)) }), "Offer suggestions for the trigger token at the cursor now").
 		When("completion-available").
-		Verb("move", on(func(c *Completer, _ Context, a Arguments) error { c.move(IntArg(a, "delta", 0)); return nil }), "Move the suggestion highlight; from none, down selects first and up follows chooser.up-from-none").Motion().
+		Verb("move", on(func(c *Completer, _ Context, a Arguments) error { c.move(IntArg(a, "delta", 0)); return nil }), "Move the suggestion highlight; from none, down selects first and up follows chooser.up-from-none").Motion().Params(map[string]Parameter{"delta": {Type: "integer", Required: true}}).
 		Verb("accept", on(func(c *Completer, _ Context, _ Arguments) error { return c.accept() }), "Replace the token with the highlighted suggestion, else the first, keeping its trigger; one undoable edit").
 		Verb("dismiss", on(func(c *Completer, _ Context, _ Arguments) error { c.dismiss(); return nil }), "Hide the suggestions; the input stays in its mode and typing reopens them")
-	move := r.Operations["ochazuke.completion.move"]
-	move.Parameters = map[string]Parameter{"delta": {Type: "integer", Required: true}}
-	r.Operations["ochazuke.completion.move"] = move
 }
 
 // Completer is the inline completion component.

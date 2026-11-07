@@ -69,9 +69,9 @@ func newPalette(r *Runtime) *Palette {
 		"ochazuke.page": {Source: PagesPaletteSource, DefaultVerb: "open", Argument: "id"},
 	}}
 	r.Instance(paletteID, Kind("ochazuke.palette"))
-	register := func(verb, description string, params map[string]Parameter, fn func(Arguments) error) {
+	register := func(verb, description string, params map[string]Parameter, fn func(Arguments) error, traits ...opTrait) {
 		p.actions["ochazuke.palette."+verb] = true
-		r.Register(Operation{Verb: verb, Noun: "ochazuke.palette", Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
+		op := Operation{Verb: verb, Noun: "ochazuke.palette", Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
 			if verb != "open" {
 				p.sync()
 			}
@@ -80,7 +80,9 @@ func newPalette(r *Runtime) *Palette {
 				p.message = err.Error()
 			}
 			return p.state(), err
-		}})
+		}}
+		applyTraits(&op, traits)
+		r.Register(op)
 	}
 	register("open", "Open the command line", map[string]Parameter{"recall": {Type: "integer", Description: "Open on the command that many back in the palette's history, as up would (1 the last; 0 or absent an empty line)"}}, func(a Arguments) error {
 		if err := p.open(); err != nil {
@@ -98,7 +100,7 @@ func newPalette(r *Runtime) *Palette {
 		}
 		return p.setText(StringArg(a, "text", ""))
 	})
-	register("move", "Move the completion highlight; from none, down selects first and up follows chooser.up-from-none", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) })
+	register("move", "Move the completion highlight; from none, down selects first and up follows chooser.up-from-none", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) }, asMotion, asHistory(HistoryAction))
 	register("complete", "Append the highlighted completion (or value, or the only one) as the next word", map[string]Parameter{"value": {Type: "string", Description: "A completion's word; omit for the highlighted one"}}, p.complete)
 	register("run", "Run the line or append the highlighted completion; a line missing an argument opens the args form for it (palette.missing-opens-form), else names its first missing word", nil, func(Arguments) error { return p.run() })
 	register("cancel", "Clear the command line, or close it when it is empty", nil, func(Arguments) error { return p.cancel() })
@@ -107,7 +109,7 @@ func newPalette(r *Runtime) *Palette {
 	// line beneath is an ordinary prompt, so the editor's Readline rows
 	// answer the rest. Printable text has its own row so an application's
 	// any-mode row cannot steal typing.
-	r.Define("ochazuke.palette").Focusable()
+	r.Define("ochazuke.palette").Focusable().Unpersisted()
 	r.loadFrameworkBindings("palette.json")
 	return p
 }

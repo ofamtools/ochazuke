@@ -46,7 +46,7 @@ type MountedNouns struct {
 //     a reference prop pointing at the host name of the noun it names;
 //   - each verb as a proxy (HostMount.Proxy) with the catalog verb's
 //     description, confirm, parameters, positional order, quiet, many,
-//     repeatable, rows, history kind and standard mark
+//     repeatable, motion, typing, staying, rows, history kind and standard mark
 //     (ochazuke.Operation.Standard), so the host's palette shows a
 //     generated verb as it shows its own standard verbs (setting
 //     palette.standard-verbs) and prop-shaped requests (NOUN PROP VALUE)
@@ -95,7 +95,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 			delete(out.Nouns, n.Name)
 			continue
 		}
-		b.About(n.About).EditKey(!n.NoEditKey)
+		mountFlags(b, n)
 		if len(n.Columns) > 0 {
 			b.Columns(n.Columns...)
 		}
@@ -158,6 +158,14 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 		}
 	}
 	return out
+}
+
+// mountFlags sets the catalog noun's about text and flags on its builder.
+func mountFlags(b *ochazuke.NounBuilder, n CatalogNoun) {
+	b.About(n.About).EditKey(!n.NoEditKey)
+	if n.Unpersisted {
+		b.Unpersisted()
+	}
 }
 
 // mountStore gives a proxied noun its store: the standard verbs run here,
@@ -243,6 +251,7 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 	op.Quiet, op.Many, op.Repeatable, op.Standard = v.Quiet, v.Many, v.Repeatable, v.Standard
 	op.ByAssociation = v.ByAssociation
 	op.FocusBound = v.FocusBound
+	op.Motion, op.Typing, op.Staying = v.Motion, v.Typing, v.Staying
 	op.Foreground = v.Foreground
 	op.Slot = v.Slot
 	op.Disabled = v.Disabled

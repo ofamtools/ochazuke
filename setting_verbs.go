@@ -49,6 +49,9 @@ type settingVerb struct {
 	Next        func(one Setting, current any, a Arguments) (any, error)
 	Reset       bool
 	Extra       map[string]Parameter
+	// History is the history kind of a verb that is not the derived one
+	// (set, cycle and reset record changes).
+	History string
 }
 
 // settingVerbs are the setting noun's value verbs, in the order help lists
@@ -57,11 +60,11 @@ type settingVerb struct {
 var settingVerbs = []settingVerb{
 	{Verb: "show", Description: "Show the setting's value on the status line, name=value (a boolean name or noname); verbose adds where it was set", Fits: anySetting,
 		Extra: map[string]Parameter{"verbose": {Type: "boolean", Description: "Add where the value was set (:verbose)"}}},
-	{Verb: "set", Description: "Set the setting to a value, parsed by its type and checked against its allowed values", Arg: "value", ArgHelp: "The value: text, a number, true or false, a duration such as 400ms, or a list as a,b or a JSON array", Fits: tableFits("set"), Next: nextSet},
+	{Verb: "set", Description: "Set the setting to a value, parsed by its type and checked against its allowed values", History: HistoryChange, Arg: "value", ArgHelp: "The value: text, a number, true or false, a duration such as 400ms, or a list as a,b or a JSON array", Fits: tableFits("set"), Next: nextSet},
 	{Verb: "toggle", Description: "Invert an on/off setting", Fits: tableFits("toggle"), Next: nextToggle},
-	{Verb: "cycle", Description: "Step a boolean, an enum or a number to its next or previous value (an enum wraps)", Fits: settingSteps, Next: nextCycle,
+	{Verb: "cycle", History: HistoryChange, Description: "Step a boolean, an enum or a number to its next or previous value (an enum wraps)", Fits: settingSteps, Next: nextCycle,
 		Extra: map[string]Parameter{"step": {Type: "integer", Description: "1 for the next value, -1 for the previous"}}},
-	{Verb: "reset", Description: "Reset the setting to its default", Fits: anySetting, Reset: true, Next: func(one Setting, _ any, _ Arguments) (any, error) { return one.Default, nil }},
+	{Verb: "reset", History: HistoryChange, Description: "Reset the setting to its default", Fits: anySetting, Reset: true, Next: func(one Setting, _ any, _ Arguments) (any, error) { return one.Default, nil }},
 	{Verb: "increase", Description: "Add an amount to a number or duration setting", Arg: "by", ArgHelp: "The amount, of the setting's type (5, 0.5, 100ms)", Fits: tableFits("increase"), Next: arithmetic("increase")},
 	{Verb: "decrease", Description: "Subtract an amount from a number or duration setting", Arg: "by", ArgHelp: "The amount, of the setting's type (5, 0.5, 100ms)", Fits: tableFits("decrease"), Next: arithmetic("decrease")},
 	{Verb: "multiply", Description: "Multiply a number setting by an amount", Arg: "by", ArgHelp: "The factor, of the setting's type (2, 0.5)", Fits: tableFits("multiply"), Next: arithmetic("multiply")},
@@ -407,6 +410,7 @@ func registerSettingVerbs(r *Runtime) {
 			// the plural settings noun's set did before the merge).
 			op.PersistArgs = true
 		}
+		op.HistoryKind = v.History
 		if v.Next != nil {
 			op.Checks = []VerbCheck{cliWriteCheck(settingWritePrompt(v))}
 		} else {

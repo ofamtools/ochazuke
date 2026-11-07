@@ -332,8 +332,8 @@ type Operation struct {
 	// Motion marks movement (list.move, focus.next, surface.scroll,
 	// page.next): the footer's hint line leaves its rows out, since motions
 	// are standard and the footer is for the verbs the focus offers; ?
-	// help and bindings list keep them. Set by NounBuilder.Motion; the
-	// framework's own motions are marked as they register (motionOps).
+	// help and bindings list keep them. Set by NounBuilder.Motion or at
+	// registration.
 	Motion bool `json:"motion,omitempty"`
 	// Requires names the guard that must hold at the focus for the verb to
 	// have what it acts on (the input verbs: "input", an input focused).
@@ -350,9 +350,13 @@ type Operation struct {
 	// (input.insert), keys forwarded to a pane (terminal.send,
 	// terminal.paste). The key echo (keys.echo) collapses a run of them
 	// into the text typed, and hides the ones a passthrough mode forwards
-	// unless keys.echo-terminal is on. The framework's own are marked as
-	// they register (typingOps).
+	// unless keys.echo-terminal is on. Set by NounBuilder.Typing or at
+	// registration.
 	Typing bool `json:"typing,omitempty"`
+	// Staying marks an operation that manages the pending mode itself, or
+	// re-dispatches the key inside it (recording): a row running it leaves
+	// the one-shot pending mode in place (NounBuilder.Staying).
+	Staying bool `json:"staying,omitempty"`
 	// HistoryKind is the kind of entry the operation records
 	// (HistoryAction, HistoryChange, HistoryFetch); empty derives it
 	// (HistoryKindOf). Set it to HistoryFetch on a verb that only asks for
@@ -758,61 +762,6 @@ func (r *Runtime) SetMode(mode string) error {
 	return nil
 }
 
-// motionOps are the framework's own motions (Operation.Motion): moving a
-// selection, a cursor, the focus between stops, the page or the viewport.
-var motionOps = map[string]bool{
-	"ochazuke.list.move": true, "ochazuke.focus.next": true, "ochazuke.focus.previous": true,
-	"ochazuke.surface.scroll": true, "ochazuke.page.next": true, "ochazuke.page.previous": true,
-	"ochazuke.input.move": true, "ochazuke.picker.move": true, "ochazuke.palette.move": true,
-	"ochazuke.yank-history.move": true, "ochazuke.grid.move": true, "ochazuke.grid.goto": true,
-	"ochazuke.detail.scroll": true, "ochazuke.list.goto": true, "ochazuke.list.scroll": true, "ochazuke.list.scroll-columns": true,
-	"ochazuke.list.column": true, "ochazuke.list.choose-column": true,
-}
-
-// focusBoundOps change a component's editing/selection mode rather than
-// acting independently on a thing. Unlike Motion they still appear in hints.
-var focusBoundOps = map[string]bool{
-	"ochazuke.mode.enter": true, "ochazuke.mode.switch": true,
-	"ochazuke.list.visual": true, "ochazuke.list.end-visual": true,
-	"ochazuke.list.filter-open": true,
-}
-
-// typingOps are the framework's operations that pass their key on as
-// content (Operation.Typing).
-var typingOps = map[string]bool{
-	"ochazuke.input.insert": true, "ochazuke.terminal.send": true, "ochazuke.terminal.paste": true,
-}
-
-// frameworkHistoryKinds are the framework's operations whose history kind
-// is not the derived one (Operation.HistoryKindOf): the reads and reloads
-// are fetches, the interaction verbs that change a setting, a register, a
-// record or a pane are changes, and the application verbs that only close
-// or fold are actions.
-var frameworkHistoryKinds = map[string]string{
-	"ochazuke.actions.aliases": HistoryFetch, "ochazuke.actions.check": HistoryFetch, "ochazuke.actions.path": HistoryFetch, "ochazuke.actions.reload": HistoryFetch,
-	"ochazuke.bindings.check": HistoryFetch,
-	"ochazuke.bindings.path":  HistoryFetch, "ochazuke.bindings.reload": HistoryFetch, "ochazuke.bindings.stops": HistoryFetch,
-	"ochazuke.config.path": HistoryFetch, "ochazuke.config.reload": HistoryFetch, "ochazuke.history.path": HistoryFetch,
-	"ochazuke.instances.query": HistoryFetch,
-
-	"ochazuke.setting.names": HistoryFetch, "ochazuke.setting.path": HistoryFetch, "ochazuke.setting.reload": HistoryFetch,
-	"ochazuke.themes.path":   HistoryFetch,
-	"ochazuke.themes.reload": HistoryFetch,
-
-	"ochazuke.list.yank": HistoryChange, "ochazuke.list.resize-column": HistoryChange, "ochazuke.list.reset-columns": HistoryChange,
-
-	"ochazuke.bindings.load": HistoryChange, "ochazuke.confirm.require": HistoryChange,
-	"ochazuke.config.export": HistoryChange, "ochazuke.form-option.pick": HistoryChange, "ochazuke.form.redo": HistoryChange,
-	"ochazuke.form.suggest": HistoryChange, "ochazuke.form.undo": HistoryChange, "ochazuke.input.redo": HistoryChange,
-	"ochazuke.input.undo": HistoryChange, "ochazuke.input.yank": HistoryChange, "ochazuke.mode.register": HistoryChange,
-	"ochazuke.setting-value.commit": HistoryChange, "ochazuke.setting.cycle": HistoryChange,
-	"ochazuke.setting.edit": HistoryChange, "ochazuke.setting.reset": HistoryChange,
-	"ochazuke.setting.set": HistoryChange, "ochazuke.terminal.paste": HistoryChange, "ochazuke.terminal.send": HistoryChange,
-	"ochazuke.yank-history.select": HistoryChange,
-
-	"ochazuke.chooser.cancel": HistoryAction, "ochazuke.outline.fold": HistoryAction,
-}
-
 // Register adds an operation. An operation with App set is of kind
 // application and its Run is the framework's dispatcher for it. Its noun
 // may be dotted (ai.skills) and so may its verb (base.add): the key is a
@@ -837,18 +786,6 @@ func (r *Runtime) Register(o Operation) {
 		o.Noun = frameworkName(o.Noun)
 	} else {
 		o.Noun = r.CanonicalNoun(o.Noun) // an alias extends the framework's noun (Define)
-	}
-	if motionOps[o.Key()] {
-		o.Motion = true
-	}
-	if focusBoundOps[o.Key()] {
-		o.FocusBound = true
-	}
-	if typingOps[o.Key()] {
-		o.Typing = true
-	}
-	if kind := frameworkHistoryKinds[o.Key()]; kind != "" && o.HistoryKind == "" {
-		o.HistoryKind = kind
 	}
 	switch o.HistoryKind {
 	case "", HistoryAction, HistoryChange, HistoryFetch:
@@ -1422,7 +1359,7 @@ func registerCore(r *Runtime) {
 		data, err := FormatBindings(r.defaultBindingsDoc())
 		return Verbatim(data), err
 	}})
-	r.Register(Operation{Verb: "stops", Noun: "ochazuke.bindings", Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "stops", Noun: "ochazuke.bindings", HistoryKind: HistoryFetch, Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.StopBindings(), nil
 	}})
 	r.Register(Operation{Verb: "focus", Noun: "ochazuke.input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -1433,7 +1370,7 @@ func registerCore(r *Runtime) {
 		err := r.SetFocus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "switch", Noun: "ochazuke.mode", Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "switch", Noun: "ochazuke.mode", FocusBound: true, HistoryKind: HistoryAction, Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := r.resolveDeclared(StringArg(a, "mode", ""))
 		if !r.Modes[mode] {
 			return nil, fmt.Errorf("unknown mode %q", mode)

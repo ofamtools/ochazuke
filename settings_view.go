@@ -128,9 +128,9 @@ func (s Setting) SectionName() string {
 // settingPageVerbs are the Settings page's own verbs.
 func settingPageVerbs() []verbSpec {
 	return []verbSpec{
-		{"open", "ochazuke.setting", "Open the Settings page (or switch to it): every change is saved as it is made", "setting[]", nil, settingsOpen, "", ""},
-		{"close", "ochazuke.setting", "Leave the Settings page for the page it was opened from", "context", nil, settingsClose, "", ""},
-		{"undo", "ochazuke.setting", "Take back the last change made on the Settings page", "setting", nil, settingsUndo, "", ""},
+		{"open", "ochazuke.setting", "Open the Settings page (or switch to it): every change is saved as it is made", "setting[]", nil, settingsOpen, "", "", Operation{}},
+		{"close", "ochazuke.setting", "Leave the Settings page for the page it was opened from", "context", nil, settingsClose, "", "", Operation{}},
+		{"undo", "ochazuke.setting", "Take back the last change made on the Settings page", "setting", nil, settingsUndo, "", "", Operation{}},
 	}
 }
 
@@ -156,23 +156,23 @@ func settingGuards() []guardRow {
 // order registerSettingsEditor declares them.
 func settingAddVerbs() []nounVerbRow {
 	return []nounVerbRow{
-		{"ochazuke.setting", "add", "Add an item at the end of a list setting", settingAdd},
+		{"ochazuke.setting", "add", "Add an item at the end of a list setting", settingAdd, nil},
 	}
 }
 
 func settingItemVerbs() []nounVerbRow {
 	return []nounVerbRow{
-		{settingItemNoun, "edit", "Edit the list item", settingItemEdit},
-		{settingItemNoun, "add", "Add an item to the list after this one", settingItemAdd},
-		{settingItemNoun, "delete", "Delete the list item", settingItemDelete},
-		{settingItemNoun, "reset", "Reset the whole list to its default", settingItemReset},
+		{settingItemNoun, "edit", "Edit the list item", settingItemEdit, nil},
+		{settingItemNoun, "add", "Add an item to the list after this one", settingItemAdd, nil},
+		{settingItemNoun, "delete", "Delete the list item", settingItemDelete, nil},
+		{settingItemNoun, "reset", "Reset the whole list to its default", settingItemReset, nil},
 	}
 }
 
 func settingPromptVerbs() []nounVerbRow {
 	return []nounVerbRow{
-		{"ochazuke.setting-value", "commit", "Set the setting to the typed value and close the prompt", settingPromptCommit},
-		{"ochazuke.setting-value", "cancel", "Close the prompt and keep the value", settingPromptCancel},
+		{"ochazuke.setting-value", "commit", "Set the setting to the typed value and close the prompt", settingPromptCommit, []opTrait{asHistory(HistoryChange)}},
+		{"ochazuke.setting-value", "cancel", "Close the prompt and keep the value", settingPromptCancel, nil},
 	}
 }
 

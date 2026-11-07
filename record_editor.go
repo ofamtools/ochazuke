@@ -1902,12 +1902,12 @@ func registerForms(r *Runtime) {
 	insert := map[string]Parameter{"insert": {Type: "boolean", Description: "keep typing when the field is a text field"}}
 	r.Define(FormNoun).
 		Verb("leave", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.leave() }), "Leave the editor; every change is already written").
-		Verb("undo", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.history(false) }), "Undo the record's last change; the undo is written like any change").
-		Verb("redo", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.history(true) }), "Redo the record's last undone change").
+		Verb("undo", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.history(false) }), "Undo the record's last change; the undo is written like any change").History(HistoryChange).
+		Verb("redo", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.history(true) }), "Redo the record's last undone change").History(HistoryChange).
 		Verb("next", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.move(1, boolArg(a, "insert")) }), "Focus the next field; the field left is written").Motion().
 		Verb("previous", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.move(-1, boolArg(a, "insert")) }), "Focus the previous field; the field left is written").Motion().
 		Verb("choose", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.choose(e.fieldOn(focusOf(c))) }), "Choose the field's value from its choices").
-		Verb("suggest", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.suggest(e.fieldOn(focusOf(c))) }), "Fill the field from its choices, typing to filter; a free field takes what is typed too").
+		Verb("suggest", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.suggest(e.fieldOn(focusOf(c))) }), "Fill the field from its choices, typing to filter; a free field takes what is typed too").History(HistoryChange).
 		Verb("run", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.run() }), "Run the form once every field is valid: the values go to its action and the form closes").When(FormRunnableGuard).
 		Verb("next-missing", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.nextMissing(boolArg(a, "insert")) }), "Focus the field that still needs a value (this one, else the next); a field with choices opens its chooser").When(FormMissingGuard)
 	r.DefineGuard(FormMissingGuard, func(r *Runtime, ev KeyEvent) bool {
@@ -1960,7 +1960,7 @@ func registerForms(r *Runtime) {
 			}
 			v, _ := inst.Data.(string)
 			return v, chooser.editor.pick(chooser.field, v)
-		}, "Set the field to this choice; written at once")
+		}, "Set the field to this choice; written at once").History(HistoryChange)
 	registerStandardEdit(r)
 }
 

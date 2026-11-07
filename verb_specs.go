@@ -12,12 +12,18 @@ type verbSpec struct {
 	// requires is the operation's Requires: the guard that must hold at
 	// the focus for the verb to have what it acts on; "" for none.
 	requires string
+	// traits carries the operation's classification fields (Motion,
+	// FocusBound, Typing, Staying, Repeatable, HistoryKind); only those
+	// are read, the row's other columns fill the rest.
+	traits Operation
 }
 
 // registerVerbSpecs registers every row as an operation.
 func (r *Runtime) registerVerbSpecs(specs []verbSpec) {
 	for _, s := range specs {
-		r.Register(Operation{Verb: s.verb, Noun: s.noun, Description: s.description, Parameters: s.params, Result: s.result, Requires: s.requires, Run: s.run})
+		op := s.traits
+		op.Verb, op.Noun, op.Description, op.Parameters, op.Result, op.Requires, op.Run = s.verb, s.noun, s.description, s.params, s.result, s.requires, s.run
+		r.Register(op)
 		if s.guard == "" {
 			continue
 		}
@@ -34,12 +40,17 @@ func (r *Runtime) registerVerbSpecs(specs []verbSpec) {
 type nounVerbRow struct {
 	noun, verb, description string
 	run                     Handler
+	// traits classify the verb (asMotion, asHistory, ...); nil for none.
+	traits []opTrait
 }
 
 // defineNounVerbs declares every row on its noun, in order.
 func (r *Runtime) defineNounVerbs(rows []nounVerbRow) {
 	for _, row := range rows {
-		r.Define(row.noun).Verb(row.verb, row.run, row.description)
+		b := r.Define(row.noun).Verb(row.verb, row.run, row.description)
+		op := r.Operations[b.last]
+		applyTraits(&op, row.traits)
+		r.Operations[b.last] = op
 	}
 }
 
@@ -53,5 +64,29 @@ type guardRow struct {
 func (r *Runtime) defineGuards(rows []guardRow) {
 	for _, g := range rows {
 		r.DefineGuard(g.name, g.test)
+	}
+}
+
+// opTrait sets classification fields on an operation while it is
+// declared (Motion, Typing, Staying, Repeatable, FocusBound, HistoryKind);
+// a registration helper takes them after its fixed arguments.
+type opTrait func(*Operation)
+
+// The classification traits a registration helper takes.
+var (
+	asMotion     opTrait = func(o *Operation) { o.Motion = true }
+	asFocusBound opTrait = func(o *Operation) { o.FocusBound = true }
+	asTyping     opTrait = func(o *Operation) { o.Typing = true }
+	asStaying    opTrait = func(o *Operation) { o.Staying = true }
+	asRepeatable opTrait = func(o *Operation) { o.Repeatable = true }
+)
+
+// asHistory sets the kind of history entry the operation records.
+func asHistory(kind string) opTrait { return func(o *Operation) { o.HistoryKind = kind } }
+
+// applyTraits sets each trait on o.
+func applyTraits(o *Operation, traits []opTrait) {
+	for _, t := range traits {
+		t(o)
 	}
 }

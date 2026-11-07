@@ -673,17 +673,17 @@ func registerActions(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "check", Noun: "ochazuke.actions", Description: "Report the entries of actions.json a load would skip, alias rows that clash with an action or another alias included, without installing anything", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "check", Noun: "ochazuke.actions", HistoryKind: HistoryFetch, Description: "Report the entries of actions.json a load would skip, alias rows that clash with an action or another alias included, without installing anything", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := append(r.CheckUserActions(), r.StandardShadows()...)
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "aliases", Noun: "ochazuke.actions", Description: "List every action alias: the framework's old names, the application's aliases and the alias rows of actions.json, each with the action it runs", Result: "alias[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "aliases", Noun: "ochazuke.actions", HistoryKind: HistoryFetch, Description: "List every action alias: the framework's old names, the application's aliases and the alias rows of actions.json, each with the action it runs", Result: "alias[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.ActionAliases(), nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "ochazuke.actions", Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "path", Noun: "ochazuke.actions", HistoryKind: HistoryFetch, Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(ActionsFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

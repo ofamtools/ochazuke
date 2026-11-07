@@ -139,7 +139,7 @@ func newAppearance(r *Runtime) *Appearance {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "ochazuke.themes", Description: "Print the user colour schemes file: themes.json beside settings.json", Result: "path", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Verb: "path", Noun: "ochazuke.themes", HistoryKind: HistoryFetch, Description: "Print the user colour schemes file: themes.json beside settings.json", Result: "path", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		path := r.Config().Path(ThemesFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

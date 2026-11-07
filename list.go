@@ -925,8 +925,9 @@ func registerLists(r *Runtime) {
 		verb, description string
 		parameters        map[string]Parameter
 		run               func(*List, Context, Arguments) (any, error)
+		traits            []opTrait
 	}{
-		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.list", Free: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }},
+		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.list", Free: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }, nil},
 		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}, "clamp": {Type: "boolean", Description: "Stop at the list's edges instead of spilling (the filter line's moves)"}}, func(l *List, _ Context, a Arguments) (any, error) {
 			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
 			if clamp, _ := a["clamp"].(bool); !clamp && l.motion != nil && !l.visual {
@@ -943,28 +944,30 @@ func registerLists(r *Runtime) {
 				l.Move(delta)
 			}
 			return l.state(), nil
-		}},
+		}, []opTrait{asMotion, asHistory(HistoryAction)}},
 		{"select", "Select a list item by stable ID without stealing focus", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "item": {Type: "string", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
 			return l.state(), l.Select(StringArg(a, "item", ""))
-		}},
+		}, nil},
 		{"mark", "Toggle the mark on a row (the selected row by default) for fan-out verbs", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "item": {Plumbing: true, Type: "string"}}, func(l *List, c Context, a Arguments) (any, error) {
 			id, err := rowOf(l, c, a)
 			if err != nil {
 				return nil, err
 			}
 			return l.state(), l.ToggleMark(id)
-		}},
+		}, nil},
 		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), the rows its subjects: a verb that takes many runs once for all of them, any other once per row; rows whose noun lacks the verb are skipped and reported; a verb with a confirm asks once for all the rows; available when a row it would act on has the verb and the verb is available there (read while a visual selection still holds); over a visual selection (V) the selection then ends or stays as visual.after-action says", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "verb": {Type: "string", Required: true, Forwards: true}, "args": {Plumbing: true, Type: "object", Description: "Arguments every row's request carries"}, "confirmed": {Plumbing: true, Type: "boolean", Description: "The rows' confirm was answered (the confirm modal sets it)"}}, func(l *List, c Context, a Arguments) (any, error) {
 			return l.apply(c, a)
-		}},
+		}, nil},
 	} {
-		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		op := Operation{Verb: spec.verb, Noun: "ochazuke.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err
 			}
 			return spec.run(list, c, args)
-		}})
+		}}
+		applyTraits(&op, spec.traits)
+		r.Register(op)
 	}
 	if r.Nouns["ochazuke.list"].Guards == nil {
 		r.Nouns["ochazuke.list"].Guards = map[string]string{}

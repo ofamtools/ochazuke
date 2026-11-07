@@ -147,7 +147,7 @@ func registerListMotions(r *Runtime) {
 			l.page(rows)
 		}},
 	} {
-		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.list", Motion: true, HistoryKind: HistoryAction, Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err

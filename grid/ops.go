@@ -82,12 +82,12 @@ func register(r *ochazuke.Runtime) {
 		"motion": {Type: "string", Required: true}, "steps": {Type: "integer"}, "line": {Type: "integer"},
 	}, func(g *Grid, _ ochazuke.Context, a ochazuke.Arguments) error {
 		return g.Move(ochazuke.StringArg(a, "motion", ""), ochazuke.IntArg(a, "steps", 1), ochazuke.IntArg(a, "line", 0))
-	})
+	}).Motion()
 	op("goto", "grid", "Move the cursor to a cell by row and column index", map[string]ochazuke.Parameter{
 		"row": {Type: "integer", Required: true}, "col": {Type: "integer", Required: true},
 	}, func(g *Grid, _ ochazuke.Context, a ochazuke.Arguments) error {
 		return g.Goto(Ref{Row: ochazuke.IntArg(a, "row", 0), Col: ochazuke.IntArg(a, "col", 0)})
-	})
+	}).Motion()
 	op("resize-column", "grid", "Widen (delta 1) or narrow (-1) the cursor's column by ColumnWidthStep cells; remembered under the grid's id", map[string]ochazuke.Parameter{
 		"delta": {Type: "integer", Required: true}, "steps": {Type: "integer"},
 	}, func(g *Grid, _ ochazuke.Context, a ochazuke.Arguments) error {

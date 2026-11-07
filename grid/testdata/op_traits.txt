@@ -1,0 +1,8 @@
+ochazuke.grid.goto motion=true focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.grid.move motion=true focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.grid.reset-columns motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.grid.resize-column motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.selection.all motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.selection.mark motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.selection.swap motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.selection.unmark motion=false focusBound=false typing=false kind=action repeatable=false staying=false

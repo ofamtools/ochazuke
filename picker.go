@@ -91,15 +91,17 @@ func newPicker(r *Runtime) *Picker {
 	if err := r.AddInput(p.input, Parent(pickerID), Kind("ochazuke.prompt")); err != nil {
 		panic(err)
 	}
-	register := func(verb, description string, params map[string]Parameter, fn func(Context, Arguments) (any, error)) {
-		r.Register(Operation{Verb: verb, Noun: "ochazuke.picker", Description: description, Parameters: params, Result: "picker state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+	register := func(verb, description string, params map[string]Parameter, fn func(Context, Arguments) (any, error), traits ...opTrait) {
+		op := Operation{Verb: verb, Noun: "ochazuke.picker", Description: description, Parameters: params, Result: "picker state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			result, err := fn(c, args)
 			if err != nil {
 				p.Error = err.Error()
 			}
 			p.sync()
 			return result, err
-		}})
+		}}
+		applyTraits(&op, traits)
+		r.Register(op)
 	}
 	register("open", "Open the shared fuzzy path picker in insert mode", map[string]Parameter{
 		"filter": {Type: "string", Description: "any, file or dir; defaults to the originating path field's filter"},
@@ -111,7 +113,7 @@ func newPicker(r *Runtime) *Picker {
 		}
 		p.Selected = min(max(0, p.Selected+IntArg(args, "delta", 0)), max(0, len(p.Entries)-1))
 		return p.state(), nil
-	})
+	}, asMotion, asHistory(HistoryAction))
 	register("parent", "Browse the parent directory", nil, func(_ Context, _ Arguments) (any, error) {
 		if err := p.require(); err != nil {
 			return nil, err

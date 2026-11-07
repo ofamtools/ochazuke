@@ -296,21 +296,6 @@ func historyKinds(arg string) ([]string, error) {
 	return kinds, nil
 }
 
-// repeatableOperations are the framework's repeatable changes: the
-// editor's text edits. Motions, focus, pages, modals, lists and the history
-// itself are not.
-var repeatableOperations = []string{"ochazuke.input.insert", "ochazuke.input.erase", "ochazuke.input.kill", "ochazuke.input.paste", "ochazuke.input.operator", "ochazuke.input.replace"}
-
-// markRepeatable flags registered framework operations as repeatable.
-func markRepeatable(r *Runtime, keys ...string) {
-	for _, key := range keys {
-		if op, ok := r.Operations[key]; ok {
-			op.Repeatable = true
-			r.Operations[key] = op
-		}
-	}
-}
-
 // errNothingToRepeat is dot-repeat's answer when no recorded change can
 // run at the focus: told per the repeat.empty setting, never an error.
 var errNothingToRepeat = errors.New("nothing to repeat")
@@ -390,7 +375,6 @@ func (r *Runtime) tellNothingToRepeat() {
 }
 
 func registerHistory(r *Runtime) {
-	markRepeatable(r, repeatableOperations...)
 	r.Register(Operation{Verb: "repeat", Noun: "ochazuke.history", Description: "Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps replaces its count", Parameters: map[string]Parameter{"steps": {Type: "integer", Description: "Count replacing the recorded one; 0 keeps it"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		q, err := r.repeatRequest(focusOf(c), IntArg(a, "steps", 0))
 		if errors.Is(err, errNothingToRepeat) {
@@ -438,7 +422,7 @@ func registerHistory(r *Runtime) {
 			}
 			return nil, fmt.Errorf("no history entry %q", key)
 		}})
-	r.Register(Operation{Verb: "path", Noun: "ochazuke.history", Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "path", Noun: "ochazuke.history", HistoryKind: HistoryFetch, Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().HistoryPath()
 		if path == "" {
 			return nil, errors.New("this application does not keep its history")

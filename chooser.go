@@ -260,7 +260,7 @@ func registerChooser(r *Runtime) {
 				c.move(IntArg(ctx.Args, "delta", 0))
 			}
 			return Done(c.state())
-		}), "Move the highlight; from none, down selects first and up follows chooser.up-from-none").Motion().
+		}), "Move the highlight; from none, down selects first and up follows chooser.up-from-none").Motion().Params(map[string]Parameter{"delta": {Type: "integer"}, "to": {Type: "string", Enum: []string{"first", "last"}}}).
 		Verb("clear-props", verb(func(c *Chooser, _ Ctx) Result {
 			if err := c.filters.SetPropFilters(nil); err != nil {
 				return Failed(err)
@@ -278,10 +278,7 @@ func registerChooser(r *Runtime) {
 				return Failed(err)
 			}
 			return Done(nil)
-		}), "Close without choosing")
-	move := r.Operations["ochazuke.chooser.move"]
-	move.Parameters = map[string]Parameter{"delta": {Type: "integer"}, "to": {Type: "string", Enum: []string{"first", "last"}}}
-	r.Operations["ochazuke.chooser.move"] = move
+		}), "Close without choosing").History(HistoryAction)
 	registerChooserSources(r)
 }
 

@@ -473,29 +473,31 @@ func (in *Input) typeOverSnapshot() any {
 }
 
 func RegisterInputOperations(r *Runtime) {
+	r.Define("ochazuke.input").Unpersisted()
 	r.Modes["normal"] = true
 	r.Modes["insert"] = true
 	for _, spec := range []struct {
 		verb, desc string
 		params     map[string]Parameter
 		fn         func(*Input, Arguments) error
-		edit       bool // changes the text: a no-op at a read-only input
+		edit       bool      // changes the text: a no-op at a read-only input
+		traits     Operation // the operation's classification: Motion, Typing, Repeatable, HistoryKind
 	}{
 		{"insert", "Insert literal text at the rune cursor; it replaces an open select range", map[string]Parameter{"text": {Type: "string", Required: true}}, func(in *Input, a Arguments) error {
 			in.resetKeys()
 			start, end := in.typeOverRange()
 			return in.Replace(start, end, StringArg(a, "text", ""))
-		}, true},
+		}, true, Operation{Typing: true, Repeatable: true, HistoryKind: HistoryChange}},
 		{"replace", "Replace a half-open rune range", map[string]Parameter{"start": {Type: "integer", Required: true}, "end": {Type: "integer", Required: true}, "text": {Type: "string", Required: true}}, func(in *Input, a Arguments) error {
 			in.resetKeys()
 			return in.Replace(IntArg(a, "start", 0), IntArg(a, "end", 0), StringArg(a, "text", ""))
-		}, true},
-		{"undo", "Undo changes in this input", map[string]Parameter{"steps": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Undo(IntArg(a, "steps", 1)) }, true},
-		{"redo", "Redo changes; branch is a zero-based child index for the first step", map[string]Parameter{"steps": {Type: "integer"}, "branch": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Redo(IntArg(a, "steps", 1), IntArg(a, "branch", -1)) }, true},
+		}, true, Operation{Repeatable: true, HistoryKind: HistoryChange}},
+		{"undo", "Undo changes in this input", map[string]Parameter{"steps": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Undo(IntArg(a, "steps", 1)) }, true, Operation{HistoryKind: HistoryChange}},
+		{"redo", "Redo changes; branch is a zero-based child index for the first step", map[string]Parameter{"steps": {Type: "integer"}, "branch": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Redo(IntArg(a, "steps", 1), IntArg(a, "branch", -1)) }, true, Operation{HistoryKind: HistoryChange}},
 		{"move", "Move by left/right/up/down, Vim word-forward/backward/end, Readline word-next/previous, line-start/end, first-line/last-line", map[string]Parameter{"motion": {Type: "string", Required: true}, "steps": {Type: "integer"}, "line": {Type: "integer"}}, func(in *Input, a Arguments) error {
 			return in.move(StringArg(a, "motion", ""), IntArg(a, "steps", 1), IntArg(a, "line", 0))
-		}, false},
-		{"begin", "Enter insert mode at insert/append/first/end/below/above", map[string]Parameter{"position": {Type: "string"}}, func(in *Input, a Arguments) error { return in.begin(StringArg(a, "position", "insert")) }, true},
+		}, false, Operation{Motion: true, HistoryKind: HistoryAction}},
+		{"begin", "Enter insert mode at insert/append/first/end/below/above", map[string]Parameter{"position": {Type: "string"}}, func(in *Input, a Arguments) error { return in.begin(StringArg(a, "position", "insert")) }, true, Operation{}},
 		{"erase", "Erase forward/backward runes without crossing a normal-mode line; deletes an open select range", map[string]Parameter{"direction": {Type: "string"}, "steps": {Type: "integer"}}, func(in *Input, a Arguments) error {
 			direction, steps := StringArg(a, "direction", "forward"), IntArg(a, "steps", 1)
 			if lo, hi, ok := in.SelectedText(); ok {
@@ -524,10 +526,12 @@ func RegisterInputOperations(r *Runtime) {
 				return r.storeYank(Yank{Text: killed, Shape: "char"}, "", true)
 			}
 			return nil
-		}, true},
+		}, true, Operation{Repeatable: true, HistoryKind: HistoryChange}},
 	} {
 		fn, edit := spec.fn, spec.edit
-		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.input", Description: spec.desc, Parameters: spec.params, Result: "input state", Requires: InputFocusGuard, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		op := spec.traits
+		op.Verb, op.Noun, op.Description, op.Parameters, op.Result, op.Requires = spec.verb, "ochazuke.input", spec.desc, spec.params, "input state", InputFocusGuard
+		op.Run = func(r *Runtime, c Context, a Arguments) (any, error) {
 			in := r.Input(c.InputID)
 			if in == nil {
 				return nil, errors.New("no focused input")
@@ -540,9 +544,10 @@ func RegisterInputOperations(r *Runtime) {
 				return nil, err
 			}
 			return in.Snapshot(), nil
-		}})
+		}
+		r.Register(op)
 	}
-	r.Register(Operation{Verb: "cancel", Noun: "ochazuke.input", Description: "Cancel the pending count, operator, prefix or register of the focused instance; a visual selection returns to normal", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "cancel", Noun: "ochazuke.input", Staying: true, HistoryKind: HistoryAction, Description: "Cancel the pending count, operator, prefix or register of the focused instance; a visual selection returns to normal", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		r.Registers().Active = ""
 		if in := r.Input(c.InputID); in != nil {
 			if in.shape() != "" {

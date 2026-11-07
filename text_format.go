@@ -120,11 +120,5 @@ func (b *NounBuilder) PreformattedResult() *NounBuilder {
 
 // result sets the last declared verb's Operation.Result.
 func (b *NounBuilder) result(name, result string) *NounBuilder {
-	if b.last == "" {
-		panic(name + " must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.Result = result
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp(name, func(o *Operation) { o.Result = result })
 }

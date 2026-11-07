@@ -865,11 +865,11 @@ func (r *Runtime) JumpFocus(steps int, scope string) error {
 
 func registerFocus(r *Runtime) {
 	jump := map[string]Parameter{"steps": {Type: "integer", Description: "How many stops or regions to move (the count; default 1)"}, "scope": {Type: "string", Description: "stop (default): component to component; region: panel to panel"}}
-	r.Register(Operation{Verb: "next", Noun: "ochazuke.focus", Description: "Move the focus to the next focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "next", Noun: "ochazuke.focus", Motion: true, HistoryKind: HistoryAction, Description: "Move the focus to the next focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.JumpFocus(max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "previous", Noun: "ochazuke.focus", Description: "Move the focus to the previous focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "previous", Noun: "ochazuke.focus", Motion: true, HistoryKind: HistoryAction, Description: "Move the focus to the previous focus stop (or region) in drawing order, wrapping, landing on its remembered child", Parameters: jump, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.JumpFocus(-max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
 		return r.Context(), err
 	}})

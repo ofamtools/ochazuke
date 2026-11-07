@@ -1705,7 +1705,7 @@ func registerTrees(r *Runtime) {
 			}
 			t.setCollapsed(id, !t.folded(id))
 			return t.refresh(id)
-		}), "Expand or collapse the node").
+		}), "Expand or collapse the node").History(HistoryAction).
 		Verb("zoom-in", on(func(t *Tree, c Ctx) error { return t.zoomIn(c.Context) }), "Zoom on the node: only its subtree is drawn, its ancestors become the breadcrumb (tree.zoom.root: the node ends the breadcrumb, or stays as the top row); view state, never undone").When("tree-zoom").
 		Verb("zoom-out", on(func(t *Tree, c Ctx) error { return t.ZoomOut() }), "Step the zoom out one level, onto the zoomed node's parent").When("tree-zoom").
 		Verb("zoom-reset", on(func(t *Tree, c Ctx) error { return t.Zoom("") }), "Show every level again").When("tree-zoom").

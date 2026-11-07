@@ -471,11 +471,11 @@ func registerPages(r *Runtime) {
 		}
 		return chooser.state(), nil
 	}})
-	r.Register(Operation{Verb: "next", Noun: "ochazuke.page", Description: "Open the next page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "next", Noun: "ochazuke.page", Motion: true, HistoryKind: HistoryAction, Description: "Open the next page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(1)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "previous", Noun: "ochazuke.page", Description: "Open the previous page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "previous", Noun: "ochazuke.page", Motion: true, HistoryKind: HistoryAction, Description: "Open the previous page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(-1)
 		return r.Context(), err
 	}})

@@ -405,11 +405,12 @@ func registerListFilter(r *Runtime) {
 		verb, description string
 		parameters        map[string]Parameter
 		run               func(*List, Arguments) error
+		traits            []opTrait
 	}{
 		{"filter", "Filter the rows to those whose label or cells match query in the list's match mode (search.match; substring: every word) and case as search.case says; an empty query shows every row", with(map[string]Parameter{"query": {Type: "string", Required: true, Description: "The words every shown row holds; empty clears the filter"}}), func(l *List, a Arguments) error {
 			l.SetFilter(StringArg(a, "query", ""))
 			return nil
-		}},
+		}, nil},
 		{"filter-open", "Open the list's filter line and type its query (" + ListFilterMode + " mode); a kept filter is edited", id, func(l *List, _ Arguments) error {
 			if !l.Focused() {
 				if err := l.Focus(); err != nil {
@@ -421,33 +422,33 @@ func registerListFilter(r *Runtime) {
 			selected, _ := l.Selected()
 			l.back = selected.ID
 			return r.SetMode(ListFilterMode)
-		}},
+		}, []opTrait{asFocusBound, asHistory(HistoryAction)}},
 		{"filter-type", "Type text at the end of the filter query", with(map[string]Parameter{"text": {Type: "string", Required: true}}), func(l *List, a Arguments) error {
 			l.SetFilter(l.vs.Text + StringArg(a, "text", ""))
 			return nil
-		}},
+		}, nil},
 		{"filter-erase", "Erase the filter query's last character", id, func(l *List, _ Arguments) error {
 			if l.vs.Text != "" {
 				_, size := utf8.DecodeLastRuneInString(l.vs.Text)
 				l.SetFilter(l.vs.Text[:len(l.vs.Text)-size])
 			}
 			return nil
-		}},
+		}, nil},
 		{"filter-keep", "Close the filter line keeping the filter (normal mode; / edits it again)", id, func(l *List, _ Arguments) error {
 			l.back = ""
 			leave()
 			return nil
-		}},
+		}, nil},
 		{"filter-clear", "Clear the filter, put the selection back where it was when the filter line opened, and close the line", id, func(l *List, _ Arguments) error {
 			unfilter(l, l.back)
 			return nil
-		}},
+		}, nil},
 		{"filter-choose", "Choose the selected match: clear the filter keeping the selection on its row, and close the line (enter on a ClearFilterOnEnter list)", id, func(l *List, _ Arguments) error {
 			unfilter(l, "")
 			return nil
-		}},
+		}, nil},
 	} {
-		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		op := Operation{Verb: spec.verb, Noun: "ochazuke.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err
@@ -456,7 +457,9 @@ func registerListFilter(r *Runtime) {
 				return nil, err
 			}
 			return list.state(), nil
-		}})
+		}}
+		applyTraits(&op, spec.traits)
+		r.Register(op)
 	}
 	guards := r.Nouns["ochazuke.list"].Guards
 	guards["filter-clear"], guards["filter-erase"], guards["filter-choose"] = "list-filtered", "list-query", "list-chooses"

@@ -320,7 +320,7 @@ func (r *Runtime) terminalOf(c Context, args Arguments) (*Terminal, error) {
 // then the key, swallow drops both. The modes and rows are
 // bindings/terminal.json.
 func registerTerminal(r *Runtime) {
-	r.Define("ochazuke.terminal").Pin("terminal").Focusable().
+	r.Define("ochazuke.terminal").Pin("terminal").Focusable().Unpersisted().
 		Verb("send", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
 			if err != nil {
@@ -331,7 +331,7 @@ func registerTerminal(r *Runtime) {
 				return nil, errors.New("keys is required")
 			}
 			return keys, t.stream.Send(keys...)
-		}, "Forward key names, in order, to the pane").
+		}, "Forward key names, in order, to the pane").Typing().History(HistoryChange).
 		Verb("paste", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
 			if err != nil {
@@ -344,7 +344,7 @@ func registerTerminal(r *Runtime) {
 			}
 			text := StringArg(a, "text", "")
 			return text, t.stream.Paste(text)
-		}, "Paste text into the pane, after forwarding any keys given (the leader, under it)").
+		}, "Paste text into the pane, after forwarding any keys given (the leader, under it)").Typing().History(HistoryChange).
 		Verb("attach", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
 			if err != nil {

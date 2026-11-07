@@ -381,3 +381,52 @@ func TestMountedEditKeyOptOutKeepsCLIAndExplicitBindings(t *testing.T) {
 		t.Fatalf("explicit edit did not open on the CLI value: %v", e)
 	}
 }
+
+// TestMountKeepsOperationTraits: the classification an extension declares
+// at registration (Motion, Typing, Staying, FocusBound, Repeatable, the
+// history kind, an unpersisted noun) survives the catalog and mounting, so
+// a mounted verb is classified as the extension's own.
+func TestMountKeepsOperationTraits(t *testing.T) {
+	ext := ochazuke.NewRuntime()
+	ext.Config().Disable()
+	h := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	ext.Define("specimen").Unpersisted().
+		Verb("traverse", h, "Advance").Motion().
+		Verb("transcribe", h, "Forward text").Typing().History(ochazuke.HistoryChange).
+		Verb("hold", h, "Keep the pending mode").Staying().
+		Verb("select", h, "Start a selection").FocusBound().
+		Verb("edit-text", h, "Change the text").Repeatable().History(ochazuke.HistoryChange)
+	data, err := Catalog(ext, "lab", "v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	host := ochazuke.NewRuntime()
+	host.Config().Disable()
+	got := MountNouns(host, doc.AppNouns(), HostMount{
+		Local: func(n string) string { return "lab." + n },
+		Proxy: func(string, CatalogVerb) any { return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) } },
+	})
+	if len(got.Warnings) != 0 {
+		t.Fatal(got.Warnings)
+	}
+	noun := got.Nouns["specimen"]
+	if n := host.Nouns[noun]; n == nil || !n.Unpersisted {
+		t.Fatalf("mounted noun lost unpersisted: %+v", n)
+	}
+	want := map[string]func(ochazuke.Operation) bool{
+		"traverse":   func(o ochazuke.Operation) bool { return o.Motion && !o.Typing },
+		"transcribe": func(o ochazuke.Operation) bool { return o.Typing && o.HistoryKind == ochazuke.HistoryChange },
+		"hold":       func(o ochazuke.Operation) bool { return o.Staying },
+		"select":     func(o ochazuke.Operation) bool { return o.FocusBound },
+		"edit-text":  func(o ochazuke.Operation) bool { return o.Repeatable && o.HistoryKind == ochazuke.HistoryChange },
+	}
+	for verb, ok := range want {
+		if op := host.Operations[noun+"."+verb]; !ok(op) {
+			t.Errorf("%s.%s mounted without its traits: %+v", noun, verb, op)
+		}
+	}
+}

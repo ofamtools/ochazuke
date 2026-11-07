@@ -10,9 +10,12 @@ import (
 const yankHistoryID = "__yank-history"
 
 func registerYankHistory(r *Runtime) {
+	r.Define("ochazuke.yank-history").Unpersisted()
 	r.Instance(yankHistoryID, Kind("ochazuke.yank-history")).Component = &yankHistory{r: r}
-	add := func(verb, description string, params map[string]Parameter, fn Handler) {
-		r.Register(Operation{Verb: verb, Noun: "ochazuke.yank-history", Description: description, Parameters: params, Result: "yank history state", Run: fn})
+	add := func(verb, description string, params map[string]Parameter, fn Handler, traits ...opTrait) {
+		op := Operation{Verb: verb, Noun: "ochazuke.yank-history", Description: description, Parameters: params, Result: "yank history state", Run: fn}
+		applyTraits(&op, traits)
+		r.Register(op)
 	}
 	add("open", "Select a previous application yank without inserting it", nil, func(r *Runtime, c Context, a Arguments) (any, error) {
 		g := r.Registers()
@@ -33,7 +36,7 @@ func registerYankHistory(r *Runtime) {
 		g := r.Registers()
 		g.selection = max(0, min(g.selection+IntArg(a, "steps", 0), len(g.History)-1))
 		return g.selection, nil
-	})
+	}, asMotion, asHistory(HistoryAction))
 	add("select", "Make a history entry the unnamed register and restore origin focus", map[string]Parameter{"index": {Type: "integer"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
 		if err := active(r); err != nil {
 			return nil, err
@@ -48,7 +51,7 @@ func registerYankHistory(r *Runtime) {
 		g.Active = ""
 		err := r.Pop()
 		return y, err
-	})
+	}, asHistory(HistoryChange))
 }
 
 // yankHistory is the yank history modal's component: it answers the

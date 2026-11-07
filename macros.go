@@ -28,12 +28,15 @@ type MacroState struct {
 // mode is a quiet normal (the shadow-idle guard) and is recorded otherwise.
 // The rows are Requests on the app noun like every other row.
 func registerMacros(r *Runtime) {
+	r.Define("ochazuke.macro").Unpersisted()
 	keyParams := map[string]Parameter{
 		"key":   {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"},
 		"paste": {Type: "boolean", Description: "The key is pasted text"},
 	}
-	add := func(verb, description string, params map[string]Parameter, fn Handler) {
-		r.Register(Operation{Verb: verb, Noun: "ochazuke.macro", Description: description, Parameters: params, Result: "macro state", Run: fn})
+	add := func(verb, description string, params map[string]Parameter, fn Handler, traits ...opTrait) {
+		op := Operation{Verb: verb, Noun: "ochazuke.macro", Description: description, Parameters: params, Result: "macro state", Run: fn}
+		applyTraits(&op, traits)
+		r.Register(op)
 	}
 	add("append", "Append one key to the macro being recorded", keyParams, func(r *Runtime, c Context, a Arguments) (any, error) {
 		g := r.Registers()
@@ -59,7 +62,7 @@ func registerMacros(r *Runtime) {
 			return nil, err
 		}
 		return r.Registers().Macro, nil
-	})
+	}, asStaying, asHistory(HistoryAction))
 	add("start", "Record application keys into a named register", map[string]Parameter{"register": {Type: "string", Required: true}}, func(r *Runtime, c Context, a Arguments) (any, error) {
 		key, appendMode, err := registerName(StringArg(a, "register", ""))
 		if err != nil {

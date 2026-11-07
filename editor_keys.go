@@ -42,6 +42,6 @@ func (in *Input) OwnsKeys() bool { return in.ReadOnly }
 // the registers component's rows on the app noun are
 // bindings/registers.json; registerFramework loads both.
 func registerEditorNoun(r *Runtime) {
-	r.Define(EditorNoun).Fallback(EditorNoun)
+	r.Define(EditorNoun).Fallback(EditorNoun).Unpersisted()
 	r.Define("ochazuke.prompt").Pin("insert")
 }

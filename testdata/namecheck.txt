@@ -206,16 +206,6 @@ history_actor.go	Runtime.historyByActor	case	"agent"	1
 history_actor.go	Runtime.historyByActor	case	"all"	1
 history_actor.go	Runtime.historyByActor	case	"owner"	1
 history_store.go	Runtime.persistable	compare	"palette"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.count"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.editor"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.input"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.key"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.macro"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.mode"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.palette"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.register"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.terminal"	1
-history_store.go	var unpersistedNouns	table	"ochazuke.yank-history"	1
 input.go	Input.Pending	case	"g_pending"	1
 input.go	Input.Pending	case	"operator_g_pending"	1
 input.go	Input.Pending	case	"operator_pending"	1
@@ -422,85 +412,12 @@ resolve.go	Runtime.dispatchIn	compare	"ochazuke.key.ignore"	1
 resolve.go	Runtime.dispatchIn	cyclo	"-"	33
 resolve.go	Runtime.lookup	cyclo	"-"	46
 resolve.go	Runtime.scanRowsUncached	cyclo	"-"	37
-resolve.go	var stayingRequests	table	"ochazuke.count.append"	1
-resolve.go	var stayingRequests	table	"ochazuke.input.cancel"	1
-resolve.go	var stayingRequests	table	"ochazuke.key.dispatch"	1
-resolve.go	var stayingRequests	table	"ochazuke.macro.record"	1
-resolve.go	var stayingRequests	table	"ochazuke.mode.enter"	1
-resolve.go	var stayingRequests	table	"ochazuke.mode.leave"	1
 runtime.go	Runtime.AddInput	case	"dir"	1
 runtime.go	Runtime.AddInput	case	"path"	1
 runtime.go	Runtime.AddInput	case	"text"	1
 runtime.go	Runtime.Register	case	"action"	1
 runtime.go	Runtime.execute	cyclo	"-"	48
 runtime.go	Runtime.nounInstance	compare	"app"	1
-runtime.go	var focusBoundOps	table	"ochazuke.list.end-visual"	1
-runtime.go	var focusBoundOps	table	"ochazuke.list.filter-open"	1
-runtime.go	var focusBoundOps	table	"ochazuke.list.visual"	1
-runtime.go	var focusBoundOps	table	"ochazuke.mode.enter"	1
-runtime.go	var focusBoundOps	table	"ochazuke.mode.switch"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.aliases"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.check"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.path"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.actions.reload"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.check"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.load"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.path"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.reload"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.bindings.stops"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.chooser.cancel"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.config.export"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.config.path"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.config.reload"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.confirm.require"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.form-option.pick"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.form.redo"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.form.suggest"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.form.undo"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.history.path"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.input.redo"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.input.undo"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.input.yank"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.instances.query"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.reset-columns"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.resize-column"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.list.yank"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.mode.register"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.outline.fold"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting-value.commit"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.cycle"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.edit"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.names"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.path"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.reload"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.reset"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.setting.set"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.terminal.paste"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.terminal.send"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.themes.path"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.themes.reload"	1
-runtime.go	var frameworkHistoryKinds	table	"ochazuke.yank-history.select"	1
-runtime.go	var motionOps	table	"ochazuke.detail.scroll"	1
-runtime.go	var motionOps	table	"ochazuke.focus.next"	1
-runtime.go	var motionOps	table	"ochazuke.focus.previous"	1
-runtime.go	var motionOps	table	"ochazuke.grid.goto"	1
-runtime.go	var motionOps	table	"ochazuke.grid.move"	1
-runtime.go	var motionOps	table	"ochazuke.input.move"	1
-runtime.go	var motionOps	table	"ochazuke.list.choose-column"	1
-runtime.go	var motionOps	table	"ochazuke.list.column"	1
-runtime.go	var motionOps	table	"ochazuke.list.goto"	1
-runtime.go	var motionOps	table	"ochazuke.list.move"	1
-runtime.go	var motionOps	table	"ochazuke.list.scroll"	1
-runtime.go	var motionOps	table	"ochazuke.list.scroll-columns"	1
-runtime.go	var motionOps	table	"ochazuke.page.next"	1
-runtime.go	var motionOps	table	"ochazuke.page.previous"	1
-runtime.go	var motionOps	table	"ochazuke.palette.move"	1
-runtime.go	var motionOps	table	"ochazuke.picker.move"	1
-runtime.go	var motionOps	table	"ochazuke.surface.scroll"	1
-runtime.go	var motionOps	table	"ochazuke.yank-history.move"	1
-runtime.go	var typingOps	table	"ochazuke.input.insert"	1
-runtime.go	var typingOps	table	"ochazuke.terminal.paste"	1
-runtime.go	var typingOps	table	"ochazuke.terminal.send"	1
 search_case.go	CaseFor	case	"ignore"	1
 search_case.go	Runtime.SearchCase	case	"ignore"	1
 search_find.go	registerSearchFind	compare	"find-line"	2

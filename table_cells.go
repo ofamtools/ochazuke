@@ -443,19 +443,19 @@ func tableCellVerbs() []verbSpec {
 			"index": {Type: "integer", Description: "The column number, 1 the first (a count: 3|)"},
 			"delta": {Type: "integer", Description: "Columns to move, positive right (l), negative left (h)"},
 			"steps": {Type: "integer", Description: "Repeat count (3l)"},
-		}, tableColumn, "table-cells", ""},
-		{"choose-column", "ochazuke.list", "Choose a table's current column from a chooser of its titles", "list state", map[string]Parameter{"id": id}, tableChooseColumn, "table-cells", ""},
+		}, tableColumn, "table-cells", "", Operation{Motion: true, HistoryKind: HistoryAction}},
+		{"choose-column", "ochazuke.list", "Choose a table's current column from a chooser of its titles", "list state", map[string]Parameter{"id": id}, tableChooseColumn, "table-cells", "", Operation{Motion: true, HistoryKind: HistoryAction}},
 		{"yank", "ochazuke.list", "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers; over a visual selection (V) every selected row's, one per line", "the yank", map[string]Parameter{
 			"id":       id,
 			"what":     {Type: "string", Enum: []string{"cell", "row"}, Description: "The cell (default) or the whole row"},
 			"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"},
-		}, tableYank, "list-yanks", ""},
+		}, tableYank, "list-yanks", "", Operation{HistoryKind: HistoryChange}},
 		{"resize-column", "ochazuke.list", "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", "list state", map[string]Parameter{
 			"id":    id,
 			"delta": {Type: "integer", Required: true, Description: "1 wider, -1 narrower"},
 			"steps": {Type: "integer", Description: "Repeat count (3z>)"},
-		}, tableResizeColumn, "table-cells", ""},
-		{"reset-columns", "ochazuke.list", "Lay every column of a table out automatically again and put the default pins back (z =)", "list state", map[string]Parameter{"id": id}, tableResetColumns, "", ""},
+		}, tableResizeColumn, "table-cells", "", Operation{HistoryKind: HistoryChange}},
+		{"reset-columns", "ochazuke.list", "Lay every column of a table out automatically again and put the default pins back (z =)", "list state", map[string]Parameter{"id": id}, tableResetColumns, "", "", Operation{HistoryKind: HistoryChange}},
 	}
 }
 

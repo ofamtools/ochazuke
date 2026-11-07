@@ -125,6 +125,9 @@ type CatalogNoun struct {
 	Kind  string `json:"kind,omitempty"`
 	// NoEditKey declines only the implicit edit-key fallback, not edit itself.
 	NoEditKey bool `json:"noEditKey,omitempty"`
+	// Unpersisted keeps the noun's history entries out of the history file
+	// (ochazuke.Noun.Unpersisted, NounBuilder.Unpersisted).
+	Unpersisted bool `json:"unpersisted,omitempty"`
 	// Live says the noun's rows are outside the state answer (NounBuilder.Live):
 	// a host fills its lists through its row source.
 	Live    bool                   `json:"live,omitempty"`
@@ -188,15 +191,23 @@ type CatalogVerb struct {
 	// Unavailable is why the verb cannot run on its noun (a core verb its
 	// store lacks a handler for; Operation.Unavailable); Disabled is then
 	// true too.
-	Unavailable   string   `json:"unavailable,omitempty"`
-	Rows          string   `json:"rows,omitempty"`
-	Quiet         bool     `json:"quiet,omitempty"`
-	Many          bool     `json:"many,omitempty"`
-	ByAssociation bool     `json:"byAssociation,omitempty"`
-	FocusBound    bool     `json:"focusBound,omitempty"`
-	Positional    []string `json:"positional,omitempty"`
-	History       string   `json:"history,omitempty"`
-	Builtin       bool     `json:"builtin"`
+	Unavailable   string `json:"unavailable,omitempty"`
+	Rows          string `json:"rows,omitempty"`
+	Quiet         bool   `json:"quiet,omitempty"`
+	Many          bool   `json:"many,omitempty"`
+	ByAssociation bool   `json:"byAssociation,omitempty"`
+	FocusBound    bool   `json:"focusBound,omitempty"`
+	// Motion marks movement (footer hints and help sections leave it out),
+	// Typing keys passed on as content (the key echo groups them) and
+	// Staying a verb that manages the pending mode itself
+	// (ochazuke.Operation.Motion, Typing, Staying); a host mounting the
+	// verb keeps them.
+	Motion     bool     `json:"motion,omitempty"`
+	Typing     bool     `json:"typing,omitempty"`
+	Staying    bool     `json:"staying,omitempty"`
+	Positional []string `json:"positional,omitempty"`
+	History    string   `json:"history,omitempty"`
+	Builtin    bool     `json:"builtin"`
 	// Aliases are the verb's other names (ochazuke.ActionAlias: the alias
 	// as noun.verb, its noun and verb, a deprecated one's since and
 	// removeAfter). A host mounting the catalog may register them as
@@ -369,6 +380,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				noun.About = n.About
 				noun.Pin, noun.Live, noun.Columns = n.Pin, n.Live, slices.Clone(n.Columns)
 				noun.NoEditKey = n.NoEditKey
+				noun.Unpersisted = n.Unpersisted
 				noun.Filters = slices.Clone(n.Filters)
 				noun.PropsOff = slices.Clone(n.PropsOff)
 				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun)
@@ -388,6 +400,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		verb.Foreground = op.Foreground
 		verb.ByAssociation = op.ByAssociation
 		verb.FocusBound = op.FocusBound
+		verb.Motion, verb.Typing, verb.Staying = op.Motion, op.Typing, op.Staying
 		verb.Slot = op.Slot
 		verb.Disabled, verb.Unavailable = verbDisabled(r, op), op.Unavailable
 		if op.Timeout > 0 {

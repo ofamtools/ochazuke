@@ -34,6 +34,10 @@ type Noun struct {
 	// NoEditKey declines the app-level implicit edit-key fallback only.
 	// The noun's edit verb and explicit binding rows remain available.
 	NoEditKey bool `json:"noEditKey,omitempty"`
+	// Unpersisted keeps the noun's history entries out of the history
+	// file (NounBuilder.Unpersisted): text editing and its plumbing, raw
+	// keys, counts, registers, macros, modes, keys sent to a terminal.
+	Unpersisted bool `json:"unpersisted,omitempty"`
 	// Live marks a noun whose rows are fetched on every call, outside the
 	// state verb's answer (NounBuilder.Live).
 	Live      bool                 `json:"live,omitempty"`
@@ -503,6 +507,31 @@ func (b *NounBuilder) Verb(verb string, h any, description ...string) *NounBuild
 	return b
 }
 
+// lastOp edits the last declared verb's operation; it panics, naming the
+// modifier, when no verb was declared yet.
+func (b *NounBuilder) lastOp(name string, edit func(*Operation)) *NounBuilder {
+	if b.last == "" {
+		panic(name + " must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	edit(&op)
+	b.r.Operations[b.last] = op
+	return b
+}
+
+// Params declares parameters of the last declared verb
+// (Operation.Parameters), added to those it has: a name already declared
+// is replaced. An application declares a verb's parameters here rather
+// than by writing to Runtime.Operations.
+func (b *NounBuilder) Params(params map[string]Parameter) *NounBuilder {
+	return b.lastOp("Params", func(o *Operation) {
+		merged := make(map[string]Parameter, len(o.Parameters)+len(params))
+		maps.Copy(merged, o.Parameters)
+		maps.Copy(merged, params)
+		o.Parameters = merged
+	})
+}
+
 // Confirm asks before the last declared verb runs: the prompt template
 // ({{id}}, {{noun}}, {{<arg>}}) opens a confirm modal whose y runs the
 // stored request and n or esc pops it. An empty prompt removes the confirm.
@@ -520,16 +549,12 @@ func (b *NounBuilder) Confirm(prompt string) *NounBuilder {
 // (Operation.Rows): a host reading the catalog knows which noun a list
 // verb's rows answer to. An empty noun removes the declaration.
 func (b *NounBuilder) Rows(noun string) *NounBuilder {
-	if b.last == "" {
-		panic("Rows must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	if noun != "" {
-		noun = b.r.CanonicalNoun(noun)
-	}
-	op.Rows = noun
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Rows", func(o *Operation) {
+		if noun != "" {
+			noun = b.r.CanonicalNoun(noun)
+		}
+		o.Rows = noun
+	})
 }
 
 // State marks the last declared verb as the runtime's state source
@@ -538,25 +563,13 @@ func (b *NounBuilder) Rows(noun string) *NounBuilder {
 // catalog's state runs it once instead of one row source per list. The
 // framework names no state verb.
 func (b *NounBuilder) State() *NounBuilder {
-	if b.last == "" {
-		panic("State must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.State = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("State", func(o *Operation) { o.State = true })
 }
 
 // Quiet marks the last declared verb as bookkeeping (Operation.Quiet): its
 // jobs stay off the jobs ticker. The framework names no quiet verb.
 func (b *NounBuilder) Quiet() *NounBuilder {
-	if b.last == "" {
-		panic("Quiet must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.Quiet = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Quiet", func(o *Operation) { o.Quiet = true })
 }
 
 // ShadowsStandard marks the last declared verb as replacing, on purpose,
@@ -564,37 +577,19 @@ func (b *NounBuilder) Quiet() *NounBuilder {
 // (Operation.ShadowsStandard): bindings, actions and hooks checks no
 // longer report it as a shadow.
 func (b *NounBuilder) ShadowsStandard() *NounBuilder {
-	if b.last == "" {
-		panic("ShadowsStandard must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.ShadowsStandard = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("ShadowsStandard", func(o *Operation) { o.ShadowsStandard = true })
 }
 
 // Foreground marks a verb that catalog hosts run on the real terminal.
 // The handler still chooses Foreground(cmd) when running inside its own TUI.
 func (b *NounBuilder) Foreground() *NounBuilder {
-	if b.last == "" {
-		panic("Foreground must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.Foreground = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Foreground", func(o *Operation) { o.Foreground = true })
 }
 
 // PersistArgs marks the last declared verb's text-like arguments as safe
 // to keep in the history file (Operation.PersistArgs).
 func (b *NounBuilder) PersistArgs() *NounBuilder {
-	if b.last == "" {
-		panic("PersistArgs must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.PersistArgs = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("PersistArgs", func(o *Operation) { o.PersistArgs = true })
 }
 
 // Fetch marks the last declared verb as a data request (Operation.HistoryKind
@@ -602,26 +597,42 @@ func (b *NounBuilder) PersistArgs() *NounBuilder {
 // of kind fetch, which history.list leaves out by default and the ring
 // bounds apart from the user's actions and changes.
 func (b *NounBuilder) Fetch() *NounBuilder {
-	if b.last == "" {
-		panic("Fetch must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.HistoryKind = HistoryFetch
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Fetch", func(o *Operation) { o.HistoryKind = HistoryFetch })
 }
 
 // Motion marks the last declared verb as a motion (Operation.Motion): the
 // footer leaves its rows to ? help, as it does for list.move.
 func (b *NounBuilder) Motion() *NounBuilder {
-	if b.last == "" {
-		panic("Motion must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.Motion = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Motion", func(o *Operation) { o.Motion = true })
 }
+
+// Typing marks the last declared verb as passing its key on as content
+// (Operation.Typing): the key echo collapses a run of them into the text.
+func (b *NounBuilder) Typing() *NounBuilder {
+	return b.lastOp("Typing", func(o *Operation) { o.Typing = true })
+}
+
+// Staying marks the last declared verb as managing the pending mode itself
+// (Operation.Staying): a row running it keeps the one-shot mode.
+func (b *NounBuilder) Staying() *NounBuilder {
+	return b.lastOp("Staying", func(o *Operation) { o.Staying = true })
+}
+
+// Repeatable marks the last declared verb as a change dot-repeat replays
+// (Operation.Repeatable).
+func (b *NounBuilder) Repeatable() *NounBuilder {
+	return b.lastOp("Repeatable", func(o *Operation) { o.Repeatable = true })
+}
+
+// History sets the kind of history entry the last declared verb records
+// (Operation.HistoryKind): HistoryAction, HistoryChange or HistoryFetch.
+func (b *NounBuilder) History(kind string) *NounBuilder {
+	return b.lastOp("History", func(o *Operation) { o.HistoryKind = kind })
+}
+
+// Unpersisted keeps the noun's history entries out of the history file
+// (Noun.Unpersisted).
+func (b *NounBuilder) Unpersisted() *NounBuilder { b.n.Unpersisted = true; return b }
 
 // Many marks the last declared verb as taking many subjects at once
 // (Operation.Many): run over a visual selection, its handler is called
@@ -629,37 +640,19 @@ func (b *NounBuilder) Motion() *NounBuilder {
 // Use it for a verb that asks something (a chooser, a confirm naming what
 // it affects) or that should make one change and one notice for all.
 func (b *NounBuilder) Many() *NounBuilder {
-	if b.last == "" {
-		panic("Many must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.Many = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Many", func(o *Operation) { o.Many = true })
 }
 
 // ByAssociation lets the last verb act through a declared association of
 // the focus (Operation.ByAssociation). It never fills required parameters.
 func (b *NounBuilder) ByAssociation() *NounBuilder {
-	if b.last == "" {
-		panic("ByAssociation must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.ByAssociation = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("ByAssociation", func(o *Operation) { o.ByAssociation = true })
 }
 
 // FocusBound keeps the last verb out of the default outside fall-through:
 // its mode or selection requires focus in its own component.
 func (b *NounBuilder) FocusBound() *NounBuilder {
-	if b.last == "" {
-		panic("FocusBound must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.FocusBound = true
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("FocusBound", func(o *Operation) { o.FocusBound = true })
 }
 
 // Positional names the parameters of the last declared verb that bare
@@ -667,13 +660,7 @@ func (b *NounBuilder) FocusBound() *NounBuilder {
 // makes BIN project link foo set name even though the boolean all sorts
 // first. The CLI gives a boolean a bare word only when it is named here.
 func (b *NounBuilder) Positional(names ...string) *NounBuilder {
-	if b.last == "" {
-		panic("Positional must follow Verb")
-	}
-	op := b.r.Operations[b.last]
-	op.Positional = slices.Clone(names)
-	b.r.Operations[b.last] = op
-	return b
+	return b.lastOp("Positional", func(o *Operation) { o.Positional = slices.Clone(names) })
 }
 
 // When guards the last declared verb with a registered guard name: while
