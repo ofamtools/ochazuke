@@ -188,8 +188,22 @@ func TestLinkFocusUsesThemeAccent(t *testing.T) {
 	_, d := newDoc(t, Source{Load: func() (string, error) { return source, nil }})
 	a := ochazuke.Appearance{Theme: "dark", Dark: true, Accent: lipgloss.Color("#123456")}
 	view := d.View(80, 0, a)
-	if !strings.Contains(view, ochazuke.NewStyles(a).Accent.Underline(true).Reverse(true).Render("focus https://f.example")) {
+	first, footer, _ := strings.Cut(view, "\n")
+	if !strings.Contains(first, ochazuke.NewStyles(a).Accent.Underline(true).Reverse(true).Render("focus")) || strings.Contains(first, "f.example") {
 		t.Fatalf("theme focus missing: %q", view)
+	}
+	if strings.TrimSpace(ansi.Strip(footer)) != "→ https://f.example" {
+		t.Fatalf("focused URL footer: %q", footer)
+	}
+	if w := ansi.StringWidth(first); w != 80 {
+		t.Fatalf("focus changed width: %d", w)
+	}
+	if err := d.r.Settings().Set(LinkURLsSetting, LinkURLsAlways); err != nil {
+		t.Fatal(err)
+	}
+	view = d.View(80, 0, a)
+	if !strings.Contains(view, ochazuke.NewStyles(a).Accent.Underline(true).Reverse(true).Render("focus https://f.example")) || strings.Contains(view, "\n") {
+		t.Fatalf("theme focus missing with link-urls=always: %q", view)
 	}
 	if w := ansi.StringWidth(view); w != 80 {
 		t.Fatalf("focus changed width: %d", w)

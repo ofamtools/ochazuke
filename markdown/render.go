@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 
-	"charm.land/glamour/v2"
 	gansi "charm.land/glamour/v2/ansi"
 	"charm.land/glamour/v2/styles"
 	"charm.land/lipgloss/v2"
@@ -53,6 +52,10 @@ type options struct {
 	// note and rule are the colours (#rrggbb, "" for none) of the tones
 	// NoteTone and RuleTone in the appearance the text is drawn in.
 	note, rule string
+	// link is the colour of LinkTone ("" for Glamour's); hideURLs drops
+	// the URL Glamour draws after a link's text (LinkURLsSetting).
+	link     string
+	hideURLs bool
 }
 
 // The tones the package draws its own boxes and rules in, rows a
@@ -69,6 +72,7 @@ const (
 func (o options) withTones(a ochazuke.Appearance) options {
 	s := ochazuke.NewStyles(a)
 	o.note, o.rule = hexOf(s.Tone(NoteTone).GetForeground()), hexOf(s.Tone(RuleTone).GetForeground())
+	o.link = hexOf(s.Tone(LinkTone).GetForeground())
 	return o
 }
 
@@ -146,8 +150,8 @@ var cache = struct {
 	sync.Mutex
 	renderings map[renderKey]rendering
 	order      []renderKey
-	renderers  map[rendererKey]*glamour.TermRenderer
-}{renderings: map[renderKey]rendering{}, renderers: map[rendererKey]*glamour.TermRenderer{}}
+	renderers  map[rendererKey]mdRenderer
+}{renderings: map[renderKey]rendering{}, renderers: map[rendererKey]mdRenderer{}}
 
 // render is the cached rendering of text as lines no wider than width;
 // tasks is how many task markers text carries (0 for none). The lines are
@@ -182,12 +186,8 @@ func renderUncached(text string, width int, style string, opts options) []string
 	rk := rendererKey{width, style, opts}
 	tr := cache.renderers[rk]
 	if tr == nil {
-		ropts := []glamour.TermRendererOption{glamour.WithStyles(styleConfig(style)), glamour.WithWordWrap(width)}
-		if opts.newlines {
-			ropts = append(ropts, glamour.WithPreservedNewLines())
-		}
 		var err error
-		tr, err = glamour.NewTermRenderer(ropts...)
+		tr, err = newRenderer(width, style, opts)
 		if err == nil {
 			if len(cache.renderers) >= 16 {
 				clear(cache.renderers)
@@ -204,7 +204,7 @@ func renderUncached(text string, width int, style string, opts options) []string
 	if out == "" {
 		out = ansi.Wrap(text, width, "")
 	}
-	lines := spliceTables(strings.Split(out, "\n"), tables, width, style, opts.rule)
+	lines := spliceTables(strings.Split(out, "\n"), tables, width, style, opts)
 	blank := func(line string) bool { return strings.TrimSpace(ansi.Strip(line)) == "" }
 	for len(lines) > 0 && blank(lines[0]) {
 		lines = lines[1:]

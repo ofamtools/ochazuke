@@ -107,12 +107,13 @@ func tableRange(src []byte, t *east.Table) (from, to int, ok bool) {
 // spliceTables replaces each placeholder line Glamour drew with its table.
 // The text before the placeholder is the table's indent when it is only
 // spaces or a quote's bar; other text before it keeps a line of its own.
-// rule colours the rules (#rrggbb, "" for none: unstyled).
-func spliceTables(lines []string, tables []srcTable, width int, style, rule string) []string {
+// opts.rule colours the rules (#rrggbb, "" for none: unstyled);
+// opts.hideURLs draws a link's text without its URL.
+func spliceTables(lines []string, tables []srcTable, width int, style string, opts options) []string {
 	if len(tables) == 0 {
 		return lines
 	}
-	cfg := styleConfig(style)
+	cfg := styleConfigFor(style, opts)
 	margin := 0
 	if cfg.Document.Margin != nil {
 		margin = int(*cfg.Document.Margin)
@@ -139,7 +140,7 @@ func spliceTables(lines []string, tables []srcTable, width int, style, rule stri
 			prefix = strings.Repeat(" ", len(plain)-len(strings.TrimLeft(plain, " ")))
 		}
 		avail := width - ansi.StringWidth(prefix) - margin
-		for _, tl := range drawTable(tables[k], avail, cfg, rule) {
+		for _, tl := range drawTable(tables[k], avail, cfg, opts.rule, opts.hideURLs) {
 			out = append(out, prefix+tl)
 		}
 		if after != "" {
@@ -178,6 +179,7 @@ type inline struct {
 	cell         *cellText
 	url          string
 	link, serial int
+	hideURLs     bool
 }
 
 func (in *inline) styleIndex(s lipgloss.Style) int {
@@ -247,7 +249,7 @@ func (in *inline) node(n gast.Node, st lipgloss.Style) {
 		in.link = in.serial
 		in.url = string(n.Destination)
 		in.children(n, primitive(st, in.cfg.LinkText))
-		if url := string(n.Destination); url != "" && url != string(n.Text(in.src)) { //nolint:staticcheck
+		if url := string(n.Destination); !in.hideURLs && url != "" && url != string(n.Text(in.src)) { //nolint:staticcheck
 			in.add(" "+url, primitive(st, in.cfg.Link))
 		}
 		in.url, in.link = old, oldLink
@@ -310,9 +312,9 @@ func primitive(st lipgloss.Style, p gansi.StylePrimitive) lipgloss.Style {
 // spaces. Columns are a space either side and │ between them, the header
 // under a ─ rule with ┼ at the columns, as Glamour draws them; each row's
 // element markers end its first and last lines.
-func drawTable(t srcTable, avail int, cfg gansi.StyleConfig, rule string) []string {
+func drawTable(t srcTable, avail int, cfg gansi.StyleConfig, rule string, hideURLs bool) []string {
 	base := primitive(primitive(lipgloss.NewStyle(), cfg.Document.StylePrimitive), cfg.Table.StylePrimitive)
-	in := &inline{src: t.src, cfg: cfg, keys: map[string]int{}}
+	in := &inline{src: t.src, cfg: cfg, keys: map[string]int{}, hideURLs: hideURLs}
 	var rows [][]cellText
 	for row := t.node.FirstChild(); row != nil; row = row.NextSibling() {
 		var cells []cellText

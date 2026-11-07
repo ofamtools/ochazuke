@@ -77,7 +77,7 @@ func compact(s string) string {
 
 // layoutLinks matches parsed links to the hyperlink cells Glamour and the
 // table renderer already emit. No extra printable markers affect wrapping.
-func layoutLinks(source string, els []Element, lay layout) []Link {
+func layoutLinks(source string, els []Element, lay layout, hideURLs bool) []Link {
 	src := []byte(source)
 	doc := parser.Parser().Parse(text.NewReader(src))
 	cells := make(map[int][]linkCell)
@@ -138,14 +138,7 @@ func layoutLinks(source string, els []Element, lay layout) []Link {
 		}
 		cc := cells[e]
 		label = html.UnescapeString(string(util.UnescapePunctuations([]byte(label))))
-		needle := label
-		if !auto && !strings.HasPrefix(url, "#") && (els[e].Kind != KindTable || url != label) {
-			needle += url
-		}
-		if auto && !strings.HasPrefix(url, "mailto:") {
-			needle = url
-		}
-		needle = compact(needle)
+		needle := linkNeedle(label, url, auto, els[e].Kind == KindTable, hideURLs)
 		// Valid OSC links use only their own cells. Fragment links and notes,
 		// which Glamour does not hyperlink, use their visible label instead.
 		find := func(tagged bool, needle string) []linkCell {
@@ -228,6 +221,20 @@ func layoutLinks(source string, els []Element, lay layout) []Link {
 		return a.start < b.start
 	})
 	return links
+}
+
+// linkNeedle is the text a link's cells draw, spaces removed: its label,
+// then the URL Glamour draws after it unless hidden, or an autolink's URL.
+func linkNeedle(label, url string, auto, table, hideURLs bool) string {
+	needle := label
+	switch {
+	case hideURLs:
+	case auto && !strings.HasPrefix(url, "mailto:"):
+		needle = url
+	case !auto && !strings.HasPrefix(url, "#") && (!table || url != label):
+		needle += url
+	}
+	return compact(needle)
 }
 
 // inlineBefore is the ordinary inline text before n in its block. Earlier

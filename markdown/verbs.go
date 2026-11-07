@@ -308,6 +308,7 @@ func describeDocOperations(r *ochazuke.Runtime) {
 func docSettings() []ochazuke.Setting {
 	return []ochazuke.Setting{
 		{Name: LinkStopsSetting, Owner: ochazuke.OwnerFramework, Type: "boolean", Default: true, Description: "Visit inline Markdown links as focus stops with j and k"},
+		{Name: LinkURLsSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: LinkURLsFocused, Enum: []string{LinkURLsFocused, LinkURLsAlways, LinkURLsNever}, Description: "When a Markdown link's URL is drawn after its text: focused shows only the focused link's URL, on a line under the document; always draws every URL; never draws none. Opening and copying a link use its URL either way"},
 		{Name: AuthorSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "owner", Description: "The author a new note in a Markdown document is signed with"},
 		{Name: CursorSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "item", Enum: []string{"item", "line"}, Description: "Markdown cursor unit: whole elements, or individual drawn lines"},
 		{Name: CursorWidthSetting, Owner: ochazuke.OwnerFramework, Type: "string", Default: "pane", Enum: []string{"pane", "text"}, Description: "Markdown cursor highlight width: the whole pane, or only its text"},
@@ -360,7 +361,7 @@ func register(r *ochazuke.Runtime) {
 		for _, s := range docSettings() {
 			_ = r.DeclareSetting(s)
 		}
-		for _, name := range []string{DoneSetting, DoneIndicatorSetting, ExtraSpaceSetting} {
+		for _, name := range []string{DoneSetting, DoneIndicatorSetting, ExtraSpaceSetting, LinkURLsSetting} {
 			r.Settings().Observe(name, func(string, any) { relayoutDocs(r) })
 		}
 	}

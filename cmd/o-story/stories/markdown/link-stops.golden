@@ -3,10 +3,10 @@
  |  ────────────────────────────────────────────────────────────────────────────
  |    # Links
  |
-C|    Before alpha https://a.example between beta https://b.example after.
+C|    Before alpha between beta after.
  |
  |    Tail.
- |
+ |    → https://a.example
  |
  |
  |
