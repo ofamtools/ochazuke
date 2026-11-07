@@ -80,7 +80,7 @@ func TestPaletteNounAliasesAndNamespaceWords(t *testing.T) {
 func TestPaletteAmbiguousShortNameOffersEveryNamespace(t *testing.T) {
 	r, p, _, _ := extRuntime(t)
 	c := p.parse("doc rows")
-	if c.Err == nil || !strings.Contains(c.Err.Error(), "json.doc, md.doc") {
+	if c.Err == nil || !strings.Contains(c.Err.Error(), "json.doc rows, md.doc rows") {
 		t.Fatalf("doc rows: %v (op %s), want an ambiguity naming json.doc, md.doc", c.Err, c.Op.Key())
 	}
 	if got := c.Words[0].Candidates; !slices.Equal(got, []string{"json.doc", "md.doc"}) {

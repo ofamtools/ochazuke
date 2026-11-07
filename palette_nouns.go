@@ -188,6 +188,18 @@ func (p *Palette) completions() []PaletteEntry {
 			out = append(out, entries...)
 		}
 		switch {
+		case len(tokens) == 1 && len(c.Words[0].Candidates) > 1:
+			// An ambiguous first word: the second word may complete any of
+			// its readings (readPair keeps the ones it fits).
+			for _, cand := range c.Words[0].Candidates {
+				if names := ix.verbs[cand]; len(names) > 0 {
+					nouns(names)
+				}
+				if own := ix.nouns[cand]; len(own) > 0 {
+					verbs(own, cand)
+				}
+			}
+			out = dedupEntries(out)
 		case c.Err != nil:
 		case len(tokens) == 1 && c.Words[0].Kind == "verb":
 			nounPosition = true
@@ -507,4 +519,18 @@ func propLabel(prop PropSpec) string {
 		label += " · read-only"
 	}
 	return label
+}
+
+// dedupEntries drops later entries repeating an earlier one's kind and value.
+func dedupEntries(entries []PaletteEntry) []PaletteEntry {
+	seen := map[string]bool{}
+	out := entries[:0]
+	for _, e := range entries {
+		key := e.Kind + "\x00" + e.Value
+		if !seen[key] {
+			seen[key] = true
+			out = append(out, e)
+		}
+	}
+	return out
 }

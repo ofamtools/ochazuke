@@ -22,7 +22,8 @@ import (
 // Oden owns command resolution and help; the shell owns operation execution.
 // The catalog command follows the nouns so a noun named catalog wins.
 // extra also declares empty command groups before their operations are registered.
-// Mount leaves app.Default to the application.
+// Mount chains the application's Default after verb-first words
+// (VerbFirstDefault); an application that sets Default later chains it itself.
 func Mount(app *oden.App, sh *Shell, extra ...string) {
 	sh.mountSetup(app)
 	// The user's actions.json verbs are commands too, so oden's help and
@@ -203,6 +204,12 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		}
 		topNames, top[canonical] = append(topNames, canonical), g
 	}
+	// A verb of a namespace's nouns after the namespace (mtm lane state) is
+	// the verb on the noun named like the namespace, else the one the verb
+	// belongs to (cli.verb-first).
+	if rewritten, ok := sh.groupVerbFirst(top, app.Args); ok {
+		app.Args, spelled = rewritten, true
+	}
 	if spelled && len(app.Args) > 0 {
 		if g := top[app.Args[0]+NamespaceSuffix]; g != nil && !g.noun {
 			app.Args[0] += NamespaceSuffix
@@ -230,7 +237,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	// rest. Only the listing changes; every verb still runs.
 	line := r.Settings().String(ochazuke.CLIStandardVerbsSetting) != ochazuke.CLIStandardVerbsList
 	stdLine := ""
-	if line {
+	if line && !sh.verbFirstYields(app) {
 		if g, words := listedGroup(top, topNames, shortNames, app.Args, line); g != nil && len(g.std) > 0 {
 			g.listing = true
 			stdLine = g.standardLine(strings.Join(append([]string{app.Name}, words...), " "))
@@ -260,6 +267,11 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		app.HelpText = stdLine + "\n\n" + app.HelpText
 	}
 	app.Add(sh.shellCommands()...)
+	// A word that names no command but is a verb of the tool's nouns runs
+	// it (BIN add, and BIN state over the builtin when a noun has one):
+	// oden's Claims and Default, over the tool's own (cli.verb-first).
+	app.Claims = sh.VerbFirstClaims(app)
+	app.Default = sh.VerbFirstDefault(app, app.Default)
 	sh.catalogOptions = append(sh.catalogOptions, func(doc *CatalogDoc) {
 		doc.Commands = OdenCommands(app).Commands()
 		for i := range doc.Commands {

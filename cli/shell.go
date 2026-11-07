@@ -658,6 +658,17 @@ func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []st
 			if err != nil {
 				return q, opts, err
 			}
+			if p, declared := op.Parameters[name]; declared {
+				// An operation that declares a parameter called target
+				// (the thing it acts on, by title, number or id) takes
+				// the flag as that parameter, as it takes the first bare
+				// word; else a bare word would fill it and the flag's
+				// value would be dropped on the way.
+				if q.Args[name], err = typed(p.Type, v); err != nil {
+					return q, opts, fmt.Errorf("--%s: %w", name, err)
+				}
+				continue
+			}
 			q.Target = v
 			continue
 		case name == "json" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")):

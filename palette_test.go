@@ -133,7 +133,12 @@ func TestPaletteLineGrammar(t *testing.T) {
 		{line: "transform row", op: "row.transform", args: Arguments{}, missing: "name"},
 		{line: "row", missing: "verb"},
 		{line: "", missing: "verb or noun"},
-		{line: "t r up", err: `"t" is ambiguous: tidy, to, toggle, transform, terminal, text, timeline`},
+		{line: "t r up", op: "row.transform", args: Arguments{"name": "upper"}},
+		{line: "tr ro up", op: "row.transform", args: Arguments{"name": "upper"}},
+		{line: "t tid", op: "text.tidy", args: Arguments{}},
+		{line: "t li", op: "transformations.list", args: Arguments{}},
+		{line: "t t", err: `"t t" is ambiguous: text tidy, timeline toggle`},
+		{line: "t i", err: `"t" is ambiguous: tidy, to, toggle, transform, terminal, text, timeline, transformations`},
 		{line: "transform c up", err: `"c" is ambiguous: cell, column`},
 		{line: "transform row t", op: "row.transform", err: `name: "t" is ambiguous: title, trim`},
 		{line: "transform row purple", op: "row.transform", err: "name must be one of upper, lower, title, trim"},
@@ -634,5 +639,19 @@ func TestPaletteUpFromNoneSetting(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// The second word narrows an ambiguous first word's completions to the
+// words that fit one of its readings.
+func TestPaletteAmbiguousFirstWordCompletesSecond(t *testing.T) {
+	_, p, _ := lineRuntime(t)
+	typeLine(t, p, "t ro")
+	var got []string
+	for _, e := range p.completions() {
+		got = append(got, e.Kind+":"+e.Value)
+	}
+	if !slices.Contains(got, "noun:row") {
+		t.Fatalf("completions %v, want the noun row", got)
 	}
 }

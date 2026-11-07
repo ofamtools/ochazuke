@@ -275,29 +275,34 @@ type lineIndex struct {
 	byNouns []option
 }
 
-func (p *Palette) index() lineIndex {
+func (p *Palette) index() lineIndex { return p.r.lineIndex(p.offered, p.nounBefore) }
+
+// lineIndex indexes the operations offered(op) accepts by verb and by noun
+// word, as the palette reads a line and as the CLI reads argv (ReadPair);
+// before orders noun words.
+func (r *Runtime) lineIndex(offered func(Operation) bool, nounBefore func(a, b string) bool) lineIndex {
 	ix := lineIndex{ops: map[string]Operation{}, names: map[string]string{}, old: map[string]string{}, tails: map[string][]string{}, spaces: map[string]map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}, aliasOps: map[string]Operation{}, aliasVia: map[string]string{}, aliasVerbs: map[string][]string{}, aliasNouns: map[string][]string{}}
-	for _, op := range p.r.Catalog() {
-		if !p.offered(op) {
+	for _, op := range r.Catalog() {
+		if !offered(op) {
 			continue
 		}
 		// A noun is one word, its shortest name (settings for
 		// ochazuke.settings while no app noun shadows it, DisplayNoun);
 		// its other names are accepted as typed (names) but not completed.
-		word := p.r.DisplayNoun(op.Noun)
+		word := r.DisplayNoun(op.Noun)
 		if _, seen := ix.nouns[word]; !seen {
-			ix.nameNoun(p.r, op.Noun, word)
+			ix.nameNoun(r, op.Noun, word)
 		}
 		ix.ops[word+"."+op.Verb] = op
 		ix.verbs[op.Verb] = append(ix.verbs[op.Verb], word)
 		ix.nouns[word] = append(ix.nouns[word], op.Verb)
 	}
-	for _, a := range p.r.ActionAliases() {
-		op, ok := p.r.Operations[a.Action]
-		if !ok || !p.offered(op) {
+	for _, a := range r.ActionAliases() {
+		op, ok := r.Operations[a.Action]
+		if !ok || !offered(op) {
 			continue
 		}
-		word := p.r.DisplayNoun(a.Noun)
+		word := r.DisplayNoun(a.Noun)
 		if _, taken := ix.ops[word+"."+a.Verb]; taken {
 			continue
 		}
@@ -318,7 +323,7 @@ func (p *Palette) index() lineIndex {
 		ix.byNouns = append(ix.byNouns, option{Kind: "noun", Value: noun})
 		delete(ix.names, strings.ToLower(noun)) // a noun's own word is never another's name
 	}
-	ix.tailNouns(p.r)
+	ix.tailNouns(r)
 	for name, word := range ix.names {
 		ix.byNouns = append(ix.byNouns, option{Kind: "noun", Value: name, to: word, alias: true})
 	}
@@ -336,16 +341,16 @@ func (p *Palette) index() lineIndex {
 		if a.to != "" {
 			return a.Value+"\x00"+a.to < b.Value+"\x00"+b.to
 		}
-		return p.nounBefore(a.Value, b.Value)
+		return nounBefore(a.Value, b.Value)
 	})
 	for _, nouns := range ix.verbs {
-		sort.Slice(nouns, func(i, j int) bool { return p.nounBefore(nouns[i], nouns[j]) })
+		sort.Slice(nouns, func(i, j int) bool { return nounBefore(nouns[i], nouns[j]) })
 	}
 	for _, verbs := range ix.nouns {
 		sort.Strings(verbs)
 	}
 	for _, nouns := range ix.aliasVerbs {
-		sort.Slice(nouns, func(i, j int) bool { return p.nounBefore(nouns[i], nouns[j]) })
+		sort.Slice(nouns, func(i, j int) bool { return nounBefore(nouns[i], nouns[j]) })
 	}
 	return ix
 }
@@ -687,17 +692,10 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 		}
 		return withOld(verb)
 	}
-	// A prefix of exactly one verb and one noun (tr: transform and
-	// transformations) is settled by the words after it: the reading that
-	// resolves further wins; a tie stays ambiguous.
-	if len(candidates) == 2 && candidates[0].Kind != candidates[1].Kind {
-		a, b := p.parseRest(ix, candidates[0], tokens), p.parseRest(ix, candidates[1], tokens)
-		switch ra, rb := resolved(a), resolved(b); {
-		case ra > rb:
-			return withOld(a)
-		case rb > ra:
-			return withOld(b)
-		}
+	// An ambiguous first word is settled by the second (readPair): the
+	// readings where it resolves survive; one is the line.
+	if read, ok := p.readPair(ix, candidates, tokens); ok {
+		return withOld(read)
 	}
 	c.Words = append(c.Words, PaletteWord{Text: word, Candidates: optionValues(candidates)})
 	c.Err = unresolvedError(word, "verb or noun", candidates)
