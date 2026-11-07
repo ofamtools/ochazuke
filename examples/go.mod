@@ -8,7 +8,7 @@ require (
 	github.com/charmbracelet/x/ansi v0.11.9
 	ofam.dev/monogatari v0.5.0
 	ofam.dev/ochazuke v0.95.0
-	ofam.dev/oden v0.2.0
+	ofam.dev/oden v0.3.0
 )
 
 require (
