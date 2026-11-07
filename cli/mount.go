@@ -67,7 +67,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			if text, ok := r.NounAliasNotice(a.Alias); ok {
 				fmt.Fprintln(sh.stderr(), "notice:", text)
 			}
-			app.Args = append(strings.Split(a.Noun, "."), app.Args[1:]...)
+			app.Args = deprecatedNounWords(r, a, app.Args[1:])
 			spelled = true
 		}
 	}
@@ -126,12 +126,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		// noun is a command in that noun's group naming the action it
 		// runs (project associate, alias of pane associate).
 		var aliases []string
-		for _, a := range r.AliasesOf(op.Key()) {
-			if a.Shadows {
-				// Its noun.verb is the verb it shadows (settings set):
-				// it runs by its bare word only (above).
-				continue
-			}
+		for _, a := range commandAliases(r, op.Key()) {
 			// An alias with preset arguments is a command of its own, so
 			// it runs by its name (and its args) and its presets are
 			// not required words.
@@ -524,4 +519,34 @@ func verbDetails(op ochazuke.Operation) string {
 		details += "\nUnavailable: " + op.Unavailable
 	}
 	return details
+}
+
+// deprecatedNounWords are the words of a deprecated noun alias a followed
+// by rest, read as its noun's: a renamed noun's verb whose name changed
+// (RenameNoun: chooser open is picker into) keeps its old meaning.
+func deprecatedNounWords(r *ochazuke.Runtime, a ochazuke.NounAlias, rest []string) []string {
+	if len(rest) > 0 {
+		if old, ok := r.ActionAlias(a.Alias + "." + rest[0]); ok {
+			if op, ok := r.Operation(old.Action); ok {
+				return append(append(strings.Split(op.Noun, "."), op.Verb), rest[1:]...)
+			}
+		}
+	}
+	return append(strings.Split(a.Noun, "."), rest...)
+}
+
+// commandAliases are the aliases of key that get commands: not one that
+// shadows a verb (its noun.verb is the verb it shadows, settings set: it
+// runs by its bare word only), nor one spelled under a renamed noun's old
+// name (no group of its own, so help never lists the old noun; the word
+// is read by deprecatedNounWords).
+func commandAliases(r *ochazuke.Runtime, key string) []ochazuke.ActionAlias {
+	var out []ochazuke.ActionAlias
+	for _, a := range r.AliasesOf(key) {
+		if _, renamed := r.DeprecatedNounAlias(a.Noun); a.Shadows || renamed {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
 }

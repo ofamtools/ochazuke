@@ -1,0 +1,30 @@
+{
+  "name": "old picker names run for one release: a user's bindings.json rows on the old ochazuke.chooser noun (context and action) still move and pick (bindings check notes them), and the old chooser.match setting name still sets the match mode, with one notice",
+  "area": "pickers",
+  "width": 80,
+  "height": 16,
+  "session": {"chooser.match": "substring"},
+  "config": {
+    "bindings.json": [
+      {"noun": "ochazuke.chooser", "mode": "insert", "keys": "ctrl+x", "request": {"noun": "ochazuke.chooser", "verb": "move", "args": {"delta": 1}}},
+      {"noun": "ochazuke.chooser", "mode": "insert", "keys": "ctrl+y", "request": {"noun": "ochazuke.chooser", "verb": "pick"}}
+    ]
+  },
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "chooser": {
+      "title": "Fruit",
+      "rows": [
+        {"id": "a", "label": "alpha"},
+        {"id": "b", "label": "beta"},
+        {"id": "c", "label": "gamma"}
+      ]
+    }
+  },
+  "script": ["ctrl+x", "ctrl+x", "ctrl+y"],
+  "expect": [
+    {"after": 1, "modal": "story-chooser", "contains": ["substr"], "highlightedText": "beta", "notices": ["setting \"chooser.match\" is deprecated: use \"picker.match\""]},
+    {"after": 2, "highlightedText": "gamma"},
+    {"after": 3, "modal": ""}
+  ]
+}

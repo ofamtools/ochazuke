@@ -124,7 +124,7 @@ type TextSpec struct {
 
 // ChooserSpec is a chooser opened over the page's focus: its rows and the
 // columns cut last (Keep). A row with a Preview gives the chooser a
-// preview column (ochazuke.ChooserSpec.Preview). Picking a row closes it.
+// preview column (ochazuke.PickerSpec.Preview). Picking a row closes it.
 type ChooserSpec struct {
 	Kind  string           `json:"kind,omitempty"` // default "story-chooser"
 	Title string           `json:"title,omitempty"`
@@ -133,7 +133,7 @@ type ChooserSpec struct {
 	// Sources make it a chooser with sources (tab cycles them); Rows are
 	// then unused. demo.choose opens the chooser again.
 	Sources []ChooserSourceSpec `json:"sources,omitempty"`
-	// Match is the chooser's starting match mode (ochazuke.ChooserSpec.Match).
+	// Match is the chooser's starting match mode (ochazuke.PickerSpec.Match).
 	Match string `json:"match,omitempty"`
 }
 
@@ -145,7 +145,7 @@ type ChooserSourceSpec struct {
 	Rows []ChooserRowSpec `json:"rows"`
 	Live bool             `json:"live,omitempty"`
 	// Matched: the chooser's match mode narrows the live rows
-	// (ochazuke.ChooserSource.Matched); the story source then answers
+	// (ochazuke.PickerSource.Matched); the story source then answers
 	// every row, not only those holding the query.
 	Matched bool `json:"matched,omitempty"`
 }

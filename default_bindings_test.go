@@ -10,8 +10,9 @@ import (
 )
 
 // frameworkRuntime builds a runtime with every framework component whose
-// verbs the embedded files name: the model (app.json, palette.json) and a
-// picker (picker.json).
+// verbs the embedded files name: the model (app.json, palette.json) and
+// the path finder (its keys are rows of picker.json, which every runtime
+// loads).
 func frameworkRuntime(t *testing.T) *Runtime {
 	t.Helper()
 	r := NewRuntime()
@@ -79,7 +80,7 @@ func TestFrameworkBindingFilesDoNotClash(t *testing.T) {
 // the application bound its key first).
 func TestEveryFrameworkBindingFileIsLoaded(t *testing.T) {
 	r := frameworkRuntime(t)
-	lazy := []string{"app.json", "palette.json", "picker.json"}
+	lazy := []string{"app.json", "palette.json"}
 	bySource := map[string]int{}
 	for _, row := range r.DefaultBindings() {
 		bySource[row.Source]++

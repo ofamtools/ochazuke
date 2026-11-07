@@ -33,14 +33,14 @@ const EditFieldOnlySetting = "edit.field-only"
 // with nothing written. Read with edit.field-only: off, or edit.field-only
 // off, the form opens as before. A request's chooser argument overrides
 // both. Default on.
-const EditFieldChooserSetting = "edit.field-chooser"
+const EditFieldChooserSetting = "edit.field-picker"
 
 // editFieldParam is edit's parameter naming the one prop to edit.
 const editFieldParam = "field"
 
 // editChooserParam is edit's parameter choosing, for a field that takes a
 // choice, its chooser (true) or the one-field form (false); omitted,
-// edit.field-chooser decides.
+// edit.field-picker decides.
 const editChooserParam = "chooser"
 
 // EditChooserKind is the kind of the chooser edit {field} opens on a
@@ -75,7 +75,7 @@ func editParams(n *Noun) map[string]Parameter {
 	params[editFieldParam] = Parameter{Type: "string", Enum: fields, Free: true, Plumbing: true,
 		Description: "The one prop to edit (a name, or @label, @owner, @archive for the prop with that role): with edit.field-only the form holds only it, else the full form opens on it"}
 	params[editChooserParam] = Parameter{Type: SettingBoolean, Plumbing: true,
-		Description: "With field on a prop that takes a choice: true opens its chooser (the pick writes and closes), false the one-field form; omitted, edit.field-chooser decides"}
+		Description: "With field on a prop that takes a choice: true opens its picker (the pick writes and closes), false the one-field form; omitted, edit.field-picker decides (the argument keeps its old name chooser)"}
 	return params
 }
 

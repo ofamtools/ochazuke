@@ -1,6 +1,6 @@
 [
   {"noun": "agent", "settings": ["agent.view", "agent.view-split"], "reads": "line", "apps": ["matomeru"]},
-  {"noun": "chooser", "settings": ["chooser.enter", "chooser.remember-source"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "picker", "settings": ["picker.enter", "picker.remember-source"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
   {"noun": "column", "settings": ["column-width"], "reads": "line", "apps": ["o-csv"]},
   {"noun": "focus", "settings": ["focus-display"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
   {"noun": "form", "settings": ["forms.single-path"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},

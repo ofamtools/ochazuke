@@ -23,12 +23,12 @@ type pickerPreview struct {
 }
 
 type pickerPreviewMsg struct {
-	picker  *Picker
+	picker  *PathFinder
 	id      uint64
 	preview pickerPreview
 }
 
-func (p *Picker) queuePreview() {
+func (p *PathFinder) queuePreview() {
 	path := ""
 	if p.Selected >= 0 && p.Selected < len(p.Entries) {
 		path = filepath.Join(p.Directory, filepath.FromSlash(p.Entries[p.Selected].Path))

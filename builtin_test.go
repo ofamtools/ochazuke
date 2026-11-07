@@ -25,7 +25,7 @@ func TestFrameworkOperationsAreBuiltin(t *testing.T) {
 	if got := notBuiltin(r); len(got) > 0 {
 		t.Fatalf("framework operations not builtin: %v", got)
 	}
-	for _, key := range []string{"ochazuke.outline.add", "ochazuke.chooser.pick", "ochazuke.setting.open", "ochazuke.surface.scroll", "ochazuke.palette.open", "ochazuke.picker.open", "ochazuke.appearance.set"} {
+	for _, key := range []string{"ochazuke.outline.add", "ochazuke.picker.pick", "ochazuke.setting.open", "ochazuke.surface.scroll", "ochazuke.palette.open", "ochazuke.picker.open", "ochazuke.appearance.set"} {
 		op, ok := r.Operations[key]
 		if !ok || !op.Builtin {
 			t.Fatalf("%s: registered %v, builtin %v", key, ok, op.Builtin)

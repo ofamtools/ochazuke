@@ -48,6 +48,6 @@
     }
   ],
   "values": {
-    "chooser.up-from-none": "stay"
+    "picker.up-from-none": "stay"
   }
 }

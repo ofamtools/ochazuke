@@ -1,5 +1,5 @@
 {
- "name": "a key row's chooser argument overrides edit.field-chooser: o (edit {field: @owner, chooser: false}) opens the one-field form while m opens the chooser",
+ "name": "a key row's chooser argument overrides edit.field-picker: o (edit {field: @owner, chooser: false}) opens the one-field form while m opens the chooser",
  "area": "verbs",
  "width": 100,
  "height": 28,

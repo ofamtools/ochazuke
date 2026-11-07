@@ -11,7 +11,7 @@
     ],
     "bind": [{"noun": "app", "keys": "e", "do": "demo.load"}]
   },
-  "script": ["e", {"job": "chooser.load"}, "esc"],
+  "script": ["e", {"job": "picker.load"}, "esc"],
   "expect": [
     {"modal": "", "focus": "a1", "writes": []}
   ]

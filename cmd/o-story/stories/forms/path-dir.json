@@ -11,7 +11,7 @@
     ],
     "focus": "proj/folder"
   },
-  "script": ["enter", {"job": "chooser.load"}, "enter", {"job": "chooser.load"}, "alt+enter"],
+  "script": ["enter", {"job": "picker.load"}, "enter", {"job": "picker.load"}, "alt+enter"],
   "expect": [
     {"after": 2, "modal": "path-chooser", "contains": ["Choose folder · [browse", "sub/", "zed/", "use "], "lacks": ["a.json"]},
     {"after": 4, "contains": ["deep/"], "lacks": ["zed/"]},

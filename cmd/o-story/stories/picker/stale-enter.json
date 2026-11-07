@@ -1,0 +1,55 @@
+{
+  "name": "path chooser: stale enter",
+  "area": "picker",
+  "width": 100,
+  "height": 18,
+  "files": [
+    "a.json"
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "records": [
+      {
+        "id": "doc",
+        "fields": [
+          {
+            "name": "file",
+            "type": "path",
+            "base": "{{files}}"
+          }
+        ]
+      }
+    ],
+    "focus": "doc/file"
+  },
+  "script": [
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "./a"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "x"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    }
+  ],
+  "expect": [
+    {
+      "writes": [],
+      "modal": "path-chooser"
+    }
+  ]
+}

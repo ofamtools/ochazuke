@@ -1098,7 +1098,7 @@ func registerSettingsLayoutView(r *Runtime) {
 			}})
 		}
 	}
-	r.Register(Operation{Verb: "pick", Noun: settingsSectionNoun, Description: "Pick a section of the shown tab from a chooser and show it", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "pick", Noun: settingsSectionNoun, Description: "Pick a section of the shown tab from a picker and show it", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), openSectionPicker(r)
 	}})
 }

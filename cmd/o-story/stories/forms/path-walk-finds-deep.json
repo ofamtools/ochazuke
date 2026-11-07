@@ -12,7 +12,7 @@
     "pathWalk": {"roots": [{"path": "{{files}}", "label": "project"}]},
     "focus": "proj/folder"
   },
-  "script": ["enter", {"job": "chooser.load"}, {"type": "cmd mtm"}, "enter"],
+  "script": ["enter", {"job": "picker.load"}, {"type": "cmd mtm"}, "enter"],
   "expect": [
     {"after": 2, "modal": "path-chooser", "contains": ["Choose folder · [walk ", "cmd/mtm/", "internal/work/", ".worktrees/lane-a/", "project"], "lacks": [".git", "node_modules", "main.go", "…]"]},
     {"after": 3, "contains": ["cmd/mtm/"], "lacks": ["internal/work/", "docs/"]},

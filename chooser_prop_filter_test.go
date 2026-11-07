@@ -164,11 +164,11 @@ func TestChooserPropFilterRepeatCtrlFAndClearFallback(t *testing.T) {
 	}
 	// The chooser rows deliberately override the editor's ctrl+f cursor move
 	// and alt+backspace word erase only while the relevant guards hold.
-	data, err := frameworkBindings.ReadFile("bindings/chooser.json")
+	data, err := frameworkBindings.ReadFile("bindings/picker.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if problems := r.CheckDefaultBindings("bindings/chooser.json", data); len(problems) > 0 {
+	if problems := r.CheckDefaultBindings("bindings/picker.json", data); len(problems) > 0 {
 		t.Fatal(problems)
 	}
 	if _, err := r.ValidateBindings(); err != nil {

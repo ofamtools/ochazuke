@@ -30,7 +30,7 @@ type pickerStat struct {
 }
 
 type pickerStatMsg struct {
-	picker *Picker
+	picker *PathFinder
 	id     uint64
 	stats  map[string]pickerStat
 }
@@ -77,13 +77,13 @@ func (s *pickerStats) put(key string, stat pickerStat) {
 func (s *pickerStats) len() int { return s.order.Len() }
 
 // statKey is the cache key of an entry: its absolute path.
-func (p *Picker) statKey(entry PickerEntry) string {
+func (p *PathFinder) statKey(entry PickerEntry) string {
 	return filepath.Join(p.Directory, filepath.FromSlash(entry.Path))
 }
 
 // window is the results the table draws for limit rows: the selection
 // stays on the last row once it passes the first screen.
-func (p *Picker) window(limit int) (start, end int) {
+func (p *PathFinder) window(limit int) (start, end int) {
 	start = max(0, p.Selected-limit+1)
 	return start, min(len(p.Entries), start+limit)
 }
@@ -91,7 +91,7 @@ func (p *Picker) window(limit int) (start, end int) {
 // queueStats starts a stat job for the drawn rows (the last frame's row
 // count) that are neither cached nor in the current job. Nothing before
 // the first frame: an undrawn table stats nothing.
-func (p *Picker) queueStats() {
+func (p *PathFinder) queueStats() {
 	if p.drawnRows <= 0 || len(p.Entries) == 0 {
 		return
 	}
@@ -145,7 +145,7 @@ func statPaths(ctx context.Context, stat func(string) (fs.FileInfo, error), path
 }
 
 // applyStats caches a current stat job's answers.
-func (p *Picker) applyStats(msg pickerStatMsg) {
+func (p *PathFinder) applyStats(msg pickerStatMsg) {
 	if !p.accept("stat", msg.id, nil) {
 		return
 	}
@@ -159,7 +159,7 @@ func (p *Picker) applyStats(msg pickerStatMsg) {
 }
 
 // resetStats forgets every answer and the job in flight (a new index).
-func (p *Picker) resetStats() {
+func (p *PathFinder) resetStats() {
 	p.cancel("stat")
 	p.stats, p.statting = newPickerStats(), nil
 }

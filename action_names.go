@@ -265,6 +265,7 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 	}
 	a.Action = op.Key()
 	noun, verb, ok := r.splitNounName(a.Alias)
+	noun = r.renamedNounSpelling(a.Alias, noun, verb)
 	if a.Bare && ok && noun == op.Noun && !strings.Contains(verb, ".") {
 		// An alias already made bare (its canonical noun.verb) again.
 		a.Alias, ok = verb, false

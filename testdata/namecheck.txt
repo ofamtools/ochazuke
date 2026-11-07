@@ -29,7 +29,6 @@ association.go	Runtime.nearestOf	compare	"app"	1
 binding_render_cache.go	runtimeRenderCache.scan	cyclo	"-"	32
 chooser.go	Chooser.refilter	cyclo	"-"	31
 chooser.go	Chooser.rowsView	cyclo	"-"	44
-chooser.go	registerChooser	case	"last"	1
 chooser_sources.go	Chooser.enterOpens	compare	"pick"	1
 chrome.go	isModeHue	compare	"mode"	1
 chrome.go	var chromeModes	table	"mode"	1
@@ -66,7 +65,7 @@ cli/mcp_backend.go	mcpBackend.run	cyclo	"-"	33
 cli/mcp_backend.go	parameterSchema	case	"list"	1
 cli/mount.go	Mount	compare	"app"	1
 cli/mount.go	Mount	compare	"list"	1
-cli/mount.go	Mount	cyclo	"-"	56
+cli/mount.go	Mount	cyclo	"-"	55
 cli/page.go	MountPage	cyclo	"-"	31
 cli/pagestate.go	PageView.ApplyState	case	"delta"	1
 cli/ptykeys.go	var keyCodes	table	"delete"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
@@ -338,14 +337,18 @@ param_kinds.go	var paramKinds	table	"path"	1	"path" here is a parameter TYPE (Pa
 param_sources.go	isRowSource	compare	"row"	1
 path_chooser.go	PathPick.Dir	compare	"dir"	1
 peer_bindings.go	Runtime.syncPeerNotices	compare	"all"	1
-picker.go	Picker.choose	compare	"dir"	1
-picker.go	Picker.open	case	"path"	1
-picker.go	Picker.open	compare	"dir"	1
-picker.go	Picker.open	compare	"path"	1
-picker.go	Picker.require	compare	"picker"	1
+picker.go	PathFinder.choose	compare	"dir"	1
+picker.go	PathFinder.open	case	"path"	1
+picker.go	PathFinder.open	compare	"dir"	1
+picker.go	PathFinder.open	compare	"path"	1
+picker.go	PathFinder.require	compare	"picker"	1
 picker.go	newPicker	compare	"ochazuke.input"	1
 picker_search.go	searchPickerMatch	compare	"dir"	1
-picker_view.go	Picker.bindingHelp	compare	"ochazuke.picker"	1
+picker_verbs.go	pickerMoveDelta	case	"last"	1
+picker_verbs.go	var pickerRename	table	"open"	1	data: the renamed verb of the old chooser noun (Keep actions, one release)
+picker_verbs.go	var pickerVerbAliases	table	"choose"	1	data: the path finder's old verb names, aliases for one release
+picker_verbs.go	var pickerVerbAliases	table	"close"	1	data: the path finder's old verb names, aliases for one release
+picker_view.go	PathFinder.bindingHelp	compare	"ochazuke.picker"	1
 prop_filter.go	propTest	compare	"list"	1
 prop_filter.go	typedPropFilter	compare	"list"	1
 props.go	NounBuilder.Store	compare	"instances"	1

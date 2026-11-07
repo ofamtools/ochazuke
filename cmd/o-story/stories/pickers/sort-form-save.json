@@ -1,0 +1,115 @@
+{
+  "name": "sort-form-save-and-cycle",
+  "area": "pickers",
+  "width": 100,
+  "height": 26,
+  "chrome": "none",
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "nouns": [
+      {
+        "noun": "entry",
+        "props": [
+          {
+            "name": "rank",
+            "type": "integer"
+          }
+        ],
+        "filters": [
+          {
+            "name": "all"
+          }
+        ]
+      }
+    ],
+    "chooser": {
+      "kind": "entries",
+      "title": "Entries",
+      "rows": [
+        {
+          "id": "ten",
+          "noun": "entry",
+          "label": "ten",
+          "props": {
+            "rank": 10
+          }
+        },
+        {
+          "id": "two",
+          "noun": "entry",
+          "label": "two",
+          "props": {
+            "rank": 2
+          }
+        },
+        {
+          "id": "five",
+          "noun": "entry",
+          "label": "five",
+          "props": {
+            "rank": 5
+          }
+        }
+      ]
+    }
+  },
+  "script": [
+    "ctrl+f",
+    "shift+tab",
+    "shift+tab",
+    "r",
+    "a",
+    "n",
+    "k",
+    "enter",
+    "tab",
+    "tab",
+    "r",
+    "a",
+    "n",
+    "k",
+    "e",
+    "d",
+    "enter",
+    "esc",
+    "z",
+    "]",
+    "z",
+    "[",
+    "esc"
+  ],
+  "expect": [
+    {
+      "after": 17,
+      "contains": [
+        "Applied: ranked",
+        "Replace"
+      ]
+    },
+    {
+      "after": 20,
+      "contains": [
+        "Applied: all"
+      ],
+      "lacks": [
+        "Sort by ▲"
+      ]
+    },
+    {
+      "contains": [
+        "sort rank ▲"
+      ],
+      "order": [
+        "two",
+        "five",
+        "ten"
+      ],
+      "modal": "entries"
+    }
+  ]
+}

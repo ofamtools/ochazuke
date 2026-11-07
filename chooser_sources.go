@@ -22,8 +22,9 @@ import (
 // chooser kind is remembered for the next open while the setting
 // chooser.remember-source is on.
 
-// ChooserSource is one source of a chooser's rows.
-type ChooserSource struct {
+// PickerSource is one source of a picker's rows (ChooserSource before
+// v0.96.0).
+type PickerSource struct {
 	// Name is what the title calls the source ("browse", "recent").
 	Name string
 	// Label, when set, is what the title shows for the current source in
@@ -83,32 +84,23 @@ type ChooserSource struct {
 const (
 	// ChooserRememberSourceSetting reopens a chooser with sources on the
 	// source last used for its kind (on), or on its first source (off).
-	ChooserRememberSourceSetting = "chooser.remember-source"
+	ChooserRememberSourceSetting = "picker.remember-source"
 	// ChooserClaimSourceSetting lets a source that claims the query
 	// (ChooserSource.Claims) answer for it at once (on, the default), or
 	// leaves the source switch to the user (off).
-	ChooserClaimSourceSetting = "chooser.claim-source"
+	ChooserClaimSourceSetting = "picker.claim-source"
 	// ChooserEnterSetting is what enter does on a row that can be both
 	// opened and picked (a folder in a folder chooser): "open" (the
 	// default; alt+enter picks) or "pick" (ctrl+l opens).
-	ChooserEnterSetting = "chooser.enter"
-)
-
-// Chooser guards: the rows of chooser.json name them.
-const (
-	ChooserSourcesGuard    = "chooser-sources"     // more than one source
-	ChooserOpensGuard      = "chooser-opens"       // the highlighted row opens
-	ChooserEnterOpensGuard = "chooser-enter-opens" // enter opens it (ChooserEnterSetting, or a row that only opens)
-	ChooserUpGuard         = "chooser-up"          // the source can step up
-	ChooserUpEmptyGuard    = "chooser-up-empty"    // it can, and the query is empty (backspace)
+	ChooserEnterSetting = "picker.enter"
 )
 
 // chooserLoadVerb names a source's load job.
-const chooserLoadVerb = "ochazuke.chooser.load"
+const chooserLoadVerb = "ochazuke.picker.load"
 
 // chooserStateID is the instance holding what choosers remember between
 // opens (the last source per kind) and the path sources (path_picker.go).
-const chooserStateID = "__chooser-state"
+const chooserStateID = "__picker-state"
 
 // chooserState is the chooser memory component.
 type chooserState struct {
@@ -153,7 +145,7 @@ func registerChooserSources(r *Runtime) {
 		return func(ctx Ctx) Result {
 			c := r.chooserAt(ctx.Instance)
 			if c == nil {
-				return Failed(errors.New("no chooser is open"))
+				return Failed(errors.New("no picker is open"))
 			}
 			if err := c.cycle(delta); err != nil {
 				return Failed(err)
@@ -162,52 +154,18 @@ func registerChooserSources(r *Runtime) {
 		}
 	}
 	r.Define(chooserNoun).
-		Verb("next-source", step(1), "Show the next source's rows; the query stays").When(ChooserSourcesGuard).
-		Verb("previous-source", step(-1), "Show the previous source's rows; the query stays").When(ChooserSourcesGuard).
-		Verb("open", func(ctx Ctx) Result {
-			c := r.chooserAt(ctx.Instance)
-			if c == nil {
-				return Failed(errors.New("no chooser is open"))
-			}
-			if err := c.open(); err != nil {
-				return Failed(err)
-			}
-			return Done(c.state())
-		}, "Open the highlighted row inside its source (browse into a folder)").When(ChooserOpensGuard).
-		Verb("up", func(ctx Ctx) Result {
-			c := r.chooserAt(ctx.Instance)
-			if c == nil {
-				return Failed(errors.New("no chooser is open"))
-			}
-			if err := c.up(); err != nil {
-				return Failed(err)
-			}
-			return Done(c.state())
-		}, "Step the source back out (the parent folder)").When(ChooserUpGuard)
-	at := func(ev KeyEvent) *Chooser { return r.chooserAt(r.Instances[ev.Focus]) }
-	r.DefineGuard(ChooserSourcesGuard, func(r *Runtime, ev KeyEvent) bool {
-		c := at(ev)
+		Verb("next-source", step(1), "Show the next source's rows; the query stays").When(PickerSourcesGuard).
+		Verb("previous-source", step(-1), "Show the previous source's rows; the query stays").When(PickerSourcesGuard)
+	r.DefineGuard(PickerSourcesGuard, func(r *Runtime, ev KeyEvent) bool {
+		c := r.chooserAt(r.Instances[ev.Focus])
 		return c != nil && len(c.spec.Sources) > 1
 	})
-	r.DefineGuard(ChooserOpensGuard, func(r *Runtime, ev KeyEvent) bool {
-		c := at(ev)
-		return c != nil && c.opens()
-	})
-	r.DefineGuard(ChooserEnterOpensGuard, func(r *Runtime, ev KeyEvent) bool {
-		c := at(ev)
-		// Enter waits for the rows of the query as typed (pick holds it),
-		// so it never opens an older query's row.
-		return c != nil && !c.waiting() && c.enterOpens()
-	})
-	r.DefineGuard(ChooserUpGuard, func(r *Runtime, ev KeyEvent) bool {
-		c := at(ev)
-		return c != nil && c.canUp()
-	})
-	r.DefineGuard(ChooserUpEmptyGuard, func(r *Runtime, ev KeyEvent) bool {
-		c := at(ev)
-		return c != nil && c.canUp() && c.Query() == ""
-	})
 }
+
+// ChooserSource is PickerSource's old name.
+//
+// Deprecated: use PickerSource; kept for one release (v0.96.0).
+type ChooserSource = PickerSource
 
 // Source is the current source's name, "" for a chooser without sources.
 func (c *Chooser) Source() string {
@@ -273,7 +231,7 @@ func (c *Chooser) cycle(delta int) error {
 	c.filters.linger.reset()
 	n := len(c.spec.Sources)
 	if n < 2 {
-		return errors.New("the chooser has one source")
+		return errors.New("the picker has one source")
 	}
 	c.pending = false
 	c.suppressed = c.claimedBy(c.Query()) >= 0
@@ -574,7 +532,7 @@ func (c *Chooser) runPending() {
 		if c.r.Instances[owner] == nil {
 			owner = c.r.survivor(ancestry)
 		}
-		if _, err := c.r.Launch(owner, "ochazuke.chooser.pick", res, ctx); err != nil {
+		if _, err := c.r.Launch(owner, "ochazuke.picker.pick", res, ctx); err != nil {
 			ctx.Error(err.Error())
 		}
 	}

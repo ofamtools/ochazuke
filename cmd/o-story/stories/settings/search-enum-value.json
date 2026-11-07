@@ -95,7 +95,7 @@
       "lacks": [
         "scrolloff",
         "tab-width",
-        "Choosers",
+        "Pickers",
         "no matches"
       ]
     },

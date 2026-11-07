@@ -332,11 +332,11 @@ func (d *Doc) BlockChooser() error {
 	if _, ok := d.buffer(); !ok {
 		return errors.New("no block is open")
 	}
-	rows := make([]ochazuke.ChooserRow, len(blockKinds))
+	rows := make([]ochazuke.PickerRow, len(blockKinds))
 	for i, k := range blockKinds {
-		rows[i] = ochazuke.ChooserRow{ID: "block/" + k.id, Label: k.label, Data: i}
+		rows[i] = ochazuke.PickerRow{ID: "block/" + k.id, Label: k.label, Data: i}
 	}
-	_, err := d.r.OpenChooser(ochazuke.ChooserSpec{Kind: "markdown-blocks", Title: "Insert", Rows: rows, Choose: func(row ochazuke.ChooserRow) ochazuke.Result {
+	_, err := d.r.OpenPicker(ochazuke.PickerSpec{Kind: "markdown-blocks", Title: "Insert", Rows: rows, Choose: func(row ochazuke.PickerRow) ochazuke.Result {
 		i, _ := row.Data.(int)
 		k := blockKinds[i]
 		if k.id == "table" {
@@ -361,9 +361,9 @@ func result(err error) ochazuke.Result {
 // columnsChooser asks a new table's column count: 2 to 6, or a number
 // typed.
 func (d *Doc) columnsChooser() ochazuke.Result {
-	var rows []ochazuke.ChooserRow
+	var rows []ochazuke.PickerRow
 	for n := 2; n <= 6; n++ {
-		rows = append(rows, ochazuke.ChooserRow{ID: "columns/" + strconv.Itoa(n), Label: strconv.Itoa(n) + " columns", Data: n})
+		rows = append(rows, ochazuke.PickerRow{ID: "columns/" + strconv.Itoa(n), Label: strconv.Itoa(n) + " columns", Data: n})
 	}
 	table := func(n int) ochazuke.Result {
 		n = min(max(1, n), 32)
@@ -371,8 +371,8 @@ func (d *Doc) columnsChooser() ochazuke.Result {
 		delim := "|" + strings.Repeat(" --- |", n)
 		return result(d.putLine(head+"\n"+delim, 2))
 	}
-	_, err := d.r.OpenChooser(ochazuke.ChooserSpec{Kind: "markdown-columns", Title: "Columns", Rows: rows,
-		Choose: func(row ochazuke.ChooserRow) ochazuke.Result { n, _ := row.Data.(int); return table(n) },
+	_, err := d.r.OpenPicker(ochazuke.PickerSpec{Kind: "markdown-columns", Title: "Columns", Rows: rows,
+		Choose: func(row ochazuke.PickerRow) ochazuke.Result { n, _ := row.Data.(int); return table(n) },
 		Create: func(query string) ochazuke.Result {
 			n, err := strconv.Atoi(strings.Fields(query + " ")[0])
 			if err != nil || n < 1 {

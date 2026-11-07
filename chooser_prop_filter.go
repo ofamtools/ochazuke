@@ -1,7 +1,7 @@
 package ochazuke
 
 // ChooserPropFiltersSetting enables chooser prop filters (default true).
-const ChooserPropFiltersSetting = "chooser.prop-filters"
+const ChooserPropFiltersSetting = "picker.prop-filters"
 
 func (c *Chooser) propFiltersEnabled() bool {
 	return !c.spec.NoPropFilters && c.r.Settings().Bool(ChooserPropFiltersSetting)

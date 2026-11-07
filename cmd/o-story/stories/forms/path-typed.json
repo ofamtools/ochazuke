@@ -11,7 +11,7 @@
     ],
     "focus": "doc/file"
   },
-  "script": ["enter", {"job": "chooser.load"}, "ctrl+o", "ctrl+o", {"type": "s"}, {"job": "chooser.load"}, "enter", {"job": "chooser.load"}, {"type": "cf"}, {"job": "chooser.load"}, "enter"],
+  "script": ["enter", {"job": "picker.load"}, "ctrl+o", "ctrl+o", {"type": "s"}, {"job": "picker.load"}, "enter", {"job": "picker.load"}, {"type": "cf"}, {"job": "picker.load"}, "enter"],
   "expect": [
     {"after": 3, "contains": ["browse [recent] typed", "no recent paths"]},
     {"after": 4, "contains": ["browse recent [typed]", "type a path"]},

@@ -7,7 +7,7 @@
 {
   "owners": [
     {"id": "app", "order": 0, "description": "The application's own settings"},
-    {"id": "ochazuke", "title": "ochazuke", "order": 100, "description": "The framework's settings, every ochazuke application has them: how pages look, keys, lists, choosers, the palette"}
+    {"id": "ochazuke", "title": "ochazuke", "order": 100, "description": "The framework's settings, every ochazuke application has them: how pages look, keys, lists, pickers, the palette"}
   ],
   "sections": [
     {"id": "general", "title": "General", "description": "Settings with no section of their own"},
@@ -18,8 +18,8 @@
     {"owner": "ochazuke", "id": "palette", "title": "Palette", "description": "The command palette, the CLI's help and the forms a missing argument opens"},
     {"owner": "ochazuke", "id": "records", "title": "Records", "description": "The standard create and delete, and record editors"},
     {"owner": "ochazuke", "id": "lists", "title": "Lists", "description": "Lists, tables and trees: rename, visual selection, zoom and breadcrumbs"},
-    {"owner": "ochazuke", "id": "search", "title": "Search", "description": "How every search and filter treats case and matches its query: the path picker, choosers and the / list filter"},
-    {"owner": "ochazuke", "id": "choosers", "title": "Choosers", "description": "Choosers and the path chooser"},
+    {"owner": "ochazuke", "id": "search", "title": "Search", "description": "How every search and filter treats case and matches its query: the path picker, pickers and the / list filter"},
+    {"owner": "ochazuke", "id": "pickers", "title": "Pickers", "description": "Pickers: the path picker and every picker that lists things to pick"},
     {"owner": "ochazuke", "id": "hooks", "title": "Hooks", "description": "hooks.json: verbs that run when an event happens"},
     {"owner": "ochazuke", "id": "status", "title": "Status bar", "description": "The status segments in the header rule"},
     {"owner": "ochazuke", "id": "pages", "title": "Pages", "description": "Hidden pages and the action history"},

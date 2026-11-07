@@ -61,11 +61,11 @@
   "expect": {
     "modal": "page-picker",
     "contains": [
-      "enter chooser.pick",
+      "enter picker.pick",
       "esc modal.close"
     ],
     "lacks": [
-      "chooser.move"
+      "picker.move"
     ]
   }
 }

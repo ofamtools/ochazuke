@@ -1,15 +1,44 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
+// Every picker's keys: a chooser (OpenPicker, a registered picker, the path picker) and the path finder (NewPicker) alike. The rows were bindings/chooser.json (noun ochazuke.chooser, a deprecated name of ochazuke.picker until v0.97.0) and the finder's own picker.json.
 {
   "bindings": [
-    {"context": "ochazuke.picker/insert", "bindings": [
+    {"context":"ochazuke.picker/insert","bindings":[
+      {"key":"esc","action":"ochazuke.picker.normal","hidden":true},
+      {"key":"printable","action":"ochazuke.input.insert","from":{"text":"text"},"hidden":true},
+      {"key":"paste","action":"ochazuke.input.insert","from":{"text":"text"},"hidden":true}
+    ]},
+    {"context":"ochazuke.picker/normal","bindings":[
+      {"key":"j","action":"ochazuke.picker.move","args":{"delta":1}},
+      {"key":"k","action":"ochazuke.picker.move","args":{"delta":-1}},
+      {"key":"g g","action":"ochazuke.picker.move","args":{"to":"first"}},
+      {"key":"G","action":"ochazuke.picker.move","args":{"to":"last"}}
+    ]},
+    {"context": "ochazuke.picker", "bindings": [
+      {"key": "ctrl+f", "action": "ochazuke.list.filter-cycle", "when": "list-prop-filtered", "args": {"step": 1}, "hint": "next filter"},
+      {"key": "ctrl+f", "action": "ochazuke.list.filter-prop", "args": {"clear": true}, "hint": "prop filter"},
+      {"key": "alt+]", "action": "ochazuke.list.filter-cycle", "args": {"step": 1}, "hint": "next filter"},
+      {"key": "alt+[", "action": "ochazuke.list.filter-cycle", "args": {"step": -1}, "hint": "previous filter", "hidden": true},
+      {"key": "alt+backspace", "action": "ochazuke.picker.clear-props", "hint": "clear props"},
+      {"key": "enter", "action": "ochazuke.picker.into", "when": "picker-enter-opens"},
+      {"key": "enter", "action": "ochazuke.picker.pick"},
+      {"key": "alt+enter", "action": "ochazuke.picker.pick"},
+      {"key": "ctrl+s", "action": "ochazuke.picker.pick"},
+      {"key": "ctrl+l", "action": "ochazuke.picker.into"},
+      {"key": "alt+up", "action": "ochazuke.picker.up"},
+      {"key": "backspace", "action": "ochazuke.picker.up", "when": "picker-up-empty"},
+      {"key": "ctrl+o", "action": "ochazuke.picker.next-source"},
+      {"key": "alt+o", "action": "ochazuke.picker.previous-source"},
+      {"key": "esc", "action": "ochazuke.modal.close"},
+      {"key": "down", "action": "ochazuke.picker.move", "args": {"delta": 1}},
+      {"key": "ctrl+j", "action": "ochazuke.picker.move", "args": {"delta": 1}},
       {"key": "ctrl+n", "action": "ochazuke.picker.move", "args": {"delta": 1}},
+      {"key": "up", "action": "ochazuke.picker.move", "args": {"delta": -1}},
       {"key": "ctrl+p", "action": "ochazuke.picker.move", "args": {"delta": -1}},
-      {"key": "alt+up", "action": "ochazuke.picker.parent"},
+      {"key": "ctrl+k", "action": "ochazuke.picker.move", "args": {"delta": -1}},
       {"key": "tab", "action": "ochazuke.picker.complete"},
-      {"key": "ctrl+t", "action": "ochazuke.search.cycle-match"},
-      {"key": "enter", "action": "ochazuke.picker.enter"},
-      {"key": "ctrl+s", "action": "ochazuke.picker.choose"},
-      {"key": "esc", "action": "ochazuke.modal.close"}
+      {"key": "tab", "action": "ochazuke.search.cycle-match"},
+      {"key": "shift+tab", "action": "ochazuke.search.cycle-match", "args": {"step": -1}, "hidden": true},
+      {"key": "ctrl+t", "action": "ochazuke.search.cycle-match"}
     ]}
   ]
 }

@@ -637,7 +637,7 @@ func registerListPropFilter(r *Runtime) {
 		params                   map[string]Parameter
 		run                      func(*List, Arguments) error
 	}{
-		{"filter-prop", "Add a prop condition (AND); omit prop or value to pick from visible rows", "list-props", map[string]Parameter{"clear": {Type: "boolean", Description: "Offer clearing active prop filters in the prop picker"}, "prop": {Type: "string"}, "op": {Type: "string", Enum: FilterOps}, "value": {Type: "any", Description: "Typed value; in and not-in take an array"}, "not": {Type: "boolean", Description: "Turn the condition over (= to !=, in to not-in, contains to not-contains); with the value chooser, its not toggle starts on"}}, func(l *List, a Arguments) error {
+		{"filter-prop", "Add a prop condition (AND); omit prop or value to pick from visible rows", "list-props", map[string]Parameter{"clear": {Type: "boolean", Description: "Offer clearing active prop filters in the prop picker"}, "prop": {Type: "string"}, "op": {Type: "string", Enum: FilterOps}, "value": {Type: "any", Description: "Typed value; in and not-in take an array"}, "not": {Type: "boolean", Description: "Turn the condition over (= to !=, in to not-in, contains to not-contains); with the value picker, its not toggle starts on"}}, func(l *List, a Arguments) error {
 			prop := StringArg(a, "prop", "")
 			value, ok := a["value"]
 			not, _ := a["not"].(bool)
@@ -685,7 +685,7 @@ func registerListPropFilter(r *Runtime) {
 		{"filter-saved", "Apply saved conditions and sort by name, keeping / text", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.ApplyFilter(StringArg(a, "name", "")) }},
 		{"filter-save", "Save current prop conditions and sort as a list-scoped user filter in list.filters", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.SaveFilter(StringArg(a, "name", "")) }},
 		{"filter-saved-delete", "Delete a user saved filter; removing an override reveals the app default", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.DeleteSavedFilter(StringArg(a, "name", "")) }},
-		{"filter-saved-pick", "List saved prop filters in a chooser and apply the selected one", "", nil, func(l *List, _ Arguments) error { return l.pickSavedFilter() }},
+		{"filter-saved-pick", "List saved prop filters in a picker and apply the selected one", "", nil, func(l *List, _ Arguments) error { return l.pickSavedFilter() }},
 		{"filter-cycle", "Cycle the saved prop filters declared for this list or its row nouns", "list-saved-filters", map[string]Parameter{"step": {Type: "integer"}}, func(l *List, a Arguments) error {
 			filters, err := l.SavedFilters()
 			if err != nil {
@@ -730,7 +730,7 @@ func registerListPropFilter(r *Runtime) {
 		if params == nil {
 			params = map[string]Parameter{}
 		}
-		params["id"] = Parameter{Type: "string", Description: "List, tree or chooser id (default focused)"}
+		params["id"] = Parameter{Type: "string", Description: "List, tree or picker id (default focused)"}
 		r.Register(Operation{Noun: "ochazuke.list", Verb: spec.verb, Description: spec.description, Parameters: params, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l, err := resolve(c, a)
 			if err != nil {

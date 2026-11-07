@@ -50,7 +50,7 @@ type Path struct {
 	Mode    string
 }
 
-paths, more := km.Explore(st, env, keys, ops, chooser, limit)
+paths, more := km.Explore(st, env, keys, ops, picker, limit)
 paths.Where("row.delete=unchanged")
 
 w := km.Walk(st, env, ops) // interactive: Press, Forks, Take

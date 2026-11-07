@@ -444,7 +444,7 @@ func tableCellVerbs() []verbSpec {
 			"delta": {Type: "integer", Description: "Columns to move, positive right (l), negative left (h)"},
 			"steps": {Type: "integer", Description: "Repeat count (3l)"},
 		}, tableColumn, "table-cells", "", Operation{Motion: true, HistoryKind: HistoryAction}},
-		{"choose-column", "ochazuke.list", "Choose a table's current column from a chooser of its titles", "list state", map[string]Parameter{"id": id}, tableChooseColumn, "table-cells", "", Operation{Motion: true, HistoryKind: HistoryAction}},
+		{"choose-column", "ochazuke.list", "Choose a table's current column from a picker of its titles", "list state", map[string]Parameter{"id": id}, tableChooseColumn, "table-cells", "", Operation{Motion: true, HistoryKind: HistoryAction}},
 		{"yank", "ochazuke.list", "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers; over a visual selection (V) every selected row's, one per line", "the yank", map[string]Parameter{
 			"id":       id,
 			"what":     {Type: "string", Enum: []string{"cell", "row"}, Description: "The cell (default) or the whole row"},
