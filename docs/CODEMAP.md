@@ -852,11 +852,11 @@ Root package `ochazuke` is flat: 210 source files, 255 test files. Each entry li
 
 ### pair_reader.go
 
-- lines: 236
+- lines: 228
 - purpose: pairRead is one reading of the first word: the candidate it took, how the second word read there (Second.Value is "" when it did not resolve), and Rank, how ...
 - types: Pair, PairScope
-- methods: Palette(1), Runtime(2), pairRead(1)
-- leans on: palette_parse.go(30), instance.go(9), block.go(6), thing_keys.go(5)
+- methods: Palette(1), Runtime(3)
+- leans on: palette_parse.go(31), block.go(8), instance.go(5), noun.go(5)
 
 ### palette.go
 
@@ -883,16 +883,16 @@ Root package `ochazuke` is flat: 210 source files, 255 test files. Each entry li
 
 ### palette_nouns.go
 
-- lines: 536 · tests: palette_nouns_test.go
+- lines: 540 · tests: palette_nouns_test.go
 - purpose: PaletteInstance is a labeled object whose ID becomes the default action argument.
 - types: PaletteInstance, PaletteSource (func), PaletteNoun, PaletteEntry
 - methods: Palette(7), lineIndex(5)
 - funcs: PagesPaletteSource
-- leans on: instance.go(18), runtime.go(16), palette_parse.go(12), block.go(10)
+- leans on: instance.go(18), runtime.go(16), palette_parse.go(14), block.go(10)
 
 ### palette_parse.go
 
-- lines: 1096
+- lines: 1099
 - purpose: lineToken is one word of the line; Text is unquoted.
 - types: PaletteWord
 - methods: Palette(14), Runtime(1), commandLine(3), lineIndex(10), option(1)
@@ -1806,7 +1806,7 @@ Importable package `cli`: 47 source files, 59 test files.
 
 ### cli/mount.go
 
-- lines: 564
+- lines: 562
 - purpose: Mount maps the runtime registry to oden command groups and operation metadata.
 - methods: Shell(2), nounGroup(7)
 - funcs: Mount
@@ -1906,7 +1906,7 @@ Importable package `cli`: 47 source files, 59 test files.
 
 ### cli/shell.go
 
-- lines: 994
+- lines: 1002
 - purpose: Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE] [--format F] [--yes]: one registered operation in this process through the run...
 - types: Shell
 - methods: Shell(15), stderrSink(5)
@@ -1963,10 +1963,10 @@ Importable package `cli`: 47 source files, 59 test files.
 
 ### cli/verbfirst.go
 
-- lines: 157 · tests: verbfirst_test.go
+- lines: 173 · tests: verbfirst_test.go
 - purpose: verbFirstWords is argv rewritten to the long spelling when its first words are a verb of the nouns scope allows, else ok is false (and err says why when the ...
-- methods: Shell(5), nounGroup(1)
-- leans on: shell.go(5), mount.go(4), catalog.go(3)
+- methods: Shell(7), nounGroup(1)
+- leans on: shell.go(7), mount.go(5), catalog.go(3)
 
 ### cli/widget.go
 

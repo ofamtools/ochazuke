@@ -207,9 +207,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	// A verb of a namespace's nouns after the namespace (mtm lane state) is
 	// the verb on the noun named like the namespace, else the one the verb
 	// belongs to (cli.verb-first).
-	if rewritten, ok := sh.groupVerbFirst(top, app.Args); ok {
-		app.Args, spelled = rewritten, true
-	}
+	app.Args, spelled = sh.groupVerbFirst(top, app.Args, spelled)
 	if spelled && len(app.Args) > 0 {
 		if g := top[app.Args[0]+NamespaceSuffix]; g != nil && !g.noun {
 			app.Args[0] += NamespaceSuffix
@@ -237,8 +235,8 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	// rest. Only the listing changes; every verb still runs.
 	line := r.Settings().String(ochazuke.CLIStandardVerbsSetting) != ochazuke.CLIStandardVerbsList
 	stdLine := ""
-	if line && !sh.verbFirstYields(app) {
-		if g, words := listedGroup(top, topNames, shortNames, app.Args, line); g != nil && len(g.std) > 0 {
+	if line {
+		if g, words := listedGroup(top, topNames, shortNames, sh.listedArgs(app), line); g != nil && len(g.std) > 0 {
 			g.listing = true
 			stdLine = g.standardLine(strings.Join(append([]string{app.Name}, words...), " "))
 		}

@@ -100,7 +100,14 @@ func (s *Shell) VerbFirstDefault(app *oden.App, next func(context.Context, []str
 // (lane of an extension's lane.* nouns) and whose second is a verb of the
 // group's nouns that names no child of the group: mtm lane state is mtm
 // lane lane state. top maps each group's name to its group.
-func (s *Shell) groupVerbFirst(top map[string]*nounGroup, args []string) ([]string, bool) {
+func (s *Shell) groupVerbFirst(top map[string]*nounGroup, args []string, spelled bool) ([]string, bool) {
+	if rewritten, ok := s.groupVerbFirstWords(top, args); ok {
+		return rewritten, true
+	}
+	return args, spelled
+}
+
+func (s *Shell) groupVerbFirstWords(top map[string]*nounGroup, args []string) ([]string, bool) {
 	if len(args) < 2 || strings.HasPrefix(args[1], "-") {
 		return nil, false
 	}
@@ -142,6 +149,15 @@ func (g *nounGroup) hasChildLike(word string) bool {
 		}
 	}
 	return false
+}
+
+// listedArgs are the words that may ask for a group's listing: none when
+// they are a verb-first spelling of a machine builtin's name.
+func (s *Shell) listedArgs(app *oden.App) []string {
+	if s.verbFirstYields(app) {
+		return nil
+	}
+	return app.Args
 }
 
 // verbFirstYields reports whether the tool's argv is a machine builtin's

@@ -654,22 +654,9 @@ func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []st
 			}
 			continue
 		case name == "target":
-			v, err := takeValue()
-			if err != nil {
+			if err := bindTarget(&q, op, takeValue); err != nil {
 				return q, opts, err
 			}
-			if p, declared := op.Parameters[name]; declared {
-				// An operation that declares a parameter called target
-				// (the thing it acts on, by title, number or id) takes
-				// the flag as that parameter, as it takes the first bare
-				// word; else a bare word would fill it and the flag's
-				// value would be dropped on the way.
-				if q.Args[name], err = typed(p.Type, v); err != nil {
-					return q, opts, fmt.Errorf("--%s: %w", name, err)
-				}
-				continue
-			}
-			q.Target = v
 			continue
 		case name == "json" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")):
 			// A bare --json asks for JSON output, the default.
@@ -721,6 +708,27 @@ func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []st
 		return q, opts, fmt.Errorf("a bare --json asks for JSON output and --format %s for another; pass one (--json '{...}' passes arguments)", opts.format)
 	}
 	return q, opts, nil
+}
+
+// bindTarget reads the --target flag's value: the request's target, or the
+// operation's parameter of that name when it declares one (the thing it
+// acts on, by title, number or id), as the first bare word would fill it;
+// else a bare word would fill the parameter and the flag's value would be
+// dropped on the way.
+func bindTarget(q *ochazuke.Request, op ochazuke.Operation, take func() (string, error)) error {
+	v, err := take()
+	if err != nil {
+		return err
+	}
+	p, declared := op.Parameters["target"]
+	if !declared {
+		q.Target = v
+		return nil
+	}
+	if q.Args["target"], err = typed(p.Type, v); err != nil {
+		return fmt.Errorf("--target: %w", err)
+	}
+	return nil
 }
 
 // paramAlias is the parameter of op an old name typed on an alias's

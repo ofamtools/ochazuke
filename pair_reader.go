@@ -22,15 +22,7 @@ type pairRead struct {
 	First  option
 	Second PaletteWord
 	Rank   int
-}
-
-// label is the noun-verb pair a reading stands for, in the order a line
-// writes it (noun verb).
-func (p pairRead) label() string {
-	if p.First.Kind == "verb" {
-		return p.Second.Value + " " + p.First.Value
-	}
-	return p.First.Value + " " + p.Second.Value
+	Label  string // the noun verb pair it stands for
 }
 
 // choosePair reads the second word against every candidate of the first.
@@ -42,7 +34,7 @@ func choosePair(candidates []option, read func(option) pairRead) (win pairRead, 
 	var survivors []pairRead
 	for _, c := range candidates {
 		r := read(c)
-		if r.Second.Value != "" && !slices.ContainsFunc(survivors, func(s pairRead) bool { return s.label() == r.label() }) {
+		if r.Second.Value != "" && !slices.ContainsFunc(survivors, func(s pairRead) bool { return s.Label == r.Label }) {
 			survivors = append(survivors, r)
 		}
 	}
@@ -75,7 +67,7 @@ func choosePair(candidates []option, read func(option) pairRead) (win pairRead, 
 func pairAmbiguity(first, second string, ties []pairRead) error {
 	labels := make([]string, len(ties))
 	for i, t := range ties {
-		labels[i] = t.label()
+		labels[i] = t.Label
 	}
 	return fmt.Errorf("%q is ambiguous: %s", strings.TrimSpace(first+" "+second), strings.Join(labels, ", "))
 }
@@ -94,17 +86,12 @@ func (p *Palette) readPair(ix lineIndex, candidates []option, tokens []lineToken
 		// The second word resolved when it is the complement of the
 		// first: a verb's noun, a noun's verb, prop or instance; a word
 		// read as an argument did not.
-		if len(c.Words) > 1 {
-			switch c.Words[1].Kind {
-			case "noun":
-				if o.Kind == "verb" {
-					r.Second = c.Words[1]
-				}
-			case "verb", "prop", "instance":
-				if o.Kind == "noun" {
-					r.Second = c.Words[1]
-				}
-			}
+		if len(c.Words) > 1 && c.Words[1].Complement {
+			r.Second = c.Words[1]
+		}
+		r.Label = tokens[0].Text + " " + tokens[1].Text
+		if c.Op.Verb != "" {
+			r.Label = p.r.DisplayNoun(c.Op.Noun) + " " + c.Op.Verb
 		}
 		return r
 	})
@@ -185,7 +172,7 @@ func (r *Runtime) ReadPair(words []string, scope PairScope) (pair Pair, err erro
 		var named []pairRead
 		for _, c := range cands {
 			if hit, _, _ := matchWord(words[1], ix.nounOptions(ix.nounsOf(c.Value))); hit.Value != "" {
-				named = append(named, pairRead{First: c, Second: PaletteWord{Kind: "noun", Value: hit.Value}})
+				named = append(named, pairRead{First: c, Second: PaletteWord{Kind: "noun", Value: hit.Value}, Label: r.pairLabel(ix, c.Value, hit.Value)})
 			}
 		}
 		switch len(named) {
@@ -210,7 +197,7 @@ func (r *Runtime) ReadPair(words []string, scope PairScope) (pair Pair, err erro
 	}
 	reads := make([]pairRead, len(fits))
 	for i, f := range fits {
-		reads[i] = pairRead{First: option{Kind: "verb", Value: f.verb}, Second: PaletteWord{Kind: "noun", Value: f.noun.Value}}
+		reads[i] = pairRead{First: option{Kind: "verb", Value: f.verb}, Second: PaletteWord{Kind: "noun", Value: f.noun.Value}, Label: r.pairLabel(ix, f.verb, f.noun.Value)}
 	}
 	return Pair{}, pairAmbiguity(words[0], "", reads)
 }
@@ -233,4 +220,9 @@ func (r *Runtime) pairOf(ix lineIndex, verb, nounWord string, skip int) Pair {
 		noun = op.Noun
 	}
 	return Pair{Noun: noun, Verb: verb, Skip: skip}
+}
+
+// pairLabel is the noun verb pair of a verb and the noun word it runs on.
+func (r *Runtime) pairLabel(_ lineIndex, verb, nounWord string) string {
+	return nounWord + " " + verb
 }

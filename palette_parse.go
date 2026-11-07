@@ -93,6 +93,9 @@ type PaletteWord struct {
 	Value      string   `json:"value,omitempty"`
 	Param      string   `json:"param,omitempty"`
 	Candidates []string `json:"candidates,omitempty"`
+	// Complement marks the second word read as the complement of the
+	// first: a verb's noun, a noun's verb, prop or instance (readPair).
+	Complement bool `json:"-"`
 }
 
 // commandLine is a parsed line. It is complete when the operation is known,
@@ -753,7 +756,7 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 		if len(rest) > 0 {
 			hit, candidates, _ := matchWord(rest[0].Text, nouns)
 			if hit.Value != "" {
-				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "noun", Value: hit.Value})
+				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "noun", Value: hit.Value, Complement: true})
 				c.Op, c.Via = ix.op(hit.Value, verb)
 				p.parseParams(&c, rest[1:], "")
 				return c
@@ -803,12 +806,12 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 	read := p.r.readNounWord(noun, rest[0].Text, verbs)
 	switch read.Kind {
 	case NounWordVerb:
-		c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "verb", Value: read.Value})
+		c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "verb", Value: read.Value, Complement: true})
 		c.Op, c.Via = ix.op(noun, read.Value)
 		p.parseParams(&c, rest[1:], "")
 		return c
 	case NounWordProp:
-		c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "prop", Value: read.Value})
+		c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "prop", Value: read.Value, Complement: true})
 		p.parseProp(ix, &c, noun, read.Value, rest[1:])
 		return c
 	}
@@ -822,7 +825,7 @@ func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) comm
 			var hit option
 			hit, candidates, _ = matchWord(rest[0].Text, p.choiceOptions("instance", p.instanceChoices(noun)))
 			if hit.Value != "" {
-				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "instance", Value: hit.Value, Param: config.Argument})
+				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "instance", Value: hit.Value, Param: config.Argument, Complement: true})
 				c.Op = ix.ops[noun+"."+config.DefaultVerb]
 				c.Args[config.Argument] = hit.Value
 				p.parseParams(&c, rest[1:], config.Argument)

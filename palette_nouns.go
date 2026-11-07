@@ -188,19 +188,8 @@ func (p *Palette) completions() []PaletteEntry {
 			out = append(out, entries...)
 		}
 		switch {
-		case len(tokens) == 1 && len(c.Words[0].Candidates) > 1:
-			// An ambiguous first word: the second word may complete any of
-			// its readings (readPair keeps the ones it fits).
-			for _, cand := range c.Words[0].Candidates {
-				if names := ix.verbs[cand]; len(names) > 0 {
-					nouns(names)
-				}
-				if own := ix.nouns[cand]; len(own) > 0 {
-					verbs(own, cand)
-				}
-			}
-			out = dedupEntries(out)
 		case c.Err != nil:
+			pairFits(ix, c, len(tokens), nouns, verbs)
 		case len(tokens) == 1 && c.Words[0].Kind == "verb":
 			nounPosition = true
 			names := ix.verbs[c.Words[0].Value]
@@ -214,6 +203,7 @@ func (p *Palette) completions() []PaletteEntry {
 			verbs(ix.nouns[noun], noun)
 			props(noun)
 		}
+		out = dedupEntries(out)
 		if slot, ok := p.slot(ix, c, tokens); ok {
 			if param := slot.Op.Parameters[slot.Name]; param.Focus && len(slot.Next) > 0 && len(slot.Op.Parameters[slot.Next[0]].Enum) > 0 {
 				// The optional key word: the next parameter's words (a
@@ -521,12 +511,26 @@ func propLabel(prop PropSpec) string {
 	return label
 }
 
-// dedupEntries drops later entries repeating an earlier one's kind and value.
+// pairFits adds the words that complete an ambiguous first word (the only
+// word typed so far): the nouns of each verb it could be and the verbs of
+// each noun, as the pair reader keeps the readings the second word fits.
+func pairFits(ix lineIndex, c commandLine, typed int, nouns func([]string), verbs func([]string, string)) {
+	if typed != 1 {
+		return
+	}
+	for _, cand := range c.Words[0].Candidates {
+		nouns(ix.verbs[cand])
+		verbs(ix.nouns[cand], cand)
+	}
+}
+
+// dedupEntries drops later entries repeating an earlier one's kind, value,
+// id and label.
 func dedupEntries(entries []PaletteEntry) []PaletteEntry {
-	seen := map[string]bool{}
+	seen := map[[4]string]bool{}
 	out := entries[:0]
 	for _, e := range entries {
-		key := e.Kind + "\x00" + e.Value
+		key := [4]string{e.Kind, e.Value, e.ID, e.Label}
 		if !seen[key] {
 			seen[key] = true
 			out = append(out, e)
