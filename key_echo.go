@@ -153,7 +153,7 @@ func (e *keyEcho) observe(r *Runtime, p *Palette, k echoKey, now time.Time) {
 	typing, command := false, ""
 	hasCommand := false
 	for _, h := range k.ran {
-		if op, ok := r.Operations[h.Request.Key()]; ok && op.Typing && strings.HasPrefix(h.Context.Source, "key:") {
+		if op, ok := r.Operations.Find(Key(h.Request.Key())); ok && op.Typing && strings.HasPrefix(h.Context.Source, "key:") {
 			typing = true
 		}
 		if h.Context.Source == "palette" && p != nil && !p.actions[h.Request.Key()] {
@@ -404,7 +404,7 @@ func (l Layout) echoCell(labels []string, width int) string {
 // registerKeyEcho registers key.echo, the verb that sets or cycles the
 // keys.echo setting (as focus.display does focus-display).
 func registerKeyEcho(r *Runtime) {
-	r.Register(Operation{Verb: "echo", Noun: "ochazuke.key", Description: "Show the keys being pressed (the keys.echo setting): off, footer or badge; with no placement, the next in that order", Parameters: map[string]Parameter{"placement": {Type: "string", Enum: slices.Clone(KeyEchoPlacements), Description: "off, footer (the right end of the footer) or badge (beside the mode badge) (default: the next after the current)"}}, Result: "the keys.echo value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.key.echo", Description: "Show the keys being pressed (the keys.echo setting): off, footer or badge; with no placement, the next in that order", Parameters: map[string]Parameter{"placement": {Type: "string", Enum: slices.Clone(KeyEchoPlacements), Description: "off, footer (the right end of the footer) or badge (beside the mode badge) (default: the next after the current)"}}, Result: "the keys.echo value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		placement := StringArg(a, "placement", "")
 		if placement == "" {
 			i := slices.Index(KeyEchoPlacements, r.KeyEcho())

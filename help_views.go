@@ -728,7 +728,7 @@ func registerHelpViews(r *Runtime) {
 			return h.view, nil
 		}
 	}
-	r.Register(Operation{Verb: "view", Noun: helpID, Description: "Show the help's next or previous view (wrapping): here (the focus), pick (a noun and mode you choose), table (a noun's keys by mode)", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: KeyOf(helpID, "view"), Description: "Show the help's next or previous view (wrapping): here (the focus), pick (a noun and mode you choose), table (a noun's keys by mode)", Parameters: map[string]Parameter{
 		"step": {Type: "integer", Description: "1 for the next view (the default), -1 for the previous"},
 	}, Result: "view", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return view(func(h *helpState) error {
@@ -736,7 +736,7 @@ func registerHelpViews(r *Runtime) {
 			return h.show()
 		})(r, c, a)
 	}})
-	r.Register(Operation{Verb: "noun", Noun: helpID, Description: "Choose the noun the help's pick and table views describe", Result: "view", Run: view(func(h *helpState) error {
+	r.Register(Operation{Key: KeyOf(helpID, "noun"), Description: "Choose the noun the help's pick and table views describe", Result: "view", Run: view(func(h *helpState) error {
 		names := slices.SortedFunc(maps.Keys(h.r.Nouns), func(a, b string) int { return strings.Compare(h.r.DisplayNoun(a), h.r.DisplayNoun(b)) })
 		rows := helpChooserRows(names, h.noun, func(string) any { return nil })
 		for i := range rows {
@@ -752,7 +752,7 @@ func registerHelpViews(r *Runtime) {
 		}})
 		return err
 	})})
-	r.Register(Operation{Verb: "mode", Noun: helpID, Description: "Choose the mode the help's pick view describes", Result: "view", Run: view(func(h *helpState) error {
+	r.Register(Operation{Key: KeyOf(helpID, "mode"), Description: "Choose the mode the help's pick view describes", Result: "view", Run: view(func(h *helpState) error {
 		modes := h.r.HelpModes(h.at(), h.r.helpFlag(HelpPendingSetting, false))
 		byName := map[string]ModeState{}
 		names := make([]string, len(modes))
@@ -769,7 +769,7 @@ func registerHelpViews(r *Runtime) {
 		}})
 		return err
 	})})
-	r.Register(Operation{Verb: "place", Noun: helpID, Description: "Choose where the help's pick and table views put the noun: one of the places it was seen (the page, the levels above it, the modal), or none (the noun and app)", Result: "place", Run: view(func(h *helpState) error {
+	r.Register(Operation{Key: KeyOf(helpID, "place"), Description: "Choose where the help's pick and table views put the noun: one of the places it was seen (the page, the levels above it, the modal), or none (the noun and app)", Result: "place", Run: view(func(h *helpState) error {
 		_, err := h.r.OpenChooser(ChooserSpec{Kind: helpPlaceKind, Title: "Place", Keep: []int{0}, Rows: h.placeRows(), Choose: func(row ChooserRow) Result {
 			h.place = nil
 			if p, ok := row.Data.(NounPlace); ok {

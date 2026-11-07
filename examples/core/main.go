@@ -33,7 +33,7 @@ func main() {
 	if string(r.Input("directory").Text) != "/tmp" || string(r.Input("picker").Text) != "y/home" {
 		panic("input histories leaked")
 	}
-	r.Register(ochazuke.Operation{Verb: "inspect", Noun: "selection", Description: "Demonstrate scoped actions", Result: "layer", Run: func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return "app", nil }})
+	r.Register(ochazuke.Operation{Key: "selection.inspect", Description: "Demonstrate scoped actions", Result: "layer", Run: func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"panes", "agent", "directory"} {
 		name := id
 		r.Define(id).Action("selection.inspect", func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return name, nil })

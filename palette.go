@@ -71,7 +71,7 @@ func newPalette(r *Runtime) *Palette {
 	r.Instance(paletteID, Kind("ochazuke.palette"))
 	register := func(verb, description string, params map[string]Parameter, fn func(Arguments) error, traits ...opTrait) {
 		p.actions["ochazuke.palette."+verb] = true
-		op := Operation{Verb: verb, Noun: "ochazuke.palette", Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
+		op := Operation{Key: KeyOf("ochazuke.palette", verb), Description: description, Parameters: params, Result: "palette state", Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
 			if verb != "open" {
 				p.sync()
 			}
@@ -399,16 +399,16 @@ func (p *Palette) present(q Request, value any, top string) (bool, error) {
 // same way.
 func (r *Runtime) presentAnswer(q Request, value any, top string) (bool, error) {
 	value = AnswerRows(value)
-	op := r.Operations[q.Key()]
+	op := r.Operations.At(Key(q.Key()))
 	if value == nil && (q.Verb == "list" || op.Rows != "") {
 		value = []any{}
 	}
 	if shown, err := r.PresentResult(q, value); shown || err != nil {
 		return shown, err
 	}
-	if run := r.Operations[requestOperation(q)]; r.StandardVerbsView().Record {
+	if run := r.Operations.At(Key(requestOperation(q))); r.StandardVerbsView().Record {
 		if row := standardRow(run.Standard); row != nil && row.Record {
-			if rows, ok := recordRows(r.Nouns[run.Noun], value); ok {
+			if rows, ok := recordRows(r.Nouns[run.Noun()], value); ok {
 				value = rows
 			} else if prop := cmp.Or(q.Prop, StringArg(q.Args, "prop", "")); prop != "" {
 				value = []map[string]any{{"prop": prop, "value": value}}
@@ -457,7 +457,7 @@ func (p *Palette) state() map[string]any {
 	if _, ok := p.highlighted(entries); ok {
 		highlight = p.highlight
 	}
-	return map[string]any{"open": p.IsOpen(), "origin": p.origin.Clone(), "line": p.Text(), "words": c.Words, "operation": c.Op.Key(), "implied": c.Implied, "complete": c.Complete(), "missing": c.Missing, "filter": p.filter, "highlight": highlight, "entries": entries, "error": errText}
+	return map[string]any{"open": p.IsOpen(), "origin": p.origin.Clone(), "line": p.Text(), "words": c.Words, "operation": c.Op.Key.Short(), "implied": c.Implied, "complete": c.Complete(), "missing": c.Missing, "filter": p.filter, "highlight": highlight, "entries": entries, "error": errText}
 }
 
 func (p *Palette) View() string { return p.ViewSized(80, 20) }
@@ -579,7 +579,7 @@ func (p *Palette) stillLoadingLine(entries []PaletteEntry) string {
 // describeRequest spells the request a complete line runs:
 // "row.transform name=upper", with "(focus)" when the noun was omitted.
 func describeRequest(c commandLine) string {
-	out := c.Op.Key()
+	out := c.Op.Key.Short()
 	names := make([]string, 0, len(c.Args))
 	for name := range c.Args {
 		names = append(names, name)

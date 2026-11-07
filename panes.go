@@ -260,9 +260,9 @@ func registerPanes(r *Runtime) {
 			return result(id, shift), nil
 		}
 	}
-	r.Register(Operation{Verb: "grow", Noun: "ochazuke.pane", Description: "Grow the page's first pane (the list, left or top) by moving the split's divider; remembered per page", Parameters: params, Result: "page and shift", Run: move(1)})
-	r.Register(Operation{Verb: "shrink", Noun: "ochazuke.pane", Description: "Shrink the page's first pane (the list, left or top) by moving the split's divider; remembered per page", Parameters: params, Result: "page and shift", Run: move(-1)})
-	r.Register(Operation{Verb: "reset", Noun: "ochazuke.pane", Description: "Put the page's split divider back at its default", Parameters: map[string]Parameter{"page": params["page"]}, Result: "page and shift", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.pane.grow", Description: "Grow the page's first pane (the list, left or top) by moving the split's divider; remembered per page", Parameters: params, Result: "page and shift", Run: move(1)})
+	r.Register(Operation{Key: "ochazuke.pane.shrink", Description: "Shrink the page's first pane (the list, left or top) by moving the split's divider; remembered per page", Parameters: params, Result: "page and shift", Run: move(-1)})
+	r.Register(Operation{Key: "ochazuke.pane.reset", Description: "Put the page's split divider back at its default", Parameters: map[string]Parameter{"page": params["page"]}, Result: "page and shift", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := page(a)
 		shift, err := r.SetPaneShift(id, 0)
 		if err != nil {
@@ -271,7 +271,7 @@ func registerPanes(r *Runtime) {
 		return result(id, shift), nil
 	}})
 	r.DefineGuard("pane-only", paneOnly)
-	r.Register(Operation{Verb: "only", Noun: "ochazuke.pane", Description: "Show only one pane of the page's split, the focused panel over the whole body (Vim's ctrl+w o, the others hidden, not closed); pane.restore, ctrl+w o again or moving the focus to the hidden pane brings them back",
+	r.Register(Operation{Key: "ochazuke.pane.only", Description: "Show only one pane of the page's split, the focused panel over the whole body (Vim's ctrl+w o, the others hidden, not closed); pane.restore, ctrl+w o again or moving the focus to the hidden pane brings them back",
 		Parameters: map[string]Parameter{
 			"pane": {Type: "string", Description: "The instance whose pane to keep (default the focused stop); the focus moves into it"},
 			"page": params["page"],
@@ -282,7 +282,7 @@ func registerPanes(r *Runtime) {
 			}
 			return map[string]any{"page": id, "pane": r.PaneOnly(id)}, nil
 		}})
-	r.Register(Operation{Verb: "restore", Noun: "ochazuke.pane", Description: "Show every pane of the page's split again after pane.only", Parameters: map[string]Parameter{"page": params["page"]}, Result: "page and pane", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.pane.restore", Description: "Show every pane of the page's split again after pane.only", Parameters: map[string]Parameter{"page": params["page"]}, Result: "page and pane", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := page(a)
 		if err := r.RestorePanes(id); err != nil {
 			return nil, err

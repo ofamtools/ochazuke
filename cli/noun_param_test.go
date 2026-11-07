@@ -17,12 +17,12 @@ func TestCatalogCarriesParameterNoun(t *testing.T) {
 	r.Define("skill").Verb("list", done, "List skills")
 	r.Define("widget")
 	r.Define("task").Verb("launch", done, "Launch")
-	op := r.Operations["task.launch"]
+	op := r.Operations.At("task.launch")
 	op.Parameters = map[string]ochazuke.Parameter{
 		"skill":  {Type: "string", Noun: "skill"},
 		"widget": {Type: "string", Noun: "widget"},
 	}
-	r.Operations["task.launch"] = op
+	r.Operations.Set(op)
 	data, err := Catalog(r, "tool", "v1")
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +45,7 @@ func TestCatalogCarriesParameterNoun(t *testing.T) {
 	if p := params["widget"]; p.Noun != "widget" || p.Source != "" {
 		t.Fatalf("widget param = %+v; want noun widget, no source", p)
 	}
-	if r.Operations["task.launch"].Parameters["skill"].Source != "" {
+	if r.Operations.At("task.launch").Parameters["skill"].Source != "" {
 		t.Fatal("publishing the catalog changed the runtime's parameter")
 	}
 }

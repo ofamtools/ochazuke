@@ -19,7 +19,7 @@ func dispatchTestModel(t *testing.T, text string, keys ...string) (*Model, *Inpu
 	r.BindingTimeout = time.Hour
 	var calls []string
 	for _, key := range keys {
-		r.Register(Operation{Verb: key, Noun: "test", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("test", key), Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 			calls = append(calls, key)
 			return nil, nil
 		}})
@@ -200,7 +200,7 @@ func TestDispatchDropsUnmatchedBindingPrefix(t *testing.T) {
 	}
 	// With an any row on the app noun, the mismatched key reaches it and the
 	// prefix key does not.
-	m.Runtime.Register(Operation{Verb: "any", Noun: "test", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+	m.Runtime.Register(Operation{Key: "test.any", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 		*calls = append(*calls, "any")
 		return nil, nil
 	}})

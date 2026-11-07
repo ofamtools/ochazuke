@@ -17,7 +17,7 @@ func extRuntime(t *testing.T) (*Runtime, *Palette, *[]string, *RecordingSink) {
 	var ran []string
 	for _, noun := range []string{"json.doc", "md.doc", "docsets", "json.schema"} {
 		noun := noun
-		r.Register(Operation{Noun: noun, Verb: "rows", Description: "List the rows", Run: func(*Runtime, Context, Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf(noun, "rows"), Description: "List the rows", Run: func(*Runtime, Context, Arguments) (any, error) {
 			ran = append(ran, noun+".rows")
 			return nil, nil
 		}})
@@ -33,7 +33,7 @@ func parsed(p *Palette, line string) string {
 	if c.Err != nil {
 		return "error: " + c.Err.Error()
 	}
-	return c.Op.Key()
+	return c.Op.Key.Short()
 }
 
 // Exact beats prefix: a bare alias (doc) names its noun even though it is
@@ -81,7 +81,7 @@ func TestPaletteAmbiguousShortNameOffersEveryNamespace(t *testing.T) {
 	r, p, _, _ := extRuntime(t)
 	c := p.parse("doc rows")
 	if c.Err == nil || !strings.Contains(c.Err.Error(), "json.doc rows, md.doc rows") {
-		t.Fatalf("doc rows: %v (op %s), want an ambiguity naming json.doc, md.doc", c.Err, c.Op.Key())
+		t.Fatalf("doc rows: %v (op %s), want an ambiguity naming json.doc, md.doc", c.Err, c.Op.Key.Short())
 	}
 	if got := c.Words[0].Candidates; !slices.Equal(got, []string{"json.doc", "md.doc"}) {
 		t.Errorf("candidates %v", got)

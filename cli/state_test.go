@@ -52,9 +52,9 @@ func (st *stateTool) run(t testing.TB, flags ...string) (string, string) {
 		}
 		return ochazuke.Done(out)
 	}, "every list's rows").State()
-	op := r.Operations["status.state"]
+	op := r.Operations.At("status.state")
 	op.Parameters = map[string]ochazuke.Parameter{"fresh": {Type: "boolean"}, "project": {Type: "string"}}
-	r.Operations["status.state"] = op
+	r.Operations.Set(op)
 	var out, errOut bytes.Buffer
 	sh := New(r, "tool", strings.NewReader(""), &out, &errOut)
 	sh.StateCache = StateCache{Dir: st.dir, Keep: st.keep}

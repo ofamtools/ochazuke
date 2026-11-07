@@ -130,13 +130,13 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 		local := out.Nouns[n.Name]
 		for _, v := range n.Verbs {
 			key := local + "." + v.Name
-			op, ok := r.Operations[key]
+			op, ok := r.Operations.Find(ochazuke.Key(key))
 			if !ok {
 				continue
 			}
 			if err := r.CheckSourceArgs(op.Parameters); err != nil {
 				warn("%s skipped: %v", key, err)
-				delete(r.Operations, key)
+				r.Operations.Delete(ochazuke.Key(key))
 			}
 		}
 	}
@@ -147,7 +147,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 		}
 		for _, v := range n.Verbs {
 			action := local + "." + v.Name
-			if _, ok := r.Operations[action]; !ok {
+			if _, ok := r.Operations.Find(ochazuke.Key(action)); !ok {
 				continue // the verb was skipped
 			}
 			for _, a := range v.Aliases {
@@ -210,7 +210,7 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 		return err
 	}
 	key := r.CanonicalKey(local + "." + v.Name)
-	op, ok := r.Operations[key]
+	op, ok := r.Operations.Find(ochazuke.Key(key))
 	if !ok {
 		return fmt.Errorf("the host did not register %s", key)
 	}
@@ -224,7 +224,7 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 		}
 	}
 	if err := ochazuke.CheckParameterSources(op); err != nil {
-		delete(r.Operations, key)
+		r.Operations.Delete(ochazuke.Key(key))
 		return err
 	}
 	for _, name := range v.Positional {
@@ -279,7 +279,7 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 	default:
 		note("declares history %q, not action, change or fetch; recording it as the default", v.History)
 	}
-	r.Operations[key] = op
+	r.Operations.Set(op)
 	return nil
 }
 
@@ -319,12 +319,12 @@ func mountAlias(r *ochazuke.Runtime, a ochazuke.ActionAlias, action string, noun
 // dropped without a warning; any other alias over a core verb's name (a
 // different verb, a preset) is a real conflict and still warns.
 func designedCoreDrop(r *ochazuke.Runtime, alias ochazuke.ActionAlias, verb string) bool {
-	core, ok := r.Operations[r.CanonicalKey(alias.Alias)]
+	core, ok := r.Operations.Find(ochazuke.Key(r.CanonicalKey(alias.Alias)))
 	if !ok || core.Standard == "" || core.Standard != verb || len(alias.Args) > 0 {
 		return false
 	}
-	target, ok := r.Operations[r.CanonicalKey(alias.Action)]
-	return ok && (target.Standard == verb || target.Verb == verb)
+	target, ok := r.Operations.Find(ochazuke.Key(r.CanonicalKey(alias.Action)))
+	return ok && (target.Standard == verb || target.Name() == verb)
 }
 
 // MountParameter is a mounted parameter (or prop parameter) as the host

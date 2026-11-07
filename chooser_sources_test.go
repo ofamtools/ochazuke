@@ -216,9 +216,9 @@ func querySource(r *Runtime, asked *[]string) {
 		*asked = append(*asked, q)
 		return Done([]string{q, q + "-one", q + "-two"})
 	})
-	op := r.Operations["files.complete"]
+	op := r.Operations.At("files.complete")
 	op.Parameters = map[string]Parameter{ChoicesQueryParameter: {Type: "string"}}
-	r.Operations["files.complete"] = op
+	r.Operations.Set(op)
 }
 
 // A choices source that declares a query parameter sees the typed text:
@@ -249,9 +249,9 @@ func TestChoicesSeeTheTypedText(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.Define("doc").Verb("open", func(Ctx) Result { return Done(nil) })
-	op := r.Operations["doc.open"]
+	op := r.Operations.At("doc.open")
 	op.Parameters = map[string]Parameter{"name": p}
-	r.Operations["doc.open"] = op
+	r.Operations.Set(op)
 	if _, err := r.Execute(Request{Noun: "doc", Verb: "open", Args: Arguments{"name": "q-two"}}); err != nil || !slices.Contains(asked, "q-two") {
 		t.Fatalf("the checked value is the query: %v (asked %v)", err, asked)
 	}
@@ -287,9 +287,9 @@ func TestPaletteChoicesSeeTheWord(t *testing.T) {
 	var asked []string
 	querySource(r, &asked)
 	r.Define("doc").Verb("open", func(Ctx) Result { return Done(nil) })
-	op := r.Operations["doc.open"]
+	op := r.Operations.At("doc.open")
 	op.Parameters = map[string]Parameter{"name": {Type: "string", Required: true, Source: "files.complete"}}
-	r.Operations["doc.open"] = op
+	r.Operations.Set(op)
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)
 	}

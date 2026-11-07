@@ -48,9 +48,9 @@ type nounVerbRow struct {
 func (r *Runtime) defineNounVerbs(rows []nounVerbRow) {
 	for _, row := range rows {
 		b := r.Define(row.noun).Verb(row.verb, row.run, row.description)
-		op := r.Operations[b.last]
+		op := r.Operations.At(Key(b.last))
 		applyTraits(&op, row.traits)
-		r.Operations[b.last] = op
+		r.Operations.Set(op)
 	}
 }
 

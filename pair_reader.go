@@ -90,8 +90,8 @@ func (p *Palette) readPair(ix lineIndex, candidates []option, tokens []lineToken
 			r.Second = c.Words[1]
 		}
 		r.Label = tokens[0].Text + " " + tokens[1].Text
-		if c.Op.Verb != "" {
-			r.Label = p.r.DisplayNoun(c.Op.Noun) + " " + c.Op.Verb
+		if c.Op.Name() != "" {
+			r.Label = p.r.DisplayNoun(c.Op.Noun()) + " " + c.Op.Name()
 		}
 		return r
 	})
@@ -144,7 +144,7 @@ func (r *Runtime) ReadPair(words []string, scope PairScope) (pair Pair, err erro
 		return Pair{}, fmt.Errorf("no words")
 	}
 	ix := r.lineIndex(func(op Operation) bool {
-		return !op.Builtin && (scope.Within == nil || scope.Within(op.Noun))
+		return !op.Builtin && (scope.Within == nil || scope.Within(op.Noun()))
 	}, func(a, b string) bool { return a < b })
 	verb, verbs, _ := matchWord(words[0], withoutAliasVerbs(ix.byVerbs))
 	cands := verbs
@@ -217,7 +217,7 @@ func withoutAliasVerbs(options []option) []option {
 func (r *Runtime) pairOf(ix lineIndex, verb, nounWord string, skip int) Pair {
 	noun := nounWord
 	if op, ok := ix.ops[nounWord+"."+verb]; ok {
-		noun = op.Noun
+		noun = op.Noun()
 	}
 	return Pair{Noun: noun, Verb: verb, Skip: skip}
 }

@@ -294,7 +294,7 @@ func (r *Runtime) watchAfterJob(verb string) {
 	if r.watches == nil {
 		return
 	}
-	if op, ok := r.Operations[verb]; ok && op.HistoryKindOf() == HistoryChange {
+	if op, ok := r.Operations.Find(Key(verb)); ok && op.HistoryKindOf() == HistoryChange {
 		r.refreshWatches(nil)
 	}
 }

@@ -21,9 +21,9 @@ func (a *App) registerVerbs() {
 	}
 	params := func(key string, p map[string]ochazuke.Parameter) {
 		key = r.CanonicalKey(key) // selection.transform is the grid's ochazuke.selection.transform
-		op := r.Operations[key]
+		op := r.Operations.At(ochazuke.Key(key))
 		op.Parameters = p
-		r.Operations[key] = op
+		r.Operations.Set(op)
 	}
 	name := map[string]ochazuke.Parameter{"name": {Type: "string", Description: "Omit to be asked in a prompt"}}
 	path := map[string]ochazuke.Parameter{"path": {Type: "string", Description: "Omit to be asked in a prompt (ctrl+o there opens the picker)"}}

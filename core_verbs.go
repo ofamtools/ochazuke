@@ -358,7 +358,7 @@ func (r *Runtime) unavailableFor(op Operation, args Arguments) string {
 	if op.Unavailable == "" {
 		return ""
 	}
-	row, n := standardRow(op.Standard), r.Nouns[op.Noun]
+	row, n := standardRow(op.Standard), r.Nouns[op.Noun()]
 	if row == nil || n == nil || n.Store == nil {
 		return op.Unavailable
 	}

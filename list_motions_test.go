@@ -163,7 +163,7 @@ func TestListPageRowsOfAnUnwindowedListIsThePageHeight(t *testing.T) {
 func TestListMotionsAreMotionsOffTheFooter(t *testing.T) {
 	r, _, _, _ := motionPage(t)
 	for _, key := range []string{"ochazuke.list.goto", "ochazuke.list.scroll"} {
-		if op := r.Operations[key]; !op.Motion {
+		if op := r.Operations.At(Key(key)); !op.Motion {
 			t.Fatalf("%s is not a motion", key)
 		}
 	}
@@ -190,7 +190,7 @@ func TestListMotionsAreMotionsOffTheFooter(t *testing.T) {
 func TestListMotionsYieldToTheRowNoun(t *testing.T) {
 	r, m, _, _ := motionPage(t)
 	ran := false
-	r.Register(Operation{Verb: "bottom", Noun: "row", Run: func(*Runtime, Context, Arguments) (any, error) { ran = true; return nil, nil }})
+	r.Register(Operation{Key: "row.bottom", Run: func(*Runtime, Context, Arguments) (any, error) { ran = true; return nil, nil }})
 	r.Define("row").Mode("normal").Bind("G", Do("row.bottom"))
 	motionKeys(t, r, m, "G")
 	if !ran || r.Focus != "a1" {

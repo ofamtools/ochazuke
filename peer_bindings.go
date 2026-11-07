@@ -156,7 +156,7 @@ func (r *Runtime) peerBindingReason(row Binding, fallback error) string {
 	if found && known {
 		for arg := range row.From {
 			if _, ok := op.Parameters[arg]; !ok && !(arg == "target" && op.CatalogProxy) {
-				return fmt.Sprintf("%s has no argument %s (%s)", op.Key(), arg, label)
+				return fmt.Sprintf("%s has no argument %s (%s)", op.Key.Short(), arg, label)
 			}
 		}
 	}

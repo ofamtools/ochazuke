@@ -315,7 +315,7 @@ func (r *Runtime) openSourcePicker(def PickerDef) (*Chooser, error) {
 // takes the row's id.
 func (r *Runtime) pickerVerb(def PickerDef, declared string, fallbacks ...string) (Operation, bool) {
 	if declared != "" {
-		op, ok := r.Operations[r.CanonicalKey(declared)]
+		op, ok := r.Operations.Find(Key(r.CanonicalKey(declared)))
 		return op, ok
 	}
 	if def.Noun == "" {
@@ -325,7 +325,7 @@ func (r *Runtime) pickerVerb(def PickerDef, declared string, fallbacks ...string
 	for _, verb := range fallbacks {
 		// A fallback must take the row's id (its subject parameter): an
 		// application's open that acts on the focused row does not.
-		if op, ok := r.Operations[noun+"."+verb]; ok && subjectParam(op) != "" {
+		if op, ok := r.Operations.Find(Key(noun + "." + verb)); ok && subjectParam(op) != "" {
 			return op, true
 		}
 	}
@@ -354,7 +354,7 @@ func subjectParam(op Operation) string {
 // rowRequest is op's request for one row: the id in its subject parameter,
 // else as the target.
 func rowRequest(op Operation, id string) Request {
-	q := Request{Noun: op.Noun, Verb: op.Verb}
+	q := Request{Noun: op.Noun(), Verb: op.Name()}
 	if name := subjectParam(op); name != "" {
 		q.Args = Arguments{name: id}
 	} else {
@@ -409,7 +409,7 @@ func (r *Runtime) previewValue(op Operation, id string) any {
 		}
 		c = r.contextOf(q.Target)
 	}
-	if op.App == nil {
+	if op.AppHandler == nil {
 		v, err := op.Run(r, c, q.Args)
 		if err != nil {
 			return nil
@@ -562,7 +562,7 @@ func (r *Runtime) openPickersPicker() (*Chooser, error) {
 // the framework's pickers: pages, path and the pickers picker.
 func registerPickerRegistry(r *Runtime) {
 	r.Define(PickerNoun)
-	r.Register(Operation{Verb: "open", Noun: PickerNoun, Description: "Open a picker by name (picker.list lists them; pickers is the picker of pickers); with no name, the path picker on its find source, filling the input in focus", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: KeyOf(PickerNoun, "open"), Description: "Open a picker by name (picker.list lists them; pickers is the picker of pickers); with no name, the path picker on its find source, filling the input in focus", Parameters: map[string]Parameter{
 		"name":   {Type: "string", Noun: PickerNoun, Description: "The picker to open; empty opens the path picker on find"},
 		"query":  {Type: "string", Description: "Text typed into the picker's search line when it opens"},
 		"filter": {Type: "string", Description: "No name only: any, file or dir; defaults to the originating path field's filter"},

@@ -1042,7 +1042,7 @@ func openSectionPicker(r *Runtime) error {
 // registerSettingsLayoutView registers setting.show-tab, setting.show-section, the
 // section and tab nouns' verbs and the settings-narrow guard.
 func registerSettingsLayoutView(r *Runtime) {
-	r.Register(Operation{Verb: "show-section", Noun: "ochazuke.setting", Description: "Show the next or previous section of the Settings page (wrapping), or the one named: within the shown tab, or across every tab in drawing order", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.setting.show-section", Description: "Show the next or previous section of the Settings page (wrapping), or the one named: within the shown tab, or across every tab in drawing order", Parameters: map[string]Parameter{
 		"step":   {Type: "integer", Description: "1 for the next section, -1 for the previous"},
 		"name":   {Type: "string", Description: "The section to show: its title or id (General for the settings without one)"},
 		"across": {Type: "boolean", Description: "Step over every tab's sections in drawing order, crossing into the next tab after a tab's last section"},
@@ -1050,13 +1050,13 @@ func registerSettingsLayoutView(r *Runtime) {
 		across, _ := a["across"].(bool)
 		return r.Context(), showSettingsSection(r, StringArg(a, "name", ""), IntArg(a, "step", 1), across)
 	}})
-	r.Register(Operation{Verb: "show-tab", Noun: "ochazuke.setting", Description: "Show the next or previous tab of the Settings page (wrapping), or the one named, on the section it last showed", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.setting.show-tab", Description: "Show the next or previous tab of the Settings page (wrapping), or the one named, on the section it last showed", Parameters: map[string]Parameter{
 		"step": {Type: "integer", Description: "1 for the next tab, -1 for the previous"},
 		"name": {Type: "string", Description: "The tab to show: an owner's id or title (app, ochazuke, ...)"},
 	}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), showSettingsTab(r, StringArg(a, "name", ""), IntArg(a, "step", 1))
 	}})
-	r.Register(Operation{Verb: "all", Noun: "ochazuke.setting", Description: "Show the Settings page's All section: every setting in one list, each under its tab and section (opens the page when it is closed)", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.all", Description: "Show the Settings page's All section: every setting in one list, each under its tab and section (opens the page when it is closed)", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if !r.Settings().Bool(SettingsAllSectionSetting) {
 			return nil, errors.New("there is no All section: settings.all-section is off")
 		}
@@ -1089,7 +1089,7 @@ func registerSettingsLayoutView(r *Runtime) {
 				params["scope"] = scope
 			}
 			run := v.run
-			r.Register(Operation{Verb: v.verb, Noun: noun, Description: what, Parameters: params, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+			r.Register(Operation{Key: KeyOf(noun, v.verb), Description: what, Parameters: params, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 				units, err := unitsOfArgs(r, c, a, owner)
 				if err != nil {
 					return nil, err
@@ -1098,7 +1098,7 @@ func registerSettingsLayoutView(r *Runtime) {
 			}})
 		}
 	}
-	r.Register(Operation{Verb: "pick", Noun: settingsSectionNoun, Description: "Pick a section of the shown tab from a picker and show it", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: KeyOf(settingsSectionNoun, "pick"), Description: "Pick a section of the shown tab from a picker and show it", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), openSectionPicker(r)
 	}})
 }

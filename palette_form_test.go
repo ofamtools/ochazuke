@@ -35,15 +35,15 @@ func typeKeys(t *testing.T, r *Runtime, text string) {
 func formRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	t.Helper()
 	r, p, ran := lineRuntime(t)
-	run := r.Operations["note.add"].Run
-	r.Register(Operation{Verb: "retitle", Noun: "sheet", Positional: []string{"from", "to"}, Parameters: map[string]Parameter{
+	run := r.Operations.At("note.add").Run
+	r.Register(Operation{Key: "sheet.retitle", Positional: []string{"from", "to"}, Parameters: map[string]Parameter{
 		"from": {Type: "string", Required: true},
 		"to":   {Type: "string", Required: true, Description: "The new name"},
 	}, Run: run})
 	r.Define("swatch")
 	r.Instance("s1", Parent("sheet"), Kind("swatch")).Label = "Red"
 	r.Instance("s2", Parent("sheet"), Kind("swatch")).Label = "Blue"
-	r.Register(Operation{Verb: "pick", Noun: "sheet", Parameters: map[string]Parameter{"swatch": {Type: "string", Required: true, Noun: "swatch"}}, Run: run})
+	r.Register(Operation{Key: "sheet.pick", Parameters: map[string]Parameter{"swatch": {Type: "string", Required: true, Noun: "swatch"}}, Run: run})
 	return r, p, ran
 }
 
@@ -263,7 +263,7 @@ func TestRecordFieldsNounParamIsAChoice(t *testing.T) {
 	r.Instance("s1", Kind("swatch"))
 	r.Instance("a", Kind("x"))
 	_ = r.SetFocus("a")
-	op := Operation{Noun: "x", Verb: "pick", Parameters: map[string]Parameter{"swatch": {Type: "string", Required: true, Noun: "swatch"}}}
+	op := Operation{Key: "x.pick", Parameters: map[string]Parameter{"swatch": {Type: "string", Required: true, Noun: "swatch"}}}
 	ed, err := r.OpenRecordEditor("f", RecordSpec{Fields: RecordFields(op)})
 	if err != nil {
 		t.Fatal(err)

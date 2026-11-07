@@ -69,7 +69,7 @@ func (v *PageView) mountSections() {
 			}, "Copy the complete metadata value").Fetch()
 		op, _ := r.Operation(detailFieldNoun + ".copy")
 		op.Parameters = map[string]ochazuke.Parameter{"register": {Type: "string", Description: "Register to copy into (default active register)"}}
-		r.Operations[detailFieldNoun+".copy"] = op
+		r.Operations.Set(op)
 		r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"cli/detail_sections.json", sectionBindings)
 	})
 }

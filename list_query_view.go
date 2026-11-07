@@ -228,7 +228,7 @@ func registerListQuery(r *Runtime) {
 		}
 		params["id"] = Parameter{Type: "string", Description: "List or table; default focused row view"}
 		run := s.run
-		r.Register(Operation{Noun: "ochazuke.list", Verb: s.verb, Description: s.description, Parameters: params, Positional: s.positional, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("ochazuke.list", s.verb), Description: s.description, Parameters: params, Positional: s.positional, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l := resolve(focusOf(c), a)
 			if l == nil {
 				return nil, errors.New("no list to arrange")

@@ -129,7 +129,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 			if v == "list" || v == "status" || v == "install" || v == "uninstall" {
 				b.Rows("setup")
 			}
-			op := r.Operations[r.CanonicalKey("setup."+v)]
+			op := r.Operations.At(ochazuke.Key(r.CanonicalKey("setup." + v)))
 			op.ShadowsStandard = verb.shadows
 			if v == "install" || v == "uninstall" {
 				op.HistoryKind = ochazuke.HistoryChange
@@ -138,7 +138,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 			if v == "install" {
 				op.Parameters["group"] = ochazuke.Parameter{Type: "string", Description: "Only items in this group"}
 			}
-			r.Operations[op.Key()] = op
+			r.Operations.Set(op)
 		}
 		r.Instance(setupInstance, ochazuke.Kind("setup")).Component = d
 	})
@@ -251,7 +251,7 @@ func (s *Shell) mountSetup(app *oden.App) {
 	children := make([]oden.Command, 0, len(setupVerbs))
 	for _, verb := range setupVerbs {
 		v := verb.name
-		op := s.Runtime.Operations[s.Runtime.CanonicalKey("setup."+v)]
+		op := s.Runtime.Operations.At(ochazuke.Key(s.Runtime.CanonicalKey("setup." + v)))
 		params := make([]oden.Parameter, 0, len(op.Parameters))
 		for _, name := range op.ParameterOrder() {
 			p := op.Parameters[name]

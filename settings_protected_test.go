@@ -136,11 +136,11 @@ func TestProtectedSettingsEveryVerb(t *testing.T) {
 	catalog := NewRuntime()
 	NewModel(catalog)
 	for _, op := range catalog.Catalog() {
-		if !slices.Contains(nouns, op.Noun) {
+		if !slices.Contains(nouns, op.Noun()) {
 			continue
 		}
 		for _, gate := range []bool{false, true} {
-			t.Run(op.Key()+"/gate="+stringBool(gate), func(t *testing.T) {
+			t.Run(op.Key.Short()+"/gate="+stringBool(gate), func(t *testing.T) {
 				r, _ := protectedFixture(t)
 				s := r.Settings()
 				if err := s.Set(AgentRightsGateSetting, gate); err != nil {
@@ -158,7 +158,7 @@ func TestProtectedSettingsEveryVerb(t *testing.T) {
 				if err := r.SetFocus(row); err != nil {
 					t.Fatal(err)
 				}
-				if op.Noun == "ochazuke.setting-value" {
+				if op.Noun() == "ochazuke.setting-value" {
 					_, err = r.Execute(Request{Noun: "setting", Verb: "edit", Args: Arguments{"name": AgentRightsSetting}})
 					if err != nil {
 						t.Fatal(err)
@@ -180,11 +180,11 @@ func TestProtectedSettingsEveryVerb(t *testing.T) {
 						delete(args, name)
 					}
 				}
-				_, _ = r.Execute(Request{Noun: op.Noun, Verb: op.Verb, Args: args, Actor: &actor, Confirmed: true})
+				_, _ = r.Execute(Request{Noun: op.Noun(), Verb: op.Name(), Args: args, Actor: &actor, Confirmed: true})
 				after, _ := s.Value(AgentRightsSetting)
 				got, err := os.ReadFile(filepath.Join(r.Config().Dir, SettingsFile))
 				if err != nil || !bytes.Equal(file, got) || !reflect.DeepEqual(before, after) {
-					t.Fatalf("%s changed protected rights: before=%v after=%v err=%v", op.Key(), before, after, err)
+					t.Fatalf("%s changed protected rights: before=%v after=%v err=%v", op.Key.Short(), before, after, err)
 				}
 			})
 		}

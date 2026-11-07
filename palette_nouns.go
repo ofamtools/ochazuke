@@ -53,7 +53,7 @@ func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error {
 	noun = p.r.CanonicalNoun(noun)
 	known := false
 	for _, op := range p.r.Catalog() {
-		if op.Noun == noun {
+		if op.Noun() == noun {
 			known = true
 			break
 		}
@@ -64,20 +64,20 @@ func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error {
 	if config.Source == nil {
 		return fmt.Errorf("palette noun %q: source is required", noun)
 	}
-	op, ok := p.r.Operations[Request{Verb: config.DefaultVerb, Noun: noun}.Key()]
+	op, ok := p.r.Operations.Find(Key(Request{Verb: config.DefaultVerb, Noun: noun}.Key()))
 	if !ok {
 		return fmt.Errorf("palette noun %q: unknown default action %q", noun, noun+"."+config.DefaultVerb)
 	}
 	param, ok := op.Parameters[config.Argument]
 	if !ok || param.Type != "string" {
-		return fmt.Errorf("palette noun %q: default action %s requires a string instance argument; got %q", noun, op.Key(), config.Argument)
+		return fmt.Errorf("palette noun %q: default action %s requires a string instance argument; got %q", noun, op.Key.Short(), config.Argument)
 	}
-	if guard := p.r.VerbGuard(op.Key()); guard != "" {
-		return fmt.Errorf("palette noun %q: default action %s is guarded by %q; a default verb is never guarded", noun, op.Key(), guard)
+	if guard := p.r.VerbGuard(op.Key.Short()); guard != "" {
+		return fmt.Errorf("palette noun %q: default action %s is guarded by %q; a default verb is never guarded", noun, op.Key.Short(), guard)
 	}
 	for name, param := range op.Parameters {
 		if name != config.Argument && param.Required {
-			return fmt.Errorf("palette noun %q: default action %s also requires argument %q", noun, op.Key(), name)
+			return fmt.Errorf("palette noun %q: default action %s also requires argument %q", noun, op.Key.Short(), name)
 		}
 	}
 	p.nouns[noun] = config
@@ -272,7 +272,7 @@ func (p *Palette) preferActivePage(entries []PaletteEntry, ix lineIndex, partial
 			return slices.Contains(page.ActionNouns, p.r.CanonicalNoun(entry.Value))
 		}
 		for _, noun := range ix.verbs[entry.Value] {
-			if slices.Contains(page.ActionNouns, ix.ops[noun+"."+entry.Value].Noun) {
+			if slices.Contains(page.ActionNouns, ix.ops[noun+"."+entry.Value].Noun()) {
 				return true
 			}
 		}
@@ -362,11 +362,11 @@ func (ix lineIndex) namespaceAt(r *Runtime, tokens []lineToken) ([]PaletteEntry,
 // its own: its aliases' verbs on noun word (any noun when word is ""), and
 // another noun's alias as word.verb.
 func (ix lineIndex) aliasWords(r *Runtime, op Operation, word string) []string {
-	if op.Verb == "" {
+	if op.Name() == "" {
 		return nil
 	}
 	var out []string
-	for _, a := range r.AliasesOf(op.Key()) {
+	for _, a := range r.AliasesOf(op.Key.Short()) {
 		if _, offered := ix.aliasOps[r.DisplayNoun(a.Noun)+"."+a.Verb]; !offered {
 			continue
 		}
@@ -383,16 +383,16 @@ func (ix lineIndex) aliasWords(r *Runtime, op Operation, word string) []string {
 // guard (Verb(...).When) is false at the focus and mode the palette opened
 // over is left out; a palette noun's default verb always stays.
 func (p *Palette) offered(op Operation) bool {
-	if config, ok := p.nouns[op.Noun]; ok && config.DefaultVerb == op.Verb {
+	if config, ok := p.nouns[op.Noun()]; ok && config.DefaultVerb == op.Name() {
 		return true
 	}
-	return p.r.VerbShown(op.Key(), focusOf(p.origin), p.originMode)
+	return p.r.VerbShown(op.Key.Short(), focusOf(p.origin), p.originMode)
 }
 
 // verbLabel names a verb in the palette with its kind when it is an
 // application verb and marks a verb that asks for confirmation.
 func verbLabel(op Operation) string {
-	label := op.Verb
+	label := op.Name()
 	if op.Kind == KindApplication {
 		label += " · application"
 	}
@@ -441,7 +441,7 @@ func (p *Palette) restCompletions() ([]PaletteEntry, bool) {
 		return nil, false
 	}
 	rest := string([]rune(p.Text())[start:])
-	key := fmt.Sprintf("%s/%s\x00rest\x00%d\x00%s", op.Key(), name, cursor, p.Text())
+	key := fmt.Sprintf("%s/%s\x00rest\x00%d\x00%s", op.Key.Short(), name, cursor, p.Text())
 	cached, hit := p.choiceCache[key]
 	if !hit {
 		cached.choices, cached.err = p.r.restChoices(p.origin.Clone(), op, rest, cursor, p.parse(p.Text()).Args)
@@ -489,7 +489,7 @@ func (p *Palette) propWords(ix lineIndex, noun string) []PropSpec {
 	get, _ := ix.op(noun, "get")
 	set, _ := ix.op(noun, "set")
 	n := p.r.Noun(noun)
-	if n == nil || get.Verb == "" && set.Verb == "" {
+	if n == nil || get.Name() == "" && set.Name() == "" {
 		return nil
 	}
 	var out []PropSpec

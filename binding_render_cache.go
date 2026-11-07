@@ -76,11 +76,11 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 	var operationNouns []*Noun
 	for _, table := range tables {
 		for _, b := range table.rows {
-			if b.Request.IsProp() || r.Operations[b.Request.Key()].Standard != "" {
+			if b.Request.IsProp() || r.Operations.At(Key(b.Request.Key())).Standard != "" {
 				return r.scanRowsUncached(levels, mode, focus, nil)
 			}
-			if op, ok := r.Operations[b.Request.Key()]; ok {
-				if n := r.Nouns[op.Noun]; n != nil && !slices.Contains(operationNouns, n) {
+			if op, ok := r.Operations.Find(Key(b.Request.Key())); ok {
+				if n := r.Nouns[op.Noun()]; n != nil && !slices.Contains(operationNouns, n) {
 					operationNouns = append(operationNouns, n)
 				}
 			}

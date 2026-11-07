@@ -14,7 +14,7 @@ import (
 // (marked Confirmed so the prompt does not reopen) in the context it came
 // from, n or esc pops, every other key is swallowed.
 func registerConfirm(r *Runtime) {
-	r.Register(Operation{Verb: "accept", Noun: "ochazuke.confirm", Agent: AgentNever, Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.confirm.accept", Agent: AgentNever, Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		inst := r.Instances[r.TopModal()]
 		if inst == nil || inst.Noun != "ochazuke.confirm" || inst.Payload.Request == nil {
 			return nil, errors.New("no confirm modal is open")
@@ -25,23 +25,23 @@ func registerConfirm(r *Runtime) {
 		}
 		return r.Execute(q)
 	}})
-	r.Register(Operation{Verb: "require", Noun: "ochazuke.confirm", HistoryKind: HistoryChange, Agent: AgentNever, Description: "Require confirmation before an operation runs: set its confirm prompt ({{id}}, {{noun}}, {{label}} and {{<arg>}} expand; a label argument wins over the instance label); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb", Noun: "ochazuke.operations"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.confirm.require", HistoryKind: HistoryChange, Agent: AgentNever, Description: "Require confirmation before an operation runs: set its confirm prompt ({{id}}, {{noun}}, {{label}} and {{<arg>}} expand; a label argument wins over the instance label); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb", Noun: "ochazuke.operations"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := StringArg(a, "operation", "")
 		if err := r.SetConfirm(key, StringArg(a, "prompt", "")); err != nil {
 			return nil, err
 		}
-		return r.Operations[key], nil
+		return r.Operations.At(Key(key)), nil
 	}})
 }
 
 // SetConfirm sets or clears (empty prompt) the confirm prompt of noun.verb.
 func (r *Runtime) SetConfirm(key, prompt string) error {
-	op, ok := r.Operations[key]
+	op, ok := r.Operations.Find(Key(key))
 	if !ok {
 		return fmt.Errorf("unknown operation %q", key)
 	}
 	op.Confirm = prompt
-	r.Operations[key] = op
+	r.Operations.Set(op)
 	return nil
 }
 
@@ -83,7 +83,7 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	stored := run
 	actor := r.Actor()
 	policy := op
-	if registered, ok := r.Operation(op.Key()); ok {
+	if registered, ok := r.Operation(op.Key.Short()); ok {
 		policy = registered
 	}
 	if r.agentPassesPrompt(policy) {
@@ -93,10 +93,10 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	if actor.IsAgent() && r.Settings().Bool(AgentRightsGateSetting) {
 		right := r.AgentRight(policy, r.agentLive())
 		if right.Right == AgentNever {
-			return nil, &RefusedError{Verb: policy.Key(), Rule: right.Rule, Reason: r.agentNeverReason(policy)}
+			return nil, &RefusedError{Verb: policy.Key.Short(), Rule: right.Rule, Reason: r.agentNeverReason(policy)}
 		}
 		if !r.agentLive() && !r.agentApproved {
-			return nil, &RefusedError{Verb: policy.Key(), Rule: right.Rule, Reason: "needs the owner's confirmation; ask them to run this command"}
+			return nil, &RefusedError{Verb: policy.Key.Short(), Rule: right.Rule, Reason: "needs the owner's confirmation; ask them to run this command"}
 		}
 	}
 	stored.Actor, stored.source = &actor, r.history.source
@@ -106,8 +106,8 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	// A request that names its thing by the noun's key argument (task
 	// delete --id t2) is about that thing, whatever instance it targets
 	// (the CLI's owner of the noun's rows, a list) or the focus is.
-	named := r.namedKey(op.Noun, q)
-	addressed := named == "" && (q.Target != "" || inst.Noun == op.Noun)
+	named := r.namedKey(op.Noun(), q)
+	addressed := named == "" && (q.Target != "" || inst.Noun == op.Noun())
 	prompt := promptField.ReplaceAllStringFunc(op.Confirm, func(m string) string {
 		name := promptField.FindStringSubmatch(m)[1]
 		if _, given := q.Args["label"]; name == "label" && !given && len(q.Subjects) <= 1 {
@@ -128,7 +128,7 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 			}
 		}
 		if name == "noun" {
-			return r.DisplayNoun(op.Noun) // the request's noun, never the focus's
+			return r.DisplayNoun(op.Noun()) // the request's noun, never the focus's
 		}
 		if named != "" && (name == "id" || name == "target") {
 			return named
@@ -228,8 +228,8 @@ func confirmView(r *Runtime, inst *Instance, width, height int) Block {
 // things, or the thing has no label. known, when set, is the thing already
 // read (namedThing), so the store is not asked twice.
 func (r *Runtime) storeLabel(c Context, q Request, inst *Instance, known Thing) string {
-	op := r.Operations[q.Key()]
-	n := r.Nouns[op.Noun]
+	op := r.Operations.At(Key(q.Key()))
+	n := r.Nouns[op.Noun()]
 	if op.Standard == "" || n == nil || n.Store == nil || n.Store.Get == nil || n.roleProp(RoleLabel) == nil {
 		return ""
 	}
@@ -259,7 +259,7 @@ func (r *Runtime) storeLabel(c Context, q Request, inst *Instance, known Thing) 
 // A remote store, whose answer comes later, is not probed; nil, nil when
 // the request names no thing by key.
 func (r *Runtime) namedThing(c Context, q Request) (Thing, error) {
-	op, ok := r.Operations[q.Key()]
+	op, ok := r.Operations.Find(Key(q.Key()))
 	n := r.Noun(q.Noun)
 	if !ok || n == nil || !n.resolvable() {
 		return nil, nil

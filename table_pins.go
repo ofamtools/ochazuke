@@ -147,7 +147,7 @@ func registerTablePins(r *Runtime, cells func(Context, Arguments) (*List, error)
 	// act runs change on the column the request names, else the current
 	// column of a cell-mode table, else the column chosen from a chooser.
 	act := func(verb string, change func(l *List, i int)) Operation {
-		return Operation{Verb: verb, Noun: "ochazuke.list", Parameters: map[string]Parameter{"id": id, "column": column}, Positional: []string{"column"}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		return Operation{Key: KeyOf("ochazuke.list", verb), Parameters: map[string]Parameter{"id": id, "column": column}, Positional: []string{"column"}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l, err := cells(c, a)
 			if err != nil {
 				return nil, err
@@ -198,7 +198,7 @@ func registerTablePins(r *Runtime, cells func(Context, Arguments) (*List, error)
 	for _, op := range []Operation{pin, unpin, toggle} {
 		r.Register(op)
 	}
-	r.Register(Operation{Verb: "unpin-columns", Noun: "ochazuke.list", Description: "Leave no column of a table pinned: every column scrolls; z = puts the default pins back", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.list.unpin-columns", Description: "Leave no column of a table pinned: every column scrolls; z = puts the default pins back", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := cells(c, a)
 		if err != nil {
 			return nil, err

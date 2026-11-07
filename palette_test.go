@@ -82,16 +82,16 @@ func lineRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	}
 	name := map[string]Parameter{"name": {Type: "string", Required: true, Enum: []string{"upper", "lower", "title", "trim"}}}
 	for _, noun := range []string{"cell", "row", "column"} {
-		r.Register(Operation{Verb: "transform", Noun: noun, Parameters: name, Run: run})
+		r.Register(Operation{Key: KeyOf(noun, "transform"), Parameters: name, Run: run})
 	}
-	r.Register(Operation{Verb: "delete", Noun: "row", Run: run})
-	r.Register(Operation{Verb: "save", Noun: "sheet", Run: run})
-	r.Register(Operation{Verb: "tidy", Noun: "text", Run: run})
-	r.Register(Operation{Verb: "list", Noun: "item", Run: run})
-	r.Register(Operation{Verb: "clear", Noun: "ochazuke.list", Run: run})
-	r.Register(Operation{Verb: "list", Noun: "transformations", Run: run})
-	r.Register(Operation{Verb: "add", Noun: "note", Parameters: map[string]Parameter{"text": {Type: "string", Required: true}}, Run: run})
-	r.Register(Operation{Verb: "bump", Noun: "counter", Parameters: map[string]Parameter{"by": {Type: "integer"}}, Run: run})
+	r.Register(Operation{Key: "row.delete", Run: run})
+	r.Register(Operation{Key: "sheet.save", Run: run})
+	r.Register(Operation{Key: "text.tidy", Run: run})
+	r.Register(Operation{Key: "item.list", Run: run})
+	r.Register(Operation{Key: "ochazuke.list.clear", Run: run})
+	r.Register(Operation{Key: "transformations.list", Run: run})
+	r.Register(Operation{Key: "note.add", Parameters: map[string]Parameter{"text": {Type: "string", Required: true}}, Run: run})
+	r.Register(Operation{Key: "counter.bump", Parameters: map[string]Parameter{"by": {Type: "integer"}}, Run: run})
 	r.Instance("sheet", Kind("sheet"))
 	r.Instance("r1", Parent("sheet"), Kind("row"))
 	r.Instance("c1", Parent("sheet"), Kind("column"))
@@ -161,8 +161,8 @@ func TestPaletteLineGrammar(t *testing.T) {
 			if c.Err != nil {
 				errText = c.Err.Error()
 			}
-			if c.Op.Key() != tc.op && !(tc.op == "" && !c.known()) || c.Implied != tc.implied || c.Missing != tc.missing || !strings.HasPrefix(errText, tc.err) || (tc.err == "") != (errText == "") {
-				t.Fatalf("parse = op %q implied %v missing %q err %q", c.Op.Key(), c.Implied, c.Missing, errText)
+			if c.Op.Key.Short() != tc.op && !(tc.op == "" && !c.known()) || c.Implied != tc.implied || c.Missing != tc.missing || !strings.HasPrefix(errText, tc.err) || (tc.err == "") != (errText == "") {
+				t.Fatalf("parse = op %q implied %v missing %q err %q", c.Op.Key.Short(), c.Implied, c.Missing, errText)
 			}
 			if tc.args != nil && !reflect.DeepEqual(c.Args, tc.args) {
 				t.Fatalf("args = %#v, want %#v", c.Args, tc.args)
@@ -394,8 +394,8 @@ func TestPaletteBindingsListIsTruthful(t *testing.T) {
 // a request read while it ran.
 func TestPaletteHistoryRecall(t *testing.T) {
 	r, p, _ := lineRuntime(t)
-	r.Register(Operation{Verb: "list", Noun: "shades", Run: func(*Runtime, Context, Arguments) (any, error) { return []string{"dark", "light"}, nil }})
-	r.Register(Operation{Verb: "paint", Noun: "cell", Parameters: map[string]Parameter{"shade": {Type: "string", Required: true, Source: "shades.list"}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	r.Register(Operation{Key: "shades.list", Run: func(*Runtime, Context, Arguments) (any, error) { return []string{"dark", "light"}, nil }})
+	r.Register(Operation{Key: "cell.paint", Parameters: map[string]Parameter{"shade": {Type: "string", Required: true, Source: "shades.list"}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 	for _, line := range []string{"transform row upper", "paint cell dark", "save"} {
 		if !p.IsOpen() {
 			paletteRequest(t, r, "open", "palette", nil)
@@ -428,7 +428,7 @@ func TestPaletteHistoryRecall(t *testing.T) {
 func TestPaletteHandlerFailureKeepsTheLine(t *testing.T) {
 	r := NewRuntime()
 	var published string
-	r.Register(Operation{Verb: "publish", Noun: "record", Parameters: map[string]Parameter{"text": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "record.publish", Parameters: map[string]Parameter{"text": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
 		if text := StringArg(a, "text", ""); text != "bad" {
 			published = text
 			return text, nil
@@ -522,7 +522,7 @@ func TestPaletteEnterHintLeadsWithRun(t *testing.T) {
 // its list verb, else its live instances.
 func TestPaletteNounParameterChoices(t *testing.T) {
 	r, p, ran := lineRuntime(t)
-	r.Register(Operation{Verb: "list", Noun: "shade", Run: func(*Runtime, Context, Arguments) (any, error) {
+	r.Register(Operation{Key: "shade.list", Run: func(*Runtime, Context, Arguments) (any, error) {
 		return []map[string]any{{"id": "dark", "label": "Dark"}, {"id": "dim"}}, nil
 	}})
 	r.Define("swatch")
@@ -535,8 +535,8 @@ func TestPaletteNounParameterChoices(t *testing.T) {
 		*ran = append(*ran, StringArg(a, "shade", "")+StringArg(a, "swatch", ""))
 		return nil, nil
 	}
-	r.Register(Operation{Verb: "tint", Noun: "sheet", Parameters: map[string]Parameter{"shade": {Type: "string", Required: true, Noun: "shade"}}, Run: run})
-	r.Register(Operation{Verb: "pick", Noun: "sheet", Parameters: map[string]Parameter{"swatch": {Type: "string", Required: true, Noun: "swatch"}}, Run: run})
+	r.Register(Operation{Key: "sheet.tint", Parameters: map[string]Parameter{"shade": {Type: "string", Required: true, Noun: "shade"}}, Run: run})
+	r.Register(Operation{Key: "sheet.pick", Parameters: map[string]Parameter{"swatch": {Type: "string", Required: true, Noun: "swatch"}}, Run: run})
 	set := func(line string) { paletteRequest(t, r, "fill", "palette", Arguments{"text": line}) }
 	for _, tc := range []struct {
 		line string
@@ -575,12 +575,12 @@ func TestPaletteNounParameterChoices(t *testing.T) {
 func TestPaletteParamHeader(t *testing.T) {
 	r := NewRuntime()
 	p := NewPalette(r)
-	r.Register(Operation{Verb: "open", Noun: "file", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "file.open", Parameters: map[string]Parameter{
 		"path": {Type: "string", Required: true, Source: "file.list", Description: "The file to open"},
 		"mode": {Type: "string", Enum: []string{"read", "write"}, Free: true},
 		"row":  {Noun: "ochazuke.list"},
 	}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
-	op := r.Operations["file.open"]
+	op := r.Operations.At("file.open")
 	slot := paramSlot{Op: op, Name: "path", Next: []string{"mode"}}
 	for _, tc := range []struct {
 		width int

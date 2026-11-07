@@ -197,7 +197,7 @@ func registerTableFit(r *Runtime, cells func(Context, Arguments) (*List, error))
 	guards["fit-columns"] = "table-fit-changes"
 	guards["reset-columns"] = "table-resets"
 	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
-	r.Register(Operation{Verb: "fit-column", Noun: "ochazuke.list", Description: "Fit a cell-mode table's current column to its widest cell or title over every row, at most the table's width (z f), or give it width cells (a count: N z f); remembered per table, z = undoes it", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.list.fit-column", Description: "Fit a cell-mode table's current column to its widest cell or title over every row, at most the table's width (z f), or give it width cells (a count: N z f); remembered per table, z = undoes it", Parameters: map[string]Parameter{
 		"id":    id,
 		"width": {Type: "integer", Description: "Cells instead of the content's width (a count: 20 z f; 0 or left out fits the content)"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
@@ -216,7 +216,7 @@ func registerTableFit(r *Runtime, cells func(Context, Arguments) (*List, error))
 		}
 		return l.state(), nil
 	}})
-	r.Register(Operation{Verb: "fit-columns", Noun: "ochazuke.list", Description: "Fit every column of a table to its content when the table's width allows, else narrow the widest first so as few columns as can be are cut (z F); remembered per table, z = undoes it", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.list.fit-columns", Description: "Fit every column of a table to its content when the table's width allows, else narrow the widest first so as few columns as can be are cut (z F); remembered per table, z = undoes it", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := cells(c, a)
 		if err != nil {
 			return nil, err

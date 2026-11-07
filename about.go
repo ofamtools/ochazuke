@@ -602,16 +602,16 @@ func aboutPageView(r *Runtime, width, height int) Block {
 // settings' guard and the About tab of the Settings page.
 func registerAbout(r *Runtime) {
 	r.about()
-	r.Register(Operation{Verb: "open", Noun: "ochazuke.about", Description: "Open the About page (or switch to it): the build, the application's own rows, the family dependencies and the process", Result: "about-section[]", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.about.open", Description: "Open the About page (or switch to it): the build, the application's own rows, the family dependencies and the process", Result: "about-section[]", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if err := openAboutPage(r); err != nil {
 			return nil, err
 		}
 		return r.about().shown, nil
 	}})
-	r.Register(Operation{Verb: "close", Noun: "ochazuke.about", Description: "Leave the About page for the page it was opened from", Result: "context", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.about.close", Description: "Leave the About page for the page it was opened from", Result: "context", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), closeAboutPage(r)
 	}})
-	r.Register(Operation{Verb: "refresh", Noun: "ochazuke.about", Description: "Evaluate the About page's rows again", Result: "about-section[]", HistoryKind: HistoryFetch, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.about.refresh", Description: "Evaluate the About page's rows again", Result: "about-section[]", HistoryKind: HistoryFetch, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if r.Instances[AboutPageID] == nil {
 			return r.About(), nil
 		}
@@ -619,10 +619,10 @@ func registerAbout(r *Runtime) {
 		return r.about().shown, nil
 	}})
 	sectionParam := map[string]Parameter{"section": {Type: "string", Description: "Only this section, by title (Build, Dependencies, Runtime, or one the application adds); default every section"}}
-	r.Register(Operation{Verb: "show", Noun: "ochazuke.about", Description: "Answer the About page's sections as data: the build, the application's rows, the family dependencies and the process", Parameters: sectionParam, Result: "about-section[]", HistoryKind: HistoryFetch, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.about.show", Description: "Answer the About page's sections as data: the build, the application's rows, the family dependencies and the process", Parameters: sectionParam, Result: "about-section[]", HistoryKind: HistoryFetch, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return aboutSections(r, StringArg(a, "section", ""))
 	}})
-	r.Register(Operation{Verb: "copy", Noun: "ochazuke.about", Description: "Yank the About page's sections as text, for a bug report", Parameters: sectionParam, Result: "string", HistoryKind: HistoryChange, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.about.copy", Description: "Yank the About page's sections as text, for a bug report", Parameters: sectionParam, Result: "string", HistoryKind: HistoryChange, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		secs, err := aboutSections(r, StringArg(a, "section", ""))
 		if err != nil {
 			return nil, err
@@ -633,10 +633,10 @@ func registerAbout(r *Runtime) {
 		}
 		return text, nil
 	}})
-	r.Register(Operation{Verb: "show", Noun: aboutRowNoun, Description: "Answer the about row: its section, label, value, kind and note", Result: "about-row", HistoryKind: HistoryFetch, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: KeyOf(aboutRowNoun, "show"), Description: "Answer the about row: its section, label, value, kind and note", Result: "about-row", HistoryKind: HistoryFetch, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return aboutRowOf(r, c)
 	}})
-	r.Register(Operation{Verb: "copy", Noun: aboutRowNoun, Description: "Yank the about row's value", Result: "string", HistoryKind: HistoryChange, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: KeyOf(aboutRowNoun, "copy"), Description: "Yank the about row's value", Result: "string", HistoryKind: HistoryChange, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		ref, err := aboutRowOf(r, c)
 		if err != nil {
 			return nil, err
@@ -646,7 +646,7 @@ func registerAbout(r *Runtime) {
 		}
 		return ref.Value, nil
 	}})
-	r.Register(Operation{Verb: "open", Noun: aboutRowNoun, Description: "Open the about row's path (a file or a directory) with the system's opener", Result: "string", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: KeyOf(aboutRowNoun, "open"), Description: "Open the about row's path (a file or a directory) with the system's opener", Result: "string", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		ref, err := aboutRowOf(r, c)
 		if err != nil {
 			return nil, err

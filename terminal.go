@@ -383,9 +383,9 @@ func registerTerminal(r *Runtime) {
 		"attach": {"id": {Plumbing: true, Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
 		"detach": {"id": {Plumbing: true, Type: "string", Description: "Terminal instance (defaults to the focused one)"}},
 	} {
-		op := r.Operations["ochazuke.terminal."+verb]
+		op := r.Operations.At(Key("ochazuke.terminal." + verb))
 		op.Parameters, op.Result = params, "JSON value"
-		r.Operations["ochazuke.terminal."+verb] = op
+		r.Operations.Set(op)
 	}
 }
 

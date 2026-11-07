@@ -19,7 +19,7 @@ func TestOperationTraitsKeepClassification(t *testing.T) {
 	r.Config().Disable()
 	Register(r)
 	var lines []string
-	for k, o := range r.Operations {
+	for k, o := range r.Operations.Entries() {
 		if strings.HasPrefix(k, "ochazuke.grid.") || strings.HasPrefix(k, "ochazuke.selection.") {
 			lines = append(lines, fmt.Sprintf("%s motion=%v focusBound=%v typing=%v kind=%s repeatable=%v staying=%v", k, o.Motion, o.FocusBound, o.Typing, o.HistoryKind, o.Repeatable, o.Staying))
 		}

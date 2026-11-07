@@ -18,7 +18,7 @@ func availabilityFixture(t *testing.T) (r *Runtime, aOn, bOn *bool, ran *[]strin
 	r.DefineGuard("a-on", func(*Runtime, KeyEvent) bool { return *aOn })
 	r.DefineGuard("b-on", func(*Runtime, KeyEvent) bool { return *bOn })
 	for _, verb := range []string{"a", "b", "c", "outer"} {
-		r.Register(Operation{Verb: verb, Noun: "item", Run: func(*Runtime, Context, Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("item", verb), Run: func(*Runtime, Context, Arguments) (any, error) {
 			*ran = append(*ran, verb)
 			return nil, nil
 		}})
@@ -158,7 +158,7 @@ func TestAvailabilityReadsTheRequestArguments(t *testing.T) {
 	r := NewRuntime()
 	r.Config().Disable()
 	r.DefineGuard("even", func(_ *Runtime, ev KeyEvent) bool { return IntArg(ev.Args, "n", 0)%2 == 0 })
-	r.Register(Operation{Verb: "halve", Noun: "num", Parameters: map[string]Parameter{"n": {Type: "integer"}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	r.Register(Operation{Key: "num.halve", Parameters: map[string]Parameter{"n": {Type: "integer"}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 	r.SetAvailability("num.halve", "even")
 	if !r.Available(Request{Noun: "num", Verb: "halve", Args: Arguments{"n": 4}}, "app", r.Mode) {
 		t.Fatal("4 is even")

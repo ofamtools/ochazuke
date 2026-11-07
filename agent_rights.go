@@ -80,10 +80,10 @@ func validAgentRules(value any) error {
 }
 
 func registerAgentRights(r *Runtime) {
-	r.Register(Operation{Noun: "ochazuke.agent", Verb: "rights", Description: "List effective agent rights and the rule that decided each", HistoryKind: HistoryFetch, Parameters: map[string]Parameter{"verb": {Type: "string"}}, Run: func(r *Runtime, c Context, args Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.agent.rights", Description: "List effective agent rights and the rule that decided each", HistoryKind: HistoryFetch, Parameters: map[string]Parameter{"verb": {Type: "string"}}, Run: func(r *Runtime, c Context, args Arguments) (any, error) {
 		rows := []AgentRight{}
 		for _, op := range r.Catalog() {
-			if key := StringArg(args, "verb", ""); key == "" || r.CanonicalKey(key) == op.Key() {
+			if key := StringArg(args, "verb", ""); key == "" || r.CanonicalKey(key) == op.Key.Short() {
 				rows = append(rows, r.AgentRight(op, r.agentLive()))
 			}
 		}
@@ -94,9 +94,9 @@ func registerAgentRights(r *Runtime) {
 // AgentRight resolves owner rows before the operation's declaration/default.
 func (r *Runtime) AgentRight(op Operation, live bool) AgentRight {
 	if !r.Settings().Bool(AgentRightsGateSetting) {
-		return AgentRight{Verb: op.Key(), Right: AgentAllow, Rule: AgentRightsGateSetting + " disabled"}
+		return AgentRight{Verb: op.Key.Short(), Right: AgentAllow, Rule: AgentRightsGateSetting + " disabled"}
 	}
-	out := AgentRight{Verb: op.Key(), Right: op.AgentRightOf(live), Rule: "derived default"}
+	out := AgentRight{Verb: op.Key.Short(), Right: op.AgentRightOf(live), Rule: "derived default"}
 	if op.Agent != "" {
 		out.Rule = "verb declaration"
 	}
@@ -116,7 +116,7 @@ func (r *Runtime) AgentRight(op Operation, live bool) AgentRight {
 				match = r.CanonicalKey(match)
 			}
 		}
-		if match == "*" || match == op.Key() || strings.HasSuffix(match, ".*") && strings.TrimSuffix(match, ".*") == op.Noun {
+		if match == "*" || match == op.Key.Short() || strings.HasSuffix(match, ".*") && strings.TrimSuffix(match, ".*") == op.Noun() {
 			out.Right, out.Rule = row.Right, fmt.Sprintf("%s[%d] %s", AgentRightsSetting, i, row.Match)
 			break
 		}
@@ -147,7 +147,7 @@ func (r *Runtime) agentVerdict(c Context, q Request, op Operation) Verdict {
 	}
 	right := r.AgentRight(op, r.agentLive())
 	refuse := func(reason string) Verdict {
-		err := &RefusedError{Verb: op.Key(), Rule: right.Rule, Reason: reason}
+		err := &RefusedError{Verb: op.Key.Short(), Rule: right.Rule, Reason: reason}
 		return Verdict{Refuse: err.Error(), err: err}
 	}
 	switch right.Right {
@@ -165,7 +165,7 @@ func (r *Runtime) agentVerdict(c Context, q Request, op Operation) Verdict {
 			prompt = op.ConfirmFor(r, c, q, prompt)
 		}
 		if strings.TrimSpace(prompt) == "" {
-			prompt = "Run " + r.DisplayKey(op.Key()) + "?"
+			prompt = "Run " + r.DisplayKey(op.Key.Short()) + "?"
 		}
 		return AskFirst(prompt)
 	}
@@ -175,14 +175,14 @@ func (r *Runtime) agentVerdict(c Context, q Request, op Operation) Verdict {
 func (r *Runtime) agentNeverReason(op Operation) string {
 	if op.Destructive {
 		reason := "agents never delete"
-		if archive, ok := r.Operation(op.Noun + ".archive"); ok && archive.Unavailable == "" {
-			return reason + "; run " + r.DisplayKey(archive.Key())
+		if archive, ok := r.Operation(op.Noun() + ".archive"); ok && archive.Unavailable == "" {
+			return reason + "; run " + r.DisplayKey(archive.Key.Short())
 		}
 		return reason + "; ask the owner"
 	}
 	reason := "agents may never run this verb; ask the owner"
-	if archive, ok := r.Operation(op.Noun + ".archive"); ok && archive.Unavailable == "" && archive.Key() != op.Key() {
-		reason += ", or run " + r.DisplayKey(archive.Key())
+	if archive, ok := r.Operation(op.Noun() + ".archive"); ok && archive.Unavailable == "" && archive.Key.Short() != op.Key.Short() {
+		reason += ", or run " + r.DisplayKey(archive.Key.Short())
 	}
 	return reason
 }

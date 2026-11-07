@@ -85,8 +85,8 @@ func generatedVerbs() map[string]bool {
 		for name, s := range probes {
 			r.Define(name).Props(props...).Store(s)
 		}
-		for _, op := range r.Operations {
-			if _, probe := probes[op.Noun]; probe && op.Standard != "" {
+		for _, op := range r.Operations.Entries() {
+			if _, probe := probes[op.Noun()]; probe && op.Standard != "" {
 				generatedSet[op.Standard] = true
 			}
 		}
@@ -141,8 +141,8 @@ func (r *Runtime) VerbCatalog() namecheck.Catalog {
 			c.Nouns[s] = name
 		}
 	}
-	for key, op := range r.Operations {
-		noun, verb := op.Noun, op.Verb
+	for key, op := range r.Operations.Entries() {
+		noun, verb := op.Noun(), op.Name()
 		if noun == "" {
 			noun, verb = SplitKey(key)
 		}

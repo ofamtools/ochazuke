@@ -631,7 +631,7 @@ func (r *Runtime) checkPropName(n *Noun, name string) error {
 		return fmt.Errorf("prop %s of %s takes a standard verb's name", name, n.Name)
 	case n.prop(name) != nil:
 		return fmt.Errorf("prop %s is already declared", key)
-	case r.Operations[key].Noun != "" && r.Operations[key].Standard == "":
+	case r.Operations.At(Key(key)).Noun() != "" && r.Operations.At(Key(key)).Standard == "":
 		return fmt.Errorf("prop %s clashes with the verb %s: a word after a noun is a verb or a prop, never both", name, key)
 	case r.Nouns[key] != nil:
 		return fmt.Errorf("prop %s clashes with the noun %s nested under %s", name, key, n.Name)
@@ -845,7 +845,7 @@ func (r *Runtime) propVerbRequest(q Request) (Request, error) {
 			out.Args["props"] = map[string]any{p.Name: q.Value}
 		}
 	}
-	if _, ok := r.Operations[out.Key()]; !ok {
+	if _, ok := r.Operations.Find(Key(out.Key())); !ok {
 		return q, fmt.Errorf("%s has no %s: its store cannot %s it", r.DisplayNoun(n.Name), out.Verb, map[string]string{"get": "read", "set": "write"}[out.Verb])
 	}
 	return out, nil
@@ -870,7 +870,7 @@ func (r *Runtime) requestProp(q Request) (*Noun, *PropSpec, error) {
 	}
 	p := n.prop(q.Prop)
 	if p == nil {
-		if _, ok := r.Operations[n.Name+"."+q.Prop]; ok {
+		if _, ok := r.Operations.Find(Key(n.Name + "." + q.Prop)); ok {
 			return nil, nil, &ArgumentError{fmt.Errorf("%s is a verb, not a prop", r.DisplayKey(n.Name+"."+q.Prop))}
 		}
 		return nil, nil, &ArgumentError{fmt.Errorf("%s has no prop %q", r.DisplayNoun(n.Name), q.Prop)}
@@ -911,7 +911,7 @@ func requestOperation(q Request) string {
 // prop's description.
 func (r *Runtime) requestDescription(q Request) string {
 	if !q.IsProp() {
-		return r.Operations[q.Key()].Description
+		return r.Operations.At(Key(q.Key())).Description
 	}
 	p, _ := r.PropOf(q.Noun, q.Prop)
 	text := "Read " + q.Prop
@@ -955,7 +955,7 @@ func (r *Runtime) validatePropRow(row Binding) error {
 			return fmt.Errorf("%s %w", r.displayRequest(q), err)
 		}
 	}
-	if _, ok := r.Operations[requestOperation(q)]; !ok {
+	if _, ok := r.Operations.Find(Key(requestOperation(q))); !ok {
 		return fmt.Errorf("%s: %s has no store verb %s", r.displayRequest(q), r.DisplayNoun(n.Name), requestOperation(q))
 	}
 	return nil

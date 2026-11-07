@@ -94,7 +94,7 @@ func TestAliasRunsTheCanonicalActionAndTellsTheHandlerItsName(t *testing.T) {
 func TestInteractionHandlersReadInvoked(t *testing.T) {
 	r := NewRuntime()
 	var got Invocation
-	r.Register(Operation{Noun: "tool", Verb: "spin", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "tool.spin", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		got = r.Invoked()
 		return nil, nil
 	}})
@@ -162,16 +162,16 @@ func TestAliasesAreListedOnceUnderTheCanonicalName(t *testing.T) {
 	r.Define("worker").Mode("normal").Bind("X", Do("worker.forget")).Bind("x", Do("worker.kill"))
 	var kills int
 	for _, op := range r.Catalog() {
-		if strings.HasSuffix(op.Key(), ".forget") || op.Key() == "project.associate" || op.Key() == "worker.close" {
-			t.Fatalf("alias listed as an operation: %s", op.Key())
+		if strings.HasSuffix(op.Key.Short(), ".forget") || op.Key.Short() == "project.associate" || op.Key.Short() == "worker.close" {
+			t.Fatalf("alias listed as an operation: %s", op.Key.Short())
 		}
-		if op.Key() == "worker.kill" {
+		if op.Key.Short() == "worker.kill" {
 			kills++
 			if !slices.Equal(op.Aliases, []string{"worker.close", "worker.forget"}) {
 				t.Fatalf("catalog aliases %q", op.Aliases)
 			}
 		}
-		if op.Key() == "worker.associate" && !slices.Equal(op.Aliases, []string{"project.associate"}) {
+		if op.Key.Short() == "worker.associate" && !slices.Equal(op.Aliases, []string{"project.associate"}) {
 			t.Fatalf("associate aliases %q", op.Aliases)
 		}
 	}
@@ -287,9 +287,9 @@ func TestWritesAreNeverSilentlyFilled(t *testing.T) {
 		ran = append(ran, c.Args)
 		return Done(nil)
 	}, "Rename the worker").Alias("title")
-	op := r.Operations["worker.retitle"]
+	op := r.Operations.At("worker.retitle")
 	op.Parameters = map[string]Parameter{"name": {Type: "string", Required: true}}
-	r.Operations["worker.retitle"] = op
+	r.Operations.Set(op)
 	if _, err := r.AddList("panes", []ListItem{{ID: "p1", Label: "build", Noun: "worker", Data: map[string]any{"name": "build"}}}); err != nil {
 		t.Fatal(err)
 	}
@@ -314,7 +314,7 @@ func TestWritesAreNeverSilentlyFilled(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := m.Palette.parse("title")
-	if c.Op.Key() != "worker.retitle" || c.Via != "worker.title" || c.Missing != "name" || c.Complete() {
+	if c.Op.Key.Short() != "worker.retitle" || c.Via != "worker.title" || c.Missing != "name" || c.Complete() {
 		t.Fatalf("palette parse %+v", c)
 	}
 	if err := m.Palette.run(); err != nil || r.TopModal() != ArgsFormID {

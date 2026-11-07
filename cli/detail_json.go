@@ -113,7 +113,7 @@ func registerJSONNodes(r *ochazuke.Runtime) {
 		} {
 			op, _ := r.Operation(jsonNodeNoun + "." + verb)
 			op.Parameters = params
-			r.Operations[jsonNodeNoun+"."+verb] = op
+			r.Operations.Set(op)
 		}
 		r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"cli/detail_json.json", jsonBindings)
 	})

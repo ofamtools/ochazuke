@@ -124,7 +124,7 @@ func TestLinkVerbsOpenCopyHistoryAndEdit(t *testing.T) {
 		t.Fatal(got)
 	}
 	for _, verb := range []string{"link-open", "link-copy", "next-link", "previous-link"} {
-		op := r.Operations[DocNoun+"."+verb]
+		op := r.Operations.At(ochazuke.Key(DocNoun + "." + verb))
 		if op.HistoryKindOf() != ochazuke.HistoryAction || op.Description == "" || op.Parameters["id"].Type != "string" {
 			t.Fatalf("incomplete verb %+v", op)
 		}
@@ -242,7 +242,7 @@ func TestLinkBindingsLeaderAndCount(t *testing.T) {
 	}
 	wantLink(t, d, "https://three.example")
 	for _, verb := range []string{"next-link", "previous-link"} {
-		if r.Operations[DocNoun+"."+verb].Parameters["steps"].Type != "integer" {
+		if r.Operations.At(ochazuke.Key(DocNoun + "." + verb)).Parameters["steps"].Type != "integer" {
 			t.Fatal("no count", verb)
 		}
 	}

@@ -21,11 +21,11 @@ func TestRequestContextIsTheRequests(t *testing.T) {
 		acts    string
 	}
 	var outer, inner, after seen
-	r.Register(Operation{Verb: "inner", Noun: "test", Run: func(r *Runtime, c Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "test.inner", Run: func(r *Runtime, c Context, _ Arguments) (any, error) {
 		inner = seen{*c.Request, len(r.RunningRequests()), r.actsFor()}
 		return nil, nil
 	}})
-	r.Register(Operation{Verb: "outer", Noun: "test", Run: func(r *Runtime, c Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "test.outer", Run: func(r *Runtime, c Context, _ Arguments) (any, error) {
 		outer = seen{*c.Request, len(r.RunningRequests()), r.actsFor()}
 		if _, err := r.ExecuteAt(c, Request{Verb: "inner", Noun: "test", Target: "two"}); err != nil {
 			return nil, err

@@ -40,8 +40,8 @@ func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (b
 			r.leavePrefix()
 			top := r.TopModal()
 			err := r.runRow(lv, *row, ev, outside)
-			if inst := r.Instances[at]; at != focus && inst != nil && op.Noun == inst.Noun {
-				r.notifyAssociation(op.Noun, at, top, err)
+			if inst := r.Instances[at]; at != focus && inst != nil && op.Noun() == inst.Noun {
+				r.notifyAssociation(op.Noun(), at, top, err)
 			}
 			return true, true, err
 		}

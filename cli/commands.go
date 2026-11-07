@@ -205,9 +205,9 @@ func (c *Commands) register() {
 		"ochazuke.command.which": {"name": name},
 		"ochazuke.command.stop":  {"name": name},
 	} {
-		op := r.Operations[key]
+		op := r.Operations.At(ochazuke.Key(key))
 		op.Parameters = params
-		r.Operations[key] = op
+		r.Operations.Set(op)
 	}
 	r.MustLoadDefaultBindings(ochazuke.FrameworkBindingsSource+"cli/bindings.json", defaultBindings)
 }

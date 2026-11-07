@@ -21,7 +21,7 @@ func hooksFixture(t *testing.T, rows ...map[string]any) (*Runtime, *[]Arguments)
 	r.Define("task").Verb("edit", func(Ctx) Result { return Done(nil) })
 	r.Define("tasks")
 	var ran []Arguments
-	r.Register(Operation{Noun: "sync", Verb: "run", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "sync.run", Parameters: map[string]Parameter{
 		"reason": {Type: "string"}, "noun": {Type: "string"}, "changes": {Type: "integer"}, "event": {Type: "string"},
 	}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
 		ran = append(ran, a)
@@ -207,7 +207,7 @@ func TestFailingHookIsANotice(t *testing.T) {
 		map[string]any{"on": "surface.left", "do": "boom.later"},
 		map[string]any{"on": "surface.left", "do": "sync.run"},
 	)
-	r.Register(Operation{Noun: "boom", Verb: "now", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, errors.New("disk full") }})
+	r.Register(Operation{Key: "boom.now", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, errors.New("disk full") }})
 	r.Define("boom").Verb("later", func(Ctx) Result {
 		return Pending(func(context.Context) (any, error) { return nil, errors.New("offline") })
 	})
@@ -310,8 +310,8 @@ func TestHooksFilePerApp(t *testing.T) {
 	}
 	load := func(app string) []string {
 		r := NewRuntime()
-		r.Register(Operation{Noun: "sync", Verb: "mtm", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
-		r.Register(Operation{Noun: "sync", Verb: "json", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+		r.Register(Operation{Key: "sync.mtm", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+		r.Register(Operation{Key: "sync.json", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 		r.Config().App = app
 		if p := r.EnsureHooks(); len(p) > 0 {
 			t.Fatalf("%s: %v", app, p)
@@ -395,7 +395,7 @@ func TestDeclaredAppEvent(t *testing.T) {
 // Two rows that feed each other stop at HookChainLimit with a notice.
 func TestHookChainLimit(t *testing.T) {
 	r, _ := hooksFixture(t)
-	r.Register(Operation{Noun: "ping", Verb: "pong", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "ping.pong", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		r.Emit("ping.again", nil)
 		return nil, nil
 	}})
@@ -420,7 +420,7 @@ func TestAppQuittingWaitsForHookJobs(t *testing.T) {
 		got = c.Args
 		return Pending(func(context.Context) (any, error) { <-release; return nil, nil })
 	})
-	r.Operations["tasks.sync"] = withParam(r.Operations["tasks.sync"], "changes", Parameter{Type: "integer"})
+	r.Operations.Set(withParam(r.Operations.At("tasks.sync"), "changes", Parameter{Type: "integer"}))
 	if err := r.AddDefaultHooks(HookRow{On: EventAppQuitting, Where: map[string]any{"changed": "task"}, Do: "tasks.sync", From: map[string]string{"changes": "changes"}}); err != nil {
 		t.Fatal(err)
 	}

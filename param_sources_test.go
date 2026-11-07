@@ -13,8 +13,8 @@ import (
 func sourceRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	t.Helper()
 	r, p, ran := lineRuntime(t)
-	run := r.Operations["row.delete"].Run
-	r.Register(Operation{Verb: "send", Noun: "row", Parameters: map[string]Parameter{
+	run := r.Operations.At("row.delete").Run
+	r.Register(Operation{Key: "row.send", Parameters: map[string]Parameter{
 		"to": {Type: "string", Required: true, From: "row:host"},
 	}, Run: run})
 	r.Instances["r1"].Data = map[string]any{"host": "h1", "alt": "h2"}
@@ -105,7 +105,7 @@ func TestParameterSourceIsValidated(t *testing.T) {
 				}
 			}()
 			r := NewRuntime()
-			r.Register(Operation{Verb: "x", Noun: "n", Parameters: map[string]Parameter{"a": {Type: "string", From: bad}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+			r.Register(Operation{Key: "n.x", Parameters: map[string]Parameter{"a": {Type: "string", From: bad}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 		}()
 	}
 }
@@ -114,11 +114,11 @@ func TestParameterSourceIsValidated(t *testing.T) {
 // holding it.
 func TestParameterSourceIsShown(t *testing.T) {
 	r, _, _ := sourceRuntime(t)
-	op := r.Operations["row.send"]
+	op := r.Operations.At("row.send")
 	if v, ok := r.sourceValue(op, "to", "r1"); !ok || v != "h1" {
 		t.Fatalf("source value %v %v", v, ok)
 	}
-	r.Operations["row.send"] = withParams(op, map[string]Parameter{"to": {Type: "string", Required: true, From: "row:host"}, "via": {Type: "string", Required: true}})
+	r.Operations.Set(withParams(op, map[string]Parameter{"to": {Type: "string", Required: true, From: "row:host"}, "via": {Type: "string", Required: true}}))
 	ed, err := r.OpenArgsForm(Request{Noun: "row", Verb: "send"}, func(Request) error { return nil })
 	if err != nil {
 		t.Fatal(err)

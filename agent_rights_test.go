@@ -45,7 +45,7 @@ func TestAgentRightsCannotBypass(t *testing.T) {
 		for _, confirmed := range []bool{false, true} {
 			r := NewRuntime()
 			ran := false
-			r.Register(Operation{Noun: "work", Verb: "private", Agent: AgentNever, Parameters: map[string]Parameter{"force": {Type: "boolean"}}, Run: func(*Runtime, Context, Arguments) (any, error) { ran = true; return nil, nil }})
+			r.Register(Operation{Key: "work.private", Agent: AgentNever, Parameters: map[string]Parameter{"force": {Type: "boolean"}}, Run: func(*Runtime, Context, Arguments) (any, error) { ran = true; return nil, nil }})
 			restore := r.BindActor(testAgent("p"), live)
 			owner := Owner()
 			_, err := r.Execute(Request{Noun: "work", Verb: "private", Actor: &owner, Confirmed: confirmed, Args: Arguments{"force": true}})

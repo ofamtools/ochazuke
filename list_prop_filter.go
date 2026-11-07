@@ -616,7 +616,7 @@ func registerListPropFilter(r *Runtime) {
 		filters, err := l.SavedFilters()
 		return err == nil && len(filters) > 0
 	})
-	r.Register(Operation{Noun: "ochazuke.list", Verb: "flush-lingering", Description: "Remove changed rows waiting to leave the active filter", Parameters: map[string]Parameter{"id": {Type: "string"}}, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.list.flush-lingering", Description: "Remove changed rows waiting to leave the active filter", Parameters: map[string]Parameter{"id": {Type: "string"}}, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		focus := StringArg(a, "id", focusOf(c))
 		l := r.rowFilterList(focus)
 		if l == nil {
@@ -625,7 +625,7 @@ func registerListPropFilter(r *Runtime) {
 		l.FlushLingering()
 		return nil, nil
 	}})
-	r.Register(Operation{Noun: "ochazuke.list", Verb: "filters", Description: "List the saved prop filters available to a list", Parameters: map[string]Parameter{"id": {Type: "string"}}, Result: "filter[]", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.list.filters", Description: "List the saved prop filters available to a list", Parameters: map[string]Parameter{"id": {Type: "string"}}, Result: "filter[]", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := resolve(c, a)
 		if err != nil {
 			return nil, err
@@ -731,7 +731,7 @@ func registerListPropFilter(r *Runtime) {
 			params = map[string]Parameter{}
 		}
 		params["id"] = Parameter{Type: "string", Description: "List, tree or picker id (default focused)"}
-		r.Register(Operation{Noun: "ochazuke.list", Verb: spec.verb, Description: spec.description, Parameters: params, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("ochazuke.list", spec.verb), Description: spec.description, Parameters: params, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l, err := resolve(c, a)
 			if err != nil {
 				return nil, err
@@ -746,7 +746,7 @@ func registerListPropFilter(r *Runtime) {
 		}
 	}
 	_ = r.SetConfirm("ochazuke.list.filter-saved-delete", "Delete saved filter {{name}}?")
-	op := r.Operations["ochazuke.list.filter-saved-delete"]
+	op := r.Operations.At("ochazuke.list.filter-saved-delete")
 	op.Destructive = true
-	r.Operations[op.Key()] = op
+	r.Operations.Set(op)
 }

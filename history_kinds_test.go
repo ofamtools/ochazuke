@@ -159,7 +159,7 @@ func TestFrameworkOperationsDeclareHistory(t *testing.T) {
 	NewPicker(r)
 	for _, op := range r.Catalog() {
 		if op.Builtin && op.HistoryKind == "" {
-			t.Errorf("%s: effective history %q has no declared kind", op.Key(), op.HistoryKindOf())
+			t.Errorf("%s: effective history %q has no declared kind", op.Key.Short(), op.HistoryKindOf())
 		}
 	}
 }
@@ -173,7 +173,7 @@ func TestBuiltinHistoryKeepsRegistrationAnnotations(t *testing.T) {
 			Verb("state", handler).State().
 			Verb("read", handler).Fetch().
 			Verb("write", handler)
-		r.Register(Operation{Noun: "kind-fixture", Verb: "interaction", HistoryKind: HistoryAction, App: handler})
+		r.Register(Operation{Key: "kind-fixture.interaction", HistoryKind: HistoryAction, AppHandler: handler})
 	})
 	for verb, want := range map[string]string{"rows": HistoryFetch, "state": HistoryFetch, "read": HistoryFetch, "write": HistoryChange, "interaction": HistoryAction} {
 		if op, ok := r.Operation("ochazuke.kind-fixture." + verb); !ok || !op.Builtin || op.HistoryKind != want {
@@ -196,7 +196,7 @@ func TestMountedVerbHistoryKinds(t *testing.T) {
 		"ochazuke.job.cancel":    HistoryAction,
 		"ochazuke.job.list":      HistoryFetch,
 	} {
-		op, ok := r.Operations[key]
+		op, ok := r.Operations.Find(Key(key))
 		if !ok || op.Destructive || op.HistoryKindOf() != want {
 			t.Fatalf("%s: found=%v destructive=%v kind=%q, want %q", key, ok, op.Destructive, op.HistoryKindOf(), want)
 		}

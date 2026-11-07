@@ -157,7 +157,7 @@ func TestDiffBindingsAndMotions(t *testing.T) {
 	var events []int
 	v.OnFileChange = func(n int) { events = append(events, n) }
 	var hookEvents []int
-	r.Register(ochazuke.Operation{Noun: "host", Verb: "file", Parameters: map[string]ochazuke.Parameter{"delta": {Type: "integer"}, "id": {Type: "string"}}, Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, a ochazuke.Arguments) (any, error) {
+	r.Register(ochazuke.Operation{Key: "host.file", Parameters: map[string]ochazuke.Parameter{"delta": {Type: "integer"}, "id": {Type: "string"}}, Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		if a["id"] != "diff" {
 			t.Errorf("event id=%v", a["id"])
 		}

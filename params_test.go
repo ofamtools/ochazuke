@@ -13,15 +13,15 @@ import (
 func TestParameterChoiceValidation(t *testing.T) {
 	r := NewRuntime()
 	failing := errors.New("offline")
-	r.Register(Operation{Verb: "list", Noun: "colors", Run: func(*Runtime, Context, Arguments) (any, error) {
+	r.Register(Operation{Key: "colors.list", Run: func(*Runtime, Context, Arguments) (any, error) {
 		return []map[string]any{{"id": "c1", "label": "Cyan"}, {"id": "m1"}}, nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "broken", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, failing }})
+	r.Register(Operation{Key: "broken.list", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, failing }})
 	ok := func(*Runtime, Context, Arguments) (any, error) { return "ok", nil }
-	r.Register(Operation{Verb: "enum", Noun: "check", Parameters: map[string]Parameter{"v": {Type: "string", Enum: []string{"a", "b"}}}, Run: ok})
-	r.Register(Operation{Verb: "free", Noun: "check", Parameters: map[string]Parameter{"v": {Type: "string", Enum: []string{"a"}, Free: true}}, Run: ok})
-	r.Register(Operation{Verb: "source", Noun: "check", Parameters: map[string]Parameter{"v": {Type: "string", Source: "colors.list"}}, Run: ok})
-	r.Register(Operation{Verb: "broken", Noun: "check", Parameters: map[string]Parameter{"v": {Type: "string", Source: "broken.list"}}, Run: ok})
+	r.Register(Operation{Key: "check.enum", Parameters: map[string]Parameter{"v": {Type: "string", Enum: []string{"a", "b"}}}, Run: ok})
+	r.Register(Operation{Key: "check.free", Parameters: map[string]Parameter{"v": {Type: "string", Enum: []string{"a"}, Free: true}}, Run: ok})
+	r.Register(Operation{Key: "check.source", Parameters: map[string]Parameter{"v": {Type: "string", Source: "colors.list"}}, Run: ok})
+	r.Register(Operation{Key: "check.broken", Parameters: map[string]Parameter{"v": {Type: "string", Source: "broken.list"}}, Run: ok})
 	for _, tc := range []struct {
 		verb, value, err string
 	}{
@@ -79,13 +79,13 @@ func TestParseChoicesShapes(t *testing.T) {
 // in registration order; Enum comes first and an explicit Source wins.
 func TestParameterNounChoices(t *testing.T) {
 	r := NewRuntime()
-	r.Register(Operation{Verb: "list", Noun: "color", Run: func(*Runtime, Context, Arguments) (any, error) {
+	r.Register(Operation{Key: "color.list", Run: func(*Runtime, Context, Arguments) (any, error) {
 		return []map[string]any{{"id": "c1", "label": "Cyan"}, {"key": "m1", "title": "Magenta"}}, nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "shade", Run: func(*Runtime, Context, Arguments) (any, error) {
+	r.Register(Operation{Key: "shade.list", Run: func(*Runtime, Context, Arguments) (any, error) {
 		return []string{"dark", "light"}, nil
 	}})
-	r.Register(Operation{Verb: "list", Noun: "guarded", Parameters: map[string]Parameter{"scope": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) {
+	r.Register(Operation{Key: "guarded.list", Parameters: map[string]Parameter{"scope": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) {
 		return []string{"never"}, nil
 	}})
 	r.Define("widget")
@@ -145,7 +145,7 @@ func TestParameterNounChoices(t *testing.T) {
 		}
 	}
 	confirmed := NewRuntime()
-	confirmed.Register(Operation{Verb: "list", Noun: "risky", Confirm: "Sure?", Run: func(*Runtime, Context, Arguments) (any, error) { return []string{"x"}, nil }})
+	confirmed.Register(Operation{Key: "risky.list", Confirm: "Sure?", Run: func(*Runtime, Context, Arguments) (any, error) { return []string{"x"}, nil }})
 	if got := confirmed.ChoicesSource(Parameter{Noun: "risky"}); got != "" {
 		t.Fatalf("a confirmed list verb is a choices source: %q", got)
 	}
@@ -184,7 +184,7 @@ func TestParseChoicesFallbackFields(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %v %v, want %v", got, err, want)
 	}
-	ops, err := ParseChoices([]Operation{{Noun: "app", Verb: "quit"}})
+	ops, err := ParseChoices([]Operation{{Key: "app.quit"}})
 	if err != nil || !reflect.DeepEqual(ops, []Choice{{ID: "app.quit", Label: "app.quit"}}) {
 		t.Fatalf("operations: %v %v", ops, err)
 	}
@@ -197,15 +197,15 @@ func TestFrameworkNounParameters(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := r.Context()
-	pages, err := r.Choices(c, r.Operations["ochazuke.page.open"].Parameters["id"])
+	pages, err := r.Choices(c, r.Operations.At("ochazuke.page.open").Parameters["id"])
 	if err != nil || !slices.Contains(pages, Choice{ID: "alpha", Label: "Alpha"}) {
 		t.Fatalf("page.open id: %v %v", pages, err)
 	}
-	modes, err := r.Choices(c, r.Operations["ochazuke.mode.switch"].Parameters["mode"])
+	modes, err := r.Choices(c, r.Operations.At("ochazuke.mode.switch").Parameters["mode"])
 	if err != nil || !slices.ContainsFunc(modes, func(ch Choice) bool { return ch.ID == "insert" }) {
 		t.Fatalf("mode.switch mode: %v %v", modes, err)
 	}
-	ops, err := r.Choices(c, r.Operations["ochazuke.confirm.require"].Parameters["operation"])
+	ops, err := r.Choices(c, r.Operations.At("ochazuke.confirm.require").Parameters["operation"])
 	if err != nil || !slices.ContainsFunc(ops, func(ch Choice) bool { return ch.ID == "ochazuke.page.open" }) {
 		t.Fatalf("confirm.require operation: %v", err)
 	}

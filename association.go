@@ -134,7 +134,7 @@ func (op Operation) byAssociation() bool {
 		return true
 	}
 	for _, p := range op.Parameters {
-		if p.Focus && !p.Required && p.Noun == op.Noun {
+		if p.Focus && !p.Required && p.Noun == op.Noun() {
 			return true
 		}
 	}
@@ -144,16 +144,16 @@ func (op Operation) byAssociation() bool {
 // associationSubject admits only declared verbs and human sources. Existing
 // noun-path behavior wins; a program must name its target explicitly.
 func (r *Runtime) associationSubject(op Operation, q Request, focus string) (string, error) {
-	if q.Target != "" || !personSource(r.history.source) || !op.byAssociation() || r.nounInstance(op.Noun, focus) != "" {
+	if q.Target != "" || !personSource(r.history.source) || !op.byAssociation() || r.nounInstance(op.Noun(), focus) != "" {
 		return "", nil
 	}
 	for name, p := range op.Parameters {
-		if p.Focus && p.Noun == op.Noun && !emptyProp(q.Args[name]) {
+		if p.Focus && p.Noun == op.Noun() && !emptyProp(q.Args[name]) {
 			return "", nil // an explicit subject argument wins
 		}
 	}
-	id, candidates := r.nearestOf(op.Noun, focus)
-	if err := r.associationAmbiguity(op.Noun, candidates); err != nil {
+	id, candidates := r.nearestOf(op.Noun(), focus)
+	if err := r.associationAmbiguity(op.Noun(), candidates); err != nil {
 		return "", err
 	}
 	return id, nil

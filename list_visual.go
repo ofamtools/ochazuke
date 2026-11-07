@@ -190,7 +190,7 @@ func (l *List) applicable(verb string, args Arguments) bool {
 	}
 	for _, row := range rows {
 		q := Request{Verb: verb, Noun: row.Noun, Args: args}
-		if _, ok := l.r.Operations[q.Key()]; ok && l.r.Available(q, row.ID, l.r.Mode) {
+		if _, ok := l.r.Operations.Find(Key(q.Key())); ok && l.r.Available(q, row.ID, l.r.Mode) {
 			return true
 		}
 	}
@@ -247,7 +247,7 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 	visual := l.visual
 	if !confirmed {
 		for _, row := range rows {
-			if op, ok := r.Operations[Request{Verb: verb, Noun: row.Noun}.Key()]; ok && op.Confirm != "" {
+			if op, ok := r.Operations.Find(Key(Request{Verb: verb, Noun: row.Noun}.Key())); ok && op.Confirm != "" {
 				// The rows' own request: what the prompt is about.
 				rq := Request{Verb: verb, Noun: row.Noun, Args: args}
 				for _, other := range rows {
@@ -270,7 +270,7 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 				// cost, {{label}} naming the first row and counting the
 				// rest.
 				if n := r.Nouns[row.Noun]; len(rows) > 1 && (n == nil || n.Store == nil || n.Store.ConfirmFor == nil) {
-					ask = fmt.Sprintf("Run %s on %d rows?", r.DisplayKey(op.Key()), len(rows))
+					ask = fmt.Sprintf("Run %s on %d rows?", r.DisplayKey(op.Key.Short()), len(rows))
 				}
 				q := Request{Verb: "apply", Noun: "ochazuke.list", Args: Arguments{"id": l.id, "verb": verb, "confirmed": true}}
 				if args != nil {
@@ -278,7 +278,7 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 				}
 				// Its fields read the rows' request, never list.apply's
 				// own arguments; y runs list.apply again, confirmed.
-				return r.openConfirmAbout(r.contextOf(row.ID), rq, q, Operation{Noun: op.Noun, Verb: op.Verb, Confirm: ask})
+				return r.openConfirmAbout(r.contextOf(row.ID), rq, q, Operation{Key: KeyOf(op.Noun(), op.Name()), Confirm: ask})
 			}
 		}
 	}
@@ -318,7 +318,7 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 		if len(ids) > 1 {
 			q.Subjects = ids
 		}
-		if _, ok := r.Operations[q.Key()]; !ok {
+		if _, ok := r.Operations.Find(Key(q.Key())); !ok {
 			for _, id := range ids {
 				skipped = append(skipped, id+": "+q.Key()+" is not registered")
 			}
@@ -459,12 +459,12 @@ func registerListVisual(r *Runtime) {
 	// selection is on. The row guard keeps it apart from the filter's esc
 	// row (bound after this, unguarded), which would otherwise replace it.
 	r.Nouns["ochazuke.list"].Guards["end-visual"] = "list-visual"
-	r.Register(Operation{Verb: "end-visual", Noun: "ochazuke.list", FocusBound: true, HistoryKind: HistoryAction, Description: "End the visual row selection (esc), and visual-line with it: the marks go back to the ones it found", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.list.end-visual", FocusBound: true, HistoryKind: HistoryAction, Description: "End the visual row selection (esc), and visual-line with it: the marks go back to the ones it found", Parameters: map[string]Parameter{
 		"id": {Plumbing: true, Type: "string", Description: "The list (default: the focused one)"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		return visual(c, Arguments{"id": a["id"], "on": false})
 	}})
-	r.Register(Operation{Verb: "visual", Noun: "ochazuke.list", FocusBound: true, HistoryKind: HistoryAction, Description: "Start a visual row selection at the selected row (V, in visual-line), or end it (V again, esc): j/k extend it; a key then acts on every selected row", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.list.visual", FocusBound: true, HistoryKind: HistoryAction, Description: "Start a visual row selection at the selected row (V, in visual-line), or end it (V again, esc): j/k extend it; a key then acts on every selected row", Parameters: map[string]Parameter{
 		"id": {Plumbing: true, Type: "string", Description: "The list (default: the focused one)"},
 		"on": {Type: "boolean", Description: "true starts, false ends; omit to toggle"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {

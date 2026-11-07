@@ -112,7 +112,7 @@ func (r *Runtime) legacyNoun(name string) (string, bool) {
 		return "", false
 	}
 	first, _, _ := strings.Cut(short, ".")
-	if _, verb := r.Operations[legacyNamespace+"."+first]; verb {
+	if _, verb := r.Operations.Find(Key(legacyNamespace + "." + first)); verb {
 		return "", false
 	}
 	canonical := FrameworkNamespace + "." + short
@@ -152,7 +152,7 @@ func (r *Runtime) CanonicalKey(key string) string {
 
 // knownName reports whether name is a registered action or action alias.
 func (r *Runtime) knownName(name string) bool {
-	if _, ok := r.Operations[name]; ok {
+	if _, ok := r.Operations.Find(Key(name)); ok {
 		return true
 	}
 	_, ok := r.actionNames.aliases[name]
@@ -174,11 +174,11 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 	// Do("w!"), which reads it as the noun).
 	if bare := q.Noun + q.Verb; (q.Noun == "" || q.Verb == "") && bare != "" {
 		if a, ok := r.bareAlias(bare); ok {
-			if op, ok := r.Operations[a.Action]; ok {
+			if op, ok := r.Operations.Find(Key(a.Action)); ok {
 				if q.Via == "" {
 					q.Via = a.Alias
 				}
-				q.Noun, q.Verb = op.Noun, op.Verb
+				q.Noun, q.Verb = op.Noun(), op.Name()
 				return withAliasArgs(op, q, a)
 			}
 		}
@@ -186,11 +186,11 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 	if a, ok := r.spelledAlias(q); ok {
 		// An alias spelled under a renamed noun's old name: its own
 		// action, not the new noun's verb of the old verb's name.
-		if op, ok := r.Operations[a.Action]; ok {
+		if op, ok := r.Operations.Find(Key(a.Action)); ok {
 			if q.Via == "" {
 				q.Via = a.Alias
 			}
-			q.Noun, q.Verb = op.Noun, op.Verb
+			q.Noun, q.Verb = op.Noun(), op.Name()
 			return withAliasArgs(op, q, a)
 		}
 	}
@@ -199,19 +199,19 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 		return q
 	}
 	key := r.CanonicalKey(q.Key())
-	if op, ok := r.Operations[key]; ok {
-		q.Noun, q.Verb = op.Noun, op.Verb
+	if op, ok := r.Operations.Find(Key(key)); ok {
+		q.Noun, q.Verb = op.Noun(), op.Name()
 		if a, ok := r.actionNames.aliases[q.Via]; ok && a.Action == key {
 			q = withAliasArgs(op, q, a)
 		}
 		return q
 	}
 	if a, ok := r.actionNames.aliases[key]; ok {
-		if op, ok := r.Operations[a.Action]; ok {
+		if op, ok := r.Operations.Find(Key(a.Action)); ok {
 			if q.Via == "" {
 				q.Via = a.Alias
 			}
-			q.Noun, q.Verb = op.Noun, op.Verb
+			q.Noun, q.Verb = op.Noun(), op.Name()
 			q = withAliasArgs(op, q, a)
 		}
 	}
@@ -574,7 +574,7 @@ func (r *Runtime) checkOverlap(key string) error {
 
 // checkNounOverlap refuses a new noun whose name is an operation key.
 func (r *Runtime) checkNounOverlap(name string) error {
-	if _, ok := r.Operations[name]; ok {
+	if _, ok := r.Operations.Find(Key(name)); ok {
 		noun, verb := SplitKey(name)
 		return fmt.Errorf("noun %s clashes with the operation %s (verb %s of %s): a noun may not be nested under a noun with a verb of that name", name, name, verb, noun)
 	}

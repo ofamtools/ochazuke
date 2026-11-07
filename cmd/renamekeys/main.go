@@ -70,8 +70,8 @@ func main() {
 		}
 	}
 	harvest := func(r *ochazuke.Runtime, origin string) {
-		for _, op := range r.Operations {
-			add(op.Verb, op.Noun, origin)
+		for _, op := range r.Operations.Entries() {
+			add(op.Name(), op.Noun(), origin)
 		}
 	}
 	r := ochazuke.NewRuntime()

@@ -118,7 +118,7 @@ func TestStandardEditPendingWriteFlushes(t *testing.T) {
 			r, s := editFixture(t)
 			op, _ := r.Operation("parcel.set")
 			sent := 0
-			r.Register(Operation{Noun: "parcel", Verb: "set", Parameters: op.Parameters, HistoryKind: HistoryChange, App: func(c Ctx) Result {
+			r.Register(Operation{Key: "parcel.set", Parameters: op.Parameters, HistoryKind: HistoryChange, AppHandler: func(c Ctx) Result {
 				sent++
 				changes := maps.Clone(c.Args["props"].(map[string]any))
 				return Pending(func(context.Context) (any, error) {
@@ -216,7 +216,7 @@ func TestStandardEditModelReturnsPendingSave(t *testing.T) {
 	t.Parallel()
 	r, s := editFixture(t)
 	op, _ := r.Operation("parcel.set")
-	r.Register(Operation{Noun: "parcel", Verb: "set", Parameters: op.Parameters, App: func(c Ctx) Result {
+	r.Register(Operation{Key: "parcel.set", Parameters: op.Parameters, AppHandler: func(c Ctx) Result {
 		return Pending(func(context.Context) (any, error) {
 			maps.Copy(s.find("t1"), c.Args["props"].(map[string]any))
 			return nil, nil

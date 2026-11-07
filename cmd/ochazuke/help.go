@@ -31,7 +31,7 @@ func operationHelp(ctx context.Context, socket, noun, verb string, out io.Writer
 		return err
 	}
 	for _, op := range catalog {
-		if op.Noun == noun && op.Verb == verb {
+		if op.Noun() == noun && op.Name() == verb {
 			writeOperationHelp(out, op, func(source string) ([]ochazuke.Choice, error) {
 				n, v := ochazuke.SplitKey(source)
 				result, err := ochazuke.Call(ctx, socket, ochazuke.Request{Noun: n, Verb: v})
@@ -47,7 +47,7 @@ func operationHelp(ctx context.Context, socket, noun, verb string, out io.Writer
 }
 
 func writeOperationHelp(out io.Writer, op ochazuke.Operation, choices choicesFunc) {
-	fmt.Fprintf(out, "\n%s.%s (%s): %s\n", op.Noun, op.Verb, op.Kind, op.Description)
+	fmt.Fprintf(out, "\n%s.%s (%s): %s\n", op.Noun(), op.Name(), op.Kind, op.Description)
 	if len(op.Parameters) == 0 {
 		fmt.Fprintln(out, "No parameters.")
 		return

@@ -181,7 +181,7 @@ func TestSetupRegistryHistoryAndNoKeys(t *testing.T) {
 		t.Fatal("setup has keys")
 	}
 	for _, v := range setupVerbs {
-		op := f.r.Operations[f.r.CanonicalKey("setup."+v.name)]
+		op := f.r.Operations.At(ochazuke.Key(f.r.CanonicalKey("setup." + v.name)))
 		want := ochazuke.HistoryFetch
 		if v.name == "install" || v.name == "uninstall" {
 			want = ochazuke.HistoryChange

@@ -103,7 +103,7 @@ func ArgsFields(op Operation) ([]RecordField, error) {
 // no form opens: the path chooser does (the editor returned is nil), and
 // its pick runs the request.
 func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEditor, error) {
-	op, ok := r.Operations[q.Key()]
+	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
 	}
@@ -214,7 +214,7 @@ func (r *Runtime) argsFormStart(q Request, op Operation, fields []RecordField, v
 // and its Fallback prop's value, from the noun's store ("" for both when
 // it cannot be read).
 func (r *Runtime) subjectProp(op Operation, q Request, focus, prop string) (current, fallback string) {
-	n := r.Nouns[op.Noun]
+	n := r.Nouns[op.Noun()]
 	p := n.prop(prop)
 	inst := r.Instances[focus]
 	if n == nil || n.Store == nil || n.Store.Get == nil || p == nil || inst == nil {
@@ -312,7 +312,7 @@ func argumentsFrom(op Operation, base Arguments, rec Record) (Arguments, error) 
 // request it cannot hold in a form runs as before and fails naming the
 // argument.
 func (r *Runtime) formForMissing(q Request, run func(Request) error) bool {
-	op, ok := r.Operations[q.Key()]
+	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok || !r.missingOpensForm() {
 		return false
 	}

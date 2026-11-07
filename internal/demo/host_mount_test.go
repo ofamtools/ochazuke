@@ -58,7 +58,7 @@ func TestMountedTaskHasItsStandardVerbsInTheHost(t *testing.T) {
 	host, ext := demoHost(t)
 	r := host.Runtime
 	for _, verb := range []string{"get", "list", "create", "set", "delete", "archive", "watch", "edit"} {
-		if _, ok := r.Operations["demo-task."+verb]; !ok {
+		if _, ok := r.Operations.Find(ochazuke.Key("demo-task." + verb)); !ok {
 			t.Fatalf("demo-task.%s is not mounted", verb)
 		}
 	}

@@ -64,7 +64,7 @@ func (r *Runtime) AddVerbCheck(key string, check VerbCheck) error {
 	} else {
 		op.Checks = append(slices.Clone(op.Checks), check)
 	}
-	r.Operations[op.Key()] = op
+	r.Operations.Set(op)
 	return nil
 }
 
@@ -80,7 +80,7 @@ func (r *Runtime) RemoveVerbCheck(key, name string) bool {
 		return false
 	}
 	op.Checks = slices.Delete(slices.Clone(op.Checks), i, i+1)
-	r.Operations[op.Key()] = op
+	r.Operations.Set(op)
 	return true
 }
 

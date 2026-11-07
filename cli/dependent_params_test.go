@@ -17,11 +17,11 @@ func dependentCLI(t *testing.T) (*ochazuke.Runtime, *Shell, *bytes.Buffer) {
 	t.Helper()
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
-	r.Register(ochazuke.Operation{Noun: "choice", Verb: "list", Parameters: map[string]ochazuke.Parameter{"kind": {Type: "string"}}, App: func(c ochazuke.Ctx) ochazuke.Result {
+	r.Register(ochazuke.Operation{Key: "choice.list", Parameters: map[string]ochazuke.Parameter{"kind": {Type: "string"}}, AppHandler: func(c ochazuke.Ctx) ochazuke.Result {
 		kind := ochazuke.StringArg(c.Args, "kind", "default")
 		return ochazuke.Pending(func(context.Context) (any, error) { return []string{kind + "-a", kind + "-b"}, nil })
 	}})
-	r.Register(ochazuke.Operation{Noun: "thing", Verb: "create", Parameters: map[string]ochazuke.Parameter{"a": {Type: "string"}, "b": {Type: "string", Source: "choice.list", SourceArgs: map[string]string{"kind": "a"}}}, Run: func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return true, nil }})
+	r.Register(ochazuke.Operation{Key: "thing.create", Parameters: map[string]ochazuke.Parameter{"a": {Type: "string"}, "b": {Type: "string", Source: "choice.list", SourceArgs: map[string]string{"kind": "a"}}}, Run: func(*ochazuke.Runtime, ochazuke.Context, ochazuke.Arguments) (any, error) { return true, nil }})
 	out := &bytes.Buffer{}
 	return r, New(r, "test-bin", nil, out, io.Discard), out
 }
@@ -75,7 +75,7 @@ func TestDependentCatalogAndDescribe(t *testing.T) {
 	if len(mounted.Warnings) != 0 {
 		t.Fatal(mounted.Warnings)
 	}
-	if got := host.Operations["ext-thing.create"].Parameters["b"]; got.Source != "ext-choice.list" || got.SourceArgs["kind"] != "a" {
+	if got := host.Operations.At("ext-thing.create").Parameters["b"]; got.Source != "ext-choice.list" || got.SourceArgs["kind"] != "a" {
 		t.Fatal(got)
 	}
 	// describe returns the original parameter metadata, including dependencies.

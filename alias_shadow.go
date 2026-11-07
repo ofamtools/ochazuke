@@ -107,7 +107,7 @@ func (r *Runtime) restChoices(c Context, op Operation, text string, cursor int, 
 	if source == "" {
 		return nil, nil
 	}
-	src, ok := r.Operations[source]
+	src, ok := r.Operations.Find(Key(source))
 	if !ok {
 		return nil, fmt.Errorf("unknown choices source %q", source)
 	}
@@ -121,7 +121,7 @@ func (r *Runtime) restChoices(c Context, op Operation, text string, cursor int, 
 	if _, takes := src.Parameters[ChoicesCursorParameter]; takes {
 		args[ChoicesCursorParameter] = max(0, min(cursor, len([]rune(text))))
 	}
-	result, err := r.ExecuteAt(c, Request{Verb: src.Verb, Noun: src.Noun, Args: args})
+	result, err := r.ExecuteAt(c, Request{Verb: src.Name(), Noun: src.Noun(), Args: args})
 	if err != nil {
 		return nil, fmt.Errorf("choices source %q: %w", source, err)
 	}
@@ -141,7 +141,7 @@ func (r *Runtime) shadowNoun(c Context, a ActionAlias, word string, nouns []stri
 	if hit.Value != "" && exact {
 		return hit.Value, nil
 	}
-	op, ok := r.Operations[a.Action]
+	op, ok := r.Operations.Find(Key(a.Action))
 	if !ok {
 		return "", nil
 	}
@@ -187,10 +187,10 @@ func (r *Runtime) shadowNouns(verb string) []string {
 	seen := map[string]bool{}
 	var out []string
 	for _, op := range r.Catalog() {
-		if op.Verb != verb {
+		if op.Name() != verb {
 			continue
 		}
-		if word := r.DisplayNoun(op.Noun); !seen[word] {
+		if word := r.DisplayNoun(op.Noun()); !seen[word] {
 			seen[word] = true
 			out = append(out, word)
 		}

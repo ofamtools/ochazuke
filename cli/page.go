@@ -480,7 +480,7 @@ func (v *PageView) listVerbs(pl *pageList) error {
 		return err
 	}
 	for _, cv := range n.Verbs {
-		if _, ok := v.m.Runtime.Operations[local+"."+cv.Name]; !ok || len(requiredParams(cv.Params)) > 0 {
+		if _, ok := v.m.Runtime.Operations.Find(ochazuke.Key(local + "." + cv.Name)); !ok || len(requiredParams(cv.Params)) > 0 {
 			continue // the host has no such verb, or a row cannot supply its parameters
 		}
 		row := ochazuke.Binding{Instance: pl.spec.ID + "/" + cv.Name, Mode: "normal", Keys: "enter", Request: ochazuke.Request{Noun: local, Verb: cv.Name}}

@@ -13,7 +13,7 @@ func recorder(t *testing.T, r *Runtime, verbs ...string) *[]string {
 	t.Helper()
 	var calls []string
 	for _, verb := range verbs {
-		r.Register(Operation{Verb: verb, Noun: "test", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("test", verb), Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 			calls = append(calls, verb)
 			return nil, nil
 		}})
@@ -29,7 +29,7 @@ func TestDefineBuilderBindsVerbsActionsAndRows(t *testing.T) {
 		Action("app.quit", func(*Runtime, Context, Arguments) (any, error) { return "panel", nil })
 	b.Mode("normal").Bind("o", Do("test.open")).Bind("o", Do("test.close")).Pattern(Digit, Do("test.open")).Unbind("o")
 	noun := r.Noun("panel")
-	if noun == nil || !reflect.DeepEqual(noun.Verbs, []string{"inspect", "toggle"}) || r.Operations["panel.toggle"].Run == nil || noun.Actions["app.quit"] == nil {
+	if noun == nil || !reflect.DeepEqual(noun.Verbs, []string{"inspect", "toggle"}) || r.Operations.At("panel.toggle").Run == nil || noun.Actions["app.quit"] == nil {
 		t.Fatalf("builder did not declare verbs, operations and actions: %+v", noun)
 	}
 	if rows := noun.Bindings["normal"]; len(rows) != 1 || rows[0].Pattern != Digit || rows[0].Noun != "panel" || rows[0].Mode != "normal" {
@@ -191,7 +191,7 @@ func TestLeaderPendingShadowShape(t *testing.T) {
 	r.BindingTimeout = time.Hour // a deadline the test moves
 	var forwarded []string
 	calls := recorder(t, r, "new-window")
-	r.Register(Operation{Verb: "forward", Noun: "ochazuke.pane", Parameters: map[string]Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.pane.forward", Parameters: map[string]Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
 		forwarded = append(forwarded, StringArg(a, "keys", ""))
 		return nil, nil
 	}})
@@ -304,7 +304,7 @@ func TestListBindingsListsEveryEditorKey(t *testing.T) {
 // lives on instances.
 func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 	r, list, input, items := listFixture(t)
-	r.Register(Operation{Verb: "inspect", Noun: "item", Run: func(*Runtime, Context, Arguments) (any, error) { return "application", nil }})
+	r.Register(Operation{Key: "item.inspect", Run: func(*Runtime, Context, Arguments) (any, error) { return "application", nil }})
 	r.Define("a").Action("item.inspect", func(*Runtime, Context, Arguments) (any, error) { return "noun a", nil }).
 		Mode("normal").Bind("x", Do("app.quit"))
 	for _, item := range items {
@@ -357,7 +357,7 @@ func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 		"note":    {Path: []string{"app", "page", "editor"}, InputID: "note"},
 	} {
 		var got Context
-		r.Register(Operation{Verb: "where-" + target, Noun: "test", Run: func(_ *Runtime, c Context, _ Arguments) (any, error) { got = c; return nil, nil }})
+		r.Register(Operation{Key: KeyOf("test", "where-"+target), Run: func(_ *Runtime, c Context, _ Arguments) (any, error) { got = c; return nil, nil }})
 		if _, err := r.Execute(Request{Verb: "where-" + target, Noun: "test", Target: target}); err != nil {
 			t.Fatal(err)
 		}
@@ -505,9 +505,9 @@ func TestSequencePrefixCarriesCount(t *testing.T) {
 		lines = append(lines, IntArg(a, "line", -1))
 		return nil, nil
 	})
-	op := r.Operations["test.line"]
+	op := r.Operations.At("test.line")
 	op.Parameters = map[string]Parameter{"line": {Type: "integer"}}
-	r.Operations["test.line"] = op
+	r.Operations.Set(op)
 	row := Do("test.line").FromPayload("line", SourceLine)
 	r.Define("app").Mode("normal").Bind("g g", row).Mode("count_pending").Bind("g g", row)
 	for _, key := range []string{"3", "g", "g", "g", "g"} {

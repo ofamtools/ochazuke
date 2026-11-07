@@ -528,7 +528,7 @@ func (r *Runtime) runningJobs() []JobInfo {
 // kept after they end, bounded to jobHistory; the snapshot's /jobs shows
 // running jobs only.
 func registerJobs(r *Runtime) {
-	r.Register(Operation{Verb: "cancel", Noun: "ochazuke.job", Description: "Cancel a running job", Parameters: map[string]Parameter{"job": {Type: "integer", Required: true, Noun: "ochazuke.job"}}, Run: func(r *Runtime, _ Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.job.cancel", Description: "Cancel a running job", Parameters: map[string]Parameter{"job": {Type: "integer", Required: true, Noun: "ochazuke.job"}}, Run: func(r *Runtime, _ Context, a Arguments) (any, error) {
 		id := uint64(IntArg(a, "job", 0))
 		j := r.jobs[id]
 		if j == nil || j.State != JobRunning {
@@ -742,10 +742,10 @@ func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, 
 	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(c, inst), Invoked: r.Invoked()}
 	ancestry := r.Ancestry(inst.ID)
 	if op.Slot != "" && r.HasRunningJob(inst.ID, op.Slot) {
-		ctx.Info(r.DisplayKey(op.Key()) + " is already running")
+		ctx.Info(r.DisplayKey(op.Key.Short()) + " is already running")
 		return nil, nil
 	}
-	res := op.App(ctx)
+	res := op.AppHandler(ctx)
 	switch {
 	case res.err != nil:
 		return nil, res.err
@@ -769,7 +769,7 @@ func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, 
 			res.scope = owner
 		}
 	}
-	return r.Launch(owner, op.Key(), res, ctx)
+	return r.Launch(owner, op.Key.Short(), res, ctx)
 }
 
 // survivor is the first instance of an ancestry captured earlier that

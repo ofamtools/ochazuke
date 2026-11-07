@@ -52,9 +52,9 @@ func TestForegroundHeadlessReportsTheExit(t *testing.T) {
 		cmd.Stdout = &out
 		return Foreground(cmd).Then(func(_ Ctx, v any, _ error) { exits = append(exits, v.(ForegroundExit)) })
 	})
-	op := r.Operations["doc.open"]
+	op := r.Operations.At("doc.open")
 	op.Parameters = map[string]Parameter{"code": {Type: "string"}}
-	r.Operations["doc.open"] = op
+	r.Operations.Set(op)
 	if _, err := r.Execute(Request{Noun: "doc", Verb: "open"}); err != nil {
 		t.Fatal(err)
 	}

@@ -65,10 +65,10 @@ func CheckParameterSources(o Operation) error {
 			continue
 		}
 		if len(strings.Fields(p.From)) != 1 {
-			return fmt.Errorf("%s: parameter %s has from %q: name one source", o.Key(), name, p.From)
+			return fmt.Errorf("%s: parameter %s has from %q: name one source", o.Key.Short(), name, p.From)
 		}
 		if err := validSource(p.From); err != nil || !isRowSource(p.From) {
-			return fmt.Errorf("%s: parameter %s has from %q: only %q and %q name a source without a key", o.Key(), name, p.From, SourceRow, SourceRow+":<field>")
+			return fmt.Errorf("%s: parameter %s has from %q: only %q and %q name a source without a key", o.Key.Short(), name, p.From, SourceRow, SourceRow+":<field>")
 		}
 	}
 	return nil
@@ -134,7 +134,7 @@ func (r *Runtime) sourcesAt(op Operation, args Arguments, start string) (Argumen
 // form: a form is a person's, so it reads the row at q's target, else the
 // base focus, whatever route opened it.
 func (r *Runtime) formSources(q Request) Request {
-	op, ok := r.Operations[q.Key()]
+	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok {
 		return q
 	}

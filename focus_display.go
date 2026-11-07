@@ -175,7 +175,7 @@ func cutLeft(s string, width int) string {
 }
 
 func registerFocusDisplay(r *Runtime) {
-	r.Register(Operation{Verb: "display", Noun: "ochazuke.focus", Description: "Show where the focus is beside the mode (the focus-display setting): off, noun or stack; with no mode, the next in that order", Parameters: map[string]Parameter{"mode": {Type: "string", Enum: slices.Clone(FocusDisplayModes), Description: "off, noun or stack (default: the next after the current)"}}, Result: "the focus-display value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.focus.display", Description: "Show where the focus is beside the mode (the focus-display setting): off, noun or stack; with no mode, the next in that order", Parameters: map[string]Parameter{"mode": {Type: "string", Enum: slices.Clone(FocusDisplayModes), Description: "off, noun or stack (default: the next after the current)"}}, Result: "the focus-display value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if mode == "" {
 			i := slices.Index(FocusDisplayModes, r.FocusDisplay())

@@ -222,7 +222,7 @@ func TestSpillEdgeKeyFallsThrough(t *testing.T) {
 		t.Fatal(err)
 	}
 	ran := 0
-	r.Register(Operation{Verb: "probe", Noun: "ochazuke.page", Run: func(*Runtime, Context, Arguments) (any, error) { ran++; return nil, nil }})
+	r.Register(Operation{Key: "ochazuke.page.probe", Run: func(*Runtime, Context, Arguments) (any, error) { ran++; return nil, nil }})
 	row := Do("ochazuke.page.probe", nil)
 	row.Instance, row.Mode, row.Keys = "page", "normal", "j"
 	if err := r.Bind(row); err != nil {

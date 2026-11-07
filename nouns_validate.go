@@ -58,8 +58,8 @@ func (p *NounProblem) Row() string { return p.Kind + "\t" + p.Noun + "\t" + p.Ve
 func (r *Runtime) ValidateNouns() []error {
 	core := CoreVerbs()
 	verbsOf := map[string][]string{}
-	for _, op := range r.Operations {
-		verbsOf[op.Noun] = append(verbsOf[op.Noun], op.Verb)
+	for _, op := range r.Operations.Entries() {
+		verbsOf[op.Noun()] = append(verbsOf[op.Noun()], op.Name())
 	}
 	var out []*NounProblem
 	for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {

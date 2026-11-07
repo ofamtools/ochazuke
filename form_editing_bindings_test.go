@@ -15,8 +15,8 @@ func formEditingShadows(r *Runtime) []string {
 	editing := map[string]bool{}
 	for _, row := range r.Noun("ochazuke.editor").Bindings["normal"] {
 		op, ok := r.Operation(row.Request.Key())
-		operator := op.Noun == "ochazuke.mode" && row.Request.Args["op"] != nil
-		if ok && (op.Noun == "ochazuke.input" && !op.Motion || operator) {
+		operator := op.Noun() == "ochazuke.mode" && row.Request.Args["op"] != nil
+		if ok && (op.Noun() == "ochazuke.input" && !op.Motion || operator) {
 			editing[strings.Split(row.Keys, " ")[0]] = true
 		}
 	}
@@ -46,13 +46,13 @@ func formEditingShadows(r *Runtime) []string {
 				}
 				op, ok := r.Operation(row.Request.Key())
 				target := r.rowInstance(level{inst: at, noun: r.Noun(at.Noun)}, row.Request, id)
-				if !ok || op.Noun == "ochazuke.input" || !r.Available(row.Request, target, r.Mode) {
+				if !ok || op.Noun() == "ochazuke.input" || !r.Available(row.Request, target, r.Mode) {
 					continue
 				}
 				if !r.rowGuardHolds(row.When, KeyEvent{Focus: id, Level: parent, Mode: r.Mode, Args: row.Request.Args}) {
 					continue
 				}
-				out = append(out, fmt.Sprintf("%s: %s %s shadows text editing on %s", id, at.Noun, row.Keys, op.Key()))
+				out = append(out, fmt.Sprintf("%s: %s %s shadows text editing on %s", id, at.Noun, row.Keys, op.Key.Short()))
 			}
 		}
 	}

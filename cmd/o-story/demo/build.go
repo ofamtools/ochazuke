@@ -341,13 +341,13 @@ func (ss *session) defineDemo(pages []*Page) error {
 			ss.hidden[id] = !ss.hidden[id]
 			return ochazuke.Done(ss.hidden[id])
 		}, "Stop drawing a list, tree, input or the timeline (by id), or draw it again: a tab switched away from it")
-	r.Operations[Demo+".hide"] = withParams(r.Operations[Demo+".hide"], map[string]ochazuke.Parameter{
+	r.Operations.Set(withParams(r.Operations.At(ochazuke.Key(Demo+".hide")), map[string]ochazuke.Parameter{
 		"id": {Type: "string", Required: true, Description: "the id of the list, tree, input or timeline"},
-	})
-	r.Operations[Demo+".finish"] = withParams(r.Operations[Demo+".finish"], map[string]ochazuke.Parameter{
+	}))
+	r.Operations.Set(withParams(r.Operations.At(ochazuke.Key(Demo+".finish")), map[string]ochazuke.Parameter{
 		"verb": {Type: "string", Required: true, Description: "the job verb, demo.<name>"},
 		"fail": {Type: "boolean", Description: "finish it failed"},
-	})
+	}))
 	d.Mode("normal").
 		Bind("q", ochazuke.Do("app.quit")).
 		Bind("r", ochazuke.Do(Demo+".reset")).
@@ -361,7 +361,7 @@ func (ss *session) defineDemo(pages []*Page) error {
 				return fmt.Errorf("job verb %q: must be %s.<name>", j.Verb, Demo)
 			}
 			key := j.Verb
-			if _, known := r.Operations[key]; !known {
+			if _, known := r.Operations.Find(ochazuke.Key(key)); !known {
 				d.Verb(verb, func(ochazuke.Ctx) ochazuke.Result {
 					finish := make(chan error, 1)
 					ss.jobs[key] = append(ss.jobs[key], finish)
@@ -467,7 +467,7 @@ const HintsMode = "hints"
 // It is the recipe AGENTS.md's terminal row describes, as rows.
 func (ss *session) defineHints(h *HintsSpec) {
 	r := ss.R
-	if r.Operations[Demo+".hints"].Verb != "" {
+	if r.Operations.At(ochazuke.Key(Demo+".hints")).Name() != "" {
 		return
 	}
 	r.DefineMode(HintsMode, false)
@@ -501,10 +501,10 @@ func (ss *session) defineHints(h *HintsSpec) {
 		}, "Act on the labelled link and leave hints mode").
 		Verb("hints-cancel", func(c ochazuke.Ctx) ochazuke.Result { leave(c); return ochazuke.Done(nil) }, "Leave hints mode").
 		Verb("hints-ignore", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }, "Swallow a key in hints mode")
-	r.Operations[Demo+".hint"] = withParams(r.Operations[Demo+".hint"], map[string]ochazuke.Parameter{
+	r.Operations.Set(withParams(r.Operations.At(ochazuke.Key(Demo+".hint")), map[string]ochazuke.Parameter{
 		"label":  {Type: "string", Description: "the label letter"},
 		"action": {Type: "string", Description: "copy, type or open"},
-	})
+	}))
 	key := h.Key
 	if key == "" {
 		key = "f"
@@ -628,8 +628,8 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 	// confirm, delete.archive); a store on another noun (StoreSpec.Noun)
 	// leaves that noun's delete alone.
 	del := d.Noun().Name + ".delete"
-	if op, ok := ss.R.Operations[del]; ok && op.Standard == "" {
-		delete(ss.R.Operations, del)
+	if op, ok := ss.R.Operations.Find(ochazuke.Key(del)); ok && op.Standard == "" {
+		ss.R.Operations.Delete(ochazuke.Key(del))
 	}
 	st := ochazuke.Store{
 		Stamps: true, // story frames and write logs show the story's own writes, not the clock
@@ -791,10 +791,10 @@ func (ss *session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 		p.Base = ss.files(p.Base)
 		params[name] = p
 	}
-	op := withParams(ss.R.Operations[key], params)
+	op := withParams(ss.R.Operations.At(ochazuke.Key(key)), params)
 	op.Result = v.Result
 	op.CatalogProxy = v.Proxy
-	ss.R.Operations[key] = op
+	ss.R.Operations.Set(op)
 	for _, a := range v.Aliases {
 		a.Action = key
 		if err := ss.R.AddActionAlias(a); err != nil {

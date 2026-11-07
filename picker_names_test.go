@@ -45,8 +45,8 @@ func TestOldPickerNamesResolve(t *testing.T) {
 		"ochazuke.picker.open":    "ochazuke.picker.open",
 	} {
 		op, ok := r.Operation(name)
-		if !ok || op.Key() != want {
-			t.Errorf("%s resolves to %q (%v), want %s", name, op.Key(), ok, want)
+		if !ok || op.Key.Short() != want {
+			t.Errorf("%s resolves to %q (%v), want %s", name, op.Key.Short(), ok, want)
 		}
 	}
 	q := r.canonicalRequest(Request{Noun: "ochazuke.chooser", Verb: "open"})

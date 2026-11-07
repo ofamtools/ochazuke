@@ -493,9 +493,9 @@ func (b *NounBuilder) Verbs(verbs ...string) *NounBuilder {
 func (b *NounBuilder) Verb(verb string, h any, description ...string) *NounBuilder {
 	key := b.n.Name + "." + verb
 	run, app := appHandlerOf(h)
-	if existing, ok := b.r.Operations[key]; !ok || existing.Standard != "" {
+	if existing, ok := b.r.Operations.Find(Key(key)); !ok || existing.Standard != "" {
 		// A verb named like a generated standard verb replaces it.
-		b.r.Register(Operation{Verb: verb, Noun: b.n.Name, Description: strings.Join(description, " "), Result: "JSON value", Run: run, App: app})
+		b.r.Register(Operation{Key: KeyOf(b.n.Name, verb), Description: strings.Join(description, " "), Result: "JSON value", Run: run, AppHandler: app})
 		if ok {
 			b.last = key
 			return b
@@ -516,9 +516,9 @@ func (b *NounBuilder) lastOp(name string, edit func(*Operation)) *NounBuilder {
 	if b.last == "" {
 		panic(name + " must follow Verb")
 	}
-	op := b.r.Operations[b.last]
+	op := b.r.Operations.At(Key(b.last))
 	edit(&op)
-	b.r.Operations[b.last] = op
+	b.r.Operations.Set(op)
 	return b
 }
 
@@ -781,17 +781,17 @@ func (r *Runtime) AddVerbAvailability(key, guard string) error {
 	if !ok {
 		return fmt.Errorf("unknown operation %q", key)
 	}
-	n := r.Noun(op.Noun)
+	n := r.Noun(op.Noun())
 	if n == nil {
-		return fmt.Errorf("unknown noun %q", op.Noun)
+		return fmt.Errorf("unknown noun %q", op.Noun())
 	}
-	if n.Guards[op.Verb] == guard || slices.Contains(n.Availability[op.Verb], guard) {
+	if n.Guards[op.Name()] == guard || slices.Contains(n.Availability[op.Name()], guard) {
 		return nil
 	}
 	if n.Availability == nil {
 		n.Availability = map[string][]string{}
 	}
-	n.Availability[op.Verb] = append(slices.Clone(n.Availability[op.Verb]), guard)
+	n.Availability[op.Name()] = append(slices.Clone(n.Availability[op.Name()]), guard)
 	return nil
 }
 
@@ -803,13 +803,13 @@ func (r *Runtime) RemoveVerbAvailability(key, guard string) bool {
 	if !ok {
 		return false
 	}
-	n := r.Noun(op.Noun)
-	if n == nil || !slices.Contains(n.Availability[op.Verb], guard) {
+	n := r.Noun(op.Noun())
+	if n == nil || !slices.Contains(n.Availability[op.Name()], guard) {
 		return false
 	}
-	n.Availability[op.Verb] = slices.DeleteFunc(slices.Clone(n.Availability[op.Verb]), func(g string) bool { return g == guard })
-	if len(n.Availability[op.Verb]) == 0 {
-		delete(n.Availability, op.Verb)
+	n.Availability[op.Name()] = slices.DeleteFunc(slices.Clone(n.Availability[op.Name()]), func(g string) bool { return g == guard })
+	if len(n.Availability[op.Name()]) == 0 {
+		delete(n.Availability, op.Name())
 	}
 	return true
 }
@@ -1169,11 +1169,11 @@ func (r *Runtime) ValidateBindings() ([]string, error) {
 // noun: ochazuke.setting.set) is never swapped.
 func (r *Runtime) modernRequest(q Request) Request {
 	q = r.canonicalRequest(q)
-	if _, ok := r.Operations[q.Key()]; ok || q.Verb == "" || strings.Contains(q.Noun, ".") {
+	if _, ok := r.Operations.Find(Key(q.Key())); ok || q.Verb == "" || strings.Contains(q.Noun, ".") {
 		return q
 	}
 	reversed := r.canonicalRequest(Request{Verb: q.Noun, Noun: q.Verb, Target: q.Target, Args: q.Args})
-	if _, ok := r.Operations[reversed.Key()]; !ok {
+	if _, ok := r.Operations.Find(Key(reversed.Key())); !ok {
 		return q
 	}
 	warning := fmt.Sprintf("operation %q is spelled noun.verb: use %q", q.Key(), r.DisplayKey(reversed.Key()))
@@ -1217,7 +1217,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 		}
 	} else if !row.Unbind {
 		row.Request = r.modernRequest(row.Request)
-		op, ok := r.Operations[row.Request.Key()]
+		op, ok := r.Operations.Find(Key(row.Request.Key()))
 		if !ok {
 			return row, r.unknownOperation(row.Request.Noun, row.Request.Verb)
 		}
@@ -1229,7 +1229,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 		}
 		for arg, source := range row.From {
 			if _, ok := op.Parameters[arg]; !ok && !(arg == "target" && op.CatalogProxy) {
-				return row, fmt.Errorf("%s has no argument %q", op.Key(), arg)
+				return row, fmt.Errorf("%s has no argument %q", op.Key.Short(), arg)
 			}
 			if len(strings.Fields(source)) == 0 {
 				return row, fmt.Errorf("%s has an empty source", arg)

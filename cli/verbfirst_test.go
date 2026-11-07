@@ -35,7 +35,7 @@ func verbFirstRuntime(t *testing.T) (*ochazuke.Runtime, *[]string) {
 		Verb("add", say("agent.add"), "Add an agent").
 		Verb("show", say("agent.show"), "Show an agent").
 		Verb("spawn", say("agent.spawn"), "Spawn an agent")
-	r.Register(ochazuke.Operation{Verb: "answer", Noun: "x", Description: "Answer an x",
+	r.Register(ochazuke.Operation{Key: "x.answer", Description: "Answer an x",
 		Parameters: map[string]ochazuke.Parameter{"target": {Type: "string"}, "answer": {Type: "string"}},
 		Positional: []string{"target", "answer"},
 		Run: func(_ *ochazuke.Runtime, c ochazuke.Context, args ochazuke.Arguments) (any, error) {

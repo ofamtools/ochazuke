@@ -7,42 +7,42 @@ import "testing"
 func TestActionCheckMessagesPinned(t *testing.T) {
 	r := NewRuntime()
 	r.Define("worktree")
-	r.Operations["worktree.frob"] = Operation{Noun: "worktree", Verb: "frob"}
+	r.Operations.Set(Operation{Key: "worktree.frob"})
 	r.Nouns["worktree"].Props = append(r.Nouns["worktree"].Props, PropSpec{Name: "branch", Parameter: Parameter{Type: SettingString}})
 	cmd := Argv{"true"}
 	cases := []struct {
 		name string
-		a    Action
+		a    UserOperation
 		want string
 	}{
-		{"no noun", Action{Verb: "v", Command: cmd}, "noun and verb are required"},
-		{"no verb", Action{Noun: "worktree", Command: cmd}, "noun and verb are required"},
-		{"verb dot", Action{Noun: "worktree", Verb: "a.b", Command: cmd}, `verb "a.b" must be one word without a dot`},
-		{"verb space", Action{Noun: "worktree", Verb: "a b", Command: cmd}, `verb "a b" must be one word without a dot`},
-		{"unknown noun", Action{Noun: "nope", Verb: "v", Command: cmd}, `unknown noun "nope" (an action adds a verb to an existing noun)`},
-		{"unknown noun spelled", Action{Noun: "nope", Verb: "v", Command: cmd, written: "Nope"}, `unknown noun "Nope" (an action adds a verb to an existing noun)`},
-		{"defined", Action{Noun: "worktree", Verb: "frob", Command: cmd}, "worktree.frob is already defined"},
-		{"prop", Action{Noun: "worktree", Verb: "branch", Command: cmd}, "branch is a prop of worktree, not a verb"},
-		{"both", Action{Noun: "worktree", Verb: "v", Command: cmd, Base: Argv{"tool"}}, "command and base exclude each other"},
-		{"neither", Action{Noun: "worktree", Verb: "v"}, "command or base is required"},
-		{"call with command", Action{Noun: "worktree", Verb: "v", Command: cmd, Call: "a b"}, "call and target go with base, not command"},
-		{"target with command", Action{Noun: "worktree", Verb: "v", Command: cmd, Target: "x"}, "call and target go with base, not command"},
-		{"json with base", Action{Noun: "worktree", Verb: "v", Base: Argv{"tool"}, JSON: true}, "json goes with command; base always passes --json"},
-		{"foreground timeout", Action{Noun: "worktree", Verb: "v", Command: cmd, Foreground: true, Timeout: "1s"}, "foreground takes no timeout: the program runs until it exits"},
-		{"foreground json", Action{Noun: "worktree", Verb: "v", Command: cmd, Foreground: true, JSON: true}, "json goes with a captured command, not foreground"},
-		{"short call", Action{Noun: "worktree", Verb: "v", Base: Argv{"tool"}, Call: "one"}, `call "one" must be the noun's words and the verb`},
-		{"param name dot", Action{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"a.b": {Type: "string"}}}, `parameter name "a.b" must be one word, not a dot or a reserved name`},
-		{"param reserved", Action{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"target": {Type: "string"}}}, `parameter name "target" must be one word, not a dot or a reserved name`},
-		{"param type", Action{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"n": {Type: "float"}}}, "parameter n: type must be string, integer, boolean or path"},
-		{"positional", Action{Noun: "worktree", Verb: "v", Command: cmd, Positional: []string{"n"}}, `positional "n" is not a declared parameter`},
-		{"history", Action{Noun: "worktree", Verb: "v", Command: cmd, History: "x"}, `history "x" must be action, change or fetch`},
-		{"timeout bad", Action{Noun: "worktree", Verb: "v", Command: cmd, Timeout: "soon"}, `timeout "soon" must be a duration such as "30s"`},
-		{"timeout zero", Action{Noun: "worktree", Verb: "v", Command: cmd, Timeout: "0s"}, `timeout "0s" must be a duration such as "30s"`},
-		{"placeholder", Action{Noun: "worktree", Verb: "v", Command: Argv{"echo", "{{nosuch}}"}}, "unknown placeholder {{nosuch}}"},
-		{"placeholder label", Action{Noun: "worktree", Verb: "v", Command: cmd, Label: "{{ x }}"}, "unknown placeholder {{x}}"},
-		{"placeholder data.", Action{Noun: "worktree", Verb: "v", Command: Argv{"{{data.}}"}}, "unknown placeholder {{data.}}"},
-		{"ok", Action{Noun: "worktree", Verb: "v", Command: Argv{"{{data.x}}", "{{id}}"}}, ""},
-		{"order: neither before param", Action{Noun: "worktree", Verb: "v", Positional: []string{"n"}}, "command or base is required"},
+		{"no noun", UserOperation{Verb: "v", Command: cmd}, "noun and verb are required"},
+		{"no verb", UserOperation{Noun: "worktree", Command: cmd}, "noun and verb are required"},
+		{"verb dot", UserOperation{Noun: "worktree", Verb: "a.b", Command: cmd}, `verb "a.b" must be one word without a dot`},
+		{"verb space", UserOperation{Noun: "worktree", Verb: "a b", Command: cmd}, `verb "a b" must be one word without a dot`},
+		{"unknown noun", UserOperation{Noun: "nope", Verb: "v", Command: cmd}, `unknown noun "nope" (an action adds a verb to an existing noun)`},
+		{"unknown noun spelled", UserOperation{Noun: "nope", Verb: "v", Command: cmd, written: "Nope"}, `unknown noun "Nope" (an action adds a verb to an existing noun)`},
+		{"defined", UserOperation{Noun: "worktree", Verb: "frob", Command: cmd}, "worktree.frob is already defined"},
+		{"prop", UserOperation{Noun: "worktree", Verb: "branch", Command: cmd}, "branch is a prop of worktree, not a verb"},
+		{"both", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Base: Argv{"tool"}}, "command and base exclude each other"},
+		{"neither", UserOperation{Noun: "worktree", Verb: "v"}, "command or base is required"},
+		{"call with command", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Call: "a b"}, "call and target go with base, not command"},
+		{"target with command", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Target: "x"}, "call and target go with base, not command"},
+		{"json with base", UserOperation{Noun: "worktree", Verb: "v", Base: Argv{"tool"}, JSON: true}, "json goes with command; base always passes --json"},
+		{"foreground timeout", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Foreground: true, Timeout: "1s"}, "foreground takes no timeout: the program runs until it exits"},
+		{"foreground json", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Foreground: true, JSON: true}, "json goes with a captured command, not foreground"},
+		{"short call", UserOperation{Noun: "worktree", Verb: "v", Base: Argv{"tool"}, Call: "one"}, `call "one" must be the noun's words and the verb`},
+		{"param name dot", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"a.b": {Type: "string"}}}, `parameter name "a.b" must be one word, not a dot or a reserved name`},
+		{"param reserved", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"target": {Type: "string"}}}, `parameter name "target" must be one word, not a dot or a reserved name`},
+		{"param type", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"n": {Type: "float"}}}, "parameter n: type must be string, integer, boolean or path"},
+		{"positional", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Positional: []string{"n"}}, `positional "n" is not a declared parameter`},
+		{"history", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, History: "x"}, `history "x" must be action, change or fetch`},
+		{"timeout bad", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Timeout: "soon"}, `timeout "soon" must be a duration such as "30s"`},
+		{"timeout zero", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Timeout: "0s"}, `timeout "0s" must be a duration such as "30s"`},
+		{"placeholder", UserOperation{Noun: "worktree", Verb: "v", Command: Argv{"echo", "{{nosuch}}"}}, "unknown placeholder {{nosuch}}"},
+		{"placeholder label", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Label: "{{ x }}"}, "unknown placeholder {{x}}"},
+		{"placeholder data.", UserOperation{Noun: "worktree", Verb: "v", Command: Argv{"{{data.}}"}}, "unknown placeholder {{data.}}"},
+		{"ok", UserOperation{Noun: "worktree", Verb: "v", Command: Argv{"{{data.x}}", "{{id}}"}}, ""},
+		{"order: neither before param", UserOperation{Noun: "worktree", Verb: "v", Positional: []string{"n"}}, "command or base is required"},
 	}
 	for _, c := range cases {
 		got := ""

@@ -161,7 +161,7 @@ func TestProxyStoreMissingCapability(t *testing.T) {
 		t.Fatalf("create should refuse with the reason: %v", err)
 	}
 	// A verb the extension lacks is registered but unavailable, with the reason.
-	if op := r.Operations["ext-project.get"]; op.Unavailable == "" || !strings.Contains(op.Unavailable, "offers no get") {
+	if op := r.Operations.At("ext-project.get"); op.Unavailable == "" || !strings.Contains(op.Unavailable, "offers no get") {
 		t.Fatalf("project has no get in the extension: %q", op.Unavailable)
 	}
 }

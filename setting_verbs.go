@@ -402,7 +402,7 @@ func settingParams(v settingVerb) map[string]Parameter {
 // registerSettingVerbs registers the value verbs on the setting noun.
 func registerSettingVerbs(r *Runtime) {
 	for _, v := range settingVerbs {
-		op := Operation{Verb: v.Verb, Noun: "ochazuke.setting", Description: v.Description, Parameters: settingParams(v), Positional: []string{"name"}, Result: "setting", Run: runSettingVerb(v)}
+		op := Operation{Key: KeyOf("ochazuke.setting", v.Verb), Description: v.Description, Parameters: settingParams(v), Positional: []string{"name"}, Result: "setting", Run: runSettingVerb(v)}
 		if v.Arg != "" {
 			op.Positional = append(op.Positional, v.Arg)
 			// The value is a setting's, never a typed secret: the history
@@ -669,7 +669,7 @@ var applyCheck = VerbCheck{Name: "setting.apply", Check: func(r *Runtime, c Cont
 			continue
 		}
 		q := Request{Noun: op.Noun, Verb: op.Verb, Args: opArgs(op, scope, line.verbose)}
-		def, ok := r.Operations[q.Key()]
+		def, ok := r.Operations.Find(Key(q.Key()))
 		if !ok {
 			continue
 		}
@@ -740,7 +740,7 @@ func settingsApply(r *Runtime, c Context, a Arguments) (any, error) {
 
 // registerSettingsApply registers setting.apply, the :set front-end.
 func registerSettingsApply(r *Runtime) {
-	r.Register(Operation{Verb: "apply", Noun: "ochazuke.setting", Checks: []VerbCheck{applyCheck},
+	r.Register(Operation{Key: "ochazuke.setting.apply", Checks: []VerbCheck{applyCheck},
 		Description: "Run a :set line over the settings (opt, noopt, opt!, opt?, opt&, opt<, opt=v, opt+=v, opt-=v, opt^=v, all, all&; several words, all or nothing); a leading verbose adds where values were set",
 		Parameters: map[string]Parameter{
 			"line":    {Type: "string", Rest: true, Free: true, Source: "ochazuke.setting.complete", Description: "The :set line, the rest of the command: scrolloff=5 nowrap (empty: the settings that differ from their saved values)"},

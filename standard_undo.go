@@ -548,10 +548,10 @@ func registerUndo(r *Runtime) {
 		}
 		return false
 	})
-	r.Register(Operation{Verb: "undo", Noun: "ochazuke.history", HistoryKind: HistoryChange,
+	r.Register(Operation{Key: "ochazuke.history.undo", HistoryKind: HistoryChange,
 		Description: "Undo a standard change by entry seq, or the newest change; agents undo only their own entries. Only on a store that declares Undo",
 		Parameters:  map[string]Parameter{"entry": {Type: "integer", Description: "History entry seq; omitted, the newest change by this actor (owner: any actor)"}},
-		Result:      "JSON value", Summary: "summary", App: r.undoVerb})
+		Result:      "JSON value", Summary: "summary", AppHandler: r.undoVerb})
 	r.SetAvailability("ochazuke.history.undo", UndoGuard)
 }
 

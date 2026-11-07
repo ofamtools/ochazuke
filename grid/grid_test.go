@@ -235,12 +235,12 @@ func TestRegisterMarksBuiltin(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	r.Define("sheet").Verb("save", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) })
 	Register(r)
-	for key, op := range r.Operations {
+	for key, op := range r.Operations.Entries() {
 		if op.Builtin == (key == "sheet.save") {
 			t.Errorf("%s: builtin %v", key, op.Builtin)
 		}
 	}
-	if !r.Operations["ochazuke.grid.move"].Builtin {
+	if !r.Operations.At("ochazuke.grid.move").Builtin {
 		t.Fatal("grid.move not builtin")
 	}
 }

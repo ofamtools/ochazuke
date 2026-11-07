@@ -416,7 +416,7 @@ func registerColumnMotions(r *Runtime) {
 		}
 		return l == nil || !(l.atColumnEdge(delta) && l.trappedAt(columnEdge(delta)))
 	})
-	r.Register(Operation{Verb: "scroll-columns", Noun: "ochazuke.list", Motion: true, HistoryKind: HistoryAction, Description: "Scroll a table's columns: to the first or the last, or delta columns right or left; the pinned columns stay", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.list.scroll-columns", Motion: true, HistoryKind: HistoryAction, Description: "Scroll a table's columns: to the first or the last, or delta columns right or left; the pinned columns stay", Parameters: map[string]Parameter{
 		"id":    {Type: "string", Description: "The list (default: the focused one)"},
 		"to":    {Type: "string", Enum: []string{"first", "last"}, Description: "The unscrolled view (first) or the one showing the last column (last)"},
 		"delta": {Type: "integer", Description: "Columns to scroll, positive right (zl), negative left (zh)"},

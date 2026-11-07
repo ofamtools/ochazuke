@@ -100,8 +100,8 @@ func (r *Runtime) inspector() *inspectorState {
 
 func registerInspector(r *Runtime) {
 	r.Instance(inspectorID, Kind("ochazuke.state")).Component = &inspectorState{fields: map[string]func() any{}}
-	r.Register(Operation{Noun: "state", Verb: "inspect", Quiet: true, Description: "Inspect live focus, registers, messages and the last request", HistoryKind: HistoryFetch, Result: "inspection", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) { return r.Inspect(), nil }})
-	r.Register(Operation{Noun: "state", Verb: "toggle", Quiet: true, Description: "Toggle the live state inspector strip", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "state.inspect", Quiet: true, Description: "Inspect live focus, registers, messages and the last request", HistoryKind: HistoryFetch, Result: "inspection", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) { return r.Inspect(), nil }})
+	r.Register(Operation{Key: "state.toggle", Quiet: true, Description: "Toggle the live state inspector strip", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		enabled := !r.Settings().Bool(InspectorEnabledSetting)
 		_, err := r.Settings().SetSession(InspectorEnabledSetting, enabled)
 		return enabled, err
@@ -240,13 +240,13 @@ func inspectValue(v any) InspectValue {
 
 func (r *Runtime) inspectRequest(q Request, value any, err error) {
 	s := r.inspector()
-	if s == nil || r.Operations[q.Key()].Quiet {
+	if s == nil || r.Operations.At(Key(q.Key())).Quiet {
 		return
 	}
 	// Motions return component snapshots for their callers, potentially a
 	// whole list. Their observable result is the new place, not its rows.
 	result := value
-	if r.Operations[q.Key()].Motion {
+	if r.Operations.At(Key(q.Key())).Motion {
 		result = r.place()
 	}
 	out := &InspectRequest{Key: q.Key(), Result: inspectValue(result), Args: map[string]InspectValue{}}

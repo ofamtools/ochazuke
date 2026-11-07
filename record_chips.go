@@ -370,9 +370,9 @@ func registerFormChips(r *Runtime) {
 		"chip-line": delta,
 		"chip-edge": {"edge": {Type: "string", Required: true, Enum: []string{string(EdgeFirst), string(EdgeLast), string(EdgeFirstColumn), string(EdgeLastColumn)}}},
 	} {
-		op := r.Operations[FormNoun+"."+verb]
+		op := r.Operations.At(Key(FormNoun + "." + verb))
 		op.Parameters = params
-		r.Operations[FormNoun+"."+verb] = op
+		r.Operations.Set(op)
 	}
 	r.DefineGuard(FormChipsGuard, func(r *Runtime, ev KeyEvent) bool {
 		e := r.recordEditorOf(ev.Focus)

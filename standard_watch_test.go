@@ -258,7 +258,7 @@ func TestWatchStoreHandler(t *testing.T) {
 			return func() { stopped++ }, nil
 		},
 	})
-	if _, ok := r.Operations["task.watch"]; !ok {
+	if _, ok := r.Operations.Find("task.watch"); !ok {
 		t.Fatal("a store with only Watch has task.watch")
 	}
 	var rec watchRecorder
@@ -312,7 +312,7 @@ func TestWatchStoreHandler(t *testing.T) {
 // answers the watch, which a caller encoding it gets as the events so far.
 func TestWatchVerb(t *testing.T) {
 	r, _ := newTaskRuntime(t)
-	op := r.Operations["task.watch"]
+	op := r.Operations.At("task.watch")
 	if op.Standard != "watch" || op.HistoryKindOf() != HistoryFetch || !reflect.DeepEqual(op.Positional, []string{"id"}) {
 		t.Fatalf("task.watch = %+v", op)
 	}
@@ -346,12 +346,12 @@ func TestWatchVerb(t *testing.T) {
 
 	// A collection with only Get has no watch; a singleton with Get does.
 	r.Define("note").Props(PropSpec{Name: "id", Key: true}).Store(Store{Get: func(Ctx, string) (Thing, error) { return nil, nil }})
-	if _, ok := r.Operations["note.watch"]; ok {
+	if _, ok := r.Operations.Find("note.watch"); ok {
 		t.Fatal("a collection with only Get has note.watch")
 	}
 	look := Thing{"theme": "dark"}
 	r.Define("look").Props(PropSpec{Name: "theme"}).Store(Store{Kind: Singleton, Get: func(Ctx, string) (Thing, error) { return look, nil }})
-	sop, ok := r.Operations["look.watch"]
+	sop, ok := r.Operations.Find("look.watch")
 	if !ok || len(sop.Positional) != 0 {
 		t.Fatalf("look.watch = %+v, %v", sop, ok)
 	}

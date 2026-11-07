@@ -944,21 +944,21 @@ func registerSettings(r *Runtime) {
 	registerSettingLayout(r)
 	// Rows naming a setting ({terminal-leader}) follow its value.
 	r.Config().settings.Observe("", func(name string, _ any) { r.rebindSettingRows(name) })
-	r.Register(Operation{Verb: "names", Noun: "ochazuke.setting", HistoryKind: HistoryFetch, Description: "List the names of the declared settings", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.names", HistoryKind: HistoryFetch, Description: "List the names of the declared settings", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names := []string{}
 		for _, one := range r.Settings().declared {
 			names = append(names, one.Name)
 		}
 		return names, nil
 	}})
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.setting", HistoryKind: HistoryFetch, Description: "Read settings.json again; observers see every value that changed", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.reload", HistoryKind: HistoryFetch, Description: "Read settings.json again; observers see every value that changed", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.Settings().Reload()
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "ochazuke.setting", HistoryKind: HistoryFetch, Description: "Print the settings file: settings.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.path", HistoryKind: HistoryFetch, Description: "Print the settings file: settings.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(SettingsFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

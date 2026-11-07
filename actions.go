@@ -53,7 +53,7 @@ const ActionsFile = "actions.json"
 //
 // An entry with an "alias" field is an alias row instead (AliasRow): one
 // more name for an existing action, which runs nothing of its own.
-type Action struct {
+type UserOperation struct {
 	Noun        string               `json:"noun"`
 	Verb        string               `json:"verb"`
 	Description string               `json:"description,omitempty"`
@@ -82,10 +82,10 @@ type Action struct {
 }
 
 // Key is the action's operation key, noun.verb.
-func (a Action) Key() string { return a.Noun + "." + a.Verb }
+func (a UserOperation) Key() string { return a.Noun + "." + a.Verb }
 
 // spelled is the noun as the file spells it.
-func (a Action) spelled() string {
+func (a UserOperation) spelled() string {
 	if a.written != "" {
 		return a.written
 	}
@@ -93,7 +93,7 @@ func (a Action) spelled() string {
 }
 
 // writtenKey is the key as the file spells it, for messages.
-func (a Action) writtenKey() string { return a.spelled() + "." + a.Verb }
+func (a UserOperation) writtenKey() string { return a.spelled() + "." + a.Verb }
 
 // Argv is a command line: a JSON array of words, or a string split on
 // spaces (use the array for a word holding a space).
@@ -124,7 +124,7 @@ var actionField = regexp.MustCompile(`\{\{\s*([\w.-]+)\s*\}\}`)
 // order; the first failure is the answer.
 type actionRule struct {
 	name string
-	test func(a Action, r *Runtime) string
+	test func(a UserOperation, r *Runtime) string
 }
 
 // when answers msg when bad holds, else "".
@@ -150,7 +150,7 @@ func invalidParameterName(name string) bool {
 
 // firstParameter is the message of the first parameter (by name) that bad
 // reports, "" when none does.
-func (a Action) firstParameter(bad func(name string, p Parameter) string) string {
+func (a UserOperation) firstParameter(bad func(name string, p Parameter) string) string {
 	for _, name := range slices.Sorted(maps.Keys(a.Parameters)) {
 		if msg := bad(name, a.Parameters[name]); msg != "" {
 			return msg
@@ -161,7 +161,7 @@ func (a Action) firstParameter(bad func(name string, p Parameter) string) string
 
 // unknownPlaceholder is the first template placeholder that is neither a
 // declared parameter nor a reserved name, "" when all are known.
-func (a Action) unknownPlaceholder() string {
+func (a UserOperation) unknownPlaceholder() string {
 	templates := append(append(append([]string{}, a.Command...), a.Base...), a.Label, a.Dir, a.Target)
 	for _, t := range templates {
 		for _, m := range actionField.FindAllStringSubmatch(t, -1) {
@@ -199,77 +199,77 @@ var actionRules = []actionRule{
 	{"placeholders", rulePlaceholders},
 }
 
-func ruleNounAndVerb(a Action, r *Runtime) string {
+func ruleNounAndVerb(a UserOperation, r *Runtime) string {
 	return when(a.Noun == "" || a.Verb == "", "noun and verb are required")
 }
 
-func ruleVerbOneWord(a Action, r *Runtime) string {
+func ruleVerbOneWord(a UserOperation, r *Runtime) string {
 	return when(strings.ContainsAny(a.Verb, ". \t\n"), "verb %q must be one word without a dot", a.Verb)
 }
 
-func ruleNounExists(a Action, r *Runtime) string {
+func ruleNounExists(a UserOperation, r *Runtime) string {
 	return when(r.Nouns[a.Noun] == nil, "unknown noun %q (an action adds a verb to an existing noun)", a.spelled())
 }
 
-func ruleVerbFree(a Action, r *Runtime) string {
-	return when(r.Operations[a.Key()].Noun != "", "%s is already defined", a.writtenKey())
+func ruleVerbFree(a UserOperation, r *Runtime) string {
+	return when(r.Operations.At(Key(a.Key())).Noun() != "", "%s is already defined", a.writtenKey())
 }
 
-func ruleVerbNotAProp(a Action, r *Runtime) string {
+func ruleVerbNotAProp(a UserOperation, r *Runtime) string {
 	return when(r.Nouns[a.Noun].prop(a.Verb) != nil, "%s is a prop of %s, not a verb", a.Verb, a.spelled())
 }
 
-func ruleCommandXorBase(a Action, r *Runtime) string {
+func ruleCommandXorBase(a UserOperation, r *Runtime) string {
 	return when(len(a.Command) > 0 && len(a.Base) > 0, "command and base exclude each other")
 }
 
-func ruleCommandOrBase(a Action, r *Runtime) string {
+func ruleCommandOrBase(a UserOperation, r *Runtime) string {
 	return when(len(a.Command) == 0 && len(a.Base) == 0, "command or base is required")
 }
 
-func ruleCallAndTargetGoWithBase(a Action, r *Runtime) string {
+func ruleCallAndTargetGoWithBase(a UserOperation, r *Runtime) string {
 	return when(len(a.Command) > 0 && (a.Call != "" || a.Target != ""), "call and target go with base, not command")
 }
 
-func ruleJsonGoesWithCommand(a Action, r *Runtime) string {
+func ruleJsonGoesWithCommand(a UserOperation, r *Runtime) string {
 	return when(len(a.Base) > 0 && a.JSON, "json goes with command; base always passes --json")
 }
 
-func ruleForegroundNoTimeout(a Action, r *Runtime) string {
+func ruleForegroundNoTimeout(a UserOperation, r *Runtime) string {
 	return when(a.Foreground && a.Timeout != "", "foreground takes no timeout: the program runs until it exits")
 }
 
-func ruleForegroundNoJson(a Action, r *Runtime) string {
+func ruleForegroundNoJson(a UserOperation, r *Runtime) string {
 	return when(a.Foreground && a.JSON, "json goes with a captured command, not foreground")
 }
 
-func ruleCallWords(a Action, r *Runtime) string {
+func ruleCallWords(a UserOperation, r *Runtime) string {
 	return when(a.Call != "" && len(strings.Fields(a.Call)) < 2, "call %q must be the noun's words and the verb", a.Call)
 }
 
-func ruleSourceArgs(a Action, r *Runtime) string {
+func ruleSourceArgs(a UserOperation, r *Runtime) string {
 	return errorText(r.CheckSourceArgs(a.Parameters))
 }
 
-func ruleParameterSources(a Action, r *Runtime) string {
-	return errorText(CheckParameterSources(Operation{Noun: a.Noun, Verb: a.Verb, Parameters: a.Parameters}))
+func ruleParameterSources(a UserOperation, r *Runtime) string {
+	return errorText(CheckParameterSources(Operation{Key: KeyOf(a.Noun, a.Verb), Parameters: a.Parameters}))
 }
 
-func ruleParameterNames(a Action, r *Runtime) string {
+func ruleParameterNames(a UserOperation, r *Runtime) string {
 	return a.firstParameter(func(name string, p Parameter) string {
 		return when(invalidParameterName(name), "parameter name %q must be one word, not a dot or a reserved name", name)
 	})
 
 }
 
-func ruleParameterTypes(a Action, r *Runtime) string {
+func ruleParameterTypes(a UserOperation, r *Runtime) string {
 	return a.firstParameter(func(name string, p Parameter) string {
 		return when(!kindOf(p.Type).action, "parameter %s: type must be string, integer, boolean or path", name)
 	})
 
 }
 
-func rulePositionalDeclared(a Action, r *Runtime) string {
+func rulePositionalDeclared(a UserOperation, r *Runtime) string {
 	for _, name := range a.Positional {
 		if _, ok := a.Parameters[name]; !ok {
 			return fmt.Sprintf("positional %q is not a declared parameter", name)
@@ -279,11 +279,11 @@ func rulePositionalDeclared(a Action, r *Runtime) string {
 
 }
 
-func ruleHistory(a Action, r *Runtime) string {
+func ruleHistory(a UserOperation, r *Runtime) string {
 	return when(!slices.Contains([]string{"", HistoryAction, HistoryChange, HistoryFetch}, a.History), "history %q must be action, change or fetch", a.History)
 }
 
-func ruleTimeout(a Action, r *Runtime) string {
+func ruleTimeout(a UserOperation, r *Runtime) string {
 	if a.Timeout == "" {
 		return ""
 	}
@@ -292,13 +292,13 @@ func ruleTimeout(a Action, r *Runtime) string {
 
 }
 
-func rulePlaceholders(a Action, r *Runtime) string {
+func rulePlaceholders(a UserOperation, r *Runtime) string {
 	return when(a.unknownPlaceholder() != "", "unknown placeholder {{%s}}", a.unknownPlaceholder())
 }
 
 // check reports why an action cannot be installed on r, nil when it can:
 // the message of the first actionRules row it fails.
-func (a Action) check(r *Runtime) error {
+func (a UserOperation) check(r *Runtime) error {
 	for _, rule := range actionRules {
 		if msg := rule.test(a, r); msg != "" {
 			return errors.New(msg)
@@ -308,7 +308,7 @@ func (a Action) check(r *Runtime) error {
 }
 
 // actionValues are the template values of one run.
-func (a Action) values(c Ctx) func(name string) string {
+func (a UserOperation) values(c Ctx) func(name string) string {
 	inst := c.Instance
 	var fields map[string]any
 	return func(name string) string {
@@ -380,7 +380,7 @@ func expand(t string, value func(string) string) string {
 }
 
 // argv is the command line of one run.
-func (a Action) argv(c Ctx, value func(string) string) []string {
+func (a UserOperation) argv(c Ctx, value func(string) string) []string {
 	var out []string
 	words := a.Command
 	if len(a.Base) > 0 {
@@ -410,7 +410,7 @@ func (a Action) argv(c Ctx, value func(string) string) []string {
 }
 
 // handler is the action's application verb.
-func (a Action) handler() AppHandler {
+func (a UserOperation) handler() AppHandler {
 	return func(c Ctx) Result {
 		value := a.values(c)
 		argv := a.argv(c, value)
@@ -502,7 +502,7 @@ func actionOutput(out []byte) any {
 }
 
 // UserActions are the actions installed from actions.json, in file order.
-func (r *Runtime) UserActions() []Action { return slices.Clone(r.Config().actions) }
+func (r *Runtime) UserActions() []UserOperation { return slices.Clone(r.Config().actions) }
 
 // UserAliases are the alias rows installed from actions.json, in file
 // order.
@@ -569,7 +569,7 @@ func (r *Runtime) CheckUserActions() []string {
 	if path == "" {
 		return nil
 	}
-	installed := map[string]Action{}
+	installed := map[string]UserOperation{}
 	for _, a := range c.actions {
 		installed[a.Key()] = a
 	}
@@ -642,7 +642,7 @@ func (r *Runtime) ReloadUserActions() []string {
 	}
 	c.actionsLoaded = true
 	for _, a := range c.actions {
-		delete(r.Operations, a.Key())
+		r.Operations.Delete(Key(a.Key()))
 		if n := r.Nouns[a.Noun]; n != nil {
 			if i := slices.Index(n.Verbs, a.Verb); i >= 0 {
 				n.Verbs = slices.Delete(n.Verbs, i, i+1)
@@ -705,7 +705,7 @@ func (r *Runtime) ReloadUserActions() []string {
 }
 
 // installAction registers one checked action.
-func (r *Runtime) installAction(a Action) {
+func (r *Runtime) installAction(a UserOperation) {
 	params := map[string]Parameter{}
 	for name, p := range a.Parameters {
 		params[name] = p
@@ -714,13 +714,13 @@ func (r *Runtime) installAction(a Action) {
 	if description == "" {
 		description = "Run " + filepath.Base(a.firstWord()) + " (" + ActionsFile + ")"
 	}
-	r.Register(Operation{Verb: a.Verb, Noun: a.Noun, Description: description, Parameters: params, Result: "JSON value", Positional: slices.Clone(a.Positional), Quiet: a.Quiet, Foreground: a.Foreground, HistoryKind: a.History, Confirm: a.Confirm, App: a.handler()})
+	r.Register(Operation{Key: KeyOf(a.Noun, a.Verb), Description: description, Parameters: params, Result: "JSON value", Positional: slices.Clone(a.Positional), Quiet: a.Quiet, Foreground: a.Foreground, HistoryKind: a.History, Confirm: a.Confirm, AppHandler: a.handler()})
 	r.Nouns[a.Noun].Verbs = append(r.Nouns[a.Noun].Verbs, a.Verb)
 	c := r.Config()
 	c.actions = append(c.actions, a)
 }
 
-func (a Action) firstWord() string {
+func (a UserOperation) firstWord() string {
 	if len(a.Base) > 0 {
 		return a.Base[0]
 	}
@@ -736,7 +736,7 @@ func (a Action) firstWord() string {
 // fileAction is a decoded action and its 1-based position in the file.
 type fileAction struct {
 	n      int
-	action Action
+	action UserOperation
 	alias  *AliasRow // an alias row instead of an action
 }
 
@@ -771,7 +771,7 @@ func readActions(path string) ([]fileAction, []string) {
 		}
 		dec := json.NewDecoder(bytes.NewReader(one))
 		dec.DisallowUnknownFields()
-		var a Action
+		var a UserOperation
 		if err := dec.Decode(&a); err != nil {
 			problems = append(problems, fmt.Sprintf("%s: action %d: %v (skipped)", ActionsFile, i+1, err))
 			continue
@@ -782,7 +782,7 @@ func readActions(path string) ([]fileAction, []string) {
 }
 
 func registerActions(r *Runtime) {
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.actions", HistoryKind: HistoryFetch, Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.actions.reload", HistoryKind: HistoryFetch, Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadUserActions()
 		if r.Config().bindingsLoaded {
 			problems = append(problems, r.ReloadUserBindings()...)
@@ -792,17 +792,17 @@ func registerActions(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "check", Noun: "ochazuke.actions", HistoryKind: HistoryFetch, Description: "Report the entries of actions.json a load would skip, alias rows that clash with an action or another alias included, without installing anything", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.actions.check", HistoryKind: HistoryFetch, Description: "Report the entries of actions.json a load would skip, alias rows that clash with an action or another alias included, without installing anything", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := append(r.CheckUserActions(), r.StandardShadows()...)
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "aliases", Noun: "ochazuke.actions", HistoryKind: HistoryFetch, Description: "List every action alias: the framework's old names, the application's aliases and the alias rows of actions.json, each with the action it runs", Result: "alias[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.actions.aliases", HistoryKind: HistoryFetch, Description: "List every action alias: the framework's old names, the application's aliases and the alias rows of actions.json, each with the action it runs", Result: "alias[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.ActionAliases(), nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "ochazuke.actions", HistoryKind: HistoryFetch, Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.actions.path", HistoryKind: HistoryFetch, Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(ActionsFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")
@@ -813,7 +813,7 @@ func registerActions(r *Runtime) {
 
 // registerActionFacts declares the actions noun.
 func registerActionFacts(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: "ochazuke.actions", Sample: Action{}, Key: "key", Label: "label", Extra: []PropSpec{{Name: "key"}},
+	r.defineFacts(factsSpec{Noun: "ochazuke.actions", Sample: UserOperation{}, Key: "key", Label: "label", Extra: []PropSpec{{Name: "key"}},
 		Docs: map[string]string{"key": "The verb the action adds (noun.verb)", "noun": "Its noun", "verb": "Its verb", "description": "What it does", "command": "The command it runs",
 			"label": "The label of its thing in the prompt"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {

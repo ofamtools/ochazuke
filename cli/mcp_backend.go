@@ -113,24 +113,24 @@ func (s *Shell) resolveMCPVerb(name string) (ochazuke.Operation, error) {
 	candidates := map[string]ochazuke.Operation{}
 	match := func(spelling string, op ochazuke.Operation) {
 		if strings.HasPrefix(spelling, name) {
-			candidates[op.Key()] = op
+			candidates[op.Key.Short()] = op
 			return
 		}
 		noun, verb := ochazuke.SplitKey(name)
 		cn, cv := ochazuke.SplitKey(spelling)
 		if noun != "" && strings.HasPrefix(cn, noun) && strings.HasPrefix(cv, verb) {
-			candidates[op.Key()] = op
+			candidates[op.Key.Short()] = op
 		}
 	}
 	for _, op := range r.Catalog() {
-		match(op.Key(), op)
-		match(r.DisplayKey(op.Key()), op)
+		match(op.Key.Short(), op)
+		match(r.DisplayKey(op.Key.Short()), op)
 		for _, alias := range r.Aliases() {
-			if !alias.Shadowed && alias.Noun == op.Noun {
-				match(alias.Alias+"."+op.Verb, op)
+			if !alias.Shadowed && alias.Noun == op.Noun() {
+				match(alias.Alias+"."+op.Name(), op)
 			}
 		}
-		for _, alias := range r.AliasesOf(op.Key()) {
+		for _, alias := range r.AliasesOf(op.Key.Short()) {
 			match(alias.Alias, op)
 		}
 	}
@@ -289,9 +289,9 @@ func (b *mcpBackend) describe(name string) (any, error) {
 		p.Source = r.ChoicesSource(p)
 		params[name] = p
 	}
-	guards := append(r.VerbAvailability(op.Key()), op.CatalogGuards...)
+	guards := append(r.VerbAvailability(op.Key.Short()), op.CatalogGuards...)
 	schema := parameterSchema(params)
-	return map[string]any{"verb": op.Key(), "description": op.Description, "params": params, "inputSchema": schema, "required": schema["required"], "positional": op.Positional, "guards": guards, "many": op.Many, "acts": []string{"focus"}, "confirm": op.Confirm, "history": op.HistoryKindOf(), "destructive": op.Destructive, "right": right.Right, "rule": right.Rule, "examples": op.ExamplesOf(), "aliases": r.AliasesOf(op.Key()), "cli": s.commandFor(op, "", op.ExamplesOf()[0].Args)}, nil
+	return map[string]any{"verb": op.Key.Short(), "description": op.Description, "params": params, "inputSchema": schema, "required": schema["required"], "positional": op.Positional, "guards": guards, "many": op.Many, "acts": []string{"focus"}, "confirm": op.Confirm, "history": op.HistoryKindOf(), "destructive": op.Destructive, "right": right.Right, "rule": right.Rule, "examples": op.ExamplesOf(), "aliases": r.AliasesOf(op.Key.Short()), "cli": s.commandFor(op, "", op.ExamplesOf()[0].Args)}, nil
 }
 
 func (s *Shell) commandFor(op ochazuke.Operation, target string, args map[string]any) string {
@@ -301,7 +301,7 @@ func (s *Shell) commandFor(op ochazuke.Operation, target string, args map[string
 	for _, word := range s.mcpCommandWords() {
 		parts = append(parts, quote(word))
 	}
-	parts = append(parts, quote(op.Noun), quote(op.Verb))
+	parts = append(parts, quote(op.Noun()), quote(op.Name()))
 	if target != "" {
 		parts = append(parts, "--target", quote(target))
 	}
@@ -340,7 +340,7 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 		flags = append(flags, "--target", target)
 	}
 	// Preserve action aliases and their preset/renamed parameters.
-	noun, verb := op.Noun, op.Verb
+	noun, verb := op.Noun(), op.Name()
 	command := []string{noun, verb}
 	if _, inv, ok := r.ResolveAction(name); ok && inv.Alias {
 		if !strings.Contains(inv.Name, ".") {
@@ -406,7 +406,7 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 		entries := r.HistoryOf(0, ochazuke.HistoryAction, ochazuke.HistoryChange, ochazuke.HistoryFetch)
 		for i := len(entries) - 1; i >= 0; i-- {
 			e := entries[i]
-			if e.Seq <= lastSeq || e.Request.Key() != op.Key() || e.Context.Actor != b.actor {
+			if e.Seq <= lastSeq || e.Request.Key() != op.Key.Short() || e.Context.Actor != b.actor {
 				continue
 			}
 			answer["entry"] = e.Seq
@@ -505,10 +505,10 @@ func (s *Shell) registerMCPVerbs() {
 			}, "MCP "+name).Fetch().Quiet()
 		}
 		s.defineCatalogFacts()
-		r.Register(ochazuke.Operation{Noun: "ochazuke.catalog", Verb: "list", Description: "Discover nouns, verbs and effective agent rights", HistoryKind: ochazuke.HistoryFetch, ShadowsStandard: true, Parameters: map[string]ochazuke.Parameter{"noun": {Type: "string"}, "search": {Type: "string"}, "include": {Type: "string", Enum: []string{"app", "builtin", "all"}}, "limit": {Type: "integer"}, "offset": {Type: "integer"}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		r.Register(ochazuke.Operation{Key: "ochazuke.catalog.list", Description: "Discover nouns, verbs and effective agent rights", HistoryKind: ochazuke.HistoryFetch, ShadowsStandard: true, Parameters: map[string]ochazuke.Parameter{"noun": {Type: "string"}, "search": {Type: "string"}, "include": {Type: "string", Enum: []string{"app", "builtin", "all"}}, "limit": {Type: "integer"}, "offset": {Type: "integer"}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			return (&mcpBackend{shell: s, actor: r.Actor()}).catalog(a)
 		}})
-		r.Register(ochazuke.Operation{Noun: "ochazuke.catalog", Verb: "describe", Description: "Describe one verb, its parameters, guards and agent right", HistoryKind: ochazuke.HistoryFetch, Parameters: map[string]ochazuke.Parameter{"verb": {Type: "string", Required: true}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		r.Register(ochazuke.Operation{Key: "ochazuke.catalog.describe", Description: "Describe one verb, its parameters, guards and agent right", HistoryKind: ochazuke.HistoryFetch, Parameters: map[string]ochazuke.Parameter{"verb": {Type: "string", Required: true}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			return (&mcpBackend{shell: s, actor: r.Actor()}).describe(ochazuke.StringArg(a, "verb", ""))
 		}})
 	})

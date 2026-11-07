@@ -158,7 +158,7 @@ func TestDotDoesNotRepeatMotion(t *testing.T) {
 	if got := string(in.Text); got != "b d" {
 		t.Fatalf("text %q", got)
 	}
-	if op := r.Operations["ochazuke.input.move"]; op.Repeatable || !r.Operations["ochazuke.input.operator"].Repeatable {
+	if op := r.Operations.At("ochazuke.input.move"); op.Repeatable || !r.Operations.At("ochazuke.input.operator").Repeatable {
 		t.Fatal("motions are not repeatable, operators are")
 	}
 	fresh := NewRuntime()
@@ -222,7 +222,7 @@ func TestDotRetargetsToFocusUnlessCLI(t *testing.T) {
 func TestDotDoesNotReaskConfirmation(t *testing.T) {
 	r := NewRuntime()
 	runs := 0
-	r.Register(Operation{Verb: "wipe", Noun: "test", Confirm: "Wipe?", Repeatable: true, Run: func(*Runtime, Context, Arguments) (any, error) { runs++; return nil, nil }})
+	r.Register(Operation{Key: "test.wipe", Confirm: "Wipe?", Repeatable: true, Run: func(*Runtime, Context, Arguments) (any, error) { runs++; return nil, nil }})
 	if _, err := r.Execute(Request{Verb: "wipe", Noun: "test"}); err != nil || runs != 0 || len(r.Modals()) != 1 {
 		t.Fatalf("confirm opens: %v runs=%d", err, runs)
 	}

@@ -278,7 +278,7 @@ func TestAboutVerbsAgentsAndHistory(t *testing.T) {
 		"ochazuke.about-row.show": HistoryFetch, "ochazuke.about-row.copy": HistoryChange, "ochazuke.about-row.open": HistoryAction,
 	}
 	for key, kind := range kinds {
-		op, ok := r.Operations[key]
+		op, ok := r.Operations.Find(Key(key))
 		if !ok {
 			t.Fatalf("no %s", key)
 		}

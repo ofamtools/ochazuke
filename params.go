@@ -61,7 +61,7 @@ func parseChoice(v any) (Choice, error) {
 	case PaletteInstance:
 		return Choice(item), nil
 	case Operation:
-		return Choice{ID: item.Key()}, nil
+		return Choice{ID: item.Key.Short()}, nil
 	case ListItem:
 		return rowChoice(item), nil
 	case *ListItem:
@@ -131,7 +131,7 @@ func (r *Runtime) ChoicesSource(p Parameter) string {
 		return ""
 	}
 	op, ok := r.standardOperation(p.Noun, "list")
-	key := op.Key()
+	key := op.Key.Short()
 	if !ok || op.Confirm != "" {
 		return ""
 	}
@@ -207,7 +207,7 @@ const ChoicesQueryParameter = "query"
 // ChoicesTakeQuery reports whether a parameter's choices source sees the
 // typed text (it declares ChoicesQueryParameter).
 func (r *Runtime) ChoicesTakeQuery(p Parameter) bool {
-	op, ok := r.Operations[r.ChoicesSource(p)]
+	op, ok := r.Operations.Find(Key(r.ChoicesSource(p)))
 	_, takes := op.Parameters[ChoicesQueryParameter]
 	return ok && takes
 }
@@ -233,14 +233,14 @@ func (r *Runtime) ChoicesFor(c Context, p Parameter, query string, siblings ...A
 		}
 		return out, nil
 	}
-	op, ok := r.Operations[source]
+	op, ok := r.Operations.Find(Key(source))
 	if !ok {
 		return out, fmt.Errorf("unknown choices source %q", source)
 	}
 	if op.Confirm != "" {
 		return out, fmt.Errorf("choices source %q asks for confirmation", source)
 	}
-	result, err := r.executeAt(c, Request{Verb: op.Verb, Noun: op.Noun, Args: choicesSourceArgs(op, p, query, siblings...)}, r.awaitChoices)
+	result, err := r.executeAt(c, Request{Verb: op.Name(), Noun: op.Noun(), Args: choicesSourceArgs(op, p, query, siblings...)}, r.awaitChoices)
 	if err != nil {
 		return out, fmt.Errorf("choices source %q: %w", source, err)
 	}
@@ -265,8 +265,8 @@ func (r *Runtime) loadChoices(c Context, p Parameter, owner string, done func([]
 func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, done func([]Choice, error), siblings ...Arguments) bool {
 	enum := enumChoices(p)
 	source := r.ChoicesSource(p)
-	op, ok := r.Operations[source]
-	if source == "" || !ok || op.App == nil || op.Confirm != "" {
+	op, ok := r.Operations.Find(Key(source))
+	if source == "" || !ok || op.AppHandler == nil || op.Confirm != "" {
 		choices, err := r.ChoicesFor(c, p, query, siblings...)
 		done(choices, err)
 		return false
@@ -286,7 +286,7 @@ func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, do
 		done(enum, err)
 		return false
 	}
-	res := op.App(ctx)
+	res := op.AppHandler(ctx)
 	if res.err != nil || res.work == nil {
 		done(parse(res.value, res.err))
 		return false
@@ -294,7 +294,7 @@ func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, do
 	res = res.also(func(c Ctx, value any, err error) {
 		done(parse(value, err))
 	})
-	if _, err := r.Launch(owner, op.Key(), res, ctx); err != nil {
+	if _, err := r.Launch(owner, op.Key.Short(), res, ctx); err != nil {
 		done(enum, fmt.Errorf("choices source %q: %w", source, err))
 		return false
 	}
@@ -310,7 +310,7 @@ func (r *Runtime) loadChoicesFor(c Context, p Parameter, query, owner string, do
 // cancelled one. Otherwise it answers what ChoicesFor would, and false.
 func (r *Runtime) startChoices(c Context, p Parameter, query, owner, slot string, done func([]Choice, error), siblings ...Arguments) ([]Choice, bool, error) {
 	source := r.ChoicesSource(p)
-	op, ok := r.Operations[source]
+	op, ok := r.Operations.Find(Key(source))
 	if source == "" || !ok || op.Confirm != "" {
 		choices, err := r.ChoicesFor(c, p, query, siblings...)
 		return choices, false, err
@@ -328,7 +328,7 @@ func (r *Runtime) startChoices(c Context, p Parameter, query, owner, slot string
 	}
 	pending := false
 	launch := func(op Operation, c Context, args Arguments) (any, error) {
-		if op.App == nil {
+		if op.AppHandler == nil {
 			return op.Run(r, c, args)
 		}
 		res, ctx, err := r.runChoicesApp(op, c, args)
@@ -338,13 +338,13 @@ func (r *Runtime) startChoices(c Context, p Parameter, query, owner, slot string
 		res = res.Replacing(slot).also(func(c Ctx, value any, err error) {
 			done(parse(value, err))
 		})
-		if _, err := r.Launch(owner, op.Key(), res, ctx); err != nil {
+		if _, err := r.Launch(owner, op.Key.Short(), res, ctx); err != nil {
 			return nil, err
 		}
 		pending = true
 		return nil, nil
 	}
-	value, err := r.executeAt(c, Request{Verb: op.Verb, Noun: op.Noun, Args: choicesSourceArgs(op, p, query, siblings...)}, launch)
+	value, err := r.executeAt(c, Request{Verb: op.Name(), Noun: op.Noun(), Args: choicesSourceArgs(op, p, query, siblings...)}, launch)
 	if pending && err == nil {
 		return enum, true, nil
 	}
@@ -405,8 +405,8 @@ func choiceError(name string, choices []Choice) error {
 func (r *Runtime) choicesLoad(c Context, p Parameter, query string, siblings ...Arguments) Result {
 	enum := enumChoices(p)
 	source := r.ChoicesSource(p)
-	op, ok := r.Operations[source]
-	if source == "" || !ok || op.App == nil || op.Confirm != "" {
+	op, ok := r.Operations.Find(Key(source))
+	if source == "" || !ok || op.AppHandler == nil || op.Confirm != "" {
 		choices, err := r.ChoicesFor(c, p, query, siblings...)
 		if err != nil && len(choices) == 0 {
 			return Failed(err)
@@ -424,7 +424,7 @@ func (r *Runtime) choicesLoad(c Context, p Parameter, query string, siblings ...
 	if err != nil {
 		return Failed(err)
 	}
-	res := op.App(ctx)
+	res := op.AppHandler(ctx)
 	if res.err != nil {
 		return Failed(fmt.Errorf("choices source %q: %w", source, res.err))
 	}
@@ -455,7 +455,7 @@ func (r *Runtime) CheckSourceArgs(params map[string]Parameter) error {
 		if source == "" && len(p.SourceArgs) == 0 {
 			continue // fixed arguments of a parameter with no source (a noun with no list) are moot
 		}
-		op, ok := r.Operations[source]
+		op, ok := r.Operations.Find(Key(source))
 		if !ok {
 			return fmt.Errorf("%s: unknown choices source %q", name, source)
 		}
@@ -511,20 +511,20 @@ func (r *Runtime) choicesContext(c Context, op Operation, p Parameter, query str
 	if err := r.checkArguments(op, args); err != nil {
 		return Ctx{}, err
 	}
-	q := Request{Noun: op.Noun, Verb: op.Verb, Args: args}
+	q := Request{Noun: op.Noun(), Verb: op.Name(), Args: args}
 	focus := focusOf(c)
 	if !r.Available(q, focus, r.Mode) {
-		return Ctx{}, fmt.Errorf("choices source %q is not applicable now", op.Key())
+		return Ctx{}, fmt.Errorf("choices source %q is not applicable now", op.Key.Short())
 	}
-	if owner := r.nounInstance(op.Noun, focus); owner != "" {
+	if owner := r.nounInstance(op.Noun(), focus); owner != "" {
 		c, focus = r.contextOf(owner), owner
 	}
 	verdict := r.runChecks(c, q, op)
 	if verdict.Refuse != "" {
-		return Ctx{}, fmt.Errorf("choices source %q: %s", op.Key(), verdict.Refuse)
+		return Ctx{}, fmt.Errorf("choices source %q: %s", op.Key.Short(), verdict.Refuse)
 	}
 	if verdict.Ask != "" {
-		return Ctx{}, fmt.Errorf("choices source %q asks for confirmation", op.Key())
+		return Ctx{}, fmt.Errorf("choices source %q asks for confirmation", op.Key.Short())
 	}
 	return Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: args, Instance: r.Instances[focus]}, nil
 }
@@ -547,7 +547,7 @@ func (r *Runtime) ParameterChoices(c Context, op Operation, name, query string, 
 func (r *Runtime) runChoicesApp(op Operation, c Context, args Arguments) (Result, Ctx, error) {
 	inst := r.Instances[focusOf(c)]
 	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(c, inst), Invoked: r.Invoked()}
-	res := op.App(ctx)
+	res := op.AppHandler(ctx)
 	if res.err != nil {
 		return Result{}, ctx, res.err
 	}
@@ -560,7 +560,7 @@ func (r *Runtime) runChoicesApp(op Operation, c Context, args Arguments) (Result
 // awaitChoices preserves ExecuteAt's admission, overrides and history while
 // waiting for an application's read result instead of returning its job ticket.
 func (r *Runtime) awaitChoices(op Operation, c Context, args Arguments) (any, error) {
-	if op.App == nil {
+	if op.AppHandler == nil {
 		return op.Run(r, c, args)
 	}
 	res, ctx, err := r.runChoicesApp(op, c, args)

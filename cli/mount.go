@@ -121,13 +121,13 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			})
 		}
 		details := verbDetails(op)
-		noun, verb := op.Noun, op.Verb
+		noun, verb := op.Noun(), op.Name()
 		// An alias on the same noun is an oden alias of the verb's command
 		// (help lists it beside the name, once); an alias under another
 		// noun is a command in that noun's group naming the action it
 		// runs (project associate, alias of pane associate).
 		var aliases []string
-		for _, a := range commandAliases(r, op.Key()) {
+		for _, a := range commandAliases(r, op.Key.Short()) {
 			// An alias with preset arguments is a command of its own, so
 			// it runs by its name (and its args) and its presets are
 			// not required words.
@@ -149,9 +149,9 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			ag := root.at(aliasNoun)
 			ag.noun = true
 			ag.verbs = append(ag.verbs, oden.Command{
-				Name: aliasVerb, Summary: "alias of " + r.DisplayKey(op.Key()) + ": " + op.Description, Source: a.Alias,
+				Name: aliasVerb, Summary: "alias of " + r.DisplayKey(op.Key.Short()) + ": " + op.Description, Source: a.Alias,
 				Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--format F] [--yes]",
-				Parameters: aliasParams, Details: details + "\nAlias of: " + op.Key() + presetDetails(a),
+				Parameters: aliasParams, Details: details + "\nAlias of: " + op.Key.Short() + presetDetails(a),
 				Run: func(ctx context.Context, args []string) error {
 					return sh.Run(ctx, append([]string{aliasNoun, aliasVerb}, args...))
 				},
@@ -164,7 +164,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		g.noun = true
 		g.markStandard(verb, op)
 		g.verbs = append(g.verbs, oden.Command{
-			Name: verb, Aliases: aliases, Summary: op.Description, Source: op.Key(),
+			Name: verb, Aliases: aliases, Summary: op.Description, Source: op.Key.Short(),
 			Usage:      "[ARG...] [--target ID] [--json ...] [--ARG VALUE] [--format F] [--yes]",
 			Parameters: parameters, Details: details,
 			Run: func(ctx context.Context, args []string) error {
@@ -538,7 +538,7 @@ func deprecatedNounWords(r *ochazuke.Runtime, a ochazuke.NounAlias, rest []strin
 	if len(rest) > 0 {
 		if old, ok := r.ActionAlias(a.Alias + "." + rest[0]); ok {
 			if op, ok := r.Operation(old.Action); ok {
-				return append(append(strings.Split(op.Noun, "."), op.Verb), rest[1:]...)
+				return append(append(strings.Split(op.Noun(), "."), op.Name()), rest[1:]...)
 			}
 		}
 	}

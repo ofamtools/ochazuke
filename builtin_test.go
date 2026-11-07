@@ -9,7 +9,7 @@ import (
 // notBuiltin lists the operations of r not marked Builtin, sorted.
 func notBuiltin(r *Runtime) []string {
 	var out []string
-	for key, op := range r.Operations {
+	for key, op := range r.Operations.Entries() {
 		if !op.Builtin {
 			out = append(out, key)
 		}
@@ -26,7 +26,7 @@ func TestFrameworkOperationsAreBuiltin(t *testing.T) {
 		t.Fatalf("framework operations not builtin: %v", got)
 	}
 	for _, key := range []string{"ochazuke.outline.add", "ochazuke.picker.pick", "ochazuke.setting.open", "ochazuke.surface.scroll", "ochazuke.palette.open", "ochazuke.picker.open", "ochazuke.appearance.set"} {
-		op, ok := r.Operations[key]
+		op, ok := r.Operations.Find(Key(key))
 		if !ok || !op.Builtin {
 			t.Fatalf("%s: registered %v, builtin %v", key, ok, op.Builtin)
 		}
@@ -47,10 +47,10 @@ func TestApplicationVerbsAreNotBuiltin(t *testing.T) {
 	if got, want := notBuiltin(r), []string{"ochazuke.history.capture-hook", "worktree.add", "worktree.remove"}; !slices.Equal(got, want) {
 		t.Fatalf("not builtin = %v, want %v", got, want)
 	}
-	if op := r.Operations["ochazuke.picker.open"]; !op.Builtin {
+	if op := r.Operations.At("ochazuke.picker.open"); !op.Builtin {
 		t.Fatal("picker.open registered after the application's verbs is not builtin")
 	}
-	if op := r.Operations["worktree.remove"]; op.Confirm == "" || op.Kind != KindApplication {
+	if op := r.Operations.At("worktree.remove"); op.Confirm == "" || op.Kind != KindApplication {
 		t.Fatalf("worktree.remove = %+v", op)
 	}
 }
@@ -64,7 +64,7 @@ func TestBuiltinNests(t *testing.T) {
 		r.Define("outer").Verb("c", done)
 	})
 	for _, key := range []string{"ochazuke.outer.a", "ochazuke.inner.b", "ochazuke.outer.c"} {
-		if !r.Operations[key].Builtin {
+		if !r.Operations.At(Key(key)).Builtin {
 			t.Fatalf("%s not builtin", key)
 		}
 	}

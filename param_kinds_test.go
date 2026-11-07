@@ -40,7 +40,7 @@ func kindPaletteRoute(t *testing.T, kind string) string {
 	r := NewRuntime()
 	pal := NewPalette(r)
 	pal.origin = r.Context()
-	op := Operation{Noun: "k", Verb: "v", Parameters: map[string]Parameter{"x": {Type: kind}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }}
+	op := Operation{Key: "k.v", Parameters: map[string]Parameter{"x": {Type: kind}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }}
 	r.Register(op)
 	var out []string
 	for _, text := range paramKindProbes {

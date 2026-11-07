@@ -265,7 +265,7 @@ func TestApplicationVerbRunsOffTheLoop(t *testing.T) {
 			landed = append(landed, c.Instance.ID+"="+value.(string))
 		})
 	}, "Sync a row off the loop").Verb("now", func(c Ctx) Result { return Done("now " + c.Instance.ID) })
-	if op := r.Operations["a.sync"]; op.Kind != KindApplication || r.Operations["a.now"].Kind != KindApplication || r.Operations["ochazuke.list.move"].Kind != KindInteraction {
+	if op := r.Operations.At("a.sync"); op.Kind != KindApplication || r.Operations.At("a.now").Kind != KindApplication || r.Operations.At("ochazuke.list.move").Kind != KindInteraction {
 		t.Fatalf("kinds: %+v", op)
 	}
 	if v, err := r.Execute(Request{Verb: "now", Noun: "a", Target: "one"}); err != nil || v != "now one" {
@@ -324,7 +324,7 @@ func TestApplicationVerbRunsOffTheLoop(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "fail", Noun: "b", Target: "two"}); err == nil || err.Error() != "nope" {
 		t.Fatalf("Failed: %v", err)
 	}
-	if list := r.Catalog(); !slices.ContainsFunc(list, func(op Operation) bool { return op.Key() == "a.sync" && op.Kind == KindApplication }) {
+	if list := r.Catalog(); !slices.ContainsFunc(list, func(op Operation) bool { return op.Key.Short() == "a.sync" && op.Kind == KindApplication }) {
 		t.Fatal("operations.list must show the kind")
 	}
 }
@@ -339,7 +339,7 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 		removed = append(removed, focusOf(c))
 		return nil, nil
 	}).Confirm("Remove {{noun}} {{id}}?").Mode("normal").Bind("d", Do("a.remove"))
-	if r.Operations["a.remove"].Confirm == "" {
+	if r.Operations.At("a.remove").Confirm == "" {
 		t.Fatal("Confirm must mark the operation")
 	}
 	if err := list.Focus(); err != nil {
@@ -374,7 +374,7 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "remove", Noun: "a", Target: "one", Confirmed: true}); err != nil || len(removed) != 2 {
 		t.Fatalf("confirmed request: %v %v", err, removed)
 	}
-	if _, err := r.Execute(Request{Verb: "require", Noun: "ochazuke.confirm", Args: Arguments{"operation": "a.remove", "prompt": ""}}); err != nil || r.Operations["a.remove"].Confirm != "" {
+	if _, err := r.Execute(Request{Verb: "require", Noun: "ochazuke.confirm", Args: Arguments{"operation": "a.remove", "prompt": ""}}); err != nil || r.Operations.At("a.remove").Confirm != "" {
 		t.Fatalf("confirm.require removal: %v", err)
 	}
 	editorTestKeys(t, r, "d")

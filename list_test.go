@@ -45,7 +45,7 @@ func listFixture(t *testing.T) (*Runtime, *List, *Input, []ListItem) {
 
 func TestListFocusSelectsItemActionsAndLeavesEditorAlone(t *testing.T) {
 	r, list, input, _ := listFixture(t)
-	r.Register(Operation{Verb: "inspect", Noun: "item", Run: func(*Runtime, Context, Arguments) (any, error) { return "application", nil }})
+	r.Register(Operation{Key: "item.inspect", Run: func(*Runtime, Context, Arguments) (any, error) { return "application", nil }})
 	for _, id := range []string{"a", "b"} {
 		r.Define(id).Action("item.inspect", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
 	}

@@ -179,7 +179,7 @@ func TestNounPlacesCap(t *testing.T) {
 func TestNounPlacesVerb(t *testing.T) {
 	r, _ := placesPage(t)
 	for _, key := range []string{"ochazuke.nouns.places", "ochazuke.nouns.list", "ochazuke.nouns.places-path"} {
-		op := r.Operations[key]
+		op := r.Operations.At(Key(key))
 		if !op.Builtin || op.HistoryKindOf() != HistoryFetch {
 			t.Fatalf("%s: builtin %v kind %s", key, op.Builtin, op.HistoryKindOf())
 		}

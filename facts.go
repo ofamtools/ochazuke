@@ -210,7 +210,7 @@ func registerCoreFacts(r *Runtime) {
 			"unavailable": "Why it is on its noun but cannot run, when it cannot"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
 			ops := c.Runtime.Catalog()
-			return factThings(ops, func(i int, t Thing) { t["key"] = ops[i].Key() })
+			return factThings(ops, func(i int, t Thing) { t["key"] = ops[i].Key.Short() })
 		}})
 	r.defineFacts(factsSpec{Noun: "ochazuke.bindings", Sample: Binding{}, Key: "id", Extra: []PropSpec{{Name: "id"}}, Rename: map[string]string{"help": "helptext"},
 		Docs:       map[string]string{"id": "The row's place in the list", "helptext": "Its help text, in place of the operation's description", "keys": "The keys that run it", "request": "The request it runs", "noun": "The noun whose table holds it", "mode": "The mode it answers in"},

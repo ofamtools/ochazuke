@@ -886,7 +886,7 @@ func registerFilterViewForm(r *Runtime) {
 		{"invert-condition", "Invert the selected active condition", nil, func(v *filterViewForm, _ Arguments) error { return v.conditionAction("invert") }},
 	} {
 		run := spec.run
-		r.Register(Operation{Noun: filterFormNoun, Verb: spec.verb, Description: spec.description, Parameters: spec.params, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf(filterFormNoun, spec.verb), Description: spec.description, Parameters: spec.params, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 			v := filterViewAt(r, focusOf(c))
 			if v == nil {
 				return nil, errors.New("no filter form")
@@ -895,8 +895,8 @@ func registerFilterViewForm(r *Runtime) {
 		}})
 		_ = r.AddVerbAvailability(filterFormNoun+"."+spec.verb, "filter-form-open")
 	}
-	op := r.Operations[filterFormNoun+".delete-saved"]
+	op := r.Operations.At(Key(filterFormNoun + ".delete-saved"))
 	op.Destructive = true
-	r.Operations[op.Key()] = op
+	r.Operations.Set(op)
 	r.Nouns[filterFormNoun].Guards = map[string]string{"direction": "filter-form-sort", "next": "filter-form-text", "move": "filter-form-tab", "write-saved": "filter-form-save", "delete-saved": "filter-form-delete-saved"}
 }

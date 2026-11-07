@@ -183,12 +183,12 @@ func TestPaletteBooleanByName(t *testing.T) {
 	t.Parallel()
 	r := NewRuntime()
 	r.Config().Disable()
-	r.Register(Operation{Noun: "task", Verb: "edit", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "task.edit", Parameters: map[string]Parameter{
 		"id":      {Type: "string", Required: true},
 		"field":   {Type: "string"},
 		"chooser": {Type: "boolean"},
 	}, Run: func(*Runtime, Context, Arguments) (any, error) { return true, nil }})
-	r.Register(Operation{Noun: "app", Verb: "halt", Parameters: map[string]Parameter{"force": {Type: "boolean"}},
+	r.Register(Operation{Key: "app.halt", Parameters: map[string]Parameter{"force": {Type: "boolean"}},
 		Run: func(*Runtime, Context, Arguments) (any, error) { return true, nil }})
 	p := NewPalette(r)
 	p.origin = r.Context()

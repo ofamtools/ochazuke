@@ -418,7 +418,7 @@ type Operation struct {
 	App        AppHandler                                                   `json:"-"`
 }
 
-func (o Operation) Key() string { return o.Noun + "." + o.Verb }
+func (o Operation) Key() string { return o.Noun() + "." + o.Name() }
 
 // HistoryKindOf is the kind of history entry the operation records: its
 // HistoryKind when set; else a fetch for a verb that answers rows (Rows,
@@ -463,10 +463,10 @@ func checkRestParameter(o Operation) error {
 			continue
 		}
 		if rest != "" {
-			return fmt.Errorf("%s: parameters %s and %s both take the rest of the line", o.Key(), min(rest, name), max(rest, name))
+			return fmt.Errorf("%s: parameters %s and %s both take the rest of the line", o.Key.Short(), min(rest, name), max(rest, name))
 		}
 		if p.Type != "" && p.Type != "string" {
-			return fmt.Errorf("%s: rest parameter %s must be a string, not %s", o.Key(), name, p.Type)
+			return fmt.Errorf("%s: rest parameter %s must be a string, not %s", o.Key.Short(), name, p.Type)
 		}
 		rest = name
 	}
@@ -477,7 +477,7 @@ func checkRestParameter(o Operation) error {
 	after := order[slices.Index(order, rest)+1:]
 	for _, name := range after {
 		if o.Parameters[name].Required {
-			return fmt.Errorf("%s: required parameter %s comes after the rest parameter %s", o.Key(), name, rest)
+			return fmt.Errorf("%s: required parameter %s comes after the rest parameter %s", o.Key.Short(), name, rest)
 		}
 	}
 	return nil
@@ -696,20 +696,20 @@ func (r *Runtime) registerFramework() {
 // Builtin also records each new operation's effective history kind after
 // the registration batch, including its builder's Rows/State annotations.
 func (r *Runtime) Builtin(register func()) {
-	before := make(map[string]bool, len(r.Operations))
-	for key := range r.Operations {
+	before := make(map[string]bool, r.Operations.Len())
+	for key := range r.Operations.Entries() {
 		before[key] = true
 	}
 	r.builtinDepth++
 	defer func() { r.builtinDepth-- }()
 	register()
-	for key, op := range r.Operations {
+	for key, op := range r.Operations.Entries() {
 		if !before[key] {
 			op.Builtin = true
 			if op.HistoryKind == "" {
 				op.HistoryKind = op.HistoryKindOf()
 			}
-			r.Operations[key] = op
+			r.Operations.Set(op)
 		}
 	}
 }
@@ -758,49 +758,49 @@ func (r *Runtime) SetMode(mode string) error {
 // Define reads it; inside Builtin a plain noun is ochazuke.<noun>. A verb y on
 // noun x beside a noun x.y is refused (checkOverlap).
 func (r *Runtime) Register(o Operation) {
-	if o.App != nil {
+	if o.AppHandler != nil {
 		if o.Run != nil {
 			panic("operation takes Run or App, not both")
 		}
 		o.Kind = KindApplication
 		o.Run = func(r *Runtime, c Context, a Arguments) (any, error) {
-			return r.runApplication(r.Operations[o.Key()], c, a)
+			return r.runApplication(r.Operations.At(o.Key), c, a)
 		}
 	}
-	if o.Verb == "" || o.Noun == "" || o.Run == nil {
+	if o.Name() == "" || o.Noun() == "" || o.Run == nil {
 		panic("invalid operation registration")
 	}
 	if r.builtinDepth > 0 {
-		o.Noun = frameworkName(o.Noun)
+		o.Key = KeyOf(frameworkName(o.Noun()), o.Name())
 	} else {
-		o.Noun = r.CanonicalNoun(o.Noun) // an alias extends the framework's noun (Define)
+		o.Key = KeyOf(r.CanonicalNoun(o.Noun()), o.Name()) // an alias extends the framework's noun (Define)
 	}
 	switch o.HistoryKind {
 	case "", HistoryAction, HistoryChange, HistoryFetch:
 	default:
 		panic("unknown history kind " + o.HistoryKind)
 	}
-	if existing, exists := r.Operations[o.Key()]; exists {
+	if existing, exists := r.Operations.Find(o.Key); exists {
 		if existing.Standard == "" || o.Standard != "" {
-			panic("duplicate operation: " + o.Key())
+			panic("duplicate operation: " + o.Key.Short())
 		}
 		// The application wins: its verb named like a standard verb
 		// replaces the generated one. Aliases name the key, so they stay.
-		delete(r.Operations, o.Key())
+		r.Operations.Delete(o.Key)
 	}
-	if n := r.Nouns[o.Noun]; n != nil && n.prop(o.Verb) != nil {
-		panic(fmt.Sprintf("verb %s of %s clashes with its prop %s: a word after a noun is a verb or a prop, never both", o.Verb, o.Noun, o.Verb))
+	if n := r.Nouns[o.Noun()]; n != nil && n.prop(o.Name()) != nil {
+		panic(fmt.Sprintf("verb %s of %s clashes with its prop %s: a word after a noun is a verb or a prop, never both", o.Name(), o.Noun(), o.Name()))
 	}
-	if err := r.checkOverlap(o.Key()); err != nil {
+	if err := r.checkOverlap(o.Key.Short()); err != nil {
 		panic(err.Error())
 	}
-	r.claimName(o.Key())
-	r.ensureNoun(o.Noun)
+	r.claimName(o.Key.Short())
+	r.ensureNoun(o.Noun())
 	if o.Parameters == nil {
 		o.Parameters = map[string]Parameter{}
 	}
 	if err := r.CheckSourceArgs(o.Parameters); err != nil {
-		panic(o.Key() + ": " + err.Error())
+		panic(o.Key.Short() + ": " + err.Error())
 	}
 	if err := checkRestParameter(o); err != nil {
 		panic(err.Error())
@@ -816,8 +816,8 @@ func (r *Runtime) Register(o Operation) {
 		panic("unknown operation kind " + o.Kind)
 	}
 	o.Checks = append([]VerbCheck{{Name: "agent-rights", requestCheck: (*Runtime).agentVerdict}}, o.Checks...)
-	r.Operations[o.Key()] = o
-	r.adoptFieldParam(o.Key())
+	r.Operations.Set(o)
+	r.adoptFieldParam(o.Key.Short())
 }
 
 // AddInput registers an editor instance. Options: Parent(id) (default app),
@@ -1000,7 +1000,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 		}
 		q = pq
 	}
-	op, ok := r.Operations[q.Key()]
+	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok {
 		return nil, r.unknownOperation(q.Noun, q.Verb)
 	}
@@ -1028,7 +1028,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 		if !checkOnly {
 			top := r.TopModal()
 			defer func() {
-				r.notifyAssociation(op.Noun, associated, top, err)
+				r.notifyAssociation(op.Noun(), associated, top, err)
 			}()
 		}
 	}
@@ -1102,7 +1102,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 		if len(subjects) > 1 {
 			q.Subjects = subjects
 		}
-		return r.openConfirm(c, q, Operation{Noun: op.Noun, Verb: op.Verb, Confirm: v.Ask})
+		return r.openConfirm(c, q, Operation{Key: KeyOf(op.Noun(), op.Name()), Confirm: v.Ask})
 	}
 	if checkOnly {
 		return nil, nil
@@ -1145,7 +1145,7 @@ func (r *Runtime) targetThingKey(op Operation, q Request) (string, bool) {
 	if q.Target == "" || q.Target == "focused-input" {
 		return "", false
 	}
-	n := r.Noun(op.Noun)
+	n := r.Noun(op.Noun())
 	if n == nil || !n.resolvable() {
 		return "", false
 	}
@@ -1265,12 +1265,12 @@ func IntArg(a Arguments, name string, fallback int) int {
 	return fallback
 }
 func (r *Runtime) Catalog() []Operation {
-	out := make([]Operation, 0, len(r.Operations))
-	for _, op := range r.Operations {
-		op.Aliases = r.aliasNames(op.Key())
+	out := make([]Operation, 0, r.Operations.Len())
+	for _, op := range r.Operations.Entries() {
+		op.Aliases = r.aliasNames(op.Key.Short())
 		out = append(out, op)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Key() < out[j].Key() })
+	sort.Slice(out, func(i, j int) bool { return out[i].Key.Short() < out[j].Key.Short() })
 	return out
 }
 
@@ -1341,14 +1341,14 @@ func JSONPointer(value any, path string) (any, error) {
 }
 
 func registerCore(r *Runtime) {
-	r.Register(Operation{Verb: "defaults", Noun: "ochazuke.bindings", HistoryKind: HistoryFetch, Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.bindings.defaults", HistoryKind: HistoryFetch, Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		data, err := FormatBindings(r.defaultBindingsDoc())
 		return Verbatim(data), err
 	}})
-	r.Register(Operation{Verb: "stops", Noun: "ochazuke.bindings", HistoryKind: HistoryFetch, Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.bindings.stops", HistoryKind: HistoryFetch, Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.StopBindings(), nil
 	}})
-	r.Register(Operation{Verb: "focus", Noun: "ochazuke.input", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.input.focus", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "id", "")
 		if r.Input(id) == nil {
 			return nil, fmt.Errorf("unknown input %q", id)
@@ -1356,14 +1356,14 @@ func registerCore(r *Runtime) {
 		err := r.SetFocus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "switch", Noun: "ochazuke.mode", FocusBound: true, HistoryKind: HistoryAction, Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.mode.switch", FocusBound: true, HistoryKind: HistoryAction, Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode, err := r.switchMode(StringArg(a, "mode", ""), r.Input(c.InputID))
 		if err != nil {
 			return nil, err
 		}
 		return mode, nil
 	}})
-	r.Register(Operation{Verb: "push", Noun: "ochazuke.modal", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.modal.push", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "input", "")
 		if r.Input(id) == nil {
 			return nil, errors.New("unknown modal input")
@@ -1371,8 +1371,8 @@ func registerCore(r *Runtime) {
 		err := r.Push(StringArg(a, "id", ""), id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "close", Noun: "ochazuke.modal", Description: "Close the active modal: run its close request (CloseWith), else pop it back to the focus and mode it opened over", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.CloseModal(c); return r.Context(), err }})
-	r.Register(Operation{Verb: "quit", Noun: "app", Description: "Exit the application", Parameters: map[string]Parameter{"force": {Type: "boolean", Description: "quit without checks or waiting for writes; report unfinished values"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.modal.close", Description: "Close the active modal: run its close request (CloseWith), else pop it back to the focus and mode it opened over", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.CloseModal(c); return r.Context(), err }})
+	r.Register(Operation{Key: "app.quit", Description: "Exit the application", Parameters: map[string]Parameter{"force": {Type: "boolean", Description: "quit without checks or waiting for writes; report unfinished values"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		h := r.eventHub()
 		now := time.Now()
 		if a["force"] == true || r.Quit && now.Sub(h.quitRequested) >= r.Settings().Duration("quit.force-after") {
@@ -1384,7 +1384,7 @@ func registerCore(r *Runtime) {
 		r.Quit = true
 		return true, nil
 	}})
-	r.Register(Operation{Verb: "ignore", Noun: "ochazuke.key", Description: "The noop: always available, does nothing; a row bound to it consumes its key (DispatchOutcome reports KeyConsumed), how a container clamps a key its children leave unhandled", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	r.Register(Operation{Key: "ochazuke.key.ignore", Description: "The noop: always available, does nothing; a row bound to it consumes its key (DispatchOutcome reports KeyConsumed), how a container clamps a key its children leave unhandled", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 }
 
 // notApplicable is why execute refuses a request that is not available:
@@ -1412,7 +1412,7 @@ func (r *Runtime) standardArgs(op Operation, q Request) (Arguments, error) {
 	if reason := r.unavailableFor(op, q.Args); reason != "" {
 		return nil, fmt.Errorf("%s is unavailable: %s", r.DisplayKey(q.Key()), reason)
 	}
-	row, n := standardRow(op.Standard), r.Noun(op.Noun)
+	row, n := standardRow(op.Standard), r.Noun(op.Noun())
 	if row == nil || row.ReadArgs == nil || n == nil || !slices.ContainsFunc(n.Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }) {
 		return q.Args, nil
 	}

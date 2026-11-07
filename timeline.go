@@ -1342,7 +1342,7 @@ func registerTimelines(r *Runtime) {
 			return nil
 		}},
 	} {
-		r.Register(Operation{Verb: spec.verb, Noun: timelineNoun, Description: spec.description, Motion: spec.motion, Parameters: spec.parameters, Result: "timeline state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf(timelineNoun, spec.verb), Description: spec.description, Motion: spec.motion, Parameters: spec.parameters, Result: "timeline state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			t, err := resolve(c, args)
 			if err != nil {
 				return nil, err

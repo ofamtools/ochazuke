@@ -550,7 +550,7 @@ func RegisterInputOperations(r *Runtime) {
 		}
 		r.Register(op)
 	}
-	r.Register(Operation{Verb: "cancel", Noun: "ochazuke.input", Staying: true, HistoryKind: HistoryAction, Description: "Cancel the pending count, operator, prefix or register of the focused instance; a visual selection returns to normal", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.input.cancel", Staying: true, HistoryKind: HistoryAction, Description: "Cancel the pending count, operator, prefix or register of the focused instance; a visual selection returns to normal", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		r.Registers().Active = ""
 		if in := r.Input(c.InputID); in != nil {
 			if in.shape() != "" {

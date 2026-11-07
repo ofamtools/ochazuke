@@ -460,9 +460,9 @@ func TestPathArgsForm(t *testing.T) {
 		got, _ = ctx.Args["path"].(string)
 		return Done(nil)
 	})
-	op := r.Operations["doc.open"]
+	op := r.Operations.At("doc.open")
 	op.Parameters = map[string]Parameter{"path": {Type: "path", Required: true, Base: root}}
-	r.Operations["doc.open"] = op
+	r.Operations.Set(op)
 	if _, err := r.OpenArgsForm(Request{Noun: "doc", Verb: "open"}, func(q Request) error {
 		_, err := r.Execute(q)
 		return err

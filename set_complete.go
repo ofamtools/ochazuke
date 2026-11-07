@@ -164,7 +164,7 @@ func setEscape(text string, item bool) string {
 // registerSettingsComplete registers setting.complete, the :set line's
 // completion source.
 func registerSettingsComplete(r *Runtime) {
-	r.Register(Operation{Verb: "complete", Noun: "ochazuke.setting", HistoryKind: HistoryFetch,
+	r.Register(Operation{Key: "ochazuke.setting.complete", HistoryKind: HistoryFetch,
 		Description: "Complete a :set line at the cursor: setting names (noNAME and invNAME for on/off ones, all, all&), the current value after =, an enum's values, true and false, a list's items after -=; each id is the line up to the cursor completed",
 		Parameters: map[string]Parameter{
 			ChoicesQueryParameter:  {Type: "string", Description: "The :set line (the text after set)"},

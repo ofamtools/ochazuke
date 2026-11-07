@@ -336,7 +336,7 @@ func TestListFilterPatch(t *testing.T) {
 func TestListFilterVerbsAreBuiltin(t *testing.T) {
 	r := NewRuntime()
 	for _, verb := range []string{"filter", "filter-open", "filter-type", "filter-erase", "filter-keep", "filter-clear", "filter-choose"} {
-		if op, ok := r.Operations["ochazuke.list."+verb]; !ok || !op.Builtin {
+		if op, ok := r.Operations.Find(Key("ochazuke.list." + verb)); !ok || !op.Builtin {
 			t.Errorf("list.%s builtin = %v (registered %v)", verb, op.Builtin, ok)
 		}
 	}

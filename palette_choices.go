@@ -26,7 +26,7 @@ type choiceList struct {
 // Pairs parameter's word holding = completes that prop's values.
 func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) ([]Choice, error) {
 	param, prop := p.r.choiceParameter(op, name, args)
-	key := op.Key() + "/" + name + "\x00" + prop
+	key := op.Key.Short() + "/" + name + "\x00" + prop
 	pairs := param.Pairs && (strings.Contains(word, "=") || len(param.Enum) == 0)
 	switch {
 	case pairs:
@@ -46,8 +46,8 @@ func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) 
 	}
 	var choices []Choice
 	var err error
-	if config, ok := p.nouns[op.Noun]; ok && config.DefaultVerb == op.Verb && config.Argument == name {
-		choices = p.instanceChoices(op.Noun)
+	if config, ok := p.nouns[op.Noun()]; ok && config.DefaultVerb == op.Name() && config.Argument == name {
+		choices = p.instanceChoices(op.Noun())
 	} else if pairs {
 		choices, err = p.r.pairChoices(p.origin.Clone(), op, word, args)
 	} else if param.Type == "boolean" {
@@ -286,8 +286,8 @@ func (p *Palette) paramHeader(s Styles, slot paramSlot, width int) string {
 	} else {
 		facts = append(facts, "optional")
 	}
-	if slot.Op.byAssociation() && p.r.nounInstance(slot.Op.Noun, focusOf(p.origin)) == "" {
-		if id, _ := p.r.nearestOf(slot.Op.Noun, focusOf(p.origin)); id != "" {
+	if slot.Op.byAssociation() && p.r.nounInstance(slot.Op.Noun(), focusOf(p.origin)) == "" {
+		if id, _ := p.r.nearestOf(slot.Op.Noun(), focusOf(p.origin)); id != "" {
 			facts = append(facts, "acts on: "+p.r.instanceThing(p.r.Instances[id]).Label)
 		}
 	}

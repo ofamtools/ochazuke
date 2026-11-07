@@ -183,7 +183,7 @@ func registerSearchFind(r *Runtime) {
 		}
 		return r.Focus
 	}
-	r.Register(Operation{Verb: "find", Noun: "ochazuke.search", Description: "Find text in the focused text view, docs viewer, Markdown viewer or timeline (Vim's /): with no query the find line opens; the cursor jumps to the next match, wrapping, as search.case and search.match say",
+	r.Register(Operation{Key: "ochazuke.search.find", Description: "Find text in the focused text view, docs viewer, Markdown viewer or timeline (Vim's /): with no query the find line opens; the cursor jumps to the next match, wrapping, as search.case and search.match say",
 		Parameters: map[string]Parameter{
 			"query": {Type: "string", Description: "Find this at once instead of opening the find line"},
 			"back":  {Type: "boolean", Description: "Search up instead of down (Vim's ?)"},
@@ -202,7 +202,7 @@ func registerSearchFind(r *Runtime) {
 			}
 			return map[string]any{"query": query, "back": back}, nil
 		}})
-	r.Register(Operation{Verb: "next", Noun: "ochazuke.search", Description: "Repeat the last find (Vim's n), or in the other direction with reverse (N), count times",
+	r.Register(Operation{Key: "ochazuke.search.next", Description: "Repeat the last find (Vim's n), or in the other direction with reverse (N), count times",
 		Parameters: map[string]Parameter{
 			"reverse": {Type: "boolean", Description: "Search the other way from the last find (N)"},
 			"count":   {Type: "integer", Description: "Repeat count (default 1)"},

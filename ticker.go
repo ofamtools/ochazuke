@@ -72,7 +72,7 @@ type tickerJob struct {
 // verb the definition did not mark quiet (Operation.Quiet). Framework jobs
 // (a terminal's stream read) never show.
 func tickerShows(r *Runtime, j JobInfo) bool {
-	op, ok := r.Operations[j.Verb]
+	op, ok := r.Operations.Find(Key(j.Verb))
 	return ok && op.Kind == KindApplication && !op.Quiet
 }
 

@@ -15,7 +15,7 @@ func timedBindings(t *testing.T, keys ...string) (*Runtime, *[]string) {
 	r.BindingTimeout = time.Hour
 	var calls []string
 	for _, key := range keys {
-		r.Register(Operation{Verb: key, Noun: "test", Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("test", key), Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 			calls = append(calls, key)
 			return nil, nil
 		}})
@@ -234,9 +234,9 @@ func TestFromRowPassesRowData(t *testing.T) {
 	var got []Arguments
 	record := func(c Ctx) Result { got = append(got, c.Args); return Done(nil) }
 	r.Define("worktree").Verb("open", record)
-	op := r.Operations["worktree.open"]
+	op := r.Operations.At("worktree.open")
 	op.Parameters = map[string]Parameter{"path": {Type: "string"}, "repo": {Type: "string"}, "row": {Type: "object"}}
-	r.Operations["worktree.open"] = op
+	r.Operations.Set(op)
 	onList := Do("worktree.open").FromRow("path", "path").FromRow("row", "")
 	onList.Noun, onList.Mode, onList.Keys = "list", "normal", "O"
 	if err := r.Bind(
@@ -386,9 +386,9 @@ func TestFromRowEmptyTargetRefuses(t *testing.T) {
 			sent = append(sent, StringArg(c.Args, "target", "UNTARGETED"))
 			return Done(nil)
 		})
-		op := r.Operations["doc.send"]
+		op := r.Operations.At("doc.send")
 		op.Parameters = map[string]Parameter{"target": {Type: "string", Required: true}}
-		r.Operations[op.Key()] = op
+		r.Operations.Set(op)
 		r.Define("lane").Mode("normal").Bind("s", Do("doc.send").FromRow("target", "doc"))
 		row := r.Instance("lane1", Kind("lane"))
 		row.Data = data
@@ -420,9 +420,9 @@ func TestFromRowEmptyNonTargetStaysOmitted(t *testing.T) {
 		got = append(got, c.Args)
 		return Done(nil)
 	})
-	op := r.Operations["lane.attach"]
+	op := r.Operations.At("lane.attach")
 	op.Parameters = map[string]Parameter{"pane": {Type: "string"}}
-	r.Operations[op.Key()] = op
+	r.Operations.Set(op)
 	r.Define("lane").Mode("normal").Bind("a", Do("lane.attach").FromRow("pane", "pane"))
 	row := r.Instance("lane1", Kind("lane"))
 	if err := r.SetFocus("lane1"); err != nil {

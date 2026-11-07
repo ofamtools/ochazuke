@@ -37,10 +37,10 @@ func (r *Runtime) NameVocab() map[string][]string {
 	for _, inst := range r.Instances {
 		r.rowNames(map[string][]Binding{"": inst.Bindings}, add)
 	}
-	for key, op := range r.Operations {
+	for key, op := range r.Operations.Entries() {
 		add("operation", key)
-		add("verb", op.Verb)
-		add("noun", op.Noun)
+		add("verb", op.Name())
+		add("noun", op.Noun())
 		for name, p := range op.Parameters {
 			add("parameter", name)
 			if name == "motion" {

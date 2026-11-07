@@ -42,7 +42,7 @@ const noSessionReview = "no session to review: a CLI process holds no session va
 func registerSettingsReview(r *Runtime) {
 	r.Define(settingsReviewNoun)
 	r.Define(settingChangeNoun)
-	r.Register(Operation{Verb: "review", Noun: "ochazuke.setting", Description: "Review this session's settings: each session value beside its saved one, to write or revert one at a time or all at once", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.review", Description: "Review this session's settings: each session value beside its saved one, to write or revert one at a time or all at once", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		s := r.Settings()
 		if !s.HasSession() {
 			return noSessionReview, nil

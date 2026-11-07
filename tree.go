@@ -1747,9 +1747,9 @@ func registerTrees(r *Runtime) {
 		"row-key": {"key": {Type: "string", Required: true, Description: "the key, as bindings spell it, to run on the row in normal mode"}},
 	}
 	for verb, p := range params {
-		op := r.Operations["ochazuke.outline."+verb]
+		op := r.Operations.At(Key("ochazuke.outline." + verb))
 		op.Parameters = p
-		r.Operations["ochazuke.outline."+verb] = op
+		r.Operations.Set(op)
 	}
 	r.Define(TreeRowNoun)
 	registerOutlineThings(r)

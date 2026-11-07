@@ -296,7 +296,7 @@ func TestFormOverAModalReopensOnAFailedRun(t *testing.T) {
 	r, m, _ := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
 	keytest.Press(m, "?")
-	r.Register(Operation{Verb: "fail", Noun: "widget", Parameters: map[string]Parameter{"key": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) {
+	r.Register(Operation{Key: "widget.fail", Parameters: map[string]Parameter{"key": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) {
 		return nil, errors.New("j already runs list.move here")
 	}})
 	q := Request{Noun: "widget", Verb: "fail"}
@@ -431,7 +431,7 @@ func sendFixture(t *testing.T) (*Runtime, *Model, *[]Arguments) {
 	t.Helper()
 	r, m, _ := unboundFixture(t)
 	var got []Arguments
-	r.Register(Operation{Verb: "send", Noun: "widget", Kind: KindApplication, Description: "Send the widget", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "widget.send", Kind: KindApplication, Description: "Send the widget", Parameters: map[string]Parameter{
 		"to":   {Type: "string", Required: true, Description: "Where to"},
 		"note": {Type: "string", Description: "A note"},
 	}, Positional: []string{"to", "note"}, Result: "JSON value", Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
@@ -509,7 +509,7 @@ func TestHelpRunDataAnswerCanBeTurnedOff(t *testing.T) {
 // verb with only plumbing has no args form (and no a in the help).
 func TestPlumbingParametersAreNeverFormFields(t *testing.T) {
 	r, _, _ := unboundFixture(t)
-	fields, err := ArgsFields(r.Operations["ochazuke.list.apply"])
+	fields, err := ArgsFields(r.Operations.At("ochazuke.list.apply"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -521,7 +521,7 @@ func TestPlumbingParametersAreNeverFormFields(t *testing.T) {
 	if len(fields) != 1 || fields[0].Name != "verb" {
 		t.Fatalf("fields %v", fields)
 	}
-	if got := askableParameters(r.Operations["ochazuke.list.mark"]); len(got) != 0 {
+	if got := askableParameters(r.Operations.At("ochazuke.list.mark")); len(got) != 0 {
 		t.Fatalf("list.mark asks for %v", got)
 	}
 }

@@ -228,6 +228,6 @@ func registerView(r *ochazuke.Runtime) {
 		}, "Copy the viewer's whole text, as it was given (raw Markdown, or the preformatted text)").Fetch()
 	if op, ok := r.Operation(ViewNoun + ".copy"); ok {
 		op.Parameters = map[string]ochazuke.Parameter{"register": {Type: "string", Description: "The register to yank into (default the unnamed one)"}}
-		r.Operations[op.Key()] = op
+		r.Operations.Set(op)
 	}
 }

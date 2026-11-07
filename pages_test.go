@@ -100,7 +100,7 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 
 func TestPageBindingsAndActionsFollowActiveContext(t *testing.T) {
 	r := NewRuntime()
-	r.Register(Operation{Verb: "inspect", Noun: "owner", Run: func(*Runtime, Context, Arguments) (any, error) { return "app", nil }})
+	r.Register(Operation{Key: "owner.inspect", Run: func(*Runtime, Context, Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"alpha", "beta"} {
 		pageTestRegister(t, r, id)
 		if err := r.Bind(Binding{Instance: id, Keys: "x", Request: Request{Verb: "insert", Noun: "ochazuke.input", Args: Arguments{"text": strings.ToUpper(id)}}}); err != nil {

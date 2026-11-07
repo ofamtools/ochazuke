@@ -37,12 +37,12 @@ func TestSystemFactsAreReadOnlyThingNouns(t *testing.T) {
 			t.Fatalf("%s: a facts store has no times", name)
 		}
 		for _, verb := range []string{"list", "get"} {
-			if op := r.Operations[name+"."+verb]; op.Standard != verb || op.Unavailable != "" {
+			if op := r.Operations.At(Key(name + "." + verb)); op.Standard != verb || op.Unavailable != "" {
 				t.Fatalf("%s.%s: standard %q unavailable %q", name, verb, op.Standard, op.Unavailable)
 			}
 		}
 		for _, verb := range []string{"create", "set", "delete"} {
-			op, ok := r.Operations[name+"."+verb]
+			op, ok := r.Operations.Find(Key(name + "." + verb))
 			if !ok || op.Unavailable != FactReason || FactReason != "a system fact" {
 				t.Fatalf("%s.%s: present %v unavailable %q", name, verb, ok, op.Unavailable)
 			}

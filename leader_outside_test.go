@@ -25,9 +25,9 @@ func outsideFixture(t *testing.T) (*Runtime, *[]string) {
 	}
 	var sent []string
 	r.Define("surface").Verb("send", func(c Ctx) Result { sent = append(sent, StringArg(c.Args, "keys", "")); return Done(nil) })
-	op := r.Operations["surface.send"]
+	op := r.Operations.At("surface.send")
 	op.Parameters = map[string]Parameter{"keys": {Type: "string"}}
-	r.Operations[op.Key()] = op
+	r.Operations.Set(op)
 	prefix := Do("surface.send", Arguments{"keys": "ctrl+x"}).Request
 	r.Define("surface").Mode("captured").Bind("ctrl+x", Enter("shortcut", Payload{Prefix: "ctrl+x", Request: &prefix})).Pattern("any", Do("surface.send").FromKey("keys"))
 	r.Define("surface").Mode("shortcut").Bind("ctrl+x", Do("surface.send", Arguments{"keys": "ctrl+x"}))
@@ -73,9 +73,9 @@ func TestOutsideDispatchPolicy(t *testing.T) {
 				}
 				return Done(nil)
 			}).Mode("normal").Bind("r", Do("thing.touch"))
-			op := r.Operations["thing.touch"]
+			op := r.Operations.At("thing.touch")
 			op.Motion, op.FocusBound = tc.motion, tc.bound
-			r.Operations[op.Key()] = op
+			r.Operations.Set(op)
 			outsideKeys(t, r, "ctrl+x")
 			if len(changed) != 0 || len(*sent) != 0 || r.Mode.Name != "shortcut" {
 				t.Fatalf("leader changed the store: %v, %v, %s", changed, *sent, r.Mode.Name)

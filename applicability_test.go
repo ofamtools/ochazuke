@@ -13,11 +13,11 @@ func applicabilityFixture(t *testing.T) (*Runtime, *bool, *[]string) {
 	open := false
 	r.DefineGuard("open", func(*Runtime, KeyEvent) bool { return open })
 	var acted []string
-	r.Register(Operation{Verb: "poke", Noun: "row", Run: func(_ *Runtime, c Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "row.poke", Run: func(_ *Runtime, c Context, _ Arguments) (any, error) {
 		acted = append(acted, focusOf(c))
 		return nil, nil
 	}})
-	r.Register(Operation{Verb: "delete", Noun: "row", Confirm: "Delete row {{id}} ({{label}})?", Run: func(_ *Runtime, c Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "row.delete", Confirm: "Delete row {{id}} ({{label}})?", Run: func(_ *Runtime, c Context, _ Arguments) (any, error) {
 		acted = append(acted, "deleted "+focusOf(c))
 		return nil, nil
 	}})
@@ -118,9 +118,9 @@ func TestRequestAddressesItsNounOnTheFocusPath(t *testing.T) {
 // instance's label, as {{<arg>}} does for other names.
 func TestConfirmLabelArgumentWins(t *testing.T) {
 	r, _, _ := applicabilityFixture(t)
-	op := r.Operations["row.delete"]
+	op := r.Operations.At("row.delete")
 	op.Parameters = map[string]Parameter{"label": {Type: "string"}}
-	r.Operations["row.delete"] = op
+	r.Operations.Set(op)
 	prompt := func(args Arguments) any {
 		v, err := r.Execute(Request{Verb: "delete", Noun: "row", Args: args})
 		if err != nil {

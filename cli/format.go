@@ -305,7 +305,7 @@ func (s *Shell) output(q ochazuke.Request, format string, value any) error {
 		return s.print(value)
 	}
 	rowsNoun := ""
-	if op, ok := s.Runtime.Operations[q.Key()]; ok {
+	if op, ok := s.Runtime.Operations.Find(ochazuke.Key(q.Key())); ok {
 		rowsNoun = op.Rows
 	}
 	tables, ok := tablesOf(s.Runtime, rowsNoun, value)

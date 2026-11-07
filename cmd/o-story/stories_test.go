@@ -9,6 +9,7 @@ import (
 
 	story "ofam.dev/monogatari"
 	"ofam.dev/monogatari/host"
+	"ofam.dev/ochazuke"
 	"ofam.dev/ochazuke/cmd/o-story/demo"
 )
 
@@ -94,12 +95,12 @@ func TestStoreDeleteFollowsTheStoreNoun(t *testing.T) {
 		if err != nil {
 			t.Fatalf("noun %q: %v", c.noun, err)
 		}
-		op, ok := ss.R.Operations[demo.Demo+".delete"]
+		op, ok := ss.R.Operations.Find(ochazuke.Key(demo.Demo + ".delete"))
 		if !ok || op.Standard != c.standard {
 			t.Fatalf("noun %q: demo.delete %v standard %q, want %q", c.noun, ok, op.Standard, c.standard)
 		}
 		if c.noun != "" {
-			if op, ok := ss.R.Operations[c.noun+".delete"]; !ok || op.Standard != "delete" {
+			if op, ok := ss.R.Operations.Find(ochazuke.Key(c.noun + ".delete")); !ok || op.Standard != "delete" {
 				t.Fatalf("%s.delete %v %q", c.noun, ok, op.Standard)
 			}
 		}

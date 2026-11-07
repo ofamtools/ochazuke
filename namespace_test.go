@@ -97,7 +97,7 @@ func TestDefineOwnShadowsTheFrameworkAlias(t *testing.T) {
 	r := NewRuntime()
 	done := func(v string) func(Ctx) Result { return func(Ctx) Result { return Done(v) } }
 	r.Define("history").Verb("capture", done("captured"))
-	if _, ok := r.Operations["ochazuke.history.capture"]; !ok {
+	if _, ok := r.Operations.Find("ochazuke.history.capture"); !ok {
 		t.Fatal("Define(history) did not extend ochazuke.history")
 	}
 	r.DefineOwn("setting").Verb("list", done("own"))
@@ -156,13 +156,13 @@ func TestOverlappingVerbsAndNounsAreRefused(t *testing.T) {
 	refused("noun tool.run beside the verb run on tool", func() { r.Define("tool.run") })
 	refused("an empty noun part", func() { r.Define("tool..x") })
 	r.Define("tool.part").Verb("run", done)
-	if _, ok := r.Operations["tool.part.run"]; !ok {
+	if _, ok := r.Operations.Find("tool.part.run"); !ok {
 		t.Fatal("a nested noun beside its parent was refused")
 	}
 	// A verb may hold a dot (the table is flat; a name is looked up whole),
 	// but one name never means two actions.
 	r.Define("tool").Verb("base.add", done)
-	if op, ok := r.Operation("tool.base.add"); !ok || op.Noun != "tool" || op.Verb != "base.add" {
+	if op, ok := r.Operation("tool.base.add"); !ok || op.Noun() != "tool" || op.Name() != "base.add" {
 		t.Fatalf("dotted verb: %+v %v", op, ok)
 	}
 	refused("a dotted verb naming a nested noun's verb", func() { r.Define("tool").Verb("part.run", done) })
@@ -188,7 +188,7 @@ func TestShortNamesInFilesAndLegacySpelling(t *testing.T) {
 	if problems := r.EnsureUserBindings(); len(problems) > 0 {
 		t.Fatal(problems)
 	}
-	if _, ok := r.Operations["ochazuke.list.echo"]; !ok {
+	if _, ok := r.Operations.Find("ochazuke.list.echo"); !ok {
 		t.Fatal("actions.json list.echo did not land on ochazuke.list")
 	}
 	if !slices.ContainsFunc(r.Nouns["ochazuke.list"].Bindings["normal"], func(b Binding) bool {
@@ -215,8 +215,8 @@ func TestPaletteDottedNounWord(t *testing.T) {
 	m := NewModel(r)
 	p := m.Palette
 	for _, line := range []string{"ochazuke.setting names", "setting names", "names ochazuke.setting", "names setting"} {
-		if c := p.parse(line); !c.Complete() || c.Op.Key() != "ochazuke.setting.names" {
-			t.Errorf("%q = %q err %v missing %q", line, c.Op.Key(), c.Err, c.Missing)
+		if c := p.parse(line); !c.Complete() || c.Op.Key.Short() != "ochazuke.setting.names" {
+			t.Errorf("%q = %q err %v missing %q", line, c.Op.Key.Short(), c.Err, c.Missing)
 		}
 	}
 	if err := p.Open(); err != nil {
@@ -235,11 +235,11 @@ func TestPaletteDottedNounWord(t *testing.T) {
 	// An application noun of its own takes the short name; the framework's
 	// is the dotted word.
 	r.DefineOwn("setting").Verb("list", func(Ctx) Result { return Done("own") })
-	if c := p.parse("setting list"); c.Op.Key() != "setting.list" {
-		t.Fatalf("owned setting list = %q", c.Op.Key())
+	if c := p.parse("setting list"); c.Op.Key.Short() != "setting.list" {
+		t.Fatalf("owned setting list = %q", c.Op.Key.Short())
 	}
-	if c := p.parse("ochazuke.setting names"); c.Op.Key() != "ochazuke.setting.names" {
-		t.Fatalf("ochazuke.setting names = %q (%v)", c.Op.Key(), c.Err)
+	if c := p.parse("ochazuke.setting names"); c.Op.Key.Short() != "ochazuke.setting.names" {
+		t.Fatalf("ochazuke.setting names = %q (%v)", c.Op.Key.Short(), c.Err)
 	}
 }
 

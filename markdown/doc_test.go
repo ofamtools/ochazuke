@@ -399,7 +399,7 @@ func TestRegisterMarksBuiltin(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	Register(r)
 	for _, verb := range []string{"toggle", "undo", "redo", "reload"} {
-		if !r.Operations[DocNoun+"."+verb].Builtin {
+		if !r.Operations.At(ochazuke.Key(DocNoun + "." + verb)).Builtin {
 			t.Errorf("%s.%s not builtin", DocNoun, verb)
 		}
 	}

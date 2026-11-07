@@ -78,12 +78,12 @@ func (p *Palette) recallLines() []string {
 // commandText spells a request as a line: verb, noun, then its arguments
 // in parameter order up to the first one it omits.
 func (p *Palette) commandText(q Request) string {
-	op := p.r.Operations[p.r.CanonicalKey(q.Key())]
+	op := p.r.Operations.At(Key(p.r.CanonicalKey(q.Key())))
 	words := []string{q.Verb, p.r.DisplayNoun(q.Noun)}
 	// A line typed by a bare alias (set nowrap) is spelled back by it,
 	// without the arguments it presets.
 	var preset Arguments
-	if a, ok := p.r.actionNames.aliases[q.Via]; ok && a.Bare && a.Action == op.Key() {
+	if a, ok := p.r.actionNames.aliases[q.Via]; ok && a.Bare && a.Action == op.Key.Short() {
 		words, preset = []string{a.Verb}, a.Args
 	}
 	bare := true // words still fill parameters in order

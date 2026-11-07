@@ -94,15 +94,15 @@ func (r *Runtime) referenceNouns() []refdoc.Noun {
 			})
 		}
 		var verbs []string
-		for key, op := range r.Operations {
-			if op.Noun == name {
+		for key, op := range r.Operations.Entries() {
+			if op.Noun() == name {
 				verbs = append(verbs, key)
 			}
 		}
 		slices.Sort(verbs)
 		for _, key := range verbs {
-			op := r.Operations[key]
-			verb := refdoc.Verb{Name: op.Verb, Standard: op.Standard, Unavailable: op.Unavailable}
+			op := r.Operations.At(Key(key))
+			verb := refdoc.Verb{Name: op.Name(), Standard: op.Standard, Unavailable: op.Unavailable}
 			for _, a := range r.AliasesOf(key) {
 				if a.Noun == name && !a.Bare {
 					verb.Aliases = append(verb.Aliases, a.Verb)
@@ -382,7 +382,7 @@ func (v *docsViewer) FindText(m Matcher, back bool) bool {
 // bindings/docs.json; esc closes it through the modal noun.
 func registerDocs(r *Runtime) {
 	r.Define("ochazuke.docs-viewer")
-	r.Register(Operation{Verb: "open", Noun: "ochazuke.docs", Description: "Open a topic of the generated reference (index, settings, bindings, standard-verbs) in the docs viewer, rendered from the running catalog",
+	r.Register(Operation{Key: "ochazuke.docs.open", Description: "Open a topic of the generated reference (index, settings, bindings, standard-verbs) in the docs viewer, rendered from the running catalog",
 		Parameters: map[string]Parameter{
 			"topic": {Type: "string", Enum: docsTopics(), Description: "The topic (default index)"},
 		}, Positional: []string{"topic"}, Result: "docs page", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

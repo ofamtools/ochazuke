@@ -53,9 +53,9 @@ func subjectsTable(t *testing.T) (*Runtime, *Model, *List, *[]string, func() []U
 			return Done(nil)
 		}, "ask about one row").
 		Mode("visual-line").Bind("f", Do("row.flaky")).Bind("t", Do("row.tag")).Bind("a", Do("row.ask"))
-	op := r.Operations["row.tag"]
+	op := r.Operations.At("row.tag")
 	op.Parameters = map[string]Parameter{"color": {Type: "string"}}
-	r.Operations["row.tag"] = op
+	r.Operations.Set(op)
 	stop := r.UI().capture()
 	return r, m, l, calls, stop
 }

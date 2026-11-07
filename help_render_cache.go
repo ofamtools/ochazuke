@@ -57,7 +57,7 @@ func (c *runtimeRenderCache) hintBindings(r *Runtime, focus string) []Binding {
 		if !valid {
 			break
 		}
-		if old.rows[i].level != row.level || !equalRenderBinding(old.rows[i].Binding, row.Binding) || old.motions[i] != r.Operations[row.Request.Key()].Motion || old.guards[i] != !r.guardedOffIn(row.Binding, focus, r.Mode) {
+		if old.rows[i].level != row.level || !equalRenderBinding(old.rows[i].Binding, row.Binding) || old.motions[i] != r.Operations.At(Key(row.Request.Key())).Motion || old.guards[i] != !r.guardedOffIn(row.Binding, focus, r.Mode) {
 			valid = false
 		}
 	}
@@ -68,7 +68,7 @@ func (c *runtimeRenderCache) hintBindings(r *Runtime, focus string) []Binding {
 	bindings := make([]Binding, len(rows))
 	for i, row := range rows {
 		bindings[i] = row.Binding
-		old.motions = append(old.motions, r.Operations[row.Request.Key()].Motion)
+		old.motions = append(old.motions, r.Operations.At(Key(row.Request.Key())).Motion)
 		old.guards = append(old.guards, !r.guardedOffIn(row.Binding, focus, r.Mode))
 	}
 	for i, binding := range cloneBindings(bindings) {
@@ -91,7 +91,7 @@ func (c *runtimeRenderCache) helpRow(r *Runtime, row levelRow, args Arguments) H
 	if row.Request.IsProp() {
 		return r.helpRowUncached(row, args)
 	}
-	k := helpRowKey{c.generation, row.Mode, row.Noun, row.Instance, row.Keys, row.Pattern, row.When, row.Hint, row.Help, row.level, row.guard, row.Request.Key(), r.Operations[row.Request.Key()].Description, r.nounsDisplay()}
+	k := helpRowKey{c.generation, row.Mode, row.Noun, row.Instance, row.Keys, row.Pattern, row.When, row.Hint, row.Help, row.level, row.guard, row.Request.Key(), r.Operations.At(Key(row.Request.Key())).Description, r.nounsDisplay()}
 	if old, ok := c.help[k]; ok && reflect.DeepEqual(old.Args, args) {
 		return cloneHelpRow(old)
 	}

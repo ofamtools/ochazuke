@@ -74,25 +74,25 @@ func TestSettingThingsAndProps(t *testing.T) {
 func TestNamedSettingSetStillWins(t *testing.T) {
 	r, _, _ := settingsFixture(t)
 	for _, verb := range []string{"set", "show", "reset", "toggle", "cycle"} {
-		op, ok := r.Operations["ochazuke.setting."+verb]
+		op, ok := r.Operations.Find(Key("ochazuke.setting." + verb))
 		if !ok || op.Standard != "" {
 			t.Fatalf("setting.%s: ok %v standard %q", verb, ok, op.Standard)
 		}
 	}
 	for _, verb := range []string{"get", "list", "watch"} {
-		if op := r.Operations["ochazuke.setting."+verb]; op.Standard != verb {
+		if op := r.Operations.At(Key("ochazuke.setting." + verb)); op.Standard != verb {
 			t.Fatalf("setting.%s standard %q", verb, op.Standard)
 		}
 	}
 	// A read-only collection: the core writes are listed, unavailable
 	// with the reason; the purged ones are absent.
 	for _, verb := range []string{"create", "delete"} {
-		if op, ok := r.Operations["ochazuke.setting."+verb]; !ok || op.Unavailable == "" || r.offers(op.Key()) {
+		if op, ok := r.Operations.Find(Key("ochazuke.setting." + verb)); !ok || op.Unavailable == "" || r.offers(op.Key.Short()) {
 			t.Fatalf("setting.%s: ok %v unavailable %q", verb, ok, op.Unavailable)
 		}
 	}
 	for _, verb := range []string{"rename", "duplicate"} {
-		if _, ok := r.Operations["ochazuke.setting."+verb]; ok {
+		if _, ok := r.Operations.Find(Key("ochazuke.setting." + verb)); ok {
 			t.Fatalf("setting.%s is registered", verb)
 		}
 	}
@@ -184,12 +184,12 @@ func TestPageHideShowAreAliasesOfSet(t *testing.T) {
 		if !ok || a.Action != "ochazuke.page.set" || a.Args["props"].(map[string]any)["hidden"] != value {
 			t.Fatalf("%s: %#v %v", name, a, ok)
 		}
-		if _, ok := r.Operations[name]; ok {
+		if _, ok := r.Operations.Find(Key(name)); ok {
 			t.Fatalf("%s is still an operation", name)
 		}
 		op, inv, ok := r.ResolveAction(name)
-		if !ok || op.Key() != "ochazuke.page.set" || !inv.Alias {
-			t.Fatalf("ResolveAction(%s) = %s %#v", name, op.Key(), inv)
+		if !ok || op.Key.Short() != "ochazuke.page.set" || !inv.Alias {
+			t.Fatalf("ResolveAction(%s) = %s %#v", name, op.Key.Short(), inv)
 		}
 	}
 	if aliases := r.aliasNames("ochazuke.page.set"); !slices.Contains(aliases, "page.hide") || !slices.Contains(aliases, "page.show") {
@@ -234,11 +234,11 @@ func TestInstancesStoreReadsLiveInstances(t *testing.T) {
 	r.Instance("w2", Kind("widget"))
 	r.Instance("other")
 	for _, verb := range []string{"get", "list", "watch"} {
-		if _, ok := r.Operations["widget."+verb]; !ok {
+		if _, ok := r.Operations.Find(Key("widget." + verb)); !ok {
 			t.Fatalf("widget.%s is not generated", verb)
 		}
 	}
-	if op := r.Operations["widget.set"]; op.Unavailable != "its store writes no props (no Store.Patch)" {
+	if op := r.Operations.At("widget.set"); op.Unavailable != "its store writes no props (no Store.Patch)" {
 		t.Fatalf("widget.set without Patch: unavailable %q", op.Unavailable)
 	}
 	rows := AnswerRows(paletteRequest(t, r, "list", "widget", nil)).([]map[string]any)

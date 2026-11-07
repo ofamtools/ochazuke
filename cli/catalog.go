@@ -374,17 +374,17 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 	// grouped by noun, never by runs.
 	ops := r.Catalog()
 	sort.SliceStable(ops, func(i, j int) bool {
-		if ops[i].Noun != ops[j].Noun {
-			return ops[i].Noun < ops[j].Noun
+		if ops[i].Noun() != ops[j].Noun() {
+			return ops[i].Noun() < ops[j].Noun()
 		}
-		return ops[i].Verb < ops[j].Verb
+		return ops[i].Name() < ops[j].Name()
 	})
 	for _, op := range ops {
-		if n := len(doc.Nouns); n == 0 || doc.Nouns[n-1].Name != op.Noun {
-			noun := CatalogNoun{Name: op.Noun}
-			if n := r.Nouns[op.Noun]; n != nil {
+		if n := len(doc.Nouns); n == 0 || doc.Nouns[n-1].Name != op.Noun() {
+			noun := CatalogNoun{Name: op.Noun()}
+			if n := r.Nouns[op.Noun()]; n != nil {
 				if !op.CatalogProxy && InstructionTokens(n.About) > AgentTextLimit {
-					return nil, fmt.Errorf("%s about exceeds %d tokens (chars/4)", op.Noun, AgentTextLimit)
+					return nil, fmt.Errorf("%s about exceeds %d tokens (chars/4)", op.Noun(), AgentTextLimit)
 				}
 				noun.About = n.About
 				noun.Pin, noun.Live, noun.Columns = n.Pin, n.Live, slices.Clone(n.Columns)
@@ -393,7 +393,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				noun.Unpersisted = n.Unpersisted
 				noun.Filters = slices.Clone(n.Filters)
 				noun.PropsOff = slices.Clone(n.PropsOff)
-				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun)
+				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun())
 				for i := range noun.Props {
 					// A reference's choices, as a verb parameter's: the
 					// noun's list verb is published as the source.
@@ -403,10 +403,10 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 			doc.Nouns = append(doc.Nouns, noun)
 		}
 		if op.State && doc.State == "" {
-			doc.State = op.Key()
+			doc.State = op.Key.Short()
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
-		verb := CatalogVerb{Guards: append(slices.Clone(r.VerbAvailability(op.Key())), op.CatalogGuards...), Examples: op.ExamplesOf(), Destructive: op.Destructive, Agent: op.AgentRightOf(false), AgentDeclared: op.Agent, Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key()), Standard: op.Standard}
+		verb := CatalogVerb{Guards: append(slices.Clone(r.VerbAvailability(op.Key.Short())), op.CatalogGuards...), Examples: op.ExamplesOf(), Destructive: op.Destructive, Agent: op.AgentRightOf(false), AgentDeclared: op.Agent, Name: op.Name(), Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key.Short()), Standard: op.Standard}
 		verb.Foreground = op.Foreground
 		verb.OpensPage = op.OpensPage
 		verb.ByAssociation = op.ByAssociation

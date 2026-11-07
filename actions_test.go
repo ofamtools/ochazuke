@@ -125,7 +125,7 @@ func TestActionRunsCommandAsLabelledJob(t *testing.T) {
 	if p := r.Config().ActionProblems(); len(p) != 0 {
 		t.Fatal(p)
 	}
-	op := r.Operations["worktree.open"]
+	op := r.Operations.At("worktree.open")
 	if op.Kind != KindApplication || op.Description != "Open in the editor" || op.Parameters["line"].Type != "integer" || !reflect.DeepEqual(op.Positional, []string{"line"}) {
 		t.Fatalf("operation %+v", op)
 	}
@@ -271,7 +271,7 @@ func TestActionMalformedEntriesAreNotices(t *testing.T) {
 	}
 	writeConfig(t, dir, ActionsFile, `{"noun": "worktree"}`)
 	got := r.ReloadUserActions()
-	if len(got) != 1 || !strings.Contains(got[0], "not a JSON array") || r.Operations["worktree.ok"].Noun != "" || len(m.Notices) != 1 {
+	if len(got) != 1 || !strings.Contains(got[0], "not a JSON array") || r.Operations.At("worktree.ok").Noun() != "" || len(m.Notices) != 1 {
 		t.Fatalf("reload %q notices %q", got, m.Notices)
 	}
 	if slices.Contains(r.Nouns["worktree"].Verbs, "ok") {

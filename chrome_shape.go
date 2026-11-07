@@ -189,7 +189,7 @@ func registerGlyphs(r *Runtime, a *Appearance) {
 			}
 			return factThings(rows, nil)
 		}})
-	r.Register(Operation{Noun: "ochazuke.glyphs", Verb: "show", HistoryKind: HistoryFetch, Description: "Show every glyph role and codepoint; nerd needs a Nerd Font Mono", Parameters: map[string]Parameter{"set": {Type: "string", Enum: []string{"auto", "ascii", "unicode", "nerd"}}}, Positional: []string{"set"}, Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.glyphs.show", HistoryKind: HistoryFetch, Description: "Show every glyph role and codepoint; nerd needs a Nerd Font Mono", Parameters: map[string]Parameter{"set": {Type: "string", Enum: []string{"auto", "ascii", "unicode", "nerd"}}}, Positional: []string{"set"}, Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
 		set := StringArg(args, "set", "")
 		if set == "" || set == "auto" {
 			set, _ = a.glyphChoice(r.Settings().String(ChromeGlyphsSetting))

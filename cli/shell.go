@@ -345,7 +345,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 	})
 	for _, j := range r.Jobs() {
-		if j.Job > last && (j.State == ochazuke.JobFailed || !r.Operations[j.Verb].Quiet) {
+		if j.Job > last && (j.State == ochazuke.JobFailed || !r.Operations.At(ochazuke.Key(j.Verb)).Quiet) {
 			name := r.DisplayKey(j.Verb)
 			if j.Label != "" {
 				name += " " + j.Label
@@ -432,9 +432,9 @@ func (s *Shell) nounWord(noun, word string) (verb, prop string, err error) {
 		return word, "", nil
 	}
 	var verbs []string
-	for _, op := range s.Runtime.Operations {
-		if op.Noun == noun {
-			verbs = append(verbs, op.Verb)
+	for _, op := range s.Runtime.Operations.Entries() {
+		if op.Noun() == noun {
+			verbs = append(verbs, op.Name())
 		}
 	}
 	sort.Strings(verbs)
@@ -456,16 +456,16 @@ func (s *Shell) nounWord(noun, word string) (verb, prop string, err error) {
 func (s *Shell) propRequest(noun, prop string, flags []string) (ochazuke.Request, options, error) {
 	r := s.Runtime
 	n := r.Noun(noun)
-	base, ok := r.Operations[n.Name+".set"]
+	base, ok := r.Operations.Find(ochazuke.Key(n.Name + ".set"))
 	if !ok || base.Unavailable != "" {
-		base, ok = r.Operations[n.Name+".get"]
+		base, ok = r.Operations.Find(ochazuke.Key(n.Name + ".get"))
 	}
 	if !ok {
 		return ochazuke.Request{}, options{}, fmt.Errorf("%s %s: the %s cannot be read or written", noun, prop, noun)
 	}
 	// The words the shorthand takes: VALUE, --toggle and the subject's
 	// --KEY.
-	op := ochazuke.Operation{Noun: n.Name, Verb: prop, Parameters: map[string]ochazuke.Parameter{
+	op := ochazuke.Operation{Key: ochazuke.KeyOf(n.Name, prop), Parameters: map[string]ochazuke.Parameter{
 		"value":  {Type: ochazuke.AnyParameterType},
 		"toggle": {Type: "boolean"},
 	}, Positional: []string{"value"}}
@@ -504,9 +504,9 @@ func (s *Shell) verb(noun, word string) (string, error) {
 		return word, nil // the verb, or an alias spelled whole
 	}
 	var matches []string
-	for _, op := range s.Runtime.Operations {
-		if op.Noun == noun && strings.HasPrefix(op.Verb, word) {
-			matches = append(matches, op.Verb)
+	for _, op := range s.Runtime.Operations.Entries() {
+		if op.Noun() == noun && strings.HasPrefix(op.Name(), word) {
+			matches = append(matches, op.Name())
 		}
 	}
 	sort.Strings(matches)
@@ -567,7 +567,7 @@ type options struct {
 // of its own takes --format as that argument, and the shell prints JSON.
 func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, options, error) {
 	q := s.Runtime.CanonicalRequest(ochazuke.Request{Noun: noun, Verb: verb, Args: ochazuke.Arguments{}})
-	op, ok := s.Runtime.Operations[q.Key()]
+	op, ok := s.Runtime.Operations.Find(ochazuke.Key(q.Key()))
 	if !ok {
 		return q, options{}, fmt.Errorf("unknown operation %q (%s %s); operations list prints them", q.Key(), noun, verb)
 	}

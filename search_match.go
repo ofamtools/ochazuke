@@ -456,7 +456,7 @@ func registerSearchMatch(r *Runtime) {
 	state := func(s matchSearcher) map[string]any {
 		return map[string]any{"match": s.matchMode()}
 	}
-	r.Register(Operation{Verb: "cycle-match", Noun: "ochazuke.search", Description: "Step the open search (the / filter line or a picker, the path finder too) to the next match mode: substring, fuzzy, regex, round again; for this search only, the setting is unchanged", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.search.cycle-match", Description: "Step the open search (the / filter line or a picker, the path finder too) to the next match mode: substring, fuzzy, regex, round again; for this search only, the setting is unchanged", Parameters: map[string]Parameter{
 		"step": {Type: "integer", Description: "How far to step; negative goes back (default 1)"},
 	}, Result: "the search's match mode", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 		s, err := find(c)
@@ -466,7 +466,7 @@ func registerSearchMatch(r *Runtime) {
 		s.setMatchMode(NextMatch(s.matchMode(), IntArg(args, "step", 1)))
 		return state(s), nil
 	}})
-	r.Register(Operation{Verb: "set-match", Noun: "ochazuke.search", Description: "Set the open search's match mode (substring, fuzzy or regex) for this search only; the setting is unchanged", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.search.set-match", Description: "Set the open search's match mode (substring, fuzzy or regex) for this search only; the setting is unchanged", Parameters: map[string]Parameter{
 		"mode": {Type: "string", Required: true, Enum: MatchModes(), Description: "substring, fuzzy or regex"},
 	}, Result: "the search's match mode", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 		mode := StringArg(args, "mode", "")

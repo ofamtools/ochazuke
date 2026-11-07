@@ -14,7 +14,7 @@ func TestNounActionResolutionAndMissingOnlyFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = r.SetFocus("field")
-	r.Register(Operation{Verb: "show", Noun: "owner", Run: func(*Runtime, Context, Arguments) (any, error) { return "app", nil }})
+	r.Register(Operation{Key: "owner.show", Run: func(*Runtime, Context, Arguments) (any, error) { return "app", nil }})
 	for _, id := range []string{"page", "agent", "directory"} {
 		name := id
 		r.Define(r.Instances[id].Noun).Action("owner.show", func(*Runtime, Context, Arguments) (any, error) { return name, nil })

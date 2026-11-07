@@ -121,9 +121,9 @@ func TestAssociationGuardsAndRequiredParameters(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "thing", Verb: "touch"}); err != nil || acted != "row-a" {
 		t.Fatalf("guard target %q: %v", acted, err)
 	}
-	op := r.Operations["thing.touch"]
+	op := r.Operations.At("thing.touch")
 	op.Parameters = map[string]Parameter{"name": {Type: "string", Required: true, Focus: true, Noun: "thing"}}
-	r.Operations[op.Key()] = op
+	r.Operations.Set(op)
 	acted = ""
 	if _, err := r.Execute(Request{Noun: "thing", Verb: "touch"}); err == nil || !strings.Contains(err.Error(), "name is required") || acted != "" {
 		t.Fatalf("required filled %q: %v", acted, err)
@@ -196,10 +196,10 @@ func TestAssociationGuardedRepeatFollowsNewSubject(t *testing.T) {
 		acted = append(acted, c.Instance.ID)
 		return Done(nil)
 	}).ByAssociation().When("thing-row")
-	op := r.Operations["thing.touch"]
+	op := r.Operations.At("thing.touch")
 	op.Repeatable = true
-	r.Operations[op.Key()] = op
-	if !r.VerbShown(op.Key(), "surface", r.Mode) {
+	r.Operations.Set(op)
+	if !r.VerbShown(op.Key.Short(), "surface", r.Mode) {
 		t.Fatal("palette hid the associated verb")
 	}
 	defer r.Sourced("key:r")()

@@ -1930,9 +1930,9 @@ func registerForms(r *Runtime) {
 		return e != nil && e.spec.Submit == nil && !e.closed && e.shownFields() == 1
 	})
 	for _, verb := range []string{"next", "previous", "next-missing"} {
-		op := r.Operations[FormNoun+"."+verb]
+		op := r.Operations.At(Key(FormNoun + "." + verb))
 		op.Parameters = insert
-		r.Operations[FormNoun+"."+verb] = op
+		r.Operations.Set(op)
 	}
 	// One undo chain in every record form: a text input's own history comes
 	// first, then the same key falls through to the record's history. The
@@ -2004,7 +2004,7 @@ func (e *RecordEditor) refreshChoices() {
 		if len(f.SourceArgs) == 0 {
 			continue
 		}
-		op := e.r.Operations[e.r.ChoicesSource(f.Parameter)]
+		op := e.r.Operations.At(Key(e.r.ChoicesSource(f.Parameter)))
 		query := ""
 		if e.r.ChoicesTakeQuery(f.Parameter) {
 			query = f.text()

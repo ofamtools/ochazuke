@@ -10,7 +10,7 @@ import (
 func TestModalCloseRunsTheCloseRequestElsePops(t *testing.T) {
 	r := NewRuntime()
 	closed := 0
-	r.Register(Operation{Verb: "dismiss", Noun: "dialog", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "dialog.dismiss", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		closed++
 		return nil, r.Pop()
 	}})

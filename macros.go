@@ -34,7 +34,7 @@ func registerMacros(r *Runtime) {
 		"paste": {Type: "boolean", Description: "The key is pasted text"},
 	}
 	add := func(verb, description string, params map[string]Parameter, fn Handler, traits ...opTrait) {
-		op := Operation{Verb: verb, Noun: "ochazuke.macro", Description: description, Parameters: params, Result: "macro state", Run: fn}
+		op := Operation{Key: KeyOf("ochazuke.macro", verb), Description: description, Parameters: params, Result: "macro state", Run: fn}
 		applyTraits(&op, traits)
 		r.Register(op)
 	}

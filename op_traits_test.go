@@ -13,7 +13,7 @@ import (
 // kind) and every unpersisted noun, one sorted line each.
 func opTraitLines(r *Runtime, keep func(key string) bool) []string {
 	var lines []string
-	for k, o := range r.Operations {
+	for k, o := range r.Operations.Entries() {
 		if keep(k) {
 			lines = append(lines, fmt.Sprintf("%s motion=%v focusBound=%v typing=%v kind=%s repeatable=%v staying=%v", k, o.Motion, o.FocusBound, o.Typing, o.HistoryKind, o.Repeatable, o.Staying))
 		}

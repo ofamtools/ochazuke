@@ -102,8 +102,8 @@ func TestFocusDisplayVerbCycles(t *testing.T) {
 	if !ok || !op.Builtin {
 		t.Fatalf("focus.display is not a builtin operation: %+v", op)
 	}
-	if r.DisplayKey(op.Key()) != "focus.display" {
-		t.Fatalf("display key %q", r.DisplayKey(op.Key()))
+	if r.DisplayKey(op.Key.Short()) != "focus.display" {
+		t.Fatalf("display key %q", r.DisplayKey(op.Key.Short()))
 	}
 	// No default key: nothing binds it.
 	for _, row := range r.allBindings() {

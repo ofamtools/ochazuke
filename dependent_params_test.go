@@ -16,7 +16,7 @@ func dependentFixture(t *testing.T, pending bool) (*Runtime, Parameter) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().Disable()
-	r.Register(Operation{Noun: "options", Verb: "list", Parameters: map[string]Parameter{"group": {Type: "string"}, "query": {Type: "string"}}, App: func(c Ctx) Result {
+	r.Register(Operation{Key: "options.list", Parameters: map[string]Parameter{"group": {Type: "string"}, "query": {Type: "string"}}, AppHandler: func(c Ctx) Result {
 		group := StringArg(c.Args, "group", "default")
 		values := []string{group + "-a", group + "-b"}
 		if pending {
@@ -30,7 +30,7 @@ func dependentFixture(t *testing.T, pending bool) (*Runtime, Parameter) {
 func TestSourceArgsChoicesAndValidation(t *testing.T) {
 	r, p := dependentFixture(t, false)
 	params := map[string]Parameter{"category": {Type: "string"}, "item": p}
-	r.Register(Operation{Noun: "record", Verb: "create", Parameters: params, Run: func(*Runtime, Context, Arguments) (any, error) { return true, nil }})
+	r.Register(Operation{Key: "record.create", Parameters: params, Run: func(*Runtime, Context, Arguments) (any, error) { return true, nil }})
 	for _, tc := range []struct {
 		args Arguments
 		want string
@@ -74,7 +74,7 @@ func TestSourceArgsSchema(t *testing.T) {
 			t.Error("Register accepted an unknown dependent source")
 		}
 	}()
-	r.Register(Operation{Noun: "record", Verb: "bad", Parameters: map[string]Parameter{"category": {}, "item": p}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	r.Register(Operation{Key: "record.bad", Parameters: map[string]Parameter{"category": {}, "item": p}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 }
 
 func TestDependentRecordChoicesRetainValues(t *testing.T) {
@@ -154,9 +154,9 @@ func TestSourceArgsQueryAndTypedValues(t *testing.T) {
 
 func TestDependentChoicesSourceFailureKeepsValue(t *testing.T) {
 	r, p := dependentFixture(t, false)
-	op := r.Operations["options.list"]
-	op.App = func(Ctx) Result { return Failed(errors.New("offline")) }
-	r.Operations[op.Key()] = op
+	op := r.Operations.At("options.list")
+	op.AppHandler = func(Ctx) Result { return Failed(errors.New("offline")) }
+	r.Operations.Set(op)
 	e, err := r.AddRecordEditor("rec", RecordSpec{Fields: []RecordField{{Name: "category"}, {Name: "item", Parameter: p}}, Load: func() (Record, error) { return Record{"category": "one", "item": "kept"}, nil }})
 	if err != nil {
 		t.Fatal(err)
@@ -169,9 +169,9 @@ func TestDependentChoicesSourceFailureKeepsValue(t *testing.T) {
 func TestDependentArgsFormAndPropFields(t *testing.T) {
 	r, p := dependentFixture(t, false)
 	p.Free = true
-	op := Operation{Noun: "record", Verb: "create", Parameters: map[string]Parameter{"category": {Type: "string"}, "item": p}, Run: func(*Runtime, Context, Arguments) (any, error) { return true, nil }}
+	op := Operation{Key: "record.create", Parameters: map[string]Parameter{"category": {Type: "string"}, "item": p}, Run: func(*Runtime, Context, Arguments) (any, error) { return true, nil }}
 	r.Register(op)
-	ed, err := r.OpenArgsForm(Request{Noun: op.Noun, Verb: op.Verb, Args: Arguments{"category": "two"}}, func(Request) error { return nil })
+	ed, err := r.OpenArgsForm(Request{Noun: op.Noun(), Verb: op.Name(), Args: Arguments{"category": "two"}}, func(Request) error { return nil })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestDependentArgsFormAndPropFields(t *testing.T) {
 
 func TestDependentPaletteChoicesUseCurrentSibling(t *testing.T) {
 	r, p := dependentFixture(t, false)
-	op := Operation{Noun: "record", Verb: "create", Parameters: map[string]Parameter{"category": {Type: "string"}, "item": p}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }}
+	op := Operation{Key: "record.create", Parameters: map[string]Parameter{"category": {Type: "string"}, "item": p}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }}
 	r.Register(op)
 	palette := NewPalette(r)
 	palette.origin = r.Context()

@@ -184,7 +184,7 @@ func registerViewMotions(r *Runtime) {
 		m := r.motionTarget(ev.Focus)
 		return m != nil && m.PageLines() > 0
 	})
-	r.Register(Operation{Verb: "edge", Noun: viewNoun, Motion: true,
+	r.Register(Operation{Key: KeyOf(viewNoun, "edge"), Motion: true,
 		Description: "Move the focused component's cursor to an edge: its first or last row (a row number instead, 5G), or its first or last column; clamps, never spills. Any list, table, tree, timeline (inside a card, its steps), docs viewer or yank history",
 		Parameters: map[string]Parameter{
 			"edge": {Type: "string", Required: true, Enum: edges, Description: "The edge: first, last, first-col or last-col"},
@@ -206,7 +206,7 @@ func registerViewMotions(r *Runtime) {
 			return true, nil
 		}})
 	r.SetAvailability(viewNoun+".edge", "view-edge-moves")
-	r.Register(Operation{Verb: "page", Noun: viewNoun, Motion: true,
+	r.Register(Operation{Key: KeyOf(viewNoun, "page"), Motion: true,
 		Description: "Move the focused component's cursor and window a page (half a page with half) down or up; clamps, never spills. Any list, table, tree, timeline, docs viewer or yank history",
 		Parameters: map[string]Parameter{
 			"delta": {Type: "integer", Required: true, Description: "1 down, -1 up"},
@@ -230,7 +230,7 @@ const viewNoun = "ochazuke.view"
 func registerViewScroll(r *Runtime) {
 	r.Define(viewNoun)
 	r.DefineGuard("view-scrolls", func(r *Runtime, ev KeyEvent) bool { return r.viewScroller(ev.Focus) != nil })
-	r.Register(Operation{Verb: "scroll", Noun: viewNoun, Motion: true,
+	r.Register(Operation{Key: KeyOf(viewNoun, "scroll"), Motion: true,
 		Description: "Scroll the focused view's window by lines times count, the cursor staying unless it would leave the window (Vim's ctrl+e/ctrl+y): a list, table, tree, timeline or document, else the page's detail",
 		Parameters: map[string]Parameter{
 			"lines": {Type: "integer", Description: "Lines to move, down when positive (default 1)"},

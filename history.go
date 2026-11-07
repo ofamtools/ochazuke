@@ -240,7 +240,7 @@ func (r *Runtime) historyKind(q Request) string {
 		}
 		return HistoryFetch
 	}
-	if op, ok := r.Operations[q.Key()]; ok {
+	if op, ok := r.Operations.Find(Key(q.Key())); ok {
 		return op.HistoryKindOf()
 	}
 	return HistoryAction
@@ -321,7 +321,7 @@ func (r *Runtime) repeatRequest(focus string, steps int) (Request, error) {
 		// are simple (simpleWrite, owner decision 12); a write that is not
 		// leaves the last repeatable change in place, so . after a text
 		// edit repeats the simple write before it.
-		op := r.Operations[e.Request.Key()]
+		op := r.Operations.At(Key(e.Request.Key()))
 		if !op.Repeatable && !r.repeatableStandard(e.Request) {
 			continue
 		}
@@ -376,7 +376,7 @@ func (r *Runtime) tellNothingToRepeat() {
 }
 
 func registerHistory(r *Runtime) {
-	r.Register(Operation{Verb: "repeat", Noun: "ochazuke.history", Description: "Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps replaces its count", Parameters: map[string]Parameter{"steps": {Type: "integer", Description: "Count replacing the recorded one; 0 keeps it"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.history.repeat", Description: "Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps replaces its count", Parameters: map[string]Parameter{"steps": {Type: "integer", Description: "Count replacing the recorded one; 0 keeps it"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		q, err := r.repeatRequest(focusOf(c), IntArg(a, "steps", 0))
 		if errors.Is(err, errNothingToRepeat) {
 			r.tellNothingToRepeat()
@@ -423,7 +423,7 @@ func registerHistory(r *Runtime) {
 			}
 			return nil, fmt.Errorf("no history entry %q", key)
 		}})
-	r.Register(Operation{Verb: "path", Noun: "ochazuke.history", HistoryKind: HistoryFetch, Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.history.path", HistoryKind: HistoryFetch, Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().HistoryPath()
 		if path == "" {
 			return nil, errors.New("this application does not keep its history")

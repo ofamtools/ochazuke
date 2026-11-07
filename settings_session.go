@@ -635,7 +635,7 @@ func registerSettingsSession(r *Runtime) {
 		refreshSettingsReview(r)
 	}
 	name := Parameter{Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.names"}
-	r.Register(Operation{Verb: "revert", Noun: "ochazuke.setting", Description: "Drop the setting's session value, so its saved value shows again", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.revert", Description: "Drop the setting's session value, so its saved value shows again", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		one, err := settingOfArgs(r, c, a)
 		if err != nil {
 			return nil, err
@@ -645,7 +645,7 @@ func registerSettingsSession(r *Runtime) {
 		}
 		return r.Settings().Get(one.Name)
 	}})
-	r.Register(Operation{Verb: "write", Noun: "ochazuke.setting", Checks: []VerbCheck{cliWriteCheck(writePrompt)}, Description: "Write the setting's session value to settings.json", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.write", Checks: []VerbCheck{cliWriteCheck(writePrompt)}, Description: "Write the setting's session value to settings.json", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		one, err := settingOfArgs(r, c, a)
 		if err != nil {
 			return nil, err
@@ -655,24 +655,24 @@ func registerSettingsSession(r *Runtime) {
 		}
 		return r.Settings().Get(one.Name)
 	}})
-	r.Register(Operation{Verb: "write-all", Noun: "ochazuke.setting", Checks: []VerbCheck{cliWriteCheck(writePrompt)}, Description: "Write every session value to settings.json", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.write-all", Checks: []VerbCheck{cliWriteCheck(writePrompt)}, Description: "Write every session value to settings.json", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names, err := r.Settings().WriteAll()
 		if names == nil {
 			names = []string{}
 		}
 		return names, err
 	}})
-	r.Register(Operation{Verb: "revert-all", Noun: "ochazuke.setting", Checks: []VerbCheck{revertAllCheck}, Description: "Drop every session value, so the saved values show again (asks first)", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.revert-all", Checks: []VerbCheck{revertAllCheck}, Description: "Drop every session value, so the saved values show again (asks first)", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names := r.Settings().RevertAll()
 		if names == nil {
 			names = []string{}
 		}
 		return names, nil
 	}})
-	r.Register(Operation{Verb: "diff", Noun: "ochazuke.setting", HistoryKind: HistoryFetch, Description: "List the settings whose session value differs from the saved one: name, saved value, session value and origin", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.diff", HistoryKind: HistoryFetch, Description: "List the settings whose session value differs from the saved one: name, saved value, session value and origin", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Settings().Diff(), nil
 	}})
-	r.Register(Operation{Verb: "reset-all", Noun: "ochazuke.setting", Destructive: true, Checks: []VerbCheck{resetAllCheck}, Description: "Reset every setting to its default: for this session, or in settings.json without a session or with settings.autosave", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.reset-all", Destructive: true, Checks: []VerbCheck{resetAllCheck}, Description: "Reset every setting to its default: for this session, or in settings.json without a session or with settings.autosave", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		_, names, err := r.Settings().ResetAll()
 		if names == nil {
 			names = []string{}

@@ -139,7 +139,7 @@ type restSpan struct {
 	Start int
 }
 
-func (c commandLine) known() bool { return c.Op.Verb != "" }
+func (c commandLine) known() bool { return c.Op.Name() != "" }
 
 // Complete reports whether the line runs as typed.
 func (c commandLine) Complete() bool { return c.known() && c.Err == nil && c.Missing == "" }
@@ -160,9 +160,9 @@ func (c commandLine) Request() Request {
 			}
 		}
 		toggle, _ := c.Args["toggle"].(bool)
-		return PropShorthand(c.Op.Noun, c.Prop, c.Args["value"], toggle, key)
+		return PropShorthand(c.Op.Noun(), c.Prop, c.Args["value"], toggle, key)
 	}
-	return Request{Verb: c.Op.Verb, Noun: c.Op.Noun, Args: c.Args, Via: c.Via}
+	return Request{Verb: c.Op.Name(), Noun: c.Op.Noun(), Args: c.Args, Via: c.Via}
 }
 
 // option is one word a position accepts.
@@ -292,16 +292,16 @@ func (r *Runtime) lineIndex(offered func(Operation) bool, nounBefore func(a, b s
 		// A noun is one word, its shortest name (settings for
 		// ochazuke.settings while no app noun shadows it, DisplayNoun);
 		// its other names are accepted as typed (names) but not completed.
-		word := r.DisplayNoun(op.Noun)
+		word := r.DisplayNoun(op.Noun())
 		if _, seen := ix.nouns[word]; !seen {
-			ix.nameNoun(r, op.Noun, word)
+			ix.nameNoun(r, op.Noun(), word)
 		}
-		ix.ops[word+"."+op.Verb] = op
-		ix.verbs[op.Verb] = append(ix.verbs[op.Verb], word)
-		ix.nouns[word] = append(ix.nouns[word], op.Verb)
+		ix.ops[word+"."+op.Name()] = op
+		ix.verbs[op.Name()] = append(ix.verbs[op.Name()], word)
+		ix.nouns[word] = append(ix.nouns[word], op.Name())
 	}
 	for _, a := range r.ActionAliases() {
-		op, ok := r.Operations[a.Action]
+		op, ok := r.Operations.Find(Key(a.Action))
 		if !ok || !offered(op) {
 			continue
 		}
@@ -511,7 +511,7 @@ func (p *Palette) depth(noun string) int {
 func (p *Palette) impliedNoun(ix lineIndex, verb string) string {
 	for _, id := range p.r.Ancestry(focusOf(p.origin)) {
 		if inst := p.r.Instances[id]; inst != nil {
-			if word := p.r.DisplayNoun(inst.Noun); func() bool { op, _ := ix.op(word, verb); return op.Verb != "" }() {
+			if word := p.r.DisplayNoun(inst.Noun); func() bool { op, _ := ix.op(word, verb); return op.Name() != "" }() {
 				return word
 			}
 		}
@@ -635,7 +635,7 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 	// verb, read below as any line is; aliases of the same action after
 	// it (verbose set) add their presets.
 	if a, ok := p.r.bareAlias(word); ok {
-		if op, offered := p.r.Operations[a.Action]; offered && p.offered(op) {
+		if op, offered := p.r.Operations.Find(Key(a.Action)); offered && p.offered(op) {
 			words := make([]string, len(tokens))
 			for i, t := range tokens {
 				words[i] = t.Text
@@ -966,7 +966,7 @@ func (p *Palette) fillParams(c *commandLine, tokens []lineToken, order []string)
 		positional++
 		if len(bare) == 0 {
 			c.Words = append(c.Words, PaletteWord{Text: token.Text})
-			c.Err = fmt.Errorf("unexpected word %q: %s takes %d argument(s)", token.Text, c.Op.Key(), positionalCount(c.Op))
+			c.Err = fmt.Errorf("unexpected word %q: %s takes %d argument(s)", token.Text, c.Op.Key.Short(), positionalCount(c.Op))
 			return false
 		}
 		name := bare[positionalFor(c.Op, bare, token.Text)]
@@ -1034,9 +1034,9 @@ func (p *Palette) parseProp(ix lineIndex, c *commandLine, noun, prop string, tok
 	set, _ := ix.op(noun, "set")
 	spec := p.r.Noun(noun).prop(prop)
 	switch {
-	case set.Verb != "" && spec != nil && spec.writable():
+	case set.Name() != "" && spec != nil && spec.writable():
 		c.Op = set
-	case get.Verb != "":
+	case get.Name() != "":
 		c.Op = get
 	default:
 		c.Err = fmt.Errorf("%s %s: the %s cannot be read or written here", noun, prop, noun)
@@ -1044,7 +1044,7 @@ func (p *Palette) parseProp(ix lineIndex, c *commandLine, noun, prop string, tok
 	}
 	c.Args["prop"] = prop
 	order := []string{}
-	if c.Op.Verb == set.Verb && c.Op.Noun == set.Noun {
+	if c.Op.Name() == set.Name() && c.Op.Noun() == set.Noun() {
 		order = append(order, "value")
 	}
 	if !p.fillParams(c, tokens, order) && c.Err != nil && len(order) == 0 && c.Words[len(c.Words)-1].Kind == "" {

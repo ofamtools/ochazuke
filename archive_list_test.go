@@ -122,7 +122,7 @@ func TestArchiveSubjectChoices(t *testing.T) {
 		List:  func(Ctx, ListQuery) ([]Thing, error) { return things, nil },
 		Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil },
 	})
-	choices, err := r.ChoicesFor(r.Context(), r.Operations["parcel.archive"].Parameters["id"], "")
+	choices, err := r.ChoicesFor(r.Context(), r.Operations.At("parcel.archive").Parameters["id"], "")
 	if err != nil {
 		t.Fatal(err)
 	}

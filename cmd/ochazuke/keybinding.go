@@ -237,13 +237,13 @@ func (m *keybindingModel) addBinding(spec string) error {
 func (m *keybindingModel) installBinding(spec sandboxBinding) {
 	keys, action := strings.Join(strings.Fields(spec.Keys), " "), strings.TrimSpace(spec.Action)
 	op := ochazuke.Operation{
-		Verb: action, Noun: "sandbox",
+		Key: ochazuke.KeyOf("sandbox", action),
 		Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, _ ochazuke.Arguments) (any, error) {
 			m.results[(m.count-1)%keyHistorySize] = "ACTION: " + action
 			return action, nil
 		},
 	}
-	if _, exists := m.runtime.Operations[op.Key()]; !exists {
+	if _, exists := m.runtime.Operations.Find(op.Key); !exists {
 		m.runtime.Register(op)
 	}
 	m.runtime.Define("app").Mode("").Bind(keys, ochazuke.Do("sandbox."+action))
@@ -255,11 +255,11 @@ func (m *keybindingModel) installBinding(spec sandboxBinding) {
 func (m *keybindingModel) pruneOperations() {
 	used := map[string]bool{}
 	for _, b := range m.runtime.Noun("app").Bindings[""] {
-		used[ochazuke.Operation{Verb: b.Request.Verb, Noun: b.Request.Noun}.Key()] = true
+		used[ochazuke.Operation{Key: ochazuke.KeyOf(b.Request.Noun, b.Request.Verb)}.Key.Short()] = true
 	}
-	for key, op := range m.runtime.Operations {
-		if op.Noun == "sandbox" && !used[key] {
-			delete(m.runtime.Operations, key)
+	for key, op := range m.runtime.Operations.Entries() {
+		if op.Noun() == "sandbox" && !used[key] {
+			m.runtime.Operations.Delete(ochazuke.Key(key))
 		}
 	}
 }

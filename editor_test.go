@@ -280,7 +280,7 @@ func TestMacroStepLimitAndErrorModalCleanup(t *testing.T) {
 	if r.Registers().Macro.Depth != 0 || r.Mode.Name != "normal" {
 		t.Fatal("step bound left replay active")
 	}
-	r.Register(Operation{Verb: "fail", Noun: "editor-test", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "editor-test.fail", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if err := r.Push("macro-test-modal", "app"); err != nil {
 			return nil, err
 		}
@@ -325,7 +325,7 @@ func TestAppMacroCountWithoutInputAndUppercaseAppend(t *testing.T) {
 	r := NewRuntime()
 	m := NewModel(r)
 	calls := 0
-	r.Register(Operation{Verb: "count", Noun: "editor-test", Run: func(r *Runtime, c Context, a Arguments) (any, error) { calls++; return calls, nil }})
+	r.Register(Operation{Key: "editor-test.count", Run: func(r *Runtime, c Context, a Arguments) (any, error) { calls++; return calls, nil }})
 	r.Define("app").Mode("").Bind("ctrl+t", Do("editor-test.count"))
 	modelEditorKeys(t, m, "Q", "a", "ctrl+t", "Q", "Q", "A", "ctrl+t", "Q", "2", "@", "a", "@", "@")
 	if calls != 8 {

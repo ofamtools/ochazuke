@@ -123,7 +123,7 @@ func newWith(task *demoTask) *ochazuke.Model {
 		return ochazuke.Text("NAVIGATION\nCtrl-J / K    Next / previous page (normal mode)\n:             Command line (palette)\nCtrl-Space    Palette in any editing mode\nPgUp / PgDn   Scroll the active surface\n\nPLAYGROUND\nTab / S-Tab   Next / previous field\nCtrl-N        Open a draft; repeat inside to nest\nCtrl-O        Choose a path using the field's filter\nEnter         Open picker in path / paths fields\n\nNORMAL INPUT\nh j k l       Move (same as arrows)\nw b e         Word motions\n0 $ / gg G    Line / document bounds\ni a I A       Begin inserting\no O           Open a line\nv / V / C-v   Character / line / block selection\nyy / p / P    Yank line / paste after / before\ng y           Yank history\n\"a            Select register a\nq then a      Start recording immediately in register a\nq / @a        Stop recording / replay macro a\nu / Ctrl-R    Undo / redo\n\nINSERT INPUT\nCtrl-A / E    Line start / end\nCtrl-P / N    Previous / next line (picker: result)\nAlt-B / F     Word movement\nCtrl-W/U/K    Kill path word / line start / line end\nCtrl-Y        Paste app yank\n@ $ [[        Notes: suggestions (Ctrl-N / P move, Tab or Enter take, Escape hides)\nEscape        Return to normal")
 	}}
 	register := func(verb, noun, description string, params map[string]ochazuke.Parameter, fn ochazuke.Handler) {
-		r.Register(ochazuke.Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "JSON value", Run: fn})
+		r.Register(ochazuke.Operation{Key: ochazuke.KeyOf(noun, verb), Description: description, Parameters: params, Result: "JSON value", Run: fn})
 	}
 	register("next", "input", "Cycle playground field focus", map[string]ochazuke.Parameter{"delta": {Type: "integer"}}, func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		if r.Page != "playground" || len(r.Modals()) > 0 {
@@ -625,7 +625,7 @@ func demoCommands(m *ochazuke.Model, width int) string {
 			}
 			params = append(params, name+suffix+":"+p.Type)
 		}
-		b.WriteString(s.Accent.Render(safeText(op.Noun+" "+op.Verb)) + "  " + s.Muted.Render(safeText(strings.Join(params, " · "))) + "\n")
+		b.WriteString(s.Accent.Render(safeText(op.Noun()+" "+op.Name())) + "  " + s.Muted.Render(safeText(strings.Join(params, " · "))) + "\n")
 		b.WriteString("  " + safeText(op.Description) + "\n")
 	}
 	return b.String()

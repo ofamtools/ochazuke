@@ -13,7 +13,7 @@ func registerYankHistory(r *Runtime) {
 	r.Define("ochazuke.yank-history").Unpersisted()
 	r.Instance(yankHistoryID, Kind("ochazuke.yank-history")).Component = &yankHistory{r: r}
 	add := func(verb, description string, params map[string]Parameter, fn Handler, traits ...opTrait) {
-		op := Operation{Verb: verb, Noun: "ochazuke.yank-history", Description: description, Parameters: params, Result: "yank history state", Run: fn}
+		op := Operation{Key: KeyOf("ochazuke.yank-history", verb), Description: description, Parameters: params, Result: "yank history state", Run: fn}
 		applyTraits(&op, traits)
 		r.Register(op)
 	}

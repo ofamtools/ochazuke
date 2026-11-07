@@ -9,7 +9,7 @@ import (
 )
 
 func TestOperationHelpShowsChoices(t *testing.T) {
-	op := ochazuke.Operation{Noun: "wall", Verb: "paint", Kind: "interaction", Description: "Paint the wall", Parameters: map[string]ochazuke.Parameter{
+	op := ochazuke.Operation{Key: "wall.paint", Kind: "interaction", Description: "Paint the wall", Parameters: map[string]ochazuke.Parameter{
 		"color": {Type: "string", Required: true, Enum: []string{"red"}, Source: "colors.list"},
 		"shade": {Type: "string", Source: "shades.list", Free: true},
 		"coats": {Type: "integer"},

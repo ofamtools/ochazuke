@@ -583,8 +583,8 @@ func (r *Runtime) rowInstance(lv level, q Request, focus string) string {
 	if lv.inst != nil && lv.inst.ID != focus && lv.noun != nil && lv.noun.Name == q.Noun {
 		return lv.inst.ID
 	}
-	if op, ok := r.Operation(q.Key()); ok && op.byAssociation() && r.nounInstance(op.Noun, focus) == "" {
-		if id, _ := r.nearestOf(op.Noun, focus); id != "" {
+	if op, ok := r.Operation(q.Key()); ok && op.byAssociation() && r.nounInstance(op.Noun(), focus) == "" {
+		if id, _ := r.nearestOf(op.Noun(), focus); id != "" {
 			return id
 		}
 	}
@@ -602,7 +602,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 	}
 	defer r.Sourced("key:" + keys)()
 	before, generation := r.Mode.Name, r.modeGeneration
-	if r.modes[before].Pending && !r.Operations[b.Request.Key()].Staying {
+	if r.modes[before].Pending && !r.Operations.At(Key(b.Request.Key())).Staying {
 		r.leaveMode()
 	}
 	q := b.Request
@@ -1256,7 +1256,7 @@ func registerModeTables(r *Runtime) {
 	r.Define("ochazuke.mode").Unpersisted()
 	r.Define("ochazuke.count").Unpersisted()
 	r.Define("ochazuke.key").Unpersisted()
-	r.Register(Operation{Verb: "enter", Noun: "ochazuke.mode", FocusBound: true, Staying: true, HistoryKind: HistoryAction, Description: "Enter a pending mode with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.mode.enter", FocusBound: true, Staying: true, HistoryKind: HistoryAction, Description: "Enter a pending mode with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.modes[mode].Pending {
 			return nil, fmt.Errorf("unknown pending mode %q", mode)
@@ -1268,7 +1268,7 @@ func registerModeTables(r *Runtime) {
 		r.enterMode(mode, Payload{Op: StringArg(a, "op", ""), Count: IntArg(a, "count", 0), OpCount: IntArg(a, "opcount", 0), Prefix: StringArg(a, "prefix", ""), Request: request})
 		return r.Mode, nil
 	}})
-	r.Register(Operation{Verb: "dispatch", Noun: "ochazuke.key", Staying: true, HistoryKind: HistoryAction, Description: "Dispatch one key through the stack walk; mode \"shadow\" resolves it in the runtime's own mode beneath a macro recording, so the key is recorded once, and another mode name resolves it in that mode", Parameters: map[string]Parameter{"key": {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"}, "paste": {Type: "boolean", Description: "The key is pasted text"}, "mode": {Type: "string", Description: "Empty for the live walk, \"shadow\" or a mode name"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.key.dispatch", Staying: true, HistoryKind: HistoryAction, Description: "Dispatch one key through the stack walk; mode \"shadow\" resolves it in the runtime's own mode beneath a macro recording, so the key is recorded once, and another mode name resolves it in that mode", Parameters: map[string]Parameter{"key": {Type: "string", Required: true, Description: "Key name as bindings spell it; for a paste, the bracketed text"}, "paste": {Type: "boolean", Description: "The key is pasted text"}, "mode": {Type: "string", Description: "Empty for the live walk, \"shadow\" or a mode name"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		paste, _ := a["paste"].(bool)
 		key := MacroKey{Key: StringArg(a, "key", ""), Paste: paste}
 		focus := focusOf(c)
@@ -1286,13 +1286,13 @@ func registerModeTables(r *Runtime) {
 			return outcome != KeyUnhandled, err
 		}
 	}})
-	r.Register(Operation{Verb: "leave", Noun: "ochazuke.mode", Staying: true, HistoryKind: HistoryAction, Description: "Return from a pending mode to the mode it shadowed", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.mode.leave", Staying: true, HistoryKind: HistoryAction, Description: "Return from a pending mode to the mode it shadowed", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if r.pending() {
 			r.leaveMode()
 		}
 		return r.Mode, nil
 	}})
-	r.Register(Operation{Verb: "append", Noun: "ochazuke.count", Staying: true, HistoryKind: HistoryAction, Description: "Append a digit to the pending count", Parameters: map[string]Parameter{"digit": {Type: "integer", Required: true}}, Result: "count", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.count.append", Staying: true, HistoryKind: HistoryAction, Description: "Append a digit to the pending count", Parameters: map[string]Parameter{"digit": {Type: "integer", Required: true}}, Result: "count", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		digit := IntArg(a, "digit", 0)
 		if digit < 0 || digit > 9 {
 			return nil, errors.New("digit must be 0 to 9")
@@ -1305,7 +1305,7 @@ func registerModeTables(r *Runtime) {
 		r.changeMode(next, modePayloadUpdate) // the prefix and its deadline stay armed
 		return r.Mode.Payload.Count, nil
 	}})
-	r.Register(Operation{Verb: "run", Noun: "ochazuke.request", Description: "Execute the request stored in the mode payload", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.request.run", Description: "Execute the request stored in the mode payload", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if r.Mode.Payload.Request == nil {
 			return nil, errors.New("no stored request")
 		}

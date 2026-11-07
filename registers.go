@@ -132,14 +132,14 @@ func registerRegisterThings(r *Runtime) {
 		}
 		return thing(key, r.Registers().Named[key]), nil
 	}, "Add text to the end of a register, as an uppercase register name does for a yank (A-Z)")
-	op := r.Operations["ochazuke.register.append"]
+	op := r.Operations.At("ochazuke.register.append")
 	op.Parameters = map[string]Parameter{
 		"name":  {Type: "string", Required: true, Noun: "ochazuke.register", Description: "The register to add to: a-z"},
 		"text":  {Type: "string", Required: true, Description: "The text to add"},
 		"shape": {Type: "string", Enum: []string{"char", "line", "block"}, Description: "How the added text pastes (default char)"},
 	}
 	op.Positional = []string{"name", "text"}
-	r.Operations["ochazuke.register.append"] = op
+	r.Operations.Set(op)
 }
 
 // Registers returns the registers component.

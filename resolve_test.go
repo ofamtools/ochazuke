@@ -131,7 +131,7 @@ func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 func TestModalIsResolutionBoundary(t *testing.T) {
 	r, _ := focusFixture(t)
 	pokes := 0
-	r.Register(Operation{Verb: "poke", Noun: "panel", Run: func(*Runtime, Context, Arguments) (any, error) { pokes++; return nil, nil }})
+	r.Register(Operation{Key: "panel.poke", Run: func(*Runtime, Context, Arguments) (any, error) { pokes++; return nil, nil }})
 	calls := recorder(t, r, "app")
 	r.Define("panel").Mode("normal").Bind("z", Do("panel.poke"))
 	r.Define("ochazuke.page").Mode("normal").Bind("y", Do("panel.poke"))

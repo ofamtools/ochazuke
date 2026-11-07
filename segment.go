@@ -744,8 +744,8 @@ func (r *Runtime) segmentVerb(seg Segment) (any, func(context.Context) (any, err
 		return nil, nil, err
 	}
 	c := r.contextOf("app")
-	if op.App != nil {
-		res := op.App(Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: args, Instance: r.Instances["app"]})
+	if op.AppHandler != nil {
+		res := op.AppHandler(Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: args, Instance: r.Instances["app"]})
 		if res.work == nil {
 			return res.value, nil, res.err
 		}
@@ -854,7 +854,7 @@ func registerSegments(r *Runtime) {
 			return find(r, a)
 		}
 	}
-	r.Register(Operation{Verb: "names", Noun: "ochazuke.segment", Description: "List the status segment ids in drawing order", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.segment.names", Description: "List the status segment ids in drawing order", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		names := []string{}
 		for _, s := range r.Segments() {
 			names = append(names, s.ID)
@@ -868,13 +868,13 @@ func registerSegments(r *Runtime) {
 			c.Runtime.EnsureSegments()
 			return factThings(c.Runtime.Segments(), nil)
 		}})
-	r.Register(Operation{Verb: "show", Noun: "ochazuke.segment", Description: "Show one status segment: its row, source, setting and last answer", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "segment", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.segment.show", Description: "Show one status segment: its row, source, setting and last answer", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "segment", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		r.EnsureSegments()
 		return find(r, a)
 	}})
-	r.Register(Operation{Verb: "enable", Noun: "ochazuke.segment", Description: "Show a status segment (its status.segments.<id> setting on)", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "segment", Run: set(true)})
-	r.Register(Operation{Verb: "disable", Noun: "ochazuke.segment", Description: "Hide a status segment and stop its refresh (its status.segments.<id> setting off)", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "segment", Run: set(false)})
-	r.Register(Operation{Verb: "toggle", Noun: "ochazuke.segment", Description: "Show a hidden status segment or hide a shown one", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "segment", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.segment.enable", Description: "Show a status segment (its status.segments.<id> setting on)", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "segment", Run: set(true)})
+	r.Register(Operation{Key: "ochazuke.segment.disable", Description: "Hide a status segment and stop its refresh (its status.segments.<id> setting off)", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "segment", Run: set(false)})
+	r.Register(Operation{Key: "ochazuke.segment.toggle", Description: "Show a hidden status segment or hide a shown one", Parameters: map[string]Parameter{"id": id}, Positional: []string{"id"}, Result: "segment", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		r.EnsureSegments()
 		s, err := find(r, a)
 		if err != nil {
@@ -883,7 +883,7 @@ func registerSegments(r *Runtime) {
 		row := r.segs().find(s.ID)
 		return set(!r.segmentOn(row))(r, c, a)
 	}})
-	r.Register(Operation{Verb: "move", Noun: "ochazuke.segment", Description: "Move a status segment: to first, last, up, down, +N, -N or a position; saved in status.segment-order", Parameters: map[string]Parameter{"id": id, "to": {Type: "string", Required: true, Description: "first, last, up, down, +N, -N or a 1-based position"}}, Positional: []string{"id", "to"}, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.segment.move", Description: "Move a status segment: to first, last, up, down, +N, -N or a position; saved in status.segment-order", Parameters: map[string]Parameter{"id": id, "to": {Type: "string", Required: true, Description: "first, last, up, down, +N, -N or a 1-based position"}}, Positional: []string{"id", "to"}, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		r.EnsureSegments()
 		var order []string
 		for _, s := range r.Segments() {
@@ -898,7 +898,7 @@ func registerSegments(r *Runtime) {
 		}
 		return out, nil
 	}})
-	r.Register(Operation{Verb: "refresh", Noun: "ochazuke.segment", Description: "Refresh a status segment now, or every shown one with no id", Parameters: map[string]Parameter{"id": {Type: "string", Description: "Segment id (default: every shown segment)", Source: "ochazuke.segment.names"}}, Positional: []string{"id"}, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.segment.refresh", Description: "Refresh a status segment now, or every shown one with no id", Parameters: map[string]Parameter{"id": {Type: "string", Description: "Segment id (default: every shown segment)", Source: "ochazuke.segment.names"}}, Positional: []string{"id"}, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		want := StringArg(a, "id", "")
 		out := []string{}
 		for _, row := range r.segs().rows {

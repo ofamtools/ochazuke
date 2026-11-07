@@ -42,7 +42,7 @@ func (s *Shell) Complete(words []string) ([]ochazuke.Choice, error) {
 	if err != nil {
 		return nil, err
 	}
-	op := s.Runtime.Operations[q.Key()]
+	op := s.Runtime.Operations.At(ochazuke.Key(q.Key()))
 	if name == "" {
 		for _, candidate := range op.ParameterOrder() {
 			if _, set := q.Args[candidate]; !set && op.Parameters[candidate].Type != "boolean" && !op.Parameters[candidate].Named {

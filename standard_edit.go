@@ -735,14 +735,14 @@ func editStart(spec *RecordSpec, only *PropSpec, fieldOnly bool, noun, label str
 func (r *Runtime) readEdit(c Ctx, noun string, subject Arguments) (res Result, ran bool) {
 	_, err := r.executeAt(r.contextOf("app"), Request{Noun: noun, Verb: "get", Args: subject}, func(op Operation, ctx Context, args Arguments) (any, error) {
 		ran = true
-		if op.App == nil {
+		if op.AppHandler == nil {
 			value, err := op.Run(r, ctx, args)
 			res = Done(value)
 			return value, err
 		}
 		c.Context, c.Args, c.Invoked = ctx, args, r.Invoked()
 		c.Instance = r.Instances[focusOf(ctx)]
-		res = op.App(c)
+		res = op.AppHandler(c)
 		return res.value, res.err
 	})
 	if err != nil {
@@ -827,9 +827,9 @@ func registerStandardEdit(r *Runtime) {
 		}
 		return Done(nil)
 	}, "Cancel a pending edit open without writing").When("edit-opening")
-	op := r.Operations["ochazuke.nouns.cancel-edit"]
+	op := r.Operations.At("ochazuke.nouns.cancel-edit")
 	op.HistoryKind = HistoryAction
-	r.Operations[op.Key()] = op
+	r.Operations.Set(op)
 }
 
 // fieldNames are the names of fields, in order.

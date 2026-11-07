@@ -499,7 +499,7 @@ func (r *Runtime) movePage(delta int) error {
 
 func registerPages(r *Runtime) {
 	r.Define("ochazuke.page")
-	r.Register(Operation{Verb: "open", Noun: "ochazuke.page", Description: "Open a registered page, a hidden one too", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.page"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.page.open", Description: "Open a registered page, a hidden one too", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.page"}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "id", "")
 		if err := r.OpenPage(id); err != nil {
 			return r.Context(), err
@@ -509,18 +509,18 @@ func registerPages(r *Runtime) {
 		}
 		return r.Context(), nil
 	}})
-	r.Register(Operation{Verb: "pick", Noun: "ochazuke.page", Description: "Choose a page, most recently visited first and the current one last: type to filter, enter opens", Result: "picker state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.page.pick", Description: "Choose a page, most recently visited first and the current one last: type to filter, enter opens", Result: "picker state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		chooser, err := r.OpenPagePicker()
 		if err != nil {
 			return nil, err
 		}
 		return chooser.state(), nil
 	}})
-	r.Register(Operation{Verb: "next", Noun: "ochazuke.page", Motion: true, HistoryKind: HistoryAction, Description: "Open the next page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.page.next", Motion: true, HistoryKind: HistoryAction, Description: "Open the next page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(1)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Verb: "previous", Noun: "ochazuke.page", Motion: true, HistoryKind: HistoryAction, Description: "Open the previous page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.page.previous", Motion: true, HistoryKind: HistoryAction, Description: "Open the previous page in the tabs, wrapping in registration order", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		err := r.movePage(-1)
 		return r.Context(), err
 	}})

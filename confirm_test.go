@@ -12,9 +12,9 @@ func TestConfirmWithoutTargetReadsArguments(t *testing.T) {
 	r := NewRuntime()
 	noop := func(Ctx) Result { return Done(nil) }
 	r.Define("worktree").Verb("remove", noop).Confirm("Remove {{noun}} {{label}} ({{id}}, {{branch}})?").Positional("path")
-	op := r.Operations["worktree.remove"]
+	op := r.Operations.At("worktree.remove")
 	op.Parameters = map[string]Parameter{"path": {Type: "string"}, "branch": {Type: "string"}, "force": {Type: "boolean"}, "label": {Type: "string"}}
-	r.Operations["worktree.remove"] = op
+	r.Operations.Set(op)
 	prompt := func(q Request) any {
 		t.Helper()
 		v, err := r.Execute(q)

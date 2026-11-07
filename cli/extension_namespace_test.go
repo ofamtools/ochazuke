@@ -115,7 +115,7 @@ func TestFrameworkCatalogDeclaresHistory(t *testing.T) {
 	for _, noun := range doc.Nouns {
 		for _, verb := range noun.Verbs {
 			key := noun.Name + "." + verb.Name
-			op, ok := r.Operations[key]
+			op, ok := r.Operations.Find(ochazuke.Key(key))
 			if !ok {
 				t.Errorf("%s is in the catalog without a registration", key)
 				continue
@@ -129,13 +129,13 @@ func TestFrameworkCatalogDeclaresHistory(t *testing.T) {
 			}
 		}
 	}
-	for key, op := range r.Operations {
+	for key, op := range r.Operations.Entries() {
 		if op.Builtin && !seen[key] {
 			t.Errorf("framework verb %s missing from catalog", key)
 		}
 	}
 	for _, key := range []string{"ochazuke.catalog.describe", "ochazuke.catalog.list", "ochazuke.mcp.tools", "ochazuke.agent.rights"} {
-		if op, ok := r.Operations[key]; !ok || op.HistoryKind != ochazuke.HistoryFetch {
+		if op, ok := r.Operations.Find(ochazuke.Key(key)); !ok || op.HistoryKind != ochazuke.HistoryFetch {
 			t.Errorf("%s: want explicitly registered fetch, got %+v", key, op)
 		}
 	}

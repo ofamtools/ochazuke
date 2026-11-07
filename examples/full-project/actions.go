@@ -220,9 +220,9 @@ func registerActions(r *ochazuke.Runtime, cfg Config) error {
 		if spec.On != "" {
 			continue
 		}
-		operation := ochazuke.Operation{Verb: spec.Verb, Noun: spec.Noun, Description: spec.Description, Parameters: spec.Parameters, Result: spec.Result, Confirm: spec.Confirm, Run: handlers[spec.Handler]}
-		if _, exists := r.Operations[operation.Key()]; exists {
-			return fmt.Errorf("duplicate operation %q", operation.Key())
+		operation := ochazuke.Operation{Key: ochazuke.KeyOf(spec.Noun, spec.Verb), Description: spec.Description, Parameters: spec.Parameters, Result: spec.Result, Confirm: spec.Confirm, Run: handlers[spec.Handler]}
+		if _, exists := r.Operations.Find(operation.Key); exists {
+			return fmt.Errorf("duplicate operation %q", operation.Key.Short())
 		}
 		r.Register(operation)
 	}
@@ -235,7 +235,7 @@ func registerActions(r *ochazuke.Runtime, cfg Config) error {
 		if noun == nil {
 			return fmt.Errorf("action %s: unknown noun %q", key, spec.On)
 		}
-		if _, exists := r.Operations[key]; !exists {
+		if _, exists := r.Operations.Find(ochazuke.Key(key)); !exists {
 			return fmt.Errorf("noun action %s has no registered operation", key)
 		}
 		if noun.Actions[key] != nil {

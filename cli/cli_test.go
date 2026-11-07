@@ -68,7 +68,7 @@ func newFixture(t *testing.T) *fixture {
 			return ochazuke.Done(nil)
 		}, "Ask in a modal").
 		Mode("normal").Bind("enter", ochazuke.Do("widget.show")).Bind("x", ochazuke.Do("widget.remove"))
-	op := f.r.Operations["widget.relabel"]
+	op := f.r.Operations.At("widget.relabel")
 	op.Parameters = map[string]ochazuke.Parameter{
 		"name":  {Type: "string", Required: true},
 		"count": {Type: "integer"},
@@ -76,14 +76,14 @@ func newFixture(t *testing.T) *fixture {
 		"tags":  {Type: "array"},
 		"like":  {Type: "string", Source: "widget.list"},
 	}
-	f.r.Operations["widget.relabel"] = op
-	op = f.r.Operations["widget.paint"]
+	f.r.Operations.Set(op)
+	op = f.r.Operations.At("widget.paint")
 	op.Parameters = map[string]ochazuke.Parameter{"color": {Type: "string", Required: true}, "coats": {Type: "integer"}}
-	f.r.Operations["widget.paint"] = op
+	f.r.Operations.Set(op)
 	for _, verb := range []string{"widget.link", "widget.tag"} {
-		op = f.r.Operations[verb]
+		op = f.r.Operations.At(ochazuke.Key(verb))
 		op.Parameters = map[string]ochazuke.Parameter{"all": {Type: "boolean"}, "name": {Type: "string"}, "aim": {Type: "string"}}
-		f.r.Operations[verb] = op
+		f.r.Operations.Set(op)
 	}
 	page, err := f.r.AddPage("widgets", "Widgets", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Block{} })
 	if err != nil {
@@ -189,10 +189,10 @@ func TestShellTypesFlagsByTheOperationsParameters(t *testing.T) {
 // bare word unless Positional names it.
 func TestShellPositionalOrderIsDeclared(t *testing.T) {
 	f := newFixture(t)
-	if got := f.r.Operations["widget.link"].ParameterOrder(); fmt.Sprint(got) != "[name aim all]" {
+	if got := f.r.Operations.At("widget.link").ParameterOrder(); fmt.Sprint(got) != "[name aim all]" {
 		t.Fatalf("link order %v", got)
 	}
-	if got := f.r.Operations["widget.tag"].ParameterOrder(); fmt.Sprint(got) != "[aim all name]" {
+	if got := f.r.Operations.At("widget.tag").ParameterOrder(); fmt.Sprint(got) != "[aim all name]" {
 		t.Fatalf("tag order %v", got)
 	}
 	for _, c := range []struct {
@@ -722,15 +722,15 @@ func TestMountContextualHelpAndDispatch(t *testing.T) {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			f := newFixture(t)
 			f.r.Define("ochazuke.binding")
-			op := f.r.Operations["widget.relabel"]
+			op := f.r.Operations.At("widget.relabel")
 			op.Parameters["name"] = ochazuke.Parameter{
 				Type: "string", Required: true, Description: "Widget name",
 				Enum: []string{"one", "two"}, Source: "widget.list", Free: true,
 			}
-			f.r.Operations["widget.relabel"] = op
-			orphan := f.r.Operations["widget.list"]
-			orphan.Noun = "orphan"
-			f.r.Operations["orphan.list"] = orphan
+			f.r.Operations.Set(op)
+			orphan := f.r.Operations.At("widget.list")
+			orphan.Key = ochazuke.KeyOf("orphan", orphan.Name())
+			f.r.Operations.Set(orphan)
 			var out bytes.Buffer
 			app := oden.New("tool", args, oden.WithBuiltins(),
 				oden.WithStdio(strings.NewReader(""), &out, io.Discard),

@@ -132,14 +132,14 @@ func newAppearance(r *Runtime) *Appearance {
 			}
 			return factThings(names, nil)
 		}})
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.themes", HistoryKind: HistoryFetch, Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.themes.reload", HistoryKind: HistoryFetch, Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		problems := r.reloadThemes()
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Verb: "path", Noun: "ochazuke.themes", HistoryKind: HistoryFetch, Description: "Print the user colour schemes file: themes.json beside settings.json", Result: "path", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.themes.path", HistoryKind: HistoryFetch, Description: "Print the user colour schemes file: themes.json beside settings.json", Result: "path", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		path := r.Config().Path(ThemesFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

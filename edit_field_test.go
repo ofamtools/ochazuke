@@ -63,7 +63,7 @@ func TestEditFieldOnAppEditAndFormsEditOff(t *testing.T) {
 	r := NewRuntime()
 	r.Define("parcel").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store((&derivedStore{key: "id", things: []Thing{{"id": "t1", "title": "x"}}}).store())
 	r.Define("parcel").Verb("edit", own, "The app's own edit")
-	if _, ok := r.Operations["parcel.edit"].Parameters["field"]; !ok {
+	if _, ok := r.Operations.At("parcel.edit").Parameters["field"]; !ok {
 		t.Fatal("an edit registered after the store has no field")
 	}
 }

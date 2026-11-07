@@ -44,7 +44,7 @@ func registerBindingHelp(r *Runtime) {
 		row, ok := r.selectedHelpRow()
 		return r.Tree(helpTreeID) != nil && !(ok && helpRunnable(row))
 	})
-	r.Register(Operation{Verb: "help", Noun: "ochazuke.bindings", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.bindings.help", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		focus := focusOf(c)
 		mode := ModeState{Name: r.BaseMode()}
 		// Opened again while it is the top modal (? or :bindings help

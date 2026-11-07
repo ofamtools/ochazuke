@@ -370,7 +370,7 @@ func TestFocusNeverLeavesTopModal(t *testing.T) {
 // inside the top modal is allowed; the same kind twice is refused.
 func TestModalOpensOnlyFromTopLevel(t *testing.T) {
 	r, _ := focusFixture(t)
-	r.Register(Operation{Verb: "prompt", Noun: "test", Parameters: map[string]Parameter{"kind": {Type: "string", Required: true}}, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "test.prompt", Parameters: map[string]Parameter{"kind": {Type: "string", Required: true}}, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.OpenModal(StringArg(a, "kind", ""), Payload{Prompt: "?"})
 	}})
 	if _, err := r.Execute(Request{Verb: "prompt", Noun: "test", Args: Arguments{"kind": "ask"}}); err != nil {

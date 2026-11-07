@@ -278,7 +278,7 @@ func detailScrolls(r *Runtime, ev KeyEvent) bool {
 func registerDetail(r *Runtime) {
 	r.Define(detailNoun)
 	r.DefineGuard("detail-scrolls", detailScrolls)
-	r.Register(Operation{Verb: "scroll", Noun: detailNoun, Motion: true, Description: "Scroll the page's detail by lines times count without moving the focus",
+	r.Register(Operation{Key: KeyOf(detailNoun, "scroll"), Motion: true, Description: "Scroll the page's detail by lines times count without moving the focus",
 		Parameters: map[string]Parameter{
 			"lines": {Type: "integer", Description: "Lines to move, down when positive (default 1)"},
 			"count": {Type: "integer", Description: "Repeat count (default 1)"},

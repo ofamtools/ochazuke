@@ -61,7 +61,7 @@ func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
 	if e.Request.IsProp() {
 		return e, true // a prop read
 	}
-	op, known := r.Operations[e.Request.Key()]
+	op, known := r.Operations.Find(Key(e.Request.Key()))
 	if !known {
 		return e, false
 	}

@@ -154,7 +154,7 @@ func newModel(r *Runtime) *Model {
 	r.Settings().page.styles = m.StylesAt
 	m.ModalViews[settingPromptID] = ModalView{Title: "Set", Render: settingPromptView}
 	m.ModalViews[settingsReviewID] = ModalView{Title: "Review settings", Render: settingsReviewView}
-	r.Register(Operation{Verb: "scroll", Noun: "ochazuke.surface", Motion: true, HistoryKind: HistoryAction, Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.surface.scroll", Motion: true, HistoryKind: HistoryAction, Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := m.surfaceKey()
 		width, height := m.pageSize()
 		var content string
@@ -180,7 +180,7 @@ func newModel(r *Runtime) *Model {
 			}
 			return factThings(rows, nil)
 		}})
-	r.Register(Operation{Verb: "clear", Noun: "ochazuke.notice", Description: "Clear the persistent notices from the footer", Result: "cleared count", Run: func(*Runtime, Context, Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.notice.clear", Description: "Clear the persistent notices from the footer", Result: "cleared count", Run: func(*Runtime, Context, Arguments) (any, error) {
 		n := len(m.Notices)
 		m.Notices, m.noticeIDs = nil, nil
 		return n, nil
@@ -733,7 +733,7 @@ func hintBindingsIn(r *Runtime, ctx resolutionContext, rows []levelRow) []Bindin
 	showHidden := r.Settings().Bool(HintsShowHiddenSetting)
 	for _, row := range rows {
 		b := row.Binding
-		if b.Hidden && !showHidden || r.Operations[b.Request.Key()].Motion && b.Hint == "" {
+		if b.Hidden && !showHidden || r.Operations.At(Key(b.Request.Key())).Motion && b.Hint == "" {
 			continue // a motion with its own Hint (J/K detail) shows
 		}
 		if isPrefixCancel(b) && ctx.Mode.Payload.Prefix == "" {
@@ -981,7 +981,7 @@ func (r *Runtime) helpRows(w helpWalk, rows []levelRow, depth int) []HelpRow {
 			continue
 		}
 		help.Steps = r.helpSteps(help, exact, HelpStep{Key: help.Final, Operation: help.Operation, Description: help.Description})
-		if depth == 0 && r.Operations[row.Request.Key()].Motion {
+		if depth == 0 && r.Operations.At(Key(row.Request.Key())).Motion {
 			help.Section = MovementSection
 			motions = append(motions, help)
 			continue

@@ -91,7 +91,7 @@ func registerListMotions(r *Runtime) {
 		verb  string
 		delta int
 	}{{"next-class", 1}, {"previous-class", -1}} {
-		r.Register(Operation{Noun: "ochazuke.list", Verb: direction.verb, Motion: true,
+		r.Register(Operation{Key: KeyOf("ochazuke.list", direction.verb), Motion: true,
 			Description: "Jump to a shown row of class, counting matches; clamps without spilling; no further match leaves selection in place with a status message",
 			Parameters: map[string]Parameter{
 				"id":    {Type: "string", Description: "The list (default: the focused one)"},
@@ -147,7 +147,7 @@ func registerListMotions(r *Runtime) {
 			l.page(rows)
 		}},
 	} {
-		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.list", Motion: true, HistoryKind: HistoryAction, Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("ochazuke.list", spec.verb), Motion: true, HistoryKind: HistoryAction, Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err

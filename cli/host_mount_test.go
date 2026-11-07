@@ -114,12 +114,12 @@ func TestMountNounsPropsAndStandardVerbs(t *testing.T) {
 		t.Fatalf("the extension's guard is the extension's: %+v", p)
 	}
 	for verb, standard := range map[string]string{"get": "get", "list": "list", "set": "set", "edit": "edit", "launch": ""} {
-		op, ok := r.Operations["ext-task."+verb]
+		op, ok := r.Operations.Find(ochazuke.Key("ext-task." + verb))
 		if !ok || op.Standard != standard {
 			t.Fatalf("ext-task.%s: %v %q, want standard %q", verb, ok, op.Standard, standard)
 		}
 	}
-	if op := r.Operations["ext-task.set"]; !op.Many || op.HistoryKind != ochazuke.HistoryChange {
+	if op := r.Operations.At("ext-task.set"); !op.Many || op.HistoryKind != ochazuke.HistoryChange {
 		t.Fatalf("set keeps the catalog's flags: %+v", op)
 	}
 	for _, verb := range []string{"rename", "move", "patch"} {
@@ -135,7 +135,7 @@ func TestMountNounsPropsAndStandardVerbs(t *testing.T) {
 		t.Fatalf("prop request forwarded as %+v", *calls)
 	}
 	// The host's own nouns are untouched.
-	if _, ok := r.Operations["project.open"]; !ok {
+	if _, ok := r.Operations.Find("project.open"); !ok {
 		t.Fatal("the host's project lost its verb")
 	}
 }
@@ -199,7 +199,7 @@ func TestMountNounsDropsACoreAliasQuietly(t *testing.T) {
 			return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
 		},
 	})
-	if op := r.Operations["ext-review.archive"]; op.Standard != "archive" {
+	if op := r.Operations.At("ext-review.archive"); op.Standard != "archive" {
 		t.Fatalf("ext-review.archive %+v", op)
 	}
 	if len(got.Warnings) != 1 || !strings.Contains(got.Warnings[0], "alias review.delete") {
@@ -238,15 +238,15 @@ func TestMountNounsSkipsBadEntriesWithAWarning(t *testing.T) {
 			t.Errorf("warnings lack %q:\n%s", want, text)
 		}
 	}
-	if _, ok := r.Operations["ext-task.title"]; ok {
+	if _, ok := r.Operations.Find("ext-task.title"); ok {
 		t.Fatal("the clashing verb was mounted")
 	}
 	for _, key := range []string{"ext-task.set", "ext-task.odd", "ext-task.pos", "ext-task.ghost", "ext-taken.y"} {
-		if _, ok := r.Operations[key]; !ok {
+		if _, ok := r.Operations.Find(ochazuke.Key(key)); !ok {
 			t.Fatalf("%s should be mounted", key)
 		}
 	}
-	if _, ok := r.Operations["ext-taken.x"]; ok {
+	if _, ok := r.Operations.Find("ext-taken.x"); ok {
 		t.Fatal("a taken noun's verbs were mounted into the host's noun")
 	}
 }
@@ -425,7 +425,7 @@ func TestMountKeepsOperationTraits(t *testing.T) {
 		"edit-text":  func(o ochazuke.Operation) bool { return o.Repeatable && o.HistoryKind == ochazuke.HistoryChange },
 	}
 	for verb, ok := range want {
-		if op := host.Operations[noun+"."+verb]; !ok(op) {
+		if op := host.Operations.At(ochazuke.Key(noun + "." + verb)); !ok(op) {
 			t.Errorf("%s.%s mounted without its traits: %+v", noun, verb, op)
 		}
 	}

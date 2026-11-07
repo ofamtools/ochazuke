@@ -75,7 +75,7 @@ func (b *NounBuilder) TextResult() *NounBuilder { return b.result("TextResult", 
 // answer has a text presenter; structured answers remain the caller's.
 // CLI/API execution does not call it.
 func (r *Runtime) PresentResult(q Request, value any) (bool, error) {
-	op := r.Operations[requestOperation(r.CanonicalRequest(q))]
+	op := r.Operations.At(Key(requestOperation(r.CanonicalRequest(q))))
 	if !r.showsText(op, value) || value == nil {
 		return false, nil
 	}

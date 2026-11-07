@@ -65,8 +65,8 @@ func TestPaletteNounVerbsAndInstancesDoNotCollide(t *testing.T) {
 	p := NewPalette(r)
 	paletteRequest(t, r, "open", "page", Arguments{"id": "home"})
 	paletteRequest(t, r, "open", "palette", nil)
-	if c := p.parse("page open"); c.Op.Key() != "ochazuke.page.open" || c.Missing != "id" {
-		t.Fatalf("page open = %s missing %q", c.Op.Key(), c.Missing)
+	if c := p.parse("page open"); c.Op.Key.Short() != "ochazuke.page.open" || c.Missing != "id" {
+		t.Fatalf("page open = %s missing %q", c.Op.Key.Short(), c.Missing)
 	}
 	paletteLine(t, r, "page open open")
 	if r.Page != "open" || p.IsOpen() {
@@ -83,7 +83,7 @@ func TestPaletteInstanceUsesConfiguredDefaultAndCapturedOrigin(t *testing.T) {
 	origin := r.Context()
 	var gotContext Context
 	var gotArgs Arguments
-	r.Register(Operation{Verb: "inspect", Noun: "ochazuke.page", Parameters: map[string]Parameter{"pageID": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.page.inspect", Parameters: map[string]Parameter{"pageID": {Type: "string", Required: true}}, Run: func(_ *Runtime, _ Context, _ Arguments) (any, error) {
 		t.Fatal("instance bypassed layered dispatch")
 		return nil, nil
 	}})
@@ -136,7 +136,7 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 	var captured Context
 	origin := r.Context()
 	var sourceContext Context
-	r.Register(Operation{Verb: "use", Noun: "thing", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Run: func(_ *Runtime, c Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "thing.use", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Run: func(_ *Runtime, c Context, _ Arguments) (any, error) {
 		captured = c
 		return nil, errors.New("thing rejected")
 	}})
@@ -153,7 +153,7 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 	if err == nil || err.Error() != "thing rejected" || !p.IsOpen() || !reflect.DeepEqual(interactionOf(captured), origin) || !reflect.DeepEqual(interactionOf(sourceContext), origin) || p.Text() != "thing x" {
 		t.Fatalf("failure dispatch/restoration: %v %#v", err, p.state())
 	}
-	op := r.Operations["thing.use"]
+	op := r.Operations.At("thing.use")
 	op.Parameters["id"] = Parameter{Type: "integer", Required: true}
 	captured = Context{}
 	_, err = r.Execute(Request{Verb: "run", Noun: "ochazuke.palette"})
@@ -164,7 +164,7 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 
 func TestPaletteNounRegistrationValidation(t *testing.T) {
 	r := NewRuntime()
-	r.Register(Operation{Verb: "use", Noun: "thing", Parameters: map[string]Parameter{"count": {Type: "integer", Required: true}, "id": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	r.Register(Operation{Key: "thing.use", Parameters: map[string]Parameter{"count": {Type: "integer", Required: true}, "id": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 	p := NewPalette(r)
 	for _, test := range []struct {
 		name, noun, verb, argument, message string
@@ -211,7 +211,7 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 		out := map[string]bool{}
 		for _, op := range r.Catalog() {
 			if p.offered(op) {
-				out[op.Key()] = true
+				out[op.Key.Short()] = true
 			}
 		}
 		return out
@@ -262,7 +262,7 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 	paletteRequest(t, r, "close", "palette", nil)
 
 	// A palette noun's default verb is never guarded.
-	r.Register(Operation{Verb: "use", Noun: "rowish", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Run: run})
+	r.Register(Operation{Key: "rowish.use", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Run: run})
 	r.Define("rowish").Verb("use", run).When("on-sheet")
 	err := p.RegisterNoun("rowish", PaletteNoun{Source: func(*Runtime, Context) []PaletteInstance { return nil }, DefaultVerb: "use", Argument: "id"})
 	if err == nil || !strings.Contains(err.Error(), "never guarded") {
@@ -304,7 +304,7 @@ func TestPaletteActivePageOrdering(t *testing.T) {
 	r.Define("active-alpha").Verb("rebuild", run).Verb("revise", run)
 	r.Define("active-zeta").Verb("restore", run).Verb("revise", run).Verb("recording", run).Verb("zapper", run)
 	r.Define("elsewhere").Verb("record", run).Verb("revise", run)
-	r.Register(Operation{Noun: "active-zeta", Verb: "readout", Standard: "get", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+	r.Register(Operation{Key: "active-zeta.readout", Standard: "get", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 	if err := r.AliasAction("elsewhere.zap", "elsewhere.record"); err != nil {
 		t.Fatal(err)
 	}

@@ -140,7 +140,7 @@ func (r *Runtime) shadowsNoun(word, verb string) bool {
 	if !ok || op.Standard == "" {
 		return true
 	}
-	n := r.Nouns[op.Noun]
+	n := r.Nouns[op.Noun()]
 	return n != nil && n.Store != nil && n.Store.Kind == Singleton
 }
 
@@ -161,7 +161,7 @@ func (r *Runtime) choiceParameter(op Operation, name string, args Arguments) (Pa
 		return param, ""
 	}
 	prop := StringArg(args, param.ValueOf, "")
-	p := r.Noun(op.Noun).prop(prop)
+	p := r.Noun(op.Noun()).prop(prop)
 	if p == nil {
 		return Parameter{Type: param.Type, Free: true, Description: param.Description}, ""
 	}
@@ -185,7 +185,7 @@ func (r *Runtime) choiceParameter(op Operation, name string, args Arguments) (Pa
 // prop NAME as NAME=VALUE; without, NAME= for each prop of the noun (the
 // caller offers the Enum instead when the parameter has one).
 func (r *Runtime) pairChoices(c Context, op Operation, word string, siblings ...Arguments) ([]Choice, error) {
-	n := r.Noun(op.Noun)
+	n := r.Noun(op.Noun())
 	if n == nil {
 		return nil, nil
 	}

@@ -120,7 +120,7 @@ func (r *Runtime) focusValue(op Operation, name, focus string) (focusThing, bool
 	if !ok || !param.Focus || param.Required || param.Noun == "" || focus == "" {
 		return focusThing{}, false
 	}
-	if row := standardRow(op.Standard); row != nil && row.FocusSetting != "" && param.Noun != op.Noun && !r.helpFlag(row.FocusSetting, true) {
+	if row := standardRow(op.Standard); row != nil && row.FocusSetting != "" && param.Noun != op.Noun() && !r.helpFlag(row.FocusSetting, true) {
 		return focusThing{}, false
 	}
 	id := r.nounInstance(r.CanonicalNoun(param.Noun), focus)
@@ -148,7 +148,7 @@ func (f focusFills) notify(c Ctx) {
 // verb running: Ctx.standard), and answers what it filled, each as "prop
 // label".
 func (r *Runtime) createFill(n *Noun, c Ctx, values Thing) focusFills {
-	op, ok := r.Operations[c.standard]
+	op, ok := r.Operations.Find(Key(c.standard))
 	if !ok {
 		return nil
 	}
@@ -262,8 +262,8 @@ func (r *Runtime) propAliasClash(n *Noun, prop string) error {
 // way set takes one: prop (`{prop: read, value: true}`) or props
 // (`{props: {read: true}}`). Only that alias may share a prop's name.
 func (r *Runtime) propSetAlias(noun, prop string, a ActionAlias) bool {
-	op, ok := r.Operations[a.Action]
-	if !ok || op.Noun != noun {
+	op, ok := r.Operations.Find(Key(a.Action))
+	if !ok || op.Noun() != noun {
 		return false
 	}
 	row := standardRow(op.Standard)
@@ -309,9 +309,9 @@ func (r *Runtime) StandardShadows() []string {
 			continue
 		}
 		for _, v := range standardTable() {
-			op, ok := r.Operations[name+"."+v.Verb]
+			op, ok := r.Operations.Find(Key(name + "." + v.Verb))
 			if ok && op.Standard == "" && !op.ShadowsStandard && v.unmet(r, n) == "" {
-				out = append(out, fmt.Sprintf("info: %s is a named verb: it shadows the standard %s of %s", r.DisplayKey(op.Key()), v.Verb, r.DisplayNoun(name)))
+				out = append(out, fmt.Sprintf("info: %s is a named verb: it shadows the standard %s of %s", r.DisplayKey(op.Key.Short()), v.Verb, r.DisplayNoun(name)))
 			}
 		}
 	}

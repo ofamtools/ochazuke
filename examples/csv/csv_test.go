@@ -370,8 +370,8 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 	a := open(t)
 	verbs := map[string][]string{}
 	for _, op := range a.r.Catalog() {
-		noun := a.r.DisplayNoun(op.Noun) // the grid's selection is ochazuke.selection
-		verbs[noun] = append(verbs[noun], op.Verb)
+		noun := a.r.DisplayNoun(op.Noun()) // the grid's selection is ochazuke.selection
+		verbs[noun] = append(verbs[noun], op.Name())
 	}
 	for noun, want := range map[string][]string{
 		"column":    {"delete", "filter", "rename", "sort", "transform"},
@@ -384,7 +384,7 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 			t.Fatalf("%s verbs = %v, want %v", noun, got, want)
 		}
 	}
-	if op := a.r.Operations["row.delete"]; op.Confirm == "" {
+	if op := a.r.Operations.At("row.delete"); op.Confirm == "" {
 		t.Fatal("row.delete has no confirm")
 	}
 	// Hints are the bound rows of the mode: a hint never names an unbound key.

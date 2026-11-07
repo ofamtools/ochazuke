@@ -381,7 +381,7 @@ func TestOdenCommandsListsRunsAndHelps(t *testing.T) {
 func TestCommandsVerbsAreBuiltin(t *testing.T) {
 	m, _ := commandsModel(t, &fakeCommands{})
 	for _, verb := range []string{"list", "run", "help", "which", "stop"} {
-		if !m.Runtime.Operations[CommandNoun+"."+verb].Builtin {
+		if !m.Runtime.Operations.At(ochazuke.Key(CommandNoun + "." + verb)).Builtin {
 			t.Errorf("%s.%s not builtin", CommandNoun, verb)
 		}
 	}

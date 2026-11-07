@@ -11,9 +11,9 @@ import "testing"
 func TestPaletteTypedNounWinsOverAFocusedVerb(t *testing.T) {
 	r := NewRuntime()
 	run := func(*Runtime, Context, Arguments) (any, error) { return nil, nil }
-	r.Register(Operation{Noun: "doc", Verb: "note", Parameters: map[string]Parameter{"text": {Type: "string", Required: true}}, Run: run})
-	r.Register(Operation{Noun: "note", Verb: "retitle", Parameters: map[string]Parameter{"name": {Type: "string", Required: true}}, Run: run})
-	r.Register(Operation{Noun: "note", Verb: "archive", Run: run})
+	r.Register(Operation{Key: "doc.note", Parameters: map[string]Parameter{"text": {Type: "string", Required: true}}, Run: run})
+	r.Register(Operation{Key: "note.retitle", Parameters: map[string]Parameter{"name": {Type: "string", Required: true}}, Run: run})
+	r.Register(Operation{Key: "note.archive", Run: run})
 	r.Instance("page")
 	r.Instance("doc1", Kind("doc"), Parent("page"))
 	r.Instance("note1", Kind("note"), Parent("page"))
@@ -29,7 +29,7 @@ func TestPaletteTypedNounWinsOverAFocusedVerb(t *testing.T) {
 		{"note hello", "doc.note"},
 		{"note", "doc.note"},
 	} {
-		if got := p.parse(c.line).Op.Key(); got != c.want {
+		if got := p.parse(c.line).Op.Key.Short(); got != c.want {
 			t.Errorf("%q: %s, want %s", c.line, got, c.want)
 		}
 	}

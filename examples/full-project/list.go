@@ -132,7 +132,7 @@ func bindingsView(r *ochazuke.Runtime, focus string, width int) string {
 		if len(b.Request.Args) > 0 {
 			line += fmt.Sprintf(" %v", map[string]any(b.Request.Args))
 		}
-		if op, ok := r.Operations[b.Request.Key()]; ok {
+		if op, ok := r.Operations.Find(ochazuke.Key(b.Request.Key())); ok {
 			line += " · " + op.Kind
 			if op.Confirm != "" {
 				line += " · confirm"

@@ -89,7 +89,7 @@ func (r *Runtime) reloadThemes() []string {
 }
 
 func registerConfigReload(r *Runtime) {
-	r.Register(Operation{Verb: "reload", Noun: "ochazuke.config", HistoryKind: HistoryFetch, Description: "Read every config file again: themes.json, settings.json, actions.json, bindings.json, segments.json, then the application's own; a bad file or entry is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.config.reload", HistoryKind: HistoryFetch, Description: "Read every config file again: themes.json, settings.json, actions.json, bindings.json, segments.json, then the application's own; a bad file or entry is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		problems, err := r.ReloadConfig()
 		if err != nil {
 			return nil, err

@@ -121,7 +121,7 @@ func TestDetailRowsStandAsideForAnInnerJK(t *testing.T) {
 	m, _, d := detailModel(t, 100)
 	r := m.Runtime
 	moved := 0
-	r.Register(Operation{Verb: "nudge", Noun: "thing", Run: func(*Runtime, Context, Arguments) (any, error) { moved++; return nil, nil }})
+	r.Register(Operation{Key: "thing.nudge", Run: func(*Runtime, Context, Arguments) (any, error) { moved++; return nil, nil }})
 	r.Define("thing").Mode("normal").Bind("J", Do("thing.nudge"))
 	m.handleKey(MacroKey{Key: "J"})
 	if moved != 1 || d.Offset() != 0 {

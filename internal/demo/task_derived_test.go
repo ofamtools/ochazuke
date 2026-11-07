@@ -41,12 +41,12 @@ func TestTaskRoleWritesFromTheCLI(t *testing.T) {
 	// unavailable with the reason, and the purged ones are absent.
 	m := New()
 	for _, verb := range []string{"archive", "set", "create", "delete"} {
-		if op, ok := m.Runtime.Operations["project."+verb]; !ok || op.Unavailable == "" || m.Runtime.Available(ochazuke.Request{Noun: "project", Verb: verb}, "app", m.Runtime.Mode) {
+		if op, ok := m.Runtime.Operations.Find(ochazuke.Key("project." + verb)); !ok || op.Unavailable == "" || m.Runtime.Available(ochazuke.Request{Noun: "project", Verb: verb}, "app", m.Runtime.Mode) {
 			t.Fatalf("project.%s: ok %v unavailable %q", verb, ok, op.Unavailable)
 		}
 	}
 	for _, verb := range []string{"rename", "move"} {
-		if _, ok := m.Runtime.Operations["project."+verb]; ok {
+		if _, ok := m.Runtime.Operations.Find(ochazuke.Key("project." + verb)); ok {
 			t.Fatalf("project.%s exists", verb)
 		}
 	}

@@ -246,9 +246,9 @@ func TestHelpArgumentsPreviewAndTruncate(t *testing.T) {
 		Mode("normal").
 		Bind("g z", Do("widget.send", Arguments{"text": strings.Repeat("界", 40)}).FromKey("key").FromPayload("steps", SourceCount)).
 		Pattern(Digit, Do("widget.send").FromPayload("digit", SourceDigit))
-	op := r.Operations["widget.send"]
+	op := r.Operations.At("widget.send")
 	op.Parameters = map[string]Parameter{"text": {Type: "string"}, "key": {Type: "string"}, "steps": {Type: "integer"}, "digit": {Type: "integer"}}
-	r.Operations["widget.send"] = op
+	r.Operations.Set(op)
 	forceModeCount(r, 7)
 	if _, err := r.Execute(Do("ochazuke.bindings.help").Request); err != nil {
 		t.Fatal(err)

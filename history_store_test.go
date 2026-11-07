@@ -275,11 +275,11 @@ func TestHistoryFileDropsTextArgsUnlessOptedIn(t *testing.T) {
 	m := historyModel(t, t.TempDir(), t.TempDir())
 	r := m.Runtime
 	str := Parameter{Type: "string"}
-	r.Register(Operation{Verb: "save", Noun: "note", Parameters: map[string]Parameter{"id": str, "text": str, "api_token": str}, Run: func(*Runtime, Context, Arguments) (any, error) { return "echoed", nil }})
+	r.Register(Operation{Key: "note.save", Parameters: map[string]Parameter{"id": str, "text": str, "api_token": str}, Run: func(*Runtime, Context, Arguments) (any, error) { return "echoed", nil }})
 	r.Define("tag").Verb("add", func(Ctx) Result { return Done("echoed") }).PersistArgs()
-	op := r.Operations["tag.add"]
+	op := r.Operations.At("tag.add")
 	op.Parameters = map[string]Parameter{"text": str}
-	r.Operations["tag.add"] = op
+	r.Operations.Set(op)
 	if _, err := r.Execute(Request{Verb: "save", Noun: "note", Args: Arguments{"id": "n1", "text": "my diary", "api_token": "abc123"}}); err != nil {
 		t.Fatal(err)
 	}

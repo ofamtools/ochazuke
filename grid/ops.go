@@ -21,7 +21,7 @@ var defaultBindings []byte
 // The application binds keys to these rows; the grid binds only its column
 // width keys (z >, z <, z =) on the grid noun.
 func Register(r *ochazuke.Runtime) {
-	if _, ok := r.Operations["ochazuke.grid.move"]; ok {
+	if _, ok := r.Operations.Find("ochazuke.grid.move"); ok {
 		return
 	}
 	r.Builtin(func() { register(r) })
@@ -61,9 +61,9 @@ func register(r *ochazuke.Runtime) {
 			}
 			return g.Snapshot(), nil
 		}, description)
-		o := r.Operations[r.CanonicalKey(noun+"."+verb)]
+		o := r.Operations.At(ochazuke.Key(r.CanonicalKey(noun + "." + verb)))
 		o.Parameters, o.Result = with(params), "grid state"
-		r.Operations[o.Key()] = o
+		r.Operations.Set(o)
 		return b
 	}
 	// The grid's guards: "in-grid" holds while the focus is a grid or sits

@@ -263,10 +263,10 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 	if !ok {
 		return a, fmt.Errorf("action %q is not registered", a.Action)
 	}
-	a.Action = op.Key()
+	a.Action = op.Key.Short()
 	noun, verb, ok := r.splitNounName(a.Alias)
 	noun = r.renamedNounSpelling(a.Alias, noun, verb)
-	if a.Bare && ok && noun == op.Noun && !strings.Contains(verb, ".") {
+	if a.Bare && ok && noun == op.Noun() && !strings.Contains(verb, ".") {
 		// An alias already made bare (its canonical noun.verb) again.
 		a.Alias, ok = verb, false
 	}
@@ -279,7 +279,7 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 	case !strings.Contains(a.Alias, "."):
 		// A bare alias (w!, q): its noun is its action's.
 		bare := a.Alias
-		noun, verb, a.Bare = op.Noun, bare, true
+		noun, verb, a.Bare = op.Noun(), bare, true
 		if prev, ok := r.bareAlias(bare); ok && prev.Alias != bareName(noun, verb, a.Shadows) {
 			return a, fmt.Errorf("alias %s is already an alias of %s (%s)", bare, r.DisplayKey(prev.Action), prev.Source)
 		}
@@ -307,7 +307,7 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 	if a.Alias == a.Action {
 		return a, fmt.Errorf("alias %s names itself", name)
 	}
-	if _, taken := r.Operations[a.Alias]; taken {
+	if _, taken := r.Operations.Find(Key(a.Alias)); taken {
 		return a, fmt.Errorf("alias %s would shadow the action %s", name, name)
 	}
 	if prev, ok := r.actionNames.aliases[a.Alias]; ok && prev.Action != a.Action {
@@ -337,10 +337,10 @@ func checkParamAliases(op Operation, params []ParamAlias) error {
 			return fmt.Errorf("parameter alias %s is given twice", p.Alias)
 		}
 		if _, ok := op.Parameters[p.Param]; !ok {
-			return fmt.Errorf("parameter alias %s: %s has no parameter %s", p.Alias, op.Key(), p.Param)
+			return fmt.Errorf("parameter alias %s: %s has no parameter %s", p.Alias, op.Key.Short(), p.Param)
 		}
 		if _, ok := op.Parameters[p.Alias]; ok {
-			return fmt.Errorf("parameter alias %s is a parameter of %s", p.Alias, op.Key())
+			return fmt.Errorf("parameter alias %s is a parameter of %s", p.Alias, op.Key.Short())
 		}
 		seen[p.Alias] = true
 	}
@@ -386,8 +386,8 @@ func (r *Runtime) bareAlias(name string) (ActionAlias, bool) {
 // what a bare alias of that name would shadow as a typed word.
 func (r *Runtime) verbOwner(name string) (string, bool) {
 	var keys []string
-	for key, op := range r.Operations {
-		if op.Verb == name {
+	for key, op := range r.Operations.Entries() {
+		if op.Name() == name {
 			keys = append(keys, key)
 		}
 	}
@@ -544,7 +544,7 @@ func (r *Runtime) AliasesOf(name string) []ActionAlias {
 	}
 	var out []ActionAlias
 	for _, a := range r.actionNames.aliases {
-		if a.Action == op.Key() {
+		if a.Action == op.Key.Short() {
 			out = append(out, a)
 		}
 	}
@@ -571,7 +571,7 @@ func (r *Runtime) aliasLabels(key string) []string {
 	}
 	var out []string
 	for _, a := range r.AliasesOf(key) {
-		if a.Noun == op.Noun {
+		if a.Noun == op.Noun() {
 			out = append(out, a.Verb)
 		} else {
 			out = append(out, r.DisplayKey(a.Alias))
@@ -600,11 +600,11 @@ func (r *Runtime) ResolveAction(name string) (Operation, Invocation, bool) {
 		name = a.Alias
 	}
 	key := r.CanonicalKey(name)
-	if op, ok := r.Operations[key]; ok {
-		return op, Invocation{Name: key, Noun: op.Noun, Verb: op.Verb}, true
+	if op, ok := r.Operations.Find(Key(key)); ok {
+		return op, Invocation{Name: key, Noun: op.Noun(), Verb: op.Name()}, true
 	}
 	if a, ok := r.actionNames.aliases[key]; ok {
-		if op, ok := r.Operations[a.Action]; ok {
+		if op, ok := r.Operations.Find(Key(a.Action)); ok {
 			return op, Invocation{Name: a.Alias, Noun: a.Noun, Verb: a.Verb, Alias: true}, true
 		}
 	}
@@ -642,7 +642,7 @@ func (r *Runtime) invoking(inv Invocation, a *ActionAlias) (restore func()) {
 // else SplitKey's last-dot reading.
 func (r *Runtime) keyParts(name string) (noun, verb string) {
 	if op, ok := r.Operation(name); ok {
-		return op.Noun, op.Verb
+		return op.Noun(), op.Name()
 	}
 	return SplitKey(r.CanonicalKey(name))
 }

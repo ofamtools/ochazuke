@@ -51,7 +51,7 @@ const DefaultArchiveConfirm = "Archive {{noun}} {{label}}? (delete it again to d
 func (r *Runtime) ensureStandardVerbs(n *Noun) {
 	for _, v := range standardTable() {
 		key := n.Name + "." + v.Verb
-		existing, ok := r.Operations[key]
+		existing, ok := r.Operations.Find(Key(key))
 		if ok && existing.Standard == "" {
 			r.adoptFieldParam(key) // the application's verb wins, the row's field still reaches its form
 			continue
@@ -60,7 +60,7 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 			continue // the application's alias or noun wins
 		}
 		if ok {
-			delete(r.Operations, key)
+			r.Operations.Delete(Key(key))
 		}
 		reason := v.unmet(r, n)
 		if reason != "" && v.optional {
@@ -78,7 +78,7 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 			n.Verbs = append(n.Verbs, v.Verb)
 		}
 		for _, alias := range v.Aliases {
-			if _, taken := r.Operations[n.Name+"."+alias]; !taken {
+			if _, taken := r.Operations.Find(Key(n.Name + "." + alias)); !taken {
 				if err := r.AddActionAlias(ActionAlias{Alias: n.Name + "." + alias, Action: key, Source: AliasStandard}); err != nil {
 					panic(err.Error())
 				}
@@ -96,7 +96,7 @@ func (r *Runtime) standardOperation(noun, verb string) (Operation, bool) {
 	if row == nil {
 		return Operation{}, false
 	}
-	op, ok := r.Operations[r.CanonicalNoun(noun)+"."+row.Verb]
+	op, ok := r.Operations.Find(Key(r.CanonicalNoun(noun) + "." + row.Verb))
 	return op, ok
 }
 
@@ -108,11 +108,11 @@ func (r *Runtime) standardOperation(noun, verb string) (Operation, bool) {
 // without a store, a row without a FieldParam, or a verb that declares
 // the parameter itself.
 func (r *Runtime) adoptFieldParam(key string) {
-	op, ok := r.Operations[key]
+	op, ok := r.Operations.Find(Key(key))
 	if !ok || op.Standard != "" {
 		return
 	}
-	row, n := standardRow(op.Verb), r.Nouns[op.Noun]
+	row, n := standardRow(op.Name()), r.Nouns[op.Noun()]
 	if row == nil || row.optional || row.FieldParam == "" || row.Handler == nil || n == nil || n.Store == nil {
 		return
 	}
@@ -139,9 +139,9 @@ func (r *Runtime) adoptFieldParam(key string) {
 			params[kp.Name] = std.Parameters[kp.Name]
 		}
 	}
-	own, run, form := op.App, op.Run, row.Handler(r, n)
+	own, run, form := op.AppHandler, op.Run, row.Handler(r, n)
 	op.Parameters = params
-	op.App = func(c Ctx) Result {
+	op.AppHandler = func(c Ctx) Result {
 		if v, given := c.Args[field]; given && !emptyProp(v) {
 			return form(c)
 		}
@@ -157,10 +157,10 @@ func (r *Runtime) adoptFieldParam(key string) {
 	if own == nil {
 		op.Kind = KindApplication
 		op.Run = func(r *Runtime, c Context, a Arguments) (any, error) {
-			return r.runApplication(r.Operations[key], c, a)
+			return r.runApplication(r.Operations.At(Key(key)), c, a)
 		}
 	}
-	r.Operations[key] = op
+	r.Operations.Set(op)
 }
 
 // nameTaken reports whether key names something the application declared
@@ -189,7 +189,7 @@ func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 	if v.Params != nil {
 		params = v.Params(n)
 	}
-	op := Operation{Verb: v.Verb, Noun: name, Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Many: v.Many, Destructive: v.Destructive, Unavailable: reason}
+	op := Operation{Key: KeyOf(name, v.Verb), Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Many: v.Many, Destructive: v.Destructive, Unavailable: reason}
 	if key := n.keyProp(); v.TakesSubject && key != nil {
 		p := subjectParameter(r, n, *key)
 		if v.NoFocus {
@@ -232,7 +232,7 @@ func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 		op.Rows = name
 		op.Result = "rows"
 	}
-	op.App = v.handler(r, n, v.hardReason(r, n))
+	op.AppHandler = v.handler(r, n, v.hardReason(r, n))
 	return op
 }
 
@@ -1191,9 +1191,9 @@ func (r *Runtime) simpleWrite(q Request) bool {
 		p, ok := r.PropOf(q.Noun, q.Prop)
 		return q.Writes() && ok && p.simple()
 	}
-	op, ok := r.Operations[q.Key()]
+	op, ok := r.Operations.Find(Key(q.Key()))
 	row := standardRow(op.Standard)
-	n := r.Nouns[op.Noun]
+	n := r.Nouns[op.Noun()]
 	if !ok || row == nil || row.Writes == nil || n == nil {
 		return false
 	}
@@ -1216,7 +1216,7 @@ func (r *Runtime) writesValues(q Request) bool {
 	if q.IsProp() {
 		return q.Writes()
 	}
-	row := standardRow(r.Operations[q.Key()].Standard)
+	row := standardRow(r.Operations.At(Key(q.Key())).Standard)
 	return row != nil && row.Writes != nil
 }
 
@@ -1225,7 +1225,7 @@ func (r *Runtime) writesValues(q Request) bool {
 // repeatable, when it writes only simple values.
 func (r *Runtime) repeatableStandard(q Request) bool {
 	if !q.IsProp() {
-		row := standardRow(r.Operations[q.Key()].Standard)
+		row := standardRow(r.Operations.At(Key(q.Key())).Standard)
 		if row == nil || !row.Repeatable {
 			return false
 		}
@@ -1239,14 +1239,14 @@ func (r *Runtime) repeatableStandard(q Request) bool {
 // application's own verb that adopted it). nil otherwise. Execute says it
 // instead of "not applicable"; availability reads it.
 func (r *Runtime) missingRole(q Request) error {
-	op, ok := r.Operations[q.Key()]
+	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok {
 		return nil
 	}
-	n := r.Nouns[op.Noun]
+	n := r.Nouns[op.Noun()]
 	row := standardRow(op.Standard)
 	if row == nil {
-		row = standardRow(op.Verb) // an application's verb that adopted the row's field
+		row = standardRow(op.Name()) // an application's verb that adopted the row's field
 		if row != nil && row.Writes != nil {
 			row = nil
 		}
@@ -1276,11 +1276,11 @@ func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState, within
 	if r.missingRole(q) != nil {
 		return false // a role the noun cannot write: as the verb that wrote it was
 	}
-	op, ok := r.Operations[q.Key()]
+	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok || op.Standard == "" {
 		return true
 	}
-	n := r.Nouns[op.Noun]
+	n := r.Nouns[op.Noun()]
 	if n == nil || n.Store == nil {
 		return true
 	}

@@ -973,7 +973,7 @@ func registerLists(r *Runtime) {
 			return l.apply(c, a)
 		}, nil},
 	} {
-		op := Operation{Verb: spec.verb, Noun: "ochazuke.list", Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		op := Operation{Key: KeyOf("ochazuke.list", spec.verb), Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err

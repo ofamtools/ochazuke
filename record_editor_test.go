@@ -348,7 +348,7 @@ func TestRecordModalEditorRestoresTheFocus(t *testing.T) {
 
 // A verb's parameters are a form's schema, in CLI order.
 func TestRecordFieldsFromAnOperation(t *testing.T) {
-	op := Operation{Verb: "edit", Noun: "torrent", Positional: []string{"name"}, Parameters: map[string]Parameter{
+	op := Operation{Key: "torrent.edit", Positional: []string{"name"}, Parameters: map[string]Parameter{
 		"name":  {Type: "string", Required: true},
 		"state": {Type: "string", Enum: []string{"paused", "running"}},
 		"limit": {Type: "integer"},

@@ -109,7 +109,7 @@ func (r *Runtime) unboundOperations(candidates []string, walk []level, mode Mode
 			bound[q.Key()] = true
 			// An operation that forwards a verb (list.apply {verb: X})
 			// binds X for the nouns of the rows it acts on.
-			for name, p := range r.Operations[q.Key()].Parameters {
+			for name, p := range r.Operations.At(Key(q.Key())).Parameters {
 				if verb, ok := q.Args[name].(string); ok && p.Forwards && verb != "" {
 					for _, noun := range nouns {
 						bound[noun+"."+verb] = true
@@ -121,13 +121,13 @@ func (r *Runtime) unboundOperations(candidates []string, walk []level, mode Mode
 	var out []Operation
 	for _, noun := range nouns {
 		var verbs []Operation
-		for key, op := range r.Operations {
-			if op.Noun != noun || bound[key] || op.Builtin && scope != UnboundAll || focus != "" && !r.verbShownWithin(key, focus, mode, within) {
+		for key, op := range r.Operations.Entries() {
+			if op.Noun() != noun || bound[key] || op.Builtin && scope != UnboundAll || focus != "" && !r.verbShownWithin(key, focus, mode, within) {
 				continue
 			}
 			verbs = append(verbs, op)
 		}
-		slices.SortFunc(verbs, func(a, b Operation) int { return strings.Compare(a.Verb, b.Verb) })
+		slices.SortFunc(verbs, func(a, b Operation) int { return strings.Compare(a.Name(), b.Name()) })
 		out = append(out, verbs...)
 	}
 	return out
@@ -139,13 +139,13 @@ func (r *Runtime) unboundOperations(candidates []string, walk []level, mode Mode
 func (r *Runtime) unboundHelpRows(ops []Operation) []HelpRow {
 	var out []HelpRow
 	for _, op := range ops {
-		q := Request{Noun: op.Noun, Verb: op.Verb}
+		q := Request{Noun: op.Noun(), Verb: op.Name()}
 		name := r.displayRequest(q)
 		desc := op.Description
 		if op.Confirm != "" {
 			desc = strings.TrimPrefix(desc+" · asks first", " · ")
 		}
-		out = append(out, HelpRow{Operation: name, Request: name, Description: desc, Noun: op.Noun, Section: r.DisplayNoun(op.Noun) + unboundSuffix, Unbound: true})
+		out = append(out, HelpRow{Operation: name, Request: name, Description: desc, Noun: op.Noun(), Section: r.DisplayNoun(op.Noun()) + unboundSuffix, Unbound: true})
 	}
 	return out
 }
@@ -293,7 +293,7 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 		return err
 	}
 	if always {
-		if op, ok := r.Operations[form.Key()]; !ok || len(askableParameters(op)) == 0 {
+		if op, ok := r.Operations.Find(Key(form.Key())); !ok || len(askableParameters(op)) == 0 {
 			return false, fmt.Errorf("%s has no argument to ask for", r.displayRequest(form))
 		}
 		if _, err := r.OpenArgsForm(form, run); err != nil {
@@ -378,8 +378,8 @@ func registerUnboundVerbs(r *Runtime) {
 			return row.Request, r.RunUnbound(origin, q)
 		}
 	}
-	r.Register(Operation{Verb: "run", Noun: helpID, Description: "Run the selected verb, bound or not, on what the help opened over, as its key would (it asks first where the key would; a missing argument opens its form)", Result: "operation", Run: helpRun(false)})
-	r.Register(Operation{Verb: "args", Noun: helpID, Description: "Open the args form for the selected verb, holding what its parameters' sources fill, before running it on what the help opened over", Result: "operation", Run: helpRun(true)})
+	r.Register(Operation{Key: KeyOf(helpID, "run"), Description: "Run the selected verb, bound or not, on what the help opened over, as its key would (it asks first where the key would; a missing argument opens its form)", Result: "operation", Run: helpRun(false)})
+	r.Register(Operation{Key: KeyOf(helpID, "args"), Description: "Open the args form for the selected verb, holding what its parameters' sources fill, before running it on what the help opened over", Result: "operation", Run: helpRun(true)})
 	r.DefineGuard("help-runnable", func(r *Runtime, _ KeyEvent) bool {
 		row, ok := r.selectedHelpRow()
 		return ok && helpRunnable(row)
@@ -393,7 +393,7 @@ func registerUnboundVerbs(r *Runtime) {
 		op, found := r.Operation(noun + "." + verb)
 		return found && len(askableParameters(op)) > 0
 	})
-	r.Register(Operation{Verb: "bind", Noun: helpID, Description: "Bind a key to the selected unbound verb: a form asks for the key and writes the row to your bindings.json (bindings.bind)", Result: "operation", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: KeyOf(helpID, "bind"), Description: "Bind a key to the selected unbound verb: a form asks for the key and writes the row to your bindings.json (bindings.bind)", Result: "operation", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		h := r.helpOpen()
 		row, ok := r.selectedHelpRow()
 		if h == nil || !ok || !row.Unbound {
@@ -406,7 +406,7 @@ func registerUnboundVerbs(r *Runtime) {
 		})
 		return row.Request, err
 	}})
-	r.Register(Operation{Verb: "bind-key", Noun: helpID, Description: "Bind the key just pressed to the selected unbound verb (b waits for it; esc cancels): writes the row to your bindings.json; a key that already runs something asks first", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: KeyOf(helpID, "bind-key"), Description: "Bind the key just pressed to the selected unbound verb (b waits for it; esc cancels): writes the row to your bindings.json; a key that already runs something asks first", Parameters: map[string]Parameter{
 		"key": {Type: "string", Required: true, Description: "the key, as the bindings file spells it"},
 	}, Result: "binding", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		row, ok := r.selectedHelpRow()
@@ -425,7 +425,7 @@ func registerUnboundVerbs(r *Runtime) {
 	n.Guards["bind"] = "help-unbound-row"
 	n.Guards["bind-key"] = "help-unbound-row"
 
-	r.Register(Operation{Verb: "bind", Noun: "ochazuke.bindings", Description: "Bind a key to an action by writing a row to the user's bindings.json (the first change you make to it from the program: a comment in the file is not kept, the old file is copied to bindings.json.bak) and loading it. The row goes in the action's noun's table in the mode; a key that already answers something else needs replace", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.bindings.bind", Description: "Bind a key to an action by writing a row to the user's bindings.json (the first change you make to it from the program: a comment in the file is not kept, the old file is copied to bindings.json.bak) and loading it. The row goes in the action's noun's table in the mode; a key that already answers something else needs replace", Parameters: map[string]Parameter{
 		"key":     {Type: "string", Required: true, Description: "the key or key sequence, as the bindings file spells it: x, ctrl+x, g n"},
 		"action":  {Type: "string", Required: true, Description: "the operation to run, noun.verb"},
 		"mode":    {Type: "string", Description: "the mode the key answers in (default: the current one)"},
@@ -452,10 +452,10 @@ func keyTaken(r *Runtime, _ Context, a Arguments) Verdict {
 		return AskFirst(keys + " already runs " + r.displayRequest(b.Request) + " here; bind anyway?")
 	}
 	if op, ok := r.Operation(StringArg(a, "action", "")); ok {
-		noun, mode := r.CanonicalNoun(cmp.Or(StringArg(a, "noun", ""), op.Noun)), cmp.Or(StringArg(a, "mode", ""), r.BaseMode())
+		noun, mode := r.CanonicalNoun(cmp.Or(StringArg(a, "noun", ""), op.Noun())), cmp.Or(StringArg(a, "mode", ""), r.BaseMode())
 		if n := r.Nouns[noun]; n != nil {
 			for _, b := range n.Bindings[mode] {
-				if b.Keys == keys && b.Pattern == "" && !isPrefixCancel(b) && !b.Unbind && b.Request.Key() != op.Key() {
+				if b.Keys == keys && b.Pattern == "" && !isPrefixCancel(b) && !b.Unbind && b.Request.Key() != op.Key.Short() {
 					return AskFirst(keys + " already runs " + r.displayRequest(b.Request) + " here; bind anyway?")
 				}
 			}
@@ -478,13 +478,13 @@ func (r *Runtime) bindUserKey(key, action, noun, mode string, replace bool) (any
 		return nil, fmt.Errorf("unknown operation %q", action)
 	}
 	if noun == "" {
-		noun = op.Noun
+		noun = op.Noun()
 	}
 	noun = r.CanonicalNoun(noun)
 	if mode == "" {
 		mode = r.BaseMode()
 	}
-	row, err := r.validateRow(Binding{Noun: noun, Mode: mode, Keys: strings.TrimSpace(key), Request: Request{Noun: op.Noun, Verb: op.Verb}})
+	row, err := r.validateRow(Binding{Noun: noun, Mode: mode, Keys: strings.TrimSpace(key), Request: Request{Noun: op.Noun(), Verb: op.Name()}})
 	if err != nil {
 		return nil, err
 	}

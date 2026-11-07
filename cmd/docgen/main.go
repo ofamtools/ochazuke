@@ -65,7 +65,7 @@ func generate() error {
 	origins := map[string]string{}
 	r := ochazuke.NewRuntime()
 	record := func(origin string) {
-		for key := range r.Operations {
+		for key := range r.Operations.Entries() {
 			if origins[key] == "" {
 				origins[key] = origin
 			}
@@ -78,7 +78,7 @@ func generate() error {
 	record("demo.New")
 	data := catalog{}
 	for _, op := range r.Catalog() {
-		data.Actions = append(data.Actions, action{op, origins[op.Key()]})
+		data.Actions = append(data.Actions, action{op, origins[op.Key.Short()]})
 	}
 	nouns := make([]string, 0, len(r.Nouns))
 	for name := range r.Nouns {

@@ -20,7 +20,7 @@ var defaultBindings []byte
 // runtime (see Doc for the keys). Cursor rows own j/k; gg/G and paging
 // remain the list noun's.
 func Register(r *ochazuke.Runtime) {
-	if _, ok := r.Operations[DocNoun+".toggle"]; ok {
+	if _, ok := r.Operations.Find(ochazuke.Key(DocNoun + ".toggle")); ok {
 		return
 	}
 	r.Builtin(func() { register(r) })
@@ -286,21 +286,21 @@ func docParams() map[string]map[string]ochazuke.Parameter {
 func describeDocOperations(r *ochazuke.Runtime) {
 	id := ochazuke.Parameter{Type: "string", Description: "The markdown instance (default the one on the focus path)"}
 	params := docParams()
-	for _, op := range r.Operations {
-		if op.Noun != DocNoun {
+	for _, op := range r.Operations.Entries() {
+		if op.Noun() != DocNoun {
 			continue
 		}
 		p := map[string]ochazuke.Parameter{"id": id}
-		for name, param := range params[op.Verb] {
+		for name, param := range params[op.Name()] {
 			p[name] = param
 		}
 		op.Parameters = p
-		switch op.Verb {
+		switch op.Name() {
 		case "link-open", "link-copy", "next-link", "previous-link":
 			op.HistoryKind = ochazuke.HistoryAction
 		}
 		op.Result = "markdown state"
-		r.Operations[op.Key()] = op
+		r.Operations.Set(op)
 	}
 }
 

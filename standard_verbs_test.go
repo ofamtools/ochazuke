@@ -93,7 +93,7 @@ func TestStandardVerbsNeeds(t *testing.T) {
 			r.Define("thing").Props(c.props...).Store(c.store)
 			var got []string
 			for _, verb := range StandardVerbs() {
-				if op, ok := r.Operations["thing."+verb]; ok {
+				if op, ok := r.Operations.Find(Key("thing." + verb)); ok {
 					if op.Standard != verb || op.Builtin {
 						t.Fatalf("%s: standard %q builtin %v", verb, op.Standard, op.Builtin)
 					}
@@ -105,7 +105,7 @@ func TestStandardVerbsNeeds(t *testing.T) {
 				}
 			}
 			for _, verb := range CoreVerbs() {
-				if _, ok := r.Operations["thing."+verb]; !ok {
+				if _, ok := r.Operations.Find(Key("thing." + verb)); !ok {
 					t.Fatalf("core verb %s missing", verb)
 				}
 			}
@@ -116,7 +116,7 @@ func TestStandardVerbsNeeds(t *testing.T) {
 	}
 	r := NewRuntime()
 	r.Define("theme").Props(PropSpec{Name: "name"}).Store(Store{Kind: Singleton, Get: func(Ctx, string) (Thing, error) { return Thing{"name": "kombu"}, nil }})
-	op := r.Operations["theme.get"]
+	op := r.Operations.At("theme.get")
 	if _, ok := op.Parameters["name"]; ok || !slices.Equal(op.Positional, []string{"prop"}) {
 		t.Fatalf("a singleton's get takes no subject, its first word the prop: %v %v", op.Parameters, op.Positional)
 	}
@@ -124,11 +124,11 @@ func TestStandardVerbsNeeds(t *testing.T) {
 		t.Fatalf("singleton get = %v, %v", got, err)
 	}
 	r2, _ := newTaskRuntime(t)
-	get := r2.Operations["task.get"]
+	get := r2.Operations.At("task.get")
 	if p := get.Parameters["id"]; !p.Focus || p.Noun != "task" || !slices.Equal(get.Positional, []string{"id", "prop"}) {
 		t.Fatalf("task.get subject = %+v positional %v", p, get.Positional)
 	}
-	if list := r2.Operations["task.list"]; list.Rows != "task" || list.HistoryKindOf() != HistoryFetch || list.Kind != KindApplication {
+	if list := r2.Operations.At("task.list"); list.Rows != "task" || list.HistoryKindOf() != HistoryFetch || list.Kind != KindApplication {
 		t.Fatalf("task.list = rows %q history %q kind %q", list.Rows, list.HistoryKindOf(), list.Kind)
 	}
 	if r2.ChoicesSource(get.Parameters["id"]) != "task.list" {
@@ -180,7 +180,7 @@ func TestPropClashRules(t *testing.T) {
 
 	// A user action (actions.json) may not take a prop's name either.
 	r, _ := newTaskRuntime(t)
-	if err := (Action{Noun: "task", Verb: "status", Command: []string{"true"}}).check(r); err == nil || !strings.Contains(err.Error(), "is a prop of") {
+	if err := (UserOperation{Noun: "task", Verb: "status", Command: []string{"true"}}).check(r); err == nil || !strings.Contains(err.Error(), "is a prop of") {
 		t.Fatalf("action named like a prop: %v", err)
 	}
 }
@@ -260,7 +260,7 @@ func TestAppVerbWins(t *testing.T) {
 	mine := func(Ctx) Result { return Done("mine") }
 	check := func(t *testing.T, r *Runtime) {
 		t.Helper()
-		op := r.Operations["task.get"]
+		op := r.Operations.At("task.get")
 		if op.Standard != "" {
 			t.Fatalf("task.get is still the standard one")
 		}
@@ -270,7 +270,7 @@ func TestAppVerbWins(t *testing.T) {
 		if n := slices.Index(r.Nouns["task"].Verbs, "get"); n < 0 || slices.Index(r.Nouns["task"].Verbs[n+1:], "get") >= 0 {
 			t.Fatalf("verbs %v: get once", r.Nouns["task"].Verbs)
 		}
-		if r.Operations["task.list"].Standard != "list" {
+		if r.Operations.At("task.list").Standard != "list" {
 			t.Fatalf("task.list should stay standard")
 		}
 	}
@@ -290,7 +290,7 @@ func TestAppVerbWins(t *testing.T) {
 	})
 	t.Run("after by Register", func(t *testing.T) {
 		r, _ := newTaskRuntime(t)
-		r.Register(Operation{Noun: "task", Verb: "get", App: mine})
+		r.Register(Operation{Key: "task.get", AppHandler: mine})
 		check(t, r)
 	})
 	t.Run("before", func(t *testing.T) {
@@ -311,9 +311,9 @@ func TestAppVerbWins(t *testing.T) {
 	t.Run("duplicate non-standard still panics", func(t *testing.T) {
 		r, _ := newTaskRuntime(t)
 		r.Define("task").Verb("open", mine)
-		mustPanic(t, "duplicate operation: task.open", func() { r.Register(Operation{Noun: "task", Verb: "open", App: mine}) })
-		r.Register(Operation{Noun: "task", Verb: "get", App: mine})
-		mustPanic(t, "duplicate operation: task.get", func() { r.Register(Operation{Noun: "task", Verb: "get", App: mine}) })
+		mustPanic(t, "duplicate operation: task.open", func() { r.Register(Operation{Key: "task.open", AppHandler: mine}) })
+		r.Register(Operation{Key: "task.get", AppHandler: mine})
+		mustPanic(t, "duplicate operation: task.get", func() { r.Register(Operation{Key: "task.get", AppHandler: mine}) })
 	})
 }
 

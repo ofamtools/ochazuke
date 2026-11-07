@@ -384,7 +384,7 @@ func (r *Runtime) typedArgs(q Request) Arguments {
 	if len(q.Args) == 0 {
 		return q.Args
 	}
-	op := r.Operations[q.Key()]
+	op := r.Operations.At(Key(q.Key()))
 	out := maps.Clone(q.Args)
 	for name, v := range out {
 		if n, ok := v.(float64); ok && op.Parameters[name].Type == "integer" && n == float64(int(n)) {

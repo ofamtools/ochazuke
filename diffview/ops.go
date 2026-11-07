@@ -13,14 +13,14 @@ var defaultBindings []byte
 // Register defines verbs, file navigation events and binding rows once per
 // runtime. New calls it; a host can call it before loading user bindings.
 func Register(r *ochazuke.Runtime) {
-	if _, ok := r.Operations[Noun+".hunk"]; ok {
+	if _, ok := r.Operations.Find(ochazuke.Key(Noun + ".hunk")); ok {
 		return
 	}
 	r.Builtin(func() {
 		r.Define(Noun).Focusable()
 		_ = r.DeclareEvent(ochazuke.EventSpec{Name: EventFile, Source: ochazuke.FrameworkNamespace, Description: "Diff requested another file; the host loads it", Fields: []ochazuke.EventField{{Name: "id", Type: "string"}, {Name: "delta", Type: "integer"}}})
 		op := func(verb, desc string, params map[string]ochazuke.Parameter, fn func(*View, ochazuke.Arguments)) {
-			r.Register(ochazuke.Operation{Noun: Noun, Verb: verb, Description: desc, Motion: true, Parameters: params, Result: "diff state", Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+			r.Register(ochazuke.Operation{Key: ochazuke.KeyOf(Noun, verb), Description: desc, Motion: true, Parameters: params, Result: "diff state", Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 				var v *View
 				for _, id := range c.Path {
 					if v = Of(r, id); v != nil {

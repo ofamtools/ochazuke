@@ -19,7 +19,7 @@ func paletteResultFixture(t *testing.T, value any) (*Runtime, *Model) {
 	if err := r.SetFocus("origin"); err != nil {
 		t.Fatal(err)
 	}
-	r.Register(Operation{Verb: "list", Noun: "record", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "record.list", Parameters: map[string]Parameter{
 		"filter": {Type: "string"},
 	}, Run: func(_ *Runtime, _ Context, args Arguments) (any, error) {
 		if filter := StringArg(args, "filter", ""); filter != "" && filter != "active" {
@@ -112,7 +112,7 @@ func TestPaletteResultsTypedStructsAndEncodedArrays(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			r, _ := paletteResultFixture(t, tc.value)
 			// Object-array results are displayed even without a list verb or Rows declaration.
-			r.Register(Operation{Verb: "inspect", Noun: "record", Run: func(*Runtime, Context, Arguments) (any, error) {
+			r.Register(Operation{Key: "record.inspect", Run: func(*Runtime, Context, Arguments) (any, error) {
 				return tc.value, nil
 			}})
 			runPaletteResults(t, r, "inspect record")
@@ -138,7 +138,7 @@ func TestPaletteResultsEmptyLists(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			r, m := paletteResultFixture(t, tc.value)
 			if tc.verb != "list" {
-				r.Register(Operation{Verb: tc.verb, Noun: "record", Rows: tc.rows, Run: func(*Runtime, Context, Arguments) (any, error) { return tc.value, nil }})
+				r.Register(Operation{Key: KeyOf("record", tc.verb), Rows: tc.rows, Run: func(*Runtime, Context, Arguments) (any, error) { return tc.value, nil }})
 			}
 			runPaletteResults(t, r, tc.verb+" record")
 			if list := paletteResultTable(t, r); list.Len() != 0 {

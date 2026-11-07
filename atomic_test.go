@@ -119,7 +119,7 @@ func TestBindingRowsAreAtomic(t *testing.T) {
 func TestEnterRowFromConfigCarriesPrefixAndRequest(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	var sent []string
-	r.Register(ochazuke.Operation{Verb: "forward", Noun: "ochazuke.pane", Parameters: map[string]ochazuke.Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, a ochazuke.Arguments) (any, error) {
+	r.Register(ochazuke.Operation{Key: "ochazuke.pane.forward", Parameters: map[string]ochazuke.Parameter{"keys": {Type: "string", Required: true}}, Run: func(_ *ochazuke.Runtime, _ ochazuke.Context, a ochazuke.Arguments) (any, error) {
 		sent = append(sent, ochazuke.StringArg(a, "keys", ""))
 		return nil, nil
 	}})
