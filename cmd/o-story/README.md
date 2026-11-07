@@ -552,7 +552,7 @@ Conformance:
 | visual | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | bindings | `bindings.help` |
 | visual-line | confirm | `confirm.accept` |
-| visual-line | demo | `demo.check` `demo.delete` `demo.edit` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
+| visual-line | demo | `demo.check` `demo.choose` `demo.delete` `demo.edit` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
 | visual-line | input | `input.cancel` `input.move` `input.operator` |
 | visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
 | visual-line | modal | `modal.close` |
@@ -622,6 +622,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `setting.open`
 - `insert` → `terminal` via `palette.run`
+- `insert` → `visual-line` via `modal.close`
 - `jq` → `insert` via `palette.open`
 - `jq` → `normal` via `list.move`
 - `jq` → `normal` via `mode.switch`
@@ -790,6 +791,7 @@ Mode edges (from → to via):
 - `visual` → `normal` via `input.cancel`
 - `visual` → `normal` via `input.operator`
 - `visual-line` → `count_pending` via `mode.enter`
+- `visual-line` → `insert` via `demo.choose`
 - `visual-line` → `insert` via `demo.edit`
 - `visual-line` → `macro_pending` via `mode.enter`
 - `visual-line` → `normal` via `bindings.help`

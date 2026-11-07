@@ -73,12 +73,35 @@ func TestVisualSelectionIsTheSubject(t *testing.T) {
 	}
 	*calls = nil
 	motionKeys(t, r, m, "g g V j j t")
-	if r.TopModal() == "" || l.Visual() {
-		t.Fatalf("t: one chooser for all the rows, visual ended: modal %q visual %v", r.TopModal(), l.Visual())
+	if r.TopModal() == "" || !l.Visual() {
+		t.Fatalf("t: one chooser for all the rows, holding the selection (R5.16): modal %q visual %v", r.TopModal(), l.Visual())
 	}
 	motionKeys(t, r, m, "enter")
-	if strings.Join(*calls, ", ") != "tag red r1, tag red r2, tag red r3" || r.TopModal() != "" {
-		t.Fatalf("many-subject t: %v modal %q", *calls, r.TopModal())
+	if strings.Join(*calls, ", ") != "tag red r1, tag red r2, tag red r3" || r.TopModal() != "" || l.Visual() || r.Mode.Name != "normal" {
+		t.Fatalf("many-subject t: %v modal %q visual %v mode %q", *calls, r.TopModal(), l.Visual(), r.Mode.Name)
+	}
+}
+
+// A chooser a verb opened over the selection holds it: esc closes it with
+// nothing run and resumes visual-line over the same rows (R5.16), as the
+// palette's close does; a pick then runs the verb and ends it.
+func TestVisualSelectionChooserEscResumes(t *testing.T) {
+	t.Parallel()
+	r, m, l, calls, _ := subjectsTable(t)
+	motionKeys(t, r, m, "V j j t")
+	if r.TopModal() == "" || !l.Visual() {
+		t.Fatalf("t: modal %q visual %v", r.TopModal(), l.Visual())
+	}
+	motionKeys(t, r, m, "esc")
+	if r.TopModal() != "" || !l.Visual() || r.Mode.Name != "visual-line" || len(*calls) != 0 {
+		t.Fatalf("esc: modal %q visual %v mode %q calls %v", r.TopModal(), l.Visual(), r.Mode.Name, *calls)
+	}
+	if got := l.Marked(); len(got) != 3 {
+		t.Fatalf("esc: the selection's rows kept: %v", got)
+	}
+	motionKeys(t, r, m, "t enter")
+	if strings.Join(*calls, ", ") != "tag red r1, tag red r2, tag red r3" || l.Visual() || r.Mode.Name != "normal" {
+		t.Fatalf("pick: %v visual %v mode %q", *calls, l.Visual(), r.Mode.Name)
 	}
 }
 

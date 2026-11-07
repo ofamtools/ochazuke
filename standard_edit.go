@@ -134,7 +134,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			fieldOnly := only != nil && r.Settings().Bool(EditFieldOnlySetting)
 			fields := r.editFields(n, c, thing, only, fieldOnly)
 			if field, ok := r.editByChooser(c.Args, only, fieldOnly, fields); ok {
-				_, _, err := r.openEditChooser(c, n, field, values, r.editChooserTitle(n, c, thing, subject, only), write)
+				_, _, err := r.openEditChooser(c, n, field, values, r.editChooserTitle(n, c, thing, subject, only, 1+len(others)), write)
 				return err
 			}
 			r.pendingRecord(writeKey, values)
@@ -218,7 +218,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 			}
 			return Done(nil)
 		}
-		if early, ok := r.editChooserEarly(c, n, only, subject, write, res); ok {
+		if early, ok := r.editChooserEarly(c, n, only, subject, 1+len(others), write, res); ok {
 			return early
 		}
 		return r.editOpenLater(res, open)
@@ -244,8 +244,13 @@ func (r *Runtime) editOpenLater(res Result, open func(any) error) Result {
 }
 
 // editChooserTitle is the edit chooser's title: the noun, the field and
-// the thing (editLabel).
-func (r *Runtime) editChooserTitle(n *Noun, c Ctx, thing Thing, subject Arguments, only *PropSpec) string {
+// the thing (editLabel); over several subjects (a selection or marks, the
+// rows a pick writes) the count and the plural noun in place of the thing
+// ("Edit 2 tasks project"), as R5.15's "Move 3 rows to" counts them.
+func (r *Runtime) editChooserTitle(n *Noun, c Ctx, thing Thing, subject Arguments, only *PropSpec, count int) string {
+	if count > 1 {
+		return fmt.Sprintf("Edit %d %s %s", count, pluralWord(r.DisplayNoun(n.Name)), only.Name)
+	}
 	return "Edit " + r.DisplayNoun(n.Name) + " " + only.Name + ": " + r.editLabel(n, c, thing, subject)
 }
 
@@ -260,13 +265,13 @@ func (r *Runtime) editChooserTitle(n *Noun, c Ctx, thing Thing, subject Argument
 // is not reported: the pick's write is the result.
 // ok is false where the field opens the form, which still waits for the
 // get.
-func (r *Runtime) editChooserEarly(c Ctx, n *Noun, only *PropSpec, subject Arguments, write editWrite, res Result) (Result, bool) {
+func (r *Runtime) editChooserEarly(c Ctx, n *Noun, only *PropSpec, subject Arguments, count int, write editWrite, res Result) (Result, bool) {
 	fieldOnly := only != nil && r.Settings().Bool(EditFieldOnlySetting)
 	field, ok := r.editByChooser(c.Args, only, fieldOnly, r.editFields(n, c, Thing{}, only, fieldOnly))
 	if !ok {
 		return Result{}, false
 	}
-	ch, fill, err := r.openEditChooser(c, n, field, nil, r.editChooserTitle(n, c, Thing{}, subject, only)+" · "+editLoadingValue, write)
+	ch, fill, err := r.openEditChooser(c, n, field, nil, r.editChooserTitle(n, c, Thing{}, subject, only, count)+" · "+editLoadingValue, write)
 	if err != nil {
 		return Failed(err), true
 	}
@@ -298,7 +303,7 @@ func (r *Runtime) editChooserEarly(c Ctx, n *Noun, only *PropSpec, subject Argum
 				ctx.Error(err.Error())
 			}
 		}
-		fill(values, r.editChooserTitle(n, c, thing, subject, only), err)
+		fill(values, r.editChooserTitle(n, c, thing, subject, only, count), err)
 	}), true
 }
 

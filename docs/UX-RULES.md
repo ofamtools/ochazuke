@@ -613,12 +613,21 @@ tiers above them. When the two disagree, fix one in the same commit.
   only it; either way a `d d` in its normal table never makes the
   visual-line `d` wait (R1.7, `sequence-inherit`). A modal
   opened over the selection (a confirm, the palette, a chooser) holds it;
-  its close resumes it. Leaving the list ends it. Opt out with
-  `visual.list` `marks` (the older selection in normal mode). Stories:
+  its close resumes it. A chooser a verb asked over the selection
+  (an edit chooser, an application's move chooser) holds it until its
+  answer: `esc` resumes it with nothing run, a pick runs the verb and
+  ends it (R5.15), through one mechanism for every chooser
+  (`Instance.accepts`, `untilAccepted`). Its title counts the rows the
+  pick writes ("Edit 2 tasks project", as "Move 3 rows to" does).
+  Leaving the list ends it. Opt out with `visual.list` `marks` (the
+  older selection in normal mode). Stories:
   `tables/visual-line-delete-two.json`, `tables/visual-line-yank-two.json`,
   `tables/visual-line-motions-esc.json`, `tables/visual-after-keep.json`,
+  `verbs/edit-field-chooser-visual-esc-resumes.json`,
+  `verbs/chooser-visual-esc-resumes.json`,
+  `verbs/edit-field-chooser-visual-title-count.json`,
   `tables/visual-after-end.json`, `tree/visual-line-nest.json`; tests
-  `list_visual_test.go`.
+  `list_visual_test.go`, `TestVisualSelectionChooserEscResumes`.
 - **R5.17** Every search follows `search.case`: the `/` list filter, a
   chooser's matching, ranking and word spelling, the path chooser's browse
   and typed completion, the path picker's fuzzy search, and any search an

@@ -40,6 +40,8 @@ type Instance struct {
 	closeFocus  string      // FocusOnClose: where the focus goes when this instance is removed while it holds the focus
 	inner       string      // an instance whose rows answer before this one's while this one is the focus (an input's open suggestions)
 	close       *Request    // CloseWith/SetModalClose: what modal.close runs while this instance is the top modal; nil pops it
+	accepts     bool        // an open modal that says when it is accepted (a chooser's pick), so what waits on its answer runs then (acceptModal)
+	onAccept    []func()    // what runs when the modal is accepted (the end of the visual selection it was asked over); a close without it drops them
 	drawn       []Placement // modal focus stops in the last rendered drawing order
 	rendering   bool
 }

@@ -249,7 +249,7 @@ list_motions.go	registerListMotions	compare	"last"	1
 list_prop_filter.go	List.pickPropFilter	cyclo	"-"	30
 list_prop_filter.go	registerListPropFilter	cyclo	"-"	40
 list_visual.go	List.ModeChanged	compare	"line"	1
-list_visual.go	List.apply	cyclo	"-"	34
+list_visual.go	List.apply	cyclo	"-"	32
 list_visual.go	Runtime.endSelection	compare	"line"	1
 markdown/cursor.go	Doc.MoveCursor	cyclo	"-"	28
 markdown/cursor.go	Doc.highlight	compare	"text"	1

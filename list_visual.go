@@ -84,8 +84,8 @@ func (l *List) ModeChanged(from, to string) {
 
 // endSelection ends l's visual selection and the line mode it is held in:
 // the mode goes back to normal while the focus is on the list, and a modal
-// opened during the selection (a chooser a verb asked) closes onto normal
-// rather than resuming it.
+// still open over the selection when it ends (a chooser that stays after
+// its pick) closes onto normal rather than resuming it.
 func (r *Runtime) endSelection(l *List) {
 	l.EndVisual()
 	normal := func(m ModeState) bool { return r.SelectionShape(m.Name) != SelectionLine }
@@ -108,6 +108,58 @@ func (r *Runtime) afterVisualAction(l *List) {
 		return
 	}
 	r.endSelection(l)
+}
+
+// afterVisualRun is what list.apply leaves once the rows' requests ran
+// over l's visual selection (visual: one was on when it started; opened:
+// the modals open then): afterVisualAction now, or at the answer of a
+// modal the run asked through (untilAccepted).
+func (r *Runtime) afterVisualRun(l *List, visual bool, opened []string) {
+	if visual && l.visual && !r.untilAccepted(l, opened) {
+		r.afterVisualAction(l)
+	}
+}
+
+// untilAccepted defers what a verb run over l's visual selection leaves
+// (afterVisualAction) to the answer of a modal the run opened over it,
+// one not in before: the top such modal that says when it is accepted
+// (Instance.accepts). It reports whether one took it.
+func (r *Runtime) untilAccepted(l *List, before []string) bool {
+	for _, id := range slices.Backward(r.modals) {
+		if slices.Contains(before, id) {
+			return false
+		}
+		inst := r.Instances[id]
+		if inst == nil || !inst.accepts || !l.holds(inst.Payload.Return) {
+			continue
+		}
+		inst.onAccept = append(inst.onAccept, func() {
+			if l.visual {
+				r.afterVisualAction(l)
+			}
+		})
+		return true
+	}
+	return false
+}
+
+// acceptModal is what runs when the modal id is accepted (a chooser's
+// pick or create): the work waiting on its answer (untilAccepted). The
+// caller runs it once the modal has closed, so the mode it restores is
+// the one the work leaves; until then nothing is taken, and a close that
+// fails leaves it waiting.
+func (r *Runtime) acceptModal(id string) func() {
+	inst := r.Instances[id]
+	if inst == nil || len(inst.onAccept) == 0 {
+		return func() {}
+	}
+	return func() {
+		fns := inst.onAccept
+		inst.onAccept = nil
+		for _, fn := range fns {
+			fn()
+		}
+	}
 }
 
 // visualAsMode reports whether V enters visual-line (visual.list mode, the
@@ -231,13 +283,15 @@ func (l *List) apply(c Context, a Arguments) (any, error) {
 	// The selection holds while the rows' requests run, so a verb
 	// available only over a selection is available; applying keeps them
 	// from being replaced by list.apply again (visualApply). It ends, or
-	// stays, after them (afterVisualAction).
+	// stays, after them (afterVisualAction); when they asked through a
+	// modal that says when it is accepted (a chooser), it waits for that
+	// answer: a pick runs the verb and ends it, and a close without one
+	// (esc) resumes it (R5.16), as the palette's does.
 	l.applying = true
+	opened := slices.Clone(r.modals)
 	defer func() {
 		l.applying = false
-		if visual && l.visual {
-			r.afterVisualAction(l)
-		}
+		r.afterVisualRun(l, visual, opened)
 	}()
 	// The rows by noun, in display order; each noun's request targets the
 	// selected row when it is one of them (a chooser or a confirm names

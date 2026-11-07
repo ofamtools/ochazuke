@@ -302,7 +302,7 @@ func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) {
 	if err != nil {
 		return nil, err
 	}
-	inst.Component = c
+	inst.Component, inst.accepts = c, true
 	if spec.NormalMode {
 		c.input.pin = ""
 	}
@@ -441,11 +441,13 @@ func (c *Chooser) pick() Result {
 	if row.Refuse != "" {
 		return Failed(errors.New(row.Refuse))
 	}
+	accepted := c.r.acceptModal(c.spec.Kind)
 	if !c.spec.Stay {
 		if err := c.close(); err != nil {
 			return Failed(err)
 		}
 	}
+	accepted()
 	if c.spec.Choose == nil {
 		return Done(row.ID)
 	}
@@ -461,11 +463,13 @@ func (c *Chooser) create() Result {
 		return Failed(errors.New(c.hinted("nothing matches")))
 	}
 	query := c.Query()
+	accepted := c.r.acceptModal(c.spec.Kind)
 	if !c.spec.Stay {
 		if err := c.close(); err != nil {
 			return Failed(err)
 		}
 	}
+	accepted()
 	defer c.r.actingFor(c.r.Focus)()
 	return create(query)
 }
