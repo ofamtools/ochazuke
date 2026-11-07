@@ -11,7 +11,7 @@ import (
 // A form may navigate with motions, but editing belongs to its text input.
 func formEditingShadows(r *Runtime) []string {
 	savedFocus, savedMode := r.Focus, r.Mode
-	defer func() { r.Focus, r.Mode = savedFocus, savedMode }()
+	defer func() { r.Focus = savedFocus; forceMode(r, savedMode) }()
 	editing := map[string]bool{}
 	for _, row := range r.Noun("ochazuke.editor").Bindings["normal"] {
 		op, ok := r.Operation(row.Request.Key())
@@ -25,7 +25,8 @@ func formEditingShadows(r *Runtime) []string {
 		if r.Input(id) == nil || inst.Unfocusable || r.recordEditorOf(id) == nil {
 			continue
 		}
-		r.Focus, r.Mode = id, ModeState{Name: "normal"}
+		r.Focus = id
+		forceMode(r, ModeState{Name: "normal"})
 		// A form key may follow the input's own history (u and ctrl+r fall
 		// through to the record's once the input has nothing to take): judge
 		// the rows with an input that has both an undo and a redo to offer.

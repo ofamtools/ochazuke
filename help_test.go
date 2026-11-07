@@ -249,7 +249,7 @@ func TestHelpArgumentsPreviewAndTruncate(t *testing.T) {
 	op := r.Operations["widget.send"]
 	op.Parameters = map[string]Parameter{"text": {Type: "string"}, "key": {Type: "string"}, "steps": {Type: "integer"}, "digit": {Type: "integer"}}
 	r.Operations["widget.send"] = op
-	r.Mode.Payload.Count = 7
+	forceModeCount(r, 7)
 	if _, err := r.Execute(Do("ochazuke.bindings.help").Request); err != nil {
 		t.Fatal(err)
 	}
@@ -280,7 +280,7 @@ func TestHelpArgumentsPreviewAndTruncate(t *testing.T) {
 		}
 	}
 	keytest.Press(m, "esc")
-	r.Mode.Payload.Count = 7
+	forceModeCount(r, 7)
 	keytest.Press(m, "g")
 	keytest.Press(m, "z")
 	if received["key"] != "z" || received["steps"] != 7 || received["text"] != preview["text"] {

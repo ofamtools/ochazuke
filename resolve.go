@@ -727,7 +727,7 @@ func (r *Runtime) argument(source string, ev KeyEvent) any {
 // key sequence in progress, so entering the mode arms the sequence timer.
 func (r *Runtime) enterMode(name string, payload Payload) {
 	payload.Return = r.BaseMode()
-	r.setMode(ModeState{Name: name, Payload: payload})
+	r.changeMode(ModeState{Name: name, Payload: payload}, modePendingEnter)
 	if payload.Prefix != "" {
 		r.armPrefix(r.Focus, name, payload.Prefix)
 	}
@@ -741,7 +741,7 @@ func (r *Runtime) leaveMode() {
 		r.bindingVersion++
 		r.prefix = pendingPrefix{}
 	}
-	r.setMode(ModeState{Name: r.BaseMode()})
+	r.changeMode(ModeState{Name: r.BaseMode()}, modePendingLeave)
 }
 
 // pending reports whether the mode is a pending mode or a sequence prefix.
@@ -1261,8 +1261,9 @@ func registerModeTables(r *Runtime) {
 		if r.Mode.Payload.Count > 100000 {
 			return nil, errors.New("count exceeds 1000000")
 		}
-		r.Mode.Payload.Count = r.Mode.Payload.Count*10 + digit
-		r.modeGeneration++
+		next := r.Mode
+		next.Payload.Count = next.Payload.Count*10 + digit
+		r.changeMode(next, modePayloadUpdate) // the prefix and its deadline stay armed
 		return r.Mode.Payload.Count, nil
 	}})
 	r.Register(Operation{Verb: "run", Noun: "ochazuke.request", Description: "Execute the request stored in the mode payload", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

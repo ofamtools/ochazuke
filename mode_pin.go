@@ -98,14 +98,14 @@ func (r *Runtime) PinInstance(id, mode string) error {
 		// A pending mode over the declared one: it returns to the new pin.
 		m := r.Mode
 		m.Payload.Return = after
-		r.setMode(m)
+		r.changeMode(m, modePayloadUpdate)
 		return nil
 	}
 	if in := r.Input(r.Focus); in != nil {
 		in.transition(after, false)
 		return nil
 	}
-	r.setMode(ModeState{Name: after})
+	r.changeMode(ModeState{Name: after}, modeFocusLanding) // the re-pinned focus lands in its new declared mode
 	return nil
 }
 

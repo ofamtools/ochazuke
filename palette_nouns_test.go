@@ -238,7 +238,7 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 	}
 	paletteRequest(t, r, "close", "palette", nil)
 
-	r.Mode = ModeState{Name: "selecting"}
+	forceMode(r, ModeState{Name: "selecting"})
 	paletteRequest(t, r, "open", "palette", nil)
 	if r.Mode.Name == "selecting" {
 		t.Fatal("the palette field did not take its own mode; the test proves nothing")
@@ -248,7 +248,7 @@ func TestPaletteHidesGuardedVerbs(t *testing.T) {
 	}
 	paletteRequest(t, r, "close", "palette", nil)
 
-	r.Mode = ModeState{Name: "normal"}
+	forceMode(r, ModeState{Name: "normal"})
 	if err := r.SetFocus("elsewhere"); err != nil {
 		t.Fatal(err)
 	}

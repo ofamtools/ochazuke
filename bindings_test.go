@@ -155,7 +155,7 @@ func TestContextChangesCancelDeferredBindings(t *testing.T) {
 					t.Fatal(err)
 				}
 			} else {
-				r.Mode = ModeState{Name: "insert"}
+				forceMode(r, ModeState{Name: "insert"})
 			}
 			r.prefix.deadline = time.Now().Add(-time.Second)
 			r.HandleBindingTimeout(msg)

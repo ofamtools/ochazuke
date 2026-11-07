@@ -26,7 +26,7 @@ func TestModeBadgeKeyCase(t *testing.T) {
 			t.Fatal(err)
 		}
 		for _, c := range cases {
-			r.Mode = ModeState{Name: c.mode, Payload: Payload{Prefix: c.prefix}}
+			forceMode(r, ModeState{Name: c.mode, Payload: Payload{Prefix: c.prefix}})
 			want := c.upper
 			if value == ModeBadgeKeysAsTyped {
 				want = c.typed

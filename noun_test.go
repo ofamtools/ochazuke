@@ -84,7 +84,7 @@ func TestResolveWalksStackInnerToOuter(t *testing.T) {
 	}
 	*calls = nil
 	press("x")
-	r.Mode = ModeState{Name: "insert"}
+	forceMode(r, ModeState{Name: "insert"})
 	press("x")
 	if want := []string{"row-instance", "row-insert"}; !reflect.DeepEqual(*calls, want) {
 		t.Fatalf("instance and mode rows: got %v; want %v", *calls, want)
@@ -560,7 +560,7 @@ func TestDefineExtendsInheritsTables(t *testing.T) {
 	r.Define("app").Mode("visual-block").Bind("h", Do("test.base")).Bind("x", Do("test.base"))
 	r.Define("app").Mode("visual-row").Extends("visual-block").Bind("x", Do("test.own"))
 	r.Define("app").Mode("visual-block").Bind("l", Do("test.late"))
-	r.Mode = ModeState{Name: "visual-row"}
+	forceMode(r, ModeState{Name: "visual-row"})
 	for _, key := range []string{"h", "x", "l"} {
 		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
 			t.Fatal(err)
