@@ -110,3 +110,38 @@ func TestMountedRowGuardsDeferToExtension(t *testing.T) {
 	}
 	t.Fatal("mounted noun missing from catalog")
 }
+
+// A verb that opens a page of its tool says so in the catalog, and a host's
+// mounted copy keeps it.
+func TestOpensPageSurvivesTheCatalog(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	r.Config().Disable()
+	r.Define("review").Verb("page", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }, "Open the page").OpensPage("review")
+	data, err := Catalog(r, "tool", "v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	var found CatalogVerb
+	for _, n := range doc.Nouns {
+		for _, v := range n.Verbs {
+			if n.Name == "review" && v.Name == "page" {
+				found = v
+			}
+		}
+	}
+	if found.OpensPage != "review" {
+		t.Fatalf("catalog lost opensPage: %+v", found)
+	}
+	host := ochazuke.NewRuntime()
+	host.Config().Disable()
+	MountNouns(host, []CatalogNoun{{Name: "review", Verbs: []CatalogVerb{found}}}, HostMount{Local: func(n string) string { return "ext." + n }, Proxy: func(string, CatalogVerb) any {
+		return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	}})
+	if op, ok := host.Operation("ext.review.page"); !ok || op.OpensPage != "review" {
+		t.Fatalf("mounted verb lost OpensPage: %+v", op)
+	}
+}

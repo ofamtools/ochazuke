@@ -287,6 +287,11 @@ type Operation struct {
 	Repeatable    bool                 `json:"repeatable,omitempty"`
 	// Foreground tells catalog hosts to hand the terminal to this verb.
 	Foreground bool `json:"foreground,omitempty"`
+	// OpensPage is the id of a page the verb opens in the tool's own
+	// runtime. A catalog host that mounts that page opens it itself (under
+	// its own page id) instead of running the verb in the tool; the tool
+	// run on its own still runs the verb. Data for hosts.
+	OpensPage string `json:"opensPage,omitempty"`
 	// Slot admits only one pending invocation per subject row and slot.
 	// A repeat while it runs reports that fact instead of running user work twice.
 	Slot string `json:"slot,omitempty"`

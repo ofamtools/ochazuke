@@ -193,6 +193,7 @@ type CatalogVerb struct {
 	Confirm       string                        `json:"confirm,omitempty"`
 	Repeatable    bool                          `json:"repeatable,omitempty"`
 	Foreground    bool                          `json:"foreground,omitempty"`
+	OpensPage     string                        `json:"opensPage,omitempty"` // a page the verb opens (ochazuke.Operation.OpensPage)
 	Slot          string                        `json:"slot,omitempty"`
 	Timeout       string                        `json:"timeout,omitempty"`
 	Disabled      bool                          `json:"disabled,omitempty"`
@@ -407,6 +408,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		noun := &doc.Nouns[len(doc.Nouns)-1]
 		verb := CatalogVerb{Guards: append(slices.Clone(r.VerbAvailability(op.Key())), op.CatalogGuards...), Examples: op.ExamplesOf(), Destructive: op.Destructive, Agent: op.AgentRightOf(false), AgentDeclared: op.Agent, Name: op.Verb, Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key()), Standard: op.Standard}
 		verb.Foreground = op.Foreground
+		verb.OpensPage = op.OpensPage
 		verb.ByAssociation = op.ByAssociation
 		verb.FocusBound = op.FocusBound
 		verb.Motion, verb.Typing, verb.Staying = op.Motion, op.Typing, op.Staying

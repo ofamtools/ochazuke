@@ -589,6 +589,13 @@ func (b *NounBuilder) Foreground() *NounBuilder {
 	return b.lastOp("Foreground", func(o *Operation) { o.Foreground = true })
 }
 
+// OpensPage marks the last declared verb as opening the named page of this
+// runtime (Operation.OpensPage): a catalog host that mounts the page opens
+// it instead of running the verb in the tool.
+func (b *NounBuilder) OpensPage(id string) *NounBuilder {
+	return b.lastOp("OpensPage", func(o *Operation) { o.OpensPage = id })
+}
+
 // PersistArgs marks the last declared verb's text-like arguments as safe
 // to keep in the history file (Operation.PersistArgs).
 func (b *NounBuilder) PersistArgs() *NounBuilder {
