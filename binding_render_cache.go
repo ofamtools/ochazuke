@@ -48,11 +48,11 @@ type bindingScan struct {
 func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, focus string) []levelRow {
 	c.lastScan = nil
 	if c.collecting != nil {
-		return r.scanRowsUncached(levels, mode, focus)
+		return r.scanRowsUncached(levels, mode, focus, nil)
 	}
 	data, err := json.Marshal(mode)
 	if err != nil {
-		return r.scanRowsUncached(levels, mode, focus)
+		return r.scanRowsUncached(levels, mode, focus, nil)
 	}
 	key := string(data)
 	base, _ := baseAndPrefix(mode)
@@ -77,7 +77,7 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 	for _, table := range tables {
 		for _, b := range table.rows {
 			if b.Request.IsProp() || r.Operations[b.Request.Key()].Standard != "" {
-				return r.scanRowsUncached(levels, mode, focus)
+				return r.scanRowsUncached(levels, mode, focus, nil)
 			}
 			if op, ok := r.Operations[b.Request.Key()]; ok {
 				if n := r.Nouns[op.Noun]; n != nil && !slices.Contains(operationNouns, n) {
@@ -118,7 +118,7 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 	c.collecting = entry
 	func() {
 		defer func() { c.collecting = nil }()
-		entry.rows = r.scanRowsUncached(levels, mode, focus)
+		entry.rows = r.scanRowsUncached(levels, mode, focus, nil)
 	}()
 	if len(c.scans) >= 8 {
 		c.scans = c.scans[:0]

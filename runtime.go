@@ -616,7 +616,7 @@ func (r *Runtime) registerFramework() {
 	r.Define("ochazuke.modal")
 	// "no-modal" holds while no modal is open: the app's ctrl+c capture row
 	// quits past any inner row, but a modal (the palette) still answers it.
-	r.DefineGuard("no-modal", func(r *Runtime, _ KeyEvent) bool { return len(r.modals) == 0 })
+	r.DefineGuard("no-modal", func(r *Runtime, ev KeyEvent) bool { return r.EventTopModal(ev) == "" })
 	registerCore(r)
 	registerJobs(r)
 	registerConfiguration(r)
@@ -713,11 +713,15 @@ type ModeState struct {
 
 // BaseMode is the mode Runtime.Mode stands in: its name, or for a pending
 // mode or a key-sequence prefix the base mode it returns to.
-func (r *Runtime) BaseMode() string {
-	if (r.modes[r.Mode.Name].Pending || r.Mode.Payload.Prefix != "") && r.Mode.Payload.Return != "" {
-		return r.Mode.Payload.Return
+func (r *Runtime) BaseMode() string { return r.baseModeOf(r.Mode) }
+
+// baseModeOf is BaseMode for any mode state: a query's own mode as well
+// as the live one.
+func (r *Runtime) baseModeOf(m ModeState) string {
+	if (r.modes[m.Name].Pending || m.Payload.Prefix != "") && m.Payload.Return != "" {
+		return m.Payload.Return
 	}
-	return r.Mode.Name
+	return m.Name
 }
 
 // ModeObserver is implemented by a component that follows the base mode

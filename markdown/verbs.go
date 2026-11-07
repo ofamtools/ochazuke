@@ -196,7 +196,7 @@ func docVerbs() []docVerb {
 // is in the Doc's open editor and test holds of the line being edited.
 func editing(r *ochazuke.Runtime, ev ochazuke.KeyEvent, test func(buffer) bool) bool {
 	d := docOf(r, ev.Focus)
-	if d == nil || d.edit == nil || r.Focus != d.edit.input.ID {
+	if d == nil || d.edit == nil || r.EventFocus(ev) != d.edit.input.ID {
 		return false
 	}
 	b, _ := d.buffer()

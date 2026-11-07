@@ -706,9 +706,15 @@ func (r *Runtime) VerbGuard(key string) string {
 // is not registered hides nothing. It is Available for a request with no
 // arguments.
 func (r *Runtime) VerbShown(key, focus string, mode ModeState) bool {
+	return r.verbShownWithin(key, focus, mode, nil)
+}
+
+// verbShownWithin is VerbShown judged in a query's interaction
+// (KeyEvent.Within), nil for the live one.
+func (r *Runtime) verbShownWithin(key, focus string, mode ModeState, within *resolutionContext) bool {
 	noun, verb := r.keyParts(key)
 	q := Request{Noun: noun, Verb: verb}
-	return r.Available(q, r.rowInstance(level{}, q, focus), mode)
+	return r.availableWithin(q, r.rowInstance(level{}, q, focus), mode, within)
 }
 
 // Available reports whether an action can run now: its availability (the
@@ -725,6 +731,12 @@ func (r *Runtime) VerbShown(key, focus string, mode ModeState) bool {
 // (PropSpec.When, propsAvailable), and a prop-shaped request is asked as
 // the get or set it runs as.
 func (r *Runtime) Available(q Request, focus string, mode ModeState) bool {
+	return r.availableWithin(q, focus, mode, nil)
+}
+
+// availableWithin is Available with the guards judging a query's
+// interaction (KeyEvent.Within), nil for the live one.
+func (r *Runtime) availableWithin(q Request, focus string, mode ModeState, within *resolutionContext) bool {
 	if q.IsProp() {
 		pq, err := r.propVerbRequest(q)
 		if err != nil {
@@ -736,11 +748,11 @@ func (r *Runtime) Available(q Request, focus string, mode ModeState) bool {
 		return false
 	}
 	for _, name := range r.VerbAvailability(q.Key()) {
-		if guard := r.guard(name); guard != nil && !guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: q.Args}) {
+		if guard := r.guard(name); guard != nil && !guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: q.Args, Within: within}) {
 			return false
 		}
 	}
-	return r.propsAvailable(q, focus, mode)
+	return r.propsAvailable(q, focus, mode, within)
 }
 
 // AddVerbAvailability adds a guard to a registered verb (aliases resolve)
@@ -1424,6 +1436,16 @@ func selectionModeOf(modes map[string]string, shape string) string {
 // shadow mode such as macro_recording re-dispatches in is normal with an
 // empty payload) and "op:<key>" (the pending operator). Applications add
 // their own with DefineGuard.
+//
+// A guard reads the interaction it is judged in from its event, not from
+// the runtime: KeyEvent.Mode and KeyEvent.Focus, and Runtime.EventFocus
+// and Runtime.EventModals for the focused instance and the open modals. A
+// query judges a guard for a focus or mode that is not the live one
+// (bindings.stops, the typing check, help at the place it opened over) and
+// says so on KeyEvent.Within; the runtime's own fields and accessors
+// (Runtime.Mode, Runtime.Focus, TopModal) always describe the live
+// interaction and are never swapped for a query. A guard must not change
+// anything.
 type Guard func(*Runtime, KeyEvent) bool
 
 func builtinGuards() map[string]Guard {

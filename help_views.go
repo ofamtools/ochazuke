@@ -259,18 +259,19 @@ func (h *helpState) show() error {
 }
 
 // refreshBindings updates an open help in place, including when a chooser
-// is above it. Read here at the focus, mode and modal chain it opened over;
-// refreshing must not borrow the help's own keys or move the live focus.
+// is above it. Read here at the focus, mode and modal chain it opened over
+// (a query's resolution context: the modals beneath the help); refreshing
+// must not borrow the help's own keys, move the live focus or assign the
+// live mode.
 func (h *helpState) refreshBindings() error {
 	r := h.r
 	origin, mode := r.ModalReturn(helpID)
 	if r.Instances[origin] != nil {
-		at := *r
-		at.Focus, at.Mode = origin, mode
-		if i := slices.Index(at.modals, helpID); i >= 0 {
-			at.modals = at.modals[:i]
+		modals := r.modals
+		if i := slices.Index(modals, helpID); i >= 0 {
+			modals = modals[:i]
 		}
-		h.here = BindingHelp(&at, origin)
+		h.here = r.bindingHelpIn(queryResolution(origin, mode, modals))
 	}
 	if h.view == HelpTable {
 		if list := r.List(helpListID); list != nil {

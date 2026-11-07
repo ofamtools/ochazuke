@@ -859,14 +859,16 @@ func registerTimelineSteps(r *Runtime) {
 		return named || id != ""
 	})
 	// timeline.leave: the focus is on a card or inside one. leave acts on
-	// the live focus (the body, else the parent stop), so that is what it
-	// judges; a call naming a timeline is not refused here.
+	// the focus (the body, else the parent stop), so that is what it judges:
+	// the live one, or a query's (EventFocus); a call naming a timeline is
+	// not refused here.
 	r.DefineGuard("timeline-on-card", func(r *Runtime, ev KeyEvent) bool {
 		if StringArg(ev.Args, "id", "") != "" {
 			return true
 		}
 		t := r.timelineOf(ev.Focus)
-		return t != nil && (r.Focus == t.bodyID || r.rows[r.Focus] == t.list.id)
+		focus := r.EventFocus(ev)
+		return t != nil && (focus == t.bodyID || r.rows[focus] == t.list.id)
 	})
 	r.DefineGuard("timeline-in-body", func(r *Runtime, ev KeyEvent) bool {
 		t := r.timelineOf(ev.Focus)

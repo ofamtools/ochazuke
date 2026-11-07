@@ -846,15 +846,30 @@ const MovementSection = "movement"
 // pending mode (the terminal leader) is followed by that mode's rows as
 // whole sequences (helpEnters, R6.10).
 func BindingHelp(r *Runtime, focus string) []HelpRow {
+	return r.bindingHelpIn(r.liveResolution(focus))
+}
+
+// bindingHelpIn is BindingHelp in a resolution context: the live one, or
+// a query's (help refreshed at the place it opened over), which judges its
+// guards in that interaction and reads and fills no cache.
+func (r *Runtime) bindingHelpIn(ctx resolutionContext) []HelpRow {
+	focus := ctx.Focus
 	w := helpWalk{
-		args:  func(b Binding) Arguments { return bindingHelpArgs(r, b, focus) },
-		focus: focus,
-		mode:  r.Mode,
+		args:   func(b Binding) Arguments { return bindingHelpArgs(r, b, ctx) },
+		focus:  focus,
+		mode:   ctx.Mode,
+		within: ctx.within(),
 		enter: func(mode ModeState) []levelRow {
-			return groupLevelRows(r.scanRows(r.walk(focus), mode, focus))
+			return groupLevelRows(r.rowsInMode(ctx, mode))
 		},
 	}
-	return r.withUnboundRows(helpGroups(r.helpRows(w, r.groupedRows(focus), 0)), r.UnboundVerbs(focus, r.Mode), r.focusChain(focus))
+	var rows []levelRow
+	if ctx.Hypothetical {
+		rows = groupLevelRows(r.rowsIn(ctx))
+	} else {
+		rows = r.groupedRows(focus)
+	}
+	return r.withUnboundRows(helpGroups(r.helpRows(w, rows, 0)), r.unboundVerbsIn(ctx), r.focusChain(focus))
 }
 
 // NounHelp is BindingHelp for a hypothetical focus on noun in mode, with
@@ -884,13 +899,15 @@ func PlaceHelp(r *Runtime, place NounPlace, mode ModeState) []HelpRow {
 
 // helpWalk is how helpRows reads a walk: the arguments a row shows, the
 // focus (live) or "" (a hypothetical walk: no guard judged, each guarded
-// row marked), the mode the rows answer in, and the rows the same walk
-// answers with in a pending mode a row enters.
+// row marked), the mode the rows answer in, the rows the same walk answers
+// with in a pending mode a row enters, and within, a query's interaction
+// its guards read (nil for the live one; a query reads no help-row cache).
 type helpWalk struct {
-	args  func(Binding) Arguments
-	focus string
-	mode  ModeState
-	enter func(ModeState) []levelRow
+	args   func(Binding) Arguments
+	focus  string
+	mode   ModeState
+	enter  func(ModeState) []levelRow
+	within *resolutionContext
 }
 
 // helpRows is the help rows of grouped level rows. depth counts the
@@ -914,13 +931,18 @@ func (r *Runtime) helpRows(w helpWalk, rows []levelRow, depth int) []HelpRow {
 		}
 	}
 	for _, row := range rows {
-		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] || w.focus != "" && r.guardedOffIn(row.Binding, w.focus, w.mode) {
+		if isPrefixCancel(row.Binding) && !sequences[row.Mode+"\x00"+strings.TrimSuffix(row.Keys, " "+CancelKey)] || w.focus != "" && r.guardedOffWithin(row.Binding, w.focus, w.mode, w.within) {
 			continue
 		}
 		if depth > 0 && row.Hidden {
 			continue // a pending mode's hidden rows (the leader's any) stay out
 		}
-		help := r.helpRow(row, w.args(row.Binding))
+		var help HelpRow
+		if w.within != nil {
+			help = r.helpRowUncached(row, w.args(row.Binding))
+		} else {
+			help = r.helpRow(row, w.args(row.Binding))
+		}
 		help.cancel = isPrefixCancel(row.Binding)
 		if row.guard != "" {
 			help.Operation += " ?"

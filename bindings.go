@@ -109,25 +109,27 @@ type StopBindings struct {
 // in tree order), then the open modals bottom to top with theirs, then app
 // in normal mode. The mode is the one the focus would have there: the
 // current mode at the current focus, else the stop's pinned mode (a prompt
-// is insert, a terminal terminal), else normal. Nothing moves: the focus
-// and mode are back as they were on return.
+// is insert, a terminal terminal), else normal. It is a query: each stop is
+// read in its own resolution context (that focus and mode under the open
+// modals), so nothing moves and nothing is assigned, cached or restored.
 //
 // It differs from bindings.list --all, which exports every stored row
 // (each noun's and instance's tables, every mode, as configuration JSON),
 // active or not: this answers "what does each key do where", after
 // shadowing, guards and the modal boundary.
 func (r *Runtime) StopBindings() []StopBindings {
-	saved := r.Mode
-	defer func() { r.Mode = saved }()
 	current := r.stopOf(r.Focus)
 	out := []StopBindings{}
+	read := func(page, stop, focus string, mode ModeState) {
+		ctx := queryResolution(focus, mode, r.modals)
+		out = append(out, StopBindings{Page: page, Stop: stop, Focus: focus, Mode: mode.Name, Bindings: r.listBindingsIn(ctx)})
+	}
 	add := func(page, stop string) {
 		focus, mode := r.landing(stop), ModeState{Name: r.pinnedMode(r.landing(stop))}
 		if stop == current {
-			focus, mode = r.Focus, saved
+			focus, mode = r.Focus, r.Mode
 		}
-		r.Mode = mode
-		out = append(out, StopBindings{Page: page, Stop: stop, Focus: focus, Mode: mode.Name, Bindings: r.ListBindings(focus)})
+		read(page, stop, focus, mode)
 	}
 	for _, page := range r.PageList() {
 		stops, _ := r.units(page.ID, r.focusable)
@@ -144,8 +146,7 @@ func (r *Runtime) StopBindings() []StopBindings {
 			add("", stop)
 		}
 	}
-	r.Mode = ModeState{Name: "normal"}
-	out = append(out, StopBindings{Stop: "app", Focus: "app", Mode: "normal", Bindings: r.ListBindings("app")})
+	read("", "app", "app", ModeState{Name: "normal"})
 	return out
 }
 

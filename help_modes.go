@@ -25,11 +25,17 @@ const helpModeDepth = 2
 // guardedOffIn is guardedOff judged in mode: a pending mode's rows are
 // judged in the mode they answer in.
 func (r *Runtime) guardedOffIn(b Binding, focus string, mode ModeState) bool {
+	return r.guardedOffWithin(b, focus, mode, nil)
+}
+
+// guardedOffWithin is guardedOffIn judged in a query's interaction
+// (KeyEvent.Within), nil for the live one.
+func (r *Runtime) guardedOffWithin(b Binding, focus string, mode ModeState, within *resolutionContext) bool {
 	if b.When == "" {
 		return false
 	}
 	check := r.guard(b.When)
-	return check == nil || !check(r, KeyEvent{Mode: mode, Focus: focus})
+	return check == nil || !check(r, KeyEvent{Mode: mode, Focus: focus, Within: within})
 }
 
 // helpEnters reports the pending mode a row's key enters and the help rows

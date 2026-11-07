@@ -848,7 +848,7 @@ func registerFilterViewForm(r *Runtime) {
 	r.Define(filterConditionNoun)
 	r.DefineGuard("filter-form-text", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)
-		return v != nil && v.current != nil && v.current.kind == filterText && v.e.field(v.current.prop).id == r.Focus
+		return v != nil && v.current != nil && v.current.kind == filterText && v.e.field(v.current.prop).id == r.EventFocus(ev)
 	})
 	r.DefineGuard("filter-form-tab", func(r *Runtime, ev KeyEvent) bool {
 		v := filterViewAt(r, ev.Focus)

@@ -157,11 +157,11 @@ func TestRenderHintsTrackArbitraryGuardsAndBindingEdits(t *testing.T) {
 	check := func() {
 		t.Helper()
 		got := HintBindings(r, r.Focus)
-		want := hintBindingsUncached(r, r.Focus, groupLevelRows(r.scanRowsUncached(r.walk(r.Focus), r.Mode, r.Focus)))
+		want := hintBindingsUncached(r, r.Focus, groupLevelRows(r.scanRowsUncached(r.walk(r.Focus), r.Mode, r.Focus, nil)))
 		if !reflect.DeepEqual(got, want) {
 			t.Fatal("cached hints disagree with the live resolver")
 		}
-		if got, want := r.levelRows(r.Focus), r.scanRowsUncached(r.walk(r.Focus), r.Mode, r.Focus); !reflect.DeepEqual(got, want) {
+		if got, want := r.levelRows(r.Focus), r.scanRowsUncached(r.walk(r.Focus), r.Mode, r.Focus, nil); !reflect.DeepEqual(got, want) {
 			t.Fatal("cached binding walk differs")
 		}
 	}

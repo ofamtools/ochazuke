@@ -40,13 +40,12 @@ var modeWriteOwners = map[string]bool{
 }
 
 // modeWriteExceptions are the legacy borrows that still assign
-// Runtime.Mode for a query or a render and put it back. None is a real
-// transition: no observer runs and the generation does not move.
+// Runtime.Mode for a replay or a render and put it back. None is a real
+// transition: no observer runs and the generation does not move. The
+// queries (bindings.stops, the typing check, help at its origin) read a
+// resolutionContext instead and are not here.
 var modeWriteExceptions = []stateWriteException{
-	{"bindings.go", "Runtime.StopBindings", 3, "query borrow: reads each stop's rows in its landing mode and restores; MO-07 pure queries"},
-	{"typing_check.go", "Runtime.TypingShadows", 2, "query borrow: walks every focus in every typing mode and restores; MO-07 pure queries"},
-	{"help_views.go", "helpState.refreshBindings", 2, "query on a shallow Runtime copy (the copy and its Mode): help rows at the origin; MO-07 pure queries"},
-	{"remote.go", "remoteRun.pass", 2, "replay borrow: each replay pass runs in the mode the request started in and restores; MO-07 pure queries"},
+	{"remote.go", "remoteRun.pass", 2, "replay borrow: each replay pass runs a verb's handler again, which reads the live mode (propShown, Available in the standard rows), in the mode the request started in, and restores; not a query, so it needs the request's own interaction on Ctx; och-request-context"},
 	{"model.go", "Model.beneath", 2, "render borrow: draws the page in the mode the outer modal opened over and restores; MO-10 presentation"},
 }
 

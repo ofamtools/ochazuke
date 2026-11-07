@@ -23,6 +23,13 @@ type KeyEvent struct {
 	// Args are the arguments of the request whose availability is judged
 	// (Available): a row's own, or a call's; nil for a row's own guard.
 	Args Arguments
+	// Within is the hypothetical interaction a query judges the event in
+	// (bindings.stops, the typing check, help at the place it opened
+	// over): the focus, mode and modal chain that stand for the live ones
+	// while the runtime itself stays as it is. Nil when a key or a call is
+	// judged live. A guard reads it through Runtime.EventFocus and
+	// Runtime.EventModals; Mode and Focus above already carry it.
+	Within *resolutionContext
 }
 
 // level is one step of the stack walk: an instance (nil for the modal level)
@@ -64,7 +71,14 @@ func (lv level) name() string {
 // passthrough mode (DefinePassthrough: the terminal) there is no capture
 // pass, so the mode's rows see every key, ctrl+c included.
 func (r *Runtime) walk(focus string) []level {
-	return r.walkOf(r.stack(focus), r.modes[r.BaseMode()].Passthrough)
+	return r.walkIn(r.liveResolution(focus))
+}
+
+// walkIn is walk in a resolution context: the stack bounded by its modal
+// chain, the capture pass skipped while its base mode is a passthrough
+// mode. A query reads it for its own focus, mode and modals.
+func (r *Runtime) walkIn(ctx resolutionContext) []level {
+	return r.walkOf(r.stackIn(ctx.Focus, ctx.Modals), r.modes[r.baseModeOf(ctx.Mode)].Passthrough)
 }
 
 // walkOf is walk over a given stack: the capture pass (skipped in a
@@ -115,15 +129,23 @@ func (b Binding) Captured() Binding { b.Capture = true; return b }
 // and including the modal instance, then the modal noun, then app. The
 // levels beneath the modal (its Parent chain, kept for Pop and rendering)
 // are never consulted.
-func (r *Runtime) stack(focus string) []level {
+func (r *Runtime) stack(focus string) []level { return r.stackIn(focus, r.modals) }
+
+// stackIn is stack bounded by a given modal chain (outermost first): the
+// live one, or a query's (help reads its origin under the modals beneath
+// it).
+func (r *Runtime) stackIn(focus string, modals []string) []level {
 	ancestry := r.Ancestry(focus)
 	// The modal that holds the focus bounds the walk: the top one for the
 	// live focus, a covered one for the focus it keeps (its hint line while
 	// a confirm is over it). A focus in none keeps the top modal's level.
-	top := r.TopModal()
-	for i := len(r.modals) - 1; i >= 0; i-- {
-		if slices.Contains(ancestry, r.modals[i]) {
-			top = r.modals[i]
+	top := ""
+	if len(modals) > 0 {
+		top = modals[len(modals)-1]
+	}
+	for i := len(modals) - 1; i >= 0; i-- {
+		if slices.Contains(ancestry, modals[i]) {
+			top = modals[i]
 			break
 		}
 	}
@@ -155,7 +177,7 @@ func (r *Runtime) stack(focus string) []level {
 				out = append(out, level{inst: lay, noun: r.Nouns[lay.Noun]})
 			}
 		}
-		if i == len(ancestry)-1 && len(r.modals) > 0 {
+		if i == len(ancestry)-1 && len(modals) > 0 {
 			frame := r.Instances[top]
 			if frame != nil && onStack[frame.ID] {
 				frame = nil
@@ -462,7 +484,7 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 			if lv.owns && owned == nil && matches(row) {
 				owned = row
 			}
-			if !r.Available(row.Request, r.rowInstance(lv, row.Request, ev.Focus), ev.Mode) {
+			if !r.availableWithin(row.Request, r.rowInstance(lv, row.Request, ev.Focus), ev.Mode, ev.Within) {
 				if prefix != "" && row.Keys == sequence && !key.Paste {
 					look.bound = true
 				}
@@ -752,7 +774,12 @@ func (r *Runtime) pending() bool {
 // ListBindings prints the rows the focus answers to in its current mode,
 // one per key or pattern, sorted by key with pattern rows last.
 func (r *Runtime) ListBindings(focus string) []Binding {
-	out := r.withAliases(r.bindingRows(focus))
+	return sortListedBindings(r.withAliases(r.bindingRows(focus)))
+}
+
+// sortListedBindings orders rows as ListBindings lists them: by key, the
+// pattern rows last.
+func sortListedBindings(out []Binding) []Binding {
 	sort.SliceStable(out, func(i, j int) bool {
 		a, b := out[i], out[j]
 		if (a.Keys == "") != (b.Keys == "") {
@@ -889,7 +916,19 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string) []level
 	return r.renderCache.scan(r, levels, mode, focus)
 }
 
-func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string) []levelRow {
+// scanRowsWithin is scanRows for the live interaction (within nil, the
+// cache read) or a query's (uncached, its guards judging within).
+func (r *Runtime) scanRowsWithin(levels []level, mode ModeState, focus string, within *resolutionContext) []levelRow {
+	if within == nil {
+		return r.scanRows(levels, mode, focus)
+	}
+	return r.scanRowsUncached(levels, mode, focus, within)
+}
+
+// scanRowsUncached is scanRows reading and filling no cache. within is a
+// query's interaction its guards and availability judge (KeyEvent.Within),
+// nil for the live one.
+func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string, within *resolutionContext) []levelRow {
 	live := focus != ""
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.modes[mode.Name].Pending || mode.Payload.Shadow != nil
@@ -904,7 +943,7 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string)
 				continue
 			}
 			guard := ""
-			if live && owns && (!r.Available(b.Request, r.rowInstance(cur, b.Request, focus), mode) || !r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus})) {
+			if live && owns && (!r.availableWithin(b.Request, r.rowInstance(cur, b.Request, focus), mode, within) || !r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus, Within: within})) {
 				// An owning component's key that does not run there is
 				// consumed (level.owns): it claims the key, so the page's
 				// row on it is not offered, and shows nothing itself.
@@ -917,11 +956,11 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string)
 				if capture && b.When != "" {
 					// A capture row standing aside (ctrl+c's no-modal inside the
 					// palette) must not shadow the inner row it lets through.
-					if check := r.guard(b.When); check == nil || !check(r, KeyEvent{Mode: mode, Focus: focus}) {
+					if check := r.guard(b.When); check == nil || !check(r, KeyEvent{Mode: mode, Focus: focus, Within: within}) {
 						continue
 					}
 				}
-				if !r.Available(b.Request, r.rowInstance(cur, b.Request, focus), mode) {
+				if !r.availableWithin(b.Request, r.rowInstance(cur, b.Request, focus), mode, within) {
 					continue // guarded off where it acts: hints and bindings list match the palette
 				}
 			} else {
@@ -942,7 +981,7 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string)
 			// A row whose own guard is false at a live focus does not
 			// answer, so it does not shadow an outer row on its keys (l on
 			// a list that is no table leaves the timeline's l its hint).
-			if guard == "" && (!live || r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus})) {
+			if guard == "" && (!live || r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus, Within: within})) {
 				seen[id] = true
 			}
 			row := levelRow{Binding: b, level: name, guard: guard, inherited: inherited}

@@ -54,11 +54,17 @@ func (r *Runtime) UnboundVerbs(focus string, mode ModeState) []Operation {
 	if r.Instances[focus] == nil {
 		return nil
 	}
-	var nouns []string
-	for _, id := range r.Ancestry(focus) {
-		nouns = append(nouns, r.Instances[id].Noun)
+	return r.unboundOperations(r.focusChain(focus), r.walk(focus), mode, focus, nil)
+}
+
+// unboundVerbsIn is UnboundVerbs in a resolution context: its walk, mode
+// and focus, a hypothetical one judging its guards in that interaction and
+// reading no cache.
+func (r *Runtime) unboundVerbsIn(ctx resolutionContext) []Operation {
+	if r.Instances[ctx.Focus] == nil {
+		return nil
 	}
-	return r.unboundOperations(nouns, r.walk(focus), mode, focus)
+	return r.unboundOperations(r.focusChain(ctx.Focus), r.walkIn(ctx), ctx.Mode, ctx.Focus, ctx.within())
 }
 
 // PlaceUnboundVerbs is UnboundVerbs for a hypothetical focus on place's
@@ -68,7 +74,7 @@ func (r *Runtime) PlaceUnboundVerbs(place NounPlace, mode ModeState) []Operation
 	place = r.canonicalPlace(place)
 	chain := slices.Clone(place.Chain())
 	slices.Reverse(chain)
-	return r.unboundOperations(chain, r.nounWalk(place, mode), mode, "")
+	return r.unboundOperations(chain, r.nounWalk(place, mode), mode, "", nil)
 }
 
 // unboundOperations is the shared reading: nouns innermost first (cut to
@@ -76,7 +82,9 @@ func (r *Runtime) PlaceUnboundVerbs(place NounPlace, mode ModeState) []Operation
 // hypothetical walk. A row counts as binding its verb whether or not its
 // guard holds now, and whether or not a row earlier on its key shadows it
 // (the first row on a key answers; the others are the key's alternatives).
-func (r *Runtime) unboundOperations(candidates []string, walk []level, mode ModeState, focus string) []Operation {
+// within is a query's interaction (its guards read it, no cache is read),
+// nil for the live one.
+func (r *Runtime) unboundOperations(candidates []string, walk []level, mode ModeState, focus string, within *resolutionContext) []Operation {
 	if !r.helpFlag(UnboundVerbsSetting, true) {
 		return nil
 	}
@@ -93,7 +101,7 @@ func (r *Runtime) unboundOperations(candidates []string, walk []level, mode Mode
 	}
 	bound := map[string]bool{}
 	for _, at := range []string{focus, ""} {
-		for _, row := range r.scanRows(walk, mode, at) {
+		for _, row := range r.scanRowsWithin(walk, mode, at, within) {
 			if row.Request.Empty() || row.Request.IsProp() {
 				continue
 			}
@@ -114,7 +122,7 @@ func (r *Runtime) unboundOperations(candidates []string, walk []level, mode Mode
 	for _, noun := range nouns {
 		var verbs []Operation
 		for key, op := range r.Operations {
-			if op.Noun != noun || bound[key] || op.Builtin && scope != UnboundAll || focus != "" && !r.VerbShown(key, focus, mode) {
+			if op.Noun != noun || bound[key] || op.Builtin && scope != UnboundAll || focus != "" && !r.verbShownWithin(key, focus, mode, within) {
 				continue
 			}
 			verbs = append(verbs, op)

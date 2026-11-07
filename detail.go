@@ -260,7 +260,7 @@ func (r *Runtime) seqPath(id, page string) []uint64 {
 // holding the focus has a detail that overflows, and the focus is not in
 // that detail.
 func detailScrolls(r *Runtime, ev KeyEvent) bool {
-	if r.TopModal() != "" {
+	if r.EventTopModal(ev) != "" {
 		return false
 	}
 	d := r.pageDetail(ev.Focus)

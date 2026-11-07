@@ -159,7 +159,7 @@ func (r *Runtime) PaneLayout(id string, l Layout) Layout {
 // paneOnly is the guard of the restore rows: no modal is open and the
 // page holding the focus shows one pane (pane.only).
 func paneOnly(r *Runtime, ev KeyEvent) bool {
-	if r.TopModal() != "" {
+	if r.EventTopModal(ev) != "" {
 		return false
 	}
 	page := r.pageAt(ev.Focus)
@@ -234,7 +234,7 @@ func (r *Runtime) paneOnlyFollow(to string) {
 // paneSplit is the guard of the pane rows: no modal is open and the page
 // holding the focus drew a split in its last frame.
 func paneSplit(r *Runtime, ev KeyEvent) bool {
-	if r.TopModal() != "" {
+	if r.EventTopModal(ev) != "" {
 		return false
 	}
 	page := r.pageAt(ev.Focus)

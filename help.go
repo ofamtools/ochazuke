@@ -72,13 +72,15 @@ func registerBindingHelp(r *Runtime) {
 
 // bindingHelpArgs previews arguments without executing the binding. Pattern
 // keys are unknown until pressed; keep those sources explicit instead.
-func bindingHelpArgs(r *Runtime, b Binding, focus string) Arguments {
+// They are read in ctx: its focus and mode, and for a query its
+// interaction (KeyEvent.Within).
+func bindingHelpArgs(r *Runtime, b Binding, ctx resolutionContext) Arguments {
 	args := Arguments{}
 	for name, value := range b.Request.Args {
 		args[name] = value
 	}
 	_, key := SplitKeys(b.Keys)
-	ev := KeyEvent{Key: MacroKey{Key: key}, Mode: r.Mode, Focus: focus}
+	ev := KeyEvent{Key: MacroKey{Key: key}, Mode: ctx.Mode, Focus: ctx.Focus, Within: ctx.within()}
 	for name, source := range b.From {
 		parts := strings.Fields(source)
 		values := make([]any, len(parts))

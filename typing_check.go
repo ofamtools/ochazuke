@@ -38,7 +38,7 @@ func (r *Runtime) typingPlaceIn(levels []level, mode ModeState, ev KeyEvent) (ty
 				if row.Unbind || row.Capture || row.Pattern != Printable {
 					continue
 				}
-				if !r.Available(row.Request, ev.Focus, mode) || !r.rowGuardHolds(row.When, ev) {
+				if !r.availableWithin(row.Request, ev.Focus, mode, ev.Within) || !r.rowGuardHolds(row.When, ev) {
 					continue
 				}
 				return typingPlace{action: row.Request.Key()}, true
@@ -106,13 +106,15 @@ func (s typingShadow) String() string {
 // typing level itself answering it with another action, or a sequence at
 // any level starting with it (the walk would wait instead of typing). A
 // row with the place's own action answers rightly at any level (the
-// editor fallback's space for a chooser's line).
-func (r *Runtime) typingShadowsAt(focus string, mode ModeState) []typingShadow {
+// editor fallback's space for a chooser's line). ctx is the hypothetical
+// interaction (that focus and mode under the open modals) its guards read.
+func (r *Runtime) typingShadowsAt(ctx resolutionContext) []typingShadow {
+	focus, mode := ctx.Focus, ctx.Mode
 	if r.modes[mode.Name].Passthrough {
 		return nil // a terminal: every key is the pane's
 	}
-	levels := r.walkOf(r.stack(focus), false)
-	ev := KeyEvent{Mode: mode, Focus: focus}
+	levels := r.walkOf(r.stackIn(focus, ctx.Modals), false)
+	ev := KeyEvent{Mode: mode, Focus: focus, Within: ctx.within()}
 	place, ok := r.typingPlaceIn(levels, mode, ev)
 	if !ok {
 		return nil
@@ -220,7 +222,7 @@ func (r *Runtime) sequenceOn(lv level, mode string, exclusive bool, key string, 
 			if row.Unbind || row.Capture != lv.capture || !strings.HasPrefix(row.Keys, key+" ") || isPrefixCancel(row) {
 				continue
 			}
-			if r.Available(row.Request, ev.Focus, ev.Mode) && r.rowGuardHolds(row.When, ev) {
+			if r.availableWithin(row.Request, ev.Focus, ev.Mode, ev.Within) && r.rowGuardHolds(row.When, ev) {
 				return row, true
 			}
 		}
@@ -240,10 +242,9 @@ func (r *Runtime) sequenceOn(lv level, mode string, exclusive bool, key string, 
 // checked: the live focus is always there. Instances with no rows of
 // their own under the same parents and of the same noun (a list's rows)
 // are checked once. The check reads the runtime's present state (open modals,
-// filters, guards) and runs nothing; the focus and mode are restored.
+// filters, guards) and runs nothing: each focus and mode is a query's own
+// resolution context, so the live focus and mode are never assigned.
 func (r *Runtime) TypingShadows() []string {
-	saved, savedMode := r.Focus, r.Mode
-	defer func() { r.Focus, r.Mode = saved, savedMode }()
 	modes := r.baseModeNames()
 	seen := map[string]bool{}
 	var out []string
@@ -265,9 +266,7 @@ func (r *Runtime) TypingShadows() []string {
 		}
 		walked[sig] = true
 		for _, mode := range modes {
-			m := ModeState{Name: mode}
-			r.Focus, r.Mode = id, m
-			for _, s := range r.typingShadowsAt(id, m) {
+			for _, s := range r.typingShadowsAt(queryResolution(id, ModeState{Name: mode}, r.modals)) {
 				line := s.String()
 				if !seen[line] {
 					seen[line] = true

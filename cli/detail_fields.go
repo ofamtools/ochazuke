@@ -29,7 +29,7 @@ func (v *PageView) mountSections() {
 	r.Builtin(func() {
 		r.DefineGuard("catalog-detail-fields", func(r *ochazuke.Runtime, e ochazuke.KeyEvent) bool {
 			v := sectionPage(r, e.Focus)
-			return r.TopModal() == "" && v != nil && v.hasMetadata() && r.Settings().Bool("detail.sections")
+			return r.EventTopModal(e) == "" && v != nil && v.hasMetadata() && r.Settings().Bool("detail.sections")
 		})
 		r.Define("ochazuke.detail").Verb("fields", func(c ochazuke.Ctx) ochazuke.Result {
 			v := sectionPage(c.Runtime, c.Runtime.Focus)

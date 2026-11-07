@@ -976,11 +976,17 @@ func ToggleProp(noun, prop string) Binding {
 // propShown reports whether a prop is offered where a request acts: its
 // When guard holds at focus, or it has none.
 func (r *Runtime) propShown(p PropSpec, focus string, mode ModeState, args Arguments) bool {
+	return r.propShownWithin(p, focus, mode, args, nil)
+}
+
+// propShownWithin is propShown judged in a query's interaction
+// (KeyEvent.Within), nil for the live one.
+func (r *Runtime) propShownWithin(p PropSpec, focus string, mode ModeState, args Arguments, within *resolutionContext) bool {
 	if p.When == "" {
 		return true
 	}
 	guard := r.guard(p.When)
-	return guard == nil || guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: args})
+	return guard == nil || guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: args, Within: within})
 }
 
 // PropGuard is the guard a noun's prop is available under (PropSpec.When),

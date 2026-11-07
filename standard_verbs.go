@@ -1270,8 +1270,9 @@ func (r *Runtime) missingRole(q Request) error {
 // propsAvailable is the per-prop layer of a standard verb's availability
 // (PropSpec.When): a request naming a prop the guard hides at focus is
 // unavailable, and so is a prop write (WritesProps) naming none when no
-// prop it could write is offered there.
-func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState) bool {
+// prop it could write is offered there. The prop guards judge within's
+// interaction for a query, the live one for nil.
+func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState, within *resolutionContext) bool {
 	if r.missingRole(q) != nil {
 		return false // a role the noun cannot write: as the verb that wrote it was
 	}
@@ -1298,7 +1299,7 @@ func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState) bool {
 			names = append(names, p.Name)
 		}
 	}
-	shown := func(p PropSpec) bool { return r.propShown(p, focus, mode, q.Args) }
+	shown := func(p PropSpec) bool { return r.propShownWithin(p, focus, mode, q.Args, within) }
 	for _, name := range names {
 		if p := n.prop(name); p != nil && !shown(*p) {
 			return false
