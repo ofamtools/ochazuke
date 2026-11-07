@@ -185,7 +185,8 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 					if len(changed) == 0 {
 						return Done(nil)
 					}
-					return editSaved(write(changed, false, 0))
+					res, own := write(changed, false, 0)
+					return editor.editSaved(changed, res, own)
 				}
 			} else {
 				spec.FieldWrites = true
@@ -195,7 +196,9 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 					if err != nil {
 						return Failed(err)
 					}
-					return editSaved(write(map[string]any{name: value}, false, w.Walk))
+					changes := map[string]any{name: value}
+					res, own := write(changes, false, w.Walk)
+					return editor.editSaved(changes, res, own)
 				}
 			}
 			editor, err = r.OpenRecordEditor(editFormID, spec)
@@ -566,11 +569,13 @@ func (r *Runtime) editBefore(since uint64, noun, key string) (map[string]any, bo
 }
 
 // editSaved is a form's write result: a focused subject that refused
-// leaves the form's field not written (its label says why), even when
-// the other subjects took the write (the notice counts them).
-func editSaved(res Result, own error) Result {
+// leaves the form's fields in changes marked not written (their labels
+// say why), while the write over the other subjects stands and its
+// notice counts the done and the failed; the save fails only when no
+// subject took it (res failed).
+func (e *RecordEditor) editSaved(changes map[string]any, res Result, own error) Result {
 	if res.err == nil && own != nil {
-		return Failed(own)
+		e.notWritten(slices.Sorted(maps.Keys(changes)), own)
 	}
 	return res
 }

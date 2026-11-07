@@ -912,6 +912,17 @@ func (e *RecordEditor) saveFailed(w RecordWrite, err error) {
 	}
 }
 
+// notWritten marks names not written for err, as a failed field write
+// does, while the write as a whole stood (a selection whose focused row
+// refused): the form shows no "not saved" line and does not retry.
+func (e *RecordEditor) notWritten(names []string, err error) {
+	for _, name := range names {
+		if f := e.field(name); f != nil {
+			f.writeErr, f.failedValue = err.Error(), e.written[name]
+		}
+	}
+}
+
 // reportUnsaved preserves values after their field and its inline error are gone.
 // Secrets stay redacted in notices and in the message history.
 func (e *RecordEditor) reportUnsaved(names []string, values Record, reason string) []string {

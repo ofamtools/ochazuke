@@ -63,6 +63,7 @@ func TestEditFormSelectionFocusedRefused(t *testing.T) {
 		t.Fatalf("form: %v focus %q", e, r.Focus)
 	}
 	// The choice list opens on todo, the value locked holds: two down is blocked.
+	notices := r.UI().capture()
 	for _, key := range []string{"enter", "j", "j", "enter"} {
 		keytest.Press(m, key)
 	}
@@ -71,6 +72,14 @@ func TestEditFormSelectionFocusedRefused(t *testing.T) {
 	}
 	if got := e.Problem("status"); !strings.Contains(got, "parcel t3 is locked") {
 		t.Fatalf("the focused row's field is marked not written: %q", got)
+	}
+	// Rows applied, so the save stands: one notice counts the done and
+	// the failed, and the form shows no "not saved" line (UX R3 F2).
+	if got := notices(); len(got) == 0 || !strings.Contains(got[len(got)-1].Text, "2 done, 1 failed (t3: ") || !strings.Contains(got[len(got)-1].Text, "parcel t3 is locked") {
+		t.Fatalf("notice %+v", got)
+	}
+	if e.WriteError() != "" {
+		t.Fatalf("the save is not failed: %q", e.WriteError())
 	}
 }
 
