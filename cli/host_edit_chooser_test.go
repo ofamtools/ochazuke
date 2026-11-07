@@ -154,6 +154,41 @@ func TestMountedEditChooserEnterBeforeTheGetLands(t *testing.T) {
 	}
 }
 
+// An enter held for the get, then a moved highlight, is no enter: the
+// move is a new choice and cancels the held enter, as typing does, so the
+// get landing writes nothing and the chooser stays open on the moved row
+// (UX R3 F1).
+func TestMountedEditChooserHeldEnterThenMove(t *testing.T) {
+	t.Parallel()
+	var sets int
+	r, _, thing := mountedEditFixture(t, "change", func(context.Context) error { sets++; return nil })
+	if _, err := r.Execute(ochazuke.Request{Noun: "ext-parcel", Verb: "edit", Args: ochazuke.Arguments{"field": "status"}}); err != nil {
+		t.Fatal(err)
+	}
+	c := r.Chooser(ochazuke.EditChooserKind)
+	for _, key := range []string{"enter", "down"} {
+		if _, err := r.HandleBinding(key); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	if sets != 0 || thing["status"] != "todo" || r.Chooser(ochazuke.EditChooserKind) != c {
+		t.Fatalf("held enter then move wrote: %v sets %d modal %q", thing["status"], sets, r.TopModal())
+	}
+	row, _ := c.Highlighted()
+	if _, err := r.HandleBinding("enter"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Settle(r, nil); err != nil {
+		t.Fatal(err)
+	}
+	if thing["status"] != row.ID || sets != 1 || r.TopModal() != "" {
+		t.Fatalf("enter after the move: %v want %q sets %d modal %q", thing["status"], row.ID, sets, r.TopModal())
+	}
+}
+
 // When the get fails after the chooser picked, the pick's write is the
 // result: the get's failure is not reported (UX R2 N2). While the
 // chooser is still open, a failed get closes it and is reported.

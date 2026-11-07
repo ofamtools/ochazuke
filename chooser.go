@@ -423,7 +423,8 @@ func (c *Chooser) pick() Result {
 	if c.waiting() || c.holding() {
 		// Enter on a query whose rows are still loading waits for them
 		// (runPending), as one with no choice made waits for Hold
-		// (Release); typing more, a source switch or esc drops it.
+		// (Release); typing more, moving the highlight, a source switch
+		// or esc drops it.
 		c.pending = true
 		return Done(c.state())
 	}
@@ -708,9 +709,13 @@ func (c *Chooser) createRow() (string, bool) {
 	return "+ " + label(c.seen), true
 }
 
-// move steps the highlight, clamped at both ends (no wrap).
+// move steps the highlight, clamped at both ends (no wrap). A move is a
+// new choice: it drops an enter held for a load or Hold, as typing does.
 func (c *Chooser) move(delta int) {
 	c.cursor = c.r.moveHighlight(c.cursor, delta, len(c.matches), false)
+	if delta != 0 {
+		c.pending = false
+	}
 	if delta != 0 && c.cursor >= 0 {
 		c.moved = true
 	}
