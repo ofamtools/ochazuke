@@ -335,226 +335,259 @@ func (l *List) drawnWidth(i int) int {
 	return natural[i]
 }
 
-func registerTableCells(r *Runtime) {
-	cells := func(c Context, args Arguments) (*List, error) {
-		if id := StringArg(args, "id", ""); id != "" {
+// tableList is the list a table verb acts on: the one named by id, else
+// the nearest on the focus path.
+func (r *Runtime) tableList(c Context, args Arguments) (*List, error) {
+	if id := StringArg(args, "id", ""); id != "" {
+		if l := r.List(id); l != nil {
+			return l, nil
+		}
+		return nil, fmt.Errorf("unknown list %q", id)
+	}
+	if c.InputID == "" {
+		for _, id := range r.Ancestry(focusOf(c)) {
 			if l := r.List(id); l != nil {
 				return l, nil
 			}
-			return nil, fmt.Errorf("unknown list %q", id)
 		}
-		if c.InputID == "" {
-			for _, id := range r.Ancestry(focusOf(c)) {
-				if l := r.List(id); l != nil {
-					return l, nil
-				}
-			}
-		}
-		return nil, errors.New("no focused list")
 	}
-	// cellTable is cells for the verbs that need a current column.
-	cellTable := func(c Context, args Arguments) (*List, error) {
-		l, err := cells(c, args)
-		if err == nil && !l.cellMode() {
-			err = errors.New("not a cell table (CellSelect)")
-		}
-		return l, err
+	return nil, errors.New("no focused list")
+}
+
+// cellTable is tableList for the verbs that need a current column.
+func (r *Runtime) cellTable(c Context, args Arguments) (*List, error) {
+	l, err := r.tableList(c, args)
+	if err == nil && !l.cellMode() {
+		err = errors.New("not a cell table (CellSelect)")
 	}
-	r.DefineGuard("table-cells", func(r *Runtime, ev KeyEvent) bool {
-		l := r.focusedList(ev.Focus)
-		return l != nil && l.cellMode()
-	})
-	// list-first-column: the focused list has no current column (a plain
-	// list, a row-select table) or is on its first: a host's "back" row on
-	// h stands aside while h still moves the column (cli's groups rail).
-	// table-cells is the cell rows' verb guard; list-table Y's (any table).
-	r.DefineGuard("list-first-column", func(r *Runtime, ev KeyEvent) bool {
-		l := r.focusedList(ev.Focus)
-		return l == nil || l.Column() == 0
-	})
-	r.DefineGuard("list-table", func(r *Runtime, ev KeyEvent) bool {
-		l := r.focusedList(ev.Focus)
-		return l != nil && len(l.columns) > 0
-	})
-	// table-column-right / -left: a cell-mode table whose current column
-	// is not the last / first in drawing order, so l / h moves the column
-	// rather than the focus.
-	r.DefineGuard("table-column-right", func(r *Runtime, ev KeyEvent) bool {
-		l := r.edgeList(ev.Focus, 1)
-		return l != nil && l.cellMode() && !l.atColumnEdge(1)
-	})
-	r.DefineGuard("table-column-left", func(r *Runtime, ev KeyEvent) bool {
-		l := r.edgeList(ev.Focus, -1)
-		return l != nil && l.cellMode() && !l.atColumnEdge(-1)
-	})
-	// The rows are bindings/table.json.
-	//
-	// h and l (and the arrows) scroll, then move the focus: per key, in
-	// this order, the first row whose guard holds answers (a failed guard
-	// falls through to the next row): a cell-mode table's column move
-	// short of its edge, a row-select table's scroll short of its edge,
-	// at the edge the focus to the neighbouring stop (as j and k spill),
-	// and where that cannot happen (a modal, NoSpill, the page's last or
-	// first stop) the clamped move, which leaves everything as it is.
-	// None of them answers on a tree's list (edgeList) while the tree's own
-	// h/l collapse and expand have something to do; on a row where they do
-	// not, the tree.spill setting lets these rows answer (Tree.yieldsEdge).
-	//
-	// A row-select table's $, ^ and 0 scroll its columns (verb guard
-	// table-scrolls), after each key's cell row: on a cell table those
-	// answer, here the list.column rows are guarded off. 0's row needs a
-	// guard of its own (row-table-no-count): a row with the same keys and
-	// guard would replace the cell row.
-	r.DefineGuard("row-table-no-count", func(r *Runtime, ev KeyEvent) bool {
-		l := r.focusedList(ev.Focus)
-		return (l == nil || !l.cellMode()) && r.guard("no-count")(r, ev)
-	})
-	guards := r.Nouns["ochazuke.list"].Guards
-	for _, verb := range []string{"column", "choose-column", "resize-column"} {
-		guards[verb] = "table-cells"
+	return l, err
+}
+
+// tableGuards are the guards of the table rows (bindings/table.json).
+//
+//   - list-first-column: the focused list has no current column (a plain
+//     list, a row-select table) or is on its first: a host's "back" row on
+//     h stands aside while h still moves the column (cli's groups rail).
+//     table-cells is the cell rows' verb guard; list-table Y's (any table).
+//   - table-column-right / -left: a cell-mode table whose current column
+//     is not the last / first in drawing order, so l / h moves the column
+//     rather than the focus.
+//   - row-table-no-count: 0's row on a row-select table needs a guard of
+//     its own: a row with the same keys and guard would replace the cell
+//     row.
+//   - list-yanks: list.yank copies a table's row or cell, and on any list
+//     the rows of a visual selection (V j y), so a plain list's y and Y
+//     stay free outside one.
+//
+// reset-columns' guard is table-resets (table_fit.go): z = on any table
+// with a width given or pins chosen.
+func tableGuards() []guardRow {
+	return []guardRow{
+		{"table-cells", func(r *Runtime, ev KeyEvent) bool {
+			l := r.focusedList(ev.Focus)
+			return l != nil && l.cellMode()
+		}},
+		{"list-first-column", func(r *Runtime, ev KeyEvent) bool {
+			l := r.focusedList(ev.Focus)
+			return l == nil || l.Column() == 0
+		}},
+		{"list-table", func(r *Runtime, ev KeyEvent) bool {
+			l := r.focusedList(ev.Focus)
+			return l != nil && len(l.columns) > 0
+		}},
+		{"table-column-right", func(r *Runtime, ev KeyEvent) bool {
+			l := r.edgeList(ev.Focus, 1)
+			return l != nil && l.cellMode() && !l.atColumnEdge(1)
+		}},
+		{"table-column-left", func(r *Runtime, ev KeyEvent) bool {
+			l := r.edgeList(ev.Focus, -1)
+			return l != nil && l.cellMode() && !l.atColumnEdge(-1)
+		}},
+		{"row-table-no-count", func(r *Runtime, ev KeyEvent) bool {
+			l := r.focusedList(ev.Focus)
+			return (l == nil || !l.cellMode()) && r.guard("no-count")(r, ev)
+		}},
+		{"list-yanks", func(r *Runtime, ev KeyEvent) bool {
+			l := r.focusedList(ev.Focus)
+			return l != nil && (len(l.columns) > 0 || l.visual)
+		}},
 	}
-	// list.yank copies a table's row or cell, and on any list the rows of
-	// a visual selection (V j y), so a plain list's y and Y stay free
-	// outside one.
-	r.DefineGuard("list-yanks", func(r *Runtime, ev KeyEvent) bool {
-		l := r.focusedList(ev.Focus)
-		return l != nil && (len(l.columns) > 0 || l.visual)
-	})
-	guards["yank"] = "list-yanks"
-	// reset-columns' guard is table-resets (table_fit.go): z = on any
-	// table with a width given or pins chosen.
-	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
-	r.Register(Operation{Verb: "column", Noun: "ochazuke.list", Description: "Move a cell-mode table's current column: to the first or last, to the column numbered index (|), or delta columns; the view scrolls to show it", Parameters: map[string]Parameter{
-		"id":    id,
-		"to":    {Type: "string", Enum: []string{"first", "last"}, Description: "The first or the last column"},
-		"index": {Type: "integer", Description: "The column number, 1 the first (a count: 3|)"},
-		"delta": {Type: "integer", Description: "Columns to move, positive right (l), negative left (h)"},
-		"steps": {Type: "integer", Description: "Repeat count (3l)"},
-	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
-		l, err := cellTable(c, a)
-		if err != nil {
-			return nil, err
-		}
-		// Positions are in drawing order (pinned columns first), so h and
-		// l, 0, $ and N| move across the screen as drawn.
-		order := l.order()
-		to, n := StringArg(a, "to", ""), l.position()
-		switch {
-		case a["index"] != nil:
-			n = IntArg(a, "index", 1) - 1
-		case to == "first":
-			n = 0
-		case to == "last":
-			n = len(order) - 1
-		default:
-			n += IntArg(a, "delta", 0) * max(1, IntArg(a, "steps", 1))
-		}
-		l.SetColumn(order[min(max(n, 0), len(order)-1)])
-		return l.state(), nil
+}
+
+// tableListID is the parameter every table verb takes.
+var tableListID = Parameter{Type: "string", Description: "The list (default: the focused one)"}
+
+// tableCellVerbs are the verbs on the list noun that act on a table's
+// columns and cells. The keys are bindings/table.json.
+//
+// h and l (and the arrows) scroll, then move the focus: per key, in
+// this order, the first row whose guard holds answers (a failed guard
+// falls through to the next row): a cell-mode table's column move
+// short of its edge, a row-select table's scroll short of its edge,
+// at the edge the focus to the neighbouring stop (as j and k spill),
+// and where that cannot happen (a modal, NoSpill, the page's last or
+// first stop) the clamped move, which leaves everything as it is.
+// None of them answers on a tree's list (edgeList) while the tree's own
+// h/l collapse and expand have something to do; on a row where they do
+// not, the tree.spill setting lets these rows answer (Tree.yieldsEdge).
+//
+// A row-select table's $, ^ and 0 scroll its columns (verb guard
+// table-scrolls), after each key's cell row: on a cell table those
+// answer, here the list.column rows are guarded off.
+func tableCellVerbs() []verbSpec {
+	id := tableListID
+	return []verbSpec{
+		{"column", "ochazuke.list", "Move a cell-mode table's current column: to the first or last, to the column numbered index (|), or delta columns; the view scrolls to show it", "list state", map[string]Parameter{
+			"id":    id,
+			"to":    {Type: "string", Enum: []string{"first", "last"}, Description: "The first or the last column"},
+			"index": {Type: "integer", Description: "The column number, 1 the first (a count: 3|)"},
+			"delta": {Type: "integer", Description: "Columns to move, positive right (l), negative left (h)"},
+			"steps": {Type: "integer", Description: "Repeat count (3l)"},
+		}, tableColumn, "table-cells"},
+		{"choose-column", "ochazuke.list", "Choose a table's current column from a chooser of its titles", "list state", map[string]Parameter{"id": id}, tableChooseColumn, "table-cells"},
+		{"yank", "ochazuke.list", "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers; over a visual selection (V) every selected row's, one per line", "the yank", map[string]Parameter{
+			"id":       id,
+			"what":     {Type: "string", Enum: []string{"cell", "row"}, Description: "The cell (default) or the whole row"},
+			"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"},
+		}, tableYank, "list-yanks"},
+		{"resize-column", "ochazuke.list", "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", "list state", map[string]Parameter{
+			"id":    id,
+			"delta": {Type: "integer", Required: true, Description: "1 wider, -1 narrower"},
+			"steps": {Type: "integer", Description: "Repeat count (3z>)"},
+		}, tableResizeColumn, "table-cells"},
+		{"reset-columns", "ochazuke.list", "Lay every column of a table out automatically again and put the default pins back (z =)", "list state", map[string]Parameter{"id": id}, tableResetColumns, ""},
+	}
+}
+
+func registerTableCells(r *Runtime) {
+	r.defineGuards(tableGuards())
+	r.registerVerbSpecs(tableCellVerbs())
+	registerTablePins(r, r.tableList)
+	registerTableFit(r, r.tableList)
+}
+
+func tableColumn(r *Runtime, c Context, a Arguments) (any, error) {
+	l, err := r.cellTable(c, a)
+	if err != nil {
+		return nil, err
+	}
+	// Positions are in drawing order (pinned columns first), so h and
+	// l, 0, $ and N| move across the screen as drawn.
+	order := l.order()
+	to, n := StringArg(a, "to", ""), l.position()
+	switch {
+	case a["index"] != nil:
+		n = IntArg(a, "index", 1) - 1
+	case to == "first":
+		n = 0
+	case to == "last":
+		n = len(order) - 1
+	default:
+		n += IntArg(a, "delta", 0) * max(1, IntArg(a, "steps", 1))
+	}
+	l.SetColumn(order[min(max(n, 0), len(order)-1)])
+	return l.state(), nil
+}
+
+func tableChooseColumn(r *Runtime, c Context, a Arguments) (any, error) {
+	l, err := r.cellTable(c, a)
+	if err != nil {
+		return nil, err
+	}
+	rows := make([]ChooserRow, len(l.columns))
+	for i := range l.columns {
+		rows[i] = ChooserRow{ID: strconv.Itoa(i), Label: l.columnTitle(i)}
+	}
+	_, err = r.OpenChooser(ChooserSpec{Kind: "table-column", Title: "Column", Rows: rows, Choose: func(row ChooserRow) Result {
+		i, _ := strconv.Atoi(row.ID)
+		l.SetColumn(i)
+		return Done(l.state())
 	}})
-	r.Register(Operation{Verb: "choose-column", Noun: "ochazuke.list", Description: "Choose a table's current column from a chooser of its titles", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
-		l, err := cellTable(c, a)
-		if err != nil {
-			return nil, err
-		}
-		rows := make([]ChooserRow, len(l.columns))
-		for i := range l.columns {
-			rows[i] = ChooserRow{ID: strconv.Itoa(i), Label: l.columnTitle(i)}
-		}
-		_, err = r.OpenChooser(ChooserSpec{Kind: "table-column", Title: "Column", Rows: rows, Choose: func(row ChooserRow) Result {
-			i, _ := strconv.Atoi(row.ID)
-			l.SetColumn(i)
-			return Done(l.state())
-		}})
-		return l.state(), err
-	}})
-	r.Register(Operation{Verb: "yank", Noun: "ochazuke.list", Description: "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers; over a visual selection (V) every selected row's, one per line", Parameters: map[string]Parameter{
-		"id":       id,
-		"what":     {Type: "string", Enum: []string{"cell", "row"}, Description: "The cell (default) or the whole row"},
-		"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"},
-	}, Result: "the yank", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
-		l, err := cells(c, a)
-		if err != nil {
-			return nil, err
-		}
-		item, ok := l.Selected()
-		if !ok {
-			return nil, nil
-		}
-		what := StringArg(a, "what", "cell")
-		if what != "row" && !l.cellMode() {
-			return nil, errors.New("not a cell table (CellSelect): only the row copies")
-		}
-		// A visual selection (V) copies every selected row, one per line,
-		// then ends or stays (visual.after-action); otherwise the selected
-		// row alone.
-		items := []ListItem{item}
-		if l.visual {
-			items = l.markedShown()
-			defer r.afterVisualAction(l)
-			if l.yankRows != nil && what == "row" {
-				y, n := l.yankRows(items)
-				if err := r.storeYank(y, StringArg(a, "register", ""), false); err != nil {
-					return nil, err
-				}
-				r.UI().Info(copiedRows(n))
-				return y, nil
+	return l.state(), err
+}
+
+func tableYank(r *Runtime, c Context, a Arguments) (any, error) {
+	l, err := r.tableList(c, a)
+	if err != nil {
+		return nil, err
+	}
+	item, ok := l.Selected()
+	if !ok {
+		return nil, nil
+	}
+	what := StringArg(a, "what", "cell")
+	if what != "row" && !l.cellMode() {
+		return nil, errors.New("not a cell table (CellSelect): only the row copies")
+	}
+	// A visual selection (V) copies every selected row, one per line,
+	// then ends or stays (visual.after-action); otherwise the selected
+	// row alone.
+	items := []ListItem{item}
+	if l.visual {
+		items = l.markedShown()
+		defer r.afterVisualAction(l)
+		if l.yankRows != nil && what == "row" {
+			y, n := l.yankRows(items)
+			if err := r.storeYank(y, StringArg(a, "register", ""), false); err != nil {
+				return nil, err
 			}
+			r.UI().Info(copiedRows(n))
+			return y, nil
 		}
-		lines := make([]string, len(items))
-		for i, it := range items {
-			if what == "row" {
-				lines[i] = rowText(it, len(l.columns))
-			} else {
-				lines[i] = cellText(it, l.Column())
-			}
+	}
+	lines := make([]string, len(items))
+	for i, it := range items {
+		if what == "row" {
+			lines[i] = rowText(it, len(l.columns))
+		} else {
+			lines[i] = cellText(it, l.Column())
 		}
-		y := Yank{Text: lines[0]}
-		if len(lines) > 1 {
-			y = Yank{Text: strings.Join(lines, "\n") + "\n", Shape: "line"}
-		}
-		if err := r.storeYank(y, StringArg(a, "register", ""), false); err != nil {
-			return nil, err
-		}
-		subject := "the row"
-		if what != "row" {
-			subject = l.columnTitle(l.Column())
-		}
-		if len(lines) > 1 {
-			subject = fmt.Sprintf("%d rows", len(lines))
-			if what != "row" {
-				subject = fmt.Sprintf("%s of %d rows", l.columnTitle(l.Column()), len(lines))
-			}
-		}
-		r.UI().Info(fmt.Sprintf("copied %s (%d characters)", subject, len([]rune(y.Text))))
-		return y, nil
-	}})
-	r.Register(Operation{Verb: "resize-column", Noun: "ochazuke.list", Description: "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", Parameters: map[string]Parameter{
-		"id":    id,
-		"delta": {Type: "integer", Required: true, Description: "1 wider, -1 narrower"},
-		"steps": {Type: "integer", Description: "Repeat count (3z>)"},
-	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
-		l, err := cellTable(c, a)
-		if err != nil {
-			return nil, err
-		}
-		i := l.Column()
-		width := l.drawnWidth(i) + IntArg(a, "delta", 0)*ColumnWidthStep*max(1, IntArg(a, "steps", 1))
-		if l.colWidth > 0 {
-			width = min(width, l.colWidth)
-		}
-		l.SetColumnWidth(i, max(minColumnWidth, width))
-		return l.state(), nil
-	}})
-	r.Register(Operation{Verb: "reset-columns", Noun: "ochazuke.list", Description: "Lay every column of a table out automatically again and put the default pins back (z =)", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
-		l, err := cells(c, a)
-		if err != nil {
-			return nil, err
-		}
-		l.ResetColumnWidths()
-		l.ResetPins()
-		return l.state(), nil
-	}})
-	registerTablePins(r, cells)
-	registerTableFit(r, cells)
+	}
+	y := Yank{Text: lines[0]}
+	if len(lines) > 1 {
+		y = Yank{Text: strings.Join(lines, "\n") + "\n", Shape: "line"}
+	}
+	if err := r.storeYank(y, StringArg(a, "register", ""), false); err != nil {
+		return nil, err
+	}
+	r.UI().Info(fmt.Sprintf("copied %s (%d characters)", l.yankSubject(what, len(lines)), len([]rune(y.Text))))
+	return y, nil
+}
+
+// yankSubject names what a table yank copied: the row or the current
+// column's cell, of rows rows.
+func (l *List) yankSubject(what string, rows int) string {
+	switch {
+	case rows > 1 && what == "row":
+		return fmt.Sprintf("%d rows", rows)
+	case rows > 1:
+		return fmt.Sprintf("%s of %d rows", l.columnTitle(l.Column()), rows)
+	case what == "row":
+		return "the row"
+	}
+	return l.columnTitle(l.Column())
+}
+
+func tableResizeColumn(r *Runtime, c Context, a Arguments) (any, error) {
+	l, err := r.cellTable(c, a)
+	if err != nil {
+		return nil, err
+	}
+	i := l.Column()
+	width := l.drawnWidth(i) + IntArg(a, "delta", 0)*ColumnWidthStep*max(1, IntArg(a, "steps", 1))
+	if l.colWidth > 0 {
+		width = min(width, l.colWidth)
+	}
+	l.SetColumnWidth(i, max(minColumnWidth, width))
+	return l.state(), nil
+}
+
+func tableResetColumns(r *Runtime, c Context, a Arguments) (any, error) {
+	l, err := r.tableList(c, a)
+	if err != nil {
+		return nil, err
+	}
+	l.ResetColumnWidths()
+	l.ResetPins()
+	return l.state(), nil
 }

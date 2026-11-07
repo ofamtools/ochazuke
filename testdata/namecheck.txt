@@ -140,6 +140,21 @@ editing.go	Input.move	compare	"last-line"	1
 editing.go	Input.move	compare	"normal"	3
 editing.go	Input.move	compare	"up"	2
 editing.go	Input.move	cyclo	"-"	41
+editor.go	Input.checkPaste	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorEnd	case	"right"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorEnd	case	"word-forward"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorEnd	case	"word-next"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorEnd	compare	"word-next"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorSelect	compare	"down"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorSelect	compare	"first-line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorSelect	compare	"last-line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorSelect	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorSelect	compare	"line-end"	2	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorSelect	compare	"up"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorSelect	compare	"word-end"	2	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.operatorSelect	compare	"word-forward"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.pasteOverLines	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
+editor.go	Input.pasteOverSelection	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.pasteYank	case	"line"	1
 editor.go	Input.pasteYank	compare	"line"	1
 editor.go	Input.pasteYank	cyclo	"-"	30
@@ -148,19 +163,6 @@ editor.go	Input.selectionRange	compare	"line"	1
 editor.go	Input.selectionSnapshot	compare	"line"	1
 editor.go	Input.selectionYank	compare	"line"	1
 editor.go	editorShape	case	"line"	1
-editor.go	registerEditorOperations	case	"right"	1
-editor.go	registerEditorOperations	case	"word-forward"	1
-editor.go	registerEditorOperations	case	"word-next"	1
-editor.go	registerEditorOperations	compare	"down"	1
-editor.go	registerEditorOperations	compare	"first-line"	1
-editor.go	registerEditorOperations	compare	"last-line"	1
-editor.go	registerEditorOperations	compare	"line"	5
-editor.go	registerEditorOperations	compare	"line-end"	2
-editor.go	registerEditorOperations	compare	"up"	1
-editor.go	registerEditorOperations	compare	"word-end"	2
-editor.go	registerEditorOperations	compare	"word-forward"	1
-editor.go	registerEditorOperations	compare	"word-next"	1
-editor.go	registerEditorOperations	cyclo	"-"	87
 events.go	EventSpec.Field	compare	"event"	1
 focus.go	Runtime.JumpFocus	case	"stop"	1
 focus.go	Runtime.removeInstance	compare	"app"	1
@@ -289,14 +291,13 @@ markdown/notes.go	ReplyNote	compare	"note"	1
 markdown/notes.go	SetFlags	compare	"note"	1
 markdown/notes.go	noteInsertion	compare	"note"	1
 markdown/table.go	align	case	"right"	1
-markdown/verbs.go	register	case	"link-copy"	1
-markdown/verbs.go	register	case	"link-open"	1
-markdown/verbs.go	register	case	"next-link"	1
-markdown/verbs.go	register	case	"previous-link"	1
-markdown/verbs.go	register	compare	"note"	1
-markdown/verbs.go	register	compare	"ochazuke.markdown"	1
-markdown/verbs.go	register	compare	"task"	1
-markdown/verbs.go	register	cyclo	"-"	34
+markdown/verbs.go	describeDocOperations	case	"link-copy"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
+markdown/verbs.go	describeDocOperations	case	"link-open"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
+markdown/verbs.go	describeDocOperations	case	"next-link"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
+markdown/verbs.go	describeDocOperations	case	"previous-link"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
+markdown/verbs.go	describeDocOperations	compare	"ochazuke.markdown"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
+markdown/verbs.go	docGuards	compare	"task"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
+markdown/verbs.go	hasNotes	compare	"note"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
 model.go	Model.Update	cyclo	"-"	29
 model.go	Model.cutMessage	compare	"ochazuke.messages.show"	1
 model.go	inputBlockFrom	cyclo	"-"	57
@@ -555,14 +556,16 @@ settings_view.go	closeSettingsPage	compare	"ochazuke.setting"	1
 settings_view.go	closeSettingsPage	compare	"ochazuke.setting-item"	1
 settings_view.go	closeSettingsPage	compare	"ochazuke.settings-section"	1
 settings_view.go	focusedSetting	compare	"ochazuke.setting"	1
-settings_view.go	registerSettingsEditor	compare	"list"	3
-settings_view.go	registerSettingsEditor	compare	"ochazuke.setting-item"	2
-settings_view.go	registerSettingsEditor	cyclo	"-"	39
+settings_view.go	settingAdd	compare	"list"	1	moved from registerSettingsEditor (was debt there): a verb table row named a handler; the compare moved with its code
 settings_view.go	settingAllowed	compare	"list"	1
+settings_view.go	settingEdit	compare	"list"	1	moved from registerSettingsEditor (was debt there): a verb table row named a handler; the compare moved with its code
+settings_view.go	settingGuards	compare	"list"	1	moved from registerSettingsEditor (was debt there): a verb table row named a handler; the compare moved with its code
+settings_view.go	settingItemOf	compare	"ochazuke.setting-item"	1	moved from registerSettingsEditor (was debt there): a verb table row named a handler; the compare moved with its code
+settings_view.go	settingItemReset	compare	"ochazuke.setting-item"	1	moved from registerSettingsEditor (was debt there): a verb table row named a handler; the compare moved with its code
 settings_view.go	settingOfRow	compare	"ochazuke.setting"	1
 standard_edit.go	Runtime.editFields	compare	"list"	1
-standard_edit.go	editSession.bindWrites	compare	"confirm"	1	moved from editHandler (was debt there): forms.edit-apply is a two-value setting read once to pick the submit or per-field writer
 standard_edit.go	editRecord	compare	"list"	1
+standard_edit.go	editSession.bindWrites	compare	"confirm"	1	moved from editHandler (was debt there): forms.edit-apply is a two-value setting read once to pick the submit or per-field writer
 standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
@@ -571,9 +574,9 @@ standard_verbs.go	setChanges	cyclo	"-"	28
 table.go	List.tallView	cyclo	"-"	43
 table.go	tableLineAt	compare	"right"	1
 table_cells.go	List.columnTo	compare	"last"	1
-table_cells.go	registerTableCells	compare	"last"	1
-table_cells.go	registerTableCells	compare	"row"	5
-table_cells.go	registerTableCells	cyclo	"-"	44
+table_cells.go	List.yankSubject	compare	"row"	2	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
+table_cells.go	tableColumn	compare	"last"	1	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
+table_cells.go	tableYank	compare	"row"	3	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
 table_columns.go	List.scrollColumns	case	"last"	1
 text_view.go	Runtime.showsText	case	"all"	1
 timeline.go	Timeline.draw	compare	"accent"	1
