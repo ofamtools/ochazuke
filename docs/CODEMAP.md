@@ -619,11 +619,11 @@ Root package `ochazuke` is flat: 199 source files, 244 test files. Each entry li
 
 ### list_from.go
 
-- lines: 218 · tests: list_from_test.go
+- lines: 226 · tests: list_from_test.go
 - purpose: From makes a list the view of a noun's store (AddList(id, nil, From(noun))): the list fills itself with the noun's things, one row each, and fills again afte...
 - methods: List(4), Runtime(2), fromHub(1)
 - funcs: From
-- leans on: list.go(9), props.go(9), delivery.go(5), runtime.go(5)
+- leans on: list.go(9), props.go(9), delivery.go(6), runtime.go(5)
 
 ### list_motions.go
 
@@ -956,7 +956,7 @@ Root package `ochazuke` is flat: 199 source files, 244 test files. Each entry li
 
 ### props.go
 
-- lines: 986
+- lines: 993
 - purpose: PropSpec is one field of a noun's things.
 - types: PropSpec, Thing, Store
 - methods: Noun(5), NounBuilder(2), PropSpec(2), Runtime(16)

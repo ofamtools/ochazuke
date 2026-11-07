@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -187,5 +188,38 @@ func TestListFromStoreStopsWatchWithItsLists(t *testing.T) {
 	// nothing alive: the hub ended its watch on the next change
 	if !hub.watch.Stopped() || r.watchHub().from["note"] != nil {
 		t.Fatal("the watch outlives its lists")
+	}
+}
+
+func TestListFromPropCellHook(t *testing.T) {
+	r := NewRuntime()
+	s := &fromStore{things: []Thing{{"id": "n1", "title": "First", "argv": []string{"go", "test"}}, {"id": "n2", "title": "Second"}}}
+	cell := func(_ Ctx, th Thing) string {
+		if a, ok := th["argv"].([]string); ok {
+			return strings.Join(a, " ")
+		}
+		return "daemon shell"
+	}
+	r.Define("note").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel, Parameter: Parameter{Type: SettingString}},
+		PropSpec{Name: "argv", Parameter: Parameter{Type: SettingList}, Cell: cell}).
+		Columns(Column{Title: "Title"}, Column{Title: "Argv"}).Store(s.store())
+	l, err := r.AddList("a", nil, From("note"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := l.Snapshot()["items"].([]ListItem)
+	if got := items[0].Cells; got[0] != "First" || got[1] != "go test" {
+		t.Fatalf("cells %q", got)
+	}
+	if got := items[1].Cells[1]; got != "daemon shell" {
+		t.Fatalf("fallback cell %q", got)
+	}
+	got, err := s.store().Get(Ctx{}, "n1")
+	if err != nil || fmt.Sprint(got["argv"]) != "[go test]" {
+		t.Fatalf("store value changed: %v %v", got, err)
+	}
+	res, err := r.Execute(Request{Noun: "note", Verb: "get", Args: Arguments{"id": "n1"}})
+	if err != nil || !strings.Contains(fmt.Sprint(res), "go test") || strings.Contains(fmt.Sprint(res), "daemon shell") {
+		t.Fatalf("get: %v %v", res, err)
 	}
 }

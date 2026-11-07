@@ -16,7 +16,9 @@ import (
 // noun's label prop, its Data the thing, and, when the list is a table, its
 // Cells the props the columns name (Noun.Columns unless Columns is given; a
 // column's prop is its title lower-cased, spaces as dashes, or an alias of
-// it). The filter, sort, groups and pages of the list's view
+// it; a cell is the prop's Cell text when it declares one, else the value
+// as text). Cell text is derived on each fill, never stored, and reaches
+// only the table: get, list and the CLI keep the store's values. The filter, sort, groups and pages of the list's view
 // (ListQuery) stay the list's: it is handed every thing, archived ones
 // included, and hides them as list.hide-archived says.
 //
@@ -70,11 +72,13 @@ func (l *List) Refill() error {
 		return err
 	}
 	l.refills++
-	return l.SetItems(l.r.thingItems(n, l.id, page.Items, l.columns))
+	return l.SetItems(l.r.thingItems(c, n, l.id, page.Items, l.columns))
 }
 
-// thingItems are the rows of things, listed under list.
-func (r *Runtime) thingItems(n *Noun, list string, things []Thing, columns []Column) []ListItem {
+// thingItems are the rows of things, listed under list. A cell is its
+// prop's Cell text when the prop declares one, else the value's reading
+// (cellValueText).
+func (r *Runtime) thingItems(c Ctx, n *Noun, list string, things []Thing, columns []Column) []ListItem {
 	key := n.keyProp()
 	props := make([]*PropSpec, len(columns))
 	for i, col := range columns {
@@ -95,7 +99,11 @@ func (r *Runtime) thingItems(n *Noun, list string, things []Thing, columns []Col
 		if len(columns) > 0 {
 			item.Cells = make([]string, len(columns))
 			for i, p := range props {
-				if p != nil {
+				switch {
+				case p == nil:
+				case p.Cell != nil:
+					item.Cells[i] = p.Cell(c, t)
+				default:
 					item.Cells[i] = cellValueText(t[p.Name])
 				}
 			}
@@ -200,7 +208,7 @@ func (l *List) refillRemote(n *Noun, c Ctx) error {
 			return nil, err
 		}
 		l.refills++
-		return nil, l.SetItems(r.thingItems(n, l.id, page.Items, l.columns))
+		return nil, l.SetItems(r.thingItems(c, n, l.id, page.Items, l.columns))
 	}
 	res := r.runSteppedBody(c, n.Name+".list", body, finish)
 	if res.err != nil {

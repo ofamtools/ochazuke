@@ -131,6 +131,13 @@ type PropSpec struct {
 	// decisions Q1, Q3). Data, never code: a noun says which props write
 	// through. A key or read-only prop cannot (set never writes it).
 	Through bool `json:"through,omitempty"`
+	// Cell is how the prop reads in a table cell of a list From the noun's
+	// store, given the whole thing (so a cell may show a name for an id, join
+	// an argv with spaces or shorten a path): derived text, never stored.
+	// Nil shows the value as text (cellValueText). It is a display hook only;
+	// get, list and the CLI's rows keep the store's value, and the CLI's
+	// list tables are machine output that must not drift from them.
+	Cell func(Ctx, Thing) string `json:"-"`
 	// loose marks a derived prop whose rows hold values of several kinds:
 	// propValue reads every scalar as its text, so they compare as strings.
 	loose bool
