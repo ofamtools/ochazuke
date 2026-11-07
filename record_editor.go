@@ -1254,6 +1254,7 @@ type choiceLoad struct {
 // (while typing, and when a sibling changes); otherwise the choices load
 // once, as a job of the chooser (closing it cancels the load).
 func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, error) {
+	spec, l.param = r.nounPicker(spec, l.param)
 	landed := func(choices []Choice) {
 		if l.landed != nil {
 			l.landed(choices)

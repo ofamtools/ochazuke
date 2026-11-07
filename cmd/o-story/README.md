@@ -523,6 +523,7 @@ Conformance:
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
 | normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
+| normal | picker | `picker.open` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.review` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
@@ -680,6 +681,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
 - `normal` → `insert` via `parcel.edit`
+- `normal` → `insert` via `picker.open`
 - `normal` → `insert` via `row R`
 - `normal` → `insert` via `row W`
 - `normal` → `insert` via `row e`

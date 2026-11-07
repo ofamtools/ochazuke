@@ -632,6 +632,7 @@ func (r *Runtime) registerFramework() {
 	registerConfigReload(r)
 	registerHooks(r)
 	registerPages(r)
+	registerPickerRegistry(r)
 	registerModalAliases(r)
 	registerLists(r)
 	registerTrees(r)

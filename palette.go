@@ -111,6 +111,11 @@ func newPalette(r *Runtime) *Palette {
 	// any-mode row cannot steal typing.
 	r.Define("ochazuke.palette").Focusable().Unpersisted()
 	r.loadFrameworkBindings("palette.json")
+	// The palette is its own component; the pickers picker lists it as
+	// commands, which opens it (picker_registry.go).
+	if err := r.AddPicker(PickerDef{Name: CommandsPickerName, Title: "Commands", About: "The command line: every verb, typed with its arguments", Verb: "ochazuke.palette.open"}); err != nil {
+		panic(err)
+	}
 	return p
 }
 

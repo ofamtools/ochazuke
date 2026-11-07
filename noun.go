@@ -34,6 +34,9 @@ type Noun struct {
 	// NoEditKey declines the app-level implicit edit-key fallback only.
 	// The noun's edit verb and explicit binding rows remain available.
 	NoEditKey bool `json:"noEditKey,omitempty"`
+	// NoPicker keeps the noun out of the derived pickers (NounBuilder.NoPicker,
+	// picker_registry.go): a noun with a list verb gets no picker of its own.
+	NoPicker bool `json:"noPicker,omitempty"`
 	// Unpersisted keeps the noun's history entries out of the history
 	// file (NounBuilder.Unpersisted): text editing and its plumbing, raw
 	// keys, counts, registers, macros, modes, keys sent to a terminal.
@@ -633,6 +636,10 @@ func (b *NounBuilder) History(kind string) *NounBuilder {
 // Unpersisted keeps the noun's history entries out of the history file
 // (Noun.Unpersisted).
 func (b *NounBuilder) Unpersisted() *NounBuilder { b.n.Unpersisted = true; return b }
+
+// NoPicker opts the noun out of the derived pickers: a noun with a list
+// verb otherwise gets a picker named after it (picker.derive).
+func (b *NounBuilder) NoPicker() *NounBuilder { b.n.NoPicker = true; return b }
 
 // Many marks the last declared verb as taking many subjects at once
 // (Operation.Many): run over a visual selection, its handler is called

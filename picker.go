@@ -103,10 +103,16 @@ func newPicker(r *Runtime) *Picker {
 		applyTraits(&op, traits)
 		r.Register(op)
 	}
-	register("open", "Open the shared fuzzy path picker in insert mode", map[string]Parameter{
-		"filter": {Type: "string", Description: "any, file or dir; defaults to the originating path field's filter"},
-		"path":   {Type: "string", Description: "Initial path/query; otherwise path value, current paths line, or cwd"},
-	}, p.open)
+	// open is the picker registry's ochazuke.picker.open with no name
+	// (picker_registry.go): one verb opens a named picker or this finder.
+	r.setPickerFinder(func(c Context, args Arguments) (any, error) {
+		result, err := p.open(c, args)
+		if err != nil {
+			p.Error = err.Error()
+		}
+		p.sync()
+		return result, err
+	})
 	register("move", "Move the highlight; the path is not edited", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(_ Context, args Arguments) (any, error) {
 		if err := p.require(); err != nil {
 			return nil, err
