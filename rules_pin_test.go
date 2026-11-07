@@ -7,8 +7,7 @@ import "testing"
 func TestActionCheckMessagesPinned(t *testing.T) {
 	r := NewRuntime()
 	r.Define("worktree")
-	r.Define("list")
-	r.Operations["list.move"] = Operation{Noun: "list", Verb: "move"}
+	r.Operations["worktree.move"] = Operation{Noun: "worktree", Verb: "move"}
 	r.Nouns["worktree"].Props = append(r.Nouns["worktree"].Props, PropSpec{Name: "branch", Parameter: Parameter{Type: SettingString}})
 	cmd := Argv{"true"}
 	cases := []struct {
@@ -22,7 +21,7 @@ func TestActionCheckMessagesPinned(t *testing.T) {
 		{"verb space", Action{Noun: "worktree", Verb: "a b", Command: cmd}, `verb "a b" must be one word without a dot`},
 		{"unknown noun", Action{Noun: "nope", Verb: "v", Command: cmd}, `unknown noun "nope" (an action adds a verb to an existing noun)`},
 		{"unknown noun spelled", Action{Noun: "nope", Verb: "v", Command: cmd, written: "Nope"}, `unknown noun "Nope" (an action adds a verb to an existing noun)`},
-		{"defined", Action{Noun: "list", Verb: "move", Command: cmd}, "list.move is already defined"},
+		{"defined", Action{Noun: "worktree", Verb: "move", Command: cmd}, "worktree.move is already defined"},
 		{"prop", Action{Noun: "worktree", Verb: "branch", Command: cmd}, "branch is a prop of worktree, not a verb"},
 		{"both", Action{Noun: "worktree", Verb: "v", Command: cmd, Base: Argv{"tool"}}, "command and base exclude each other"},
 		{"neither", Action{Noun: "worktree", Verb: "v"}, "command or base is required"},
