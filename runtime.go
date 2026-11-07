@@ -376,6 +376,12 @@ type Operation struct {
 	// replaces a standard one, registered before or after. The catalog's
 	// standard.
 	Standard string `json:"standard,omitempty"`
+	// ShadowsStandard says a hand-written verb named like a standard verb
+	// its noun's store would generate replaces it on purpose (a facts
+	// noun whose own list answers in place of the standard one):
+	// StandardShadows does not report it. A shadow not declared this way
+	// keeps its info line.
+	ShadowsStandard bool `json:"-"`
 	// Checks run before the verb from every path (AddVerbCheck,
 	// BeforeQuit, verb_checks.go): each allows, asks first or refuses.
 	Checks []VerbCheck `json:"-"`

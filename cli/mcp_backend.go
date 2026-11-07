@@ -505,7 +505,7 @@ func (s *Shell) registerMCPVerbs() {
 			}, "MCP "+name).Fetch().Quiet()
 		}
 		s.defineCatalogFacts()
-		r.Register(ochazuke.Operation{Noun: "ochazuke.catalog", Verb: "list", Description: "Discover nouns, verbs and effective agent rights", HistoryKind: ochazuke.HistoryFetch, Parameters: map[string]ochazuke.Parameter{"noun": {Type: "string"}, "search": {Type: "string"}, "include": {Type: "string", Enum: []string{"app", "builtin", "all"}}, "limit": {Type: "integer"}, "offset": {Type: "integer"}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
+		r.Register(ochazuke.Operation{Noun: "ochazuke.catalog", Verb: "list", Description: "Discover nouns, verbs and effective agent rights", HistoryKind: ochazuke.HistoryFetch, ShadowsStandard: true, Parameters: map[string]ochazuke.Parameter{"noun": {Type: "string"}, "search": {Type: "string"}, "include": {Type: "string", Enum: []string{"app", "builtin", "all"}}, "limit": {Type: "integer"}, "offset": {Type: "integer"}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			return (&mcpBackend{shell: s, actor: r.Actor()}).catalog(a)
 		}})
 		r.Register(ochazuke.Operation{Noun: "ochazuke.catalog", Verb: "describe", Description: "Describe one verb, its parameters, guards and agent right", HistoryKind: ochazuke.HistoryFetch, Parameters: map[string]ochazuke.Parameter{"verb": {Type: "string", Required: true}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {

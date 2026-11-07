@@ -59,6 +59,22 @@ func TestCatalogIsAFactsNoun(t *testing.T) {
 	}
 }
 
+// The facts nouns' own list verbs (catalog, setup) replace the standard
+// list on purpose (Operation.ShadowsStandard), so a tool's checks print no
+// info line for them.
+func TestFactsNounListsAreDeclaredShadows(t *testing.T) {
+	f := newSetupFixture(t)
+	New(f.r, "tool", strings.NewReader(""), io.Discard, io.Discard)
+	for _, key := range []string{"ochazuke.catalog.list", "ochazuke.setup.list"} {
+		if op := f.r.Operations[key]; !op.ShadowsStandard {
+			t.Fatalf("%s not declared a shadow: %+v", key, op)
+		}
+	}
+	if got := f.r.StandardShadows(); len(got) > 0 {
+		t.Fatalf("shadows reported: %q", got)
+	}
+}
+
 func anyStrings(v any) []string {
 	switch s := v.(type) {
 	case []string:

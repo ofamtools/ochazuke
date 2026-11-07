@@ -585,6 +585,20 @@ func (b *NounBuilder) Quiet() *NounBuilder {
 	return b
 }
 
+// ShadowsStandard marks the last declared verb as replacing, on purpose,
+// the standard verb of its name the noun's store would generate
+// (Operation.ShadowsStandard): bindings, actions and hooks checks no
+// longer report it as a shadow.
+func (b *NounBuilder) ShadowsStandard() *NounBuilder {
+	if b.last == "" {
+		panic("ShadowsStandard must follow Verb")
+	}
+	op := b.r.Operations[b.last]
+	op.ShadowsStandard = true
+	b.r.Operations[b.last] = op
+	return b
+}
+
 // Foreground marks a verb that catalog hosts run on the real terminal.
 // The handler still chooses Foreground(cmd) when running inside its own TUI.
 func (b *NounBuilder) Foreground() *NounBuilder {

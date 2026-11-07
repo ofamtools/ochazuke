@@ -494,6 +494,25 @@ func TestChecksReportShadowedStandardVerbs(t *testing.T) {
 	}
 }
 
+// A verb declared to shadow the standard one on purpose
+// (NounBuilder.ShadowsStandard, Operation.ShadowsStandard) is not reported;
+// one beside it that is not declared keeps its info line.
+func TestChecksQuietADeclaredShadow(t *testing.T) {
+	t.Parallel()
+	r := NewRuntime()
+	r.Define("task").Verb("list", func(Ctx) Result { return Done(nil) }, "The app's own list").ShadowsStandard().
+		Verb("archive", func(Ctx) Result { return Done("mine") }, "The app's archive")
+	s := &derivedStore{key: "id"}
+	r.Define("task").Props(derivedProps()...).Store(s.store())
+	if op := r.Operations["task.list"]; op.Standard != "" || !op.ShadowsStandard {
+		t.Fatalf("the app's list: %+v", op)
+	}
+	want := "info: task.archive is a named verb: it shadows the standard archive of task"
+	if got := r.StandardShadows(); !slices.Equal(got, []string{want}) {
+		t.Fatalf("shadows %q", got)
+	}
+}
+
 // A required prop other than the label is a word of create before the
 // pairs rest (a rest parameter takes the line's last words), so a store
 // declaring one registers and create fills it by position:

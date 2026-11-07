@@ -130,6 +130,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 				b.Rows("setup")
 			}
 			op := r.Operations[r.CanonicalKey("setup."+v)]
+			op.ShadowsStandard = verb.shadows
 			if v == "install" || v == "uninstall" {
 				op.HistoryKind = ochazuke.HistoryChange
 			}
@@ -144,8 +145,14 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 	return nil
 }
 
-var setupVerbs = []struct{ name, description string }{
-	{"status", "Setup state and exact next steps"}, {"list", "List setup items and states"}, {"show", "Show one setup item in full"}, {"plan", "Show all writes and argv without installing"}, {"install", "Install the selected setup items"}, {"uninstall", "Remove only the selected owned integrations"}, {"copy", "Print an item's content or advice for pasting"},
+// setupVerbs are the setup noun's verbs; shadows marks one that replaces
+// the standard verb of its name over the noun's facts store on purpose
+// (ochazuke.Operation.ShadowsStandard).
+var setupVerbs = []struct {
+	name, description string
+	shadows           bool
+}{
+	{"status", "Setup state and exact next steps", false}, {"list", "List setup items and states", true}, {"show", "Show one setup item in full", false}, {"plan", "Show all writes and argv without installing", false}, {"install", "Install the selected setup items", false}, {"uninstall", "Remove only the selected owned integrations", false}, {"copy", "Print an item's content or advice for pasting", false},
 }
 
 // setupProps are the setup noun's props: one thing per declared item (and
