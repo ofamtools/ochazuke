@@ -411,7 +411,10 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	// agentTransport is the active adapter's bound caller/environment; it must
 	// apply to the whole request chain, not one focused component.
 	// agentApproved is consent scoped to an executing request and its nested
-	// work, like rowRequest/source; it is restored when that request returns.
+	// work, like source; it is restored when that request returns. What one
+	// request carries (the instance it acts for, the focus it was asked at,
+	// its subjects, whether a row made it, its mode) is its RequestContext
+	// on Context.Request, never a runtime field (G13).
 	// Dry-run control is an execute argument, not retained runtime state.
 	// reopening names the modal body reopening itself over the level it was
 	// opened over (a failed form run, the palette restoring); it is set for
@@ -422,7 +425,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	// keys (resolveTarget); it is emptied when the request ends.
 	want := []string{
 		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
-		"askedAt", "bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "diffRenderer", "events", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "origin", "predicates", "prefix", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rowRequest", "rows", "seq", "subjects", "targets", "watches",
+		"bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "diffRenderer", "events", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "predicates", "prefix", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rows", "seq", "targets", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)

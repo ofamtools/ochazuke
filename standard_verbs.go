@@ -431,7 +431,7 @@ func runGet(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if len(names) == 0 && prop == "" {
 		focus := focusOf(c.Context)
 		for _, p := range n.Props {
-			if !p.Secret && r.propShown(p, focus, r.Mode, c.Args) {
+			if !p.Secret && r.propShown(p, focus, c.mode(), c.Args) {
 				names = append(names, p.Name)
 			}
 		}
@@ -1067,7 +1067,7 @@ func readBack(c Ctx, n *Noun, key string, t Thing, written map[string]any) (map[
 func (r *Runtime) unshownProp(n *Noun, c Ctx, names []string) string {
 	focus := focusOf(c.Context)
 	for _, name := range names {
-		if p := n.prop(name); p != nil && !r.propShown(*p, focus, r.Mode, c.Args) {
+		if p := n.prop(name); p != nil && !r.propShown(*p, focus, c.mode(), c.Args) {
 			return name
 		}
 	}

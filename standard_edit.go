@@ -130,7 +130,7 @@ func (r *Runtime) editHandler(noun string) AppHandler {
 		if early, ok := r.editChooserEarly(c, es.n, es.only, es.key, es.count(), es.write, res); ok {
 			return early
 		}
-		return r.editOpenLater(res, es.open)
+		return r.editOpenLater(c, res, es.open)
 	}
 }
 
@@ -288,8 +288,8 @@ func (es editSession) bindFieldWrites(spec *RecordSpec, _ []RecordField, editor 
 // editOpenLater opens the form (open) when a pending get lands, only
 // where the user still is: the same focus, page, mode and top modal, and
 // the program not quitting.
-func (r *Runtime) editOpenLater(res Result, open func(any) error) Result {
-	focus, page, mode, modal := r.Focus, r.Page, r.Mode.Name, r.TopModal()
+func (r *Runtime) editOpenLater(c Ctx, res Result, open func(any) error) Result {
+	focus, page, mode, modal := r.Focus, r.Page, c.mode().Name, r.TopModal()
 	return res.ReplacingAt("app", editOpenSlot).also(func(ctx Ctx, value any, err error) {
 		if err == nil && !r.Quit && r.Focus == focus && r.Page == page && r.Mode.Name == mode && r.TopModal() == modal {
 			if err := open(value); err != nil {
@@ -699,7 +699,7 @@ func editArgs(n *Noun, args Arguments) (*PropSpec, map[string]any, error) {
 func (r *Runtime) editFields(n *Noun, c Ctx, thing Thing, only *PropSpec, fieldOnly bool) []RecordField {
 	fields := []RecordField{}
 	for _, p := range writableProps(n) {
-		if !r.propShown(p, focusOf(c.Context), r.Mode, c.Args) || fieldOnly && p.Name != only.Name {
+		if !r.propShown(p, focusOf(c.Context), c.mode(), c.Args) || fieldOnly && p.Name != only.Name {
 			continue
 		}
 		field := PropField(p)

@@ -97,7 +97,7 @@ func TestPaletteInstanceUsesConfiguredDefaultAndCapturedOrigin(t *testing.T) {
 	}
 	paletteRequest(t, r, "open", "palette", nil)
 	paletteLine(t, r, "page target")
-	if !reflect.DeepEqual(gotContext, origin) || !reflect.DeepEqual(gotArgs, Arguments{"pageID": "target"}) || r.Page != "home" || p.IsOpen() {
+	if !reflect.DeepEqual(interactionOf(gotContext), origin) || !reflect.DeepEqual(gotArgs, Arguments{"pageID": "target"}) || r.Page != "home" || p.IsOpen() {
 		t.Fatalf("configured dispatch: context=%#v args=%#v page=%s open=%v", gotContext, gotArgs, r.Page, p.IsOpen())
 	}
 }
@@ -150,7 +150,7 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 	paletteRequest(t, r, "open", "palette", nil)
 	paletteRequest(t, r, "fill", "palette", Arguments{"text": "thing x"})
 	_, err := r.Execute(Request{Verb: "run", Noun: "ochazuke.palette"})
-	if err == nil || err.Error() != "thing rejected" || !p.IsOpen() || !reflect.DeepEqual(captured, origin) || !reflect.DeepEqual(sourceContext, origin) || p.Text() != "thing x" {
+	if err == nil || err.Error() != "thing rejected" || !p.IsOpen() || !reflect.DeepEqual(interactionOf(captured), origin) || !reflect.DeepEqual(interactionOf(sourceContext), origin) || p.Text() != "thing x" {
 		t.Fatalf("failure dispatch/restoration: %v %#v", err, p.state())
 	}
 	op := r.Operations["thing.use"]

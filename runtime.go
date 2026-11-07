@@ -247,6 +247,9 @@ type Context struct {
 	// guardMode is the hypothetical outside mode, without changing live
 	// mode or notifying components. Only outside row dispatch supplies it.
 	guardMode string
+	// Request is the running request's own context (request_context.go):
+	// execute fills it for the handler it runs; nil outside a request.
+	Request *RequestContext `json:"-"`
 }
 
 // Clone returns a copy whose Path does not share the original's backing array.
@@ -542,10 +545,6 @@ type Runtime struct {
 	agentTransport *agentTransport          // scoped adapter identity and execution environment, shared by nested requests
 	history        actionHistory            // the executed-request ring and the current source (history.go)
 	reopening      string                   // the record editor reopening itself over the level it opened over (runFailed)
-	origin         string                   // the instance the running request or completion acts for; a modal opens only from the top level
-	askedAt        string                   // the focus the running request was made at, before it moved to its noun's instance (createFill reads a reference's thing there)
-	rowRequest     bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
-	subjects       []string                 // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
 	prefix         pendingPrefix
 	bindingVersion uint64
 	renderCache    runtimeRenderCache
@@ -979,8 +978,10 @@ func (r *Runtime) endRequest() {
 func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...operationRunner) (value any, err error) {
 	defer r.endRequest()
 	q := *request
-	fromRow := r.rowRequest
-	r.rowRequest = false
+	// A binding row's own request (runRow) is this request's only: the
+	// handler's own requests start from their own.
+	fromRow := c.Request.rowMade()
+	c.Request = nil
 	if q.IsProp() {
 		// A prop-shaped request runs as its noun's standard get or set.
 		pq, err := r.propVerbRequest(q)
@@ -1075,8 +1076,9 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if op.hasSources() && (len(subjects) <= 1 || op.Many) {
 		q.Args, request.Args = filled, filled
 	}
-	defer r.actingFor(focus)()
-	defer r.asking(actions)()
+	rc := &RequestContext{ActsFor: focus, AskedAt: actions, Mode: r.Mode}
+	c.Request = rc
+	defer r.enterRequest(rc)()
 	switch v := r.runChecks(c, q, op); {
 	case v.Refuse != "":
 		if v.err != nil {
@@ -1114,7 +1116,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if fn := r.ActionFor(actions, q.Key()); fn != nil {
 		return fn(r, c, q.Args)
 	}
-	r.subjects = subjects
+	rc.Subjects = subjects
 	if len(run) > 0 && run[0] != nil {
 		return run[0](op, c, q.Args)
 	}

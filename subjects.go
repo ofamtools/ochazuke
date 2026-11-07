@@ -40,12 +40,14 @@ func (r *Runtime) subjectsOf(q Request, focus string) ([]string, error) {
 	return out, nil
 }
 
-// takeSubjects hands the application handler about to run on inst the
-// subjects execute resolved for it, and forgets them, so a request the
-// handler runs in turn starts from its own. inst alone when there are none.
-func (r *Runtime) takeSubjects(inst *Instance) []*Instance {
-	ids := r.subjects
-	r.subjects = nil
+// takeSubjects hands the application handler about to run on inst in c
+// the subjects execute resolved for it (c's request context); a request
+// the handler runs in turn carries its own. inst alone when there are none.
+func (r *Runtime) takeSubjects(c Context, inst *Instance) []*Instance {
+	var ids []string
+	if rc := requestOf(c); rc != nil {
+		ids = rc.Subjects
+	}
 	if inst == nil || !slices.Contains(ids, inst.ID) {
 		if inst == nil {
 			return nil
@@ -151,7 +153,7 @@ func (ctx Ctx) Each(one AppHandler) Result {
 			continue // an earlier subject's change removed it
 		}
 		sub := ctx
-		sub.Instance, sub.Context, sub.Subjects = s, r.contextOf(s.ID), []*Instance{s}
+		sub.Instance, sub.Context, sub.Subjects = s, r.narrowedTo(ctx.Context, s.ID), []*Instance{s}
 		res := one(sub)
 		err := res.err
 		if err == nil && res.work != nil {

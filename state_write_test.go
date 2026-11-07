@@ -40,12 +40,12 @@ var modeWriteOwners = map[string]bool{
 }
 
 // modeWriteExceptions are the legacy borrows that still assign
-// Runtime.Mode for a replay or a render and put it back. None is a real
-// transition: no observer runs and the generation does not move. The
-// queries (bindings.stops, the typing check, help at its origin) read a
-// resolutionContext instead and are not here.
+// Runtime.Mode for a render and put it back. None is a real transition:
+// no observer runs and the generation does not move. The queries
+// (bindings.stops, the typing check, help at its origin) read a
+// resolutionContext instead, and a replayed remote verb reads the mode its
+// request started in from its RequestContext (Ctx.mode), so neither is here.
 var modeWriteExceptions = []stateWriteException{
-	{"remote.go", "remoteRun.pass", 2, "replay borrow: each replay pass runs a verb's handler again, which reads the live mode (propShown, Available in the standard rows), in the mode the request started in, and restores; not a query, so it needs the request's own interaction on Ctx; och-request-context"},
 	{"model.go", "Model.beneath", 2, "render borrow: draws the page in the mode the outer modal opened over and restores; MO-10 presentation"},
 }
 

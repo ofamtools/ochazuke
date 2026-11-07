@@ -188,7 +188,6 @@ type remoteRun struct {
 	queue    string
 	waiting  bool
 	owned    bool
-	mode     ModeState
 	subjects []string // a run over several: the instance of each
 	many     bool
 	unit     int
@@ -206,7 +205,7 @@ type remoteRun struct {
 // file comment).
 func (r *Runtime) runRemote(row standardVerb, n *Noun, c Ctx) Result {
 	name := n.Name
-	s := &remoteRun{r: r, base: c, noun: name, label: name + "." + row.Verb, mode: r.Mode, tape: &tape{}}
+	s := &remoteRun{r: r, base: c.withRequestMode(r.Mode), noun: name, label: name + "." + row.Verb, tape: &tape{}}
 	s.body = func(c Ctx) (any, error) {
 		noun := r.Nouns[name]
 		if noun == nil || noun.Store == nil {
@@ -436,7 +435,7 @@ func (s *remoteRun) unitCtx() (Ctx, bool) {
 			s.unit++
 			continue
 		}
-		c.Instance, c.Context, c.Subjects = in, s.r.contextOf(in.ID), []*Instance{in}
+		c.Instance, c.Context, c.Subjects = in, s.r.narrowedTo(c.Context, in.ID), []*Instance{in}
 		return c, true
 	}
 	return c, false
@@ -469,11 +468,8 @@ func (s *remoteRun) pass(c Ctx, body func(Ctx) (any, error)) (value any, err err
 	if s.pinned && s.pinKey != "" {
 		r.targets = map[string]string{s.noun + "\x00" + s.pinKey: s.pinKey}
 	}
-	mode := r.Mode
-	r.Mode = s.mode // every run sees the mode the request started in
 	stashed := r.takeChanges(0)
 	defer func() {
-		r.Mode = mode
 		if v := recover(); v != nil {
 			switch p := v.(type) {
 			case *needCall:
@@ -541,7 +537,7 @@ func (r *Runtime) attachChanges(job uint64, changes []ThingChange) {
 // runSteppedBody runs body as a remote verb of its own (undo): on the loop
 // until it needs a call, then as a job. finish gives the verb's answer.
 func (r *Runtime) runSteppedBody(c Ctx, label string, body func(Ctx) (any, error), finish func(any, error) (any, error)) Result {
-	s := &remoteRun{r: r, base: c, label: label, mode: r.Mode, tape: &tape{}, body: body, finish: finish, owned: true}
+	s := &remoteRun{r: r, base: c.withRequestMode(r.Mode), label: label, tape: &tape{}, body: body, finish: finish, owned: true}
 	return s.start()
 }
 
@@ -580,7 +576,7 @@ func (r *Runtime) resolvingHandler(row standardVerb, noun string, h AppHandler) 
 			}
 			return r.Launch(owner, label, res, c)
 		}
-		s := &remoteRun{r: r, base: c, noun: noun, label: label, mode: r.Mode, tape: &tape{}, body: body, finish: finish}
+		s := &remoteRun{r: r, base: c.withRequestMode(r.Mode), noun: noun, label: label, tape: &tape{}, body: body, finish: finish}
 		return s.start()
 	}
 }

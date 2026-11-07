@@ -546,7 +546,7 @@ func (r *Runtime) ParameterChoices(c Context, op Operation, name, query string, 
 // ExecuteAt's runner does: its result, and the Ctx it ran in for a job.
 func (r *Runtime) runChoicesApp(op Operation, c Context, args Arguments) (Result, Ctx, error) {
 	inst := r.Instances[focusOf(c)]
-	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(inst), Invoked: r.Invoked()}
+	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(c, inst), Invoked: r.Invoked()}
 	res := op.App(ctx)
 	if res.err != nil {
 		return Result{}, ctx, res.err

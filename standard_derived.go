@@ -133,13 +133,6 @@ func (r *Runtime) focusValue(op Operation, name, focus string) (focusThing, bool
 	return r.instanceThing(r.Instances[id]), true
 }
 
-// asking records the focus a request was made at while it runs.
-func (r *Runtime) asking(focus string) (restore func()) {
-	before := r.askedAt
-	r.askedAt = focus
-	return func() { r.askedAt = before }
-}
-
 // focusFills are the props create filled from the focus.
 type focusFills []string
 
@@ -159,7 +152,10 @@ func (r *Runtime) createFill(n *Noun, c Ctx, values Thing) focusFills {
 	if !ok {
 		return nil
 	}
-	focus := r.askedAt
+	focus := ""
+	if rc := requestOf(c.Context); rc != nil {
+		focus = rc.AskedAt
+	}
 	if focus == "" {
 		focus = focusOf(c.Context)
 	}

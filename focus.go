@@ -191,14 +191,6 @@ func (r *Runtime) selectFocusedRow(id string) {
 // errModalAbove refuses a modal opened from beneath the top modal.
 var errModalAbove = errors.New("a modal is open above this level")
 
-// actingFor records the instance the running request (its target, else the
-// focus) or job completion acts for until restore.
-func (r *Runtime) actingFor(id string) (restore func()) {
-	before := r.origin
-	r.origin = id
-	return func() { r.origin = before }
-}
-
 // openFromTopLevel refuses opening a modal while another is open unless the
 // opener (the running request's target or focus, a completion's owner, else
 // the focus) is inside the top modal: nesting from the top is allowed, a
@@ -210,7 +202,7 @@ func (r *Runtime) openFromTopLevel(id string) error {
 	if top == "" || id != "" && id == r.reopening {
 		return nil
 	}
-	origin := r.origin
+	origin := r.actsFor()
 	if origin == "" {
 		origin = r.Focus
 	}

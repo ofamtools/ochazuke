@@ -638,9 +638,9 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 		if b.Present != nil && !*b.Present {
 			present = nil
 		}
-		r.rowRequest = true
 		c := r.contextOf(ev.Focus)
 		c.guardMode = guardMode
+		c.Request = &RequestContext{FromRow: true}
 		value, err := r.ExecuteAt(c, q)
 		if err == nil && present != nil {
 			err = present(value)

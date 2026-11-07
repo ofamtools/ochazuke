@@ -361,7 +361,12 @@ func TestListRowsAreInstancesOfTheirNouns(t *testing.T) {
 		if _, err := r.Execute(Request{Verb: "where-" + target, Noun: "test", Target: target}); err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(got, want) {
+		// The handler's Context carries its request's own context
+		// (Context.Request): the instance it acts for is the target.
+		if got.Request == nil || got.Request.ActsFor != want.Path[len(want.Path)-1] && got.Request.ActsFor != want.InputID {
+			t.Fatalf("target %s: request context %+v", target, got.Request)
+		}
+		if got = interactionOf(got); !reflect.DeepEqual(got, want) {
 			t.Fatalf("target %s: %+v; want %+v", target, got, want)
 		}
 	}

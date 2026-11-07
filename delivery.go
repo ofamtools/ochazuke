@@ -739,7 +739,7 @@ const (
 // AppHandler and turns a pending result into a job under the verb's key.
 func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, error) {
 	inst := r.Instances[focusOf(c)]
-	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(inst), Invoked: r.Invoked()}
+	ctx := Ctx{actor: r.Actor(), source: r.history.source, Runtime: r, Context: c, Args: args, Instance: inst, Subjects: r.takeSubjects(c, inst), Invoked: r.Invoked()}
 	ancestry := r.Ancestry(inst.ID)
 	if op.Slot != "" && r.HasRunningJob(inst.ID, op.Slot) {
 		ctx.Info(r.DisplayKey(op.Key()) + " is already running")
