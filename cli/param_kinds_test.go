@@ -7,9 +7,9 @@ import (
 
 // The CLI reads a flag's text by the parameter's type in its own way:
 // strconv.ParseBool for a boolean ("t", "TRUE" and "1" are true), JSON for
-// an array or an object, a string for everything else, number included
-// (the runtime then refuses the string: the disagreement the parameter
-// kinds table closes).
+// an array or an object, a float for a number, a string for everything else
+// (a number was a string here and refused by the runtime until the
+// parameter kinds table made it a float).
 func TestTypedFlagValuesPerKind(t *testing.T) {
 	cases := []struct{ kind, text, want string }{
 		{"integer", "7", "int:7"},
@@ -27,7 +27,8 @@ func TestTypedFlagValuesPerKind(t *testing.T) {
 		{"", "7", "string:7"},
 		{"path", "7", "string:7"},
 		{"any", "7", "string:7"},
-		{"number", "1.5", "string:1.5"},
+		{"number", "1.5", "float64:1.5"},
+		{"number", "x", `ERR strconv.ParseFloat: parsing "x": invalid syntax`},
 		{"weird", "1.5", "string:1.5"},
 	}
 	for _, c := range cases {

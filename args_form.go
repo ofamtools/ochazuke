@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"strconv"
 	"strings"
 )
 
@@ -52,11 +51,7 @@ func missingRequired(op Operation, args Arguments) []string {
 // formable reports whether a form field can hold a parameter's value: a
 // string, a number or a boolean (never an array or an object).
 func formable(p Parameter) bool {
-	switch p.Type {
-	case "", "string", "integer", "number", "boolean", PathParameterType, AnyParameterType:
-		return true
-	}
-	return false
+	return kindOf(p.Type).form
 }
 
 // ArgsFields is the args form's schema for a verb: its form-held
@@ -302,24 +297,12 @@ func argumentsFrom(op Operation, base Arguments, rec Record) (Arguments, error) 
 			delete(args, name)
 			continue
 		}
-		switch p.Type {
-		case "integer":
-			n, err := strconv.Atoi(strings.TrimSpace(text))
-			if err != nil {
-				return nil, fmt.Errorf("%s must be integer", name)
-			}
-			args[name] = n
-		case "number":
-			n, err := strconv.ParseFloat(strings.TrimSpace(text), 64)
-			if err != nil {
-				return nil, fmt.Errorf("%s must be a number", name)
-			}
-			args[name] = n
-		case "boolean":
-			args[name] = text == "true"
-		default:
-			args[name] = text
+		k := kindOf(p.Type)
+		v, ok := k.readForm(text)
+		if !ok {
+			return nil, fmt.Errorf("%s must be %s", name, k.must)
 		}
+		args[name] = v
 	}
 	return args, nil
 }

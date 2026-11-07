@@ -106,7 +106,7 @@ var paramKindPins = map[string]map[string]string{
 		"path":     "string:x | string:7 | string:1.5 | string:true | string:false | string:TRUE | string:t | string: 7  | string:[1] | string:{\"a\":1}",
 		"any":      "string:x | string:7 | string:1.5 | string:true | string:false | string:TRUE | string:t | string: 7  | string:[1] | string:{\"a\":1}",
 		"integer":  "ERR x must be integer | int:7 | ERR x must be integer | ERR x must be integer | ERR x must be integer | ERR x must be integer | ERR x must be integer | ERR x must be integer | ERR x must be integer | ERR x must be integer",
-		"number":   "ERR unsupported argument type \"number\" for x | ERR unsupported argument type \"number\" for x | ERR unsupported argument type \"number\" for x | ERR unsupported argument type \"number\" for x | ERR unsupported argument type \"number\" for x | ERR unsupported argument type \"number\" for x | ERR unsupported argument type \"number\" for x | ERR unsupported argument type \"number\" for x | ERR unsupported argument type \"number\" for x | ERR unsupported argument type \"number\" for x",
+		"number":   "ERR x must be a number | float64:7 | float64:1.5 | ERR x must be a number | ERR x must be a number | ERR x must be a number | ERR x must be a number | ERR x must be a number | ERR x must be a number | ERR x must be a number",
 		"boolean":  "ERR x must be one of true, false | ERR x must be one of true, false | ERR x must be one of true, false | bool:true | bool:false | bool:true | bool:true | ERR x must be one of true, false | ERR x must be one of true, false | ERR x must be one of true, false",
 		"array":    "ERR unsupported argument type \"array\" for x | ERR unsupported argument type \"array\" for x | ERR unsupported argument type \"array\" for x | ERR unsupported argument type \"array\" for x | ERR unsupported argument type \"array\" for x | ERR unsupported argument type \"array\" for x | ERR unsupported argument type \"array\" for x | ERR unsupported argument type \"array\" for x | ERR unsupported argument type \"array\" for x | ERR unsupported argument type \"array\" for x",
 		"object":   "ERR unsupported argument type \"object\" for x | ERR unsupported argument type \"object\" for x | ERR unsupported argument type \"object\" for x | ERR unsupported argument type \"object\" for x | ERR unsupported argument type \"object\" for x | ERR unsupported argument type \"object\" for x | ERR unsupported argument type \"object\" for x | ERR unsupported argument type \"object\" for x | ERR unsupported argument type \"object\" for x | ERR unsupported argument type \"object\" for x",
@@ -119,7 +119,7 @@ var paramKindPins = map[string]map[string]string{
 		"path":     "string=true int=false float64=false float64=false bool=false []interface {}=false map[string]interface {}=false ochazuke.Arguments=false",
 		"any":      "string=true int=true float64=true float64=true bool=true []interface {}=true map[string]interface {}=true ochazuke.Arguments=true",
 		"integer":  "string=false int=true float64=false float64=true bool=false []interface {}=false map[string]interface {}=false ochazuke.Arguments=false",
-		"number":   "string=false int=false float64=false float64=false bool=false []interface {}=false map[string]interface {}=false ochazuke.Arguments=false",
+		"number":   "string=false int=true float64=true float64=true bool=false []interface {}=false map[string]interface {}=false ochazuke.Arguments=false",
 		"boolean":  "string=false int=false float64=false float64=false bool=true []interface {}=false map[string]interface {}=false ochazuke.Arguments=false",
 		"array":    "string=false int=false float64=false float64=false bool=false []interface {}=true map[string]interface {}=false ochazuke.Arguments=false",
 		"object":   "string=false int=false float64=false float64=false bool=false []interface {}=false map[string]interface {}=true ochazuke.Arguments=true",
@@ -198,17 +198,19 @@ func TestParamKindsDisagreements(t *testing.T) {
 	if cell("form", "integer", " 7 ") != "int:7" || cell("editor", "integer", " 7 ") != `""` || !strings.HasPrefix(cell("palette", "integer", " 7 "), "ERR") {
 		t.Error("integer spacing no longer differs form/editor vs palette")
 	}
-	// Number today (the one kind accepted by some routes only): the form
-	// and the editor take it; the palette calls it unsupported; the runtime
-	// refuses every value, even a float the form just built.
+	// Number was the one kind some routes took and others refused (the
+	// form and the editor took it, the palette called it unsupported, the
+	// runtime refused every value, even a float the form had just built,
+	// the CLI left a string). The table makes it accepted everywhere:
+	// these cells are the deliberate change from the first pins.
 	if cell("form", "number", "1.5") != "float64:1.5" || cell("editor", "number", "1.5") != `""` {
 		t.Error("number is no longer accepted by the form and the editor")
 	}
-	if !strings.Contains(cell("palette", "number", "7"), "unsupported argument type") {
-		t.Error("the palette no longer calls number unsupported")
+	if cell("palette", "number", "1.5") != "float64:1.5" {
+		t.Errorf("the palette does not read a number: %s", cell("palette", "number", "1.5"))
 	}
-	if strings.Contains(paramKindPins["runtime"]["number"], "=true") {
-		t.Error("the runtime now accepts number")
+	if !strings.Contains(paramKindPins["runtime"]["number"], "int=true float64=true") {
+		t.Error("the runtime does not accept a number")
 	}
 	// The empty type reads as a string everywhere text is parsed, yet the
 	// runtime refuses every value of it (validateArguments has no case).
@@ -217,8 +219,8 @@ func TestParamKindsDisagreements(t *testing.T) {
 	}
 	// Actions declare only these four types; number and any are not among them.
 	for kind, want := range map[string]bool{"string": true, "integer": true, "boolean": true, "path": true, "number": false, "any": false, "": false} {
-		if actionTypes[kind] != want {
-			t.Errorf("actionTypes[%q] = %v, want %v", kind, actionTypes[kind], want)
+		if kindOf(kind).action != want {
+			t.Errorf("action type %q = %v, want %v", kind, kindOf(kind).action, want)
 		}
 	}
 	// Duration has only a sample: no parse, no check.

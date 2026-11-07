@@ -800,19 +800,7 @@ func positional(q ochazuke.Request, op ochazuke.Operation, words []string, prese
 
 // typed converts a flag value to its parameter's type; object and array
 // values are JSON.
-func typed(kind, v string) (any, error) {
-	switch kind {
-	case "integer":
-		return strconv.Atoi(v)
-	case "boolean":
-		return strconv.ParseBool(v)
-	case "object", "array":
-		var out any
-		err := json.Unmarshal([]byte(v), &out)
-		return out, err
-	}
-	return v, nil
-}
+func typed(kind, v string) (any, error) { return ochazuke.ParseFlagValue(kind, v) }
 
 // call runs one request through the runtime's CLI entry.
 func (s *Shell) call(q ochazuke.Request) (any, error) {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"slices"
 	"sort"
-	"strconv"
 	"strings"
 	"unicode"
 )
@@ -1075,22 +1074,18 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 			return nil, "", nil, choiceError(name, choices)
 		}
 	}
-	switch param.Type {
-	case "", "string", PathParameterType, AnyParameterType:
-		return text, text, nil, nil
-	case "integer":
-		n, err := strconv.Atoi(text)
-		if err != nil {
-			return nil, "", nil, fmt.Errorf("%s must be integer", name)
-		}
-		return n, text, nil, nil
-	case "boolean":
-		if text != "true" && text != "false" {
-			return nil, "", nil, fmt.Errorf("%s must be boolean (true or false)", name)
-		}
-		return text == "true", text, nil, nil
+	k := kindOf(param.Type)
+	if !k.word {
+		return nil, "", nil, fmt.Errorf("unsupported argument type %q for %s", param.Type, name)
 	}
-	return nil, "", nil, fmt.Errorf("unsupported argument type %q for %s", param.Type, name)
+	if k.parse == nil {
+		return text, text, nil, nil
+	}
+	v, ok := k.parse(text)
+	if !ok {
+		return nil, "", nil, fmt.Errorf("%s must be %s", name, k.must)
+	}
+	return v, text, nil, nil
 }
 
 // tokenTexts are the tokens' texts.

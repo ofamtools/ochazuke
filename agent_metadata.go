@@ -91,13 +91,8 @@ func (o Operation) ExamplesOf() []Example {
 			continue
 		}
 		var v any = "<" + name + ">"
-		switch p.Type {
-		case "boolean":
-			v = true
-		case "integer", "number":
-			v = 1
-		case "duration":
-			v = "1s"
+		if s := kindOf(p.Type).sample; s != nil {
+			v = s
 		}
 		if len(p.Enum) > 0 {
 			v = p.Enum[0]
