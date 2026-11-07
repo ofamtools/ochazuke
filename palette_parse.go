@@ -853,6 +853,18 @@ func remainingParams(c commandLine) []string {
 	return out
 }
 
+// positionalCount is how many parameters of op bare words fill (every
+// one but a Named one).
+func positionalCount(op Operation) int {
+	n := 0
+	for _, p := range op.Parameters {
+		if !p.Named {
+			n++
+		}
+	}
+	return n
+}
+
 // positionalFor is the index in order of the parameter a bare word fills:
 // the first one, passing over a boolean the word is not true or false for
 // (as --NAME takes no word but those), so task edit a status false fills
@@ -943,20 +955,22 @@ func (p *Palette) fillParams(c *commandLine, tokens []lineToken, order []string)
 			c.Args[name] = v
 			continue
 		}
-		if positional == 0 && c.Op.SubjectOmitted(order, token.Text) {
+		// A Named parameter takes no bare word (NAME=VALUE only).
+		bare := slices.DeleteFunc(slices.Clone(order), func(n string) bool { return c.Op.Parameters[n].Named })
+		if positional == 0 && c.Op.SubjectOmitted(bare, token.Text) {
 			// The optional key word: the subject comes from the focus.
-			c.Omitted = append(c.Omitted, order[0])
-			order = order[1:]
+			c.Omitted = append(c.Omitted, bare[0])
+			order = slices.DeleteFunc(order, func(n string) bool { return n == bare[0] })
+			bare = bare[1:]
 		}
 		positional++
-		if len(order) == 0 {
+		if len(bare) == 0 {
 			c.Words = append(c.Words, PaletteWord{Text: token.Text})
-			c.Err = fmt.Errorf("unexpected word %q: %s takes %d argument(s)", token.Text, c.Op.Key(), len(c.Op.Parameters))
+			c.Err = fmt.Errorf("unexpected word %q: %s takes %d argument(s)", token.Text, c.Op.Key(), positionalCount(c.Op))
 			return false
 		}
-		at := positionalFor(c.Op, order, token.Text)
-		name := order[at]
-		order = slices.Delete(slices.Clone(order), at, at+1)
+		name := bare[positionalFor(c.Op, bare, token.Text)]
+		order = slices.DeleteFunc(slices.Clone(order), func(n string) bool { return n == name })
 		value, display, candidates, err := p.argument(c.Op, name, token.Text, c.Args)
 		word := PaletteWord{Text: token.Text, Kind: "argument", Param: name, Value: display, Candidates: candidates}
 		c.Words = append(c.Words, word)

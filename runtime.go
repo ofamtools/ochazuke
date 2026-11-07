@@ -125,6 +125,12 @@ type Parameter struct {
 	// values. A request giving it lacks none (Operation.lacks). The
 	// catalog's covers.
 	Covers bool `json:"covers,omitempty"`
+	// Named marks a parameter no bare word fills: it is given only as
+	// NAME=VALUE or --NAME (edit's props, so a word after the field is
+	// refused, never a prop's value). ParameterOrder still lists it (the
+	// args form, help); the palette and the CLI pass over it when they
+	// fill words in order. The catalog's named.
+	Named bool `json:"named,omitempty"`
 }
 
 // lacks reports whether args lack the required parameter name: it is

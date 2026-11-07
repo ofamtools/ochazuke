@@ -86,13 +86,22 @@ func (p *Palette) commandText(q Request) string {
 	if a, ok := p.r.actionNames.aliases[q.Via]; ok && a.Bare && a.Action == op.Key() {
 		words, preset = []string{a.Verb}, a.Args
 	}
+	bare := true // words still fill parameters in order
 	for _, name := range paramOrder(op) {
 		if _, ok := preset[name]; ok {
 			continue
 		}
 		v, ok := q.Args[name]
-		if !ok {
-			break
+		if op.Parameters[name].Named {
+			// Spelled NAME=VALUE, as it is typed: no word fills it.
+			if ok {
+				words = append(words, quoteWord(name+"="+fmt.Sprint(v)))
+			}
+			continue
+		}
+		if !ok || !bare {
+			bare = false
+			continue
 		}
 		if op.Parameters[name].Rest {
 			// A rest parameter's text goes back as typed, last.

@@ -738,15 +738,15 @@ func hasParameter(op ochazuke.Operation, name string) bool {
 
 // positional fills the parameters no flag (and no alias preset) set from
 // words, in Operation.ParameterOrder, typed by each parameter. A boolean
-// takes a bare word only when Operation.Positional names it; otherwise it
-// is set with --NAME.
+// takes a bare word only when Operation.Positional names it, and a Named
+// parameter never does; otherwise it is set with --NAME.
 func positional(q ochazuke.Request, op ochazuke.Operation, words []string, presets ochazuke.Arguments) error {
 	if len(words) == 0 {
 		return nil
 	}
 	var open []string
 	for _, name := range op.ParameterOrder() {
-		if op.Parameters[name].Type == "boolean" && !slices.Contains(op.Positional, name) {
+		if p := op.Parameters[name]; p.Named || p.Type == "boolean" && !slices.Contains(op.Positional, name) {
 			continue
 		}
 		_, set := q.Args[name]

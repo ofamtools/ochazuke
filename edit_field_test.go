@@ -97,3 +97,39 @@ func TestRemovedVerbAndMissingRoleSayWhatNext(t *testing.T) {
 		t.Fatalf("missing role: %v", err)
 	}
 }
+
+// edit's bare words are the key, the field and chooser, in that order: a
+// prop is given only as prop=value, so a word after the key is the field
+// (refused when it names no prop) and never a prop's value, and a word
+// past chooser is refused (UX R3 F3).
+func TestEditPositionalWords(t *testing.T) {
+	t.Parallel()
+	r, m, _, _ := editSelectionFixture(t)
+	p := m.Palette
+	p.origin = r.Context()
+	for line, want := range map[string]Arguments{
+		"parcel edit t2 status":         {"id": "t2", "field": "status"},
+		"parcel edit t2 status false":   {"id": "t2", "field": "status", "chooser": false},
+		"parcel edit status false":      {"field": "status", "chooser": false},
+		"parcel edit t2 hello":          {"id": "t2", "field": "hello"},
+		"parcel edit t2 status=blocked": {"id": "t2", "status": "blocked"},
+	} {
+		c := p.parse(line)
+		if c.Err != nil || len(c.Args) != len(want) {
+			t.Fatalf("%q: %v %v", line, c.Args, c.Err)
+		}
+		for k, v := range want {
+			if c.Args[k] != v {
+				t.Fatalf("%q: %s=%#v, want %#v (%v)", line, k, c.Args[k], v, c.Args)
+			}
+		}
+	}
+	for _, line := range []string{"parcel edit t2 status done", "parcel edit t2 status false more"} {
+		if c := p.parse(line); c.Err == nil {
+			t.Fatalf("%q read: %v", line, c.Args)
+		}
+	}
+	if q := (Request{Noun: "parcel", Verb: "edit", Args: Arguments{"id": "t2", "title": "New name"}}); p.commandText(q) != `edit parcel t2 "title=New name"` {
+		t.Fatalf("spelled back: %s", p.commandText(q))
+	}
+}

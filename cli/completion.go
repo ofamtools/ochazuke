@@ -45,7 +45,7 @@ func (s *Shell) Complete(words []string) ([]ochazuke.Choice, error) {
 	op := s.Runtime.Operations[q.Key()]
 	if name == "" {
 		for _, candidate := range op.ParameterOrder() {
-			if _, set := q.Args[candidate]; !set && op.Parameters[candidate].Type != "boolean" {
+			if _, set := q.Args[candidate]; !set && op.Parameters[candidate].Type != "boolean" && !op.Parameters[candidate].Named {
 				name = candidate
 				break
 			}

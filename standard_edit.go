@@ -57,6 +57,7 @@ func editParams(n *Noun) map[string]Parameter {
 	for _, p := range writableProps(n) {
 		param := propParameter(p)
 		param.Required = false // omitted props keep their values; the form enforces Required
+		param.Named = true     // prop=value only: a word after field is no prop's value
 		params[p.Name] = param
 		fields = append(fields, p.Name)
 	}
