@@ -89,6 +89,11 @@ type ChooserSpec struct {
 	// The input still starts in insert; default choosers remain pinned there.
 	NormalMode bool
 
+	// Match is the match mode this chooser opens in (fuzzy, substring or
+	// regex); it wins over the chooser.match setting, "" is the setting.
+	// search.cycle-match still steps it while the chooser is open.
+	Match string
+
 	Kind        string
 	Title       string
 	Rows        []ChooserRow
@@ -364,14 +369,25 @@ func (r *Runtime) chooserAt(inst *Instance) *Chooser {
 }
 
 // MatchMode is the chooser's match mode: the one search.cycle-match or
-// search.set-match chose while it is open, else the chooser.match
-// setting. It decides the default filter only (not a Filter of the
-// application's own, not a Live source's own ranking).
+// search.set-match chose while it is open, else the spec's Match, else
+// the chooser.match setting. It decides the default filter only (not a
+// Filter of the application's own, not a Live source's own ranking).
 func (c *Chooser) MatchMode() string {
 	if c.match != "" {
 		return c.match
 	}
+	if c.spec.Match != "" {
+		return matchOr(c.spec.Match, c.r.ChooserMatch())
+	}
 	return c.r.ChooserMatch()
+}
+
+// ranked reports whether the current source ranks and filters its rows
+// itself (a Live source that did not ask for the chooser's match mode,
+// ChooserSource.Matched): the mode then does not apply.
+func (c *Chooser) ranked() bool {
+	src := c.current()
+	return src != nil && src.Live && !src.Matched
 }
 
 // matcher is the query compiled in the chooser's match mode.
@@ -379,7 +395,7 @@ func (c *Chooser) matcher() Matcher { return c.r.Matcher(c.MatchMode(), c.Query(
 
 // The matchSearcher contract (search_match.go).
 func (c *Chooser) matchMode() string  { return c.MatchMode() }
-func (c *Chooser) matchApplies() bool { return c.spec.Filter == nil && !c.live() }
+func (c *Chooser) matchApplies() bool { return c.spec.Filter == nil && !c.ranked() }
 func (c *Chooser) setMatchMode(mode string) {
 	c.filters.linger.reset()
 	c.match = mode
@@ -562,7 +578,7 @@ func (c *Chooser) refilter() {
 			fixed = append(fixed, row)
 			continue
 		}
-		if !c.live() && !filter(c.seen, row) {
+		if !c.ranked() && !filter(c.seen, row) {
 			continue
 		}
 		if row.Trailing {

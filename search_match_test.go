@@ -268,3 +268,64 @@ func TestPickerCtrlTCyclesTheMatchMode(t *testing.T) {
 		t.Fatalf("reopens in %s", p.MatchMode())
 	}
 }
+
+// tab cycles the match mode over a Live source too, once it asks for the
+// mode (Matched); a Live source that ranks its rows itself keeps them
+// whole and has no mode.
+func TestChooserTabCyclesTheMatchModeOnALiveSource(t *testing.T) {
+	rows := []ChooserRow{{ID: "a", Label: "alpha-beta"}, {ID: "b", Label: "bravo"}}
+	for _, matched := range []bool{true, false} {
+		src := ChooserSource{Name: "live", Live: true, Matched: matched, Load: func(string) Result { return Done(rows) }}
+		r := NewRuntime()
+		m := NewModel(r)
+		m.Width, m.Height = 100, 30
+		r.EnsureConfigSettings()
+		if _, err := r.OpenChooser(ChooserSpec{Kind: "livematch", Title: "Pick", Sources: []ChooserSource{src}}); err != nil {
+			t.Fatal(err)
+		}
+		c := r.Chooser("livematch")
+		keytest.Type(m, "ab")
+		if !matched {
+			pressLand(m, "tab")
+			if len(chooserIDs(c)) != 2 || c.matchApplies() || strings.Contains(screen(m), "fuzzy") {
+				t.Fatalf("a ranked live source has no mode: %v\n%s", chooserIDs(c), screen(m))
+			}
+			continue
+		}
+		if c.MatchMode() != MatchFuzzy || !slices.Equal(chooserIDs(c), []string{"a"}) {
+			t.Fatalf("fuzzy ab: %s %v", c.MatchMode(), chooserIDs(c))
+		}
+		pressLand(m, "tab")
+		if c.MatchMode() != MatchRegex || len(chooserIDs(c)) != 0 {
+			t.Fatalf("regex ab: %s %v", c.MatchMode(), chooserIDs(c))
+		}
+		pressLand(m, "tab")
+		pressLand(m, "backspace")
+		if c.MatchMode() != MatchSubstring || !slices.Equal(chooserIDs(c), []string{"a", "b"}) {
+			t.Fatalf("substring a: %s %v", c.MatchMode(), chooserIDs(c))
+		}
+	}
+}
+
+// A spec's Match wins over chooser.match; "" (or an unknown mode) is the
+// setting; tab still steps from it.
+func TestChooserSpecMatchWinsOverTheSetting(t *testing.T) {
+	rows := []ChooserRow{{ID: "a", Label: "alpha-beta"}, {ID: "b", Label: "bravo"}}
+	for _, tc := range []struct{ spec, want string }{
+		{MatchSubstring, MatchSubstring}, {MatchRegex, MatchRegex}, {"", MatchFuzzy}, {"glob", MatchFuzzy},
+	} {
+		r, m, c, _ := chooserTest(t, ChooserSpec{Match: tc.spec, Rows: rows})
+		r.EnsureConfigSettings()
+		keytest.Type(m, "ab")
+		if c.MatchMode() != tc.want {
+			t.Fatalf("Match %q opens in %s, want %s", tc.spec, c.MatchMode(), tc.want)
+		}
+		if tc.spec == MatchSubstring && len(chooserIDs(c)) != 0 {
+			t.Fatalf("substring ab matched %v", chooserIDs(c))
+		}
+		pressLand(m, "tab")
+		if c.MatchMode() != NextMatch(tc.want, 1) {
+			t.Fatalf("tab from %s gave %s", tc.want, c.MatchMode())
+		}
+	}
+}

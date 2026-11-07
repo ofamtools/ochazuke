@@ -1,0 +1,22 @@
+{
+  "name": "chooser: tab cycles the match mode on a live source that asks for it (matched); the tag shows",
+  "area": "choosers",
+  "width": 80,
+  "height": 14,
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "chooser": {
+      "kind": "pick",
+      "title": "Complete",
+      "sources": [
+        {"name": "commits", "live": true, "matched": true, "rows": [{"id": "1", "label": "alpha-beta"}, {"id": "2", "label": "albatross"}, {"id": "3", "label": "gamma"}]}
+      ]
+    }
+  },
+  "script": [{"type": "ab"}, "tab", "tab"],
+  "expect": [
+    {"after": 1, "modal": "pick", "contains": ["› ab", "fuzzy", "alpha-beta", "albatross"], "lacks": ["gamma"]},
+    {"after": 2, "contains": ["regex", "no rows match"]},
+    {"after": 3, "contains": ["substr", "no rows match"]}
+  ]
+}

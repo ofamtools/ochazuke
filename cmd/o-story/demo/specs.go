@@ -133,6 +133,8 @@ type ChooserSpec struct {
 	// Sources make it a chooser with sources (tab cycles them); Rows are
 	// then unused. demo.choose opens the chooser again.
 	Sources []ChooserSourceSpec `json:"sources,omitempty"`
+	// Match is the chooser's starting match mode (ochazuke.ChooserSpec.Match).
+	Match string `json:"match,omitempty"`
 }
 
 // ChooserSourceSpec is one source of a story chooser: its rows, or, Live,
@@ -142,6 +144,10 @@ type ChooserSourceSpec struct {
 	Name string           `json:"name"`
 	Rows []ChooserRowSpec `json:"rows"`
 	Live bool             `json:"live,omitempty"`
+	// Matched: the chooser's match mode narrows the live rows
+	// (ochazuke.ChooserSource.Matched); the story source then answers
+	// every row, not only those holding the query.
+	Matched bool `json:"matched,omitempty"`
 }
 
 // ChooserRowSpec is one chooser row; Cells draw it as columns, Preview is

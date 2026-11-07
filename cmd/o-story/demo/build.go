@@ -247,7 +247,7 @@ func (ss *session) start() error {
 // chooserSpec is the framework spec of a story's chooser; a pick is a
 // write ("pick ID").
 func (ss *session) chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
-	spec := ochazuke.ChooserSpec{Kind: cs.Kind, Title: cs.Title, Keep: cs.Keep}
+	spec := ochazuke.ChooserSpec{Kind: cs.Kind, Title: cs.Title, Keep: cs.Keep, Match: cs.Match}
 	if spec.Kind == "" {
 		spec.Kind = "story-chooser"
 	}
@@ -255,17 +255,17 @@ func (ss *session) chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
 		src := src
 		rows := func(query string) []ochazuke.ChooserRow {
 			var out []ochazuke.ChooserRow
-			if src.Live {
+			if src.Live && !src.Matched {
 				out = append(out, ochazuke.ChooserRow{ID: src.Name + ":typed", Label: "typed: " + query})
 			}
 			for _, row := range src.Rows {
-				if !src.Live || strings.Contains(row.Label, query) {
+				if !src.Live || src.Matched || strings.Contains(row.Label, query) {
 					out = append(out, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Fixed: row.Fixed, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
 				}
 			}
 			return out
 		}
-		spec.Sources = append(spec.Sources, ochazuke.ChooserSource{Name: src.Name, Live: src.Live, Load: func(query string) ochazuke.Result {
+		spec.Sources = append(spec.Sources, ochazuke.ChooserSource{Name: src.Name, Live: src.Live, Matched: src.Matched, Load: func(query string) ochazuke.Result {
 			return ochazuke.Done(rows(query))
 		}})
 	}
