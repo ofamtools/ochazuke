@@ -1,0 +1,14 @@
+ |  ◆ o-story                                                                          NORMAL
+ |   › page1
+ |  ────────╭──────────────────────────────────────────────────────────────────────────────╮────────
+ |  prompt: │ Keys · here                                                                  │
+ |          │ key                operation           arguments          description        │
+ |          │ completion                                                                   │
+R|          │   esc              completion.dismiss                     Hide the           │
+R|          │                                                           suggestions; the   │
+R|          │                                                           input stays in its │
+ |          │ 1–1 / 46                                                                     │
+ |          │ space list.mark · S view · enter run · esc modal.close · : palette.open · ?… │
+ |  ────────╰──────────────────────────────────────────────────────────────────────────────╯────────
+ |  space list.mark · S view · enter run · esc modal.close · : palette.open · ? bindings.help · / f…
+ |

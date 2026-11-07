@@ -356,7 +356,7 @@ func (r *Runtime) refreshBlock(s Styles, e *RecordEditor, byField map[string]cop
 		return Block{}
 	}
 	d, ok := copyDiff{}, false
-	if f := e.fieldOn(r.Focus); f != nil {
+	if f := e.fieldOn(r.DrawnFocus(e.id)); f != nil {
 		d, ok = byField[f.Name]
 	}
 	if !ok {

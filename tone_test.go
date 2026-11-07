@@ -114,7 +114,7 @@ func TestSelectedRowDrawsToneAttributesOnly(t *testing.T) {
 		line := strings.Split(l.View(30, 2), "\n")[1]
 		rest, cell := line, "\x1b[4;7mwork\x1b[m"
 		if mode == CellCursorBackground {
-			cursor := m.Runtime.cellCursor(false)
+			cursor := m.Runtime.cellCursor("", false)
 			if !slices.Contains(cursor, "1") || !slices.Contains(cursor, "7") {
 				t.Fatalf("cursor style %q, want list.cell.cursor bold in the reverse run", cursor)
 			}
@@ -145,7 +145,7 @@ func TestCellCursorBackground(t *testing.T) {
 	cols := []Column{{Title: "a"}, {Title: "b"}}
 	for _, theme := range []string{"dark", "light", "mono"} {
 		m, l := toneFixture(t, theme, cols, []ListItem{{ID: "r", Label: "r", Noun: "row", Cells: []string{"one", "two"}}}, CellSelect())
-		cursor := m.Runtime.cellCursor(false)
+		cursor := m.Runtime.cellCursor("", false)
 		line := strings.Split(l.View(30, 2), "\n")[1]
 		switch {
 		case theme == "mono":

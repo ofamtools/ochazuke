@@ -242,9 +242,12 @@ func (l *List) reveal(id string) {
 }
 
 // editingFilter reports whether the filter line is being typed: the mode
-// is ListFilterMode and the list holds the focus.
+// is ListFilterMode and the list holds the focus, as the list's surface is
+// drawn (a list beneath a modal opened while filtering keeps its filter
+// line and its matches; on the top surface it is the live state).
 func (l *List) editingFilter() bool {
-	return l.r.Mode.Name == ListFilterMode && l.Focused()
+	_, _, focus, mode, _ := l.r.drawnAt(l.id)
+	return mode.Name == ListFilterMode && l.holds(focus)
 }
 
 // filterLine is the line drawn above the rows while the filter is typed or

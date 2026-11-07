@@ -151,7 +151,7 @@ func newModel(r *Runtime) *Model {
 	m.ModalViews[paletteResultsID] = ModalView{Title: "Results", Render: paletteResultsView}
 	m.ModalViews[TextViewID] = ModalView{Title: "Text", Render: textViewRender}
 	// The Settings page and unfocused page lists draw in the Model's styles.
-	r.Settings().page.styles = m.Styles
+	r.Settings().page.styles = m.StylesAt
 	m.ModalViews[settingPromptID] = ModalView{Title: "Set", Render: settingPromptView}
 	m.ModalViews[settingsReviewID] = ModalView{Title: "Review settings", Render: settingsReviewView}
 	r.Register(Operation{Verb: "scroll", Noun: "ochazuke.surface", Motion: true, HistoryKind: HistoryAction, Description: "Scroll the active page or modal without changing focus", Parameters: map[string]Parameter{"lines": {Type: "integer", Required: true}}, Result: "scroll offset", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -1052,15 +1052,30 @@ func (m *Model) cursor(block Block) *tea.Cursor {
 
 // Styles is the Model's appearance with the dim settings applied
 // (modal-dim, dim-unfocused, modal-highlights) and the chrome level
-// (chrome.color) in the current mode; the shell, modals and page lists draw in it.
+// (chrome.color) in the current mode; the shell (header, footer) and the
+// top surface draw in it.
 func (m *Model) Styles() Styles {
 	return m.styles.get(m)
 }
 
+// StylesAt is Styles with the chrome in the mode the surface holding id
+// is drawn in (Runtime.PresentationAt): a page beneath a modal draws its
+// mode-coloured chrome (a focused panel's border at chrome.color rich) in
+// the mode the modal opened over, as its highlights are; the top surface
+// reads the live mode, so StylesAt equals Styles there. Page renderers and
+// components pass their own id; the library's components draw through it.
+func (m *Model) StylesAt(id string) Styles {
+	return m.styles.at(m, m.Runtime.drawnMode(id))
+}
+
 // render composes the page shell and the modal stack. Each composer offsets
 // the child cursor by where it placed the child; a modal hides the terminal
-// cursor of everything beneath it, while the page keeps its highlights
-// (beneath) and the backdrop dims them.
+// cursor of everything beneath it, while the page keeps its highlights and
+// the backdrop dims them. Nothing is borrowed for the frame: each surface's
+// components draw in their own presentation (Runtime.PresentationAt: the
+// page beneath the modals at what the outermost modal saved, a covered
+// modal at what the modal directly above it saved, the top surface live),
+// and the page follows its drawn focus.
 func (m *Model) render() Block {
 	layout := m.layout()
 	pageTitle := ""
@@ -1076,7 +1091,6 @@ func (m *Model) render() Block {
 		base = "main"
 	}
 	pageWidth, pageHeight := m.pageSize()
-	restore := m.beneath()
 	content := m.pageContent(pageWidth, pageHeight)
 	if m.Runtime.keepFocusShown() {
 		// The focus rested on a stop this frame did not draw: it moved to
@@ -1088,7 +1102,6 @@ func (m *Model) render() Block {
 	m.follow(base, content.Text, pageHeight)
 	yoff := m.viewport(base, content.Text, pageWidth, pageHeight).YOffset()
 	page := m.scrolled(base, content, pageWidth, pageHeight)
-	restore()
 	sidebar := func(b Block) Block { return b }
 	if m.Sidebar {
 		titles, selected := m.pageTitles()
@@ -1172,41 +1185,26 @@ func (m *Model) render() Block {
 	return surface
 }
 
-// beneath shows the page renderer the level under the modals as it stands
-// there: the focus and mode the outermost modal opened over, so a grid's
-// cursor cell and selection, a list's selected row and a field's visual
-// selection keep their highlight under a modal, which the backdrop then
-// dims. The fields are set for the render and put back by the returned
-// func; no setter runs, so nothing observes the swap and no state changes.
-func (m *Model) beneath() (restore func()) {
-	r := m.Runtime
-	if len(r.modals) == 0 {
-		return func() {}
-	}
-	focus, mode := r.Focus, r.Mode
-	if outer, ok := r.ModalReturns[r.modals[0]]; ok {
-		r.Focus = outer.Focus
-		if outer.Mode.Name != "" {
-			r.Mode = outer.Mode
-		}
-	}
-	return func() { r.Focus, r.Mode = focus, mode }
-}
-
 // follow scrolls the page surface key, after a frame where the focus moved,
 // so the focused element's lines (Page.focusLines, as this frame drew them)
 // sit inside the height-line viewport with the page's scrolloff above and
 // below; an element taller than the viewport is aligned to its top. A list
 // has already windowed its rows around the selection with the same margin
-// (windowOffset), so this moves only the page, once.
+// (windowOffset), so this moves only the page, once. The focus it follows
+// is the page's drawn one (DrawnFocus): under a modal, the focus the modal
+// opened over, so opening and closing one never scrolls the page.
 func (m *Model) follow(key, content string, height int) {
 	r := m.Runtime
 	page := r.PageOf(r.Page)
-	if page == nil || m.followed[key] == r.Focus {
+	if page == nil {
 		return
 	}
-	m.followed[key] = r.Focus
-	top, bottom, ok := page.focusLines(r, r.Focus)
+	focus := r.DrawnFocus(page.ID)
+	if m.followed[key] == focus {
+		return
+	}
+	m.followed[key] = focus
+	top, bottom, ok := page.focusLines(r, focus)
 	if !ok {
 		return
 	}

@@ -1,0 +1,17 @@
+{
+  "name": "presentation at 120 columns: a stop hidden while a modal is open keeps the focus where it is (the modal owns it; the page beneath is drawn as it stands); the first frame after esc moves the focus to the page's first drawn stop through a real focus change (R3.13, MO-10)",
+  "area": "modals",
+  "width": 120,
+  "height": 16,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}, {"id": "b", "rows": 3}],
+    "focus": "b2",
+    "bind": [{"noun": "app", "keys": "X", "do": "demo.hide", "args": {"id": "b"}}]
+  },
+  "script": ["?", "X", "esc"],
+  "expect": [
+    {"after": 1, "modal": "bindings-help", "contains": ["b1", "b2"]},
+    {"after": 2, "modal": "bindings-help", "lacks": ["b1"]},
+    {"modal": "", "focus": "a1", "mode": "normal", "lacks": ["b1"]}
+  ]
+}

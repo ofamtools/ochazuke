@@ -61,9 +61,19 @@ type modelStyles struct {
 	base          Styles
 	chrome, roles string
 	styled        Styles
+	// Drawn memoizes the styles of a surface drawn in a mode that is not
+	// the live one (StylesAt: the page beneath a modal), so a frame that
+	// draws the page in the mode the modal opened over and the chrome in
+	// the live mode rebuilds neither.
+	Drawn struct {
+		Chrome, Roles string
+		Styled        Styles
+	}
 }
 
-func (c *modelStyles) get(m *Model) Styles {
+// baseOf is the Model's styles before the mode chrome: the appearance
+// with the dim, highlight and glyph settings applied.
+func (c *modelStyles) baseOf(m *Model) Styles {
 	a, r := m.Appearance, m.Runtime
 	k := r.settingsKey()
 	k.theme, k.density, k.dark = a.Theme, a.Density, a.Dark
@@ -80,16 +90,39 @@ func (c *modelStyles) get(m *Model) Styles {
 	if a.AppTones != nil {
 		k.toneGeneration = a.AppTones.generation
 	}
-	roles := r.modeRoles()
-	roleKey, chrome := strings.Join(roles, "\x00"), r.ChromeLevel()
 	if !c.valid || c.key != k {
 		c.base = k.apply(NewStyles(*a))
 		c.valid, c.key = true, k
 		c.chrome = "" // force the mode-specific styles to be rebuilt too
+		c.Drawn.Chrome = ""
 	}
+	return c.base
+}
+
+// get is the Model's styles in the live mode.
+func (c *modelStyles) get(m *Model) Styles {
+	base := c.baseOf(m)
+	roles := m.Runtime.modeRolesOf(m.Runtime.Mode)
+	roleKey, chrome := strings.Join(roles, "\x00"), m.Runtime.ChromeLevel()
 	if c.chrome != chrome || c.roles != roleKey {
-		c.styled = c.base.WithChrome(chrome, roles)
+		c.styled = base.WithChrome(chrome, roles)
 		c.chrome, c.roles = chrome, roleKey
 	}
 	return c.styled
+}
+
+// at is the Model's styles in mode, the mode a surface is drawn in: the
+// live styles when it is the live mode's, else the Drawn memo.
+func (c *modelStyles) at(m *Model, mode ModeState) Styles {
+	live := c.get(m)
+	roles := m.Runtime.modeRolesOf(mode)
+	roleKey, chrome := strings.Join(roles, "\x00"), m.Runtime.ChromeLevel()
+	if roleKey == c.roles {
+		return live
+	}
+	if c.Drawn.Chrome != chrome || c.Drawn.Roles != roleKey {
+		c.Drawn.Styled = c.base.WithChrome(chrome, roles)
+		c.Drawn.Chrome, c.Drawn.Roles = chrome, roleKey
+	}
+	return c.Drawn.Styled
 }

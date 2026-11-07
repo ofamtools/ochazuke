@@ -922,7 +922,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 	}
 	widths := fitWidths(c.cellWidths(), width-2, c.keep()...)
 	toned := c.toneStyles()
-	focused := c.r.Focus == c.input.ID
+	focused := c.r.DrawnFocus(c.input.ID) == c.input.ID
 	var matcher Matcher
 	if toned != nil && c.matchApplies() && toned.HasChrome("match") {
 		matcher = c.matcher()
@@ -1058,7 +1058,7 @@ func (c *Chooser) toneStyles() *Styles {
 	if c.r == nil {
 		return nil
 	}
-	return c.r.toneStyles()
+	return c.r.toneStyles(c.input.ID)
 }
 
 // chooserSegs places a row's Tones on its drawn line (drawn cells wide,

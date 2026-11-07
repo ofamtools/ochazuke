@@ -182,7 +182,7 @@ func (v *PageView) syncJSONSections() {
 
 func (v *PageView) jsonFocused() bool {
 	for _, s := range v.jsonSections {
-		if s.tree.List().Focused() {
+		if s.tree.List().DrawnFocused() {
 			return true
 		}
 	}
@@ -262,7 +262,7 @@ func (v *PageView) jsonSectionsText(layout ochazuke.Layout, text string, width, 
 			text += "\n\n"
 		}
 		text += part
-		if s.tree.List().Focused() {
+		if s.tree.List().DrawnFocused() {
 			focusStart, focusEnd = start, start+strings.Count(part, "\n")+1
 		}
 	}

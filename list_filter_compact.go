@@ -665,12 +665,15 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 	if v.e == nil {
 		return Text("")
 	}
+	// The form draws in its own presentation: under a modal opened over
+	// it, the focus that modal saved.
+	drawn := v.l.r.DrawnFocus(v.e.id)
 	var lines []string
 	var cursor *Pos
 	focusLine := 0
 	pickerRows := [2]int{} // the sort picker's rows in lines: [from, to)
 	add := func(b Block, focus string) {
-		if v.l.r.Focus == focus {
+		if drawn == focus {
 			focusLine = len(lines)
 			if b.Cursor != nil {
 				cursor = &Pos{X: b.Cursor.X, Y: len(lines) + b.Cursor.Y}
@@ -713,10 +716,10 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 		if dir == "" {
 			dir = "asc"
 		}
-		focusedDirection := v.l.r.Focus == direction.id
+		focusedDirection := drawn == direction.id
 		dir = s.Selection(focusedDirection).Render(dir)
 		v.l.r.Placed(v.sortPicker.input.ID)
-		open := v.l.r.Focus == v.sortPicker.input.ID
+		open := drawn == v.sortPicker.input.ID
 		var rows []string
 		count := ""
 		if open {
@@ -732,7 +735,7 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 		row := ansi.Truncate(input.Text+strings.Repeat(" ", gap)+v.l.r.PlacedAt(direction.id, dir, 0, 1)+count, controls, "")
 		row += strings.Repeat(" ", max(0, controls-ansi.StringWidth(row)))
 		add(Block{Text: row, Cursor: input.Cursor}, v.sortPicker.input.ID)
-		if v.l.r.Focus == direction.id {
+		if drawn == direction.id {
 			focusLine = len(lines) - 1
 		}
 		if len(rows) > 1 {
@@ -740,7 +743,7 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 			lines = append(lines, rows[1:]...)
 			pickerRows[1] = len(lines)
 		}
-		if v.l.r.Focus != v.sortPicker.input.ID {
+		if drawn != v.sortPicker.input.ID {
 			lines = append(lines, "", "")
 		}
 	}
@@ -800,7 +803,7 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 			rows++
 		}
 		add(Text(v.conditions.View(width, min(3, rows))), v.conditions.id)
-		if v.conditions.Focused() {
+		if v.conditions.holds(drawn) {
 			focusLine = at
 		}
 	}

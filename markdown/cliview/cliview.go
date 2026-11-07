@@ -163,5 +163,5 @@ func (v *view) Block(width, height int) ochazuke.Block {
 
 func (v *view) Focused() bool {
 	r := v.h.Model.Runtime
-	return v.doc != nil && slices.Contains(r.Ancestry(r.Focus), v.doc.ID())
+	return v.doc != nil && slices.Contains(r.Ancestry(r.DrawnFocus(v.doc.ID())), v.doc.ID())
 }

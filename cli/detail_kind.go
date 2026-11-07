@@ -46,7 +46,9 @@ type DetailView interface {
 	// content), placing its focus stops in the page's drawing order.
 	Block(width, height int) ochazuke.Block
 	// Focused reports whether the focus is inside the view (the panel's
-	// border takes the accent).
+	// border takes the accent). The page calls it while drawing, so it
+	// reads the focus the page is drawn with (Runtime.DrawnFocus), not
+	// the live one: beneath a modal, the focus the modal opened over.
 	Focused() bool
 }
 

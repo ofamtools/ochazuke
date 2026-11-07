@@ -346,7 +346,7 @@ func SelectionStyle(focused bool) lipgloss.Style {
 func (r *Runtime) Selection(focused bool) lipgloss.Style {
 	if r != nil {
 		if styles := r.Settings().page.styles; styles != nil {
-			s := styles()
+			s := styles("")
 			return s.Selection(focused)
 		}
 	}

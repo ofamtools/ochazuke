@@ -54,7 +54,7 @@ func (d *Doc) linkURLs() string {
 // linkFooter is the line under the document that shows the focused link's
 // URL (markdown.link-urls=focused), "" when there is none to show.
 func (d *Doc) linkFooter(width int) string {
-	if d.edit != nil || d.linkURLs() != LinkURLsFocused || !d.list.Focused() {
+	if d.edit != nil || d.linkURLs() != LinkURLsFocused || !d.list.DrawnFocused() {
 		return ""
 	}
 	link, ok := d.FocusedLink()

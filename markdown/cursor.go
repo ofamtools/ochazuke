@@ -100,7 +100,7 @@ func (d *Doc) highlight(line string, width int, a ochazuke.Appearance) string {
 	// The one selection painter: reverse video, kept marked and faded
 	// without the focus (UX R5.1, unfocused-selection).
 	styles := d.r.StylesFor(a)
-	paint := styles.Selection(d.list.Focused()).Render
+	paint := styles.Selection(d.list.DrawnFocused()).Render
 	plain := ansi.Truncate(ansi.Strip(line), width, "")
 	if d.r.Settings().String(CursorWidthSetting) == "text" {
 		body := strings.Trim(plain, " ")
@@ -129,7 +129,7 @@ func (d *Doc) highlightLink(line string, row, width int, a ochazuke.Appearance) 
 	if st.GetReverse() {
 		st = st.Underline(true)
 	}
-	if d.list.Focused() {
+	if d.list.DrawnFocused() {
 		st = styles.Accent.Underline(true).Inherit(styles.Selection(true))
 	}
 	paint := st.Render

@@ -299,9 +299,19 @@ func isShape(mode string) bool {
 }
 
 // Shape is the active selection shape: the base mode when it is a shape and
-// the focus sits in the grid (or in a modal opened over it), else "".
-func (g *Grid) Shape() string {
-	if mode := g.r.BaseMode(); isShape(mode) && slices.Contains(g.r.Ancestry(g.r.Focus), g.id) {
+// the focus sits in the grid (or in a modal opened over it), else "". It
+// is the live read; View draws drawnShape.
+func (g *Grid) Shape() string { return g.shapeAt(g.r.BaseMode(), g.r.Focus) }
+
+// drawnShape is Shape as the grid's surface is drawn (DrawnBaseMode,
+// DrawnFocus): beneath a modal, the shape the modal opened over, so the
+// selection keeps its highlight under the backdrop.
+func (g *Grid) drawnShape() string {
+	return g.shapeAt(g.r.DrawnBaseMode(g.id), g.r.DrawnFocus(g.id))
+}
+
+func (g *Grid) shapeAt(mode, focus string) string {
+	if isShape(mode) && slices.Contains(g.r.Ancestry(focus), g.id) {
 		return mode
 	}
 	return ""
@@ -362,7 +372,7 @@ func (g *Grid) SwapAnchor() error {
 // ToggleMark marks or unmarks the cells the current shape puts under the
 // cursor: the cell, its row or its column.
 func (g *Grid) ToggleMark() {
-	cells := g.shapeCells(g.Cursor(), g.Cursor())
+	cells := g.shapeCells(g.Shape(), g.Cursor(), g.Cursor())
 	for _, ref := range cells {
 		if g.marks[ref] {
 			delete(g.marks, ref)
@@ -398,12 +408,16 @@ func (g *Grid) Marks() []Ref { return sortRefs(g.marks) }
 // Selected lists the cells of the selection: the range the shape spans
 // between anchor and cursor, united with the marks, in row-major order. It
 // is nil when no selection is active.
-func (g *Grid) Selected() []Ref {
-	if g.Shape() == "" {
+func (g *Grid) Selected() []Ref { return g.selectedAs(g.Shape()) }
+
+// selectedAs is Selected for a given shape: the live one, or the drawn
+// one for View.
+func (g *Grid) selectedAs(shape string) []Ref {
+	if shape == "" {
 		return nil
 	}
 	set := map[Ref]bool{}
-	for _, ref := range g.shapeCells(g.anchor, g.Cursor()) {
+	for _, ref := range g.shapeCells(shape, g.anchor, g.Cursor()) {
 		set[ref] = true
 	}
 	for ref := range g.marks {
@@ -426,8 +440,8 @@ func Bounds(cells []Ref) (top, bottom, left, right int) {
 	return top, bottom, left, right
 }
 
-// shapeCells spans a and b by the active shape, over visible rows only.
-func (g *Grid) shapeCells(a, b Ref) []Ref {
+// shapeCells spans a and b by shape, over visible rows only.
+func (g *Grid) shapeCells(shape string, a, b Ref) []Ref {
 	if a.Row < 0 || b.Row < 0 {
 		return nil
 	}
@@ -440,7 +454,7 @@ func (g *Grid) shapeCells(a, b Ref) []Ref {
 	}
 	lo, hi := min(va, vb), max(va, vb)
 	left, right := min(a.Col, b.Col), max(a.Col, b.Col)
-	switch g.Shape() {
+	switch shape {
 	case ShapeRow:
 		left, right = 0, len(g.header)-1
 	case ShapeColumn:
@@ -494,7 +508,13 @@ func (g *Grid) focusTarget() string {
 }
 
 // Focused reports whether the active frame points at the grid or its cell.
+// It is the live read; View reads DrawnFocused.
 func (g *Grid) Focused() bool { return g.holds(g.r.Focus) }
+
+// DrawnFocused reports whether the grid or its cell holds the focus the
+// grid's surface is drawn with (Runtime.DrawnFocus): the cursor cell's
+// highlight under a modal is the one it had when the modal opened.
+func (g *Grid) DrawnFocused() bool { return g.holds(g.r.DrawnFocus(g.id)) }
 
 func (g *Grid) holds(focus string) bool {
 	if focus == g.id {
@@ -618,12 +638,13 @@ func (g *Grid) View(width, height int) string {
 	for last+1 < len(widths) && spanWidth(widths, g.offCol, last+1) <= avail {
 		last++
 	}
+	shape := g.drawnShape()
 	selected := map[Ref]bool{}
-	for _, ref := range g.Selected() {
+	for _, ref := range g.selectedAs(shape) {
 		selected[ref] = true
 	}
 	cursor := g.Cursor()
-	shape := g.Shape()
+	focused := g.DrawnFocused()
 	lines := make([]string, 0, height)
 	var head strings.Builder
 	head.WriteString(g.Styles.Gutter.Render(strings.Repeat(" ", gutter)))
@@ -645,7 +666,7 @@ func (g *Grid) View(width, height int) string {
 			ref := Ref{Row: row, Col: c}
 			text := fit(cellText(g.rows[row], c), widths[c])
 			switch {
-			case ref == cursor && g.Focused():
+			case ref == cursor && focused:
 				text = g.Styles.Cursor.Render(text)
 			case ref == cursor:
 				// Without the focus the cursor cell stays marked, faded

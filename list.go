@@ -559,7 +559,16 @@ func (l *List) markedIn(rows []ListItem) []ListItem {
 func (l *List) Focus() error { return l.r.SetFocus(l.focusTarget()) }
 
 // Focused derives focus from the active frame instead of retaining a stale flag.
+// It is the live read, for dispatch and domain code; drawing reads
+// DrawnFocused.
 func (l *List) Focused() bool { return l.holds(l.r.Focus) }
+
+// DrawnFocused reports whether the list holds the focus its surface is
+// drawn with (Runtime.DrawnFocus): live on the top surface, else the focus
+// the modal above saved, so a page list beneath a modal keeps the
+// highlight it had when the modal opened. Highlights, faded rows and
+// focused styles read it; motions and handlers read Focused.
+func (l *List) DrawnFocused() bool { return l.holds(l.r.DrawnFocus(l.id)) }
 
 func (l *List) holds(focus string) bool {
 	return focus == l.id || l.r.rows[focus] == l.id || l.part != "" && focus == l.part
@@ -688,7 +697,7 @@ func (l *List) View(width, height int) string {
 	}
 	if l.faded() {
 		if styles := l.r.Settings().page.styles; styles != nil {
-			text = dim(text, styles().Unfocused)
+			text = dim(text, styles(l.id).Unfocused)
 		}
 	}
 	return l.r.PlacedAt(l.id, text, focus, focusHeight)
@@ -697,20 +706,21 @@ func (l *List) View(width, height int) string {
 // marksSelection keeps the focused cursor visible, and lets a page list's
 // host (List.UnfocusedSelection) or the user (unfocused-selection hide)
 // suppress its remembered cursor without changing selection or focus.
-// Unfocused modal lists stay plain.
+// Unfocused modal lists stay plain. It reads the drawn focus.
 func (l *List) marksSelection() bool {
-	return l.Focused() || l.onPage() && (l.UnfocusedSelection == nil || l.UnfocusedSelection()) && l.r.Settings().String(UnfocusedSelectionSetting) != "hide"
+	return l.DrawnFocused() || l.onPage() && (l.UnfocusedSelection == nil || l.UnfocusedSelection()) && l.r.Settings().String(UnfocusedSelectionSetting) != "hide"
 }
 
 // faded reports whether View fades the list (dim-unfocused): a page list
-// without the focus, unless it is a tree's list and the focus is the line
+// without the drawn focus, unless it is a tree's list and the focus is the line
 // the tree is editing, which is typing into this list.
 func (l *List) faded() bool {
-	if l.Focused() || !l.onPage() {
+	focus := l.r.DrawnFocus(l.id)
+	if l.holds(focus) || !l.onPage() {
 		return false
 	}
 	if inst := l.r.Instances[l.id]; inst != nil {
-		if t := l.r.Tree(inst.Parent); t != nil && t.list == l && t.editing != "" && t.input != nil && l.r.Focus == t.input.ID {
+		if t := l.r.Tree(inst.Parent); t != nil && t.list == l && t.editing != "" && t.input != nil && focus == t.input.ID {
 			return false
 		}
 	}
@@ -725,7 +735,7 @@ func (l *List) bar(faded bool) ansi.Style {
 	if !faded || styles == nil {
 		return nil
 	}
-	s := styles()
+	s := styles(l.id)
 	return s.selectionBar(true)
 }
 
@@ -855,7 +865,7 @@ func (l *List) emptyLine() string {
 			text += fmt.Sprintf(", 0 of %d", l.Len()) // no strip to count them
 		}
 	}
-	if l.Focused() {
+	if l.DrawnFocused() {
 		return l.r.Selection(true).Render(text)
 	}
 	return text

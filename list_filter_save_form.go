@@ -48,7 +48,7 @@ func (v *filterViewForm) saveBlock(s Styles, width int) Block {
 	}
 	b := InputBlock(v.saveInput, width, 1)
 	v.l.r.PlacedAt(v.saveInput.ID, b.Text, 0, 1)
-	if v.l.r.Focus != v.saveInput.ID {
+	if v.l.r.DrawnFocus(v.e.id) != v.saveInput.ID {
 		b.Cursor = nil
 	}
 	if b.Cursor != nil {

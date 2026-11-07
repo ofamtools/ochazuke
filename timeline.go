@@ -683,7 +683,7 @@ func (t *Timeline) draw(i int, selected bool) []string {
 		border, selectedBorder = s.Tone(c.Tone), s.Tone(c.Tone)
 	}
 	switch {
-	case selected && t.list.Focused():
+	case selected && t.list.DrawnFocused():
 		border = focusedBorder
 		// Cards use joined heavy corners in every set, including classic.
 		shape := (Styles{}).Border(true)
@@ -926,7 +926,7 @@ func (t *Timeline) View(width, height int) string {
 	}
 	t.styles = NewStyles(Appearance{Theme: "adaptive", Dark: true})
 	if styles := t.r.Settings().page.styles; styles != nil {
-		t.styles = styles()
+		t.styles = styles(l.id)
 	}
 	t.width = width
 	line := ""

@@ -884,7 +884,7 @@ func (l *List) cursorStyle(sp span, toned *Styles, faded bool) ansi.Style {
 	if sp.w <= 0 {
 		return nil
 	}
-	cursor := l.r.cellCursor(faded)
+	cursor := l.r.cellCursor(l.id, faded)
 	if toned != nil {
 		toned.cellCursor = cursor
 	}

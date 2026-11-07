@@ -447,7 +447,7 @@ func (c *Commands) render(r *ochazuke.Runtime, width, height int) ochazuke.Block
 	name := c.selected()
 	listPanel := func(w, h int) ochazuke.Block {
 		cw, ch := ochazuke.PanelContentSize(w, h)
-		return layout.PanelBlock("Commands", ochazuke.Text(c.list.View(cw, ch)), w, h, c.list.Focused())
+		return layout.PanelBlock("Commands", ochazuke.Text(c.list.View(cw, ch)), w, h, c.list.DrawnFocused())
 	}
 	sidePanel := func(w, h int) ochazuke.Block {
 		cw, ch := ochazuke.PanelContentSize(w, h)
@@ -456,10 +456,10 @@ func (c *Commands) render(r *ochazuke.Runtime, width, height int) ochazuke.Block
 			c.cols, c.rows = max(1, cw), max(1, ch)
 			title := name + " · " + c.runState(name, term)
 			body := term.ViewBlock(cw, ch)
-			if !term.Focused() {
+			if !term.DrawnFocused() {
 				body.Cursor = nil
 			}
-			return layout.PanelBlock(title, body, w, h, term.Focused())
+			return layout.PanelBlock(title, body, w, h, term.DrawnFocused())
 		}
 		body, marker := c.detail.Window(c.detailText(name), cw, ch)
 		title := "Help"

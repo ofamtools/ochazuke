@@ -325,7 +325,7 @@ func (t *Tree) crumbLine(width int) string {
 	if styles == nil {
 		return line
 	}
-	s := styles()
+	s := styles(t.list.id)
 	if t.rootRow() {
 		return s.Muted.Render(line)
 	}

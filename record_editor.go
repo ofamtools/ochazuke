@@ -1550,13 +1550,16 @@ func (e *RecordEditor) Block(width, height int) Block {
 	width, height = max(1, width), max(1, height)
 	s := e.Styles
 	var lines []string
+	// The form draws in its own presentation (DrawnFocus): a picker or
+	// prompt opened over it leaves the field it opened from marked.
+	drawn := e.r.DrawnFocus(e.id)
 	var cursor *Pos
 	focusLine := 0
 	for _, f := range e.fields {
 		if f.Hidden {
 			continue
 		}
-		focused := e.fieldOn(e.r.Focus) == f
+		focused := e.fieldOn(drawn) == f
 		if focused {
 			focusLine = len(lines)
 		}
@@ -1601,7 +1604,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 				h = min(max(3, strings.Count(string(f.input.Text), "\n")+1), max(3, height/3))
 			}
 			block := InputBlock(f.input, inner, h)
-			if block.Cursor != nil && e.r.Focus == f.id {
+			if block.Cursor != nil && drawn == f.id {
 				cursor = &Pos{X: block.Cursor.X + 2, Y: len(lines) + block.Cursor.Y}
 			}
 			if f.Placeholder != "" && len(f.input.Text) == 0 {
@@ -1623,7 +1626,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 		}
 		value = ansi.Truncate(value+" "+e.Styles.Glyph("fold.open"), inner, "…")
 		value = e.fieldStyle(f, lipgloss.NewStyle()).Render(value)
-		if focused && e.r.Focus == f.id {
+		if focused && drawn == f.id {
 			value = reverseVideo(value)
 		}
 		lines = append(lines, e.r.PlacedAt(f.id, "  "+value, 0, 1))

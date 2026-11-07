@@ -72,13 +72,17 @@ func (r *Runtime) ChromeLevel() string {
 // modeRoles are the badge's role chain for the current mode: mode.<name>
 // (held keys stripped, as the badge names it), mode.pending for a pending
 // mode, mode.<extends> for each mode it extends, then mode.
-func (r *Runtime) modeRoles() []string {
-	name, keys := r.Mode.Name, r.Mode.Payload.Prefix
+func (r *Runtime) modeRoles() []string { return r.modeRolesOf(r.Mode) }
+
+// modeRolesOf is modeRoles for any mode state: the live one, or the mode
+// a surface is drawn in (Model.StylesAt).
+func (r *Runtime) modeRolesOf(mode ModeState) []string {
+	name, keys := mode.Name, mode.Payload.Prefix
 	if keys != "" && strings.HasSuffix(name, " "+keys) {
 		name = strings.TrimSuffix(name, " "+keys)
 	}
 	roles := []string{"mode." + name}
-	if r.modes[r.Mode.Name].Pending || r.modes[name].Pending {
+	if r.modes[mode.Name].Pending || r.modes[name].Pending {
 		roles = append(roles, "mode.pending")
 	}
 	seen := map[string]bool{name: true}

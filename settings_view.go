@@ -59,8 +59,10 @@ const (
 
 // settingsPage is the Settings page's state, kept with the settings.
 type settingsPage struct {
-	// styles draws the page in the Model's appearance (NewModel sets it).
-	styles func() Styles
+	// styles draws a component in the Model's appearance, in the mode the
+	// surface holding the id it is given is drawn in (Model.StylesAt;
+	// NewModel sets it); "" reads the live mode.
+	styles func(id string) Styles
 	// from is the page setting.close returns to; owned is set when
 	// setting.open registered the page, so setting.close removes it.
 	from  string

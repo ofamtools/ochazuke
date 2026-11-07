@@ -1,0 +1,14 @@
+ |  ◆ o-story                              NORMAL
+ |   › page1
+ |  ────╭──────────────────────────────────────────╮────
+ |  prom│ Keys · here                              │
+ |      │ key               operation           2› │
+ |      │ completion                               │
+R|      │   esc             completion.dismiss     │
+ |      │   tab             completion.accept      │
+ |      │ app                                      │
+ |      │ 1–2 / 46                                 │
+ |      │ space list.mark · S view · enter run · … │
+ |  ────╰──────────────────────────────────────────╯────
+ |  space list.mark · S view · enter run · esc modal.cl…
+ |

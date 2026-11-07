@@ -1114,7 +1114,7 @@ func settingsPageView(r *Runtime, width, height int) Block {
 	s := r.Settings()
 	styles := NewStyles(Appearance{Theme: "adaptive", Dark: true})
 	if view := s.page; view.styles != nil {
-		styles = view.styles()
+		styles = view.styles(SettingsPageID)
 	}
 	layout := r.PaneLayout(SettingsPageID, Layout{Styles: styles})
 	units := settingUnits(s)
@@ -1146,7 +1146,7 @@ func settingsPageView(r *Runtime, width, height int) Block {
 		// for the panel is cut.
 		sections.SetColumns(Column{Width: max(1, lw-4-tableGap-counts)}, Column{Width: counts, Align: AlignRight, Priority: 1})
 		sectionsBody := Text(sections.View(PanelContentSize(lw, body)))
-		left := layout.PanelBlock("Sections", sectionsBody, lw, body, sections.Focused())
+		left := layout.PanelBlock("Sections", sectionsBody, lw, body, sections.DrawnFocused())
 		right := settingsPanels(r, layout, shown, Block{}, width-lw-1, body).Offset(lw+1, 0)
 		lr, rr := strings.Split(left.Text, "\n"), strings.Split(right.Text, "\n")
 		joined := make([]string, body)
@@ -1154,7 +1154,7 @@ func settingsPageView(r *Runtime, width, height int) Block {
 			joined[i] = layoutRow(lr, i, lw) + " " + layoutRow(rr, i, width-lw-1)
 		}
 		cursor := firstCursor(left, right)
-		if !sections.Focused() {
+		if !sections.DrawnFocused() {
 			cursor = firstCursor(right, left)
 		}
 		pair = Block{Text: strings.Join(joined, "\n"), Cursor: cursor}
@@ -1194,7 +1194,7 @@ func settingsSelector(r *Runtime, styles Styles, listed []settingsUnit, shown se
 	at := slices.IndexFunc(listed, func(u settingsUnit) bool { return u.key() == shown.key() })
 	line := fmt.Sprintf("Section ‹ %s  %d/%d ›", sectionCell(r.Settings(), shown.Title, shown.Session), at+1, len(listed))
 	if list := r.List(settingsSectionsID); list != nil {
-		line = styles.Selection(list.Focused()).Render(line)
+		line = styles.Selection(list.DrawnFocused()).Render(line)
 	}
 	return Text(line)
 }
@@ -1226,7 +1226,7 @@ func settingsPanels(r *Runtime, layout Layout, shown settingsUnit, selector Bloc
 	detail := r.Detail(settingsDetailID)
 	title, text := "Detail", ""
 	sectionsFocused := false
-	if list := r.List(settingsSectionsID); list != nil && list.Focused() {
+	if list := r.List(settingsSectionsID); list != nil && list.DrawnFocused() {
 		sectionsFocused = true
 	}
 	switch name, index := settingOfRow(r, selectedSettingRow(r)); {
@@ -1243,7 +1243,7 @@ func settingsPanels(r *Runtime, layout Layout, shown settingsUnit, selector Bloc
 		title += " · " + marker
 	}
 	focused := SplitNone
-	if table.Focused() || sectionsFocused && selector.Text != "" {
+	if table.DrawnFocused() || sectionsFocused && selector.Text != "" {
 		focused = SplitLeft
 	}
 	tableTitle := fmt.Sprintf("%s (%d)", shown.Title, len(shown.Settings))

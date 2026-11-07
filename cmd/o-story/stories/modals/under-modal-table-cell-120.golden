@@ -1,0 +1,14 @@
+ |  ◆ o-story                                                                                              NORMAL
+ |   › page1
+ |  ──────────╭──────────────────────────────────────────────────────────────────────────────────────────────╮──────────
+ |  name   siz│ Keys · here                                                                                  │
+ |  alpha  7kb│ key             operation               arguments              description                   │
+c|  beta   40k│ demo                                                                                         │
+R|  gamma  3kb│   q             app.quit                                       Exit the application          │
+ |            │   r             demo.reset                                     Rebuild the story from its    │
+ |            │                                                                file                          │
+ |            │ 1–2 / 83                                                                                     │
+ |            │ space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bindin… │
+ |  ──────────╰──────────────────────────────────────────────────────────────────────────────────────────────╯──────────
+ |  space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bindings.help · / filter
+ |

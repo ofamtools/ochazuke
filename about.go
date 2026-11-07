@@ -555,7 +555,7 @@ func aboutPageView(r *Runtime, width, height int) Block {
 	}
 	styles := NewStyles(Appearance{Theme: "adaptive", Dark: true})
 	if view := r.Settings().page; view.styles != nil {
-		styles = view.styles()
+		styles = view.styles(AboutPageID)
 	}
 	layout := r.PaneLayout(AboutPageID, Layout{Styles: styles})
 	var rows []string
@@ -587,7 +587,7 @@ func aboutPageView(r *Runtime, width, height int) Block {
 		title += " · " + marker
 	}
 	focused := SplitNone
-	if list.Focused() {
+	if list.DrawnFocused() {
 		focused = SplitLeft
 	}
 	pair := layout.panelPair("About", tableBody, title, Text(content), width, body, th, true, focused)

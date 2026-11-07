@@ -732,7 +732,7 @@ func demoLibrary(m *ochazuke.Model, entries *ochazuke.List, detail *ochazuke.Det
 	layout := m.Runtime.PaneLayout("library", ochazuke.Layout{Styles: ochazuke.NewStyles(*m.Appearance)})
 	listPanel := func(w, h int) string {
 		cw, ch := ochazuke.PanelContentSize(w, h)
-		return layout.Panel("Entries", entries.View(cw, ch), w, h, entries.Focused())
+		return layout.Panel("Entries", entries.View(cw, ch), w, h, entries.DrawnFocused())
 	}
 	detailPanel := func(w, h int) string {
 		cw, ch := ochazuke.PanelContentSize(w, h)

@@ -654,7 +654,7 @@ func (t *Tree) rows(width, height int) Block {
 	if t.guidesEnabled() {
 		indent := t.indent(t.nodes[i].ID)
 		if styles := t.r.Settings().page.styles; styles != nil {
-			prefix = styles().Tone(ToneTreeGuide).Render(indent) + strings.TrimPrefix(prefix, indent)
+			prefix = styles(t.list.id).Tone(ToneTreeGuide).Render(indent) + strings.TrimPrefix(prefix, indent)
 		}
 		prefix = ansi.Truncate(prefix, max(0, width-1), "")
 	}

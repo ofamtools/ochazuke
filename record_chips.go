@@ -163,7 +163,7 @@ func (f *recordField) chipAt() (int, int) {
 func (e *RecordEditor) chipBlock(f *recordField, width, indent int) []string {
 	f.layoutChips(max(1, width-indent))
 	s := e.Styles
-	focused := e.r.Focus == f.id
+	focused := e.r.DrawnFocus(e.id) == f.id
 	var out []string
 	for _, line := range f.lines {
 		parts := make([]string, 0, len(line))

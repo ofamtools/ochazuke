@@ -52,19 +52,22 @@ func (v *View) View(s ochazuke.Styles, width, height int) string {
 		}
 	} else {
 		digits := v.digits
+		// The cursor row is highlighted while the view holds the focus
+		// its surface is drawn with (DrawnFocus).
+		holds := v.r != nil && v.r.DrawnFocus(v.id) == v.id
 		for i := v.top; i < len(v.rows) && len(lines) < height; i++ {
 			r := v.rows[i]
 			if r.left < 0 && r.right < 0 {
 				h := v.file.Hunks[r.hunk]
 				title := fmt.Sprintf("@@ -%d,%d +%d,%d @@ %s", h.OldStart, h.OldCount, h.NewStart, h.NewCount, printable(h.Header))
 				st := s.Muted.Bold(true)
-				if v.r != nil && v.r.Focus == v.id && i == v.cursor {
+				if holds && i == v.cursor {
 					st = st.Inherit(v.r.Selection(true))
 				}
 				lines = append(lines, st.Render(fit(title, width)))
 				continue
 			}
-			focused := v.r != nil && v.r.Focus == v.id && i == v.cursor
+			focused := holds && i == v.cursor
 			if v.layout == Split {
 				left := (width - 1) / 2
 				right := width - 1 - left

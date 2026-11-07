@@ -125,7 +125,7 @@ func terminalPageView(r *ochazuke.Runtime, term *ochazuke.Terminal, spec PageCon
 		return ochazuke.Block{}
 	}
 	state := "detached · Enter attaches"
-	if term.Focused() {
+	if term.DrawnFocused() {
 		state = "attached · keys go to the pane"
 	}
 	status := ansi.Truncate(fmt.Sprintf("Pane: %s · %s", term.ID(), state), width, "…")
@@ -139,8 +139,8 @@ func terminalPageView(r *ochazuke.Runtime, term *ochazuke.Terminal, spec PageCon
 	if bodyHeight > 0 {
 		cw, ch := ochazuke.PanelContentSize(width, bodyHeight)
 		layout := ochazuke.Layout{Styles: styles}
-		panel := layout.PanelBlock("Console", term.ViewBlock(cw, ch), width, bodyHeight, term.Focused())
-		if !term.Focused() {
+		panel := layout.PanelBlock("Console", term.ViewBlock(cw, ch), width, bodyHeight, term.DrawnFocused())
+		if !term.DrawnFocused() {
 			panel.Cursor = nil
 		}
 		rows = append(rows, panel)

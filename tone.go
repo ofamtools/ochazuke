@@ -453,11 +453,11 @@ func (r *Runtime) CellCursor() string {
 // list.cell-cursor underline, without the Model's styles, when the theme
 // has no such tone or the tone has no background (mono, NO_COLOR), draws
 // the cell reversed and underlined inside the bar.
-func (r *Runtime) cellCursor(faded bool) ansi.Style {
+func (r *Runtime) cellCursor(id string, faded bool) ansi.Style {
 	if r.CellCursor() != CellCursorBackground {
 		return nil
 	}
-	s := r.toneStyles()
+	s := r.toneStyles(id)
 	if s == nil {
 		return nil
 	}
@@ -559,18 +559,20 @@ func (l *List) listTones() *Styles {
 	if !l.wantsTones() {
 		return nil
 	}
-	return l.r.toneStyles()
+	return l.r.toneStyles(l.id)
 }
 
 // toneStyles is the Model's styles for drawing ToneSpans (a list's rows,
 // a chooser's): nil without a Model's styles or with no tone in the
-// theme; the selected background and intersect settings filled in.
-func (r *Runtime) toneStyles() *Styles {
+// theme; the selected background and intersect settings filled in. id is
+// the drawing instance: a tone that names the mode role reads the mode its
+// surface is drawn in.
+func (r *Runtime) toneStyles(id string) *Styles {
 	styles := r.Settings().page.styles
 	if styles == nil {
 		return nil
 	}
-	s := styles()
+	s := styles(id)
 	if len(s.tones) == 0 {
 		return nil
 	}

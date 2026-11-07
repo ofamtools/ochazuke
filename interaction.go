@@ -4,11 +4,14 @@ import "slices"
 
 // The interaction accessors read the live focus and mode, and the
 // interaction a page or modal is drawn in, as detached values: nothing a
-// caller does to a result reaches the runtime. They are the reads that
-// replace the exported Runtime.Mode and Runtime.Focus fields (which still
-// compile; hiding them is a later step of the mode-ownership plan).
+// caller does to a result reaches the runtime. Runtime.Mode and
+// Runtime.Focus stay exported and readable (the owner's 2026-11-07
+// decision); their writers are guarded by TestStateWriteOwnership.
 // Dispatch and domain handlers read the live accessors; drawing code asks
-// PresentationAt for the surface it draws.
+// for the surface it draws (PresentationAt, DrawnFocus, a component's
+// DrawnFocused). Nothing assigns the fields for a frame: a page beneath a
+// modal is drawn by reading its presentation, never by borrowing the
+// modal's saved return into the live state.
 
 // CurrentMode is the live interaction mode as a detached value: its name
 // and payload, with the payload's stored request (its arguments, subjects,
@@ -54,78 +57,122 @@ type Presentation struct {
 // their own registered id; an application renderer passes the page or
 // region it draws. The modal directly above the surface supplies its saved
 // focus and mode; the current page beneath open modals reads the
-// outermost modal's return; another page reads its remembered state.
+// outermost modal's return; another page reads its remembered state. A
+// saved return without a mode (a return repaired after its focus was
+// removed) reads the mode that focus declares, which is what closing the
+// modal lands in. Rendering reads the same rule (DrawnFocus, the
+// components' DrawnFocused), so what a frame draws is what PresentationAt
+// reports.
 func (r *Runtime) PresentationAt(id string) Presentation {
 	if r.Instances[id] == nil {
 		return Presentation{}
 	}
-	if i := r.surfaceModal(id); i >= 0 {
-		view := Presentation{Surface: r.modals[i], Modals: slices.Clone(r.modals[:i+1])}
-		if i == len(r.modals)-1 {
-			return r.liveView(view)
-		}
-		above := r.ModalReturns[r.modals[i+1]]
-		return r.savedView(view, above.Focus, above.Mode)
+	surface, depth, focus, mode, live := r.drawnAt(id)
+	view := Presentation{Surface: surface, Focus: focus, Mode: cloneModeState(mode), Live: live, Context: r.contextOf(focus)}
+	if depth > 0 {
+		view.Modals = slices.Clone(r.modals[:depth])
 	}
-	page := r.surfacePage(id)
+	return view
+}
+
+// DrawnFocus is the focus the surface holding id is drawn with:
+// PresentationAt(id).Focus without building the view. Drawing code (a
+// component's highlight, cursor, scroll and focused styles; an
+// application's page renderer) compares against it; dispatch and domain
+// handlers read the live FocusID. An id that is not an instance reads the
+// live focus.
+func (r *Runtime) DrawnFocus(id string) string {
+	_, _, focus, _, _ := r.drawnAt(id)
+	return focus
+}
+
+// DrawnBaseMode is the base mode the surface holding id is drawn in:
+// PresentationAt(id).Mode as BaseMode reads it (a pending mode or a
+// key-sequence prefix stands in the mode it returns to).
+func (r *Runtime) DrawnBaseMode(id string) string {
+	return r.baseModeOf(r.drawnMode(id))
+}
+
+// drawnMode is the mode the surface holding id is drawn in
+// (PresentationAt(id).Mode), not copied: for drawing code that only reads
+// it.
+func (r *Runtime) drawnMode(id string) ModeState {
+	_, _, _, mode, _ := r.drawnAt(id)
+	return mode
+}
+
+// drawnAt is PresentationAt's one rule: the surface holding id, how many
+// open modals are visible at it (0 for a page), the focus and mode it is
+// drawn in (the mode not copied) and whether that is the live
+// interaction. It allocates nothing on the common paths, so drawing code
+// may ask once per component per frame. An unknown id reads live.
+func (r *Runtime) drawnAt(id string) (surface string, depth int, focus string, mode ModeState, live bool) {
+	if r.Instances[id] == nil {
+		return "", len(r.modals), r.Focus, r.Mode, true
+	}
+	modal, page := r.surfaceOf(id)
+	if modal >= 0 {
+		surface, depth = r.modals[modal], modal+1
+		if modal == len(r.modals)-1 {
+			return surface, depth, r.Focus, r.Mode, true
+		}
+		above := r.ModalReturns[r.modals[modal+1]]
+		focus, mode = r.savedInteraction(above.Focus, above.Mode)
+		return surface, depth, focus, mode, false
+	}
 	switch {
 	case page != nil && page.ID != r.Page:
 		focus := page.Remembered
 		if r.Instances[focus] == nil {
 			focus = page.ID
 		}
-		return r.savedView(Presentation{Surface: page.ID}, focus, page.mode)
+		focus, mode = r.savedInteraction(focus, page.mode)
+		return page.ID, 0, focus, mode, false
 	case page != nil:
-		id = page.ID
+		surface = page.ID
+	case r.Page != "":
+		surface = r.Page
 	default:
-		id = "app"
-		if r.Page != "" {
-			id = r.Page
-		}
+		surface = "app"
 	}
-	view := Presentation{Surface: id}
 	if len(r.modals) == 0 {
-		return r.liveView(view)
+		return surface, 0, r.Focus, r.Mode, true
 	}
 	outer := r.ModalReturns[r.modals[0]]
-	return r.savedView(view, outer.Focus, outer.Mode)
+	focus, mode = r.savedInteraction(outer.Focus, outer.Mode)
+	return surface, 0, focus, mode, false
 }
 
-// surfaceModal is the index in the open modals of the innermost one on
-// id's ancestry (id itself included), -1 for none.
-func (r *Runtime) surfaceModal(id string) int {
-	for _, step := range r.Ancestry(id) {
-		if i := slices.Index(r.modals, step); i >= 0 {
-			return i
+// surfaceOf walks id's ancestry (id itself included) once: the index in
+// the open modals of the innermost modal on it (-1 for none) and, when no
+// modal holds it, the nearest page on it.
+func (r *Runtime) surfaceOf(id string) (modal int, page *Page) {
+	modal = -1
+	for steps := len(r.Instances); id != "" && steps > 0; steps-- {
+		inst := r.Instances[id]
+		if inst == nil {
+			break
 		}
-	}
-	return -1
-}
-
-// surfacePage is the nearest page on id's ancestry (id itself included).
-func (r *Runtime) surfacePage(id string) *Page {
-	for _, step := range r.Ancestry(id) {
-		if page := r.PageOf(step); page != nil {
-			return page
+		if len(r.modals) > 0 {
+			if i := slices.Index(r.modals, id); i >= 0 {
+				return i, nil
+			}
 		}
+		if page == nil {
+			page = r.PageOf(id)
+		}
+		id = inst.Parent
 	}
-	return nil
+	return -1, page
 }
 
-func (r *Runtime) liveView(view Presentation) Presentation {
-	view.Focus, view.Mode, view.Live = r.Focus, cloneModeState(r.Mode), true
-	view.Context = r.contextOf(r.Focus)
-	return view
-}
-
-func (r *Runtime) savedView(view Presentation, focus string, mode ModeState) Presentation {
-	view.Focus = focus
-	view.Mode = cloneModeState(mode)
-	if view.Mode.Name == "" {
-		view.Mode = ModeState{Name: r.DeclaredMode(focus)}
+// savedInteraction is a saved focus and mode as a surface is drawn in it:
+// a saved return without a mode reads the mode its focus declares.
+func (r *Runtime) savedInteraction(focus string, mode ModeState) (string, ModeState) {
+	if mode.Name == "" {
+		mode = ModeState{Name: r.DeclaredMode(focus)}
 	}
-	view.Context = r.contextOf(focus)
-	return view
+	return focus, mode
 }
 
 // cloneModeState is m with nothing shared: the payload's stored request

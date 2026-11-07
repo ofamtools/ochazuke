@@ -35,7 +35,7 @@ func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, sty
 	layout := ochazuke.Layout{Styles: styles}
 	listPanel := func(w, h int) ochazuke.Block {
 		cw, ch := ochazuke.PanelContentSize(w, h)
-		return ochazuke.Text(layout.Panel("Sample items", list.View(cw, ch), w, h, list.Focused()))
+		return ochazuke.Text(layout.Panel("Sample items", list.View(cw, ch), w, h, list.DrawnFocused()))
 	}
 	input := r.Input(spec.Inputs[0])
 	editorPanel := func(w, h int) ochazuke.Block {

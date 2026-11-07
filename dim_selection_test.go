@@ -18,7 +18,7 @@ func unfocus(m *Model) {
 // wantBar is the SGR the dimmed bar opens with at percent toward the
 // background.
 func wantBar(m *Model, percent int) string {
-	s := m.Runtime.Settings().page.styles()
+	s := m.Runtime.Settings().page.styles("")
 	var st ansi.Style
 	return st.Reverse(true).ForegroundColor(fadeRamp(s.text, s.ground)[percent]).String()
 }
@@ -130,7 +130,7 @@ func TestUnfocusedSelectionFadesCellCursor(t *testing.T) {
 		{ID: "a", Label: "a", Noun: "row", Cells: []string{"one", "two"}},
 	}, CellSelect())
 	unfocus(m)
-	s := m.Runtime.Settings().page.styles()
+	s := m.Runtime.Settings().page.styles("")
 	look := s.moded(s.tones[ToneCellCursor])
 	if look.bg == nil {
 		t.Skip("dark theme has no list.cell.cursor background")

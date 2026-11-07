@@ -77,26 +77,20 @@ var ownedFields = []ownedField{
 	{
 		name:   "Mode",
 		owners: map[string]bool{"mode_change.go Runtime.changeMode": true},
-		// The legacy borrow that still assigns Runtime.Mode for a render
-		// and puts it back. It is not a real transition: no observer runs
-		// and the generation does not move. The queries (bindings.stops,
-		// the typing check, help at its origin) read a resolutionContext
-		// instead, and a replayed remote verb reads the mode its request
-		// started in from its RequestContext (Ctx.mode), so neither is here.
-		exceptions: []stateWriteException{
-			{"model.go", "Model.beneath", 2, "render borrow: draws the page in the mode the outer modal opened over and restores; MO-10 presentation"},
-		},
+		// No exceptions. Nothing borrows the mode: the queries
+		// (bindings.stops, the typing check, help at its origin) read a
+		// resolutionContext, a replayed remote verb reads the mode its
+		// request started in from its RequestContext (Ctx.mode), and a
+		// frame draws each surface in its presentation
+		// (Runtime.PresentationAt, DrawnFocus, Model.StylesAt).
 		advice: "request the mode (SetMode, mode.switch, Input.SetMode) or add the transition to changeMode's callers",
 	},
 	{
 		name:   "Focus",
 		owners: map[string]bool{"focus_change.go Runtime.changeFocus": true},
-		// The same render borrow, for the focus: the page beneath the modals
-		// is drawn with the focus the outermost modal opened over, then the
-		// live focus is put back. No row is selected, no mode rule runs.
-		exceptions: []stateWriteException{
-			{"model.go", "Model.beneath", 2, "render borrow: draws the page at the focus the outer modal opened over and restores; MO-10 presentation"},
-		},
+		// No exceptions: the page beneath the modals is drawn at the focus
+		// the outermost modal saved by reading it (DrawnFocus), never by
+		// assigning it for the frame.
 		advice: "move the focus (SetFocus, setFocus, RetargetFocus, OpenPage, Push/Pop) or add the landing to changeFocus's callers",
 	},
 	// The modal stack (modal_stack.go): the open modal IDs, the instances
@@ -152,11 +146,16 @@ var ownedFields = []ownedField{
 // (an index write, delete, clear, copy, a sorting or deleting slices/sort
 // call) or takes its address, writes it through a copied Runtime or a
 // Runtime composite literal, outside its owner (changeMode, changeFocus,
-// the modal stack methods in modal_stack.go), except the exact legacy
-// borrows listed in ownedFields. Reads stay open everywhere.
+// the modal stack methods in modal_stack.go), except the exact reviewed
+// writes listed in ownedFields (one test-only snapshot write). Reads stay
+// open everywhere. Mode and Focus have no exception at all: no render or
+// query borrows them (MO-10 removed the last one, Model.beneath).
 func TestStateWriteOwnership(t *testing.T) {
 	writes := repositoryStateWrites(t)
 	for _, field := range ownedFields {
+		if (field.name == "Mode" || field.name == "Focus") && len(field.exceptions) > 0 {
+			t.Errorf("%s has exceptions again (%v): a render or a query reads a presentation or resolution context, it never assigns the live state", field.label(), field.exceptions)
+		}
 		t.Run(field.label(), func(t *testing.T) {
 			checkFieldOwnership(t, field, writes[field.label()])
 		})

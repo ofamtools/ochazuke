@@ -1,0 +1,23 @@
+{
+  "name": "presentation at 120 columns: a table's current cell (cell select, the cursor on 40kb) keeps its cursor under the help, dimmed by the backdrop, as the table's surface is drawn (MO-10)",
+  "area": "modals",
+  "width": 120,
+  "height": 14,
+  "theme": "dark",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "t",
+        "cellSelect": true,
+        "columns": [{"title": "name"}, {"title": "size"}, {"title": "kind"}],
+        "items": [
+          {"id": "t1", "label": "alpha", "cells": ["alpha", "7kb", "file"]},
+          {"id": "t2", "label": "beta", "cells": ["beta", "40kb", "dir"]},
+          {"id": "t3", "label": "gamma", "cells": ["gamma", "3kb", "file"]}
+        ]
+      }
+    ]
+  },
+  "script": ["l", "j", "?"]
+}

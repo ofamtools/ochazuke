@@ -1071,7 +1071,7 @@ func (v *PageView) body(layout ochazuke.Layout, width, height int) ochazuke.Bloc
 	case v.groups != nil:
 		rail := min(28, max(1, (width-1)/3))
 		rw, rh := ochazuke.PanelContentSize(rail, height)
-		left := layout.PanelBlock("Groups", ochazuke.Text(v.groups.View(rw, rh)), rail, height, v.groups.Focused())
+		left := layout.PanelBlock("Groups", ochazuke.Text(v.groups.View(rw, rh)), rail, height, v.groups.DrawnFocused())
 		right := v.listsAndDetail(layout, []*pageList{v.lists[v.current]}, width-rail-1, height, false)
 		return beside(left, right, rail, height)
 	case v.spec.Layout == LayoutSplit && v.detail != nil && width >= 72:
@@ -1162,7 +1162,7 @@ func (v *PageView) listPanel(layout ochazuke.Layout, pl *pageList, width, height
 	if pl.loading && pl.loaded {
 		title += " · refreshing…"
 	}
-	return layout.PanelBlock(title, ochazuke.Text(text), width, height, pl.list.Focused())
+	return layout.PanelBlock(title, ochazuke.Text(text), width, height, pl.list.DrawnFocused())
 }
 
 // statusFor is the page status, shown under the last list drawn.

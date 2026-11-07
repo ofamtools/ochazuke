@@ -144,8 +144,14 @@ func (t *Terminal) Size() (cols, rows int) { return t.cols, t.rows }
 // Err is the stream's last error, "" when it is healthy.
 func (t *Terminal) Err() string { return t.err }
 
-// Focused reports whether keys go to this pane.
+// Focused reports whether keys go to this pane: the live read.
 func (t *Terminal) Focused() bool { return t.r.Focus == t.id }
+
+// DrawnFocused reports whether the pane holds the focus its surface is
+// drawn with (Runtime.DrawnFocus): a pane beneath a modal draws as it
+// stood when the modal opened (its cursor, an "attached" label), while
+// keys go to the modal (Focused is false).
+func (t *Terminal) DrawnFocused() bool { return t.r.DrawnFocus(t.id) == t.id }
 
 // read schedules the next frame read as work owned by the instance.
 func (t *Terminal) read() {
@@ -224,7 +230,7 @@ func (t *Terminal) ViewBlock(width, height int) Block {
 	}
 	// The page keeps the pane's top line on screen when it follows the focus.
 	block := Text(t.r.PlacedAt(t.id, strings.Join(rows, "\n"), 0, 1))
-	if t.Focused() && !t.frame.Hidden {
+	if t.DrawnFocused() && !t.frame.Hidden {
 		block.Cursor = &Pos{X: t.frame.Cursor.X, Y: t.frame.Cursor.Y}
 		block = block.Clip(width, height)
 	}
@@ -237,7 +243,7 @@ func (t *Terminal) drawOverlay(rows []string, width int) {
 	if t.overlay.Dim {
 		fade := lipgloss.NewStyle().Faint(true)
 		if styles := t.r.Settings().page.styles; styles != nil {
-			if s := styles(); s.Backdrop.Render("x") != "x" {
+			if s := styles(t.id); s.Backdrop.Render("x") != "x" {
 				fade = s.Backdrop
 			}
 		}

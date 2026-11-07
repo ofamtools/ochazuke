@@ -140,7 +140,7 @@ func TestTreeBreadcrumbDimsAncestors(t *testing.T) {
 		t.Fatal(err)
 	}
 	line := strings.Split(tree.View(40, 20), "\n")[0]
-	muted := r.Settings().page.styles().Muted.Render("root › alpha › ")
+	muted := r.Settings().page.styles("").Muted.Render("root › alpha › ")
 	if !strings.HasPrefix(line, muted) || !strings.Contains(line, "beta") {
 		t.Fatalf("breadcrumb %q, want it to start with %q", line, muted)
 	}
