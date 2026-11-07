@@ -192,7 +192,7 @@ func (l *List) refilter(keep string) {
 				shown = append(shown, item)
 			}
 		}
-		l.items = shown
+		l.items = l.withKin(shown, hidden)
 	}
 	l.items = l.arrange(l.sortedRows(l.lingerRows(l.items)), keep)
 	if t := l.tree(); t != nil {
@@ -211,6 +211,46 @@ func (l *List) refilter(keep string) {
 		l.selected = 0
 	}
 	l.offset = min(l.offset, max(0, len(l.items)-1))
+}
+
+// ListFilterKeepsChildrenSetting makes the filter keep a matching row's
+// children and a matching child's parent (ListItem.Under).
+const ListFilterKeepsChildrenSetting = "list.filter-keeps-children"
+
+// withKin adds to the matched rows the rows tied to them by Under: the
+// children of a matched row and the parents of a matched child, so a
+// child is never seen without its parent nor a parent without its items.
+// Rows come back in list order.
+func (l *List) withKin(shown []ListItem, hidden map[string]bool) []ListItem {
+	if !l.r.Settings().Bool(ListFilterKeepsChildrenSetting) {
+		return shown
+	}
+	keep := make(map[string]bool, len(shown))
+	for _, item := range shown {
+		keep[item.ID] = true
+	}
+	grew := false
+	for _, item := range l.all {
+		if item.Under == "" || hidden[item.ID] {
+			continue
+		}
+		switch {
+		case keep[item.ID] && !keep[item.Under] && !hidden[item.Under]:
+			keep[item.Under], grew = true, true
+		case keep[item.Under] && !keep[item.ID]:
+			keep[item.ID], grew = true, true
+		}
+	}
+	if !grew {
+		return shown
+	}
+	out := make([]ListItem, 0, len(keep))
+	for _, item := range l.all {
+		if keep[item.ID] {
+			out = append(out, item)
+		}
+	}
+	return out
 }
 
 // shows reports whether the row with id is among the shown rows.

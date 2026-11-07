@@ -345,3 +345,40 @@ func TestSettingsAllSection(t *testing.T) {
 		t.Fatal("setting.all with the All section off")
 	}
 }
+
+// A filtered list row keeps its item rows: the owner saw "2 items" with the
+// items hidden. An item row edits as item N of M.
+func TestSettingsFilterKeepsItems(t *testing.T) {
+	r, m := layoutFixture(t)
+	if err := r.DeclareSetting(Setting{Name: "panes.owner-task-props", Type: SettingList, Default: []string{"status", "archived"}}); err != nil {
+		t.Fatal(err)
+	}
+	refreshSettingsPage(r)
+	m.View()
+	sections := r.List(settingsSectionsID)
+	if err := sections.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	sections.SetFilter("task")
+	all := r.List(settingsListID("/all"))
+	var ids []string
+	for _, it := range all.items {
+		ids = append(ids, it.ID)
+	}
+	want := []string{"__settings/all/row/panes.owner-task-props", "__settings/all/item/panes.owner-task-props/0", "__settings/all/item/panes.owner-task-props/1"}
+	if i := slices.Index(ids, want[0]); i < 0 || !reflect.DeepEqual(ids[i:i+3], want) {
+		t.Fatalf("shown %v, want %v in a row", ids, want)
+	}
+	if err := r.SetFocus(want[1]); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting-item", Verb: "edit"}); err != nil {
+		t.Fatal(err)
+	}
+	if r.TopModal() != settingPromptID || string(r.Input(settingValueID).Text) != "status" {
+		t.Fatalf("modal %q, input %q", r.TopModal(), r.Input(settingValueID).Text)
+	}
+	if f := ansi.Strip(m.View().Content); !strings.Contains(f, "item 1 of 2") {
+		t.Fatalf("frame:\n%s", f)
+	}
+}

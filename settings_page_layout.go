@@ -311,7 +311,7 @@ func refreshSettingsPage(r *Runtime) {
 			if list, ok := v.Value.([]string); ok {
 				for i, text := range list {
 					items = append(items, ListItem{
-						ID: fmt.Sprintf("%sitem/%s/%d", u.rowPrefix(), v.Name, i), Label: text, Noun: settingItemNoun, Section: heading,
+						ID: fmt.Sprintf("%sitem/%s/%d", u.rowPrefix(), v.Name, i), Label: text, Noun: settingItemNoun, Section: heading, Under: row.ID,
 						Data: settingItemRef{Name: v.Name, Index: i}, Cells: []string{"", textCell(text)},
 					})
 				}

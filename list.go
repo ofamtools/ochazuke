@@ -32,10 +32,14 @@ type ListItem struct {
 	Data  any    `json:"data,omitempty"`
 	// Props supplies the row's noun prop values when Data is an opaque handle.
 	// Nil reads props from Data via ThingOf instead.
-	Props   Thing      `json:"props,omitempty"`
-	Cells   []string   `json:"cells,omitempty"`
-	Section string     `json:"section,omitempty"`
-	Tones   []ToneSpan `json:"tones,omitempty"`
+	Props   Thing    `json:"props,omitempty"`
+	Cells   []string `json:"cells,omitempty"`
+	Section string   `json:"section,omitempty"`
+	// Under is the ID of the row this row is a child of, in a flat list
+	// (a setting's items under the setting). The / filter keeps a matching
+	// row's children and a matching child's parent (list.filter-keeps-children).
+	Under string     `json:"under,omitempty"`
+	Tones []ToneSpan `json:"tones,omitempty"`
 	// Classes are application-defined labels for list.next-class and previous-class.
 	Classes []string `json:"classes,omitempty"`
 	// Search is more text the / filter matches the row by, beside its
