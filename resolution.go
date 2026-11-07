@@ -72,6 +72,34 @@ func (r *Runtime) listBindingsIn(ctx resolutionContext) []Binding {
 	return sortListedBindings(r.withAliases(out))
 }
 
+// drawnResolution is the interaction the surface holding id is drawn
+// with (PresentationAt's one rule, drawnAt): the live one for the top
+// surface and for an unknown id, else a query's own at the saved focus and
+// base mode, bounded by the modals open at it (the modals
+// open at it: none for a page). A pending mode or a sequence prefix saved
+// there stands in the base mode it returns to.
+func (r *Runtime) drawnResolution(id string) resolutionContext {
+	_, depth, focus, mode, live := r.drawnAt(id)
+	if live {
+		return r.liveResolution(focus)
+	}
+	if base := r.baseModeOf(mode); base != mode.Name || mode.Payload.Prefix != "" {
+		mode = ModeState{Name: base}
+	}
+	return queryResolution(focus, mode, r.modals[:depth])
+}
+
+// ListBindingsAt is ListBindings for the surface holding id as that
+// surface is drawn (PresentationAt): the rows its drawn focus answers to
+// in its drawn base mode, over the modals open at it. A page beneath a
+// modal gets the page's own bindings, a modal beneath another the ones the
+// modal above it saved; the top surface is the live ListBindings. A pure
+// query: it assigns no Runtime field and reads and fills no binding cache.
+// ListBindings(focus) stays the live reading.
+func (r *Runtime) ListBindingsAt(id string) []Binding {
+	return r.listBindingsIn(r.drawnResolution(id))
+}
+
 // EventFocus is the focus an event is judged from: the query's focus when
 // a query judges it hypothetically (KeyEvent.Within), else the live focus.
 // A guard that compares with the focused instance (not the instance the

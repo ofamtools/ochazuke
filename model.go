@@ -688,6 +688,26 @@ func HintCells(r *Runtime, focus string) []HintCell {
 	return r.renderCache.hintCells(r, focus)
 }
 
+// HintCellsAt is the hint line of the surface holding id as that surface
+// is drawn (Runtime.PresentationAt): its drawn focus, in its drawn base
+// mode, bounded by the modals above it. The top surface reads the live
+// interaction (HintCells at the live focus); a covered one reads what the
+// modal above it saved, so a modal under another keeps its own keys in its
+// hint line. A pure query: no cache a live frame relies on is read or
+// filled, and the runtime is not touched.
+func HintCellsAt(r *Runtime, id string) []HintCell {
+	ctx := r.drawnResolution(id)
+	if !ctx.Hypothetical {
+		return HintCells(r, ctx.Focus)
+	}
+	bindings := hintBindingsIn(r, ctx, groupLevelRows(r.rowsIn(ctx)))
+	cells := make([]HintCell, len(bindings))
+	for i, b := range bindings {
+		cells[i] = rowHintCell(r, b)
+	}
+	return cells
+}
+
 // HintsShowHiddenSetting puts the rows marked hidden (the editor's
 // insert keys, the palette key, counts, registers) on the hint lines too;
 // off by default, they are left to ? help and bindings list.
@@ -700,6 +720,14 @@ func HintBindings(r *Runtime, focus string) []Binding {
 }
 
 func hintBindingsUncached(r *Runtime, focus string, rows []levelRow) []Binding {
+	return hintBindingsIn(r, r.liveResolution(focus), rows)
+}
+
+// hintBindingsIn is hintBindingsUncached in a context: its mode decides
+// the pending-prefix cancel and its focus, mode and (for a query) Within
+// judge the row guards.
+func hintBindingsIn(r *Runtime, ctx resolutionContext, rows []levelRow) []Binding {
+	focus := ctx.Focus
 	var out []Binding
 	index := map[string]bool{}
 	showHidden := r.Settings().Bool(HintsShowHiddenSetting)
@@ -708,13 +736,13 @@ func hintBindingsUncached(r *Runtime, focus string, rows []levelRow) []Binding {
 		if b.Hidden && !showHidden || r.Operations[b.Request.Key()].Motion && b.Hint == "" {
 			continue // a motion with its own Hint (J/K detail) shows
 		}
-		if isPrefixCancel(b) && r.Mode.Payload.Prefix == "" {
+		if isPrefixCancel(b) && ctx.Mode.Payload.Prefix == "" {
 			continue // "d esc" matters only once d is pending
 		}
 		if b.When != "" {
 			// A row whose guard is false here would not answer: no hint
 			// (bindings list keeps it, as the guard may hold for the key).
-			if check := r.guard(b.When); check == nil || !check(r, KeyEvent{Mode: r.Mode, Focus: focus}) {
+			if check := r.guard(b.When); check == nil || !check(r, KeyEvent{Mode: ctx.Mode, Focus: focus, Within: ctx.within()}) {
 				continue
 			}
 		}
@@ -1157,7 +1185,7 @@ func (m *Model) render() Block {
 		if place != nil {
 			hintWidth = modalWidth
 		}
-		cells := HintCells(m.Runtime, m.Runtime.ModalFocus(id))
+		cells := HintCellsAt(m.Runtime, id)
 		hint := ansi.Truncate(JoinHints(cells), hintWidth, "…")
 		lead := ""
 		if id == m.Runtime.TopModal() {
