@@ -643,11 +643,6 @@ func (r *Runtime) ReloadUserActions() []string {
 	c.actionsLoaded = true
 	for _, a := range c.actions {
 		r.Operations.Delete(Key(a.Key()))
-		if n := r.Nouns[a.Noun]; n != nil {
-			if i := slices.Index(n.Verbs, a.Verb); i >= 0 {
-				n.Verbs = slices.Delete(n.Verbs, i, i+1)
-			}
-		}
 	}
 	c.actions = nil
 	for _, a := range c.actionAliases {
@@ -715,7 +710,6 @@ func (r *Runtime) installAction(a UserOperation) {
 		description = "Run " + filepath.Base(a.firstWord()) + " (" + ActionsFile + ")"
 	}
 	r.Register(Operation{Key: KeyOf(a.Noun, a.Verb), Description: description, Parameters: params, Result: "JSON value", Positional: slices.Clone(a.Positional), Quiet: a.Quiet, Foreground: a.Foreground, HistoryKind: a.History, Confirm: a.Confirm, AppHandler: a.handler()})
-	r.Nouns[a.Noun].Verbs = append(r.Nouns[a.Noun].Verbs, a.Verb)
 	c := r.Config()
 	c.actions = append(c.actions, a)
 }

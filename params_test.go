@@ -197,15 +197,15 @@ func TestFrameworkNounParameters(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := r.Context()
-	pages, err := r.Choices(c, r.Operations.At("ochazuke.page.open").Parameters["id"])
+	pages, err := r.Choices(c, r.Operations.At(Key("ochazuke.page.open")).Parameters["id"])
 	if err != nil || !slices.Contains(pages, Choice{ID: "alpha", Label: "Alpha"}) {
 		t.Fatalf("page.open id: %v %v", pages, err)
 	}
-	modes, err := r.Choices(c, r.Operations.At("ochazuke.mode.switch").Parameters["mode"])
+	modes, err := r.Choices(c, r.Operations.At(Key("ochazuke.mode.switch")).Parameters["mode"])
 	if err != nil || !slices.ContainsFunc(modes, func(ch Choice) bool { return ch.ID == "insert" }) {
 		t.Fatalf("mode.switch mode: %v %v", modes, err)
 	}
-	ops, err := r.Choices(c, r.Operations.At("ochazuke.confirm.require").Parameters["operation"])
+	ops, err := r.Choices(c, r.Operations.At(Key("ochazuke.confirm.require")).Parameters["operation"])
 	if err != nil || !slices.ContainsFunc(ops, func(ch Choice) bool { return ch.ID == "ochazuke.page.open" }) {
 		t.Fatalf("confirm.require operation: %v", err)
 	}

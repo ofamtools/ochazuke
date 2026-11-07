@@ -43,10 +43,9 @@ type PaletteConfig struct {
 // InstanceConfig declares an instance (id, noun, parent) or, without an id,
 // a noun on its own (a list row kind).
 type InstanceConfig struct {
-	ID     string   `json:"id,omitempty"`
-	Noun   string   `json:"noun"`
-	Parent string   `json:"parent,omitempty"`
-	Verbs  []string `json:"verbs,omitempty"`
+	ID     string `json:"id,omitempty"`
+	Noun   string `json:"noun"`
+	Parent string `json:"parent,omitempty"`
 }
 
 type InputConfig struct {

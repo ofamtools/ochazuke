@@ -65,8 +65,12 @@ const Schema = 1
 // CatalogWidget: kv, status, table) are drawn above its lists by the
 // framework from their sources' JSON answers.
 type CatalogDoc struct {
-	Schema     int                `json:"schema"`
-	Name       string             `json:"name"`
+	Schema int    `json:"schema"`
+	Name   string `json:"name"`
+	// Namespace is the namespace the program declared
+	// (ochazuke.DeclareNamespace), "" when it declared none; a host mounts
+	// the catalog under it (CatalogNamespace).
+	Namespace  string             `json:"namespace,omitempty"`
 	Version    string             `json:"version"`
 	About      string             `json:"about,omitempty"`
 	AgentRules string             `json:"agentRules,omitempty"`
@@ -361,7 +365,7 @@ func Catalog(r *ochazuke.Runtime, name, version string, opts ...CatalogOption) (
 // catalog is Catalog; delta declares the state delta protocol (a state
 // verb run through a Shell whose StateCache is on).
 func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...CatalogOption) ([]byte, error) {
-	doc := CatalogDoc{Schema: Schema, Name: name, Version: version, Nouns: []CatalogNoun{}, Bindings: []ochazuke.Binding{}, Pages: []CatalogPage{}}
+	doc := CatalogDoc{Schema: Schema, Name: name, Namespace: ochazuke.DeclaredNamespace, Version: version, Nouns: []CatalogNoun{}, Bindings: []ochazuke.Binding{}, Pages: []CatalogPage{}}
 	for _, opt := range opts {
 		opt(&doc)
 	}
@@ -548,6 +552,27 @@ func ExtensionNamespace(bin string) (string, error) {
 		return "", fmt.Errorf("extension %q: namespace %q is the short name of the framework noun %s", bin, name, ochazuke.Namespaced(ochazuke.FrameworkNamespace, name))
 	}
 	return name, nil
+}
+
+// CatalogNamespace is the namespace a host mounts an extension's catalog
+// under: the one the catalog declares (CatalogDoc.Namespace, singular:
+// question for o-questions) when it declares one, else
+// ExtensionNamespace(bin). A declared name is checked as a bin name is.
+func CatalogNamespace(doc CatalogDoc, bin string) (string, error) {
+	if doc.Namespace == "" {
+		return ExtensionNamespace(bin)
+	}
+	ns, err := ExtensionNamespace(doc.Namespace)
+	if err != nil {
+		return "", fmt.Errorf("extension %q declares namespace %q: %w", bin, doc.Namespace, err)
+	}
+	return ns, nil
+}
+
+// OwnNamespace is the running program's namespace as a host sees it: the
+// declared one (ochazuke.DeclaredNamespace), else ExtensionNamespace(bin).
+func OwnNamespace(bin string) (string, error) {
+	return CatalogNamespace(CatalogDoc{Namespace: ochazuke.DeclaredNamespace}, bin)
 }
 
 var extensionWord = regexp.MustCompile(`^[a-z][a-z0-9-]*$`)

@@ -116,7 +116,7 @@ func TestRound3SingleFlightAndCancel(t *testing.T) {
 		calls++
 		return Pending(func(ctx context.Context) (any, error) { <-ctx.Done(); return nil, ctx.Err() })
 	})
-	op := r.Operations.At("record.work")
+	op := r.Operations.At(Key("record.work"))
 	op.Slot = "run"
 	r.Operations.Set(op)
 	q := Request{Noun: "record", Verb: "work"}

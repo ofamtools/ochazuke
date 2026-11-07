@@ -68,7 +68,7 @@ func newFixture(t *testing.T) *fixture {
 			return ochazuke.Done(nil)
 		}, "Ask in a modal").
 		Mode("normal").Bind("enter", ochazuke.Do("widget.show")).Bind("x", ochazuke.Do("widget.remove"))
-	op := f.r.Operations.At("widget.relabel")
+	op := f.r.Operations.At(ochazuke.Key("widget.relabel"))
 	op.Parameters = map[string]ochazuke.Parameter{
 		"name":  {Type: "string", Required: true},
 		"count": {Type: "integer"},
@@ -77,7 +77,7 @@ func newFixture(t *testing.T) *fixture {
 		"like":  {Type: "string", Source: "widget.list"},
 	}
 	f.r.Operations.Set(op)
-	op = f.r.Operations.At("widget.paint")
+	op = f.r.Operations.At(ochazuke.Key("widget.paint"))
 	op.Parameters = map[string]ochazuke.Parameter{"color": {Type: "string", Required: true}, "coats": {Type: "integer"}}
 	f.r.Operations.Set(op)
 	for _, verb := range []string{"widget.link", "widget.tag"} {
@@ -189,10 +189,10 @@ func TestShellTypesFlagsByTheOperationsParameters(t *testing.T) {
 // bare word unless Positional names it.
 func TestShellPositionalOrderIsDeclared(t *testing.T) {
 	f := newFixture(t)
-	if got := f.r.Operations.At("widget.link").ParameterOrder(); fmt.Sprint(got) != "[name aim all]" {
+	if got := f.r.Operations.At(ochazuke.Key("widget.link")).ParameterOrder(); fmt.Sprint(got) != "[name aim all]" {
 		t.Fatalf("link order %v", got)
 	}
-	if got := f.r.Operations.At("widget.tag").ParameterOrder(); fmt.Sprint(got) != "[aim all name]" {
+	if got := f.r.Operations.At(ochazuke.Key("widget.tag")).ParameterOrder(); fmt.Sprint(got) != "[aim all name]" {
 		t.Fatalf("tag order %v", got)
 	}
 	for _, c := range []struct {
@@ -722,13 +722,13 @@ func TestMountContextualHelpAndDispatch(t *testing.T) {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
 			f := newFixture(t)
 			f.r.Define("ochazuke.binding")
-			op := f.r.Operations.At("widget.relabel")
+			op := f.r.Operations.At(ochazuke.Key("widget.relabel"))
 			op.Parameters["name"] = ochazuke.Parameter{
 				Type: "string", Required: true, Description: "Widget name",
 				Enum: []string{"one", "two"}, Source: "widget.list", Free: true,
 			}
 			f.r.Operations.Set(op)
-			orphan := f.r.Operations.At("widget.list")
+			orphan := f.r.Operations.At(ochazuke.Key("widget.list"))
 			orphan.Key = ochazuke.KeyOf("orphan", orphan.Name())
 			f.r.Operations.Set(orphan)
 			var out bytes.Buffer

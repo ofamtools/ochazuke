@@ -18,7 +18,7 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 			return nil, fmt.Errorf("instance %q / noun %q is empty or reserved", spec.ID, spec.Noun)
 		}
 		if spec.ID == "" {
-			r.Define(spec.Noun).Verbs(spec.Verbs...)
+			r.Define(spec.Noun)
 			continue
 		}
 		if r.Instances[spec.ID] != nil {
@@ -32,7 +32,7 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 			opts = append(opts, ochazuke.Parent(spec.Parent))
 		}
 		r.Instance(spec.ID, opts...)
-		r.Define(spec.Noun).Verbs(spec.Verbs...)
+		r.Define(spec.Noun)
 	}
 	for _, name := range cfg.App.Modes {
 		if _, err := r.Execute(ochazuke.Request{Verb: "register", Noun: "mode", Args: ochazuke.Arguments{"name": name}}); err != nil {

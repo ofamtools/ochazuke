@@ -151,7 +151,7 @@ func TestRenderHintsTrackArbitraryGuardsAndBindingEdits(t *testing.T) {
 	shown := false
 	r.DefineGuard("cache-test", func(*Runtime, KeyEvent) bool { return shown })
 	r.Define("app").Verb("cache-test", func(Ctx) Result { return Done(nil) }).When("cache-test").Mode("normal").Bind("x", Do("app.cache-test"))
-	opWithArg := r.Operations.At("app.cache-test")
+	opWithArg := r.Operations.At(Key("app.cache-test"))
 	opWithArg.Parameters = map[string]Parameter{"n": {Type: "integer"}}
 	r.Operations.Set(opWithArg)
 	check := func() {
@@ -192,7 +192,7 @@ func TestRenderHintsTrackArbitraryGuardsAndBindingEdits(t *testing.T) {
 		}
 	}
 	check()
-	op := r.Operations.At("app.cache-test")
+	op := r.Operations.At(Key("app.cache-test"))
 	op.Motion = true
 	r.Operations.Set(op)
 	check()

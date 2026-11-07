@@ -44,7 +44,7 @@ func (a *App) registerFilter() error {
 			}
 			return a.state(), nil
 		}, "Filter the rows by the cursor column with the filter field's text (or query); from the field, return to the grid")
-	op := r.Operations.At("sheet.filter")
+	op := r.Operations.At(ochazuke.Key("sheet.filter"))
 	op.Parameters = map[string]ochazuke.Parameter{"query": {Type: "string", Description: "Omit to use the filter field's text"}}
 	r.Operations.Set(op)
 	row := func(keys string, b ochazuke.Binding) ochazuke.Binding {

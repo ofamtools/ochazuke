@@ -133,7 +133,7 @@ func TestRemovedLineHeadsNoParameter(t *testing.T) {
 	r := NewRuntime()
 	r.Define("note").Props(derivedProps()...).Store((&derivedStore{key: "id"}).store())
 	r.Define("doc").Verb("note", func(Ctx) Result { return Done(nil) }, "Note a doc").Positional("id", "text")
-	op := r.Operations.At("doc.note")
+	op := r.Operations.At(Key("doc.note"))
 	op.Parameters = map[string]Parameter{"id": {Type: "string", Description: "The doc instance"}, "text": {Type: "string", Description: "The note text"}}
 	r.Operations.Set(op)
 	if err := r.AddRemovedVerbs(namecheck.Removed{Noun: "note", Verb: "associate", Replacement: "note.set {props: {project: ID}}", Since: "v2"}); err != nil {

@@ -185,7 +185,6 @@ func registerSettingsEditor(r *Runtime) {
 	registerSettingsApply(r)
 	registerSettingsLayoutView(r)
 	registerSettingEdit(r)
-	r.Define("ochazuke.setting").Verbs("edit")
 	r.defineNounVerbs(settingAddVerbs())
 	r.defineNounVerbs(settingItemVerbs())
 	registerSettingItemThings(r)

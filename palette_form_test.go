@@ -35,7 +35,7 @@ func typeKeys(t *testing.T, r *Runtime, text string) {
 func formRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	t.Helper()
 	r, p, ran := lineRuntime(t)
-	run := r.Operations.At("note.add").Run
+	run := r.Operations.At(Key("note.add")).Run
 	r.Register(Operation{Key: "sheet.retitle", Positional: []string{"from", "to"}, Parameters: map[string]Parameter{
 		"from": {Type: "string", Required: true},
 		"to":   {Type: "string", Required: true, Description: "The new name"},

@@ -13,7 +13,7 @@ import (
 func sourceRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	t.Helper()
 	r, p, ran := lineRuntime(t)
-	run := r.Operations.At("row.delete").Run
+	run := r.Operations.At(Key("row.delete")).Run
 	r.Register(Operation{Key: "row.send", Parameters: map[string]Parameter{
 		"to": {Type: "string", Required: true, From: "row:host"},
 	}, Run: run})
@@ -114,7 +114,7 @@ func TestParameterSourceIsValidated(t *testing.T) {
 // holding it.
 func TestParameterSourceIsShown(t *testing.T) {
 	r, _, _ := sourceRuntime(t)
-	op := r.Operations.At("row.send")
+	op := r.Operations.At(Key("row.send"))
 	if v, ok := r.sourceValue(op, "to", "r1"); !ok || v != "h1" {
 		t.Fatalf("source value %v %v", v, ok)
 	}

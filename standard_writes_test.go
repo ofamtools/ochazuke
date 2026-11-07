@@ -106,7 +106,7 @@ func TestStandardWriteVerbs(t *testing.T) {
 			t.Fatalf("task.%s standard %q", verb, op.Standard)
 		}
 	}
-	create := r.Operations.At("task.create")
+	create := r.Operations.At(Key("task.create"))
 	if !slices.Equal(create.Positional, []string{"title", "pairs"}) {
 		t.Fatalf("create positional %v", create.Positional)
 	}
@@ -115,17 +115,17 @@ func TestStandardWriteVerbs(t *testing.T) {
 			t.Fatalf("create takes the read-only %s", name)
 		}
 	}
-	if set := r.Operations.At("task.set"); !set.Many || !slices.Equal(set.Positional, []string{"id", "prop", "value", "pairs"}) {
+	if set := r.Operations.At(Key("task.set")); !set.Many || !slices.Equal(set.Positional, []string{"id", "prop", "value", "pairs"}) {
 		t.Fatalf("set many %v positional %v", set.Many, set.Positional)
 	}
-	if del := r.Operations.At("task.delete"); !del.Many || del.Confirm != DefaultDeleteConfirm {
+	if del := r.Operations.At(Key("task.delete")); !del.Many || del.Confirm != DefaultDeleteConfirm {
 		t.Fatalf("delete many %v confirm %q", del.Many, del.Confirm)
 	}
 	// A store without the handler, or with nothing writable, has the verb,
 	// unavailable with the reason; running it fails with that reason.
 	r2 := NewRuntime()
 	r2.Define("ro").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", ReadOnly: true}).Store(Store{Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil }})
-	if op := r2.Operations.At("ro.set"); op.Unavailable != "it has no writable prop" {
+	if op := r2.Operations.At(Key("ro.set")); op.Unavailable != "it has no writable prop" {
 		t.Fatalf("set on a noun with no writable prop: %q", op.Unavailable)
 	}
 	if _, err := r2.Execute(Request{Noun: "ro", Verb: "set", Args: Arguments{"id": "x", "prop": "name", "value": "y"}}); err == nil || !strings.Contains(err.Error(), "it has no writable prop") {

@@ -114,7 +114,7 @@ func TestHelpCommandBindingsEffectiveFilterAndEscape(t *testing.T) {
 			r.Define("widget").
 				Verb("blocked", func(Ctx) Result { return Done(nil) }).When("widget-never").
 				Mode("normal").Bind("x", Do("widget.blocked"))
-			op := r.Operations.At("widget.open")
+			op := r.Operations.At(Key("widget.open"))
 			op.Parameters = map[string]Parameter{"name": {Type: "string"}}
 			r.Operations.Set(op)
 			if err := r.Bind(Binding{Instance: "w1", Mode: "normal", Keys: "i", Request: Request{Noun: "widget", Verb: "open", Args: Arguments{"name": "focused"}}}); err != nil {

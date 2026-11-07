@@ -2106,6 +2106,18 @@ Live CLI examples:
 
 JSON inspection covers registered pages (`page`, `pages`), inputs and histories, the focus and the open modals (`focus`, `modals`, each modal instance's `payload.return`), the global mode (`mode`, `modeState`) and the registered modes (pending modes included), nouns with their tables, instances with their payload, and the rows the focus answers to (`bindings`). `state` is a read-only singleton thing (a system fact) whose props are the state's top-level fields; `state.get {prop}` reads one, and a dotted path reads inside it (`instances.editor.noun`, `lists.sidebar.items.0.id`): at each object the longest run of segments that is a key wins, so a key holding dots (`nouns.ochazuke.list.verbs`) is reached, and a number indexes a list. Every thing noun's `get` takes the same path into an object or list prop; it replaced the JSON Pointer of the old `state.get {path}`. Appearance has its own `appearance.get` query. All registered inputs are public state: do not register secrets without adding an explicit export policy. Handlers, renderers, and terminal handles are not serialized.
 
+## Operations: the registry and its lookups
+
+`Runtime.Operations` is the operation registry (`operations.go`). Every operation has a `Key`, one string of three parts, `namespace.noun.name`: `ochazuke.input.undo`, `lane.lane.define`, `mtm.pane.kill`. The namespace is who defined the noun: `ochazuke` for the framework, a mounted extension's own (its catalog's declared `namespace`, else its binary less `o-`), and for the program's own nouns `DefaultNamespace` (set it with `DeclareNamespace("question")` before the first runtime; else the binary's name less `o-`). A two-part key (`pane.kill`) is in the default namespace, so bindings, typed lines and code keep the short spelling; `Key.Short()` writes it and `Key.Full()` the three parts. A part never holds a dot.
+
+`Operation` holds `Key`, `App` (the program that runs the handler) and `Handler` (its address there) beside the rest; `op.Namespace()`, `op.Noun()` (the registered noun's name, the one `Runtime.Nouns` holds), `op.Name()` and `op.Action()` read it. `Namespace`, `Noun` and `Action` (one per operation name, across nouns) are plain data with no pointer back to the registry: every relation is a method on `Operations`.
+
+| Changing | Reading |
+|---|---|
+| `Push(key, app, handler) *Operation` adds or replaces one; `Invalidate()` drops the index; `Register` is both; `Set(op)` registers a whole operation; `Delete(key)`; `Hold()` defers invalidation (`defer ops.Hold()()`, a mount) | `List`, `Namespaces`, `Nouns`, `Actions`; `Get`/`At`/`Find`, `Namespace`, `Noun`, `Action`, `OperationFor(noun, action)`; `NounsWithAction`, `NamespacesWithAction`, `OperationsOfAction`, `ActionsOnNoun`, `NounsInNamespace`, `ActionsInNamespace`; `NamespacesMatching`/`NounsMatching`/`ActionsMatching(prefix) []Match` |
+
+The lookups read a memoized `Index`, built in one pass on the first lookup after an invalidation. Only `Push`, `Delete` and `Invalidate` write `All`, `Order` and `Index` (`TestOperationsWriters`); nothing is unexported, so the registry stays inspectable. `ochazuke.action list {noun}` and `ochazuke.nouns list {action}` list the relation from both sides. Code written for v0.99.0's string fields moves with `cmd/opname` (see the CHANGELOG).
+
 ## Telling the user: notices and status
 
 A handler says what to tell the user and the host decides how it looks. There are three things to say:

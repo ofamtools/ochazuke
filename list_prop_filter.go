@@ -746,7 +746,7 @@ func registerListPropFilter(r *Runtime) {
 		}
 	}
 	_ = r.SetConfirm("ochazuke.list.filter-saved-delete", "Delete saved filter {{name}}?")
-	op := r.Operations.At("ochazuke.list.filter-saved-delete")
+	op := r.Operations.At(Key("ochazuke.list.filter-saved-delete"))
 	op.Destructive = true
 	r.Operations.Set(op)
 }

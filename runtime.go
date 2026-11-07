@@ -275,16 +275,22 @@ type Operation struct {
 	Examples    []Example `json:"examples,omitempty"`
 	// CatalogGuards preserves a proxy's remote guards; the remote runtime checks them.
 	// CatalogProxy marks a verb forwarded to an extension runtime.
-	CatalogProxy  bool                 `json:"-"`
-	CatalogGuards []string             `json:"-"`
-	Verb          string               `json:"verb"`
-	Noun          string               `json:"noun"`
-	Description   string               `json:"description"`
-	Parameters    map[string]Parameter `json:"parameters"`
-	Result        string               `json:"result"`
-	Kind          string               `json:"kind"`
-	Confirm       string               `json:"confirm,omitempty"`
-	Repeatable    bool                 `json:"repeatable,omitempty"`
+	CatalogProxy  bool     `json:"-"`
+	CatalogGuards []string `json:"-"`
+	// Key is the operation's name, namespace.noun.name (Key); JSON
+	// writes it with its parts as noun, verb, name and namespace
+	// (MarshalJSON).
+	Key Key `json:"-"`
+	// App is the program that runs the handler; Handler addresses it
+	// there (HandlerID). Operations.Push fills both.
+	App         App                  `json:"-"`
+	Handler     HandlerID            `json:"-"`
+	Description string               `json:"description"`
+	Parameters  map[string]Parameter `json:"parameters"`
+	Result      string               `json:"result"`
+	Kind        string               `json:"kind"`
+	Confirm     string               `json:"confirm,omitempty"`
+	Repeatable  bool                 `json:"repeatable,omitempty"`
 	// Foreground tells catalog hosts to hand the terminal to this verb.
 	Foreground bool `json:"foreground,omitempty"`
 	// OpensPage is the id of a page the verb opens in the tool's own
@@ -415,10 +421,10 @@ type Operation struct {
 	// standard delete under delete.archive). "" asks nothing.
 	ConfirmFor func(r *Runtime, c Context, q Request, prompt string) string `json:"-"`
 	Run        Handler                                                      `json:"-"`
-	App        AppHandler                                                   `json:"-"`
+	// AppHandler is an application verb's handler (Kind application):
+	// its pending work runs off the loop.
+	AppHandler AppHandler `json:"-"`
 }
-
-func (o Operation) Key() string { return o.Noun() + "." + o.Name() }
 
 // HistoryKindOf is the kind of history entry the operation records: its
 // HistoryKind when set; else a fetch for a verb that answers rows (Rows,
@@ -528,7 +534,7 @@ type Runtime struct {
 	// table kept for callers that index it: write modes with DefineMode,
 	// read them with IsBaseMode, IsPendingMode and ModeTraits.
 	Modes      map[string]bool
-	Operations map[string]Operation
+	Operations Operations
 	Quit       bool
 	Pending    string
 	// BindingTimeout, when positive, is how long every pending key
@@ -595,13 +601,14 @@ func NewRuntime() *Runtime {
 func newRuntime() *Runtime {
 	r := &Runtime{
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
-		Modes: map[string]bool{}, Operations: map[string]Operation{},
+		Modes:      map[string]bool{},
 		modes:      modeTable{},
 		defaults:   defaultSources{rows: map[string]string{}, extends: map[string]string{}},
 		guards:     builtinGuards(),
 		predicates: builtinPredicates(),
 		aliases:    map[string]string{},
 	}
+	r.Operations = NewOperations(r.Nouns)
 	r.initModalStack()
 	r.ensureBuiltinModes()
 	r.changeFocus("app", focusMove{cause: focusAssign})
@@ -1291,7 +1298,7 @@ func (r *Runtime) Snapshot() map[string]any {
 			actions = append(actions, key)
 		}
 		sort.Strings(actions)
-		nouns[name] = map[string]any{"name": name, "verbs": noun.Verbs, "bindings": noun.Bindings, "actions": actions, "pin": noun.Pin}
+		nouns[name] = map[string]any{"name": name, "verbs": r.Operations.ActionNames(noun), "bindings": noun.Bindings, "actions": actions, "pin": noun.Pin}
 	}
 	// Registers and macro state belong to the registers component, never individual fields.
 	pages := map[string]any{}

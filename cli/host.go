@@ -66,7 +66,7 @@ func hostFromEnv(getenv func(string) string, bin string) (Host, bool, error) {
 	caller := strings.TrimSpace(getenv("OCHAZUKE_EXTENSION"))
 	if caller == "" {
 		var err error
-		caller, err = ExtensionNamespace(bin)
+		caller, err = OwnNamespace(bin)
 		if err != nil {
 			return Host{}, false, fmt.Errorf("host caller: %w", err)
 		}

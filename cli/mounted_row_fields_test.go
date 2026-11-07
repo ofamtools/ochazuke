@@ -16,7 +16,7 @@ func TestMountedRowFieldsOGitBranch(t *testing.T) {
 	r := m.Runtime
 	var got ochazuke.Arguments
 	r.Define("branch").Verb("inspect", func(c ochazuke.Ctx) ochazuke.Result { got = c.Args; return ochazuke.Done(nil) })
-	op := r.Operations.At("branch.inspect")
+	op := r.Operations.At(ochazuke.Key("branch.inspect"))
 	op.Parameters = map[string]ochazuke.Parameter{"name": {Type: "string"}, "repo": {Type: "string"}, "handle": {Type: "string"}}
 	r.Operations.Set(op)
 	r.Define("branch").Mode("normal").Bind("v", ochazuke.Do("branch.inspect").FromRow("name", "name").FromRow("repo", "repo").FromPayload("handle", ochazuke.SourceRow))
@@ -66,7 +66,7 @@ func TestMountedProxyTargetSource(t *testing.T) {
 			if !reflect.DeepEqual(got, ochazuke.Arguments{"target": "/fixture/report.md"}) {
 				t.Fatalf("arguments: %#v", got)
 			}
-			_, has := r.Operations.At("md.doc.show").Parameters["target"]
+			_, has := r.Operations.At(ochazuke.Key("md.doc.show")).Parameters["target"]
 			if has != declared {
 				t.Fatal("transport target changed the verb's parameter schema")
 			}

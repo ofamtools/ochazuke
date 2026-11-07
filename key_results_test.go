@@ -13,7 +13,7 @@ func TestKeyTextResultsPendingAndLate(t *testing.T) {
 			r, _ := textResultFixture(t)
 			r.Define("record").Mode("normal").Bind("v", Do("record.later"))
 			if change == "callback" {
-				op := r.Operations.At("record.later")
+				op := r.Operations.At(Key("record.later"))
 				run := op.AppHandler
 				op.AppHandler = func(c Ctx) Result {
 					return run(c).Then(func(c Ctx, _ any, _ error) { c.Runtime.OpenTextView("callback", "newer") })

@@ -44,7 +44,7 @@ func ownNoun(ns string) func(string) bool {
 // like the tool's namespace winning a tie. A bin whose name is no
 // namespace (ExtensionNamespace errs) prefers none.
 func binScope(app *oden.App) ochazuke.PairScope {
-	ns, err := ExtensionNamespace(app.Name)
+	ns, err := OwnNamespace(app.Name)
 	if err != nil {
 		return ochazuke.PairScope{}
 	}

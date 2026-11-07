@@ -420,7 +420,7 @@ func TestAppQuittingWaitsForHookJobs(t *testing.T) {
 		got = c.Args
 		return Pending(func(context.Context) (any, error) { <-release; return nil, nil })
 	})
-	r.Operations.Set(withParam(r.Operations.At("tasks.sync"), "changes", Parameter{Type: "integer"}))
+	r.Operations.Set(withParam(r.Operations.At(Key("tasks.sync")), "changes", Parameter{Type: "integer"}))
 	if err := r.AddDefaultHooks(HookRow{On: EventAppQuitting, Where: map[string]any{"changed": "task"}, Do: "tasks.sync", From: map[string]string{"changes": "changes"}}); err != nil {
 		t.Fatal(err)
 	}

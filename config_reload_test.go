@@ -61,7 +61,7 @@ func TestConfigReloadReadsEveryFile(t *testing.T) {
 	if v, _ := r.Settings().Value("pager"); v != "more" || !slices.Equal(*seen, []any{"more"}) {
 		t.Fatalf("pager %v observed %v", v, *seen)
 	}
-	if op, ok := r.Operations.Find("worktree.open"); !ok || op.Kind != KindApplication {
+	if op, ok := r.Operations.Find(Key("worktree.open")); !ok || op.Kind != KindApplication {
 		t.Fatalf("action not installed: %+v", op)
 	}
 	if n := len(r.Config().applied); n != 1 {
@@ -158,7 +158,7 @@ func TestConfigReloadNeedsTheConfigDirectory(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "ochazuke.config", Verb: "reload"}); err == nil || !strings.Contains(err.Error(), "no config directory") {
 		t.Fatalf("err %v", err)
 	}
-	op := r.Operations.At("ochazuke.config.reload")
+	op := r.Operations.At(Key("ochazuke.config.reload"))
 	if !op.Builtin || op.HistoryKindOf() != HistoryFetch || op.Result != "problem[]" {
 		t.Fatalf("operation %+v", op)
 	}

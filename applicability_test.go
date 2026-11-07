@@ -118,7 +118,7 @@ func TestRequestAddressesItsNounOnTheFocusPath(t *testing.T) {
 // instance's label, as {{<arg>}} does for other names.
 func TestConfirmLabelArgumentWins(t *testing.T) {
 	r, _, _ := applicabilityFixture(t)
-	op := r.Operations.At("row.delete")
+	op := r.Operations.At(Key("row.delete"))
 	op.Parameters = map[string]Parameter{"label": {Type: "string"}}
 	r.Operations.Set(op)
 	prompt := func(args Arguments) any {

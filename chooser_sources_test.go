@@ -216,7 +216,7 @@ func querySource(r *Runtime, asked *[]string) {
 		*asked = append(*asked, q)
 		return Done([]string{q, q + "-one", q + "-two"})
 	})
-	op := r.Operations.At("files.complete")
+	op := r.Operations.At(Key("files.complete"))
 	op.Parameters = map[string]Parameter{ChoicesQueryParameter: {Type: "string"}}
 	r.Operations.Set(op)
 }
@@ -249,7 +249,7 @@ func TestChoicesSeeTheTypedText(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.Define("doc").Verb("open", func(Ctx) Result { return Done(nil) })
-	op := r.Operations.At("doc.open")
+	op := r.Operations.At(Key("doc.open"))
 	op.Parameters = map[string]Parameter{"name": p}
 	r.Operations.Set(op)
 	if _, err := r.Execute(Request{Noun: "doc", Verb: "open", Args: Arguments{"name": "q-two"}}); err != nil || !slices.Contains(asked, "q-two") {
@@ -287,7 +287,7 @@ func TestPaletteChoicesSeeTheWord(t *testing.T) {
 	var asked []string
 	querySource(r, &asked)
 	r.Define("doc").Verb("open", func(Ctx) Result { return Done(nil) })
-	op := r.Operations.At("doc.open")
+	op := r.Operations.At(Key("doc.open"))
 	op.Parameters = map[string]Parameter{"name": {Type: "string", Required: true, Source: "files.complete"}}
 	r.Operations.Set(op)
 	if err := m.Palette.Open(); err != nil {

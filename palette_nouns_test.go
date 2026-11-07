@@ -153,7 +153,7 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 	if err == nil || err.Error() != "thing rejected" || !p.IsOpen() || !reflect.DeepEqual(interactionOf(captured), origin) || !reflect.DeepEqual(interactionOf(sourceContext), origin) || p.Text() != "thing x" {
 		t.Fatalf("failure dispatch/restoration: %v %#v", err, p.state())
 	}
-	op := r.Operations.At("thing.use")
+	op := r.Operations.At(Key("thing.use"))
 	op.Parameters["id"] = Parameter{Type: "integer", Required: true}
 	captured = Context{}
 	_, err = r.Execute(Request{Verb: "run", Noun: "ochazuke.palette"})

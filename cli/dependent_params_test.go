@@ -75,7 +75,7 @@ func TestDependentCatalogAndDescribe(t *testing.T) {
 	if len(mounted.Warnings) != 0 {
 		t.Fatal(mounted.Warnings)
 	}
-	if got := host.Operations.At("ext-thing.create").Parameters["b"]; got.Source != "ext-choice.list" || got.SourceArgs["kind"] != "a" {
+	if got := host.Operations.At(ochazuke.Key("ext-thing.create")).Parameters["b"]; got.Source != "ext-choice.list" || got.SourceArgs["kind"] != "a" {
 		t.Fatal(got)
 	}
 	// describe returns the original parameter metadata, including dependencies.

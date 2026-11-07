@@ -202,10 +202,10 @@ func TestCopyStoreDeleteTombstone(t *testing.T) {
 // writes through set and is undone like any set; the row's mark follows.
 func TestCopyRefreshDiffPickUndo(t *testing.T) {
 	r, src, _, sink := copyFixture(t)
-	if _, ok := r.Operations.Find("item.refresh"); !ok {
+	if _, ok := r.Operations.Find(Key("item.refresh")); !ok {
 		t.Fatal("a copy noun has no refresh")
 	}
-	if _, ok := r.Operations.Find("note.refresh"); ok {
+	if _, ok := r.Operations.Find(Key("note.refresh")); ok {
 		t.Fatal("refresh on a noun without a copy")
 	}
 	l, err := r.AddList("items", nil, From("item"))

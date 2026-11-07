@@ -159,7 +159,7 @@ func hintsRecipe(r *Runtime, picks *[]string) {
 			return Done(nil)
 		}, "Act on a labelled link").
 		Verb("hints-cancel", func(c Ctx) Result { leave(c); return Done(nil) }, "Leave hints")
-	hint := r.Operations.At("ochazuke.terminal.hint")
+	hint := r.Operations.At(Key("ochazuke.terminal.hint"))
 	hint.Parameters = map[string]Parameter{"label": {Type: "string"}, "action": {Type: "string"}}
 	r.Operations.Set(hint)
 	r.Define("ochazuke.terminal").

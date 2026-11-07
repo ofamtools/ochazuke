@@ -134,14 +134,14 @@ func TestOptionalKeyWord(t *testing.T) {
 		t.Fatalf("task list --where = %+v", c)
 	}
 	// The same words from the CLI's positional rule.
-	set := r.Operations.At("task.set")
+	set := r.Operations.At(Key("task.set"))
 	open := []string{"id", "prop", "value", "pairs"}
 	for word, want := range map[string]bool{"status": true, "title=x": true, "t1": false, "nope=1": false} {
 		if got := set.SubjectOmitted(open, word); got != want {
 			t.Fatalf("SubjectOmitted(%q) = %v", word, got)
 		}
 	}
-	if r.Operations.At("task.delete").SubjectOmitted([]string{"id"}, "status") {
+	if r.Operations.At(Key("task.delete")).SubjectOmitted([]string{"id"}, "status") {
 		t.Fatal("delete has no word after its subject")
 	}
 }

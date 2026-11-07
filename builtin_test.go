@@ -47,10 +47,10 @@ func TestApplicationVerbsAreNotBuiltin(t *testing.T) {
 	if got, want := notBuiltin(r), []string{"ochazuke.history.capture-hook", "worktree.add", "worktree.remove"}; !slices.Equal(got, want) {
 		t.Fatalf("not builtin = %v, want %v", got, want)
 	}
-	if op := r.Operations.At("ochazuke.picker.open"); !op.Builtin {
+	if op := r.Operations.At(Key("ochazuke.picker.open")); !op.Builtin {
 		t.Fatal("picker.open registered after the application's verbs is not builtin")
 	}
-	if op := r.Operations.At("worktree.remove"); op.Confirm == "" || op.Kind != KindApplication {
+	if op := r.Operations.At(Key("worktree.remove")); op.Confirm == "" || op.Kind != KindApplication {
 		t.Fatalf("worktree.remove = %+v", op)
 	}
 }

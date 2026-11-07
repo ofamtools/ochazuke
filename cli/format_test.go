@@ -243,7 +243,7 @@ func TestFormatFlags(t *testing.T) {
 	r.Define("dump").Verb("run", func(c ochazuke.Ctx) ochazuke.Result {
 		return ochazuke.Done([]map[string]any{{"format": ochazuke.StringArg(c.Args, "format", "")}})
 	}, "Dump")
-	op := r.Operations.At("dump.run")
+	op := r.Operations.At(ochazuke.Key("dump.run"))
 	op.Parameters = map[string]ochazuke.Parameter{"format": {Type: "string"}}
 	r.Operations.Set(op)
 	var out bytes.Buffer

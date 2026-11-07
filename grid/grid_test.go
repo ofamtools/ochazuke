@@ -240,7 +240,7 @@ func TestRegisterMarksBuiltin(t *testing.T) {
 			t.Errorf("%s: builtin %v", key, op.Builtin)
 		}
 	}
-	if !r.Operations.At("ochazuke.grid.move").Builtin {
+	if !r.Operations.At(ochazuke.Key("ochazuke.grid.move")).Builtin {
 		t.Fatal("grid.move not builtin")
 	}
 }

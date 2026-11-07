@@ -154,7 +154,7 @@ func TestSourceArgsQueryAndTypedValues(t *testing.T) {
 
 func TestDependentChoicesSourceFailureKeepsValue(t *testing.T) {
 	r, p := dependentFixture(t, false)
-	op := r.Operations.At("options.list")
+	op := r.Operations.At(Key("options.list"))
 	op.AppHandler = func(Ctx) Result { return Failed(errors.New("offline")) }
 	r.Operations.Set(op)
 	e, err := r.AddRecordEditor("rec", RecordSpec{Fields: []RecordField{{Name: "category"}, {Name: "item", Parameter: p}}, Load: func() (Record, error) { return Record{"category": "one", "item": "kept"}, nil }})

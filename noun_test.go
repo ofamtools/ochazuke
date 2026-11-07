@@ -24,12 +24,12 @@ func recorder(t *testing.T, r *Runtime, verbs ...string) *[]string {
 func TestDefineBuilderBindsVerbsActionsAndRows(t *testing.T) {
 	r := NewRuntime()
 	calls := recorder(t, r, "open", "close")
-	b := r.Define("panel").Verbs("inspect").
+	b := r.Define("panel").
 		Verb("toggle", func(*Runtime, Context, Arguments) (any, error) { return "toggled", nil }).
 		Action("app.quit", func(*Runtime, Context, Arguments) (any, error) { return "panel", nil })
 	b.Mode("normal").Bind("o", Do("test.open")).Bind("o", Do("test.close")).Pattern(Digit, Do("test.open")).Unbind("o")
 	noun := r.Noun("panel")
-	if noun == nil || !reflect.DeepEqual(noun.Verbs, []string{"inspect", "toggle"}) || r.Operations.At("panel.toggle").Run == nil || noun.Actions["app.quit"] == nil {
+	if noun == nil || !reflect.DeepEqual(r.Operations.ActionNames(noun), []string{"toggle"}) || r.Operations.At(Key("panel.toggle")).Run == nil || noun.Actions["app.quit"] == nil {
 		t.Fatalf("builder did not declare verbs, operations and actions: %+v", noun)
 	}
 	if rows := noun.Bindings["normal"]; len(rows) != 1 || rows[0].Pattern != Digit || rows[0].Noun != "panel" || rows[0].Mode != "normal" {
@@ -505,7 +505,7 @@ func TestSequencePrefixCarriesCount(t *testing.T) {
 		lines = append(lines, IntArg(a, "line", -1))
 		return nil, nil
 	})
-	op := r.Operations.At("test.line")
+	op := r.Operations.At(Key("test.line"))
 	op.Parameters = map[string]Parameter{"line": {Type: "integer"}}
 	r.Operations.Set(op)
 	row := Do("test.line").FromPayload("line", SourceLine)

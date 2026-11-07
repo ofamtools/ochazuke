@@ -35,7 +35,7 @@ func TestListClassMotions(t *testing.T) {
 	if !strings.Contains(BindingHints(r, r.Focus), "list.next-class merge commit") {
 		t.Fatal("class motion missing from hints")
 	}
-	if !r.Operations.At("ochazuke.list.next-class").Motion || !r.Operations.At("ochazuke.list.previous-class").Motion {
+	if !r.Operations.At(Key("ochazuke.list.next-class")).Motion || !r.Operations.At(Key("ochazuke.list.previous-class")).Motion {
 		t.Fatal("class verbs are not motions")
 	}
 	if _, err := r.ValidateBindings(); err != nil {

@@ -25,7 +25,7 @@ func (r *Runtime) NameVocab() map[string][]string {
 	for name, n := range r.Nouns {
 		add("noun", name)
 		add("noun", name[strings.LastIndex(name, ".")+1:])
-		add("verb", n.Verbs...)
+		add("verb", r.Operations.ActionNames(n)...)
 		for mode := range n.Bindings {
 			add("mode", mode)
 		}

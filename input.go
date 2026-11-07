@@ -533,7 +533,8 @@ func RegisterInputOperations(r *Runtime) {
 	} {
 		fn, edit := spec.fn, spec.edit
 		op := spec.traits
-		op.Verb, op.Noun, op.Description, op.Parameters, op.Result, op.Requires = spec.verb, "ochazuke.input", spec.desc, spec.params, "input state", InputFocusGuard
+		op.Key = KeyOf("ochazuke.input", spec.verb)
+		op.Description, op.Parameters, op.Result, op.Requires = spec.desc, spec.params, "input state", InputFocusGuard
 		op.Run = func(r *Runtime, c Context, a Arguments) (any, error) {
 			in := r.Input(c.InputID)
 			if in == nil {

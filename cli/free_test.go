@@ -14,7 +14,7 @@ func TestCatalogCarriesFree(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	r.Define("harness").Verb("models", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }, "List models")
 	r.Define("task").Verb("launch", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }, "Launch")
-	op := r.Operations.At("task.launch")
+	op := r.Operations.At(ochazuke.Key("task.launch"))
 	op.Parameters = map[string]ochazuke.Parameter{
 		"model":   {Type: "string", Source: "harness.models", Free: true},
 		"harness": {Type: "string", Source: "harness.models"},

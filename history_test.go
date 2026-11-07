@@ -158,7 +158,7 @@ func TestDotDoesNotRepeatMotion(t *testing.T) {
 	if got := string(in.Text); got != "b d" {
 		t.Fatalf("text %q", got)
 	}
-	if op := r.Operations.At("ochazuke.input.move"); op.Repeatable || !r.Operations.At("ochazuke.input.operator").Repeatable {
+	if op := r.Operations.At(Key("ochazuke.input.move")); op.Repeatable || !r.Operations.At(Key("ochazuke.input.operator")).Repeatable {
 		t.Fatal("motions are not repeatable, operators are")
 	}
 	fresh := NewRuntime()

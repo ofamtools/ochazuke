@@ -580,7 +580,7 @@ func TestPaletteParamHeader(t *testing.T) {
 		"mode": {Type: "string", Enum: []string{"read", "write"}, Free: true},
 		"row":  {Noun: "ochazuke.list"},
 	}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
-	op := r.Operations.At("file.open")
+	op := r.Operations.At(Key("file.open"))
 	slot := paramSlot{Op: op, Name: "path", Next: []string{"mode"}}
 	for _, tc := range []struct {
 		width int

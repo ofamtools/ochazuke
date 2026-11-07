@@ -827,7 +827,7 @@ func registerStandardEdit(r *Runtime) {
 		}
 		return Done(nil)
 	}, "Cancel a pending edit open without writing").When("edit-opening")
-	op := r.Operations.At("ochazuke.nouns.cancel-edit")
+	op := r.Operations.At(Key("ochazuke.nouns.cancel-edit"))
 	op.HistoryKind = HistoryAction
 	r.Operations.Set(op)
 }

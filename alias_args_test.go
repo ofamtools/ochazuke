@@ -17,7 +17,7 @@ func docFixture(t *testing.T) (*Runtime, *[]string) {
 		runs = append(runs, c.Invoked.Name+" force="+jsonText(c.Args["force"]))
 		return Done(nil)
 	}, "Write the doc")
-	op := r.Operations.At("doc.write")
+	op := r.Operations.At(Key("doc.write"))
 	op.Parameters = map[string]Parameter{"force": {Type: "boolean"}}
 	r.Operations.Set(op)
 	r.Instance("d1", Kind("doc"))
@@ -142,7 +142,7 @@ func TestAliasPartialPresetArgs(t *testing.T) {
 		runs = append(runs, c.Invoked.Name+" path="+jsonText(c.Args["path"])+" force="+jsonText(c.Args["force"]))
 		return Done(nil)
 	}, "Write the doc")
-	op := r.Operations.At("doc.write")
+	op := r.Operations.At(Key("doc.write"))
 	op.Parameters = map[string]Parameter{"path": {Type: "string", Required: true}, "force": {Type: "boolean"}}
 	r.Operations.Set(op)
 	r.Instance("d1", Kind("doc"))

@@ -121,7 +121,7 @@ func TestAssociationGuardsAndRequiredParameters(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "thing", Verb: "touch"}); err != nil || acted != "row-a" {
 		t.Fatalf("guard target %q: %v", acted, err)
 	}
-	op := r.Operations.At("thing.touch")
+	op := r.Operations.At(Key("thing.touch"))
 	op.Parameters = map[string]Parameter{"name": {Type: "string", Required: true, Focus: true, Noun: "thing"}}
 	r.Operations.Set(op)
 	acted = ""
@@ -196,7 +196,7 @@ func TestAssociationGuardedRepeatFollowsNewSubject(t *testing.T) {
 		acted = append(acted, c.Instance.ID)
 		return Done(nil)
 	}).ByAssociation().When("thing-row")
-	op := r.Operations.At("thing.touch")
+	op := r.Operations.At(Key("thing.touch"))
 	op.Repeatable = true
 	r.Operations.Set(op)
 	if !r.VerbShown(op.Key.Short(), "surface", r.Mode) {

@@ -116,7 +116,7 @@ func TestStandardVerbsNeeds(t *testing.T) {
 	}
 	r := NewRuntime()
 	r.Define("theme").Props(PropSpec{Name: "name"}).Store(Store{Kind: Singleton, Get: func(Ctx, string) (Thing, error) { return Thing{"name": "kombu"}, nil }})
-	op := r.Operations.At("theme.get")
+	op := r.Operations.At(Key("theme.get"))
 	if _, ok := op.Parameters["name"]; ok || !slices.Equal(op.Positional, []string{"prop"}) {
 		t.Fatalf("a singleton's get takes no subject, its first word the prop: %v %v", op.Parameters, op.Positional)
 	}
@@ -124,11 +124,11 @@ func TestStandardVerbsNeeds(t *testing.T) {
 		t.Fatalf("singleton get = %v, %v", got, err)
 	}
 	r2, _ := newTaskRuntime(t)
-	get := r2.Operations.At("task.get")
+	get := r2.Operations.At(Key("task.get"))
 	if p := get.Parameters["id"]; !p.Focus || p.Noun != "task" || !slices.Equal(get.Positional, []string{"id", "prop"}) {
 		t.Fatalf("task.get subject = %+v positional %v", p, get.Positional)
 	}
-	if list := r2.Operations.At("task.list"); list.Rows != "task" || list.HistoryKindOf() != HistoryFetch || list.Kind != KindApplication {
+	if list := r2.Operations.At(Key("task.list")); list.Rows != "task" || list.HistoryKindOf() != HistoryFetch || list.Kind != KindApplication {
 		t.Fatalf("task.list = rows %q history %q kind %q", list.Rows, list.HistoryKindOf(), list.Kind)
 	}
 	if r2.ChoicesSource(get.Parameters["id"]) != "task.list" {
@@ -260,17 +260,17 @@ func TestAppVerbWins(t *testing.T) {
 	mine := func(Ctx) Result { return Done("mine") }
 	check := func(t *testing.T, r *Runtime) {
 		t.Helper()
-		op := r.Operations.At("task.get")
+		op := r.Operations.At(Key("task.get"))
 		if op.Standard != "" {
 			t.Fatalf("task.get is still the standard one")
 		}
 		if v, err := r.Execute(Request{Noun: "task", Verb: "get", Args: Arguments{}}); err != nil || v != "mine" {
 			t.Fatalf("task.get = %v, %v", v, err)
 		}
-		if n := slices.Index(r.Nouns["task"].Verbs, "get"); n < 0 || slices.Index(r.Nouns["task"].Verbs[n+1:], "get") >= 0 {
-			t.Fatalf("verbs %v: get once", r.Nouns["task"].Verbs)
+		if n := slices.Index(r.Operations.ActionNames(r.Nouns["task"]), "get"); n < 0 || slices.Index(r.Operations.ActionNames(r.Nouns["task"])[n+1:], "get") >= 0 {
+			t.Fatalf("verbs %v: get once", r.Operations.ActionNames(r.Nouns["task"]))
 		}
-		if r.Operations.At("task.list").Standard != "list" {
+		if r.Operations.At(Key("task.list")).Standard != "list" {
 			t.Fatalf("task.list should stay standard")
 		}
 	}

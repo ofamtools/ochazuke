@@ -25,7 +25,7 @@ func outsideFixture(t *testing.T) (*Runtime, *[]string) {
 	}
 	var sent []string
 	r.Define("surface").Verb("send", func(c Ctx) Result { sent = append(sent, StringArg(c.Args, "keys", "")); return Done(nil) })
-	op := r.Operations.At("surface.send")
+	op := r.Operations.At(Key("surface.send"))
 	op.Parameters = map[string]Parameter{"keys": {Type: "string"}}
 	r.Operations.Set(op)
 	prefix := Do("surface.send", Arguments{"keys": "ctrl+x"}).Request
@@ -73,7 +73,7 @@ func TestOutsideDispatchPolicy(t *testing.T) {
 				}
 				return Done(nil)
 			}).Mode("normal").Bind("r", Do("thing.touch"))
-			op := r.Operations.At("thing.touch")
+			op := r.Operations.At(Key("thing.touch"))
 			op.Motion, op.FocusBound = tc.motion, tc.bound
 			r.Operations.Set(op)
 			outsideKeys(t, r, "ctrl+x")

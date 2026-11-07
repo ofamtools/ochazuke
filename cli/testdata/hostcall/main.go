@@ -78,9 +78,9 @@ func run() error {
 			}
 		})
 	}).Agent(ochazuke.AgentAllow)
-	op := r.Operations["peer.route"]
-	op.Parameters = map[string]ochazuke.Parameter{"action": {Type: "string", Required: true}}
-	r.Operations[op.Key()] = op
+	if op, ok := r.Operations.Get("peer.route"); ok {
+		op.Parameters = map[string]ochazuke.Parameter{"action": {Type: "string", Required: true}}
+	}
 	if len(args) == 2 && args[0] == "--owner-key" {
 		r.EnsureHistory()
 		defer r.Config().Flush()

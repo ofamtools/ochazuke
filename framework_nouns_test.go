@@ -238,7 +238,7 @@ func TestInstancesStoreReadsLiveInstances(t *testing.T) {
 			t.Fatalf("widget.%s is not generated", verb)
 		}
 	}
-	if op := r.Operations.At("widget.set"); op.Unavailable != "its store writes no props (no Store.Patch)" {
+	if op := r.Operations.At(Key("widget.set")); op.Unavailable != "its store writes no props (no Store.Patch)" {
 		t.Fatalf("widget.set without Patch: unavailable %q", op.Unavailable)
 	}
 	rows := AnswerRows(paletteRequest(t, r, "list", "widget", nil)).([]map[string]any)

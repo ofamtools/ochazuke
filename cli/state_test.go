@@ -52,7 +52,7 @@ func (st *stateTool) run(t testing.TB, flags ...string) (string, string) {
 		}
 		return ochazuke.Done(out)
 	}, "every list's rows").State()
-	op := r.Operations.At("status.state")
+	op := r.Operations.At(ochazuke.Key("status.state"))
 	op.Parameters = map[string]ochazuke.Parameter{"fresh": {Type: "boolean"}, "project": {Type: "string"}}
 	r.Operations.Set(op)
 	var out, errOut bytes.Buffer

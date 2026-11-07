@@ -509,7 +509,7 @@ func TestHelpRunDataAnswerCanBeTurnedOff(t *testing.T) {
 // verb with only plumbing has no args form (and no a in the help).
 func TestPlumbingParametersAreNeverFormFields(t *testing.T) {
 	r, _, _ := unboundFixture(t)
-	fields, err := ArgsFields(r.Operations.At("ochazuke.list.apply"))
+	fields, err := ArgsFields(r.Operations.At(Key("ochazuke.list.apply")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -521,7 +521,7 @@ func TestPlumbingParametersAreNeverFormFields(t *testing.T) {
 	if len(fields) != 1 || fields[0].Name != "verb" {
 		t.Fatalf("fields %v", fields)
 	}
-	if got := askableParameters(r.Operations.At("ochazuke.list.mark")); len(got) != 0 {
+	if got := askableParameters(r.Operations.At(Key("ochazuke.list.mark"))); len(got) != 0 {
 		t.Fatalf("list.mark asks for %v", got)
 	}
 }

@@ -125,11 +125,11 @@ func TestActionRunsCommandAsLabelledJob(t *testing.T) {
 	if p := r.Config().ActionProblems(); len(p) != 0 {
 		t.Fatal(p)
 	}
-	op := r.Operations.At("worktree.open")
+	op := r.Operations.At(Key("worktree.open"))
 	if op.Kind != KindApplication || op.Description != "Open in the editor" || op.Parameters["line"].Type != "integer" || !reflect.DeepEqual(op.Positional, []string{"line"}) {
 		t.Fatalf("operation %+v", op)
 	}
-	if !slices.Contains(r.Nouns["worktree"].Verbs, "open") {
+	if !slices.Contains(r.Operations.ActionNames(r.Nouns["worktree"]), "open") {
 		t.Fatal("verb not listed on the noun")
 	}
 	if _, err := r.Execute(Request{Noun: "worktree", Verb: "open", Target: "wt/main", Args: Arguments{"line": 7}}); err != nil {
@@ -271,10 +271,10 @@ func TestActionMalformedEntriesAreNotices(t *testing.T) {
 	}
 	writeConfig(t, dir, ActionsFile, `{"noun": "worktree"}`)
 	got := r.ReloadUserActions()
-	if len(got) != 1 || !strings.Contains(got[0], "not a JSON array") || r.Operations.At("worktree.ok").Noun() != "" || len(m.Notices) != 1 {
+	if len(got) != 1 || !strings.Contains(got[0], "not a JSON array") || r.Operations.At(Key("worktree.ok")).Noun() != "" || len(m.Notices) != 1 {
 		t.Fatalf("reload %q notices %q", got, m.Notices)
 	}
-	if slices.Contains(r.Nouns["worktree"].Verbs, "ok") {
+	if slices.Contains(r.Operations.ActionNames(r.Nouns["worktree"]), "ok") {
 		t.Fatal("reload left the old verb on the noun")
 	}
 }

@@ -21,7 +21,7 @@ var defaultBindings []byte
 // The application binds keys to these rows; the grid binds only its column
 // width keys (z >, z <, z =) on the grid noun.
 func Register(r *ochazuke.Runtime) {
-	if _, ok := r.Operations.Find("ochazuke.grid.move"); ok {
+	if _, ok := r.Operations.Find(ochazuke.Key("ochazuke.grid.move")); ok {
 		return
 	}
 	r.Builtin(func() { register(r) })

@@ -41,7 +41,7 @@ func TestCatalogHooksRoundTrip(t *testing.T) {
 	host.Define("task").Verb("edit", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) })
 	synced := 0
 	host.Define("ext-tasks-git").Verb("sync", func(ochazuke.Ctx) ochazuke.Result { synced++; return ochazuke.Done(nil) })
-	op := host.Operations.At("ext-tasks-git.sync")
+	op := host.Operations.At(ochazuke.Key("ext-tasks-git.sync"))
 	op.Parameters = map[string]ochazuke.Parameter{"reason": {Type: "string"}}
 	host.Operations.Set(op)
 	if err := MountCatalogHooks(host, doc, "tasks-git", func(n string) string { return "ext-" + n }); err != nil {

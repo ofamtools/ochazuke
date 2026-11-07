@@ -91,7 +91,7 @@ func TestJobsTickerHidesQuietAndFrameworkJobs(t *testing.T) {
 	issue(t, r, "thing.reload")
 	issue(t, r, "read")
 	tickerIs(t, m)
-	if !r.Operations.At("thing.reload").Quiet || r.Operations.At("thing.build").Quiet {
+	if !r.Operations.At(Key("thing.reload")).Quiet || r.Operations.At(Key("thing.build")).Quiet {
 		t.Fatal("Quiet did not mark only thing.reload")
 	}
 }

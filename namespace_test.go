@@ -97,7 +97,7 @@ func TestDefineOwnShadowsTheFrameworkAlias(t *testing.T) {
 	r := NewRuntime()
 	done := func(v string) func(Ctx) Result { return func(Ctx) Result { return Done(v) } }
 	r.Define("history").Verb("capture", done("captured"))
-	if _, ok := r.Operations.Find("ochazuke.history.capture"); !ok {
+	if _, ok := r.Operations.Find(Key("ochazuke.history.capture")); !ok {
 		t.Fatal("Define(history) did not extend ochazuke.history")
 	}
 	r.DefineOwn("setting").Verb("list", done("own"))
@@ -156,15 +156,11 @@ func TestOverlappingVerbsAndNounsAreRefused(t *testing.T) {
 	refused("noun tool.run beside the verb run on tool", func() { r.Define("tool.run") })
 	refused("an empty noun part", func() { r.Define("tool..x") })
 	r.Define("tool.part").Verb("run", done)
-	if _, ok := r.Operations.Find("tool.part.run"); !ok {
+	if _, ok := r.Operations.Find(Key("tool.part.run")); !ok {
 		t.Fatal("a nested noun beside its parent was refused")
 	}
-	// A verb may hold a dot (the table is flat; a name is looked up whole),
-	// but one name never means two actions.
-	r.Define("tool").Verb("base.add", done)
-	if op, ok := r.Operation("tool.base.add"); !ok || op.Noun() != "tool" || op.Name() != "base.add" {
-		t.Fatalf("dotted verb: %+v %v", op, ok)
-	}
+	// A name holds no dot: a key is namespace.noun.name.
+	refused("a dotted verb", func() { r.Define("tool").Verb("base.add", done) })
 	refused("a dotted verb naming a nested noun's verb", func() { r.Define("tool").Verb("part.run", done) })
 }
 
@@ -188,7 +184,7 @@ func TestShortNamesInFilesAndLegacySpelling(t *testing.T) {
 	if problems := r.EnsureUserBindings(); len(problems) > 0 {
 		t.Fatal(problems)
 	}
-	if _, ok := r.Operations.Find("ochazuke.list.echo"); !ok {
+	if _, ok := r.Operations.Find(Key("ochazuke.list.echo")); !ok {
 		t.Fatal("actions.json list.echo did not land on ochazuke.list")
 	}
 	if !slices.ContainsFunc(r.Nouns["ochazuke.list"].Bindings["normal"], func(b Binding) bool {

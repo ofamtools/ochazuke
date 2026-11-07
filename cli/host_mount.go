@@ -63,6 +63,8 @@ type MountedNouns struct {
 // skipped with a warning; mounting never panics. A framework short-name
 // alias does not own the name: the mounted noun claims its exact host name.
 func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNouns {
+	// Every verb is pushed and the index invalidated once, at the end.
+	defer r.Operations.Hold()()
 	out := MountedNouns{Nouns: map[string]string{}}
 	warn := func(format string, a ...any) { out.Warnings = append(out.Warnings, fmt.Sprintf(format, a...)) }
 	// Every host name first, so a reference or an alias may name a noun

@@ -287,7 +287,7 @@ func TestWritesAreNeverSilentlyFilled(t *testing.T) {
 		ran = append(ran, c.Args)
 		return Done(nil)
 	}, "Rename the worker").Alias("title")
-	op := r.Operations.At("worker.retitle")
+	op := r.Operations.At(Key("worker.retitle"))
 	op.Parameters = map[string]Parameter{"name": {Type: "string", Required: true}}
 	r.Operations.Set(op)
 	if _, err := r.AddList("panes", []ListItem{{ID: "p1", Label: "build", Noun: "worker", Data: map[string]any{"name": "build"}}}); err != nil {

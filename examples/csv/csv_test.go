@@ -384,7 +384,7 @@ func TestPaletteListsTheNounVerbs(t *testing.T) {
 			t.Fatalf("%s verbs = %v, want %v", noun, got, want)
 		}
 	}
-	if op := a.r.Operations.At("row.delete"); op.Confirm == "" {
+	if op := a.r.Operations.At(ochazuke.Key("row.delete")); op.Confirm == "" {
 		t.Fatal("row.delete has no confirm")
 	}
 	// Hints are the bound rows of the mode: a hint never names an unbound key.

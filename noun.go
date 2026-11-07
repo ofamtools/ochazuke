@@ -21,10 +21,9 @@ import (
 // mode; a pending mode (operator_pending, a key-sequence prefix, ...) is
 // exclusive and reads only its own table.
 type Noun struct {
-	Name  string   `json:"name"`
-	About string   `json:"about,omitempty"`
-	Verbs []string `json:"verbs,omitempty"`
-	Pin   string   `json:"pin,omitempty"`
+	Name  string `json:"name"`
+	About string `json:"about,omitempty"`
+	Pin   string `json:"pin,omitempty"`
 	// Fallback names the noun whose table a focus on this noun reads
 	// last, after app (NounBuilder.Fallback): the walk's fallback, read
 	// once. A noun naming itself is read there and not at its own level
@@ -417,6 +416,7 @@ func (r *Runtime) ensureNoun(name string) *Noun {
 		}
 		n = &Noun{Name: name, Bindings: map[string][]Binding{}, Actions: map[string]Handler{}}
 		r.Nouns[name] = n
+		r.Operations.Invalidate()
 		r.renderCache.generation++
 		r.claimBareName(name)
 	}
@@ -479,12 +479,6 @@ func (b *NounBuilder) Columns(cols ...Column) *NounBuilder {
 // panel) that focus.next {scope: "region"} jumps between, never a stop.
 func (b *NounBuilder) Region() *NounBuilder { b.n.Region = true; return b }
 
-// Verbs records the verbs the noun answers to, for help and the palette.
-func (b *NounBuilder) Verbs(verbs ...string) *NounBuilder {
-	b.n.Verbs = append(b.n.Verbs, verbs...)
-	return b
-}
-
 // Verb registers noun.verb as an operation when it is new, else installs the
 // handler as this noun's override of the existing operation. The handler is
 // a Handler (an interaction verb, run on the loop) or an AppHandler
@@ -506,7 +500,6 @@ func (b *NounBuilder) Verb(verb string, h any, description ...string) *NounBuild
 		panic("an application verb cannot override " + key)
 	}
 	b.last = key
-	b.Verbs(verb)
 	return b
 }
 

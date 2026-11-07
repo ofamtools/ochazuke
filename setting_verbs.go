@@ -418,11 +418,6 @@ func registerSettingVerbs(r *Runtime) {
 		}
 		r.Register(op)
 	}
-	names := make([]string, 0, len(settingVerbs))
-	for _, v := range settingVerbs {
-		names = append(names, v.Verb)
-	}
-	r.Define("ochazuke.setting").Verbs(names...)
 	registerSettingThings(r)
 }
 

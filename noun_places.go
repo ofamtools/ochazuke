@@ -478,17 +478,23 @@ func (w *placementWriter) failure() error {
 }
 
 func registerPlacements(r *Runtime) {
+	registerActionThings(r)
 	r.defineFacts(factsSpec{Noun: "ochazuke.nouns", Sample: nounFact{}, Key: "noun", Label: "noun",
-		Docs: map[string]string{"noun": "The noun's name", "verbs": "Its verbs", "seen": "How many places it was seen in (nouns places lists them)"},
-		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+		Docs:       map[string]string{"noun": "The noun's name", "verbs": "Its verbs", "seen": "How many places it was seen in (nouns places lists them)"},
+		ListParams: map[string]Parameter{"action": {Type: "string", Description: "Only the nouns that have this action (ochazuke.action list {noun} is the other side)"}},
+		List: func(c Ctx, q ListQuery) ([]Thing, error) {
 			r := c.Runtime
+			only := relatedNames(r, q.Args, "action", nounsWithAction)
 			places := map[string]int{}
 			for _, one := range r.NounPlaces("") {
 				places[one.Noun]++
 			}
 			var rows []nounFact
 			for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
-				rows = append(rows, nounFact{Noun: name, Verbs: slices.Clone(r.Nouns[name].Verbs), Places: places[name]})
+				if only != nil && !only[name] {
+					continue
+				}
+				rows = append(rows, nounFact{Noun: name, Verbs: r.Operations.ActionNames(r.Nouns[name]), Places: places[name]})
 			}
 			return factThings(rows, nil)
 		}})

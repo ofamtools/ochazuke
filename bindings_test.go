@@ -234,7 +234,7 @@ func TestFromRowPassesRowData(t *testing.T) {
 	var got []Arguments
 	record := func(c Ctx) Result { got = append(got, c.Args); return Done(nil) }
 	r.Define("worktree").Verb("open", record)
-	op := r.Operations.At("worktree.open")
+	op := r.Operations.At(Key("worktree.open"))
 	op.Parameters = map[string]Parameter{"path": {Type: "string"}, "repo": {Type: "string"}, "row": {Type: "object"}}
 	r.Operations.Set(op)
 	onList := Do("worktree.open").FromRow("path", "path").FromRow("row", "")
@@ -386,7 +386,7 @@ func TestFromRowEmptyTargetRefuses(t *testing.T) {
 			sent = append(sent, StringArg(c.Args, "target", "UNTARGETED"))
 			return Done(nil)
 		})
-		op := r.Operations.At("doc.send")
+		op := r.Operations.At(Key("doc.send"))
 		op.Parameters = map[string]Parameter{"target": {Type: "string", Required: true}}
 		r.Operations.Set(op)
 		r.Define("lane").Mode("normal").Bind("s", Do("doc.send").FromRow("target", "doc"))
@@ -420,7 +420,7 @@ func TestFromRowEmptyNonTargetStaysOmitted(t *testing.T) {
 		got = append(got, c.Args)
 		return Done(nil)
 	})
-	op := r.Operations.At("lane.attach")
+	op := r.Operations.At(Key("lane.attach"))
 	op.Parameters = map[string]Parameter{"pane": {Type: "string"}}
 	r.Operations.Set(op)
 	r.Define("lane").Mode("normal").Bind("a", Do("lane.attach").FromRow("pane", "pane"))

@@ -5,10 +5,10 @@ about.go	aboutRowOf	compare	"ochazuke.about-row"	1
 about.go	registerAbout	compare	"ochazuke.about-row"	1
 about.go	registerAbout	compare	"path"	2
 action_names.go	Runtime.checkAlias	cyclo	"-"	35
-actions.go	Action.values	case	"args"	1
-actions.go	Action.values	case	"id"	1
-actions.go	Action.values	case	"noun"	1
-actions.go	Action.values	case	"verb"	1
+actions.go	UserOperation.values	case	"args"	1
+actions.go	UserOperation.values	case	"id"	1
+actions.go	UserOperation.values	case	"noun"	1
+actions.go	UserOperation.values	case	"verb"	1
 actions.go	Runtime.checkUserAlias	compare	"config"	1
 actions.go	var actionPlaceholders	table	"args"	1
 actions.go	var actionPlaceholders	table	"id"	1

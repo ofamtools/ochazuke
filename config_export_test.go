@@ -334,7 +334,7 @@ func TestConfigExportExamplesInstallWithoutNotices(t *testing.T) {
 		t.Fatalf("notices: %v", notices)
 	}
 	installed := live.UserActions()
-	if len(installed) != 3 || live.Operations.At("app.example-run").Noun() == "" || live.Operations.At("app.example-call").Noun() == "" || live.Operations.At("app.example-open").Noun() == "" {
+	if len(installed) != 3 || live.Operations.At(Key("app.example-run")).Noun() == "" || live.Operations.At(Key("app.example-call")).Noun() == "" || live.Operations.At(Key("app.example-open")).Noun() == "" {
 		t.Fatalf("installed %+v", installed)
 	}
 	if names := live.Config().themeNames(); !slices.Contains(names, "example") || !slices.Contains(names, "example-dark") {

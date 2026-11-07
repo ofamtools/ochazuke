@@ -204,8 +204,8 @@ func propTypeOf(t reflect.Type) string {
 // registerCoreFacts declares the operations and bindings nouns.
 func registerCoreFacts(r *Runtime) {
 	r.defineFacts(factsSpec{Noun: "ochazuke.operations", Sample: Operation{}, Key: "key", Label: "description",
-		Extra: []PropSpec{{Name: "key"}},
-		Docs: map[string]string{"key": "The operation's noun.verb", "noun": "The noun", "verb": "The verb", "description": "What the operation does",
+		Extra: []PropSpec{{Name: "key"}, {Name: "noun"}, {Name: "verb"}, {Name: "name"}, {Name: "namespace"}},
+		Docs: map[string]string{"key": "The operation's noun.verb", "noun": "The noun", "verb": "The verb", "name": "The operation's name (its verb)", "namespace": "The namespace that defined it", "description": "What the operation does",
 			"parameters": "The arguments it takes, by name", "confirm": "The prompt it asks first, when it asks", "result": "What it answers",
 			"unavailable": "Why it is on its noun but cannot run, when it cannot"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {

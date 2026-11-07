@@ -64,7 +64,6 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 		}
 		reason := v.unmet(r, n)
 		if reason != "" && v.optional {
-			n.Verbs = slices.DeleteFunc(n.Verbs, func(verb string) bool { return verb == v.Verb })
 			for _, alias := range v.Aliases {
 				r.dropStandardAlias(n.Name + "." + alias)
 			}
@@ -73,9 +72,6 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 		r.Register(v.operation(r, n, reason))
 		if g := n.Store.When[v.Verb]; g != "" {
 			r.SetAvailability(key, g)
-		}
-		if !slices.Contains(n.Verbs, v.Verb) {
-			n.Verbs = append(n.Verbs, v.Verb)
 		}
 		for _, alias := range v.Aliases {
 			if _, taken := r.Operations.Find(Key(n.Name + "." + alias)); !taken {

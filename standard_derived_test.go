@@ -118,7 +118,7 @@ func newDerivedRuntime(t *testing.T) (*Runtime, *derivedStore) {
 // addresses a role the noun lacks is unavailable, as the verb was.
 func TestDerivedVerbsFollowTheRoles(t *testing.T) {
 	r, _ := newDerivedRuntime(t)
-	if op := r.Operations.At("task.archive"); op.Standard != "archive" {
+	if op := r.Operations.At(Key("task.archive")); op.Standard != "archive" {
 		t.Fatalf("task.archive standard %q", op.Standard)
 	}
 	for _, verb := range []string{"rename", "move", "duplicate", "restore", "patch"} {
@@ -280,7 +280,7 @@ func TestStandardParamsAvoidTheKey(t *testing.T) {
 	if s.find("nightly")["title"] != "Every night" {
 		t.Fatalf("%v", s.things)
 	}
-	if p := r.Operations.At("schedule.edit").Parameters["field"]; !slices.Equal(p.Enum, []string{"title", "@label"}) {
+	if p := r.Operations.At(Key("schedule.edit")).Parameters["field"]; !slices.Equal(p.Enum, []string{"title", "@label"}) {
 		t.Fatalf("schedule.edit field %+v", p)
 	}
 	for _, name := range []string{"props", "field", "from"} {
@@ -302,7 +302,7 @@ func TestCreateFillsFromTheFocus(t *testing.T) {
 	r, s := newDerivedRuntime(t)
 	sink := &RecordingSink{}
 	r.UI().Attach(sink)
-	create := r.Operations.At("task.create")
+	create := r.Operations.At(Key("task.create"))
 	if !create.Parameters["project"].Focus || !slices.Equal(create.Positional, []string{"title", "project", "pairs"}) {
 		t.Fatalf("create %+v", create)
 	}
@@ -479,7 +479,7 @@ func TestChecksReportShadowedStandardVerbs(t *testing.T) {
 	r.Define("task").Verb("archive", func(Ctx) Result { return Done("mine") }, "The app's archive")
 	s := &derivedStore{key: "id"}
 	r.Define("task").Props(derivedProps()...).Store(s.store())
-	if op := r.Operations.At("task.archive"); op.Standard != "" {
+	if op := r.Operations.At(Key("task.archive")); op.Standard != "" {
 		t.Fatalf("the app's archive lost: %+v", op)
 	}
 	want := "info: task.archive is a named verb: it shadows the standard archive of task"
@@ -504,7 +504,7 @@ func TestChecksQuietADeclaredShadow(t *testing.T) {
 		Verb("archive", func(Ctx) Result { return Done("mine") }, "The app's archive")
 	s := &derivedStore{key: "id"}
 	r.Define("task").Props(derivedProps()...).Store(s.store())
-	if op := r.Operations.At("task.list"); op.Standard != "" || !op.ShadowsStandard {
+	if op := r.Operations.At(Key("task.list")); op.Standard != "" || !op.ShadowsStandard {
 		t.Fatalf("the app's list: %+v", op)
 	}
 	want := "info: task.archive is a named verb: it shadows the standard archive of task"

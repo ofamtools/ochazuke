@@ -22,7 +22,8 @@ type verbSpec struct {
 func (r *Runtime) registerVerbSpecs(specs []verbSpec) {
 	for _, s := range specs {
 		op := s.traits
-		op.Verb, op.Noun, op.Description, op.Parameters, op.Result, op.Requires, op.Run = s.verb, s.noun, s.description, s.params, s.result, s.requires, s.run
+		op.Key = KeyOf(s.noun, s.verb)
+		op.Description, op.Parameters, op.Result, op.Requires, op.Run = s.description, s.params, s.result, s.requires, s.run
 		r.Register(op)
 		if s.guard == "" {
 			continue
