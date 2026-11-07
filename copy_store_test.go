@@ -382,3 +382,33 @@ func TestCopyStoreRemoteRunsAlike(t *testing.T) {
 		t.Fatalf("undo left the copy %v", got)
 	}
 }
+
+// A Through prop the source does not take is kept in the copy: a plain
+// notice (the write succeeded here) names the thing by its label as it
+// was, once.
+func TestCopyStoreSourceRefusalIsANotice(t *testing.T) {
+	r, src, local, sink := copyFixture(t)
+	runItem(t, r, "get", Arguments{"id": "a"})
+	delete(src.items, "a")
+	s := r.Nouns["item"].Store
+	patch := s.copy.source.Patch
+	s.copy.source.Patch = func(c Ctx, id string, ch Thing) (Thing, error) {
+		if _, ok := src.items[id]; !ok {
+			return nil, fmt.Errorf("the source no longer has it")
+		}
+		return patch(c, id, ch)
+	}
+	runItem(t, r, "set", Arguments{"id": "a", "props": map[string]any{"branch": "kept"}})
+	if c, _, _ := local.Get("a"); c["branch"] != "kept" {
+		t.Fatalf("the copy: %v", c)
+	}
+	want := "item Alpha: kept here, not written to the source: the source no longer has it"
+	if !slices.Contains(sink.Notices(), want) {
+		t.Fatalf("notices %q, want %q", sink.Notices(), want)
+	}
+	for _, m := range sink.Messages() {
+		if m.Kind == UIError {
+			t.Fatalf("an error: %q", m.Text)
+		}
+	}
+}

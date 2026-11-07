@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"maps"
@@ -381,8 +382,9 @@ func (cs *copyStore) newKey(kp *PropSpec) (string, error) {
 
 // patch writes changes to the copy; the props the noun declares Through
 // go to the source's Patch first. A source that refuses them does not lose
-// the write: the copy keeps it and an error notice says the source did not
-// take it (record first, never refuse).
+// the write: the copy keeps it and a plain notice (the write succeeded
+// here) names the thing by its label as it was, else its key, and says the
+// source did not take it (record first, never refuse).
 func (cs *copyStore) patch(c Ctx, key string, changes Thing) (Thing, error) {
 	n, _, err := cs.nounOf(c)
 	if err != nil {
@@ -392,6 +394,7 @@ func (cs *copyStore) patch(c Ctx, key string, changes Thing) (Thing, error) {
 	if err != nil {
 		return nil, err
 	}
+	label := cmp.Or(n.displayLabel(func(name string) any { return t[name] }), key)
 	through := Thing{}
 	for name, v := range changes {
 		if p := n.prop(name); p != nil && p.Through {
@@ -411,7 +414,7 @@ func (cs *copyStore) patch(c Ctx, key string, changes Thing) (Thing, error) {
 		return nil, err
 	}
 	if srcErr != nil {
-		c.Error(fmt.Sprintf("%s %s: kept here, not written to the source: %v", c.Runtime.DisplayNoun(cs.noun), key, srcErr))
+		c.Notify(fmt.Sprintf("%s %s: kept here, not written to the source: %v", c.Runtime.DisplayNoun(cs.noun), label, srcErr))
 	}
 	return maps.Clone(t), nil
 }
