@@ -83,7 +83,7 @@ func TestOldChooserNounRunsWithOneNotice(t *testing.T) {
 	if !slices.Equal(*calls, []string{"choose b"}) {
 		t.Fatalf("calls %v", *calls)
 	}
-	want := []string{"ochazuke.chooser is an old name of picker (renamed in v0.95.0; removed after v0.96.0)"}
+	want := []string{"ochazuke.chooser is an old name of picker (renamed in v0.96.0; removed after v0.97.0)"}
 	if got := pickerNotices(sink); !slices.Equal(got, want) {
 		t.Fatalf("notices %q, want %q", got, want)
 	}
@@ -111,7 +111,7 @@ func TestPathFinderOldVerbsAreAliases(t *testing.T) {
 	r := NewRuntime()
 	for old, verb := range pickerVerbAliases {
 		a, ok := r.ActionAlias(PickerNoun + "." + old)
-		if !ok || a.Action != PickerNoun+"."+verb || !a.Deprecated() || a.Since != "v0.95.0" || a.RemoveAfter != "v0.96.0" {
+		if !ok || a.Action != PickerNoun+"."+verb || !a.Deprecated() || a.Since != "v0.96.0" || a.RemoveAfter != "v0.97.0" {
 			t.Errorf("%s: %+v %v", old, a, ok)
 		}
 	}

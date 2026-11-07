@@ -67,7 +67,7 @@ var pickerGuardAliases = map[string]string{
 // noun, and the old verbs whose names changed (chooser.open browses into
 // a row: picker.into, since picker.open opens a picker by name).
 var pickerRename = NounRename{
-	From: "ochazuke.chooser", To: PickerNoun, Since: "v0.95.0", RemoveAfter: "v0.96.0",
+	From: "ochazuke.chooser", To: PickerNoun, Since: "v0.96.0", RemoveAfter: "v0.97.0",
 	Verbs: map[string]string{"open": "into"},
 }
 

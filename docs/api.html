@@ -784,10 +784,10 @@ draws it beside the rows.
 	ChooserEnterSetting = &#34;picker.enter&#34;
 )</pre><a href="../chooser_sources.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserRow</code> <small>type</small></summary><pre>ChooserRow is PickerRow&#39;s old name.
 
-Deprecated: use PickerRow; kept for one release (v0.95.0).
+Deprecated: use PickerRow; kept for one release (v0.96.0).
 </pre><pre>type ChooserRow = PickerRow</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserSource</code> <small>type</small></summary><pre>ChooserSource is PickerSource&#39;s old name.
 
-Deprecated: use PickerSource; kept for one release (v0.95.0).
+Deprecated: use PickerSource; kept for one release (v0.96.0).
 </pre><pre>type ChooserSource = PickerSource</pre><a href="../chooser_sources.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserSourcesGuard, ChooserOpensGuard, ChooserEnterOpensGuard, ChooserUpGuard, ChooserUpEmptyGuard</code> <small>constant</small></summary><pre>Deprecated: the old guard names, kept for one release.
 </pre><pre>const (
 	ChooserSourcesGuard    = &#34;chooser-sources&#34;
@@ -797,7 +797,7 @@ Deprecated: use PickerSource; kept for one release (v0.95.0).
 	ChooserUpEmptyGuard    = &#34;chooser-up-empty&#34;
 )</pre><a href="../picker_verbs.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserSpec</code> <small>type</small></summary><pre>ChooserSpec is PickerSpec&#39;s old name.
 
-Deprecated: use PickerSpec; kept for one release (v0.95.0).
+Deprecated: use PickerSpec; kept for one release (v0.96.0).
 </pre><pre>type ChooserSpec = PickerSpec</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>ChooserStableHeightSetting</code> <small>constant</small></summary><pre>ChooserStableHeightSetting keeps an open chooser at the height it
 reached (settings/ochazuke.json).
 </pre><pre>const ChooserStableHeightSetting = &#34;picker.stable-height&#34;</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>ChromeBorderSetting, ChromeGlyphsSetting</code> <small>constant</small></summary><pre>const (
@@ -3966,7 +3966,7 @@ beside the owner&#39;s other jobs and its completion is delivered whenever it
 finishes. The context is cancelled when the owning instance closes.
 </pre><pre>func Pending(work func(context.Context) (any, error)) Result</pre><a href="../delivery.go">Source file</a></details><details class="entry searchable"><summary><code>Picker</code> <small>type</small></summary><pre>Picker is the path finder&#39;s old name.
 
-Deprecated: use PathFinder; Picker is kept for one release (v0.95.0).
+Deprecated: use PathFinder; Picker is kept for one release (v0.96.0).
 </pre><pre>type Picker = PathFinder</pre><a href="../picker.go">Source file</a></details><details class="entry searchable"><summary><code>PickerDef</code> <small>type</small></summary><pre>PickerDef declares a picker. A picker opens one of three ways, the first
 that is set: Open (Go only: the page picker, the path picker, the
 pickers picker), Verb (a verb that opens it: the palette), else a
@@ -4018,7 +4018,7 @@ never traversal edges.
 	Dir  bool   `json:&#34;dir&#34;`
 }</pre><a href="../picker_search.go">Source file</a></details><details class="entry searchable"><summary><code>PickerNoun</code> <small>constant</small></summary><pre>PickerNoun is the picker registry&#39;s noun: open, and the standard get,
 list and watch over the pickers as things.
-</pre><pre>const PickerNoun = &#34;ochazuke.picker&#34;</pre><a href="../picker_registry.go">Source file</a></details><details class="entry searchable"><summary><code>PickerRow</code> <small>type</small></summary><pre>PickerRow is one choice (ChooserRow before v0.95.0). Trailing rows (a &#34;browse…&#34; entry) follow the
+</pre><pre>const PickerNoun = &#34;ochazuke.picker&#34;</pre><a href="../picker_registry.go">Source file</a></details><details class="entry searchable"><summary><code>PickerRow</code> <small>type</small></summary><pre>PickerRow is one choice (ChooserRow before v0.96.0). Trailing rows (a &#34;browse…&#34; entry) follow the
 matches. Enter takes one without moving onto it only when the query is
 not empty and no ordinary row matches, so their filter should be strict
 (a substring of the label); an empty query with no ordinary rows creates.
@@ -4056,7 +4056,7 @@ moved onto it, or when the query spells it.
 	// row keeps them over its reverse bar, as a list&#39;s selected row does.
 	Tones []ToneSpan
 }</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>PickerSource</code> <small>type</small></summary><pre>PickerSource is one source of a picker&#39;s rows (ChooserSource before
-v0.95.0).
+v0.96.0).
 </pre><pre>type PickerSource struct {
 	// Name is what the title calls the source (&#34;browse&#34;, &#34;recent&#34;).
 	Name string
@@ -4136,7 +4136,7 @@ Loading the line while LoadingJob runs and there are none yet; Plural
 names the rows (Placeholder, one format: &#34;no directories&#34;, &#34;loading
 directories…&#34;, &#34;no directories match &#39;x&#39;&#34;). Keep names the cell columns cut last. Preview draws a
 preview of the highlighted row beside the rows when there is room.
-(ChooserSpec before v0.95.0.)
+(ChooserSpec before v0.96.0.)
 </pre><pre>type PickerSpec struct {
 	// Noun is the default row noun for prop filtering.
 	Noun string
@@ -5538,7 +5538,7 @@ no form opens: the path chooser does (the editor returned is nil), and
 its pick runs the request.
 </pre><pre>func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEditor, error)</pre><a href="../args_form.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.OpenChooser</code> <small>function / method</small></summary><pre>OpenChooser is OpenPicker&#39;s old name.
 
-Deprecated: use OpenPicker; kept for one release (v0.95.0).
+Deprecated: use OpenPicker; kept for one release (v0.96.0).
 </pre><pre>func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error)</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.OpenModal</code> <small>function / method</small></summary><pre>OpenModal opens a modal whose body is a new instance of noun kind (its id
 is the kind), parented at the current focus and carrying payload, and
 focuses it (or the input WithInput places in it). The instance lives
@@ -5557,7 +5557,7 @@ row is the page last left and enter goes back to it. Typing filters by
 title; enter opens the highlighted page, esc closes.
 </pre><pre>func (r *Runtime) OpenPagePicker() (*Chooser, error)</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.OpenPathChooser</code> <small>function / method</small></summary><pre>OpenPathChooser opens the path chooser (browse, recent, typed, then the
 application&#39;s sources) for spec.Pick.
-</pre><pre>func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error)</pre><a href="../path_chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.OpenPicker</code> <small>function / method</small></summary><pre>OpenPicker opens a picker modal (OpenChooser before v0.95.0) with its
+</pre><pre>func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error)</pre><a href="../path_chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.OpenPicker</code> <small>function / method</small></summary><pre>OpenPicker opens a picker modal (OpenChooser before v0.96.0) with its
 search input focused in insert mode. Like OpenModal, it opens only from
 the top level.
 </pre><pre>func (r *Runtime) OpenPicker(spec PickerSpec) (*Chooser, error)</pre><a href="../chooser.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.OpenRecordEditor</code> <small>function / method</small></summary><pre>OpenRecordEditor opens a record editor as a modal over the focus, its

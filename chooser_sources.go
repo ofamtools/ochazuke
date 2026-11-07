@@ -23,7 +23,7 @@ import (
 // chooser.remember-source is on.
 
 // PickerSource is one source of a picker's rows (ChooserSource before
-// v0.95.0).
+// v0.96.0).
 type PickerSource struct {
 	// Name is what the title calls the source ("browse", "recent").
 	Name string
@@ -164,7 +164,7 @@ func registerChooserSources(r *Runtime) {
 
 // ChooserSource is PickerSource's old name.
 //
-// Deprecated: use PickerSource; kept for one release (v0.95.0).
+// Deprecated: use PickerSource; kept for one release (v0.96.0).
 type ChooserSource = PickerSource
 
 // Source is the current source's name, "" for a chooser without sources.

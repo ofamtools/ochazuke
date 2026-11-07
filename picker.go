@@ -80,7 +80,7 @@ type pickerSearchMsg struct {
 
 // Picker is the path finder's old name.
 //
-// Deprecated: use PathFinder; Picker is kept for one release (v0.95.0).
+// Deprecated: use PathFinder; Picker is kept for one release (v0.96.0).
 type Picker = PathFinder
 
 // NewPicker returns the path finder for r (picker.open with no name opens

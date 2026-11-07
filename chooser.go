@@ -23,7 +23,7 @@ import (
 // Component, so Runtime holds no chooser state: Runtime.Chooser(kind) reads
 // it back and the Model draws it.
 
-// PickerRow is one choice (ChooserRow before v0.95.0). Trailing rows (a "browse…" entry) follow the
+// PickerRow is one choice (ChooserRow before v0.96.0). Trailing rows (a "browse…" entry) follow the
 // matches. Enter takes one without moving onto it only when the query is
 // not empty and no ordinary row matches, so their filter should be strict
 // (a substring of the label); an empty query with no ordinary rows creates.
@@ -76,7 +76,7 @@ type PickerRow struct {
 // names the rows (Placeholder, one format: "no directories", "loading
 // directories…", "no directories match 'x'"). Keep names the cell columns cut last. Preview draws a
 // preview of the highlighted row beside the rows when there is room.
-// (ChooserSpec before v0.95.0.)
+// (ChooserSpec before v0.96.0.)
 type PickerSpec struct {
 	// Noun is the default row noun for prop filtering.
 	Noun string
@@ -156,7 +156,7 @@ func (c *Chooser) hasOwnRows() bool {
 }
 
 // chooserNoun is the noun of every chooser's search input: the picker
-// noun (it was ochazuke.chooser before v0.95.0, now a deprecated name of
+// noun (it was ochazuke.chooser before v0.96.0, now a deprecated name of
 // it); its rows are the picker's keys (bindings/picker.json).
 const chooserNoun = PickerNoun
 
@@ -275,20 +275,20 @@ func registerChooser(r *Runtime) {
 
 // OpenChooser is OpenPicker's old name.
 //
-// Deprecated: use OpenPicker; kept for one release (v0.95.0).
+// Deprecated: use OpenPicker; kept for one release (v0.96.0).
 func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) { return r.OpenPicker(spec) }
 
 // ChooserSpec is PickerSpec's old name.
 //
-// Deprecated: use PickerSpec; kept for one release (v0.95.0).
+// Deprecated: use PickerSpec; kept for one release (v0.96.0).
 type ChooserSpec = PickerSpec
 
 // ChooserRow is PickerRow's old name.
 //
-// Deprecated: use PickerRow; kept for one release (v0.95.0).
+// Deprecated: use PickerRow; kept for one release (v0.96.0).
 type ChooserRow = PickerRow
 
-// OpenPicker opens a picker modal (OpenChooser before v0.95.0) with its
+// OpenPicker opens a picker modal (OpenChooser before v0.96.0) with its
 // search input focused in insert mode. Like OpenModal, it opens only from
 // the top level.
 func (r *Runtime) OpenPicker(spec PickerSpec) (*Chooser, error) {

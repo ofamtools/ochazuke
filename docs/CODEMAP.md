@@ -134,7 +134,7 @@ Root package `ochazuke` is flat: 204 source files, 249 test files. Each entry li
 ### chooser.go
 
 - lines: 1116 · tests: chooser_test.go
-- purpose: PickerRow is one choice (ChooserRow before v0.95.0).
+- purpose: PickerRow is one choice (ChooserRow before v0.96.0).
 - types: PickerRow, PickerSpec, Chooser, ChooserSpec, ChooserRow
 - methods: Chooser(38), Runtime(5)
 - leans on: instance.go(35), delivery.go(29), table.go(15), runtime.go(10)
@@ -150,7 +150,7 @@ Root package `ochazuke` is flat: 204 source files, 249 test files. Each entry li
 ### chooser_sources.go
 
 - lines: 564 · tests: chooser_sources_test.go
-- purpose: PickerSource is one source of a picker's rows (ChooserSource before v0.95.0).
+- purpose: PickerSource is one source of a picker's rows (ChooserSource before v0.96.0).
 - types: PickerSource, ChooserSource, ChooserBatch
 - methods: Chooser(26), Runtime(2), chooserState(3)
 - leans on: chooser.go(32), delivery.go(24), instance.go(13), runtime.go(10)
