@@ -20,6 +20,8 @@
 //	len(r.Operations)                -> r.Operations.Len()
 //	the type Action (actions.json)   -> UserOperation
 //
+// Noun.Verbs and NounBuilder.Verbs, which are gone, are listed for a
+// person: read r.Operations.ActionNames(noun).
 // A key argument that is not an untyped string constant is converted
 // (ochazuke.Key(k)); op.Key() as the key is op.Key itself. Every other use
 // of Runtime.Operations (the map passed on, assigned, or built) is listed as
@@ -493,6 +495,11 @@ func (ps *pass) selector(se *ast.SelectorExpr, parents map[ast.Node]ast.Node) {
 	if se.Sel.Name == "Operations" && ps.isRegistry(se) {
 		ps.bareRegistry(se, parents)
 		return
+	}
+	if se.Sel.Name == "Verbs" {
+		if sel := ps.info.Selections[se]; sel != nil && (sel.Kind() == types.FieldVal && isLib(fieldOwner(sel), "Noun") || sel.Kind() == types.MethodVal && isLib(sel.Recv(), "NounBuilder")) {
+			ps.run.note(ps.pos(se) + ": Noun.Verbs and NounBuilder.Verbs are gone; read r.Operations.ActionNames(noun) (a builder's Verbs declared nothing an operation does not)")
+		}
 	}
 	switch ps.opField(se) {
 	case "App":
