@@ -276,7 +276,7 @@ func TestListBindingsListsEveryEditorKey(t *testing.T) {
 			}
 			want[b.Keys+"\x00"+b.Pattern] = true
 		}
-		if r.pendingModes[mode] {
+		if r.IsPendingMode(mode) {
 			r.enterMode(mode, Payload{Op: "d"})
 		} else {
 			in.storeMode(mode)

@@ -90,6 +90,18 @@ type ModeSpec struct {
 	// Outside is the base mode used for an unbound key after this pending
 	// mode's prefix. It considers single-key rows, never outside sequences.
 	Outside string `json:"outside,omitempty"`
+	// Typing is a mode that takes text: an input in it inserts what is
+	// typed, groups its typing into one undo change and draws the bar
+	// cursor, and completion opens in it (insert). A mode that extends a
+	// typing mode types too. A framework trait (builtinModes, or a
+	// ModeOption to DefineMode); a bindings file does not carry it.
+	Typing bool `json:"-"`
+	// CursorOnChar is a mode whose cursor sits on a character, never past
+	// the end of a line: motions and erasing stop at the line's last
+	// character (normal; a selection mode does the same through its
+	// shape). It is the resting mode a structural edit returns to. A
+	// framework trait, as Typing.
+	CursorOnChar bool `json:"-"`
 }
 
 // BindingGroup is one table of a grouped bindings file: a noun's or an
@@ -582,28 +594,12 @@ func (r *Runtime) bindingsDocOf(rows []Binding) BindingsDoc {
 // modes, as a bindings file's "modes".
 func (r *Runtime) bindingModes() map[string]ModeSpec {
 	modes := map[string]ModeSpec{}
-	for name := range r.pendingModes {
-		modes[name] = ModeSpec{Pending: true}
-	}
-	for name := range r.passthroughModes {
-		m := modes[name]
-		m.Passthrough = true
-		modes[name] = m
-	}
-	for name, parent := range r.modeExtends {
-		m := modes[name]
-		m.Extends = parent
-		modes[name] = m
-	}
-	for name, shape := range r.selectionModes {
-		m := modes[name]
-		m.Selection = shape
-		modes[name] = m
-	}
-	for name, outside := range r.modeOutside {
-		m := modes[name]
-		m.Outside = outside
-		modes[name] = m
+	for name, spec := range r.modes {
+		// Only the traits a file declares; a mode with none is not listed.
+		file := ModeSpec{Pending: spec.Pending, Passthrough: spec.Passthrough, Selection: spec.Selection, Extends: spec.Extends, Outside: spec.Outside}
+		if file != (ModeSpec{}) {
+			modes[name] = file
+		}
 	}
 	return modes
 }

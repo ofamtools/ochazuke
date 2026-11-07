@@ -1128,7 +1128,7 @@ func (t *Tree) closeLineAs(refocus, drop bool) error {
 				err = ferr
 			}
 		}
-		if t.r.Mode.Name != "normal" {
+		if !t.r.modes[t.r.Mode.Name].CursorOnChar {
 			_ = t.r.SetMode("normal")
 		}
 	}

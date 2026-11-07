@@ -22,7 +22,15 @@ func editorShape(r *Runtime, mode string) string {
 }
 
 // shape is the input's selection shape, "" outside a visual mode.
-func (in *Input) shape() string           { return editorShape(in.r, in.Mode) }
+func (in *Input) shape() string { return editorShape(in.r, in.Mode) }
+
+// cursorOnChar reports whether the input's cursor sits on a character in
+// its mode: a CursorOnChar mode (normal) or a selection mode (visual), so
+// motions stop at a line's last character.
+func (in *Input) cursorOnChar() bool {
+	return modeSpecOf(in.r, in.Mode).CursorOnChar || in.shape() != ""
+}
+
 func cellWidth(s string) int              { return ansi.StringWidth(safeText(s)) }
 func runeCells(ch rune) int               { return cellWidth(string(ch)) }
 func padCells(s string, width int) string { return s + strings.Repeat(" ", max(0, width-cellWidth(s))) }
@@ -213,7 +221,7 @@ func (in *Input) pasteYank(y Yank, before, literal bool, steps int) error {
 	if !in.Multiline && (y.Shape == "block" || y.Shape == "line" || strings.ContainsAny(y.Text, "\r\n")) {
 		return errors.New("single-line input cannot paste multiline yank")
 	}
-	if literal || modeIs(in.r, in.Mode, "insert") {
+	if literal || typingMode(in.r, in.Mode) {
 		return in.Replace(in.Cursor, in.Cursor, strings.Repeat(y.Text, steps))
 	}
 	start, end := in.lineBounds(in.Cursor)

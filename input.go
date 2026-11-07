@@ -139,7 +139,7 @@ func (in *Input) transition(mode string, stepBack bool) {
 	if in.pin != "" {
 		mode = in.pin
 	}
-	if in.ReadOnly && modeIs(in.r, mode, "insert") {
+	if in.ReadOnly && typingMode(in.r, mode) {
 		mode = in.Mode // a viewer never types: the mode stays
 	}
 	if mode == in.Mode {
@@ -148,7 +148,7 @@ func (in *Input) transition(mode string, stepBack bool) {
 	}
 	in.typeOver = nil
 	old := in.Mode
-	wasInsert, isInsert := modeIs(in.r, old, "insert"), modeIs(in.r, mode, "insert")
+	wasInsert, isInsert := typingMode(in.r, old), typingMode(in.r, mode)
 	if wasInsert {
 		in.finishBlockChange()
 	}
@@ -163,7 +163,7 @@ func (in *Input) transition(mode string, stepBack bool) {
 	if isInsert {
 		in.History[in.Head].Cursor = in.Cursor
 		in.groupOpen = true
-	} else if wasInsert && modeIs(in.r, mode, "normal") && stepBack {
+	} else if wasInsert && charCursorMode(in.r, mode) && stepBack {
 		start, _ := in.lineBounds(in.Cursor)
 		if in.Cursor > start {
 			in.Cursor--
@@ -227,7 +227,7 @@ func (in *Input) Replace(start, end int, text string) error {
 	if slices.Equal(in.Text[start:end], inserted) {
 		return nil
 	}
-	if !in.groupOpen && modeIs(in.r, in.Mode, "insert") {
+	if !in.groupOpen && typingMode(in.r, in.Mode) {
 		in.groupOpen = true
 		in.groupNode = -1
 		in.History[in.Head].Cursor = in.Cursor
@@ -419,7 +419,7 @@ func (in *Input) SelectText(start, end int) error {
 		return nil // nothing to type over in a viewer
 	}
 	in.SetMode("insert")
-	if in.Mode != "insert" {
+	if !modeSpecOf(in.r, in.Mode).Typing {
 		return errors.New("input is pinned to " + in.Mode)
 	}
 	in.Cursor = end
@@ -474,8 +474,7 @@ func (in *Input) typeOverSnapshot() any {
 
 func RegisterInputOperations(r *Runtime) {
 	r.Define("ochazuke.input").Unpersisted()
-	r.Modes["normal"] = true
-	r.Modes["insert"] = true
+	r.ensureBuiltinModes()
 	for _, spec := range []struct {
 		verb, desc string
 		params     map[string]Parameter
@@ -505,7 +504,7 @@ func RegisterInputOperations(r *Runtime) {
 				return in.Replace(lo, hi, "")
 			}
 			start, end := in.Cursor, in.Cursor
-			normal := in.Mode == "normal"
+			normal := modeSpecOf(in.r, in.Mode).CursorOnChar
 			if normal && steps > 0 {
 				boundedSteps := min(steps, len(in.Text))
 				lower, upper := in.lineBounds(in.Cursor)

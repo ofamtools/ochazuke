@@ -164,7 +164,7 @@ func (r *Runtime) loadDefaultDoc(source string, file BindingsDoc) (err error) {
 		switch {
 		case m.Pending:
 			err = r.DefineMode(name, true)
-		case !r.Modes[name] && !r.pendingModes[name]:
+		case !r.modeDefined(name):
 			err = r.DefineMode(name, false)
 		}
 		if err == nil && m.Passthrough {
@@ -174,10 +174,12 @@ func (r *Runtime) loadDefaultDoc(source string, file BindingsDoc) (err error) {
 			err = r.DefineSelection(name, m.Selection)
 		}
 		if err == nil && m.Extends != "" {
-			if m.Extends == name || !r.Modes[m.Extends] && !r.pendingModes[m.Extends] {
+			if m.Extends == name || !r.modeDefined(m.Extends) {
 				err = fmt.Errorf("extends unknown mode %q", m.Extends)
 			} else {
-				r.modeExtends[name] = m.Extends
+				spec := r.modes[name]
+				spec.Extends = m.Extends
+				r.putMode(name, spec)
 			}
 		}
 		if err == nil && m.Outside != "" {
@@ -211,7 +213,7 @@ func (r *Runtime) loadDefaultDoc(source string, file BindingsDoc) (err error) {
 	// after the first, not a replacement.
 	batch := rowBatch{}
 	for i, g := range file.Groups {
-		if g.Mode != "" && !r.Modes[g.Mode] && !r.pendingModes[g.Mode] {
+		if g.Mode != "" && !r.modeDefined(g.Mode) {
 			return fmt.Errorf("%s: %s: unknown mode %q", source, g.label(), g.Mode)
 		}
 		for _, row := range g.Rows {
@@ -232,7 +234,7 @@ func (r *Runtime) loadDefaultDoc(source string, file BindingsDoc) (err error) {
 			}
 		}
 		if g.Extends != "" {
-			if !r.Modes[g.Extends] && !r.pendingModes[g.Extends] {
+			if !r.modeDefined(g.Extends) {
 				return fmt.Errorf("%s: %s: extends unknown mode %q", source, g.label(), g.Extends)
 			}
 			r.Define(nouns[i]).Mode(g.Mode).Extends(g.Extends)
@@ -591,11 +593,11 @@ func (r *Runtime) CheckDefaultBindings(source string, data []byte) []string {
 		problems = append(problems, source+": "+fmt.Sprintf(format, args...))
 	}
 	for _, name := range slices.Sorted(maps.Keys(file.Modes)) {
-		if pending := file.Modes[name].Pending; pending != r.pendingModes[name] {
-			report("mode %q: the file says pending %v, the runtime %v", name, pending, r.pendingModes[name])
+		if pending := file.Modes[name].Pending; pending != r.modes[name].Pending {
+			report("mode %q: the file says pending %v, the runtime %v", name, pending, r.modes[name].Pending)
 		}
 	}
-	known := func(mode string) bool { return mode == "" || r.Modes[mode] || r.pendingModes[mode] }
+	known := func(mode string) bool { return mode == "" || r.modeDefined(mode) }
 	var placed []Binding
 	for _, g := range file.Groups {
 		noun := ""
@@ -626,7 +628,7 @@ func (r *Runtime) CheckDefaultBindings(source string, data []byte) []string {
 				continue
 			}
 			if normalized.Request.Key() == "ochazuke.mode.enter" {
-				if mode, _ := normalized.Request.Args["mode"].(string); !r.pendingModes[mode] {
+				if mode, _ := normalized.Request.Args["mode"].(string); !r.modes[mode].Pending {
 					report("%s %q: mode.enter into %q, which is not a pending mode", g.label(), key, mode)
 				}
 			}

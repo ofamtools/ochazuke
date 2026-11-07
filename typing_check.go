@@ -28,7 +28,7 @@ type typingPlace struct {
 // typingPlaceIn finds the innermost bubbling level of a walk that types,
 // if any.
 func (r *Runtime) typingPlaceIn(levels []level, mode ModeState, ev KeyEvent) (typingPlace, bool) {
-	exclusive := r.pendingModes[mode.Name]
+	exclusive := r.modes[mode.Name].Pending
 	for _, lv := range levels {
 		if lv.capture {
 			continue
@@ -108,7 +108,7 @@ func (s typingShadow) String() string {
 // row with the place's own action answers rightly at any level (the
 // editor fallback's space for a chooser's line).
 func (r *Runtime) typingShadowsAt(focus string, mode ModeState) []typingShadow {
-	if r.passthroughModes[mode.Name] {
+	if r.modes[mode.Name].Passthrough {
 		return nil // a terminal: every key is the pane's
 	}
 	levels := r.walkOf(r.stack(focus), false)
@@ -117,7 +117,7 @@ func (r *Runtime) typingShadowsAt(focus string, mode ModeState) []typingShadow {
 	if !ok {
 		return nil
 	}
-	exclusive := r.pendingModes[mode.Name]
+	exclusive := r.modes[mode.Name].Pending
 	drop := r.dropsInheritedSequences()
 	// A level none of whose rows names the key (as a key, the first of a
 	// sequence, or a pattern it matches) neither answers nor waits: lookup,
@@ -244,7 +244,7 @@ func (r *Runtime) sequenceOn(lv level, mode string, exclusive bool, key string, 
 func (r *Runtime) TypingShadows() []string {
 	saved, savedMode := r.Focus, r.Mode
 	defer func() { r.Focus, r.Mode = saved, savedMode }()
-	modes := slices.Sorted(maps.Keys(r.Modes))
+	modes := r.baseModeNames()
 	seen := map[string]bool{}
 	var out []string
 	top := r.TopModal()

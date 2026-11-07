@@ -108,13 +108,11 @@ confirm.go	Runtime.openConfirmAbout	compare	"noun"	1
 confirm.go	Runtime.openConfirmAbout	cyclo	"-"	40
 confirm.go	registerConfirm	compare	"ochazuke.confirm"	1
 default_bindings.go	Runtime.CheckDefaultBindings	compare	"ochazuke.mode.enter"	1
-default_bindings.go	Runtime.loadDefaultDoc	cyclo	"-"	38
+default_bindings.go	Runtime.loadDefaultDoc	cyclo	"-"	34
 detail.go	Detail.MoveToEdge	compare	"last"	1
 editing.go	Input.begin	case	"append"	2
 editing.go	Input.begin	case	"end"	2
-editing.go	Input.begin	case	"insert"	1
-editing.go	Input.clampCursor	compare	"normal"	1
-editing.go	Input.deleteRunes	compare	"normal"	1
+editing.go	Input.begin	case	"insert"	1	the input.begin position argument (insert/append/first/...), not the insert mode
 editing.go	Input.killRange	case	"line-end"	1
 editing.go	Input.killRange	case	"line-start"	1
 editing.go	Input.killRange	case	"word-backward"	1
@@ -135,9 +133,8 @@ editing.go	Input.move	case	"word-next"	3
 editing.go	Input.move	case	"word-previous"	3
 editing.go	Input.move	compare	"down"	1
 editing.go	Input.move	compare	"last-line"	1
-editing.go	Input.move	compare	"normal"	3
 editing.go	Input.move	compare	"up"	2
-editing.go	Input.move	cyclo	"-"	41
+editing.go	Input.move	cyclo	"-"	38
 editor.go	Input.checkPaste	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.operatorEnd	case	"right"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.operatorEnd	case	"word-forward"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
@@ -186,10 +183,7 @@ help.go	patternLabel	compare	"digit"	1
 help.go	registerBindingHelp	compare	"bindings-help"	1
 help_modes.go	Runtime.helpEnters	compare	"ochazuke.mode.enter"	1
 help_views.go	Runtime.HelpTable	compare	"app"	1
-help_views.go	Runtime.helpBaseModes	compare	"insert"	1
-help_views.go	Runtime.helpBaseModes	compare	"normal"	1
 help_views.go	Runtime.helpPendingModes	compare	"macro_recording"	1
-help_views.go	Runtime.inputNoun	compare	"insert"	1
 help_views.go	helpCellText	compare	"app"	3
 help_views.go	helpState.header	case	"pick"	1
 help_views.go	helpState.refreshBindings	compare	"pick"	1
@@ -208,8 +202,6 @@ input.go	Input.Pending	case	"g_pending"	1
 input.go	Input.Pending	case	"operator_g_pending"	1
 input.go	Input.Pending	case	"operator_pending"	1
 input.go	Input.Pending	case	"register_pending"	1
-input.go	Input.SelectText	compare	"insert"	1
-input.go	RegisterInputOperations	compare	"normal"	1
 inspector.go	Inspection.Parts	compare	"app"	1
 inspector.go	Runtime.Inspect	compare	"status"	1
 inspector.go	inspectPreview	cyclo	"-"	28
@@ -259,7 +251,6 @@ markdown/edit.go	Doc.Move	cyclo	"-"	26
 markdown/edit.go	Doc.Resolve	compare	"note"	1
 markdown/edit.go	Doc.leave	compare	"note"	1
 markdown/edit.go	Doc.openAt	compare	"note"	2
-markdown/edit.go	Doc.refocus	compare	"normal"	1
 markdown/edit.go	itemMarkerFor	compare	"task"	1
 markdown/edit.go	opened	compare	"note"	1
 markdown/edit.go	subtreeEnd	compare	"note"	1
@@ -292,8 +283,7 @@ motion_scroll.go	List.MoveToEdge	compare	"last"	1
 motion_scroll.go	registerViewMotions	compare	"last"	1
 name_vocab.go	Runtime.NameVocab	compare	"motion"	1
 namespace.go	frameworkName	compare	"app"	1
-noun.go	Runtime.validateRow	cyclo	"-"	30
-noun.go	builtinGuards	compare	"normal"	1
+noun.go	Runtime.validateRow	cyclo	"-"	29
 noun.go	isPattern	case	"digit"	1
 noun.go	isPattern	case	"paste"	1
 noun.go	isPrefixCancel	compare	"ochazuke.mode.leave"	1
@@ -303,7 +293,7 @@ noun.go	printableKey	case	"delete"	1
 noun.go	printableKey	case	"down"	1
 noun.go	printableKey	case	"end"	1
 noun.go	printableKey	case	"enter"	1
-noun.go	printableKey	case	"insert"	1
+noun.go	printableKey	case	"insert"	1	the Insert key name in a key-class list, not the insert mode
 noun.go	printableKey	case	"left"	1
 noun.go	printableKey	case	"right"	1
 noun.go	printableKey	case	"up"	1
@@ -374,11 +364,7 @@ query.go	isCombinator	compare	"all"	1
 query.go	isCombinator	compare	"not"	1
 record_chips.go	recordField.chipEdge	case	"last"	1
 record_editor.go	RecordEditor.Block	cyclo	"-"	31
-record_editor.go	RecordEditor.PendingCommand	compare	"insert"	1
 record_editor.go	RecordEditor.applyLoaded	compare	"close"	1
-record_editor.go	RecordEditor.move	compare	"insert"	1
-record_editor.go	RecordEditor.nextMissing	compare	"insert"	2
-record_editor.go	RecordEditor.startInsert	compare	"insert"	1
 record_editor.go	Runtime.editKindOf	compare	"path"	1
 record_editor.go	Runtime.editKindOf	compare	"text"	2
 record_editor.go	Runtime.newRecordEditor	cyclo	"-"	27
@@ -472,7 +458,6 @@ tone.go	resolveTones	compare	"mode"	2
 tree.go	Tree.apply	case	"add"	1
 tree.go	Tree.apply	case	"delete"	1
 tree.go	Tree.apply	case	"move"	1
-tree.go	Tree.closeLineAs	compare	"normal"	1
 tree.go	Tree.fixedFor	compare	"delete"	1
 tree.go	Tree.history	compare	"delete"	1
 tree.go	Tree.refuses	compare	"add"	1
@@ -481,7 +466,6 @@ tree.go	TreeChange.String	case	"move"	1
 tree.go	changeVerb	case	"delete"	1
 tree.go	changeVerb	case	"move"	1
 tree_delete.go	Tree.removeOne	compare	"delete"	1
-tree_empty.go	Tree.dropEmpty	compare	"normal"	1
 tree_empty.go	Tree.freshAddStep	compare	"delete"	1
 tree_zoom.go	Runtime.titleCrumb	compare	"title"	1
 tree_zoom.go	Tree.Height	compare	"line"	1

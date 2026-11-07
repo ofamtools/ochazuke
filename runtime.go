@@ -506,11 +506,14 @@ func (o Operation) ParameterOrder() []string {
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
-	Nouns      map[string]*Noun
-	Instances  map[string]*Instance
-	Focus      string    // the focused instance; Context() is derived from it
-	Mode       ModeState // the one interaction mode; mode.switch writes it, a focus change to another stop resets it
-	Page       string    // the current page instance; always an ancestor of BaseFocus()
+	Nouns     map[string]*Noun
+	Instances map[string]*Instance
+	Focus     string    // the focused instance; Context() is derived from it
+	Mode      ModeState // the one interaction mode; mode.switch writes it, a focus change to another stop resets it
+	Page      string    // the current page instance; always an ancestor of BaseFocus()
+	// Modes is the defined base modes, a read-only view of the mode
+	// table kept for callers that index it: write modes with DefineMode,
+	// read them with IsBaseMode, IsPendingMode and ModeTraits.
 	Modes      map[string]bool
 	Operations map[string]Operation
 	Quit       bool
@@ -526,46 +529,42 @@ type Runtime struct {
 	// before refusing an unknown target, so keys, the palette, the CLI and
 	// the API all accept the foreign id. An error refuses the request with
 	// it; "" and no error leaves the target unknown.
-	ResolveTarget    func(target string) (string, error)
-	pendingModes     map[string]bool
-	passthroughModes map[string]bool   // base modes in which capture rows stand aside (DefinePassthrough)
-	selectionModes   map[string]string // base modes that hold a selection, and its shape (DefineSelection)
-	modeExtends      map[string]string // the mode a mode falls back to for a noun with no table of its own (ModeExtends)
-	modeOutside      map[string]string // pending mode -> outside base mode (ModeOutside)
-	guards           map[string]Guard
-	predicates       map[string]PredicateFunc // named query predicates (query.go)
-	agentApproved    bool                     // the owner approved this request and its nested work
-	agentTransport   *agentTransport          // scoped adapter identity and execution environment, shared by nested requests
-	history          actionHistory            // the executed-request ring and the current source (history.go)
-	reopening        string                   // the record editor reopening itself over the level it opened over (runFailed)
-	origin           string                   // the instance the running request or completion acts for; a modal opens only from the top level
-	askedAt          string                   // the focus the running request was made at, before it moved to its noun's instance (createFill reads a reference's thing there)
-	rowRequest       bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
-	subjects         []string                 // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
-	prefix           pendingPrefix
-	bindingVersion   uint64
-	renderCache      runtimeRenderCache
-	modeGeneration   uint64
-	rows             map[string]string         // list row instance id -> owning list id
-	holders          []string                  // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
-	modals           []string                  // the open modal instances, outermost first; each holds its return focus in Payload.Return
-	modalInstances   map[string]bool           // instances created by Push or OpenModal, removed by Pop
-	remoteSeen       map[string]map[string]any // the last answer of each read of a remote store (Ctx.Await)
-	remoteQueue      []*remoteRun              // remote writes in flight, in order, per thing
-	copyMarks        map[string]*copyMarks     // by noun, what each copy noun's last refresh read (copy_refresh.go)
-	diffRenderer     DiffRenderer              // draws a plain diff (SetDiffRenderer); nil draws - and + lines
-	targets          map[string]string         // target texts resolved to keys during the running request (resolveTarget)
-	seq              uint64                    // instance registration order
-	commands         []tea.Cmd                 // off-loop work scheduled since the adapter last drained it
-	jobs             map[uint64]*job           // the jobs list: running jobs and the finished ones retained for job.list
-	watches          *watchHub                 // the watches of nouns' things (standard_watch.go), made on first use
-	events           *eventHub                 // declared events, open surfaces' change counts, hook rows (events.go, hooks.go), made on first use
-	jobSeq           uint64                    // last issued job id
-	defaults         defaultSources            // where each default row and extends came from (bindings defaults)
-	deprecations     []string                  // rows that named an operation by its old verb.noun spelling, rewritten once
-	aliases          map[string]string         // registry: a short noun name -> the noun it names (settings -> ochazuke.settings; namespace.go)
-	builtinDepth     int                       // >0 while Builtin runs: framework registration, whose nouns are ochazuke.<noun>
-	actionNames      actionNames               // the action alias table and the running request's name (action_names.go)
+	ResolveTarget  func(target string) (string, error)
+	modes          modeTable // every defined mode and its traits (mode_table.go); Modes mirrors its base modes
+	guards         map[string]Guard
+	predicates     map[string]PredicateFunc // named query predicates (query.go)
+	agentApproved  bool                     // the owner approved this request and its nested work
+	agentTransport *agentTransport          // scoped adapter identity and execution environment, shared by nested requests
+	history        actionHistory            // the executed-request ring and the current source (history.go)
+	reopening      string                   // the record editor reopening itself over the level it opened over (runFailed)
+	origin         string                   // the instance the running request or completion acts for; a modal opens only from the top level
+	askedAt        string                   // the focus the running request was made at, before it moved to its noun's instance (createFill reads a reference's thing there)
+	rowRequest     bool                     // the next execute is a binding row's own request (runRow's level rule targets it)
+	subjects       []string                 // the subjects execute hands the application handler it is about to run (Ctx.Subjects)
+	prefix         pendingPrefix
+	bindingVersion uint64
+	renderCache    runtimeRenderCache
+	modeGeneration uint64
+	rows           map[string]string         // list row instance id -> owning list id
+	holders        []string                  // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
+	modals         []string                  // the open modal instances, outermost first; each holds its return focus in Payload.Return
+	modalInstances map[string]bool           // instances created by Push or OpenModal, removed by Pop
+	remoteSeen     map[string]map[string]any // the last answer of each read of a remote store (Ctx.Await)
+	remoteQueue    []*remoteRun              // remote writes in flight, in order, per thing
+	copyMarks      map[string]*copyMarks     // by noun, what each copy noun's last refresh read (copy_refresh.go)
+	diffRenderer   DiffRenderer              // draws a plain diff (SetDiffRenderer); nil draws - and + lines
+	targets        map[string]string         // target texts resolved to keys during the running request (resolveTarget)
+	seq            uint64                    // instance registration order
+	commands       []tea.Cmd                 // off-loop work scheduled since the adapter last drained it
+	jobs           map[uint64]*job           // the jobs list: running jobs and the finished ones retained for job.list
+	watches        *watchHub                 // the watches of nouns' things (standard_watch.go), made on first use
+	events         *eventHub                 // declared events, open surfaces' change counts, hook rows (events.go, hooks.go), made on first use
+	jobSeq         uint64                    // last issued job id
+	defaults       defaultSources            // where each default row and extends came from (bindings defaults)
+	deprecations   []string                  // rows that named an operation by its old verb.noun spelling, rewritten once
+	aliases        map[string]string         // registry: a short noun name -> the noun it names (settings -> ochazuke.settings; namespace.go)
+	builtinDepth   int                       // >0 while Builtin runs: framework registration, whose nouns are ochazuke.<noun>
+	actionNames    actionNames               // the action alias table and the running request's name (action_names.go)
 
 	// namedSettings indexes the settings rows name (binding_settings.go).
 	namedSettings map[string]bool
@@ -580,21 +579,19 @@ func NewRuntime() *Runtime {
 
 // newRuntime is a runtime with no operations, focus on app.
 func newRuntime() *Runtime {
-	return &Runtime{
+	r := &Runtime{
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
 		Focus: "app", Mode: ModeState{Name: "normal"},
-		Modes: map[string]bool{"normal": true, "insert": true}, Operations: map[string]Operation{},
-		pendingModes:     map[string]bool{},
-		passthroughModes: map[string]bool{},
-		selectionModes:   map[string]string{},
-		modeExtends:      map[string]string{},
-		modeOutside:      map[string]string{},
-		defaults:         defaultSources{rows: map[string]string{}, extends: map[string]string{}},
-		guards:           builtinGuards(),
-		predicates:       builtinPredicates(),
-		modalInstances:   map[string]bool{},
-		aliases:          map[string]string{},
+		Modes: map[string]bool{}, Operations: map[string]Operation{},
+		modes:          modeTable{},
+		defaults:       defaultSources{rows: map[string]string{}, extends: map[string]string{}},
+		guards:         builtinGuards(),
+		predicates:     builtinPredicates(),
+		modalInstances: map[string]bool{},
+		aliases:        map[string]string{},
 	}
+	r.ensureBuiltinModes()
+	return r
 }
 
 // registerModalAliases keeps modal.pop, the close verb before v0.83.0, as
@@ -709,7 +706,7 @@ type ModeState struct {
 // BaseMode is the mode Runtime.Mode stands in: its name, or for a pending
 // mode or a key-sequence prefix the base mode it returns to.
 func (r *Runtime) BaseMode() string {
-	if (r.pendingModes[r.Mode.Name] || r.Mode.Payload.Prefix != "") && r.Mode.Payload.Return != "" {
+	if (r.modes[r.Mode.Name].Pending || r.Mode.Payload.Prefix != "") && r.Mode.Payload.Return != "" {
 		return r.Mode.Payload.Return
 	}
 	return r.Mode.Name
@@ -751,7 +748,7 @@ func (r *Runtime) setMode(m ModeState, extra ...string) {
 // anchor), and a pinned input stays in its pinned mode.
 func (r *Runtime) SetMode(mode string) error {
 	mode = r.resolveDeclared(mode)
-	if !r.Modes[mode] {
+	if !r.IsBaseMode(mode) {
 		return fmt.Errorf("unknown mode %q", mode)
 	}
 	if in := r.Input(r.Focus); in != nil {
@@ -1290,14 +1287,7 @@ func (r *Runtime) Snapshot() map[string]any {
 	for _, list := range r.Lists() {
 		lists[list.id] = list.Snapshot()
 	}
-	modes := make([]string, 0, len(r.Modes)+len(r.pendingModes))
-	for mode := range r.Modes {
-		modes = append(modes, mode)
-	}
-	for mode := range r.pendingModes {
-		modes = append(modes, mode)
-	}
-	sort.Strings(modes)
+	modes := r.allModeNames()
 	nouns := map[string]any{}
 	for name, noun := range r.Nouns {
 		actions := make([]string, 0, len(noun.Actions))
@@ -1372,7 +1362,7 @@ func registerCore(r *Runtime) {
 	}})
 	r.Register(Operation{Verb: "switch", Noun: "ochazuke.mode", FocusBound: true, HistoryKind: HistoryAction, Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := r.resolveDeclared(StringArg(a, "mode", ""))
-		if !r.Modes[mode] {
+		if !r.IsBaseMode(mode) {
 			return nil, fmt.Errorf("unknown mode %q", mode)
 		}
 		r.modeGeneration++

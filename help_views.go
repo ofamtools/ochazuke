@@ -443,28 +443,29 @@ func sourceArgs(b Binding) Arguments {
 	return args
 }
 
-// helpBaseModes are the registered modes, normal and insert first.
+// helpBaseModes are the registered base modes: the resting mode (the one
+// whose cursor sits on a character, normal) first, then the typing mode
+// (insert), then the rest by name.
 func (r *Runtime) helpBaseModes() []string {
-	names := slices.Sorted(maps.Keys(r.Modes))
-	var out []string
-	for _, first := range []string{"normal", "insert"} {
-		if r.Modes[first] {
-			out = append(out, first)
+	rank := func(name string) int {
+		switch spec := r.modes[name]; {
+		case spec.CursorOnChar:
+			return 0
+		case spec.Typing:
+			return 1
 		}
+		return 2
 	}
-	for _, name := range names {
-		if name != "normal" && name != "insert" {
-			out = append(out, name)
-		}
-	}
-	return out
+	names := r.baseModeNames()
+	slices.SortStableFunc(names, func(a, b string) int { return rank(a) - rank(b) })
+	return names
 }
 
 // helpPendingModes are the pending modes a key can be pressed in (the
 // macro recording shadow is not one).
 func (r *Runtime) helpPendingModes() []string {
 	var out []string
-	for _, name := range slices.Sorted(maps.Keys(r.pendingModes)) {
+	for _, name := range r.PendingModes() {
 		if name != "macro_recording" {
 			out = append(out, name)
 		}
@@ -811,7 +812,7 @@ func registerHelpViews(r *Runtime) {
 // noun that pins insert mode (prompt, chooser).
 func (r *Runtime) inputNoun(noun string) bool {
 	n := r.Nouns[noun]
-	return n != nil && n.Pin == "insert"
+	return n != nil && r.modes[n.Pin].Typing
 }
 
 // helpIdentity names the thing a help row stands for, apart from its

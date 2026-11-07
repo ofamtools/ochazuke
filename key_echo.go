@@ -144,7 +144,7 @@ func (e *keyEcho) observe(r *Runtime, p *Palette, k echoKey, now time.Time) {
 		e.closeOpen()
 		return // a secret input shows nothing, not even how much was typed
 	}
-	pendingBefore := r.pendingModes[k.mode.Name] || k.mode.Payload.Prefix != ""
+	pendingBefore := r.modes[k.mode.Name].Pending || k.mode.Payload.Prefix != ""
 	pendingAfter := r.pending()
 	// A digit that changed a count joins the key after it (5j); a key that
 	// only set a count's default (c's operator count of 1) does not (c c).
@@ -235,7 +235,7 @@ func typedText(k MacroKey) (string, bool) {
 // baseOfMode is the base mode a mode state reads, as BaseMode does for
 // the live mode: a pending mode's return, else its name.
 func (r *Runtime) baseOfMode(m ModeState) string {
-	if (r.pendingModes[m.Name] || m.Payload.Prefix != "") && m.Payload.Return != "" {
+	if (r.modes[m.Name].Pending || m.Payload.Prefix != "") && m.Payload.Return != "" {
 		return m.Payload.Return
 	}
 	return m.Name

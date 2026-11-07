@@ -45,11 +45,11 @@ func (r *Runtime) helpEnters(w helpWalk, row levelRow, depth int) (ModeState, []
 		return ModeState{}, nil
 	}
 	name := StringArg(b.Request.Args, "mode", "")
-	if !r.pendingModes[name] || StringArg(b.Request.Args, "op", "") != "" {
+	if !r.modes[name].Pending || StringArg(b.Request.Args, "op", "") != "" {
 		return ModeState{}, nil
 	}
 	base, _ := baseAndPrefix(w.mode)
-	if r.pendingModes[base] && w.mode.Payload.Return != "" {
+	if r.modes[base].Pending && w.mode.Payload.Return != "" {
 		base = w.mode.Payload.Return
 	}
 	mode := ModeState{Name: name, Payload: Payload{Prefix: StringArg(b.Request.Args, "prefix", ""), Return: base}}

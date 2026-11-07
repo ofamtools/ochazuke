@@ -78,11 +78,11 @@ func (r *Runtime) modeRoles() []string {
 		name = strings.TrimSuffix(name, " "+keys)
 	}
 	roles := []string{"mode." + name}
-	if r.pendingModes[r.Mode.Name] || r.pendingModes[name] {
+	if r.modes[r.Mode.Name].Pending || r.modes[name].Pending {
 		roles = append(roles, "mode.pending")
 	}
 	seen := map[string]bool{name: true}
-	for parent := r.modeExtends[name]; parent != "" && !seen[parent]; parent = r.modeExtends[parent] {
+	for parent := r.modes[name].Extends; parent != "" && !seen[parent]; parent = r.modes[parent].Extends {
 		seen[parent] = true
 		roles = append(roles, "mode."+parent)
 	}

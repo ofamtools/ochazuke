@@ -33,25 +33,27 @@ func (r *Runtime) GuardHolds(name, focus string) (holds, known bool) {
 
 // PendingModes lists the registered pending modes (DefineMode with
 // pending), sorted.
-func (r *Runtime) PendingModes() []string { return slices.Sorted(maps.Keys(r.pendingModes)) }
+func (r *Runtime) PendingModes() []string {
+	return r.modeNames(func(s ModeSpec) bool { return s.Pending })
+}
 
 // IsPendingMode reports whether name is a registered pending mode.
-func (r *Runtime) IsPendingMode(name string) bool { return r.pendingModes[name] }
+func (r *Runtime) IsPendingMode(name string) bool { return r.modes[name].Pending }
 
 // IsPassthrough reports whether name is a passthrough base mode
 // (DefinePassthrough).
-func (r *Runtime) IsPassthrough(name string) bool { return r.passthroughModes[name] }
+func (r *Runtime) IsPassthrough(name string) bool { return r.modes[name].Passthrough }
 
 // ModeKnown reports whether the current mode is one the runtime defined: a
 // base mode, a pending mode, or a key-sequence prefix over a base mode.
 func (r *Runtime) ModeKnown() bool {
 	name := r.Mode.Name
-	if r.Modes[name] || r.pendingModes[name] {
+	if r.modeDefined(name) {
 		return true
 	}
 	if prefix := r.Mode.Payload.Prefix; prefix != "" {
 		base, ok := strings.CutSuffix(name, " "+prefix)
-		return ok && (r.Modes[base] || r.pendingModes[base])
+		return ok && r.modeDefined(base)
 	}
 	return false
 }

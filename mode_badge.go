@@ -60,7 +60,7 @@ func (r *Runtime) ModeBadgeWidth() int {
 		return 0
 	}
 	w := 0
-	for name := range r.Modes {
+	for _, name := range r.baseModeNames() {
 		w = max(w, ansi.StringWidth(strings.ToUpper(modeLabelOf(name))))
 	}
 	return w

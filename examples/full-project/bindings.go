@@ -38,7 +38,7 @@ func registerBindings(r *ochazuke.Runtime, cfg Config) error {
 			}
 		case "mode.switch":
 			mode := ochazuke.StringArg(q.Args, "mode", "")
-			if !r.Modes[mode] {
+			if !r.IsBaseMode(mode) {
 				return fmt.Errorf("binding %q: unknown mode %q", row.Keys, mode)
 			}
 		}

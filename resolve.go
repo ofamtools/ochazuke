@@ -64,7 +64,7 @@ func (lv level) name() string {
 // passthrough mode (DefinePassthrough: the terminal) there is no capture
 // pass, so the mode's rows see every key, ctrl+c included.
 func (r *Runtime) walk(focus string) []level {
-	return r.walkOf(r.stack(focus), r.passthroughModes[r.BaseMode()])
+	return r.walkOf(r.stack(focus), r.modes[r.BaseMode()].Passthrough)
 }
 
 // walkOf is walk over a given stack: the capture pass (skipped in a
@@ -265,7 +265,7 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 	if held != "" {
 		fallback = mode.Payload.Request
 	}
-	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
+	exclusive := r.modes[mode.Name].Pending || mode.Payload.Shadow != nil
 	wait := func(exact *Binding) (KeyOutcome, error) {
 		if exact != nil {
 			fallback = &exact.Request
@@ -580,7 +580,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 	}
 	defer r.Sourced("key:" + keys)()
 	before, generation := r.Mode.Name, r.modeGeneration
-	if r.pendingModes[before] && !r.Operations[b.Request.Key()].Staying {
+	if r.modes[before].Pending && !r.Operations[b.Request.Key()].Staying {
 		r.leaveMode()
 	}
 	q := b.Request
@@ -608,7 +608,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 			}
 		}
 	}
-	if r.passthroughModes[r.BaseMode()] {
+	if r.modes[r.BaseMode()].Passthrough {
 		r.UI().passthroughInput++
 	}
 	execute := func(q Request) (any, error) {
@@ -628,7 +628,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 	// A request lacking a required argument opens the args form for it
 	// (MissingOpensFormSetting); the form runs it as the key's.
 	formed, err := r.runOrAsk(ev.Focus, q, execute, false, nil)
-	if r.pendingModes[before] && r.modeGeneration == generation && r.Mode.Name == before {
+	if r.modes[before].Pending && r.modeGeneration == generation && r.Mode.Name == before {
 		r.leaveMode()
 	}
 	if err == nil && !formed && b.Replay && !ev.Key.Paste {
@@ -746,7 +746,7 @@ func (r *Runtime) leaveMode() {
 
 // pending reports whether the mode is a pending mode or a sequence prefix.
 func (r *Runtime) pending() bool {
-	return r.pendingModes[r.Mode.Name] || r.Mode.Payload.Prefix != ""
+	return r.modes[r.Mode.Name].Pending || r.Mode.Payload.Prefix != ""
 }
 
 // ListBindings prints the rows the focus answers to in its current mode,
@@ -892,7 +892,7 @@ func (r *Runtime) scanRows(levels []level, mode ModeState, focus string) []level
 func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string) []levelRow {
 	live := focus != ""
 	base, prefix := baseAndPrefix(mode)
-	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
+	exclusive := r.modes[mode.Name].Pending || mode.Payload.Shadow != nil
 	seen := map[string]bool{}
 	var out, owned []levelRow
 	var capture, inherited, owns bool
@@ -1075,10 +1075,10 @@ func (r *Runtime) nounWalk(place NounPlace, mode ModeState) []level {
 		inner = append(inner, level{noun: fallback, fallback: true})
 	}
 	base, _ := baseAndPrefix(mode)
-	passthrough := r.passthroughModes[base]
-	if r.pendingModes[base] {
+	passthrough := r.modes[base].Passthrough
+	if r.modes[base].Pending {
 		if n := r.Nouns[place.Noun]; n != nil {
-			passthrough = r.passthroughModes[n.Pin]
+			passthrough = r.modes[n.Pin].Passthrough
 		}
 	}
 	return r.walkOf(inner, passthrough)
@@ -1219,7 +1219,7 @@ func registerModeTables(r *Runtime) {
 	r.Define("ochazuke.key").Unpersisted()
 	r.Register(Operation{Verb: "enter", Noun: "ochazuke.mode", FocusBound: true, Staying: true, HistoryKind: HistoryAction, Description: "Enter a pending mode with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
-		if !r.pendingModes[mode] {
+		if !r.modes[mode].Pending {
 			return nil, fmt.Errorf("unknown pending mode %q", mode)
 		}
 		request, err := requestArg(a, "request")
@@ -1240,7 +1240,7 @@ func registerModeTables(r *Runtime) {
 			outcome, err := r.dispatchIn(focus, r.Mode, key)
 			return outcome != KeyUnhandled, err
 		default:
-			if !r.Modes[mode] && !r.pendingModes[mode] {
+			if !r.modeDefined(mode) {
 				return nil, fmt.Errorf("unknown mode %q", mode)
 			}
 			outcome, err := r.dispatchIn(focus, ModeState{Name: mode, Payload: r.Mode.Payload}, key)

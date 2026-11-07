@@ -32,7 +32,7 @@ func register(r *ochazuke.Runtime) {
 	// framework reads, Runtime.SelectionShape); visual-block is the
 	// editor's block too.
 	for mode, shape := range map[string]string{ShapeBlock: ochazuke.SelectionBlock, ShapeRow: "row", ShapeColumn: "column"} {
-		if !r.Modes[mode] {
+		if !r.IsBaseMode(mode) {
 			_ = r.DefineMode(mode, false)
 		}
 		if r.SelectionShape(mode) == "" {

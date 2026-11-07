@@ -72,8 +72,8 @@ func (r *Runtime) PinInstance(id, mode string) error {
 	if inst == nil {
 		return fmt.Errorf("unknown instance %q", id)
 	}
-	if mode != "" && !r.Modes[mode] {
-		if r.pendingModes[mode] {
+	if mode != "" && !r.IsBaseMode(mode) {
+		if r.modes[mode].Pending {
 			return fmt.Errorf("mode %q is a pending mode; pin a base mode", mode)
 		}
 		return fmt.Errorf("unknown mode %q", mode)

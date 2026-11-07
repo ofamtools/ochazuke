@@ -248,7 +248,7 @@ func (d *Doc) refocus(refocus bool) {
 		return
 	}
 	_ = d.list.Focus()
-	if d.r.Mode.Name != "normal" {
+	if spec, _ := d.r.ModeTraits(d.r.Mode.Name); !spec.CursorOnChar {
 		_ = d.r.SetMode("normal")
 	}
 }

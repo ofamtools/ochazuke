@@ -184,7 +184,7 @@ func TestLoadDefaultBindingsMatchesTheGoBuilder(t *testing.T) {
 			data, _ = json.Marshal(args)
 			fmt.Fprintf(&b, "%s %s %s %s%s %s %v %s %v %q %v %v %v\n", row.Noun, row.Instance, row.Mode, row.Keys, row.Pattern, row.Request.Key(), row.When, data, row.From, row.Hint, row.Hidden, row.Replay, row.Capture)
 		}
-		fmt.Fprintf(&b, "extends %v pending %v\n", r.Nouns["app"].Extends, r.pendingModes["demo_pending"])
+		fmt.Fprintf(&b, "extends %v pending %v\n", r.Nouns["app"].Extends, r.IsPendingMode("demo_pending"))
 		return b.String()
 	}
 	if code, data := tables(build(false)), tables(build(true)); code != data {

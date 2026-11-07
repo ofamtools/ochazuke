@@ -1172,7 +1172,7 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 	if row.Pattern != "" && !isPattern(row.Pattern) {
 		return row, fmt.Errorf("unknown key pattern %q", row.Pattern)
 	}
-	if row.Mode != "" && !r.Modes[row.Mode] && !r.pendingModes[row.Mode] {
+	if row.Mode != "" && !r.modeDefined(row.Mode) {
 		return row, fmt.Errorf("unknown mode %q", row.Mode)
 	}
 	if row.When != "" && r.guard(row.When) == nil {
@@ -1253,25 +1253,24 @@ func (r *Runtime) DefineMode(name string, pending bool, opts ...ModeOption) erro
 	for _, opt := range opts {
 		opt(&spec)
 	}
+	if spec.Extends != "" && (spec.Extends == name || !r.modeDefined(spec.Extends)) {
+		return fmt.Errorf("mode %q extends unknown mode %q", name, spec.Extends)
+	}
+	if spec.Outside != "" && (!pending || spec.Outside == name || !r.IsBaseMode(spec.Outside)) {
+		return fmt.Errorf("mode %q outside must name another base mode", name)
+	}
+	// Redefining a mode keeps the traits it has; the options add theirs.
+	entry := r.modes[name]
+	entry.Pending = pending
 	if spec.Extends != "" {
-		if spec.Extends == name || !r.Modes[spec.Extends] && !r.pendingModes[spec.Extends] {
-			return fmt.Errorf("mode %q extends unknown mode %q", name, spec.Extends)
-		}
-		defer func() { r.modeExtends[name] = spec.Extends }()
+		entry.Extends = spec.Extends
 	}
 	if spec.Outside != "" {
-		if !pending || spec.Outside == name || !r.Modes[spec.Outside] {
-			return fmt.Errorf("mode %q outside must name another base mode", name)
-		}
-		r.modeOutside[name] = spec.Outside
+		entry.Outside = spec.Outside
 	}
-	if pending {
-		delete(r.Modes, name)
-		r.pendingModes[name] = true
-	} else {
-		delete(r.pendingModes, name)
-		r.Modes[name] = true
-	}
+	entry.Typing = entry.Typing || spec.Typing
+	entry.CursorOnChar = entry.CursorOnChar || spec.CursorOnChar
+	r.putMode(name, entry)
 	return nil
 }
 
@@ -1280,15 +1279,19 @@ func (r *Runtime) DefineMode(name string, pending bool, opts ...ModeOption) erro
 // so the focused level's rows answer every key. The terminal mode is one:
 // ctrl+c reaches the pane instead of the app's captured quit.
 func (r *Runtime) DefinePassthrough(name string) error {
-	if !r.Modes[name] {
+	if !r.IsBaseMode(name) {
 		return fmt.Errorf("unknown base mode %q", name)
 	}
-	r.passthroughModes[name] = true
+	spec := r.modes[name]
+	spec.Passthrough = true
+	r.putMode(name, spec)
 	return nil
 }
 
 // ModeOption is a property DefineMode gives a mode, as a bindings file's
-// "modes" entry does.
+// "modes" entry does. DefineMode reads Extends, Outside, Typing and
+// CursorOnChar from the options; passthrough and selection go through
+// DefinePassthrough and DefineSelection.
 type ModeOption func(*ModeSpec)
 
 // ModeExtends makes a mode fall back to parent's rows for every noun with
@@ -1308,7 +1311,7 @@ func ModeOutside(outside string) ModeOption {
 
 // ModeParent is the mode name falls back to for a noun with no table of
 // its own (ModeExtends), "" for none.
-func (r *Runtime) ModeParent(name string) string { return r.modeExtends[name] }
+func (r *Runtime) ModeParent(name string) string { return r.modes[name].Extends }
 
 // ModeIs reports whether mode is base or extends it (ModeExtends, followed
 // up the chain): a mode that extends insert behaves as insert where the
@@ -1318,22 +1321,13 @@ func (r *Runtime) ModeParent(name string) string { return r.modeExtends[name] }
 // name and badge.
 func (r *Runtime) ModeIs(mode, base string) bool {
 	seen := map[string]bool{}
-	for m := mode; m != "" && !seen[m]; m = r.modeExtends[m] {
+	for m := mode; m != "" && !seen[m]; m = r.modes[m].Extends {
 		if m == base {
 			return true
 		}
 		seen[m] = true
 	}
 	return false
-}
-
-// modeIs is ModeIs that works without a runtime (an input not yet added):
-// then only mode itself is base.
-func modeIs(r *Runtime, mode, base string) bool {
-	if r == nil {
-		return mode == base
-	}
-	return r.ModeIs(mode, base)
 }
 
 // nounTables is what mode reads on n: its own table, then the mode it
@@ -1348,7 +1342,7 @@ func (r *Runtime) nounTables(n *Noun, mode string) [][]Binding {
 		out = append(out, rows)
 		next := n.Extends[mode]
 		if next == "" && !own {
-			next = r.modeExtends[mode]
+			next = r.modes[mode].Extends
 		}
 		mode = next
 	}
@@ -1370,14 +1364,12 @@ const (
 // (char, line, block, or a component's own shape such as the grid's row
 // and column); "" makes it an ordinary mode again.
 func (r *Runtime) DefineSelection(name, shape string) error {
-	if !r.Modes[name] {
+	if !r.IsBaseMode(name) {
 		return fmt.Errorf("unknown base mode %q", name)
 	}
-	if shape == "" {
-		delete(r.selectionModes, name)
-		return nil
-	}
-	r.selectionModes[name] = shape
+	spec := r.modes[name]
+	spec.Selection = shape
+	r.putMode(name, spec)
 	return nil
 }
 
@@ -1387,16 +1379,27 @@ func (r *Runtime) SelectionShape(mode string) string {
 	if r == nil {
 		return builtinSelections()[mode]
 	}
-	return r.selectionModes[mode]
+	return r.modes[mode].Selection
 }
 
 // SelectionMode is the mode that selects shape ("" when none does); of
 // several, the first by name.
 func (r *Runtime) SelectionMode(shape string) string {
-	modes := r.selectionModes
 	if r == nil {
-		modes = builtinSelections()
+		return selectionModeOf(builtinSelections(), shape)
 	}
+	modes := map[string]string{}
+	for name, spec := range r.modes {
+		if spec.Selection != "" {
+			modes[name] = spec.Selection
+		}
+	}
+	return selectionModeOf(modes, shape)
+}
+
+// selectionModeOf is the first mode by name in modes (mode -> shape)
+// that selects shape, "" when none does.
+func selectionModeOf(modes map[string]string, shape string) string {
 	for _, name := range slices.Sorted(maps.Keys(modes)) {
 		if modes[name] == shape {
 			return name
@@ -1426,7 +1429,7 @@ func builtinGuards() map[string]Guard {
 		"self":      func(r *Runtime, ev KeyEvent) bool { return ev.Focus == ev.Level },
 		"shadow-idle": func(r *Runtime, ev KeyEvent) bool {
 			shadow := ev.Mode.Payload.Shadow
-			return shadow != nil && shadow.Name == "normal" && shadow.Payload.empty()
+			return shadow != nil && r.modes[shadow.Name].CursorOnChar && shadow.Payload.empty()
 		},
 	}
 }

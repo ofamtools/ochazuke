@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"sort"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -606,16 +605,16 @@ func (r *Runtime) fileModeProblems(doc BindingsDoc) []string {
 	for _, name := range slices.Sorted(maps.Keys(doc.Modes)) {
 		spec := doc.Modes[name]
 		switch {
-		case !r.Modes[name] && !r.pendingModes[name]:
+		case !r.modeDefined(name):
 			problems = append(problems, fmt.Sprintf("%s: modes %s: unknown mode; bindings.json cannot define one (ignored)", BindingsFile, name))
-		case spec.Pending != r.pendingModes[name] || spec.Passthrough != r.passthroughModes[name]:
-			problems = append(problems, fmt.Sprintf("%s: modes %s: pending %v, passthrough %v differ from the application's (ignored)", BindingsFile, name, r.pendingModes[name], r.passthroughModes[name]))
-		case spec.Extends != r.modeExtends[name]:
-			problems = append(problems, fmt.Sprintf("%s: modes %s: extends %q differs from the application's %q (ignored)", BindingsFile, name, spec.Extends, r.modeExtends[name]))
-		case spec.Outside != r.modeOutside[name]:
-			problems = append(problems, fmt.Sprintf("%s: modes %s: outside %q differs from the application's %q (ignored)", BindingsFile, name, spec.Outside, r.modeOutside[name]))
-		case spec.Selection != r.selectionModes[name]:
-			problems = append(problems, fmt.Sprintf("%s: modes %s: selection %q differs from the application's %q (ignored)", BindingsFile, name, spec.Selection, r.selectionModes[name]))
+		case spec.Pending != r.modes[name].Pending || spec.Passthrough != r.modes[name].Passthrough:
+			problems = append(problems, fmt.Sprintf("%s: modes %s: pending %v, passthrough %v differ from the application's (ignored)", BindingsFile, name, r.modes[name].Pending, r.modes[name].Passthrough))
+		case spec.Extends != r.modes[name].Extends:
+			problems = append(problems, fmt.Sprintf("%s: modes %s: extends %q differs from the application's %q (ignored)", BindingsFile, name, spec.Extends, r.modes[name].Extends))
+		case spec.Outside != r.modes[name].Outside:
+			problems = append(problems, fmt.Sprintf("%s: modes %s: outside %q differs from the application's %q (ignored)", BindingsFile, name, spec.Outside, r.modes[name].Outside))
+		case spec.Selection != r.modes[name].Selection:
+			problems = append(problems, fmt.Sprintf("%s: modes %s: selection %q differs from the application's %q (ignored)", BindingsFile, name, spec.Selection, r.modes[name].Selection))
 		}
 	}
 	for _, g := range doc.Groups {
@@ -770,17 +769,9 @@ func registerModeFacts(r *Runtime) {
 		Docs: map[string]string{"name": "The mode's name", "pending": "A pending mode: exclusive and one-shot"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
 			r := c.Runtime
-			names := make([]string, 0, len(r.Modes)+len(r.pendingModes))
-			for name := range r.Modes {
-				names = append(names, name)
-			}
-			for name := range r.pendingModes {
-				names = append(names, name)
-			}
-			sort.Strings(names)
 			var facts []modeFact
-			for _, name := range slices.Compact(names) {
-				facts = append(facts, modeFact{Name: name, Pending: r.pendingModes[name]})
+			for _, name := range r.allModeNames() {
+				facts = append(facts, modeFact{Name: name, Pending: r.modes[name].Pending})
 			}
 			return factThings(facts, nil)
 		}})

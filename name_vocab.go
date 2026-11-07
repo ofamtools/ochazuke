@@ -48,20 +48,8 @@ func (r *Runtime) NameVocab() map[string][]string {
 			}
 		}
 	}
-	for mode := range r.Modes {
-		add("mode", mode)
-	}
-	for mode := range r.pendingModes {
-		add("mode", mode)
-	}
-	for mode := range r.selectionModes {
-		add("mode", mode)
-	}
-	for a, b := range r.modeExtends {
-		add("mode", a, b)
-	}
-	for a, b := range r.modeOutside {
-		add("mode", a, b)
+	for mode, spec := range r.modes {
+		add("mode", mode, spec.Extends, spec.Outside)
 	}
 	for _, d := range r.DefaultBindings() {
 		add("mode", d.Mode)

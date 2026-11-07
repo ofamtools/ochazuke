@@ -56,7 +56,7 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 	}
 	key := string(data)
 	base, _ := baseAndPrefix(mode)
-	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
+	exclusive := r.modes[mode.Name].Pending || mode.Payload.Shadow != nil
 	var tables []scanTable
 	for _, lv := range levels {
 		if lv.inst != nil {

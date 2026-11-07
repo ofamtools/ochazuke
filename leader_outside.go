@@ -10,14 +10,14 @@ const LeaderFallThroughSetting = "leader.fall-through"
 // focus and mode are never swapped: guards and handlers use the event context,
 // while a modal remembers the live surface it opened over.
 func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (bool, error) {
-	outside := r.modeOutside[mode.Name]
+	outside := r.modes[mode.Name].Outside
 	policy := r.Settings().String(LeaderFallThroughSetting)
 	if outside == "" || policy == "off" {
 		return false, nil
 	}
 	run := func(at string) (found, allowed bool, err error) {
 		ev := KeyEvent{Key: key, Mode: ModeState{Name: outside}, Focus: at}
-		for _, lv := range r.walkOf(r.stack(at), r.passthroughModes[outside]) {
+		for _, lv := range r.walkOf(r.stack(at), r.modes[outside].Passthrough) {
 			row, _ := r.lookup(lv, outside, false, "", key.Key, key, ev)
 			if row == nil {
 				continue // outside multi-key prefixes are deliberately not entered

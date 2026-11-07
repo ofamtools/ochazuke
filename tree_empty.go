@@ -104,7 +104,7 @@ func (t *Tree) dropEmpty(id string, refocus bool) error {
 		} else {
 			_ = t.list.Focus()
 		}
-		if t.r.Mode.Name != "normal" {
+		if !t.r.modes[t.r.Mode.Name].CursorOnChar {
 			_ = t.r.SetMode("normal")
 		}
 	}

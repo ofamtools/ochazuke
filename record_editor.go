@@ -631,7 +631,7 @@ func (e *RecordEditor) startInsert() error {
 		}
 		return nil
 	}
-	if e.r.Mode.Name == "insert" {
+	if e.r.modes[e.r.Mode.Name].Typing {
 		return e.r.SetMode("normal")
 	}
 	return nil
@@ -1115,7 +1115,7 @@ func (e *RecordEditor) move(delta int, insert bool) error {
 	if insert && e.fields[j].input != nil {
 		return e.r.SetMode("insert")
 	}
-	if e.r.Mode.Name == "insert" && e.fields[j].input == nil {
+	if e.r.modes[e.r.Mode.Name].Typing && e.fields[j].input == nil {
 		return e.r.SetMode("normal")
 	}
 	return nil
@@ -1418,7 +1418,7 @@ func (e *RecordEditor) nextMissing(insert bool) error {
 	}
 	switch {
 	case f.choose || f.suggest:
-		if e.r.Mode.Name == "insert" && f.input == nil {
+		if e.r.modes[e.r.Mode.Name].Typing && f.input == nil {
 			if err := e.r.SetMode("normal"); err != nil {
 				return err
 			}
@@ -1426,7 +1426,7 @@ func (e *RecordEditor) nextMissing(insert bool) error {
 		return e.suggest(f)
 	case insert && f.input != nil:
 		return e.r.SetMode("insert")
-	case e.r.Mode.Name == "insert" && f.input == nil:
+	case e.r.modes[e.r.Mode.Name].Typing && f.input == nil:
 		return e.r.SetMode("normal")
 	}
 	return nil
@@ -1715,7 +1715,7 @@ func (e *RecordEditor) PendingCommand() tea.Cmd {
 	}
 	focus := e.r.Focus
 	f := e.fieldAt(focus)
-	typing := e.r.Mode.Name == "insert" && f != nil && f.input != nil
+	typing := e.r.modes[e.r.Mode.Name].Typing && f != nil && f.input != nil
 	var cmd tea.Cmd
 	changed := false
 	if snap := e.snapshot(); snap != e.seen {
