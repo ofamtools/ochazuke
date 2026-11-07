@@ -276,7 +276,7 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 				// where it cannot (a modal is open) the error is told.
 				defer r.forceSource(source)()
 				if e, openErr := r.OpenArgsForm(withArgs(form, q.Args), run); openErr == nil && e != nil {
-					e.writeErr = late.Error()
+					e.out.err = late.Error()
 				} else {
 					r.UI().Error("not run: " + late.Error())
 				}

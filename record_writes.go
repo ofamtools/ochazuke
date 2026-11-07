@@ -66,8 +66,8 @@ func (r *Runtime) pendingRecord(key string, values Record) {
 	if inst := r.Instances[recordWritesID]; key != "" && inst != nil {
 		for _, e := range inst.Component.(*recordWrites).queues[key] {
 			for _, f := range e.fields {
-				if slices.Contains(e.sending, f.Name) || slices.Contains(e.dirty, f.Name) && f.writeErr == "" {
-					values[f.Name] = e.written[f.Name]
+				if e.out.pending(f.Name, f.writeErr != "") {
+					values[f.Name] = e.out.value(f.Name)
 				}
 			}
 		}
@@ -76,7 +76,7 @@ func (r *Runtime) pendingRecord(key string, values Record) {
 
 func (e *RecordEditor) markFlush(j *job, w RecordWrite) {
 	j.flush = true
-	j.Label = e.spec.Title + " · " + strings.Join(e.sending, ", ")
+	j.Label = e.spec.Title + " · " + strings.Join(e.out.sendingNames(), ", ")
 	j.abandon = func(reason string) []string {
 		editors := []*RecordEditor{e}
 		if e.r.Quit && e.spec.WriteKey != "" {
@@ -86,12 +86,12 @@ func (e *RecordEditor) markFlush(j *job, w RecordWrite) {
 		}
 		var messages []string
 		for _, editor := range editors {
-			names := slices.Clone(editor.dirty)
+			names := editor.out.queued()
 			pending := slices.Clone(names)
 			if editor == e {
 				messages = append(messages, editor.reportUnsaved(w.Changed, w.Values, reason)...)
 				pending = slices.DeleteFunc(pending, func(name string) bool {
-					return slices.Contains(w.Changed, name) && editor.written[name] == w.Values[name]
+					return slices.Contains(w.Changed, name) && editor.out.value(name) == w.Values[name]
 				})
 				for _, name := range w.Changed {
 					if !slices.Contains(names, name) {
@@ -99,14 +99,12 @@ func (e *RecordEditor) markFlush(j *job, w RecordWrite) {
 					}
 				}
 			}
-			editor.inflight, editor.sending = false, nil
-			editor.writeErr = reason
-			editor.requeue(names)
+			editor.out.abandon(reason, names)
 			for _, name := range names {
 				f := editor.field(name)
-				f.writeErr, f.failedValue = reason, editor.written[name]
+				f.writeErr, f.failedValue = reason, editor.out.value(name)
 			}
-			messages = append(messages, editor.reportUnsaved(pending, editor.written, reason)...)
+			messages = append(messages, editor.reportUnsaved(pending, editor.out.record(), reason)...)
 		}
 		e.releaseWrite()
 		return messages
