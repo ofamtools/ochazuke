@@ -311,7 +311,7 @@ var chromeRoleHelp = [][2]string{
 	{"job.running", "a running ticker entry (rich: working ink, bold; subtle: state word only)"},
 	{"job.done", "a completed ticker entry (rich: done ink; subtle: state word only)"},
 	{"job.failed", "a failed ticker entry (rich: error ink, bold; subtle: state word only)"},
-	{"match", "matching runes in choosers, the path picker and completion (rich: mode colour, bold; subtle: accent, bold; selected: bold alone)"},
+	{"match", "matching runes in pickers (the path finder too) and completion (rich: mode colour, bold; subtle: accent, bold; selected: bold alone)"},
 	{"palette.match", "matching runes in command-line completions (rich: mode colour, bold; subtle: accent, bold)"},
 	{"palette.heading", "command-line completion groups (rich: accent, bold; subtle: muted)"},
 	{"palette.marker", "the command-line completion marker"},
@@ -354,7 +354,7 @@ const actionsExample = `[
     "parameters": {
       "name": {"type": "string", "source": "setting.names", "sourceArgs": {}, "sourceFixed": {}, "free": true, "description": "A setting name; free accepts one the source does not list"},
       "page": {"type": "string", "noun": "page", "description": "A page; noun lists the noun's rows (page.list) or its live instances"},
-      "out": {"type": "path", "path": "file", "base": "~", "start": "browse", "new": true, "named": true, "description": "A file to write; a path field opens the path chooser (browse from base, recent, typed); start names the source it opens on; new allows a file not there yet; named takes no bare word, only out=PATH or --out"}
+      "out": {"type": "path", "path": "file", "base": "~", "start": "browse", "new": true, "named": true, "description": "A file to write; a path field opens the path picker (browse from base, recent, typed); start names the source it opens on; new allows a file not there yet; named takes no bare word, only out=PATH or --out"}
     },
     "quiet": true,
     "history": "fetch"

@@ -69,7 +69,7 @@ footer{padding:28px 0 40px;border-top:1px solid var(--line)}
 <tr><td>Add an alias or run an external program</td><td>User <code>actions.json</code>: aliases, preset arguments, argv templates or a Base CLI call, parameters and confirmation.</td></tr>
 <tr><td>React to a lifecycle or domain event</td><td><code>hooks.json</code> rows call existing verbs; apps and extensions can declare default hooks.</td></tr>
 <tr><td>Expose records with typed fields</td><td>Go <code>PropSpec</code> and <code>Store</code> handlers; standard verbs and shared forms derive from the schema.</td></tr>
-<tr><td>Add application behavior or rendering</td><td>Go handlers and components; shared lists/tables, trees, timelines, forms, choosers, terminals and text viewers cover common presentation.</td></tr>
+<tr><td>Add application behavior or rendering</td><td>Go handlers and components; shared lists/tables, trees, timelines, forms, pickers, terminals and text viewers cover common presentation.</td></tr>
 <tr><td>Mount an extension in a host</td><td>Catalog noun/page metadata, namespaced proxy handlers and shared catalog components.</td></tr>
 </tbody></table></div>
 <p>Configuration-defined command actions are implemented. Their argv runs directly, without an implicit shell, as off-loop jobs. This does not load arbitrary Go code into the process. The <a href="../actions.go"><code>Action</code> contract</a> describes templates, timeouts, labels, output parsing and foreground execution.</p>

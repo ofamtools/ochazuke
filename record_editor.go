@@ -250,7 +250,7 @@ type editKind struct {
 
 // editKindOf is the one test of how a field is edited, read by the form
 // and by edit {field} (which opens a choice field's chooser in place of
-// the form, edit.field-chooser): a boolean, a noun reference, or a field
+// the form, edit.field-picker): a boolean, a noun reference, or a field
 // with choices that is not Free is a choice field; a path field follows
 // path.field.
 func (r *Runtime) editKindOf(field RecordField) editKind {
@@ -1249,7 +1249,7 @@ type choiceLoad struct {
 
 // openChoiceChooser opens the framework chooser (spec) over a parameter's
 // choices: the form's choice and suggestion fields and edit {field} on a
-// choice field (edit.field-chooser) open it alike. A source that takes the
+// choice field (edit.field-picker) open it alike. A source that takes the
 // query, or one that depends on siblings, reloads as the chooser's source
 // (while typing, and when a sibling changes); otherwise the choices load
 // once, as a job of the chooser (closing it cancels the load).
@@ -1910,7 +1910,7 @@ func registerForms(r *Runtime) {
 		Verb("choose", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.choose(e.fieldOn(focusOf(c))) }), "Choose the field's value from its choices").
 		Verb("suggest", on(func(e *RecordEditor, c Context, _ Arguments) error { return e.suggest(e.fieldOn(focusOf(c))) }), "Fill the field from its choices, typing to filter; a free field takes what is typed too").History(HistoryChange).
 		Verb("run", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.run() }), "Run the form once every field is valid: the values go to its action and the form closes").When(FormRunnableGuard).
-		Verb("next-missing", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.nextMissing(boolArg(a, "insert")) }), "Focus the field that still needs a value (this one, else the next); a field with choices opens its chooser").When(FormMissingGuard)
+		Verb("next-missing", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.nextMissing(boolArg(a, "insert")) }), "Focus the field that still needs a value (this one, else the next); a field with choices opens its picker").When(FormMissingGuard)
 	r.DefineGuard(FormMissingGuard, func(r *Runtime, ev KeyEvent) bool {
 		e := r.recordEditorOf(ev.Focus)
 		return e != nil && e.spec.Submit != nil && !e.closed && e.firstProblem(0) != nil
@@ -1957,7 +1957,7 @@ func registerForms(r *Runtime) {
 			inst := r.Instances[focusOf(c)]
 			chooser, _ := r.Instances[formChooseID].Component.(*recordChooser)
 			if inst == nil || chooser == nil {
-				return nil, errors.New("no open chooser")
+				return nil, errors.New("no open picker")
 			}
 			v, _ := inst.Data.(string)
 			return v, chooser.editor.pick(chooser.field, v)

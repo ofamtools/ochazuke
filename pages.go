@@ -464,7 +464,7 @@ func registerPages(r *Runtime) {
 		}
 		return r.Context(), nil
 	}})
-	r.Register(Operation{Verb: "pick", Noun: "ochazuke.page", Description: "Choose a page, most recently visited first and the current one last: type to filter, enter opens", Result: "chooser state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Verb: "pick", Noun: "ochazuke.page", Description: "Choose a page, most recently visited first and the current one last: type to filter, enter opens", Result: "picker state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		chooser, err := r.OpenPagePicker()
 		if err != nil {
 			return nil, err

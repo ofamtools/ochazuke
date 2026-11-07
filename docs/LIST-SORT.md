@@ -2,9 +2,9 @@
 
 `z s` sorts a cell-mode table by its current column: ascending, descending,
 then off. On a row-select table, list or tree it opens the standard field
-chooser; picking the same field cycles the same three states. A column's
+picker; picking the same field cycles the same three states. A column's
 normalized title names its prop (lower case, spaces replaced with dashes).
-If that title does not identify an available prop, the same field chooser opens.
+If that title does not identify an available prop, the same field picker opens.
 
 The `ochazuke.list` verbs work from keys, the palette and API alike:
 
@@ -16,7 +16,7 @@ The `ochazuke.list` verbs work from keys, the palette and API alike:
 | `sort-column` | `desc: true` or `false` | Set descending or ascending explicitly |
 | `sort-clear` | none | Restore the app's order, keeping filters |
 
-Every verb accepts `id`, defaulting to the focused list, tree or chooser.
+Every verb accepts `id`, defaulting to the focused list, tree or picker.
 A leading `-` or trailing `!` on a field means descending. Prop aliases resolve
 to their declared names. `list-sortable` guards sorting and `z s`.
 Clearing an already clear sort succeeds with a plain status message.
@@ -43,8 +43,8 @@ Sorting runs after filtering. `Items()` and the app's source rows retain their
 order; selection, marks and focus follow IDs. `SetItems`, `Patch`, `SetColumns`
 and a tree's `SetNodes` keep the view sort and apply it to the replacement
 rows. `Sort()` returns a copy of the keys; `SetSort([]SortKey)` replaces them.
-A chooser exposes the same methods and preserves its ordinary-row sort across
-`SetRows`. Fixed, trailing and create rows keep their chooser roles.
+A picker exposes the same methods and preserves its ordinary-row sort across
+`SetRows`. Fixed, trailing and create rows keep their picker roles.
 
 Ordinary view sort lives in memory on the list/controller. Saving a filter
 through `list.filter-save` stores conditions and optional sort keys in the
@@ -53,14 +53,14 @@ saved-filter picker or cycling restores both, retaining `/` text. Older
 definitions without sort restore app order. There is no new store or file;
 unsaved sort is not restored on restart. The filter form edits the primary sort
 key; changing direction preserves secondary keys, including through undo.
-`z /` opens it on lists and trees; `ctrl+f` opens it in a chooser.
+`z /` opens it on lists and trees; `ctrl+f` opens it in a picker.
 Tab follows the drawing order: sort field, direction, field picker, the
 current value control when open, active conditions, save name, then back to
 sort. Shift+Tab reverses that order. The form starts on fields, so Shift+Tab
 reaches direction and a second Shift+Tab reaches sort. Enter on direction
 flips asc/desc. Multi-key sorting is available through `list.sort`.
 
-The compact controls share the standard chooser and form record. Type a prop
+The compact controls share the standard picker and form record. Type a prop
 and Enter to see its values, then type to narrow them. Enter picks one and
 returns to fields without removing a value already selected. Escape then
 Space toggles several values, and Enter returns to fields. Escape again in
@@ -76,10 +76,10 @@ first, then the view's changes; past the end they do nothing. `C` runs
 `form.clear` and `D` `filter-form.delete-saved` from any stop, and the palette
 offers both wherever the keys work. Cycling saved filters is one undo step. `!` flips a filter
 field's is/not. In picker normal mode, `j`, `k`, `g g` and `G` move through
-the choices. `i` resumes editing. Ordinary choosers remain pinned in insert;
-composed choosers opt into these two modes with `ChooserSpec.NormalMode`.
-`chooser.hidden-count` defaults to true and shows off-screen matching rows
-on the query line; false hides the count. `chooser.stable-height=false`
+the choices. `i` resumes editing. Ordinary pickers remain pinned in insert;
+composed pickers opt into these two modes with `PickerSpec.NormalMode`.
+`picker.hidden-count` defaults to true and shows off-screen matching rows
+on the query line; false hides the count. `picker.stable-height=false`
 disables the compact form's fixed-height padding.
 
 `list.filter-layout` defaults to `compact`; `fields` keeps the previous
@@ -87,9 +87,9 @@ one-field-per-prop form. `list.filter-sort` defaults to true and hides the
 sort section when false.
 `list.filter-clear-hidden-sort` defaults to false: clearing the form preserves
 a sort whose controls are hidden. Set it to true to clear that sort too.
-`list.filter-form=false` keeps the older prop/value chooser flow unchanged.
+`list.filter-form=false` keeps the older prop/value picker flow unchanged.
 `list.filter-picker-sort=true` opts into a Sort entry using the existing
-sort-field chooser; this setting defaults to false. Source-owned views do not offer
+sort-field picker; this setting defaults to false. Source-owned views do not offer
 sort controls.
 
 The save row is enabled by `list.filter-save` (default true). Tab to its name,
@@ -114,12 +114,12 @@ so existing user bindings on that noun still apply.
 `▲` / `▼` to sorted column titles, and `▲2` / `▼2` for the second key (and so
 on). Turning it off hides the indicators and leaves the sort active. The
 arrows take part in normal column sizing; fixed widths still truncate normally.
-Plain lists, trees without columns and choosers show a separate `sort field ▲`
+Plain lists, trees without columns and pickers show a separate `sort field ▲`
 label. It adds no condition or filter count; the same setting hides it.
 
 For virtual windows and partial/source-owned results, pass `NoSort()` to
-`AddList` / `AddTree`, or set `ChooserSpec.NoSort`. Sorting is unavailable there
-and `SetSort` refuses nonempty keys. A chooser's live source also owns its row
+`AddList` / `AddTree`, or set `PickerSpec.NoSort`. Sorting is unavailable there
+and `SetSort` refuses nonempty keys. A picker's live source also owns its row
 order and cannot sort locally. Saved filters still apply their conditions here;
 the view ignores saved sorting while its source owns the order.
 Hosts must declare partial views explicitly: a list cannot infer that the

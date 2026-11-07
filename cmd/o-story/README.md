@@ -463,7 +463,6 @@ Conformance:
 | flat | mode | `mode.switch` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
 | insert | bindings | `bindings.help` |
-| insert | chooser | `chooser.clear-props` `chooser.move` `chooser.next-source` `chooser.normal` `chooser.open` `chooser.pick` `chooser.previous-source` `chooser.up` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.close-origin` `demo.edit` `demo.files` `demo.get` `demo.hide` `demo.set` |
 | insert | filter-form | `filter-form.move` `filter-form.write-saved` |
@@ -478,6 +477,7 @@ Conformance:
 | insert | modes | `modes.list` |
 | insert | outline | `outline.leave` `outline.next` `outline.row-key` |
 | insert | palette | `palette.complete` `palette.move` `palette.run` |
+| insert | picker | `picker.clear-props` `picker.into` `picker.move` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.up` |
 | insert | search | `search.cycle-match` |
 | insert | setting | `setting.complete` `setting.open` |
 | insert | setting-value | `setting-value.commit` |
@@ -494,7 +494,6 @@ Conformance:
 | normal | app | `app.quit` |
 | normal | bindings | `bindings.help` |
 | normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.run` `bindings-help.view` |
-| normal | chooser | `chooser.move` `chooser.pick` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | culprit | `culprit.size` |
@@ -525,7 +524,7 @@ Conformance:
 | normal | palette | `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
 | normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
-| normal | picker | `picker.open` |
+| normal | picker | `picker.move` `picker.open` `picker.pick` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.review` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
@@ -602,14 +601,11 @@ Mode edges (from → to via):
 - `hints` → `terminal` via `demo.hints-cancel`
 - `insert` → `jq` via `palette.run`
 - `insert` → `normal` via `bindings.help`
-- `insert` → `normal` via `chooser.normal`
-- `insert` → `normal` via `chooser.pick`
-- `insert` → `normal` via `chooser.pick + demo.get`
 - `insert` → `normal` via `filter-form.move`
 - `insert` → `normal` via `find-line.commit`
 - `insert` → `normal` via `form.leave`
 - `insert` → `normal` via `form.run`
-- `insert` → `normal` via `job chooser.load`
+- `insert` → `normal` via `job picker.load`
 - `insert` → `normal` via `list.filter-prop`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`
@@ -622,6 +618,9 @@ Mode edges (from → to via):
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `palette.run + parcel.get`
+- `insert` → `normal` via `picker.normal`
+- `insert` → `normal` via `picker.pick`
+- `insert` → `normal` via `picker.pick + demo.get`
 - `insert` → `normal` via `row esc`
 - `insert` → `normal` via `setting-value.commit`
 - `insert` → `normal` via `setting.open`
@@ -661,7 +660,6 @@ Mode edges (from → to via):
 - `normal` → `insert` via `bindings-help.mode`
 - `normal` → `insert` via `bindings-help.noun`
 - `normal` → `insert` via `bindings-help.place`
-- `normal` → `insert` via `chooser.pick`
 - `normal` → `insert` via `demo.choose`
 - `normal` → `insert` via `demo.edit`
 - `normal` → `insert` via `filter-form.delete-saved`
@@ -685,6 +683,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `palette.open`
 - `normal` → `insert` via `parcel.edit`
 - `normal` → `insert` via `picker.open`
+- `normal` → `insert` via `picker.pick`
 - `normal` → `insert` via `row R`
 - `normal` → `insert` via `row W`
 - `normal` → `insert` via `row e`
@@ -746,13 +745,13 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `markdown.cut`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
-- `normal g` → `normal` via `chooser.move`
 - `normal g` → `normal` via `demo.send`
 - `normal g` → `normal` via `detail.fields`
 - `normal g` → `normal` via `list.goto`
 - `normal g` → `normal` via `markdown.link-open`
 - `normal g` → `normal` via `messages.show`
 - `normal g` → `normal` via `mode.leave`
+- `normal g` → `normal` via `picker.move`
 - `normal g` → `normal` via `row c`
 - `normal g` → `normal` via `row s`
 - `normal g` → `normal` via `setting.show-tab`

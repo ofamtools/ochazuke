@@ -42,7 +42,7 @@
   "script": [
     "e",
     {
-      "job": "chooser.load"
+      "job": "picker.load"
     },
     {
       "type": "u"

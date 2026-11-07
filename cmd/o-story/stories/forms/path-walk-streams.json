@@ -12,7 +12,7 @@
     "pathWalk": {"roots": [{"path": "{{files}}", "label": "project"}], "batch": 1},
     "focus": "proj/folder"
   },
-  "script": ["enter", {"job": "chooser.load"}, {"job": "chooser.load"}, {"job": "chooser.load"}, {"job": "chooser.load"}, {"job": "chooser.load"}],
+  "script": ["enter", {"job": "picker.load"}, {"job": "picker.load"}, {"job": "picker.load"}, {"job": "picker.load"}, {"job": "picker.load"}],
   "expect": [
     {"after": 1, "modal": "path-chooser", "contains": ["./", "project", "[walk project · 1…]"], "lacks": ["alpha/", "zulu/"]},
     {"after": 2, "modal": "path-chooser", "contains": ["alpha/", "zulu/", "…]"], "lacks": ["alpha/beta/"]},

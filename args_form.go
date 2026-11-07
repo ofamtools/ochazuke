@@ -27,7 +27,7 @@ const SinglePathSetting = "forms.single-path"
 
 // The values of SinglePathSetting.
 const (
-	SinglePathChooser = "chooser"
+	SinglePathChooser = "picker"
 	SinglePathAlone   = "alone"
 	SinglePathForm    = "form"
 )

@@ -18,13 +18,14 @@ import (
 // preview jobs.
 const pickerID = "picker"
 
-// Picker owns one modal and one ordinary editor. Background commands only read
-// immutable snapshots; HandleMessage is the sole result-application boundary.
+// PathFinder is the path picker's fuzzy finder (NewPicker). It owns one
+// modal and one ordinary editor. Background commands only read immutable
+// snapshots; HandleMessage is the sole result-application boundary.
 // Its work runs as four replacing jobs on the picker instance (the "index",
 // "search", "preview" and "stat" slots), so the runtime's jobs list decides which
 // result is current: a newer job in a slot drops the older, and Close
 // cancels them all.
-type Picker struct {
+type PathFinder struct {
 	Runtime      *Runtime
 	Origin       Context
 	Directory    string
@@ -63,7 +64,7 @@ type Picker struct {
 }
 
 type pickerIndexMsg struct {
-	picker  *Picker
+	picker  *PathFinder
 	id      uint64
 	shallow bool
 	entries []PickerEntry
@@ -71,40 +72,37 @@ type pickerIndexMsg struct {
 }
 
 type pickerSearchMsg struct {
-	picker  *Picker
+	picker  *PathFinder
 	id      uint64
 	entries []PickerEntry
 	err     error
 }
 
-// NewPicker returns the picker for r.
-func NewPicker(r *Runtime) *Picker {
-	var p *Picker
+// Picker is the path finder's old name.
+//
+// Deprecated: use PathFinder; Picker is kept for one release (v0.95.0).
+type Picker = PathFinder
+
+// NewPicker returns the path finder for r (picker.open with no name opens
+// it).
+func NewPicker(r *Runtime) *PathFinder {
+	var p *PathFinder
 	r.Builtin(func() { p = newPicker(r) })
 	return p
 }
 
-func newPicker(r *Runtime) *Picker {
-	p := &Picker{Runtime: r}
+func newPicker(r *Runtime) *PathFinder {
+	p := &PathFinder{Runtime: r}
 	r.Instance(pickerID, Kind("ochazuke.picker")).Component = p
 	p.input = NewInput("picker-path", "", false)
 	if err := r.AddInput(p.input, Parent(pickerID), Kind("ochazuke.prompt")); err != nil {
 		panic(err)
 	}
-	register := func(verb, description string, params map[string]Parameter, fn func(Context, Arguments) (any, error), traits ...opTrait) {
-		op := Operation{Verb: verb, Noun: "ochazuke.picker", Description: description, Parameters: params, Result: "picker state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
-			result, err := fn(c, args)
-			if err != nil {
-				p.Error = err.Error()
-			}
-			p.sync()
-			return result, err
-		}}
-		applyTraits(&op, traits)
-		r.Register(op)
-	}
 	// open is the picker registry's ochazuke.picker.open with no name
 	// (picker_registry.go): one verb opens a named picker or this finder.
+	// The finder's other verbs are the picker noun's shared ones
+	// (picker_verbs.go: pick, cancel, move, into, up, enter, complete),
+	// and its keys are rows of bindings/picker.json.
 	r.setPickerFinder(func(c Context, args Arguments) (any, error) {
 		result, err := p.open(c, args)
 		if err != nil {
@@ -113,68 +111,7 @@ func newPicker(r *Runtime) *Picker {
 		p.sync()
 		return result, err
 	})
-	register("move", "Move the highlight; the path is not edited", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(_ Context, args Arguments) (any, error) {
-		if err := p.require(); err != nil {
-			return nil, err
-		}
-		p.Selected = min(max(0, p.Selected+IntArg(args, "delta", 0)), max(0, len(p.Entries)-1))
-		return p.state(), nil
-	}, asMotion, asHistory(HistoryAction))
-	register("parent", "Browse the parent directory", nil, func(_ Context, _ Arguments) (any, error) {
-		if err := p.require(); err != nil {
-			return nil, err
-		}
-		return p.browse(filepath.Dir(p.Directory))
-	})
-	register("descend", "Enter the highlighted directory; files are not selected", nil, func(_ Context, _ Arguments) (any, error) {
-		return p.enter(true)
-	})
-	register("enter", "Enter the highlighted directory or select a file", nil, func(_ Context, _ Arguments) (any, error) {
-		return p.enter(false)
-	})
-	register("complete", "Complete the highlighted path; nothing is confirmed", nil, func(_ Context, _ Arguments) (any, error) {
-		if err := p.require(); err != nil {
-			return nil, err
-		}
-		entry, err := p.selected()
-		if err != nil {
-			return nil, err
-		}
-		path := filepath.Join(p.Directory, filepath.FromSlash(entry.Path))
-		if entry.Dir {
-			return p.browse(path)
-		}
-		if _, err := p.Runtime.Execute(Request{Verb: "replace", Noun: "ochazuke.input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path}}); err != nil {
-			return nil, err
-		}
-		return p.state(), nil
-	})
-	register("choose", "Confirm the highlighted path, or the current root when current is set", map[string]Parameter{"current": {Type: "boolean", Description: "Choose current root instead of the highlight (any/dir only)"}}, func(_ Context, args Arguments) (any, error) {
-		if err := p.require(); err != nil {
-			return nil, err
-		}
-		if current, _ := args["current"].(bool); current {
-			return p.choose(p.Directory)
-		}
-		entry, err := p.selected()
-		if err != nil {
-			return nil, err
-		}
-		return p.choose(filepath.Join(p.Directory, filepath.FromSlash(entry.Path)))
-	})
-	register("close", "Cancel the picker; its originating input is unchanged", nil, func(_ Context, _ Arguments) (any, error) {
-		if err := p.require(); err != nil {
-			return nil, err
-		}
-		p.stop()
-		if err := r.Pop(); err != nil {
-			return nil, err
-		}
-		return r.Context(), nil
-	})
-
 	picker := r.Define("ochazuke.picker")
-	r.loadFrameworkBindings("picker.json")
 	// CLI and keyboard edits share the same dispatch path. Keep ancestor action
 	// semantics and delegate the normal operation, then invalidate search once.
 	for key, operation := range r.Operations {
@@ -197,7 +134,7 @@ func newPicker(r *Runtime) *Picker {
 	return p
 }
 
-func (p *Picker) open(c Context, args Arguments) (any, error) {
+func (p *PathFinder) open(c Context, args Arguments) (any, error) {
 	if p.IsOpen() {
 		return nil, errors.New("picker is already open")
 	}
@@ -256,7 +193,7 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	if err := p.Runtime.Push(pickerID, p.input.ID); err != nil {
 		return nil, err
 	}
-	if err := p.Runtime.SetModalClose(pickerID, Request{Noun: "ochazuke.picker", Verb: "close"}); err != nil {
+	if err := p.Runtime.SetModalClose(pickerID, Request{Noun: "ochazuke.picker", Verb: "cancel"}); err != nil {
 		return nil, err
 	}
 	p.Directory = ""
@@ -264,16 +201,16 @@ func (p *Picker) open(c Context, args Arguments) (any, error) {
 	return p.state(), nil
 }
 
-func (p *Picker) IsOpen() bool { return slices.Contains(p.Runtime.modals, pickerID) }
+func (p *PathFinder) IsOpen() bool { return slices.Contains(p.Runtime.modals, pickerID) }
 
-func (p *Picker) require() error {
+func (p *PathFinder) require() error {
 	if p.Runtime.TopModal() != pickerID {
 		return errors.New("picker is not the active modal")
 	}
 	return nil
 }
 
-func (p *Picker) selected() (PickerEntry, error) {
+func (p *PathFinder) selected() (PickerEntry, error) {
 	if p.Selected < 0 || p.Selected >= len(p.Entries) {
 		if p.Error != "" {
 			return PickerEntry{}, errors.New(p.Error)
@@ -283,7 +220,7 @@ func (p *Picker) selected() (PickerEntry, error) {
 	return p.Entries[p.Selected], nil
 }
 
-func (p *Picker) enter(directoryOnly bool) (any, error) {
+func (p *PathFinder) enter(directoryOnly bool) (any, error) {
 	if err := p.require(); err != nil {
 		return nil, err
 	}
@@ -301,14 +238,14 @@ func (p *Picker) enter(directoryOnly bool) (any, error) {
 	return p.choose(path)
 }
 
-func (p *Picker) browse(path string) (any, error) {
+func (p *PathFinder) browse(path string) (any, error) {
 	if _, err := p.Runtime.Execute(Request{Verb: "replace", Noun: "ochazuke.input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path + string(filepath.Separator)}}); err != nil {
 		return nil, err
 	}
 	return p.state(), nil
 }
 
-func (p *Picker) choose(path string) (any, error) {
+func (p *PathFinder) choose(path string) (any, error) {
 	if p.Filter == "file" && path == p.Directory {
 		return nil, errors.New("file filter cannot choose the current directory")
 	}
@@ -389,7 +326,7 @@ func pickerLocation(base, value string) (string, string, error) {
 
 // issue starts a replacing job in one of the picker's slots and returns its
 // id and context; the older job in the slot, if any, is cancelled.
-func (p *Picker) issue(slot string) (uint64, context.Context) {
+func (p *PathFinder) issue(slot string) (uint64, context.Context) {
 	ticket, ctx, err := p.Runtime.Issue(pickerID, slot, slot, Ctx{})
 	if err != nil {
 		panic(err)
@@ -398,7 +335,7 @@ func (p *Picker) issue(slot string) (uint64, context.Context) {
 }
 
 // cancel drops the running job in one of the picker's slots.
-func (p *Picker) cancel(slot string) {
+func (p *PathFinder) cancel(slot string) {
 	if j := p.Runtime.slotJob(pickerID, slot); j != nil {
 		p.Runtime.finish(j, JobCancelled, nil)
 	}
@@ -406,11 +343,11 @@ func (p *Picker) cancel(slot string) {
 
 // accept settles a result for one of the picker's slots and reports whether
 // it was the slot's current job; a stale result is dropped.
-func (p *Picker) accept(slot string, id uint64, err error) bool {
+func (p *PathFinder) accept(slot string, id uint64, err error) bool {
 	return p.IsOpen() && p.Runtime.Settle(Ticket{Owner: pickerID, Job: id, Slot: slot}, err)
 }
 
-func (p *Picker) pathChanged() {
+func (p *PathFinder) pathChanged() {
 	p.Entries, p.Selected = nil, 0
 	if !p.indexFailed {
 		p.Error = ""
@@ -443,7 +380,7 @@ func (p *Picker) pathChanged() {
 
 // queueIndex starts an index of root in the index slot: the shallow listing
 // first, the recursive walk once shallow results have been published.
-func (p *Picker) queueIndex(root string, shallow bool) {
+func (p *PathFinder) queueIndex(root string, shallow bool) {
 	if shallow {
 		p.resetStats()
 	}
@@ -461,7 +398,7 @@ func (p *Picker) queueIndex(root string, shallow bool) {
 	})
 }
 
-func (p *Picker) queueSearch() {
+func (p *PathFinder) queueSearch() {
 	id, ctx := p.issue("search")
 	p.searchID = id
 	entries, query, filter := p.indexed, p.query, p.Filter
@@ -480,7 +417,7 @@ func (p *Picker) queueSearch() {
 // search.set-match chose while it is open, else the chooser.match
 // setting. It decides how the query (the path after its directory)
 // picks entries.
-func (p *Picker) MatchMode() string {
+func (p *PathFinder) MatchMode() string {
 	if p.match != "" {
 		return p.match
 	}
@@ -488,25 +425,25 @@ func (p *Picker) MatchMode() string {
 }
 
 // matcher is the query compiled in the picker's match mode.
-func (p *Picker) matcher() Matcher {
+func (p *PathFinder) matcher() Matcher {
 	return p.Runtime.Matcher(p.MatchMode(), filepath.ToSlash(p.query))
 }
 
 // The matchSearcher contract (search_match.go).
-func (p *Picker) matchMode() string  { return p.MatchMode() }
-func (p *Picker) matchApplies() bool { return p.IsOpen() }
-func (p *Picker) setMatchMode(mode string) {
+func (p *PathFinder) matchMode() string  { return p.MatchMode() }
+func (p *PathFinder) matchApplies() bool { return p.IsOpen() }
+func (p *PathFinder) setMatchMode(mode string) {
 	p.match = mode
 	p.pathChanged()
 }
 
 // Close cancels indexing, searching and previews; the picker instance stays
 // registered for the next open.
-func (p *Picker) Close() { p.stop() }
+func (p *PathFinder) Close() { p.stop() }
 
 // PendingCommand is drained by Runtime.PendingCommands after every event,
 // including CallMsg. It schedules work, never waits on filesystem or search.
-func (p *Picker) PendingCommand() tea.Cmd {
+func (p *PathFinder) PendingCommand() tea.Cmd {
 	if !p.IsOpen() {
 		p.stop()
 		return nil
@@ -519,7 +456,7 @@ func (p *Picker) PendingCommand() tea.Cmd {
 
 // HandleMessage applies only the current job of each slot (index, search,
 // preview) on the UI loop; the runtime's jobs list says which that is.
-func (p *Picker) HandleMessage(msg tea.Msg) bool {
+func (p *PathFinder) HandleMessage(msg tea.Msg) bool {
 	switch result := msg.(type) {
 	case pickerPreviewMsg:
 		if result.picker != p {
@@ -597,7 +534,7 @@ func (p *Picker) HandleMessage(msg tea.Msg) bool {
 
 // stop cancels the picker's jobs in every slot and drops the queued
 // commands; a late result of a cancelled job is stale.
-func (p *Picker) stop() {
+func (p *PathFinder) stop() {
 	p.Runtime.cancelJobs(pickerID)
 	p.preview = pickerPreview{}
 	p.statting = nil
@@ -606,11 +543,11 @@ func (p *Picker) stop() {
 	p.Loading = false
 }
 
-func (p *Picker) state() map[string]any {
+func (p *PathFinder) state() map[string]any {
 	return map[string]any{"directory": p.Directory, "filter": p.Filter, "query": p.query, "selected": p.Selected, "entries": p.Entries, "loading": p.Loading, "error": p.Error, "input": p.input.ID}
 }
 
-func (p *Picker) sync() {
+func (p *PathFinder) sync() {
 	if p.IsOpen() {
 		p.queuePreview()
 	}

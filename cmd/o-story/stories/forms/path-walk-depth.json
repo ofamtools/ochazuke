@@ -13,7 +13,7 @@
     "pathWalk": {"roots": [{"path": "{{files}}", "label": "project"}]},
     "focus": "proj/folder"
   },
-  "script": ["enter", {"job": "chooser.load"}],
+  "script": ["enter", {"job": "picker.load"}],
   "expect": [
     {"modal": "path-chooser", "contains": ["Choose folder · [walk ", "a/b/"], "lacks": ["a/b/c/"]}
   ]

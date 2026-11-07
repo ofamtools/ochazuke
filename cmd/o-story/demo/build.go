@@ -161,7 +161,7 @@ func (ss *session) open1(open string) error {
 		}
 	}
 	if cs := ss.pages[open].Chooser; cs != nil {
-		if _, err := r.OpenChooser(ss.chooserSpec(cs)); err != nil {
+		if _, err := r.OpenPicker(ss.chooserSpec(cs)); err != nil {
 			return fmt.Errorf("chooser: %w", err)
 		}
 	}
@@ -246,44 +246,44 @@ func (ss *session) start() error {
 
 // chooserSpec is the framework spec of a story's chooser; a pick is a
 // write ("pick ID").
-func (ss *session) chooserSpec(cs *ChooserSpec) ochazuke.ChooserSpec {
-	spec := ochazuke.ChooserSpec{Kind: cs.Kind, Title: cs.Title, Keep: cs.Keep, Match: cs.Match}
+func (ss *session) chooserSpec(cs *ChooserSpec) ochazuke.PickerSpec {
+	spec := ochazuke.PickerSpec{Kind: cs.Kind, Title: cs.Title, Keep: cs.Keep, Match: cs.Match}
 	if spec.Kind == "" {
 		spec.Kind = "story-chooser"
 	}
 	for _, src := range cs.Sources {
 		src := src
-		rows := func(query string) []ochazuke.ChooserRow {
-			var out []ochazuke.ChooserRow
+		rows := func(query string) []ochazuke.PickerRow {
+			var out []ochazuke.PickerRow
 			if src.Live && !src.Matched {
-				out = append(out, ochazuke.ChooserRow{ID: src.Name + ":typed", Label: "typed: " + query})
+				out = append(out, ochazuke.PickerRow{ID: src.Name + ":typed", Label: "typed: " + query})
 			}
 			for _, row := range src.Rows {
 				if !src.Live || src.Matched || strings.Contains(row.Label, query) {
-					out = append(out, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Fixed: row.Fixed, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
+					out = append(out, ochazuke.PickerRow{ID: row.ID, Label: row.Label, Fixed: row.Fixed, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
 				}
 			}
 			return out
 		}
-		spec.Sources = append(spec.Sources, ochazuke.ChooserSource{Name: src.Name, Live: src.Live, Matched: src.Matched, Load: func(query string) ochazuke.Result {
+		spec.Sources = append(spec.Sources, ochazuke.PickerSource{Name: src.Name, Live: src.Live, Matched: src.Matched, Load: func(query string) ochazuke.Result {
 			return ochazuke.Done(rows(query))
 		}})
 	}
 	if len(spec.Sources) > 0 {
-		spec.Choose = func(row ochazuke.ChooserRow) ochazuke.Result {
+		spec.Choose = func(row ochazuke.PickerRow) ochazuke.Result {
 			ss.Writes = append(ss.Writes, "pick "+row.ID)
 			return ochazuke.Done(nil)
 		}
 	}
 	previews := map[string]string{}
 	for _, row := range cs.Rows {
-		spec.Rows = append(spec.Rows, ochazuke.ChooserRow{ID: row.ID, Label: row.Label, Fixed: row.Fixed, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
+		spec.Rows = append(spec.Rows, ochazuke.PickerRow{ID: row.ID, Label: row.Label, Fixed: row.Fixed, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
 		if row.Preview != "" {
 			previews[row.ID] = row.Preview
 		}
 	}
 	if len(previews) > 0 {
-		spec.Preview = func(row ochazuke.ChooserRow) string { return previews[row.ID] }
+		spec.Preview = func(row ochazuke.PickerRow) string { return previews[row.ID] }
 	}
 	return spec
 }
@@ -324,7 +324,7 @@ func (ss *session) defineDemo(pages []*Page) error {
 			if p == nil || p.Chooser == nil {
 				return ochazuke.Failed(errors.New("the page has no chooser"))
 			}
-			_, err := ss.R.OpenChooser(ss.chooserSpec(p.Chooser))
+			_, err := ss.R.OpenPicker(ss.chooserSpec(p.Chooser))
 			if err != nil {
 				return ochazuke.Failed(err)
 			}

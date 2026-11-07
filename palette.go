@@ -100,7 +100,7 @@ func newPalette(r *Runtime) *Palette {
 		}
 		return p.setText(StringArg(a, "text", ""))
 	})
-	register("move", "Move the completion highlight; from none, down selects first and up follows chooser.up-from-none", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) }, asMotion, asHistory(HistoryAction))
+	register("move", "Move the completion highlight; from none, down selects first and up follows picker.up-from-none", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) }, asMotion, asHistory(HistoryAction))
 	register("complete", "Append the highlighted completion (or value, or the only one) as the next word", map[string]Parameter{"value": {Type: "string", Description: "A completion's word; omit for the highlighted one"}}, p.complete)
 	register("run", "Run the line or append the highlighted completion; a line missing an argument opens the args form for it (palette.missing-opens-form), else names its first missing word", nil, func(Arguments) error { return p.run() })
 	register("cancel", "Clear the command line, or close it when it is empty", nil, func(Arguments) error { return p.cancel() })

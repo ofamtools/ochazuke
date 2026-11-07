@@ -1,0 +1,51 @@
+{
+  "name": "path chooser: new trailing",
+  "area": "picker",
+  "width": 100,
+  "height": 18,
+  "files": [
+    "sub/"
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "records": [
+      {
+        "id": "doc",
+        "fields": [
+          {
+            "name": "file",
+            "type": "path",
+            "base": "{{files}}",
+            "path": "dir",
+            "new": true
+          }
+        ]
+      }
+    ],
+    "focus": "doc/file"
+  },
+  "script": [
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "./gamma/"
+    },
+    {
+      "job": "picker.load"
+    }
+  ],
+  "expect": [
+    {
+      "contains": [
+        "new ./gamma"
+      ]
+    }
+  ]
+}

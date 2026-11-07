@@ -10,11 +10,11 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func (p *Picker) View(width, height int) string { return p.ViewBlock(width, height).Text }
+func (p *PathFinder) View(width, height int) string { return p.ViewBlock(width, height).Text }
 
 // ViewBlock renders the picker and reports the cursor of its path editor on
 // the first row, after the label.
-func (p *Picker) ViewBlock(width, height int) Block {
+func (p *PathFinder) ViewBlock(width, height int) Block {
 	if width <= 0 || height <= 0 {
 		return Block{}
 	}
@@ -136,7 +136,7 @@ func pickerSize(n int64) string {
 // resultRows draws the results as a table (pickerColumns): the count line,
 // the header, then the rows in the window around the selection, the
 // selected row marked "> " and reversed across the width.
-func (p *Picker) resultRows(width, height int) []string {
+func (p *PathFinder) resultRows(width, height int) []string {
 	// The rows this frame can draw, which the stat job follows.
 	p.drawnRows = max(0, height-min(2, max(0, height-1)))
 	if len(p.Entries) == 0 {
@@ -193,7 +193,7 @@ func (p *Picker) resultRows(width, height int) []string {
 	return layoutRows(strings.Join(rows, "\n"), width, height)
 }
 
-func (p *Picker) previewRows(width, height int) []string {
+func (p *PathFinder) previewRows(width, height int) []string {
 	if p.preview.path == "" {
 		return layoutRows("no path selected", width, height)
 	}
@@ -214,7 +214,7 @@ func (p *Picker) previewRows(width, height int) []string {
 }
 
 // bindingHelp is the picker's rows as hints, derived the way the footer is.
-func (p *Picker) bindingHelp() string {
+func (p *PathFinder) bindingHelp() string {
 	if !p.IsOpen() {
 		return ""
 	}

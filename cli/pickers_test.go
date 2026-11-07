@@ -62,7 +62,7 @@ func TestCatalogPickersRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !slices.ContainsFunc(c.Matches(), func(row ochazuke.ChooserRow) bool { return row.ID == "o-cmds-runs" }) {
+	if !slices.ContainsFunc(c.Matches(), func(row ochazuke.PickerRow) bool { return row.ID == "o-cmds-runs" }) {
 		t.Fatal("the pickers picker lacks the mounted picker")
 	}
 }

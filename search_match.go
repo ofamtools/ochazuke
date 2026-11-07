@@ -36,7 +36,7 @@ const (
 	SearchMatchSetting = "search.match"
 	// ChooserMatchSetting is the starting mode of choosers and the path
 	// picker.
-	ChooserMatchSetting = "chooser.match"
+	ChooserMatchSetting = "picker.match"
 	// SearchShowMatchSetting draws the mode's tag on the search line.
 	SearchShowMatchSetting = "search.show-match"
 )
@@ -451,12 +451,12 @@ func registerSearchMatch(r *Runtime) {
 		if s := r.matchSearcherAt(focus); s != nil {
 			return s, nil
 		}
-		return nil, errors.New("no open search here (a / filter line, a chooser or the path picker)")
+		return nil, errors.New("no open search here (a / filter line or a picker)")
 	}
 	state := func(s matchSearcher) map[string]any {
 		return map[string]any{"match": s.matchMode()}
 	}
-	r.Register(Operation{Verb: "cycle-match", Noun: "ochazuke.search", Description: "Step the open search (the / filter line, a chooser, the path picker) to the next match mode: substring, fuzzy, regex, round again; for this search only, the setting is unchanged", Parameters: map[string]Parameter{
+	r.Register(Operation{Verb: "cycle-match", Noun: "ochazuke.search", Description: "Step the open search (the / filter line or a picker, the path finder too) to the next match mode: substring, fuzzy, regex, round again; for this search only, the setting is unchanged", Parameters: map[string]Parameter{
 		"step": {Type: "integer", Description: "How far to step; negative goes back (default 1)"},
 	}, Result: "the search's match mode", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 		s, err := find(c)

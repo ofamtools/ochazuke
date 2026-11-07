@@ -227,10 +227,10 @@ const components = [
     "name": "Picker & path choices",
     "sub": "Immutable filesystem work",
     "group": "Modal + workers",
-    "responsibility": "The legacy path-editing Picker publishes shallow entries first and enriches them with an asynchronous recursive index. The newer path chooser provides browse/recent/typed sources for path parameters.",
-    "state": "Picker owns origin identity/text/kind, index/search generations, immutable index snapshots, cancellation and selection. Chooser sources own their load state.",
+    "responsibility": "The legacy path-editing Picker publishes shallow entries first and enriches them with an asynchronous recursive index. The newer path picker provides browse/recent/typed sources for path parameters.",
+    "state": "Picker owns origin identity/text/kind, index/search generations, immutable index snapshots, cancellation and selection. Picker sources own their load state.",
     "why": "Workers read captured values; components apply current results on the event loop. Stale generations cannot replace current search results.",
-    "limit": "Picker choose refuses a changed origin. Git provides ignore rules; symlinks are not traversal edges. Macro replay does not wait for search. Picker and path chooser are distinct APIs.",
+    "limit": "Picker choose refuses a changed origin. Git provides ignore rules; symlinks are not traversal edges. Macro replay does not wait for search. Picker and path picker are distinct APIs.",
     "code": "work = { generation: searchID, entries: immutableIndex, query };\n// Worker returns a message; the owning component checks currency.\n// Choice verifies captured origin before input.replace.",
     "sources": [
       [
@@ -377,7 +377,7 @@ const components = [
     "name": "Composite UI modules",
     "sub": "Shared parts, typed component state",
     "group": "Presentation",
-    "responsibility": "Lists/tables, trees/outlines, timelines, record editors, choosers, completion, Settings/About pages and terminals compose instances and shared verbs.",
+    "responsibility": "Lists/tables, trees/outlines, timelines, record editors, pickers, completion, Settings/About pages and terminals compose instances and shared verbs.",
     "state": "Each component owns its selection, folds, scroll, field drafts or terminal frames. Parent links connect those parts to routing and delivery.",
     "why": "Apps supply data and render Blocks; Layout and Placed calls express drawing order. Help and footer hints come from effective binding rows.",
     "limit": "Catalog declarations reuse supported components rather than arbitrary remote Go renderers. A custom renderer must report placements to participate in visual focus order.",
@@ -401,7 +401,7 @@ const components = [
       ],
       [
         "chooser_sources.go",
-        "ChooserSource"
+        "PickerSource"
       ],
       [
         "terminal.go",
@@ -653,7 +653,7 @@ const journeys = {
         "Capture the origin",
         "Picker open captures the originating Input object, text, kind and replacement range and opens its own path input.",
         "origin = { id: \"directory\", text: \"/work\", kind: \"path\" };",
-        "The path-editing Picker is separate from OpenPathChooser for path parameters. Both use shared input/chooser mechanisms.",
+        "The path-editing Picker is separate from OpenPathChooser for path parameters. Both use shared input/picker mechanisms.",
         "picker.go",
         "open, Origin"
       ],

@@ -23,14 +23,14 @@ import (
 // Component, so Runtime holds no chooser state: Runtime.Chooser(kind) reads
 // it back and the Model draws it.
 
-// ChooserRow is one choice. Trailing rows (a "browse…" entry) follow the
+// PickerRow is one choice (ChooserRow before v0.95.0). Trailing rows (a "browse…" entry) follow the
 // matches. Enter takes one without moving onto it only when the query is
 // not empty and no ordinary row matches, so their filter should be strict
 // (a substring of the label); an empty query with no ordinary rows creates.
 // Fixed rows (a "no pin" entry) sit at the bottom whatever the query: the
 // filter never sees them and Enter takes one only once the highlight is
 // moved onto it, or when the query spells it.
-type ChooserRow struct {
+type PickerRow struct {
 	// Noun names the row's declared props and saved filters; empty uses ChooserSpec.Noun.
 	Noun string
 	// Props supplies typed values when Data is an opaque handle, as on ListItem.
@@ -76,7 +76,8 @@ type ChooserRow struct {
 // names the rows (Placeholder, one format: "no directories", "loading
 // directories…", "no directories match 'x'"). Keep names the cell columns cut last. Preview draws a
 // preview of the highlighted row beside the rows when there is room.
-type ChooserSpec struct {
+// (ChooserSpec before v0.95.0.)
+type PickerSpec struct {
 	// Noun is the default row noun for prop filtering.
 	Noun string
 	// NoPropFilters opts this chooser out of prop filters and their keys.
@@ -154,9 +155,10 @@ func (c *Chooser) hasOwnRows() bool {
 	return slices.ContainsFunc(c.spec.Rows, func(row ChooserRow) bool { return !row.Fixed })
 }
 
-// chooserNoun is the noun of every chooser's search input; its rows are
-// the chooser's keys.
-const chooserNoun = "ochazuke.chooser"
+// chooserNoun is the noun of every chooser's search input: the picker
+// noun (it was ochazuke.chooser before v0.95.0, now a deprecated name of
+// it); its rows are the picker's keys (bindings/picker.json).
+const chooserNoun = PickerNoun
 
 // chooserCreateRow is the ID of the create row (see ChooserSpec.CreateRow).
 const chooserCreateRow = "chooser:create"
@@ -208,10 +210,10 @@ type Chooser struct {
 
 // ChooserStableHeightSetting keeps an open chooser at the height it
 // reached (settings/ochazuke.json).
-const ChooserStableHeightSetting = "chooser.stable-height"
+const ChooserStableHeightSetting = "picker.stable-height"
 
 // ChooserHiddenCountSetting shows how many matching rows are off screen.
-const ChooserHiddenCountSetting = "chooser.hidden-count"
+const ChooserHiddenCountSetting = "picker.hidden-count"
 
 // The delivery contract: a chooser runs no jobs of its own (Choose and
 // Create return their own results). Pending work they return belongs to the
@@ -235,11 +237,11 @@ func (c *Chooser) PendingCommand() tea.Cmd {
 }
 
 func registerChooser(r *Runtime) {
-	r.DefineGuard("chooser-normal-mode", func(r *Runtime, ev KeyEvent) bool {
+	r.DefineGuard(PickerNormalModeGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])
 		return c != nil && c.spec.NormalMode
 	})
-	r.DefineGuard("chooser-prop-controls", func(r *Runtime, ev KeyEvent) bool {
+	r.DefineGuard(PickerPropControlsGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])
 		return c != nil && c.propFiltersEnabled() && (len(c.filters.vs.Filters) > 0 || c.filters.vs.Saved != "")
 	})
@@ -247,51 +249,51 @@ func registerChooser(r *Runtime) {
 		return func(ctx Ctx) Result {
 			c := r.chooserAt(ctx.Instance)
 			if c == nil {
-				return Failed(errors.New("no chooser is open"))
+				return Failed(errors.New("no picker is open"))
 			}
 			c.sync()
 			return fn(c, ctx)
 		}
 	}
-	r.Define(chooserNoun).Pin("insert").
-		Verb("pick", verb(func(c *Chooser, _ Ctx) Result { return c.pick() }), "Take the highlighted row, else the top match, else create from the query").
-		Verb("move", verb(func(c *Chooser, ctx Ctx) Result {
-			switch StringArg(ctx.Args, "to", "") {
-			case "first":
-				c.move(-len(c.matches))
-			case "last":
-				c.move(len(c.matches))
-			default:
-				c.move(IntArg(ctx.Args, "delta", 0))
-			}
-			return Done(c.state())
-		}), "Move the highlight; from none, down selects first and up follows chooser.up-from-none").Motion().Params(map[string]Parameter{"delta": {Type: "integer"}, "to": {Type: "string", Enum: []string{"first", "last"}}}).
+	registerPickerVerbs(r)
+	r.Define(chooserNoun).
 		Verb("clear-props", verb(func(c *Chooser, _ Ctx) Result {
 			if err := c.filters.SetPropFilters(nil); err != nil {
 				return Failed(err)
 			}
 			return Done(nil)
-		}), "Clear this chooser's prop conditions").When("chooser-prop-controls").
+		}), "Clear this picker's prop conditions").When(PickerPropControlsGuard).
 		Verb("normal", verb(func(c *Chooser, _ Ctx) Result {
 			if err := c.r.SetMode("normal"); err != nil {
 				return Failed(err)
 			}
 			return Done(nil)
-		}), "Leave search editing in a chooser that supports normal mode").When("chooser-normal-mode").
-		Verb("cancel", verb(func(c *Chooser, _ Ctx) Result {
-			if err := c.close(); err != nil {
-				return Failed(err)
-			}
-			return Done(nil)
-		}), "Close without choosing").History(HistoryAction)
+		}), "Leave search editing in a picker that supports normal mode").When(PickerNormalModeGuard)
 	registerChooserSources(r)
+	registerPickerGuardAliases(r)
 }
 
-// OpenChooser opens a chooser modal with its search input focused in
-// insert mode. Like OpenModal, it opens only from the top level.
-func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) {
+// OpenChooser is OpenPicker's old name.
+//
+// Deprecated: use OpenPicker; kept for one release (v0.95.0).
+func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) { return r.OpenPicker(spec) }
+
+// ChooserSpec is PickerSpec's old name.
+//
+// Deprecated: use PickerSpec; kept for one release (v0.95.0).
+type ChooserSpec = PickerSpec
+
+// ChooserRow is PickerRow's old name.
+//
+// Deprecated: use PickerRow; kept for one release (v0.95.0).
+type ChooserRow = PickerRow
+
+// OpenPicker opens a picker modal (OpenChooser before v0.95.0) with its
+// search input focused in insert mode. Like OpenModal, it opens only from
+// the top level.
+func (r *Runtime) OpenPicker(spec PickerSpec) (*Chooser, error) {
 	if spec.Kind == "" {
-		return nil, errors.New("chooser kind is required")
+		return nil, errors.New("picker kind is required")
 	}
 	c := &Chooser{r: r, spec: spec, input: NewInput(spec.Kind+"/query", "", false)}
 	if len(spec.Sources) > 0 {
@@ -317,14 +319,14 @@ func (r *Runtime) OpenChooser(spec ChooserSpec) (*Chooser, error) {
 // several choices; the host draws View and owns the surrounding layout.
 func (r *Runtime) AddChooser(spec ChooserSpec, opts ...InstanceOption) (*Chooser, error) {
 	if spec.Kind == "" || r.Instances[spec.Kind] != nil {
-		return nil, errors.New("chooser kind must be nonempty and unused")
+		return nil, errors.New("picker kind must be nonempty and unused")
 	}
 	options := instanceSpec{parent: "app", noun: chooserNoun}
 	for _, opt := range opts {
 		opt(&options)
 	}
 	if r.Instances[options.parent] == nil || r.Noun(options.noun) == nil {
-		return nil, errors.New("unknown chooser parent or noun")
+		return nil, errors.New("unknown picker parent or noun")
 	}
 	c := &Chooser{r: r, spec: spec, input: NewInput(spec.Kind+"/query", "", false), embedded: true}
 	if len(spec.Sources) > 0 {
@@ -427,7 +429,7 @@ func (c *Chooser) close() error {
 		return c.r.RemoveInstance(c.spec.Kind)
 	}
 	if c.r.TopModal() != c.spec.Kind {
-		return fmt.Errorf("chooser %s is not the top modal", c.spec.Kind)
+		return fmt.Errorf("picker %s is not the top modal", c.spec.Kind)
 	}
 	return c.r.Pop()
 }

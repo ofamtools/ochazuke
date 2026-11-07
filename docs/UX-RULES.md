@@ -337,7 +337,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   never stacks a second copy (`:help settings` inside the docs viewer shows
   the settings page in the same viewer, from the top, over the focus it
   opened over). The opener says so with `ReplaceOpen` on `OpenModal`; a
-  modal that holds a question (a confirm, a prompt, a chooser) keeps it and
+  modal that holds a question (a confirm, a prompt, a picker) keeps it and
   refuses the second open. Story: `docs/reopen-while-open.json`; tests
   `TestOpenModalReplaceOpen`, `TestDocsOpenWhileOpenShowsTheNewTopic`.
 - **R4.9** A modal's size stays fixed while its content scrolls or its
@@ -351,7 +351,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `modal.close` (the rows on `ochazuke.modal/normal`), which runs the
   modal's close request when it has one (`CloseWith` on `OpenModal`,
   `SetModalClose` after `Push`: the palette clears its line first, a form
-  leaves, a chooser cancels) and otherwise pops it. A kind never adds a
+  leaves, a picker cancels) and otherwise pops it. A kind never adds a
   close verb or close rows of its own; it binds `esc` only where the modal
   noun is not reached (an insert-pinned input, a confirm's swallowing
   `any` row), and then to `modal.close`. `q` types in an insert-pinned
@@ -371,8 +371,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   terminal) is on stays visible; a tree whose line is being edited is not
   faded. A list in a modal stays plain until focused. A table's highlight
   spans its row; inside it a cell-mode table marks its current cell (R5.10).
-  The same rule holds for every selection, not only lists: a chooser, the
-  path picker, the markdown Doc, the Settings section selector, a grid's
+  The same rule holds for every selection, not only lists: a picker, the
+  path finder, the markdown Doc, the Settings section selector, a grid's
   cursor cell and an app's own rows all draw through one painter,
   `Styles.Selection(focused)` (`Runtime.Selection`), and never call
   `Reverse` themselves; without the focus each keeps its selection marked,
@@ -523,7 +523,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   else the first column. `list.pin-column`, `unpin-column`,
   `toggle-pin-column` (`z p` on a cell-mode table: the current column) and
   `unpin-columns` change them on any table (palette; a row-select table
-  without a `column` chooses one from the column chooser); `z =`
+  without a `column` chooses one from the column picker); `z =`
   (`reset-columns`) puts the default back. A user's pins are remembered per
   table across a restart, the default is not written. When the pins leave
   no room for a scrolling column, the view (never the saved pins) drops
@@ -576,10 +576,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   noun, not a motion), run from its key, the palette or the API, has the
   selection as its subject, in display order: a verb that takes many
   (`NounBuilder.Many`, the catalog's `many`) runs once with every row in
-  `Ctx.Subjects` (one chooser, one confirm, one notice: "Move 3 rows to",
+  `Ctx.Subjects` (one picker, one confirm, one notice: "Move 3 rows to",
   "Delete alpha and 2 more?"), and any other verb runs once per row
   (`Request.Subjects`; a verb's confirm still asks once, with the count).
-  A verb that asks about its row (opens a chooser) without taking many
+  A verb that asks about its row (opens a picker) without taking many
   runs on the first row only and says it left the rest; such a verb wants
   `Many`. One notice reports the run: info "VERB: done on N rows", or an
   error "VERB: D done, F failed (first failure)" when some failed; only
@@ -612,25 +612,25 @@ tiers above them. When the two disagree, fix one in the same commit.
   normal keys there (they act on the selection), and a noun with one reads
   only it; either way a `d d` in its normal table never makes the
   visual-line `d` wait (R1.7, `sequence-inherit`). A modal
-  opened over the selection (a confirm, the palette, a chooser) holds it;
-  its close resumes it. A chooser a verb asked over the selection
-  (an edit chooser, an application's move chooser) holds it until its
+  opened over the selection (a confirm, the palette, a picker) holds it;
+  its close resumes it. A picker a verb asked over the selection
+  (an edit picker, an application's move picker) holds it until its
   answer: `esc` resumes it with nothing run, a pick runs the verb and
-  ends it (R5.15), through one mechanism for every chooser
+  ends it (R5.15), through one mechanism for every picker
   (`Instance.accepts`, `untilAccepted`). Its title counts the rows the
   pick writes ("Edit 2 tasks project", as "Move 3 rows to" does).
   Leaving the list ends it. Opt out with `visual.list` `marks` (the
   older selection in normal mode). Stories:
   `tables/visual-line-delete-two.json`, `tables/visual-line-yank-two.json`,
   `tables/visual-line-motions-esc.json`, `tables/visual-after-keep.json`,
-  `verbs/edit-field-chooser-visual-esc-resumes.json`,
-  `verbs/chooser-visual-esc-resumes.json`,
-  `verbs/edit-field-chooser-visual-title-count.json`,
+  `verbs/edit-field-picker-visual-esc-resumes.json`,
+  `verbs/picker-visual-esc-resumes.json`,
+  `verbs/edit-field-picker-visual-title-count.json`,
   `tables/visual-after-end.json`, `tree/visual-line-nest.json`; tests
   `list_visual_test.go`, `TestVisualSelectionChooserEscResumes`.
 - **R5.17** Every search follows `search.case`: the `/` list filter, a
-  chooser's matching, ranking and word spelling, the path chooser's browse
-  and typed completion, the path picker's fuzzy search, and any search an
+  picker's matching, ranking and word spelling, the path picker's browse
+  and typed completion, the path finder's fuzzy search, and any search an
   application adds (through `Runtime.CaseFor`). `smart` (the default)
   ignores case until the query holds an upper-case letter
   (`unicode.IsUpper`; separators, digits and punctuation never count; in
@@ -642,31 +642,31 @@ tiers above them. When the two disagree, fix one in the same commit.
   `forms/path-smart-case-browse.json`, `forms/path-smart-case-typed.json`,
   `forms/path-ignore-case.json`; tests `search_case_test.go`.
 - **R5.18** Every search has a match mode, one of three, shared by the
-  `/` list filter, choosers and the path picker: `substring` (every word
+  `/` list filter, pickers and the path finder: `substring` (every word
   of the query, any order), `fuzzy` (the query's characters in order, one
   scorer for all: `fuzzyScore`) and `regex` (Go RE2; smart case folds
   through `(?i)` unless the pattern holds an unescaped capital, so `\S`
   and `\p{Lu}` do not count). `search.match` is the filter's starting mode
-  (`substring`), `chooser.match` the choosers' and picker's (`fuzzy`), so
+  (`substring`), `picker.match` the pickers' and picker's (`fuzzy`), so
   the defaults keep the old behaviour. `tab` (`search.cycle-match`) steps
   the open search through them, `shift+tab` back, in the filter line and
-  in a chooser; `ctrl+t` in the path picker, whose `tab` completes. The
+  in a picker; `ctrl+t` in the path finder, whose `tab` completes. The
   mode is the open search's alone: no setting is written, and a picker
-  starts each open from `chooser.match` again. The search line names the
+  starts each open from `picker.match` again. The search line names the
   mode at its right end (`substr`, `fuzzy`, `regex`; off with
   `search.show-match`). An invalid regex matches nothing and the search
   line says why (`regex: missing closing )`), never a modal or a notice.
-  A chooser whose application filters (`ChooserSpec.Filter`) or a Live
+  A picker whose application filters (`PickerSpec.Filter`) or a Live
   source ranks its own rows keeps its own matching: the verb is
   unavailable there and no tag shows. Stories:
   `lists/filter-match-cycle.json`, `lists/filter-regex-invalid-says-why.json`,
-  `lists/filter-match-setting.json`, `chooser/match-cycle-tab.json`; tests
+  `lists/filter-match-setting.json`, `picker/match-cycle-tab.json`; tests
   `search_match_test.go`.
 - **R5.19** Empty, loading and no-match texts have one format: lower
   case, no parentheses, the rows' noun named (`no panes`, `loading
   panes…`, `no panes match 'x'`). They are data (`Placeholder`:
   `Empty`, `Loading`, `Plural`, `LoadingJob`; the same fields on
-  `ChooserSpec`), and a component draws `Loading` only while the job that
+  `PickerSpec`), and a component draws `Loading` only while the job that
   fills it runs, then `Empty`: "loading" never reads as "empty" and an
   empty list never says it is loading. Story: `lists/empty-format.json`;
   tests `placeholder_test.go`.
@@ -849,17 +849,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   focus path that has the verb. Story: needed (`palette/noun-from-focus-path`).
 - **R7.5** Up and down recall history; requests a line ran are recorded with
   source `palette`. Story: needed (`palette/history-recall`).
-- **R7.6** A chooser is not the palette: its search input opens in insert,
+- **R7.6** A picker is not the palette: its search input opens in insert,
   the top match is highlighted from the first frame and after every edit,
   enter takes the highlighted row, `ctrl+n`/`ctrl+p` move it clamped. From
   no highlight, down selects the first row and up selects the last, shared
-  by choosers (sources and path choosers included), inline completion and
-  palette completion. `chooser.up-from-none` defaults to `last`; `stay`
+  by pickers (sources and path pickers included), inline completion and
+  palette completion. `picker.up-from-none` defaults to `last`; `stay`
   keeps no selection on up. Owner decision 2026-10-31 supersedes UX review
   2 F1's "up from none stays" decision. Palette completion still wraps
-  once highlighted; choosers and inline completion still clamp. Stories:
-  `choosers/up-from-none-last.json`, `choosers/up-from-none-stay.json`,
-  `choosers/source-up-from-none-last.json`, `completion/up-from-none-last.json`,
+  once highlighted; pickers and inline completion still clamp. Stories:
+  `pickers/up-from-none-last.json`, `pickers/up-from-none-stay.json`,
+  `pickers/source-up-from-none-last.json`, `completion/up-from-none-last.json`,
   `completion/up-from-none-stay.json`. Esc closes over the focus and mode it opened on.
   Every page is reachable from the page picker (`'`, `page.pick`): pages
   visited before, most recent first, then the never-visited in
@@ -870,40 +870,40 @@ tiers above them. When the two disagree, fix one in the same commit.
   `picker/page-picker-footer.json`; ranking in `chooser_test.go`. `'`
   answers only with no modal open (a page cannot open beneath one):
   `picker/page-picker-not-in-modal.json`.
-- **R7.7** A chooser with sources shows one source's rows at a time:
+- **R7.7** A picker with sources shows one source's rows at a time:
   `ctrl+o`/`alt+o` step to the next or previous source, wrapping
-  (`chooser.next-source`/`previous-source`, guard `chooser-sources`;
+  (`picker.next-source`/`previous-source`, guard `picker-sources`;
   `tab` is the match mode's, R5.18); the query carries over, and the
   title names the current source in brackets (`Pick · one [two] three`).
   A live source sees the typed text and answers again on every edit. A row
   a source can open (a folder) opens with `enter` (unless
-  `chooser.enter` is `pick`) and `ctrl+l`; `alt+enter` picks the
+  `picker.enter` is `pick`) and `ctrl+l`; `alt+enter` picks the
   highlighted row whatever it is; `alt+up`, and `backspace` on an empty
   query, step the source back out. A row that only opens (a folder in a
-  file chooser) opens on a pick. The last source used is remembered per
-  chooser kind (`chooser.remember-source`, default on; off reopens on the
-  first source). A source may claim the query (`ChooserSource.Claims`):
-  while `chooser.claim-source` is on (default; off leaves the switch to
-  `ctrl+o`), the chooser shows the first source claiming it, whichever is
+  file picker) opens on a pick. The last source used is remembered per
+  picker kind (`picker.remember-source`, default on; off reopens on the
+  first source). A source may claim the query (`PickerSource.Claims`):
+  while `picker.claim-source` is on (default; off leaves the switch to
+  `ctrl+o`), the picker shows the first source claiming it, whichever is
   current, and goes back when the query is no longer claimed; a hand
-  switch ends the claim until then. The path chooser's typed source claims
+  switch ends the claim until then. The path picker's typed source claims
   a query starting `/`, `~`, `./` or `../` (a pasted ` /tmp` with a
   leading space does not); a plain word filters. `enter` acts on the rows of
   the query as typed: while a live source's load for it runs, the enter
   waits (nothing blocks) and runs when the rows land; esc, typing more or
   a source switch drops it, a failed load drops it and shows the error. A
-  chooser's `Hint` ends its empty, no-match and refusal lines (path
-  choosers: `no known directories; type a path to pick one`). Stories:
-  `chooser/path-typed-at-once.json`, `chooser/path-typed-at-once-off.json`,
-  `chooser/stale-enter.json`, `chooser/stale-open.json`, `chooser/burst-enter.json`,
-  `chooser/empty-folder-dir.json`, `chooser/new-trailing.json`,
-  `chooser/path-new-missing-parent.json`, `chooser/sources-cycle.json`,
-  `chooser/live-source.json`, `chooser/remember-source-on.json`,
-  `chooser/remember-source-off.json`; tests `TestChooserSources*`,
+  picker's `Hint` ends its empty, no-match and refusal lines (path
+  pickers: `no known directories; type a path to pick one`). Stories:
+  `picker/path-typed-at-once.json`, `picker/path-typed-at-once-off.json`,
+  `picker/stale-enter.json`, `picker/stale-open.json`, `picker/burst-enter.json`,
+  `picker/empty-folder-dir.json`, `picker/new-trailing.json`,
+  `picker/path-new-missing-parent.json`, `picker/sources-cycle.json`,
+  `picker/live-source.json`, `picker/remember-source-on.json`,
+  `picker/remember-source-off.json`; tests `TestChooserSources*`,
   `TestChooserLiveSource*`, `TestChooserRemembersTheSource`.
 - **R7.8** A path is chosen, not typed blind: a path parameter (type
-  `path`, `path: file|dir`) opens the path chooser with the sources
-  browse (one folder's entries, folders first; a folder chooser ends with
+  `path`, `path: file|dir`) opens the path picker with the sources
+  browse (one folder's entries, folders first; a folder picker ends with
   `use <folder>`), recent (the application's list, then this run's picks)
   and typed (completes the path being typed, read as typed; a parameter
   with `new` offers a path not there yet, after the completions), then the
@@ -916,7 +916,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   typed part starts with `.`. A typed path is always a row; one that
   cannot be used says why on the row. Stories: `forms/path-browse.json`,
   `forms/path-dir.json`, `forms/path-typed.json`,
-  `forms/path-text-field.json`, `chooser/typed-missing-dir-says-why.json`;
+  `forms/path-text-field.json`, `picker/typed-missing-dir-says-why.json`;
   tests `TestPath*`.
 - **R7.9** One grammar for a noun's things, the same in the palette and
   the CLI (standard verbs, plan 2.6). After a noun a word is a verb, else
@@ -1056,7 +1056,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   complete what the text before the token names (a document path). A
   choices source that declares a `query` parameter is called with the text
   typed so far wherever its choices are listed: the palette word, a form's
-  suggestions chooser (which then asks again as the person types), and the
+  suggestions picker (which then asks again as the person types), and the
   check of a value. Tests `TestCompletionDropTrigger`,
   `TestCompletionTriggerBoundaries`, `TestCompletionSearchAtSeesTheText`,
   `TestChoicesSeeTheTypedText`, `TestFormSuggestionsFollowTheQuery`,
@@ -1252,16 +1252,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   `args-form`): one field per parameter, the required ones first, an
   optional one marked `(optional)`, the words already typed filled in, the
   focus on the first missing one (typing, when it is a text field). Choices
-  and noun-typed parameters are picked from a type-to-filter chooser
+  and noun-typed parameters are picked from a type-to-filter picker
   (`form.suggest`, `/`), free text is typed. Nothing is filled from the
   focus or a guess (R12.5) but what a parameter declares: a `Focus`
   parameter starts holding the focused thing, and an `Edits` one (a
   standard `rename`'s name) the subject's current value, selected as a
   rename is (`rename.select`), or, when that is empty, an empty field with
   the prop's `Fallback` as a muted placeholder. Stories
-  `palette/rename-chooser.json`, `palette/move-chooser.json`. `enter` is `form.run` once every field is
+  `palette/rename-picker.json`, `palette/move-picker.json`. `enter` is `form.run` once every field is
   valid, else `form.next-missing` (the field that still needs a value,
-  opening its chooser); `esc` in normal mode cancels with nothing run and
+  opening its picker); `esc` in normal mode cancels with nothing run and
   the palette's line back as typed; there is no save key. A run that fails
   reopens the form with the values and `! not run:`. The setting
   `palette.missing-opens-form` (default on) turned off restores
@@ -1270,18 +1270,18 @@ tiers above them. When the two disagree, fix one in the same commit.
   `palette/form-choices.json`, `palette/form-prefill.json`,
   `palette/form-esc-cancels.json`, `palette/form-setting-off.json`,
   `palette/form-binding.json`, `palette/form-look.json`; tests in
-  `palette_form_test.go`. A path parameter's field opens the path chooser
+  `palette_form_test.go`. A path parameter's field opens the path picker
   (R7.8): a stop whose `enter`, `space` or `i` opens it (`path.field`
   `picker`, the default), or a text field whose `ctrl+space` (and `enter`
   in normal mode) opens it (`text`); a pick is written at once. A form
-  that opens on a missing path stop opens its chooser over it, so typing
+  that opens on a missing path stop opens its picker over it, so typing
   reaches the path. When the only missing required parameter is a path,
-  `forms.single-path` says what opens (P9): `chooser` (default) the path
-  chooser alone, its pick running the action (optional parameters left
+  `forms.single-path` says what opens (P9): `picker` (default) the path
+  picker alone, its pick running the action (optional parameters left
   out, esc runs nothing); `alone` the same only when the path is the
   verb's one parameter, else the form; `form` always the form.
   `TestPathFormField`, `TestPathArgsForm`; stories
-  `palette/form-single-path-opens-chooser.json`,
+  `palette/form-single-path-opens-picker.json`,
   `palette/form-single-path-esc-cancels.json`,
   `palette/form-single-path-setting-form.json`,
   `palette/form-path-with-optional.json`.

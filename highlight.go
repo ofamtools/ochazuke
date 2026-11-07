@@ -13,7 +13,7 @@ func (r *Runtime) moveHighlight(current, delta, count int, wrap bool) int {
 		if delta > 0 {
 			return 0
 		}
-		if r.Settings().String("chooser.up-from-none") == "stay" {
+		if r.Settings().String("picker.up-from-none") == "stay" {
 			return -1
 		}
 		return count - 1

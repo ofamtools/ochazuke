@@ -634,6 +634,7 @@ func (r *Runtime) registerFramework() {
 	registerPages(r)
 	registerPickerRegistry(r)
 	registerModalAliases(r)
+	registerPickerAliases(r)
 	registerLists(r)
 	registerTrees(r)
 	registerTimelines(r)
@@ -958,7 +959,9 @@ func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, err
 		defer r.forceSource(q.source)()
 	}
 
-	r.NoteNounAlias(q.Noun)            // a request spelled by a deprecated noun alias: its one-time notice
+	if _, ok := r.spelledAlias(q); !ok {
+		r.NoteNounAlias(q.Noun) // a request spelled by a deprecated noun alias: its one-time notice (a renamed verb's alias posts its own)
+	}
 	q, notices := r.UseParamAliases(q) // an alias's old parameter names: their one-time notices
 	for _, text := range notices {
 		r.UI().Notify(text)

@@ -143,7 +143,7 @@ func (l *List) columnNamed(name string) (int, error) {
 
 func registerTablePins(r *Runtime, cells func(Context, Arguments) (*List, error)) {
 	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
-	column := Parameter{Type: "string", Description: "A column title, or its number in declaration order (1 the first); default the current column (cell mode), else a chooser"}
+	column := Parameter{Type: "string", Description: "A column title, or its number in declaration order (1 the first); default the current column (cell mode), else a picker"}
 	// act runs change on the column the request names, else the current
 	// column of a cell-mode table, else the column chosen from a chooser.
 	act := func(verb string, change func(l *List, i int)) Operation {

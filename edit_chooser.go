@@ -8,7 +8,7 @@ import (
 // place of the one-field form, and the field it opens on: only when the
 // field takes a choice (editKindOf: choose, the form's own test, so a
 // free text field keeps its form), and then as the request's chooser
-// argument says, else when edit.field-only and edit.field-chooser are both
+// argument says, else when edit.field-only and edit.field-picker are both
 // on. Nothing here names a noun or a prop: the prop's kind decides.
 func (r *Runtime) editByChooser(args Arguments, only *PropSpec, fieldOnly bool, fields []RecordField) (RecordField, bool) {
 	if only == nil {

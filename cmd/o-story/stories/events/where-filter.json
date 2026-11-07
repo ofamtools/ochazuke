@@ -7,7 +7,7 @@
       {"verb": "demo.edit", "description": "Change a thing"},
       {"verb": "demo.synced", "description": "Record a sync", "parameters": {"reason": {"type": "string"}}}
     ],
-    "bind": [{"noun": "ochazuke.chooser", "mode": "insert", "keys": "ctrl+e", "do": "demo.edit"}]
+    "bind": [{"noun": "ochazuke.picker", "mode": "insert", "keys": "ctrl+e", "do": "demo.edit"}]
   },
   "config": {
     "hooks.json": [

@@ -183,6 +183,17 @@ func (r *Runtime) canonicalRequest(q Request) Request {
 			}
 		}
 	}
+	if a, ok := r.spelledAlias(q); ok {
+		// An alias spelled under a renamed noun's old name: its own
+		// action, not the new noun's verb of the old verb's name.
+		if op, ok := r.Operations[a.Action]; ok {
+			if q.Via == "" {
+				q.Via = a.Alias
+			}
+			q.Noun, q.Verb = op.Noun, op.Verb
+			return withAliasArgs(op, q, a)
+		}
+	}
 	q.Noun = r.CanonicalNoun(q.Noun)
 	if q.Verb == "" {
 		return q
@@ -225,8 +236,8 @@ func (r *Runtime) Operation(key string) (Operation, bool) {
 // application registers a noun named alias, which then owns the name. The
 // framework registers one per framework noun (settings for ochazuke.settings);
 // a host mounting an extension's nouns under a namespace (json.doc) gives
-// each its bare name (doc) the same way. An alias holding a dot is refused,
-// as is one that already names another noun (Unalias it first). See
+// each its bare name (doc) the same way. An alias holding a dot is refused
+// (a deprecated one may: AddNounAlias), as is one that already names another noun (Unalias it first). See
 // AddNounAlias for a deprecated alias.
 func (r *Runtime) Alias(alias, noun string) error {
 	return r.AddNounAlias(NounAlias{Alias: alias, Noun: noun})
@@ -237,7 +248,10 @@ func (r *Runtime) Alias(alias, noun string) error {
 // one-time notice naming the noun (and a bindings check note for a row
 // spelled by it), but never completed, listed in the CLI's help or drawn
 // (DisplayNoun). Note is free text added to the notice. Shadowed is
-// ignored. Registering the same alias again replaces its fields.
+// ignored. Registering the same alias again replaces its fields. Only a
+// deprecated alias may hold a dot: the old canonical name of a renamed
+// noun (ochazuke.chooser for ochazuke.picker), never a registered noun's;
+// RenameNoun registers one with the verbs whose names changed.
 func (r *Runtime) AddNounAlias(a NounAlias) error {
 	alias, noun := a.Alias, a.Noun
 	switch {
@@ -245,8 +259,10 @@ func (r *Runtime) AddNounAlias(a NounAlias) error {
 		return fmt.Errorf("alias and noun must be nonempty")
 	case alias == noun:
 		return fmt.Errorf("alias %q names itself", alias)
-	case strings.Contains(alias, "."):
+	case strings.Contains(alias, ".") && !a.Deprecated():
 		return fmt.Errorf("alias %q holds a dot", alias)
+	case strings.Contains(alias, ".") && r.Nouns[alias] != nil:
+		return fmt.Errorf("alias %q is a registered noun", alias)
 	}
 	if prev, ok := r.aliases[alias]; ok && prev != noun {
 		return fmt.Errorf("alias %q already names %s", alias, prev)

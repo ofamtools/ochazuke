@@ -12,7 +12,7 @@
     ],
     "focus": "doc/file"
   },
-  "script": ["A", {"type": "x.md"}, "ctrl+space", {"job": "chooser.load"}, {"type": "a."}, "enter"],
+  "script": ["A", {"type": "x.md"}, "ctrl+space", {"job": "picker.load"}, {"type": "a."}, "enter"],
   "expect": [
     {"after": 2, "mode": "insert", "contains": ["x.md"]},
     {"after": 4, "modal": "path-chooser", "contains": ["a.json"]},

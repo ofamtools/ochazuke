@@ -177,7 +177,7 @@ func docVerbs() []docVerb {
 		{"note", "Add a note under the list item: insert mode in a new note line after its notes, signed by the note author (the markdown.note-author setting) and dated today", plain((*Doc).AddNote), false},
 		{"resolve", "Mark the note under the cursor resolved (✓ after its date), or open again; it stays in the file", plain((*Doc).Resolve), false},
 		{"fold", "Fold or unfold the list item's notes; a folded item shows how many are open", plain((*Doc).Fold), false},
-		{"outline", "Jump to a heading: a chooser over the document's headings", plain((*Doc).Outline), false},
+		{"outline", "Jump to a heading: a picker over the document's headings", plain((*Doc).Outline), false},
 		{"leave", "Leave the block editor: the block is written, tidied (table pipes aligned, numbers renumbered) and drawn again", plain((*Doc).Leave), false},
 		{"continue-item", "Enter on a list item: end it at the cursor and start the next item below, the rest of the line in it", plain((*Doc).ContinueItem), false},
 		{"end-list", "Enter on an empty list item: drop it and start a paragraph after the list", plain((*Doc).EndList), false},

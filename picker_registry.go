@@ -494,7 +494,7 @@ var pickerProps = []PropSpec{
 	{Name: "keys", ReadOnly: true, Parameter: Parameter{Description: "The keys bound to open it, separated by spaces"}},
 	{Name: "source", ReadOnly: true, Parameter: Parameter{Description: "The verb its rows come from; empty is the noun's list"}},
 	{Name: "preview", ReadOnly: true, Parameter: Parameter{Description: "The verb run on the highlighted row for its preview"}},
-	{Name: "pick", ReadOnly: true, Parameter: Parameter{Description: "The verb run on the picked row"}},
+	{Name: "pick-verb", ReadOnly: true, Parameter: Parameter{Description: "The verb run on the picked row (PickerDef.Pick; a prop named pick would clash with the pick verb)"}},
 	{Name: "verb", ReadOnly: true, Parameter: Parameter{Description: "The verb that opens it, when it opens by one"}},
 	{Name: "match", ReadOnly: true, Parameter: Parameter{Description: "The match mode it opens in"}},
 }
@@ -505,7 +505,7 @@ func (r *Runtime) pickerRow(def PickerDef) Thing {
 	if def.Noun != "" {
 		row["noun"] = r.CanonicalNoun(def.Noun)
 	}
-	for field, text := range map[string]string{"about": def.About, "source": def.Source, "preview": def.Preview, "pick": def.Pick, "verb": def.Verb, "match": def.Match} {
+	for field, text := range map[string]string{"about": def.About, "source": def.Source, "preview": def.Preview, "pick-verb": def.Pick, "verb": def.Verb, "match": def.Match} {
 		if text != "" {
 			row[field] = text
 		}

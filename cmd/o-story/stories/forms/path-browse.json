@@ -11,7 +11,7 @@
     ],
     "focus": "doc/file"
   },
-  "script": ["enter", {"job": "chooser.load"}, {"type": "su"}, "enter", {"job": "chooser.load"}, "backspace", {"job": "chooser.load"}, {"type": "b.t"}, "enter"],
+  "script": ["enter", {"job": "picker.load"}, {"type": "su"}, "enter", {"job": "picker.load"}, "backspace", {"job": "picker.load"}, {"type": "b.t"}, "enter"],
   "expect": [
     {"after": 1, "modal": "path-chooser", "contains": ["Choose file · [browse", "loading…"]},
     {"after": 2, "contains": ["sub/", "a.json", "b.txt"]},

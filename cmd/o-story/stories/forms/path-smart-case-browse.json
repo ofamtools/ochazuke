@@ -11,7 +11,7 @@
     ],
     "focus": "doc/file"
   },
-  "script": ["enter", {"job": "chooser.load"}, {"type": "read"}, "ctrl+u", {"type": "READ"}],
+  "script": ["enter", {"job": "picker.load"}, {"type": "read"}, "ctrl+u", {"type": "READ"}],
   "expect": [
     {"after": 2, "modal": "path-chooser", "contains": ["README.md", "readme.txt", "notes.txt"]},
     {"after": 3, "contains": ["README.md", "readme.txt"], "lacks": ["notes.txt"]},

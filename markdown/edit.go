@@ -1060,14 +1060,14 @@ func kindClass(kind string) string {
 
 // Headings are the document's headings as chooser rows (their element
 // index as the data).
-func (d *Doc) headings() []ochazuke.ChooserRow {
-	var rows []ochazuke.ChooserRow
+func (d *Doc) headings() []ochazuke.PickerRow {
+	var rows []ochazuke.PickerRow
 	for i, e := range d.elems {
 		if e.Kind != KindHeading {
 			continue
 		}
 		title := strings.TrimSpace(strings.TrimLeft(firstLine(d.text[e.Start:e.End]), "#"))
-		rows = append(rows, ochazuke.ChooserRow{ID: "heading/" + strconv.Itoa(i), Label: strings.Repeat("  ", max(0, e.Level-1)) + title, Data: i, Cells: []string{strings.Repeat("  ", max(0, e.Level-1)) + title, "line " + strconv.Itoa(e.Line)}})
+		rows = append(rows, ochazuke.PickerRow{ID: "heading/" + strconv.Itoa(i), Label: strings.Repeat("  ", max(0, e.Level-1)) + title, Data: i, Cells: []string{strings.Repeat("  ", max(0, e.Level-1)) + title, "line " + strconv.Itoa(e.Line)}})
 	}
 	return rows
 }
@@ -1082,7 +1082,7 @@ func (d *Doc) Outline() error {
 	if len(rows) == 0 {
 		return errors.New("no headings")
 	}
-	_, err := d.r.OpenChooser(ochazuke.ChooserSpec{Kind: "markdown-outline", Title: "Headings", Rows: rows, Choose: func(row ochazuke.ChooserRow) ochazuke.Result {
+	_, err := d.r.OpenPicker(ochazuke.PickerSpec{Kind: "markdown-outline", Title: "Headings", Rows: rows, Choose: func(row ochazuke.PickerRow) ochazuke.Result {
 		i, _ := row.Data.(int)
 		if err := d.SelectElement(i); err != nil {
 			return ochazuke.Failed(err)

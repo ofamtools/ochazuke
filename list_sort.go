@@ -510,7 +510,7 @@ func registerListSort(r *Runtime) {
 		if params == nil {
 			params = map[string]Parameter{}
 		}
-		params["id"] = Parameter{Type: "string", Description: "List, tree or chooser; default focused row view"}
+		params["id"] = Parameter{Type: "string", Description: "List, tree or picker; default focused row view"}
 		run := s.run
 		r.Register(Operation{Noun: "ochazuke.list", Verb: s.verb, Description: s.description, Parameters: params, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l := resolve(focusOf(c), a)

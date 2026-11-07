@@ -89,7 +89,7 @@
       ],
       "lacks": [
         "path.start",
-        "Choosers"
+        "Pickers"
       ]
     },
     {
