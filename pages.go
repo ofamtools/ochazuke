@@ -84,6 +84,9 @@ type Placement struct {
 	// Focus and FocusHeight are the focused lines, relative to Line.
 	Focus       int `json:"focus"`
 	FocusHeight int `json:"focusHeight"`
+	// Screen is the text lines an input's view showed (InputBlock), which
+	// H, M and L move within; zero for other views.
+	Screen InputScreen `json:"screen,omitzero"`
 }
 
 // placeMark opens the zero-width marker PlacedAt puts on a view's first
@@ -176,6 +179,46 @@ func (r *Runtime) Placed(id string) {
 	if page := r.renderingPage(id); page != nil {
 		page.drawing = append(page.drawing, Placement{ID: id, Line: -1})
 	}
+}
+
+// placedScreen records on id's placement in the frame being drawn the
+// text lines its input view shows. Outside a render it does nothing.
+func (r *Runtime) placedScreen(id string, s InputScreen) {
+	if r == nil {
+		return
+	}
+	set := func(list []Placement) {
+		for i := len(list) - 1; i >= 0; i-- {
+			if list[i].ID == id {
+				list[i].Screen = s
+				return
+			}
+		}
+	}
+	for _, at := range r.Ancestry(id) {
+		if inst := r.Instances[at]; inst != nil && inst.rendering {
+			set(inst.drawn)
+			return
+		}
+	}
+	if page := r.renderingPage(id); page != nil {
+		set(page.drawing)
+	}
+}
+
+// drawnScreen is the text lines the last frame showed of input id (its
+// last placement that recorded them), zero before its first draw.
+func (r *Runtime) drawnScreen(id string) InputScreen {
+	if r == nil {
+		return InputScreen{}
+	}
+	drawn := r.drawnUnder(id)
+	for i := len(drawn) - 1; i >= 0; i-- {
+		if drawn[i].ID == id && drawn[i].Screen.Count > 0 {
+			return drawn[i].Screen
+		}
+	}
+	return InputScreen{}
 }
 
 // PlacedAt records where the view text of instance id holds the focus

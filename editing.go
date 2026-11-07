@@ -5,16 +5,17 @@ import (
 	"unicode"
 )
 
-func (in *Input) lineBounds(cursor int) (int, int) {
-	cursor = max(0, min(cursor, len(in.Text)))
-	start, end := cursor, cursor
-	for start > 0 && in.Text[start-1] != '\n' {
-		start--
-	}
-	for end < len(in.Text) && in.Text[end] != '\n' {
-		end++
-	}
-	return start, end
+func (in *Input) lineBounds(cursor int) (int, int) { return TextLineBounds(in.Text, cursor) }
+
+// Runes is the input's text (TextBuffer).
+func (in *Input) Runes() []rune { return in.Text }
+
+// ScreenLines is the lines the input's last draw showed (TextBuffer): the
+// window InputBlock recorded on its placement (Placement.Screen); none
+// before a draw, which reads as the whole text.
+func (in *Input) ScreenLines() (first, count int) {
+	s := in.r.drawnScreen(in.ID)
+	return s.First, s.Count
 }
 
 func (in *Input) clampCursor() {
@@ -27,103 +28,33 @@ func (in *Input) clampCursor() {
 	}
 }
 
-func wordClass(ch rune) int {
-	if unicode.IsSpace(ch) {
-		return 0
+// move runs the motion named name from the cursor: steps times, or to
+// line for G and gg.
+func (in *Input) move(name string, steps, line int) error {
+	m, ok := motions[name]
+	if !ok {
+		return errors.New("unknown input motion")
 	}
-	if unicode.IsLetter(ch) || unicode.IsDigit(ch) || unicode.IsMark(ch) || ch == '_' {
-		return 1
-	}
-	return 2
+	return in.moveBy(m, steps, line)
 }
 
-func (in *Input) wordForward(cursor int) int {
-	if cursor >= len(in.Text) {
-		return len(in.Text)
-	}
-	class := wordClass(in.Text[cursor])
-	for cursor < len(in.Text) && wordClass(in.Text[cursor]) == class {
-		cursor++
-	}
-	for cursor < len(in.Text) && wordClass(in.Text[cursor]) == 0 {
-		cursor++
-	}
-	return cursor
-}
-
-func (in *Input) wordBackward(cursor int) int {
-	if cursor == 0 {
-		return 0
-	}
-	cursor--
-	for cursor > 0 && wordClass(in.Text[cursor]) == 0 {
-		cursor--
-	}
-	class := wordClass(in.Text[cursor])
-	for cursor > 0 && wordClass(in.Text[cursor-1]) == class {
-		cursor--
-	}
-	return cursor
-}
-
-func (in *Input) wordEnd(cursor int) int {
-	if cursor >= len(in.Text)-1 {
-		return max(0, len(in.Text)-1)
-	}
-	cursor++
-	for cursor < len(in.Text)-1 && wordClass(in.Text[cursor]) == 0 {
-		cursor++
-	}
-	class := wordClass(in.Text[cursor])
-	for cursor < len(in.Text)-1 && wordClass(in.Text[cursor+1]) == class {
-		cursor++
-	}
-	return cursor
-}
-
-func (in *Input) readlineWordForward(cursor int) int {
-	for cursor < len(in.Text) && wordClass(in.Text[cursor]) != 1 {
-		cursor++
-	}
-	for cursor < len(in.Text) && wordClass(in.Text[cursor]) == 1 {
-		cursor++
-	}
-	return cursor
-}
-
-func (in *Input) readlineWordBackward(cursor int) int {
-	for cursor > 0 && wordClass(in.Text[cursor-1]) != 1 {
-		cursor--
-	}
-	for cursor > 0 && wordClass(in.Text[cursor-1]) == 1 {
-		cursor--
-	}
-	return cursor
-}
-
-func (in *Input) move(motion string, steps, line int) error {
+// moveBy moves the cursor by m. A motion closes an open select range and
+// keeps its text; a motion with a SelectEdge lands on its edge first.
+func (in *Input) moveBy(m Motion, steps, line int) error {
 	if steps < 1 {
 		return errors.New("steps must be positive")
 	}
 	if line < 0 {
 		return errors.New("line must be positive or omitted")
 	}
-	switch motion {
-	case "left", "right", "up", "down", "word-forward", "word-backward", "word-end", "word-next", "word-previous", "line-start", "line-end", "first-line", "last-line":
-	default:
-		return errors.New("unknown input motion")
-	}
 	in.resetKeys()
-	// A motion closes an open select range and keeps its text; left and
-	// right land on its edges, as a text field's arrows do.
 	if lo, hi, ok := in.SelectedText(); ok {
 		in.typeOver = nil
-		switch motion {
-		case "left":
-			in.Cursor = lo
-			steps--
-		case "right":
+		if m.SelectEdge != 0 {
 			in.Cursor = hi
+			if m.SelectEdge < 0 {
+				in.Cursor = lo
+			}
 			steps--
 		}
 		if steps == 0 {
@@ -132,90 +63,23 @@ func (in *Input) move(motion string, steps, line int) error {
 		}
 	}
 	in.clampCursor()
-	start, end := in.lineBounds(in.Cursor)
-	steps = min(steps, len(in.Text)+1)
-	if motion != "up" && motion != "down" {
-		in.goalColumn = -1
-	}
-	switch motion {
-	case "left":
-		lower := 0
-		if in.cursorOnChar() {
-			lower = start
-		}
-		in.Cursor = max(lower, in.Cursor-steps)
-	case "right":
-		upper := len(in.Text)
-		if in.cursorOnChar() {
-			upper = max(start, end-1)
-		}
-		in.Cursor = min(upper, in.Cursor+steps)
-	case "up", "down":
-		if in.goalColumn < 0 {
-			in.goalColumn = cellWidth(string(in.Text[start:in.Cursor]))
-		}
-		for ; steps > 0; steps-- {
-			if motion == "up" {
-				if start == 0 {
-					break
-				}
-				start, end = in.lineBounds(start - 1)
-			} else {
-				if end == len(in.Text) {
-					break
-				}
-				start, end = in.lineBounds(end + 1)
-			}
-		}
-		limit := end
-		if in.cursorOnChar() {
-			limit = max(start, end-1)
-		}
-		in.Cursor = start + runeOffsetAtColumn(in.Text[start:end], in.goalColumn, limit-start)
-	case "word-forward", "word-backward", "word-end", "word-next", "word-previous":
-		for ; steps > 0; steps-- {
-			old := in.Cursor
-			switch motion {
-			case "word-forward":
-				in.Cursor = in.wordForward(in.Cursor)
-			case "word-backward":
-				in.Cursor = in.wordBackward(in.Cursor)
-			case "word-end":
-				in.Cursor = in.wordEnd(in.Cursor)
-			case "word-next":
-				in.Cursor = in.readlineWordForward(in.Cursor)
-			case "word-previous":
-				in.Cursor = in.readlineWordBackward(in.Cursor)
-			}
-			if old == in.Cursor {
-				break
-			}
-		}
-	case "line-start":
-		in.Cursor = start
-	case "line-end":
-		for ; steps > 1 && end < len(in.Text); steps-- {
-			start, end = in.lineBounds(end + 1)
-		}
-		in.Cursor = end
-	case "first-line", "last-line":
-		if line == 0 && motion == "last-line" {
-			in.Cursor = len(in.Text)
-			in.Cursor, _ = in.lineBounds(in.Cursor)
-		} else {
-			line = max(1, line)
-			in.Cursor = 0
-			for ; line > 1; line-- {
-				_, end = in.lineBounds(in.Cursor)
-				if end == len(in.Text) {
-					break
-				}
-				in.Cursor = end + 1
-			}
-		}
+	if pos, ok := m.To(in, in.motionArgs(m, min(steps, len(in.Text)+1), line)); ok {
+		in.Cursor = pos
 	}
 	in.clampCursor()
 	return nil
+}
+
+// motionArgs are m's arguments from the cursor. They set the goal column
+// a KeepsGoal motion keeps and clear it for the others.
+func (in *Input) motionArgs(m Motion, steps, line int) MotionArgs {
+	if !m.KeepsGoal {
+		in.goalColumn = -1
+	} else if in.goalColumn < 0 {
+		start, _ := in.lineBounds(in.Cursor)
+		in.goalColumn = cellWidth(string(in.Text[start:in.Cursor]))
+	}
+	return MotionArgs{Pos: in.Cursor, Steps: steps, Line: line, Goal: in.goalColumn, OnChar: in.cursorOnChar()}
 }
 
 func (in *Input) begin(position string) error {
@@ -284,37 +148,12 @@ func (in *Input) deleteRunes(direction string, steps int) error {
 	return in.Replace(start, end, "")
 }
 
-func (in *Input) killRange(motion string) (int, int, error) {
-	start, end := in.Cursor, in.Cursor
-	lineStart, lineEnd := in.lineBounds(in.Cursor)
-	switch motion {
-	case "word-backward":
-		for start > 0 && unicode.IsSpace(in.Text[start-1]) {
-			start--
-		}
-		// A slash is a component boundary; punctuation inside a filename is not.
-		if start > 0 && in.Text[start-1] == '/' {
-			start--
-		}
-		for start > 0 && !unicode.IsSpace(in.Text[start-1]) && in.Text[start-1] != '/' {
-			start--
-		}
-	case "word-previous":
-		// What alt+b moves over: back to the start of the word before the
-		// cursor, punctuation and spaces in between included.
-		start = in.readlineWordBackward(start)
-	case "word-next":
-		// What alt+f moves over: on to the end of the next word.
-		end = in.readlineWordForward(end)
-	case "line-start":
-		start = lineStart
-	case "line-end":
-		end = lineEnd
-		if start == end && end < len(in.Text) && in.Multiline {
-			end++
-		}
-	default:
+// killRange is the span input.kill removes for its motion argument.
+func (in *Input) killRange(name string) (int, int, error) {
+	m, ok := killMotions[name]
+	if !ok {
 		return 0, 0, errors.New("unknown kill motion")
 	}
-	return start, end, nil
+	to, _ := m.To(in, MotionArgs{Pos: in.Cursor, Steps: 1})
+	return min(in.Cursor, to), max(in.Cursor, to), nil
 }

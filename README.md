@@ -497,6 +497,9 @@ Macro recording starts on `Q` (Vim's `q`: here `q` closes modals and viewers, on
 |---|---|---|
 | Normal input | `h j k l`, arrows | Rune/line movement |
 | Normal input | `w b e`, `0 $`, `gg G` | Word, line, and document motions |
+| Normal input | `W B E`, `%` | WORD motions (blank-separated), bracket match |
+| Normal input | `H M L` | First, middle and last line on screen |
+| Multiline normal input | `} {` | Next/previous paragraph (empty line); a single-line input leaves them to the stops |
 | Normal input | `i a I A` | Insert here, after cursor, at first nonblank, or at line end |
 | Multiline normal input | `o O` | Open a line below/above and insert |
 | Normal input | `x`, `u`, `Ctrl-R` | Delete, undo, redo |
@@ -1757,6 +1760,20 @@ The order, nearest first: a pinned input's mode, the instance's `Pin`, its noun'
 Compared with Vim: Vim's mode follows the window only through autocommands (`:help WinEnter`, `:help BufEnter`, often used to `:startinsert` in a terminal window, `:help startinsert`); here the pane declares it as data. `esc` to the declared mode generalises Vim's `<Esc>` always landing in Normal (`:help i_<Esc>`).
 
 Text fields, single-line text inputs, and multiline text areas support the basic Vim motions and Readline bindings listed above. Normal mode interprets Vim keys; insert mode interprets Readline keys. Full Vim compatibility is not implied.
+
+### The motion table
+
+Every text motion is a row of one table, `motions` (`motions.go`): a name (the `motion` argument of `input.move` and `input.operator`) mapped to `Motion{Linewise, Inclusive, KeepsGoal, SelectEdge, Change, To}`. `To(b TextBuffer, MotionArgs) (pos, ok)` says where it lands; the flags say how an operator reads the span (whole lines, the end character included, `cw`'s change-to-word-end), so `Input` moves the cursor, counts, extends a visual selection and builds every operator range (`dW`, `d}`, `y%`) from the row, with no branch on a name. `TextBuffer` is two methods, `Runes()` and `ScreenLines() (first, count)`; `Input` implements it (its screen is the lines its last `InputBlock` showed, recorded on the frame's `Placement.Screen`), and an application's own text buffer (a terminal's copy mode) can implement it and look rows up with `TextMotion(name)` (`MotionNames()` lists them; `TextLineBounds` and `ClampOnChar` are the line helpers). `input.kill`'s readline spans are a second table, `killMotions`. Grid, list and table motions are cell motions and stay with their components. The rows: `left`, `right`, `up`, `down`, `line` (`dd`), `word-forward`, `word-backward`, `word-end`, `WORD-forward`, `WORD-backward`, `WORD-end`, `word-next`, `word-previous`, `line-start`, `line-end`, `first-line`, `last-line`, `paragraph-forward`, `paragraph-backward`, `screen-top`, `screen-middle`, `screen-bottom`, `match`. The keys are rows of `bindings/editor.json` in normal, visual and operator-pending modes; unbinding a row turns its key off. `}` and `{` are guarded `multiline` and are capture rows in normal mode, so inside a multiline input they move by paragraphs and from a single-line input they still walk the stops in drawing order. Stories: `editor/word-motions`, `editor/paragraph-motions`, `editor/percent`, `editor/screen-motions`.
+
+Compared with Vim:
+
+| Vim form | `:help` tag | ochazuke |
+|---|---|---|
+| `w`, `b`, `e` | `word-motions` | Same (unchanged rows, now table rows) |
+| `W`, `B`, `E` | `WORD` | Same, with counts, operators (`dW`, `cW` changes to the WORD's end as `:help cw`) and visual extension |
+| `}`, `{` | `}` | Similar: a paragraph ends at an empty line (a line of blanks is not one, as in Vim). Only in multiline inputs; between stops `}`/`{` keep their drawing-order meaning. `d}` from inside a line stops at the end of the line before the empty one (`:help exclusive`); from an indented line's first non-blank it keeps the indentation where Vim turns the motion linewise |
+| `H`, `M`, `L` | `H` | Same, within the lines the last frame showed; `'scrolloff'` is not applied. A buffer that shows whole (or was never drawn) counts as one screen. An input drawn with `InputBlock` keeps its cursor row in view by scrolling, so a view is steady where it keeps its top (the text view) |
+| `%` | `%` | Same for `()`, `[]` and `{}` (nesting of the same kind, across lines; no `matchpairs`, quotes or comments). `{count}%` (go to N percent) is not supported: a count is ignored |
 
 ## Input-local editing and undo
 

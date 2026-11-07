@@ -122,3 +122,29 @@ func InputRows(in *Input, width int) int {
 	breaks, _ := in.wrapBreaks(max(1, width), min(max(0, in.Cursor), len(in.Text)))
 	return rows + len(breaks)
 }
+
+// screenOf is the text lines the rows [start, start+height) of a draw
+// show, breaks being its soft wraps.
+func (in *Input) screenOf(breaks map[int]int, start, height int) InputScreen {
+	row, line, first, last := 0, 0, -1, 0
+	for i := 0; i <= len(in.Text); i++ {
+		if _, ok := breaks[i]; ok {
+			row++
+		}
+		if row >= start+height {
+			break
+		}
+		if row >= start {
+			if first < 0 {
+				first = line
+			}
+			last = line
+		}
+		if i < len(in.Text) && in.Text[i] == '\n' {
+			row++
+			line++
+		}
+	}
+	first = max(0, first)
+	return InputScreen{First: first, Count: max(1, last-first+1)}
+}

@@ -112,41 +112,7 @@ detail.go	Detail.MoveToEdge	compare	"last"	1
 editing.go	Input.begin	case	"append"	2
 editing.go	Input.begin	case	"end"	2
 editing.go	Input.begin	case	"insert"	1	the input.begin position argument (insert/append/first/...), not the insert mode
-editing.go	Input.killRange	case	"line-end"	1
-editing.go	Input.killRange	case	"line-start"	1
-editing.go	Input.killRange	case	"word-backward"	1
-editing.go	Input.killRange	case	"word-next"	1
-editing.go	Input.killRange	case	"word-previous"	1
-editing.go	Input.move	case	"down"	2
-editing.go	Input.move	case	"first-line"	2
-editing.go	Input.move	case	"last-line"	2
-editing.go	Input.move	case	"left"	3
-editing.go	Input.move	case	"line-end"	2
-editing.go	Input.move	case	"line-start"	2
-editing.go	Input.move	case	"right"	3
-editing.go	Input.move	case	"up"	2
-editing.go	Input.move	case	"word-backward"	3
-editing.go	Input.move	case	"word-end"	3
-editing.go	Input.move	case	"word-forward"	3
-editing.go	Input.move	case	"word-next"	3
-editing.go	Input.move	case	"word-previous"	3
-editing.go	Input.move	compare	"down"	1
-editing.go	Input.move	compare	"last-line"	1
-editing.go	Input.move	compare	"up"	2
-editing.go	Input.move	cyclo	"-"	38
 editor.go	Input.checkPaste	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorEnd	case	"right"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorEnd	case	"word-forward"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorEnd	case	"word-next"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorEnd	compare	"word-next"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorSelect	compare	"down"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorSelect	compare	"first-line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorSelect	compare	"last-line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorSelect	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorSelect	compare	"line-end"	2	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorSelect	compare	"up"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorSelect	compare	"word-end"	2	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
-editor.go	Input.operatorSelect	compare	"word-forward"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.pasteOverLines	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.pasteOverSelection	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.pasteYank	case	"line"	1

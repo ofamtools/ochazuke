@@ -66,6 +66,10 @@ type Input struct {
 	r        *Runtime // set by AddInput; while the input is focused its mode is r.Mode
 }
 
+// InputScreen is the text lines a draw of an input showed: the first
+// (0-based) and how many; zero is none recorded.
+type InputScreen struct{ First, Count int }
+
 // NewInput returns an input in normal mode holding text, with text as its undo root.
 func NewInput(id, text string, multiline bool) *Input {
 	in := &Input{ID: id, Text: []rune(text), Mode: "normal", Multiline: multiline, groupNode: -1, goalColumn: -1}
@@ -493,7 +497,7 @@ func RegisterInputOperations(r *Runtime) {
 		}, true, Operation{Repeatable: true, HistoryKind: HistoryChange}},
 		{"undo", "Undo changes in this input", map[string]Parameter{"steps": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Undo(IntArg(a, "steps", 1)) }, true, Operation{HistoryKind: HistoryChange}},
 		{"redo", "Redo changes; branch is a zero-based child index for the first step", map[string]Parameter{"steps": {Type: "integer"}, "branch": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Redo(IntArg(a, "steps", 1), IntArg(a, "branch", -1)) }, true, Operation{HistoryKind: HistoryChange}},
-		{"move", "Move by left/right/up/down, Vim word-forward/backward/end, Readline word-next/previous, line-start/end, first-line/last-line", map[string]Parameter{"motion": {Type: "string", Required: true}, "steps": {Type: "integer"}, "line": {Type: "integer"}}, func(in *Input, a Arguments) error {
+		{"move", "Move by a text motion: left/right/up/down, Vim word- and WORD-forward/backward/end, Readline word-next/previous, line-start/end, first-line/last-line, paragraph-forward/backward, screen-top/middle/bottom, match (%)", map[string]Parameter{"motion": {Type: "string", Required: true}, "steps": {Type: "integer"}, "line": {Type: "integer"}}, func(in *Input, a Arguments) error {
 			return in.move(StringArg(a, "motion", ""), IntArg(a, "steps", 1), IntArg(a, "line", 0))
 		}, false, Operation{Motion: true, HistoryKind: HistoryAction}},
 		{"begin", "Enter insert mode at insert/append/first/end/below/above", map[string]Parameter{"position": {Type: "string"}}, func(in *Input, a Arguments) error { return in.begin(StringArg(a, "position", "insert")) }, true, Operation{}},

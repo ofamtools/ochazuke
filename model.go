@@ -1452,6 +1452,7 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 	}
 	wrapAt(runeIndex)
 	writeLineEnd(false, cursor == len(in.Text))
+	in.r.placedScreen(in.ID, in.screenOf(breaks, start, height))
 	text := body.String()
 	// The page keeps the whole box on screen when it follows the focus.
 	text = in.r.PlacedAt(in.ID, text, 0, strings.Count(text, "\n")+1)

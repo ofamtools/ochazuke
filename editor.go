@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
@@ -380,81 +381,52 @@ func editorOperator(r *Runtime, in *Input, a Arguments) error {
 }
 
 // operatorSelect selects what an operator without a selection acts on:
-// whole lines, or the span of a motion. done is true when the motion
-// went nowhere and the operator has nothing to do.
+// the span of a motion (whole lines for a linewise one; "line", the
+// default, is dd's). done is true when the motion went nowhere and the
+// operator has nothing to do.
 func (in *Input) operatorSelect(a Arguments, op string, steps int) (done bool, err error) {
 	oldCursor, oldMode := in.Cursor, in.Mode
-	motion := StringArg(a, "motion", "line")
-	changeWord := op == "c" && motion == "word-forward" && oldCursor < len(in.Text) && wordClass(in.Text[oldCursor]) != 0
-	if changeWord {
-		motion = "word-end"
+	m, ok := motions[StringArg(a, "motion", "line")]
+	if !ok {
+		return false, errors.New("unknown input motion")
 	}
-	if motion == "line" {
-		in.SetMode("visual-line")
-		for n := 1; n < steps; n++ {
-			_, end := in.lineBounds(in.Cursor)
-			if end == len(in.Text) {
-				break
-			}
-			in.Cursor = end + 1
-		}
-		return false, nil
+	if op == "c" && m.Change != nil && oldCursor < len(in.Text) && !unicode.IsSpace(in.Text[oldCursor]) {
+		m = *m.Change
 	}
-	if err := in.move(motion, steps, IntArg(a, "line", 0)); err != nil {
-		return false, err
+	line := IntArg(a, "line", 0)
+	if line < 0 {
+		return false, errors.New("line must be positive or omitted")
 	}
-	destination := in.operatorEnd(motion, oldCursor, steps, changeWord)
+	in.resetKeys()
+	args := in.motionArgs(m, min(steps, len(in.Text)+1), line)
+	args.Operator = true
+	destination, moved := m.To(in, args)
+	if !moved {
+		in.storeMode(oldMode)
+		in.resetKeys()
+		return true, nil
+	}
+	if (m.Inclusive || m.Linewise) && args.OnChar {
+		destination = ClampOnChar(in.Text, destination)
+	}
 	in.Cursor = destination
 	in.storeMode("visual")
 	in.Anchor = oldCursor
-	if motion == "up" || motion == "down" || motion == "first-line" || motion == "last-line" {
+	switch {
+	case m.Linewise:
 		in.storeMode("visual-line")
-	} else if destination > oldCursor && motion != "word-end" && motion != "line-end" {
+	case m.Inclusive:
+	case destination > oldCursor:
 		in.Cursor--
-	} else if destination < oldCursor {
+	case destination < oldCursor:
 		in.Anchor--
 	}
-	if destination == oldCursor && motion != "word-end" && motion != "line-end" {
+	if destination == oldCursor && !m.Inclusive {
 		in.storeMode(oldMode)
 		in.resetKeys()
 		return true, nil
 	}
 	return false, nil
-}
-
-// operatorEnd is where an operator's motion ends. Operator endpoints are
-// half-open: unlike a normal cursor, w/l may reach the end of the final
-// line.
-func (in *Input) operatorEnd(motion string, oldCursor, steps int, changeWord bool) int {
-	destination := in.Cursor
-	if changeWord {
-		destination = oldCursor
-		class := wordClass(in.Text[destination])
-		for destination+1 < len(in.Text) && wordClass(in.Text[destination+1]) == class {
-			destination++
-		}
-		for n := 1; n < min(steps, len(in.Text)+1); n++ {
-			destination = in.wordEnd(destination)
-		}
-	}
-	switch motion {
-	case "right":
-		_, end := in.lineBounds(oldCursor)
-		destination = min(end, oldCursor+min(steps, len(in.Text)))
-	case "word-forward", "word-next":
-		destination = oldCursor
-		for range min(steps, len(in.Text)+1) {
-			next := in.wordForward(destination)
-			if motion == "word-next" {
-				next = in.readlineWordForward(destination)
-			}
-			if next == destination {
-				break
-			}
-			destination = next
-		}
-	}
-	return destination
 }
 
 func editorYank(r *Runtime, c Context, a Arguments) (any, error) {

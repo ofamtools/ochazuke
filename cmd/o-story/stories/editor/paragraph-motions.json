@@ -1,0 +1,21 @@
+{
+  "name": "} and { are paragraph motions inside a multiline input (to the next or previous empty line) and still walk the stops from a single-line one: y} yanks a paragraph, d{ deletes back to the empty line",
+  "area": "editor",
+  "width": 40,
+  "height": 4,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {"id": "name", "label": "name", "text": "title"},
+      {"id": "notes", "label": "notes", "text": "one\ntwo\n\nthree\nfour", "multiline": true}
+    ]
+  },
+  "script": ["}", "y", "}", "}", "}", "d", "{"],
+  "expect": [
+    {"after": 1, "focus": "notes", "mode": "normal"},
+    {"after": 3, "focus": "notes", "register": "one\ntwo\n"},
+    {"after": 5, "focus": "notes", "contains": ["notes: four"]},
+    {"focus": "notes", "mode": "normal", "register": "\nthree\nfou", "contains": ["notes: r"]}
+  ]
+}

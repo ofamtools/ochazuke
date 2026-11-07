@@ -59,6 +59,7 @@ func (r *Runtime) NameVocab() map[string][]string {
 			add("motion", m)
 		}
 	}
+	add("motion", MotionNames()...)
 	for _, cats := range v {
 		slices.Sort(cats)
 	}

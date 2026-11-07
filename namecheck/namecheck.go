@@ -87,6 +87,7 @@ var DeclCalls = []string{
 var DeclTypes = []string{
 	"Arguments", "Parameter", "Binding", "Request", "Noun", "Operation", "Example",
 	"PropSpec", "Column", "ModeSpec", "BindingGroup", "NounAlias", "ActionAlias",
+	"MotionTable",
 }
 
 // Config is what Check needs.

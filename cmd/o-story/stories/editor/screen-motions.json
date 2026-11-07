@@ -1,0 +1,68 @@
+{
+  "name": "H, M and L move within the lines on screen of a text taller than its view (the text view, drawn at 34–40 after G): H to the first shown, L to the last, M to the middle",
+  "area": "editor",
+  "width": 60,
+  "height": 16,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.read",
+        "answer": "row 01\nrow 02\nrow 03\nrow 04\nrow 05\nrow 06\nrow 07\nrow 08\nrow 09\nrow 10\nrow 11\nrow 12\nrow 13\nrow 14\nrow 15\nrow 16\nrow 17\nrow 18\nrow 19\nrow 20\nrow 21\nrow 22\nrow 23\nrow 24\nrow 25\nrow 26\nrow 27\nrow 28\nrow 29\nrow 30\nrow 31\nrow 32\nrow 33\nrow 34\nrow 35\nrow 36\nrow 37\nrow 38\nrow 39\nrow 40",
+        "result": "text"
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "v",
+        "do": "demo.read"
+      }
+    ]
+  },
+  "script": [
+    "v",
+    "G",
+    "H",
+    "y",
+    "y",
+    "L",
+    "y",
+    "y",
+    "M",
+    "y",
+    "y"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "text-view"
+    },
+    {
+      "after": 2,
+      "modal": "text-view",
+      "contains": [
+        "34–40 / 40"
+      ]
+    },
+    {
+      "after": 5,
+      "modal": "text-view",
+      "register": "row 34\n"
+    },
+    {
+      "after": 8,
+      "modal": "text-view",
+      "register": "row 40\n"
+    },
+    {
+      "modal": "text-view",
+      "register": "row 37\n"
+    }
+  ]
+}
