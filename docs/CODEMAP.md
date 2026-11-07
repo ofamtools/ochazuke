@@ -133,10 +133,10 @@ Root package `ochazuke` is flat: 199 source files, 244 test files. Each entry li
 
 ### chooser.go
 
-- lines: 1098 · tests: chooser_test.go
+- lines: 1114 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
-- methods: Chooser(37), Runtime(4)
+- methods: Chooser(38), Runtime(4)
 - leans on: delivery.go(38), instance.go(35), table.go(15), runtime.go(12)
 
 ### chooser_prop_filter.go
@@ -149,7 +149,7 @@ Root package `ochazuke` is flat: 199 source files, 244 test files. Each entry li
 
 ### chooser_sources.go
 
-- lines: 595 · tests: chooser_sources_test.go
+- lines: 602 · tests: chooser_sources_test.go
 - purpose: ChooserSource is one source of a chooser's rows.
 - types: ChooserSource, ChooserBatch
 - methods: Chooser(26), Runtime(2), chooserState(3)
@@ -241,7 +241,7 @@ Root package `ochazuke` is flat: 199 source files, 244 test files. Each entry li
 
 ### copy_store.go
 
-- lines: 444 · tests: copy_store_test.go
+- lines: 447 · tests: copy_store_test.go
 - purpose: LocalStore is where a copy store keeps its copies: get, put, list and delete of things by key.
 - types: LocalStore (iface), MemoryLocal
 - methods: MemoryLocal(4), Store(1), copyStore(14)

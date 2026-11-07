@@ -39,6 +39,13 @@ type ChooserSource struct {
 	// sources load once when they become current (and after Open or Up)
 	// and the chooser's Filter narrows their rows.
 	Live bool
+	// Matched, on a Live source, lets the chooser's match mode
+	// (chooser.match, ChooserSpec.Match, tab) narrow the rows Load
+	// answered by their labels, as it narrows any source's; the source
+	// then over-fetches and tab cycles fuzzy, substring and regex over
+	// what it streamed. Without it a Live source's rows are shown as
+	// they came and the mode does not apply.
+	Matched bool
 	// Empty is the line shown while the source has no rows ("no recent
 	// paths"); the spec's Empty else (its Loading while a load runs).
 	Empty string
