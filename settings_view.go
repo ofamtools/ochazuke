@@ -125,189 +125,253 @@ func (s Setting) SectionName() string {
 	return SettingsGeneralSection
 }
 
+// settingPageVerbs are the Settings page's own verbs.
+func settingPageVerbs() []verbSpec {
+	return []verbSpec{
+		{"open", "ochazuke.setting", "Open the Settings page (or switch to it): every change is saved as it is made", "setting[]", nil, settingsOpen, ""},
+		{"close", "ochazuke.setting", "Leave the Settings page for the page it was opened from", "context", nil, settingsClose, ""},
+		{"undo", "ochazuke.setting", "Take back the last change made on the Settings page", "setting", nil, settingsUndo, ""},
+	}
+}
+
+// settingGuards are the guards of the Settings page's keys.
+func settingGuards() []guardRow {
+	return []guardRow{
+		{"setting-steps", func(r *Runtime, ev KeyEvent) bool {
+			one := focusedSetting(r, ev.Focus)
+			return one != nil && settingSteps(*one)
+		}},
+		{"setting-list", func(r *Runtime, ev KeyEvent) bool {
+			one := focusedSetting(r, ev.Focus)
+			return one != nil && one.Type == SettingList
+		}},
+		{"settings-undo", func(r *Runtime, ev KeyEvent) bool {
+			return len(r.Settings().page.undo) > 0
+		}},
+	}
+}
+
+// settingAddVerbs, settingItemVerbs and settingPromptVerbs are the verbs
+// declared through the builders of the Settings page's nouns, in the
+// order registerSettingsEditor declares them.
+func settingAddVerbs() []nounVerbRow {
+	return []nounVerbRow{
+		{"ochazuke.setting", "add", "Add an item at the end of a list setting", settingAdd},
+	}
+}
+
+func settingItemVerbs() []nounVerbRow {
+	return []nounVerbRow{
+		{settingItemNoun, "edit", "Edit the list item", settingItemEdit},
+		{settingItemNoun, "add", "Add an item to the list after this one", settingItemAdd},
+		{settingItemNoun, "delete", "Delete the list item", settingItemDelete},
+		{settingItemNoun, "reset", "Reset the whole list to its default", settingItemReset},
+	}
+}
+
+func settingPromptVerbs() []nounVerbRow {
+	return []nounVerbRow{
+		{"ochazuke.setting-value", "commit", "Set the setting to the typed value and close the prompt", settingPromptCommit},
+		{"ochazuke.setting-value", "cancel", "Close the prompt and keep the value", settingPromptCancel},
+	}
+}
+
 func registerSettingsEditor(r *Runtime) {
-	r.Register(Operation{Verb: "open", Noun: "ochazuke.setting", Description: "Open the Settings page (or switch to it): every change is saved as it is made", Result: "setting[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		s := r.Settings()
-		if len(s.Declared()) == 0 {
-			return nil, errors.New("this application declares no settings")
-		}
-		if r.Page == SettingsPageID {
-			// Already shown: nothing to switch to, and no answer for the
-			// palette to show over the page (R4.8).
-			return nil, nil
-		}
-		fresh := r.PageOf(SettingsPageID) == nil
-		if _, err := ensureSettingsPage(r, fresh); err != nil {
-			return nil, err
-		}
-		if err := r.OpenPage(SettingsPageID); err != nil {
-			if fresh {
-				_ = r.RemoveInstance(SettingsPageID)
-			}
-			return nil, err
-		}
-		return s.List(), nil
-	}})
-	r.Register(Operation{Verb: "close", Noun: "ochazuke.setting", Description: "Leave the Settings page for the page it was opened from", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.Context(), closeSettingsPage(r)
-	}})
-	r.Register(Operation{Verb: "undo", Noun: "ochazuke.setting", Description: "Take back the last change made on the Settings page", Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return undoSettingChange(r)
-	}})
-	r.DefineGuard("setting-steps", func(r *Runtime, ev KeyEvent) bool {
-		one := focusedSetting(r, ev.Focus)
-		return one != nil && settingSteps(*one)
-	})
-	r.DefineGuard("setting-list", func(r *Runtime, ev KeyEvent) bool {
-		one := focusedSetting(r, ev.Focus)
-		return one != nil && one.Type == SettingList
-	})
-	r.DefineGuard("settings-undo", func(r *Runtime, ev KeyEvent) bool {
-		return len(r.Settings().page.undo) > 0
-	})
+	r.registerVerbSpecs(settingPageVerbs())
+	r.defineGuards(settingGuards())
 	registerSettingVerbs(r)
 	registerSettingsApply(r)
 	registerSettingsLayoutView(r)
-	focused := func(c Context) (*Setting, error) {
-		if one := focusedSetting(r, focusOf(c)); one != nil {
-			return one, nil
-		}
-		return nil, errors.New("no setting is focused")
-	}
-	editParams := map[string]Parameter{
-		"name":  {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.names"},
-		"scope": {Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the value is written: session (the default) or file (the Settings page's keys)"},
-	}
-	r.Register(Operation{Verb: "edit", Noun: "ochazuke.setting", Description: "Edit the setting: flip a boolean, take an enum's next value, add an item to a list, else type a new value", Parameters: editParams, Positional: []string{"name"}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		one, err := settingOfArgs(r, c, a)
-		if err != nil {
-			return nil, err
-		}
-		scope, err := settingScope(a)
-		if err != nil {
-			return nil, err
-		}
-		switch {
-		case one.Type == SettingList:
-			return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
-		case one.Type == SettingBoolean || len(one.Enum) > 0:
-			cycle, _ := settingVerbOf("cycle")
-			return runSettingVerb(cycle)(r, c, Arguments{"name": one.Name, "scope": scope})
-		}
-		return nil, openSettingPrompt(r, *one, scope)
-	}})
-	r.Define("ochazuke.setting").
-		Verbs("edit").
-		Verb("add", func(r *Runtime, c Context, a Arguments) (any, error) {
-			one, err := focused(c)
-			if err != nil {
-				return nil, err
-			}
-			if one.Type != SettingList {
-				return nil, fmt.Errorf("%s is not a list", one.Name)
-			}
-			return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
-		}, "Add an item at the end of a list setting")
-	item := func(c Context) (*Setting, settingItemRef, error) {
-		inst := r.Instances[focusOf(c)]
-		if inst == nil || inst.Noun != settingItemNoun {
-			return nil, settingItemRef{}, errors.New("no list item is focused")
-		}
-		ref, _ := inst.Data.(settingItemRef)
-		one := r.Settings().find(ref.Name)
-		if one == nil {
-			return nil, ref, r.Settings().unknown(ref.Name)
-		}
-		return one, ref, nil
-	}
-	r.Define(settingItemNoun).
-		Verb("edit", func(r *Runtime, c Context, a Arguments) (any, error) {
-			one, ref, err := item(c)
-			if err != nil {
-				return nil, err
-			}
-			return nil, openItemPrompt(r, *one, ref.Index, -1)
-		}, "Edit the list item").
-		Verb("add", func(r *Runtime, c Context, a Arguments) (any, error) {
-			one, ref, err := item(c)
-			if err != nil {
-				return nil, err
-			}
-			return nil, openItemPrompt(r, *one, -1, ref.Index+1)
-		}, "Add an item to the list after this one").
-		Verb("delete", func(r *Runtime, c Context, a Arguments) (any, error) {
-			one, ref, err := item(c)
-			if err != nil {
-				return nil, err
-			}
-			items := r.Settings().Strings(one.Name)
-			if ref.Index < 0 || ref.Index >= len(items) {
-				return nil, fmt.Errorf("%s has no item %d", one.Name, ref.Index+1)
-			}
-			items = slices.Delete(items, ref.Index, ref.Index+1)
-			if err := pageChange(r, one.Name, func() error { return r.Settings().Set(one.Name, items) }); err != nil {
-				return nil, err
-			}
-			// The focus stays at the same place: the next item, else the
-			// one before, else the setting's row.
-			switch {
-			case ref.Index < len(items):
-				_ = r.SetFocus(settingRowID(r, one.Name, ref.Index))
-			case len(items) > 0:
-				_ = r.SetFocus(settingRowID(r, one.Name, len(items)-1))
-			default:
-				_ = r.SetFocus(settingRowID(r, one.Name, -1))
-			}
-			return r.Settings().Get(one.Name)
-		}, "Delete the list item").
-		Verb("reset", func(r *Runtime, c Context, a Arguments) (any, error) {
-			one, _, err := item(c)
-			if err != nil {
-				return nil, err
-			}
-			if err := pageChange(r, one.Name, func() error { return r.Settings().Reset(one.Name) }); err != nil {
-				return nil, err
-			}
-			if r.Instances[r.Focus] == nil || r.Instances[r.Focus].Noun != settingItemNoun {
-				_ = r.SetFocus(settingRowID(r, one.Name, -1))
-			}
-			return r.Settings().Get(one.Name)
-		}, "Reset the whole list to its default")
+	registerSettingEdit(r)
+	r.Define("ochazuke.setting").Verbs("edit")
+	r.defineNounVerbs(settingAddVerbs())
+	r.defineNounVerbs(settingItemVerbs())
 	registerSettingItemThings(r)
-	r.Define("ochazuke.setting-value").Pin("insert").
-		Verb("commit", func(r *Runtime, c Context, a Arguments) (any, error) {
-			body := r.Instances[r.TopModal()]
-			in := r.Input(settingValueID)
-			if body == nil || body.ID != settingPromptID || in == nil || body.Payload.Request == nil {
-				return nil, errors.New("no setting prompt is open")
-			}
-			args := body.Payload.Request.Args
-			name := StringArg(args, "name", "")
-			// A value that does not validate keeps the prompt open with
-			// the error, so it can be corrected.
-			focus, err := commitSettingPrompt(r, name, args, string(in.Text))
-			if err != nil {
-				return nil, err
-			}
-			if err := r.Pop(); err != nil {
-				return nil, err
-			}
-			if focus != "" {
-				_ = r.SetFocus(focus)
-			}
-			return r.Settings().Get(name)
-		}, "Set the setting to the typed value and close the prompt").
-		Verb("cancel", func(r *Runtime, c Context, a Arguments) (any, error) {
-			if r.TopModal() != settingPromptID {
-				return nil, errors.New("no setting prompt is open")
-			}
-			return nil, r.Pop()
-		}, "Close the prompt and keep the value")
+	r.Define("ochazuke.setting-value").Pin("insert")
+	r.defineNounVerbs(settingPromptVerbs())
 	r.Settings().Observe("", func(string, any) { refreshSettingsPage(r) })
 	registerSettingsSession(r)
 	registerSettingsReview(r)
 	// bindings/settings-editor.json: one hint for every step key (h/l
 	// setting.cycle).
+}
+
+// registerSettingEdit registers setting.edit: the one Settings verb that
+// takes a positional parameter.
+func registerSettingEdit(r *Runtime) {
+	r.Register(Operation{Verb: "edit", Noun: "ochazuke.setting", Description: "Edit the setting: flip a boolean, take an enum's next value, add an item to a list, else type a new value", Parameters: map[string]Parameter{
+		"name":  {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.names"},
+		"scope": {Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the value is written: session (the default) or file (the Settings page's keys)"},
+	}, Positional: []string{"name"}, Result: "setting", Run: settingEdit})
+}
+
+func settingsOpen(r *Runtime, c Context, a Arguments) (any, error) {
+	s := r.Settings()
+	if len(s.Declared()) == 0 {
+		return nil, errors.New("this application declares no settings")
+	}
+	if r.Page == SettingsPageID {
+		// Already shown: nothing to switch to, and no answer for the
+		// palette to show over the page (R4.8).
+		return nil, nil
+	}
+	fresh := r.PageOf(SettingsPageID) == nil
+	if _, err := ensureSettingsPage(r, fresh); err != nil {
+		return nil, err
+	}
+	if err := r.OpenPage(SettingsPageID); err != nil {
+		if fresh {
+			_ = r.RemoveInstance(SettingsPageID)
+		}
+		return nil, err
+	}
+	return s.List(), nil
+}
+
+func settingsClose(r *Runtime, c Context, a Arguments) (any, error) {
+	return r.Context(), closeSettingsPage(r)
+}
+
+func settingsUndo(r *Runtime, c Context, a Arguments) (any, error) {
+	return undoSettingChange(r)
+}
+
+func settingEdit(r *Runtime, c Context, a Arguments) (any, error) {
+	one, err := settingOfArgs(r, c, a)
+	if err != nil {
+		return nil, err
+	}
+	scope, err := settingScope(a)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case one.Type == SettingList:
+		return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
+	case one.Type == SettingBoolean || len(one.Enum) > 0:
+		cycle, _ := settingVerbOf("cycle")
+		return runSettingVerb(cycle)(r, c, Arguments{"name": one.Name, "scope": scope})
+	}
+	return nil, openSettingPrompt(r, *one, scope)
+}
+
+// focusedSettingRow is the setting row on the focus.
+func focusedSettingRow(r *Runtime, c Context) (*Setting, error) {
+	if one := focusedSetting(r, focusOf(c)); one != nil {
+		return one, nil
+	}
+	return nil, errors.New("no setting is focused")
+}
+
+// settingItemOf is the list item on the focus, and its setting.
+func settingItemOf(r *Runtime, c Context) (*Setting, settingItemRef, error) {
+	inst := r.Instances[focusOf(c)]
+	if inst == nil || inst.Noun != settingItemNoun {
+		return nil, settingItemRef{}, errors.New("no list item is focused")
+	}
+	ref, _ := inst.Data.(settingItemRef)
+	one := r.Settings().find(ref.Name)
+	if one == nil {
+		return nil, ref, r.Settings().unknown(ref.Name)
+	}
+	return one, ref, nil
+}
+
+func settingAdd(r *Runtime, c Context, a Arguments) (any, error) {
+	one, err := focusedSettingRow(r, c)
+	if err != nil {
+		return nil, err
+	}
+	if one.Type != SettingList {
+		return nil, fmt.Errorf("%s is not a list", one.Name)
+	}
+	return nil, openItemPrompt(r, *one, -1, len(r.Settings().Strings(one.Name)))
+}
+
+func settingItemEdit(r *Runtime, c Context, a Arguments) (any, error) {
+	one, ref, err := settingItemOf(r, c)
+	if err != nil {
+		return nil, err
+	}
+	return nil, openItemPrompt(r, *one, ref.Index, -1)
+}
+
+func settingItemAdd(r *Runtime, c Context, a Arguments) (any, error) {
+	one, ref, err := settingItemOf(r, c)
+	if err != nil {
+		return nil, err
+	}
+	return nil, openItemPrompt(r, *one, -1, ref.Index+1)
+}
+
+func settingItemDelete(r *Runtime, c Context, a Arguments) (any, error) {
+	one, ref, err := settingItemOf(r, c)
+	if err != nil {
+		return nil, err
+	}
+	items := r.Settings().Strings(one.Name)
+	if ref.Index < 0 || ref.Index >= len(items) {
+		return nil, fmt.Errorf("%s has no item %d", one.Name, ref.Index+1)
+	}
+	items = slices.Delete(items, ref.Index, ref.Index+1)
+	if err := pageChange(r, one.Name, func() error { return r.Settings().Set(one.Name, items) }); err != nil {
+		return nil, err
+	}
+	// The focus stays at the same place: the next item, else the
+	// one before, else the setting's row.
+	switch {
+	case ref.Index < len(items):
+		_ = r.SetFocus(settingRowID(r, one.Name, ref.Index))
+	case len(items) > 0:
+		_ = r.SetFocus(settingRowID(r, one.Name, len(items)-1))
+	default:
+		_ = r.SetFocus(settingRowID(r, one.Name, -1))
+	}
+	return r.Settings().Get(one.Name)
+}
+
+func settingItemReset(r *Runtime, c Context, a Arguments) (any, error) {
+	one, _, err := settingItemOf(r, c)
+	if err != nil {
+		return nil, err
+	}
+	if err := pageChange(r, one.Name, func() error { return r.Settings().Reset(one.Name) }); err != nil {
+		return nil, err
+	}
+	if r.Instances[r.Focus] == nil || r.Instances[r.Focus].Noun != settingItemNoun {
+		_ = r.SetFocus(settingRowID(r, one.Name, -1))
+	}
+	return r.Settings().Get(one.Name)
+}
+
+func settingPromptCommit(r *Runtime, c Context, a Arguments) (any, error) {
+	body := r.Instances[r.TopModal()]
+	in := r.Input(settingValueID)
+	if body == nil || body.ID != settingPromptID || in == nil || body.Payload.Request == nil {
+		return nil, errors.New("no setting prompt is open")
+	}
+	args := body.Payload.Request.Args
+	name := StringArg(args, "name", "")
+	// A value that does not validate keeps the prompt open with
+	// the error, so it can be corrected.
+	focus, err := commitSettingPrompt(r, name, args, string(in.Text))
+	if err != nil {
+		return nil, err
+	}
+	if err := r.Pop(); err != nil {
+		return nil, err
+	}
+	if focus != "" {
+		_ = r.SetFocus(focus)
+	}
+	return r.Settings().Get(name)
+}
+
+func settingPromptCancel(r *Runtime, c Context, a Arguments) (any, error) {
+	if r.TopModal() != settingPromptID {
+		return nil, errors.New("no setting prompt is open")
+	}
+	return nil, r.Pop()
 }
 
 // commitSettingPrompt applies the prompt's text: the value of a setting,

@@ -275,276 +275,339 @@ func (in *Input) pasteYank(y Yank, before, literal bool, steps int) error {
 	}
 	return nil
 }
-func registerEditorOperations(r *Runtime) {
-	register := func(verb, noun, description string, params map[string]Parameter, fn Handler) {
-		r.Register(Operation{Verb: verb, Noun: noun, Description: description, Parameters: params, Result: "editor state", Run: fn})
-	}
-	input := func(fn func(*Runtime, *Input, Arguments) error) Handler {
-		return func(r *Runtime, c Context, a Arguments) (any, error) {
-			in := r.Input(c.InputID)
-			if in == nil {
-				return nil, errors.New("no focused input")
-			}
-			if err := fn(r, in, a); err != nil {
-				return nil, err
-			}
-			return in.Snapshot(), nil
+
+// onInput lifts an edit of the focused input into a verb handler that
+// answers the input's snapshot.
+func onInput(fn func(*Runtime, *Input, Arguments) error) Handler {
+	return func(r *Runtime, c Context, a Arguments) (any, error) {
+		in := r.Input(c.InputID)
+		if in == nil {
+			return nil, errors.New("no focused input")
 		}
-	}
-	register("select", "input", "Start or toggle character, line, or block visual selection", map[string]Parameter{"shape": {Type: "string"}}, input(func(r *Runtime, in *Input, a Arguments) error {
-		mode := ""
-		if shape := StringArg(a, "shape", SelectionChar); editorShape(r, r.SelectionMode(shape)) == shape {
-			mode = r.SelectionMode(shape)
-		}
-		if mode == "" {
-			return errors.New("unknown selection shape")
-		}
-		if in.Mode == mode {
-			mode = "normal"
-		}
-		in.SetMode(mode)
-		return nil
-	}))
-	register("operator", "input", "Yank, delete, or change a selection, whole lines, or an existing motion", map[string]Parameter{"operator": {Type: "string", Required: true}, "motion": {Type: "string"}, "steps": {Type: "integer"}, "line": {Type: "integer"}, "register": {Type: "string"}}, input(func(r *Runtime, in *Input, a Arguments) error {
-		op := StringArg(a, "operator", "")
-		if in.ReadOnly && editorOperatorChanges(op) {
-			// A viewer neither deletes nor yanks what it would have deleted.
-			if in.shape() != "" {
-				in.SetMode("normal")
-			}
-			in.resetKeys()
-			return nil
-		}
-		if op != "y" && op != "d" && op != "c" {
-			return errors.New("operator must be y, d, or c")
-		}
-		if _, _, err := registerName(StringArg(a, "register", r.Registers().Active)); err != nil {
-			return err
-		}
-		steps := IntArg(a, "steps", 1)
-		if steps < 1 {
-			return errors.New("steps must be positive")
-		}
-		oldCursor, oldMode := in.Cursor, in.Mode
-		if in.shape() == "" {
-			motion := StringArg(a, "motion", "line")
-			changeWord := op == "c" && motion == "word-forward" && oldCursor < len(in.Text) && wordClass(in.Text[oldCursor]) != 0
-			if changeWord {
-				motion = "word-end"
-			}
-			if motion == "line" {
-				in.SetMode("visual-line")
-				for n := 1; n < steps; n++ {
-					_, end := in.lineBounds(in.Cursor)
-					if end == len(in.Text) {
-						break
-					}
-					in.Cursor = end + 1
-				}
-			}
-			if motion != "line" {
-				if err := in.move(motion, steps, IntArg(a, "line", 0)); err != nil {
-					return err
-				}
-				destination := in.Cursor
-				if changeWord {
-					destination = oldCursor
-					class := wordClass(in.Text[destination])
-					for destination+1 < len(in.Text) && wordClass(in.Text[destination+1]) == class {
-						destination++
-					}
-					for n := 1; n < min(steps, len(in.Text)+1); n++ {
-						destination = in.wordEnd(destination)
-					}
-				}
-				// Operator endpoints are half-open: unlike a normal cursor,
-				// w/l may reach the end of the final line.
-				switch motion {
-				case "right":
-					_, end := in.lineBounds(oldCursor)
-					destination = min(end, oldCursor+min(steps, len(in.Text)))
-				case "word-forward", "word-next":
-					destination = oldCursor
-					for range min(steps, len(in.Text)+1) {
-						next := in.wordForward(destination)
-						if motion == "word-next" {
-							next = in.readlineWordForward(destination)
-						}
-						if next == destination {
-							break
-						}
-						destination = next
-					}
-				}
-				in.Cursor = destination
-				in.storeMode("visual")
-				in.Anchor = oldCursor
-				if motion == "up" || motion == "down" || motion == "first-line" || motion == "last-line" {
-					in.storeMode("visual-line")
-				} else if destination > oldCursor && motion != "word-end" && motion != "line-end" {
-					in.Cursor--
-				} else if destination < oldCursor {
-					in.Anchor--
-				}
-				if destination == oldCursor && motion != "word-end" && motion != "line-end" {
-					in.storeMode(oldMode)
-					in.resetKeys()
-					return nil
-				}
-			}
-		}
-		y := in.selectionYank()
-		if op == "y" {
-			if err := r.storeYank(y, StringArg(a, "register", ""), false); err != nil {
-				return err
-			}
-			if v, _ := r.settingValue(YankReportSetting); v == true {
-				r.UI().Info(yankReport(y))
-			}
-			in.SetMode("normal")
-			in.finishCursor(min(in.Anchor, in.Cursor))
-			return nil
-		}
-		previousHead := in.Head
-		if err := in.removeSelection(op == "c"); err != nil {
-			return err
-		}
-		if previousHead != in.Head {
-			in.History[previousHead].Cursor = oldCursor
-		}
-		return r.storeYank(y, StringArg(a, "register", ""), true)
-	}))
-	register("yank", "input", "Yank visual selection or whole current lines", map[string]Parameter{"steps": {Type: "integer"}, "register": {Type: "string"}}, func(r *Runtime, c Context, a Arguments) (any, error) {
-		args := Arguments{"operator": "y", "steps": IntArg(a, "steps", 1), "register": StringArg(a, "register", "")}
-		return r.ExecuteAt(c, Request{Verb: "operator", Noun: "ochazuke.input", Args: args})
-	})
-	register("paste", "input", "Paste a shared register preserving its shape; literal inserts at cursor", map[string]Parameter{"register": {Type: "string"}, "before": {Type: "boolean"}, "literal": {Type: "boolean"}, "steps": {Type: "integer"}}, input(func(r *Runtime, in *Input, a Arguments) error {
-		if in.ReadOnly {
-			r.Registers().Active = ""
-			in.resetKeys()
-			return nil
-		}
-		y, err := r.readYank(StringArg(a, "register", ""))
-		if err != nil {
-			return err
-		}
-		before, _ := a["before"].(bool)
-		literal, _ := a["literal"].(bool)
-		steps := IntArg(a, "steps", 1)
-		if steps < 1 {
-			return errors.New("steps must be positive")
-		}
-		if steps > 1000000 || len(y.Text) > 0 && steps > 16*1024*1024/len(y.Text) {
-			return errors.New("paste exceeds size limit")
-		}
-		if y.Text == "" {
-			return nil
-		}
-		if !in.Multiline && (y.Shape == "block" || y.Shape == "line" || strings.ContainsAny(y.Text, "\r\n")) {
-			return errors.New("single-line input cannot paste multiline yank")
-		}
-		if in.shape() == SelectionBlock && y.Shape == "char" {
-			top, bottom, _, _ := in.blockBounds()
-			if len(y.Text) > 0 && steps*(bottom-top+1) > 16*1024*1024/len(y.Text) {
-				return errors.New("paste exceeds size limit")
-			}
-		}
-		if in.shape() != "" {
-			// Compose replacement in an isolated input, then commit one atomic edit.
-			copy := NewInput(in.ID, string(in.Text), in.Multiline)
-			copy.Cursor = in.Cursor
-			copy.Anchor = in.Anchor
-			copy.Mode = in.Mode
-			copy.goalColumn = in.goalColumn
-			if in.shape() == SelectionLine {
-				lo, hi := in.selectionRange()
-				replacement := strings.Repeat(y.Text, steps)
-				if y.Shape != "line" && hi < len(in.Text) {
-					replacement += "\n"
-				}
-				copy.SetMode("normal")
-				if err = copy.Replace(lo, hi, replacement); err != nil {
-					return err
-				}
-				copy.finishCursor(lo)
-			} else if in.shape() == SelectionBlock && y.Shape == "char" && !strings.Contains(y.Text, "\n") {
-				top, bottom, left, right := in.blockBounds()
-				lines := strings.Split(string(in.Text), "\n")
-				for row := top; row <= bottom; row++ {
-					prefix, _ := splitCell(lines[row], left)
-					suffix := cellSlice(lines[row], right, cellWidth(lines[row]))
-					lines[row] = prefix + strings.Repeat(y.Text, steps) + suffix
-				}
-				copy.SetMode("normal")
-				if err = copy.Replace(0, len(copy.Text), strings.Join(lines, "\n")); err != nil {
-					return err
-				}
-				cursor := 0
-				for row := range top {
-					cursor += len([]rune(lines[row])) + 1
-				}
-				cursor += len([]rune(cellSlice(lines[top], 0, left)))
-				copy.finishCursor(cursor)
-			} else {
-				if err = copy.removeSelection(false); err != nil {
-					return err
-				}
-				if err = copy.pasteYank(y, true, literal, steps); err != nil {
-					return err
-				}
-			}
-			in.SetMode("normal")
-			if err = in.Replace(0, len(in.Text), string(copy.Text)); err != nil {
-				return err
-			}
-			in.finishCursor(copy.Cursor)
-		} else {
-			// A paste replaces an open select range, as typing does.
-			if lo, hi, ok := in.SelectedText(); ok {
-				if err = in.Replace(lo, hi, ""); err != nil {
-					return err
-				}
-				before = true
-			}
-			err = in.pasteYank(y, before, literal, steps)
-		}
-		if err == nil {
-			r.Registers().Active = ""
-			in.resetKeys()
-		}
-		return err
-	}))
-	register("kill", "input", "Kill preceding WORD/path component, readline word before or after, or line into shared yank history; kills an open select range", map[string]Parameter{"motion": {Type: "string", Required: true, Enum: []string{"word-backward", "word-previous", "word-next", "line-start", "line-end"}}}, input(func(r *Runtime, in *Input, a Arguments) error {
-		if in.ReadOnly {
-			in.resetKeys()
-			return nil
-		}
-		lo, hi, err := in.killRange(StringArg(a, "motion", ""))
-		if err != nil {
-			return err
-		}
-		// An open select range (SelectText) is what a kill removes, as
-		// backspace and delete remove it (UX-RULES R9.6).
-		if slo, shi, ok := in.SelectedText(); ok {
-			lo, hi = slo, shi
-		}
-		in.resetKeys()
-		if lo == hi {
-			return nil
-		}
-		y := Yank{Text: string(in.Text[lo:hi]), Shape: "char"}
-		if err = in.Replace(lo, hi, ""); err != nil {
-			return err
-		}
-		return r.storeYank(y, "", true)
-	}))
-	register("select", "register", "Select the register used by the next yank, delete, or paste", map[string]Parameter{"name": {Type: "string", Required: true}}, func(r *Runtime, c Context, a Arguments) (any, error) {
-		name := StringArg(a, "name", "")
-		if _, _, err := registerName(name); err != nil {
+		if err := fn(r, in, a); err != nil {
 			return nil, err
 		}
-		r.Registers().Active = name
-		return name, nil
-	})
+		return in.Snapshot(), nil
+	}
+}
+
+// editorOps is the table registerEditorOperations registers.
+func editorOps() []verbSpec {
+	return []verbSpec{
+		{"select", "input", "Start or toggle character, line, or block visual selection", "editor state", map[string]Parameter{"shape": {Type: "string"}}, onInput(editorSelect), ""},
+		{"operator", "input", "Yank, delete, or change a selection, whole lines, or an existing motion", "editor state", map[string]Parameter{"operator": {Type: "string", Required: true}, "motion": {Type: "string"}, "steps": {Type: "integer"}, "line": {Type: "integer"}, "register": {Type: "string"}}, onInput(editorOperator), ""},
+		{"yank", "input", "Yank visual selection or whole current lines", "editor state", map[string]Parameter{"steps": {Type: "integer"}, "register": {Type: "string"}}, editorYank, ""},
+		{"paste", "input", "Paste a shared register preserving its shape; literal inserts at cursor", "editor state", map[string]Parameter{"register": {Type: "string"}, "before": {Type: "boolean"}, "literal": {Type: "boolean"}, "steps": {Type: "integer"}}, onInput(editorPaste), ""},
+		{"kill", "input", "Kill preceding WORD/path component, readline word before or after, or line into shared yank history; kills an open select range", "editor state", map[string]Parameter{"motion": {Type: "string", Required: true, Enum: []string{"word-backward", "word-previous", "word-next", "line-start", "line-end"}}}, onInput(editorKill), ""},
+		{"select", "register", "Select the register used by the next yank, delete, or paste", "editor state", map[string]Parameter{"name": {Type: "string", Required: true}}, editorSelectRegister, ""},
+	}
+}
+
+func registerEditorOperations(r *Runtime) {
+	r.registerVerbSpecs(editorOps())
 	registerReadOnlyInputs(r)
+}
+
+func editorSelect(r *Runtime, in *Input, a Arguments) error {
+	mode := ""
+	if shape := StringArg(a, "shape", SelectionChar); editorShape(r, r.SelectionMode(shape)) == shape {
+		mode = r.SelectionMode(shape)
+	}
+	if mode == "" {
+		return errors.New("unknown selection shape")
+	}
+	if in.Mode == mode {
+		mode = "normal"
+	}
+	in.SetMode(mode)
+	return nil
+}
+
+func editorOperator(r *Runtime, in *Input, a Arguments) error {
+	op := StringArg(a, "operator", "")
+	if in.ReadOnly && editorOperatorChanges(op) {
+		// A viewer neither deletes nor yanks what it would have deleted.
+		if in.shape() != "" {
+			in.SetMode("normal")
+		}
+		in.resetKeys()
+		return nil
+	}
+	if op != "y" && op != "d" && op != "c" {
+		return errors.New("operator must be y, d, or c")
+	}
+	if _, _, err := registerName(StringArg(a, "register", r.Registers().Active)); err != nil {
+		return err
+	}
+	steps := IntArg(a, "steps", 1)
+	if steps < 1 {
+		return errors.New("steps must be positive")
+	}
+	oldCursor := in.Cursor
+	if in.shape() == "" {
+		if done, err := in.operatorSelect(a, op, steps); done || err != nil {
+			return err
+		}
+	}
+	y := in.selectionYank()
+	if op == "y" {
+		if err := r.storeYank(y, StringArg(a, "register", ""), false); err != nil {
+			return err
+		}
+		if v, _ := r.settingValue(YankReportSetting); v == true {
+			r.UI().Info(yankReport(y))
+		}
+		in.SetMode("normal")
+		in.finishCursor(min(in.Anchor, in.Cursor))
+		return nil
+	}
+	previousHead := in.Head
+	if err := in.removeSelection(op == "c"); err != nil {
+		return err
+	}
+	if previousHead != in.Head {
+		in.History[previousHead].Cursor = oldCursor
+	}
+	return r.storeYank(y, StringArg(a, "register", ""), true)
+}
+
+// operatorSelect selects what an operator without a selection acts on:
+// whole lines, or the span of a motion. done is true when the motion
+// went nowhere and the operator has nothing to do.
+func (in *Input) operatorSelect(a Arguments, op string, steps int) (done bool, err error) {
+	oldCursor, oldMode := in.Cursor, in.Mode
+	motion := StringArg(a, "motion", "line")
+	changeWord := op == "c" && motion == "word-forward" && oldCursor < len(in.Text) && wordClass(in.Text[oldCursor]) != 0
+	if changeWord {
+		motion = "word-end"
+	}
+	if motion == "line" {
+		in.SetMode("visual-line")
+		for n := 1; n < steps; n++ {
+			_, end := in.lineBounds(in.Cursor)
+			if end == len(in.Text) {
+				break
+			}
+			in.Cursor = end + 1
+		}
+		return false, nil
+	}
+	if err := in.move(motion, steps, IntArg(a, "line", 0)); err != nil {
+		return false, err
+	}
+	destination := in.operatorEnd(motion, oldCursor, steps, changeWord)
+	in.Cursor = destination
+	in.storeMode("visual")
+	in.Anchor = oldCursor
+	if motion == "up" || motion == "down" || motion == "first-line" || motion == "last-line" {
+		in.storeMode("visual-line")
+	} else if destination > oldCursor && motion != "word-end" && motion != "line-end" {
+		in.Cursor--
+	} else if destination < oldCursor {
+		in.Anchor--
+	}
+	if destination == oldCursor && motion != "word-end" && motion != "line-end" {
+		in.storeMode(oldMode)
+		in.resetKeys()
+		return true, nil
+	}
+	return false, nil
+}
+
+// operatorEnd is where an operator's motion ends. Operator endpoints are
+// half-open: unlike a normal cursor, w/l may reach the end of the final
+// line.
+func (in *Input) operatorEnd(motion string, oldCursor, steps int, changeWord bool) int {
+	destination := in.Cursor
+	if changeWord {
+		destination = oldCursor
+		class := wordClass(in.Text[destination])
+		for destination+1 < len(in.Text) && wordClass(in.Text[destination+1]) == class {
+			destination++
+		}
+		for n := 1; n < min(steps, len(in.Text)+1); n++ {
+			destination = in.wordEnd(destination)
+		}
+	}
+	switch motion {
+	case "right":
+		_, end := in.lineBounds(oldCursor)
+		destination = min(end, oldCursor+min(steps, len(in.Text)))
+	case "word-forward", "word-next":
+		destination = oldCursor
+		for range min(steps, len(in.Text)+1) {
+			next := in.wordForward(destination)
+			if motion == "word-next" {
+				next = in.readlineWordForward(destination)
+			}
+			if next == destination {
+				break
+			}
+			destination = next
+		}
+	}
+	return destination
+}
+
+func editorYank(r *Runtime, c Context, a Arguments) (any, error) {
+	args := Arguments{"operator": "y", "steps": IntArg(a, "steps", 1), "register": StringArg(a, "register", "")}
+	return r.ExecuteAt(c, Request{Verb: "operator", Noun: "ochazuke.input", Args: args})
+}
+
+func editorPaste(r *Runtime, in *Input, a Arguments) error {
+	if in.ReadOnly {
+		r.Registers().Active = ""
+		in.resetKeys()
+		return nil
+	}
+	y, err := r.readYank(StringArg(a, "register", ""))
+	if err != nil {
+		return err
+	}
+	before, _ := a["before"].(bool)
+	literal, _ := a["literal"].(bool)
+	steps := IntArg(a, "steps", 1)
+	if steps < 1 {
+		return errors.New("steps must be positive")
+	}
+	if steps > 1000000 || len(y.Text) > 0 && steps > 16*1024*1024/len(y.Text) {
+		return errors.New("paste exceeds size limit")
+	}
+	if y.Text == "" {
+		return nil
+	}
+	if err := in.checkPaste(y, steps); err != nil {
+		return err
+	}
+	if in.shape() != "" {
+		err = in.pasteOverSelection(y, literal, steps)
+	} else {
+		// A paste replaces an open select range, as typing does.
+		if lo, hi, ok := in.SelectedText(); ok {
+			if err = in.Replace(lo, hi, ""); err != nil {
+				return err
+			}
+			before = true
+		}
+		err = in.pasteYank(y, before, literal, steps)
+	}
+	if err == nil {
+		r.Registers().Active = ""
+		in.resetKeys()
+	}
+	return err
+}
+
+// checkPaste refuses a yank this input cannot take.
+func (in *Input) checkPaste(y Yank, steps int) error {
+	if !in.Multiline && (y.Shape == "block" || y.Shape == "line" || strings.ContainsAny(y.Text, "\r\n")) {
+		return errors.New("single-line input cannot paste multiline yank")
+	}
+	if in.shape() == SelectionBlock && y.Shape == "char" {
+		top, bottom, _, _ := in.blockBounds()
+		if len(y.Text) > 0 && steps*(bottom-top+1) > 16*1024*1024/len(y.Text) {
+			return errors.New("paste exceeds size limit")
+		}
+	}
+	return nil
+}
+
+// pasteOverSelection replaces the selection with the yank: the
+// replacement is composed in an isolated input, then committed as one
+// atomic edit.
+func (in *Input) pasteOverSelection(y Yank, literal bool, steps int) error {
+	copy := NewInput(in.ID, string(in.Text), in.Multiline)
+	copy.Cursor = in.Cursor
+	copy.Anchor = in.Anchor
+	copy.Mode = in.Mode
+	copy.goalColumn = in.goalColumn
+	var err error
+	switch {
+	case in.shape() == SelectionLine:
+		err = in.pasteOverLines(copy, y, steps)
+	case in.shape() == SelectionBlock && y.Shape == "char" && !strings.Contains(y.Text, "\n"):
+		err = in.pasteOverBlock(copy, y, steps)
+	default:
+		if err = copy.removeSelection(false); err == nil {
+			err = copy.pasteYank(y, true, literal, steps)
+		}
+	}
+	if err != nil {
+		return err
+	}
+	in.SetMode("normal")
+	if err = in.Replace(0, len(in.Text), string(copy.Text)); err != nil {
+		return err
+	}
+	in.finishCursor(copy.Cursor)
+	return nil
+}
+
+func (in *Input) pasteOverLines(copy *Input, y Yank, steps int) error {
+	lo, hi := in.selectionRange()
+	replacement := strings.Repeat(y.Text, steps)
+	if y.Shape != "line" && hi < len(in.Text) {
+		replacement += "\n"
+	}
+	copy.SetMode("normal")
+	if err := copy.Replace(lo, hi, replacement); err != nil {
+		return err
+	}
+	copy.finishCursor(lo)
+	return nil
+}
+
+func (in *Input) pasteOverBlock(copy *Input, y Yank, steps int) error {
+	top, bottom, left, right := in.blockBounds()
+	lines := strings.Split(string(in.Text), "\n")
+	for row := top; row <= bottom; row++ {
+		prefix, _ := splitCell(lines[row], left)
+		suffix := cellSlice(lines[row], right, cellWidth(lines[row]))
+		lines[row] = prefix + strings.Repeat(y.Text, steps) + suffix
+	}
+	copy.SetMode("normal")
+	if err := copy.Replace(0, len(copy.Text), strings.Join(lines, "\n")); err != nil {
+		return err
+	}
+	cursor := 0
+	for row := range top {
+		cursor += len([]rune(lines[row])) + 1
+	}
+	cursor += len([]rune(cellSlice(lines[top], 0, left)))
+	copy.finishCursor(cursor)
+	return nil
+}
+
+func editorKill(r *Runtime, in *Input, a Arguments) error {
+	if in.ReadOnly {
+		in.resetKeys()
+		return nil
+	}
+	lo, hi, err := in.killRange(StringArg(a, "motion", ""))
+	if err != nil {
+		return err
+	}
+	// An open select range (SelectText) is what a kill removes, as
+	// backspace and delete remove it (UX-RULES R9.6).
+	if slo, shi, ok := in.SelectedText(); ok {
+		lo, hi = slo, shi
+	}
+	in.resetKeys()
+	if lo == hi {
+		return nil
+	}
+	y := Yank{Text: string(in.Text[lo:hi]), Shape: "char"}
+	if err = in.Replace(lo, hi, ""); err != nil {
+		return err
+	}
+	return r.storeYank(y, "", true)
+}
+
+func editorSelectRegister(r *Runtime, c Context, a Arguments) (any, error) {
+	name := StringArg(a, "name", "")
+	if _, _, err := registerName(name); err != nil {
+		return nil, err
+	}
+	r.Registers().Active = name
+	return name, nil
 }
