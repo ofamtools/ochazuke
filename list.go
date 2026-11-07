@@ -390,15 +390,44 @@ func (l *List) trappedAt(edge SpillEdge) bool {
 		return true
 	}
 	ids := []string{l.id}
-	if inst := l.r.Instances[l.id]; inst != nil && inst.Parent != "" {
-		if owner := l.r.Instances[inst.Parent]; owner != nil {
-			switch owner.Component.(type) {
-			case *Tree, *Timeline:
-				ids = append(ids, owner.ID)
-			}
-		}
+	if owner := l.holder(); owner != nil {
+		ids = append(ids, owner.ID)
 	}
 	return l.r.noSpillNames(edge, ids...)
+}
+
+// listHolder is implemented by a component that holds a list of its own
+// rows (a tree, a timeline): it declares the list its child table, so
+// the list's edges are the holder's too (list.no-spill names either) and
+// a holder that answers h and l itself (edgeYielder) keeps them from the
+// list's edge rows.
+type listHolder interface {
+	holdsList(l *List) bool
+}
+
+// edgeYielder is a list holder whose own h/l verbs answer before its
+// list's edge rows (table.json's scroll-then-focus rows) unless it yields
+// direction step (-1 h, 1 l) at focus.
+type edgeYielder interface {
+	listHolder
+	yieldsEdge(focus string, step int) bool
+}
+
+// holder is the instance whose component declares l its child list
+// (listHolder), nil when none does.
+func (l *List) holder() *Instance {
+	inst := l.r.Instances[l.id]
+	if inst == nil || inst.Parent == "" {
+		return nil
+	}
+	owner := l.r.Instances[inst.Parent]
+	if owner == nil {
+		return nil
+	}
+	if h, ok := owner.Component.(listHolder); ok && h.holdsList(l) {
+		return owner
+	}
+	return nil
 }
 
 // noSpillNames reports whether the list.no-spill setting names one of ids

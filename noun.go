@@ -25,6 +25,12 @@ type Noun struct {
 	About string   `json:"about,omitempty"`
 	Verbs []string `json:"verbs,omitempty"`
 	Pin   string   `json:"pin,omitempty"`
+	// Fallback names the noun whose table a focus on this noun reads
+	// last, after app (NounBuilder.Fallback): the walk's fallback, read
+	// once. A noun naming itself is read there and not at its own level
+	// (the editor noun). An instance whose noun names none takes its
+	// component's (FallbackKeys: every Input names the editor noun).
+	Fallback string `json:"fallback,omitempty"`
 	// NoEditKey declines the app-level implicit edit-key fallback only.
 	// The noun's edit verb and explicit binding rows remain available.
 	NoEditKey bool `json:"noEditKey,omitempty"`
@@ -74,9 +80,7 @@ type Noun struct {
 // and guard: a row replaces only the row with the same identity, so a row
 // with When and the unguarded row on the same keys coexist, and Unbind
 // removes only the row with the same identity (an unbind row without When
-// removes the unguarded row, never a guarded one). The editor noun's
-// implicit "input" guard is not part of the identity (see
-// withImplicitGuard).
+// removes the unguarded row, never a guarded one).
 // Replay dispatches the key again, fresh, after the row ran (a pending mode
 // that hands an unknown key back to the stack). Capture rows are consulted
 // outer-first (app first) before the inner-first walk (see resolve.go).
@@ -179,52 +183,16 @@ const (
 )
 
 // same reports whether two rows have the same identity: mode, keys or
-// pattern, and guard (identityGuard). The table (noun or instance) is the
+// pattern, and guard (When). The table (noun or instance) is the
 // caller's.
 func (b Binding) same(o Binding) bool {
-	return b.Mode == o.Mode && b.Keys == o.Keys && b.Pattern == o.Pattern && b.identityGuard() == o.identityGuard()
+	return b.Mode == o.Mode && b.Keys == o.Keys && b.Pattern == o.Pattern && b.When == o.When
 }
 
 // sameKeys reports whether two rows answer the same mode and keys or
 // pattern, whatever their guards.
 func (b Binding) sameKeys(o Binding) bool {
 	return b.Mode == o.Mode && b.Keys == o.Keys && b.Pattern == o.Pattern
-}
-
-// ImplicitGuard is the guard the framework puts on every editor noun row
-// that runs an input operation (input.cancel aside): such a row answers
-// only while the focus is an input itself, not a non-input instance an
-// application parented under one. It is the framework's, not the user's:
-// it is not part of a row's identity, so a row without when replaces or
-// unbinds the default it shadows, and a user row that runs an input
-// operation on the editor noun gets it too, as the default it replaces had.
-const ImplicitGuard = "input"
-
-// withImplicitGuard gives an editor noun row that runs an input operation
-// the implicit guard when it names none.
-func withImplicitGuard(row Binding) Binding {
-	if row.Noun == "ochazuke.editor" && row.Instance == "" && row.When == "" && implicitlyGuarded(row) {
-		row.When = ImplicitGuard
-	}
-	return row
-}
-
-// implicitlyGuarded reports whether a row's request is one the editor
-// noun's rows guard implicitly.
-func implicitlyGuarded(row Binding) bool {
-	return row.Request.Noun == "ochazuke.input" && row.Request.Verb != "cancel"
-}
-
-// identityGuard is the guard that is part of the row's identity: When,
-// except the implicit guard on the editor noun, which counts as none
-// whether the framework added it or the row spells it out (the editor
-// noun is consulted only with an input on the focus path, where the guard
-// is the framework's detail, not a second row).
-func (b Binding) identityGuard() string {
-	if b.When == ImplicitGuard && b.Noun == "ochazuke.editor" && b.Instance == "" {
-		return ""
-	}
-	return b.When
 }
 
 // placeRow puts row into a table by identity: in place of the row with the
@@ -280,9 +248,9 @@ func placeRowIn(rows []Binding, row Binding, batch rowBatch) ([]Binding, []Bindi
 		return out, displaced
 	}
 	at := len(rows)
-	if row.identityGuard() != "" {
+	if row.When != "" {
 		if i := slices.IndexFunc(rows, func(b Binding) bool {
-			return b.sameKeys(row) && b.identityGuard() == "" && b.Capture == row.Capture
+			return b.sameKeys(row) && b.When == "" && b.Capture == row.Capture
 		}); i >= 0 {
 			at = i
 		}
@@ -464,6 +432,12 @@ func (b *NounBuilder) Noun() *Noun { return b.n }
 
 // Pin keeps every instance of the noun in one base mode.
 func (b *NounBuilder) Pin(mode string) *NounBuilder { b.n.Pin = mode; return b }
+
+// Fallback names the noun whose table a focus on this noun reads last,
+// after app (Noun.Fallback); naming the noun itself moves its own table
+// there. A focused component that owns its keys (KeyOwner) reads it right
+// after the instance instead.
+func (b *NounBuilder) Fallback(noun string) *NounBuilder { b.n.Fallback = noun; return b }
 
 // EditKey enables the implicit edit-key fallback for this noun (on by
 // default). False keeps edit available to explicit bindings, palette and CLI.
@@ -963,7 +937,6 @@ func (m *ModeBuilder) add(row Binding) *ModeBuilder {
 	if resolved, err := m.r.resolveNamedRow(row); err == nil {
 		row = resolved
 	}
-	row = withImplicitGuard(row)
 	m.r.forgetDefaultSource(row)
 	rows, displaced := placeRow(m.n.Bindings[m.mode], row)
 	rows = withPrefixCancels(rows)
@@ -1004,7 +977,7 @@ func withPrefixCancels(rows []Binding) []Binding {
 			continue
 		}
 		parts := strings.Fields(b.Keys)
-		if b.identityGuard() == "" {
+		if b.When == "" {
 			// A guarded row on "<prefix> esc" may stand aside; the
 			// unguarded cancel stays behind it.
 			bound[prefixKey{b.Mode, b.Keys}] = true
@@ -1081,7 +1054,6 @@ func (r *Runtime) bindRows(rows []Binding, code bool, batch rowBatch) error {
 		if err != nil {
 			return err
 		}
-		row = withImplicitGuard(row)
 		if code {
 			r.forgetDefaultSource(row)
 		}

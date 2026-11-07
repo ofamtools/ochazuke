@@ -32,10 +32,14 @@ type level struct {
 	inst    *Instance
 	noun    *Noun
 	capture bool
-	// owns marks the editor level of a focused read-only input: it answers
-	// right after the input, and a key one of its rows binds in the mode
-	// is the input's even where no row answers (an edit the input refuses,
-	// a row guarded off), consumed rather than passed to the page.
+	// fallback marks the walk's fallback table (Noun.Fallback): read after
+	// app, and last in the capture pass wherever the bubbling pass reads it.
+	fallback bool
+	// owns marks the fallback level of a focused component that owns its
+	// keys (KeyOwner: a read-only input): it answers right after the
+	// focused instance, and a key one of its rows binds in the mode is the
+	// component's even where no row answers (an edit the input refuses, a
+	// row guarded off), consumed rather than passed to the page.
 	owns bool
 }
 
@@ -52,7 +56,7 @@ func (lv level) name() string {
 }
 
 // walk is the full resolution order for a focus: the capture pass, the
-// stack outer-first (app first, the editor fallback last) reading only
+// stack outer-first (app first, the fallback table last) reading only
 // capture rows, then the bubbling pass, the stack inner-first reading the
 // rest. The first row that answers in either pass wins, so an app-level
 // capture row (ctrl+c → app.quit) answers before an inner any row (a
@@ -64,7 +68,7 @@ func (r *Runtime) walk(focus string) []level {
 }
 
 // walkOf is walk over a given stack: the capture pass (skipped in a
-// passthrough mode) outer-first with the editor fallback last, then the
+// passthrough mode) outer-first with the fallback table last, then the
 // stack itself. The live walk and the hypothetical one (nounWalk) share it.
 func (r *Runtime) walkOf(inner []level, passthrough bool) []level {
 	if passthrough {
@@ -74,7 +78,7 @@ func (r *Runtime) walkOf(inner []level, passthrough bool) []level {
 	for i := len(inner) - 1; i >= 0; i-- {
 		lv := inner[i]
 		lv.capture = true
-		if lv.inst == nil && lv.noun != nil && lv.noun.Name == "ochazuke.editor" {
+		if lv.fallback {
 			fallback = append(fallback, lv)
 			continue
 		}
@@ -89,20 +93,22 @@ func (b Binding) Captured() Binding { b.Capture = true; return b }
 
 // stack is the resolution order for a focus: the focused instance's inner
 // level when it has one (an input's open suggestions), the focused instance
-// outward to app, with the modal noun inserted before app while a modal is open, and
-// the editor noun last as the framework default when an input (editor,
-// prompt or palette field) is on the path. A list row, a page or a terminal
-// focus ends at app: editor rows neither answer nor appear in bindings.list
-// for it; counts, registers and macros are app rows and still do.
+// outward to app, with the modal noun inserted before app while a modal is
+// open, and the focus's fallback table last (fallbackOf: Noun.Fallback, else
+// the component's, FallbackKeys; every input names the editor noun). A
+// level whose noun is the fallback does not read it at its own place. A
+// list row, a page or a terminal focus declares none and ends at app:
+// editor rows neither answer nor appear in bindings.list for it; counts,
+// registers and macros are app rows and still do.
 //
-// A focused read-only input (Input.ReadOnly) is a viewer whose keys are
-// the editor's: the editor level answers right after the input's own
-// (before the panel, the page, app), so its motions and selections win
-// over the page's rows in every mode the input is in (visual-line's
-// inherited normal rows included), and a key the editor binds in the mode
+// A focused component that owns its keys (KeyOwner: a read-only input, a
+// viewer whose keys are the editor's) reads its fallback table right after
+// its own level (before the panel, the page, app), so its motions and
+// selections win over the page's rows in every mode it is in (visual-line's
+// inherited normal rows included), and a key the table binds in the mode
 // that does not run there (an edit, refused while read-only) is consumed
 // at that level (level.owns) instead of reaching a page row on the same
-// key. Keys the editor does not bind still reach the page.
+// key. Keys the table does not bind still reach the page.
 //
 // The top modal is a resolution boundary (a z-index): while one is open
 // and the walked focus is inside it (the live focus always is), the walk is the instances from the focus up to
@@ -132,12 +138,13 @@ func (r *Runtime) stack(focus string) []level {
 	}
 	var out []level
 	onStack := map[string]bool{}
-	editing := false
 	for _, id := range ancestry {
 		onStack[id] = true
-		if r.Input(id) != nil {
-			editing = true
-		}
+	}
+	var fallback *Noun
+	owns := false
+	if len(ancestry) > 0 {
+		fallback, owns = r.fallbackOf(r.Instances[ancestry[0]])
 	}
 	for i, id := range ancestry {
 		inst := r.Instances[id]
@@ -156,23 +163,43 @@ func (r *Runtime) stack(focus string) []level {
 			out = append(out, level{inst: frame, noun: r.Nouns["ochazuke.modal"]})
 		}
 		noun := r.Nouns[inst.Noun]
-		if noun != nil && noun.Name == "ochazuke.editor" {
-			noun = nil // the editor table is the shared fallback below
+		if noun != nil && noun == fallback {
+			noun = nil // the fallback table is read at its own place
 		}
 		out = append(out, level{inst: inst, noun: noun})
-		if i == 0 && editing {
-			if in := r.Input(id); in != nil && in.ReadOnly {
-				if editor := r.Nouns["ochazuke.editor"]; editor != nil {
-					out = append(out, level{noun: editor, owns: true})
-					editing = false // placed: no fallback below
-				}
-			}
+		if i == 0 && owns {
+			out = append(out, level{noun: fallback, fallback: true, owns: true})
 		}
 	}
-	if editor := r.Nouns["ochazuke.editor"]; editor != nil && editing {
-		out = append(out, level{noun: editor})
+	if fallback != nil && !owns {
+		out = append(out, level{noun: fallback, fallback: true})
 	}
 	return out
+}
+
+// fallbackOf is the table a focus on inst reads as the walk's fallback,
+// nil when it has none: its noun's Fallback, else its component's
+// (FallbackKeys). owns says the component owns that table's keys now
+// (KeyOwner), so it is read right after the focus.
+func (r *Runtime) fallbackOf(inst *Instance) (fallback *Noun, owns bool) {
+	if inst == nil {
+		return nil, false
+	}
+	name := ""
+	if n := r.Nouns[inst.Noun]; n != nil {
+		name = n.Fallback
+	}
+	if declares, ok := inst.Component.(FallbackKeys); ok && name == "" {
+		name = declares.FallbackNoun()
+	}
+	if name == "" {
+		return nil, false
+	}
+	fallback = r.Nouns[r.CanonicalNoun(name)]
+	if owner, ok := inst.Component.(KeyOwner); ok && fallback != nil {
+		owns = owner.OwnsKeys()
+	}
+	return fallback, owns
 }
 
 // KeyOutcome is what resolving one key came to (DispatchOutcome).
@@ -821,7 +848,7 @@ type levelRow struct {
 
 // levelRows is bindingRows with each row's level.
 func (r *Runtime) levelRows(focus string) []levelRow {
-	return r.scanRows(r.walk(focus), r.Mode, focus, false)
+	return r.scanRows(r.walk(focus), r.Mode, focus)
 }
 
 // scanRows reads the rows a walk answers with in a mode, the first per
@@ -830,13 +857,12 @@ func (r *Runtime) levelRows(focus string) []levelRow {
 // whose verb guard is false are left out. Hypothetical (nounRows, no
 // instance to judge a guard at) keeps a guarded row, naming its guard,
 // and lets it claim its key only once an unguarded row on the same key
-// follows, so the rows that answer when the guard is false show after it;
-// editing says the editor's implicit input guard holds (an input noun).
-func (r *Runtime) scanRows(levels []level, mode ModeState, focus string, editing bool) []levelRow {
-	return r.renderCache.scan(r, levels, mode, focus, editing)
+// follows, so the rows that answer when the guard is false show after it.
+func (r *Runtime) scanRows(levels []level, mode ModeState, focus string) []levelRow {
+	return r.renderCache.scan(r, levels, mode, focus)
 }
 
-func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string, editing bool) []levelRow {
+func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string) []levelRow {
 	live := focus != ""
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.pendingModes[mode.Name] || mode.Payload.Shadow != nil
@@ -852,7 +878,7 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 			}
 			guard := ""
 			if live && owns && (!r.Available(b.Request, r.rowInstance(cur, b.Request, focus), mode) || !r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus})) {
-				// A read-only input's editor key that does not run there is
+				// An owning component's key that does not run there is
 				// consumed (level.owns): it claims the key, so the page's
 				// row on it is not offered, and shows nothing itself.
 				if prefix == "" || strings.HasPrefix(b.Keys, prefix+" ") {
@@ -873,9 +899,6 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 				}
 			} else {
 				guard = b.When
-				if guard == ImplicitGuard && editing {
-					guard = ""
-				}
 				if guard == "" {
 					guard = strings.Join(r.VerbAvailability(requestOperation(b.Request)), " ")
 				}
@@ -897,7 +920,7 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 			}
 			row := levelRow{Binding: b, level: name, guard: guard, inherited: inherited}
 			if owns {
-				// The owning editor level claims its keys first but lists
+				// The owning level claims its keys first but lists
 				// them where the fallback would: after the page's and
 				// app's, so a modal's own keys (q) still lead the hints.
 				owned = append(owned, row)
@@ -993,33 +1016,36 @@ func dropShadowedInherited(rows []levelRow, prefix string) []levelRow {
 // orders a live focus's levels: the noun's tables, then each ancestor
 // noun's (the list, the panel, the page), then the modal noun when the
 // place is inside a modal, then app (its instance's rows and its noun's),
-// then the editor fallback when a noun on the chain is an input noun
-// (inputNoun), with the capture pass as walk has it (none in a passthrough
-// mode; a pending mode is passthrough when the noun pins one, as
-// leader_pending over a terminal is). A hypothetical level holds only
-// noun tables: the rows a live instance carries of its own are not part
-// of it. NounPlace{Noun: noun} is no place: the noun, app, the editor.
+// then the place's fallback table (placeFallback), with the capture pass
+// as walk has it (none in a passthrough mode; a pending mode is
+// passthrough when the noun pins one, as leader_pending over a terminal
+// is). A hypothetical level holds only noun tables: the rows a live
+// instance carries of its own are not part of it. NounPlace{Noun: noun} is
+// no place: the noun, app, its fallback.
 func (r *Runtime) nounWalk(place NounPlace, mode ModeState) []level {
 	place = r.canonicalPlace(place)
 	chain := place.Chain()
+	root := level{inst: r.Instances["app"]}
+	if root.inst != nil {
+		root.noun = r.Nouns[root.inst.Noun]
+	}
+	fallback := r.placeFallback(place)
 	var inner []level
 	for i := len(chain) - 1; i >= 0; i-- {
-		name := chain[i]
-		if name == "ochazuke.editor" || name == "app" {
-			continue // the editor table is the shared fallback below
+		n := r.Nouns[chain[i]]
+		if n == nil || n == root.noun || n == fallback {
+			continue // the root and the fallback table are read at their own places below
 		}
-		if n := r.Nouns[name]; n != nil {
-			inner = append(inner, level{noun: n})
-		}
+		inner = append(inner, level{noun: n})
 	}
 	if place.Modal != "" {
 		if n := r.Nouns["ochazuke.modal"]; n != nil {
 			inner = append(inner, level{noun: n})
 		}
 	}
-	inner = append(inner, level{inst: r.Instances["app"], noun: r.Nouns["app"]})
-	if editor := r.Nouns["ochazuke.editor"]; editor != nil && r.placeEditing(place) {
-		inner = append(inner, level{noun: editor})
+	inner = append(inner, root)
+	if fallback != nil {
+		inner = append(inner, level{noun: fallback, fallback: true})
 	}
 	base, _ := baseAndPrefix(mode)
 	passthrough := r.passthroughModes[base]
@@ -1031,10 +1057,31 @@ func (r *Runtime) nounWalk(place NounPlace, mode ModeState) []level {
 	return r.walkOf(inner, passthrough)
 }
 
-// placeEditing reports whether an input is on the place's chain, so the
-// editor noun is the walk's fallback (stack's editing).
-func (r *Runtime) placeEditing(place NounPlace) bool {
-	return slices.ContainsFunc(place.Chain(), r.inputNoun)
+// placeFallback is the fallback table a focus on place's noun would read
+// (stack's fallbackOf, with no instance at hand): the noun's Fallback,
+// else what a live instance of it declares (an input of an application's
+// Kind), else an input's for a noun read as an input (inputNoun: one that
+// pins insert, a prompt); nil when it has none.
+func (r *Runtime) placeFallback(place NounPlace) *Noun {
+	n := r.Nouns[place.Noun]
+	if n == nil {
+		return nil
+	}
+	if n.Fallback != "" {
+		return r.Nouns[r.CanonicalNoun(n.Fallback)]
+	}
+	for _, inst := range r.instancesInOrder() {
+		if inst.Noun != n.Name {
+			continue
+		}
+		if fallback, _ := r.fallbackOf(inst); fallback != nil {
+			return fallback
+		}
+	}
+	if r.inputNoun(n.Name) {
+		return r.Nouns[r.CanonicalNoun(new(Input).FallbackNoun())]
+	}
+	return nil
 }
 
 // nounRows is levelRows for a hypothetical focus on place's noun in mode
@@ -1042,7 +1089,7 @@ func (r *Runtime) placeEditing(place NounPlace) bool {
 // marked with their guard.
 func (r *Runtime) nounRows(place NounPlace, mode ModeState) []levelRow {
 	place = r.canonicalPlace(place)
-	return r.scanRows(r.nounWalk(place, mode), mode, "", r.placeEditing(place))
+	return r.scanRows(r.nounWalk(place, mode), mode, "")
 }
 
 // answersEveryKey reports whether a level's rows include an unguarded any

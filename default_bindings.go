@@ -270,7 +270,6 @@ func (r *Runtime) SetDefaultBindings(source string, rows []Binding) error {
 			return fmt.Errorf("%s: row %d %q: %w", source, i+1, row.Keys+row.Pattern, err)
 		}
 		normalized[i].Request.Args = r.typedArgs(normalized[i].Request)
-		normalized[i] = withImplicitGuard(normalized[i])
 	}
 	c := r.Config()
 	loaded := c.bindingsLoaded
@@ -349,7 +348,6 @@ func (r *Runtime) installDefaultRow(source string, row Binding, batch rowBatch) 
 		return err
 	}
 	row.Request.Args = r.typedArgs(row.Request)
-	row = withImplicitGuard(row)
 	r.placeDefaultRow(source, row, batch)
 	return nil
 }
@@ -411,7 +409,7 @@ func sourceKey(row Binding) string {
 	if row.Instance != "" {
 		owner = "instance " + row.Instance
 	}
-	return owner + "\x00" + row.Mode + "\x00" + row.Keys + "\x00" + row.Pattern + "\x00" + row.identityGuard()
+	return owner + "\x00" + row.Mode + "\x00" + row.Keys + "\x00" + row.Pattern + "\x00" + row.When
 }
 
 // forgetDefaultSource drops the file source of the row with row's identity:
@@ -632,7 +630,7 @@ func (r *Runtime) CheckDefaultBindings(source string, data []byte) []string {
 					report("%s %q: mode.enter into %q, which is not a pending mode", g.label(), key, mode)
 				}
 			}
-			placed = append(placed, withImplicitGuard(normalized))
+			placed = append(placed, normalized)
 		}
 	}
 	for _, line := range r.checkFileReachability(placed) {

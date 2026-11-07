@@ -1585,6 +1585,9 @@ func (t *Tree) collapses(id string) bool {
 // or steps onto an open one's first child; a leaf has nothing to do.
 func (t *Tree) expands(id string) bool { return id != "" && t.hasChildren(id) }
 
+// holdsList declares the tree's list its child table (listHolder).
+func (t *Tree) holdsList(l *List) bool { return t.list == l }
+
 // yieldsEdge reports whether the tree's list takes the h/l edge rows
 // (edgeList) in direction step (-1 h, 1 l): the tree's own verb for that
 // direction has nothing to do on the row and the tree.spill setting

@@ -434,12 +434,12 @@ func (r *Runtime) CheckUserBindings() []string {
 			if note := r.aliasRowNote(f.where, row); note != "" {
 				problems = append(problems, note)
 			}
-			if note := r.removedDefaultNotice(withImplicitGuard(row)); note != "" {
+			if note := r.removedDefaultNotice(row); note != "" {
 				problems = append(problems, fmt.Sprintf("%s: %s %s: %s", BindingsFile, f.where, row.Keys+row.Pattern, note))
 			}
 			problems = append(problems, r.nounAliasRowNotes(f.where, f.row)...)
 			problems = append(problems, r.paramAliasRowNotes(f.where, f.row, row)...)
-			if row.identityGuard() != "" && !row.Unbind {
+			if row.When != "" && !row.Unbind {
 				problems = append(problems, fmt.Sprintf("warning: %s: %s %s: when %s is a guard row, a debt: the first row on a key whose action is available answers, so a row needs no condition when its action reports availability", BindingsFile, f.where, row.Keys+row.Pattern, row.When))
 			}
 		}
@@ -646,7 +646,6 @@ func (r *Runtime) applyBindingRow(row Binding, batch rowBatch, applied *[]applie
 	if err != nil {
 		return "", err
 	}
-	normalized = withImplicitGuard(normalized)
 	var replaced []Binding
 	at := -1
 	followup := batch[sourceKey(normalized)]
@@ -698,11 +697,11 @@ func shadowNotice(rows []Binding, row Binding, replaced bool) string {
 		return fmt.Sprintf("the default %s row (when %q%s)", b.Request.Key(), b.When, capture)
 	}
 	if row.Unbind {
-		if row.identityGuard() != "" {
+		if row.When != "" {
 			return ""
 		}
 		for _, b := range rows {
-			if b.sameKeys(row) && b.identityGuard() != "" {
+			if b.sameKeys(row) && b.When != "" {
 				return fmt.Sprintf("unbinds only the row without when; %s stays (add \"when\": %q to unbind it too)", describe(b), b.When)
 			}
 		}
@@ -710,7 +709,7 @@ func shadowNotice(rows []Binding, row Binding, replaced bool) string {
 	}
 	at := slices.IndexFunc(rows, row.same)
 	for i, b := range rows {
-		if !b.sameKeys(row) || b.same(row) || b.identityGuard() == "" {
+		if !b.sameKeys(row) || b.same(row) || b.When == "" {
 			continue
 		}
 		if b.Capture && !row.Capture {

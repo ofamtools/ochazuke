@@ -335,12 +335,13 @@ func TestCtrlCRowsUnbindOneAtATime(t *testing.T) {
 	}
 }
 
-// The editor's implicit input guard is not part of a row's identity: a
-// user row without when replaces or unbinds the editor default on its keys
-// (an input operation keeps the guard, as the default had), the same row
-// with the guard spelled out is the same row, and reload restores the
+// The editor's rows carry no guard of the framework's (the editor table is
+// the fallback of an input focus only, Noun.Fallback), so a row's identity
+// is plain: a user row without when replaces or unbinds the editor default
+// on its keys, a row with when "input" is a guarded row of its own that
+// answers first and leaves the default behind it, and reload restores the
 // default.
-func TestUserRowsReplaceEditorDefaultsDespiteTheImplicitGuard(t *testing.T) {
+func TestUserRowsReplaceEditorDefaults(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", false)
 	calls := recorder(t, r, "hello")
 	dir := t.TempDir()
@@ -355,20 +356,22 @@ func TestUserRowsReplaceEditorDefaultsDespiteTheImplicitGuard(t *testing.T) {
 		return out
 	}
 	defaults := x()
-	if len(defaults) != 1 || defaults[0].When != ImplicitGuard {
+	if len(defaults) != 1 || defaults[0].When != "" {
 		t.Fatalf("default x rows: %+v", defaults)
 	}
-	for _, file := range []string{
-		`[{"noun": "editor", "mode": "normal", "keys": "x", "request": {"noun": "test", "verb": "hello"}}]`,
-		`[{"noun": "editor", "mode": "normal", "keys": "x", "when": "input", "request": {"noun": "test", "verb": "hello"}}]`,
-	} {
-		writeConfig(t, dir, BindingsFile, file)
-		if problems := r.ReloadUserBindings(); len(problems) != 0 {
-			t.Fatal(problems)
-		}
-		if got := x(); len(got) != 1 || got[0].Request.Key() != "test.hello" {
-			t.Fatalf("%s: x rows %+v", file, got)
-		}
+	writeConfig(t, dir, BindingsFile, `[{"noun": "editor", "mode": "normal", "keys": "x", "when": "input", "request": {"noun": "test", "verb": "hello"}}]`)
+	if problems := r.ReloadUserBindings(); len(problems) != 0 {
+		t.Fatal(problems)
+	}
+	if got := x(); len(got) != 2 || got[0].Request.Key() != "test.hello" || got[0].When != "input" || !reflect.DeepEqual(got[1], defaults[0]) {
+		t.Fatalf("a guarded user row answers before the default: %+v", got)
+	}
+	writeConfig(t, dir, BindingsFile, `[{"noun": "editor", "mode": "normal", "keys": "x", "request": {"noun": "test", "verb": "hello"}}]`)
+	if problems := r.ReloadUserBindings(); len(problems) != 0 {
+		t.Fatal(problems)
+	}
+	if got := x(); len(got) != 1 || got[0].Request.Key() != "test.hello" {
+		t.Fatalf("x rows %+v", got)
 	}
 	editorTestKeys(t, r, "x")
 	if !slices.Equal(*calls, []string{"hello"}) || string(in.Text) != "abc" {
@@ -378,7 +381,7 @@ func TestUserRowsReplaceEditorDefaultsDespiteTheImplicitGuard(t *testing.T) {
 	if problems := r.ReloadUserBindings(); len(problems) != 0 {
 		t.Fatal(problems)
 	}
-	if got := x(); len(got) != 1 || got[0].When != ImplicitGuard || got[0].Request.Args["direction"] != "backward" {
+	if got := x(); len(got) != 1 || got[0].When != "" || got[0].Request.Args["direction"] != "backward" {
 		t.Fatalf("an input operation override: %+v", got)
 	}
 	writeConfig(t, dir, BindingsFile, `[{"noun": "editor", "mode": "normal", "keys": "x", "request": null}]`)

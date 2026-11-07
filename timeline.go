@@ -266,6 +266,9 @@ func (t *Timeline) ID() string { return t.id }
 // List is the list whose rows are the cards (selection, motions, filter).
 func (t *Timeline) List() *List { return t.list }
 
+// holdsList declares the timeline's list its child table (listHolder).
+func (t *Timeline) holdsList(l *List) bool { return t.list == l }
+
 // FocusTarget is where a jump to the timeline lands: its selected card.
 func (t *Timeline) FocusTarget() string { return t.list.FocusTarget() }
 

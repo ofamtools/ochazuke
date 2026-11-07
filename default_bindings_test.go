@@ -63,7 +63,7 @@ func TestFrameworkBindingFilesDoNotClash(t *testing.T) {
 				if err != nil {
 					t.Fatalf("%s: %v", name, err)
 				}
-				id := sourceKey(withImplicitGuard(row))
+				id := sourceKey(row)
 				if other, ok := seen[id]; ok && other != name {
 					t.Errorf("%s and %s both bind %s %s/%s %q", other, name, row.Noun, row.Mode, row.When, row.Keys+row.Pattern)
 				}

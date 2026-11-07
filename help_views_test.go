@@ -20,7 +20,9 @@ func sameAnswers(t *testing.T, r *Runtime, live, hypo []levelRow, levels ...stri
 		levels[i] = r.CanonicalNoun(name)
 	}
 	id := func(b Binding) string { return rowKey(b) }
-	guarded := func(row levelRow) bool { return row.When != "" || r.VerbGuard(row.Request.Key()) != "" }
+	guarded := func(row levelRow) bool {
+		return row.When != "" || len(r.VerbAvailability(requestOperation(row.Request))) > 0
+	}
 	same := func(a, b levelRow) bool {
 		return id(a.Binding) == id(b.Binding) && a.Request.Key() == b.Request.Key() && a.level == b.level && a.Capture == b.Capture
 	}
@@ -124,11 +126,19 @@ func TestNounHelpMarksGuardedRows(t *testing.T) {
 	if len(dollar) < 2 || dollar[0] != "list.column ?" || dollar[1] != "list.scroll-columns ?" {
 		t.Fatalf("$ rows on list: %v", dollar)
 	}
-	// The editor's implicit input guard holds for an input noun.
+	// An input noun reads the editor's rows with no guard of the
+	// framework's: the editor table is its fallback (placeFallback).
+	editorRows := 0
 	for _, h := range NounHelp(r, "prompt", ModeState{Name: "insert"}) {
-		if h.Guard == ImplicitGuard {
-			t.Fatalf("implicit guard shown on an input noun: %+v", h)
+		if h.Guard == InputFocusGuard {
+			t.Fatalf("input guard shown on an input noun: %+v", h)
 		}
+		if h.Noun == EditorNoun {
+			editorRows++
+		}
+	}
+	if editorRows == 0 {
+		t.Fatal("the prompt noun's help has no editor rows")
 	}
 }
 

@@ -335,6 +335,13 @@ type Operation struct {
 	// help and bindings list keep them. Set by NounBuilder.Motion; the
 	// framework's own motions are marked as they register (motionOps).
 	Motion bool `json:"motion,omitempty"`
+	// Requires names the guard that must hold at the focus for the verb to
+	// have what it acts on (the input verbs: "input", an input focused).
+	// It is not availability: the verb is still offered and a direct call
+	// runs, its handler saying why it cannot. Dot-repeat skips a recorded
+	// change whose Requires is false at the focus, so typing into a line
+	// that has since closed is never replayed outside an input.
+	Requires string `json:"-"`
 	// FocusBound marks operations whose editing/selection mode belongs to
 	// their own focused component, not a hypothetical outside context.
 	FocusBound bool `json:"focusBound,omitempty"`
@@ -895,7 +902,7 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 	if in.ID == "" || r.Instances[in.ID] != nil {
 		return errors.New("input ID must be unique and nonempty")
 	}
-	spec := instanceSpec{parent: "app", noun: "ochazuke.editor"}
+	spec := instanceSpec{parent: "app", noun: EditorNoun}
 	for _, opt := range opts {
 		opt(&spec)
 	}

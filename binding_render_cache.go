@@ -32,7 +32,7 @@ type scanTable struct {
 
 type bindingScan struct {
 	focus, mode    string
-	editing, drop  bool
+	drop           bool
 	modeGeneration uint64
 	levels         []level
 	tables         []scanTable
@@ -45,14 +45,14 @@ type bindingScan struct {
 // walks. Snapshots detect table edits even through public binding maps;
 // arbitrary application guards are always re-evaluated with their original
 // event. A false guard that hid a row is a dependency too.
-func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, focus string, editing bool) []levelRow {
+func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, focus string) []levelRow {
 	c.lastScan = nil
 	if c.collecting != nil {
-		return r.scanRowsUncached(levels, mode, focus, editing)
+		return r.scanRowsUncached(levels, mode, focus)
 	}
 	data, err := json.Marshal(mode)
 	if err != nil {
-		return r.scanRowsUncached(levels, mode, focus, editing)
+		return r.scanRowsUncached(levels, mode, focus)
 	}
 	key := string(data)
 	base, _ := baseAndPrefix(mode)
@@ -77,7 +77,7 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 	for _, table := range tables {
 		for _, b := range table.rows {
 			if b.Request.IsProp() || r.Operations[b.Request.Key()].Standard != "" {
-				return r.scanRowsUncached(levels, mode, focus, editing)
+				return r.scanRowsUncached(levels, mode, focus)
 			}
 			if op, ok := r.Operations[b.Request.Key()]; ok {
 				if n := r.Nouns[op.Noun]; n != nil && !slices.Contains(operationNouns, n) {
@@ -91,7 +91,7 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 	}
 	drop := r.dropsInheritedSequences()
 	for _, old := range c.scans {
-		if old.focus != focus || old.mode != key || old.editing != editing || old.drop != drop || old.modeGeneration != r.modeGeneration || !slices.Equal(old.levels, levels) || !equalScanTables(old.tables, tables) {
+		if old.focus != focus || old.mode != key || old.drop != drop || old.modeGeneration != r.modeGeneration || !slices.Equal(old.levels, levels) || !equalScanTables(old.tables, tables) {
 			continue
 		}
 		valid := true
@@ -107,7 +107,7 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 			return old.rows // internal borrowed rows; public APIs copy them
 		}
 	}
-	entry := &bindingScan{focus: focus, mode: key, editing: editing, drop: drop, modeGeneration: r.modeGeneration, levels: slices.Clone(levels)}
+	entry := &bindingScan{focus: focus, mode: key, drop: drop, modeGeneration: r.modeGeneration, levels: slices.Clone(levels)}
 	entry.tables = make([]scanTable, len(tables))
 	for i, table := range tables {
 		entry.tables[i] = scanTable{cloneBindings(table.rows), maps.Clone(table.guards), make(map[string][]string, len(table.availability))}
@@ -118,7 +118,7 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 	c.collecting = entry
 	func() {
 		defer func() { c.collecting = nil }()
-		entry.rows = r.scanRowsUncached(levels, mode, focus, editing)
+		entry.rows = r.scanRowsUncached(levels, mode, focus)
 	}()
 	if len(c.scans) >= 8 {
 		c.scans = c.scans[:0]

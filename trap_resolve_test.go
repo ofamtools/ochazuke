@@ -127,7 +127,7 @@ func TestTrapResolveHintsJudgeAtTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	has := func() bool {
-		for _, row := range r.scanRows(r.walk(r.Focus), r.Mode, r.Focus, false) {
+		for _, row := range r.scanRows(r.walk(r.Focus), r.Mode, r.Focus) {
 			if row.Keys == "j" && row.Request.Key() == "ochazuke.list.move" {
 				return true
 			}

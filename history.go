@@ -364,17 +364,17 @@ func (r *Runtime) repeatRequest(focus string, steps int) (Request, error) {
 }
 
 // repeatApplies reports whether a recorded change can run at focus: its
-// action is available there (Available), and a change the editor's rows
-// guard implicitly (typing, a delete, a paste into an input) needs that
-// guard to hold, an input focused. So typing into a line that has since
-// closed is never replayed outside an input: the change before it is.
+// action is available there (Available), and what it acts on is there
+// (Operation.Requires: typing, a delete, a paste into an input need an
+// input focused). So typing into a line that has since closed is never
+// replayed outside an input: the change before it is.
 func (r *Runtime) repeatApplies(q Request, focus string) bool {
 	focus = r.rowInstance(level{}, q, focus)
 	if !r.Available(q, focus, r.Mode) {
 		return false
 	}
-	if implicitlyGuarded(Binding{Request: q}) {
-		guard := r.guard(ImplicitGuard)
+	if op, ok := r.Operation(q.Key()); ok && op.Requires != "" {
+		guard := r.guard(op.Requires)
 		return guard == nil || guard(r, KeyEvent{Mode: r.Mode, Focus: focus, Level: focus, Args: q.Args})
 	}
 	return true

@@ -294,12 +294,12 @@ func onInput(fn func(*Runtime, *Input, Arguments) error) Handler {
 // editorOps is the table registerEditorOperations registers.
 func editorOps() []verbSpec {
 	return []verbSpec{
-		{"select", "input", "Start or toggle character, line, or block visual selection", "editor state", map[string]Parameter{"shape": {Type: "string"}}, onInput(editorSelect), ""},
-		{"operator", "input", "Yank, delete, or change a selection, whole lines, or an existing motion", "editor state", map[string]Parameter{"operator": {Type: "string", Required: true}, "motion": {Type: "string"}, "steps": {Type: "integer"}, "line": {Type: "integer"}, "register": {Type: "string"}}, onInput(editorOperator), ""},
-		{"yank", "input", "Yank visual selection or whole current lines", "editor state", map[string]Parameter{"steps": {Type: "integer"}, "register": {Type: "string"}}, editorYank, ""},
-		{"paste", "input", "Paste a shared register preserving its shape; literal inserts at cursor", "editor state", map[string]Parameter{"register": {Type: "string"}, "before": {Type: "boolean"}, "literal": {Type: "boolean"}, "steps": {Type: "integer"}}, onInput(editorPaste), ""},
-		{"kill", "input", "Kill preceding WORD/path component, readline word before or after, or line into shared yank history; kills an open select range", "editor state", map[string]Parameter{"motion": {Type: "string", Required: true, Enum: []string{"word-backward", "word-previous", "word-next", "line-start", "line-end"}}}, onInput(editorKill), ""},
-		{"select", "register", "Select the register used by the next yank, delete, or paste", "editor state", map[string]Parameter{"name": {Type: "string", Required: true}}, editorSelectRegister, ""},
+		{"select", "input", "Start or toggle character, line, or block visual selection", "editor state", map[string]Parameter{"shape": {Type: "string"}}, onInput(editorSelect), "", InputFocusGuard},
+		{"operator", "input", "Yank, delete, or change a selection, whole lines, or an existing motion", "editor state", map[string]Parameter{"operator": {Type: "string", Required: true}, "motion": {Type: "string"}, "steps": {Type: "integer"}, "line": {Type: "integer"}, "register": {Type: "string"}}, onInput(editorOperator), "", InputFocusGuard},
+		{"yank", "input", "Yank visual selection or whole current lines", "editor state", map[string]Parameter{"steps": {Type: "integer"}, "register": {Type: "string"}}, editorYank, "", InputFocusGuard},
+		{"paste", "input", "Paste a shared register preserving its shape; literal inserts at cursor", "editor state", map[string]Parameter{"register": {Type: "string"}, "before": {Type: "boolean"}, "literal": {Type: "boolean"}, "steps": {Type: "integer"}}, onInput(editorPaste), "", InputFocusGuard},
+		{"kill", "input", "Kill preceding WORD/path component, readline word before or after, or line into shared yank history; kills an open select range", "editor state", map[string]Parameter{"motion": {Type: "string", Required: true, Enum: []string{"word-backward", "word-previous", "word-next", "line-start", "line-end"}}}, onInput(editorKill), "", InputFocusGuard},
+		{"select", "register", "Select the register used by the next yank, delete, or paste", "editor state", map[string]Parameter{"name": {Type: "string", Required: true}}, editorSelectRegister, "", ""},
 	}
 }
 

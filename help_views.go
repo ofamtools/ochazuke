@@ -806,22 +806,12 @@ func registerHelpViews(r *Runtime) {
 	n.Guards["place"] = "help-places"
 }
 
-// inputNoun reports whether a focus on noun is an input, so the editor
-// noun is its fallback (stack's editing): the editor noun itself, a noun
-// that pins insert mode (prompt, chooser), or the noun of a live input.
+// inputNoun reports whether a focus on noun is an input with no instance
+// of it at hand, so it reads an input's fallback table (placeFallback): a
+// noun that pins insert mode (prompt, chooser).
 func (r *Runtime) inputNoun(noun string) bool {
-	if noun == "ochazuke.editor" {
-		return true
-	}
-	if n := r.Nouns[noun]; n != nil && n.Pin == "insert" {
-		return true
-	}
-	for id, inst := range r.Instances {
-		if inst.Noun == noun && r.Input(id) != nil {
-			return true
-		}
-	}
-	return false
+	n := r.Nouns[noun]
+	return n != nil && n.Pin == "insert"
 }
 
 // helpIdentity names the thing a help row stands for, apart from its

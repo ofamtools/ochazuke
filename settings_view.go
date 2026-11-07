@@ -128,9 +128,9 @@ func (s Setting) SectionName() string {
 // settingPageVerbs are the Settings page's own verbs.
 func settingPageVerbs() []verbSpec {
 	return []verbSpec{
-		{"open", "ochazuke.setting", "Open the Settings page (or switch to it): every change is saved as it is made", "setting[]", nil, settingsOpen, ""},
-		{"close", "ochazuke.setting", "Leave the Settings page for the page it was opened from", "context", nil, settingsClose, ""},
-		{"undo", "ochazuke.setting", "Take back the last change made on the Settings page", "setting", nil, settingsUndo, ""},
+		{"open", "ochazuke.setting", "Open the Settings page (or switch to it): every change is saved as it is made", "setting[]", nil, settingsOpen, "", ""},
+		{"close", "ochazuke.setting", "Leave the Settings page for the page it was opened from", "context", nil, settingsClose, "", ""},
+		{"undo", "ochazuke.setting", "Take back the last change made on the Settings page", "setting", nil, settingsUndo, "", ""},
 	}
 }
 

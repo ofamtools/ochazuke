@@ -20,6 +20,9 @@ import (
 // is a named guard. Every table of the framework, the model, the picker and
 // the demo validates, and the resolver names no key: the only code that
 // compares key names is the classifier and the key-text table in noun.go.
+// Nor does it compare a noun's name: which tables a focus reads comes from
+// declarations (Noun.Fallback, FallbackKeys, KeyOwner), never from a
+// branch on the editor's or any other noun's name.
 func TestBindingRowsAreAtomic(t *testing.T) {
 	binding := reflect.TypeOf(ochazuke.Binding{})
 	for i := 0; i < binding.NumField(); i++ {
@@ -58,7 +61,32 @@ func TestBindingRowsAreAtomic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	nounName := func(e ast.Expr) (string, bool) {
+		lit, ok := e.(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return "", false
+		}
+		value, err := strconv.Unquote(lit.Value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, rt := range []*ochazuke.Runtime{r, demo.New().Runtime} {
+			if rt.Nouns[rt.CanonicalNoun(value)] != nil {
+				return value, true
+			}
+		}
+		return "", false
+	}
 	ast.Inspect(file, func(n ast.Node) bool {
+		// A comparison with a noun's name (x == "ochazuke.editor",
+		// name != "app") is a branch on one noun.
+		if cmp, ok := n.(*ast.BinaryExpr); ok && (cmp.Op == token.EQL || cmp.Op == token.NEQ) {
+			for _, side := range []ast.Expr{cmp.X, cmp.Y} {
+				if name, ok := nounName(side); ok {
+					t.Errorf("%s: the resolver compares the noun name %q; declare the behaviour on the noun (Noun.Fallback) instead", fset.Position(side.Pos()), name)
+				}
+			}
+		}
 		// An operation's Verb, Noun and prose are names, not keys.
 		if kv, ok := n.(*ast.KeyValueExpr); ok {
 			if id, ok := kv.Key.(*ast.Ident); ok && (id.Name == "Verb" || id.Name == "Noun" || id.Name == "Description" || id.Name == "Result") {

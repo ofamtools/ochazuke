@@ -346,18 +346,18 @@ func (l *List) scrollColumns(to string, delta int) {
 
 // edgeList is the focused list the h/l scroll-then-focus rows act on
 // (table-column-*, table-scrolls-*, table-spills-*, the clamps) in
-// direction step (-1 h, 1 l, 0 either, the clamps): a tree's own list
-// only where the tree yields that direction (Tree.yieldsEdge: its own
-// collapse or expand has nothing to do on the row, per tree.spill), so
-// elsewhere a tree's h/l answer at its level outside the list (R11.1);
-// z h / z l still scroll a tree's columns.
+// direction step (-1 h, 1 l, 0 either, the clamps): a held list (a
+// tree's) only where its holder yields that direction (edgeYielder;
+// Tree.yieldsEdge: its own collapse or expand has nothing to do on the
+// row, per tree.spill), so elsewhere a tree's h/l answer at its level
+// outside the list (R11.1); z h / z l still scroll a tree's columns.
 func (r *Runtime) edgeList(focus string, step int) *List {
 	l := r.focusedList(focus)
 	if l == nil {
 		return nil
 	}
-	if inst := r.Instances[l.id]; inst != nil {
-		if t := r.Tree(inst.Parent); t != nil && t.list == l && !t.yieldsEdge(focus, step) {
+	if owner := l.holder(); owner != nil {
+		if y, ok := owner.Component.(edgeYielder); ok && !y.yieldsEdge(focus, step) {
 			return nil
 		}
 	}

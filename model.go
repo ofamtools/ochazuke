@@ -851,7 +851,7 @@ func BindingHelp(r *Runtime, focus string) []HelpRow {
 		focus: focus,
 		mode:  r.Mode,
 		enter: func(mode ModeState) []levelRow {
-			return groupLevelRows(r.scanRows(r.walk(focus), mode, focus, false))
+			return groupLevelRows(r.scanRows(r.walk(focus), mode, focus))
 		},
 	}
 	return r.withUnboundRows(helpGroups(r.helpRows(w, r.groupedRows(focus), 0)), r.UnboundVerbs(focus, r.Mode), r.focusChain(focus))

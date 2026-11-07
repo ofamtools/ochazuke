@@ -9,12 +9,15 @@ type verbSpec struct {
 	run                             Handler
 	// guard names the verb guard that gates the verb on its noun; "" for none.
 	guard string
+	// requires is the operation's Requires: the guard that must hold at
+	// the focus for the verb to have what it acts on; "" for none.
+	requires string
 }
 
 // registerVerbSpecs registers every row as an operation.
 func (r *Runtime) registerVerbSpecs(specs []verbSpec) {
 	for _, s := range specs {
-		r.Register(Operation{Verb: s.verb, Noun: s.noun, Description: s.description, Parameters: s.params, Result: s.result, Run: s.run})
+		r.Register(Operation{Verb: s.verb, Noun: s.noun, Description: s.description, Parameters: s.params, Result: s.result, Requires: s.requires, Run: s.run})
 		if s.guard == "" {
 			continue
 		}

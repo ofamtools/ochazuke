@@ -527,7 +527,7 @@ func RegisterInputOperations(r *Runtime) {
 		}, true},
 	} {
 		fn, edit := spec.fn, spec.edit
-		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.input", Description: spec.desc, Parameters: spec.params, Result: "input state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		r.Register(Operation{Verb: spec.verb, Noun: "ochazuke.input", Description: spec.desc, Parameters: spec.params, Result: "input state", Requires: InputFocusGuard, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 			in := r.Input(c.InputID)
 			if in == nil {
 				return nil, errors.New("no focused input")

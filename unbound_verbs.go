@@ -93,7 +93,7 @@ func (r *Runtime) unboundOperations(candidates []string, walk []level, mode Mode
 	}
 	bound := map[string]bool{}
 	for _, at := range []string{focus, ""} {
-		for _, row := range r.scanRows(walk, mode, at, false) {
+		for _, row := range r.scanRows(walk, mode, at) {
 			if row.Request.Empty() || row.Request.IsProp() {
 				continue
 			}
@@ -558,7 +558,7 @@ func (r *Runtime) bindConflict(keys string) (Binding, bool) {
 	if keys == "" || r.Instances[focus] == nil {
 		return Binding{}, false
 	}
-	for _, row := range r.scanRows(r.walk(focus), ModeState{Name: mode}, focus, false) {
+	for _, row := range r.scanRows(r.walk(focus), ModeState{Name: mode}, focus) {
 		if row.Pattern != "" || row.Keys == "" || isPrefixCancel(row.Binding) || row.Unbind {
 			continue
 		}

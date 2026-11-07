@@ -7,7 +7,7 @@ import (
 )
 
 // rowConditions are the guards a row answers under: its own (When, the
-// older form, the editor's implicit input guard included) and its
+// older form) and its
 // action's availability (Available's verb guard). A row with none answers
 // whenever its key reaches its table.
 func (r *Runtime) rowConditions(b Binding) []string {
@@ -113,14 +113,14 @@ func (r *Runtime) UnreachableBindings() []string {
 }
 
 // BindingDebts lists the stored rows that carry a guard of their own
-// (Binding.When; the editor's implicit input guard aside): the older way
+// (Binding.When): the older way
 // to say when a key answers, kept working while areas move the condition
 // onto the action's availability (Available), so the row needs none.
 func (r *Runtime) BindingDebts() []string {
 	var out []string
 	for _, rows := range r.storedTables() {
 		for _, b := range rows {
-			if b.identityGuard() == "" || b.Unbind {
+			if b.When == "" || b.Unbind {
 				continue
 			}
 			out = append(out, fmt.Sprintf("%s %q: %s when %s is a guard row (a debt: make the condition the action's availability)", tableLabel(b), b.Keys+b.Pattern, b.Request.Key(), b.When))

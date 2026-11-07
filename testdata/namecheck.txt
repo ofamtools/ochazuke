@@ -28,7 +28,7 @@ agent_rights.go	parseAgentRules	case	"confirm"	1
 args_form.go	Runtime.singlePath	compare	"form"	1
 args_form.go	Runtime.singlePath	compare	"path"	1
 association.go	Runtime.nearestOf	compare	"app"	1
-binding_render_cache.go	runtimeRenderCache.scan	cyclo	"-"	33
+binding_render_cache.go	runtimeRenderCache.scan	cyclo	"-"	32
 chooser.go	Chooser.refilter	cyclo	"-"	31
 chooser.go	Chooser.rowsView	cyclo	"-"	44
 chooser.go	registerChooser	case	"last"	1
@@ -192,7 +192,6 @@ help_views.go	Runtime.helpBaseModes	compare	"insert"	1
 help_views.go	Runtime.helpBaseModes	compare	"normal"	1
 help_views.go	Runtime.helpPendingModes	compare	"macro_recording"	1
 help_views.go	Runtime.inputNoun	compare	"insert"	1
-help_views.go	Runtime.inputNoun	compare	"ochazuke.editor"	1
 help_views.go	helpCellText	compare	"app"	3
 help_views.go	helpState.header	case	"pick"	1
 help_views.go	helpState.refreshBindings	compare	"pick"	1
@@ -305,12 +304,8 @@ motion_scroll.go	List.MoveToEdge	compare	"last"	1
 motion_scroll.go	registerViewMotions	compare	"last"	1
 name_vocab.go	Runtime.NameVocab	compare	"motion"	1
 namespace.go	frameworkName	compare	"app"	1
-noun.go	Binding.identityGuard	compare	"input"	1
-noun.go	Binding.identityGuard	compare	"ochazuke.editor"	1
 noun.go	Runtime.validateRow	cyclo	"-"	30
 noun.go	builtinGuards	compare	"normal"	1
-noun.go	implicitlyGuarded	compare	"cancel"	1
-noun.go	implicitlyGuarded	compare	"ochazuke.input"	1
 noun.go	isPattern	case	"digit"	1
 noun.go	isPattern	case	"paste"	1
 noun.go	isPrefixCancel	compare	"ochazuke.mode.leave"	1
@@ -335,7 +330,6 @@ noun.go	validSource	case	"row"	1
 noun.go	validSource	case	"steps"	1
 noun.go	validSource	case	"text"	1
 noun.go	var keyTexts	table	"enter"	1	key names mapped to their text; the words coincide with vocabulary names, no name branch
-noun.go	withImplicitGuard	compare	"ochazuke.editor"	1
 noun_places.go	Runtime.placementOf	compare	"app"	1
 pages.go	Runtime.AddPage	compare	"app"	1
 pages.go	Runtime.PageList	compare	"app"	1
@@ -427,12 +421,7 @@ resolve.go	Runtime.argument	case	"text"	1
 resolve.go	Runtime.dispatchIn	compare	"ochazuke.key.ignore"	1
 resolve.go	Runtime.dispatchIn	cyclo	"-"	33
 resolve.go	Runtime.lookup	cyclo	"-"	46
-resolve.go	Runtime.nounWalk	compare	"app"	1
-resolve.go	Runtime.nounWalk	compare	"ochazuke.editor"	1
-resolve.go	Runtime.scanRowsUncached	compare	"input"	1
-resolve.go	Runtime.scanRowsUncached	cyclo	"-"	39
-resolve.go	Runtime.stack	compare	"ochazuke.editor"	1
-resolve.go	Runtime.walkOf	compare	"ochazuke.editor"	1
+resolve.go	Runtime.scanRowsUncached	cyclo	"-"	37
 resolve.go	var stayingRequests	table	"ochazuke.count.append"	1
 resolve.go	var stayingRequests	table	"ochazuke.input.cancel"	1
 resolve.go	var stayingRequests	table	"ochazuke.key.dispatch"	1
