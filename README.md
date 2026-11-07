@@ -642,7 +642,11 @@ A noun with props and a store (`props.go`, `standard_verbs.go`) reads one gramma
 "task set --id status status done" // a key that equals a prop name: --KEY (the flag named after the key prop)
 "task status"                   // NOUN PROP reads it; "task status done" writes it; "task starred --toggle" flips it
 "task list --where status=todo" // --NAME VALUE names any parameter, as on the CLI
+"task edit field=status chooser=false" // NAME=VALUE too, as the line spells a request back
 ```
+
+- Palette only: a word `NAME=VALUE` whose NAME is a parameter of the line's verb fills that parameter, typed by it (`chooser=false` is the boolean false), as `--NAME=VALUE` does, unless the next positional parameter takes `NAME=VALUE` pairs itself (`where`, `set`'s props). A bare word fills a boolean parameter only when it is `true` or `false`; any other word passes the boolean over to the next parameter (the boolean stays open for a later `true` or `false`).
+- A parameter whose choices come from a verb that answers later (`Pending`: a list-facts noun's list, a mounted noun) never holds the line: the keys echo at once, the choices load as one job of the palette per line (a newer one replaces it; an answer of an earlier one or of an earlier open is dropped), the list says `loading widgets…` until they land, and a word typed meanwhile is taken as typed.
 
 - After a noun a word is a verb, else a prop, else a key or an instance (owner decision 18): an exact verb, an exact prop, a unique verb prefix, a unique prop prefix. `NOUN KEY` alone keeps running a palette noun's default verb. `NOUN PROP [VALUE]` is a prop-shaped request (`{noun, prop}`, `{noun, prop, value}`, `{noun, prop, toggle}`), so history keeps it as typed; from the CLI it is `bin task status done --id t3`.
 - The key word after a verb is optional: when the first word is the next parameter's (a prop name, or `prop=value` after `set`; `Operation.SubjectOmitted`, read from the parameters' `Enum` and `Pairs`), the subject comes from the focus, a target or `--KEY`.

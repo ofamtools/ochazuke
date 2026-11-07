@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -52,13 +53,67 @@ func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) 
 	} else if param.Type == "boolean" {
 		choices = []Choice{{ID: "true", Label: "true"}, {ID: "false", Label: "false"}}
 	} else {
-		choices, err = p.r.ChoicesFor(p.origin.Clone(), param, word, args)
+		choices, err = p.sourceChoices(key, param, word, args)
+		if errors.Is(err, errChoicesLoading) {
+			return choices, err // not cached: the answer lands later
+		}
 	}
 	if p.choiceCache == nil {
 		p.choiceCache = map[string]choiceList{}
 	}
 	p.choiceCache[key] = choiceList{choices, err}
 	return choices, err
+}
+
+// errChoicesLoading is paramChoices' answer while the source's choices
+// load off the loop: the word is taken as typed meanwhile.
+var errChoicesLoading = errors.New("choices are loading")
+
+// paletteChoicesSlot is the palette's job slot for loading choices: one
+// load in flight, a newer one replacing it.
+const paletteChoicesSlot = "choices"
+
+// sourceChoices reads a parameter's Enum and source (Runtime.ChoicesFor)
+// without blocking the palette: a source whose verb returns Pending loads
+// as a job of the palette (one in flight; a newer key replaces it), and
+// until it lands the parameter's Enum and errChoicesLoading answer, so
+// keys echo at once. The answer is kept by key until the palette opens
+// again, so the source runs once per line rather than once per key.
+func (p *Palette) sourceChoices(key string, param Parameter, word string, args Arguments) ([]Choice, error) {
+	if got, ok := p.loads[key]; ok {
+		return got.choices, got.err
+	}
+	if key == p.loadingKey {
+		return enumChoices(param), errChoicesLoading
+	}
+	seq := 0
+	choices, pending, err := p.r.startChoices(p.origin.Clone(), param, word, paletteID, paletteChoicesSlot, func(choices []Choice, err error) {
+		if seq != p.loadSeq {
+			return // an older load's or an earlier open's answer
+		}
+		if p.loads == nil {
+			p.loads = map[string]choiceList{}
+		}
+		p.loads[key] = choiceList{choices, err}
+		p.loadingKey = ""
+	}, args)
+	if !pending {
+		return choices, err
+	}
+	p.loadSeq++
+	seq, p.loadingKey = p.loadSeq, key
+	return choices, errChoicesLoading
+}
+
+// slotChoices are the choices completions lists for the slot being typed;
+// while they load it sets the loading line (loadingNote).
+func (p *Palette) slotChoices(op Operation, name, word string, args Arguments) []Choice {
+	list, err := p.paramChoices(op, name, word, args)
+	if errors.Is(err, errChoicesLoading) {
+		param, _ := p.r.choiceParameter(op, name, args)
+		p.loadingNote = LoadingText(p.r.choicesPlural(param))
+	}
+	return list
 }
 
 // instanceChoices reads a palette noun's live instances.

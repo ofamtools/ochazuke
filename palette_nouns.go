@@ -155,8 +155,9 @@ func (p *Palette) completions() []PaletteEntry {
 			out = append(out, PaletteEntry{Value: noun, Kind: "noun", Label: noun})
 		}
 	}
+	p.loadingNote = ""
 	choices := func(op Operation, name string, args Arguments) {
-		list, _ := p.paramChoices(op, name, partial, args)
+		list := p.slotChoices(op, name, partial, args)
 		pairs := op.Parameters[name].Pairs
 		for _, choice := range list {
 			entry := p.choiceEntry(choice)

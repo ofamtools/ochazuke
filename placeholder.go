@@ -81,3 +81,31 @@ func (p Placeholder) Text(r *Runtime) string {
 	}
 	return EmptyText(p.Plural)
 }
+
+// choicesPlural names a parameter's choices for the one format (R5.19):
+// the plural of the noun its things are ("widgets"), else "suggestions".
+func (r *Runtime) choicesPlural(p Parameter) string {
+	if p.Noun == "" {
+		return "suggestions"
+	}
+	noun := r.DisplayNoun(p.Noun)
+	if i := strings.LastIndexAny(noun, "."); i >= 0 {
+		noun = noun[i+1:]
+	}
+	return pluralWord(noun)
+}
+
+// pluralWord is an English noun's regular plural: box → boxes, query →
+// queries, widget → widgets.
+func pluralWord(word string) string {
+	switch {
+	case word == "":
+		return ""
+	case strings.HasSuffix(word, "s"), strings.HasSuffix(word, "x"), strings.HasSuffix(word, "z"),
+		strings.HasSuffix(word, "ch"), strings.HasSuffix(word, "sh"):
+		return word + "es"
+	case len(word) > 1 && strings.HasSuffix(word, "y") && !strings.ContainsRune("aeiou", rune(word[len(word)-2])):
+		return word[:len(word)-1] + "ies"
+	}
+	return word + "s"
+}

@@ -1336,11 +1336,11 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 		for i, ch := range choices {
 			rows[i] = ChooserRow{ID: ch.ID, Label: l.label(ch)}
 		}
-		switch {
+		switch plural := r.choicesPlural(l.param); {
 		case err != nil && len(rows) == 0:
-			c.spec.Empty = "no suggestions: " + err.Error()
+			c.spec.Empty = EmptyText(plural) + ": " + err.Error()
 		case len(rows) == 0:
-			c.spec.Empty = "no suggestions"
+			c.spec.Empty = EmptyText(plural)
 		}
 		c.SetRows(append(rows, l.fixed...))
 	}

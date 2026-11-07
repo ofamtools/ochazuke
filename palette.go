@@ -39,6 +39,16 @@ type Palette struct {
 	actions     map[string]bool
 	nouns       map[string]PaletteNoun
 	choiceCache map[string]choiceList
+	// loads holds choices that loaded off the loop (a Pending source),
+	// by paramChoices' key, until the palette opens again; loadingKey is
+	// the key of the one load in flight, loadSeq the current load's
+	// number (an answer of an older one, or of an earlier open, is
+	// dropped). loadingNote is the loading line for the slot's choices
+	// while its load runs (set by completions).
+	loads       map[string]choiceList
+	loadingKey  string
+	loadSeq     int
+	loadingNote string
 }
 
 // paletteID is the palette's modal instance; paletteLineID its line.
@@ -145,6 +155,8 @@ func (p *Palette) open() error {
 	}
 	p.highlight, p.marked, p.filter, p.recall, p.draft, p.message = -1, "", "", 0, "", ""
 	p.choiceCache = nil
+	p.loads, p.loadingKey, p.loadingNote = nil, "", ""
+	p.loadSeq++
 	if err := p.line.Replace(0, len(p.line.Text), ""); err != nil {
 		return err
 	}
@@ -486,7 +498,7 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 			out.WriteString(p.paramHeader(s, slot, width) + "\n")
 			headed = true
 		}
-		out.WriteString("  No completions\n")
+		out.WriteString(p.noCompletionsLine())
 	}
 	highlight, ok := p.highlight, false
 	if _, ok = p.highlighted(entries); !ok {
@@ -529,12 +541,32 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 	if hidden > 0 {
 		fmt.Fprintf(&out, "  (%d more)\n", hidden)
 	}
+	out.WriteString(p.stillLoadingLine(entries))
 	if inSlot && !headed && hidden == 0 {
 		// Nothing to pick, but the next word may still fill the parameter
 		// (a verb's line lists the nouns that have it).
 		out.WriteString(p.paramHeader(s, slot, width) + "\n")
 	}
 	return Block{Text: out.String(), Cursor: cursor}
+}
+
+// noCompletionsLine is the line for an empty completion list: the slot's
+// loading line while its choices load off the loop (a Pending source), so
+// the list never reads as empty while they come (R5.19).
+func (p *Palette) noCompletionsLine() string {
+	if p.loadingNote != "" {
+		return "  " + p.loadingNote + "\n"
+	}
+	return "  No completions\n"
+}
+
+// stillLoadingLine ends a list of other words (verbs, props) with the
+// slot's loading line while its choices are still coming; "" otherwise.
+func (p *Palette) stillLoadingLine(entries []PaletteEntry) string {
+	if len(entries) == 0 || p.loadingNote == "" {
+		return ""
+	}
+	return "  " + p.loadingNote + "\n"
 }
 
 // describeRequest spells the request a complete line runs:
