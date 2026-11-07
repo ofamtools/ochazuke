@@ -12,7 +12,7 @@
   },
   "script": [":", {"type": "doc rows"}, "enter"],
   "expect": [
-    {"after": 2, "contains": ["\"doc\" is ambiguous: json.doc, md.doc"]},
-    {"writes": [], "modal": "palette", "contains": ["\"doc\" is ambiguous: json.doc, md.doc"]}
+    {"after": 3, "contains": ["\"doc rows\" is ambiguous: json.doc rows, md.doc rows"]},
+    {"writes": [], "modal": "palette", "contains": ["\"doc rows\" is ambiguous: json.doc rows, md.doc rows"]}
   ]
 }
