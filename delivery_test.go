@@ -424,7 +424,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	// targets memoizes the target texts one top-level request resolved to
 	// keys (resolveTarget); it is emptied when the request ends.
 	want := []string{
-		"BindingTimeout", "Focus", "Instances", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
+		"BindingTimeout", "Focus", "Instances", "ModalReturns", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
 		"bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "diffRenderer", "events", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "predicates", "prefix", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rows", "seq", "targets", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {

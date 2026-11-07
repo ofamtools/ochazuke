@@ -541,6 +541,7 @@ Conformance:
 | replay_pending | mode | `mode.leave` |
 | shape | list | `list.move` |
 | shape | mode | `mode.switch` |
+| table | bindings | `bindings.help` |
 | table | list | `list.move` |
 | table | mode | `mode.enter` `mode.leave` `mode.pin` `mode.switch` |
 | terminal | bindings | `bindings.help` |
@@ -656,6 +657,7 @@ Mode edges (from → to via):
 - `macro_pending` → `visual-line` via `mode.leave`
 - `normal` → `count_pending` via `mode.enter`
 - `normal` → `edit` via `mode.switch`
+- `normal` → `flat` via `modal.close`
 - `normal` → `g_pending` via `mode.enter`
 - `normal` → `help_bind_pending` via `mode.enter`
 - `normal` → `insert` via `bindings-help.args`
@@ -795,6 +797,7 @@ Mode edges (from → to via):
 - `table` → `count_pending` via `mode.enter`
 - `table` → `edit` via `mode.switch`
 - `table` → `flat` via `mode.pin`
+- `table` → `normal` via `bindings.help`
 - `table` → `normal` via `list.move`
 - `table` → `table g` via `row g`
 - `table g` → `table` via `mode.leave`

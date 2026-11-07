@@ -89,11 +89,13 @@ func (l *List) ModeChanged(from, to string) {
 func (r *Runtime) endSelection(l *List) {
 	l.EndVisual()
 	normal := func(m ModeState) bool { return r.SelectionShape(m.Name) != SelectionLine }
-	for _, id := range r.modals {
-		if inst := r.Instances[id]; inst != nil && l.holds(inst.Payload.Return) && !normal(inst.returnMode) {
-			inst.returnMode = ModeState{Name: "normal"}
+	r.repairModalReturns(func(_ string, ret ModalReturnState) (ModalReturnState, bool) {
+		if !l.holds(ret.Focus) || normal(ret.Mode) {
+			return ret, false
 		}
-	}
+		ret.Mode = ModeState{Name: "normal"}
+		return ret, true
+	})
 	if l.Focused() && !normal(ModeState{Name: r.BaseMode()}) {
 		_ = r.SetMode("normal")
 	}
@@ -130,7 +132,7 @@ func (r *Runtime) untilAccepted(l *List, before []string) bool {
 			return false
 		}
 		inst := r.Instances[id]
-		if inst == nil || !inst.accepts || !l.holds(inst.Payload.Return) {
+		if inst == nil || !inst.accepts || !l.holds(r.ModalReturns[id].Focus) {
 			continue
 		}
 		inst.onAccept = append(inst.onAccept, func() {

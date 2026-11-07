@@ -34,14 +34,42 @@ type stateWriteException struct {
 	reason   string
 }
 
-// ownedField is one Runtime field with a single writer: the functions
-// allowed to assign it and the exact legacy sites the guard still accepts.
-// Reads stay open everywhere: the field is exported for inspection.
+// ownedField is one field with a single writer: the functions allowed to
+// assign it and the exact legacy sites the guard still accepts. The field
+// sits on root (Runtime when empty, or Instance for the per-modal
+// bookkeeping); with member set only that member of the field (and a write
+// of the whole field, which replaces it) counts, so Instance.Payload's
+// other members stay free. Reads stay open everywhere.
 type ownedField struct {
 	name       string
+	root       string
+	member     string
 	owners     map[string]bool
 	exceptions []stateWriteException
 	advice     string
+}
+
+// label is the field as the guard names it: Runtime.Mode,
+// Instance.Payload.Return.
+func (f ownedField) label() string {
+	root := f.root
+	if root == "" {
+		root = "Runtime"
+	}
+	if f.member != "" {
+		return root + "." + f.name + "." + f.member
+	}
+	return root + "." + f.name
+}
+
+// modalStackOwners are the modal stack's writers (modal_stack.go), each
+// named exactly: no other function in the file is an owner.
+func modalStackOwners(fns ...string) map[string]bool {
+	out := map[string]bool{}
+	for _, fn := range fns {
+		out["modal_stack.go Runtime."+fn] = true
+	}
+	return out
 }
 
 // ownedFields are the Runtime fields the guard owns.
@@ -71,21 +99,66 @@ var ownedFields = []ownedField{
 		},
 		advice: "move the focus (SetFocus, setFocus, RetargetFocus, OpenPage, Push/Pop) or add the landing to changeFocus's callers",
 	},
+	// The modal stack (modal_stack.go): the open modal IDs, the instances
+	// it created, each open modal's saved return and its Payload.Return
+	// snapshot, and a borrowed focus's adoption bookkeeping. No exceptions.
+	{
+		name:   "modals",
+		owners: modalStackOwners("initModalStack", "pushModalFrame", "popModalFrame"),
+		advice: "open and close modals with Push, OpenModal, Pop or CloseModal; the stack's own writes are in modal_stack.go",
+	},
+	{
+		name:   "modalInstances",
+		owners: modalStackOwners("initModalStack", "markModalInstance", "releaseModalInstance"),
+		advice: "record a created modal instance with markModalInstance or releaseModalInstance (modal_stack.go)",
+	},
+	{
+		name:   "ModalReturns",
+		owners: modalStackOwners("initModalStack", "setModalReturn", "popModalFrame"),
+		advice: "save a return with pushModalFrame, setModalReturn or repairModalReturns (modal_stack.go); focus and mode change together",
+	},
+	{
+		name:   "Payload",
+		root:   "Instance",
+		member: "Return",
+		owners: modalStackOwners("setModalReturn", "popModalFrame"),
+		// The regression that proves the snapshot is not authoritative has
+		// to write it the way outside code could, through Modals().
+		exceptions: []stateWriteException{
+			{"modal_stack_test.go", "TestModalReturnRepairDuringSelection", 1, "proves a write to the Payload.Return snapshot through a Modals() pointer does not move the saved return"},
+		},
+		advice: "an open modal's Payload.Return is a snapshot of its saved return: change the return with setModalReturn or repairModalReturns (modal_stack.go)",
+	},
+	{
+		name:   "borrowed",
+		root:   "Instance",
+		owners: modalStackOwners("adoptModalFocus", "popModalFrame"),
+		advice: "adopt a focus under a modal with adoptModalFocus; popModalFrame gives it back (modal_stack.go)",
+	},
+	{
+		name:   "lentParent",
+		root:   "Instance",
+		owners: modalStackOwners("adoptModalFocus", "popModalFrame"),
+		advice: "adopt a focus under a modal with adoptModalFocus; popModalFrame gives it back (modal_stack.go)",
+	},
 }
 
 // TestStateWriteOwnership is the state-ownership guard: no Go file in the
 // repository (the root module, its packages, tests, build-tagged files and
-// the nested modules cmd/o-story and examples) assigns an owned Runtime
-// field (Runtime.Mode, Runtime.Focus), a member of it (.Name, .Payload,
-// .Payload.Count) or takes its address, writes it through a copied Runtime
-// or a composite literal, outside its owner (changeMode, changeFocus),
-// except the exact legacy borrows listed in ownedFields. Reads stay open
-// everywhere: the fields are exported for inspection.
+// the nested modules cmd/o-story and examples) assigns an owned field
+// (Runtime.Mode, Runtime.Focus, the modal stack: Runtime.modals,
+// modalInstances, ModalReturns, an Instance's Payload.Return, borrowed and
+// lentParent), a member of it (.Name, .Payload.Count), an element of it
+// (an index write, delete, clear, copy, a sorting or deleting slices/sort
+// call) or takes its address, writes it through a copied Runtime or a
+// Runtime composite literal, outside its owner (changeMode, changeFocus,
+// the modal stack methods in modal_stack.go), except the exact legacy
+// borrows listed in ownedFields. Reads stay open everywhere.
 func TestStateWriteOwnership(t *testing.T) {
 	writes := repositoryStateWrites(t)
 	for _, field := range ownedFields {
-		t.Run(field.name, func(t *testing.T) {
-			checkFieldOwnership(t, field, writes[field.name])
+		t.Run(field.label(), func(t *testing.T) {
+			checkFieldOwnership(t, field, writes[field.label()])
 		})
 	}
 }
@@ -109,29 +182,38 @@ func checkFieldOwnership(t *testing.T, field ownedField, sites []stateWriteSite)
 		}
 		got[s.key()]++
 		if _, ok := allowed[s.key()]; !ok {
-			t.Errorf("%s: %s writes Runtime.%s (%s) outside its owner; %s", s.pos, s.fn, field.name, s.what, field.advice)
+			t.Errorf("%s: %s writes %s (%s) outside its owner; %s", s.pos, s.fn, field.label(), s.what, field.advice)
 		}
 	}
 	if owned == 0 {
-		t.Errorf("no owner assigns Runtime.%s any more: the guard's owner list is stale", field.name)
+		t.Errorf("no owner assigns %s any more: the guard's owner list is stale", field.label())
 	}
 	for key, want := range allowed {
 		if got[key] != want {
-			t.Errorf("exception %s allows %d writes to Runtime.%s, found %d: update the list (%s)", key, want, field.name, got[key], reasons[key])
+			t.Errorf("exception %s allows %d writes to %s, found %d: update the list (%s)", key, want, field.label(), got[key], reasons[key])
 		}
 	}
 }
 
 // TestStateWriteGuardFixtures proves the guard on a small package of its
-// own, once per owned field: each bad* (Mode) or focusBad* (Focus)
-// function writes that field one way; each ok* or focusOk* function writes
-// a same-named field of another type, reads, or writes through a pointer
-// the field holds. A field's check looks only at its own prefixes.
+// own, once per owned field: each bad* (Mode), focusBad* (Focus),
+// stackBad* (modals), createdBad* (modalInstances), returnsBad*
+// (ModalReturns), snapBad* (Instance.Payload.Return) or borrowBad*
+// (Instance.borrowed) function writes that field one way; each matching
+// *Ok/ok* function writes a same-named field of another type, another
+// member, a copy, reads, or writes through a pointer the field holds. A
+// field's check looks only at its own prefixes.
 func TestStateWriteGuardFixtures(t *testing.T) {
 	const src = `package fx
 
+import (
+	"slices"
+	"sort"
+)
+
 type Request struct{ Args map[string]any }
 type Payload struct {
+	Return  string
 	Count   int
 	Request *Request
 	Shadow  *ModeState
@@ -141,8 +223,20 @@ type ModeState struct {
 	Payload Payload
 }
 type Runtime struct {
-	Mode  ModeState
+	Mode           ModeState
+	Focus          string
+	modals         []string
+	modalInstances map[string]bool
+	ModalReturns   map[string]ModalReturnState
+}
+type ModalReturnState struct {
 	Focus string
+	Mode  ModeState
+}
+type Instance struct {
+	Payload    Payload
+	borrowed   string
+	lentParent string
 }
 type Input struct{ Mode string }
 type Binding struct{ Mode string }
@@ -207,6 +301,63 @@ func focusOkPage(p *Page)                  { p.Focus, p.Remembered = "a", "b" }
 func focusOkEvent(ev *KeyEvent)            { ev.Focus = "a" }
 func focusOkMode(r *Runtime)               { r.Mode.Name = "x" }
 func focusOkLiteral() *Runtime             { return &Runtime{Mode: ModeState{Name: "n"}} }
+
+func stackBadAppend(r *Runtime)   { r.modals = append(r.modals, "x") }
+func stackBadIndex(r *Runtime)    { r.modals[0] = "x" }
+func stackBadTruncate(r *Runtime) { r.modals = r.modals[:0] }
+func stackBadReverse(r *Runtime)  { slices.Reverse(r.modals) }
+func stackBadDelete(r *Runtime)   { _ = slices.Delete(r.modals, 0, 1) }
+func stackBadSort(r *Runtime)     { sort.Strings(r.modals) }
+func stackBadCopy(r *Runtime)     { copy(r.modals, []string{"x"}) }
+func stackBadClear(r *Runtime)    { clear(r.modals) }
+func stackBadAddress(r *Runtime)  { p := &r.modals[0]; *p = "x" }
+func stackBadLiteral() *Runtime   { return &Runtime{modals: []string{"x"}} }
+func stackBadRuntimeCopy(r *Runtime) Runtime { at := *r; return at }
+
+func stackOkRead(r *Runtime) int       { return len(r.modals) }
+func stackOkClone(r *Runtime)          { m := slices.Clone(r.modals); m[0] = "x" }
+func stackOkReslice(r *Runtime) []string { m := r.modals; m = m[:0]; return m }
+func stackOkContains(r *Runtime) bool  { return slices.Contains(r.modals, "x") }
+func stackOkLocalSort(ids []string)    { sort.Strings(ids) }
+
+func createdBadSet(r *Runtime)    { r.modalInstances["x"] = true }
+func createdBadDelete(r *Runtime) { delete(r.modalInstances, "x") }
+func createdBadClear(r *Runtime)  { clear(r.modalInstances) }
+func createdBadWhole(r *Runtime)  { r.modalInstances = nil }
+
+func createdOkRead(r *Runtime) bool { return r.modalInstances["x"] }
+func createdOkRange(r *Runtime) (n int) {
+	for range r.modalInstances {
+		n++
+	}
+	return n
+}
+
+func returnsBadSet(r *Runtime)    { r.ModalReturns["x"] = ModalReturnState{Focus: "f"} }
+func returnsBadDelete(r *Runtime) { delete(r.ModalReturns, "x") }
+func returnsBadWhole(r *Runtime)  { r.ModalReturns = nil }
+
+func returnsOkRead(r *Runtime) string       { return r.ModalReturns["x"].Focus }
+func returnsOkCopyOut(r *Runtime) ModalReturnState { ret := r.ModalReturns["x"]; ret.Focus = "y"; return ret }
+
+func snapBadReturn(in *Instance)        { in.Payload.Return = "x" }
+func snapBadParen(in *Instance)         { (in.Payload).Return = "x" }
+func snapBadWhole(in *Instance)         { in.Payload = Payload{} }
+func snapBadAddress(in *Instance) *string { return &in.Payload.Return }
+func snapBadAddressWhole(in *Instance)  { p := &in.Payload; p.Return = "x" }
+func snapBadPointerMethod(in *Instance) { in.Payload.bump() }
+func snapBadValue(in Instance)          { in.Payload.Return = "x" }
+
+func snapOkCount(in *Instance)          { in.Payload.Count = 1 }
+func snapOkRead(in *Instance) string    { return in.Payload.Return }
+func snapOkLocal() Payload              { var p Payload; p.Return = "x"; return p }
+func snapOkMode(r *Runtime)             { r.Mode.Payload.Count = 2 }
+func snapOkLiteral() *Instance          { return &Instance{Payload: Payload{Return: "x"}} }
+
+func borrowBadSet(in *Instance)         { in.borrowed = "x" }
+func borrowBadAddress(in *Instance) *string { return &in.borrowed }
+func borrowOkRead(in *Instance) string  { return in.borrowed }
+func borrowOkOther(in *Instance)        { in.lentParent = "x" }
 `
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "fx.go", src, parser.SkipObjectResolution)
@@ -215,12 +366,20 @@ func focusOkLiteral() *Runtime             { return &Runtime{Mode: ModeState{Nam
 	}
 	pkg, info := checkFiles(fset, "fx", []*ast.File{file}, fakeImporter(nil))
 	runtime := pkg.Scope().Lookup("Runtime").Type()
-	for _, c := range []struct{ field, bad, ok string }{
-		{"Mode", "bad", "ok"},
-		{"Focus", "focusBad", "focusOk"},
+	for _, c := range []struct {
+		field   ownedField
+		bad, ok string
+	}{
+		{ownedField{name: "Mode"}, "bad", "ok"},
+		{ownedField{name: "Focus"}, "focusBad", "focusOk"},
+		{ownedField{name: "modals"}, "stackBad", "stackOk"},
+		{ownedField{name: "modalInstances"}, "createdBad", "createdOk"},
+		{ownedField{name: "ModalReturns"}, "returnsBad", "returnsOk"},
+		{ownedField{name: "Payload", root: "Instance", member: "Return"}, "snapBad", "snapOk"},
+		{ownedField{name: "borrowed", root: "Instance"}, "borrowBad", "borrowOk"},
 	} {
 		byFn := map[string]int{}
-		for _, s := range fieldWritesIn(fset, file, "fx.go", info, runtimeField(t, pkg, c.field), runtime) {
+		for _, s := range fieldWritesIn(fset, file, "fx.go", info, ownedTarget(t, pkg, c.field, runtime)) {
 			byFn[s.fn]++
 		}
 		checked := 0
@@ -234,17 +393,17 @@ func focusOkLiteral() *Runtime             { return &Runtime{Mode: ModeState{Nam
 			case strings.HasPrefix(name, c.bad):
 				checked++
 				if byFn[name] == 0 {
-					t.Errorf("%s writes Runtime.%s and the guard missed it", name, c.field)
+					t.Errorf("%s writes %s and the guard missed it", name, c.field.label())
 				}
 			case strings.HasPrefix(name, c.ok):
 				checked++
 				if byFn[name] != 0 {
-					t.Errorf("%s does not write Runtime.%s and the guard flagged it", name, c.field)
+					t.Errorf("%s does not write %s and the guard flagged it", name, c.field.label())
 				}
 			}
 		}
 		if checked == 0 {
-			t.Errorf("no fixtures for Runtime.%s", c.field)
+			t.Errorf("no fixtures for %s", c.field.label())
 		}
 	}
 }
@@ -315,9 +474,9 @@ func repositoryStateWrites(t *testing.T) map[string][]stateWriteSite {
 			_, info = checkFiles(fset, path.Join("repo", g.dir, g.name), g.files, fakeImporter(rootPkg))
 		}
 		for _, owned := range ownedFields {
-			field := runtimeField(t, rootPkg, owned.name)
+			target := ownedTarget(t, rootPkg, owned, runtime)
 			for i, f := range g.files {
-				out[owned.name] = append(out[owned.name], fieldWritesIn(fset, f, g.names[i], info, field, runtime)...)
+				out[owned.label()] = append(out[owned.label()], fieldWritesIn(fset, f, g.names[i], info, target)...)
 			}
 		}
 	}
@@ -374,27 +533,72 @@ func checkFiles(fset *token.FileSet, path string, files []*ast.File, imp types.I
 // runtimeField is the named field of the package's Runtime struct.
 func runtimeField(t *testing.T, pkg *types.Package, name string) *types.Var {
 	t.Helper()
-	obj := pkg.Scope().Lookup("Runtime")
+	return structField(t, pkg, "Runtime", name)
+}
+
+// structField is the named field of the package's named struct type.
+func structField(t *testing.T, pkg *types.Package, typ, name string) *types.Var {
+	t.Helper()
+	obj := pkg.Scope().Lookup(typ)
 	if obj == nil {
-		t.Fatal("no Runtime type")
+		t.Fatalf("no %s type", typ)
 	}
-	st := obj.Type().Underlying().(*types.Struct)
+	return fieldOf(t, obj.Type(), typ, name)
+}
+
+func fieldOf(t *testing.T, typ types.Type, label, name string) *types.Var {
+	t.Helper()
+	st, ok := typ.Underlying().(*types.Struct)
+	if !ok {
+		t.Fatalf("%s is not a struct", label)
+	}
 	for i := 0; i < st.NumFields(); i++ {
 		if st.Field(i).Name() == name {
 			return st.Field(i)
 		}
 	}
-	t.Fatalf("Runtime has no %s field", name)
+	t.Fatalf("%s has no %s field", label, name)
 	return nil
 }
 
+// writeTarget is what fieldWritesIn looks for: the field, the member of
+// it that counts when only one does, and the Runtime type whose copies and
+// composite literals count (nil for a field on another type: a new
+// Instance literal is not a write into an open modal).
+type writeTarget struct {
+	field, member *types.Var
+	runtime       types.Type
+}
+
+// ownedTarget resolves an ownedField in pkg.
+func ownedTarget(t *testing.T, pkg *types.Package, owned ownedField, runtime types.Type) writeTarget {
+	t.Helper()
+	root := owned.root
+	if root == "" {
+		root = "Runtime"
+	}
+	target := writeTarget{field: structField(t, pkg, root, owned.name)}
+	if root == "Runtime" {
+		target.runtime = runtime
+	}
+	if owned.member != "" {
+		target.member = fieldOf(t, target.field.Type(), owned.label(), owned.member)
+	}
+	return target
+}
+
 // fieldWritesIn returns the writes to one owned field in one file: an
-// assignment, increment or range assignment whose target is the field or a
-// member of it, an address taken of either (also implicitly, calling a
-// pointer method on a member), a composite literal of runtime naming the
-// field, and a copy of a runtime value (*r), which would let a write to the
-// copy pose as the runtime's own.
-func fieldWritesIn(fset *token.FileSet, f *ast.File, name string, info *types.Info, field *types.Var, runtime types.Type) []stateWriteSite {
+// assignment, increment or range assignment whose target is the field, a
+// member of it or an element of it (an index of an array, slice or map
+// field), an address taken of any of those (also implicitly, calling a
+// pointer method on a member), a builtin or library call that changes an
+// element in place (delete, clear, copy into it, a slices or sort call that
+// reorders or deletes), a composite literal of runtime naming the field,
+// and a copy of a runtime value (*r), which would let a write to the copy
+// pose as the runtime's own. With a member, only writes reaching that
+// member or replacing the whole field count.
+func fieldWritesIn(fset *token.FileSet, f *ast.File, name string, info *types.Info, target writeTarget) []stateWriteSite {
+	field, runtime := target.field, target.runtime
 	var out []stateWriteSite
 	fn := "<init>"
 	add := func(n ast.Node, what string) {
@@ -420,13 +624,53 @@ func fieldWritesIn(fset *token.FileSet, f *ast.File, name string, info *types.In
 			}
 			return owned(x.X)
 		case *ast.IndexExpr:
-			if tv, ok := info.Types[x.X]; ok {
-				if _, isArray := tv.Type.Underlying().(*types.Array); isArray {
+			if tv, ok := info.Types[x.X]; ok && tv.Type != nil {
+				switch tv.Type.Underlying().(type) {
+				case *types.Array, *types.Slice, *types.Map:
 					return owned(x.X)
 				}
 			}
 		}
 		return false
+	}
+	// written narrows owned to the member when one is named: e writes it
+	// (or a part of it), or replaces the whole field.
+	written := owned
+	if member := target.member; member != nil {
+		var reaches func(e ast.Expr) bool
+		reaches = func(e ast.Expr) bool {
+			switch x := e.(type) {
+			case *ast.ParenExpr:
+				return reaches(x.X)
+			case *ast.SelectorExpr:
+				sel := info.Selections[x]
+				if sel == nil || sel.Kind() != types.FieldVal || sel.Indirect() {
+					return false
+				}
+				if sel.Obj() == member {
+					return owned(x.X)
+				}
+				return reaches(x.X)
+			}
+			return false
+		}
+		written = func(e ast.Expr) bool {
+			for p, ok := e.(*ast.ParenExpr); ok; p, ok = e.(*ast.ParenExpr) {
+				e = p.X
+			}
+			if x, ok := e.(*ast.SelectorExpr); ok {
+				if sel := info.Selections[x]; sel != nil && sel.Obj() == field {
+					return true
+				}
+			}
+			return reaches(e)
+		}
+	}
+	// mutators are library calls that change their first argument in place.
+	mutators := map[string]map[string]bool{
+		"slices": {"Reverse": true, "Sort": true, "SortFunc": true, "SortStableFunc": true, "Delete": true, "DeleteFunc": true, "Insert": true, "Replace": true, "Compact": true, "CompactFunc": true},
+		"sort":   {"Strings": true, "Ints": true, "Slice": true, "SliceStable": true, "Sort": true, "Stable": true},
+		"maps":   {"Copy": true, "DeleteFunc": true},
 	}
 	isRuntime := func(e ast.Expr) bool {
 		tv, ok := info.Types[e]
@@ -438,36 +682,52 @@ func fieldWritesIn(fset *token.FileSet, f *ast.File, name string, info *types.In
 		case *ast.AssignStmt:
 			if x.Tok != token.DEFINE {
 				for _, lhs := range x.Lhs {
-					if owned(lhs) {
+					if written(lhs) {
 						add(lhs, "assignment")
 					}
 				}
 			}
 		case *ast.IncDecStmt:
-			if owned(x.X) {
+			if written(x.X) {
 				add(x.X, "increment")
 			}
 		case *ast.RangeStmt:
 			if x.Tok == token.ASSIGN {
 				for _, e := range []ast.Expr{x.Key, x.Value} {
-					if e != nil && owned(e) {
+					if e != nil && written(e) {
 						add(e, "range assignment")
 					}
 				}
 			}
 		case *ast.UnaryExpr:
-			if x.Op == token.AND && owned(x.X) {
+			if x.Op == token.AND && written(x.X) {
 				add(x, "address")
 			}
 		case *ast.SelectorExpr:
 			if sel := info.Selections[x]; sel != nil && sel.Kind() == types.MethodVal {
 				sig := sel.Obj().Type().(*types.Signature)
-				if _, ptr := sig.Recv().Type().(*types.Pointer); ptr && owned(x.X) {
+				if _, ptr := sig.Recv().Type().(*types.Pointer); ptr && written(x.X) {
 					add(x, "pointer method")
 				}
 			}
+		case *ast.CallExpr:
+			if len(x.Args) == 0 {
+				break
+			}
+			switch fun := x.Fun.(type) {
+			case *ast.Ident:
+				if _, builtin := info.Uses[fun].(*types.Builtin); builtin && (fun.Name == "delete" || fun.Name == "clear" || fun.Name == "copy") && written(x.Args[0]) {
+					add(x, fun.Name)
+				}
+			case *ast.SelectorExpr:
+				if pkg, ok := fun.X.(*ast.Ident); ok {
+					if pn, ok := info.Uses[pkg].(*types.PkgName); ok && mutators[pn.Imported().Path()][fun.Sel.Name] && written(x.Args[0]) {
+						add(x, pkg.Name+"."+fun.Sel.Name)
+					}
+				}
+			}
 		case *ast.CompositeLit:
-			if tv, ok := info.Types[x]; ok && tv.Type != nil && types.Identical(tv.Type, runtime) {
+			if tv, ok := info.Types[x]; ok && runtime != nil && tv.Type != nil && types.Identical(tv.Type, runtime) {
 				for _, elt := range x.Elts {
 					if kv, ok := elt.(*ast.KeyValueExpr); ok {
 						if id, ok := kv.Key.(*ast.Ident); ok && id.Name == field.Name() {
@@ -477,7 +737,7 @@ func fieldWritesIn(fset *token.FileSet, f *ast.File, name string, info *types.In
 				}
 			}
 		case *ast.StarExpr:
-			if isRuntime(x) {
+			if runtime != nil && isRuntime(x) {
 				add(x, "runtime copy")
 			}
 		}

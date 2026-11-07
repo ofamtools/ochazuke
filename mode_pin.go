@@ -86,9 +86,16 @@ func (r *Runtime) PinInstance(id, mode string) error {
 		return nil
 	}
 	if len(r.modals) > 0 {
-		if outer := r.Instances[r.modals[0]]; outer != nil && outer.returnMode.Name == before {
-			outer.returnMode = ModeState{Name: after}
-		}
+		// The outermost modal restores the base: its saved return follows
+		// the re-pin, focus and mode as one value.
+		outer := r.modals[0]
+		r.repairModalReturns(func(id string, ret ModalReturnState) (ModalReturnState, bool) {
+			if id != outer || ret.Mode.Name != before {
+				return ret, false
+			}
+			ret.Mode = ModeState{Name: after}
+			return ret, true
+		})
 		return nil
 	}
 	if r.BaseMode() != before {

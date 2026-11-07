@@ -64,6 +64,6 @@ func (r *Runtime) ModalReturn(id string) (focus string, mode ModeState) {
 	if !slices.Contains(r.modals, id) {
 		return "", ModeState{}
 	}
-	inst := r.Instances[id]
-	return inst.Payload.Return, inst.returnMode
+	ret := r.ModalReturns[id]
+	return ret.Focus, cloneModeState(ret.Mode)
 }

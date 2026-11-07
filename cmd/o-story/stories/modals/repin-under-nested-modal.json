@@ -1,0 +1,18 @@
+{
+  "name": "nested modals: re-pinning the pane beneath two open modals (mode.pin run from the palette over help) moves only the outermost modal's saved return: the palette closes back into help in normal, and esc from help lands on the list in the new pin's mode",
+  "area": "modals",
+  "width": 100,
+  "height": 30,
+  "page": {
+    "modes": {"table": {"extends": "normal"}, "flat": {"extends": "normal"}},
+    "lists": [{"id": "data", "rows": 3, "pin": "table"}],
+    "focus": "data2"
+  },
+  "script": ["?", ":", {"type": "mode pin instance=data mode=flat"}, "enter", "esc"],
+  "expect": [
+    {"after": 1, "modal": "bindings-help", "mode": "normal"},
+    {"after": 2, "modal": "palette"},
+    {"after": 4, "modal": "bindings-help", "mode": "normal"},
+    {"modal": "", "mode": "flat", "focus": "data2", "badge": "FLAT"}
+  ]
+}

@@ -9,8 +9,9 @@ import (
 // Focus, the modal chain and the mode rule a focus change applies.
 //
 // Runtime.Focus is the one focused instance. An open modal is an instance
-// on Runtime's modal chain whose Payload.Return names the focus it was
-// opened over (and the mode it was in); Pop restores both. A page
+// on Runtime's modal chain; its frame (modal_stack.go, Runtime.ModalReturns)
+// saves the focus and mode it was opened over as one value, Pop restores
+// both, and its Payload.Return is a snapshot of that focus. A page
 // remembers its focus and mode in Page.Remembered while another page is
 // open. RemoveInstance points every one of those references into a removed
 // subtree at the nearest surviving ancestor.
@@ -22,9 +23,7 @@ func (r *Runtime) Context() Context { return r.contextOf(r.Focus) }
 // outermost modal, else Focus. Runtime.Page is always an ancestor of it.
 func (r *Runtime) BaseFocus() string {
 	if len(r.modals) > 0 {
-		if inst := r.Instances[r.modals[0]]; inst != nil {
-			return inst.Payload.Return
-		}
+		return r.ModalReturns[r.modals[0]].Focus
 	}
 	return r.Focus
 }
@@ -48,7 +47,7 @@ func (r *Runtime) ModalFocus(id string) string {
 	case i == len(r.modals)-1:
 		return r.Focus
 	}
-	return r.Instances[r.modals[i+1]].Payload.Return
+	return r.ModalReturns[r.modals[i+1]].Focus
 }
 
 // TopModal is the id of the innermost open modal, "" when none is open.
@@ -236,7 +235,10 @@ func (r *Runtime) setModalFocus(modal, id string) {
 	case i == len(r.modals)-1:
 		r.setFocus(id)
 	default:
-		r.Instances[r.modals[i+1]].Payload.Return = id
+		above := r.modals[i+1]
+		ret := r.ModalReturns[above]
+		ret.Focus = id
+		r.setModalReturn(above, ret)
 	}
 }
 
@@ -251,11 +253,13 @@ func (r *Runtime) RetargetFocus(match func(id string) bool, to string) {
 			page.Remembered = to
 		}
 	}
-	for _, id := range r.modals {
-		if inst := r.Instances[id]; inst != nil && inst.Payload.Return != to && match(inst.Payload.Return) {
-			inst.Payload.Return = to
+	r.repairModalReturns(func(_ string, ret ModalReturnState) (ModalReturnState, bool) {
+		if ret.Focus == to || !match(ret.Focus) {
+			return ret, false
 		}
-	}
+		ret.Focus = to
+		return ret, true
+	})
 	if r.Focus != to && match(r.Focus) {
 		r.setFocus(to)
 	}
@@ -285,15 +289,13 @@ func (r *Runtime) Push(id, focus string) error {
 		r.seq++
 		inst = &Instance{ID: id, Noun: "ochazuke.modal", Parent: "app", seq: r.seq}
 		r.register(inst)
-		r.modalInstances[id] = true
+		r.markModalInstance(id)
 	} else {
 		// An instance opened as a modal is seen there, with what it holds.
 		r.notePlacement(placementNote{id: id, subtree: true})
 	}
 	r.CancelPendingBinding()
-	inst.Payload.Return = r.Focus
-	inst.returnMode = ModeState{Name: r.BaseMode()}
-	r.modals = append(r.modals, id)
+	r.pushModalFrame(id, ModalReturnState{Focus: r.Focus, Mode: ModeState{Name: r.BaseMode()}})
 	// The focus is never outside the top modal: a focus that is not in the
 	// body's subtree is adopted under it while it is open (its own parent
 	// comes back on Pop); one the body sits beneath (app) becomes the body.
@@ -301,9 +303,7 @@ func (r *Runtime) Push(id, focus string) error {
 		if slices.Contains(r.Ancestry(id), focus) {
 			focus = id
 		} else {
-			target := r.Instances[focus]
-			inst.borrowed, inst.lentParent = focus, target.Parent
-			target.Parent = id
+			r.adoptModalFocus(id, focus)
 		}
 	}
 	r.setFocus(focus)
@@ -432,19 +432,19 @@ func (r *Runtime) OpenModal(kind string, payload Payload, opts ...ModalOption) (
 	inst := &Instance{ID: kind, Noun: noun, Parent: r.Focus, Payload: payload, seq: r.seq}
 	inst.close = spec.close
 	r.register(inst)
-	r.modalInstances[kind] = true
+	r.markModalInstance(kind)
 	focus := kind
 	if spec.input != nil {
 		if err := r.AddInput(spec.input, append(spec.opts, Parent(kind))...); err != nil {
 			r.unregister(kind)
-			delete(r.modalInstances, kind)
+			r.releaseModalInstance(kind)
 			return nil, err
 		}
 		focus = spec.input.ID
 	}
 	if err := r.Push(kind, focus); err != nil {
 		r.dropSubtree(kind)
-		delete(r.modalInstances, kind)
+		r.releaseModalInstance(kind)
 		return nil, err
 	}
 	return inst, nil
@@ -458,31 +458,25 @@ func (r *Runtime) Pop() error {
 		return errors.New("no modal to close")
 	}
 	r.settlePlacements()
-	id := r.modals[len(r.modals)-1]
+	id := r.TopModal()
 	inst := r.Instances[id]
 	r.CancelPendingBinding()
 	kind, noun := r.modalKind(id), inst.Noun
 	defer r.surfaceLeft(id, kind, noun)
 	from := r.Focus
 	leaving := r.focusLeaving(focusLanding)
-	back, mode := inst.Payload.Return, inst.returnMode
-	r.modals = r.modals[:len(r.modals)-1]
-	if lent := r.Instances[inst.borrowed]; lent != nil && lent.Parent == id {
-		lent.Parent = inst.lentParent
-		if r.Instances[lent.Parent] == nil {
-			lent.Parent = "app"
-		}
-	}
-	inst.borrowed, inst.lentParent = "", ""
+	// The frame comes off first: the saved return, the borrowed focus's
+	// parent given back, and for an instance the stack did not create its
+	// return snapshot and close request cleared (a close request lasts one
+	// opening: the next Push sets its own).
+	_, ret := r.popModalFrame()
+	back, mode := ret.Focus, ret.Mode
 	if r.modalInstances[id] {
 		if to := r.closeFocusOf(from, r.subtreeSet(id)); to != "" {
 			back, mode = to, ModeState{}
 		}
-		delete(r.modalInstances, id)
+		r.releaseModalInstance(id)
 		r.dropSubtree(id)
-	} else {
-		// A close request lasts one opening: the next Push sets its own.
-		inst.Payload.Return, inst.returnMode, inst.close = "", ModeState{}, nil
 	}
 	if r.Instances[back] == nil {
 		back, mode = r.Page, ModeState{}
@@ -618,15 +612,16 @@ func (r *Runtime) removeInstance(id string, kids map[string][]*Instance, pages [
 			page.Remembered, page.mode = parent, ModeState{}
 		}
 	}
-	for _, modal := range r.modals {
-		if m := r.Instances[modal]; m != nil && gone[m.Payload.Return] {
-			back := parent
-			if to := r.closeFocusOf(m.Payload.Return, gone); to != "" {
-				back = to
-			}
-			m.Payload.Return, m.returnMode = back, ModeState{}
+	r.repairModalReturns(func(_ string, ret ModalReturnState) (ModalReturnState, bool) {
+		if !gone[ret.Focus] {
+			return ret, false
 		}
-	}
+		back := parent
+		if to := r.closeFocusOf(ret.Focus, gone); to != "" {
+			back = to
+		}
+		return ModalReturnState{Focus: back}, true
+	})
 	for _, one := range r.subtreeFrom(id, kids) {
 		if !gone[one] {
 			continue

@@ -41,8 +41,9 @@ func snapshotInteraction(r *Runtime, input string) interactionSnapshot {
 		CacheHints: r.renderCache.hints, CacheHelp: len(r.renderCache.help), CacheGeneration: r.renderCache.generation,
 	}
 	for _, id := range r.modals {
-		s.Returns = append(s.Returns, r.Instances[id].Payload.Return)
-		s.ReturnModes = append(s.ReturnModes, cloneModeState(r.Instances[id].returnMode))
+		back, mode := r.ModalReturn(id)
+		s.Returns = append(s.Returns, back)
+		s.ReturnModes = append(s.ReturnModes, mode)
 	}
 	if page := r.PageOf(r.Page); page != nil {
 		s.Remembered = page.Remembered

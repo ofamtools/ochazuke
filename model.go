@@ -1184,10 +1184,10 @@ func (m *Model) beneath() (restore func()) {
 		return func() {}
 	}
 	focus, mode := r.Focus, r.Mode
-	if outer := r.Instances[r.modals[0]]; outer != nil {
-		r.Focus = outer.Payload.Return
-		if outer.returnMode.Name != "" {
-			r.Mode = outer.returnMode
+	if outer, ok := r.ModalReturns[r.modals[0]]; ok {
+		r.Focus = outer.Focus
+		if outer.Mode.Name != "" {
+			r.Mode = outer.Mode
 		}
 	}
 	return func() { r.Focus, r.Mode = focus, mode }

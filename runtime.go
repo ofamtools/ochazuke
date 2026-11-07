@@ -537,7 +537,12 @@ type Runtime struct {
 	// before refusing an unknown target, so keys, the palette, the CLI and
 	// the API all accept the foreign id. An error refuses the request with
 	// it; "" and no error leaves the target unknown.
-	ResolveTarget  func(target string) (string, error)
+	ResolveTarget func(target string) (string, error)
+	// ModalReturns is each open modal's saved return, by modal id: the
+	// focus and mode closing it restores, one value. Readable for
+	// inspection; only the modal stack's owner (modal_stack.go) writes it.
+	// An open modal's Payload.Return is a snapshot of its Focus.
+	ModalReturns   map[string]ModalReturnState
 	modes          modeTable // every defined mode and its traits (mode_table.go); Modes mirrors its base modes
 	guards         map[string]Guard
 	predicates     map[string]PredicateFunc // named query predicates (query.go)
@@ -551,8 +556,8 @@ type Runtime struct {
 	modeGeneration uint64
 	rows           map[string]string         // list row instance id -> owning list id
 	holders        []string                  // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
-	modals         []string                  // the open modal instances, outermost first; each holds its return focus in Payload.Return
-	modalInstances map[string]bool           // instances created by Push or OpenModal, removed by Pop
+	modals         []string                  // the open modal instances, outermost first; their saved returns are ModalReturns (modal_stack.go)
+	modalInstances map[string]bool           // instances created by Push or OpenModal, removed by Pop (modal_stack.go)
 	remoteSeen     map[string]map[string]any // the last answer of each read of a remote store (Ctx.Await)
 	remoteQueue    []*remoteRun              // remote writes in flight, in order, per thing
 	copyMarks      map[string]*copyMarks     // by noun, what each copy noun's last refresh read (copy_refresh.go)
@@ -586,13 +591,13 @@ func newRuntime() *Runtime {
 	r := &Runtime{
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
 		Modes: map[string]bool{}, Operations: map[string]Operation{},
-		modes:          modeTable{},
-		defaults:       defaultSources{rows: map[string]string{}, extends: map[string]string{}},
-		guards:         builtinGuards(),
-		predicates:     builtinPredicates(),
-		modalInstances: map[string]bool{},
-		aliases:        map[string]string{},
+		modes:      modeTable{},
+		defaults:   defaultSources{rows: map[string]string{}, extends: map[string]string{}},
+		guards:     builtinGuards(),
+		predicates: builtinPredicates(),
+		aliases:    map[string]string{},
 	}
+	r.initModalStack()
 	r.ensureBuiltinModes()
 	r.changeFocus("app", focusMove{cause: focusAssign})
 	r.changeMode(ModeState{Name: "normal"}, modeInit)

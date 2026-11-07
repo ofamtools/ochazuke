@@ -64,8 +64,8 @@ func (r *Runtime) PresentationAt(id string) Presentation {
 		if i == len(r.modals)-1 {
 			return r.liveView(view)
 		}
-		above := r.Instances[r.modals[i+1]]
-		return r.savedView(view, above.Payload.Return, above.returnMode)
+		above := r.ModalReturns[r.modals[i+1]]
+		return r.savedView(view, above.Focus, above.Mode)
 	}
 	page := r.surfacePage(id)
 	switch {
@@ -87,8 +87,8 @@ func (r *Runtime) PresentationAt(id string) Presentation {
 	if len(r.modals) == 0 {
 		return r.liveView(view)
 	}
-	outer := r.Instances[r.modals[0]]
-	return r.savedView(view, outer.Payload.Return, outer.returnMode)
+	outer := r.ModalReturns[r.modals[0]]
+	return r.savedView(view, outer.Focus, outer.Mode)
 }
 
 // surfaceModal is the index in the open modals of the innermost one on
