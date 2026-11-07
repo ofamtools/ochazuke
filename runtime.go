@@ -585,7 +585,6 @@ func NewRuntime() *Runtime {
 func newRuntime() *Runtime {
 	r := &Runtime{
 		Nouns: map[string]*Noun{}, Instances: map[string]*Instance{}, rows: map[string]string{},
-		Focus: "app",
 		Modes: map[string]bool{}, Operations: map[string]Operation{},
 		modes:          modeTable{},
 		defaults:       defaultSources{rows: map[string]string{}, extends: map[string]string{}},
@@ -595,6 +594,7 @@ func newRuntime() *Runtime {
 		aliases:        map[string]string{},
 	}
 	r.ensureBuiltinModes()
+	r.changeFocus("app", focusMove{cause: focusAssign})
 	r.changeMode(ModeState{Name: "normal"}, modeInit)
 	return r
 }

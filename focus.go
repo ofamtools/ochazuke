@@ -168,10 +168,7 @@ func (r *Runtime) setFocus(id string) {
 		return
 	}
 	r.CancelPendingBinding()
-	stop, path := r.stopOf(from), r.Ancestry(from)
-	r.Focus = id
-	r.selectFocusedRow(id)
-	r.focusMoved(stop, path, id)
+	r.changeFocus(id, r.focusLeaving(focusLanding))
 }
 
 // selectFocusedRow makes a focused list row its list's selection (by its
@@ -467,7 +464,7 @@ func (r *Runtime) Pop() error {
 	kind, noun := r.modalKind(id), inst.Noun
 	defer r.surfaceLeft(id, kind, noun)
 	from := r.Focus
-	stop, path := r.stopOf(from), r.Ancestry(from)
+	leaving := r.focusLeaving(focusLanding)
 	back, mode := inst.Payload.Return, inst.returnMode
 	r.modals = r.modals[:len(r.modals)-1]
 	if lent := r.Instances[inst.borrowed]; lent != nil && lent.Parent == id {
@@ -493,15 +490,10 @@ func (r *Runtime) Pop() error {
 			back = "app"
 		}
 	}
-	back = r.clampFocus(back)
-	r.Focus = back
-	r.selectFocusedRow(back)
-	r.rememberLeaving(path, back)
-	if mode.Name == "" {
-		r.focusMoved(stop, path, back)
-	} else {
-		r.restoreMode(mode, path)
+	if mode.Name != "" {
+		leaving.cause, leaving.mode = focusRestore, mode
 	}
+	r.changeFocus(r.clampFocus(back), leaving)
 	return nil
 }
 
@@ -614,7 +606,7 @@ func (r *Runtime) removeInstance(id string, kids map[string][]*Instance, pages [
 		}
 	}
 	from := r.Focus
-	stop, path := r.stopOf(from), r.Ancestry(from)
+	leaving := r.focusLeaving(focusLanding)
 	back := parent
 	if gone[from] {
 		if to := r.closeFocusOf(from, gone); to != "" {
@@ -644,10 +636,7 @@ func (r *Runtime) removeInstance(id string, kids map[string][]*Instance, pages [
 	}
 	if gone[from] {
 		r.CancelPendingBinding()
-		back = r.clampFocus(back)
-		r.Focus = back
-		r.selectFocusedRow(back)
-		r.focusMoved(stop, path, back)
+		r.changeFocus(r.clampFocus(back), leaving)
 	}
 	return nil
 }

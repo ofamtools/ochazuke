@@ -12,7 +12,7 @@ import (
 // unfocus moves the focus off the fixture's list to a sibling on the page.
 func unfocus(m *Model) {
 	m.Runtime.Instance("other", Parent("main"))
-	m.Runtime.Focus = "other"
+	forceFocus(m.Runtime, "other")
 }
 
 // wantBar is the SGR the dimmed bar opens with at percent toward the

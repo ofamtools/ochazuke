@@ -395,7 +395,7 @@ func (r *Runtime) OpenPage(id string) error {
 		return errors.New("close the active modal before opening a page")
 	}
 	from := r.Focus
-	stop, path := r.stopOf(from), r.Ancestry(from)
+	leaving := r.focusLeaving(focusSettle)
 	r.CancelPendingBinding()
 	if current := r.PageOf(r.Page); current != nil {
 		// The page being left remembers its focus and mode.
@@ -404,17 +404,19 @@ func (r *Runtime) OpenPage(id string) error {
 	if r.Instances[page.Remembered] == nil {
 		page.Remembered, page.mode = page.ID, ModeState{}
 	}
-	r.Focus = page.Remembered
-	r.selectFocusedRow(r.Focus)
 	left := r.Page
 	r.Page = id
 	page.visited = r.lastPageVisit() + 1
-	if page.mode.Name != "" {
-		r.rememberLeaving(path, r.Focus)
-		r.restoreMode(page.mode, path)
-	} else if r.Focus != from {
-		r.focusMoved(stop, path, r.Focus)
+	// The page lands with the mode it remembers, else by the focus rule,
+	// else (reopened at the focus it holds) where it stands: one mode
+	// commit at most, after Page names the new page.
+	switch {
+	case page.mode.Name != "":
+		leaving.cause, leaving.mode = focusRestore, page.mode
+	case page.Remembered != from:
+		leaving.cause = focusLanding
 	}
+	r.changeFocus(page.Remembered, leaving)
 	if left != id {
 		if r.Instances[left] != nil {
 			r.surfaceLeft(left, SurfacePage, r.instanceNounOf(left))

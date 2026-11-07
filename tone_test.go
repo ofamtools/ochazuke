@@ -180,7 +180,7 @@ func TestUnfocusedListFadesTones(t *testing.T) {
 		t.Fatal("the focused list draws the tone's colour")
 	}
 	m.Runtime.Instance("other", Parent("main"))
-	m.Runtime.Focus = "other"
+	forceFocus(m.Runtime, "other")
 	faded := l.View(30, 3)
 	if strings.Contains(faded, full) || !strings.Contains(faded, "working") {
 		t.Fatalf("the unfocused list keeps the full colour: %q", faded)

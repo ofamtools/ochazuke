@@ -34,33 +34,66 @@ type stateWriteException struct {
 	reason   string
 }
 
-// modeWriteOwners are the functions that own Runtime.Mode: the one writer.
-var modeWriteOwners = map[string]bool{
-	"mode_change.go Runtime.changeMode": true,
+// ownedField is one Runtime field with a single writer: the functions
+// allowed to assign it and the exact legacy sites the guard still accepts.
+// Reads stay open everywhere: the field is exported for inspection.
+type ownedField struct {
+	name       string
+	owners     map[string]bool
+	exceptions []stateWriteException
+	advice     string
 }
 
-// modeWriteExceptions are the legacy borrows that still assign
-// Runtime.Mode for a render and put it back. None is a real transition:
-// no observer runs and the generation does not move. The queries
-// (bindings.stops, the typing check, help at its origin) read a
-// resolutionContext instead, and a replayed remote verb reads the mode its
-// request started in from its RequestContext (Ctx.mode), so neither is here.
-var modeWriteExceptions = []stateWriteException{
-	{"model.go", "Model.beneath", 2, "render borrow: draws the page in the mode the outer modal opened over and restores; MO-10 presentation"},
+// ownedFields are the Runtime fields the guard owns.
+var ownedFields = []ownedField{
+	{
+		name:   "Mode",
+		owners: map[string]bool{"mode_change.go Runtime.changeMode": true},
+		// The legacy borrow that still assigns Runtime.Mode for a render
+		// and puts it back. It is not a real transition: no observer runs
+		// and the generation does not move. The queries (bindings.stops,
+		// the typing check, help at its origin) read a resolutionContext
+		// instead, and a replayed remote verb reads the mode its request
+		// started in from its RequestContext (Ctx.mode), so neither is here.
+		exceptions: []stateWriteException{
+			{"model.go", "Model.beneath", 2, "render borrow: draws the page in the mode the outer modal opened over and restores; MO-10 presentation"},
+		},
+		advice: "request the mode (SetMode, mode.switch, Input.SetMode) or add the transition to changeMode's callers",
+	},
+	{
+		name:   "Focus",
+		owners: map[string]bool{"focus_change.go Runtime.changeFocus": true},
+		// The same render borrow, for the focus: the page beneath the modals
+		// is drawn with the focus the outermost modal opened over, then the
+		// live focus is put back. No row is selected, no mode rule runs.
+		exceptions: []stateWriteException{
+			{"model.go", "Model.beneath", 2, "render borrow: draws the page at the focus the outer modal opened over and restores; MO-10 presentation"},
+		},
+		advice: "move the focus (SetFocus, setFocus, RetargetFocus, OpenPage, Push/Pop) or add the landing to changeFocus's callers",
+	},
 }
 
-// TestStateWriteOwnership is the mode-ownership guard: no Go file in the
+// TestStateWriteOwnership is the state-ownership guard: no Go file in the
 // repository (the root module, its packages, tests, build-tagged files and
-// the nested modules cmd/o-story and examples) assigns Runtime.Mode, a
-// member of it (.Name, .Payload, .Payload.Count) or takes its address,
-// writes it through a copied Runtime or a composite literal, outside
-// changeMode, except the exact legacy borrows listed above. Reads stay
-// open everywhere: the field is exported for inspection.
+// the nested modules cmd/o-story and examples) assigns an owned Runtime
+// field (Runtime.Mode, Runtime.Focus), a member of it (.Name, .Payload,
+// .Payload.Count) or takes its address, writes it through a copied Runtime
+// or a composite literal, outside its owner (changeMode, changeFocus),
+// except the exact legacy borrows listed in ownedFields. Reads stay open
+// everywhere: the fields are exported for inspection.
 func TestStateWriteOwnership(t *testing.T) {
-	sites := repositoryModeWrites(t)
+	writes := repositoryStateWrites(t)
+	for _, field := range ownedFields {
+		t.Run(field.name, func(t *testing.T) {
+			checkFieldOwnership(t, field, writes[field.name])
+		})
+	}
+}
+
+func checkFieldOwnership(t *testing.T, field ownedField, sites []stateWriteSite) {
 	allowed := map[string]int{}
 	reasons := map[string]string{}
-	for _, e := range modeWriteExceptions {
+	for _, e := range field.exceptions {
 		if e.reason == "" {
 			t.Errorf("exception %s %s has no reason", e.file, e.fn)
 		}
@@ -70,29 +103,30 @@ func TestStateWriteOwnership(t *testing.T) {
 	got := map[string]int{}
 	owned := 0
 	for _, s := range sites {
-		if modeWriteOwners[s.key()] {
+		if field.owners[s.key()] {
 			owned++
 			continue
 		}
 		got[s.key()]++
 		if _, ok := allowed[s.key()]; !ok {
-			t.Errorf("%s: %s writes Runtime.Mode (%s) outside changeMode; request the mode (SetMode, mode.switch, Input.SetMode) or add the transition to changeMode's callers", s.pos, s.fn, s.what)
+			t.Errorf("%s: %s writes Runtime.%s (%s) outside its owner; %s", s.pos, s.fn, field.name, s.what, field.advice)
 		}
 	}
 	if owned == 0 {
-		t.Errorf("changeMode no longer assigns Runtime.Mode: the guard's owner list is stale")
+		t.Errorf("no owner assigns Runtime.%s any more: the guard's owner list is stale", field.name)
 	}
 	for key, want := range allowed {
 		if got[key] != want {
-			t.Errorf("exception %s allows %d writes, found %d: update the list (%s)", key, want, got[key], reasons[key])
+			t.Errorf("exception %s allows %d writes to Runtime.%s, found %d: update the list (%s)", key, want, field.name, got[key], reasons[key])
 		}
 	}
 }
 
 // TestStateWriteGuardFixtures proves the guard on a small package of its
-// own: each bad* function writes the owned field one way; each ok* function
-// writes a same-named field of another type, reads, or writes through a
-// pointer the field holds.
+// own, once per owned field: each bad* (Mode) or focusBad* (Focus)
+// function writes that field one way; each ok* or focusOk* function writes
+// a same-named field of another type, reads, or writes through a pointer
+// the field holds. A field's check looks only at its own prefixes.
 func TestStateWriteGuardFixtures(t *testing.T) {
 	const src = `package fx
 
@@ -112,6 +146,8 @@ type Runtime struct {
 }
 type Input struct{ Mode string }
 type Binding struct{ Mode string }
+type Page struct{ Focus, Remembered string }
+type KeyEvent struct{ Focus string }
 type Model struct{ *Runtime }
 type holder struct{ r *Runtime }
 
@@ -148,6 +184,29 @@ func okValueMethod(r *Runtime) bool  { return r.Mode.Payload.empty() }
 func okThroughPointer(r *Runtime)    { r.Mode.Payload.Request.Args["k"] = 1 }
 func okLiteral() *Runtime            { return &Runtime{Focus: "app"} }
 func okLocalState() ModeState        { var m ModeState; m.Payload.Count = 3; return m }
+
+func focusBadWhole(r *Runtime)             { r.Focus = "a" }
+func focusBadMulti(r *Runtime)             { r.Focus, r.Mode = "a", ModeState{} }
+func focusBadAddress(r *Runtime) *string   { return &r.Focus }
+func focusBadEmbedded(m Model)             { m.Focus = "a" }
+func focusBadField(h holder)               { h.r.Focus = "a" }
+func focusBadValueRuntime(r Runtime)       { r.Focus = "a" }
+func focusBadCopy(r *Runtime) Runtime      { at := *r; return at }
+func focusBadDeref(r *Runtime)             { *r = Runtime{} }
+func focusBadLiteral() *Runtime            { return &Runtime{Focus: "app"} }
+func focusBadOpAssign(r *Runtime)          { r.Focus += "x" }
+func focusBadParen(r *Runtime)             { (r.Focus) = "a" }
+func focusBadRange(r *Runtime, ids []string) {
+	for _, r.Focus = range ids {
+	}
+}
+
+func focusOkRead(r *Runtime) string        { return r.Focus }
+func focusOkCopyOut(r *Runtime) string     { f := r.Focus; f = "x"; return f }
+func focusOkPage(p *Page)                  { p.Focus, p.Remembered = "a", "b" }
+func focusOkEvent(ev *KeyEvent)            { ev.Focus = "a" }
+func focusOkMode(r *Runtime)               { r.Mode.Name = "x" }
+func focusOkLiteral() *Runtime             { return &Runtime{Mode: ModeState{Name: "n"}} }
 `
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "fx.go", src, parser.SkipObjectResolution)
@@ -155,31 +214,47 @@ func okLocalState() ModeState        { var m ModeState; m.Payload.Count = 3; ret
 		t.Fatal(err)
 	}
 	pkg, info := checkFiles(fset, "fx", []*ast.File{file}, fakeImporter(nil))
-	mode := runtimeModeField(t, pkg)
-	byFn := map[string]int{}
-	for _, s := range modeWritesIn(fset, file, "fx.go", info, mode, pkg.Scope().Lookup("Runtime").Type()) {
-		byFn[s.fn]++
-	}
-	for _, decl := range file.Decls {
-		fn, ok := decl.(*ast.FuncDecl)
-		if !ok || fn.Recv != nil {
-			continue
+	runtime := pkg.Scope().Lookup("Runtime").Type()
+	for _, c := range []struct{ field, bad, ok string }{
+		{"Mode", "bad", "ok"},
+		{"Focus", "focusBad", "focusOk"},
+	} {
+		byFn := map[string]int{}
+		for _, s := range fieldWritesIn(fset, file, "fx.go", info, runtimeField(t, pkg, c.field), runtime) {
+			byFn[s.fn]++
 		}
-		name := fn.Name.Name
-		switch {
-		case strings.HasPrefix(name, "bad") && byFn[name] == 0:
-			t.Errorf("%s writes the owned field and the guard missed it", name)
-		case strings.HasPrefix(name, "ok") && byFn[name] != 0:
-			t.Errorf("%s does not write the owned field and the guard flagged it", name)
+		checked := 0
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil {
+				continue
+			}
+			name := fn.Name.Name
+			switch {
+			case strings.HasPrefix(name, c.bad):
+				checked++
+				if byFn[name] == 0 {
+					t.Errorf("%s writes Runtime.%s and the guard missed it", name, c.field)
+				}
+			case strings.HasPrefix(name, c.ok):
+				checked++
+				if byFn[name] != 0 {
+					t.Errorf("%s does not write Runtime.%s and the guard flagged it", name, c.field)
+				}
+			}
+		}
+		if checked == 0 {
+			t.Errorf("no fixtures for Runtime.%s", c.field)
 		}
 	}
 }
 
-// repositoryModeWrites type-checks every Go package in the repository with
+// repositoryStateWrites type-checks every Go package in the repository with
 // the root package as the only real import (other imports are empty
 // stand-ins, so expressions that need them type as invalid and are not
-// mistaken for Runtime) and returns every write to Runtime.Mode.
-func repositoryModeWrites(t *testing.T) []stateWriteSite {
+// mistaken for Runtime) and returns every write to each owned field, by
+// field name.
+func repositoryStateWrites(t *testing.T) map[string][]stateWriteSite {
 	t.Helper()
 	type group struct {
 		dir, name string
@@ -224,9 +299,8 @@ func repositoryModeWrites(t *testing.T) []stateWriteSite {
 		t.Fatal("the root package ochazuke was not found")
 	}
 	rootPkg, rootInfo := checkFiles(fset, "ofam.dev/ochazuke", root.files, fakeImporter(nil))
-	mode := runtimeModeField(t, rootPkg)
 	runtime := rootPkg.Scope().Lookup("Runtime").Type()
-	var sites []stateWriteSite
+	out := map[string][]stateWriteSite{}
 	keys := slices.Sorted(func(yield func(string) bool) {
 		for k := range groups {
 			if !yield(k) {
@@ -240,17 +314,22 @@ func repositoryModeWrites(t *testing.T) []stateWriteSite {
 		if g != root {
 			_, info = checkFiles(fset, path.Join("repo", g.dir, g.name), g.files, fakeImporter(rootPkg))
 		}
-		for i, f := range g.files {
-			sites = append(sites, modeWritesIn(fset, f, g.names[i], info, mode, runtime)...)
+		for _, owned := range ownedFields {
+			field := runtimeField(t, rootPkg, owned.name)
+			for i, f := range g.files {
+				out[owned.name] = append(out[owned.name], fieldWritesIn(fset, f, g.names[i], info, field, runtime)...)
+			}
 		}
 	}
-	sort.Slice(sites, func(i, j int) bool {
-		if sites[i].file != sites[j].file {
-			return sites[i].file < sites[j].file
-		}
-		return sites[i].pos.Offset < sites[j].pos.Offset
-	})
-	return sites
+	for _, sites := range out {
+		sort.Slice(sites, func(i, j int) bool {
+			if sites[i].file != sites[j].file {
+				return sites[i].file < sites[j].file
+			}
+			return sites[i].pos.Offset < sites[j].pos.Offset
+		})
+	}
+	return out
 }
 
 type importerFunc func(path string) (*types.Package, error)
@@ -292,8 +371,8 @@ func checkFiles(fset *token.FileSet, path string, files []*ast.File, imp types.I
 	return pkg, info
 }
 
-// runtimeModeField is the Mode field of the package's Runtime struct.
-func runtimeModeField(t *testing.T, pkg *types.Package) *types.Var {
+// runtimeField is the named field of the package's Runtime struct.
+func runtimeField(t *testing.T, pkg *types.Package, name string) *types.Var {
 	t.Helper()
 	obj := pkg.Scope().Lookup("Runtime")
 	if obj == nil {
@@ -301,21 +380,21 @@ func runtimeModeField(t *testing.T, pkg *types.Package) *types.Var {
 	}
 	st := obj.Type().Underlying().(*types.Struct)
 	for i := 0; i < st.NumFields(); i++ {
-		if st.Field(i).Name() == "Mode" {
+		if st.Field(i).Name() == name {
 			return st.Field(i)
 		}
 	}
-	t.Fatal("Runtime has no Mode field")
+	t.Fatalf("Runtime has no %s field", name)
 	return nil
 }
 
-// modeWritesIn returns the writes to the mode field in one file: an
+// fieldWritesIn returns the writes to one owned field in one file: an
 // assignment, increment or range assignment whose target is the field or a
 // member of it, an address taken of either (also implicitly, calling a
 // pointer method on a member), a composite literal of runtime naming the
 // field, and a copy of a runtime value (*r), which would let a write to the
 // copy pose as the runtime's own.
-func modeWritesIn(fset *token.FileSet, f *ast.File, name string, info *types.Info, mode *types.Var, runtime types.Type) []stateWriteSite {
+func fieldWritesIn(fset *token.FileSet, f *ast.File, name string, info *types.Info, field *types.Var, runtime types.Type) []stateWriteSite {
 	var out []stateWriteSite
 	fn := "<init>"
 	add := func(n ast.Node, what string) {
@@ -333,7 +412,7 @@ func modeWritesIn(fset *token.FileSet, f *ast.File, name string, info *types.Inf
 			if sel == nil || sel.Kind() != types.FieldVal {
 				return false
 			}
-			if sel.Obj() == mode {
+			if sel.Obj() == field {
 				return true
 			}
 			if sel.Indirect() {
@@ -391,7 +470,7 @@ func modeWritesIn(fset *token.FileSet, f *ast.File, name string, info *types.Inf
 			if tv, ok := info.Types[x]; ok && tv.Type != nil && types.Identical(tv.Type, runtime) {
 				for _, elt := range x.Elts {
 					if kv, ok := elt.(*ast.KeyValueExpr); ok {
-						if id, ok := kv.Key.(*ast.Ident); ok && id.Name == mode.Name() {
+						if id, ok := kv.Key.(*ast.Ident); ok && id.Name == field.Name() {
 							add(kv, "composite literal")
 						}
 					}

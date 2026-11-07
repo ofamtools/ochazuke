@@ -296,7 +296,9 @@ func TestUnfocusedGridKeepsItsCursorFaded(t *testing.T) {
 		t.Fatalf("focused cursor: %q", got)
 	}
 	r.Instance("other", ochazuke.Parent("page"))
-	r.Focus = "other"
+	if err := r.SetFocus("other"); err != nil {
+		t.Fatal(err)
+	}
 	if got := cursorLine(); !strings.Contains(got, "\x1b[7;2m") {
 		t.Fatalf("unfocused grid lost its cursor: %q", got)
 	}

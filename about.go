@@ -462,7 +462,7 @@ func (r *Runtime) EnsureAboutPage() error {
 		a.from = from
 		refreshAboutPage(r)
 		if list := r.List(aboutListID); list != nil && r.Focus == AboutPageID {
-			r.Focus = list.focusTarget()
+			r.changeFocus(list.focusTarget(), focusMove{cause: focusSettle})
 		}
 	}
 	if err := r.RegisterPage(page, Kind(aboutPageNoun)); err != nil {

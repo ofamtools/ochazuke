@@ -22,7 +22,7 @@ func propAliasFixture(t *testing.T) (*Runtime, *List) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.Focus = "a"
+	forceFocus(r, "a")
 	return r, l
 }
 
