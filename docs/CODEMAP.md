@@ -133,11 +133,11 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### chooser.go
 
-- lines: 1092 · tests: chooser_test.go
+- lines: 1101 · tests: chooser_test.go
 - purpose: ChooserRow is one choice.
 - types: ChooserRow, ChooserSpec, Chooser
 - methods: Chooser(37), Runtime(4)
-- leans on: delivery.go(38), instance.go(33), table.go(15), runtime.go(12)
+- leans on: delivery.go(38), instance.go(35), table.go(15), runtime.go(12)
 
 ### chooser_prop_filter.go
 
@@ -244,11 +244,11 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### core_verbs.go
 
-- lines: 387
+- lines: 388
 - purpose: standardVerb is one row of a verb table.
 - methods: Runtime(2), standardVerb(5)
 - funcs: CoreVerbs, StandardVerbs
-- leans on: runtime.go(36), props.go(34), noun.go(28), standard_verbs.go(16)
+- leans on: runtime.go(36), props.go(34), noun.go(29), standard_verbs.go(16)
 
 ### default_bindings.go
 
@@ -489,7 +489,7 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### instance.go
 
-- lines: 416
+- lines: 418
 - purpose: Instance is one addressable thing on screen: a page, a list, a list row, a modal body, or an input.
 - types: Instance, Payload, InstanceOption (func)
 - methods: Payload(1), Runtime(14)
@@ -665,10 +665,10 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### list_visual.go
 
-- lines: 417 · tests: list_visual_test.go
+- lines: 471 · tests: list_visual_test.go
 - purpose: Visual reports whether a V selection is active on the list.
-- methods: List(7), Runtime(5)
-- leans on: runtime.go(49), noun.go(25), list.go(17), instance.go(7)
+- methods: List(7), Runtime(8)
+- leans on: runtime.go(52), noun.go(25), list.go(19), instance.go(8)
 
 ### macros.go
 
@@ -749,10 +749,10 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### noun.go
 
-- lines: 1631 · tests: noun_test.go
+- lines: 1645 · tests: noun_test.go
 - purpose: Noun is the behaviour shared by every instance of one kind: the verbs it answers to, its key bindings per mode, the action handlers that override an operatio...
 - types: Noun, Binding, NounBuilder, ModeBuilder, ModeOption (func), Guard (func)
-- methods: Binding(12), ModeBuilder(7), NounBuilder(24), Runtime(28)
+- methods: Binding(12), ModeBuilder(7), NounBuilder(25), Runtime(28)
 - funcs: Do, Enter, Leave, ModeExtends, ModeOutside
 - leans on: runtime.go(82), instance.go(24), resolve.go(12), list_from.go(5)
 
@@ -806,10 +806,10 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### palette_editing.go
 
-- lines: 130
+- lines: 139
 - purpose: sync follows the line after an edit: a filter code typed as the current word is consumed into the filter, a filter lapses when the line moves to another word...
 - methods: Palette(4)
-- leans on: block.go(7), runtime.go(6), palette.go(4), palette_parse.go(4)
+- leans on: block.go(7), runtime.go(6), palette_parse.go(5), palette.go(4)
 
 ### palette_nouns.go
 
@@ -822,11 +822,11 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### palette_parse.go
 
-- lines: 1089
+- lines: 1103
 - purpose: lineToken is one word of the line; Text is unquoted.
 - types: PaletteWord
 - methods: Palette(14), commandLine(3), lineIndex(10), option(1)
-- leans on: block.go(64), instance.go(41), thing_keys.go(30), runtime.go(25)
+- leans on: block.go(64), instance.go(41), thing_keys.go(30), runtime.go(26)
 
 ### palette_results.go
 
@@ -966,10 +966,10 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### record_editor.go
 
-- lines: 2063 · tests: record_editor_test.go
+- lines: 2074 · tests: record_editor_test.go
 - purpose: Record is one record's values by field name, as an editor loads and writes them.
 - types: Record, RecordField, RecordWrite, RecordSpec, RecordDebounceMsg, RecordEditor
-- methods: RecordEditor(62), RecordField(1), RecordWrite(1), Runtime(8), recordChooser(2), recordField(3)
+- methods: RecordEditor(63), RecordField(1), RecordWrite(1), Runtime(8), recordChooser(2), recordField(3)
 - funcs: RecordFields
 - leans on: runtime.go(82), instance.go(49), delivery.go(29), block.go(25)
 
@@ -1029,7 +1029,7 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### runtime.go
 
-- lines: 1524 · tests: runtime_test.go
+- lines: 1536 · tests: runtime_test.go
 - purpose: Arguments are a request's named arguments, keyed by parameter name.
 - types: Arguments, Parameter, Request, Context, Handler (func), Operation, Runtime, ModeState, ModeObserver (iface)
 - methods: Context(1), Operation(6), Request(4), Runtime(25)
@@ -1185,17 +1185,17 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ### standard_derived.go
 
-- lines: 321 · tests: standard_derived_test.go
+- lines: 323 · tests: standard_derived_test.go
 - purpose: writableRole is the noun's prop with that role when set may write it.
 - methods: Runtime(11), focusFills(1)
 - leans on: runtime.go(23), noun.go(22), props.go(18), delivery.go(7)
 
 ### standard_edit.go
 
-- lines: 770 · tests: standard_edit_test.go
+- lines: 781 · tests: standard_edit_test.go
 - purpose: EditHandler builds the standard edit handler for a declared noun, including a catalog-mounted noun with get and set proxies but no local Store.
-- methods: Runtime(15), editLog(2), editWriting(1)
-- leans on: runtime.go(51), delivery.go(49), props.go(26), noun.go(22)
+- methods: RecordEditor(1), Runtime(15), editLog(2), editWriting(1)
+- leans on: runtime.go(51), delivery.go(48), props.go(26), noun.go(22)
 
 ### standard_grammar.go
 
@@ -1512,7 +1512,7 @@ Root package `ochazuke` is flat: 195 source files, 239 test files. Each entry li
 
 ## Package cli
 
-Importable package `cli`: 45 source files, 55 test files.
+Importable package `cli`: 45 source files, 56 test files.
 
 ### cli/agent_metadata.go
 
@@ -1777,7 +1777,7 @@ Importable package `cli`: 45 source files, 55 test files.
 
 ### cli/setup.go
 
-- lines: 335 · tests: setup_test.go
+- lines: 342 · tests: setup_test.go
 - purpose: setupRow keeps the status schema and supplies the registry's declared table columns, so --format table also works through Shell and mounted extensions.
 - methods: Shell(1), setupDeclaration(2)
 - funcs: DeclareSetup
