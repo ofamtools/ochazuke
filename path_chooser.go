@@ -80,8 +80,9 @@ type PathChooserSpec struct {
 	Title string // default "Choose <name>"
 	Pick  PathPick
 	// Source names the source to open on (PathSourceBrowse, an
-	// application's AddPathSource name); "" (or a source this pick leaves
-	// out) opens on the one chooser.remember-source gives, else browse.
+	// application's AddPathSource name); "" opens on the parameter's Start;
+	// with neither (or a name this pick leaves out) it opens on the one
+	// chooser.remember-source gives, else browse.
 	Source string
 	// Choose takes the path; nil returns it as the result.
 	Choose func(path string) Result
@@ -204,6 +205,17 @@ func (r *Runtime) showHidden() bool {
 	return v == true
 }
 
+// PathStartSource is the source a pick opens on: spec's, else the one the
+// parameter declares (Parameter.Start); "" leaves it to
+// chooser.remember-source. A name no source answers to falls back to that
+// quietly (the chooser ignores a source it does not have).
+func (r *Runtime) PathStartSource(pick PathPick, source string) string {
+	if source != "" {
+		return source
+	}
+	return strings.TrimSpace(pick.Parameter.Start)
+}
+
 // OpenPathChooser opens the path chooser (browse, recent, typed, then the
 // application's sources) for spec.Pick.
 func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
@@ -251,7 +263,7 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		Kind:    kind,
 		Title:   title,
 		Sources: sources,
-		Source:  spec.Source,
+		Source:  r.PathStartSource(pick, spec.Source),
 		Hint:    PathChooserHint,
 		Choose: func(row ChooserRow) Result {
 			path, ok := row.Data.(string)

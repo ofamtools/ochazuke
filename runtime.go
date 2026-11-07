@@ -55,6 +55,11 @@ type Parameter struct {
 	Path string `json:"path,omitempty"`
 	Base string `json:"base,omitempty"`
 	New  bool   `json:"new,omitempty"`
+	// Start names the path chooser source it opens on: a source of the
+	// chooser (browse, recent, typed) or one the application registered
+	// (AddWalkPathSource's walk, AddPathSource's names). An unknown name,
+	// or a source the pick leaves out, opens as if Start were empty.
+	Start string `json:"start,omitempty"`
 	// Rest marks a string parameter that takes the rest of the line,
 	// verbatim: the palette hands it the text from its first word to the
 	// end, quotes and spaces as typed, and the CLI joins the remaining
