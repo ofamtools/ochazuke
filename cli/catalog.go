@@ -101,6 +101,11 @@ type CatalogDoc struct {
 	// replaces them in the host's hooks.json; a tool has no hooks file.
 	Hooks  []ochazuke.HookRow   `json:"hooks,omitempty"`
 	Events []ochazuke.EventSpec `json:"events,omitempty"`
+	// Pickers are the pickers the tool declares (ochazuke.PickerDef rows,
+	// Runtime.AddPicker), the framework's and Go-only ones left out: a host
+	// adds them with MountCatalogPickers, its derived noun pickers coming
+	// from the nouns it mounts.
+	Pickers []ochazuke.PickerDef `json:"pickers,omitempty"`
 }
 
 // CatalogNoun is a noun and its verbs, by verb name. Pin is the noun's
@@ -125,6 +130,9 @@ type CatalogNoun struct {
 	Kind  string `json:"kind,omitempty"`
 	// NoEditKey declines only the implicit edit-key fallback, not edit itself.
 	NoEditKey bool `json:"noEditKey,omitempty"`
+	// NoPicker keeps the noun out of the host's derived pickers
+	// (ochazuke.Noun.NoPicker).
+	NoPicker bool `json:"noPicker,omitempty"`
 	// Unpersisted keeps the noun's history entries out of the history file
 	// (ochazuke.Noun.Unpersisted, NounBuilder.Unpersisted).
 	Unpersisted bool `json:"unpersisted,omitempty"`
@@ -380,6 +388,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				noun.About = n.About
 				noun.Pin, noun.Live, noun.Columns = n.Pin, n.Live, slices.Clone(n.Columns)
 				noun.NoEditKey = n.NoEditKey
+				noun.NoPicker = n.NoPicker
 				noun.Unpersisted = n.Unpersisted
 				noun.Filters = slices.Clone(n.Filters)
 				noun.PropsOff = slices.Clone(n.PropsOff)
@@ -420,6 +429,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		}
 		noun.Verbs = append(noun.Verbs, verb)
 	}
+	doc.Pickers = r.CatalogPickerDefs()
 	for _, s := range r.Segments() {
 		if s.Verb == "" {
 			continue // a provider or a command runs only in its own process

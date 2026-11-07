@@ -2537,6 +2537,16 @@ With `about.tab` on (the default) the About page is the Settings page's last tab
 
 Compared with Vim: `:version` prints the version, the patches, the features compiled in and where the vimrc files are looked for, and Neovim's `:checkhealth` reports the providers and paths it found. The About page is the same idea as a page: `about.copy` is the paste-into-a-bug-report text `:version` is used for, and an application's own sections stand where `:checkhealth` lists each plugin's checks. Unlike `:version` it lists only the family's modules, not every compiled-in feature, and it is evaluated on demand rather than printed once.
 
+## Pickers (picker.open)
+
+A picker is a declaration, not code (`picker_registry.go`): a `PickerDef` names the picker, the noun its rows belong to, the verb its rows come from (`source`, default the noun's `list`; more in `sources`, cycled like any chooser's), the verb run on the highlighted row for a preview (`preview`, default the noun's `get`) and the verb run on pick (`pick`, default the noun's `open` when it takes the row's id, else `get`; with neither the pick answers the id). Declare one with `r.AddPicker(PickerDef{...})`, or in a catalog's `pickers` array, which a host mounts with `cli.MountCatalogPickers(r, doc, prefix, noun)` beside `MountCatalogHooks`. Every noun with a list verb also gets a picker named after it with no code (`picker.derive`, default on; `NounBuilder.NoPicker()` opts a noun out, and a declared picker naming the noun replaces its derived one).
+
+- `ochazuke.picker.open {name, query}` opens one from a key, the palette or the CLI; with no name it opens the path picker (the fuzzy path finder, with `filter` and `path`, when the application made one with `NewPicker`). The picker noun is a thing noun whose things are the pickers (key `name`): the standard `picker.list` lists them with the keys bound to open each, `picker.get {name}` reads one.
+- The framework declares `pickers` (the picker of pickers: a row per picker, a pick opens it; `picker.picker-list` `declared` hides the derived ones), `pages` (runs `page.pick`), `path` and, with the palette, `commands` (opens the command line). ochazuke binds no key to them.
+- A form field whose parameter names a noun (`Parameter.Noun`, no `Source`) opens that noun's picker: its source and match mode, the field keeping its title, width and pick (the value) (`picker.params`, default on).
+
+Compared with Vim: `:ls` then `:b {name}` lists then picks; a picker does both in one modal with a fuzzy query. The path picker is similar to `:browse e` and netrw, and the popup menu keys (`popupmenu-keys`) move the highlight as in any chooser. Vim has no generic picker or list of them; the picker of pickers is closest in spirit to `:options` listing options (Telescope and fzf.vim are plugins).
+
 ## Status segments
 
 Live items (CPU, memory, disk free, a build state) ride the rule under the header, right-aligned, and take no row. Each is a data row:

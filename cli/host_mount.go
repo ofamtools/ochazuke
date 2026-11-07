@@ -166,6 +166,9 @@ func mountFlags(b *ochazuke.NounBuilder, n CatalogNoun) {
 	if n.Unpersisted {
 		b.Unpersisted()
 	}
+	if n.NoPicker {
+		b.NoPicker()
+	}
 }
 
 // mountStore gives a proxied noun its store: the standard verbs run here,

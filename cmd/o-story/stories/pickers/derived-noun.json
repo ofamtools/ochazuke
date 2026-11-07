@@ -1,0 +1,96 @@
+{
+  "name": "a derived noun picker: the demo noun has a list verb, so picker.open demo lists its things with no code, previews the highlighted one through demo.get, and enter picks it (demo.get reads it) and closes",
+  "area": "pickers",
+  "width": 100,
+  "height": 30,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "focus": "a1",
+    "store": {
+      "props": [
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "title",
+          "role": "label"
+        },
+        {
+          "name": "status"
+        }
+      ],
+      "things": [
+        {
+          "id": "t1",
+          "title": "Water the plants",
+          "status": "todo"
+        },
+        {
+          "id": "t2",
+          "title": "Write notes",
+          "status": "doing"
+        }
+      ]
+    },
+    "bind": [
+      {
+        "noun": "app",
+        "mode": "normal",
+        "keys": "X",
+        "do": "ochazuke.picker.open",
+        "args": {
+          "name": "demo"
+        }
+      }
+    ]
+  },
+  "script": [
+    "X",
+    {
+      "type": "notes"
+    },
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "modal": "picker-demo",
+      "contains": [
+        "Water the plants",
+        "Write notes",
+        "status: todo"
+      ]
+    },
+    {
+      "after": 2,
+      "modal": "picker-demo",
+      "contains": [
+        "Write notes",
+        "status: doing"
+      ],
+      "lacks": [
+        "Water the plants"
+      ]
+    },
+    {
+      "after": 3,
+      "modal": "",
+      "focus": "a1",
+      "noNotices": true,
+      "writes": [
+        "list",
+        "get t1",
+        "get t1",
+        "get t2",
+        "get t2",
+        "get t2"
+      ]
+    }
+  ]
+}

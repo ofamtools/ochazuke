@@ -118,6 +118,10 @@ type chooserState struct {
 	recentPaths func(PathPick) []string
 	picked      []string // paths picked through a path chooser, newest first
 	walks       *walkCache
+	// pickers are the declared pickers (AddPicker), finderOpen the path
+	// finder's open when the application made one (NewPicker).
+	pickers    []PickerDef
+	finderOpen func(Context, Arguments) (any, error)
 }
 
 func (s *chooserState) HandleMessage(tea.Msg) bool { return false }
