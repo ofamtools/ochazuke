@@ -1,0 +1,28 @@
+package consumer
+
+import (
+	och "ofam.dev/ochazuke"
+)
+
+func register(r *och.Runtime, noun, verb string) {
+	r.Register(och.Operation{
+		Noun: "task",
+		Verb: "done",
+		Run:  func(*och.Runtime, och.Context, och.Arguments) (any, error) { return nil, nil },
+	})
+	r.Register(och.Operation{Noun: noun, Verb: verb, App: func(och.Ctx) och.Result { return och.Done(nil) }})
+	op := r.Operations["task.done"]
+	op.Description = op.Noun + " " + op.Verb
+	r.Operations[op.Key()] = op
+	if got, ok := r.Operations[noun+"."+verb]; ok {
+		got.Verb = "again"
+		_ = got.App
+	}
+	for key, o := range r.Operations {
+		_, _ = key, o.Key()
+	}
+	delete(r.Operations, op.Key())
+	_ = len(r.Operations)
+	var a och.Action
+	_ = a
+}

@@ -14,7 +14,7 @@ reference:
 # examples) require ochazuke and monogatari; locally they build against
 # the sibling checkouts through the untracked go.work
 # (go work use . ./cmd/o-story ./examples ../monogatari ../oden).
-NESTED := cmd/o-story examples
+NESTED := cmd/o-story examples cmd/opname
 
 # Per-package timeout for the root module's -race run. Go's 10 m default is too
 # short: the root package took 650 s under -race on vps2 (204 s plain).
