@@ -940,24 +940,10 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 }
 
 // Input returns the input an instance fronts, or nil.
-func (r *Runtime) Input(id string) *Input {
-	if inst := r.Instances[id]; inst != nil {
-		if in, ok := inst.Component.(*Input); ok {
-			return in
-		}
-	}
-	return nil
-}
+func (r *Runtime) Input(id string) *Input { return componentAt[*Input](r, id) }
 
 // List returns the list an instance fronts, or nil.
-func (r *Runtime) List(id string) *List {
-	if inst := r.Instances[id]; inst != nil {
-		if list, ok := inst.Component.(*List); ok {
-			return list
-		}
-	}
-	return nil
-}
+func (r *Runtime) List(id string) *List { return componentAt[*List](r, id) }
 
 // Inputs lists the registered inputs in registration order.
 func (r *Runtime) Inputs() []*Input {

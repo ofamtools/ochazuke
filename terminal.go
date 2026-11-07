@@ -130,14 +130,7 @@ func (r *Runtime) AddTerminal(id string, stream TerminalStream, opts ...Instance
 }
 
 // Terminal returns the terminal an instance fronts, or nil.
-func (r *Runtime) Terminal(id string) *Terminal {
-	if inst := r.Instances[id]; inst != nil {
-		if t, ok := inst.Component.(*Terminal); ok {
-			return t
-		}
-	}
-	return nil
-}
+func (r *Runtime) Terminal(id string) *Terminal { return componentAt[*Terminal](r, id) }
 
 // ID is the terminal's instance id.
 func (t *Terminal) ID() string { return t.id }
