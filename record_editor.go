@@ -359,14 +359,8 @@ type RecordEditor struct {
 	// editor uses the Model's.
 	Styles Styles
 
-	written     Record   // the record as written, or queued to be
-	baseline    Record   // latest loaded store values, independent of pending edits
-	saveOwner   string   // writes outlive the form instance
-	dirty       []string // fields written in memory, not yet in the store
-	inflight    bool
-	sending     []string // the fields of the write in flight
-	watch       *Watch   // the Watch noun's subscription while open
-	writeErr    string
+	out         recordOutbox // what this editor still owes the store
+	watch       *Watch       // the Watch noun's subscription while open
 	undo        []recordStep
 	redo        []recordStep
 	seq         uint64
@@ -480,17 +474,18 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	if err := r.CheckSourceArgs(params); err != nil {
 		return nil, err
 	}
-	e := &RecordEditor{r: r, id: id, spec: spec, written: Record{}, baseline: values, saveOwner: parent}
+	e := &RecordEditor{r: r, id: id, spec: spec, out: newRecordOutbox(values, parent)}
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
 	for _, field := range fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
 		f.editKind = r.editKindOf(field)
 		v := values[field.Name]
-		e.written[field.Name], f.before = v, v
+		e.out.set(field.Name, v)
+		f.before = v
 		if field.Invertible {
 			inv := values[field.Name+RecordInvertSuffix]
 			f.not = inv == "true"
-			e.written[field.Name+RecordInvertSuffix] = invertText(f.not)
+			e.out.set(field.Name+RecordInvertSuffix, invertText(f.not))
 		}
 		switch {
 		case f.chips:
@@ -591,7 +586,7 @@ func (e *RecordEditor) Values() Record {
 
 // Written is the record as written (or queued to be): the last valid value
 // of every field.
-func (e *RecordEditor) Written() Record { return maps.Clone(e.written) }
+func (e *RecordEditor) Written() Record { return e.out.record() }
 
 // Problem says why a field's value is not written, "" when it is.
 func (e *RecordEditor) Problem(name string) string {
@@ -602,7 +597,7 @@ func (e *RecordEditor) Problem(name string) string {
 }
 
 // WriteError is the last write's failure, "" once a write succeeds.
-func (e *RecordEditor) WriteError() string { return e.writeErr }
+func (e *RecordEditor) WriteError() string { return e.out.err }
 
 // Ran reports whether form.run handed the values to Submit.
 func (e *RecordEditor) Ran() bool { return e.ran }
@@ -763,21 +758,21 @@ func (e *RecordEditor) flush() error {
 	e.refreshChoices()
 	for _, f := range e.fields {
 		if f.Invertible {
-			if inv := invertText(f.not); inv != e.written[f.Name+RecordInvertSuffix] {
-				e.written[f.Name+RecordInvertSuffix] = inv
-				e.requeue([]string{f.Name})
+			if inv := invertText(f.not); inv != e.out.value(f.Name+RecordInvertSuffix) {
+				e.out.set(f.Name+RecordInvertSuffix, inv)
+				e.out.queue(f.Name)
 			}
 		}
 		v := f.text()
 		if v != f.failedValue {
 			f.writeErr = ""
 		}
-		if v == e.written[f.Name] || e.problem(f) != "" {
+		if v == e.out.value(f.Name) || e.problem(f) != "" {
 			continue
 		}
-		e.written[f.Name] = v
+		e.out.set(f.Name, v)
 		f.walk = e.walking
-		e.requeue([]string{f.Name})
+		e.out.queue(f.Name)
 	}
 	return e.send()
 }
@@ -788,35 +783,30 @@ func (e *RecordEditor) send() error {
 	if e.spec.Submit != nil && (!e.ran || e.spec.WriteKey == "") {
 		return nil
 	}
-	if e.inflight {
+	if e.out.inflight {
 		return nil
 	}
-	if len(e.dirty) == 0 {
+	if e.out.idle() {
 		e.releaseWrite()
 		return nil
 	}
 	if !e.claimWrite() {
 		return nil
 	}
-	var changed []string
-	for _, f := range e.fields {
-		if slices.Contains(e.dirty, f.Name) && (!e.spec.FieldWrites || f.writeErr == "" || f.text() != f.failedValue) {
-			changed = append(changed, f.Name)
-			if e.spec.FieldWrites {
-				break
-			}
-		}
-	}
+	changed := e.out.next(e.fieldNames(), e.spec.FieldWrites, func(name string) bool {
+		f := e.field(name)
+		return f.writeErr == "" || f.text() != f.failedValue
+	})
 	if len(changed) == 0 {
 		e.releaseWrite()
 		return nil
 	}
-	e.dirty = slices.DeleteFunc(e.dirty, func(name string) bool { return slices.Contains(changed, name) })
+	e.out.take(changed)
 	if e.spec.Save == nil && e.spec.Submit == nil {
 		e.releaseWrite()
 		return nil
 	}
-	e.sending = changed
+	e.out.stage(changed)
 	w := e.recordWrite(changed)
 	var res Result
 	if e.spec.Submit != nil {
@@ -824,7 +814,7 @@ func (e *RecordEditor) send() error {
 	} else {
 		res = e.spec.Save(w)
 	}
-	e.sending = nil
+	e.out.settle()
 	if res.err != nil {
 		e.saveFailed(w, res.err)
 		err := fmt.Errorf("write %s: %w", strings.Join(changed, ", "), res.err)
@@ -834,11 +824,18 @@ func (e *RecordEditor) send() error {
 		e.releaseWrite()
 		return err
 	}
+	return e.dispatch(w, res)
+}
+
+// dispatch follows the result of a write that did not fail at once: a ticket
+// for an existing application operation, work to launch, or nothing, which
+// ends the write.
+func (e *RecordEditor) dispatch(w RecordWrite, res Result) error {
 	// Execute returns a ticket when Save dispatches an existing application
 	// operation. Observe that job instead of treating its queued write as done.
 	if ticket, ok := res.value.(Ticket); ok && e.r.Accepts(ticket) {
 		j := e.r.jobs[ticket.Job]
-		e.inflight, e.sending = true, changed
+		e.out.launch(w.Changed)
 		e.markFlush(j, w)
 		j.alsoThen(func(c Ctx, value any, err error) error {
 			e.saved(w, err)
@@ -847,23 +844,23 @@ func (e *RecordEditor) send() error {
 		return nil
 	}
 	if res.work == nil {
-		e.writeErr = ""
+		e.out.err = ""
 		if e.spec.FieldWrites {
 			return e.send()
 		}
 		e.releaseWrite()
 		return nil
 	}
-	owner := e.saveOwner
+	owner := e.out.owner
 	if e.r.Instances[owner] == nil {
 		owner = "app"
 	}
 	res = res.also(func(c Ctx, value any, err error) { e.saved(w, err) })
-	e.inflight, e.sending = true, changed
+	e.out.launch(w.Changed)
 	c := Ctx{actor: e.r.Actor(), Runtime: e.r, Context: e.r.contextOf(owner), Instance: e.r.Instances[owner]}
 	ticket, err := e.r.Launch(owner, formWriteVerb, res, c)
 	if err != nil {
-		e.inflight, e.sending = false, nil
+		e.out.settle()
 		e.saveFailed(w, err)
 		e.releaseWrite()
 		return err
@@ -872,10 +869,19 @@ func (e *RecordEditor) send() error {
 	return nil
 }
 
+// fieldNames are the form's field names in order.
+func (e *RecordEditor) fieldNames() []string {
+	names := make([]string, len(e.fields))
+	for i, f := range e.fields {
+		names[i] = f.Name
+	}
+	return names
+}
+
 // recordWrite is the write of changed: the record as written and, for a
 // field write, the form.undo or form.redo that queued it (Walk).
 func (e *RecordEditor) recordWrite(changed []string) RecordWrite {
-	w := RecordWrite{Values: maps.Clone(e.written), Changed: slices.Clone(changed)}
+	w := RecordWrite{Values: e.out.record(), Changed: slices.Clone(changed)}
 	if e.spec.FieldWrites {
 		f := e.field(changed[0])
 		w.Walk, f.walk = f.walk, 0
@@ -884,8 +890,7 @@ func (e *RecordEditor) recordWrite(changed []string) RecordWrite {
 }
 
 func (e *RecordEditor) saveFailed(w RecordWrite, err error) {
-	e.requeue(w.Changed)
-	e.writeErr = err.Error()
+	e.out.abandon(err.Error(), w.Changed)
 	if e.spec.FieldWrites {
 		for _, name := range w.Changed {
 			f := e.field(name)
@@ -903,7 +908,7 @@ func (e *RecordEditor) saveFailed(w RecordWrite, err error) {
 func (e *RecordEditor) notWritten(names []string, err error) {
 	for _, name := range names {
 		if f := e.field(name); f != nil {
-			f.writeErr, f.failedValue = err.Error(), e.written[name]
+			f.writeErr, f.failedValue = err.Error(), e.out.value(name)
 		}
 	}
 }
@@ -925,7 +930,7 @@ func (e *RecordEditor) reportUnsaved(names []string, values Record, reason strin
 }
 
 func (e *RecordEditor) saved(w RecordWrite, err error) {
-	e.inflight, e.sending = false, nil
+	e.out.settle()
 	if err != nil {
 		e.saveFailed(w, err)
 		if !e.spec.FieldWrites {
@@ -933,18 +938,10 @@ func (e *RecordEditor) saved(w RecordWrite, err error) {
 			return
 		}
 	} else {
-		e.writeErr = ""
+		e.out.err = ""
 	}
 	if nextErr := e.send(); nextErr != nil {
 		e.fail(nextErr)
-	}
-}
-
-func (e *RecordEditor) requeue(changed []string) {
-	for _, name := range changed {
-		if !slices.Contains(e.dirty, name) {
-			e.dirty = append(e.dirty, name)
-		}
 	}
 }
 
@@ -956,7 +953,7 @@ func (e *RecordEditor) seal(f *recordField) error {
 	if f == nil {
 		return err
 	}
-	if to := e.written[f.Name]; to != f.before {
+	if to := e.out.value(f.Name); to != f.before {
 		if f.input != nil && f.input.walk != 0 {
 			e.walked(f, to)
 		} else {
@@ -1092,7 +1089,7 @@ func (e *RecordEditor) history(redo bool) error {
 	werr := e.flush()
 	e.walking = 0
 	for _, f := range e.fields {
-		f.before = e.written[f.Name]
+		f.before = e.out.value(f.Name)
 	}
 	*to = append(*to, inverse)
 	e.seen = e.snapshot()
@@ -1478,16 +1475,12 @@ func (e *RecordEditor) run() error {
 	}
 	if e.spec.WriteKey != "" {
 		for _, f := range e.fields {
-			if values[f.Name] != e.written[f.Name] {
-				e.requeue([]string{f.Name})
+			if values[f.Name] != e.out.value(f.Name) {
+				e.out.queue(f.Name)
 			}
 		}
-		e.written = values
-		if len(e.dirty) == 0 {
-			for _, f := range e.fields {
-				e.dirty = append(e.dirty, f.Name)
-			}
-		}
+		e.out.adopt(values)
+		e.out.queueAllIfIdle(e.fieldNames())
 		if err := e.send(); err != nil {
 			e.ran = false
 			return e.runFailed(values, focused, err)
@@ -1518,7 +1511,7 @@ func (e *RecordEditor) run() error {
 // focus with the values it ran with, on the field that was focused.
 func (e *RecordEditor) runFailed(values Record, focused string, err error) error {
 	if !e.modal {
-		e.writeErr = err.Error()
+		e.out.err = err.Error()
 		return err
 	}
 	spec := e.spec
@@ -1532,7 +1525,7 @@ func (e *RecordEditor) runFailed(values Record, focused string, err error) error
 	if openErr != nil {
 		return errors.Join(err, openErr)
 	}
-	again.writeErr = err.Error()
+	again.out.err = err.Error()
 	return err
 }
 
@@ -1540,8 +1533,8 @@ func (e *RecordEditor) runFailed(values Record, focused string, err error) error
 func (e *RecordEditor) leave() error {
 	err := e.seal(e.fieldOn(e.r.Focus))
 	e.closed = true
-	if e.writeErr != "" {
-		e.reportUnsaved(e.dirty, e.written, e.writeErr)
+	if e.out.err != "" {
+		e.reportUnsaved(e.out.queued(), e.out.record(), e.out.err)
 	}
 	e.stopWatch()
 	if e.modal && e.r.TopModal() == e.id {
@@ -1646,12 +1639,12 @@ func (e *RecordEditor) Block(width, height int) Block {
 		}
 		lines = append(lines, e.r.PlacedAt(f.id, "  "+value, 0, 1))
 	}
-	if e.writeErr != "" {
+	if e.out.err != "" {
 		prefix := "! not saved: "
 		if e.spec.Submit != nil {
 			prefix = "! not run: "
 		}
-		lines = append(lines, s.Error.Render(ansi.Truncate(prefix+e.writeErr, width, "…")))
+		lines = append(lines, s.Error.Render(ansi.Truncate(prefix+e.out.err, width, "…")))
 	}
 	// A form taller than its room scrolls to keep the focused field's
 	// line (a chips field's cursor line) in view.
@@ -1859,13 +1852,13 @@ func (e *RecordEditor) applyLoaded(loaded Record) error {
 		if !ok {
 			continue
 		}
-		e.baseline[f.Name] = v
-		if v == e.written[f.Name] || slices.Contains(e.dirty, f.Name) || slices.Contains(e.sending, f.Name) {
+		if !e.out.load(f.Name, v) {
 			continue
 		}
 		changed = true
-		typed := f.text() != e.written[f.Name]
-		e.written[f.Name], f.before = v, v
+		typed := f.text() != e.out.value(f.Name)
+		e.out.set(f.Name, v)
+		f.before = v
 		if !typed {
 			if f.input != nil {
 				// Its own history starts over too: it no longer leads to
@@ -2042,7 +2035,7 @@ func (e *RecordEditor) refreshChoices() {
 				return
 			}
 			f.choices, f.choicesReady, f.choiceLoading = choices, err == nil, false
-			if f.choose && !e.typing && f.text() != e.written[f.Name] {
+			if f.choose && !e.typing && f.text() != e.out.value(f.Name) {
 				e.fail(e.seal(f))
 			}
 		}, args)

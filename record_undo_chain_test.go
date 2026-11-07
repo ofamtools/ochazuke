@@ -23,13 +23,13 @@ func TestRecordUndoChainThroughAnInvalidState(t *testing.T) {
 	typed("x") // 5x is not a whole number: not written, no record step
 	keytest.Press(m, "x")
 	typed("6")
-	if ed.written["estimate"] != "56" || len(ed.undo) != 2 {
-		t.Fatalf("written %q, undo %+v", ed.written["estimate"], ed.undo)
+	if ed.Written()["estimate"] != "56" || len(ed.undo) != 2 {
+		t.Fatalf("written %q, undo %+v", ed.Written()["estimate"], ed.undo)
 	}
 	for _, want := range []struct{ shown, written string }{{"5", "5"}, {"5x", "5"}, {"5", "5"}, {"", ""}, {"", ""}} {
 		keytest.Press(m, "u")
-		if field.text() != want.shown || ed.written["estimate"] != want.written {
-			t.Fatalf("after u: shown %q written %q, want %+v", field.text(), ed.written["estimate"], want)
+		if field.text() != want.shown || ed.Written()["estimate"] != want.written {
+			t.Fatalf("after u: shown %q written %q, want %+v", field.text(), ed.Written()["estimate"], want)
 		}
 	}
 	if len(ed.undo) != 0 || len(ed.redo) != 2 {

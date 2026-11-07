@@ -622,7 +622,7 @@ func (v *filterViewForm) PendingCommand() tea.Cmd {
 		}
 		var changes []recordStep
 		for _, f := range v.e.fields {
-			if before := v.e.written[f.Name]; before != loaded[f.Name] {
+			if before := v.e.out.value(f.Name); before != loaded[f.Name] {
 				changes = append(changes, recordStep{field: f.Name, from: before, to: loaded[f.Name]})
 			}
 			if f.Invertible && invertText(f.not) != loaded[f.Name+RecordInvertSuffix] {
@@ -630,10 +630,10 @@ func (v *filterViewForm) PendingCommand() tea.Cmd {
 			}
 			_ = v.e.set(f, loaded[f.Name])
 			f.not = loaded[f.Name+RecordInvertSuffix] == "true"
-			v.e.written[f.Name] = loaded[f.Name]
+			v.e.out.set(f.Name, loaded[f.Name])
 			f.before = loaded[f.Name]
 			if f.Invertible {
-				v.e.written[f.Name+RecordInvertSuffix] = invertText(f.not)
+				v.e.out.set(f.Name+RecordInvertSuffix, invertText(f.not))
 			}
 		}
 		v.e.seen = v.e.snapshot()
@@ -804,8 +804,8 @@ func (v *filterViewForm) render(s Styles, width, height int) Block {
 			focusLine = at
 		}
 	}
-	if v.e.writeErr != "" {
-		lines = append(lines, s.Error.Render(v.e.writeErr))
+	if v.e.out.err != "" {
+		lines = append(lines, s.Error.Render(v.e.out.err))
 	}
 	if v.saveInput != nil {
 		add(v.saveBlock(s, width), v.saveInput.ID)

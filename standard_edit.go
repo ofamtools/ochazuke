@@ -255,14 +255,12 @@ func (es editSession) bindWrites(spec *RecordSpec, fields []RecordField, editor 
 func (es editSession) bindSubmit(spec *RecordSpec, fields []RecordField, editor **RecordEditor) {
 	spec.Submit = func(rec Record) Result {
 		changed := map[string]any{}
-		for _, f := range fields {
-			if rec[f.Name] != (*editor).baseline[f.Name] {
-				value, err := editPropValue(*es.n.prop(f.Name), rec[f.Name])
-				if err != nil {
-					return Failed(fmt.Errorf("%s %w", f.Name, err))
-				}
-				changed[f.Name] = value
+		for _, name := range (*editor).out.changedSince(rec, fieldNames(fields)) {
+			value, err := editPropValue(*es.n.prop(name), rec[name])
+			if err != nil {
+				return Failed(fmt.Errorf("%s %w", name, err))
 			}
+			changed[name] = value
 		}
 		if len(changed) == 0 {
 			return Done(nil)
@@ -832,4 +830,13 @@ func registerStandardEdit(r *Runtime) {
 	op := r.Operations["ochazuke.nouns.cancel-edit"]
 	op.HistoryKind = HistoryAction
 	r.Operations[op.Key()] = op
+}
+
+// fieldNames are the names of fields, in order.
+func fieldNames(fields []RecordField) []string {
+	names := make([]string, len(fields))
+	for i, f := range fields {
+		names[i] = f.Name
+	}
+	return names
 }
