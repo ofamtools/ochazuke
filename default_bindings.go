@@ -21,8 +21,8 @@ var frameworkBindings embed.FS
 // frameworkBindingFiles are the files NewRuntime loads, in order, after the
 // framework registered its verbs and guards. app.json (NewModel) and
 // palette.json (NewPalette) load with the component that registers their
-// verbs; picker.json holds every picker's keys, the path finder's
-// (NewPicker) among them.
+// verbs; picker.json holds every picker's keys, the path picker's find
+// source's among them.
 var frameworkBindingFiles = []string{
 	"editor.json", "registers.json", // first: they define the pending modes (count_pending) others extend
 	"picker.json", "settings-editor.json", "about.json", "list.json", "table.json", "standard.json", "list-modes.json",

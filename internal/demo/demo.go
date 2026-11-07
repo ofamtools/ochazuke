@@ -104,10 +104,6 @@ func newWith(task *demoTask) *ochazuke.Model {
 		}
 	}
 	m = ochazuke.NewModel(r)
-	picker := ochazuke.NewPicker(r)
-	m.ModalViews["picker"] = ochazuke.ModalView{Title: "Choose a path", Render: func(r *ochazuke.Runtime, f *ochazuke.Instance, w, h int) ochazuke.Block {
-		return picker.ViewBlock(w, h)
-	}}
 	for _, id := range []string{"draft", "nested-draft"} {
 		title := "Draft editor"
 		if id == "nested-draft" {

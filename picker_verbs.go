@@ -3,15 +3,13 @@ package ochazuke
 import (
 	"errors"
 	"maps"
-	"path/filepath"
 	"slices"
 )
 
 // One picker noun (pickers PK2): the verbs every open picker answers,
-// whichever component draws it. A chooser (OpenPicker, the path picker,
-// a registered picker) and the path finder (NewPicker, until it becomes
-// the path picker's find source) both implement pickerModal, so a key row
-// on ochazuke.picker runs the same verb on either.
+// whichever component draws it. A chooser (OpenPicker, the path picker
+// with its find source, a registered picker) implements pickerModal, so
+// a key row on ochazuke.picker runs the same verb on any of them.
 
 // pickerModal is what the picker noun's shared verbs act on.
 type pickerModal interface {
@@ -38,7 +36,7 @@ const (
 	PickerEnterOpensGuard   = "picker-enter-opens"   // enter opens it (PickerEnterSetting, or a row that only opens)
 	PickerUpGuard           = "picker-up"            // the picker can step up
 	PickerUpEmptyGuard      = "picker-up-empty"      // it can, and the query is empty (backspace)
-	PickerCompletesGuard    = "picker-completes"     // complete fills the highlighted row in (the path finder)
+	PickerCompletesGuard    = "picker-completes"     // complete fills the highlighted row in (a source with Complete: the path picker's find)
 	PickerNormalModeGuard   = "picker-normal-mode"   // the picker has a normal mode (ChooserSpec.NormalMode)
 	PickerPropControlsGuard = "picker-prop-controls" // prop conditions or a saved filter are set
 )
@@ -71,8 +69,9 @@ var pickerRename = NounRename{
 	Verbs: map[string]string{"open": "into"},
 }
 
-// pickerVerbAliases are the path finder's old verbs, now the picker
-// noun's shared ones.
+// pickerVerbAliases are the path finder's old verbs (the finder is the
+// path picker's find source since v0.96.0), now the picker noun's shared
+// ones.
 var pickerVerbAliases = map[string]string{
 	"choose":  "pick",
 	"close":   "cancel",
@@ -115,7 +114,7 @@ func registerPickerVerbs(r *Runtime) {
 	}
 	r.Define(PickerNoun).Pin("insert").
 		Verb("pick", verb(func(m pickerModal, ctx Ctx) Result { return m.pickerPick(ctx.Args) }), "Take the highlighted row, else the top match, else create from the query").
-		Params(map[string]Parameter{"current": {Type: "boolean", Description: "The path finder: choose its current folder instead of the highlight"}}).
+		Params(map[string]Parameter{"current": {Type: "boolean", Description: "Take the source's current row instead of the highlight (the path picker's find: the folder it searches)"}}).
 		Verb("move", verb(func(m pickerModal, ctx Ctx) Result {
 			return m.pickerMove(IntArg(ctx.Args, "delta", 0), StringArg(ctx.Args, "to", ""))
 		}), "Move the highlight; from none, down selects first and up follows picker.up-from-none").Motion().Params(map[string]Parameter{"delta": {Type: "integer"}, "to": {Type: "string", Enum: []string{"first", "last"}}}).
@@ -167,7 +166,13 @@ func registerPickerGuardAliases(r *Runtime) {
 
 // The chooser's pickerModal.
 
-func (c *Chooser) pickerPick(Arguments) Result { c.sync(); return c.pick() }
+func (c *Chooser) pickerPick(args Arguments) Result {
+	c.sync()
+	if current, _ := args["current"].(bool); current {
+		return c.pickerCurrent()
+	}
+	return c.pick()
+}
 
 func (c *Chooser) pickerCancel() Result {
 	c.sync()
@@ -217,7 +222,10 @@ func (c *Chooser) pickerEnter() Result {
 }
 
 func (c *Chooser) pickerComplete() Result {
-	return Failed(errors.New("this picker has nothing to complete"))
+	if err := c.complete(); err != nil {
+		return Failed(err)
+	}
+	return Done(c.state())
 }
 
 func (c *Chooser) pickerOpens() bool { return c.opens() }
@@ -227,92 +235,4 @@ func (c *Chooser) pickerOpens() bool { return c.opens() }
 func (c *Chooser) pickerEnterOpens() bool { return !c.waiting() && c.enterOpens() }
 func (c *Chooser) pickerCanUp() bool      { return c.canUp() }
 func (c *Chooser) pickerUpEmpty() bool    { return c.canUp() && c.Query() == "" }
-func (c *Chooser) pickerCompletes() bool  { return false }
-
-// The path finder's pickerModal: its old verbs (choose, close, descend,
-// parent, enter, complete) as the shared ones.
-
-// result is a finder verb's answer: its error is the finder's error line.
-func (p *PathFinder) result(v any, err error) Result {
-	if err != nil {
-		p.Error = err.Error()
-	}
-	p.sync()
-	if err != nil {
-		return Failed(err)
-	}
-	return Done(v)
-}
-
-func (p *PathFinder) pickerPick(args Arguments) Result {
-	if err := p.require(); err != nil {
-		return p.result(nil, err)
-	}
-	if current, _ := args["current"].(bool); current {
-		return p.result(p.choose(p.Directory))
-	}
-	entry, err := p.selected()
-	if err != nil {
-		return p.result(nil, err)
-	}
-	return p.result(p.choose(filepath.Join(p.Directory, filepath.FromSlash(entry.Path))))
-}
-
-func (p *PathFinder) pickerCancel() Result {
-	if err := p.require(); err != nil {
-		return p.result(nil, err)
-	}
-	p.stop()
-	if err := p.Runtime.Pop(); err != nil {
-		return p.result(nil, err)
-	}
-	return p.result(p.Runtime.Context(), nil)
-}
-
-func (p *PathFinder) pickerMove(delta int, to string) Result {
-	if err := p.require(); err != nil {
-		return p.result(nil, err)
-	}
-	delta = pickerMoveDelta(delta, to, len(p.Entries))
-	p.Selected = min(max(0, p.Selected+delta), max(0, len(p.Entries)-1))
-	return p.result(p.state(), nil)
-}
-
-func (p *PathFinder) pickerInto() Result  { return p.result(p.enter(true)) }
-func (p *PathFinder) pickerEnter() Result { return p.result(p.enter(false)) }
-
-func (p *PathFinder) pickerUp() Result {
-	if err := p.require(); err != nil {
-		return p.result(nil, err)
-	}
-	return p.result(p.browse(filepath.Dir(p.Directory)))
-}
-
-func (p *PathFinder) pickerComplete() Result {
-	if err := p.require(); err != nil {
-		return p.result(nil, err)
-	}
-	entry, err := p.selected()
-	if err != nil {
-		return p.result(nil, err)
-	}
-	path := filepath.Join(p.Directory, filepath.FromSlash(entry.Path))
-	if entry.Dir {
-		return p.result(p.browse(path))
-	}
-	if _, err := p.Runtime.Execute(Request{Verb: "replace", Noun: "ochazuke.input", Target: p.input.ID, Args: Arguments{"start": 0, "end": len(p.input.Text), "text": path}}); err != nil {
-		return p.result(nil, err)
-	}
-	return p.result(p.state(), nil)
-}
-
-// pickerOpens: the highlighted entry is a folder.
-func (p *PathFinder) pickerOpens() bool {
-	entry, err := p.selected()
-	return p.IsOpen() && err == nil && entry.Dir
-}
-
-func (p *PathFinder) pickerEnterOpens() bool { return p.pickerOpens() }
-func (p *PathFinder) pickerCanUp() bool      { return p.IsOpen() }
-func (p *PathFinder) pickerUpEmpty() bool    { return false }
-func (p *PathFinder) pickerCompletes() bool  { return p.IsOpen() }
+func (c *Chooser) pickerCompletes() bool  { return c.completes() }

@@ -558,28 +558,19 @@ func (r *Runtime) openPickersPicker() (*Chooser, error) {
 	})
 }
 
-// setPickerFinder keeps the path finder's open (NewPicker), which picker.open
-// with no name runs when the application made one.
-func (r *Runtime) setPickerFinder(open func(Context, Arguments) (any, error)) {
-	r.chooserMemory().finderOpen = open
-}
-
 // registerPickerRegistry registers the picker noun's registry verbs and
 // the framework's pickers: pages, path and the pickers picker.
 func registerPickerRegistry(r *Runtime) {
 	r.Define(PickerNoun)
-	r.Register(Operation{Verb: "open", Noun: PickerNoun, Description: "Open a picker by name (picker.list lists them; pickers is the picker of pickers); with no name, the path picker (the fuzzy path finder when the application has one)", Parameters: map[string]Parameter{
-		"name":   {Type: "string", Noun: PickerNoun, Description: "The picker to open; empty opens the path picker"},
+	r.Register(Operation{Verb: "open", Noun: PickerNoun, Description: "Open a picker by name (picker.list lists them; pickers is the picker of pickers); with no name, the path picker on its find source, filling the input in focus", Parameters: map[string]Parameter{
+		"name":   {Type: "string", Noun: PickerNoun, Description: "The picker to open; empty opens the path picker on find"},
 		"query":  {Type: "string", Description: "Text typed into the picker's search line when it opens"},
-		"filter": {Type: "string", Description: "Path finder only: any, file or dir; defaults to the originating path field's filter"},
-		"path":   {Type: "string", Description: "Path finder only: initial path/query; otherwise path value, current paths line, or cwd"},
+		"filter": {Type: "string", Description: "No name only: any, file or dir; defaults to the originating path field's filter"},
+		"path":   {Type: "string", Description: "No name only: where find starts (its longest existing folder; the rest is typed); otherwise the path field's value, the paths line, or the working folder"},
 	}, Positional: []string{"name"}, Result: "picker state", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		name := StringArg(a, "name", "")
 		if name == "" {
-			if open := r.chooserMemory().finderOpen; open != nil {
-				return open(c, a)
-			}
-			name = PathPickerName
+			return r.openFindPicker(c, a)
 		}
 		chooser, err := r.OpenNamedPicker(name, StringArg(a, "query", ""))
 		if err != nil {
@@ -614,8 +605,12 @@ func registerPickerRegistry(r *Runtime) {
 	for _, def := range []PickerDef{
 		{Name: PickersPickerName, Title: "Pickers", Noun: PickerNoun, About: "Every picker: pick one to open it", Open: func(r *Runtime, _ string) (*Chooser, error) { return r.openPickersPicker() }},
 		{Name: PagesPickerName, Title: "Pages", Noun: "ochazuke.page", About: "The pages, most recently visited first; pick one to open it", Verb: "ochazuke.page.pick"},
-		{Name: PathPickerName, Title: "Path", About: "A file or folder: browse, recent and typed paths", Open: func(r *Runtime, _ string) (*Chooser, error) {
-			return r.OpenPathChooser(PathChooserSpec{})
+		{Name: PathPickerName, Title: "Path", About: "A file or folder: find, browse, recent and typed paths", Open: func(r *Runtime, query string) (*Chooser, error) {
+			// By name it fills no field: the pick is its answer.
+			if _, err := r.openFindPicker(Context{}, Arguments{"query": query}); err != nil {
+				return nil, err
+			}
+			return r.Chooser(PathChooserKind), nil
 		}},
 	} {
 		if err := r.AddPicker(def); err != nil {

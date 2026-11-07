@@ -4,7 +4,7 @@
 // rename that has to touch every literal and prose mention at once.
 //
 // The authoritative key set is built from the code, not guessed from text:
-// every runtime the repo can instantiate (NewRuntime, NewModel, NewPicker,
+// every runtime the repo can instantiate (NewRuntime, NewModel,
 // grid.Register, demo.New), the verbs the full-project config declares in
 // actions.json, and a static walk of every Go file for Do("v.n") literals,
 // Operation{Verb:, Noun:} and Request{Verb:, Noun:} literals, and
@@ -78,8 +78,6 @@ func main() {
 	harvest(r, "NewRuntime")
 	ochazuke.NewModel(r)
 	harvest(r, "NewModel")
-	ochazuke.NewPicker(r)
-	harvest(r, "NewPicker")
 	grid.Register(r)
 	harvest(r, "grid.Register")
 	harvest(demo.New().Runtime, "demo.New")

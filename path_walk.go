@@ -314,7 +314,7 @@ func (w *walker) result() Result {
 		if err != nil {
 			return
 		}
-		rows, more := chooserRowsOf(value)
+		rows, more, _ := chooserRowsOf(value)
 		w.shown += len(rows)
 		w.shownLimit = w.limited.Load()
 		w.shownDone = more.work == nil

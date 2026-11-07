@@ -325,7 +325,7 @@ func TestPathAppSources(t *testing.T) {
 		t.Fatal(err)
 	}
 	landLoads(m, r.PendingCommands())
-	if got := c.Sources(); !slices.Equal(got, []string{"browse", "recent", "typed", "known"}) {
+	if got := c.Sources(); !slices.Equal(got, []string{"browse", "recent", "typed", "find", "known"}) {
 		t.Fatalf("sources %v", got)
 	}
 	file, err := r.OpenPathChooser(PathChooserSpec{Kind: "other", Pick: PathPick{Parameter: Parameter{Type: "path", Base: root}}})

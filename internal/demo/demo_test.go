@@ -109,19 +109,28 @@ func TestModelPickerProcessesCoalescedTypingAndCalls(t *testing.T) {
 		t.Fatal(response.Error)
 	}
 	drain(cmd)
-	keytest.Press(m, "ctrl+e")
-	cmd = keytest.Type(m, "/ntt")
+	cmd = keytest.Type(m, "ntt")
 	drain(cmd)
-	if got := string(m.Runtime.Input("picker-path").Text); got != root+"/ntt" {
-		t.Fatalf("fast typing lost characters: %q", got)
+	c := m.Runtime.Chooser(ochazuke.PathChooserKind)
+	if c == nil || c.Query() != "ntt" {
+		t.Fatalf("fast typing lost characters: %v", c)
 	}
-	entries := m.Runtime.Instances["picker"].Component.(*ochazuke.Picker).Entries
-	if len(entries) != 1 || entries[0].Path != "nested/target.txt" {
-		t.Fatalf("recursive fuzzy results: %#v", entries)
+	if got := chooserLabels(c); !reflect.DeepEqual(got, []string{"nested/target.txt"}) {
+		t.Fatalf("recursive fuzzy results: %q", got)
 	}
 }
 
-func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
+func chooserLabels(c *ochazuke.Chooser) []string {
+	var out []string
+	for _, row := range c.Matches() {
+		out = append(out, row.Label)
+	}
+	return out
+}
+
+// The path picker's find source opened at ~/proj lists its projects; one
+// is picked into the field.
+func TestModelPickerHomeProjectsSelectable(t *testing.T) {
 	pickerGitEnvironment(t)
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -131,14 +140,8 @@ func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := New()
-	t.Cleanup(func() {
-		m.Runtime.Instances["picker"].Component.(*ochazuke.Picker).Close()
-	})
-	// Execute one delivery stage, retaining the next commands instead of
-	// racing the full scan against assertions about the visible shallow list.
-	stage := func(cmd tea.Cmd) tea.Cmd {
+	drain := func(cmd tea.Cmd) {
 		queue := []tea.Cmd{cmd}
-		var pending []tea.Cmd
 		for len(queue) > 0 {
 			next := queue[0]
 			queue = queue[1:]
@@ -148,34 +151,31 @@ func TestModelPickerHomeProjectsSelectableBeforeRecursiveScan(t *testing.T) {
 			msg := next()
 			if batch, ok := msg.(tea.BatchMsg); ok {
 				queue = append(queue, batch...)
-			} else {
+			} else if _, ok := msg.(ochazuke.Completion); ok {
 				_, cmd := m.Update(msg)
-				pending = append(pending, cmd)
+				queue = append(queue, cmd)
 			}
 		}
-		return tea.Batch(pending...)
 	}
 	reply := make(chan ochazuke.Response, 1)
 	_, cmd := m.Update(ochazuke.CallMsg{Request: ochazuke.Request{Verb: "open", Noun: "picker", Target: "directory", Args: ochazuke.Arguments{"path": "~/proj", "filter": "dir"}}, Reply: reply})
 	if response := <-reply; response.Error != "" {
 		t.Fatal(response.Error)
 	}
-	search := stage(cmd)
-	stage(search) // ochazuke.Leave recursion pending.
-	top := m.Runtime.TopModal()
-	picker := m.Runtime.Instances["picker"].Component.(*ochazuke.Picker)
-	if !reflect.DeepEqual(pickerEntryPaths(picker.Entries), []string{".", "project"}) || !picker.Loading {
-		t.Fatalf("home projects shallow state: %#v loading=%v", picker.Entries, picker.Loading)
+	drain(cmd)
+	c := m.Runtime.Chooser(ochazuke.PathChooserKind)
+	if got := chooserLabels(c); !reflect.DeepEqual(got, []string{". (current directory)", "project/", "project/deep/"}) {
+		t.Fatalf("home projects: %q", got)
 	}
-	if view := m.View().Content; !strings.Contains(view, "project") || !strings.Contains(view, "Indexing/searching") {
-		t.Fatalf("shallow project missing from modal:\n%s", view)
+	if view := m.View().Content; !strings.Contains(view, "project/") {
+		t.Fatalf("project missing from modal:\n%s", view)
 	}
 	keytest.Press(m, "ctrl+n")
 	keytest.Press(m, "ctrl+s")
 	if got, want := string(m.Runtime.Input("directory").Text), filepath.Join(canonical, "proj", "project"); got != want {
-		t.Fatalf("shallow project selection = %q, want %q", got, want)
+		t.Fatalf("project selection = %q, want %q", got, want)
 	}
-	if top == m.Runtime.TopModal() {
+	if m.Runtime.Chooser(ochazuke.PathChooserKind) != nil {
 		t.Fatal("project confirmation did not close picker")
 	}
 }

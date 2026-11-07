@@ -336,19 +336,14 @@ palette_results.go	Runtime.showResults	cyclo	"-"	29
 param_kinds.go	var paramKinds	table	"path"	1	"path" here is a parameter TYPE (PathParameterType), a row of the one table the routes read, not the parameter named path
 param_sources.go	isRowSource	compare	"row"	1
 path_chooser.go	PathPick.Dir	compare	"dir"	1
+path_find.go	Runtime.findOrigin	case	"path"	1
+path_find.go	Runtime.openFindPicker	compare	"dir"	1
 peer_bindings.go	Runtime.syncPeerNotices	compare	"all"	1
-picker.go	PathFinder.choose	compare	"dir"	1
-picker.go	PathFinder.open	case	"path"	1
-picker.go	PathFinder.open	compare	"dir"	1
-picker.go	PathFinder.open	compare	"path"	1
-picker.go	PathFinder.require	compare	"picker"	1
-picker.go	newPicker	compare	"ochazuke.input"	1
 picker_search.go	searchPickerMatch	compare	"dir"	1
 picker_verbs.go	pickerMoveDelta	case	"last"	1
 picker_verbs.go	var pickerRename	table	"open"	1	data: the renamed verb of the old chooser noun (Keep actions, one release)
 picker_verbs.go	var pickerVerbAliases	table	"choose"	1	data: the path finder's old verb names, aliases for one release
 picker_verbs.go	var pickerVerbAliases	table	"close"	1	data: the path finder's old verb names, aliases for one release
-picker_view.go	PathFinder.bindingHelp	compare	"ochazuke.picker"	1
 prop_filter.go	propTest	compare	"list"	1
 prop_filter.go	typedPropFilter	compare	"list"	1
 props.go	NounBuilder.Store	compare	"instances"	1

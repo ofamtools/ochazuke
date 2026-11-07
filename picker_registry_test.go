@@ -253,21 +253,24 @@ func TestDeclaredPickerAndNounParameter(t *testing.T) {
 	}
 }
 
-// picker.open with no name opens the path picker; with the finder made
-// (NewPicker) it opens the finder, which needs an originating input.
+// picker.open with no name opens the path picker on its find source,
+// with or without the finder shim (NewPicker) and with no input in focus.
 func TestPickerOpenWithoutName(t *testing.T) {
+	for _, shim := range []bool{false, true} {
+		r := NewRuntime()
+		if shim {
+			NewPicker(r)
+		}
+		if _, err := r.Execute(Request{Noun: PickerNoun, Verb: "open", Args: Arguments{"path": t.TempDir()}}); err != nil {
+			t.Fatal(err)
+		}
+		c := r.Chooser(PathChooserKind)
+		if r.TopModal() != PathChooserKind || c == nil || c.Source() != PathSourceFind {
+			t.Fatalf("shim=%v: no name opened %q", shim, r.TopModal())
+		}
+		_ = r.Pop()
+	}
 	r := NewRuntime()
-	if _, err := r.Execute(Request{Noun: PickerNoun, Verb: "open"}); err != nil {
-		t.Fatal(err)
-	}
-	if r.TopModal() != PathChooserKind {
-		t.Fatalf("no name opened %q", r.TopModal())
-	}
-	_ = r.Pop()
-	NewPicker(r)
-	if _, err := r.Execute(Request{Noun: PickerNoun, Verb: "open"}); err == nil || !strings.Contains(err.Error(), "originating input") {
-		t.Fatalf("finder open err %v", err)
-	}
 	if _, err := r.Execute(Request{Noun: PickerNoun, Verb: "open", Args: Arguments{"name": "nope"}}); err == nil {
 		t.Fatal("an unknown picker opened")
 	}

@@ -190,6 +190,11 @@ type Chooser struct {
 	loading bool
 	loadErr string
 	gen     uint64
+	// LoadedMode is the match mode the current load ranked in (a source
+	// with LoadMode loads again when it changes); Preview is the current
+	// source's preview of the highlighted row (ChooserSource.Preview).
+	LoadedMode string
+	Preview    ChooserPreview
 	// tallest is the most lines the rows view has drawn while open: with
 	// chooser.stable-height it pads to it, so typing never resizes it.
 	tallest int
@@ -220,7 +225,7 @@ const ChooserHiddenCountSetting = "picker.hidden-count"
 // focus the chooser opened over (runApplication), since the chooser and its
 // input are closed before the callback runs.
 func (c *Chooser) HandleMessage(msg tea.Msg) bool { return c.filters.HandleMessage(msg) }
-func (c *Chooser) Close()                         { c.pending = false; c.filters.Close() }
+func (c *Chooser) Close()                         { c.pending = false; c.filters.Close(); c.closeSources() }
 
 // PendingCommand follows the query after every event: a Live source loads
 // again for the edited query, and the work it queues is handed over here
@@ -230,6 +235,7 @@ func (c *Chooser) PendingCommand() tea.Cmd {
 		return nil
 	}
 	c.sync()
+	c.queuePreview()
 	commands := []tea.Cmd{c.filters.PendingCommand()}
 	commands = append(commands, c.r.commands...)
 	c.r.commands = nil
@@ -396,11 +402,16 @@ func (c *Chooser) ranked() bool {
 func (c *Chooser) matcher() Matcher { return c.r.Matcher(c.MatchMode(), c.Query()) }
 
 // The matchSearcher contract (search_match.go).
-func (c *Chooser) matchMode() string  { return c.MatchMode() }
-func (c *Chooser) matchApplies() bool { return c.spec.Filter == nil && !c.ranked() }
+func (c *Chooser) matchMode() string { return c.MatchMode() }
+func (c *Chooser) matchApplies() bool {
+	return c.spec.Filter == nil && (!c.ranked() || c.modeRanked())
+}
 func (c *Chooser) setMatchMode(mode string) {
 	c.filters.linger.reset()
 	c.match = mode
+	if c.modeRanked() {
+		c.load()
+	}
 	c.refilter()
 }
 
@@ -557,6 +568,34 @@ func (c *Chooser) sync() {
 		c.load()
 	}
 	c.refilter()
+}
+
+// pickerCurrent picks the current source's Current row (pick {current:
+// true}).
+func (c *Chooser) pickerCurrent() Result {
+	src := c.current()
+	if src == nil || src.Current == nil {
+		return Failed(errors.New("this picker has no current row"))
+	}
+	row, ok := src.Current()
+	if !ok {
+		return Failed(errors.New("this picker has no current row"))
+	}
+	if row.Refuse != "" {
+		return Failed(errors.New(row.Refuse))
+	}
+	accepted := c.r.acceptModal(c.spec.Kind)
+	if !c.spec.Stay {
+		if err := c.close(); err != nil {
+			return Failed(err)
+		}
+	}
+	accepted()
+	if c.spec.Choose == nil {
+		return Done(row.ID)
+	}
+	defer c.r.actingFor(c.r.Focus)()
+	return c.spec.Choose(row)
 }
 
 func (c *Chooser) refilter() {
@@ -764,7 +803,7 @@ func (c *Chooser) HiddenRows() int { return c.hidden }
 // the search input's.
 func (c *Chooser) View(width, height int) Block {
 	c.sync()
-	if c.spec.Preview == nil || width < ChooserPreviewMin {
+	if !c.previewing() || width < ChooserPreviewMin {
 		return c.rowsView(width, height)
 	}
 	// The preview column keeps its width whatever it holds, so the panel
@@ -774,7 +813,7 @@ func (c *Chooser) View(width, height int) Block {
 	left := c.rowsView(listWidth, height)
 	text := ""
 	if row, ok := c.Highlighted(); ok {
-		text = c.spec.Preview(row)
+		text = c.previewText(row)
 	}
 	right := previewLines(text, previewWidth, height)
 	lines := strings.Split(left.Text, "\n")

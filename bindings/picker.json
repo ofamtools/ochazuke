@@ -1,5 +1,5 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
-// Every picker's keys: a chooser (OpenPicker, a registered picker, the path picker) and the path finder (NewPicker) alike. The rows were bindings/chooser.json (noun ochazuke.chooser, a deprecated name of ochazuke.picker until v0.97.0) and the finder's own picker.json.
+// Every picker's keys: a chooser (OpenPicker, a registered picker, the path picker with its find source, which was the path finder before v0.96.0) alike. The rows were bindings/chooser.json (noun ochazuke.chooser, a deprecated name of ochazuke.picker until v0.97.0) and the finder's own picker.json.
 {
   "bindings": [
     {"context":"ochazuke.picker/insert","bindings":[

@@ -815,7 +815,7 @@ if err := r.AddInput(prompt, ochazuke.Kind("prompt")); err != nil {
 
 ### Path fields
 
-One picker handles files and directories. Field kind determines replacement behavior; its separate filter controls eligible results:
+`picker.open` with no name opens the path picker on its `find` source for the input in focus: every path under a folder, indexed with Git's ignore rules and fuzzy-ranked in the picker's match mode, each row with its size and modified time and the highlighted one previewed. The query is a path relative to the folder searched (`src/ma` searches `src` for `ma`); enter on a folder searches it, `alt+up` the parent, `tab` fills the highlighted path into the query, `pick {current: true}` takes the folder itself, and `ctrl+o` steps to the path picker's other sources (browse, recent, typed). Field kind determines replacement behavior; its separate filter controls eligible results:
 
 ```go
 directory := ochazuke.NewInput("directory", "/tmp", false)
@@ -829,6 +829,7 @@ paths.PathFilter = "any"
 
 | Field kind | Picker starting context | Selection result |
 |---|---|---|
+| No input in focus | Working directory or explicitly supplied path | The verb's answer |
 | Empty / `text` | Working directory or explicitly supplied path | Insert at the cursor captured when opened |
 | `path` | Entire field value | Replace the entire value |
 | `paths` | Current line | Replace only that captured line, preserving the rest |
@@ -837,21 +838,11 @@ Filters are `file`, `dir`, and `any`. A `paths` field is an ordinary multiline e
 
 ```sh
 /tmp/ochazuke picker open --json '{"filter":"file","path":"/work"}'
-/tmp/ochazuke picker choose
-/tmp/ochazuke picker close
+/tmp/ochazuke picker pick
+/tmp/ochazuke picker cancel
 ```
 
-Applications constructing their own picker only add its modal renderer; `NewPicker` registers the `picker` instance whose `Component` the runtime drives through the delivery contract:
-
-```go
-picker := ochazuke.NewPicker(r)
-model.ModalViews["picker"] = ochazuke.ModalView{
-    Title: "Choose a path",
-    Render: func(_ *ochazuke.Runtime, _ *ochazuke.Instance, w, h int) ochazuke.Block {
-        return picker.ViewBlock(w, h)
-    },
-}
-```
+An application needs no code for it: the model draws the path picker. Before v0.96.0 the finder was a modal of its own that an application made with `NewPicker` and drew through `ModalViews["picker"]`; `NewPicker` is now a deprecated shim (kept for one release) whose `ViewBlock` draws the open path picker, and the setting `path.find` (default on) offers `find` in every path picker (off: only where asked for by name).
 
 ### Selectable lists
 
@@ -2541,7 +2532,7 @@ Compared with Vim: `:version` prints the version, the patches, the features comp
 
 A picker is a declaration, not code (`picker_registry.go`): a `PickerDef` names the picker, the noun its rows belong to, the verb its rows come from (`source`, default the noun's `list`; more in `sources`, cycled like any picker's), the verb run on the highlighted row for a preview (`preview`, default the noun's `get`) and the verb run on pick (`pick`, default the noun's `open` when it takes the row's id, else `get`; with neither the pick answers the id). Declare one with `r.AddPicker(PickerDef{...})`, or in a catalog's `pickers` array, which a host mounts with `cli.MountCatalogPickers(r, doc, prefix, noun)` beside `MountCatalogHooks`. Every noun with a list verb also gets a picker named after it with no code (`picker.derive`, default on; `NounBuilder.NoPicker()` opts a noun out, and a declared picker naming the noun replaces its derived one).
 
-- `ochazuke.picker.open {name, query}` opens one from a key, the palette or the CLI; with no name it opens the path picker (the fuzzy path finder, with `filter` and `path`, when the application made one with `NewPicker`). The picker noun is a thing noun whose things are the pickers (key `name`): the standard `picker.list` lists them with the keys bound to open each, `picker.get {name}` reads one.
+- `ochazuke.picker.open {name, query}` opens one from a key, the palette or the CLI; with no name it opens the path picker on its `find` source (with `filter` and `path`), filling the input in focus. The picker noun is a thing noun whose things are the pickers (key `name`): the standard `picker.list` lists them with the keys bound to open each, `picker.get {name}` reads one.
 - The framework declares `pickers` (the picker of pickers: a row per picker, a pick opens it; `picker.picker-list` `declared` hides the derived ones), `pages` (runs `page.pick`), `path` and, with the palette, `commands` (opens the command line). ochazuke binds no key to them.
 - A form field whose parameter names a noun (`Parameter.Noun`, no `Source`) opens that noun's picker: its source and match mode, the field keeping its title, width and pick (the value) (`picker.params`, default on).
 - One noun, one word: every open picker (a chooser opened by `OpenPicker`, a registered picker, the path picker, the path finder) answers the verbs of `ochazuke.picker`: `pick` (`current`: the path finder's folder), `cancel`, `move {delta, to}`, `into` (browse into the highlighted row), `up`, `enter` (into when the row opens, else pick), `complete` (the path finder), `next-source`, `previous-source`, `clear-props` and `normal`; its keys are the rows of `bindings/picker.json`. Old names run for one release with one notice: the noun `ochazuke.chooser` (`chooser`) is a deprecated name of `ochazuke.picker` (`Runtime.RenameNoun`), `chooser.open` is `picker.into` (the picker noun's `open` opens a picker by name), the path finder's `choose`, `close`, `descend` and `parent` are `pick`, `cancel`, `into` and `up`, each `chooser.*` setting is `picker.*` (`Setting.Deprecated`), `edit.field-chooser` is `edit.field-picker`, the `chooser-*` guards are `picker-*`, and the Go names `ChooserSpec`, `ChooserRow`, `ChooserSource`, `OpenChooser` and `Picker` are aliases of `PickerSpec`, `PickerRow`, `PickerSource`, `OpenPicker` and `PathFinder`.

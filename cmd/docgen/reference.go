@@ -22,7 +22,7 @@ const (
 )
 
 // referenceRuntime is the framework runtime the committed reference
-// describes: NewRuntime, NewModel (with its palette), NewPicker and
+// describes: NewRuntime, NewModel (with its palette) and
 // markdown.Register, no demo or application nouns, its config and state
 // in dir so no user file is read. Its App is ochazuke, so the settings a
 // config directory brings (the history file's) are declared as in any app.
@@ -31,7 +31,6 @@ func referenceRuntime(dir string) *ochazuke.Runtime {
 	c := r.Config()
 	c.App, c.Dir, c.StateDir = referenceTool, filepath.Join(dir, "config"), filepath.Join(dir, "state")
 	ochazuke.NewModel(r)
-	ochazuke.NewPicker(r)
 	markdown.Register(r)
 	return r
 }

@@ -11,13 +11,15 @@ import (
 )
 
 // A path parameter (Parameter.Type "path") names a file, or a folder when
-// Parameter.Path is "dir". Its form field opens the path chooser: a
+// Parameter.Path is "dir" (either with PathAny). Its form field opens the path chooser: a
 // chooser whose sources are browse (the entries of one folder; enter or
 // ctrl+l browses into a folder, alt+up or backspace on an empty query goes
 // to the parent), recent (the application's list, then the paths picked
-// this run) and typed (completes the path being typed, as a shell does,
+// this run), typed (completes the path being typed, as a shell does,
 // and offers it when it exists, or when Parameter.New allows a path not
-// there yet), then the sources the application adds (AddPathSource: mtm's
+// there yet) and find (every path under the start folder, fuzzy-ranked:
+// path_find.go; path.find off leaves it out), then the sources the
+// application adds (AddPathSource: mtm's
 // known folders, a project's; AddWalkPathSource: every folder under the
 // roots it gives, path_walk.go); path.first names the ones listed first. Browse starts at the field's folder, else
 // the parameter's Base, else as the setting path.start says. It never
@@ -73,6 +75,10 @@ type PathPick struct {
 // Dir reports whether the pick wants a folder.
 func (p PathPick) Dir() bool { return p.Parameter.Path == PathDir }
 
+// Files reports whether the pick wants a file only: a folder row opens
+// but is not picked (PathFile, the default; PathAny takes either).
+func (p PathPick) Files() bool { return !p.Dir() && p.Parameter.Path != PathAny }
+
 // PathChooserSpec opens a path chooser. Choose takes the chosen path
 // (absolute, cleaned).
 type PathChooserSpec struct {
@@ -86,6 +92,8 @@ type PathChooserSpec struct {
 	Source string
 	// Choose takes the path; nil returns it as the result.
 	Choose func(path string) Result
+	// Query is the text typed into the search line when it opens.
+	Query string
 }
 
 type namedPathSource struct {
@@ -230,6 +238,8 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		what := "file"
 		if pick.Dir() {
 			what = "folder"
+		} else if !pick.Files() {
+			what = "path"
 		}
 		if pick.Name != "" {
 			what = pick.Name
@@ -250,6 +260,16 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		return spec.Choose(path)
 	}
 	sources := []ChooserSource{r.browseSource(pick, use), r.recentSource(pick), r.typedSource(pick, use)}
+	// A source behind a setting (find: path.find) is offered while the
+	// setting is on, and whenever the open asks for it by name.
+	for _, gated := range []struct {
+		setting string
+		source  ChooserSource
+	}{{PathFindSetting, r.findSource(pick)}} {
+		if r.settingOn(gated.setting) || gated.source.Name == spec.Source {
+			sources = append(sources, gated.source)
+		}
+	}
 	for _, one := range r.chooserMemory().pathSources {
 		if src, ok := one.fn(pick); ok {
 			if src.Name == "" {
@@ -259,7 +279,7 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		}
 	}
 	sources = orderPathSources(sources, r.settingList(PathFirstSetting))
-	return r.OpenChooser(ChooserSpec{
+	c, err := r.OpenChooser(ChooserSpec{
 		Kind:    kind,
 		Title:   title,
 		Sources: sources,
@@ -274,6 +294,10 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		},
 		CreateRow: true,
 	})
+	if err == nil && spec.Query != "" {
+		c.SetQuery(spec.Query)
+	}
+	return c, err
 }
 
 // orderPathSources puts the sources path.first names first, in its
@@ -318,7 +342,7 @@ func listDir(dir, prefix string, pick PathPick, hidden bool, caseMode string) ([
 			}
 		}
 		if isDir {
-			dirs = append(dirs, ChooserRow{ID: full, Label: name + "/", Data: full, Opens: true, NoPick: !pick.Dir()})
+			dirs = append(dirs, ChooserRow{ID: full, Label: name + "/", Data: full, Opens: true, NoPick: pick.Files()})
 		} else if !pick.Dir() {
 			files = append(files, ChooserRow{ID: full, Label: name, Data: full})
 		}
@@ -412,7 +436,7 @@ func (r *Runtime) recentSource(pick PathPick) ChooserSource {
 				continue
 			}
 			seen[p] = true
-			if !pick.Dir() {
+			if pick.Files() {
 				if fi, err := os.Stat(p); err == nil && fi.IsDir() {
 					if recentDirsOn {
 						label := displayPath(p)
@@ -534,7 +558,7 @@ func typedRows(query string, pick PathPick, hidden bool, caseMode string) []Choo
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && info.IsDir():
-		if pick.Dir() {
+		if !pick.Files() {
 			// The typed folder itself is picked by enter; the folders
 			// under it below it open.
 			rows = append(rows, ChooserRow{ID: path, Label: query, Data: path})
@@ -580,7 +604,7 @@ func typedRows(query string, pick PathPick, hidden bool, caseMode string) []Choo
 func pathUnusable(path string, pick PathPick) string {
 	info, err := os.Stat(path)
 	switch {
-	case err == nil && info.IsDir() && !pick.Dir():
+	case err == nil && info.IsDir() && pick.Files():
 		return displayPath(path) + " is a folder"
 	case err == nil && !info.IsDir() && pick.Dir():
 		return displayPath(path) + " is not a folder"

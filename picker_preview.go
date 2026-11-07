@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
-
-	tea "charm.land/bubbletea/v2"
 )
 
 const (
@@ -17,41 +14,9 @@ const (
 	pickerPreviewEntries = 128
 )
 
-type pickerPreview struct {
-	path, metadata, text, err string
-	loading                   bool
-}
-
-type pickerPreviewMsg struct {
-	picker  *PathFinder
-	id      uint64
-	preview pickerPreview
-}
-
-func (p *PathFinder) queuePreview() {
-	path := ""
-	if p.Selected >= 0 && p.Selected < len(p.Entries) {
-		path = filepath.Join(p.Directory, filepath.FromSlash(p.Entries[p.Selected].Path))
-	}
-	if path == p.preview.path {
-		return
-	}
-	p.cancel("preview")
-	p.preview = pickerPreview{path: path, loading: path != ""}
-	if path == "" {
-		return
-	}
-	id, ctx := p.issue("preview")
-	p.previewID = id
-	p.pending = append(p.pending, func() tea.Msg {
-		preview := pickerPreview{path: path}
-		if ctx.Err() == nil {
-			preview.metadata, preview.text, preview.err = readPickerPreview(path)
-		}
-		return pickerPreviewMsg{picker: p, id: id, preview: preview}
-	})
-}
-
+// readPickerPreview is the find source's preview of path (path_find.go):
+// what it is, then a file's first pickerPreviewBytes or a folder's first
+// pickerPreviewEntries names, or why it cannot be read.
 func readPickerPreview(path string) (metadata, text, diagnostic string) {
 	info, err := os.Lstat(path)
 	if err != nil {

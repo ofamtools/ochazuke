@@ -42,7 +42,6 @@ func main() {
 	}
 	r := ochazuke.NewRuntime()
 	ochazuke.NewModel(r)
-	ochazuke.NewPicker(r)
 	markdown.Register(r)
 	grid.Register(r)
 	removed := r.RemovedVerbs()

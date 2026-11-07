@@ -246,26 +246,22 @@ func TestPickerSearchInEveryMode(t *testing.T) {
 	}
 }
 
-// ctrl+t in the path picker cycles its mode; each open starts in
-// chooser.match again.
+// ctrl+t in the path picker's find cycles its mode; each open starts in
+// picker.match again.
 func TestPickerCtrlTCyclesTheMatchMode(t *testing.T) {
-	r, p, _ := pickerFixture(t, "", "path", "any", 0)
-	r.EnsureConfigSettings()
-	pickerDo(t, r, "open", "ochazuke.picker", nil)
-	if p.MatchMode() != MatchFuzzy {
-		t.Fatalf("opens in %s", p.MatchMode())
+	r, m, _ := findFixture(t, "", "path", "any", 0)
+	c := findOpen(t, r, m, Arguments{"path": t.TempDir()})
+	if c.MatchMode() != MatchFuzzy {
+		t.Fatalf("opens in %s", c.MatchMode())
 	}
-	pickerKey(t, r, "ctrl+t")
-	if p.MatchMode() != MatchRegex || !strings.Contains(p.View(80, 10), "regex") {
-		t.Fatalf("after ctrl+t: %s\n%s", p.MatchMode(), p.View(80, 10))
+	findPress(m, "ctrl+t")
+	if c.MatchMode() != MatchRegex || !strings.Contains(c.View(80, 10).Text, "regex") {
+		t.Fatalf("after ctrl+t: %s\n%s", c.MatchMode(), c.View(80, 10).Text)
 	}
-	pickerDo(t, r, "close", "ochazuke.picker", nil)
-	if err := r.SetFocus("origin"); err != nil {
-		t.Fatal(err)
-	}
-	pickerDo(t, r, "open", "ochazuke.picker", nil)
-	if p.MatchMode() != MatchFuzzy {
-		t.Fatalf("reopens in %s", p.MatchMode())
+	findPress(m, "esc")
+	c = findOpen(t, r, m, Arguments{"path": t.TempDir()})
+	if c.MatchMode() != MatchFuzzy {
+		t.Fatalf("reopens in %s", c.MatchMode())
 	}
 }
 

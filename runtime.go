@@ -322,7 +322,7 @@ type Operation struct {
 	Quiet bool `json:"quiet,omitempty"`
 	// Builtin marks an operation the framework registered itself: every
 	// one NewRuntime and NewModel register, and those a framework
-	// constructor registers later (NewPicker, NewPalette, grid.Register,
+	// constructor registers later (NewPalette, grid.Register,
 	// markdown.Register, cli.AddCommands), each inside Runtime.Builtin. An
 	// application's verb is never builtin, even on a framework noun
 	// (history.capture-hook). Data for hosts (the catalog's builtin): a
@@ -678,7 +678,7 @@ func (r *Runtime) registerFramework() {
 // Builtin runs register and marks every operation it registered as the
 // framework's own (Operation.Builtin). NewRuntime and NewModel wrap their
 // registrations in it, and so does every framework constructor that
-// registers operations after them (NewPicker, NewPalette, NewAppearance,
+// registers operations after them (NewPalette, NewAppearance,
 // grid.Register, markdown.Register, cli.AddCommands), so an operation
 // registered lazily is marked too. Operations registered before it, or by
 // the application at any other time, keep Builtin false. Calls nest. It is

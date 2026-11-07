@@ -357,7 +357,7 @@ func TestColumnVerbsAndSave(t *testing.T) {
 		t.Fatalf("save-as prompt: focus=%s text=%q", a.r.Focus, string(a.field.Text))
 	}
 	press(t, a, "ctrl+o")
-	if a.r.TopModal() != "picker" {
+	if a.r.TopModal() != ochazuke.PathChooserKind {
 		t.Fatalf("ctrl+o did not open the picker: %v", a.r.TopModal())
 	}
 	press(t, a, "esc", "esc")

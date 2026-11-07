@@ -1,5 +1,5 @@
 {
-  "name": "picker: fuzzy matching marks path runes, keeping its selected row reversed",
+  "name": "picker: the path picker's find source marks fuzzy-matched path runes, keeping its selected row reversed",
   "area": "picker",
   "width": 72,
   "height": 18,
@@ -19,7 +19,7 @@
     "picker": "{{files}}/smg"
   },
   "expect": {
-    "modal": "picker",
+    "modal": "path-chooser",
     "contains": [
       "src/main.go"
     ],

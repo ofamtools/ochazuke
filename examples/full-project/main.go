@@ -366,7 +366,6 @@ func smokeExample(m *ochazuke.Model) error {
 		return err
 	}
 	call("open", "page", "", ochazuke.Arguments{"id": "paths"})
-	picker := r.Instances["picker"].Component.(*ochazuke.Picker)
 	var drain func(tea.Cmd)
 	drain = func(cmd tea.Cmd) {
 		if cmd == nil {
@@ -380,26 +379,40 @@ func smokeExample(m *ochazuke.Model) error {
 			return
 		}
 		r.Deliver(msg)
-		drain(picker.PendingCommand())
+		drain(r.PendingCommands())
 	}
-	for _, item := range []struct{ input, filter, path string }{{"source", "file", "release.txt"}, {"destination", "dir", "output"}, {"attachments", "any", "release.txt"}} {
+	// picker.open with no name: the path picker on its find source, with
+	// the field's filter (a folder field lists folders only).
+	for _, item := range []struct{ input, row, path string }{{"source", "release.txt", "release.txt"}, {"destination", "output/", "output"}, {"attachments", "release.txt", "release.txt"}} {
 		call("focus", "input", "", ochazuke.Arguments{"id": item.input})
 		replace(item.input, "")
 		call("open", "picker", "", ochazuke.Arguments{"path": root + string(filepath.Separator)})
-		expect("picker inferred filter", picker.Filter, item.filter)
-		drain(picker.PendingCommand())
+		drain(r.PendingCommands())
+		picker := r.Chooser(ochazuke.PathChooserKind)
+		if picker == nil {
+			return fmt.Errorf("smoke picker: picker.open opened %q", r.TopModal())
+		}
+		rows := picker.Matches()
 		index := -1
-		for i, entry := range picker.Entries {
-			if entry.Path == item.path {
+		for i, row := range rows {
+			if row.Label == item.row {
 				index = i
 				break
 			}
 		}
 		if index < 0 {
-			return fmt.Errorf("smoke picker: missing %q: %s", item.path, picker.Error)
+			return fmt.Errorf("smoke picker: missing %q in %d rows", item.row, len(rows))
 		}
-		call("move", "picker", "", ochazuke.Arguments{"delta": index - picker.Selected})
-		call("choose", "picker", "", nil)
+		at := 0
+		if row, ok := picker.Highlighted(); ok {
+			for i := range rows {
+				if rows[i].ID == row.ID {
+					at = i
+				}
+			}
+		}
+		call("move", "picker", "", ochazuke.Arguments{"delta": index - at})
+		call("pick", "picker", "", nil)
 		expect("picker committed "+item.input, string(r.Input(item.input).Text), filepath.Join(root, item.path))
 		expect("picker restores input", r.Context().InputID, item.input)
 	}

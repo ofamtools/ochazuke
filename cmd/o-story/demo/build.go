@@ -169,31 +169,13 @@ func (ss *session) open1(open string) error {
 		if ss.filesDir == "" || !strings.HasPrefix(filepath.Clean(ss.files(path)), ss.filesDir+"/") {
 			return errors.New("picker: path must be inside the story's {{files}} tree")
 		}
-		picker := ochazuke.NewPicker(r)
-		ss.M.ModalViews["picker"] = ochazuke.ModalView{Title: "Paths", Render: func(_ *ochazuke.Runtime, _ *ochazuke.Instance, w, h int) ochazuke.Block {
-			block := picker.ViewBlock(w, h)
-			return block.WithText(ss.unfiles(block.Text))
-		}}
 		if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.picker", Verb: "open", Args: ochazuke.Arguments{"path": ss.files(path)}}); err != nil {
 			return fmt.Errorf("picker: %w", err)
 		}
-		// Picker messages predate Completion, so the story driver's job
-		// events cannot deliver them. Settle the isolated initial scan here.
-		cmds := []tea.Cmd{picker.PendingCommand()}
-		for len(cmds) > 0 {
-			cmd := cmds[0]
-			cmds = cmds[1:]
-			if cmd == nil {
-				continue
-			}
-			msg := cmd()
-			if batch, ok := msg.(tea.BatchMsg); ok {
-				cmds = append(cmds, batch...)
-			} else {
-				picker.HandleMessage(msg)
-				cmds = append(cmds, picker.PendingCommand())
-			}
-		}
+		// Settle the path picker's first load (its find source indexes
+		// the story's files) before the first frame, so the story starts
+		// on its rows.
+		settleJobs(ss.M, r.PendingCommands())
 	}
 	return nil
 }
@@ -2015,6 +1997,46 @@ func (ss *session) about(spec *AboutSpec) error {
 	for _, sec := range spec.Sections {
 		rows := sec.Rows
 		ss.R.AddAboutSection(sec.Title, func() []ochazuke.AboutRow { return rows })
+	}
+	return nil
+}
+
+// settleJobs runs cmd and feeds the job completions it brings back to m,
+// again for what those queue, each waited on for up to five seconds (a
+// timer that does not fire by then is dropped).
+func settleJobs(m *ochazuke.Model, cmd tea.Cmd) {
+	for range 50 {
+		var next []tea.Cmd
+		for _, msg := range jobMsgs(cmd) {
+			_, out := m.Update(msg)
+			next = append(next, out)
+		}
+		if len(next) == 0 {
+			return
+		}
+		cmd = tea.Batch(next...)
+	}
+}
+
+func jobMsgs(cmd tea.Cmd) []tea.Msg {
+	if cmd == nil {
+		return nil
+	}
+	ch := make(chan tea.Msg, 1)
+	go func() { ch <- cmd() }()
+	select {
+	case msg := <-ch:
+		if batch, ok := msg.(tea.BatchMsg); ok {
+			var out []tea.Msg
+			for _, child := range batch {
+				out = append(out, jobMsgs(child)...)
+			}
+			return out
+		}
+		if _, ok := msg.(ochazuke.Completion); ok {
+			return []tea.Msg{msg}
+		}
+	case <-time.After(5 * time.Second):
 	}
 	return nil
 }

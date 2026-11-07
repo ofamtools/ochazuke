@@ -714,8 +714,6 @@ func (r *Runtime) componentSnapshot() map[string]any {
 			kind = "list"
 		case *Page:
 			kind = "page"
-		case *PathFinder:
-			kind = "picker"
 		case *Registers:
 			kind = "registers"
 		case *Terminal:

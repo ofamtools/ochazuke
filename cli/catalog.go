@@ -558,13 +558,11 @@ func init() {
 	ochazuke.ReserveFrameworkNouns(CommandNoun, GroupNoun, "ochazuke.grid", "ochazuke.selection", "ochazuke.markdown", "ochazuke.markdown-task", "ochazuke.markdown-line", "ochazuke.markdown-note", "ochazuke.markdown-edit")
 }
 
-// frameworkShortNames are the aliases a bare runtime, Model and Picker
-// register. Lazy framework constructors reserve their names separately.
+// frameworkShortNames are the aliases a bare runtime and Model register. Lazy framework constructors reserve their names separately.
 var frameworkShortNames = sync.OnceValue(func() map[string]bool {
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
 	ochazuke.NewModel(r)
-	ochazuke.NewPicker(r)
 	names := map[string]bool{}
 	for _, a := range r.Aliases() {
 		names[a.Alias] = true

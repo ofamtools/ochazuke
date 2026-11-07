@@ -40,7 +40,7 @@ func TestPathChooserStartSourceAndKeep(t *testing.T) {
 		t.Fatalf("the known source's Keep does not keep the path whole:\n%s", v)
 	}
 	// Recent is remembered for the kind; Source still opens on known.
-	if err := c.cycle(-2); err != nil || c.Source() != "recent" {
+	if err := c.cycle(-3); err != nil || c.Source() != "recent" {
 		t.Fatalf("cycle to recent: %v %q", err, c.Source())
 	}
 	if err := r.Pop(); err != nil {

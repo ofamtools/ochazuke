@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"slices"
 	"strings"
 
@@ -78,6 +79,26 @@ type PickerSource struct {
 	// switches. Stepping to another source by hand (chooser.next-source)
 	// ends the claim until the query is no longer claimed.
 	Claims func(query string) bool
+	// LoadMode, when set on a Live source, stands in for Load: the source
+	// ranks its rows in the picker's match mode itself (the path picker's
+	// find source), so the mode's tag and match marks show, tab and
+	// search.cycle-match change it, and a change loads again.
+	LoadMode func(query, mode string) Result
+	// Preview, when set, is the highlighted row's preview, drawn beside
+	// the rows as the spec's Preview is: Done(text), or Pending work whose
+	// value is the text, run off the loop as a replacing job of the
+	// picker (a newer highlight replaces it; closing cancels it).
+	Preview func(row ChooserRow) Result
+	// Complete, when set, fills the highlighted row into the query
+	// (picker.complete, tab) without picking it, and returns the query to
+	// show; false leaves everything as it is.
+	Complete func(row ChooserRow) (query string, ok bool)
+	// Current, when set, is the row picker.pick {current: true} takes
+	// (the path picker's find: the folder it searches).
+	Current func() (ChooserRow, bool)
+	// Close, when set, runs when the picker closes: the source stops work
+	// of its own (an index running between loads).
+	Close func()
 }
 
 // Chooser settings: rows of settings/ochazuke.json.
@@ -110,10 +131,16 @@ type chooserState struct {
 	recentPaths func(PathPick) []string
 	picked      []string // paths picked through a path chooser, newest first
 	walks       *walkCache
-	// pickers are the declared pickers (AddPicker), finderOpen the path
-	// finder's open when the application made one (NewPicker).
-	pickers    []PickerDef
-	finderOpen func(Context, Arguments) (any, error)
+	// pickers are the declared pickers (AddPicker).
+	pickers []PickerDef
+	// findIndex and findStat stand in for the find source's index and
+	// stat (tests hold or fail them); nil is the file system's.
+	findIndex func(ctx context.Context, root string, recursive bool) ([]PickerEntry, error)
+	findStat  func(string) (fs.FileInfo, error)
+	// find is the find source made last (the finder shim reads it) and
+	// findOrigin the context picker.open opens it from.
+	find       *pathFind
+	findOrigin Context
 }
 
 func (s *chooserState) HandleMessage(tea.Msg) bool { return false }
@@ -251,25 +278,30 @@ func (c *Chooser) cycle(delta int) error {
 // loading until a part has no More; a newer load or closing the chooser
 // cancels the rest. A walk over a folder tree streams this way, so the
 // first rows show before it finishes and the list stays responsive.
+//
+// A part with Replace stands in for the rows so far rather than adding to
+// them: a fuller pass over the same rows (the find source's recursive
+// index after its shallow one).
 type ChooserBatch struct {
-	Rows []ChooserRow
-	More Result
+	Rows    []ChooserRow
+	More    Result
+	Replace bool
 }
 
-// chooserRowsOf reads a load's value: its rows and, for a ChooserBatch,
-// the work that loads the rest.
-func chooserRowsOf(value any) ([]ChooserRow, Result) {
+// chooserRowsOf reads a load's value: its rows, for a ChooserBatch the
+// work that loads the rest, and whether the rows replace the ones so far.
+func chooserRowsOf(value any) ([]ChooserRow, Result, bool) {
 	switch v := value.(type) {
 	case ChooserBatch:
-		return v.Rows, v.More
+		return v.Rows, v.More, v.Replace
 	case *ChooserBatch:
 		if v != nil {
-			return v.Rows, v.More
+			return v.Rows, v.More, v.Replace
 		}
 	case []ChooserRow:
-		return v, Result{}
+		return v, Result{}, false
 	}
-	return nil, Result{}
+	return nil, Result{}, false
 }
 
 // claimedBy is the index of the first source claiming query, -1 for none.
@@ -318,10 +350,11 @@ func (c *Chooser) claim() bool {
 // load asks the current source for its rows at the query.
 func (c *Chooser) load() {
 	src := c.current()
-	if src == nil || src.Load == nil {
+	if src == nil || src.Load == nil && src.LoadMode == nil {
 		return
 	}
 	query := c.Query()
+	c.LoadedMode = c.MatchMode()
 	c.loadedQuery = query
 	c.loadErr = ""
 	c.gen++
@@ -330,12 +363,12 @@ func (c *Chooser) load() {
 	// land shows one part of the load: the first replaces the rows, a
 	// later one (a ChooserBatch's More) appends to them.
 	land := func(value any, err error, first bool) {
-		rows, more := chooserRowsOf(value)
+		rows, more, replace := chooserRowsOf(value)
 		if err != nil && !errors.Is(err, context.Canceled) {
 			c.loadErr = err.Error()
 			rows, more = nil, Result{}
 		}
-		if !first {
+		if !first && !replace {
 			rows = append(slices.Clone(c.spec.Rows), rows...)
 		}
 		c.loading = more.work != nil
@@ -368,7 +401,138 @@ func (c *Chooser) load() {
 			land(nil, err, first)
 		}
 	}
+	if src.LoadMode != nil {
+		launch(src.LoadMode(query, c.LoadedMode), true)
+		return
+	}
 	launch(src.Load(query), true)
+}
+
+// modeRanked reports whether the current source ranks its rows in the
+// picker's match mode itself (ChooserSource.LoadMode).
+func (c *Chooser) modeRanked() bool {
+	src := c.current()
+	return src != nil && src.LoadMode != nil
+}
+
+// ChooserPreview is a source's preview (ChooserSource.Preview) of the
+// highlighted row: the row it is for, its text, whether its job runs, and
+// its generation (a newer one drops an older job's answer).
+type ChooserPreview struct {
+	Row     string
+	Text    string
+	Loading bool
+	Gen     uint64
+}
+
+// previewing reports whether the picker draws a preview: the spec's, or
+// the current source's.
+func (c *Chooser) previewing() bool {
+	if c.spec.Preview != nil {
+		return true
+	}
+	src := c.current()
+	return src != nil && src.Preview != nil
+}
+
+// previewText is the highlighted row's preview.
+func (c *Chooser) previewText(row ChooserRow) string {
+	if c.spec.Preview != nil {
+		return c.spec.Preview(row)
+	}
+	if c.Preview.Row != row.ID {
+		return ""
+	}
+	if c.Preview.Loading {
+		return LoadingText("preview")
+	}
+	return c.Preview.Text
+}
+
+// queuePreview starts the current source's preview of the highlighted
+// row when the highlight moved to another row, as a replacing job of the
+// picker; a newer one drops it, closing cancels it.
+func (c *Chooser) queuePreview() {
+	src := c.current()
+	if src == nil || src.Preview == nil || c.spec.Preview != nil {
+		return
+	}
+	row, ok := c.Highlighted()
+	if !ok || row.ID == chooserCreateRow {
+		row = ChooserRow{}
+	}
+	if row.ID == c.Preview.Row {
+		return
+	}
+	gen := c.Preview.Gen + 1
+	c.Preview = ChooserPreview{Row: row.ID, Gen: gen}
+	if row.ID == "" {
+		return
+	}
+	res := src.Preview(row)
+	if res.work == nil {
+		if res.err != nil {
+			c.Preview.Text = res.err.Error()
+		} else if text, ok := res.value.(string); ok {
+			c.Preview.Text = text
+		}
+		return
+	}
+	c.Preview.Loading = true
+	res = res.Replacing("preview").also(func(_ Ctx, value any, err error) {
+		if c.r.Chooser(c.spec.Kind) != c || c.Preview.Gen != gen {
+			return
+		}
+		c.Preview.Loading = false
+		if err != nil {
+			c.Preview.Text = err.Error()
+		} else if text, ok := value.(string); ok {
+			c.Preview.Text = text
+		}
+	})
+	if _, err := c.r.Launch(c.spec.Kind, chooserPreviewVerb, res, Ctx{actor: c.r.Actor(), Runtime: c.r, Context: c.r.contextOf(c.spec.Kind), Instance: c.r.Instances[c.spec.Kind]}); err != nil {
+		c.Preview.Loading, c.Preview.Text = false, err.Error()
+	}
+}
+
+// chooserPreviewVerb names a source's preview job.
+const chooserPreviewVerb = "ochazuke.picker.preview"
+
+// completes reports whether the current source fills the highlighted row
+// into the query (ChooserSource.Complete).
+func (c *Chooser) completes() bool {
+	src := c.current()
+	if src == nil || src.Complete == nil {
+		return false
+	}
+	row, ok := c.Highlighted()
+	return ok && row.ID != chooserCreateRow
+}
+
+// complete fills the highlighted row into the query; the source stays.
+func (c *Chooser) complete() error {
+	if !c.completes() {
+		return errors.New("this picker has nothing to complete")
+	}
+	row, _ := c.Highlighted()
+	query, ok := c.current().Complete(row)
+	if !ok {
+		return fmt.Errorf("cannot complete %s", row.Label)
+	}
+	c.filters.linger.reset()
+	_ = c.input.Replace(0, len(c.input.Text), query)
+	c.input.Cursor = len(c.input.Text)
+	c.sync()
+	return nil
+}
+
+// closeSources runs each source's Close.
+func (c *Chooser) closeSources() {
+	for _, s := range c.spec.Sources {
+		if s.Close != nil {
+			s.Close()
+		}
+	}
 }
 
 // opens reports whether the highlighted row opens inside its source.
