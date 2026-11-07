@@ -1317,33 +1317,7 @@ func validateArguments(op Operation, args Arguments) error {
 		if !ok {
 			return fmt.Errorf("unknown argument %q", name)
 		}
-		valid := false
-		switch p.Type {
-		case "string", PathParameterType:
-			_, valid = v.(string)
-		case "integer":
-			switch n := v.(type) {
-			case int:
-				valid = true
-			case float64:
-				valid = n == float64(int(n))
-			}
-		case "boolean":
-			_, valid = v.(bool)
-		case AnyParameterType:
-			valid = true
-		case "array":
-			switch v.(type) {
-			case []any, []Predicate:
-				valid = true
-			}
-		case "object":
-			switch v.(type) {
-			case map[string]any, Arguments, Request, *Request:
-				valid = true
-			}
-		}
-		if !valid {
+		if k := kindOf(p.Type); k.accepts == nil || !k.accepts(v) {
 			return fmt.Errorf("%s must be %s", name, p.Type)
 		}
 		if s, ok := v.(string); ok && len(p.Enum) > 0 && p.Source == "" && !p.Free && !slices.Contains(p.Enum, s) {

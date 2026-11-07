@@ -728,18 +728,13 @@ func (e *RecordEditor) problem(f *recordField) string {
 	if f.chips {
 		return e.chipsProblem(f, v)
 	}
-	switch f.Type {
-	case "integer":
-		if _, err := strconv.Atoi(strings.TrimSpace(v)); err != nil {
-			return "a whole number"
+	if k := kindOf(f.Type); k.parse != nil {
+		text := v
+		if k.trimmed {
+			text = strings.TrimSpace(v)
 		}
-	case "number":
-		if _, err := strconv.ParseFloat(strings.TrimSpace(v), 64); err != nil {
-			return "a number"
-		}
-	case "boolean":
-		if v != "true" && v != "false" {
-			return "true or false"
+		if _, ok := k.parse(text); !ok {
+			return k.phrase
 		}
 	}
 	if !f.Free && f.choiceLoading {

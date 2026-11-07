@@ -16,7 +16,6 @@ actions.go	var actionPlaceholders	table	"args"	1
 actions.go	var actionPlaceholders	table	"id"	1
 actions.go	var actionPlaceholders	table	"noun"	1
 actions.go	var actionPlaceholders	table	"verb"	1
-actions.go	var actionTypes	table	"path"	1	action parameter type names; "path" is a type here
 actor.go	Actor.IsAgent	compare	"agent"	1
 actor.go	Actor.String	compare	"owner"	1
 actor.go	Actor.validate	case	"agent"	1
@@ -28,7 +27,6 @@ agent_rights.go	Runtime.agentVerdict	case	"confirm"	1
 agent_rights.go	parseAgentRules	case	"confirm"	1
 args_form.go	Runtime.singlePath	compare	"form"	1
 args_form.go	Runtime.singlePath	compare	"path"	1
-args_form.go	formable	case	"path"	1
 association.go	Runtime.nearestOf	compare	"app"	1
 binding_render_cache.go	runtimeRenderCache.scan	cyclo	"-"	33
 chooser.go	Chooser.refilter	cyclo	"-"	31
@@ -360,7 +358,6 @@ palette_nouns.go	Palette.preferActivePage	compare	"last"	1
 palette_nouns.go	Palette.preferActivePage	compare	"noun"	1
 palette_nouns.go	Palette.preferActivePage	cyclo	"-"	29
 palette_nouns.go	lineIndex.orderVerbs	compare	"hidden"	1
-palette_parse.go	Palette.argument	case	"path"	1
 palette_parse.go	Palette.parseRest	case	"prop"	1
 palette_parse.go	Palette.parseRest	case	"verb"	1
 palette_parse.go	Palette.parseRest	compare	"verb"	1
@@ -374,6 +371,7 @@ palette_parse.go	nounReads	case	"prop"	1
 palette_parse.go	nounReads	case	"verb"	1
 palette_parse.go	nounReads	compare	"noun"	1
 palette_results.go	Runtime.showResults	cyclo	"-"	29
+param_kinds.go	var paramKinds	table	"path"	1	"path" here is a parameter TYPE (PathParameterType), a row of the one table the routes read, not the parameter named path
 param_sources.go	isRowSource	compare	"row"	1
 path_chooser.go	PathPick.Dir	compare	"dir"	1
 peer_bindings.go	Runtime.syncPeerNotices	compare	"all"	1
@@ -407,7 +405,6 @@ record_editor.go	RecordEditor.PendingCommand	compare	"insert"	1
 record_editor.go	RecordEditor.applyLoaded	compare	"close"	1
 record_editor.go	RecordEditor.move	compare	"insert"	1
 record_editor.go	RecordEditor.nextMissing	compare	"insert"	2
-record_editor.go	RecordEditor.problem	cyclo	"-"	26
 record_editor.go	RecordEditor.startInsert	compare	"insert"	1
 record_editor.go	Runtime.editKindOf	compare	"path"	1
 record_editor.go	Runtime.editKindOf	compare	"text"	2
@@ -447,7 +444,6 @@ runtime.go	Runtime.AddInput	case	"text"	1
 runtime.go	Runtime.Register	case	"action"	1
 runtime.go	Runtime.execute	cyclo	"-"	48
 runtime.go	Runtime.nounInstance	compare	"app"	1
-runtime.go	validateArguments	case	"path"	1
 runtime.go	var focusBoundOps	table	"ochazuke.list.end-visual"	1
 runtime.go	var focusBoundOps	table	"ochazuke.list.filter-open"	1
 runtime.go	var focusBoundOps	table	"ochazuke.list.visual"	1
