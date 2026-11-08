@@ -30,7 +30,7 @@ type Appearance struct {
 	Dark    bool        `json:"dark"`
 	Accent  color.Color `json:"-"`
 	// Schemes are the colour schemes beyond the built-in themes, by name:
-	// the user's themes.json (Model.Init, themes.reload and config.reload set it) or an
+	// the user's themes.json (Model.Init, theme.reload and config.reload set it) or an
 	// application's own (NewSchemeSet). A pointer keeps Appearance
 	// comparable.
 	Schemes *SchemeSet `json:"-"`
@@ -123,7 +123,7 @@ func newAppearance(r *Runtime) *Appearance {
 			return Thing{"theme": a.Theme, "density": a.Density, "dark": a.Dark}, nil
 		},
 	})
-	r.defineFacts(factsSpec{Noun: "ochazuke.themes", Sample: themeFact{}, Key: "name", Label: "name",
+	r.defineFacts(factsSpec{Noun: "ochazuke.theme", Sample: themeFact{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The colour scheme's name: a built-in theme, or one of themes.json"},
 		List: func(Ctx, ListQuery) ([]Thing, error) {
 			var names []themeFact
@@ -132,14 +132,14 @@ func newAppearance(r *Runtime) *Appearance {
 			}
 			return factThings(names, nil)
 		}})
-	r.Register(Operation{Key: "ochazuke.themes.reload", HistoryKind: HistoryFetch, Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.theme.reload", HistoryKind: HistoryFetch, Description: "Read themes.json again: a scheme that does not validate is skipped and reported", Result: "problem[]", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		problems := r.reloadThemes()
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.themes.path", HistoryKind: HistoryFetch, Description: "Print the user colour schemes file: themes.json beside settings.json", Result: "path", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.theme.path", HistoryKind: HistoryFetch, Description: "Print the user colour schemes file: themes.json beside settings.json", Result: "path", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		path := r.Config().Path(ThemesFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")

@@ -16,7 +16,7 @@ import (
 const (
 	filterSaveNoun       = "ochazuke.filter-save"
 	filterFormNoun       = "ochazuke.filter-form"
-	filterValuesNoun     = "ochazuke.filter-values"
+	filterValuesNoun     = "ochazuke.filter-value"
 	filterDirectionNoun  = "ochazuke.filter-direction"
 	filterConditionNoun  = "ochazuke.filter-condition"
 	filterSortField      = ".sort"

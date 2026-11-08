@@ -325,7 +325,7 @@ func TestApplicationVerbRunsOffTheLoop(t *testing.T) {
 		t.Fatalf("Failed: %v", err)
 	}
 	if list := r.Catalog(); !slices.ContainsFunc(list, func(op Operation) bool { return op.Key.Short() == "a.sync" && op.Kind == KindApplication }) {
-		t.Fatal("operations.list must show the kind")
+		t.Fatal("operation.list must show the kind")
 	}
 }
 

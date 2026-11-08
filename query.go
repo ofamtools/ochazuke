@@ -81,7 +81,7 @@ func (r *Runtime) kindOf(inst *Instance) string {
 }
 
 // RegisterPredicate adds a named predicate an application's queries (and
-// the CLI's instances.query) can use, such as marked.
+// the CLI's instance.query) can use, such as marked.
 func (r *Runtime) RegisterPredicate(name string, fn PredicateFunc) {
 	if name == "" || fn == nil || isCombinator(name) {
 		panic("invalid predicate registration: " + name)
@@ -91,7 +91,7 @@ func (r *Runtime) RegisterPredicate(name string, fn PredicateFunc) {
 
 // Query returns the instances matching every predicate, in tree order: app
 // first, then depth-first with siblings in the order they were added.
-// An unknown predicate matches nothing; instances.query reports it instead.
+// An unknown predicate matches nothing; instance.query reports it instead.
 func (r *Runtime) Query(preds ...Predicate) []*Instance {
 	children := map[string][]*Instance{}
 	for _, inst := range r.instancesInOrder() {
@@ -214,7 +214,7 @@ func parsePredicate(v any) (Predicate, error) {
 	return p, nil
 }
 
-// QueryMatch is one instances.query result row.
+// QueryMatch is one instance.query result row.
 type QueryMatch struct {
 	ID     string `json:"id"`
 	Noun   string `json:"noun"`
@@ -222,7 +222,7 @@ type QueryMatch struct {
 }
 
 func registerQuery(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.instances.query", HistoryKind: HistoryFetch, Description: "List the instances matching every predicate, in tree order: where is [[name, arg], ...] with noun, id, kind, within, child-of, focusable, region, state, registered predicates, and [any|all|not, [...]]", Parameters: map[string]Parameter{"where": {Type: "array", Description: "Predicates, ANDed"}}, Result: "instance[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.instance.query", HistoryKind: HistoryFetch, Description: "List the instances matching every predicate, in tree order: where is [[name, arg], ...] with noun, id, kind, within, child-of, focusable, region, state, registered predicates, and [any|all|not, [...]]", Parameters: map[string]Parameter{"where": {Type: "array", Description: "Predicates, ANDed"}}, Result: "instance[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		preds, err := ParsePredicates(a["where"])
 		if err != nil {
 			return nil, err

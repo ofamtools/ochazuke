@@ -8,8 +8,8 @@ import (
 
 // factNouns are the system facts: thing nouns over the registry, read-only.
 var factNouns = []string{
-	"ochazuke.modes", "ochazuke.operations", "ochazuke.nouns", "ochazuke.themes", "ochazuke.glyphs", "ochazuke.hooks",
-	"ochazuke.events", "ochazuke.actions", "ochazuke.bindings", "ochazuke.association", "ochazuke.notice", "ochazuke.segment",
+	"ochazuke.modes", "ochazuke.operation", "ochazuke.noun", "ochazuke.theme", "ochazuke.glyph", "ochazuke.hook",
+	"ochazuke.event", "ochazuke.actions", "ochazuke.bindings", "ochazuke.association", "ochazuke.notice", "ochazuke.segment",
 }
 
 func factsRuntime(t *testing.T) *Runtime {
@@ -89,7 +89,7 @@ func TestSystemFactsListAndGet(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "ochazuke.modes", Verb: "get", Args: Arguments{"name": "nope"}}); err == nil {
 		t.Fatal("get of an unknown mode")
 	}
-	ops, err := r.Execute(Request{Noun: "ochazuke.operations", Verb: "get", Args: Arguments{"key": "ochazuke.modes.list", "prop": "standard"}})
+	ops, err := r.Execute(Request{Noun: "ochazuke.operation", Verb: "get", Args: Arguments{"key": "ochazuke.modes.list", "prop": "standard"}})
 	if err != nil || ops != "list" {
 		t.Fatalf("operations get standard: %v %v", ops, err)
 	}

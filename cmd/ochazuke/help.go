@@ -15,9 +15,9 @@ import (
 type choicesFunc func(source string) ([]ochazuke.Choice, error)
 
 // operationHelp prints NOUN VERB's description and parameters, with their
-// choices, from the running app's operations.list.
+// choices, from the running app's operation.list.
 func operationHelp(ctx context.Context, socket, noun, verb string, out io.Writer) error {
-	result, err := ochazuke.Call(ctx, socket, ochazuke.Request{Noun: "operations", Verb: "list"})
+	result, err := ochazuke.Call(ctx, socket, ochazuke.Request{Noun: "operation", Verb: "list"})
 	if err != nil {
 		fmt.Fprintf(out, "\n(parameters unavailable: %v)\n", err)
 		return nil

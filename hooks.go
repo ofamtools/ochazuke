@@ -474,7 +474,7 @@ func (r *Runtime) ExportHooks(path string, force bool) (string, error) {
 
 // registerHooks registers the hooks and events nouns' verbs.
 func registerHooks(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: "ochazuke.hooks", Sample: HookRow{}, Key: "id", Extra: []PropSpec{{Name: "id"}},
+	r.defineFacts(factsSpec{Noun: "ochazuke.hook", Sample: HookRow{}, Key: "id", Extra: []PropSpec{{Name: "id"}},
 		Docs: map[string]string{"id": "The row's place in the order they run", "on": "The event it runs on", "where": "The fields the event must have", "do": "The verb it runs",
 			"args": "The arguments it passes", "from": "Event fields it passes as arguments", "off": "Switched off", "source": "Who declared it: user (hooks.json), app or an extension"},
 		ListParams: map[string]Parameter{"event": {Type: "string", Description: "Only the rows on this event"}},
@@ -490,10 +490,10 @@ func registerHooks(r *Runtime) {
 			}
 			return factThings(out, func(i int, t Thing) { t["id"] = strconv.Itoa(i + 1) })
 		}})
-	r.Register(Operation{Key: "ochazuke.hooks.check", Description: "Report the hook rows that would be skipped (no on or do, an unknown verb, an argument the verb does not take) and as warnings the rows on an unknown event or with a where key or from field the event does not carry; hooks.json's rows and the defaults", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.hook.check", Description: "Report the hook rows that would be skipped (no on or do, an unknown verb, an argument the verb does not take) and as warnings the rows on an unknown event or with a where key or from field the event does not carry; hooks.json's rows and the defaults", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.CheckHooks(), nil
 	}})
-	r.Register(Operation{Key: "ochazuke.hooks.export", Description: "Write every hook row (the defaults with hooks.json applied, each with its source) to a file hooks.json reads back, default <config dir>/reference/hooks.reference.json; never over the live hooks.json without force", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.hook.export", Description: "Write every hook row (the defaults with hooks.json applied, each with its source) to a file hooks.json reads back, default <config dir>/reference/hooks.reference.json; never over the live hooks.json without force", Parameters: map[string]Parameter{
 		"path":  {Type: "string", Description: "File to write (default <config dir>/reference/hooks.reference.json)"},
 		"force": {Type: "boolean", Description: "Allow writing over the live hooks.json"},
 	}, Positional: []string{"path"}, Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -501,24 +501,24 @@ func registerHooks(r *Runtime) {
 		force, _ := a["force"].(bool)
 		return r.ExportHooks(StringArg(a, "path", ""), force)
 	}})
-	r.Register(Operation{Key: "ochazuke.hooks.reload", Description: "Read hooks.json again: a bad row is skipped and reported", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.hook.reload", Description: "Read hooks.json again: a bad row is skipped and reported", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadHooks()
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.hooks.path", Description: "Print the application's hooks file: <config dir>/hooks.json ($XDG_CONFIG_HOME/<app>/hooks.json, else ~/.config/<app>/hooks.json)", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.hook.path", Description: "Print the application's hooks file: <config dir>/hooks.json ($XDG_CONFIG_HOME/<app>/hooks.json, else ~/.config/<app>/hooks.json)", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.HooksPath()
 		if path == "" {
 			return nil, errors.New("this application has no config directory")
 		}
 		return path, nil
 	}})
-	r.defineFacts(factsSpec{Noun: "ochazuke.events", Sample: EventSpec{}, Key: "name", Label: "name",
+	r.defineFacts(factsSpec{Noun: "ochazuke.event", Sample: EventSpec{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The event's name (noun.happening)", "description": "What it means", "fields": "The fields it carries", "source": "Who declared it"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) { return factThings(c.Runtime.Events(), nil) }})
-	r.Register(Operation{Key: "ochazuke.events.emit", Description: "Emit an event: the hook rows on it whose where matches the fields run", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.event.emit", Description: "Emit an event: the hook rows on it whose where matches the fields run", Parameters: map[string]Parameter{
 		"event":  {Type: "string", Required: true, Description: "The event's name (noun.happening)"},
 		"fields": {Type: "string", Description: "The event's fields as a JSON object"},
 	}, Positional: []string{"event"}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

@@ -309,7 +309,7 @@ colourless. Applications set it in code; the appearance verbs leave it.
 	Dark    bool        `json:&#34;dark&#34;`
 	Accent  color.Color `json:&#34;-&#34;`
 	// Schemes are the colour schemes beyond the built-in themes, by name:
-	// the user&#39;s themes.json (Model.Init, themes.reload and config.reload set it) or an
+	// the user&#39;s themes.json (Model.Init, theme.reload and config.reload set it) or an
 	// application&#39;s own (NewSchemeSet). A pointer keeps Appearance
 	// comparable.
 	Schemes *SchemeSet `json:&#34;-&#34;`
@@ -1085,7 +1085,7 @@ state directory: Config.Disable, a test binary).
 </pre><pre>func (c *Config) Path(name string) string</pre><a href="../configuration.go">Source file</a></details><details class="entry searchable"><summary><code>Config.Paths</code> <small>function / method</small></summary><pre>Paths are the config, state and default reference directories.
 </pre><pre>func (c *Config) Paths() ConfigPaths</pre><a href="../config_export.go">Source file</a></details><details class="entry searchable"><summary><code>Config.PendingCommand</code> <small>function / method</small></summary><pre>PendingCommand: nothing is ever scheduled.
 </pre><pre>func (c *Config) PendingCommand() tea.Cmd</pre><a href="../configuration.go">Source file</a></details><details class="entry searchable"><summary><code>Config.Schemes</code> <small>function / method</small></summary><pre>Schemes are the user&#39;s colour schemes from themes.json, by name, as the
-last read found them (EnsureConfigSettings, themes.reload).
+last read found them (EnsureConfigSettings, theme.reload).
 </pre><pre>func (c *Config) Schemes() map[string]Scheme</pre><a href="../scheme.go">Source file</a></details><details class="entry searchable"><summary><code>Config.StateDirectory</code> <small>function / method</small></summary><pre>StateDirectory is the application&#39;s state directory, &#34;&#34; when there is
 none: StateDir when set, else $XDG_STATE_HOME/&lt;App&gt;, else
 ~/.local/state/&lt;App&gt;. Disable leaves none.
@@ -1535,7 +1535,7 @@ them.
 	FormInvertibleGuard = &#34;form-invertible&#34; // the focused field is Invertible
 	FormClearableGuard  = &#34;form-clearable&#34;  // the form is Clearable
 )</pre><a href="../record_chips.go">Source file</a></details><details class="entry searchable"><summary><code>FormChipsNoun</code> <small>constant</small></summary><pre>FormChipsNoun is a chips field&#39;s instance noun.
-</pre><pre>const FormChipsNoun = &#34;ochazuke.form-chips&#34;</pre><a href="../record_chips.go">Source file</a></details><details class="entry searchable"><summary><code>FormNoun, FormFieldNoun, FormTextNoun, FormChoiceNoun, FormOptionNoun, FormSuggestNoun, FormSuggestionsKind</code> <small>constant</small></summary><pre>Form nouns: the editor, its text fields (single- and multi-line), its
+</pre><pre>const FormChipsNoun = &#34;ochazuke.form-chip&#34;</pre><a href="../record_chips.go">Source file</a></details><details class="entry searchable"><summary><code>FormNoun, FormFieldNoun, FormTextNoun, FormChoiceNoun, FormOptionNoun, FormSuggestNoun, FormSuggestionsKind</code> <small>constant</small></summary><pre>Form nouns: the editor, its text fields (single- and multi-line), its
 choice fields, and the chooser&#39;s rows. (&#34;form&#34;, not &#34;record&#34;, so the
 palette&#39;s words do not collide with the macro verb record.)
 </pre><pre>const (
@@ -3400,7 +3400,7 @@ on the Operation passed to Register.
 	// association on the focus path. Programs still need an explicit target.
 	ByAssociation bool `json:&#34;byAssociation,omitempty&#34;`
 	// Aliases are the action&#39;s other names (ActionAlias), display
-	// spelling, sorted. Catalog and operations.list fill it; an entry of
+	// spelling, sorted. Catalog and operation.list fill it; an entry of
 	// Runtime.Operations does not hold it (the alias table does).
 	Aliases []string `json:&#34;aliases,omitempty&#34;`
 	// Standard is the standard verb (standard_verbs.go: get, list) the
@@ -4385,7 +4385,7 @@ fields are writable.
 	Cell func(Ctx, Thing) string `json:&#34;-&#34;`
 	// contains filtered or unexported fields
 }</pre><a href="../props.go">Source file</a></details><details class="entry searchable"><summary><code>PropsOffSetting</code> <small>constant</small></summary><pre>PropsOffSetting lists NOUN.FIELD patterns prop filters never offer.
-</pre><pre>const PropsOffSetting = &#34;list.props-off&#34;</pre><a href="../list_props.go">Source file</a></details><details class="entry searchable"><summary><code>QueryMatch</code> <small>type</small></summary><pre>QueryMatch is one instances.query result row.
+</pre><pre>const PropsOffSetting = &#34;list.props-off&#34;</pre><a href="../list_props.go">Source file</a></details><details class="entry searchable"><summary><code>QueryMatch</code> <small>type</small></summary><pre>QueryMatch is one instance.query result row.
 </pre><pre>type QueryMatch struct {
 	ID     string `json:&#34;id&#34;`
 	Noun   string `json:&#34;noun&#34;`
@@ -5232,7 +5232,7 @@ consumed by a noop row.
 while no application noun shadows it (list for ochazuke.list, doc for an
 extension&#39;s json.doc a host aliased doc), else noun itself. The
 footer&#39;s hints, the ? help, the palette and the jobs ticker draw it;
-history, bindings.list, operations.list and the catalog print canonical
+history, bindings.list, operation.list and the catalog print canonical
 names.
 </pre><pre>func (r *Runtime) DisplayNoun(noun string) string</pre><a href="../namespace.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.DocsPage</code> <small>function / method</small></summary><pre>DocsPage is a topic&#39;s page rendered from the live runtime with the
 running binary&#39;s stamp, and the viewer&#39;s header line naming that build:
@@ -5668,7 +5668,7 @@ is not already an instance becomes one of the modal noun for as long as
 it is open. The modal remembers the focus and mode it opened over.
 </pre><pre>func (r *Runtime) Push(id, focus string) error</pre><a href="../focus.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Query</code> <small>function / method</small></summary><pre>Query returns the instances matching every predicate, in tree order: app
 first, then depth-first with siblings in the order they were added.
-An unknown predicate matches nothing; instances.query reports it instead.
+An unknown predicate matches nothing; instance.query reports it instead.
 </pre><pre>func (r *Runtime) Query(preds ...Predicate) []*Instance</pre><a href="../query.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ReadBareAlias</code> <small>function / method</small></summary><pre>ReadBareAlias reads words (a palette line&#39;s or the CLI&#39;s) that start
 with a bare alias; false when the first word is none. nouns are the
 noun words that may follow a shadowing alias; nil reads every noun that
@@ -5703,7 +5703,7 @@ an instance beneath it. Registration does not activate the page. A page
 declared hidden by default (Page.DefaultHidden, or the DefaultHidden
 option) joins the pages.hidden setting&#39;s default.
 </pre><pre>func (r *Runtime) RegisterPage(page *Page, opts ...InstanceOption) error</pre><a href="../pages.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.RegisterPredicate</code> <small>function / method</small></summary><pre>RegisterPredicate adds a named predicate an application&#39;s queries (and
-the CLI&#39;s instances.query) can use, such as marked.
+the CLI&#39;s instance.query) can use, such as marked.
 </pre><pre>func (r *Runtime) RegisterPredicate(name string, fn PredicateFunc)</pre><a href="../query.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Registers</code> <small>function / method</small></summary><pre>Registers returns the registers component.
 </pre><pre>func (r *Runtime) Registers() *Registers</pre><a href="../registers.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.ReloadConfig</code> <small>function / method</small></summary><pre>ReloadConfig reads every configuration file the application uses again,
 in dependency order: themes.json (when it was read: the theme setting&#39;s
@@ -7540,7 +7540,7 @@ is one instance under app (Runtime.UI), never a Runtime field. With no
 sink it discards, except that until the first sink attaches it keeps
 the last 32 messages (the startup ring) and replays them, in order, into
 that sink. Recent nonempty messages are also retained in full for
-messages.show; the inspector keeps a bounded copy of the last one.
+message.show; the inspector keeps a bounded copy of the last one.
 
 Like the rest of Runtime it is called from the update loop; work off the
 loop posts from its Then (which gets a Ctx).

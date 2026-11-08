@@ -61,13 +61,13 @@ func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 func TestListedThemesCanBeSelected(t *testing.T) {
 	r := NewRuntime()
 	a := NewAppearance(r)
-	got, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.themes"})
+	got, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.theme"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	rows, ok := AnswerRows(got).([]map[string]any)
 	if !ok {
-		t.Fatalf("themes.list returned %T", got)
+		t.Fatalf("theme.list returned %T", got)
 	}
 	var themes []string
 	for _, row := range rows {
@@ -90,7 +90,7 @@ func TestListedThemesCanBeSelected(t *testing.T) {
 	}
 	// A caller may edit a list result without corrupting the next request.
 	rows[0]["id"] = "changed"
-	next, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.themes"})
+	next, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.theme"})
 	if err != nil || AnswerRows(next).([]map[string]any)[0]["id"] == "changed" {
 		t.Fatalf("theme list aliases mutable state: %#v, %v", next, err)
 	}

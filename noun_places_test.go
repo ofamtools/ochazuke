@@ -174,17 +174,17 @@ func TestNounPlacesCap(t *testing.T) {
 	}
 }
 
-// nouns.places answers the places of a noun (every noun without one);
-// nouns.list the nouns with their counts of places.
+// noun.places answers the places of a noun (every noun without one);
+// noun.list the nouns with their counts of places.
 func TestNounPlacesVerb(t *testing.T) {
 	r, _ := placesPage(t)
-	for _, key := range []string{"ochazuke.nouns.places", "ochazuke.nouns.list", "ochazuke.nouns.places-path"} {
+	for _, key := range []string{"ochazuke.noun.places", "ochazuke.noun.list", "ochazuke.noun.places-path"} {
 		op := r.Operations.At(Key(key))
 		if !op.Builtin || op.HistoryKindOf() != HistoryFetch {
 			t.Fatalf("%s: builtin %v kind %s", key, op.Builtin, op.HistoryKindOf())
 		}
 	}
-	got, err := r.Execute(Request{Verb: "places", Noun: "ochazuke.nouns", Args: Arguments{"noun": "item"}})
+	got, err := r.Execute(Request{Verb: "places", Noun: "ochazuke.noun", Args: Arguments{"noun": "item"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,14 +198,14 @@ func TestNounPlacesVerb(t *testing.T) {
 			t.Fatalf("no %s in %s", field, data)
 		}
 	}
-	all, _ := r.Execute(Request{Verb: "places", Noun: "ochazuke.nouns"})
+	all, _ := r.Execute(Request{Verb: "places", Noun: "ochazuke.noun"})
 	if len(all.([]NounPlace)) <= 1 {
 		t.Fatalf("every noun: %v", all)
 	}
-	list, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.nouns"})
+	list, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.noun"})
 	for _, row := range AnswerRows(list).([]map[string]any) {
 		if row["noun"] == "item" && row["seen"] != float64(1) {
-			t.Fatalf("nouns.list item: %v", row)
+			t.Fatalf("noun.list item: %v", row)
 		}
 	}
 }

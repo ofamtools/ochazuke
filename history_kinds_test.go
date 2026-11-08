@@ -187,12 +187,12 @@ func TestBuiltinHistoryKeepsRegistrationAnnotations(t *testing.T) {
 	}
 }
 
-// messages.show reads and job.cancel acts: neither is a recorded change,
+// message.show reads and job.cancel acts: neither is a recorded change,
 // and neither is destructive.
 func TestMountedVerbHistoryKinds(t *testing.T) {
 	r := NewRuntime()
 	for key, want := range map[string]string{
-		"ochazuke.messages.show": HistoryFetch,
+		"ochazuke.message.show": HistoryFetch,
 		"ochazuke.job.cancel":    HistoryAction,
 		"ochazuke.job.list":      HistoryFetch,
 	} {

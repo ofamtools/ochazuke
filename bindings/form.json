@@ -8,7 +8,7 @@
       {"key": "ctrl+r", "action": "ochazuke.form.redo", "when": "input-no-redo"},
       {"key": "C", "action": "ochazuke.form.clear", "hint": "clear"}
     ]},
-    {"context": "ochazuke.form-chips/normal", "bindings": [
+    {"context": "ochazuke.form-chip/normal", "bindings": [
       {"key": "j", "action": "ochazuke.form.chip-line", "args": {"delta": 1}},
       {"key": "down", "action": "ochazuke.form.chip-line", "args": {"delta": 1}},
       {"key": "j", "action": "ochazuke.form.next"},

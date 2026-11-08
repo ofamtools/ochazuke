@@ -2,7 +2,7 @@ package ochazuke
 
 // The action facts noun: one row per Action (an operation's name, across
 // every noun that has it), read from Operations. Its list takes a noun and
-// ochazuke.nouns list takes an action; both read the one relation through
+// ochazuke.noun list takes an action; both read the one relation through
 // the Operations relation, so the two sides always agree.
 
 // actionFact is one action's row.
@@ -14,7 +14,7 @@ type actionFact struct {
 
 // relatedNames is the set side gives for the name args[param] holds:
 // nil when the argument is absent (no filter), empty when it names
-// nothing. ochazuke.nouns list {action} reads it with nounsWithAction and
+// nothing. ochazuke.noun list {action} reads it with nounsWithAction and
 // ochazuke.action list {noun} with actionsOnNoun.
 func relatedNames(r *Runtime, args Arguments, param string, side func(*Runtime, string) []string) map[string]bool {
 	name := StringArg(args, param, "")
@@ -47,7 +47,7 @@ func registerActionThings(r *Runtime) {
 	r.defineFacts(factsSpec{Noun: "ochazuke.action", Sample: actionFact{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The action's name (an operation's last part)", "nouns": "The nouns that have it",
 			"operations": "Its operations' keys"},
-		ListParams: map[string]Parameter{"noun": {Type: "string", Description: "Only the actions this noun has (ochazuke.nouns list {action} is the other side)"}},
+		ListParams: map[string]Parameter{"noun": {Type: "string", Description: "Only the actions this noun has (ochazuke.noun list {action} is the other side)"}},
 		List: func(c Ctx, q ListQuery) ([]Thing, error) {
 			ops := &c.Runtime.Operations
 			only := relatedNames(c.Runtime, q.Args, "noun", actionsOnNoun)

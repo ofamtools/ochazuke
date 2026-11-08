@@ -35,7 +35,7 @@ func TestSplitKey(t *testing.T) {
 
 // Every framework noun is ochazuke.<noun> with its short name as an alias: the
 // short name reaches it from Execute, Do, Noun and the palette, and what
-// the runtime prints (history, bindings.list, operations.list) is the
+// the runtime prints (history, bindings.list, operation.list) is the
 // canonical key.
 func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 	r := NewRuntime()
@@ -63,7 +63,7 @@ func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 	if len(entries) < 2 || entries[len(entries)-1].Request.Key() != "ochazuke.setting.names" || entries[len(entries)-2].Request.Key() != "ochazuke.setting.names" {
 		t.Fatalf("history keys: %v", historyKeys(entries))
 	}
-	ops, err := r.Execute(Request{Noun: "operations", Verb: "list"})
+	ops, err := r.Execute(Request{Noun: "operation", Verb: "list"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 		keys[op["key"].(string)] = true
 	}
 	if !keys["ochazuke.setting.set"] || keys["setting.set"] || !keys["app.quit"] {
-		t.Fatalf("operations.list is not canonical")
+		t.Fatalf("operation.list is not canonical")
 	}
 	for _, row := range r.ListBindings("app") {
 		if row.Request.Noun != "app" && !strings.HasPrefix(row.Request.Noun, "ochazuke.") {

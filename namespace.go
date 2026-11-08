@@ -522,7 +522,7 @@ func (r *Runtime) nounsDisplay() string {
 // while no application noun shadows it (list for ochazuke.list, doc for an
 // extension's json.doc a host aliased doc), else noun itself. The
 // footer's hints, the ? help, the palette and the jobs ticker draw it;
-// history, bindings.list, operations.list and the catalog print canonical
+// history, bindings.list, operation.list and the catalog print canonical
 // names.
 func (r *Runtime) DisplayNoun(noun string) string {
 	if short := r.AliasOf(noun); short != "" {

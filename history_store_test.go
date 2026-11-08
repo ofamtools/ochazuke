@@ -48,7 +48,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	m := historyModel(t, config, state)
 	r := m.Runtime
 	runPaletteLine(t, r, Request{Verb: "list", Noun: "ochazuke.modes"})
-	runPaletteLine(t, r, Request{Verb: "list", Noun: "ochazuke.themes"})
+	runPaletteLine(t, r, Request{Verb: "list", Noun: "ochazuke.theme"})
 	if err := r.Config().Flush(); err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	next := historyModel(t, config, state)
 	nr := next.Runtime
 	entries := nr.History(0)
-	if len(entries) < 2 || !entries[0].Restored || entries[0].Request.Key() != "ochazuke.modes.list" || entries[1].Request.Key() != "ochazuke.themes.list" {
+	if len(entries) < 2 || !entries[0].Restored || entries[0].Request.Key() != "ochazuke.modes.list" || entries[1].Request.Key() != "ochazuke.theme.list" {
 		t.Fatalf("restored: %+v", entries)
 	}
 	for i := 1; i < len(entries); i++ {

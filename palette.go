@@ -526,7 +526,7 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 	group := ""
 	for i := start; i < min(len(entries), start+limit); i++ {
 		entry := entries[i]
-		if heading := map[string]string{"verb": "verbs", "noun": "nouns", "prop": "props", "choice": "choices"}[entry.Kind]; heading != group {
+		if heading := map[string]string{"verb": "verbs", "noun": "noun", "prop": "props", "choice": "choices"}[entry.Kind]; heading != group {
 			group = heading
 			if heading == "choices" && inSlot {
 				heading, headed = p.paramHeader(s, slot, width), true

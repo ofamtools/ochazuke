@@ -49,13 +49,13 @@ func TestAgentDestructiveArchiveRefusal(t *testing.T) {
 func TestAgentConfigurationReadsAndWrites(t *testing.T) {
 	r := NewRuntime()
 	NewModel(r)
-	for _, key := range []string{"setting.get", "setting.set", "setting.reset", "setting.set", "setting-item.delete", "bindings.load", "bindings.reload", "actions.reload", "themes.reload", "config.reload"} {
+	for _, key := range []string{"setting.get", "setting.set", "setting.reset", "setting.set", "setting-item.delete", "bindings.load", "bindings.reload", "actions.reload", "theme.reload", "config.reload"} {
 		op, ok := r.Operation(key)
 		if !ok || r.AgentRight(op, false).Right != AgentAllow {
 			t.Errorf("%s: %+v", key, op)
 		}
 	}
-	for _, key := range []string{"bindings.reload", "actions.reload", "setting.reload", "themes.reload", "config.reload", "bindings.defaults", "setting.diff", "setting.owners", "setting.sections", "setting.show"} {
+	for _, key := range []string{"bindings.reload", "actions.reload", "setting.reload", "theme.reload", "config.reload", "bindings.defaults", "setting.diff", "setting.owners", "setting.sections", "setting.show"} {
 		op, ok := r.Operation(key)
 		if !ok || op.HistoryKindOf() != HistoryFetch {
 			t.Errorf("%s: %+v", key, op)

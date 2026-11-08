@@ -242,7 +242,7 @@ markdown/verbs.go	describeDocOperations	compare	"ochazuke.markdown"	1	moved from
 markdown/verbs.go	docGuards	compare	"task"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
 markdown/verbs.go	hasNotes	compare	"note"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
 model.go	Model.Update	cyclo	"-"	29
-model.go	Model.cutMessage	compare	"ochazuke.messages.show"	1
+model.go	Model.cutMessage	compare	"ochazuke.message.show"	1
 model.go	inputBlockFrom	cyclo	"-"	57
 motion_scroll.go	List.MoveToEdge	compare	"last"	1
 motion_scroll.go	registerViewMotions	compare	"last"	1

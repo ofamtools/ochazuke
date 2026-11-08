@@ -629,7 +629,7 @@ func (m *Model) cutMessage(text string, width int) string {
 	tail := "…"
 	if m.Runtime.Settings().Bool("messages.hint") {
 		for _, row := range m.Runtime.ListBindings(m.Runtime.Focus) {
-			if m.Runtime.CanonicalKey(row.Request.Key()) == "ochazuke.messages.show" && row.Keys != "" {
+			if m.Runtime.CanonicalKey(row.Request.Key()) == "ochazuke.message.show" && row.Keys != "" {
 				tail += " " + row.Keys
 				break
 			}

@@ -181,7 +181,7 @@ These are suggested starter/demo pages. Domain pages such as Agents, Panes, Proj
 
 ### Recent messages
 
-`g <` runs `messages.show` and opens the last 32 nonempty notices, status
+`g <` runs `message.show` and opens the last 32 nonempty notices, status
 messages and errors in full. Clearing the footer does not remove this history.
 When a footer message is cut, it names the effective binding for this verb.
 `messages.hint=false` hides that suffix; remapping or unbinding the row changes it.
@@ -190,7 +190,7 @@ Compared with Vim:
 
 | Vim form | Help tag | Ochazuke behavior |
 | --- | --- | --- |
-| `:messages` | `:messages` | Similar. `messages.show` reads a bounded, session-only message history. |
+| `:messages` | `:messages` | Similar. `message.show` reads a bounded, session-only message history. |
 | `g<` | `g<` | Similar recovery key. Opens recent messages, not Vim's last command-output page. |
 
 ### Captured and foreground work
@@ -598,7 +598,7 @@ values without opening a viewer. Pending key and palette answers run their
 existing callback first and do not cover a changed page, focus, base mode or
 modal. Answers requested inside a modal open over it and close back to it.
 An unpresented late answer leaves a plain status message and its full body in
-`messages.show`. `Result.OnPresented` runs only after a pending viewer opens.
+`message.show`. `Result.OnPresented` runs only after a pending viewer opens.
 
 The text view wraps by default. `text-view.wrap=false` restores horizontal
 scrolling and marks a clipped line with `›`. A declared text result may return
@@ -791,7 +791,7 @@ A `PaletteSource` receives the runtime and originating context and returns `[]Pa
 
 #### Argument choices
 
-A `Parameter` with `Enum` (static values) or `Source` (an operation key such as `transformations.list` whose result is `[]string`, `[]{id, label}` or `[]any` of either) completes in the palette: at that parameter's word the list shows the choices (a boolean completes `true`/`false`), the word is a unique prefix of a choice's id, and `Ctrl-N/P` then Enter or Tab appends a highlighted one. A value outside the choices is refused, by the palette and by `Execute`, unless the parameter sets `Free`. A source is called at execution to validate; if it fails, validation is skipped rather than blocking the operation. `operations.list` publishes the fields, and `ochazuke NOUN VERB --help` prints the choices from the running app.
+A `Parameter` with `Enum` (static values) or `Source` (an operation key such as `transformations.list` whose result is `[]string`, `[]{id, label}` or `[]any` of either) completes in the palette: at that parameter's word the list shows the choices (a boolean completes `true`/`false`), the word is a unique prefix of a choice's id, and `Ctrl-N/P` then Enter or Tab appends a highlighted one. A value outside the choices is refused, by the palette and by `Execute`, unless the parameter sets `Free`. A source is called at execution to validate; if it fails, validation is skipped rather than blocking the operation. `operation.list` publishes the fields, and `ochazuke NOUN VERB --help` prints the choices from the running app.
 
 A `Parameter` with `Noun` (and no `Source`) names one of that noun's things: its choices are the rows of `NOUN.list` when that verb is registered, asks no confirmation and needs no argument (it then stands in for the `Source`, off the loop for an application verb, and `cli.Catalog` and `cli.Mount` publish it as the source), else the ids of the noun's live instances, labelled by their labels: instances in registration order, each list followed by its rows of the noun (every row, filtered out or not, in list order; the row instance id, never a foreign id in `Data`). Map rows give their id as `id`, `key` or `name` and their label as `label` or `title`; `[]Operation` rows are `noun.verb`. `Enum` values come first and an explicit `Source` wins; a `Noun` adds no validation at execution. The framework marks `page.open id` (`pages`), `mode.switch`/`mode.enter mode` (`modes`), `confirm.require operation` (`operations`), `list.focus id` (`list`, free) and `input.focus id`/`modal.push input` (`editor`, free).
 
@@ -1491,7 +1491,7 @@ r.Define("worktree").
     Verb("status", func(c ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("clean") })
 ```
 
-`Done(v)` and `Failed(err)` answer at once; `Pending(work)` returns a `Ticket{Owner, Job, Slot}` to the caller and schedules the work as a `tea.Cmd`. The framework never blocks the loop on application I/O. The palette, `operations.list`, the generated docs and the example's `?` modal show the kind.
+`Done(v)` and `Failed(err)` answer at once; `Pending(work)` returns a `Ticket{Owner, Job, Slot}` to the caller and schedules the work as a `tea.Cmd`. The framework never blocks the loop on application I/O. The palette, `operation.list`, the generated docs and the example's `?` modal show the kind.
 
 Jobs on one owner accumulate by default: five independent verbs on one row (fetch, commit, push...) all deliver, in finish order, each with its ticket. `Pending(work).Replacing("preview")` opts into replacement: a newer job in the same slot on the same owner cancels the older one, which is what a preview or a search wants. `Pending(work).ReplacingAt(listID, "preview")` scopes the slot to an ancestor instead: the newest job in (`list`, `preview`) cancels the older whichever row asked, so `j p j p` keeps one capture per list, while the job still belongs to the row (its completion and `Then` land there). The scope must be the owner or one of its ancestors; per owner remains the default (`Replacing(slot)` is `ReplacingAt(owner, slot)`). A job is dropped only when its owner instance closes or a newer job claims its slot, never because the user did something else meanwhile. A `Then` that removes its own owner (a kill verb dropping its row) is safe: the job is settled first and the completion is not offered to the gone component.
 
@@ -2066,7 +2066,7 @@ An operation key is `noun.verb` (`input.undo`, `worktree.remove`): the same stri
 A noun may be dotted (`ochazuke.settings`, `ai.skills`), and so may a verb (`dirs.base.add`): the action table is flat, a key is a name looked up whole, and a registered action carries its own noun and verb. A name nothing is registered under splits on its last dot (`ochazuke.SplitKey`: `ochazuke.setting.set` is noun `ochazuke.settings`, verb `set`). See "Action aliases" below. The framework's own nouns live in the `ochazuke` namespace (`FrameworkNamespace`): everything `NewRuntime`, `NewModel` and the framework constructors register (inside `Runtime.Builtin`) is `ochazuke.<noun>` (`ochazuke.list`, `ochazuke.settings`, `ochazuke.page`; `app` itself stays `app`, so the app noun's verbs (`app.quit`, an application's own `app.state`) never collide with a framework noun such as `ochazuke.state`), with the short name as an alias (`Runtime.Alias`, `Runtime.Aliases`). So:
 
 - **Input accepts either name.** `Do("list.move")`, `Request{Noun: "settings"}`, a `bindings.json` or `actions.json` row naming `list`, a palette word (`settings names` or `ochazuke.settings names`, one word each) and the CLI (`bin settings list`, `bin ochazuke settings list`, `bin ochazuke.settings list`) all reach `ochazuke.list` / `ochazuke.settings` (`Runtime.CanonicalNoun`, `CanonicalKey`, `Operation(key)`, `NounWords`).
-- **Output is canonical.** History (and `history.jsonl`, which reads old short-named lines as canonical), `bindings.list`, `operations.list`, the snapshot and the catalog print `ochazuke.setting.set`; the footer's hints, the `?` help, the jobs ticker and confirm prompts draw the shortest name that reaches the noun (`DisplayNoun`, `DisplayKey`: `list.move`).
+- **Output is canonical.** History (and `history.jsonl`, which reads old short-named lines as canonical), `bindings.list`, `operation.list`, the snapshot and the catalog print `ochazuke.setting.set`; the footer's hints, the `?` help, the jobs ticker and confirm prompts draw the shortest name that reaches the noun (`DisplayNoun`, `DisplayKey`: `list.move`).
 - **`Define` extends, `DefineOwn` claims.** `Define("terminal").Verb("copy", …)` (or `Register` with noun `terminal`, or `Kind("prompt")`) adds to the framework's `ochazuke.terminal`. An application with a noun of its own under a framework name declares it with `DefineOwn("settings")`: from then on `settings` (keys, files, palette, CLI) is the application's noun and the framework's stays reachable as `ochazuke.settings`, its verbs intact; nothing is deleted to make room. A noun the application registers under the short name before the framework registers its alias (an instance made before `NewModel`) owns the name the same way.
 - **App CLI commands win.** A top-level oden command owns its name over a framework shortcut whether added before or after `cli.Mount`. Runtime nouns declared with `DefineOwn` and catalog nouns mounted with `MountNouns` also claim their exact names. The framework stays reachable by its full name (`bin ochazuke mcp serve`, `ochazuke.mcp.tools` in the palette). Help lists canonical groups and their active shortcuts; `BIN catalog` includes effective CLI `commands` and omits shortcuts claimed by app commands from `aliases`. This fixes the v0.71.0 `mcp` regression; o-json's add-commands-first workaround is no longer needed.
 - **App CLI commands win over namespaces too.** A namespace that is no noun of its own (`mcp` of an extension's `mcp.item`, `ochazuke` of the framework's nouns) is the CLI group `NS.` with its word `NS` as an alias, so a top-level oden command named `NS` (mtm's `mcp` gateway beside a registered `o-mcp` extension) owns the word in either registration order. The namespace's nouns stay reachable by their full names (`bin mcp.item list`, read as `bin mcp. item list`) and by their bare aliases; help lists the losing claim under the owner (`shadows alias mcp of mcp. namespace`) and `BIN catalog`'s `commands` leave the word off the namespace's aliases.
@@ -2116,7 +2116,7 @@ JSON inspection covers registered pages (`page`, `pages`), inputs and histories,
 |---|---|
 | `Push(key, app, handler) *Operation` adds or replaces one; `Invalidate()` drops the index; `Register` is both; `Set(op)` registers a whole operation; `Delete(key)`; `Hold()` defers invalidation (`defer ops.Hold()()`, a mount) | `List`, `Namespaces`, `Nouns`, `Actions`; `Get`/`At`/`Find`, `Namespace`, `Noun`, `Action`, `OperationFor(noun, action)`; `NounsWithAction`, `NamespacesWithAction`, `OperationsOfAction`, `ActionsOnNoun`, `NounsInNamespace`, `ActionsInNamespace`; `NamespacesMatching`/`NounsMatching`/`ActionsMatching(prefix) []Match` |
 
-The lookups read a memoized `Index`, built in one pass on the first lookup after an invalidation. Only `Push`, `Delete` and `Invalidate` write `All`, `Order` and `Index` (`TestOperationsWriters`); nothing is unexported, so the registry stays inspectable. `ochazuke.action list {noun}` and `ochazuke.nouns list {action}` list the relation from both sides. Code written for v0.99.0's string fields moves with `cmd/opname` (see the CHANGELOG).
+The lookups read a memoized `Index`, built in one pass on the first lookup after an invalidation. Only `Push`, `Delete` and `Invalidate` write `All`, `Order` and `Index` (`TestOperationsWriters`); nothing is unexported, so the registry stays inspectable. `ochazuke.action list {noun}` and `ochazuke.noun list {action}` list the relation from both sides. Code written for v0.99.0's string fields moves with `cmd/opname` (see the CHANGELOG).
 
 ## Telling the user: notices and status
 
@@ -2171,7 +2171,7 @@ The instance tree is queried with predicate values, never a selector string. A q
 
 ```js
 // Go: r.Query(ByNoun("worktree"), Within("sidebar"), Not(Where("marked", "")))
-instances.query({ where: [["noun", "worktree"], ["within", "sidebar"], ["not", [["marked"]]]] })
+instance.query({ where: [["noun", "worktree"], ["within", "sidebar"], ["not", [["marked"]]]] })
 // → [{ id: "wt1", noun: "worktree", parent: "sidebar" }, ...]
 ```
 
@@ -2330,7 +2330,7 @@ r.AliasAction("pane.zap", "pane.kill")                                // the sam
 ```
 
 - **Running.** A request, binding row, palette line or CLI call named by an alias runs the canonical action. `canonicalRequest` rewrites it (`Request.Via` keeps the alias, and history shows it); the handler reads `Ctx.Invoked` (application verbs) or `Runtime.Invoked()` (interaction handlers): `Invocation{Name, Noun, Verb, Alias}`, where `Noun` is the alias's noun, the subject side (`project` for `project.associate`).
-- **Listing.** An alias is never an entry of its own. `operations.list` and the catalog carry `aliases` on the canonical verb (`CatalogVerb.Aliases`, `ActionAlias` objects); the CLI makes a same-noun alias an oden alias of the verb's command (`show, display` in help) and an alias under another noun a command of that noun's group that says `alias of pane.associate`; the palette lists the canonical verb with `· also NAME` and a typed alias narrows to it; `?` help names the canonical operation and ends its description with `· also: NAME`; `bindings list` rows carry `aliases`. `actions aliases` lists every alias with its action and source.
+- **Listing.** An alias is never an entry of its own. `operation.list` and the catalog carry `aliases` on the canonical verb (`CatalogVerb.Aliases`, `ActionAlias` objects); the CLI makes a same-noun alias an oden alias of the verb's command (`show, display` in help) and an alias under another noun a command of that noun's group that says `alias of pane.associate`; the palette lists the canonical verb with `· also NAME` and a typed alias narrows to it; `?` help names the canonical operation and ends its description with `· also: NAME`; `bindings list` rows carry `aliases`. `actions aliases` lists every alias with its action and source.
 - **Old names.** `Renamed(old, since, removeAfter)` is a deprecated alias (Keep actions: an old name stays one release, recorded in the CHANGELOG). Its first use in a runtime posts one notice, `OLD is an old name of NEW (renamed in SINCE; removed after AFTER)` (a CLI `notice:` line).
 - **Rules.** An alias names a registered noun and a verb (the longest registered noun prefix is the noun, so `dirs.base.add` is `dirs` and `base.add`); it may not be the name of an action (`would shadow the action`) or of another alias for a different action. An action registered later under an alias's name takes the name: the alias is dropped and the drop recorded (`ActionAliasProblems`), never a panic, so a host mounting a newer catalog keeps starting.
 

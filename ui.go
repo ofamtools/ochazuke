@@ -103,7 +103,7 @@ type UISink interface {
 // sink it discards, except that until the first sink attaches it keeps
 // the last 32 messages (the startup ring) and replays them, in order, into
 // that sink. Recent nonempty messages are also retained in full for
-// messages.show; the inspector keeps a bounded copy of the last one.
+// message.show; the inspector keeps a bounded copy of the last one.
 //
 // Like the rest of Runtime it is called from the update loop; work off the
 // loop posts from its Then (which gets a Ctx).
@@ -124,7 +124,7 @@ type UI struct {
 func registerUI(r *Runtime) {
 	inst := r.Instance(uiID, Kind("ochazuke.ui"))
 	inst.Component = &UI{}
-	r.Define("ochazuke.messages").Verb("show", func(c Ctx) Result {
+	r.Define("ochazuke.message").Verb("show", func(c Ctx) Result {
 		var lines []string
 		for _, msg := range c.Runtime.UI().messages {
 			lines = append(lines, msg.Line())

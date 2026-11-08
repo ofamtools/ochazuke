@@ -303,7 +303,7 @@ func parseScheme(name string, data json.RawMessage) (Scheme, error) {
 }
 
 // Schemes are the user's colour schemes from themes.json, by name, as the
-// last read found them (EnsureConfigSettings, themes.reload).
+// last read found them (EnsureConfigSettings, theme.reload).
 func (c *Config) Schemes() map[string]Scheme { return maps.Clone(c.schemes) }
 
 // ReloadThemes reads themes.json again: the schemes that validate replace

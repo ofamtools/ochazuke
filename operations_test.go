@@ -245,7 +245,7 @@ func TestOperationJSONKeepsNounAndVerb(t *testing.T) {
 	}
 }
 
-// ochazuke.action list {noun} and ochazuke.nouns list {action} read one
+// ochazuke.action list {noun} and ochazuke.noun list {action} read one
 // relation from both sides.
 func TestActionAndNounListsMirror(t *testing.T) {
 	r := NewRuntime()
@@ -259,7 +259,7 @@ func TestActionAndNounListsMirror(t *testing.T) {
 	if !strings.Contains(string(data), `"name":"finish"`) || !strings.Contains(string(data), `"chore"`) {
 		t.Fatalf("action list {noun}: %s", data)
 	}
-	nouns, err := r.Execute(Request{Noun: "ochazuke.nouns", Verb: "list", Args: Arguments{"action": "finish"}})
+	nouns, err := r.Execute(Request{Noun: "ochazuke.noun", Verb: "list", Args: Arguments{"action": "finish"}})
 	if err != nil {
 		t.Fatal(err)
 	}

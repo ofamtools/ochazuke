@@ -2,7 +2,7 @@
 {
   "bindings": [
     {"context": "app/normal", "fallback": true, "bindings": [
-      {"key": "i", "action": "ochazuke.nouns.edit", "hint": "edit"}
+      {"key": "i", "action": "ochazuke.noun.edit", "hint": "edit"}
     ]},
     {"context": "ochazuke.list/visual-line", "extends": "normal", "bindings": [
       {"key": "d", "action": "ochazuke.list.apply", "args": {"verb": "delete"}, "hint": "delete"}

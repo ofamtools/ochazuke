@@ -109,7 +109,7 @@ func themeModel(t *testing.T, themes, settings string) *Model {
 
 // The framework declares theme with the built-in themes and themes.json's
 // as its choices; settings.json selects one at start, setting.set and
-// themes.list follow it.
+// theme.list follow it.
 func TestThemeSettingSelectsUserScheme(t *testing.T) {
 	m := themeModel(t, `{"kombu": {"accent": "#C9A227"}}`, `{"theme": "kombu"}`)
 	r := m.Runtime
@@ -121,12 +121,12 @@ func TestThemeSettingSelectsUserScheme(t *testing.T) {
 		t.Fatalf("enum %v %v", v.Enum, err)
 	}
 	var names []string
-	got, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.themes"})
+	got, _ := r.Execute(Request{Verb: "list", Noun: "ochazuke.theme"})
 	for _, row := range AnswerRows(got).([]map[string]any) {
 		names = append(names, row["id"].(string))
 	}
 	if !slices.Equal(names, v.Enum) {
-		t.Fatalf("themes.list %v", got)
+		t.Fatalf("theme.list %v", got)
 	}
 	if !sameColor(NewStyles(*m.Appearance).ActiveTab.GetForeground(), lipgloss.Color("#C9A227")) {
 		t.Fatal("kombu is not drawn")
@@ -141,7 +141,7 @@ func TestThemeSettingSelectsUserScheme(t *testing.T) {
 
 // A malformed scheme is a notice; a theme setting naming it reads the
 // default, so the screen falls back to adaptive. Fixing the file and
-// themes.reload withdraws the notice and offers the scheme.
+// theme.reload withdraws the notice and offers the scheme.
 func TestMalformedSchemeFallsBack(t *testing.T) {
 	m := themeModel(t, `{"kombu": {"accent": "teal"}}`, `{"theme": "kombu"}`)
 	r := m.Runtime
@@ -155,9 +155,9 @@ func TestMalformedSchemeFallsBack(t *testing.T) {
 	if err := os.WriteFile(r.Config().Path(ThemesFile), []byte(`{"kombu": {"accent": "#C9A227"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	got, err := r.Execute(Request{Verb: "reload", Noun: "ochazuke.themes"})
+	got, err := r.Execute(Request{Verb: "reload", Noun: "ochazuke.theme"})
 	if err != nil || len(got.([]string)) != 0 {
-		t.Fatalf("themes.reload %v %v", got, err)
+		t.Fatalf("theme.reload %v %v", got, err)
 	}
 	if strings.Contains(strings.Join(m.Notices, "\n"), "themes.json") || m.Appearance.Theme != "kombu" {
 		t.Fatalf("after reload: theme %q notices %q", m.Appearance.Theme, m.Notices)

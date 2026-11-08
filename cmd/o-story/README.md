@@ -514,11 +514,11 @@ Conformance:
 | normal | markdown | `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-link` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.copy` |
 | normal | md.doc | `md.doc.show` |
-| normal | messages | `messages.show` |
+| normal | messages | `message.show` |
 | normal | modal | `modal.close` |
 | normal | mode | `mode.enter` `mode.leave` `mode.switch` |
 | normal | notice | `notice.clear` |
-| normal | nouns | `nouns.edit` |
+| normal | nouns | `noun.edit` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
@@ -754,7 +754,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `detail.fields`
 - `normal g` → `normal` via `list.goto`
 - `normal g` → `normal` via `markdown.link-open`
-- `normal g` → `normal` via `messages.show`
+- `normal g` → `normal` via `message.show`
 - `normal g` → `normal` via `mode.leave`
 - `normal g` → `normal` via `picker.move`
 - `normal g` → `normal` via `row c`

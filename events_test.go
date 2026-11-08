@@ -265,7 +265,7 @@ func TestHooksCheck(t *testing.T) {
 	if len(rows) != 2 {
 		t.Fatalf("the warned rows load, the bad ones are skipped: %+v", rows)
 	}
-	op, _ := r.Execute(Request{Noun: "ochazuke.hooks", Verb: "check"})
+	op, _ := r.Execute(Request{Noun: "ochazuke.hook", Verb: "check"})
 	if len(op.([]string)) != len(want) {
 		t.Fatalf("hooks check verb %v", op)
 	}
@@ -376,7 +376,7 @@ func TestDeclaredAppEvent(t *testing.T) {
 	if p := r.CheckHooks(); len(p) != 0 {
 		t.Fatalf("declared event warns: %v", p)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.events", Verb: "emit", Args: Arguments{"event": "agent.turn-ended", "fields": `{"source": "pane-state"}`}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.event", Verb: "emit", Args: Arguments{"event": "agent.turn-ended", "fields": `{"source": "pane-state"}`}}); err != nil {
 		t.Fatal(err)
 	}
 	r.Emit("agent.turn-ended", map[string]any{"source": "hook"})

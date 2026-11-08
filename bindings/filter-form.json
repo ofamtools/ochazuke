@@ -14,7 +14,7 @@
       {"key":"z [", "action":"ochazuke.list.filter-cycle", "args":{"step":-1}, "hidden":true},
       {"key":"D", "action":"ochazuke.filter-form.delete-saved", "hint":"delete saved"}
     ]},
-    {"context":"ochazuke.filter-values/normal", "bindings":[
+    {"context":"ochazuke.filter-value/normal", "bindings":[
       {"key":"space", "action":"ochazuke.filter-form.toggle", "capture":true, "hint":"toggle"},
       {"key":"esc", "action":"ochazuke.filter-form.focus", "args":{"part":"field"}, "capture":true, "hint":"fields"}
     ]},

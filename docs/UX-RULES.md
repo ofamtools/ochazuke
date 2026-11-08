@@ -1178,7 +1178,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   and a typed alias narrows to it; `?` help names the canonical operation
   and lists the aliases once in its description (`· also: drop`); the
   CLI shows them as the verb's oden aliases (`show, display`), the catalog
-  and `operations.list` as `aliases`, `bindings list` as a row's `aliases`
+  and `operation.list` as `aliases`, `bindings list` as a row's `aliases`
   beside its canonical request (`via` keeps a row's alias spelling).
   Stories: `actions/alias-in-palette.json`,
   `actions/help-lists-alias-once.json`; test

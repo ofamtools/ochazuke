@@ -814,20 +814,20 @@ func registerStandardEdit(r *Runtime) {
 		_, ok := r.focusedEdit(ev.Focus)
 		return ok
 	})
-	r.Define("ochazuke.nouns").Verb("edit", func(r *Runtime, c Context, _ Arguments) (any, error) {
+	r.Define("ochazuke.noun").Verb("edit", func(r *Runtime, c Context, _ Arguments) (any, error) {
 		q, _ := r.focusedEdit(focusOf(c))
 		return r.ExecuteAt(c, q)
 	}, "Open the focused thing's standard edit form; existing inner edit keys take precedence").When("noun-editable")
 	r.DefineGuard("edit-opening", func(r *Runtime, _ KeyEvent) bool {
 		return r.HasRunningJob("app", editOpenSlot)
 	})
-	r.Define("ochazuke.nouns").Verb("cancel-edit", func(c Ctx) Result {
+	r.Define("ochazuke.noun").Verb("cancel-edit", func(c Ctx) Result {
 		if j := r.slotJob("app", editOpenSlot); j != nil {
 			r.finish(j, JobCancelled, nil)
 		}
 		return Done(nil)
 	}, "Cancel a pending edit open without writing").When("edit-opening")
-	op := r.Operations.At(Key("ochazuke.nouns.cancel-edit"))
+	op := r.Operations.At(Key("ochazuke.noun.cancel-edit"))
 	op.HistoryKind = HistoryAction
 	r.Operations.Set(op)
 }

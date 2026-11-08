@@ -45,7 +45,7 @@ func (e *RecordEditor) fieldStyle(f *recordField, base lipgloss.Style) lipgloss.
 }
 
 // FormChipsNoun is a chips field's instance noun.
-const FormChipsNoun = "ochazuke.form-chips"
+const FormChipsNoun = "ochazuke.form-chip"
 
 // Form guards for chips and inverted fields: the rows of form.json name
 // them.

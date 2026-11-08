@@ -397,7 +397,7 @@ type Operation struct {
 	// association on the focus path. Programs still need an explicit target.
 	ByAssociation bool `json:"byAssociation,omitempty"`
 	// Aliases are the action's other names (ActionAlias), display
-	// spelling, sorted. Catalog and operations.list fill it; an entry of
+	// spelling, sorted. Catalog and operation.list fill it; an entry of
 	// Runtime.Operations does not hold it (the alias table does).
 	Aliases []string `json:"aliases,omitempty"`
 	// Standard is the standard verb (standard_verbs.go: get, list) the
