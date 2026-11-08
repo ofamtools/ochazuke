@@ -47,7 +47,7 @@ func newFixture(t *testing.T) *fixture {
 		}, "List the widgets").Rows("widget").
 		Verb("state", func(ochazuke.Ctx) ochazuke.Result {
 			return ochazuke.Done(Lines{Row{Noun: "widget", ID: "w1"}, Row{Noun: "widget", ID: "w2"}})
-		}, "Every list's rows in one call").State().
+		}, "Every list's rows in one call").Lists().
 		Verb("show", record, "Show a widget").
 		Verb("relabel", record, "Rename a widget").
 		Verb("paint", record, "Paint a widget").
@@ -1089,7 +1089,7 @@ func TestShellAndMountReadNamespacedNouns(t *testing.T) {
 		return out
 	}
 	want := answer("ochazuke", "setting", "names")
-	for _, args := range [][]string{{"ochazuke.setting", "names"}, {"setting", "names"}, {"ochazuke", "setting", "na"}, {"app", "setting", "names"}, {"app.setting", "names"}} {
+	for _, args := range [][]string{{"ochazuke.setting", "names"}, {"setting", "names"}, {"app", "setting", "names"}, {"app.setting", "names"}} {
 		if got := answer(args...); got != want {
 			t.Fatalf("tool %s = %q, want %q", strings.Join(args, " "), got, want)
 		}

@@ -316,7 +316,7 @@ func TestActionsNeedTheUserConfigDirectory(t *testing.T) {
 	if got := r.EnsureUserActions(); got != nil || len(r.UserActions()) != 0 {
 		t.Fatalf("%v %v", got, r.UserActions())
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.user-operation", Verb: "path"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.user-operation", Prop: "path"}); err == nil {
 		t.Fatal("path without a directory")
 	}
 }

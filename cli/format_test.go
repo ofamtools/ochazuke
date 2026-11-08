@@ -45,7 +45,7 @@ func formatRuntime() *ochazuke.Runtime {
 		Row{Noun: "pane", ID: "w1", Label: "work/claude", Cells: []string{"work/claude", "idle", "~/proj"}},
 		Row{Noun: "item", ID: "a", Label: "alpha", Data: map[string]any{"note": "line one\nline \"two\""}},
 		Row{Noun: "pane", ID: "w2", Label: "notes", Cells: []string{"notes", "done", "~"}},
-	}), "Every list's rows").State()
+	}), "Every list's rows").Lists()
 	return r
 }
 

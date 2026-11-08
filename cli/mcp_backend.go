@@ -489,15 +489,25 @@ func (s *Shell) registerMCPVerbs() {
 		return
 	}
 	r.Builtin(func() {
-		r.Define("ochazuke.agent").Verb("instructions", func(ctx ochazuke.Ctx) ochazuke.Result {
-			actor := ctx.Actor()
-			server, err := s.newMCPServer(actor)
-			if err != nil {
-				return ochazuke.Failed(err)
-			}
-			return ochazuke.Done(server.Instructions())
-		}, "Show generated catalog guidance for agents").Fetch().MarkdownResult()
-		for _, name := range []string{"serve", "tools", "instructions", "config"} {
+		// instructions and config are props, read when asked for: the
+		// generated catalog guidance for agents (the acting agent's own)
+		// and the MCP client config that runs this program.
+		r.Define("ochazuke.agent").Props(ochazuke.PropSpec{Name: "instructions", ReadOnly: true, Multiline: true,
+			Parameter: ochazuke.Parameter{Description: "Generated catalog guidance for agents, as Markdown"},
+			Read: func(c ochazuke.Ctx, _ ochazuke.Thing) (any, error) {
+				server, err := s.newMCPServer(c.Actor())
+				if err != nil {
+					return nil, err
+				}
+				return server.Instructions(), nil
+			}})
+		r.Define("mcp").Props(
+			ochazuke.PropSpec{Name: "instructions", ReadOnly: true, Multiline: true, Parameter: ochazuke.Parameter{Description: "The MCP server's instructions, as Markdown"},
+				Read: func(c ochazuke.Ctx, _ ochazuke.Thing) (any, error) { return s.mcpValue(context.Background(), "instructions") }},
+			ochazuke.PropSpec{Name: "config", ReadOnly: true, Parameter: ochazuke.Parameter{Type: ochazuke.PropObject, Description: "The MCP client config (mcpServers) that runs this program's server"},
+				Read: func(c ochazuke.Ctx, _ ochazuke.Thing) (any, error) { return s.mcpValue(context.Background(), "config") }},
+		).Store(ochazuke.Store{Kind: ochazuke.Singleton, Facts: true, Get: func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return ochazuke.Thing{}, nil }})
+		for _, name := range []string{"serve", "tools"} {
 			r.Define("mcp").Verb(name, func(ochazuke.Ctx) ochazuke.Result {
 				return ochazuke.Pending(func(ctx context.Context) (any, error) {
 					return s.mcpValue(ctx, name)

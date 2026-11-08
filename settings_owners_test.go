@@ -185,7 +185,7 @@ func TestSettingLayoutVerbsAndOutput(t *testing.T) {
 	if row := by["tree.zoom"]; row["owner"] != OwnerFramework || row["section"] != "lists" {
 		t.Fatalf("framework list row %v", row)
 	}
-	owners, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "owners"})
+	owners, err := r.Execute(Request{Noun: "ochazuke.setting", Prop: "owners"})
 	if err != nil || len(owners.([]SettingOwnerInfo)) != 3 {
 		t.Fatalf("setting.owners %v %v", owners, err)
 	}

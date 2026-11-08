@@ -62,6 +62,7 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 		if ok {
 			r.Operations.Delete(Key(key))
 		}
+		wasBuiltin := ok && existing.Builtin // a regenerated verb keeps its mark
 		reason := v.unmet(r, n)
 		if reason != "" && v.optional {
 			for _, alias := range v.Aliases {
@@ -69,7 +70,9 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 			}
 			continue
 		}
-		r.Register(v.operation(r, n, reason))
+		op := v.operation(r, n, reason)
+		op.Builtin = wasBuiltin
+		r.Register(op)
 		if g := n.Store.When[v.Verb]; g != "" {
 			r.SetAvailability(key, g)
 		}
@@ -396,7 +399,7 @@ func pickedProps(n *Noun, a Arguments) ([]string, error) {
 func thingRecord(n *Noun, t Thing, names []string) map[string]any {
 	out := map[string]any{}
 	for _, p := range n.Props {
-		if len(names) > 0 && !slices.Contains(names, p.Name) || len(names) == 0 && p.Secret {
+		if len(names) > 0 && !slices.Contains(names, p.Name) || len(names) == 0 && (p.Secret || p.computed()) {
 			continue
 		}
 		if v, ok := t[p.Name]; ok {
@@ -424,16 +427,14 @@ func runGet(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if hidden := r.unshownProp(n, c, append([]string{prop}, names...)); hidden != "" {
 		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), hidden)
 	}
+	if p := n.prop(prop); p != nil && p.ofCollection() {
+		return readCollectionProp(c, n, p, path)
+	}
+	if err := refuseCollectionProps(r, n, names); err != nil {
+		return nil, err
+	}
 	if len(names) == 0 && prop == "" {
-		focus := focusOf(c.Context)
-		for _, p := range n.Props {
-			if !p.Secret && r.propShown(p, focus, c.mode(), c.Args) {
-				names = append(names, p.Name)
-			}
-		}
-		if len(names) == 0 {
-			names = []string{""} // no prop is offered here: an empty record
-		}
+		names = r.recordProps(n, c)
 	}
 	id, err := r.subjectKey(n, c)
 	if err != nil {
@@ -446,17 +447,94 @@ func runGet(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if t == nil {
 		return nil, fmt.Errorf("no %s %q", r.DisplayNoun(n.Name), id)
 	}
-	if prop != "" && len(path) > 0 {
-		v, err := nestedValue(t[prop], path)
-		if err != nil {
-			return nil, &ArgumentError{fmt.Errorf("%s.%s: %w", r.DisplayNoun(n.Name), StringArg(c.Args, "prop", ""), err)}
-		}
-		return v, nil
+	t = maps.Clone(t) // computed props are added to the copy, never to the store's thing
+	if err := readComputed(c, n, t, append([]string{prop}, names...)); err != nil {
+		return nil, err
 	}
 	if prop != "" {
-		return fileForm(t[prop]), nil
+		return propAnswer(r, n, c, t, prop, path)
 	}
 	return thingRecord(n, t, names), nil
+}
+
+// recordProps are the props a get without prop or props answers: every
+// one offered where the request acts, but secret and computed ones (those
+// are asked for by name); a single empty name when none is.
+func (r *Runtime) recordProps(n *Noun, c Ctx) []string {
+	var names []string
+	focus := focusOf(c.Context)
+	for _, p := range n.Props {
+		if !p.Secret && !p.computed() && r.propShown(p, focus, c.mode(), c.Args) {
+			names = append(names, p.Name)
+		}
+	}
+	if len(names) == 0 {
+		names = []string{""} // no prop is offered here: an empty record
+	}
+	return names
+}
+
+// propAnswer is one prop of a thing as get answers it: its value in file
+// form, or the place inside it a dotted path names.
+func propAnswer(r *Runtime, n *Noun, c Ctx, t Thing, prop string, path []string) (any, error) {
+	if len(path) == 0 {
+		return fileForm(t[prop]), nil
+	}
+	v, err := nestedValue(t[prop], path)
+	if err != nil {
+		return nil, &ArgumentError{fmt.Errorf("%s.%s: %w", r.DisplayNoun(n.Name), StringArg(c.Args, "prop", ""), err)}
+	}
+	return v, nil
+}
+
+// refuseCollectionProps refuses a props list that names a collection prop:
+// one describes all the noun's things, so it is read alone, with prop.
+func refuseCollectionProps(r *Runtime, n *Noun, names []string) error {
+	for _, name := range names {
+		if p := n.prop(name); p != nil && p.ofCollection() {
+			return &ArgumentError{fmt.Errorf("%s.%s describes all the %s things: read it with prop, not props", r.DisplayNoun(n.Name), p.Name, r.DisplayNoun(n.Name))}
+		}
+	}
+	return nil
+}
+
+// readComputed fills t with the computed props (PropSpec.Read) among names,
+// each read from the thing as the store gave it. Only the names asked for
+// are read: a computed prop costs nothing until it is wanted.
+func readComputed(c Ctx, n *Noun, t Thing, names []string) error {
+	done := map[string]bool{}
+	for _, name := range names {
+		p := n.prop(name)
+		if p == nil || p.Read == nil || p.ofCollection() || done[p.Name] {
+			continue
+		}
+		done[p.Name] = true
+		c.Noun = n.Name
+		v, err := p.Read(c, t)
+		if err != nil {
+			return fmt.Errorf("%s.%s: %w", c.Runtime.DisplayNoun(n.Name), p.Name, err)
+		}
+		t[p.Name] = v
+	}
+	return nil
+}
+
+// readCollectionProp answers a collection-scope prop (PropSpec.Subject):
+// its Read, with no thing, optionally read inside by a dotted path.
+func readCollectionProp(c Ctx, n *Noun, p *PropSpec, path []string) (any, error) {
+	c.Noun = n.Name
+	v, err := p.Read(c, nil)
+	if err != nil {
+		return nil, fmt.Errorf("%s.%s: %w", c.Runtime.DisplayNoun(n.Name), p.Name, err)
+	}
+	if len(path) > 0 {
+		inner, err := nestedValue(v, path)
+		if err != nil {
+			return nil, &ArgumentError{fmt.Errorf("%s.%s: %w", c.Runtime.DisplayNoun(n.Name), p.Name, err)}
+		}
+		return inner, nil
+	}
+	return fileForm(v), nil
 }
 
 // propPath reads get's prop argument: a prop (or @role), or a dotted path
@@ -577,6 +655,11 @@ func runList(r *Runtime, n *Noun, c Ctx) (any, error) {
 	names, err := pickedProps(n, c.Args)
 	if err != nil {
 		return nil, err
+	}
+	for _, name := range names {
+		if p := n.prop(name); p != nil && p.computed() {
+			return nil, &ArgumentError{fmt.Errorf("%s.%s is computed when asked for: read it with get, list rows do not hold it", r.DisplayNoun(n.Name), p.Name)}
+		}
 	}
 	q, err := r.listQueryOf(n, c.Args)
 	if err != nil {

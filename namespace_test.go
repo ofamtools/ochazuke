@@ -54,7 +54,7 @@ func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 	if got := r.DisplayKey("ochazuke.collection.move"); got != "collection.move" {
 		t.Fatalf("DisplayKey = %q", got)
 	}
-	for _, q := range []Request{{Noun: "setting", Verb: "names"}, {Noun: "ochazuke.setting", Verb: "names"}} {
+	for _, q := range []Request{{Noun: "setting", Prop: "names"}, {Noun: "ochazuke.setting", Prop: "names"}} {
 		if _, err := r.Execute(q); err != nil {
 			t.Fatalf("%s: %v", q.Key(), err)
 		}
@@ -112,7 +112,7 @@ func TestDefineOwnShadowsTheFrameworkAlias(t *testing.T) {
 	if err != nil || framework == "own" {
 		t.Fatalf("ochazuke.setting.list = %v, %v", framework, err)
 	}
-	if _, err := r.Execute(Request{Noun: "setting", Verb: "names"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "setting", Prop: "names"}); err == nil {
 		t.Fatal("the owned short name still reaches the framework's verbs")
 	}
 	if r.DisplayNoun("ochazuke.setting") != "ochazuke.setting" || r.DisplayNoun("ochazuke.collection") != "collection" {
@@ -210,8 +210,8 @@ func TestPaletteDottedNounWord(t *testing.T) {
 	r := NewRuntime()
 	m := NewModel(r)
 	p := m.Palette
-	for _, line := range []string{"ochazuke.setting names", "setting names", "names ochazuke.setting", "names setting"} {
-		if c := p.parse(line); !c.Complete() || c.Op.Key.Short() != "ochazuke.setting.names" {
+	for _, line := range []string{"ochazuke.setting names", "setting names", } {
+		if c := p.parse(line); !c.Complete() || c.Op.Key.Short() != "ochazuke.setting.get" {
 			t.Errorf("%q = %q err %v missing %q", line, c.Op.Key.Short(), c.Err, c.Missing)
 		}
 	}
@@ -234,7 +234,7 @@ func TestPaletteDottedNounWord(t *testing.T) {
 	if c := p.parse("setting list"); c.Op.Key.Short() != "setting.list" {
 		t.Fatalf("owned setting list = %q", c.Op.Key.Short())
 	}
-	if c := p.parse("ochazuke.setting names"); c.Op.Key.Short() != "ochazuke.setting.names" {
+	if c := p.parse("ochazuke.setting names"); c.Op.Key.Short() != "ochazuke.setting.get" {
 		t.Fatalf("ochazuke.setting names = %q (%v)", c.Op.Key.Short(), c.Err)
 	}
 }
@@ -285,7 +285,7 @@ func TestLegacyAppNamespaceIsAnAlias(t *testing.T) {
 	if got := r.CanonicalNoun("app.nothing"); got != "app.nothing" {
 		t.Fatalf("CanonicalNoun(app.nothing) = %q", got)
 	}
-	if _, err := r.Execute(Request{Noun: "app.setting", Verb: "names"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "app.setting", Prop: "names"}); err != nil {
 		t.Fatal(err)
 	}
 	if entries := r.History(0); len(entries) == 0 || entries[len(entries)-1].Request.Key() != "ochazuke.setting.names" {

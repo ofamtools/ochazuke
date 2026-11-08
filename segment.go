@@ -831,7 +831,7 @@ func segmentMove(order []string, id, to string) ([]string, error) {
 }
 
 func registerSegments(r *Runtime) {
-	id := Parameter{Type: "string", Required: true, Description: "Segment id", Source: "ochazuke.segment.names"}
+	id := Parameter{Type: "string", Required: true, Description: "Segment id", Source: "ochazuke.segment.list"}
 	find := func(r *Runtime, a Arguments) (SegmentState, error) {
 		want := StringArg(a, "id", "")
 		for _, s := range r.Segments() {
@@ -854,13 +854,14 @@ func registerSegments(r *Runtime) {
 			return find(r, a)
 		}
 	}
-	r.Register(Operation{Key: "ochazuke.segment.names", Description: "List the status segment ids in drawing order", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		names := []string{}
-		for _, s := range r.Segments() {
-			names = append(names, s.ID)
-		}
-		return names, nil
-	}})
+	r.Define("ochazuke.segment").Props(PropSpec{Name: "names", Subject: SubjectCollection, Parameter: Parameter{Type: SettingList, Description: "The status segment ids in drawing order"},
+		Read: func(c Ctx, _ Thing) (any, error) {
+			names := []string{}
+			for _, s := range c.Runtime.Segments() {
+				names = append(names, s.ID)
+			}
+			return names, nil
+		}})
 	r.defineFacts(factsSpec{Noun: "ochazuke.segment", Sample: Segment{}, Key: "id", Label: "label",
 		Docs: map[string]string{"id": "The segment's id", "label": "Its label", "description": "What it shows", "provider": "Where its text comes from", "order": "Its place among the others",
 			"enabled": "Whether it shows by default", "owner": "The settings owner of its setting"},
@@ -898,7 +899,7 @@ func registerSegments(r *Runtime) {
 		}
 		return out, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.segment.refresh", Description: "Refresh a status segment now, or every shown one with no id", Parameters: map[string]Parameter{"id": {Type: "string", Description: "Segment id (default: every shown segment)", Source: "ochazuke.segment.names"}}, Positional: []string{"id"}, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.segment.refresh", Description: "Refresh a status segment now, or every shown one with no id", Parameters: map[string]Parameter{"id": {Type: "string", Description: "Segment id (default: every shown segment)", Source: "ochazuke.segment.list"}}, Positional: []string{"id"}, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		want := StringArg(a, "id", "")
 		out := []string{}
 		for _, row := range r.segs().rows {

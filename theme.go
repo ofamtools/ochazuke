@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"errors"
 	"fmt"
 	"image/color"
 	"maps"
@@ -139,13 +138,7 @@ func newAppearance(r *Runtime) *Appearance {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.theme.path", HistoryKind: HistoryFetch, Description: "Print the user colour schemes file: themes.json beside settings.json", Result: "path", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
-		path := r.Config().Path(ThemesFile)
-		if path == "" {
-			return nil, errors.New("this application has no config directory")
-		}
-		return path, nil
-	}})
+	r.Define("ochazuke.theme").Props(filePathProp("The user colour schemes file: themes.json beside settings.json", "this application has no config directory", func(r *Runtime) string { return r.Config().Path(ThemesFile) }))
 	return a
 }
 

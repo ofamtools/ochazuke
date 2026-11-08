@@ -53,6 +53,10 @@ const (
 	Instances = "instances"
 )
 
+// SubjectCollection is PropSpec.Subject (and Operation.Subject) for a prop
+// or operation about all of a noun's things rather than one of them.
+const SubjectCollection = "collection"
+
 // The prop roles (PropSpec.Role): one prop per role.
 const (
 	// RoleLabel is the prop a thing is shown by: list rows' label,
@@ -138,9 +142,69 @@ type PropSpec struct {
 	// get, list and the CLI's rows keep the store's value, and the CLI's
 	// list tables are machine output that must not drift from them.
 	Cell func(Ctx, Thing) string `json:"-"`
+	// Read computes the prop's value when it is asked for, from the whole
+	// thing the request acts for (get {prop}, noun PROP): git status, a
+	// transcript, a file's path. The store's Get does not need to hold it.
+	// A computed prop is read-only, is left out of get's default record and
+	// of list's rows, and is not offered to filters. For a collection-scope
+	// prop the thing is nil.
+	Read func(Ctx, Thing) (any, error) `json:"-"`
+	// Computed is Read's wire form: a catalog publishes true for a prop
+	// with a Read, and a host that mounts the noun reads such a prop
+	// through the extension's own get {prop} instead of its record
+	// (cli.MountNouns). addProp sets it from Read.
+	Computed bool `json:"computed,omitempty"`
+	// Subject is what the prop describes: "" one thing of the noun, or
+	// SubjectCollection all of the noun's things (count, names, the files
+	// they live in). A collection-scope prop needs Read, is read with
+	// get {prop} without a subject, and never belongs to a thing's record.
+	Subject string `json:"subject,omitempty"`
 	// loose marks a derived prop whose rows hold values of several kinds:
 	// propValue reads every scalar as its text, so they compare as strings.
 	loose bool
+}
+
+// CountProp is the collection prop `count`: how many things the noun has,
+// read through its store's list (every thing, archived ones included).
+// Declare it with the noun's props.
+func CountProp() PropSpec {
+	return PropSpec{Name: "count", Subject: SubjectCollection, Parameter: Parameter{Type: SettingInteger, Description: "How many things there are"},
+		Read: func(c Ctx, _ Thing) (any, error) {
+			things, err := collectionThings(c)
+			return len(things), err
+		}}
+}
+
+// NamesProp is the collection prop `names`: the label of every thing in
+// the store's order (the key when a thing has no label), the words a
+// parameter's choices and the palette offer for the noun.
+func NamesProp() PropSpec {
+	return PropSpec{Name: "names", Subject: SubjectCollection, Parameter: Parameter{Type: SettingList, Description: "Every thing's name, in order"},
+		Read: func(c Ctx, _ Thing) (any, error) {
+			things, err := collectionThings(c)
+			if err != nil {
+				return nil, err
+			}
+			n := c.Runtime.Noun(c.Noun)
+			names := make([]string, 0, len(things))
+			for _, t := range things {
+				name := n.displayLabel(func(name string) any { return t[name] })
+				if key := n.keyProp(); name == "" && key != nil {
+					name = fmt.Sprint(t[key.Name])
+				}
+				names = append(names, name)
+			}
+			return names, nil
+		}}
+}
+
+// collectionThings are all the things of the noun a collection prop is read of.
+func collectionThings(c Ctx) ([]Thing, error) {
+	n := c.Runtime.Noun(c.Noun)
+	if n == nil || n.Store == nil || n.Store.List == nil {
+		return nil, fmt.Errorf("%s has no list to count", c.Noun)
+	}
+	return n.Store.List(c, ListQuery{Args: Arguments{}})
 }
 
 // PropField is a prop as a form field (RecordField): its name, its
@@ -153,6 +217,13 @@ func PropField(p PropSpec) RecordField {
 // writable reports whether set may write the prop: not read-only (a key
 // never is), not create-only.
 func (p PropSpec) writable() bool { return !p.ReadOnly && !p.Key && !p.CreateOnly }
+
+// computed reports whether the prop is computed when asked for (Read) or
+// describes the whole collection: it is never part of a thing's record.
+func (p PropSpec) computed() bool { return p.Read != nil || p.Subject != "" }
+
+// ofCollection reports whether the prop describes all of the noun's things.
+func (p PropSpec) ofCollection() bool { return p.Subject == SubjectCollection }
 
 // simple reports whether a write of the prop holds a simple value (owner
 // decision 12): an enum choice, a boolean, a number or a duration, never
@@ -385,8 +456,19 @@ func (b *NounBuilder) Props(props ...PropSpec) *NounBuilder {
 	if b.n.Store != nil {
 		b.r.applyStore(b.n)
 	}
+	// A collection's props list after a thing's own.
+	slices.SortStableFunc(b.n.Props, func(x, y PropSpec) int {
+		return btoi(x.ofCollection()) - btoi(y.ofCollection())
+	})
 	b.last = ""
 	return b
+}
+
+func btoi(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // Store declares the noun's store row and registers the standard verbs it
@@ -603,6 +685,13 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	if err := r.propAliasClash(n, p.Name); err != nil {
 		return err
 	}
+	if err := computedPropError(key, p); err != nil {
+		return err
+	}
+	if p.computed() {
+		p.ReadOnly, p.NoFilter = true, true
+	}
+	p.Computed = p.Read != nil
 	if p.Key {
 		if p.Type != SettingString && p.Type != SettingInteger {
 			return fmt.Errorf("prop %s: a key is a string or an integer, not %s", key, p.Type)
@@ -617,6 +706,26 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	n.Props = append(n.Props, p)
 	if p.Role == RoleArchive && !slices.ContainsFunc(n.Filters, func(f SavedFilter) bool { return f.Name == "archived" }) {
 		n.Filters = append([]SavedFilter{{Name: "archived", Noun: n.Name, Where: map[string]any{p.Name: true}}}, n.Filters...)
+	}
+	return nil
+}
+
+// computedPropError is what is wrong with a computed prop's declaration:
+// an unknown subject, a collection prop without Read, or a field a prop
+// that is only read cannot have.
+func computedPropError(key string, p PropSpec) error {
+	switch p.Subject {
+	case "", SubjectCollection:
+	default:
+		return fmt.Errorf("prop %s: unknown subject %q", key, p.Subject)
+	}
+	switch {
+	case !p.computed():
+		return nil
+	case p.Key || p.Role != "" || p.Required || p.Secret || p.CreateOnly || p.Default != nil:
+		return fmt.Errorf("prop %s: a computed prop is only read: no key, role, required, secret, create-only or default", key)
+	case p.ofCollection() && p.Read == nil:
+		return fmt.Errorf("prop %s: a collection prop needs Read", key)
 	}
 	return nil
 }
@@ -996,4 +1105,25 @@ func (r *Runtime) PropGuard(noun, prop string) string {
 		return p.When
 	}
 	return ""
+}
+
+// filePathProp is the collection prop `path`: where the noun's things live
+// on disk (its file). Read answers the path path(r) gives, or the error
+// missing when the program has none (no config directory). Name another
+// prop with named for a noun with more than one file.
+func filePathProp(description, missing string, path func(*Runtime) string) PropSpec {
+	return PropSpec{Name: "path", Subject: SubjectCollection, Parameter: Parameter{Description: description},
+		Read: func(c Ctx, _ Thing) (any, error) {
+			p := path(c.Runtime)
+			if p == "" {
+				return nil, errors.New(missing)
+			}
+			return p, nil
+		}}
+}
+
+// named is the prop under another name.
+func (p PropSpec) named(name string) PropSpec {
+	p.Name = name
+	return p
 }

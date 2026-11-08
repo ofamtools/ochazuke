@@ -513,13 +513,15 @@ func writeFileAtomic(path string, data []byte) error {
 }
 
 func registerConfigExport(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.config.path", HistoryKind: HistoryFetch, Description: "Print the config directory (bindings.json, settings.json, actions.json, themes.json), the state directory (history.jsonl, panes.json) and the default config export directory", Result: "paths", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		paths := r.Config().Paths()
-		if paths.Config == "" && paths.State == "" {
-			return nil, errors.New("this application has no config or state directory")
-		}
-		return paths, nil
-	}})
+	r.Define("ochazuke.config").Props(PropSpec{Name: "path", ReadOnly: true,
+		Parameter: Parameter{Type: PropObject, Description: "The config directory (bindings.json, settings.json, actions.json, themes.json), the state directory (history.jsonl, panes.json) and the default config export directory"},
+		Read: func(c Ctx, _ Thing) (any, error) {
+			paths := c.Runtime.Config().Paths()
+			if paths.Config == "" && paths.State == "" {
+				return nil, errors.New("this application has no config or state directory")
+			}
+			return paths, nil
+		}}).Store(Store{Kind: Singleton, Facts: true, Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }})
 	r.Register(Operation{Key: "ochazuke.config.export", HistoryKind: HistoryChange, Description: "Write a reference of the user configuration (every setting, every key row) into a directory, default <config dir>/reference; never over the live files without force", Parameters: map[string]Parameter{
 		"dir":   {Type: "string", Description: "Directory to write to (default <config dir>/reference)"},
 		"force": {Type: "boolean", Description: "Allow writing over a live config file (dir is the config directory)"},

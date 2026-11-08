@@ -55,7 +55,7 @@ func TestAgentConfigurationReadsAndWrites(t *testing.T) {
 			t.Errorf("%s: %+v", key, op)
 		}
 	}
-	for _, key := range []string{"binding.reload", "user-operation.reload", "setting.reload", "theme.reload", "config.reload", "binding.defaults", "setting.diff", "setting.owners", "setting.sections", "setting.show"} {
+	for _, key := range []string{"binding.reload", "user-operation.reload", "setting.reload", "theme.reload", "config.reload", "setting.diff", "setting.sections", "setting.show"} {
 		op, ok := r.Operation(key)
 		if !ok || op.HistoryKindOf() != HistoryFetch {
 			t.Errorf("%s: %+v", key, op)

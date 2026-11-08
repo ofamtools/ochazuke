@@ -79,16 +79,23 @@ func validAgentRules(value any) error {
 	return err
 }
 
+// registerAgentRights declares the agent noun: the program's acting agent,
+// one thing with the computed prop rights (the effective policy and the
+// rule that decided each verb); instructions is added by the shell that
+// can write them (cli).
 func registerAgentRights(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.agent.rights", Description: "List effective agent rights and the rule that decided each", HistoryKind: HistoryFetch, Parameters: map[string]Parameter{"verb": {Type: "string"}}, Run: func(r *Runtime, c Context, args Arguments) (any, error) {
-		rows := []AgentRight{}
-		for _, op := range r.Catalog() {
-			if key := StringArg(args, "verb", ""); key == "" || r.CanonicalKey(key) == op.Key.Short() {
-				rows = append(rows, r.AgentRight(op, r.agentLive()))
+	r.Builtin(func() { defineAgent(r) })
+}
+
+func defineAgent(r *Runtime) {
+	r.Define("ochazuke.agent").Props(PropSpec{Name: "rights", ReadOnly: true, Parameter: Parameter{Type: SettingList, Description: "The effective agent rights and the rule that decided each, one row per verb (read one with a path: rights.0)"},
+		Read: func(c Ctx, _ Thing) (any, error) {
+			rows := []AgentRight{}
+			for _, op := range c.Runtime.Catalog() {
+				rows = append(rows, c.Runtime.AgentRight(op, c.Runtime.agentLive()))
 			}
-		}
-		return rows, nil
-	}})
+			return rows, nil
+		}}).Store(Store{Kind: Singleton, Facts: true, Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }})
 }
 
 // AgentRight resolves owner rows before the operation's declaration/default.

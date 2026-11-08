@@ -34,6 +34,7 @@ chrome.go	isModeHue	compare	"mode"	1
 chrome.go	var chromeModes	table	"mode"	1
 cli/catalog.go	CatalogDoc.RowSource	compare	"list"	2
 cli/catalog.go	ExtensionNamespace	compare	"app"	1
+cli/catalog.go	catalog	compare	"lists"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 cli/catalog.go	catalog	cyclo	"-"	37
 cli/catalog_inspect.go	Shell.catalogCommand	compare	"inspect"	1
 cli/commands.go	Commands.showsRun	compare	"run"	1
@@ -94,13 +95,14 @@ cli/shell.go	Shell.parseFlags	compare	"since"	1
 cli/shell.go	Shell.parseFlags	cyclo	"-"	44
 cli/shell.go	Shell.propRequest	compare	"toggle"	1
 cli/shell.go	Shell.propRequest	compare	"value"	1
+cli/shellstate.go	Shell.speaksDelta	compare	"lists"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 cli/sides.go	var sideVariables	table	"dir"	1	template variable names for the sides of a command, not nouns
 cli/sides.go	var sideVariables	table	"pane"	1	template variable names for the sides of a command, not nouns
 cli/sides.go	var sideVariables	table	"project"	1	template variable names for the sides of a command, not nouns
 cli/widget.go	PageView.widgetsBlock	compare	"status"	3
 cli/widget.go	widgetState.lines	compare	"status"	2
 configuration.go	registerConfiguration	compare	"app"	1
-configuration.go	registerConfiguration	cyclo	"-"	27
+configuration.go	registerConfiguration	cyclo	"-"	26
 confirm.go	Runtime.openConfirmAbout	case	"id"	2
 confirm.go	Runtime.openConfirmAbout	compare	"id"	1
 confirm.go	Runtime.openConfirmAbout	compare	"noun"	1
@@ -124,6 +126,7 @@ editor.go	Input.selectionSnapshot	compare	"line"	1
 editor.go	Input.selectionYank	compare	"line"	1
 editor.go	editorShape	case	"line"	1
 events.go	EventSpec.Field	compare	"event"	1
+facts.go	Runtime.listRows	compare	"collection"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 focus.go	Runtime.JumpFocus	case	"stop"	1
 focus.go	Runtime.removeInstance	compare	"app"	1
 focus.go	Runtime.validateFocus	compare	"app"	1
@@ -287,6 +290,7 @@ picker_verbs.go	var pickerVerbAliases	table	"choose"	1	data: the path finder's o
 picker_verbs.go	var pickerVerbAliases	table	"close"	1	data: the path finder's old verb names, aliases for one release
 prop_filter.go	propTest	compare	"list"	1
 prop_filter.go	typedPropFilter	compare	"list"	1
+props.go	PropSpec.ofCollection	compare	"collection"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 props.go	Runtime.addProp	case	"archive"	1
 props.go	Runtime.addProp	case	"owner"	1
 props.go	Runtime.addProp	compare	"archive"	1
@@ -294,6 +298,7 @@ props.go	Runtime.addProp	compare	"archived"	1
 props.go	Runtime.validatePropRow	compare	"value"	1
 props.go	checkSchema	case	"collection"	1
 props.go	checkSchema	compare	"id"	1
+props.go	computedPropError	case	"collection"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 props.go	var propTypes	table	"list"	1	property type names, not a noun table; "list" is a type here
 query.go	Runtime.Query	compare	"app"	1
 query.go	Runtime.match	case	"all"	1
@@ -314,6 +319,7 @@ resolve.go	Runtime.dispatchIn	compare	"ochazuke.key.ignore"	1
 resolve.go	Runtime.dispatchIn	cyclo	"-"	33
 resolve.go	Runtime.lookup	cyclo	"-"	46
 resolve.go	Runtime.scanRowsUncached	cyclo	"-"	37
+runtime.go	Operation.HistoryKindOf	compare	"lists"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 runtime.go	Runtime.AddInput	case	"dir"	1
 runtime.go	Runtime.AddInput	case	"path"	1
 runtime.go	Runtime.AddInput	case	"text"	1

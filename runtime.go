@@ -325,11 +325,11 @@ type Operation struct {
 	// rows. It is data for hosts (the catalog's rows); the runtime does
 	// not read it.
 	Rows string `json:"rows,omitempty"`
-	// State marks the verb whose answer is the rows of every one of a
-	// host's lists in one call (NounBuilder.State), as JSON Lines of
-	// cli.Row tagged by list noun ({"noun":"agent","id":..,"label":..}).
-	// Data for hosts (the catalog's state); the runtime does not read it.
-	State bool `json:"state,omitempty"`
+	// Subject says what the operation acts on: "" one thing of the noun
+	// (the default), SubjectCollection all of the noun's things. Data for
+	// hosts (the catalog's subject): a collection operation takes no
+	// subject key, so a host does not ask for a row to run it on.
+	Subject string `json:"subject,omitempty"`
 	// Quiet marks bookkeeping (a list reload) the jobs ticker does not
 	// show and the inspector does not retain as the last user request;
 	// set by NounBuilder.Quiet. The catalog's quiet.
@@ -426,9 +426,16 @@ type Operation struct {
 	AppHandler AppHandler `json:"-"`
 }
 
+// ResultLists is the Result of the state source: a verb whose answer is the
+// rows of every one of a host's lists in one call, as JSON Lines of rows
+// tagged by list noun ({"noun":"agent","id":..,"label":..}; cli.Row). Data
+// for hosts (the catalog's state names the first such verb): a host runs
+// it once instead of one row source per list. It replaces the State flag.
+const ResultLists = "lists"
+
 // HistoryKindOf is the kind of history entry the operation records: its
 // HistoryKind when set; else a fetch for a verb that answers rows (Rows,
-// State), a change for a Repeatable one, an action for a Motion, a change
+// ResultLists), a change for a Repeatable one, an action for a Motion, a change
 // for any other application verb (work that may change something outside
 // the runtime: the safe reading of an extension verb that declares
 // nothing), and an action for any other interaction verb.
@@ -436,7 +443,7 @@ func (o Operation) HistoryKindOf() string {
 	switch {
 	case o.HistoryKind != "":
 		return o.HistoryKind
-	case o.Rows != "" || o.State:
+	case o.Rows != "" || o.Result == ResultLists:
 		return HistoryFetch
 	case o.Repeatable:
 		return HistoryChange
@@ -1348,13 +1355,13 @@ func JSONPointer(value any, path string) (any, error) {
 }
 
 func registerCore(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.binding.defaults", HistoryKind: HistoryFetch, Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		data, err := FormatBindings(r.defaultBindingsDoc())
-		return Verbatim(data), err
-	}})
-	r.Register(Operation{Key: "ochazuke.binding.stops", HistoryKind: HistoryFetch, Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.StopBindings(), nil
-	}})
+	r.Define("ochazuke.binding").Props(PropSpec{Name: "defaults", Subject: SubjectCollection, Parameter: Parameter{Description: "The default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated"}, Multiline: true,
+		Read: func(c Ctx, _ Thing) (any, error) {
+			data, err := FormatBindings(c.Runtime.defaultBindingsDoc())
+			return Verbatim(data), err
+		}})
+	r.Define("ochazuke.binding").Props(PropSpec{Name: "stops", Subject: SubjectCollection, Parameter: Parameter{Type: SettingList, Description: "The rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at"},
+		Read: func(c Ctx, _ Thing) (any, error) { return c.Runtime.StopBindings(), nil }})
 	r.Register(Operation{Key: "ochazuke.mode.switch", FocusBound: true, HistoryKind: HistoryAction, Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.mode"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode, err := r.switchMode(StringArg(a, "mode", ""), r.Input(c.InputID))
 		if err != nil {

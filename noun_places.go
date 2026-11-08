@@ -501,13 +501,12 @@ func registerPlacements(r *Runtime) {
 	r.Register(Operation{Key: "ochazuke.noun.places", Description: "List where a noun was seen (every noun without one): each distinct chain of ancestor nouns, outermost first, with its page or modal, how often and when last; kept across runs in " + NounPlacesFile, Parameters: map[string]Parameter{"noun": {Type: "string", Description: "The noun (default every noun)"}}, Positional: []string{"noun"}, HistoryKind: HistoryFetch, Result: "placement[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.NounPlaces(StringArg(a, "noun", "")), nil
 	}})
-	r.Register(Operation{Key: "ochazuke.noun.places-path", Description: "Print the placements file: $XDG_STATE_HOME/<app>/" + NounPlacesFile + ", else ~/.local/state/<app>/" + NounPlacesFile, HistoryKind: HistoryFetch, Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		cfg := r.Config()
-		if cfg == nil {
-			return "", nil
+	r.Define("ochazuke.noun").Props(filePathProp("The placements file: $XDG_STATE_HOME/<app>/"+NounPlacesFile+", else ~/.local/state/<app>/"+NounPlacesFile, "this application does not keep noun placements", func(r *Runtime) string {
+		if cfg := r.Config(); cfg != nil {
+			return cfg.NounPlacesPath()
 		}
-		return cfg.NounPlacesPath(), nil
-	}})
+		return ""
+	}).named("places-path"))
 }
 
 // nounFact is a defined noun as a thing.

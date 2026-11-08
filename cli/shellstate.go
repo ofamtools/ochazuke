@@ -22,7 +22,7 @@ type sinceRequest struct {
 // protocol on (StateCache.Off unset), and no parameter of op's own by the
 // flag's name.
 func (s *Shell) speaksDelta(op ochazuke.Operation, flag string) bool {
-	return op.State && !s.StateCache.Off && !hasParameter(op, flag)
+	return op.Result == ochazuke.ResultLists && !s.StateCache.Off && !hasParameter(op, flag)
 }
 
 // store is the cache scope of a state call.

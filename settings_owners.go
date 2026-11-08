@@ -335,9 +335,8 @@ func (s *Settings) unknownOwner(owner string) error {
 
 // registerSettingLayout registers setting.owners and setting.sections.
 func registerSettingLayout(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.setting.owners", HistoryKind: HistoryFetch, Description: "List the owners of the settings (the Settings page's tabs) in order: id, title, description, and how many sections and settings each has", Result: "setting-owner[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.Settings().Owners(), nil
-	}})
+	r.Define("ochazuke.setting").Props(PropSpec{Name: "owners", Subject: SubjectCollection, Parameter: Parameter{Type: SettingList, Description: "The owners of the settings (the Settings page's tabs) in order: id, title, description, and how many sections and settings each has"},
+		Read: func(c Ctx, _ Thing) (any, error) { return c.Runtime.Settings().Owners(), nil }})
 	r.Register(Operation{Key: "ochazuke.setting.sections", HistoryKind: HistoryFetch, Description: "List an owner's sections of settings in the Settings page's order (every owner's without one): owner, id, title, description and the settings in each", Parameters: map[string]Parameter{
 		"owner": {Type: "string", Description: "The owner (a tab of the Settings page): app, ochazuke, or one an application declares; default every owner"},
 	}, Result: "setting-section[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

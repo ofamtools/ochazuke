@@ -25,7 +25,14 @@ ochazuke.action.get motion=false focusBound=false typing=false kind=fetch repeat
 ochazuke.action.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.action.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.action.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
-ochazuke.agent.rights motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.agent.archive motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.agent.create motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.agent.delete motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.agent.edit motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.agent.get motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.agent.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.agent.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.agent.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.appearance.archive motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.appearance.create motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.appearance.delete motion=false focusBound=false typing=false kind=change repeatable=false staying=false
@@ -46,7 +53,6 @@ ochazuke.binding.archive motion=false focusBound=false typing=false kind=change 
 ochazuke.binding.bind motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.binding.check motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.binding.create motion=false focusBound=false typing=false kind=change repeatable=false staying=false
-ochazuke.binding.defaults motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.binding.delete motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.binding.edit motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.binding.export motion=false focusBound=false typing=false kind=action repeatable=false staying=false
@@ -54,10 +60,8 @@ ochazuke.binding.get motion=false focusBound=false typing=false kind=fetch repea
 ochazuke.binding.help motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.binding.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.binding.load motion=false focusBound=false typing=false kind=change repeatable=false staying=false
-ochazuke.binding.path motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.binding.reload motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.binding.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
-ochazuke.binding.stops motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.binding.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.bindings-help.args motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.bindings-help.bind motion=false focusBound=false typing=false kind=action repeatable=false staying=false
@@ -117,9 +121,16 @@ ochazuke.completion.accept motion=false focusBound=false typing=false kind=actio
 ochazuke.completion.dismiss motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.completion.move motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.completion.open motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.config.archive motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.config.create motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.config.delete motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.config.edit motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.config.export motion=false focusBound=false typing=false kind=change repeatable=false staying=false
-ochazuke.config.path motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.config.get motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.config.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.config.reload motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.config.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.config.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.confirm.accept motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.confirm.require motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.context.select motion=false focusBound=false typing=false kind=action repeatable=false staying=false
@@ -182,7 +193,6 @@ ochazuke.history-entry.delete motion=false focusBound=false typing=false kind=ch
 ochazuke.history-entry.edit motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.history-entry.get motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.history-entry.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
-ochazuke.history-entry.path motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.history-entry.repeat motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.history-entry.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.history-entry.undo motion=false focusBound=false typing=false kind=change repeatable=false staying=false
@@ -195,7 +205,6 @@ ochazuke.hook.edit motion=false focusBound=false typing=false kind=action repeat
 ochazuke.hook.export motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.hook.get motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.hook.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
-ochazuke.hook.path motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.hook.reload motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.hook.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.hook.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
@@ -262,7 +271,6 @@ ochazuke.noun.edit motion=false focusBound=false typing=false kind=change repeat
 ochazuke.noun.get motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.noun.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.noun.places motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
-ochazuke.noun.places-path motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.noun.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.noun.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.operation.archive motion=false focusBound=false typing=false kind=change repeatable=false staying=false
@@ -368,7 +376,6 @@ ochazuke.segment.enable motion=false focusBound=false typing=false kind=action r
 ochazuke.segment.get motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.segment.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.segment.move motion=false focusBound=false typing=false kind=action repeatable=false staying=false
-ochazuke.segment.names motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.segment.refresh motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.segment.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.segment.show motion=false focusBound=false typing=false kind=action repeatable=false staying=false
@@ -403,10 +410,7 @@ ochazuke.setting.get motion=false focusBound=false typing=false kind=fetch repea
 ochazuke.setting.increase motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.setting.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.setting.multiply motion=false focusBound=false typing=false kind=action repeatable=false staying=false
-ochazuke.setting.names motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.setting.open motion=false focusBound=false typing=false kind=action repeatable=false staying=false
-ochazuke.setting.owners motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
-ochazuke.setting.path motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.setting.prepend motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.setting.reload motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.setting.remove motion=false focusBound=false typing=false kind=action repeatable=false staying=false
@@ -456,7 +460,6 @@ ochazuke.theme.delete motion=false focusBound=false typing=false kind=change rep
 ochazuke.theme.edit motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.theme.get motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.theme.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
-ochazuke.theme.path motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.theme.reload motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.theme.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.theme.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
@@ -474,7 +477,6 @@ ochazuke.timeline.scroll motion=true focusBound=false typing=false kind=action r
 ochazuke.timeline.step motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.timeline.toggle motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.timeline.yank-step motion=false focusBound=false typing=false kind=action repeatable=false staying=false
-ochazuke.user-operation.aliases motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.user-operation.archive motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.user-operation.check motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.user-operation.create motion=false focusBound=false typing=false kind=change repeatable=false staying=false
@@ -482,7 +484,6 @@ ochazuke.user-operation.delete motion=false focusBound=false typing=false kind=c
 ochazuke.user-operation.edit motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.user-operation.get motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.user-operation.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
-ochazuke.user-operation.path motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.user-operation.reload motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.user-operation.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.user-operation.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false

@@ -302,7 +302,7 @@ func TestSetCollisionsAcrossTheFamily(t *testing.T) {
 		}
 	}
 	slices.Sort(own)
-	if want := []string{"setting"}; !reflect.DeepEqual(own, want) {
+	if want := []string{"agent", "setting"}; !reflect.DeepEqual(own, want) {
 		t.Fatalf("framework collisions %v, want %v", own, want)
 	}
 }

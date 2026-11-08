@@ -178,7 +178,7 @@ func TestNounPlacesCap(t *testing.T) {
 // noun.list the nouns with their counts of places.
 func TestNounPlacesVerb(t *testing.T) {
 	r, _ := placesPage(t)
-	for _, key := range []string{"ochazuke.noun.places", "ochazuke.noun.list", "ochazuke.noun.places-path"} {
+	for _, key := range []string{"ochazuke.noun.places", "ochazuke.noun.list"} {
 		op := r.Operations.At(Key(key))
 		if !op.Builtin || op.HistoryKindOf() != HistoryFetch {
 			t.Fatalf("%s: builtin %v kind %s", key, op.Builtin, op.HistoryKindOf())

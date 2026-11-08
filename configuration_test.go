@@ -72,11 +72,11 @@ func TestConfigDirectoryFollowsXDGThenHome(t *testing.T) {
 	if got := c.Path(BindingsFile); got != "/elsewhere/bindings.json" {
 		t.Fatalf("dir path %q", got)
 	}
-	if got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "path"}); err != nil || got != "/elsewhere/bindings.json" {
+	if got, err := r.Execute(Request{Noun: "ochazuke.binding", Prop: "path"}); err != nil || got != "/elsewhere/bindings.json" {
 		t.Fatalf("binding.path %v %v", got, err)
 	}
 	c.Disable()
-	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "path"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Prop: "path"}); err == nil {
 		t.Fatal("binding.path without a directory")
 	}
 }

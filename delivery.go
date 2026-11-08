@@ -62,6 +62,10 @@ type Ctx struct {
 	Context  Context
 	Args     Arguments
 	Instance *Instance
+	// Noun is the noun a prop is read of, set for PropSpec.Read (a
+	// collection prop such as CountProp lists that noun's things); "" in
+	// every other handler.
+	Noun string
 	// Subjects are the instances the request acts on: Instance alone,
 	// or, for a verb that takes many (Operation.Many) run over a visual
 	// selection, every selected row in display order (Instance among them).

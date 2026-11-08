@@ -60,13 +60,7 @@ func registerConfiguration(r *Runtime) {
 		r.RecordWrittenFile(path)
 		return path, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.binding.path", HistoryKind: HistoryFetch, Description: "Print the user bindings file: $XDG_CONFIG_HOME/<app>/bindings.json, else ~/.config/<app>/bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		path := r.Config().Path(BindingsFile)
-		if path == "" {
-			return nil, errors.New("this application has no config directory")
-		}
-		return path, nil
-	}})
+	r.Define("ochazuke.binding").Props(filePathProp("The user bindings file: $XDG_CONFIG_HOME/<app>/bindings.json, else ~/.config/<app>/bindings.json", "this application has no config directory", func(r *Runtime) string { return r.Config().Path(BindingsFile) }))
 	r.Register(Operation{Key: "ochazuke.binding.reload", HistoryKind: HistoryFetch, Description: "Read the user bindings file again: its rows replace or unbind the defaults, a bad row is skipped and reported", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadUserBindings()
 		if problems == nil {

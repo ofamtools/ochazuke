@@ -226,7 +226,7 @@ func TestBindingsDefaultsPrintsTheDefaultLayer(t *testing.T) {
 		{"noun": "app", "mode": "normal", "keys": "w", "request": {"noun": "test", "verb": "gamma"}}
 	]`)
 	m.Init()
-	got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "defaults"})
+	got, err := r.Execute(Request{Noun: "ochazuke.binding", Prop: "defaults"})
 	if err != nil {
 		t.Fatal(err)
 	}

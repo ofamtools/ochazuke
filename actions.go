@@ -793,16 +793,11 @@ func registerActions(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.user-operation.aliases", HistoryKind: HistoryFetch, Description: "List every action alias: the framework's old names, the application's aliases and the alias rows of actions.json, each with the action it runs", Result: "alias[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.ActionAliases(), nil
-	}})
-	r.Register(Operation{Key: "ochazuke.user-operation.path", HistoryKind: HistoryFetch, Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		path := r.Config().Path(ActionsFile)
-		if path == "" {
-			return nil, errors.New("this application has no config directory")
-		}
-		return path, nil
-	}})
+	r.Define("ochazuke.user-operation").Props(
+		filePathProp("The user actions file: actions.json beside bindings.json", "this application has no config directory", func(r *Runtime) string { return r.Config().Path(ActionsFile) }),
+		PropSpec{Name: "aliases", Subject: SubjectCollection, Parameter: Parameter{Type: SettingList, Description: "Every action alias: the framework's old names, the application's aliases and the alias rows of actions.json, each with the action it runs"},
+			Read: func(c Ctx, _ Thing) (any, error) { return c.Runtime.ActionAliases(), nil }},
+	)
 }
 
 // registerActionFacts declares the actions noun.

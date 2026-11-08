@@ -22,7 +22,7 @@ const Schema = 1
 // a registry the runtime already has.
 //
 // State is the state source, "NOUN.VERB", "" for none: the first verb (in
-// catalog order) declared with NounBuilder.State. Its answer is every
+// catalog order) declared with NounBuilder.Lists (Result ochazuke.ResultLists). Its answer is every
 // list's rows in one process, as JSON Lines (Lines of Row): one object per
 // line, no outer array, each tagged with the list noun whose row source
 // (CatalogDoc.RowSource) a host would otherwise run:
@@ -239,6 +239,9 @@ type CatalogVerb struct {
 	// hand. A generated verb is not builtin: it is the tool's, on the
 	// tool's noun, and mounts like any of its verbs.
 	Standard string `json:"standard,omitempty"`
+	// Subject is what the verb acts on: "" one thing, "collection" all of
+	// the noun's things (ochazuke.Operation.Subject).
+	Subject string `json:"subject,omitempty"`
 }
 
 // AppVerbs are the noun's verbs the tool defined: every verb but the
@@ -414,7 +417,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 			}
 			doc.Nouns = append(doc.Nouns, noun)
 		}
-		if op.State && doc.State == "" {
+		if op.Result == ochazuke.ResultLists && doc.State == "" {
 			doc.State = op.Key.Short()
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
@@ -422,6 +425,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		verb.Foreground = op.Foreground
 		verb.OpensPage = op.OpensPage
 		verb.ByAssociation = op.ByAssociation
+		verb.Subject = op.Subject
 		verb.FocusBound = op.FocusBound
 		verb.Motion, verb.Typing, verb.Staying = op.Motion, op.Typing, op.Staying
 		verb.Slot = op.Slot

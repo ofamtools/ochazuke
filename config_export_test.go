@@ -16,12 +16,12 @@ import (
 // a sandbox has none and says so.
 func TestConfigPathPrintsTheConfigAndStateDirectories(t *testing.T) {
 	r := NewRuntime()
-	if _, err := r.Execute(Request{Verb: "path", Noun: "ochazuke.config"}); err == nil {
+	if _, err := r.Execute(Request{Prop: "path", Noun: "ochazuke.config"}); err == nil {
 		t.Fatal("config.path answered without any directory")
 	}
 	dir, state := t.TempDir(), t.TempDir()
 	r.Config().Dir, r.Config().StateDir = dir, state
-	got, err := r.Execute(Request{Verb: "path", Noun: "ochazuke.config"})
+	got, err := r.Execute(Request{Prop: "path", Noun: "ochazuke.config"})
 	if err != nil {
 		t.Fatal(err)
 	}

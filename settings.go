@@ -944,13 +944,14 @@ func registerSettings(r *Runtime) {
 	registerSettingLayout(r)
 	// Rows naming a setting ({terminal-leader}) follow its value.
 	r.Config().settings.Observe("", func(name string, _ any) { r.rebindSettingRows(name) })
-	r.Register(Operation{Key: "ochazuke.setting.names", HistoryKind: HistoryFetch, Description: "List the names of the declared settings", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		names := []string{}
-		for _, one := range r.Settings().declared {
-			names = append(names, one.Name)
-		}
-		return names, nil
-	}})
+	r.Define("ochazuke.setting").Props(PropSpec{Name: "names", Subject: SubjectCollection, Parameter: Parameter{Type: SettingList, Description: "The names of the declared settings"},
+		Read: func(c Ctx, _ Thing) (any, error) {
+			names := []string{}
+			for _, one := range c.Runtime.Settings().declared {
+				names = append(names, one.Name)
+			}
+			return names, nil
+		}})
 	r.Register(Operation{Key: "ochazuke.setting.reload", HistoryKind: HistoryFetch, Description: "Read settings.json again; observers see every value that changed", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.Settings().Reload()
 		if problems == nil {
@@ -958,13 +959,7 @@ func registerSettings(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.setting.path", HistoryKind: HistoryFetch, Description: "Print the settings file: settings.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		path := r.Config().Path(SettingsFile)
-		if path == "" {
-			return nil, errors.New("this application has no config directory")
-		}
-		return path, nil
-	}})
+	r.Define("ochazuke.setting").Props(filePathProp("The settings file: settings.json beside bindings.json", "this application has no config directory", func(r *Runtime) string { return r.Config().Path(SettingsFile) }))
 }
 
 // patchJSONCObject is the JSONC object in old with its members set to

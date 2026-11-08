@@ -27,7 +27,7 @@ func TestSettingThingsAndProps(t *testing.T) {
 			t.Fatalf("setting prop %s is writable", p.Name)
 		}
 	}
-	if want := []string{"name", "type", "default", "value", "enum", "protected", "description", "section", "owner", "group", "origin"}; !reflect.DeepEqual(props, want) {
+	if want := []string{"name", "type", "default", "value", "enum", "protected", "description", "section", "owner", "group", "origin", "owners", "names", "path"}; !reflect.DeepEqual(props, want) {
 		t.Fatalf("setting props %v", props)
 	}
 	rec := paletteRequest(t, r, "get", "setting", Arguments{"name": "theme"}).(map[string]any)

@@ -134,7 +134,7 @@ func TestFrameworkCatalogDeclaresHistory(t *testing.T) {
 			t.Errorf("framework verb %s missing from catalog", key)
 		}
 	}
-	for _, key := range []string{"ochazuke.catalog.describe", "ochazuke.catalog.list", "ochazuke.mcp.tools", "ochazuke.agent.rights"} {
+	for _, key := range []string{"ochazuke.catalog.describe", "ochazuke.catalog.list", "ochazuke.mcp.tools"} {
 		if op, ok := r.Operations.Find(ochazuke.Key(key)); !ok || op.HistoryKind != ochazuke.HistoryFetch {
 			t.Errorf("%s: want explicitly registered fetch, got %+v", key, op)
 		}

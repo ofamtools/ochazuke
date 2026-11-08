@@ -423,12 +423,6 @@ func registerHistory(r *Runtime) {
 			}
 			return nil, fmt.Errorf("no history entry %q", key)
 		}})
-	r.Register(Operation{Key: "ochazuke.history-entry.path", HistoryKind: HistoryFetch, Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		path := r.Config().HistoryPath()
-		if path == "" {
-			return nil, errors.New("this application does not keep its history")
-		}
-		return path, nil
-	}})
+	r.Define("ochazuke.history-entry").Props(filePathProp("The history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", "this application does not keep its history", func(r *Runtime) string { return r.Config().HistoryPath() }))
 	registerUndo(r)
 }

@@ -385,7 +385,7 @@ func settingWritePrompt(v settingVerb) func(r *Runtime, a Arguments) string {
 // and its own.
 func settingParams(v settingVerb) map[string]Parameter {
 	params := map[string]Parameter{
-		"name": {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.names"},
+		"name": {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.list"},
 	}
 	if v.Next != nil {
 		params["scope"] = Parameter{Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the value is written: session (the default: settings.json when there is no running session or settings.autosave is on) or file"}

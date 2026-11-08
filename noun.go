@@ -561,13 +561,22 @@ func (b *NounBuilder) Rows(noun string) *NounBuilder {
 	})
 }
 
-// State marks the last declared verb as the runtime's state source
-// (Operation.State): one call answers every list's rows as JSON Lines, each
-// line tagged with the list noun (see cli.CatalogDoc). A host reading the
+// Lists marks the last declared verb as the state source (Result =
+// ResultLists): one call answers every list's rows as JSON Lines, each line
+// tagged with the list noun (see cli.CatalogDoc). A host reading the
 // catalog's state runs it once instead of one row source per list. The
-// framework names no state verb.
-func (b *NounBuilder) State() *NounBuilder {
-	return b.lastOp("State", func(o *Operation) { o.State = true })
+// framework's own source is ochazuke.snapshot.get with lists: true, for the
+// nouns with a store. This replaces the State flag.
+func (b *NounBuilder) Lists() *NounBuilder {
+	return b.lastOp("Lists", func(o *Operation) { o.Result = ResultLists })
+}
+
+// OfCollection marks the last declared verb as acting on all of the noun's
+// things rather than one (Operation.Subject = SubjectCollection): it takes
+// no subject, and a host does not ask for a row to run it on. A prop of the
+// same kind is a PropSpec with Subject: SubjectCollection.
+func (b *NounBuilder) OfCollection() *NounBuilder {
+	return b.lastOp("OfCollection", func(o *Operation) { o.Subject = SubjectCollection })
 }
 
 // Quiet marks the last declared verb as bookkeeping (Operation.Quiet): its

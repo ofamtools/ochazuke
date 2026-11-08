@@ -170,7 +170,7 @@ func TestBuiltinHistoryKeepsRegistrationAnnotations(t *testing.T) {
 	r.Builtin(func() {
 		r.Define("kind-fixture").
 			Verb("rows", handler).Rows("kind-fixture").
-			Verb("state", handler).State().
+			Verb("state", handler).Lists().
 			Verb("read", handler).Fetch().
 			Verb("write", handler)
 		r.Register(Operation{Key: "kind-fixture.interaction", HistoryKind: HistoryAction, AppHandler: handler})

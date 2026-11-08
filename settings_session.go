@@ -634,7 +634,7 @@ func registerSettingsSession(r *Runtime) {
 		refreshSettingsPage(r)
 		refreshSettingsReview(r)
 	}
-	name := Parameter{Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.names"}
+	name := Parameter{Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.list"}
 	r.Register(Operation{Key: "ochazuke.setting.revert", Description: "Drop the setting's session value, so its saved value shows again", Parameters: map[string]Parameter{"name": name}, Result: "setting", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		one, err := settingOfArgs(r, c, a)
 		if err != nil {

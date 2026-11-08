@@ -256,7 +256,11 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	// JSON result to the protocol stream. Resolve its noun normally first,
 	// so an application's own noun wins over the framework alias.
 	if noun == "ochazuke.mcp" {
-		return s.mcpCommand(ctx, append([]string{verb}, flags...))
+		word := verb
+		if word == "" {
+			word = prop // instructions and config are props of mcp
+		}
+		return s.mcpCommand(ctx, append([]string{word}, flags...))
 	}
 	var q ochazuke.Request
 	var opts options

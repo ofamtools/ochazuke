@@ -51,7 +51,7 @@ func (st *stateTool) run(t testing.TB, flags ...string) (string, string) {
 			out[i] = row
 		}
 		return ochazuke.Done(out)
-	}, "every list's rows").State()
+	}, "every list's rows").Lists()
 	op := r.Operations.At(ochazuke.Key("status.state"))
 	op.Parameters = map[string]ochazuke.Parameter{"fresh": {Type: "boolean"}, "project": {Type: "string"}}
 	r.Operations.Set(op)
@@ -270,7 +270,7 @@ func maps(m map[string]string) func(func(string) bool) {
 func runErr(st *stateTool, flags ...string) (string, error) {
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
-	r.Define("status").Verb("state", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(Lines{}) }, "rows").State()
+	r.Define("status").Verb("state", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(Lines{}) }, "rows").Lists()
 	var out bytes.Buffer
 	sh := New(r, "tool", strings.NewReader(""), &out, &out)
 	sh.StateCache = StateCache{Dir: st.dir}
@@ -424,7 +424,7 @@ func TestStateDeltaFromAPendingVerb(t *testing.T) {
 			return ochazuke.Pending(func(context.Context) (any, error) {
 				return Lines{Row{Noun: "skill", ID: "s1", Label: label}, Row{Noun: "skill", ID: "s2", Label: "two <b>"}}, nil
 			})
-		}, "rows").State()
+		}, "rows").Lists()
 		var out, errOut bytes.Buffer
 		sh := New(r, "tool", strings.NewReader(""), &out, &errOut)
 		sh.StateCache.Dir = dir

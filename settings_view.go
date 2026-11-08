@@ -201,7 +201,7 @@ func registerSettingsEditor(r *Runtime) {
 // takes a positional parameter.
 func registerSettingEdit(r *Runtime) {
 	r.Register(Operation{Key: "ochazuke.setting.edit", Description: "Edit the setting: flip a boolean, take an enum's next value, add an item to a list, else type a new value", Parameters: map[string]Parameter{
-		"name":  {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.names"},
+		"name":  {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.list"},
 		"scope": {Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the value is written: session (the default) or file (the Settings page's keys)"},
 	}, Positional: []string{"name"}, Result: "setting", Run: settingEdit})
 }

@@ -378,7 +378,7 @@ func TestSegmentRowsLayer(t *testing.T) {
 	if got := m.StatusSegments(); !reflect.DeepEqual(got, []string{"CPU 7%"}) {
 		t.Fatalf("StatusSegments = %q", got)
 	}
-	names, _ := r.Execute(Request{Noun: "segment", Verb: "names"})
+	names, _ := r.Execute(Request{Noun: "segment", Prop: "names"})
 	if !reflect.DeepEqual(names, []string{"cpu"}) {
 		t.Fatalf("names = %v", names)
 	}

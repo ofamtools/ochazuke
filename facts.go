@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"strconv"
@@ -281,7 +282,8 @@ func registerStateFacts(r *Runtime) {
 	for i := range props {
 		props[i].ReadOnly = true
 	}
-	r.Define("ochazuke.snapshot").Props(props...).Store(Store{
+	n := r.Define("ochazuke.snapshot").Props(props...)
+	n.Store(Store{
 		Kind: Singleton, Facts: true,
 		// The snapshot in its JSON form, as the old JSON Pointer read it:
 		// what a CLI or an agent sees, never a live Go value.
@@ -294,6 +296,66 @@ func registerStateFacts(r *Runtime) {
 			return t, json.Unmarshal(data, &t)
 		},
 	})
+	// get {lists}: the rows of every list of the program's own nouns in one
+	// call, as JSON Lines tagged by noun. It is the framework's state source
+	// (ResultLists): what a tool's own "every list's rows" verb answered
+	// for the nouns that have a store. Without lists, get is the standard one.
+	params := getParams(r.Nouns["ochazuke.snapshot"])
+	params["lists"] = Parameter{Type: "boolean", Description: "Answer the rows of every list of the program's nouns that have a store, as JSON Lines {noun, id, label, data} (the state source), instead of the snapshot"}
+	r.Register(Operation{Key: "ochazuke.snapshot.get", Description: "Read the runtime snapshot or one field of it; with lists, the rows of every list in one call", Parameters: params,
+		Result: "JSON value", HistoryKind: HistoryFetch, ShadowsStandard: true, Agent: AgentAllow,
+		AppHandler: func(c Ctx) Result {
+			noun := c.Runtime.Nouns["ochazuke.snapshot"]
+			if on, _ := c.Args["lists"].(bool); on {
+				rows, err := c.Runtime.listRows(c)
+				if err != nil {
+					return Failed(err)
+				}
+				return Done(rows)
+			}
+			v, err := runGet(c.Runtime, noun, c)
+			if err != nil {
+				return Failed(err)
+			}
+			return Done(v)
+		}})
+}
+
+// listRows are the rows of every list of the program's own nouns: each
+// noun with a local store that lists (not the framework's, not a system fact, not one whose
+// things live in another program), its things as the standard list shows
+// them, one JSON object per row {noun, id, label, data}, in noun order.
+func (r *Runtime) listRows(c Ctx) (Lines, error) {
+	out := Lines{}
+	for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
+		n := r.Nouns[name]
+		if n.Store == nil || n.Store.List == nil || n.Store.Facts || n.Store.Remote || n.Store.Kind != KindCollection {
+			continue
+		}
+		if list, ok := r.Operations.Find(KeyOf(name, "list")); !ok || list.Builtin || list.Unavailable != "" {
+			continue // the framework's own noun, or one that cannot list
+		}
+		q, err := r.listQueryOf(n, Arguments{})
+		if err != nil {
+			return nil, err
+		}
+		page, err := r.queryThings(c, n, q)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", r.DisplayNoun(name), err)
+		}
+		key := n.keyProp()
+		for _, t := range page.Items {
+			row := map[string]any{"noun": name, "data": thingRecord(n, t, nil)}
+			if key != nil {
+				row["id"] = fmt.Sprint(t[key.Name])
+			}
+			if label := n.displayLabel(func(p string) any { return t[p] }); label != "" {
+				row["label"] = label
+			}
+			out = append(out, row)
+		}
+	}
+	return out, nil
 }
 
 // registerJobFacts declares the job noun: the off-loop jobs, running and

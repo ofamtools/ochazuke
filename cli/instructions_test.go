@@ -182,7 +182,7 @@ func TestAgentInstructionsVerbAndInitialize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result := mcpCall(t, server, "run", map[string]any{"verb": "ochazuke.agent.instructions"})
+	result := mcpCall(t, server, "run", map[string]any{"verb": "ochazuke.agent.get", "args": map[string]any{"prop": "instructions"}})
 	if result["status"] != "done" || result["result"] != server.Instructions() {
 		t.Fatal(result)
 	}

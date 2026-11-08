@@ -214,7 +214,7 @@
           "name": "state",
           "description": "Every list's rows in one call",
           "kind": "application",
-          "result": "JSON value",
+          "result": "lists",
           "history": "fetch",
           "builtin": false
         },
