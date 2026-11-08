@@ -1,6 +1,6 @@
 {
   "schema": 1, "name": "host", "version": "v1.0.0",
-  "aliases": {"list": "ochazuke.collection", "terminal": "ochazuke.terminal"},
+  "aliases": {"list": "ochazuke.list", "terminal": "ochazuke.terminal"},
   "nouns": [
     {"name": "app", "verbs": [
       {"name": "quit", "kind": "interaction", "builtin": true},
@@ -15,7 +15,7 @@
     ]},
     {"name": "project", "verbs": [{"name": "open", "kind": "application"}]},
     {"name": "ext-agent", "verbs": [{"name": "list", "kind": "application"}]},
-    {"name": "ochazuke.collection", "verbs": [
+    {"name": "ochazuke.list", "verbs": [
       {"name": "move", "kind": "interaction", "builtin": true, "params": {"delta": {"type": "integer"}}},
       {"name": "pick", "kind": "interaction", "builtin": true}
     ]},
@@ -26,7 +26,7 @@
   ],
   "bindings": [
     {"noun": "pane", "mode": "normal", "keys": "enter", "request": {"verb": "attach", "noun": "pane"}},
-    {"noun": "ochazuke.collection", "mode": "normal", "keys": "j", "request": {"verb": "move", "noun": "ochazuke.collection", "args": {"delta": 1}}},
+    {"noun": "ochazuke.list", "mode": "normal", "keys": "j", "request": {"verb": "move", "noun": "ochazuke.list", "args": {"delta": 1}}},
     {"noun": "pane", "mode": "normal", "keys": "x", "request": {"verb": "gone", "noun": "pane"}}
   ]
 }

@@ -156,7 +156,7 @@ func TestJobsAreKeptThings(t *testing.T) {
 	r.Settle(ticket, nil)
 	for range 2 {
 		rows := rowsOf[JobInfo](t, mustRun(t, r, Request{Noun: "ochazuke.job", Verb: "list"}))
-		if len(rows) != 1 || rows[0].State != JobDone {
+		if len(rows) != 1 || rows[0].Status != JobDone {
 			t.Fatalf("job list %+v", rows)
 		}
 	}

@@ -58,7 +58,7 @@ func TestForegroundHeadlessReportsTheExit(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "doc", Verb: "open"}); err != nil {
 		t.Fatal(err)
 	}
-	if jobs := r.Jobs(); len(jobs) != 1 || jobs[0].State != JobRunning || jobs[0].Label != "sh" {
+	if jobs := r.Jobs(); len(jobs) != 1 || jobs[0].Status != JobRunning || jobs[0].Label != "sh" {
 		t.Fatalf("jobs %+v", jobs)
 	}
 	drain(t, r, func(msg tea.Msg) { _, _ = r.Deliver(msg) })
@@ -77,7 +77,7 @@ func TestForegroundHeadlessReportsTheExit(t *testing.T) {
 	if sink.LastError() != "sh exited with status 3" || deliverErr == nil || len(exits) != 2 || exits[1].Code != 3 {
 		t.Fatalf("error %q deliver %v exits %+v", sink.LastError(), deliverErr, exits)
 	}
-	if jobs := r.Jobs(); jobs[len(jobs)-1].State != JobFailed {
+	if jobs := r.Jobs(); jobs[len(jobs)-1].Status != JobFailed {
 		t.Fatalf("jobs %+v", jobs)
 	}
 }

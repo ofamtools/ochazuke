@@ -45,7 +45,7 @@ func (m *Model) quitHooks() (tea.Cmd, bool) {
 			reason = "quit forced; completion was not confirmed"
 		}
 		for _, j := range r.jobs {
-			if j.flush && j.State == JobRunning {
+			if j.flush && j.Status == JobRunning {
 				if j.abandon == nil {
 					text := "Not saved: " + j.Verb + " " + j.Label + ": " + reason
 					r.UI().Notify(text)
@@ -63,7 +63,7 @@ func (m *Model) quitHooks() (tea.Cmd, bool) {
 	}
 	var labels []string
 	for _, j := range r.jobs {
-		if j.flush && j.State == JobRunning {
+		if j.flush && j.Status == JobRunning {
 			labels = append(labels, j.Label)
 		}
 	}
@@ -75,7 +75,7 @@ func (m *Model) quitHooks() (tea.Cmd, bool) {
 
 func (r *Runtime) flushJobsRunning() bool {
 	for _, j := range r.jobs {
-		if j.flush && j.State == JobRunning {
+		if j.flush && j.Status == JobRunning {
 			return true
 		}
 	}

@@ -72,7 +72,7 @@ func (p *pump) open() {
 // editLoading reports a running edit open job.
 func (p *pump) editLoading() bool {
 	for _, j := range p.r.Jobs() {
-		if j.State == ochazuke.JobRunning && j.Verb == "ext-parcel.edit" {
+		if j.Status == ochazuke.JobRunning && j.Verb == "ext-parcel.edit" {
 			return true
 		}
 	}
@@ -82,7 +82,7 @@ func (p *pump) editLoading() bool {
 // idle reports no running job.
 func (p *pump) idle() bool {
 	for _, j := range p.r.Jobs() {
-		if j.State == ochazuke.JobRunning {
+		if j.Status == ochazuke.JobRunning {
 			return false
 		}
 	}

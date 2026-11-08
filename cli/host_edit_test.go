@@ -245,7 +245,7 @@ func TestEditGetLandsAfterFocusMoved(t *testing.T) {
 			}
 			running := 0
 			for _, j := range r.Jobs() {
-				if j.State == ochazuke.JobRunning {
+				if j.Status == ochazuke.JobRunning {
 					running++
 				}
 			}
@@ -314,7 +314,7 @@ func testReopenOrdersWrites(t *testing.T, mode string) {
 	press("A", "y", "esc", exit)
 	writes := 0
 	for _, j := range r.Jobs() {
-		if j.Verb == "ext-parcel.set" && j.State == ochazuke.JobRunning {
+		if j.Verb == "ext-parcel.set" && j.Status == ochazuke.JobRunning {
 			writes++
 		}
 	}

@@ -366,13 +366,13 @@ func TestChooserJobBelongsToTheOpener(t *testing.T) {
 		t.Fatal(err)
 	}
 	jobs := r.Jobs()
-	if len(jobs) != 1 || jobs[0].Owner != "r1" || jobs[0].State != JobRunning || jobs[0].Label != "claude" {
+	if len(jobs) != 1 || jobs[0].Owner != "r1" || jobs[0].Status != JobRunning || jobs[0].Label != "claude" {
 		t.Fatalf("jobs = %+v, want one running job owned by r1", jobs)
 	}
 	for _, msg := range runCmd(r.PendingCommands()) {
 		r.Deliver(msg)
 	}
-	if !slices.Equal(landed, []string{"claude<nil>"}) || r.Jobs()[0].State != JobDone {
+	if !slices.Equal(landed, []string{"claude<nil>"}) || r.Jobs()[0].Status != JobDone {
 		t.Fatalf("completion: landed %q, jobs %+v", landed, r.Jobs())
 	}
 }

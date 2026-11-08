@@ -343,7 +343,7 @@ func (c *Completer) answer(a completionAnswer) {
 
 // cancel stops one search job.
 func (c *Completer) cancel(job uint64) {
-	if j := c.r.jobs[job]; j != nil && j.State == JobRunning {
+	if j := c.r.jobs[job]; j != nil && j.Status == JobRunning {
 		c.r.finish(j, JobCancelled, nil)
 	}
 	delete(c.jobs, job)

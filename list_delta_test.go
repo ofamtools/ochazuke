@@ -100,7 +100,7 @@ func TestListPatchKeepsInstancesSelectionMarksAndJobs(t *testing.T) {
 	}
 	states := map[uint64]string{}
 	for _, j := range r.Jobs() {
-		states[j.Job] = j.State
+		states[j.Job] = j.Status
 	}
 	if states[kept.Job] != JobRunning || states[dropped.Job] != JobCancelled {
 		t.Fatalf("jobs = %v: the kept row's runs, the removed row's is cancelled", states)

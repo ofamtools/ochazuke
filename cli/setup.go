@@ -42,7 +42,7 @@ func setupRows(rows []setup.Status, err error) ([]setupRow, error) {
 		if path == "" && row.Probe != nil {
 			path = row.Probe.Path
 		}
-		out = append(out, setupRow{row, []string{row.ID, string(row.Kind), string(row.State), path, row.Next}})
+		out = append(out, setupRow{row, []string{row.ID, string(row.Kind), string(row.Status), path, row.Next}})
 	}
 	return out, nil
 }
@@ -64,7 +64,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 	d := &setupDeclaration{items: append([]setup.Item(nil), items...), options: options}
 	r.Builtin(func() {
 		r.DeclareSetting(ochazuke.Setting{Name: SetupSkipSetting, Type: ochazuke.SettingList, Default: []string{}, Description: "Setup item ids to skip", Section: "setup"})
-		b := r.Define("setup").Columns(ochazuke.Column{Title: "Item"}, ochazuke.Column{Title: "Kind"}, ochazuke.Column{Title: "State"}, ochazuke.Column{Title: "Target"}, ochazuke.Column{Title: "Next step", Wrap: true})
+		b := r.Define("setup").Columns(ochazuke.Column{Title: "Item"}, ochazuke.Column{Title: "Kind"}, ochazuke.Column{Title: "Status"}, ochazuke.Column{Title: "Target"}, ochazuke.Column{Title: "Next step", Wrap: true})
 		b.Props(setupProps...).Store(ochazuke.Store{Kind: ochazuke.KindCollection, Facts: true,
 			List: func(c ochazuke.Ctx, _ ochazuke.ListQuery) ([]ochazuke.Thing, error) { return d.things(r, "", nil) },
 			Get: func(c ochazuke.Ctx, id string) (ochazuke.Thing, error) {
@@ -126,7 +126,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 			if v == "yank" {
 				b.TextResult()
 			}
-			if v == "list" || v == "status" || v == "install" || v == "uninstall" {
+			if v == "list" || v == "check" || v == "install" || v == "uninstall" {
 				b.Rows("setup")
 			}
 			op := r.Operations.At(ochazuke.Key(r.CanonicalKey("setup." + v)))
@@ -152,7 +152,7 @@ var setupVerbs = []struct {
 	name, description string
 	shadows           bool
 }{
-	{"status", "Setup state and exact next steps", false}, {"list", "List setup items and states", true}, {"show", "Show one setup item in full", false}, {"plan", "Show all writes and argv without installing", false}, {"install", "Install the selected setup items", false}, {"uninstall", "Remove only the selected owned integrations", false}, {"yank", "Print an item's content or advice for pasting", false},
+	{"check", "Check whether each setup item is in place, and say the exact next steps", false}, {"list", "List setup items and states", true}, {"show", "Show one setup item in full", false}, {"plan", "Show all writes and argv without installing", false}, {"install", "Install the selected setup items", false}, {"uninstall", "Remove only the selected owned integrations", false}, {"yank", "Print an item's content or advice for pasting", false},
 }
 
 // setupProps are the setup noun's props: one thing per declared item (and
@@ -165,7 +165,7 @@ var setupProps = []ochazuke.PropSpec{
 	{Name: "kind", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "How it is set up (block, file, json, command ...)"}},
 	{Name: "group", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "Its group, when it has one"}},
 	{Name: "path", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "The file it writes or probes"}},
-	{Name: "state", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "installed, missing, outdated, manual ..."}},
+	{Name: "status", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "installed, missing, outdated, manual ..."}},
 	{Name: "reason", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "Why it is in that state, when it says"}},
 	{Name: "next", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "The exact next step"}},
 	{Name: "opt_in", ReadOnly: true, Parameter: ochazuke.Parameter{Type: ochazuke.SettingBoolean, Description: "Whether only an explicit install selects it"}},
@@ -223,7 +223,7 @@ func (d *setupDeclaration) things(r *ochazuke.Runtime, home string, ids []string
 			path = st.Probe.Path
 		}
 		out = append(out, ochazuke.Thing{"id": st.ID, "name": st.Name, "description": st.Description, "kind": string(st.Kind), "group": st.Group,
-			"path": path, "state": string(st.State), "reason": st.Reason, "next": st.Next, "opt_in": st.OptIn})
+			"path": path, "status": string(st.Status), "reason": st.Reason, "next": st.Next, "opt_in": st.OptIn})
 	}
 	return out, nil
 }
@@ -246,7 +246,7 @@ func (s *Shell) mountSetup(app *oden.App) {
 		return
 	}
 	if len(app.Args) > 0 && app.Args[0] == "setup" && (len(app.Args) == 1 || strings.HasPrefix(app.Args[1], "--") && app.Args[1] != "--help") {
-		app.Args = append([]string{"setup", "status"}, app.Args[1:]...)
+		app.Args = append([]string{"setup", "check"}, app.Args[1:]...)
 	}
 	children := make([]oden.Command, 0, len(setupVerbs))
 	for _, verb := range setupVerbs {
@@ -293,7 +293,7 @@ func printSetup(out io.Writer, tool, verb string, raw []byte) error {
 			return err
 		}
 		for _, st := range p.Items {
-			fmt.Fprintf(out, "%s: %s\n", st.ID, st.State)
+			fmt.Fprintf(out, "%s: %s\n", st.ID, st.Status)
 		}
 		for _, w := range p.Writes {
 			fmt.Fprintf(out, "write: %s\n%s\n", w.Path, w.Content)
@@ -310,16 +310,16 @@ func printSetup(out io.Writer, tool, verb string, raw []byte) error {
 		}
 		if verb == "list" {
 			w := tabwriter.NewWriter(out, 0, 2, 2, ' ', 0)
-			fmt.Fprintln(w, "ITEM\tKIND\tSTATE\tTARGET\tNEXT STEP")
+			fmt.Fprintln(w, "ITEM\tKIND\tSTATUS\tTARGET\tNEXT STEP")
 			for _, st := range rows {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", st.ID, st.Kind, st.State, st.Path, st.Next)
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n", st.ID, st.Kind, st.Status, st.Path, st.Next)
 			}
 			return w.Flush()
 		}
 		all := true
 		for _, st := range rows {
-			fmt.Fprintf(out, "%s: %s", st.ID, st.State)
-			if st.State != setup.Installed {
+			fmt.Fprintf(out, "%s: %s", st.ID, st.Status)
+			if st.Status != setup.Installed {
 				all = false
 				if st.Reason != "" {
 					fmt.Fprintf(out, " (%s)", st.Reason)
@@ -330,7 +330,7 @@ func printSetup(out io.Writer, tool, verb string, raw []byte) error {
 			}
 			fmt.Fprintln(out)
 		}
-		if verb == "status" {
+		if verb == "check" {
 			if all {
 				fmt.Fprintln(out, "everything is set up")
 			} else {

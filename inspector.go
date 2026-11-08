@@ -315,7 +315,7 @@ func (r *Runtime) Inspect() Inspection {
 	}
 	if s.last != nil {
 		v := *s.last
-		if j := r.jobs[v.Job]; v.Pending && j != nil && j.State != JobRunning {
+		if j := r.jobs[v.Job]; v.Pending && j != nil && j.Status != JobRunning {
 			v.Pending = false
 			v.Error = inspectText(j.Error).Text
 		}

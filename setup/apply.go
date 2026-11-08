@@ -31,8 +31,8 @@ func (s *Setup) Apply(ctx context.Context, p *Plan) error {
 		if p.excluded[st.ID] {
 			continue
 		}
-		if st.State == Conflict || st.State == External {
-			return fmt.Errorf("%s: %s: %s", st.ID, st.State, st.Reason)
+		if st.Status == Conflict || st.Status == External {
+			return fmt.Errorf("%s: %s: %s", st.ID, st.Status, st.Reason)
 		}
 	}
 	for _, cmd := range p.Commands {
@@ -171,8 +171,8 @@ func (s *Setup) unchangedCommand(ctx context.Context, p *Plan, id string) error 
 		if err != nil {
 			return err
 		}
-		if state != item.State {
-			return fmt.Errorf("%s changed since setup plan (%s to %s); plan again", id, item.State, state)
+		if state != item.Status {
+			return fmt.Errorf("%s changed since setup plan (%s to %s); plan again", id, item.Status, state)
 		}
 		return nil
 	}

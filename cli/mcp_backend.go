@@ -192,8 +192,8 @@ func (b *mcpBackend) Call(ctx context.Context, tool string, args map[string]any)
 		return b.describe(ochazuke.StringArg(args, "verb", ""))
 	case "run":
 		return b.run(ctx, args)
-	case "state":
-		return b.state(args), nil
+	case "snapshot":
+		return b.snapshot(args), nil
 	}
 	return nil, fmt.Errorf("unknown catalog tool %q", tool)
 }
@@ -437,7 +437,7 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 	return answer, nil
 }
 
-func (b *mcpBackend) state(args map[string]any) map[string]any {
+func (b *mcpBackend) snapshot(args map[string]any) map[string]any {
 	r := b.shell.Runtime
 	out := map[string]any{"live": false, "app": b.shell.Bin, "page": r.Page, "focus": map[string]any{}, "mode": r.Mode.Name, "modals": []any{}, "selection": nil}
 	if inst := r.Instances[r.Focus]; inst != nil {

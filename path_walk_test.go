@@ -197,7 +197,7 @@ func TestPathWalkStreams(t *testing.T) {
 		t.Fatal("chooser still open")
 	}
 	for _, j := range r.Jobs() {
-		if j.Verb == chooserLoadVerb && j.State == JobRunning {
+		if j.Verb == chooserLoadVerb && j.Status == JobRunning {
 			t.Fatalf("walk still running after close: %+v", j)
 		}
 	}

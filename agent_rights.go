@@ -202,7 +202,7 @@ func (r *Runtime) agentActivity() string {
 	}
 	var newest *job
 	for _, j := range r.jobs {
-		if j.State == JobRunning && j.ctx.Actor().IsAgent() && (newest == nil || j.Job > newest.Job) {
+		if j.Status == JobRunning && j.ctx.Actor().IsAgent() && (newest == nil || j.Job > newest.Job) {
 			newest = j
 		}
 	}

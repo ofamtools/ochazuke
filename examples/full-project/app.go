@@ -35,7 +35,7 @@ func Build(cfg Config) (*ochazuke.Model, error) {
 		r.Define(spec.Noun)
 	}
 	for _, name := range cfg.App.Modes {
-		if _, err := r.Execute(ochazuke.Request{Verb: "register", Noun: "mode", Args: ochazuke.Arguments{"name": name}}); err != nil {
+		if _, err := r.Execute(ochazuke.Request{Verb: "create", Noun: "mode", Args: ochazuke.Arguments{"name": name}}); err != nil {
 			return nil, err
 		}
 	}

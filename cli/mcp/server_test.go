@@ -47,7 +47,7 @@ func TestMCPProtocolNegotiation(t *testing.T) {
 	for _, version := range append([]string{"future"}, protocolVersions...) {
 		t.Run(version, func(t *testing.T) {
 			s := testServer(t, backendFunc(func(context.Context, string, map[string]any) (any, error) { return map[string]any{"ok": true}, nil }))
-			replies := play(t, s, initialized(version)+`{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"state","arguments":{}}}`+"\n")
+			replies := play(t, s, initialized(version)+`{"jsonrpc":"2.0","id":"tool","method":"tools/call","params":{"name":"snapshot","arguments":{}}}`+"\n")
 			first := replies[0]["result"].(map[string]any)
 			want := version
 			if version == "future" {
@@ -74,7 +74,7 @@ func TestMCPProtocolValidation(t *testing.T) {
 	calls := 0
 	s := testServer(t, backendFunc(func(context.Context, string, map[string]any) (any, error) { calls++; return nil, nil }))
 	for _, args := range []string{
-		`{"name":"missing"}`, `{"name":"describe","arguments":{}}`, `{"name":"run","arguments":{"verb":"task.set","actor":{"kind":"owner"}}}`, `{"name":"run","arguments":{"verb":""}}`, `{"name":"run","arguments":{"verb":"task.set","args":[]}}`, `{"name":"run","arguments":{"verb":"task.set","dry_run":"yes"}}`, `{"name":"catalog","arguments":{"limit":1.5}}`, `{"name":"catalog","arguments":{"limit":0}}`, `{"name":"catalog","arguments":{"include":""}}`, `{"name":"state","arguments":{"include":["passwords"]}}`, `{"name":"describe","arguments":{"verb":null}}`, `{"name":"state","arguments":{"actor":"owner"}}`, `{"name":"state","arguments":{"unknown":1},"_meta":{"progressToken":1}}`,
+		`{"name":"missing"}`, `{"name":"describe","arguments":{}}`, `{"name":"run","arguments":{"verb":"task.set","actor":{"kind":"owner"}}}`, `{"name":"run","arguments":{"verb":""}}`, `{"name":"run","arguments":{"verb":"task.set","args":[]}}`, `{"name":"run","arguments":{"verb":"task.set","dry_run":"yes"}}`, `{"name":"catalog","arguments":{"limit":1.5}}`, `{"name":"catalog","arguments":{"limit":0}}`, `{"name":"catalog","arguments":{"include":""}}`, `{"name":"snapshot","arguments":{"include":["passwords"]}}`, `{"name":"describe","arguments":{"verb":null}}`, `{"name":"snapshot","arguments":{"actor":"owner"}}`, `{"name":"snapshot","arguments":{"unknown":1},"_meta":{"progressToken":1}}`,
 	} {
 		replies := play(t, s, initialized("2025-11-25")+`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":`+args+"}\n")
 		if replies[1]["error"].(map[string]any)["code"] != float64(-32602) {
@@ -98,7 +98,7 @@ func TestMCPMirrorsAndErrors(t *testing.T) {
 	}))
 	var lines strings.Builder
 	lines.WriteString(initialized("2025-11-25"))
-	requests := []string{`"method":"tools/list"`, `"method":"resources/list"`, `"method":"resources/read","params":{"uri":"ochazuke://catalog"}`, `"method":"resources/read","params":{"uri":"ochazuke://instructions"}`, `"method":"prompts/list"`, `"method":"prompts/get","params":{"name":"guide"}`, `"method":"tools/call","params":{"name":"state"}`, `"method":"nope"`}
+	requests := []string{`"method":"tools/list"`, `"method":"resources/list"`, `"method":"resources/read","params":{"uri":"ochazuke://catalog"}`, `"method":"resources/read","params":{"uri":"ochazuke://instructions"}`, `"method":"prompts/list"`, `"method":"prompts/get","params":{"name":"guide"}`, `"method":"tools/call","params":{"name":"snapshot"}`, `"method":"nope"`}
 	for i, req := range requests {
 		fmt.Fprintf(&lines, "{\"jsonrpc\":\"2.0\",\"id\":%d,%s}\n", i+2, req)
 	}
@@ -149,7 +149,7 @@ func TestMCPProtocolInvalidEnvelope(t *testing.T) {
 			t.Fatal(line, replies)
 		}
 	}
-	replies := play(t, s, initialized("2025-11-25")+`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"state","arguments":null}}`+"\n")
+	replies := play(t, s, initialized("2025-11-25")+`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"snapshot","arguments":null}}`+"\n")
 	if replies[1]["error"].(map[string]any)["code"] != float64(-32602) {
 		t.Fatal(replies)
 	}
@@ -163,8 +163,8 @@ func TestMCPIgnoresUnknownParamFields(t *testing.T) {
 	}))
 	in := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"c"},"_meta":{"progressToken":1},"newField":true}}` + "\n" +
 		`{"jsonrpc":"2.0","method":"notifications/initialized"}` + "\n" +
-		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"state","arguments":{},"_meta":{"progressToken":7},"future":1}}` + "\n" +
-		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"state","_meta":{"progressToken":"a"}}}` + "\n" +
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"snapshot","arguments":{},"_meta":{"progressToken":7},"future":1}}` + "\n" +
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"snapshot","_meta":{"progressToken":"a"}}}` + "\n" +
 		`{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"ochazuke://instructions","_meta":{"progressToken":2}}}` + "\n" +
 		`{"jsonrpc":"2.0","id":5,"method":"prompts/get","params":{"name":"guide","_meta":{"progressToken":3}}}` + "\n"
 	replies := play(t, s, in)

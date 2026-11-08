@@ -38,7 +38,7 @@ func TestCancelledWriteReleasesThing(t *testing.T) {
 	press("A", "x", "esc", "esc")
 	var job uint64
 	for _, j := range r.Jobs() {
-		if j.Verb == "ext-parcel.set" && j.State == ochazuke.JobRunning {
+		if j.Verb == "ext-parcel.set" && j.Status == ochazuke.JobRunning {
 			job = j.Job
 		}
 	}

@@ -31,7 +31,7 @@ func TestBindingsDefaultsPrintsAFile(t *testing.T) {
 	r.Config().Disable()
 	var out, errs strings.Builder
 	s := New(r, "demo", nil, &out, &errs)
-	if err := s.Run(context.Background(), []string{"bindings", "defaults"}); err != nil {
+	if err := s.Run(context.Background(), []string{"binding", "defaults"}); err != nil {
 		t.Fatalf("%v: %s", err, errs.String())
 	}
 	text := out.String()

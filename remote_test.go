@@ -107,7 +107,7 @@ func pumpRemote(t *testing.T, r *Runtime) {
 
 func hasRunning(r *Runtime) bool {
 	for _, j := range r.Jobs() {
-		if j.State == JobRunning {
+		if j.Status == JobRunning {
 			return true
 		}
 	}
@@ -200,7 +200,7 @@ func TestRemoteCancelMidSequence(t *testing.T) {
 	settleOnce(t, r)
 	var job uint64
 	for _, j := range r.Jobs() {
-		if j.State == JobRunning {
+		if j.Status == JobRunning {
 			job = j.Job
 		}
 	}

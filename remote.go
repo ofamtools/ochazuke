@@ -281,7 +281,7 @@ func (s *remoteRun) alive() bool {
 		return true
 	}
 	j := s.r.jobs[s.job]
-	return j != nil && j.State == JobRunning
+	return j != nil && j.Status == JobRunning
 }
 
 // leave takes the verb out of its queue.

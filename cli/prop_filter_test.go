@@ -58,7 +58,7 @@ func TestPropFilterShellAndCatalog(t *testing.T) {
 		t.Fatalf("filters %+v err %v", filters, err)
 	}
 	out.Reset()
-	if err := shell.Run(context.Background(), []string{"bindings", "check"}); err != nil {
+	if err := shell.Run(context.Background(), []string{"binding", "check"}); err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(out.String(), `"severity":"error"`) {
@@ -123,9 +123,9 @@ func TestPropFilterShellSavedManagementAndOrder(t *testing.T) {
 	var out, stderr bytes.Buffer
 	shell := New(r, "test", strings.NewReader(""), &out, &stderr)
 	for _, args := range [][]string{
-		{"list", "filter-save", "--id", "notes", "--name", "local"},
-		{"list", "filters", "--id", "notes"},
-		{"list", "filter-saved-delete", "--id", "notes", "--name", "local", "--yes"},
+		{"collection", "filter-save", "--id", "notes", "--name", "local"},
+		{"collection", "filters", "--id", "notes"},
+		{"collection", "filter-saved-delete", "--id", "notes", "--name", "local", "--yes"},
 	} {
 		out.Reset()
 		if err := shell.Run(context.Background(), args); err != nil {

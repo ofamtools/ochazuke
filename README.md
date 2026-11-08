@@ -2718,9 +2718,9 @@ or argument list is `conflict`, and installation refuses it. `match.fields`
 can instead identify an owned JSON object by selected relative pointers; other
 differences then mean `outdated`. Whole-value equality also counts as installed.
 
-Every tool exposes `setup` (status), `setup list`, `setup show ITEM`,
+Every tool exposes `setup` (check), `setup list`, `setup show ITEM`,
 `setup plan [ITEM…]`, `setup install [ITEM…] [--group GROUP]`,
-`setup uninstall [ITEM…]` and `setup copy ITEM`. Status prints each item's state
+`setup uninstall [ITEM…]` and `setup yank ITEM`. Check prints each item's status
 and exact next command or text, followed by `run: TOOL setup install`, or
 `everything is set up`. List prints a table. `--json` uses the same stable item
 and plan schema across tools; the registry verbs also work in the palette and

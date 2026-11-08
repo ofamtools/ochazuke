@@ -15,7 +15,7 @@ import (
 // order follows declaration order, including when ids are selected explicitly.
 type Status struct {
 	Item
-	State  State  `json:"state"`
+	Status State  `json:"status"`
 	Reason string `json:"reason,omitempty"`
 	Next   string `json:"next,omitempty"`
 }
@@ -86,12 +86,12 @@ func (s *Setup) plan(ctx context.Context, sel Selection, remove, list bool) (*Pl
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", raw.ID, err)
 		}
-		st := Status{Item: i, State: Missing}
+		st := Status{Item: i, Status: Missing}
 		if i.OptIn && len(sel.IDs) == 0 {
 			p.excluded[i.ID] = true
 		}
 		if slices.Contains(s.options.Skip, i.ID) {
-			st.State = Skipped
+			st.Status = Skipped
 			st.Reason = "listed in setup.skip"
 			p.Items = append(p.Items, st)
 			continue
@@ -113,33 +113,33 @@ func (s *Setup) plan(ctx context.Context, sel Selection, remove, list bool) (*Pl
 				}
 			}
 			if err != nil {
-				st.State = NotApplicable
+				st.Status = NotApplicable
 				st.Reason = "requires " + req
 				break
 			}
 		}
-		if st.State == NotApplicable {
+		if st.Status == NotApplicable {
 			st.Next = i.Advice
 			p.Items = append(p.Items, st)
 			continue
 		}
 		if i.Kind == Command || i.Kind == Check {
-			st.State, st.Reason, err = s.commandStatus(ctx, i)
+			st.Status, st.Reason, err = s.commandStatus(ctx, i)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", i.ID, err)
 			}
 			st.Next = next(i, s.options.Tool, remove)
 			if i.Kind == Check {
-				if st.State != Installed && st.State != External {
-					st.State = Manual
+				if st.Status != Installed && st.Status != External {
+					st.Status = Manual
 				}
 				st.Next = i.Advice
 			}
-			if p.excluded[i.ID] && (st.State == Missing || st.State == Outdated) {
-				st.State = Manual
+			if p.excluded[i.ID] && (st.Status == Missing || st.Status == Outdated) {
+				st.Status = Manual
 			}
 			p.Items = append(p.Items, st)
-			if list || p.excluded[i.ID] || i.Kind == Check || st.State == External || st.State == Conflict || st.State == Manual || (!remove && st.State == Installed) || (remove && st.State == Missing) {
+			if list || p.excluded[i.ID] || i.Kind == Check || st.Status == External || st.Status == Conflict || st.Status == Manual || (!remove && st.Status == Installed) || (remove && st.Status == Missing) {
 				continue
 			}
 			argv := i.Install
@@ -153,7 +153,7 @@ func (s *Setup) plan(ctx context.Context, sel Selection, remove, list bool) (*Pl
 		if i.Follow {
 			resolved, err := followLinks(path)
 			if err != nil {
-				st.State = External
+				st.Status = External
 				st.Reason = err.Error()
 				st.Next = i.Advice
 				if st.Next == "" {
@@ -168,7 +168,7 @@ func (s *Setup) plan(ctx context.Context, sel Selection, remove, list bool) (*Pl
 			}
 		}
 		if err := regularPath(path); err != nil {
-			st.State = External
+			st.Status = External
 			st.Reason = err.Error()
 			st.Next = i.Advice
 			if st.Next == "" {
@@ -188,21 +188,21 @@ func (s *Setup) plan(ctx context.Context, sel Selection, remove, list bool) (*Pl
 			paths = append(paths, path)
 		}
 		out, state, err := s.fileEdit(i, have, remove)
-		st.State = state
+		st.Status = state
 		if err != nil {
-			st.State = Conflict
+			st.Status = Conflict
 			st.Reason = err.Error()
 		}
 		st.Next = next(i, s.options.Tool, remove)
-		if p.excluded[i.ID] && (st.State == Missing || st.State == Outdated) {
-			st.State = Manual
+		if p.excluded[i.ID] && (st.Status == Missing || st.Status == Outdated) {
+			st.Status = Manual
 			st.Next = i.Content
 			if i.Advice != "" {
 				st.Next = i.Advice
 			}
 		}
 		p.Items = append(p.Items, st)
-		if list || p.excluded[i.ID] || err != nil || st.State == Conflict || st.State == Manual || (!remove && st.State == Installed) || (remove && st.State == Missing) {
+		if list || p.excluded[i.ID] || err != nil || st.Status == Conflict || st.Status == Manual || (!remove && st.Status == Installed) || (remove && st.Status == Missing) {
 			continue
 		}
 		// Restore the exact original bytes only when no unrelated edits would

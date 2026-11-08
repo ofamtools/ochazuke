@@ -144,7 +144,7 @@ func TestActionRunsCommandAsLabelledJob(t *testing.T) {
 	if !reflect.DeepEqual(out["argv"], want) || out["target"] != "wt/main" || out["action"] != "worktree.open" || out["args"] != `{"line":7}` {
 		t.Fatalf("echo %v", out)
 	}
-	if got := r.Jobs(); got[0].State != JobDone {
+	if got := r.Jobs(); got[0].Status != JobDone {
 		t.Fatalf("job %+v", got[0])
 	}
 }
@@ -220,7 +220,7 @@ func TestActionOutputsFailuresAndTimeout(t *testing.T) {
 	}
 	states := map[string]string{}
 	for _, j := range r.Jobs() {
-		states[j.Verb] = j.State
+		states[j.Verb] = j.Status
 	}
 	if states["worktree.fail"] != JobFailed || states["worktree.text"] != JobDone {
 		t.Fatalf("states %v", states)

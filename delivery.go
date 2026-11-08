@@ -287,7 +287,7 @@ type JobInfo struct {
 	Slot    string    `json:"slot,omitempty"`
 	Scope   string    `json:"scope,omitempty"`
 	Started time.Time `json:"started"`
-	State   string    `json:"state"`
+	Status  string    `json:"status"`
 	Error   string    `json:"error,omitempty"`
 }
 
@@ -357,7 +357,7 @@ func (r *Runtime) IssueAt(owner, scope, verb, slot string, c Ctx) (Ticket, conte
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	r.jobSeq++
-	j := &job{JobInfo: JobInfo{Job: r.jobSeq, Owner: owner, Verb: verb, Slot: slot, Scope: scope, Started: time.Now(), State: JobRunning}, cancel: cancel, ctx: c}
+	j := &job{JobInfo: JobInfo{Job: r.jobSeq, Owner: owner, Verb: verb, Slot: slot, Scope: scope, Started: time.Now(), Status: JobRunning}, cancel: cancel, ctx: c}
 	if r.jobs == nil {
 		r.jobs = map[uint64]*job{}
 	}
@@ -410,7 +410,7 @@ func (r *Runtime) Start(owner string, work func(context.Context) (any, error), t
 // Accepts reports whether a ticket names a running job.
 func (r *Runtime) Accepts(t Ticket) bool {
 	j := r.jobs[t.Job]
-	return j != nil && j.State == JobRunning && j.Owner == t.Owner
+	return j != nil && j.Status == JobRunning && j.Owner == t.Owner
 }
 
 // Settle records the outcome of a running job and reports whether the ticket
@@ -432,11 +432,11 @@ func (r *Runtime) Settle(t Ticket, err error) bool {
 // finish moves a job out of the running state and trims the retained
 // history to jobHistory finished entries, oldest first.
 func (r *Runtime) finish(j *job, state string, err error) []string {
-	if j.State != JobRunning {
+	if j.Status != JobRunning {
 		return nil
 	}
 	j.cancel()
-	j.State = state
+	j.Status = state
 	var messages []string
 	if state == JobCancelled && j.abandon != nil {
 		reason := "job cancelled; completion was not confirmed"
@@ -453,7 +453,7 @@ func (r *Runtime) finish(j *job, state string, err error) []string {
 	for {
 		count, oldest := 0, uint64(0)
 		for id, job := range r.jobs {
-			if job.State != JobRunning {
+			if job.Status != JobRunning {
 				count++
 				if oldest == 0 || id < oldest {
 					oldest = id
@@ -475,7 +475,7 @@ func (r *Runtime) HasRunningJob(scope, slot string) bool { return r.slotJob(scop
 // slotJob is the running job in a slot of a scope, or nil.
 func (r *Runtime) slotJob(scope, slot string) *job {
 	for _, j := range r.jobs {
-		if j.Scope == scope && j.Slot == slot && j.State == JobRunning {
+		if j.Scope == scope && j.Slot == slot && j.Status == JobRunning {
 			return j
 		}
 	}
@@ -486,7 +486,7 @@ func (r *Runtime) slotJob(scope, slot string) *job {
 // become stale.
 func (r *Runtime) cancelJobs(owner string) {
 	for _, j := range r.jobs {
-		if j.Owner == owner && j.State == JobRunning {
+		if j.Owner == owner && j.Status == JobRunning {
 			r.finish(j, JobCancelled, nil)
 		}
 	}
@@ -517,7 +517,7 @@ func (r *Runtime) Jobs() []JobInfo {
 // runningJobs is the snapshot's /jobs: running jobs only, in start order.
 func (r *Runtime) runningJobs() []JobInfo {
 	out := []JobInfo{}
-	for _, j := range r.jobList(func(j *job) bool { return j.State == JobRunning }) {
+	for _, j := range r.jobList(func(j *job) bool { return j.Status == JobRunning }) {
 		out = append(out, j.JobInfo)
 	}
 	return out
@@ -531,7 +531,7 @@ func registerJobs(r *Runtime) {
 	r.Register(Operation{Key: "ochazuke.job.cancel", Description: "Cancel a running job", Parameters: map[string]Parameter{"job": {Type: "integer", Required: true, Noun: "ochazuke.job"}}, Run: func(r *Runtime, _ Context, a Arguments) (any, error) {
 		id := uint64(IntArg(a, "job", 0))
 		j := r.jobs[id]
-		if j == nil || j.State != JobRunning {
+		if j == nil || j.Status != JobRunning {
 			return nil, fmt.Errorf("job %d is not running", id)
 		}
 		r.finish(j, JobCancelled, nil)
@@ -696,7 +696,7 @@ func (r *Runtime) closeInstance(id string) {
 func (r *Runtime) componentSnapshot() map[string]any {
 	running := map[string]int{}
 	for _, j := range r.jobs {
-		if j.State == JobRunning {
+		if j.Status == JobRunning {
 			running[j.Owner]++
 		}
 	}

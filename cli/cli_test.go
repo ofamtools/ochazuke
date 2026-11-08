@@ -115,15 +115,15 @@ func TestShellListsAllBindingTables(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	current, _, err := f.run("", "bindings", "list")
+	current, _, err := f.run("", "binding", "list")
 	if err != nil {
 		t.Fatal(err)
 	}
-	explicit, _, err := f.run("", "bindings", "list", "--all=false")
+	explicit, _, err := f.run("", "binding", "list", "--all=false")
 	if err != nil || explicit != current {
 		t.Fatalf("--all=false changed the active listing: %v\n%s", err, explicit)
 	}
-	out, _, err := f.run("", "bindings", "list", "--all")
+	out, _, err := f.run("", "binding", "list", "--all")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -152,7 +152,7 @@ func TestShellListsAllBindingTables(t *testing.T) {
 	if _, err := f.r.Execute(ochazuke.Request{Noun: "ochazuke.mode", Verb: "switch", Args: ochazuke.Arguments{"mode": "insert"}}); err != nil {
 		t.Fatal(err)
 	}
-	again, _, err := f.run("", "bindings", "list", "--all")
+	again, _, err := f.run("", "binding", "list", "--all")
 	if err != nil || again != out {
 		t.Fatalf("all tables depend on the active mode or map iteration: %v", err)
 	}
@@ -257,7 +257,7 @@ func TestShellJSONArgumentsAndHistorySource(t *testing.T) {
 	if a := f.calls[0].Args; a["name"] != "dos" || a["count"] != float64(2) {
 		t.Fatalf("args = %+v", a)
 	}
-	out, _, err := f.run("", "history", "list")
+	out, _, err := f.run("", "history-entry", "list")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +360,7 @@ func TestShellSettlesPendingWork(t *testing.T) {
 	if errOut.Len() != 0 || settles < 2 {
 		t.Fatalf("stderr %q, settles %d", errOut.String(), settles)
 	}
-	if jobs := f.r.Jobs(); len(jobs) != 1 || jobs[0].State != ochazuke.JobDone {
+	if jobs := f.r.Jobs(); len(jobs) != 1 || jobs[0].Status != ochazuke.JobDone {
 		t.Fatalf("jobs = %+v", jobs)
 	}
 	// The delivered value is the result, not the ticket.
@@ -444,7 +444,7 @@ func TestSettleDeliversScheduledWork(t *testing.T) {
 	if err := Settle(f.r, func() error { rounds++; return nil }); err != nil || rounds < 2 {
 		t.Fatalf("settle: %v, rounds %d", err, rounds)
 	}
-	if jobs := f.r.Jobs(); len(jobs) != 1 || jobs[0].State != ochazuke.JobDone {
+	if jobs := f.r.Jobs(); len(jobs) != 1 || jobs[0].Status != ochazuke.JobDone {
 		t.Fatalf("jobs = %+v", jobs)
 	}
 	if _, err := f.r.Execute(ochazuke.Request{Verb: "break", Noun: "widget", Target: "w1"}); err != nil {
@@ -657,10 +657,10 @@ func TestCatalogMarksBuiltinVerbs(t *testing.T) {
 	if v := verb("outline", "add"); !v.Builtin || v.Kind != ochazuke.KindApplication {
 		t.Fatalf("outline.add = %+v", v)
 	}
-	if v := verb("history", "list"); !v.Builtin {
+	if v := verb("history-entry", "list"); !v.Builtin {
 		t.Fatalf("history-entry.list = %+v", v)
 	}
-	if v := verb("history", "capture-hook"); v.Builtin {
+	if v := verb("history-entry", "capture-hook"); v.Builtin {
 		t.Fatalf("history.capture-hook = %+v", v)
 	}
 	var got []string
@@ -821,11 +821,11 @@ func TestShellAppliesTheUserBindingsFile(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "bindings.json"), []byte(file), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	out, errOut, err := f.run("", "bindings", "list", "--all")
+	out, errOut, err := f.run("", "binding", "list", "--all")
 	if err != nil || !strings.Contains(out, `"ctrl+t"`) || !strings.Contains(errOut, `warning: bindings.json: row 2 ctrl+u: unknown operation "widget.nope" (skipped)`) {
 		t.Fatalf("out %s\nstderr %s\nerr %v", out, errOut, err)
 	}
-	out, _, err = f.run("", "bindings", "path")
+	out, _, err = f.run("", "binding", "path")
 	if err != nil || !strings.Contains(out, filepath.Join(dir, "bindings.json")) {
 		t.Fatalf("path %s %v", out, err)
 	}
@@ -1118,7 +1118,7 @@ func TestShellAndMountReadNamespacedNouns(t *testing.T) {
 	if !okOwn || !okFramework || own.Name != "setting" || framework.Name != "ochazuke.setting" || len(own.Verbs) != 1 || own.Verbs[0].Builtin || len(framework.AppVerbs()) != 0 {
 		t.Fatalf("catalog settings %+v / ochazuke.settings %+v", own, framework)
 	}
-	if _, aliased := doc.Aliases["setting"]; aliased || doc.Aliases["list"] != "ochazuke.collection" {
+	if _, aliased := doc.Aliases["setting"]; aliased || doc.Aliases["collection"] != "ochazuke.collection" {
 		t.Fatalf("aliases %v", doc.Aliases)
 	}
 }
@@ -1140,7 +1140,7 @@ func TestNamespaceAndLocal(t *testing.T) {
 
 // A framework shortcut is an alias; an app command owns its name in either order.
 func TestMountAppCommandsWin(t *testing.T) {
-	for _, name := range []string{"mcp", "view"} {
+	for _, name := range []string{"mcp", "viewport"} {
 		for _, after := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/after=%t", name, after), func(t *testing.T) {
 				f := newFixture(t)
@@ -1210,7 +1210,7 @@ func TestMountAppCommandsWin(t *testing.T) {
 }
 
 func TestMountAppNounsWin(t *testing.T) {
-	for _, name := range []string{"mcp", "view"} {
+	for _, name := range []string{"mcp", "viewport"} {
 		for _, catalogNoun := range []bool{false, true} {
 			for _, beforeShell := range []bool{false, true} {
 				t.Run(fmt.Sprintf("%s/catalog=%t/before-shell=%t", name, catalogNoun, beforeShell), func(t *testing.T) {
@@ -1249,7 +1249,7 @@ func TestMountAppNounsWin(t *testing.T) {
 					if err := sh.Run(context.Background(), []string{name, "show"}); err != nil || strings.TrimSpace(out.String()) != `"app-owned"` {
 						t.Fatalf("shell app noun: %v %s", err, &out)
 					}
-					if op, ok := f.r.Operation("ochazuke." + name + map[string]string{"mcp": ".tools", "view": ".scroll"}[name]); !ok || !op.Builtin {
+					if op, ok := f.r.Operation("ochazuke." + name + map[string]string{"mcp": ".tools", "viewport": ".scroll"}[name]); !ok || !op.Builtin {
 						t.Fatal("framework verb was lost")
 					}
 				})

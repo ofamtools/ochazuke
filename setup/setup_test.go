@@ -227,7 +227,7 @@ func TestSetupKindsStates(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if len(rows) != 1 || rows[0].State != state {
+				if len(rows) != 1 || rows[0].Status != state {
 					t.Fatalf("want %s, got %+v", state, rows)
 				}
 				if state == Conflict || state == External {
@@ -306,7 +306,7 @@ func TestSetupOptInAndSkip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(p.Writes) != 0 || p.Items[0].State != Manual || p.Items[0].Next != i.Content {
+	if len(p.Writes) != 0 || p.Items[0].Status != Manual || p.Items[0].Next != i.Content {
 		t.Fatalf("opt-in: %+v", p)
 	}
 	if _, err = s.Install(testContext, Selection{}); err != nil {
@@ -316,19 +316,19 @@ func TestSetupOptInAndSkip(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows, _ := s.List(testContext)
-	if rows[0].State != Installed {
+	if rows[0].Status != Installed {
 		t.Fatal(rows)
 	}
 	// Even an owned but outdated opt-in block is excluded from bare install.
 	rendered, _ := s.render(i)
 	put(t, rendered.Path, strings.ReplaceAll(get(t, rendered.Path), "shell-init zsh", "shell-init bash"))
 	p, err = s.Plan(testContext, Selection{Group: "shell"})
-	if err != nil || len(p.Writes) != 0 || p.Items[0].State != Manual {
+	if err != nil || len(p.Writes) != 0 || p.Items[0].Status != Manual {
 		t.Fatalf("outdated opt-in was included: %+v %v", p, err)
 	}
 	s.options.Skip = []string{i.ID}
 	p, _ = s.Plan(testContext, Selection{IDs: []string{i.ID}})
-	if p.Items[0].State != Skipped || len(p.Writes) != 0 {
+	if p.Items[0].Status != Skipped || len(p.Writes) != 0 {
 		t.Fatal("skip did not win")
 	}
 }
@@ -375,7 +375,7 @@ func TestSetupMatchingCommands(t *testing.T) {
 			rendered, _ := s.render(i)
 			put(t, rendered.Path, `{"servers":{"tool":`+string(v)+`}}`)
 			rows, err := s.List(testContext)
-			if err != nil || rows[0].State != tc.state {
+			if err != nil || rows[0].Status != tc.state {
 				t.Fatalf("%+v %v", rows, err)
 			}
 			p, _ := s.Plan(testContext, Selection{})
@@ -492,7 +492,7 @@ func TestSetupSymlinkParentAndBackup(t *testing.T) {
 				}
 				s.items = []Item{i}
 				rows, err := s.List(testContext)
-				if err != nil || rows[0].State != External {
+				if err != nil || rows[0].Status != External {
 					t.Fatalf("%+v %v", rows, err)
 				}
 			} else {
@@ -529,12 +529,12 @@ func TestSetupProbeTOMLAndJSON(t *testing.T) {
 			}
 			put(t, r.Probe.Path, data)
 			rows, err := s.List(testContext)
-			if err != nil || rows[0].State != Installed {
+			if err != nil || rows[0].Status != Installed {
 				t.Fatalf("%+v %v", rows, err)
 			}
 			put(t, r.Probe.Path, "not valid "+format)
 			rows, err = s.List(testContext)
-			if err != nil || rows[0].State != Conflict {
+			if err != nil || rows[0].Status != Conflict {
 				t.Fatalf("%+v %v", rows, err)
 			}
 		})
@@ -590,12 +590,12 @@ func TestSetupCommandRunnerAndHome(t *testing.T) {
 	i = kindsFixture()[5]
 	s = newSetup(t, []Item{i}, Options{Home: home, Env: opts.Env})
 	rows, err := s.List(testContext)
-	if err != nil || rows[0].State != Installed {
+	if err != nil || rows[0].Status != Installed {
 		t.Fatalf("%+v %v", rows, err)
 	}
 	s.options.Runner = func(context.Context, []string, []string) ([]byte, error) { return nil, errors.New("probe failed") }
 	rows, err = s.List(testContext)
-	if err != nil || rows[0].State != Manual || rows[0].Next != i.Advice {
+	if err != nil || rows[0].Status != Manual || rows[0].Next != i.Advice {
 		t.Fatalf("%+v %v", rows, err)
 	}
 }
@@ -612,7 +612,7 @@ func TestSetupCommandOutputProbe(t *testing.T) {
 	}
 	s := newSetup(t, []Item{i}, Options{Home: home, Env: map[string]string{"PATH": home}})
 	rows, err := s.List(testContext)
-	if err != nil || rows[0].State != Installed {
+	if err != nil || rows[0].Status != Installed {
 		t.Fatalf("%+v %v", rows, err)
 	}
 }
@@ -712,7 +712,7 @@ func TestSetupFollowSymlinkedPair(t *testing.T) {
 	if err != nil || len(p.Writes) != 1 || p.Writes[0].Path != source {
 		t.Fatalf("one write to the link target: %+v %v", p, err)
 	}
-	if p.Items[0].State != Missing || p.Items[1].State != Installed {
+	if p.Items[0].Status != Missing || p.Items[1].Status != Installed {
 		t.Fatalf("the second item sees the first's block: %+v", p.Items)
 	}
 	for range 2 {
@@ -725,7 +725,7 @@ func TestSetupFollowSymlinkedPair(t *testing.T) {
 		t.Fatalf("got %q want %q", got, want)
 	}
 	rows, err := s.List(testContext)
-	if err != nil || rows[0].State != Installed || rows[1].State != Installed {
+	if err != nil || rows[0].Status != Installed || rows[1].Status != Installed {
 		t.Fatalf("%+v %v", rows, err)
 	}
 	if info, err := os.Lstat(filepath.Join(home, ".a", "AGENTS.md")); err != nil || info.Mode()&os.ModeSymlink == 0 {
@@ -750,7 +750,7 @@ func TestSetupFollowSymlinkedPair(t *testing.T) {
 	plain := block("plain", "~/.a/AGENTS.md")
 	plain.Follow = false
 	s = newSetup(t, []Item{plain}, Options{Home: home})
-	if rows, err = s.List(testContext); err != nil || rows[0].State != External {
+	if rows, err = s.List(testContext); err != nil || rows[0].Status != External {
 		t.Fatalf("%+v %v", rows, err)
 	}
 }

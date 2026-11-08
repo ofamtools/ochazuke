@@ -187,7 +187,7 @@ func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 	if len(pane.received) != 0 {
 		t.Fatalf("replaced job delivered: %+v", pane.received)
 	}
-	if jobs := r.Jobs(); len(jobs) != 4 || jobs[0].State != JobCancelled || jobs[0].Job != oldTicket.Job || jobs[3].State != JobRunning {
+	if jobs := r.Jobs(); len(jobs) != 4 || jobs[0].Status != JobCancelled || jobs[0].Job != oldTicket.Job || jobs[3].Status != JobRunning {
 		t.Fatalf("jobs after replace: %+v", jobs)
 	}
 	close(newRelease)
@@ -210,7 +210,7 @@ func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 	listed := rowsOf[JobInfo](t, value)
 	states := map[string]int{}
 	for _, j := range listed {
-		states[j.State]++
+		states[j.Status]++
 	}
 	if len(listed) != 4 || states[JobCancelled] != 1 || states[JobDone] != 3 || listed[0].Verb != "preview" || listed[0].Owner != "pane" || listed[0].Started.IsZero() {
 		t.Fatalf("job.list: %+v", listed)
@@ -237,7 +237,7 @@ func TestComponentDeliveryReplacesJobsInASlot(t *testing.T) {
 			t.Fatalf("failed job: %v %v", handled, err)
 		}
 	}
-	if jobs := r.Jobs(); len(jobs) != 5 || jobs[4].Job != failTicket.Job || jobs[4].State != JobFailed || jobs[4].Error != "boom" {
+	if jobs := r.Jobs(); len(jobs) != 5 || jobs[4].Job != failTicket.Job || jobs[4].Status != JobFailed || jobs[4].Error != "boom" {
 		t.Fatalf("failed job listed: %+v", jobs)
 	}
 	if _, err := r.Launch("nobody", "x", Pending(func(context.Context) (any, error) { return nil, nil }), Ctx{}); err == nil {
@@ -522,7 +522,7 @@ func TestDeliverToleratesOwnerRemovedByItsCompletion(t *testing.T) {
 	if !removed || r.Instances["row"] != nil || len(comp.received) != 0 || comp.closed != 1 {
 		t.Fatalf("removed=%v instance=%v received=%+v closed=%d", removed, r.Instances["row"], comp.received, comp.closed)
 	}
-	if jobs := r.Jobs(); len(jobs) != 1 || jobs[0].Job != ticket.Job || jobs[0].State != JobDone {
+	if jobs := r.Jobs(); len(jobs) != 1 || jobs[0].Job != ticket.Job || jobs[0].Status != JobDone {
 		t.Fatalf("job not settled: %+v", jobs)
 	}
 }
@@ -614,7 +614,7 @@ func TestReplacingAtScopesTheSlotToAnAncestor(t *testing.T) {
 		t.Fatalf("landed: %v", landed)
 	}
 	jobs := r.Jobs()
-	if len(jobs) != 3 || jobs[0].State != JobCancelled || jobs[0].Owner != "left1" || jobs[0].Scope != "left" || jobs[1].Scope != "left" || jobs[2].Scope != "right" {
+	if len(jobs) != 3 || jobs[0].Status != JobCancelled || jobs[0].Owner != "left1" || jobs[0].Scope != "left" || jobs[1].Scope != "left" || jobs[2].Scope != "right" {
 		t.Fatalf("jobs: %+v", jobs)
 	}
 	// Per-owner stays the default: two rows' Replacing slots do not interact.

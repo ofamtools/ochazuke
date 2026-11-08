@@ -80,7 +80,7 @@ func TestCLIBareSet(t *testing.T) {
 // so (exit 0) and points at settings diff.
 func TestCLISettingsReviewHasNoSession(t *testing.T) {
 	f, _ := setFixture(t)
-	out, errOut, err := f.run("", "setting", "review")
+	out, errOut, err := f.run("", "setting", "diff", "--review")
 	if err != nil || !strings.Contains(out, "no session to review") || !strings.Contains(out, "setting diff") {
 		t.Fatalf("review: %q %q %v", out, errOut, err)
 	}

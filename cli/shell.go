@@ -334,7 +334,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	// call; their delivered values are the command's result, not the ticket.
 	launched := map[uint64]bool{}
 	for _, j := range r.Jobs() {
-		if j.Job > last && j.State == ochazuke.JobRunning {
+		if j.Job > last && j.Status == ochazuke.JobRunning {
 			launched[j.Job] = true
 		}
 	}
@@ -345,12 +345,12 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 		}
 	})
 	for _, j := range r.Jobs() {
-		if j.Job > last && (j.State == ochazuke.JobFailed || !r.Operations.At(ochazuke.Key(j.Verb)).Quiet) {
+		if j.Job > last && (j.Status == ochazuke.JobFailed || !r.Operations.At(ochazuke.Key(j.Verb)).Quiet) {
 			name := r.DisplayKey(j.Verb)
 			if j.Label != "" {
 				name += " " + j.Label
 			}
-			fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, name, j.State)
+			fmt.Fprintf(s.stderr(), "job #%d %s %s\n", j.Job, name, j.Status)
 		}
 	}
 	if settled != nil {

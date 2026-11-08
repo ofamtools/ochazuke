@@ -411,7 +411,7 @@ func (r *Runtime) quitHooksRunning() bool {
 		return false
 	}
 	for _, id := range h.quitJobs {
-		if j := r.jobs[id]; j != nil && j.State == JobRunning {
+		if j := r.jobs[id]; j != nil && j.Status == JobRunning {
 			return true
 		}
 	}

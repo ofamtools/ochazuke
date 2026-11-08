@@ -11,8 +11,8 @@ import (
 func TestChromeTickerKeepsTextAndGeometry(t *testing.T) {
 	t.Parallel()
 	jobs := []JobInfo{
-		{Verb: "build.run", Label: "failed 界", State: JobRunning},
-		{Verb: "ship.run", Label: "failed", State: JobFailed, Error: "failed again\nretry"},
+		{Verb: "build.run", Label: "failed 界", Status: JobRunning},
+		{Verb: "ship.run", Label: "failed", Status: JobFailed, Error: "failed again\nretry"},
 	}
 	for _, theme := range []string{"dark", "light", "mono"} {
 		base := NewStyles(Appearance{Theme: theme})

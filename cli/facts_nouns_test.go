@@ -103,7 +103,7 @@ func TestSetupIsAFactsNoun(t *testing.T) {
 		t.Fatal(err)
 	}
 	thing, _ := v.(map[string]any)
-	if thing["id"] != "rules" || thing["state"] != "missing" || thing["name"] != "Agent rules" {
+	if thing["id"] != "rules" || thing["status"] != "missing" || thing["name"] != "Agent rules" {
 		t.Fatalf("setup get: %#v", v)
 	}
 	if _, err := f.r.Execute(ochazuke.Request{Noun: "ochazuke.setup", Verb: "get", Args: ochazuke.Arguments{"id": "nope"}}); err == nil {

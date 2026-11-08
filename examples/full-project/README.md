@@ -162,7 +162,7 @@ Readline-only fields, including the Items note, remain in insert mode even if `m
 The framework API is unchanged:
 
 ```js
-{ verb: "register", noun: "mode", args: { name: "review" } }
+{ verb: "create", noun: "mode", args: { name: "review" } }
 { verb: "set", noun: "mode", args: { mode: "review" } }
 { verb: "set", noun: "mode", args: { mode: "normal" } }
 ```

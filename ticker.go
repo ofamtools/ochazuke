@@ -81,7 +81,7 @@ func tickerShows(r *Runtime, j JobInfo) bool {
 func (t *jobTicker) observe(r *Runtime, now time.Time) {
 	var fresh []tickerJob
 	for _, j := range r.jobs {
-		if j.State == JobRunning || t.seen[j.Job] || !tickerShows(r, j.JobInfo) {
+		if j.Status == JobRunning || t.seen[j.Job] || !tickerShows(r, j.JobInfo) {
 			continue
 		}
 		if t.seen == nil {
@@ -120,7 +120,7 @@ func (t *jobTicker) rows(r *Runtime, now time.Time) []JobInfo {
 			continue
 		}
 		switch {
-		case j.State == JobRunning:
+		case j.Status == JobRunning:
 			tickerNewest(&running, &nrunning, j)
 		case !t.seen[j.Job]:
 			tickerNewest(&fresh, &nfresh, j)
@@ -162,8 +162,8 @@ func tickerNewest(rows *[JobTickerRows]JobInfo, n *int, j JobInfo) {
 // retains the state word's position so labels and errors may contain the
 // same word without colouring the wrong text.
 type TickerEntry struct {
-	Text, State string
-	stateAt     int
+	Text, Status string
+	stateAt      int
 }
 
 func tickerEntry(j JobInfo, width int) TickerEntry {
@@ -171,13 +171,13 @@ func tickerEntry(j JobInfo, width int) TickerEntry {
 	if j.Label != "" {
 		prefix += j.Label + " "
 	}
-	text := prefix + j.State
+	text := prefix + j.Status
 	if j.Error != "" {
 		text += ": " + j.Error
 	}
 	return TickerEntry{
 		Text:    ansi.Truncate(safeLine(text), max(0, width), "…"),
-		State:   j.State,
+		Status:  j.Status,
 		stateAt: chromeWidth(safeLine(prefix)),
 	}
 }
@@ -201,7 +201,7 @@ func (l Layout) TickerEntriesRule(entries []TickerEntry, width int) string {
 	hasColour := false
 	for i, e := range entries[:n] {
 		plain[i] = e.Text
-		hasColour = hasColour || l.Styles.HasChrome("job."+e.State)
+		hasColour = hasColour || l.Styles.HasChrome("job."+e.Status)
 	}
 	if !hasColour || width < 6 {
 		return l.TickerRule(plain[:n], width)
@@ -221,9 +221,9 @@ func (l Layout) TickerEntriesRule(entries []TickerEntry, width int) string {
 		}
 		end := at + chromeWidth(e.Text)
 		part := ansi.Cut(text, at, end)
-		style := s.Chrome("job."+e.State, s.Muted)
+		style := s.Chrome("job."+e.Status, s.Muted)
 		if s.ChromeLevel() == ChromeSubtle {
-			start, stop := e.stateAt, e.stateAt+chromeWidth(e.State)
+			start, stop := e.stateAt, e.stateAt+chromeWidth(e.Status)
 			b.WriteString(s.Muted.Render(ansi.Cut(part, 0, start)))
 			b.WriteString(style.Render(ansi.Cut(part, start, stop)))
 			b.WriteString(s.Muted.Render(ansi.Cut(part, stop, chromeWidth(part))))

@@ -59,7 +59,7 @@ func TestMCPBackendDiscoveryAndRun(t *testing.T) {
 	if entry.Context.Source != "mcp" || !entry.Context.Actor.IsAgent() || entry.Context.Actor.Pane != "p1" {
 		t.Fatal(entry)
 	}
-	state := mcpCall(t, server, "state", map[string]any{"include": []any{"history"}, "limit": 1})
+	state := mcpCall(t, server, "snapshot", map[string]any{"include": []any{"history"}, "limit": 1})
 	if len(state["recent"].([]ochazuke.HistoryEntry)) != 1 || state["live"] != false {
 		t.Fatal(state)
 	}

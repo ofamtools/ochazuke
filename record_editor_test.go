@@ -535,7 +535,7 @@ func TestRecordSuggestionsLoadOffTheLoop(t *testing.T) {
 	keytest.Press(m, "esc")
 	cancelled := false
 	for _, j := range r.Jobs() {
-		if j.Verb == "harness.models" && j.State == JobCancelled {
+		if j.Verb == "harness.models" && j.Status == JobCancelled {
 			cancelled = true
 		}
 	}

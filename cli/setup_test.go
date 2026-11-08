@@ -62,7 +62,7 @@ func TestSetupMountStatusAndJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	var rows []setup.Status
-	if err = json.Unmarshal([]byte(out), &rows); err != nil || len(rows) != 2 || rows[0].ID != "rules" || rows[1].State != setup.Manual {
+	if err = json.Unmarshal([]byte(out), &rows); err != nil || len(rows) != 2 || rows[0].ID != "rules" || rows[1].Status != setup.Manual {
 		t.Fatalf("%v %s", err, out)
 	}
 	// The schema and ordering stay stable; normalize only the fixture home.
@@ -75,7 +75,7 @@ func TestSetupMountStatusAndJSON(t *testing.T) {
     "path": "$HOME/AGENTS.md",
     "content": "Use tool.\n",
     "match": {},
-    "state": "missing",
+    "status": "missing",
     "next": "tool setup install rules",
     "cells": [
       "rules",
@@ -94,7 +94,7 @@ func TestSetupMountStatusAndJSON(t *testing.T) {
     "match": {},
     "group": "shell",
     "opt_in": true,
-    "state": "manual",
+    "status": "manual",
     "next": "eval \"$(tool shell-init zsh)\"",
     "cells": [
       "shell",
@@ -113,13 +113,13 @@ func TestSetupMountStatusAndJSON(t *testing.T) {
 
 func TestSetupMountVerbsAndConfirmation(t *testing.T) {
 	f := newSetupFixture(t)
-	for _, args := range [][]string{{"setup", "list"}, {"setup", "show", "rules"}, {"setup", "plan"}, {"setup", "copy", "rules"}, {"setup", "--help"}} {
+	for _, args := range [][]string{{"setup", "list"}, {"setup", "show", "rules"}, {"setup", "plan"}, {"setup", "yank", "rules"}, {"setup", "--help"}} {
 		out, stderr, err := f.run(t, "", args...)
 		if err != nil || out == "" {
 			t.Fatalf("%v: %v %s %s", args, err, out, stderr)
 		}
 	}
-	if out, _, err := f.run(t, "", "setup", "copy", "rules"); err != nil || out != "Use tool.\n\n" {
+	if out, _, err := f.run(t, "", "setup", "yank", "rules"); err != nil || out != "Use tool.\n\n" {
 		t.Fatalf("copy: %q %v", out, err)
 	}
 	if _, _, err := f.run(t, "n\n", "setup", "install"); err == nil {
@@ -163,7 +163,7 @@ func TestSetupMountHomeUserItemsAndSkip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v %s %s", err, out, stderr)
 	}
-	if !strings.Contains(out, `"state": "skipped"`) || !strings.Contains(out, `"id": "user"`) {
+	if !strings.Contains(out, `"status": "skipped"`) || !strings.Contains(out, `"id": "user"`) {
 		t.Fatal(out)
 	}
 	if _, err := os.Stat(filepath.Join(home, "USER.md")); err != nil {
@@ -243,7 +243,7 @@ func TestSetupApplicationNounKeepsShortName(t *testing.T) {
 	if err != nil || !strings.Contains(out, "application setup") {
 		t.Fatalf("app noun lost its name: %v %s %s", err, out, stderr)
 	}
-	out, stderr, err = f.run(t, "", "ochazuke", "setup", "status", "--json")
+	out, stderr, err = f.run(t, "", "ochazuke", "setup", "check", "--json")
 	if err != nil || !strings.Contains(out, `"id": "rules"`) {
 		t.Fatalf("framework setup became unreachable: %v %s %s", err, out, stderr)
 	}

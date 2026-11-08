@@ -25,7 +25,7 @@ func TestExtensionNamespace(t *testing.T) {
 			t.Errorf("ExtensionNamespace(%q) = %q, %v; want %q", bin, got, err, want)
 		}
 	}
-	for _, bin := range []string{"", "o-", "ochazuke", "o-ochazuke", "app", "o-app", "o-setting", "list", "o-9x", "o-a.b", "o-a_b"} {
+	for _, bin := range []string{"", "o-", "ochazuke", "o-ochazuke", "app", "o-app", "o-setting", "collection", "o-9x", "o-a.b", "o-a_b"} {
 		if got, err := ExtensionNamespace(bin); err == nil {
 			t.Errorf("ExtensionNamespace(%q) = %q, want an error", bin, got)
 		}
