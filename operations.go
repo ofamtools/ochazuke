@@ -200,14 +200,27 @@ type Match struct {
 	Noun          *Noun        `json:"-"`
 	Action        *Action      `json:"action,omitempty"`
 	Exact         bool         `json:"exact,omitempty"`
+	// Via is how the word matched (exact, alias, tail, prefix, or omitted:
+	// no word, which matches every name); Alias the noun or action alias
+	// it was typed as, "" for the thing's own name.
+	Via   Via    `json:"via,omitempty"`
+	Alias string `json:"alias,omitempty"`
 }
 
 // Candidate is one operation a line of words may name, with the matches
-// that picked its noun and its action (the reader, LX2).
+// that picked its noun and its action (the reader, reader.go). Prop is
+// the prop a NOUN PROP reading names (Operation is then the noun's get or
+// set); Order which word named the noun; Words how many leading words the
+// pair read and Rest the words after them; Rank the reader's keys for it.
 type Candidate struct {
 	Operation *Operation
 	Noun      Match
 	Action    Match
+	Prop      string
+	Order     Order
+	Words     int
+	Rest      []string
+	Rank      []int
 }
 
 // Operations is the operation registry (Runtime.Operations) and every

@@ -12,8 +12,8 @@ import (
 	"ofam.dev/oden"
 )
 
-// verbFirstRuntime is the runtime of a bin o-x: nouns x (its own, named
-// like the bin) and agent. add and show are verbs of both; define, state
+// verbFirstRuntime is the runtime of a bin o-x: nouns x (its main noun,
+// Noun.Main) and agent. add and show are verbs of both; define, state
 // and spawn of one; answer takes its subject as a parameter called target.
 func verbFirstRuntime(t *testing.T) (*ochazuke.Runtime, *[]string) {
 	t.Helper()
@@ -26,7 +26,7 @@ func verbFirstRuntime(t *testing.T) (*ochazuke.Runtime, *[]string) {
 			return ochazuke.Done(label)
 		}
 	}
-	r.Define("x").
+	r.Define("x").Main().
 		Verb("define", say("x.define"), "Define an x").
 		Verb("state", say("x.state"), "State of x").
 		Verb("add", say("x.add"), "Add an x").
@@ -95,11 +95,11 @@ func TestVerbFirstReadsAVerbAlone(t *testing.T) {
 	}
 }
 
-// The namespace tie-break is data: the noun named like the bin. A bin
-// whose own noun has no such name leaves the shared verb ambiguous, listing
-// the noun verb pairs.
+// The tie-break is data: the main noun (Noun.Main). A tool that declares
+// none leaves the shared verb ambiguous, listing the noun verb pairs.
 func TestVerbFirstAmbiguityListsPairs(t *testing.T) {
 	r, ran := verbFirstRuntime(t)
+	r.Nouns["x"].Main = false
 	out, errOut, err := oXNamed(t, "o-zzz", r, "show")
 	if err == nil || len(*ran) != 0 || !strings.Contains(errOut, `"show" is ambiguous: agent show, x show`) {
 		t.Fatalf("o-zzz show: ran %v err %v\n%s%s", *ran, err, out, errOut)
@@ -158,7 +158,7 @@ func TestVerbFirstInsideANamespaceGroup(t *testing.T) {
 	say := func(label string) func(ochazuke.Ctx) ochazuke.Result {
 		return func(ochazuke.Ctx) ochazuke.Result { ran = append(ran, label); return ochazuke.Done(label) }
 	}
-	r.Define("lane.lane").Verb("state", say("lane.lane.state"), "State").Verb("define", say("lane.lane.define"), "Define")
+	r.Define("lane.lane").Main().Verb("state", say("lane.lane.state"), "State").Verb("define", say("lane.lane.define"), "Define")
 	r.Define("lane.plan").Verb("define", say("lane.plan.define"), "Define a plan").Verb("show", say("lane.plan.show"), "Show a plan")
 	for _, c := range []struct {
 		args []string

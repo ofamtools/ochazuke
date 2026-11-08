@@ -78,11 +78,11 @@ const (
 	CLIStandardVerbsLine    = "line"
 	CLIStandardVerbsList    = "list"
 	// CLIVerbFirstSetting lets a tool's argv start with a verb alone
-	// (cli.Mount, Runtime.ReadPair): a first word that names no command
-	// but is a verb of the tool's nouns runs it. Default on.
+	// (cli.Mount, through the reader, reader.go): a first word that names
+	// no command but is a verb of the tool's nouns runs it. Default on.
 	CLIVerbFirstSetting = "cli.verb-first"
-	// PalettePairWordsSetting lets the second word of a palette line
-	// settle an ambiguous first word (Palette.readPair). Default on.
+	// PalettePairWordsSetting lets the rest of a palette line settle what
+	// its first words name (Reading.WordsOnly when off). Default on.
 	PalettePairWordsSetting = "palette.pair-words"
 	// VisualAfterActionSetting is what a key acting on a visual selection
 	// of list rows leaves: VisualAfterEnd (the default, as in Vim) or

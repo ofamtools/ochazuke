@@ -170,14 +170,9 @@ func (p *Palette) completions() []PaletteEntry {
 		}
 	}
 	if len(tokens) == 0 {
-		var own []string
-		for _, o := range ix.byVerbs {
-			if !o.alias {
-				own = append(own, o.Value)
-			}
-		}
+		own, named := p.firstWords(ix, partial)
 		verbs(own, "")
-		nouns(ix.nounWords())
+		nouns(named)
 		if partial != "" {
 			out = append(out, ix.spaceEntries("")...)
 		}
@@ -224,6 +219,24 @@ func (p *Palette) completions() []PaletteEntry {
 		p.preferActivePage(filtered, ix, partial, view)
 	}
 	return filtered
+}
+
+// firstWords are the verbs (an alias's word aside) and the nouns the
+// first word may be, in the palette's order: those the reader reads the
+// typed prefix as (Reading.Complete, as the CLI's complete lists them);
+// every one before a word is typed.
+func (p *Palette) firstWords(ix lineIndex, partial string) (verbs, nouns []string) {
+	reads := func(string) bool { return true }
+	if partial != "" {
+		names := p.r.CompleteWords(p.reading(ix, nil), []string{partial})
+		reads = func(name string) bool { _, ok := slices.BinarySearch(names, name); return ok }
+	}
+	for _, o := range ix.byVerbs {
+		if !o.alias && reads(o.Value) {
+			verbs = append(verbs, o.Value)
+		}
+	}
+	return verbs, slices.DeleteFunc(ix.nounWords(), func(n string) bool { return !reads(n) })
 }
 
 // preferActivePage changes display order only. Exact words keep their old

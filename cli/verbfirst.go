@@ -4,51 +4,76 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"ofam.dev/ochazuke"
 	"ofam.dev/oden"
 )
 
-// Verb-first words: a tool's argv may start with a verb alone (BIN add,
-// BIN state) or, inside an extension's namespace group, with a verb of the
-// namespace's nouns (mtm lane state). Runtime.ReadPair reads the words the
-// way the palette reads a verb then a noun; the result is the same argv the
-// long spelling (BIN NOUN VERB ...) would be, so flags, positionals and
-// help parse exactly as there. Setting cli.verb-first (default on) turns
-// it off.
+// Verb-first words: a tool's argv may start with an action alone (BIN
+// add, BIN state) or, inside an extension's namespace group, with an action
+// of the namespace's nouns (mtm lane state). The reader
+// (ochazuke.Reading) reads the words as the palette does, both orders,
+// over the tool's own operations (the framework's, Operation.Builtin,
+// aside: a tool's argv names its own nouns); a word that leaves the noun
+// out reads as the namespace's main noun (Noun.Main) first. The result is
+// the same argv the long spelling (BIN NOUN VERB ...) would be, so flags,
+// positionals and help parse exactly as there. Setting cli.verb-first
+// (default on) turns it off.
 
-// verbFirstWords is argv rewritten to the long spelling when its first
-// words are a verb of the nouns scope allows, else ok is false (and err
-// says why when the words did name verbs). A leading flag is never a verb.
-func (s *Shell) verbFirstWords(words []string, scope ochazuke.PairScope) (rewritten []string, err error) {
+// reading is the CLI's reader in namespace: the operations within keeps
+// (nil: all), the framework's aside, the rest of the argv binding when the
+// shell parses it as the operation's flags, the namespace's main noun
+// first.
+func (s *Shell) reading(namespace string, within func(*ochazuke.Noun) bool) ochazuke.Reading {
+	rd := s.Runtime.ReadingWithin(func(c ochazuke.Candidate) bool {
+		return !c.Operation.Builtin && c.Operation.Unavailable == "" && (within == nil || within(c.Noun.Noun))
+	})
+	rd.Bind = s.binds
+	rd.Prefer = ochazuke.MainNoun(namespace)
+	return rd
+}
+
+// binds is how far the rest of the argv binds on a candidate: all of it
+// when the shell reads it as the operation's flags and arguments, else
+// none.
+func (s *Shell) binds(c ochazuke.Candidate) int {
+	if _, _, err := s.request(c.Operation.Noun(), c.Operation.Name(), c.Rest); err != nil {
+		return 0
+	}
+	return 1
+}
+
+// verbFirstWords is argv rewritten to the long spelling when the reader
+// reads its leading words as one operation of the scope, else err says
+// why: oden.ErrNotFound when they name nothing, the ambiguity listing the
+// noun verb pairs when several fit. A leading flag is never a verb.
+func (s *Shell) verbFirstWords(words []string, rd ochazuke.Reading) (rewritten []string, err error) {
 	if len(words) == 0 || strings.HasPrefix(words[0], "-") || !s.Runtime.Settings().Bool(ochazuke.CLIVerbFirstSetting) {
 		return nil, oden.ErrNotFound
 	}
-	pair, err := s.Runtime.ReadPair(words, scope)
-	if err != nil {
-		return nil, err
+	cs := slices.DeleteFunc(rd.Read(words), ochazuke.Candidate.NounOnly)
+	switch {
+	case len(cs) == 0:
+		return nil, oden.ErrNotFound
+	case slices.ContainsFunc(cs, func(c ochazuke.Candidate) bool { return c.Operation != cs[0].Operation }):
+		return nil, s.Runtime.AmbiguityOf(cs)
 	}
-	out := strings.Split(pair.Noun, ".")
-	out = append(out, pair.Verb)
-	return append(out, words[pair.Skip:]...), nil
+	return longWords(cs[0]), nil
 }
 
-// ownNoun is the PairScope.Prefer of a tool or namespace named ns: the
-// noun called ns (lane), or ns.ns (lane.lane).
-func ownNoun(ns string) func(string) bool {
-	return func(noun string) bool { return noun == ns || noun == ns+"."+ns }
+// longWords is the long spelling of a candidate: its operation's noun
+// words and name (an alias runs as the action it names), then the rest.
+func longWords(c ochazuke.Candidate) []string {
+	out := append(strings.Split(c.Operation.Noun(), "."), c.Operation.Name())
+	return append(out, c.Rest...)
 }
 
-// binScope is the scope of the tool's own argv: every noun, the one named
-// like the tool's namespace winning a tie. A bin whose name is no
-// namespace (ExtensionNamespace errs) prefers none.
-func binScope(app *oden.App) ochazuke.PairScope {
-	ns, err := OwnNamespace(app.Name)
-	if err != nil {
-		return ochazuke.PairScope{}
-	}
-	return ochazuke.PairScope{Prefer: ownNoun(ns)}
+// binScope is the reading of the tool's own argv: every noun, the main
+// noun of the program's namespace first.
+func (s *Shell) binScope() ochazuke.Reading {
+	return s.reading(ochazuke.DefaultNamespace, nil)
 }
 
 // VerbFirstClaims is oden's App.Claims for a tool: true when argv is a
@@ -56,7 +81,7 @@ func binScope(app *oden.App) ochazuke.PairScope {
 // machine builtin of that name gives way to the noun's verb.
 func (s *Shell) VerbFirstClaims(app *oden.App) func(args []string) bool {
 	return func(args []string) bool {
-		_, err := s.verbFirstWords(args, binScope(app))
+		_, err := s.verbFirstWords(args, s.binScope())
 		return err == nil
 	}
 }
@@ -71,7 +96,7 @@ func (s *Shell) VerbFirstDefault(app *oden.App, next func(context.Context, []str
 	running := false
 	return func(ctx context.Context, args []string) error {
 		if !running {
-			rewritten, err := s.verbFirstWords(args, binScope(app))
+			rewritten, err := s.verbFirstWords(args, s.binScope())
 			switch {
 			case err == nil:
 				// Run again as the long spelling: oden resolves, parses
@@ -79,7 +104,7 @@ func (s *Shell) VerbFirstDefault(app *oden.App, next func(context.Context, []str
 				running, app.Args = true, rewritten
 				defer func() { running = false }()
 				return app.Run(ctx)
-			case !errors.Is(err, oden.ErrNotFound) && len(args) > 0 && strings.Contains(err.Error(), "ambiguous"):
+			case !errors.Is(err, oden.ErrNotFound):
 				fmt.Fprintf(app.Stderr, "%s: %v\n", app.Name, err)
 				return &oden.ExitError{Code: 1}
 			}
@@ -119,11 +144,7 @@ func (s *Shell) groupVerbFirstWords(top map[string]*nounGroup, args []string) ([
 	if g.hasChildLike(args[1]) {
 		return nil, false
 	}
-	prefix := ns + "."
-	rewritten, err := s.verbFirstWords(args[1:], ochazuke.PairScope{
-		Within: func(noun string) bool { return strings.HasPrefix(noun, prefix) },
-		Prefer: ownNoun(ns),
-	})
+	rewritten, err := s.verbFirstWords(args[1:], s.reading(ns, func(n *ochazuke.Noun) bool { return n.Namespace() == ns }))
 	if err != nil {
 		return nil, false
 	}

@@ -148,8 +148,15 @@ type CatalogNoun struct {
 	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
 	// PropsOff are fields of the noun's rows its lists' prop filters never
 	// offer (ochazuke.NounBuilder.PropsOff); every other field is filterable.
-	PropsOff []string      `json:"propsOff,omitempty"`
-	Verbs    []CatalogVerb `json:"verbs"`
+	PropsOff []string `json:"propsOff,omitempty"`
+	// Main marks the program's main noun (ochazuke.Noun.Main): a host
+	// reads a word that leaves the noun out as this one first, within the
+	// extension's namespace (mtm lane state is lane.lane state).
+	Main bool `json:"main,omitempty"`
+	// DefaultAction is the action the noun's words run with no action
+	// word, or only flags (ochazuke.Noun.DefaultAction).
+	DefaultAction string        `json:"defaultAction,omitempty"`
+	Verbs         []CatalogVerb `json:"verbs"`
 }
 
 // CatalogVerb is one ochazuke.Operation. Params are the operation's
@@ -394,6 +401,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				noun.Pin, noun.Live, noun.Columns = n.Pin, n.Live, slices.Clone(n.Columns)
 				noun.NoEditKey = n.NoEditKey
 				noun.NoPicker = n.NoPicker
+				noun.Main, noun.DefaultAction = n.Main, n.DefaultAction
 				noun.Unpersisted = n.Unpersisted
 				noun.Filters = slices.Clone(n.Filters)
 				noun.PropsOff = slices.Clone(n.PropsOff)

@@ -505,23 +505,6 @@ func (p *Palette) depth(noun string) int {
 	return 0
 }
 
-// impliedNoun is the noun a verb acts on when the line omits it: the
-// nearest instance's noun on the focus path that has the verb, else the
-// only noun that has it.
-func (p *Palette) impliedNoun(ix lineIndex, verb string) string {
-	for _, id := range p.r.Ancestry(focusOf(p.origin)) {
-		if inst := p.r.Instances[id]; inst != nil {
-			if word := p.r.DisplayNoun(inst.Noun); func() bool { op, _ := ix.op(word, verb); return op.Name() != "" }() {
-				return word
-			}
-		}
-	}
-	if nouns := ix.nounsOf(verb); len(nouns) == 1 {
-		return nouns[0].Value
-	}
-	return ""
-}
-
 // nounRuns reads namespace words (palette.namespace-words): a run of two
 // or more words at a noun position (the first word, or the second after a
 // first word that is no noun name) that joined with dots name a noun or
@@ -648,9 +631,13 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 				c.Err = err
 				return c
 			case reading.Noun != "":
-				resolved := p.parseRest(ix, option{Kind: "verb", Value: verb}, tokens)
-				resolved.Old = c.Old
-				return resolved
+				// The words read as the shadowed verb's line.
+				shadowed := append([]lineToken{{Text: verb, Start: tokens[0].Start, Tail: tokens[0].Tail}}, tokens[1:]...)
+				read := p.readLine(ix, shadowed, c.Old)
+				if len(read.Words) > 0 {
+					read.Words[0].Text = word
+				}
+				return read
 			case reading.Noun == "":
 				for _, t := range tokens[:reading.Skip] {
 					c.Words = append(c.Words, PaletteWord{Text: t.Text, Kind: "verb", Value: t.Text})
@@ -670,55 +657,7 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 			}
 		}
 	}
-	old := c.Old
-	withOld := func(c commandLine) commandLine { c.Old = old; return c }
-	hit, candidates, exact := matchWord(word, append(append([]option{}, ix.byVerbs...), ix.byNouns...))
-	switch {
-	case hit.Value != "":
-		return withOld(p.parseRest(ix, hit, tokens))
-	case exact:
-		// A word that is a verb and a noun: a typed noun whose next word
-		// is its verb or prop reads as that noun (note rename beside a
-		// focused doc's own note verb); else the reading that resolves
-		// further wins, the verb on a tie.
-		verbWord, nounWord := option{Kind: "verb", Value: word}, option{Kind: "noun", Value: word}
-		for _, o := range candidates {
-			if o.Kind == "noun" {
-				nounWord = o
-			} else if o.Kind == "verb" {
-				verbWord = o
-			}
-		}
-		verb, noun := p.parseRest(ix, verbWord, tokens), p.parseRest(ix, nounWord, tokens)
-		if nounReads(noun) || resolved(noun) > resolved(verb) {
-			return withOld(noun)
-		}
-		return withOld(verb)
-	}
-	// An ambiguous first word is settled by the second (readPair): the
-	// readings where it resolves survive; one is the line.
-	if read, ok := p.readPair(ix, candidates, tokens); ok {
-		return withOld(read)
-	}
-	c.Words = append(c.Words, PaletteWord{Text: word, Candidates: optionValues(candidates)})
-	c.Err = unresolvedError(word, "verb or noun", candidates)
-	return c
-}
-
-// nounReads reports whether a line read with its first word as a noun
-// resolved the second as that noun's verb, prop or instance: the noun
-// reading names a thing of the noun, so it wins over a verb of the same
-// word that would only take the second word as an argument. After the
-// noun the second word keeps readNounWord's verb > prop > key order.
-func nounReads(c commandLine) bool {
-	if len(c.Words) < 2 || c.Words[0].Kind != "noun" {
-		return false
-	}
-	switch c.Words[1].Kind {
-	case "verb", "prop", "instance":
-		return true
-	}
-	return false
+	return p.readLine(ix, tokens, c.Old)
 }
 
 // resolved counts the words of a parse before its first failure, and one
@@ -744,52 +683,13 @@ func unresolvedError(word, what string, candidates []option) error {
 	return fmt.Errorf("%q names no %s here", word, what)
 }
 
-// parseRest resolves the second word against the complement of the first,
-// then the parameters.
+// parseRest reads the words after a noun that the reader read as no
+// action of it: a prop, an instance of a palette noun (its default verb),
+// else the missing verb and why the word is none.
 func (p *Palette) parseRest(ix lineIndex, first option, tokens []lineToken) commandLine {
 	c := commandLine{Args: Arguments{}}
 	c.Words = append(c.Words, PaletteWord{Text: tokens[0].Text, Kind: first.Kind, Value: first.Value})
 	rest := tokens[1:]
-	if first.Kind == "verb" {
-		verb := first.Value
-		nouns := ix.nounOptions(ix.nounsOf(verb))
-		if len(rest) > 0 {
-			hit, candidates, _ := matchWord(rest[0].Text, nouns)
-			if hit.Value != "" {
-				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Kind: "noun", Value: hit.Value, Complement: true})
-				c.Op, c.Via = ix.op(hit.Value, verb)
-				p.parseParams(&c, rest[1:], "")
-				return c
-			}
-			if len(candidates) > 1 {
-				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text, Candidates: optionValues(candidates)})
-				c.Err = unresolvedError(rest[0].Text, "noun", candidates)
-				return c
-			}
-		}
-		if len(rest) > 0 {
-			// A noun whose verb is guarded off here is named as such, not
-			// read as an argument.
-			if _, ok := p.r.Operation(rest[0].Text + "." + verb); ok {
-				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text})
-				c.Err = fmt.Errorf("%s.%s is not applicable now", rest[0].Text, verb)
-				return c
-			}
-		}
-		noun := p.impliedNoun(ix, verb)
-		if noun == "" {
-			c.Missing = "noun"
-			if len(rest) > 0 {
-				c.Words = append(c.Words, PaletteWord{Text: rest[0].Text})
-				c.Err = unresolvedError(rest[0].Text, "noun for "+verb, nil)
-			}
-			return c
-		}
-		c.Op, c.Via = ix.op(noun, verb)
-		c.Implied = true
-		p.parseParams(&c, rest, "")
-		return c
-	}
 	noun := first.Value
 	if len(rest) == 0 {
 		c.Missing = "verb"

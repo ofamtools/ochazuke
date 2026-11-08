@@ -1,0 +1,17 @@
+{
+  "name": "palette: two prefixes two pairs fit are listed as the noun verb pairs and nothing runs (lexicon reader ties)",
+  "area": "palette",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "nouns": [
+      {"noun": "quad", "verbs": ["warp"]},
+      {"noun": "quill", "verbs": ["wipe"]}
+    ]
+  },
+  "script": [":", {"type": "q w"}, "enter"],
+  "expect": [
+    {"writes": [], "modal": "palette", "contains": ["\"q w\" is ambiguous: quad warp, quill wipe"]}
+  ]
+}

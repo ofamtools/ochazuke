@@ -20,7 +20,15 @@ func (s *Shell) Complete(words []string) ([]ochazuke.Choice, error) {
 	before := slices.Clone(words[:len(words)-1])
 	noun, rest, ok := s.Runtime.NounWords(before)
 	if !ok || len(rest) == 0 {
-		return nil, nil
+		// The noun or the verb is the word being completed: the names the
+		// reader reads it as, as the palette lists them (Reading.Complete),
+		// then a verb-first line's parameter choices (its long spelling's).
+		out := s.completeWords(words)
+		if long, err := s.verbFirstWords(before, s.binScope()); err == nil {
+			more, _ := s.Complete(append(long, current))
+			out = append(out, more...)
+		}
+		return out, nil
 	}
 	verb, _, err := s.nounWord(noun, rest[0])
 	if err != nil {
@@ -63,6 +71,17 @@ func (s *Shell) Complete(words []string) ([]ochazuke.Choice, error) {
 		choices[i].ID = prefix + choices[i].ID
 	}
 	return choices, nil
+}
+
+// completeWords are the nouns and verbs the last word may be after the
+// words before it (BIN complete -- sh, BIN complete -- show ag): the
+// reader's completions over the tool's own operations.
+func (s *Shell) completeWords(words []string) []ochazuke.Choice {
+	var out []ochazuke.Choice
+	for _, name := range s.Runtime.CompleteWords(s.binScope(), words) {
+		out = append(out, ochazuke.Choice{ID: name})
+	}
+	return out
 }
 
 func (s *Shell) completeCommand(_ context.Context, words []string) error {

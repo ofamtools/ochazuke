@@ -5,11 +5,11 @@ about.go	aboutRowOf	compare	"ochazuke.about-row"	1
 about.go	registerAbout	compare	"ochazuke.about-row"	1
 about.go	registerAbout	compare	"path"	2
 action_names.go	Runtime.checkAlias	cyclo	"-"	35
+actions.go	Runtime.checkUserAlias	compare	"config"	1
 actions.go	UserOperation.values	case	"args"	1
 actions.go	UserOperation.values	case	"id"	1
 actions.go	UserOperation.values	case	"noun"	1
 actions.go	UserOperation.values	case	"verb"	1
-actions.go	Runtime.checkUserAlias	compare	"config"	1
 actions.go	var actionPlaceholders	table	"args"	1
 actions.go	var actionPlaceholders	table	"id"	1
 actions.go	var actionPlaceholders	table	"noun"	1
@@ -279,7 +279,7 @@ palette_choices.go	Palette.slot	compare	"noun"	1
 palette_editing.go	Palette.recallLines	compare	"palette"	2
 palette_nouns.go	Palette.completions	compare	"noun"	1
 palette_nouns.go	Palette.completions	compare	"verb"	1
-palette_nouns.go	Palette.completions	cyclo	"-"	42
+palette_nouns.go	Palette.completions	cyclo	"-"	40
 palette_nouns.go	Palette.preferActivePage	case	"noun"	1
 palette_nouns.go	Palette.preferActivePage	case	"verb"	1
 palette_nouns.go	Palette.preferActivePage	compare	"last"	1
@@ -288,16 +288,9 @@ palette_nouns.go	Palette.preferActivePage	cyclo	"-"	29
 palette_nouns.go	lineIndex.orderVerbs	compare	"hidden"	1
 palette_parse.go	Palette.parseRest	case	"prop"	1
 palette_parse.go	Palette.parseRest	case	"verb"	1
-palette_parse.go	Palette.parseRest	compare	"verb"	1
-palette_parse.go	Palette.parseTokens	compare	"noun"	1
-palette_parse.go	Palette.parseTokens	compare	"verb"	1
 palette_parse.go	commandLine.Request	compare	"prop"	1
 palette_parse.go	commandLine.Request	compare	"toggle"	1
 palette_parse.go	commandLine.Request	compare	"value"	1
-palette_parse.go	nounReads	case	"instance"	1
-palette_parse.go	nounReads	case	"prop"	1
-palette_parse.go	nounReads	case	"verb"	1
-palette_parse.go	nounReads	compare	"noun"	1
 palette_results.go	Runtime.showResults	cyclo	"-"	29
 param_kinds.go	var paramKinds	table	"path"	1	"path" here is a parameter TYPE (PathParameterType), a row of the one table the routes read, not the parameter named path
 param_sources.go	isRowSource	compare	"row"	1

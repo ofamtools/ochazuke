@@ -73,6 +73,14 @@ type Noun struct {
 	PropsOff []string `json:"propsOff,omitempty"`
 	// Classes declare the row classes and their optional motion keys.
 	Classes []ClassDecl `json:"classes,omitempty"`
+	// Main marks the program's main noun (NounBuilder.Main, the catalog's
+	// mainNoun): where a word leaves the noun out, the reader prefers the
+	// main noun of the namespace it reads in (o-lane add is lane add).
+	Main bool `json:"main,omitempty"`
+	// DefaultAction is the action the noun's words run when no action
+	// word follows, or only flags (NounBuilder.DefaultAction, the
+	// catalog's defaultAction): review --web is review page --web.
+	DefaultAction string `json:"defaultAction,omitempty"`
 }
 
 // Binding is one row of a mode table, identical in code and config:
@@ -640,6 +648,14 @@ func (b *NounBuilder) Unpersisted() *NounBuilder { b.n.Unpersisted = true; retur
 // NoPicker opts the noun out of the derived pickers: a noun with a list
 // verb otherwise gets a picker named after it (picker.derive).
 func (b *NounBuilder) NoPicker() *NounBuilder { b.n.NoPicker = true; return b }
+
+// Main marks the noun as its program's main noun (Noun.Main): a word that
+// leaves the noun out reads as this one first, within its namespace.
+func (b *NounBuilder) Main() *NounBuilder { b.n.Main = true; return b }
+
+// DefaultAction names the action the noun's words run with no action word,
+// or only flags, after them (Noun.DefaultAction).
+func (b *NounBuilder) DefaultAction(name string) *NounBuilder { b.n.DefaultAction = name; return b }
 
 // Many marks the last declared verb as taking many subjects at once
 // (Operation.Many): run over a visual selection, its handler is called

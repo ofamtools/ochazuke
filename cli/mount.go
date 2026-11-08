@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"slices"
@@ -95,6 +96,9 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	// its props rather than a verb (Runtime.ReadNounWord, as the palette
 	// reads it) is a command for this run only, by the prop's whole name,
 	// so help still lists the verbs alone.
+	// A noun's words with no action word, or only flags, run its default
+	// action (Noun.DefaultAction: review --web is review page --web).
+	app.Args = sh.defaultActionWords(app.Args)
 	propNoun, prop := "", ""
 	if noun, rest, ok := r.NounWords(app.Args); ok && len(rest) > 0 {
 		if _, p, err := sh.nounWord(noun, rest[0]); err == nil && p != "" {
@@ -244,7 +248,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	for _, name := range topNames {
 		command := top[name].command(name, line)
 		command.Aliases = shortNames[name]
-		app.Add(command)
+		sh.addGroup(app, command)
 	}
 	app.HelpText = `CLI execution:
   Each call uses a fresh local runtime, not an already-running TUI.
@@ -268,6 +272,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	// A word that names no command but is a verb of the tool's nouns runs
 	// it (BIN add, and BIN state over the builtin when a noun has one):
 	// oden's Claims and Default, over the tool's own (cli.verb-first).
+	app.Args = sh.readerWords(app, topNames)
 	app.Claims = sh.VerbFirstClaims(app)
 	app.Default = sh.VerbFirstDefault(app, app.Default)
 	sh.catalogOptions = append(sh.catalogOptions, func(doc *CatalogDoc) {
@@ -559,4 +564,102 @@ func commandAliases(r *ochazuke.Runtime, key string) []ochazuke.ActionAlias {
 		out = append(out, a)
 	}
 	return out
+}
+
+// defaultActionWords is args with a noun's default action put after the
+// noun's words when no action word follows them (nothing, or only flags
+// that are not help), as the reader reads them; else args.
+func (sh *Shell) defaultActionWords(args []string) []string {
+	// NounWords leaves a word for the verb: the "" after the words.
+	noun, rest, ok := sh.Runtime.NounWords(append(slices.Clone(args), ""))
+	rest = rest[:len(rest)-1]
+	if !ok || len(rest) > 0 && (!strings.HasPrefix(rest[0], "-") || rest[0] == "-h" || rest[0] == "--help") {
+		return args
+	}
+	n := sh.Runtime.Nouns[noun]
+	if n == nil || n.DefaultAction == "" {
+		return args
+	}
+	cs := sh.reading(n.Namespace(), func(m *ochazuke.Noun) bool { return m == n }).Read(append([]string{noun}, rest...))
+	if len(cs) == 0 || cs[0].NounOnly() || cs[0].Action.Via != ochazuke.ViaOmitted {
+		return args
+	}
+	return longWords(cs[0])
+}
+
+// addGroup adds a top-level noun group, merged into an application command
+// of its name (mergeInto). A framework noun reached by its short name (list
+// for ochazuke.list) yields (oden's Command.Yield): when the tool's own
+// nouns read the words, the reader's reading runs (o-lane list is lane
+// list), through Claims.
+func (sh *Shell) addGroup(app *oden.App, group oden.Command) {
+	if n := sh.Runtime.Nouns[group.Name]; n != nil && len(group.Aliases) > 0 {
+		group.Yield = n.Namespace() == ochazuke.FrameworkNamespace
+	}
+	if !sh.mergeInto(app, group) {
+		app.Add(group)
+	}
+}
+
+// mergeInto files a noun group's verbs under an application command of the
+// same name, when the application added one before Mount (o-questions'
+// review): a command with children gains the verbs it lacks; a command
+// with none hides the noun, so Mount says so on stderr. It reports
+// whether such a command was there.
+func (sh *Shell) mergeInto(app *oden.App, group oden.Command) bool {
+	e := app.Catalog().Lookup(group.Name)
+	if e == nil || e.Kind != oden.KindInline || e.Command == nil || odenBuiltin(e) {
+		return false
+	}
+	if e.Command.Children == nil {
+		fmt.Fprintf(sh.stderr(), "warning: %s: the command %q hides the noun %s and its verbs (%s); rename the command, or give it children and Mount adds the noun's verbs\n", app.Name, group.Name, group.Name, group.Summary)
+		return true
+	}
+	for _, verb := range group.Children {
+		if !slices.ContainsFunc(e.Command.Children, func(c oden.Command) bool { return c.Name == verb.Name }) {
+			e.Command.Children = append(e.Command.Children, verb)
+		}
+	}
+	return true
+}
+
+// odenBuiltin reports whether e is one of oden's own builtins (help,
+// state, ...), which a noun group owns its name over: the entry a bare
+// app with builtins has under that name, with the same summary.
+func odenBuiltin(e *oden.Entry) bool {
+	b := oden.New("probe", nil, oden.WithBuiltins()).Catalog().Lookup(e.Name)
+	return b != nil && b.Summary == e.Summary
+}
+
+// readerWords is the argv to run: when its first word names no command
+// exactly (q w up, a prefix), the long spelling of the one operation the
+// reader reads the words as, as the palette reads them; else argv as it is,
+// for oden to resolve (an exact name, a prefix the reader reads as no one
+// operation, a prefix of a command that is none of Mount's noun groups:
+// an application command or an external bin, which the reader does not
+// know).
+func (sh *Shell) readerWords(app *oden.App, groups []string) []string {
+	if len(app.Args) == 0 || app.Catalog().Lookup(app.Args[0]) != nil || !onlyGroups(app.Catalog().Resolve(app.Args[0]).Candidates, groups) {
+		return app.Args
+	}
+	long, err := sh.verbFirstWords(app.Args, sh.binScope())
+	switch {
+	case err == nil:
+		return long
+	case !errors.Is(err, oden.ErrNotFound):
+		// Several of the tool's operations fit: the word is, for this run,
+		// a command that says so (as a NOUN PROP word is a command for
+		// one run), before oden reads it as a prefix of some other command.
+		app.Add(oden.Command{Name: app.Args[0], Summary: "ambiguous here", Source: "reader", Run: func(context.Context, []string) error {
+			fmt.Fprintf(app.Stderr, "%s: %v\n", app.Name, err)
+			return &oden.ExitError{Code: 1}
+		}})
+	}
+	return app.Args
+}
+
+// onlyGroups reports whether every entry is one of Mount's top-level noun
+// groups.
+func onlyGroups(entries []*oden.Entry, groups []string) bool {
+	return !slices.ContainsFunc(entries, func(e *oden.Entry) bool { return !slices.Contains(groups, e.Name) })
 }
