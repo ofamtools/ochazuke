@@ -122,3 +122,29 @@ func TestHelpTableSortAndUnboundOnly(t *testing.T) {
 		t.Fatalf("keys not back: %d vs %d", len(tableIDs(r)), len(def))
 	}
 }
+
+// After S cycles from the table back to the here view, enter acts on the
+// tree's selected unbound row, not on the table's list selection.
+func TestHelpTableSelectionDoesNotLeakIntoTreeViews(t *testing.T) {
+	r, m, ran := tableOpen(t)
+	list := r.List(helpListID)
+	for _, item := range list.items {
+		if row, ok := item.Data.(HelpRow); ok && row.Operation == "widget.wipe" {
+			if err := list.Select(item.ID); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	keytest.Press(m, "S")
+	if r.helpOpen().view != HelpHere {
+		t.Fatalf("view %q", r.helpOpen().view)
+	}
+	selectHelpRow(t, r, "widget.ping")
+	if row, ok := r.selectedHelpRow(); !ok || row.Operation != "widget.ping" {
+		t.Fatalf("selected %+v %v", row, ok)
+	}
+	keytest.Press(m, "enter")
+	if !slices.Equal(*ran, []string{"ping"}) {
+		t.Fatalf("ran %v", *ran)
+	}
+}

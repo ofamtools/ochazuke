@@ -4,37 +4,37 @@
  |  a
 r|  a1
  |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
- |            │ Keys · table                                                                                 │
- |            │ noun: demo · place: page1 › demo › collection · .verb is demo.verb · (op) answered by app ·… │
- |            │ [unbound = true]                                                                    9 of 100 │
- |            │ key         normal          list_filter      visual          visual-block     visual-line    │
- |            │ unbound                                                                                      │
- |            │             .check                                                                           │
- |            │             .choose                                                                          │
- |            │             .finish                                                                          │
- |            │             .guide                                                                           │
- |            │             .hide                                                                            │
- |            │             .mapping                                                                         │
- |            │             .ping                                                                            │
- |            │             .program                                                                         │
-R|            │             .usage                                                                           │
- |            │                                                                                              │
- |            │                                                                                              │
- |            │                                                                                              │
- |            │                                                                                              │
- |            │                                                                                              │
- |            │                                                                                              │
- |            │                                                                                              │
- |            │                                                                                              │
- |            │                                                                                              │
- |            │                                                                                              │
- |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
- |            │ demo.usage · unbound                                                                         │
- |            │ Answer a --help page: a preformatted result, drawn as written in the palette's viewer (help… │
- |            │ space collection.mark · z C clear props · S view · n noun · p place · s sort key · enter ru… │
+ |            │ Keys · here                                                                                  │
+ |            │ key             operation             arguments              description                     │
+ |            │ demo                                                                                         │
+R|            │   q             app.quit                                     Exit the application            │
+ |            │   r             demo.reset                                   Rebuild the story from its file │
+ |            │   enter         demo.open                                    Open the row: attach the fake   │
+ |            │                                                              pane when the story has one for │
+ |            │                                                              it                              │
+ |            │   n             demo.notify                                  Add a persistent notice naming  │
+ |            │                                                              the row                         │
+ |            │   x             demo.delete                                  Remove the row from its list    │
+ |            │ ▾ g                                                          waits for the next key (1 key)  │
+ |            │   ▸ g x         demo.reset                                   Rebuild the story from its file │
+ |            │   ▸ g esc       mode.leave                                   Return from a pending mode to   │
+ |            │                                                              the mode it shadowed            │
+ |            │ demo · unbound                                                                               │
+ |            │                 demo.check                                   Toggle a [x] mark on the        │
+ |            │                                                              outline row, an application     │
+ |            │                                                              change on the outline's undo    │
+ |            │                                                              stack                           │
+ |            │                 demo.choose                                  Open the page's story chooser   │
+ |            │                                                              again                           │
+ |            │                 demo.finish                                  Finish (or fail) the oldest     │
+ |            │                                                              running job of a demo verb      │
+ |            │                 demo.guide                                   Answer a Markdown guide: a      │
+ |            │                                                              Markdown result, opened in the  │
+ |            │ 1–12 / 64                                                                                    │
+ |            │ space collection.mark · S view · enter run · a args · esc modal.close · : palette.open · ? … │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space collection.mark · z C clear props · S view · n noun · p place · s sort key · enter run · b bind · esc modal.c…
+ |  space collection.mark · S view · enter run · a args · esc modal.close · : palette.open · ? binding.help · / filter
  |

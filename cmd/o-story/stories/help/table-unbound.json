@@ -29,7 +29,8 @@
     "o",
     "enter",
     "G",
-    "u"
+    "u",
+    "S"
   ],
   "expect": [
     {
@@ -56,6 +57,13 @@
       ],
       "lacks": [
         "ctrl+d"
+      ]
+    },
+    {
+      "after": 12,
+      "contains": [
+        "Keys \u00b7 here",
+        "unbound"
       ]
     }
   ]

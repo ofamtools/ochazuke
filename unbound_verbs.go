@@ -343,7 +343,11 @@ func (r *Runtime) afterFailure(value any, fn func(error)) {
 // selectedHelpRow is the help row under the selection of the help's tree,
 // or of its table's list when the row is an unbound verb.
 func (r *Runtime) selectedHelpRow() (HelpRow, bool) {
-	if list := r.List(helpListID); list != nil {
+	if h := r.helpOpen(); h != nil && h.view == HelpTable {
+		list := r.List(helpListID)
+		if list == nil {
+			return HelpRow{}, false
+		}
 		// The table view: a list whose unbound rows carry their HelpRow.
 		item, ok := list.Selected()
 		row, isRow := item.Data.(HelpRow)
