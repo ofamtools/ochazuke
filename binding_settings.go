@@ -233,6 +233,7 @@ func (r *Runtime) applyNamed(row Binding) Binding {
 // file row replaces one), and a key sequence in progress is cancelled.
 // DeclareSetting and every change of a setting's value call it.
 func (r *Runtime) rebindSettingRows(name string) {
+	r.InvalidateBindings()
 	if !r.namedSettings[name] {
 		return // no row this runtime resolved names the setting
 	}

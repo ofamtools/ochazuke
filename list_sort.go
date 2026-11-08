@@ -476,6 +476,7 @@ func (l *Collection) sortTitle(col Column) string {
 }
 
 func registerListSort(r *Runtime) {
+	r.InvalidateBindings()
 	resolve := func(focus string, a Arguments) *Collection { return r.rowFilterList(StringArg(a, "id", focus)) }
 	r.DefineGuard("list-sortable", func(_ *Runtime, ev KeyEvent) bool {
 		l := resolve(ev.Focus, ev.Args)

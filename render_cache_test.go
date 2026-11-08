@@ -176,21 +176,25 @@ func TestRenderHintsTrackArbitraryGuardsAndBindingEdits(t *testing.T) {
 	check()
 	r.DefineGuard("cache-other", func(*Runtime, KeyEvent) bool { return false })
 	r.Nouns["app"].Guards["cache-test"] = "cache-other"
+	r.InvalidateBindings()
 	check()
 	r.Nouns["app"].Guards["cache-test"] = "cache-test"
+	r.InvalidateBindings()
 	check()
 	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "x", Request: Request{Noun: "app", Verb: "cache-test", Args: Arguments{"n": 2}}}); err != nil {
 		t.Fatal(err)
 	}
 	check()
 	check()
-	// Public table edits must invalidate too, including nested arguments.
+	// Public table edits invalidate once the host says so, including nested
+	// arguments.
 	for i := range r.Nouns["app"].Bindings["normal"] {
 		b := &r.Nouns["app"].Bindings["normal"][i]
 		if b.Keys == "x" {
 			b.Request.Args["n"] = 3
 		}
 	}
+	r.InvalidateBindings()
 	check()
 	op := r.Operations.At(Key("app.cache-test"))
 	op.Motion = true
@@ -396,5 +400,58 @@ func TestRenderBackgroundCompletionShowsInNextFrame(t *testing.T) {
 	m.Update(renderFrameMsg{m, now})
 	if s := ansi.Strip(m.View().Content); !strings.Contains(s, "Loaded") {
 		t.Fatalf("the loaded rows never showed:\n%s", s)
+	}
+}
+
+// Each input of the binding walk, written through its API, moves the render
+// stamp, and the cached walk, hints and help then agree with the live
+// resolver; none is served stale.
+func TestRenderStampInvalidatesOnEveryInput(t *testing.T) {
+	m, _ := renderFixture(t)
+	r := m.Runtime
+	r.DefineGuard("stamp-on", func(*Runtime, KeyEvent) bool { return true })
+	r.Define("app").Verb("stamp", func(Ctx) Result { return Done(nil) }).Mode("normal").Bind("x", Do("app.stamp"))
+	agree := func(name string) {
+		t.Helper()
+		live := r.scanRowsUncached(r.walk(r.Focus), r.Mode, r.Focus, nil)
+		if got := r.levelRows(r.Focus); !reflect.DeepEqual(got, live) {
+			t.Fatalf("%s: cached walk differs from the live resolver", name)
+		}
+		if got, want := HintBindings(r, r.Focus), hintBindingsUncached(r, r.Focus, groupLevelRows(live)); !reflect.DeepEqual(got, want) {
+			t.Fatalf("%s: cached hints differ from the live resolver", name)
+		}
+		HintCells(r, r.Focus)
+		BindingHelp(r, r.Focus)
+	}
+	agree("start")
+	steps := []struct {
+		name  string
+		write func()
+	}{
+		{"bind", func() {
+			_ = r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "ctrl+y", Request: Request{Noun: "app", Verb: "stamp"}})
+		}},
+		{"builder bind", func() { r.Define("app").Mode("normal").Bind("ctrl+u", Do("app.stamp")) }},
+		{"builder unbind", func() { r.Define("app").Mode("normal").Unbind("ctrl+u") }},
+		{"availability", func() { r.SetAvailability("app.stamp", "stamp-on") }},
+		{"operation", func() {
+			op := r.Operations.At(Key("app.stamp"))
+			op.Motion = true
+			r.Operations.Set(op)
+		}},
+		{"new noun", func() { r.Define("stamp-noun").Verb("v", func(Ctx) Result { return Done(nil) }) }},
+		{"mode", func() { r.SetMode("insert") }},
+		{"in-place edit", func() {
+			r.Nouns["app"].Bindings["normal"][0].Hint = "edited"
+			r.InvalidateBindings()
+		}},
+	}
+	for _, step := range steps {
+		before := r.renderCache.stamp(r)
+		step.write()
+		if r.renderCache.stamp(r) == before {
+			t.Fatalf("%s: the render stamp did not move", step.name)
+		}
+		agree(step.name)
 	}
 }

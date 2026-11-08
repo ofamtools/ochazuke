@@ -843,6 +843,7 @@ func filterViewAt(r *Runtime, focus string) *filterViewForm {
 	return nil
 }
 func registerFilterViewForm(r *Runtime) {
+	r.InvalidateBindings()
 	r.Define(filterFormNoun)
 	r.DefineGuard("filter-form-open", func(r *Runtime, ev KeyEvent) bool { return filterViewAt(r, ev.Focus) != nil })
 	r.Define(filterSaveNoun)

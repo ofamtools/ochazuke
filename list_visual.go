@@ -377,6 +377,7 @@ func (r *Runtime) visualApply(q Request, op Operation, focus string) (Request, b
 }
 
 func registerListVisual(r *Runtime) {
+	r.InvalidateBindings()
 	r.DefineGuard("list-visual", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.visual

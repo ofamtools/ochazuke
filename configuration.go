@@ -724,6 +724,7 @@ func (r *Runtime) unapplyUserBindings() {
 
 // unapplyBindingRows restores the layer below a row log, newest first.
 func (r *Runtime) unapplyBindingRows(applied []appliedRow) {
+	r.InvalidateBindings()
 	for i := len(applied) - 1; i >= 0; i-- {
 		a := applied[i]
 		restore := func(rows []Binding) []Binding {

@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"encoding/json"
 	"maps"
 	"reflect"
 	"slices"
@@ -24,75 +23,51 @@ type guardReading struct {
 	present, value bool
 }
 
-type scanTable struct {
-	rows         []Binding
-	guards       map[string]string
-	availability map[string][]string
+// RenderStamp is every counter a binding walk depends on besides focus, mode
+// and the live guards: one comparison of four integers replaces comparing the
+// tables themselves. Generation moves on every write to a binding, guard,
+// availability or extends table, a mode definition, a noun or an alias
+// (Runtime.InvalidateBindings, and TestRenderInputWritersBump holds every
+// writer in the package to it); Mode on every mode change; Instances on every
+// instance added or removed; Operations on every registry invalidation.
+type RenderStamp struct {
+	Generation, Mode, Instances, Operations uint64
+}
+
+func (c *runtimeRenderCache) stamp(r *Runtime) RenderStamp {
+	return RenderStamp{c.generation, r.modeGeneration, c.instances.generation, uint64(r.Operations.Invalidations)}
 }
 
 type bindingScan struct {
-	focus, mode    string
-	drop           bool
-	modeGeneration uint64
-	levels         []level
-	tables         []scanTable
-	guards         []guardReading
-	rows           []levelRow
-	grouped        []levelRow
+	focus      string
+	modeState  ModeState
+	drop       bool
+	stamp      RenderStamp
+	levels     []level
+	guards     []guardReading
+	uncachable bool // a standard or prop request: the walk is read live each time
+	rows       []levelRow
+	grouped    []levelRow
 }
 
-// A small bounded cache holds only the current focus and pending-mode
-// walks. Snapshots detect table edits even through public binding maps;
-// arbitrary application guards are always re-evaluated with their original
-// event. A false guard that hid a row is a dependency too.
+// A small bounded cache holds only the current focus and pending-mode walks.
+// An entry stays valid while its RenderStamp is unchanged; a hit compares the
+// stamp, the focus, the mode state and the walk's levels, never a table.
+// Arbitrary application guards are always re-evaluated with their original
+// event. A false guard that hid a row is a dependency too. Code that edits a
+// public Noun or Instance table in place calls Runtime.InvalidateBindings.
 func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, focus string) []levelRow {
 	c.lastScan = nil
 	if c.collecting != nil {
 		return r.scanRowsUncached(levels, mode, focus, nil)
 	}
-	data, err := json.Marshal(mode)
-	if err != nil {
-		return r.scanRowsUncached(levels, mode, focus, nil)
-	}
-	key := string(data)
-	base, _ := baseAndPrefix(mode)
-	exclusive := r.modes[mode.Name].Pending || mode.Payload.Shadow != nil
-	var tables []scanTable
-	for _, lv := range levels {
-		if lv.inst != nil {
-			tables = append(tables, scanTable{rows: rowsForMode(lv.inst.Bindings, base, exclusive)})
-		}
-		if n := lv.noun; n != nil {
-			for _, rows := range r.nounTables(n, base) {
-				tables = append(tables, scanTable{rows, n.Guards, n.Availability})
-			}
-			if !exclusive {
-				tables = append(tables, scanTable{n.Bindings[""], n.Guards, n.Availability})
-			}
-		}
-	}
-	// Standard and prop requests additionally depend on a store schema's
-	// mutable write plan; leave those walks uncached rather than guessing.
-	var operationNouns []*Noun
-	for _, table := range tables {
-		for _, b := range table.rows {
-			if b.Request.IsProp() || r.Operations.At(Key(b.Request.Key())).Standard != "" {
-				return r.scanRowsUncached(levels, mode, focus, nil)
-			}
-			if op, ok := r.Operations.Find(Key(b.Request.Key())); ok {
-				if n := r.Nouns[op.Noun()]; n != nil && !slices.Contains(operationNouns, n) {
-					operationNouns = append(operationNouns, n)
-				}
-			}
-		}
-	}
-	for _, n := range operationNouns {
-		tables = append(tables, scanTable{guards: n.Guards, availability: n.Availability})
-	}
-	drop := r.dropsInheritedSequences()
+	stamp, drop := c.stamp(r), r.dropsInheritedSequences()
 	for _, old := range c.scans {
-		if old.focus != focus || old.mode != key || old.drop != drop || old.modeGeneration != r.modeGeneration || !slices.Equal(old.levels, levels) || !equalScanTables(old.tables, tables) {
+		if old.focus != focus || old.modeState != mode || old.drop != drop || old.stamp != stamp || !slices.Equal(old.levels, levels) {
 			continue
+		}
+		if old.uncachable {
+			return r.scanRowsUncached(levels, mode, focus, nil)
 		}
 		valid := true
 		for _, dep := range old.guards {
@@ -107,25 +82,55 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 			return old.rows // internal borrowed rows; public APIs copy them
 		}
 	}
-	entry := &bindingScan{focus: focus, mode: key, drop: drop, modeGeneration: r.modeGeneration, levels: slices.Clone(levels)}
-	entry.tables = make([]scanTable, len(tables))
-	for i, table := range tables {
-		entry.tables[i] = scanTable{cloneBindings(table.rows), maps.Clone(table.guards), make(map[string][]string, len(table.availability))}
-		for verb, guards := range table.availability {
-			entry.tables[i].availability[verb] = slices.Clone(guards)
-		}
+	entry := &bindingScan{focus: focus, modeState: mode, drop: drop, stamp: stamp, levels: slices.Clone(levels)}
+	if len(c.scans) >= 8 {
+		c.scans = c.scans[:0]
+	}
+	c.scans = append(c.scans, entry)
+	// Standard and prop requests additionally depend on a store schema's
+	// mutable write plan; leave those walks uncached rather than guessing.
+	if r.scanNeedsLivePlan(levels, mode) {
+		entry.uncachable = true
+		return r.scanRowsUncached(levels, mode, focus, nil)
 	}
 	c.collecting = entry
 	func() {
 		defer func() { c.collecting = nil }()
 		entry.rows = r.scanRowsUncached(levels, mode, focus, nil)
 	}()
-	if len(c.scans) >= 8 {
-		c.scans = c.scans[:0]
-	}
-	c.scans = append(c.scans, entry)
 	c.lastScan = entry
 	return entry.rows
+}
+
+// scanNeedsLivePlan reports whether a row the walk reads is a prop request or
+// a standard operation, whose answer depends on mutable store schemas.
+func (r *Runtime) scanNeedsLivePlan(levels []level, mode ModeState) bool {
+	base, _ := baseAndPrefix(mode)
+	exclusive := r.modes[mode.Name].Pending || mode.Payload.Shadow != nil
+	check := func(rows []Binding) bool {
+		for _, b := range rows {
+			if b.Request.IsProp() || r.Operations.At(Key(b.Request.Key())).Standard != "" {
+				return true
+			}
+		}
+		return false
+	}
+	for _, lv := range levels {
+		if lv.inst != nil && check(rowsForMode(lv.inst.Bindings, base, exclusive)) {
+			return true
+		}
+		if n := lv.noun; n != nil {
+			for _, rows := range r.nounTables(n, base) {
+				if check(rows) {
+					return true
+				}
+			}
+			if !exclusive && check(n.Bindings[""]) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (c *runtimeRenderCache) grouped(r *Runtime, focus string) []levelRow {
@@ -189,24 +194,6 @@ func cloneRenderReflect(v reflect.Value) reflect.Value {
 	}
 }
 
-func equalScanTables(a, b []scanTable) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, left := range a {
-		right := b[i]
-		if len(left.rows) != len(right.rows) || !maps.Equal(left.guards, right.guards) || !maps.EqualFunc(left.availability, right.availability, slices.Equal[[]string]) {
-			return false
-		}
-		for j, row := range left.rows {
-			if !equalRenderBinding(row, right.rows[j]) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func equalRenderBinding(a, b Binding) bool {
 	if a.Mode != b.Mode || a.Noun != b.Noun || a.Instance != b.Instance || a.Keys != b.Keys || a.Pattern != b.Pattern || a.When != b.When || a.Unbind != b.Unbind || a.Replay != b.Replay || a.Capture != b.Capture || !slices.Equal(boolList(a.Present), boolList(b.Present)) || a.Hint != b.Hint || a.Hidden != b.Hidden || a.Help != b.Help || !maps.Equal(a.From, b.From) {
 		return false
@@ -239,3 +226,10 @@ func boolList(p *bool) []bool {
 	}
 	return []bool{*p}
 }
+
+// InvalidateBindings tells the render caches that a binding, guard,
+// availability or extends table, or a mode definition, changed. Every writer
+// in this package calls it (TestRenderInputWritersBump); a host that edits a
+// public Noun or Instance table in place, past Bind and the builders, calls
+// it afterwards, or hints and help keep showing the old rows.
+func (r *Runtime) InvalidateBindings() { r.renderCache.generation++ }

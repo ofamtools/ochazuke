@@ -365,6 +365,7 @@ func (r *Runtime) edgeList(focus string, step int) *Collection {
 }
 
 func registerColumnMotions(r *Runtime) {
+	r.InvalidateBindings()
 	r.DefineGuard("table-scrolls", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.columnsScroll()

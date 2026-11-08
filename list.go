@@ -893,6 +893,7 @@ func windowOffset(offset, selected, visible, total, margin int) int {
 }
 
 func registerLists(r *Runtime) {
+	r.InvalidateBindings()
 	// j/k take a count (3j): the list's count_pending extends its normal
 	// table (bindings/list.json), so its rows answer with the count in the
 	// payload.

@@ -722,6 +722,7 @@ type helpPick struct {
 }
 
 func registerHelpViews(r *Runtime) {
+	r.InvalidateBindings()
 	r.Define(helpID)
 	view := func(fn func(*helpState) error) func(*Runtime, Context, Arguments) (any, error) {
 		return func(r *Runtime, _ Context, _ Arguments) (any, error) {

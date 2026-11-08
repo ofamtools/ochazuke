@@ -442,6 +442,7 @@ func (r *Runtime) matchSearcherAt(focus string) matchSearcher {
 }
 
 func registerSearchMatch(r *Runtime) {
+	r.InvalidateBindings()
 	r.DefineGuard("search-matchable", func(r *Runtime, ev KeyEvent) bool { return r.matchSearcherAt(ev.Focus) != nil })
 	find := func(c Context) (matchSearcher, error) {
 		focus := focusOf(c)

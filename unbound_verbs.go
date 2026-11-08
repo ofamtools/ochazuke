@@ -121,8 +121,11 @@ func (r *Runtime) unboundOperations(candidates []string, walk []level, mode Mode
 	var out []Operation
 	for _, noun := range nouns {
 		var verbs []Operation
-		for key, op := range r.Operations.Entries() {
-			if op.Noun() != noun || bound[key] || op.Builtin && scope != UnboundAll || focus != "" && !r.verbShownWithin(key, focus, mode, within) {
+		// The memoized index lists a noun's operations; scanning every
+		// registered operation here cost a key split each, every frame.
+		for _, o := range r.Operations.Lookups().ByPair[noun] {
+			op, key := *o, o.Key.Short()
+			if bound[key] || op.Builtin && scope != UnboundAll || focus != "" && !r.verbShownWithin(key, focus, mode, within) {
 				continue
 			}
 			verbs = append(verbs, op)
@@ -353,6 +356,7 @@ func (r *Runtime) selectedHelpRow() (HelpRow, bool) {
 
 // registerUnboundVerbs adds the help's run and bind verbs and binding.bind.
 func registerUnboundVerbs(r *Runtime) {
+	r.InvalidateBindings()
 	r.DefineGuard("help-unbound-row", func(r *Runtime, _ KeyEvent) bool {
 		row, ok := r.selectedHelpRow()
 		return ok && row.Unbound

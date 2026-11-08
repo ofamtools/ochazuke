@@ -702,6 +702,7 @@ func (b *NounBuilder) Positional(names ...string) *NounBuilder {
 // default verb is never guarded (RegisterNoun refuses one). An empty name
 // removes the guard.
 func (b *NounBuilder) When(guard string) *NounBuilder {
+	b.r.InvalidateBindings()
 	if b.last == "" {
 		panic("When must follow Verb")
 	}
@@ -792,6 +793,7 @@ func (r *Runtime) availableWithin(q Request, focus string, mode ModeState, withi
 // nothing, as a verb guard does. Adding a guard the verb already has is a
 // no-op.
 func (r *Runtime) AddVerbAvailability(key, guard string) error {
+	r.InvalidateBindings()
 	if guard == "" {
 		return errors.New("AddVerbAvailability: empty guard name")
 	}
@@ -817,6 +819,7 @@ func (r *Runtime) AddVerbAvailability(key, guard string) error {
 // verb; false when the verb had no such added guard (its own guard stays:
 // SetAvailability changes that one).
 func (r *Runtime) RemoveVerbAvailability(key, guard string) bool {
+	r.InvalidateBindings()
 	op, ok := r.Operation(key)
 	if !ok {
 		return false
@@ -853,6 +856,7 @@ func (r *Runtime) VerbAvailability(key string) []string {
 // it follows, for an operation registered with Register (the framework's
 // components). An empty guard makes the action always available.
 func (r *Runtime) SetAvailability(key, guard string) {
+	r.InvalidateBindings()
 	noun, verb := r.keyParts(key)
 	n := r.Noun(noun)
 	if n == nil {
@@ -882,6 +886,7 @@ func (b *NounBuilder) Mode(mode string) *ModeBuilder { return &ModeBuilder{NounB
 // table and two that extend it. A mode extends one parent; Extends("")
 // removes the link.
 func (m *ModeBuilder) Extends(parent string) *ModeBuilder {
+	m.r.InvalidateBindings()
 	if m.n.Extends == nil {
 		m.n.Extends = map[string]string{}
 	}
@@ -943,6 +948,7 @@ func (m *ModeBuilder) UnbindGuarded(keysOrPattern, guard string) *ModeBuilder {
 // replaced as an unguarded row comes back, and it replaces the row with the
 // same keys and this guard instead.
 func (m *ModeBuilder) When(guard string) *ModeBuilder {
+	m.r.InvalidateBindings()
 	rows := m.n.Bindings[m.mode]
 	if m.last < 0 || m.last >= len(rows) || rows[m.last].When == guard {
 		return m
@@ -1144,6 +1150,7 @@ func (r *Runtime) rowTouchesPending(row Binding) bool {
 // behind TestBindingRowsAreAtomic and is for an application to run after it
 // loads its own rows.
 func (r *Runtime) ValidateBindings() ([]string, error) {
+	r.InvalidateBindings()
 	nouns := make([]string, 0, len(r.Nouns))
 	for name := range r.Nouns {
 		nouns = append(nouns, name)
@@ -1287,6 +1294,7 @@ func validSource(one string) error {
 // its own table answer, and a row that leaves the mode unchanged returns the
 // instance to the mode it shadowed.
 func (r *Runtime) DefineMode(name string, pending bool, opts ...ModeOption) error {
+	r.InvalidateBindings()
 	if strings.TrimSpace(name) == "" {
 		return errors.New("mode name cannot be empty")
 	}

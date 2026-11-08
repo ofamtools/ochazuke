@@ -582,6 +582,7 @@ func (l *Collection) pickPropFilter(prop string, offerClear, not bool) error {
 }
 
 func registerListPropFilter(r *Runtime) {
+	r.InvalidateBindings()
 	registerFilterViewForm(r)
 	resolve := func(c Context, a Arguments) (*Collection, error) {
 		if id := StringArg(a, "id", ""); id != "" {

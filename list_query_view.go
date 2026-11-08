@@ -191,6 +191,7 @@ func (l *Collection) rearranged(keep string) {
 }
 
 func registerListQuery(r *Runtime) {
+	r.InvalidateBindings()
 	resolve := func(focus string, a Arguments) *Collection { return r.rowFilterList(StringArg(a, "id", focus)) }
 	r.DefineGuard("list-paged", func(_ *Runtime, ev KeyEvent) bool {
 		l := resolve(ev.Focus, ev.Args)

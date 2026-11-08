@@ -172,6 +172,7 @@ func (r *Runtime) openFindLine(back bool) error {
 }
 
 func registerSearchFind(r *Runtime) {
+	r.InvalidateBindings()
 	r.Instance(searchStateID, Kind("ochazuke.search-state")).Component = &searchState{}
 	r.DefineGuard("text-findable", func(r *Runtime, ev KeyEvent) bool { return r.textFinderAt(ev.Focus) != nil })
 	r.DefineGuard("text-refindable", func(r *Runtime, ev KeyEvent) bool {

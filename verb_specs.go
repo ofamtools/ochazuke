@@ -20,6 +20,7 @@ type verbSpec struct {
 
 // registerVerbSpecs registers every row as an operation.
 func (r *Runtime) registerVerbSpecs(specs []verbSpec) {
+	r.InvalidateBindings()
 	for _, s := range specs {
 		op := s.traits
 		op.Key = KeyOf(s.noun, s.verb)

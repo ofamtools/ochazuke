@@ -262,6 +262,7 @@ func (r *Runtime) MustLoadDefaultBindings(source string, data []byte) {
 // remain in bindings.json and are reapplied with a notice (an unbind has
 // nothing to remove until that default returns). Call on the runtime's loop.
 func (r *Runtime) SetDefaultBindings(source string, rows []Binding) error {
+	r.InvalidateBindings()
 	if strings.TrimSpace(source) == "" || source == SourceGo || source == SourceGenerated {
 		return fmt.Errorf("default bindings: source %q must be nonempty and not reserved", source)
 	}
@@ -358,6 +359,7 @@ func (r *Runtime) installDefaultRow(source string, row Binding, batch rowBatch) 
 // placeDefaultRow installs an already validated row; replacement validates
 // its whole batch before removing the previous source or the user layer.
 func (r *Runtime) placeDefaultRow(source string, row Binding, batch rowBatch) {
+	r.InvalidateBindings()
 	if row.Instance != "" {
 		inst := r.Instances[row.Instance]
 		inst.Bindings = withPrefixCancels(bindRow(inst.Bindings, row, batch))

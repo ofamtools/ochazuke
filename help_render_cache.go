@@ -1,41 +1,41 @@
 package ochazuke
 
 import (
-	"encoding/json"
 	"reflect"
 	"slices"
 )
 
+// hintMemo is the hint bindings of one scan entry. It is valid while that
+// entry answers (a hit on its stamp), the hidden setting is unchanged and the
+// guards of the guarded rows read as before. Version counts rebuilds, so the
+// cell memo below compares one integer, not the bindings.
 type hintMemo struct {
-	focus, mode     string
-	generation      uint64
-	hidden          bool
-	rows            []levelRow
-	motions, guards []bool
-	bindings        []Binding
+	focus      string
+	hidden     bool
+	stamp      RenderStamp
+	scan       *bindingScan
+	rows       []levelRow
+	whens      []int
+	whenValues []bool
+	bindings   []Binding
+	Version    uint64
 }
 
 type hintCellsMemo struct {
-	generation uint64
-	display    string
-	bindings   []Binding
-	cells      []HintCell
-	line       string
+	generation, version uint64
+	display             string
+	built               bool
+	cells               []HintCell
+	line                string
 }
 
 func (c *runtimeRenderCache) hintCells(r *Runtime, focus string) []HintCell {
-	bindings := HintBindings(r, focus)
+	_, version := c.hintBindingsShared(r, focus)
 	old := &c.cells
 	display := r.nounsDisplay()
-	valid := old.generation == c.generation && old.display == display && len(old.bindings) == len(bindings)
-	for i, b := range bindings {
-		if !valid || !equalRenderBinding(old.bindings[i], b) {
-			valid = false
-			break
-		}
-	}
-	if !valid {
-		*old = hintCellsMemo{generation: c.generation, display: display, bindings: cloneBindings(bindings)}
+	if !old.built || old.generation != c.generation || old.version != version || old.display != display {
+		bindings := c.hints.bindings
+		*old = hintCellsMemo{generation: c.generation, version: version, display: display, built: true}
 		for _, b := range bindings {
 			old.cells = append(old.cells, rowHintCell(r, b))
 		}
@@ -45,37 +45,40 @@ func (c *runtimeRenderCache) hintCells(r *Runtime, focus string) []HintCell {
 }
 
 func (c *runtimeRenderCache) hintBindings(r *Runtime, focus string) []Binding {
+	bindings, _ := c.hintBindingsShared(r, focus)
+	return slices.Clone(bindings)
+}
+
+// hintBindingsShared is the memoized hint bindings, borrowed (callers copy
+// them) with the memo's version. On a hit it compares the scan entry, the
+// stamp and the hidden setting, and re-reads only the guards of guarded rows.
+func (c *runtimeRenderCache) hintBindingsShared(r *Runtime, focus string) ([]Binding, uint64) {
 	rows := r.groupedRows(focus)
-	data, err := json.Marshal(r.Mode)
-	if err != nil {
-		return hintBindingsUncached(r, focus, rows)
-	}
-	mode, hidden := string(data), r.Settings().Bool(HintsShowHiddenSetting)
+	scan, hidden, stamp := c.lastScan, r.Settings().Bool(HintsShowHiddenSetting), c.stamp(r)
 	old := &c.hints
-	valid := old.focus == focus && old.mode == mode && old.generation == c.generation && old.hidden == hidden && len(old.rows) == len(rows)
-	for i, row := range rows {
-		if !valid {
-			break
-		}
-		if old.rows[i].level != row.level || !equalRenderBinding(old.rows[i].Binding, row.Binding) || old.motions[i] != r.Operations.At(Key(row.Request.Key())).Motion || old.guards[i] != !r.guardedOffIn(row.Binding, focus, r.Mode) {
-			valid = false
-		}
+	if scan == nil {
+		old.scan = nil
+		old.Version++
+		old.bindings = hintBindingsUncached(r, focus, rows)
+		return old.bindings, old.Version
+	}
+	valid := old.scan == scan && old.focus == focus && old.hidden == hidden && old.stamp == stamp
+	for i := 0; valid && i < len(old.whens); i++ {
+		valid = old.whenValues[i] == !r.guardedOffIn(old.rows[old.whens[i]].Binding, focus, r.Mode)
 	}
 	if valid {
-		return slices.Clone(old.bindings)
+		return old.bindings, old.Version
 	}
-	*old = hintMemo{focus: focus, mode: mode, generation: c.generation, hidden: hidden, rows: slices.Clone(rows)}
-	bindings := make([]Binding, len(rows))
+	version := old.Version + 1
+	*old = hintMemo{focus: focus, hidden: hidden, stamp: stamp, scan: scan, rows: rows, Version: version}
 	for i, row := range rows {
-		bindings[i] = row.Binding
-		old.motions = append(old.motions, r.Operations.At(Key(row.Request.Key())).Motion)
-		old.guards = append(old.guards, !r.guardedOffIn(row.Binding, focus, r.Mode))
-	}
-	for i, binding := range cloneBindings(bindings) {
-		old.rows[i].Binding = binding
+		if row.When != "" {
+			old.whens = append(old.whens, i)
+			old.whenValues = append(old.whenValues, !r.guardedOffIn(row.Binding, focus, r.Mode))
+		}
 	}
 	old.bindings = hintBindingsUncached(r, focus, rows)
-	return slices.Clone(old.bindings)
+	return old.bindings, version
 }
 
 // Cache the static HelpRow formatting independently of its tree placement.
