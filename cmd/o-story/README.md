@@ -457,68 +457,67 @@ Conformance:
 |---|---|---|
 | count_pending | count | `count.append` |
 | count_pending | mode | `mode.enter` `mode.leave` |
+| edit | collection | `collection.move` |
 | edit | focus | `focus.previous` |
-| edit | list | `collection.move` |
 | edit | mode | `mode.pin` `mode.switch` |
 | flat | mode | `mode.switch` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
-| insert | bindings | `binding.help` |
+| insert | binding | `binding.help` |
+| insert | collection | `collection.filter-cycle` `collection.filter-prop` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.close-origin` `demo.edit` `demo.files` `demo.get` `demo.hide` `demo.set` |
 | insert | filter-form | `filter-form.move` `filter-form.write-saved` |
 | insert | find-line | `find-line.accept` |
 | insert | form | `form.leave` `form.next` `form.run` `form.suggest` |
 | insert | input | `input.erase` `input.insert` `input.kill` `input.move` |
-| insert | list | `collection.filter-cycle` `collection.filter-prop` |
 | insert | macro | `macro.record` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | modal | `modal.close` |
-| insert | mode | `mode.switch` |
-| insert | modes | `mode.list` |
+| insert | mode | `mode.list` `mode.switch` |
 | insert | outline | `outline.leave` `outline.next` `outline.row-key` |
 | insert | palette | `palette.complete` `palette.move` `palette.run` |
 | insert | picker | `picker.clear-props` `picker.into` `picker.move` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.up` |
 | insert | search | `search.cycle-match` |
 | insert | setting | `setting.complete` `setting.open` |
 | insert | setting-value | `setting-value.accept` |
+| jq | collection | `collection.move` |
 | jq | completion | `completion.dismiss` |
 | jq | input | `input.insert` |
-| jq | list | `collection.move` |
 | jq | mode | `mode.switch` |
 | jq | palette | `palette.open` |
-| list_filter | list | `collection.filter` `collection.filter-choose` `collection.filter-clear` `collection.filter-erase` `collection.filter-keep` `collection.filter-type` `collection.move` |
+| list_filter | collection | `collection.filter` `collection.filter-choose` `collection.filter-clear` `collection.filter-erase` `collection.filter-keep` `collection.filter-type` `collection.move` |
 | list_filter | search | `search.cycle-match` |
 | macro_pending | mode | `mode.leave` |
 | normal | about | `about.close` `about.open` |
-| normal | about-row | `about-row.yank` `about-row.open` |
+| normal | about-row | `about-row.open` `about-row.yank` |
 | normal | app | `app.quit` |
-| normal | bindings | `binding.help` |
-| normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.pick {what: mode}` `bindings-help.pick {what: noun}` `bindings-help.pick {what: place}` `bindings-help.run` `bindings-help.show` |
+| normal | binding | `binding.help` |
+| normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.pick` `bindings-help.run` `bindings-help.show` |
+| normal | collection | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | culprit | `culprit.size` |
 | normal | demo | `demo.add-base` `demo.archive` `demo.build` `demo.change-source` `demo.check` `demo.check-bindings` `demo.choose` `demo.create` `demo.delete` `demo.edit` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.get` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.refresh` `demo.reload` `demo.send` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
-| normal | detail-field | `detail-field.yank` `detail-field.show` |
+| normal | detail-field | `detail-field.show` `detail-field.yank` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
 | normal | filter-form | `filter-form.delete-saved` `filter-form.direction` `filter-form.edit-condition` `filter-form.goto` `filter-form.move` `filter-form.toggle` |
 | normal | focus | `focus.next` `focus.previous` `focus.to` |
 | normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
-| normal | history | `history-entry.repeat` `history-entry.undo` |
+| normal | history-entry | `history-entry.repeat` `history-entry.undo` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.redo` `input.select` `input.undo` |
 | normal | item | `item.get` `item.set` |
 | normal | key | `key.ignore` |
-| normal | list | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
-| normal | markdown | `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-yank` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-link` `markdown.next-same` `markdown.annotate` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
+| normal | markdown | `markdown.annotate` `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-open` `markdown.link-yank` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-link` `markdown.next-same` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.yank` |
 | normal | md.doc | `md.doc.show` |
-| normal | messages | `message.show` |
+| normal | message | `message.show` |
 | normal | modal | `modal.close` |
 | normal | mode | `mode.enter` `mode.leave` `mode.switch` |
 | normal | notice | `notice.clear` |
-| normal | nouns | `noun.edit` |
+| normal | noun | `noun.edit` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.open` |
@@ -527,37 +526,37 @@ Conformance:
 | normal | picker | `picker.move` `picker.open` `picker.pick` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
-| normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
+| normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.diff` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
 | normal | settings-section | `settings-section.open` `settings-section.pick` |
-| normal | state | `snapshot.toggle` |
+| normal | snapshot | `snapshot.toggle` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
 | normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.row` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
-| normal | view | `viewport.goto` `viewport.scroll by page` `viewport.scroll` |
+| normal | viewport | `viewport.goto` `viewport.scroll` |
 | normal | yank-history | `yank-history.open` |
 | operator_pending | input | `input.cancel` |
 | register_pending | mode | `mode.leave` |
 | replay_pending | mode | `mode.leave` |
-| shape | list | `collection.move` |
+| shape | collection | `collection.move` |
 | shape | mode | `mode.switch` |
-| table | bindings | `binding.help` |
-| table | list | `collection.move` |
+| table | binding | `binding.help` |
+| table | collection | `collection.move` |
 | table | mode | `mode.enter` `mode.leave` `mode.pin` `mode.switch` |
-| terminal | bindings | `binding.help` |
+| terminal | binding | `binding.help` |
+| terminal | collection | `collection.select` |
 | terminal | demo | `demo.edit` `demo.finish` `demo.hints` `demo.outside` |
 | terminal | focus | `focus.next` |
 | terminal | item | `item.edit` `item.live-only` `item.rename-associated` `item.set` |
-| terminal | list | `collection.select` |
 | terminal | mode | `mode.enter` |
 | terminal | palette | `palette.open` |
 | terminal | terminal | `terminal.detach` `terminal.paste` `terminal.send` |
 | visual | input | `input.cancel` `input.move` `input.operator` |
-| visual-line | bindings | `binding.help` |
+| visual-line | binding | `binding.help` |
+| visual-line | collection | `collection.apply` `collection.end-visual` `collection.goto` `collection.move` `collection.yank` |
 | visual-line | confirm | `confirm.accept` |
 | visual-line | demo | `demo.check` `demo.choose` `demo.delete` `demo.edit` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
 | visual-line | input | `input.cancel` `input.move` `input.operator` |
-| visual-line | list | `collection.apply` `collection.end-visual` `collection.goto` `collection.move` `collection.yank` |
 | visual-line | modal | `modal.close` |
 | visual-line | mode | `mode.enter` `mode.leave` |
 | visual-line | outline | `outline.delete` |
@@ -570,11 +569,11 @@ Mode edges (from → to via):
 - `count_pending` → `count_pending g` via `row g`
 - `count_pending` → `count_pending z` via `row z`
 - `count_pending` → `g_pending` via `mode.enter`
-- `count_pending` → `normal` via `detail.scroll`
 - `count_pending` → `normal` via `collection.column`
 - `count_pending` → `normal` via `collection.goto`
 - `count_pending` → `normal` via `collection.move`
 - `count_pending` → `normal` via `collection.scroll`
+- `count_pending` → `normal` via `detail.scroll`
 - `count_pending` → `normal` via `timeline.goto`
 - `count_pending` → `normal` via `timeline.scroll`
 - `count_pending` → `normal` via `timeline.step`
@@ -583,10 +582,10 @@ Mode edges (from → to via):
 - `count_pending` → `table` via `mode.leave`
 - `count_pending` → `visual` via `mode.switch`
 - `count_pending` → `visual-line` via `collection.move`
-- `count_pending [` → `normal` via `diff.hunk`
 - `count_pending [` → `normal` via `collection.previous-class`
-- `count_pending ]` → `normal` via `diff.hunk`
+- `count_pending [` → `normal` via `diff.hunk`
 - `count_pending ]` → `normal` via `collection.next-class`
+- `count_pending ]` → `normal` via `diff.hunk`
 - `count_pending ]` → `normal` via `markdown.next-kind`
 - `count_pending ctrl+w` → `normal` via `pane.grow`
 - `count_pending ctrl+w` → `normal` via `pane.shrink`
@@ -604,12 +603,12 @@ Mode edges (from → to via):
 - `hints` → `terminal` via `demo.hints-cancel`
 - `insert` → `jq` via `palette.run`
 - `insert` → `normal` via `binding.help`
+- `insert` → `normal` via `collection.filter-prop`
 - `insert` → `normal` via `filter-form.move`
 - `insert` → `normal` via `find-line.accept`
 - `insert` → `normal` via `form.leave`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `job picker.load`
-- `insert` → `normal` via `collection.filter-prop`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`
 - `insert` → `normal` via `modal.close`
@@ -639,12 +638,12 @@ Mode edges (from → to via):
 - `leader_pending` → `normal` via `binding.help`
 - `leader_pending` → `normal` via `focus.next`
 - `leader_pending` → `normal` via `terminal.detach`
+- `leader_pending` → `terminal` via `collection.select`
 - `leader_pending` → `terminal` via `demo.finish`
 - `leader_pending` → `terminal` via `demo.outside`
 - `leader_pending` → `terminal` via `item.live-only`
 - `leader_pending` → `terminal` via `item.rename-associated`
 - `leader_pending` → `terminal` via `item.set`
-- `leader_pending` → `terminal` via `collection.select`
 - `leader_pending` → `terminal` via `row r`
 - `leader_pending` → `terminal` via `row x`
 - `leader_pending` → `terminal` via `terminal.send`
@@ -661,9 +660,8 @@ Mode edges (from → to via):
 - `normal` → `g_pending` via `mode.enter`
 - `normal` → `help_bind_pending` via `mode.enter`
 - `normal` → `insert` via `bindings-help.args`
-- `normal` → `insert` via `bindings-help.pick {what: mode}`
-- `normal` → `insert` via `bindings-help.pick {what: noun}`
-- `normal` → `insert` via `bindings-help.pick {what: place}`
+- `normal` → `insert` via `bindings-help.pick`
+- `normal` → `insert` via `collection.apply`
 - `normal` → `insert` via `demo.choose`
 - `normal` → `insert` via `demo.edit`
 - `normal` → `insert` via `filter-form.delete-saved`
@@ -675,10 +673,9 @@ Mode edges (from → to via):
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `job demo.send`
-- `normal` → `insert` via `collection.apply`
 - `normal` → `insert` via `macro.record`
-- `normal` → `insert` via `markdown.insert`
 - `normal` → `insert` via `markdown.annotate`
+- `normal` → `insert` via `markdown.insert`
 - `normal` → `insert` via `markdown.open`
 - `normal` → `insert` via `modal.close`
 - `normal` → `insert` via `outline.add`
@@ -714,27 +711,27 @@ Mode edges (from → to via):
 - `normal` → `normal y` via `row y`
 - `normal` → `normal z` via `row z`
 - `normal` → `operator_pending` via `mode.enter`
-- `normal` → `table` via `focus.next`
 - `normal` → `table` via `collection.move`
+- `normal` → `table` via `focus.next`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal` → `terminal` via `modal.close`
 - `normal` → `visual` via `input.select`
-- `normal` → `visual-line` via `input.select`
 - `normal` → `visual-line` via `collection.visual`
+- `normal` → `visual-line` via `input.select`
 - `normal` → `visual-line` via `modal.close`
 - `normal <` → `normal` via `outline.outdent`
 - `normal >` → `normal` via `outline.indent`
 - `normal G` → `normal` via `mode.leave`
+- `normal [` → `normal` via `collection.previous-class`
 - `normal [` → `normal` via `diff.file`
 - `normal [` → `normal` via `diff.hunk`
-- `normal [` → `normal` via `collection.previous-class`
 - `normal [` → `normal` via `markdown.previous-kind`
 - `normal [` → `normal` via `markdown.previous-link`
 - `normal [` → `normal` via `markdown.previous-same`
+- `normal ]` → `normal` via `collection.next-class`
 - `normal ]` → `normal` via `diff.file`
 - `normal ]` → `normal` via `diff.hunk`
-- `normal ]` → `normal` via `collection.next-class`
 - `normal ]` → `normal` via `markdown.next-kind`
 - `normal ]` → `normal` via `markdown.next-link`
 - `normal ]` → `normal` via `markdown.next-same`
@@ -750,9 +747,9 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `markdown.cut`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `setting-item.delete`
+- `normal g` → `normal` via `collection.goto`
 - `normal g` → `normal` via `demo.send`
 - `normal g` → `normal` via `detail.fields`
-- `normal g` → `normal` via `collection.goto`
 - `normal g` → `normal` via `markdown.link-open`
 - `normal g` → `normal` via `message.show`
 - `normal g` → `normal` via `mode.leave`
@@ -809,6 +806,8 @@ Mode edges (from → to via):
 - `visual-line` → `insert` via `demo.edit`
 - `visual-line` → `macro_pending` via `mode.enter`
 - `visual-line` → `normal` via `binding.help`
+- `visual-line` → `normal` via `collection.end-visual`
+- `visual-line` → `normal` via `collection.yank`
 - `visual-line` → `normal` via `confirm.accept`
 - `visual-line` → `normal` via `demo.check`
 - `visual-line` → `normal` via `demo.nest`
@@ -817,8 +816,6 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `demo.zap`
 - `visual-line` → `normal` via `input.cancel`
 - `visual-line` → `normal` via `input.operator`
-- `visual-line` → `normal` via `collection.end-visual`
-- `visual-line` → `normal` via `collection.yank`
 - `visual-line` → `normal` via `outline.delete`
 - `visual-line` → `register_pending` via `mode.enter`
 - `visual-line` → `replay_pending` via `mode.enter`
