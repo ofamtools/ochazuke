@@ -169,15 +169,20 @@ func (p *Palette) choiceEntry(choice Choice) PaletteEntry {
 		}
 		return PaletteEntry{Value: choice.Word, Kind: "choice", Label: label, ID: choice.ID}
 	}
-	return PaletteEntry{Value: choice.ID, Kind: "choice", Label: choiceLabel(choice), ID: choice.ID}
+	shown := choice.Entry(p.r.choiceLabelOrder())
+	return PaletteEntry{Value: choice.ID, Kind: "choice", Label: shown.Text, ID: choice.ID, Tones: shown.Tones}
 }
 
-// choiceLabel shows a choice with its id when the label differs.
-func choiceLabel(c Choice) string {
-	if c.Label != "" && c.Label != c.ID {
-		return fmt.Sprintf("%s  %s", c.ID, c.Label)
+// PaletteChoiceLabelSetting orders a choice's label and id in the
+// palette's completions and in chips: label-first (the default) or id-first.
+const PaletteChoiceLabelSetting = "palette.choice-label"
+
+// choiceLabelOrder is the palette.choice-label setting.
+func (r *Runtime) choiceLabelOrder() string {
+	if r.Settings().String(PaletteChoiceLabelSetting) == ChoiceIDFirst {
+		return ChoiceIDFirst
 	}
-	return c.ID
+	return ChoiceLabelFirst
 }
 
 // hasPrefixFold reports whether s starts with prefix, ignoring case.

@@ -46,6 +46,9 @@ type PaletteEntry struct {
 	// Match holds the drawn label's matching rune offsets. Presentation
 	// only: CLI completion and state JSON keep their existing shape.
 	Match []int `json:"-"`
+	// Tones colour runs of the drawn Label (a choice's dim id,
+	// Choice.Entry). Presentation only.
+	Tones []ToneSpan `json:"-"`
 }
 
 // RegisterNoun adds or replaces a live instance source without changing operation forms.

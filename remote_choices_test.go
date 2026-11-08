@@ -41,7 +41,7 @@ func TestListFactsNounIsAChoiceSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(choices) != 2 || choices[0] != (Choice{ID: "widget/a", Label: "Alpha W"}) || choices[1].ID != "widget/b" {
+	if len(choices) != 2 || choices[0].ID != "widget/a" || choices[0].Label != "Alpha W" || choices[1].ID != "widget/b" {
 		t.Fatalf("choices %+v", choices)
 	}
 }
@@ -60,7 +60,7 @@ func TestParseChoicesReadsRowShapes(t *testing.T) {
 		"answer":    ListAnswer{Items: []map[string]any{{"id": "a", "label": "A"}}},
 	} {
 		got, err := ParseChoices(result)
-		if err != nil || len(got) != 1 || got[0] != (Choice{ID: "a", Label: "A"}) {
+		if err != nil || len(got) != 1 || got[0].ID != "a" || got[0].Label != "A" {
 			t.Fatalf("%s: %+v %v", name, got, err)
 		}
 	}
@@ -153,7 +153,7 @@ func TestPaletteRemoteChoicesLoadOffTheLoop(t *testing.T) {
 		t.Fatal(err)
 	}
 	view = p.View()
-	if !strings.Contains(view, "widget/a") || strings.Contains(view, "loading") {
+	if !strings.Contains(view, "Alpha W") || strings.Contains(view, "loading") {
 		t.Fatalf("view after landing:\n%s", view)
 	}
 	if n := calls.Load(); n != 1 {

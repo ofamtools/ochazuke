@@ -220,6 +220,14 @@ const ChooserStableHeightSetting = "picker.stable-height"
 // ChooserHiddenCountSetting shows how many matching rows are off screen.
 const ChooserHiddenCountSetting = "picker.hidden-count"
 
+// ChooserShowIDsSetting draws the dim short id after a choice row's label
+// (ToneChoiceID); off hides it, and the filter still reads it.
+const ChooserShowIDsSetting = "picker.show-ids"
+
+// ChooserColumnsSetting draws a row's Cells as aligned columns; off draws the
+// label alone.
+const ChooserColumnsSetting = "picker.columns"
+
 // The delivery contract: a chooser runs no jobs of its own (Choose and
 // Create return their own results). Pending work they return belongs to the
 // focus the chooser opened over (runApplication), since the chooser and its
@@ -927,12 +935,20 @@ func (c *Chooser) rowsView(width, height int) Block {
 	if toned != nil && c.matchApplies() && toned.HasChrome("match") {
 		matcher = c.matcher()
 	}
+	columns := c.r.Settings().Bool(ChooserColumnsSetting)
+	showIDs := c.r.Settings().Bool(ChooserShowIDsSetting)
 	draw := func(i int) {
-		text := c.matches[i].Label
-		if cells := c.matches[i].Cells; len(cells) > 0 {
-			text = alignCells(cells, widths)
-		}
 		item := c.matches[i]
+		if !columns {
+			item.Cells = nil
+		}
+		if !showIDs && len(item.Cells) == 0 {
+			item.Label, item.Tones = dropToneRuns(item.Label, item.Tones, ToneChoiceID)
+		}
+		text := item.Label
+		if len(item.Cells) > 0 {
+			text = alignCells(item.Cells, widths)
+		}
 		item.Tones = c.filters.rowTones(ListItem{ID: item.ID, Cells: item.Cells, Tones: item.Tones})
 		if toned != nil && c.matchApplies() {
 			// Copy before appending: match marks never mutate caller tones.
@@ -1003,6 +1019,9 @@ func (c *Chooser) matched() int {
 // columns do not shift as the query narrows the rows.
 func (c *Chooser) cellWidths() []int {
 	var widths []int
+	if !c.r.Settings().Bool(ChooserColumnsSetting) {
+		return nil
+	}
 	for _, row := range c.spec.Rows {
 		for i, cell := range row.Cells {
 			if i == len(widths) {
@@ -1152,4 +1171,63 @@ func cmpBool(x, y bool) int {
 func fuzzyMatch(cm CaseMatch, query, text string) bool {
 	_, ok := fuzzyScore(text, []rune(cm.String(query)), cm)
 	return ok
+}
+
+// dropToneRuns cuts the runs of a label that tone covers on the label itself
+// (cell 0), with the two spaces that set them off, and moves the other
+// spans to match: the dim id of a choice row when picker.show-ids is off.
+func dropToneRuns(label string, tones []ToneSpan, tone string) (string, []ToneSpan) {
+	runes := []rune(label)
+	cut := make([]bool, len(runes))
+	found := false
+	for _, t := range tones {
+		if t.Cell != 0 || t.Tone != tone {
+			continue
+		}
+		from, to := max(t.From, 0), t.To
+		if to <= 0 || to > len(runes) {
+			to = len(runes)
+		}
+		for ; from > 0 && from <= len(runes) && runes[from-1] == ' ' && from > t.From-2; from-- {
+		}
+		for i := from; i < to; i++ {
+			cut[i], found = true, true
+		}
+	}
+	if !found {
+		return label, tones
+	}
+	// at[i] is where rune offset i lands once the cut runes are gone.
+	at := make([]int, len(runes)+1)
+	var kept []rune
+	for i, r := range runes {
+		at[i] = len(kept)
+		if !cut[i] {
+			kept = append(kept, r)
+		}
+	}
+	at[len(runes)] = len(kept)
+	var out []ToneSpan
+	for _, t := range tones {
+		if t.Cell != 0 {
+			out = append(out, t)
+			continue
+		}
+		if t.Tone == tone {
+			continue
+		}
+		from, to := max(t.From, 0), t.To
+		if to <= 0 || to > len(runes) {
+			to = len(runes)
+		}
+		if from >= len(runes) {
+			continue
+		}
+		t.From, t.To = at[from], at[to]
+		if t.From >= t.To {
+			continue
+		}
+		out = append(out, t)
+	}
+	return string(kept), out
 }

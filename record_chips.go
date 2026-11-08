@@ -111,22 +111,22 @@ func (f *recordField) chipOn(id string) bool {
 	return slices.Contains(ids, id)
 }
 
-func (s Styles) chipText(c Choice, on bool) string {
+func (s Styles) chipText(c Choice, on bool, order string) string {
 	mark := s.Glyph("check.off") + " "
 	if on {
 		mark = s.Glyph("check.on") + " "
 	}
-	return " " + mark + modalLabel(choiceLabel(c)) + " "
+	return " " + mark + modalLabel(c.Entry(order).Text) + " "
 }
 
 // layoutChips wraps the chips into lines width cells wide (each line
 // holds at least one chip).
-func (f *recordField) layoutChips(width int) {
+func (f *recordField) layoutChips(width int, order string) {
 	f.lines = nil
 	var line []int
 	used := 0
 	for i, c := range f.choices {
-		w := ansi.StringWidth((Styles{}).chipText(c, true))
+		w := ansi.StringWidth((Styles{}).chipText(c, true, order))
 		if len(line) > 0 && used+1+w > width {
 			f.lines = append(f.lines, line)
 			line, used = nil, 0
@@ -144,7 +144,7 @@ func (f *recordField) layoutChips(width int) {
 
 func (f *recordField) chipLines() [][]int {
 	if f.lines == nil {
-		f.layoutChips(defaultChipWidth)
+		f.layoutChips(defaultChipWidth, f.chipOrder)
 	}
 	return f.lines
 }
@@ -161,7 +161,8 @@ func (f *recordField) chipAt() (int, int) {
 
 // chipBlock draws the chips' lines, indent cells in.
 func (e *RecordEditor) chipBlock(f *recordField, width, indent int) []string {
-	f.layoutChips(max(1, width-indent))
+	f.chipOrder = e.r.choiceLabelOrder()
+	f.layoutChips(max(1, width-indent), f.chipOrder)
 	s := e.Styles
 	focused := e.r.DrawnFocus(e.id) == f.id
 	var out []string
@@ -177,7 +178,7 @@ func (e *RecordEditor) chipBlock(f *recordField, width, indent int) []string {
 					st = st.Inherit(s.Selection(true))
 				}
 			}
-			parts = append(parts, e.fieldStyle(f, st).Render(s.chipText(c, on)))
+			parts = append(parts, e.fieldStyle(f, st).Render(s.chipText(c, on, e.r.choiceLabelOrder())))
 		}
 		out = append(out, ansi.Truncate(strings.Repeat(" ", indent)+strings.Join(parts, " "), width, "…"))
 	}

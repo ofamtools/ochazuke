@@ -20,23 +20,90 @@ type Choice struct {
 	// not the id ("" the id): a page's title for page open. Typed whole,
 	// the id still names it (palette.choice-words).
 	Word string `json:"word,omitempty"`
+	// Cells, when set, are the choice's columns in a picker (a list row's
+	// cells: status, topic, age); Label stays what the filter reads.
+	Cells []string `json:"cells,omitempty"`
+	// Tones colour runs of the row (PickerRow.Tones): Cell indexes Cells,
+	// or is 0 for the Label.
+	Tones []ToneSpan `json:"tones,omitempty"`
+	RowFlags
 }
 
-// Row is the choice as a picker row, the one place choices become rows
-// (a noun reference's field, a registered noun picker): the human label
-// first and the short id dim at the end (ToneChoiceID), both in the text the
-// filter reads, so typing either finds the thing. A choice with no label of
-// its own shows its id alone.
-func (c Choice) Row() ChooserRow {
-	if c.Label == "" || c.Label == c.ID {
-		return ChooserRow{ID: c.ID, Label: c.ID}
-	}
+// RowFlags are the picker row flags a choice may carry (PickerRow's of the
+// same names). They are an embedded struct so a source that builds rows
+// (a path source's folders, a fixed "none" row) names them as one group and
+// Choice.Row copies them in one assignment.
+type RowFlags struct {
+	Opens    bool   `json:"opens,omitempty"`
+	NoPick   bool   `json:"noPick,omitempty"`
+	Refuse   string `json:"refuse,omitempty"`
+	Trailing bool   `json:"trailing,omitempty"`
+	Fixed    bool   `json:"fixed,omitempty"`
+}
+
+// Label orders for a choice shown in the palette, completion and chips
+// (setting palette.choice-label).
+const (
+	ChoiceLabelFirst = "label-first"
+	ChoiceIDFirst    = "id-first"
+)
+
+// shortID is the part of a choice's id after its last "/" (a thing's id
+// without its noun prefix).
+func (c Choice) shortID() string {
 	short := c.ID
 	if i := strings.LastIndex(short, "/"); i >= 0 && i < len(short)-1 {
 		short = short[i+1:]
 	}
-	return ChooserRow{ID: c.ID, Label: c.Label + "  " + short,
-		Tones: []ToneSpan{SpanTone(0, len([]rune(c.Label))+2, 0, ToneChoiceID)}}
+	return short
+}
+
+// labelled reports whether the choice has a label of its own.
+func (c Choice) labelled() bool { return c.Label != "" && c.Label != c.ID }
+
+// ChoiceEntry is a choice as the palette, completion and chips show it:
+// Text, with Tones dimming the id.
+type ChoiceEntry struct {
+	Text  string
+	Tones []ToneSpan
+}
+
+// Entry is the choice as a palette completion, completion and chip, the one
+// label rule pickers use (Row): the human label first and the short id dim
+// at the end (ChoiceLabelFirst, the default), or the id, two spaces, then
+// the label (ChoiceIDFirst, palette.choice-label id-first). A choice with
+// no label of its own shows its id alone.
+func (c Choice) Entry(order string) ChoiceEntry {
+	if !c.labelled() {
+		return ChoiceEntry{Text: c.ID}
+	}
+	if order == ChoiceIDFirst {
+		return ChoiceEntry{Text: c.ID + "  " + c.Label}
+	}
+	return ChoiceEntry{
+		Text:  c.Label + "  " + c.shortID(),
+		Tones: []ToneSpan{SpanTone(0, len([]rune(c.Label))+2, 0, ToneChoiceID)},
+	}
+}
+
+// Row is the choice as a picker row, the only place choices become rows
+// (a noun reference's field, a registered noun picker, a source's rows): the
+// label first and the short id dim at the end (ToneChoiceID), both in the
+// text the filter reads, so typing either finds the thing; its Cells, Tones
+// and flags carry across. A choice with no label of its own shows its id
+// alone. The id is not toned on a row with Cells: it is not drawn there.
+func (c Choice) Row() PickerRow {
+	row := PickerRow{ID: c.ID, Label: c.ID, Cells: c.Cells, Tones: slices.Clone(c.Tones),
+		Opens: c.Opens, NoPick: c.NoPick, Refuse: c.Refuse, Trailing: c.Trailing, Fixed: c.Fixed}
+	if !c.labelled() {
+		return row
+	}
+	entry := c.Entry(ChoiceLabelFirst)
+	row.Label = entry.Text
+	if len(c.Cells) == 0 {
+		row.Tones = append(row.Tones, entry.Tones...)
+	}
+	return row
 }
 
 // ParseChoices reads a source operation's result: a slice of strings,
@@ -76,7 +143,7 @@ func parseChoice(v any) (Choice, error) {
 	case Choice:
 		return item, nil
 	case PaletteInstance:
-		return Choice(item), nil
+		return Choice{ID: item.ID, Label: item.Label, Word: item.Word}, nil
 	case Operation:
 		return Choice{ID: item.Key.Short()}, nil
 	case ListItem:
@@ -109,9 +176,9 @@ func parseChoice(v any) (Choice, error) {
 // the row's.
 func rowChoice(item ListItem) Choice {
 	if key, ok := item.Data.(string); ok && key != "" {
-		return Choice{ID: key, Label: item.Label}
+		return Choice{ID: key, Label: item.Label, Cells: item.Cells, Tones: item.Tones}
 	}
-	return Choice{ID: item.ID, Label: item.Label}
+	return Choice{ID: item.ID, Label: item.Label, Cells: item.Cells, Tones: item.Tones}
 }
 
 // mapChoice reads a choice map: its id ("id", else "key", else "name"),
@@ -123,8 +190,40 @@ func mapChoice[V any](m map[string]V) (Choice, error) {
 	}
 	label, _ := firstString(m, "label", "title")
 	word, _ := firstString(m, "word")
-	return Choice{ID: id, Label: label, Word: word}, nil
+	c := Choice{ID: id, Label: label, Word: word}
+	c.Cells = stringList(m["cells"])
+	if raw, ok := any(m["tones"]).([]ToneSpan); ok {
+		c.Tones = raw
+	} else if v, ok := m["tones"]; ok {
+		if b, err := json.Marshal(v); err == nil {
+			_ = json.Unmarshal(b, &c.Tones)
+		}
+	}
+	c.Opens = flagValue(m["opens"])
+	c.NoPick = flagValue(m["noPick"])
+	c.Trailing = flagValue(m["trailing"])
+	c.Fixed = flagValue(m["fixed"])
+	c.Refuse, _ = any(m["refuse"]).(string)
+	return c, nil
 }
+
+// stringList reads a JSON array of strings (a row's cells).
+func stringList(v any) []string {
+	switch list := v.(type) {
+	case []string:
+		return slices.Clone(list)
+	case []any:
+		out := make([]string, len(list))
+		for i, item := range list {
+			out[i], _ = item.(string)
+		}
+		return out
+	}
+	return nil
+}
+
+// flagValue reads a boolean row flag.
+func flagValue(v any) bool { b, _ := v.(bool); return b }
 
 // firstString is the first of keys whose value in m is a non-empty string.
 func firstString[V any](m map[string]V, keys ...string) (string, bool) {
