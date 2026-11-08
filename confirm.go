@@ -72,7 +72,7 @@ func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
 
 // openConfirmAbout is openConfirm for a request run on another's behalf:
 // the prompt's fields read q, the request the prompt is about (task.delete
-// over the rows), and y runs run (the list.apply that asked, confirmed),
+// over the rows), and y runs run (the collection.apply that asked, confirmed),
 // so {{label}} never reads the asking verb's own arguments.
 func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any, error) {
 	thing, err := r.namedThing(c, q)

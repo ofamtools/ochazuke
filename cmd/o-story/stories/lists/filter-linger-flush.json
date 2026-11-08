@@ -54,7 +54,7 @@
     "bind": [
       {
         "keys": "f",
-        "do": "list.filter-prop",
+        "do": "collection.filter-prop",
         "args": {
           "prop": "status",
           "value": "open"
@@ -72,7 +72,7 @@
       },
       {
         "keys": "F",
-        "do": "list.flush-lingering",
+        "do": "collection.flush-lingering",
         "noun": "demo"
       }
     ]

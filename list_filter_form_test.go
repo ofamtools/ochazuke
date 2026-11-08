@@ -352,7 +352,7 @@ func TestFilterFormTree(t *testing.T) {
 	if err := r.SetFocus("tree"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-prop", Args: Arguments{"id": "tree"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-prop", Args: Arguments{"id": "tree"}}); err != nil {
 		t.Fatal(err)
 	}
 	e := r.RecordEditor(listFilterFormID)

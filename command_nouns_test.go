@@ -61,7 +61,6 @@ func TestBindingsCheckNamesTheRenamedCommandVerbs(t *testing.T) {
 	old := func(noun, verb string) string { return noun + "." + verb }
 	for _, want := range []string{
 		old("focus", "set") + " is a removed verb (since R1); use ochazuke.focus.to {id}",
-		old("ochazuke.mode", "set") + " is a removed verb (since R1); use ochazuke.mode.switch {mode}",
 		old("settings", "edit") + " is a removed verb (since R1); use ochazuke.setting.open",
 		old("jobs", "list") + " is a removed verb (since R1); use ochazuke.job.list",
 	} {
@@ -69,7 +68,7 @@ func TestBindingsCheckNamesTheRenamedCommandVerbs(t *testing.T) {
 			t.Errorf("missing %q in:\n%s", want, out)
 		}
 	}
-	for _, gone := range [][2]string{{"ochazuke.focus", "set"}, {"ochazuke.mode", "set"}, {"ochazuke.palette", "set"}, {"ochazuke.confirm", "set"}, {"ochazuke.input", "delete"}, {"ochazuke.settings", "list"}, {"ochazuke.pages", "list"}, {"ochazuke.jobs", "list"}} {
+	for _, gone := range [][2]string{{"ochazuke.focus", "set"}, {"ochazuke.palette", "set"}, {"ochazuke.confirm", "set"}, {"ochazuke.input", "delete"}, {"ochazuke.settings", "list"}, {"ochazuke.pages", "list"}, {"ochazuke.jobs", "list"}} {
 		if _, ok := r.Operation(old(gone[0], gone[1])); ok {
 			t.Errorf("%s still runs", old(gone[0], gone[1]))
 		}
@@ -86,11 +85,11 @@ func TestGetReadsANestedPropPath(t *testing.T) {
 		t.Fatal(err)
 	}
 	for path, want := range map[string]any{
-		"lists.side.bar.items.1.id": "r2",
-		"nouns.ochazuke.list.name":  "ochazuke.list",
-		"instances.side.bar.noun":   "ochazuke.list",
-		"modeState.name":            "normal",
-		"focus":                     r.Focus,
+		"lists.side.bar.items.1.id":      "r2",
+		"nouns.ochazuke.collection.name": "ochazuke.collection",
+		"instances.side.bar.noun":        "ochazuke.collection",
+		"modeState.name":                 "normal",
+		"focus":                          r.Focus,
 	} {
 		got, err := r.Execute(Request{Noun: "ochazuke.snapshot", Verb: "get", Args: Arguments{"prop": path}})
 		if err != nil || got != want {
@@ -218,14 +217,13 @@ func TestPaletteNamesTheReplacementOfARemovedVerb(t *testing.T) {
 		"pages list":                    "use ochazuke.page.list",
 		"ochazuke settings list":        "use ochazuke.setting.list",
 		"ochazuke.settings" + ".review": "use ochazuke.setting.review",
-		"mode set normal":               "use ochazuke.mode.switch {mode}",
 	} {
 		c := p.parse(line)
 		if c.Err == nil || !strings.Contains(c.Err.Error(), "was removed") || !strings.Contains(c.Err.Error(), want) {
 			t.Errorf("%q: err %v, want %q", line, c.Err, want)
 		}
 	}
-	for _, line := range []string{"setting open", "job list", "focus to x", "list move 1", "set scrolloff=3", "settings"} {
+	for _, line := range []string{"setting open", "job list", "focus to x", "collection move 1", "set scrolloff=3", "settings"} {
 		if c := p.parse(line); c.Err != nil && strings.Contains(c.Err.Error(), "was removed") {
 			t.Errorf("%q reads as removed: %v", line, c.Err)
 		}

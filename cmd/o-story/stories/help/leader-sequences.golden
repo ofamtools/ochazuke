@@ -57,7 +57,7 @@ R|          │                                                          target)
  |          │                                                          pane                │
  |          │ 2–8 / 8                                                                      │
  |          │                                                                              │
- |          │ space list.mark · S view · esc modal.close · : palette.open · ? bindings.he… │
+ |          │ space collection.mark · S view · esc modal.close · : palette.open · ? bindings.he… │
  |          ╰──────────────────────────────────────────────────────────────────────────────╯
  |
  |
@@ -66,5 +66,5 @@ R|          │                                                          target)
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · esc modal.close · : palette.open · ? binding.help · / filter
+ |  space collection.mark · S view · esc modal.close · : palette.open · ? binding.help · / filter
  |

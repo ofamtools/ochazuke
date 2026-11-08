@@ -268,7 +268,7 @@ func TestHistoryMotionRecordsTheMoveNotTheList(t *testing.T) {
 		t.Fatal(err)
 	}
 	for range 3 {
-		if _, err := r.Execute(Request{Verb: "move", Noun: "ochazuke.list", Args: Arguments{"delta": 1}}); err != nil {
+		if _, err := r.Execute(Request{Verb: "move", Noun: "ochazuke.collection", Args: Arguments{"delta": 1}}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -276,7 +276,7 @@ func TestHistoryMotionRecordsTheMoveNotTheList(t *testing.T) {
 		t.Fatalf("history encoded the rows %d times", encoded)
 	}
 	e := lastEntry(t, r)
-	if e.Request.Key() != "ochazuke.list.move" || !e.Result.OK || e.Moved == nil || e.Moved.From.Focus != "r2" || e.Moved.To.Focus != "r3" || e.Moved.To.Page != "page" {
+	if e.Request.Key() != "ochazuke.collection.move" || !e.Result.OK || e.Moved == nil || e.Moved.From.Focus != "r2" || e.Moved.To.Focus != "r3" || e.Moved.To.Page != "page" {
 		t.Fatalf("move entry: %+v moved %+v", e, e.Moved)
 	}
 	line, err := json.Marshal(e)
@@ -287,14 +287,14 @@ func TestHistoryMotionRecordsTheMoveNotTheList(t *testing.T) {
 		t.Fatalf("entry is %d bytes: %s", len(line), line)
 	}
 	// A request that moves nothing has no Moved; a non-motion lands too.
-	if _, err := r.Execute(Request{Verb: "mark", Noun: "ochazuke.list"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "mark", Noun: "ochazuke.collection"}); err != nil {
 		t.Fatal(err)
 	}
 	out, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.history-entry", Args: Arguments{"last": 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := rowsOf[HistoryEntry](t, out); len(got) != 1 || got[0].Request.Key() != "ochazuke.list.mark" || !got[0].Result.OK || got[0].Moved != nil {
+	if got := rowsOf[HistoryEntry](t, out); len(got) != 1 || got[0].Request.Key() != "ochazuke.collection.mark" || !got[0].Result.OK || got[0].Moved != nil {
 		t.Fatalf("history-entry.list: %+v", got)
 	}
 	if encoded != 0 {

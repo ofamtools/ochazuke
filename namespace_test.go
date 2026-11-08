@@ -10,7 +10,7 @@ import (
 
 func TestSplitKey(t *testing.T) {
 	for _, tc := range []struct{ key, noun, verb string }{
-		{"list.move", "list", "move"},
+		{"collection.move", "collection", "move"},
 		{"ochazuke.setting.set", "ochazuke.setting", "set"},
 		{"ai.skills.list", "ai.skills", "list"},
 		{"app.quit", "app", "quit"},
@@ -48,10 +48,10 @@ func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 	if r.Nouns["setting"] != nil || r.Nouns["ochazuke.setting"] == nil || r.Noun("setting") != r.Nouns["ochazuke.setting"] {
 		t.Fatal("setting is not an alias of ochazuke.setting")
 	}
-	if got := r.CanonicalKey("list.move"); got != "ochazuke.list.move" {
-		t.Fatalf("CanonicalKey(list.move) = %q", got)
+	if got := r.CanonicalKey("collection.move"); got != "ochazuke.collection.move" {
+		t.Fatalf("CanonicalKey(collection.move) = %q", got)
 	}
-	if got := r.DisplayKey("ochazuke.list.move"); got != "list.move" {
+	if got := r.DisplayKey("ochazuke.collection.move"); got != "collection.move" {
 		t.Fatalf("DisplayKey = %q", got)
 	}
 	for _, q := range []Request{{Noun: "setting", Verb: "names"}, {Noun: "ochazuke.setting", Verb: "names"}} {
@@ -84,8 +84,8 @@ func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 		t.Fatalf("hints: %q", hints)
 	}
 	// A row built with the short name is stored canonical.
-	r.Define("app").Mode("normal").Bind("z z", Do("list.move", Arguments{"delta": 1}))
-	if !slices.ContainsFunc(r.Nouns["app"].Bindings["normal"], func(b Binding) bool { return b.Keys == "z z" && b.Request.Key() == "ochazuke.list.move" }) {
+	r.Define("app").Mode("normal").Bind("z z", Do("collection.move", Arguments{"delta": 1}))
+	if !slices.ContainsFunc(r.Nouns["app"].Bindings["normal"], func(b Binding) bool { return b.Keys == "z z" && b.Request.Key() == "ochazuke.collection.move" }) {
 		t.Fatal("the z z row is not stored canonical")
 	}
 }
@@ -115,8 +115,8 @@ func TestDefineOwnShadowsTheFrameworkAlias(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "setting", Verb: "names"}); err == nil {
 		t.Fatal("the owned short name still reaches the framework's verbs")
 	}
-	if r.DisplayNoun("ochazuke.setting") != "ochazuke.setting" || r.DisplayNoun("ochazuke.list") != "list" {
-		t.Fatalf("display names: %s %s", r.DisplayNoun("ochazuke.setting"), r.DisplayNoun("ochazuke.list"))
+	if r.DisplayNoun("ochazuke.setting") != "ochazuke.setting" || r.DisplayNoun("ochazuke.collection") != "collection" {
+		t.Fatalf("display names: %s %s", r.DisplayNoun("ochazuke.setting"), r.DisplayNoun("ochazuke.collection"))
 	}
 	shadowed := false
 	for _, a := range r.Aliases() {
@@ -172,10 +172,10 @@ func TestShortNamesInFilesAndLegacySpelling(t *testing.T) {
 	dir := t.TempDir()
 	r := NewRuntime()
 	r.Config().Dir = dir
-	if err := os.WriteFile(filepath.Join(dir, BindingsFile), []byte(`[{"noun":"list","mode":"normal","keys":"z z","request":{"noun":"list","verb":"move","args":{"delta":1}}}]`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, BindingsFile), []byte(`[{"noun":"collection","mode":"normal","keys":"z z","request":{"noun":"collection","verb":"move","args":{"delta":1}}}]`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, ActionsFile), []byte(`[{"noun":"list","verb":"echo","command":["echo","{{noun}}"]},{"noun":"list","verb":"remote","base":["o-x"],"call":"ochazuke settings list"}]`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, ActionsFile), []byte(`[{"noun":"collection","verb":"echo","command":["echo","{{noun}}"]},{"noun":"collection","verb":"remote","base":["o-x"],"call":"ochazuke settings list"}]`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if problems := r.EnsureUserActions(); len(problems) > 0 {
@@ -184,15 +184,15 @@ func TestShortNamesInFilesAndLegacySpelling(t *testing.T) {
 	if problems := r.EnsureUserBindings(); len(problems) > 0 {
 		t.Fatal(problems)
 	}
-	if _, ok := r.Operations.Find(Key("ochazuke.list.echo")); !ok {
-		t.Fatal("actions.json list.echo did not land on ochazuke.list")
+	if _, ok := r.Operations.Find(Key("ochazuke.collection.echo")); !ok {
+		t.Fatal("actions.json list.echo did not land on ochazuke.collection")
 	}
-	if !slices.ContainsFunc(r.Nouns["ochazuke.list"].Bindings["normal"], func(b Binding) bool {
-		return b.Keys == "z z" && b.Request.Key() == "ochazuke.list.move"
+	if !slices.ContainsFunc(r.Nouns["ochazuke.collection"].Bindings["normal"], func(b Binding) bool {
+		return b.Keys == "z z" && b.Request.Key() == "ochazuke.collection.move"
 	}) {
-		t.Fatal("bindings.json row on list did not land on ochazuke.list")
+		t.Fatal("bindings.json row on list did not land on ochazuke.collection")
 	}
-	if a := r.Config().actions[0]; a.spelled() != "list" || a.Noun != "ochazuke.list" {
+	if a := r.Config().actions[0]; a.spelled() != "collection" || a.Noun != "ochazuke.collection" {
 		t.Fatalf("action keeps its spelling: %q %q", a.spelled(), a.Noun)
 	}
 	legacy := r.modernRequest(Request{Noun: "undo", Verb: "input"})
@@ -253,7 +253,7 @@ func TestAppVerbBesideFrameworkNounOfThatName(t *testing.T) {
 	if err != nil || got != "own" {
 		t.Fatalf("app.state = %v, %v", got, err)
 	}
-	for _, noun := range []string{"state", "ochazuke.snapshot"} {
+	for _, noun := range []string{"snapshot", "ochazuke.snapshot"} {
 		got, err := r.Execute(Request{Noun: noun, Verb: "get"})
 		if err != nil || got == "own" {
 			t.Fatalf("%s.get = %v, %v", noun, got, err)
@@ -294,15 +294,15 @@ func TestLegacyAppNamespaceIsAnAlias(t *testing.T) {
 	if noun, rest, ok := r.NounWords([]string{"app", "setting", "names"}); !ok || noun != "ochazuke.setting" || !slices.Equal(rest, []string{"names"}) {
 		t.Fatalf("NounWords(app setting names) = %q %v %v", noun, rest, ok)
 	}
-	if err := os.WriteFile(filepath.Join(dir, BindingsFile), []byte(`[{"noun":"app.list","mode":"normal","keys":"z z","request":{"noun":"app.list","verb":"move","args":{"delta":1}}}]`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, BindingsFile), []byte(`[{"noun":"app.collection","mode":"normal","keys":"z z","request":{"noun":"app.collection","verb":"move","args":{"delta":1}}}]`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if problems := r.EnsureUserBindings(); len(problems) > 0 {
 		t.Fatal(problems)
 	}
-	if !slices.ContainsFunc(r.Nouns["ochazuke.list"].Bindings["normal"], func(b Binding) bool {
-		return b.Keys == "z z" && b.Request.Key() == "ochazuke.list.move"
+	if !slices.ContainsFunc(r.Nouns["ochazuke.collection"].Bindings["normal"], func(b Binding) bool {
+		return b.Keys == "z z" && b.Request.Key() == "ochazuke.collection.move"
 	}) {
-		t.Fatal("a v0.16.0 bindings.json row on app.list did not land on ochazuke.list")
+		t.Fatal("a v0.16.0 bindings.json row on app.collection did not land on ochazuke.collection")
 	}
 }

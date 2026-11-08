@@ -1,12 +1,12 @@
 {
-  "name": "grouped and paged: group headings over the rows, a page counts rows, the page indicator and list.page-next move between pages",
+  "name": "grouped and paged: group headings over the rows, a page counts rows, the page indicator and collection.page-next move between pages",
   "area": "lists",
   "width": 60,
   "height": 12,
   "chrome": "none",
   "settings": [
-    {"name": "list.per-page", "type": "integer", "default": 3},
-    {"name": "list.group-by", "type": "string", "default": "status"}
+    {"name": "collection.per-page", "type": "integer", "default": 3},
+    {"name": "collection.group-by", "type": "string", "default": "status"}
   ],
   "page": {
     "noHeadings": true,
@@ -34,8 +34,8 @@
       }
     ],
     "bind": [
-      {"noun": "chore", "keys": "n", "do": "ochazuke.list.page-next"},
-      {"noun": "chore", "keys": "p", "do": "ochazuke.list.page-prev"}
+      {"noun": "chore", "keys": "n", "do": "ochazuke.collection.page-next"},
+      {"noun": "chore", "keys": "p", "do": "ochazuke.collection.page-prev"}
     ]
   },
   "script": ["p", "n", "n", "p"],

@@ -60,8 +60,7 @@ func paletteInputSnapshot(t *testing.T, in *Input) string {
 // app], and a column beside it: cell, row and column transform a name
 // (upper, lower, title, trim); row deletes; sheet saves; text tidies (so
 // "t" is ambiguous; "tr" is transform or the noun transformations, which the
-// next word settles); item lists and list clears (list is a
-// verb and a noun, and no list verb is on the focus path); note adds text; counter bumps by an integer. ran
+// next word settles); XX// verb and a noun, and no list verb is on the focus path); note adds text; counter bumps by an integer. ran
 // records each request with the instance it acted for.
 func lineRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	t.Helper()
@@ -88,7 +87,7 @@ func lineRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	r.Register(Operation{Key: "sheet.save", Run: run})
 	r.Register(Operation{Key: "text.tidy", Run: run})
 	r.Register(Operation{Key: "item.list", Run: run})
-	r.Register(Operation{Key: "ochazuke.list.clear", Run: run})
+	r.Register(Operation{Key: "ochazuke.collection.clear", Run: run})
 	r.Register(Operation{Key: "transformations.list", Run: run})
 	r.Register(Operation{Key: "note.add", Parameters: map[string]Parameter{"text": {Type: "string", Required: true}}, Run: run})
 	r.Register(Operation{Key: "counter.bump", Parameters: map[string]Parameter{"by": {Type: "integer"}}, Run: run})
@@ -148,8 +147,9 @@ func TestPaletteLineGrammar(t *testing.T) {
 		{line: "delete", op: "row.delete", args: Arguments{}, implied: true},
 		{line: "save", op: "sheet.save", args: Arguments{}, implied: true},
 		{line: "tidy", op: "text.tidy", args: Arguments{}, implied: true},
+		{line: "collection", missing: "verb"},
 		{line: "list", missing: "noun"},
-		{line: "list clear", op: "ochazuke.list.clear", args: Arguments{}},
+		{line: "collection clear", op: "ochazuke.collection.clear", args: Arguments{}},
 		{line: `add note "two words"`, op: "note.add", args: Arguments{"text": "two words"}},
 		{line: "bump counter 3", op: "counter.bump", args: Arguments{"by": 3}},
 		{line: "bump counter", op: "counter.bump", args: Arguments{}},
@@ -578,7 +578,7 @@ func TestPaletteParamHeader(t *testing.T) {
 	r.Register(Operation{Key: "file.open", Parameters: map[string]Parameter{
 		"path": {Type: "string", Required: true, Source: "file.list", Description: "The file to open"},
 		"mode": {Type: "string", Enum: []string{"read", "write"}, Free: true},
-		"row":  {Noun: "ochazuke.list"},
+		"row":  {Noun: "ochazuke.collection"},
 	}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 	op := r.Operations.At(Key("file.open"))
 	slot := paramSlot{Op: op, Name: "path", Next: []string{"mode"}}
@@ -602,7 +602,7 @@ func TestPaletteParamHeader(t *testing.T) {
 	if got := p.paramHeader(Styles{}, paramSlot{Op: op, Name: "mode"}, 80); got != "mode · string · optional · one of 2 · or any text" {
 		t.Errorf("enum: %q", got)
 	}
-	if got := p.paramHeader(Styles{}, paramSlot{Op: op, Name: "row"}, 80); got != "row · string · optional · a list" {
+	if got := p.paramHeader(Styles{}, paramSlot{Op: op, Name: "row"}, 80); got != "row · string · optional · a collection" {
 		t.Errorf("noun: %q", got)
 	}
 }

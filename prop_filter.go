@@ -247,7 +247,7 @@ func (f SavedFilter) conditions() []PropFilter {
 }
 
 // Filters declares app defaults for every list/tree/chooser of this noun's rows.
-// Catalogs carry them to hosts; list.filters in settings.json adds or
+// Catalogs carry them to hosts; collection.filters in settings.json adds or
 // replaces defaults by scope and name. An empty filter represents "all".
 func (b *NounBuilder) Filters(filters ...SavedFilter) *NounBuilder {
 	for _, f := range filters {
@@ -347,7 +347,7 @@ func (r *Runtime) filterPropName(nouns []string, name string) (string, error) {
 	return main, nil
 }
 
-// SavedFilters resolves the app defaults and the user's list.filters
+// SavedFilters resolves the app defaults and the user's collection.filters
 // setting (a JSON array string), in declaration order. The same name in a
 // more specific scope replaces the less specific row without moving it.
 // CLI callers pass an empty list id, so only noun-scoped rows apply.
@@ -380,7 +380,7 @@ func (r *Runtime) SavedFilters(list string, nouns ...string) ([]SavedFilter, err
 			continue
 		}
 		if strings.TrimSpace(f.Name) == "" {
-			return nil, fmt.Errorf("list.filters: a saved filter needs a name")
+			return nil, fmt.Errorf("collection.filters: a saved filter needs a name")
 		}
 		i := slices.IndexFunc(out, func(old SavedFilter) bool { return old.Name == f.Name })
 		if i < 0 {
@@ -435,21 +435,21 @@ func parseSavedFilters(text string) ([]SavedFilter, error) {
 	decoder := json.NewDecoder(strings.NewReader(text))
 	decoder.UseNumber()
 	if err := decoder.Decode(&rows); err != nil {
-		return nil, fmt.Errorf("list.filters must be a JSON array of saved filters: %w", err)
+		return nil, fmt.Errorf("collection.filters must be a JSON array of saved filters: %w", err)
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
-		return nil, fmt.Errorf("list.filters must contain one JSON array of saved filters")
+		return nil, fmt.Errorf("collection.filters must contain one JSON array of saved filters")
 	}
 	if rows == nil {
-		return nil, fmt.Errorf("list.filters must be a JSON array, use [] for no filters")
+		return nil, fmt.Errorf("collection.filters must be a JSON array, use [] for no filters")
 	}
 	for _, f := range rows {
 		if strings.TrimSpace(f.Name) == "" {
-			return nil, fmt.Errorf("list.filters: a saved filter needs a name")
+			return nil, fmt.Errorf("collection.filters: a saved filter needs a name")
 		}
 		if f.List == "" && f.Noun == "" {
-			return nil, fmt.Errorf("list.filters: %s needs a noun or list scope", f.Name)
+			return nil, fmt.Errorf("collection.filters: %s needs a noun or list scope", f.Name)
 		}
 	}
 	return rows, nil
@@ -461,7 +461,7 @@ func validSavedFilters(value any) error {
 }
 
 func (s *Settings) savedFilters() ([]SavedFilter, error) {
-	text := s.String("list.filters")
+	text := s.String("collection.filters")
 	if !s.filterCache.loaded || text != s.filterCache.text {
 		rows, err := parseSavedFilters(text)
 		s.filterCache = savedFilterCache{text: text, rows: rows, err: err, loaded: true}

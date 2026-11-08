@@ -109,7 +109,7 @@ func TestPropFilterListTextRefreshMarks(t *testing.T) {
 
 func TestPropFilterPickerCycleAndStrip(t *testing.T) {
 	r, m, l := propFilterFixture(t)
-	chooserChain(t, r)              // the prop chooser then the value chooser (list.filter-form off)
+	chooserChain(t, r)              // the prop chooser then the value chooser (collection.filter-form off)
 	pressKeys(m, "z", "/", "enter") // by is the first prop; observed values agent,owner
 	chooser := r.Chooser("list-filter-value")
 	if chooser == nil || len(chooser.Matches()) != 2 {
@@ -142,16 +142,16 @@ func TestPropFilterPickerCycleAndStrip(t *testing.T) {
 	if l.vs.Saved != "agents" {
 		t.Fatal("reverse")
 	}
-	if err := r.Settings().Set("list.filter-strip", false); err != nil {
+	if err := r.Settings().Set("collection.filter-strip", false); err != nil {
 		t.Fatal(err)
 	}
 	if text := ansi.Strip(l.View(90, 10)); strings.Contains(text, "[agents]") || strings.Contains(text, "[by") {
 		t.Fatal(text)
 	}
-	if err := r.Settings().Set("list.filter-cycle", false); err != nil {
+	if err := r.Settings().Set("collection.filter-cycle", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-cycle"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-cycle"}); err == nil {
 		t.Fatal("cycle opt out")
 	}
 }
@@ -175,7 +175,7 @@ func TestPropFilterSavedSettingsAndCLI(t *testing.T) {
 		t.Fatal("missing filter accepted")
 	}
 	setting := `[{"name":"todo","noun":"task","where":{"status":"doing"}},{"name":"todo","list":"one","where":{"status":"done"}}]`
-	if err := r.Settings().Set("list.filters", setting); err != nil {
+	if err := r.Settings().Set("collection.filters", setting); err != nil {
 		t.Fatal(err)
 	}
 	filters, err := r.SavedFilters("one", "task")
@@ -199,10 +199,10 @@ func TestPropFilterSavedSettingsAndCLI(t *testing.T) {
 	if filters[0].Where["status"] != "doing" {
 		t.Fatal(filters)
 	}
-	if err := r.Settings().Set("list.filters", "broken"); err == nil || !strings.Contains(err.Error(), "JSON array") {
+	if err := r.Settings().Set("collection.filters", "broken"); err == nil || !strings.Contains(err.Error(), "JSON array") {
 		t.Fatalf("invalid setting write: %v", err)
 	}
-	if got := r.Settings().String("list.filters"); got != setting {
+	if got := r.Settings().String("collection.filters"); got != setting {
 		t.Fatal("invalid write replaced setting")
 	}
 }
@@ -251,7 +251,7 @@ func TestPropFilterSavedPersistence(t *testing.T) {
 	r, _, _ := propFilterFixture(t)
 	r.Config().Dir = t.TempDir()
 	input := `[{"name":"only","noun":"a","conditions":[{"prop":"by","op":"in","value":["owner"]}]}]`
-	if err := r.Settings().Set("list.filters", input); err != nil {
+	if err := r.Settings().Set("collection.filters", input); err != nil {
 		t.Fatal(err)
 	}
 	fresh := NewRuntime()
@@ -275,20 +275,20 @@ func TestPropFilterTargetAndClearOne(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, by := range []string{"owner", "agent"} {
-		if _, err := r.Execute(Request{Noun: "list", Verb: "filter-prop", Args: Arguments{"id": l.id, "prop": "by", "value": by}}); err != nil {
+		if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-prop", Args: Arguments{"id": l.id, "prop": "by", "value": by}}); err != nil {
 			t.Fatal(err)
 		}
 	}
 	if l.Shown() != 0 {
 		t.Fatal("two conditions on one prop must AND")
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-prop-clear", Args: Arguments{"id": l.id, "index": 2}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-prop-clear", Args: Arguments{"id": l.id, "index": 2}}); err != nil {
 		t.Fatal(err)
 	}
 	if l.Shown() != 3 || len(l.vs.Filters) != 1 {
 		t.Fatal("clear removed more than one condition")
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-props-clear", Args: Arguments{"id": l.id}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-props-clear", Args: Arguments{"id": l.id}}); err != nil {
 		t.Fatal(err)
 	}
 	if l.Shown() != 5 {
@@ -298,7 +298,7 @@ func TestPropFilterTargetAndClearOne(t *testing.T) {
 
 func TestPropFilterPickerVisibleValuesOnly(t *testing.T) {
 	r, m, l := propFilterFixture(t)
-	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
+	chooserChain(t, r) // the prop chooser then the value chooser (collection.filter-form off)
 	l.SetFilter("beta")
 	pressKeys(m, "z", "/", "enter")
 	c := r.Chooser("list-filter-value")
@@ -495,7 +495,7 @@ func TestPropFilterTreeFoldsAndTextCompatibility(t *testing.T) {
 
 func TestPropFilterCycleInvalidAndEmpty(t *testing.T) {
 	r, m, l := propFilterFixture(t)
-	if err := r.Settings().Set("list.filters", `[{"name":"broken","noun":"a","where":{"missing":"x"}}]`); err != nil {
+	if err := r.Settings().Set("collection.filters", `[{"name":"broken","noun":"a","where":{"missing":"x"}}]`); err != nil {
 		t.Fatal(err)
 	}
 	_ = l.ApplyFilter("all")
@@ -508,7 +508,7 @@ func TestPropFilterCycleInvalidAndEmpty(t *testing.T) {
 	if l.vs.Saved != "all" || !strings.Contains(m.Info, "broken") {
 		t.Fatalf("reverse %s info %s", l.vs.Saved, m.Info)
 	}
-	_ = r.Settings().Set("list.filter-strip", false)
+	_ = r.Settings().Set("collection.filter-strip", false)
 	_ = l.SetPropFilters([]PropFilter{{"by", "=", "none"}})
 	if text := ansi.Strip(l.View(60, max(1, l.Height()))); !strings.Contains(text, "no rows match the filter, 0 of 5") {
 		t.Fatal(text)
@@ -518,14 +518,14 @@ func TestPropFilterCycleInvalidAndEmpty(t *testing.T) {
 func TestPropFilterMalformedSettingsLoad(t *testing.T) {
 	r := NewRuntime()
 	r.Config().Dir = t.TempDir()
-	if err := os.WriteFile(filepath.Join(r.Config().Dir, SettingsFile), []byte(`{"list.filters":"broken"}`), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(r.Config().Dir, SettingsFile), []byte(`{"collection.filters":"broken"}`), 0600); err != nil {
 		t.Fatal(err)
 	}
 	problems := r.Settings().Problems()
-	if len(problems) != 1 || !strings.Contains(problems[0], "list.filters") || !strings.Contains(problems[0], "JSON array") {
+	if len(problems) != 1 || !strings.Contains(problems[0], "collection.filters") || !strings.Contains(problems[0], "JSON array") {
 		t.Fatal(problems)
 	}
-	if r.Settings().String("list.filters") != "[]" {
+	if r.Settings().String("collection.filters") != "[]" {
 		t.Fatal("malformed setting not defaulted")
 	}
 }
@@ -539,7 +539,7 @@ func TestPropFilterSavedManagement(t *testing.T) {
 		if verb == "filter-save" {
 			args["name"] = "local"
 		}
-		if _, err := r.Execute(Request{Noun: "list", Verb: verb, Args: args}); err != nil {
+		if _, err := r.Execute(Request{Noun: "collection", Verb: verb, Args: args}); err != nil {
 			t.Fatalf("%s: %v", verb, err)
 		}
 	}
@@ -557,7 +557,7 @@ func TestPropFilterSavedManagement(t *testing.T) {
 	if err != nil || len(filters) != 1 || filters[0].Name != "local" {
 		t.Fatalf("persisted %+v %v", filters, err)
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-saved-delete", Args: Arguments{"id": l.id, "name": "local"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-saved-delete", Args: Arguments{"id": l.id, "name": "local"}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.TopModal() != "confirm" {

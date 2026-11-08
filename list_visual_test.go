@@ -110,7 +110,7 @@ func TestVisualMotionsExtendTheSelection(t *testing.T) {
 }
 
 // V j d deletes the two rows in one step (the list's d runs the rows'
-// delete through list.apply), and visual ends; V j y yanks the two.
+// delete through collection.apply), and visual ends; V j y yanks the two.
 func TestVisualLineDeleteAndYank(t *testing.T) {
 	r, m, a, calls := visualList(t)
 	motionKeys(t, r, m, "V j d")
@@ -139,14 +139,14 @@ func TestVisualSelectionOnlyVerbIsAvailable(t *testing.T) {
 	if r.Mode.Name != "normal" || a.Visual() {
 		t.Fatalf("after >: mode %s visual %v", r.Mode.Name, a.Visual())
 	}
-	// list.apply itself reads the selection's availability: over a
+	// collection.apply itself reads the selection's availability: over a
 	// selection the guarded verb applies, without one it is refused.
 	motionKeys(t, r, m, "V j")
-	if _, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "a", "verb": "nest"}}); err != nil {
-		t.Fatalf("list.apply nest over a selection: %v", err)
+	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"id": "a", "verb": "nest"}}); err != nil {
+		t.Fatalf("collection.apply nest over a selection: %v", err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "a", "verb": "nest"}}); err == nil {
-		t.Fatal("list.apply nest without a selection was not refused")
+	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"id": "a", "verb": "nest"}}); err == nil {
+		t.Fatal("collection.apply nest without a selection was not refused")
 	}
 }
 
@@ -383,7 +383,7 @@ func TestVisualFanOutReadsTheVerbRow(t *testing.T) {
 	applies := func() int {
 		n := 0
 		for _, e := range slices.Concat(r.history.entries, r.history.fetches) {
-			if e.Request.Key() == "ochazuke.list.apply" {
+			if e.Request.Key() == "ochazuke.collection.apply" {
 				n++
 			}
 		}
@@ -397,7 +397,7 @@ func TestVisualFanOutReadsTheVerbRow(t *testing.T) {
 			t.Fatalf("%s over two selected rows ran %d times, want once: %v", c.verb, counts[c.verb], counts)
 		}
 		if applies() != before {
-			t.Fatalf("%s went through list.apply", c.verb)
+			t.Fatalf("%s went through collection.apply", c.verb)
 		}
 		if a.Visual() {
 			motionKeys(t, r, m, "esc")

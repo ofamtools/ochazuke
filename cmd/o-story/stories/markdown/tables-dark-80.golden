@@ -22,9 +22,9 @@ R|    ## Status counts
  |    ──────────────┼─────────────┼────────────────┼─────────┼────────────────
  |      j / k  on a │  :help j    │  bindings/     │ differs │ Keep it: the
  |     list         │  :help k :  │ list.json      │ on      │ invariant
- |                  │ stop at the │  ochazuke.list │ purpose │ "motions are
+ |                  │ stop at the │  ochazuke.collection │ purpose │ "motions are
  |                  │ last/first  │ /normal j / k  │         │ visual"
- |                  │ line        │ →  list.move   │         │ (AGENTS.md).
+ |                  │ line        │ →  collection.move   │         │ (AGENTS.md).
  |                  │             │ {delta} ; past │         │ Put it in the
  |                  │             │ the edge the   │         │ docs' Vim
  |                  │             │ focus moves to │         │ note.
@@ -56,7 +56,7 @@ R|    ## Status counts
  |                  │             │ clamps, then a │         │
  |                  │             │ single spill   │         │
  |      ctrl+d /    │  :help      │  list.json  →  │ similar │ Note it in the
- |      ctrl+u  on  │ CTRL-D :    │  list.scroll   │ (the    │ docs.
+ |      ctrl+u  on  │ CTRL-D :    │  collection.scroll   │ (the    │ docs.
  |     lists        │ half a      │ {half} ; a     │ count   │
  |                  │ page; a     │ count is rows, │ does    │
  |                  │ count sets  │ for that press │ not     │

@@ -1,8 +1,8 @@
 {
-  "name": "list.no-spill a:last: j at a's last row stays (j unavailable there), k at its first row still spills up; b spills back into a with k",
+  "name": "collection.no-spill a:last: j at a's last row stays (j unavailable there), k at its first row still spills up; b spills back into a with k",
   "area": "lists",
   "settings": [
-    {"name": "list.no-spill", "type": "list", "default": ["a:last"]}
+    {"name": "collection.no-spill", "type": "list", "default": ["a:last"]}
   ],
   "width": 30,
   "height": 12,

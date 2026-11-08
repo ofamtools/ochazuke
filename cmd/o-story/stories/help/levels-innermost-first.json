@@ -18,11 +18,11 @@
     "modal": "bindings-help",
     "order": [
       "demo.open",
-      "list.mark",
+      "collection.mark",
       "palette.open",
       "binding.help",
       "movement",
-      "list.move",
+      "collection.move",
       "focus.next"
     ]
   }

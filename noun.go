@@ -612,7 +612,7 @@ func (b *NounBuilder) Fetch() *NounBuilder {
 }
 
 // Motion marks the last declared verb as a motion (Operation.Motion): the
-// footer leaves its rows to ? help, as it does for list.move.
+// footer leaves its rows to ? help, as it does for collection.move.
 func (b *NounBuilder) Motion() *NounBuilder {
 	return b.lastOp("Motion", func(o *Operation) { o.Motion = true })
 }
@@ -777,7 +777,7 @@ func (r *Runtime) availableWithin(q Request, focus string, mode ModeState, withi
 // only while every one holds, so the resolver, the palette, the hints, the
 // help and Execute all leave it out where the added guard is false. It is
 // how an application narrows a framework verb it uses
-// (ochazuke.list.choose-column where its own pane draws no columns) without
+// (ochazuke.collection.choose-column where its own pane draws no columns) without
 // replacing the framework's guard or guarding each binding row. The guard
 // need not be registered yet; one that is not registered when asked hides
 // nothing, as a verb guard does. Adding a guard the verb already has is a
@@ -1170,7 +1170,7 @@ func (r *Runtime) ValidateBindings() ([]string, error) {
 }
 
 // modernRequest resolves a request's noun (an alias such as list names
-// ochazuke.list: CanonicalNoun) and accepts the pre-noun.verb spelling for one
+// ochazuke.collection: CanonicalNoun) and accepts the pre-noun.verb spelling for one
 // release: a row built as Do("undo.input") parses as noun "undo", verb
 // "input". When that two-word key is unknown but its reversal is
 // registered, the request is rewritten and the move recorded once per key;

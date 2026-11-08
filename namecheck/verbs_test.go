@@ -25,11 +25,11 @@ func verbFixture(t *testing.T, files map[string]string) string {
 
 func verbCatalog() Catalog {
 	return Catalog{
-		Nouns:     map[string]string{"task": "task", "ochazuke.list": "ochazuke.list", "list": "ochazuke.list", "ochazuke.focus": "ochazuke.focus", "focus": "ochazuke.focus", "pane": "pane"},
+		Nouns:     map[string]string{"task": "task", "ochazuke.collection": "ochazuke.collection", "list": "ochazuke.collection", "ochazuke.focus": "ochazuke.focus", "focus": "ochazuke.focus", "pane": "pane"},
 		Generated: map[string]bool{"set": true, "get": true, "rename": true, "restore": true, "move": true},
 		Known: map[string]string{
 			"task.set": "set", "task.get": "get", "task.rename": "rename", "task.status": "",
-			"ochazuke.list.move": "", "list.move": "", "pane.restore": "",
+			"ochazuke.collection.move": "", "collection.move": "", "pane.restore": "",
 			"ochazuke.focus.set": "", "focus.set": "", "ochazuke.focus.to": "", "focus.to": "",
 		},
 	}
@@ -58,7 +58,7 @@ func TestVerbsStates(t *testing.T) {
 // Doc: task.set is fine; task.fiction in prose is not a finding.
 var x = "task.rename"
 var v = "task.nonesuch {id}"
-var y = "list.move and ochazuke.list.move"
+var y = "collection.move and ochazuke.collection.move"
 var z = ` + "`focus.set`" + `
 var w = "pane.restore, other.move and task.status"
 `,
@@ -84,7 +84,7 @@ var w = "pane.restore, other.move and task.status"
 			t.Errorf("%s = %q, want %q (all %v)", ref, got[ref], state, got)
 		}
 	}
-	for _, fine := range []string{"task.fiction", "task.alsoname", "task.set", "task.get", "list.move", "ochazuke.list.move", "pane.restore", "task.status", "list.go", "bindings.json", "ofam.dev"} {
+	for _, fine := range []string{"task.fiction", "task.alsoname", "task.set", "task.get", "collection.move", "ochazuke.collection.move", "pane.restore", "task.status", "list.go", "bindings.json", "ofam.dev"} {
 		if _, bad := got[fine]; bad {
 			t.Errorf("%s was reported (%s)", fine, got[fine])
 		}
@@ -105,7 +105,7 @@ func TestVerbsRemovedAfterPurge(t *testing.T) {
 	delete(cat.Known, "ochazuke.focus.set")
 	delete(cat.Known, "focus.set")
 	delete(cat.Generated, "rename") // the purge took rename off the standard table
-	root := verbFixture(t, map[string]string{"a.go": "package a\nvar x = \"task.rename\"\nvar y = \"focus.set list.move\"\n"})
+	root := verbFixture(t, map[string]string{"a.go": "package a\nvar x = \"task.rename\"\nvar y = \"focus.set collection.move\"\n"})
 	rep, err := Verbs(VerbsConfig{Catalog: cat, Removed: verbRemoved(), Root: root, Files: []string{"a.go"}})
 	if err != nil {
 		t.Fatal(err)

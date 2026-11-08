@@ -44,14 +44,14 @@ func presentationFixture(t *testing.T) (*Model, *Runtime, *[]drawnSeen, *[]drawn
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.AddList("a", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.list"}, {ID: "a2", Label: "a2", Noun: "ochazuke.list"}, {ID: "a3", Label: "a3", Noun: "ochazuke.list"}}, Parent("p")); err != nil {
+	if _, err := r.AddList("a", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.collection"}, {ID: "a2", Label: "a2", Noun: "ochazuke.collection"}, {ID: "a3", Label: "a3", Noun: "ochazuke.collection"}}, Parent("p")); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.OpenPage("p"); err != nil {
 		t.Fatal(err)
 	}
 	r.Instance("m1")
-	if _, err := r.AddList("ml", []ListItem{{ID: "m1/x", Label: "x", Noun: "ochazuke.list"}, {ID: "m1/y", Label: "y", Noun: "ochazuke.list"}}, Parent("m1")); err != nil {
+	if _, err := r.AddList("ml", []ListItem{{ID: "m1/x", Label: "x", Noun: "ochazuke.collection"}, {ID: "m1/y", Label: "y", Noun: "ochazuke.collection"}}, Parent("m1")); err != nil {
 		t.Fatal(err)
 	}
 	m.ModalViews["m1"] = ModalView{Title: "M1", Render: func(r *Runtime, _ *Instance, w, h int) Block {
@@ -185,7 +185,7 @@ func TestRenderRepeatedAndReentrantInspection(t *testing.T) {
 // agree.
 func TestDrawnModeOfARepairedReturnIsTheLanding(t *testing.T) {
 	_, r, _, _ := presentationFixture(t)
-	if _, err := r.AddList("b", []ListItem{{ID: "b1", Label: "b1", Noun: "ochazuke.list"}}, Parent("p")); err != nil {
+	if _, err := r.AddList("b", []ListItem{{ID: "b1", Label: "b1", Noun: "ochazuke.collection"}}, Parent("p")); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.SetFocus("b1"); err != nil {

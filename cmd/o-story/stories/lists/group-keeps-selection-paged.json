@@ -1,17 +1,17 @@
 {
- "name": "paged: list.group keeps the selected row and shows its page",
+ "name": "paged: collection.group keeps the selected row and shows its page",
  "area": "lists",
  "width": 80,
  "height": 30,
  "chrome": "full",
  "settings": [
   {
-   "name": "list.per-page",
+   "name": "collection.per-page",
    "type": "integer",
    "default": 3
   },
   {
-   "name": "list.group-by",
+   "name": "collection.group-by",
    "type": "string",
    "default": ""
   }
@@ -112,12 +112,12 @@
    {
     "noun": "chore",
     "keys": "n",
-    "do": "ochazuke.list.page-next"
+    "do": "ochazuke.collection.page-next"
    },
    {
     "noun": "chore",
     "keys": "p",
-    "do": "ochazuke.list.page-prev"
+    "do": "ochazuke.collection.page-prev"
    },
    {
     "noun": "app",
@@ -130,7 +130,7 @@
    {
     "noun": "chore",
     "keys": "Y",
-    "do": "ochazuke.list.group",
+    "do": "ochazuke.collection.group",
     "args": {
      "by": "status"
     }

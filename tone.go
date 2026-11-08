@@ -32,7 +32,7 @@ import (
 //   - On the selected row (reverse video) a tone draws its bold alone: no
 //     colour, no dim, so the row stays one bar that reads in every theme,
 //     and a table's current cell draws in list.cell.cursor, out of the
-//     bar (setting list.cell-cursor: background), or underlined inside
+//     bar (setting collection.cell-cursor: background), or underlined inside
 //     it (underline).
 //   - A page list without the focus fades its tones with it
 //     (dim-unfocused): the tone's colour is carried the same percent toward
@@ -77,7 +77,7 @@ const (
 	// part's tone plus IntersectSuffix).
 	ToneCellIntersect = "list.cell.intersect"
 	// ToneCellCursor is a cell-mode table's current cell on the selected
-	// row, drawn out of the reverse bar (setting list.cell-cursor
+	// row, drawn out of the reverse bar (setting collection.cell-cursor
 	// background, the default).
 	ToneCellCursor         = "list.cell.cursor"
 	ToneHeader             = "list.header"
@@ -115,7 +115,7 @@ const LayerSelected = "selected"
 // header or a row-number column is a layer named after its part), the
 // cell takes the intersect tone of its part (list.cell.intersect for a
 // data cell, list.header.intersect, list.rownum.intersect), so a
-// crossing reads at a glance (setting list.intersect, default on). A
+// crossing reads at a glance (setting collection.intersect, default on). A
 // whole-cell layer span (From and To 0) fills the column's whole width,
 // not only its text.
 type ToneSpan struct {
@@ -426,7 +426,7 @@ type toneSeg struct {
 // the selected row: background (the default: the cell in the
 // list.cell.cursor tone, out of the reverse bar) or underline (reversed
 // and underlined inside the bar, as before).
-const CellCursorSetting = "list.cell-cursor"
+const CellCursorSetting = "collection.cell-cursor"
 
 // The values of CellCursorSetting.
 const (
@@ -434,7 +434,7 @@ const (
 	CellCursorUnderline  = "underline"
 )
 
-// CellCursor is the list.cell-cursor setting's value (default
+// CellCursor is the collection.cell-cursor setting's value (default
 // background).
 func (r *Runtime) CellCursor() string {
 	if v, _ := r.settingValue(CellCursorSetting); v == CellCursorUnderline {
@@ -450,7 +450,7 @@ func (r *Runtime) CellCursor() string {
 // video with the two colours swapped, so the cell stays part of the
 // selection's reverse run (a story reads it as the current cell: reverse
 // with a background, which nothing else draws). nil, with
-// list.cell-cursor underline, without the Model's styles, when the theme
+// collection.cell-cursor underline, without the Model's styles, when the theme
 // has no such tone or the tone has no background (mono, NO_COLOR), draws
 // the cell reversed and underlined inside the bar.
 func (r *Runtime) cellCursor(id string, faded bool) ansi.Style {
@@ -582,7 +582,7 @@ func (r *Runtime) toneStyles(id string) *Styles {
 }
 
 // wantsTones reports whether the list draws any tone: a row's, the
-// header's (SetHeaderTones, or the header part while list.part-tones is
+// header's (SetHeaderTones, or the header part while collection.part-tones is
 // on), or a part column's.
 func (l *Collection) wantsTones() bool {
 	if len(l.linger.leaving) > 0 || slices.ContainsFunc(l.items, func(it ListItem) bool { return len(it.Tones) > 0 }) || len(l.headerTones) > 0 {
@@ -605,13 +605,13 @@ func (r *Runtime) settingOn(name string) bool {
 // cell (ToneSpan.Layer, the selected row, a non-data part) the cell
 // takes its part's intersect tone; off draws the layers as before, the
 // later span winning (default on).
-const IntersectSetting = "list.intersect"
+const IntersectSetting = "collection.intersect"
 
 // PartTonesSetting: a table's header row and its part columns
 // (Column.Part, a row-number column) draw in their part tones
 // (list.header, list.rownum) so they never read as data; off draws the
 // header bold and the part columns as data, as before (default on).
-const PartTonesSetting = "list.part-tones"
+const PartTonesSetting = "collection.part-tones"
 
 // paintLine draws a plain line with its tones: on the selected row the
 // line is padded to width and reversed, the current cell (cur) in
@@ -732,7 +732,7 @@ func paintLine(line string, width int, segs []toneSeg, st *Styles, selected, fad
 // ToneSpan.Layer, a part span's part. The run takes its part's intersect
 // tone (list.cell.intersect for a data cell), its colours, background and
 // attributes, out of the reverse bar. ok is false under one layer or
-// none, with list.intersect off, or when the theme has no such tone.
+// none, with collection.intersect off, or when the theme has no such tone.
 func (s *Styles) crossing(segs []toneSeg, a int, selected bool, fade int) (ansi.Style, bool) {
 	if s == nil || !s.intersect {
 		return nil, false

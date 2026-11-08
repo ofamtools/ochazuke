@@ -13,8 +13,8 @@ import (
 // order, and never scroll; the others (the scrolling columns) follow them
 // in order. By default the first column is pinned (it names the row); an
 // application declares other defaults with Column.Pinned, and the user
-// changes them with list.pin-column, list.unpin-column,
-// list.toggle-pin-column (z p in cell mode) and list.unpin-columns.
+// changes them with collection.pin-column, collection.unpin-column,
+// collection.toggle-pin-column (z p in cell mode) and collection.unpin-columns.
 //
 // The list keeps a column offset (List.ColumnOffset):
 //
@@ -42,14 +42,14 @@ import (
 //
 // Keys, rows of the list noun in normal mode:
 //
-//	z l / z h  list.scroll-columns {delta: ±1}: one column right / left
+//	z l / z h  collection.scroll-columns {delta: ±1}: one column right / left
 //	           (Vim's zl/zh; a count is columns), verb guard table-scrolls
 //	           (the focused list is a table whose last frame hid a column,
 //	           or is scrolled), so on a table that fits and on a plain list
 //	           they do not answer (and z waits for nothing)
-//	$          list.scroll-columns {to: last}: the view that shows the last
+//	$          collection.scroll-columns {to: last}: the view that shows the last
 //	           column (bound in table_cells.go, after the cell rows)
-//	^ and 0    list.scroll-columns {to: first}: offset 0 (0 only without a
+//	^ and 0    collection.scroll-columns {to: first}: offset 0 (0 only without a
 //	           count: after a digit 0 is the count's, as in 10j)
 //	l / h      scroll, then move the focus (table_cells.go): on a
 //	           row-select table l scrolls one column right (guard
@@ -395,14 +395,14 @@ func registerColumnMotions(r *Runtime) {
 	}
 	r.DefineGuard("table-spills-right", spills(1))
 	r.DefineGuard("table-spills-left", spills(-1))
-	if r.Nouns["ochazuke.list"].Guards == nil {
-		r.Nouns["ochazuke.list"].Guards = map[string]string{}
+	if r.Nouns["ochazuke.collection"].Guards == nil {
+		r.Nouns["ochazuke.collection"].Guards = map[string]string{}
 	}
-	r.Nouns["ochazuke.list"].Guards["scroll-columns"] = "table-scrolls"
-	// list-column-moves: list.column and list.scroll-columns by a delta are
-	// unavailable at a column edge the table traps (NoSpill, list.no-spill
+	r.Nouns["ochazuke.collection"].Guards["scroll-columns"] = "table-scrolls"
+	// list-column-moves: collection.column and collection.scroll-columns by a delta are
+	// unavailable at a column edge the table traps (NoSpill, collection.no-spill
 	// ID:first-col / ID:last-col), so the h/l clamp rows stand aside there
-	// as list.move does at a trapped row edge (list-moves).
+	// as collection.move does at a trapped row edge (list-moves).
 	r.DefineGuard("list-column-moves", func(r *Runtime, ev KeyEvent) bool {
 		delta := IntArg(ev.Args, "delta", 0)
 		if delta == 0 {
@@ -416,7 +416,7 @@ func registerColumnMotions(r *Runtime) {
 		}
 		return l == nil || !(l.atColumnEdge(delta) && l.trappedAt(columnEdge(delta)))
 	})
-	r.Register(Operation{Key: "ochazuke.list.scroll-columns", Motion: true, HistoryKind: HistoryAction, Description: "Scroll a table's columns: to the first or the last, or delta columns right or left; the pinned columns stay", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.collection.scroll-columns", Motion: true, HistoryKind: HistoryAction, Description: "Scroll a table's columns: to the first or the last, or delta columns right or left; the pinned columns stay", Parameters: map[string]Parameter{
 		"id":    {Type: "string", Description: "The list (default: the focused one)"},
 		"to":    {Type: "string", Enum: []string{"first", "last"}, Description: "The unscrolled view (first) or the one showing the last column (last)"},
 		"delta": {Type: "integer", Description: "Columns to scroll, positive right (zl), negative left (zh)"},

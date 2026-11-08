@@ -150,11 +150,11 @@ func TestListFromStoreChangedAndArchive(t *testing.T) {
 	if got := fromIDs(a); slices.Contains(got, "a/n2") || len(a.Items()) != 4 {
 		t.Fatalf("an archived thing shows (or left the rows): %v, %d rows", got, len(a.Items()))
 	}
-	if err := r.Settings().Set("list.hide-archived", false); err != nil {
+	if err := r.Settings().Set("collection.hide-archived", false); err != nil {
 		t.Fatal(err)
 	}
 	if got := fromIDs(a); !slices.Contains(got, "a/n2") {
-		t.Fatalf("list.hide-archived off still hides: %v", got)
+		t.Fatalf("collection.hide-archived off still hides: %v", got)
 	}
 }
 

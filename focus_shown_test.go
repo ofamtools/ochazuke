@@ -12,10 +12,10 @@ func shownPage(t *testing.T, draw *[]string) (*Model, *Runtime) {
 	t.Helper()
 	r := NewRuntime()
 	r.Instance("page")
-	if _, err := r.AddList("a", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.list"}, {ID: "a2", Label: "a2", Noun: "ochazuke.list"}}, Parent("page")); err != nil {
+	if _, err := r.AddList("a", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.collection"}, {ID: "a2", Label: "a2", Noun: "ochazuke.collection"}}, Parent("page")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.AddList("n", []ListItem{{ID: "n1", Label: "n1", Noun: "ochazuke.list"}, {ID: "n2", Label: "n2", Noun: "ochazuke.list"}}, Parent("a2")); err != nil {
+	if _, err := r.AddList("n", []ListItem{{ID: "n1", Label: "n1", Noun: "ochazuke.collection"}, {ID: "n2", Label: "n2", Noun: "ochazuke.collection"}}, Parent("a2")); err != nil {
 		t.Fatal(err)
 	}
 	render := func(r *Runtime, width, height int) Block {

@@ -21,20 +21,20 @@ R|            │ 0           .column?                                          
  |            │ ctrl+n                      .move?                                                           │
  |            │ 1–12 / 90                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
- |            │ normal       list.column when no-count · list                                                │
+ |            │ normal       collection.column when no-count · list                                                │
  |            │              to first                                                                        │
- |            │              then list.scroll-columns when row-table-no-count · list                         │
+ |            │              then collection.scroll-columns when row-table-no-count · list                         │
  |            │                   to first                                                                   │
  |            │              then viewport.goto when no-count · app                                              │
  |            │                   edge first-col                                                             │
- |            │ visual-line  list.column when no-count · list                                                │
+ |            │ visual-line  collection.column when no-count · list                                                │
  |            │              to first                                                                        │
- |            │              then list.scroll-columns when row-table-no-count · list                         │
+ |            │              then collection.scroll-columns when row-table-no-count · list                         │
  |            │                   to first                                                                   │
- |            │ space list.mark · S view · n noun · p place · esc modal.close · : palette.open · ? bindings… │
+ |            │ space collection.mark · S view · n noun · p place · esc modal.close · : palette.open · ? bindings… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · n noun · p place · esc modal.close · : palette.open · ? binding.help · / filter
+ |  space collection.mark · S view · n noun · p place · esc modal.close · : palette.open · ? binding.help · / filter
  |

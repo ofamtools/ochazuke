@@ -199,7 +199,7 @@ func TestSetReadsOnlyOneValueNouns(t *testing.T) {
 	m := NewModel(r)
 	s := &writeStore{taskStore: newTaskStore()}
 	r.Define("parcel").Props(taskWriteProps()...).Store(s.store())
-	r.Define("theme").Props(PropSpec{Name: "name"}).Store(Store{Kind: Singleton,
+	r.DefineOwn("theme").Props(PropSpec{Name: "name"}).Store(Store{Kind: Singleton,
 		Get:   func(Ctx, string) (Thing, error) { return Thing{"name": "kombu"}, nil },
 		Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil }})
 	words := func(line string) []string {

@@ -106,7 +106,7 @@ func TestHelpFilterFindsKeys(t *testing.T) {
 }
 
 func TestHelpCommandBindingsEffectiveFilterAndEscape(t *testing.T) {
-	for _, command := range []string{"h bindings", "help bindings", "bindings help"} {
+	for _, command := range []string{"h binding", "help binding", "binding help"} {
 		t.Run(command, func(t *testing.T) {
 			r, m := helpFixture(t)
 			r.Config().Disable()

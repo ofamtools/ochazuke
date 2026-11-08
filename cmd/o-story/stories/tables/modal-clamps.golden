@@ -8,13 +8,13 @@ R|  b │ $               list.colum…     │
 r|  b1│ 0               list.colum…     │
  |  b2│ 1–2 / 90                        │
  |    │ ─────────────────────────────── │
- |    │ normal       list.column when … │
+ |    │ normal       collection.column when … │
  |    │              to last            │
  |    │              then list.scroll-… │
  |    │                   to last       │
  |    │              then viewport.goto wh… │
- |    │ space list.mark · S view · n n… │
+ |    │ space collection.mark · S view · n n… │
  |    ╰─────────────────────────────────╯
  |  ────────────────────────────────────────
- |  space list.mark · S view · n noun · p p…
+ |  space collection.mark · S view · n noun · p p…
  |

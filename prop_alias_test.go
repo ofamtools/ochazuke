@@ -28,7 +28,7 @@ func propAliasFixture(t *testing.T) (*Runtime, *Collection) {
 
 func TestPropAliasFilterResolution(t *testing.T) {
 	r, l := propAliasFixture(t)
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-prop", Args: Arguments{"id": l.id, "prop": "status", "value": "todo"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-prop", Args: Arguments{"id": l.id, "prop": "status", "value": "todo"}}); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(shownIDs(l), []string{"a"}) || l.PropFilters()[0].Prop != "state" {
@@ -37,7 +37,7 @@ func TestPropAliasFilterResolution(t *testing.T) {
 	if strip := l.propStrip(); !strings.Contains(strip, "state = todo") || strings.Contains(strip, "status") {
 		t.Fatal(strip)
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-prop-clear", Args: Arguments{"id": l.id, "prop": "status"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-prop-clear", Args: Arguments{"id": l.id, "prop": "status"}}); err != nil {
 		t.Fatal(err)
 	}
 	if len(l.PropFilters()) != 0 {
@@ -64,7 +64,7 @@ func TestPropAliasFilterLinger(t *testing.T) {
 	if !l.Lingering("a") || !slices.Equal(shownIDs(l), []string{"a"}) {
 		t.Fatalf("alias filter did not retain departing row: %v", shownIDs(l))
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "flush-lingering", Args: Arguments{"id": l.id}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "flush-lingering", Args: Arguments{"id": l.id}}); err != nil {
 		t.Fatal(err)
 	}
 	if l.Shown() != 0 || l.PropFilters()[0].Prop != "state" {
@@ -115,7 +115,7 @@ func TestPropAliasFilterFormAndChooserOnlyMain(t *testing.T) {
 func TestPropAliasSavedFilterLoadAndSave(t *testing.T) {
 	r, l := propAliasFixture(t)
 	text := `[{"name":"old-where","noun":"ticket","where":{"status":"todo"}},{"name":"old-condition","list":"tickets","conditions":[{"prop":"status","value":"done"}]}]`
-	if err := r.Settings().Set("list.filters", text); err != nil {
+	if err := r.Settings().Set("collection.filters", text); err != nil {
 		t.Fatal(err)
 	}
 	saved, err := l.SavedFilters()
@@ -125,7 +125,7 @@ func TestPropAliasSavedFilterLoadAndSave(t *testing.T) {
 	if saved[0].Where["state"] != "todo" || saved[1].Conditions[0].Prop != "state" {
 		t.Fatal(saved)
 	}
-	if r.Settings().String("list.filters") != text {
+	if r.Settings().String("collection.filters") != text {
 		t.Fatal("loading rewrote settings")
 	}
 	for name, id := range map[string]string{"old-where": "a", "old-condition": "b"} {
@@ -140,7 +140,7 @@ func TestPropAliasSavedFilterLoadAndSave(t *testing.T) {
 		t.Fatal(err)
 	}
 	var rows []SavedFilter
-	if err := json.Unmarshal([]byte(r.Settings().String("list.filters")), &rows); err != nil {
+	if err := json.Unmarshal([]byte(r.Settings().String("collection.filters")), &rows); err != nil {
 		t.Fatal(err)
 	}
 	if rows[1].Conditions[0].Prop != "state" {

@@ -170,8 +170,8 @@
     }
   ],
   "values": {
-    "list.filter-layout": "fields",
-    "list.filter-sort": false,
-    "list.filter-save": false
+    "collection.filter-layout": "fields",
+    "collection.filter-sort": false,
+    "collection.filter-save": false
   }
 }

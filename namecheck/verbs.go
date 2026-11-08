@@ -26,7 +26,7 @@ import (
 // Removed is one verb that has gone, or is going, from the catalog. Noun
 // is the noun it was a verb of in any spelling; empty means the verb of
 // every thing noun (the standard verb), which leaves a noun's own verb of
-// that name alone (list.move, a motion, stays). Replacement says what to
+// that name alone (collection.move, a motion, stays). Replacement says what to
 // write instead; Since is the release that removes it; Note is free text.
 //
 // A row with Param is a deprecated parameter, not a removed verb: the verb
@@ -258,7 +258,7 @@ func (c *Catalog) Classify(noun, verb string, removed []Removed) (string, Remove
 			return StateRemoved, r
 		}
 		// The standard verb of every thing noun. A noun's own verb of the
-		// name stays (list.move). Otherwise the verb works while the
+		// name stays (collection.move). Otherwise the verb works while the
 		// framework still generates it, for any noun.
 		if inCatalog && std == "" {
 			continue

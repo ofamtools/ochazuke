@@ -31,10 +31,10 @@ R|            │                                                             ap
  |            │                                                             preceding WORD/path component,   │
  |            │                                                             readline word before or after,   │
  |            │ 1–7 / 47                                                                                     │
- |            │ space list.mark · S view · n noun · m mode · enter run · a args · esc modal.close · : palet… │
+ |            │ space collection.mark · S view · n noun · m mode · enter run · a args · esc modal.close · : palet… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · n noun · m mode · enter run · a args · esc modal.close · : palette.open · ? bindings.hel…
+ |  space collection.mark · S view · n noun · m mode · enter run · a args · esc modal.close · : palette.open · ? bindings.hel…
  |

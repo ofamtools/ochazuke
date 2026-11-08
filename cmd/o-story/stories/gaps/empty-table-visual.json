@@ -1,6 +1,6 @@
 {
-  "name": "V on an empty table does not answer: list.visual is guarded off with no selected row",
-  "skip": "gap: operation-error: list.visual: list has no selected row",
+  "name": "V on an empty table does not answer: collection.visual is guarded off with no selected row",
+  "skip": "gap: operation-error: collection.visual: list has no selected row",
   "page": {
     "noHeadings": true,
     "lists": [

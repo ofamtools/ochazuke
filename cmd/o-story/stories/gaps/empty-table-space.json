@@ -1,6 +1,6 @@
 {
-  "name": "space on an empty table is neither hinted nor fails: list.mark is guarded off with no selected row",
-  "skip": "gap: honest-hints: space list.mark fails when pressed: list has no selected row",
+  "name": "space on an empty table is neither hinted nor fails: collection.mark is guarded off with no selected row",
+  "skip": "gap: honest-hints: space collection.mark fails when pressed: list has no selected row",
   "page": {
     "noHeadings": true,
     "lists": [

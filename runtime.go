@@ -99,7 +99,7 @@ type Parameter struct {
 	// the runtime sets them. The catalog's plumbing.
 	Plumbing bool `json:"plumbing,omitempty"`
 	// Forwards marks a parameter whose argument names a verb of the noun
-	// of the rows the operation acts on (list.apply's verb): the operation
+	// of the rows the operation acts on (collection.apply's verb): the operation
 	// runs that verb for them, so a row requesting the operation with the
 	// argument counts as binding that verb (the help's unbound list). The
 	// catalog's forwards.
@@ -348,7 +348,7 @@ type Operation struct {
 	// it otherwise leaves out; set by NounBuilder.PersistArgs. Only for an
 	// operation whose arguments are never typed secrets (setting.set).
 	PersistArgs bool `json:"persistArgs,omitempty"`
-	// Motion marks movement (list.move, focus.next, surface.scroll,
+	// Motion marks movement (collection.move, focus.next, surface.scroll,
 	// page.next): the footer's hint line leaves its rows out, since motions
 	// are standard and the footer is for the verbs the focus offers; ?
 	// help and bindings list keep them. Set by NounBuilder.Motion or at

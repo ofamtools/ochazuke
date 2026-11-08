@@ -711,11 +711,11 @@ func (r *Runtime) componentSnapshot() map[string]any {
 		case *Input:
 			kind = "input"
 		case *Collection:
-			kind = "list"
+			kind = "collection"
 		case *Page:
 			kind = "page"
 		case *Registers:
-			kind = "registers"
+			kind = "register"
 		case *Terminal:
 			kind = "terminal"
 		case *Palette:

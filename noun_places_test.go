@@ -51,16 +51,16 @@ func placesPage(t *testing.T) (*Runtime, *Collection) {
 func TestNounPlacesRecordTheAncestorChain(t *testing.T) {
 	r, list := placesPage(t)
 	item := placeOf(t, r, "item", "ctx", "")
-	if want := []string{"ochazuke.page", "panel", "ochazuke.list"}; !reflect.DeepEqual(item.Ancestors, want) || item.PageTitle != "Context" || item.Count != 1 {
+	if want := []string{"ochazuke.page", "panel", "ochazuke.collection"}; !reflect.DeepEqual(item.Ancestors, want) || item.PageTitle != "Context" || item.Count != 1 {
 		t.Fatalf("item place: %+v", item)
 	}
-	if got := item.Chain(); !reflect.DeepEqual(got, []string{"ochazuke.page", "panel", "ochazuke.list", "item"}) {
+	if got := item.Chain(); !reflect.DeepEqual(got, []string{"ochazuke.page", "panel", "ochazuke.collection", "item"}) {
 		t.Fatalf("chain %v", got)
 	}
 	if other := placeOf(t, r, "other-item", "ctx", ""); other.Count != 1 {
 		t.Fatalf("other-item: %+v", other)
 	}
-	if l := placeOf(t, r, "list", "ctx", ""); !reflect.DeepEqual(l.Ancestors, []string{"ochazuke.page", "panel"}) {
+	if l := placeOf(t, r, "collection", "ctx", ""); !reflect.DeepEqual(l.Ancestors, []string{"ochazuke.page", "panel"}) {
 		t.Fatalf("list place: %+v", l)
 	}
 	if p := placeOf(t, r, "page", "ctx", ""); len(p.Ancestors) != 0 {

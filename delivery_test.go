@@ -265,7 +265,7 @@ func TestApplicationVerbRunsOffTheLoop(t *testing.T) {
 			landed = append(landed, c.Instance.ID+"="+value.(string))
 		})
 	}, "Sync a row off the loop").Verb("now", func(c Ctx) Result { return Done("now " + c.Instance.ID) })
-	if op := r.Operations.At(Key("a.sync")); op.Kind != KindApplication || r.Operations.At(Key("a.now")).Kind != KindApplication || r.Operations.At(Key("ochazuke.list.move")).Kind != KindInteraction {
+	if op := r.Operations.At(Key("a.sync")); op.Kind != KindApplication || r.Operations.At(Key("a.now")).Kind != KindApplication || r.Operations.At(Key("ochazuke.collection.move")).Kind != KindInteraction {
 		t.Fatalf("kinds: %+v", op)
 	}
 	if v, err := r.Execute(Request{Verb: "now", Noun: "a", Target: "one"}); err != nil || v != "now one" {
@@ -451,7 +451,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	snapshot := r.Snapshot()
-	for path, want := range map[string]any{"/registers/a/yank/text": "shared", "/yankHistory/0/text": "shared", "/inputs/note/id": "note", "/lists/sidebar/id": "sidebar", "/components/__registers/component": "registers", "/components/note/component": "input", "/components/sidebar/contract": true} {
+	for path, want := range map[string]any{"/registers/a/yank/text": "shared", "/yankHistory/0/text": "shared", "/inputs/note/id": "note", "/lists/sidebar/id": "sidebar", "/components/__registers/component": "register", "/components/note/component": "input", "/components/sidebar/contract": true} {
 		if got, err := JSONPointer(snapshot, path); err != nil || got != want {
 			t.Fatalf("%s = %v (%v), want %v", path, got, err, want)
 		}

@@ -18,7 +18,7 @@ func visualPage(t *testing.T, added []string, rows map[string]int, drawOrder []s
 	for _, id := range added {
 		var items []ListItem
 		for i := 1; i <= rows[id]; i++ {
-			items = append(items, ListItem{ID: id + string(rune('0'+i)), Label: id + string(rune('0'+i)), Noun: "ochazuke.list"})
+			items = append(items, ListItem{ID: id + string(rune('0'+i)), Label: id + string(rune('0'+i)), Noun: "ochazuke.collection"})
 		}
 		if _, err := r.AddList(id, items, Parent("page")); err != nil {
 			t.Fatal(err)
@@ -79,7 +79,7 @@ func TestFocusJumpsBeforeAFrameUseTreeOrder(t *testing.T) {
 	r := NewRuntime()
 	r.Instance("page")
 	for _, id := range []string{"c", "a", "b"} {
-		if _, err := r.AddList(id, []ListItem{{ID: id + "1", Label: id, Noun: "ochazuke.list"}}, Parent("page")); err != nil {
+		if _, err := r.AddList(id, []ListItem{{ID: id + "1", Label: id, Noun: "ochazuke.collection"}}, Parent("page")); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -138,13 +138,13 @@ func TestListMoveSpillsAcrossListsInDrawingOrder(t *testing.T) {
 func TestListSpillOptOutAndEmptyList(t *testing.T) {
 	r := NewRuntime()
 	r.Instance("page")
-	if _, err := r.AddList("a", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.list"}}, Parent("page"), NoSpill()); err != nil {
+	if _, err := r.AddList("a", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.collection"}}, Parent("page"), NoSpill()); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := r.AddList("b", nil, Parent("page")); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.AddList("c", []ListItem{{ID: "c1", Label: "c1", Noun: "ochazuke.list"}, {ID: "c2", Label: "c2", Noun: "ochazuke.list"}}, Parent("page")); err != nil {
+	if _, err := r.AddList("c", []ListItem{{ID: "c1", Label: "c1", Noun: "ochazuke.collection"}, {ID: "c2", Label: "c2", Noun: "ochazuke.collection"}}, Parent("page")); err != nil {
 		t.Fatal(err)
 	}
 	render := func(*Runtime, int, int) Block { return Text("") }

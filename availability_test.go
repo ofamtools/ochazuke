@@ -314,18 +314,18 @@ func TestAddVerbAvailabilityNarrowsAGuardedVerb(t *testing.T) {
 func TestAddVerbAvailabilityOnAFrameworkVerb(t *testing.T) {
 	r := NewRuntime()
 	r.Config().Disable()
-	own := r.VerbGuard("ochazuke.list.choose-column")
+	own := r.VerbGuard("ochazuke.collection.choose-column")
 	if own == "" {
 		t.Fatal("choose-column is expected to carry the framework's guard")
 	}
-	if err := r.AddVerbAvailability("list.choose-column", "rows-on-row"); err != nil {
+	if err := r.AddVerbAvailability("collection.choose-column", "rows-on-row"); err != nil {
 		t.Fatal(err)
 	}
-	if got := r.VerbAvailability("ochazuke.list.choose-column"); !slices.Equal(got, []string{own, "rows-on-row"}) {
+	if got := r.VerbAvailability("ochazuke.collection.choose-column"); !slices.Equal(got, []string{own, "rows-on-row"}) {
 		t.Fatalf("availability %v", got)
 	}
 	r.DefineGuard("rows-on-row", func(*Runtime, KeyEvent) bool { return false })
-	if r.Available(Request{Noun: "ochazuke.list", Verb: "choose-column"}, "app", r.Mode) {
+	if r.Available(Request{Noun: "ochazuke.collection", Verb: "choose-column"}, "app", r.Mode) {
 		t.Error("an added guard that is false must make the verb unavailable")
 	}
 }

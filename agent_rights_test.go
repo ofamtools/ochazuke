@@ -164,7 +164,7 @@ func TestAgentConfirmComposite(t *testing.T) {
 	}
 	l.marks = map[string]bool{"t1": true, "t2": true}
 	a := testAgent("p")
-	q := Request{Noun: "list", Verb: "apply", Target: "tasks/list", Actor: &a, Args: Arguments{"id": "tasks/list", "verb": "delete"}}
+	q := Request{Noun: "collection", Verb: "apply", Target: "tasks/list", Actor: &a, Args: Arguments{"id": "tasks/list", "verb": "delete"}}
 	restore := r.BindActor(a, false)
 	_, err = r.Execute(q)
 	restore()

@@ -55,18 +55,18 @@ R|            │   q             app.quit                                      
  |            │                                                                  as written in the palette's │
  |            │                                                                  viewer (help.markdown)      │
  |            │ list                                                                                         │
- |            │   space         list.mark ?                                      when list-marks · Toggle    │
+ |            │   space         collection.mark ?                                      when list-marks · Toggle    │
  |            │                                                                  the mark on a row (the      │
  |            │                                                                  selected row by default)    │
  |            │                                                                  for fan-out verbs           │
- |            │   y             list.yank ?               what cell              when table-cells · Copy the │
+ |            │   y             collection.yank ?               what cell              when table-cells · Copy the │
  |            │                                                                  current cell's text (what:  │
  |            │                                                                  cell, a cell-mode table) or │
  |            │                                                                  the row's cells joined by   │
  |            │                                                                  tabs (what: row, any table) │
  |            │                                                                  into the registers; over a  │
  |            │ 1–16 / 129                                                                                   │
- |            │ space list.mark · S view · n noun · m mode · p place · enter run · a args · esc modal.close… │
+ |            │ space collection.mark · S view · n noun · m mode · p place · enter run · a args · esc modal.close… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
@@ -76,5 +76,5 @@ R|            │   q             app.quit                                      
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · n noun · m mode · p place · enter run · a args · esc modal.close · : palette.open · ? bi…
+ |  space collection.mark · S view · n noun · m mode · p place · enter run · a args · esc modal.close · : palette.open · ? bi…
  |

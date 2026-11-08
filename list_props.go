@@ -23,14 +23,14 @@ import (
 //
 // Off only explicitly: a Secret prop is never offered; a declared prop
 // with NoFilter is not; a noun's PropsOff (NounBuilder.PropsOff, the
-// catalog's propsOff) names fields of its rows; the list.props-off setting
+// catalog's propsOff) names fields of its rows; the collection.props-off setting
 // names NOUN.FIELD patterns (path.Match: o-lane.lane.*, *.uuid).
 //
 // The derived set is read lazily, the first time a picker, a guard or a
 // filter asks, and kept until the rows change (List.cacheRows clears it).
 
 // PropsOffSetting lists NOUN.FIELD patterns prop filters never offer.
-const PropsOffSetting = "list.props-off"
+const PropsOffSetting = "collection.props-off"
 
 // propValueCap bounds the distinct values a prop's value picker offers.
 const propValueCap = 500
@@ -184,7 +184,7 @@ func (l *Collection) filterProp(n *Noun, name string) *PropSpec {
 
 // propFilterable reports whether a prop of n is offered to filters at the
 // focus: not Secret, not NoFilter, not in the noun's PropsOff or the
-// list.props-off setting, and its guard holds.
+// collection.props-off setting, and its guard holds.
 func (r *Runtime) propFilterable(n *Noun, p PropSpec, focus string) bool {
 	if p.Secret || p.NoFilter || r.propOff(n, p.Name) {
 		return false
@@ -192,7 +192,7 @@ func (r *Runtime) propFilterable(n *Noun, p PropSpec, focus string) bool {
 	return r.propShown(p, focus, r.Mode, nil)
 }
 
-// propOff reports whether the noun's PropsOff or list.props-off names the
+// propOff reports whether the noun's PropsOff or collection.props-off names the
 // field.
 func (r *Runtime) propOff(n *Noun, field string) bool {
 	for _, pattern := range n.PropsOff {

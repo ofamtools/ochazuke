@@ -26,5 +26,5 @@ r|  AFTER-ROW
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  n list.page-next · p list.page-prev · Y list.group · space list.mark · q ap…
+ |  n collection.page-next · p collection.page-prev · Y collection.group · space collection.mark · q ap…
  |

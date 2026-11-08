@@ -28,8 +28,8 @@ func layerRows() ([]Column, []ListItem) {
 	return cols, items
 }
 
-// The layer frames: in each built-in theme (and with list.intersect and
-// list.part-tones off) the header band, the row numbers, the selected
+// The layer frames: in each built-in theme (and with collection.intersect and
+// collection.part-tones off) the header band, the row numbers, the selected
 // row crossing the column (list.cell.intersect), the header of the
 // column (list.header.intersect), the selected row's number
 // (list.rownum.intersect) and a lit row crossing the column with no

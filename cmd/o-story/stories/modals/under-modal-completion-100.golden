@@ -8,7 +8,7 @@ R|          │   esc              completion.dismiss                     Hide t
 R|          │                                                           suggestions; the   │
 R|          │                                                           input stays in its │
  |          │ 1–1 / 46                                                                     │
- |          │ space list.mark · S view · enter run · esc modal.close · : palette.open · ?… │
+ |          │ space collection.mark · S view · enter run · esc modal.close · : palette.open · ?… │
  |  ────────╰──────────────────────────────────────────────────────────────────────────────╯────────
- |  space list.mark · S view · enter run · esc modal.close · : palette.open · ? binding.help · / f…
+ |  space collection.mark · S view · enter run · esc modal.close · : palette.open · ? binding.help · / f…
  |

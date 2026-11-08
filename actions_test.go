@@ -242,7 +242,7 @@ func TestActionMalformedEntriesAreNotices(t *testing.T) {
 		map[string]any{"noun": "worktree", "verb": "pos", "command": "true", "positional": []string{"n"}},
 		map[string]any{"noun": "worktree", "verb": "time", "command": "true", "timeout": "soon"},
 		map[string]any{"noun": "worktree", "verb": "call", "command": "true", "call": "a b"},
-		map[string]any{"noun": "list", "verb": "move", "command": "true"},
+		map[string]any{"noun": "collection", "verb": "move", "command": "true"},
 	)
 	m.Init()
 	problems := r.Config().ActionProblems()
@@ -257,7 +257,7 @@ func TestActionMalformedEntriesAreNotices(t *testing.T) {
 		`action 9 (worktree.pos): positional "n" is not a declared parameter`,
 		`action 10 (worktree.time): timeout "soon"`,
 		"action 11 (worktree.call): call and target go with base",
-		"action 12 (list.move): list.move is already defined",
+		"action 12 (collection.move): collection.move is already defined",
 	} {
 		if !slices.ContainsFunc(problems, func(p string) bool { return strings.Contains(p, want) }) {
 			t.Errorf("no problem %q in %q", want, problems)

@@ -875,7 +875,7 @@ func registerFilterViewForm(r *Runtime) {
 		run               func(*filterViewForm, Arguments) error
 	}{
 		{"focus", "Focus a filter form control", map[string]Parameter{"part": {Type: "string", Enum: []string{"field", "sort", "conditions", "save"}}}, func(v *filterViewForm, a Arguments) error { return v.focusPart(StringArg(a, "part", "field")) }},
-		{"write-saved", "Save the current conditions and sort through list.filter-save", nil, func(v *filterViewForm, _ Arguments) error { return v.savedAction("filter-save") }},
+		{"write-saved", "Save the current conditions and sort through collection.filter-save", nil, func(v *filterViewForm, _ Arguments) error { return v.savedAction("filter-save") }},
 		{"delete-saved", "Choose a saved filter to delete, with confirmation", nil, func(v *filterViewForm, _ Arguments) error { return v.deleteSaved() }},
 		{"next", "Keep the text condition and return to the field picker", nil, func(v *filterViewForm, _ Arguments) error { return v.focusPart("field") }},
 		{"toggle", "Toggle the highlighted value without leaving its picker", nil, func(v *filterViewForm, _ Arguments) error { return v.toggleHighlighted() }},

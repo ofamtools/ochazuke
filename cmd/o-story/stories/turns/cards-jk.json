@@ -12,7 +12,7 @@
       "focus": "t2",
       "contains": [
         "focus t2 < turns/list < turns < turns-page",
-        "key j → list.move in normal at turns/list"
+        "key j → collection.move in normal at turns/list"
       ]
     },
     {
@@ -24,7 +24,7 @@
       "mode": "normal",
       "contains": [
         "focus t2 < turns/list < turns < turns-page",
-        "key k → list.move in normal at turns/list"
+        "key k → collection.move in normal at turns/list"
       ]
     }
   ]

@@ -60,7 +60,7 @@ func TestPlaceHelpMatchesTheLiveRow(t *testing.T) {
 		t.Fatalf("the row's place %+v is not the most seen (%+v)", live, places)
 	}
 	place := places[0]
-	if got := place.Chain(); !slices.Equal(got, []string{"ochazuke.page", "panel", "ochazuke.list", "item"}) {
+	if got := place.Chain(); !slices.Equal(got, []string{"ochazuke.page", "panel", "ochazuke.collection", "item"}) {
 		t.Fatalf("chain %v", got)
 	}
 	for _, mode := range []string{"normal", "insert"} {
@@ -79,7 +79,7 @@ func TestPlaceHelpMatchesTheLiveRow(t *testing.T) {
 		t.Fatal(err)
 	}
 	pick, bare := PlaceHelp(r, place, r.Mode), NounHelp(r, "item", r.Mode)
-	for _, want := range []HelpRow{{Key: "R", Operation: "panel.refresh", Noun: "panel"}, {Key: "T", Operation: "page.tag", Noun: "ochazuke.page"}, {Key: "j", Operation: "list.move", Noun: "ochazuke.list"}} {
+	for _, want := range []HelpRow{{Key: "R", Operation: "panel.refresh", Noun: "panel"}, {Key: "T", Operation: "page.tag", Noun: "ochazuke.page"}, {Key: "j", Operation: "collection.move", Noun: "ochazuke.collection"}} {
 		if !helpRowIn(pick, want) {
 			t.Errorf("pick at the place lacks %s → %s", want.Key, want.Operation)
 		}
@@ -134,7 +134,7 @@ func TestHelpPlaceChooser(t *testing.T) {
 	r, m := placedRowsFixture(t)
 	pressAll(m, "?", "S")
 	frame := ansi.Strip(m.View().Content)
-	if !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › list") || !helpListHas(r, "panel.refresh") {
+	if !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › collection") || !helpListHas(r, "panel.refresh") {
 		t.Fatalf("pick at open:\n%s", frame)
 	}
 	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "p place") {
@@ -145,7 +145,7 @@ func TestHelpPlaceChooser(t *testing.T) {
 		t.Fatalf("p opened %q", r.TopModal())
 	}
 	rows := r.Chooser(helpPlaceKind).Matches()
-	if len(rows) != 2 || rows[0].ID != "none" || rows[1].Cells[0] != "Context › page › panel › list" || rows[1].Cells[1] != "1×" || rows[1].Cells[2] != "current" {
+	if len(rows) != 2 || rows[0].ID != "none" || rows[1].Cells[0] != "Context › page › panel › collection" || rows[1].Cells[1] != "1×" || rows[1].Cells[2] != "current" {
 		t.Fatalf("place rows %+v", rows)
 	}
 	keytest.Press(m, "enter")
@@ -161,8 +161,8 @@ func TestHelpPlaceChooser(t *testing.T) {
 	keytest.Press(m, "S") // back to here
 	keytest.Press(m, "S") // pick
 	keytest.Press(m, "n")
-	pressAll(m, "l", "i", "s", "t", "enter")
-	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: list · mode: normal · place: Context › page › panel") {
+	pressAll(m, "c", "o", "l", "l", "e", "enter")
+	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: collection · mode: normal · place: Context › page › panel") {
 		t.Fatalf("noun change resets the place:\n%s", frame)
 	}
 	keytest.Press(m, "n")
@@ -200,7 +200,7 @@ func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 		other.SetItems([]ListItem{{ID: "x", Label: "x", Noun: "item"}})
 	}
 	places := r.NounPlaces("item")
-	if len(places) < 2 || placeLabel(r, places[0]) != "Context › page › page › list" {
+	if len(places) < 2 || placeLabel(r, places[0]) != "Context › page › page › collection" {
 		t.Fatalf("item places %+v", places)
 	}
 	if r.Focus != "a" {
@@ -208,17 +208,17 @@ func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 	}
 	pressAll(m, "?", "S")
 	frame := ansi.Strip(m.View().Content)
-	if !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › list") || !helpListHas(r, "panel.refresh") {
+	if !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › collection") || !helpListHas(r, "panel.refresh") {
 		t.Fatalf("pick at open is not the origin's place:\n%s", frame)
 	}
 	keytest.Press(m, "n")
-	pressAll(m, "l", "i", "s", "t", "enter")
-	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: list · mode: normal · place: Context › page › ") {
+	pressAll(m, "c", "o", "l", "l", "e", "enter")
+	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: collection · mode: normal · place: Context › page › ") {
 		t.Fatalf("another noun has no most seen place:\n%s", frame)
 	}
 	keytest.Press(m, "n")
 	pressAll(m, "i", "t", "e", "m", "enter")
-	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › list") {
+	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › collection") {
 		t.Fatalf("the origin's noun again is not at the origin's place:\n%s", frame)
 	}
 }
@@ -228,7 +228,7 @@ func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 func TestHelpHomeIsTheRecordersPlace(t *testing.T) {
 	r, _ := placedRowsFixture(t)
 	home := helpHome(r, r.Focus)
-	if home == nil || home.key() != r.placementOf(r.Focus, "item").key() || !slices.Equal(home.Chain(), []string{"ochazuke.page", "panel", "ochazuke.list", "item"}) {
+	if home == nil || home.key() != r.placementOf(r.Focus, "item").key() || !slices.Equal(home.Chain(), []string{"ochazuke.page", "panel", "ochazuke.collection", "item"}) {
 		t.Fatalf("home %+v", home)
 	}
 	if helpHome(r, "missing") != nil {

@@ -107,7 +107,7 @@
   "area": "lists",
   "settings": [
     {
-      "name": "list.filters",
+      "name": "collection.filters",
       "type": "string",
       "default": "[{\"name\": \"broken\", \"noun\": \"note\", \"where\": {\"missing\": \"x\"}}]"
     }

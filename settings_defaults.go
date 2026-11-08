@@ -169,7 +169,7 @@ var settingChecks = map[string]func(any) error{
 	ListFilterLingerSetting:      nonNegativeDuration,
 	RenderMaxFPSSetting:          validRenderFPS,
 	AgentRightsSetting:           validAgentRules,
-	"list.filters":               validSavedFilters,
+	"collection.filters":         validSavedFilters,
 	SequenceTimeoutSetting:       nonNegativeDuration,
 	TerminalLeaderSetting:        validLeader,
 	ModalDimSetting:              validDim,

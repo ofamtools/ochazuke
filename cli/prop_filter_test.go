@@ -176,10 +176,10 @@ func TestPropFilterCatalogRowsOfferFields(t *testing.T) {
 		t.Fatal(err)
 	}
 	l := m.Runtime.List("ai/skills")
-	if _, err := r.Execute(ochazuke.Request{Noun: "list", Verb: "filter-prop", Args: ochazuke.Arguments{"id": "ai/skills", "prop": "secretKey", "value": "x"}}); err == nil {
+	if _, err := r.Execute(ochazuke.Request{Noun: "collection", Verb: "filter-prop", Args: ochazuke.Arguments{"id": "ai/skills", "prop": "secretKey", "value": "x"}}); err == nil {
 		t.Fatal("a field the catalog turns off must not filter")
 	}
-	if _, err := r.Execute(ochazuke.Request{Noun: "list", Verb: "filter-prop", Args: ochazuke.Arguments{"id": "ai/skills", "prop": "state", "value": "running"}}); err != nil {
+	if _, err := r.Execute(ochazuke.Request{Noun: "collection", Verb: "filter-prop", Args: ochazuke.Arguments{"id": "ai/skills", "prop": "state", "value": "running"}}); err != nil {
 		t.Fatal(err)
 	}
 	if l.Shown() != 1 {

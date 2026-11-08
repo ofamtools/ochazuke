@@ -262,7 +262,7 @@ the pane (the passthrough rule), so leave with `ctrl+a d` then `q`.
 `p` on a story plays its script instead: the script runs one event at a
 time, headless, with the story's frame boxed on the right and the script
 as a column on the left. Each row is the event and, once played, what it
-ran (`list.move`) or what the script asserts after it, `✓` green when it
+ran (`collection.move`) or what the script asserts after it, `✓` green when it
 holds and `✗` red when it does not; a row with nothing to assert shows no
 mark. The last row is the end: the final expect, else `frame = golden`.
 The row the player stands on is marked `▸`, and the current position's
@@ -458,7 +458,7 @@ Conformance:
 | count_pending | count | `count.append` |
 | count_pending | mode | `mode.enter` `mode.leave` |
 | edit | focus | `focus.previous` |
-| edit | list | `list.move` |
+| edit | list | `collection.move` |
 | edit | mode | `mode.pin` `mode.switch` |
 | flat | mode | `mode.switch` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
@@ -469,7 +469,7 @@ Conformance:
 | insert | find-line | `find-line.commit` |
 | insert | form | `form.leave` `form.next` `form.run` `form.suggest` |
 | insert | input | `input.erase` `input.insert` `input.kill` `input.move` |
-| insert | list | `list.filter-cycle` `list.filter-prop` |
+| insert | list | `collection.filter-cycle` `collection.filter-prop` |
 | insert | macro | `macro.record` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | modal | `modal.close` |
@@ -483,10 +483,10 @@ Conformance:
 | insert | setting-value | `setting-value.commit` |
 | jq | completion | `completion.dismiss` |
 | jq | input | `input.insert` |
-| jq | list | `list.move` |
+| jq | list | `collection.move` |
 | jq | mode | `mode.switch` |
 | jq | palette | `palette.open` |
-| list_filter | list | `list.filter` `list.filter-choose` `list.filter-clear` `list.filter-erase` `list.filter-keep` `list.filter-type` `list.move` |
+| list_filter | list | `collection.filter` `collection.filter-choose` `collection.filter-clear` `collection.filter-erase` `collection.filter-keep` `collection.filter-type` `collection.move` |
 | list_filter | search | `search.cycle-match` |
 | macro_pending | mode | `mode.leave` |
 | normal | about | `about.close` `about.open` |
@@ -509,7 +509,7 @@ Conformance:
 | normal | input | `input.begin` `input.move` `input.operator` `input.redo` `input.select` `input.undo` |
 | normal | item | `item.get` `item.set` |
 | normal | key | `key.ignore` |
-| normal | list | `list.apply` `list.column` `list.filter-clear` `list.filter-cycle` `list.filter-open` `list.filter-prop` `list.filter-prop-clear` `list.filter-props-clear` `list.fit-column` `list.fit-columns` `list.flush-lingering` `list.goto` `list.group` `list.group-clear` `list.mark` `list.move` `list.next-class` `list.page-next` `list.page-prev` `list.previous-class` `list.reset-columns` `list.resize-column` `list.scroll` `list.scroll-columns` `list.sort-column` `list.toggle-pin-column` `list.visual` `list.yank` |
+| normal | list | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
 | normal | markdown | `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-link` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
 | normal | markdown-view | `markdown-view.copy` |
@@ -539,16 +539,16 @@ Conformance:
 | operator_pending | input | `input.cancel` |
 | register_pending | mode | `mode.leave` |
 | replay_pending | mode | `mode.leave` |
-| shape | list | `list.move` |
+| shape | list | `collection.move` |
 | shape | mode | `mode.switch` |
 | table | bindings | `binding.help` |
-| table | list | `list.move` |
+| table | list | `collection.move` |
 | table | mode | `mode.enter` `mode.leave` `mode.pin` `mode.switch` |
 | terminal | bindings | `binding.help` |
 | terminal | demo | `demo.edit` `demo.finish` `demo.hints` `demo.outside` |
 | terminal | focus | `focus.next` |
 | terminal | item | `item.edit` `item.live-only` `item.rename-associated` `item.set` |
-| terminal | list | `list.select` |
+| terminal | list | `collection.select` |
 | terminal | mode | `mode.enter` |
 | terminal | palette | `palette.open` |
 | terminal | terminal | `terminal.detach` `terminal.paste` `terminal.send` |
@@ -557,7 +557,7 @@ Conformance:
 | visual-line | confirm | `confirm.accept` |
 | visual-line | demo | `demo.check` `demo.choose` `demo.delete` `demo.edit` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
 | visual-line | input | `input.cancel` `input.move` `input.operator` |
-| visual-line | list | `list.apply` `list.end-visual` `list.goto` `list.move` `list.yank` |
+| visual-line | list | `collection.apply` `collection.end-visual` `collection.goto` `collection.move` `collection.yank` |
 | visual-line | modal | `modal.close` |
 | visual-line | mode | `mode.enter` `mode.leave` |
 | visual-line | outline | `outline.delete` |
@@ -571,10 +571,10 @@ Mode edges (from → to via):
 - `count_pending` → `count_pending z` via `row z`
 - `count_pending` → `g_pending` via `mode.enter`
 - `count_pending` → `normal` via `detail.scroll`
-- `count_pending` → `normal` via `list.column`
-- `count_pending` → `normal` via `list.goto`
-- `count_pending` → `normal` via `list.move`
-- `count_pending` → `normal` via `list.scroll`
+- `count_pending` → `normal` via `collection.column`
+- `count_pending` → `normal` via `collection.goto`
+- `count_pending` → `normal` via `collection.move`
+- `count_pending` → `normal` via `collection.scroll`
 - `count_pending` → `normal` via `timeline.goto`
 - `count_pending` → `normal` via `timeline.scroll`
 - `count_pending` → `normal` via `timeline.step`
@@ -582,15 +582,15 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `viewport.scroll`
 - `count_pending` → `table` via `mode.leave`
 - `count_pending` → `visual` via `mode.switch`
-- `count_pending` → `visual-line` via `list.move`
+- `count_pending` → `visual-line` via `collection.move`
 - `count_pending [` → `normal` via `diff.hunk`
-- `count_pending [` → `normal` via `list.previous-class`
+- `count_pending [` → `normal` via `collection.previous-class`
 - `count_pending ]` → `normal` via `diff.hunk`
-- `count_pending ]` → `normal` via `list.next-class`
+- `count_pending ]` → `normal` via `collection.next-class`
 - `count_pending ]` → `normal` via `markdown.next-kind`
 - `count_pending ctrl+w` → `normal` via `pane.grow`
 - `count_pending ctrl+w` → `normal` via `pane.shrink`
-- `count_pending g` → `normal` via `list.goto`
+- `count_pending g` → `normal` via `collection.goto`
 - `count_pending z` → `normal` via `diff.scroll-columns`
 - `edit` → `normal` via `focus.previous`
 - `edit` → `normal` via `mode.switch`
@@ -609,7 +609,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `form.leave`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `job picker.load`
-- `insert` → `normal` via `list.filter-prop`
+- `insert` → `normal` via `collection.filter-prop`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`
 - `insert` → `normal` via `modal.close`
@@ -630,7 +630,7 @@ Mode edges (from → to via):
 - `insert` → `terminal` via `palette.run`
 - `insert` → `visual-line` via `modal.close`
 - `jq` → `insert` via `palette.open`
-- `jq` → `normal` via `list.move`
+- `jq` → `normal` via `collection.move`
 - `jq` → `normal` via `mode.switch`
 - `leader_pending` → `hints` via `demo.hints`
 - `leader_pending` → `insert` via `demo.edit`
@@ -644,14 +644,14 @@ Mode edges (from → to via):
 - `leader_pending` → `terminal` via `item.live-only`
 - `leader_pending` → `terminal` via `item.rename-associated`
 - `leader_pending` → `terminal` via `item.set`
-- `leader_pending` → `terminal` via `list.select`
+- `leader_pending` → `terminal` via `collection.select`
 - `leader_pending` → `terminal` via `row r`
 - `leader_pending` → `terminal` via `row x`
 - `leader_pending` → `terminal` via `terminal.send`
 - `leader_pending` → `terminal` via `terminal.send + terminal.send`
-- `list_filter` → `normal` via `list.filter-choose`
-- `list_filter` → `normal` via `list.filter-clear`
-- `list_filter` → `normal` via `list.filter-keep`
+- `list_filter` → `normal` via `collection.filter-choose`
+- `list_filter` → `normal` via `collection.filter-clear`
+- `list_filter` → `normal` via `collection.filter-keep`
 - `macro_pending` → `insert` via `palette.open`
 - `macro_pending` → `normal` via `macro.start`
 - `macro_pending` → `visual-line` via `mode.leave`
@@ -675,7 +675,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
 - `normal` → `insert` via `job demo.send`
-- `normal` → `insert` via `list.apply`
+- `normal` → `insert` via `collection.apply`
 - `normal` → `insert` via `macro.record`
 - `normal` → `insert` via `markdown.insert`
 - `normal` → `insert` via `markdown.note`
@@ -698,9 +698,9 @@ Mode edges (from → to via):
 - `normal` → `insert` via `setting.close`
 - `normal` → `insert` via `setting.edit`
 - `normal` → `insert` via `settings-section.pick`
-- `normal` → `jq` via `list.move`
+- `normal` → `jq` via `collection.move`
 - `normal` → `jq` via `mode.switch`
-- `normal` → `list_filter` via `list.filter-open`
+- `normal` → `list_filter` via `collection.filter-open`
 - `normal` → `macro_pending` via `mode.enter`
 - `normal` → `normal <` via `row <`
 - `normal` → `normal >` via `row >`
@@ -715,26 +715,26 @@ Mode edges (from → to via):
 - `normal` → `normal z` via `row z`
 - `normal` → `operator_pending` via `mode.enter`
 - `normal` → `table` via `focus.next`
-- `normal` → `table` via `list.move`
+- `normal` → `table` via `collection.move`
 - `normal` → `terminal` via `command.run`
 - `normal` → `terminal` via `demo.open`
 - `normal` → `terminal` via `modal.close`
 - `normal` → `visual` via `input.select`
 - `normal` → `visual-line` via `input.select`
-- `normal` → `visual-line` via `list.visual`
+- `normal` → `visual-line` via `collection.visual`
 - `normal` → `visual-line` via `modal.close`
 - `normal <` → `normal` via `outline.outdent`
 - `normal >` → `normal` via `outline.indent`
 - `normal G` → `normal` via `mode.leave`
 - `normal [` → `normal` via `diff.file`
 - `normal [` → `normal` via `diff.hunk`
-- `normal [` → `normal` via `list.previous-class`
+- `normal [` → `normal` via `collection.previous-class`
 - `normal [` → `normal` via `markdown.previous-kind`
 - `normal [` → `normal` via `markdown.previous-link`
 - `normal [` → `normal` via `markdown.previous-same`
 - `normal ]` → `normal` via `diff.file`
 - `normal ]` → `normal` via `diff.hunk`
-- `normal ]` → `normal` via `list.next-class`
+- `normal ]` → `normal` via `collection.next-class`
 - `normal ]` → `normal` via `markdown.next-kind`
 - `normal ]` → `normal` via `markdown.next-link`
 - `normal ]` → `normal` via `markdown.next-same`
@@ -752,7 +752,7 @@ Mode edges (from → to via):
 - `normal d` → `normal` via `setting-item.delete`
 - `normal g` → `normal` via `demo.send`
 - `normal g` → `normal` via `detail.fields`
-- `normal g` → `normal` via `list.goto`
+- `normal g` → `normal` via `collection.goto`
 - `normal g` → `normal` via `markdown.link-open`
 - `normal g` → `normal` via `message.show`
 - `normal g` → `normal` via `mode.leave`
@@ -768,19 +768,19 @@ Mode edges (from → to via):
 - `normal y` → `normal` via `markdown.link-copy`
 - `normal y` → `normal` via `outline.yank`
 - `normal y` → `normal` via `parcel.create`
-- `normal z` → `insert` via `list.filter-prop`
-- `normal z` → `insert` via `list.filter-prop-clear`
-- `normal z` → `insert` via `list.sort-column`
-- `normal z` → `normal` via `list.filter-cycle`
-- `normal z` → `normal` via `list.filter-prop`
-- `normal z` → `normal` via `list.filter-props-clear`
-- `normal z` → `normal` via `list.fit-column`
-- `normal z` → `normal` via `list.fit-columns`
-- `normal z` → `normal` via `list.reset-columns`
-- `normal z` → `normal` via `list.resize-column`
-- `normal z` → `normal` via `list.scroll-columns`
-- `normal z` → `normal` via `list.sort-column`
-- `normal z` → `normal` via `list.toggle-pin-column`
+- `normal z` → `insert` via `collection.filter-prop`
+- `normal z` → `insert` via `collection.filter-prop-clear`
+- `normal z` → `insert` via `collection.sort-column`
+- `normal z` → `normal` via `collection.filter-cycle`
+- `normal z` → `normal` via `collection.filter-prop`
+- `normal z` → `normal` via `collection.filter-props-clear`
+- `normal z` → `normal` via `collection.fit-column`
+- `normal z` → `normal` via `collection.fit-columns`
+- `normal z` → `normal` via `collection.reset-columns`
+- `normal z` → `normal` via `collection.resize-column`
+- `normal z` → `normal` via `collection.scroll-columns`
+- `normal z` → `normal` via `collection.sort-column`
+- `normal z` → `normal` via `collection.toggle-pin-column`
 - `normal z` → `normal` via `markdown.fold`
 - `normal z` → `normal` via `outline.zoom-in`
 - `normal z` → `normal` via `outline.zoom-out`
@@ -793,12 +793,12 @@ Mode edges (from → to via):
 - `register_pending` → `visual-line` via `mode.leave`
 - `replay_pending` → `visual-line` via `mode.leave`
 - `shape` → `edit` via `mode.switch`
-- `shape` → `normal` via `list.move`
+- `shape` → `normal` via `collection.move`
 - `table` → `count_pending` via `mode.enter`
 - `table` → `edit` via `mode.switch`
 - `table` → `flat` via `mode.pin`
 - `table` → `normal` via `binding.help`
-- `table` → `normal` via `list.move`
+- `table` → `normal` via `collection.move`
 - `table` → `table g` via `row g`
 - `table g` → `table` via `mode.leave`
 - `terminal` → `leader_pending` via `mode.enter`
@@ -817,8 +817,8 @@ Mode edges (from → to via):
 - `visual-line` → `normal` via `demo.zap`
 - `visual-line` → `normal` via `input.cancel`
 - `visual-line` → `normal` via `input.operator`
-- `visual-line` → `normal` via `list.end-visual`
-- `visual-line` → `normal` via `list.yank`
+- `visual-line` → `normal` via `collection.end-visual`
+- `visual-line` → `normal` via `collection.yank`
 - `visual-line` → `normal` via `outline.delete`
 - `visual-line` → `register_pending` via `mode.enter`
 - `visual-line` → `replay_pending` via `mode.enter`

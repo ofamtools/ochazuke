@@ -76,7 +76,7 @@ type UserOperation struct {
 	Foreground bool `json:"foreground,omitempty"`
 
 	// written is the noun as the file spells it (an alias: list), when
-	// Noun was resolved to the noun it names (ochazuke.list); {{noun}} and the
+	// Noun was resolved to the noun it names (ochazuke.collection); {{noun}} and the
 	// default call keep the file's spelling.
 	written string
 }

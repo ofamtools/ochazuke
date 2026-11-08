@@ -1,5 +1,5 @@
 {
-  "name": "a args is not offered on list.mark (its id and item are plumbing), where it was on nearly every row; it is on demo.send",
+  "name": "a args is not offered on collection.mark (its id and item are plumbing), where it was on nearly every row; it is on demo.send",
   "area": "help",
   "width": 110,
   "height": 40,
@@ -38,7 +38,7 @@
     "?",
     "/",
     {
-      "type": "list.mark"
+      "type": "collection.mark"
     },
     "enter"
   ],
@@ -46,7 +46,7 @@
     {
       "modal": "bindings-help",
       "contains": [
-        "list.mark",
+        "collection.mark",
         "enter run"
       ],
       "lacks": [

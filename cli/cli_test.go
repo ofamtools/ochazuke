@@ -1118,7 +1118,7 @@ func TestShellAndMountReadNamespacedNouns(t *testing.T) {
 	if !okOwn || !okFramework || own.Name != "setting" || framework.Name != "ochazuke.setting" || len(own.Verbs) != 1 || own.Verbs[0].Builtin || len(framework.AppVerbs()) != 0 {
 		t.Fatalf("catalog settings %+v / ochazuke.settings %+v", own, framework)
 	}
-	if _, aliased := doc.Aliases["setting"]; aliased || doc.Aliases["list"] != "ochazuke.list" {
+	if _, aliased := doc.Aliases["setting"]; aliased || doc.Aliases["list"] != "ochazuke.collection" {
 		t.Fatalf("aliases %v", doc.Aliases)
 	}
 }

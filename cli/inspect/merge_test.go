@@ -65,35 +65,35 @@ func TestFrameworkNounsDeduplicated(t *testing.T) {
 	d := fixtureData(t)
 	nouns, verbs := index(d)
 
-	list := nouns["ochazuke:ochazuke.list"]
+	list := nouns["ochazuke:ochazuke.collection"]
 	if list == nil {
-		t.Fatal("ochazuke.list missing")
+		t.Fatal("ochazuke.collection missing")
 	}
 	if list.Owner != "ochazuke" || list.NS != "ochazuke." {
-		t.Fatalf("ochazuke.list owner/ns = %s/%s", list.Owner, list.NS)
+		t.Fatalf("ochazuke.collection owner/ns = %s/%s", list.Owner, list.NS)
 	}
 	if !equal(sorted(list.Tools), []string{"host", "o-ext"}) {
-		t.Fatalf("ochazuke.list tools = %v", list.Tools)
+		t.Fatalf("ochazuke.collection tools = %v", list.Tools)
 	}
 	// The bare "list" of the older catalog is not a separate noun.
 	if _, ok := nouns["o-ext:list"]; ok {
-		t.Fatal("o-ext:list should fold into ochazuke.list")
+		t.Fatal("o-ext:list should fold into ochazuke.collection")
 	}
-	move := verbs["ochazuke:ochazuke.list#move"]
+	move := verbs["ochazuke:ochazuke.collection#move"]
 	if move == nil || move.Owner != "ochazuke" || !equal(sorted(move.Tools), []string{"host", "o-ext"}) {
 		t.Fatalf("move = %+v", move)
 	}
 	if move.Description != "" || len(move.Params) != 1 {
 		t.Fatalf("move should come from the newest ochazuke (host), got desc %q params %v", move.Description, move.Params)
 	}
-	legacy := verbs["ochazuke:ochazuke.list#legacy"]
+	legacy := verbs["ochazuke:ochazuke.collection#legacy"]
 	if legacy == nil || !equal(legacy.Tools, []string{"o-ext"}) {
 		t.Fatalf("legacy (older ochazuke only) = %+v", legacy)
 	}
 	// Exactly one noun per framework name.
 	count := 0
 	for _, n := range d.Nouns {
-		if n.Name == "ochazuke.list" || n.Name == "list" {
+		if n.Name == "ochazuke.collection" || n.Name == "list" {
 			count++
 		}
 	}
@@ -154,7 +154,7 @@ func TestBindingsResolve(t *testing.T) {
 		t.Fatalf("%s %s not found", tool, keys)
 		return KeyRow{}
 	}
-	if k := find("o-ext", "j"); k.Scope != "ochazuke:ochazuke.list" || k.VerbID != "ochazuke:ochazuke.list#move" {
+	if k := find("o-ext", "j"); k.Scope != "ochazuke:ochazuke.collection" || k.VerbID != "ochazuke:ochazuke.collection#move" {
 		t.Fatalf("old bare list row = %+v", k)
 	}
 	if k := find("host", "enter"); k.VerbID != "host:pane#attach" {
@@ -198,7 +198,7 @@ func TestToolCounts(t *testing.T) {
 	if fw == nil || fw.Version != "v0.20.0" || fw.Nouns != 2 {
 		t.Fatalf("framework tool = %+v", fw)
 	}
-	// list.move, list.pick, list.legacy, terminal.scroll
+	// collection.move, list.pick, list.legacy, terminal.scroll
 	if fw.Verbs != 4 {
 		t.Fatalf("framework verbs = %d", fw.Verbs)
 	}

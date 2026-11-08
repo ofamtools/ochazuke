@@ -589,7 +589,7 @@ func (sh *Shell) defaultActionWords(args []string) []string {
 
 // addGroup adds a top-level noun group, merged into an application command
 // of its name (mergeInto). A framework noun reached by its short name (list
-// for ochazuke.list) yields (oden's Command.Yield): when the tool's own
+// for ochazuke.collection) yields (oden's Command.Yield): when the tool's own
 // nouns read the words, the reader's reading runs (o-lane list is lane
 // list), through Claims.
 func (sh *Shell) addGroup(app *oden.App, group oden.Command) {

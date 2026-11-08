@@ -11,23 +11,23 @@ import (
 // trapResolvePage is a cell-mode table "s" (two rows, two columns) with a
 // plain child instance "s/body" under it, focused: the walk from the body
 // reaches the table's level, whose list rows (j, k from the list noun; H,
-// L bound on the table instance to list.column) act on the table, not on
+// L bound on the table instance to collection.column) act on the table, not on
 // the body (runRow's level target).
 func trapResolvePage(t *testing.T) (*Model, *Runtime, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Instance("page")
 	l, err := r.AddList("s", []ListItem{
-		{ID: "s1", Label: "s1", Noun: "ochazuke.list", Cells: []string{"s1", "1"}},
-		{ID: "s2", Label: "s2", Noun: "ochazuke.list", Cells: []string{"s2", "2"}},
+		{ID: "s1", Label: "s1", Noun: "ochazuke.collection", Cells: []string{"s1", "1"}},
+		{ID: "s2", Label: "s2", Noun: "ochazuke.collection", Cells: []string{"s2", "2"}},
 	}, Parent("page"), Columns(Column{Title: "name"}, Column{Title: "n"}), CellSelect())
 	if err != nil {
 		t.Fatal(err)
 	}
 	r.Instance("s/body", Parent("s"))
 	if err := r.Bind(
-		Binding{Instance: "s", Mode: "normal", Keys: "L", Request: Request{Noun: "ochazuke.list", Verb: "column", Args: Arguments{"delta": 1}}},
-		Binding{Instance: "s", Mode: "normal", Keys: "H", Request: Request{Noun: "ochazuke.list", Verb: "column", Args: Arguments{"delta": -1}}},
+		Binding{Instance: "s", Mode: "normal", Keys: "L", Request: Request{Noun: "ochazuke.collection", Verb: "column", Args: Arguments{"delta": 1}}},
+		Binding{Instance: "s", Mode: "normal", Keys: "H", Request: Request{Noun: "ochazuke.collection", Verb: "column", Args: Arguments{"delta": -1}}},
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func trapResolvePage(t *testing.T) (*Model, *Runtime, *Collection) {
 
 // A list-level row reached from a child instance is judged where it runs:
 // at the list it targets. With the list trapped at the edge the key leaves
-// by (list.no-spill s:<edge>), the row stands aside, so the key is a
+// by (collection.no-spill s:<edge>), the row stands aside, so the key is a
 // silent no-op (no "is not applicable now" refusal, the focus, the row
 // and the column stay); untrapped, the same key moves the list. Every
 // edge goes through the same path (SpillEdges).
@@ -117,7 +117,7 @@ func TestTrapResolveJudgesRowAtItsTarget(t *testing.T) {
 }
 
 // The hints judge a row where it runs too: at the body over a list
-// trapped at its last row, j's list.move is not offered.
+// trapped at its last row, j's collection.move is not offered.
 func TestTrapResolveHintsJudgeAtTarget(t *testing.T) {
 	m, r, l := trapResolvePage(t)
 	if err := l.Select("s2"); err != nil {
@@ -128,7 +128,7 @@ func TestTrapResolveHintsJudgeAtTarget(t *testing.T) {
 	}
 	has := func() bool {
 		for _, row := range r.scanRows(r.walk(r.Focus), r.Mode, r.Focus) {
-			if row.Keys == "j" && row.Request.Key() == "ochazuke.list.move" {
+			if row.Keys == "j" && row.Request.Key() == "ochazuke.collection.move" {
 				return true
 			}
 		}
@@ -136,13 +136,13 @@ func TestTrapResolveHintsJudgeAtTarget(t *testing.T) {
 	}
 	m.View()
 	if !has() {
-		t.Fatal("untrapped: j list.move not listed at the body")
+		t.Fatal("untrapped: j collection.move not listed at the body")
 	}
 	if err := r.Settings().Set(ListNoSpillSetting, []string{"s:last"}); err != nil {
 		t.Fatal(err)
 	}
 	m.View()
 	if has() {
-		t.Fatal("trapped at :last: j list.move still listed at the body")
+		t.Fatal("trapped at :last: j collection.move still listed at the body")
 	}
 }

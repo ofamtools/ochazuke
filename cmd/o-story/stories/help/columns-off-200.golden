@@ -29,12 +29,12 @@ R|                    │   q             app.quit                              
  |                    │                 demo.usage                                 Answer a --help page: a preformatted result, drawn as written in the palette's viewer (help.      │
  |                    │                                                            markdown)                                                                                         │
  |                    │ list                                                                                                                                                         │
- |                    │   space         list.mark                                  Toggle the mark on a row (the selected row by default) for fan-out verbs                          │
+ |                    │   space         collection.mark                                  Toggle the mark on a row (the selected row by default) for fan-out verbs                          │
  |                    │ 1–17 / 64                                                                                                                                                    │
- |                    │ space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? binding.help · / filter                                                │
+ |                    │ space collection.mark · S view · enter run · a args · esc modal.close · : palette.open · ? binding.help · / filter                                                │
  |                    ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? binding.help · / filter
+ |  space collection.mark · S view · enter run · a args · esc modal.close · : palette.open · ? binding.help · / filter
  |

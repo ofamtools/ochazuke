@@ -12,10 +12,10 @@ import (
 )
 
 // ListSortIndicatorSetting controls sort arrows and separate labels in row views.
-const ListSortIndicatorSetting = "list.sort-indicator"
+const ListSortIndicatorSetting = "collection.sort-indicator"
 
 // ListSortSectionsSetting chooses local section ordering or no section sorting.
-const ListSortSectionsSetting = "list.sort-sections"
+const ListSortSectionsSetting = "collection.sort-sections"
 
 // SortKey is one prop of a list's view sort. Earlier keys take precedence;
 // equal values keep the app's order. Desc reverses nonblank values only.
@@ -512,7 +512,7 @@ func registerListSort(r *Runtime) {
 		}
 		params["id"] = Parameter{Type: "string", Description: "List, tree or picker; default focused row view"}
 		run := s.run
-		r.Register(Operation{Key: KeyOf("ochazuke.list", s.verb), Description: s.description, Parameters: params, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("ochazuke.collection", s.verb), Description: s.description, Parameters: params, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l := resolve(focusOf(c), a)
 			if l == nil {
 				return nil, errors.New("no row view to sort")
@@ -525,7 +525,7 @@ func registerListSort(r *Runtime) {
 			}
 			return l.state(), nil
 		}})
-		r.Nouns["ochazuke.list"].Guards[s.verb] = s.guard
+		r.Nouns["ochazuke.collection"].Guards[s.verb] = s.guard
 	}
 }
 

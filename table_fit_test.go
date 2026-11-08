@@ -169,7 +169,7 @@ func TestFitOnARowSelectTable(t *testing.T) {
 	if len(l.ColumnWidths()) != 0 {
 		t.Fatalf("z f answered on a row-select table: %v", l.ColumnWidths())
 	}
-	if r.Available(Request{Noun: "ochazuke.list", Verb: "fit-column"}, r.Focus, r.Mode) {
+	if r.Available(Request{Noun: "ochazuke.collection", Verb: "fit-column"}, r.Focus, r.Mode) {
 		t.Fatal("fit-column available on a row-select table")
 	}
 	motionKeys(t, r, m, "z F")
@@ -230,7 +230,7 @@ func TestNarrowToFit(t *testing.T) {
 func TestFitAndResetAnswerOnlyWhenTheyChangeSomething(t *testing.T) {
 	r, m, _ := columnTable(t, 120) // every column at its content's width
 	for _, verb := range []string{"fit-columns", "reset-columns"} {
-		if r.Available(Request{Noun: "ochazuke.list", Verb: verb}, r.Focus, r.Mode) {
+		if r.Available(Request{Noun: "ochazuke.collection", Verb: verb}, r.Focus, r.Mode) {
 			t.Fatalf("%s available on a table with nothing to change", verb)
 		}
 	}
@@ -242,10 +242,10 @@ func TestFitAndResetAnswerOnlyWhenTheyChangeSomething(t *testing.T) {
 		t.Fatalf("z column rows before z F: %v", rows)
 	}
 	motionKeys(t, r2, m2, "z F")
-	if r2.Available(Request{Noun: "ochazuke.list", Verb: "fit-columns"}, r2.Focus, r2.Mode) {
+	if r2.Available(Request{Noun: "ochazuke.collection", Verb: "fit-columns"}, r2.Focus, r2.Mode) {
 		t.Fatal("z F available again right after z F")
 	}
-	if !r2.Available(Request{Noun: "ochazuke.list", Verb: "reset-columns"}, r2.Focus, r2.Mode) {
+	if !r2.Available(Request{Noun: "ochazuke.collection", Verb: "reset-columns"}, r2.Focus, r2.Mode) {
 		t.Fatal("z = unavailable after z F")
 	}
 	// New rows wider than a fitted column: it stays (sticky) and z F
@@ -257,7 +257,7 @@ func TestFitAndResetAnswerOnlyWhenTheyChangeSomething(t *testing.T) {
 	if got := l2.ColumnWidths()[3]; got != 15 {
 		t.Fatalf("new rows reflowed the fitted kind column: %d", got)
 	}
-	if !r2.Available(Request{Noun: "ochazuke.list", Verb: "fit-columns"}, r2.Focus, r2.Mode) {
+	if !r2.Available(Request{Noun: "ochazuke.collection", Verb: "fit-columns"}, r2.Focus, r2.Mode) {
 		t.Fatal("z F unavailable with a wider cell to fit")
 	}
 	_ = m

@@ -7,16 +7,16 @@ import (
 	"strings"
 )
 
-// The filter form: the prop filter key (list.filter-prop with no prop)
+// The filter form: the prop filter key (collection.filter-prop with no prop)
 // opens a compact record editor over the list, tree or chooser. It reuses
-// one backing field per prop; list.filter-layout=fields shows those fields
-// directly. list.filter-form=false keeps the prop then value choosers. Every field is Invertible (is, not) and takes
+// one backing field per prop; collection.filter-layout=fields shows those fields
+// directly. collection.filter-form=false keeps the prop then value choosers. Every field is Invertible (is, not) and takes
 // its kind from the rows and the declared props, never from a noun's name:
 //
 //   - finite (a declared Enum, a boolean, a list prop, or a text prop whose
 //     values repeat across the rows): its values as chips; one chip makes
 //     =, several in, and on a list prop each chip a contains;
-//   - finite with more values than list.filter-chip-max: a text input of
+//   - finite with more values than collection.filter-chip-max: a text input of
 //     comma-separated values that completes them;
 //   - anything else (free text, numbers, dates, durations): a text input,
 //     contains on text and = on the rest.
@@ -29,13 +29,13 @@ import (
 
 // Filter form settings and its modal id.
 const (
-	ListFilterFormSetting            = "list.filter-form"
-	ListFilterChipMaxSetting         = "list.filter-chip-max"
-	ListFilterLayoutSetting          = "list.filter-layout"
-	ListFilterSortSetting            = "list.filter-sort"
-	ListFilterPickerSortSetting      = "list.filter-picker-sort"
-	ListFilterSaveSetting            = "list.filter-save"
-	ListFilterClearHiddenSortSetting = "list.filter-clear-hidden-sort"
+	ListFilterFormSetting            = "collection.filter-form"
+	ListFilterChipMaxSetting         = "collection.filter-chip-max"
+	ListFilterLayoutSetting          = "collection.filter-layout"
+	ListFilterSortSetting            = "collection.filter-sort"
+	ListFilterPickerSortSetting      = "collection.filter-picker-sort"
+	ListFilterSaveSetting            = "collection.filter-save"
+	ListFilterClearHiddenSortSetting = "collection.filter-clear-hidden-sort"
 	listFilterFormID                 = "list-filter-form"
 )
 

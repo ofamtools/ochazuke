@@ -9,7 +9,7 @@ import (
 // (move the focus to the neighbouring stop): the rows' first and last, and
 // a table's first and last column. Every component that spills (a list, a
 // table, a tree's list, a timeline's cards and steps) names its edges with
-// this one set, so list.no-spill traps each of the four independently and
+// this one set, so collection.no-spill traps each of the four independently and
 // no component misses a direction.
 type SpillEdge string
 
@@ -24,7 +24,7 @@ const (
 	EdgeLastColumn SpillEdge = "last-col"
 )
 
-// SpillEdges is every edge, the suffixes a list.no-spill entry takes
+// SpillEdges is every edge, the suffixes a collection.no-spill entry takes
 // (ID:last, ID:first-col, ...). An entry without one names all four. A
 // component with no horizontal motion (a plain list, a timeline) accepts
 // the column edges as a no-op: it never spills sideways.
@@ -46,7 +46,7 @@ func columnEdge(step int) SpillEdge {
 	return EdgeLastColumn
 }
 
-// ParseNoSpillEntry splits a list.no-spill entry into the id (or prefix
+// ParseNoSpillEntry splits a collection.no-spill entry into the id (or prefix
 // ending in *) it names and the edge it traps: "panes/working:last" is
 // panes/working at its last row; "panes/*:first-col" a prefix at its first
 // column. An entry without a known edge suffix names every edge (edge
@@ -62,7 +62,7 @@ func ParseNoSpillEntry(entry string) (name string, edge SpillEdge) {
 	return entry, ""
 }
 
-// noSpillMatches reports whether a list.no-spill name (an id, or a prefix
+// noSpillMatches reports whether a collection.no-spill name (an id, or a prefix
 // ending in *) names id.
 func noSpillMatches(name, id string) bool {
 	if prefix, ok := strings.CutSuffix(name, "*"); ok {

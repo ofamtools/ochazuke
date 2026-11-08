@@ -61,11 +61,11 @@
         "2 of 20",
         "epsilon",
         "sigma",
-        "enter list.filter-choose"
+        "enter collection.filter-choose"
       ],
       "lacks": [
         "rho",
-        "list.filter-keep"
+        "collection.filter-keep"
       ]
     },
     {
@@ -81,7 +81,7 @@
         "/si",
         "2 of 20",
         "alpha",
-        "list.filter-clear"
+        "collection.filter-clear"
       ],
       "highlighted": 1,
       "highlightedText": "sigma"
@@ -98,10 +98,10 @@
       "contains": [
         "/xx",
         "no rows match",
-        "enter list.filter-keep"
+        "enter collection.filter-keep"
       ],
       "lacks": [
-        "list.filter-choose"
+        "collection.filter-choose"
       ]
     },
     {

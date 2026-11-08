@@ -57,7 +57,7 @@ func TestEmptyListSelectionAndYankLeaveStateAlone(t *testing.T) {
 				named, history := maps.Clone(regs.Named), slices.Clone(regs.History)
 				before, marks := l.Snapshot(), maps.Clone(l.marks)
 				focus, mode := r.Focus, r.Mode
-				q := Request{Noun: "ochazuke.list", Verb: verb}
+				q := Request{Noun: "ochazuke.collection", Verb: verb}
 				if verb == "yank" {
 					q.Args = Arguments{"what": "row"}
 				}
@@ -98,13 +98,13 @@ func TestEmptyListKeepsSelectionErrorsForInvalidTargets(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, verb := range []string{"visual", "yank"} {
-		op, _ := r.Operation("list." + verb)
+		op, _ := r.Operation("collection." + verb)
 		for _, args := range []Arguments{{"id": "missing"}, {"id": "app"}} {
 			if _, err := op.Run(r, r.Context(), args); err == nil {
 				t.Errorf("%s accepted invalid list id: %v", verb, args)
 			}
 		}
-		if _, err := r.Execute(Request{Noun: "list", Verb: verb, Target: "missing"}); err == nil {
+		if _, err := r.Execute(Request{Noun: "collection", Verb: verb, Target: "missing"}); err == nil {
 			t.Errorf("%s accepted a missing target", verb)
 		}
 		if _, err := op.Run(r, Context{Path: []string{"app"}}, nil); err == nil {
@@ -118,7 +118,7 @@ func TestEmptyListKeepsSelectionErrorsForInvalidTargets(t *testing.T) {
 	if err := unmarked.Focus(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "visual"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "visual"}); err == nil {
 		t.Fatal("NoMarks list must keep its visual guard")
 	}
 }

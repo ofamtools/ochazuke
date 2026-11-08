@@ -67,7 +67,7 @@
         "noun": "terminal",
         "mode": "leader_pending",
         "keys": "s",
-        "do": "ochazuke.list.select",
+        "do": "ochazuke.collection.select",
         "args": {
           "id": "a",
           "item": "a2"

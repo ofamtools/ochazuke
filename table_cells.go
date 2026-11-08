@@ -14,34 +14,34 @@ import (
 // on grid) has a current cell; every other table selects rows (opt-in, so
 // a table whose rows answer h or l keeps them without a guard). The row keeps the list's one highlight; the current cell is drawn
 // in the list.cell.cursor tone (the accent background; setting
-// list.cell-cursor, underline draws it underlined inside the bar) and the
+// collection.cell-cursor, underline draws it underlined inside the bar) and the
 // header underlines the current column's title. Keys, rows of the list noun in normal mode that answer only on a
 // cell-mode table (verb guard table-cells), except where noted:
 //
-//	h l left right   list.column {delta: ±1}: one column in drawing order
+//	h l left right   collection.column {delta: ±1}: one column in drawing order
 //	                 (pinned columns first; a count is columns); on the
 //	                 first column h, on the last l, moves the focus to the
 //	                 previous / next stop instead (focus.previous /
 //	                 focus.next, guards table-column-left/right then
 //	                 table-spills-left/right), clamped in a modal, on a
 //	                 NoSpill list and at the page's first / last stop
-//	0 ^ home         list.column {to: first} (0 only without a count)
-//	$ end            list.column {to: last}
-//	|                list.column {index}: the column of the count (1 without one)
-//	g c              list.choose-column: a chooser of the column titles
-//	y                list.yank {what: cell}: the cell's text into the registers
-//	Y                list.yank {what: row}: the row's cells joined by tabs,
+//	0 ^ home         collection.column {to: first} (0 only without a count)
+//	$ end            collection.column {to: last}
+//	|                collection.column {index}: the column of the count (1 without one)
+//	g c              collection.choose-column: a chooser of the column titles
+//	y                collection.yank {what: cell}: the cell's text into the registers
+//	Y                collection.yank {what: row}: the row's cells joined by tabs,
 //	                 on every table (verb guard list-table)
-//	z > / z <        list.resize-column {delta: ±1}: widen or narrow the
+//	z > / z <        collection.resize-column {delta: ±1}: widen or narrow the
 //	                 current column by ColumnWidthStep cells (a count is steps)
-//	z f / z F        list.fit-column / list.fit-columns: the current column
+//	z f / z F        collection.fit-column / collection.fit-columns: the current column
 //	                 / every column at its content's width (z F on every
 //	                 table, table_fit.go)
-//	z =              list.reset-columns: every column automatic again and
+//	z =              collection.reset-columns: every column automatic again and
 //	                 the default pins back (on any table)
-//	z p              list.toggle-pin-column: pin or unpin the current
+//	z p              collection.toggle-pin-column: pin or unpin the current
 //	                 column (table_pins.go)
-//	z l / z h        list.scroll-columns: the view one column right / left,
+//	z l / z h        collection.scroll-columns: the view one column right / left,
 //	                 the current column carried along when it scrolls off
 //	                 (every table that scrolls, table_columns.go)
 //
@@ -60,7 +60,7 @@ import (
 // table) has no current column: it keeps row selection, a row noun's own h
 // and l answer first, and where none binds them h and l scroll its columns
 // and then move the focus (table_columns.go); $, ^ and 0
-// (list.scroll-columns, bound after the cell rows so a cell table's column
+// (collection.scroll-columns, bound after the cell rows so a cell table's column
 // move answers first) and z l/z h scroll its columns.
 //
 // A cell-mode table's current column, any table's widths (z >, z <, z f,
@@ -90,7 +90,7 @@ func RowSelect() InstanceOption { return func(*instanceSpec) {} }
 func (l *Collection) cellMode() bool { return len(l.columns) > 0 && l.cellSelect }
 
 // columnTo makes the first or the last column in drawing order (to
-// "first" or "last") the current one: list.column {to}, viewport.goto's
+// "first" or "last") the current one: collection.column {to}, viewport.goto's
 // column edges.
 func (l *Collection) columnTo(to string) {
 	order := l.order()
@@ -375,7 +375,7 @@ func (r *Runtime) cellTable(c Context, args Arguments) (*Collection, error) {
 //   - row-table-no-count: 0's row on a row-select table needs a guard of
 //     its own: a row with the same keys and guard would replace the cell
 //     row.
-//   - list-yanks: list.yank copies a table's row or cell, and on any list
+//   - list-yanks: collection.yank copies a table's row or cell, and on any list
 //     the rows of a visual selection (V j y), so a plain list's y and Y
 //     stay free outside one.
 //
@@ -433,29 +433,29 @@ var tableListID = Parameter{Type: "string", Description: "The list (default: the
 //
 // A row-select table's $, ^ and 0 scroll its columns (verb guard
 // table-scrolls), after each key's cell row: on a cell table those
-// answer, here the list.column rows are guarded off.
+// answer, here the collection.column rows are guarded off.
 func tableCellVerbs() []verbSpec {
 	id := tableListID
 	return []verbSpec{
-		{"column", "ochazuke.list", "Move a cell-mode table's current column: to the first or last, to the column numbered index (|), or delta columns; the view scrolls to show it", "list state", map[string]Parameter{
+		{"column", "ochazuke.collection", "Move a cell-mode table's current column: to the first or last, to the column numbered index (|), or delta columns; the view scrolls to show it", "list state", map[string]Parameter{
 			"id":    id,
 			"to":    {Type: "string", Enum: []string{"first", "last"}, Description: "The first or the last column"},
 			"index": {Type: "integer", Description: "The column number, 1 the first (a count: 3|)"},
 			"delta": {Type: "integer", Description: "Columns to move, positive right (l), negative left (h)"},
 			"steps": {Type: "integer", Description: "Repeat count (3l)"},
 		}, tableColumn, "table-cells", "", Operation{Motion: true, HistoryKind: HistoryAction}},
-		{"choose-column", "ochazuke.list", "Choose a table's current column from a picker of its titles", "list state", map[string]Parameter{"id": id}, tableChooseColumn, "table-cells", "", Operation{Motion: true, HistoryKind: HistoryAction}},
-		{"yank", "ochazuke.list", "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers; over a visual selection (V) every selected row's, one per line", "the yank", map[string]Parameter{
+		{"choose-column", "ochazuke.collection", "Choose a table's current column from a picker of its titles", "list state", map[string]Parameter{"id": id}, tableChooseColumn, "table-cells", "", Operation{Motion: true, HistoryKind: HistoryAction}},
+		{"yank", "ochazuke.collection", "Copy the current cell's text (what: cell, a cell-mode table) or the row's cells joined by tabs (what: row, any table) into the registers; over a visual selection (V) every selected row's, one per line", "the yank", map[string]Parameter{
 			"id":       id,
 			"what":     {Type: "string", Enum: []string{"cell", "row"}, Description: "The cell (default) or the whole row"},
 			"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"},
 		}, tableYank, "list-yanks", "", Operation{HistoryKind: HistoryChange}},
-		{"resize-column", "ochazuke.list", "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", "list state", map[string]Parameter{
+		{"resize-column", "ochazuke.collection", "Widen (delta 1) or narrow (-1) a table's current column by ColumnWidthStep cells; remembered per table", "list state", map[string]Parameter{
 			"id":    id,
 			"delta": {Type: "integer", Required: true, Description: "1 wider, -1 narrower"},
 			"steps": {Type: "integer", Description: "Repeat count (3z>)"},
 		}, tableResizeColumn, "table-cells", "", Operation{HistoryKind: HistoryChange}},
-		{"reset-columns", "ochazuke.list", "Lay every column of a table out automatically again and put the default pins back (z =)", "list state", map[string]Parameter{"id": id}, tableResetColumns, "", "", Operation{HistoryKind: HistoryChange}},
+		{"reset-columns", "ochazuke.collection", "Lay every column of a table out automatically again and put the default pins back (z =)", "list state", map[string]Parameter{"id": id}, tableResetColumns, "", "", Operation{HistoryKind: HistoryChange}},
 	}
 }
 

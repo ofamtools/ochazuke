@@ -137,10 +137,10 @@ func TestAliasRules(t *testing.T) {
 		t.Fatalf("alias of an alias: %+v %v", a, ok)
 	}
 	// A short framework noun name in an alias is canonical.
-	if err := r.AliasAction("list.walk", "list.move"); err != nil {
+	if err := r.AliasAction("collection.walk", "collection.move"); err != nil {
 		t.Fatal(err)
 	}
-	if a, _ := r.ActionAlias("list.walk"); a.Alias != "ochazuke.list.walk" || a.Noun != "ochazuke.list" {
+	if a, _ := r.ActionAlias("collection.walk"); a.Alias != "ochazuke.collection.walk" || a.Noun != "ochazuke.collection" {
 		t.Fatalf("framework noun alias: %+v", a)
 	}
 	// An action registered later under an alias's name takes it, and the

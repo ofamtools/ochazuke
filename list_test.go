@@ -49,7 +49,7 @@ func TestListFocusSelectsItemActionsAndLeavesEditorAlone(t *testing.T) {
 	for _, id := range []string{"a", "b"} {
 		r.Define(id).Action("item.inspect", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
 	}
-	if _, err := r.Execute(Request{Verb: "focus", Noun: "ochazuke.list", Args: Arguments{"id": "sidebar"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "focus", Noun: "ochazuke.collection", Args: Arguments{"id": "sidebar"}}); err != nil {
 		t.Fatal(err)
 	}
 	value, err := r.Execute(Request{Verb: "inspect", Noun: "item"})
@@ -446,8 +446,8 @@ func TestFocusingARowSelectsIt(t *testing.T) {
 }
 
 // A list (or tree) added with NoMarks is a read-only view: space does not
-// mark its rows (list.mark is guarded off, so the row is skipped and left
-// off the hints), list.mark refuses, and a plain list still marks.
+// mark its rows (collection.mark is guarded off, so the row is skipped and left
+// off the hints), collection.mark refuses, and a plain list still marks.
 func TestNoMarksListTakesNoMarks(t *testing.T) {
 	r := NewRuntime()
 	r.Define("a")
@@ -487,8 +487,8 @@ func TestNoMarksListTakesNoMarks(t *testing.T) {
 			t.Fatalf("%s: marked = %v, want %v", tc.focus, got, tc.marks)
 		}
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "mark", Args: Arguments{"id": "view", "item": "v1"}}); err == nil {
-		t.Fatal("list.mark marked a NoMarks list")
+	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "mark", Args: Arguments{"id": "view", "item": "v1"}}); err == nil {
+		t.Fatal("collection.mark marked a NoMarks list")
 	}
 }
 

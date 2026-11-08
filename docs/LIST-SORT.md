@@ -6,7 +6,7 @@ picker; picking the same field cycles the same three states. A column's
 normalized title names its prop (lower case, spaces replaced with dashes).
 If that title does not identify an available prop, the same field picker opens.
 
-The `ochazuke.list` verbs work from keys, the palette and API alike:
+The `ochazuke.collection` verbs work from keys, the palette and API alike:
 
 | Verb | Arguments | Result |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ to their declared names. `list-sortable` guards sorting and `z s`.
 Clearing an already clear sort succeeds with a plain status message.
 
 Sorting reuses the props offered by prop filtering, declared or derived.
-Secrets, `NoFilter`, `PropsOff`, `list.props-off` and prop guards also apply.
+Secrets, `NoFilter`, `PropsOff`, `collection.props-off` and prop guards also apply.
 A row without a prop record can sort by its titled columns, including a row
 whose `Data` is an opaque ID. Column fallback supplies text, or the declared
 prop's kind when its name matches; it does not add filter fields.
@@ -35,7 +35,7 @@ props compare entirely as text. Blanks go last in either direction. Equal
 keys keep the app's order. A tree sorts siblings, keeping subtrees together.
 
 Sectioned tables sort within each contiguous section by default, preserving
-section order and headings. `list.sort-sections=off` disables local sorting
+section order and headings. `collection.sort-sections=off` disables local sorting
 on sectioned lists; `within` restores it. The rule applies to every list,
 not to particular nouns or applications.
 
@@ -47,8 +47,8 @@ A picker exposes the same methods and preserves its ordinary-row sort across
 `SetRows`. Fixed, trailing and create rows keep their picker roles.
 
 Ordinary view sort lives in memory on the list/controller. Saving a filter
-through `list.filter-save` stores conditions and optional sort keys in the
-existing `list.filters` setting. Applying it through `filter-saved`, the
+through `collection.filter-save` stores conditions and optional sort keys in the
+existing `collection.filters` setting. Applying it through `filter-saved`, the
 saved-filter picker or cycling restores both, retaining `/` text. Older
 definitions without sort restore app order. There is no new store or file;
 unsaved sort is not restored on restart. The filter form edits the primary sort
@@ -58,7 +58,7 @@ Tab follows the drawing order: sort field, direction, field picker, the
 current value control when open, active conditions, save name, then back to
 sort. Shift+Tab reverses that order. The form starts on fields, so Shift+Tab
 reaches direction and a second Shift+Tab reaches sort. Enter on direction
-flips asc/desc. Multi-key sorting is available through `list.sort`.
+flips asc/desc. Multi-key sorting is available through `collection.sort`.
 
 The compact controls share the standard picker and form record. Type a prop
 and Enter to see its values, then type to narrow them. Enter picks one and
@@ -82,18 +82,18 @@ composed pickers opt into these two modes with `PickerSpec.NormalMode`.
 on the query line; false hides the count. `picker.stable-height=false`
 disables the compact form's fixed-height padding.
 
-`list.filter-layout` defaults to `compact`; `fields` keeps the previous
-one-field-per-prop form. `list.filter-sort` defaults to true and hides the
+`collection.filter-layout` defaults to `compact`; `fields` keeps the previous
+one-field-per-prop form. `collection.filter-sort` defaults to true and hides the
 sort section when false.
-`list.filter-clear-hidden-sort` defaults to false: clearing the form preserves
+`collection.filter-clear-hidden-sort` defaults to false: clearing the form preserves
 a sort whose controls are hidden. Set it to true to clear that sort too.
-`list.filter-form=false` keeps the older prop/value picker flow unchanged.
-`list.filter-picker-sort=true` opts into a Sort entry using the existing
+`collection.filter-form=false` keeps the older prop/value picker flow unchanged.
+`collection.filter-picker-sort=true` opts into a Sort entry using the existing
 sort-field picker; this setting defaults to false. Source-owned views do not offer
 sort controls.
 
-The save row is enabled by `list.filter-save` (default true). Tab to its name,
-type a name and Enter to save through `list.filter-save`. An existing name
+The save row is enabled by `collection.filter-save` (default true). Tab to its name,
+type a name and Enter to save through `collection.filter-save`. An existing name
 shows **Replace** before Enter overwrites it. The name remains a text input
 in normal mode; its editing keys never delete saved filters. From a non-text
 control, `D` opens a saved-filter deletion picker, then asks for confirmation.
@@ -101,7 +101,7 @@ App defaults remain declarations; deleting an override reveals its default.
 Normal `z ]` / `z [` cycle inside or outside the form. Cycling wraps; no saved
 filters disables it. Invalid definitions are skipped with the existing notice.
 View edits clear the applied-name marker; the typed name stays for easy
-replacement. `list.filter-save=false` hides the row without deleting data.
+replacement. `collection.filter-save=false` hides the row without deleting data.
 
 The form adds no Ctrl+Alt chords or direct part-focus shortcuts. Tab replaces
 those jumps, direction uses Enter on its control, and normal `!`, `C` and
@@ -110,7 +110,7 @@ those jumps, direction uses Enter on its control, and normal `!`, `C` and
 filter form is open. The modal retains `ochazuke.form` on its ancestry,
 so existing user bindings on that noun still apply.
 
-`list.sort-indicator` defaults to `true` in `settings/ochazuke.json`. It adds
+`collection.sort-indicator` defaults to `true` in `settings/ochazuke.json`. It adds
 `▲` / `▼` to sorted column titles, and `▲2` / `▼2` for the second key (and so
 on). Turning it off hides the indicators and leaves the sort active. The
 arrows take part in normal column sizing; fixed widths still truncate normally.
@@ -130,8 +130,8 @@ A future source-side view handler can provide whole-source sorting.
 
 | Vim form | Help | Ochazuke |
 | --- | --- | --- |
-| `:sort` | `:help :sort` | Similar ordering; `list.sort` is a stable view over typed props, while Vim edits buffer lines. Clearing restores app order. |
-| `:sort!` | `:help :sort` | Descending is `list.sort {by: "-field"}` or `sort-column {desc: true}`. Blanks remain last. Vim reverses buffer-line order, including blanks. |
+| `:sort` | `:help :sort` | Similar ordering; `collection.sort` is a stable view over typed props, while Vim edits buffer lines. Clearing restores app order. |
+| `:sort!` | `:help :sort` | Descending is `collection.sort {by: "-field"}` or `sort-column {desc: true}`. Blanks remain last. Vim reverses buffer-line order, including blanks. |
 | `zs` | `:help zs` | Different: Vim scrolls horizontally; ochazuke already scrolls columns with `z h` / `z l`, so `z s` cycles view sorting. |
 | `dd`, `u`, `CTRL-R` in a text input | `:help dd`, `:help u`, `:help CTRL-R` | Same text deletion, undo and redo. A save name is text, not a saved-filter deletion command. |
 

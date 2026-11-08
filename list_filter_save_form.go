@@ -23,7 +23,7 @@ func (v *filterViewForm) savedAction(verb string) error {
 		return err
 	}
 	name := strings.TrimSpace(string(v.saveInput.Text))
-	if _, err := v.l.r.Execute(Request{Noun: "ochazuke.list", Verb: verb, Args: Arguments{"id": v.l.id, "name": name}}); err != nil {
+	if _, err := v.l.r.Execute(Request{Noun: "ochazuke.collection", Verb: verb, Args: Arguments{"id": v.l.id, "name": name}}); err != nil {
 		return err
 	}
 	v.seen = v.signature()
@@ -75,7 +75,7 @@ func (v *filterViewForm) deleteSaved() error {
 		}
 	}
 	_, err = v.l.r.OpenChooser(ChooserSpec{Kind: "list-filter-delete", Title: "Delete saved filter", Plural: "saved filters", Rows: rows, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
-		_, err := v.l.r.Execute(Request{Noun: "ochazuke.list", Verb: "filter-saved-delete", Args: Arguments{"id": v.l.id, "name": row.ID}})
+		_, err := v.l.r.Execute(Request{Noun: "ochazuke.collection", Verb: "filter-saved-delete", Args: Arguments{"id": v.l.id, "name": row.ID}})
 		if err != nil {
 			return Failed(err)
 		}

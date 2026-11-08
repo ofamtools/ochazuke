@@ -43,7 +43,7 @@ func spillKinds() []spillKind {
 	cols := Columns(Column{Title: "name"}, Column{Title: "n"})
 	return []spillKind{
 		{"list", false, func(t *testing.T, r *Runtime) (func(int) string, []string) {
-			l, err := r.AddList("s", []ListItem{{ID: "s1", Label: "s1", Noun: "ochazuke.list"}, {ID: "s2", Label: "s2", Noun: "ochazuke.list"}}, Parent("page"))
+			l, err := r.AddList("s", []ListItem{{ID: "s1", Label: "s1", Noun: "ochazuke.collection"}, {ID: "s2", Label: "s2", Noun: "ochazuke.collection"}}, Parent("page"))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -51,8 +51,8 @@ func spillKinds() []spillKind {
 		}},
 		{"table", true, func(t *testing.T, r *Runtime) (func(int) string, []string) {
 			l, err := r.AddList("s", []ListItem{
-				{ID: "s1", Label: "s1", Noun: "ochazuke.list", Cells: []string{"s1", "1"}},
-				{ID: "s2", Label: "s2", Noun: "ochazuke.list", Cells: []string{"s2", "2"}},
+				{ID: "s1", Label: "s1", Noun: "ochazuke.collection", Cells: []string{"s1", "1"}},
+				{ID: "s2", Label: "s2", Noun: "ochazuke.collection", Cells: []string{"s2", "2"}},
 			}, Parent("page"), cols)
 			if err != nil {
 				t.Fatal(err)
@@ -83,11 +83,11 @@ func spillEdgePage(t *testing.T, kind spillKind) (*Model, *Runtime, []string) {
 	t.Helper()
 	r := NewRuntime()
 	r.Instance("page")
-	if _, err := r.AddList("before", []ListItem{{ID: "b1", Label: "b1", Noun: "ochazuke.list"}}, Parent("page")); err != nil {
+	if _, err := r.AddList("before", []ListItem{{ID: "b1", Label: "b1", Noun: "ochazuke.collection"}}, Parent("page")); err != nil {
 		t.Fatal(err)
 	}
 	view, rows := kind.add(t, r)
-	if _, err := r.AddList("after", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.list"}}, Parent("page")); err != nil {
+	if _, err := r.AddList("after", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.collection"}}, Parent("page")); err != nil {
 		t.Fatal(err)
 	}
 	render := func(r *Runtime, width, height int) Block {
@@ -106,7 +106,7 @@ func spillEdgePage(t *testing.T, kind spillKind) (*Model, *Runtime, []string) {
 }
 
 // Every edge (SpillEdges) × every list-like component × every
-// list.no-spill form (none, all edges, each single edge): the motion
+// collection.no-spill form (none, all edges, each single edge): the motion
 // leaving by that edge spills unless the setting traps that edge, and a
 // component with no horizontal motion (a plain list, a timeline) never
 // spills sideways (the column edges are a no-op there).
@@ -167,26 +167,26 @@ func TestSpillEdgeMotionUnavailableInHelp(t *testing.T) {
 	moves := func(focus string) map[string]bool {
 		out := map[string]bool{}
 		for _, row := range BindingHelp(r, focus) {
-			if strings.HasSuffix(row.Request, "list.move") {
+			if strings.HasSuffix(row.Request, "collection.move") {
 				out[row.Key] = true
 			}
 		}
 		return out
 	}
 	move := func(delta int) bool {
-		return r.Available(Request{Noun: "ochazuke.list", Verb: "move", Args: Arguments{"delta": delta}}, r.Focus, r.Mode)
+		return r.Available(Request{Noun: "ochazuke.collection", Verb: "move", Args: Arguments{"delta": delta}}, r.Focus, r.Mode)
 	}
 	if err := r.SetFocus("a2"); err != nil {
 		t.Fatal(err)
 	}
 	m.View()
 	if got := moves("a2"); got["j"] || got["down"] || !got["k"] {
-		t.Fatalf("a:last on the last row: help list.move keys %v, want k without j/down", got)
+		t.Fatalf("a:last on the last row: help collection.move keys %v, want k without j/down", got)
 	}
 	if move(1) || !move(-1) {
 		t.Fatalf("a:last on the last row: move down %v, up %v", move(1), move(-1))
 	}
-	if r.Available(Request{Noun: "ochazuke.list", Verb: "move", Args: Arguments{"delta": 1, "clamp": true}}, r.Focus, r.Mode) != true {
+	if r.Available(Request{Noun: "ochazuke.collection", Verb: "move", Args: Arguments{"delta": 1, "clamp": true}}, r.Focus, r.Mode) != true {
 		t.Fatal("a clamped move stays available at a trapped edge")
 	}
 	keytest.Press(m, "j")
@@ -198,7 +198,7 @@ func TestSpillEdgeMotionUnavailableInHelp(t *testing.T) {
 	}
 	m.View()
 	if got := moves("a1"); !got["j"] || !got["k"] {
-		t.Fatalf("a:last on the first row: help list.move keys %v, want j and k", got)
+		t.Fatalf("a:last on the first row: help collection.move keys %v, want j and k", got)
 	}
 	if err := r.SetFocus("b1"); err != nil {
 		t.Fatal(err)
@@ -214,7 +214,7 @@ func TestSpillEdgeMotionUnavailableInHelp(t *testing.T) {
 	}
 }
 
-// A trapped key falls through: with list.move unavailable at the trapped
+// A trapped key falls through: with collection.move unavailable at the trapped
 // edge, the next row bound to j (here an app row on the page) answers.
 func TestSpillEdgeKeyFallsThrough(t *testing.T) {
 	m, r := visualPage(t, []string{"a", "b"}, map[string]int{"a": 2, "b": 2}, []string{"a", "b"})
@@ -277,7 +277,7 @@ func TestSpillEdgeTableRowsCountsAndPaging(t *testing.T) {
 func TestSpillEdgeNoSpillOptionTrapsAll(t *testing.T) {
 	r := NewRuntime()
 	r.Instance("page")
-	l, err := r.AddList("x", []ListItem{{ID: "x1", Label: "x1", Noun: "ochazuke.list"}}, Parent("page"), NoSpill())
+	l, err := r.AddList("x", []ListItem{{ID: "x1", Label: "x1", Noun: "ochazuke.collection"}}, Parent("page"), NoSpill())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,7 @@ func TestSpillEdgeTimelineStep(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := r.AddList("after", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.list"}}, Parent("page")); err != nil {
+		if _, err := r.AddList("after", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.collection"}}, Parent("page")); err != nil {
 			t.Fatal(err)
 		}
 		render := func(r *Runtime, width, height int) Block {

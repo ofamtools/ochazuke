@@ -239,7 +239,7 @@ func TestPinsDrawFirstPersistAndReset(t *testing.T) {
 	if got := l.PinnedColumns(); !slices.Equal(got, []int{0}) {
 		t.Fatalf("default pins %v", got)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "toggle-pin-column", Args: Arguments{"column": "Charlie"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "toggle-pin-column", Args: Arguments{"column": "Charlie"}}); err != nil {
 		t.Fatal(err)
 	}
 	_ = m.View()
@@ -271,7 +271,7 @@ func TestPinsDrawFirstPersistAndReset(t *testing.T) {
 		if step.column != "" {
 			args["column"] = step.column
 		}
-		if _, err := r2.Execute(Request{Noun: "ochazuke.list", Verb: step.verb, Args: args}); err != nil {
+		if _, err := r2.Execute(Request{Noun: "ochazuke.collection", Verb: step.verb, Args: args}); err != nil {
 			t.Fatalf("%s: %v", step.verb, err)
 		}
 		if got := l2.PinnedColumns(); !slices.Equal(got, step.want) {
@@ -283,7 +283,7 @@ func TestPinsDrawFirstPersistAndReset(t *testing.T) {
 	if strings.Contains(string(data), `"t"`) {
 		t.Fatalf("the default pins are remembered as a choice: %s", data)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "pin-column", Args: Arguments{"column": "nope"}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "pin-column", Args: Arguments{"column": "nope"}}); err == nil {
 		t.Fatal("an unknown column pinned")
 	}
 	// z p toggles the current column of a cell-mode table.

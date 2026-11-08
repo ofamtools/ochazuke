@@ -398,7 +398,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   Check: the diff.
 - **R5.4** Selection survives `SetItems` by stable id. Story: needed
   (`lists/setitems-keeps-selection`).
-- **R5.5** `List.Move` (the API) always clamps; only the `list.move`
+- **R5.5** `List.Move` (the API) always clamps; only the `collection.move`
   operation spills. Check: unit test.
 - **R5.6** `/` filters any focused list unless the app binds `/` on the
   stack: typing narrows the rows (label and cells, every word by
@@ -415,7 +415,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `lists/filter-esc-clears.json`,
   `lists/filter-backspace-empty-leaves.json`, `tables/filter-by-cell.json`.
 - **R5.7** A filter hides rows and never removes them: `SetItems` while
-  filtered filters the new rows, marks survive, and `list.apply` fans out
+  filtered filters the new rows, marks survive, and `collection.apply` fans out
   to the marked rows shown. Story: `lists/filter-marks-survive.json`,
   `catalog/filter-setitems.json`; test `TestListFilterSetItemsMarksAndApply`.
 - **R5.8** Every focused list answers `gg`/`G` (first/last row, a count is
@@ -520,7 +520,7 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R5.13** Any table columns can be pinned: pinned columns draw first at
   the left in their declared order and never scroll; the rest scroll after
   them. The default pins are the columns an app declares `Column.Pinned`,
-  else the first column. `list.pin-column`, `unpin-column`,
+  else the first column. `collection.pin-column`, `unpin-column`,
   `toggle-pin-column` (`z p` on a cell-mode table: the current column) and
   `unpin-columns` change them on any table (palette; a row-select table
   without a `column` chooses one from the column picker); `z =`
@@ -549,7 +549,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   dim, so the bar reads the same in every theme and the row's text keeps
   full strength; a cell-mode table's current cell draws in the
   `list.cell.cursor` tone (the accent background, bold; setting
-  `list.cell-cursor`, default `background`; `underline`, mono and
+  `collection.cell-cursor`, default `background`; `underline`, mono and
   `NO_COLOR` draw it underlined inside the bar). Stories
   `tables/cell-cursor-background.json`, `tables/cell-cursor-underline.json`. The colour comes back as soon as the row is left. A page list
   without the focus fades its tones with it (`dim-unfocused`). Stories:
@@ -602,7 +602,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   "line"}}`, read with `Runtime.SelectionShape`, never a mode name). The
   header's badge reads `VISUAL-LINE` and the footer shows the mode's keys.
   In it one key acts on the selection, then visual ends: `d` deletes
-  (`list.apply {verb: delete}`, available only when a selected row's noun
+  (`collection.apply {verb: delete}`, available only when a selected row's noun
   has `delete`, else the key goes on out), `y` yanks the rows, an
   application's own single keys bound in its row noun's `visual-line`
   table (`>` nest, `p` put) act on every row; `esc` or `V` leaves without
@@ -1445,7 +1445,7 @@ the reference behaviour (Vim, Helix, fzf, lazygit) it is comparing to.
 - **P12. Latency is part of the design.** Anything over about 50 ms between
   key and frame is a finding; anything the user must wait for shows as a
   running job on the ticker. Protects the feel of a native editor.
-  Violation: a `list.move` that reloads rows synchronously; a palette
+  Violation: a `collection.move` that reloads rows synchronously; a palette
   completion that queries a daemon on the loop.
 
 ---

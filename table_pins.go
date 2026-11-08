@@ -147,7 +147,7 @@ func registerTablePins(r *Runtime, cells func(Context, Arguments) (*Collection, 
 	// act runs change on the column the request names, else the current
 	// column of a cell-mode table, else the column chosen from a chooser.
 	act := func(verb string, change func(l *Collection, i int)) Operation {
-		return Operation{Key: KeyOf("ochazuke.list", verb), Parameters: map[string]Parameter{"id": id, "column": column}, Positional: []string{"column"}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		return Operation{Key: KeyOf("ochazuke.collection", verb), Parameters: map[string]Parameter{"id": id, "column": column}, Positional: []string{"column"}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l, err := cells(c, a)
 			if err != nil {
 				return nil, err
@@ -198,7 +198,7 @@ func registerTablePins(r *Runtime, cells func(Context, Arguments) (*Collection, 
 	for _, op := range []Operation{pin, unpin, toggle} {
 		r.Register(op)
 	}
-	r.Register(Operation{Key: "ochazuke.list.unpin-columns", Description: "Leave no column of a table pinned: every column scrolls; z = puts the default pins back", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.collection.unpin-columns", Description: "Leave no column of a table pinned: every column scrolls; z = puts the default pins back", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := cells(c, a)
 		if err != nil {
 			return nil, err
@@ -206,7 +206,7 @@ func registerTablePins(r *Runtime, cells func(Context, Arguments) (*Collection, 
 		l.UnpinColumns()
 		return l.state(), nil
 	}})
-	guards := r.Nouns["ochazuke.list"].Guards
+	guards := r.Nouns["ochazuke.collection"].Guards
 	for _, verb := range []string{"pin-column", "unpin-column", "toggle-pin-column", "unpin-columns"} {
 		guards[verb] = "list-table"
 	}

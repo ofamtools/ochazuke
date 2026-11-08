@@ -37,10 +37,10 @@ type ListItem struct {
 	Section string   `json:"section,omitempty"`
 	// Under is the ID of the row this row is a child of, in a flat list
 	// (a setting's items under the setting). The / filter keeps a matching
-	// row's children and a matching child's parent (list.filter-keeps-children).
+	// row's children and a matching child's parent (collection.filter-keeps-children).
 	Under string     `json:"under,omitempty"`
 	Tones []ToneSpan `json:"tones,omitempty"`
-	// Classes are application-defined labels for list.next-class and previous-class.
+	// Classes are application-defined labels for collection.next-class and previous-class.
 	Classes []string `json:"classes,omitempty"`
 	// Search is more text the / filter matches the row by, beside its
 	// label and cells, never drawn: what the row stands for (the Settings
@@ -69,7 +69,7 @@ type Collection struct {
 	all          []ListItem // every row, as SetItems gave them
 	from         string     // From: the noun whose store feeds the rows, "" for SetItems
 	refills      int        // reads of that store (tests count them)
-	archived     int        // rows of all that list.hide-archived hides (archiveHidden)
+	archived     int        // rows of all that collection.hide-archived hides (archiveHidden)
 	headerTones  []ToneSpan // the header row's tones (SetHeaderTones)
 	items        []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
 	linger       filterLinger
@@ -88,7 +88,7 @@ type Collection struct {
 	selected     int
 	offset       int
 	marks        map[string]bool
-	noSpill      bool            // NoSpill: list.move clamps at the edges instead of spilling
+	noSpill      bool            // NoSpill: collection.move clamps at the edges instead of spilling
 	toSelected   bool            // SpillToSelection: a spill into the list lands on its selected row
 	noMarks      bool            // NoMarks: a read-only view, its rows take no marks
 	choose       bool            // ClearFilterOnEnter: enter in the filter line chooses the match and clears the filter
@@ -111,7 +111,7 @@ type Collection struct {
 	visual       bool            // V: a visual row selection over the marks (list_visual.go)
 	anchor       string          // the row V started on
 	base         map[string]bool // the marks before V
-	applying     bool            // list.apply is running its rows' requests: they are not replaced again (visualApply)
+	applying     bool            // collection.apply is running its rows' requests: they are not replaced again (visualApply)
 	part         string          // an instance under the list that holds its focus as a row does (a timeline's body, timeline.go)
 
 	// A detached list filter controller can serve another row view. Its
@@ -136,7 +136,7 @@ type Collection struct {
 	// seals the step (Runtime.undoGroup).
 	undoGroup func() (end func())
 	// yankRows, when a component under the list says how its rows copy (a
-	// tree's indented lines), is how list.yank copies a visual selection:
+	// tree's indented lines), is how collection.yank copies a visual selection:
 	// the yank and the number of rows in it.
 	yankRows func(rows []ListItem) (Yank, int)
 
@@ -166,7 +166,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	if r.Instances[id] != nil {
 		return nil, fmt.Errorf("list %q is already registered", id)
 	}
-	spec := instanceSpec{parent: "app", noun: "ochazuke.list"}
+	spec := instanceSpec{parent: "app", noun: "ochazuke.collection"}
 	for _, opt := range opts {
 		opt(&spec)
 	}
@@ -341,7 +341,7 @@ func (l *Collection) Move(delta int) {
 	}
 }
 
-// spill is list.move past an edge of a focused list on a page (a list in
+// spill is collection.move past an edge of a focused list on a page (a list in
 // a visual selection clamps, so j and k only extend it): delta beyond
 // the last row moves the focus to the next stop in drawing order (a list on
 // its first row), before the first row to the previous stop (a list on its
@@ -373,16 +373,16 @@ func (l *Collection) spill(delta int) bool {
 	return true
 }
 
-// ListNoSpillSetting is list.no-spill: the ids of lists, tables, trees
+// ListNoSpillSetting is collection.no-spill: the ids of lists, tables, trees
 // and timelines whose motions clamp at their edges as NoSpill() does (the
 // per-user opt-out from the spill, UX-RULES R6.12). An entry ending in *
 // is a prefix; an entry may end in one edge (ID:last, ID:first,
 // ID:first-col, ID:last-col; SpillEdges), else it traps all four.
-const ListNoSpillSetting = "list.no-spill"
+const ListNoSpillSetting = "collection.no-spill"
 
 // trappedAt reports whether the list's motions stay inside it at edge
 // instead of spilling to the neighbouring stop: a list made with
-// NoSpill() (every edge), or one the list.no-spill setting names at that
+// NoSpill() (every edge), or one the collection.no-spill setting names at that
 // edge or at every edge (its own id, or the id of the tree or timeline it
 // holds the rows of). Read on every motion, so a settings change applies
 // at once. Every spill path (j/k past an edge, h/l at a table's column
@@ -402,7 +402,7 @@ func (l *Collection) trappedAt(edge SpillEdge) bool {
 
 // listHolder is implemented by a component that holds a list of its own
 // rows (a tree, a timeline): it declares the list its child table, so
-// the list's edges are the holder's too (list.no-spill names either) and
+// the list's edges are the holder's too (collection.no-spill names either) and
 // a holder that answers h and l itself (edgeYielder) keeps them from the
 // list's edge rows.
 type listHolder interface {
@@ -434,7 +434,7 @@ func (l *Collection) holder() *Instance {
 	return nil
 }
 
-// noSpillNames reports whether the list.no-spill setting names one of ids
+// noSpillNames reports whether the collection.no-spill setting names one of ids
 // at edge: an entry is an instance id or a prefix ending in * (panes/*),
 // with an optional edge suffix (ParseNoSpillEntry).
 func (r *Runtime) noSpillNames(edge SpillEdge, ids ...string) bool {
@@ -454,7 +454,7 @@ func (r *Runtime) noSpillNames(edge SpillEdge, ids ...string) bool {
 	return false
 }
 
-// atRowEdge reports whether a list.move of delta would do nothing but
+// atRowEdge reports whether a collection.move of delta would do nothing but
 // spill: the selection is on the edge delta leaves by, and (for a list
 // whose motion is a component's own, a timeline's cards) the component
 // has nothing left to show on that side.
@@ -542,7 +542,7 @@ func (l *Collection) ToggleMark(id string) error {
 // included (a mark survives the filter).
 func (l *Collection) Marked() []ListItem { return l.markedIn(l.all) }
 
-// markedShown lists the marked rows the filter shows: what list.apply
+// markedShown lists the marked rows the filter shows: what collection.apply
 // fans out to, so a key acts on the rows on screen.
 func (l *Collection) markedShown() []ListItem { return l.markedIn(l.items) }
 
@@ -865,7 +865,7 @@ func (l *Collection) emptyLine() string {
 	text := p.Text(l.r)
 	if l.Len() > 0 {
 		text = NoMatchText(p.Plural, l.vs.Text)
-		if l.Filtering() && !l.r.Settings().Bool("list.filter-strip") {
+		if l.Filtering() && !l.r.Settings().Bool("collection.filter-strip") {
 			text += fmt.Sprintf(", 0 of %d", l.Len()) // no strip to count them
 		}
 	}
@@ -896,8 +896,8 @@ func registerLists(r *Runtime) {
 	// j/k take a count (3j): the list's count_pending extends its normal
 	// table (bindings/list.json), so its rows answer with the count in the
 	// payload.
-	r.Define("ochazuke.list").Focusable()
-	// list.mark is guarded off on a list added with NoMarks, so space does
+	r.Define("ochazuke.collection").Focusable()
+	// collection.mark is guarded off on a list added with NoMarks, so space does
 	// not answer there and no hint offers it.
 	r.DefineGuard("list-marks", func(r *Runtime, ev KeyEvent) bool {
 		for _, id := range r.Ancestry(ev.Focus) {
@@ -941,7 +941,7 @@ func registerLists(r *Runtime) {
 		run               func(*Collection, Context, Arguments) (any, error)
 		traits            []opTrait
 	}{
-		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.list", Free: true}}, func(l *Collection, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }, nil},
+		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.collection", Free: true}}, func(l *Collection, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }, nil},
 		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}, "clamp": {Type: "boolean", Description: "Stop at the list's edges instead of spilling (the filter line's moves)"}}, func(l *Collection, _ Context, a Arguments) (any, error) {
 			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
 			if clamp, _ := a["clamp"].(bool); !clamp && l.motion != nil && !l.visual {
@@ -973,7 +973,7 @@ func registerLists(r *Runtime) {
 			return l.apply(c, a)
 		}, nil},
 	} {
-		op := Operation{Key: KeyOf("ochazuke.list", spec.verb), Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		op := Operation{Key: KeyOf("ochazuke.collection", spec.verb), Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err
@@ -983,12 +983,12 @@ func registerLists(r *Runtime) {
 		applyTraits(&op, spec.traits)
 		r.Register(op)
 	}
-	if r.Nouns["ochazuke.list"].Guards == nil {
-		r.Nouns["ochazuke.list"].Guards = map[string]string{}
+	if r.Nouns["ochazuke.collection"].Guards == nil {
+		r.Nouns["ochazuke.collection"].Guards = map[string]string{}
 	}
-	r.Nouns["ochazuke.list"].Guards["mark"] = "list-marks"
-	// list-moves: list.move is unavailable where it would only spill past
-	// an edge the list traps (NoSpill, list.no-spill ID:last / ID:first):
+	r.Nouns["ochazuke.collection"].Guards["mark"] = "list-marks"
+	// list-moves: collection.move is unavailable where it would only spill past
+	// an edge the list traps (NoSpill, collection.no-spill ID:last / ID:first):
 	// the hints and help leave it out there and the key goes on to the
 	// next row bound to it, as any unavailable action's does. A clamped
 	// move (the filter line's) stays available.
@@ -1005,7 +1005,7 @@ func registerLists(r *Runtime) {
 		}
 		return l == nil || !(l.atRowEdge(delta) && l.trappedAt(rowEdge(delta)))
 	})
-	r.Nouns["ochazuke.list"].Guards["move"] = "list-moves"
+	r.Nouns["ochazuke.collection"].Guards["move"] = "list-moves"
 	registerListMotions(r)
 	registerTableCells(r)
 	registerListVisual(r)
@@ -1013,7 +1013,7 @@ func registerLists(r *Runtime) {
 	registerListPropFilter(r)
 	registerListSort(r)
 	registerListQuery(r)
-	for _, verb := range []string{"ochazuke.list.column", "ochazuke.list.scroll-columns"} {
+	for _, verb := range []string{"ochazuke.collection.column", "ochazuke.collection.scroll-columns"} {
 		if err := r.AddVerbAvailability(verb, "list-column-moves"); err != nil {
 			panic(err)
 		}

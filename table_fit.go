@@ -10,13 +10,13 @@ import (
 // Fitting columns to their content: the explicit form of what the
 // automatic layout guesses at.
 //
-//	z f   list.fit-column: the current column of a cell-mode table as wide
+//	z f   collection.fit-column: the current column of a cell-mode table as wide
 //	      as its widest cell over every row (the ones a filter hides
 //	      included) or its title, whichever is wider, never wider than the
 //	      table; with a count (N z f) N cells instead, as Vim's N ctrl-w |
 //	      sets a window's width. Verb guard table-cells: a row-select table
 //	      has no current column, so z f does not answer there.
-//	z F   list.fit-columns: every column at its content's width when they
+//	z F   collection.fit-columns: every column at its content's width when they
 //	      all fit the table's width; when they do not, the widest is
 //	      narrowed a cell at a time (ties the rightmost) until they fit or
 //	      every column is at its least width (its Min, else
@@ -24,7 +24,7 @@ import (
 //	      be are cut and the rest scroll (R5.9). A count is ignored, as in
 //	      Vim's ctrl-w =. Verb guard table-fit-changes: any table,
 //	      cell-mode or not, where it would change a column's width.
-//	z =   list.reset-columns undoes both (every column automatic again);
+//	z =   collection.reset-columns undoes both (every column automatic again);
 //	      verb guard table-resets: a table with a width given or pins
 //	      chosen.
 //
@@ -192,12 +192,12 @@ func registerTableFit(r *Runtime, cells func(Context, Arguments) (*Collection, e
 		l := r.focusedList(ev.Focus)
 		return l != nil && l.resets()
 	})
-	guards := r.Nouns["ochazuke.list"].Guards
+	guards := r.Nouns["ochazuke.collection"].Guards
 	guards["fit-column"] = "table-cells"
 	guards["fit-columns"] = "table-fit-changes"
 	guards["reset-columns"] = "table-resets"
 	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
-	r.Register(Operation{Key: "ochazuke.list.fit-column", Description: "Fit a cell-mode table's current column to its widest cell or title over every row, at most the table's width (z f), or give it width cells (a count: N z f); remembered per table, z = undoes it", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.collection.fit-column", Description: "Fit a cell-mode table's current column to its widest cell or title over every row, at most the table's width (z f), or give it width cells (a count: N z f); remembered per table, z = undoes it", Parameters: map[string]Parameter{
 		"id":    id,
 		"width": {Type: "integer", Description: "Cells instead of the content's width (a count: 20 z f; 0 or left out fits the content)"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
@@ -216,7 +216,7 @@ func registerTableFit(r *Runtime, cells func(Context, Arguments) (*Collection, e
 		}
 		return l.state(), nil
 	}})
-	r.Register(Operation{Key: "ochazuke.list.fit-columns", Description: "Fit every column of a table to its content when the table's width allows, else narrow the widest first so as few columns as can be are cut (z F); remembered per table, z = undoes it", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.collection.fit-columns", Description: "Fit every column of a table to its content when the table's width allows, else narrow the widest first so as few columns as can be are cut (z F); remembered per table, z = undoes it", Parameters: map[string]Parameter{"id": id}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := cells(c, a)
 		if err != nil {
 			return nil, err

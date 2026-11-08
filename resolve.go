@@ -570,7 +570,7 @@ func rowsForMode(rows []Binding, mode string, exclusive bool) []Binding {
 // the row noun deletes that row and its confirm names it), else the
 // focus. Shared operations a level binds (mode.switch, input.*, focus.next)
 // keep the focus. The resolver and the live listings ask Available here,
-// so a row its target refuses (list.move at a trapped edge of the list a
+// so a row its target refuses (collection.move at a trapped edge of the list a
 // child's level reaches) stands aside rather than winning the key and
 // being refused when it runs.
 func (r *Runtime) rowInstance(lv level, q Request, focus string) string {

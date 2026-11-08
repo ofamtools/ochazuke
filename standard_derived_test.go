@@ -427,9 +427,9 @@ func TestDeleteArchiveConfirm(t *testing.T) {
 	if got := prompt(both); !strings.HasPrefix(got, "Archive task ") {
 		t.Fatalf("two live: %q", got)
 	}
-	apply := Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "tasks", "verb": "delete"}}
-	if got := prompt(apply); !strings.HasPrefix(got, "Archive task ") { // {{label}} reads the row (list.apply)
-		t.Fatalf("list.apply on one row: %q", got)
+	apply := Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"id": "tasks", "verb": "delete"}}
+	if got := prompt(apply); !strings.HasPrefix(got, "Archive task ") { // {{label}} reads the row (collection.apply)
+		t.Fatalf("collection.apply on one row: %q", got)
 	}
 	mustRun(t, r, Request{Noun: "task", Verb: "archive", Args: Arguments{"id": "t2"}})
 	if got := prompt(both); !strings.HasPrefix(got, "Delete task ") {

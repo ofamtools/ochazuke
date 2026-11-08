@@ -4,33 +4,33 @@
     "list_filter": {}
   },
   "bindings": [
-    {"context": "ochazuke.list/list_filter", "bindings": [
-      {"key": "printable", "action": "ochazuke.list.filter-type", "from": {"text": "text"}, "hidden": true},
-      {"key": "paste", "action": "ochazuke.list.filter-type", "from": {"text": "text"}, "hidden": true},
-      {"key": "space", "action": "ochazuke.list.filter-type", "args": {"text": " "}, "hidden": true},
-      {"key": "backspace", "action": "ochazuke.list.filter-keep", "when": "list-unfiltered", "hidden": true},
-      {"key": "backspace", "action": "ochazuke.list.filter-erase", "hidden": true},
-      {"key": "ctrl+h", "action": "ochazuke.list.filter-keep", "when": "list-unfiltered", "hidden": true},
-      {"key": "ctrl+h", "action": "ochazuke.list.filter-erase", "hidden": true},
-      {"key": "ctrl+u", "action": "ochazuke.list.filter", "args": {"query": ""}, "hidden": true},
-      {"key": "down", "action": "ochazuke.list.move", "args": {"clamp": true, "delta": 1}},
-      {"key": "ctrl+n", "action": "ochazuke.list.move", "args": {"clamp": true, "delta": 1}},
-      {"key": "up", "action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
-      {"key": "ctrl+p", "action": "ochazuke.list.move", "args": {"clamp": true, "delta": -1}},
-      {"key": "enter", "action": "ochazuke.list.filter-choose", "when": "list-chooses"},
-      {"key": "enter", "action": "ochazuke.list.filter-keep"},
-      {"key": "esc", "action": "ochazuke.list.filter-clear"},
+    {"context": "ochazuke.collection/list_filter", "bindings": [
+      {"key": "printable", "action": "ochazuke.collection.filter-type", "from": {"text": "text"}, "hidden": true},
+      {"key": "paste", "action": "ochazuke.collection.filter-type", "from": {"text": "text"}, "hidden": true},
+      {"key": "space", "action": "ochazuke.collection.filter-type", "args": {"text": " "}, "hidden": true},
+      {"key": "backspace", "action": "ochazuke.collection.filter-keep", "when": "list-unfiltered", "hidden": true},
+      {"key": "backspace", "action": "ochazuke.collection.filter-erase", "hidden": true},
+      {"key": "ctrl+h", "action": "ochazuke.collection.filter-keep", "when": "list-unfiltered", "hidden": true},
+      {"key": "ctrl+h", "action": "ochazuke.collection.filter-erase", "hidden": true},
+      {"key": "ctrl+u", "action": "ochazuke.collection.filter", "args": {"query": ""}, "hidden": true},
+      {"key": "down", "action": "ochazuke.collection.move", "args": {"clamp": true, "delta": 1}},
+      {"key": "ctrl+n", "action": "ochazuke.collection.move", "args": {"clamp": true, "delta": 1}},
+      {"key": "up", "action": "ochazuke.collection.move", "args": {"clamp": true, "delta": -1}},
+      {"key": "ctrl+p", "action": "ochazuke.collection.move", "args": {"clamp": true, "delta": -1}},
+      {"key": "enter", "action": "ochazuke.collection.filter-choose", "when": "list-chooses"},
+      {"key": "enter", "action": "ochazuke.collection.filter-keep"},
+      {"key": "esc", "action": "ochazuke.collection.filter-clear"},
       {"key": "tab", "action": "ochazuke.search.cycle-match"},
       {"key": "shift+tab", "action": "ochazuke.search.cycle-match", "args": {"step": -1}, "hidden": true}
     ]},
-    {"context": "ochazuke.list/normal", "bindings": [
-      {"key": "V", "action": "ochazuke.list.visual", "hidden": true},
-      {"key": "esc", "action": "ochazuke.list.end-visual", "when": "list-visual"},
-      {"key": "esc", "action": "ochazuke.list.filter-clear"}
+    {"context": "ochazuke.collection/normal", "bindings": [
+      {"key": "V", "action": "ochazuke.collection.visual", "hidden": true},
+      {"key": "esc", "action": "ochazuke.collection.end-visual", "when": "list-visual"},
+      {"key": "esc", "action": "ochazuke.collection.filter-clear"}
     ]},
-    {"context": "ochazuke.list/visual-line", "extends": "normal", "bindings": [
-      {"key": "esc", "action": "ochazuke.list.end-visual"},
-      {"key": "y", "action": "ochazuke.list.yank", "args": {"what": "row"}, "hint": "yank"},
+    {"context": "ochazuke.collection/visual-line", "extends": "normal", "bindings": [
+      {"key": "esc", "action": "ochazuke.collection.end-visual"},
+      {"key": "y", "action": "ochazuke.collection.yank", "args": {"what": "row"}, "hint": "yank"},
       {"key": "digit-0", "action": "ochazuke.mode.enter", "args": {"mode": "count_pending"}, "from": {"count": "digit"}, "hidden": true}
     ]}
   ]

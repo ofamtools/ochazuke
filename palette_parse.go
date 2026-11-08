@@ -257,7 +257,7 @@ type lineIndex struct {
 	aliasVerbs map[string][]string
 	aliasNouns map[string][]string
 	// names are a noun's other names (its canonical name and its
-	// aliases, ochazuke.list and json-doc), lower-cased, each -> the
+	// aliases, ochazuke.collection and json-doc), lower-cased, each -> the
 	// noun's word: typed whole they read as the noun, never completed.
 	names map[string]string
 	// old are the names among them that are deprecated aliases (lower-cased

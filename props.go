@@ -63,7 +63,7 @@ const (
 	RoleOwner = "owner"
 	// RoleArchive is the boolean prop that says a thing is archived.
 	// Archive and restore write it; standard list hides true values unless
-	// a filter names it or list.hide-archived is off. It declares the
+	// a filter names it or collection.hide-archived is off. It declares the
 	// archived saved filter. Delete reads it under delete.archive.
 	RoleArchive = "archive"
 )

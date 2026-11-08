@@ -320,7 +320,7 @@ func (l *Collection) MotionEdges() []SpillEdge {
 	return []SpillEdge{EdgeFirst, EdgeLast}
 }
 
-// MoveToEdge is list.goto for the row edges and list.column {to} for the
+// MoveToEdge is collection.goto for the row edges and collection.column {to} for the
 // column edges (CursorMotions).
 func (l *Collection) MoveToEdge(edge SpillEdge, row int) {
 	switch {
@@ -337,7 +337,7 @@ func (l *Collection) MoveToEdge(edge SpillEdge, row int) {
 	}
 }
 
-// PageLines is the list's page (CursorMotions), as list.scroll's.
+// PageLines is the list's page (CursorMotions), as collection.scroll's.
 func (l *Collection) PageLines() int {
 	if l.selected < 0 {
 		return 0
@@ -345,5 +345,5 @@ func (l *Collection) PageLines() int {
 	return l.pageRows()
 }
 
-// MovePage is list.scroll by lines rows (CursorMotions).
+// MovePage is collection.scroll by lines rows (CursorMotions).
 func (l *Collection) MovePage(lines int) { l.page(lines) }

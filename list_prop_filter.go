@@ -164,7 +164,7 @@ func rowThing(n *Noun, item ListItem) Thing {
 	return thing
 }
 
-// archiveHidden is the ids list.hide-archived hides: the rows of a noun
+// archiveHidden is the ids collection.hide-archived hides: the rows of a noun
 // with an archive-role prop (rowThing, so props from a row-fed page and
 // from a store alike) whose prop is true, decided by the same predicate as
 // runList (Runtime.archiveHiding). In a tree an archived node hides its
@@ -361,7 +361,7 @@ func (l *Collection) SaveFilter(name string) error {
 	if err != nil {
 		return err
 	}
-	if err := l.r.Settings().Set("list.filters", string(raw)); err != nil {
+	if err := l.r.Settings().Set("collection.filters", string(raw)); err != nil {
 		return err
 	}
 	l.vs.Saved = name
@@ -393,7 +393,7 @@ func (l *Collection) DeleteSavedFilter(name string) error {
 	if err != nil {
 		return err
 	}
-	if err := l.r.Settings().Set("list.filters", string(raw)); err != nil {
+	if err := l.r.Settings().Set("collection.filters", string(raw)); err != nil {
 		return err
 	}
 	if l.vs.Saved == name {
@@ -442,7 +442,7 @@ func (r *Runtime) savedFilterNamed(n *Noun, name string) ([]PropFilter, bool, er
 }
 
 func (l *Collection) propStrip() string {
-	if !l.r.Settings().Bool("list.filter-strip") {
+	if !l.r.Settings().Bool("collection.filter-strip") {
 		return ""
 	}
 	var parts []string
@@ -478,7 +478,7 @@ func (t *Tree) filterNodes(hidden map[string]bool) map[string]bool {
 
 func (l *Collection) filterProps() []string { return sortedKeys(l.filterSpecs()) }
 
-// pickPropFilter opens the filter form (prop empty, list.filter-form on;
+// pickPropFilter opens the filter form (prop empty, collection.filter-form on;
 // list_filter_form.go), else the prop chooser (prop empty), then the value
 // chooser; not turns the picked condition over (!=, not-contains).
 func (l *Collection) pickPropFilter(prop string, offerClear, not bool) error {
@@ -491,7 +491,7 @@ func (l *Collection) pickPropFilter(prop string, offerClear, not bool) error {
 			rows = append(rows, ChooserRow{ID: name, Label: name})
 		}
 		if l.r.Settings().Bool(ListFilterPickerSortSetting) && l.Sortable() {
-			rows = append(rows, ChooserRow{Label: "Sort…", Fixed: true, Data: Request{Noun: "ochazuke.list", Verb: "sort-column", Args: Arguments{"id": l.id, "pick": true}}})
+			rows = append(rows, ChooserRow{Label: "Sort…", Fixed: true, Data: Request{Noun: "ochazuke.collection", Verb: "sort-column", Args: Arguments{"id": l.id, "pick": true}}})
 		}
 		if offerClear && (len(l.vs.Filters) > 0 || l.vs.Saved != "") {
 			rows = append(rows, ChooserRow{Label: "Clear prop filters", Fixed: true})
@@ -612,13 +612,13 @@ func registerListPropFilter(r *Runtime) {
 	})
 	r.DefineGuard("list-saved-filters", func(r *Runtime, ev KeyEvent) bool {
 		l := guardList(ev)
-		if l == nil || !r.Settings().Bool("list.filter-cycle") {
+		if l == nil || !r.Settings().Bool("collection.filter-cycle") {
 			return false
 		}
 		filters, err := l.SavedFilters()
 		return err == nil && len(filters) > 0
 	})
-	r.Register(Operation{Key: "ochazuke.list.flush-lingering", Description: "Remove changed rows waiting to leave the active filter", Parameters: map[string]Parameter{"id": {Type: "string"}}, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.collection.flush-lingering", Description: "Remove changed rows waiting to leave the active filter", Parameters: map[string]Parameter{"id": {Type: "string"}}, Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		focus := StringArg(a, "id", focusOf(c))
 		l := r.rowFilterList(focus)
 		if l == nil {
@@ -627,7 +627,7 @@ func registerListPropFilter(r *Runtime) {
 		l.FlushLingering()
 		return nil, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.list.filters", Description: "List the saved prop filters available to a list", Parameters: map[string]Parameter{"id": {Type: "string"}}, Result: "filter[]", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.collection.filters", Description: "List the saved prop filters available to a list", Parameters: map[string]Parameter{"id": {Type: "string"}}, Result: "filter[]", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		l, err := resolve(c, a)
 		if err != nil {
 			return nil, err
@@ -685,7 +685,7 @@ func registerListPropFilter(r *Runtime) {
 		}},
 		{"filter-props-clear", "Clear every prop condition and saved filter name, keeping / text", "list-prop-filtered", nil, func(l *Collection, _ Arguments) error { return l.SetPropFilters(nil) }},
 		{"filter-saved", "Apply saved conditions and sort by name, keeping / text", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *Collection, a Arguments) error { return l.ApplyFilter(StringArg(a, "name", "")) }},
-		{"filter-save", "Save current prop conditions and sort as a list-scoped user filter in list.filters", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *Collection, a Arguments) error { return l.SaveFilter(StringArg(a, "name", "")) }},
+		{"filter-save", "Save current prop conditions and sort as a list-scoped user filter in collection.filters", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *Collection, a Arguments) error { return l.SaveFilter(StringArg(a, "name", "")) }},
 		{"filter-saved-delete", "Delete a user saved filter; removing an override reveals the app default", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *Collection, a Arguments) error { return l.DeleteSavedFilter(StringArg(a, "name", "")) }},
 		{"filter-saved-pick", "List saved prop filters in a picker and apply the selected one", "", nil, func(l *Collection, _ Arguments) error { return l.pickSavedFilter() }},
 		{"filter-cycle", "Cycle the saved prop filters declared for this list or its row nouns", "list-saved-filters", map[string]Parameter{"step": {Type: "integer"}}, func(l *Collection, a Arguments) error {
@@ -733,7 +733,7 @@ func registerListPropFilter(r *Runtime) {
 			params = map[string]Parameter{}
 		}
 		params["id"] = Parameter{Type: "string", Description: "List, tree or picker id (default focused)"}
-		r.Register(Operation{Key: KeyOf("ochazuke.list", spec.verb), Description: spec.description, Parameters: params, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("ochazuke.collection", spec.verb), Description: spec.description, Parameters: params, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l, err := resolve(c, a)
 			if err != nil {
 				return nil, err
@@ -744,11 +744,11 @@ func registerListPropFilter(r *Runtime) {
 			return l.state(), nil
 		}})
 		if spec.guard != "" {
-			r.Nouns["ochazuke.list"].Guards[spec.verb] = spec.guard
+			r.Nouns["ochazuke.collection"].Guards[spec.verb] = spec.guard
 		}
 	}
-	_ = r.SetConfirm("ochazuke.list.filter-saved-delete", "Delete saved filter {{name}}?")
-	op := r.Operations.At(Key("ochazuke.list.filter-saved-delete"))
+	_ = r.SetConfirm("ochazuke.collection.filter-saved-delete", "Delete saved filter {{name}}?")
+	op := r.Operations.At(Key("ochazuke.collection.filter-saved-delete"))
 	op.Destructive = true
 	r.Operations.Set(op)
 }

@@ -47,7 +47,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	config, state := t.TempDir(), t.TempDir()
 	m := historyModel(t, config, state)
 	r := m.Runtime
-	runPaletteLine(t, r, Request{Verb: "list", Noun: "ochazuke.mode"})
+	runPaletteLine(t, r, Request{Verb: "list", Noun: "ochazuke.event"})
 	runPaletteLine(t, r, Request{Verb: "list", Noun: "ochazuke.theme"})
 	if err := r.Config().Flush(); err != nil {
 		t.Fatal(err)
@@ -63,7 +63,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	next := historyModel(t, config, state)
 	nr := next.Runtime
 	entries := nr.History(0)
-	if len(entries) < 2 || !entries[0].Restored || entries[0].Request.Key() != "ochazuke.mode.list" || entries[1].Request.Key() != "ochazuke.theme.list" {
+	if len(entries) < 2 || !entries[0].Restored || entries[0].Request.Key() != "ochazuke.event.list" || entries[1].Request.Key() != "ochazuke.theme.list" {
 		t.Fatalf("restored: %+v", entries)
 	}
 	for i := 1; i < len(entries); i++ {
@@ -75,10 +75,10 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	if _, err := nr.Execute(Request{Verb: "open", Noun: "ochazuke.palette"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.recallLine(1); err != nil || p.Text() != "list themes" {
+	if err := p.recallLine(1); err != nil || p.Text() != "list theme" {
 		t.Fatalf("recall: %q %v", p.Text(), err)
 	}
-	if err := p.recallLine(1); err != nil || p.Text() != "list modes" {
+	if err := p.recallLine(1); err != nil || p.Text() != "list event" {
 		t.Fatalf("recall 2: %q %v", p.Text(), err)
 	}
 	if _, err := nr.repeatRequest(focusOf(nr.Context()), 0); err == nil {
@@ -157,7 +157,7 @@ func TestHistoryNotPersistedWhenDisabledOrOptedOut(t *testing.T) {
 	r.Config().Disable()
 	m := NewModel(r)
 	m.Init()
-	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.mode"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.event"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Settings().find(HistorySetting) != nil || r.Config().HistoryPath() != "" {
@@ -171,7 +171,7 @@ func TestHistoryNotPersistedWhenDisabledOrOptedOut(t *testing.T) {
 	r.Config().StateDir, r.Config().NoHistoryFile = state, true
 	m = NewModel(r)
 	m.Init()
-	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.mode"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.event"}); err != nil {
 		t.Fatal(err)
 	}
 	_ = r.Config().Flush()
@@ -187,7 +187,7 @@ func TestHistoryLimitZeroKeepsNone(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := historyModel(t, config, state)
-	if _, err := m.Runtime.Execute(Request{Verb: "list", Noun: "ochazuke.mode"}); err != nil {
+	if _, err := m.Runtime.Execute(Request{Verb: "list", Noun: "ochazuke.event"}); err != nil {
 		t.Fatal(err)
 	}
 	_ = m.Runtime.Config().Flush()

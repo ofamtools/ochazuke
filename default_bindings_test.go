@@ -109,7 +109,7 @@ func TestLoadDefaultBindingsFailsLoudly(t *testing.T) {
 		{`{"bindings": [{"context": "app/normal", "bindings": {"x": "app.nope"}}]}`, `mtm/app.json: app/normal "x": unknown operation "app.nope"`},
 		{`{"bindings": [{"context": "app/normal", "bindings": {"x": {"action": "app.quit", "when": "nope"}}}]}`, `unknown guard "nope"`},
 		{`{"bindings": [{"context": "app/nope", "bindings": {"x": "app.quit"}}]}`, `unknown mode "nope"`},
-		{`{"bindings": [{"context": "app/normal", "bindings": {"x": {"action": "ochazuke.list.move", "args": {"delta": 1, "nope": 1}}}}]}`, `unknown argument "nope"`},
+		{`{"bindings": [{"context": "app/normal", "bindings": {"x": {"action": "ochazuke.collection.move", "args": {"delta": 1, "nope": 1}}}}]}`, `unknown argument "nope"`},
 		{`{"bindings": [{"context": "app/normal", "bindings": {"x": {"action": "app.quit", "from": {"x": "key"}}}}]}`, `has no argument "x"`},
 		{`{"bindings": [{"context": "app/normal", "extends": "nope"}]}`, `extends unknown mode "nope"`},
 		{`{"bindings": [{"context": "app/normal", "bindings": {"x": "app.quit", "x": "app.quit"}}]}`, `key "x" twice`},
@@ -141,7 +141,7 @@ func TestLoadDefaultBindingsMatchesTheGoBuilder(t *testing.T) {
     {"context": "app/normal", "bindings": {
       "z": {"action": "ochazuke.mode.enter", "args": {"mode": "demo_pending", "prefix": "z", "request": {"noun": "test", "verb": "alpha"}}, "hint": "demo"},
       "a": ["test.alpha", {"action": "test.beta", "when": "no-modal", "hidden": true}],
-      "g g": {"action": "ochazuke.list.move", "args": {"delta": 2}, "from": {"steps": "count"}}
+      "g g": {"action": "ochazuke.collection.move", "args": {"delta": 2}, "from": {"steps": "count"}}
     }},
     {"context": "app/demo_pending", "bindings": {"any": {"action": "test.gamma", "replay": true}}},
     {"context": "app/count_pending", "extends": "normal"},
@@ -164,7 +164,7 @@ func TestLoadDefaultBindingsMatchesTheGoBuilder(t *testing.T) {
 			Bind("z", Enter("demo_pending", Payload{Prefix: "z", Request: &alpha}).Hinted("demo")).
 			Bind("a", Do("test.alpha")).
 			Bind("a", Do("test.beta").Guard("no-modal").Hide()).
-			Bind("g g", Do("ochazuke.list.move", Arguments{"delta": 2}).FromPayload("steps", SourceCount)).
+			Bind("g g", Do("ochazuke.collection.move", Arguments{"delta": 2}).FromPayload("steps", SourceCount)).
 			Mode("demo_pending").Pattern(Any, Binding{Request: Request{Noun: "test", Verb: "gamma"}, Replay: true}).
 			Mode("count_pending").Extends("normal")
 		row := Do("test.beta").Captured()

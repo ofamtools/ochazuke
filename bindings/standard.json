@@ -4,8 +4,8 @@
     {"context": "app/normal", "fallback": true, "bindings": [
       {"key": "i", "action": "ochazuke.noun.edit", "hint": "edit"}
     ]},
-    {"context": "ochazuke.list/visual-line", "extends": "normal", "bindings": [
-      {"key": "d", "action": "ochazuke.list.apply", "args": {"verb": "delete"}, "hint": "delete"}
+    {"context": "ochazuke.collection/visual-line", "extends": "normal", "bindings": [
+      {"key": "d", "action": "ochazuke.collection.apply", "args": {"verb": "delete"}, "hint": "delete"}
     ]}
   ]
 }

@@ -53,7 +53,7 @@
       "mode": "normal",
       "focus": "a3",
       "lacks": [
-        "esc list.filter-clear"
+        "esc collection.filter-clear"
       ],
       "contains": [
         "/ filter"

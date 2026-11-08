@@ -10,7 +10,7 @@ import (
 
 // ListFilterLingerSetting controls how long rows leaving a filter remain
 // visible. The default is 30s; zero disables lingering.
-const ListFilterLingerSetting = "list.filter-linger"
+const ListFilterLingerSetting = "collection.filter-linger"
 
 // ToneLingering marks a changed row that will leave its filter shortly.
 const ToneLingering = "list.lingering"

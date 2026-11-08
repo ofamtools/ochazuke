@@ -614,7 +614,7 @@ func TestAliasPresetToggleYieldsToAValue(t *testing.T) {
 	}
 }
 
-// list.apply over several rows asks the store's own prompt when the store
+// collection.apply over several rows asks the store's own prompt when the store
 // builds one (Store.ConfirmFor, told every key), not the generic "Run
 // task.delete on 2 rows?": mtm's V j d keeps its orphan counts.
 func TestListApplyAsksTheStoresPromptForManyRows(t *testing.T) {
@@ -644,15 +644,15 @@ func TestListApplyAsksTheStoresPromptForManyRows(t *testing.T) {
 	if err := r.SetFocus("row-t1"); err != nil {
 		t.Fatal(err)
 	}
-	v := mustRun(t, r, Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "tasks/list", "verb": "delete"}})
+	v := mustRun(t, r, Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"id": "tasks/list", "verb": "delete"}})
 	if p := v.(map[string]any)["prompt"]; p != "Delete 2 tasks (t1, t2)?" {
 		t.Fatalf("prompt %q (hook got %v)", p, got)
 	}
 }
 
 // A store's ConfirmFor that adds to the standard prompt (mtm's orphan
-// counts): list.apply's confirm fills the prompt's fields from the rows'
-// request, never list.apply's own arguments ("Delete task true?" in
+// counts): collection.apply's confirm fills the prompt's fields from the rows'
+// request, never collection.apply's own arguments ("Delete task true?" in
 // v0.56.0). One row names its label read from the store; several name the
 // first and count the rest, the store's lines after it.
 func TestListApplyStorePromptAddsToTheRowsCount(t *testing.T) {
@@ -677,7 +677,7 @@ func TestListApplyStorePromptAddsToTheRowsCount(t *testing.T) {
 	if err := r.SetFocus("row-t1"); err != nil {
 		t.Fatal(err)
 	}
-	v := mustRun(t, r, Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "tasks/list", "verb": "delete"}})
+	v := mustRun(t, r, Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"id": "tasks/list", "verb": "delete"}})
 	if p := v.(map[string]any)["prompt"]; p != "Delete task Water the plants?\nOrphan: t1" {
 		t.Fatalf("one row: prompt %q (hook got %v)", p, got)
 	}
@@ -687,7 +687,7 @@ func TestListApplyStorePromptAddsToTheRowsCount(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	v = mustRun(t, r, Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"id": "tasks/list", "verb": "delete"}})
+	v = mustRun(t, r, Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"id": "tasks/list", "verb": "delete"}})
 	if p := v.(map[string]any)["prompt"]; p != "Delete task Water the plants and 1 more?\nOrphan: t1, t2" {
 		t.Fatalf("two rows: prompt %q (hook got %v)", p, got)
 	}

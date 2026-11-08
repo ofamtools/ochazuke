@@ -103,7 +103,7 @@ func Parent(id string) InstanceOption { return func(s *instanceSpec) { s.parent 
 func RowNoun(noun string) InstanceOption { return func(s *instanceSpec) { s.rowNoun = noun } }
 
 // Kind names the noun the instance answers to (default: the instance id for
-// plain instances, "editor" for inputs, "list" for lists, "page" for pages,
+// plain instances, "editor" for inputs, "collection" for lists, "page" for pages,
 // "terminal" for terminals).
 func Kind(noun string) InstanceOption { return func(s *instanceSpec) { s.noun = noun } }
 
@@ -125,7 +125,7 @@ func FocusOnClose(id string) InstanceOption {
 	return func(s *instanceSpec) { s.closeFocus = id }
 }
 
-// NoSpill makes a list trap its motions: list.move past its last (first)
+// NoSpill makes a list trap its motions: collection.move past its last (first)
 // row stays on that row instead of moving the focus to the next (previous)
 // stop on the page. For a list that must keep the focus, such as a picker.
 func NoSpill() InstanceOption { return func(s *instanceSpec) { s.noSpill = true } }
@@ -137,9 +137,9 @@ func NoSpill() InstanceOption { return func(s *instanceSpec) { s.noSpill = true 
 func SpillToSelection() InstanceOption { return func(s *instanceSpec) { s.spillToSelection = true } }
 
 // NoMarks makes a list (or a tree's list) a read-only view: its rows take
-// no marks, so space does not answer with list.mark there (the verb's
+// no marks, so space does not answer with collection.mark there (the verb's
 // guard, list-marks, is false; the footer and ? help leave it out) and
-// list.mark refuses. list.apply still runs on the selected row.
+// collection.mark refuses. collection.apply still runs on the selected row.
 func NoMarks() InstanceOption { return func(s *instanceSpec) { s.noMarks = true } }
 
 // Guides draws branch lines in a tree's indent area. Trees default to no
@@ -148,11 +148,11 @@ func NoMarks() InstanceOption { return func(s *instanceSpec) { s.noMarks = true 
 func Guides() InstanceOption { return func(s *instanceSpec) { s.guides = true } }
 
 // ClearFilterOnEnter makes enter in a list's (or a tree's list's) filter
-// line choose the selected match: list.filter-choose clears the filter
+// line choose the selected match: collection.filter-choose clears the filter
 // with the selection staying on that row, every row shows again, the mode
 // is normal and the page keeps the row on screen. For a list one picks a
 // row from, such as a pane list. With no match enter keeps the filter, as
-// on every other list (list.filter-keep; its verb guard, list-chooses, is
+// on every other list (collection.filter-keep; its verb guard, list-chooses, is
 // false there and off this option).
 func ClearFilterOnEnter() InstanceOption {
 	return func(s *instanceSpec) { s.clearFilterOnEnter = true }

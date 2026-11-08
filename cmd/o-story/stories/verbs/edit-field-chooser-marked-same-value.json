@@ -116,10 +116,10 @@
     }
    },
    {
-    "noun": "ochazuke.list",
+    "noun": "ochazuke.collection",
     "mode": "normal",
     "keys": "M",
-    "do": "ochazuke.list.apply",
+    "do": "ochazuke.collection.apply",
     "args": {
      "verb": "edit",
      "args": {

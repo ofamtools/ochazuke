@@ -32,10 +32,10 @@ func TestListClassMotions(t *testing.T) {
 			t.Fatalf("%s: focus %s selection %s mode %s, want %s", step.keys, r.Focus, a.selectedID(), r.Mode.Name, step.want)
 		}
 	}
-	if !strings.Contains(BindingHints(r, r.Focus), "list.next-class merge commit") {
+	if !strings.Contains(BindingHints(r, r.Focus), "collection.next-class merge commit") {
 		t.Fatal("class motion missing from hints")
 	}
-	if !r.Operations.At(Key("ochazuke.list.next-class")).Motion || !r.Operations.At(Key("ochazuke.list.previous-class")).Motion {
+	if !r.Operations.At(Key("ochazuke.collection.next-class")).Motion || !r.Operations.At(Key("ochazuke.collection.previous-class")).Motion {
 		t.Fatal("class verbs are not motions")
 	}
 	if _, err := r.ValidateBindings(); err != nil {
@@ -71,7 +71,7 @@ func TestListClassMotionsPaletteOnlyAndTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = r.SetFocus("b1")
-	_, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "next-class", Args: Arguments{"id": "a", "class": "quiet"}})
+	_, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "next-class", Args: Arguments{"id": "a", "class": "quiet"}})
 	if err != nil || a.selectedID() != "a5" {
 		t.Fatalf("palette-only class: %s, %v", a.selectedID(), err)
 	}
@@ -95,7 +95,7 @@ func TestListClassBindingsUserOverrideAndHelp(t *testing.T) {
 	}
 	dir := t.TempDir()
 	r.Config().Dir = dir
-	writeConfig(t, dir, BindingsFile, `[{"noun":"row","mode":"normal","keys":"] m","request":{"noun":"ochazuke.list","verb":"next-class","args":{"class":"refs"}}},{"noun":"row","mode":"normal","keys":"[ m","request":null}]`)
+	writeConfig(t, dir, BindingsFile, `[{"noun":"row","mode":"normal","keys":"] m","request":{"noun":"ochazuke.collection","verb":"next-class","args":{"class":"refs"}}},{"noun":"row","mode":"normal","keys":"[ m","request":null}]`)
 	r.EnsureUserBindings()
 	motionKeys(t, r, m, "] m")
 	if r.Focus != "a7" {

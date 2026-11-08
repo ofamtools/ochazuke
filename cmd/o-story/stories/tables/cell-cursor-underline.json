@@ -1,5 +1,5 @@
 {
-  "name": "cell cursor: with list.cell-cursor underline the current cell is reversed and underlined inside the bar, on no background, as before",
+  "name": "cell cursor: with collection.cell-cursor underline the current cell is reversed and underlined inside the bar, on no background, as before",
   "area": "tables",
   "width": 48,
   "height": 5,
@@ -7,7 +7,7 @@
   "theme": "dark",
   "settings": [
     {
-      "name": "list.cell-cursor",
+      "name": "collection.cell-cursor",
       "type": "string",
       "default": "underline",
       "enum": [

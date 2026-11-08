@@ -172,7 +172,7 @@ func TestSpillToSelection(t *testing.T) {
 	_ = r.OpenPage("p")
 	_ = nav.Select("n2")
 	_ = r.SetFocus("b1")
-	if _, err := r.Execute(Request{Noun: "ochazuke.list", Verb: "move", Args: Arguments{"id": "body", "delta": -1}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "move", Args: Arguments{"id": "body", "delta": -1}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Focus != "n2" {

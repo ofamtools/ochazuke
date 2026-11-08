@@ -50,7 +50,7 @@
         "alpha",
         "alphabet",
         "delta",
-        "esc list.filter-clear"
+        "esc collection.filter-clear"
       ],
       "lacks": [
         "beta",

@@ -1,5 +1,5 @@
 {
-  "name": "a row requesting list.apply {verb: relocate} binds relocate: the ? help does not list it as unbound",
+  "name": "a row requesting collection.apply {verb: relocate} binds relocate: the ? help does not list it as unbound",
   "area": "help",
   "width": 220,
   "height": 60,
@@ -39,7 +39,7 @@
       {
         "noun": "culprit",
         "keys": "x",
-        "do": "ochazuke.list.apply",
+        "do": "ochazuke.collection.apply",
         "args": {
           "verb": "relocate"
         }
@@ -64,7 +64,7 @@
     ],
     "contains": [
       "x ",
-      "list.apply"
+      "collection.apply"
     ]
   }
 }

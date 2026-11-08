@@ -237,7 +237,7 @@ func (r *Runtime) AddTimeline(id string, cards []Card, opts ...InstanceOption) (
 	list.part = t.bodyID
 	list.motion = t.cardMotion
 	list.motionAtEdge = t.cardsAtEdge
-	// G on the list instance, above the list noun's list.goto: it also
+	// G on the list instance, above the list noun's collection.goto: it also
 	// brings the last card's end into view and resumes following.
 	for _, mode := range []string{"normal", "count_pending"} {
 		row := Do(timelineNoun+".goto", Arguments{"position": "last"}).FromPayload("row", SourceLine)
@@ -1151,7 +1151,7 @@ func (t *Timeline) cardsAtEdge(delta int) bool {
 	return !t.drawn() || t.edgeWant(delta) == 0
 }
 
-// cardMotion is j/k on the cards (list.move on the card list), count
+// cardMotion is j/k on the cards (collection.move on the card list), count
 // times: each press goes to the neighbouring card by the half-page rule
 // (R3.14): when showing it would scroll more than half the window, the
 // window scrolls half and the selection moves once the card shows. Past
@@ -1370,7 +1370,7 @@ func registerTimelines(r *Runtime) {
 	// timeline-step-moves: timeline.step down is unavailable where it would
 	// only spill past the timeline's last edge (the last step of the last
 	// card, its end showing) on a timeline that traps that edge (NoSpill,
-	// list.no-spill ID:last), as list.move is (list-moves).
+	// collection.no-spill ID:last), as collection.move is (list-moves).
 	r.DefineGuard("timeline-step-moves", func(r *Runtime, ev KeyEvent) bool {
 		t := r.timelineOf(ev.Focus)
 		if id := StringArg(ev.Args, "id", ""); id != "" {

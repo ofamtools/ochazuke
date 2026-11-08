@@ -73,7 +73,7 @@
       {
         "noun": "note",
         "keys": "f",
-        "do": "ochazuke.list.filter-prop",
+        "do": "ochazuke.collection.filter-prop",
         "args": {
           "prop": "by",
           "value": "owner"
@@ -82,7 +82,7 @@
       {
         "noun": "note",
         "keys": "s",
-        "do": "ochazuke.list.filter-prop",
+        "do": "ochazuke.collection.filter-prop",
         "args": {
           "prop": "status",
           "value": "todo"

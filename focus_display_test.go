@@ -61,14 +61,14 @@ func TestFocusDisplaySettingAppliesLive(t *testing.T) {
 	if err := r.Settings().Set(FocusDisplaySetting, "stack"); err != nil {
 		t.Fatal(err)
 	}
-	if row := titleRowOf(m); !strings.HasSuffix(row, " Work › list › notes.md  NORMAL") {
+	if row := titleRowOf(m); !strings.HasSuffix(row, " Work › collection › notes.md  NORMAL") {
 		t.Fatalf("stack: %q", row)
 	}
 	// A focus change redraws the path.
 	if err := r.SetFocus("f2"); err != nil {
 		t.Fatal(err)
 	}
-	if row := titleRowOf(m); !strings.HasSuffix(row, " Work › list › file  NORMAL") {
+	if row := titleRowOf(m); !strings.HasSuffix(row, " Work › collection › file  NORMAL") {
 		t.Fatalf("stack after a move: %q", row)
 	}
 	if err := r.Settings().Set(FocusDisplaySetting, "bogus"); err == nil {
@@ -118,13 +118,13 @@ func TestFocusDisplayVerbCycles(t *testing.T) {
 // an open modal follows the focus it opened over.
 func TestFocusPathLabelOrNoun(t *testing.T) {
 	r, _ := focusDisplayApp(t)
-	if got := strings.Join(r.FocusPath(), " › "); got != "Work › list › notes.md" {
+	if got := strings.Join(r.FocusPath(), " › "); got != "Work › collection › notes.md" {
 		t.Fatalf("short label: %q", got)
 	}
 	if err := r.SetFocus("f2"); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(r.FocusPath(), " › "); got != "Work › list › file" {
+	if got := strings.Join(r.FocusPath(), " › "); got != "Work › collection › file" {
 		t.Fatalf("long label: %q", got)
 	}
 	if got := r.FocusNoun(); got != "file" {
@@ -133,7 +133,7 @@ func TestFocusPathLabelOrNoun(t *testing.T) {
 	if _, err := r.OpenModal("confirm", Payload{Prompt: "Sure?"}); err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(r.FocusPath(), " › "); got != "Work › list › file › confirm" {
+	if got := strings.Join(r.FocusPath(), " › "); got != "Work › collection › file › confirm" {
 		t.Fatalf("modal: %q", got)
 	}
 	if got := r.FocusNoun(); got != "confirm" {

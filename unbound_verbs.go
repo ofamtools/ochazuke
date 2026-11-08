@@ -29,7 +29,7 @@ import (
 // (section help): whether the help lists unbound verbs at all (default
 // on), and whose verbs: focus (the focused instance's noun, the default),
 // chain (every noun on the focus chain) or all (also the framework's own
-// verbs, which are many: list.move, input.insert...).
+// verbs, which are many: collection.move, input.insert...).
 const (
 	UnboundVerbsSetting = "help.unbound-verbs"
 	UnboundScopeSetting = "help.unbound-scope"
@@ -107,7 +107,7 @@ func (r *Runtime) unboundOperations(candidates []string, walk []level, mode Mode
 			}
 			q := r.canonicalRequest(row.Request)
 			bound[q.Key()] = true
-			// An operation that forwards a verb (list.apply {verb: X})
+			// An operation that forwards a verb (collection.apply {verb: X})
 			// binds X for the nouns of the rows it acts on.
 			for name, p := range r.Operations.At(Key(q.Key())).Parameters {
 				if verb, ok := q.Args[name].(string); ok && p.Forwards && verb != "" {

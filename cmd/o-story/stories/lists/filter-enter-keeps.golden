@@ -20,5 +20,5 @@ r|  b1
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  enter list.filter-keep · esc list.filter-clear · tab search.cycle-match
+ |  enter collection.filter-keep · esc collection.filter-clear · tab search.cycle-match
  |

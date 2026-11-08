@@ -54,8 +54,8 @@
     {"context": "ochazuke.setting-change/normal", "bindings": [
       {"key": "w", "action": "ochazuke.setting.write", "from": {"name": "row:name"}},
       {"key": "r", "action": "ochazuke.setting.revert", "from": {"name": "row:name"}},
-      {"key": "s", "action": "ochazuke.list.move", "args": {"delta": 1}, "hint": "skip"},
-      {"key": "space", "action": "ochazuke.list.move", "args": {"delta": 1}, "hidden": true}
+      {"key": "s", "action": "ochazuke.collection.move", "args": {"delta": 1}, "hint": "skip"},
+      {"key": "space", "action": "ochazuke.collection.move", "args": {"delta": 1}, "hidden": true}
     ]},
     {"context": "ochazuke.settings-review/normal", "bindings": [
       {"key": "W", "action": "ochazuke.setting.write-all"},

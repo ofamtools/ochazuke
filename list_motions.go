@@ -6,11 +6,11 @@ import "errors"
 // (rows on the list noun, so a row noun, the list instance or a component
 // that binds the same keys answers first):
 //
-//	g g / G         list.goto: the first / last row; with a count (5G, 5gg)
+//	g g / G         collection.goto: the first / last row; with a count (5G, 5gg)
 //	                the row of that number, clamped
-//	ctrl+d / ctrl+u list.scroll {half}: half a page down / up; a count moves
+//	ctrl+d / ctrl+u collection.scroll {half}: half a page down / up; a count moves
 //	                that many rows (Vim's [count]ctrl+d)
-//	ctrl+f / ctrl+b list.scroll: a whole page down / up; a count is pages
+//	ctrl+f / ctrl+b collection.scroll: a whole page down / up; a count is pages
 //
 // A page is the rows the list's own window showed in the last frame when
 // the list windows itself (more rows than its height), else the height of
@@ -91,7 +91,7 @@ func registerListMotions(r *Runtime) {
 		verb  string
 		delta int
 	}{{"next-class", 1}, {"previous-class", -1}} {
-		r.Register(Operation{Key: KeyOf("ochazuke.list", direction.verb), Motion: true,
+		r.Register(Operation{Key: KeyOf("ochazuke.collection", direction.verb), Motion: true,
 			Description: "Jump to a shown row of class, counting matches; clamps without spilling; no further match leaves selection in place with a status message",
 			Parameters: map[string]Parameter{
 				"id":    {Type: "string", Description: "The list (default: the focused one)"},
@@ -147,7 +147,7 @@ func registerListMotions(r *Runtime) {
 			l.page(rows)
 		}},
 	} {
-		r.Register(Operation{Key: KeyOf("ochazuke.list", spec.verb), Motion: true, HistoryKind: HistoryAction, Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		r.Register(Operation{Key: KeyOf("ochazuke.collection", spec.verb), Motion: true, HistoryKind: HistoryAction, Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err

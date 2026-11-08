@@ -12,7 +12,7 @@ import (
 // model of its own: it is the list's marks. While it lasts the marks are
 // the marks V found plus every shown row between the anchor and the
 // selected row, so j, k, counts, gg, G and the page motions extend it
-// (they clamp instead of spilling), the * gutter draws it, and list.apply
+// (they clamp instead of spilling), the * gutter draws it, and collection.apply
 // fans a verb out over it.
 //
 // The selection is a mode: V enters visual-line, the line-shaped selection
@@ -25,7 +25,7 @@ import (
 // the motions and space still answer) and the row noun's, where an
 // application binds single keys for its row verbs (> nest, p put). A key
 // whose row runs an application verb of the row's noun runs it for every
-// selected row through list.apply (runRow, visualApply), with one confirm
+// selected row through collection.apply (runRow, visualApply), with one confirm
 // for all of them when the verb has one; the selection then ends (the
 // mode back to normal) or stays, as the visual.after-action setting says.
 // esc (or V again) ends it without running anything. Ending puts the
@@ -112,7 +112,7 @@ func (r *Runtime) afterVisualAction(l *Collection) {
 	r.endSelection(l)
 }
 
-// afterVisualRun is what list.apply leaves once the rows' requests ran
+// afterVisualRun is what collection.apply leaves once the rows' requests ran
 // over l's visual selection (visual: one was on when it started; opened:
 // the modals open then): afterVisualAction now, or at the answer of a
 // modal the run asked through (untilAccepted).
@@ -177,7 +177,7 @@ func (r *Runtime) visualKeeps() bool {
 	return v == VisualAfterKeep
 }
 
-// applicable is list.apply's availability: a row it would act on (the
+// applicable is collection.apply's availability: a row it would act on (the
 // marked rows shown, else the selected row) whose noun has the verb and
 // where the verb is available, judged as things are now, a visual
 // selection still on.
@@ -221,12 +221,12 @@ func (l *Collection) syncVisual() {
 	l.marks = marks
 }
 
-// apply is list.apply: the verb for every marked row shown (the selected
+// apply is collection.apply: the verb for every marked row shown (the selected
 // row when none is), one request per row noun with those rows as its
 // subjects (Request.Subjects) and args as its arguments: a verb that takes
 // many (Operation.Many) runs once for all of them, any other once per row
 // (Runtime.eachSubject). A verb with a confirm opens one confirm for every
-// row first; its y runs list.apply again, confirmed.
+// row first; its y runs collection.apply again, confirmed.
 func (l *Collection) apply(c Context, a Arguments) (any, error) {
 	r := l.r
 	rows := l.markedShown()
@@ -272,19 +272,19 @@ func (l *Collection) apply(c Context, a Arguments) (any, error) {
 				if n := r.Nouns[row.Noun]; len(rows) > 1 && (n == nil || n.Store == nil || n.Store.ConfirmFor == nil) {
 					ask = fmt.Sprintf("Run %s on %d rows?", r.DisplayKey(op.Key.Short()), len(rows))
 				}
-				q := Request{Verb: "apply", Noun: "ochazuke.list", Args: Arguments{"id": l.id, "verb": verb, "confirmed": true}}
+				q := Request{Verb: "apply", Noun: "ochazuke.collection", Args: Arguments{"id": l.id, "verb": verb, "confirmed": true}}
 				if args != nil {
 					q.Args["args"] = args
 				}
-				// Its fields read the rows' request, never list.apply's
-				// own arguments; y runs list.apply again, confirmed.
+				// Its fields read the rows' request, never collection.apply's
+				// own arguments; y runs collection.apply again, confirmed.
 				return r.openConfirmAbout(r.contextOf(row.ID), rq, q, Operation{Key: KeyOf(op.Noun(), op.Name()), Confirm: ask})
 			}
 		}
 	}
 	// The selection holds while the rows' requests run, so a verb
 	// available only over a selection is available; applying keeps them
-	// from being replaced by list.apply again (visualApply). It ends, or
+	// from being replaced by collection.apply again (visualApply). It ends, or
 	// stays, after them (afterVisualAction); when they asked through a
 	// modal that says when it is accepted (a chooser), it waits for that
 	// answer: a pick runs the verb and ends it, and a close without one
@@ -343,13 +343,13 @@ func (l *Collection) apply(c Context, a Arguments) (any, error) {
 	return map[string]any{"verb": verb, "applied": applied, "skipped": skipped}, failure
 }
 
-// visualApply is list.apply standing in for q when q is the own verb of a
+// visualApply is collection.apply standing in for q when q is the own verb of a
 // row in a list's visual selection (an application verb of the row's
 // noun, not a motion, and for a standard verb one whose row fans out):
 // the verb then acts on every selected row. focus is
 // the instance execute resolved q to. Anything else (a motion, a framework
 // verb: its noun is not the row's; a row outside a selection; a request
-// list.apply itself runs) is not replaced.
+// collection.apply itself runs) is not replaced.
 func (r *Runtime) visualApply(q Request, op Operation, focus string) (Request, bool) {
 	owner := r.rows[focus]
 	if owner == "" || len(q.Subjects) > 0 || !personSource(r.history.source) {
@@ -373,7 +373,7 @@ func (r *Runtime) visualApply(q Request, op Operation, focus string) (Request, b
 	if q.Confirmed {
 		args["confirmed"] = true
 	}
-	return Request{Verb: "apply", Noun: "ochazuke.list", Target: focus, Args: args}, true
+	return Request{Verb: "apply", Noun: "ochazuke.collection", Target: focus, Args: args}, true
 }
 
 func registerListVisual(r *Runtime) {
@@ -390,7 +390,7 @@ func registerListVisual(r *Runtime) {
 		l := r.focusedList(ev.Focus)
 		return l != nil && !l.noMarks
 	})
-	// list-applies: list.apply's, a row it would act on takes the verb
+	// list-applies: collection.apply's, a row it would act on takes the verb
 	// (List.applicable), so d over rows without a delete passes the key on.
 	r.DefineGuard("list-applies", func(r *Runtime, ev KeyEvent) bool {
 		var l *Collection
@@ -411,7 +411,7 @@ func registerListVisual(r *Runtime) {
 		}
 		return l.applicable(StringArg(ev.Args, "verb", ""), args)
 	})
-	r.Nouns["ochazuke.list"].Guards["apply"] = "list-applies"
+	r.Nouns["ochazuke.collection"].Guards["apply"] = "list-applies"
 	visual := func(c Context, a Arguments) (any, error) {
 		var l *Collection
 		if id := StringArg(a, "id", ""); id != "" {
@@ -452,19 +452,19 @@ func registerListVisual(r *Runtime) {
 	// V and esc are bindings/list-modes.json: esc ends the selection
 	// before the filter's esc (after it in the file) is asked, only while
 	// one is active.
-	r.Nouns["ochazuke.list"].Guards["visual"] = "list-selects"
+	r.Nouns["ochazuke.collection"].Guards["visual"] = "list-selects"
 	// esc's verb guard as well as its row guard: a row guarded off still
 	// takes its key in the listings, so the row guard alone would hide an
 	// outer esc's hint (a modal's esc modal.close over a table) whenever no
 	// selection is on. The row guard keeps it apart from the filter's esc
 	// row (bound after this, unguarded), which would otherwise replace it.
-	r.Nouns["ochazuke.list"].Guards["end-visual"] = "list-visual"
-	r.Register(Operation{Key: "ochazuke.list.end-visual", FocusBound: true, HistoryKind: HistoryAction, Description: "End the visual row selection (esc), and visual-line with it: the marks go back to the ones it found", Parameters: map[string]Parameter{
+	r.Nouns["ochazuke.collection"].Guards["end-visual"] = "list-visual"
+	r.Register(Operation{Key: "ochazuke.collection.end-visual", FocusBound: true, HistoryKind: HistoryAction, Description: "End the visual row selection (esc), and visual-line with it: the marks go back to the ones it found", Parameters: map[string]Parameter{
 		"id": {Plumbing: true, Type: "string", Description: "The list (default: the focused one)"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		return visual(c, Arguments{"id": a["id"], "on": false})
 	}})
-	r.Register(Operation{Key: "ochazuke.list.visual", FocusBound: true, HistoryKind: HistoryAction, Description: "Start a visual row selection at the selected row (V, in visual-line), or end it (V again, esc): j/k extend it; a key then acts on every selected row", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.collection.visual", FocusBound: true, HistoryKind: HistoryAction, Description: "Start a visual row selection at the selected row (V, in visual-line), or end it (V again, esc): j/k extend it; a key then acts on every selected row", Parameters: map[string]Parameter{
 		"id": {Plumbing: true, Type: "string", Description: "The list (default: the focused one)"},
 		"on": {Type: "boolean", Description: "true starts, false ends; omit to toggle"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {

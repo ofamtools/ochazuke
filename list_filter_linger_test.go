@@ -109,7 +109,7 @@ func TestFilterLingerUndoDeletionFilterChangeAndOptOut(t *testing.T) {
 			case "saved":
 				_ = l.ApplyFilter("agents")
 			case "flush":
-				if _, err := r.Execute(Request{Noun: "list", Verb: "flush-lingering"}); err != nil {
+				if _, err := r.Execute(Request{Noun: "collection", Verb: "flush-lingering"}); err != nil {
 					t.Fatal(err)
 				}
 			case "off":
@@ -231,7 +231,7 @@ func TestFilterLingerChooserPropOptOutAndDeletion(t *testing.T) {
 	if !c.filters.Lingering("a") {
 		t.Fatal("text-only chooser did not linger")
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "flush-lingering"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "flush-lingering"}); err != nil {
 		t.Fatal(err)
 	}
 	if len(c.Matches()) != 0 {

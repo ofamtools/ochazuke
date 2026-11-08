@@ -69,7 +69,7 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 		if err := list.Focus(); err != nil {
 			t.Fatal(err)
 		}
-		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(NounPlace{Noun: "ochazuke.list"}, r.Mode), "list", "app")
+		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(NounPlace{Noun: "ochazuke.collection"}, r.Mode), "collection", "app")
 	})
 	t.Run("input", func(t *testing.T) {
 		r := NewRuntime()
@@ -112,9 +112,9 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 func TestNounHelpMarksGuardedRows(t *testing.T) {
 	r := NewRuntime()
 	NewModel(r)
-	rows := NounHelp(r, "list", ModeState{Name: "normal"})
+	rows := NounHelp(r, "collection", ModeState{Name: "normal"})
 	i := slices.IndexFunc(rows, func(h HelpRow) bool { return h.Key == "space" })
-	if i < 0 || rows[i].Guard != "list-marks" || rows[i].Operation != "list.mark ?" || !strings.HasPrefix(rows[i].Description, "when list-marks · ") {
+	if i < 0 || rows[i].Guard != "list-marks" || rows[i].Operation != "collection.mark ?" || !strings.HasPrefix(rows[i].Description, "when list-marks · ") {
 		t.Fatalf("space on list: %+v", rows)
 	}
 	var dollar []string
@@ -123,7 +123,7 @@ func TestNounHelpMarksGuardedRows(t *testing.T) {
 			dollar = append(dollar, h.Operation)
 		}
 	}
-	if len(dollar) < 2 || dollar[0] != "list.column ?" || dollar[1] != "list.scroll-columns ?" {
+	if len(dollar) < 2 || dollar[0] != "collection.column ?" || dollar[1] != "collection.scroll-columns ?" {
 		t.Fatalf("$ rows on list: %v", dollar)
 	}
 	// An input noun reads the editor's rows with no guard of the
@@ -169,14 +169,14 @@ func TestNounRowsExclusivePendingMode(t *testing.T) {
 func TestHelpTableColumns(t *testing.T) {
 	r := NewRuntime()
 	NewModel(r)
-	modes, keys := r.HelpTable(NounPlace{Noun: "ochazuke.list"}, false)
+	modes, keys := r.HelpTable(NounPlace{Noun: "ochazuke.collection"}, false)
 	if !slices.Contains(modes, "normal") || !slices.Contains(modes, ListFilterMode) || slices.Contains(modes, "insert") || slices.Contains(modes, "terminal") {
 		t.Fatalf("list modes: %v", modes)
 	}
 	if slices.Contains(modes, "count_pending") {
 		t.Fatalf("pending mode without the setting: %v", modes)
 	}
-	items := helpTableItems("list", modes, keys)
+	items := helpTableItems("collection", modes, keys)
 	cell := func(key, mode string) string {
 		for _, item := range items {
 			if item.Data.(HelpKey).Key == key {
@@ -215,13 +215,13 @@ func TestHelpTableColumns(t *testing.T) {
 		}
 		return out
 	}
-	if plain := names(r.HelpModes(NounPlace{Noun: "ochazuke.list"}, false)); slices.Contains(plain, "count_pending") || slices.Contains(plain, "normal g") {
+	if plain := names(r.HelpModes(NounPlace{Noun: "ochazuke.collection"}, false)); slices.Contains(plain, "count_pending") || slices.Contains(plain, "normal g") {
 		t.Fatalf("pick modes without the setting: %v", plain)
 	}
-	if all := names(r.HelpModes(NounPlace{Noun: "ochazuke.list"}, true)); !slices.Contains(all, "count_pending") || !slices.Contains(all, "normal g") {
+	if all := names(r.HelpModes(NounPlace{Noun: "ochazuke.collection"}, true)); !slices.Contains(all, "count_pending") || !slices.Contains(all, "normal g") {
 		t.Fatalf("pick modes with the setting: %v", all)
 	}
-	if rows := NounHelp(r, "list", ModeState{Name: "normal g", Payload: Payload{Prefix: "g"}}); !slices.ContainsFunc(rows, func(h HelpRow) bool { return h.Key == "g g" }) || slices.ContainsFunc(rows, func(h HelpRow) bool { return h.Key == "j" }) {
+	if rows := NounHelp(r, "collection", ModeState{Name: "normal g", Payload: Payload{Prefix: "g"}}); !slices.ContainsFunc(rows, func(h HelpRow) bool { return h.Key == "g g" }) || slices.ContainsFunc(rows, func(h HelpRow) bool { return h.Key == "j" }) {
 		t.Fatalf("a prefix mode lists its sequences only: %+v", rows)
 	}
 }

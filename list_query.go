@@ -21,7 +21,7 @@ import (
 // Page (from 1) and PerPage (0: every row) cut the result into pages. A
 // page counts rows, never groups: a group runs on across a page edge.
 // Archived includes the things the archive prop hides by default
-// (list.hide-archived).
+// (collection.hide-archived).
 //
 // Text, Saved and Args are not part of the answer's shape. Text is a
 // widget's text query, matched by its matcher; Saved is the name of the

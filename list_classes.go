@@ -41,8 +41,8 @@ func (b *NounBuilder) Classes(classes ...ClassDecl) *NounBuilder {
 			title = class.Name
 		}
 		for _, motion := range []struct{ prefix, verb string }{{"]", "next-class"}, {"[", "previous-class"}} {
-			row := Do("ochazuke.list."+motion.verb, Arguments{"class": class.Name}).FromPayload("steps", SourceCount).
-				Hinted("list." + motion.verb + " " + title)
+			row := Do("ochazuke.collection."+motion.verb, Arguments{"class": class.Name}).FromPayload("steps", SourceCount).
+				Hinted("collection." + motion.verb + " " + title)
 			row.Help = "Jump to " + title + " (" + class.Name + ")"
 			b.Mode("normal").Bind(motion.prefix+" "+class.Key, row)
 		}

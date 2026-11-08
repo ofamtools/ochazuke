@@ -36,8 +36,8 @@
         "gamma",
         "alphabet",
         "delta",
-        "enter list.filter-keep",
-        "esc list.filter-clear"
+        "enter collection.filter-keep",
+        "esc collection.filter-clear"
       ]
     },
     {

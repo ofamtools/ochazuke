@@ -7,7 +7,7 @@ import (
 	"ofam.dev/ochazuke/keytest"
 )
 
-// list.no-spill names a list: j at its last row keeps the focus and the
+// collection.no-spill names a list: j at its last row keeps the focus and the
 // selection there; taking the id out of the setting restores the spill at
 // once (read live, no restart).
 func TestListNoSpillSettingClampsAndClears(t *testing.T) {
@@ -48,10 +48,10 @@ func TestListNoSpillSettingPrefix(t *testing.T) {
 func TestListNoSpillOptionIgnoresSetting(t *testing.T) {
 	r := NewRuntime()
 	r.Instance("page")
-	if _, err := r.AddList("a", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.list"}}, Parent("page"), NoSpill()); err != nil {
+	if _, err := r.AddList("a", []ListItem{{ID: "a1", Label: "a1", Noun: "ochazuke.collection"}}, Parent("page"), NoSpill()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.AddList("b", []ListItem{{ID: "b1", Label: "b1", Noun: "ochazuke.list"}}, Parent("page")); err != nil {
+	if _, err := r.AddList("b", []ListItem{{ID: "b1", Label: "b1", Noun: "ochazuke.collection"}}, Parent("page")); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := r.AddPage("page", "Page", func(*Runtime, int, int) Block { return Text("") }, Focus("a")); err != nil {
@@ -78,7 +78,7 @@ func TestTreeNoSpillSetting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.AddList("other", []ListItem{{ID: "o1", Label: "o1", Noun: "ochazuke.list"}}, Parent("page")); err != nil {
+	if _, err := r.AddList("other", []ListItem{{ID: "o1", Label: "o1", Noun: "ochazuke.collection"}}, Parent("page")); err != nil {
 		t.Fatal(err)
 	}
 	render := func(r *Runtime, width, height int) Block {

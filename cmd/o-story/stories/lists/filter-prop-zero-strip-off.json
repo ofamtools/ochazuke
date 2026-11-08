@@ -73,7 +73,7 @@
       {
         "noun": "note",
         "keys": "f",
-        "do": "ochazuke.list.filter-prop",
+        "do": "ochazuke.collection.filter-prop",
         "args": {
           "prop": "by",
           "value": "nobody"
@@ -100,7 +100,7 @@
   "area": "lists",
   "settings": [
     {
-      "name": "list.filter-strip",
+      "name": "collection.filter-strip",
       "type": "boolean",
       "default": false
     }

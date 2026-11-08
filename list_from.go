@@ -20,7 +20,7 @@ import (
 // as text). Cell text is derived on each fill, never stored, and reaches
 // only the table: get, list and the CLI keep the store's values. The filter, sort, groups and pages of the list's view
 // (ListQuery) stay the list's: it is handed every thing, archived ones
-// included, and hides them as list.hide-archived says.
+// included, and hides them as collection.hide-archived says.
 //
 // A change is any request of the change kind, a job of one, Runtime.Changed
 // and, for a store with a Watch, its events: the same watch that the watch

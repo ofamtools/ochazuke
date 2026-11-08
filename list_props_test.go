@@ -77,7 +77,7 @@ func TestRowPropsOfferUndeclaredFields(t *testing.T) {
 
 func TestRowPropsPickerAndCacheByRows(t *testing.T) {
 	r, m, l := rowPropsFixture(t)
-	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
+	chooserChain(t, r) // the prop chooser then the value chooser (collection.filter-form off)
 	if err := r.Settings().Set(PropsOffSetting, `["*.count","*.done","*.empty","*.id","*.mixed","*.nested","*.tags","*.title"]`); err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestRowPropsSavedFilterRoundTrip(t *testing.T) {
 	if got := shownIDs(l); !reflect.DeepEqual(got, []string{"r5"}) {
 		t.Fatal(got)
 	}
-	if text := r.Settings().String("list.filters"); !strings.Contains(text, `"prop":"tags"`) {
+	if text := r.Settings().String("collection.filters"); !strings.Contains(text, `"prop":"tags"`) {
 		t.Fatal(text)
 	}
 }

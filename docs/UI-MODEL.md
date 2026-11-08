@@ -14,7 +14,7 @@ Runtime = {
   Focus:      "alpha",            // :130  the ONE focused instance id
   Mode:       { Name: "normal" }, // :131  the ONE global mode
   Page:       "work",             // :132  current page id, always an ancestor of BaseFocus()
-  Operations: { "list.move": Operation, "focus.next": Operation, ... },   // :134  "noun.verb" -> handler
+  Operations: { "collection.move": Operation, "focus.next": Operation, ... },   // :134  "noun.verb" -> handler
   rows:       { "alpha": "projects", "t1": "tasks" },  // :148  row id -> owning list id
   modals:     ["palette"],        // :149  open modal ids, outermost first (a stack)
   modalInstances: { palette: true },// :150 instances Push/OpenModal created
@@ -34,16 +34,16 @@ Instances = {
   app:      { Noun: "app",     Parent: "",         focusable: false },
   palette:  { Noun: "palette", Parent: "app",      focusable: true  },  // modal body, not on a page
   work:     { Noun: "page",    Parent: "app",      focusable: false, Component: Page  },
-  projects: { Noun: "list",    Parent: "work",     focusable: true,  Component: List  },
+  projects: { Noun: "collection",    Parent: "work",     focusable: true,  Component: List  },
   alpha:    { Noun: "project", Parent: "projects", focusable: false, Label: "alpha" },
   beta:     { Noun: "project", Parent: "projects", focusable: false, Label: "beta"  },
-  tasks:    { Noun: "list",    Parent: "work",     focusable: true,  Component: List  },
+  tasks:    { Noun: "collection",    Parent: "work",     focusable: true,  Component: List  },
   t1:       { Noun: "task",    Parent: "tasks",    focusable: false },  // exists only after `enter` on a project
   t2:       { Noun: "task",    Parent: "tasks",    focusable: false },
   panes: {...}, "panes/list": {...}, reviews: {...}, "reviews/list": {...}, "reviews/answer": {...}
 }
 // startup:            Focus = "alpha"  (main.go:266 projectList.Focus() -> selected row)
-// after j:            Focus = "beta"   (list.move delta 1 -> List.Move -> syncFocus)
+// after j:            Focus = "beta"   (collection.move delta 1 -> List.Move -> syncFocus)
 // after j again:      Focus = "tasks"  (spill past the last row; tasks is empty, so focus sits on the list)
 // after k:            Focus = "beta"   (spill back: previous stop's last row)
 // after k, enter:     Focus = "t1"     (project.open -> taskList.Focus())
@@ -95,16 +95,16 @@ A table is a `List` with columns, not another widget, so focus, selection, marks
 
 Rows can be taller than one line (`tallView`): a `Wrap` column wraps a cell longer than its width onto further lines of its row (breaking at spaces and after dots) while the other cells sit on the first line, and `ListItem.Section` draws a label line above the first row of each run of rows with the same section. `Max` caps a flexible column's growth. The window of a tall table starts at the list's offset, never below the selected row, and moves down only until the selected row fits whole; when it starts inside a section, the section's label is repeated on its first line. The selected row is reversed on every one of its lines, its label not. The `?` help is such a table (`helpColumns`, help.go; its operation and description caps are the settings `help.operation-max` and `help.description-max`).
 
-Columns that do not fit scroll into view (table_columns.go). Pinned columns (table_pins.go) draw first, in declared order, and never scroll; the default is the columns declared `Column.Pinned`, else the first column (it names the row, like a spreadsheet's frozen column); `list.pin-column`/`unpin-column`/`toggle-pin-column`/`unpin-columns` change them and `tables.json` remembers them. The list keeps a column offset (`List.ColumnOffset`, `columnOffset` in its state). Offset 0 is the layout above: priority drops, the scrolling columns down to one before any pin, then pins from the right down to the first. An offset k > 0 is a scrolled view: the pinned columns, then the scrolling columns from the k-th on, in order, as many as fit at their least widths, the room left growing them; `Priority` plays no part there, and pins are left out of the view from the right while they leave no room for the k-th (the saved pins stay). The largest offset is the smallest k whose view reaches the last scrolling column; an offset 1 that draws what 0 draws is 0; each frame clamps the offset to its width, so a terminal wide enough for every column draws offset 0. A table with a header that hides a column reserves 8 cells and draws `‹N` after its pins and `N›` at its right edge (the scrolling columns hidden on each side). On a row-select table `l` scrolls right until the last column shows, then moves the focus to the next stop, and `h` scrolls left to the start, then to the previous stop (guarded rows that fall through: `table-scrolls-right`/`-left`, `table-spills-right`/`-left`); a cell-mode table's `h`/`l` do the same at its first and last column.
+Columns that do not fit scroll into view (table_columns.go). Pinned columns (table_pins.go) draw first, in declared order, and never scroll; the default is the columns declared `Column.Pinned`, else the first column (it names the row, like a spreadsheet's frozen column); `collection.pin-column`/`unpin-column`/`toggle-pin-column`/`unpin-columns` change them and `tables.json` remembers them. The list keeps a column offset (`List.ColumnOffset`, `columnOffset` in its state). Offset 0 is the layout above: priority drops, the scrolling columns down to one before any pin, then pins from the right down to the first. An offset k > 0 is a scrolled view: the pinned columns, then the scrolling columns from the k-th on, in order, as many as fit at their least widths, the room left growing them; `Priority` plays no part there, and pins are left out of the view from the right while they leave no room for the k-th (the saved pins stay). The largest offset is the smallest k whose view reaches the last scrolling column; an offset 1 that draws what 0 draws is 0; each frame clamps the offset to its width, so a terminal wide enough for every column draws offset 0. A table with a header that hides a column reserves 8 cells and draws `‹N` after its pins and `N›` at its right edge (the scrolling columns hidden on each side). On a row-select table `l` scrolls right until the last column shows, then moves the focus to the next stop, and `h` scrolls left to the start, then to the previous stop (guarded rows that fall through: `table-scrolls-right`/`-left`, `table-spills-right`/`-left`); a cell-mode table's `h`/`l` do the same at its first and last column.
 
-A table added with `CellSelect()` is cell-based (table_cells.go); every other table selects rows, as before v0.12.0. A cell-mode table has a current column (`List.Column`, `column` in its state) beside the selected row. Each frame moves the offset as little as shows the current column (`offsetShowing`): a pinned column is offset 0; a column the current view shows keeps it; one left of the view goes back to offset 0 when that view shows it, else to the offset that puts it first after the pinned ones; one to the right (or dropped by `Priority`) goes to the smallest larger offset that reaches it. So `h`/`l`, `0`/`$` and `|` scroll the view by moving the column, and `z l`/`z h` (`list.scroll-columns`) scroll the view and carry the column to the nearest shown one when it scrolled off (`carryColumn`). Widths given with `z >`/`z <` are fixed `Column.Width`s for the layout (`layoutColumns`), so the same rules apply to them. A row-select table (the default: a tree's list, help, settings, a cli catalog table; `RowSelect()` is a deprecated no-op) has no current column: `$` (`list.scroll-columns {to: last}`) scrolls it to the view with the last column, `^` and `0` (without a count) back to offset 0, and `h`/`l` scroll it where its row noun does not bind them. Stories: `tables/cell-motion`, `tables/column-count`, `tables/column-motions`, `tables/row-select`.
+A table added with `CellSelect()` is cell-based (table_cells.go); every other table selects rows, as before v0.12.0. A cell-mode table has a current column (`List.Column`, `column` in its state) beside the selected row. Each frame moves the offset as little as shows the current column (`offsetShowing`): a pinned column is offset 0; a column the current view shows keeps it; one left of the view goes back to offset 0 when that view shows it, else to the offset that puts it first after the pinned ones; one to the right (or dropped by `Priority`) goes to the smallest larger offset that reaches it. So `h`/`l`, `0`/`$` and `|` scroll the view by moving the column, and `z l`/`z h` (`collection.scroll-columns`) scroll the view and carry the column to the nearest shown one when it scrolled off (`carryColumn`). Widths given with `z >`/`z <` are fixed `Column.Width`s for the layout (`layoutColumns`), so the same rules apply to them. A row-select table (the default: a tree's list, help, settings, a cli catalog table; `RowSelect()` is a deprecated no-op) has no current column: `$` (`collection.scroll-columns {to: last}`) scrolls it to the view with the last column, `^` and `0` (without a count) back to offset 0, and `h`/`l` scroll it where its row noun does not bind them. Stories: `tables/cell-motion`, `tables/column-count`, `tables/column-motions`, `tables/row-select`.
 
 A noun declares its table with `NounBuilder.Columns(...)` (`Noun.Columns`): data; a list `From(noun)` draws them on its own (each column's prop is its title lower-cased, spaces as dashes; the cell is the prop's `Cell(Ctx, Thing)` text when it declares one, else the value as text), any other list takes them when its host passes them. The CLI catalog carries it as `columns` on the noun (`cli.CatalogNoun.Columns`), state rows bring `cells` (`cli.Row.Cells`), and a host that mounts the noun's rows passes the columns to `Columns` (nabe does). Stories: `cmd/o-story/stories/tables/` (wide, narrow with dropped columns, truncation, empty, spill between a table and a plain list).
 
 ### Empty selection and copying
 
-On a valid list, table or tree with no shown row, `list.visual` and
-`list.yank` leave selection, mode, marks, registers and clipboard work
+On a valid list, table or tree with no shown row, `collection.visual` and
+`collection.yank` leave selection, mode, marks, registers and clipboard work
 unchanged. This includes a list whose filter hides every row. Missing or
 invalid list targets still fail. `List.StartVisual` retains its lower-level
 error when there is no selected row. Existing applicability guards remain:
@@ -137,10 +137,10 @@ A detail is the read-only text beside (or below) a list about its selected row, 
 **Keys and what they move:**
 
 ```js
-{ j: "list.move +1", down: "list.move +1", k: "list.move -1", up: "list.move -1",
-  space: "list.mark" }                                           // bound on noun "list" (list.go:303-309)
+{ j: "collection.move +1", down: "collection.move +1", k: "collection.move -1", up: "collection.move -1",
+  space: "collection.mark" }                                           // bound on noun "list" (list.go:303-309)
   // the row doesn't bind j; key lookup walks Ancestry(row) -> list -> page -> app and the list answers.
-  // list.move (list.go:345) tries spill first; inside the list, List.Move (list.go:135) changes `selected`,
+  // collection.move (list.go:345) tries spill first; inside the list, List.Move (list.go:135) changes `selected`,
   // then syncFocus -> RetargetFocus moves Focus to the new row (list.go:240).
   // It stays in the same stop, so the mode is kept (focusMoved, focus.go:111).
 { "}": "focus.next", "{": "focus.previous",                     // bound on noun "app" (focus.go:729-735)
@@ -161,7 +161,7 @@ A detail is the read-only text beside (or below) a list about its selected row, 
 
 **`landing(id)`** (focus.go:638): the component's `FocusTarget()`, which for a list is its selected row (list.go:228). Otherwise `lastFocus`, if that is still inside the unit. Otherwise, for a region, the landing of its first stop. Otherwise the id itself.
 
-**Spill (`List.spill`, list.go:154), built in `c45567c`:** `list.move` on a focused list moves past its edge onto the page's next stop in drawing order, using the same `units` ring as `}`.
+**Spill (`List.spill`, list.go:154), built in `c45567c`:** `collection.move` on a focused list moves past its edge onto the page's next stop in drawing order, using the same `units` ring as `}`.
 - `j`/`down` past the last row: the next focusable thing in drawing order. A list lands on its **first** row; other stops land as `}` does (`landing`).
 - `k`/`up` before the first row: the previous stop. A list lands on its **last** row.
 - Empty lists are passed through: focus stops on the empty list itself, and the next `j`/`k` spills on (lists a, b, c with b empty: `k` on c1 -> `b`, `k` -> a's last row).

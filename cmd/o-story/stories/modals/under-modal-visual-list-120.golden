@@ -10,7 +10,7 @@ R|  * a3      │   q           app.quit                                Exit the
  |            │                                                       when the story has one for it          │
  |            │   n           demo.notify                             Add a persistent notice naming the row │
  |            │ 1–4 / 42                                                                                     │
- |            │ space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bindin… │
+ |            │ space collection.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bindin… │
  |  ──────────╰──────────────────────────────────────────────────────────────────────────────────────────────╯──────────
- |  space list.mark · S view · enter run · a args · esc modal.close · : palette.open · ? binding.help · / filter
+ |  space collection.mark · S view · enter run · a args · esc modal.close · : palette.open · ? binding.help · / filter
  |

@@ -101,6 +101,7 @@ func TestBadgeWidthWidestHoldsBothEdges(t *testing.T) {
 // it keeps; neither the echo's keys nor the path move the badge.
 func TestBadgeHoldsItsColumnWithTheKeyEcho(t *testing.T) {
 	r, m := focusDisplayApp(t)
+	m.Update(tea.WindowSizeMsg{Width: 96, Height: 12}) // collection is longer than list was
 	off := cellOf(fullTitleRowOf(m), "NORMAL")
 	for _, kv := range [][2]string{{KeyEchoSetting, KeyEchoBadge}, {FocusDisplaySetting, FocusDisplayStack}} {
 		if err := r.Settings().Set(kv[0], kv[1]); err != nil {

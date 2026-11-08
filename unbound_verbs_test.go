@@ -256,7 +256,7 @@ func TestHelpBindAsksBeforeTakingAnAnsweredKey(t *testing.T) {
 	keytest.Press(m, "j")
 	if top := r.TopModal(); top == helpID || top == "" {
 		t.Fatalf("no confirm: top %q", top)
-	} else if view := m.View().Content; !strings.Contains(view, "j already runs list.move here; bind anyway?") {
+	} else if view := m.View().Content; !strings.Contains(view, "j already runs collection.move here; bind anyway?") {
 		t.Fatalf("the question does not name what answers j now:\n%s", view)
 	}
 	if _, err := os.Stat(filepath.Join(r.Config().Dir, BindingsFile)); err == nil {
@@ -297,7 +297,7 @@ func TestFormOverAModalReopensOnAFailedRun(t *testing.T) {
 	r.Config().Dir = t.TempDir()
 	keytest.Press(m, "?")
 	r.Register(Operation{Key: "widget.fail", Parameters: map[string]Parameter{"key": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) {
-		return nil, errors.New("j already runs list.move here")
+		return nil, errors.New("j already runs collection.move here")
 	}})
 	q := Request{Noun: "widget", Verb: "fail"}
 	if _, err := r.OpenArgsForm(q, func(q Request) error {
@@ -334,12 +334,12 @@ func TestRunUnboundKeepsAgentRights(t *testing.T) {
 	}
 }
 
-// A row requesting list.apply {verb: ping} binds ping: the operation
+// A row requesting collection.apply {verb: ping} binds ping: the operation
 // declares which argument names the verb it forwards (Parameter.Forwards),
 // so the unbound list counts it with no check of the operation's name.
 func TestUnboundVerbsCountAForwardedVerb(t *testing.T) {
 	r, _, _ := unboundFixture(t)
-	row := Binding{Noun: "widget", Mode: "normal", Keys: "p", Request: Request{Noun: "ochazuke.list", Verb: "apply", Args: Arguments{"verb": "ping"}}}
+	row := Binding{Noun: "widget", Mode: "normal", Keys: "p", Request: Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"verb": "ping"}}}
 	if err := r.Bind(row); err != nil {
 		t.Fatal(err)
 	}
@@ -509,7 +509,7 @@ func TestHelpRunDataAnswerCanBeTurnedOff(t *testing.T) {
 // verb with only plumbing has no args form (and no a in the help).
 func TestPlumbingParametersAreNeverFormFields(t *testing.T) {
 	r, _, _ := unboundFixture(t)
-	fields, err := ArgsFields(r.Operations.At(Key("ochazuke.list.apply")))
+	fields, err := ArgsFields(r.Operations.At(Key("ochazuke.collection.apply")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -521,8 +521,8 @@ func TestPlumbingParametersAreNeverFormFields(t *testing.T) {
 	if len(fields) != 1 || fields[0].Name != "verb" {
 		t.Fatalf("fields %v", fields)
 	}
-	if got := askableParameters(r.Operations.At(Key("ochazuke.list.mark"))); len(got) != 0 {
-		t.Fatalf("list.mark asks for %v", got)
+	if got := askableParameters(r.Operations.At(Key("ochazuke.collection.mark"))); len(got) != 0 {
+		t.Fatalf("collection.mark asks for %v", got)
 	}
 }
 

@@ -29,12 +29,12 @@ import (
 // normal mode esc on a filtered list clears the filter.
 //
 // A list added with ClearFilterOnEnter (a list one picks a row from)
-// answers enter with list.filter-choose instead: the filter clears, the
+// answers enter with collection.filter-choose instead: the filter clears, the
 // selection stays on the match enter was pressed on, every row shows, the
 // mode is normal and the window follows the row, as esc after enter does
 // on any list. Its verb guard, list-chooses, holds only on such a list
 // with a match selected, so with no match enter falls through to
-// list.filter-keep and the footer names whichever row answers.
+// collection.filter-keep and the footer names whichever row answers.
 
 // ListFilterMode is the mode the filter line is typed in.
 const ListFilterMode = "list_filter"
@@ -45,7 +45,7 @@ const ListFilterMode = "list_filter"
 // answers first. NewModel adds it after its other defaults, so on a
 // crowded footer "/ filter" is the hint cut first.
 func filterOpenRow() Binding {
-	return Do("ochazuke.list.filter-open").Guard("list-filterable").Hinted("filter")
+	return Do("ochazuke.collection.filter-open").Guard("list-filterable").Hinted("filter")
 }
 
 // filterHay is the text a row is matched against: its label, cells and
@@ -215,7 +215,7 @@ func (l *Collection) refilter(keep string) {
 
 // ListFilterKeepsChildrenSetting makes the filter keep a matching row's
 // children and a matching child's parent (ListItem.Under).
-const ListFilterKeepsChildrenSetting = "list.filter-keeps-children"
+const ListFilterKeepsChildrenSetting = "collection.filter-keeps-children"
 
 // withKin adds to the matched rows the rows tied to them by Under: the
 // children of a matched row and the parents of a matched child, so a
@@ -361,7 +361,7 @@ func (r *Runtime) focusedList(focus string) *Collection {
 }
 
 func registerListFilter(r *Runtime) {
-	// Turning list.hide-archived on or off shows or hides archived rows now.
+	// Turning collection.hide-archived on or off shows or hides archived rows now.
 	r.Settings().Observe(HideArchivedSetting, func(string, any) {
 		for _, inst := range r.Instances {
 			if l, ok := inst.Component.(*Collection); ok {
@@ -491,7 +491,7 @@ func registerListFilter(r *Runtime) {
 			return nil
 		}, nil},
 	} {
-		op := Operation{Key: KeyOf("ochazuke.list", spec.verb), Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
+		op := Operation{Key: KeyOf("ochazuke.collection", spec.verb), Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)
 			if err != nil {
 				return nil, err
@@ -504,6 +504,6 @@ func registerListFilter(r *Runtime) {
 		applyTraits(&op, spec.traits)
 		r.Register(op)
 	}
-	guards := r.Nouns["ochazuke.list"].Guards
+	guards := r.Nouns["ochazuke.collection"].Guards
 	guards["filter-clear"], guards["filter-erase"], guards["filter-choose"] = "list-filtered", "list-query", "list-chooses"
 }

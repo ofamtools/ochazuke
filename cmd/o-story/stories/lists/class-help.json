@@ -115,9 +115,9 @@
       "after": 8,
       "contains": [
         "merge commit",
-        "list.next-class decorated",
+        "collection.next-class decorated",
         "commit (refs)",
-        "list.next-class",
+        "collection.next-class",
         "list.previous-",
         "[ m",
         "] m"

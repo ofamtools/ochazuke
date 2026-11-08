@@ -1,5 +1,5 @@
 {
-  "name": "standard delete over a visual selection: V d asks the row's own prompt with its label read from the store, V j d counts the rows; neither fills {{label}} from list.apply's own arguments (\"Delete demo true?\" in v0.56.0)",
+  "name": "standard delete over a visual selection: V d asks the row's own prompt with its label read from the store, V j d counts the rows; neither fills {{label}} from collection.apply's own arguments (\"Delete demo true?\" in v0.56.0)",
   "area": "demo",
   "width": 100,
   "height": 24,

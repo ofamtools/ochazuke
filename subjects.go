@@ -81,7 +81,7 @@ func (ctx Ctx) SubjectIDs() []string {
 // done does the error return as well. A run that opens a modal (a chooser,
 // a confirm the handler opened itself) stops the loop: the question is
 // about that subject, so the rest are not run and the notice says so (the
-// verb wants Many). The result is {verb, applied, skipped}, list.apply's.
+// verb wants Many). The result is {verb, applied, skipped}, collection.apply's.
 func (r *Runtime) eachSubject(q Request, subjects []string) (any, error) {
 	modal := r.TopModal()
 	defer r.undoGroup(subjects)()

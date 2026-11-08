@@ -20,9 +20,9 @@ const auditTables = "## Status counts\n\n" +
 	"## 1. Motions\n\n" +
 	"| Feature | Vim/Neovim | ochazuke today | Status | Suggested action |\n" +
 	"|---|---|---|---|---|\n" +
-	"| `j`/`k` on a list | `:help j` `:help k`: stop at the last/first line | `bindings/list.json` `ochazuke.list/normal j`/`k` → `list.move {delta}`; past the edge the focus moves to the next/previous stop | **differs on purpose** | Keep it: the invariant \"motions are visual\" (AGENTS.md). `NoSpill()` and modals clamp the way Vim does. |\n" +
+	"| `j`/`k` on a list | `:help j` `:help k`: stop at the last/first line | `bindings/list.json` `ochazuke.collection/normal j`/`k` → `collection.move {delta}`; past the edge the focus moves to the next/previous stop | **differs on purpose** | Keep it: the invariant \"motions are visual\" (AGENTS.md). `NoSpill()` and modals clamp the way Vim does. |\n" +
 	"| Counts (`3j`, `5G`) | `:help count` | `bindings/registers.json` `app/normal digit-0` → `count_pending`; rows take `from: {steps: count}` | **same** | — |\n" +
-	"| `ctrl+d`/`ctrl+u` on lists | `:help CTRL-D`: half a page | `list.json` → `list.scroll {half}` | **similar** (the count does not stick) | Note it in the docs. |\n"
+	"| `ctrl+d`/`ctrl+u` on lists | `:help CTRL-D`: half a page | `list.json` → `collection.scroll {half}` | **similar** (the count does not stick) | Note it in the docs. |\n"
 
 // columnsOf is the display columns of a line's separators (│ and ┼, |
 // in the plain style).

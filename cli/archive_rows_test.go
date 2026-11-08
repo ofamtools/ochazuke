@@ -116,13 +116,13 @@ func TestArchiveRowsSettingOffAndTextFilter(t *testing.T) {
 		t.Fatalf("text filter revealed an archived row: %v", shownLabels(l))
 	}
 	l.SetFilter("")
-	if err := m.Runtime.Settings().Set("list.hide-archived", false); err != nil {
+	if err := m.Runtime.Settings().Set("collection.hide-archived", false); err != nil {
 		t.Fatal(err)
 	}
 	if got := shownLabels(l); !eq(got, []string{"alpha", "beta", "gamma"}) {
 		t.Fatalf("setting off shows all, live: %v", got)
 	}
-	if err := m.Runtime.Settings().Set("list.hide-archived", true); err != nil {
+	if err := m.Runtime.Settings().Set("collection.hide-archived", true); err != nil {
 		t.Fatal(err)
 	}
 	if got := shownLabels(l); !eq(got, []string{"alpha", "gamma"}) {

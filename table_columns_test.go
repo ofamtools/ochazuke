@@ -79,8 +79,8 @@ func TestColumnMotionsScrollTheHiddenColumnsIntoView(t *testing.T) {
 	if r.Focus != "r11" || l.ColumnOffset() != 3 {
 		t.Fatalf("1 0 j: focus %s offset %d, want r11 at offset 3", r.Focus, l.ColumnOffset())
 	}
-	if !r.Operations.At(Key("ochazuke.list.scroll-columns")).Motion {
-		t.Fatal("list.scroll-columns is not a motion")
+	if !r.Operations.At(Key("ochazuke.collection.scroll-columns")).Motion {
+		t.Fatal("collection.scroll-columns is not a motion")
 	}
 	if hints := BindingHints(r, r.Focus); strings.Contains(hints, "scroll-columns") {
 		t.Fatalf("footer shows the column motion: %s", hints)
@@ -108,7 +108,7 @@ func zColumnRows(t *testing.T, r *Runtime) []string {
 	t.Helper()
 	var out []string
 	for _, b := range r.ListBindings(r.Focus) {
-		if !strings.HasPrefix(b.Keys, "z ") || b.Request.Noun != "ochazuke.list" || !slices.Contains(columnVerbs, b.Request.Verb) {
+		if !strings.HasPrefix(b.Keys, "z ") || b.Request.Noun != "ochazuke.collection" || !slices.Contains(columnVerbs, b.Request.Verb) {
 			continue
 		}
 		if b.When != "" {

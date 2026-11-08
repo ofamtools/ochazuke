@@ -10,8 +10,8 @@
     ]},
     {"context":"ochazuke.filter-form/normal", "bindings":[
       {"key":"esc", "action":"ochazuke.filter-form.focus", "args":{"part":"field"}, "when":"filter-form-text", "hint":"fields"},
-      {"key":"z ]", "action":"ochazuke.list.filter-cycle", "args":{"step":1}, "hint":"next filter"},
-      {"key":"z [", "action":"ochazuke.list.filter-cycle", "args":{"step":-1}, "hidden":true},
+      {"key":"z ]", "action":"ochazuke.collection.filter-cycle", "args":{"step":1}, "hint":"next filter"},
+      {"key":"z [", "action":"ochazuke.collection.filter-cycle", "args":{"step":-1}, "hidden":true},
       {"key":"D", "action":"ochazuke.filter-form.delete-saved", "hint":"delete saved"}
     ]},
     {"context":"ochazuke.filter-value/normal", "bindings":[

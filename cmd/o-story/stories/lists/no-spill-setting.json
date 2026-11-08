@@ -1,8 +1,8 @@
 {
-  "name": "list.no-spill names the first list: j at its last row stays; the second list still spills back with k",
+  "name": "collection.no-spill names the first list: j at its last row stays; the second list still spills back with k",
   "area": "lists",
   "settings": [
-    {"name": "list.no-spill", "type": "list", "default": ["a"]}
+    {"name": "collection.no-spill", "type": "list", "default": ["a"]}
   ],
   "width": 30,
   "height": 10,

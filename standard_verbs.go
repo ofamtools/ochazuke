@@ -352,7 +352,7 @@ func listParams(n *Noun) map[string]Parameter {
 		"group-sort": {Type: "string", Free: true, Description: "Order the groups by group-by props, each prop[:desc] (default: the order the groups first appear in)"},
 		"page":       {Type: "integer", Description: "The page to answer, from 1 (with per-page)"},
 		"per-page":   {Type: "integer", Description: "Rows per page, counting rows, never groups (0: one page of every row)"},
-		"archived":   {Type: "boolean", Description: "Include the archived things list.hide-archived hides by default"},
+		"archived":   {Type: "boolean", Description: "Include the archived things collection.hide-archived hides by default"},
 	}
 	for name, p := range n.Store.ListParams {
 		params[name] = p
@@ -540,7 +540,7 @@ func parseWhere(n *Noun, text string) (map[string]any, error) {
 
 // HideArchivedSetting hides things whose archive-role prop is true from
 // standard list results and from row-fed lists and trees (default true).
-const HideArchivedSetting = "list.hide-archived"
+const HideArchivedSetting = "collection.hide-archived"
 
 // archiveName is the name of the noun's archive prop, "" when it has none.
 func archiveName(n *Noun) string {

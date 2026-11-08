@@ -44,7 +44,7 @@ func TestArchiveListVisibilityAndLimit(t *testing.T) {
 	if got := ids(Arguments{"filter": "unrelated"}); len(got) != 0 {
 		t.Fatal(got)
 	}
-	if err := r.Settings().Set("list.hide-archived", false); err != nil {
+	if err := r.Settings().Set("collection.hide-archived", false); err != nil {
 		t.Fatal(err)
 	}
 	if got := ids(nil); !slices.Equal(got, []string{"old", "legacy", "live", "text"}) {
@@ -64,7 +64,7 @@ func TestArchiveSavedFilterOverrides(t *testing.T) {
 	if err != nil || len(fs) != 1 || fs[0].Where["retired"] != false {
 		t.Fatal(fs, err)
 	}
-	if err := r.Settings().Set("list.filters", `[{"name":"archived","noun":"parcel","where":{"retired":true}}]`); err != nil {
+	if err := r.Settings().Set("collection.filters", `[{"name":"archived","noun":"parcel","where":{"retired":true}}]`); err != nil {
 		t.Fatal(err)
 	}
 	fs, err = r.SavedFilters("", "parcel")

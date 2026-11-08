@@ -6,12 +6,12 @@
  "chrome": "full",
  "settings": [
   {
-   "name": "list.per-page",
+   "name": "collection.per-page",
    "type": "integer",
    "default": 3
   },
   {
-   "name": "list.group-by",
+   "name": "collection.group-by",
    "type": "string",
    "default": "status"
   }
@@ -112,12 +112,12 @@
    {
     "noun": "chore",
     "keys": "n",
-    "do": "ochazuke.list.page-next"
+    "do": "ochazuke.collection.page-next"
    },
    {
     "noun": "chore",
     "keys": "p",
-    "do": "ochazuke.list.page-prev"
+    "do": "ochazuke.collection.page-prev"
    },
    {
     "noun": "app",
@@ -130,7 +130,7 @@
    {
     "noun": "chore",
     "keys": "Y",
-    "do": "ochazuke.list.group",
+    "do": "ochazuke.collection.group",
     "args": {
      "by": "status"
     }

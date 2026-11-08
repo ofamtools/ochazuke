@@ -411,9 +411,9 @@ A tone is `{"fg": ..., "bg": ..., "bold": true, "dim": true}` or a colour alone;
 
 #### Highlight layers and table parts
 
-A span may name the highlight it belongs to: `ToneSpan.Layer` (`"layer"` in JSON; `LayerTone(cell, tone, layer)`), any word the application picks (`column`, `row`, `search`). Highlights compose: where two or more layers cover a cell (the selected row counts as the layer `selected`, `LayerSelected`; a non-data part counts as a layer named after its part), the cell draws in its part's intersect tone, out of the reverse bar, so a crossing reads at a glance: `list.cell.intersect` for a data cell, `list.header.intersect` for a header cell, `list.rownum.intersect` for a row number. One general rule, from data: no branch knows "row" or "column". A whole-cell layer span fills its column's width. The table's non-data parts draw in their own tones so they never read as data: the header row in `list.header` (a band across the width), a column with `Column.Part` (`PartRowNumber`, `"part": "rownum"`) in `list.<part>` (`list.rownum`). `List.SetHeaderTones(spans...)` tones the header's cells, so a column layer shows on its header. Every built-in theme defines the five tones (light and dark sides; mono draws a crossing bold, out of the bar); themes.json may restyle them. Settings (`settings/ochazuke.json`, section appearance): `list.intersect` (`IntersectSetting`, default on; off draws the layers as before, the later span winning) and `list.part-tones` (`PartTonesSetting`, default on; off draws the header bold and part columns as data). Stories `tables/intersect-row-column`, `tables/intersect-off`; golden `testdata/layers.golden`.
+A span may name the highlight it belongs to: `ToneSpan.Layer` (`"layer"` in JSON; `LayerTone(cell, tone, layer)`), any word the application picks (`column`, `row`, `search`). Highlights compose: where two or more layers cover a cell (the selected row counts as the layer `selected`, `LayerSelected`; a non-data part counts as a layer named after its part), the cell draws in its part's intersect tone, out of the reverse bar, so a crossing reads at a glance: `list.cell.intersect` for a data cell, `list.header.intersect` for a header cell, `list.rownum.intersect` for a row number. One general rule, from data: no branch knows "row" or "column". A whole-cell layer span fills its column's width. The table's non-data parts draw in their own tones so they never read as data: the header row in `list.header` (a band across the width), a column with `Column.Part` (`PartRowNumber`, `"part": "rownum"`) in `list.<part>` (`list.rownum`). `List.SetHeaderTones(spans...)` tones the header's cells, so a column layer shows on its header. Every built-in theme defines the five tones (light and dark sides; mono draws a crossing bold, out of the bar); themes.json may restyle them. Settings (`settings/ochazuke.json`, section appearance): `collection.intersect` (`IntersectSetting`, default on; off draws the layers as before, the later span winning) and `collection.part-tones` (`PartTonesSetting`, default on; off draws the header bold and part columns as data). Stories `tables/intersect-row-column`, `tables/intersect-off`; golden `testdata/layers.golden`.
 
-Compared with Vim: `'cursorline'` and `'cursorcolumn'` (`:help 'cursorline'`, `:help 'cursorcolumn'`, `:help hl-CursorLine`, `:help hl-CursorColumn`) light the cursor's line and column; Vim has no highlight group for the cell where they cross, which draws in the combined attributes. ochazuke gives every crossing (any two layers, not only line and column) its own tone, per part, and draws a table's current cell in its own tone, `list.cell.cursor` (a background, as Vim's `hl-Cursor` block is a colour and not an underline; setting `list.cell-cursor` `underline` draws it underlined inside the bar instead).
+Compared with Vim: `'cursorline'` and `'cursorcolumn'` (`:help 'cursorline'`, `:help 'cursorcolumn'`, `:help hl-CursorLine`, `:help hl-CursorColumn`) light the cursor's line and column; Vim has no highlight group for the cell where they cross, which draws in the combined attributes. ochazuke gives every crossing (any two layers, not only line and column) its own tone, per part, and draws a table's current cell in its own tone, `list.cell.cursor` (a background, as Vim's `hl-Cursor` block is a colour and not an underline; setting `collection.cell-cursor` `underline` draws it underlined inside the bar instead).
 
 ### Chrome colour
 
@@ -529,17 +529,17 @@ Macro recording starts on `Q` (Vim's `q`: here `q` closes modals and viewers, on
 | `?` keyboard guide | `Tab` / `Shift-Tab`, `S` | Next / previous view (here, pick, table, wrapping; `bindings-help.view {step}`): `tab` cycles the views of anything with views, and in a search line the match mode |
 | `?` keyboard guide | `/` | Filter the rows (every view) by key, operation, arguments and description; a key matches as shown and as typed (`z h` or `zh`, `g x` or `gx`, `ctrl+d`, a pattern row by its raw `<digit>`), and the table view also by each mode cell's full operation (`.reset` is found by `demo.reset`). The extra spellings are the rows' `Search` text (`ListItem.Search`, `TreeNode.Search`), never drawn |
 | Normal list | `/` | Filter the list's rows (see Filtering a list) |
-| Normal list | `gg`, `G`, `NG`/`Ngg` | First row, last row, row N (`list.goto`; clamps, never spills) |
-| Normal list | `Ctrl-D/U`, `Ctrl-F/B` | Half a page / a page down and up, the window moving with the selection (`list.scroll`; `3 Ctrl-D` is 3 rows, `2 Ctrl-F` two pages) |
-| Normal cell table (`CellSelect`) | `h`/`l`, `0`/`^`/Home, `$`/End, `N\|`, `gc` | Move the current column: one left/right (counts), the first, the last, column N, a picker of titles (`list.column`, `list.choose-column`); the view scrolls to show it |
-| Normal cell table | `y` | Copy the current cell into the registers (`list.yank`) |
-| Normal cell table | `z>`, `z<`, `z=` | Widen / narrow the current column by 2 cells (counts), every column automatic again; remembered per table (`list.resize-column`, `list.reset-columns`) |
-| Normal table | `Y` | Copy the row's cells joined by tabs into the registers (`list.yank {what: row}`) |
-| Normal table | `V` | Visual row selection over the marks: `j`/`k` extend it, a row's verb then runs for every selected row (one confirm), `esc` ends it (`list.visual`, `list.end-visual`) |
-| Normal table | `zl`/`zh` | Scroll the columns one right/left; the pinned columns stay (`list.scroll-columns`) |
-| Normal row table (the default) | `l`/`h` | Scroll the columns one right/left; at the last column / the start move the focus to the next / previous stop (`list.scroll-columns`, `focus.next`/`focus.previous`) |
-| Normal row table (the default) | `$`, `^`/`0` | Scroll to the view with the last column / back to the first (`list.scroll-columns`) |
-| Normal cell table | `zp` | Pin or unpin the current column (`list.toggle-pin-column`); any table: `list.pin-column`, `unpin-column`, `unpin-columns` from the palette |
+| Normal list | `gg`, `G`, `NG`/`Ngg` | First row, last row, row N (`collection.goto`; clamps, never spills) |
+| Normal list | `Ctrl-D/U`, `Ctrl-F/B` | Half a page / a page down and up, the window moving with the selection (`collection.scroll`; `3 Ctrl-D` is 3 rows, `2 Ctrl-F` two pages) |
+| Normal cell table (`CellSelect`) | `h`/`l`, `0`/`^`/Home, `$`/End, `N\|`, `gc` | Move the current column: one left/right (counts), the first, the last, column N, a picker of titles (`collection.column`, `collection.choose-column`); the view scrolls to show it |
+| Normal cell table | `y` | Copy the current cell into the registers (`collection.yank`) |
+| Normal cell table | `z>`, `z<`, `z=` | Widen / narrow the current column by 2 cells (counts), every column automatic again; remembered per table (`collection.resize-column`, `collection.reset-columns`) |
+| Normal table | `Y` | Copy the row's cells joined by tabs into the registers (`collection.yank {what: row}`) |
+| Normal table | `V` | Visual row selection over the marks: `j`/`k` extend it, a row's verb then runs for every selected row (one confirm), `esc` ends it (`collection.visual`, `collection.end-visual`) |
+| Normal table | `zl`/`zh` | Scroll the columns one right/left; the pinned columns stay (`collection.scroll-columns`) |
+| Normal row table (the default) | `l`/`h` | Scroll the columns one right/left; at the last column / the start move the focus to the next / previous stop (`collection.scroll-columns`, `focus.next`/`focus.previous`) |
+| Normal row table (the default) | `$`, `^`/`0` | Scroll to the view with the last column / back to the first (`collection.scroll-columns`) |
+| Normal cell table | `zp` | Pin or unpin the current column (`collection.toggle-pin-column`); any table: `collection.pin-column`, `unpin-column`, `unpin-columns` from the palette |
 | Normal Appearance | `t`, `d` | Cycle theme / density |
 | Normal demo | `Ctrl-J/K` | Next/previous page |
 | Normal app | `Ctrl-W l/h`, `Ctrl-W w/W`, `Ctrl-A o` | Next/previous focus stop in drawing order; wraps at the edge (`Ctrl-A o` cycles forward) |
@@ -665,7 +665,7 @@ the record and are undoable when the store supports undo. Standard `list` hides
 archived records by default, and so do row-fed lists, trees and pages: a row
 whose archive prop is true is hidden (in a tree its whole subtree is), a prop
 filter naming the archive prop (the saved `archived` filter) shows them and
-clearing the filter hides them again. `list.hide-archived=false` includes them again.
+clearing the filter hides them again. `collection.hide-archived=false` includes them again.
 An explicit `--where ARCHIVE_PROP=true` or a saved filter that mentions the
 archive prop overrides hiding. The role declares a saved filter named `archived`,
 so `task list --filter archived` reveals them; app and user filter definitions
@@ -793,7 +793,7 @@ A `PaletteSource` receives the runtime and originating context and returns `[]Pa
 
 A `Parameter` with `Enum` (static values) or `Source` (an operation key such as `transformations.list` whose result is `[]string`, `[]{id, label}` or `[]any` of either) completes in the palette: at that parameter's word the list shows the choices (a boolean completes `true`/`false`), the word is a unique prefix of a choice's id, and `Ctrl-N/P` then Enter or Tab appends a highlighted one. A value outside the choices is refused, by the palette and by `Execute`, unless the parameter sets `Free`. A source is called at execution to validate; if it fails, validation is skipped rather than blocking the operation. `operation.list` publishes the fields, and `ochazuke NOUN VERB --help` prints the choices from the running app.
 
-A `Parameter` with `Noun` (and no `Source`) names one of that noun's things: its choices are the rows of `NOUN.list` when that verb is registered, asks no confirmation and needs no argument (it then stands in for the `Source`, off the loop for an application verb, and `cli.Catalog` and `cli.Mount` publish it as the source), else the ids of the noun's live instances, labelled by their labels: instances in registration order, each list followed by its rows of the noun (every row, filtered out or not, in list order; the row instance id, never a foreign id in `Data`). Map rows give their id as `id`, `key` or `name` and their label as `label` or `title`; `[]Operation` rows are `noun.verb`. `Enum` values come first and an explicit `Source` wins; a `Noun` adds no validation at execution. The framework marks `page.open id` (`pages`), `mode.switch`/`mode.enter mode` (`modes`), `confirm.require operation` (`operations`), `list.focus id` (`list`, free) and `input.focus id`/`modal.push input` (`editor`, free).
+A `Parameter` with `Noun` (and no `Source`) names one of that noun's things: its choices are the rows of `NOUN.list` when that verb is registered, asks no confirmation and needs no argument (it then stands in for the `Source`, off the loop for an application verb, and `cli.Catalog` and `cli.Mount` publish it as the source), else the ids of the noun's live instances, labelled by their labels: instances in registration order, each list followed by its rows of the noun (every row, filtered out or not, in list order; the row instance id, never a foreign id in `Data`). Map rows give their id as `id`, `key` or `name` and their label as `label` or `title`; `[]Operation` rows are `noun.verb`. `Enum` values come first and an explicit `Source` wins; a `Noun` adds no validation at execution. The framework marks `page.open id` (`pages`), `mode.switch`/`mode.enter mode` (`modes`), `confirm.require operation` (`operations`), `collection.focus id` (`list`, free) and `input.focus id`/`modal.push input` (`editor`, free).
 
 ```js
 // Parameters of transform.apply
@@ -867,7 +867,7 @@ The id (`sidebar` here) identifies the list instance (`r.List("sidebar")` return
 - `Move(delta)` and `Select(itemID)` change selection without stealing focus. `Selected()` returns the selected value and whether one exists.
 - `SetItems(rows)` copies the records and preserves selection by stable ID. It creates the instance of each new row under the list (`Instance{ID: item.ID, Noun: item.Noun, Parent: <list>}`) and removes the instances of rows that disappear; a retained row keeps its instance and marks. A removed selection falls back to its previous index, clamped to the remaining rows. An empty list focuses the list itself. An empty or duplicate ID, an unregistered noun, or an ID that is already another instance rejects the whole update.
 - Refreshes also move every focus reference (the focus, a page's remembered focus, a modal's return) that pointed at the list or a removed row to the selected row (`RetargetFocus`), so returning from another page/modal cannot restore a removed row's rows.
-- `ToggleMark(id)` and `Marked()` keep a multi-selection. `list.apply {verb, args}` runs `<row noun>.verb` with the row as target and `args` as its arguments for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb; a verb with a confirm asks once for all the rows.
+- `ToggleMark(id)` and `Marked()` keep a multi-selection. `collection.apply {verb, args}` runs `<row noun>.verb` with the row as target and `args` as its arguments for every marked row (the selected row when none is marked), skipping and reporting rows whose noun lacks the verb; a verb with a confirm asks once for all the rows.
 - `SetPlaceholder(Placeholder{Plural, Empty, Loading, LoadingJob})` says what the list draws with no rows, in the one format (UX-RULES R5.19: lower case, no parentheses, the noun named): `Empty` (default `no PLURAL`, `no rows`), `Loading` (default `loading PLURAL…`) while a job runs in the `LoadingJob` slot (`JobSlot{Scope, Slot}`, the scope and slot of `Result.ReplacingAt`), and `no PLURAL match 'q'` when a filter hides every row. `PickerSpec` has the same `Empty`, `Loading`, `LoadingJob` and `Plural`. `EmptyText`, `LoadingText` and `NoMatchText` give the format to components that draw their own.
 - Call these methods on the runtime's event loop. Data loading and domain actions remain application-owned. There is no tree expansion or built-in search provider.
 
@@ -877,9 +877,9 @@ Every list (page lists, tables, trees, a catalog page's lists, the Settings page
 
 | Keys | Operation | Does |
 |---|---|---|
-| `g g` / `G` | `list.goto {position, row}` | The first / last row; with a count the row of that number (`5G`, `5gg`), clamped |
-| `ctrl+d` / `ctrl+u` | `list.scroll {delta, half}` | Half a page down / up; a count is rows (`3 ctrl+d`) |
-| `ctrl+f` / `ctrl+b` | `list.scroll {delta}` | A page down / up; a count is pages |
+| `g g` / `G` | `collection.goto {position, row}` | The first / last row; with a count the row of that number (`5G`, `5gg`), clamped |
+| `ctrl+d` / `ctrl+u` | `collection.scroll {delta, half}` | Half a page down / up; a count is rows (`3 ctrl+d`) |
+| `ctrl+f` / `ctrl+b` | `collection.scroll {delta}` | A page down / up; a count is pages |
 | `g g` `G` `ctrl+d` `ctrl+u` `ctrl+f` `ctrl+b` `0` `$` elsewhere | `viewport.goto {edge, row}`, `viewport.scroll {by: page, delta, half, steps}` | The same motions on any other component with a cursor or a scroll (below) |
 | `ctrl+e` / `ctrl+y` | `viewport.scroll {lines}` | The window a line down / up, the selection staying unless it would leave the window's scrolloff margin (then it moves to the nearest row inside); a count is lines (`5 ctrl+e`), as Vim's `CTRL-E`/`CTRL-Y` |
 
@@ -895,7 +895,7 @@ r.Define("commit").Classes(
 )
 ```
 
-Each keyed declaration generates normal-mode `] KEY` and `[ KEY` binding rows on that noun, running `list.next-class` or `list.previous-class` with `{class, steps}`. Counts work (`3]m` counts three matching rows). These motions walk the shown rows in drawing order, skipping filtered rows, and never spill or wrap. A count beyond the remaining matches lands on the last match. With no match ahead, selection stays put and a plain status message says so. The optional `id` parameter targets a list explicitly. An empty `Key` generates no rows, leaving the class accessible through the palette or API. `Title` supplies the help description and footer hint, defaulting to `Name`. Declare classes before user bindings load. Repeating a class name replaces its declaration and keys.
+Each keyed declaration generates normal-mode `] KEY` and `[ KEY` binding rows on that noun, running `collection.next-class` or `collection.previous-class` with `{class, steps}`. Counts work (`3]m` counts three matching rows). These motions walk the shown rows in drawing order, skipping filtered rows, and never spill or wrap. A count beyond the remaining matches lands on the last match. With no match ahead, selection stays put and a plain status message says so. The optional `id` parameter targets a list explicitly. An empty `Key` generates no rows, leaving the class accessible through the palette or API. `Title` supplies the help description and footer hint, defaulting to `Name`. Declare classes before user bindings load. Repeating a class name replaces its declaration and keys.
 
 Lists without declarations gain no bindings or hints. The opt-out is `bindings.json`: override or unbind the generated rows on the declaring noun, as with other default rows. Class membership is application data; the framework defines no class names or predicates. Stories: `lists/class-motions`, `lists/class-help`.
 
@@ -903,31 +903,31 @@ Compared with Vim: `]]` and `[[` (`:help ]]`, `:help [[`) count section boundari
 
 `ctrl+e`/`ctrl+y` are rows on `app` in normal mode (`bindings/scroll.json`) to one verb, `viewport.scroll {lines, count}`, for every scrollable: it scrolls the innermost component on the focus path that windows its lines (`LineScroller`: `CanScrollLines`, `ScrollLines`; a list, so tables and trees, a timeline, a markdown document; a component held by another scroller, a timeline's card list, defers to its holder), else the page's detail while it overflows (as `J`/`K` do). With nothing to scroll the verb is unavailable and the key does nothing. A component of an application scrolls the same way by implementing `LineScroller`. The timeline's own `ctrl+e`/`ctrl+y` rows (`timeline.scroll`) answer first on a timeline. Compared with Vim: the same, but a list that shows every row (drawn at its full length on a scrolling page) has no window of its own, so the key falls to the detail or does nothing; on a table with tall rows a line is a row; an editor's text does not scroll yet. Stories: `scroll/ctrl-e-ctrl-y-list`, `tables/ctrl-e-scroll`, `markdown/ctrl-e-scroll`, `detail/ctrl-e-scrolls-detail`.
 
-The shared motions reach every other component with a cursor or a scroll through one interface, `CursorMotions` (`motion_scroll.go`: `MotionEdges`, `MoveToEdge`, `PageLines`, `MovePage`), and two verbs on `ochazuke.viewport`: `viewport.goto {edge, row}` moves to one of the four edges named by edge (`first`, `last`, `first-col`, `last-col`, the `SpillEdges` set; with `row` the row or line of that number, `5G`), and `viewport.scroll {by: page, delta, half, steps}` moves a page or half a page with the cursor, as `list.scroll` does. The innermost implementer on the focus path answers, or the component holding it when that implements it too (a timeline over its card list), as `viewport.scroll` picks its scroller; an input never answers (its editor has its own `gg`/`G`). Each verb is unavailable where nothing moves (`view-edge-moves`, `view-pages`), so a key falls through. Default rows on `app` in normal mode (`bindings/scroll.json`) bind `g g`, `G` (counts: `5G`), `ctrl+d`/`ctrl+u`, `ctrl+f`/`ctrl+b`, `0` (`first-col`) and `$` (`last-col`) to them; the yank history (`g y`), the docs viewer and a timeline's card body bind the same rows in their own tables so they answer there (the docs viewer's `g g`/`G` were 1,000,000-line `detail.scroll` rows before). Implementers: `List` (row edges, and the column edges on a `CellSelect` table), `Timeline` (`g g`/`G` go to the first/last card from the cards or from inside a card, as `timeline.goto`; the page keys inside a card scroll the window, the step staying in view), `Detail` (the docs viewer: the edges and pages move its window) and the yank history (its selection). A markdown document answers through its line list. An application's component answers the same keys by implementing `CursorMotions`. The component verbs (`list.goto`, `list.scroll`, `timeline.goto`, `yank-history.move`, `detail.scroll`) stay. Compared with Vim: `gg`, `G`, `[count]G`, `CTRL-D`, `CTRL-U`, `CTRL-F`, `CTRL-B`, `0` and `$` (`:help gg`, `:help CTRL-D`, `:help 0`) behave as on a buffer, with these differences: a view without a cursor (the docs viewer) moves its window instead, `0`/`$` are the first and last column only where a cursor moves sideways (else the key does nothing), and a page key never spills past the component's edge. Stories: `yank-history/gg-G`, `docs/gg-G`, `timeline/edges`.
+The shared motions reach every other component with a cursor or a scroll through one interface, `CursorMotions` (`motion_scroll.go`: `MotionEdges`, `MoveToEdge`, `PageLines`, `MovePage`), and two verbs on `ochazuke.viewport`: `viewport.goto {edge, row}` moves to one of the four edges named by edge (`first`, `last`, `first-col`, `last-col`, the `SpillEdges` set; with `row` the row or line of that number, `5G`), and `viewport.scroll {by: page, delta, half, steps}` moves a page or half a page with the cursor, as `collection.scroll` does. The innermost implementer on the focus path answers, or the component holding it when that implements it too (a timeline over its card list), as `viewport.scroll` picks its scroller; an input never answers (its editor has its own `gg`/`G`). Each verb is unavailable where nothing moves (`view-edge-moves`, `view-pages`), so a key falls through. Default rows on `app` in normal mode (`bindings/scroll.json`) bind `g g`, `G` (counts: `5G`), `ctrl+d`/`ctrl+u`, `ctrl+f`/`ctrl+b`, `0` (`first-col`) and `$` (`last-col`) to them; the yank history (`g y`), the docs viewer and a timeline's card body bind the same rows in their own tables so they answer there (the docs viewer's `g g`/`G` were 1,000,000-line `detail.scroll` rows before). Implementers: `List` (row edges, and the column edges on a `CellSelect` table), `Timeline` (`g g`/`G` go to the first/last card from the cards or from inside a card, as `timeline.goto`; the page keys inside a card scroll the window, the step staying in view), `Detail` (the docs viewer: the edges and pages move its window) and the yank history (its selection). A markdown document answers through its line list. An application's component answers the same keys by implementing `CursorMotions`. The component verbs (`collection.goto`, `collection.scroll`, `timeline.goto`, `yank-history.move`, `detail.scroll`) stay. Compared with Vim: `gg`, `G`, `[count]G`, `CTRL-D`, `CTRL-U`, `CTRL-F`, `CTRL-B`, `0` and `$` (`:help gg`, `:help CTRL-D`, `:help 0`) behave as on a buffer, with these differences: a view without a cursor (the docs viewer) moves its window instead, `0`/`$` are the first and last column only where a cursor moves sideways (else the key does nothing), and a page key never spills past the component's edge. Stories: `yank-history/gg-G`, `docs/gg-G`, `timeline/edges`.
 
 #### Tables select rows; cell mode is opt-in
 
-A table (a list with columns) selects rows. Only a table added with `CellSelect()` (an `InstanceOption` for `AddList`; for a table one reads cell by cell, such as a JSON or CSV view) has a current column as well as a selected row, the way a spreadsheet (o-csv, on `grid`) has a current cell. Every other table, trees' lists, the `?` help modal, the Settings page and cli catalog tables included, leaves `h`/`l` to its row nouns: where the row noun does not bind them, `l` scrolls the view one column right until the last column shows and then moves the focus to the next stop, `h` scrolls back to the start and then moves it to the previous stop (the horizontal twin of the `j`/`k` spill; a modal, a `NoSpill` list and the page's first or last stop clamp), `$` scrolls to the view with the last column and `^`/`0` (without a count) back, `z l`/`z h` one column (`list.scroll-columns`). `RowSelect()` is a deprecated no-op kept for code written against v0.12.0.
+A table (a list with columns) selects rows. Only a table added with `CellSelect()` (an `InstanceOption` for `AddList`; for a table one reads cell by cell, such as a JSON or CSV view) has a current column as well as a selected row, the way a spreadsheet (o-csv, on `grid`) has a current cell. Every other table, trees' lists, the `?` help modal, the Settings page and cli catalog tables included, leaves `h`/`l` to its row nouns: where the row noun does not bind them, `l` scrolls the view one column right until the last column shows and then moves the focus to the next stop, `h` scrolls back to the start and then moves it to the previous stop (the horizontal twin of the `j`/`k` spill; a modal, a `NoSpill` list and the page's first or last stop clamp), `$` scrolls to the view with the last column and `^`/`0` (without a count) back, `z l`/`z h` one column (`collection.scroll-columns`). `RowSelect()` is a deprecated no-op kept for code written against v0.12.0.
 
-Pinned columns draw first, in declared order, and never scroll; the default is the columns declared `Column.Pinned`, else the first column. `list.pin-column {column}`, `list.unpin-column {column}`, `list.toggle-pin-column {column}` (`z p` on a cell-mode table) and `list.unpin-columns` change them on any table (`column` is a title or a 1-based number; without it a row-select table opens the column picker), `list.reset-columns` (`z =`) puts the default back, and a user's pins are remembered per table in `tables.json`. When the pins leave no room for a scrolling column the view leaves pins out from the right (the saved pins stay). A table with a header whose columns do not fit reserves 8 cells and marks its edges: `‹N` after the pinned columns, `N›` at the right edge, N the scrolling columns hidden on that side.
+Pinned columns draw first, in declared order, and never scroll; the default is the columns declared `Column.Pinned`, else the first column. `collection.pin-column {column}`, `collection.unpin-column {column}`, `collection.toggle-pin-column {column}` (`z p` on a cell-mode table) and `collection.unpin-columns` change them on any table (`column` is a title or a 1-based number; without it a row-select table opens the column picker), `collection.reset-columns` (`z =`) puts the default back, and a user's pins are remembered per table in `tables.json`. When the pins leave no room for a scrolling column the view leaves pins out from the right (the saved pins stay). A table with a header whose columns do not fit reserves 8 cells and marks its edges: `‹N` after the pinned columns, `N›` at the right edge, N the scrolling columns hidden on that side.
 
-On a cell-mode table the row keeps the list's one highlight; the current cell is drawn in the `list.cell.cursor` tone (`ToneCellCursor`: the scheme's surface on its accent, bold, written as reverse video with the colours swapped so it stays part of the selection's run; mono and `NO_COLOR`, which have no background, and the setting `list.cell-cursor` `underline` (`CellCursorSetting`, default `background`, section appearance) draw it reversed and underlined inside the bar as before; themes.json may restyle the tone), the header underlines the current column's title, and an unfocused table fades both with the list. Rows of the `list` noun in normal mode that answer only on a cell-mode table (`table_cells.go`), except where the table says every table:
+On a cell-mode table the row keeps the list's one highlight; the current cell is drawn in the `list.cell.cursor` tone (`ToneCellCursor`: the scheme's surface on its accent, bold, written as reverse video with the colours swapped so it stays part of the selection's run; mono and `NO_COLOR`, which have no background, and the setting `collection.cell-cursor` `underline` (`CellCursorSetting`, default `background`, section appearance) draw it reversed and underlined inside the bar as before; themes.json may restyle the tone), the header underlines the current column's title, and an unfocused table fades both with the list. Rows of the `list` noun in normal mode that answer only on a cell-mode table (`table_cells.go`), except where the table says every table:
 
 | Keys | Operation | Does |
 |---|---|---|
-| `h` `l` `left` `right` | `list.column {delta, steps}` | One column left / right in drawing order (pins first); a count is columns; on the first / last column `focus.previous` / `focus.next` instead (clamped in a modal, on a `NoSpill` list, at the page's first / last stop) |
-| `0` (no count) `^` `home` / `$` `end` | `list.column {to}` | The first / last column |
-| `N \|` | `list.column {index}` | Column N (`3|`); `\|` alone the first |
-| `g c` | `list.choose-column` | A picker of the column titles |
-| `y` | `list.yank {what: cell, register}` | The cell's text into the registers (`"ay` names one) |
-| `Y` | `list.yank {what: row, register}` | Every table: the row's cells joined by tabs |
-| `z >` / `z <` | `list.resize-column {delta, steps}` | Widen / narrow the current column by `ColumnWidthStep` (2) cells, never below 3 |
-| `N z f` | `list.fit-column {width}` | The current column as wide as its widest cell over every row or its title, at most the table's width; with a count N cells (`20 z f`) |
-| `z F` | `list.fit-columns` | Every table: every column at its content's width when they fit; else the widest narrowed first (never below its least width) so as few columns as can be are cut; answers only where it changes a width |
-| `z =` | `list.reset-columns` | Every table with a width given or pins chosen: every column automatic again, the default pins back |
-| `z p` | `list.toggle-pin-column` | Pin or unpin the current column |
-| `z l` / `z h` | `list.scroll-columns {delta, steps}` | Every table that scrolls: the view one column right / left; on a cell-mode table the current column is carried along when it scrolls off |
-| `V`, then `esc` | `list.visual {on}`, `list.end-visual` | Every table with marks: visual row selection (below) |
+| `h` `l` `left` `right` | `collection.column {delta, steps}` | One column left / right in drawing order (pins first); a count is columns; on the first / last column `focus.previous` / `focus.next` instead (clamped in a modal, on a `NoSpill` list, at the page's first / last stop) |
+| `0` (no count) `^` `home` / `$` `end` | `collection.column {to}` | The first / last column |
+| `N \|` | `collection.column {index}` | Column N (`3|`); `\|` alone the first |
+| `g c` | `collection.choose-column` | A picker of the column titles |
+| `y` | `collection.yank {what: cell, register}` | The cell's text into the registers (`"ay` names one) |
+| `Y` | `collection.yank {what: row, register}` | Every table: the row's cells joined by tabs |
+| `z >` / `z <` | `collection.resize-column {delta, steps}` | Widen / narrow the current column by `ColumnWidthStep` (2) cells, never below 3 |
+| `N z f` | `collection.fit-column {width}` | The current column as wide as its widest cell over every row or its title, at most the table's width; with a count N cells (`20 z f`) |
+| `z F` | `collection.fit-columns` | Every table: every column at its content's width when they fit; else the widest narrowed first (never below its least width) so as few columns as can be are cut; answers only where it changes a width |
+| `z =` | `collection.reset-columns` | Every table with a width given or pins chosen: every column automatic again, the default pins back |
+| `z p` | `collection.toggle-pin-column` | Pin or unpin the current column |
+| `z l` / `z h` | `collection.scroll-columns {delta, steps}` | Every table that scrolls: the view one column right / left; on a cell-mode table the current column is carried along when it scrolls off |
+| `V`, then `esc` | `collection.visual {on}`, `collection.end-visual` | Every table with marks: visual row selection (below) |
 
 `j`/`k` keep the column. Each frame scrolls the column offset as little as shows the current column: the first column stays (it names the row), a column dropped by `Priority` or past the right edge comes into view as the column reaches it, and the first column brings the unscrolled view back. The movement keys are motions (off the footer, under `movement` in `?` help); `y`, `Y`, `V` and the width keys are hidden from the footer too and listed in `?` help. A row noun that binds one of these keys answers first (the walk is inner-first): that table keeps the app's key and loses the cell key. `enter` is unchanged, the row's default action. The width keys need a current column, so they answer on cell-mode tables only, except `z F` and `z =`, which need none. A cell-mode table's current column, every table's widths (`z >`, `z <`, `z f`, `z F`, `SetColumnWidth`) and pins are remembered per table id in the state directory's `tables.json` (`Runtime.TableState`, `SetTableState`; in memory without a state directory; `TableState.Version` marks widths a row-select table may read, so widths left by v0.12.0 stay ignored there).
 
@@ -937,7 +937,7 @@ Compared with Vim: columns stand in for windows. `z f` is `ctrl-w _` / `ctrl-w |
 
 A host's own `h` "back" row on a table should take the guard `list-first-column` (cli's groups rail does): on a cell-mode table `h` then moves left and goes back only from the first column; on a row-select table it holds, so `h` goes back at once. An instance row answers before the list noun's, so a host's `h` back row wins over the table's scroll and spill.
 
-`V` starts a visual row selection at the selected row on any table (not on a `NoMarks` one). It is the marks: while it lasts they are the marks V found plus every shown row between the anchor and the selection, so `j`/`k`, counts and the paging motions extend it (they clamp instead of spilling), the `* ` gutter draws it and `list.apply` fans out over it. The mode stays normal, so the rows' keys still answer; a key whose row runs an application verb of the row's noun runs it for every selected row through `list.apply`, with one confirm when the verb has one, and ends the selection. `esc` (or `V`) ends it without running anything. Either way the marks go back to the ones V found; `space` during it toggles those.
+`V` starts a visual row selection at the selected row on any table (not on a `NoMarks` one). It is the marks: while it lasts they are the marks V found plus every shown row between the anchor and the selection, so `j`/`k`, counts and the paging motions extend it (they clamp instead of spilling), the `* ` gutter draws it and `collection.apply` fans out over it. The mode stays normal, so the rows' keys still answer; a key whose row runs an application verb of the row's noun runs it for every selected row through `collection.apply`, with one confirm when the verb has one, and ends the selection. `esc` (or `V`) ends it without running anything. Either way the marks go back to the ones V found; `space` during it toggles those.
 
 The design is in `docs/UI-MODEL.md` "Tables". Stories: `tables/cell-motion`, `tables/column-count`, `tables/column-resize`, `tables/visual-apply`, `tables/unfocused-cell-dimmed`, `tables/column-motions`, `tables/row-select`, `tables/scroll-then-focus-{right,left}`, `tables/cell-edge-focus`, `tables/nospill-clamps`, `tables/modal-clamps`, `tables/row-noun-l-wins`, `tables/edge-markers{,-start,-fit}`, `tables/pin-{cell,row-palette,declared,narrow}`, `tables/unpin-columns`, `catalog/groups-table-h`; an o-story list opts in with `cellSelect`, a column with `pinned`.
 
@@ -954,15 +954,15 @@ play/pi               pi           idle     ~/proj/nabe
 
 | Keys (mode `list_filter`) | Does |
 |---|---|
-| printable keys, space, paste | `list.filter-type`: add to the query |
-| backspace / `ctrl+h` | `list.filter-erase`; on an empty query `list.filter-keep` (leaves the line) |
-| up/down, `ctrl+p`/`ctrl+n` | `list.move {clamp}`: move among the matches, never spilling |
-| enter | `list.filter-keep`: back to normal mode with the filter kept (the line stays; `/` edits it again). On a list added with `ClearFilterOnEnter()` (or a tree), with a match: `list.filter-choose`, which clears the filter, keeps the selection on the match and goes back to normal mode |
-| esc | `list.filter-clear`: clear the filter and select the row `/` found |
-| `ctrl+u` | `list.filter {query: ""}`: empty the query |
+| printable keys, space, paste | `collection.filter-type`: add to the query |
+| backspace / `ctrl+h` | `collection.filter-erase`; on an empty query `collection.filter-keep` (leaves the line) |
+| up/down, `ctrl+p`/`ctrl+n` | `collection.move {clamp}`: move among the matches, never spilling |
+| enter | `collection.filter-keep`: back to normal mode with the filter kept (the line stays; `/` edits it again). On a list added with `ClearFilterOnEnter()` (or a tree), with a match: `collection.filter-choose`, which clears the filter, keeps the selection on the match and goes back to normal mode |
+| esc | `collection.filter-clear`: clear the filter and select the row `/` found |
+| `ctrl+u` | `collection.filter {query: ""}`: empty the query |
 | `tab` / `shift+tab` | `search.cycle-match {step}`: the next (previous) match mode, below |
 
-In normal mode `esc` on a filtered list clears the filter (`list.filter-clear`, guarded off on an unfiltered list so `esc` there stays the outer level's). The `/` row is an `app` row guarded by `list-filterable` and added after the Model's defaults: an application's own `/` on any level (its row noun, the list, the page) answers first, and the footer's `/ filter` is the hint a narrow footer cuts first.
+In normal mode `esc` on a filtered list clears the filter (`collection.filter-clear`, guarded off on an unfiltered list so `esc` there stays the outer level's). The `/` row is an `app` row guarded by `list-filterable` and added after the Model's defaults: an application's own `/` on any level (its row noun, the list, the page) answers first, and the footer's `/ filter` is the hint a narrow footer cuts first.
 
 #### Match modes
 
@@ -1000,9 +1000,9 @@ Compared with Vim:
 
 #### Changed rows leaving a filter
 
-When an existing row changes so it no longer matches the active text or prop filter (including a saved filter or the live filter form), it stays visible in its previous position for `list.filter-linger` (ochazuke › Search, default `30s`). The row shows a `~` marker and the themeable `list.lingering` tone (`ToneLingering`). It remains selectable and its actions still work; an undo that makes it match again clears the marker immediately. New matches appear immediately, and deleting a row removes it immediately.
+When an existing row changes so it no longer matches the active text or prop filter (including a saved filter or the live filter form), it stays visible in its previous position for `collection.filter-linger` (ochazuke › Search, default `30s`). The row shows a `~` marker and the themeable `list.lingering` tone (`ToneLingering`). It remains selectable and its actions still work; an undo that makes it match again clears the marker immediately. New matches appear immediately, and deleting a row removes it immediately.
 
-Changing the query, match mode or prop conditions flushes leaving rows. `list.flush-lingering {id}` removes them at once while keeping the current filter; omit `id` for the focused list, table, tree or picker. It has no default key, so applications or user binding rows can choose one. `List.FlushLingering()` does the same from code; `List.Lingering(id)` reports the presentation state. Set `list.filter-linger` to `0` to restore immediate removal. Each row view schedules one cancellable timer for its earliest deadline and schedules nothing when idle. `Model.Now` and `Model.JobLingerTick()` support deterministic headless expiry.
+Changing the query, match mode or prop conditions flushes leaving rows. `collection.flush-lingering {id}` removes them at once while keeping the current filter; omit `id` for the focused list, table, tree or picker. It has no default key, so applications or user binding rows can choose one. `List.FlushLingering()` does the same from code; `List.Lingering(id)` reports the presentation state. Set `collection.filter-linger` to `0` to restore immediate removal. Each row view schedules one cancellable timer for its earliest deadline and schedules nothing when idle. `Model.Now` and `Model.JobLingerTick()` support deterministic headless expiry.
 
 Compared with Vim: this grace period has no built-in Vim counterpart. Vim search highlights (`:help hlsearch`) mark matches without filtering rows; ochazuke retains changed records briefly so their action and undo remain reachable.
 
@@ -1012,9 +1012,9 @@ Every text search and text filter the framework runs compares case the same way:
 
 Compared with Vim: `smart` is `:set ignorecase smartcase` (`:help 'ignorecase'`, `:help 'smartcase'`), `ignore` is `ignorecase` alone and `sensitive` is `noignorecase`; the capital test is Vim's (an upper-case letter typed in the query). Vim applies `smartcase` only to typed patterns, not to `*`/`#`, which ochazuke does not have yet. Not here: the `\c`/`\C` pattern overrides (`:help /\c`), and Vim's separate `'wildignorecase'`/`'fileignorecase'` for file-name completion: the path picker and picker follow `search.case` like every other search.
 
-The filter hides rows from drawing and from motions (`j`/`k`, counts, spills) and never removes them: their instances, marks and data stay. `SetItems` and `List.Patch` (which patches every row, hidden ones included) while filtered filter the new rows and keep the selection by id; `list.apply` fans out to the marked rows the filter shows (a mark on a hidden row waits); a command that lands on a hidden row (`Select`, `focus.to`, a job's focus) clears the filter. `Items()` and `Len()` are every row; `Shown()` counts the shown ones, `Filter()` is the query, `Filtering()` reports the line, `SetFilter(q)` sets it, and `Height()` (`Len()` plus the line) is what a host sizing a list to its rows passes to `View`. The CLI form is `list filter --target LIST --query Q` (an empty query clears); the state at `/lists/<id>` then has `filter` and `total`, and its `items` are the shown rows. Stories: `lists/filter-*`, `catalog/filter-setitems`, `tables/filter-by-cell`, `settings/filter`.
+The filter hides rows from drawing and from motions (`j`/`k`, counts, spills) and never removes them: their instances, marks and data stay. `SetItems` and `List.Patch` (which patches every row, hidden ones included) while filtered filter the new rows and keep the selection by id; `collection.apply` fans out to the marked rows the filter shows (a mark on a hidden row waits); a command that lands on a hidden row (`Select`, `focus.to`, a job's focus) clears the filter. `Items()` and `Len()` are every row; `Shown()` counts the shown ones, `Filter()` is the query, `Filtering()` reports the line, `SetFilter(q)` sets it, and `Height()` (`Len()` plus the line) is what a host sizing a list to its rows passes to `View`. The CLI form is `list filter --target LIST --query Q` (an empty query clears); the state at `/lists/<id>` then has `filter` and `total`, and its `items` are the shown rows. Stories: `lists/filter-*`, `catalog/filter-setitems`, `tables/filter-by-cell`, `settings/filter`.
 
-The operation equivalents are `list.focus {id}`, `list.move {id?, delta, clamp?}`, `list.goto {id?, position?, row?}`, `list.scroll {id?, delta, half?, steps?}`, `list.scroll-columns {id?, to?, delta?, steps?}`, `list.column {id?, to?, index?, delta?, steps?}`, `list.choose-column {id?}`, `list.yank {id?, what?, register?}`, `list.resize-column {id?, delta, steps?}`, `list.reset-columns {id?}`, `list.pin-column {id?, column?}`, `list.unpin-column {id?, column?}`, `list.toggle-pin-column {id?, column?}`, `list.unpin-columns {id?}`, `list.visual {id?, on?}`, `list.select {id?, item}`, `list.mark {id?, item?}`, `list.apply {id?, verb, args?}` and `list.filter {id?, query}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `list.apply` fans one verb out over several rows.
+The operation equivalents are `collection.focus {id}`, `collection.move {id?, delta, clamp?}`, `collection.goto {id?, position?, row?}`, `collection.scroll {id?, delta, half?, steps?}`, `collection.scroll-columns {id?, to?, delta?, steps?}`, `collection.column {id?, to?, index?, delta?, steps?}`, `collection.choose-column {id?}`, `collection.yank {id?, what?, register?}`, `collection.resize-column {id?, delta, steps?}`, `collection.reset-columns {id?}`, `collection.pin-column {id?, column?}`, `collection.unpin-column {id?, column?}`, `collection.toggle-pin-column {id?, column?}`, `collection.unpin-columns {id?}`, `collection.visual {id?, on?}`, `collection.select {id?, item}`, `collection.mark {id?, item?}`, `collection.apply {id?, verb, args?}` and `collection.filter {id?, query}`. Omit `id` to operate on the list on the focus stack. State is inspectable under `/lists/<id>` (rows show their `noun`, `marked` lists marks) and `/instances/<rowId>`. The full-project example's **Items** page mixes `repo`, `worktree` and `branch` rows in one list: each row answers to its noun's verbs and keys, `?` lists the focused row's rows, and Space plus `collection.apply` fans one verb out over several rows.
 
 
 #### Filtering by prop
@@ -1041,7 +1041,7 @@ r.Define("lane").Props(PropSpec{
 ```
 
 `PropOf("lane", "status")` returns the `state` spec. Prop requests,
-`get`/`set`, `where`/`--where`, and `list.filter-prop {prop: "status"}`
+`get`/`set`, `where`/`--where`, and `collection.filter-prop {prop: "status"}`
 resolve to `state` and read or write that record key. Forms, prop pickers
 and listings offer only `state`, even when old row data also carries
 `status`. Catalog prop rows carry `aliases: ["status"]` through CLI hosts.
@@ -1049,7 +1049,7 @@ Alias names follow the prop namespace's clash rules. Saved filters using
 an alias resolve when loaded, without changing the settings file; saving
 the active filter again stores main names. A mixed list refuses an alias
 whose declared meaning differs between its row nouns. No new setting is
-needed: declaring aliases is opt-in, and `list.filter-form` still chooses
+needed: declaring aliases is opt-in, and `collection.filter-form` still chooses
 between the form and prop picker.
 
 Compared with Vim: prop schema aliases have no Vim motion, option or
@@ -1111,7 +1111,7 @@ come from the extension) and tables. Off only explicitly:
 - a declared prop with `NoFilter: true` is not;
 - a noun's `PropsOff` (`NounBuilder.PropsOff("notes", "raw*")`, the catalog's
   `nouns[].propsOff`, carried by `cli.MountNouns`) names fields of its rows;
-- the user setting `list.props-off` (ochazuke › Search, a list, default empty)
+- the user setting `collection.props-off` (ochazuke › Search, a list, default empty)
   names `NOUN.FIELD` patterns (`path.Match`: `lane.notes`, `*.uuid`,
   `o-lane.lane.*`; `["*"]` turns every prop filter off).
 
@@ -1122,8 +1122,8 @@ that filtered view; clearing restores the original collapse state. `/` alone
 filters only the rows exposed by the current folds and does not keep ancestors.
 The filter does not remove list rows or their marks.
 
-`z /` runs `ochazuke.list.filter-prop`, which opens the **filter form** over
-the list, tree or picker (setting `list.filter-form`, ochazuke › Search,
+`z /` runs `ochazuke.collection.filter-prop`, which opens the **filter form** over
+the list, tree or picker (setting `collection.filter-form`, ochazuke › Search,
 default true; false keeps the older chain: pick a prop, then one of the
 visible rows' distinct values, at most 500). The form is a record editor with
 a field per filterable prop, each shown as `name · is` or `name · not`:
@@ -1134,7 +1134,7 @@ a field per filterable prop, each shown as `name · is` or `name · not`:
   as needed, in the `chip` tone (`chip.focused` under the cursor). `space`
   toggles a chip: one chip makes `=`, several `in`; a list prop's chips make
   a `contains` each (the row holds them all);
-- a finite field with more values than `list.filter-chip-max` (default 24)
+- a finite field with more values than `collection.filter-chip-max` (default 24)
   is a text input of comma-separated values that completes them as you type
   (`ctrl+n` / `ctrl+p` walk the suggestions, `enter` or `tab` takes one);
 - any other prop (free text, numbers, dates, durations) is a text input:
@@ -1157,14 +1157,14 @@ condition over. The operators are `=`, `!=`, `contains`, `not-contains`, `in`
 and `not-in` (`FilterOps`): each negated operator is its test turned over
 (`NegateFilterOp`, `PropFilter.Negate`), and `in` / `not-in` take an array
 (`--op not-in --value '["done","cancelled"]'`). Saved filters store the op as
-written, so older `list.filters` rows load unchanged.
+written, so older `collection.filters` rows load unchanged.
 `z !` (`filter-prop-clear`) picks one active condition to remove, or takes
 `prop` (the first condition on that prop) or a 1-based `index`. `z C`
 (`filter-props-clear`) clears all prop conditions, keeping `/` text.
 `List.SetPropFilters`, `PropFilters`, `SavedFilters` and `ApplyFilter` expose
 the same mechanism to apps. These verbs take `id` for a list, tree or picker, defaulting
 to the focused row view. Active conditions appear in the row view header strip
-beside the text query; `list.filter-strip=false` hides the prop strip (default
+beside the text query; `collection.filter-strip=false` hides the prop strip (default
 true); zero matches still say so with the count (`no rows match the filter, 0 of N`). Hints come from the binding
 rows, which users can replace or unbind.
 Since nearly every list with data now offers prop filters, the `z /` and
@@ -1178,18 +1178,18 @@ saved-filter pickers open over the picker and return to its query.
 
 | Picker key | Action |
 |---|---|
-| `ctrl+f` | Open the filter form over the picker (with `list.filter-form` off: pick a property, then a visible value). With active filters, cycle to the next saved filter when cycling is enabled and saved filters exist; otherwise the picker offers **Clear prop filters**. |
+| `ctrl+f` | Open the filter form over the picker (with `collection.filter-form` off: pick a property, then a visible value). With active filters, cycle to the next saved filter when cycling is enabled and saved filters exist; otherwise the picker offers **Clear prop filters**. |
 | `alt+]` / `alt+[` | Cycle saved filters forward / backward. |
 | `alt+backspace` | Clear all prop conditions and the saved name, keeping search text. |
 
 Letters always type into the search. Lists and trees keep their `z` chords
 and `ctrl+f` page-down. `ctrl+[` is Escape in terminals and is not a filter
 binding. The `list.filter-*` verbs accept a picker kind as `id`; user
-`list.filters` rows can scope `list` to that kind. `Chooser.SetPropFilters`,
+`collection.filters` rows can scope `list` to that kind. `Chooser.SetPropFilters`,
 `PropFilters`, `SavedFilters` and `ApplyFilter` expose the same operations.
 `picker.prop-filters=false` disables filtering, its strip and keys (default
-true); `PickerSpec.NoPropFilters` opts out one picker. `list.filter-strip`
-and `list.filter-cycle` apply too.
+true); `PickerSpec.NoPropFilters` opts out one picker. `collection.filter-strip`
+and `collection.filter-cycle` apply too.
 
 Compared with Vim: Vim's `:filter` filters command output with a regexp;
 there is no built-in saved typed-prop cycle. Inverting a field is Vim's
@@ -1212,7 +1212,7 @@ r.Define("note").Props(PropSpec{Name: "made-by"}).Filters(
 ```
 
 Catalogs publish these rows as `nouns[].filters`; `cli.MountNouns` carries them
-to the host's noun. Users add or replace defaults in `list.filters`, a string
+to the host's noun. Users add or replace defaults in `collection.filters`, a string
 holding a JSON array (the setting defaults to `"[]"`), for example this value:
 
 ```json
@@ -1223,20 +1223,20 @@ holding a JSON array (the setting defaults to `"[]"`), for example this value:
 ```
 
 In `settings.json` the array is encoded as a string, e.g.
-`"list.filters": "[{\"noun\":\"note\",\"name\":\"all\"}]"`.
+`"collection.filters": "[{\"noun\":\"note\",\"name\":\"all\"}]"`.
 A list-specific name wins over that name's noun default; user rows replace
 app rows within the same scope. Declaration order determines the cycle.
-`z ]` / `z [` cycle forward/backward; `list.filter-cycle=false` disables those
+`z ]` / `z [` cycle forward/backward; `collection.filter-cycle=false` disables those
 keys (default true). `list filter-saved --name mine` applies one by name.
 Cycling and applying keep the `/` text query. Declare an empty `all` filter
 to include an unfiltered step. Cycling skips invalid saved rows and names them
-in the message line. Malformed `list.filters` JSON is refused on write and
+in the message line. Malformed `collection.filters` JSON is refused on write and
 reported on load. Applying an invalid filter leaves the current conditions intact.
 `list filter-save --name NAME` saves the current prop conditions for this list;
 `list filter-saved-delete --name NAME` deletes the effective user definition
 (removing an override reveals its app default). App defaults remain declarations.
 `list filters --id LIST` lists definitions in the CLI; `list filter-saved-pick`
-opens a picker. Saving and deleting write `list.filters`, preserving other
+opens a picker. Saving and deleting write `collection.filters`, preserving other
 scopes and names. Current conditions are session state; saved definitions
 are settings. Standard noun lists accept `--filter NAME`, ANDed with unchanged
 `--where prop=value`; CLI lookup uses noun scope, because no UI list is named.
@@ -1307,7 +1307,7 @@ Compared with Vim: explicit `<cword>` expansion (`:help <cword>`) is similar to 
 
 `leader_pending` declares `{"pending": true, "outside": "normal"}`. Any pending mode can opt in with `ModeOutside("normal")`; there is no terminal-specific dispatch branch. An unbound key first tries each association's full outside walk on this page, then the live focus's own outside walk. Guards use that hypothetical focus and outside mode; execution uses its context without temporarily moving the real focus or notifying components of a mode change. A form keeps the associated target but returns to the live focus and mode.
 
-`leader.fall-through` is `no-motions` by default. It excludes `Operation.Motion` and `Operation.FocusBound`. The latter marks component-bound selection/editing (`list.visual`, `list.end-visual`, `list.filter-open`, and mode entry/set operations); apps mark their own with `.FocusBound()`. `all` includes both kinds and can strand focus in another component's mode. `off` restores the old `sequence-unknown` behavior. Turning `subject.from-association` off still lets page/app outside rows answer, but does not look through associations.
+`leader.fall-through` is `no-motions` by default. It excludes `Operation.Motion` and `Operation.FocusBound`. The latter marks component-bound selection/editing (`collection.visual`, `collection.end-visual`, `collection.filter-open`, and mode entry/set operations); apps mark their own with `.FocusBound()`. `all` includes both kinds and can strand focus in another component's mode. `off` restores the old `sequence-unknown` behavior. Turning `subject.from-association` off still lets page/app outside rows answer, but does not look through associations.
 
 Existing leader rows always win, including detach, next-pane and sending the leader itself. Outside multi-key sequences are not entered; excluded, unavailable and unmatched keys still use `sequence-unknown`. `ctrl+a ctrl+a r` sends `ctrl+a r` to the nested program without running outside `r`. No existing verb or leader row is removed. Help does not yet expand the hypothetical outside rows under the leader.
 
@@ -1728,7 +1728,7 @@ the open modal until it closes; the repaired return uses the target's normal
 focus and mode rules rather than restoring the removed origin's mode.
 Missing or simultaneously removed targets keep the ancestor fallback.
 
-Focus moves between focus stops: instances of nouns declared `Focusable()` (list, grid, palette, terminal) and every input, unless the instance sets `Unfocusable`. `focus.next` and `focus.previous {steps, scope}` walk the top modal (else the page) in drawing order (the order the page's last frame drew its stops: `List.View`, `InputBlock`, `Terminal.ViewBlock`, `grid.View` and `Runtime.Placed(id)` record it; stops no frame drew follow in tree order), without descending into a stop (a grid is one stop, not its cells), wrap, and land on the stop's remembered child (its `FocusTarget`, such as the list's selected row, else the focus last held inside). Scope `region` jumps between instances of nouns declared `Region()` (panels, never stops themselves). The app noun binds `}` `{` and `tab` `shift+tab` to stops and `)` `(` to regions in normal mode, all taking a count; an inner level (a multiline editor's insert table, a palette field) binds its own. `focus.to {id}` is how handlers move focus. On a page, `list.move` (`j` `k` `down` `up`) past a list's last row moves the focus to the next stop in drawing order (a list on its first row), before its first row to the previous stop (on its last row), and stays put at the page's ends; `AddList(..., NoSpill())` keeps a list's motions inside it, and lists in modals never spill. A user turns the spill off for chosen lists without code: the `list.no-spill` setting holds instance ids (a list's, or a tree's or timeline's own id such as `panes/working`; an entry ending in `*` is a prefix) whose motions clamp as `NoSpill()` does, read on every motion. An entry may name one edge: `ID:last` (past the last row: `j`, `down`, a count, a timeline's last step), `ID:first` (before the first row: `k`, `up`), `ID:last-col` and `ID:first-col` (a table's, or a tree with columns', `l`/`h` at its column edge); several entries trap several edges (`["t:last", "t:last-col"]`), and an entry without a suffix traps all four (`NoSpill()` always does). Every list-like component (list, table, tree, timeline, and any other whose motions spill) takes the same four edges, one shared definition (`SpillEdges`, `spill_edges.go`): always cover all four directions. A component with no horizontal motion (a plain list, a timeline) accepts the column edges as a no-op. Paging (`G`, `g g`, `ctrl+d`, `ctrl+f`) never spills, so it is the same trapped or not. At a trapped edge the motion is unavailable, not a silent no-op: `list.move` (guard `list-moves`), `list.column` and `list.scroll-columns` by a delta (`list-column-moves`) and `timeline.step` down (`timeline-step-moves`) are unavailable where they would only spill past an edge the list traps, so the hints and `?` help leave the key out there and the key goes on to the next row bound to it, as any unavailable action's does (no framework row moves the focus on `j`, so the focus stays; an app row on an outer level bound to `j` would answer). A clamped move (the filter line's `list.move {clamp}`) stays available. Focus never rests on what the last frame did not draw: after the Model draws the page, a focus whose stop the frame did not place (a tab switched away from it, a collapsed panel; a list row counts as drawn when its list is) moves to its nearest ancestor below the page that was drawn, else to the page's first stop in drawing order, else to the page, and the page is drawn again before the footer, so the hints and the next key are what is on screen. It is a plain focus change (the mode rule applies; `}` goes back once the stop is drawn again) and waits while a modal is open, before the first frame and after a frame that placed no stop (UX-RULES R3.13).
+Focus moves between focus stops: instances of nouns declared `Focusable()` (list, grid, palette, terminal) and every input, unless the instance sets `Unfocusable`. `focus.next` and `focus.previous {steps, scope}` walk the top modal (else the page) in drawing order (the order the page's last frame drew its stops: `List.View`, `InputBlock`, `Terminal.ViewBlock`, `grid.View` and `Runtime.Placed(id)` record it; stops no frame drew follow in tree order), without descending into a stop (a grid is one stop, not its cells), wrap, and land on the stop's remembered child (its `FocusTarget`, such as the list's selected row, else the focus last held inside). Scope `region` jumps between instances of nouns declared `Region()` (panels, never stops themselves). The app noun binds `}` `{` and `tab` `shift+tab` to stops and `)` `(` to regions in normal mode, all taking a count; an inner level (a multiline editor's insert table, a palette field) binds its own. `focus.to {id}` is how handlers move focus. On a page, `collection.move` (`j` `k` `down` `up`) past a list's last row moves the focus to the next stop in drawing order (a list on its first row), before its first row to the previous stop (on its last row), and stays put at the page's ends; `AddList(..., NoSpill())` keeps a list's motions inside it, and lists in modals never spill. A user turns the spill off for chosen lists without code: the `collection.no-spill` setting holds instance ids (a list's, or a tree's or timeline's own id such as `panes/working`; an entry ending in `*` is a prefix) whose motions clamp as `NoSpill()` does, read on every motion. An entry may name one edge: `ID:last` (past the last row: `j`, `down`, a count, a timeline's last step), `ID:first` (before the first row: `k`, `up`), `ID:last-col` and `ID:first-col` (a table's, or a tree with columns', `l`/`h` at its column edge); several entries trap several edges (`["t:last", "t:last-col"]`), and an entry without a suffix traps all four (`NoSpill()` always does). Every list-like component (list, table, tree, timeline, and any other whose motions spill) takes the same four edges, one shared definition (`SpillEdges`, `spill_edges.go`): always cover all four directions. A component with no horizontal motion (a plain list, a timeline) accepts the column edges as a no-op. Paging (`G`, `g g`, `ctrl+d`, `ctrl+f`) never spills, so it is the same trapped or not. At a trapped edge the motion is unavailable, not a silent no-op: `collection.move` (guard `list-moves`), `collection.column` and `collection.scroll-columns` by a delta (`list-column-moves`) and `timeline.step` down (`timeline-step-moves`) are unavailable where they would only spill past an edge the list traps, so the hints and `?` help leave the key out there and the key goes on to the next row bound to it, as any unavailable action's does (no framework row moves the focus on `j`, so the focus stays; an app row on an outer level bound to `j` would answer). A clamped move (the filter line's `collection.move {clamp}`) stays available. Focus never rests on what the last frame did not draw: after the Model draws the page, a focus whose stop the frame did not place (a tab switched away from it, a collapsed panel; a list row counts as drawn when its list is) moves to its nearest ancestor below the page that was drawn, else to the page's first stop in drawing order, else to the page, and the page is drawn again before the footer, so the hints and the next key are what is on screen. It is a plain focus change (the mode rule applies; `}` goes back once the stop is drawn again) and waits while a modal is open, before the first frame and after a frame that placed no stop (UX-RULES R3.13).
 
 Invariants:
 
@@ -2063,10 +2063,10 @@ An operation key is `noun.verb` (`input.undo`, `worktree.remove`): the same stri
 
 ### Noun namespaces
 
-A noun may be dotted (`ochazuke.settings`, `ai.skills`), and so may a verb (`dirs.base.add`): the action table is flat, a key is a name looked up whole, and a registered action carries its own noun and verb. A name nothing is registered under splits on its last dot (`ochazuke.SplitKey`: `ochazuke.setting.set` is noun `ochazuke.settings`, verb `set`). See "Action aliases" below. The framework's own nouns live in the `ochazuke` namespace (`FrameworkNamespace`): everything `NewRuntime`, `NewModel` and the framework constructors register (inside `Runtime.Builtin`) is `ochazuke.<noun>` (`ochazuke.list`, `ochazuke.settings`, `ochazuke.page`; `app` itself stays `app`, so the app noun's verbs (`app.quit`, an application's own `app.state`) never collide with a framework noun such as `ochazuke.snapshot`), with the short name as an alias (`Runtime.Alias`, `Runtime.Aliases`). So:
+A noun may be dotted (`ochazuke.settings`, `ai.skills`), and so may a verb (`dirs.base.add`): the action table is flat, a key is a name looked up whole, and a registered action carries its own noun and verb. A name nothing is registered under splits on its last dot (`ochazuke.SplitKey`: `ochazuke.setting.set` is noun `ochazuke.settings`, verb `set`). See "Action aliases" below. The framework's own nouns live in the `ochazuke` namespace (`FrameworkNamespace`): everything `NewRuntime`, `NewModel` and the framework constructors register (inside `Runtime.Builtin`) is `ochazuke.<noun>` (`ochazuke.collection`, `ochazuke.settings`, `ochazuke.page`; `app` itself stays `app`, so the app noun's verbs (`app.quit`, an application's own `app.state`) never collide with a framework noun such as `ochazuke.snapshot`), with the short name as an alias (`Runtime.Alias`, `Runtime.Aliases`). So:
 
-- **Input accepts either name.** `Do("list.move")`, `Request{Noun: "settings"}`, a `bindings.json` or `actions.json` row naming `list`, a palette word (`settings names` or `ochazuke.settings names`, one word each) and the CLI (`bin settings list`, `bin ochazuke settings list`, `bin ochazuke.settings list`) all reach `ochazuke.list` / `ochazuke.settings` (`Runtime.CanonicalNoun`, `CanonicalKey`, `Operation(key)`, `NounWords`).
-- **Output is canonical.** History (and `history.jsonl`, which reads old short-named lines as canonical), `binding.list`, `operation.list`, the snapshot and the catalog print `ochazuke.setting.set`; the footer's hints, the `?` help, the jobs ticker and confirm prompts draw the shortest name that reaches the noun (`DisplayNoun`, `DisplayKey`: `list.move`).
+- **Input accepts either name.** `Do("collection.move")`, `Request{Noun: "settings"}`, a `bindings.json` or `actions.json` row naming `list`, a palette word (`settings names` or `ochazuke.settings names`, one word each) and the CLI (`bin settings list`, `bin ochazuke settings list`, `bin ochazuke.settings list`) all reach `ochazuke.collection` / `ochazuke.settings` (`Runtime.CanonicalNoun`, `CanonicalKey`, `Operation(key)`, `NounWords`).
+- **Output is canonical.** History (and `history.jsonl`, which reads old short-named lines as canonical), `binding.list`, `operation.list`, the snapshot and the catalog print `ochazuke.setting.set`; the footer's hints, the `?` help, the jobs ticker and confirm prompts draw the shortest name that reaches the noun (`DisplayNoun`, `DisplayKey`: `collection.move`).
 - **`Define` extends, `DefineOwn` claims.** `Define("terminal").Verb("copy", …)` (or `Register` with noun `terminal`, or `Kind("prompt")`) adds to the framework's `ochazuke.terminal`. An application with a noun of its own under a framework name declares it with `DefineOwn("settings")`: from then on `settings` (keys, files, palette, CLI) is the application's noun and the framework's stays reachable as `ochazuke.settings`, its verbs intact; nothing is deleted to make room. A noun the application registers under the short name before the framework registers its alias (an instance made before `NewModel`) owns the name the same way.
 - **App CLI commands win.** A top-level oden command owns its name over a framework shortcut whether added before or after `cli.Mount`. Runtime nouns declared with `DefineOwn` and catalog nouns mounted with `MountNouns` also claim their exact names. The framework stays reachable by its full name (`bin ochazuke mcp serve`, `ochazuke.mcp.tools` in the palette). Help lists canonical groups and their active shortcuts; `BIN catalog` includes effective CLI `commands` and omits shortcuts claimed by app commands from `aliases`. This fixes the v0.71.0 `mcp` regression; o-json's add-commands-first workaround is no longer needed.
 - **App CLI commands win over namespaces too.** A namespace that is no noun of its own (`mcp` of an extension's `mcp.item`, `ochazuke` of the framework's nouns) is the CLI group `NS.` with its word `NS` as an alias, so a top-level oden command named `NS` (mtm's `mcp` gateway beside a registered `o-mcp` extension) owns the word in either registration order. The namespace's nouns stay reachable by their full names (`bin mcp.item list`, read as `bin mcp. item list`) and by their bare aliases; help lists the losing claim under the owner (`shadows alias mcp of mcp. namespace`) and `BIN catalog`'s `commands` leave the word off the namespace's aliases.
@@ -2195,7 +2195,7 @@ An entry is the user action, not the data: the value the operation returned stay
 
 | Kind | What | Examples |
 |---|---|---|
-| `action` | The user's interaction: motions, focus, page and modal moves, modes, the palette's own keys | `list.move`, `focus.next`, `page.open`, `modal.close`, `mode.enter` |
+| `action` | The user's interaction: motions, focus, page and modal moves, modes, the palette's own keys | `collection.move`, `focus.next`, `page.open`, `modal.close`, `mode.enter` |
 | `change` | Edits and verbs that change something; dot-repeat reads these | `input.erase`, `setting.set`, an application verb (`worktree.remove`) |
 | `fetch` | Requests for data: state, list and show verbs, reloads, a host calling an extension | `snapshot.get`, `job.list`, `binding.list`, a verb declaring `Rows` or `State` |
 | `system` | Reserved for what the runtime does on its own (a resize, a finished job); nothing records it yet | |
@@ -2251,7 +2251,7 @@ A TUI's history survives restarts. `Model.Init` calls `Runtime.EnsureHistory`, w
 |---|---|
 | File | `$XDG_STATE_HOME/<app>/history.jsonl`, else `~/.local/state/<app>/history.jsonl` (`Config.StateDir` overrides the directory; `history path` prints it) |
 | Format | One entry per line, in the shape above. |
-| Kept | Palette lines: entries with the source `palette`, the commands the user ran, failed ones included. Other operations that completed, such as `page.open`, `list.select`, `setting.set` and an application's verbs. Fetches only while the `history-fetches` setting is on (default off: a host polling would fill the file, and nothing reads a fetch back after a restart). |
+| Kept | Palette lines: entries with the source `palette`, the commands the user ran, failed ones included. Other operations that completed, such as `page.open`, `collection.select`, `setting.set` and an application's verbs. Fetches only while the `history-fetches` setting is on (default off: a host polling would fill the file, and nothing reads a fetch back after a restart). |
 | Never kept | Text editing and its plumbing: every operation of the `input`, `editor`, `key`, `count`, `register`, `macro`, `yank-history`, `mode`, `palette` and `terminal` nouns, so nothing typed or pasted into an input, a prompt, the palette line or a terminal reaches the file. Failed operations that did not come from the palette. |
 | Arguments | An argument whose name contains `text`, `value`, `keys`, `password`, `secret` or `token` is left out of the line. An operation keeps them only when it sets `Operation.PersistArgs` (`NounBuilder.PersistArgs()`). `setting.set` does, so `set settings theme kombu` comes back whole. |
 | Bound | The `history-limit` setting (integer, default 500, `0` keeps nothing). The framework declares it when the history is persisted, unless the application declared a setting of that name. It also bounds the ring. |
@@ -2341,7 +2341,7 @@ A user adds names without code: an `actions.json` entry with an `alias` field is
 ```json
 [
   {"alias": "pane.k", "action": "pane.kill", "note": "my short name"},
-  {"alias": "list.walk", "action": "list.move"},
+  {"alias": "list.walk", "action": "collection.move"},
   {"alias": "w!", "action": "restructure.write", "args": {"force": true}}
 ]
 ```
@@ -2448,7 +2448,7 @@ The framework declares `focus-display` (`FocusDisplaySetting`, a row of `setting
 | Value | Title row |
 |---|---|
 | `off` (default) | `NORMAL`, as before |
-| `noun` | `pane  NORMAL`: the focused instance's noun as `DisplayNoun` (`list`, not `ochazuke.list`) |
+| `noun` | `pane  NORMAL`: the focused instance's noun as `DisplayNoun` (`list`, not `ochazuke.collection`) |
 | `stack` | `panes › pane-list › pane  NORMAL`: the focus path from the outermost level to the innermost, `app` left out, each level its label when it has one of at most `FocusLabelMax` (16) cells (a page's is its title), else its noun. Open modals are levels too, after the focus they opened over (`work › list › a2 › confirm`) |
 
 When the path is wider than the room the badge and the title's first quarter leave, it is cut from the left a level at a time behind `… › ` (`FitFocusPath`), so the innermost level stays; with less room still the innermost level alone follows `…`. The row is redrawn on every frame, so a focus change, a modal, a mode change or a spill shows at once, and so does a new value: `settings set focus-display stack`, the Settings page, or the verb `focus.display {mode}` (`off`, `noun` or `stack`; with no mode, the next in that order). The verb has no default key; it is in the palette (`display focus`, `display focus stack`) and the CLI (`BIN focus display`), and a user binds a key in `bindings.json`:
@@ -2914,7 +2914,7 @@ APP catalog inspect --audit ~/hub/o-plans/lists/verb-audit.md           # the fa
 | `--json FILE` | Also write the merged data as JSON |
 | `--timeout D` | Per `--bin` catalog (default 20s) |
 
-The app's own key rows are its effective rows, what `config export` writes to `bindings.reference.json` (the live `bindings.json` included); every other tool's are its catalog's defaults. Its `actions.json` verbs are marked as user actions. Framework nouns are kept once under an `ochazuke` pseudo-tool whichever catalogs carry them, the newest ochazuke's definition winning (an older catalog's bare `list` folds into `ochazuke.list`); each verb lists the tools that carry it. A noun named with another read tool's short name and a dash or dot (`ai-agent`, `ai.agent`) groups as that extension's mirror and links to its noun. The page has the data inlined, plain JS and no network, works from `file://`, and has four views (`1` By noun, `2` By key with duplicate and shadowing checks, `3` Relations with missing mirrors, `4` Gaps, shown only with annotations); `?` lists its keys.
+The app's own key rows are its effective rows, what `config export` writes to `bindings.reference.json` (the live `bindings.json` included); every other tool's are its catalog's defaults. Its `actions.json` verbs are marked as user actions. Framework nouns are kept once under an `ochazuke` pseudo-tool whichever catalogs carry them, the newest ochazuke's definition winning (an older catalog's bare `list` folds into `ochazuke.collection`); each verb lists the tools that carry it. A noun named with another read tool's short name and a dash or dot (`ai-agent`, `ai.agent`) groups as that extension's mirror and links to its noun. The page has the data inlined, plain JS and no network, works from `file://`, and has four views (`1` By noun, `2` By key with duplicate and shadowing checks, `3` Relations with missing mirrors, `4` Gaps, shown only with annotations); `?` lists its keys.
 
 The family-wide page (mtm, every o-* tool `mtm extension available` finds, nabe, and the verb audit):
 
@@ -3053,7 +3053,7 @@ itself or remove a prompt. `setting.reset-all` and saved-filter deletion are
 destructive. `agent.rights {verb}` lists the effective policy and its source.
 
 Owner overrides use `agents.rights`, a validated JSON array stored as a string,
-like `list.filters`: `[{"match":"task.*","right":"never","where":"live"}]`.
+like `collection.filters`: `[{"match":"task.*","right":"never","where":"live"}]`.
 Rows match `noun.verb`, `noun.*` or `*`, first match wins; `where` is `live`,
 `headless` or `any`. Owner rows beat declarations and the destructive default:
 `[{"match":"task.delete","right":"allow"}]` permits deletion without a prompt.

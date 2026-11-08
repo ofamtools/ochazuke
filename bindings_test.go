@@ -238,7 +238,7 @@ func TestFromRowPassesRowData(t *testing.T) {
 	op.Parameters = map[string]Parameter{"path": {Type: "string"}, "repo": {Type: "string"}, "row": {Type: "object"}}
 	r.Operations.Set(op)
 	onList := Do("worktree.open").FromRow("path", "path").FromRow("row", "")
-	onList.Noun, onList.Mode, onList.Keys = "list", "normal", "O"
+	onList.Noun, onList.Mode, onList.Keys = "collection", "normal", "O"
 	if err := r.Bind(
 		Binding{Noun: "worktree", Mode: "normal", Keys: "o", Request: Do("worktree.open").Request, From: map[string]string{"path": "row:path", "repo": "row:repo.name"}},
 		onList,

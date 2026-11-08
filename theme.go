@@ -204,8 +204,8 @@ type Styles struct {
 	plain          bool                // mono or NO_COLOR: a fade is the faint attribute
 	tones          map[string]toneLook // the scheme's tones resolved (Tone, tone.go)
 	selectedBg     string              // tones.selected-background, read by the list that draws (listTones)
-	intersect      bool                // list.intersect, read by the list that draws (listTones)
-	cellCursor     ansi.Style          // list.cell-cursor's style for a table's current cell (Runtime.cellCursor); nil underlines it
+	intersect      bool                // collection.intersect, read by the list that draws (listTones)
+	cellCursor     ansi.Style          // collection.cell-cursor's style for a table's current cell (Runtime.cellCursor); nil underlines it
 	backdropPlain  bool                // modal-highlights plain: the backdrop drops reverse video and underline
 	hideUnfocused  bool                // unfocused-selection hide: a selection without the focus is not drawn (WithUnfocusedSelection)
 	chrome         string              // the chrome level (chrome.color), "" before WithChrome (chrome.go)

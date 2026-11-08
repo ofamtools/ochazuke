@@ -395,8 +395,8 @@ function buildNounsView() {
     const order = [...groups.keys()].sort((a, b) => rankNs(a) - rankNs(b) || a.localeCompare(b));
     for (const g of order) {
       const list = groups.get(g);
-      if (S.tokens.length) list.sort((a, b) => b.score - a.score || a.n.name.localeCompare(b.n.name));
-      else list.sort((a, b) => a.n.name.localeCompare(b.n.name));
+      if (S.tokens.length) collection.sort((a, b) => b.score - a.score || a.n.name.localeCompare(b.n.name));
+      else collection.sort((a, b) => a.n.name.localeCompare(b.n.name));
       nounItems.push({group: nsLabel(g) + ` (${list.length})`});
       nounItems.push(...list);
     }

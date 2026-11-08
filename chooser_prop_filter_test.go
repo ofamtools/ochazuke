@@ -46,7 +46,7 @@ func TestChooserPropFiltersSharedVerbsRefreshAndHighlight(t *testing.T) {
 	}
 	run := func(verb string, args Arguments) {
 		t.Helper()
-		if _, err := r.Execute(Request{Noun: "list", Verb: verb, Args: args}); err != nil {
+		if _, err := r.Execute(Request{Noun: "collection", Verb: verb, Args: args}); err != nil {
 			t.Fatal(verb, err)
 		}
 	}
@@ -101,7 +101,7 @@ func TestChooserPropFilterTypingAndOptOut(t *testing.T) {
 	if c.Query() != "z]" {
 		t.Fatalf("opt-out query %q", c.Query())
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-saved", Args: Arguments{"name": "mine"}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-saved", Args: Arguments{"name": "mine"}}); err == nil {
 		t.Fatal("disabled chooser resolved")
 	}
 	c.spec.NoPropFilters = true
@@ -116,7 +116,7 @@ func TestChooserPropFilterTypingAndOptOut(t *testing.T) {
 
 func TestChooserPropFilterNestedPickerAndSavedPicker(t *testing.T) {
 	r, m, c := chooserPropFixture(t)
-	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
+	chooserChain(t, r) // the prop chooser then the value chooser (collection.filter-form off)
 	keytest.Press(m, "ctrl+f")
 	keytest.Press(m, "enter")
 	if r.TopModal() != "list-filter-value" {
@@ -127,7 +127,7 @@ func TestChooserPropFilterNestedPickerAndSavedPicker(t *testing.T) {
 	if r.TopModal() != c.Kind() || !slices.Equal(chooserIDs(c), []string{"a", "c"}) {
 		t.Fatal(c.state())
 	}
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-saved-pick"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-saved-pick"}); err != nil {
 		t.Fatal(err)
 	}
 	keytest.Type(m, "agents")
@@ -139,7 +139,7 @@ func TestChooserPropFilterNestedPickerAndSavedPicker(t *testing.T) {
 
 func TestChooserPropFilterRepeatCtrlFAndClearFallback(t *testing.T) {
 	r, m, c := chooserPropFixture(t)
-	chooserChain(t, r) // the prop chooser then the value chooser (list.filter-form off)
+	chooserChain(t, r) // the prop chooser then the value chooser (collection.filter-form off)
 	keytest.Press(m, "ctrl+f")
 	if r.TopModal() != "list-filter-prop" {
 		t.Fatalf("ctrl+f: %s", r.TopModal())
@@ -150,7 +150,7 @@ func TestChooserPropFilterRepeatCtrlFAndClearFallback(t *testing.T) {
 	if c.filters.vs.Saved != "agents" || r.TopModal() != c.Kind() {
 		t.Fatal(c.state())
 	}
-	if err := r.Settings().Set("list.filter-cycle", "false"); err != nil {
+	if err := r.Settings().Set("collection.filter-cycle", "false"); err != nil {
 		t.Fatal(err)
 	}
 	keytest.Press(m, "ctrl+f")

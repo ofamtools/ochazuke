@@ -1,5 +1,5 @@
 {
-  "name": "filter form: a field with more values than list.filter-chip-max is a text input that completes them with ctrl+n and ctrl+p",
+  "name": "filter form: a field with more values than collection.filter-chip-max is a text input that completes them with ctrl+n and ctrl+p",
   "area": "lists",
   "width": 100,
   "height": 24,
@@ -186,9 +186,9 @@
     }
   ],
   "values": {
-    "list.filter-chip-max": 3,
-    "list.filter-layout": "fields",
-    "list.filter-sort": false,
-    "list.filter-save": false
+    "collection.filter-chip-max": 3,
+    "collection.filter-layout": "fields",
+    "collection.filter-sort": false,
+    "collection.filter-save": false
   }
 }

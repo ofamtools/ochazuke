@@ -219,7 +219,7 @@ func TestListSortVerbsCycleIndicatorsAndOptOut(t *testing.T) {
 	r, l := sortFixture(t)
 	_ = l.Focus()
 	run := func(verb string, args Arguments) error {
-		_, err := r.Execute(Request{Noun: "list", Verb: verb, Args: args})
+		_, err := r.Execute(Request{Noun: "collection", Verb: verb, Args: args})
 		return err
 	}
 	for _, want := range []string{"Score ▲", "Score ▼", "Score"} {
@@ -258,7 +258,7 @@ func TestListSortVerbsCycleIndicatorsAndOptOut(t *testing.T) {
 	}
 	blockedRuntime, blocked := sortFixture(t, NoSort())
 	_ = blocked.Focus()
-	if _, err := blockedRuntime.Execute(Request{Noun: "list", Verb: "sort", Args: Arguments{"by": "score"}}); err == nil {
+	if _, err := blockedRuntime.Execute(Request{Noun: "collection", Verb: "sort", Args: Arguments{"by": "score"}}); err == nil {
 		t.Fatal("source-owned list offered the sort verb")
 	}
 	if blocked.Sortable() {
@@ -275,7 +275,7 @@ func TestListSortVerbsCycleIndicatorsAndOptOut(t *testing.T) {
 func TestListSortChooserController(t *testing.T) {
 	r, m, c := chooserPropFixture(t)
 	pressKeys(m, "ctrl+n") // keep the moved highlight by ID
-	if _, err := r.Execute(Request{Noun: "list", Verb: "sort", Args: Arguments{"by": "-score"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "sort", Args: Arguments{"by": "-score"}}); err != nil {
 		t.Fatal(err)
 	}
 	if !slices.Equal(chooserIDs(c), []string{"c", "b", "a"}) || highlighted(c) != "b" {
@@ -301,7 +301,7 @@ func TestListSortClearsAfterPropsDisappearAndAliases(t *testing.T) {
 	r, l := sortFixture(t)
 	l.SetColumns(Column{Title: "Estimate"})
 	_ = l.Focus()
-	if _, err := r.Execute(Request{Noun: "list", Verb: "sort-column"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "sort-column"}); err != nil {
 		t.Fatal(err)
 	}
 	if l.Sort()[0].Field != "score" || !strings.Contains(ansi.Strip(l.View(80, 8)), "Estimate ▲") {
@@ -316,14 +316,14 @@ func TestListSortClearsAfterPropsDisappearAndAliases(t *testing.T) {
 	}
 	mustSort(t, derived, SortKey{Field: "value"})
 	_ = derived.SetItems(nil)
-	if _, err := r2.Execute(Request{Noun: "list", Verb: "sort", Args: Arguments{"id": "derived", "by": ""}}); err != nil {
+	if _, err := r2.Execute(Request{Noun: "collection", Verb: "sort", Args: Arguments{"id": "derived", "by": ""}}); err != nil {
 		t.Fatal(err)
 	}
 	if len(derived.Sort()) != 0 {
 		t.Fatal("empty by could not clear an empty refreshed list")
 	}
 	for _, verb := range []string{"sort", "sort-column", "sort-clear"} {
-		op, ok := r.Operation("list." + verb)
+		op, ok := r.Operation("collection." + verb)
 		if !ok || !op.Builtin {
 			t.Fatal("sort operation is not a framework builtin", verb)
 		}
@@ -362,7 +362,7 @@ func TestListSortUnmappedColumnUsesFieldPicker(t *testing.T) {
 	r, l := sortFixture(t)
 	l.SetColumns(Column{Title: "Display only"})
 	_ = l.Focus()
-	if _, err := r.Execute(Request{Noun: "list", Verb: "sort-column"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "sort-column"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Chooser("list-sort-field") == nil {

@@ -10,7 +10,7 @@ import (
 
 // FrameworkNamespace is the namespace of the framework's own nouns: every
 // noun the framework registers (inside Runtime.Builtin) is named
-// ochazuke.<noun> (ochazuke.settings, ochazuke.list, ochazuke.page), with
+// ochazuke.<noun> (ochazuke.settings, ochazuke.collection, ochazuke.page), with
 // the short name (settings) as an alias. The app noun itself keeps its
 // name (AppNoun), so its verbs (app.quit, an application's app.state)
 // never collide with a framework noun.
@@ -519,7 +519,7 @@ func (r *Runtime) nounsDisplay() string {
 }
 
 // DisplayNoun is the shortest name that reaches noun: its alias (AliasOf)
-// while no application noun shadows it (list for ochazuke.list, doc for an
+// while no application noun shadows it (list for ochazuke.collection, doc for an
 // extension's json.doc a host aliased doc), else noun itself. The
 // footer's hints, the ? help, the palette and the jobs ticker draw it;
 // history, binding.list, operation.list and the catalog print canonical
@@ -582,7 +582,7 @@ func (r *Runtime) checkNounOverlap(name string) error {
 }
 
 // canonicalPlace is a place with its nouns resolved (a caller may name
-// them by alias: NounPlace{Noun: "list"}).
+// them by alias: NounPlace{Noun: "collection"}).
 func (r *Runtime) canonicalPlace(p NounPlace) NounPlace {
 	p.Noun = r.CanonicalNoun(p.Noun)
 	if len(p.Ancestors) > 0 {

@@ -14,10 +14,10 @@
       {"key":"G","action":"ochazuke.picker.move","args":{"to":"last"}}
     ]},
     {"context": "ochazuke.picker", "bindings": [
-      {"key": "ctrl+f", "action": "ochazuke.list.filter-cycle", "when": "list-prop-filtered", "args": {"step": 1}, "hint": "next filter"},
-      {"key": "ctrl+f", "action": "ochazuke.list.filter-prop", "args": {"clear": true}, "hint": "prop filter"},
-      {"key": "alt+]", "action": "ochazuke.list.filter-cycle", "args": {"step": 1}, "hint": "next filter"},
-      {"key": "alt+[", "action": "ochazuke.list.filter-cycle", "args": {"step": -1}, "hint": "previous filter", "hidden": true},
+      {"key": "ctrl+f", "action": "ochazuke.collection.filter-cycle", "when": "list-prop-filtered", "args": {"step": 1}, "hint": "next filter"},
+      {"key": "ctrl+f", "action": "ochazuke.collection.filter-prop", "args": {"clear": true}, "hint": "prop filter"},
+      {"key": "alt+]", "action": "ochazuke.collection.filter-cycle", "args": {"step": 1}, "hint": "next filter"},
+      {"key": "alt+[", "action": "ochazuke.collection.filter-cycle", "args": {"step": -1}, "hint": "previous filter", "hidden": true},
       {"key": "alt+backspace", "action": "ochazuke.picker.clear-props", "hint": "clear props"},
       {"key": "enter", "action": "ochazuke.picker.into", "when": "picker-enter-opens"},
       {"key": "enter", "action": "ochazuke.picker.pick"},

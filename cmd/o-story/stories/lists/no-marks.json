@@ -23,7 +23,7 @@
     ],
     "lacks": [
       "* a",
-      "list.mark"
+      "collection.mark"
     ]
   }
 }

@@ -17,7 +17,7 @@
     "order": [
       "demo.open",
       "demo.notify",
-      "list.mark"
+      "collection.mark"
     ]
   }
 }

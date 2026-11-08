@@ -52,7 +52,7 @@ func TestSavedFilterSortRoundTripAndLegacy(t *testing.T) {
 		t.Fatal(err)
 	}
 	raw, _ := json.Marshal([]SavedFilter{old})
-	if err := r.Settings().Set("list.filters", string(raw)); err != nil {
+	if err := r.Settings().Set("collection.filters", string(raw)); err != nil {
 		t.Fatal(err)
 	}
 	if err := l.ApplyFilter("legacy"); err != nil || len(l.Sort()) != 0 {
@@ -66,7 +66,7 @@ func TestSavedFilterInvalidSortIsAtomicAndCycleSkips(t *testing.T) {
 	_ = l.SetPropFilters([]PropFilter{{Prop: "score", Op: "=", Value: 3}})
 	before := l.Snapshot()
 	raw := `[{"name":"broken","list":"p/l","conditions":[],"sort":[{"field":"missing"}]}]`
-	if err := r.Settings().Set("list.filters", raw); err != nil {
+	if err := r.Settings().Set("collection.filters", raw); err != nil {
 		t.Fatal(err)
 	}
 	if err := l.ApplyFilter("broken"); err == nil {
@@ -195,7 +195,7 @@ func TestSavedSortInvalidConditionsLeaveSortAndName(t *testing.T) {
 	_ = l.SetSort([]SortKey{{Field: "score", Desc: true}})
 	_ = l.SaveFilter("ranked")
 	raw := `[{"name":"bad","list":"p/l","conditions":[{"prop":"missing","value":"x"}],"sort":[{"field":"status"}]}]`
-	if err := r.Settings().Set("list.filters", raw); err != nil {
+	if err := r.Settings().Set("collection.filters", raw); err != nil {
 		t.Fatal(err)
 	}
 	if err := l.ApplyFilter("bad"); err == nil || l.vs.Saved != "ranked" || !l.Sort()[0].Desc || l.Sort()[0].Field != "score" {

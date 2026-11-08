@@ -58,7 +58,7 @@ func TestPageRegistrationAndPublicSnapshot(t *testing.T) {
 		t.Fatalf("pages=%v; want %v", got, want)
 	}
 	for path, want := range map[string]any{"page": "alpha", "pages.alpha.id": "alpha", "pages.alpha.title": "ALPHA", "pages.alpha.remembered": "alpha", "instances.alpha.noun": "alpha", "instances.alpha-input.parent": "alpha-editor"} {
-		if got := paletteRequest(t, r, "get", "state", Arguments{"prop": path}); !reflect.DeepEqual(got, want) {
+		if got := paletteRequest(t, r, "get", "snapshot", Arguments{"prop": path}); !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s=%v; want %v", path, got, want)
 		}
 	}

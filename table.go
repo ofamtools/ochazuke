@@ -17,7 +17,7 @@ import (
 // the columns that do not fit dropped by Priority, and the selected row of
 // the focused list highlighted across the whole width, its current cell
 // (cell mode, table_cells.go) in the list.cell.cursor tone (setting
-// list.cell-cursor; underline draws it underlined inside the bar) and the
+// collection.cell-cursor; underline draws it underlined inside the bar) and the
 // current column's title underlined in the header.
 
 // Align is a column's alignment: AlignLeft (the zero value) or AlignRight.
@@ -52,7 +52,7 @@ const (
 // that is not data (PartRowNumber, a row-number column; any word an
 // application picks): its cells draw in the tone "list.<part>" and, where
 // a highlight crosses them, "list.<part>.intersect" (ToneSpan.Layer;
-// setting list.part-tones, default on).
+// setting collection.part-tones, default on).
 type Column struct {
 	Title    string `json:"title"`
 	Width    int    `json:"width,omitempty"`
@@ -88,7 +88,7 @@ func (l *Collection) HeaderTones() []ToneSpan { return slices.Clone(l.headerTone
 
 // withParts is a row's tones under its part columns' (Column.Part) part
 // spans, first so the row's own tones draw over them; tones unchanged
-// with list.part-tones off or no part column.
+// with collection.part-tones off or no part column.
 func (l *Collection) withParts(cols []Column, tones []ToneSpan) []ToneSpan {
 	var parts []ToneSpan
 	for i, c := range cols {
@@ -412,10 +412,10 @@ func (l *Collection) tableView(width, height int) (string, int, int) {
 }
 
 // headerLine draws the header row: in the header part's tone across the
-// width (list.part-tones on, list.header) with the header tones
+// width (collection.part-tones on, list.header) with the header tones
 // (SetHeaderTones) over their columns and the current column underlined;
 // bold, the current column bold and underlined, without the Model's
-// styles or with list.part-tones off.
+// styles or with collection.part-tones off.
 func (l *Collection) headerLine(head string, width int, heads []string, cols []Column, shown, widths []int, mark int, cur span) string {
 	toned := l.listTones()
 	if toned == nil || !l.r.settingOn(PartTonesSetting) {
@@ -879,7 +879,7 @@ func sgrSpan(line string, sp span, open, mark string) string {
 
 // cursorStyle is the current cell's style for a frame (Runtime.cellCursor),
 // given to the row tones' styles too so paintLine draws it; nil without a
-// current cell or with list.cell-cursor underline.
+// current cell or with collection.cell-cursor underline.
 func (l *Collection) cursorStyle(sp span, toned *Styles, faded bool) ansi.Style {
 	if sp.w <= 0 {
 		return nil

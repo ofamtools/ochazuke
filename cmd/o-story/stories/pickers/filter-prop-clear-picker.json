@@ -1,5 +1,5 @@
 {
-  "values": {"list.filter-form": false},
+  "values": {"collection.filter-form": false},
   "area": "pickers",
   "width": 100,
   "height": 18,

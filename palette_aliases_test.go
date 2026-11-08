@@ -185,14 +185,14 @@ func TestNounsDisplaySetting(t *testing.T) {
 		t.Fatal(err)
 	}
 	for value, want := range map[string][2]string{
-		NounsDisplayShortest:  {"doc", "list"},
-		NounsDisplayFramework: {"json.doc", "list"},
-		NounsDisplayCanonical: {"json.doc", "ochazuke.list"},
+		NounsDisplayShortest:  {"doc", "collection"},
+		NounsDisplayFramework: {"json.doc", "collection"},
+		NounsDisplayCanonical: {"json.doc", "ochazuke.collection"},
 	} {
 		if err := r.Settings().Set(NounsDisplaySetting, value); err != nil {
 			t.Fatal(err)
 		}
-		if got := [2]string{r.DisplayNoun("json.doc"), r.DisplayNoun("ochazuke.list")}; got != want {
+		if got := [2]string{r.DisplayNoun("json.doc"), r.DisplayNoun("ochazuke.collection")}; got != want {
 			t.Errorf("%s: %v, want %v", value, got, want)
 		}
 	}

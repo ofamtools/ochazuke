@@ -72,14 +72,14 @@ func TestPropFilterLabels(t *testing.T) {
 
 func TestPropFilterVerbNotAndSavedNotIn(t *testing.T) {
 	r, _, l := propFilterFixture(t)
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-prop", Args: Arguments{"id": l.id, "prop": "by", "op": "not-in", "value": `["agent"]`}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-prop", Args: Arguments{"id": l.id, "prop": "by", "op": "not-in", "value": `["agent"]`}}); err != nil {
 		t.Fatal(err)
 	}
 	if l.Shown() != 3 {
 		t.Fatalf("not-in shown %d", l.Shown())
 	}
 	_ = l.SetPropFilters(nil)
-	if _, err := r.Execute(Request{Noun: "list", Verb: "filter-prop", Args: Arguments{"id": l.id, "prop": "by", "value": "agent", "not": true}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-prop", Args: Arguments{"id": l.id, "prop": "by", "value": "agent", "not": true}}); err != nil {
 		t.Fatal(err)
 	}
 	if l.Shown() != 3 || l.vs.Filters[0].Op != "!=" {
@@ -89,7 +89,7 @@ func TestPropFilterVerbNotAndSavedNotIn(t *testing.T) {
 	if err := l.SaveFilter("humans"); err != nil {
 		t.Fatal(err)
 	}
-	raw := r.Settings().String("list.filters")
+	raw := r.Settings().String("collection.filters")
 	var saved []SavedFilter
 	if err := json.Unmarshal([]byte(raw), &saved); err != nil {
 		t.Fatal(err)

@@ -16,7 +16,7 @@ func TestVerbCatalog(t *testing.T) {
 	r, _ := newDerivedRuntime(t)
 	c := r.VerbCatalog()
 	cp := &c
-	for ref, std := range map[string]string{"task.set": "set", "task.edit": "edit", "task.title": "", "ochazuke.list.move": "", "list.move": "", "ochazuke.focus.to": ""} {
+	for ref, std := range map[string]string{"task.set": "set", "task.edit": "edit", "task.title": "", "ochazuke.collection.move": "", "collection.move": "", "ochazuke.focus.to": ""} {
 		if got, ok := c.Known[ref]; !ok || got != std {
 			t.Errorf("Known[%s] = %q, %v; want %q", ref, got, ok, std)
 		}
@@ -26,12 +26,12 @@ func TestVerbCatalog(t *testing.T) {
 			t.Errorf("Known has the purged %s", ref)
 		}
 	}
-	if c.Nouns["list"] != "ochazuke.list" || c.Nouns["ochazuke.list"] != "ochazuke.list" || c.Nouns["task"] != "task" {
+	if c.Nouns["collection"] != "ochazuke.collection" || c.Nouns["ochazuke.collection"] != "ochazuke.collection" || c.Nouns["task"] != "task" {
 		t.Fatalf("nouns %v", c.Nouns)
 	}
 	rm := r.RemovedVerbs()
 	for ref, want := range map[string]string{
-		"task.rename": namecheck.StateRemoved, "task.patch": namecheck.StateRemoved, "list.move": "", "task.set": "",
+		"task.rename": namecheck.StateRemoved, "task.patch": namecheck.StateRemoved, "collection.move": "", "task.set": "",
 		"ochazuke.focus.set": namecheck.StateRemoved, "worker.rename": namecheck.StateRemoved, "pane.nonesuch": namecheck.StateUnknown,
 	} {
 		noun, verb := SplitKey(ref)
@@ -121,7 +121,7 @@ func TestGeneratedVerbsFollowTheTable(t *testing.T) {
 			t.Errorf("standard verb %s is not generated: %v", std, got)
 		}
 	}
-	if got["list.move"] || got["probe"] {
+	if got["collection.move"] || got["probe"] {
 		t.Fatalf("generated %v", got)
 	}
 }

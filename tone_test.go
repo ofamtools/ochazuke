@@ -99,7 +99,7 @@ func TestToneColoursItsRunOnly(t *testing.T) {
 
 // The selected row stays one reverse bar: its tones keep their bold and
 // lose their colour and dim; a cell-mode table's current cell draws in
-// list.cell.cursor out of the bar (list.cell-cursor background, the
+// list.cell.cursor out of the bar (collection.cell-cursor background, the
 // default), or keeps its underline over a tone (underline).
 func TestSelectedRowDrawsToneAttributesOnly(t *testing.T) {
 	cols := []Column{{Title: "pane"}, {Title: "state"}}
@@ -139,7 +139,7 @@ func TestSelectedRowDrawsToneAttributesOnly(t *testing.T) {
 // A cell-mode table's selected row without tones draws its current cell
 // in list.cell.cursor too (highlightRow): reverse video with the tone's
 // colours swapped, so it shows the tone's background. mono has no
-// background to show and keeps the underline, as list.cell-cursor
+// background to show and keeps the underline, as collection.cell-cursor
 // underline does in every theme.
 func TestCellCursorBackground(t *testing.T) {
 	cols := []Column{{Title: "a"}, {Title: "b"}}

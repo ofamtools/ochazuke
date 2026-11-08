@@ -1,5 +1,5 @@
 {
-  "name": "cell cursor: a cell-mode table draws its current cell on the accent background (list.cell.cursor), bold, with no underline; the rest of the selected row stays the reverse bar (list.cell-cursor background, the default)",
+  "name": "cell cursor: a cell-mode table draws its current cell on the accent background (list.cell.cursor), bold, with no underline; the rest of the selected row stays the reverse bar (collection.cell-cursor background, the default)",
   "area": "tables",
   "width": 48,
   "height": 5,

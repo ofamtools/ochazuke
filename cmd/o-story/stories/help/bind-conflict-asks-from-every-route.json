@@ -40,7 +40,7 @@
       "bindings": []
     }
   },
-  "name": "a key the page already answers asks \"j already runs list.move here; bind anyway?\" from every route: the palette line, the bind form and the help's b; n leaves the file alone",
+  "name": "a key the page already answers asks \"j already runs collection.move here; bind anyway?\" from every route: the palette line, the bind form and the help's b; n leaves the file alone",
   "script": [
     ":",
     {
@@ -71,18 +71,18 @@
     {
       "after": 3,
       "contains": [
-        "j already runs list.move here; bind anyway?"
+        "j already runs collection.move here; bind anyway?"
       ]
     },
     {
       "after": 9,
       "contains": [
-        "j already runs list.move here; bind anyway?"
+        "j already runs collection.move here; bind anyway?"
       ]
     },
     {
       "contains": [
-        "j already runs list.move here; bind anyway?"
+        "j already runs collection.move here; bind anyway?"
       ]
     }
   ]

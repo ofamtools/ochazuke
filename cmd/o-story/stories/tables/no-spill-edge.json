@@ -1,8 +1,8 @@
 {
-  "name": "list.no-spill d:last and d:first-col on a table: j at the last row and h at the first column stay; k at the first row and l at the last column still spill",
+  "name": "collection.no-spill d:last and d:first-col on a table: j at the last row and h at the first column stay; k at the first row and l at the last column still spill",
   "area": "tables",
   "settings": [
-    {"name": "list.no-spill", "type": "list", "default": ["d:last", "d:first-col"]}
+    {"name": "collection.no-spill", "type": "list", "default": ["d:last", "d:first-col"]}
   ],
   "width": 40,
   "height": 12,

@@ -11,7 +11,7 @@
     {"name": "terminal", "verbs": [{"name": "scroll", "kind": "interaction", "builtin": true}]}
   ],
   "bindings": [
-    {"noun": "list", "mode": "normal", "keys": "j", "request": {"verb": "move", "noun": "list"}},
+    {"noun": "collection", "mode": "normal", "keys": "j", "request": {"verb": "move", "noun": "collection"}},
     {"noun": "settings", "mode": "normal", "keys": "u", "request": {"verb": "undo", "noun": "settings"}},
     {"noun": "terminal", "keys": "ctrl+y", "request": {"verb": "scroll", "noun": "terminal"}}
   ]

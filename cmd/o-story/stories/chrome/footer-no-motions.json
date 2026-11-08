@@ -20,7 +20,7 @@
       "palette.open"
     ],
     "lacks": [
-      "list.move",
+      "collection.move",
       "focus.next",
       "focus.previous",
       "page.next",

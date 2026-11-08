@@ -1,27 +1,27 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "bindings": [
-    {"context": "ochazuke.list/normal", "bindings": [
-      {"key": "j", "action": "ochazuke.list.move", "args": {"delta": 1}, "from": {"steps": "count"}},
-      {"key": "down", "action": "ochazuke.list.move", "args": {"delta": 1}, "from": {"steps": "count"}},
-      {"key": "k", "action": "ochazuke.list.move", "args": {"delta": -1}, "from": {"steps": "count"}},
-      {"key": "up", "action": "ochazuke.list.move", "args": {"delta": -1}, "from": {"steps": "count"}},
-      {"key": "space", "action": "ochazuke.list.mark"},
-      {"key": "z s", "action": "ochazuke.list.sort-column", "hint": "sort", "hidden": true},
-      {"key": "z /", "action": "ochazuke.list.filter-prop", "hint": "prop filter", "hidden": true},
-      {"key": "z !", "action": "ochazuke.list.filter-prop-clear", "hint": "clear prop", "hidden": true},
-      {"key": "z C", "action": "ochazuke.list.filter-props-clear", "hint": "clear props"},
-      {"key": "z ]", "action": "ochazuke.list.filter-cycle", "args": {"step": 1}, "hint": "next filter"},
-      {"key": "z [", "action": "ochazuke.list.filter-cycle", "args": {"step": -1}, "hidden": true},
-      {"key": "z l", "action": "ochazuke.list.scroll-columns", "args": {"delta": 1}, "from": {"steps": "count"}},
-      {"key": "z h", "action": "ochazuke.list.scroll-columns", "args": {"delta": -1}, "from": {"steps": "count"}},
-      {"key": "g g", "action": "ochazuke.list.goto", "args": {"position": "first"}, "from": {"row": "line"}},
-      {"key": "G", "action": "ochazuke.list.goto", "args": {"position": "last"}, "from": {"row": "line"}},
-      {"key": "ctrl+d", "action": "ochazuke.list.scroll", "args": {"delta": 1, "half": true}, "from": {"steps": "line"}},
-      {"key": "ctrl+u", "action": "ochazuke.list.scroll", "args": {"delta": -1, "half": true}, "from": {"steps": "line"}},
-      {"key": "ctrl+f", "action": "ochazuke.list.scroll", "args": {"delta": 1}, "from": {"steps": "line"}},
-      {"key": "ctrl+b", "action": "ochazuke.list.scroll", "args": {"delta": -1}, "from": {"steps": "line"}}
+    {"context": "ochazuke.collection/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.collection.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      {"key": "down", "action": "ochazuke.collection.move", "args": {"delta": 1}, "from": {"steps": "count"}},
+      {"key": "k", "action": "ochazuke.collection.move", "args": {"delta": -1}, "from": {"steps": "count"}},
+      {"key": "up", "action": "ochazuke.collection.move", "args": {"delta": -1}, "from": {"steps": "count"}},
+      {"key": "space", "action": "ochazuke.collection.mark"},
+      {"key": "z s", "action": "ochazuke.collection.sort-column", "hint": "sort", "hidden": true},
+      {"key": "z /", "action": "ochazuke.collection.filter-prop", "hint": "prop filter", "hidden": true},
+      {"key": "z !", "action": "ochazuke.collection.filter-prop-clear", "hint": "clear prop", "hidden": true},
+      {"key": "z C", "action": "ochazuke.collection.filter-props-clear", "hint": "clear props"},
+      {"key": "z ]", "action": "ochazuke.collection.filter-cycle", "args": {"step": 1}, "hint": "next filter"},
+      {"key": "z [", "action": "ochazuke.collection.filter-cycle", "args": {"step": -1}, "hidden": true},
+      {"key": "z l", "action": "ochazuke.collection.scroll-columns", "args": {"delta": 1}, "from": {"steps": "count"}},
+      {"key": "z h", "action": "ochazuke.collection.scroll-columns", "args": {"delta": -1}, "from": {"steps": "count"}},
+      {"key": "g g", "action": "ochazuke.collection.goto", "args": {"position": "first"}, "from": {"row": "line"}},
+      {"key": "G", "action": "ochazuke.collection.goto", "args": {"position": "last"}, "from": {"row": "line"}},
+      {"key": "ctrl+d", "action": "ochazuke.collection.scroll", "args": {"delta": 1, "half": true}, "from": {"steps": "line"}},
+      {"key": "ctrl+u", "action": "ochazuke.collection.scroll", "args": {"delta": -1, "half": true}, "from": {"steps": "line"}},
+      {"key": "ctrl+f", "action": "ochazuke.collection.scroll", "args": {"delta": 1}, "from": {"steps": "line"}},
+      {"key": "ctrl+b", "action": "ochazuke.collection.scroll", "args": {"delta": -1}, "from": {"steps": "line"}}
     ]},
-    {"context": "ochazuke.list/count_pending", "extends": "normal", "bindings": []}
+    {"context": "ochazuke.collection/count_pending", "extends": "normal", "bindings": []}
   ]
 }

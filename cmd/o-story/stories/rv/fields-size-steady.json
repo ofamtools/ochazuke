@@ -225,6 +225,6 @@
   }
  ],
  "values": {
-  "list.filter-layout": "fields"
+  "collection.filter-layout": "fields"
  }
 }

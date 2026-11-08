@@ -8,7 +8,6 @@
   {"verb": "set", "param": "changes", "replacement": "props", "since": "R2", "note": "DESIGN-001: changes is props' old name"},
   {"verb": "set", "param": "pairs", "replacement": "props {prop: value, ...}", "since": "R2", "note": "DESIGN-001: prop=value words typed on the palette or the CLI still fill props"},
   {"noun": "ochazuke.focus", "verb": "set", "replacement": "ochazuke.focus.to {id}", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb"},
-  {"noun": "ochazuke.mode", "verb": "set", "replacement": "ochazuke.mode.switch {mode}", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb"},
   {"noun": "ochazuke.palette", "verb": "set", "replacement": "ochazuke.palette.fill {text}", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb"},
   {"noun": "ochazuke.confirm", "verb": "set", "replacement": "ochazuke.confirm.require {operation, prompt}", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb; it requires confirmation of an operation (confirm.accept answers the prompt)"},
   {"noun": "ochazuke.input", "verb": "delete", "replacement": "ochazuke.input.erase", "since": "R1", "note": "command verb renamed so it does not collide with the thing verb"},

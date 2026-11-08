@@ -411,7 +411,7 @@ func TestMultiSelectionFanOut(t *testing.T) {
 		t.Fatal(err)
 	}
 	editorTestKeys(t, r, "space", "j", "space", "j", "space")
-	result, err := r.Execute(Request{Verb: "apply", Noun: "ochazuke.list", Args: Arguments{"verb": "open"}})
+	result, err := r.Execute(Request{Verb: "apply", Noun: "ochazuke.collection", Args: Arguments{"verb": "open"}})
 	if err != nil {
 		t.Fatal(err)
 	}
