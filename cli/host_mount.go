@@ -183,6 +183,9 @@ func mountProps(b *ochazuke.NounBuilder, n CatalogNoun, h HostMount, param func(
 		if (p.Computed || p.Subject != "") && proxied(n, h) && reads.has("get") {
 			p.Read = reads.read(p.Name)
 		}
+		if p.Subject != "" && p.Read == nil {
+			continue // a collection prop the host cannot ask the extension for (no proxied get) is not offered
+		}
 		if err := try(func() { b.Props(p) }); err != nil {
 			warn("%s prop %s skipped: %v", n.Name, p.Name, err)
 		}

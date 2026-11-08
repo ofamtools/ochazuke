@@ -98,3 +98,21 @@ func TestMCPDescribeShowsProps(t *testing.T) {
 		t.Fatalf("props %v", found)
 	}
 }
+
+// A collection prop the host cannot read through the extension (no proxied
+// get, as for the framework's own nouns the host has itself) is left out of
+// the mount quietly, with no warning.
+func TestMountedCollectionPropWithoutGetIsSkippedQuietly(t *testing.T) {
+	n := CatalogNoun{Name: "parcel", Kind: ochazuke.Singleton, Props: []ochazuke.PropSpec{
+		{Name: "path", Subject: ochazuke.SubjectCollection, Computed: true},
+		{Name: "title"},
+	}}
+	r := ochazuke.NewRuntime()
+	got := MountNouns(r, []CatalogNoun{n}, HostMount{Local: func(s string) string { return "ext-" + s }})
+	if len(got.Warnings) > 0 {
+		t.Fatalf("warnings %v", got.Warnings)
+	}
+	if _, ok := r.PropOf("ext-parcel", "path"); ok {
+		t.Fatal("an unreadable collection prop was mounted")
+	}
+}
