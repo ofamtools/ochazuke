@@ -281,6 +281,9 @@ func (r *Runtime) removedActionNotes(entries []fileAction) []string {
 // is not one.
 func (r *Runtime) removedVerbError(noun, verb string) error {
 	canon := r.CanonicalNoun(noun)
+	if r.Noun(canon).prop(verb) != nil {
+		return nil // the word is a prop of the noun now: a read, not a removed verb
+	}
 	for _, row := range r.RemovedVerbs() {
 		if row.Param != "" || row.Verb != verb || row.Noun != "" && r.CanonicalNoun(row.Noun) != canon {
 			continue
