@@ -26,7 +26,6 @@ agent_rights.go	parseAgentRules	case	"confirm"	1
 args_form.go	Runtime.singlePath	compare	"form"	1
 args_form.go	Runtime.singlePath	compare	"path"	1
 association.go	Runtime.nearestOf	compare	"app"	1
-binding_render_cache.go	runtimeRenderCache.scan	cyclo	"-"	32
 chooser.go	Chooser.refilter	cyclo	"-"	31
 chooser.go	Chooser.rowsView	cyclo	"-"	44
 chooser_sources.go	Chooser.enterOpens	compare	"pick"	1
