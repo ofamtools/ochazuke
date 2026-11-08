@@ -210,7 +210,7 @@ func TestPaletteDottedNounWord(t *testing.T) {
 	r := NewRuntime()
 	m := NewModel(r)
 	p := m.Palette
-	for _, line := range []string{"ochazuke.setting names", "setting names", } {
+	for _, line := range []string{"ochazuke.setting names", "setting names"} {
 		if c := p.parse(line); !c.Complete() || c.Op.Key.Short() != "ochazuke.setting.get" {
 			t.Errorf("%q = %q err %v missing %q", line, c.Op.Key.Short(), c.Err, c.Missing)
 		}

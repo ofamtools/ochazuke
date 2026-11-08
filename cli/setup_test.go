@@ -113,11 +113,14 @@ func TestSetupMountStatusAndJSON(t *testing.T) {
 
 func TestSetupMountVerbsAndConfirmation(t *testing.T) {
 	f := newSetupFixture(t)
-	for _, args := range [][]string{{"setup", "list"}, {"setup", "show", "rules"}, {"setup", "plan"}, {"setup", "yank", "rules"}, {"setup", "--help"}} {
+	for _, args := range [][]string{{"setup", "list"}, {"setup", "show", "rules"}, {"setup", "install", "--dry-run"}, {"setup", "yank", "rules"}, {"setup", "--help"}} {
 		out, stderr, err := f.run(t, "", args...)
 		if err != nil || out == "" {
 			t.Fatalf("%v: %v %s %s", args, err, out, stderr)
 		}
+	}
+	if _, err := os.Stat(filepath.Join(f.home, "AGENTS.md")); !os.IsNotExist(err) {
+		t.Fatal("install --dry-run wrote a file")
 	}
 	if out, _, err := f.run(t, "", "setup", "yank", "rules"); err != nil || out != "Use tool.\n\n" {
 		t.Fatalf("copy: %q %v", out, err)

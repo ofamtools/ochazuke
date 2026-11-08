@@ -1127,3 +1127,12 @@ func (p PropSpec) named(name string) PropSpec {
 	p.Name = name
 	return p
 }
+
+// asksCollectionProp reports whether a request's prop argument names a
+// collection prop of n (alone or with a path inside it): the request acts
+// on no one thing, so it has no subject to pin or confirm.
+func asksCollectionProp(n *Noun, a Arguments) bool {
+	prop, _ := propPath(n, StringArg(a, "prop", ""))
+	p := n.prop(prop)
+	return p != nil && p.ofCollection()
+}

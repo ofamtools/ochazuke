@@ -264,6 +264,9 @@ func (r *Runtime) namedThing(c Context, q Request) (Thing, error) {
 	if !ok || n == nil || !n.resolvable() {
 		return nil, nil
 	}
+	if asksCollectionProp(n, q.Args) {
+		return nil, nil // a collection prop names no thing
+	}
 	key := n.keyProp()
 	p, takes := op.Parameters[key.Name]
 	v := q.Args[key.Name]

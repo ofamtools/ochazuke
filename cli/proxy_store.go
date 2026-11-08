@@ -34,18 +34,7 @@ var proxiedVerbs = []string{"get", "list", "create", "set", "delete"}
 // where and limit are not sent: the standard list applies them to what the
 // extension lists, so the extension answers everything its list does.
 func proxyStore(noun CatalogNoun, local, key string, h HostMount) ochazuke.Store {
-	px := &proxyCalls{store: local, writes: map[string]bool{}, key: key, limit: h.CallTimeout, calls: map[string]ochazuke.AppHandler{}, missing: map[string]string{}}
-	if px.limit <= 0 {
-		px.limit = DefaultProxyTimeout
-	}
-	for _, v := range noun.Verbs {
-		px.add(h, noun.Name, v)
-	}
-	for _, verb := range proxiedVerbs {
-		if px.calls[verb] == nil {
-			px.missing[verb] = px.why(noun, verb)
-		}
-	}
+	px := newProxyCalls(noun, local, key, h)
 	s := ochazuke.Store{Kind: noun.Kind, Remote: true, Stamps: true, Missing: px.missing, Undo: px.has("get") && px.has("set")}
 	// A call the extension lacks is a nil function, as for any store: the
 	// verb is registered but unavailable, with the reason in Missing.
@@ -68,6 +57,37 @@ func proxyStore(noun CatalogNoun, local, key string, h HostMount) ochazuke.Store
 		s.Kind = ochazuke.KindCollection
 	}
 	return s
+}
+
+// newProxyCalls collects the standard calls the extension offers for noun.
+func newProxyCalls(noun CatalogNoun, local, key string, h HostMount) *proxyCalls {
+	px := &proxyCalls{store: local, writes: map[string]bool{}, key: key, limit: h.CallTimeout, calls: map[string]ochazuke.AppHandler{}, missing: map[string]string{}}
+	if px.limit <= 0 {
+		px.limit = DefaultProxyTimeout
+	}
+	for _, v := range noun.Verbs {
+		px.add(h, noun.Name, v)
+	}
+	for _, verb := range proxiedVerbs {
+		if px.calls[verb] == nil {
+			px.missing[verb] = px.why(noun, verb)
+		}
+	}
+	return px
+}
+
+// read is the Read of a mounted computed prop (or a collection prop): the
+// value comes from the extension's own get {prop}, never from its whole
+// record, so the extension computes it only when asked. For a prop of one
+// thing the thing's key goes with the call.
+func (px *proxyCalls) read(prop string) func(ochazuke.Ctx, ochazuke.Thing) (any, error) {
+	return func(c ochazuke.Ctx, t ochazuke.Thing) (any, error) {
+		args := ochazuke.Arguments{"prop": prop}
+		if px.key != "" && t != nil {
+			args[px.key] = fmt.Sprint(t[px.key])
+		}
+		return px.call(c, "get", args)
+	}
 }
 
 // proxyCalls are an extension noun's standard calls, by the verb they are.

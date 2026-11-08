@@ -52,7 +52,6 @@ cli/format.go	tableOf	case	"id"	1
 cli/format.go	tableOf	compare	"noun"	1
 cli/format.go	tableOf	cyclo	"-"	31
 cli/format.go	writeMarkdown	compare	"right"	1
-cli/host_mount.go	MountNouns	cyclo	"-"	26
 cli/host_mount.go	mountVerb	case	"action"	1
 cli/host_mount.go	mountVerb	case	"confirm"	1
 cli/mcp_backend.go	Shell.mcpValue	case	"config"	1

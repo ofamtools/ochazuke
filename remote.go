@@ -225,7 +225,7 @@ func (r *Runtime) runRemote(row standardVerb, n *Noun, c Ctx) Result {
 			s.base.Args = cloneArgs(c.Args)
 			delete(s.base.Args, key.Name)
 		}
-	} else if key := n.keyProp(); key != nil && row.TakesSubject {
+	} else if key := n.keyProp(); key != nil && row.TakesSubject && !asksCollectionProp(n, c.Args) {
 		s.pin = func(c Ctx) (string, error) { return r.subjectKey(n, c) }
 		if writes {
 			s.queue = name + "\x00" + r.subjectText(n, c)

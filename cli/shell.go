@@ -18,6 +18,7 @@ package cli
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -256,11 +257,7 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	// JSON result to the protocol stream. Resolve its noun normally first,
 	// so an application's own noun wins over the framework alias.
 	if noun == "ochazuke.mcp" {
-		word := verb
-		if word == "" {
-			word = prop // instructions and config are props of mcp
-		}
-		return s.mcpCommand(ctx, append([]string{word}, flags...))
+		return s.mcpCommand(ctx, append([]string{cmp.Or(verb, prop)}, flags...)) // instructions and config are props of mcp
 	}
 	var q ochazuke.Request
 	var opts options

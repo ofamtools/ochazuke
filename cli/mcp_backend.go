@@ -291,7 +291,23 @@ func (b *mcpBackend) describe(name string) (any, error) {
 	}
 	guards := append(r.VerbAvailability(op.Key.Short()), op.CatalogGuards...)
 	schema := parameterSchema(params)
-	return map[string]any{"verb": op.Key.Short(), "description": op.Description, "params": params, "inputSchema": schema, "required": schema["required"], "positional": op.Positional, "guards": guards, "many": op.Many, "acts": []string{"focus"}, "confirm": op.Confirm, "history": op.HistoryKindOf(), "destructive": op.Destructive, "right": right.Right, "rule": right.Rule, "examples": op.ExamplesOf(), "aliases": r.AliasesOf(op.Key.Short()), "cli": s.commandFor(op, "", op.ExamplesOf()[0].Args)}, nil
+	// The noun's props, so an agent sees what it can read with get {prop}
+	// (a computed or collection prop is read only when asked for).
+	props := []map[string]any{}
+	for _, p := range r.Props(op.Noun()) {
+		row := map[string]any{"name": p.Name, "type": p.Type, "readOnly": p.ReadOnly, "description": p.Description}
+		if p.Subject != "" {
+			row["subject"] = p.Subject
+		}
+		if p.Computed {
+			row["computed"] = true
+		}
+		if len(p.Enum) > 0 {
+			row["enum"] = p.Enum
+		}
+		props = append(props, row)
+	}
+	return map[string]any{"props": props, "verb": op.Key.Short(), "description": op.Description, "params": params, "inputSchema": schema, "required": schema["required"], "positional": op.Positional, "guards": guards, "many": op.Many, "acts": []string{"focus"}, "confirm": op.Confirm, "history": op.HistoryKindOf(), "destructive": op.Destructive, "right": right.Right, "rule": right.Rule, "examples": op.ExamplesOf(), "aliases": r.AliasesOf(op.Key.Short()), "cli": s.commandFor(op, "", op.ExamplesOf()[0].Args)}, nil
 }
 
 func (s *Shell) commandFor(op ochazuke.Operation, target string, args map[string]any) string {
@@ -503,7 +519,9 @@ func (s *Shell) registerMCPVerbs() {
 			}})
 		r.Define("mcp").Props(
 			ochazuke.PropSpec{Name: "instructions", ReadOnly: true, Multiline: true, Parameter: ochazuke.Parameter{Description: "The MCP server's instructions, as Markdown"},
-				Read: func(c ochazuke.Ctx, _ ochazuke.Thing) (any, error) { return s.mcpValue(context.Background(), "instructions") }},
+				Read: func(c ochazuke.Ctx, _ ochazuke.Thing) (any, error) {
+					return s.mcpValue(context.Background(), "instructions")
+				}},
 			ochazuke.PropSpec{Name: "config", ReadOnly: true, Parameter: ochazuke.Parameter{Type: ochazuke.PropObject, Description: "The MCP client config (mcpServers) that runs this program's server"},
 				Read: func(c ochazuke.Ctx, _ ochazuke.Thing) (any, error) { return s.mcpValue(context.Background(), "config") }},
 		).Store(ochazuke.Store{Kind: ochazuke.Singleton, Facts: true, Get: func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return ochazuke.Thing{}, nil }})

@@ -1,0 +1,32 @@
+kind	old	new	note
+operation	ochazuke.user-operation.aliases	ochazuke.user-operation.get {prop: aliases}	read-only verb is now a prop of the collection
+operation	ochazuke.user-operation.path	ochazuke.user-operation.get {prop: path}	read-only verb is now a prop of the collection
+operation	ochazuke.config.path	ochazuke.config.get {prop: path}	read-only verb is now a prop of the collection
+operation	ochazuke.binding.path	ochazuke.binding.get {prop: path}	read-only verb is now a prop of the collection
+operation	ochazuke.binding.defaults	ochazuke.binding.get {prop: defaults}	read-only verb is now a prop of the collection
+operation	ochazuke.binding.stops	ochazuke.binding.get {prop: stops}	read-only verb is now a prop of the collection
+operation	ochazuke.history-entry.path	ochazuke.history-entry.get {prop: path}	read-only verb is now a prop of the collection
+operation	ochazuke.hook.path	ochazuke.hook.get {prop: path}	read-only verb is now a prop of the collection
+operation	ochazuke.noun.places-path	ochazuke.noun.get {prop: places-path}	read-only verb is now a prop of the collection
+operation	ochazuke.setting.names	ochazuke.setting.get {prop: names}	read-only verb is now a prop of the collection
+operation	ochazuke.setting.owners	ochazuke.setting.get {prop: owners}	read-only verb is now a prop of the collection
+operation	ochazuke.setting.path	ochazuke.setting.get {prop: path}	read-only verb is now a prop of the collection
+operation	ochazuke.theme.path	ochazuke.theme.get {prop: path}	read-only verb is now a prop of the collection
+operation	ochazuke.segment.names	ochazuke.segment.get {prop: names}	read-only verb is now a prop of the collection
+operation	ochazuke.agent.rights	ochazuke.agent.get {prop: rights}	read-only verb is now a prop of the thing
+operation	ochazuke.agent.instructions	ochazuke.agent.get {prop: instructions}	read-only verb is now a prop of the thing
+operation	ochazuke.mcp.config	ochazuke.mcp.get {prop: config}	read-only verb is now a prop of the thing
+operation	ochazuke.mcp.instructions	ochazuke.mcp.get {prop: instructions}	read-only verb is now a prop of the thing
+operation	ochazuke.setup.plan	ochazuke.setup.install {dry-run: true}	verb removed; install --dry-run shows the plan
+go-api	ochazuke.Operation.State	ochazuke.Operation.Result == ochazuke.ResultLists	the state-source flag is a Result tag
+go-api	ochazuke.NounBuilder.State()	ochazuke.NounBuilder.Lists()	marks the verb that answers every list's rows
+go-api	(added) ochazuke.PropSpec.Read, Subject, Computed; ochazuke.SubjectCollection, CountProp, NamesProp		computed and collection props
+go-api	(added) ochazuke.Operation.Subject, NounBuilder.OfCollection		collection-scope operations; catalog verb field subject
+go-api	(added) ochazuke.Ctx.Noun		the noun a prop is read of
+catalog	state source	first verb whose Result is lists	CatalogDoc.State is unchanged on the wire
+catalog	(added) props[].computed, props[].subject; nouns[].verbs[].subject		wire fields; a host mounts a computed prop through the extension's get {prop}
+cli-verb	setup plan	setup install --dry-run	the CLI's setup plan
+choices-source	ochazuke.setting.names	ochazuke.setting.list	parameter Source
+choices-source	ochazuke.segment.names	ochazuke.segment.list	parameter Source
+mcp	ochazuke.agent.rights / ochazuke.agent.instructions	ochazuke.agent.get {prop: rights|instructions}	preamble text
+verb-added	ochazuke.snapshot.get {lists: true}		rows of every store noun's list, JSON Lines

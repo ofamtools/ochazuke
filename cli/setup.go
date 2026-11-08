@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/tabwriter"
 
@@ -87,15 +88,17 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 				}
 				ids, _ := c.Args["item"].(string)
 				group, _ := c.Args["group"].(string)
+				dry, _ := c.Args["dry-run"].(bool)
 				sel := setup.Selection{IDs: strings.Fields(ids), Group: group}
 				return ochazuke.Pending(func(ctx context.Context) (any, error) {
 					switch v {
 					case "install":
+						if dry {
+							return engine.Plan(ctx, sel)
+						}
 						return setupRows(engine.Install(ctx, sel))
 					case "uninstall":
 						return setupRows(engine.Uninstall(ctx, sel))
-					case "plan":
-						return engine.Plan(ctx, sel)
 					default:
 						plan, err := engine.Plan(ctx, sel)
 						if err != nil {
@@ -119,7 +122,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 				}).Label("setup")
 			}, verb.description).Quiet().Positional("item")
 			if v == "install" || v == "uninstall" {
-				b.Confirm("Apply setup " + v + "? Review setup plan first.")
+				b.Confirm("Apply setup " + v + "? Review it first with setup install --dry-run.")
 			} else {
 				b.Fetch()
 			}
@@ -137,12 +140,23 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 			op.Parameters = map[string]ochazuke.Parameter{"item": {Type: "string", Rest: true, Required: v == "show" || v == "yank", Description: "Setup item ids (empty selects the default set)"}, "home": {Type: "string", Description: "Use this home directory and isolate harness HOME/XDG paths"}}
 			if v == "install" {
 				op.Parameters["group"] = ochazuke.Parameter{Type: "string", Description: "Only items in this group"}
+				op.Parameters["dry-run"] = ochazuke.Parameter{Type: "boolean", Description: "Show all writes and argv without installing (no confirmation, nothing is written)"}
+				op.ConfirmFor = unlessDryRun
 			}
 			r.Operations.Set(op)
 		}
 		r.Instance(setupInstance, ochazuke.Kind("setup")).Component = d
 	})
 	return nil
+}
+
+// unlessDryRun is install's confirm: nothing to ask when dry-run only shows
+// the plan.
+func unlessDryRun(_ *ochazuke.Runtime, _ ochazuke.Context, q ochazuke.Request, prompt string) string {
+	if dry, _ := q.Args["dry-run"].(bool); dry {
+		return ""
+	}
+	return prompt
 }
 
 // setupVerbs are the setup noun's verbs; shadows marks one that replaces
@@ -152,7 +166,7 @@ var setupVerbs = []struct {
 	name, description string
 	shadows           bool
 }{
-	{"check", "Check whether each setup item is in place, and say the exact next steps", false}, {"list", "List setup items and states", true}, {"show", "Show one setup item in full", false}, {"plan", "Show all writes and argv without installing", false}, {"install", "Install the selected setup items", false}, {"uninstall", "Remove only the selected owned integrations", false}, {"yank", "Print an item's content or advice for pasting", false},
+	{"check", "Check whether each setup item is in place, and say the exact next steps", false}, {"list", "List setup items and states", true}, {"show", "Show one setup item in full", false}, {"install", "Install the selected setup items", false}, {"uninstall", "Remove only the selected owned integrations", false}, {"yank", "Print an item's content or advice for pasting", false},
 }
 
 // setupProps are the setup noun's props: one thing per declared item (and
@@ -269,7 +283,11 @@ func (s *Shell) mountSetup(app *oden.App) {
 			if err := sh.Run(ctx, append([]string{"ochazuke.setup", v}, args...)); err != nil {
 				return err
 			}
-			return printSetup(s.stdout(), s.Bin, v, out.Bytes())
+			shown := v
+			if v == "install" && slices.Contains(args, "--dry-run") {
+				shown = "plan" // the plan printer: writes and argv
+			}
+			return printSetup(s.stdout(), s.Bin, shown, out.Bytes())
 		}})
 	}
 	app.Add(oden.Command{Name: "setup", Summary: "Check and install this tool's integrations", Source: "ochazuke.setup", Children: children})

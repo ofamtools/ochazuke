@@ -101,13 +101,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 		if len(n.Columns) > 0 {
 			b.Columns(n.Columns...)
 		}
-		for _, p := range n.Props {
-			p.Parameter = param(p.Parameter)
-			p.When = ""
-			if err := try(func() { b.Props(p) }); err != nil {
-				warn("%s prop %s skipped: %v", n.Name, p.Name, err)
-			}
-		}
+		mountProps(b, n, h, param, warn)
 		mountStore(b, n, local, h, warn)
 		if len(n.PropsOff) > 0 {
 			if err := try(func() { b.PropsOff(n.PropsOff...) }); err != nil {
@@ -175,6 +169,24 @@ func mountFlags(b *ochazuke.NounBuilder, n CatalogNoun) {
 		b.Main()
 	}
 	b.DefaultAction(n.DefaultAction)
+}
+
+// mountProps declares the catalog noun's props on the mounted noun. A
+// computed or collection prop reads through the extension's own get {prop}
+// (proxyCalls.read), so the extension computes it only when asked.
+func mountProps(b *ochazuke.NounBuilder, n CatalogNoun, h HostMount, param func(ochazuke.Parameter) ochazuke.Parameter, warn func(string, ...any)) {
+	reads := newProxyCalls(n, "", keyOf(n.Props), h)
+	for _, p := range n.Props {
+		p.Parameter = param(p.Parameter)
+		p.When = ""
+		p.Read = nil
+		if (p.Computed || p.Subject != "") && proxied(n, h) && reads.has("get") {
+			p.Read = reads.read(p.Name)
+		}
+		if err := try(func() { b.Props(p) }); err != nil {
+			warn("%s prop %s skipped: %v", n.Name, p.Name, err)
+		}
+	}
 }
 
 // mountStore gives a proxied noun its store: the standard verbs run here,
