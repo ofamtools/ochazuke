@@ -121,7 +121,7 @@ func (r *Runtime) defineFacts(f factsSpec) {
 		define = r.DefineOwn
 	}
 	define(f.Noun).Props(props...).Store(Store{
-		Kind: Collection, Facts: true, Remote: f.Remote, ListParams: f.ListParams, List: f.List, Get: get,
+		Kind: KindCollection, Facts: true, Remote: f.Remote, ListParams: f.ListParams, List: f.List, Get: get,
 	})
 }
 

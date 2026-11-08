@@ -81,7 +81,7 @@ func (sp *statePage) instances() map[string]*ochazuke.Instance {
 	return out
 }
 
-func labels(l *ochazuke.List) []string {
+func labels(l *ochazuke.Collection) []string {
 	var out []string
 	for _, item := range l.Items() {
 		out = append(out, item.Label)

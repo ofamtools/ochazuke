@@ -11,7 +11,7 @@ import (
 	"ofam.dev/ochazuke/keytest"
 )
 
-func compactFixture(t *testing.T) (*Runtime, *Model, *List) {
+func compactFixture(t *testing.T) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r, m, l := filterFormFixture(t)
 	if err := r.Settings().Set(ListFilterLayoutSetting, "compact"); err != nil {

@@ -199,7 +199,7 @@ func TestSettingsSearchValues(t *testing.T) {
 	if err := sections.Focus(); err != nil {
 		t.Fatal(err)
 	}
-	ids := func(l *List) []string {
+	ids := func(l *Collection) []string {
 		var out []string
 		for _, it := range l.items {
 			out = append(out, it.ID)

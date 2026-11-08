@@ -15,7 +15,7 @@ const DefaultProxyTimeout = 30 * time.Second
 // proxiedKinds are the store kinds a mounted noun gets a proxy store for: the
 // things live in the extension. A noun of live instances (or any kind the
 // host runtime does not know) keeps its verbs as they are mounted.
-var proxiedKinds = []string{"", ochazuke.Collection, ochazuke.Singleton}
+var proxiedKinds = []string{"", ochazuke.KindCollection, ochazuke.Singleton}
 
 // proxiedVerbs are the standard verbs of a catalog noun a proxy store calls
 // in the extension, each the store function it answers.
@@ -65,7 +65,7 @@ func proxyStore(noun CatalogNoun, local, key string, h HostMount) ochazuke.Store
 		s.Delete = px.delete
 	}
 	if s.Kind == "" {
-		s.Kind = ochazuke.Collection
+		s.Kind = ochazuke.KindCollection
 	}
 	return s
 }

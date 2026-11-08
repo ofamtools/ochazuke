@@ -12,7 +12,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func propFilterFixture(t *testing.T) (*Runtime, *Model, *List) {
+func propFilterFixture(t *testing.T) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r, m, l := filterFixture(t)
 	r.Define("a").Props(PropSpec{Name: "by"}, PropSpec{Name: "score", Parameter: Parameter{Type: "integer"}}, PropSpec{Name: "secret", Secret: true})
@@ -678,10 +678,10 @@ func TestPropFilterOnFilterHeardOnTreeAndList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, l := range []*List{tree.list, flat} {
+	for _, l := range []*Collection{tree.list, flat} {
 		var heard []string
 		var conds []int
-		l.OnFilter(func(l *List) {
+		l.OnFilter(func(l *Collection) {
 			heard = append(heard, l.vs.Saved)
 			conds = append(conds, len(l.PropFilters()))
 		})

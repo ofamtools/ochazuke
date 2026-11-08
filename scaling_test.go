@@ -155,7 +155,7 @@ func (c closeLog) Close()                     { *c.log = append(*c.log, c.id) }
 // focus inside a removed row's subtree with a FocusOnClose target.
 func TestSetItemsRemovesRowsAsRemoveInstanceDoes(t *testing.T) {
 	for _, modal := range []bool{false, true} {
-		build := func() (*Runtime, *List, *[]string) {
+		build := func() (*Runtime, *Collection, *[]string) {
 			r := NewRuntime()
 			r.Define("a")
 			if err := r.RegisterPage(&Page{ID: "page", Title: "page", Render: func(*Runtime, int, int) Block { return Text("") }}); err != nil {
@@ -193,7 +193,7 @@ func TestSetItemsRemovesRowsAsRemoveInstanceDoes(t *testing.T) {
 				keep = append(keep, item)
 			}
 		}
-		state := func(r *Runtime, l *List, log *[]string) []any {
+		state := func(r *Runtime, l *Collection, log *[]string) []any {
 			ret := ""
 			if m := r.Instances["m"]; m != nil {
 				ret = m.Payload.Return
@@ -268,7 +268,7 @@ func TestTableWidthsFollowTheItems(t *testing.T) {
 		t.Fatal(err)
 	}
 	fresh := func() string {
-		cp := &List{r: r, id: "l", all: list.all, items: list.items, selected: list.selected, offset: list.offset, marks: list.marks, columns: list.columns}
+		cp := &Collection{r: r, id: "l", all: list.all, items: list.items, selected: list.selected, offset: list.offset, marks: list.marks, columns: list.columns}
 		return cp.View(40, 5)
 	}
 	check := func(step string) {

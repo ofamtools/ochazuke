@@ -28,13 +28,13 @@ const (
 // filterViewForm composes the existing record writer, choosers and list.
 // The record remains the form's modal component and owns validation/undo.
 type filterViewForm struct {
-	l                       *List
+	l                       *Collection
 	e                       *RecordEditor
 	fields                  []*filterField
 	legacy                  bool
 	fieldPicker, sortPicker *Chooser
 	values                  map[string]*Chooser
-	conditions              *List
+	conditions              *Collection
 	saveInput               *Input
 	current                 *filterField
 	multi                   bool
@@ -172,7 +172,7 @@ func (v *filterViewForm) write(w RecordWrite) Result {
 	return Done(nil)
 }
 
-func (l *List) openViewForm() error {
+func (l *Collection) openViewForm() error {
 	if e := l.r.RecordEditor(listFilterFormID); e != nil && !e.closed && e.RowView() == l {
 		if err := l.r.openFromTopLevel(e.id); err != nil {
 			return err

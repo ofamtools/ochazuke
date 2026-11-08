@@ -710,7 +710,7 @@ func (r *Runtime) componentSnapshot() map[string]any {
 		switch comp.(type) {
 		case *Input:
 			kind = "input"
-		case *List:
+		case *Collection:
 			kind = "list"
 		case *Page:
 			kind = "page"

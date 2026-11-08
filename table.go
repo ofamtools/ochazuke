@@ -81,15 +81,15 @@ const partHeader = "header"
 // give its cells: Cell is the column. A highlight layer
 // (ToneSpan.Layer) shows on the header of the column it covers, where it
 // crosses the header part (list.header.intersect).
-func (l *List) SetHeaderTones(tones ...ToneSpan) { l.headerTones = slices.Clone(tones) }
+func (l *Collection) SetHeaderTones(tones ...ToneSpan) { l.headerTones = slices.Clone(tones) }
 
 // HeaderTones is the header row's tones, a copy.
-func (l *List) HeaderTones() []ToneSpan { return slices.Clone(l.headerTones) }
+func (l *Collection) HeaderTones() []ToneSpan { return slices.Clone(l.headerTones) }
 
 // withParts is a row's tones under its part columns' (Column.Part) part
 // spans, first so the row's own tones draw over them; tones unchanged
 // with list.part-tones off or no part column.
-func (l *List) withParts(cols []Column, tones []ToneSpan) []ToneSpan {
+func (l *Collection) withParts(cols []Column, tones []ToneSpan) []ToneSpan {
 	var parts []ToneSpan
 	for i, c := range cols {
 		if c.Part != "" {
@@ -117,7 +117,7 @@ func Columns(cols ...Column) InstanceOption {
 }
 
 // SetColumns replaces the list's columns; none makes it a plain list again.
-func (l *List) SetColumns(cols ...Column) {
+func (l *Collection) SetColumns(cols ...Column) {
 	if slices.Equal(l.columns, cols) {
 		return
 	}
@@ -132,7 +132,7 @@ func (l *List) SetColumns(cols ...Column) {
 }
 
 // Columns returns a copy of the list's columns (nil for a plain list).
-func (l *List) Columns() []Column { return slices.Clone(l.columns) }
+func (l *Collection) Columns() []Column { return slices.Clone(l.columns) }
 
 // cells is a row's text per column: its Cells, else its Label as the first
 // cell; control characters become spaces, a newline in a cell excepted: it
@@ -328,7 +328,7 @@ func rowSegs(toned *Styles, tones []ToneSpan, row []string, shown []int, at []ce
 // when no column has a title), then
 // the rows in the list's window, the "x–y / n" line when they overflow;
 // the focused list's selected row is reversed across the whole width.
-func (l *List) tableView(width, height int) (string, int, int) {
+func (l *Collection) tableView(width, height int) (string, int, int) {
 	l.selLine = -1
 	// Columns without titles (a list of name and value) draw no header.
 	header := height > 1 && slices.ContainsFunc(l.columns, func(c Column) bool { return c.Title != "" })
@@ -416,7 +416,7 @@ func (l *List) tableView(width, height int) (string, int, int) {
 // (SetHeaderTones) over their columns and the current column underlined;
 // bold, the current column bold and underlined, without the Model's
 // styles or with list.part-tones off.
-func (l *List) headerLine(head string, width int, heads []string, cols []Column, shown, widths []int, mark int, cur span) string {
+func (l *Collection) headerLine(head string, width int, heads []string, cols []Column, shown, widths []int, mark int, cur span) string {
 	toned := l.listTones()
 	if toned == nil || !l.r.settingOn(PartTonesSetting) {
 		bold := lipgloss.NewStyle().Bold(true)
@@ -438,7 +438,7 @@ func (l *List) headerLine(head string, width int, heads []string, cols []Column,
 // widths depend on all of them. A row's cells depend only on the item and
 // the number of columns, so SetItems drops the cache and a change in the
 // column count remeasures.
-func (l *List) cellWidths() []int {
+func (l *Collection) cellWidths() []int {
 	if l.widest == nil || len(l.widest) != len(l.columns) {
 		// Every row, the ones a filter hides included, so the columns
 		// keep their widths while the filter narrows the rows.
@@ -495,14 +495,14 @@ func TableText(cols []Column, rows [][]string, width int) []string {
 }
 
 // hasGroup reports whether a column is Group.
-func (l *List) hasGroup() bool {
+func (l *Collection) hasGroup() bool {
 	return slices.ContainsFunc(l.columns, func(c Column) bool { return c.Group })
 }
 
 // groupedCells is item i's cells with each Group cell blank when it and
 // every Group cell left of it repeat the row above's, in the same
 // section; the row at top (the first drawn) keeps its cells.
-func (l *List) groupedCells(i, top int) []string {
+func (l *Collection) groupedCells(i, top int) []string {
 	row := cells(l.items[i], len(l.columns))
 	if i <= top || !l.hasGroup() || l.items[i-1].Section != l.items[i].Section {
 		return row
@@ -522,7 +522,7 @@ func (l *List) groupedCells(i, top int) []string {
 
 // tall reports whether the table's rows can take more than one line: a
 // column wraps or breaks at newlines (Lines), or a row opens a section.
-func (l *List) tall() bool {
+func (l *Collection) tall() bool {
 	if l.spacing() {
 		return true
 	}
@@ -684,7 +684,7 @@ func tableRowLinesAt(toned *Styles, cols []Column, tones []ToneSpan, row []strin
 // when it starts inside a section, that section's label is repeated on
 // its first line. The focused list's selected row is reversed across the
 // whole width on every line, its section label not.
-func (l *List) tallView(lines []string, width, height, body int, cols []Column, shown, widths []int, span span) (string, int, int) {
+func (l *Collection) tallView(lines []string, width, height, body int, cols []Column, shown, widths []int, span span) (string, int, int) {
 	section := lipgloss.NewStyle().Bold(true).Underline(true)
 	gutter := l.hasGutter()
 	rows := make([][]string, len(l.items))
@@ -827,7 +827,7 @@ type span struct{ x, w int }
 
 // currentSpan is where a cell-mode table's current column sits in its
 // lines, after a gutter of mark cells.
-func (l *List) currentSpan(shown, widths []int, mark int) span {
+func (l *Collection) currentSpan(shown, widths []int, mark int) span {
 	if !l.cellMode() {
 		return span{}
 	}
@@ -880,7 +880,7 @@ func sgrSpan(line string, sp span, open, mark string) string {
 // cursorStyle is the current cell's style for a frame (Runtime.cellCursor),
 // given to the row tones' styles too so paintLine draws it; nil without a
 // current cell or with list.cell-cursor underline.
-func (l *List) cursorStyle(sp span, toned *Styles, faded bool) ansi.Style {
+func (l *Collection) cursorStyle(sp span, toned *Styles, faded bool) ansi.Style {
 	if sp.w <= 0 {
 		return nil
 	}
@@ -923,7 +923,7 @@ type colEdges struct {
 // len(l.columns), blank in the rows, the left marker in the header). It
 // returns the columns to draw with, the layout with the marker's column,
 // and the right marker's text (drawn at the header's right edge).
-func (l *List) withEdges(titles []string, shown, widths []int) ([]Column, []int, []int, string) {
+func (l *Collection) withEdges(titles []string, shown, widths []int) ([]Column, []int, []int, string) {
 	if l.edges.w == 0 {
 		return l.columns, shown, widths, ""
 	}
@@ -940,7 +940,7 @@ func (l *List) withEdges(titles []string, shown, widths []int) ([]Column, []int,
 
 // rowCells is a row's cells with the left edge marker's column after
 // them, blank, when the frame draws markers.
-func (l *List) rowCells(row []string) []string {
+func (l *Collection) rowCells(row []string) []string {
 	if l.edges.w == 0 {
 		return row
 	}

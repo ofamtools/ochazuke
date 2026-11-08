@@ -52,7 +52,7 @@ func TestDetailWindowWrapsToWidth(t *testing.T) {
 
 // detailModel is a page with a list on the left and a detail about the
 // selected row on the right, lines lines long per row.
-func detailModel(t *testing.T, lines int) (*Model, *List, *Detail) {
+func detailModel(t *testing.T, lines int) (*Model, *Collection, *Detail) {
 	t.Helper()
 	r := NewRuntime()
 	r.Define("thing")

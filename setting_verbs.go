@@ -448,7 +448,7 @@ var settingProps = []PropSpec{
 // and tells its watches when any setting changes.
 func registerSettingThings(r *Runtime) {
 	r.Define("ochazuke.setting").Props(settingProps...).Store(Store{
-		Kind: Collection,
+		Kind: KindCollection,
 		Get: func(c Ctx, name string) (Thing, error) {
 			return settingThing(c.Runtime, name)
 		},

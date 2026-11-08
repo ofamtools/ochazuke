@@ -9,7 +9,7 @@ import (
 // subjectsTable is visualTable with a per-row verb that fails on r3
 // (f row.flaky), a many-subject verb that asks a chooser once (t row.tag),
 // and a per-row verb that asks a chooser for its row (a row.ask).
-func subjectsTable(t *testing.T) (*Runtime, *Model, *List, *[]string, func() []UIMessage) {
+func subjectsTable(t *testing.T) (*Runtime, *Model, *Collection, *[]string, func() []UIMessage) {
 	t.Helper()
 	r, m, l, calls := visualTable(t)
 	r.Define("row").

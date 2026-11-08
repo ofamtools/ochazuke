@@ -48,7 +48,7 @@ const FitFollowsCursorSetting = "table.fit-follows-cursor"
 
 // contentWidth is the cells column i's content takes: its widest cell
 // over every row, or its title when wider; at least 1.
-func (l *List) contentWidth(i int) int {
+func (l *Collection) contentWidth(i int) int {
 	if i < 0 || i >= len(l.columns) {
 		return 0
 	}
@@ -58,7 +58,7 @@ func (l *List) contentWidth(i int) int {
 
 // fitCap is the widest a fitted column may be: the width the table's
 // columns share in the last frame (0 before one: no cap).
-func (l *List) fitCap(w int) int {
+func (l *Collection) fitCap(w int) int {
 	if l.colWidth > 0 {
 		return min(w, l.colWidth)
 	}
@@ -67,14 +67,14 @@ func (l *List) fitCap(w int) int {
 
 // fitColumn fixes column i at its content's width (capped at the table's
 // width) and remembers it.
-func (l *List) fitColumn(i int) {
+func (l *Collection) fitColumn(i int) {
 	l.SetColumnWidth(i, l.fitCap(l.contentWidth(i)))
 }
 
 // fitColumns fixes every column at its content's width, the widest
 // narrowed first while they do not fit the table's width, and remembers
 // the widths.
-func (l *List) fitColumns() {
+func (l *Collection) fitColumns() {
 	if len(l.columns) == 0 {
 		return
 	}
@@ -88,7 +88,7 @@ func (l *List) fitColumns() {
 }
 
 // fittedWidths is the widths z F gives the columns.
-func (l *List) fittedWidths() []int {
+func (l *Collection) fittedWidths() []int {
 	widths := make([]int, len(l.columns))
 	for i := range l.columns {
 		widths[i] = l.contentWidth(i)
@@ -104,7 +104,7 @@ func (l *List) fittedWidths() []int {
 // show at their content's width has nothing to fit, so z F does not
 // answer there and, on a row-select table that fits, z waits for nothing,
 // R5.9).
-func (l *List) fitChanges() bool {
+func (l *Collection) fitChanges() bool {
 	if len(l.columns) == 0 {
 		return false
 	}
@@ -119,7 +119,7 @@ func (l *List) fitChanges() bool {
 
 // resets reports whether z = has something to undo: a width given to a
 // column (z >, z <, z f, z F, SetColumnWidth) or pins the user chose.
-func (l *List) resets() bool {
+func (l *Collection) resets() bool {
 	if len(l.columns) == 0 {
 		return false
 	}
@@ -131,7 +131,7 @@ func (l *List) resets() bool {
 // width as a flexible column (Min, else defaultColumnMin or its title's
 // width), whatever width the application or the user gave it, never more
 // than its content's.
-func (l *List) fitFloors(content []int) []int {
+func (l *Collection) fitFloors(content []int) []int {
 	cols := slices.Clone(l.columns)
 	for i := range cols {
 		cols[i].Width, cols[i].Max = 0, 0
@@ -172,7 +172,7 @@ func narrowToFit(widths, floors []int, avail int) []int {
 // fitsCursor reports whether the table lays its current column out at its
 // content's width (the table.fit-follows-cursor setting on a cell-mode
 // table).
-func (l *List) fitsCursor() bool {
+func (l *Collection) fitsCursor() bool {
 	if !l.cellMode() || l.r == nil {
 		return false
 	}
@@ -180,7 +180,7 @@ func (l *List) fitsCursor() bool {
 	return v == true
 }
 
-func registerTableFit(r *Runtime, cells func(Context, Arguments) (*List, error)) {
+func registerTableFit(r *Runtime, cells func(Context, Arguments) (*Collection, error)) {
 	// table-fit-changes: z F would change a column's width; table-resets:
 	// z = has a width or pins to undo. Both hold on any table, so neither
 	// key answers (and z waits for nothing) where it would change nothing.

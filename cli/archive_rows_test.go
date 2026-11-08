@@ -33,7 +33,7 @@ const archiveTree = `[{"id":"a","label":"alpha","data":{"archived":false}},` +
 	`{"id":"c","label":"gamma","data":{"archived":false}},` +
 	`{"id":"c1","parent":"c","label":"gamma-child","data":{"archived":true}}]`
 
-func mountArchive(t *testing.T, tree bool, rows string) (*ochazuke.Model, *ochazuke.List) {
+func mountArchive(t *testing.T, tree bool, rows string) (*ochazuke.Model, *ochazuke.Collection) {
 	t.Helper()
 	doc := archiveDoc(tree)
 	r := ochazuke.NewRuntime()
@@ -65,7 +65,7 @@ func mountArchive(t *testing.T, tree bool, rows string) (*ochazuke.Model, *ochaz
 	return m, r.List("lanes/list")
 }
 
-func shownLabels(l *ochazuke.List) []string {
+func shownLabels(l *ochazuke.Collection) []string {
 	var out []string
 	for _, row := range l.Snapshot()["items"].([]ochazuke.ListItem) {
 		out = append(out, strings.TrimLeft(row.Label, " ├└─│▾▸"))

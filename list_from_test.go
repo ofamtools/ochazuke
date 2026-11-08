@@ -61,7 +61,7 @@ func fromRuntime(t *testing.T) (*Runtime, *fromStore, *fromStore) {
 	return r, notes, others
 }
 
-func fromIDs(l *List) []string {
+func fromIDs(l *Collection) []string {
 	var out []string
 	for _, it := range l.Snapshot()["items"].([]ListItem) {
 		out = append(out, it.ID)

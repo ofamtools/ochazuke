@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func kinFixture(t *testing.T) (*Runtime, *List) {
+func kinFixture(t *testing.T) (*Runtime, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Define("a")

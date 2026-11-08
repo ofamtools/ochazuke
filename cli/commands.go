@@ -73,7 +73,7 @@ type Commands struct {
 	src    CommandSource
 	start  func(cmd *exec.Cmd, cols, rows int) (ochazuke.TerminalStream, error)
 	page   string
-	list   *ochazuke.List
+	list   *ochazuke.Collection
 	detail *ochazuke.Detail
 
 	entries map[string]CommandEntry
@@ -160,7 +160,7 @@ func rowID(name string) string { return "command:" + name }
 func (c *Commands) Page() string { return c.page }
 
 // List is the page's table of commands.
-func (c *Commands) List() *ochazuke.List { return c.list }
+func (c *Commands) List() *ochazuke.Collection { return c.list }
 
 // Terminal is the terminal of name's last run, or nil.
 func (c *Commands) Terminal(name string) *ochazuke.Terminal {

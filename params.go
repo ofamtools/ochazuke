@@ -165,7 +165,7 @@ func (r *Runtime) nounInstanceChoices(noun string) []Choice {
 		if inst.Noun == noun {
 			add(inst.ID, inst.Label)
 		}
-		list, ok := inst.Component.(*List)
+		list, ok := inst.Component.(*Collection)
 		if !ok {
 			continue
 		}

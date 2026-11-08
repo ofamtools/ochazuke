@@ -18,7 +18,7 @@ const ListGroupBySetting = "list.group-by"
 // ListView is a copy of the list's view state: the one ListQuery the list is
 // filtered, sorted, grouped and paged by, the same value (and the same
 // functions, list_query.go) the standard list verb runs.
-func (l *List) ListView() ListQuery {
+func (l *Collection) ListView() ListQuery {
 	q := l.vs
 	q.Filters = clonePropFilters(q.Filters)
 	q.Sort = slices.Clone(q.Sort)
@@ -30,11 +30,11 @@ func (l *List) ListView() ListQuery {
 // arranges reports whether the list groups and pages its rows: a flat list
 // that owns its rows. A tree keeps its own shape, and a detached filter
 // controller (a chooser's) serves rows another view draws.
-func (l *List) arranges() bool { return l.tree() == nil && l.filterChanged == nil }
+func (l *Collection) arranges() bool { return l.tree() == nil && l.filterChanged == nil }
 
 // groupSetting is list.group-by as props of these rows; none when any is
 // not a prop they have.
-func (l *List) groupSetting() []string {
+func (l *Collection) groupSetting() []string {
 	words := listWords(l.r.Settings().String(ListGroupBySetting))
 	if len(words) == 0 {
 		return nil
@@ -50,7 +50,7 @@ func (l *List) groupSetting() []string {
 
 // effectiveView is the view with the settings' defaults filled in: the
 // list's own grouping and page size, else list.group-by and list.per-page.
-func (l *List) effectiveView() ListQuery {
+func (l *Collection) effectiveView() ListQuery {
 	q := l.vs
 	if !l.arranges() {
 		q.GroupBy, q.GroupSort, q.PerPage = nil, nil, 0
@@ -67,7 +67,7 @@ func (l *List) effectiveView() ListQuery {
 
 // arrange groups and pages the sorted, filtered rows by the view, and
 // notes where the page sits. The row keep shows on the page that holds it.
-func (l *List) arrange(items []ListItem, keep string) []ListItem {
+func (l *Collection) arrange(items []ListItem, keep string) []ListItem {
 	q := l.effectiveView()
 	l.total, l.pages, l.grouped, l.headCap = len(items), 0, false, 0
 	if !q.Grouped() && !q.Paged() {
@@ -106,7 +106,7 @@ func (l *List) arrange(items []ListItem, keep string) []ListItem {
 
 // Page is the page the list shows, from 1, and Pages how many there are
 // (both 1 when the list is not paged).
-func (l *List) Page() (page, pages int) {
+func (l *Collection) Page() (page, pages int) {
 	if l.pages == 0 {
 		return 1, 1
 	}
@@ -116,7 +116,7 @@ func (l *List) Page() (page, pages int) {
 // pageSummary is the page indicator of the filter line: "page 2/5" while
 // the list is paged (list.per-page), "" otherwise. It shows on a one-page
 // list too, so the list keeps its height as filters change the page count.
-func (l *List) pageSummary() string {
+func (l *Collection) pageSummary() string {
 	if l.pages == 0 {
 		return ""
 	}
@@ -125,7 +125,7 @@ func (l *List) pageSummary() string {
 
 // viewSummary is the view information the filter line shows beside the
 // conditions: the sort and the page.
-func (l *List) viewSummary() string {
+func (l *Collection) viewSummary() string {
 	sort, page := l.sortSummary(), l.pageSummary()
 	if sort != "" && page != "" {
 		return sort + " · " + page
@@ -135,7 +135,7 @@ func (l *List) viewSummary() string {
 
 // SetPage shows page n (from 1); one past the ends shows the end. A list
 // that does not page refuses.
-func (l *List) SetPage(n int) error {
+func (l *Collection) SetPage(n int) error {
 	if l.pages == 0 {
 		return errors.New("the list is not paged")
 	}
@@ -151,7 +151,7 @@ func (l *List) SetPage(n int) error {
 // SetGroupBy groups the rows by these props (none: the list.group-by
 // setting's, which defaults to no groups) and orders the groups by
 // groupSort, whose keys name props of by.
-func (l *List) SetGroupBy(by []string, groupSort []SortKey) error {
+func (l *Collection) SetGroupBy(by []string, groupSort []SortKey) error {
 	if !l.arranges() {
 		return errors.New("this list does not group its rows")
 	}
@@ -182,7 +182,7 @@ func (l *List) SetGroupBy(by []string, groupSort []SortKey) error {
 // rearranged shows the rows again after the view's grouping or page changed,
 // keeping the row keep selected (on whichever page it lands) or, with "",
 // starting at the first row.
-func (l *List) rearranged(keep string) {
+func (l *Collection) rearranged(keep string) {
 	previous, _ := l.Selected()
 	l.refilter(keep)
 	l.syncVisual()
@@ -191,7 +191,7 @@ func (l *List) rearranged(keep string) {
 }
 
 func registerListQuery(r *Runtime) {
-	resolve := func(focus string, a Arguments) *List { return r.rowFilterList(StringArg(a, "id", focus)) }
+	resolve := func(focus string, a Arguments) *Collection { return r.rowFilterList(StringArg(a, "id", focus)) }
 	r.DefineGuard("list-paged", func(_ *Runtime, ev KeyEvent) bool {
 		l := resolve(ev.Focus, ev.Args)
 		return l != nil && l.pages > 1
@@ -205,22 +205,22 @@ func registerListQuery(r *Runtime) {
 	for _, s := range []struct {
 		verb, description, guard string
 		params                   map[string]Parameter
-		run                      func(*List, Arguments) error
+		run                      func(*Collection, Arguments) error
 		positional               []string
 	}{
-		{"page", "Show page n of a paged list (settings: list.per-page)", "list-paged", map[string]Parameter{"to": {Type: "integer", Description: "The page, from 1"}}, func(l *List, a Arguments) error { return l.SetPage(IntArg(a, "to", 1)) }, []string{"to"}},
-		{"page-next", "Show the next page of a paged list", "list-paged", nil, func(l *List, _ Arguments) error { return l.SetPage(l.vs.Page + 1) }, nil},
-		{"page-prev", "Show the previous page of a paged list", "list-paged", nil, func(l *List, _ Arguments) error { return l.SetPage(l.vs.Page - 1) }, nil},
-		{"page-first", "Show the first page of a paged list", "list-paged", nil, func(l *List, _ Arguments) error { return l.SetPage(1) }, nil},
-		{"page-last", "Show the last page of a paged list", "list-paged", nil, func(l *List, _ Arguments) error { return l.SetPage(l.pages) }, nil},
-		{"group", "Group the rows by comma-separated props, each with a heading; empty restores list.group-by", "list-groupable", map[string]Parameter{"by": {Type: "string", Description: "Props to group by, comma-separated"}, "order": {Type: "string", Description: "Order the groups by these group props, each prop[:desc]"}}, func(l *List, a Arguments) error {
+		{"page", "Show page n of a paged list (settings: list.per-page)", "list-paged", map[string]Parameter{"to": {Type: "integer", Description: "The page, from 1"}}, func(l *Collection, a Arguments) error { return l.SetPage(IntArg(a, "to", 1)) }, []string{"to"}},
+		{"page-next", "Show the next page of a paged list", "list-paged", nil, func(l *Collection, _ Arguments) error { return l.SetPage(l.vs.Page + 1) }, nil},
+		{"page-prev", "Show the previous page of a paged list", "list-paged", nil, func(l *Collection, _ Arguments) error { return l.SetPage(l.vs.Page - 1) }, nil},
+		{"page-first", "Show the first page of a paged list", "list-paged", nil, func(l *Collection, _ Arguments) error { return l.SetPage(1) }, nil},
+		{"page-last", "Show the last page of a paged list", "list-paged", nil, func(l *Collection, _ Arguments) error { return l.SetPage(l.pages) }, nil},
+		{"group", "Group the rows by comma-separated props, each with a heading; empty restores list.group-by", "list-groupable", map[string]Parameter{"by": {Type: "string", Description: "Props to group by, comma-separated"}, "order": {Type: "string", Description: "Order the groups by these group props, each prop[:desc]"}}, func(l *Collection, a Arguments) error {
 			keys, err := l.groupOrder(StringArg(a, "order", ""))
 			if err != nil {
 				return err
 			}
 			return l.SetGroupBy(listWords(StringArg(a, "by", "")), keys)
 		}, []string{"by", "order"}},
-		{"group-clear", "Restore the grouping list.group-by gives (none by default)", "list-groupable", nil, func(l *List, _ Arguments) error { return l.SetGroupBy(nil, nil) }, nil},
+		{"group-clear", "Restore the grouping list.group-by gives (none by default)", "list-groupable", nil, func(l *Collection, _ Arguments) error { return l.SetGroupBy(nil, nil) }, nil},
 	} {
 		params := s.params
 		if params == nil {
@@ -243,7 +243,7 @@ func registerListQuery(r *Runtime) {
 }
 
 // groupOrder reads group order keys written prop[:desc].
-func (l *List) groupOrder(text string) ([]SortKey, error) {
+func (l *Collection) groupOrder(text string) ([]SortKey, error) {
 	var out []SortKey
 	for _, word := range listWords(text) {
 		name, desc, err := splitSortWord(word)
@@ -261,7 +261,7 @@ func (l *List) groupOrder(text string) ([]SortKey, error) {
 // refilterLists shows every list's rows again (a setting they read changed).
 func (r *Runtime) refilterLists() {
 	for _, inst := range r.Instances {
-		if l, ok := inst.Component.(*List); ok {
+		if l, ok := inst.Component.(*Collection); ok {
 			prev, _ := l.Selected()
 			l.refilter(prev.ID)
 			l.syncFocus(prev, nil)

@@ -52,7 +52,7 @@ func (b *NounBuilder) Classes(classes ...ClassDecl) *NounBuilder {
 
 // jumpClass scans the shown rows once, excluding the current row. A count
 // beyond the remaining matches lands on the last match, never another stop.
-func (l *List) jumpClass(class string, steps, delta int) {
+func (l *Collection) jumpClass(class string, steps, delta int) {
 	to := l.selected
 	for i := l.selected + delta; i >= 0 && i < len(l.items); i += delta {
 		if slices.Contains(l.items[i].Classes, class) {

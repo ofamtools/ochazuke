@@ -184,7 +184,7 @@ func (t *Tree) Record(a TreeAction) error {
 type Tree struct {
 	r               *Runtime
 	id              string
-	list            *List
+	list            *Collection
 	nodes           []TreeNode
 	idx             *treeIndex // lookups over nodes, built on demand; nil after any change to their order or parents
 	rowCache        map[string]*filterRow
@@ -304,7 +304,7 @@ func (r *Runtime) treeOf(focus string) *Tree { return nearestComponent[*Tree](r,
 func (t *Tree) ID() string { return t.id }
 
 // List is the list that holds the visible rows.
-func (t *Tree) List() *List { return t.list }
+func (t *Tree) List() *Collection { return t.list }
 
 // FocusTarget is where a jump to the tree lands: its selected row.
 func (t *Tree) FocusTarget() string { return t.list.FocusTarget() }
@@ -1586,7 +1586,7 @@ func (t *Tree) collapses(id string) bool {
 func (t *Tree) expands(id string) bool { return id != "" && t.hasChildren(id) }
 
 // holdsList declares the tree's list its child table (listHolder).
-func (t *Tree) holdsList(l *List) bool { return t.list == l }
+func (t *Tree) holdsList(l *Collection) bool { return t.list == l }
 
 // yieldsEdge reports whether the tree's list takes the h/l edge rows
 // (edgeList) in direction step (-1 h, 1 l): the tree's own verb for that
@@ -1777,7 +1777,7 @@ func registerOutlineThings(r *Runtime) {
 		PropSpec{Name: "parent", ReadOnly: true, Parameter: Parameter{Description: "The parent node's id (empty at the top level)"}},
 		PropSpec{Name: "noun", ReadOnly: true, Parameter: Parameter{Description: "The row's noun (ochazuke.outline-row unless the application names its own)"}},
 	).Store(Store{
-		Kind: Collection,
+		Kind: KindCollection,
 		Get: func(c Ctx, id string) (Thing, error) {
 			t, err := tree(c)
 			if err != nil {

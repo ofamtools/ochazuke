@@ -11,7 +11,7 @@ import (
 
 // cellTable is columnTable in cell mode with stateDir as the state
 // directory ("" keeps the table's view in memory).
-func cellTable(t *testing.T, width int, stateDir string) (*Runtime, *Model, *List) {
+func cellTable(t *testing.T, width int, stateDir string) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().StateDir = stateDir
@@ -23,7 +23,7 @@ func cellTable(t *testing.T, width int, stateDir string) (*Runtime, *Model, *Lis
 		id := fmt.Sprintf("r%d", i)
 		items = append(items, ListItem{ID: id, Label: id, Noun: "row", Cells: []string{id, fmt.Sprintf("a%09d", i), fmt.Sprintf("b%09d", i), fmt.Sprintf("c%09d", i), fmt.Sprintf("d%09d", i)}})
 	}
-	var l *List
+	var l *Collection
 	if _, err := r.AddPage("p", "P", func(_ *Runtime, w, _ int) Block { return Text(l.View(w, 12)) }); err != nil {
 		t.Fatal(err)
 	}
@@ -215,7 +215,7 @@ func TestColumnWidthsResizeResetAndPersist(t *testing.T) {
 // visualTable is cellTable whose rows answer x (row.zap, an application
 // verb) and c (row.check, with a confirm), in normal and in visual-line;
 // calls collects the rows each ran on.
-func visualTable(t *testing.T) (*Runtime, *Model, *List, *[]string) {
+func visualTable(t *testing.T) (*Runtime, *Model, *Collection, *[]string) {
 	t.Helper()
 	r, m, l := cellTable(t, 80, "")
 	var calls []string

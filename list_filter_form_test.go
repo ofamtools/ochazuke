@@ -15,7 +15,7 @@ import (
 
 // filterFormFixture is a list of tasks: status repeats (chips), tags is a
 // list prop (chips, contains), title is free text, score a number.
-func filterFormFixture(t *testing.T) (*Runtime, *Model, *List) {
+func filterFormFixture(t *testing.T) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().Disable()

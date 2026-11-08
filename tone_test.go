@@ -12,7 +12,7 @@ import (
 
 // toneFixture is a page with one table drawn in the theme, its rows the
 // given items, focused.
-func toneFixture(t *testing.T, theme string, cols []Column, items []ListItem, opts ...InstanceOption) (*Model, *List) {
+func toneFixture(t *testing.T, theme string, cols []Column, items []ListItem, opts ...InstanceOption) (*Model, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().Disable()

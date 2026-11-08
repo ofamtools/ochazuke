@@ -53,12 +53,12 @@ func (r *Runtime) listSource(noun string) (*Noun, error) {
 
 // From is the noun the list shows the things of, "" for a list fed rows
 // (SetItems).
-func (l *List) From() string { return l.from }
+func (l *Collection) From() string { return l.from }
 
 // Refill reads the noun's things again and shows them, keeping the selection
 // and the marks by row id. An application calls it only when a change of
 // the store cannot say so with Runtime.Changed.
-func (l *List) Refill() error {
+func (l *Collection) Refill() error {
 	if l.from == "" {
 		return errors.New("the list is fed rows, not a noun's store")
 	}
@@ -134,7 +134,7 @@ func cellValueText(v any) string {
 }
 
 // feed fills the list and joins it to the watch of its noun.
-func (l *List) feed() error {
+func (l *Collection) feed() error {
 	if err := l.Refill(); err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (h *fromHub) flush() {
 		if inst == nil {
 			continue
 		}
-		l, ok := inst.Component.(*List)
+		l, ok := inst.Component.(*Collection)
 		if !ok {
 			continue
 		}
@@ -195,7 +195,7 @@ func (h *fromHub) flush() {
 
 // refillRemote fills the list from a remote store without waiting for it:
 // the read is a job (remote.go) that shows the things when it is answered.
-func (l *List) refillRemote(n *Noun, c Ctx) error {
+func (l *Collection) refillRemote(n *Noun, c Ctx) error {
 	r := l.r
 	var page ListPage
 	body := func(c Ctx) (any, error) {

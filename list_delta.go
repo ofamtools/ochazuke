@@ -31,7 +31,7 @@ func (p ListPatch) Empty() bool { return len(p.Upsert) == 0 && len(p.Remove) == 
 // index out of order or out of range, a repeated id) leaves the list
 // unchanged. The patch applies to every row, the ones a filter hides
 // included, and SetItems filters the result again.
-func (l *List) Patch(p ListPatch) error {
+func (l *Collection) Patch(p ListPatch) error {
 	if p.Empty() {
 		return nil
 	}

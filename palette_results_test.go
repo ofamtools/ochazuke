@@ -36,7 +36,7 @@ func runPaletteResults(t *testing.T, r *Runtime, line string) {
 	paletteLine(t, r, line)
 }
 
-func paletteResultTable(t *testing.T, r *Runtime) *List {
+func paletteResultTable(t *testing.T, r *Runtime) *Collection {
 	t.Helper()
 	if got := r.TopModal(); got != "palette-results" {
 		t.Fatalf("top modal = %q, want results", got)
@@ -48,7 +48,7 @@ func paletteResultTable(t *testing.T, r *Runtime) *List {
 	return list
 }
 
-func assertPaletteResultCells(t *testing.T, r *Runtime, titles []string, cells [][]string) *List {
+func assertPaletteResultCells(t *testing.T, r *Runtime, titles []string, cells [][]string) *Collection {
 	t.Helper()
 	list := paletteResultTable(t, r)
 	var gotTitles []string

@@ -12,7 +12,7 @@ import (
 // a delete (removes the row from a), a many-subject nest guarded to a
 // selection (the o-json shape: available only while V is on) bound to >
 // in visual-line, and a per-row zap bound to z in normal only.
-func visualList(t *testing.T) (*Runtime, *Model, *List, *[]string) {
+func visualList(t *testing.T) (*Runtime, *Model, *Collection, *[]string) {
 	t.Helper()
 	r, m, a, _ := motionPage(t)
 	var calls []string

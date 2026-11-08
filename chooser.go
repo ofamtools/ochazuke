@@ -209,7 +209,7 @@ type Chooser struct {
 
 	// filters is the shared list prop-filter controller, without a registered
 	// list or row instances: the chooser retains its own ranking and focus.
-	filters      *List
+	filters      *Collection
 	propsEnabled bool
 }
 

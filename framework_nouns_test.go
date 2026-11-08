@@ -17,7 +17,7 @@ import (
 // origin; list filters on them and get reads one prop or the record.
 func TestSettingThingsAndProps(t *testing.T) {
 	r, _, _ := settingsFixture(t)
-	if got := r.Noun("setting").StoreKind(); got != Collection {
+	if got := r.Noun("setting").StoreKind(); got != KindCollection {
 		t.Fatalf("setting kind %q", got)
 	}
 	var props []string

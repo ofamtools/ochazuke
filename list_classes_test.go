@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func classPage(t *testing.T) (*Runtime, *Model, *List) {
+func classPage(t *testing.T) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r, m, a, _ := motionPage(t)
 	r.Define("row").Classes(ClassDecl{Name: "merge", Key: "m", Title: "merge commit"}, ClassDecl{Name: "refs", Key: "r", Title: "decorated commit"}, ClassDecl{Name: "quiet"})

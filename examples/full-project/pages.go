@@ -51,7 +51,7 @@ func registerPages(m *ochazuke.Model, specs []PageConfig) error {
 				return fmt.Errorf("page %q: %w", spec.ID, err)
 			}
 		}
-		var list *ochazuke.List
+		var list *ochazuke.Collection
 		if spec.Renderer == "list" {
 			var err error
 			list, err = m.Runtime.AddList(spec.Focus, spec.Items, ochazuke.Parent(spec.ID))

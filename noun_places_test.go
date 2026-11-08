@@ -26,7 +26,7 @@ func placeOf(t *testing.T, r *Runtime, noun, page, modal string) NounPlace {
 	return found[0]
 }
 
-func placesPage(t *testing.T) (*Runtime, *List) {
+func placesPage(t *testing.T) (*Runtime, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Define("item")

@@ -10,7 +10,7 @@ import (
 	"ofam.dev/ochazuke/refdoc"
 )
 
-func propAliasFixture(t *testing.T) (*Runtime, *List) {
+func propAliasFixture(t *testing.T) (*Runtime, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().Dir = t.TempDir()
@@ -158,7 +158,7 @@ func TestPropAliasStandardRequests(t *testing.T) {
 	r.Config().Disable()
 	thing := Thing{"id": "a", "state": "todo"}
 	var query ListQuery
-	r.Define("ticket").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "state", Aliases: []string{"status"}}).Store(Store{Kind: Collection,
+	r.Define("ticket").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "state", Aliases: []string{"status"}}).Store(Store{Kind: KindCollection,
 		Get: func(Ctx, string) (Thing, error) { return thing, nil },
 		Patch: func(_ Ctx, _ string, changes Thing) (Thing, error) {
 			for k, v := range changes {
@@ -238,7 +238,7 @@ func TestPropAliasCreateAndDuplicate(t *testing.T) {
 	r := NewRuntime()
 	r.Config().Disable()
 	var written Thing
-	r.Define("ticket").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "state", Aliases: []string{"status"}}).Store(Store{Kind: Collection,
+	r.Define("ticket").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "state", Aliases: []string{"status"}}).Store(Store{Kind: KindCollection,
 		Create: func(_ Ctx, values Thing) (Thing, error) { written = values; values["id"] = "a"; return values, nil },
 	})
 	for _, args := range []Arguments{{"status": "todo"}, {"pairs": "status=todo"}, {"state": "status=todo"}} {

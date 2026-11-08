@@ -84,7 +84,7 @@ type fieldProps map[string]map[string]PropSpec
 
 // filterRows are every row a filter reads: a tree's nodes, collapsed or
 // not, else the list's rows as SetItems gave them.
-func (l *List) filterRows() []ListItem {
+func (l *Collection) filterRows() []ListItem {
 	if t := l.tree(); t != nil {
 		out := make([]ListItem, 0, len(t.nodes))
 		for _, n := range t.nodes {
@@ -99,7 +99,7 @@ func (l *List) filterRows() []ListItem {
 
 // fieldProps reads (once per row generation) the fields of the rows that
 // their nouns do not declare.
-func (l *List) fieldProps() fieldProps {
+func (l *Collection) fieldProps() fieldProps {
 	if l.derived != nil {
 		return l.derived
 	}
@@ -164,7 +164,7 @@ func propName(name string) bool {
 // filterProp is the prop a filter on this list's rows of n reads under
 // that name: the declared one, else the derived one; nil when there is
 // none or it is turned off here.
-func (l *List) filterProp(n *Noun, name string) *PropSpec {
+func (l *Collection) filterProp(n *Noun, name string) *PropSpec {
 	if n == nil {
 		return nil
 	}
@@ -222,7 +222,7 @@ func (r *Runtime) propOff(n *Noun, field string) bool {
 // filterSpecs are the props the list's rows offer to filters by name: a
 // declared prop where one of the row nouns declares it, else the derived
 // one.
-func (l *List) filterSpecs() map[string]PropSpec {
+func (l *Collection) filterSpecs() map[string]PropSpec {
 	out := map[string]PropSpec{}
 	for _, noun := range l.rowNouns() {
 		n := l.r.Noun(noun)

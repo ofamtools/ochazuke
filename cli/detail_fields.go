@@ -148,7 +148,7 @@ func (v *PageView) openFields() ochazuke.Result {
 	return ochazuke.Done(nil)
 }
 
-type detailFieldsModal struct{ list *ochazuke.List }
+type detailFieldsModal struct{ list *ochazuke.Collection }
 
 func (m *detailFieldsModal) ModalTitle() string { return "Detail fields" }
 func (m *detailFieldsModal) ModalBlock(_ ochazuke.Styles, w, h int) ochazuke.Block {

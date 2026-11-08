@@ -11,9 +11,9 @@ import (
 )
 
 // PropFilters returns a copy of the list's active prop conditions.
-func (l *List) PropFilters() []PropFilter { return clonePropFilters(l.vs.Filters) }
+func (l *Collection) PropFilters() []PropFilter { return clonePropFilters(l.vs.Filters) }
 
-func (l *List) tree() *Tree {
+func (l *Collection) tree() *Tree {
 	if inst := l.r.Instances[l.id]; inst != nil && inst.Component == l {
 		return l.r.Tree(inst.Parent)
 	}
@@ -31,12 +31,12 @@ type filterRow struct {
 	prepared [2]bool
 }
 
-func (l *List) treeHasNode(id string) bool {
+func (l *Collection) treeHasNode(id string) bool {
 	t := l.tree()
 	return t != nil && t.index(id) >= 0
 }
 
-func (l *List) cacheRows() {
+func (l *Collection) cacheRows() {
 	l.rowCache = make(map[string]*filterRow, len(l.all))
 	l.derived = nil
 	set := map[string]bool{}
@@ -66,7 +66,7 @@ func (l *List) cacheRows() {
 	l.nouns = slices.Sorted(maps.Keys(set))
 }
 
-func (l *List) cachedRow(item ListItem) *filterRow {
+func (l *Collection) cachedRow(item ListItem) *filterRow {
 	if item.ID == "" {
 		return nil
 	}
@@ -78,7 +78,7 @@ func (l *List) cachedRow(item ListItem) *filterRow {
 	return l.rowCache[item.ID]
 }
 
-func (l *List) preparedRow(item ListItem, m Matcher) string {
+func (l *Collection) preparedRow(item ListItem, m Matcher) string {
 	row := l.cachedRow(item)
 	if row == nil {
 		return filterHay(item, m)
@@ -93,7 +93,7 @@ func (l *List) preparedRow(item ListItem, m Matcher) string {
 	return row.hay[i]
 }
 
-func (l *List) thing(item ListItem) Thing {
+func (l *Collection) thing(item ListItem) Thing {
 	row := l.cachedRow(item)
 	if row == nil {
 		return l.cellThing(item, rowThing(l.r.Noun(item.Noun), item))
@@ -107,7 +107,7 @@ func (l *List) thing(item ListItem) Thing {
 // cellThing gives a table row that carries no data (no Props, no Data) a
 // field per titled column: the title as a prop name (lower case, spaces as
 // dashes), the cell as its text, so its columns filter like fields.
-func (l *List) cellThing(item ListItem, t Thing) Thing {
+func (l *Collection) cellThing(item ListItem, t Thing) Thing {
 	if item.Props != nil || item.Data != nil || len(l.columns) == 0 {
 		return t
 	}
@@ -129,11 +129,11 @@ func columnField(title string) string {
 	return strings.ReplaceAll(strings.ToLower(strings.TrimSpace(title)), " ", "-")
 }
 
-func (l *List) rowNouns() []string { return l.nouns }
+func (l *Collection) rowNouns() []string { return l.nouns }
 
 // A stable list focus is shared by matching and both picker stages,
 // including while a chooser temporarily owns the runtime focus.
-func (l *List) propFocus() string {
+func (l *Collection) propFocus() string {
 	if l.filterFocus != "" {
 		return l.filterFocus
 	}
@@ -172,7 +172,7 @@ func rowThing(n *Noun, item ListItem) Thing {
 // would otherwise bring the archived parent back as context. nil when
 // nothing hides. A prop filter naming the archive prop turns hiding off,
 // so the saved "archived" filter shows the archived rows.
-func (l *List) archiveHidden() map[string]bool {
+func (l *Collection) archiveHidden() map[string]bool {
 	var hidden map[string]bool
 	byNoun := map[string]*PropSpec{}
 	hide := func(item ListItem, parentHidden bool) bool {
@@ -204,7 +204,7 @@ func (l *List) archiveHidden() map[string]bool {
 	return hidden
 }
 
-func (l *List) matchesProps(item ListItem) bool {
+func (l *Collection) matchesProps(item ListItem) bool {
 	if len(l.vs.Filters) == 0 {
 		return true
 	}
@@ -226,7 +226,7 @@ func (l *List) matchesProps(item ListItem) bool {
 	return true
 }
 
-func (l *List) validatePropFilters(filters []PropFilter) error {
+func (l *Collection) validatePropFilters(filters []PropFilter) error {
 	for _, f := range filters {
 		found := false
 		for _, noun := range l.rowNouns() {
@@ -251,7 +251,7 @@ func (l *List) validatePropFilters(filters []PropFilter) error {
 // marks and selection by id. Invalid updates leave the list unchanged.
 // On trees, matching descendants bring their ancestors into view even
 // when collapsed; clearing restores the original collapse state.
-func (l *List) SetPropFilters(filters []PropFilter) error {
+func (l *Collection) SetPropFilters(filters []PropFilter) error {
 	filters, err := l.canonicalPropFilters(filters)
 	if err != nil {
 		return err
@@ -262,7 +262,7 @@ func (l *List) SetPropFilters(filters []PropFilter) error {
 // replacePropFilters swaps the conditions and names the saved filter they
 // came from ("" for none) before the rows follow, so the list's OnFilter
 // hears the new conditions and saved name, on flat lists and trees alike.
-func (l *List) replacePropFilters(filters []PropFilter, saved string) error {
+func (l *Collection) replacePropFilters(filters []PropFilter, saved string) error {
 	l.linger.reset()
 	l.vs.Filters = filters
 	l.vs.Saved = saved
@@ -282,7 +282,7 @@ func (l *List) replacePropFilters(filters []PropFilter, saved string) error {
 	return nil
 }
 
-func (l *List) canonicalPropFilters(filters []PropFilter) ([]PropFilter, error) {
+func (l *Collection) canonicalPropFilters(filters []PropFilter) ([]PropFilter, error) {
 	filters = clonePropFilters(filters)
 	for i := range filters {
 		name, err := l.r.filterPropName(l.rowNouns(), filters[i].Prop)
@@ -301,10 +301,12 @@ func (l *List) canonicalPropFilters(filters []PropFilter) ([]PropFilter, error) 
 }
 
 // SavedFilters returns the defaults and user filters that apply here.
-func (l *List) SavedFilters() ([]SavedFilter, error) { return l.r.SavedFilters(l.id, l.rowNouns()...) }
+func (l *Collection) SavedFilters() ([]SavedFilter, error) {
+	return l.r.SavedFilters(l.id, l.rowNouns()...)
+}
 
 // ApplyFilter applies a named saved filter, keeping the text query.
-func (l *List) ApplyFilter(name string) error {
+func (l *Collection) ApplyFilter(name string) error {
 	filters, err := l.SavedFilters()
 	if err != nil {
 		return err
@@ -335,7 +337,7 @@ func (l *List) ApplyFilter(name string) error {
 
 // SaveFilter writes the current conditions and sort as a list-scoped user definition.
 // Existing definitions in other scopes keep their order and content.
-func (l *List) SaveFilter(name string) error {
+func (l *Collection) SaveFilter(name string) error {
 	if strings.TrimSpace(name) == "" {
 		return errors.New("saved filter needs a name")
 	}
@@ -368,7 +370,7 @@ func (l *List) SaveFilter(name string) error {
 
 // DeleteSavedFilter removes the effective user definition by name. App
 // defaults remain declarations; removing a user override reveals that default.
-func (l *List) DeleteSavedFilter(name string) error {
+func (l *Collection) DeleteSavedFilter(name string) error {
 	filters, err := l.SavedFilters()
 	if err != nil {
 		return err
@@ -400,7 +402,7 @@ func (l *List) DeleteSavedFilter(name string) error {
 	return nil
 }
 
-func (l *List) pickSavedFilter() error {
+func (l *Collection) pickSavedFilter() error {
 	filters, err := l.SavedFilters()
 	if err != nil {
 		return err
@@ -439,7 +441,7 @@ func (r *Runtime) savedFilterNamed(n *Noun, name string) ([]PropFilter, bool, er
 	return nil, false, nil
 }
 
-func (l *List) propStrip() string {
+func (l *Collection) propStrip() string {
 	if !l.r.Settings().Bool("list.filter-strip") {
 		return ""
 	}
@@ -474,12 +476,12 @@ func (t *Tree) filterNodes(hidden map[string]bool) map[string]bool {
 	return kept
 }
 
-func (l *List) filterProps() []string { return sortedKeys(l.filterSpecs()) }
+func (l *Collection) filterProps() []string { return sortedKeys(l.filterSpecs()) }
 
 // pickPropFilter opens the filter form (prop empty, list.filter-form on;
 // list_filter_form.go), else the prop chooser (prop empty), then the value
 // chooser; not turns the picked condition over (!=, not-contains).
-func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
+func (l *Collection) pickPropFilter(prop string, offerClear, not bool) error {
 	if prop == "" && l.r.Settings().Bool(ListFilterFormSetting) {
 		return l.openFilterForm()
 	}
@@ -581,7 +583,7 @@ func (l *List) pickPropFilter(prop string, offerClear, not bool) error {
 
 func registerListPropFilter(r *Runtime) {
 	registerFilterViewForm(r)
-	resolve := func(c Context, a Arguments) (*List, error) {
+	resolve := func(c Context, a Arguments) (*Collection, error) {
 		if id := StringArg(a, "id", ""); id != "" {
 			if l := r.propFilterList(id); l != nil {
 				return l, nil
@@ -593,7 +595,7 @@ func registerListPropFilter(r *Runtime) {
 		}
 		return nil, errors.New("no focused row view")
 	}
-	guardList := func(ev KeyEvent) *List {
+	guardList := func(ev KeyEvent) *Collection {
 		if id := StringArg(ev.Args, "id", ""); id != "" {
 			return r.propFilterList(id)
 		}
@@ -635,9 +637,9 @@ func registerListPropFilter(r *Runtime) {
 	for _, spec := range []struct {
 		verb, description, guard string
 		params                   map[string]Parameter
-		run                      func(*List, Arguments) error
+		run                      func(*Collection, Arguments) error
 	}{
-		{"filter-prop", "Add a prop condition (AND); omit prop or value to pick from visible rows", "list-props", map[string]Parameter{"clear": {Type: "boolean", Description: "Offer clearing active prop filters in the prop picker"}, "prop": {Type: "string"}, "op": {Type: "string", Enum: FilterOps}, "value": {Type: "any", Description: "Typed value; in and not-in take an array"}, "not": {Type: "boolean", Description: "Turn the condition over (= to !=, in to not-in, contains to not-contains); with the value picker, its not toggle starts on"}}, func(l *List, a Arguments) error {
+		{"filter-prop", "Add a prop condition (AND); omit prop or value to pick from visible rows", "list-props", map[string]Parameter{"clear": {Type: "boolean", Description: "Offer clearing active prop filters in the prop picker"}, "prop": {Type: "string"}, "op": {Type: "string", Enum: FilterOps}, "value": {Type: "any", Description: "Typed value; in and not-in take an array"}, "not": {Type: "boolean", Description: "Turn the condition over (= to !=, in to not-in, contains to not-contains); with the value picker, its not toggle starts on"}}, func(l *Collection, a Arguments) error {
 			prop := StringArg(a, "prop", "")
 			value, ok := a["value"]
 			not, _ := a["not"].(bool)
@@ -651,7 +653,7 @@ func registerListPropFilter(r *Runtime) {
 			}
 			return l.SetPropFilters(append(l.PropFilters(), f))
 		}},
-		{"filter-prop-clear", "Remove one prop condition; omit prop and index to pick an active condition", "list-prop-conditions", map[string]Parameter{"prop": {Type: "string"}, "index": {Type: "integer", Description: "1-based condition index"}}, func(l *List, a Arguments) error {
+		{"filter-prop-clear", "Remove one prop condition; omit prop and index to pick an active condition", "list-prop-conditions", map[string]Parameter{"prop": {Type: "string"}, "index": {Type: "integer", Description: "1-based condition index"}}, func(l *Collection, a Arguments) error {
 			clear := func(i int) error {
 				filters := l.PropFilters()
 				if i < 0 || i >= len(filters) {
@@ -681,12 +683,12 @@ func registerListPropFilter(r *Runtime) {
 			}})
 			return err
 		}},
-		{"filter-props-clear", "Clear every prop condition and saved filter name, keeping / text", "list-prop-filtered", nil, func(l *List, _ Arguments) error { return l.SetPropFilters(nil) }},
-		{"filter-saved", "Apply saved conditions and sort by name, keeping / text", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.ApplyFilter(StringArg(a, "name", "")) }},
-		{"filter-save", "Save current prop conditions and sort as a list-scoped user filter in list.filters", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.SaveFilter(StringArg(a, "name", "")) }},
-		{"filter-saved-delete", "Delete a user saved filter; removing an override reveals the app default", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *List, a Arguments) error { return l.DeleteSavedFilter(StringArg(a, "name", "")) }},
-		{"filter-saved-pick", "List saved prop filters in a picker and apply the selected one", "", nil, func(l *List, _ Arguments) error { return l.pickSavedFilter() }},
-		{"filter-cycle", "Cycle the saved prop filters declared for this list or its row nouns", "list-saved-filters", map[string]Parameter{"step": {Type: "integer"}}, func(l *List, a Arguments) error {
+		{"filter-props-clear", "Clear every prop condition and saved filter name, keeping / text", "list-prop-filtered", nil, func(l *Collection, _ Arguments) error { return l.SetPropFilters(nil) }},
+		{"filter-saved", "Apply saved conditions and sort by name, keeping / text", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *Collection, a Arguments) error { return l.ApplyFilter(StringArg(a, "name", "")) }},
+		{"filter-save", "Save current prop conditions and sort as a list-scoped user filter in list.filters", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *Collection, a Arguments) error { return l.SaveFilter(StringArg(a, "name", "")) }},
+		{"filter-saved-delete", "Delete a user saved filter; removing an override reveals the app default", "", map[string]Parameter{"name": {Type: "string", Required: true}}, func(l *Collection, a Arguments) error { return l.DeleteSavedFilter(StringArg(a, "name", "")) }},
+		{"filter-saved-pick", "List saved prop filters in a picker and apply the selected one", "", nil, func(l *Collection, _ Arguments) error { return l.pickSavedFilter() }},
+		{"filter-cycle", "Cycle the saved prop filters declared for this list or its row nouns", "list-saved-filters", map[string]Parameter{"step": {Type: "integer"}}, func(l *Collection, a Arguments) error {
 			filters, err := l.SavedFilters()
 			if err != nil {
 				return err

@@ -436,7 +436,7 @@ func (s *Settings) searchValues() bool { return s.Bool(SettingsSearchValuesSetti
 // shows the shown section's matching settings. A section that shows by
 // its own title or line, none of its settings matching, shows all of
 // them. A settings list the user filtered itself keeps its filter.
-func settingsSectionFiltered(sections *List) {
+func settingsSectionFiltered(sections *Collection) {
 	r := sections.r
 	s := r.Settings()
 	if r.Instances[SettingsPageID] == nil || !s.searchValues() {
@@ -1169,7 +1169,7 @@ func settingsPageView(r *Runtime, width, height int) Block {
 // sectionListWidth is the section list's panel width: its widest title and
 // count with the borders, clamped to settingsSectionMin..settingsSectionMax
 // and to a third of the page; and the widest count.
-func sectionListWidth(list *List, width int) (int, int) {
+func sectionListWidth(list *Collection, width int) (int, int) {
 	titles, counts, headings := 0, 1, 0
 	for _, item := range list.Items() {
 		counts = max(counts, ansi.StringWidth(item.Cells[1]))
@@ -1256,7 +1256,7 @@ func settingsPanels(r *Runtime, layout Layout, shown settingsUnit, selector Bloc
 // headingLines counts the group headings a list draws above its rows (a
 // line above each run of rows with the same non-empty section), which
 // List.Height leaves out.
-func headingLines(list *List) int {
+func headingLines(list *Collection) int {
 	n, last := 0, ""
 	for _, item := range list.Items() {
 		if item.Section != "" && item.Section != last {

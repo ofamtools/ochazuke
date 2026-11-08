@@ -38,7 +38,7 @@ func layerRows() ([]Column, []ListItem) {
 func TestLayerFramesGolden(t *testing.T) {
 	cols, items := layerRows()
 	var b strings.Builder
-	frame := func(name string, l *List) {
+	frame := func(name string, l *Collection) {
 		b.WriteString("== " + name + "\n")
 		for _, line := range strings.Split(l.View(36, 4), "\n") {
 			b.WriteString(strconv.Quote(line) + "\n")

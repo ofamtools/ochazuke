@@ -234,7 +234,7 @@ type PageView struct {
 	spec    CatalogPage
 	cfg     PageConfig
 	lists   []*pageList
-	groups  *ochazuke.List
+	groups  *ochazuke.Collection
 	detail  *ochazuke.Detail
 	widgets []*widgetState
 	current int               // the list the detail and the groups rail follow
@@ -259,7 +259,7 @@ type pageList struct {
 	rowNoun     string   // the host noun the rows answer to
 	rowIDs      []string // the row instances SetRows made, keys of PageView.rows
 	hash        string   // the rows' content hash (ListHash) from a delta answer, "" unknown
-	list        *ochazuke.List
+	list        *ochazuke.Collection
 	tree        *ochazuke.Tree
 	err         string
 	loaded      bool
@@ -554,7 +554,7 @@ func (v *PageView) Page() string { return v.spec.ID }
 func (v *PageView) Spec() CatalogPage { return v.spec }
 
 // List is the mounted list of a CatalogList id, or nil.
-func (v *PageView) List(id string) *ochazuke.List {
+func (v *PageView) List(id string) *ochazuke.Collection {
 	if pl := v.list(id); pl != nil {
 		return pl.list
 	}

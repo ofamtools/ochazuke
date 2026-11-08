@@ -249,7 +249,7 @@ func TestListQueryArchivedFoldsIntoQuery(t *testing.T) {
 }
 
 // widgetFixture is a list of the same eight things as rows of noun "item".
-func (f *lqFixture) widget(t *testing.T) *List {
+func (f *lqFixture) widget(t *testing.T) *Collection {
 	t.Helper()
 	items := make([]ListItem, len(f.things))
 	for i, th := range f.things {
@@ -269,7 +269,7 @@ func (f *lqFixture) widget(t *testing.T) *List {
 	return l
 }
 
-func widgetIDs(l *List) []string {
+func widgetIDs(l *Collection) []string {
 	l.refilter("")
 	out := make([]string, len(l.items))
 	for i, it := range l.items {

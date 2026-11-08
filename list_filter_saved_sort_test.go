@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func savedSortFixture(t *testing.T) (*Runtime, *Model, *List) {
+func savedSortFixture(t *testing.T) (*Runtime, *Model, *Collection) {
 	r, m, l := compactFixture(t)
 	r.Define("task").Filters(SavedFilter{Name: "open", Where: map[string]any{"status": "todo"}}, SavedFilter{Name: "all"})
 	return r, m, l

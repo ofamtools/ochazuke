@@ -29,7 +29,7 @@ func (c *Chooser) cachePropRows() {
 }
 
 func (c *Chooser) initPropFilters() {
-	c.filters = &List{r: c.r, id: c.spec.Kind, selected: -1, filterFocus: c.input.ID}
+	c.filters = &Collection{r: c.r, id: c.spec.Kind, selected: -1, filterFocus: c.input.ID}
 	c.filters.filterChanged = func() {
 		keep := ""
 		if c.moved && c.cursor >= 0 && c.cursor < len(c.matches) {
@@ -48,7 +48,7 @@ func (c *Chooser) initPropFilters() {
 
 // propFilterList resolves the nearest row view. A chooser is a boundary:
 // its filters never target a list underneath it, including when opted out.
-func (r *Runtime) propFilterList(focus string) *List {
+func (r *Runtime) propFilterList(focus string) *Collection {
 	l := r.rowFilterList(focus)
 	if l != nil && l.filterFocus != "" {
 		if c := r.Chooser(l.id); c != nil && !c.propFiltersEnabled() {
@@ -60,10 +60,10 @@ func (r *Runtime) propFilterList(focus string) *List {
 
 // RowViewProvider lets composite editors declare the row view they control.
 // This is explicit context, distinct from their own navigation lists/choosers.
-type RowViewProvider interface{ RowView() *List }
+type RowViewProvider interface{ RowView() *Collection }
 
 // rowFilterList also serves text-only choosers that opt out of prop filters.
-func (r *Runtime) rowFilterList(focus string) *List {
+func (r *Runtime) rowFilterList(focus string) *Collection {
 	for _, id := range r.Ancestry(focus) {
 		if inst := r.Instances[id]; inst != nil {
 			if p, ok := inst.Component.(RowViewProvider); ok {

@@ -620,7 +620,7 @@ func (s *Shell) defineCatalogFacts() {
 		return out, nil
 	}
 	s.Runtime.Define("ochazuke.catalog").Props(catalogProps...).Store(ochazuke.Store{
-		Kind: ochazuke.Collection, Facts: true, List: list,
+		Kind: ochazuke.KindCollection, Facts: true, List: list,
 		Get: func(c ochazuke.Ctx, name string) (ochazuke.Thing, error) {
 			things, err := list(c, ochazuke.ListQuery{})
 			if err != nil {

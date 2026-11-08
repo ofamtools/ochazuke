@@ -15,7 +15,7 @@ func TestEmptyListSelectionAndYankLeaveStateAlone(t *testing.T) {
 			t.Run(kind+"/"+verb, func(t *testing.T) {
 				r := NewRuntime()
 				r.Config().Disable()
-				var l *List
+				var l *Collection
 				var err error
 				if kind == "tree" {
 					var tree *Tree

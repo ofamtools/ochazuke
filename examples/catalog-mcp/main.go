@@ -80,7 +80,7 @@ func run(args []string) error {
 		ochazuke.PropSpec{Name: "id", Key: true, Parameter: ochazuke.Parameter{Type: "string"}},
 		ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel, Parameter: ochazuke.Parameter{Type: "string", Required: true}},
 		ochazuke.PropSpec{Name: "done", Parameter: ochazuke.Parameter{Type: "boolean"}},
-	).Store(ochazuke.Store{Kind: ochazuke.Collection, Undo: true, AcceptsKey: true,
+	).Store(ochazuke.Store{Kind: ochazuke.KindCollection, Undo: true, AcceptsKey: true,
 		Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
 			if i := find(id); i >= 0 {
 				return tasks[i], nil

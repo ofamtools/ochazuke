@@ -112,7 +112,7 @@ func TestTaskCatalogRoundTrip(t *testing.T) {
 	for i := range want {
 		want[i].Source = m.Runtime.ChoicesSource(want[i].Parameter)
 	}
-	if noun.Kind != ochazuke.Collection || !reflect.DeepEqual(noun.Props, want) {
+	if noun.Kind != ochazuke.KindCollection || !reflect.DeepEqual(noun.Props, want) {
 		got, _ := json.Marshal(noun.Props)
 		exp, _ := json.Marshal(want)
 		t.Fatalf("kind %q props\n%s\nwant\n%s", noun.Kind, got, exp)

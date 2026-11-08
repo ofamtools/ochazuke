@@ -60,7 +60,7 @@ type filterField struct {
 
 // propValues are a prop's typed values over rows by label, whether it is
 // a list prop, and how many rows carry it.
-func (l *List) propValues(prop string, rows []ListItem) (values map[string]any, list bool, carried int) {
+func (l *Collection) propValues(prop string, rows []ListItem) (values map[string]any, list bool, carried int) {
 	values = map[string]any{}
 	for _, item := range rows {
 		p := l.filterProp(l.r.Noun(item.Noun), prop)
@@ -90,7 +90,7 @@ func (l *List) propValues(prop string, rows []ListItem) (values map[string]any, 
 
 // allRows are every row of the list (a tree's every node), whatever the
 // filters show.
-func (l *List) allRows() []ListItem {
+func (l *Collection) allRows() []ListItem {
 	t := l.tree()
 	if t == nil {
 		return l.all
@@ -105,7 +105,7 @@ func (l *List) allRows() []ListItem {
 }
 
 // filterFields are the form's fields, in prop order.
-func (l *List) filterFields() []*filterField {
+func (l *Collection) filterFields() []*filterField {
 	specs := l.filterSpecs()
 	rows := l.allRows()
 	chipMax := max(1, l.r.Settings().Int(ListFilterChipMaxSetting))
@@ -267,7 +267,7 @@ func (f *filterField) absorb(conds []PropFilter) (value string, not, ok bool) {
 
 // openFilterForm opens the filter form over the list (a chooser's list
 // too: it opens over the chooser and filters its rows).
-func (l *List) openFilterForm() error { return l.openViewForm() }
+func (l *Collection) openFilterForm() error { return l.openViewForm() }
 
 // placeholder says what an empty text field takes.
 func (f *filterField) placeholder() string {

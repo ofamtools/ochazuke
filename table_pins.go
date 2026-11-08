@@ -31,7 +31,7 @@ import (
 // table) and acts on the column chosen.
 
 // defaultPins is the columns declared Pinned, else the first one.
-func (l *List) defaultPins() []int {
+func (l *Collection) defaultPins() []int {
 	var pins []int
 	for i, c := range l.columns {
 		if c.Pinned {
@@ -46,7 +46,7 @@ func (l *List) defaultPins() []int {
 
 // pinned is the table's pinned columns in declared order: the user's when
 // set, else the defaults.
-func (l *List) pinned() []int {
+func (l *Collection) pinned() []int {
 	if !l.pinsSet {
 		return l.defaultPins()
 	}
@@ -62,13 +62,13 @@ func (l *List) pinned() []int {
 
 // PinnedColumns is the table's pinned columns (indexes into Columns) in
 // declared order.
-func (l *List) PinnedColumns() []int {
+func (l *Collection) PinnedColumns() []int {
 	l.restore()
 	return l.pinned()
 }
 
 // order is the columns in drawing order: the pinned ones, then the rest.
-func (l *List) order() []int {
+func (l *Collection) order() []int {
 	pins := l.pinned()
 	out := slices.Clone(pins)
 	for i := range l.columns {
@@ -80,13 +80,13 @@ func (l *List) order() []int {
 }
 
 // position is the current column's place in drawing order.
-func (l *List) position() int {
+func (l *Collection) position() int {
 	return max(0, slices.Index(l.order(), l.Column()))
 }
 
 // SetPinnedColumns makes these columns (indexes into Columns) the table's
 // pins and remembers them; the default pins are remembered as no choice.
-func (l *List) SetPinnedColumns(pins []int) {
+func (l *Collection) SetPinnedColumns(pins []int) {
 	l.restore()
 	var clean []int
 	for _, i := range pins {
@@ -108,18 +108,18 @@ func (l *List) SetPinnedColumns(pins []int) {
 }
 
 // PinColumn pins column i; UnpinColumn unpins it.
-func (l *List) PinColumn(i int) { l.SetPinnedColumns(append(l.PinnedColumns(), i)) }
+func (l *Collection) PinColumn(i int) { l.SetPinnedColumns(append(l.PinnedColumns(), i)) }
 
 // UnpinColumn unpins column i.
-func (l *List) UnpinColumn(i int) {
+func (l *Collection) UnpinColumn(i int) {
 	l.SetPinnedColumns(slices.DeleteFunc(l.PinnedColumns(), func(p int) bool { return p == i }))
 }
 
 // UnpinColumns leaves no column pinned.
-func (l *List) UnpinColumns() { l.SetPinnedColumns(nil) }
+func (l *Collection) UnpinColumns() { l.SetPinnedColumns(nil) }
 
 // ResetPins puts the default pins back (Column.Pinned, else the first).
-func (l *List) ResetPins() {
+func (l *Collection) ResetPins() {
 	l.restore()
 	l.pins, l.pinsSet = nil, false
 	l.follow()
@@ -128,7 +128,7 @@ func (l *List) ResetPins() {
 
 // columnNamed is the column a title (any case) or a number in declaration
 // order (1 the first) names.
-func (l *List) columnNamed(name string) (int, error) {
+func (l *Collection) columnNamed(name string) (int, error) {
 	name = strings.TrimSpace(name)
 	for i := range l.columns {
 		if strings.EqualFold(l.columnTitle(i), name) || strings.EqualFold(strings.TrimSpace(l.columns[i].Title), name) {
@@ -141,12 +141,12 @@ func (l *List) columnNamed(name string) (int, error) {
 	return 0, fmt.Errorf("no column %q", name)
 }
 
-func registerTablePins(r *Runtime, cells func(Context, Arguments) (*List, error)) {
+func registerTablePins(r *Runtime, cells func(Context, Arguments) (*Collection, error)) {
 	id := Parameter{Type: "string", Description: "The list (default: the focused one)"}
 	column := Parameter{Type: "string", Description: "A column title, or its number in declaration order (1 the first); default the current column (cell mode), else a picker"}
 	// act runs change on the column the request names, else the current
 	// column of a cell-mode table, else the column chosen from a chooser.
-	act := func(verb string, change func(l *List, i int)) Operation {
+	act := func(verb string, change func(l *Collection, i int)) Operation {
 		return Operation{Key: KeyOf("ochazuke.list", verb), Parameters: map[string]Parameter{"id": id, "column": column}, Positional: []string{"column"}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 			l, err := cells(c, a)
 			if err != nil {
@@ -183,11 +183,11 @@ func registerTablePins(r *Runtime, cells func(Context, Arguments) (*List, error)
 			return l.state(), err
 		}}
 	}
-	pin := act("pin-column", func(l *List, i int) { l.PinColumn(i) })
+	pin := act("pin-column", func(l *Collection, i int) { l.PinColumn(i) })
 	pin.Description = "Pin a table column: it draws at the left with the other pinned columns and never scrolls; remembered per table"
-	unpin := act("unpin-column", func(l *List, i int) { l.UnpinColumn(i) })
+	unpin := act("unpin-column", func(l *Collection, i int) { l.UnpinColumn(i) })
 	unpin.Description = "Unpin a table column: it scrolls with the rest again; remembered per table"
-	toggle := act("toggle-pin-column", func(l *List, i int) {
+	toggle := act("toggle-pin-column", func(l *Collection, i int) {
 		if slices.Contains(l.PinnedColumns(), i) {
 			l.UnpinColumn(i)
 		} else {

@@ -12,7 +12,7 @@ import (
 	"ofam.dev/ochazuke/keytest"
 )
 
-func listFixture(t *testing.T) (*Runtime, *List, *Input, []ListItem) {
+func listFixture(t *testing.T) (*Runtime, *Collection, *Input, []ListItem) {
 	t.Helper()
 	r := NewRuntime()
 	for _, id := range []string{"page", "other", "dialog"} {
@@ -471,7 +471,7 @@ func TestNoMarksListTakesNoMarks(t *testing.T) {
 	}
 	for _, tc := range []struct {
 		focus string
-		list  *List
+		list  *Collection
 		marks bool
 	}{{"v1", view, false}, {"m1", marks, true}, {tree.FocusTarget(), tree.List(), false}} {
 		if err := r.SetFocus(tc.focus); err != nil {
@@ -533,7 +533,7 @@ func reverseRows(view string) (full, faint []string) {
 
 // dimFixture is a Model in the mono theme over a page with two lists, the
 // first focused, and a settings directory so the dim settings can be set.
-func dimFixture(t *testing.T) (*Runtime, *Model, *List, *List) {
+func dimFixture(t *testing.T) (*Runtime, *Model, *Collection, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().Dir = t.TempDir()

@@ -10,7 +10,7 @@ import (
 
 // filterFixture is a page with a list of five rows over a second list,
 // the focus on the first row, through the Model so keys run as in the TUI.
-func filterFixture(t *testing.T, opts ...InstanceOption) (*Runtime, *Model, *List) {
+func filterFixture(t *testing.T, opts ...InstanceOption) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Define("a").Verb("touch", func(c Ctx) Result { return Done(c.Instance.ID) })
@@ -50,7 +50,7 @@ func pressKeys(m *Model, keys ...string) {
 	}
 }
 
-func shownIDs(l *List) []string {
+func shownIDs(l *Collection) []string {
 	var out []string
 	for _, item := range l.items {
 		out = append(out, item.ID)
@@ -356,7 +356,7 @@ func TestListFilterSearchTextOnFilterAndMatchNoun(t *testing.T) {
 		t.Fatal(err)
 	}
 	var heard []string
-	list.OnFilter(func(l *List) { heard = append(heard, l.Filter()) })
+	list.OnFilter(func(l *Collection) { heard = append(heard, l.Filter()) })
 	list.SetFilter("hidden")
 	if list.Shown() != 1 || list.items[0].ID != "a" {
 		t.Fatalf("Search text not matched: %v", list.items)

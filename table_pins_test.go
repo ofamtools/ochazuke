@@ -18,7 +18,7 @@ var edgeTitles = []string{"name", "alpha", "bravo", "charlie", "delta", "echo"}
 // edgePage is a page of a plain list a, a table t of six fixed-width
 // columns (58 cells with the gaps) and a plain list b, drawn at width
 // cells, in drawing order a, t, b; the focus on t's first row.
-func edgePage(t *testing.T, width int, stateDir string, opts ...InstanceOption) (*Runtime, *Model, *List) {
+func edgePage(t *testing.T, width int, stateDir string, opts ...InstanceOption) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().StateDir = stateDir
@@ -42,7 +42,7 @@ func edgePage(t *testing.T, width int, stateDir string, opts ...InstanceOption) 
 		}
 		return out
 	}
-	var a, tb, b *List
+	var a, tb, b *Collection
 	if _, err := r.AddPage("p", "P", func(_ *Runtime, w, _ int) Block {
 		return Text(a.View(w, 2) + "\n" + tb.View(w, 4) + "\n" + b.View(w, 2))
 	}); err != nil {
@@ -370,7 +370,7 @@ func TestTreeHLWinOverTableScroll(t *testing.T) {
 		r.Define("row")
 		cols := []Column{{Title: "name", Width: 10}, {Title: "alpha", Width: 8}, {Title: "bravo", Width: 8}}
 		var tr *Tree
-		var b *List
+		var b *Collection
 		if _, err := r.AddPage("p", "P", func(_ *Runtime, w, _ int) Block {
 			return Text(tr.View(w, 4) + "\n" + b.View(w, 2))
 		}); err != nil {

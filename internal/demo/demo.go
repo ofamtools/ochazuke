@@ -326,7 +326,7 @@ func taskProps() []ochazuke.PropSpec {
 func (t *demoTask) define(r *ochazuke.Runtime) {
 	defineProjects(r)
 	r.Define("task").Props(taskProps()...).Store(ochazuke.Store{
-		Kind: ochazuke.Collection,
+		Kind: ochazuke.KindCollection,
 		// history-entry.undo reverts the task writes; create keeps a given key,
 		// so a delete is undone under its old one.
 		Undo: true, AcceptsKey: true,
@@ -365,7 +365,7 @@ func defineProjects(r *ochazuke.Runtime) {
 		ochazuke.PropSpec{Name: "id", Key: true, Parameter: ochazuke.Parameter{Type: "string", Description: "The project's key"}},
 		ochazuke.PropSpec{Name: "name", ReadOnly: true, Role: ochazuke.RoleLabel, Parameter: ochazuke.Parameter{Type: "string", Description: "The project's name"}},
 	).Store(ochazuke.Store{
-		Kind: ochazuke.Collection,
+		Kind: ochazuke.KindCollection,
 		Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
 			for _, p := range demoProjects {
 				if p["id"] == id {
@@ -728,7 +728,7 @@ func libraryText(id string) string {
 // detail on the right (stacked below 72 columns), the detail's position
 // marker in its panel title when it overflows. The divider follows the
 // page's pane keys (> and <, = resets) through PaneLayout and Divide.
-func demoLibrary(m *ochazuke.Model, entries *ochazuke.List, detail *ochazuke.Detail, width, height int) ochazuke.Block {
+func demoLibrary(m *ochazuke.Model, entries *ochazuke.Collection, detail *ochazuke.Detail, width, height int) ochazuke.Block {
 	layout := m.Runtime.PaneLayout("library", ochazuke.Layout{Styles: ochazuke.NewStyles(*m.Appearance)})
 	listPanel := func(w, h int) string {
 		cw, ch := ochazuke.PanelContentSize(w, h)

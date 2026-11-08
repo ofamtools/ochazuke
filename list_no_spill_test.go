@@ -113,7 +113,7 @@ func TestTreeNoSpillSetting(t *testing.T) {
 	}
 }
 
-func selectedID(l *List) string {
+func selectedID(l *Collection) string {
 	item, _ := l.Selected()
 	return item.ID
 }

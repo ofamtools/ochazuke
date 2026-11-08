@@ -74,7 +74,7 @@ import (
 
 // ColumnOffset is the table's column offset: 0 unscrolled, else k for the
 // view that starts the scrolling columns at the k-th.
-func (l *List) ColumnOffset() int { return l.colOffset }
+func (l *Collection) ColumnOffset() int { return l.colOffset }
 
 // colView is a table's columns as one frame lays them out: the columns
 // with the widths z > and z < gave, each column's widest cell, the pinned
@@ -100,7 +100,7 @@ func markerWidth(n int) int { return 1 + len(strconv.Itoa(max(n, 1))) }
 // gutter): every column, pinned ones first, and, when the table draws a
 // header and hides a column at width, the cells left once the edge
 // markers are reserved.
-func (l *List) view(width int) colView {
+func (l *Collection) view(width int) colView {
 	l.restore()
 	pins := l.pinned()
 	v := colView{cols: l.layoutColumns(), widest: l.cellWidths(), pins: pins, width: width}
@@ -122,7 +122,7 @@ func (l *List) view(width int) colView {
 // the unscrolled layout at offset 0, else the scrolled view at the
 // offset, clamped to the largest offset this width has. It records the
 // width for the column motions.
-func (l *List) columnLayout(width int) (shown, widths []int) {
+func (l *Collection) columnLayout(width int) (shown, widths []int) {
 	l.colWidth = width
 	v := l.view(width)
 	most := v.maxOffset()
@@ -275,7 +275,7 @@ func (v colView) hidden(k int) (left, right int) {
 
 // maxColumnOffset is the largest column offset at width (the frame's,
 // less the gutter).
-func (l *List) maxColumnOffset(width int) int {
+func (l *Collection) maxColumnOffset(width int) int {
 	if len(l.columns) < 2 || width <= 0 {
 		return 0
 	}
@@ -284,19 +284,19 @@ func (l *List) maxColumnOffset(width int) int {
 
 // columnsScroll reports whether the column motions have anything to do:
 // a table drawn at least once whose width hides a column, or one scrolled.
-func (l *List) columnsScroll() bool {
+func (l *Collection) columnsScroll() bool {
 	return len(l.columns) > 1 && l.colWidth > 0 && (l.colOffset > 0 || l.maxColumnOffset(l.colWidth) > 0)
 }
 
 // scrollsRight reports whether l on a row-select table scrolls: the view
 // does not show the last column yet.
-func (l *List) scrollsRight() bool {
+func (l *Collection) scrollsRight() bool {
 	return !l.cellMode() && l.columnsScroll() && l.colOffset < l.maxColumnOffset(l.colWidth)
 }
 
 // scrollsLeft reports whether h on a row-select table scrolls: the view
 // is scrolled.
-func (l *List) scrollsLeft() bool {
+func (l *Collection) scrollsLeft() bool {
 	return !l.cellMode() && len(l.columns) > 1 && l.colWidth > 0 && l.colOffset > 0
 }
 
@@ -304,7 +304,7 @@ func (l *List) scrollsLeft() bool {
 // step: a cell-mode table's current column is the first (step < 0) or
 // last drawn in order; a row-select table's view is at offset 0 or shows
 // its last column (one that fits is at both).
-func (l *List) atColumnEdge(step int) bool {
+func (l *Collection) atColumnEdge(step int) bool {
 	if len(l.columns) == 0 {
 		return false
 	}
@@ -321,7 +321,7 @@ func (l *List) atColumnEdge(step int) bool {
 // scrollColumns moves the view delta columns (to "first"/"last" ends),
 // clamped; from the start a scroll right skips an offset 1 that draws
 // what 0 draws.
-func (l *List) scrollColumns(to string, delta int) {
+func (l *Collection) scrollColumns(to string, delta int) {
 	v := l.view(l.colWidth)
 	most := v.maxOffset()
 	switch to {
@@ -351,7 +351,7 @@ func (l *List) scrollColumns(to string, delta int) {
 // Tree.yieldsEdge: its own collapse or expand has nothing to do on the
 // row, per tree.spill), so elsewhere a tree's h/l answer at its level
 // outside the list (R11.1); z h / z l still scroll a tree's columns.
-func (r *Runtime) edgeList(focus string, step int) *List {
+func (r *Runtime) edgeList(focus string, step int) *Collection {
 	l := r.focusedList(focus)
 	if l == nil {
 		return nil
@@ -408,7 +408,7 @@ func registerColumnMotions(r *Runtime) {
 		if delta == 0 {
 			return true
 		}
-		var l *List
+		var l *Collection
 		if id := StringArg(ev.Args, "id", ""); id != "" {
 			l = r.List(id)
 		} else {
@@ -422,7 +422,7 @@ func registerColumnMotions(r *Runtime) {
 		"delta": {Type: "integer", Description: "Columns to scroll, positive right (zl), negative left (zh)"},
 		"steps": {Type: "integer", Description: "Repeat count (3zl)"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
-		var l *List
+		var l *Collection
 		if id := StringArg(a, "id", ""); id != "" {
 			l = r.List(id)
 		} else if c.InputID == "" {
@@ -444,7 +444,7 @@ func registerColumnMotions(r *Runtime) {
 // view scrolled (z l, z h): a column the scroll took off is replaced by
 // the shown scrolling column nearest it in drawing order, a pinned one
 // only when no scrolling column is shown.
-func (l *List) carryColumn() {
+func (l *Collection) carryColumn() {
 	if !l.cellMode() || l.colWidth <= 0 {
 		return
 	}

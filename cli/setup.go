@@ -65,7 +65,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 	r.Builtin(func() {
 		r.DeclareSetting(ochazuke.Setting{Name: SetupSkipSetting, Type: ochazuke.SettingList, Default: []string{}, Description: "Setup item ids to skip", Section: "setup"})
 		b := r.Define("setup").Columns(ochazuke.Column{Title: "Item"}, ochazuke.Column{Title: "Kind"}, ochazuke.Column{Title: "State"}, ochazuke.Column{Title: "Target"}, ochazuke.Column{Title: "Next step", Wrap: true})
-		b.Props(setupProps...).Store(ochazuke.Store{Kind: ochazuke.Collection, Facts: true,
+		b.Props(setupProps...).Store(ochazuke.Store{Kind: ochazuke.KindCollection, Facts: true,
 			List: func(c ochazuke.Ctx, _ ochazuke.ListQuery) ([]ochazuke.Thing, error) { return d.things(r, "", nil) },
 			Get: func(c ochazuke.Ctx, id string) (ochazuke.Thing, error) {
 				things, err := d.things(r, "", []string{id})

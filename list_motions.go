@@ -27,7 +27,7 @@ import "errors"
 const defaultPageRows = 10
 
 // pageRows is the number of rows one page motion counts as a page.
-func (l *List) pageRows() int {
+func (l *Collection) pageRows() int {
 	if l.windowed && l.window > 0 {
 		return l.window
 	}
@@ -53,7 +53,7 @@ func (r *Runtime) inPage(id, page string) bool {
 
 // goTo selects row index i (clamped), keeping the window where it is:
 // the next View moves it only as far as the scrolloff needs.
-func (l *List) goTo(i int) {
+func (l *Collection) goTo(i int) {
 	if l.selected < 0 || len(l.items) == 0 {
 		return
 	}
@@ -62,7 +62,7 @@ func (l *List) goTo(i int) {
 
 // page moves the selection by rows (negative up), clamped, and the window
 // with it by the rows actually moved.
-func (l *List) page(rows int) {
+func (l *Collection) page(rows int) {
 	if l.selected < 0 {
 		return
 	}
@@ -73,7 +73,7 @@ func (l *List) page(rows int) {
 
 func registerListMotions(r *Runtime) {
 	registerColumnMotions(r)
-	resolve := func(c Context, args Arguments) (*List, error) {
+	resolve := func(c Context, args Arguments) (*Collection, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if list := r.List(id); list != nil {
 				return list, nil
@@ -109,13 +109,13 @@ func registerListMotions(r *Runtime) {
 	for _, spec := range []struct {
 		verb, description string
 		parameters        map[string]Parameter
-		run               func(*List, Arguments)
+		run               func(*Collection, Arguments)
 	}{
 		{"goto", "Select the first or last row, or the row numbered row (5G); clamps, never spills", map[string]Parameter{
 			"id":       {Type: "string", Description: "The list (default: the focused one)"},
 			"position": {Type: "string", Enum: []string{"first", "last"}, Description: "Where to go without a row number (default first)"},
 			"row":      {Type: "integer", Description: "The row number, 1 the first (a count: 5G); 0 or absent goes to position"},
-		}, func(l *List, a Arguments) {
+		}, func(l *Collection, a Arguments) {
 			switch row := IntArg(a, "row", 0); {
 			case row > 0:
 				l.goTo(row - 1)
@@ -130,7 +130,7 @@ func registerListMotions(r *Runtime) {
 			"delta": {Type: "integer", Required: true, Description: "1 down, -1 up"},
 			"half":  {Type: "boolean", Description: "Half a page (ctrl+d, ctrl+u); steps is then rows"},
 			"steps": {Type: "integer", Description: "A count: pages, or rows with half (Vim's [count]ctrl+d); 0 or absent is one page or half a page"},
-		}, func(l *List, a Arguments) {
+		}, func(l *Collection, a Arguments) {
 			rows, steps := l.pageRows(), IntArg(a, "steps", 0)
 			half, _ := a["half"].(bool)
 			switch {

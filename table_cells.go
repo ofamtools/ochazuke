@@ -87,12 +87,12 @@ func CellSelect() InstanceOption { return func(s *instanceSpec) { s.cellSelect =
 func RowSelect() InstanceOption { return func(*instanceSpec) {} }
 
 // cellMode reports whether the list is a table with a current column.
-func (l *List) cellMode() bool { return len(l.columns) > 0 && l.cellSelect }
+func (l *Collection) cellMode() bool { return len(l.columns) > 0 && l.cellSelect }
 
 // columnTo makes the first or the last column in drawing order (to
 // "first" or "last") the current one: list.column {to}, viewport.goto's
 // column edges.
-func (l *List) columnTo(to string) {
+func (l *Collection) columnTo(to string) {
 	order := l.order()
 	if len(order) == 0 {
 		return
@@ -106,7 +106,7 @@ func (l *List) columnTo(to string) {
 
 // Column is a cell-mode table's current column (an index into Columns);
 // 0 for any other list.
-func (l *List) Column() int {
+func (l *Collection) Column() int {
 	if !l.cellMode() {
 		return 0
 	}
@@ -116,7 +116,7 @@ func (l *List) Column() int {
 
 // SetColumn makes column i (clamped) the current column of a cell-mode
 // table and remembers it; on any other list it does nothing.
-func (l *List) SetColumn(i int) {
+func (l *Collection) SetColumn(i int) {
 	if !l.cellMode() {
 		return
 	}
@@ -128,14 +128,14 @@ func (l *List) SetColumn(i int) {
 
 // ColumnWidths is the widths given to columns with z > and z < (column
 // index to cells); a column left out is laid out automatically.
-func (l *List) ColumnWidths() map[int]int {
+func (l *Collection) ColumnWidths() map[int]int {
 	l.restore()
 	return maps.Clone(l.colWidths)
 }
 
 // SetColumnWidth fixes column i at width cells (0 or less: automatic
 // again) and remembers it.
-func (l *List) SetColumnWidth(i, width int) {
+func (l *Collection) SetColumnWidth(i, width int) {
 	if i < 0 || i >= len(l.columns) {
 		return
 	}
@@ -153,7 +153,7 @@ func (l *List) SetColumnWidth(i, width int) {
 }
 
 // ResetColumnWidths makes every column automatic again and remembers it.
-func (l *List) ResetColumnWidths() {
+func (l *Collection) ResetColumnWidths() {
 	l.restore()
 	l.colWidths = nil
 	l.follow()
@@ -161,7 +161,7 @@ func (l *List) ResetColumnWidths() {
 }
 
 // restore reads the table's remembered view once.
-func (l *List) restore() {
+func (l *Collection) restore() {
 	if l.restored {
 		return
 	}
@@ -187,7 +187,7 @@ func (l *List) restore() {
 
 // remember writes a table's view (Runtime.SetTableState): its pins when
 // they are not the default, its widths, and a cell-mode table's column.
-func (l *List) remember() {
+func (l *Collection) remember() {
 	if len(l.columns) == 0 {
 		return
 	}
@@ -213,7 +213,7 @@ func (l *List) remember() {
 // z F as fixed widths, and, with table.fit-follows-cursor on, a cell-mode
 // table's current column at its content's width unless one was given
 // (table_fit.go).
-func (l *List) layoutColumns() []Column {
+func (l *Collection) layoutColumns() []Column {
 	cursor := -1
 	if l.fitsCursor() {
 		if c := min(max(l.col, 0), len(l.columns)-1); l.colWidths[c] <= 0 {
@@ -240,7 +240,7 @@ func (l *List) layoutColumns() []Column {
 
 // follow lays the columns out again at the last frame's width, so the
 // offset already shows the current column before the next frame.
-func (l *List) follow() {
+func (l *Collection) follow() {
 	if l.colWidth > 0 {
 		l.columnLayout(l.colWidth)
 	}
@@ -251,7 +251,7 @@ func (l *List) follow() {
 // ^ bring it); cur when it shows the column; when the column lies left of
 // the view, 0 if that view shows it, else the offset that puts it first
 // after the pinned ones; else the smallest larger offset that reaches it.
-func (l *List) offsetShowing(v colView, cur, most int) int {
+func (l *Collection) offsetShowing(v colView, cur, most int) int {
 	showsAt := func(k int) bool {
 		shown, _ := v.at(k)
 		return slices.Contains(shown, l.col)
@@ -315,7 +315,7 @@ func rowText(item ListItem, n int) string {
 }
 
 // columnTitle names column i for the chooser and the status line.
-func (l *List) columnTitle(i int) string {
+func (l *Collection) columnTitle(i int) string {
 	if t := strings.TrimSpace(modalLabel(l.columns[i].Title)); t != "" {
 		return t
 	}
@@ -324,7 +324,7 @@ func (l *List) columnTitle(i int) string {
 
 // drawnWidth is the width the current column was drawn at in the last
 // frame, else its natural width.
-func (l *List) drawnWidth(i int) int {
+func (l *Collection) drawnWidth(i int) int {
 	if w, ok := l.colWidths[i]; ok {
 		return w
 	}
@@ -337,7 +337,7 @@ func (l *List) drawnWidth(i int) int {
 
 // tableList is the list a table verb acts on: the one named by id, else
 // the nearest on the focus path.
-func (r *Runtime) tableList(c Context, args Arguments) (*List, error) {
+func (r *Runtime) tableList(c Context, args Arguments) (*Collection, error) {
 	if id := StringArg(args, "id", ""); id != "" {
 		if l := r.List(id); l != nil {
 			return l, nil
@@ -355,7 +355,7 @@ func (r *Runtime) tableList(c Context, args Arguments) (*List, error) {
 }
 
 // cellTable is tableList for the verbs that need a current column.
-func (r *Runtime) cellTable(c Context, args Arguments) (*List, error) {
+func (r *Runtime) cellTable(c Context, args Arguments) (*Collection, error) {
 	l, err := r.tableList(c, args)
 	if err == nil && !l.cellMode() {
 		err = errors.New("not a cell table (CellSelect)")
@@ -556,7 +556,7 @@ func tableYank(r *Runtime, c Context, a Arguments) (any, error) {
 
 // yankSubject names what a table yank copied: the row or the current
 // column's cell, of rows rows.
-func (l *List) yankSubject(what string, rows int) string {
+func (l *Collection) yankSubject(what string, rows int) string {
 	switch {
 	case rows > 1 && what == "row":
 		return fmt.Sprintf("%d rows", rows)

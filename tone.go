@@ -555,7 +555,7 @@ func slotSegs(spans []ToneSpan, text string, x, shown int, slot cellAt) []toneSe
 // listTones is the styles a list's tones draw in, nil when there is none
 // to draw (no row carries a tone, no column is a part, no header tones)
 // or the list is drawn without the Model's styles.
-func (l *List) listTones() *Styles {
+func (l *Collection) listTones() *Styles {
 	if !l.wantsTones() {
 		return nil
 	}
@@ -584,7 +584,7 @@ func (r *Runtime) toneStyles(id string) *Styles {
 // wantsTones reports whether the list draws any tone: a row's, the
 // header's (SetHeaderTones, or the header part while list.part-tones is
 // on), or a part column's.
-func (l *List) wantsTones() bool {
+func (l *Collection) wantsTones() bool {
 	if len(l.linger.leaving) > 0 || slices.ContainsFunc(l.items, func(it ListItem) bool { return len(it.Tones) > 0 }) || len(l.headerTones) > 0 {
 		return true
 	}

@@ -142,7 +142,7 @@ func HeaderLines(n int) InstanceOption { return func(s *instanceSpec) { s.header
 type Timeline struct {
 	r    *Runtime
 	id   string
-	list *List
+	list *Collection
 
 	cards  []Card
 	byID   map[string]int
@@ -264,10 +264,10 @@ func (r *Runtime) timelineOf(focus string) *Timeline { return nearestComponent[*
 func (t *Timeline) ID() string { return t.id }
 
 // List is the list whose rows are the cards (selection, motions, filter).
-func (t *Timeline) List() *List { return t.list }
+func (t *Timeline) List() *Collection { return t.list }
 
 // holdsList declares the timeline's list its child table (listHolder).
-func (t *Timeline) holdsList(l *List) bool { return t.list == l }
+func (t *Timeline) holdsList(l *Collection) bool { return t.list == l }
 
 // FocusTarget is where a jump to the timeline lands: its selected card.
 func (t *Timeline) FocusTarget() string { return t.list.FocusTarget() }
@@ -977,7 +977,7 @@ func (t *Timeline) View(width, height int) string {
 }
 
 // offsetOf is the shown index of row id, or 0.
-func (l *List) offsetOf(id string) int {
+func (l *Collection) offsetOf(id string) int {
 	return max(0, slices.IndexFunc(l.items, func(item ListItem) bool { return item.ID == id }))
 }
 

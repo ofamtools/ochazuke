@@ -13,7 +13,7 @@ import (
 type fakeKind struct {
 	h     DetailHost
 	shown []string
-	list  *ochazuke.List
+	list  *ochazuke.Collection
 }
 
 func (f *fakeKind) Show(row Row, ok bool) error {

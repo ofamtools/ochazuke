@@ -921,7 +921,7 @@ func registerSettingItemThings(r *Runtime) {
 		PropSpec{Name: "index", ReadOnly: true, Parameter: Parameter{Type: SettingInteger, Description: "Its 0-based place in the list"}},
 		PropSpec{Name: "text", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The item"}},
 	).Store(Store{
-		Kind: Collection,
+		Kind: KindCollection,
 		Get: func(c Ctx, id string) (Thing, error) {
 			cut := strings.LastIndex(id, "/")
 			if cut < 0 {

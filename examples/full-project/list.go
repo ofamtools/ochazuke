@@ -9,7 +9,7 @@ import (
 	"ofam.dev/ochazuke"
 )
 
-func listPageView(r *ochazuke.Runtime, list *ochazuke.List, spec PageConfig, styles ochazuke.Styles, width, height int) ochazuke.Block {
+func listPageView(r *ochazuke.Runtime, list *ochazuke.Collection, spec PageConfig, styles ochazuke.Styles, width, height int) ochazuke.Block {
 	if width <= 0 || height <= 0 {
 		return ochazuke.Block{}
 	}

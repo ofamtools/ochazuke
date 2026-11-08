@@ -105,7 +105,7 @@ type RecordSpec struct {
 	Render func(Styles, int, int) Block
 	// RowView is the backing list of a composite record view. Shared list verbs
 	// resolve it from descendants, including embedded choosers.
-	RowView *List
+	RowView *Collection
 	// Immediate writes valid typing on every event, for inexpensive view state.
 	// Otherwise text retains the normal debounce behavior.
 	Immediate bool
@@ -2035,4 +2035,4 @@ func (e *RecordEditor) refreshChoices() {
 }
 
 // RowView exposes an explicitly declared backing view to shared list verbs.
-func (e *RecordEditor) RowView() *List { return e.spec.RowView }
+func (e *RecordEditor) RowView() *Collection { return e.spec.RowView }

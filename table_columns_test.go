@@ -11,7 +11,7 @@ import (
 
 // columnTable is a page holding one table of 30 rows and five columns, the
 // first naming the row, drawn at width cells.
-func columnTable(t *testing.T, width int, opts ...InstanceOption) (*Runtime, *Model, *List) {
+func columnTable(t *testing.T, width int, opts ...InstanceOption) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	m := NewModel(r)
@@ -22,7 +22,7 @@ func columnTable(t *testing.T, width int, opts ...InstanceOption) (*Runtime, *Mo
 		id := fmt.Sprintf("r%d", i)
 		items = append(items, ListItem{ID: id, Label: id, Noun: "row", Cells: []string{id, "aaaaaaaaaa", "bbbbbbbbbb", "cccccccccc", "dddddddddd"}})
 	}
-	var l *List
+	var l *Collection
 	if _, err := r.AddPage("p", "P", func(_ *Runtime, w, _ int) Block { return Text(l.View(w, 12)) }); err != nil {
 		t.Fatal(err)
 	}

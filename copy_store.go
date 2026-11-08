@@ -126,7 +126,7 @@ type copyStore struct {
 // carried over: set them on the answer.
 func CopyStore(source Store, local LocalStore) Store {
 	cs := &copyStore{source: source, local: local}
-	return cs.fill(Store{Kind: Collection})
+	return cs.fill(Store{Kind: KindCollection})
 }
 
 // CopySource is the source a copy store copies from; false for any other
@@ -147,7 +147,7 @@ func (cs *copyStore) bind(noun string, s Store) Store {
 
 // fill gives s the copy's calls.
 func (cs *copyStore) fill(s Store) Store {
-	s.Kind = Collection
+	s.Kind = KindCollection
 	s.copy = cs
 	s.Remote = cs.source.Remote
 	s.Undo, s.AcceptsKey, s.Stamps, s.Facts = true, true, false, false

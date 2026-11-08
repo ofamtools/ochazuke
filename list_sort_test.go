@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func sortFixture(t *testing.T, opts ...InstanceOption) (*Runtime, *List) {
+func sortFixture(t *testing.T, opts ...InstanceOption) (*Runtime, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().Disable()
@@ -35,7 +35,7 @@ func sortFixture(t *testing.T, opts ...InstanceOption) (*Runtime, *List) {
 	return r, l
 }
 
-func mustSort(t *testing.T, l *List, keys ...SortKey) {
+func mustSort(t *testing.T, l *Collection, keys ...SortKey) {
 	t.Helper()
 	if err := l.SetSort(keys); err != nil {
 		t.Fatal(err)

@@ -41,7 +41,7 @@ const PropObject = "object"
 const (
 	// Collection is many things with keys, held by the application
 	// (note, task, project).
-	Collection = "collection"
+	KindCollection = "collection"
 	// Singleton is one thing per runtime (app, appearance): get takes no
 	// subject.
 	Singleton = "singleton"
@@ -399,7 +399,7 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 		panic(fmt.Sprintf("%s: declare Props before Store", b.n.Name))
 	}
 	if s.Kind == "" {
-		s.Kind = Collection
+		s.Kind = KindCollection
 	}
 	s.ListParams = cloneParams(s.ListParams)
 	s.Confirm, s.When, s.Missing = maps.Clone(s.Confirm), maps.Clone(s.When), maps.Clone(s.Missing)
@@ -674,7 +674,7 @@ func checkSchema(n *Noun) error {
 		return nil
 	}
 	switch s.Kind {
-	case Collection, Instances:
+	case KindCollection, Instances:
 		if keys != 1 {
 			return fmt.Errorf("%s: a %s store needs exactly one Key prop, not %d", n.Name, s.Kind, keys)
 		}

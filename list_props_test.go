@@ -10,7 +10,7 @@ import (
 // rowPropsFixture is a list of lane rows whose noun declares only title
 // (and a secret token): state, count, tags, id, done and mixed are fields
 // of the rows' data alone.
-func rowPropsFixture(t *testing.T) (*Runtime, *Model, *List) {
+func rowPropsFixture(t *testing.T) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r, m, l := filterFixture(t)
 	r.Define("a").Props(PropSpec{Name: "title", Parameter: Parameter{Enum: []string{"one", "two"}}}, PropSpec{Name: "token", Secret: true}, PropSpec{Name: "note", NoFilter: true})
@@ -234,7 +234,7 @@ func TestFieldKindObjectsAndListsCompareAsText(t *testing.T) {
 // objectPropsFixture gives the rows of rowPropsFixture a task-like
 // created-by (always an object), changed-by (an object or a string) and
 // deps (a list of objects).
-func objectPropsFixture(t *testing.T) (*Runtime, *Model, *List) {
+func objectPropsFixture(t *testing.T) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r, m, l := rowPropsFixture(t)
 	items := l.Items()

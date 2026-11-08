@@ -585,7 +585,7 @@ func registerPickerRegistry(r *Runtime) {
 	// name, so get, list and watch are its standard verbs (picker.list,
 	// picker.get).
 	r.Define(PickerNoun).About("The pickers: declared (AddPicker, a catalog's pickers) and one per noun with a list verb (picker.derive)").Props(pickerProps...).Store(Store{
-		Kind: Collection,
+		Kind: KindCollection,
 		Get: func(c Ctx, name string) (Thing, error) {
 			def, ok := c.Runtime.PickerDef(name)
 			if !ok {

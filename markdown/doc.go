@@ -152,7 +152,7 @@ type Doc struct {
 	r     *ochazuke.Runtime
 	id    string
 	src   Source
-	list  *ochazuke.List
+	list  *ochazuke.Collection
 	text  string
 	tasks []Task
 	elems []Element
@@ -255,7 +255,7 @@ func Of(r *ochazuke.Runtime, id string) *Doc {
 func (d *Doc) ID() string { return d.id }
 
 // List is the list of line rows (the focus stop).
-func (d *Doc) List() *ochazuke.List { return d.list }
+func (d *Doc) List() *ochazuke.Collection { return d.list }
 
 // ListID is the line list's instance id: the Doc's id + "/lines".
 func (d *Doc) ListID() string { return d.id + "/lines" }

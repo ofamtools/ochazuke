@@ -31,7 +31,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 		}
 	}
 	// activeList is the list page that is open, or an error naming the need.
-	activeList := func(r *ochazuke.Runtime) (PageConfig, *ochazuke.List, error) {
+	activeList := func(r *ochazuke.Runtime) (PageConfig, *ochazuke.Collection, error) {
 		for _, page := range cfg.Pages {
 			if page.ID == r.Page && page.Renderer == "list" {
 				return page, r.List(page.Focus), nil
@@ -40,7 +40,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 		return PageConfig{}, nil, fmt.Errorf("open a list page first")
 	}
 	// removeRow drops one row from the page's sample data and the live list.
-	removeRow := func(r *ochazuke.Runtime, page PageConfig, list *ochazuke.List, id string) error {
+	removeRow := func(r *ochazuke.Runtime, page PageConfig, list *ochazuke.Collection, id string) error {
 		rows := slices.Clone(itemsByPage[page.ID])
 		for i, row := range rows {
 			if row.ID == id {
@@ -59,7 +59,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 	// pressed on the focused row), else it is the selected row. A row of
 	// another noun is refused. The result is recorded in the page frame, as
 	// the other handlers do.
-	rowAction := func(verb, noun string, apply func(*ochazuke.Runtime, PageConfig, *ochazuke.List, ochazuke.ListItem) error) ochazuke.Handler {
+	rowAction := func(verb, noun string, apply func(*ochazuke.Runtime, PageConfig, *ochazuke.Collection, ochazuke.ListItem) error) ochazuke.Handler {
 		return func(r *ochazuke.Runtime, c ochazuke.Context, args ochazuke.Arguments) (any, error) {
 			page, list, err := activeList(r)
 			if err != nil {
@@ -126,7 +126,7 @@ func handlerRegistry(cfg Config) map[string]ochazuke.Handler {
 		"fetch-row":    rowAction("fetch", "repo", nil),
 		"open-row":     rowAction("open", "worktree", nil),
 		"checkout-row": rowAction("checkout", "branch", nil),
-		"remove-row": rowAction("remove", "worktree", func(r *ochazuke.Runtime, page PageConfig, list *ochazuke.List, row ochazuke.ListItem) error {
+		"remove-row": rowAction("remove", "worktree", func(r *ochazuke.Runtime, page PageConfig, list *ochazuke.Collection, row ochazuke.ListItem) error {
 			return removeRow(r, page, list, row.ID)
 		}),
 		"cycle-input": func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {

@@ -13,7 +13,7 @@ import (
 // reaches the table's level, whose list rows (j, k from the list noun; H,
 // L bound on the table instance to list.column) act on the table, not on
 // the body (runRow's level target).
-func trapResolvePage(t *testing.T) (*Model, *Runtime, *List) {
+func trapResolvePage(t *testing.T) (*Model, *Runtime, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Instance("page")

@@ -63,7 +63,7 @@ func registerRegisterThings(r *Runtime) {
 		return t
 	}
 	r.Define("ochazuke.register").Unpersisted().Props(registerThingProps...).Store(Store{
-		Kind: Collection, Stamps: true, Undo: true,
+		Kind: KindCollection, Stamps: true, Undo: true,
 		Get: func(c Ctx, name string) (Thing, error) {
 			key, _, err := registerName(name)
 			if err != nil {

@@ -147,7 +147,7 @@ func TestEmptyListKeepsRowNounForSavedFilters(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		l.OnFilter(func(l *List) {
+		l.OnFilter(func(l *Collection) {
 			if len(l.PropFilters()) > 0 {
 				_ = l.SetItems([]ListItem{{ID: "old", Noun: "parcel", Data: archived}})
 			}
@@ -167,7 +167,7 @@ func TestEmptyListKeepsRowNounForSavedFilters(t *testing.T) {
 		if err := l.SetItems(nil); err != nil {
 			t.Fatal(err)
 		}
-		l.OnFilter(func(l *List) {
+		l.OnFilter(func(l *Collection) {
 			if len(l.PropFilters()) > 0 {
 				_ = l.SetItems([]ListItem{{ID: "old2", Noun: "parcel", Data: archived}})
 			}
@@ -187,7 +187,7 @@ func TestEmptyListKeepsRowNounForSavedFilters(t *testing.T) {
 		if err := tree.SetNodes(nil); err != nil {
 			t.Fatal(err)
 		}
-		tree.list.OnFilter(func(l *List) {
+		tree.list.OnFilter(func(l *Collection) {
 			if len(l.PropFilters()) > 0 {
 				_ = tree.SetNodes([]TreeNode{{ID: "old3", Label: "old", Noun: "parcel", Data: archived}})
 			}

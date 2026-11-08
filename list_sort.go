@@ -29,7 +29,7 @@ type SortKey struct {
 // misrepresent the whole source. The sort verbs and key are unavailable.
 func NoSort() InstanceOption { return func(s *instanceSpec) { s.noSort = true } }
 
-func (l *List) canSort() bool {
+func (l *Collection) canSort() bool {
 	if l.noSort {
 		return false
 	}
@@ -51,16 +51,16 @@ func (l *List) canSort() bool {
 // Sortable reports whether local ordering is allowed and the rows expose
 // a sortable prop or column. Secrets and props turned off for filters are
 // not offered for sorting either.
-func (l *List) Sortable() bool { return l.canSort() && len(l.sortSpecs()) > 0 }
+func (l *Collection) Sortable() bool { return l.canSort() && len(l.sortSpecs()) > 0 }
 
 // Sort returns a copy of the view's sort keys. They are in-memory state,
 // preserved by SetItems, Patch and column changes and included in saved filters.
-func (l *List) Sort() []SortKey { return slices.Clone(l.vs.Sort) }
+func (l *Collection) Sort() []SortKey { return slices.Clone(l.vs.Sort) }
 
 // SetSort replaces the view sort without changing Items, marks or the app's
 // order. An empty sort restores that order. Selection and focus follow IDs;
 // invalid updates leave the view unchanged. Trees sort siblings only.
-func (l *List) SetSort(keys []SortKey) error {
+func (l *Collection) SetSort(keys []SortKey) error {
 	keys, err := l.canonicalSort(keys)
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ func (l *List) SetSort(keys []SortKey) error {
 	return nil
 }
 
-func (l *List) canonicalSort(keys []SortKey) ([]SortKey, error) {
+func (l *Collection) canonicalSort(keys []SortKey) ([]SortKey, error) {
 	if len(keys) > 0 && !l.canSort() {
 		return nil, errors.New("row order is owned by the source")
 	}
@@ -104,7 +104,7 @@ func (l *List) canonicalSort(keys []SortKey) ([]SortKey, error) {
 }
 
 // sortSummary is separate view information, never a prop condition or chip.
-func (l *List) sortSummary() string {
+func (l *Collection) sortSummary() string {
 	if len(l.columns) > 0 || !l.r.Settings().Bool(ListSortIndicatorSetting) {
 		return ""
 	}
@@ -128,7 +128,7 @@ func (l *List) sortSummary() string {
 // sortSpecs reuses filter props, including derived props. Only rows with
 // no prop record fall back to titled columns (an opaque Data handle is not
 // a record). Columns do not create a second schema or change filter fields.
-func (l *List) sortSpecs() map[string]PropSpec {
+func (l *Collection) sortSpecs() map[string]PropSpec {
 	out := l.filterSpecs()
 	if len(l.columns) == 0 {
 		return out
@@ -169,7 +169,7 @@ func rowWithoutProps(item ListItem) bool {
 	return err != nil || len(record) == 0
 }
 
-func (l *List) sortRaw(item ListItem, field string) any {
+func (l *Collection) sortRaw(item ListItem, field string) any {
 	if row := l.cachedRow(item); row != nil {
 		item = row.item
 	} // tree cells have no drawn prefix
@@ -322,7 +322,7 @@ func compareSort(a, b sortValue, desc bool) int {
 // sortOrder computes a stable permutation. Text props containing only ISO
 // dates (or time.Time) compare chronologically, including timezone offsets;
 // mixed date/text props compare entirely as text, preserving transitivity.
-func (l *List) sortOrder(items []ListItem) []int {
+func (l *Collection) sortOrder(items []ListItem) []int {
 	if len(l.vs.Sort) == 0 || !l.canSort() {
 		return orderRows(len(items), nil, nil, nil, nil)
 	}
@@ -336,7 +336,7 @@ func (l *List) sortOrder(items []ListItem) []int {
 // queryRows reads rows as the one query function does (list_query.go):
 // props from the rows' records or titled columns, section runs that sort
 // never crosses.
-func (l *List) queryRows(items []ListItem) queryRows {
+func (l *Collection) queryRows(items []ListItem) queryRows {
 	specs := l.sortSpecs()
 	return queryRows{
 		count: len(items),
@@ -353,7 +353,7 @@ func (l *List) queryRows(items []ListItem) queryRows {
 	}
 }
 
-func (l *List) sortedRows(items []ListItem) []ListItem {
+func (l *Collection) sortedRows(items []ListItem) []ListItem {
 	if len(l.vs.Sort) == 0 || !l.canSort() {
 		return items
 	}
@@ -400,7 +400,7 @@ func (t *Tree) sortedNodes() []TreeNode {
 	return out
 }
 
-func (l *List) sortBy(by string) error {
+func (l *Collection) sortBy(by string) error {
 	var keys []SortKey
 	if strings.TrimSpace(by) != "" {
 		for _, word := range strings.Split(by, ",") {
@@ -413,7 +413,7 @@ func (l *List) sortBy(by string) error {
 	return l.SetSort(keys)
 }
 
-func (l *List) cycleSort(field string, desc *bool) error {
+func (l *Collection) cycleSort(field string, desc *bool) error {
 	if desc != nil {
 		return l.SetSort([]SortKey{{Field: field, Desc: *desc}})
 	}
@@ -426,7 +426,7 @@ func (l *List) cycleSort(field string, desc *bool) error {
 	return l.SetSort([]SortKey{{Field: field}})
 }
 
-func (l *List) sortColumn(desc *bool, pick bool) error {
+func (l *Collection) sortColumn(desc *bool, pick bool) error {
 	specs := l.sortSpecs()
 	if !pick && l.cellSelect && l.col >= 0 && l.col < len(l.columns) {
 		name := l.sortColumnField(l.columns[l.col].Title)
@@ -447,7 +447,7 @@ func (l *List) sortColumn(desc *bool, pick bool) error {
 	return err
 }
 
-func (l *List) sortColumnField(title string) string {
+func (l *Collection) sortColumnField(title string) string {
 	name := columnField(title)
 	if main, err := l.r.filterPropName(l.rowNouns(), name); err == nil {
 		return main
@@ -455,7 +455,7 @@ func (l *List) sortColumnField(title string) string {
 	return name
 }
 
-func (l *List) sortTitle(col Column) string {
+func (l *Collection) sortTitle(col Column) string {
 	title := col.Title
 	if !l.r.Settings().Bool(ListSortIndicatorSetting) || !l.canSort() {
 		return title
@@ -476,7 +476,7 @@ func (l *List) sortTitle(col Column) string {
 }
 
 func registerListSort(r *Runtime) {
-	resolve := func(focus string, a Arguments) *List { return r.rowFilterList(StringArg(a, "id", focus)) }
+	resolve := func(focus string, a Arguments) *Collection { return r.rowFilterList(StringArg(a, "id", focus)) }
 	r.DefineGuard("list-sortable", func(_ *Runtime, ev KeyEvent) bool {
 		l := resolve(ev.Focus, ev.Args)
 		return l != nil && l.canSort() && (l.Sortable() || len(l.vs.Sort) > 0)
@@ -488,10 +488,10 @@ func registerListSort(r *Runtime) {
 	for _, s := range []struct {
 		verb, description, guard string
 		params                   map[string]Parameter
-		run                      func(*List, Arguments) error
+		run                      func(*Collection, Arguments) error
 	}{
-		{"sort", "Sort the view stably by comma-separated props; -field descends, empty restores app order", "list-sortable", map[string]Parameter{"by": {Type: "string"}}, func(l *List, a Arguments) error { return l.sortBy(StringArg(a, "by", "")) }},
-		{"sort-column", "Cycle the current column ascending, descending, off; in row mode choose a prop", "list-sortable", map[string]Parameter{"pick": {Type: "boolean", Description: "Always choose a field, including in cell mode"}, "desc": {Type: "boolean", Description: "Set descending or ascending explicitly; omit to cycle"}}, func(l *List, a Arguments) error {
+		{"sort", "Sort the view stably by comma-separated props; -field descends, empty restores app order", "list-sortable", map[string]Parameter{"by": {Type: "string"}}, func(l *Collection, a Arguments) error { return l.sortBy(StringArg(a, "by", "")) }},
+		{"sort-column", "Cycle the current column ascending, descending, off; in row mode choose a prop", "list-sortable", map[string]Parameter{"pick": {Type: "boolean", Description: "Always choose a field, including in cell mode"}, "desc": {Type: "boolean", Description: "Set descending or ascending explicitly; omit to cycle"}}, func(l *Collection, a Arguments) error {
 			var desc *bool
 			if v, ok := a["desc"].(bool); ok {
 				desc = &v
@@ -499,7 +499,7 @@ func registerListSort(r *Runtime) {
 			pick, _ := a["pick"].(bool)
 			return l.sortColumn(desc, pick)
 		}},
-		{"sort-clear", "Restore the app's row order, keeping filters", "", nil, func(l *List, _ Arguments) error {
+		{"sort-clear", "Restore the app's row order, keeping filters", "", nil, func(l *Collection, _ Arguments) error {
 			if len(l.vs.Sort) == 0 {
 				l.r.UI().Info("Sort already clear")
 			}

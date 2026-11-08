@@ -41,7 +41,7 @@ func (b *remoteBox) store() Store {
 		t, _ := v.(Thing)
 		return t, err
 	}
-	return Store{Kind: Collection, Remote: true, Stamps: true, Undo: true,
+	return Store{Kind: KindCollection, Remote: true, Stamps: true, Undo: true,
 		Get: func(c Ctx, id string) (Thing, error) {
 			return thing(b.call(c, "get", id, false, func() (any, error) {
 				if t, ok := b.items[id]; ok {

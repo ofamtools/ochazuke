@@ -34,11 +34,11 @@ import (
 // normal mode (no mode, the row noun's normal keys act on it).
 
 // Visual reports whether a V selection is active on the list.
-func (l *List) Visual() bool { return l.visual }
+func (l *Collection) Visual() bool { return l.visual }
 
 // StartVisual starts a visual row selection at the selected row; a list
 // without rows or one added with NoMarks refuses.
-func (l *List) StartVisual() error {
+func (l *Collection) StartVisual() error {
 	if l.noMarks {
 		return fmt.Errorf("list %s takes no marks", l.id)
 	}
@@ -59,7 +59,7 @@ func (l *List) StartVisual() error {
 
 // EndVisual ends a visual selection: the marks go back to the ones it
 // started over.
-func (l *List) EndVisual() {
+func (l *Collection) EndVisual() {
 	if !l.visual {
 		return
 	}
@@ -72,7 +72,7 @@ func (l *List) EndVisual() {
 // the selection there; leaving it with the focus on the list ends it. A
 // mode left for a modal opened over the selection holds it: the mode the
 // modal restores on close resumes it, anchor and marks as they were.
-func (l *List) ModeChanged(from, to string) {
+func (l *Collection) ModeChanged(from, to string) {
 	line := l.r.SelectionShape(to) == SelectionLine
 	switch {
 	case line && !l.visual && l.Focused():
@@ -86,7 +86,7 @@ func (l *List) ModeChanged(from, to string) {
 // the mode goes back to normal while the focus is on the list, and a modal
 // still open over the selection when it ends (a chooser that stays after
 // its pick) closes onto normal rather than resuming it.
-func (r *Runtime) endSelection(l *List) {
+func (r *Runtime) endSelection(l *Collection) {
 	l.EndVisual()
 	normal := func(m ModeState) bool { return r.SelectionShape(m.Name) != SelectionLine }
 	r.repairModalReturns(func(_ string, ret ModalReturnState) (ModalReturnState, bool) {
@@ -104,7 +104,7 @@ func (r *Runtime) endSelection(l *List) {
 // afterVisualAction is what a verb run over l's visual selection leaves:
 // the selection ended (visual.after-action end, the default, as in Vim)
 // or kept over the rows still shown (keep).
-func (r *Runtime) afterVisualAction(l *List) {
+func (r *Runtime) afterVisualAction(l *Collection) {
 	if r.visualKeeps() {
 		l.syncVisual()
 		return
@@ -116,7 +116,7 @@ func (r *Runtime) afterVisualAction(l *List) {
 // over l's visual selection (visual: one was on when it started; opened:
 // the modals open then): afterVisualAction now, or at the answer of a
 // modal the run asked through (untilAccepted).
-func (r *Runtime) afterVisualRun(l *List, visual bool, opened []string) {
+func (r *Runtime) afterVisualRun(l *Collection, visual bool, opened []string) {
 	if visual && l.visual && !r.untilAccepted(l, opened) {
 		r.afterVisualAction(l)
 	}
@@ -126,7 +126,7 @@ func (r *Runtime) afterVisualRun(l *List, visual bool, opened []string) {
 // (afterVisualAction) to the answer of a modal the run opened over it,
 // one not in before: the top such modal that says when it is accepted
 // (Instance.accepts). It reports whether one took it.
-func (r *Runtime) untilAccepted(l *List, before []string) bool {
+func (r *Runtime) untilAccepted(l *Collection, before []string) bool {
 	for _, id := range slices.Backward(r.modals) {
 		if slices.Contains(before, id) {
 			return false
@@ -181,7 +181,7 @@ func (r *Runtime) visualKeeps() bool {
 // marked rows shown, else the selected row) whose noun has the verb and
 // where the verb is available, judged as things are now, a visual
 // selection still on.
-func (l *List) applicable(verb string, args Arguments) bool {
+func (l *Collection) applicable(verb string, args Arguments) bool {
 	rows := l.markedShown()
 	if len(rows) == 0 {
 		if selected, ok := l.Selected(); ok {
@@ -200,7 +200,7 @@ func (l *List) applicable(verb string, args Arguments) bool {
 // syncVisual redraws the selection into the marks: the marks V found plus
 // the shown rows between the anchor and the selection. An anchor the
 // filter hides or SetItems removed moves to the selected row.
-func (l *List) syncVisual() {
+func (l *Collection) syncVisual() {
 	if !l.visual || l.selected < 0 {
 		return
 	}
@@ -227,7 +227,7 @@ func (l *List) syncVisual() {
 // many (Operation.Many) runs once for all of them, any other once per row
 // (Runtime.eachSubject). A verb with a confirm opens one confirm for every
 // row first; its y runs list.apply again, confirmed.
-func (l *List) apply(c Context, a Arguments) (any, error) {
+func (l *Collection) apply(c Context, a Arguments) (any, error) {
 	r := l.r
 	rows := l.markedShown()
 	if len(rows) == 0 {
@@ -393,7 +393,7 @@ func registerListVisual(r *Runtime) {
 	// list-applies: list.apply's, a row it would act on takes the verb
 	// (List.applicable), so d over rows without a delete passes the key on.
 	r.DefineGuard("list-applies", func(r *Runtime, ev KeyEvent) bool {
-		var l *List
+		var l *Collection
 		if id := StringArg(ev.Args, "id", ""); id != "" {
 			l = r.List(id)
 		} else {
@@ -413,7 +413,7 @@ func registerListVisual(r *Runtime) {
 	})
 	r.Nouns["ochazuke.list"].Guards["apply"] = "list-applies"
 	visual := func(c Context, a Arguments) (any, error) {
-		var l *List
+		var l *Collection
 		if id := StringArg(a, "id", ""); id != "" {
 			l = r.List(id)
 		} else if c.InputID == "" {

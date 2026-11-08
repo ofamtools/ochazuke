@@ -278,7 +278,7 @@ func registerViewScroll(r *Runtime) {
 
 // CanScrollLines reports whether the list windowed its rows in the last
 // frame (more rows than its window).
-func (l *List) CanScrollLines() bool {
+func (l *Collection) CanScrollLines() bool {
 	return l.windowed && l.window > 0 && len(l.items) > l.window
 }
 
@@ -286,7 +286,7 @@ func (l *List) CanScrollLines() bool {
 // selection unless it would leave the window's scrolloff margin; then it
 // moves to the nearest row inside (relaxed at the first and last row, as
 // windowOffset is). It never spills.
-func (l *List) ScrollLines(lines int) {
+func (l *Collection) ScrollLines(lines int) {
 	if !l.CanScrollLines() || l.selected < 0 {
 		return
 	}
@@ -310,7 +310,7 @@ func (l *List) ScrollLines(lines int) {
 
 // MotionEdges is first and last while the list has rows, and the column
 // edges on a cell-mode table (CursorMotions).
-func (l *List) MotionEdges() []SpillEdge {
+func (l *Collection) MotionEdges() []SpillEdge {
 	if l.selected < 0 || len(l.items) == 0 {
 		return nil
 	}
@@ -322,7 +322,7 @@ func (l *List) MotionEdges() []SpillEdge {
 
 // MoveToEdge is list.goto for the row edges and list.column {to} for the
 // column edges (CursorMotions).
-func (l *List) MoveToEdge(edge SpillEdge, row int) {
+func (l *Collection) MoveToEdge(edge SpillEdge, row int) {
 	switch {
 	case row > 0:
 		l.goTo(row - 1)
@@ -338,7 +338,7 @@ func (l *List) MoveToEdge(edge SpillEdge, row int) {
 }
 
 // PageLines is the list's page (CursorMotions), as list.scroll's.
-func (l *List) PageLines() int {
+func (l *Collection) PageLines() int {
 	if l.selected < 0 {
 		return 0
 	}
@@ -346,4 +346,4 @@ func (l *List) PageLines() int {
 }
 
 // MovePage is list.scroll by lines rows (CursorMotions).
-func (l *List) MovePage(lines int) { l.page(lines) }
+func (l *Collection) MovePage(lines int) { l.page(lines) }

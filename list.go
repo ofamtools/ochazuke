@@ -57,7 +57,7 @@ type ListItem struct {
 
 // List owns flat selection, marks and scrolling on the runtime's event loop.
 // Focus sits on the selected row when there is one, else on the list.
-type List struct {
+type Collection struct {
 	// UnfocusedSelection decides whether an unfocused page list marks its
 	// selected row. Nil keeps the mark. It never changes selection or focus;
 	// focused lists always mark their row, and unfocused modal lists do not.
@@ -120,7 +120,7 @@ type List struct {
 	filterFocus   string
 	// onFilter, when set (OnFilter), hears every change of the filter
 	// (text query, prop conditions, saved filter): a host that draws something by the list's matches follows it.
-	onFilter func(*List)
+	onFilter func(*Collection)
 	// placeholder is what the list draws with no rows (SetPlaceholder;
 	// SetMatchNoun sets its Plural): "no settings match 'path'".
 	placeholder Placeholder
@@ -147,7 +147,7 @@ type List struct {
 }
 
 // NewList is AddList for callers that hold the runtime as a value.
-func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*List, error) {
+func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*Collection, error) {
 	return r.AddList(id, items, opts...)
 }
 
@@ -159,7 +159,7 @@ func NewList(r *Runtime, id string, items []ListItem, opts ...InstanceOption) (*
 // filter enter chooses a row and clears, Columns(...) for a table, and
 // CellSelect() for a table with a current column (table_cells.go), and
 // NoSort() when a source owns the order of partial or virtualized rows.
-func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (*List, error) {
+func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (*Collection, error) {
 	if id == "" {
 		return nil, errors.New("list ID must be nonempty")
 	}
@@ -186,7 +186,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 			spec.columns = src.Columns
 		}
 	}
-	list := &List{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect, noSort: spec.noSort, declaredNoun: spec.rowNoun, from: spec.from}
+	list := &Collection{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect, noSort: spec.noSort, declaredNoun: spec.rowNoun, from: spec.from}
 	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
 	r.Instances[id].Component = list
 	var err error
@@ -209,7 +209,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 // of rows that disappear; a retained row keeps its instance and any bindings
 // the application put on it. Rows whose cells are unchanged keep a table's
 // measured widths. A record-level change is Patch.
-func (l *List) SetItems(items []ListItem) error {
+func (l *Collection) SetItems(items []ListItem) error {
 	ids := make(map[string]bool, len(items))
 	for _, item := range items {
 		if item.ID == "" || ids[item.ID] {
@@ -275,7 +275,7 @@ func (l *List) SetItems(items []ListItem) error {
 // hides included. Cells and Tones are copies too, so editing a returned
 // row in place changes nothing until SetItems, which re-measures it;
 // Data is the application's value, shared as given.
-func (l *List) Items() []ListItem { return cloneItems(l.all) }
+func (l *Collection) Items() []ListItem { return cloneItems(l.all) }
 
 // cloneItems copies rows with their own Cells, Tones and Classes (one backing
 // array each for all cells and tones): the list and its callers never share a slice, so
@@ -317,10 +317,10 @@ func cloneItem(it ListItem) ListItem {
 
 // Len is the number of rows, the ones a filter hides included (Shown
 // counts the rest).
-func (l *List) Len() int { return len(l.all) - l.archived }
+func (l *Collection) Len() int { return len(l.all) - l.archived }
 
 // Selected returns a value copy; empty lists have no selected item.
-func (l *List) Selected() (ListItem, bool) {
+func (l *Collection) Selected() (ListItem, bool) {
 	if l.selected < 0 {
 		return ListItem{}, false
 	}
@@ -328,7 +328,7 @@ func (l *List) Selected() (ListItem, bool) {
 }
 
 // Move clamps at either end and does not take focus from another component.
-func (l *List) Move(delta int) {
+func (l *Collection) Move(delta int) {
 	if l.selected < 0 {
 		return
 	}
@@ -349,7 +349,7 @@ func (l *List) Move(delta int) {
 // the move clamps, for a list that opted out (NoSpill), a list not holding
 // the focus, one in a modal, and at the page's first and last stop: motions
 // never wrap.
-func (l *List) spill(delta int) bool {
+func (l *Collection) spill(delta int) bool {
 	inside := l.selected >= 0 && l.selected+delta >= 0 && l.selected+delta < len(l.items)
 	if delta == 0 || inside || l.trappedAt(rowEdge(delta)) || l.visual || !l.Focused() {
 		return false
@@ -389,7 +389,7 @@ const ListNoSpillSetting = "list.no-spill"
 // edge, a timeline's last step) and the availability of the motions at a
 // trapped edge (list-moves, list-column-moves, timeline-step-moves) ask
 // it.
-func (l *List) trappedAt(edge SpillEdge) bool {
+func (l *Collection) trappedAt(edge SpillEdge) bool {
 	if l.noSpill {
 		return true
 	}
@@ -406,7 +406,7 @@ func (l *List) trappedAt(edge SpillEdge) bool {
 // a holder that answers h and l itself (edgeYielder) keeps them from the
 // list's edge rows.
 type listHolder interface {
-	holdsList(l *List) bool
+	holdsList(l *Collection) bool
 }
 
 // edgeYielder is a list holder whose own h/l verbs answer before its
@@ -419,7 +419,7 @@ type edgeYielder interface {
 
 // holder is the instance whose component declares l its child list
 // (listHolder), nil when none does.
-func (l *List) holder() *Instance {
+func (l *Collection) holder() *Instance {
 	inst := l.r.Instances[l.id]
 	if inst == nil || inst.Parent == "" {
 		return nil
@@ -458,7 +458,7 @@ func (r *Runtime) noSpillNames(edge SpillEdge, ids ...string) bool {
 // spill: the selection is on the edge delta leaves by, and (for a list
 // whose motion is a component's own, a timeline's cards) the component
 // has nothing left to show on that side.
-func (l *List) atRowEdge(delta int) bool {
+func (l *Collection) atRowEdge(delta int) bool {
 	if delta == 0 || l.selected < 0 {
 		return false
 	}
@@ -474,7 +474,7 @@ func (l *List) atRowEdge(delta int) bool {
 // page's first or last stop (motions never wrap). j and k spill into it
 // (spill); h and l at a table's column edge move the focus to it
 // (table-spills-left/right, table_columns.go).
-func (l *List) neighbour(step int) (string, bool) {
+func (l *Collection) neighbour(step int) (string, bool) {
 	root := l.r.focusRoot()
 	if l.r.PageOf(root) == nil {
 		return "", false
@@ -489,7 +489,7 @@ func (l *List) neighbour(step int) (string, bool) {
 
 // Select changes the selected row by stable ID without taking focus. A
 // row the filter hides is shown by clearing the filter.
-func (l *List) Select(id string) error {
+func (l *Collection) Select(id string) error {
 	l.reveal(id)
 	for i, item := range l.items {
 		if item.ID == id {
@@ -503,7 +503,7 @@ func (l *List) Select(id string) error {
 // selectID selects the row with id without touching the focus: the
 // runtime calls it when the focus lands on the row (a row the filter
 // hides clears the filter). An unknown id is ignored.
-func (l *List) selectID(id string) {
+func (l *Collection) selectID(id string) {
 	at := func(item ListItem) bool { return item.ID == id }
 	i := slices.IndexFunc(l.items, at)
 	if i < 0 {
@@ -518,7 +518,7 @@ func (l *List) selectID(id string) {
 
 // ToggleMark marks or unmarks a row for fan-out verbs; a list added with
 // NoMarks refuses.
-func (l *List) ToggleMark(id string) error {
+func (l *Collection) ToggleMark(id string) error {
 	if l.noMarks {
 		return fmt.Errorf("list %s takes no marks", l.id)
 	}
@@ -540,13 +540,13 @@ func (l *List) ToggleMark(id string) error {
 
 // Marked lists the marked rows in list order, the ones a filter hides
 // included (a mark survives the filter).
-func (l *List) Marked() []ListItem { return l.markedIn(l.all) }
+func (l *Collection) Marked() []ListItem { return l.markedIn(l.all) }
 
 // markedShown lists the marked rows the filter shows: what list.apply
 // fans out to, so a key acts on the rows on screen.
-func (l *List) markedShown() []ListItem { return l.markedIn(l.items) }
+func (l *Collection) markedShown() []ListItem { return l.markedIn(l.items) }
 
-func (l *List) markedIn(rows []ListItem) []ListItem {
+func (l *Collection) markedIn(rows []ListItem) []ListItem {
 	if len(l.marks) == 0 {
 		return nil
 	}
@@ -560,28 +560,28 @@ func (l *List) markedIn(rows []ListItem) []ListItem {
 }
 
 // Focus points the active frame at the list's selected row, or the list.
-func (l *List) Focus() error { return l.r.SetFocus(l.focusTarget()) }
+func (l *Collection) Focus() error { return l.r.SetFocus(l.focusTarget()) }
 
 // Focused derives focus from the active frame instead of retaining a stale flag.
 // It is the live read, for dispatch and domain code; drawing reads
 // DrawnFocused.
-func (l *List) Focused() bool { return l.holds(l.r.Focus) }
+func (l *Collection) Focused() bool { return l.holds(l.r.Focus) }
 
 // DrawnFocused reports whether the list holds the focus its surface is
 // drawn with (Runtime.DrawnFocus): live on the top surface, else the focus
 // the modal above saved, so a page list beneath a modal keeps the
 // highlight it had when the modal opened. Highlights, faded rows and
 // focused styles read it; motions and handlers read Focused.
-func (l *List) DrawnFocused() bool { return l.holds(l.r.DrawnFocus(l.id)) }
+func (l *Collection) DrawnFocused() bool { return l.holds(l.r.DrawnFocus(l.id)) }
 
-func (l *List) holds(focus string) bool {
+func (l *Collection) holds(focus string) bool {
 	return focus == l.id || l.r.rows[focus] == l.id || l.part != "" && focus == l.part
 }
 
 // FocusTarget is where a focus jump to the list lands: its selected row.
-func (l *List) FocusTarget() string { return l.focusTarget() }
+func (l *Collection) FocusTarget() string { return l.focusTarget() }
 
-func (l *List) focusTarget() string {
+func (l *Collection) focusTarget() string {
 	if l.selected >= 0 {
 		return l.items[l.selected].ID
 	}
@@ -591,7 +591,7 @@ func (l *List) focusTarget() string {
 // syncFocus moves every focus reference that pointed at this list or one of
 // its rows to the current row, so hidden pages and modal returns restore
 // the live selection rather than a removed row's bindings.
-func (l *List) syncFocus(previous ListItem, gone map[string]bool) {
+func (l *Collection) syncFocus(previous ListItem, gone map[string]bool) {
 	current, _ := l.Selected()
 	if l.Focused() && (previous.ID != current.ID || previous.Noun != current.Noun) {
 		l.r.CancelPendingBinding()
@@ -610,7 +610,7 @@ func (l *List) syncFocus(previous ListItem, gone map[string]bool) {
 
 // Snapshot is the list's state with a copy of its rows (the snapshot's
 // /lists entry); changing it never reaches the list.
-func (l *List) Snapshot() map[string]any {
+func (l *Collection) Snapshot() map[string]any {
 	out := l.state()
 	out["items"] = slices.Clone(l.items)
 	return out
@@ -624,7 +624,7 @@ func (l *List) Snapshot() map[string]any {
 // replaces whole and never edits in place, so a keypress on a list of many
 // rows copies none of them. A verb's result is read, never written: the
 // CLI and the API encode it, a key drops it.
-func (l *List) state() map[string]any {
+func (l *Collection) state() map[string]any {
 	selected, _ := l.Selected()
 	marked := make([]string, 0, len(l.marks))
 	if len(l.marks) > 0 {
@@ -665,7 +665,7 @@ func (l *List) state() map[string]any {
 // visible; a list with columns draws as a table (tableView). Calling it places the list in its page's drawing order (Placed),
 // even at zero height, and reports its selected row's line (PlacedAt) so
 // the page scrolls to keep that row on screen.
-func (l *List) View(width, height int) string {
+func (l *Collection) View(width, height int) string {
 	if t := l.tree(); t != nil && t.guidesShown != t.guidesEnabled() {
 		t.guideRows()
 	}
@@ -711,14 +711,14 @@ func (l *List) View(width, height int) string {
 // host (List.UnfocusedSelection) or the user (unfocused-selection hide)
 // suppress its remembered cursor without changing selection or focus.
 // Unfocused modal lists stay plain. It reads the drawn focus.
-func (l *List) marksSelection() bool {
+func (l *Collection) marksSelection() bool {
 	return l.DrawnFocused() || l.onPage() && (l.UnfocusedSelection == nil || l.UnfocusedSelection()) && l.r.Settings().String(UnfocusedSelectionSetting) != "hide"
 }
 
 // faded reports whether View fades the list (dim-unfocused): a page list
 // without the drawn focus, unless it is a tree's list and the focus is the line
 // the tree is editing, which is typing into this list.
-func (l *List) faded() bool {
+func (l *Collection) faded() bool {
 	focus := l.r.DrawnFocus(l.id)
 	if l.holds(focus) || !l.onPage() {
 		return false
@@ -734,7 +734,7 @@ func (l *List) faded() bool {
 // bar is the selected row's bar for a frame (Styles.selectionBar): nil
 // for the plain reverse bar, else the dimmed bar of a list without the
 // focus (dim-unfocused-selection).
-func (l *List) bar(faded bool) ansi.Style {
+func (l *Collection) bar(faded bool) ansi.Style {
 	styles := l.r.Settings().page.styles
 	if !faded || styles == nil {
 		return nil
@@ -754,7 +754,7 @@ func barRow(row string, bar ansi.Style) string {
 
 // onPage reports whether the list sits on a page rather than in a modal:
 // the first page or open modal among its ancestors decides.
-func (l *List) onPage() bool {
+func (l *Collection) onPage() bool {
 	for id := l.id; id != ""; {
 		if slices.Contains(l.r.modals, id) {
 			return false
@@ -774,7 +774,7 @@ func (l *List) onPage() bool {
 // rowsView is View for a list without columns: the rows in the list's
 // window and the "x–y / n" line when they overflow, with the line of the
 // selected row (else 0 and the whole height) the page keeps on screen.
-func (l *List) rowsView(width, height int) (string, int, int) {
+func (l *Collection) rowsView(width, height int) (string, int, int) {
 	l.selLine = -1
 	if len(l.items) == 0 {
 		return strings.Join(layoutRows(l.emptyLine(), width, height), "\n"), 0, height
@@ -844,7 +844,7 @@ func (l *List) rowsView(width, height int) (string, int, int) {
 
 // labelSegs places a plain list row's cell-0 tones on its label, after the
 // mark gutter; none without styles to draw them.
-func (l *List) labelSegs(toned *Styles, item ListItem, text string, drawn int, gutter bool) []toneSeg {
+func (l *Collection) labelSegs(toned *Styles, item ListItem, text string, drawn int, gutter bool) []toneSeg {
 	if toned == nil {
 		return nil
 	}
@@ -860,7 +860,7 @@ func (l *List) labelSegs(toned *Styles, item ListItem, text string, drawn int, g
 // all, else the no-match line of the filter that hid every row. It is in
 // reverse video while the list has the focus, so a spill into it shows
 // where the next key lands (one thing stands out, UX review 2 F5).
-func (l *List) emptyLine() string {
+func (l *Collection) emptyLine() string {
 	p := l.placeholder
 	text := p.Text(l.r)
 	if l.Len() > 0 {
@@ -877,7 +877,7 @@ func (l *List) emptyLine() string {
 
 // scrolloff is the margin the list keeps around its selected row inside
 // its own window: the open page's (Page.Scrolloff), else the default 2.
-func (l *List) scrolloff() int {
+func (l *Collection) scrolloff() int {
 	if page := l.r.PageOf(l.r.Page); page != nil {
 		return page.scrolloff()
 	}
@@ -907,7 +907,7 @@ func registerLists(r *Runtime) {
 		}
 		return true
 	})
-	resolve := func(c Context, args Arguments) (*List, error) {
+	resolve := func(c Context, args Arguments) (*Collection, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if list := r.List(id); list != nil {
 				return list, nil
@@ -923,7 +923,7 @@ func registerLists(r *Runtime) {
 	}
 	// rowOf names the row an operation addresses: args.item, else the row on
 	// the context, else the selection.
-	rowOf := func(l *List, c Context, args Arguments) (string, error) {
+	rowOf := func(l *Collection, c Context, args Arguments) (string, error) {
 		if item := StringArg(args, "item", ""); item != "" {
 			return item, nil
 		}
@@ -938,11 +938,11 @@ func registerLists(r *Runtime) {
 	for _, spec := range []struct {
 		verb, description string
 		parameters        map[string]Parameter
-		run               func(*List, Context, Arguments) (any, error)
+		run               func(*Collection, Context, Arguments) (any, error)
 		traits            []opTrait
 	}{
-		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.list", Free: true}}, func(l *List, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }, nil},
-		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}, "clamp": {Type: "boolean", Description: "Stop at the list's edges instead of spilling (the filter line's moves)"}}, func(l *List, _ Context, a Arguments) (any, error) {
+		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.list", Free: true}}, func(l *Collection, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }, nil},
+		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}, "clamp": {Type: "boolean", Description: "Stop at the list's edges instead of spilling (the filter line's moves)"}}, func(l *Collection, _ Context, a Arguments) (any, error) {
 			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
 			if clamp, _ := a["clamp"].(bool); !clamp && l.motion != nil && !l.visual {
 				l.motion(delta, steps)
@@ -959,17 +959,17 @@ func registerLists(r *Runtime) {
 			}
 			return l.state(), nil
 		}, []opTrait{asMotion, asHistory(HistoryAction)}},
-		{"select", "Select a list item by stable ID without stealing focus", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "item": {Type: "string", Required: true}}, func(l *List, _ Context, a Arguments) (any, error) {
+		{"select", "Select a list item by stable ID without stealing focus", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "item": {Type: "string", Required: true}}, func(l *Collection, _ Context, a Arguments) (any, error) {
 			return l.state(), l.Select(StringArg(a, "item", ""))
 		}, nil},
-		{"mark", "Toggle the mark on a row (the selected row by default) for fan-out verbs", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "item": {Plumbing: true, Type: "string"}}, func(l *List, c Context, a Arguments) (any, error) {
+		{"mark", "Toggle the mark on a row (the selected row by default) for fan-out verbs", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "item": {Plumbing: true, Type: "string"}}, func(l *Collection, c Context, a Arguments) (any, error) {
 			id, err := rowOf(l, c, a)
 			if err != nil {
 				return nil, err
 			}
 			return l.state(), l.ToggleMark(id)
 		}, nil},
-		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), the rows its subjects: a verb that takes many runs once for all of them, any other once per row; rows whose noun lacks the verb are skipped and reported; a verb with a confirm asks once for all the rows; available when a row it would act on has the verb and the verb is available there (read while a visual selection still holds); over a visual selection (V) the selection then ends or stays as visual.after-action says", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "verb": {Type: "string", Required: true, Forwards: true}, "args": {Plumbing: true, Type: "object", Description: "Arguments every row's request carries"}, "confirmed": {Plumbing: true, Type: "boolean", Description: "The rows' confirm was answered (the confirm modal sets it)"}}, func(l *List, c Context, a Arguments) (any, error) {
+		{"apply", "Run <row noun>.verb for every marked row the filter shows (the selected row when none is), the rows its subjects: a verb that takes many runs once for all of them, any other once per row; rows whose noun lacks the verb are skipped and reported; a verb with a confirm asks once for all the rows; available when a row it would act on has the verb and the verb is available there (read while a visual selection still holds); over a visual selection (V) the selection then ends or stays as visual.after-action says", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "verb": {Type: "string", Required: true, Forwards: true}, "args": {Plumbing: true, Type: "object", Description: "Arguments every row's request carries"}, "confirmed": {Plumbing: true, Type: "boolean", Description: "The rows' confirm was answered (the confirm modal sets it)"}}, func(l *Collection, c Context, a Arguments) (any, error) {
 			return l.apply(c, a)
 		}, nil},
 	} {
@@ -997,7 +997,7 @@ func registerLists(r *Runtime) {
 			return true
 		}
 		delta := IntArg(ev.Args, "delta", 0)
-		var l *List
+		var l *Collection
 		if id := StringArg(ev.Args, "id", ""); id != "" {
 			l = r.List(id)
 		} else {

@@ -141,7 +141,7 @@ func TestRemoveInstanceFixesFocusAndClosesComponents(t *testing.T) {
 
 // jumpFixture: page > [left (region) > [sidebar (list), note (input)],
 // status (plain), right (region) > [items (list)]].
-func jumpFixture(t *testing.T) (*Runtime, *List, *List) {
+func jumpFixture(t *testing.T) (*Runtime, *Collection, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Define("panel").Region()

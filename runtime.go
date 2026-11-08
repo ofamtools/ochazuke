@@ -882,7 +882,7 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 func (r *Runtime) Input(id string) *Input { return componentAt[*Input](r, id) }
 
 // List returns the list an instance fronts, or nil.
-func (r *Runtime) List(id string) *List { return componentAt[*List](r, id) }
+func (r *Runtime) List(id string) *Collection { return componentAt[*Collection](r, id) }
 
 // Inputs lists the registered inputs in registration order.
 func (r *Runtime) Inputs() []*Input {
@@ -896,10 +896,10 @@ func (r *Runtime) Inputs() []*Input {
 }
 
 // Lists lists the registered lists in registration order.
-func (r *Runtime) Lists() []*List {
-	var out []*List
+func (r *Runtime) Lists() []*Collection {
+	var out []*Collection
 	for _, inst := range r.instancesInOrder() {
-		if list, ok := inst.Component.(*List); ok {
+		if list, ok := inst.Component.(*Collection); ok {
 			out = append(out, list)
 		}
 	}

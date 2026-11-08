@@ -121,17 +121,17 @@ func (f *filterLinger) fired(msg tea.Msg) bool {
 	return true
 }
 
-func (l *List) filterController() *List    { return l }
-func (c *Chooser) filterController() *List { return c.filters }
+func (l *Collection) filterController() *Collection { return l }
+func (c *Chooser) filterController() *Collection    { return c.filters }
 
-func (l *List) filterNow() time.Time {
+func (l *Collection) filterNow() time.Time {
 	if now := l.r.UI().Now; now != nil {
 		return now()
 	}
 	return time.Now()
 }
 
-func (l *List) lingerRows(matches []ListItem) []ListItem {
+func (l *Collection) lingerRows(matches []ListItem) []ListItem {
 	if !l.Filtering() || l.r.Settings().Duration(ListFilterLingerSetting) <= 0 {
 		l.linger.reset()
 		return matches
@@ -155,10 +155,10 @@ func (l *List) lingerRows(matches []ListItem) []ListItem {
 }
 
 // Lingering reports whether id is retained only until its filter deadline.
-func (l *List) Lingering(id string) bool { _, ok := l.linger.leaving[id]; return ok }
+func (l *Collection) Lingering(id string) bool { _, ok := l.linger.leaving[id]; return ok }
 
 // FlushLingering removes all leaving rows immediately, keeping the filter.
-func (l *List) FlushLingering() {
+func (l *Collection) FlushLingering() {
 	l.linger.reset()
 	if l.filterChanged != nil {
 		l.filterChanged()
@@ -170,7 +170,7 @@ func (l *List) FlushLingering() {
 	l.syncFocus(previous, nil)
 }
 
-func (l *List) HandleMessage(msg tea.Msg) bool {
+func (l *Collection) HandleMessage(msg tea.Msg) bool {
 	if !l.linger.fired(msg) {
 		return false
 	}
@@ -185,15 +185,15 @@ func (l *List) HandleMessage(msg tea.Msg) bool {
 	return true
 }
 
-func (l *List) PendingCommand() tea.Cmd {
+func (l *Collection) PendingCommand() tea.Cmd {
 	if len(l.linger.leaving) > 0 && l.r.Settings().Duration(ListFilterLingerSetting) <= 0 {
 		l.FlushLingering()
 	}
 	return l.linger.command(l.filterNow())
 }
-func (l *List) Close() { l.linger.reset() }
+func (l *Collection) Close() { l.linger.reset() }
 
-func (l *List) rowGutter(id string) string {
+func (l *Collection) rowGutter(id string) string {
 	mark := " "
 	if l.marks[id] {
 		mark = "*"
@@ -207,9 +207,9 @@ func (l *List) rowGutter(id string) string {
 	return mark + " "
 }
 
-func (l *List) hasGutter() bool { return len(l.marks) > 0 || len(l.linger.leaving) > 0 }
+func (l *Collection) hasGutter() bool { return len(l.marks) > 0 || len(l.linger.leaving) > 0 }
 
-func (l *List) rowTones(item ListItem) []ToneSpan {
+func (l *Collection) rowTones(item ListItem) []ToneSpan {
 	if !l.Lingering(item.ID) {
 		return item.Tones
 	}

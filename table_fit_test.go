@@ -14,7 +14,7 @@ import (
 // fitTable is a table whose note column holds one 40-cell cell and is
 // capped at 12 by Max, so the automatic layout cuts it, and whose size
 // column is narrow; stateDir as in cellTable.
-func fitTable(t *testing.T, width int, stateDir string, opts ...InstanceOption) (*Runtime, *Model, *List) {
+func fitTable(t *testing.T, width int, stateDir string, opts ...InstanceOption) (*Runtime, *Model, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().StateDir = stateDir
@@ -30,7 +30,7 @@ func fitTable(t *testing.T, width int, stateDir string, opts ...InstanceOption) 
 		}
 		items = append(items, ListItem{ID: id, Label: id, Noun: "row", Cells: []string{id, note, "7", "file-of-kind-" + id}})
 	}
-	var l *List
+	var l *Collection
 	if _, err := r.AddPage("p", "P", func(_ *Runtime, w, _ int) Block { return Text(l.View(w, 12)) }); err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func fitTable(t *testing.T, width int, stateDir string, opts ...InstanceOption) 
 }
 
 // drawnMap is the widths the last frame drew, by column.
-func drawnMap(l *List) map[int]int {
+func drawnMap(l *Collection) map[int]int {
 	out := map[int]int{}
 	for j, i := range l.drawn {
 		out[i] = l.drawnWidths[j]

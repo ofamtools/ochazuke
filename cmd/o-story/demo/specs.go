@@ -197,7 +197,7 @@ type ListSpec struct {
 	// on it puts the runtime in that mode.
 	Pin string `json:"pin,omitempty"`
 	// Placeholder is what the list draws with no rows
-	// (ochazuke.List.SetPlaceholder).
+	// (ochazuke.Collection.SetPlaceholder).
 	Placeholder *ochazuke.Placeholder `json:"placeholder,omitempty"`
 }
 

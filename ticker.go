@@ -296,7 +296,7 @@ func (m *Model) JobLingerTick() (JobLingerMsg, bool) {
 	}
 	tick := JobLingerMsg{At: at}
 	for _, inst := range m.Runtime.components() {
-		if view, ok := inst.Component.(interface{ filterController() *List }); ok {
+		if view, ok := inst.Component.(interface{ filterController() *Collection }); ok {
 			f := &view.filterController().linger
 			if !f.tickAt.IsZero() && (tick.At.IsZero() || f.tickAt.Before(tick.At)) {
 				tick = JobLingerMsg{At: f.tickAt, filter: f, epoch: f.epoch}

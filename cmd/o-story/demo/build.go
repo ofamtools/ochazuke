@@ -49,7 +49,7 @@ type session struct {
 	filesDir string
 
 	pages map[string]*Page
-	lists map[string]*ochazuke.List
+	lists map[string]*ochazuke.Collection
 	trees map[string]*ochazuke.Tree
 	// records are the page-drawn record editors by id.
 	records map[string]*ochazuke.RecordEditor
@@ -111,7 +111,7 @@ func build(env monogatari.Env) (monogatari.Built, error) {
 		return monogatari.Built{}, err
 	}
 	m.Title = "o-story"
-	ss := &session{env: env, R: r, M: m, all: pages, filesDir: env.FilesDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.List{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, hidden: map[string]bool{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	ss := &session{env: env, R: r, M: m, all: pages, filesDir: env.FilesDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.Collection{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, hidden: map[string]bool{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	built := monogatari.Built{Model: m, Close: ss.close, Emit: ss.Emit, HasPane: ss.HasPane, Writes: func() []string { return ss.Writes }, Snapshot: ss.snapshot}
 	if err := ss.defineDemo(pages); err != nil {
 		ss.close()

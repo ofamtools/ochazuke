@@ -10,7 +10,7 @@ import (
 // lines high so it windows itself) above b (3 rows), with a NewModel so
 // the app defaults and the count rows are in place, focused on a's first
 // row and drawn once.
-func motionPage(t *testing.T) (*Runtime, *Model, *List, *List) {
+func motionPage(t *testing.T) (*Runtime, *Model, *Collection, *Collection) {
 	t.Helper()
 	r := NewRuntime()
 	m := NewModel(r)
@@ -22,7 +22,7 @@ func motionPage(t *testing.T) (*Runtime, *Model, *List, *List) {
 		}
 		return out
 	}
-	var a, b *List
+	var a, b *Collection
 	if _, err := r.AddPage("p", "P", func(_ *Runtime, w, h int) Block {
 		return Text(a.View(w, 10) + "\n" + b.View(w, 3))
 	}); err != nil {
@@ -138,7 +138,7 @@ func TestListPageRowsOfAnUnwindowedListIsThePageHeight(t *testing.T) {
 	for i := 1; i <= 60; i++ {
 		items = append(items, ListItem{ID: fmt.Sprintf("r%d", i), Label: fmt.Sprintf("r%d", i), Noun: "row"})
 	}
-	var l *List
+	var l *Collection
 	if _, err := r.AddPage("p", "P", func(_ *Runtime, w, _ int) Block { return Text(l.View(w, len(items))) }); err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +198,7 @@ func TestListMotionsYieldToTheRowNoun(t *testing.T) {
 	}
 }
 
-func (l *List) selectedID() string {
+func (l *Collection) selectedID() string {
 	item, _ := l.Selected()
 	return item.ID
 }

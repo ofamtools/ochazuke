@@ -63,21 +63,21 @@ func filterHay(item ListItem, m Matcher) string {
 // lists and trees alike, after the rows and selection follow it; nil stops it. For a host
 // that draws something by the list's matches, as the Settings page's
 // settings follow its section list's filter.
-func (l *List) OnFilter(fn func(*List)) { l.onFilter = fn }
+func (l *Collection) OnFilter(fn func(*Collection)) { l.onFilter = fn }
 
 // SetMatchNoun names the list's rows, plural (the placeholder's Plural):
 // its empty lines read "no NOUN", "no NOUN match 'QUERY'". "" names them
 // "rows".
-func (l *List) SetMatchNoun(plural string) { l.placeholder.Plural = plural }
+func (l *Collection) SetMatchNoun(plural string) { l.placeholder.Plural = plural }
 
 // SetPlaceholder sets what the list draws with no rows: its Empty and
 // Loading lines and the job that fills it (Placeholder).
-func (l *List) SetPlaceholder(p Placeholder) { l.placeholder = p }
+func (l *Collection) SetPlaceholder(p Placeholder) { l.placeholder = p }
 
 // Placeholder is what the list draws with no rows (SetPlaceholder).
-func (l *List) Placeholder() Placeholder { return l.placeholder }
+func (l *Collection) Placeholder() Placeholder { return l.placeholder }
 
-func (l *List) filterHeard() {
+func (l *Collection) filterHeard() {
 	if l.onFilter != nil {
 		l.onFilter(l)
 	}
@@ -85,7 +85,7 @@ func (l *List) filterHeard() {
 
 // MatchMode is the filter's match mode: the one search.cycle-match or
 // search.set-match chose for this list, else the search.match setting.
-func (l *List) MatchMode() string {
+func (l *Collection) MatchMode() string {
 	if l.match != "" {
 		return l.match
 	}
@@ -93,23 +93,23 @@ func (l *List) MatchMode() string {
 }
 
 // matcher is the filter query compiled in the list's match mode.
-func (l *List) matcher() Matcher { return l.r.Matcher(l.MatchMode(), l.vs.Text) }
+func (l *Collection) matcher() Matcher { return l.r.Matcher(l.MatchMode(), l.vs.Text) }
 
 // The matchSearcher contract (search_match.go): the mode decides the
 // filter while its line shows.
-func (l *List) matchMode() string  { return l.MatchMode() }
-func (l *List) matchApplies() bool { return l.vs.Text != "" || l.editingFilter() }
-func (l *List) setMatchMode(mode string) {
+func (l *Collection) matchMode() string  { return l.MatchMode() }
+func (l *Collection) matchApplies() bool { return l.vs.Text != "" || l.editingFilter() }
+func (l *Collection) setMatchMode(mode string) {
 	l.match = mode
 	l.SetFilter(l.vs.Text)
 }
 
 // Filter is the list's filter query ("" when every row is shown).
-func (l *List) Filter() string { return l.vs.Text }
+func (l *Collection) Filter() string { return l.vs.Text }
 
 // Filtering reports whether the filter line shows: a filter is set, or
 // its query is being typed on this list.
-func (l *List) Filtering() bool {
+func (l *Collection) Filtering() bool {
 	return l.vs.Text != "" || l.editingFilter() || len(l.vs.Filters) > 0 || l.vs.Saved != ""
 }
 
@@ -121,7 +121,7 @@ func (l *List) Filtering() bool {
 // below the list as the filter narrows it. A paged list is one page tall
 // (its rows, the most headings any page takes, and the page indicator), on
 // every page.
-func (l *List) Height() int {
+func (l *Collection) Height() int {
 	gaps := l.spaceLines() // blank lines above SpaceAbove rows
 	rows := l.Len()
 	if perPage := l.effectiveView().PerPage; perPage > 0 {
@@ -137,13 +137,13 @@ func (l *List) Height() int {
 }
 
 // Shown is the number of rows the filter lets through (Len without one).
-func (l *List) Shown() int { return len(l.items) }
+func (l *Collection) Shown() int { return len(l.items) }
 
 // SetFilter sets the filter query and shows the rows that match it; ""
 // shows every row. The selection stays on its row when that row still
 // shows, else it moves to the first match (none when nothing matches);
 // the focus follows it.
-func (l *List) SetFilter(query string) {
+func (l *Collection) SetFilter(query string) {
 	previous, _ := l.Selected()
 	l.linger.reset()
 	l.vs.Text = query
@@ -158,7 +158,7 @@ func (l *List) SetFilter(query string) {
 
 // refilter recomputes the shown rows from every row and the query, then
 // selects keep when it shows, else the first shown row.
-func (l *List) refilter(keep string) {
+func (l *Collection) refilter(keep string) {
 	hidden := l.archiveHidden()
 	l.archived = 0
 	for _, item := range l.all {
@@ -221,7 +221,7 @@ const ListFilterKeepsChildrenSetting = "list.filter-keeps-children"
 // children of a matched row and the parents of a matched child, so a
 // child is never seen without its parent nor a parent without its items.
 // Rows come back in list order.
-func (l *List) withKin(shown []ListItem, hidden map[string]bool) []ListItem {
+func (l *Collection) withKin(shown []ListItem, hidden map[string]bool) []ListItem {
 	if !l.r.Settings().Bool(ListFilterKeepsChildrenSetting) {
 		return shown
 	}
@@ -254,14 +254,14 @@ func (l *List) withKin(shown []ListItem, hidden map[string]bool) []ListItem {
 }
 
 // shows reports whether the row with id is among the shown rows.
-func (l *List) shows(id string) bool {
+func (l *Collection) shows(id string) bool {
 	return slices.ContainsFunc(l.items, func(item ListItem) bool { return item.ID == id })
 }
 
 // reveal clears the filter when id is a row it hides, so a command that
 // lands on that row (Select, focus.to, a job's focus) shows it. The
 // selection is the caller's to set.
-func (l *List) reveal(id string) {
+func (l *Collection) reveal(id string) {
 	if l.shows(id) || (!slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) && !l.treeHasNode(id)) {
 		return
 	}
@@ -285,7 +285,7 @@ func (l *List) reveal(id string) {
 // is ListFilterMode and the list holds the focus, as the list's surface is
 // drawn (a list beneath a modal opened while filtering keeps its filter
 // line and its matches; on the top surface it is the live state).
-func (l *List) editingFilter() bool {
+func (l *Collection) editingFilter() bool {
 	_, _, focus, mode, _ := l.r.drawnAt(l.id)
 	return mode.Name == ListFilterMode && l.holds(focus)
 }
@@ -295,7 +295,7 @@ func (l *List) editingFilter() bool {
 // the left; on the right how many rows match (or why none can: an invalid
 // regex), then the match mode's tag (search.show-match). "" when there is
 // none.
-func (l *List) filterLine(width int) string {
+func (l *Collection) filterLine(width int) string {
 	editing := l.editingFilter()
 	strip := l.propStrip()
 	sort := l.viewSummary()
@@ -347,7 +347,7 @@ func searchLine(left, right string, width int) string {
 
 // focusedList is the list whose row (or which) is the focus, or nil the focus is a list or one of its rows
 // (an input inside a list is not one).
-func (r *Runtime) focusedList(focus string) *List {
+func (r *Runtime) focusedList(focus string) *Collection {
 	if r.Input(focus) != nil {
 		return nil
 	}
@@ -364,7 +364,7 @@ func registerListFilter(r *Runtime) {
 	// Turning list.hide-archived on or off shows or hides archived rows now.
 	r.Settings().Observe(HideArchivedSetting, func(string, any) {
 		for _, inst := range r.Instances {
-			if l, ok := inst.Component.(*List); ok {
+			if l, ok := inst.Component.(*Collection); ok {
 				prev, _ := l.Selected()
 				l.refilter(prev.ID)
 				l.syncFocus(prev, nil)
@@ -401,7 +401,7 @@ func registerListFilter(r *Runtime) {
 		return l != nil && l.vs.Text == ""
 	})
 
-	resolve := func(c Context, args Arguments) (*List, error) {
+	resolve := func(c Context, args Arguments) (*Collection, error) {
 		if id := StringArg(args, "id", ""); id != "" {
 			if list := r.List(id); list != nil {
 				return list, nil
@@ -423,7 +423,7 @@ func registerListFilter(r *Runtime) {
 	// unfilter clears the filter and closes the line, selecting the row the
 	// line opened on when back is set (esc in the line), else keeping the
 	// selection on its row (esc after enter, filter-choose).
-	unfilter := func(l *List, back string) {
+	unfilter := func(l *Collection, back string) {
 		// back is cleared after the filter, so a list's OnFilter still
 		// reads the row the line opened on.
 		l.SetFilter("")
@@ -447,14 +447,14 @@ func registerListFilter(r *Runtime) {
 	for _, spec := range []struct {
 		verb, description string
 		parameters        map[string]Parameter
-		run               func(*List, Arguments) error
+		run               func(*Collection, Arguments) error
 		traits            []opTrait
 	}{
-		{"filter", "Filter the rows to those whose label or cells match query in the list's match mode (search.match; substring: every word) and case as search.case says; an empty query shows every row", with(map[string]Parameter{"query": {Type: "string", Required: true, Description: "The words every shown row holds; empty clears the filter"}}), func(l *List, a Arguments) error {
+		{"filter", "Filter the rows to those whose label or cells match query in the list's match mode (search.match; substring: every word) and case as search.case says; an empty query shows every row", with(map[string]Parameter{"query": {Type: "string", Required: true, Description: "The words every shown row holds; empty clears the filter"}}), func(l *Collection, a Arguments) error {
 			l.SetFilter(StringArg(a, "query", ""))
 			return nil
 		}, nil},
-		{"filter-open", "Open the list's filter line and type its query (" + ListFilterMode + " mode); a kept filter is edited", id, func(l *List, _ Arguments) error {
+		{"filter-open", "Open the list's filter line and type its query (" + ListFilterMode + " mode); a kept filter is edited", id, func(l *Collection, _ Arguments) error {
 			if !l.Focused() {
 				if err := l.Focus(); err != nil {
 					return err
@@ -466,27 +466,27 @@ func registerListFilter(r *Runtime) {
 			l.back = selected.ID
 			return r.SetMode(ListFilterMode)
 		}, []opTrait{asFocusBound, asHistory(HistoryAction)}},
-		{"filter-type", "Type text at the end of the filter query", with(map[string]Parameter{"text": {Type: "string", Required: true}}), func(l *List, a Arguments) error {
+		{"filter-type", "Type text at the end of the filter query", with(map[string]Parameter{"text": {Type: "string", Required: true}}), func(l *Collection, a Arguments) error {
 			l.SetFilter(l.vs.Text + StringArg(a, "text", ""))
 			return nil
 		}, nil},
-		{"filter-erase", "Erase the filter query's last character", id, func(l *List, _ Arguments) error {
+		{"filter-erase", "Erase the filter query's last character", id, func(l *Collection, _ Arguments) error {
 			if l.vs.Text != "" {
 				_, size := utf8.DecodeLastRuneInString(l.vs.Text)
 				l.SetFilter(l.vs.Text[:len(l.vs.Text)-size])
 			}
 			return nil
 		}, nil},
-		{"filter-keep", "Close the filter line keeping the filter (normal mode; / edits it again)", id, func(l *List, _ Arguments) error {
+		{"filter-keep", "Close the filter line keeping the filter (normal mode; / edits it again)", id, func(l *Collection, _ Arguments) error {
 			l.back = ""
 			leave()
 			return nil
 		}, nil},
-		{"filter-clear", "Clear the filter, put the selection back where it was when the filter line opened, and close the line", id, func(l *List, _ Arguments) error {
+		{"filter-clear", "Clear the filter, put the selection back where it was when the filter line opened, and close the line", id, func(l *Collection, _ Arguments) error {
 			unfilter(l, l.back)
 			return nil
 		}, nil},
-		{"filter-choose", "Choose the selected match: clear the filter keeping the selection on its row, and close the line (enter on a ClearFilterOnEnter list)", id, func(l *List, _ Arguments) error {
+		{"filter-choose", "Choose the selected match: clear the filter keeping the selection on its row, and close the line (enter on a ClearFilterOnEnter list)", id, func(l *Collection, _ Arguments) error {
 			unfilter(l, "")
 			return nil
 		}, nil},
