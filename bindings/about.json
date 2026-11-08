@@ -2,7 +2,7 @@
 {
   "bindings": [
     {"context": "ochazuke.about-row/normal", "bindings": [
-      {"key": "y", "action": "ochazuke.about-row.copy"},
+      {"key": "y", "action": "ochazuke.about-row.yank"},
       {"key": "enter", "action": "ochazuke.about-row.open", "when": "about-row-path"},
       {"key": "o", "action": "ochazuke.about-row.open", "when": "about-row-path", "hidden": true}
     ]},
@@ -11,7 +11,7 @@
       {"key": "[", "action": "ochazuke.setting.show-tab", "args": {"step": -1}, "when": "about-tab", "hidden": true},
       {"key": "g t", "action": "ochazuke.setting.show-tab", "args": {"step": 1}, "when": "about-tab", "hidden": true},
       {"key": "g T", "action": "ochazuke.setting.show-tab", "args": {"step": -1}, "when": "about-tab", "hidden": true},
-      {"key": "Y", "action": "ochazuke.about.copy"},
+      {"key": "Y", "action": "ochazuke.about.yank"},
       {"key": "r", "action": "ochazuke.about.refresh"},
       {"key": "q", "action": "ochazuke.about.close"},
       {"key": "esc", "action": "ochazuke.about.close"}

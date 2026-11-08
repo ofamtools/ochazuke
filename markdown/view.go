@@ -215,7 +215,7 @@ func longestRun(s string, c byte) int {
 // bindings.json, context ochazuke.markdown-view/normal).
 func registerView(r *ochazuke.Runtime) {
 	r.Define(ViewNoun).
-		Verb("copy", func(c ochazuke.Ctx) ochazuke.Result {
+		Verb("yank", func(c ochazuke.Ctx) ochazuke.Result {
 			v := viewerOf(c.Runtime)
 			if v == nil {
 				return ochazuke.Failed(errors.New("no Markdown viewer open"))

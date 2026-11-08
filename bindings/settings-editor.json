@@ -35,7 +35,7 @@
       {"key": "r", "action": "ochazuke.setting-item.reset"}
     ]},
     {"context": "ochazuke.setting-value/insert", "bindings": [
-      {"key": "enter", "action": "ochazuke.setting-value.commit"},
+      {"key": "enter", "action": "ochazuke.setting-value.accept"},
       {"key": "esc", "action": "ochazuke.modal.close"}
     ]},
     {"context": "ochazuke.settings-page/normal", "bindings": [

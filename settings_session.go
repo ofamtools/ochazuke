@@ -669,7 +669,10 @@ func registerSettingsSession(r *Runtime) {
 		}
 		return names, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.setting.diff", HistoryKind: HistoryFetch, Description: "List the settings whose session value differs from the saved one: name, saved value, session value and origin", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.setting.diff", HistoryKind: HistoryFetch, Description: "List the settings whose session value differs from the saved one: name, saved value, session value and origin; review opens them in a modal to write or revert one at a time or all at once", Parameters: map[string]Parameter{"review": {Type: "boolean", Description: "Open the review modal over the entries (a running app's session), as well as answering them"}}, Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		if review, _ := a["review"].(bool); review {
+			return reviewSettings(r)
+		}
 		return r.Settings().Diff(), nil
 	}})
 	r.Register(Operation{Key: "ochazuke.setting.reset-all", Destructive: true, Checks: []VerbCheck{resetAllCheck}, Description: "Reset every setting to its default: for this session, or in settings.json without a session or with settings.autosave", Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {

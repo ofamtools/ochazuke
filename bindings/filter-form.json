@@ -9,14 +9,14 @@
       {"key":"esc", "action":"ochazuke.mode.switch", "args":{"mode":"normal"}, "when":"filter-form-text", "hidden":true}
     ]},
     {"context":"ochazuke.filter-form/normal", "bindings":[
-      {"key":"esc", "action":"ochazuke.filter-form.focus", "args":{"part":"field"}, "when":"filter-form-text", "hint":"fields"},
+      {"key":"esc", "action":"ochazuke.filter-form.goto", "args":{"part":"field"}, "when":"filter-form-text", "hint":"fields"},
       {"key":"z ]", "action":"ochazuke.collection.filter-cycle", "args":{"step":1}, "hint":"next filter"},
       {"key":"z [", "action":"ochazuke.collection.filter-cycle", "args":{"step":-1}, "hidden":true},
       {"key":"D", "action":"ochazuke.filter-form.delete-saved", "hint":"delete saved"}
     ]},
     {"context":"ochazuke.filter-value/normal", "bindings":[
       {"key":"space", "action":"ochazuke.filter-form.toggle", "capture":true, "hint":"toggle"},
-      {"key":"esc", "action":"ochazuke.filter-form.focus", "args":{"part":"field"}, "capture":true, "hint":"fields"}
+      {"key":"esc", "action":"ochazuke.filter-form.goto", "args":{"part":"field"}, "capture":true, "hint":"fields"}
     ]},
     {"context":"ochazuke.filter-direction/normal", "bindings":[
       {"key":"enter", "action":"ochazuke.filter-form.direction"}

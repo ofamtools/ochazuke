@@ -53,7 +53,7 @@ func (v *PageView) mountSections() {
 				}
 				return ochazuke.Done(nil)
 			}, "Expand the complete metadata value in a read-only text view").Fetch().
-			Verb("copy", func(c ochazuke.Ctx) ochazuke.Result {
+			Verb("yank", func(c ochazuke.Ctx) ochazuke.Result {
 				if c.Instance == nil {
 					return ochazuke.Failed(errors.New("no metadata field selected"))
 				}

@@ -907,7 +907,7 @@ var settingsScopeVerbs = []struct {
 	{"reset", "Reset every setting of the section to its default, one undo step", "Reset every setting of the tab to its default, one undo step", runScopeReset, true},
 	{"write", "Write the session values of the section's settings to settings.json", "Write the session values of the tab's settings to settings.json", runScopeWrite, false},
 	{"revert", "Drop the session values of the section's settings, so the saved ones show again", "Drop the session values of the tab's settings, so the saved ones show again", runScopeRevert, false},
-	{"copy", "Yank the section's settings that are not at their default as :set lines", "Yank the tab's settings that are not at their default as :set lines", runScopeCopy, false},
+	{"yank", "Yank the section's settings that are not at their default as :set lines", "Yank the tab's settings that are not at their default as :set lines", runScopeCopy, false},
 }
 
 func runScopeOpen(r *Runtime, c Context, a Arguments, units []settingsUnit) (any, error) {

@@ -225,7 +225,7 @@ var defaultTones = map[string]ToneStyle{
 	ToneHelpArgKey:   {Bold: true},
 	ToneHelpArgValue: {},
 	// The markdown package's note boxes (markdown.NoteTone).
-	"markdown.note": {Fg: SchemeColor{"#875f00", "#d7af5f"}},
+	"markdown.annotate": {Fg: SchemeColor{"#875f00", "#d7af5f"}},
 }
 
 // DefaultTones are the built-in tones and how the built-in themes draw

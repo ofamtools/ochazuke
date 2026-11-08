@@ -123,7 +123,7 @@ func TestLinkVerbsOpenCopyHistoryAndEdit(t *testing.T) {
 	if got := r.Registers().Named["\""].Yank.Text; got != "https://two.example" {
 		t.Fatal(got)
 	}
-	for _, verb := range []string{"link-open", "link-copy", "next-link", "previous-link"} {
+	for _, verb := range []string{"link-open", "link-yank", "next-link", "previous-link"} {
 		op := r.Operations.At(ochazuke.Key(DocNoun + "." + verb))
 		if op.HistoryKindOf() != ochazuke.HistoryAction || op.Description == "" || op.Parameters["id"].Type != "string" {
 			t.Fatalf("incomplete verb %+v", op)
@@ -134,7 +134,7 @@ func TestLinkVerbsOpenCopyHistoryAndEdit(t *testing.T) {
 	if err := d.OpenLink(); !errors.Is(err, sentinel) {
 		t.Fatalf("opener error %v", err)
 	}
-	if _, err := r.Execute(ochazuke.Request{Noun: DocNoun, Verb: "link-copy", Args: ochazuke.Arguments{"id": d.ID()}}); err != nil {
+	if _, err := r.Execute(ochazuke.Request{Noun: DocNoun, Verb: "link-yank", Args: ochazuke.Arguments{"id": d.ID()}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := press(t, r, "i"); err != nil {

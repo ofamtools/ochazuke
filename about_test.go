@@ -161,13 +161,13 @@ func TestAboutRowsEvaluateLazily(t *testing.T) {
 	}
 }
 
-// about.copy yanks the report; on the page y yanks a row's value, enter
+// about.yank yanks the report; on the page y yanks a row's value, enter
 // opens a path row with the opener, and a row that is not a path refuses.
 func TestAboutCopyAndRowVerbs(t *testing.T) {
 	r, m, _ := settingsPageFixture(t)
 	var opened []string
 	r.SetAboutEnv(fakeAboutEnv(&opened))
-	text, err := r.Execute(Request{Noun: "ochazuke.about", Verb: "copy"})
+	text, err := r.Execute(Request{Noun: "ochazuke.about", Verb: "yank"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,8 +274,8 @@ func TestAboutVerbsAgentsAndHistory(t *testing.T) {
 	r := NewRuntime()
 	kinds := map[string]string{
 		"ochazuke.about.open": HistoryAction, "ochazuke.about.close": HistoryAction, "ochazuke.about.refresh": HistoryFetch,
-		"ochazuke.about.show": HistoryFetch, "ochazuke.about.copy": HistoryChange,
-		"ochazuke.about-row.show": HistoryFetch, "ochazuke.about-row.copy": HistoryChange, "ochazuke.about-row.open": HistoryAction,
+		"ochazuke.about.show": HistoryFetch, "ochazuke.about.yank": HistoryChange,
+		"ochazuke.about-row.show": HistoryFetch, "ochazuke.about-row.yank": HistoryChange, "ochazuke.about-row.open": HistoryAction,
 	}
 	for key, kind := range kinds {
 		op, ok := r.Operations.Find(Key(key))

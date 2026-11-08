@@ -59,13 +59,13 @@ func TestConfiguredPaletteSourcesDispatchRealOperations(t *testing.T) {
 		t.Fatal("configured page source did not dispatch page.open")
 	}
 	call("open", "palette", nil)
-	if err := line("input title"); err == nil {
+	if err := line("focus title"); err == nil {
 		t.Fatal("input source exposed an input from an inactive page")
 	}
-	if err := line("input destination"); err != nil {
+	if err := line("focus destination"); err != nil {
 		t.Fatal(err)
 	}
 	if m.Runtime.Context().InputID != "destination" || m.Palette.IsOpen() {
-		t.Fatal("configured input source did not dispatch input.focus")
+		t.Fatal("configured input source did not dispatch focus.to")
 	}
 }

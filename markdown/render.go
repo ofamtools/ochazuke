@@ -64,7 +64,7 @@ type options struct {
 // RuleTone a table's column and header rules (no built-in row: drawn in
 // the text's colour).
 const (
-	NoteTone = "markdown.note"
+	NoteTone = "markdown.annotate"
 	RuleTone = "markdown.rule"
 )
 

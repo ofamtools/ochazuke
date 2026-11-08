@@ -20,5 +20,5 @@ C|    Before alpha between beta after.
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter markdown.link-open · y l markdown.link-copy · i markdown.insert · o m…
+ |  enter markdown.link-open · y l markdown.link-yank · i markdown.insert · o m…
  |

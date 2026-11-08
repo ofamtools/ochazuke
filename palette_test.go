@@ -497,7 +497,7 @@ func TestPaletteRunsInTheCapturedContext(t *testing.T) {
 		t.Fatalf("captured undo = %q", got)
 	}
 	paletteRequest(t, r, "open", "palette", nil)
-	paletteLine(t, r, "focus input other")
+	paletteLine(t, r, "focus to other")
 	if p.IsOpen() || len(r.Modals()) != 0 || r.Context().InputID != "other" {
 		t.Fatalf("focus was applied to the palette: %+v", r.Context())
 	}

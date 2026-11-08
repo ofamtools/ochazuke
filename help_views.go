@@ -16,10 +16,10 @@ import (
 // the focus were on that noun in that mode (NounHelp). Table is a chosen
 // noun's keys by mode: a row per key or key class, a column per mode with
 // rows for the noun or app, each cell the operation that answers there.
-// S and tab (bindings-help.view {step}; shift+tab backwards) cycle the
-// views the settings leave on; n (bindings-help.noun) chooses the noun of
-// pick and table, m (bindings-help.mode) the mode of pick, p
-// (bindings-help.place) the place of pick and table: one of the noun's
+// S and tab (bindings-help.show {step}; shift+tab backwards) cycle the
+// views the settings leave on; n (bindings-help.pick {what: noun}) chooses the noun of
+// pick and table, m (bindings-help.pick {what: mode}) the mode of pick, p
+// (bindings-help.pick {what: place}) the place of pick and table: one of the noun's
 // recorded places (NounPlaces), whose chain gives the walk the levels
 // between the noun and app, or no place.
 // All four are rows on the help modal's noun, guarded so they answer, and
@@ -714,6 +714,13 @@ func helpChooserRows(names []string, current string, data func(string) any) []Ch
 	return rows
 }
 
+// helpPick is one thing the help's pick operation chooses: ready says when
+// it is offered, run opens its chooser.
+type helpPick struct {
+	ready func(h *helpState) bool
+	run   func(h *helpState) error
+}
+
 func registerHelpViews(r *Runtime) {
 	r.Define(helpID)
 	view := func(fn func(*helpState) error) func(*Runtime, Context, Arguments) (any, error) {
@@ -728,7 +735,7 @@ func registerHelpViews(r *Runtime) {
 			return h.view, nil
 		}
 	}
-	r.Register(Operation{Key: KeyOf(helpID, "view"), Description: "Show the help's next or previous view (wrapping): here (the focus), pick (a noun and mode you choose), table (a noun's keys by mode)", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: KeyOf(helpID, "show"), Description: "Show the help's next or previous view (wrapping): here (the focus), pick (a noun and mode you choose), table (a noun's keys by mode)", Parameters: map[string]Parameter{
 		"step": {Type: "integer", Description: "1 for the next view (the default), -1 for the previous"},
 	}, Result: "view", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return view(func(h *helpState) error {
@@ -736,76 +743,93 @@ func registerHelpViews(r *Runtime) {
 			return h.show()
 		})(r, c, a)
 	}})
-	r.Register(Operation{Key: KeyOf(helpID, "noun"), Description: "Choose the noun the help's pick and table views describe", Result: "view", Run: view(func(h *helpState) error {
-		names := slices.SortedFunc(maps.Keys(h.r.Nouns), func(a, b string) int { return strings.Compare(h.r.DisplayNoun(a), h.r.DisplayNoun(b)) })
-		rows := helpChooserRows(names, h.noun, func(string) any { return nil })
-		for i := range rows {
-			rows[i].Label = h.r.DisplayNoun(rows[i].ID)
-			rows[i].Cells[0] = rows[i].Label
+	// pick opens the chooser of one thing the pick and table views describe:
+	// the what argument names it (noun, mode or place), and picks says when
+	// each is offered.
+	picks := map[string]helpPick{
+		"noun": {
+			ready: func(h *helpState) bool { return h.view == HelpPick || h.view == HelpTable },
+			run: func(h *helpState) error {
+				names := slices.SortedFunc(maps.Keys(h.r.Nouns), func(a, b string) int { return strings.Compare(h.r.DisplayNoun(a), h.r.DisplayNoun(b)) })
+				rows := helpChooserRows(names, h.noun, func(string) any { return nil })
+				for i := range rows {
+					rows[i].Label = h.r.DisplayNoun(rows[i].ID)
+					rows[i].Cells[0] = rows[i].Label
+				}
+				_, err := h.r.OpenChooser(ChooserSpec{Kind: helpNounKind, Title: "Noun", Keep: []int{0}, Rows: rows, Choose: func(row ChooserRow) Result {
+					h.setNoun(row.ID)
+					if err := h.show(); err != nil {
+						return Failed(err)
+					}
+					return Done(h.noun)
+				}})
+				return err
+			},
+		},
+		"mode": {
+			ready: func(h *helpState) bool { return h.view == HelpPick },
+			run: func(h *helpState) error {
+				modes := h.r.HelpModes(h.at(), h.r.helpFlag(HelpPendingSetting, false))
+				byName := map[string]ModeState{}
+				names := make([]string, len(modes))
+				for i, mode := range modes {
+					names[i] = mode.Name
+					byName[mode.Name] = mode
+				}
+				_, err := h.r.OpenChooser(ChooserSpec{Kind: helpModeKind, Title: "Mode", Rows: helpChooserRows(names, h.mode.Name, func(name string) any { return byName[name] }), Choose: func(row ChooserRow) Result {
+					h.mode, _ = row.Data.(ModeState)
+					if err := h.show(); err != nil {
+						return Failed(err)
+					}
+					return Done(h.mode.Name)
+				}})
+				return err
+			},
+		},
+		"place": {
+			ready: func(h *helpState) bool {
+				return (h.view == HelpPick || h.view == HelpTable) && len(h.r.NounPlaces(h.noun)) > 0
+			},
+			run: func(h *helpState) error {
+				_, err := h.r.OpenChooser(ChooserSpec{Kind: helpPlaceKind, Title: "Place", Keep: []int{0}, Rows: h.placeRows(), Choose: func(row ChooserRow) Result {
+					h.place = nil
+					if p, ok := row.Data.(NounPlace); ok {
+						h.place = &p
+					}
+					if err := h.show(); err != nil {
+						return Failed(err)
+					}
+					return Done(h.placeText())
+				}})
+				return err
+			},
+		},
+	}
+	r.Register(Operation{Key: KeyOf(helpID, "pick"), Description: "Choose what the help's pick and table views describe: the noun, the mode or the place", Parameters: map[string]Parameter{
+		"what": {Type: "string", Required: true, Enum: slices.Sorted(maps.Keys(picks)), Description: "noun, mode or place"},
+	}, Result: "view", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		what := StringArg(a, "what", "")
+		pick, ok := picks[what]
+		if !ok {
+			return nil, fmt.Errorf("pick %q: want noun, mode or place", what)
 		}
-		_, err := h.r.OpenChooser(ChooserSpec{Kind: helpNounKind, Title: "Noun", Keep: []int{0}, Rows: rows, Choose: func(row ChooserRow) Result {
-			h.setNoun(row.ID)
-			if err := h.show(); err != nil {
-				return Failed(err)
-			}
-			return Done(h.noun)
-		}})
-		return err
-	})})
-	r.Register(Operation{Key: KeyOf(helpID, "mode"), Description: "Choose the mode the help's pick view describes", Result: "view", Run: view(func(h *helpState) error {
-		modes := h.r.HelpModes(h.at(), h.r.helpFlag(HelpPendingSetting, false))
-		byName := map[string]ModeState{}
-		names := make([]string, len(modes))
-		for i, mode := range modes {
-			names[i] = mode.Name
-			byName[mode.Name] = mode
-		}
-		_, err := h.r.OpenChooser(ChooserSpec{Kind: helpModeKind, Title: "Mode", Rows: helpChooserRows(names, h.mode.Name, func(name string) any { return byName[name] }), Choose: func(row ChooserRow) Result {
-			h.mode, _ = row.Data.(ModeState)
-			if err := h.show(); err != nil {
-				return Failed(err)
-			}
-			return Done(h.mode.Name)
-		}})
-		return err
-	})})
-	r.Register(Operation{Key: KeyOf(helpID, "place"), Description: "Choose where the help's pick and table views put the noun: one of the places it was seen (the page, the levels above it, the modal), or none (the noun and app)", Result: "place", Run: view(func(h *helpState) error {
-		_, err := h.r.OpenChooser(ChooserSpec{Kind: helpPlaceKind, Title: "Place", Keep: []int{0}, Rows: h.placeRows(), Choose: func(row ChooserRow) Result {
-			h.place = nil
-			if p, ok := row.Data.(NounPlace); ok {
-				h.place = &p
-			}
-			if err := h.show(); err != nil {
-				return Failed(err)
-			}
-			return Done(h.placeText())
-		}})
-		return err
-	})})
+		return view(pick.run)(r, c, a)
+	}})
 	r.DefineGuard("help-views", func(r *Runtime, _ KeyEvent) bool {
 		h := r.helpOpen()
 		return h != nil && len(h.views()) > 1
 	})
-	r.DefineGuard("help-hypothetical", func(r *Runtime, _ KeyEvent) bool {
+	r.DefineGuard("help-picks", func(r *Runtime, ev KeyEvent) bool {
 		h := r.helpOpen()
-		return h != nil && (h.view == HelpPick || h.view == HelpTable)
-	})
-	r.DefineGuard("help-pick", func(r *Runtime, _ KeyEvent) bool {
-		h := r.helpOpen()
-		return h != nil && h.view == HelpPick
-	})
-	r.DefineGuard("help-places", func(r *Runtime, _ KeyEvent) bool {
-		h := r.helpOpen()
-		return h != nil && (h.view == HelpPick || h.view == HelpTable) && len(r.NounPlaces(h.noun)) > 0
+		pick, ok := picks[StringArg(ev.Args, "what", "")]
+		return h != nil && ok && pick.ready(h)
 	})
 	n := r.Noun(helpID)
 	if n.Guards == nil {
 		n.Guards = map[string]string{}
 	}
-	n.Guards["view"] = "help-views"
-	n.Guards["noun"] = "help-hypothetical"
-	n.Guards["mode"] = "help-pick"
-	n.Guards["place"] = "help-places"
+	n.Guards["show"] = "help-views"
+	n.Guards["pick"] = "help-picks"
 }
 
 // inputNoun reports whether a focus on noun is an input with no instance

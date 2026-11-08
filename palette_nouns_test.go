@@ -79,7 +79,7 @@ func TestPaletteInstanceUsesConfiguredDefaultAndCapturedOrigin(t *testing.T) {
 	pageTestRegister(t, r, "home")
 	pageTestRegister(t, r, "target")
 	paletteRequest(t, r, "open", "page", Arguments{"id": "home"})
-	paletteRequest(t, r, "focus", "input", Arguments{"id": "home-input"})
+	paletteRequest(t, r, "to", "focus", Arguments{"id": "home-input"})
 	origin := r.Context()
 	var gotContext Context
 	var gotArgs Arguments
@@ -107,7 +107,7 @@ func TestPaletteInstanceFailurePreservesModalAndOrigin(t *testing.T) {
 	pageTestRegister(t, r, "home")
 	pageTestRegister(t, r, "target")
 	paletteRequest(t, r, "open", "page", Arguments{"id": "home"})
-	paletteRequest(t, r, "focus", "input", Arguments{"id": "home-input"})
+	paletteRequest(t, r, "to", "focus", Arguments{"id": "home-input"})
 	if err := r.Push("dialog", r.Focus); err != nil {
 		t.Fatal(err)
 	}

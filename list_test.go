@@ -49,7 +49,7 @@ func TestListFocusSelectsItemActionsAndLeavesEditorAlone(t *testing.T) {
 	for _, id := range []string{"a", "b"} {
 		r.Define(id).Action("item.inspect", func(*Runtime, Context, Arguments) (any, error) { return id, nil })
 	}
-	if _, err := r.Execute(Request{Verb: "focus", Noun: "ochazuke.collection", Args: Arguments{"id": "sidebar"}}); err != nil {
+	if _, err := r.Execute(Request{Verb: "to", Noun: "ochazuke.focus", Args: Arguments{"id": "sidebar"}}); err != nil {
 		t.Fatal(err)
 	}
 	value, err := r.Execute(Request{Verb: "inspect", Noun: "item"})

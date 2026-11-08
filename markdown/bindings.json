@@ -25,17 +25,17 @@
     {"context": "ochazuke.markdown/normal", "bindings": [
       {"key": "enter", "action": "ochazuke.markdown.link-open", "when": "markdown-on-link"},
       {"key": "g x", "action": "ochazuke.markdown.link-open", "when": "markdown-on-link"},
-      {"key": "y l", "action": "ochazuke.markdown.link-copy", "when": "markdown-on-link"},
+      {"key": "y l", "action": "ochazuke.markdown.link-yank", "when": "markdown-on-link"},
       {"key": "] u", "action": "ochazuke.markdown.next-link", "from": {"steps": "count"}},
       {"key": "[ u", "action": "ochazuke.markdown.previous-link", "from": {"steps": "count"}},
       {"key": "x", "action": "ochazuke.markdown.toggle", "when": "markdown-on-task"},
       {"key": "i", "action": "ochazuke.markdown.insert", "args": {"at": "cursor"}},
       {"key": "o", "action": "ochazuke.markdown.open", "args": {"where": "below"}},
-      {"key": "n", "action": "ochazuke.markdown.note", "when": "markdown-on-item"},
+      {"key": "n", "action": "ochazuke.markdown.annotate", "when": "markdown-on-item"},
       {"key": "d d", "action": "ochazuke.markdown.cut"},
       {"key": "p", "action": "ochazuke.markdown.paste", "args": {"where": "below"}},
       {"key": "z a", "action": "ochazuke.markdown.fold", "when": "markdown-has-notes"},
-      {"key": "g O", "action": "ochazuke.markdown.outline"},
+      {"key": "g O", "action": "ochazuke.markdown.goto"},
       {"key": "u", "action": "ochazuke.markdown.undo"},
       {"key": "ctrl+r", "action": "ochazuke.markdown.redo"},
       {"key": "}", "action": "ochazuke.markdown.next-block", "from": {"steps": "count"}},
@@ -66,7 +66,7 @@
       {"key": "[ p", "action": "ochazuke.markdown.previous-kind", "args": {"kind": "p"}, "from": {"steps": "count"}}
     ]},
     {"context": "ochazuke.markdown-view/normal", "bindings": [
-      {"key": "y a", "action": "ochazuke.markdown-view.copy", "hint": "copy all"},
+      {"key": "y a", "action": "ochazuke.markdown-view.yank", "hint": "copy all"},
       {"key": "/", "action": "ochazuke.search.find", "hint": "find"},
       {"key": "n", "action": "ochazuke.search.next", "from": {"count": "count"}, "hidden": true},
       {"key": "N", "action": "ochazuke.search.next", "args": {"reverse": true}, "from": {"count": "count"}, "hidden": true}

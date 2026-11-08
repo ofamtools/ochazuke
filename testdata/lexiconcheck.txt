@@ -1,26 +1,3 @@
 # lexiconcheck baseline: rule, subject (tab separated). One row per known violation.
 # A row may only be removed: LEXICONCHECK_UPDATE=1 drops the rows the registry no longer breaks.
 # Adding a row is a reviewed edit; LEXICONCHECK_UPDATE=seed writes a baseline that does not exist yet.
-noun-action	filter-save
-noun-action	focus
-noun-action	list
-noun-action	mode
-noun-action	outline
-noun-action	page
-noun-action	register
-noun-action	view
-pair	actions/action
-pair	bindings/binding
-pair	modes/mode
-pair	registers/register
-plural-noun	docs
-plural-noun	events
-plural-noun	filter-values
-plural-noun	form-chips
-plural-noun	glyphs
-plural-noun	hooks
-plural-noun	instances
-plural-noun	messages
-plural-noun	nouns
-plural-noun	operations
-plural-noun	themes

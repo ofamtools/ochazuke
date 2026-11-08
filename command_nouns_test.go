@@ -216,7 +216,7 @@ func TestPaletteNamesTheReplacementOfARemovedVerb(t *testing.T) {
 		"focus set overview":            "use ochazuke.focus.to {id}",
 		"pages list":                    "use ochazuke.page.list",
 		"ochazuke settings list":        "use ochazuke.setting.list",
-		"ochazuke.settings" + ".review": "use ochazuke.setting.review",
+		"ochazuke.settings" + ".review": "use ochazuke.setting.diff {review: true}",
 	} {
 		c := p.parse(line)
 		if c.Err == nil || !strings.Contains(c.Err.Error(), "was removed") || !strings.Contains(c.Err.Error(), want) {

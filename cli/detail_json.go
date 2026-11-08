@@ -82,7 +82,7 @@ func registerJSONNodes(r *ochazuke.Runtime) {
 				}
 				return ochazuke.Done(nil)
 			}, "Show the complete JSON value in a read-only text view").Fetch().
-			Verb("copy", func(c ochazuke.Ctx) ochazuke.Result {
+			Verb("yank", func(c ochazuke.Ctx) ochazuke.Result {
 				n := jsonNode(c)
 				if n == nil {
 					return ochazuke.Failed(errors.New("no JSON node selected"))
@@ -108,7 +108,7 @@ func registerJSONNodes(r *ochazuke.Runtime) {
 				return ochazuke.Failed(errors.New("no JSON value pane"))
 			}, "Scroll the selected JSON value").Motion()
 		for verb, params := range map[string]map[string]ochazuke.Parameter{
-			"copy":   {"register": {Type: "string", Description: "Register (default active register)"}},
+			"yank":   {"register": {Type: "string", Description: "Register (default active register)"}},
 			"scroll": {"lines": {Type: "integer"}, "count": {Type: "integer"}},
 		} {
 			op, _ := r.Operation(jsonNodeNoun + "." + verb)

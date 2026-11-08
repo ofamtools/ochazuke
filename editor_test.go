@@ -157,7 +157,7 @@ func TestMacrosDispatchModesCountsFocusAndLiteralPaste(t *testing.T) {
 	if err := r.AddInput(second); err != nil {
 		t.Fatal(err)
 	}
-	r.Define("app").Mode("normal").Bind("tab", Do("ochazuke.input.focus", Arguments{"id": "second"}))
+	r.Define("app").Mode("normal").Bind("tab", Do("ochazuke.focus.to", Arguments{"id": "second"}))
 	m := NewModel(r)
 	modelEditorKeys(t, m, "Q", "a", "i", "X", "esc", "Q", "2", "@", "a", "@", "@")
 	if string(in.Text) != "XXXX" || in.Mode != "normal" {

@@ -1072,6 +1072,40 @@ func (d *Doc) headings() []ochazuke.PickerRow {
 	return rows
 }
 
+// GotoHeading puts the cursor on the heading whose text is title (case
+// ignored), else the only heading whose text starts with it.
+func (d *Doc) GotoHeading(title string) error {
+	if err := d.Leave(); err != nil {
+		return err
+	}
+	title = strings.ToLower(strings.TrimSpace(title))
+	var exact, prefix []int
+	for _, row := range d.headings() {
+		i, _ := row.Data.(int)
+		text := strings.ToLower(strings.TrimSpace(row.Label))
+		switch {
+		case text == title:
+			exact = append(exact, i)
+		case strings.HasPrefix(text, title):
+			prefix = append(prefix, i)
+		}
+	}
+	at := exact
+	if len(at) == 0 {
+		at = prefix
+	}
+	switch {
+	case len(at) == 0:
+		return fmt.Errorf("no heading %q", title)
+	case len(exact) == 0 && len(at) > 1:
+		return fmt.Errorf("heading %q is ambiguous: %d start with it", title, len(at))
+	}
+	if err := d.SelectElement(at[0]); err != nil {
+		return err
+	}
+	return d.list.Focus()
+}
+
 // Outline opens a chooser over the headings; choosing one puts the cursor
 // on it.
 func (d *Doc) Outline() error {

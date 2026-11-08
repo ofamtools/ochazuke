@@ -57,7 +57,6 @@ cli/host_mount.go	mountVerb	case	"confirm"	1
 cli/mcp_backend.go	Shell.mcpValue	case	"config"	1
 cli/mcp_backend.go	Shell.newMCPServer	compare	"confirm"	1
 cli/mcp_backend.go	mcpBackend.Call	case	"run"	1
-cli/mcp_backend.go	mcpBackend.Call	case	"state"	1
 cli/mcp_backend.go	mcpBackend.catalog	compare	"app"	1
 cli/mcp_backend.go	mcpBackend.run	compare	"confirm"	1
 cli/mcp_backend.go	mcpBackend.run	compare	"focus"	1
@@ -76,13 +75,13 @@ cli/ptykeys.go	var keyCodes	table	"insert"	1	key names mapped to terminal byte s
 cli/ptykeys.go	var keyCodes	table	"left"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
 cli/ptykeys.go	var keyCodes	table	"right"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
 cli/ptykeys.go	var keyCodes	table	"up"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
-cli/setup.go	DeclareSetup	compare	"copy"	4
 cli/setup.go	DeclareSetup	compare	"list"	1
 cli/setup.go	DeclareSetup	compare	"show"	2
 cli/setup.go	DeclareSetup	compare	"status"	1
+cli/setup.go	DeclareSetup	compare	"yank"	4
 cli/setup.go	DeclareSetup	cyclo	"-"	28
-cli/setup.go	printSetup	case	"copy"	1
 cli/setup.go	printSetup	case	"show"	1
+cli/setup.go	printSetup	case	"yank"	1
 cli/setup.go	printSetup	compare	"list"	1
 cli/setup.go	printSetup	compare	"status"	1
 cli/shell.go	Shell.Run	compare	"ochazuke.confirm"	1
@@ -100,7 +99,7 @@ cli/sides.go	var sideVariables	table	"project"	1	template variable names for the
 cli/widget.go	PageView.widgetsBlock	compare	"status"	3
 cli/widget.go	widgetState.lines	compare	"status"	2
 configuration.go	registerConfiguration	compare	"app"	1
-configuration.go	registerConfiguration	cyclo	"-"	28
+configuration.go	registerConfiguration	cyclo	"-"	27
 confirm.go	Runtime.openConfirmAbout	case	"id"	2
 confirm.go	Runtime.openConfirmAbout	compare	"id"	1
 confirm.go	Runtime.openConfirmAbout	compare	"noun"	1
@@ -176,10 +175,10 @@ key_echo.go	keyEcho.observe	compare	"palette"	1
 key_echo.go	keyEcho.observe	cyclo	"-"	40
 leader_outside.go	Runtime.dispatchOutside	compare	"all"	1
 list.go	registerLists	cyclo	"-"	29
-list_filter.go	List.editingFilter	compare	"list_filter"	1
+list_filter.go	Collection.editingFilter	compare	"list_filter"	1
 list_filter.go	registerListFilter	compare	"list_filter"	2
-list_filter_compact.go	List.openViewForm	compare	"fields"	1
-list_filter_compact.go	List.openViewForm	cyclo	"-"	37
+list_filter_compact.go	Collection.openViewForm	compare	"fields"	1
+list_filter_compact.go	Collection.openViewForm	cyclo	"-"	37
 list_filter_compact.go	filterViewForm.conditionAction	case	"edit"	1
 list_filter_compact.go	filterViewForm.conditionAction	case	"invert"	1
 list_filter_compact.go	filterViewForm.conditionAction	case	"remove"	1
@@ -188,63 +187,45 @@ list_filter_compact.go	filterViewForm.focusPart	case	"field"	1	the filter form's
 list_filter_compact.go	filterViewForm.focusPart	case	"sort"	1
 list_filter_compact.go	filterViewForm.render	cyclo	"-"	42
 list_filter_compact.go	filterViewForm.write	compare	"desc"	1
-list_filter_form.go	List.filterFields	compare	"list"	1
+list_filter_form.go	Collection.filterFields	compare	"list"	1
 list_motions.go	registerListMotions	compare	"last"	1
-list_prop_filter.go	List.pickPropFilter	cyclo	"-"	30
+list_prop_filter.go	Collection.pickPropFilter	cyclo	"-"	30
 list_prop_filter.go	registerListPropFilter	cyclo	"-"	40
-list_visual.go	List.ModeChanged	compare	"line"	1
-list_visual.go	List.apply	cyclo	"-"	32
+list_visual.go	Collection.ModeChanged	compare	"line"	1
+list_visual.go	Collection.apply	cyclo	"-"	32
 list_visual.go	Runtime.endSelection	compare	"line"	1
 markdown/cursor.go	Doc.MoveCursor	cyclo	"-"	28
 markdown/cursor.go	Doc.highlight	compare	"text"	1
 markdown/cursor.go	Doc.itemCursor	compare	"line"	1
 markdown/doc.go	Doc.Block	cyclo	"-"	29
 markdown/doc.go	Doc.Select	compare	"task"	1
-markdown/doc.go	Doc.relayout	case	"note"	1
 markdown/doc.go	Doc.relayout	case	"task"	1
 markdown/doc.go	Doc.relayout	cyclo	"-"	28
 markdown/doc.go	Doc.selected	compare	"task"	1
 markdown/done.go	Doc.SetDone	case	"show"	1
 markdown/done.go	Doc.SetDone	case	"toggle"	1
 markdown/done.go	Doc.hiddenElements	compare	"task"	1
-markdown/edit.go	Component	compare	"note"	1
-markdown/edit.go	Doc.AddNote	compare	"note"	1
-markdown/edit.go	Doc.Fold	compare	"note"	2
 markdown/edit.go	Doc.Insert	case	"end"	1
 markdown/edit.go	Doc.Insert	case	"start"	1
 markdown/edit.go	Doc.Move	cyclo	"-"	26
-markdown/edit.go	Doc.Resolve	compare	"note"	1
-markdown/edit.go	Doc.leave	compare	"note"	1
-markdown/edit.go	Doc.openAt	compare	"note"	2
 markdown/edit.go	itemMarkerFor	compare	"task"	1
-markdown/edit.go	opened	compare	"note"	1
-markdown/edit.go	subtreeEnd	compare	"note"	1
 markdown/elements.go	Element.IsItem	compare	"task"	1
 markdown/elements.go	elementParser.item	compare	"task"	1
 markdown/elements.go	elementParser.item	cyclo	"-"	30
 markdown/elements.go	elementParser.node	cyclo	"-"	29
-markdown/layout.go	layoutOf	compare	"note"	2
 markdown/layout.go	layoutOf	cyclo	"-"	37
-markdown/layout.go	markedSource	compare	"note"	3
-markdown/links.go	layoutLinks	compare	"note"	1
 markdown/links.go	layoutLinks	cyclo	"-"	48
-markdown/notes.go	Notes	compare	"note"	1
 markdown/notes.go	Notes	compare	"task"	1
-markdown/notes.go	ReplyNote	compare	"note"	1
-markdown/notes.go	SetFlags	compare	"note"	1
-markdown/notes.go	noteInsertion	compare	"note"	1
 markdown/table.go	align	case	"right"	1
-markdown/verbs.go	describeDocOperations	case	"link-copy"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
 markdown/verbs.go	describeDocOperations	case	"link-open"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
 markdown/verbs.go	describeDocOperations	case	"next-link"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
 markdown/verbs.go	describeDocOperations	case	"previous-link"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
 markdown/verbs.go	describeDocOperations	compare	"ochazuke.markdown"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
 markdown/verbs.go	docGuards	compare	"task"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
-markdown/verbs.go	hasNotes	compare	"note"	1	moved from register (was debt there): a verb table row named a handler; the compare moved with its code
 model.go	Model.Update	cyclo	"-"	29
 model.go	Model.cutMessage	compare	"ochazuke.message.show"	1
 model.go	inputBlockFrom	cyclo	"-"	57
-motion_scroll.go	List.MoveToEdge	compare	"last"	1
+motion_scroll.go	Collection.MoveToEdge	compare	"last"	1
 motion_scroll.go	registerViewMotions	compare	"last"	1
 name_vocab.go	Runtime.NameVocab	compare	"motion"	1
 namespace.go	frameworkName	compare	"app"	1
@@ -305,13 +286,12 @@ picker_verbs.go	var pickerVerbAliases	table	"choose"	1	data: the path finder's o
 picker_verbs.go	var pickerVerbAliases	table	"close"	1	data: the path finder's old verb names, aliases for one release
 prop_filter.go	propTest	compare	"list"	1
 prop_filter.go	typedPropFilter	compare	"list"	1
-props.go	NounBuilder.Store	compare	"instances"	1
 props.go	Runtime.addProp	case	"archive"	1
 props.go	Runtime.addProp	case	"owner"	1
 props.go	Runtime.addProp	compare	"archive"	1
 props.go	Runtime.addProp	compare	"archived"	1
 props.go	Runtime.validatePropRow	compare	"value"	1
-props.go	checkSchema	case	"instances"	1
+props.go	checkSchema	case	"collection"	1
 props.go	checkSchema	compare	"id"	1
 props.go	var propTypes	table	"list"	1	property type names, not a noun table; "list" is a type here
 query.go	Runtime.Query	compare	"app"	1
@@ -398,13 +378,13 @@ standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
 standard_verbs.go	createArgs	compare	"pairs"	1
 standard_verbs.go	setChanges	cyclo	"-"	28
-table.go	List.tallView	cyclo	"-"	43
+table.go	Collection.tallView	cyclo	"-"	43
 table.go	tableLineAt	compare	"right"	1
-table_cells.go	List.columnTo	compare	"last"	1
-table_cells.go	List.yankSubject	compare	"row"	2	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
+table_cells.go	Collection.columnTo	compare	"last"	1
+table_cells.go	Collection.yankSubject	compare	"row"	2	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
 table_cells.go	tableColumn	compare	"last"	1	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
 table_cells.go	tableYank	compare	"row"	3	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
-table_columns.go	List.scrollColumns	case	"last"	1
+table_columns.go	Collection.scrollColumns	case	"last"	1
 text_view.go	Runtime.showsText	case	"all"	1
 timeline.go	Timeline.draw	compare	"accent"	1
 timeline.go	Timeline.draw	cyclo	"-"	37

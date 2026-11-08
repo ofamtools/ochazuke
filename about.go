@@ -31,8 +31,8 @@ import (
 // costs nothing until someone looks.
 //
 // about.show answers the same sections as data (the CLI and MCP read it),
-// about.copy yanks them as text for a bug report. A row is an instance of
-// the about-row noun: about-row.copy yanks its value, about-row.open opens
+// about.yank yanks them as text for a bug report. A row is an instance of
+// the about-row noun: about-row.yank yanks its value, about-row.open opens
 // a path row (Kind AboutPath) with the system opener, about-row.show
 // answers the row. All of them are read-only, so agents may run them.
 //
@@ -132,7 +132,7 @@ func (r *Runtime) about() *About {
 
 // AddAboutSection adds a section of the application's rows to the About
 // page, after Build. rows runs each time the page opens or refreshes and
-// each time about.show or about.copy runs, never at startup. Adding a
+// each time about.show or about.yank runs, never at startup. Adding a
 // title again replaces that section where it stands.
 func (r *Runtime) AddAboutSection(title string, rows func() []AboutRow) {
 	a := r.about()
@@ -377,7 +377,7 @@ func (r *Runtime) aboutRuntimeRows(env AboutEnv) []AboutRow {
 }
 
 // AboutText is sections as plain text, a block per section with its rows'
-// labels aligned: what about.copy yanks for a bug report.
+// labels aligned: what about.yank yanks for a bug report.
 func AboutText(sections []AboutSection) string {
 	var b strings.Builder
 	for i, sec := range sections {
@@ -622,7 +622,7 @@ func registerAbout(r *Runtime) {
 	r.Register(Operation{Key: "ochazuke.about.show", Description: "Answer the About page's sections as data: the build, the application's rows, the family dependencies and the process", Parameters: sectionParam, Result: "about-section[]", HistoryKind: HistoryFetch, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return aboutSections(r, StringArg(a, "section", ""))
 	}})
-	r.Register(Operation{Key: "ochazuke.about.copy", Description: "Yank the About page's sections as text, for a bug report", Parameters: sectionParam, Result: "string", HistoryKind: HistoryChange, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.about.yank", Description: "Yank the About page's sections as text, for a bug report", Parameters: sectionParam, Result: "string", HistoryKind: HistoryChange, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		secs, err := aboutSections(r, StringArg(a, "section", ""))
 		if err != nil {
 			return nil, err
@@ -636,7 +636,7 @@ func registerAbout(r *Runtime) {
 	r.Register(Operation{Key: KeyOf(aboutRowNoun, "show"), Description: "Answer the about row: its section, label, value, kind and note", Result: "about-row", HistoryKind: HistoryFetch, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return aboutRowOf(r, c)
 	}})
-	r.Register(Operation{Key: KeyOf(aboutRowNoun, "copy"), Description: "Yank the about row's value", Result: "string", HistoryKind: HistoryChange, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: KeyOf(aboutRowNoun, "yank"), Description: "Yank the about row's value", Result: "string", HistoryKind: HistoryChange, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		ref, err := aboutRowOf(r, c)
 		if err != nil {
 			return nil, err

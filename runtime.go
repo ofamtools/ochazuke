@@ -1355,14 +1355,6 @@ func registerCore(r *Runtime) {
 	r.Register(Operation{Key: "ochazuke.binding.stops", HistoryKind: HistoryFetch, Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.StopBindings(), nil
 	}})
-	r.Register(Operation{Key: "ochazuke.input.focus", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		id := StringArg(a, "id", "")
-		if r.Input(id) == nil {
-			return nil, fmt.Errorf("unknown input %q", id)
-		}
-		err := r.SetFocus(id)
-		return r.Context(), err
-	}})
 	r.Register(Operation{Key: "ochazuke.mode.switch", FocusBound: true, HistoryKind: HistoryAction, Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.mode"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode, err := r.switchMode(StringArg(a, "mode", ""), r.Input(c.InputID))
 		if err != nil {

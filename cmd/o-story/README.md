@@ -466,7 +466,7 @@ Conformance:
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.close-origin` `demo.edit` `demo.files` `demo.get` `demo.hide` `demo.set` |
 | insert | filter-form | `filter-form.move` `filter-form.write-saved` |
-| insert | find-line | `find-line.commit` |
+| insert | find-line | `find-line.accept` |
 | insert | form | `form.leave` `form.next` `form.run` `form.suggest` |
 | insert | input | `input.erase` `input.insert` `input.kill` `input.move` |
 | insert | list | `collection.filter-cycle` `collection.filter-prop` |
@@ -480,7 +480,7 @@ Conformance:
 | insert | picker | `picker.clear-props` `picker.into` `picker.move` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.up` |
 | insert | search | `search.cycle-match` |
 | insert | setting | `setting.complete` `setting.open` |
-| insert | setting-value | `setting-value.commit` |
+| insert | setting-value | `setting-value.accept` |
 | jq | completion | `completion.dismiss` |
 | jq | input | `input.insert` |
 | jq | list | `collection.move` |
@@ -490,18 +490,18 @@ Conformance:
 | list_filter | search | `search.cycle-match` |
 | macro_pending | mode | `mode.leave` |
 | normal | about | `about.close` `about.open` |
-| normal | about-row | `about-row.copy` `about-row.open` |
+| normal | about-row | `about-row.yank` `about-row.open` |
 | normal | app | `app.quit` |
 | normal | bindings | `binding.help` |
-| normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.run` `bindings-help.view` |
+| normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.pick {what: mode}` `bindings-help.pick {what: noun}` `bindings-help.pick {what: place}` `bindings-help.run` `bindings-help.show` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | culprit | `culprit.size` |
 | normal | demo | `demo.add-base` `demo.archive` `demo.build` `demo.change-source` `demo.check` `demo.check-bindings` `demo.choose` `demo.create` `demo.delete` `demo.edit` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.get` `demo.hide` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.ping` `demo.read` `demo.refresh` `demo.reload` `demo.send` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
 | normal | detail | `detail.fields` `detail.scroll` |
-| normal | detail-field | `detail-field.copy` `detail-field.show` |
+| normal | detail-field | `detail-field.yank` `detail-field.show` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
-| normal | filter-form | `filter-form.delete-saved` `filter-form.direction` `filter-form.edit-condition` `filter-form.focus` `filter-form.move` `filter-form.toggle` |
+| normal | filter-form | `filter-form.delete-saved` `filter-form.direction` `filter-form.edit-condition` `filter-form.goto` `filter-form.move` `filter-form.toggle` |
 | normal | focus | `focus.next` `focus.previous` `focus.to` |
 | normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
@@ -511,8 +511,8 @@ Conformance:
 | normal | key | `key.ignore` |
 | normal | list | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
 | normal | macro | `macro.record` `macro.start` `macro.stop` |
-| normal | markdown | `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-copy` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-link` `markdown.next-same` `markdown.note` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
-| normal | markdown-view | `markdown-view.copy` |
+| normal | markdown | `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-yank` `markdown.link-open` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-link` `markdown.next-same` `markdown.annotate` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
+| normal | markdown-view | `markdown-view.yank` |
 | normal | md.doc | `md.doc.show` |
 | normal | messages | `message.show` |
 | normal | modal | `modal.close` |
@@ -605,7 +605,7 @@ Mode edges (from → to via):
 - `insert` → `jq` via `palette.run`
 - `insert` → `normal` via `binding.help`
 - `insert` → `normal` via `filter-form.move`
-- `insert` → `normal` via `find-line.commit`
+- `insert` → `normal` via `find-line.accept`
 - `insert` → `normal` via `form.leave`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `job picker.load`
@@ -625,7 +625,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `picker.pick`
 - `insert` → `normal` via `picker.pick + demo.get`
 - `insert` → `normal` via `row esc`
-- `insert` → `normal` via `setting-value.commit`
+- `insert` → `normal` via `setting-value.accept`
 - `insert` → `normal` via `setting.open`
 - `insert` → `terminal` via `palette.run`
 - `insert` → `visual-line` via `modal.close`
@@ -661,14 +661,14 @@ Mode edges (from → to via):
 - `normal` → `g_pending` via `mode.enter`
 - `normal` → `help_bind_pending` via `mode.enter`
 - `normal` → `insert` via `bindings-help.args`
-- `normal` → `insert` via `bindings-help.mode`
-- `normal` → `insert` via `bindings-help.noun`
-- `normal` → `insert` via `bindings-help.place`
+- `normal` → `insert` via `bindings-help.pick {what: mode}`
+- `normal` → `insert` via `bindings-help.pick {what: noun}`
+- `normal` → `insert` via `bindings-help.pick {what: place}`
 - `normal` → `insert` via `demo.choose`
 - `normal` → `insert` via `demo.edit`
 - `normal` → `insert` via `filter-form.delete-saved`
 - `normal` → `insert` via `filter-form.edit-condition`
-- `normal` → `insert` via `filter-form.focus`
+- `normal` → `insert` via `filter-form.goto`
 - `normal` → `insert` via `filter-form.move`
 - `normal` → `insert` via `form.choose`
 - `normal` → `insert` via `form.next-missing`
@@ -678,7 +678,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `collection.apply`
 - `normal` → `insert` via `macro.record`
 - `normal` → `insert` via `markdown.insert`
-- `normal` → `insert` via `markdown.note`
+- `normal` → `insert` via `markdown.annotate`
 - `normal` → `insert` via `markdown.open`
 - `normal` → `insert` via `modal.close`
 - `normal` → `insert` via `outline.add`
@@ -764,8 +764,8 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `timeline.row`
 - `normal g` → `normal` via `viewport.goto`
 - `normal g` → `normal` via `yank-history.open`
-- `normal y` → `normal` via `markdown-view.copy`
-- `normal y` → `normal` via `markdown.link-copy`
+- `normal y` → `normal` via `markdown-view.yank`
+- `normal y` → `normal` via `markdown.link-yank`
 - `normal y` → `normal` via `outline.yank`
 - `normal y` → `normal` via `parcel.create`
 - `normal z` → `insert` via `collection.filter-prop`

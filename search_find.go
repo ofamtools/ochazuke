@@ -226,7 +226,7 @@ func registerSearchFind(r *Runtime) {
 	}
 	guards["find"], guards["next"] = "text-findable", "text-refindable"
 	r.Define(FindLineNoun).Pin("insert").
-		Verb("commit", func(r *Runtime, _ Context, _ Arguments) (any, error) {
+		Verb("accept", func(r *Runtime, _ Context, _ Arguments) (any, error) {
 			body := r.Instances[r.TopModal()]
 			in := r.Input(findLineInputID)
 			if body == nil || body.ID != findLineID || in == nil {

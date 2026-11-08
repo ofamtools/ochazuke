@@ -173,7 +173,7 @@ func settingItemVerbs() []nounVerbRow {
 
 func settingPromptVerbs() []nounVerbRow {
 	return []nounVerbRow{
-		{"ochazuke.setting-value", "commit", "Set the setting to the typed value and close the prompt", settingPromptCommit, []opTrait{asHistory(HistoryChange)}},
+		{"ochazuke.setting-value", "accept", "Set the setting to the typed value and close the prompt", settingPromptCommit, []opTrait{asHistory(HistoryChange)}},
 		{"ochazuke.setting-value", "cancel", "Close the prompt and keep the value", settingPromptCancel, nil},
 	}
 }

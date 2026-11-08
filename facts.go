@@ -49,6 +49,11 @@ type factsSpec struct {
 	// instead of Define; Remote marks the store Remote (List reads through
 	// Ctx.Await).
 	Own, Remote bool
+	// Create makes a thing from the props create was given: a fact the
+	// registry can be told (a mode name). When set, every prop is
+	// create-only (create writes it, set does not), the key included: create
+	// names the thing.
+	Create func(Ctx, Thing) (Thing, error)
 }
 
 // defineFacts declares the noun, its props and its facts store. The
@@ -92,6 +97,9 @@ func (r *Runtime) defineFacts(f factsSpec) {
 			props[i].Description = f.Docs[props[i].Name]
 		}
 		props[i].ReadOnly = true
+		if f.Create != nil {
+			props[i].ReadOnly, props[i].CreateOnly = false, true
+		}
 	}
 	// The key first, then the rest in declaration order.
 	for i, p := range props {
@@ -122,6 +130,7 @@ func (r *Runtime) defineFacts(f factsSpec) {
 	}
 	define(f.Noun).Props(props...).Store(Store{
 		Kind: KindCollection, Facts: true, Remote: f.Remote, ListParams: f.ListParams, List: f.List, Get: get,
+		Create: f.Create, AcceptsKey: f.Create != nil,
 	})
 }
 

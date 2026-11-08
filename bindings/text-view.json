@@ -8,7 +8,7 @@
     ]},
     {"context": "ochazuke.text-view/visual-line", "bindings": []},
     {"context": "ochazuke.find-line/insert", "bindings": [
-      {"key": "enter", "action": "ochazuke.find-line.commit", "hint": "find"},
+      {"key": "enter", "action": "ochazuke.find-line.accept", "hint": "find"},
       {"key": "esc", "action": "ochazuke.modal.close"},
       {"key": "tab", "action": "ochazuke.search.cycle-match"},
       {"key": "shift+tab", "action": "ochazuke.search.cycle-match", "args": {"step": -1}, "hidden": true}

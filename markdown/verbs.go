@@ -30,7 +30,7 @@ func Register(r *ochazuke.Runtime) {
 // writingVerbs are the normal-mode verbs it guards.
 const writableGuard = "markdown-writable"
 
-var writingVerbs = []string{"toggle", "undo", "redo", "insert", "open", "cut", "paste", "note", "resolve"}
+var writingVerbs = []string{"toggle", "undo", "redo", "insert", "open", "cut", "paste", "annotate", "resolve"}
 
 // docOf is the Doc the event's focus is in (an input of it included).
 func docOf(r *ochazuke.Runtime, focus string) *Doc {
@@ -76,6 +76,16 @@ func paced(run func(*Doc, ochazuke.Arguments) error) ochazuke.Handler {
 
 func plain(run func(*Doc) error) ochazuke.Handler {
 	return on(func(d *Doc, _ ochazuke.Arguments) error { return run(d) })
+}
+
+// docGoto is goto: the heading the argument names, else the picker over
+// the headings (Outline).
+func docGoto(d *Doc, a ochazuke.Arguments) error {
+	want := strings.TrimSpace(ochazuke.StringArg(a, "title", ""))
+	if want == "" {
+		return d.Outline()
+	}
+	return d.GotoHeading(want)
 }
 
 func steps(a ochazuke.Arguments) int { return max(1, ochazuke.IntArg(a, "steps", 1)) }
@@ -153,7 +163,7 @@ func docVerbs() []docVerb {
 	return []docVerb{
 		{"move", "Move by Markdown element, or drawn line with markdown.cursor=line; spill at the document's edges", on(docMove), true},
 		{"link-open", "Open the focused Markdown link with the system URL handler", plain((*Doc).OpenLink), false},
-		{"link-copy", "Yank the focused Markdown link URL", plain((*Doc).CopyLink), false},
+		{"link-yank", "Yank the focused Markdown link URL", plain((*Doc).CopyLink), false},
 		{"next-link", "Jump to the next Markdown link", on(docNextLink), true},
 		{"previous-link", "Jump to the previous Markdown link", on(docPreviousLink), true},
 		{"toggle", "Toggle the checklist item under the cursor: rewrites only its box character in the source, written at once", plain((*Doc).Toggle), false},
@@ -174,10 +184,10 @@ func docVerbs() []docVerb {
 		{"cut", "Cut the cursor's line or block (an item with its notes and nested items, a heading's line only); yanked, written at once", plain((*Doc).Delete), false},
 		{"yank", "Yank the cursor's line or block as lines (what cut would take)", plain((*Doc).Yank), false},
 		{"paste", "Paste the yanked lines below (or above) the block; written at once", on(docPaste), false},
-		{"note", "Add a note under the list item: insert mode in a new note line after its notes, signed by the note author (the markdown.note-author setting) and dated today", plain((*Doc).AddNote), false},
+		{"annotate", "Add a note under the list item: insert mode in a new note line after its notes, signed by the note author (the markdown.note-author setting) and dated today", plain((*Doc).AddNote), false},
 		{"resolve", "Mark the note under the cursor resolved (✓ after its date), or open again; it stays in the file", plain((*Doc).Resolve), false},
 		{"fold", "Fold or unfold the list item's notes; a folded item shows how many are open", plain((*Doc).Fold), false},
-		{"outline", "Jump to a heading: a picker over the document's headings", plain((*Doc).Outline), false},
+		{"goto", "Jump to a heading: the one heading names (its text, case ignored, or a prefix of it that is unique), else a picker over the document's headings", on(docGoto), false},
 		{"leave", "Leave the block editor: the block is written, tidied (table pipes aligned, numbers renumbered) and drawn again", plain((*Doc).Leave), false},
 		{"continue-item", "Enter on a list item: end it at the cursor and start the next item below, the rest of the line in it", plain((*Doc).ContinueItem), false},
 		{"end-list", "Enter on an empty list item: drop it and start a paragraph after the list", plain((*Doc).EndList), false},
@@ -278,6 +288,7 @@ func docParams() map[string]map[string]ochazuke.Parameter {
 		"open":          {"where": where},
 		"paste":         {"where": where},
 		"cell":          {"delta": {Type: "integer"}},
+		"goto":          {"title": {Type: "string", Description: "A heading's text, or the start of it; without it a picker lists the headings"}},
 	}
 }
 

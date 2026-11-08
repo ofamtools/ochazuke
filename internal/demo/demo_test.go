@@ -249,7 +249,7 @@ func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 	press("p", "a")
 	execute("close", "palette", nil)
 	press("?", "ctrl+g")
-	execute("focus", "input", ochazuke.Arguments{"id": "directory"})
+	execute("to", "focus", ochazuke.Arguments{"id": "directory"})
 	press("ctrl+o")
 	execute("close", "picker", nil)
 	press("g")

@@ -101,11 +101,11 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 						if err != nil {
 							return nil, err
 						}
-						if v == "show" || v == "copy" {
+						if v == "show" || v == "yank" {
 							if len(plan.Items) != 1 {
 								return nil, fmt.Errorf("%s needs exactly one setup item", v)
 							}
-							if v == "copy" {
+							if v == "yank" {
 								text := plan.Items[0].Content
 								if text == "" {
 									text = plan.Items[0].Advice
@@ -123,7 +123,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 			} else {
 				b.Fetch()
 			}
-			if v == "copy" {
+			if v == "yank" {
 				b.TextResult()
 			}
 			if v == "list" || v == "status" || v == "install" || v == "uninstall" {
@@ -134,7 +134,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 			if v == "install" || v == "uninstall" {
 				op.HistoryKind = ochazuke.HistoryChange
 			}
-			op.Parameters = map[string]ochazuke.Parameter{"item": {Type: "string", Rest: true, Required: v == "show" || v == "copy", Description: "Setup item ids (empty selects the default set)"}, "home": {Type: "string", Description: "Use this home directory and isolate harness HOME/XDG paths"}}
+			op.Parameters = map[string]ochazuke.Parameter{"item": {Type: "string", Rest: true, Required: v == "show" || v == "yank", Description: "Setup item ids (empty selects the default set)"}, "home": {Type: "string", Description: "Use this home directory and isolate harness HOME/XDG paths"}}
 			if v == "install" {
 				op.Parameters["group"] = ochazuke.Parameter{Type: "string", Description: "Only items in this group"}
 			}
@@ -152,7 +152,7 @@ var setupVerbs = []struct {
 	name, description string
 	shadows           bool
 }{
-	{"status", "Setup state and exact next steps", false}, {"list", "List setup items and states", true}, {"show", "Show one setup item in full", false}, {"plan", "Show all writes and argv without installing", false}, {"install", "Install the selected setup items", false}, {"uninstall", "Remove only the selected owned integrations", false}, {"copy", "Print an item's content or advice for pasting", false},
+	{"status", "Setup state and exact next steps", false}, {"list", "List setup items and states", true}, {"show", "Show one setup item in full", false}, {"plan", "Show all writes and argv without installing", false}, {"install", "Install the selected setup items", false}, {"uninstall", "Remove only the selected owned integrations", false}, {"yank", "Print an item's content or advice for pasting", false},
 }
 
 // setupProps are the setup noun's props: one thing per declared item (and
@@ -277,7 +277,7 @@ func (s *Shell) mountSetup(app *oden.App) {
 
 func printSetup(out io.Writer, tool, verb string, raw []byte) error {
 	switch verb {
-	case "copy":
+	case "yank":
 		var text string
 		if err := json.Unmarshal(raw, &text); err != nil {
 			return err

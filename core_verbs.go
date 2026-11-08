@@ -163,6 +163,12 @@ const FactReason = "a system fact"
 var needWriter = storeNeed{Doc: "a store that is not a system fact (Store.Facts)", Lacks: FactReason,
 	Has: func(_ *Runtime, n *Noun) bool { return !n.Store.Facts }}
 
+// needFactCreator is the need of create: a store that is not a system fact,
+// or a facts store that declares Create (the registry can be told a new
+// fact: a mode).
+var needFactCreator = storeNeed{Doc: "a store that is not a system fact (Store.Facts), or a facts store with Create", Lacks: FactReason,
+	Has: func(_ *Runtime, n *Noun) bool { return !n.Store.Facts || n.Store.Create != nil }}
+
 // needRole is the need of a writable prop with that role.
 func needRole(role string) storeNeed {
 	return storeNeed{
@@ -185,7 +191,7 @@ func coreVerbs() []standardVerb {
 			Rows: true, HistoryKind: HistoryFetch, ParamNames: []string{"filter", "where", "props", "limit", "sort", "group-by", "group-sort", "page", "per-page", "archived"},
 			Params: listParams, Positional: listPositional, Run: runList},
 		{Verb: "create", Description: "Create a thing from the props given (each omitted one its default), or a copy of the thing from names (its props create writes, the props given in place of its values); answers the new thing",
-			Kinds: []string{KindCollection}, Needs: []storeNeed{needWriter, needCreate, needCreateProp},
+			Kinds: []string{KindCollection}, Needs: []storeNeed{needFactCreator, needCreate, needCreateProp},
 			Creates: true, Undo: undoByDelete, HistoryKind: HistoryChange, FocusSetting: CreateFromFocusSetting, ParamNames: []string{"pairs", "from"},
 			Positional: createPositional, Params: createParams, ReadArgs: createArgs, Writes: createWrites, Run: runCreate},
 		{Verb: "set", Description: "Write a thing's props: props, an object of prop to value (a subset or all of them; @label, @owner and @archive name a prop by its role), or prop=value words; toggle flips one boolean prop; answers the thing after the write",

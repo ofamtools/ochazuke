@@ -46,5 +46,5 @@ R|    ## Status counts
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste · g O markdown.outline · u markdown.undo …
+ |  i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste · g O markdown.goto · u markdown.undo …
  |

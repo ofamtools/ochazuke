@@ -21,14 +21,6 @@ type modeFact struct {
 }
 
 func registerConfiguration(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.mode.register", HistoryKind: HistoryChange, Description: "Register an application-defined mode name; pending modes are exclusive and one-shot", Parameters: map[string]Parameter{"name": {Type: "string", Required: true}, "pending": {Type: "boolean"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		name := StringArg(a, "name", "")
-		pending, _ := a["pending"].(bool)
-		if err := r.DefineMode(name, pending); err != nil {
-			return nil, err
-		}
-		return name, nil
-	}})
 	r.Register(Operation{Key: "ochazuke.binding.load", HistoryKind: HistoryChange, Description: "Install binding rows from a bindings file (JSONC): the grouped format {bindings: [{context, bindings: {key: action}}]} or an array of rows", Parameters: map[string]Parameter{"path": {Type: "string", Required: true}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		data, err := os.ReadFile(StringArg(a, "path", ""))
 		if err != nil {
@@ -767,6 +759,15 @@ func (r *Runtime) unapplyBindingRows(applied []appliedRow) {
 func registerModeFacts(r *Runtime) {
 	r.defineFacts(factsSpec{Noun: "ochazuke.mode", Sample: modeFact{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The mode's name", "pending": "A pending mode: exclusive and one-shot"},
+		// create registers an application-defined mode name.
+		Create: func(c Ctx, t Thing) (Thing, error) {
+			name, _ := t["name"].(string)
+			pending, _ := t["pending"].(bool)
+			if err := c.Runtime.DefineMode(name, pending); err != nil {
+				return nil, err
+			}
+			return Thing{"name": name, "pending": pending}, nil
+		},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
 			r := c.Runtime
 			var facts []modeFact

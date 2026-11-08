@@ -20,7 +20,7 @@ func factsRuntime(t *testing.T) *Runtime {
 }
 
 // Each system fact is a thing noun with a facts store: a key prop (also its
-// human key), list and get standard, no base times; create, set and delete
+// human key), list and get standard, no base times; create (unless the store declares Create), set and delete
 // are on the noun but unavailable, "a system fact", and refuse with it.
 func TestSystemFactsAreReadOnlyThingNouns(t *testing.T) {
 	r := factsRuntime(t)
@@ -42,6 +42,9 @@ func TestSystemFactsAreReadOnlyThingNouns(t *testing.T) {
 			}
 		}
 		for _, verb := range []string{"create", "set", "delete"} {
+			if verb == "create" && n.Store.Create != nil {
+				continue // a fact the registry can be told (a mode name) is created
+			}
 			op, ok := r.Operations.Find(Key(name + "." + verb))
 			if !ok || op.Unavailable != FactReason || FactReason != "a system fact" {
 				t.Fatalf("%s.%s: present %v unavailable %q", name, verb, ok, op.Unavailable)

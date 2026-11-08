@@ -105,7 +105,7 @@ replacement. `collection.filter-save=false` hides the row without deleting data.
 
 The form adds no Ctrl+Alt chords or direct part-focus shortcuts. Tab replaces
 those jumps, direction uses Enter on its control, and normal `!`, `C` and
-`d d` on conditions cover the remaining changes. `filter-form.focus`,
+`d d` on conditions cover the remaining changes. `filter-form.goto`,
 `.direction`, `.write-saved` and `.delete-saved` remain callable while a
 filter form is open. The modal retains `ochazuke.form` on its ancestry,
 so existing user bindings on that noun still apply.

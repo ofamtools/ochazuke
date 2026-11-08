@@ -941,7 +941,6 @@ func registerLists(r *Runtime) {
 		run               func(*Collection, Context, Arguments) (any, error)
 		traits            []opTrait
 	}{
-		{"focus", "Focus a list and its selected row", map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.collection", Free: true}}, func(l *Collection, _ Context, _ Arguments) (any, error) { return l.state(), l.Focus() }, nil},
 		{"move", "Move the selection; past the edge, on to the next stop on the page", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "delta": {Type: "integer", Required: true}, "steps": {Type: "integer", Description: "Repeat count (3j); stops at the list's edge, and spills as one move only from the edge"}, "clamp": {Type: "boolean", Description: "Stop at the list's edges instead of spilling (the filter line's moves)"}}, func(l *Collection, _ Context, a Arguments) (any, error) {
 			delta, steps := IntArg(a, "delta", 0), max(1, IntArg(a, "steps", 1))
 			if clamp, _ := a["clamp"].(bool); !clamp && l.motion != nil && !l.visual {

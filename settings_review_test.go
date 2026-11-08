@@ -10,7 +10,7 @@ import (
 
 // reviewFixture is the Settings page fixture with a session, two session
 // values (theme over settings.json's light, scrolloff over the default)
-// and setting.review on ctrl+r.
+// and setting.diff {review} on ctrl+r.
 func reviewFixture(t *testing.T) (*Runtime, *Model, string) {
 	t.Helper()
 	r, m, dir := settingsPageFixture(t)
@@ -24,11 +24,11 @@ func reviewFixture(t *testing.T) (*Runtime, *Model, string) {
 	if _, err := s.SetSession("theme", "mono"); err != nil {
 		t.Fatal(err)
 	}
-	r.Define("app").Mode("normal").Bind("ctrl+r", Do("ochazuke.setting.review"))
+	r.Define("app").Mode("normal").Bind("ctrl+r", Do("ochazuke.setting.diff", Arguments{"review": true}))
 	return r, m, dir
 }
 
-// setting.review lists each session value beside its saved one, the
+// setting.diff {review} lists each session value beside its saved one, the
 // detail saying what writing changes; w writes the focused row, r reverts
 // it, each dropping out, and the last one closes the review with a notice.
 func TestSettingsReviewWritesAndRevertsOneByOne(t *testing.T) {
@@ -121,13 +121,13 @@ func TestSettingsReviewCloses(t *testing.T) {
 // diff.
 func TestSettingsReviewEmptyAndNoSession(t *testing.T) {
 	r, m, _ := settingsPageFixture(t)
-	r.Define("app").Mode("normal").Bind("ctrl+r", Do("ochazuke.setting.review"))
+	r.Define("app").Mode("normal").Bind("ctrl+r", Do("ochazuke.setting.diff", Arguments{"review": true}))
 	keytest.Press(m, "ctrl+r")
 	if r.TopModal() != "" || m.Info != "No session changes to review" || m.Status != "" {
 		t.Fatalf("empty: modal %q info %q status %q", r.TopModal(), m.Info, m.Status)
 	}
 	plain, _, _ := settingsFixture(t)
-	got, err := plain.Execute(Request{Noun: "ochazuke.setting", Verb: "review"})
+	got, err := plain.Execute(Request{Noun: "ochazuke.setting", Verb: "diff", Args: Arguments{"review": true}})
 	if text, _ := got.(string); err != nil || !strings.Contains(text, "no session to review") || !strings.Contains(text, "setting diff") {
 		t.Fatalf("no session: %v %v", got, err)
 	}

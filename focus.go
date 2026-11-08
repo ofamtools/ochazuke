@@ -767,6 +767,20 @@ func (r *Runtime) drawnUnder(root string) []Placement {
 	return nil
 }
 
+// focusTargetOf is id, or the focus target of the component id names when
+// it has one (FocusTargeter) that is an instance: a list is focused on its
+// selected row, as a jump to it lands.
+func (r *Runtime) focusTargetOf(id string) string {
+	if inst := r.Instances[id]; inst != nil {
+		if t, ok := inst.Component.(FocusTargeter); ok {
+			if target := t.FocusTarget(); r.Instances[target] != nil {
+				return target
+			}
+		}
+	}
+	return id
+}
+
 // landing is where a jump to a stop or region puts the focus: the
 // component's own target, else the focus it last held inside, else (for a
 // region) its first stop, else the instance itself.
@@ -849,8 +863,8 @@ func registerFocus(r *Runtime) {
 		err := r.JumpFocus(-max(1, IntArg(a, "steps", 1)), StringArg(a, "scope", "stop"))
 		return r.Context(), err
 	}})
-	r.Register(Operation{Key: "ochazuke.focus.to", Description: "Move the focus to an instance; the one way handlers move focus", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		err := r.SetFocus(StringArg(a, "id", ""))
+	r.Register(Operation{Key: "ochazuke.focus.to", Description: "Move the focus to an instance; the one way handlers move focus. A component with a focus target of its own (a list, tree or timeline: its selected row; a form: its first field) is focused through it", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		err := r.SetFocus(r.focusTargetOf(StringArg(a, "id", "")))
 		return r.Context(), err
 	}})
 	// Owner defaults (bindings/focus.json): } { move stop to stop, ) (

@@ -7,7 +7,7 @@
     ]},
     {"context": "ochazuke.detail-field/normal", "bindings": [
       {"key": "enter", "action": "ochazuke.detail-field.show"},
-      {"key": "y", "action": "ochazuke.detail-field.copy"}
+      {"key": "y", "action": "ochazuke.detail-field.yank"}
     ]}
   ]
 }

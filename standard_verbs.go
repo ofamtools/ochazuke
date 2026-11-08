@@ -611,11 +611,12 @@ func labelFirst(n *Noun) []string {
 
 // createProps are the props create writes: every one set may write, and
 // the create-only ones; never a read-only prop or the key (the store
-// gives the key).
+// gives the key), unless the key is create-only too: then the caller names
+// the thing at create and it never changes (a mode's name).
 func createProps(n *Noun) []PropSpec {
 	var out []PropSpec
 	for _, p := range n.Props {
-		if !p.ReadOnly && !p.Key {
+		if !p.ReadOnly && !p.Key || p.Key && p.CreateOnly {
 			out = append(out, p)
 		}
 	}

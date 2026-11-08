@@ -82,9 +82,9 @@ func TestSettingsSectionAndTabVerbs(t *testing.T) {
 	s := r.Settings()
 	_ = s.Set("panes.group", "b")
 	_ = s.Set("panes.width", 5)
-	got, err := r.Execute(Request{Noun: settingsSectionNoun, Verb: "copy", Args: Arguments{"section": "panes"}})
+	got, err := r.Execute(Request{Noun: settingsSectionNoun, Verb: "yank", Args: Arguments{"section": "panes"}})
 	if err != nil || !reflect.DeepEqual(got, []string{"set panes.group=b", "set panes.width=5"}) {
-		t.Fatalf("copy %v %v", got, err)
+		t.Fatalf("yank %v %v", got, err)
 	}
 	if y, err := r.ReadYank(""); err != nil || y.Text != "set panes.group=b\nset panes.width=5" || y.Shape != "line" {
 		t.Fatalf("yank %+v %v", y, err)

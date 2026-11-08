@@ -72,7 +72,7 @@ func TestPageSwitchRestoresFrameFocusAndEditingState(t *testing.T) {
 	alpha := pageTestRegister(t, r, "alpha")
 	beta := pageTestRegister(t, r, "beta")
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
-	paletteRequest(t, r, "focus", "input", Arguments{"id": "alpha-input"})
+	paletteRequest(t, r, "to", "focus", Arguments{"id": "alpha-input"})
 	in := r.Input("alpha-input")
 	in.Cursor = 2
 	paletteRequest(t, r, "switch", "mode", Arguments{"mode": "insert"})
@@ -110,7 +110,7 @@ func TestPageBindingsAndActionsFollowActiveContext(t *testing.T) {
 	}
 	for _, id := range []string{"alpha", "beta"} {
 		paletteRequest(t, r, "open", "page", Arguments{"id": id})
-		paletteRequest(t, r, "focus", "input", Arguments{"id": id + "-input"})
+		paletteRequest(t, r, "to", "focus", Arguments{"id": id + "-input"})
 		if handled, err := r.HandleBinding("x"); !handled || err != nil {
 			t.Fatalf("%s binding: handled=%v error=%v", id, handled, err)
 		}
@@ -230,14 +230,14 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 	alpha := pageTestRegister(t, r, "alpha")
 	pageTestRegister(t, r, "beta")
 	paletteRequest(t, r, "open", "page", Arguments{"id": "alpha"})
-	paletteRequest(t, r, "focus", "input", Arguments{"id": "alpha-input"})
+	paletteRequest(t, r, "to", "focus", Arguments{"id": "alpha-input"})
 	r.Pending = "g"
 	before := pageTestSnapshot(t, r)
 	if err := r.SetFocus("beta-input"); err == nil || pageTestSnapshot(t, r) != before {
 		t.Fatalf("cross-page Focus must fail without mutation: %v", err)
 	}
 	for _, q := range []Request{
-		{Verb: "focus", Noun: "ochazuke.input", Args: Arguments{"id": "beta-input"}},
+		{Verb: "to", Noun: "ochazuke.focus", Args: Arguments{"id": "beta-input"}},
 		{Verb: "select", Noun: "ochazuke.context", Args: Arguments{"path": `["app","beta"]`}},
 		{Verb: "select", Noun: "ochazuke.context", Args: Arguments{"path": `["app","beta","beta-editor"]`, "input": "beta-input"}},
 		{Verb: "select", Noun: "ochazuke.context", Args: Arguments{"path": `["app","alpha","alpha-editor"]`, "input": "beta-input"}},
@@ -268,7 +268,7 @@ func TestPageFocusIsolationAllowsExplicitOffscreenEdits(t *testing.T) {
 		if err := r.Push(id, id); err != nil {
 			t.Fatal(err)
 		}
-		paletteRequest(t, r, "focus", "input", Arguments{"id": id + "-field"})
+		paletteRequest(t, r, "to", "focus", Arguments{"id": id + "-field"})
 		path, err := json.Marshal([]string{"app", id})
 		if err != nil {
 			t.Fatal(err)

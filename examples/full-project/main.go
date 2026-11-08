@@ -229,7 +229,7 @@ func smokeExample(m *ochazuke.Model) error {
 		call("replace", "input", id, ochazuke.Arguments{"start": 0, "end": len(r.Input(id).Text), "text": text})
 	}
 	call("open", "page", "", ochazuke.Arguments{"id": "overview"})
-	call("focus", "input", "", ochazuke.Arguments{"id": "notes"})
+	call("to", "focus", "", ochazuke.Arguments{"id": "notes"})
 	replace("notes", "alpha beta")
 	replace("title", "Release")
 	call("move", "input", "title", ochazuke.Arguments{"motion": "line-start"})
@@ -306,10 +306,10 @@ func smokeExample(m *ochazuke.Model) error {
 	call("run", "palette", "", nil)
 	expect("noun-first return page", r.Context().InputID, "notes")
 	binding(":")
-	call("fill", "palette", "", ochazuke.Arguments{"text": "input title"})
+	call("fill", "palette", "", ochazuke.Arguments{"text": "focus title"})
 	call("run", "palette", "", nil)
 	expect("noun-first input focus", r.Context().InputID, "title")
-	call("focus", "input", "", ochazuke.Arguments{"id": "notes"})
+	call("to", "focus", "", ochazuke.Arguments{"id": "notes"})
 	call("open", "palette", "", nil)
 	call("fill", "palette", "", ochazuke.Arguments{"text": "greet workspace Lin"})
 	call("run", "palette", "", nil)
@@ -328,7 +328,7 @@ func smokeExample(m *ochazuke.Model) error {
 	call("yank", "input", "", ochazuke.Arguments{"register": "a"})
 	expect("visual yank register", r.Registers().Named["a"].Yank.Text, "one")
 	replace("title", "")
-	call("focus", "input", "", ochazuke.Arguments{"id": "title"})
+	call("to", "focus", "", ochazuke.Arguments{"id": "title"})
 	call("paste", "input", "", ochazuke.Arguments{"register": "a", "literal": true})
 	expect("shared register paste", string(r.Input("title").Text), "one")
 	call("undo", "input", "", nil)
@@ -384,7 +384,7 @@ func smokeExample(m *ochazuke.Model) error {
 	// picker.open with no name: the path picker on its find source, with
 	// the field's filter (a folder field lists folders only).
 	for _, item := range []struct{ input, row, path string }{{"source", "release.txt", "release.txt"}, {"destination", "output/", "output"}, {"attachments", "release.txt", "release.txt"}} {
-		call("focus", "input", "", ochazuke.Arguments{"id": item.input})
+		call("to", "focus", "", ochazuke.Arguments{"id": item.input})
 		replace(item.input, "")
 		call("open", "picker", "", ochazuke.Arguments{"path": root + string(filepath.Separator)})
 		drain(r.PendingCommands())
@@ -435,7 +435,7 @@ func smokeExample(m *ochazuke.Model) error {
 	binding("tab", "j", "k", "x")
 	expect("list releases input focus", r.Context().Path, []string{"app", "items", "item-editor"})
 	expect("editor receives list keys", string(r.Input("item-note").Text), "jkx")
-	call("move", "list", "", ochazuke.Arguments{"id": "item-list", "delta": 1})
+	call("move", "collection", "", ochazuke.Arguments{"id": "item-list", "delta": 1})
 	expect("background move keeps editor", r.Context().InputID, "item-note")
 	binding("tab")
 	expect("list refocus current row", r.Context().Path, []string{"app", "items", "item-list", "picker-lab"})
@@ -446,10 +446,10 @@ func smokeExample(m *ochazuke.Model) error {
 	// Mixed nouns in one list: each row answers to its noun's verbs and keys.
 	binding("o")
 	expect("worktree verb by key", pageState("items")["lastAction"], "open release")
-	call("select", "list", "", ochazuke.Arguments{"item": "repository"})
+	call("select", "collection", "", ochazuke.Arguments{"item": "repository"})
 	binding("f")
 	expect("repo verb by key", pageState("items")["lastAction"], "fetch repository")
-	call("select", "list", "", ochazuke.Arguments{"item": "hotfix"})
+	call("select", "collection", "", ochazuke.Arguments{"item": "hotfix"})
 	binding("c")
 	expect("branch verb by key", pageState("items")["lastAction"], "checkout hotfix")
 	if _, err := r.Execute(ochazuke.Request{Verb: "open", Noun: "worktree"}); err == nil {
@@ -458,7 +458,7 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("row verb by explicit target", call("open", "worktree", "main", nil), map[string]any{"verb": "open", "noun": "worktree", "row": "main"})
 	keysFor := func(target string) []string {
 		var keys []string
-		rows := bindingRows(call("list", "bindings", target, nil))
+		rows := bindingRows(call("list", "binding", target, nil))
 		for _, b := range rows {
 			if b.Request.Noun == "repo" || b.Request.Noun == "worktree" || b.Request.Noun == "branch" {
 				keys = append(keys, b.Keys+"="+b.Request.Key())
@@ -489,13 +489,13 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("noun-first row action", pageState("items")["lastAction"], "open docs")
 	// Fan-out: mark two rows of different nouns and apply one verb; the row
 	// whose noun lacks the verb is reported, not run.
-	call("select", "list", "", ochazuke.Arguments{"item": "docs"})
+	call("select", "collection", "", ochazuke.Arguments{"item": "docs"})
 	binding("space", "j", "j", "space")
-	report, _ := call("apply", "list", "", ochazuke.Arguments{"verb": "open"}).(map[string]any)
+	report, _ := call("apply", "collection", "", ochazuke.Arguments{"verb": "open"}).(map[string]any)
 	expect("fan-out applied", report["applied"], []string{"docs", "maintenance"})
-	call("select", "list", "", ochazuke.Arguments{"item": "hotfix"})
+	call("select", "collection", "", ochazuke.Arguments{"item": "hotfix"})
 	binding("space")
-	report, _ = call("apply", "list", "", ochazuke.Arguments{"verb": "open"}).(map[string]any)
+	report, _ = call("apply", "collection", "", ochazuke.Arguments{"verb": "open"}).(map[string]any)
 	expect("fan-out skips unsupported nouns", report["skipped"], []string{"hotfix: branch.open is not registered"})
 	expect("fan-out keeps marks", len(r.List("item-list").Marked()), 3)
 	if failure != nil {
@@ -523,7 +523,7 @@ func smokeExample(m *ochazuke.Model) error {
 	expect("palette returns to the pane", r.Focus, "pane")
 	terminalKeys := func() []string {
 		var keys []string
-		rows := bindingRows(call("list", "bindings", "pane", nil))
+		rows := bindingRows(call("list", "binding", "pane", nil))
 		for _, b := range rows {
 			keys = append(keys, b.Keys+b.Pattern+"="+b.Request.Verb)
 		}

@@ -208,7 +208,6 @@ func registerListQuery(r *Runtime) {
 		run                      func(*Collection, Arguments) error
 		positional               []string
 	}{
-		{"page", "Show page n of a paged list (settings: collection.per-page)", "list-paged", map[string]Parameter{"to": {Type: "integer", Description: "The page, from 1"}}, func(l *Collection, a Arguments) error { return l.SetPage(IntArg(a, "to", 1)) }, []string{"to"}},
 		{"page-next", "Show the next page of a paged list", "list-paged", nil, func(l *Collection, _ Arguments) error { return l.SetPage(l.vs.Page + 1) }, nil},
 		{"page-prev", "Show the previous page of a paged list", "list-paged", nil, func(l *Collection, _ Arguments) error { return l.SetPage(l.vs.Page - 1) }, nil},
 		{"page-first", "Show the first page of a paged list", "list-paged", nil, func(l *Collection, _ Arguments) error { return l.SetPage(1) }, nil},

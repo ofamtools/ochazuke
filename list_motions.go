@@ -109,14 +109,17 @@ func registerListMotions(r *Runtime) {
 	for _, spec := range []struct {
 		verb, description string
 		parameters        map[string]Parameter
-		run               func(*Collection, Arguments)
+		run               func(*Collection, Arguments) error
 	}{
-		{"goto", "Select the first or last row, or the row numbered row (5G); clamps, never spills", map[string]Parameter{
+		{"goto", "Select the first or last row, or the row numbered row (5G); clamps, never spills. With page, show that page of a paged list instead (settings: collection.per-page)", map[string]Parameter{
 			"id":       {Type: "string", Description: "The list (default: the focused one)"},
 			"position": {Type: "string", Enum: []string{"first", "last"}, Description: "Where to go without a row number (default first)"},
 			"row":      {Type: "integer", Description: "The row number, 1 the first (a count: 5G); 0 or absent goes to position"},
-		}, func(l *Collection, a Arguments) {
+			"page":     {Type: "integer", Description: "The page of a paged list to show, from 1; 0 or absent goes by row or position"},
+		}, func(l *Collection, a Arguments) error {
 			switch row := IntArg(a, "row", 0); {
+			case IntArg(a, "page", 0) > 0:
+				return l.SetPage(IntArg(a, "page", 1))
 			case row > 0:
 				l.goTo(row - 1)
 			case StringArg(a, "position", "first") == "last":
@@ -124,13 +127,14 @@ func registerListMotions(r *Runtime) {
 			default:
 				l.goTo(0)
 			}
+			return nil
 		}},
 		{"scroll", "Move the selection and the window a page (half a page with half) down or up; clamps, never spills", map[string]Parameter{
 			"id":    {Type: "string", Description: "The list (default: the focused one)"},
 			"delta": {Type: "integer", Required: true, Description: "1 down, -1 up"},
 			"half":  {Type: "boolean", Description: "Half a page (ctrl+d, ctrl+u); steps is then rows"},
 			"steps": {Type: "integer", Description: "A count: pages, or rows with half (Vim's [count]ctrl+d); 0 or absent is one page or half a page"},
-		}, func(l *Collection, a Arguments) {
+		}, func(l *Collection, a Arguments) error {
 			rows, steps := l.pageRows(), IntArg(a, "steps", 0)
 			half, _ := a["half"].(bool)
 			switch {
@@ -145,6 +149,7 @@ func registerListMotions(r *Runtime) {
 				rows = -rows
 			}
 			l.page(rows)
+			return nil
 		}},
 	} {
 		r.Register(Operation{Key: KeyOf("ochazuke.collection", spec.verb), Motion: true, HistoryKind: HistoryAction, Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
@@ -152,7 +157,9 @@ func registerListMotions(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			spec.run(list, args)
+			if err := spec.run(list, args); err != nil {
+				return nil, err
+			}
 			return list.state(), nil
 		}})
 	}

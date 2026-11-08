@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// The review of this session's settings (setting.review): a modal over
+// The review of this session's settings (setting.diff {review}): a modal over
 // whatever is open, one row per setting whose session value differs from
 // the persisted one (setting.diff), with the saved value and where it is
 // saved, the session value and where it came from side by side. Under the
@@ -33,43 +33,47 @@ const (
 	settingChangePrefix  = "__settings-review/row/"
 )
 
-// noSessionReview is setting.review's answer in a runtime without a
+// noSessionReview is setting.diff {review}'s answer in a runtime without a
 // session (a one-shot CLI process).
-const noSessionReview = "no session to review: a CLI process holds no session values, so every write already went to " + SettingsFile + ". In a running app, setting review (or setting diff) shows the session values."
+const noSessionReview = "no session to review: a CLI process holds no session values, so every write already went to " + SettingsFile + ". In a running app, setting diff --review shows the session values."
 
-// registerSettingsReview registers setting.review, the review's nouns
-// and the refresh that drops reviewed rows.
+// reviewSettings is setting.diff {review}: the modal over the session's
+// settings, one row per diff entry, to write or revert one at a time or all
+// at once. It answers the diff.
+func reviewSettings(r *Runtime) (any, error) {
+	s := r.Settings()
+	if !s.HasSession() {
+		return noSessionReview, nil
+	}
+	diff := s.Diff()
+	if len(diff) == 0 {
+		r.UI().Info("No session changes to review")
+		return nil, nil
+	}
+	if r.Instances[settingsReviewID] == nil {
+		if _, err := r.OpenModal(settingsReviewID, Payload{}); err != nil {
+			return nil, err
+		}
+		if _, err := r.AddList(settingsReviewListID, nil, Parent(settingsReviewID), NoMarks(), Columns(settingsReviewColumns...)); err != nil {
+			_ = r.Pop()
+			return nil, err
+		}
+	}
+	list := r.List(settingsReviewListID)
+	if err := list.SetItems(settingsReviewItems(s, diff)); err != nil {
+		return nil, err
+	}
+	if err := list.Focus(); err != nil {
+		return nil, err
+	}
+	return diff, nil
+}
+
+// registerSettingsReview registers the review's nouns and the refresh that
+// drops reviewed rows.
 func registerSettingsReview(r *Runtime) {
 	r.Define(settingsReviewNoun)
 	r.Define(settingChangeNoun)
-	r.Register(Operation{Key: "ochazuke.setting.review", Description: "Review this session's settings: each session value beside its saved one, to write or revert one at a time or all at once", Result: "setting-diff[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		s := r.Settings()
-		if !s.HasSession() {
-			return noSessionReview, nil
-		}
-		diff := s.Diff()
-		if len(diff) == 0 {
-			r.UI().Info("No session changes to review")
-			return nil, nil
-		}
-		if r.Instances[settingsReviewID] == nil {
-			if _, err := r.OpenModal(settingsReviewID, Payload{}); err != nil {
-				return nil, err
-			}
-			if _, err := r.AddList(settingsReviewListID, nil, Parent(settingsReviewID), NoMarks(), Columns(settingsReviewColumns...)); err != nil {
-				_ = r.Pop()
-				return nil, err
-			}
-		}
-		list := r.List(settingsReviewListID)
-		if err := list.SetItems(settingsReviewItems(s, diff)); err != nil {
-			return nil, err
-		}
-		if err := list.Focus(); err != nil {
-			return nil, err
-		}
-		return diff, nil
-	}})
 	r.Settings().Observe("", func(string, any) { refreshSettingsReview(r) })
 }
 

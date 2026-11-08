@@ -23,9 +23,9 @@ func registerBindings(r *ochazuke.Runtime, cfg Config) error {
 		}
 		id := ochazuke.StringArg(q.Args, "id", "")
 		switch q.Key() {
-		case "input.focus":
-			if r.Input(id) == nil {
-				return fmt.Errorf("binding %q: unknown input %q", row.Keys, id)
+		case "focus.to":
+			if len(r.Ancestry(id)) == 0 {
+				return fmt.Errorf("binding %q: unknown instance %q", row.Keys, id)
 			}
 		case "page.open":
 			if r.PageOf(id) == nil {
