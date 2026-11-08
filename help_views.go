@@ -237,7 +237,7 @@ func (h *helpState) show() error {
 		// its mode columns.
 		var keys []HelpKey
 		h.modes, keys = r.HelpTable(h.at(), r.helpFlag(HelpPendingSetting, false))
-		list, err := r.AddList(helpListID, helpTableItems(h.r.DisplayNoun(h.noun), h.modes, keys), Parent(helpID), Columns(helpTableColumns(h.modes, r.helpInt(HelpOperationMaxSetting, 32))...))
+		list, err := r.AddList(helpListID, h.tableItems(keys), Parent(helpID), Columns(helpTableColumns(h.modes, r.helpInt(HelpOperationMaxSetting, 32))...))
 		if err != nil {
 			return err
 		}
@@ -278,7 +278,7 @@ func (h *helpState) refreshBindings() error {
 			var keys []HelpKey
 			h.modes, keys = r.HelpTable(h.at(), r.helpFlag(HelpPendingSetting, false))
 			list.SetColumns(helpTableColumns(h.modes, r.helpInt(HelpOperationMaxSetting, 32))...)
-			return list.SetItems(helpTableItems(r.DisplayNoun(h.noun), h.modes, keys))
+			return list.SetItems(h.tableItems(keys))
 		}
 		return nil
 	}
@@ -376,8 +376,11 @@ func (h *helpState) ModalBlock(s Styles, width, height int) Block {
 	var detail []string
 	if h.view == HelpTable {
 		if item, ok := list.Selected(); ok {
-			if key, ok := item.Data.(HelpKey); ok {
-				detail = helpKeyDetail(h.r, s, key, width)
+			switch data := item.Data.(type) {
+			case HelpKey:
+				detail = helpKeyDetail(h.r, s, data, width)
+			case HelpRow:
+				detail = helpUnboundDetail(data, width)
 			}
 		}
 		room := height - len(top) - 4 // at least three rows and the header
@@ -638,7 +641,7 @@ func helpTableItems(noun string, modes []string, keys []HelpKey) []ListItem {
 				cells[j+1] = helpCellText(noun, cell)
 			}
 		}
-		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: strings.Join(cells, "  "), Noun: "ochazuke.binding", Data: k, Cells: cells, Search: helpTableSearch(label, k)}
+		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/%d", i), Label: strings.Join(cells, "  "), Noun: "ochazuke.binding", Data: k, Props: helpTableKeyProps(label, k), Cells: cells, Search: helpTableSearch(label, k)}
 	}
 	return items
 }

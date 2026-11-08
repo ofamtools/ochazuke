@@ -492,10 +492,20 @@ func registerListSort(r *Runtime) {
 		run                      func(*Collection, Arguments) error
 	}{
 		{"sort", "Sort the view stably by comma-separated props; -field descends, empty restores app order", "list-sortable", map[string]Parameter{"by": {Type: "string"}}, func(l *Collection, a Arguments) error { return l.sortBy(StringArg(a, "by", "")) }},
-		{"sort-column", "Cycle the current column ascending, descending, off; in row mode choose a prop", "list-sortable", map[string]Parameter{"pick": {Type: "boolean", Description: "Always choose a field, including in cell mode"}, "desc": {Type: "boolean", Description: "Set descending or ascending explicitly; omit to cycle"}}, func(l *Collection, a Arguments) error {
+		{"sort-column", "Cycle the current column ascending, descending, off; in row mode choose a prop", "list-sortable", map[string]Parameter{"pick": {Type: "boolean", Description: "Always choose a field, including in cell mode"}, "desc": {Type: "boolean", Description: "Set descending or ascending explicitly; omit to cycle"}, "field": {Type: "string", Description: "Cycle this prop (ascending, descending, off) instead of the current column or a chosen field"}}, func(l *Collection, a Arguments) error {
 			var desc *bool
 			if v, ok := a["desc"].(bool); ok {
 				desc = &v
+			}
+			if field := StringArg(a, "field", ""); field != "" {
+				name, err := l.r.filterPropName(l.rowNouns(), field)
+				if err != nil {
+					return err
+				}
+				if _, ok := l.sortSpecs()[name]; !ok {
+					return fmt.Errorf("unknown or disabled sort field %q", field)
+				}
+				return l.cycleSort(name, desc)
 			}
 			pick, _ := a["pick"].(bool)
 			return l.sortColumn(desc, pick)

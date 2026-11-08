@@ -67,6 +67,7 @@ func registerBindingHelp(r *Runtime) {
 		return rows, nil
 	}})
 	registerHelpViews(r)
+	registerHelpTable(r)
 	registerUnboundVerbs(r)
 }
 

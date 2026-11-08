@@ -1,0 +1,40 @@
+ |  ◆ o-story                                                                                              NORMAL
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+ |            │ Keys · table                                                                                 │
+ |            │ noun: demo · place: page1 › demo › collection · .verb is demo.verb · (op) answered by app ·… │
+ |            │ [unbound = true]                                                                    9 of 100 │
+ |            │ key         normal          list_filter      visual          visual-block     visual-line    │
+ |            │ unbound                                                                                      │
+ |            │             .check                                                                           │
+ |            │             .choose                                                                          │
+ |            │             .finish                                                                          │
+ |            │             .guide                                                                           │
+ |            │             .hide                                                                            │
+ |            │             .mapping                                                                         │
+ |            │             .ping                                                                            │
+ |            │             .program                                                                         │
+R|            │             .usage                                                                           │
+ |            │                                                                                              │
+ |            │                                                                                              │
+ |            │                                                                                              │
+ |            │                                                                                              │
+ |            │                                                                                              │
+ |            │                                                                                              │
+ |            │                                                                                              │
+ |            │                                                                                              │
+ |            │                                                                                              │
+ |            │                                                                                              │
+ |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
+ |            │ demo.usage · unbound                                                                         │
+ |            │ Answer a --help page: a preformatted result, drawn as written in the palette's viewer (help… │
+ |            │ space collection.mark · z C clear props · S view · n noun · p place · s sort key · enter ru… │
+ |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ |  space collection.mark · z C clear props · S view · n noun · p place · s sort key · enter run · b bind · esc modal.c…
+ |
