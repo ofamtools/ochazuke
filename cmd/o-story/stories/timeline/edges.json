@@ -1,5 +1,5 @@
 {
-  "name": "timeline: from inside a card G goes to the last card and g g to the first (Vim's buffer ends, through view.edge); a count's G to that card",
+  "name": "timeline: from inside a card G goes to the last card and g g to the first (Vim's buffer ends, through viewport.goto); a count's G to that card",
   "area": "timeline",
   "page": {
     "noHeadings": true,

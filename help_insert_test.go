@@ -49,7 +49,7 @@ func openHelpInInsert(t *testing.T, r *Runtime, m *Model, in *Input, where strin
 		t.Fatalf("%s: the key typed: %q, was %q", where, got, text)
 	}
 	h := r.Instances[helpID].Component.(*helpState)
-	if !slices.ContainsFunc(h.here, func(row HelpRow) bool { return row.Key == HelpInsertKey && row.Operation == "bindings.help" }) {
+	if !slices.ContainsFunc(h.here, func(row HelpRow) bool { return row.Key == HelpInsertKey && row.Operation == "binding.help" }) {
 		t.Fatalf("%s: the help does not list its own insert key: %+v", where, h.here)
 	}
 	keytest.Press(m, "esc")
@@ -122,7 +122,7 @@ func TestHelpInsertKeyIsNotShadowed(t *testing.T) {
 				continue
 			}
 			for _, b := range rows {
-				if b.Keys == HelpInsertKey && (name != "ochazuke.editor" || b.Request.Key() != "ochazuke.bindings.help") {
+				if b.Keys == HelpInsertKey && (name != "ochazuke.editor" || b.Request.Key() != "ochazuke.binding.help") {
 					t.Errorf("%s binds %s in %q: %s", name, HelpInsertKey, mode, b.Request.Key())
 				}
 				if b.Pattern != "" && matchesHelpKey(b.Pattern) && name != "ochazuke.editor" && name != "ochazuke.confirm" {

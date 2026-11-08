@@ -605,7 +605,7 @@ func (b *NounBuilder) PersistArgs() *NounBuilder {
 
 // Fetch marks the last declared verb as a data request (Operation.HistoryKind
 // HistoryFetch): a state, list or show verb. Its calls are history entries
-// of kind fetch, which history.list leaves out by default and the ring
+// of kind fetch, which history-entry.list leaves out by default and the ring
 // bounds apart from the user's actions and changes.
 func (b *NounBuilder) Fetch() *NounBuilder {
 	return b.lastOp("Fetch", func(o *Operation) { o.HistoryKind = HistoryFetch })
@@ -1457,7 +1457,7 @@ func selectionModeOf(modes map[string]string, shape string) string {
 // the runtime: KeyEvent.Mode and KeyEvent.Focus, and Runtime.EventFocus
 // and Runtime.EventModals for the focused instance and the open modals. A
 // query judges a guard for a focus or mode that is not the live one
-// (bindings.stops, the typing check, help at the place it opened over) and
+// (binding.stops, the typing check, help at the place it opened over) and
 // says so on KeyEvent.Within; the runtime's own fields and accessors
 // (Runtime.Mode, Runtime.Focus, TopModal) always describe the live
 // interaction and are never swapped for a query. A guard must not change

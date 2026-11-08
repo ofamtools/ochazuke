@@ -42,7 +42,7 @@ import (
 //   - FieldParam: the parameter naming the one writable prop the verb
 //     acts on (edit's field: a prop name or @role); a request naming a
 //     prop the noun cannot write is unavailable;
-//   - Undo: how history.undo reverts the change it makes.
+//   - Undo: how history-entry.undo reverts the change it makes.
 type standardVerb struct {
 	Verb        string
 	Description string
@@ -96,7 +96,7 @@ type standardVerb struct {
 	optional bool
 }
 
-// undoShape is how history.undo reverts a verb's change, and so what the
+// undoShape is how history-entry.undo reverts a verb's change, and so what the
 // verb records (runRecording): the thing before and after its write.
 type undoShape string
 

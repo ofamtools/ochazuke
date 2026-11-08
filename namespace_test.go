@@ -35,7 +35,7 @@ func TestSplitKey(t *testing.T) {
 
 // Every framework noun is ochazuke.<noun> with its short name as an alias: the
 // short name reaches it from Execute, Do, Noun and the palette, and what
-// the runtime prints (history, bindings.list, operation.list) is the
+// the runtime prints (history, binding.list, operation.list) is the
 // canonical key.
 func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 	r := NewRuntime()
@@ -76,7 +76,7 @@ func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 	}
 	for _, row := range r.ListBindings("app") {
 		if row.Request.Noun != "app" && !strings.HasPrefix(row.Request.Noun, "ochazuke.") {
-			t.Fatalf("bindings.list row %s runs %s", row.Keys, row.Request.Key())
+			t.Fatalf("binding.list row %s runs %s", row.Keys, row.Request.Key())
 		}
 	}
 	// The footer's hints keep the short names.
@@ -96,9 +96,9 @@ func TestFrameworkNounsAreNamespacedWithAliases(t *testing.T) {
 func TestDefineOwnShadowsTheFrameworkAlias(t *testing.T) {
 	r := NewRuntime()
 	done := func(v string) func(Ctx) Result { return func(Ctx) Result { return Done(v) } }
-	r.Define("history").Verb("capture", done("captured"))
-	if _, ok := r.Operations.Find(Key("ochazuke.history.capture")); !ok {
-		t.Fatal("Define(history) did not extend ochazuke.history")
+	r.Define("history-entry").Verb("capture", done("captured"))
+	if _, ok := r.Operations.Find(Key("ochazuke.history-entry.capture")); !ok {
+		t.Fatal("Define(history) did not extend ochazuke.history-entry")
 	}
 	r.DefineOwn("setting").Verb("list", done("own"))
 	if r.Nouns["setting"] == nil || r.CanonicalNoun("setting") != "setting" {
@@ -241,11 +241,11 @@ func TestPaletteDottedNounWord(t *testing.T) {
 
 // The app noun's verbs and the framework's nouns never collide: an
 // application verb state on app stands beside the framework noun
-// ochazuke.state, each reachable by its own name (o-qbt's app.state).
+// ochazuke.snapshot, each reachable by its own name (o-qbt's app.state).
 func TestAppVerbBesideFrameworkNounOfThatName(t *testing.T) {
 	r := NewRuntime()
 	NewModel(r)
-	if r.Nouns["ochazuke.state"] == nil {
+	if r.Nouns["ochazuke.snapshot"] == nil {
 		t.Fatal("no framework state noun")
 	}
 	r.Define("app").Verb("state", func(Ctx) Result { return Done("own") })
@@ -253,7 +253,7 @@ func TestAppVerbBesideFrameworkNounOfThatName(t *testing.T) {
 	if err != nil || got != "own" {
 		t.Fatalf("app.state = %v, %v", got, err)
 	}
-	for _, noun := range []string{"state", "ochazuke.state"} {
+	for _, noun := range []string{"state", "ochazuke.snapshot"} {
 		got, err := r.Execute(Request{Noun: noun, Verb: "get"})
 		if err != nil || got == "own" {
 			t.Fatalf("%s.get = %v, %v", noun, got, err)

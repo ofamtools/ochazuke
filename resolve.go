@@ -24,7 +24,7 @@ type KeyEvent struct {
 	// (Available): a row's own, or a call's; nil for a row's own guard.
 	Args Arguments
 	// Within is the hypothetical interaction a query judges the event in
-	// (bindings.stops, the typing check, help at the place it opened
+	// (binding.stops, the typing check, help at the place it opened
 	// over): the focus, mode and modal chain that stand for the live ones
 	// while the runtime itself stays as it is. Nil when a key or a call is
 	// judged live. A guard reads it through Runtime.EventFocus and
@@ -112,7 +112,7 @@ func (b Binding) Captured() Binding { b.Capture = true; return b }
 // the component's, FallbackKeys; every input names the editor noun). A
 // level whose noun is the fallback does not read it at its own place. A
 // list row, a page or a terminal focus declares none and ends at app:
-// editor rows neither answer nor appear in bindings.list for it; counts,
+// editor rows neither answer nor appear in binding.list for it; counts,
 // registers and macros are app rows and still do.
 //
 // A focused component that owns its keys (KeyOwner: a read-only input, a
@@ -152,7 +152,7 @@ func (r *Runtime) stackIn(focus string, modals []string) []level {
 	if top != "" {
 		// The live focus is always inside the top modal (focusInTopLevel),
 		// so the cut is at the modal instance and app closes the walk. A
-		// focus named explicitly outside it (bindings.list for the row a
+		// focus named explicitly outside it (binding.list for the row a
 		// help modal describes) keeps its own full walk.
 		if i := slices.Index(ancestry, top); i >= 0 {
 			ancestry = append(ancestry[:i+1:i+1], "app")
@@ -831,7 +831,7 @@ func (r *Runtime) withAliases(rows []Binding) []Binding {
 	return rows
 }
 
-// SortBindings orders rows the way the full export (bindings.list --all,
+// SortBindings orders rows the way the full export (binding.list --all,
 // bindings.reference.json) prints them: by mode (the any-mode rows, mode
 // "", first), then by noun, a noun's rows before an instance's of the same
 // name, then by the request's verb (a row with no verb, an unbind, after
@@ -1256,7 +1256,7 @@ func registerModeTables(r *Runtime) {
 	r.Define("ochazuke.mode").Unpersisted()
 	r.Define("ochazuke.count").Unpersisted()
 	r.Define("ochazuke.key").Unpersisted()
-	r.Register(Operation{Key: "ochazuke.mode.enter", FocusBound: true, Staying: true, HistoryKind: HistoryAction, Description: "Enter a pending mode with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.mode.enter", FocusBound: true, Staying: true, HistoryKind: HistoryAction, Description: "Enter a pending mode with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.mode"}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.modes[mode].Pending {
 			return nil, fmt.Errorf("unknown pending mode %q", mode)

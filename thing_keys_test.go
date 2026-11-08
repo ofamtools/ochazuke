@@ -271,9 +271,9 @@ func TestRowKeyReaders(t *testing.T) {
 func TestInstanceNounRowKeyIsItsId(t *testing.T) {
 	t.Parallel()
 	r := NewRuntime()
-	r.Define("view").Props(PropSpec{Name: "id", Key: true}).Store(Store{Kind: Instances})
+	r.Define("viewport").Props(PropSpec{Name: "id", Key: true}).Store(Store{Kind: Instances})
 	r.Instance("v1")
-	n := r.Noun("view")
+	n := r.Noun("viewport")
 	if got, err := r.rowKey(n, r.Instances["v1"]); err != nil || got != "v1" {
 		t.Fatalf("instances row key = %q, %v", got, err)
 	}

@@ -133,12 +133,12 @@ func withParams(op Operation, params map[string]Parameter) Operation {
 	return op
 }
 
-// bindings.bind writes a bare action row, and the key it binds fills the
+// binding.bind writes a bare action row, and the key it binds fills the
 // parameter from its source like any other route.
 func TestBoundUnboundVerbInheritsTheParameterSource(t *testing.T) {
 	r, _, ran := sourceRuntime(t)
 	r.Config().Dir = t.TempDir()
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "z", "action": "row.send"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": "z", "action": "row.send"}}); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(filepath.Join(r.Config().Dir, BindingsFile))

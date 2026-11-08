@@ -24,7 +24,7 @@ const (
 	helpListID = helpTreeID + "/list"
 )
 
-// registerBindingHelp adds bindings.help: a modal listing BindingHelp for
+// registerBindingHelp adds binding.help: a modal listing BindingHelp for
 // the focus it opens over, one row per binding (key, noun.verb, arguments,
 // description), grouped by level from the innermost instance outward, each
 // level under its noun's label and the motions last under "movement". The
@@ -44,7 +44,7 @@ func registerBindingHelp(r *Runtime) {
 		row, ok := r.selectedHelpRow()
 		return r.Tree(helpTreeID) != nil && !(ok && helpRunnable(row))
 	})
-	r.Register(Operation{Key: "ochazuke.bindings.help", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.binding.help", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		focus := focusOf(c)
 		mode := ModeState{Name: r.BaseMode()}
 		// Opened again while it is the top modal (? or :bindings help

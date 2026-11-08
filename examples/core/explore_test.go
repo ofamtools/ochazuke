@@ -32,7 +32,7 @@ func TestExploreGaps(t *testing.T) {
 		{"honest-hints", "' page.pick fails when pressed: no focused input", "shift+tab '"},
 		{"honest-hints", ": palette.open fails when pressed: no focused input", "shift+tab :"},
 		{"honest-hints", "<printable> input.insert fails when pressed: no focused input", "shift+tab x"},
-		{"honest-hints", "? bindings.help fails when pressed: no focused input", "shift+tab ?"},
+		{"honest-hints", "? binding.help fails when pressed: no focused input", "shift+tab ?"},
 		{"honest-hints", "down palette.recall fails when pressed: palette is not open", "shift+tab down"},
 		{"honest-hints", "up palette.recall fails when pressed: palette is not open", "shift+tab up"},
 		{"honest-hints", "enter palette.run fails when pressed: palette is not open", "shift+tab enter"},

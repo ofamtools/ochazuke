@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// bindings.stops walks every page's stops in drawing order, then app; each
+// binding.stops walks every page's stops in drawing order, then app; each
 // entry is read at the focus a jump lands on, in the mode it would have
 // there, and the live focus and mode are untouched.
 func TestStopBindingsAppWide(t *testing.T) {
@@ -32,7 +32,7 @@ func TestStopBindingsAppWide(t *testing.T) {
 		t.Fatal(err)
 	}
 	focus, mode := r.Focus, r.Mode
-	value, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "stops"})
+	value, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "stops"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,8 +65,8 @@ func TestStopBindingsAppWide(t *testing.T) {
 		t.Fatalf("focus/mode moved: %s %s, want %s %s", r.Focus, r.Mode.Name, focus, mode.Name)
 	}
 	// The listing is the same on every call.
-	again, _ := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "stops"})
+	again, _ := r.Execute(Request{Noun: "ochazuke.binding", Verb: "stops"})
 	if len(again.([]StopBindings)) != len(stops) {
-		t.Fatal("bindings.stops is not stable")
+		t.Fatal("binding.stops is not stable")
 	}
 }

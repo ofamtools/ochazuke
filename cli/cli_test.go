@@ -586,7 +586,7 @@ func TestCatalogGolden(t *testing.T) {
 			nouns = append(nouns, n)
 		}
 	}
-	if !seen["ochazuke.confirm"] || !seen["ochazuke.history"] {
+	if !seen["ochazuke.confirm"] || !seen["ochazuke.history-entry"] {
 		t.Fatalf("framework nouns missing: %v", seen)
 	}
 	rows := doc.Bindings[:0]
@@ -597,7 +597,7 @@ func TestCatalogGolden(t *testing.T) {
 	}
 	// Every framework noun is ochazuke.<noun> with its short name as an alias;
 	// the golden keeps the test noun's part, so the aliases are checked here.
-	if doc.Aliases["setting"] != "ochazuke.setting" || doc.Aliases["confirm"] != "ochazuke.confirm" || doc.CanonicalNoun("history") != "ochazuke.history" {
+	if doc.Aliases["setting"] != "ochazuke.setting" || doc.Aliases["confirm"] != "ochazuke.confirm" || doc.CanonicalNoun("history-entry") != "ochazuke.history-entry" {
 		t.Fatalf("aliases %v", doc.Aliases)
 	}
 	doc.Nouns, doc.Bindings, doc.Aliases, doc.Commands = nouns, rows, nil, nil
@@ -633,7 +633,7 @@ func TestCatalogGolden(t *testing.T) {
 func TestCatalogMarksBuiltinVerbs(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	done := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
-	r.Define("ochazuke.history").Verb("capture-hook", done, "Capture a hook")
+	r.Define("ochazuke.history-entry").Verb("capture-hook", done, "Capture a hook")
 	r.Define("gadget").Verb("spin", done, "Spin a gadget")
 	ochazuke.NewModel(r)
 	out, err := Catalog(r, "tool", "1")
@@ -658,7 +658,7 @@ func TestCatalogMarksBuiltinVerbs(t *testing.T) {
 		t.Fatalf("outline.add = %+v", v)
 	}
 	if v := verb("history", "list"); !v.Builtin {
-		t.Fatalf("history.list = %+v", v)
+		t.Fatalf("history-entry.list = %+v", v)
 	}
 	if v := verb("history", "capture-hook"); v.Builtin {
 		t.Fatalf("history.capture-hook = %+v", v)
@@ -669,7 +669,7 @@ func TestCatalogMarksBuiltinVerbs(t *testing.T) {
 			got = append(got, n.Name+"."+v.Name)
 		}
 	}
-	if want := []string{"gadget.spin", "ochazuke.history.capture-hook"}; !slices.Equal(got, want) {
+	if want := []string{"gadget.spin", "ochazuke.history-entry.capture-hook"}; !slices.Equal(got, want) {
 		t.Fatalf("AppNouns = %v, want %v", got, want)
 	}
 }
@@ -708,7 +708,7 @@ func TestCatalogListsEachNounOnce(t *testing.T) {
 	if want := []string{"quit", "state", "zz"}; !slices.Equal(verbs, want) {
 		t.Fatalf("app verbs %v, want %v", verbs, want)
 	}
-	if !seen["app.rows"] || !seen["ochazuke.state"] {
+	if !seen["app.rows"] || !seen["ochazuke.snapshot"] {
 		t.Fatalf("nouns %v", seen)
 	}
 }

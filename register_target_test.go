@@ -21,8 +21,8 @@ func TestTargetNamesThingKey(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "ochazuke.register", Verb: "set", Target: "b", Args: Arguments{"props": map[string]any{"text": "again"}}}); err != nil {
 		t.Fatalf("set on an existing register by target: %v", err)
 	}
-	// history.undo puts the old text back, as for a set by key.
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo"}); err != nil {
+	// history-entry.undo puts the old text back, as for a set by key.
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo"}); err != nil {
 		t.Fatal(err)
 	}
 	if got := r.Registers().Named["b"].Yank.Text; got != "new" {

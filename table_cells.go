@@ -90,7 +90,7 @@ func RowSelect() InstanceOption { return func(*instanceSpec) {} }
 func (l *List) cellMode() bool { return len(l.columns) > 0 && l.cellSelect }
 
 // columnTo makes the first or the last column in drawing order (to
-// "first" or "last") the current one: list.column {to}, view.edge's
+// "first" or "last") the current one: list.column {to}, viewport.goto's
 // column edges.
 func (l *List) columnTo(to string) {
 	order := l.order()

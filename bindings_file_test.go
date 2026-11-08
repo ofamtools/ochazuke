@@ -297,7 +297,7 @@ func TestBindingsFileJSONC(t *testing.T) {
 	if problems := r.ReloadUserBindings(); len(problems) > 0 {
 		t.Fatalf("problems: %v", problems)
 	}
-	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "list", Args: Arguments{"all": true}})
+	got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "list", Args: Arguments{"all": true}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -377,10 +377,10 @@ func TestBindingsRowsToGroupedSameEffectiveRows(t *testing.T) {
 func TestBindingsExportVerbLoadsBack(t *testing.T) {
 	r, dir := exportFixture(t)
 	path := filepath.Join(t.TempDir(), "keys.json")
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "export", Args: Arguments{"path": path}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "export", Args: Arguments{"path": path}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "export", Args: Arguments{"path": filepath.Join(dir, BindingsFile)}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "export", Args: Arguments{"path": filepath.Join(dir, BindingsFile)}}); err == nil {
 		t.Fatal("export over the live bindings.json without force")
 	}
 	data, err := os.ReadFile(path)
@@ -407,7 +407,7 @@ func TestBindingsExportDefaultsToTheReferenceDirectory(t *testing.T) {
 	recorder(t, r, "alpha")
 	r.Define("app").Mode("normal").Bind("a", Do("test.alpha"))
 	r.Config().App = "exporttest"
-	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "export"})
+	got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "export"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,7 +431,7 @@ func TestBindingsExportDefaultsToTheReferenceDirectory(t *testing.T) {
 // Without a config directory and without a path, bindings export is an error.
 func TestBindingsExportWithoutConfigDirectoryNeedsAPath(t *testing.T) {
 	r := NewRuntime()
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "export"}); err == nil || !strings.Contains(err.Error(), "no config directory") {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "export"}); err == nil || !strings.Contains(err.Error(), "no config directory") {
 		t.Fatalf("err %v", err)
 	}
 }
@@ -446,7 +446,7 @@ func TestBindingsCheckReportsFormat(t *testing.T) {
 		sink := &RecordingSink{}
 		r.UI().Attach(sink)
 		writeConfig(t, dir, BindingsFile, tc.text)
-		got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+		got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 		if err != nil || len(got.([]string)) != 0 {
 			t.Fatalf("check %v %v", got, err)
 		}

@@ -182,7 +182,7 @@ func TestCopyStoreDeleteTombstone(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "item", Verb: "get", Args: Arguments{"id": "a"}}); err == nil {
 		t.Fatal("get read a deleted thing")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo"}); err != nil {
 		t.Fatalf("undo: %v", err)
 	}
 	if got := runItem(t, r, "get", Arguments{"id": "a"}).(map[string]any); got["title"] != "Alpha" {
@@ -245,7 +245,7 @@ func TestCopyRefreshDiffPickUndo(t *testing.T) {
 	if strings.HasSuffix(l.Items()[0].Label, copyMarkText) {
 		t.Fatalf("the mark stayed after the pick: %q", l.Items()[0].Label)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo"}); err != nil {
 		t.Fatalf("undo: %v", err)
 	}
 	if got := runItem(t, r, "get", Arguments{"id": "a"}).(map[string]any); got["title"] != "Alpha" {
@@ -373,7 +373,7 @@ func TestCopyStoreRemoteRunsAlike(t *testing.T) {
 	if item["title"] != "B" || item["on"] != false {
 		t.Fatalf("source %v: only the Through prop is written there", item)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo"}); err != nil {
 		t.Fatal(err)
 	}
 	pumpRemote(t, r)

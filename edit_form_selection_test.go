@@ -84,7 +84,7 @@ func TestEditFormSelectionFocusedRefused(t *testing.T) {
 }
 
 // form.undo over a selection puts each row back to its own earlier value
-// (as history.undo does), not the focused row's, and never tries a row
+// (as history-entry.undo does), not the focused row's, and never tries a row
 // that refused the write; form.redo writes again only the rows the undo
 // reached (UX R2 N3b, N3c).
 func TestEditFormUndoSelection(t *testing.T) {

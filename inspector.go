@@ -99,9 +99,9 @@ func (r *Runtime) inspector() *inspectorState {
 }
 
 func registerInspector(r *Runtime) {
-	r.Instance(inspectorID, Kind("ochazuke.state")).Component = &inspectorState{fields: map[string]func() any{}}
-	r.Register(Operation{Key: "state.inspect", Quiet: true, Description: "Inspect live focus, registers, messages and the last request", HistoryKind: HistoryFetch, Result: "inspection", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) { return r.Inspect(), nil }})
-	r.Register(Operation{Key: "state.toggle", Quiet: true, Description: "Toggle the live state inspector strip", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Instance(inspectorID, Kind("ochazuke.snapshot")).Component = &inspectorState{fields: map[string]func() any{}}
+	r.Register(Operation{Key: "snapshot.inspect", Quiet: true, Description: "Inspect live focus, registers, messages and the last request", HistoryKind: HistoryFetch, Result: "inspection", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) { return r.Inspect(), nil }})
+	r.Register(Operation{Key: "snapshot.toggle", Quiet: true, Description: "Toggle the live state inspector strip", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		enabled := !r.Settings().Bool(InspectorEnabledSetting)
 		_, err := r.Settings().SetSession(InspectorEnabledSetting, enabled)
 		return enabled, err

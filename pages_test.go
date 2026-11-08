@@ -62,7 +62,7 @@ func TestPageRegistrationAndPublicSnapshot(t *testing.T) {
 			t.Fatalf("%s=%v; want %v", path, got, want)
 		}
 	}
-	if _, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.state", Args: Arguments{"prop": "pages.alpha.render"}}); err == nil {
+	if _, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.snapshot", Args: Arguments{"prop": "pages.alpha.render"}}); err == nil {
 		t.Fatal("renderer must not be exposed through public state")
 	}
 }

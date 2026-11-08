@@ -280,7 +280,7 @@ func TestActionMalformedEntriesAreNotices(t *testing.T) {
 }
 
 // bindings.json rows can name an action's verb: Init installs the actions
-// first. actions.reload replaces the verbs and applies the bindings again.
+// first. user-operation.reload replaces the verbs and applies the bindings again.
 func TestActionBoundFromUserBindingsAndReloaded(t *testing.T) {
 	cmd := fakeCommand(t)
 	r, m, dir := actionsFixture(t, map[string]any{"noun": "worktree", "verb": "open", "command": append(cmd, "echo", "{{label}}")})
@@ -297,14 +297,14 @@ func TestActionBoundFromUserBindingsAndReloaded(t *testing.T) {
 		t.Fatalf("argv %v", out["argv"])
 	}
 	writeConfig(t, dir, ActionsFile, `[{"noun": "worktree", "verb": "open", "command": ["`+strings.Join(cmd, `","`)+`", "echo", "again"]}]`)
-	if got, err := r.Execute(Request{Noun: "ochazuke.actions", Verb: "reload"}); err != nil || len(got.([]string)) != 0 {
+	if got, err := r.Execute(Request{Noun: "ochazuke.user-operation", Verb: "reload"}); err != nil || len(got.([]string)) != 0 {
 		t.Fatalf("reload %v %v", got, err)
 	}
 	press(t, r, "o")
 	if out := echoOf(t, settleJob(t, r)); !reflect.DeepEqual(out["argv"], []any{"again"}) {
 		t.Fatalf("argv after reload %v", out["argv"])
 	}
-	listed, err := r.Execute(Request{Noun: "ochazuke.actions", Verb: "list"})
+	listed, err := r.Execute(Request{Noun: "ochazuke.user-operation", Verb: "list"})
 	if err != nil || len(AnswerRows(listed).([]map[string]any)) != 1 {
 		t.Fatalf("list %v %v", listed, err)
 	}
@@ -316,7 +316,7 @@ func TestActionsNeedTheUserConfigDirectory(t *testing.T) {
 	if got := r.EnsureUserActions(); got != nil || len(r.UserActions()) != 0 {
 		t.Fatalf("%v %v", got, r.UserActions())
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.actions", Verb: "path"}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.user-operation", Verb: "path"}); err == nil {
 		t.Fatal("path without a directory")
 	}
 }

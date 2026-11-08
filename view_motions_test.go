@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// The shared motions (view.edge, view.page; CursorMotions, UX-RULES
+// The shared motions (viewport.goto, viewport.scroll by page; CursorMotions, UX-RULES
 // R5.8): g g, G, a count's G and the page keys answer on the yank
 // history through the one interface, as on a list.
 func TestViewMotionsOnTheYankHistory(t *testing.T) {
@@ -45,19 +45,19 @@ func TestViewMotionsOnTheYankHistory(t *testing.T) {
 			t.Fatalf("%s: selection %d modal %q, want %d", s.keys, g.selection, r.TopModal(), s.want)
 		}
 	}
-	if r.Available(Request{Noun: viewNoun, Verb: "edge", Args: Arguments{"edge": "last-col"}}, r.Focus, r.Mode) {
-		t.Fatal("the yank history has no column edge, view.edge last-col is available")
+	if r.Available(Request{Noun: viewNoun, Verb: "goto", Args: Arguments{"edge": "last-col"}}, r.Focus, r.Mode) {
+		t.Fatal("the yank history has no column edge, viewport.goto last-col is available")
 	}
 }
 
-// The docs viewer's g g and G go through view.edge, not ±1000000-line
+// The docs viewer's g g and G go through viewport.goto, not ±1000000-line
 // scrolls; ctrl+d and ctrl+u are half its window.
 func TestViewMotionsOnTheDocsViewer(t *testing.T) {
 	r, m, _, _ := configFixture(t)
 	m.Init()
 	plainDocsViewer(t, r)
 	m.Width, m.Height = 80, 16
-	if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": "settings"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.docs-viewer", Verb: "open", Args: Arguments{"topic": "settings"}}); err != nil {
 		t.Fatal(err)
 	}
 	m.View()
@@ -104,8 +104,8 @@ func TestViewMotionsOnTheTimeline(t *testing.T) {
 	if _, _, ok := f.tl.Step(); !ok {
 		t.Fatalf("l: focus %s, not inside c2", f.r.Focus)
 	}
-	if !f.r.Available(Request{Noun: viewNoun, Verb: "page", Args: Arguments{"delta": 1, "half": true}}, f.r.Focus, f.r.Mode) {
-		t.Fatal("view.page is unavailable inside an overflowing timeline")
+	if !f.r.Available(Request{Noun: viewNoun, Verb: "scroll", Args: Arguments{"by": "page", "delta": 1, "half": true}}, f.r.Focus, f.r.Mode) {
+		t.Fatal("viewport.scroll by page is unavailable inside an overflowing timeline")
 	}
 	top := f.tl.absTop()
 	f.press("ctrl+d")
@@ -123,24 +123,24 @@ func TestViewMotionsOnTheTimeline(t *testing.T) {
 	if !slices.Equal(f.tl.MotionEdges(), []SpillEdge{EdgeFirst, EdgeLast}) {
 		t.Fatalf("timeline edges %v", f.tl.MotionEdges())
 	}
-	if _, err := f.r.Execute(Request{Noun: viewNoun, Verb: "edge", Args: Arguments{"edge": "first", "row": 2}}); err != nil {
+	if _, err := f.r.Execute(Request{Noun: viewNoun, Verb: "goto", Args: Arguments{"edge": "first", "row": 2}}); err != nil {
 		t.Fatal(err)
 	}
 	f.m.View()
 	if f.tl.SelectedID() != "c2" {
-		t.Fatalf("view.edge row 2: %q", f.tl.SelectedID())
+		t.Fatalf("viewport.goto row 2: %q", f.tl.SelectedID())
 	}
 }
 
-// A cell-mode table answers all four edges through view.edge (0 and $
+// A cell-mode table answers all four edges through viewport.goto (0 and $
 // are the column edges); a plain list only first and last.
 func TestViewEdgeColumnsOnACellTable(t *testing.T) {
 	r, m, a, _ := motionPage(t)
 	if slices.Contains(a.MotionEdges(), EdgeLastColumn) {
 		t.Fatalf("a plain list has a column edge: %v", a.MotionEdges())
 	}
-	if r.Available(Request{Noun: viewNoun, Verb: "edge", Args: Arguments{"edge": "first-col"}}, r.Focus, r.Mode) {
-		t.Fatal("view.edge first-col is available on a plain list")
+	if r.Available(Request{Noun: viewNoun, Verb: "goto", Args: Arguments{"edge": "first-col"}}, r.Focus, r.Mode) {
+		t.Fatal("viewport.goto first-col is available on a plain list")
 	}
 	a.columns = []Column{{Title: "one"}, {Title: "two"}, {Title: "three"}}
 	a.cellSelect = true
@@ -152,11 +152,11 @@ func TestViewEdgeColumnsOnACellTable(t *testing.T) {
 		edge SpillEdge
 		want int
 	}{{EdgeLastColumn, 2}, {EdgeFirstColumn, 0}} {
-		if _, err := r.Execute(Request{Noun: viewNoun, Verb: "edge", Args: Arguments{"edge": string(s.edge)}}); err != nil {
+		if _, err := r.Execute(Request{Noun: viewNoun, Verb: "goto", Args: Arguments{"edge": string(s.edge)}}); err != nil {
 			t.Fatal(err)
 		}
 		if a.position() != s.want {
-			t.Fatalf("view.edge %s: column %d, want %d", s.edge, a.position(), s.want)
+			t.Fatalf("viewport.goto %s: column %d, want %d", s.edge, a.position(), s.want)
 		}
 	}
 }

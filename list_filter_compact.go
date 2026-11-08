@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	filterSaveNoun       = "ochazuke.filter-save"
+	filterSaveNoun       = "ochazuke.filter-save-form"
 	filterFormNoun       = "ochazuke.filter-form"
 	filterValuesNoun     = "ochazuke.filter-value"
 	filterDirectionNoun  = "ochazuke.filter-direction"

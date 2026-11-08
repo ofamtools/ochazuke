@@ -9,7 +9,7 @@ import (
 )
 
 // edit {field} on a choice field opens its chooser, not the one-field
-// form: the pick writes, closes it and returns the focus; history.undo
+// form: the pick writes, closes it and returns the focus; history-entry.undo
 // takes the pick back in one step.
 func TestEditFieldChooserPickWritesAndCloses(t *testing.T) {
 	t.Parallel()
@@ -28,7 +28,7 @@ func TestEditFieldChooserPickWritesAndCloses(t *testing.T) {
 	if s.find("t1")["status"] != "done" || r.TopModal() != "" || r.Focus != "row" || r.Mode.Name != "normal" {
 		t.Fatalf("pick: %v modal %q focus %q mode %q", s.find("t1"), r.TopModal(), r.Focus, r.Mode.Name)
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if s.find("t1")["status"] != "todo" {
 		t.Fatalf("undo: %v", s.find("t1"))
 	}
@@ -162,7 +162,7 @@ func TestEditFieldChooserWritesTheSelection(t *testing.T) {
 	if s.find("t1")["status"] != "done" || s.find("t2")["status"] != "done" {
 		t.Fatalf("selection: %v %v", s.find("t1"), s.find("t2"))
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if s.find("t1")["status"] != "todo" || s.find("t2")["status"] != "todo" {
 		t.Fatalf("one undo: %v %v", s.find("t1"), s.find("t2"))
 	}
@@ -170,7 +170,7 @@ func TestEditFieldChooserWritesTheSelection(t *testing.T) {
 
 // A row that refuses the pick does not stop the others, the focused one
 // as any: the rest are written, one notice counts the done and the
-// failed, and history.undo takes back what applied in one step. The
+// failed, and history-entry.undo takes back what applied in one step. The
 // chooser opens on the value the focused row holds.
 func TestEditFieldChooserFocusedRowRefuses(t *testing.T) {
 	t.Parallel()
@@ -215,7 +215,7 @@ func TestEditFieldChooserFocusedRowRefuses(t *testing.T) {
 	if got := notices(); len(got) == 0 || !strings.Contains(got[len(got)-1].Text, "1 done, 1 failed (t1: ") || !strings.Contains(got[len(got)-1].Text, "parcel t1 is locked") {
 		t.Fatalf("notice %+v", got)
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if s.find("t2")["status"] != "todo" {
 		t.Fatalf("one undo: %v", s.find("t2"))
 	}

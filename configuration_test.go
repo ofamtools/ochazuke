@@ -72,12 +72,12 @@ func TestConfigDirectoryFollowsXDGThenHome(t *testing.T) {
 	if got := c.Path(BindingsFile); got != "/elsewhere/bindings.json" {
 		t.Fatalf("dir path %q", got)
 	}
-	if got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "path"}); err != nil || got != "/elsewhere/bindings.json" {
-		t.Fatalf("bindings.path %v %v", got, err)
+	if got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "path"}); err != nil || got != "/elsewhere/bindings.json" {
+		t.Fatalf("binding.path %v %v", got, err)
 	}
 	c.Disable()
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "path"}); err == nil {
-		t.Fatal("bindings.path without a directory")
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "path"}); err == nil {
+		t.Fatal("binding.path without a directory")
 	}
 }
 
@@ -89,13 +89,13 @@ func TestMissingBindingsFileIsNothing(t *testing.T) {
 	if len(m.Notices) != 0 || !reflect.DeepEqual(*calls, []string{"alpha"}) {
 		t.Fatalf("notices %v calls %v", m.Notices, *calls)
 	}
-	if got, _ := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"}); len(got.([]string)) != 0 {
+	if got, _ := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"}); len(got.([]string)) != 0 {
 		t.Fatalf("check %v", got)
 	}
 }
 
 // Acceptance: a file that rebinds one key and unbinds another takes effect
-// at start; ? and bindings.list show it; a malformed row is a notice and
+// at start; ? and binding.list show it; a malformed row is a notice and
 // the rest of the file still applies.
 func TestUserBindingsRebindUnbindAndReportBadRows(t *testing.T) {
 	r, m, calls, dir := configFixture(t)
@@ -115,19 +115,19 @@ func TestUserBindingsRebindUnbindAndReportBadRows(t *testing.T) {
 	if keys["a"] != "test.gamma" || keys["b"] != "" || keys["z"] != "" {
 		t.Fatalf("help keys %v", keys)
 	}
-	listed, _ := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "list"})
+	listed, _ := r.Execute(Request{Noun: "ochazuke.binding", Verb: "list"})
 	found := false
 	for _, b := range AnswerRows(listed).([]map[string]any) {
 		req, _ := b["request"].(map[string]any)
 		found = found || b["keys"] == "a" && req["noun"] == "test" && req["verb"] == "gamma"
 	}
 	if !found {
-		t.Fatalf("bindings.list lacks the override: %+v", listed)
+		t.Fatalf("binding.list lacks the override: %+v", listed)
 	}
 	if len(m.Notices) != 2 || !strings.Contains(m.Notices[0], "row 4") || !strings.Contains(m.Notices[1], `row 3 z: unknown operation "test.nope"`) {
 		t.Fatalf("notices %q", m.Notices)
 	}
-	check, _ := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	check, _ := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 	if len(check.([]string)) != 2 {
 		t.Fatalf("check %v", check)
 	}
@@ -146,7 +146,7 @@ func TestMalformedBindingsFileKeepsDefaults(t *testing.T) {
 	}
 }
 
-// bindings.reload takes the old file's rows out (the defaults they
+// binding.reload takes the old file's rows out (the defaults they
 // replaced come back) and applies the new file; the old file's notices go.
 func TestBindingsReloadRestoresDefaultsAndAppliesTheNewFile(t *testing.T) {
 	r, m, calls, dir := configFixture(t)
@@ -164,7 +164,7 @@ func TestBindingsReloadRestoresDefaultsAndAppliesTheNewFile(t *testing.T) {
 		{"noun": "app", "mode": "normal", "keys": "b", "request": {"noun": "test", "verb": "gamma"}},
 		{"noun": "app", "mode": "normal", "keys": "x", "request": {"noun": "test", "verb": "nope"}}
 	]`)
-	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "reload"})
+	got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "reload"})
 	if err != nil || len(got.([]string)) != 1 {
 		t.Fatalf("reload %v %v", got, err)
 	}
@@ -279,7 +279,7 @@ func TestUserBindingsGuardIsPartOfTheRowIdentity(t *testing.T) {
 	}
 }
 
-// bindings.load installs a guarded and an unguarded row on the same keys
+// binding.load installs a guarded and an unguarded row on the same keys
 // side by side, and loading the table's own rows back changes nothing.
 func TestBindingsLoadKeepsGuardedAndUnguardedRowsApart(t *testing.T) {
 	r, m, calls, dir, flag, _ := guardFixture(t)
@@ -289,14 +289,14 @@ func TestBindingsLoadKeepsGuardedAndUnguardedRowsApart(t *testing.T) {
 		{"noun": "app", "mode": "normal", "keys": "c", "request": {"noun": "test", "verb": "beta"}},
 		{"noun": "app", "mode": "normal", "keys": "c", "when": "flag", "request": {"noun": "test", "verb": "gamma"}}
 	]`)
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "load", Args: Arguments{"path": path}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "load", Args: Arguments{"path": path}}); err != nil {
 		t.Fatal(err)
 	}
 	if got := pressBoth(m, calls, flag, "c"); !slices.Equal(got, []string{"gamma", "beta"}) {
 		t.Fatalf("calls %v", got)
 	}
 	before := appNormal(t, r)
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "load", Args: Arguments{"path": path}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "load", Args: Arguments{"path": path}}); err != nil {
 		t.Fatal(err)
 	}
 	if got := appNormal(t, r); !slices.Equal(got, before) {

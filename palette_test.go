@@ -364,7 +364,7 @@ func TestPaletteLineIsAPrompt(t *testing.T) {
 	}
 }
 
-// bindings.list inside the palette lists the palette noun's rows over the
+// binding.list inside the palette lists the palette noun's rows over the
 // prompt's editor rows; nothing else names a palette key.
 func TestPaletteBindingsListIsTruthful(t *testing.T) {
 	r, _, _ := lineRuntime(t)

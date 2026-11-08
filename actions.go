@@ -776,7 +776,7 @@ func readActions(path string) ([]fileAction, []string) {
 }
 
 func registerActions(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.actions.reload", HistoryKind: HistoryFetch, Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.user-operation.reload", HistoryKind: HistoryFetch, Description: "Read actions.json again: its verbs replace the last load's, a bad entry is skipped and reported; the user bindings are applied again", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadUserActions()
 		if r.Config().bindingsLoaded {
 			problems = append(problems, r.ReloadUserBindings()...)
@@ -786,17 +786,17 @@ func registerActions(r *Runtime) {
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.actions.check", HistoryKind: HistoryFetch, Description: "Report the entries of actions.json a load would skip, alias rows that clash with an action or another alias included, without installing anything", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.user-operation.check", HistoryKind: HistoryFetch, Description: "Report the entries of actions.json a load would skip, alias rows that clash with an action or another alias included, without installing anything", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := append(r.CheckUserActions(), r.StandardShadows()...)
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.actions.aliases", HistoryKind: HistoryFetch, Description: "List every action alias: the framework's old names, the application's aliases and the alias rows of actions.json, each with the action it runs", Result: "alias[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.user-operation.aliases", HistoryKind: HistoryFetch, Description: "List every action alias: the framework's old names, the application's aliases and the alias rows of actions.json, each with the action it runs", Result: "alias[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.ActionAliases(), nil
 	}})
-	r.Register(Operation{Key: "ochazuke.actions.path", HistoryKind: HistoryFetch, Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.user-operation.path", HistoryKind: HistoryFetch, Description: "Print the user actions file: actions.json beside bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(ActionsFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")
@@ -807,7 +807,7 @@ func registerActions(r *Runtime) {
 
 // registerActionFacts declares the actions noun.
 func registerActionFacts(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: "ochazuke.actions", Sample: UserOperation{}, Key: "key", Label: "label", Extra: []PropSpec{{Name: "key"}},
+	r.defineFacts(factsSpec{Noun: "ochazuke.user-operation", Sample: UserOperation{}, Key: "key", Label: "label", Extra: []PropSpec{{Name: "key"}},
 		Docs: map[string]string{"key": "The verb the action adds (noun.verb)", "noun": "Its noun", "verb": "Its verb", "description": "What it does", "command": "The command it runs",
 			"label": "The label of its thing in the prompt"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {

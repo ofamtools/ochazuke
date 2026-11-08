@@ -16,7 +16,7 @@ const (
 	StandardVerbsFile = "standard-verbs.md"
 )
 
-// Topics are the pages by the topic docs.open names them with, in the
+// Topics are the pages by the topic docs-viewer.open names them with, in the
 // order the index lists them.
 var Topics = []struct{ Topic, File string }{
 	{"index", IndexFile},
@@ -279,7 +279,7 @@ func renderStandardVerbs(m Model, opts Options) string {
 		line("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |", cell(name), yes(v.Core), cell(strings.Join(v.Kinds, ", ")), cell(v.Needs), yes(v.Subject), yes(v.Many), yes(v.Repeatable), cell(v.History), cell(v.Undo), cell(codeOrEmpty(v.Confirm)), cell(v.Description))
 	}
 	line("")
-	line("The subject is the parameter named after the noun's key prop: given, it names the thing; left out, it is the thing the request acts for (the focus). Many runs once over a visual selection, as one undo step; a verb without both a subject and many is never run over a selection. Undo says how history.undo reverts the change: delete the thing made, restore the props written, or recreate the thing removed. Repeat: `.` repeats the write when it writes only simple values (enum, boolean, number, duration).")
+	line("The subject is the parameter named after the noun's key prop: given, it names the thing; left out, it is the thing the request acts for (the focus). Many runs once over a visual selection, as one undo step; a verb without both a subject and many is never run over a selection. Undo says how history-entry.undo reverts the change: delete the thing made, restore the props written, or recreate the thing removed. Repeat: `.` repeats the write when it writes only simple values (enum, boolean, number, duration).")
 	line("")
 	line("## Nouns with props")
 	if len(m.Nouns) == 0 {

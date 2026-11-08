@@ -521,7 +521,7 @@ type StoreSpec struct {
 	Noun   string              `json:"noun,omitempty"`
 	Props  []ochazuke.PropSpec `json:"props"`
 	Things []ochazuke.Thing    `json:"things"`
-	// Undo makes the store declare Store.Undo, so history.undo reverts
+	// Undo makes the store declare Store.Undo, so history-entry.undo reverts
 	// its writes (a story about undo).
 	Undo bool `json:"undo,omitempty"`
 	// Copy makes the noun's store a copy of these things

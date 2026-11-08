@@ -104,7 +104,7 @@
     "noun": "app",
     "mode": "normal",
     "keys": "u",
-    "do": "ochazuke.history.undo"
+    "do": "ochazuke.history-entry.undo"
    },
    {
     "noun": "ochazuke.list",

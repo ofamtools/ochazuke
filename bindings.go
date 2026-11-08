@@ -89,7 +89,7 @@ func (r *Runtime) guardedOff(b Binding, focus string) bool {
 	return check == nil || !check(r, KeyEvent{Mode: r.Mode, Focus: focus})
 }
 
-// StopBindings is one entry of bindings.stops: the rows a focus stop
+// StopBindings is one entry of binding.stops: the rows a focus stop
 // answers to (ListBindings at Focus in Mode), with the page it sits on.
 // Stop is the stop instance, Focus where a jump to it lands (its
 // remembered child, a list's selected row), Mode the mode the focus has
@@ -113,7 +113,7 @@ type StopBindings struct {
 // read in its own resolution context (that focus and mode under the open
 // modals), so nothing moves and nothing is assigned, cached or restored.
 //
-// It differs from bindings.list --all, which exports every stored row
+// It differs from binding.list --all, which exports every stored row
 // (each noun's and instance's tables, every mode, as configuration JSON),
 // active or not: this answers "what does each key do where", after
 // shadowing, guards and the modal boundary.

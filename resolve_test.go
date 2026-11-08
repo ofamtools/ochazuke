@@ -46,7 +46,7 @@ func TestCaptureRowBeatsInnerAnyRow(t *testing.T) {
 		listed = listed || b.Keys == "ctrl+c" && b.Capture
 	}
 	if !listed {
-		t.Fatal("bindings.list shows the capture row")
+		t.Fatal("binding.list shows the capture row")
 	}
 }
 
@@ -163,7 +163,7 @@ func TestModalIsResolutionBoundary(t *testing.T) {
 	}
 	for _, b := range r.ListBindings(r.Focus) {
 		if b.Noun == "panel" || b.Noun == "ochazuke.page" {
-			t.Fatalf("bindings.list shows a row beneath the modal: %+v", b)
+			t.Fatalf("binding.list shows a row beneath the modal: %+v", b)
 		}
 	}
 }

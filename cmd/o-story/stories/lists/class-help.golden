@@ -32,5 +32,5 @@ R|  keep merge│                                                               
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · esc list.filter-clear · S view · q modal.close · : palette.open · ? bindings.help · / filter
+ |  space list.mark · esc list.filter-clear · S view · q modal.close · : palette.open · ? binding.help · / filter
  |

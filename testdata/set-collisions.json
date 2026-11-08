@@ -4,7 +4,7 @@
   {"noun": "column", "settings": ["column-width"], "reads": "line", "apps": ["o-csv"]},
   {"noun": "focus", "settings": ["focus-display"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
   {"noun": "form", "settings": ["forms.single-path"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
-  {"noun": "history", "settings": ["history-fetches", "history-limit"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
+  {"noun": "history-entry", "settings": ["history-fetches", "history-limit"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
   {"noun": "markdown", "settings": ["markdown.note-author"], "reads": "line", "apps": ["matomeru"]},
   {"noun": "modal", "settings": ["modal-dim"], "reads": "line", "apps": ["matomeru", "nabe", "o-json", "o-csv", "o-ai", "o-inventory", "o-proj", "o-qbt", "o-df", "o-fleet"]},
   {"noun": "page", "settings": ["pages.hidden"], "reads": "line", "apps": ["matomeru", "o-json", "o-csv", "o-df"]},

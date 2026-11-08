@@ -327,7 +327,7 @@ func (t *demoTask) define(r *ochazuke.Runtime) {
 	defineProjects(r)
 	r.Define("task").Props(taskProps()...).Store(ochazuke.Store{
 		Kind: ochazuke.Collection,
-		// history.undo reverts the task writes; create keeps a given key,
+		// history-entry.undo reverts the task writes; create keeps a given key,
 		// so a delete is undone under its old one.
 		Undo: true, AcceptsKey: true,
 		Create: func(_ ochazuke.Ctx, values ochazuke.Thing) (ochazuke.Thing, error) { return t.create(values), nil },

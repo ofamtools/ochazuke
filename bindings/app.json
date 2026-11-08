@@ -10,14 +10,14 @@
     ]},
     {"context": "app/normal", "fallback": true, "bindings": [
       {"key": ":", "action": "ochazuke.palette.open"},
-      {"key": "?", "action": "ochazuke.bindings.help"},
+      {"key": "?", "action": "ochazuke.binding.help"},
       {"key": "esc", "action": "ochazuke.noun.cancel-edit", "capture": true},
       {"key": "g <", "action": "ochazuke.message.show", "when": "no-input", "hidden": true},
       {"key": "'", "action": "ochazuke.page.pick", "when": "no-modal"},
       {"key": "ctrl+j", "action": "ochazuke.page.next"},
       {"key": "ctrl+k", "action": "ochazuke.page.previous"},
       {"key": "/", "action": "ochazuke.list.filter-open", "hint": "filter", "when": "list-filterable"},
-      {"key": "alt+?", "action": "ochazuke.state.toggle", "hidden": true},
+      {"key": "alt+?", "action": "ochazuke.snapshot.toggle", "hidden": true},
       {"key": "g y", "action": "ochazuke.yank-history.open", "when": "no-input", "hidden": true}
     ]},
     {"context": "app/quit-wait", "bindings": [
@@ -28,10 +28,10 @@
     ]},
     {"context": "app/visual-line", "fallback": true, "bindings": [
       {"key": ":", "action": "ochazuke.palette.open"},
-      {"key": "?", "action": "ochazuke.bindings.help"}
+      {"key": "?", "action": "ochazuke.binding.help"}
     ]},
     {"context": "ochazuke.editor/insert", "fallback": true, "bindings": [
-      {"key": "ctrl+\\", "action": "ochazuke.bindings.help", "hidden": true}
+      {"key": "ctrl+\\", "action": "ochazuke.binding.help", "hidden": true}
     ]}
   ]
 }

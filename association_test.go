@@ -207,7 +207,7 @@ func TestAssociationGuardedRepeatFollowsNewSubject(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.Instances["surface"].Data = map[string]any{"subject": "b"}
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "repeat"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "repeat"}); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(acted, []string{"row-a", "row-b"}) {

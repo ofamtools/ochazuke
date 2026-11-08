@@ -66,7 +66,7 @@ func TestStandardEditConfirmCancelUndo(t *testing.T) {
 	if !reflect.DeepEqual(s.find("t1"), want) {
 		t.Fatalf("confirmed %v", s.find("t1"))
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if !reflect.DeepEqual(s.find("t1"), original) {
 		t.Fatalf("undo %v", s.find("t1"))
 	}

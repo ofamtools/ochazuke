@@ -121,7 +121,7 @@ func TestResolveAtDoesNotMutateRuntime(t *testing.T) {
 	})
 	t.Run("help under a chooser", func(t *testing.T) {
 		r := pureQueryFixture(t)
-		if _, err := r.Execute(Do("ochazuke.bindings.help").Request); err != nil {
+		if _, err := r.Execute(Do("ochazuke.binding.help").Request); err != nil {
 			t.Fatal(err)
 		}
 		h, ok := r.Instances[helpID].Component.(*helpState)
@@ -214,7 +214,7 @@ func TestResolveAtUsesEventContext(t *testing.T) {
 		if err := r.SetFocus("note"); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := r.Execute(Do("ochazuke.bindings.help").Request); err != nil {
+		if _, err := r.Execute(Do("ochazuke.binding.help").Request); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := r.OpenChooser(ChooserSpec{Kind: "k", Rows: []ChooserRow{{ID: "a", Label: "alpha"}}}); err != nil {

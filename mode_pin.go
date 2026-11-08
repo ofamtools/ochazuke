@@ -128,7 +128,7 @@ func (r *Runtime) resolveDeclared(mode string) string {
 func registerModePin(r *Runtime) {
 	r.Register(Operation{Key: "ochazuke.mode.pin", Description: "Make an instance declare its base mode (Instance.Pin): focus on it, or entering a stop beneath it, puts the runtime in that mode, and mode.switch {mode: declared} returns to it; a re-pin of the focused pane applies at once; an empty mode drops the pin",
 		Parameters: map[string]Parameter{
-			"mode":     {Type: "string", Description: "The base mode to declare; empty drops the pin", Noun: "ochazuke.modes"},
+			"mode":     {Type: "string", Description: "The base mode to declare; empty drops the pin", Noun: "ochazuke.mode"},
 			"instance": {Type: "string", Description: "The instance (default the focused stop)"},
 		}, Result: "instance and mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 			id := StringArg(a, "instance", "")

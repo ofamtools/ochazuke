@@ -272,7 +272,7 @@ type Store struct {
 	// own Store.Watch; without one a watcher is told to reload when anything
 	// changes, and the verb watch is left to the source.
 	Remote bool
-	// Undo lets history.undo revert this store's standard changes
+	// Undo lets history-entry.undo revert this store's standard changes
 	// (standard_undo.go); AcceptsKey says Create keeps a key the values
 	// give, so a delete can be undone under its old key.
 	Undo       bool

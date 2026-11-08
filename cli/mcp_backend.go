@@ -418,7 +418,7 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 				}
 			}
 			if undoable {
-				answer["undo"] = map[string]any{"verb": "ochazuke.history.undo", "args": map[string]any{"entry": e.Seq}}
+				answer["undo"] = map[string]any{"verb": "ochazuke.history-entry.undo", "args": map[string]any{"entry": e.Seq}}
 			}
 			break
 		}

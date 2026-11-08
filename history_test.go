@@ -67,8 +67,8 @@ func TestHistoryMacroReplaySource(t *testing.T) {
 	}
 }
 
-// The ring keeps the last HistoryLimit entries; history.list and state.get
-// are fetches, recorded apart and left out of history.list's default view
+// The ring keeps the last HistoryLimit entries; history-entry.list and snapshot.get
+// are fetches, recorded apart and left out of history-entry.list's default view
 // and the snapshot, which shows the last 50 actions and changes at /history.
 func TestHistoryRingListAndSnapshot(t *testing.T) {
 	r := NewRuntime()
@@ -81,19 +81,19 @@ func TestHistoryRingListAndSnapshot(t *testing.T) {
 	if len(all) != HistoryLimit || all[0].Seq != 11 || all[len(all)-1].Seq != HistoryLimit+10 {
 		t.Fatalf("ring: %d entries, first %d", len(all), all[0].Seq)
 	}
-	listed, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.history", Args: Arguments{"last": 3}})
+	listed, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.history-entry", Args: Arguments{"last": 3}})
 	if err != nil || len(rowsOf[HistoryEntry](t, listed)) != 3 {
-		t.Fatalf("history.list: %v %v", listed, err)
+		t.Fatalf("history-entry.list: %v %v", listed, err)
 	}
-	state, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.state", Args: Arguments{"prop": "history"}})
+	state, err := r.Execute(Request{Verb: "get", Noun: "ochazuke.snapshot", Args: Arguments{"prop": "history"}})
 	if err != nil || len(state.([]any)) != 50 {
 		t.Fatalf("/history: %v", err)
 	}
 	if e := r.HistoryOf(1, historyUserKinds...); len(e) != 1 || e[0].Seq != HistoryLimit+10 {
-		t.Fatalf("history.list or state.get is in the user's view: %+v", e)
+		t.Fatalf("history-entry.list or snapshot.get is in the user's view: %+v", e)
 	}
-	if e := lastEntry(t, r); e.Kind != HistoryFetch || e.Request.Key() != "ochazuke.state.get" {
-		t.Fatalf("state.get is not the last fetch: %+v", e)
+	if e := lastEntry(t, r); e.Kind != HistoryFetch || e.Request.Key() != "ochazuke.snapshot.get" {
+		t.Fatalf("snapshot.get is not the last fetch: %+v", e)
 	}
 	data, err := json.Marshal(lastEntry(t, r))
 	if err != nil {
@@ -133,7 +133,7 @@ func TestDotRepeatsChangeOnAnotherLine(t *testing.T) {
 	if got := string(in.Text); got != "two\nfour" {
 		t.Fatalf("text %q", got)
 	}
-	if e := lastEntry(t, r); e.Request.Key() != "ochazuke.history.repeat" || e.Context.Source != "key:." {
+	if e := lastEntry(t, r); e.Request.Key() != "ochazuke.history-entry.repeat" || e.Context.Source != "key:." {
 		t.Fatalf("repeat entry: %+v", e)
 	}
 }
@@ -164,7 +164,7 @@ func TestDotDoesNotRepeatMotion(t *testing.T) {
 	fresh := NewRuntime()
 	sink := &RecordingSink{}
 	fresh.UI().Attach(sink)
-	if _, err := fresh.Execute(Request{Verb: "repeat", Noun: "ochazuke.history"}); err != nil || sink.LastInfo() != "nothing to repeat" || sink.LastError() != "" {
+	if _, err := fresh.Execute(Request{Verb: "repeat", Noun: "ochazuke.history-entry"}); err != nil || sink.LastInfo() != "nothing to repeat" || sink.LastError() != "" {
 		t.Fatalf("nothing to repeat is a plain line, not an error: %v info %q error %q", err, sink.LastInfo(), sink.LastError())
 	}
 }
@@ -182,14 +182,14 @@ func TestDotSkipsTypingOutsideAnInput(t *testing.T) {
 	if err := r.SetFocus("elsewhere"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Verb: "repeat", Noun: "ochazuke.history"}); err != nil || sink.LastInfo() != "nothing to repeat" {
+	if _, err := r.Execute(Request{Verb: "repeat", Noun: "ochazuke.history-entry"}); err != nil || sink.LastInfo() != "nothing to repeat" {
 		t.Fatalf("repeat outside an input: %v info %q", err, sink.LastInfo())
 	}
 	if err := r.SetFocus(in.ID); err != nil {
 		t.Fatal(err)
 	}
 	before := string(in.Text)
-	if _, err := r.Execute(Request{Verb: "repeat", Noun: "ochazuke.history"}); err != nil || string(in.Text) == before {
+	if _, err := r.Execute(Request{Verb: "repeat", Noun: "ochazuke.history-entry"}); err != nil || string(in.Text) == before {
 		t.Fatalf("repeat back in the input: %v %q", err, in.Text)
 	}
 }
@@ -229,7 +229,7 @@ func TestDotDoesNotReaskConfirmation(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "accept", Noun: "ochazuke.confirm"}); err != nil || runs != 1 {
 		t.Fatalf("accept: %v runs=%d", err, runs)
 	}
-	if _, err := r.Execute(Request{Verb: "repeat", Noun: "ochazuke.history"}); err != nil || runs != 2 || len(r.Modals()) != 0 {
+	if _, err := r.Execute(Request{Verb: "repeat", Noun: "ochazuke.history-entry"}); err != nil || runs != 2 || len(r.Modals()) != 0 {
 		t.Fatalf("repeat: %v runs=%d modals=%v", err, runs, r.Modals())
 	}
 }
@@ -290,12 +290,12 @@ func TestHistoryMotionRecordsTheMoveNotTheList(t *testing.T) {
 	if _, err := r.Execute(Request{Verb: "mark", Noun: "ochazuke.list"}); err != nil {
 		t.Fatal(err)
 	}
-	out, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.history", Args: Arguments{"last": 1}})
+	out, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.history-entry", Args: Arguments{"last": 1}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := rowsOf[HistoryEntry](t, out); len(got) != 1 || got[0].Request.Key() != "ochazuke.list.mark" || !got[0].Result.OK || got[0].Moved != nil {
-		t.Fatalf("history.list: %+v", got)
+		t.Fatalf("history-entry.list: %+v", got)
 	}
 	if encoded != 0 {
 		t.Fatalf("history encoded the rows %d times", encoded)

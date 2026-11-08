@@ -8,7 +8,7 @@ import (
 )
 
 // ctrl+e and ctrl+y scroll a windowed document a line (the framework's
-// view.scroll, Vim's CTRL-E): the cursor stays while it shows inside the
+// viewport.scroll, Vim's CTRL-E): the cursor stays while it shows inside the
 // scrolloff margin, else it moves to the nearest row inside.
 func TestCtrlEScrollsTheDocumentWindow(t *testing.T) {
 	var b strings.Builder
@@ -49,7 +49,7 @@ func TestCtrlEScrollsTheDocumentWindow(t *testing.T) {
 
 // The Doc answers the shared motions through its line list (the
 // framework's CursorMotions): g g and G go to the first and last line,
-// ctrl+d and ctrl+u half a window, and view.edge and view.page reach it
+// ctrl+d and ctrl+u half a window, and viewport.goto and viewport.scroll by page reach it
 // from the palette or the CLI as well.
 func TestSharedMotionsMoveTheDocument(t *testing.T) {
 	var b strings.Builder
@@ -87,16 +87,16 @@ func TestSharedMotionsMoveTheDocument(t *testing.T) {
 		args ochazuke.Arguments
 		want func() bool
 	}{
-		{"edge", ochazuke.Arguments{"edge": "last"}, func() bool { return d.cursorLine() == last }},
-		{"edge", ochazuke.Arguments{"edge": "first"}, func() bool { return d.cursorLine() == 0 }},
-		{"page", ochazuke.Arguments{"delta": 1}, func() bool { return d.cursorLine() > 0 }},
+		{"goto", ochazuke.Arguments{"edge": "last"}, func() bool { return d.cursorLine() == last }},
+		{"goto", ochazuke.Arguments{"edge": "first"}, func() bool { return d.cursorLine() == 0 }},
+		{"scroll", ochazuke.Arguments{"by": "page", "delta": 1}, func() bool { return d.cursorLine() > 0 }},
 	} {
-		if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.view", Verb: s.verb, Args: s.args}); err != nil {
-			t.Fatalf("view.%s %v: %v", s.verb, s.args, err)
+		if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.viewport", Verb: s.verb, Args: s.args}); err != nil {
+			t.Fatalf("viewport.%s %v: %v", s.verb, s.args, err)
 		}
 		_ = d.View(40, 10, mono)
 		if !s.want() {
-			t.Fatalf("view.%s %v: cursor line %d", s.verb, s.args, d.cursorLine())
+			t.Fatalf("viewport.%s %v: cursor line %d", s.verb, s.args, d.cursorLine())
 		}
 	}
 }

@@ -55,7 +55,7 @@ func TestBindingsCheckReportsRemovedVerbs(t *testing.T) {
 		r.Config().Dir = dir
 		writeConfig(t, dir, BindingsFile, tc.bindings)
 		writeConfig(t, dir, ActionsFile, `[{"alias": "task.rn", "action": "task.rename"}, {"noun": "task", "verb": "retitle", "call": "task.rename {{id}}"}, {"alias": "task.mine", "action": "task.set"}, {"alias": "task.old", "action": "task.set", "args": {"changes": {"status": "done"}}}]`)
-		got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+		got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -90,7 +90,7 @@ func TestBindingsCheckRemovedVerbAfterPurge(t *testing.T) {
 	dir := t.TempDir()
 	r.Config().Dir = dir
 	writeConfig(t, dir, BindingsFile, `[{"noun": "app", "mode": "normal", "keys": "B", "request": {"noun": "task", "verb": "bump"}}]`)
-	got, _ := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	got, _ := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 	out := strings.Join(got.([]string), "\n")
 	if !strings.Contains(out, "bindings.json: row 1 B: task.bump is a removed verb (since v2); use task.set {prop: priority}") || strings.Contains(out, "warning: bindings.json: row 1 B: task.bump") {
 		t.Fatalf("check:\n%s", out)

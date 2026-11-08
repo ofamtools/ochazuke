@@ -35,7 +35,7 @@ func (r *Runtime) editByChooser(args Arguments, only *PropSpec, fieldOnly bool, 
 // choices for edit {field} (the one a form's choice field opens,
 // openChoiceChooser), highlighting the value the thing holds. A pick is
 // the write (write: set on the subject and the selection, one history
-// group, so history.undo takes it back in one step) and closes the
+// group, so history-entry.undo takes it back in one step) and closes the
 // chooser, the focus back where edit ran; a subject already holding the
 // pick is not written, the rest of the selection still is. esc
 // (modal.close, the chooser's cancel) closes it with nothing written. An

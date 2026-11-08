@@ -148,7 +148,7 @@ func TestConfigExportListsEverySetting(t *testing.T) {
 }
 
 // The bindings reference is every stored row, and every row loads back
-// through bindings.load's validation.
+// through binding.load's validation.
 func TestConfigExportBindingsRoundTripThroughBindingsLoad(t *testing.T) {
 	r, _ := exportFixture(t)
 	out := t.TempDir()
@@ -188,8 +188,8 @@ func TestConfigExportBindingsRoundTripThroughBindingsLoad(t *testing.T) {
 		return out
 	}
 	before := stored()
-	if _, err := r.Execute(Request{Verb: "load", Noun: "ochazuke.bindings", Args: Arguments{"path": path}}); err != nil {
-		t.Fatalf("bindings.load of the reference: %v", err)
+	if _, err := r.Execute(Request{Verb: "load", Noun: "ochazuke.binding", Args: Arguments{"path": path}}); err != nil {
+		t.Fatalf("binding.load of the reference: %v", err)
 	}
 	if _, err := r.ValidateBindings(); err != nil {
 		t.Fatal(err)

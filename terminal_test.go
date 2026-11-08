@@ -163,7 +163,7 @@ func TestTerminalLeaderForwardsBoundRunsAndTimeoutForwardsPrefix(t *testing.T) {
 	}
 }
 
-// bindings.list in terminal mode is the terminal table alone: the leader, the
+// binding.list in terminal mode is the terminal table alone: the leader, the
 // any and paste rows, no editor rows and no app rows beneath the any row. In
 // leader_pending it is the leader table.
 func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {

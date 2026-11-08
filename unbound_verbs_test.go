@@ -168,14 +168,14 @@ func TestEnterRunsABoundRowAndFoldsAPrefix(t *testing.T) {
 	}
 }
 
-// bindings.bind writes the row to the user's file, loads it, and the key
+// binding.bind writes the row to the user's file, loads it, and the key
 // runs the verb; a key that answers something else needs replace, and the
 // old file is kept as .bak.
 func TestBindingsBindWritesTheUserFile(t *testing.T) {
 	r, m, ran := unboundFixture(t)
 	dir := t.TempDir()
 	r.Config().Dir = dir
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "p", "action": "widget.ping"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": "p", "action": "widget.ping"}}); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(filepath.Join(dir, BindingsFile))
@@ -190,7 +190,7 @@ func TestBindingsBindWritesTheUserFile(t *testing.T) {
 		t.Fatalf("unbound after bind: %v", got)
 	}
 	// enter is widget.open: taking it needs replace.
-	q := Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "enter", "action": "widget.wipe"}}
+	q := Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": "enter", "action": "widget.wipe"}}
 	if _, err := r.Execute(q); err != nil || r.TopModal() == "" || !strings.Contains(m.View().Content, "enter already runs widget.open here; bind anyway?") {
 		t.Fatalf("no question: %v top %q", err, r.TopModal())
 	}
@@ -204,7 +204,7 @@ func TestBindingsBindWritesTheUserFile(t *testing.T) {
 	}
 	// A bad key is refused before anything is written.
 	before, _ := os.ReadFile(filepath.Join(dir, BindingsFile))
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "", "action": "widget.ping"}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": "", "action": "widget.ping"}}); err == nil {
 		t.Fatal("empty key accepted")
 	}
 	if after, _ := os.ReadFile(filepath.Join(dir, BindingsFile)); string(after) != string(before) {
@@ -276,7 +276,7 @@ func TestHelpBindAsksBeforeTakingAnAnsweredKey(t *testing.T) {
 	// Every route asks: the verb itself opens the same question, and
 	// replace skips it.
 	for _, keys := range []string{"j", "esc", ":", "Q"} {
-		if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": keys, "action": "widget.wipe"}}); err != nil {
+		if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": keys, "action": "widget.wipe"}}); err != nil {
 			t.Fatalf("%s: %v", keys, err)
 		}
 		if r.TopModal() == "" || !strings.Contains(m.View().Content, keys+" already runs") {
@@ -285,7 +285,7 @@ func TestHelpBindAsksBeforeTakingAnAnsweredKey(t *testing.T) {
 		keytest.Press(m, "n")
 	}
 	_ = ran
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "esc", "action": "widget.wipe", "replace": true}}); err != nil || r.TopModal() != helpID {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": "esc", "action": "widget.wipe", "replace": true}}); err != nil || r.TopModal() != helpID {
 		t.Fatalf("replace asked: %v top %q", err, r.TopModal())
 	}
 }
@@ -416,7 +416,7 @@ func TestHelpRefreshKeepsFoldState(t *testing.T) {
 		return out
 	}
 	before := folded()
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "p", "action": "widget.ping"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": "p", "action": "widget.ping"}}); err != nil {
 		t.Fatal(err)
 	}
 	after := folded()
@@ -545,7 +545,7 @@ func TestCoveredHelpKeepsItsOwnHints(t *testing.T) {
 	r, m, _ := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
 	keytest.Press(m, "?")
-	if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": "enter", "action": "widget.wipe"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": "enter", "action": "widget.wipe"}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.TopModal() == helpID || r.TopModal() == "" {

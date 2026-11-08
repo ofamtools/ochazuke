@@ -51,7 +51,7 @@ func TestBindingsCheckNamesTheRenamedCommandVerbs(t *testing.T) {
 		{"noun": "app", "mode": "normal", "keys": "c", "request": {"noun": "settings", "verb": "edit"}},
 		{"noun": "app", "mode": "normal", "keys": "d", "request": {"noun": "jobs", "verb": "list"}}
 	]`)
-	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,19 +92,19 @@ func TestGetReadsANestedPropPath(t *testing.T) {
 		"modeState.name":            "normal",
 		"focus":                     r.Focus,
 	} {
-		got, err := r.Execute(Request{Noun: "ochazuke.state", Verb: "get", Args: Arguments{"prop": path}})
+		got, err := r.Execute(Request{Noun: "ochazuke.snapshot", Verb: "get", Args: Arguments{"prop": path}})
 		if err != nil || got != want {
 			t.Errorf("state get %s = %v %v, want %v", path, got, err, want)
 		}
 	}
 	for _, bad := range []string{"lists.nope", "lists.side.bar.items.9", "page.x", "nonesuch.a"} {
-		if _, err := r.Execute(Request{Noun: "ochazuke.state", Verb: "get", Args: Arguments{"prop": bad}}); err == nil {
+		if _, err := r.Execute(Request{Noun: "ochazuke.snapshot", Verb: "get", Args: Arguments{"prop": bad}}); err == nil {
 			t.Errorf("state get %s did not fail", bad)
 		}
 	}
 	// state is a system fact: its writing verbs are there, unavailable.
-	if op, ok := r.Operation("ochazuke.state.set"); !ok || op.Unavailable != FactReason {
-		t.Fatalf("state.set = %+v %v", op.Unavailable, ok)
+	if op, ok := r.Operation("ochazuke.snapshot.set"); !ok || op.Unavailable != FactReason {
+		t.Fatalf("snapshot.set = %+v %v", op.Unavailable, ok)
 	}
 }
 
@@ -121,7 +121,7 @@ func TestRegisterThings(t *testing.T) {
 	if got := text("a"); got != "two" {
 		t.Fatalf("register a after set A = %v", got)
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if got := text("a"); got != "one" {
 		t.Fatalf("register a after undo = %v", got)
 	}
@@ -200,7 +200,7 @@ func TestAppearanceSetIsUndone(t *testing.T) {
 	if a.Density != "compact" {
 		t.Fatalf("density %q", a.Density)
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if a.Density != "comfortable" || a.Theme != "adaptive" {
 		t.Fatalf("after undo: %+v", *a)
 	}
@@ -244,7 +244,7 @@ func TestRemovedVerbRowIsOneNotice(t *testing.T) {
 	if len(problems) != 1 || !strings.Contains(problems[0], "use ochazuke.setting.open") {
 		t.Fatalf("start-up notices %q", problems)
 	}
-	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 	if err != nil {
 		t.Fatal(err)
 	}

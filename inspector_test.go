@@ -50,7 +50,7 @@ func TestInspectorSnapshotAndPanel(t *testing.T) {
 		t.Fatal("snapshot aliases runtime")
 	}
 	before := r.Inspect().LastRequest.Key
-	got, err := r.Execute(Request{Noun: "ochazuke.state", Verb: "inspect"})
+	got, err := r.Execute(Request{Noun: "ochazuke.snapshot", Verb: "inspect"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestInspectorSnapshotAndPanel(t *testing.T) {
 		t.Fatal(err)
 	}
 	reply := make(chan Response, 1)
-	r.HandleCall(CallMsg{Request: Request{Noun: "ochazuke.state", Verb: "inspect"}, Reply: reply})
+	r.HandleCall(CallMsg{Request: Request{Noun: "ochazuke.snapshot", Verb: "inspect"}, Reply: reply})
 	response := <-reply
 	if response.Error != "" {
 		t.Fatal(response.Error)
@@ -78,7 +78,7 @@ func TestInspectorSnapshotAndPanel(t *testing.T) {
 	if r.Inspect().LastRequest.Key != before {
 		t.Fatal("inspect hid the last action")
 	}
-	problems, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	problems, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 	if err != nil || len(problems.([]string)) != 0 {
 		t.Fatalf("bindings check: %v, %v", problems, err)
 	}

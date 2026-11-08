@@ -42,7 +42,7 @@ type StandardVerb struct {
 	Repeatable  bool     `json:"repeatable,omitempty"`
 	History     string   `json:"history,omitempty"`
 	Confirm     string   `json:"confirm,omitempty"`
-	// Undo is how history.undo reverts the verb's change: delete (it
+	// Undo is how history-entry.undo reverts the verb's change: delete (it
 	// made a thing), restore (it wrote props), recreate (it removed a
 	// thing); "" for a verb that records no change.
 	Undo string `json:"undo,omitempty"`

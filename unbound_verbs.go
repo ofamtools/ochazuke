@@ -17,7 +17,7 @@ import (
 // blank (HelpRow.Unbound). From there enter runs the verb as a key would
 // (bindings-help.run: the same availability, rights and confirm, a missing
 // argument opens its form) and b asks for a key and writes the row to the
-// user's bindings.json (bindings-help.bind, which calls bindings.bind).
+// user's bindings.json (bindings-help.bind, which calls binding.bind).
 //
 // The list is read from the catalog's operations and the walk's rows alone:
 // a verb is unbound when its noun is on the focus's path, the verb is
@@ -351,7 +351,7 @@ func (r *Runtime) selectedHelpRow() (HelpRow, bool) {
 	return row, ok
 }
 
-// registerUnboundVerbs adds the help's run and bind verbs and bindings.bind.
+// registerUnboundVerbs adds the help's run and bind verbs and binding.bind.
 func registerUnboundVerbs(r *Runtime) {
 	r.DefineGuard("help-unbound-row", func(r *Runtime, _ KeyEvent) bool {
 		row, ok := r.selectedHelpRow()
@@ -393,13 +393,13 @@ func registerUnboundVerbs(r *Runtime) {
 		op, found := r.Operation(noun + "." + verb)
 		return found && len(askableParameters(op)) > 0
 	})
-	r.Register(Operation{Key: KeyOf(helpID, "bind"), Description: "Bind a key to the selected unbound verb: a form asks for the key and writes the row to your bindings.json (bindings.bind)", Result: "operation", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: KeyOf(helpID, "bind"), Description: "Bind a key to the selected unbound verb: a form asks for the key and writes the row to your bindings.json (binding.bind)", Result: "operation", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		h := r.helpOpen()
 		row, ok := r.selectedHelpRow()
 		if h == nil || !ok || !row.Unbound {
 			return nil, errors.New("select an unbound verb in the help")
 		}
-		q := Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"action": row.Request}}
+		q := Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"action": row.Request}}
 		_, err := r.OpenArgsForm(q, func(q Request) error {
 			_, err := r.ExecuteAt(r.Context(), q)
 			return err
@@ -414,7 +414,7 @@ func registerUnboundVerbs(r *Runtime) {
 			return nil, errors.New("select an unbound verb in the help")
 		}
 		keys := StringArg(a, "key", "")
-		return r.Execute(Request{Noun: "ochazuke.bindings", Verb: "bind", Args: Arguments{"key": keys, "action": row.Request}})
+		return r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": keys, "action": row.Request}})
 	}})
 	n := r.Noun(helpID)
 	if n.Guards == nil {
@@ -425,7 +425,7 @@ func registerUnboundVerbs(r *Runtime) {
 	n.Guards["bind"] = "help-unbound-row"
 	n.Guards["bind-key"] = "help-unbound-row"
 
-	r.Register(Operation{Key: "ochazuke.bindings.bind", Description: "Bind a key to an action by writing a row to the user's bindings.json (the first change you make to it from the program: a comment in the file is not kept, the old file is copied to bindings.json.bak) and loading it. The row goes in the action's noun's table in the mode; a key that already answers something else needs replace", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.binding.bind", Description: "Bind a key to an action by writing a row to the user's bindings.json (the first change you make to it from the program: a comment in the file is not kept, the old file is copied to bindings.json.bak) and loading it. The row goes in the action's noun's table in the mode; a key that already answers something else needs replace", Parameters: map[string]Parameter{
 		"key":     {Type: "string", Required: true, Description: "the key or key sequence, as the bindings file spells it: x, ctrl+x, g n"},
 		"action":  {Type: "string", Required: true, Description: "the operation to run, noun.verb"},
 		"mode":    {Type: "string", Description: "the mode the key answers in (default: the current one)"},
@@ -434,12 +434,12 @@ func registerUnboundVerbs(r *Runtime) {
 	}, Positional: []string{"key", "action"}, Result: "binding", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.bindUserKey(StringArg(a, "key", ""), StringArg(a, "action", ""), StringArg(a, "noun", ""), StringArg(a, "mode", ""), a["replace"] == true)
 	}})
-	if err := r.AddVerbCheck("ochazuke.bindings.bind", VerbCheck{Name: "key-taken", Check: keyTaken}); err != nil {
+	if err := r.AddVerbCheck("ochazuke.binding.bind", VerbCheck{Name: "key-taken", Check: keyTaken}); err != nil {
 		panic(err.Error())
 	}
 }
 
-// keyTaken is the check on bindings.bind: a key the walk at the focus (or
+// keyTaken is the check on binding.bind: a key the walk at the focus (or
 // the target table) already answers asks "KEY already runs ACTION here; bind
 // anyway?" from every route (the help's b, the form, the palette, the CLI
 // with --yes); replace skips the question.
@@ -464,7 +464,7 @@ func keyTaken(r *Runtime, _ Context, a Arguments) Verdict {
 	return Allow()
 }
 
-// bindUserKey is bindings.bind: it validates the row against the live
+// bindUserKey is binding.bind: it validates the row against the live
 // tables, adds it to the user's bindings file (the file kept, as a grouped
 // file, with the row last in its table), loads the file again and refreshes
 // an open help.

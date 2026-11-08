@@ -78,7 +78,7 @@ var ownedFields = []ownedField{
 		name:   "Mode",
 		owners: map[string]bool{"mode_change.go Runtime.changeMode": true},
 		// No exceptions. Nothing borrows the mode: the queries
-		// (bindings.stops, the typing check, help at its origin) read a
+		// (binding.stops, the typing check, help at its origin) read a
 		// resolutionContext, a replayed remote verb reads the mode its
 		// request started in from its RequestContext (Ctx.mode), and a
 		// frame draws each surface in its presentation

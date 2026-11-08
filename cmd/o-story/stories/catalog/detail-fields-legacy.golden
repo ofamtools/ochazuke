@@ -22,5 +22,5 @@ R|  ┃ Readable answers                   ┃ │ question  How should a comple
  |  ┃                                    ┃ │                                                       │
  |  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ ╰───────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · q app.quit · ctrl+w >/< resize · : palette.open · ? bindings.help · ' page.pi…
+ |  space list.mark · q app.quit · ctrl+w >/< resize · : palette.open · ? binding.help · ' page.pi…
  |

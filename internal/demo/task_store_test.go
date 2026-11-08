@@ -248,7 +248,7 @@ func TestTaskWritesFromThePalette(t *testing.T) {
 	}
 }
 
-// history.undo reverts the task writes (the store declares Undo and
+// history-entry.undo reverts the task writes (the store declares Undo and
 // AcceptsKey): a set's old value comes back, a deleted task comes back
 // under its key, a created one goes.
 func TestTaskUndo(t *testing.T) {
@@ -265,7 +265,7 @@ func TestTaskUndo(t *testing.T) {
 	get := func(id, prop string) any {
 		return run(ochazuke.Request{Noun: "task", Verb: "get", Args: ochazuke.Arguments{"id": id, "prop": prop}})
 	}
-	undo := ochazuke.Request{Noun: "ochazuke.history", Verb: "undo"}
+	undo := ochazuke.Request{Noun: "ochazuke.history-entry", Verb: "undo"}
 	before := get("t2", "status")
 	run(ochazuke.Request{Noun: "task", Verb: "set", Args: ochazuke.Arguments{"id": "t2", "prop": "status", "value": "done"}})
 	title := get("t3", "title")

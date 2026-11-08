@@ -109,7 +109,7 @@ func TestDocsOpenUsesTheMarkdownViewer(t *testing.T) {
 	r := NewRuntime()
 	NewModel(r)
 	got := fakeTextViewer(t, TextFormatMarkdown)
-	if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": "settings"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.docs-viewer", Verb: "open", Args: Arguments{"topic": "settings"}}); err != nil {
 		t.Fatal(err)
 	}
 	if len(*got) != 1 || (*got)[0].Label != "settings" || (*got)[0].Format != TextFormatMarkdown || (*got)[0].Title == "" || (*got)[0].Text == "" {
@@ -121,7 +121,7 @@ func TestDocsOpenUsesTheMarkdownViewer(t *testing.T) {
 	if err := r.Settings().Set(HelpMarkdownSetting, false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": "settings"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.docs-viewer", Verb: "open", Args: Arguments{"topic": "settings"}}); err != nil {
 		t.Fatal(err)
 	}
 	if r.TopModal() != docsViewerID || len(*got) != 1 {

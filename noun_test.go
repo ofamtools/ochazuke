@@ -94,7 +94,7 @@ func TestResolveWalksStackInnerToOuter(t *testing.T) {
 		listed[b.Keys+b.Pattern] = b.Request.Verb
 	}
 	if listed["x"] != "row-insert" || listed["y"] != "app-any" || listed["any"] != "" {
-		t.Fatalf("bindings.list in insert mode: %v", listed)
+		t.Fatalf("binding.list in insert mode: %v", listed)
 	}
 	if got := r.Ancestry("row"); !reflect.DeepEqual(got, []string{"row", "list", "page", "app"}) {
 		t.Fatalf("ancestry %v", got)
@@ -148,7 +148,7 @@ func TestPrefixModeTimeoutRestoresBaseMode(t *testing.T) {
 	}
 	// The continuations and the generated cancel row ("g esc" → mode.leave).
 	if rows := r.ListBindings("app"); len(rows) != 2 || rows[0].Keys != "g esc" || rows[0].Request.Key() != "ochazuke.mode.leave" || rows[1].Keys != "g g" {
-		t.Fatalf("bindings.list in a prefix mode lists the continuations: %+v", rows)
+		t.Fatalf("binding.list in a prefix mode lists the continuations: %+v", rows)
 	}
 	r.prefix.deadline = time.Now().Add(-time.Second)
 	if handled, err := r.HandleBindingTimeout(BindingTimeoutMsg{runtime: r, version: r.bindingVersion}); !handled || err != nil {
@@ -263,7 +263,7 @@ func TestLoadBindingsRowsReplaceAddAndUnbind(t *testing.T) {
 }
 
 // Acceptance: every Readline and Vim key the editor answers to appears in
-// bindings.list for its mode on a plain focused input (rows of a guarded
+// binding.list for its mode on a plain focused input (rows of a guarded
 // verb answer only where the guard holds).
 func TestListBindingsListsEveryEditorKey(t *testing.T) {
 	r, in := editorTestRuntime(t, "abc", true)
@@ -287,7 +287,7 @@ func TestListBindingsListsEveryEditorKey(t *testing.T) {
 		}
 		for key := range want {
 			if !got[key] {
-				t.Fatalf("mode %s: %q missing from bindings.list", mode, strings.ReplaceAll(key, "\x00", "/"))
+				t.Fatalf("mode %s: %q missing from binding.list", mode, strings.ReplaceAll(key, "\x00", "/"))
 			}
 		}
 		in.storeMode("normal")

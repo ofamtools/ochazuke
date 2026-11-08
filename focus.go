@@ -376,7 +376,7 @@ func (r *Runtime) CloseModal(c Context) error {
 // ReplaceOpen makes an open of a kind that is already the top modal close
 // that modal first and open the new one in its place, over the focus and
 // mode the old one opened over: a viewer asked to show something else
-// (docs.open TOPIC inside the docs viewer) shows it instead of failing
+// (docs-viewer.open TOPIC inside the docs viewer) shows it instead of failing
 // "already open" or stacking a second copy. Without it a second open of
 // an open kind is refused, so a modal holding a question (a confirm, a
 // prompt, a chooser) keeps it. A kind open beneath another modal is still

@@ -182,7 +182,7 @@ func TestCompactFilterSettingsAndBindings(t *testing.T) {
 	if problems := r.CheckDefaultBindings("bindings/filter-form.json", data); len(problems) > 0 {
 		t.Fatal(problems)
 	}
-	if _, err := r.Execute(Request{Noun: "bindings", Verb: "check"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "binding", Verb: "check"}); err != nil {
 		t.Fatal(err)
 	}
 	_ = l

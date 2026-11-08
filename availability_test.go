@@ -210,7 +210,7 @@ func TestBindingsCheckReportsUnreachableRowsAndGuardDebts(t *testing.T) {
 		{"key": "w", "action": "test.gamma", "when": "never"}
 	]}]}`)
 	m.Init()
-	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestBindingsCheckReportsUnreachableRowsAndGuardDebts(t *testing.T) {
 	if !slices.Equal(*calls, []string{"alpha"}) {
 		t.Errorf("z ran %v", *calls)
 	}
-	all, _ := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check", Args: Arguments{"debts": true}})
+	all, _ := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check", Args: Arguments{"debts": true}})
 	debts := all.([]string)
 	if n := len(debts); n <= len(lines) || !slices.ContainsFunc(debts, func(l string) bool {
 		return l == fmt.Sprintf("warning: %d guard rows in the tables", len(r.BindingDebts()))

@@ -19,7 +19,7 @@
         "noun": "ochazuke.terminal",
         "mode": "leader_pending",
         "keys": "?",
-        "do": "ochazuke.bindings.help"
+        "do": "ochazuke.binding.help"
       }
     ]
   },

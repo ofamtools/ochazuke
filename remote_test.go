@@ -154,7 +154,7 @@ func TestRemoteUndoRunsAsAJob(t *testing.T) {
 	if b.items["a"]["title"] != "Changed" {
 		t.Fatalf("set: %v", b.items["a"])
 	}
-	v, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo"})
+	v, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if err != nil {
 		t.Fatal(err)
 	}

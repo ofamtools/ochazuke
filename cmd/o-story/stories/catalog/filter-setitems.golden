@@ -12,5 +12,5 @@ R|  ┃ reader     claude                                                       
  |  ┃                                                                                              ┃
  |  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · q app.quit · : palette.open · ? bindings.help · ' page.pick · / filter
+ |  space list.mark · q app.quit · : palette.open · ? binding.help · ' page.pick · / filter
  |

@@ -51,7 +51,7 @@ func TestDefaultBindingsDocUndoesTheUserFile(t *testing.T) {
 	if got != before {
 		t.Fatalf("defaults with a user file:\n%s\nwant the tables before it:\n%s", got, before)
 	}
-	for _, want := range []string{`{"key": "?", "action": "ochazuke.bindings.help"}`, `{"key": "a", "action": "test.alpha"}`} {
+	for _, want := range []string{`{"key": "?", "action": "ochazuke.binding.help"}`, `{"key": "a", "action": "test.alpha"}`} {
 		if !strings.Contains(got, want) {
 			t.Errorf("default %s is not back", want)
 		}
@@ -139,13 +139,13 @@ func plainDocsViewer(t *testing.T, r *Runtime) {
 	}
 }
 
-// docs.open renders a topic into the viewer modal headed by the build;
+// docs-viewer.open renders a topic into the viewer modal headed by the build;
 // help and h are its bare aliases; an unknown topic is refused.
 func TestDocsOpenShowsATopic(t *testing.T) {
 	r, m, _, _ := configFixture(t)
 	m.Init()
 	plainDocsViewer(t, r)
-	if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": "settings"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.docs-viewer", Verb: "open", Args: Arguments{"topic": "settings"}}); err != nil {
 		t.Fatal(err)
 	}
 	inst := r.Instances[docsViewerID]
@@ -164,11 +164,11 @@ func TestDocsOpenShowsATopic(t *testing.T) {
 	}
 	for _, name := range []string{"help", "h"} {
 		a, ok := r.ActionAlias(name)
-		if !ok || a.Action != "ochazuke.docs.open" {
+		if !ok || a.Action != "ochazuke.docs-viewer.open" {
 			t.Errorf("alias %s = %+v, %v", name, a, ok)
 		}
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": "nope"}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.docs-viewer", Verb: "open", Args: Arguments{"topic": "nope"}}); err == nil {
 		t.Error("an unknown topic opened")
 	}
 	if problems := r.ActionAliasProblems(); len(problems) > 0 {
@@ -180,7 +180,7 @@ func TestDocsOpenShowsATopic(t *testing.T) {
 	}
 }
 
-// TestDocsOpenWhileOpenShowsTheNewTopic: docs.open with the viewer open
+// TestDocsOpenWhileOpenShowsTheNewTopic: docs-viewer.open with the viewer open
 // shows the new topic in one viewer, from the top, over the same focus.
 func TestDocsOpenWhileOpenShowsTheNewTopic(t *testing.T) {
 	r, m, _, _ := configFixture(t)
@@ -189,7 +189,7 @@ func TestDocsOpenWhileOpenShowsTheNewTopic(t *testing.T) {
 	under := r.Focus
 	open := func(topic string) {
 		t.Helper()
-		if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": topic}}); err != nil {
+		if _, err := r.Execute(Request{Noun: "ochazuke.docs-viewer", Verb: "open", Args: Arguments{"topic": topic}}); err != nil {
 			t.Fatalf("open %s: %v", topic, err)
 		}
 	}
@@ -217,7 +217,7 @@ func TestDocsViewerKeepsItsWidthWhileScrolling(t *testing.T) {
 	r, m, _, _ := configFixture(t)
 	m.Init()
 	plainDocsViewer(t, r)
-	if _, err := r.Execute(Request{Noun: "ochazuke.docs", Verb: "open", Args: Arguments{"topic": "index"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.docs-viewer", Verb: "open", Args: Arguments{"topic": "index"}}); err != nil {
 		t.Fatal(err)
 	}
 	v := r.Instances[docsViewerID].Component.(*docsViewer)

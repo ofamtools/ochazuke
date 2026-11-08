@@ -18,7 +18,7 @@ import (
 // default) and every default key row (DefaultBindingsDoc, with the user's
 // bindings.json rows that change each table). refdoc.Render draws the
 // pages from it; the committed docs/reference files are its render on the
-// framework runtime, and docs.open renders it live.
+// framework runtime, and docs-viewer.open renders it live.
 func (r *Runtime) ReferenceModel() refdoc.Model {
 	r.EnsureConfigSettings()
 	m := refdoc.Model{Settings: []refdoc.Setting{}, Bindings: []refdoc.Group{}}
@@ -297,7 +297,7 @@ func (r *Runtime) DocsPage(topic string) (header, text string, err error) {
 	return strings.Join(parts, " · "), refdoc.Body(pages[file]), nil
 }
 
-// docsTopics are the topic names docs.open takes.
+// docsTopics are the topic names docs-viewer.open takes.
 func docsTopics() []string {
 	out := make([]string, len(refdoc.Topics))
 	for i, t := range refdoc.Topics {
@@ -344,7 +344,7 @@ func (v *docsViewer) ModalBlock(s Styles, width, height int) Block {
 }
 
 // The viewer moves through its detail: g g, G and the page keys answer
-// through the shared motions (view.edge, view.page; CursorMotions).
+// through the shared motions (viewport.goto, viewport.scroll by page; CursorMotions).
 func (v *docsViewer) MotionEdges() []SpillEdge           { return v.detail.MotionEdges() }
 func (v *docsViewer) MoveToEdge(edge SpillEdge, row int) { v.detail.MoveToEdge(edge, row) }
 func (v *docsViewer) PageLines() int                     { return v.detail.PageLines() }
@@ -377,12 +377,12 @@ func (v *docsViewer) FindText(m Matcher, back bool) bool {
 	return true
 }
 
-// registerDocs registers the docs noun: docs.open shows a topic of the
+// registerDocs registers the docs noun: docs-viewer.open shows a topic of the
 // generated reference in a modal viewer. The viewer's keys are
 // bindings/docs.json; esc closes it through the modal noun.
 func registerDocs(r *Runtime) {
 	r.Define("ochazuke.docs-viewer")
-	r.Register(Operation{Key: "ochazuke.docs.open", Description: "Open a topic of the generated reference (index, settings, bindings, standard-verbs) in the docs viewer, rendered from the running catalog",
+	r.Register(Operation{Key: "ochazuke.docs-viewer.open", Description: "Open a topic of the generated reference (index, settings, bindings, standard-verbs) in the docs viewer, rendered from the running catalog",
 		Parameters: map[string]Parameter{
 			"topic": {Type: "string", Enum: docsTopics(), Description: "The topic (default index)"},
 		}, Positional: []string{"topic"}, Result: "docs page", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -422,8 +422,8 @@ func registerDocs(r *Runtime) {
 	// selects bindings help. Both are palette-only: the viewer needs the
 	// TUI, and bin help is the shell's help.
 	for _, a := range []ActionAlias{
-		{Alias: "help", Action: "ochazuke.docs.open", Shadows: true, Palette: true, Note: "Vim's :help; help NOUN ... runs NOUN help"},
-		{Alias: "h", Action: "ochazuke.docs.open", ShadowVerb: "help", Palette: true, Note: "Vim's :h"},
+		{Alias: "help", Action: "ochazuke.docs-viewer.open", Shadows: true, Palette: true, Note: "Vim's :help; help NOUN ... runs NOUN help"},
+		{Alias: "h", Action: "ochazuke.docs-viewer.open", ShadowVerb: "help", Palette: true, Note: "Vim's :h"},
 	} {
 		if err := r.AddActionAlias(a); err != nil {
 			panic(err)

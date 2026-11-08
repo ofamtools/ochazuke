@@ -17,8 +17,8 @@ R|          │ t1  Archived parcel  false    Archived parcel                   
  |          │                                                                              │
  |          │                                                                              │
  |          │                                                                              │
- |          │ space list.mark · esc modal.close · : palette.open · ? bindings.help · / fi… │
+ |          │ space list.mark · esc modal.close · : palette.open · ? binding.help · / fi… │
  |          ╰──────────────────────────────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
- |  space list.mark · esc modal.close · : palette.open · ? bindings.help · / filter
+ |  space list.mark · esc modal.close · : palette.open · ? binding.help · / filter
  |

@@ -47,7 +47,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	config, state := t.TempDir(), t.TempDir()
 	m := historyModel(t, config, state)
 	r := m.Runtime
-	runPaletteLine(t, r, Request{Verb: "list", Noun: "ochazuke.modes"})
+	runPaletteLine(t, r, Request{Verb: "list", Noun: "ochazuke.mode"})
 	runPaletteLine(t, r, Request{Verb: "list", Noun: "ochazuke.theme"})
 	if err := r.Config().Flush(); err != nil {
 		t.Fatal(err)
@@ -63,7 +63,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 	next := historyModel(t, config, state)
 	nr := next.Runtime
 	entries := nr.History(0)
-	if len(entries) < 2 || !entries[0].Restored || entries[0].Request.Key() != "ochazuke.modes.list" || entries[1].Request.Key() != "ochazuke.theme.list" {
+	if len(entries) < 2 || !entries[0].Restored || entries[0].Request.Key() != "ochazuke.mode.list" || entries[1].Request.Key() != "ochazuke.theme.list" {
 		t.Fatalf("restored: %+v", entries)
 	}
 	for i := 1; i < len(entries); i++ {
@@ -91,7 +91,7 @@ func TestHistoryPersistsAcrossSessions(t *testing.T) {
 func TestHistorySkipsCorruptLines(t *testing.T) {
 	state := t.TempDir()
 	path := filepath.Join(state, HistoryFile)
-	good := `{"seq":1,"request":{"verb":"list","noun":"modes"},"context":{"focus":"app","mode":"normal","source":"palette"},"result":{"ok":true}}`
+	good := `{"seq":1,"request":{"verb":"list","noun":"mode"},"context":{"focus":"app","mode":"normal","source":"palette"},"result":{"ok":true}}`
 	if err := os.WriteFile(path, []byte(good+"\n{not json\n"+strings.Replace(good, `"seq":1`, `"seq":2`, 1)+"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -157,21 +157,21 @@ func TestHistoryNotPersistedWhenDisabledOrOptedOut(t *testing.T) {
 	r.Config().Disable()
 	m := NewModel(r)
 	m.Init()
-	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.modes"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.mode"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.Settings().find(HistorySetting) != nil || r.Config().HistoryPath() != "" {
 		t.Fatal("a disabled config declares history-limit or has a history path")
 	}
-	if _, err := r.Execute(Request{Verb: "path", Noun: "ochazuke.history"}); err == nil {
-		t.Fatal("history.path without a file")
+	if _, err := r.Execute(Request{Verb: "path", Noun: "ochazuke.history-entry"}); err == nil {
+		t.Fatal("history-entry.path without a file")
 	}
 
 	r = NewRuntime()
 	r.Config().StateDir, r.Config().NoHistoryFile = state, true
 	m = NewModel(r)
 	m.Init()
-	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.modes"}); err != nil {
+	if _, err := r.Execute(Request{Verb: "list", Noun: "ochazuke.mode"}); err != nil {
 		t.Fatal(err)
 	}
 	_ = r.Config().Flush()
@@ -187,7 +187,7 @@ func TestHistoryLimitZeroKeepsNone(t *testing.T) {
 		t.Fatal(err)
 	}
 	m := historyModel(t, config, state)
-	if _, err := m.Runtime.Execute(Request{Verb: "list", Noun: "ochazuke.modes"}); err != nil {
+	if _, err := m.Runtime.Execute(Request{Verb: "list", Noun: "ochazuke.mode"}); err != nil {
 		t.Fatal(err)
 	}
 	_ = m.Runtime.Config().Flush()

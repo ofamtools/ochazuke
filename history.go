@@ -30,7 +30,7 @@ const (
 	HistorySystem = "system"
 )
 
-// historyUserKinds are the kinds history.list and /history show by default.
+// historyUserKinds are the kinds history-entry.list and /history show by default.
 var historyUserKinds = []string{HistoryAction, HistoryChange}
 
 // HistoryEntry is one user action: what ran, where, from which source, how
@@ -55,9 +55,9 @@ type HistoryEntry struct {
 	// (EnsureHistory): an earlier session ran it. Dot-repeat skips it.
 	Restored bool `json:"restored,omitempty"`
 	// Changes are what a standard write did to each thing, before and
-	// after (standard_undo.go): what history.undo reverts.
+	// after (standard_undo.go): what history-entry.undo reverts.
 	Changes []ThingChange `json:"changes,omitempty"`
-	// Group joins entries that undo as one step (history.undo reverts
+	// Group joins entries that undo as one step (history-entry.undo reverts
 	// every entry of the newest one's group): the writes one edit form
 	// makes, over every subject and every save. "" for none.
 	Group string `json:"group,omitempty"`
@@ -275,7 +275,7 @@ func (r *Runtime) HistoryOf(n int, kinds ...string) []HistoryEntry {
 	return out
 }
 
-// historyKinds reads history.list's kind argument: "all", or kinds
+// historyKinds reads history-entry.list's kind argument: "all", or kinds
 // separated by commas; empty is the user's (actions and changes).
 func historyKinds(arg string) ([]string, error) {
 	switch arg {
@@ -376,7 +376,7 @@ func (r *Runtime) tellNothingToRepeat() {
 }
 
 func registerHistory(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.history.repeat", Description: "Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps replaces its count", Parameters: map[string]Parameter{"steps": {Type: "integer", Description: "Count replacing the recorded one; 0 keeps it"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.history-entry.repeat", Description: "Dot-repeat: run the last repeatable change again at the current focus, its arguments kept; steps replaces its count", Parameters: map[string]Parameter{"steps": {Type: "integer", Description: "Count replacing the recorded one; 0 keeps it"}}, Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		q, err := r.repeatRequest(focusOf(c), IntArg(a, "steps", 0))
 		if errors.Is(err, errNothingToRepeat) {
 			r.tellNothingToRepeat()
@@ -389,7 +389,7 @@ func registerHistory(r *Runtime) {
 	}})
 	// The history's entries are things (a system fact): list is the
 	// standard list, with last, actor and kind as its own parameters.
-	r.defineFacts(factsSpec{Noun: "ochazuke.history", Sample: HistoryEntry{}, Key: "seq",
+	r.defineFacts(factsSpec{Noun: "ochazuke.history-entry", Sample: HistoryEntry{}, Key: "seq",
 		Docs: map[string]string{"seq": "The entry's number, in the order requests ran", "at": "When it ran", "kind": "action, change, fetch or system",
 			"request": "The request: noun, verb, arguments, target", "context": "Where it ran: actor, focus, page, mode, source",
 			"result": "ok, or the error; the value when it is small", "moved": "Where a motion moved the focus from and to",
@@ -423,7 +423,7 @@ func registerHistory(r *Runtime) {
 			}
 			return nil, fmt.Errorf("no history entry %q", key)
 		}})
-	r.Register(Operation{Key: "ochazuke.history.path", HistoryKind: HistoryFetch, Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.history-entry.path", HistoryKind: HistoryFetch, Description: "Print the history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().HistoryPath()
 		if path == "" {
 			return nil, errors.New("this application does not keep its history")

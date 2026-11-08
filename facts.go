@@ -212,7 +212,7 @@ func registerCoreFacts(r *Runtime) {
 			ops := c.Runtime.Catalog()
 			return factThings(ops, func(i int, t Thing) { t["key"] = ops[i].Key.Short() })
 		}})
-	r.defineFacts(factsSpec{Noun: "ochazuke.bindings", Sample: Binding{}, Key: "id", Extra: []PropSpec{{Name: "id"}}, Rename: map[string]string{"help": "helptext"},
+	r.defineFacts(factsSpec{Noun: "ochazuke.binding", Sample: Binding{}, Key: "id", Extra: []PropSpec{{Name: "id"}}, Rename: map[string]string{"help": "helptext"},
 		Docs:       map[string]string{"id": "The row's place in the list", "helptext": "Its help text, in place of the operation's description", "keys": "The keys that run it", "request": "The request it runs", "noun": "The noun whose table holds it", "mode": "The mode it answers in"},
 		ListParams: map[string]Parameter{"all": {Type: "boolean", Description: "Return every stored binding row, including inactive modes and contexts, in configuration JSON format"}},
 		List: func(c Ctx, q ListQuery) ([]Thing, error) {
@@ -260,19 +260,19 @@ var stateProps = []PropSpec{
 	{Name: "instances", Parameter: Parameter{Type: PropObject, Description: "The live instances by id: noun, parent, payload"}},
 	{Name: "components", Parameter: Parameter{Type: PropObject, Description: "The components by instance id"}},
 	{Name: "jobs", Parameter: Parameter{Type: PropObject, Description: "The running jobs (job.list lists the finished ones too)"}},
-	{Name: "history", Parameter: Parameter{Type: PropObject, Description: "The last 50 actions and changes (history.list reads more)"}},
+	{Name: "history", Parameter: Parameter{Type: PropObject, Description: "The last 50 actions and changes (history-entry.list reads more)"}},
 }
 
 // registerStateFacts declares the state noun: a read-only singleton (a
 // system fact) whose props are the public state, so get {prop} reads one
 // field and a dotted path reads inside it (state get
-// instances.editor.noun), as the JSON Pointer of the old state.get did.
+// instances.editor.noun), as the JSON Pointer of the old snapshot.get did.
 func registerStateFacts(r *Runtime) {
 	props := slices.Clone(stateProps)
 	for i := range props {
 		props[i].ReadOnly = true
 	}
-	r.Define("ochazuke.state").Props(props...).Store(Store{
+	r.Define("ochazuke.snapshot").Props(props...).Store(Store{
 		Kind: Singleton, Facts: true,
 		// The snapshot in its JSON form, as the old JSON Pointer read it:
 		// what a CLI or an agent sees, never a live Go value.

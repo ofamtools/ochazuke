@@ -32,12 +32,12 @@ func TestViewScrollMovesAListWindowKeepingTheCursor(t *testing.T) {
 			t.Fatalf("%s: offset %d focus %q, want %d %q (%s)", s.keys, a.offset, r.Focus, s.offset, s.focus, s.why)
 		}
 	}
-	if hints := BindingHints(r, r.Focus); strings.Contains(hints, "view.scroll") {
-		t.Fatalf("view.scroll is a motion, off the footer: %q", hints)
+	if hints := BindingHints(r, r.Focus); strings.Contains(hints, "viewport.scroll") {
+		t.Fatalf("viewport.scroll is a motion, off the footer: %q", hints)
 	}
 }
 
-// A list that shows every row has nothing to scroll: view.scroll is
+// A list that shows every row has nothing to scroll: viewport.scroll is
 // unavailable there and ctrl+e does nothing; with an overflowing page
 // detail it scrolls the detail, as J does.
 func TestViewScrollFallsBackToThePageDetail(t *testing.T) {
@@ -53,7 +53,7 @@ func TestViewScrollFallsBackToThePageDetail(t *testing.T) {
 	}
 	short, _, d := detailModel(t, 3)
 	if r := short.Runtime; r.Available(Request{Noun: viewNoun, Verb: "scroll"}, r.Focus, r.Mode) {
-		t.Fatal("view.scroll is available with nothing to scroll")
+		t.Fatal("viewport.scroll is available with nothing to scroll")
 	}
 	short.handleKey(MacroKey{Key: "ctrl+e"})
 	if d.Offset() != 0 {

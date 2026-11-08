@@ -641,13 +641,13 @@ func (m *Model) cutMessage(text string, width int) string {
 // BindingHints renders the rows a focus answers to in its current mode as a
 // hint line, from the innermost level outward (the focused instance's rows,
 // its noun's, then its parents' up to the page and app):
-// "enter demo.open · : palette.open · ? bindings.help". Motions
+// "enter demo.open · : palette.open · ? binding.help". Motions
 // (Operation.Motion) and hidden rows (counts, registers, macros, ctrl+c)
 // are left to ? help, except a motion row with its own Hint (J reads
 // "J/K detail"; a hint that starts with the row's key and a slash is shown
 // alone), and of rows that run the same request only the first
 // (innermost) key is shown.
-// It is the data bindings.list prints, so a hint never names a key that is
+// It is the data binding.list prints, so a hint never names a key that is
 // not bound; the descriptions are in BindingHelp (the ? modal).
 func BindingHints(r *Runtime, focus string) string {
 	HintCells(r, focus)

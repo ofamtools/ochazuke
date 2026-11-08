@@ -329,7 +329,7 @@ func TestPagePickerKeyAppearsInHelpAndBindings(t *testing.T) {
 		found = found || row.Keys == "'" && row.Request.Noun == "ochazuke.page" && row.Request.Verb == "pick"
 	}
 	if !found {
-		t.Fatalf("bindings.list lacks ' page.pick: %v", r.ListBindings(r.Focus))
+		t.Fatalf("binding.list lacks ' page.pick: %v", r.ListBindings(r.Focus))
 	}
 	if help := fmt.Sprint(BindingHelp(r, r.Focus)); !strings.Contains(help, "page.pick") {
 		t.Fatalf("? help lacks page.pick: %s", help)

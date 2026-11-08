@@ -4664,7 +4664,7 @@ compositions after exact visible-input comparison.
 }</pre><a href="../render_trace.go">Source file</a></details><details class="entry searchable"><summary><code>ReplaceOpen</code> <small>function / method</small></summary><pre>ReplaceOpen makes an open of a kind that is already the top modal close
 that modal first and open the new one in its place, over the focus and
 mode the old one opened over: a viewer asked to show something else
-(docs.open TOPIC inside the docs viewer) shows it instead of failing
+(docs-viewer.open TOPIC inside the docs viewer) shows it instead of failing
 &#34;already open&#34; or stacking a second copy. Without it a second open of
 an open kind is refused, so a modal holding a question (a confirm, a
 prompt, a chooser) keeps it. A kind open beneath another modal is still
@@ -5688,7 +5688,7 @@ declared setting (with the user&#39;s value where it differs from the
 default) and every default key row (DefaultBindingsDoc, with the user&#39;s
 bindings.json rows that change each table). refdoc.Render draws the
 pages from it; the committed docs/reference files are its render on the
-framework runtime, and docs.open renders it live.
+framework runtime, and docs-viewer.open renders it live.
 </pre><pre>func (r *Runtime) ReferenceModel() refdoc.Model</pre><a href="../docs_reference.go">Source file</a></details><details class="entry searchable"><summary><code>Runtime.Register</code> <small>function / method</small></summary><pre>Register adds an operation. An operation with App set is of kind
 application and its Run is the framework&#39;s dispatcher for it. Its noun
 may be dotted (ai.skills) and so may its verb (base.add): the key is a

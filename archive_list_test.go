@@ -98,13 +98,13 @@ func TestAgentArchiveUnarchiveAndUndo(t *testing.T) {
 	if len(rows) != 2 || rows[0]["id"] != "t1" {
 		t.Fatal(rows)
 	}
-	if _, err := r.Execute(Request{Noun: "history", Verb: "undo"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "history-entry", Verb: "undo"}); err != nil {
 		t.Fatal(err)
 	}
 	if s.find("t1")["archived"] != true {
 		t.Fatal("un-archive not undone")
 	}
-	if _, err := r.Execute(Request{Noun: "history", Verb: "undo"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "history-entry", Verb: "undo"}); err != nil {
 		t.Fatal(err)
 	}
 	if s.find("t1")["archived"] != false {

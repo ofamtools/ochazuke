@@ -66,7 +66,7 @@ func TestUndoReachesChangeUnderAppVerb(t *testing.T) {
 			}
 			return Done(nil)
 		}, "app verb opening chooser").Mode("normal").
-		Bind("x", Do("thing.toggle")).Bind("s", Do("thing.choose")).Bind("u", Do("ochazuke.history.undo"))
+		Bind("x", Do("thing.toggle")).Bind("s", Do("thing.choose")).Bind("u", Do("ochazuke.history-entry.undo"))
 	r.Instance("row", Kind("thing")).Data = "a"
 	if err := r.SetFocus("row"); err != nil {
 		t.Fatal(err)

@@ -87,7 +87,7 @@ func Namespaced(namespace, name string) string {
 // spelling app.<noun> of a framework noun is read as ochazuke.<noun>
 // (deprecated, for one release) unless a noun of that exact name exists or
 // the app noun has a verb of that name (app.state, an application verb,
-// shadows the old spelling of ochazuke.state).
+// shadows the old spelling of ochazuke.snapshot).
 func (r *Runtime) CanonicalNoun(name string) string {
 	target, aliased := r.aliases[name]
 	if !aliased {
@@ -522,7 +522,7 @@ func (r *Runtime) nounsDisplay() string {
 // while no application noun shadows it (list for ochazuke.list, doc for an
 // extension's json.doc a host aliased doc), else noun itself. The
 // footer's hints, the ? help, the palette and the jobs ticker draw it;
-// history, bindings.list, operation.list and the catalog print canonical
+// history, binding.list, operation.list and the catalog print canonical
 // names.
 func (r *Runtime) DisplayNoun(noun string) string {
 	if short := r.AliasOf(noun); short != "" {

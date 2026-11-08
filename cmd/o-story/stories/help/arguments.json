@@ -22,7 +22,7 @@
       {
         "noun": "demo",
         "keys": "t",
-        "do": "history.list",
+        "do": "history-entry.list",
         "args": {
           "last": 7
         }

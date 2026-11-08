@@ -8,8 +8,8 @@ import (
 
 // factNouns are the system facts: thing nouns over the registry, read-only.
 var factNouns = []string{
-	"ochazuke.modes", "ochazuke.operation", "ochazuke.noun", "ochazuke.theme", "ochazuke.glyph", "ochazuke.hook",
-	"ochazuke.event", "ochazuke.actions", "ochazuke.bindings", "ochazuke.association", "ochazuke.notice", "ochazuke.segment",
+	"ochazuke.mode", "ochazuke.operation", "ochazuke.noun", "ochazuke.theme", "ochazuke.glyph", "ochazuke.hook",
+	"ochazuke.event", "ochazuke.user-operation", "ochazuke.binding", "ochazuke.association", "ochazuke.notice", "ochazuke.segment",
 }
 
 func factsRuntime(t *testing.T) *Runtime {
@@ -71,7 +71,7 @@ func TestSystemFactsListAndGet(t *testing.T) {
 			}
 		}
 	}
-	rows, err := r.Execute(Request{Noun: "ochazuke.modes", Verb: "list", Args: Arguments{"where": "pending=true"}})
+	rows, err := r.Execute(Request{Noun: "ochazuke.mode", Verb: "list", Args: Arguments{"where": "pending=true"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,14 +82,14 @@ func TestSystemFactsListAndGet(t *testing.T) {
 	if !slices.Contains(pending, quitWaitMode) {
 		t.Fatalf("pending modes %v", pending)
 	}
-	got, err := r.Execute(Request{Noun: "ochazuke.modes", Verb: "get", Args: Arguments{"name": "normal"}})
+	got, err := r.Execute(Request{Noun: "ochazuke.mode", Verb: "get", Args: Arguments{"name": "normal"}})
 	if err != nil || got.(map[string]any)["name"] != "normal" {
 		t.Fatalf("modes get normal: %v %v", got, err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.modes", Verb: "get", Args: Arguments{"name": "nope"}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.mode", Verb: "get", Args: Arguments{"name": "nope"}}); err == nil {
 		t.Fatal("get of an unknown mode")
 	}
-	ops, err := r.Execute(Request{Noun: "ochazuke.operation", Verb: "get", Args: Arguments{"key": "ochazuke.modes.list", "prop": "standard"}})
+	ops, err := r.Execute(Request{Noun: "ochazuke.operation", Verb: "get", Args: Arguments{"key": "ochazuke.mode.list", "prop": "standard"}})
 	if err != nil || ops != "list" {
 		t.Fatalf("operations get standard: %v %v", ops, err)
 	}
@@ -99,10 +99,10 @@ func TestSystemFactsListAndGet(t *testing.T) {
 // standard verb table, not from a name built by hand.
 func TestChoicesReadTheStandardListVerb(t *testing.T) {
 	r := factsRuntime(t)
-	if got := r.ChoicesSource(Parameter{Noun: "ochazuke.modes"}); got != "ochazuke.modes.list" {
+	if got := r.ChoicesSource(Parameter{Noun: "ochazuke.mode"}); got != "ochazuke.mode.list" {
 		t.Fatalf("choices source %q", got)
 	}
-	rows, err := r.Choices(r.Context(), Parameter{Noun: "ochazuke.modes"})
+	rows, err := r.Choices(r.Context(), Parameter{Noun: "ochazuke.mode"})
 	if err != nil || !slices.ContainsFunc(rows, func(c Choice) bool { return c.ID == "normal" }) {
 		t.Fatalf("choices %v %v", rows, err)
 	}

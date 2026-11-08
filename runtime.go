@@ -267,7 +267,7 @@ type Handler func(*Runtime, Context, Arguments) (any, error)
 // delivery contract). Confirm, when set, is a prompt template ({{id}},
 // {{noun}}, {{label}}, {{<arg>}}) shown in a confirm modal before the operation runs.
 // Repeatable marks a change (not a motion or navigation) that dot-repeat
-// (history.repeat, bound to . on app in normal mode) may run again; set it
+// (history-entry.repeat, bound to . on app in normal mode) may run again; set it
 // on the Operation passed to Register.
 type Operation struct {
 	Destructive bool      `json:"destructive,omitempty"`
@@ -379,7 +379,7 @@ type Operation struct {
 	// HistoryKind is the kind of entry the operation records
 	// (HistoryAction, HistoryChange, HistoryFetch); empty derives it
 	// (HistoryKindOf). Set it to HistoryFetch on a verb that only asks for
-	// data (NounBuilder.Fetch, the catalog's history), so history.list's
+	// data (NounBuilder.Fetch, the catalog's history), so history-entry.list's
 	// default view and the bounded ring leave its calls to the fetches.
 	HistoryKind string `json:"historyKind,omitempty"`
 	// Positional names the parameters bare words fill first, in this
@@ -1348,11 +1348,11 @@ func JSONPointer(value any, path string) (any, error) {
 }
 
 func registerCore(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.bindings.defaults", HistoryKind: HistoryFetch, Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.binding.defaults", HistoryKind: HistoryFetch, Description: "Print the default bindings (the framework's and the application's, without the user's bindings.json) as a bindings file, each group tagged with its source: the embedded file, go or generated", Result: "bindings file", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		data, err := FormatBindings(r.defaultBindingsDoc())
 		return Verbatim(data), err
 	}})
-	r.Register(Operation{Key: "ochazuke.bindings.stops", HistoryKind: HistoryFetch, Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.binding.stops", HistoryKind: HistoryFetch, Description: "List the rows every focus stop answers to, app-wide: each page's stops in drawing order, the open modals', then app; each with the focus and mode it is read at", Result: "stop bindings[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.StopBindings(), nil
 	}})
 	r.Register(Operation{Key: "ochazuke.input.focus", Description: "Focus a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -1363,7 +1363,7 @@ func registerCore(r *Runtime) {
 		err := r.SetFocus(id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Key: "ochazuke.mode.switch", FocusBound: true, HistoryKind: HistoryAction, Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.modes"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.mode.switch", FocusBound: true, HistoryKind: HistoryAction, Description: "Switch the global interaction mode (a registered mode, or declared: the mode the focus declares, normal if none) and clear any pending payload", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.mode"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode, err := r.switchMode(StringArg(a, "mode", ""), r.Input(c.InputID))
 		if err != nil {
 			return nil, err

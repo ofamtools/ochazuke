@@ -29,14 +29,14 @@ func registerConfiguration(r *Runtime) {
 		}
 		return name, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.bindings.load", HistoryKind: HistoryChange, Description: "Install binding rows from a bindings file (JSONC): the grouped format {bindings: [{context, bindings: {key: action}}]} or an array of rows", Parameters: map[string]Parameter{"path": {Type: "string", Required: true}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.binding.load", HistoryKind: HistoryChange, Description: "Install binding rows from a bindings file (JSONC): the grouped format {bindings: [{context, bindings: {key: action}}]} or an array of rows", Parameters: map[string]Parameter{"path": {Type: "string", Required: true}}, Result: "binding[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		data, err := os.ReadFile(StringArg(a, "path", ""))
 		if err != nil {
 			return nil, err
 		}
 		return r.LoadBindings(data)
 	}})
-	r.Register(Operation{Key: "ochazuke.bindings.export", Description: "Write every stored key row to a file in the grouped bindings format, default <config dir>/reference/bindings.reference.json (the file config export writes); never over the live bindings.json without force", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.binding.export", Description: "Write every stored key row to a file in the grouped bindings format, default <config dir>/reference/bindings.reference.json (the file config export writes); never over the live bindings.json without force", Parameters: map[string]Parameter{
 		"path":  {Type: "string", Description: "File to write (default <config dir>/reference/bindings.reference.json)"},
 		"force": {Type: "boolean", Description: "Allow writing over the live bindings.json"},
 	}, Positional: []string{"path"}, Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
@@ -68,21 +68,21 @@ func registerConfiguration(r *Runtime) {
 		r.RecordWrittenFile(path)
 		return path, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.bindings.path", HistoryKind: HistoryFetch, Description: "Print the user bindings file: $XDG_CONFIG_HOME/<app>/bindings.json, else ~/.config/<app>/bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.binding.path", HistoryKind: HistoryFetch, Description: "Print the user bindings file: $XDG_CONFIG_HOME/<app>/bindings.json, else ~/.config/<app>/bindings.json", Result: "path", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		path := r.Config().Path(BindingsFile)
 		if path == "" {
 			return nil, errors.New("this application has no config directory")
 		}
 		return path, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.bindings.reload", HistoryKind: HistoryFetch, Description: "Read the user bindings file again: its rows replace or unbind the defaults, a bad row is skipped and reported", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.binding.reload", HistoryKind: HistoryFetch, Description: "Read the user bindings file again: its rows replace or unbind the defaults, a bad row is skipped and reported", Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := r.ReloadUserBindings()
 		if problems == nil {
 			problems = []string{}
 		}
 		return problems, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.bindings.check", HistoryKind: HistoryFetch, Description: "Report the rows of the user bindings file that would be skipped, any merged row that does not validate, rows (and actions.json entries) that name a removed verb with what to use instead, and as warnings the file's guard rows (debts) and any row that can never answer; with debts, every guard row of every table too; the status line names the format read (grouped or rows)", Parameters: map[string]Parameter{"debts": {Type: "boolean", Description: "Also list every table's guard rows (rows with when), the debts left to move onto actions' availability"}}, Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.binding.check", HistoryKind: HistoryFetch, Description: "Report the rows of the user bindings file that would be skipped, any merged row that does not validate, rows (and actions.json entries) that name a removed verb with what to use instead, and as warnings the file's guard rows (debts) and any row that can never answer; with debts, every guard row of every table too; the status line names the format read (grouped or rows)", Parameters: map[string]Parameter{"debts": {Type: "boolean", Description: "Also list every table's guard rows (rows with when), the debts left to move onto actions' availability"}}, Result: "problem[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		problems := append(r.CheckUserBindings(), r.StandardShadows()...)
 		if debts, _ := a["debts"].(bool); debts {
 			lines := r.BindingDebts()
@@ -177,7 +177,7 @@ const (
 
 // Config is the application's per-user configuration directory and what
 // the framework loaded from it: the user bindings file (bindings.json,
-// rows in the bindings.load shape that replace or unbind the defaults by
+// rows in the binding.load shape that replace or unbind the defaults by
 // noun, mode and keys) and the declared settings (settings.json). It is
 // one instance under app, reached through Runtime.Config(), never a
 // Runtime field.
@@ -197,7 +197,7 @@ type Config struct {
 	// persistent footer notices.
 	Report func(problem string)
 	// Withdraw, when set, takes back a problem Report sent once it no
-	// longer holds (bindings.reload of a fixed file); NewModel sets it to
+	// longer holds (binding.reload of a fixed file); NewModel sets it to
 	// drop the notice.
 	Withdraw func(problem string)
 	// StateDir, when set, is the state directory (the history file);
@@ -227,7 +227,7 @@ type Config struct {
 	themesPath    string
 	themeSetting  bool
 	// bindingsLoaded is set once the user bindings were applied (Model.Init,
-	// the CLI shell); bindings.reload applies them again.
+	// the CLI shell); binding.reload applies them again.
 	bindingsLoaded bool
 	settings       *Settings
 	// applied is the undo log of the user rows installed from the file,
@@ -765,7 +765,7 @@ func (r *Runtime) unapplyBindingRows(applied []appliedRow) {
 
 // registerModeFacts declares the modes noun.
 func registerModeFacts(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: "ochazuke.modes", Sample: modeFact{}, Key: "name", Label: "name",
+	r.defineFacts(factsSpec{Noun: "ochazuke.mode", Sample: modeFact{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The mode's name", "pending": "A pending mode: exclusive and one-shot"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
 			r := c.Runtime

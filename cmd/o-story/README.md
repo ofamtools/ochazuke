@@ -462,7 +462,7 @@ Conformance:
 | edit | mode | `mode.pin` `mode.switch` |
 | flat | mode | `mode.switch` |
 | hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
-| insert | bindings | `bindings.help` |
+| insert | bindings | `binding.help` |
 | insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
 | insert | demo | `demo.close-origin` `demo.edit` `demo.files` `demo.get` `demo.hide` `demo.set` |
 | insert | filter-form | `filter-form.move` `filter-form.write-saved` |
@@ -474,7 +474,7 @@ Conformance:
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | modal | `modal.close` |
 | insert | mode | `mode.switch` |
-| insert | modes | `modes.list` |
+| insert | modes | `mode.list` |
 | insert | outline | `outline.leave` `outline.next` `outline.row-key` |
 | insert | palette | `palette.complete` `palette.move` `palette.run` |
 | insert | picker | `picker.clear-props` `picker.into` `picker.move` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.up` |
@@ -492,7 +492,7 @@ Conformance:
 | normal | about | `about.close` `about.open` |
 | normal | about-row | `about-row.copy` `about-row.open` |
 | normal | app | `app.quit` |
-| normal | bindings | `bindings.help` |
+| normal | bindings | `binding.help` |
 | normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.mode` `bindings-help.noun` `bindings-help.place` `bindings-help.run` `bindings-help.view` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
@@ -505,7 +505,7 @@ Conformance:
 | normal | focus | `focus.next` `focus.previous` `focus.to` |
 | normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
-| normal | history | `history.repeat` `history.undo` |
+| normal | history | `history-entry.repeat` `history-entry.undo` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.redo` `input.select` `input.undo` |
 | normal | item | `item.get` `item.set` |
 | normal | key | `key.ignore` |
@@ -530,21 +530,21 @@ Conformance:
 | normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.review` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
 | normal | settings-section | `settings-section.open` `settings-section.pick` |
-| normal | state | `state.toggle` |
+| normal | state | `snapshot.toggle` |
 | normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
 | normal | surface | `surface.scroll` |
 | normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.row` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
-| normal | view | `view.edge` `view.page` `view.scroll` |
+| normal | view | `viewport.goto` `viewport.scroll by page` `viewport.scroll` |
 | normal | yank-history | `yank-history.open` |
 | operator_pending | input | `input.cancel` |
 | register_pending | mode | `mode.leave` |
 | replay_pending | mode | `mode.leave` |
 | shape | list | `list.move` |
 | shape | mode | `mode.switch` |
-| table | bindings | `bindings.help` |
+| table | bindings | `binding.help` |
 | table | list | `list.move` |
 | table | mode | `mode.enter` `mode.leave` `mode.pin` `mode.switch` |
-| terminal | bindings | `bindings.help` |
+| terminal | bindings | `binding.help` |
 | terminal | demo | `demo.edit` `demo.finish` `demo.hints` `demo.outside` |
 | terminal | focus | `focus.next` |
 | terminal | item | `item.edit` `item.live-only` `item.rename-associated` `item.set` |
@@ -553,7 +553,7 @@ Conformance:
 | terminal | palette | `palette.open` |
 | terminal | terminal | `terminal.detach` `terminal.paste` `terminal.send` |
 | visual | input | `input.cancel` `input.move` `input.operator` |
-| visual-line | bindings | `bindings.help` |
+| visual-line | bindings | `binding.help` |
 | visual-line | confirm | `confirm.accept` |
 | visual-line | demo | `demo.check` `demo.choose` `demo.delete` `demo.edit` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
 | visual-line | input | `input.cancel` `input.move` `input.operator` |
@@ -578,8 +578,8 @@ Mode edges (from → to via):
 - `count_pending` → `normal` via `timeline.goto`
 - `count_pending` → `normal` via `timeline.scroll`
 - `count_pending` → `normal` via `timeline.step`
-- `count_pending` → `normal` via `view.edge`
-- `count_pending` → `normal` via `view.scroll`
+- `count_pending` → `normal` via `viewport.goto`
+- `count_pending` → `normal` via `viewport.scroll`
 - `count_pending` → `table` via `mode.leave`
 - `count_pending` → `visual` via `mode.switch`
 - `count_pending` → `visual-line` via `list.move`
@@ -603,7 +603,7 @@ Mode edges (from → to via):
 - `hints` → `terminal` via `demo.hint`
 - `hints` → `terminal` via `demo.hints-cancel`
 - `insert` → `jq` via `palette.run`
-- `insert` → `normal` via `bindings.help`
+- `insert` → `normal` via `binding.help`
 - `insert` → `normal` via `filter-form.move`
 - `insert` → `normal` via `find-line.commit`
 - `insert` → `normal` via `form.leave`
@@ -636,7 +636,7 @@ Mode edges (from → to via):
 - `leader_pending` → `insert` via `demo.edit`
 - `leader_pending` → `insert` via `item.edit`
 - `leader_pending` → `insert` via `palette.open`
-- `leader_pending` → `normal` via `bindings.help`
+- `leader_pending` → `normal` via `binding.help`
 - `leader_pending` → `normal` via `focus.next`
 - `leader_pending` → `normal` via `terminal.detach`
 - `leader_pending` → `terminal` via `demo.finish`
@@ -762,7 +762,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `setting.show-tab`
 - `normal g` → `normal` via `tick binding`
 - `normal g` → `normal` via `timeline.row`
-- `normal g` → `normal` via `view.edge`
+- `normal g` → `normal` via `viewport.goto`
 - `normal g` → `normal` via `yank-history.open`
 - `normal y` → `normal` via `markdown-view.copy`
 - `normal y` → `normal` via `markdown.link-copy`
@@ -797,7 +797,7 @@ Mode edges (from → to via):
 - `table` → `count_pending` via `mode.enter`
 - `table` → `edit` via `mode.switch`
 - `table` → `flat` via `mode.pin`
-- `table` → `normal` via `bindings.help`
+- `table` → `normal` via `binding.help`
 - `table` → `normal` via `list.move`
 - `table` → `table g` via `row g`
 - `table g` → `table` via `mode.leave`
@@ -808,7 +808,7 @@ Mode edges (from → to via):
 - `visual-line` → `insert` via `demo.choose`
 - `visual-line` → `insert` via `demo.edit`
 - `visual-line` → `macro_pending` via `mode.enter`
-- `visual-line` → `normal` via `bindings.help`
+- `visual-line` → `normal` via `binding.help`
 - `visual-line` → `normal` via `confirm.accept`
 - `visual-line` → `normal` via `demo.check`
 - `visual-line` → `normal` via `demo.nest`

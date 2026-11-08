@@ -250,7 +250,7 @@ func TestHelpArgumentsPreviewAndTruncate(t *testing.T) {
 	op.Parameters = map[string]Parameter{"text": {Type: "string"}, "key": {Type: "string"}, "steps": {Type: "integer"}, "digit": {Type: "integer"}}
 	r.Operations.Set(op)
 	forceModeCount(r, 7)
-	if _, err := r.Execute(Do("ochazuke.bindings.help").Request); err != nil {
+	if _, err := r.Execute(Do("ochazuke.binding.help").Request); err != nil {
 		t.Fatal(err)
 	}
 	var preview Arguments

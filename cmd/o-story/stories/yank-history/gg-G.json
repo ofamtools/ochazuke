@@ -1,5 +1,5 @@
 {
-  "name": "the yank history answers G, g g, a count's G and ctrl+d/ctrl+u through the shared motions (view.edge, view.page), as a list does",
+  "name": "the yank history answers G, g g, a count's G and ctrl+d/ctrl+u through the shared motions (viewport.goto, viewport.scroll by page), as a list does",
   "area": "yank-history",
   "width": 60,
   "height": 14,

@@ -857,7 +857,7 @@ func (d *Doc) scrolloff() int {
 
 // CanScrollLines reports whether the last frame windowed the document
 // (more lines than its window) and no element is open (LineScroller, the
-// framework's view.scroll on ctrl+e and ctrl+y).
+// framework's viewport.scroll on ctrl+e and ctrl+y).
 func (d *Doc) CanScrollLines() bool {
 	return d.edit == nil && d.visible > 0 && len(d.lay.lines) > d.visible
 }

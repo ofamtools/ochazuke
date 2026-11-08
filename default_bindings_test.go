@@ -226,7 +226,7 @@ func TestBindingsDefaultsPrintsTheDefaultLayer(t *testing.T) {
 		{"noun": "app", "mode": "normal", "keys": "w", "request": {"noun": "test", "verb": "gamma"}}
 	]`)
 	m.Init()
-	got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "defaults"})
+	got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "defaults"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestBindingsDefaultsPrintsTheDefaultLayer(t *testing.T) {
 	}
 	if !strings.Contains(text, `"source": "ochazuke/bindings/app.json", "bindings": [
       {"key": ":", "action": "ochazuke.palette.open"},
-      {"key": "?", "action": "ochazuke.bindings.help"},`) {
+      {"key": "?", "action": "ochazuke.binding.help"},`) {
 		t.Errorf("the default ? is not back in place:\n%s", text)
 	}
 	if strings.Contains(text, "test.gamma") {

@@ -495,12 +495,12 @@ func TestDotRepeatsSimpleWrites(t *testing.T) {
 	if err := r.SetFocus("row-t2"); err != nil {
 		t.Fatal(err)
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "repeat"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "repeat"})
 	mustRun(t, r, Request{Noun: "task", Prop: "estimate", Value: 9})
 	if err := r.SetFocus("row-t3"); err != nil {
 		t.Fatal(err)
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "repeat"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "repeat"})
 	want := []string{"set t1 status=done", "set t1 title=Renamed", "set t2 status=done", "set t2 estimate=9", "set t3 estimate=9"}
 	if !reflect.DeepEqual(s.log, want) {
 		t.Fatalf("log\n%q\nwant\n%q", s.log, want)
@@ -530,7 +530,7 @@ func TestBindingsCheckOnPropRows(t *testing.T) {
 		dir := t.TempDir()
 		r.Config().Dir = dir
 		writeConfig(t, dir, BindingsFile, tc.text)
-		got, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+		got, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 		if err != nil {
 			t.Fatal(err)
 		}

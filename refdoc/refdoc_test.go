@@ -17,7 +17,7 @@ func sample() Model {
 		},
 		Bindings: []Group{
 			{Context: "app/normal", Rows: []Row{
-				{Keys: "?", Action: "ochazuke.bindings.help"},
+				{Keys: "?", Action: "ochazuke.binding.help"},
 				{Keys: "|", Action: "demo.pipe", Args: `{"n":1}`, From: "count=count", Hint: "pipe", Hidden: true},
 			}},
 			{Context: "app/count_pending", Extends: "normal", Rows: []Row{{Keys: "<digit>", Action: "ochazuke.count.append", From: "digit=digit"}}},
@@ -124,7 +124,7 @@ func TestRenderPages(t *testing.T) {
 	bindings := Body(pages[BindingsFile])
 	for _, want := range []string{
 		"3 rows in 2 tables.",
-		"## `app/normal`\n\n| Keys | Action | Args | When | Hint |\n|---|---|---|---|---|\n| `?` | `ochazuke.bindings.help` |  |  |  |\n| `\\|` | `demo.pipe` | `{\"n\":1} from count=count` |  | pipe (hidden) |\n",
+		"## `app/normal`\n\n| Keys | Action | Args | When | Hint |\n|---|---|---|---|---|\n| `?` | `ochazuke.binding.help` |  |  |  |\n| `\\|` | `demo.pipe` | `{\"n\":1} from count=count` |  | pipe (hidden) |\n",
 		"## `app/count_pending`\n\nExtends `normal`: its rows answer here too.",
 	} {
 		if !strings.Contains(bindings, want) {

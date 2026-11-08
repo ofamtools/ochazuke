@@ -1,5 +1,5 @@
 {
-  "name": "help.markdown off (the plain docs viewer): G shows the page's end and g g its top through view.edge (no more ±1000000-line scrolls); ctrl+d moves half the window",
+  "name": "help.markdown off (the plain docs viewer): G shows the page's end and g g its top through viewport.goto (no more ±1000000-line scrolls); ctrl+d moves half the window",
   "area": "docs",
   "width": 110,
   "height": 20,

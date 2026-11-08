@@ -52,7 +52,7 @@
       "modal": "form-choose",
       "contains": [
         "│ Choose status",
-        "? bindings.help"
+        "? binding.help"
       ],
       "lacks": [
         "stored: the line under the form"

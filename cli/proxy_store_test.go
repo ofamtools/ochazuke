@@ -122,7 +122,7 @@ func TestProxyStoreSetAndEditUndoLikeLocal(t *testing.T) {
 	}
 	undo := func() {
 		t.Helper()
-		if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.history", Verb: "undo"}); err != nil {
+		if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.history-entry", Verb: "undo"}); err != nil {
 			t.Fatal(err)
 		}
 		if err := Settle(r, nil); err != nil {

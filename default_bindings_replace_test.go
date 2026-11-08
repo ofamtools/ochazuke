@@ -207,7 +207,7 @@ func TestSetDefaultBindingsRefreshesOpenHelp(t *testing.T) {
 			if err := r.SetDefaultBindings("dynamic", []Binding{replacementRow("s", "alpha")}); err != nil {
 				t.Fatal(err)
 			}
-			if _, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "help"}); err != nil {
+			if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "help"}); err != nil {
 				t.Fatal(err)
 			}
 			h := r.helpOpen()

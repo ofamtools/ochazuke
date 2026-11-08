@@ -108,12 +108,12 @@ func TestUndoChangesPersistOnlyWhenSimple(t *testing.T) {
 	}
 }
 
-// TestUndoInverses: history.undo writes a set's before back, deletes what
+// TestUndoInverses: history-entry.undo writes a set's before back, deletes what
 // a create made, creates again under its old key what a delete removed,
 // and walks back one change per run.
 func TestUndoInverses(t *testing.T) {
 	r, s := newUndoRuntime(t, true, true)
-	undo := Request{Noun: "ochazuke.history", Verb: "undo"}
+	undo := Request{Noun: "ochazuke.history-entry", Verb: "undo"}
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "status", "value": "doing"}})
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "status", "value": "done"}})
 	mustRun(t, r, Request{Noun: "task", Verb: "create", Args: Arguments{"title": "Buy milk"}})
@@ -168,7 +168,7 @@ func TestUndoVisualWriteIsOneGroup(t *testing.T) {
 	}
 	s.log = nil
 	stop := r.UI().capture()
-	v := mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	v := mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	msgs := stop()
 	if want := []string{"set t3 status=todo", "set t2 status=doing", "set t1 status=todo"}; !slices.Equal(s.log, want) {
 		t.Fatalf("log %q", s.log)
@@ -185,7 +185,7 @@ func TestUndoVisualWriteIsOneGroup(t *testing.T) {
 // thing. Both stores without Undo and deletes without AcceptsKey are barriers.
 func TestUndoRefusesWithoutInverse(t *testing.T) {
 	t.Parallel()
-	undo := Request{Noun: "ochazuke.history", Verb: "undo"}
+	undo := Request{Noun: "ochazuke.history-entry", Verb: "undo"}
 	r, s := newUndoRuntime(t, false, true)
 	reads := len(s.reads)
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "status", "value": "done"}})
@@ -227,22 +227,22 @@ func TestUndoSkipsRestoredEntries(t *testing.T) {
 	for i := range r.history.entries {
 		r.history.entries[i].Restored = true
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if got := taskStatus(s, "t1"); got != "done" {
 		t.Fatalf("a restored change was undone: status %v", got)
 	}
 }
 
-// TestUndoOfferedForTheFrameworkStores: history.undo is offered only where
+// TestUndoOfferedForTheFrameworkStores: history-entry.undo is offered only where
 // some store declares Undo; the framework's register and appearance stores
 // do (och-command-nouns), so an application with no undo store of its own
 // still offers it, and with nothing to undo it runs without an error.
 func TestUndoOfferedForTheFrameworkStores(t *testing.T) {
 	r, _ := newWriteRuntime(t)
-	if !r.Available(Request{Noun: "ochazuke.history", Verb: "undo"}, "app", r.Mode) {
+	if !r.Available(Request{Noun: "ochazuke.history-entry", Verb: "undo"}, "app", r.Mode) {
 		t.Fatal("undo not offered though the register store undoes")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo"}); err != nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo"}); err != nil {
 		t.Fatalf("undo with nothing to undo: %v", err)
 	}
 }
@@ -270,7 +270,7 @@ func TestUndoRestoresPropsTheStoreChangedToo(t *testing.T) {
 	if got := lastChanges(r); !reflect.DeepEqual(got, want) {
 		t.Fatalf("changes %+v, want %+v", got, want)
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if th := s.find("t1"); th["status"] != "todo" || th["estimate"] != 2 {
 		t.Fatalf("undo left %v", th)
 	}

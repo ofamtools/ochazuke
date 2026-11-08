@@ -18,21 +18,21 @@ func TestActorUndoEntryScope(t *testing.T) {
 	owner := actorSet(t, r, Owner(), "t2", "done")
 	other := actorSet(t, r, b, "t2", "todo")
 	for _, seq := range []uint64{owner, other} {
-		_, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}})
+		_, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}})
 		if err == nil || !strings.Contains(err.Error(), "only its own") {
 			t.Fatalf("undo %d: %v", seq, err)
 		}
 	}
 	changedSession := a
 	changedSession.Session = "other"
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo", Actor: &changedSession, Args: Arguments{"entry": int(own)}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &changedSession, Args: Arguments{"entry": int(own)}}); err == nil {
 		t.Fatal("another session claimed entry")
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(own)}})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(own)}})
 	if taskStatus(s, "t1") != "todo" || taskStatus(s, "t2") != "todo" {
 		t.Fatal("undo affected another entry")
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(own)}}); err == nil {
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(own)}}); err == nil {
 		t.Fatal("undid entry twice")
 	}
 }
@@ -42,11 +42,11 @@ func TestActorUndoDefaultSkipsOtherActors(t *testing.T) {
 	a := testAgent("a")
 	actorSet(t, r, a, "t1", "done")
 	actorSet(t, r, Owner(), "t2", "done")
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a})
 	if taskStatus(s, "t1") != "todo" || taskStatus(s, "t2") != "done" {
 		t.Fatal("default agent undo touched owner")
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if taskStatus(s, "t2") != "doing" {
 		t.Fatal("owner default undo changed")
 	}
@@ -58,7 +58,7 @@ func TestActorUndoRefusesLaterEdits(t *testing.T) {
 	seq := actorSet(t, r, a, "t1", "done")
 	actorSet(t, r, Owner(), "t1", "todo")
 	for _, args := range []Arguments{nil, {"entry": int(seq)}} {
-		if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a, Args: args}); err == nil || !strings.Contains(err.Error(), "later work") {
+		if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: args}); err == nil || !strings.Contains(err.Error(), "later work") {
 			t.Fatalf("stale undo: %v", err)
 		}
 	}
@@ -72,17 +72,17 @@ func TestActorUndoTargetValidationAndOwner(t *testing.T) {
 	a := testAgent("a")
 	seq := actorSet(t, r, a, "t1", "done")
 	actorSet(t, r, Owner(), "t2", "done")
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo", Args: Arguments{"entry": int(seq)}})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Args: Arguments{"entry": int(seq)}})
 	if taskStatus(s, "t1") != "todo" || taskStatus(s, "t2") != "done" {
 		t.Fatal("owner target wrong entry")
 	}
 	for _, entry := range []int{0, -1, 10000} {
-		if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo", Args: Arguments{"entry": entry}}); err == nil {
+		if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Args: Arguments{"entry": entry}}); err == nil {
 			t.Fatalf("accepted entry %d", entry)
 		}
 	}
 	r.history.entries[0].Restored = true
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo", Args: Arguments{"entry": int(seq)}}); err == nil || !strings.Contains(err.Error(), "earlier session") {
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Args: Arguments{"entry": int(seq)}}); err == nil || !strings.Contains(err.Error(), "earlier session") {
 		t.Fatalf("restored entry: %v", err)
 	}
 }
@@ -99,7 +99,7 @@ func TestActorUndoCreateDeleteAndGuard(t *testing.T) {
 	}
 	key := answerKey(r.Noun("task"), created)
 	seq := lastEntry(t, r).Seq
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}})
 	if s.find(key) != nil {
 		t.Fatal("create not undone")
 	}
@@ -110,7 +110,7 @@ func TestActorUndoCreateDeleteAndGuard(t *testing.T) {
 			seq = e.Seq
 		}
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}})
 	if s.find("t1") == nil {
 		t.Fatal("delete not undone")
 	}
@@ -118,7 +118,7 @@ func TestActorUndoCreateDeleteAndGuard(t *testing.T) {
 	own := actorSet(t, r, a, "t1", "done")
 	r.history.entries = append(r.history.entries, HistoryEntry{Seq: r.history.seq + 1, Result: HistoryResult{OK: true}, Context: HistoryContext{Actor: Owner()}, Changes: []ThingChange{{Noun: "missing"}}})
 	r.history.seq++
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(own)}})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(own)}})
 	if taskStatus(s, "t1") != "todo" {
 		t.Fatal("newest guard hid explicit target")
 	}
@@ -153,7 +153,7 @@ func TestActorUndoCreatePreservesLaterProps(t *testing.T) {
 	seq := lastEntry(t, r).Seq
 	// A property absent at creation was added later by the owner.
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": key, "prop": "estimate", "value": 7}})
-	if _, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}}); err == nil || !strings.Contains(err.Error(), "later work") {
+	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}}); err == nil || !strings.Contains(err.Error(), "later work") {
 		t.Fatalf("undo would delete the owner's new prop: %v", err)
 	}
 	if s.find(key) == nil || s.find(key)["estimate"] != 7 {

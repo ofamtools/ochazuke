@@ -6,7 +6,7 @@ import "slices"
 // focus it starts at, the mode its rows answer in and the modal chain that
 // bounds it. Live dispatch and the live listings read the runtime's own
 // (liveResolution). A query that asks "what would answer here" for a focus
-// or mode that is not the live one (bindings.stops, the typing check, help
+// or mode that is not the live one (binding.stops, the typing check, help
 // at the place it opened over) builds its own and passes it down, so it
 // never assigns Runtime.Mode, Runtime.Focus or the modal chain, reads no
 // binding cache and fills none. Its guards see it on KeyEvent.Within
@@ -104,7 +104,7 @@ func (r *Runtime) ListBindingsAt(id string) []Binding {
 // a query judges it hypothetically (KeyEvent.Within), else the live focus.
 // A guard that compares with the focused instance (not the instance the
 // row acts at, KeyEvent.Focus) reads it rather than Runtime.Focus, so
-// bindings.stops, the typing check and help read it as that focus would.
+// binding.stops, the typing check and help read it as that focus would.
 func (r *Runtime) EventFocus(ev KeyEvent) string {
 	if ev.Within != nil {
 		return ev.Within.Focus

@@ -53,7 +53,7 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 				if sidebar && !strings.Contains(view, "▸ ALPHA") || !sidebar && !strings.Contains(rows[1], "› ALPHA") {
 					t.Fatalf("page navigation missing (sidebar=%t):\n%s", sidebar, view)
 				}
-				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.Focus)) || !strings.Contains(BindingHints(r, r.Focus), "? bindings.help") || strings.Contains(BindingHints(r, r.Focus), "ochazuke.page.next") {
+				if footer := rows[size[1]-2]; !hintPrefix(footer, BindingHints(r, r.Focus)) || !strings.Contains(BindingHints(r, r.Focus), "? binding.help") || strings.Contains(BindingHints(r, r.Focus), "ochazuke.page.next") {
 					t.Fatalf("footer is not the focus's binding hints: %q", footer)
 				}
 			})
@@ -61,13 +61,13 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 	}
 	m.Sidebar = false
 	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
-	// The hint is the same data bindings.list prints: a rebound key moves with it.
+	// The hint is the same data binding.list prints: a rebound key moves with it.
 	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "?", Request: Request{Verb: "open", Noun: "ochazuke.yank-history"}}); err != nil {
 		t.Fatal(err)
 	}
 	footer := strings.Split(ansi.Strip(m.View().Content), "\n")[22]
 	hints := BindingHints(r, r.Focus)
-	if !hintPrefix(footer, hints) || !strings.Contains(hints, "? yank-history.open") || strings.Contains(hints, "? bindings.help") {
+	if !hintPrefix(footer, hints) || !strings.Contains(hints, "? yank-history.open") || strings.Contains(hints, "? binding.help") {
 		t.Fatalf("footer did not follow the rebinding: %q (%q)", footer, hints)
 	}
 	// An input in insert mode shows the mode badge; the editor's insert

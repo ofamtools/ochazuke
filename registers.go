@@ -34,7 +34,7 @@ type Registers struct {
 }
 
 func registerRegisters(r *Runtime) {
-	inst := r.Instance(registersID, Kind("ochazuke.registers"))
+	inst := r.Instance(registersID, Kind("ochazuke.register"))
 	inst.Component = &Registers{Named: map[string]Register{}}
 }
 
@@ -50,7 +50,7 @@ var registerThingProps = []PropSpec{
 
 // registerRegisterThings declares the register noun: the named registers
 // are things keyed by name; set writes one (an uppercase name is the same
-// register, _ discards) and history.undo puts its old text back;
+// register, _ discards) and history-entry.undo puts its old text back;
 // register.append adds text to one, as an uppercase yank does; get and
 // list read them; register.select picks the one the next yank, delete or
 // paste uses.

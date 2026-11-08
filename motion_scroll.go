@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 )
 
@@ -41,7 +42,7 @@ func SpanInView(from, to, page int) bool {
 // CTRL-E): the window moves, and the cursor stays where it is unless it
 // would leave the window (with the page's scrolloff), when it moves to the
 // nearest line still shown. A list (tables and trees through their list),
-// a timeline and a markdown document implement it; view.scroll scrolls the
+// a timeline and a markdown document implement it; viewport.scroll scrolls the
 // innermost one on the focus path that can.
 type LineScroller interface {
 	// CanScrollLines reports whether the last frame windowed the lines (more
@@ -52,7 +53,7 @@ type LineScroller interface {
 	ScrollLines(lines int)
 }
 
-// viewScroller is the scrollable view.scroll moves for the focus: the
+// viewScroller is the scrollable viewport.scroll moves for the focus: the
 // innermost component on the focus path (an input excepted: its text is
 // the editor's) that can scroll its lines, else the page's detail while it
 // overflows (the J/K detail, which scrolls without the focus).
@@ -89,15 +90,15 @@ func (r *Runtime) viewScroller(focus string) func(lines int) {
 }
 
 // CursorMotions is a component with a cursor or a scroll that answers the
-// shared motions (UX-RULES R5.8): view.edge, to one of the four edges
+// shared motions (UX-RULES R5.8): viewport.goto, to one of the four edges
 // named by edge (g g first, G last, 0 first-col, $ last-col; a count on
-// G or g g is the row number), and view.page, a page or half a page (the
+// G or g g is the row number), and viewport.scroll by page, a page or half a page (the
 // ctrl+f/ctrl+b and ctrl+d/ctrl+u keys). A list (tables and trees through
 // their list), a timeline, a page detail (the docs viewer) and the yank
 // history implement it; an application's component answers the same keys
 // by implementing it. The innermost one on the focus path answers, unless
 // the component holding it implements it too (a timeline's card list):
-// then the holder does, as view.scroll's holder scrolls.
+// then the holder does, as viewport.scroll's holder scrolls.
 type CursorMotions interface {
 	// MotionEdges is the edges the component can move to now: first and
 	// last while it has rows or lines, the column edges only where its
@@ -145,7 +146,7 @@ func (r *Runtime) motionTarget(focus string) CursorMotions {
 	return nil
 }
 
-// pageLines is view.page's distance: a page (times steps), or half a page
+// pageLines is viewport.scroll by page's distance: a page (times steps), or half a page
 // with half (steps rows when given: Vim's [count]ctrl+d), up when delta
 // is negative.
 func pageLines(page, delta, steps int, half bool) int {
@@ -180,11 +181,7 @@ func registerViewMotions(r *Runtime) {
 		}
 		return len(have) > 0
 	})
-	r.DefineGuard("view-pages", func(r *Runtime, ev KeyEvent) bool {
-		m := r.motionTarget(ev.Focus)
-		return m != nil && m.PageLines() > 0
-	})
-	r.Register(Operation{Key: KeyOf(viewNoun, "edge"), Motion: true,
+	r.Register(Operation{Key: KeyOf(viewNoun, "goto"), Motion: true,
 		Description: "Move the focused component's cursor to an edge: its first or last row (a row number instead, 5G), or its first or last column; clamps, never spills. Any list, table, tree, timeline (inside a card, its steps), docs viewer or yank history",
 		Parameters: map[string]Parameter{
 			"edge": {Type: "string", Required: true, Enum: edges, Description: "The edge: first, last, first-col or last-col"},
@@ -205,43 +202,75 @@ func registerViewMotions(r *Runtime) {
 			m.MoveToEdge(edge, row)
 			return true, nil
 		}})
-	r.SetAvailability(viewNoun+".edge", "view-edge-moves")
-	r.Register(Operation{Key: KeyOf(viewNoun, "page"), Motion: true,
-		Description: "Move the focused component's cursor and window a page (half a page with half) down or up; clamps, never spills. Any list, table, tree, timeline, docs viewer or yank history",
-		Parameters: map[string]Parameter{
-			"delta": {Type: "integer", Required: true, Description: "1 down, -1 up"},
-			"half":  {Type: "boolean", Description: "Half a page (ctrl+d, ctrl+u); steps is then rows"},
-			"steps": {Type: "integer", Description: "A count: pages, or rows with half (Vim's [count]ctrl+d); 0 or absent is one page or half a page"},
-		}, Result: "moved", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-			m := r.motionTarget(focusOf(c))
-			if m == nil || m.PageLines() <= 0 {
-				return nil, errors.New("nothing to page here")
-			}
-			half, _ := a["half"].(bool)
-			m.MovePage(pageLines(m.PageLines(), IntArg(a, "delta", 1), IntArg(a, "steps", 0), half))
-			return true, nil
-		}})
-	r.SetAvailability(viewNoun+".page", "view-pages")
+	r.SetAvailability(viewNoun+".goto", "view-edge-moves")
 }
 
-// viewNoun is the focused scrollable view, the noun of view.scroll.
-const viewNoun = "ochazuke.view"
+// scrollBy is one way viewport.scroll moves, picked by its by argument:
+// ready says whether the focus can move that way (the key's availability),
+// run moves it.
+type scrollBy struct {
+	ready func(r *Runtime, focus string) bool
+	run   func(r *Runtime, c Context, a Arguments) (any, error)
+}
+
+// scrollBys are the by values of viewport.scroll, line (the default) and
+// page.
+func scrollBys() map[string]scrollBy {
+	return map[string]scrollBy{
+		"line": {
+			ready: func(r *Runtime, focus string) bool { return r.viewScroller(focus) != nil },
+			run: func(r *Runtime, c Context, a Arguments) (any, error) {
+				scroll := r.viewScroller(focusOf(c))
+				if scroll == nil {
+					return nil, errors.New("nothing to scroll here")
+				}
+				scroll(IntArg(a, "lines", 1) * max(1, IntArg(a, "count", 1)))
+				return true, nil
+			},
+		},
+		"page": {
+			ready: func(r *Runtime, focus string) bool {
+				m := r.motionTarget(focus)
+				return m != nil && m.PageLines() > 0
+			},
+			run: func(r *Runtime, c Context, a Arguments) (any, error) {
+				m := r.motionTarget(focusOf(c))
+				if m == nil || m.PageLines() <= 0 {
+					return nil, errors.New("nothing to page here")
+				}
+				half, _ := a["half"].(bool)
+				m.MovePage(pageLines(m.PageLines(), IntArg(a, "delta", 1), IntArg(a, "steps", 0), half))
+				return true, nil
+			},
+		},
+	}
+}
+
+// viewNoun is the focused scrollable view, the noun of viewport.scroll.
+const viewNoun = "ochazuke.viewport"
 
 func registerViewScroll(r *Runtime) {
 	r.Define(viewNoun)
-	r.DefineGuard("view-scrolls", func(r *Runtime, ev KeyEvent) bool { return r.viewScroller(ev.Focus) != nil })
+	bys := scrollBys()
+	r.DefineGuard("view-scrolls", func(r *Runtime, ev KeyEvent) bool {
+		by, ok := bys[StringArg(ev.Args, "by", "line")]
+		return ok && by.ready(r, ev.Focus)
+	})
 	r.Register(Operation{Key: KeyOf(viewNoun, "scroll"), Motion: true,
-		Description: "Scroll the focused view's window by lines times count, the cursor staying unless it would leave the window (Vim's ctrl+e/ctrl+y): a list, table, tree, timeline or document, else the page's detail",
+		Description: "Scroll the focused view: by line (the default) its window by lines times count, the cursor staying unless it would leave the window (Vim's ctrl+e/ctrl+y): a list, table, tree, timeline or document, else the page's detail; by page the cursor and window a page (half a page with half) down or up, clamped, never spilling, on any list, table, tree, timeline, docs viewer or yank history",
 		Parameters: map[string]Parameter{
-			"lines": {Type: "integer", Description: "Lines to move, down when positive (default 1)"},
-			"count": {Type: "integer", Description: "Repeat count (default 1)"},
+			"by":    {Type: "string", Enum: slices.Sorted(maps.Keys(bys)), Description: "line (the default) or page"},
+			"lines": {Type: "integer", Description: "By line: lines to move, down when positive (default 1)"},
+			"count": {Type: "integer", Description: "By line: repeat count (default 1)"},
+			"delta": {Type: "integer", Description: "By page: 1 down, -1 up (default 1)"},
+			"half":  {Type: "boolean", Description: "By page: half a page (ctrl+d, ctrl+u); steps is then rows"},
+			"steps": {Type: "integer", Description: "By page: a count: pages, or rows with half (Vim's [count]ctrl+d); 0 or absent is one page or half a page"},
 		}, Result: "scrolled", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-			scroll := r.viewScroller(focusOf(c))
-			if scroll == nil {
-				return nil, errors.New("nothing to scroll here")
+			by, ok := bys[StringArg(a, "by", "line")]
+			if !ok {
+				return nil, fmt.Errorf("unknown scroll %q: want line or page", StringArg(a, "by", ""))
 			}
-			scroll(IntArg(a, "lines", 1) * max(1, IntArg(a, "count", 1)))
-			return true, nil
+			return by.run(r, c, a)
 		}})
 	r.SetAvailability(viewNoun+".scroll", "view-scrolls")
 	registerViewMotions(r)

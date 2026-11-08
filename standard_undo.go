@@ -17,7 +17,7 @@ import (
 // delete no After. A visual selection's write is one entry (Ctx.Each), so
 // its changes are one group and undo as one.
 //
-// history.undo reverts the newest entry not yet undone that holds changes,
+// history-entry.undo reverts the newest entry not yet undone that holds changes,
 // when every one of its things' stores declares Undo (Store.Undo) and can
 // run the inverse:
 //
@@ -36,7 +36,7 @@ import (
 // ThingChange is what one standard write did to one thing: its noun and
 // key, and the props it changed with their values before and after, in
 // their file form. Before is nil for a create, After nil for a delete.
-// Undone marks a change history.undo reverted.
+// Undone marks a change history-entry.undo reverted.
 type ThingChange struct {
 	Noun   string         `json:"noun"`
 	Key    string         `json:"key,omitempty"`
@@ -45,7 +45,7 @@ type ThingChange struct {
 	Undone bool           `json:"undone,omitempty"`
 }
 
-// UndoGuard offers history.undo when a newest change exists, including one
+// UndoGuard offers history-entry.undo when a newest change exists, including one
 // the handler must explain it cannot undo; with none, a store declares Undo.
 const UndoGuard = "history-undoable"
 
@@ -84,7 +84,7 @@ func (r *Runtime) takeChanges(depth int) []ThingChange {
 // A store that does not declare Undo (or has no Get) is not read around
 // its writes, which would cost it two reads per write for nothing: its
 // change is noted by noun and key alone, a mark with no values, so
-// history.undo explains why it cannot undo rather than skip to an older one.
+// history-entry.undo explains why it cannot undo rather than skip to an older one.
 func (r *Runtime) runRecording(row standardVerb, n *Noun, c Ctx) (any, error) {
 	run := row.Run
 	if row.Undo == undoNone {
@@ -267,7 +267,7 @@ func (r *Runtime) simpleChanges(changes []ThingChange) bool {
 	return true
 }
 
-// undoTarget is the index in the ring of the entry history.undo reverts:
+// undoTarget is the index in the ring of the entry history-entry.undo reverts:
 // the newest entry with changes left to undo, from this session. -1 when
 // there is none.
 func (r *Runtime) undoTarget() int {
@@ -313,7 +313,7 @@ func (r *Runtime) undoable(i int) error {
 	return nil
 }
 
-// errNothingToUndo is history.undo's answer when no change is left.
+// errNothingToUndo is history-entry.undo's answer when no change is left.
 var errNothingToUndo = errors.New("nothing to undo")
 
 // undoChange runs one change's inverse on its store.
@@ -432,7 +432,7 @@ func (r *Runtime) undoVerb(c Ctx) Result {
 		}
 		return Done(value)
 	}
-	return r.runSteppedBody(c, "ochazuke.history.undo", body, finish)
+	return r.runSteppedBody(c, "ochazuke.history-entry.undo", body, finish)
 }
 
 // undoBody is the work of an undo over the entries seqs: the inverse of each
@@ -507,7 +507,7 @@ func (r *Runtime) entryOf(seq uint64) *HistoryEntry {
 	return nil
 }
 
-// undoGroupOf is the entries history.undo reverts with the one at i,
+// undoGroupOf is the entries history-entry.undo reverts with the one at i,
 // newest first: i alone, or every entry of its group (HistoryEntry.Group)
 // with changes left to undo, the same actor's when an agent undoes.
 func (r *Runtime) undoGroupOf(i int) []int {
@@ -548,11 +548,11 @@ func registerUndo(r *Runtime) {
 		}
 		return false
 	})
-	r.Register(Operation{Key: "ochazuke.history.undo", HistoryKind: HistoryChange,
+	r.Register(Operation{Key: "ochazuke.history-entry.undo", HistoryKind: HistoryChange,
 		Description: "Undo a standard change by entry seq, or the newest change; agents undo only their own entries. Only on a store that declares Undo",
 		Parameters:  map[string]Parameter{"entry": {Type: "integer", Description: "History entry seq; omitted, the newest change by this actor (owner: any actor)"}},
 		Result:      "JSON value", Summary: "summary", AppHandler: r.undoVerb})
-	r.SetAvailability("ochazuke.history.undo", UndoGuard)
+	r.SetAvailability("ochazuke.history-entry.undo", UndoGuard)
 }
 
 // undoEntry selects an explicit sequence, or the newest eligible change.

@@ -172,7 +172,7 @@ func TestActorHistoryFilterAndPersistence(t *testing.T) {
 			t.Fatalf("filter %s: %d %v", tc.filter, len(entries), err)
 		}
 	}
-	result, err := r.Execute(Request{Noun: "ochazuke.history", Verb: "list", Actor: &a, Args: Arguments{"actor": "self", "last": 1, "kind": "all"}})
+	result, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "list", Actor: &a, Args: Arguments{"actor": "self", "last": 1, "kind": "all"}})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -38,13 +38,13 @@ func TestApplicationVerbsAreNotBuiltin(t *testing.T) {
 	done := func(Ctx) Result { return Done(nil) }
 	r.Define("worktree").Verb("remove", done).Confirm("Remove {{label}}?")
 	// An application verb on a framework noun stays the application's.
-	r.Define("ochazuke.history").Verb("capture-hook", done)
+	r.Define("ochazuke.history-entry").Verb("capture-hook", done)
 	NewModel(r)
 	// A framework constructor run after the application's verbs marks
 	// only what it registers.
 	NewPicker(r)
 	r.Define("worktree").Verb("add", done)
-	if got, want := notBuiltin(r), []string{"ochazuke.history.capture-hook", "worktree.add", "worktree.remove"}; !slices.Equal(got, want) {
+	if got, want := notBuiltin(r), []string{"ochazuke.history-entry.capture-hook", "worktree.add", "worktree.remove"}; !slices.Equal(got, want) {
 		t.Fatalf("not builtin = %v, want %v", got, want)
 	}
 	if op := r.Operations.At(Key("ochazuke.picker.open")); !op.Builtin {

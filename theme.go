@@ -98,7 +98,7 @@ func newAppearance(r *Runtime) *Appearance {
 	c.themeListeners = append(c.themeListeners, func() { a.Schemes = NewSchemeSet(r.Config().Schemes()) })
 	// The appearance is a thing (a singleton): get reads theme, density
 	// and dark, set writes theme and density, both at once with changes,
-	// and history.undo writes the old values back.
+	// and history-entry.undo writes the old values back.
 	r.Define("ochazuke.appearance").Props(
 		PropSpec{Name: "theme", Parameter: Parameter{Description: "The colour scheme: adaptive, dark, light, mono, or one from themes.json"}},
 		PropSpec{Name: "density", Parameter: Parameter{Enum: []string{"comfortable", "compact"}, Description: "comfortable or compact"}},

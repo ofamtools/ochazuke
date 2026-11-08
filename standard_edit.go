@@ -97,7 +97,7 @@ func (r *Runtime) EditHandler(noun string) AppHandler {
 // visual selection, marks: edit is Many) the form opens on the focused
 // one and every write goes to each subject. All the writes of one form
 // (every subject, every debounced save) are one history group, so
-// history.undo takes the form back in one step.
+// history-entry.undo takes the form back in one step.
 func (r *Runtime) editHandler(noun string) AppHandler {
 	return func(c Ctx) Result {
 		es, changes, err := r.newEditSession(noun, c)
@@ -485,7 +485,7 @@ func (l *editLog) push(changes map[string]any, wrote map[string][]editRow, walk 
 }
 
 // editWriter is the form's write: set {props} on the subject and on each
-// other subject, every one recorded in group, so history.undo takes the
+// other subject, every one recorded in group, so history-entry.undo takes the
 // whole form back in one step. The noun's human key (humanProp) is
 // written to the subject alone: one name typed is never every row's. A
 // subject that refuses is counted and the rest are still written, the
@@ -495,7 +495,7 @@ func (l *editLog) push(changes map[string]any, wrote map[string][]editRow, walk 
 //
 // It keeps each field's writes (editLog) so a form's undo of a field
 // (walk -1) puts every row it reached back to that row's own earlier
-// value, as history.undo does, and leaves the rows it did not reach (a
+// value, as history-entry.undo does, and leaves the rows it did not reach (a
 // refusal) alone; a redo (walk +1) writes again only the rows the undo
 // reached. A row whose earlier value the store did not record is left as
 // it is, and a notice says so.

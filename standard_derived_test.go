@@ -264,7 +264,7 @@ func TestCreateFromIsUndoneByDelete(t *testing.T) {
 	if len(s.things) != before+1 || got["title"] != s.find("t1")["title"] {
 		t.Fatalf("copy %v of %v", got, s.find("t1"))
 	}
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if len(s.things) != before || s.find(fmt.Sprint(got["id"])) != nil {
 		t.Fatalf("the copy %v is still there: %q", got["id"], s.log)
 	}
@@ -486,7 +486,7 @@ func TestChecksReportShadowedStandardVerbs(t *testing.T) {
 	if got := r.StandardShadows(); !slices.Equal(got, []string{want}) {
 		t.Fatalf("shadows %q", got)
 	}
-	for _, noun := range []string{"ochazuke.bindings", "ochazuke.actions"} {
+	for _, noun := range []string{"ochazuke.binding", "ochazuke.user-operation"} {
 		v := mustRun(t, r, Request{Noun: noun, Verb: "check"})
 		if !slices.Contains(v.([]string), want) {
 			t.Fatalf("%s check %q", noun, v)
@@ -597,7 +597,7 @@ func TestEditOverSubjectsKeepsTheHumanKeyToOne(t *testing.T) {
 	}
 }
 
-// history.undo from the palette posts its one plain line (its Summary),
+// history-entry.undo from the palette posts its one plain line (its Summary),
 // naming the thing by its label, and never its answer's JSON.
 func TestPaletteUndoSaysOneLine(t *testing.T) {
 	r, s := newDerivedRuntime(t)

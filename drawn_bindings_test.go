@@ -13,8 +13,8 @@ func drawnBindingsFixture(t *testing.T) *Runtime {
 	t.Helper()
 	r := nestedModalFixture(t)
 	app := r.Define("app")
-	app.Mode("normal").Bind("Z", Do("ochazuke.bindings.help"))
-	app.Mode("insert").Bind("ctrl+y", Do("ochazuke.bindings.help"))
+	app.Mode("normal").Bind("Z", Do("ochazuke.binding.help"))
+	app.Mode("insert").Bind("ctrl+y", Do("ochazuke.binding.help"))
 	return r
 }
 

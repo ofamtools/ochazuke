@@ -148,11 +148,11 @@ func TestDiffBindingsAndMotions(t *testing.T) {
 		t.Fatalf("ctrl+u top=%d", v.top)
 	}
 	// The framework's own scroller reaches this component.
-	if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.view", Verb: "scroll", Args: ochazuke.Arguments{"lines": 2}}); err != nil {
+	if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.viewport", Verb: "scroll", Args: ochazuke.Arguments{"lines": 2}}); err != nil {
 		t.Fatal(err)
 	}
 	if v.top != 2 {
-		t.Fatalf("view.scroll top=%d", v.top)
+		t.Fatalf("viewport.scroll top=%d", v.top)
 	}
 	var events []int
 	v.OnFileChange = func(n int) { events = append(events, n) }

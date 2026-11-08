@@ -31,7 +31,7 @@ func applicabilityFixture(t *testing.T) (*Runtime, *bool, *[]string) {
 	return r, &open, &acted
 }
 
-// bindings.list (and the hints built from it) leaves out a row whose
+// binding.list (and the hints built from it) leaves out a row whose
 // operation is guarded off at the focus.
 func TestBindingRowsHideGuardedOffVerbs(t *testing.T) {
 	r, open, _ := applicabilityFixture(t)

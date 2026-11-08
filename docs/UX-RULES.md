@@ -89,7 +89,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `terminal/leader-setting-footer`, `terminal/leader-user-row-names-setting`.
 - **R1.8** A row whose action is not available at the focus (its verb
   guard, `Runtime.Available`) does not answer and does not appear in
-  `bindings.list`, the footer or `?` help; the next row on the key in line
+  `binding.list`, the footer or `?` help; the next row on the key in line
   order is tried, and when none at a level is available the key goes on to
   the next level out. A key may be bound to several actions in one context
   for exactly this: the component says what it can do now, the rows carry
@@ -428,8 +428,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   The same keys answer on every other component with a cursor or a
   scroll (a timeline, inside its cards too; the docs viewer; the yank
   history; a markdown document; an app's component) through one interface,
-  `CursorMotions`, and the shared verbs `view.edge {edge, row}` and
-  `view.page {delta, half, steps}`; `view.edge` names the four edges
+  `CursorMotions`, and the shared verbs `viewport.goto {edge, row}` and
+  `viewport.scroll {by: page, delta, half, steps}`; `viewport.goto` names the four edges
   (`first`, `last`, `first-col`, `last-col`; `0` and `$` the column
   edges, only where the cursor moves sideways). No component fakes an edge
   with a long scroll. Stories: `yank-history/gg-G`, `docs/gg-G`,
@@ -694,7 +694,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `Hidden` rows, orders hints innermost level outward, and shows one key per
   request; `?` still lists every row. Story: `chrome/footer-no-motions.json`.
 - **R6.2** A row's `Hint` replaces the `noun.verb` text in the footer;
-  descriptions appear only in help and `bindings.list`. Story: needed
+  descriptions appear only in help and `binding.list`. Story: needed
   (`chrome/hint-replaces-operation`).
 - **R6.3** `?` opens the help modal over the focus, grouped by the answering
   level's noun innermost first under a section label, app rows after the

@@ -18,7 +18,7 @@ import (
 // pick per differing prop, local or source, showing what the copy holds
 // now (local at first), under the focused pick's plain diff (- the copy's
 // value, + the source's). A pick writes through set, so form.undo and
-// history.undo both put the copy's value back; leaving the modal picks
+// history-entry.undo both put the copy's value back; leaving the modal picks
 // nothing. Differences never block anything: at most a mark on the
 // thing's list rows (copies.marks) while its copy differs from what the
 // last refresh read.
@@ -312,7 +312,7 @@ func (r *Runtime) showRefresh(n *Noun, c Ctx, diffs []copyDiff, here bool) (any,
 	var editor *RecordEditor
 	spec := RecordSpec{Title: title, Fields: fields, FieldWrites: true, Watch: n.Name,
 		// Each pick shows what the copy holds now: source when its value
-		// is the source's, else local. A pick, form.undo, history.undo or
+		// is the source's, else local. A pick, form.undo, history-entry.undo or
 		// an outside write all read back the same way.
 		Load: func() (Record, error) { return r.copyPicks(n, fields, byField), nil },
 		Save: func(w RecordWrite) Result {

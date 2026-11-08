@@ -395,7 +395,7 @@ func TestHistoryUndoDoesNotSkipMountedChange(t *testing.T) {
 	if err := Settle(r, nil); err != nil {
 		t.Fatal(err)
 	}
-	_, err := r.Execute(ochazuke.Request{Noun: "ochazuke.history", Verb: "undo"})
+	_, err := r.Execute(ochazuke.Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if err == nil {
 		err = Settle(r, nil) // over a remote store the undo is a job
 	}
@@ -539,7 +539,7 @@ func TestMountedEditFormUndoesAsOneJob(t *testing.T) {
 	if thing["title"] != "Originalx" || thing["status"] != "done" {
 		t.Fatalf("form writes: %v", thing)
 	}
-	if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.history", Verb: "undo"}); err != nil {
+	if _, err := r.Execute(ochazuke.Request{Noun: "ochazuke.history-entry", Verb: "undo"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := Settle(r, nil); err != nil {

@@ -72,7 +72,7 @@ func TestShellActorEnvironment(t *testing.T) {
 
 func TestMountedBindingsAgentRightsOpen(t *testing.T) {
 	for _, identity := range []string{"explicit", "detected", "detected-owner-override"} {
-		for _, noun := range []string{"bindings", "ochazuke.bindings", "ochazuke bindings"} {
+		for _, noun := range []string{"bindings", "ochazuke.binding", "ochazuke bindings"} {
 			for _, verb := range []string{"list", "check", "defaults", "export", "path", "stops"} {
 				t.Run(identity+"/"+noun+"/"+verb, func(t *testing.T) {
 					dir := t.TempDir()

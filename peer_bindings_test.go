@@ -32,7 +32,7 @@ func TestPeerBindingsMissingLateRemoved(t *testing.T) {
 	if len(notices) != 0 {
 		t.Fatal(notices)
 	}
-	result, err := r.Execute(Request{Noun: "ochazuke.bindings", Verb: "check"})
+	result, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "check"})
 	if err != nil || !strings.Contains(strings.Join(result.([]string), "\n"), "o-lane peer row g s on lane.lane: md.doc.send-notes: extension md is not registered") {
 		t.Fatalf("check: %v %v", result, err)
 	}

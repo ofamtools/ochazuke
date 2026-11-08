@@ -55,7 +55,7 @@ func TestStandardEditChangeFlushes(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
-				mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+				mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 				if s.find("t1")["title"] != "Original" {
 					t.Fatalf("undo %v", s.find("t1"))
 				}
@@ -254,7 +254,7 @@ func TestStandardEditChangeWalk(t *testing.T) {
 		}
 	}
 	// The form's writes are one history group: one undo takes it back.
-	mustRun(t, r, Request{Noun: "ochazuke.history", Verb: "undo"})
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 	if want := (Thing{"id": "t1", "title": "Original", "status": "todo", "active": false, "stamp": "fixed"}); !reflect.DeepEqual(s.find("t1"), want) {
 		t.Fatalf("undo store %v want %v", s.find("t1"), want)
 	}
