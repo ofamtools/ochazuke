@@ -103,14 +103,16 @@ func KeyOf(noun, name string) Key {
 // parts (which Push refuses) reads its first part as the namespace and its
 // last as the name.
 func (k Key) Parts() (namespace, noun, name string) {
-	parts := strings.Split(string(k), ".")
-	switch n := len(parts); {
-	case n >= 3:
-		return parts[0], strings.Join(parts[1:n-1], "."), parts[n-1]
-	case n == 2:
-		return DefaultNamespace, parts[0], parts[1]
+	s := string(k)
+	first := strings.IndexByte(s, '.')
+	if first < 0 {
+		return DefaultNamespace, s, ""
 	}
-	return DefaultNamespace, parts[0], ""
+	last := strings.LastIndexByte(s, '.')
+	if first == last {
+		return DefaultNamespace, s[:first], s[first+1:]
+	}
+	return s[:first], s[first+1 : last], s[last+1:]
 }
 
 // Namespace is the key's first part: who defined the operation.

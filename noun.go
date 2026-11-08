@@ -274,11 +274,7 @@ func placeRowIn(rows []Binding, row Binding, batch rowBatch) ([]Binding, []Bindi
 
 // insertRow inserts row at index at (clamped to the table).
 func insertRow(rows []Binding, at int, row Binding) []Binding {
-	at = max(0, min(at, len(rows)))
-	out := make([]Binding, 0, len(rows)+1)
-	out = append(out, rows[:at]...)
-	out = append(out, row)
-	return append(out, rows[at:]...)
+	return slices.Insert(rows, max(0, min(at, len(rows))), row)
 }
 
 // Do builds a row that runs "noun.verb" with optional arguments.
@@ -1003,6 +999,14 @@ func removeRows(rows []Binding, probe Binding) []Binding {
 // is created (a sequence row makes its prefixes wait), so this is where its
 // default cancel row lives; a row an application binds to those keys wins.
 func withPrefixCancels(rows []Binding) []Binding {
+	// A table with no key sequence and no generated cancel row has nothing
+	// to keep or drop: the common default table, which every row insert
+	// would otherwise scan with fresh maps.
+	if !slices.ContainsFunc(rows, func(b Binding) bool {
+		return !b.Unbind && strings.Contains(strings.TrimSpace(b.Keys), " ") || isPrefixCancel(b)
+	}) {
+		return rows
+	}
 	// A table is one mode's rows on a noun, or an instance's rows across
 	// modes, so prefixes are tracked per mode.
 	type prefixKey struct{ mode, prefix string }

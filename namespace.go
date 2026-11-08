@@ -128,6 +128,18 @@ func (r *Runtime) ownsNoun(name string) bool {
 	return r.Nouns[name] != nil // Register files every operation's noun (ensureNoun)
 }
 
+// FrameworkShortName reports whether word is the short name of a framework
+// noun: an alias for an ochazuke.<word> noun, or a reserved lazy one
+// (ReserveFrameworkNouns), unless the application owns a noun of that exact
+// name. A word that is one belongs to the framework unless the user types
+// the namespace of another noun that ends in it (ai.setting).
+func (r *Runtime) FrameworkShortName(word string) bool {
+	if word == "" || strings.Contains(word, ".") || r.ownsNoun(word) {
+		return false
+	}
+	return strings.HasPrefix(r.CanonicalNoun(word), FrameworkNamespace+".") || FrameworkNounReserved(Namespaced(FrameworkNamespace, word))
+}
+
 // CanonicalKey is an operation key with its noun resolved (CanonicalNoun):
 // setting.set is ochazuke.setting.set unless the application has a settings
 // noun of its own. A name is looked up whole first: a registered action or

@@ -25,14 +25,24 @@ import (
 // reading is the CLI's reader in namespace: the operations within keeps
 // (nil: all), the framework's aside, the rest of the argv binding when the
 // shell parses it as the operation's flags, the namespace's main noun
-// first.
+// first. A framework noun's short name is never read as the last part of
+// another namespace's noun (setting is not ai.setting) unless namespace is
+// that noun's own: the user typed it (mtm ai setting show), so the word
+// means the nouns there.
 func (s *Shell) reading(namespace string, within func(*ochazuke.Noun) bool) ochazuke.Reading {
 	rd := s.Runtime.ReadingWithin(func(c ochazuke.Candidate) bool {
-		return !c.Operation.Builtin && c.Operation.Unavailable == "" && (within == nil || within(c.Noun.Noun))
+		return !c.Operation.Builtin && c.Operation.Unavailable == "" && (within == nil || within(c.Noun.Noun)) && !s.tailShadows(namespace, c)
 	})
 	rd.Bind = s.binds
 	rd.Prefer = ochazuke.MainNoun(namespace)
 	return rd
+}
+
+// tailShadows reports whether c reads a framework short name as the last
+// part of a noun of a namespace other than the one being read.
+func (s *Shell) tailShadows(namespace string, c ochazuke.Candidate) bool {
+	n := c.Noun
+	return n.Via == ochazuke.ViaTail && n.Noun != nil && n.Noun.Namespace() != namespace && s.Runtime.FrameworkShortName(n.OriginalValue)
 }
 
 // binds is how far the rest of the argv binds on a candidate: all of it

@@ -207,3 +207,56 @@ func errText(err error) string {
 func fmtAny(v any) string { return fmt.Sprint(v) }
 
 func sortedStrings(s []string) []string { sort.Strings(s); return s }
+
+// An extension's noun whose last part is a framework short name (ai.setting)
+// does not capture the short name: `tool setting show` reaches the framework's
+// ochazuke.setting, and ai.setting is reached by its namespace.
+func TestFrameworkShortNameIsNotCapturedByANamespacedTail(t *testing.T) {
+	testenv.ClearActor(t)
+	r := ochazuke.NewRuntime()
+	var ran []string
+	r.Define("ai.setting").Verb("show", func(ochazuke.Ctx) ochazuke.Result {
+		ran = append(ran, "ai.setting.show")
+		return ochazuke.Done("ok")
+	}, "Show an ai setting")
+	for _, c := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"ai.setting", "show"}, "ai.setting.show"},
+		{[]string{"ai", "setting", "show"}, "ai.setting.show"},
+		{[]string{"ai", "show"}, "ai.setting.show"},
+	} {
+		ran = nil
+		_, errOut, err := oXNamed(t, "mtm", r, c.args...)
+		if err != nil || len(ran) != 1 || ran[0] != c.want {
+			t.Errorf("mtm %s: ran %v err %v\n%s", strings.Join(c.args, " "), ran, err, errOut)
+		}
+	}
+	for _, args := range [][]string{{"setting", "show", "--name", "daemon.runner"}, {"setting", "show"}, {"show", "setting"}} {
+		ran = nil
+		_, errOut, _ := oXNamed(t, "mtm", r, args...)
+		if len(ran) != 0 || strings.Contains(errOut, "ai.setting") {
+			t.Errorf("mtm %s ran %v: the extension's noun captured the framework short name\n%s", strings.Join(args, " "), ran, errOut)
+		}
+	}
+}
+
+// The palette's reader (every operation) already ranks the framework's alias
+// above a namespaced noun's tail; MCP run names keys, and a short key reads
+// through CanonicalKey, which also reaches the framework noun.
+func TestFrameworkShortNameWinsInThePaletteAndKeys(t *testing.T) {
+	testenv.ClearActor(t)
+	r := ochazuke.NewRuntime()
+	r.Define("ai.setting").Verb("show", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("ok") }, "Show an ai setting")
+	cs := r.ReadingWithin(nil).Read([]string{"setting", "show"})
+	if len(cs) == 0 || cs[0].Operation.Noun() != "ochazuke.setting" {
+		t.Fatalf("palette reads setting show as %v", cs)
+	}
+	if got := r.CanonicalKey("setting.show"); got != "ochazuke.setting.show" {
+		t.Errorf("CanonicalKey(setting.show) = %s", got)
+	}
+	if got := r.CanonicalKey("ai.setting.show"); got != "ai.setting.show" {
+		t.Errorf("CanonicalKey(ai.setting.show) = %s", got)
+	}
+}
