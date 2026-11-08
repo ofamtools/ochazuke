@@ -23,8 +23,12 @@ import (
 // and answers the arguments (args is not changed). replace lets a source
 // overwrite an argument already given (a binding row's From over the row's
 // own arguments); otherwise an argument given is kept. A "row" source that
-// reads nothing leaves the argument out (and a blank target is an error).
-func (r *Runtime) fillFrom(args Arguments, from map[string]string, ev KeyEvent, replace bool) (Arguments, error) {
+// reads nothing leaves the argument out; a blank target is an error, except
+// for an argument optional reports as optional (a parameter that is not
+// Required): the thing the target would name is then simply not given, so a
+// verb with a collection form (no target) runs when the request's target is
+// a list or page standing for the collection, not a row.
+func (r *Runtime) fillFrom(args Arguments, from map[string]string, ev KeyEvent, replace bool, optional func(arg string) bool) (Arguments, error) {
 	out := maps.Clone(args)
 	if out == nil {
 		out = Arguments{}
@@ -37,7 +41,7 @@ func (r *Runtime) fillFrom(args Arguments, from map[string]string, ev KeyEvent, 
 		if field, rowField := rowSourceField(source); rowField {
 			text, isText := v.(string)
 			if v == nil || isText && strings.TrimSpace(text) == "" {
-				if arg == "target" {
+				if arg == "target" && (optional == nil || !optional(arg)) {
 					row := ev.Focus
 					if inst := r.sourceRow(ev); inst != nil {
 						row = inst.ID
@@ -127,7 +131,8 @@ func (r *Runtime) sourcesAt(op Operation, args Arguments, start string) (Argumen
 	if len(from) == 0 || start == "" {
 		return args, nil
 	}
-	return r.fillFrom(args, from, KeyEvent{Focus: start}, false)
+	optional := func(arg string) bool { return !op.Parameters[arg].Required }
+	return r.fillFrom(args, from, KeyEvent{Focus: start}, false, optional)
 }
 
 // formSources is q with its parameters' sources filled in, for the args

@@ -150,3 +150,29 @@ func TestBoundUnboundVerbInheritsTheParameterSource(t *testing.T) {
 	}
 	wantRan(t, ran, `r1 to="h1"`)
 }
+
+// A request whose target stands for the collection (a list or page, as the
+// CLI picks for a noun's single owner) leaves an optional row-sourced target
+// out: the verb runs without a target. A required one still refuses a blank
+// row with the field named.
+func TestParameterSourceBlankRowLeavesOptionalTargetOut(t *testing.T) {
+	r, _, ran := sourceRuntime(t)
+	run := r.Operations.At(Key("row.delete")).Run
+	r.Register(Operation{Key: "row.sweep", Parameters: map[string]Parameter{
+		"target": {Type: "string", From: "row:id"},
+		"all":    {Type: "boolean"},
+	}, Run: run})
+	r.Register(Operation{Key: "row.pin", Parameters: map[string]Parameter{
+		"target": {Type: "string", Required: true, From: "row:id"},
+	}, Run: run})
+	if _, err := r.Execute(Request{Noun: "row", Verb: "sweep", Target: "sheet", Args: Arguments{"all": true}}); err != nil {
+		t.Fatalf("optional target: %v", err)
+	}
+	if len(*ran) != 1 || strings.Contains((*ran)[0], "target") {
+		t.Fatalf("ran %v", *ran)
+	}
+	_, err := r.Execute(Request{Noun: "row", Verb: "pin", Target: "sheet"})
+	if err == nil || !strings.Contains(err.Error(), `target field "id" is empty`) {
+		t.Fatalf("required target: %v", err)
+	}
+}

@@ -614,7 +614,7 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 		}
 	}
 	if len(b.From) > 0 {
-		args, err := r.fillFrom(q.Args, b.From, ev, true)
+		args, err := r.fillFrom(q.Args, b.From, ev, true, nil)
 		if err != nil {
 			return err
 		}
