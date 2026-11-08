@@ -75,6 +75,7 @@ func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Reco
 		ctx:      c.Context,
 		param:    field.Parameter,
 		label:    field.choiceLabel,
+		row:      field.choiceRow,
 		siblings: func() Arguments { return r.recordArguments(n, cur) },
 		fixed:    fixed,
 	})

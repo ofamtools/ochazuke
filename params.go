@@ -22,6 +22,23 @@ type Choice struct {
 	Word string `json:"word,omitempty"`
 }
 
+// Row is the choice as a picker row, the one place choices become rows
+// (a noun reference's field, a registered noun picker): the human label
+// first and the short id dim at the end (ToneChoiceID), both in the text the
+// filter reads, so typing either finds the thing. A choice with no label of
+// its own shows its id alone.
+func (c Choice) Row() ChooserRow {
+	if c.Label == "" || c.Label == c.ID {
+		return ChooserRow{ID: c.ID, Label: c.ID}
+	}
+	short := c.ID
+	if i := strings.LastIndex(short, "/"); i >= 0 && i < len(short)-1 {
+		short = short[i+1:]
+	}
+	return ChooserRow{ID: c.ID, Label: c.Label + "  " + short,
+		Tones: []ToneSpan{SpanTone(0, len([]rune(c.Label))+2, 0, ToneChoiceID)}}
+}
+
 // ParseChoices reads a source operation's result: a slice of strings,
 // Choices, PaletteInstances, Operations (the id is noun.verb), ListItems (a
 // list verb's rows, rowChoice), maps whose id is "id", else
@@ -184,7 +201,11 @@ func (r *Runtime) nounInstanceChoices(noun string) []Choice {
 func enumChoices(p Parameter) []Choice {
 	var out []Choice
 	for _, id := range p.Enum {
-		out = append(out, Choice{ID: id, Label: id})
+		label := p.EnumLabels[id]
+		if label == "" {
+			label = id
+		}
+		out = append(out, Choice{ID: id, Label: label})
 	}
 	return out
 }

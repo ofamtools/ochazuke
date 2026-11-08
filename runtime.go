@@ -34,6 +34,11 @@ type Parameter struct {
 	Enum   []string `json:"enum,omitempty"`
 	Source string   `json:"source,omitempty"`
 	Free   bool     `json:"free,omitempty"`
+	// EnumLabels gives an Enum value the human label a pick list shows
+	// for it (a thing's label-role prop beside its id): a host that
+	// caches a source's rows into Enum keeps their labels here, so the
+	// picker can say what each id is. A value without one shows as itself.
+	EnumLabels map[string]string `json:"enumLabels,omitempty"`
 	// SourceArgs maps a source parameter to a sibling parameter or record
 	// field. Only set sibling values are forwarded; query is still supplied
 	// automatically unless explicitly mapped here. Register the source first.

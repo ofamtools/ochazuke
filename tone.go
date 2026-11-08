@@ -60,6 +60,9 @@ const (
 	ToneSession = "marker.session"
 	// ToneTreeGuide draws a tree's branch lines, dim in every built-in theme.
 	ToneTreeGuide = "tree.guide"
+	// ToneChoiceID draws the short id after a thing's label in a picker
+	// (a noun-reference choice), dim in every built-in theme.
+	ToneChoiceID = "choice.id"
 	// ToneError marks a cell that is wrong (a duplicate key, a value that
 	// does not parse): bold on an error background in every built-in
 	// theme, bold alone in mono.
@@ -196,6 +199,7 @@ var toneRoles = []string{"text", "muted", "accent", "border", "surface", "error"
 var defaultTones = map[string]ToneStyle{
 	ToneLingering:      {Fg: SchemeColor{"accent", "accent"}, Bold: true, Dim: true},
 	ToneTreeGuide:      {Fg: SchemeColor{"muted", "muted"}, Dim: true},
+	ToneChoiceID:       {Fg: SchemeColor{"muted", "muted"}, Dim: true},
 	ToneWorking:        {Fg: SchemeColor{"#1F6FB2", "#7CB7E8"}},
 	ToneNeedsInput:     {Fg: SchemeColor{"#9A6700", "#E3B341"}, Bold: true},
 	ToneDone:           {Fg: SchemeColor{"#2E7D32", "#8BC48A"}},

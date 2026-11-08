@@ -283,7 +283,7 @@ func choiceRows(value any) []ChooserRow {
 	choices, _ := value.([]Choice)
 	rows := make([]ChooserRow, len(choices))
 	for i, ch := range choices {
-		rows[i] = ChooserRow{ID: ch.ID, Label: ch.Label}
+		rows[i] = ch.Row()
 	}
 	return rows
 }

@@ -322,6 +322,8 @@ func (f *recordField) label() string {
 
 func (f *recordField) choiceLabel(c Choice) string { return f.RecordField.choiceLabel(c) }
 
+func (f *recordField) choiceRow(c Choice) ChooserRow { return f.RecordField.choiceRow(c) }
+
 // choiceLabel is how a field shows one of its choices: a noun
 // reference's thing by its label, any other choice as choiceLabel does.
 func (f RecordField) choiceLabel(c Choice) string {
@@ -329,6 +331,23 @@ func (f RecordField) choiceLabel(c Choice) string {
 		return c.Label
 	}
 	return choiceLabel(c)
+}
+
+// choiceRow is a choice as a picker row: a noun reference's thing as
+// Choice.Row (label, then the dim short id), any other choice by its field's
+// choiceLabel.
+func (f RecordField) choiceRow(c Choice) ChooserRow {
+	if f.Noun == "" {
+		return ChooserRow{ID: c.ID, Label: f.choiceLabel(c)}
+	}
+	return c.Row()
+}
+
+// heldChoice reports whether a picker row is the thing a field holds: its
+// id, or the id after the noun prefix a list row's id carries
+// ("question/q-1" holds q-1).
+func heldChoice(value, id string) bool {
+	return value != "" && (id == value || strings.HasSuffix(id, "/"+value))
 }
 
 // RecordEditor is a form over one record: a field per schema entry, each a
@@ -1203,6 +1222,9 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		Title:  "Suggest " + f.label(),
 		Empty:  "loading…",
 		Choose: func(row ChooserRow) Result { return fill(row.ID) },
+		// The highlight opens on the value the field holds (a Focus
+		// parameter holds the focused thing), not the top of a long list.
+		Start: func(row ChooserRow) bool { return heldChoice(f.text(), row.ID) },
 	}
 	var fixed []ChooserRow
 	if f.suggest {
@@ -1218,6 +1240,7 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		ctx:      e.r.contextOf(f.id),
 		param:    f.Parameter,
 		label:    f.choiceLabel,
+		row:      f.choiceRow,
 		siblings: e.arguments,
 		fixed:    fixed,
 		landed: func(choices []Choice) {
@@ -1239,9 +1262,11 @@ func (e *RecordEditor) suggest(f *recordField) error {
 // label, then the fixed rows ("(none)"). landed gets the choices each load
 // produced.
 type choiceLoad struct {
-	ctx      Context
-	param    Parameter
-	label    func(Choice) string
+	ctx   Context
+	param Parameter
+	label func(Choice) string
+	// row, when set, builds a choice's row (label, tones); else label.
+	row      func(Choice) ChooserRow
 	siblings func() Arguments
 	fixed    []ChooserRow
 	landed   func([]Choice)
@@ -1272,7 +1297,7 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 					choices, _ := value.([]Choice)
 					out := make([]ChooserRow, 0, len(choices)+len(l.fixed))
 					for _, ch := range choices {
-						out = append(out, ChooserRow{ID: ch.ID, Label: l.label(ch)})
+						out = append(out, l.choiceRow(ch))
 					}
 					return append(out, l.fixed...)
 				}
@@ -1316,7 +1341,7 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 		landed(choices)
 		rows := make([]ChooserRow, len(choices))
 		for i, ch := range choices {
-			rows[i] = ChooserRow{ID: ch.ID, Label: l.label(ch)}
+			rows[i] = l.choiceRow(ch)
 		}
 		switch plural := r.choicesPlural(l.param); {
 		case err != nil && len(rows) == 0:
@@ -1332,6 +1357,14 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 	}
 	r.loadChoices(l.ctx, l.param, spec.Kind, done, l.siblings())
 	return c, nil
+}
+
+// choiceRow is a choice as a row of the chooser.
+func (l choiceLoad) choiceRow(c Choice) ChooserRow {
+	if l.row != nil {
+		return l.row(c)
+	}
+	return ChooserRow{ID: c.ID, Label: l.label(c)}
 }
 
 // booleanChoices are a boolean field's choices: true and false.
