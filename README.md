@@ -2515,7 +2515,7 @@ and its description reads `Set this session (palette, 14:02); settings.json hold
 
 ### Reviewing session values: `setting.diff {review}`
 
-`setting.diff {review: true}` (`:setting diff review=true`, `BIN setting diff --review`; `settings_review.go`; it was `setting.review`) opens a modal over whatever is open, one row per `setting.diff` entry: the setting, its saved value and where it is saved (`grid (file)`, `vi (default)`), the session value (in the session tone) and its origin (`Origin.String()`). Under the rows the selected setting's description, its default and origin, and what writing or reverting changes ("Writing puts stack in settings.json in place of grid; reverting shows grid again"; a reset session value says writing removes the key).
+`setting.diff {review: true}` (`:setting diff review=true`, `BIN setting diff --review`; `settings_review.go`; it was the verb `review`) opens a modal over whatever is open, one row per `setting.diff` entry: the setting, its saved value and where it is saved (`grid (file)`, `vi (default)`), the session value (in the session tone) and its origin (`Origin.String()`). Under the rows the selected setting's description, its default and origin, and what writing or reverting changes ("Writing puts stack in settings.json in place of grid; reverting shows grid again"; a reset session value says writing removes the key).
 
 ```
 │ 2 session values differ from the saved ones                  │

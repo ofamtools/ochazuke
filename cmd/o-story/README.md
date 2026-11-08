@@ -527,7 +527,7 @@ Conformance:
 | normal | picker | `picker.move` `picker.open` `picker.pick` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
-| normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.review` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
+| normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
 | normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
 | normal | settings-section | `settings-section.open` `settings-section.pick` |
 | normal | state | `snapshot.toggle` |

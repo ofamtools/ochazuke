@@ -198,7 +198,7 @@ func TestToolCounts(t *testing.T) {
 	if fw == nil || fw.Version != "v0.20.0" || fw.Nouns != 2 {
 		t.Fatalf("framework tool = %+v", fw)
 	}
-	// list.move, list.pick, list.legacy, terminal.scroll
+	// move, pick and legacy of the list noun, scroll of terminal
 	if fw.Verbs != 4 {
 		t.Fatalf("framework verbs = %d", fw.Verbs)
 	}

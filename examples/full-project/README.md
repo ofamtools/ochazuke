@@ -154,7 +154,7 @@ go run ./examples/full-project --socket /tmp/ochazuke-full-project/app.sock pale
 
 ### Custom modes use the existing API
 
-`app.json` declares `review`. Startup registers it through `mode.register`. In normal mode, `Ctrl-R` switches the current context to `review` through `mode.switch`. In review mode, `s` invokes inspection and Escape sets the mode to `normal`.
+`app.json` declares `review`. Startup registers it through `mode.create`. In normal mode, `Ctrl-R` switches the current context to `review` through `mode.switch`. In review mode, `s` invokes inspection and Escape sets the mode to `normal`.
 
 Each instance holds its own mode: an input's instance when an input is focused, otherwise the innermost element of the context (a page, a list row, a modal body), inherited from its ancestors when unset. There is no mode stack. Setting a mode selects it directly, and modal restoration restores the parent context rather than pushing or popping modes. Custom-mode behavior comes from its bindings; it does not inherit normal-mode editor keys. Any-mode bindings still apply.
 Readline-only fields, including the Items note, remain in insert mode even if `mode.switch` requests a custom mode. Tab back to the list to use normal-mode page controls.

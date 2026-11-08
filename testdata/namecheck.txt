@@ -57,6 +57,7 @@ cli/host_mount.go	mountVerb	case	"confirm"	1
 cli/mcp_backend.go	Shell.mcpValue	case	"config"	1
 cli/mcp_backend.go	Shell.newMCPServer	compare	"confirm"	1
 cli/mcp_backend.go	mcpBackend.Call	case	"run"	1
+cli/mcp_backend.go	mcpBackend.Call	case	"snapshot"	1
 cli/mcp_backend.go	mcpBackend.catalog	compare	"app"	1
 cli/mcp_backend.go	mcpBackend.run	compare	"confirm"	1
 cli/mcp_backend.go	mcpBackend.run	compare	"focus"	1
@@ -75,15 +76,15 @@ cli/ptykeys.go	var keyCodes	table	"insert"	1	key names mapped to terminal byte s
 cli/ptykeys.go	var keyCodes	table	"left"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
 cli/ptykeys.go	var keyCodes	table	"right"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
 cli/ptykeys.go	var keyCodes	table	"up"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
+cli/setup.go	DeclareSetup	compare	"check"	1
 cli/setup.go	DeclareSetup	compare	"list"	1
 cli/setup.go	DeclareSetup	compare	"show"	2
-cli/setup.go	DeclareSetup	compare	"status"	1
 cli/setup.go	DeclareSetup	compare	"yank"	4
 cli/setup.go	DeclareSetup	cyclo	"-"	28
 cli/setup.go	printSetup	case	"show"	1
 cli/setup.go	printSetup	case	"yank"	1
+cli/setup.go	printSetup	compare	"check"	1
 cli/setup.go	printSetup	compare	"list"	1
-cli/setup.go	printSetup	compare	"status"	1
 cli/shell.go	Shell.Run	compare	"ochazuke.confirm"	1
 cli/shell.go	Shell.Run	cyclo	"-"	63
 cli/shell.go	Shell.nounWord	case	"prop"	1
