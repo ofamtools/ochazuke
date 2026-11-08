@@ -11,70 +11,70 @@ r|  a1
  |
  |            ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · here                                                                                  │
- |            │ key             operation          arguments              description                        │
+ |            │ key             operation             arguments              description                     │
  |            │ demo                                                                                         │
- |            │   q             app.quit                                  Exit the application               │
- |            │   r             demo.reset                                Rebuild the story from its file    │
- |            │   enter         demo.open                                 Open the row: attach the fake pane │
- |            │                                                           when the story has one for it      │
- |            │   n             demo.notify                               Add a persistent notice naming the │
- |            │                                                           row                                │
- |            │   x             demo.delete                               Remove the row from its list       │
-R|            │ ▾ g                                                       waits for the next key (2 keys)    │
- |            │   ▾ g c         demo.notify                               Add a persistent notice naming the │
- |            │                                                           row                                │
- |            │     ▸ g c x     demo.reset                                Rebuild the story from its file    │
- |            │     ▸ g c esc   mode.leave                                Return from a pending mode to the  │
- |            │                                                           mode it shadowed                   │
- |            │   ▸ g esc       mode.leave                                Return from a pending mode to the  │
- |            │                                                           mode it shadowed                   │
- |            │ ▾ z                                                       waits for the next key (1 key)     │
- |            │   ▾ z l         demo.open                                 Open the row: attach the fake pane │
- |            │                                                           when the story has one for it      │
- |            │       z                                                   waits for the next key (z …)       │
- |            │       l         demo.open                                 Open the row: attach the fake pane │
- |            │                                                           when the story has one for it      │
- |            │   ▸ z esc       mode.leave                                Return from a pending mode to the  │
- |            │                                                           mode it shadowed                   │
+ |            │   q             app.quit                                     Exit the application            │
+ |            │   r             demo.reset                                   Rebuild the story from its file │
+ |            │   enter         demo.open                                    Open the row: attach the fake   │
+ |            │                                                              pane when the story has one for │
+ |            │                                                              it                              │
+ |            │   n             demo.notify                                  Add a persistent notice naming  │
+ |            │                                                              the row                         │
+ |            │   x             demo.delete                                  Remove the row from its list    │
+R|            │ ▾ g                                                          waits for the next key (2 keys) │
+ |            │   ▾ g c         demo.notify                                  Add a persistent notice naming  │
+ |            │                                                              the row                         │
+ |            │     ▸ g c x     demo.reset                                   Rebuild the story from its file │
+ |            │     ▸ g c esc   mode.leave                                   Return from a pending mode to   │
+ |            │                                                              the mode it shadowed            │
+ |            │   ▸ g esc       mode.leave                                   Return from a pending mode to   │
+ |            │                                                              the mode it shadowed            │
+ |            │ ▾ z                                                          waits for the next key (1 key)  │
+ |            │   ▾ z l         demo.open                                    Open the row: attach the fake   │
+ |            │                                                              pane when the story has one for │
+ |            │                                                              it                              │
+ |            │       z                                                      waits for the next key (z …)    │
+ |            │       l         demo.open                                    Open the row: attach the fake   │
+ |            │                                                              pane when the story has one for │
+ |            │                                                              it                              │
+ |            │   ▸ z esc       mode.leave                                   Return from a pending mode to   │
+ |            │                                                              the mode it shadowed            │
  |            │ demo · unbound                                                                               │
- |            │                 demo.check                                Toggle a [x] mark on the outline   │
- |            │                                                           row, an application change on the  │
- |            │                                                           outline's undo stack               │
- |            │                 demo.choose                               Open the page's story chooser      │
- |            │                                                           again                              │
- |            │                 demo.finish                               Finish (or fail) the oldest        │
- |            │                                                           running job of a demo verb         │
- |            │                 demo.guide                                Answer a Markdown guide: a         │
- |            │                                                           Markdown result, opened in the     │
- |            │                                                           palette's Markdown viewer (help.   │
- |            │                                                           markdown)                          │
- |            │                 demo.hide                                 Stop drawing a list, tree, input   │
- |            │                                                           or the timeline (by id), or draw   │
- |            │                                                           it again: a tab switched away from │
- |            │                                                           it                                 │
- |            │                 demo.mapping                              Answer a JSON mapping: a multiline │
- |            │                                                           text result, opened in the         │
- |            │                                                           palette's text view                │
- |            │                 demo.ping                                 Add a notice saying ping and the   │
- |            │                                                           row                                │
- |            │                 demo.program                              Answer a one-line jq program: a    │
- |            │                                                           text result, opened in the         │
- |            │                                                           palette's text view                │
- |            │                 demo.usage                                Answer a --help page: a            │
- |            │                                                           preformatted result, drawn as      │
- |            │                                                           written in the palette's viewer    │
- |            │                                                           (help.markdown)                    │
- |            │ list                                                                                         │
- |            │   space         collection.mark                                 Toggle the mark on a row (the      │
- |            │                                                           selected row by default) for fan-  │
- |            │                                                           out verbs                          │
- |            │   V             collection.visual                               Start a visual row selection at    │
- |            │                                                           the selected row (V, in visual-    │
- |            │                                                           line), or end it (V again, esc):   │
- |            │                                                           j/k extend it; a key then acts on  │
- |            │                                                           every selected row                 │
+ |            │                 demo.check                                   Toggle a [x] mark on the        │
+ |            │                                                              outline row, an application     │
+ |            │                                                              change on the outline's undo    │
+ |            │                                                              stack                           │
+ |            │                 demo.choose                                  Open the page's story chooser   │
+ |            │                                                              again                           │
+ |            │                 demo.finish                                  Finish (or fail) the oldest     │
+ |            │                                                              running job of a demo verb      │
+ |            │                 demo.guide                                   Answer a Markdown guide: a      │
+ |            │                                                              Markdown result, opened in the  │
+ |            │                                                              palette's Markdown viewer       │
+ |            │                                                              (help.markdown)                 │
+ |            │                 demo.hide                                    Stop drawing a list, tree,      │
+ |            │                                                              input or the timeline (by id),  │
+ |            │                                                              or draw it again: a tab         │
+ |            │                                                              switched away from it           │
+ |            │                 demo.mapping                                 Answer a JSON mapping: a        │
+ |            │                                                              multiline text result, opened   │
+ |            │                                                              in the palette's text view      │
+ |            │                 demo.ping                                    Add a notice saying ping and    │
+ |            │                                                              the row                         │
+ |            │                 demo.program                                 Answer a one-line jq program: a │
+ |            │                                                              text result, opened in the      │
+ |            │                                                              palette's text view             │
+ |            │                 demo.usage                                   Answer a --help page: a         │
+ |            │                                                              preformatted result, drawn as   │
+ |            │                                                              written in the palette's viewer │
+ |            │                                                              (help.markdown)                 │
+ |            │ collection                                                                                   │
+ |            │   space         collection.mark                              Toggle the mark on a row (the   │
+ |            │                                                              selected row by default) for    │
+ |            │                                                              fan-out verbs                   │
+ |            │   V             collection.visual                            Start a visual row selection at │
  |            │ 1–26 / 71                                                                                    │
- |            │ space collection.mark · S view · esc modal.close · : palette.open · ? binding.help · / filter     │
+ |            │ space collection.mark · S view · esc modal.close · : palette.open · ? binding.help · / filt… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |

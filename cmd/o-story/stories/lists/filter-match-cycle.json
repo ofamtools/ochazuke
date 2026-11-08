@@ -1,6 +1,7 @@
 {
   "name": "list filter: tab cycles the match mode substring, fuzzy, regex and round again; the rows narrow each mode's way and the tag on the filter line names it",
   "area": "lists",
+  "width": 100,
   "page": {
     "lists": [
       {"id": "a", "rows": 5, "labels": ["alpha", "beta", "gamma", "alphabet", "delta"]},

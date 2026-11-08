@@ -139,7 +139,7 @@
     "esc",
     ":",
     {
-      "type": "list filter-prop"
+      "type": "collection filter-prop"
     },
     "enter"
   ],

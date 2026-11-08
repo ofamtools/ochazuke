@@ -44,13 +44,13 @@
   "script": [
     ":",
     {
-      "type": "bindings bind j culprit.size"
+      "type": "binding bind j culprit.size"
     },
     "enter",
     "n",
     ":",
     {
-      "type": "bindings bind --action culprit.size"
+      "type": "binding bind --action culprit.size"
     },
     "enter",
     {

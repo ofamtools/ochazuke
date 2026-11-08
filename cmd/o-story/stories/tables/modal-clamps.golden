@@ -4,17 +4,17 @@
  |  a │ Keys · table                    │
 r|  a1│ noun: demo · place: page1 › de… │
  |  a2│ key             normal       4› │
-R|  b │ $               list.colum…     │
-r|  b1│ 0               list.colum…     │
+R|  b │ $               collection…     │
+r|  b1│ 0               collection…     │
  |  b2│ 1–2 / 90                        │
  |    │ ─────────────────────────────── │
- |    │ normal       collection.column when … │
+ |    │ normal       collection.column… │
  |    │              to last            │
- |    │              then list.scroll-… │
+ |    │              then collection.s… │
  |    │                   to last       │
- |    │              then viewport.goto wh… │
- |    │ space collection.mark · S view · n n… │
+ |    │              then viewport.got… │
+ |    │ space collection.mark · S view… │
  |    ╰─────────────────────────────────╯
  |  ────────────────────────────────────────
- |  space collection.mark · S view · n noun · p p…
+ |  space collection.mark · S view · n noun…
  |

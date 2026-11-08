@@ -12,7 +12,7 @@ r|  a1
  |              │ Command palette                                  │
  |              │ : retitle                                        │
  |              │   missing name (string): The new name            │
- |              │ nouns                                            │
+ |              │ noun                                             │
  |              │   demo                                           │
  |              │ name · string · required — The new name          │
  |              │                                                  │

@@ -1,5 +1,5 @@
 {
- "name": "the page verb takes the page as its first word: page 3 in the palette shows page 3",
+ "name": "goto takes a page: goto page=3 in the palette shows page 3",
  "area": "palette",
  "width": 80,
  "height": 30,
@@ -141,7 +141,7 @@
  "script": [
   ":",
   {
-   "type": "page 3"
+   "type": "goto page=3"
   },
   "enter"
  ],

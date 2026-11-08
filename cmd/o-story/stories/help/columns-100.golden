@@ -48,7 +48,7 @@ R|          │                                                             appl
  |          │                                                             running job of a │
  |          │                                                             demo verb        │
  |          │ 1–10 / 64                                                                    │
- |          │ space collection.mark · S view · enter run · a args · esc modal.close · : palette… │
+ |          │ space collection.mark · S view · enter run · a args · esc modal.close · : p… │
  |          ╰──────────────────────────────────────────────────────────────────────────────╯
  |
  |
@@ -56,5 +56,5 @@ R|          │                                                             appl
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
- |  space collection.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bindings.h…
+ |  space collection.mark · S view · enter run · a args · esc modal.close · : palette.open · ? bind…
  |

@@ -8,7 +8,7 @@
     "lists": [{"id": "a", "rows": 2}]
   },
   "script": [
-    ":", {"type": "docs open bindings"}, "enter",
+    ":", {"type": "docs-viewer open bindings"}, "enter",
     "j", "j",
     ":", {"type": "help settings"}, "enter",
     ":", {"type": "h index"}, "enter",

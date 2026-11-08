@@ -10,7 +10,7 @@ r|  a1
  |        │ Command palette                                              │
  |        │ : arrange                                                    │
  |        │   → demo.arrange (noun from the focus)                       │
- |        │ nouns                                                        │
+ |        │ noun                                                         │
  |        │   demo                                                       │
  |        │ order · string · optional · one of 3 — Which rows come first │
  |        │   newest                                                     │

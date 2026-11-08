@@ -35,7 +35,7 @@
   "expect": {
     "modal": "bindings-help",
     "contains": [
-      "text a very…",
+      "text a ver…",
       "last 7"
     ],
     "lacks": [

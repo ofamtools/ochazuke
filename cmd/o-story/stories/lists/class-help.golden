@@ -9,16 +9,16 @@ r|  keep initial
  |  keep merge│ movement                                                                                     │
 R|  ordinary t│ ▾ ]                                                                   waits for the next key │
 R|  keep merge│                                                                       (2 keys)               │
- |  keep final│   ▸ ] m         collection.next-class merge commit   class merge            Jump to merge commit   │
- |            │                                                steps 1                (merge)                │
- |            │   ▸ ] r         collection.next-class decorated      class refs             Jump to decorated      │
- |            │                 commit                         steps 1                commit (refs)          │
+ |  keep final│   ▸ ] m         collection.next-class merge    class merge            Jump to merge commit   │
+ |            │                 commit                         steps 1                (merge)                │
+ |            │   ▸ ] r         collection.next-class          class refs             Jump to decorated      │
+ |            │                 decorated commit               steps 1                commit (refs)          │
  |            │ ▾ [                                                                   waits for the next key │
  |            │                                                                       (2 keys)               │
- |            │   ▸ [ m         collection.previous-class merge      class merge            Jump to merge commit   │
- |            │                 commit                         steps 1                (merge)                │
- |            │   ▸ [ r         collection.previous-class decorated  class refs             Jump to decorated      │
- |            │                 commit                         steps 1                commit (refs)          │
+ |            │   ▸ [ m         collection.previous-class      class merge            Jump to merge commit   │
+ |            │                 merge commit                   steps 1                (merge)                │
+ |            │   ▸ [ r         collection.previous-class      class refs             Jump to decorated      │
+ |            │                 decorated commit               steps 1                commit (refs)          │
  |            │                                                                                              │
  |            │                                                                                              │
  |            │                                                                                              │
@@ -27,10 +27,10 @@ R|  keep merge│                                                               
  |            │                                                                                              │
  |            │                                                                                              │
  |            │                                                                                              │
- |            │ space collection.mark · esc collection.filter-clear · S view · q modal.close · : palette.open · ? bindi… │
+ |            │ space collection.mark · esc collection.filter-clear · S view · q modal.close · : palette.op… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space collection.mark · esc collection.filter-clear · S view · q modal.close · : palette.open · ? binding.help · / filter
+ |  space collection.mark · esc collection.filter-clear · S view · q modal.close · : palette.open · ? binding.help · / …
  |

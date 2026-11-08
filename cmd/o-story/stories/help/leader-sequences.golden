@@ -21,7 +21,7 @@ r|  a1
  |          │                                     request.verb      …  alone, after the    │
  |          │                                                          timeout, terminal.  │
  |          │                                                          send ctrl+a         │
- |          │   ▸ ctrl+a ?       binding.help                         Open the keys the   │
+ |          │   ▸ ctrl+a ?       binding.help                          Open the keys the   │
  |          │                                                          focus answers to,   │
  |          │                                                          with the operation  │
  |          │                                                          each runs and its   │
@@ -57,7 +57,7 @@ R|          │                                                          target)
  |          │                                                          pane                │
  |          │ 2–8 / 8                                                                      │
  |          │                                                                              │
- |          │ space collection.mark · S view · esc modal.close · : palette.open · ? bindings.he… │
+ |          │ space collection.mark · S view · esc modal.close · : palette.open · ? bindi… │
  |          ╰──────────────────────────────────────────────────────────────────────────────╯
  |
  |

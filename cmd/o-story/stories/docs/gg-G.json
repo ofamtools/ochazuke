@@ -5,7 +5,7 @@
   "height": 20,
   "values": {"help.markdown": false},
   "page": {"lists": [{"id": "a", "rows": 2}]},
-  "script": [":", {"type": "docs open index"}, "enter", "G", "g", "g", "ctrl+d"],
+  "script": [":", {"type": "docs-viewer open index"}, "enter", "G", "g", "g", "ctrl+d"],
   "expect": [
     {"after": 3, "modal": "docs-viewer", "contains": ["index · 1–"]},
     {"after": 4, "modal": "docs-viewer", "contains": ["index · 10–19 / 19"]},

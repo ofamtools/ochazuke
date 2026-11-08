@@ -11,7 +11,7 @@ r|  a1
  |   ╭─────────────────────────╮
  |   │ Command palette         │
  |   │ : bindin list           │
- |   │   → ochazuke.binding.l │
+ |   │   → ochazuke.binding.li │
  |   │ all · boolean           │
  |   │   true                  │
  |   │   false                 │

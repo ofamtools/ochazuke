@@ -10,63 +10,63 @@ r|  a1
  |
  |            ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · pick                                                                                  │
- |            │ noun: demo · mode: normal · place: page1 › demo › list                                       │
- |            │ key             operation                 arguments              description                 │
+ |            │ noun: demo · mode: normal · place: page1 › demo › collection                                 │
+ |            │ key             operation                      arguments              description            │
  |            │ demo                                                                                         │
-R|            │   q             app.quit                                         Exit the application        │
- |            │   r             demo.reset                                       Rebuild the story from its  │
- |            │                                                                  file                        │
- |            │   enter         demo.open                                        Open the row: attach the    │
- |            │                                                                  fake pane when the story    │
- |            │                                                                  has one for it              │
- |            │   n             demo.notify                                      Add a persistent notice     │
- |            │                                                                  naming the row              │
- |            │   x             demo.delete                                      Remove the row from its     │
- |            │                                                                  list                        │
+R|            │   q             app.quit                                              Exit the application   │
+ |            │   r             demo.reset                                            Rebuild the story from │
+ |            │                                                                       its file               │
+ |            │   enter         demo.open                                             Open the row: attach   │
+ |            │                                                                       the fake pane when the │
+ |            │                                                                       story has one for it   │
+ |            │   n             demo.notify                                           Add a persistent       │
+ |            │                                                                       notice naming the row  │
+ |            │   x             demo.delete                                           Remove the row from    │
+ |            │                                                                       its list               │
  |            │ demo · unbound                                                                               │
- |            │                 demo.check                                       Toggle a [x] mark on the    │
- |            │                                                                  outline row, an application │
- |            │                                                                  change on the outline's     │
- |            │                                                                  undo stack                  │
- |            │                 demo.choose                                      Open the page's story       │
- |            │                                                                  chooser again               │
- |            │                 demo.finish                                      Finish (or fail) the oldest │
- |            │                                                                  running job of a demo verb  │
- |            │                 demo.guide                                       Answer a Markdown guide: a  │
- |            │                                                                  Markdown result, opened in  │
- |            │                                                                  the palette's Markdown      │
- |            │                                                                  viewer (help.markdown)      │
- |            │                 demo.hide                                        Stop drawing a list, tree,  │
- |            │                                                                  input or the timeline (by   │
- |            │                                                                  id), or draw it again: a    │
- |            │                                                                  tab switched away from it   │
- |            │                 demo.mapping                                     Answer a JSON mapping: a    │
- |            │                                                                  multiline text result,      │
- |            │                                                                  opened in the palette's     │
- |            │                                                                  text view                   │
- |            │                 demo.ping                                        Add a notice saying ping    │
- |            │                                                                  and the row                 │
- |            │                 demo.program                                     Answer a one-line jq        │
- |            │                                                                  program: a text result,     │
- |            │                                                                  opened in the palette's     │
- |            │                                                                  text view                   │
- |            │                 demo.usage                                       Answer a --help page: a     │
- |            │                                                                  preformatted result, drawn  │
- |            │                                                                  as written in the palette's │
- |            │                                                                  viewer (help.markdown)      │
- |            │ list                                                                                         │
- |            │   space         collection.mark ?                                      when list-marks · Toggle    │
- |            │                                                                  the mark on a row (the      │
- |            │                                                                  selected row by default)    │
- |            │                                                                  for fan-out verbs           │
- |            │   y             collection.yank ?               what cell              when table-cells · Copy the │
- |            │                                                                  current cell's text (what:  │
- |            │                                                                  cell, a cell-mode table) or │
- |            │                                                                  the row's cells joined by   │
- |            │                                                                  tabs (what: row, any table) │
- |            │                                                                  into the registers; over a  │
- |            │ 1–16 / 129                                                                                   │
- |            │ space collection.mark · S view · n noun · m mode · p place · enter run · a args · esc modal.close… │
+ |            │                 demo.check                                            Toggle a [x] mark on   │
+ |            │                                                                       the outline row, an    │
+ |            │                                                                       application change on  │
+ |            │                                                                       the outline's undo     │
+ |            │                                                                       stack                  │
+ |            │                 demo.choose                                           Open the page's story  │
+ |            │                                                                       chooser again          │
+ |            │                 demo.finish                                           Finish (or fail) the   │
+ |            │                                                                       oldest running job of  │
+ |            │                                                                       a demo verb            │
+ |            │                 demo.guide                                            Answer a Markdown      │
+ |            │                                                                       guide: a Markdown      │
+ |            │                                                                       result, opened in the  │
+ |            │                                                                       palette's Markdown     │
+ |            │                                                                       viewer (help.markdown) │
+ |            │                 demo.hide                                             Stop drawing a list,   │
+ |            │                                                                       tree, input or the     │
+ |            │                                                                       timeline (by id), or   │
+ |            │                                                                       draw it again: a tab   │
+ |            │                                                                       switched away from it  │
+ |            │                 demo.mapping                                          Answer a JSON mapping: │
+ |            │                                                                       a multiline text       │
+ |            │                                                                       result, opened in the  │
+ |            │                                                                       palette's text view    │
+ |            │                 demo.ping                                             Add a notice saying    │
+ |            │                                                                       ping and the row       │
+ |            │                 demo.program                                          Answer a one-line jq   │
+ |            │                                                                       program: a text        │
+ |            │                                                                       result, opened in the  │
+ |            │                                                                       palette's text view    │
+ |            │                 demo.usage                                            Answer a --help page:  │
+ |            │                                                                       a preformatted result, │
+ |            │                                                                       drawn as written in    │
+ |            │                                                                       the palette's viewer   │
+ |            │                                                                       (help.markdown)        │
+ |            │ collection                                                                                   │
+ |            │   space         collection.mark ?                                     when list-marks ·      │
+ |            │                                                                       Toggle the mark on a   │
+ |            │                                                                       row (the selected row  │
+ |            │                                                                       by default) for fan-   │
+ |            │                                                                       out verbs              │
+ |            │ 1–15 / 129                                                                                   │
+ |            │ space collection.mark · S view · n noun · m mode · p place · enter run · a args · esc modal… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
@@ -76,5 +76,5 @@ R|            │   q             app.quit                                      
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space collection.mark · S view · n noun · m mode · p place · enter run · a args · esc modal.close · : palette.open · ? bi…
+ |  space collection.mark · S view · n noun · m mode · p place · enter run · a args · esc modal.close · : palette.open …
  |

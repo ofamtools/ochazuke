@@ -12,31 +12,31 @@ R|    ## Status counts
  |
  |    ## 1. Motions
  |
- |     Feature        │ Vim/Neovim         │ ochazuke today              │ Status      │ Suggested action
- |    ────────────────┼────────────────────┼─────────────────────────────┼─────────────┼──────────────────────────────
- |      j / k  on a   │  :help j   :help   │  bindings/list.json         │ differs on  │ Keep it: the invariant
- |     list           │ k : stop at the    │  ochazuke.collection/normal       │ purpose     │ "motions are visual"
- |                    │ last/first line    │ j / k  →  collection.move         │             │ (AGENTS.md). Put it in the
- |                    │                    │ {delta} ; past the edge the │             │ docs' Vim note.  NoSpill() 
- |                    │                    │ focus moves to the          │             │ and modals clamp the way Vim
- |                    │                    │ next/previous stop          │             │ does.
- |      j / k  in the │  :help j           │  bindings/editor.json       │ same        │ —
- |     editor         │                    │  ochazuke.editor/normal     │             │
- |                    │                    │ j / k  →  input.move        │             │
- |                    │                    │ up/down  with counts        │             │
- |     Counts ( 3j ,  │  :help count       │  bindings/registers.json    │ same        │ —
- |      5G )          │                    │  app/normal digit-0  →      │             │
- |                    │                    │  count_pending ; rows take  │             │
- |                    │                    │  from: {steps: count}       │             │
- |     A count at a   │  :help count :     │ story                       │ differs on  │ Same reason as  j / k .
- |     list's edge    │ clamps             │  motions/count-spills-      │ purpose     │
- |                    │                    │ once-at-edge : the count    │             │
- |                    │                    │ clamps, then a single spill │             │
- |      ctrl+d /      │  :help CTRL-D :    │  list.json  →  collection.scroll  │ similar     │ Note it in the docs.
- |      ctrl+u  on    │ half a page; a     │ {half} ; a count is rows,   │ (the count  │
- |     lists          │ count sets         │ for that press only         │ does not    │
- |                    │  'scroll'  for     │                             │ stick)      │
- |                    │ later presses too  │                             │             │
+ |     Feature        │ Vim/Neovim         │ ochazuke today               │ Status      │ Suggested action
+ |    ────────────────┼────────────────────┼──────────────────────────────┼─────────────┼─────────────────────────────
+ |      j / k  on a   │  :help j   :help   │  bindings/list.json          │ differs on  │ Keep it: the invariant
+ |     list           │ k : stop at the    │  ochazuke.collection/normal  │ purpose     │ "motions are visual"
+ |                    │ last/first line    │ j / k  →  collection.move    │             │ (AGENTS.md). Put it in the
+ |                    │                    │ {delta} ; past the edge the  │             │ docs' Vim note.  NoSpill() 
+ |                    │                    │ focus moves to the           │             │ and modals clamp the way
+ |                    │                    │ next/previous stop           │             │ Vim does.
+ |      j / k  in the │  :help j           │  bindings/editor.json        │ same        │ —
+ |     editor         │                    │  ochazuke.editor/normal      │             │
+ |                    │                    │ j / k  →  input.move         │             │
+ |                    │                    │ up/down  with counts         │             │
+ |     Counts ( 3j ,  │  :help count       │  bindings/registers.json     │ same        │ —
+ |      5G )          │                    │  app/normal digit-0  →       │             │
+ |                    │                    │  count_pending ; rows take   │             │
+ |                    │                    │  from: {steps: count}        │             │
+ |     A count at a   │  :help count :     │ story                        │ differs on  │ Same reason as  j / k .
+ |     list's edge    │ clamps             │  motions/count-spills-once-  │ purpose     │
+ |                    │                    │ at-edge : the count clamps,  │             │
+ |                    │                    │ then a single spill          │             │
+ |      ctrl+d /      │  :help CTRL-D :    │  list.json  →                │ similar     │ Note it in the docs.
+ |      ctrl+u  on    │ half a page; a     │  collection.scroll {half} ;  │ (the count  │
+ |     lists          │ count sets         │ a count is rows, for that    │ does not    │
+ |                    │  'scroll'  for     │ press only                   │ stick)      │
+ |                    │ later presses too  │                              │             │
  |
  |
  |
@@ -46,5 +46,5 @@ R|    ## Status counts
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste · g O markdown.goto · u markdown.undo …
+ |  i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste · g O markdown.goto · u markdown.undo · c…
  |

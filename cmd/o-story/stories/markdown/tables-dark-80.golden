@@ -22,16 +22,16 @@ R|    ## Status counts
  |    ──────────────┼─────────────┼────────────────┼─────────┼────────────────
  |      j / k  on a │  :help j    │  bindings/     │ differs │ Keep it: the
  |     list         │  :help k :  │ list.json      │ on      │ invariant
- |                  │ stop at the │  ochazuke.collection │ purpose │ "motions are
- |                  │ last/first  │ /normal j / k  │         │ visual"
- |                  │ line        │ →  collection.move   │         │ (AGENTS.md).
- |                  │             │ {delta} ; past │         │ Put it in the
- |                  │             │ the edge the   │         │ docs' Vim
- |                  │             │ focus moves to │         │ note.
- |                  │             │ the            │         │  NoSpill() 
- |                  │             │ next/previous  │         │ and modals
- |                  │             │ stop           │         │ clamp the way
- |                  │             │                │         │ Vim does.
+ |                  │ stop at the │  ochazuke.coll │ purpose │ "motions are
+ |                  │ last/first  │ ection/normal  │         │ visual"
+ |                  │ line        │ j / k  →       │         │ (AGENTS.md).
+ |                  │             │  collection.mo │         │ Put it in the
+ |                  │             │ ve {delta} ;   │         │ docs' Vim
+ |                  │             │ past the edge  │         │ note.
+ |                  │             │ the focus      │         │  NoSpill() 
+ |                  │             │ moves to the   │         │ and modals
+ |                  │             │ next/previous  │         │ clamp the way
+ |                  │             │ stop           │         │ Vim does.
  |      j / k  in   │  :help j    │  bindings/     │ same    │ —
  |     the editor   │             │ editor.json    │         │
  |                  │             │  ochazuke.edit │         │
@@ -56,11 +56,11 @@ R|    ## Status counts
  |                  │             │ clamps, then a │         │
  |                  │             │ single spill   │         │
  |      ctrl+d /    │  :help      │  list.json  →  │ similar │ Note it in the
- |      ctrl+u  on  │ CTRL-D :    │  collection.scroll   │ (the    │ docs.
- |     lists        │ half a      │ {half} ; a     │ count   │
- |                  │ page; a     │ count is rows, │ does    │
- |                  │ count sets  │ for that press │ not     │
- |                  │  'scroll'   │ only           │ stick)  │
+ |      ctrl+u  on  │ CTRL-D :    │  collection.sc │ (the    │ docs.
+ |     lists        │ half a      │ roll {half} ;  │ count   │
+ |                  │ page; a     │ a count is     │ does    │
+ |                  │ count sets  │ rows, for that │ not     │
+ |                  │  'scroll'   │ press only     │ stick)  │
  |                  │ for later   │                │         │
  |                  │ presses too │                │         │
  |

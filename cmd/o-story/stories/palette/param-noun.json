@@ -3,5 +3,5 @@
   "area": "palette",
   "height": 30,
   "page": {"lists": [{"id": "a", "rows": 3}, {"id": "b", "rows": 2}]},
-  "script": [":", {"type": "list focus "}]
+  "script": [":", {"type": "page open "}]
 }

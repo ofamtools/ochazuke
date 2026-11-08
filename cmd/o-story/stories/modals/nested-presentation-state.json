@@ -8,7 +8,7 @@
   "expect": [
     {"after": 2, "modal": "", "mode": "visual-line", "focus": "a3", "highlighted": 1, "highlightedText": "a3", "contains": ["* a2", "* a3"]},
     {"after": 3, "modal": "bindings-help", "mode": "normal", "dimmed": 1, "contains": ["* a2", "* a3"]},
-    {"after": 4, "modal": "palette", "dimmed": 2, "contains": ["* a2", "* a3"]},
+    {"after": 4, "modal": "palette", "dimmed": 3, "contains": ["* a2", "* a3"]},
     {"after": 5, "modal": "bindings-help", "mode": "normal", "dimmed": 1, "contains": ["* a2", "* a3"]},
     {"modal": "", "mode": "visual-line", "focus": "a3", "badge": "VISUAL-LINE", "highlighted": 1, "highlightedText": "a3", "contains": ["* a2", "* a3"]}
   ]

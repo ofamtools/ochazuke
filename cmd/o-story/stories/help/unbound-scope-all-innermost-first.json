@@ -57,8 +57,8 @@
     "order": [
       "culprit · unbound",
       "culprit.size",
-      "list",
-      "list · unbound",
+      "collection",
+      "collection · unbound",
       "demo",
       "demo · unbound",
       "app"

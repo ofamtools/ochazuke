@@ -7,13 +7,13 @@
 nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 </style></head><body>
 <header><a href="architecture.html">← Architecture field guide</a><p class="eyebrow">Ochazuke / generated reference</p><h1>Default bindings</h1><p>Actions and noun bindings come from a fresh <code>demo.New()</code> in <code>internal/demo</code>. Go declarations and comments come from the root <code>ofam.dev/ochazuke</code> package source through Go's standard <code>go/doc</code> library. This is a build-time snapshot, not your running application's customized registry.</p>
-<nav aria-label="Catalogs"><a href="actions.html">Actions (544)</a><a href="bindings.html" aria-current="page">Default bindings (754)</a><a href="api.html">Go API (1519)</a><a href="transport.html">CLI, socket &amp; MCP</a></nav>
+<nav aria-label="Catalogs"><a href="actions.html">Actions (544)</a><a href="bindings.html" aria-current="page">Default bindings (781)</a><a href="api.html">Go API (1650)</a><a href="transport.html">CLI, socket &amp; MCP</a></nav>
 <div class="toolbar"><label for="search">Search Default bindings</label><input id="search" type="search" placeholder="Search this catalog" autocomplete="off"><p id="matches" role="status"></p></div>
 <noscript>All entries are available below. Search requires JavaScript.</noscript></header>
 <main>
 
 
-<section id="bindings"><p class="eyebrow">02 / Registered noun rows</p><h2>Default bindings <span class="count">754</span></h2><p>Every mode-table row of every noun in the demo, including the editor noun's Readline and Vim tables, its pending modes, and the palette, picker, yank-history and modal nouns. This table lists noun declarations only: it omits per-instance binding rows and is not a flattened effective keymap. Keys can also depend on guards and operation availability. The shared resolver drives live key dispatch, macro playback and effective binding/help listings.</p><p>Resolution first considers capture rows (<code>Binding.Capture</code>, configured as <code>capture</code>) outer-first, app first and the editor fallback last; the first answering level wins. A passthrough base mode skips capture. Ordinary rows then bubble from the focused instance (or its inner completion level) outward to app. An open modal cuts off the instances beneath it and inserts the modal noun before app. The editor noun is a fallback only when an input is on the path; for a focused read-only input it answers immediately after that input instead.</p><p>At each level, instance rows for the active mode (plus unqualified instance rows outside a pending mode) precede noun mode rows (including declared mode inheritance), followed by the noun's any-base-mode rows. Exact keys rank ahead of key classes (<code>&lt;digit&gt;</code>, <code>&lt;alpha&gt;</code>, <code>&lt;printable&gt;</code>, <code>&lt;paste&gt;</code>), then <code>&lt;any&gt;</code>; table order breaks ties. A pending mode excludes any-base-mode rows. During bubbling, an available longer sequence anywhere on the remaining walk can make the resolver wait, keeping the innermost exact match as fallback; an answering key class ends that scan. <code>ctrl+space</code> is Bubble Tea v2's spelling for Ctrl-Space.</p>
+<section id="bindings"><p class="eyebrow">02 / Registered noun rows</p><h2>Default bindings <span class="count">781</span></h2><p>Every mode-table row of every noun in the demo, including the editor noun's Readline and Vim tables, its pending modes, and the palette, picker, yank-history and modal nouns. This table lists noun declarations only: it omits per-instance binding rows and is not a flattened effective keymap. Keys can also depend on guards and operation availability. The shared resolver drives live key dispatch, macro playback and effective binding/help listings.</p><p>Resolution first considers capture rows (<code>Binding.Capture</code>, configured as <code>capture</code>) outer-first, app first and the editor fallback last; the first answering level wins. A passthrough base mode skips capture. Ordinary rows then bubble from the focused instance (or its inner completion level) outward to app. An open modal cuts off the instances beneath it and inserts the modal noun before app. The editor noun is a fallback only when an input is on the path; for a focused read-only input it answers immediately after that input instead.</p><p>At each level, instance rows for the active mode (plus unqualified instance rows outside a pending mode) precede noun mode rows (including declared mode inheritance), followed by the noun's any-base-mode rows. Exact keys rank ahead of key classes (<code>&lt;digit&gt;</code>, <code>&lt;alpha&gt;</code>, <code>&lt;printable&gt;</code>, <code>&lt;paste&gt;</code>), then <code>&lt;any&gt;</code>; table order breaks ties. A pending mode excludes any-base-mode rows. During bubbling, an available longer sequence anywhere on the remaining walk can make the resolver wait, keeping the innermost exact match as fallback; an answering key class ends that scan. <code>ctrl+space</code> is Bubble Tea v2's spelling for Ctrl-Space.</p>
 <div class="table-scroll"><table><thead><tr><th>Noun</th><th>Mode</th><th>Keys</th><th>Request</th></tr></thead><tbody><tr class="searchable"><td><code>app</code></td><td>Any base mode</td><td><code>ctrl&#43;space</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
   &#34;noun&#34;: &#34;ochazuke.palette&#34;
@@ -97,7 +97,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>i</code></td><td><pre>{
   &#34;verb&#34;: &#34;edit&#34;,
-  &#34;noun&#34;: &#34;ochazuke.nouns&#34;
+  &#34;noun&#34;: &#34;ochazuke.noun&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>}</code></td><td><pre>{
   &#34;verb&#34;: &#34;next&#34;,
   &#34;noun&#34;: &#34;ochazuke.focus&#34;
@@ -136,19 +136,19 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;e</code></td><td><pre>{
   &#34;verb&#34;: &#34;scroll&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;lines&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;y</code></td><td><pre>{
   &#34;verb&#34;: &#34;scroll&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;lines&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>g g</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;first&#34;
   }
@@ -156,46 +156,50 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;verb&#34;: &#34;leave&#34;,
   &#34;noun&#34;: &#34;ochazuke.mode&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>G</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;last&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;d</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: 1,
     &#34;half&#34;: true
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;u</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: -1,
     &#34;half&#34;: true
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;f</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>ctrl&#43;b</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>0 when no-count</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;first-col&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>$</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;last-col&#34;
   }
@@ -240,7 +244,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.mode&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>.</code></td><td><pre>{
   &#34;verb&#34;: &#34;repeat&#34;,
-  &#34;noun&#34;: &#34;ochazuke.history&#34;
+  &#34;noun&#34;: &#34;ochazuke.history-entry&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>:</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
   &#34;noun&#34;: &#34;ochazuke.palette&#34;
@@ -249,10 +253,10 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;help&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;cancel-edit&#34;,
-  &#34;noun&#34;: &#34;ochazuke.nouns&#34;
+  &#34;noun&#34;: &#34;ochazuke.noun&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>g &lt; when no-input</code></td><td><pre>{
   &#34;verb&#34;: &#34;show&#34;,
-  &#34;noun&#34;: &#34;ochazuke.messages&#34;
+  &#34;noun&#34;: &#34;ochazuke.message&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>&#39; when no-modal</code></td><td><pre>{
   &#34;verb&#34;: &#34;pick&#34;,
   &#34;noun&#34;: &#34;ochazuke.page&#34;
@@ -264,10 +268,10 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.page&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>/ when list-filterable</code></td><td><pre>{
   &#34;verb&#34;: &#34;filter-open&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>alt&#43;?</code></td><td><pre>{
   &#34;verb&#34;: &#34;toggle&#34;,
-  &#34;noun&#34;: &#34;ochazuke.state&#34;
+  &#34;noun&#34;: &#34;ochazuke.snapshot&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>normal</td><td><code>g y when no-input</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
   &#34;noun&#34;: &#34;ochazuke.yank-history&#34;
@@ -320,7 +324,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.palette&#34;
 }</pre></td></tr><tr class="searchable"><td><code>app</code></td><td>visual-line</td><td><code>?</code></td><td><pre>{
   &#34;verb&#34;: &#34;help&#34;,
-  &#34;noun&#34;: &#34;ochazuke.bindings&#34;
+  &#34;noun&#34;: &#34;ochazuke.binding&#34;
 }</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>j</code></td><td><pre>{
   &#34;verb&#34;: &#34;scroll&#34;,
   &#34;noun&#34;: &#34;ochazuke.surface&#34;,
@@ -347,7 +351,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   }
 }</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>t</code></td><td><pre>{
   &#34;verb&#34;: &#34;cycle&#34;,
-  &#34;noun&#34;: &#34;theme&#34;
+  &#34;noun&#34;: &#34;ochazuke.theme&#34;
 }</pre></td></tr><tr class="searchable"><td><code>appearance</code></td><td>normal</td><td><code>d</code></td><td><pre>{
   &#34;verb&#34;: &#34;cycle&#34;,
   &#34;noun&#34;: &#34;density&#34;
@@ -415,7 +419,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;step&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.about-page</code></td><td>normal</td><td><code>Y</code></td><td><pre>{
-  &#34;verb&#34;: &#34;copy&#34;,
+  &#34;verb&#34;: &#34;yank&#34;,
   &#34;noun&#34;: &#34;ochazuke.about&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.about-page</code></td><td>normal</td><td><code>r</code></td><td><pre>{
   &#34;verb&#34;: &#34;refresh&#34;,
@@ -427,7 +431,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;verb&#34;: &#34;close&#34;,
   &#34;noun&#34;: &#34;ochazuke.about&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.about-row</code></td><td>normal</td><td><code>y</code></td><td><pre>{
-  &#34;verb&#34;: &#34;copy&#34;,
+  &#34;verb&#34;: &#34;yank&#34;,
   &#34;noun&#34;: &#34;ochazuke.about-row&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.about-row</code></td><td>normal</td><td><code>enter when about-row-path</code></td><td><pre>{
   &#34;verb&#34;: &#34;open&#34;,
@@ -445,29 +449,38 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;verb&#34;: &#34;bind-key&#34;,
   &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.bindings-help</code></td><td>normal</td><td><code>S</code></td><td><pre>{
-  &#34;verb&#34;: &#34;view&#34;,
+  &#34;verb&#34;: &#34;show&#34;,
   &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.bindings-help</code></td><td>normal</td><td><code>tab</code></td><td><pre>{
-  &#34;verb&#34;: &#34;view&#34;,
+  &#34;verb&#34;: &#34;show&#34;,
   &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;,
   &#34;args&#34;: {
     &#34;step&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.bindings-help</code></td><td>normal</td><td><code>shift&#43;tab</code></td><td><pre>{
-  &#34;verb&#34;: &#34;view&#34;,
+  &#34;verb&#34;: &#34;show&#34;,
   &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;,
   &#34;args&#34;: {
     &#34;step&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.bindings-help</code></td><td>normal</td><td><code>n</code></td><td><pre>{
-  &#34;verb&#34;: &#34;noun&#34;,
-  &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;
+  &#34;verb&#34;: &#34;pick&#34;,
+  &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;,
+  &#34;args&#34;: {
+    &#34;what&#34;: &#34;noun&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.bindings-help</code></td><td>normal</td><td><code>m</code></td><td><pre>{
-  &#34;verb&#34;: &#34;mode&#34;,
-  &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;
+  &#34;verb&#34;: &#34;pick&#34;,
+  &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;,
+  &#34;args&#34;: {
+    &#34;what&#34;: &#34;mode&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.bindings-help</code></td><td>normal</td><td><code>p</code></td><td><pre>{
-  &#34;verb&#34;: &#34;place&#34;,
-  &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;
+  &#34;verb&#34;: &#34;pick&#34;,
+  &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;,
+  &#34;args&#34;: {
+    &#34;what&#34;: &#34;place&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.bindings-help</code></td><td>normal</td><td><code>enter</code></td><td><pre>{
   &#34;verb&#34;: &#34;run&#34;,
   &#34;noun&#34;: &#34;ochazuke.bindings-help&#34;
@@ -479,6 +492,417 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.mode&#34;,
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;help_bind_pending&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>&lt;printable&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-type&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>&lt;paste&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-type&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>space</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-type&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;text&#34;: &#34; &#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>backspace when list-unfiltered</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-keep&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>backspace</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-erase&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>ctrl&#43;h when list-unfiltered</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-keep&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>ctrl&#43;h</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-erase&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>ctrl&#43;u</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;query&#34;: &#34;&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;clamp&#34;: true,
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>ctrl&#43;n</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;clamp&#34;: true,
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;clamp&#34;: true,
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>ctrl&#43;p</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;clamp&#34;: true,
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>enter when list-chooses</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-choose&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>enter</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-keep&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-clear&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;cycle-match&#34;,
+  &#34;noun&#34;: &#34;ochazuke.search&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>list_filter</td><td><code>shift&#43;tab</code></td><td><pre>{
+  &#34;verb&#34;: &#34;cycle-match&#34;,
+  &#34;noun&#34;: &#34;ochazuke.search&#34;,
+  &#34;args&#34;: {
+    &#34;step&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>space</code></td><td><pre>{
+  &#34;verb&#34;: &#34;mark&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z s</code></td><td><pre>{
+  &#34;verb&#34;: &#34;sort-column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;leave&#34;,
+  &#34;noun&#34;: &#34;ochazuke.mode&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z /</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-prop&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z !</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-prop-clear&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z C</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-props-clear&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z ]</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-cycle&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;step&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z [</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-cycle&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;step&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z l</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z h</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>g g</code></td><td><pre>{
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;position&#34;: &#34;first&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>g esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;leave&#34;,
+  &#34;noun&#34;: &#34;ochazuke.mode&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>G</code></td><td><pre>{
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;position&#34;: &#34;last&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>ctrl&#43;d</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1,
+    &#34;half&#34;: true
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>ctrl&#43;u</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1,
+    &#34;half&#34;: true
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>ctrl&#43;f</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>ctrl&#43;b</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>h when table-column-left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>h when table-scrolls-left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>h when table-spills-left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;previous&#34;,
+  &#34;noun&#34;: &#34;ochazuke.focus&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>h when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>h when table-scrolls-clamp</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>left when table-column-left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>left when table-scrolls-left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>left when table-spills-left</code></td><td><pre>{
+  &#34;verb&#34;: &#34;previous&#34;,
+  &#34;noun&#34;: &#34;ochazuke.focus&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>left when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>left when table-scrolls-clamp</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>l when table-column-right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>l when table-scrolls-right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>l when table-spills-right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;ochazuke.focus&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>l when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>l when table-scrolls-clamp</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>right when table-column-right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>right when table-scrolls-right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>right when table-spills-right</code></td><td><pre>{
+  &#34;verb&#34;: &#34;next&#34;,
+  &#34;noun&#34;: &#34;ochazuke.focus&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>right when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>right when table-scrolls-clamp</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>home when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;to&#34;: &#34;first&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>end when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;to&#34;: &#34;last&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>$ when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;to&#34;: &#34;last&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>^ when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;to&#34;: &#34;first&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>0 when no-count</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;to&#34;: &#34;first&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>| when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>g c</code></td><td><pre>{
+  &#34;verb&#34;: &#34;choose-column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>y when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;yank&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;what&#34;: &#34;cell&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>Y</code></td><td><pre>{
+  &#34;verb&#34;: &#34;yank&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;what&#34;: &#34;row&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z &gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;resize-column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: 1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z &lt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;resize-column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;delta&#34;: -1
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z f</code></td><td><pre>{
+  &#34;verb&#34;: &#34;fit-column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z F</code></td><td><pre>{
+  &#34;verb&#34;: &#34;fit-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z =</code></td><td><pre>{
+  &#34;verb&#34;: &#34;reset-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>z p when table-cells</code></td><td><pre>{
+  &#34;verb&#34;: &#34;toggle-pin-column&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>$</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;to&#34;: &#34;last&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>^</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;to&#34;: &#34;first&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>0 when row-table-no-count</code></td><td><pre>{
+  &#34;verb&#34;: &#34;scroll-columns&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;to&#34;: &#34;first&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>V</code></td><td><pre>{
+  &#34;verb&#34;: &#34;visual&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>esc when list-visual</code></td><td><pre>{
+  &#34;verb&#34;: &#34;end-visual&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>normal</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;filter-clear&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>visual-line</td><td><code>d</code></td><td><pre>{
+  &#34;verb&#34;: &#34;apply&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;verb&#34;: &#34;delete&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>visual-line</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;end-visual&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>visual-line</td><td><code>y</code></td><td><pre>{
+  &#34;verb&#34;: &#34;yank&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
+  &#34;args&#34;: {
+    &#34;what&#34;: &#34;row&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.collection</code></td><td>visual-line</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
+  &#34;verb&#34;: &#34;enter&#34;,
+  &#34;noun&#34;: &#34;ochazuke.mode&#34;,
+  &#34;args&#34;: {
+    &#34;mode&#34;: &#34;count_pending&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.completion</code></td><td>insert</td><td><code>esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;dismiss&#34;,
@@ -574,8 +998,8 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;lines&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.docs-viewer</code></td><td>normal</td><td><code>g g</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;first&#34;
   }
@@ -583,35 +1007,39 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;verb&#34;: &#34;leave&#34;,
   &#34;noun&#34;: &#34;ochazuke.mode&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.docs-viewer</code></td><td>normal</td><td><code>G</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;last&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.docs-viewer</code></td><td>normal</td><td><code>ctrl&#43;d</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: 1,
     &#34;half&#34;: true
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.docs-viewer</code></td><td>normal</td><td><code>ctrl&#43;u</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: -1,
     &#34;half&#34;: true
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.docs-viewer</code></td><td>normal</td><td><code>ctrl&#43;f</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.docs-viewer</code></td><td>normal</td><td><code>ctrl&#43;b</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.docs-viewer</code></td><td>normal</td><td><code>/</code></td><td><pre>{
@@ -878,7 +1306,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.input&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>insert</td><td><code>ctrl&#43;\</code></td><td><pre>{
   &#34;verb&#34;: &#34;help&#34;,
-  &#34;noun&#34;: &#34;ochazuke.bindings&#34;
+  &#34;noun&#34;: &#34;ochazuke.binding&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>$</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
   &#34;noun&#34;: &#34;ochazuke.input&#34;,
@@ -974,6 +1402,60 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;word-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>W</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;WORD-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>B</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;WORD-backward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>E</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;WORD-end&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>} when multiline</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;paragraph-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>{ when multiline</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;paragraph-backward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>H</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;screen-top&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>M</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;screen-middle&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>L</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;screen-bottom&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>%</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;match&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>normal</td><td><code>A</code></td><td><pre>{
   &#34;verb&#34;: &#34;begin&#34;,
@@ -1191,6 +1673,60 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;word-forward&#34;
   }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>W</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;WORD-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>B</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;WORD-backward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>E</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;WORD-end&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>} when multiline</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;paragraph-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>{ when multiline</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;paragraph-backward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>H</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;screen-top&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>M</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;screen-middle&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>L</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;screen-bottom&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>%</code></td><td><pre>{
+  &#34;verb&#34;: &#34;operator&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;match&#34;
+  }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>operator_pending</td><td><code>y when op:y</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
   &#34;noun&#34;: &#34;ochazuke.input&#34;,
@@ -1322,6 +1858,60 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.input&#34;,
   &#34;args&#34;: {
     &#34;motion&#34;: &#34;word-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>W</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;WORD-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>B</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;WORD-backward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>E</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;WORD-end&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>} when multiline</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;paragraph-forward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>{ when multiline</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;paragraph-backward&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>H</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;screen-top&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>M</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;screen-middle&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>L</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;screen-bottom&#34;
+  }
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>%</code></td><td><pre>{
+  &#34;verb&#34;: &#34;move&#34;,
+  &#34;noun&#34;: &#34;ochazuke.input&#34;,
+  &#34;args&#34;: {
+    &#34;motion&#34;: &#34;match&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.editor</code></td><td>visual</td><td><code>c</code></td><td><pre>{
   &#34;verb&#34;: &#34;operator&#34;,
@@ -1474,14 +2064,14 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;mode&#34;: &#34;normal&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-form</code></td><td>normal</td><td><code>esc when filter-form-text</code></td><td><pre>{
-  &#34;verb&#34;: &#34;focus&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
   &#34;noun&#34;: &#34;ochazuke.filter-form&#34;,
   &#34;args&#34;: {
     &#34;part&#34;: &#34;field&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-form</code></td><td>normal</td><td><code>z ]</code></td><td><pre>{
   &#34;verb&#34;: &#34;filter-cycle&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
   &#34;args&#34;: {
     &#34;step&#34;: 1
   }
@@ -1490,33 +2080,33 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.mode&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-form</code></td><td>normal</td><td><code>z [</code></td><td><pre>{
   &#34;verb&#34;: &#34;filter-cycle&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
   &#34;args&#34;: {
     &#34;step&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-form</code></td><td>normal</td><td><code>D</code></td><td><pre>{
   &#34;verb&#34;: &#34;delete-saved&#34;,
   &#34;noun&#34;: &#34;ochazuke.filter-form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-save</code></td><td>Any base mode</td><td><code>enter</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-save-form</code></td><td>Any base mode</td><td><code>enter</code></td><td><pre>{
   &#34;verb&#34;: &#34;write-saved&#34;,
   &#34;noun&#34;: &#34;ochazuke.filter-form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-save</code></td><td>insert</td><td><code>esc</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-save-form</code></td><td>insert</td><td><code>esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;switch&#34;,
   &#34;noun&#34;: &#34;ochazuke.mode&#34;,
   &#34;args&#34;: {
     &#34;mode&#34;: &#34;normal&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-values</code></td><td>normal</td><td><code>space</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-value</code></td><td>normal</td><td><code>space</code></td><td><pre>{
   &#34;verb&#34;: &#34;toggle&#34;,
   &#34;noun&#34;: &#34;ochazuke.filter-form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-values</code></td><td>normal</td><td><code>esc</code></td><td><pre>{
-  &#34;verb&#34;: &#34;focus&#34;,
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.filter-value</code></td><td>normal</td><td><code>esc</code></td><td><pre>{
+  &#34;verb&#34;: &#34;goto&#34;,
   &#34;noun&#34;: &#34;ochazuke.filter-form&#34;,
   &#34;args&#34;: {
     &#34;part&#34;: &#34;field&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.find-line</code></td><td>insert</td><td><code>enter</code></td><td><pre>{
-  &#34;verb&#34;: &#34;commit&#34;,
+  &#34;verb&#34;: &#34;accept&#34;,
   &#34;noun&#34;: &#34;ochazuke.find-line&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.find-line</code></td><td>insert</td><td><code>esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;close&#34;,
@@ -1545,94 +2135,94 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.form</code></td><td>normal</td><td><code>C</code></td><td><pre>{
   &#34;verb&#34;: &#34;clear&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>j</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-line&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: 1
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>j</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>j</code></td><td><pre>{
   &#34;verb&#34;: &#34;next&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>down</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-line&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: 1
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>down</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>down</code></td><td><pre>{
   &#34;verb&#34;: &#34;next&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>k</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-line&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: -1
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>k</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>k</code></td><td><pre>{
   &#34;verb&#34;: &#34;previous&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>up</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-line&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: -1
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>up</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>up</code></td><td><pre>{
   &#34;verb&#34;: &#34;previous&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>l</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>l</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-move&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: 1
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>right</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>right</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-move&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: 1
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>h</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>h</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-move&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: -1
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>left</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>left</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-move&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: -1
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>space</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>space</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-toggle&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>!</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>!</code></td><td><pre>{
   &#34;verb&#34;: &#34;invert&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>0</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>0</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-edge&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;first-col&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>$</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>$</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-edge&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;last-col&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>g g</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>g g</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-edge&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;first&#34;
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>g esc</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>g esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;leave&#34;,
   &#34;noun&#34;: &#34;ochazuke.mode&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chips</code></td><td>normal</td><td><code>G</code></td><td><pre>{
+}</pre></td></tr><tr class="searchable"><td><code>ochazuke.form-chip</code></td><td>normal</td><td><code>G</code></td><td><pre>{
   &#34;verb&#34;: &#34;chip-edge&#34;,
   &#34;noun&#34;: &#34;ochazuke.form&#34;,
   &#34;args&#34;: {
@@ -1794,417 +2384,6 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;args&#34;: {
     &#34;insert&#34;: true
   }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>&lt;printable&gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-type&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>&lt;paste&gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-type&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>space</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-type&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;text&#34;: &#34; &#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>backspace when list-unfiltered</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-keep&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>backspace</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-erase&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>ctrl&#43;h when list-unfiltered</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-keep&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>ctrl&#43;h</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-erase&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>ctrl&#43;u</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;query&#34;: &#34;&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>down</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;clamp&#34;: true,
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>ctrl&#43;n</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;clamp&#34;: true,
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>up</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;clamp&#34;: true,
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>ctrl&#43;p</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;clamp&#34;: true,
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>enter when list-chooses</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-choose&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>enter</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-keep&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>esc</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-clear&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>tab</code></td><td><pre>{
-  &#34;verb&#34;: &#34;cycle-match&#34;,
-  &#34;noun&#34;: &#34;ochazuke.search&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>list_filter</td><td><code>shift&#43;tab</code></td><td><pre>{
-  &#34;verb&#34;: &#34;cycle-match&#34;,
-  &#34;noun&#34;: &#34;ochazuke.search&#34;,
-  &#34;args&#34;: {
-    &#34;step&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>j</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>down</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>k</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>up</code></td><td><pre>{
-  &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>space</code></td><td><pre>{
-  &#34;verb&#34;: &#34;mark&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z s</code></td><td><pre>{
-  &#34;verb&#34;: &#34;sort-column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z esc</code></td><td><pre>{
-  &#34;verb&#34;: &#34;leave&#34;,
-  &#34;noun&#34;: &#34;ochazuke.mode&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z /</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-prop&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z !</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-prop-clear&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z C</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-props-clear&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z ]</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-cycle&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;step&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z [</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-cycle&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;step&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z l</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z h</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>g g</code></td><td><pre>{
-  &#34;verb&#34;: &#34;goto&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;position&#34;: &#34;first&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>g esc</code></td><td><pre>{
-  &#34;verb&#34;: &#34;leave&#34;,
-  &#34;noun&#34;: &#34;ochazuke.mode&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>G</code></td><td><pre>{
-  &#34;verb&#34;: &#34;goto&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;position&#34;: &#34;last&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>ctrl&#43;d</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1,
-    &#34;half&#34;: true
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>ctrl&#43;u</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1,
-    &#34;half&#34;: true
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>ctrl&#43;f</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>ctrl&#43;b</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>h when table-column-left</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>h when table-scrolls-left</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>h when table-spills-left</code></td><td><pre>{
-  &#34;verb&#34;: &#34;previous&#34;,
-  &#34;noun&#34;: &#34;ochazuke.focus&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>h when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>h when table-scrolls-clamp</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>left when table-column-left</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>left when table-scrolls-left</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>left when table-spills-left</code></td><td><pre>{
-  &#34;verb&#34;: &#34;previous&#34;,
-  &#34;noun&#34;: &#34;ochazuke.focus&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>left when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>left when table-scrolls-clamp</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>l when table-column-right</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>l when table-scrolls-right</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>l when table-spills-right</code></td><td><pre>{
-  &#34;verb&#34;: &#34;next&#34;,
-  &#34;noun&#34;: &#34;ochazuke.focus&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>l when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>l when table-scrolls-clamp</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>right when table-column-right</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>right when table-scrolls-right</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>right when table-spills-right</code></td><td><pre>{
-  &#34;verb&#34;: &#34;next&#34;,
-  &#34;noun&#34;: &#34;ochazuke.focus&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>right when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>right when table-scrolls-clamp</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>home when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;to&#34;: &#34;first&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>end when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;to&#34;: &#34;last&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>$ when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;to&#34;: &#34;last&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>^ when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;to&#34;: &#34;first&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>0 when no-count</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;to&#34;: &#34;first&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>| when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>g c</code></td><td><pre>{
-  &#34;verb&#34;: &#34;choose-column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>y when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;yank&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;what&#34;: &#34;cell&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>Y</code></td><td><pre>{
-  &#34;verb&#34;: &#34;yank&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;what&#34;: &#34;row&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z &gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;resize-column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: 1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z &lt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;resize-column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;delta&#34;: -1
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z f</code></td><td><pre>{
-  &#34;verb&#34;: &#34;fit-column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z F</code></td><td><pre>{
-  &#34;verb&#34;: &#34;fit-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z =</code></td><td><pre>{
-  &#34;verb&#34;: &#34;reset-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>z p when table-cells</code></td><td><pre>{
-  &#34;verb&#34;: &#34;toggle-pin-column&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>$</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;to&#34;: &#34;last&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>^</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;to&#34;: &#34;first&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>0 when row-table-no-count</code></td><td><pre>{
-  &#34;verb&#34;: &#34;scroll-columns&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;to&#34;: &#34;first&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>V</code></td><td><pre>{
-  &#34;verb&#34;: &#34;visual&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>esc when list-visual</code></td><td><pre>{
-  &#34;verb&#34;: &#34;end-visual&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>normal</td><td><code>esc</code></td><td><pre>{
-  &#34;verb&#34;: &#34;filter-clear&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>visual-line</td><td><code>d</code></td><td><pre>{
-  &#34;verb&#34;: &#34;apply&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;verb&#34;: &#34;delete&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>visual-line</td><td><code>esc</code></td><td><pre>{
-  &#34;verb&#34;: &#34;end-visual&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>visual-line</td><td><code>y</code></td><td><pre>{
-  &#34;verb&#34;: &#34;yank&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
-  &#34;args&#34;: {
-    &#34;what&#34;: &#34;row&#34;
-  }
-}</pre></td></tr><tr class="searchable"><td><code>ochazuke.list</code></td><td>visual-line</td><td><code>&lt;digit-0&gt;</code></td><td><pre>{
-  &#34;verb&#34;: &#34;enter&#34;,
-  &#34;noun&#34;: &#34;ochazuke.mode&#34;,
-  &#34;args&#34;: {
-    &#34;mode&#34;: &#34;count_pending&#34;
-  }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.markdown</code></td><td>normal</td><td><code>enter when markdown-on-link</code></td><td><pre>{
   &#34;verb&#34;: &#34;link-open&#34;,
   &#34;noun&#34;: &#34;ochazuke.markdown&#34;
@@ -2215,7 +2394,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;verb&#34;: &#34;leave&#34;,
   &#34;noun&#34;: &#34;ochazuke.mode&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.markdown</code></td><td>normal</td><td><code>y l when markdown-on-link</code></td><td><pre>{
-  &#34;verb&#34;: &#34;link-copy&#34;,
+  &#34;verb&#34;: &#34;link-yank&#34;,
   &#34;noun&#34;: &#34;ochazuke.markdown&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.markdown</code></td><td>normal</td><td><code>y esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;leave&#34;,
@@ -2248,7 +2427,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;where&#34;: &#34;below&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.markdown</code></td><td>normal</td><td><code>n when markdown-on-item</code></td><td><pre>{
-  &#34;verb&#34;: &#34;note&#34;,
+  &#34;verb&#34;: &#34;annotate&#34;,
   &#34;noun&#34;: &#34;ochazuke.markdown&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.markdown</code></td><td>normal</td><td><code>d d</code></td><td><pre>{
   &#34;verb&#34;: &#34;cut&#34;,
@@ -2269,7 +2448,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;verb&#34;: &#34;leave&#34;,
   &#34;noun&#34;: &#34;ochazuke.mode&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.markdown</code></td><td>normal</td><td><code>g O</code></td><td><pre>{
-  &#34;verb&#34;: &#34;outline&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
   &#34;noun&#34;: &#34;ochazuke.markdown&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.markdown</code></td><td>normal</td><td><code>u</code></td><td><pre>{
   &#34;verb&#34;: &#34;undo&#34;,
@@ -2536,7 +2715,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;delta&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.markdown-view</code></td><td>normal</td><td><code>y a</code></td><td><pre>{
-  &#34;verb&#34;: &#34;copy&#34;,
+  &#34;verb&#34;: &#34;yank&#34;,
   &#34;noun&#34;: &#34;ochazuke.markdown-view&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.markdown-view</code></td><td>normal</td><td><code>y esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;leave&#34;,
@@ -2729,25 +2908,25 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.input&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.picker</code></td><td>Any base mode</td><td><code>ctrl&#43;f when list-prop-filtered</code></td><td><pre>{
   &#34;verb&#34;: &#34;filter-cycle&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
   &#34;args&#34;: {
     &#34;step&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.picker</code></td><td>Any base mode</td><td><code>ctrl&#43;f</code></td><td><pre>{
   &#34;verb&#34;: &#34;filter-prop&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
   &#34;args&#34;: {
     &#34;clear&#34;: true
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.picker</code></td><td>Any base mode</td><td><code>alt&#43;]</code></td><td><pre>{
   &#34;verb&#34;: &#34;filter-cycle&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
   &#34;args&#34;: {
     &#34;step&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.picker</code></td><td>Any base mode</td><td><code>alt&#43;[</code></td><td><pre>{
   &#34;verb&#34;: &#34;filter-cycle&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
   &#34;args&#34;: {
     &#34;step&#34;: -1
   }
@@ -2944,13 +3123,13 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;noun&#34;: &#34;ochazuke.setting&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.setting-change</code></td><td>normal</td><td><code>s</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.setting-change</code></td><td>normal</td><td><code>space</code></td><td><pre>{
   &#34;verb&#34;: &#34;move&#34;,
-  &#34;noun&#34;: &#34;ochazuke.list&#34;,
+  &#34;noun&#34;: &#34;ochazuke.collection&#34;,
   &#34;args&#34;: {
     &#34;delta&#34;: 1
   }
@@ -2973,7 +3152,7 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;verb&#34;: &#34;reset&#34;,
   &#34;noun&#34;: &#34;ochazuke.setting-item&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.setting-value</code></td><td>insert</td><td><code>enter</code></td><td><pre>{
-  &#34;verb&#34;: &#34;commit&#34;,
+  &#34;verb&#34;: &#34;accept&#34;,
   &#34;noun&#34;: &#34;ochazuke.setting-value&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.setting-value</code></td><td>insert</td><td><code>esc</code></td><td><pre>{
   &#34;verb&#34;: &#34;close&#34;,
@@ -3298,8 +3477,8 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;delta&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.timeline-body</code></td><td>normal</td><td><code>g g</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;first&#34;
   }
@@ -3307,35 +3486,39 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;verb&#34;: &#34;leave&#34;,
   &#34;noun&#34;: &#34;ochazuke.mode&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.timeline-body</code></td><td>normal</td><td><code>G</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;last&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.timeline-body</code></td><td>normal</td><td><code>ctrl&#43;d</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: 1,
     &#34;half&#34;: true
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.timeline-body</code></td><td>normal</td><td><code>ctrl&#43;u</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: -1,
     &#34;half&#34;: true
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.timeline-body</code></td><td>normal</td><td><code>ctrl&#43;f</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.timeline-body</code></td><td>normal</td><td><code>ctrl&#43;b</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.timeline-body</code></td><td>normal</td><td><code>g j</code></td><td><pre>{
@@ -3399,8 +3582,8 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
     &#34;steps&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.yank-history</code></td><td>Any base mode</td><td><code>g g</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;first&#34;
   }
@@ -3408,35 +3591,39 @@ nav a[aria-current="page"]{font-weight:700;text-decoration-thickness:3px}
   &#34;verb&#34;: &#34;leave&#34;,
   &#34;noun&#34;: &#34;ochazuke.mode&#34;
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.yank-history</code></td><td>Any base mode</td><td><code>G</code></td><td><pre>{
-  &#34;verb&#34;: &#34;edge&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;goto&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
     &#34;edge&#34;: &#34;last&#34;
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.yank-history</code></td><td>Any base mode</td><td><code>ctrl&#43;d</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: 1,
     &#34;half&#34;: true
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.yank-history</code></td><td>Any base mode</td><td><code>ctrl&#43;u</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: -1,
     &#34;half&#34;: true
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.yank-history</code></td><td>Any base mode</td><td><code>ctrl&#43;f</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: 1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.yank-history</code></td><td>Any base mode</td><td><code>ctrl&#43;b</code></td><td><pre>{
-  &#34;verb&#34;: &#34;page&#34;,
-  &#34;noun&#34;: &#34;ochazuke.view&#34;,
+  &#34;verb&#34;: &#34;scroll&#34;,
+  &#34;noun&#34;: &#34;ochazuke.viewport&#34;,
   &#34;args&#34;: {
+    &#34;by&#34;: &#34;page&#34;,
     &#34;delta&#34;: -1
   }
 }</pre></td></tr><tr class="searchable"><td><code>ochazuke.yank-history</code></td><td>Any base mode</td><td><code>enter</code></td><td><pre>{

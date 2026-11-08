@@ -1,7 +1,7 @@
 {
   "name": "footer: the focused row's verbs first, no motions",
   "area": "chrome",
-  "width": 120,
+  "width": 160,
   "page": {
     "lists": [
       {

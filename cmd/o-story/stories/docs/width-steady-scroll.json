@@ -15,7 +15,7 @@
   "script": [
     ":",
     {
-      "type": "docs open index"
+      "type": "docs-viewer open index"
     },
     "enter",
     "j",

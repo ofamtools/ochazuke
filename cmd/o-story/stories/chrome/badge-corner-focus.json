@@ -14,8 +14,8 @@
   ],
   "expect": [
     {"after": 3, "badge": "NORMAL", "contains": ["demo  NORMAL", "◆ o-story                                                demo  NORMAL"]},
-    {"after": 6, "badge": "NORMAL", "contains": ["work › list › a1  NORMAL", "◆ o-story                                    work › list › a1  NORMAL"]},
-    {"after": 8, "modal": "confirm", "badge": "NORMAL", "contains": ["work › list › a2 › confirm  NORMAL", "◆ o-story                          work › list › a2 › confirm  NORMAL"]},
-    {"after": 12, "badge": "NORMAL", "lacks": ["› list"], "contains": ["◆ o-story                                                      NORMAL"]}
+    {"after": 6, "badge": "NORMAL", "contains": ["work › collection › a1  NORMAL", "◆ o-story                              work › collection › a1  NORMAL"]},
+    {"after": 8, "modal": "confirm", "badge": "NORMAL", "contains": ["work › collection › a2 › confirm  NORMAL", "◆ o-story                    work › collection › a2 › confirm  NORMAL"]},
+    {"after": 12, "badge": "NORMAL", "lacks": ["› collection"], "contains": ["◆ o-story                                                      NORMAL"]}
   ]
 }

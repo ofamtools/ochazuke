@@ -5,7 +5,7 @@
 r|  a1
  |  a2        ╭──────────────────────────────────────────────────────────────────────────────────────────────╮
  |            │ Keys · table                                                                                 │
- |            │ noun: list · place: page1 › demo · .verb is list.verb · (op) answered by app · op? guarded   │
+ |            │ noun: collection · place: page1 › demo · .verb is collection.verb · (op) answered by app · … │
  |            │ key         normal          list_filter      visual          visual-block     visual-line    │
  |            │ $           .column?                                                          .column?       │
 R|            │ 0           .column?                                                          .column?       │
@@ -21,17 +21,17 @@ R|            │ 0           .column?                                          
  |            │ ctrl+n                      .move?                                                           │
  |            │ 1–12 / 90                                                                                    │
  |            │ ──────────────────────────────────────────────────────────────────────────────────────────── │
- |            │ normal       collection.column when no-count · list                                                │
+ |            │ normal       collection.column when no-count · collection                                    │
  |            │              to first                                                                        │
- |            │              then collection.scroll-columns when row-table-no-count · list                         │
+ |            │              then collection.scroll-columns when row-table-no-count · collection             │
  |            │                   to first                                                                   │
- |            │              then viewport.goto when no-count · app                                              │
+ |            │              then viewport.goto when no-count · app                                          │
  |            │                   edge first-col                                                             │
- |            │ visual-line  collection.column when no-count · list                                                │
+ |            │ visual-line  collection.column when no-count · collection                                    │
  |            │              to first                                                                        │
- |            │              then collection.scroll-columns when row-table-no-count · list                         │
+ |            │              then collection.scroll-columns when row-table-no-count · collection             │
  |            │                   to first                                                                   │
- |            │ space collection.mark · S view · n noun · p place · esc modal.close · : palette.open · ? bindings… │
+ |            │ space collection.mark · S view · n noun · p place · esc modal.close · : palette.open · ? bi… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |

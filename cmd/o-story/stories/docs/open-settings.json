@@ -1,5 +1,5 @@
 {
-  "name": "help.markdown off (the plain docs viewer): :docs open settings shows the generated settings page headed by the binary's build; :set docs.show-config=false drops only the yours lines; :help reaches it too; :docs open bindings shows the global key reference",
+  "name": "help.markdown off (the plain docs viewer): :docs-viewer open settings shows the generated settings page headed by the binary's build; :set docs.show-config=false drops only the yours lines; :help reaches it too; :docs-viewer open bindings shows the global key reference",
   "area": "docs",
   "width": 110,
   "height": 58,
@@ -10,14 +10,14 @@
     "lists": [{"id": "a", "rows": 2}]
   },
   "script": [
-    ":", {"type": "docs open settings"}, "enter",
+    ":", {"type": "docs-viewer open settings"}, "enter",
     "j", "/", {"type": "### `focus-display`"}, "enter",
     "esc",
     ":", {"type": "set docs.show-config=false"}, "enter",
     ":", {"type": "help settings"}, "enter",
     "/", {"type": "### `focus-display`"}, "enter",
     "esc",
-    ":", {"type": "docs open bindings"}, "enter"
+    ":", {"type": "docs-viewer open bindings"}, "enter"
   ],
   "expect": [
     {"after": 3, "modal": "docs-viewer", "contains": [" · catalog sha256:", "settings · 1–", "# Settings"]},

@@ -74,7 +74,7 @@
     "contains": [
       "changes.note hi",
       "changes.size 2",
-      "prop         status",
+      "prop         stat",
       "value        done"
     ],
     "lacks": [

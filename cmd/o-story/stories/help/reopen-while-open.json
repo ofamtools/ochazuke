@@ -4,7 +4,7 @@
   "width": 120,
   "height": 40,
   "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
-  "script": ["?", "?", ":", {"type": "bindings help"}, "enter", "esc"],
+  "script": ["?", "?", ":", {"type": "binding help"}, "enter", "esc"],
   "expect": [
     {"after": 1, "modal": "bindings-help", "contains": ["Keys"]},
     {"after": 2, "modal": "bindings-help", "contains": ["Keys", "demo.open"], "lacks": ["already open"]},

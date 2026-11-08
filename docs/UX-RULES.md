@@ -398,7 +398,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   Check: the diff.
 - **R5.4** Selection survives `SetItems` by stable id. Story: needed
   (`lists/setitems-keeps-selection`).
-- **R5.5** `List.Move` (the API) always clamps; only the `collection.move`
+- **R5.5** `Collection.Move` (the API) always clamps; only the `collection.move`
   operation spills. Check: unit test.
 - **R5.6** `/` filters any focused list unless the app binds `/` on the
   stack: typing narrows the rows (label and cells, every word by

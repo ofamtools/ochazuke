@@ -9,7 +9,7 @@
   },
   "script": ["3", "j", "g", "g"],
   "expect": [
-    {"after": 2, "focus": "a4", "badge": "NORMAL", "order": ["work › list › a4", "3j", "NORMAL"], "contains": ["◆ o-story       work › list › a4                           3j  NORMAL"]},
-    {"after": 4, "focus": "a1", "badge": "NORMAL", "order": ["work › list › a1", "3j", "g g", "NORMAL"], "contains": ["◆ o-story       work › list › a1                      3j  g g  NORMAL"]}
+    {"after": 2, "focus": "a4", "badge": "NORMAL", "order": ["work › collection › a4", "3j", "NORMAL"], "contains": ["◆ o-story work › collection › a4                           3j  NORMAL"]},
+    {"after": 4, "focus": "a1", "badge": "NORMAL", "order": ["work › collection › a1", "3j", "g g", "NORMAL"], "contains": ["◆ o-story work › collection › a1                      3j  g g  NORMAL"]}
   ]
 }

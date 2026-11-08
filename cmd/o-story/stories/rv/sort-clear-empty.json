@@ -136,7 +136,7 @@
   "script": [
     ":",
     {
-      "type": "list sort-clear"
+      "type": "collection sort-clear"
     },
     "enter"
   ],

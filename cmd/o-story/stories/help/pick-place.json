@@ -11,11 +11,11 @@
       }
     ]
   },
-  "script": ["?", "S", "p", "n", "o", "enter", "p", "l", "i", "s", "t", "enter"],
+  "script": ["?", "S", "p", "n", "o", "enter", "p", "c", "o", "l", "l", "enter"],
   "expect": [
-    {"after": 2, "modal": "bindings-help", "contains": ["Keys · pick", "noun: demo · mode: normal · place: page1 › demo › list", "space         collection.mark ?", "p place"]},
-    {"after": 3, "contains": ["Place", "no place (noun + app)", "page1 › demo › list    1×  current"]},
+    {"after": 2, "modal": "bindings-help", "contains": ["Keys · pick", "noun: demo · mode: normal · place: page1 › demo › collection", "space         collection.mark ?", "p place"]},
+    {"after": 3, "contains": ["Place", "no place (noun + app)", "page1 › demo › collection  1×  current"]},
     {"after": 6, "modal": "bindings-help", "contains": ["noun: demo · mode: normal · place: none"], "lacks": ["space         collection.mark ?"]},
-    {"after": 12, "modal": "bindings-help", "contains": ["noun: demo · mode: normal · place: page1 › demo › list", "space         collection.mark ?"]}
+    {"after": 12, "modal": "bindings-help", "contains": ["noun: demo · mode: normal · place: page1 › demo › collection", "space         collection.mark ?"]}
   ]
 }

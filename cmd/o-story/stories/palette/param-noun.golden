@@ -10,11 +10,11 @@ r|  b1
  |  b2
  |              ╭──────────────────────────────────────────────────╮
  |              │ Command palette                                  │
- |              │ : list focus                                     │
+ |              │ : page open                                      │
  |              │   missing id (string, pick)                      │
- |              │ id · string · required · a list · or any text    │
- |              │   a                                              │
- |              │   b                                              │
+ |              │ id · string · required · a page                  │
+ |              │   page1                                          │
+ |              │   About  __about                                 │
  |              │                                                  │
  |              │ enter palette.run · tab palette.complete · up p… │
  |              ╰──────────────────────────────────────────────────╯
