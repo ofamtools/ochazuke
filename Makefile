@@ -23,7 +23,9 @@ TEST_TIMEOUT ?= 60m
 
 # test is the gate: gofmt, vet and test of the root module and of every
 # nested module. The root module (root, cli, markdown, internal/demo, ...) runs
-# once under -race with no plain run; the nested modules (cmd/o-story,
+# once under -race with no plain run (-count=1 on every go test here: the gate
+# never reuses a cached result, and go test spends minutes hashing the file
+# reads of a finished package to make it cacheable); the nested modules (cmd/o-story,
 # examples) run plain, since o-story under -race took 1707 s for no gain. A bare
 # go test ./... at the root runs the root module only and fails
 # TestNestedModulesRunToo; test sets OCHAZUKE_NESTED_TESTS=1 for it. Run it
@@ -31,8 +33,8 @@ TEST_TIMEOUT ?= 60m
 test:
 	@out=$$(gofmt -l .); if [ -n "$$out" ]; then echo "gofmt:"; echo "$$out"; exit 1; fi
 	go vet ./...
-	OCHAZUKE_NESTED_TESTS=1 go test -race -timeout $(TEST_TIMEOUT) ./...
-	for d in $(NESTED); do (cd $$d && go vet ./... && go test ./...) || exit 1; done
+	OCHAZUKE_NESTED_TESTS=1 go test -race -count=1 -timeout $(TEST_TIMEOUT) ./...
+	for d in $(NESTED); do (cd $$d && go vet ./... && go test -count=1 ./...) || exit 1; done
 
 # stories runs only o-story's stories and goldens (about 3 minutes), against the
 # working tree through the go.work above: the quick check after a settings,
