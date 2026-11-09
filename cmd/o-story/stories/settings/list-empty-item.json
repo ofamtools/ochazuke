@@ -9,7 +9,7 @@
     "lists": [{"id": "a", "rows": 1}],
     "bind": [{"noun": "demo", "keys": "S", "do": "setting.open"}]
   },
-  "script": ["S", "n", "enter", "esc"],
+  "script": ["S", "n", "enter", "esc", "q"],
   "expect": [
     {"after": 1, "contains": ["ignore    no items"]},
     {"after": 3, "modal": "setting-prompt", "contains": ["an item cannot be empty"]},

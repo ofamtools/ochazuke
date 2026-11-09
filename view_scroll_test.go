@@ -71,6 +71,7 @@ func TestYankHistoryOpensOnGY(t *testing.T) {
 		t.Fatalf("g y on a list: top modal %q", r.TopModal())
 	}
 	motionKeys(t, r, m, "esc")
+	motionKeys(t, r, m, "q")
 	motionKeys(t, r, m, "j g g")
 	if r.Focus != "a1" || r.TopModal() != "" {
 		t.Fatalf("g g after g y: focus %q modal %q", r.Focus, r.TopModal())
@@ -149,7 +150,7 @@ func TestQColonOpensThePaletteOnItsHistory(t *testing.T) {
 	if !p.IsOpen() || p.Text() != "save sheet" || r.Registers().Macro.Recording != "" {
 		t.Fatalf("Q: open %v line %q recording %q", p.IsOpen(), p.Text(), r.Registers().Macro.Recording)
 	}
-	paletteKeys(t, p, "esc", "esc")
+	paletteKeys(t, p, "esc", "q")
 	for _, key := range []string{"Q", "a"} {
 		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
 			t.Fatal(err)

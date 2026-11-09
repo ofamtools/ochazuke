@@ -253,7 +253,7 @@ func (c *Chooser) PendingCommand() tea.Cmd {
 func registerChooser(r *Runtime) {
 	r.DefineGuard(PickerNormalModeGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])
-		return c != nil && c.spec.NormalMode
+		return c != nil && (c.spec.NormalMode || c.input.pin == "")
 	})
 	r.DefineGuard(PickerPropControlsGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])

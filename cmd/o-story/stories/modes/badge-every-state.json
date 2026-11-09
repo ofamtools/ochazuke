@@ -29,11 +29,12 @@
     "g",
     "esc",
     "x",
-    "esc",
+    "q",
     "?",
-    "esc",
+    "q",
     ":",
     "esc",
+    "q",
     "j",
     "i",
     "esc",
@@ -83,50 +84,56 @@
     },
     {
       "after": 8,
-      "modal": "",
+      "modal": "palette",
       "mode": "normal",
       "badge": "NORMAL"
     },
     {
       "after": 9,
-      "focus": "name",
+      "modal": "",
       "mode": "normal",
       "badge": "NORMAL"
     },
     {
       "after": 10,
-      "mode": "insert",
-      "badge": "INSERT"
-    },
-    {
-      "after": 11,
+      "focus": "name",
       "mode": "normal",
       "badge": "NORMAL"
     },
     {
+      "after": 11,
+      "mode": "insert",
+      "badge": "INSERT"
+    },
+    {
       "after": 12,
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 13,
       "mode": "visual",
       "badge": "VISUAL"
     },
     {
-      "after": 13,
+      "after": 14,
       "mode": "normal",
       "badge": "NORMAL",
       "focus": "name"
     },
     {
-      "after": 14,
+      "after": 15,
       "mode": "visual-line",
       "badge": "VISUAL-LINE"
     },
     {
-      "after": 15,
+      "after": 16,
       "mode": "normal",
       "badge": "NORMAL",
       "focus": "name"
     },
     {
-      "after": 16,
+      "after": 17,
       "mode": "operator_pending",
       "badge": "OPERATOR PENDING",
       "focus": "name"

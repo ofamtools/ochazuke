@@ -12,10 +12,10 @@
     },
     "bind": [{"noun": "app", "mode": "normal", "keys": "X", "do": "ochazuke.picker.open", "args": {"name": "pickers"}}]
   },
-  "script": ["X", {"type": "pages"}, "enter", "esc"],
+  "script": ["X", {"type": "pages"}, "enter", "esc", "q"],
   "expect": [
     {"after": 1, "modal": "picker-pickers", "contains": ["Pickers", "pages", "path", "commands", "demo"]},
     {"after": 3, "modal": "page-picker", "contains": ["Pages"]},
-    {"after": 4, "modal": "", "focus": "a1"}
+    {"after": 5, "modal": "", "focus": "a1"}
   ]
 }

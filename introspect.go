@@ -16,8 +16,8 @@ import (
 func (r *Runtime) FocusInTopLevel() bool { return r.focusInTopLevel() }
 
 // GuardNames lists every registered row guard (the built-ins and those of
-// DefineGuard), sorted. The "op:<key>" family is not listed: it is a
-// pattern, not a name.
+// DefineGuard), sorted. The "op:<key>" and "setting:<name>" families are
+// not listed: they are patterns, not names.
 func (r *Runtime) GuardNames() []string { return slices.Sorted(maps.Keys(r.guards)) }
 
 // GuardHolds evaluates the named guard at focus in the current mode, as the

@@ -182,7 +182,7 @@
   {
    "type": "Wo"
   },
-  "esc",
+  "esc", "q",
   ":",
   {
    "type": "demo get t1"
@@ -195,7 +195,7 @@
    "modal": "edit-choose"
   },
   {
-   "after": 3,
+   "after": 4,
    "modal": "",
    "focus": "t1",
    "mode": "normal"

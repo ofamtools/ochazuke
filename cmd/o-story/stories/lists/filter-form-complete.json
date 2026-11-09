@@ -151,7 +151,7 @@
     "ctrl+n",
     "ctrl+p",
     "enter",
-    "esc",
+    "esc", "q",
     "esc"
   ],
   "expect": [

@@ -131,7 +131,7 @@
     {
       "type": "ech"
     },
-    "esc"
+    "esc", "q"
   ],
   "expect": [
     {

@@ -8,7 +8,7 @@
     "lists": [{"id": "data", "rows": 3, "pin": "table"}],
     "focus": "data2"
   },
-  "script": ["?", ":", {"type": "mode pin instance=data mode=flat"}, "enter", "esc"],
+  "script": ["?", ":", {"type": "mode pin instance=data mode=flat"}, "enter", "q"],
   "expect": [
     {"after": 1, "modal": "bindings-help", "mode": "normal"},
     {"after": 2, "modal": "palette"},

@@ -89,7 +89,7 @@
       "type": "demo status"
     },
     "enter",
-    "esc",
+    "q",
     ":",
     {
       "type": "demo status doing --id t3"

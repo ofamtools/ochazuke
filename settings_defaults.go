@@ -274,6 +274,21 @@ func (r *Runtime) dropsInheritedSequences() bool {
 	return v != SequenceKeep
 }
 
+// ModalEscClosesSetting is the modal.esc-closes setting: off (the default),
+// esc only leaves insert in a modal and q closes it; on, esc closes a modal
+// as it did before (rows guarded "setting:modal.esc-closes", and a modal's
+// text input pinned to insert).
+const ModalEscClosesSetting = "modal.esc-closes"
+
+// releaseModalPin lets esc leave insert in a text input a modal hosts: the
+// input stays in insert on open, but is no longer pinned there, unless
+// modal.esc-closes is on.
+func (r *Runtime) releaseModalPin(in *Input) {
+	if in != nil && !r.settingBool(ModalEscClosesSetting) {
+		in.pin = ""
+	}
+}
+
 // RenameSelect is the rename.select setting: whether a rename opens with
 // its text selected. Read at the moment a rename opens.
 func (r *Runtime) RenameSelect() bool {

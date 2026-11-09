@@ -180,7 +180,7 @@ func TestHelpCommandBindingsEffectiveFilterAndEscape(t *testing.T) {
 				if r.TopModal() != helpID || list.Filter() != "" || list.Shown() != all || r.Mode.Name != "normal" {
 					t.Fatalf("unmatched filter esc: modal %q query %q shown %d/%d mode %q", r.TopModal(), list.Filter(), list.Shown(), all, r.Mode.Name)
 				}
-				keytest.Press(m, "esc")
+				keytest.Press(m, "q")
 				if r.TopModal() != "" || r.Focus != "w1" || r.Mode.Name != "normal" {
 					t.Fatalf("modal esc: modal %q focus %q mode %q", r.TopModal(), r.Focus, r.Mode.Name)
 				}

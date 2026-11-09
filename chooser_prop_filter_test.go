@@ -145,6 +145,7 @@ func TestChooserPropFilterRepeatCtrlFAndClearFallback(t *testing.T) {
 		t.Fatalf("ctrl+f: %s", r.TopModal())
 	}
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	keytest.Press(m, "alt+]")
 	keytest.Press(m, "ctrl+f")
 	if c.filters.vs.Saved != "agents" || r.TopModal() != c.Kind() {

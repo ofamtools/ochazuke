@@ -62,7 +62,7 @@
     "modal": "page-picker",
     "contains": [
       "enter picker.pick",
-      "esc modal.close"
+      "tab search.cycle-match"
     ],
     "lacks": [
       "picker.move"

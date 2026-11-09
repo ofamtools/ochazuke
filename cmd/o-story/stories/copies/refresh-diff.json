@@ -59,14 +59,14 @@
   "script": [
     "S",
     "F",
-    "esc",
+    "q",
     "j",
     "k",
     "F",
     "enter",
     "j",
     "enter",
-    "esc"
+    "q"
   ],
   "expect": [
     {

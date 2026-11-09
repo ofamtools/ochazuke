@@ -169,6 +169,7 @@ func (p *Palette) open() error {
 	}
 	p.seen = ""
 	p.r.setModalFocus(paletteID, p.line.ID)
+	p.r.releaseModalPin(p.line)
 	return nil
 }
 

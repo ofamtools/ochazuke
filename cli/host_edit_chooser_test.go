@@ -45,8 +45,10 @@ func TestMountedEditFieldChooser(t *testing.T) {
 				t.Fatal(err)
 			}
 			keytest.Type(m, "true")
-			if _, err := r.HandleBinding("esc"); err != nil {
-				t.Fatal(err)
+			for _, key := range []string{"esc", "q"} {
+				if _, err := r.HandleBinding(key); err != nil {
+					t.Fatal(err)
+				}
 			}
 			if err := Settle(r, nil); err != nil {
 				t.Fatal(err)

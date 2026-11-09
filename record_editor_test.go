@@ -188,6 +188,7 @@ func TestRecordChoiceFieldUsesTheChooser(t *testing.T) {
 	// esc leaves the chooser without a write.
 	keytest.Press(m, "enter")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if r.TopModal() != "" || len(*writes) != 1 {
 		t.Fatalf("modal %q writes %v", r.TopModal(), *writes)
 	}
@@ -337,7 +338,9 @@ func TestRecordModalEditorRestoresTheFocus(t *testing.T) {
 		t.Fatalf("modal editor not drawn:\n%s", s)
 	}
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if !modal.Closed() || r.TopModal() != "" || r.Focus != "t1" || r.Mode.Name != "normal" {
 		t.Fatalf("closed %v modal %q focus %s", modal.Closed(), r.TopModal(), r.Focus)
 	}
@@ -533,6 +536,7 @@ func TestRecordSuggestionsLoadOffTheLoop(t *testing.T) {
 	// esc closes the chooser and cancels a load in flight.
 	keytest.Press(m, "enter")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	cancelled := false
 	for _, j := range r.Jobs() {
 		if j.Verb == "harness.models" && j.Status == JobCancelled {
@@ -656,6 +660,7 @@ func TestRecordReferenceChoices(t *testing.T) {
 				t.Fatalf("partial reference wrote: %v %v", e.Written(), writes)
 			}
 			keytest.Press(m, "esc")
+			keytest.Press(m, "q")
 			settle(m, keytest.Press(m, "i"))
 			keytest.Type(m, "Beta")
 			keytest.Press(m, "enter")

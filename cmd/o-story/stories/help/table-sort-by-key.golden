@@ -31,10 +31,10 @@ R|            │ $           .column?                                          
  |            │              to last                                                                         │
  |            │              then collection.scroll-columns when table-scrolls list-column-moves · collecti… │
  |            │                   to last                                                                    │
- |            │ space collection.mark · S view · n noun · p place · s sort key · esc modal.close · : palett… │
+ |            │ space collection.mark · S view · n noun · p place · s sort key · q modal.close · : palette.… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space collection.mark · S view · n noun · p place · s sort key · esc modal.close · : palette.open · ? binding.help …
+ |  space collection.mark · S view · n noun · p place · s sort key · q modal.close · : palette.open · ? binding.help · …
  |

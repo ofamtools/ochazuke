@@ -119,7 +119,9 @@ func TestMountedPageStandardEdit(t *testing.T) {
 	keytest.Press(m, "A")
 	keytest.Press(m, "x")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if thing["title"] != "Original" || r.TopModal() != "" {
 		t.Fatalf("cancel: %v modal %s", thing, r.TopModal())
 	}
@@ -185,7 +187,7 @@ func TestMountedPageChangeEditsSurviveClose(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := r.RecordEditor("edit-form")
-	for _, key := range []string{"A", "x", "esc", "j", "space", "j", "enter", "esc"} {
+	for _, key := range []string{"A", "x", "esc", "j", "space", "j", "enter", "q"} {
 		if _, err := r.HandleBinding(key); err != nil {
 			t.Fatal(err)
 		}
@@ -419,7 +421,7 @@ func TestClosedMountedEditFailureIsNotice(t *testing.T) {
 		t.Fatal(err)
 	}
 	e := r.RecordEditor("edit-form")
-	for _, key := range []string{"A", "x", "esc", "esc"} {
+	for _, key := range []string{"A", "x", "esc", "q", "esc", "q"} {
 		if _, err := r.HandleBinding(key); err != nil {
 			t.Fatal(err)
 		}
@@ -466,7 +468,7 @@ func TestQuitWithHungMountedWriteCanLeave(t *testing.T) {
 				t.Fatal(err)
 			}
 			e := r.RecordEditor("edit-form")
-			for _, key := range []string{"A", "x", "esc", "esc"} {
+			for _, key := range []string{"A", "x", "esc", "q", "esc", "q"} {
 				if _, err := r.HandleBinding(key); err != nil {
 					t.Fatal(err)
 				}

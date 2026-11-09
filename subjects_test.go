@@ -93,6 +93,7 @@ func TestVisualSelectionChooserEscResumes(t *testing.T) {
 		t.Fatalf("t: modal %q visual %v", r.TopModal(), l.Visual())
 	}
 	motionKeys(t, r, m, "esc")
+	motionKeys(t, r, m, "q")
 	if r.TopModal() != "" || !l.Visual() || r.Mode.Name != "visual-line" || len(*calls) != 0 {
 		t.Fatalf("esc: modal %q visual %v mode %q calls %v", r.TopModal(), l.Visual(), r.Mode.Name, *calls)
 	}

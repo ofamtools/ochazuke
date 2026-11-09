@@ -72,13 +72,13 @@
       "type": "Feed the cat"
     },
     "esc",
-    "esc",
+    "q",
     ":",
     {
       "type": "demo get t1"
     },
     "enter",
-    "esc",
+    "q",
     "j",
     "r"
   ],

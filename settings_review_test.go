@@ -106,7 +106,7 @@ func TestSettingsReviewAllAtOnce(t *testing.T) {
 
 // q and esc close the review where it was opened, changing nothing.
 func TestSettingsReviewCloses(t *testing.T) {
-	for _, key := range []string{"q", "esc"} {
+	for _, key := range []string{"q", "q"} {
 		r, m, _ := reviewFixture(t)
 		keytest.Press(m, "ctrl+r")
 		keytest.Press(m, key)

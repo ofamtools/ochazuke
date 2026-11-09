@@ -191,7 +191,7 @@ func TestChooserRemembersTheSource(t *testing.T) {
 		if err := r.Settings().Set(ChooserRememberSourceSetting, on); err != nil {
 			t.Fatal(err)
 		}
-		pressLand(m, "ctrl+o", "esc")
+		pressLand(m, "ctrl+o", "esc", "q")
 		if r.ChooserLastSource("mem") != "two" {
 			t.Fatalf("last source %q", r.ChooserLastSource("mem"))
 		}

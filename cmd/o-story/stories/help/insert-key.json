@@ -19,12 +19,12 @@
     "/",
     {"type": "ctrl+\\"},
     "esc",
-    "esc",
+    "q",
     {"type": "!"},
     "esc",
     ":",
     "ctrl+\\",
-    "esc"
+    "q"
   ],
   "expect": [
     {"after": 2, "mode": "insert", "contains": ["name: hello?"]},

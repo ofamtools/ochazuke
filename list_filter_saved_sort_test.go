@@ -182,7 +182,7 @@ func TestCompactSavedFilterOptOutAndMultiKeyIndicator(t *testing.T) {
 	if strings.Contains(ansi.Strip(m.View().Content), "▼2") {
 		t.Fatal("indicator opt-out ignored")
 	}
-	compactKeys(m, "esc", "esc")
+	compactKeys(m, "esc", "q", "esc", "q")
 	_ = r.Settings().Set(ListFilterSaveSetting, false)
 	compactKeys(m, "z", "/")
 	if filterViewAt(r, r.Focus).saveInput != nil || strings.Contains(ansi.Strip(m.View().Content), "Save as") {

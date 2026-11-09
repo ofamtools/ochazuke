@@ -7,7 +7,7 @@
     {"id": "p01", "title": "Alpha", "lists": [{"id": "l01", "rows": 1}]},
     {"id": "p02", "title": "Bravo", "lists": [{"id": "l02", "rows": 1}]}
   ],
-  "script": ["?", "'", "esc", "'"],
+  "script": ["?", "'", "q", "'"],
   "expect": [
     {"after": 2, "modal": "bindings-help", "lacks": ["Pages"]},
     {"modal": "page-picker", "contains": ["Bravo"]}

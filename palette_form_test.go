@@ -159,7 +159,7 @@ func TestArgsFormEscCancelsBackToTheLine(t *testing.T) {
 	r, p, ran := formRuntime(t)
 	paletteLine(t, r, "sheet retitle old")
 	typeKeys(t, r, "x")
-	formKeys(t, r, "esc", "esc")
+	formKeys(t, r, "esc", "q")
 	if r.TopModal() != paletteID || p.Text() != "sheet retitle old" || len(*ran) != 0 {
 		t.Fatalf("top=%q line=%q ran=%v", r.TopModal(), p.Text(), *ran)
 	}

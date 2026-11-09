@@ -84,6 +84,7 @@
   "script": [
     "X",
     "esc",
+    "q",
     ":",
     {
       "type": "open-thing "
@@ -99,7 +100,7 @@
       ]
     },
     {
-      "after": 4,
+      "after": 5,
       "contains": [
         "Water the plants  t-1",
         "Write notes  t-2"

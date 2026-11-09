@@ -236,7 +236,7 @@ func TestHelpBindCapturesTheNextKey(t *testing.T) {
 	if got := unboundOps(BindingHelp(r, "w1")); !slices.Equal(got, []string{"widget.wipe"}) {
 		t.Fatalf("unbound after the key: %v (status %q, top %q)", got, m.Status, r.TopModal())
 	}
-	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	keytest.Press(m, "p")
 	if !slices.Equal(*ran, []string{"ping"}) {
 		t.Fatalf("p ran %v", *ran)

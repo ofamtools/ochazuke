@@ -56,7 +56,7 @@
   },
   "script": [
     "?",
-    "esc"
+    "q"
   ],
   "theme": "light"
 }

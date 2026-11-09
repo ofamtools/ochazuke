@@ -11,7 +11,7 @@ r|  a1
  |        │ ›                                                      fuzzy │
  |        │   matomeru                                                   │
 R|        │   ochazuke                                                   │
- |        │ enter picker.pick · esc modal.close · tab search.cycle-match │
+ |        │ esc normal · enter picker.pick · tab search.cycle-match      │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
@@ -20,5 +20,5 @@ R|        │   ochazuke                                                   │
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter picker.pick · esc modal.close · tab search.cycle-match
+ |  esc normal · enter picker.pick · tab search.cycle-match
  |

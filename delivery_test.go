@@ -361,7 +361,7 @@ func TestConfirmCompilesToAModalWithPayload(t *testing.T) {
 	if len(r.Modals()) != 0 || r.Instances["confirm"] != nil || len(removed) != 0 || r.Focus != "one" {
 		t.Fatalf("n must pop without running: frames=%d removed=%v focus=%s", len(r.Modals()), removed, r.Focus)
 	}
-	editorTestKeys(t, r, "d", "esc")
+	editorTestKeys(t, r, "d", "esc", "q")
 	if len(r.Modals()) != 0 || len(removed) != 0 {
 		t.Fatal("esc must pop without running")
 	}

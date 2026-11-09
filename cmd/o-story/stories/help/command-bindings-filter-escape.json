@@ -11,8 +11,8 @@
     ]
   },
   "script": [
-    ":", {"type": "h binding"}, "enter", "/", {"type": "gx"}, "esc", "esc",
-    ":", {"type": "h binding"}, "enter", "/", {"type": "no-such-binding"}, "esc", "esc"
+    ":", {"type": "h binding"}, "enter", "/", {"type": "gx"}, "esc", "q",
+    ":", {"type": "h binding"}, "enter", "/", {"type": "no-such-binding"}, "esc", "q"
   ],
   "expect": [
     {"after": 3, "modal": "bindings-help", "mode": "normal", "contains": ["g x", "ctrl+d"]},

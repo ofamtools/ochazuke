@@ -44,4 +44,10 @@ func (in *Input) OwnsKeys() bool { return in.ReadOnly }
 func registerEditorNoun(r *Runtime) {
 	r.Define(EditorNoun).Fallback(EditorNoun).Unpersisted()
 	r.Define("ochazuke.prompt").Pin("insert")
+	// input-unpinned: the focused input can leave insert (a modal's text
+	// input, unless modal.esc-closes pins it there).
+	r.DefineGuard("input-unpinned", func(r *Runtime, ev KeyEvent) bool {
+		in := r.Input(ev.Focus)
+		return in != nil && in.pin == ""
+	})
 }

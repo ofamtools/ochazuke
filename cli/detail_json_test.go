@@ -81,7 +81,7 @@ func TestDetailJSONNavigationContextAndValues(t *testing.T) {
 	if in := m.Runtime.Input(m.Runtime.Focus); in == nil || !in.ReadOnly || string(in.Text) != "12" {
 		t.Fatal("show must be read-only")
 	}
-	press(m, "esc")
+	press(m, "q")
 	// Standard tree fold and motions remain available, and focus steps in
 	// drawing order to the second JSON section.
 	press(m, "k", "enter")

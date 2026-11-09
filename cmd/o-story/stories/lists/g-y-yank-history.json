@@ -9,7 +9,7 @@
       }
     ]
   },
-  "script": ["j", "g", "y", "esc", "g", "g"],
+  "script": ["j", "g", "y", "q", "g", "g"],
   "expect": [
     {"after": 3, "modal": "__yank-history", "contains": ["Yank history"]},
     {"modal": "", "focus": "a1", "mode": "normal"}

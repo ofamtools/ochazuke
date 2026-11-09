@@ -188,7 +188,7 @@ func TestAliasPartialPresetArgs(t *testing.T) {
 	if r.TopModal() != ArgsFormID || r.Focus != ArgsFormID+"/path" {
 		t.Fatalf("palette w!: top %q focus %q", r.TopModal(), r.Focus)
 	}
-	formKeys(t, r, "esc", "esc")
+	formKeys(t, r, "esc", "q")
 	paletteLine(t, r, "w! c.txt")
 	if got := runs[len(runs)-1]; got != `doc.w! path="c.txt" force=true` {
 		t.Fatalf("palette w! c.txt ran %s", got)

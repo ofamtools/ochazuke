@@ -1471,7 +1471,7 @@ func selectionModeOf(modes map[string]string, shape string) string {
 // pending count is present or absent), "self" (the focus is the instance
 // whose level the row sits on, not a descendant), "shadow-idle" (the mode a
 // shadow mode such as macro_recording re-dispatches in is normal with an
-// empty payload) and "op:<key>" (the pending operator). Applications add
+// empty payload), "op:<key>" (the pending operator) and "setting:<name>" (a boolean setting is on). Applications add
 // their own with DefineGuard.
 //
 // A guard reads the interaction it is judged in from its event, not from
@@ -1511,6 +1511,11 @@ func (r *Runtime) guard(name string) Guard {
 func (r *Runtime) rawGuard(name string) Guard {
 	if op, ok := strings.CutPrefix(name, "op:"); ok {
 		return func(_ *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Op == op }
+	}
+	// "setting:<name>" holds while the boolean setting is on: a row follows a
+	// setting through data, with no guard of its own.
+	if setting, ok := strings.CutPrefix(name, "setting:"); ok && setting != "" {
+		return func(r *Runtime, _ KeyEvent) bool { return r.settingBool(setting) }
 	}
 	return r.guards[name]
 }

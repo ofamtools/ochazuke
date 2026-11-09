@@ -258,7 +258,7 @@ func TestPickerCtrlTCyclesTheMatchMode(t *testing.T) {
 	if c.MatchMode() != MatchRegex || !strings.Contains(c.View(80, 10).Text, "regex") {
 		t.Fatalf("after ctrl+t: %s\n%s", c.MatchMode(), c.View(80, 10).Text)
 	}
-	findPress(m, "esc")
+	findPress(m, "esc", "q")
 	c = findOpen(t, r, m, Arguments{"path": t.TempDir()})
 	if c.MatchMode() != MatchFuzzy {
 		t.Fatalf("reopens in %s", c.MatchMode())

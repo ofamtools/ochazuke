@@ -17,7 +17,7 @@ r|  a1
  |                 │   Water the plants  t-1                                       │
  |                 │   Write notes  t-2                                            │
  |                 │                                                               │
- |                 │ enter palette.run · tab palette.complete · up palette.recall… │
+ |                 │ esc normal · enter palette.run · tab palette.complete · up p… │
  |                 ╰───────────────────────────────────────────────────────────────╯
  |
  |
@@ -26,5 +26,5 @@ r|  a1
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
- |  enter palette.run · tab palette.complete · up palette.recall · down palette.recall · esc modal.…
+ |  esc normal · enter palette.run · tab palette.complete · up palette.recall · down palette.recall…
  |

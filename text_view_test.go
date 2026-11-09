@@ -46,7 +46,7 @@ func TestPaletteTextResultOpensReadOnlyEditor(t *testing.T) {
 		t.Fatalf("input %+v mode %q", in, r.Mode.Name)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"Text", "record.program", ".a | .b", "esc modal.close"} {
+	for _, want := range []string{"Text", "record.program", ".a | .b", "q modal.close"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}
@@ -74,9 +74,9 @@ func TestPaletteTextResultOpensReadOnlyEditor(t *testing.T) {
 	if got := r.Registers().Named["\""].Yank; got.Text != "  \"a\": [\n    1,\n" || got.Shape != "line" {
 		t.Fatalf("V j y yanked %+v", got)
 	}
-	editorTestKeys(t, r, "esc")
+	editorTestKeys(t, r, "q")
 	if r.TopModal() != "" || r.Focus != "origin" {
-		t.Fatalf("esc left modal %q focus %q", r.TopModal(), r.Focus)
+		t.Fatalf("q left modal %q focus %q", r.TopModal(), r.Focus)
 	}
 }
 

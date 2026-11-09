@@ -8,7 +8,7 @@
   ],
   "script": [
     "x",
-    "esc",
+    "q",
     ":", {"type": "set chrome.color=subtle"}, "enter",
     ":", {"type": "set chrome.color=off"}, "enter",
     "x"

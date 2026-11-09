@@ -95,13 +95,13 @@ func TestModelChromeIsLayoutShellWithHintsFromBindings(t *testing.T) {
 	if footer := strings.Split(ansi.Strip(m.View().Content), "\n")[22]; !strings.Contains(footer, "Error: unknown target") {
 		t.Fatalf("error footer: %q", footer)
 	}
-	// A modal's hint is its focus's rows: the modal noun's esc among them.
+	// A modal's hint is its focus's rows: the modal noun's q among them.
 	m.Status = ""
 	if err := r.Push("note", "app"); err != nil {
 		t.Fatal(err)
 	}
 	m.ModalViews["note"] = ModalView{Title: "Note", Render: func(*Runtime, *Instance, int, int) Block { return Text("read me") }}
-	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "esc modal.close") {
+	if view := ansi.Strip(m.View().Content); !strings.Contains(view, "q modal.close") {
 		t.Fatalf("modal hint is not derived from the modal rows:\n%s", view)
 	}
 }

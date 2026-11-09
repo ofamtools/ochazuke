@@ -45,6 +45,7 @@ func TestEditFieldChooserEscWritesNothing(t *testing.T) {
 	}
 	keytest.Type(m, "true")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if r.TopModal() != "" || r.Focus != "row" || s.find("t1")["active"] != false {
 		t.Fatalf("esc: modal %q focus %q %v", r.TopModal(), r.Focus, s.find("t1"))
 	}
@@ -126,6 +127,7 @@ func TestEditFieldChooserBindingOverride(t *testing.T) {
 		t.Fatalf("m: modal %q", r.TopModal())
 	}
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	keytest.Press(m, "M")
 	if r.RecordEditor(editFormID) == nil || r.Chooser(EditChooserKind) != nil {
 		t.Fatalf("M: modal %q", r.TopModal())

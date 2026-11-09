@@ -100,7 +100,7 @@
     "j",
     "y",
     "enter",
-    "esc",
+    "q", "q",
     "esc"
   ],
   "expect": [

@@ -510,7 +510,7 @@ Macro recording starts on `Q` (Vim's `q`: here `q` closes modals and viewers, on
 | Normal app | `g y` | Open shared yank history (`ctrl+y` until this release; `ctrl+y` is now Vim's line scroll) |
 | Normal input | `"a` | Select named register `a` for the next operation |
 | Normal app/input | `Qa … Q`, `@a`, `@@` | Record macro `a`, replay it, repeat the last macro |
-| Any modal, normal | `esc`, `q` | Close it (`modal.close`: the modal's close request, else pop back to the focus and mode it opened over) |
+| Any modal, normal | `q` | Close it (`modal.close`: the modal's close request, else pop back to the focus and mode it opened over); `esc` only leaves insert in a modal text input and does nothing in normal mode (setting `modal.esc-closes`, default off, brings the esc rows back) |
 | Insert input | `Ctrl-A/E`, `Ctrl-B/F` | Line start/end, previous/next rune |
 | Insert input | `Ctrl-P/N`, `Alt-B/F` | Previous/next line, previous/next word |
 | Insert input | `Ctrl-W/U/K`, `Ctrl-Y` | Kill path component/to line start/to line end; paste the app's current yank |

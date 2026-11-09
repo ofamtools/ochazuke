@@ -108,7 +108,7 @@
       "type": "Renamed"
     },
     "esc",
-    "esc",
+    "q",
     "ctrl+a",
     "d",
     ":",
@@ -116,7 +116,7 @@
       "type": "item get a1"
     },
     "enter",
-    "esc",
+    "q",
     ":",
     {
       "type": "item get a2"

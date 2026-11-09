@@ -192,13 +192,13 @@
    "tick": "debounce"
   },
   "esc",
-  "esc",
+  "q",
   ":",
   {
    "type": "demo get t1"
   },
   "enter",
-  "esc",
+  "q",
   "u",
   ":",
   {

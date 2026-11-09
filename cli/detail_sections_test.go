@@ -170,7 +170,7 @@ func TestDetailFieldsCopyExpandReadOnly(t *testing.T) {
 	if in == nil || !in.ReadOnly {
 		t.Fatal("expanded field is editable")
 	}
-	press(m, "esc", "esc")
+	press(m, "q", "q")
 	if m.Runtime.TopModal() != "" {
 		t.Fatal("fields did not close")
 	}

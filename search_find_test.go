@@ -130,7 +130,7 @@ func TestTextViewSlashFinds(t *testing.T) {
 	if r.TopModal() != findLineID || !strings.Contains(ansi.Strip(m.View().Content), "regex: missing closing )") {
 		t.Fatalf("invalid regex: modal %q\n%s", r.TopModal(), ansi.Strip(m.View().Content))
 	}
-	pressKeys(m, "esc")
+	pressKeys(m, "esc", "q")
 	if r.TopModal() != TextViewID || r.Focus != in.ID {
 		t.Fatalf("esc: modal %q focus %q", r.TopModal(), r.Focus)
 	}

@@ -6,14 +6,14 @@
   "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
   "script": [
     ":", {"type": "demo mapping"}, "enter", "/", {"type": "."}, "enter",
-    "/", {"type": "absent"}, "esc", "y", "y", "n", "y", "y", "q"
+    "/", {"type": "absent"}, "esc", "q", "y", "y", "n", "y", "y", "q"
   ],
   "expect": [
-    {"after": 4, "modal": "find-line", "mode": "insert", "contains": ["esc modal.close"]},
-    {"after": 7, "modal": "find-line", "mode": "insert", "contains": ["esc modal.close"]},
-    {"after": 9, "modal": "text-view", "mode": "normal"},
-    {"after": 11, "register": "  \"name\": \".title\",\n"},
-    {"after": 14, "register": "  \"size\": \".bytes\",\n"},
+    {"after": 4, "modal": "find-line", "mode": "insert", "contains": ["q modal.close"]},
+    {"after": 7, "modal": "find-line", "mode": "insert", "contains": ["q modal.close"]},
+    {"after": 10, "modal": "text-view", "mode": "normal"},
+    {"after": 12, "register": "  \"name\": \".title\",\n"},
+    {"after": 15, "register": "  \"size\": \".bytes\",\n"},
     {"modal": "", "focus": "a2", "mode": "normal"}
   ]
 }

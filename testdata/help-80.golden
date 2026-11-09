@@ -59,7 +59,7 @@
         │ app                                                          │
         │   ctrl+c      app.quit                          Exit the     │
         │ 1–10 / 55                                                    │
-        │ space collection.mark · S view · enter run · esc modal.clos… │
+        │ space collection.mark · S view · enter run · q modal.close … │
         ╰──────────────────────────────────────────────────────────────╯
 
 
@@ -68,5 +68,5 @@
 
 
   ────────────────────────────────────────────────────────────────────────────
-  space collection.mark · S view · enter run · esc modal.close · : palette.op…
+  space collection.mark · S view · enter run · q modal.close · : palette.open…
 

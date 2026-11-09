@@ -12,7 +12,7 @@
     "bind": [{"noun": "demo", "keys": "S", "do": "setting.open"}]
   },
   "config": {"settings.json": {"settings.all-section": false}},
-  "script": ["S", "l", "j", "enter", "h", "j", "space", "r", "esc"],
+  "script": ["S", "l", "j", "enter", "h", "j", "space", "r", "q"],
   "expect": [
     {
       "after": 1,

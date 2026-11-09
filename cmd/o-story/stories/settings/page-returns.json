@@ -9,7 +9,7 @@
     {"id": "two", "title": "Two", "lists": [{"id": "b", "rows": 3}], "inputs": [{"id": "name", "label": "name", "text": "hello"}],
      "bind": [{"noun": "demo", "mode": "insert", "keys": "ctrl+o", "do": "setting.open"}]}
   ],
-  "script": ["ctrl+j", "j", "j", "j", "i", "ctrl+o", "space", "q", "ctrl+o", "esc"],
+  "script": ["ctrl+j", "j", "j", "j", "i", "ctrl+o", "space", "q", "ctrl+o", "q"],
   "expect": [
     {"after": 5, "page": "two", "focus": "name", "mode": "insert"},
     {"after": 6, "page": "__settings", "focus": "__settings/row/wrap", "mode": "normal", "contains": ["One", "Two", "Settings"]},

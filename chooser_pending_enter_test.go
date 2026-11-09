@@ -63,6 +63,7 @@ func TestChooserEscWhileEnterWaits(t *testing.T) {
 	keytest.Press(m, "enter")
 	start := time.Now()
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if d := time.Since(start); d > time.Second {
 		t.Fatalf("esc blocked for %v", d)
 	}

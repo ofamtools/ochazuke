@@ -5,7 +5,7 @@
   "height": 24,
   "values": {"help.markdown": false},
   "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
-  "script": [":", {"type": "demo guide"}, "enter", "esc", ":", {"type": "demo usage"}, "enter"],
+  "script": [":", {"type": "demo guide"}, "enter", "q", ":", {"type": "demo usage"}, "enter"],
   "expect": [
     {"after": 3, "modal": "text-view", "contains": ["demo.guide", "# Demo guide", "Rows are **demo** things.", "```sh"]},
     {"after": 4, "modal": ""},
