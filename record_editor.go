@@ -1623,7 +1623,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 		}
 		if f.input != nil {
 			h := 1
-			if f.Multiline {
+			if f.input.Multiline {
 				h = min(max(3, strings.Count(string(f.input.Text), "\n")+1), max(3, height/3))
 			}
 			block := InputBlock(f.input, inner, h)

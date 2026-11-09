@@ -112,12 +112,10 @@ detail.go	Detail.MoveToEdge	compare	"last"	1
 editing.go	Input.begin	case	"append"	2
 editing.go	Input.begin	case	"end"	2
 editing.go	Input.begin	case	"insert"	1	the input.begin position argument (insert/append/first/...), not the insert mode
-editor.go	Input.checkPaste	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.pasteOverLines	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.pasteOverSelection	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.pasteYank	case	"line"	1
-editor.go	Input.pasteYank	compare	"line"	1
-editor.go	Input.pasteYank	cyclo	"-"	30
+editor.go	Input.pasteYank	cyclo	"-"	26
 editor.go	Input.removeSelection	compare	"line"	2
 editor.go	Input.selectionRange	compare	"line"	1
 editor.go	Input.selectionSnapshot	compare	"line"	1
@@ -169,6 +167,7 @@ input.go	Input.Pending	case	"g_pending"	1
 input.go	Input.Pending	case	"operator_g_pending"	1
 input.go	Input.Pending	case	"operator_pending"	1
 input.go	Input.Pending	case	"register_pending"	1
+input.go	Input.adaptYank	compare	"line"	1	moved from checkPaste and pasteYank (were debt there): the shape test that decides a yank needs line breaks; the compare moved with its code
 inspector.go	Inspection.Parts	compare	"app"	1
 inspector.go	Runtime.Inspect	compare	"status"	1
 inspector.go	inspectPreview	cyclo	"-"	28

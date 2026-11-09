@@ -163,9 +163,14 @@ func TestEditorEmptyAndSingleLineBoundaries(t *testing.T) {
 	if handled, err := editorTestDispatch(r, "enter"); handled || err != nil {
 		t.Fatalf("single-line enter: handled=%v err=%v", handled, err)
 	}
-	if _, err := editorTestDispatch(r, "[a\nb]"); err == nil {
-		t.Fatal("single-line paste accepted a newline")
+	if _, err := editorTestDispatch(r, "[a\nb]"); err != nil {
+		t.Fatalf("single-line paste refused a newline: %v", err)
 	}
+	if !in.Multiline || string(in.Text) != "a\nb" {
+		t.Fatalf("pasted newline: multiline %v text %q", in.Multiline, in.Text)
+	}
+	in.SetText("")
+	in.Multiline = false
 	editorTestState(t, in, "", 0, "insert")
 	editorTestKeys(t, r, "é", "esc", "x")
 	editorTestState(t, in, "", 0, "normal")

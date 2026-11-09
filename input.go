@@ -194,12 +194,10 @@ func (in *Input) storeMode(mode string) {
 // cursor and a visual selection's anchor keep their offsets, clamped into
 // the new text as a motion would leave them (in normal mode not past the
 // line's last character); an open select range and an insert session end.
-// A single-line input keeps the text up to its first line break. The same
+// A single-line input given line breaks grows (admitText). The same
 // text again changes nothing, so the undo history stays.
 func (in *Input) SetText(text string) {
-	if !in.Multiline {
-		text, _, _ = strings.Cut(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
-	}
+	text = in.admitText(text)
 	if string(in.Text) == text && len(in.History) > 0 {
 		return
 	}
@@ -220,12 +218,10 @@ func (in *Input) Replace(start, end int, text string) error {
 	if start < 0 || end < start || end > len(in.Text) {
 		return errors.New("invalid edit range")
 	}
-	if !in.Multiline && strings.ContainsAny(text, "\r\n") {
-		return errors.New("single-line input cannot contain newlines")
-	}
 	if in.ReadOnly {
 		return nil // a viewer's text never changes (Input.ReadOnly)
 	}
+	text = in.admitText(text)
 	inserted := []rune(text)
 	in.typeOver = nil
 	if slices.Equal(in.Text[start:end], inserted) {
@@ -568,4 +564,46 @@ func RegisterInputOperations(r *Runtime) {
 		return r.Mode.Name, nil
 	}})
 	registerEditorOperations(r)
+}
+
+// InputNewlinesGrowSetting makes an input that is given line breaks multi-line
+// in place; off, the line breaks become spaces. Either way the text is taken.
+const InputNewlinesGrowSetting = "input.newlines-grow"
+
+func (in *Input) newlinesGrow() bool {
+	if in.r == nil {
+		return true
+	}
+	return in.r.Settings().Bool(InputNewlinesGrowSetting)
+}
+
+// admitText is what an input does with text it is given: an input never
+// refuses content. A single-line input given line breaks becomes multi-line
+// (and stays so, even when the breaks are gone later) or, with the setting
+// off, turns each line break into a space.
+func (in *Input) admitText(text string) string {
+	if in.Multiline || !strings.ContainsAny(text, "\r\n") {
+		return text
+	}
+	text = strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\r", "\n")
+	if in.newlinesGrow() {
+		in.Multiline = true
+		return text
+	}
+	return strings.ReplaceAll(text, "\n", " ")
+}
+
+// adaptYank is admitText for a register put: a line or block yank, or one
+// with line breaks, grows a single-line input, or is flattened to a char yank.
+func (in *Input) adaptYank(y Yank) Yank {
+	if in.Multiline || (y.Shape != "block" && y.Shape != "line" && !strings.ContainsAny(y.Text, "\r\n")) {
+		return y
+	}
+	if in.newlinesGrow() {
+		in.Multiline = true
+		return y
+	}
+	y.Text = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(y.Text, "\r\n", " "), "\r", " "), "\n", " ")
+	y.Shape = "char"
+	return y
 }

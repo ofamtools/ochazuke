@@ -1080,6 +1080,16 @@ tiers above them. When the two disagree, fix one in the same commit.
   `palette/text-result-plain.json`; tests `TestReadOnlyInput*`,
   `TestPaletteTextResult*`, `TestTextViewScrollsAtAFixedSize`.
 
+- **R9.9** An input never refuses content the user put there; it adapts
+  (grow, convert) instead. Text with line breaks (a paste, a register put,
+  a programmatic set) makes a single-line input multi-line in place and is
+  kept exactly (it stays grown if the breaks go later); with
+  `input.newlines-grow` off each line break becomes a space. `enter` in a
+  single-line field keeps its meaning (submit or next field); only content
+  already holding a newline grows it. Story
+  `forms/paste-multiline-into-single-line`; tests `TestInputNewlines*`,
+  `TestRecordFieldAndArgsFormFieldGrowOnPastedNewlines`.
+
 ### R10. Delivery and jobs as the user sees them
 
 - **R10.1** Application work never blocks the loop; a `Pending` result's
