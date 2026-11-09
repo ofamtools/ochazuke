@@ -281,7 +281,13 @@ func (r *Runtime) pickerSources(def PickerDef, c Context) []ChooserSource {
 // choiceRows are a choices load's value ([]Choice) as chooser rows.
 func choiceRows(value any) []ChooserRow {
 	choices, _ := value.([]Choice)
-	rows := make([]ChooserRow, len(choices))
+	return ChoiceRows(choices)
+}
+
+// ChoiceRows are choices as picker rows, each from Choice.Row: what a
+// source returns from Load when its data is a []Choice.
+func ChoiceRows(choices []Choice) []PickerRow {
+	rows := make([]PickerRow, len(choices))
 	for i, ch := range choices {
 		rows[i] = ch.Row()
 	}
@@ -522,13 +528,13 @@ func (r *Runtime) openPickersPicker() (*Chooser, error) {
 		defs = slices.DeleteFunc(defs, func(d PickerDef) bool { return d.Derived })
 	}
 	about := map[string]string{}
-	rows := make([]ChooserRow, 0, len(defs))
+	choices := make([]Choice, 0, len(defs))
 	for _, d := range defs {
 		if d.Name == PickersPickerName {
 			continue
 		}
 		keys := strings.Join(r.pickerKeys(d), " ")
-		rows = append(rows, ChooserRow{ID: d.Name, Label: d.Name, Cells: []string{d.Name, d.title(r), keys}, Noun: PickerNoun})
+		choices = append(choices, Choice{ID: d.Name, Label: d.Name, Cells: []string{d.Name, d.title(r), keys}, Noun: PickerNoun, RowFlags: RowFlags{Bare: true}})
 		text := d.About
 		if d.Noun != "" {
 			text = strings.TrimSpace(text + "\n\nnoun: " + r.CanonicalNoun(d.Noun))
@@ -542,7 +548,7 @@ func (r *Runtime) openPickersPicker() (*Chooser, error) {
 		Kind:    "picker-" + PickersPickerName,
 		Title:   "Pickers",
 		Noun:    PickerNoun,
-		Rows:    rows,
+		Rows:    ChoiceRows(choices),
 		Plural:  "pickers",
 		Preview: func(row ChooserRow) string { return about[row.ID] },
 		Choose: func(row ChooserRow) Result {
