@@ -634,6 +634,7 @@ recheck	action	seed
 record	action	seed	
 redo	action	seed	
 ref	prop	seed	
+referrer	noun	seed	
 refresh	action	seed	
 refresh-turns	action	seed	
 refuse	action	seed	

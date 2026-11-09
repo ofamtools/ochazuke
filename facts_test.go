@@ -9,7 +9,7 @@ import (
 // factNouns are the system facts: thing nouns over the registry, read-only.
 var factNouns = []string{
 	"ochazuke.mode", "ochazuke.operation", "ochazuke.noun", "ochazuke.theme", "ochazuke.glyph", "ochazuke.hook",
-	"ochazuke.event", "ochazuke.user-operation", "ochazuke.binding", "ochazuke.association", "ochazuke.notice", "ochazuke.segment",
+	"ochazuke.event", "ochazuke.user-operation", "ochazuke.binding", "ochazuke.association", "ochazuke.referrer", "ochazuke.notice", "ochazuke.segment",
 }
 
 func factsRuntime(t *testing.T) *Runtime {

@@ -81,6 +81,11 @@ type Noun struct {
 	// word follows, or only flags (NounBuilder.DefaultAction, the
 	// catalog's defaultAction): review --web is review page --web.
 	DefaultAction string `json:"defaultAction,omitempty"`
+	// seq is the noun's registration order (Runtime.Referrers keeps it).
+	seq int64
+	// relatedView is the placed view that stands for "my things owned by K"
+	// in a related section (NounBuilder.RelatedView); "" the generic list.
+	relatedView string
 }
 
 // Binding is one row of a mode table, identical in code and config:
@@ -418,7 +423,7 @@ func (r *Runtime) ensureNoun(name string) *Noun {
 		if err := r.checkNounOverlap(name); err != nil {
 			panic(err.Error())
 		}
-		n = &Noun{Name: name, Bindings: map[string][]Binding{}, Actions: map[string]Handler{}}
+		n = &Noun{Name: name, Bindings: map[string][]Binding{}, Actions: map[string]Handler{}, seq: nounSeq.Add(1)}
 		r.Nouns[name] = n
 		r.Operations.Invalidate()
 		r.renderCache.generation++
