@@ -607,3 +607,17 @@ func (in *Input) adaptYank(y Yank) Yank {
 	y.Shape = "char"
 	return y
 }
+
+// GrownRows is the height an input drawn in a space of one line asks for:
+// the rows InputRows says it needs at width (one, until it holds line
+// breaks), at most limit. InputBlock scrolls the rest to keep the cursor's
+// row in view.
+func GrownRows(in *Input, width, limit int) int {
+	return min(max(1, limit), InputRows(in, width))
+}
+
+// indentRows puts n spaces before every row after the first, so a grown
+// input's rows line up under the first, which follows a prefix.
+func indentRows(text string, n int) string {
+	return strings.ReplaceAll(text, "\n", "\n"+strings.Repeat(" ", n))
+}

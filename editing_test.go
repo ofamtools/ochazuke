@@ -174,12 +174,7 @@ func TestEditorEmptyAndSingleLineBoundaries(t *testing.T) {
 	editorTestState(t, in, "", 0, "insert")
 	editorTestKeys(t, r, "é", "esc", "x")
 	editorTestState(t, in, "", 0, "normal")
-	for _, key := range []string{"o", "O"} {
-		if _, err := editorTestDispatch(r, key); err == nil {
-			t.Fatalf("single-line %s accepted", key)
-		}
-		editorTestState(t, in, "", 0, "normal")
-	}
+	// o and O open a line by growing the input (TestInputOpenLineGrows).
 }
 
 func TestEditorInsertionPositionsAndOpenLineGrouping(t *testing.T) {

@@ -89,7 +89,12 @@ func (in *Input) begin(position string) error {
 		return errors.New("unknown insertion position")
 	}
 	if (position == "below" || position == "above") && !in.Multiline {
-		return errors.New("single-line input cannot open a new line")
+		// An input never refuses: opening a line grows it, or, with the
+		// setting off, does nothing (no error).
+		if !in.newlinesGrow() {
+			return nil
+		}
+		in.Multiline = true
 	}
 	in.resetKeys()
 	in.SetMode("insert")

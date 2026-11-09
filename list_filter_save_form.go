@@ -46,7 +46,7 @@ func (v *filterViewForm) saveBlock(s Styles, width int) Block {
 	if v.l.vs.Saved != "" {
 		label = "Applied: " + v.l.vs.Saved + " · " + label
 	}
-	b := InputBlock(v.saveInput, width, 1)
+	b := InputBlock(v.saveInput, width, GrownRows(v.saveInput, width, 5))
 	v.l.r.PlacedAt(v.saveInput.ID, b.Text, 0, 1)
 	if v.l.r.DrawnFocus(v.e.id) != v.saveInput.ID {
 		b.Cursor = nil

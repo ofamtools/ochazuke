@@ -874,12 +874,14 @@ func (c *Chooser) rowsView(width, height int) Block {
 	} else {
 		tail = ""
 	}
-	line := InputBlock(c.input, inputWidth, 1).Offset(ansi.StringWidth(prefix), 0)
-	search := prefix + line.Text
+	line := InputBlock(c.input, inputWidth, GrownRows(c.input, inputWidth, max(1, height/3))).Offset(ansi.StringWidth(prefix), 0)
+	// A grown input's rows follow the first, under the prefix; the tail
+	// belongs to the first row.
+	searchRows := strings.Split(prefix+indentRows(line.Text, ansi.StringWidth(prefix)), "\n")
 	if tail != "" {
-		search = searchLine(search, tail, width)
+		searchRows[0] = searchLine(searchRows[0], tail, width)
 	}
-	lines := []string{search}
+	lines := searchRows
 	if c.propsEnabled {
 		if strip := c.filters.propStrip(); strip != "" {
 			lines = append(lines, searchLine(strip, fmt.Sprintf("%d of %d", len(c.filters.items), len(c.spec.Rows)), width))
@@ -926,7 +928,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 		if tail != "" {
 			count = tail + " · " + count
 		}
-		lines[0] = searchLine(prefix+line.Text, count, width)
+		lines[0] = searchLine(searchRows[0], count, width)
 	}
 	widths := fitWidths(c.cellWidths(), width-2, c.keep()...)
 	toned := c.toneStyles()

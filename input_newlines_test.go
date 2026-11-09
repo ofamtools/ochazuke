@@ -1,7 +1,10 @@
 package ochazuke
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 const nlPasted = "one\r\ntwo\nthree"
@@ -135,4 +138,54 @@ func TestRecordFieldAndArgsFormFieldGrowOnPastedNewlines(t *testing.T) {
 	if !g.input.Multiline || af.Values()["text"] != nlWant {
 		t.Fatalf("multiline %v value %q", g.input.Multiline, af.Values()["text"])
 	}
+}
+
+func TestInputOpenLineGrows(t *testing.T) {
+	t.Parallel()
+	for _, key := range []string{"o", "O"} {
+		r, in := newlineInput(t, true)
+		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+			t.Fatalf("%s: %v", key, err)
+		}
+		if !in.Multiline || string(in.Text) != "\n" {
+			t.Fatalf("%s: multiline %v text %q", key, in.Multiline, in.Text)
+		}
+	}
+	r, in := newlineInput(t, false)
+	for _, key := range []string{"o", "O"} {
+		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
+			t.Fatalf("%s off: %v", key, err)
+		}
+		if in.Multiline || len(in.Text) != 0 {
+			t.Fatalf("%s off: multiline %v text %q", key, in.Multiline, in.Text)
+		}
+	}
+}
+
+func TestGrownRowsFollowTheGrownInput(t *testing.T) {
+	t.Parallel()
+	in := NewInput("x", "a", false)
+	if GrownRows(in, 20, 5) != 1 {
+		t.Fatal("single-line is one row")
+	}
+	in.Multiline, in.Text = true, []rune("a\nb\nc\nd\ne\nf")
+	if got := GrownRows(in, 20, 4); got != 4 {
+		t.Fatalf("capped rows %d", got)
+	}
+	if got := GrownRows(in, 20, 40); got != 6 {
+		t.Fatalf("rows %d", got)
+	}
+}
+
+func TestPaletteLineShowsGrownContent(t *testing.T) {
+	t.Parallel()
+	r, p, _ := setPalette(t)
+	if err := p.line.Replace(0, 0, "one\ntwo"); err != nil {
+		t.Fatal(err)
+	}
+	out := ansi.Strip(p.viewBlock(NewStyles(Appearance{}), 60, 24).Text)
+	if !strings.Contains(out, ": one\n  two") {
+		t.Fatalf("palette frame hides the grown line:\n%s", out)
+	}
+	_ = r
 }
