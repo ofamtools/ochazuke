@@ -287,6 +287,7 @@ type recordField struct {
 	id            string
 	input         *Input // nil for a choice field
 	value         string // a choice field's value
+	chipOrder     string // the palette.choice-label order the chips were last laid out in
 	before        string // the written value when the current edit began
 	chooser       *Chooser
 	choiceKey     string
@@ -324,24 +325,13 @@ func (f *recordField) choiceLabel(c Choice) string { return f.RecordField.choice
 
 func (f *recordField) choiceRow(c Choice) ChooserRow { return f.RecordField.choiceRow(c) }
 
-// choiceLabel is how a field shows one of its choices: a noun
-// reference's thing by its label, any other choice as choiceLabel does.
-func (f RecordField) choiceLabel(c Choice) string {
-	if f.Noun != "" && c.Label != "" {
-		return c.Label
-	}
-	return choiceLabel(c)
-}
+// choiceLabel is how a field shows one of its choices in a plain list
+// (Choice.Entry in the order palette.choice-label says; label-first without
+// a runtime).
+func (f RecordField) choiceLabel(c Choice) string { return c.Entry(ChoiceLabelFirst).Text }
 
-// choiceRow is a choice as a picker row: a noun reference's thing as
-// Choice.Row (label, then the dim short id), any other choice by its field's
-// choiceLabel.
-func (f RecordField) choiceRow(c Choice) ChooserRow {
-	if f.Noun == "" {
-		return ChooserRow{ID: c.ID, Label: f.choiceLabel(c)}
-	}
-	return c.Row()
-}
+// choiceRow is a choice as a picker row: Choice.Row for every field.
+func (f RecordField) choiceRow(c Choice) ChooserRow { return c.Row() }
 
 // heldChoice reports whether a picker row is the thing a field holds: its
 // id, or the id after the noun prefix a list row's id carries
@@ -1651,7 +1641,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 		value := "(none)"
 		for _, c := range f.choices {
 			if c.ID == f.value {
-				value = f.choiceLabel(c)
+				value = c.Label
 			}
 		}
 		if f.value != "" && value == "(none)" {

@@ -540,7 +540,9 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 		label := entry.Label
 		if markMatches {
 			entry.Match = matcher.positions(label)
-			label = s.tonedText(label, positionSpans(entry.Match, chromeTonePrefix+s.chrome+".palette.match"), lipgloss.NewStyle())
+			label = s.tonedText(label, append(slices.Clone(entry.Tones), positionSpans(entry.Match, chromeTonePrefix+s.chrome+".palette.match")...), lipgloss.NewStyle())
+		} else if len(entry.Tones) > 0 {
+			label = s.tonedText(label, entry.Tones, lipgloss.NewStyle())
 		}
 		fmt.Fprintf(&out, "%s%s\n", s.chromeRender("palette.marker", marker), label)
 	}

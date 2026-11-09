@@ -2,7 +2,7 @@
  |   page1  › Settings
  |  ────────────────────────────────────────────────────────────────────────────────────────────────
  |  ┏━ Sections ━━━━━━┓ ╭─ panes (1) ──────────────────────────────────────────────────────────────╮
-r|  ┃ All         164 ┃ │ panes.group    ‹ project ›                                               │
+r|  ┃ All         167 ┃ │ panes.group    ‹ project ›                                               │
  |  ┃ app             ┃ ╰──────────────────────────────────────────────────────────────────────────╯
  |  ┃ General       1 ┃ ╭─ panes ──────────────────────────────────────────────────────────────────╮
 R|  ┃ panes         1 ┃ │ 1 setting in app › panes.                                                │
@@ -13,11 +13,11 @@ R|  ┃ panes         1 ┃ │ 1 setting in app › panes.                     
  |  ┃ Appearance   17 ┃ │                                                                          │
  |  ┃ Keys         22 ┃ │                                                                          │
  |  ┃ Help         13 ┃ │                                                                          │
- |  ┃ Palette      12 ┃ │                                                                          │
+ |  ┃ Palette      13 ┃ │                                                                          │
  |  ┃ Records      12 ┃ │                                                                          │
  |  ┃ Lists        19 ┃ │                                                                          │
  |  ┃ Search       20 ┃ │                                                                          │
- |  ┃ Pickers      21 ┃ │                                                                          │
+ |  ┃ Pickers      23 ┃ │                                                                          │
  |  ┃ Hooks         1 ┃ │                                                                          │
  |  ┃ Status bar    5 ┃ │                                                                          │
  |  ┃ Pages         4 ┃ │                                                                          │

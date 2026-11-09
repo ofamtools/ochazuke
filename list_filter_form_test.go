@@ -370,7 +370,7 @@ func TestFilterFormChipLinesWrap(t *testing.T) {
 	pressKeys(m, "z", "/", "j")
 	e := r.RecordEditor(listFilterFormID)
 	f := e.fieldOn(r.Focus)
-	f.layoutChips(26) // cancelled doing | done todo
+	f.layoutChips(26, ChoiceLabelFirst) // cancelled doing | done todo
 	if len(f.lines) != 2 {
 		t.Fatalf("lines %v", f.lines)
 	}

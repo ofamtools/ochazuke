@@ -1,0 +1,30 @@
+ |  ◆ o-story                                                                          INSERT
+ |   › page1
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────
+ |  a
+r|  a1
+ |  a2
+ |
+ |
+ |
+ |                 ╭───────────────────────────────────────────────────────────────╮
+ |                 │ Command palette                                               │
+ |                 │ : open-thing                                                  │
+ |                 │   missing id (string, pick): The thing to open                │
+ |                 │ noun                                                          │
+ |                 │   demo                                                        │
+ |                 │ id · string · required · from demo.things — The thing to open │
+ |                 │   thing/t-1  Water the plants                                 │
+ |                 │   thing/t-2  Write notes                                      │
+ |                 │                                                               │
+ |                 │ enter palette.run · tab palette.complete · up palette.recall… │
+ |                 ╰───────────────────────────────────────────────────────────────╯
+ |
+ |
+ |
+ |
+ |
+ |
+ |  ────────────────────────────────────────────────────────────────────────────────────────────────
+ |  enter palette.run · tab palette.complete · up palette.recall · down palette.recall · esc modal.…
+ |

@@ -198,7 +198,7 @@ func TestFrameworkNounParameters(t *testing.T) {
 	}
 	c := r.Context()
 	pages, err := r.Choices(c, r.Operations.At(Key("ochazuke.page.open")).Parameters["id"])
-	if err != nil || !slices.Contains(pages, Choice{ID: "alpha", Label: "Alpha"}) {
+	if err != nil || !slices.ContainsFunc(pages, func(ch Choice) bool { return ch.ID == "alpha" && ch.Label == "Alpha" }) {
 		t.Fatalf("page.open id: %v %v", pages, err)
 	}
 	modes, err := r.Choices(c, r.Operations.At(Key("ochazuke.mode.switch")).Parameters["mode"])
