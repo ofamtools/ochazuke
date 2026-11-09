@@ -121,6 +121,7 @@ complete	action	seed
 completion	noun	seed	
 completion_on	prop	seed	
 components	prop	seed	
+conceal	action	seed	
 condition	prop	seed	
 config	noun+prop	seed	
 confirm	noun+prop	seed	
@@ -424,6 +425,7 @@ locked	prop	seed
 log	prop	seed	
 login	action	seed	
 logout	action	seed	
+lower	action	seed	
 macro	noun+prop	seed	
 made-by	prop	seed	
 main	prop	seed	
@@ -621,6 +623,7 @@ quiet	prop	seed
 quit	action+prop	seed	
 quota	noun	seed	
 quote-line	action	seed	
+raise	action	seed	
 ratio	prop	seed	
 read	prop	seed	
 read-activities	prop	seed	
@@ -634,6 +637,7 @@ recheck	action	seed
 record	action	seed	
 redo	action	seed	
 ref	prop	seed	
+referrer	noun	seed	
 refresh	action	seed	
 refresh-turns	action	seed	
 refuse	action	seed	
@@ -641,6 +645,8 @@ register	action+noun	seed
 registers	prop	seed	
 registry	prop	seed	
 reject	action	seed	
+related	noun	seed	
+related-section	noun	seed	
 reload	action	seed	
 reminder	noun	seed	
 remote	prop	seed	

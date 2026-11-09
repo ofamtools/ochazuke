@@ -142,10 +142,14 @@ type CatalogNoun struct {
 	Unpersisted bool `json:"unpersisted,omitempty"`
 	// Live says the noun's rows are outside the state answer (NounBuilder.Live):
 	// a host fills its lists through its row source.
-	Live    bool                   `json:"live,omitempty"`
-	Columns []ochazuke.Column      `json:"columns,omitempty"`
-	Props   []ochazuke.PropSpec    `json:"props,omitempty"`
-	Filters []ochazuke.SavedFilter `json:"filters,omitempty"`
+	Live    bool                `json:"live,omitempty"`
+	Columns []ochazuke.Column   `json:"columns,omitempty"`
+	Props   []ochazuke.PropSpec `json:"props,omitempty"`
+	// ReferencedBy are the props of other nouns that name this noun's
+	// things, in registration order (ochazuke.Runtime.Referrers): one
+	// related section each.
+	ReferencedBy []ochazuke.Referrer    `json:"referencedBy,omitempty"`
+	Filters      []ochazuke.SavedFilter `json:"filters,omitempty"`
 	// PropsOff are fields of the noun's rows its lists' prop filters never
 	// offer (ochazuke.NounBuilder.PropsOff); every other field is filterable.
 	PropsOff []string `json:"propsOff,omitempty"`
@@ -409,6 +413,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				noun.Filters = slices.Clone(n.Filters)
 				noun.PropsOff = slices.Clone(n.PropsOff)
 				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun())
+				noun.ReferencedBy = referencedBy(r, op.Noun())
 				for i := range noun.Props {
 					// A reference's choices, as a verb parameter's: the
 					// noun's list verb is published as the source.
@@ -614,4 +619,14 @@ var frameworkShortNames = sync.OnceValue(func() map[string]bool {
 // setting that is off.
 func verbDisabled(r *ochazuke.Runtime, op ochazuke.Operation) bool {
 	return op.Disabled || op.Unavailable != "" || op.EnabledSetting != "" && !r.Settings().Bool(op.EnabledSetting)
+}
+
+// referencedBy are the props that name noun's things; nil when none does,
+// so the catalog leaves the field out.
+func referencedBy(r *ochazuke.Runtime, noun string) []ochazuke.Referrer {
+	rows := r.Referrers(noun)
+	if len(rows) == 0 {
+		return nil
+	}
+	return rows
 }

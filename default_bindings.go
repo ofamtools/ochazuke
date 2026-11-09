@@ -26,7 +26,7 @@ var frameworkBindings embed.FS
 var frameworkBindingFiles = []string{
 	"editor.json", "registers.json", // first: they define the pending modes (count_pending) others extend
 	"picker.json", "settings-editor.json", "about.json", "list.json", "table.json", "standard.json", "list-modes.json",
-	"tree.json", "timeline.json", "form.json", "filter-form.json", "completion.json", "yank-history.json",
+	"tree.json", "timeline.json", "related.json", "form.json", "filter-form.json", "completion.json", "yank-history.json",
 	"help.json", "macros.json", "confirm.json",
 	"terminal.json", "focus.json", "detail.json", "scroll.json", "panes.json", "history.json", "docs.json", "modal.json", "text-view.json",
 }

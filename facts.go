@@ -240,6 +240,7 @@ func registerFactNouns(r *Runtime) {
 	registerCoreFacts(r)
 	registerModeFacts(r)
 	registerAssociations(r)
+	registerReferrers(r)
 	registerActionFacts(r)
 	registerStateFacts(r)
 	registerJobFacts(r)
