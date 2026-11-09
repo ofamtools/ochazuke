@@ -495,7 +495,7 @@ func (s *Shell) mcpInstructions(actor ochazuke.Actor, tools []mcp.Tool) (string,
 			})
 		}
 	}
-	return AgentInstructions(doc, actor, false, tools)
+	return AgentInstructionsMode(doc, actor, false, tools, s.Runtime.Settings().String("mcp.instructions-nouns"))
 }
 
 // registerMCPVerbs gives discovery the same palette/CLI paths as other fetches.

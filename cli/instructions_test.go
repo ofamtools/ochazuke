@@ -49,7 +49,7 @@ func TestAgentInstructionsBudgetAndOrder(t *testing.T) {
 	for i := range 100 {
 		doc.Extensions = append(doc.Extensions, CatalogExtension{Name: fmt.Sprintf("ext-%03d", i), About: strings.Repeat("x", 10000)})
 	}
-	text, err := AgentInstructions(doc, ochazuke.Actor{}, false, mcp.DefaultTools())
+	text, err := AgentInstructionsMode(doc, ochazuke.Actor{}, false, mcp.DefaultTools(), InstructionNounsFirst)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestAgentInstructionsBudgetAndOrder(t *testing.T) {
 	}
 	slices.Reverse(doc.Nouns)
 	slices.Reverse(doc.Extensions)
-	again, err := AgentInstructions(doc, ochazuke.Actor{}, false, mcp.DefaultTools())
+	again, err := AgentInstructionsMode(doc, ochazuke.Actor{}, false, mcp.DefaultTools(), InstructionNounsFirst)
 	if err != nil || again != text {
 		t.Fatal("catalog ordering changed output", err)
 	}
@@ -203,5 +203,100 @@ func TestAgentInstructionsVerbAndInitialize(t *testing.T) {
 	}
 	if err := json.Unmarshal(out.Bytes(), &reply); err != nil || reply.Result.Instructions != server.Instructions() {
 		t.Fatal(out.String(), err)
+	}
+}
+
+func manyNounsDoc(n int, about string) CatalogDoc {
+	doc := instructionDoc()
+	for i := range n {
+		doc.Nouns = append(doc.Nouns, CatalogNoun{Name: fmt.Sprintf("noun-%03d", i), About: about, Verbs: []CatalogVerb{{Name: "list"}}})
+	}
+	for i := range 14 {
+		doc.Extensions = append(doc.Extensions, CatalogExtension{Name: fmt.Sprintf("ext-%02d", i), About: "Extension number " + strconv.Itoa(i)})
+	}
+	return doc
+}
+
+func TestInstructionsNounsModes(t *testing.T) {
+	t.Parallel()
+	doc := manyNounsDoc(120, "Short description of a thing")
+	tools := mcp.DefaultTools()
+	toolText := ""
+	for _, tool := range tools {
+		toolText += tool.Description
+	}
+	for _, mode := range []string{InstructionNounsAll, InstructionNounsNames, InstructionNounsFirst} {
+		text, err := AgentInstructionsMode(doc, ochazuke.Actor{}, false, tools, mode)
+		if err != nil {
+			t.Fatal(mode, err)
+		}
+		if InstructionTokens(text+toolText) > InstructionLimit {
+			t.Fatalf("%s: over the cap", mode)
+		}
+		listed := 0
+		for i := range 120 {
+			if strings.Contains(text, fmt.Sprintf("\"noun-%03d\"", i)) {
+				listed++
+			}
+		}
+		more := strings.Contains(text, "more: call catalog")
+		switch mode {
+		case InstructionNounsFirst:
+			if listed == 0 || listed >= 120 || !more {
+				t.Fatalf("first: %d listed, more=%v", listed, more)
+			}
+		case InstructionNounsAll:
+			if listed != 120 || more || !strings.Contains(text, `ext-13`) {
+				t.Fatalf("all: %d listed, more=%v\n%s", listed, more, text)
+			}
+		case InstructionNounsNames:
+			if listed != 120 || more || strings.Contains(text, "Short description") || strings.Contains(text, "verbs)") {
+				t.Fatalf("names: %d listed, more=%v", listed, more)
+			}
+			for _, line := range strings.Split(text, "\n") {
+				if strings.HasPrefix(line, `"noun-`) && len(line) > NamesWrap+10 {
+					t.Fatalf("unwrapped line %q", line)
+				}
+			}
+		}
+	}
+	// all keeps descriptions while they fit.
+	small, err := AgentInstructionsMode(manyNounsDoc(3, "Describes it"), ochazuke.Actor{}, false, tools, InstructionNounsAll)
+	if err != nil || !strings.Contains(small, `"noun-002" (1 verbs): "Describes it"`) {
+		t.Fatal(err, small)
+	}
+	// all drops to short rows, then names, as the text grows.
+	long, err := AgentInstructionsMode(manyNounsDoc(120, strings.Repeat("d", 200)), ochazuke.Actor{}, false, tools, InstructionNounsAll)
+	if err != nil || strings.Contains(long, strings.Repeat("d", 200)) {
+		t.Fatal(err)
+	}
+	if _, err := AgentInstructionsMode(doc, ochazuke.Actor{}, false, tools, "bogus"); err == nil {
+		t.Fatal("unknown mode accepted")
+	}
+}
+
+func TestInstructionsNounsSetting(t *testing.T) {
+	t.Parallel()
+	for mode, wantMore := range map[string]bool{"all": false, "names": false, "first": true} {
+		r := ochazuke.NewRuntime()
+		r.Config().Disable()
+		for i := range 150 {
+			r.Define(fmt.Sprintf("thing%03d", i)).About("A thing for the test").Verb("list", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) })
+		}
+		if r.Settings().String("mcp.instructions-nouns") != "all" {
+			t.Fatal("default is not all")
+		}
+		if err := r.Settings().Set("mcp.instructions-nouns", mode); err != nil {
+			t.Fatal(mode, err)
+		}
+		sh := New(r, "example", nil, io.Discard, io.Discard)
+		server, err := sh.NewMCPServer()
+		if err != nil {
+			t.Fatal(err)
+		}
+		text := server.Instructions()
+		if strings.Contains(text, "more: call catalog") != wantMore || strings.Contains(text, `"thing149"`) == wantMore {
+			t.Fatalf("%s: wantMore=%v\n%s", mode, wantMore, text)
+		}
 	}
 }

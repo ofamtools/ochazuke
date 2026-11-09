@@ -3163,8 +3163,11 @@ Declare short app paragraphs with `cli.About` and `cli.AgentRules`, and noun
 descriptions with `.About`. Catalog construction rejects host descriptions over
 60 estimated tokens each. The deterministic estimate is Unicode characters/4,
 rounded up. Startup instructions plus all advertised tool descriptions target
-1,200 tokens and have a hard cap of 1,800; noun and extension lists end with
-`N more: call catalog` when they exceed the target. A server whose mandatory text
+1,200 tokens and have a hard cap of 1,800. The setting `mcp.instructions-nouns`
+chooses the lists: `all` (default) names every noun and extension, one row each
+(name, verb count, short description), dropping to names only when rows would pass
+the hard cap; `names` writes names only on a wrapped paragraph; `first` stops at
+the target with `N more: call catalog`. A server whose mandatory text
 or alias descriptions exceed the hard cap fails to start with an error.
 
 Hosts can use `cli.MountCatalog(r, doc, hostMount)` instead of
