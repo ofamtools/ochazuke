@@ -236,16 +236,16 @@ func (ss *session) chooserSpec(cs *ChooserSpec) ochazuke.PickerSpec {
 	for _, src := range cs.Sources {
 		src := src
 		rows := func(query string) []ochazuke.PickerRow {
-			var out []ochazuke.PickerRow
+			var out []ochazuke.Choice
 			if src.Live && !src.Matched {
-				out = append(out, ochazuke.PickerRow{ID: src.Name + ":typed", Label: "typed: " + query})
+				out = append(out, ochazuke.Choice{ID: src.Name + ":typed", Label: "typed: " + query, RowFlags: ochazuke.RowFlags{Bare: true}})
 			}
 			for _, row := range src.Rows {
 				if !src.Live || src.Matched || strings.Contains(row.Label, query) {
-					out = append(out, ochazuke.PickerRow{ID: row.ID, Label: row.Label, Fixed: row.Fixed, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
+					out = append(out, storyChoice(row))
 				}
 			}
-			return out
+			return ochazuke.ChoiceRows(out)
 		}
 		spec.Sources = append(spec.Sources, ochazuke.PickerSource{Name: src.Name, Live: src.Live, Matched: src.Matched, Load: func(query string) ochazuke.Result {
 			return ochazuke.Done(rows(query))
@@ -259,7 +259,7 @@ func (ss *session) chooserSpec(cs *ChooserSpec) ochazuke.PickerSpec {
 	}
 	previews := map[string]string{}
 	for _, row := range cs.Rows {
-		spec.Rows = append(spec.Rows, ochazuke.PickerRow{ID: row.ID, Label: row.Label, Fixed: row.Fixed, Cells: row.Cells, Noun: row.Noun, Props: row.Props})
+		spec.Rows = append(spec.Rows, storyChoice(row).Row())
 		if row.Preview != "" {
 			previews[row.ID] = row.Preview
 		}
@@ -2043,4 +2043,10 @@ func jobMsgs(cmd tea.Cmd) []tea.Msg {
 	case <-time.After(5 * time.Second):
 	}
 	return nil
+}
+
+// storyChoice is a story's chooser row as a choice: its label is shown as
+// written (the story names the row, not a source).
+func storyChoice(row ChooserRowSpec) ochazuke.Choice {
+	return ochazuke.Choice{ID: row.ID, Label: row.Label, Cells: row.Cells, Noun: row.Noun, Props: row.Props, RowFlags: ochazuke.RowFlags{Fixed: row.Fixed, Bare: true}}
 }
