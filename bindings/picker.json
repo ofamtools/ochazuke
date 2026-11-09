@@ -3,7 +3,7 @@
 {
   "bindings": [
     {"context":"ochazuke.picker/insert","bindings":[
-      {"key":"esc","action":"ochazuke.picker.normal","hidden":true},
+      {"key":"esc","action":"ochazuke.picker.normal","hint":"normal"},
       {"key":"printable","action":"ochazuke.input.insert","from":{"text":"text"},"hidden":true},
       {"key":"paste","action":"ochazuke.input.insert","from":{"text":"text"},"hidden":true}
     ]},

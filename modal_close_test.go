@@ -82,20 +82,24 @@ func TestModalCloseRequestReentryPops(t *testing.T) {
 	}
 }
 
-// The palette closes through modal.close with its own close request: esc
-// clears a typed line first and closes only an empty one.
+// Esc only leaves insert in the palette; ctrl+u clears the line and q
+// closes it at once, typed line or not.
 func TestPaletteEscClearsThenCloses(t *testing.T) {
 	r, p, _ := lineRuntime(t)
 	if err := p.Open(); err != nil {
 		t.Fatal(err)
 	}
 	paletteKeys(t, p, "s", "a")
-	paletteKeys(t, p, "esc", "q")
+	paletteKeys(t, p, "ctrl+u")
 	if !p.IsOpen() || p.Text() != "" {
-		t.Fatalf("first esc: open %v line %q", p.IsOpen(), p.Text())
+		t.Fatalf("ctrl+u: open %v line %q", p.IsOpen(), p.Text())
 	}
-	paletteKeys(t, p, "esc", "q")
+	paletteKeys(t, p, "s", "a", "esc")
+	if !p.IsOpen() || p.Text() != "sa" {
+		t.Fatalf("esc: open %v line %q", p.IsOpen(), p.Text())
+	}
+	paletteKeys(t, p, "q")
 	if p.IsOpen() || r.TopModal() != "" {
-		t.Fatalf("second esc: open %v top %q", p.IsOpen(), r.TopModal())
+		t.Fatalf("q: open %v top %q", p.IsOpen(), r.TopModal())
 	}
 }

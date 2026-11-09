@@ -37,7 +37,7 @@
     {"context": "ochazuke.setting-value/insert", "bindings": [
       {"key": "enter", "action": "ochazuke.setting-value.accept"},
       {"key": "esc", "action": "ochazuke.modal.close", "when": "setting:modal.esc-closes"},
-      {"key": "esc", "action": "ochazuke.mode.switch", "args": {"mode": "normal"}, "when": "input-unpinned", "hidden": true}
+      {"key": "esc", "action": "ochazuke.mode.switch", "args": {"mode": "normal"}, "when": "input-unpinned", "hint": "normal"}
     ]},
     {"context": "ochazuke.settings-page/normal", "bindings": [
       {"key": "]", "action": "ochazuke.setting.show-tab", "args": {"step": 1}, "hint": "]/[ setting.show-tab"},

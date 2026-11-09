@@ -519,7 +519,7 @@ Conformance:
 | normal | noun | `noun.edit` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |
-| normal | palette | `palette.open` |
+| normal | palette | `palette.close` `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
 | normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
 | normal | picker | `picker.move` `picker.open` `picker.pick` |

@@ -16,7 +16,7 @@ r|  b1
  |              │   page1                                          │
  |              │   About  __about                                 │
  |              │                                                  │
- |              │ enter palette.run · tab palette.complete · up p… │
+ |              │ esc normal · enter palette.run · tab palette.co… │
  |              ╰──────────────────────────────────────────────────╯
  |
  |
@@ -26,5 +26,5 @@ r|  b1
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter palette.run · tab palette.complete · up palette.recall · down palette…
+ |  esc normal · enter palette.run · tab palette.complete · up palette.recall ·…
  |

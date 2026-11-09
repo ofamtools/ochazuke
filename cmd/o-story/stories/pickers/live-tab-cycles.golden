@@ -7,8 +7,8 @@ r|  a1    │ Complete                                                     │
  |        │   no rows match 'ab'                                         │
  |        │                                                              │
  |        │                                                              │
- |        │ enter picker.pick · tab search.cycle-match                   │
+ |        │ esc normal · enter picker.pick · tab search.cycle-match      │
  |        ╰──────────────────────────────────────────────────────────────╯
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter picker.pick · tab search.cycle-match
+ |  esc normal · enter picker.pick · tab search.cycle-match
  |

@@ -11,6 +11,9 @@
       {"key": "esc", "action": "ochazuke.modal.close", "when": "setting:modal.esc-closes"},
       {"key": "ctrl+c", "action": "ochazuke.palette.close"}
     ]},
+    {"context": "ochazuke.palette/normal", "bindings": [
+      {"key": "q", "action": "ochazuke.palette.close"}
+    ]},
     {"context": "ochazuke.palette/insert", "bindings": [
       {"key": "printable", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},
       {"key": "paste", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true}

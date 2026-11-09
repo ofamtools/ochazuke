@@ -8,7 +8,7 @@ r|  a1
  |            │ noun: prompt · mode: insert · place: none                                                    │
  |            │ key                operation          arguments             description                      │
  |            │ prompt                                                                                       │
-R|            │   esc              mode.switch ?      mode normal           when input-unpinned · Switch the │
+R|            │   esc              normal ?           mode normal           when input-unpinned · Switch the │
 R|            │                                                             global interaction mode (a       │
 R|            │                                                             registered mode, or declared:    │
 R|            │                                                             the mode the focus declares,     │

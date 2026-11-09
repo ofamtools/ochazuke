@@ -16,7 +16,7 @@ r|  a1
  |              │   demo                                           │
  |              │ name · string · required — The new name          │
  |              │                                                  │
- |              │ enter palette.run · tab palette.complete · up p… │
+ |              │ esc normal · enter palette.run · tab palette.co… │
  |              ╰──────────────────────────────────────────────────╯
  |
  |
@@ -26,5 +26,5 @@ r|  a1
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter palette.run · tab palette.complete · up palette.recall · down palette…
+ |  esc normal · enter palette.run · tab palette.complete · up palette.recall ·…
  |

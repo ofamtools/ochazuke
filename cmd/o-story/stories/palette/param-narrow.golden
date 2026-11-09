@@ -16,7 +16,7 @@ r|  a1
  |   │   true                  │
  |   │   false                 │
  |   │                         │
- |   │ enter palette.run · ta… │
+ |   │ esc normal · enter pal… │
  |   ╰─────────────────────────╯
  |
  |
@@ -26,5 +26,5 @@ r|  a1
  |
  |
  |  ──────────────────────────────
- |  enter palette.run · tab palet…
+ |  esc normal · enter palette.ru…
  |

@@ -150,7 +150,7 @@ func TestQColonOpensThePaletteOnItsHistory(t *testing.T) {
 	if !p.IsOpen() || p.Text() != "save sheet" || r.Registers().Macro.Recording != "" {
 		t.Fatalf("Q: open %v line %q recording %q", p.IsOpen(), p.Text(), r.Registers().Macro.Recording)
 	}
-	paletteKeys(t, p, "esc", "q", "esc", "q")
+	paletteKeys(t, p, "esc", "q")
 	for _, key := range []string{"Q", "a"} {
 		if _, err := r.Dispatch(MacroKey{Key: key}); err != nil {
 			t.Fatal(err)

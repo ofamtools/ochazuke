@@ -54,6 +54,20 @@ func TestEscLeavesInsertAndQClosesThePalette(t *testing.T) {
 	}
 }
 
+// q in the palette's normal mode closes it at once, even with a typed line.
+func TestQClosesThePaletteAtOnceWithATypedLine(t *testing.T) {
+	t.Parallel()
+	r := escFixture(t)
+	NewPalette(r)
+	if _, err := r.Execute(Request{Noun: "ochazuke.palette", Verb: "open"}); err != nil {
+		t.Fatal(err)
+	}
+	press(t, r, "a", "b", "esc", "q")
+	if r.TopModal() != "" {
+		t.Fatalf("q left the palette open")
+	}
+}
+
 func TestEscDoesNothingInANormalModeModal(t *testing.T) {
 	t.Parallel()
 	r := escFixture(t)
