@@ -59,6 +59,7 @@ func registerRelated(r *Runtime) {
 	registerRelatedGuards(r)
 	b := r.Define(RelatedNoun)
 	registerRelatedFolds(b)
+	registerRelatedRefresh(b)
 	registerRelatedMoves(b)
 	registerRelatedWrites(b)
 	registerRelatedSettings(b)
@@ -137,6 +138,29 @@ func registerRelatedFolds(b *NounBuilder) {
 			return Done(nil)
 		}, spec.desc).Params(relatedParams)
 	}
+}
+
+// registerRelatedRefresh declares refresh: read the section's things (every
+// hook section when none is named) again.
+func registerRelatedRefresh(b *NounBuilder) {
+	b.Verb("refresh", func(c Ctx) Result {
+		rel, err := relatedStack(c, StringArg(c.Args, "related", ""))
+		if err != nil {
+			return Failed(err)
+		}
+		rel.sync()
+		if id := StringArg(c.Args, "section", ""); id != "" {
+			s := rel.byID[id]
+			if s == nil {
+				return Failed(fmt.Errorf("unknown section %q", id))
+			}
+			s.fill()
+			return Done(s.thing())
+		}
+		rel.fillAll()
+		rel.read = rel.now()
+		return Done(nil)
+	}, "Read the sections' things again (every section, or the one named)").Params(sectionParams())
 }
 
 // registerRelatedMoves declares the verbs that move the focus from

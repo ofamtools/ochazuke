@@ -389,6 +389,7 @@ ochazuke.related-section.next motion=true focusBound=false typing=false kind=act
 ochazuke.related-section.open motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.related-section.open-all motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.related-section.previous motion=true focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.related-section.refresh motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.related-section.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.related-section.show motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.related-section.toggle motion=false focusBound=false typing=false kind=change repeatable=false staying=false

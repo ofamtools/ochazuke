@@ -2,9 +2,9 @@ package ochazuke
 
 import (
 	"fmt"
-	"reflect"
 	"slices"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -56,9 +56,16 @@ type RelatedSpec struct {
 	Order, Hidden, Collapsed, Counts, Empty string
 	// Rows lists the things of a noun without a store (a mounted noun)
 	// whose prop holds key; a noun with a store lists through the store's
-	// standard list with the filter PROP = key. Called on every draw to
-	// notice a change, so it must be cheap (rows the application holds).
+	// standard list with the filter PROP = key. Called when the key changes,
+	// a section unfolds, refresh runs or Interval passes, never on a draw.
 	Rows func(c Ctx, ref Referrer, key string) ([]Thing, error)
+	// Interval names a duration setting: the hook sections are read again
+	// that often (0 or "" never). They are otherwise read when the key
+	// changes, a section unfolds, the refresh verb runs or Refill is
+	// called, never on a draw.
+	Interval string
+	// Now is the clock the interval reads (default time.Now).
+	Now func() time.Time
 	// Scope narrows a placed view (NounBuilder.RelatedView) to the things
 	// owned by key: called when the key changes, and when the sections are
 	// refilled. Nil: the view is drawn as it stands.
@@ -87,19 +94,19 @@ type Related struct {
 	lastLine int             // the focused line of the last draw in the stack
 	watches  []*Watch
 	dirty    map[string]bool // nouns that changed since the last fill
+	read     time.Time       // when the hook sections were last read
 	closed   bool
 }
 
 // relatedSection is one section: a referrer's things for the key.
 type relatedSection struct {
-	rel    *Related
-	ref    Referrer
-	id     string // the section instance
-	list   *Collection
-	n      *Noun
-	view   string  // the placed view standing for the things, "" the list
-	things []Thing // the things last read (for the Rows poll)
-	count  int     // things shown, archived ones left out
+	rel   *Related
+	ref   Referrer
+	id    string // the section instance
+	list  *Collection
+	n     *Noun
+	view  string // the placed view standing for the things, "" the list
+	count int    // things shown, archived ones left out
 }
 
 // AddRelated registers a stack of related sections under Parent (default
@@ -301,9 +308,43 @@ func (rel *Related) sync() {
 			}
 		}
 	}
+	rel.refreshDue()
+}
+
+// refreshDue refills the hook sections when the spec's interval setting
+// names a duration that has passed since they were last read. It reads the
+// clock, never the hook, on a draw that is not due.
+func (rel *Related) refreshDue() {
+	if rel.spec.Interval == "" {
+		return
+	}
+	every := rel.r.Settings().Duration(rel.spec.Interval)
+	if every <= 0 {
+		return
+	}
+	now := rel.now()
+	if rel.read.IsZero() {
+		rel.read = now
+		return
+	}
+	if now.Sub(rel.read) >= every {
+		rel.refreshHooks()
+	}
+}
+
+func (rel *Related) now() time.Time {
+	if rel.spec.Now != nil {
+		return rel.spec.Now()
+	}
+	return time.Now()
+}
+
+// refreshHooks reads the rows of every hook section again.
+func (rel *Related) refreshHooks() {
+	rel.read = rel.now()
 	for _, s := range rel.sections {
 		if s.hooked() {
-			s.pollHook()
+			s.fill()
 		}
 	}
 }
@@ -438,15 +479,6 @@ func (s *relatedSection) read() ([]Thing, error) {
 	return page.Items, nil
 }
 
-// pollHook reads a hooked section's things and fills it when they differ.
-func (s *relatedSection) pollHook() {
-	things, err := s.read()
-	if err != nil || reflect.DeepEqual(things, s.things) {
-		return
-	}
-	s.fill()
-}
-
 // fill reads the things and shows them: the heading, then the things unless
 // the section is collapsed (a placed view draws its own).
 func (s *relatedSection) fill() {
@@ -460,7 +492,6 @@ func (s *relatedSection) fill() {
 		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
 		things = nil
 	}
-	s.things = things
 	hiding := r.archiveHiding(s.n, s.list.vs)
 	shown := make([]Thing, 0, len(things))
 	for _, t := range things {

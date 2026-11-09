@@ -5,6 +5,7 @@ import (
 	"maps"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/x/ansi"
 	"ofam.dev/ochazuke/keytest"
@@ -475,8 +476,14 @@ func TestRelatedKeyStoreAndHookRefresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	f.mustHave(t, "▾ Tasks (2)", "write")
-	// A hook's rows are polled on every draw.
+	// A hook's rows are read again by refresh, not by a draw.
 	f.links = append(f.links, Thing{"id": "l3", "name": "wiki", "project": "p2"})
+	if strings.Contains(f.frame(), "wiki") {
+		t.Fatal("a draw read the hook")
+	}
+	if _, err := f.r.Execute(Request{Noun: RelatedNoun, Verb: "refresh"}); err != nil {
+		t.Fatal(err)
+	}
 	f.mustHave(t, "▾ Links (2)", "wiki")
 }
 
@@ -604,4 +611,81 @@ func TestRelatedVerbsList(t *testing.T) {
 	}
 	run("close", "task.project")
 	run("open", "task.project")
+}
+
+// The Rows hook is called by a trigger, never by a draw: the key changing,
+// a section unfolding, the refresh verb, the interval setting.
+func TestRelatedHookReadsOnTriggersNotOnDraws(t *testing.T) {
+	t.Parallel()
+	calls := 0
+	now := time.Unix(1000, 0)
+	f := newRelFixtureWith(t, func(r *Runtime) {
+		if err := r.DeclareSetting(Setting{Name: "rel.every", Type: SettingDuration, Default: time.Duration(0)}); err != nil {
+			t.Fatal(err)
+		}
+	}, func(s *RelatedSpec) {
+		inner := s.Rows
+		s.Rows = func(c Ctx, ref Referrer, key string) ([]Thing, error) { calls++; return inner(c, ref, key) }
+		s.Interval, s.Now = "rel.every", func() time.Time { return now }
+	})
+	base := calls
+	if base == 0 {
+		t.Fatal("the hook was never read")
+	}
+	for i := 0; i < 50; i++ {
+		f.frame()
+		f.m.View()
+	}
+	if calls != base {
+		t.Fatalf("50 frames called the hook %d times", calls-base)
+	}
+	// The focused project changing.
+	f.key = "p2"
+	f.frame()
+	if calls != base+1 {
+		t.Fatalf("a key change: %d calls, want %d", calls, base+1)
+	}
+	// A section unfolding.
+	before := calls
+	if _, err := f.r.Execute(Request{Noun: RelatedNoun, Verb: "close", Args: Arguments{"section": "link.project"}}); err != nil {
+		t.Fatal(err)
+	}
+	before = calls
+	if _, err := f.r.Execute(Request{Noun: RelatedNoun, Verb: "open", Args: Arguments{"section": "link.project"}}); err != nil {
+		t.Fatal(err)
+	}
+	if calls <= before {
+		t.Fatal("unfolding did not read the hook")
+	}
+	// The refresh verb.
+	before = calls
+	if _, err := f.r.Execute(Request{Noun: RelatedNoun, Verb: "refresh"}); err != nil {
+		t.Fatal(err)
+	}
+	if calls <= before {
+		t.Fatal("refresh did not read the hook")
+	}
+	// The interval: off until named, then once it has passed.
+	now = now.Add(time.Hour)
+	f.frame()
+	before = calls
+	now = now.Add(time.Hour)
+	f.frame()
+	if calls != before {
+		t.Fatal("an interval of 0 read the hook")
+	}
+	if err := f.r.Settings().Set("rel.every", 30*time.Second); err != nil {
+		t.Fatal(err)
+	}
+	f.frame() // starts the clock
+	before = calls
+	f.frame()
+	if calls != before {
+		t.Fatal("a draw inside the interval read the hook")
+	}
+	now = now.Add(31 * time.Second)
+	f.frame()
+	if calls <= before {
+		t.Fatal("the interval passing did not read the hook")
+	}
 }
