@@ -1021,10 +1021,11 @@ func openSectionPicker(r *Runtime) error {
 	if len(listed) == 0 {
 		listed = units
 	}
-	rows := make([]ChooserRow, len(listed))
+	choices := make([]Choice, len(listed))
 	for i, u := range listed {
-		rows[i] = ChooserRow{ID: u.key(), Label: u.Title, Cells: []string{sectionCell(s, u.Title, u.Session), strconv.Itoa(len(u.Settings))}}
+		choices[i] = Choice{ID: u.key(), Label: u.Title, Cells: []string{sectionCell(s, u.Title, u.Session), strconv.Itoa(len(u.Settings))}, RowFlags: RowFlags{Bare: true}}
 	}
+	rows := ChoiceRows(choices)
 	inSections := false
 	if list := r.List(settingsSectionsID); list != nil && list.Focused() {
 		inSections = true

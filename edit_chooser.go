@@ -55,7 +55,7 @@ func (r *Runtime) openEditChooser(c Ctx, n *Noun, field RecordField, values Reco
 	held := func(text string) bool { return cur != nil && text == cur[field.Name] }
 	var fixed []ChooserRow
 	if !field.Required {
-		fixed = append(fixed, ChooserRow{ID: "", Label: "(none)", Fixed: true})
+		fixed = append(fixed, noneChoice().Row())
 	}
 	ch, err = r.openChoiceChooser(ChooserSpec{
 		Kind:  EditChooserKind,

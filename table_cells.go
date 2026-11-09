@@ -494,10 +494,7 @@ func tableChooseColumn(r *Runtime, c Context, a Arguments) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	rows := make([]ChooserRow, len(l.columns))
-	for i := range l.columns {
-		rows[i] = ChooserRow{ID: strconv.Itoa(i), Label: l.columnTitle(i)}
-	}
+	rows := l.columnRows(nil)
 	_, err = r.OpenChooser(ChooserSpec{Kind: "table-column", Title: "Column", Rows: rows, Choose: func(row ChooserRow) Result {
 		i, _ := strconv.Atoi(row.ID)
 		l.SetColumn(i)
@@ -590,4 +587,22 @@ func tableResetColumns(r *Runtime, c Context, a Arguments) (any, error) {
 	l.ResetColumnWidths()
 	l.ResetPins()
 	return l.state(), nil
+}
+
+// columnRows are the column chooser's rows from its source (columnChoices).
+func (l *Collection) columnRows(pinned []int) []PickerRow {
+	return ChoiceRows(l.columnChoices(pinned))
+}
+
+// columnChoices are the table's columns as choices, the column's index the
+// id; pinned ones carry " (pinned)" in their label.
+func (l *Collection) columnChoices(pinned []int) []Choice {
+	choices := make([]Choice, len(l.columns))
+	for i := range l.columns {
+		choices[i] = Choice{ID: strconv.Itoa(i), Label: l.columnTitle(i), RowFlags: RowFlags{Bare: true}}
+		if slices.Contains(pinned, i) {
+			choices[i].Label += " (pinned)"
+		}
+	}
+	return choices
 }

@@ -571,21 +571,22 @@ const pagePickerID = "page-picker"
 // title; enter opens the highlighted page, esc closes.
 func (r *Runtime) OpenPagePicker() (*Chooser, error) {
 	pages := r.pagePickerOrder()
-	rows := make([]ChooserRow, 0, len(pages))
+	choices := make([]Choice, 0, len(pages))
 	for _, page := range pages {
 		label := page.Title
 		if label == "" {
 			label = page.ID
 		}
-		row := ChooserRow{ID: page.ID, Label: label}
+		choice := Choice{ID: page.ID, Label: label, RowFlags: RowFlags{Bare: true}}
 		switch {
 		case page.ID == r.Page:
-			row.Cells = []string{label, "current"}
+			choice.Cells = []string{label, "current"}
 		case r.PageHidden(page.ID):
-			row.Cells = []string{label, "hidden"}
+			choice.Cells = []string{label, "hidden"}
 		}
-		rows = append(rows, row)
+		choices = append(choices, choice)
 	}
+	rows := ChoiceRows(choices)
 	return r.OpenChooser(ChooserSpec{
 		Kind:  pagePickerID,
 		Title: "Pages",
