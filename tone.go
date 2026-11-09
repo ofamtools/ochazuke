@@ -67,6 +67,11 @@ const (
 	// does not parse): bold on an error background in every built-in
 	// theme, bold alone in mono.
 	ToneError = "error"
+	// ToneInputField fills a text input's field (every row of its width,
+	// not its label) a step off the surface around it; selection and the
+	// cursor draw on top. Set its bg to nothing in a themes.json tone
+	// ("input.field": {}) to draw inputs flat.
+	ToneInputField = "input.field"
 	// ToneChip draws a chip (a query term, a tag) on a dim background;
 	// ToneChipFocused is the chip the focus is on, bright: the scheme's
 	// surface on its accent, bold. mono draws the focused chip bold.
@@ -210,6 +215,7 @@ var defaultTones = map[string]ToneStyle{
 	ToneQueued:         {Fg: SchemeColor{"accent", "accent"}},
 	ToneSession:        {Bold: true},
 	ToneError:          {Bg: SchemeColor{"#F6D3CE", "#5E2722"}, Bold: true},
+	ToneInputField:     {Bg: SchemeColor{"#EEF1F5", "#262C34"}},
 	ToneChip:           {Bg: SchemeColor{"#E2EAE5", "#26362F"}},
 	ToneChipFocused:    {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"accent", "accent"}, Bold: true},
 	ToneRecordInverted: {Fg: SchemeColor{"#B54708", "#FF9B70"}},

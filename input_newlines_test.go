@@ -184,6 +184,12 @@ func TestPaletteLineShowsGrownContent(t *testing.T) {
 		t.Fatal(err)
 	}
 	out := ansi.Strip(p.viewBlock(NewStyles(Appearance{}), 60, 24).Text)
+	// The field's fill pads each row to the width; read the text alone.
+	lines := strings.Split(out, "\n")
+	for i := range lines {
+		lines[i] = strings.TrimRight(lines[i], " ")
+	}
+	out = strings.Join(lines, "\n")
 	if !strings.Contains(out, ": one\n  two") {
 		t.Fatalf("palette frame hides the grown line:\n%s", out)
 	}

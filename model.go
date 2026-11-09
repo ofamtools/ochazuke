@@ -1481,7 +1481,7 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 	wrapAt(runeIndex)
 	writeLineEnd(false, cursor == len(in.Text))
 	in.r.placedScreen(in.ID, in.screenOf(breaks, start, height))
-	text := body.String()
+	text := in.fieldTone(body.String(), width)
 	// The page keeps the whole box on screen when it follows the focus.
 	text = in.r.PlacedAt(in.ID, text, 0, strings.Count(text, "\n")+1)
 	return Block{Text: text, Cursor: &Pos{X: cursorColumn - offset, Y: cursorRow - start}}
@@ -1499,4 +1499,33 @@ func (m *Model) inspectorLine() string {
 type noticeFact struct {
 	ID   string `json:"id"`
 	Text string `json:"text"`
+}
+
+// fieldTone lays the input-field tone (ToneInputField) under every row of
+// a drawn input, padded to width so the fill covers the field area. The
+// selection's reverse video and the terminal cursor draw on top. A theme
+// without the tone, or with no background in it (mono, NO_COLOR, a user
+// tone with an empty bg), leaves the text as drawn.
+func (in *Input) fieldTone(text string, width int) string {
+	if in.r == nil {
+		return text
+	}
+	styles := in.r.toneStyles(in.ID)
+	if styles == nil || !styles.hasTone(ToneInputField) {
+		return text
+	}
+	st := styles.Tone(ToneInputField)
+	if st.GetBackground() == nil {
+		return text
+	}
+	const mark = "\x00"
+	open, _, ok := strings.Cut(st.Render(mark), mark)
+	if !ok || open == "" {
+		return text
+	}
+	rows := strings.Split(text, "\n")
+	for i, row := range rows {
+		rows[i] = open + row + strings.Repeat(" ", max(0, width-ansi.StringWidth(row))) + "\x1b[m"
+	}
+	return strings.Join(rows, "\n")
 }

@@ -7,6 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // widgetFacts defines widget, a list-facts noun whose list verb answers
@@ -141,7 +143,7 @@ func TestPaletteRemoteChoicesLoadOffTheLoop(t *testing.T) {
 		close(release)
 		t.Fatal("typing waited on the pending list")
 	}
-	if !strings.Contains(view, ": widget get xy") || !strings.Contains(view, "loading widgets…") {
+	if !strings.Contains(ansi.Strip(view), ": widget get xy") || !strings.Contains(view, "loading widgets…") {
 		t.Fatalf("view while loading:\n%s", view)
 	}
 	if n := calls.Load(); n != 1 {
