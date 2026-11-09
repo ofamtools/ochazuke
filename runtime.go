@@ -667,6 +667,7 @@ func (r *Runtime) registerFramework() {
 	registerLists(r)
 	registerTrees(r)
 	registerTimelines(r)
+	registerRelated(r)
 	registerForms(r)
 	RegisterInputOperations(r)
 	registerCompletion(r)

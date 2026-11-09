@@ -1,0 +1,18 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
+{
+  "bindings": [
+    {"context": "ochazuke.related-section/normal", "bindings": [
+      {"key": "enter", "action": "ochazuke.related-section.toggle", "when": "related-on-heading"},
+      {"key": "z a", "action": "ochazuke.related-section.toggle", "hidden": true},
+      {"key": "z o", "action": "ochazuke.related-section.open", "hidden": true},
+      {"key": "z c", "action": "ochazuke.related-section.close", "hidden": true},
+      {"key": "z R", "action": "ochazuke.related-section.open-all"},
+      {"key": "z M", "action": "ochazuke.related-section.close-all"},
+      {"key": "] ]", "action": "ochazuke.related-section.next", "hidden": true},
+      {"key": "[ [", "action": "ochazuke.related-section.previous", "hidden": true},
+      {"key": "n", "action": "ochazuke.related-section.new", "when": "related-on-heading"},
+      {"key": "a", "action": "ochazuke.related-section.associate", "when": "related-on-heading"},
+      {"key": "d u", "action": "ochazuke.related-section.unassociate", "when": "related-on-row"}
+    ]}
+  ]
+}
