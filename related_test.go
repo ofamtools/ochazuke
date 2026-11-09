@@ -147,12 +147,16 @@ func newRelFixtureWith(t *testing.T, init func(*Runtime), mod func(*RelatedSpec)
 	if mod != nil {
 		mod(&spec)
 	}
+	left, err := r.AddList("page/left", []ListItem{{ID: "p1", Label: "Alpha", Noun: "project"}, {ID: "p2", Label: "Beta", Noun: "project"}}, Parent("page"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	rel, err := r.AddRelated("page/details", spec, Parent("page"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	f.rel = rel
-	if _, err := r.AddPage("page", "Page", func(r *Runtime, w, h int) Block { return Text(rel.View(w, h)) }, Focus(rel.FocusTarget())); err != nil {
+	if _, err := r.AddPage("page", "Page", func(r *Runtime, w, h int) Block { return Text(left.View(w, 2) + "\n" + rel.View(w, h-2)) }, Focus(rel.FocusTarget())); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.OpenPage("page"); err != nil {
@@ -312,11 +316,11 @@ func TestRelatedSettings(t *testing.T) {
 		t.Fatalf("counts off still counts:\n%s", f.frame())
 	}
 	set("rel.counts", true)
-	set("rel.empty", RelatedEmptyOmit)
+	set("rel.empty", RelatedEmptyHide)
 	if text := f.frame(); strings.Contains(text, "origin") {
 		t.Fatalf("hide empty shows the empty section:\n%s", text)
 	}
-	set("rel.empty", RelatedEmptyHint)
+	set("rel.empty", RelatedEmptyOpen)
 	f.mustHave(t, "▸ Notes (origin) (0)", "no notes")
 	set("rel.empty", RelatedEmptyHeader)
 	if text := f.frame(); strings.Contains(text, "no notes") {
@@ -403,4 +407,201 @@ func TestRelatedUnassociateReadOnlyPropSaysWhy(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "read-only") {
 		t.Fatalf("associate of a read-only prop: %v", err)
 	}
+}
+
+// Every edge of a section list: untrapped, the motion leaves for the
+// neighbouring stop (or stays at the page's own end); named in
+// collection.no-spill at that edge, it stays. One table over the four edges.
+func TestRelatedFourEdges(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		edge     SpillEdge
+		section  string // the section the motion starts in
+		start    string // the row it starts on
+		key      string
+		moves    bool // whether the untrapped motion leaves the section
+		leavesTo string
+	}{
+		{EdgeLast, "task.project", "t2", "j", true, "note.project"},
+		{EdgeFirst, "note.project", "@head", "k", true, "task.project"},
+		{EdgeFirstColumn, "task.project", "@head", "h", true, "p1"},
+		{EdgeLastColumn, "task.project", "@head", "l", false, ""},
+	} {
+		t.Run(string(tc.edge), func(t *testing.T) {
+			t.Parallel()
+			for _, trapped := range []bool{false, true} {
+				f := newRelFixture(t, nil)
+				list := f.rel.List(tc.section)
+				if err := list.Select(list.id + "/" + tc.start); err != nil {
+					t.Fatal(err)
+				}
+				if err := f.r.SetFocus(list.FocusTarget()); err != nil {
+					t.Fatal(err)
+				}
+				f.m.View()
+				if trapped {
+					if err := f.r.Settings().Set(ListNoSpillSetting, []string{f.rel.sectionInstance(tc.section) + ":" + string(tc.edge)}); err != nil {
+						t.Fatal(err)
+					}
+				}
+				start := f.focus()
+				f.press(tc.key)
+				moved := f.focus() != start
+				if moved != (tc.moves && !trapped) {
+					t.Fatalf("%s trapped=%v: focus %q -> %q, moves=%v", tc.edge, trapped, start, f.focus(), tc.moves)
+				}
+				if moved && !strings.Contains(f.focus(), tc.leavesTo) {
+					t.Fatalf("%s left for %q, want %q", tc.edge, f.focus(), tc.leavesTo)
+				}
+			}
+		})
+	}
+}
+
+// sectionInstance is the section's instance id (what collection.no-spill names).
+func (rel *Related) sectionInstance(section string) string { return rel.byID[section].id }
+
+func TestRelatedKeyStoreAndHookRefresh(t *testing.T) {
+	t.Parallel()
+	f := newRelFixture(t, nil)
+	f.mustHave(t, "write", "docs")
+	f.key = "p2"
+	f.mustHave(t, "▾ Tasks (1)", "ship", "repo", "memo")
+	if strings.Contains(f.frame(), "write") {
+		t.Fatalf("p1's task shows under p2:\n%s", f.frame())
+	}
+	// A change in a store reaches the section through the watch.
+	if _, err := f.r.Execute(Request{Noun: "task", Prop: "project", Value: "p2", Target: "t1"}); err != nil {
+		t.Fatal(err)
+	}
+	f.mustHave(t, "▾ Tasks (2)", "write")
+	// A hook's rows are polled on every draw.
+	f.links = append(f.links, Thing{"id": "l3", "name": "wiki", "project": "p2"})
+	f.mustHave(t, "▾ Links (2)", "wiki")
+}
+
+func TestRelatedScrollKeepsFocusAndDrawsBreadcrumb(t *testing.T) {
+	t.Parallel()
+	f := newRelFixture(t, nil)
+	for i := 0; i < 20; i++ {
+		f.tasks.add("id", fmt.Sprintf("x%d", i), "title", fmt.Sprintf("extra%d", i), "project", "p1")
+	}
+	f.rel.Refill()
+	f.height = 12
+	f.m.Height = 12
+	f.frame()
+	list := f.rel.List("task.project")
+	last := list.id + "/x19"
+	if err := list.Select(last); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.r.SetFocus(list.FocusTarget()); err != nil {
+		t.Fatal(err)
+	}
+	text := f.frame()
+	if !strings.Contains(text, "extra19") {
+		t.Fatalf("the focused row is off screen:\n%s", text)
+	}
+	if first := strings.Split(text, "\n")[0]; !strings.HasPrefix(first, "↑ Tasks") {
+		t.Fatalf("first line %q, want the breadcrumb of the section", first)
+	}
+	if err := list.Select(list.id + "/@head"); err != nil {
+		t.Fatal(err)
+	}
+	if text = f.frame(); strings.HasPrefix(text, "↑") {
+		t.Fatalf("breadcrumb at the top:\n%s", text)
+	}
+}
+
+// A noun's related view (a tree) stands for its things under the heading;
+// it sits under the section, so z a reaches the section and j spills out of
+// the tree into the next section.
+func TestRelatedViewKeepsATree(t *testing.T) {
+	t.Parallel()
+	var tree *Tree
+	scoped := ""
+	f := newRelFixtureWith(t, func(r *Runtime) {
+		r.Instance("page")
+		var err error
+		tree, err = r.AddTree("page/tasktree", nil, Parent("page"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		r.Define("task").RelatedView("page/tasktree")
+	}, func(s *RelatedSpec) {
+		s.Scope = func(c Ctx, ref Referrer, view, key string) error {
+			scoped = view + "@" + key
+			var nodes []TreeNode
+			got, err := c.Runtime.Execute(Request{Noun: "task", Verb: "list"})
+			if err != nil {
+				return err
+			}
+			for _, row := range AnswerRows(got).([]map[string]any) {
+				if row[ref.Prop] == key {
+					nodes = append(nodes, TreeNode{ID: fmt.Sprint(row["id"]), Label: fmt.Sprint(row["title"]), Noun: "task", Data: Thing(row)})
+				}
+			}
+			return tree.SetNodes(nodes)
+		}
+	})
+	if scoped != "page/tasktree@p1" {
+		t.Fatalf("scope %q", scoped)
+	}
+	f.mustHave(t, "▾ Tasks (2)", "write", "test", "▾ Notes (project) (1)")
+	if tree.List().Len() != 2 {
+		t.Fatalf("tree rows %d", tree.List().Len())
+	}
+	if err := f.r.SetFocus(tree.FocusTarget()); err != nil {
+		t.Fatal(err)
+	}
+	f.m.View()
+	f.press("z", "a")
+	if text := f.frame(); strings.Contains(text, "write") || !strings.Contains(text, "▸ Tasks (2)") {
+		t.Fatalf("z a inside the tree does not fold its section:\n%s", text)
+	}
+	f.press("z", "a")
+	f.mustHave(t, "write")
+}
+
+// The section verbs and the settings verbs.
+func TestRelatedVerbsList(t *testing.T) {
+	t.Parallel()
+	f := newRelFixture(t, nil)
+	run := func(verb, section string) {
+		t.Helper()
+		if _, err := f.r.Execute(Request{Noun: RelatedNoun, Verb: verb, Args: Arguments{"section": section}}); err != nil {
+			t.Fatalf("%s: %v", verb, err)
+		}
+	}
+	run("hide", "note.origin")
+	if got := f.r.Settings().Strings("rel.hidden"); len(got) != 1 || got[0] != "note.origin" {
+		t.Fatalf("hidden %v", got)
+	}
+	run("show", "note.origin")
+	if got := f.r.Settings().Strings("rel.hidden"); len(got) != 0 {
+		t.Fatalf("hidden %v", got)
+	}
+	run("move-down", "task.project")
+	if got := f.r.Settings().Strings("rel.order"); len(got) == 0 || got[1] != "task.project" {
+		t.Fatalf("order %v", got)
+	}
+	run("move-up", "task.project")
+	if got := f.r.Settings().Strings("rel.order"); got[0] != "task.project" {
+		t.Fatalf("order %v", got)
+	}
+	f.press("j")
+	if _, err := f.r.Execute(Request{Noun: RelatedNoun, Verb: "last"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(f.focus(), "link.project") {
+		t.Fatalf("last: %q", f.focus())
+	}
+	if _, err := f.r.Execute(Request{Noun: RelatedNoun, Verb: "first"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(f.focus(), "task.project") {
+		t.Fatalf("first: %q", f.focus())
+	}
+	run("close", "task.project")
+	run("open", "task.project")
 }

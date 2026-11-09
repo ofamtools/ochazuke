@@ -25,10 +25,10 @@ const (
 	// RelatedEmptyHeader draws the heading with (0) and nothing under it:
 	// you see what can be associated and press n or a there. The default.
 	RelatedEmptyHeader = "header"
-	// RelatedEmptyOmit leaves the section out until it has a thing.
-	RelatedEmptyOmit = "omit"
-	// RelatedEmptyHint draws the heading and an empty row under it.
-	RelatedEmptyHint = "hint"
+	// RelatedEmptyHide leaves the section out until it has a thing.
+	RelatedEmptyHide = "hide"
+	// RelatedEmptyOpen draws the heading and an empty row under it.
+	RelatedEmptyOpen = "open"
 )
 
 // RelatedSpec describes one stack of related sections: for the things of
@@ -45,7 +45,7 @@ const (
 // lists ids kept out (an entry ending in * is a prefix). Collapsed lists
 // ids that start collapsed; the state afterwards is the stack's view state.
 // Counts is a boolean (default on): the heading shows (N). Empty is
-// RelatedEmptyHeader (default), RelatedEmptyOmit or RelatedEmptyHint.
+// RelatedEmptyHeader (default), RelatedEmptyHide or RelatedEmptyOpen.
 type RelatedSpec struct {
 	// Noun is the noun the sections hang off.
 	Noun string
@@ -204,14 +204,22 @@ func (rel *Related) countsShown() bool {
 	return rel.r.Settings().Bool(rel.spec.Counts)
 }
 
-func (rel *Related) emptyMode() string {
-	if rel.spec.Empty != "" {
-		switch v := rel.r.Settings().String(rel.spec.Empty); v {
-		case RelatedEmptyOmit, RelatedEmptyHint:
-			return v
-		}
+// The empty modes by place in relatedEmptyModes.
+const (
+	relatedEmptyAtHeader = iota
+	relatedEmptyAtHide
+	relatedEmptyAtOpen
+)
+
+var relatedEmptyModes = []string{RelatedEmptyHeader, RelatedEmptyHide, RelatedEmptyOpen}
+
+// emptyMode is the place of the empty setting's value in relatedEmptyModes;
+// the header mode for no setting or a value that is none of them.
+func (rel *Related) emptyMode() int {
+	if rel.spec.Empty == "" {
+		return relatedEmptyAtHeader
 	}
-	return RelatedEmptyHeader
+	return max(relatedEmptyAtHeader, slices.Index(relatedEmptyModes, rel.r.Settings().String(rel.spec.Empty)))
 }
 
 // hiddenBy is the hidden entry that names the section, "" when none does.
@@ -244,7 +252,7 @@ func (rel *Related) order() []*relatedSection {
 // visible is the sections drawn: not hidden by the setting and, in the
 // omit empty mode, not empty.
 func (rel *Related) visible() []*relatedSection {
-	hideEmpty := rel.emptyMode() == RelatedEmptyOmit
+	hideEmpty := rel.emptyMode() == relatedEmptyAtHide
 	var out []*relatedSection
 	for _, s := range rel.order() {
 		if rel.hiddenBy(s.ref.ID()) != "" || hideEmpty && s.count == 0 {
@@ -471,7 +479,7 @@ func (s *relatedSection) fill() {
 			}
 		}
 	} else if !s.collapsed() {
-		if empty && rel.emptyMode() == RelatedEmptyHint {
+		if empty && rel.emptyMode() == relatedEmptyAtOpen {
 			items = append(items, s.emptyRow())
 		}
 		items = append(items, r.thingItems(c, s.n, s.list.id, shown, s.list.columns)...)
@@ -526,8 +534,9 @@ func (s *relatedSection) setCollapsed(collapsed bool) {
 		return
 	}
 	rel.collapse[s.ref.ID()] = collapsed
-	if collapsed && rel.r.focusInside(s.list.id) {
+	if collapsed && rel.r.focusInside(s.id) {
 		_ = s.list.Select(s.headID())
+		_ = rel.r.SetFocus(s.list.FocusTarget())
 	}
 	s.fill()
 }

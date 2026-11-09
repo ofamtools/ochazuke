@@ -35,11 +35,11 @@ func (b *NounBuilder) RelatedView(componentID string) *NounBuilder {
 // stack (default the one at the focus) and, for a section verb, the
 // section (default the one at the focus).
 var relatedParams = map[string]Parameter{
-	"related": {Type: "string", Noun: RelatedStackNoun, Description: "The related stack (default: the one at the focus, else the first)"},
+	"related": {Type: "string", Named: true, Noun: RelatedStackNoun, Description: "The related stack (default: the one at the focus, else the first)"},
 }
 
 func sectionParams(extra ...map[string]Parameter) map[string]Parameter {
-	out := map[string]Parameter{"section": {Type: "string", Noun: RelatedNoun, Description: "The section, NOUN.PROP (default: the one at the focus)"}}
+	out := map[string]Parameter{"section": {Type: "string", Named: true, Noun: RelatedNoun, Description: "The section, NOUN.PROP (default: the one at the focus)"}}
 	for k, v := range relatedParams {
 		out[k] = v
 	}
@@ -168,14 +168,16 @@ func registerRelatedMoves(b *NounBuilder) {
 	}
 	walk("next", "Go to the next section's heading", relatedParams, func(_ Ctx, v []*relatedSection, at int) int { return min(at+1, len(v)-1) })
 	walk("previous", "Go to the previous section's heading", relatedParams, func(_ Ctx, v []*relatedSection, at int) int { return max(at-1, 0) })
-	position := map[string]Parameter{"related": relatedParams["related"],
-		"position": {Type: "string", Enum: []string{"first", "last"}, Description: "Which section's heading (default first)"}}
-	walk("goto", "Go to the first or last section's heading", position, func(c Ctx, v []*relatedSection, _ int) int {
-		if StringArg(c.Args, "position", "first") == position["position"].Enum[1] {
-			return len(v) - 1
+	edge := func(last bool) func(Ctx, []*relatedSection, int) int {
+		return func(_ Ctx, v []*relatedSection, _ int) int {
+			if last {
+				return len(v) - 1
+			}
+			return 0
 		}
-		return 0
-	})
+	}
+	walk("first", "Go to the first section's heading", relatedParams, edge(false))
+	walk("last", "Go to the last section's heading", relatedParams, edge(true))
 }
 
 // registerRelatedWrites declares the verbs that write things: new,
@@ -194,7 +196,7 @@ func registerRelatedWrites(b *NounBuilder) {
 		}
 		// No thing named: ask for it, over the noun's own set.
 		return s.run(c, Request{Noun: s.ref.Noun, Verb: "set", Args: Arguments{"props": map[string]any{s.ref.Prop: s.rel.key}}}, true)
-	}, map[string]Parameter{"thing": {Type: "string", Description: "The thing to associate (its key); asked for when missing"}})
+	}, map[string]Parameter{"thing": {Type: "string", Named: true, Description: "The thing to associate (its key); asked for when missing"}})
 	sectionVerb(b, "unassociate", "Clear the referring prop of the selected (or marked) things of the section: they become unassociated, never deleted; one undo step", func(c Ctx, s *relatedSection) error {
 		if err := s.readOnly("unassociate"); err != nil {
 			return err
@@ -241,13 +243,13 @@ func registerRelatedSettings(b *NounBuilder) {
 		}
 		return out
 	}
-	write("conceal", "Keep the section out of the stack (writes the hidden setting)", hidden, listed, func(s *relatedSection, cur []string) ([]string, error) {
+	write("hide", "Keep the section out of the stack (writes the hidden setting)", hidden, listed, func(s *relatedSection, cur []string) ([]string, error) {
 		if s.rel.hiddenBy(s.ref.ID()) != "" {
 			return cur, nil
 		}
 		return append(cur, s.ref.ID()), nil
 	})
-	write("reveal", "Bring a concealed section back (writes the hidden setting)", hidden, listed, func(s *relatedSection, cur []string) ([]string, error) {
+	write("show", "Bring a hidden section back (writes the hidden setting)", hidden, listed, func(s *relatedSection, cur []string) ([]string, error) {
 		if by := s.rel.hiddenBy(s.ref.ID()); by != "" && by != s.ref.ID() {
 			return nil, fmt.Errorf("%s is hidden by the pattern %s: change the setting", s.ref.ID(), by)
 		}
@@ -265,8 +267,8 @@ func registerRelatedSettings(b *NounBuilder) {
 			return cur, nil
 		}
 	}
-	write("raise", "Move the section up the stack (writes the order setting)", ordered, ids, shift(-1))
-	write("lower", "Move the section down the stack (writes the order setting)", ordered, ids, shift(1))
+	write("move-up", "Move the section up the stack (writes the order setting)", ordered, ids, shift(-1))
+	write("move-down", "Move the section down the stack (writes the order setting)", ordered, ids, shift(1))
 }
 
 // doneOr is Done(nil), or a failed result for err.

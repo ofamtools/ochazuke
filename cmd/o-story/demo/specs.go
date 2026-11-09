@@ -78,6 +78,9 @@ type Page struct {
 	// page's order with the lists (its id, default "timeline", names it in
 	// Order), its cards a focus stop.
 	Timeline *TimelineSpec `json:"timeline,omitempty"`
+	// Related is a stack of related sections drawn in the page's order
+	// with the lists (its id, default "related", names it in Order).
+	Related *RelatedSpec `json:"related,omitempty"`
 	// Commands makes the page cli's Commands page (cli.AddCommands) over
 	// these entries instead of a synthetic one; a run opens a fake pane.
 	Commands *CommandsSpec `json:"commands,omitempty"`

@@ -121,7 +121,6 @@ complete	action	seed
 completion	noun	seed	
 completion_on	prop	seed	
 components	prop	seed	
-conceal	action	seed	
 condition	prop	seed	
 config	noun+prop	seed	
 confirm	noun+prop	seed	
@@ -306,6 +305,7 @@ find	action	seed
 find-line	noun	seed	
 finish	action	seed	
 finished	prop	seed	
+first	action	seed	
 fit-column	action	seed	
 fit-columns	action	seed	
 flags	prop	seed	
@@ -349,6 +349,7 @@ head	prop	seed
 help	action	seed	
 helptext	prop	seed	
 hidden	prop	seed	
+hide	action	seed	
 hint	action+prop	seed	
 hints	action	seed	
 hints-cancel	action	seed	
@@ -402,6 +403,7 @@ label	prop	seed
 lane	namespace+noun	seed	
 lane_count	prop	seed	
 lanes	relation	seed	
+last	action	seed	
 last-done	prop	seed	
 last-error	prop	seed	
 last-outcome	prop	seed	
@@ -425,7 +427,6 @@ locked	prop	seed
 log	prop	seed	
 login	action	seed	
 logout	action	seed	
-lower	action	seed	
 macro	noun+prop	seed	
 made-by	prop	seed	
 main	prop	seed	
@@ -466,6 +467,8 @@ moot	action	seed
 more	prop	seed	
 motion	prop	seed	
 move	action	seed	
+move-down	action	seed	
+move-up	action	seed	
 moved	prop	seed	
 msg	prop	seed	
 multiply	action	seed	
@@ -623,7 +626,6 @@ quiet	prop	seed
 quit	action+prop	seed	
 quota	noun	seed	
 quote-line	action	seed	
-raise	action	seed	
 ratio	prop	seed	
 read	prop	seed	
 read-activities	prop	seed	

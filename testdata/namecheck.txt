@@ -53,6 +53,7 @@ cli/format.go	tableOf	cyclo	"-"	31
 cli/format.go	writeMarkdown	compare	"right"	1
 cli/host_mount.go	mountVerb	case	"action"	1
 cli/host_mount.go	mountVerb	case	"confirm"	1
+cli/instructions.go	instructionFit.pick	case	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 cli/mcp_backend.go	Shell.mcpValue	case	"config"	1
 cli/mcp_backend.go	Shell.newMCPServer	compare	"confirm"	1
 cli/mcp_backend.go	mcpBackend.Call	case	"run"	1
@@ -108,9 +109,11 @@ confirm.go	Runtime.openConfirmAbout	cyclo	"-"	40
 confirm.go	registerConfirm	compare	"ochazuke.confirm"	1
 default_bindings.go	Runtime.CheckDefaultBindings	compare	"ochazuke.mode.enter"	1
 default_bindings.go	Runtime.loadDefaultDoc	cyclo	"-"	34
+detail.go	Detail.MoveToEdge	compare	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 detail.go	Detail.MoveToEdge	compare	"last"	1
 editing.go	Input.begin	case	"append"	2
 editing.go	Input.begin	case	"end"	2
+editing.go	Input.begin	case	"first"	2	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 editing.go	Input.begin	case	"insert"	1	the input.begin position argument (insert/append/first/...), not the insert mode
 editor.go	Input.pasteOverLines	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
 editor.go	Input.pasteOverSelection	compare	"line"	1	moved from registerEditorOperations (was debt there): a verb table row named a handler; the compare moved with its code
@@ -176,6 +179,7 @@ key_echo.go	echoEntry.label	compare	"count"	1
 key_echo.go	keyEcho.observe	compare	"palette"	1
 key_echo.go	keyEcho.observe	cyclo	"-"	40
 leader_outside.go	Runtime.dispatchOutside	compare	"all"	1
+list.go	Collection.marksSelection	compare	"hide"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 list.go	registerLists	cyclo	"-"	29
 list_filter.go	Collection.editingFilter	compare	"list_filter"	1
 list_filter.go	registerListFilter	compare	"list_filter"	2
@@ -204,8 +208,11 @@ markdown/doc.go	Doc.Select	compare	"task"	1
 markdown/doc.go	Doc.relayout	case	"task"	1
 markdown/doc.go	Doc.relayout	cyclo	"-"	28
 markdown/doc.go	Doc.selected	compare	"task"	1
+markdown/done.go	Doc.SetDone	case	"hide"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 markdown/done.go	Doc.SetDone	case	"show"	1
 markdown/done.go	Doc.SetDone	case	"toggle"	1
+markdown/done.go	Doc.SetDone	compare	"hide"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
+markdown/done.go	Doc.hiddenElements	compare	"hide"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 markdown/done.go	Doc.hiddenElements	compare	"task"	1
 markdown/edit.go	Doc.Insert	case	"end"	1
 markdown/edit.go	Doc.Insert	case	"start"	1
@@ -227,7 +234,10 @@ markdown/verbs.go	docGuards	compare	"task"	1	moved from register (was debt there
 model.go	Model.Update	cyclo	"-"	29
 model.go	Model.cutMessage	compare	"ochazuke.message.show"	1
 model.go	inputBlockFrom	cyclo	"-"	57
+model_styles.go	Runtime.settingsKey	compare	"hide"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
+motion_scroll.go	Collection.MoveToEdge	compare	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 motion_scroll.go	Collection.MoveToEdge	compare	"last"	1
+motion_scroll.go	registerViewMotions	compare	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 motion_scroll.go	registerViewMotions	compare	"last"	1
 name_vocab.go	Runtime.NameVocab	compare	"motion"	1
 namespace.go	frameworkName	compare	"app"	1
@@ -282,6 +292,7 @@ path_find.go	Runtime.findOrigin	case	"path"	1
 path_find.go	Runtime.openFindPicker	compare	"dir"	1
 peer_bindings.go	Runtime.syncPeerNotices	compare	"all"	1
 picker_search.go	searchPickerMatch	compare	"dir"	1
+picker_verbs.go	pickerMoveDelta	case	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 picker_verbs.go	pickerMoveDelta	case	"last"	1
 picker_verbs.go	var pickerRename	table	"open"	1	data: the renamed verb of the old chooser noun (Keep actions, one release)
 picker_verbs.go	var pickerVerbAliases	table	"choose"	1	data: the path finder's old verb names, aliases for one release
@@ -303,6 +314,7 @@ query.go	Runtime.match	case	"all"	1
 query.go	Runtime.match	case	"not"	1
 query.go	isCombinator	compare	"all"	1
 query.go	isCombinator	compare	"not"	1
+record_chips.go	recordField.chipEdge	case	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 record_chips.go	recordField.chipEdge	case	"last"	1
 record_editor.go	RecordEditor.Block	cyclo	"-"	31
 record_editor.go	RecordEditor.applyLoaded	compare	"close"	1
@@ -330,6 +342,7 @@ search_find.go	registerSearchFind	compare	"find-line"	2
 search_match.go	regexFolds	case	"ignore"	1
 segment.go	Runtime.startSegment	case	"verb"	1
 segment.go	segmentMove	case	"down"	1
+segment.go	segmentMove	case	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 segment.go	segmentMove	case	"last"	1
 segment.go	segmentMove	case	"up"	1
 segment.go	segmentText	case	"value"	1
@@ -387,12 +400,16 @@ table.go	Collection.tallView	cyclo	"-"	43
 table.go	tableLineAt	compare	"right"	1
 table_cells.go	Collection.columnTo	compare	"last"	1
 table_cells.go	Collection.yankSubject	compare	"row"	2	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
+table_cells.go	tableColumn	compare	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 table_cells.go	tableColumn	compare	"last"	1	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
 table_cells.go	tableYank	compare	"row"	3	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
+table_columns.go	Collection.scrollColumns	case	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 table_columns.go	Collection.scrollColumns	case	"last"	1
 text_view.go	Runtime.showsText	case	"all"	1
+timeline.go	Timeline.MoveToEdge	compare	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 timeline.go	Timeline.draw	compare	"accent"	1
 timeline.go	Timeline.draw	cyclo	"-"	37
+timeline.go	registerTimelines	compare	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 timeline_steps.go	Timeline.buildBody	cyclo	"-"	41
 timeline_steps.go	registerTimelineSteps	cyclo	"-"	28
 tone.go	paintLine	cyclo	"-"	48
@@ -426,4 +443,5 @@ unbound_verbs.go	Runtime.bindUserKey	cyclo	"-"	27
 unbound_verbs.go	Runtime.runFromHelp	compare	"bindings-help"	1
 unbound_verbs.go	Runtime.unboundOperations	compare	"all"	2
 unbound_verbs.go	Runtime.unboundOperations	compare	"app"	1
+yank_history.go	yankHistory.MoveToEdge	compare	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
 yank_history.go	yankHistory.MoveToEdge	compare	"last"	1

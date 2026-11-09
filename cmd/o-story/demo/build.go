@@ -66,6 +66,7 @@ type session struct {
 	// timelines are the page's timeline by page id; streamed counts the
 	// lines timeline-stream added.
 	timelines map[string]*ochazuke.Timeline
+	related   map[string]*ochazuke.Related // the page's related sections by page id
 	streamed  int
 	streams   []*FakeStream
 	// hidden are the stops demo.hide took off the page (drawn again by
@@ -111,7 +112,7 @@ func build(env monogatari.Env) (monogatari.Built, error) {
 		return monogatari.Built{}, err
 	}
 	m.Title = "o-story"
-	ss := &session{env: env, R: r, M: m, all: pages, filesDir: env.FilesDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.Collection{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, hidden: map[string]bool{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	ss := &session{env: env, R: r, M: m, all: pages, filesDir: env.FilesDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.Collection{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, related: map[string]*ochazuke.Related{}, hidden: map[string]bool{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	built := monogatari.Built{Model: m, Close: ss.close, Emit: ss.Emit, HasPane: ss.HasPane, Writes: func() []string { return ss.Writes }, Snapshot: ss.snapshot}
 	if err := ss.defineDemo(pages); err != nil {
 		ss.close()
@@ -1117,6 +1118,16 @@ func (ss *session) addPage(p *Page) error {
 			focus = tl.FocusTarget()
 		}
 	}
+	if p.Related != nil {
+		rel, err := ss.addRelated(p)
+		if err != nil {
+			return fmt.Errorf("related: %w", err)
+		}
+		ss.related[p.ID] = rel
+		if focus == "" {
+			focus = rel.FocusTarget()
+		}
+	}
 	if p.Detail != nil {
 		d, err := r.AddDetail(p.ID+"-detail", func() string { return ss.detailItem(p) }, ochazuke.Parent(p.ID))
 		if err != nil {
@@ -1561,6 +1572,9 @@ func (ss *session) renderMain(p *Page, width, height int) ochazuke.Block {
 		if p.Timeline != nil {
 			order = append(order, timelineID(p))
 		}
+		if p.Related != nil {
+			order = append(order, relatedID(p))
+		}
 	}
 	order = slices.DeleteFunc(slices.Clone(order), func(id string) bool { return ss.hidden[id] })
 	recordSpec := map[string]RecordSpec{}
@@ -1654,6 +1668,19 @@ func (ss *session) renderMain(p *Page, width, height int) ochazuke.Block {
 			if b, ok := ss.placed(p, id, width, drawn); ok {
 				parts = append(parts, b)
 				used += strings.Count(b.Text, "\n") + 1
+				continue
+			}
+			if rel := ss.related[p.ID]; rel != nil && id == rel.ID() {
+				h := p.Related.Height
+				if h <= 0 {
+					h = max(1, height-used-head)
+				}
+				text := rel.View(width, h)
+				if !p.NoHead {
+					text = id + "\n" + text
+				}
+				parts = append(parts, ochazuke.Text(text))
+				used += strings.Count(text, "\n") + 1
 				continue
 			}
 			if tl := ss.timelines[p.ID]; tl != nil && id == tl.ID() {

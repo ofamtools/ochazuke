@@ -15,19 +15,22 @@ import (
 // non-test file builds a PickerRow or ChooserRow literal (with fields) by
 // hand, outside params.go and the allow list.
 
-// rowLiteralAllowed are the files (a name, or a prefix ending in "_") that
+// rowLiteralAllowed are the files (a name, or with Prefix the start of names) that
 // may build rows by hand, each with its reason. The owner (2026-11-09): only
 // anything that references a file or directory, and the command palette.
-var rowLiteralAllowed = []struct{ File, Reason string }{
-	{"params.go", "Choice.Row is the one builder of a picker row"},
-	{"path_", "path, file and directory pickers build folder, file, typed and walk rows from the filesystem (path_chooser.go, path_find.go, path_walk.go)"},
-	{"palette", "the command palette parses a command line and builds its own entries; it has no PickerRow literal today"},
+var rowLiteralAllowed = []struct {
+	File, Reason string
+	Prefix       bool
+}{
+	{"params.go", "Choice.Row is the one builder of a picker row", false},
+	{"path_", "path, file and directory pickers build folder, file, typed and walk rows from the filesystem (path_chooser.go, path_find.go, path_walk.go)", true},
+	{"palette", "the command palette parses a command line and builds its own entries; it has no PickerRow literal today", true},
 }
 
 func rowLiteralFileAllowed(file string) bool {
 	base := filepath.Base(file)
 	for _, a := range rowLiteralAllowed {
-		if base == a.File || strings.HasSuffix(a.File, "_") && strings.HasPrefix(base, a.File) || a.File == "palette" && strings.HasPrefix(base, "palette") {
+		if base == a.File || a.Prefix && strings.HasPrefix(base, a.File) {
 			return true
 		}
 	}

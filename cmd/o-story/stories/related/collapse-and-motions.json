@@ -1,0 +1,140 @@
+{
+  "name": "Related sections: j spills across sections, z a folds, ] ] walks headings",
+  "area": "related",
+  "width": 60,
+  "height": 22,
+  "page": {
+    "id": "projects",
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "projects-list",
+        "height": 2,
+        "items": [
+          {
+            "id": "p1",
+            "label": "Alpha"
+          },
+          {
+            "id": "p2",
+            "label": "Beta"
+          }
+        ]
+      }
+    ],
+    "related": {
+      "id": "details",
+      "noun": "project",
+      "keyList": "projects-list",
+      "height": 16,
+      "nouns": [
+        {
+          "noun": "task",
+          "prop": "project",
+          "owner": true,
+          "columns": [
+            "id",
+            "title"
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "write",
+              "project": "p1"
+            },
+            {
+              "id": "t2",
+              "title": "test",
+              "project": "p1"
+            },
+            {
+              "id": "t3",
+              "title": "ship",
+              "project": "p2"
+            }
+          ]
+        },
+        {
+          "noun": "note",
+          "prop": "project",
+          "things": [
+            {
+              "id": "n1",
+              "title": "idea",
+              "project": "p1"
+            },
+            {
+              "id": "n2",
+              "title": "memo",
+              "project": "p2"
+            }
+          ]
+        },
+        {
+          "noun": "link",
+          "prop": "project",
+          "owner": true,
+          "hook": true,
+          "things": [
+            {
+              "id": "l1",
+              "title": "docs",
+              "project": "p1"
+            }
+          ]
+        }
+      ]
+    },
+    "focus": "details/task.project/list/@head"
+  },
+  "script": [
+    "j",
+    "j",
+    "j",
+    "k",
+    "] ]",
+    "z a",
+    "z a",
+    "z M",
+    "z R"
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "details/note.project/list/@head"
+    },
+    {
+      "after": 4,
+      "focus": "details/task.project/list/t2"
+    },
+    {
+      "after": 5,
+      "focus": "details/note.project/list/@head"
+    },
+    {
+      "after": 6,
+      "focus": "details/note.project/list/@head",
+      "contains": [
+        "\u25b8 Notes (project) (1)"
+      ],
+      "lacks": [
+        "idea"
+      ]
+    },
+    {
+      "after": 8,
+      "lacks": [
+        "write",
+        "idea",
+        "docs"
+      ]
+    },
+    {
+      "contains": [
+        "write",
+        "idea",
+        "docs"
+      ]
+    }
+  ]
+}
