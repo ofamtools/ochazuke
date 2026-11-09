@@ -1223,7 +1223,7 @@ func (e *RecordEditor) suggest(f *recordField) error {
 	} else {
 		spec.Title = "Choose " + f.label()
 		if !f.Required {
-			fixed = append(fixed, ChooserRow{ID: "", Label: "(none)", Fixed: true})
+			fixed = append(fixed, noneChoice().Row())
 		}
 	}
 	c, err := e.r.openChoiceChooser(spec, choiceLoad{
@@ -1354,7 +1354,8 @@ func (l choiceLoad) choiceRow(c Choice) ChooserRow {
 	if l.row != nil {
 		return l.row(c)
 	}
-	return ChooserRow{ID: c.ID, Label: l.label(c)}
+	c.Label, c.Bare = l.label(c), true
+	return c.Row()
 }
 
 // booleanChoices are a boolean field's choices: true and false.
@@ -2059,3 +2060,8 @@ func (e *RecordEditor) refreshChoices() {
 
 // RowView exposes an explicitly declared backing view to shared list verbs.
 func (e *RecordEditor) RowView() *Collection { return e.spec.RowView }
+
+// noneChoice is the fixed "(none)" row of a chooser for an optional field.
+func noneChoice() Choice {
+	return Choice{Label: "(none)", RowFlags: RowFlags{Fixed: true, Bare: true}}
+}

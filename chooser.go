@@ -661,7 +661,7 @@ func (c *Chooser) refilter() {
 	}
 	var create []ChooserRow
 	if label, ok := c.createRow(); ok {
-		create = []ChooserRow{{ID: chooserCreateRow, Label: label}}
+		create = []ChooserRow{Choice{ID: chooserCreateRow, Label: label, RowFlags: RowFlags{Bare: true}}.Row()}
 	}
 	c.matches = slices.Concat(head, tail, create, fixed)
 	c.lingerRows()

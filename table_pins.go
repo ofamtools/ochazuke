@@ -167,14 +167,7 @@ func registerTablePins(r *Runtime, cells func(Context, Arguments) (*Collection, 
 				change(l, l.Column())
 				return l.state(), nil
 			}
-			rows := make([]ChooserRow, len(l.columns))
-			pins := l.PinnedColumns()
-			for i := range l.columns {
-				rows[i] = ChooserRow{ID: strconv.Itoa(i), Label: l.columnTitle(i)}
-				if slices.Contains(pins, i) {
-					rows[i].Label += " (pinned)"
-				}
-			}
+			rows := l.columnRows(l.PinnedColumns())
 			_, err = r.OpenChooser(ChooserSpec{Kind: "table-column", Title: "Column", Rows: rows, Choose: func(row ChooserRow) Result {
 				i, _ := strconv.Atoi(row.ID)
 				change(l, i)

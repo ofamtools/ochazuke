@@ -407,10 +407,11 @@ func (l *Collection) pickSavedFilter() error {
 	if err != nil {
 		return err
 	}
-	rows := []ChooserRow{}
+	choices := []Choice{}
 	for _, f := range filters {
-		rows = append(rows, ChooserRow{ID: f.Name, Label: f.Name, Data: f})
+		choices = append(choices, Choice{ID: f.Name, Label: f.Name, Data: f})
 	}
+	rows := ChoiceRows(choices)
 	_, err = l.r.OpenChooser(ChooserSpec{Kind: "list-filter-saved", Title: "Saved filters", Rows: rows, Choose: func(row ChooserRow) Result {
 		if err := l.ApplyFilter(row.ID); err != nil {
 			return Failed(err)
@@ -486,16 +487,17 @@ func (l *Collection) pickPropFilter(prop string, offerClear, not bool) error {
 		return l.openFilterForm()
 	}
 	if prop == "" {
-		rows := []ChooserRow{}
+		choices := []Choice{}
 		for _, name := range l.filterProps() {
-			rows = append(rows, ChooserRow{ID: name, Label: name})
+			choices = append(choices, Choice{ID: name, Label: name})
 		}
 		if l.r.Settings().Bool(ListFilterPickerSortSetting) && l.Sortable() {
-			rows = append(rows, ChooserRow{Label: "Sort…", Fixed: true, Data: Request{Noun: "ochazuke.collection", Verb: "sort-column", Args: Arguments{"id": l.id, "pick": true}}})
+			choices = append(choices, Choice{Label: "Sort…", Data: Request{Noun: "ochazuke.collection", Verb: "sort-column", Args: Arguments{"id": l.id, "pick": true}}, RowFlags: RowFlags{Fixed: true, Bare: true}})
 		}
 		if offerClear && (len(l.vs.Filters) > 0 || l.vs.Saved != "") {
-			rows = append(rows, ChooserRow{Label: "Clear prop filters", Fixed: true})
+			choices = append(choices, Choice{Label: "Clear prop filters", RowFlags: RowFlags{Fixed: true, Bare: true}})
 		}
+		rows := ChoiceRows(choices)
 		if len(rows) == 0 {
 			return errors.New("list rows have no filterable props")
 		}
@@ -554,13 +556,14 @@ func (l *Collection) pickPropFilter(prop string, offerClear, not bool) error {
 			values[string(raw)] = one
 		}
 	}
-	rows := []ChooserRow{}
+	choices := []Choice{}
 	for _, key := range slices.Sorted(maps.Keys(values)) {
-		if len(rows) == propValueCap {
+		if len(choices) == propValueCap {
 			break
 		}
-		rows = append(rows, ChooserRow{ID: key, Label: fmt.Sprint(values[key]), Data: values[key]})
+		choices = append(choices, Choice{ID: key, Label: fmt.Sprint(values[key]), Data: values[key], RowFlags: RowFlags{Bare: true}})
 	}
+	rows := ChoiceRows(choices)
 	if len(rows) == 0 {
 		return fmt.Errorf("no visible values for prop %q", prop)
 	}
@@ -672,10 +675,11 @@ func registerListPropFilter(r *Runtime) {
 				}
 				return clear(slices.IndexFunc(l.vs.Filters, func(f PropFilter) bool { return f.Prop == prop }))
 			}
-			rows := []ChooserRow{}
+			choices := []Choice{}
 			for i, f := range l.vs.Filters {
-				rows = append(rows, ChooserRow{ID: strconv.Itoa(i), Label: f.Label(), Data: i})
+				choices = append(choices, Choice{ID: strconv.Itoa(i), Label: f.Label(), Data: i, RowFlags: RowFlags{Bare: true}})
 			}
+			rows := ChoiceRows(choices)
 			_, err := r.OpenChooser(ChooserSpec{Kind: "list-filter-remove", Title: "Clear prop filter", Rows: rows, Choose: func(row ChooserRow) Result {
 				if err := clear(row.Data.(int)); err != nil {
 					return Failed(err)

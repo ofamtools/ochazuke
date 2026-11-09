@@ -701,27 +701,27 @@ func (h *helpState) placeRows() []ChooserRow {
 		}
 		return ""
 	}
-	rows := []ChooserRow{{ID: "none", Label: "no place (noun + app)", Cells: []string{"no place (noun + app)", "", current(nil)}}}
+	choices := []Choice{{ID: "none", Label: "no place (noun + app)", Cells: []string{"no place (noun + app)", "", current(nil)}, RowFlags: RowFlags{Bare: true}}}
 	for i, p := range h.r.NounPlaces(h.noun) {
 		label := placeLabel(h.r, p)
-		rows = append(rows, ChooserRow{ID: fmt.Sprintf("place/%d", i), Label: label, Data: p, Cells: []string{label, fmt.Sprintf("%d×", p.Count), current(&p)}})
+		choices = append(choices, Choice{ID: fmt.Sprintf("place/%d", i), Label: label, Data: p, Cells: []string{label, fmt.Sprintf("%d×", p.Count), current(&p)}, RowFlags: RowFlags{Bare: true}})
 	}
-	return rows
+	return ChoiceRows(choices)
 }
 
 // helpChooserRows are a chooser's rows with the current one first, marked.
 func helpChooserRows(names []string, current string, data func(string) any) []ChooserRow {
-	var rows []ChooserRow
+	var choices []Choice
 	for _, name := range names {
-		row := ChooserRow{ID: name, Label: name, Data: data(name), Cells: []string{name, ""}}
+		choice := Choice{ID: name, Label: name, Data: data(name), Cells: []string{name, ""}}
 		if name == current {
-			row.Cells[1] = "current"
-			rows = append([]ChooserRow{row}, rows...)
+			choice.Cells[1] = "current"
+			choices = append([]Choice{choice}, choices...)
 			continue
 		}
-		rows = append(rows, row)
+		choices = append(choices, choice)
 	}
-	return rows
+	return ChoiceRows(choices)
 }
 
 // helpPick is one thing the help's pick operation chooses: ready says when

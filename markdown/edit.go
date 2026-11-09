@@ -1061,15 +1061,16 @@ func kindClass(kind string) string {
 // Headings are the document's headings as chooser rows (their element
 // index as the data).
 func (d *Doc) headings() []ochazuke.PickerRow {
-	var rows []ochazuke.PickerRow
+	var choices []ochazuke.Choice
 	for i, e := range d.elems {
 		if e.Kind != KindHeading {
 			continue
 		}
 		title := strings.TrimSpace(strings.TrimLeft(firstLine(d.text[e.Start:e.End]), "#"))
-		rows = append(rows, ochazuke.PickerRow{ID: "heading/" + strconv.Itoa(i), Label: strings.Repeat("  ", max(0, e.Level-1)) + title, Data: i, Cells: []string{strings.Repeat("  ", max(0, e.Level-1)) + title, "line " + strconv.Itoa(e.Line)}})
+		indented := strings.Repeat("  ", max(0, e.Level-1)) + title
+		choices = append(choices, ochazuke.Choice{ID: "heading/" + strconv.Itoa(i), Label: indented, Data: i, Cells: []string{indented, "line " + strconv.Itoa(e.Line)}, RowFlags: ochazuke.RowFlags{Bare: true}})
 	}
-	return rows
+	return ochazuke.ChoiceRows(choices)
 }
 
 // GotoHeading puts the cursor on the heading whose text is title (case

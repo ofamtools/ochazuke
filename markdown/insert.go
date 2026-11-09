@@ -332,10 +332,11 @@ func (d *Doc) BlockChooser() error {
 	if _, ok := d.buffer(); !ok {
 		return errors.New("no block is open")
 	}
-	rows := make([]ochazuke.PickerRow, len(blockKinds))
+	choices := make([]ochazuke.Choice, len(blockKinds))
 	for i, k := range blockKinds {
-		rows[i] = ochazuke.PickerRow{ID: "block/" + k.id, Label: k.label, Data: i}
+		choices[i] = ochazuke.Choice{ID: "block/" + k.id, Label: k.label, Data: i, RowFlags: ochazuke.RowFlags{Bare: true}}
 	}
+	rows := ochazuke.ChoiceRows(choices)
 	_, err := d.r.OpenPicker(ochazuke.PickerSpec{Kind: "markdown-blocks", Title: "Insert", Rows: rows, Choose: func(row ochazuke.PickerRow) ochazuke.Result {
 		i, _ := row.Data.(int)
 		k := blockKinds[i]
@@ -361,10 +362,11 @@ func result(err error) ochazuke.Result {
 // columnsChooser asks a new table's column count: 2 to 6, or a number
 // typed.
 func (d *Doc) columnsChooser() ochazuke.Result {
-	var rows []ochazuke.PickerRow
+	var choices []ochazuke.Choice
 	for n := 2; n <= 6; n++ {
-		rows = append(rows, ochazuke.PickerRow{ID: "columns/" + strconv.Itoa(n), Label: strconv.Itoa(n) + " columns", Data: n})
+		choices = append(choices, ochazuke.Choice{ID: "columns/" + strconv.Itoa(n), Label: strconv.Itoa(n) + " columns", Data: n, RowFlags: ochazuke.RowFlags{Bare: true}})
 	}
+	rows := ochazuke.ChoiceRows(choices)
 	table := func(n int) ochazuke.Result {
 		n = min(max(1, n), 32)
 		head := "|" + strings.Repeat("  |", n)

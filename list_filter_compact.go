@@ -221,10 +221,11 @@ func (l *Collection) openViewForm() error {
 	controller := l.r.Instance(e.id+"/controller", Parent(e.id), Kind(filterFormNoun))
 	controller.Component = v
 	if l.r.Settings().Bool(ListFilterSortSetting) && l.Sortable() {
-		rows := []ChooserRow{{ID: "", Label: "App order", Data: ""}}
+		choices := []Choice{{ID: "", Label: "App order", Data: "", RowFlags: RowFlags{Bare: true}}}
 		for _, name := range sortNames {
-			rows = append(rows, ChooserRow{ID: name, Label: name, Data: name})
+			choices = append(choices, Choice{ID: name, Label: name, Data: name})
 		}
+		rows := ChoiceRows(choices)
 		v.sortPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/sort", Plural: "sort fields", Rows: rows, Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
 			if err := v.setField(filterSortField, row.Data.(string)); err != nil {
 				return Failed(err)
@@ -247,10 +248,11 @@ func (l *Collection) openViewForm() error {
 		l.r.Instance(directionID, Parent(e.id), Kind(filterDirectionNoun))
 	}
 	if !v.legacy {
-		var rows []ChooserRow
+		var choices []Choice
 		for _, f := range v.fields {
-			rows = append(rows, ChooserRow{ID: f.prop, Label: f.prop, Data: f.prop})
+			choices = append(choices, Choice{ID: f.prop, Label: f.prop, Data: f.prop})
 		}
+		rows := ChoiceRows(choices)
 		v.fieldPicker, err = l.r.AddChooser(ChooserSpec{Kind: e.id + "/field", Plural: "fields", Rows: rows, Stay: true, NormalMode: true, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
 			if err := v.editField(row.ID); err != nil {
 				return Failed(err)
@@ -456,7 +458,7 @@ func (v *filterViewForm) valueRows(f *filterField) []ChooserRow {
 		}
 	}
 	chosen, _ := ParseChips(v.e.field(f.prop).text())
-	var rows []ChooserRow
+	var choices []Choice
 	for i, label := range f.labels {
 		marker := v.l.r.glyph("check.off")
 		if slices.Contains(chosen, label) {
@@ -466,9 +468,9 @@ func (v *filterViewForm) valueRows(f *filterField) []ChooserRow {
 		if shown == "" {
 			shown = "(blank)"
 		}
-		rows = append(rows, ChooserRow{ID: strconv.Itoa(i), Label: shown, Data: label, Cells: []string{marker + " " + shown, fmt.Sprintf("%d rows", counts[label])}})
+		choices = append(choices, Choice{ID: strconv.Itoa(i), Label: shown, Data: label, Cells: []string{marker + " " + shown, fmt.Sprintf("%d rows", counts[label])}, RowFlags: RowFlags{Bare: true}})
 	}
-	return rows
+	return ChoiceRows(choices)
 }
 
 func (v *filterViewForm) refreshValues() {

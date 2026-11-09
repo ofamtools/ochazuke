@@ -434,10 +434,11 @@ func (l *Collection) sortColumn(desc *bool, pick bool) error {
 			return l.cycleSort(name, desc)
 		}
 	}
-	rows := []ChooserRow{}
+	choices := []Choice{}
 	for _, name := range sortedKeys(specs) {
-		rows = append(rows, ChooserRow{ID: name, Label: name})
+		choices = append(choices, Choice{ID: name, Label: name})
 	}
+	rows := ChoiceRows(choices)
 	_, err := l.r.OpenChooser(ChooserSpec{Kind: "list-sort-field", Title: "Sort by field", Rows: rows, Choose: func(row ChooserRow) Result {
 		if err := l.cycleSort(row.ID, desc); err != nil {
 			return Failed(err)

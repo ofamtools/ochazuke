@@ -68,12 +68,13 @@ func (v *filterViewForm) deleteSaved() error {
 	}
 	// Only the user's own definitions can be deleted; an app default is not
 	// offered, since picking it could only fail.
-	var rows []ChooserRow
+	var choices []Choice
 	for _, f := range filters {
 		if slices.ContainsFunc(user, f.sameDefinition) {
-			rows = append(rows, ChooserRow{ID: f.Name, Label: f.Name})
+			choices = append(choices, Choice{ID: f.Name, Label: f.Name})
 		}
 	}
+	rows := ChoiceRows(choices)
 	_, err = v.l.r.OpenChooser(ChooserSpec{Kind: "list-filter-delete", Title: "Delete saved filter", Plural: "saved filters", Rows: rows, NoPropFilters: true, NoSort: true, Choose: func(row ChooserRow) Result {
 		_, err := v.l.r.Execute(Request{Noun: "ochazuke.collection", Verb: "filter-saved-delete", Args: Arguments{"id": v.l.id, "name": row.ID}})
 		if err != nil {

@@ -26,6 +26,13 @@ type Choice struct {
 	// Tones colour runs of the row (PickerRow.Tones): Cell indexes Cells,
 	// or is 0 for the Label.
 	Tones []ToneSpan `json:"tones,omitempty"`
+	// Data is the opaque handle the picked row carries (PickerRow.Data); a
+	// source whose pick needs more than the id sets it. Noun is the row's
+	// noun when it differs from the picker's (PickerRow.Noun) and Props its
+	// typed values (PickerRow.Props). None is part of a source's wire form.
+	Data  any    `json:"-"`
+	Noun  string `json:"-"`
+	Props Thing  `json:"-"`
 	RowFlags
 }
 
@@ -39,6 +46,9 @@ type RowFlags struct {
 	Refuse   string `json:"refuse,omitempty"`
 	Trailing bool   `json:"trailing,omitempty"`
 	Fixed    bool   `json:"fixed,omitempty"`
+	// Bare marks an id that is only a handle (a column's index, "" for
+	// the default): the row shows its label alone, no dim id.
+	Bare bool `json:"bare,omitempty"`
 }
 
 // Label orders for a choice shown in the palette, completion and chips
@@ -74,6 +84,9 @@ type ChoiceEntry struct {
 // the label (ChoiceIDFirst, palette.choice-label id-first). A choice with
 // no label of its own shows its id alone.
 func (c Choice) Entry(order string) ChoiceEntry {
+	if c.Bare && c.Label != "" {
+		return ChoiceEntry{Text: c.Label}
+	}
 	if !c.labelled() {
 		return ChoiceEntry{Text: c.ID}
 	}
@@ -94,7 +107,14 @@ func (c Choice) Entry(order string) ChoiceEntry {
 // alone. The id is not toned on a row with Cells: it is not drawn there.
 func (c Choice) Row() PickerRow {
 	row := PickerRow{ID: c.ID, Label: c.ID, Cells: c.Cells, Tones: slices.Clone(c.Tones),
-		Opens: c.Opens, NoPick: c.NoPick, Refuse: c.Refuse, Trailing: c.Trailing, Fixed: c.Fixed}
+		Opens: c.Opens, NoPick: c.NoPick, Refuse: c.Refuse, Trailing: c.Trailing, Fixed: c.Fixed,
+		Data: c.Data, Noun: c.Noun, Props: c.Props}
+	if c.Bare {
+		if c.Label != "" {
+			row.Label = c.Label
+		}
+		return row
+	}
 	if !c.labelled() {
 		return row
 	}
