@@ -158,8 +158,8 @@ func TestInputSetText(t *testing.T) {
 		t.Fatalf("same text: cursor %d history %d", in.Cursor, len(in.History))
 	}
 	in.SetText("one\ntwo")
-	if string(in.Text) != "one" {
-		t.Fatalf("single-line SetText kept %q", string(in.Text))
+	if string(in.Text) != "one\ntwo" || !in.Multiline {
+		t.Fatalf("single-line SetText kept %q, multiline %v", string(in.Text), in.Multiline)
 	}
 	multi := NewInput("m", "", true)
 	multi.SetText("one\ntwo")

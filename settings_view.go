@@ -901,7 +901,7 @@ func settingPromptView(r *Runtime, body *Instance, width, height int) Block {
 	if in == nil {
 		return Text(body.Payload.Prompt)
 	}
-	field := InputBlock(in, max(1, width), 1)
+	field := InputBlock(in, max(1, width), GrownRows(in, max(1, width), max(1, height/3)))
 	return field.Offset(0, 2).WithText(body.Payload.Prompt + "\n\n" + field.Text)
 }
 

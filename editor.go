@@ -219,9 +219,7 @@ func (in *Input) pasteYank(y Yank, before, literal bool, steps int) error {
 	if steps > 1000000 || len(y.Text) > 0 && steps > 16*1024*1024/len(y.Text) {
 		return errors.New("paste exceeds size limit")
 	}
-	if !in.Multiline && (y.Shape == "block" || y.Shape == "line" || strings.ContainsAny(y.Text, "\r\n")) {
-		return errors.New("single-line input cannot paste multiline yank")
-	}
+	y = in.adaptYank(y)
 	if literal || typingMode(in.r, in.Mode) {
 		return in.Replace(in.Cursor, in.Cursor, strings.Repeat(y.Text, steps))
 	}
@@ -456,6 +454,7 @@ func editorPaste(r *Runtime, in *Input, a Arguments) error {
 	if y.Text == "" {
 		return nil
 	}
+	y = in.adaptYank(y)
 	if err := in.checkPaste(y, steps); err != nil {
 		return err
 	}
@@ -478,11 +477,9 @@ func editorPaste(r *Runtime, in *Input, a Arguments) error {
 	return err
 }
 
-// checkPaste refuses a yank this input cannot take.
+// checkPaste refuses a yank only for its size; line breaks never refuse
+// (adaptYank).
 func (in *Input) checkPaste(y Yank, steps int) error {
-	if !in.Multiline && (y.Shape == "block" || y.Shape == "line" || strings.ContainsAny(y.Text, "\r\n")) {
-		return errors.New("single-line input cannot paste multiline yank")
-	}
 	if in.shape() == SelectionBlock && y.Shape == "char" {
 		top, bottom, _, _ := in.blockBounds()
 		if len(y.Text) > 0 && steps*(bottom-top+1) > 16*1024*1024/len(y.Text) {

@@ -142,8 +142,8 @@ func (f *findLine) ModalBlock(s Styles, width, height int) Block {
 	}
 	tag := f.r.matchTagFor(f.mode)
 	room := max(1, width-len(prefix)-cellWidth(tag)-1)
-	field := InputBlock(in, room, 1)
-	line := prefix + field.Text
+	field := InputBlock(in, room, GrownRows(in, room, max(1, height/3)))
+	line := prefix + indentRows(field.Text, len(prefix))
 	if tag != "" {
 		line += strings.Repeat(" ", max(1, width-cellWidth(tag)-cellWidth(line))) + s.Muted.Render(tag)
 	}

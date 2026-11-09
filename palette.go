@@ -491,9 +491,9 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 	p.sync()
 	var out strings.Builder
 	prefix := ": "
-	line := InputBlock(p.line, max(8, width-ansi.StringWidth(prefix)), 1)
-	cursor := &Pos{X: ansi.StringWidth(prefix) + line.Cursor.X, Y: 0}
-	out.WriteString(prefix + line.Text + "\n")
+	line := InputBlock(p.line, max(8, width-ansi.StringWidth(prefix)), GrownRows(p.line, max(8, width-ansi.StringWidth(prefix)), max(1, height/3)))
+	cursor := &Pos{X: ansi.StringWidth(prefix) + line.Cursor.X, Y: line.Cursor.Y}
+	out.WriteString(prefix + indentRows(line.Text, ansi.StringWidth(prefix)) + "\n")
 	c := p.parse(p.Text())
 	entries := p.completions()
 	switch {
