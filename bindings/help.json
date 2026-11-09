@@ -14,6 +14,9 @@
       {"key": "n", "action": "ochazuke.bindings-help.pick", "args": {"what": "noun"}, "hint": "noun"},
       {"key": "m", "action": "ochazuke.bindings-help.pick", "args": {"what": "mode"}, "hint": "mode"},
       {"key": "p", "action": "ochazuke.bindings-help.pick", "args": {"what": "place"}, "hint": "place"},
+      {"key": "s", "action": "ochazuke.collection.sort-column", "args": {"field": "key"}, "when": "help-table", "hint": "sort key", "help": "Table view: sort the rows by key, then descending, then back to the default order (own keys first, literal before key classes)"},
+      {"key": "u", "action": "ochazuke.collection.filter-prop", "args": {"prop": "unbound", "value": true}, "when": "help-table", "hint": "unbound only", "hidden": true, "help": "Table view: keep only the unbound verbs (U shows the keys again)"},
+      {"key": "U", "action": "ochazuke.collection.filter-prop-clear", "args": {"prop": "unbound"}, "when": "help-table", "hint": "all", "hidden": true, "help": "Table view: clear the unbound-only filter"},
       {"key": "enter", "action": "ochazuke.bindings-help.run", "hint": "run"},
       {"key": "a", "action": "ochazuke.bindings-help.args", "when": "help-has-args", "hint": "args", "help": "Open the args form for the selected verb before running it"},
       {"key": "b", "action": "ochazuke.mode.enter", "args": {"mode": "help_bind_pending"}, "when": "help-unbound-row", "hint": "bind", "help": "Bind the next key you press to the selected unbound verb (esc cancels); a key that already runs something asks first"}

@@ -15,7 +15,7 @@
     "esc",
     ":", {"type": "set docs.show-config=false"}, "enter",
     ":", {"type": "help settings"}, "enter",
-    "/", {"type": "### `focus-display`"}, "enter",
+    "/", {"type": "choices `off`, `noun`, `stack`"}, "enter",
     "esc",
     ":", {"type": "docs-viewer open bindings"}, "enter"
   ],

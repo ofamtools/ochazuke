@@ -31,10 +31,10 @@ R|            │ 0           .column?                                          
  |            │              to first                                                                        │
  |            │              then collection.scroll-columns when row-table-no-count · collection             │
  |            │                   to first                                                                   │
- |            │ space collection.mark · S view · n noun · p place · esc modal.close · : palette.open · ? bi… │
+ |            │ space collection.mark · S view · n noun · p place · s sort key · esc modal.close · : palett… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space collection.mark · S view · n noun · p place · esc modal.close · : palette.open · ? binding.help · / filter
+ |  space collection.mark · S view · n noun · p place · s sort key · esc modal.close · : palette.open · ? binding.help …
  |
