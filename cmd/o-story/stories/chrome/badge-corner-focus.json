@@ -9,7 +9,7 @@
   "script": [
     ":", {"type": "display focus"}, "enter",
     ":", {"type": "display focus"}, "enter",
-    "j", "x", "esc",
+    "j", "x", "q",
     ":", {"type": "display focus"}, "enter"
   ],
   "expect": [

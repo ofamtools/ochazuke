@@ -4,7 +4,7 @@
   "width": 80,
   "height": 24,
   "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
-  "script": [":", {"type": "demo program"}, "enter", ":", {"type": "demo mapping"}, "enter", "esc"],
+  "script": [":", {"type": "demo program"}, "enter", ":", {"type": "demo mapping"}, "enter", "q"],
   "expect": [
     {"after": 3, "modal": "text-view", "contains": ["demo.program", ".items[] | {name, size: .bytes}"]},
     {"after": 6, "modal": "text-view", "mode": "normal", "contains": ["demo.mapping", "\"name\": \".title\","], "lacks": ["demo.program", ".items[] | {name"]},

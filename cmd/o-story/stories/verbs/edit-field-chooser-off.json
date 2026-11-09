@@ -187,7 +187,7 @@
    "type": "Wo"
   },
   "enter",
-  "esc",
+  "q",
   ":",
   {
    "type": "demo get t1"

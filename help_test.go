@@ -94,6 +94,7 @@ func TestHelpListsTheFocusedRowsVerbsFirst(t *testing.T) {
 	// runs (one rule, bound or not), which is the next test's.
 	keytest.Press(m, "j")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if r.TopModal() != "" || r.Focus != "w1" || r.Instances[helpListID] != nil {
 		t.Fatalf("esc: modal %q focus %q", r.TopModal(), r.Focus)
 	}
@@ -280,6 +281,7 @@ func TestHelpArgumentsPreviewAndTruncate(t *testing.T) {
 		}
 	}
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	forceModeCount(r, 7)
 	keytest.Press(m, "g")
 	keytest.Press(m, "z")

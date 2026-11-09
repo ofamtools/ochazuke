@@ -27,7 +27,7 @@
  "script": [
   "r",
   {"type": "Renamed"},
-  "esc",
+  "esc", "q",
   "esc",
   ":",
   {"type": "parcel get t1"},
@@ -35,7 +35,7 @@
  ],
  "expect": [
   {"after": 1, "modal": "edit-form", "mode": "insert", "contains": ["Edit parcel: Original", "status", "todo", "Original"]},
-  {"after": 4, "modal": "", "focus": "t1", "mode": "normal"},
+  {"after": 5, "modal": "", "focus": "t1", "mode": "normal"},
   {"modal": "palette-results", "contains": ["title", "Renamed", "todo"]}
  ]
 }

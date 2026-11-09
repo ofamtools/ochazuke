@@ -16,7 +16,7 @@
       {"on": "surface.left", "where": {"changed": ["project", "demo"], "kind": "modal"}, "do": "demo.synced", "args": {"reason": "modal"}}
     ]
   },
-  "script": ["'", "ctrl+e", "esc"],
+  "script": ["'", "ctrl+e", "esc", "q"],
   "expect": [
     {"writes": ["demo.edit", "demo.synced reason=modal"], "modal": "", "noNotices": true}
   ]

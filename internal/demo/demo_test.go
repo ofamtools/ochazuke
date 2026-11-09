@@ -244,7 +244,7 @@ func TestDemoKeyboardSessionStaysGreen(t *testing.T) {
 	if top := r.TopModal(); top != "__yank-history" {
 		t.Fatalf("g y: top modal %q, want the yank history", top)
 	}
-	press("esc")
+	press("q")
 	execute("open", "palette", nil)
 	press("p", "a")
 	execute("close", "palette", nil)

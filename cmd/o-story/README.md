@@ -472,7 +472,6 @@ Conformance:
 | insert | input | `input.erase` `input.insert` `input.kill` `input.move` |
 | insert | macro | `macro.record` |
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
-| insert | modal | `modal.close` |
 | insert | mode | `mode.list` `mode.switch` |
 | insert | outline | `outline.leave` `outline.next` `outline.row-key` |
 | insert | palette | `palette.complete` `palette.move` `palette.run` |
@@ -611,8 +610,6 @@ Mode edges (from → to via):
 - `insert` → `normal` via `job picker.load`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`
-- `insert` → `normal` via `modal.close`
-- `insert` → `normal` via `modal.close + demo.synced`
 - `insert` → `normal` via `mode.switch`
 - `insert` → `normal` via `mode.switch + demo.set + demo.get`
 - `insert` → `normal` via `mode.switch + item.set + item.get`
@@ -627,7 +624,6 @@ Mode edges (from → to via):
 - `insert` → `normal` via `setting-value.accept`
 - `insert` → `normal` via `setting.open`
 - `insert` → `terminal` via `palette.run`
-- `insert` → `visual-line` via `modal.close`
 - `jq` → `insert` via `palette.open`
 - `jq` → `normal` via `collection.move`
 - `jq` → `normal` via `mode.switch`

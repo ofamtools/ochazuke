@@ -8,7 +8,7 @@
     "focus": "b2",
     "bind": [{"noun": "app", "keys": "X", "do": "demo.hide", "args": {"id": "b"}}]
   },
-  "script": ["?", "X", "esc"],
+  "script": ["?", "X", "q"],
   "expect": [
     {"after": 1, "modal": "bindings-help", "contains": ["b1", "b2"]},
     {"after": 2, "modal": "bindings-help", "lacks": ["b1"]},

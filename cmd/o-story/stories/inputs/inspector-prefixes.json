@@ -7,7 +7,7 @@
     "noHeadings": true,
     "inputs": [{"id": "note", "label": "note", "text": "one\ntwo\nthree\nfour", "multiline": true}]
   },
-  "script": ["G", "2", "g", "g", "i", {"type": "X"}, "esc", "y", "y", "g", "y", "esc", "g", "g", "i", {"type": "A"}, "esc"],
+  "script": ["G", "2", "g", "g", "i", {"type": "X"}, "esc", "y", "y", "g", "y", "q", "g", "g", "i", {"type": "A"}, "esc"],
   "expect": [
     {"after": 7, "mode": "normal", "contains": ["Xtwo"]},
     {"after": 11, "modal": "__yank-history", "contains": ["Yank history"]},

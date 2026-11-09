@@ -61,8 +61,8 @@ func TestResponsiveFieldsAndModalRestoration(t *testing.T) {
 	if m.Runtime.Page != "paths" {
 		t.Fatal("sidebar navigation escaped the active modal")
 	}
-	key("esc")
-	key("esc")
+	key("q")
+	key("q")
 	if len(m.Runtime.Modals()) != 0 || !reflect.DeepEqual(m.Runtime.Context(), before) || !strings.Contains(ansi.Strip(m.View().Content), "examples") {
 		t.Fatalf("modal close failed to restore selected field: %+v\n%s", m.Runtime.Context(), m.View().Content)
 	}

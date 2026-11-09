@@ -4,7 +4,7 @@
   "width": 120,
   "height": 40,
   "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
-  "script": ["?", "q", "?", "esc"],
+  "script": ["?", "q", "?", "q"],
   "expect": [
     {"after": 1, "modal": "bindings-help", "contains": ["Keys"]},
     {"after": 2, "modal": "", "focus": "a2", "mode": "normal", "lacks": ["recording"]},

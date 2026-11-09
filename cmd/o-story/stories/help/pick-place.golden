@@ -66,7 +66,7 @@ R|            │   q             app.quit                                      
  |            │                                                                       by default) for fan-   │
  |            │                                                                       out verbs              │
  |            │ 1–15 / 129                                                                                   │
- |            │ space collection.mark · S view · n noun · m mode · p place · enter run · a args · esc modal… │
+ |            │ space collection.mark · S view · n noun · m mode · p place · enter run · a args · q modal.c… │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
@@ -76,5 +76,5 @@ R|            │   q             app.quit                                      
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space collection.mark · S view · n noun · m mode · p place · enter run · a args · esc modal.close · : palette.open …
+ |  space collection.mark · S view · n noun · m mode · p place · enter run · a args · q modal.close · : palette.open · …
  |

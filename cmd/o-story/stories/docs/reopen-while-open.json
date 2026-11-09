@@ -12,7 +12,7 @@
     "j", "j",
     ":", {"type": "help settings"}, "enter",
     ":", {"type": "h index"}, "enter",
-    "esc"
+    "q"
   ],
   "expect": [
     {"after": 3, "modal": "docs-viewer", "contains": ["bindings · 1–", "# Default key bindings"]},

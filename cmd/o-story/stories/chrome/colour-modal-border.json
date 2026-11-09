@@ -9,18 +9,21 @@
   "script": [
     ":",
     "esc",
+    "q",
     "x",
     "esc",
+    "q",
     ":", {"type": "set chrome.color=subtle"}, "enter",
     ":",
     "esc",
+    "q",
     ":", {"type": "set chrome.color=off"}, "enter",
     ":"
   ],
   "expect": [
     {"after": 1, "modal": "palette", "mode": "insert", "colored": {"╭": "#7CB7E8", "╰": "#7CB7E8"}},
-    {"after": 3, "modal": "confirm", "mode": "normal", "colored": {"╭": "#78BFA5"}, "noColor": ["#7CB7E8"]},
-    {"after": 8, "modal": "palette", "colored": {"╭": "#78BFA5", "╰": "#78BFA5"}, "styled": {"INSERT": "#7CB7E8"}},
+    {"after": 4, "modal": "confirm", "mode": "normal", "colored": {"╭": "#78BFA5"}, "noColor": ["#7CB7E8"]},
+    {"after": 10, "modal": "palette", "colored": {"╭": "#78BFA5", "╰": "#78BFA5"}, "styled": {"INSERT": "#7CB7E8"}},
     {"modal": "palette", "colored": {"╭": "#78BFA5"}, "noColor": ["#7CB7E8"]}
   ]
 }

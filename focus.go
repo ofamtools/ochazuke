@@ -447,6 +447,7 @@ func (r *Runtime) OpenModal(kind string, payload Payload, opts ...ModalOption) (
 		r.releaseModalInstance(kind)
 		return nil, err
 	}
+	r.releaseModalPin(spec.input)
 	return inst, nil
 }
 

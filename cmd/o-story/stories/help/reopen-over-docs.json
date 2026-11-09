@@ -5,7 +5,7 @@
   "height": 40,
   "values": {"help.markdown": false},
   "page": {"lists": [{"id": "a", "rows": 2}]},
-  "script": [":", {"type": "help"}, "enter", "?", "?", "esc", "esc"],
+  "script": [":", {"type": "help"}, "enter", "?", "?", "q", "q"],
   "expect": [
     {"after": 3, "modal": "docs-viewer", "contains": ["index"]},
     {"after": 4, "modal": "bindings-help", "contains": ["Keys", "modal.close"]},

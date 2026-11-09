@@ -10,7 +10,7 @@
   "config": {
     "hooks.json": [{"on": "surface.left", "where": {"changed": "demo"}, "do": "demo.synced", "args": {"reason": "edit-session"}}]
   },
-  "script": ["'", "esc", "'", "esc"],
+  "script": ["'", "esc", "'", "q"],
   "expect": [
     {"after": 1, "modal": "page-picker"},
     {"writes": [], "modal": "", "noNotices": true}

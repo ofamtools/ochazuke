@@ -28,7 +28,7 @@
       {"key": "backspace", "action": "ochazuke.picker.up", "when": "picker-up-empty"},
       {"key": "ctrl+o", "action": "ochazuke.picker.next-source"},
       {"key": "alt+o", "action": "ochazuke.picker.previous-source"},
-      {"key": "esc", "action": "ochazuke.modal.close"},
+      {"key": "esc", "action": "ochazuke.modal.close", "when": "setting:modal.esc-closes"},
       {"key": "down", "action": "ochazuke.picker.move", "args": {"delta": 1}},
       {"key": "ctrl+j", "action": "ochazuke.picker.move", "args": {"delta": 1}},
       {"key": "ctrl+n", "action": "ochazuke.picker.move", "args": {"delta": 1}},

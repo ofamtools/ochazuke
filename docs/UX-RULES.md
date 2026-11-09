@@ -312,7 +312,7 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R4.4** A second modal opens only from inside the top one; otherwise the
   open is refused with an ordinary error, first wins, no queue. Story:
   needed (`modals/refuse-from-beneath`).
-- **R4.5** A confirm modal: `y` runs the stored request, `n`/`esc`/`q` close it (`modal.close`), every
+- **R4.5** A confirm modal: `y` runs the stored request, `n`/`q` close it (`modal.close`; `esc` does nothing), every
   other key is swallowed, `{{label}}` reads the argument before the target's
   label, and a request addressing no instance of the verb's noun reads its
   arguments (`TestConfirmWithoutTargetReadsArguments`). Story: `modals/confirm-yes.json`, `modals/confirm-label.json`;
@@ -347,17 +347,21 @@ tiers above them. When the two disagree, fix one in the same commit.
   `docs/width-steady-scroll.json`; tests
   `TestDocsViewerKeepsItsWidthWhileScrolling`,
   `TestDetailWidthIsTheWholeTextsWidestLine`.
-- **R4.10** Closing is one verb: `esc` and `q` close every modal through
-  `modal.close` (the rows on `ochazuke.modal/normal`), which runs the
+- **R4.10** Closing is one verb: `q` closes every modal through
+  `modal.close` (the row on `ochazuke.modal/normal`), which runs the
   modal's close request when it has one (`CloseWith` on `OpenModal`,
   `SetModalClose` after `Push`: the palette clears its line first, a form
-  leaves, a picker cancels) and otherwise pops it. A kind never adds a
-  close verb or close rows of its own; it binds `esc` only where the modal
-  noun is not reached (an insert-pinned input, a confirm's swallowing
-  `any` row), and then to `modal.close`. `q` types in an insert-pinned
-  input. Macros record on `Q`, so `q` never starts a recording beneath a
-  modal. Stories: `modals/esc-closes-every-kind.json`,
-  `modals/q-closes-every-kind.json`; tests in `modal_close_test.go`.
+  leaves, a picker cancels) and otherwise pops it. `esc` only leaves
+  insert: a modal's text input (a prompt, the palette line, a picker's
+  search, the find line) is not pinned to insert, so `esc` there lands in
+  the modal's normal mode, where `q` closes and `esc` does nothing. A
+  kind never adds a close verb or close rows of its own. The setting
+  `modal.esc-closes` (default off) brings back the old `esc` rows (guard
+  `setting:modal.esc-closes`) and pins the text input to insert again.
+  Macros record on `Q`, so `q` never starts a recording beneath a modal.
+  Stories: `modals/esc-leaves-insert-q-closes.json`,
+  `modals/q-closes-every-kind.json`; tests in `modal_close_test.go` and
+  `modal_esc_test.go`.
 
 ### R5. Lists and selection
 

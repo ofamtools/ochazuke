@@ -74,7 +74,7 @@ R|            │ ▾ g                                                         
  |            │                                                              fan-out verbs                   │
  |            │   V             collection.visual                            Start a visual row selection at │
  |            │ 1–26 / 71                                                                                    │
- |            │ space collection.mark · S view · esc modal.close · : palette.open · ? binding.help · / filt… │
+ |            │ space collection.mark · S view · q modal.close · : palette.open · ? binding.help · / filter  │
  |            ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
  |
  |
@@ -86,5 +86,5 @@ R|            │ ▾ g                                                         
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- |  space collection.mark · S view · esc modal.close · : palette.open · ? binding.help · / filter
+ |  space collection.mark · S view · q modal.close · : palette.open · ? binding.help · / filter
  |

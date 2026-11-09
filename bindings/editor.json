@@ -15,6 +15,9 @@
       {"key": "esc", "action": "ochazuke.input.cancel"},
       {"key": "any", "action": "ochazuke.mode.leave", "replay": true}
     ]},
+    {"context": "ochazuke.prompt/insert", "bindings": [
+      {"key": "esc", "action": "ochazuke.mode.switch", "args": {"mode": "normal"}, "when": "input-unpinned", "hidden": true}
+    ]},
     {"context": "ochazuke.editor/g_pending", "bindings": [
       {"key": "g", "action": "ochazuke.input.move", "args": {"motion": "first-line"}, "from": {"line": "count"}},
       {"key": "y", "action": "ochazuke.yank-history.open"},

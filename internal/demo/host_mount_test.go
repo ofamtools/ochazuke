@@ -89,7 +89,8 @@ func paletteFrame(m *ochazuke.Model, line string) string {
 	keytest.Type(m, ":"+line)
 	frame := ansi.Strip(m.View().Content)
 	keytest.Press(m, "esc")
-	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
+	keytest.Press(m, "q")
 	return frame
 }
 

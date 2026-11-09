@@ -333,6 +333,7 @@ func TestTaskGrammarFromTheCLIAndThePalette(t *testing.T) {
 	}
 	m.View()
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	get := func(id, prop string) any {
 		t.Helper()
 		v, err := r.Execute(ochazuke.Request{Noun: "task", Verb: "get", Args: ochazuke.Arguments{"id": id, "prop": prop}})
@@ -363,6 +364,7 @@ func TestTaskGrammarFromTheCLIAndThePalette(t *testing.T) {
 		t.Fatalf(":task status shows no value:\n%s", frame)
 	}
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if frame := palette("task get"); !strings.Contains(frame, "estimate") || !strings.Contains(frame, "Water the plants") {
 		t.Fatalf(":task get shows no record rows:\n%s", frame)
 	}

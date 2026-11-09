@@ -287,6 +287,7 @@ func TestSettingsPageSavesEachChange(t *testing.T) {
 	}
 	keytest.Press(m, "enter")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if r.TopModal() != "" || r.Page != SettingsPageID {
 		t.Fatalf("esc in the prompt: modal %q page %q", r.TopModal(), r.Page)
 	}
@@ -332,6 +333,7 @@ func TestSettingsPageLeaving(t *testing.T) {
 		t.Fatalf("setting.open on the page left it: %q", r.Page)
 	}
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if r.Page != "main" || r.Focus != "b" || r.PageOf(SettingsPageID) != nil {
 		t.Fatalf("esc: page %q focus %q", r.Page, r.Focus)
 	}

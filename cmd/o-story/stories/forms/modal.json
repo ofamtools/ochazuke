@@ -47,7 +47,7 @@
     {
       "type": "x"
     },
-    "esc",
+    "esc", "q",
     "esc"
   ],
   "expect": [

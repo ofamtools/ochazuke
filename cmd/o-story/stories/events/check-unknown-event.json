@@ -25,7 +25,7 @@
   },
   "script": [
     "'",
-    "esc"
+    "esc", "q"
   ],
   "expect": [
     {

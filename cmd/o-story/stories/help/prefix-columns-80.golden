@@ -74,7 +74,7 @@ R|        │                                                 application  │
  |        │                                                 row          │
  |        │   ▸ ctrl+a    mode.leave                        Return from  │
  |        │ 1–15 / 76                                                    │
- |        │ space collection.mark · S view · enter run · a args · esc m… │
+ |        │ space collection.mark · S view · enter run · a args · q mod… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
@@ -86,5 +86,5 @@ R|        │                                                 application  │
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  space collection.mark · S view · enter run · a args · esc modal.close · : p…
+ |  space collection.mark · S view · enter run · a args · q modal.close · : pal…
  |

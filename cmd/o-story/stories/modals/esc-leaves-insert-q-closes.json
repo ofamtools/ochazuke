@@ -1,0 +1,29 @@
+{
+  "name": "esc only leaves insert in a modal: the palette and the page picker go to their normal mode on esc (still open, esc again does nothing), the help and a confirm ignore esc; q closes each back on the row it opened over (modal.esc-closes off)",
+  "area": "modals",
+  "width": 100,
+  "height": 30,
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
+  "script": [
+    ":", "esc", "esc", "q",
+    "'", "esc", "esc", "q",
+    "?", "esc", "q",
+    "x", "esc", "q"
+  ],
+  "expect": [
+    {"after": 1, "modal": "palette", "mode": "insert"},
+    {"after": 2, "modal": "palette", "mode": "normal"},
+    {"after": 3, "modal": "palette", "mode": "normal"},
+    {"after": 4, "modal": "", "focus": "a2", "mode": "normal"},
+    {"after": 5, "modal": "page-picker", "mode": "insert"},
+    {"after": 6, "modal": "page-picker", "mode": "normal"},
+    {"after": 7, "modal": "page-picker", "mode": "normal"},
+    {"after": 8, "modal": "", "focus": "a2", "mode": "normal"},
+    {"after": 9, "modal": "bindings-help"},
+    {"after": 10, "modal": "bindings-help", "contains": ["q modal.close"]},
+    {"after": 11, "modal": "", "focus": "a2", "mode": "normal"},
+    {"after": 12, "modal": "confirm"},
+    {"after": 13, "modal": "confirm"},
+    {"modal": "", "focus": "a2", "mode": "normal"}
+  ]
+}

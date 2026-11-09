@@ -16,10 +16,10 @@
       ]
     }
   },
-  "script": ["ctrl+o", "esc", "c"],
+  "script": ["ctrl+o", "esc", "q", "c"],
   "expect": [
     {"after": 1, "contains": ["Pick · one [two]"]},
-    {"after": 2, "modal": ""},
+    {"after": 3, "modal": ""},
     {"modal": "pick", "contains": ["Pick · one [two]"], "lacks": ["Pick · [one]"]}
   ]
 }

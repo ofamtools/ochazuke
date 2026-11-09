@@ -11,7 +11,7 @@
     "actions.json": [{"alias": "w!", "action": "demo.write", "args": {"force": true}}],
     "bindings.json": [{"noun": "demo", "mode": "normal", "keys": "W", "request": {"noun": "demo", "verb": "w!"}}]
   },
-  "script": ["W", {"type": "a.txt"}, "enter", ":", {"type": "w!"}, "enter", "esc", "esc", {"type": " b.txt"}, "enter"],
+  "script": ["W", {"type": "a.txt"}, "enter", ":", {"type": "w!"}, "enter", "esc", "q", {"type": " b.txt"}, "enter"],
   "expect": [
     {"after": 1, "modal": "args-form", "focus": "args-form/path", "mode": "insert", "noNotices": true},
     {"after": 3, "modal": "", "writes": ["demo.write force=true path=a.txt via=demo.w!"]},

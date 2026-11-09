@@ -78,7 +78,7 @@
     },
     "enter",
     "j",
-    "esc"
+    "q"
   ],
   "expect": [
     {

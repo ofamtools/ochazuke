@@ -4,7 +4,7 @@
   "width": 120,
   "height": 40,
   "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2"},
-  "script": ["?", "tab", "tab", "shift+tab", "shift+tab", "shift+tab", "tab", "S", "esc"],
+  "script": ["?", "tab", "tab", "shift+tab", "shift+tab", "shift+tab", "tab", "S", "q"],
   "expect": [
     {"after": 1, "modal": "bindings-help", "contains": ["Keys · here"]},
     {"after": 2, "modal": "bindings-help", "contains": ["Keys · pick"]},

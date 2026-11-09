@@ -33,7 +33,7 @@ func helpInsertFixture(t *testing.T) (*Runtime, *Model, *Input) {
 }
 
 // openHelpInInsert presses HelpInsertKey with focus in insert mode: the help
-// opens over it, the input's text is untouched, and esc gives back the focus
+// opens over it, the input's text is untouched, and q gives back the focus
 // in insert mode.
 func openHelpInInsert(t *testing.T, r *Runtime, m *Model, in *Input, where string) {
 	t.Helper()
@@ -52,9 +52,9 @@ func openHelpInInsert(t *testing.T, r *Runtime, m *Model, in *Input, where strin
 	if !slices.ContainsFunc(h.here, func(row HelpRow) bool { return row.Key == HelpInsertKey && row.Operation == "binding.help" }) {
 		t.Fatalf("%s: the help does not list its own insert key: %+v", where, h.here)
 	}
-	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if r.TopModal() == helpID || r.Focus != focus || r.Mode.Name != "insert" {
-		t.Fatalf("%s: after esc modal %q focus %q mode %q", where, r.TopModal(), r.Focus, r.Mode.Name)
+		t.Fatalf("%s: after q modal %q focus %q mode %q", where, r.TopModal(), r.Focus, r.Mode.Name)
 	}
 }
 

@@ -81,7 +81,7 @@ func TestCompactFilterValuesRoundTripAndClear(t *testing.T) {
 	if r.Focus != listFilterFormID+"/field/query" {
 		t.Fatal("Enter did not return to fields", r.Focus)
 	}
-	compactKeys(m, "esc", "esc", "z", "/")
+	compactKeys(m, "esc", "q", "z", "/")
 	if !strings.Contains(ansi.Strip(m.View().Content), "status in") {
 		t.Fatal(m.View().Content)
 	}
@@ -387,9 +387,9 @@ func TestChooserNormalModeOptIn(t *testing.T) {
 	if c.Query() != "neo" { // Escape moves the cursor back; i resumes there, as in other inputs.
 		t.Fatalf("normal input editing did not resume: %q", c.Query())
 	}
-	compactKeys(m, "esc", "esc")
+	compactKeys(m, "esc", "q")
 	if r.TopModal() != "" {
-		t.Fatal("normal Escape did not close")
+		t.Fatal("normal Escape then q did not close")
 	}
 }
 

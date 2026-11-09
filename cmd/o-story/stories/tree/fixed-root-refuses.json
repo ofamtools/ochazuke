@@ -9,7 +9,7 @@
       ]}
     ]
   },
-  "script": ["d", "d", "J", "i", ":", {"type": "outline delete"}, "enter", "esc", "esc", "j", "d", "d"],
+  "script": ["d", "d", "J", "i", ":", {"type": "outline delete"}, "enter", "esc", "q", "q", "esc", "j", "d", "d"],
   "expect": [
     {"after": 4, "mode": "normal", "writes": [], "contains": ["root", "child"]},
     {"after": 7, "writes": [], "contains": ["\"delete\" names no verb of outline here"]},

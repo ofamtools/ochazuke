@@ -152,7 +152,7 @@ func TestStandardEditPendingWriteFlushes(t *testing.T) {
 				t.Fatalf("pending write ran inline: sent=%d store=%v", sent, s.find("t1"))
 			}
 			if boundary == "failed-older-value" {
-				for _, key := range []string{"A", "y", "esc"} {
+				for _, key := range []string{"A", "y", "esc", "q"} {
 					press(key)
 				}
 				drainEditWrites(r)
@@ -160,7 +160,7 @@ func TestStandardEditPendingWriteFlushes(t *testing.T) {
 					t.Fatalf("newer value lost: %v problem %q", s.find("t1"), e.Problem("title"))
 				}
 			} else {
-				for _, key := range []string{"j", "space", "j", "enter", "esc"} {
+				for _, key := range []string{"j", "space", "j", "enter", "esc", "q"} {
 					press(key)
 				}
 				drainEditWrites(r)
@@ -277,7 +277,7 @@ func TestStandardEditReferenceChoice(t *testing.T) {
 	if text := e.Block(60, 20).Text; !strings.Contains(text, "Alpha") || strings.Contains(text, "p1") {
 		t.Fatalf("reference label: %s", text)
 	}
-	for _, key := range []string{"i", "ctrl+u", "zz", "esc"} {
+	for _, key := range []string{"i", "ctrl+u", "zz", "esc", "q"} {
 		keytest.Press(m, key)
 		if s.find("t1")["project"] != "p1" {
 			t.Fatalf("partial reference after %q: %v", key, s.find("t1"))

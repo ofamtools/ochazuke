@@ -23,7 +23,7 @@
     {
       "type": "page"
     },
-    "esc",
+    "esc", "q", "q",
     "esc"
   ],
   "expect": [

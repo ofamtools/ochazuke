@@ -42,7 +42,7 @@
     },
     "enter",
     "a",
-    "esc",
+    "esc", "q",
     "esc"
   ],
   "expect": [

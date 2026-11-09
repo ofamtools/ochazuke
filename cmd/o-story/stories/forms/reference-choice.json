@@ -12,13 +12,13 @@
     ], "values": {"project": "p-001"}}],
     "focus": "record/project"
   },
-  "script": ["i", "ctrl+u", {"type": "zz"}, "esc", "i", {"type": "bet"}, "enter", "i", {"type": "(none)"}, "enter", "u"],
+  "script": ["i", "ctrl+u", {"type": "zz"}, "esc", "q", "i", {"type": "bet"}, "enter", "i", {"type": "(none)"}, "enter", "u"],
   "expect": [
     {"after": 0, "contains": ["alpha"], "lacks": ["p-001"]},
     {"after": 3, "modal": "form-suggestions", "writes": []},
-    {"after": 4, "focus": "record/project", "contains": ["alpha"], "lacks": ["p-001"], "writes": []},
-    {"after": 7, "modal": "", "focus": "record/project", "contains": ["beta"], "writes": ["write project=p-002"]},
-    {"after": 10, "writes": ["write project=p-002", "write project=\"\""]},
+    {"after": 5, "focus": "record/project", "contains": ["alpha"], "lacks": ["p-001"], "writes": []},
+    {"after": 8, "modal": "", "focus": "record/project", "contains": ["beta"], "writes": ["write project=p-002"]},
+    {"after": 11, "writes": ["write project=p-002", "write project=\"\""]},
     {"contains": ["beta"], "writes": ["write project=p-002", "write project=\"\"", "write project=p-002"]}
   ]
 }

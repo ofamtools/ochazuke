@@ -8,8 +8,10 @@
       {"key": "ctrl+p", "action": "ochazuke.palette.move", "args": {"delta": -1}},
       {"key": "up", "action": "ochazuke.palette.recall", "args": {"delta": 1}},
       {"key": "down", "action": "ochazuke.palette.recall", "args": {"delta": -1}},
-      {"key": "esc", "action": "ochazuke.modal.close"},
-      {"key": "ctrl+c", "action": "ochazuke.palette.close"},
+      {"key": "esc", "action": "ochazuke.modal.close", "when": "setting:modal.esc-closes"},
+      {"key": "ctrl+c", "action": "ochazuke.palette.close"}
+    ]},
+    {"context": "ochazuke.palette/insert", "bindings": [
       {"key": "printable", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},
       {"key": "paste", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true}
     ]},

@@ -11,7 +11,7 @@ r|  a1
  |    │ ›                         fuzzy │
  |    │   matomeru                      │
 R|    │   ochazuke                      │
- |    │ enter picker.pick · esc modal.… │
+ |    │ enter picker.pick · tab search… │
  |    ╰─────────────────────────────────╯
  |
  |
@@ -20,5 +20,5 @@ R|    │   ochazuke                      │
  |
  |
  |  ────────────────────────────────────────
- |  enter picker.pick · esc modal.close · t…
+ |  enter picker.pick · tab search.cycle-ma…
  |

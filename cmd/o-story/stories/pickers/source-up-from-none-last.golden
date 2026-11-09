@@ -8,9 +8,9 @@ r|  a1    ╭──────────────────────�
  |        │   no rows match 'zz'                                         │
  |        │   no project                                                 │
 R|        │   no context                                                 │
- |        │ enter picker.pick · esc modal.close · tab search.cycle-match │
+ |        │ enter picker.pick · tab search.cycle-match                   │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  enter picker.pick · esc modal.close · tab search.cycle-match
+ |  enter picker.pick · tab search.cycle-match
  |

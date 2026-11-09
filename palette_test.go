@@ -346,10 +346,14 @@ func TestPaletteLineIsAPrompt(t *testing.T) {
 		t.Fatalf("ctrl+w: %q", p.Text())
 	}
 	paletteKeys(t, p, "esc")
-	if p.Text() != "" || !p.IsOpen() || r.Mode.Name != "insert" {
-		t.Fatalf("esc on a line: %q open=%v mode=%s", p.Text(), p.IsOpen(), r.Mode.Name)
+	if p.Text() != "transform " || !p.IsOpen() || r.Mode.Name != "normal" {
+		t.Fatalf("esc on a line leaves insert only: %q open=%v mode=%s", p.Text(), p.IsOpen(), r.Mode.Name)
 	}
-	paletteKeys(t, p, "esc")
+	paletteKeys(t, p, "q")
+	if p.Text() != "" || !p.IsOpen() {
+		t.Fatalf("q on a line: %q open=%v", p.Text(), p.IsOpen())
+	}
+	paletteKeys(t, p, "q")
 	if p.IsOpen() || r.Focus != "r1:c1" {
 		t.Fatalf("esc on an empty line: open=%v focus=%s", p.IsOpen(), r.Focus)
 	}
@@ -374,7 +378,7 @@ func TestPaletteBindingsListIsTruthful(t *testing.T) {
 			rows[b.Keys] = b.Request.Key()
 		}
 	}
-	for key, want := range map[string]string{"enter": "ochazuke.palette.run", "tab": "ochazuke.palette.complete", "ctrl+n": "ochazuke.palette.move", "ctrl+p": "ochazuke.palette.move", "up": "ochazuke.palette.recall", "down": "ochazuke.palette.recall", "esc": "ochazuke.modal.close", "ctrl+c": "ochazuke.palette.close"} {
+	for key, want := range map[string]string{"enter": "ochazuke.palette.run", "tab": "ochazuke.palette.complete", "ctrl+n": "ochazuke.palette.move", "ctrl+p": "ochazuke.palette.move", "up": "ochazuke.palette.recall", "down": "ochazuke.palette.recall", "esc": "ochazuke.mode.switch", "ctrl+c": "ochazuke.palette.close"} {
 		if rows[key] != want {
 			t.Fatalf("%s lists %q, want %s (%v)", key, rows[key], want, rows)
 		}
@@ -513,7 +517,8 @@ func TestPaletteEnterHintLeadsWithRun(t *testing.T) {
 		t.Fatalf("hints: %q", hints)
 	}
 	help := BindingHelp(r, r.Focus)
-	if len(help) == 0 || help[0].Key != "enter" || help[0].Operation != "palette.run" || !strings.HasPrefix(help[0].Description, "Run the line or append the highlighted completion") || help[0].Noun != "ochazuke.palette" {
+	at := slices.IndexFunc(help, func(h HelpRow) bool { return h.Key == "enter" })
+	if at < 0 || help[at].Operation != "palette.run" || !strings.HasPrefix(help[at].Description, "Run the line or append the highlighted completion") || help[at].Noun != "ochazuke.palette" {
 		t.Fatalf("help: %+v", help)
 	}
 }

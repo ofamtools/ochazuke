@@ -18,7 +18,7 @@ func TestModalCloseRunsTheCloseRequestElsePops(t *testing.T) {
 	if _, err := r.OpenModal("dialog", Payload{}, CloseWith(Request{Noun: "dialog", Verb: "dismiss"})); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Dispatch(MacroKey{Key: "esc"}); err != nil {
+	if _, err := r.Dispatch(MacroKey{Key: "q"}); err != nil {
 		t.Fatal(err)
 	}
 	if closed != 1 || r.TopModal() != "" {
@@ -90,11 +90,11 @@ func TestPaletteEscClearsThenCloses(t *testing.T) {
 		t.Fatal(err)
 	}
 	paletteKeys(t, p, "s", "a")
-	paletteKeys(t, p, "esc")
+	paletteKeys(t, p, "esc", "q")
 	if !p.IsOpen() || p.Text() != "" {
 		t.Fatalf("first esc: open %v line %q", p.IsOpen(), p.Text())
 	}
-	paletteKeys(t, p, "esc")
+	paletteKeys(t, p, "esc", "q")
 	if p.IsOpen() || r.TopModal() != "" {
 		t.Fatalf("second esc: open %v top %q", p.IsOpen(), r.TopModal())
 	}

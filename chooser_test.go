@@ -200,6 +200,7 @@ func TestChooserEscClosesAndRestoresFocusAndMode(t *testing.T) {
 	}
 	keytest.Type(m, "al")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if r.TopModal() != "" || r.Focus != "one" || r.Mode.Name != "normal" {
 		t.Fatalf("after esc: modal %q focus %q mode %q", r.TopModal(), r.Focus, r.Mode.Name)
 	}
@@ -209,7 +210,7 @@ func TestChooserFooterListsNoMotions(t *testing.T) {
 	_, m, _, _ := chooserTest(t, ChooserSpec{Rows: []ChooserRow{{ID: "a", Label: "alpha"}}})
 	m.Update(tea.WindowSizeMsg{Width: 120, Height: 24})
 	frame := ansi.Strip(m.View().Content)
-	if strings.Contains(frame, "picker.move") || !strings.Contains(frame, "enter picker.pick") || !strings.Contains(frame, "esc modal.close") {
+	if strings.Contains(frame, "picker.move") || !strings.Contains(frame, "enter picker.pick") || !strings.Contains(frame, "tab search.cycle-match") {
 		t.Fatalf("chooser hints:\n%s", frame)
 	}
 }
@@ -294,6 +295,7 @@ func TestPagePickerCtrlNMovesAndEscKeepsThePage(t *testing.T) {
 		t.Fatalf("highlight %q", row.ID)
 	}
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if r.Page != "p01" || r.TopModal() != "" {
 		t.Fatalf("esc: page %q modal %q", r.Page, r.TopModal())
 	}
@@ -314,6 +316,7 @@ func TestPagePickRunsFromTheCLIAndThePalette(t *testing.T) {
 		t.Fatal("page.pick opened no chooser")
 	}
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	keytest.Press(m, ":")
 	keytest.Type(m, "page pick")
 	keytest.Press(m, "enter")

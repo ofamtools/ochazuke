@@ -71,7 +71,7 @@
     "ctrl+f",
     "space",
     "!",
-    "esc"
+    "q"
   ],
   "expect": [
     {

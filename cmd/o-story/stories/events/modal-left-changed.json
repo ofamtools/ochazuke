@@ -12,7 +12,7 @@
   "config": {
     "hooks.json": [{"on": "surface.left", "where": {"changed": "demo"}, "do": "demo.synced", "args": {"reason": "edit-session"}, "from": {"noun": "noun", "changes": "changes"}}]
   },
-  "script": ["'", "ctrl+e", "ctrl+e", "esc"],
+  "script": ["'", "ctrl+e", "ctrl+e", "esc", "q"],
   "expect": [
     {"after": 1, "writes": []},
     {"after": 3, "writes": ["demo.edit", "demo.edit"]},

@@ -45,7 +45,7 @@ func TestStandardEditConfirmCancelUndo(t *testing.T) {
 	if got := e.Values(); !reflect.DeepEqual(got, Record{"title": "Original", "status": "todo", "active": "false"}) {
 		t.Fatalf("values %v", got)
 	}
-	for _, key := range []string{"i", "ctrl+u", "Cancelled", "esc", "esc"} {
+	for _, key := range []string{"i", "ctrl+u", "Cancelled", "esc", "q"} {
 		keytest.Press(m, key)
 		if !reflect.DeepEqual(s.find("t1"), original) {
 			t.Fatalf("after cancel key %q: %v", key, s.find("t1"))
@@ -137,7 +137,9 @@ func TestStandardEditPendingChoicesKeepTyping(t *testing.T) {
 		t.Fatal("slow choices were not queued")
 	}
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	keytest.Press(m, "esc")
+	keytest.Press(m, "q")
 	if r.TopModal() != "" || s.find("t1")["title"] != "Originalx" {
 		t.Fatalf("cancel modal %s store %v", r.TopModal(), s.find("t1"))
 	}

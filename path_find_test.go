@@ -225,7 +225,7 @@ func TestFindPickerOpenWithNoName(t *testing.T) {
 	if got, want := labels(c.Matches()), []string{". (current directory)", "nested/", "nested/deep.txt", "top.txt"}; !slices.Equal(got, want) {
 		t.Fatalf("rows %q, want %q", got, want)
 	}
-	findPress(m, "esc")
+	findPress(m, "esc", "q")
 	if r.Chooser(PathChooserKind) != nil || string(origin.Text) != "this is ordinary prose, not a path" || origin.Cursor != 5 || r.Context().InputID != origin.ID {
 		t.Fatal("cancel changed the ordinary input or its focus")
 	}
@@ -373,7 +373,7 @@ func TestFindKeysMoveEditAndCancel(t *testing.T) {
 	if c.Query() != "aj" {
 		t.Fatalf("insert j was stolen by navigation: %q", c.Query())
 	}
-	findPress(m, "esc")
+	findPress(m, "esc", "q")
 	if r.Chooser(PathChooserKind) != nil || string(origin.Text) != "untouched" || origin.Cursor != 4 || r.Context().InputID != origin.ID {
 		t.Fatal("cancel did not keep the originating input and focus")
 	}
@@ -451,7 +451,7 @@ func TestFindFiltersValidateBeforeOpeningAndExplicitOverrideWins(t *testing.T) {
 	if err := findDo(t, r, m, "choose", Arguments{"current": true}); err == nil || r.Chooser(PathChooserKind) == nil {
 		t.Fatalf("a file pick took the folder: %v", err)
 	}
-	findPress(m, "esc")
+	findPress(m, "esc", "q")
 	if string(origin.Text) != root {
 		t.Fatal("a refused pick changed the origin")
 	}
@@ -541,7 +541,7 @@ func TestFindCloseCancelsTheIndex(t *testing.T) {
 	r, m, _ := findFixture(t, "", "text", "", 0)
 	r.chooserMemory().findIndex = gate.index
 	findOpen(t, r, m, Arguments{"path": root})
-	findPress(m, "esc")
+	findPress(m, "esc", "q")
 	waitFor(t, func() bool { gate.mu.Lock(); defer gate.mu.Unlock(); return gate.cancelled })
 }
 
@@ -618,7 +618,7 @@ func TestPathFindSettingOff(t *testing.T) {
 	if slices.Contains(c.Sources(), PathSourceFind) {
 		t.Fatalf("path.find off: sources %q", c.Sources())
 	}
-	findPress(m, "esc")
+	findPress(m, "esc", "q")
 	if err := r.Settings().Set(PathFindSetting, true); err != nil {
 		t.Fatal(err)
 	}
@@ -630,7 +630,7 @@ func TestPathFindSettingOff(t *testing.T) {
 		t.Fatalf("path.find on: sources %q", c.Sources())
 	}
 	c.closeSources()
-	findPress(m, "esc")
+	findPress(m, "esc", "q")
 	if err := r.Settings().Set(PathFindSetting, false); err != nil {
 		t.Fatal(err)
 	}
@@ -656,7 +656,7 @@ func TestNewPickerShimDrawsThePathPicker(t *testing.T) {
 		len(p.Entries) != 1 || p.Entries[0] != (PickerEntry{Path: "alpha.txt"}) || p.Origin.InputID != "origin" || p.MatchMode() != MatchFuzzy {
 		t.Fatalf("shim fields: %+v", *p)
 	}
-	findPress(m, "esc")
+	findPress(m, "esc", "q")
 	if p.IsOpen() || p.Entries != nil || p.Directory != "" {
 		t.Fatalf("closed shim fields: %+v", *p)
 	}

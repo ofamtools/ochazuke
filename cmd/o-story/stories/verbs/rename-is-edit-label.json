@@ -29,7 +29,7 @@
  "script": [
   "r",
   {"type": "Renamed"},
-  "esc",
+  "esc", "q",
   "esc",
   "m",
   ":",
@@ -39,8 +39,8 @@
  "expect": [
   {"after": 1, "modal": "edit-form", "mode": "insert", "contains": ["Edit parcel title: Original", "Original"], "lacks": ["status", "todo"]},
   {"after": 2, "modal": "edit-form", "contains": ["Renamed"], "lacks": ["RenamedOriginal", "OriginalRenamed"]},
-  {"after": 4, "modal": "", "focus": "t1", "mode": "normal"},
-  {"after": 5, "modal": "", "focus": "t1", "mode": "normal", "lacks": ["Edit parcel"]},
+  {"after": 5, "modal": "", "focus": "t1", "mode": "normal"},
+  {"after": 6, "modal": "", "focus": "t1", "mode": "normal", "lacks": ["Edit parcel"]},
   {"modal": "palette-results", "contains": ["title", "Renamed", "todo"]}
  ]
 }

@@ -206,7 +206,7 @@ func TestPaletteResultsReadOnlyNavigationAndClose(t *testing.T) {
 	if view := ansi.Strip(m.View().Content); strings.Contains(view, "record.apply") {
 		t.Fatalf("application action offered on results:\n%s", view)
 	}
-	if _, err := r.Dispatch(MacroKey{Key: "esc"}); err != nil {
+	if _, err := r.Dispatch(MacroKey{Key: "q"}); err != nil {
 		t.Fatal(err)
 	}
 	if r.TopModal() != "" || r.Focus != "origin" {

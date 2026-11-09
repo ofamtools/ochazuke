@@ -17,8 +17,8 @@
     }
   },
   "script": [
-    ":", {"type":"demo list"}, "enter", "esc",
-    ":", {"type":"demo list --filter archived"}, "enter", "esc",
+    ":", {"type":"demo list"}, "enter", "q",
+    ":", {"type":"demo list --filter archived"}, "enter", "q",
     ":", {"type":"demo set t1 @archive=false"}, "enter",
     ":", {"type":"demo list"}, "enter"
   ],

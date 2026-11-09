@@ -4,7 +4,7 @@
   "width": 120,
   "height": 30,
   "page": {"lists": [{"id": "a", "rows": 3}]},
-  "script": [":", {"type": "operation list"}, "enter", "enter", "j", "esc"],
+  "script": [":", {"type": "operation list"}, "enter", "enter", "j", "q"],
   "expect": [
     {"after": 3, "modal": "palette-results", "contains": ["Results", "description", "namespace", "kind"]},
     {"after": 4, "modal": "palette-results"},

@@ -189,9 +189,9 @@
  },
  "script": [
   "o",
-  "esc",
+  "q",
   "m",
-  "esc"
+  "esc", "q"
  ],
  "expect": [
   {

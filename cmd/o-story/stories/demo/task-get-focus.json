@@ -77,7 +77,7 @@
       "type": "demo get"
     },
     "enter",
-    "esc",
+    "q",
     ":",
     {
       "type": "demo get t3"

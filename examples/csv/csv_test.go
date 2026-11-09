@@ -360,7 +360,7 @@ func TestColumnVerbsAndSave(t *testing.T) {
 	if a.r.TopModal() != ochazuke.PathChooserKind {
 		t.Fatalf("ctrl+o did not open the picker: %v", a.r.TopModal())
 	}
-	press(t, a, "esc", "esc")
+	press(t, a, "esc", "q", "esc")
 	if len(a.r.Modals()) != 0 || a.ask != nil {
 		t.Fatalf("esc twice: frames=%d ask=%v", len(a.r.Modals()), a.ask)
 	}

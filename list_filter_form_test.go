@@ -95,7 +95,7 @@ func TestFilterFormFieldsAndChips(t *testing.T) {
 	if l.vs.Filters[0].Op != "in" {
 		t.Fatalf("undo invert: %v", l.vs.Filters)
 	}
-	pressKeys(m, "esc")
+	pressKeys(m, "esc", "q")
 	if r.RecordEditor(listFilterFormID) != nil && !r.RecordEditor(listFilterFormID).Closed() {
 		t.Fatal("esc kept the form open")
 	}
@@ -316,7 +316,7 @@ func TestFilterFormInChooser(t *testing.T) {
 	if got := chooserIDs(c); !slices.Equal(got, []string{"a", "c"}) {
 		t.Fatalf("inverted rows %v", got)
 	}
-	pressKeys(m, "esc")
+	pressKeys(m, "esc", "q")
 	if r.TopModal() != "entries" || len(c.PropFilters()) != 1 {
 		t.Fatalf("top %s filters %v", r.TopModal(), c.PropFilters())
 	}

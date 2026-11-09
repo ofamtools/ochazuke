@@ -89,7 +89,7 @@
       "type": "demo get Notes"
     },
     "enter",
-    "esc",
+    "q",
     ":",
     {
       "type": "demo get t3"

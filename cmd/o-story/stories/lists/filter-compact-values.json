@@ -149,7 +149,7 @@
     "ctrl+n",
     "space",
     "enter",
-    "esc",
+    "esc", "q",
     "esc"
   ],
   "expect": [

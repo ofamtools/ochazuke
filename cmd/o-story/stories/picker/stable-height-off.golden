@@ -9,12 +9,12 @@ r|  a1
  |      │ Fruit                                        │
  |      │ › che                                  fuzzy │
 R|      │   cherry                                     │
- |      │ enter picker.pick · esc modal.close · tab s… │
+ |      │ enter picker.pick · tab search.cycle-match   │
  |      ╰──────────────────────────────────────────────╯
  |
  |
  |
  |
  |  ────────────────────────────────────────────────────────
- |  enter picker.pick · esc modal.close · tab search.cycle-…
+ |  enter picker.pick · tab search.cycle-match
  |
