@@ -938,13 +938,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 	columns := c.r.Settings().Bool(ChooserColumnsSetting)
 	showIDs := c.r.Settings().Bool(ChooserShowIDsSetting)
 	draw := func(i int) {
-		item := c.matches[i]
-		if !columns {
-			item.Cells = nil
-		}
-		if !showIDs && len(item.Cells) == 0 {
-			item.Label, item.Tones = dropToneRuns(item.Label, item.Tones, ToneChoiceID)
-		}
+		item := shownRow(c.matches[i], columns, showIDs)
 		text := item.Label
 		if len(item.Cells) > 0 {
 			text = alignCells(item.Cells, widths)
@@ -1001,6 +995,18 @@ func (c *Chooser) rowsView(width, height int) Block {
 		lines[i] = l + strings.Repeat(" ", max(0, width-ansi.StringWidth(l)))
 	}
 	return line.WithText(strings.Join(lines, "\n"))
+}
+
+// shownRow is row as the settings draw it: without its cells when columns
+// is off, and without its id runs when showIDs is off and it has no cells.
+func shownRow(row ChooserRow, columns, showIDs bool) ChooserRow {
+	if !columns {
+		row.Cells = nil
+	}
+	if !showIDs && len(row.Cells) == 0 {
+		row.Label, row.Tones = dropToneRuns(row.Label, row.Tones, ToneChoiceID)
+	}
+	return row
 }
 
 // matched counts the rows the query kept, leaving out the create and fixed

@@ -467,6 +467,20 @@ func (p *Palette) ViewSized(width, height int) string {
 	return p.viewBlock(Styles{}, width, height).Text
 }
 
+// paletteEntryLabel is an entry's label drawn in s: its own tones, with the
+// match marks added when markMatches.
+func paletteEntryLabel(s Styles, entry PaletteEntry, matcher Matcher, markMatches bool) string {
+	label := entry.Label
+	if markMatches {
+		match := matcher.positions(label)
+		return s.tonedText(label, append(slices.Clone(entry.Tones), positionSpans(match, chromeTonePrefix+s.chrome+".palette.match")...), lipgloss.NewStyle())
+	}
+	if len(entry.Tones) > 0 {
+		return s.tonedText(label, entry.Tones, lipgloss.NewStyle())
+	}
+	return label
+}
+
 // viewBlock renders the line, what it resolves to, and the completion list
 // grouped by kind, with the line's cursor. A parameter's choices are
 // headed by the parameter (paramHeader), drawn in s.
@@ -538,13 +552,7 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 		if i == highlight {
 			marker = "> "
 		}
-		label := entry.Label
-		if markMatches {
-			entry.Match = matcher.positions(label)
-			label = s.tonedText(label, append(slices.Clone(entry.Tones), positionSpans(entry.Match, chromeTonePrefix+s.chrome+".palette.match")...), lipgloss.NewStyle())
-		} else if len(entry.Tones) > 0 {
-			label = s.tonedText(label, entry.Tones, lipgloss.NewStyle())
-		}
+		label := paletteEntryLabel(s, entry, matcher, markMatches)
 		fmt.Fprintf(&out, "%s%s\n", s.chromeRender("palette.marker", marker), label)
 	}
 	hidden := len(entries) - min(len(entries), start+limit)

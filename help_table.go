@@ -62,10 +62,7 @@ func (r *Runtime) helpTableUnboundItems(noun string, modes []string, ops []Opera
 	items := make([]ListItem, len(rows))
 	for i, row := range rows {
 		cells := make([]string, len(modes)+1)
-		text := row.Operation
-		if verb, ok := strings.CutPrefix(text, noun+"."); ok && noun != "app" {
-			text = "." + verb
-		}
+		text := helpOperationText(noun, row.Operation)
 		cells[min(1, len(cells)-1)] = text
 		props := Thing{"key": "", "unbound": true, "request": row.Request}
 		items[i] = ListItem{ID: fmt.Sprintf("__bindings-help/unbound/%d", i), Label: strings.Join(cells, "  "), Noun: "ochazuke.binding", Section: helpTableUnboundSection, Data: row, Props: props, Cells: cells, Search: []string{row.Operation, row.Description}}

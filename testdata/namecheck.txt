@@ -150,7 +150,8 @@ help.go	registerBindingHelp	compare	"bindings-help"	1
 help_modes.go	Runtime.helpEnters	compare	"ochazuke.mode.enter"	1
 help_views.go	Runtime.HelpTable	compare	"app"	1
 help_views.go	Runtime.helpPendingModes	compare	"macro_recording"	1
-help_views.go	helpCellText	compare	"app"	3
+help_views.go	helpCellText	compare	"app"	2
+help_views.go	helpOperationText	compare	"app"	1
 help_views.go	helpState.header	case	"pick"	1
 help_views.go	helpState.refreshBindings	compare	"pick"	1
 help_views.go	helpState.show	case	"pick"	1
@@ -253,7 +254,7 @@ pages.go	Runtime.RegisterPage	compare	"app"	1
 palette.go	Palette.IsActive	compare	"palette"	1
 palette.go	Palette.close	compare	"palette"	1
 palette.go	Palette.requireOpen	compare	"palette"	1
-palette.go	Palette.viewBlock	cyclo	"-"	28
+palette.go	Palette.viewBlock	cyclo	"-"	27
 palette.go	Runtime.presentAnswer	compare	"list"	1
 palette.go	newPalette	compare	"open"	1
 palette_choices.go	Palette.choiceWords	compare	"id"	1

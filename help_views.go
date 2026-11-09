@@ -673,14 +673,21 @@ func helpCellText(noun string, cell HelpCell) string {
 	if text == "" {
 		text = "-"
 	}
-	if verb, ok := strings.CutPrefix(text, noun+"."); ok && noun != "app" {
-		text = "." + verb
-	}
+	text = helpOperationText(noun, text)
 	if row.Guard != "" {
 		text += "?"
 	}
 	if row.Noun == "app" && noun != "app" {
 		text = "(" + text + ")"
+	}
+	return text
+}
+
+// helpOperationText is an operation as the help shows it under noun: ".verb"
+// for the noun's own, else whole.
+func helpOperationText(noun, text string) string {
+	if verb, ok := strings.CutPrefix(text, noun+"."); ok && noun != "app" {
+		return "." + verb
 	}
 	return text
 }
