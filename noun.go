@@ -1471,7 +1471,9 @@ func selectionModeOf(modes map[string]string, shape string) string {
 // pending count is present or absent), "self" (the focus is the instance
 // whose level the row sits on, not a descendant), "shadow-idle" (the mode a
 // shadow mode such as macro_recording re-dispatches in is normal with an
-// empty payload) and "op:<key>" (the pending operator). Applications add
+// empty payload), "op:<key>" (the pending operator) and the row guards
+// "row:<field>", "row:!<field>", "row:<field>=<value>" (RowGuardPrefix).
+// Applications add
 // their own with DefineGuard.
 //
 // A guard reads the interaction it is judged in from its event, not from
@@ -1512,7 +1514,52 @@ func (r *Runtime) rawGuard(name string) Guard {
 	if op, ok := strings.CutPrefix(name, "op:"); ok {
 		return func(_ *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Op == op }
 	}
+	if spec, ok := strings.CutPrefix(name, RowGuardPrefix); ok {
+		return rowGuard(spec)
+	}
 	return r.guards[name]
+}
+
+// RowGuardPrefix starts a row guard: a condition on the row a key acts on,
+// written as data in the guard's name, read with the binding source
+// "row:<field>" reads (rowValue: the row's Data, then its ListItem.Props).
+// "row:FIELD" holds when the field is present, "row:!FIELD" when it is
+// absent, "row:FIELD=VALUE" when its text is VALUE. A row guard needs no
+// registration, so a runtime that mounts another tool's rows (a host
+// loading an extension's catalog bindings) judges it the way the tool does.
+const RowGuardPrefix = "row:"
+
+// rowGuard is the guard of a row guard's spec (the name after "row:"); nil
+// when the spec names no field.
+func rowGuard(spec string) Guard {
+	field, want, eq := strings.Cut(spec, "=")
+	field, absent := strings.CutPrefix(field, "!")
+	if absent && eq || !validRowField(field) {
+		return nil
+	}
+	return func(r *Runtime, ev KeyEvent) bool {
+		value := r.rowField(ev, field)
+		switch {
+		case absent:
+			return value == nil
+		case eq:
+			return value != nil && fmt.Sprint(value) == want
+		}
+		return value != nil
+	}
+}
+
+// PortableGuard reports whether a guard name means the same in every
+// runtime: a built-in guard or a row guard (RowGuardPrefix), which read
+// only the interaction and the row. A host mounting another tool's binding
+// rows keeps their portable guards; an application guard (DefineGuard) or
+// an "op:" guard names something of the producing runtime.
+func PortableGuard(name string) bool {
+	if spec, ok := strings.CutPrefix(name, RowGuardPrefix); ok {
+		return rowGuard(spec) != nil
+	}
+	_, builtin := builtinGuards()[name]
+	return builtin
 }
 
 // classOf reports the key classes a key belongs to, most specific first.
