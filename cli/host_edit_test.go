@@ -9,6 +9,7 @@ import (
 	gomaps "maps"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -53,6 +54,15 @@ func mountedEditFixture(t *testing.T, mode string, beforeSet ...func(context.Con
 	m := ochazuke.NewModel(r)
 	m.Width, m.Height = 100, 24
 	local := func(noun string) string { return "ext-" + noun }
+	// The extension runtime and its thing are one remote process: its calls run
+	// one at a time. A write held on a gate may overlap a reload's get, so the
+	// fixture serializes them; a runtime is never entered from two goroutines.
+	var remote sync.Mutex
+	call := func(req ochazuke.Request) (any, error) {
+		remote.Lock()
+		defer remote.Unlock()
+		return ext.Execute(req)
+	}
 	mounted := MountNouns(r, doc.AppNouns(), HostMount{Local: local, Proxy: func(noun string, v CatalogVerb) any {
 		return func(c ochazuke.Ctx) ochazuke.Result {
 			if v.Name == "set" {
@@ -62,16 +72,18 @@ func mountedEditFixture(t *testing.T, mode string, beforeSet ...func(context.Con
 							return nil, err
 						}
 					}
-					return ext.Execute(ochazuke.Request{Noun: noun, Verb: v.Name, Args: c.Args})
+					return call(ochazuke.Request{Noun: noun, Verb: v.Name, Args: c.Args})
 				})
 			}
-			value, err := ext.Execute(ochazuke.Request{Noun: noun, Verb: v.Name, Args: c.Args})
+			value, err := call(ochazuke.Request{Noun: noun, Verb: v.Name, Args: c.Args})
 			if err != nil {
 				return ochazuke.Failed(err)
 			}
 			if v.Name == "get" {
 				// A test sets get-error on the thing to make the remote get fail.
+				remote.Lock()
 				failure, _ := thing["get-error"].(string)
+				remote.Unlock()
 				return ochazuke.Pending(func(context.Context) (any, error) {
 					if failure != "" {
 						return nil, errors.New(failure)
