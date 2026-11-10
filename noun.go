@@ -86,6 +86,9 @@ type Noun struct {
 	// relatedView is the placed view that stands for "my things owned by K"
 	// in a related section (NounBuilder.RelatedView); "" the generic list.
 	relatedView string
+	// builtin is set for a noun the framework registers (inside
+	// Runtime.Builtin), not the application.
+	builtin bool
 }
 
 // Binding is one row of a mode table, identical in code and config:
@@ -423,7 +426,7 @@ func (r *Runtime) ensureNoun(name string) *Noun {
 		if err := r.checkNounOverlap(name); err != nil {
 			panic(err.Error())
 		}
-		n = &Noun{Name: name, Bindings: map[string][]Binding{}, Actions: map[string]Handler{}, seq: nounSeq.Add(1)}
+		n = &Noun{Name: name, Bindings: map[string][]Binding{}, Actions: map[string]Handler{}, seq: nounSeq.Add(1), builtin: r.builtinDepth > 0}
 		r.Nouns[name] = n
 		r.Operations.Invalidate()
 		r.renderCache.generation++

@@ -434,3 +434,38 @@ func TestAnyRefValueIsKeptAsWritten(t *testing.T) {
 		}
 	}
 }
+
+func TestAnyRefNounsSetting(t *testing.T) {
+	t.Parallel()
+	f := newAnyFixture(t)
+	p := Parameter{Type: "string", Noun: AnyNoun, Free: true}
+	ids := func() []string {
+		chs, err := f.r.ChoicesFor(f.r.Context(), p, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, ch := range chs {
+			out = append(out, ch.ID)
+		}
+		return out
+	}
+	stored := ids()
+	for _, want := range []string{"widget:", "lane:", "doc:", "note:"} {
+		if !slices.Contains(stored, want) {
+			t.Errorf("stored lacks %q: %v", want, stored)
+		}
+	}
+	for _, id := range stored {
+		if strings.HasPrefix(id, "ochazuke.") {
+			t.Errorf("stored offers the framework noun %q", id)
+		}
+	}
+	if err := f.r.Settings().Set(AnyRefNounsSetting, "pickers"); err != nil {
+		t.Fatal(err)
+	}
+	all := ids()
+	if len(all) <= len(stored) || !slices.Contains(all, "ochazuke.referrer:") || !slices.Contains(all, "widget:") {
+		t.Errorf("pickers lists %d nouns (stored %d): %v", len(all), len(stored), all)
+	}
+}

@@ -30,13 +30,27 @@ func SplitAnyRef(value string) (noun, key string, ok bool) {
 	return noun, key, true
 }
 
+// AnyRefNounsSetting says which nouns the any-noun chooser offers: "stored"
+// (the default) the application's nouns with a store, not the framework's
+// own (registered inside Builtin) and not a facts store (Store.Facts, a
+// read-only view), "pickers" every noun with a picker.
+const AnyRefNounsSetting = "anyref.nouns"
+
 // anyRefNouns are the nouns an any-noun reference can name: those with a
-// picker, by name.
+// picker (and, for "stored", a store that is not a facts store), by name.
 func (r *Runtime) anyRefNouns() []string {
+	stored := r.Settings().String(AnyRefNounsSetting) != "pickers"
 	var out []string
 	for _, d := range r.PickerDefs() {
-		if d.Noun != "" && !slices.Contains(out, r.CanonicalNoun(d.Noun)) {
-			out = append(out, r.CanonicalNoun(d.Noun))
+		if d.Noun == "" {
+			continue
+		}
+		noun := r.CanonicalNoun(d.Noun)
+		if n := r.Nouns[noun]; stored && (n == nil || n.builtin || n.Store == nil || n.Store.Facts) {
+			continue
+		}
+		if !slices.Contains(out, noun) {
+			out = append(out, noun)
 		}
 	}
 	slices.Sort(out)
