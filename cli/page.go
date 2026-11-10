@@ -246,6 +246,9 @@ type PageView struct {
 	// JSON section state stays with this mounted page.
 	jsonSections []*jsonSection
 	jsonParent   string
+	// related is the stack of a related detail section: the things that
+	// name the followed list's selected row.
+	related *ochazuke.Related
 	// kind is the detail's view of a registered kind, nil for the record;
 	// kindNote says why a kind the catalog names is drawn as the record.
 	kind     *kindView
@@ -370,8 +373,7 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		}
 		v.detail = d
 		if len(p.Detail.Sections) > 0 {
-			v.mountSections()
-			if err := v.mountJSONSections(); err != nil {
+			if err := v.mountDetailSections(); err != nil {
 				return nil, err
 			}
 		} else {

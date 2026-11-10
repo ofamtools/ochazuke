@@ -1,0 +1,86 @@
+{
+  "name": "Related sections: a note about project:p1 is not about task:p1; n files a new one about project:p1",
+  "area": "related",
+  "width": 60,
+  "height": 22,
+  "page": {
+    "id": "projects",
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "projects-list",
+        "height": 2,
+        "items": [
+          {
+            "id": "p1",
+            "label": "Alpha"
+          },
+          {
+            "id": "p2",
+            "label": "Beta"
+          }
+        ]
+      }
+    ],
+    "related": {
+      "id": "details",
+      "noun": "project",
+      "keyList": "projects-list",
+      "height": 16,
+      "nouns": [
+        {
+          "noun": "note",
+          "prop": "about",
+          "any": true,
+          "things": [
+            {
+              "id": "n1",
+              "title": "idea",
+              "about": "project:p1"
+            },
+            {
+              "id": "n2",
+              "title": "same key, other noun",
+              "about": "task:p1"
+            },
+            {
+              "id": "n3",
+              "title": "memo",
+              "about": "project:p2"
+            }
+          ]
+        }
+      ]
+    },
+    "focus": "details/note.about/list/@head"
+  },
+  "script": [
+    "z o",
+    "n"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "\u25be Notes (about) (1)",
+        "idea"
+      ],
+      "lacks": [
+        "same key, other noun",
+        "memo"
+      ]
+    },
+    {
+      "contains": [
+        "\u25be Notes (about) (2)",
+        "idea",
+        "new n4"
+      ],
+      "lacks": [
+        "same key, other noun",
+        "memo"
+      ],
+      "after": 2
+    }
+  ]
+}

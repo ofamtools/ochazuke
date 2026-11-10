@@ -88,6 +88,9 @@ func (r *Runtime) choicesPlural(p Parameter) string {
 	if p.Noun == "" {
 		return "suggestions"
 	}
+	if p.Noun == AnyNoun {
+		return "things"
+	}
 	noun := r.DisplayNoun(p.Noun)
 	if i := strings.LastIndexAny(noun, "."); i >= 0 {
 		noun = noun[i+1:]

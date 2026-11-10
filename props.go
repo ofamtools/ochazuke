@@ -675,6 +675,7 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 			return err
 		}
 	}
+	p = p.keepAnyRef()
 	if p.Type == "" {
 		p.Type = SettingString
 	}
@@ -685,7 +686,7 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 		if p.Type != SettingString {
 			return fmt.Errorf("prop %s: a reference (noun %s) holds a key, type string", key, p.Noun)
 		}
-		p.Noun = r.CanonicalNoun(p.Noun)
+		p.Noun = r.CanonicalNoun(p.Noun) // AnyNoun has no alias, so it stays "*"
 	}
 	if len(p.Enum) > 0 && p.Type != SettingString {
 		return fmt.Errorf("prop %s: only a string prop takes an enum", key)
@@ -1163,4 +1164,12 @@ func asksCollectionProp(n *Noun, a Arguments) bool {
 	prop, _ := propPath(n, StringArg(a, "prop", ""))
 	p := n.prop(prop)
 	return p != nil && p.ofCollection()
+}
+
+// keepAnyRef makes a prop that names a thing of any noun (AnyNoun) Free:
+// the thing may be gone, or its noun not registered here, and the reference
+// is kept as written (record first, never refuse).
+func (p PropSpec) keepAnyRef() PropSpec {
+	p.Free = p.Free || p.Noun == AnyNoun
+	return p
 }

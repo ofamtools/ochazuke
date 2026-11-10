@@ -347,6 +347,9 @@ const ChoicesQueryParameter = "query"
 // ChoicesTakeQuery reports whether a parameter's choices source sees the
 // typed text (it declares ChoicesQueryParameter).
 func (r *Runtime) ChoicesTakeQuery(p Parameter) bool {
+	if p.Noun == AnyNoun && p.Source == "" {
+		return true
+	}
 	op, ok := r.Operations.Find(Key(r.ChoicesSource(p)))
 	_, takes := op.Parameters[ChoicesQueryParameter]
 	return ok && takes
@@ -367,6 +370,10 @@ func choicesQueryArgs(op Operation, query string) Arguments {
 func (r *Runtime) ChoicesFor(c Context, p Parameter, query string, siblings ...Arguments) ([]Choice, error) {
 	out := enumChoices(p)
 	source := r.ChoicesSource(p)
+	if source == "" && p.Noun == AnyNoun {
+		more, err := r.anyRefChoices(c, query)
+		return append(out, more...), err
+	}
 	if source == "" {
 		if p.Noun != "" {
 			out = append(out, r.nounInstanceChoices(p.Noun)...)

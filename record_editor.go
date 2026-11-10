@@ -1336,7 +1336,7 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 	if r.ChoicesTakeQuery(l.param) || len(l.param.SourceArgs) > 0 {
 		// Query sources reload while typing; dependent sources also reload
 		// when a sibling changes while their chooser is open.
-		spec.Sources = []ChooserSource{{
+		src := ChooserSource{
 			Name: "suggestions",
 			Live: r.ChoicesTakeQuery(l.param),
 			Load: func(query string) Result {
@@ -1375,7 +1375,11 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 					landed(choices)
 				})
 			},
-		}}
+		}
+		if l.param.Noun == AnyNoun && l.param.Source == "" {
+			anyRefNavigation(&src)
+		}
+		spec.Sources = []ChooserSource{src}
 		return r.OpenChooser(spec)
 	}
 	c, err := r.OpenChooser(spec)

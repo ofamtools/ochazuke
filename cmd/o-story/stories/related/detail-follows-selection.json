@@ -1,0 +1,143 @@
+{
+  "name": "Related detail: the stack follows the selected row, whatever its noun",
+  "area": "related",
+  "width": 60,
+  "height": 22,
+  "page": {
+    "id": "rows",
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "rows-list",
+        "height": 3,
+        "items": [
+          {
+            "id": "p1",
+            "label": "Alpha",
+            "noun": "project",
+            "data": "p1"
+          },
+          {
+            "id": "t1",
+            "label": "write",
+            "noun": "task",
+            "data": "t1"
+          },
+          {
+            "id": "p2",
+            "label": "Beta",
+            "noun": "project",
+            "data": "p2"
+          }
+        ]
+      }
+    ],
+    "related": {
+      "id": "details",
+      "detail": true,
+      "rowNouns": [
+        "project",
+        "task"
+      ],
+      "keyList": "rows-list",
+      "height": 14,
+      "nouns": [
+        {
+          "noun": "note",
+          "prop": "about",
+          "any": true,
+          "things": [
+            {
+              "id": "n1",
+              "title": "idea",
+              "about": "project:p1"
+            },
+            {
+              "id": "n2",
+              "title": "todo",
+              "about": "task:t1"
+            },
+            {
+              "id": "n3",
+              "title": "memo",
+              "about": "project:p2"
+            }
+          ]
+        },
+        {
+          "noun": "link",
+          "prop": "project",
+          "refs": "project",
+          "things": [
+            {
+              "id": "l1",
+              "title": "docs",
+              "project": "p1"
+            }
+          ]
+        }
+      ]
+    },
+    "focus": "rows-list"
+  },
+  "script": [
+    "j",
+    "j",
+    "k",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 0,
+      "focus": "p1",
+      "contains": [
+        "\u25be Notes (about) (1)",
+        "idea",
+        "\u25be Links (project) (1)",
+        "docs"
+      ],
+      "lacks": [
+        "todo",
+        "memo"
+      ]
+    },
+    {
+      "after": 1,
+      "focus": "t1",
+      "contains": [
+        "\u25be Notes (about) (1)",
+        "todo"
+      ],
+      "lacks": [
+        "idea",
+        "memo",
+        "Links"
+      ]
+    },
+    {
+      "after": 2,
+      "focus": "p2",
+      "contains": [
+        "memo",
+        "\u25b8 Links (project) (0)"
+      ],
+      "lacks": [
+        "idea",
+        "todo",
+        "docs"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "p1",
+      "contains": [
+        "idea",
+        "docs"
+      ],
+      "lacks": [
+        "todo",
+        "memo"
+      ]
+    }
+  ]
+}

@@ -23,6 +23,13 @@ type RelatedSpec struct {
 	Height  int    `json:"height,omitempty"`
 	// Order, Hidden and Collapsed are the stack's list settings at the
 	// start; Empty its empty mode and NoCounts turns the counts off.
+	// Detail makes the stack the detail of the selected row of KeyList
+	// (ochazuke.AddRelatedDetail): its rows are things of RowNouns (each
+	// item's noun, its data or id the key), the sections are those of the
+	// selected row's noun, and Noun is not used. detail.related and
+	// detail.related-hidden are the settings.
+	Detail    bool              `json:"detail,omitempty"`
+	RowNouns  []string          `json:"rowNouns,omitempty"`
 	Order     []string          `json:"order,omitempty"`
 	Hidden    []string          `json:"hidden,omitempty"`
 	Collapsed []string          `json:"collapsed,omitempty"`
@@ -36,9 +43,14 @@ type RelatedSpec struct {
 // "id" and "title" and the Prop. Owner gives the prop the owner role;
 // ReadOnly makes it read-only; Columns (prop names) makes a table.
 type RelatedNounSpec struct {
-	Noun     string           `json:"noun"`
-	Prop     string           `json:"prop"`
-	Owner    bool             `json:"owner,omitempty"`
+	Noun  string `json:"noun"`
+	Prop  string `json:"prop"`
+	Owner bool   `json:"owner,omitempty"`
+	// Any makes the prop a reference to a thing of any noun (Noun "*"):
+	// things hold "noun:key".
+	Any bool `json:"any,omitempty"`
+	// Refs is the noun a plain Prop names (default the stack's Noun).
+	Refs     string           `json:"refs,omitempty"`
 	ReadOnly bool             `json:"readOnly,omitempty"`
 	Hook     bool             `json:"hook,omitempty"`
 	Columns  []string         `json:"columns,omitempty"`
@@ -106,9 +118,21 @@ func (m *relatedMem) store() ochazuke.Store {
 func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 	r, spec := ss.R, p.Related
 	mems := map[string]*relatedMem{}
-	r.Define(spec.Noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
+	rowNouns := spec.RowNouns
+	if !spec.Detail {
+		rowNouns = []string{spec.Noun}
+	}
+	for _, noun := range rowNouns {
+		r.Define(noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
+	}
 	for _, n := range spec.Nouns {
 		prop := ochazuke.PropSpec{Name: n.Prop, ReadOnly: n.ReadOnly, Parameter: ochazuke.Parameter{Type: "string", Noun: spec.Noun}}
+		if n.Refs != "" {
+			prop.Noun = n.Refs
+		}
+		if n.Any {
+			prop.Noun = ochazuke.AnyNoun
+		}
 		if n.Owner {
 			prop.Role = ochazuke.RoleOwner
 		}
@@ -140,11 +164,28 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 			return nil, err
 		}
 	}
-	key := func() string {
-		id := spec.KeyList
-		if id == "" && len(p.Lists) > 0 {
-			id = p.Lists[0].ID
+	listID := spec.KeyList
+	if listID == "" && len(p.Lists) > 0 {
+		listID = p.Lists[0].ID
+	}
+	rows := func(_ ochazuke.Ctx, ref ochazuke.Referrer, k string) ([]ochazuke.Thing, error) {
+		var out []ochazuke.Thing
+		for _, t := range mems[ref.Noun].things {
+			if t[ref.Prop] == k {
+				out = append(out, maps.Clone(t))
+			}
 		}
+		return out, nil
+	}
+	if spec.Detail {
+		target := r.SelectionTarget(func() *ochazuke.Collection { return ss.lists[listID] })
+		if err := r.Bind(ochazuke.Binding{Noun: "app", Mode: "normal", Keys: "u", Request: ochazuke.Request{Noun: "ochazuke.history-entry", Verb: "undo"}}); err != nil {
+			return nil, err
+		}
+		return r.AddRelated(relatedID(p), ochazuke.RelatedSpec{Target: target, Enabled: ochazuke.RelatedDetailSetting, Hidden: ochazuke.RelatedDetailHiddenSetting, Rows: rows}, ochazuke.Parent(p.ID))
+	}
+	key := func() string {
+		id := listID
 		if l := ss.lists[id]; l != nil {
 			if it, ok := l.Selected(); ok {
 				return strings.TrimPrefix(it.ID, id+"/")
@@ -157,15 +198,7 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 	}
 	return r.AddRelated(relatedID(p), ochazuke.RelatedSpec{Noun: spec.Noun, Key: key,
 		Order: "related.order", Hidden: "related.hidden", Collapsed: "related.collapsed", Counts: "related.counts", Empty: "related.empty",
-		Rows: func(_ ochazuke.Ctx, ref ochazuke.Referrer, k string) ([]ochazuke.Thing, error) {
-			var out []ochazuke.Thing
-			for _, t := range mems[ref.Noun].things {
-				if t[ref.Prop] == k {
-					out = append(out, maps.Clone(t))
-				}
-			}
-			return out, nil
-		}}, ochazuke.Parent(p.ID))
+		Rows: rows}, ochazuke.Parent(p.ID))
 }
 
 func orEmpty(l []string) []string {

@@ -370,7 +370,7 @@ func MountParameter(p ochazuke.Parameter, nouns map[string]string) ochazuke.Para
 		item := MountParameter(*p.Items, nouns)
 		p.Items = &item
 	}
-	if p.Noun != "" {
+	if p.Noun != "" && p.Noun != ochazuke.AnyNoun {
 		p.Noun = nouns[p.Noun]
 	}
 	if p.Source != "" {

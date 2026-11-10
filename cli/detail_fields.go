@@ -157,3 +157,14 @@ func (m *detailFieldsModal) ModalBlock(_ ochazuke.Styles, w, h int) ochazuke.Blo
 func (m *detailFieldsModal) HandleMessage(tea.Msg) bool { return false }
 func (m *detailFieldsModal) PendingCommand() tea.Cmd    { return nil }
 func (m *detailFieldsModal) Close()                     {}
+
+// mountRelated makes the stack of a related detail section: it follows
+// the selected row of the followed list, whatever its noun.
+func (v *PageView) mountRelated() error {
+	rel, err := v.m.Runtime.AddRelatedDetail(v.detail.ID()+"/related", func() *ochazuke.Collection {
+		v.follow()
+		return v.lists[v.current].list
+	}, ochazuke.Parent(v.detail.ID()))
+	v.related = rel
+	return err
+}

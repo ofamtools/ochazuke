@@ -52,10 +52,21 @@ type RelatedSpec struct {
 	// Key reads the key of the Noun thing the sections show, on every
 	// draw and verb: the project list's selection. "" shows no rows.
 	Key func() string
+	// Target, when set, replaces Noun and Key: it names the thing the
+	// sections show now, by noun and key, on every draw and verb (the
+	// selected row of a list: FollowSelection). The sections are those of
+	// the noun's referrers, and are made again when the noun changes with
+	// the selection, so one stack serves a list of mixed nouns. An empty
+	// noun or key shows no sections. Noun may then be empty.
+	Target func() (noun, key string)
+	// Enabled names a boolean setting (default on when unset or missing)
+	// that turns the whole stack off: nothing is read and nothing drawn
+	// while it is false. "" is always on.
+	Enabled string
 	// Order, Hidden, Collapsed, Counts and Empty name the settings above.
 	Order, Hidden, Collapsed, Counts, Empty string
 	// Rows lists the things of a noun without a store (a mounted noun)
-	// whose prop holds key; a noun with a store lists through the store's
+	// whose prop holds key (for an any-noun reference, AnyNoun, "noun:key"); a noun with a store lists through the store's
 	// standard list with the filter PROP = key. Called when the key changes,
 	// a section unfolds, refresh runs or Interval passes, never on a draw.
 	Rows func(c Ctx, ref Referrer, key string) ([]Thing, error)
@@ -84,6 +95,7 @@ type Related struct {
 	spec RelatedSpec
 
 	look     string // the counts and empty settings the headings were made with
+	noun     string // the noun the sections hang off now
 	key      string // the key the sections show now
 	synced   bool
 	sections []*relatedSection // every section, in referrer order
@@ -116,10 +128,12 @@ func (r *Runtime) AddRelated(id string, spec RelatedSpec, opts ...InstanceOption
 	if id == "" || r.Instances[id] != nil {
 		return nil, fmt.Errorf("related ID %q must be nonempty and unused", id)
 	}
-	if spec.Noun == "" || r.Noun(spec.Noun) == nil {
-		return nil, fmt.Errorf("related %q: no such noun %q", id, spec.Noun)
+	if spec.Target == nil {
+		if spec.Noun == "" || r.Noun(spec.Noun) == nil {
+			return nil, fmt.Errorf("related %q: no such noun %q", id, spec.Noun)
+		}
+		spec.Noun = r.CanonicalNoun(spec.Noun)
 	}
-	spec.Noun = r.CanonicalNoun(spec.Noun)
 	is := instanceSpec{parent: "app"}
 	for _, opt := range opts {
 		opt(&is)
@@ -259,6 +273,9 @@ func (rel *Related) order() []*relatedSection {
 // visible is the sections drawn: not hidden by the setting and, in the
 // omit empty mode, not empty.
 func (rel *Related) visible() []*relatedSection {
+	if !rel.enabled() {
+		return nil
+	}
 	hideEmpty := rel.emptyMode() == relatedEmptyAtHide
 	var out []*relatedSection
 	for _, s := range rel.order() {
@@ -276,23 +293,32 @@ func (rel *Related) sync() {
 	if rel.closed {
 		return
 	}
-	for _, ref := range rel.r.Referrers(rel.spec.Noun) {
-		if rel.byID[ref.ID()] == nil {
-			rel.addSection(ref)
+	if !rel.enabled() {
+		rel.synced = false // read again once it is turned on
+		return
+	}
+	noun, key := rel.target()
+	if !rel.synced || noun != rel.noun {
+		rel.dropSections()
+		rel.noun = noun
+	}
+	if noun != "" {
+		for _, ref := range rel.r.Referrers(noun) {
+			if rel.byID[ref.ID()] == nil {
+				rel.addSection(ref)
+			}
 		}
 	}
-	key := ""
-	if rel.spec.Key != nil {
-		key = rel.spec.Key()
-	}
 	look := fmt.Sprint(rel.countsShown(), rel.emptyMode())
-	if look != rel.look {
+	keyChanged := !rel.synced || key != rel.key
+	if keyChanged {
+		rel.synced, rel.key = true, key
+	}
+	if keyChanged || look != rel.look {
 		rel.look = look
 		rel.fillAll()
 	}
-	if !rel.synced || key != rel.key {
-		rel.synced, rel.key = true, key
-		rel.fillAll()
+	if keyChanged {
 		for _, s := range rel.sections {
 			if s.list != nil && s.list.Len() > 0 {
 				_ = s.list.Select(s.headID())
@@ -310,6 +336,54 @@ func (rel *Related) sync() {
 	}
 	rel.refreshDue()
 }
+
+// target is the noun and key the sections show now: the Target func's
+// answer, else Noun and Key. An empty noun or key shows none.
+func (rel *Related) target() (noun, key string) {
+	switch {
+	case rel.spec.Target != nil:
+		noun, key = rel.spec.Target()
+		if noun != "" && noun != AnyNoun {
+			noun = rel.r.CanonicalNoun(noun)
+		}
+	default:
+		noun = rel.spec.Noun
+		if rel.spec.Key != nil {
+			key = rel.spec.Key()
+		}
+	}
+	if rel.r.Noun(noun) == nil {
+		return "", ""
+	}
+	return noun, key
+}
+
+// enabled reports whether the stack is on (Enabled; a setting that does
+// not exist counts as on).
+func (rel *Related) enabled() bool {
+	if rel.spec.Enabled == "" {
+		return true
+	}
+	if _, ok := rel.r.settingValue(rel.spec.Enabled); !ok {
+		return true
+	}
+	return rel.r.Settings().Bool(rel.spec.Enabled)
+}
+
+// dropSections removes every section: the selection moved to a thing of
+// another noun, so its referrers are others. Collapse state stays, by id.
+func (rel *Related) dropSections() {
+	for _, s := range rel.sections {
+		_ = rel.r.RemoveInstance(s.id)
+	}
+	rel.sections, rel.byID = nil, map[string]*relatedSection{}
+	rel.lastLine, rel.top = 0, 0
+	rel.look = ""
+}
+
+// value is what the section's referring prop holds to name the stack's
+// thing: its key, or "noun:key" for an any-noun reference.
+func (s *relatedSection) value() string { return s.ref.Value(s.rel.noun, s.rel.key) }
 
 // refreshDue refills the hook sections when the spec's interval setting
 // names a duration that has passed since they were last read. It reads the
@@ -467,12 +541,12 @@ func (s *relatedSection) read() ([]Thing, error) {
 	r := rel.r
 	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
 	if s.hooked() {
-		return rel.spec.Rows(c, s.ref, rel.key)
+		return rel.spec.Rows(c, s.ref, s.value())
 	}
 	if s.n.Store.Remote {
 		return nil, nil // a remote store is filled by its own job; not read on the loop
 	}
-	page, err := r.queryThings(c, s.n, ListQuery{Archived: true, Filters: []PropFilter{{Prop: s.ref.Prop, Op: "=", Value: rel.key}}})
+	page, err := r.queryThings(c, s.n, ListQuery{Archived: true, Filters: []PropFilter{{Prop: s.ref.Prop, Op: "=", Value: s.value()}}})
 	if err != nil {
 		return nil, err
 	}
@@ -505,7 +579,7 @@ func (s *relatedSection) fill() {
 	empty := len(shown) == 0
 	if s.view != "" {
 		if rel.spec.Scope != nil && rel.key != "" {
-			if err := rel.spec.Scope(c, s.ref, s.view, rel.key); err != nil {
+			if err := rel.spec.Scope(c, s.ref, s.view, s.value()); err != nil {
 				r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
 			}
 		}
@@ -574,3 +648,83 @@ func (s *relatedSection) setCollapsed(collapsed bool) {
 
 // focusInside reports whether the focus is on or inside the instance id.
 func (r *Runtime) focusInside(id string) bool { return slices.Contains(r.Ancestry(r.Focus), id) }
+
+// The settings of a related stack placed as a detail (AddRelatedDetail).
+const (
+	// RelatedDetailSetting turns the detail stacks on (default) or off.
+	RelatedDetailSetting = "detail.related"
+	// RelatedDetailHiddenSetting lists the section ids (NOUN.PROP, or a
+	// prefix ending in *) kept out of detail stacks.
+	RelatedDetailHiddenSetting = "detail.related-hidden"
+)
+
+// SelectionTarget is a RelatedSpec.Target that follows the selected row of
+// a list: the row's noun and the key of the thing it stands for, so a stack
+// shows what names that thing, whatever its noun. list names the list
+// (a *Collection) on every call, so a page that switches
+// between lists answers for the one now followed. No selection or a row
+// without a noun names nothing.
+func (r *Runtime) SelectionTarget(list func() *Collection) func() (noun, key string) {
+	return func() (string, string) {
+		l := list()
+		if l == nil {
+			return "", ""
+		}
+		item, ok := l.Selected()
+		if !ok {
+			return "", ""
+		}
+		inst := r.Instances[item.ID]
+		noun := item.Noun
+		if noun == "" && inst != nil {
+			noun = inst.Noun
+		}
+		n := r.Nouns[r.CanonicalNoun(noun)]
+		if inst == nil || n == nil {
+			return "", ""
+		}
+		if n.keyProp() == nil {
+			// A noun with no key prop (a mounted catalog's row): the row's
+			// Data is the id its verbs take.
+			key, _ := inst.Data.(string)
+			return n.Name, key
+		}
+		key, err := r.rowKey(n, inst)
+		if err != nil {
+			return "", ""
+		}
+		return n.Name, key
+	}
+}
+
+// AddRelatedDetail registers a related stack that is the detail of a
+// list's selected row: its sections are the referrers of the row's noun
+// (notes about it, tasks that belong to it), read for the row's key, made
+// again when the selection moves to a row of another noun and filled again
+// when it moves to another row. It reads on that change, on a store's
+// change, on unfold and refresh, never on a draw. list names the followed
+// list on every call. The settings are RelatedDetailSetting
+// (off: nothing drawn or read) and RelatedDetailHiddenSetting. Draw it
+// with View, or Text inside a scrolling detail.
+func (r *Runtime) AddRelatedDetail(id string, list func() *Collection, opts ...InstanceOption) (*Related, error) {
+	return r.AddRelated(id, RelatedSpec{Target: r.SelectionTarget(list), Enabled: RelatedDetailSetting, Hidden: RelatedDetailHiddenSetting}, opts...)
+}
+
+// Noun is the noun the sections hang off now ("" when none).
+func (rel *Related) Noun() string { rel.sync(); return rel.noun }
+
+// Text draws the sections at their natural height, one under the other,
+// width cells wide: a detail's text to scroll as a whole, with the sections'
+// lists still the focus stops they are. "" when nothing is shown.
+func (rel *Related) Text(width int) string {
+	rel.sync()
+	if width <= 0 {
+		return ""
+	}
+	var lines []string
+	for _, s := range rel.visible() {
+		text, _ := s.draw(width)
+		lines = append(lines, strings.Split(text, "\n")...)
+	}
+	return strings.Join(lines, "\n")
+}

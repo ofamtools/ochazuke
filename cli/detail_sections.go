@@ -22,7 +22,11 @@ import (
 // JSON reads any JSON value; Parse decodes a string as JSON, falling back
 // to plain text on invalid input. JSON sections use the full width below
 // the other regions, with a structure tree beside the selected value.
-// Region is main (default) or side (JSON sections require main). ReadOnly defaults true; false is
+// A related section (no field) draws the things that name the selected row
+// (its notes and the rest: one section per noun that references the row's
+// noun), live and focusable, as ochazuke.Runtime.AddRelatedDetail does; the
+// detail.related setting turns it off and detail.related-hidden keeps
+// sections out. Region is main (default) or side (JSON sections require main). ReadOnly defaults true; false is
 // refused: domain edits belong to the application's verbs.
 type CatalogDetailSection struct {
 	Kind     string               `json:"kind"`
@@ -72,7 +76,13 @@ func checkDetailSections(d CatalogDetail) error {
 				return bad("fields needs labelled fields")
 			}
 		default:
-			return bad("kind must be markdown, thread, fields or json")
+			kind, ok := sectionKinds[s.Kind]
+			if !ok {
+				return bad("kind must be markdown, thread, fields, json or " + strings.Join(sectionKindNames(), ", "))
+			}
+			if why := kind.check(s); why != "" {
+				return bad(why)
+			}
 		}
 		if s.Parse && s.Kind != "json" {
 			return bad("parse is only supported by json sections")
@@ -305,6 +315,12 @@ func (v *PageView) sectionText(s CatalogDetailSection, data any, width int) stri
 			lines = append(lines, styles.Muted.Render(ansi.Truncate(line, width, "…")))
 		}
 		text = strings.Join(lines, "\n")
+	default:
+		if kind, ok := sectionKinds[s.Kind]; ok {
+			if text = kind.text(v, s, width); text == "" {
+				return ""
+			}
+		}
 	}
 	if s.Title != "" {
 		title := styles.Title.Render(ansi.Hardwrap(ansi.Wrap(plainText(s.Title), width, ""), width, true))
@@ -403,4 +419,63 @@ func (v *PageView) sectionsPanel(layout ochazuke.Layout, width, height int) ocha
 		title += " · " + marker
 	}
 	return layout.PanelBlock(title, ochazuke.Text(body), width, height, v.jsonFocused())
+}
+
+// sectionKind is a section kind declared as data beside the built-in ones:
+// what makes a section of the kind valid, what it mounts once on a page that
+// has one, and the text it draws.
+type sectionKind struct {
+	check func(s CatalogDetailSection) string
+	mount func(v *PageView) error
+	text  func(v *PageView, s CatalogDetailSection, width int) string
+}
+
+// sectionKinds are the section kinds beyond markdown, thread, fields and
+// json (kinds the page draws from its own state, not from the row's data),
+// registered by registerSectionKind.
+var sectionKinds = map[string]sectionKind{}
+
+func registerSectionKind(name string, kind sectionKind) { sectionKinds[name] = kind }
+
+func init() {
+	registerSectionKind("related", sectionKind{
+		check: func(s CatalogDetailSection) string {
+			if s.Region == "side" {
+				return "related sections use the main region"
+			}
+			return ""
+		},
+		mount: (*PageView).mountRelated,
+		text: func(v *PageView, _ CatalogDetailSection, width int) string {
+			if v.related == nil {
+				return ""
+			}
+			return v.related.Text(width)
+		},
+	})
+}
+
+func sectionKindNames() []string {
+	names := make([]string, 0, len(sectionKinds))
+	for name := range sectionKinds {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// mountDetailSections mounts what a page's detail sections need: the fields
+// and JSON sections' state, then each declared kind's, once.
+func (v *PageView) mountDetailSections() error {
+	v.mountSections()
+	mounted := map[string]bool{}
+	for _, s := range v.spec.Detail.Sections {
+		if kind, ok := sectionKinds[s.Kind]; ok && !mounted[s.Kind] {
+			mounted[s.Kind] = true
+			if err := kind.mount(v); err != nil {
+				return err
+			}
+		}
+	}
+	return v.mountJSONSections()
 }
