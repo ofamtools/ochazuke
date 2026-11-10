@@ -238,6 +238,7 @@ type Tree struct {
 	seen      string // its text at the last PendingCommand
 	changeSeq uint64
 	failure   error
+	wrap      treeWrap
 }
 
 // AddTree registers a tree under Parent (default app) with its nodes.
@@ -638,7 +639,10 @@ func (t *Tree) Block(width, height int) Block {
 // rows renders the visible rows (Block without the breadcrumb).
 func (t *Tree) rows(width, height int) Block {
 	text := t.list.View(width, height)
-	if t.input == nil || t.editing == "" {
+	if t.wrapping() {
+		return (Block{Text: text, Cursor: t.wrap.cursor}).Clip(width, height)
+	}
+	if t.input == nil || t.editing == "" || width <= 0 || height <= 0 {
 		return Text(text)
 	}
 	i := t.index(t.editing)
@@ -659,6 +663,7 @@ func (t *Tree) rows(width, height int) Block {
 		prefix = ansi.Truncate(prefix, max(0, width-1), "")
 	}
 	pw := ansi.StringWidth(prefix)
+	t.input.Wrap = false
 	block := InputBlock(t.input, max(1, width-pw), 1)
 	rows[line] = prefix + block.Text
 	out := Text(strings.Join(rows, "\n"))

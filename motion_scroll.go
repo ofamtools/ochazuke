@@ -279,6 +279,9 @@ func registerViewScroll(r *Runtime) {
 // CanScrollLines reports whether the list windowed its rows in the last
 // frame (more rows than its window).
 func (l *Collection) CanScrollLines() bool {
+	if t := l.tree(); t != nil && t.wrapping() {
+		return t.wrap.scrollable()
+	}
 	return l.windowed && l.window > 0 && len(l.items) > l.window
 }
 
@@ -287,6 +290,10 @@ func (l *Collection) CanScrollLines() bool {
 // moves to the nearest row inside (relaxed at the first and last row, as
 // windowOffset is). It never spills.
 func (l *Collection) ScrollLines(lines int) {
+	if t := l.tree(); t != nil && t.wrapping() {
+		t.scrollWrapped(lines)
+		return
+	}
 	if !l.CanScrollLines() || l.selected < 0 {
 		return
 	}
@@ -339,6 +346,9 @@ func (l *Collection) MoveToEdge(edge SpillEdge, row int) {
 
 // PageLines is the list's page (CursorMotions), as collection.scroll's.
 func (l *Collection) PageLines() int {
+	if t := l.tree(); t != nil && t.wrapping() {
+		return t.wrap.visible
+	}
 	if l.selected < 0 {
 		return 0
 	}
@@ -346,4 +356,10 @@ func (l *Collection) PageLines() int {
 }
 
 // MovePage is collection.scroll by lines rows (CursorMotions).
-func (l *Collection) MovePage(lines int) { l.page(lines) }
+func (l *Collection) MovePage(lines int) {
+	if t := l.tree(); t != nil && t.wrapping() {
+		t.pageWrapped(lines)
+		return
+	}
+	l.page(lines)
+}

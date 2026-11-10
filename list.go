@@ -217,6 +217,9 @@ func (l *Collection) moveOrSpill(delta int, clamp bool) {
 	if !clamp && l.windowEdge(delta) {
 		return
 	}
+	if t := l.tree(); t != nil && t.wrapping() && t.wrapMotion(delta) {
+		return
+	}
 	if clamp || !l.spill(delta) {
 		l.Move(delta)
 	}
@@ -482,6 +485,12 @@ func (l *Collection) atRowEdge(delta int) bool {
 	if delta == 0 || l.selected < 0 {
 		return false
 	}
+	if t := l.tree(); t != nil && t.wrapping() && len(t.wrap.rows) == len(l.items) && t.wrap.visible > 0 {
+		from, to := t.wrap.span(l.selected)
+		if delta < 0 && from < t.wrap.top || delta > 0 && to > t.wrap.top+t.wrap.visible {
+			return false
+		}
+	}
 	if l.motion != nil && !l.visual && l.motionAtEdge != nil {
 		return l.motionAtEdge(delta)
 	}
@@ -713,6 +722,9 @@ func (l *Collection) View(width, height int) string {
 		if l.selLine >= 0 {
 			l.selLine++
 		}
+		if t := l.tree(); t != nil && t.wrapping() && t.wrap.cursor != nil {
+			t.wrap.cursor.Y++
+		}
 		if focusHeight == height {
 			focusHeight++ // the whole list
 		} else {
@@ -798,6 +810,12 @@ func (l *Collection) rowsView(width, height int) (string, int, int) {
 	l.selLine = -1
 	if len(l.items) == 0 {
 		return strings.Join(layoutRows(l.emptyLine(), width, height), "\n"), 0, height
+	}
+	if t := l.tree(); t != nil && t.wrapEnabled() {
+		cols, shown, widths := t.wrapLayout(width)
+		if t.prepareWrap(cols, shown, widths) {
+			return t.wrappedView(nil, width, height, height, cols, shown, widths, span{})
+		}
 	}
 	spaced := l.spacing()
 	visible := height

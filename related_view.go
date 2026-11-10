@@ -113,7 +113,11 @@ func (s *relatedSection) draw(width int) (string, int) {
 		return text, focus
 	}
 	above := strings.Count(text, "\n") + 1
-	vt := v.View(width, max(1, v.Height()))
+	vh := v.Height()
+	if sized, ok := v.(interface{ HeightAt(int) int }); ok {
+		vh = sized.HeightAt(width)
+	}
+	vt := v.View(width, max(1, vh))
 	if r.focusInside(s.view) {
 		focus = above
 		if l, ok := inst.Component.(interface{ List() *Collection }); ok && l.List().selLine >= 0 {

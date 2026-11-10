@@ -367,6 +367,9 @@ func (l *Collection) tableView(width, height int) (string, int, int) {
 		lines = append(lines, l.emptyLine())
 		return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), 0, height
 	}
+	if t := l.tree(); t != nil && t.prepareWrap(cols, shown, widths) {
+		return t.wrappedView(lines, width, height, body, cols, shown, widths, span)
+	}
 	if l.tall() {
 		return l.tallView(lines, width, height, body, cols, shown, widths, span)
 	}

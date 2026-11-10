@@ -28,6 +28,9 @@ const defaultPageRows = 10
 
 // pageRows is the number of rows one page motion counts as a page.
 func (l *Collection) pageRows() int {
+	if t := l.tree(); t != nil && t.wrapping() && t.wrap.visible > 0 {
+		return t.wrap.visible
+	}
 	if l.windowed && l.window > 0 {
 		return l.window
 	}
@@ -57,12 +60,25 @@ func (l *Collection) goTo(i int) {
 	if l.selected < 0 || len(l.items) == 0 {
 		return
 	}
+	if t := l.tree(); t != nil && t.wrapping() && len(t.wrap.rows) == len(l.items) {
+		index := min(max(i, 0), len(l.items)-1)
+		from, to := t.wrap.span(index)
+		t.wrap.top = from
+		if index == len(l.items)-1 {
+			t.wrap.top = max(0, to-t.wrap.visible)
+		}
+		t.wrap.selected = l.items[index].ID
+	}
 	l.Move(min(max(i, 0), len(l.items)-1) - l.selected)
 }
 
 // page moves the selection by rows (negative up), clamped, and the window
 // with it by the rows actually moved.
 func (l *Collection) page(rows int) {
+	if t := l.tree(); t != nil && t.wrapping() {
+		t.pageWrapped(rows)
+		return
+	}
 	if l.selected < 0 {
 		return
 	}

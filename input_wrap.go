@@ -32,7 +32,7 @@ const wrapMinRoom = 20
 // cursor is the rune index of the cursor: at the end of a line, it needs
 // one more cell on that line's last row.
 func (in *Input) wrapBreaks(width, cursor int) (breaks map[int]int, ok bool) {
-	if in == nil || !in.Wrap || width < 2 {
+	if in == nil || !in.Wrap || width < 1 {
 		return nil, false
 	}
 	breaks = map[int]int{}

@@ -1303,6 +1303,49 @@ Compared with Vim (verified in Neovim 0.12.3):
 Stories: `lists/filter-prop-picker`, `lists/filter-prop-clear`,
 `lists/filter-saved-cycle`, `tree/filter-prop-ancestors`.
 
+### Tree and outline wrapping
+
+`tree.wrap` is a boolean, default `true`. Tree and outline row text wraps at
+spaces to its drawn column width; a word wider than the column breaks at
+the edge. Continuation lines start with spaces as wide as the drawn prefix,
+including nesting, fold markers, and any decoration before `TreeNode.Label`
+in cell 0. Put the editable text in `Label` and the displayed notation in
+`Cells[0]`, for example `Label: "testing wrap start here"` and
+`Cells: []string{"- [ ] testing wrap start here"}`. The component measures
+that prefix; it does not parse checkbox or bullet syntax in a title.
+Trailing columns and suffix badges stay on the first line, unless a column
+explicitly requests `Wrap` or `Lines`. A suffix badge reserves its width
+beside the text. Prefixes too wide for the column are clipped to leave room
+for text.
+
+The inline editor uses the same word breaks and prefix width, keeps its
+cursor visible while typing or resizing, and preserves text selections
+across continuation lines. Wrapping changes no stored text. The selected
+row's highlight covers all its lines; marks still identify logical rows.
+`tree.wrap=false` restores single-line clipping and sideways editing.
+Hosts sizing a tree to its content pass its drawing width to
+`tree.HeightAt(width)`; `tree.Height()` still counts logical rows. Both omit a
+table's header. Fixed-height hosts keep their existing `Block(width, height)`.
+
+`j/k` move by logical row. When a row is taller than the viewport, each key
+first reveals its remaining text by at most half a viewport before moving
+on. Line scrolling counts display lines; page motions count the viewport's
+display-line budget, not the number of rows visible. `G` shows the end of
+the last row. This keeps the existing half-page motion rule without making
+continuation lines into independently selectable rows.
+
+Compared with Vim, verified in Neovim 0.12.3:
+
+| Vim form | Help tag | Ochazuke |
+|---|---|---|
+| Display-only wrapping | `'wrap'` | Same: no newlines are inserted into the data. |
+| Word wrapping | `'linebreak'` | Similar: the shared input wrapper breaks at spaces and splits overlong words. |
+| Hanging indent | `'breakindent'`, `'breakindentopt'` `list:-1` | Similar: the measured row prefix replaces Vim's `formatlistpat` match. |
+| `j/k` versus `gj/gk` | `j`, `gj` | Logical-row motions like `j/k`; no continuation-line selection. Tall rows also obey ochazuke's half-page rule. |
+
+Stories: `tree/wrap-40`, `tree/wrap-80`, `tree/wrap-edit-40`,
+`tree/wrap-off-40`.
+
 ### Tree guide lines
 
 `AddTree(..., Guides())` draws branch lines in the indent area: `├─ ` before a child with a later sibling, `└─ ` before the last child, and `│  ` through ancestors whose branches continue. Trees default to plain indentation. The `tree.guides` setting is `app` by default (each tree keeps its app choice); `off` hides guides everywhere. Folding, zoom and filters use the kept branches, so a hidden sibling leaves no dangling line. The `tree.guide` tone is muted and dim in every built-in theme; label tones and fold markers keep their own styling.

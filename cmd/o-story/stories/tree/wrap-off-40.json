@@ -1,0 +1,13 @@
+{
+  "name": "tree: tree.wrap false restores clipped single-line rows",
+  "area": "tree", "width": 40, "height": 8, "chrome": "none",
+  "values": {"tree.wrap": false},
+  "page": {"noHeadings": true, "trees": [{"id": "t", "height": -1,
+    "columns": [{"width": 20}],
+    "nodes": [
+      {"id": "a", "label": "testing wrap start here", "cells": ["- [ ] testing wrap start here"]},
+      {"id": "b", "parent": "a", "label": "testing wrap start here", "cells": ["- [x] testing wrap start here"]}
+    ]
+  }]},
+  "script": []
+}
