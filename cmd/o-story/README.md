@@ -628,7 +628,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `mode.switch + parcel.set + parcel.get`
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.run`
-- `insert` → `normal` via `palette.run + chore.get + chore.get`
+- `insert` → `normal` via `palette.run + chore.get`
 - `insert` → `normal` via `palette.run + parcel.get`
 - `insert` → `normal` via `picker.normal`
 - `insert` → `normal` via `picker.pick`
@@ -755,7 +755,7 @@ Mode edges (from → to via):
 - `normal ctrl+w` → `normal` via `pane.restore`
 - `normal ctrl+w` → `normal` via `pane.shrink`
 - `normal ctrl+w` → `normal` via `row >`
-- `normal d` → `normal` via `chore.archive + chore.get + chore.get + chore.get`
+- `normal d` → `normal` via `chore.archive + chore.get`
 - `normal d` → `normal` via `chore.delete`
 - `normal d` → `normal` via `chore.delete + chore.get`
 - `normal d` → `normal` via `chore.restore + chore.get`
