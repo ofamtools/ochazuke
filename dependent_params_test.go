@@ -198,6 +198,49 @@ func TestDependentPaletteChoicesUseCurrentSibling(t *testing.T) {
 	}
 }
 
+func TestGeneratedPropPaletteCompletion(t *testing.T) {
+	r, item := dependentFixture(t, false)
+	item.Free = true
+	r.Define("options").Verb("empty", func(Ctx) Result { return Done([]string{}) })
+	table := NewMemDocTable(r, "record")
+	r.Define("record").Props(
+		PropSpec{Name: "id", Key: true},
+		PropSpec{Name: "category"},
+		PropSpec{Name: "item", Parameter: item},
+		PropSpec{Name: "shade", Parameter: Parameter{Enum: []string{"amber", "blue"}}},
+		PropSpec{Name: "option", Parameter: Parameter{Noun: "option"}},
+		PropSpec{Name: "enabled", Parameter: Parameter{Type: SettingBoolean}},
+		PropSpec{Name: "empty", Parameter: Parameter{Source: "options.empty", Free: true}},
+	).Store(DocStore(table, "record"))
+	r.Define("option")
+	r.Instance("opt-a", Kind("option"))
+	p := NewPalette(r)
+	paletteRequest(t, r, "open", "palette", nil)
+	for _, tc := range []struct {
+		line string
+		want []string
+	}{
+		{"record create --category one --item ", []string{"choice:one-a", "choice:one-b"}},
+		{"record create --category two --item two-b", []string{"choice:two-b"}},
+		{"record edit --category two --item ", []string{"choice:two-a", "choice:two-b"}},
+		{"record set --prop item --value ", []string{"choice:default-a", "choice:default-b"}},
+		{"record create --shade ", []string{"choice:amber", "choice:blue"}},
+		{"record create --option ", []string{"choice:opt-a"}},
+		{"record create --pairs enabled=", []string{"choice:enabled=true", "choice:enabled=false"}},
+		{"record create --empty ", nil},
+		{"record create --pairs it", []string{"choice:item="}},
+		{"record create --category two --pairs item=", []string{"choice:item=two-a", "choice:item=two-b"}},
+		{"record set --prop item=", []string{"choice:item=default-a", "choice:item=default-b"}},
+	} {
+		t.Run(tc.line, func(t *testing.T) {
+			paletteRequest(t, r, "fill", "palette", Arguments{"text": tc.line})
+			if got := completionValues(p); !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("completions = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 func TestDependentSourceChecksAreRespected(t *testing.T) {
 	r, p := dependentFixture(t, false)
 	if err := r.AddVerbCheck("options.list", VerbCheck{Name: "read-check", Check: func(*Runtime, Context, Arguments) Verdict { return Refuse("blocked") }}); err != nil {

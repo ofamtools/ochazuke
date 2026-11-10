@@ -676,11 +676,17 @@ func (r *Runtime) choicesContext(c Context, op Operation, p Parameter, query str
 	return Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: args, Instance: r.Instances[focus]}, nil
 }
 
+// completesPairs distinguishes a prop=value slot from a prop's own value
+// choices. Create props accept pair words too, without replacing their source.
+func (p Parameter) completesPairs(word string) bool {
+	return p.Pairs && (strings.Contains(word, "=") || p.Rest || p.Free && len(p.Enum) == 0 && p.Noun == "" && p.Source == "")
+}
+
 // ParameterChoices lists a request parameter's choices, including ValueOf
 // and Pairs prop parameters, with sibling arguments passed to its source.
 func (r *Runtime) ParameterChoices(c Context, op Operation, name, query string, args Arguments) ([]Choice, error) {
 	p, _ := r.choiceParameter(op, name, args)
-	if p.Pairs && (strings.Contains(query, "=") || len(p.Enum) == 0) {
+	if p.completesPairs(query) {
 		return r.pairChoices(c, op, query, args)
 	}
 	if p.Type == "boolean" {

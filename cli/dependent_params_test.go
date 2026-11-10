@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"os/exec"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -47,6 +48,54 @@ func TestCLICompletionDependentValues(t *testing.T) {
 	}
 	if err := sh.Run(context.Background(), []string{"thing", "create", "--a", "two", "--b", "default-a"}); err == nil {
 		t.Fatal("accepted stale choice")
+	}
+}
+
+func TestGeneratedPropCLICompletion(t *testing.T) {
+	r, sh, _ := dependentCLI(t)
+	r.Define("choice").Verb("empty", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done([]string{}) })
+	table := ochazuke.NewMemDocTable(r, "record")
+	r.Define("record").Props(
+		ochazuke.PropSpec{Name: "id", Key: true},
+		ochazuke.PropSpec{Name: "category"},
+		ochazuke.PropSpec{Name: "item", Parameter: ochazuke.Parameter{Type: "string", Source: "choice.list", SourceArgs: map[string]string{"kind": "category"}, Free: true}},
+		ochazuke.PropSpec{Name: "shade", Parameter: ochazuke.Parameter{Enum: []string{"amber", "blue"}}},
+		ochazuke.PropSpec{Name: "option", Parameter: ochazuke.Parameter{Noun: "option"}},
+		ochazuke.PropSpec{Name: "enabled", Parameter: ochazuke.Parameter{Type: ochazuke.SettingBoolean}},
+		ochazuke.PropSpec{Name: "empty", Parameter: ochazuke.Parameter{Source: "choice.empty", Free: true}},
+	).Store(ochazuke.DocStore(table, "record"))
+	r.Define("option")
+	r.Instance("opt-a", ochazuke.Kind("option"))
+	for _, tc := range []struct {
+		words []string
+		want  []string
+	}{
+		{[]string{"create", "--category", "one", "--item", ""}, []string{"one-a", "one-b"}},
+		{[]string{"create", "--category", "two", "--item", "two-b"}, []string{"two-b"}},
+		{[]string{"create", "--category=two", "--item=two-"}, []string{"--item=two-a", "--item=two-b"}},
+		{[]string{"edit", "--category", "two", "--item", ""}, []string{"two-a", "two-b"}},
+		{[]string{"set", "--json", `{"category":"two"}`, "--prop", "item", "--value", ""}, []string{"two-a", "two-b"}},
+		{[]string{"create", "--shade", ""}, []string{"amber", "blue"}},
+		{[]string{"create", "--option", ""}, []string{"opt-a"}},
+		{[]string{"create", "--enabled", ""}, []string{"true", "false"}},
+		{[]string{"create", "--empty", ""}, []string{}},
+		{[]string{"create", "--pairs", "it"}, []string{"item="}},
+		{[]string{"create", "--category", "two", "--pairs", "item="}, []string{"item=two-a", "item=two-b"}},
+		{[]string{"set", "--json", `{"category":"one"}`, "--prop", "item="}, []string{"item=one-a", "item=one-b"}},
+	} {
+		t.Run(strings.Join(tc.words, " "), func(t *testing.T) {
+			choices, err := sh.Complete(append([]string{"record"}, tc.words...))
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := make([]string, len(choices))
+			for i, choice := range choices {
+				got[i] = choice.ID
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("completions = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 
