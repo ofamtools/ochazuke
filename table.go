@@ -523,7 +523,7 @@ func (l *Collection) groupedCells(i, top int) []string {
 // tall reports whether the table's rows can take more than one line: a
 // column wraps or breaks at newlines (Lines), or a row opens a section.
 func (l *Collection) tall() bool {
-	if l.spacing() {
+	if l.spacing() || len(l.groupHeads) > 0 {
 		return true
 	}
 	for _, c := range l.columns {
@@ -677,6 +677,29 @@ func tableRowLinesAt(toned *Styles, cols []Column, tones []ToneSpan, row []strin
 	return lines, segs
 }
 
+// tableItemLines lays out a full-width folded heading or the row's cells,
+// blanking repeated Group cells unless this is the first row drawn.
+func (l *Collection) tableItemLines(i, top int, toned *Styles, cols []Column, shown, widths []int, gutter bool, section *lipgloss.Style) ([]string, [][]toneSeg) {
+	item := l.items[i]
+	if _, heading := l.groupHeads[item.ID]; heading {
+		return []string{section.Render(modalLabel(item.Label))}, [][]toneSeg{nil}
+	}
+	lines, segs := tableRowLinesAt(toned, cols, l.withParts(cols, l.rowTones(item)), l.rowCells(l.groupedCells(i, top)), shown, widths)
+	for k := range lines {
+		if gutter {
+			prefix := "  "
+			if k == 0 {
+				prefix = l.rowGutter(item.ID)
+			}
+			lines[k] = prefix + lines[k]
+			for x := range segs[k] {
+				segs[k][x].x += 2
+			}
+		}
+	}
+	return lines, segs
+}
+
 // tallView is tableView for rows of more than one line (wrapped cells,
 // section labels). Each row is its section label when it opens one, then
 // its lines. The window starts at the list's offset, never below the
@@ -696,31 +719,10 @@ func (l *Collection) tallView(lines []string, width, height, body int, cols []Co
 	gap := func(i, top int) bool { return spaced && i > top && l.items[i].SpaceAbove }
 	toned, faded := l.listTones(), l.faded()
 	cursor, bar := l.cursorStyle(span, toned, faded), l.bar(faded)
-	// layRow is item i's lines and tones, its Group cells blanked against
-	// the row above unless i is the first row drawn (top).
-	layRow := func(i, top int) ([]string, [][]toneSeg) {
-		item := l.items[i]
-		var out []string
-		lines, segs := tableRowLinesAt(toned, cols, l.withParts(cols, l.rowTones(item)), l.rowCells(l.groupedCells(i, top)), shown, widths)
-		for k, line := range lines {
-			if gutter {
-				prefix := "  "
-				if k == 0 {
-					prefix = l.rowGutter(item.ID)
-				}
-				line = prefix + line
-				for x := range segs[k] {
-					segs[k][x].x += 2
-				}
-			}
-			out = append(out, line)
-		}
-		return out, segs
-	}
 	total := 0
 	for i, item := range l.items {
 		opens[i] = item.Section != "" && (i == 0 || l.items[i-1].Section != item.Section)
-		rows[i], toneLines[i] = layRow(i, 0)
+		rows[i], toneLines[i] = l.tableItemLines(i, 0, toned, cols, shown, widths, gutter, &section)
 		total += len(rows[i])
 		if opens[i] {
 			total++
@@ -772,12 +774,12 @@ func (l *Collection) tallView(lines []string, width, height, body int, cols []Co
 	}
 	if l.offset > 0 && l.hasGroup() {
 		// The first row drawn shows its Group cells.
-		rows[l.offset], toneLines[l.offset] = layRow(l.offset, l.offset)
+		rows[l.offset], toneLines[l.offset] = l.tableItemLines(l.offset, l.offset, toned, cols, shown, widths, gutter, &section)
 	}
 	top := len(lines)
 	var out []string
 	if sticky(l.offset) {
-		out = append(out, section.Render(modalLabel(l.items[l.offset].Section)))
+		out = append(out, section.Render(modalLabel(l.groupHeading(l.items[l.offset].Section))))
 	}
 	marked := l.marksSelection()
 	focus, focusHeight := 0, height
@@ -787,7 +789,7 @@ func (l *Collection) tallView(lines []string, width, height, body int, cols []Co
 			out = append(out, "")
 		}
 		if opens[i] && len(out) < visible {
-			out = append(out, section.Render(modalLabel(l.items[i].Section)))
+			out = append(out, section.Render(modalLabel(l.groupHeading(l.items[i].Section))))
 		}
 		if i == l.selected && len(out) < visible {
 			focus, focusHeight = top+len(out), min(len(rows[i]), visible-len(out))

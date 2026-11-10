@@ -7,8 +7,8 @@ import (
 
 // Windowed lists (noun scaffold plan, a): a list From a noun whose store
 // pages (Store.Query) holds one page of the store at a time, never all of
-// it. Its filters, sort, text query and archive toggle go into the query,
-// the store answers the page and the total, and the page keys
+// it. Its filters, sort, groups, text query and archive toggle go into the
+// query; the store answers the page, its group labels and the total. Page keys
 // (collection.page-next, page-prev, page-first, page-last) read the
 // neighbouring page. A store with a ChangeToken is not read again while the
 // token and the query are unchanged. collection.window is the page size (0
@@ -35,9 +35,9 @@ type listWindow struct {
 	// under way.
 	key, token, asked string
 	filled            bool
-	// selectLast selects the last row of the next page read (a move up
-	// past the first row).
-	selectLast bool
+	// selectNext settles a page-edge motion when the read lands, including
+	// remote reads; selectLast chooses the last row after moving up.
+	selectNext, selectLast bool
 }
 
 // Windowed reports whether the list holds one page of a paging store.
@@ -62,15 +62,19 @@ func (l *Collection) startWindow(n *Noun) {
 	l.paged = &listWindow{page: 1, per: per, archived: -1}
 }
 
-// windowQuery is the store query of the windowed list's page: the list's
-// filters, sort, text and archive toggle, and the page.
+// windowQuery is the store query of the windowed list's page: the effective
+// filters, sort, grouping, text and archive toggle, and the bounded page.
 func (l *Collection) windowQuery() ListQuery {
-	return ListQuery{Filters: clonePropFilters(l.vs.Filters), Sort: slices.Clone(l.vs.Sort), Text: l.vs.Text, Archived: l.vs.Archived, Page: l.paged.page, PerPage: l.paged.per}
+	q := l.effectiveView()
+	q.Filters, q.Sort = clonePropFilters(q.Filters), slices.Clone(q.Sort)
+	q.GroupBy, q.GroupSort = slices.Clone(q.GroupBy), slices.Clone(q.GroupSort)
+	q.Page, q.PerPage = l.paged.page, l.paged.per
+	return q
 }
 
 // windowKey is a query as the window compares it.
 func windowKey(q ListQuery) string {
-	return fmt.Sprintf("%v|%v|%q|%v|%d|%d", q.Filters, q.Sort, q.Text, q.Archived, q.Page, q.PerPage)
+	return fmt.Sprintf("%v|%v|%v|%v|%q|%v|%d|%d", q.Filters, q.Sort, q.GroupBy, q.GroupSort, q.Text, q.Archived, q.Page, q.PerPage)
 }
 
 // refillWindow reads the windowed list's page: at once from a local store,
@@ -91,8 +95,9 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 	var page ListPage
 	archived := -1
 	unmoved := false
+	initialToken := token
 	body := func(c Ctx) (any, error) {
-		if token, unmoved = jobToken(n.Store, c, token, w.token, w.filled && key == w.key); unmoved {
+		if token, unmoved = jobToken(n.Store, c, initialToken, w.token, w.filled && key == w.key); unmoved {
 			return nil, nil
 		}
 		p, err := r.queryThings(c, n, q)
@@ -123,10 +128,19 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 		}
 		w.total, w.archived, w.key, w.token, w.filled = page.Total, archived, key, token, true
 		l.refills++
-		if err := l.SetItems(r.thingItems(c, n, l.id, page.Items, l.columns)); err != nil {
+		items := r.thingItems(c, n, l.id, page.Items, l.columns)
+		rows := r.thingRows(n, page.Items)
+		for i := range items {
+			if i < len(page.Groups) {
+				items[i].Section = page.Groups[i]
+			} else if q.Grouped() {
+				items[i].Section = groupLabel(rows, i, q.GroupBy)
+			}
+		}
+		if err := l.SetItems(items); err != nil {
 			return nil, err
 		}
-		if w.selectLast {
+		if w.selectNext {
 			l.windowSelect()
 		}
 		return nil, nil
@@ -162,7 +176,12 @@ func windowPages(total, per int) int {
 // sits; the rows are not paged again.
 func (l *Collection) windowArrange(items []ListItem) []ListItem {
 	w := l.paged
-	l.total, l.grouped, l.headCap = w.total, false, 0
+	l.total, l.grouped, l.headCap = w.total, l.effectiveView().Grouped(), 0
+	for i, item := range items {
+		if i == 0 || item.Section != items[i-1].Section {
+			l.headCap++
+		}
+	}
 	l.pages = windowPages(w.total, w.per)
 	l.vs.Page = w.page
 	return items
@@ -247,12 +266,12 @@ func (l *Collection) windowEdge(delta int) bool {
 	pages := windowPages(w.total, w.per)
 	switch {
 	case delta > 0 && l.selected == len(l.items)-1 && w.page < pages:
+		w.selectNext = true
 		w.selectLast = false
 		_ = l.setWindowPage(w.page + 1)
-		l.windowSelect()
 		return true
 	case delta < 0 && l.selected == 0 && w.page > 1:
-		w.selectLast = true // the read selects the page's last row when it lands
+		w.selectNext, w.selectLast = true, true
 		_ = l.setWindowPage(w.page - 1)
 		return true
 	}
@@ -270,7 +289,7 @@ func (l *Collection) windowSelect() {
 	if w.selectLast {
 		at = len(l.items) - 1
 	}
-	w.selectLast = false
+	w.selectNext, w.selectLast = false, false
 	_ = l.Select(l.items[at].ID)
 	if r := l.r; slices.Contains(r.InstancePath(r.Focus), l.id) {
 		r.changeFocus(l.focusTarget(), focusMove{cause: focusSettle})
@@ -302,7 +321,8 @@ func storeToken(s *Store, c Ctx) string {
 // jobToken reads the token inside a read's job when none was read before it
 // (a remote store, a mounted noun, answers only there): the token, and
 // whether it is the one the reader last saw (seen) while what it shows is
-// that read's (current), so nothing more need be read.
+// that read's (current), so nothing more need be read. token is the immutable
+// loop-read token: replaying a body must consume the same calls each time.
 func jobToken(s *Store, c Ctx, token, seen string, current bool) (string, bool) {
 	if token != "" {
 		return token, false

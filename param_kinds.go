@@ -113,7 +113,7 @@ var paramKinds = map[string]paramKind{
 		},
 	},
 	"object": {
-		form: true, must: "a JSON object such as {\"a\": 1}", phrase: "a JSON object such as {\"a\": 1}",
+		form: true, word: true, must: "a JSON object such as {\"a\": 1}", phrase: "a JSON object such as {\"a\": 1}",
 		parse: jsonOf[map[string]any],
 		flag:  jsonFlag,
 		accepts: func(v any) bool {

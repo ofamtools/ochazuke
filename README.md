@@ -1352,6 +1352,44 @@ For a person's targetless key, palette or macro request whose subject noun is ab
 
 Compared with Vim: explicit `<cword>` expansion (`:help <cword>`) is similar to a declared optional `Focus` value, but Vim has no implicit subject-association equivalent. Following a reference (`:help gf`, `:help CTRL-]`) moves Vim's cursor; this resolution does not move focus.
 
+#### Subjects from row properties
+
+A verb can derive its subject from a related row with the existing
+`Parameter.From`. Put `From: "row:pane"` on its subject parameter to read a
+`pane` property of the row, or use a dotted field such as `row:relation.to`.
+This reads the row's `Data`, then its `ListItem.Props`; it does not query a
+relation store. The parameter keeps its `Noun` and `Focus` declarations, so
+the usual subject checks and chooser still apply.
+
+For an application-owned edit that replaces a standard edit, keep the
+inherited subject parameter and add its source:
+
+```go
+edit := r.Define("pane").Verb("edit", app.EditPane)
+subject := r.Operations.At(ochazuke.Key("pane.edit")).Parameters["id"]
+subject.From = "row:pane"
+edit.Params(map[string]ochazuke.Parameter{"id": subject})
+```
+
+For example, an action-item row holding `Data: map[string]any{"pane": "w1"}`
+now supplies `w1` to `pane edit` before the palette asks which pane. An
+explicit subject argument or a target of the subject's noun wins. Otherwise
+the declared row source precedes focus associations and the ordinary focus
+fill. Keys, the palette and the args form use the same source; the palette
+shows `row: w1`, and the args form holds that value. A missing or blank field
+falls back to the existing subject chooser. Omitting `From` opts out.
+
+CLI, API and MCP requests without a target never borrow UI focus for this
+source. A program can pass the subject argument, target the subject itself,
+or explicitly target a related row whose data supplies the subject. Catalogs
+carry the declaration in `params.id.from`; mounting preserves it and remaps
+the parameter's noun, without rewriting row field names.
+
+Compared with Vim: `:help <cword>` describes explicit expansion of the word
+under the cursor. A declared row source is similar, but does not parse
+screen text or move the cursor. Vim has no noun-subject chooser.
+
+
 #### Leader outside fall-through
 
 `leader_pending` declares `{"pending": true, "outside": "normal"}`. Any pending mode can opt in with `ModeOutside("normal")`; there is no terminal-specific dispatch branch. An unbound key first tries each association's full outside walk on this page, then the live focus's own outside walk. Guards use that hypothetical focus and outside mode; execution uses its context without temporarily moving the real focus or notifying components of a mode change. A form keeps the associated target but returns to the live focus and mode.
@@ -2277,7 +2315,15 @@ A noun with a `Store` is a thing noun; one without is a command noun, whose verb
 
 On a field that takes a choice (an enum, a choice source, a noun reference, a boolean, a path under `path.field` `picker`: the form's own test, `editKindOf`) `edit {field}` opens that field's picker in place of the one-field form, under the setting `edit.field-picker` (default on; read with `edit.field-only`). The picker is the one the form's field opens (`openChoicePicker`, or the path picker), titled `Edit NOUN PROP: LABEL`; an optional field offers `(none)`. The pick is the write (through `set`, on the subject and a visual selection or marks, one undo step) and closes the picker, the focus back where edit ran; picking the value it holds writes nothing; `esc` closes it with nothing written. A free text field keeps its form. A key row picks per key with the `picker` argument, over the settings: `{"keys": "m", "do": "task.edit", "args": {"field": "@owner", "picker": false}}` keeps the one-field form on `m`, `true` opens the picker even with the setting off. It works the same on a catalog-mounted noun (the get and the set are the remote proxies; the pick's write is a job).
 
-**`create {from}`** copies a thing: `from` names it by id or human key, or is a row's Data holding its key (a binding row's `"from": {"from": "row"}`). Every prop create writes is read from it, the props given replace their values, and the store gives the new key; undo deletes the copy. `from` covers create's required props (`Parameter.Covers`), so a copy never opens the args form for them. Their default keys are data in `bindings/standard.json`. `Runtime.ValidateNouns` reports a thing noun missing a core verb or a key prop and a command noun with a verb named like a core verb; an application holds its bindings test to it with `nouncheck.Check(t, rt, nouncheck.Config{Baseline: "testdata/nouncheck.txt"})`, a baseline that only shrinks.
+**`create {props}`** accepts the same props object as `set`. Named props, a bare label, and `prop=value` words fill the same mapping, including prop aliases and `@role` names. The forms may mix when they name different props. Giving the same prop twice is an error, even through different aliases. Create types every value and checks required props after it reads the mapping. Unknown, read-only, and non-createable key props remain errors. Create-only props, including a create-only key, work in the mapping.
+
+**`create {from}`** copies a thing. `from` names it by id or human key, or is a row's Data holding its key. Every prop create writes is read from it, the supplied props replace those values, and the store gives the new key. Undo deletes the copy. The copy parameter covers create's required props through `Parameter.Covers`, so copying does not ask for those props.
+
+**Create parameter collisions:** a declared prop or prop alias owns its name. Each control parameter, `props`, `pairs`, or `from`, gains a `create-` prefix until its name conflicts with no prop or alias. The catalog and generated CLI help expose that effective name. A noun with a `from` prop uses `from=project:x` to write it and `--create-from ID` to copy an existing thing. If it also has a `create-from` prop, copying uses `--create-create-from ID`. A noun with a `props` prop takes its object through `create-props`. Nouns without collisions keep `props`, `pairs`, and `from` unchanged. This rule applies to API argument names, CLI flags, palette flags, and binding argument sources alike. A binding that copies a colliding noun therefore sources `"create-from": "row"`, not `"from": "row"`.
+
+Compared with Vim: these typed record-creation parameters have no Vim counterpart. The palette keeps its existing ex-command layout. Quoted words accept escaped quotes and backslashes, so an object can be entered as `--props "{\"title\":\"Buy milk\"}"`.
+
+The core verbs' default keys are data in `bindings/standard.json`. `Runtime.ValidateNouns` reports a thing noun missing a core verb or a key prop and a command noun with a verb named like a core verb. An application checks its bindings with `nouncheck.Check(t, rt, nouncheck.Config{Baseline: "testdata/nouncheck.txt"})`, whose baseline only shrinks.
 
 **A facts noun over a list verb: `Runtime.DefineListFacts` (`list_facts.go`).** A tool whose noun already has its own list verb (rows `{id, label, data}`, a `ListItem` or anything that encodes as one) makes it a thing noun with one `ListFacts` spec per noun: `Noun`, `Sample` (the struct the rows carry as `Data`: its json fields are the props; nil makes `data` one object prop), `Rename` (a field named like a verb of the noun, json name to prop name), `Docs`, `ListParams`, `List` (the verb's handler) and `Limit` (the wait for its work, 0 none). The key is the row's id (also the human key, found with or without the `noun/` prefix), the label the row's label, the rest the row's `Props` or its data's fields, every prop read-only. The store is a facts store and Remote: `get` and the standard list run the verb's work off the loop through `Ctx.Await`, never its `Then`, so the tool's own list verb, its parameters and its TUI list stay as they were, and create, set, delete and archive are on the noun, unavailable ("a system fact"), unless the tool registers a verb of that name. The noun is the application's own (`DefineOwn`); declare its list verb first, as a fetch that answers rows (`.Rows(noun).Fetch()`), so a list fed by the noun (`From`) does not count its own reads as changes.
 
@@ -2633,11 +2679,70 @@ Every noun is listable with no code of its own (noun scaffold, pass 1). The **No
 
 Compared with Vim: `:ls` lists every buffer and the Nouns page lists every noun (similar: buffers are files, nouns are kinds of thing); `:e {file}` opens one and `noun.show` opens a noun's index (similar); netrw lists a directory and `<CR>` opens an entry, as `enter` does on a Nouns row (same idea). Vim has no counterpart for counts read off a store or for paging a list.
 
+#### Grouping a windowed list
+
+`From(noun)` lists use the same grouping as other collections.
+`collection.group-by` is empty by default. Set it to prop names, or use
+`collection.group {by, order}` for one list. `group-clear` restores the setting.
+The effective `GroupBy` and `GroupSort` go to `Store.Query` with the sort,
+conditions, text, archive choice and the bounded `Page` and `PerPage`.
+The widget preserves that answer's order instead of sorting the page again.
+`DocStore` forwards the grouping through `DocQuery.GroupBy` and `GroupSort`;
+table adapters must group before applying the row offset and limit and return
+`ListPage.Groups` parallel to `Items`. A store that omits the labels can leave
+the widget to derive them from the page's prop values, but the store must still
+return rows in grouped order. Mounted stores forward `group-by` and `group-sort`
+through the standard list protocol and retain each returned row's `group`.
+When a remote read first awaits its change token, every replay consumes that
+same token call before its bounded list calls. The final token is stored only
+as the read's result; it does not change the call sequence midway through a job.
+
+A page counts source rows, never groups. For example, a four-row alpha group
+with a window of three shows `alpha (3 on page)` on page one and
+`alpha (1 on page)` on page two. These counts include rows hidden by a fold,
+exclude rows the source query filtered out, and describe only the current
+page, not the whole store. The overall page indicator still reports the
+query's whole `Total`. Counts and folding do not issue aggregate queries or
+full-table reads. Memory use for displayed rows and group counts is bounded
+by `collection.window`. The proxy's pre-existing fallback for filters its word
+protocol cannot express is unchanged.
+Fold preferences retain only the labels the user has closed, independent of
+page-row storage; reopening a group removes its preference.
+
+`collection.group-fold {group?, closed?}` folds a group to one selectable
+heading. Omit `group` to use the selection's group; omit `closed` to toggle,
+or give `true` to close and `false` to open. It has no default key, so it does
+not intercept an application's or another component's fold keys. A page can
+bind it through the normal binding data. The folded heading is a collection
+row, not a hidden record, so record-editing keys do not act on it.
+In tables it spans the available row width, just like an expanded group heading,
+even when the first column is narrow or every group on the page is folded. `j` and `k`
+move across the groups as drawn, including an entirely folded page, and load
+the adjacent row page at its edge. A repeated group stays folded across pages.
+Unfolding a selected heading selects that page's first row in its group.
+To opt out, clear the list's grouping and leave `collection.group-by` empty.
+`collection.window=0` remains the explicit opt-out from bounded source paging.
+See story `lists/windowed-group-folds`.
+
+Compared with Vim:
+
+| Vim form | Help tag | Collection behavior |
+|---|---|---|
+| `za` | `:help za` | Similar: `group-fold` toggles the selected group, without a default key or nested folds. |
+| `zc`, `zo` | `:help zc`, `:help zo` | Similar: `closed=true` or `false` chooses the state explicitly. |
+| `j`, `k` over a closed fold | `:help fold-behavior` | Similar: a closed group takes one motion stop; a source page boundary can load another part of the same folded group. |
+| Operators over a fold | `:help fold-behavior` | Different: the synthetic heading is not a record and never targets every hidden record. |
+
+
 ### Scaffold verbs and generated keys
 
 Every stored noun gets `show`, `restore`, `duplicate` (alias `dup`), `yank` (as label, key, ref or json), `history`, `annotate` (where a noun has an about prop, `RoleAbout`) and `token` (where its store keeps a change token), from the legacy verb table, each where its needs are met; `relate` answers to `associate` too. A prop of the same name keeps the word. `delete {archive-first: true}` archives a live thing with no question and deletes an archived one after one question naming what goes with it (`Runtime.DeleteGoesWith`).
 
 Every record noun gets the generated key block (`bindings/generated/noun-defaults.json`, setting `keys.noun-defaults`, default on) for the verbs it has: `n` new, `r` rename, `v`/`enter` show, `d a` archive, `d r` restore, `d d` archive then delete, `u` undo, `a` associate, `g d` duplicate, `y y` yank, `y p` yank path, `R` reveal, `z A` archived rows. A declared row on the focus's walk that binds the same keys or a prefix of them wins: the user's or the application's whatever its guard, a framework file's where it answers now. `NounBuilder.DefaultKeys(false)` declines the block for one noun. The rows stay off the footer; `?` lists them.
+
+An empty focused list keeps its row noun on that same key walk, before the collection's own tables, without creating a row instance. `From(noun)` supplies the noun for generated indexes and store-backed lists. A hand-fed list can declare `RowNoun(noun)` before its first row; otherwise it remembers the nouns of its last rows. Filtering every row out keeps that context too. `binding.list`, `?` help and visible binding hints read the same walk.
+
+Thus `n` works on an empty index: a creator missing a required value opens its existing argument form, while one needing no values creates immediately as before. A verb needing a subject still asks for a real thing, or reports the missing subject when forms are disabled. Collection motions and keys retain their normal precedence, declared bindings still override generated keys, and populated rows keep their instance and noun bindings. `keys.noun-defaults=false` remains the opt-out for the generated block. Story: `nouns/index-empty-new`.
 
 ### Show form: `ShowForm`, catalog detail `record-form`
 

@@ -1,0 +1,34 @@
+{
+  "name": "an empty generated index keeps its row noun's keys without a fake row: help lists n, show asks for a real id, and n opens the creation form and persists the first thing",
+  "area": "nouns",
+  "width": 110,
+  "height": 30,
+  "chrome": "full",
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "store": {
+      "noun": "parcel",
+      "paged": true,
+      "token": true,
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label", "type": "string", "required": true},
+        {"name": "archived", "role": "archive", "type": "boolean"}
+      ],
+      "things": []
+    }
+  },
+  "script": [
+    ":", "noun show parcel", "enter",
+    "?", "q",
+    "v", "q",
+    "n", {"type": "First parcel"}, "enter"
+  ],
+  "expect": [
+    {"after": 3, "page": "nouns/parcel", "focus": "nouns/parcel/list", "contains": ["no parcels"]},
+    {"after": 4, "modal": "bindings-help", "contains": ["new", "parcel"]},
+    {"after": 6, "modal": "args-form", "contains": ["id", "no parcel is focused"]},
+    {"after": 8, "modal": "args-form", "focus": "args-form/title", "mode": "insert", "contains": ["Run parcel.create", "title"]},
+    {"modal": "", "page": "nouns/parcel", "focus": "nouns/parcel/list/t1", "contains": ["First parcel"], "lacks": ["no parcels", "no parcel is focused"]}
+  ]
+}

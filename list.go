@@ -74,12 +74,15 @@ type Collection struct {
 	headerTones  []ToneSpan  // the header row's tones (SetHeaderTones)
 	items        []ListItem  // the rows shown: all, or the ones the filter lets through (list_filter.go)
 	linger       filterLinger
-	vs           ListQuery // the view state: text query, prop conditions, sort, saved filter name, groups and page (list_query.go)
-	total        int       // rows the view matches before it pages them (items holds the page)
-	grouped      bool      // the view grouped the shown rows: each carries its group in Section
-	headCap      int       // the most group headings any page takes (Height keeps the list that tall)
-	pages        int       // pages of total rows when the view pages (0: not paged; vs.Page is the shown one)
-	noSort       bool      // source-owned or virtualized rows cannot sort locally
+	vs           ListQuery         // the view state: text query, prop conditions, sort, saved filter name, groups and page (list_query.go)
+	total        int               // rows the view matches before it pages them (items holds the page)
+	grouped      bool              // the view grouped the shown rows: each carries its group in Section
+	headCap      int               // the most group headings any page takes (Height keeps the list that tall)
+	groupCounts  map[string]int    // matched source rows per group on this page, before folds
+	groupFolds   map[string]bool   // fold state by label, retained across source pages
+	groupHeads   map[string]string // synthetic folded heading id to group label
+	pages        int               // pages of total rows when the view pages (0: not paged; vs.Page is the shown one)
+	noSort       bool              // source-owned or virtualized rows cannot sort locally
 	rowCache     map[string]*filterRow
 	derived      fieldProps // the rows' undeclared fields as props (list_props.go); nil until asked, cleared with the rows
 	nouns        []string
@@ -192,6 +195,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	r.Instances[id].Component = list
 	var err error
 	if spec.from != "" {
+		list.cacheRows() // the first source query needs its declared prop schema
 		list.startWindow(r.Nouns[spec.from])
 		// Loading, never empty, while a read of the store runs.
 		list.placeholder.LoadingJob = JobSlot{Scope: id, Slot: listReadSlot}
@@ -824,8 +828,8 @@ func (l *Collection) rowsView(width, height int) (string, int, int) {
 		if spaced && l.gapAbove(i) && i > l.offset {
 			rows = append(rows, "")
 		}
-		if headed && (i == l.offset || l.opensGroup(i)) {
-			rows = append(rows, ansi.Truncate(heading.Render(modalLabel(l.items[i].Section)), width, "…"))
+		if headed && l.items[i].Section != "" && (i == l.offset || l.opensGroup(i)) {
+			rows = append(rows, ansi.Truncate(heading.Render(modalLabel(l.groupHeading(l.items[i].Section))), width, "…"))
 		}
 		if i == l.selected {
 			l.selLine = len(rows)

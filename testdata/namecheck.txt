@@ -305,10 +305,10 @@ prop_filter.go	propTest	compare	"list"	1
 prop_filter.go	typedPropFilter	compare	"list"	1
 props.go	PropSpec.ofCollection	compare	"collection"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 props.go	Runtime.addProp	compare	"archive"	1
-props.go	checkPropRole	case	"archive"	1
-props.go	checkPropRole	case	"owner"	1
 props.go	Runtime.addProp	compare	"archived"	1
 props.go	Runtime.validatePropRow	compare	"value"	1
+props.go	checkPropRole	case	"archive"	1
+props.go	checkPropRole	case	"owner"	1
 props.go	checkSchema	case	"collection"	1
 props.go	checkSchema	compare	"id"	1
 props.go	computedPropError	case	"collection"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
@@ -400,8 +400,7 @@ standard_edit.go	editSession.bindWrites	compare	"confirm"	1	moved from editHandl
 standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
-standard_verbs.go	createArgs	compare	"pairs"	1
-table.go	Collection.tallView	cyclo	"-"	43
+table.go	Collection.tallView	cyclo	"-"	39
 table.go	tableLineAt	compare	"right"	1
 table_cells.go	Collection.columnTo	compare	"last"	1
 table_cells.go	Collection.yankSubject	compare	"row"	2	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code

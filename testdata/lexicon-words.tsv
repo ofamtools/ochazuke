@@ -345,6 +345,7 @@ goto	action	seed
 grid	noun	seed	
 group	action+prop	seed	
 group-clear	action	seed	
+group-fold	action	yes	fold or unfold a collection group
 grow	action	seed	
 guard	noun	seed	
 harness	noun+prop	seed	

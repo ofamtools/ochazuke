@@ -174,6 +174,9 @@ func (r *Runtime) stackIn(focus string, modals []string) []level {
 	}
 	for i, id := range ancestry {
 		inst := r.Instances[id]
+		if i == 0 {
+			out = r.emptyRowLevels(out, inst)
+		}
 		if i == 0 && inst.inner != "" {
 			// An inner level holds no focus: the focused input's open
 			// suggestions answer before the input, typing falls through.
@@ -199,6 +202,20 @@ func (r *Runtime) stackIn(focus string, modals []string) []level {
 	}
 	if fallback != nil && !owns {
 		out = append(out, level{noun: fallback, fallback: true})
+	}
+	return out
+}
+
+// emptyRowLevels puts an empty collection's row noun tables before its own.
+// These levels have no instance: they offer verbs, never a made-up subject.
+// From, RowNoun and the last rows share the collection's cached nouns.
+func (r *Runtime) emptyRowLevels(out []level, inst *Instance) []level {
+	if list, ok := inst.Component.(*Collection); ok && len(list.items) == 0 {
+		for _, name := range list.nouns {
+			if name != inst.Noun {
+				out = append(out, level{noun: r.Nouns[name]})
+			}
+		}
 	}
 	return out
 }
