@@ -129,6 +129,15 @@ var ownedFields = []ownedField{
 		owners: modalStackOwners("adoptModalFocus", "popModalFrame"),
 		advice: "adopt a focus under a modal with adoptModalFocus; popModalFrame gives it back (modal_stack.go)",
 	},
+	// Noun.Builtin says the framework registered the noun (inside
+	// Runtime.Builtin); the runtime sets it when it first registers the noun
+	// and applications never write it.
+	{
+		name:   "Builtin",
+		root:   "Noun",
+		owners: map[string]bool{"noun.go Runtime.ensureNoun": true},
+		advice: "Noun.Builtin is set by the runtime when it registers a noun inside Runtime.Builtin (ensureNoun); never write it",
+	},
 	{
 		name:   "lentParent",
 		root:   "Instance",
@@ -236,6 +245,10 @@ type Instance struct {
 	Payload    Payload
 	borrowed   string
 	lentParent string
+}
+type Noun struct {
+	Name    string
+	Builtin bool
 }
 type Input struct{ Mode string }
 type Binding struct{ Mode string }
@@ -357,6 +370,12 @@ func borrowBadSet(in *Instance)         { in.borrowed = "x" }
 func borrowBadAddress(in *Instance) *string { return &in.borrowed }
 func borrowOkRead(in *Instance) string  { return in.borrowed }
 func borrowOkOther(in *Instance)        { in.lentParent = "x" }
+
+func builtinBadSet(n *Noun)             { n.Builtin = true }
+func builtinBadAddress(n *Noun) *bool   { return &n.Builtin }
+func builtinOkRead(n *Noun) bool        { return n.Builtin }
+func builtinOkOther(n *Noun)            { n.Name = "x" }
+func builtinOkLiteral() *Noun           { return &Noun{Name: "x"} }
 `
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "fx.go", src, parser.SkipObjectResolution)
@@ -376,6 +395,7 @@ func borrowOkOther(in *Instance)        { in.lentParent = "x" }
 		{ownedField{name: "ModalReturns"}, "returnsBad", "returnsOk"},
 		{ownedField{name: "Payload", root: "Instance", member: "Return"}, "snapBad", "snapOk"},
 		{ownedField{name: "borrowed", root: "Instance"}, "borrowBad", "borrowOk"},
+		{ownedField{name: "Builtin", root: "Noun"}, "builtinBad", "builtinOk"},
 	} {
 		byFn := map[string]int{}
 		for _, s := range fieldWritesIn(fset, file, "fx.go", info, ownedTarget(t, pkg, c.field, runtime)) {

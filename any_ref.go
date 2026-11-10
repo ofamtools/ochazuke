@@ -46,7 +46,7 @@ func (r *Runtime) anyRefNouns() []string {
 			continue
 		}
 		noun := r.CanonicalNoun(d.Noun)
-		if n := r.Nouns[noun]; stored && (n == nil || n.builtin || n.Store == nil || n.Store.Facts) {
+		if n := r.Nouns[noun]; stored && (n == nil || n.Builtin || n.Store == nil || n.Store.Facts) {
 			continue
 		}
 		if !slices.Contains(out, noun) {
