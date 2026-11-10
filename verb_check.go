@@ -81,6 +81,8 @@ func generatedVerbs() map[string]bool {
 			Create: func(Ctx, Thing) (Thing, error) { return nil, nil },
 			Patch:  func(Ctx, string, Thing) (Thing, error) { return nil, nil },
 			Delete: func(Ctx, string) error { return nil },
+			// token: the store keeps a change token
+			ChangeToken: func(Ctx) (string, error) { return "", nil },
 		}
 		// Two probes: a store of its own, and a copy of one (refresh).
 		probes := map[string]Store{"probe": store, "probe-copy": CopyStore(store, NewMemoryLocal())}

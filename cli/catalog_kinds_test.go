@@ -2,6 +2,8 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -244,5 +246,56 @@ func TestCatalogRecordFormDetail(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("record-form mounted no show form on the page")
+	}
+}
+
+// A mounted noun whose catalog publishes the token verb (store
+// changeToken) gets a ChangeToken that asks the extension, so the host's
+// index and counts read again only when it moved; without the verb (an
+// older catalog) it has none, as before.
+func TestMountedNounForwardsTheChangeToken(t *testing.T) {
+	doc := catalogOf(t, kindsRuntime())
+	var parcel *CatalogNoun
+	for i := range doc.Nouns {
+		if doc.Nouns[i].Name == "parcel" {
+			parcel = &doc.Nouns[i]
+		}
+	}
+	if parcel == nil || !slices.ContainsFunc(parcel.Verbs, func(v CatalogVerb) bool { return v.Name == "token" }) {
+		t.Fatalf("the catalog lacks parcel.token: %+v", parcel)
+	}
+	mount := func(doc CatalogDoc) *ochazuke.Runtime {
+		host := ochazuke.NewRuntime()
+		host.Config().Disable()
+		MountNouns(host, doc.AppNouns(), HostMount{Local: Namespace("tool"), Proxy: func(_ string, v CatalogVerb) any {
+			return func(ochazuke.Ctx) ochazuke.Result {
+				if v.Name == "token" {
+					return ochazuke.Done("v7")
+				}
+				return ochazuke.Done(nil)
+			}
+		}})
+		return host
+	}
+	host := mount(doc)
+	n := host.Noun("tool.parcel")
+	if n == nil || n.Store.ChangeToken == nil {
+		t.Fatal("no forwarded change token")
+	}
+	// Off a job the proxy answers "not loaded yet" (a remote store's
+	// calls run as jobs, Ctx.Await): readers then read as without a token.
+	if _, err := n.Store.ChangeToken(ochazuke.Ctx{Runtime: host, Context: host.Context()}); !errors.Is(err, ochazuke.ErrNotLoaded) {
+		t.Fatalf("token off a job: %v", err)
+	}
+	if op, ok := host.Operation("tool.parcel.token"); !ok || op.Unavailable != "" {
+		t.Fatalf("tool.parcel.token %v %q", ok, op.Unavailable)
+	}
+	old := doc
+	old.Nouns = slices.Clone(doc.Nouns)
+	for i := range old.Nouns {
+		old.Nouns[i].Verbs = slices.DeleteFunc(slices.Clone(old.Nouns[i].Verbs), func(v CatalogVerb) bool { return v.Name == "token" })
+	}
+	if n := mount(old).Noun("tool.parcel"); n == nil || n.Store.ChangeToken != nil {
+		t.Fatal("an older catalog without token should mount without a change token")
 	}
 }

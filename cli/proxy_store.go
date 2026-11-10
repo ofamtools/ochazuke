@@ -50,6 +50,12 @@ func proxyStore(noun CatalogNoun, local, key string, h HostMount) ochazuke.Store
 			s.Query = px.query
 		}
 	}
+	if px.has("token") && noun.Store != nil && noun.Store.ChangeToken {
+		// The extension's change token (its token verb): the host's index
+		// and counts read again only when it moved. A catalog without the
+		// verb (an older extension) reads as before.
+		s.ChangeToken = px.token
+	}
 	if px.has("create") {
 		s.Create = px.create
 	}
@@ -158,6 +164,15 @@ func (px *proxyCalls) subject(id string) ochazuke.Arguments {
 func (px *proxyCalls) get(c ochazuke.Ctx, id string) (ochazuke.Thing, error) {
 	v, err := px.call(c, "get", px.subject(id))
 	return proxyThing(v), err
+}
+
+// token asks the extension for its store's change token.
+func (px *proxyCalls) token(c ochazuke.Ctx) (string, error) {
+	v, err := px.call(c, "token", ochazuke.Arguments{})
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprint(v), nil
 }
 
 func (px *proxyCalls) list(c ochazuke.Ctx, q ochazuke.ListQuery) ([]ochazuke.Thing, error) {

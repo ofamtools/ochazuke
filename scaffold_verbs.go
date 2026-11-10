@@ -130,8 +130,15 @@ func scaffoldVerbs() []standardVerb {
 	}
 	annotate.Positional = func(*Noun) []string { return []string{annotateTextArg} }
 	annotate.Run = runAnnotate
-	return []standardVerb{show, restore, dup, yank, history, annotate}
+	token := standardVerb{YieldsToProp: true}
+	token.Verb, token.Description = "token", "The store's change token: text that moves whenever its things change, so a reader (a host's index of a mounted noun, a count) reads again only when it moved"
+	token.Kinds, token.Needs, token.HistoryKind, token.Agent = []string{KindCollection, Singleton, Instances}, []storeNeed{needToken}, HistoryFetch, AgentAllow
+	token.Run = func(_ *Runtime, n *Noun, c Ctx) (any, error) { return n.Store.ChangeToken(c) }
+	return []standardVerb{show, restore, dup, yank, history, annotate, token}
 }
+
+var needToken = storeNeed{Doc: "Store.ChangeToken", Lacks: "its store keeps no change token (no Store.ChangeToken)",
+	Has: func(_ *Runtime, n *Noun) bool { return n.Store.ChangeToken != nil }}
 
 // thingOf reads the request's subject: its key and the thing.
 func (r *Runtime) thingOf(n *Noun, c Ctx) (string, Thing, error) {
