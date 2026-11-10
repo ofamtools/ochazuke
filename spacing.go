@@ -74,7 +74,7 @@ func (l *Collection) headed() bool { return l.grouped && len(l.columns) == 0 && 
 // opensGroup reports whether row i starts a group: the first row, or one
 // whose group differs from the row above's.
 func (l *Collection) opensGroup(i int) bool {
-	return i == 0 || l.items[i-1].Section != l.items[i].Section
+	return l.items[i].Section != "" && (i == 0 || l.items[i-1].Section != l.items[i].Section)
 }
 
 // gapAbove reports whether a blank line goes above row i (not the first).
@@ -85,7 +85,7 @@ func (l *Collection) gapAbove(i int) bool { return i > 0 && l.items[i].SpaceAbov
 // (sticky), and one for each later group they open.
 func (l *Collection) headings(from, to int, sticky bool) int {
 	n := 0
-	if sticky || l.opensGroup(from) {
+	if l.items[from].Section != "" && (sticky || l.opensGroup(from)) {
 		n++
 	}
 	for i := from + 1; i <= to; i++ {

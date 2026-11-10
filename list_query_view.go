@@ -66,12 +66,13 @@ func (l *Collection) effectiveView() ListQuery {
 	return q
 }
 
-// arrange groups and pages the sorted, filtered rows by the view, and
-// notes where the page sits. The row keep shows on the page that holds it.
+// arrange sorts, groups and pages the filtered rows by the view, and notes
+// where the page sits. The row keep shows on the page that holds it.
 func (l *Collection) arrange(items []ListItem, keep string) []ListItem {
 	if l.paged != nil {
 		return l.windowArrange(items)
 	}
+	items = l.sortedRows(l.lingerRows(items))
 	q := l.effectiveView()
 	l.total, l.pages, l.grouped, l.headCap = len(items), 0, false, 0
 	if !q.Grouped() && !q.Paged() {
@@ -255,6 +256,9 @@ func registerListQuery(r *Runtime) {
 			return l.SetGroupBy(listWords(StringArg(a, "by", "")), keys)
 		}, []string{"by", "order"}},
 		{"group-clear", "Restore the grouping collection.group-by gives (none by default)", "list-groupable", nil, func(l *Collection, _ Arguments) error { return l.SetGroupBy(nil, nil) }, nil},
+		{"group-fold", "Fold or unfold the named group, or the selected row's group; counts are matched rows on this page", "list-groupable", map[string]Parameter{"group": {Type: "string", Description: "Group label; omitted, the selected row's group"}, "closed": {Type: SettingBoolean, Description: "true folds, false unfolds; omitted toggles"}}, func(l *Collection, a Arguments) error {
+			return l.foldGroup(a)
+		}, []string{"group"}},
 		{"show-archived", "Show or hide the list's archived rows (collection.hide-archived hides them); hidden, the filter line says how many (collection.archived-count)", "", map[string]Parameter{"show": {Type: SettingBoolean, Description: "true shows them, false hides them; omitted, it flips"}}, func(l *Collection, a Arguments) error {
 			show := !l.vs.Archived
 			if v, ok := a["show"].(bool); ok {

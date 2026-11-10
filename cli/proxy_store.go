@@ -180,11 +180,10 @@ func (px *proxyCalls) list(c ochazuke.Ctx, q ochazuke.ListQuery) ([]ochazuke.Thi
 	return proxyThings(v), err
 }
 
-// query asks the extension's list for one page: conditions as where pairs
-// (equality) and filter words, sort words, the text search, the page and
-// the archive flag. A condition the words cannot say is run here over the
-// extension's whole list instead (Runtime.QueryAll), so an answer is never
-// wrong, only slower.
+// query asks the extension's list for one page: conditions as where pairs,
+// sort and group words, the text search, the page and the archive flag.
+// Conditions the existing word protocol cannot express still use the
+// legacy in-memory query path.
 func (px *proxyCalls) query(c ochazuke.Ctx, q ochazuke.ListQuery) (ochazuke.ListPage, error) {
 	args := ochazuke.Arguments(gomaps.Clone(q.Args))
 	if args == nil {
@@ -205,16 +204,14 @@ func (px *proxyCalls) query(c ochazuke.Ctx, q ochazuke.ListQuery) (ochazuke.List
 	if len(where) > 0 {
 		args["where"] = strings.Join(where, ",")
 	}
-	var sort []string
-	for _, k := range q.Sort {
-		w := k.Field
-		if k.Desc {
-			w += ":desc"
-		}
-		sort = append(sort, w)
+	if words := proxySortWords(q.Sort); words != "" {
+		args["sort"] = words
 	}
-	if len(sort) > 0 {
-		args["sort"] = strings.Join(sort, ",")
+	if len(q.GroupBy) > 0 {
+		args["group-by"] = strings.Join(q.GroupBy, ",")
+	}
+	if words := proxySortWords(q.GroupSort); words != "" {
+		args["group-sort"] = words
 	}
 	if q.Text != "" {
 		args["search"] = q.Text
@@ -241,7 +238,25 @@ func (px *proxyCalls) query(c ochazuke.Ctx, q ochazuke.ListQuery) (ochazuke.List
 			total = n
 		}
 	}
-	return ochazuke.ListPage{Items: things, Total: total}, nil
+	var groups []string
+	if q.Grouped() {
+		groups = make([]string, len(things))
+		for i, thing := range things {
+			groups[i], _ = thing["group"].(string)
+		}
+	}
+	return ochazuke.ListPage{Items: things, Total: total, Groups: groups}, nil
+}
+
+func proxySortWords(keys []ochazuke.SortKey) string {
+	words := make([]string, len(keys))
+	for i, key := range keys {
+		words[i] = key.Field
+		if key.Desc {
+			words[i] += ":desc"
+		}
+	}
+	return strings.Join(words, ",")
 }
 
 func (px *proxyCalls) create(c ochazuke.Ctx, t ochazuke.Thing) (ochazuke.Thing, error) {

@@ -1,0 +1,46 @@
+{
+  "name": "windowed From grouping: bounded row pages, counts on this page, folds retained across a continued group, j and k cross folded pages and group boundaries",
+  "area": "lists",
+  "width": 80,
+  "height": 14,
+  "chrome": "none",
+  "settings": [
+    {"name": "collection.window", "type": "integer", "default": 3},
+    {"name": "collection.group-by", "type": "string", "default": "status"}
+  ],
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "parcels", "from": true, "height": -1}],
+    "store": {
+      "paged": true,
+      "token": true,
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label", "type": "string"},
+        {"name": "status", "enum": ["alpha", "beta", "gamma"]}
+      ],
+      "things": [
+        {"id": "p1", "title": "First alpha", "status": "alpha"},
+        {"id": "p2", "title": "First beta", "status": "beta"},
+        {"id": "p3", "title": "Second alpha", "status": "alpha"},
+        {"id": "p4", "title": "First gamma", "status": "gamma"},
+        {"id": "p5", "title": "Third alpha", "status": "alpha"},
+        {"id": "p6", "title": "Second beta", "status": "beta"},
+        {"id": "p7", "title": "Fourth alpha", "status": "alpha"},
+        {"id": "p8", "title": "Second gamma", "status": "gamma"}
+      ]
+    },
+    "bind": [
+      {"noun": "ochazuke.collection", "keys": "f", "do": "ochazuke.collection.group-fold", "args": {"id": "parcels"}}
+    ]
+  },
+  "script": ["f", "j", "j", "k", "k", "f", "j", "j", "j", "j", "j", "j"],
+  "expect": [
+    {"after": 1, "contains": ["alpha (3 on page)"], "lacks": ["First alpha", "Second alpha", "Third alpha"]},
+    {"after": 2, "contains": ["alpha (1 on page)", "beta (2 on page)", "First beta", "Second beta", "page 2/3 of 8"], "lacks": ["Fourth alpha"]},
+    {"after": 3, "focus": "parcels/p2"},
+    {"after": 5, "contains": ["page 1/3 of 8", "alpha (3 on page)"], "lacks": ["First alpha"]},
+    {"after": 6, "focus": "parcels/p1", "contains": ["First alpha", "Second alpha", "Third alpha"]},
+    {"after": 12, "focus": "parcels/p4", "contains": ["gamma (2 on page)", "First gamma", "Second gamma", "page 3/3 of 8"]}
+  ]
+}

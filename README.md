@@ -2679,6 +2679,61 @@ Every noun is listable with no code of its own (noun scaffold, pass 1). The **No
 
 Compared with Vim: `:ls` lists every buffer and the Nouns page lists every noun (similar: buffers are files, nouns are kinds of thing); `:e {file}` opens one and `noun.show` opens a noun's index (similar); netrw lists a directory and `<CR>` opens an entry, as `enter` does on a Nouns row (same idea). Vim has no counterpart for counts read off a store or for paging a list.
 
+#### Grouping a windowed list
+
+`From(noun)` lists use the same grouping as other collections.
+`collection.group-by` is empty by default. Set it to prop names, or use
+`collection.group {by, order}` for one list. `group-clear` restores the setting.
+The effective `GroupBy` and `GroupSort` go to `Store.Query` with the sort,
+conditions, text, archive choice and the bounded `Page` and `PerPage`.
+The widget preserves that answer's order instead of sorting the page again.
+`DocStore` forwards the grouping through `DocQuery.GroupBy` and `GroupSort`;
+table adapters must group before applying the row offset and limit and return
+`ListPage.Groups` parallel to `Items`. A store that omits the labels can leave
+the widget to derive them from the page's prop values, but the store must still
+return rows in grouped order. Mounted stores forward `group-by` and `group-sort`
+through the standard list protocol and retain each returned row's `group`.
+When a remote read first awaits its change token, every replay consumes that
+same token call before its bounded list calls. The final token is stored only
+as the read's result; it does not change the call sequence midway through a job.
+
+A page counts source rows, never groups. For example, a four-row alpha group
+with a window of three shows `alpha (3 on page)` on page one and
+`alpha (1 on page)` on page two. These counts include rows hidden by a fold,
+exclude rows the source query filtered out, and describe only the current
+page, not the whole store. The overall page indicator still reports the
+query's whole `Total`. Counts and folding do not issue aggregate queries or
+full-table reads. Memory use for displayed rows and group counts is bounded
+by `collection.window`. The proxy's pre-existing fallback for filters its word
+protocol cannot express is unchanged.
+Fold preferences retain only the labels the user has closed, independent of
+page-row storage; reopening a group removes its preference.
+
+`collection.group-fold {group?, closed?}` folds a group to one selectable
+heading. Omit `group` to use the selection's group; omit `closed` to toggle,
+or give `true` to close and `false` to open. It has no default key, so it does
+not intercept an application's or another component's fold keys. A page can
+bind it through the normal binding data. The folded heading is a collection
+row, not a hidden record, so record-editing keys do not act on it.
+In tables it spans the available row width, just like an expanded group heading,
+even when the first column is narrow or every group on the page is folded. `j` and `k`
+move across the groups as drawn, including an entirely folded page, and load
+the adjacent row page at its edge. A repeated group stays folded across pages.
+Unfolding a selected heading selects that page's first row in its group.
+To opt out, clear the list's grouping and leave `collection.group-by` empty.
+`collection.window=0` remains the explicit opt-out from bounded source paging.
+See story `lists/windowed-group-folds`.
+
+Compared with Vim:
+
+| Vim form | Help tag | Collection behavior |
+|---|---|---|
+| `za` | `:help za` | Similar: `group-fold` toggles the selected group, without a default key or nested folds. |
+| `zc`, `zo` | `:help zc`, `:help zo` | Similar: `closed=true` or `false` chooses the state explicitly. |
+| `j`, `k` over a closed fold | `:help fold-behavior` | Similar: a closed group takes one motion stop; a source page boundary can load another part of the same folded group. |
+| Operators over a fold | `:help fold-behavior` | Different: the synthetic heading is not a record and never targets every hidden record. |
+
+
 ### Scaffold verbs and generated keys
 
 Every stored noun gets `show`, `restore`, `duplicate` (alias `dup`), `yank` (as label, key, ref or json), `history`, `annotate` (where a noun has an about prop, `RoleAbout`) and `token` (where its store keeps a change token), from the legacy verb table, each where its needs are met; `relate` answers to `associate` too. A prop of the same name keeps the word. `delete {archive-first: true}` archives a live thing with no question and deletes an archived one after one question naming what goes with it (`Runtime.DeleteGoesWith`).

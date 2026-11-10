@@ -34,14 +34,18 @@ type DocTable interface {
 
 // DocQuery is a list request as a table runs it: every condition, the
 // archive hiding (Hide names a boolean prop: a document where it is true is
-// left out; one where it is false or missing is kept), the sort keys, a
-// text search and the page. Text matches a document when each of its words is in one
-// of the TextFields (case-insensitive substring); "" matches every
-// document. PerPage 0 answers every match.
+// left out; one where it is false or missing is kept), the sort keys,
+// GroupBy and GroupSort (the same sort-then-group order as ListQuery),
+// a text search and the page. Text matches a document when each word is in
+// one of the TextFields (case-insensitive substring); "" matches every
+// document. PerPage 0 answers every match. Paging counts documents, not
+// groups; ListPage.Groups labels each returned document's group.
 type DocQuery struct {
 	Filters    []PropFilter
 	Hide       string
 	Sort       []SortKey
+	GroupBy    []string
+	GroupSort  []SortKey
 	Text       string
 	TextFields []string
 	Page       int
@@ -116,7 +120,7 @@ func (d *docStore) docQuery(c Ctx, q ListQuery) (DocQuery, error) {
 	if err != nil {
 		return DocQuery{}, err
 	}
-	out := DocQuery{Filters: clonePropFilters(q.Filters), Sort: slices.Clone(q.Sort), Text: q.Text, Page: q.Page, PerPage: q.PerPage, TextFields: textProps(n)}
+	out := DocQuery{Filters: clonePropFilters(q.Filters), Sort: slices.Clone(q.Sort), GroupBy: slices.Clone(q.GroupBy), GroupSort: slices.Clone(q.GroupSort), Text: q.Text, Page: q.Page, PerPage: q.PerPage, TextFields: textProps(n)}
 	if p := c.Runtime.archiveHiding(n, q); p != nil {
 		out.Hide = p.Name
 	}
@@ -350,7 +354,7 @@ func (m *MemDocTable) Query(q DocQuery) (ListPage, error) {
 		}
 	}
 	m.mu.Unlock()
-	page := m.r.QueryAll(m.noun, things, ListQuery{Filters: q.Filters, Sort: q.Sort, Page: q.Page, PerPage: q.PerPage, Archived: true})
+	page := m.r.QueryAll(m.noun, things, ListQuery{Filters: q.Filters, Sort: q.Sort, GroupBy: q.GroupBy, GroupSort: q.GroupSort, Page: q.Page, PerPage: q.PerPage, Archived: true})
 	for i, t := range page.Items {
 		page.Items[i] = maps.Clone(t)
 	}

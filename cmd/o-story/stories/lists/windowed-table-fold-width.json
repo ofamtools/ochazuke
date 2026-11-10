@@ -1,0 +1,36 @@
+{
+  "name": "windowed table folds span the full table width, including a page with no unfolded rows",
+  "area": "lists",
+  "width": 60,
+  "height": 10,
+  "chrome": "none",
+  "settings": [
+    {"name": "collection.window", "type": "integer", "default": 3},
+    {"name": "collection.group-by", "type": "string", "default": "status"}
+  ],
+  "page": {
+    "noHeadings": true,
+    "lists": [{"id": "parcels", "from": true, "height": -1, "columns": [{"title": "title", "width": 4}, {"title": "status", "width": 4}]}],
+    "store": {
+      "paged": true,
+      "token": true,
+      "props": [
+        {"name": "id", "key": true},
+        {"name": "title", "role": "label", "type": "string"},
+        {"name": "status", "type": "string"}
+      ],
+      "things": [
+        {"id": "p1", "title": "one", "status": "alpha"},
+        {"id": "p2", "title": "two", "status": "alpha"},
+        {"id": "p3", "title": "tri", "status": "alpha"}
+      ]
+    },
+    "bind": [{"noun": "ochazuke.collection", "keys": "f", "do": "ochazuke.collection.group-fold", "args": {"id": "parcels"}}]
+  },
+  "script": ["f", "f"],
+  "expect": [
+    {"after": 0, "contains": ["alpha (3 on page)", "one", "two", "tri"]},
+    {"after": 1, "contains": ["▸ alpha (3 on page)", "page 1/1 of 3"], "lacks": ["one", "two", "tri", "▸ al…"]},
+    {"after": 2, "focus": "parcels/p1", "contains": ["alpha (3 on page)", "one", "two", "tri"]}
+  ]
+}

@@ -257,8 +257,9 @@ func countNoun(r *Runtime, n *Noun) {
 	arch := n.roleProp(RoleArchive)
 	var total, archived int
 	unmoved := false
+	initialToken := token
 	body := func(cx Ctx) (any, error) {
-		if token, unmoved = jobToken(s, cx, token, c.token, c.known); unmoved {
+		if token, unmoved = jobToken(s, cx, initialToken, c.token, c.known); unmoved {
 			return nil, nil
 		}
 		// Every: the whole store, whatever its default list arguments

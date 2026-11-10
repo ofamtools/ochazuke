@@ -166,7 +166,9 @@ func (l *Collection) refilter(keep string) {
 			l.archived++
 		}
 	}
-	if t := l.tree(); t != nil && len(l.vs.Filters) > 0 {
+	if l.paged != nil {
+		l.items = l.all // the store already matched and ordered the bounded page
+	} else if t := l.tree(); t != nil && len(l.vs.Filters) > 0 {
 		kept := t.filterNodes(hidden)
 		l.items = make([]ListItem, 0, len(l.all))
 		for _, item := range l.all {
@@ -194,7 +196,8 @@ func (l *Collection) refilter(keep string) {
 		}
 		l.items = l.withKin(shown, hidden)
 	}
-	l.items = l.arrange(l.sortedRows(l.lingerRows(l.items)), keep)
+	l.items = l.arrange(l.items, keep)
+	l.items, keep = l.foldGroups(l.items, keep)
 	if t := l.tree(); t != nil {
 		t.guideRows()
 	}
@@ -264,6 +267,9 @@ func (l *Collection) shows(id string) bool {
 // selection is the caller's to set.
 func (l *Collection) reveal(id string) {
 	if l.shows(id) || (!slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) && !l.treeHasNode(id)) {
+		return
+	}
+	if len(l.groupFolds) > 0 && l.revealGroupRow(id) {
 		return
 	}
 	if l.vs.Text == "" && len(l.vs.Filters) == 0 {

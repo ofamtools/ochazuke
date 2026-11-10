@@ -501,7 +501,7 @@ Conformance:
 | normal | binding | `binding.help` |
 | normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.pick` `bindings-help.run` `bindings-help.show` |
 | normal | chore | `chore.archive` `chore.delete` `chore.duplicate` `chore.get` `chore.restore` `chore.set` `chore.yank` |
-| normal | collection | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.show-archived` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
+| normal | collection | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.group-fold` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.show-archived` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | culprit | `culprit.size` |
@@ -622,6 +622,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `find-line.accept`
 - `insert` → `normal` via `form.leave`
 - `insert` → `normal` via `form.run`
+- `insert` → `normal` via `form.run + parcel.get`
 - `insert` → `normal` via `input.insert + input.insert + input.insert + quill.wipe`
 - `insert` → `normal` via `input.insert + input.insert + quad.warp`
 - `insert` → `normal` via `input.insert + swatch.names`
@@ -711,6 +712,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `row T`
 - `normal` → `insert` via `row W`
 - `normal` → `insert` via `row e`
+- `normal` → `insert` via `row n`
 - `normal` → `insert` via `search.find`
 - `normal` → `insert` via `setting-item.add`
 - `normal` → `insert` via `setting-item.edit`

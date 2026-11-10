@@ -162,6 +162,18 @@ func checkQuery(t *testing.T, newTable NewTable) {
 	if page := q(ochazuke.DocQuery{Text: "DOC 1", TextFields: []string{"id", "title"}}); fmt.Sprint(ids(page)) != "[d1 d10 d11 d12]" {
 		t.Fatalf("text: %v", ids(page))
 	}
+	// Grouping happens before the row page is cut; a group may continue
+	// across that cut. Use the public verb so this also checks DocStore's
+	// translation of ListQuery into the table's DocQuery.
+	grouped := run(t, r, "list", ochazuke.Arguments{"archived": true, "group-by": "status", "group-sort": "status:desc", "sort": "size", "page": 2, "per-page": 3}).(ochazuke.ListAnswer)
+	if grouped.Total != 12 || len(grouped.Items) != 3 {
+		t.Fatalf("grouped page: %#v", grouped)
+	}
+	for i, want := range []struct{ id, group string }{{"d11", "done"}, {"d1", "doing"}, {"d4", "doing"}} {
+		if row := grouped.Items[i]; row["id"] != want.id || row["group"] != want.group {
+			t.Fatalf("grouped row %d: %#v, want %s in %s", i, row, want.id, want.group)
+		}
+	}
 	// The standard list runs the same query through the store.
 	ans, err := r.Execute(ochazuke.Request{Noun: Noun, Verb: "list", Args: ochazuke.Arguments{"search": "doc 1", "per-page": 2, "page": 1}})
 	if err != nil {
