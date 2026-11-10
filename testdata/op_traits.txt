@@ -409,6 +409,14 @@ ochazuke.related-section.show motion=false focusBound=false typing=false kind=ch
 ochazuke.related-section.toggle motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.related-section.unassociate motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.related-section.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.relation-kind.archive motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.relation-kind.create motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.relation-kind.delete motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.relation-kind.edit motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.relation-kind.get motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.relation-kind.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.relation-kind.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.relation-kind.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.request.run motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.search.cycle-match motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.search.find motion=false focusBound=false typing=false kind=action repeatable=false staying=false

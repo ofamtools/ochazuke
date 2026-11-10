@@ -425,7 +425,7 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	// keys (resolveTarget); it is emptied when the request ends.
 	want := []string{
 		"BindingTimeout", "Focus", "Instances", "ModalReturns", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
-		"bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "diffRenderer", "events", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "predicates", "prefix", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rows", "seq", "targets", "watches",
+		"bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "diffRenderer", "events", "guards", "history", "holders", "jobSeq", "jobs", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "predicates", "prefix", "relations", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rows", "seq", "targets", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)

@@ -420,7 +420,7 @@ func propFlagError(key string, p PropSpec) error {
 		return fmt.Errorf("prop %s: %w", key, p.HostNounError())
 	case p.Through && !p.writable():
 		return fmt.Errorf("prop %s: through is for a prop set writes (not a key, read-only or create-only)", key)
-	case p.Relation != "" && (p.relationNoun() == "" || p.Key || p.Read != nil || p.Subject != "" || p.Role != "" || p.Through || p.Type != SettingList && p.Type != SettingString || p.Type == SettingList && p.Items == nil):
+	case p.relationError():
 		return fmt.Errorf("prop %s: a relation prop is a list with Items.Noun or a string with Noun, with no key, role, through or Read", key)
 	}
 	return nil
@@ -742,16 +742,7 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 		}
 		p.ReadOnly = true // a key is the thing's identity: never written by set
 	}
-	if p.Relation != "" {
-		p.NoFilter = true // the value lives in the relation store, not the thing's row
-		if p.Items != nil {
-			items := *p.Items
-			if items.Noun != "" && items.Noun != AnyNoun {
-				items.Noun = r.CanonicalNoun(items.Noun)
-			}
-			p.Items = &items
-		}
-	}
+	r.relationPropInit(&p)
 	p.Enum = slices.Clone(p.Enum)
 	p.Aliases = slices.Clone(p.Aliases)
 	n.Props = append(n.Props, p)

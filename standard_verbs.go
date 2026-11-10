@@ -966,39 +966,7 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 	toggle, _ := a["toggle"].(bool)
 	changes := map[string]any{}
 	var order []string
-	add := func(name string, v any) error {
-		edit, base := listEditOf(n, name)
-		if edit != 0 {
-			name = base
-		}
-		p, err := writeTarget(n, name)
-		if err != nil {
-			return err
-		}
-		name = p.Name
-		if _, dup := changes[name]; dup {
-			return &ArgumentError{fmt.Errorf("%s is written twice", name)}
-		}
-		if edit != 0 {
-			items, err := listEditItems(v)
-			if err != nil {
-				return &ArgumentError{fmt.Errorf("%s%c= %w", name, edit, err)}
-			}
-			changes[name] = listEdit{remove: edit == '-', items: items}
-			order = append(order, name)
-			return nil
-		}
-		if _, toggles := v.(propToggle); !toggles {
-			typed, err := propValue(*p, v)
-			if err != nil {
-				return &ArgumentError{fmt.Errorf("%s %w", name, err)}
-			}
-			v = typed
-		}
-		changes[name] = v
-		order = append(order, name)
-		return nil
-	}
+	add := newChangeAdder(n, changes, &order)
 	obj, objName, err := setObject(a)
 	if err != nil {
 		return nil, nil, err
@@ -1469,7 +1437,7 @@ func listEditOf(n *Noun, name string) (rune, string) {
 	if last != '+' && last != '-' {
 		return 0, name
 	}
-	if p := n.prop(name[:len(name)-1]); p != nil && p.Type == SettingList {
+	if p := n.prop(name[:len(name)-1]); p != nil && p.listed() {
 		return last, p.Name
 	}
 	return 0, name
@@ -1494,4 +1462,42 @@ func listEditItems(v any) ([]string, error) {
 		return nil, err
 	}
 	return items.([]string), nil
+}
+
+// newChangeAdder is set's adder of one write: the prop (or a list edit
+// PROP+ / PROP-) checked, typed and recorded in changes and order.
+func newChangeAdder(n *Noun, changes map[string]any, order *[]string) func(string, any) error {
+	return func(name string, v any) error {
+		edit, base := listEditOf(n, name)
+		if edit != 0 {
+			name = base
+		}
+		p, err := writeTarget(n, name)
+		if err != nil {
+			return err
+		}
+		name = p.Name
+		if _, dup := changes[name]; dup {
+			return &ArgumentError{fmt.Errorf("%s is written twice", name)}
+		}
+		if edit != 0 {
+			items, err := listEditItems(v)
+			if err != nil {
+				return &ArgumentError{fmt.Errorf("%s%c= %w", name, edit, err)}
+			}
+			changes[name] = listEdit{remove: edit == '-', items: items}
+			*order = append(*order, name)
+			return nil
+		}
+		if _, toggles := v.(propToggle); !toggles {
+			typed, err := propValue(*p, v)
+			if err != nil {
+				return &ArgumentError{fmt.Errorf("%s %w", name, err)}
+			}
+			v = typed
+		}
+		changes[name] = v
+		*order = append(*order, name)
+		return nil
+	}
 }

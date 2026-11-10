@@ -327,6 +327,7 @@ registers.go	Runtime.storeYank	compare	"line"	1
 registers.go	appendYank	compare	"line"	2
 registers.go	registerRegisterThings	compare	"line"	1
 registers.go	yankReport	case	"line"	1
+relation_props.go	PropSpec.listed	compare	"list"	1	the prop type is a declared enum value (SettingList), read as data; not a branch on the verb list
 resolve.go	Runtime.dispatchIn	compare	"ochazuke.key.ignore"	1
 resolve.go	Runtime.dispatchIn	cyclo	"-"	33
 resolve.go	Runtime.lookup	cyclo	"-"	46
@@ -397,7 +398,6 @@ standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
 standard_verbs.go	createArgs	compare	"pairs"	1
-standard_verbs.go	setChanges	cyclo	"-"	28
 table.go	Collection.tallView	cyclo	"-"	43
 table.go	tableLineAt	compare	"right"	1
 table_cells.go	Collection.columnTo	compare	"last"	1

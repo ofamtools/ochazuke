@@ -663,6 +663,7 @@ registers	prop	seed
 registry	prop	seed	
 reject	action	seed	
 related	noun	seed	
+relation-kind	noun	yes	the declared rules of a relation kind (ochazuke.relation-kind)
 related-section	noun	seed	
 reload	action	seed	
 reminder	noun	seed	

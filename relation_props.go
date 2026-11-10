@@ -15,13 +15,44 @@ import (
 // relationNoun is the noun the prop's relations point at: Items.Noun of a
 // list, Noun of a single prop; AnyNoun when the To ends are of any noun.
 func (p PropSpec) relationNoun() string {
-	if p.Type == SettingList {
-		if p.Items == nil {
-			return ""
-		}
+	if p.listed() && p.Items != nil {
 		return p.Items.Noun
 	}
+	if p.listed() {
+		return ""
+	}
 	return p.Noun
+}
+
+// listed reports whether the prop holds a list (the one place the type is
+// read, so a list prop is a fact of its declaration).
+func (p PropSpec) listed() bool { return p.Type == SettingList }
+
+// relationError reports whether a relation prop is declared wrongly: it
+// needs a noun for its ends, is a list with Items or a string, and is none
+// of a key, a role, a Through write or a computed prop.
+func (p PropSpec) relationError() bool {
+	if p.Relation == "" {
+		return false
+	}
+	kinds := p.listed() && p.Items != nil || !p.listed() && p.Type == SettingString
+	return p.relationNoun() == "" || p.Key || p.Read != nil || p.Subject != "" || p.Role != "" || p.Through || !kinds
+}
+
+// relationPropInit finishes a relation prop's declaration: it is not
+// filtered (its value is not in the row) and its item noun is canonical.
+func (r *Runtime) relationPropInit(p *PropSpec) {
+	if p.Relation == "" {
+		return
+	}
+	p.NoFilter = true
+	if p.Items != nil {
+		items := *p.Items
+		if items.Noun != "" && items.Noun != AnyNoun {
+			items.Noun = r.CanonicalNoun(items.Noun)
+		}
+		p.Items = &items
+	}
 }
 
 // relationProps are the noun's relation-backed props.
@@ -54,7 +85,7 @@ func (p PropSpec) propRelationEnd(item string) string {
 // readRelationProp is the prop's value for the thing key of n: the To keys
 // (a list in position order, or the one for a single prop, nil for none).
 func (r *Runtime) readRelationProp(p PropSpec, n *Noun, key string) (any, error) {
-	list := p.Type == SettingList
+	list := p.listed()
 	if r.RelationStore() == nil || key == "" {
 		if list {
 			return []string{}, nil
@@ -126,98 +157,116 @@ func (r *Runtime) wrapRelations(n *Noun) {
 	}
 	raw := &storeRaw{Get: s.Get, Patch: s.Patch, Create: s.Create}
 	s.raw = raw
-	name := n.Name
-	fill := func(c Ctx, t Thing, key string) (Thing, error) {
-		noun := c.Runtime.Nouns[name]
-		t = maps.Clone(t)
-		for _, p := range noun.relationProps() {
-			v, err := c.Runtime.readRelationProp(p, noun, key)
-			if err != nil {
-				return nil, err
-			}
-			t[p.Name] = v
-		}
-		return t, nil
-	}
-	split := func(noun *Noun, values Thing) (rest, rel Thing) {
-		rest, rel = Thing{}, Thing{}
-		for k, v := range values {
-			if p := noun.prop(k); p != nil && p.Relation != "" {
-				rel[k] = v
-			} else {
-				rest[k] = v
-			}
-		}
-		return rest, rel
-	}
-	apply := func(c Ctx, noun *Noun, key string, rel Thing) error {
-		for _, p := range noun.relationProps() {
-			if v, ok := rel[p.Name]; ok {
-				if err := c.Runtime.quietly(func() error { return c.Runtime.writeRelationProp(c, p, noun, key, v) }); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
+	w := relationWrap{noun: n.Name, raw: raw}
 	if raw.Get != nil {
-		s.Get = func(c Ctx, id string) (Thing, error) {
-			t, err := raw.Get(c, id)
-			if err != nil || t == nil {
-				return t, err
-			}
-			return fill(c, t, id)
-		}
+		s.Get = w.get
 	}
 	if raw.Patch != nil {
-		s.Patch = func(c Ctx, id string, ch Thing) (Thing, error) {
-			noun := c.Runtime.Nouns[name]
-			rest, rel := split(noun, ch)
-			if len(rel) == 0 {
-				return raw.Patch(c, id, ch)
-			}
-			var t Thing
-			if len(rest) > 0 {
-				var err error
-				if t, err = raw.Patch(c, id, rest); err != nil {
-					return nil, err
-				}
-			}
-			if err := apply(c, noun, id, rel); err != nil {
-				return nil, err
-			}
-			if t == nil && raw.Get != nil {
-				var err error
-				if t, err = raw.Get(c, id); err != nil {
-					return nil, err
-				}
-			}
-			if t == nil {
-				return nil, nil
-			}
-			return fill(c, t, id)
-		}
+		s.Patch = w.patch
 	}
 	if raw.Create != nil {
-		s.Create = func(c Ctx, values Thing) (Thing, error) {
-			noun := c.Runtime.Nouns[name]
-			rest, rel := split(noun, values)
-			t, err := raw.Create(c, rest)
-			if err != nil || len(rel) == 0 {
-				return t, err
-			}
-			if t == nil {
-				t = rest
-			}
-			kp := noun.keyProp()
-			if kp == nil || emptyProp(t[kp.Name]) {
-				return nil, fmt.Errorf("%s: the created thing has no key to relate", c.Runtime.DisplayNoun(name))
-			}
-			key := strings.TrimSpace(fmt.Sprint(t[kp.Name]))
-			if err := apply(c, noun, key, rel); err != nil {
-				return nil, err
-			}
-			return fill(c, t, key)
+		s.Create = w.create
+	}
+}
+
+// relationWrap is the wrapped handlers of one noun's store.
+type relationWrap struct {
+	noun string
+	raw  *storeRaw
+}
+
+// fill adds the relation props to the thing t of key.
+func (w relationWrap) fill(c Ctx, t Thing, key string) (Thing, error) {
+	n := c.Runtime.Nouns[w.noun]
+	t = maps.Clone(t)
+	for _, p := range n.relationProps() {
+		v, err := c.Runtime.readRelationProp(p, n, key)
+		if err != nil {
+			return nil, err
+		}
+		t[p.Name] = v
+	}
+	return t, nil
+}
+
+// split separates the values of relation props from the rest.
+func (w relationWrap) split(n *Noun, values Thing) (rest, rel Thing) {
+	rest, rel = Thing{}, Thing{}
+	for k, v := range values {
+		if p := n.prop(k); p != nil && p.Relation != "" {
+			rel[k] = v
+		} else {
+			rest[k] = v
 		}
 	}
+	return rest, rel
+}
+
+// apply writes the relation props' values for the thing key, without noting
+// relation changes (the thing's own change covers undo).
+func (w relationWrap) apply(c Ctx, n *Noun, key string, rel Thing) error {
+	for _, p := range n.relationProps() {
+		if v, ok := rel[p.Name]; ok {
+			if err := c.Runtime.quietly(func() error { return c.Runtime.writeRelationProp(c, p, n, key, v) }); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (w relationWrap) get(c Ctx, id string) (Thing, error) {
+	t, err := w.raw.Get(c, id)
+	if err != nil || t == nil {
+		return t, err
+	}
+	return w.fill(c, t, id)
+}
+
+func (w relationWrap) patch(c Ctx, id string, ch Thing) (Thing, error) {
+	n := c.Runtime.Nouns[w.noun]
+	rest, rel := w.split(n, ch)
+	if len(rel) == 0 {
+		return w.raw.Patch(c, id, ch)
+	}
+	var t Thing
+	var err error
+	if len(rest) > 0 {
+		if t, err = w.raw.Patch(c, id, rest); err != nil {
+			return nil, err
+		}
+	}
+	if err := w.apply(c, n, id, rel); err != nil {
+		return nil, err
+	}
+	if t == nil && w.raw.Get != nil {
+		if t, err = w.raw.Get(c, id); err != nil {
+			return nil, err
+		}
+	}
+	if t == nil {
+		return nil, nil
+	}
+	return w.fill(c, t, id)
+}
+
+func (w relationWrap) create(c Ctx, values Thing) (Thing, error) {
+	n := c.Runtime.Nouns[w.noun]
+	rest, rel := w.split(n, values)
+	t, err := w.raw.Create(c, rest)
+	if err != nil || len(rel) == 0 {
+		return t, err
+	}
+	if t == nil {
+		t = rest
+	}
+	kp := n.keyProp()
+	if kp == nil || emptyProp(t[kp.Name]) {
+		return nil, fmt.Errorf("%s: the created thing has no key to relate", c.Runtime.DisplayNoun(w.noun))
+	}
+	key := strings.TrimSpace(fmt.Sprint(t[kp.Name]))
+	if err := w.apply(c, n, key, rel); err != nil {
+		return nil, err
+	}
+	return w.fill(c, t, key)
 }

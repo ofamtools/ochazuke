@@ -164,7 +164,7 @@ func (s *relatedSection) newRelated(c Ctx) error {
 		return fmt.Errorf("new is not offered in %s: it is a relation, not a prop of %s; create the thing, then associate it", s.ref.Label, c.Runtime.DisplayNoun(s.ref.Noun))
 	}
 	var v any = s.value()
-	if p.Type == SettingList {
+	if p.listed() {
 		v = []any{v}
 	}
 	return s.run(c, Request{Noun: s.ref.Noun, Verb: "create", Args: Arguments{s.ref.Prop: v}}, false)

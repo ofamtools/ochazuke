@@ -37,6 +37,12 @@ type RelatedSpec struct {
 	NoCounts  bool              `json:"noCounts,omitempty"`
 	Nouns     []RelatedNounSpec `json:"nouns"`
 	Things    []ochazuke.Thing  `json:"things,omitempty"`
+	// Relations gives the runtime a relation store with these kinds and
+	// rows (RelationsSpec); Plain names storeless nouns (a key prop id and
+	// a title) the kinds' ends may be, whose relation rows are made from
+	// the key.
+	Relations *RelationsSpec `json:"relations,omitempty"`
+	Plain     []string       `json:"plain,omitempty"`
 }
 
 // RelatedNounSpec is a noun that names the stack's noun by Prop. Things have
@@ -49,6 +55,10 @@ type RelatedNounSpec struct {
 	// Any makes the prop a reference to a thing of any noun (Noun "*"):
 	// things hold "noun:key".
 	Any bool `json:"any,omitempty"`
+	// Relation backs the prop with relations of that kind: a list of
+	// Refs (default the stack's noun) keys read from the relation store,
+	// not from the things.
+	Relation string `json:"relation,omitempty"`
 	// Refs is the noun a plain Prop names (default the stack's Noun).
 	Refs     string           `json:"refs,omitempty"`
 	ReadOnly bool             `json:"readOnly,omitempty"`
@@ -125,6 +135,9 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 	for _, noun := range rowNouns {
 		r.Define(noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
 	}
+	for _, noun := range spec.Plain {
+		r.Define(noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
+	}
 	for _, n := range spec.Nouns {
 		prop := ochazuke.PropSpec{Name: n.Prop, ReadOnly: n.ReadOnly, Parameter: ochazuke.Parameter{Type: "string", Noun: spec.Noun}}
 		if n.Refs != "" {
@@ -132,6 +145,10 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 		}
 		if n.Any {
 			prop.Noun = ochazuke.AnyNoun
+		}
+		if n.Relation != "" {
+			prop.Relation = n.Relation
+			prop.Parameter = ochazuke.Parameter{Type: ochazuke.SettingList, Items: &ochazuke.Parameter{Type: "string", Noun: prop.Noun}}
 		}
 		if n.Owner {
 			prop.Role = ochazuke.RoleOwner
@@ -152,6 +169,9 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 		if !n.Hook {
 			b.Store(m.store())
 		}
+	}
+	if err := ss.defineRelations(spec.Relations); err != nil {
+		return nil, err
 	}
 	for _, s := range []ochazuke.Setting{
 		{Name: "related.order", Type: ochazuke.SettingList, Default: orEmpty(spec.Order)},

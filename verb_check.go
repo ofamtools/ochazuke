@@ -86,6 +86,7 @@ func generatedVerbs() map[string]bool {
 		for name, s := range probes {
 			r.Define(name).Props(props...).Store(s)
 		}
+		r.SetRelationStore(NewMemRelations()) // relate and unrelate need one
 		for _, op := range r.Operations.Entries() {
 			if _, probe := probes[op.Noun()]; probe && op.Standard != "" {
 				generatedSet[op.Standard] = true

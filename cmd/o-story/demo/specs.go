@@ -531,6 +531,18 @@ type StoreSpec struct {
 	// (ochazuke.CopyStore over an in-memory copy): the things are the
 	// source, read once into the copy, and the noun gets refresh.
 	Copy *CopySpec `json:"copy,omitempty"`
+	// Relations gives the runtime an in-memory relation store
+	// (ochazuke.MemRelations) with these kinds declared and these relations
+	// put, so a relation-backed prop (PropSpec.Relation) of the noun reads
+	// and writes them.
+	Relations *RelationsSpec `json:"relations,omitempty"`
+}
+
+// RelationsSpec is a story's relation store: the declared kinds and the
+// relations in it at the start.
+type RelationsSpec struct {
+	Kinds []ochazuke.RelationKind `json:"kinds,omitempty"`
+	Rows  []ochazuke.Relation     `json:"rows,omitempty"`
 }
 
 // CopySpec is a copy store's demo source. Change is what the noun's

@@ -426,6 +426,9 @@ func (ss *session) defineDemo(pages []*Page) error {
 			if err := ss.defineStore(d, p.Store); err != nil {
 				return err
 			}
+			if err := ss.defineRelations(p.Store.Relations); err != nil {
+				return err
+			}
 		}
 		if p.PathWalk != nil {
 			walk := ochazuke.PathWalk{Batch: p.PathWalk.Batch}
@@ -2081,4 +2084,25 @@ func jobMsgs(cmd tea.Cmd) []tea.Msg {
 // written (the story names the row, not a source).
 func storyChoice(row ChooserRowSpec) ochazuke.Choice {
 	return ochazuke.Choice{ID: row.ID, Label: row.Label, Cells: row.Cells, Noun: row.Noun, Props: row.Props, RowFlags: ochazuke.RowFlags{Fixed: row.Fixed, Bare: true}}
+}
+
+// defineRelations gives the runtime the story's relation store, its kinds
+// declared and its rows put.
+func (ss *session) defineRelations(spec *RelationsSpec) error {
+	if spec == nil {
+		return nil
+	}
+	mem := ochazuke.NewMemRelations()
+	for _, k := range spec.Kinds {
+		if err := ss.R.DeclareRelationKind(k); err != nil {
+			return fmt.Errorf("relations: %w", err)
+		}
+	}
+	for _, x := range spec.Rows {
+		if err := mem.Put(x); err != nil {
+			return err
+		}
+	}
+	ss.R.SetRelationStore(mem)
+	return nil
 }

@@ -268,7 +268,7 @@ func (r *Runtime) DeclareRelationKind(k RelationKind) error {
 		return fmt.Errorf("relation kind %q is one word", k.Name)
 	case k.MaxFrom < 0 || k.MaxTo < 0:
 		return fmt.Errorf("relation kind %s: a maximum is 0 (any) or more", k.Name)
-	case k.OnFull != "" && k.OnFull != RelationReplace && k.OnFull != RelationKeep:
+	case k.OnFull != "" && !slices.Contains([]string{RelationReplace, RelationKeep}, k.OnFull):
 		return fmt.Errorf("relation kind %s: onFull is %s or %s", k.Name, RelationReplace, RelationKeep)
 	}
 	for _, end := range []*string{&k.From, &k.To} {

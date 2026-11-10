@@ -1,0 +1,136 @@
+{
+ "name": "relations/list-prop-form",
+ "area": "relations",
+ "width": 100,
+ "height": 30,
+ "page": {
+  "focus": "p1",
+  "lists": [
+   {
+    "id": "projects",
+    "items": [
+     {
+      "id": "p1",
+      "label": "Alpha",
+      "noun": "project",
+      "data": {
+       "id": "p1"
+      }
+     }
+    ]
+   }
+  ],
+  "store": {
+   "noun": "project",
+   "props": [
+    {
+     "name": "id",
+     "key": true
+    },
+    {
+     "name": "name",
+     "role": "label",
+     "required": true
+    },
+    {
+     "name": "directories",
+     "relation": "directory",
+     "type": "list",
+     "items": {
+      "type": "path",
+      "path": "dir",
+      "noun": "directory",
+      "description": "directory"
+     }
+    },
+    {
+     "name": "note"
+    }
+   ],
+   "things": [
+    {
+     "id": "p1",
+     "name": "Alpha",
+     "note": "n"
+    }
+   ],
+   "undo": true,
+   "relations": {
+    "kinds": [
+     {
+      "name": "directory",
+      "ordered": true,
+      "exclusive": [
+       "default"
+      ],
+      "prop": "directories",
+      "inverse": "projects"
+     }
+    ],
+    "rows": [
+     {
+      "kind": "directory",
+      "from": "project:p1",
+      "to": "directory:/work/alpha",
+      "position": 1024,
+      "data": {
+       "default": true
+      }
+     },
+     {
+      "kind": "directory",
+      "from": "project:p1",
+      "to": "directory:/work/alpha-docs",
+      "position": 2048
+     },
+     {
+      "kind": "directory",
+      "from": "project:p1",
+      "to": "directory:/work/alpha-old",
+      "position": 3072
+     }
+    ]
+   }
+  }
+ },
+ "script": [
+  "i",
+  "j",
+  "j",
+  "d",
+  "d",
+  "u",
+  "G"
+ ],
+ "expect": [
+  {
+   "after": 3,
+   "modal": "edit-form",
+   "contains": [
+    "Edit project: Alpha",
+    "directories",
+    "/work/alpha-docs",
+    "+ add directory"
+   ]
+  },
+  {
+   "after": 5,
+   "modal": "edit-form",
+   "contains": [
+    "/work/alpha",
+    "/work/alpha-old"
+   ],
+   "lacks": [
+    "/work/alpha-docs"
+   ]
+  },
+  {
+   "after": 6,
+   "modal": "edit-form",
+   "contains": [
+    "/work/alpha-docs",
+    "/work/alpha-old"
+   ]
+  }
+ ]
+}

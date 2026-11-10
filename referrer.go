@@ -80,7 +80,7 @@ func (r *Runtime) Referrers(noun string) []Referrer {
 			if p.Role == "" {
 				label += " (" + p.Name + ")"
 			}
-			out = append(out, Referrer{Noun: n.Name, Prop: p.Name, Role: p.Role, ReadOnly: p.ReadOnly, Any: any, Relation: p.Relation, Multi: p.Relation != "" && p.Type == SettingList, Label: strings.ToUpper(label[:1]) + label[1:]})
+			out = append(out, Referrer{Noun: n.Name, Prop: p.Name, Role: p.Role, ReadOnly: p.ReadOnly, Any: any, Relation: p.Relation, Multi: p.Relation != "" && p.listed(), Label: strings.ToUpper(label[:1]) + label[1:]})
 		}
 	}
 	return append(out, r.kindReferrers(noun, out)...)
