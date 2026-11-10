@@ -165,6 +165,59 @@ func (r *Runtime) declareSavedIndexColumns() {
 // indexPage is an index page instance's data: the noun it lists.
 type indexPage struct {
 	Noun string `json:"noun"`
+	// Form is the key of the thing the show form holds ("" none).
+	Form string `json:"form,omitempty"`
+	// syncing is set while the form is made (its get is a request, which
+	// syncs again after it runs).
+	syncing bool
+}
+
+// DetailShowFormSetting draws an index page's detail as the edit form over
+// the selected thing's props (read-only until a field is edited, commit on
+// change, u undoes); off, its props as text.
+const DetailShowFormSetting = "detail.show-form"
+
+// syncIndexForm gives the current index page's show form the selected
+// thing: the noun's EditSpec placed as a record editor under the page,
+// made again when the selection names another thing. It runs after each
+// request and when the page opens, never while a frame draws.
+func (r *Runtime) syncIndexForm() {
+	inst := r.Instances[r.Page]
+	if inst == nil {
+		return
+	}
+	ref, ok := inst.Data.(*indexPage)
+	if !ok || ref.syncing {
+		return
+	}
+	ref.syncing = true
+	defer func() { ref.syncing = false }()
+	list := r.List(r.Page + "/list")
+	formID := r.Page + "/form"
+	key := ""
+	if item, ok := list.Selected(); ok && list != nil && r.Settings().Bool(DetailShowFormSetting) {
+		key = strings.TrimPrefix(item.ID, r.Page+"/list/")
+	}
+	if key == ref.Form && (key == "" || r.RecordEditor(formID) != nil) {
+		return
+	}
+	if r.Instances[formID] != nil {
+		if inside := slices.Contains(r.InstancePath(r.Focus), formID); inside {
+			r.changeFocus(list.focusTarget(), focusMove{cause: focusSettle})
+		}
+		_ = r.RemoveInstance(formID)
+	}
+	ref.Form = ""
+	if key == "" {
+		return
+	}
+	spec, err := r.EditSpec(ref.Noun, key)
+	if err != nil {
+		return // a noun the form cannot hold keeps the text detail
+	}
+	if _, err := r.AddRecordEditor(formID, spec, Parent(r.Page)); err == nil {
+		ref.Form = key
+	}
 }
 
 // OpenIndex opens the noun's generated index page (made on first use),
@@ -198,13 +251,14 @@ func (r *Runtime) OpenIndex(noun, key string) error {
 	if r.Focus == id {
 		r.changeFocus(list.focusTarget(), focusMove{cause: focusSettle})
 	}
+	r.syncIndexForm()
 	return nil
 }
 
 // addIndexPage registers the noun's index page: its list and detail.
 func (r *Runtime) addIndexPage(n *Noun, id string) error {
 	inst := r.Instance(id, Parent("app"), Kind(indexNoun))
-	inst.Data = indexPage{Noun: n.Name}
+	inst.Data = &indexPage{Noun: n.Name}
 	list, err := r.AddIndex(id+"/list", n.Name, Parent(id))
 	if err != nil {
 		_ = r.RemoveInstance(id)
@@ -258,7 +312,10 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 	if inst == nil || list == nil || width <= 0 || height <= 0 {
 		return Block{}
 	}
-	ref, _ := inst.Data.(indexPage)
+	ref, _ := inst.Data.(*indexPage)
+	if ref == nil {
+		return Block{}
+	}
 	n := r.Nouns[ref.Noun]
 	styles := NewStyles(Appearance{Theme: "adaptive", Dark: true})
 	if view := r.Settings().page; view.styles != nil {
@@ -274,21 +331,31 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 		title, text = item.Label, r.indexDetail(n, item)
 	}
 	content, marker := "", ""
-	if detail := r.Detail(id + "/detail"); detail != nil {
-		content, marker = detail.Window(text, dw, dch)
-	}
-	if marker != "" {
-		title += " · " + marker
-	}
+	var body Block
 	focused := SplitNone
 	if list.DrawnFocused() {
 		focused = SplitLeft
+	}
+	if form := r.RecordEditor(id + "/form"); form != nil && !form.Closed() && r.Settings().Bool(DetailShowFormSetting) {
+		form.Styles = styles
+		body = form.Block(dw, dch)
+		if slices.Contains(r.InstancePath(r.DrawnFocus(id)), id+"/form") {
+			focused = SplitRight
+		}
+	} else {
+		if detail := r.Detail(id + "/detail"); detail != nil {
+			content, marker = detail.Window(text, dw, dch)
+		}
+		body = Text(content)
+	}
+	if marker != "" {
+		title += " · " + marker
 	}
 	heading := r.DisplayNoun(ref.Noun)
 	if total := list.WindowTotal(); list.Windowed() {
 		heading = fmt.Sprintf("%s · %d", heading, total)
 	}
-	return layout.panelPair(heading, tableBody, title, Text(content), width, height, th, true, focused)
+	return layout.panelPair(heading, tableBody, title, body, width, height, th, true, focused)
 }
 
 // columnHeaderLines is the line a table's column titles take, 0 for a
@@ -310,7 +377,7 @@ func registerIndex(r *Runtime) {
 		noun := StringArg(a, "noun", "")
 		if noun == "" {
 			if inst := r.Instances[r.Page]; inst != nil {
-				if ref, ok := inst.Data.(indexPage); ok {
+				if ref, ok := inst.Data.(*indexPage); ok {
 					noun = ref.Noun
 				}
 			}

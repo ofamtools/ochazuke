@@ -352,7 +352,7 @@ func listParams(n *Noun) map[string]Parameter {
 		"limit":      {Type: "integer", Description: "At most this many rows: the first page of that size (0: every row)"},
 		"sort":       {Type: "string", Free: true, Description: "Order the rows by props, comma-separated, each prop[:desc]; ties keep the store's order"},
 		"group-by":   {Type: "string", Free: true, Description: "Gather the rows that share these props' values into groups (comma-separated props); each row names its group"},
-		"search":     {Type: "string", Free: true, Description: "Only the things holding every word of this text in their key, label or text props (case-insensitive); a store that pages searches the whole store"},
+		"search":     {Type: "string", Free: true, Named: true, Description: "Only the things holding every word of this text in their key, label or text props (case-insensitive); a store that pages searches the whole store"},
 		"group-sort": {Type: "string", Free: true, Description: "Order the groups by group-by props, each prop[:desc] (default: the order the groups first appear in)"},
 		"page":       {Type: "integer", Description: "The page to answer, from 1 (with per-page)"},
 		"per-page":   {Type: "integer", Description: "Rows per page, counting rows, never groups (0: one page of every row)"},

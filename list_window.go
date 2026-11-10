@@ -195,6 +195,7 @@ func (r *Runtime) readStaleWindows() {
 	}
 	ids := h.stale
 	h.stale = nil
+	defer r.syncIndexForm()
 	for _, id := range ids {
 		if l := r.List(id); l != nil {
 			l.windowChanged()
