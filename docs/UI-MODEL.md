@@ -134,6 +134,10 @@ A detail is the read-only text beside (or below) a list about its selected row, 
 
 **Where focus sits:** on the **row instance** (`Runtime.Focus = "alpha"`), never on a "focused list" flag. The list counts as focused because the row's ancestry includes it (`holds`, list.go:225). The focus sits on the list itself only when the list is empty. `stopOf("alpha") = "projects"`.
 
+An empty list has no row instance, but its row noun tables still precede the collection on the key walk. The noun comes from `From(noun)`, `RowNoun(noun)`, or the remembered nouns of the last rows. This also applies when a filter hides every row. A noun-only level supplies bindings, not a subject or a target, so `n` can create the first thing while `show` still asks which thing. The collection remains the focused instance and its motions still work. Dispatch, `binding.list`, help and hints all read this same walk; populated lists use their real rows as before.
+
+Compared with Vim: this noun context has no Vim counterpart. It exposes collection creation without adding a blank row; Vim's empty buffer contains one editable line. The generated noun block still follows `keys.noun-defaults`, on by default.
+
 **Keys and what they move:**
 
 ```js
