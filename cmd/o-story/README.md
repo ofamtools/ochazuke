@@ -501,7 +501,7 @@ Conformance:
 | normal | detail-field | `detail-field.show` `detail-field.yank` |
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
 | normal | filter-form | `filter-form.delete-saved` `filter-form.direction` `filter-form.edit-condition` `filter-form.goto` `filter-form.move` `filter-form.toggle` |
-| normal | focus | `focus.next` `focus.previous` `focus.to` |
+| normal | focus | `focus.act` `focus.next` `focus.previous` `focus.to` |
 | normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history-entry | `history-entry.repeat` `history-entry.undo` |
@@ -517,6 +517,7 @@ Conformance:
 | normal | mode | `mode.enter` `mode.leave` `mode.switch` |
 | normal | notice | `notice.clear` |
 | normal | noun | `noun.edit` |
+| normal | opener | `opener.show` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |
 | normal | palette | `palette.close` `palette.open` |
@@ -665,6 +666,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `filter-form.edit-condition`
 - `normal` → `insert` via `filter-form.goto`
 - `normal` → `insert` via `filter-form.move`
+- `normal` → `insert` via `focus.act`
 - `normal` → `insert` via `form.choose`
 - `normal` → `insert` via `form.next-missing`
 - `normal` → `insert` via `form.suggest`
@@ -675,6 +677,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `markdown.insert`
 - `normal` → `insert` via `markdown.open`
 - `normal` → `insert` via `modal.close`
+- `normal` → `insert` via `opener.show`
 - `normal` → `insert` via `outline.add`
 - `normal` → `insert` via `outline.edit`
 - `normal` → `insert` via `page.pick`
