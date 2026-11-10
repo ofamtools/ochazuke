@@ -27,7 +27,7 @@ type choiceList struct {
 func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) ([]Choice, error) {
 	param, prop := p.r.choiceParameter(op, name, args)
 	key := op.Key.Short() + "/" + name + "\x00" + prop
-	pairs := param.Pairs && (strings.Contains(word, "=") || param.Rest || param.Free && len(param.Enum) == 0 && param.Noun == "" && param.Source == "")
+	pairs := param.completesPairs(word)
 	switch {
 	case pairs:
 		before, _, _ := strings.Cut(word, "=")
