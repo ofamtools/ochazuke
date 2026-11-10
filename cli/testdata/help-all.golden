@@ -4,7 +4,6 @@ Human commands:
 app
 complete
 completion
-                                               shadows alias completion of ochazuke.completion noun
 help, -h, --help
 info
 ochazuke., ochazuke
@@ -101,8 +100,6 @@ widget
 
 Machine commands (JSON / JSON Lines):
 catalog
-            shadows inline oden@VER/builtins.go:23
-            shadows alias catalog of ochazuke.catalog noun
 command
 commands
 state

@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -84,12 +83,13 @@ func helpNames(help string) string {
 		if strings.HasPrefix(l, "  ") && !strings.HasPrefix(l, "   ") {
 			l, _, _ = strings.Cut(strings.TrimSpace(l), "  ")
 		}
+		if strings.HasPrefix(l, "   ") && strings.TrimSpace(l) != "" {
+			continue // a shadow line: it carries source locations
+		}
 		out = append(out, strings.TrimRight(l, " "))
 	}
-	return versionRe.ReplaceAllString(strings.Join(out, "\n"), "oden@VER")
+	return strings.Join(out, "\n")
 }
-
-var versionRe = regexp.MustCompile(`oden@v[0-9.]+`)
 
 func TestHelpGoldens(t *testing.T) {
 	for name, args := range map[string][]string{"help-default": {"help"}, "help-all": {"help", "--all"}} {
