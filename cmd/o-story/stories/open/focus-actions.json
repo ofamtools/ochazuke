@@ -1,0 +1,23 @@
+{
+  "name": "focused actions: a key bound to ochazuke.focus.act lists the focused noun's verbs with their keys, type narrows them, enter runs the picked verb",
+  "area": "open",
+  "width": 90,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [
+      {"verb": "demo.write", "description": "Write the document"},
+      {"verb": "demo.stamp", "description": "Stamp the document"}
+    ],
+    "bind": [
+      {"noun": "demo", "keys": "A", "do": "ochazuke.focus.act"},
+      {"noun": "demo", "keys": "W", "do": "demo.write"}
+    ]
+  },
+  "script": ["A", {"type": "stamp"}, "enter"],
+  "expect": [
+    {"after": 1, "contains": ["Actions · demo", "delete   x", "Remove the row from its list"]},
+    {"after": 2, "contains": ["stamp", "Stamp the document"], "lacks": ["Remove the row from its list"]},
+    {"after": 3, "modal": "", "writes": ["demo.stamp"]}
+  ]
+}

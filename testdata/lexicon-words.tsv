@@ -7,6 +7,7 @@ about-page	noun	seed
 about-row	noun	seed	
 about-state	noun	seed	
 accept	action	seed	
+act	action	yes	act on the focused thing: pick one of its verbs (focus.act)
 action	noun	seed	
 action-item	noun	seed	
 actions	noun	seed	plural

@@ -658,6 +658,7 @@ func (r *Runtime) registerFramework() {
 	registerSettingsEditor(r)
 	registerAbout(r)
 	registerOpen(r)
+	registerFocusActions(r)
 	registerConfigExport(r)
 	registerConfigReload(r)
 	registerHooks(r)

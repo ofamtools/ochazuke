@@ -158,6 +158,7 @@ ochazuke.filter-form.toggle motion=false focusBound=false typing=false kind=acti
 ochazuke.filter-form.write-saved motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.find-line.accept motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.find-line.cancel motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.focus.act motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.focus.display motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.focus.next motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.focus.previous motion=true focusBound=false typing=false kind=action repeatable=false staying=false
