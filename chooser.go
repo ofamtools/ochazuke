@@ -127,6 +127,13 @@ type PickerSpec struct {
 	// else the first.
 	Sources []ChooserSource
 	Source  string
+	// Scoped makes Sources the picker's scopes (Scope) rather than
+	// alternative sources: S (picker.next-scope) steps through them, the
+	// title does not list them, the search line's tag names the one in
+	// effect and what the widest (the last) holds beyond it
+	// (ChooserSource.Count), and a reopen starts on the first, never on the
+	// one last used.
+	Scoped bool
 	// Hint, when set, ends the empty and no-match lines and the refusal
 	// of a pick nothing matches ("no known directories; type a path to
 	// pick one"), whatever the source's own Empty says: one place for
@@ -867,6 +874,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 			right = append(right, tag)
 		}
 	}
+	right = c.withScopeTag(right)
 	tail := strings.Join(right, "  ")
 	inputWidth := max(8, width-ansi.StringWidth(prefix))
 	if tail != "" && inputWidth-ansi.StringWidth(tail)-1 >= 8 {

@@ -32,6 +32,7 @@ type pickerModal interface {
 // old chooser-* name is registered too for one release (Keep actions).
 const (
 	PickerSourcesGuard      = "picker-sources"       // more than one source
+	PickerScopesGuard       = "picker-scopes"        // the picker has scopes (S steps through them)
 	PickerOpensGuard        = "picker-opens"         // the highlighted row opens
 	PickerEnterOpensGuard   = "picker-enter-opens"   // enter opens it (PickerEnterSetting, or a row that only opens)
 	PickerUpGuard           = "picker-up"            // the picker can step up

@@ -61,6 +61,9 @@ type PickerDef struct {
 	// Sources are more named sources, cycled with the chooser's
 	// next-source and previous-source keys; each is a verb as Source.
 	Sources []string `json:"sources,omitempty"`
+	// Scopes are the named slices of the picker's values (Scope), cycled
+	// with S; a Noun parameter that opens this picker takes them.
+	Scopes []Scope `json:"scopes,omitempty"`
 	// Preview is a verb run on the highlighted row (its subject parameter,
 	// else its target, the row's id) whose answer is drawn beside the
 	// rows; "" is the Noun's get verb when it has one. A verb that answers
@@ -313,7 +316,44 @@ func (r *Runtime) openSourcePicker(def PickerDef) (*Chooser, error) {
 		Preview: r.pickerPreview(def),
 		Choose:  func(row ChooserRow) Result { return r.runPickerPick(def, row) },
 	}
+	// A picker with scopes (declared, or derived for a noun that archives)
+	// opens on the first and S steps to the widest (Scope).
+	base := pickerParam(def, def.Source)
+	base.Scopes = def.Scopes
+	if scopes := r.scopesOf(base, nil); len(scopes) > 0 && len(def.Sources) == 0 {
+		spec.Scoped, spec.Sources = true, nil
+		for _, sc := range scopes {
+			param := sc.within(base, nil)
+			spec.Sources = append(spec.Sources, ChooserSource{
+				Name: sc.Name,
+				Load: r.paramRows(ctx, param),
+				Count: func(query string) (int, bool) {
+					choices, err := r.ChoicesFor(ctx, param, query)
+					return len(choices), err == nil
+				},
+			})
+		}
+	}
 	return r.OpenChooser(spec)
+}
+
+// paramRows is a chooser source Load over a parameter's choices.
+func (r *Runtime) paramRows(c Context, param Parameter) func(query string) Result {
+	return func(query string) Result {
+		res := r.choicesLoad(c, param, query)
+		if res.work == nil {
+			if res.err != nil {
+				return res
+			}
+			return Done(choiceRows(res.value))
+		}
+		return res.bare().Map(func(value any, err error) (any, error) {
+			if err != nil {
+				return nil, err
+			}
+			return choiceRows(value), nil
+		})
+	}
 }
 
 // pickerVerb is one of a picker's row verbs: the one it declares, else the
@@ -644,6 +684,9 @@ func (r *Runtime) nounPicker(spec ChooserSpec, p Parameter) (ChooserSpec, Parame
 	}
 	if spec.Match == "" {
 		spec.Match = def.Match
+	}
+	if len(p.Scopes) == 0 {
+		p.Scopes = def.Scopes
 	}
 	return spec, p
 }

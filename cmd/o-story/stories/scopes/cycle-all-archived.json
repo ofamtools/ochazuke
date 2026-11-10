@@ -1,0 +1,17 @@
+{
+  "name": "a noun picker opens on all, the tag counts what the widest scope adds, alt+s steps to archived and shows every value",
+  "area": "scopes",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "store": {"noun": "parcel", "props": [{"name": "id", "key": true}, {"name": "title", "role": "label", "required": true}, {"name": "done", "role": "archive", "type": "boolean"}], "things": [{"id": "t1", "title": "Original"}, {"id": "t2", "title": "Second"}, {"id": "t3", "title": "Old one", "done": true}]},
+    "bind": [{"noun": "app", "keys": "P", "do": "parcel.get"}]
+  },
+  "script": ["P", "enter", "alt+s", "alt+s"],
+  "expect": [
+    {"after": 2, "contains": ["Original", "Second", "all", "1 more in archived"], "lacks": ["Old one"]},
+    {"after": 3, "contains": ["Original", "Second", "Old one", "archived"], "lacks": ["more in"]},
+    {"contains": ["all", "1 more in archived"], "lacks": ["Old one"]}
+  ]
+}

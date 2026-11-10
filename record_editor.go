@@ -1278,7 +1278,8 @@ func (e *RecordEditor) suggest(f *recordField) error {
 	if f.suggest {
 		spec.Create, spec.CreateRow = fill, true
 		spec.CreateLabel = func(query string) string { return "use " + strconv.Quote(query) }
-	} else {
+	}
+	if !f.suggest {
 		spec.Title = "Choose " + f.label()
 		if !f.Required {
 			fixed = append(fixed, noneChoice().Row())
@@ -1328,6 +1329,27 @@ type choiceLoad struct {
 // once, as a job of the chooser (closing it cancels the load).
 func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, error) {
 	spec, l.param = r.nounPicker(spec, l.param)
+	if l.siblings == nil {
+		l.siblings = func() Arguments { return nil }
+	}
+	if scopes := r.scopesOf(l.param, l.siblings()); len(scopes) > 0 {
+		// A picker with scopes opens on the first and S steps to the
+		// others, the last holding every possible value (Scope).
+		spec.Scoped = true
+		for _, sc := range scopes {
+			param := sc.within(l.param, l.siblings())
+			spec.Sources = append(spec.Sources, ChooserSource{
+				Name: sc.Name,
+				Live: r.ChoicesTakeQuery(param),
+				Load: r.choiceSourceLoad(l, param),
+				Count: func(query string) (int, bool) {
+					choices, err := r.ChoicesFor(l.ctx, param, query, l.siblings())
+					return len(choices), err == nil
+				},
+			})
+		}
+		return r.OpenChooser(spec)
+	}
 	landed := func(choices []Choice) {
 		if l.landed != nil {
 			l.landed(choices)
@@ -1339,42 +1361,7 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 		src := ChooserSource{
 			Name: "suggestions",
 			Live: r.ChoicesTakeQuery(l.param),
-			Load: func(query string) Result {
-				res := r.choicesLoad(l.ctx, l.param, query, l.siblings())
-				rows := func(value any) []ChooserRow {
-					choices, _ := value.([]Choice)
-					out := make([]ChooserRow, 0, len(choices)+len(l.fixed))
-					for _, ch := range choices {
-						out = append(out, l.choiceRow(ch))
-					}
-					return append(out, l.fixed...)
-				}
-				if res.work == nil {
-					if res.err != nil {
-						return res
-					}
-					choices, _ := res.value.([]Choice)
-					landed(choices)
-					return Done(rows(res.value))
-				}
-				return res.bare().Map(func(value any, err error) (any, error) {
-					if err != nil {
-						return nil, err
-					}
-					return rows(value), nil
-				}).Then(func(_ Ctx, value any, _ error) {
-					// value is the rows; the choices they came from are
-					// their ids.
-					got, _ := value.([]ChooserRow)
-					var choices []Choice
-					for _, row := range got {
-						if !row.Fixed {
-							choices = append(choices, Choice{ID: row.ID, Label: row.Label})
-						}
-					}
-					landed(choices)
-				})
-			},
+			Load: r.choiceSourceLoad(l, l.param),
 		}
 		if l.param.Noun == AnyNoun && l.param.Source == "" {
 			anyRefNavigation(&src)
@@ -1409,6 +1396,53 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 	}
 	r.loadChoices(l.ctx, l.param, spec.Kind, done, l.siblings())
 	return c, nil
+}
+
+// choiceSourceLoad is the chooser source Load of a parameter's choices in
+// param (l.param, or the parameter within one of its scopes): the choices
+// for the query and the siblings, each as a row, then the fixed rows.
+func (r *Runtime) choiceSourceLoad(l choiceLoad, param Parameter) func(query string) Result {
+	landed := func(choices []Choice) {
+		if l.landed != nil {
+			l.landed(choices)
+		}
+	}
+	return func(query string) Result {
+		res := r.choicesLoad(l.ctx, param, query, l.siblings())
+		rows := func(value any) []ChooserRow {
+			choices, _ := value.([]Choice)
+			out := make([]ChooserRow, 0, len(choices)+len(l.fixed))
+			for _, ch := range choices {
+				out = append(out, l.choiceRow(ch))
+			}
+			return append(out, l.fixed...)
+		}
+		if res.work == nil {
+			if res.err != nil {
+				return res
+			}
+			choices, _ := res.value.([]Choice)
+			landed(choices)
+			return Done(rows(res.value))
+		}
+		return res.bare().Map(func(value any, err error) (any, error) {
+			if err != nil {
+				return nil, err
+			}
+			return rows(value), nil
+		}).Then(func(_ Ctx, value any, _ error) {
+			// value is the rows; the choices they came from are
+			// their ids.
+			got, _ := value.([]ChooserRow)
+			var choices []Choice
+			for _, row := range got {
+				if !row.Fixed {
+					choices = append(choices, Choice{ID: row.ID, Label: row.Label})
+				}
+			}
+			landed(choices)
+		})
+	}
 }
 
 // choiceRow is a choice as a row of the chooser.

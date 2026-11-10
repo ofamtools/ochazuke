@@ -74,3 +74,28 @@ func TestStandardVerbRunsAwayFromItsNoun(t *testing.T) {
 		t.Fatalf("err = %v, want a need for id", err)
 	}
 }
+
+// Scopes: explicit ones drop a scope whose Needs is unset; a noun that
+// archives gets all then archived; fewer than two is no scoping; the
+// setting turns scopes off.
+func TestScopesOf(t *testing.T) {
+	r := NewRuntime()
+	p := Parameter{Scopes: []Scope{{Name: "project", Needs: "project", Fixed: map[string]any{"project": "{project}"}}, {Name: "all"}, {Name: "archived", Fixed: map[string]any{"archived": true}}}}
+	if got := r.scopesOf(p, nil); len(got) != 2 || got[0].Name != "all" {
+		t.Fatalf("without a project: %v", got)
+	}
+	got := r.scopesOf(p, Arguments{"project": "matomeru"})
+	if len(got) != 3 || got[0].Name != "project" {
+		t.Fatalf("with a project: %v", got)
+	}
+	within := got[0].within(p, Arguments{"project": "matomeru"})
+	if within.SourceFixed["project"] != "matomeru" || within.Scopes != nil {
+		t.Fatalf("within = %+v", within)
+	}
+	if err := r.Settings().Set(PickerScopesSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	if r.scopesOf(p, nil) != nil {
+		t.Fatal("scopes off must leave none")
+	}
+}

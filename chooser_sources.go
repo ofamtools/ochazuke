@@ -96,6 +96,11 @@ type PickerSource struct {
 	// Current, when set, is the row picker.pick {current: true} takes
 	// (the path picker's find: the folder it searches).
 	Current func() (ChooserRow, bool)
+	// Count, on a scope (ChooserSpec.Scoped), is how many values the scope
+	// holds for the query, when it can say at once; the search-line tag
+	// subtracts the scope in effect from the widest to say how many more
+	// the next S would show.
+	Count func(query string) (int, bool)
 	// Close, when set, runs when the picker closes: the source stops work
 	// of its own (an index running between loads).
 	Close func()
@@ -182,10 +187,16 @@ func registerChooserSources(r *Runtime) {
 	}
 	r.Define(chooserNoun).
 		Verb("next-source", step(1), "Show the next source's rows; the query stays").When(PickerSourcesGuard).
-		Verb("previous-source", step(-1), "Show the previous source's rows; the query stays").When(PickerSourcesGuard)
+		Verb("previous-source", step(-1), "Show the previous source's rows; the query stays").When(PickerSourcesGuard).
+		Verb("next-scope", step(1), "Show the next scope's values (project, all, archived); the query stays").When(PickerScopesGuard).
+		Verb("previous-scope", step(-1), "Show the previous scope's values; the query stays").When(PickerScopesGuard)
 	r.DefineGuard(PickerSourcesGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])
-		return c != nil && len(c.spec.Sources) > 1
+		return c != nil && len(c.spec.Sources) > 1 && !c.spec.Scoped
+	})
+	r.DefineGuard(PickerScopesGuard, func(r *Runtime, ev KeyEvent) bool {
+		c := r.chooserAt(r.Instances[ev.Focus])
+		return c != nil && len(c.spec.Sources) > 1 && c.spec.Scoped
 	})
 }
 
@@ -236,6 +247,9 @@ func (c *Chooser) startSource() int {
 	if i, ok := find(c.spec.Source); ok {
 		return i
 	}
+	if c.spec.Scoped {
+		return 0
+	}
 	if v, _ := c.r.settingValue(ChooserRememberSourceSetting); v != false {
 		if i, ok := find(c.r.chooserMemory().lastSource[c.spec.Kind]); ok {
 			return i
@@ -264,7 +278,9 @@ func (c *Chooser) cycle(delta int) error {
 	c.suppressed = c.claimedBy(c.Query()) >= 0
 	c.claimed = false
 	c.source = ((c.source+delta)%n + n) % n
-	c.r.chooserMemory().lastSource[c.spec.Kind] = c.Source()
+	if !c.spec.Scoped {
+		c.r.chooserMemory().lastSource[c.spec.Kind] = c.Source()
+	}
 	c.spec.Rows = nil
 	c.cachePropRows()
 	c.load()
@@ -588,7 +604,7 @@ func (c *Chooser) navigated(query string) {
 // sourceTitle is the title with the sources: the current one in brackets
 // (its Label when it has one), the others by name.
 func (c *Chooser) sourceTitle() string {
-	if len(c.spec.Sources) < 2 {
+	if len(c.spec.Sources) < 2 || c.spec.Scoped {
 		return c.spec.Title
 	}
 	parts := make([]string, len(c.spec.Sources))
@@ -726,3 +742,38 @@ func (c *Chooser) live() bool {
 
 // sourceNames is a helper for state(): the names, in order.
 func (c *Chooser) sourceNames() []string { return slices.Clone(c.Sources()) }
+
+// scopeTag is the search line's note of the scope in effect on a scoped
+// picker: its name, and how many more values the widest scope holds when
+// the scopes can count ("project matomeru · 212 more in all"). "" for a
+// picker without scopes.
+func (c *Chooser) scopeTag() string {
+	if !c.spec.Scoped || len(c.spec.Sources) < 2 {
+		return ""
+	}
+	cur := c.current()
+	if cur == nil {
+		return ""
+	}
+	name := cur.Name
+	if cur.Label != nil {
+		name = cur.Label()
+	}
+	last := c.spec.Sources[len(c.spec.Sources)-1]
+	if cur.Name == last.Name || cur.Count == nil || last.Count == nil {
+		return name
+	}
+	query := c.Query()
+	have, ok := cur.Count(query)
+	more, ok2 := last.Count(query)
+	if !ok || !ok2 || more <= have {
+		return name
+	}
+	return fmt.Sprintf("%s \u00b7 %d more in %s", name, more-have, last.Name)
+}
+
+// withScopeTag puts the scope tag (scopeTag) first among the search line's
+// right-hand notes.
+func (c *Chooser) withScopeTag(right []string) []string {
+	return append(slices.DeleteFunc([]string{c.scopeTag()}, func(tag string) bool { return tag == "" }), right...)
+}

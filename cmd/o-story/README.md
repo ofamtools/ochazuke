@@ -475,7 +475,8 @@ Conformance:
 | insert | mode | `mode.list` `mode.switch` |
 | insert | outline | `outline.leave` `outline.next` `outline.row-key` |
 | insert | palette | `palette.back` `palette.cancel` `palette.complete` `palette.move` `palette.run` `palette.step` |
-| insert | picker | `picker.clear-props` `picker.into` `picker.move` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.up` |
+| insert | parcel | `parcel.list` |
+| insert | picker | `picker.clear-props` `picker.into` `picker.move` `picker.next-scope` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.up` |
 | insert | search | `search.cycle-match` |
 | insert | setting | `setting.complete` `setting.open` |
 | insert | setting-value | `setting-value.accept` |
