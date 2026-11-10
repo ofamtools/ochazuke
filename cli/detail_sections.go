@@ -429,6 +429,9 @@ type sectionKind struct {
 	check func(s CatalogDetailSection) string
 	mount func(v *PageView) error
 	text  func(v *PageView, s CatalogDetailSection, width int) string
+	// drawsRelated says the kind draws the host's related stack itself, so
+	// the detail does not append it again.
+	drawsRelated bool
 }
 
 // sectionKinds are the section kinds beyond markdown, thread, fields and
@@ -440,6 +443,7 @@ func registerSectionKind(name string, kind sectionKind) { sectionKinds[name] = k
 
 func init() {
 	registerSectionKind("related", sectionKind{
+		drawsRelated: true,
 		check: func(s CatalogDetailSection) string {
 			if s.Region == "side" {
 				return "related sections use the main region"

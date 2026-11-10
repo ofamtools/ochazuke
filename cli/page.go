@@ -388,24 +388,8 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 		}
 	}
 	if p.Detail != nil {
-		d, err := r.AddDetail(p.ID+"/detail", v.selectedID, ochazuke.Parent(p.ID))
-		if err != nil {
+		if err := v.mountDetail(); err != nil {
 			return nil, err
-		}
-		v.detail = d
-		if cfg.Related != nil {
-			if err := v.mountRelated(); err != nil {
-				return nil, err
-			}
-		}
-		if len(p.Detail.Sections) > 0 {
-			if err := v.mountDetailSections(); err != nil {
-				return nil, err
-			}
-		} else {
-			if err := v.mountKind(); err != nil {
-				return nil, err
-			}
 		}
 	}
 	focus := v.lists[0].list.FocusTarget()
@@ -1229,4 +1213,24 @@ func (v *PageView) detailPanel(layout ochazuke.Layout, width, height int) ochazu
 		title += " · " + marker
 	}
 	return layout.PanelBlock(title, ochazuke.Text(body), width, height, false)
+}
+
+// mountDetail adds the page's detail: the document, the host's related stack
+// when the config has one, and the declared sections (or the kind's view).
+func (v *PageView) mountDetail() error {
+	r, p, cfg := v.m.Runtime, v.spec, v.cfg
+	d, err := r.AddDetail(p.ID+"/detail", v.selectedID, ochazuke.Parent(p.ID))
+	if err != nil {
+		return err
+	}
+	v.detail = d
+	if cfg.Related != nil {
+		if err := v.mountRelated(); err != nil {
+			return err
+		}
+	}
+	if len(p.Detail.Sections) > 0 {
+		return v.mountDetailSections()
+	}
+	return v.mountKind()
 }

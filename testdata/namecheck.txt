@@ -66,7 +66,7 @@ cli/mcp_backend.go	parameterSchema	case	"list"	1
 cli/mount.go	Mount	compare	"app"	1
 cli/mount.go	Mount	compare	"list"	1
 cli/mount.go	Mount	cyclo	"-"	55
-cli/page.go	MountPage	cyclo	"-"	31
+cli/page.go	MountPage	cyclo	"-"	28
 cli/pagestate.go	PageView.ApplyState	case	"delta"	1
 cli/ptykeys.go	var keyCodes	table	"delete"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch
 cli/ptykeys.go	var keyCodes	table	"down"	1	key names mapped to terminal byte sequences; the words coincide with mode and motion names, no name branch

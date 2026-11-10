@@ -211,7 +211,7 @@ func (v *PageView) declaresRelated() bool {
 		return false
 	}
 	for _, s := range v.spec.Detail.Sections {
-		if s.Kind == "related" {
+		if sectionKinds[s.Kind].drawsRelated {
 			return true
 		}
 	}
