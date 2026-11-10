@@ -278,11 +278,26 @@ func (e *RecordEditor) itemPrompt(f *recordField, at int, insert bool, current s
 	title := verb + label + " (" + f.label() + ")"
 	it := *f.Items
 	if it.IsPath() {
-		_, err := e.r.OpenPathChooser(PathChooserSpec{
+		spec := PathChooserSpec{
 			Title:  title,
 			Pick:   PathPick{Name: f.Name, Parameter: it, Value: current},
 			Choose: take,
-		})
+		}
+		if insert {
+			// Adding to a list takes several paths at once, marked in the
+			// chooser; they join the list in the order marked.
+			spec.Many = true
+			spec.ChooseMany = func(paths []string) Result {
+				items := f.listItems()
+				at = min(at, len(items))
+				items = slices.Insert(items, at, paths...)
+				if err := e.setItems(f, items, at+len(paths)-1); err != nil {
+					return Failed(err)
+				}
+				return Done(len(paths))
+			}
+		}
+		_, err := e.r.OpenPathChooser(spec)
 		return err
 	}
 	spec := ChooserSpec{

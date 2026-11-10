@@ -99,6 +99,56 @@ type PickerSource struct {
 	// Close, when set, runs when the picker closes: the source stops work
 	// of its own (an index running between loads).
 	Close func()
+	// CanOpen, when set, says a row without Opens can still be browsed
+	// into with picker.into (a row of a list of folders): Open then takes
+	// it. Enter still opens only a row marked Opens.
+	CanOpen func(row ChooserRow) bool
+	// UpFrom, when set, stands in for Up: it also knows the highlighted
+	// row (a list of places goes up from the place under the highlight).
+	UpFrom func(row ChooserRow, query string) (string, bool)
+	// Goto, when set, sends the source to a named place (picker.goto: "~",
+	// "/", "first-col", "last-col") and returns the query to show next.
+	Goto func(to string) (query string, ok bool)
+	// Landing, when set, names where the highlight goes after a navigation
+	// (Open, Up, Goto, Make) once the rows arrive: a section name, or
+	// "row:ID" for one row (going up lands on the folder just left).
+	Landing func() string
+	// Make, when set, makes a new thing named in the search line
+	// (picker.make, a new folder in the folder shown) as work off the loop;
+	// MakeLabel says what and where while it is being named. The source
+	// has moved into the new thing when the work succeeds. A MakeLabel
+	// that answers "" says nothing can be made here now.
+	Make      func(name string) Result
+	MakeLabel func() string
+	// Side, when set, gives the side column drawn beside the rows
+	// (ChooserSpec.Columns): a key naming what it shows, and the work that
+	// loads it (a PickerSide) when the key changed.
+	Side func() (key string, load func() Result)
+	// Section, with SectionLimit, declares the source as a section of a
+	// sectioned picker (the directory picker's hybrid style): its title and
+	// the most rows it shows while the query is empty. "" leaves the source
+	// out of the sections.
+	Section      string
+	SectionLimit int
+	// Stands names the sources this one stands for: a picker that offers
+	// it leaves them out (the hybrid style's one list is browse and recent).
+	Stands []string
+}
+
+// PickerSide is a source's side column (PickerSource.Side): a title, the
+// lines listed under it, and the one to mark as the place the rows are in.
+type PickerSide struct {
+	Title string
+	Lines []string
+	At    string
+}
+
+// pickerSide is the chooser's loaded side column.
+type pickerSide struct {
+	key     string
+	value   PickerSide
+	loading bool
+	gen     uint64
 }
 
 // Chooser settings: rows of settings/ochazuke.json.
@@ -129,6 +179,7 @@ type chooserState struct {
 	pathSources []namedPathSource
 	pathBase    func(PathPick) string
 	recentPaths func(PathPick) []string
+	recentUses  func(PathPick) []PathUse
 	picked      []string // paths picked through a path chooser, newest first
 	walks       *walkCache
 	// pickers are the declared pickers (AddPicker).
@@ -542,14 +593,25 @@ func (c *Chooser) opens() bool {
 	return ok && row.Opens && src != nil && src.Open != nil
 }
 
+// canInto reports whether picker.into can browse into the highlighted row:
+// one that opens, or one the source says it can open (CanOpen).
+func (c *Chooser) canInto() bool {
+	if c.opens() {
+		return true
+	}
+	src := c.current()
+	row, ok := c.Highlighted()
+	return ok && src != nil && src.Open != nil && src.CanOpen != nil && row.ID != chooserCreateRow && src.CanOpen(row)
+}
+
 func (c *Chooser) canUp() bool {
 	src := c.current()
-	return src != nil && src.Up != nil
+	return src != nil && (src.Up != nil || src.UpFrom != nil)
 }
 
 // open navigates into the highlighted row and reloads the source.
 func (c *Chooser) open() error {
-	if !c.opens() {
+	if !c.canInto() {
 		return errors.New("the highlighted row does not open")
 	}
 	row, _ := c.Highlighted()
@@ -557,6 +619,7 @@ func (c *Chooser) open() error {
 	if !ok {
 		return fmt.Errorf("cannot open %s", row.Label)
 	}
+	c.land = c.current().landing()
 	c.navigated(query)
 	return nil
 }
@@ -566,10 +629,19 @@ func (c *Chooser) up() error {
 	if !c.canUp() {
 		return errors.New("the source cannot step up")
 	}
-	query, ok := c.current().Up(c.Query())
+	src := c.current()
+	var query string
+	var ok bool
+	if src.UpFrom != nil {
+		row, _ := c.Highlighted()
+		query, ok = src.UpFrom(row, c.Query())
+	} else {
+		query, ok = src.Up(c.Query())
+	}
 	if !ok {
 		return errors.New("nowhere to go up to")
 	}
+	c.land = src.landing()
 	c.navigated(query)
 	return nil
 }
@@ -726,3 +798,11 @@ func (c *Chooser) live() bool {
 
 // sourceNames is a helper for state(): the names, in order.
 func (c *Chooser) sourceNames() []string { return slices.Clone(c.Sources()) }
+
+// landing is where the highlight goes after a navigation ("" for the top).
+func (s *PickerSource) landing() string {
+	if s == nil || s.Landing == nil {
+		return ""
+	}
+	return s.Landing()
+}
