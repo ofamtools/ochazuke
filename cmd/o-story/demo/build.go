@@ -1179,7 +1179,7 @@ func (ss *session) addPage(p *Page) error {
 			return fmt.Errorf("detail: %w", err)
 		}
 		ss.details[p.ID] = d
-		if p.Detail.ShowForm && len(p.Lists) > 0 {
+		if p.Detail.ShowForm && len(p.Lists) > 0 && r.ShowFormOf(p.ID+"-show") == nil {
 			first := p.Lists[0].ID
 			if _, err := r.AddShowForm(p.ID+"-show", ochazuke.ShowFormSpec{List: func() *ochazuke.Collection { return ss.lists[first] }}, ochazuke.Parent(p.ID)); err != nil {
 				return fmt.Errorf("show form: %w", err)
@@ -1631,7 +1631,7 @@ func (ss *session) renderMain(p *Page, width, height int) ochazuke.Block {
 		if p.Timeline != nil {
 			order = append(order, timelineID(p))
 		}
-		if p.Related != nil {
+		if p.Related != nil && ss.R.ShowFormOf(p.ID+"-show") == nil {
 			order = append(order, relatedID(p))
 		}
 	}

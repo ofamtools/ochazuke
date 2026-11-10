@@ -259,16 +259,21 @@ func (rel *Related) hiddenBy(id string) string {
 }
 
 // order is every section in display order: the ones the order setting
-// names first, then the others in referrer order.
+// names first, then the others in referrer order, with history last.
 func (rel *Related) order() []*relatedSection {
 	out := make([]*relatedSection, 0, len(rel.sections))
 	for _, id := range rel.listSetting(rel.spec.Order) {
-		if s := rel.byID[strings.TrimSpace(id)]; s != nil && !slices.Contains(out, s) {
+		if s := rel.byID[strings.TrimSpace(id)]; s != nil && !s.ref.History && !slices.Contains(out, s) {
 			out = append(out, s)
 		}
 	}
 	for _, s := range rel.sections {
-		if !slices.Contains(out, s) {
+		if !s.ref.History && !slices.Contains(out, s) {
+			out = append(out, s)
+		}
+	}
+	for _, s := range rel.sections {
+		if s.ref.History {
 			out = append(out, s)
 		}
 	}

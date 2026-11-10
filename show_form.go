@@ -25,14 +25,20 @@ type ShowFormSpec struct {
 	// List is the list whose selected row the form shows, read on every
 	// sync.
 	List func() *Collection
-	// Target, in place of List, names the thing to show (a mounted page's
-	// selected row: catalog detail kind record-form), and Data the row's
-	// data it was read for ("" none), both read on every sync.
+	// Target, when set, replaces List's selection with the thing to show
+	// (a mounted page's selected row: catalog detail kind record-form).
+	// Data names the row data it was read for ("" none), on every sync.
 	Target func() (noun, key string)
 	Data   func() string
 	// Form is the form instance's id (default the show form's id + /form).
 	Form string
-	// NoSections leaves the relation and history sections out.
+	// Related replaces the native related/history stack with this spec.
+	// The value is copied; its Target is replaced with the form's target,
+	// so its Noun and Key are not used. All settings, row hooks, placed
+	// views and History are otherwise unchanged. Nil uses the native
+	// detail.related, detail.related-hidden and History: true defaults.
+	Related *RelatedSpec
+	// NoSections leaves all sections out, including Related when supplied.
 	NoSections bool
 }
 
@@ -63,6 +69,7 @@ func (r *Runtime) AddShowForm(id string, spec ShowFormSpec, opts ...InstanceOpti
 	if target == nil {
 		target = r.SelectionTarget(spec.List)
 	}
+	spec.Target = target
 	if spec.Form == "" {
 		spec.Form = id + "/form"
 	}
@@ -71,8 +78,12 @@ func (r *Runtime) AddShowForm(id string, spec ShowFormSpec, opts ...InstanceOpti
 	inst.Component = sf
 	if !spec.NoSections {
 		parent := inst.Parent
-		rel, err := r.AddRelated(id+"/related", RelatedSpec{Target: target,
-			Enabled: RelatedDetailSetting, Hidden: RelatedDetailHiddenSetting, History: true}, Parent(parent))
+		related := RelatedSpec{Enabled: RelatedDetailSetting, Hidden: RelatedDetailHiddenSetting, History: true}
+		if spec.Related != nil {
+			related = *spec.Related
+		}
+		related.Target = target
+		rel, err := r.AddRelated(id+"/related", related, Parent(parent))
 		if err != nil {
 			_ = r.RemoveInstance(id)
 			return nil, err
@@ -117,19 +128,17 @@ func (sf *ShowForm) syncOnce() {
 	r, formID := sf.r, sf.spec.Form
 	var list *Collection
 	noun, key, data := "", "", ""
-	switch {
-	case !r.Settings().Bool(DetailShowFormSetting):
-	case sf.spec.List != nil:
-		if list = sf.spec.List(); list != nil {
-			if item, ok := list.Selected(); ok {
-				noun, key = r.SelectionTarget(sf.spec.List)()
-				data = fmt.Sprint(item.Data)
-			}
-		}
-	default:
+	if sf.spec.List != nil {
+		list = sf.spec.List()
+	}
+	if r.Settings().Bool(DetailShowFormSetting) {
 		noun, key = sf.spec.Target()
 		if sf.spec.Data != nil {
 			data = sf.spec.Data()
+		} else if list != nil {
+			if item, ok := list.Selected(); ok {
+				data = fmt.Sprint(item.Data)
+			}
 		}
 	}
 	if form := sf.Form(); noun == sf.noun && key == sf.key && (key == "" || form != nil) {
