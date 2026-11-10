@@ -48,16 +48,14 @@ func TestBindingsExportRoundTripsEveryStoryApp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	built := 0
 	for _, s := range core {
 		if s.Base != "" {
 			continue // a trimmed story replays its base's app
 		}
 		ss, err := story.Library{Apps: hostApps}.Build(s, story.Options{Mono: true})
 		if err != nil {
-			continue // a story that does not build is its own test's failure
+			t.Fatalf("%s: %v", s.Path, err)
 		}
-		built++
 		doc := ss.R.BindingsDoc()
 		data, err := ochazuke.FormatBindings(doc)
 		if err != nil {
@@ -92,8 +90,5 @@ func TestBindingsExportRoundTripsEveryStoryApp(t *testing.T) {
 		}
 		ss.Close()
 		fresh.Close()
-	}
-	if built < 100 {
-		t.Fatalf("only %d story apps built", built)
 	}
 }

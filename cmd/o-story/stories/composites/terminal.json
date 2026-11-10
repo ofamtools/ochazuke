@@ -1,0 +1,2328 @@
+{
+  "name": "terminal end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 80,
+      "height": 18,
+      "chrome": "none",
+      "page": {
+        "diff": {
+          "files": [
+            {
+              "oldPath": "image.bin",
+              "newPath": "image.bin",
+              "status": "M",
+              "binary": true,
+              "oldSize": 512,
+              "newSize": 1024
+            },
+            {
+              "newPath": "generated.go",
+              "status": "A",
+              "truncated": true,
+              "added": 50000,
+              "removed": 0,
+              "hunks": [
+                {
+                  "oldStart": 0,
+                  "oldCount": 0,
+                  "newStart": 1,
+                  "newCount": 2,
+                  "lines": [
+                    {
+                      "kind": 1,
+                      "new": 1,
+                      "text": "package generated"
+                    },
+                    {
+                      "kind": 1,
+                      "new": 2,
+                      "text": "// first two lines of a bounded snapshot"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "name": "diff: binary-and-truncated"
+    },
+    {
+      "width": 80,
+      "height": 9,
+      "chrome": "none",
+      "page": {
+        "diff": {
+          "text": "diff --git a/demo.go b/demo.go\nindex 1234567..7654321 100644\n--- a/demo.go\n+++ b/demo.go\n@@ -1,4 +1,4 @@ package demo\n package demo\n-func oldName() string {\n- return \"old\"\n+func newName() string {\n+ return \"new\"\n }\n@@ -30,2 +30,3 @@ tail\n // tail\n-var old = 1\n+var next = 2\n+// added\n@@ -60 +61 @@ final\n-old final\n+new final\n"
+        }
+      },
+      "name": "diff: hunk-motions"
+    },
+    {
+      "width": 80,
+      "height": 18,
+      "chrome": "none",
+      "page": {
+        "diff": {
+          "text": "diff --git a/long.go b/long.go\n--- a/long.go\n+++ b/long.go\n@@ -1 +1 @@\n-const longIdentifier = \"abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij END\"\n+const longResult = \"abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij END\"\n"
+        }
+      },
+      "name": "diff: long-lines"
+    },
+    {
+      "width": 80,
+      "height": 8,
+      "chrome": "none",
+      "page": {
+        "diff": {
+          "text": "diff --git a/demo.go b/demo.go\nindex 1234567..7654321 100644\n--- a/demo.go\n+++ b/demo.go\n@@ -1,4 +1,4 @@ package demo\n package demo\n-func oldName() string {\n- return \"old\"\n+func newName() string {\n+ return \"new\"\n }\n@@ -30,2 +30,3 @@ tail\n // tail\n-var old = 1\n+var next = 2\n+// added\n@@ -60 +61 @@ final\n-old final\n+new final\n"
+        }
+      },
+      "name": "diff: scroll"
+    },
+    {
+      "width": 160,
+      "height": 18,
+      "chrome": "none",
+      "page": {
+        "diff": {
+          "text": "diff --git a/demo.go b/demo.go\nindex 1234567..7654321 100644\n--- a/demo.go\n+++ b/demo.go\n@@ -1,4 +1,4 @@ package demo\n package demo\n-func oldName() string {\n- return \"old\"\n+func newName() string {\n+ return \"new\"\n }\n@@ -30,2 +30,3 @@ tail\n // tail\n-var old = 1\n+var next = 2\n+// added\n@@ -60 +61 @@ final\n-old final\n+new final\n"
+        }
+      },
+      "name": "diff: split-auto-160"
+    },
+    {
+      "width": 80,
+      "height": 18,
+      "chrome": "none",
+      "page": {
+        "diff": {
+          "text": "diff --git a/demo.go b/demo.go\nindex 1234567..7654321 100644\n--- a/demo.go\n+++ b/demo.go\n@@ -1,4 +1,4 @@ package demo\n package demo\n-func oldName() string {\n- return \"old\"\n+func newName() string {\n+ return \"new\"\n }\n@@ -30,2 +30,3 @@ tail\n // tail\n-var old = 1\n+var next = 2\n+// added\n@@ -60 +61 @@ final\n-old final\n+new final\n"
+        }
+      },
+      "name": "diff: split-auto"
+    },
+    {
+      "width": 80,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "labels": [
+              "first row",
+              "a row whose label is long enough to fill the whole footer line on its own, twice over"
+            ]
+          }
+        ]
+      },
+      "name": "a long notice takes at most half the footer; the newest shows with a count, the hints keep the rest"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "terminal": {
+          "fake": true,
+          "attach": "a1",
+          "hints": {
+            "dim": true,
+            "marks": [
+              {
+                "row": 0,
+                "col": 0,
+                "text": "g"
+              }
+            ]
+          }
+        }
+      },
+      "name": "in hints mode no key reaches the pane; a label letter, its capital or ctrl+letter acts and returns to terminal"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "terminal": {
+          "fake": true,
+          "attach": "a1"
+        },
+        "verbs": [
+          {
+            "verb": "demo.read",
+            "pending": true,
+            "answer": "late answer",
+            "result": "text"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "ochazuke.terminal",
+            "mode": "leader_pending",
+            "keys": ":",
+            "do": "ochazuke.palette.open"
+          },
+          {
+            "noun": "ochazuke.terminal",
+            "mode": "leader_pending",
+            "keys": "F",
+            "do": "demo.finish",
+            "args": {
+              "verb": "demo.read"
+            }
+          }
+        ]
+      },
+      "name": "terminal/late-answer-keeps-keys"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "items": [
+              {
+                "id": "a1",
+                "noun": "item",
+                "label": "Build",
+                "data": {
+                  "id": "a1",
+                  "title": "Build"
+                }
+              },
+              {
+                "id": "a2",
+                "noun": "item",
+                "label": "Other",
+                "data": {
+                  "id": "a2",
+                  "title": "Other"
+                }
+              }
+            ]
+          }
+        ],
+        "terminal": {
+          "fake": true,
+          "attach": "a1",
+          "data": {
+            "subject": [
+              "a1",
+              "a2"
+            ]
+          }
+        },
+        "nouns": [
+          {
+            "noun": "terminal",
+            "props": [
+              {
+                "name": "subject",
+                "noun": "item",
+                "readOnly": true,
+                "association": true
+              }
+            ]
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "item.rename-associated",
+            "byAssociation": true,
+            "row": true
+          }
+        ],
+        "bind": [
+          {
+            "noun": "item",
+            "mode": "normal",
+            "keys": "r",
+            "do": "item.rename-associated"
+          },
+          {
+            "noun": "item",
+            "mode": "normal",
+            "keys": "enter",
+            "do": "demo.open"
+          }
+        ]
+      },
+      "name": "R12.5 two associated things: a leader key names them and runs nothing"
+    },
+    {
+      "settings": [
+        {
+          "name": "leader.fall-through",
+          "type": "string",
+          "default": "off"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "terminal": {
+          "fake": true,
+          "attach": "a1"
+        }
+      },
+      "name": "sequence-unknown pass (the default): ctrl+a then an unbound key sends the leader, then the key alone, and returns to terminal mode"
+    },
+    {
+      "settings": [
+        {
+          "name": "sequence-unknown",
+          "type": "string",
+          "default": "swallow"
+        },
+        {
+          "name": "leader.fall-through",
+          "type": "string",
+          "default": "off"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "terminal": {
+          "fake": true,
+          "attach": "a1"
+        }
+      },
+      "name": "sequence-unknown swallow: ctrl+a then an unbound key sends nothing, says the keys are not bound, and returns to terminal mode"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "jobs": [
+          {
+            "verb": "demo.build",
+            "key": "w",
+            "finishOnKey": "W",
+            "failOnKey": "X"
+          },
+          {
+            "verb": "demo.ship",
+            "key": "e",
+            "finishOnKey": "E"
+          }
+        ]
+      },
+      "name": "a failed job shows its error"
+    },
+    {
+      "width": 40,
+      "height": 12,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 8
+          }
+        ],
+        "jobs": [
+          {
+            "verb": "demo.build",
+            "key": "w",
+            "finishOnKey": "W"
+          }
+        ]
+      },
+      "name": "ticker in the rule line: a running job never moves or hides the list"
+    },
+    {
+      "width": 60,
+      "height": 1,
+      "chrome": "ticker-only",
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "jobs": [
+          {
+            "verb": "demo.build",
+            "start": 1
+          },
+          {
+            "verb": "demo.ship",
+            "start": 1
+          }
+        ]
+      },
+      "name": "a lone ticker strip at 60x1"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "jobs": [
+          {
+            "verb": "demo.build",
+            "key": "w",
+            "finishOnKey": "W",
+            "failOnKey": "X"
+          },
+          {
+            "verb": "demo.ship",
+            "key": "e",
+            "finishOnKey": "E"
+          },
+          {
+            "verb": "demo.reload",
+            "key": "o",
+            "quiet": true
+          }
+        ]
+      },
+      "name": "a quiet verb stays off the ticker"
+    },
+    {
+      "width": 80,
+      "theme": "dark",
+      "page": {
+        "noHeadings": true,
+        "order": [
+          "timeline",
+          "below"
+        ],
+        "timeline": {
+          "headerLines": 2,
+          "cards": [
+            {
+              "id": "t1",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:12 · done · 41s",
+              "header": "Read AGENTS.md and the codemap, then tell me which files own focus jumps and why the walk ranks stops by drawing order instead of registration order.",
+              "body": "focus.go owns the jumps; the walk reads the page's recorded drawing order (Runtime.Placed), so it is the order on screen."
+            },
+            {
+              "id": "t2",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:20 · done · 2m03s",
+              "header": "Make the help modal wrap long descriptions onto further lines of their row instead of cutting them with an ellipsis.",
+              "sections": [
+                {
+                  "title": "thinking",
+                  "role": "muted",
+                  "folded": true,
+                  "summary": "3 lines",
+                  "text": "The table already measures widths.\nA Wrap column can lay a cell over several lines.\nThe golden needs regenerating."
+                },
+                {
+                  "title": "tools",
+                  "summary": "2 calls",
+                  "text": "Edit help.go\nRun go test ./..."
+                },
+                {
+                  "title": "answer",
+                  "text": "Done: the key, operation and description columns wrap; golden help-80 updated."
+                }
+              ]
+            },
+            {
+              "id": "t3",
+              "group": "session 2 · mtm",
+              "meta": "10:02 · running · 12s",
+              "header": "日本語のプロンプトも折り返す: wide runes in a prompt wrap by cells, never by bytes, and nothing is cut.",
+              "body": "Streaming the answer…",
+              "active": true
+            }
+          ],
+          "height": 17
+        },
+        "lists": [
+          {
+            "id": "below",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "timeline: the selection is the border, never reverse video: the selected card of the focused timeline is heavy with heavy corners in the accent, the others light and dimmed, in dark at 80 columns"
+    },
+    {
+      "page": {
+        "noHeadings": true,
+        "timeline": {
+          "cards": [
+            {
+              "id": "t1",
+              "header": "First turn.",
+              "body": "One.",
+              "meta": "09:00 · done"
+            },
+            {
+              "id": "t2",
+              "header": "Second turn.",
+              "body": "First paragraph.\n\nSecond paragraph.",
+              "meta": "09:10 · done"
+            },
+            {
+              "id": "t3",
+              "header": "Third turn.",
+              "body": "Three.",
+              "meta": "09:20 · done"
+            }
+          ]
+        }
+      },
+      "name": "timeline: from inside a card G goes to the last card and g g to the first (Vim's buffer ends, through viewport.goto); a count's G to that card"
+    },
+    {
+      "page": {
+        "noHeadings": true,
+        "timeline": {
+          "cards": [
+            {
+              "id": "t1",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:12 · done · 41s",
+              "header": "Read AGENTS.md and the codemap, then tell me which files own focus jumps and why the walk ranks stops by drawing order instead of registration order.",
+              "body": "focus.go owns the jumps; the walk reads the page's recorded drawing order (Runtime.Placed), so it is the order on screen."
+            },
+            {
+              "id": "t2",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:20 · done · 2m03s",
+              "header": "Make the help modal wrap long descriptions onto further lines of their row instead of cutting them with an ellipsis.",
+              "sections": [
+                {
+                  "title": "thinking",
+                  "role": "muted",
+                  "folded": true,
+                  "summary": "3 lines",
+                  "text": "The table already measures widths.\nA Wrap column can lay a cell over several lines.\nThe golden needs regenerating."
+                },
+                {
+                  "title": "tools",
+                  "summary": "2 calls",
+                  "text": "Edit help.go\nRun go test ./..."
+                },
+                {
+                  "title": "answer",
+                  "text": "Done: the key, operation and description columns wrap; golden help-80 updated."
+                }
+              ]
+            },
+            {
+              "id": "t3",
+              "group": "session 2 · mtm",
+              "meta": "10:02 · running · 12s",
+              "header": "日本語のプロンプトも折り返す: wide runes in a prompt wrap by cells, never by bytes, and nothing is cut.",
+              "body": "Streaming the answer…"
+            }
+          ]
+        }
+      },
+      "name": "timeline: enter opens and closes, l and h open and close, z R and z M open and close every card"
+    },
+    {
+      "page": {
+        "noHeadings": true,
+        "timeline": {
+          "cards": [
+            {
+              "id": "t1",
+              "meta": "09:12 · done",
+              "header": "Read the codemap and name the files that own focus jumps.",
+              "body": "focus.go owns the jumps."
+            },
+            {
+              "id": "t2",
+              "meta": "09:20 · done",
+              "header": "Wrap long help descriptions.",
+              "body": "The table measures widths; the golden needs regenerating."
+            },
+            {
+              "id": "t3",
+              "meta": "10:02 · running",
+              "header": "Regenerate the golden frames after the theme change.",
+              "body": "Streaming the answer…"
+            }
+          ]
+        }
+      },
+      "name": "timeline: / finds the next card whose text holds the query and selects it, opening a card found by its body (search.open-folds); n goes on round to the first match, N back"
+    },
+    {
+      "width": 100,
+      "height": 40,
+      "page": {
+        "id": "turns-page",
+        "title": "Turns",
+        "noHeadings": true,
+        "order": [
+          "panes",
+          "turns",
+          "prompt",
+          "settings",
+          "readout"
+        ],
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "panes",
+            "columns": [
+              {
+                "title": "pane"
+              },
+              {
+                "title": "agent"
+              },
+              {
+                "title": "project"
+              },
+              {
+                "title": "state"
+              }
+            ],
+            "items": [
+              {
+                "id": "pane-w1",
+                "label": "w1",
+                "cells": [
+                  "w1",
+                  "claude",
+                  "ochazuke",
+                  "working"
+                ]
+              }
+            ]
+          }
+        ],
+        "timeline": {
+          "id": "turns",
+          "noSpill": true,
+          "parentStop": "panes",
+          "height": 26,
+          "cards": [
+            {
+              "id": "t1",
+              "group": "session 0 · ochazuke",
+              "muted": true,
+              "meta": "08:02 · done · 9s",
+              "header": "Read AGENTS.md and the codemap.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "Read both; the codemap points at focus.go and resolve.go."
+                }
+              ]
+            },
+            {
+              "id": "t2",
+              "group": "session 0 · ochazuke",
+              "muted": true,
+              "meta": "08:05 · done · 14s",
+              "header": "Which story area covers the timeline?",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "cmd/o-story/stories/timeline."
+                }
+              ]
+            },
+            {
+              "id": "t3",
+              "group": "session 0 · ochazuke",
+              "muted": true,
+              "meta": "08:11 · done · 20s",
+              "header": "Run the timeline stories.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "All of them pass."
+                }
+              ]
+            },
+            {
+              "id": "t4",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:12 · done · 41s",
+              "header": "Which file owns the focus walk, and why does it rank stops by drawing order?",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "focus.go owns the jumps.\n\nThe walk reads the page's recorded drawing order (Runtime.Placed), so it is the order on screen, never registration order."
+                }
+              ]
+            },
+            {
+              "id": "t5",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:20 · done · 3 tool calls · 2m03s",
+              "open": true,
+              "header": "Make the help modal wrap long descriptions instead of cutting them, and run the tests.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "thinking-1",
+                  "title": "thinking",
+                  "summary": "2 lines",
+                  "role": "muted",
+                  "folded": true,
+                  "text": "The table already measures widths.\nA wrap column can lay a cell over several lines."
+                },
+                {
+                  "id": "tool-1",
+                  "title": "Read help.go",
+                  "summary": "412 lines",
+                  "folded": true,
+                  "text": "package ochazuke\n\n// helpView draws the bindings help modal."
+                },
+                {
+                  "id": "tool-2",
+                  "title": "Edit help.go",
+                  "summary": "+3 -1",
+                  "text": "--- a/help.go\n+++ b/help.go\n@@ -212,7 +212,9 @@ func (h *helpView) row(b Binding) []string {\n-\tdesc := ansi.Truncate(b.Description, w, \"…\")\n+\t// Wrap the description onto further lines of its row\n+\t// instead of cutting it with an ellipsis.\n+\tdesc := wrap(b.Description, w)\n \treturn []string{b.Keys, b.Verb, desc}"
+                },
+                {
+                  "id": "tool-3",
+                  "title": "Bash go test ./...",
+                  "summary": "41 lines",
+                  "text": "ok   ofam.dev/ochazuke/pkg01  0.01s\nok   ofam.dev/ochazuke/pkg02  0.02s\nok   ofam.dev/ochazuke/pkg03  0.03s\nok   ofam.dev/ochazuke/pkg04  0.04s\nok   ofam.dev/ochazuke/pkg05  0.05s\nok   ofam.dev/ochazuke/pkg06  0.06s\nok   ofam.dev/ochazuke/pkg07  0.07s\nok   ofam.dev/ochazuke/pkg08  0.08s\nok   ofam.dev/ochazuke/pkg09  0.09s\nok   ofam.dev/ochazuke/pkg10  0.10s\nok   ofam.dev/ochazuke/pkg11  0.11s\nok   ofam.dev/ochazuke/pkg12  0.12s\nok   ofam.dev/ochazuke/pkg13  0.13s\nok   ofam.dev/ochazuke/pkg14  0.14s\nok   ofam.dev/ochazuke/pkg15  0.15s\nok   ofam.dev/ochazuke/pkg16  0.16s\nok   ofam.dev/ochazuke/pkg17  0.17s\nok   ofam.dev/ochazuke/pkg18  0.18s\nok   ofam.dev/ochazuke/pkg19  0.19s\nok   ofam.dev/ochazuke/pkg20  0.20s\nok   ofam.dev/ochazuke/pkg21  0.21s\nok   ofam.dev/ochazuke/pkg22  0.22s\nok   ofam.dev/ochazuke/pkg23  0.23s\nok   ofam.dev/ochazuke/pkg24  0.24s\nok   ofam.dev/ochazuke/pkg25  0.25s\nok   ofam.dev/ochazuke/pkg26  0.26s\nok   ofam.dev/ochazuke/pkg27  0.27s\nok   ofam.dev/ochazuke/pkg28  0.28s\nok   ofam.dev/ochazuke/pkg29  0.29s\nok   ofam.dev/ochazuke/pkg30  0.30s\nok   ofam.dev/ochazuke/pkg31  0.31s\nok   ofam.dev/ochazuke/pkg32  0.32s\nok   ofam.dev/ochazuke/pkg33  0.33s\nok   ofam.dev/ochazuke/pkg34  0.34s\nok   ofam.dev/ochazuke/pkg35  0.35s\nok   ofam.dev/ochazuke/pkg36  0.36s\nok   ofam.dev/ochazuke/pkg37  0.37s\nok   ofam.dev/ochazuke/pkg38  0.38s\nok   ofam.dev/ochazuke/pkg39  0.39s\nok   ofam.dev/ochazuke/pkg40  0.40s\nPASS"
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "Done: the description column wraps.\n\nEvery package passes."
+                }
+              ]
+            },
+            {
+              "id": "t6",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:31 · done · 1 agent · 1m10s",
+              "header": "Ask a subagent how the resolver skips a guarded row.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "tool-1",
+                  "title": "Task explore the resolver",
+                  "summary": "subagent · 3 tool uses",
+                  "text": "▸ Read resolve.go · 560 lines\n▸ Grep \"func (r \\*Runtime) lookup\" · 1 match\n▸ Read bindings/timeline.json · 48 lines\n⎿ The walk reads rows level by level; a guard that is false skips the row\n  and the walk goes on outward (lookup, VerbShown)."
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "A false guard skips the row and the walk goes on outward."
+                }
+              ]
+            },
+            {
+              "id": "t7",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "event": true,
+              "meta": "09:32 · 3 tool uses · from “Ask a subagent how the resolver skips a guarded row.”",
+              "header": "⤷ explore the resolver · completed",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "result",
+                  "title": "result",
+                  "paragraphs": true,
+                  "text": "lookup skips a row whose verb is not shown here (VerbShown) and goes on to the next level."
+                },
+                {
+                  "id": "response",
+                  "title": "response",
+                  "paragraphs": true,
+                  "text": "Noted: the subagent agrees with the reading above."
+                }
+              ]
+            },
+            {
+              "id": "t8",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:40 · done · 12s",
+              "header": "Summarize what changed today in one line.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "Help wraps descriptions; the resolver reading is confirmed."
+                }
+              ]
+            },
+            {
+              "id": "t9",
+              "group": "session 1 · ochazuke",
+              "active": true,
+              "meta": "09:44 · running · 4s",
+              "header": "Now list the timeline keys a turn card answers.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "j k move, l opens and steps in, h folds and leaves, y yanks the step."
+                }
+              ]
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "id": "prompt",
+            "label": "prompt",
+            "completions": [
+              {
+                "trigger": "@",
+                "items": [
+                  "timeline.go",
+                  "timeline_steps.go",
+                  "resolve.go",
+                  "README.md"
+                ]
+              },
+              {
+                "trigger": "/",
+                "items": [
+                  "/review",
+                  "/compact",
+                  "/clear"
+                ]
+              }
+            ]
+          }
+        ],
+        "texts": [
+          {
+            "id": "settings",
+            "text": "turns.style cards · thinking folded · reads folded · output open"
+          }
+        ],
+        "readout": true
+      },
+      "name": "turns: after G, k at once moves to the previous card while an open card taller than the window lies above"
+    },
+    {
+      "width": 100,
+      "height": 40,
+      "page": {
+        "id": "turns-page",
+        "title": "Turns",
+        "noHeadings": true,
+        "order": [
+          "panes",
+          "turns",
+          "prompt",
+          "settings",
+          "readout"
+        ],
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "panes",
+            "columns": [
+              {
+                "title": "pane"
+              },
+              {
+                "title": "agent"
+              },
+              {
+                "title": "project"
+              },
+              {
+                "title": "state"
+              }
+            ],
+            "items": [
+              {
+                "id": "pane-w1",
+                "label": "w1",
+                "cells": [
+                  "w1",
+                  "claude",
+                  "ochazuke",
+                  "working"
+                ]
+              }
+            ]
+          }
+        ],
+        "timeline": {
+          "id": "turns",
+          "noSpill": true,
+          "parentStop": "panes",
+          "height": 26,
+          "cards": [
+            {
+              "id": "t1",
+              "group": "session 0 · ochazuke",
+              "muted": true,
+              "meta": "08:02 · done · 9s",
+              "header": "Read AGENTS.md and the codemap.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "Read both; the codemap points at focus.go and resolve.go."
+                }
+              ]
+            },
+            {
+              "id": "t2",
+              "group": "session 0 · ochazuke",
+              "muted": true,
+              "meta": "08:05 · done · 14s",
+              "header": "Which story area covers the timeline?",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "cmd/o-story/stories/timeline."
+                }
+              ]
+            },
+            {
+              "id": "t3",
+              "group": "session 0 · ochazuke",
+              "muted": true,
+              "meta": "08:11 · done · 20s",
+              "header": "Run the timeline stories.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "All of them pass."
+                }
+              ]
+            },
+            {
+              "id": "t4",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:12 · done · 41s",
+              "header": "Which file owns the focus walk, and why does it rank stops by drawing order?",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "focus.go owns the jumps.\n\nThe walk reads the page's recorded drawing order (Runtime.Placed), so it is the order on screen, never registration order."
+                }
+              ]
+            },
+            {
+              "id": "t5",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:20 · done · 3 tool calls · 2m03s",
+              "open": true,
+              "header": "Make the help modal wrap long descriptions instead of cutting them, and run the tests.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "thinking-1",
+                  "title": "thinking",
+                  "summary": "2 lines",
+                  "role": "muted",
+                  "folded": true,
+                  "text": "The table already measures widths.\nA wrap column can lay a cell over several lines."
+                },
+                {
+                  "id": "tool-1",
+                  "title": "Read help.go",
+                  "summary": "412 lines",
+                  "folded": true,
+                  "text": "package ochazuke\n\n// helpView draws the bindings help modal."
+                },
+                {
+                  "id": "tool-2",
+                  "title": "Edit help.go",
+                  "summary": "+3 -1",
+                  "text": "--- a/help.go\n+++ b/help.go\n@@ -212,7 +212,9 @@ func (h *helpView) row(b Binding) []string {\n-\tdesc := ansi.Truncate(b.Description, w, \"…\")\n+\t// Wrap the description onto further lines of its row\n+\t// instead of cutting it with an ellipsis.\n+\tdesc := wrap(b.Description, w)\n \treturn []string{b.Keys, b.Verb, desc}"
+                },
+                {
+                  "id": "tool-3",
+                  "title": "Bash go test ./...",
+                  "summary": "41 lines",
+                  "text": "ok   ofam.dev/ochazuke/pkg01  0.01s\nok   ofam.dev/ochazuke/pkg02  0.02s\nok   ofam.dev/ochazuke/pkg03  0.03s\nok   ofam.dev/ochazuke/pkg04  0.04s\nok   ofam.dev/ochazuke/pkg05  0.05s\nok   ofam.dev/ochazuke/pkg06  0.06s\nok   ofam.dev/ochazuke/pkg07  0.07s\nok   ofam.dev/ochazuke/pkg08  0.08s\nok   ofam.dev/ochazuke/pkg09  0.09s\nok   ofam.dev/ochazuke/pkg10  0.10s\nok   ofam.dev/ochazuke/pkg11  0.11s\nok   ofam.dev/ochazuke/pkg12  0.12s\nok   ofam.dev/ochazuke/pkg13  0.13s\nok   ofam.dev/ochazuke/pkg14  0.14s\nok   ofam.dev/ochazuke/pkg15  0.15s\nok   ofam.dev/ochazuke/pkg16  0.16s\nok   ofam.dev/ochazuke/pkg17  0.17s\nok   ofam.dev/ochazuke/pkg18  0.18s\nok   ofam.dev/ochazuke/pkg19  0.19s\nok   ofam.dev/ochazuke/pkg20  0.20s\nok   ofam.dev/ochazuke/pkg21  0.21s\nok   ofam.dev/ochazuke/pkg22  0.22s\nok   ofam.dev/ochazuke/pkg23  0.23s\nok   ofam.dev/ochazuke/pkg24  0.24s\nok   ofam.dev/ochazuke/pkg25  0.25s\nok   ofam.dev/ochazuke/pkg26  0.26s\nok   ofam.dev/ochazuke/pkg27  0.27s\nok   ofam.dev/ochazuke/pkg28  0.28s\nok   ofam.dev/ochazuke/pkg29  0.29s\nok   ofam.dev/ochazuke/pkg30  0.30s\nok   ofam.dev/ochazuke/pkg31  0.31s\nok   ofam.dev/ochazuke/pkg32  0.32s\nok   ofam.dev/ochazuke/pkg33  0.33s\nok   ofam.dev/ochazuke/pkg34  0.34s\nok   ofam.dev/ochazuke/pkg35  0.35s\nok   ofam.dev/ochazuke/pkg36  0.36s\nok   ofam.dev/ochazuke/pkg37  0.37s\nok   ofam.dev/ochazuke/pkg38  0.38s\nok   ofam.dev/ochazuke/pkg39  0.39s\nok   ofam.dev/ochazuke/pkg40  0.40s\nPASS"
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "Done: the description column wraps.\n\nEvery package passes."
+                }
+              ]
+            },
+            {
+              "id": "t6",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:31 · done · 1 agent · 1m10s",
+              "header": "Ask a subagent how the resolver skips a guarded row.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "tool-1",
+                  "title": "Task explore the resolver",
+                  "summary": "subagent · 3 tool uses",
+                  "text": "▸ Read resolve.go · 560 lines\n▸ Grep \"func (r \\*Runtime) lookup\" · 1 match\n▸ Read bindings/timeline.json · 48 lines\n⎿ The walk reads rows level by level; a guard that is false skips the row\n  and the walk goes on outward (lookup, VerbShown)."
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "A false guard skips the row and the walk goes on outward."
+                }
+              ]
+            },
+            {
+              "id": "t7",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "event": true,
+              "meta": "09:32 · 3 tool uses · from “Ask a subagent how the resolver skips a guarded row.”",
+              "header": "⤷ explore the resolver · completed",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "result",
+                  "title": "result",
+                  "paragraphs": true,
+                  "text": "lookup skips a row whose verb is not shown here (VerbShown) and goes on to the next level."
+                },
+                {
+                  "id": "response",
+                  "title": "response",
+                  "paragraphs": true,
+                  "text": "Noted: the subagent agrees with the reading above."
+                }
+              ]
+            },
+            {
+              "id": "t8",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:40 · done · 12s",
+              "header": "Summarize what changed today in one line.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "Help wraps descriptions; the resolver reading is confirmed."
+                }
+              ]
+            },
+            {
+              "id": "t9",
+              "group": "session 1 · ochazuke",
+              "active": true,
+              "meta": "09:44 · running · 4s",
+              "header": "Now list the timeline keys a turn card answers.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "j k move, l opens and steps in, h folds and leaves, y yanks the step."
+                }
+              ]
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "id": "prompt",
+            "label": "prompt",
+            "completions": [
+              {
+                "trigger": "@",
+                "items": [
+                  "timeline.go",
+                  "timeline_steps.go",
+                  "resolve.go",
+                  "README.md"
+                ]
+              },
+              {
+                "trigger": "/",
+                "items": [
+                  "/review",
+                  "/compact",
+                  "/clear"
+                ]
+              }
+            ]
+          }
+        ],
+        "texts": [
+          {
+            "id": "settings",
+            "text": "turns.style cards · thinking folded · reads folded · output open"
+          }
+        ],
+        "readout": true
+      },
+      "name": "turns: on a card closed and opened again by l, j inside a step taller than the window scrolls it half a window"
+    },
+    {
+      "width": 100,
+      "height": 40,
+      "page": {
+        "id": "turns-page",
+        "title": "Turns",
+        "noHeadings": true,
+        "order": [
+          "panes",
+          "turns",
+          "prompt",
+          "settings",
+          "readout"
+        ],
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "panes",
+            "columns": [
+              {
+                "title": "pane"
+              },
+              {
+                "title": "agent"
+              },
+              {
+                "title": "project"
+              },
+              {
+                "title": "state"
+              }
+            ],
+            "items": [
+              {
+                "id": "pane-w1",
+                "label": "w1",
+                "cells": [
+                  "w1",
+                  "claude",
+                  "ochazuke",
+                  "working"
+                ]
+              }
+            ]
+          }
+        ],
+        "timeline": {
+          "id": "turns",
+          "noSpill": true,
+          "parentStop": "panes",
+          "height": 26,
+          "cards": [
+            {
+              "id": "t1",
+              "group": "session 0 · ochazuke",
+              "muted": true,
+              "meta": "08:02 · done · 9s",
+              "header": "Read AGENTS.md and the codemap.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "Read both; the codemap points at focus.go and resolve.go."
+                }
+              ]
+            },
+            {
+              "id": "t2",
+              "group": "session 0 · ochazuke",
+              "muted": true,
+              "meta": "08:05 · done · 14s",
+              "header": "Which story area covers the timeline?",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "cmd/o-story/stories/timeline."
+                }
+              ]
+            },
+            {
+              "id": "t3",
+              "group": "session 0 · ochazuke",
+              "muted": true,
+              "meta": "08:11 · done · 20s",
+              "header": "Run the timeline stories.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "All of them pass."
+                }
+              ]
+            },
+            {
+              "id": "t4",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:12 · done · 41s",
+              "header": "Which file owns the focus walk, and why does it rank stops by drawing order?",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "focus.go owns the jumps.\n\nThe walk reads the page's recorded drawing order (Runtime.Placed), so it is the order on screen, never registration order."
+                }
+              ]
+            },
+            {
+              "id": "t5",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:20 · done · 3 tool calls · 2m03s",
+              "open": true,
+              "header": "Make the help modal wrap long descriptions instead of cutting them, and run the tests.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "thinking-1",
+                  "title": "thinking",
+                  "summary": "2 lines",
+                  "role": "muted",
+                  "folded": true,
+                  "text": "The table already measures widths.\nA wrap column can lay a cell over several lines."
+                },
+                {
+                  "id": "tool-1",
+                  "title": "Read help.go",
+                  "summary": "412 lines",
+                  "folded": true,
+                  "text": "package ochazuke\n\n// helpView draws the bindings help modal."
+                },
+                {
+                  "id": "tool-2",
+                  "title": "Edit help.go",
+                  "summary": "+3 -1",
+                  "text": "--- a/help.go\n+++ b/help.go\n@@ -212,7 +212,9 @@ func (h *helpView) row(b Binding) []string {\n-\tdesc := ansi.Truncate(b.Description, w, \"…\")\n+\t// Wrap the description onto further lines of its row\n+\t// instead of cutting it with an ellipsis.\n+\tdesc := wrap(b.Description, w)\n \treturn []string{b.Keys, b.Verb, desc}"
+                },
+                {
+                  "id": "tool-3",
+                  "title": "Bash go test ./...",
+                  "summary": "41 lines",
+                  "text": "ok   ofam.dev/ochazuke/pkg01  0.01s\nok   ofam.dev/ochazuke/pkg02  0.02s\nok   ofam.dev/ochazuke/pkg03  0.03s\nok   ofam.dev/ochazuke/pkg04  0.04s\nok   ofam.dev/ochazuke/pkg05  0.05s\nok   ofam.dev/ochazuke/pkg06  0.06s\nok   ofam.dev/ochazuke/pkg07  0.07s\nok   ofam.dev/ochazuke/pkg08  0.08s\nok   ofam.dev/ochazuke/pkg09  0.09s\nok   ofam.dev/ochazuke/pkg10  0.10s\nok   ofam.dev/ochazuke/pkg11  0.11s\nok   ofam.dev/ochazuke/pkg12  0.12s\nok   ofam.dev/ochazuke/pkg13  0.13s\nok   ofam.dev/ochazuke/pkg14  0.14s\nok   ofam.dev/ochazuke/pkg15  0.15s\nok   ofam.dev/ochazuke/pkg16  0.16s\nok   ofam.dev/ochazuke/pkg17  0.17s\nok   ofam.dev/ochazuke/pkg18  0.18s\nok   ofam.dev/ochazuke/pkg19  0.19s\nok   ofam.dev/ochazuke/pkg20  0.20s\nok   ofam.dev/ochazuke/pkg21  0.21s\nok   ofam.dev/ochazuke/pkg22  0.22s\nok   ofam.dev/ochazuke/pkg23  0.23s\nok   ofam.dev/ochazuke/pkg24  0.24s\nok   ofam.dev/ochazuke/pkg25  0.25s\nok   ofam.dev/ochazuke/pkg26  0.26s\nok   ofam.dev/ochazuke/pkg27  0.27s\nok   ofam.dev/ochazuke/pkg28  0.28s\nok   ofam.dev/ochazuke/pkg29  0.29s\nok   ofam.dev/ochazuke/pkg30  0.30s\nok   ofam.dev/ochazuke/pkg31  0.31s\nok   ofam.dev/ochazuke/pkg32  0.32s\nok   ofam.dev/ochazuke/pkg33  0.33s\nok   ofam.dev/ochazuke/pkg34  0.34s\nok   ofam.dev/ochazuke/pkg35  0.35s\nok   ofam.dev/ochazuke/pkg36  0.36s\nok   ofam.dev/ochazuke/pkg37  0.37s\nok   ofam.dev/ochazuke/pkg38  0.38s\nok   ofam.dev/ochazuke/pkg39  0.39s\nok   ofam.dev/ochazuke/pkg40  0.40s\nPASS"
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "Done: the description column wraps.\n\nEvery package passes."
+                }
+              ]
+            },
+            {
+              "id": "t6",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:31 · done · 1 agent · 1m10s",
+              "header": "Ask a subagent how the resolver skips a guarded row.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "tool-1",
+                  "title": "Task explore the resolver",
+                  "summary": "subagent · 3 tool uses",
+                  "text": "▸ Read resolve.go · 560 lines\n▸ Grep \"func (r \\*Runtime) lookup\" · 1 match\n▸ Read bindings/timeline.json · 48 lines\n⎿ The walk reads rows level by level; a guard that is false skips the row\n  and the walk goes on outward (lookup, VerbShown)."
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "A false guard skips the row and the walk goes on outward."
+                }
+              ]
+            },
+            {
+              "id": "t7",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "event": true,
+              "meta": "09:32 · 3 tool uses · from “Ask a subagent how the resolver skips a guarded row.”",
+              "header": "⤷ explore the resolver · completed",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "result",
+                  "title": "result",
+                  "paragraphs": true,
+                  "text": "lookup skips a row whose verb is not shown here (VerbShown) and goes on to the next level."
+                },
+                {
+                  "id": "response",
+                  "title": "response",
+                  "paragraphs": true,
+                  "text": "Noted: the subagent agrees with the reading above."
+                }
+              ]
+            },
+            {
+              "id": "t8",
+              "group": "session 1 · ochazuke",
+              "muted": true,
+              "meta": "09:40 · done · 12s",
+              "header": "Summarize what changed today in one line.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "Help wraps descriptions; the resolver reading is confirmed."
+                }
+              ]
+            },
+            {
+              "id": "t9",
+              "group": "session 1 · ochazuke",
+              "active": true,
+              "meta": "09:44 · running · 4s",
+              "header": "Now list the timeline keys a turn card answers.",
+              "steps": [
+                {
+                  "header": true
+                },
+                {
+                  "id": "answer",
+                  "title": "answer",
+                  "paragraphs": true,
+                  "text": "j k move, l opens and steps in, h folds and leaves, y yanks the step."
+                }
+              ]
+            }
+          ]
+        },
+        "inputs": [
+          {
+            "id": "prompt",
+            "label": "prompt",
+            "completions": [
+              {
+                "trigger": "@",
+                "items": [
+                  "timeline.go",
+                  "timeline_steps.go",
+                  "resolve.go",
+                  "README.md"
+                ]
+              },
+              {
+                "trigger": "/",
+                "items": [
+                  "/review",
+                  "/compact",
+                  "/clear"
+                ]
+              }
+            ]
+          }
+        ],
+        "texts": [
+          {
+            "id": "settings",
+            "text": "turns.style cards · thinking folded · reads folded · output open"
+          }
+        ],
+        "readout": true
+      },
+      "name": "turns: inside a card gj and gk move by screen row: the marker covers the row alone, gk crosses into the step above, j goes on by step from the row's step"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "diff/binary-and-truncated: diff: binary-and-truncated"
+    },
+    "k",
+    "]",
+    "f",
+    "[",
+    "f",
+    "]",
+    "f",
+    {
+      "key": "ctrl+alt+n",
+      "note": "diff/hunk-motions: diff: hunk-motions"
+    },
+    "]",
+    "c",
+    "2",
+    "[",
+    "c",
+    "2",
+    "]",
+    "c",
+    "[",
+    "c",
+    {
+      "key": "ctrl+alt+n",
+      "note": "diff/long-lines: diff: long-lines"
+    },
+    "1",
+    "2",
+    "z",
+    "l",
+    {
+      "key": "ctrl+alt+n",
+      "note": "diff/scroll: diff: scroll"
+    },
+    "J",
+    "K",
+    "ctrl+d",
+    "ctrl+u",
+    "j",
+    "k",
+    {
+      "key": "ctrl+alt+n",
+      "note": "diff/split-auto-160: diff: split-auto-160"
+    },
+    "k",
+    {
+      "key": "ctrl+alt+n",
+      "note": "diff/split-auto: diff: split-auto"
+    },
+    "k",
+    {
+      "key": "ctrl+alt+n",
+      "note": "notices/footer-keeps-hints: a long notice takes at most half the footer; the newest shows with a count, the hints keep the rest"
+    },
+    "n",
+    "j",
+    "n",
+    {
+      "key": "ctrl+alt+n",
+      "note": "terminal/hints-keys-stay-off-pane: in hints mode no key reaches the pane; a label letter, its capital or ctrl+letter acts and returns to terminal"
+    },
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "f",
+    "1",
+    "enter",
+    "ctrl+space",
+    {
+      "paste": "pasted"
+    },
+    "G",
+    "ctrl+a",
+    "f",
+    "ctrl+o",
+    "ctrl+a",
+    "f",
+    "c",
+    "z",
+    {
+      "tick": "terminal"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "terminal/late-answer-keeps-keys: terminal/late-answer-keeps-keys"
+    },
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    ":",
+    {
+      "type": "demo read"
+    },
+    "enter",
+    {
+      "paste": "typing-in-pane"
+    },
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "F",
+    {
+      "job": "demo.read",
+      "state": "done"
+    },
+    {
+      "paste": "MORE"
+    },
+    {
+      "tick": "terminal"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "terminal/leader-ambiguous-association: R12.5 two associated things: a leader key names them and runs nothing"
+    },
+    "enter",
+    "ctrl+a",
+    "r",
+    {
+      "key": "ctrl+alt+n",
+      "note": "terminal/sequence-unknown-pass: sequence-unknown pass (the default): ctrl+a then an unbound key sends the leader, then the key alone, and returns to terminal mode"
+    },
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "x",
+    {
+      "tick": "terminal"
+    },
+    {
+      "tick": "terminal"
+    },
+    "esc",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "ctrl+c",
+    {
+      "tick": "terminal"
+    },
+    {
+      "tick": "terminal"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "terminal/sequence-unknown-swallow: sequence-unknown swallow: ctrl+a then an unbound key sends nothing, says the keys are not bound, and returns to terminal mode"
+    },
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "x",
+    "y",
+    {
+      "tick": "terminal"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "ticker/failed-error: a failed job shows its error"
+    },
+    "w",
+    "X",
+    {
+      "job": "demo.build",
+      "state": "failed"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "ticker/keeps-body: ticker in the rule line: a running job never moves or hides the list"
+    },
+    "w",
+    {
+      "key": "ctrl+alt+n",
+      "note": "ticker/lone-ticker: a lone ticker strip at 60x1"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "ticker/quiet-hidden: a quiet verb stays off the ticker"
+    },
+    "o",
+    "w",
+    {
+      "key": "ctrl+alt+n",
+      "note": "timeline/border-focused-dark-80: timeline: the selection is the border, never reverse video: the selected card of the focused timeline is heavy with heavy corners in the accent, the others light and dimmed, in dark at 80 columns"
+    },
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "timeline/edges: timeline: from inside a card G goes to the last card and g g to the first (Vim's buffer ends, through viewport.goto); a count's G to that card"
+    },
+    "j",
+    "l",
+    "l",
+    "G",
+    "k",
+    "l",
+    "l",
+    "g",
+    "g",
+    "2",
+    "G",
+    {
+      "key": "ctrl+alt+n",
+      "note": "timeline/open-close: timeline: enter opens and closes, l and h open and close, z R and z M open and close every card"
+    },
+    "G",
+    "enter",
+    "h",
+    "l",
+    "z",
+    "M",
+    "z",
+    "R",
+    {
+      "key": "ctrl+alt+n",
+      "note": "timeline/slash-finds-card: timeline: / finds the next card whose text holds the query and selects it, opening a card found by its body (search.open-folds); n goes on round to the first match, N back"
+    },
+    "/",
+    {
+      "type": "golden"
+    },
+    "enter",
+    "n",
+    "n",
+    "N",
+    {
+      "key": "ctrl+alt+n",
+      "note": "turns/k-after-g-past-open-card: turns: after G, k at once moves to the previous card while an open card taller than the window lies above"
+    },
+    "G",
+    "k",
+    {
+      "key": "ctrl+alt+n",
+      "note": "turns/opened-tall-step-j-scrolls: turns: on a card closed and opened again by l, j inside a step taller than the window scrolls it half a window"
+    },
+    "j",
+    "j",
+    "j",
+    "j",
+    "h",
+    "l",
+    "l",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "turns/row-gj-gk: turns: inside a card gj and gk move by screen row: the marker covers the row alone, gk crosses into the step above, j goes on by step from the row's step"
+    },
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "j",
+    "j",
+    "j",
+    "j",
+    "g",
+    "j",
+    "g",
+    "j",
+    "g",
+    "k",
+    "g",
+    "k",
+    "g",
+    "k",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "contains": [
+        "binary, 512 bytes → 1024 bytes"
+      ]
+    },
+    {
+      "after": 4,
+      "contains": [
+        "generated.go",
+        "+50000 -0",
+        "truncated"
+      ]
+    },
+    {
+      "after": 6,
+      "contains": [
+        "binary, 512 bytes → 1024 bytes"
+      ]
+    },
+    {
+      "after": 8,
+      "contains": [
+        "truncated",
+        "package generated"
+      ]
+    },
+    {
+      "after": 8,
+      "contains": [
+        "A generated.go",
+        "unified",
+        "truncated",
+        "1 + package generated",
+        "2 + // first two lines of a bounded snapshot"
+      ],
+      "dimmed": 1
+    },
+    {
+      "after": 11,
+      "contains": [
+        "@@ -30,2 +30,3 @@"
+      ],
+      "lacks": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 14,
+      "contains": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 17,
+      "contains": [
+        "@@ -60,1 +61,1 @@"
+      ],
+      "lacks": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 19,
+      "contains": [
+        "@@ -30,2 +30,3 @@"
+      ]
+    },
+    {
+      "after": 19,
+      "contains": [
+        "M demo.go",
+        "unified",
+        "@@ -30,2 +30,3 @@ tail",
+        "// tail",
+        "- var old = 1",
+        "31 + var next = 2",
+        "32 + // added",
+        "@@ -60,1 +61,1 @@ final",
+        "- old final",
+        "61 + new final"
+      ],
+      "dimmed": 1
+    },
+    {
+      "contains": [
+        "‹",
+        "END"
+      ],
+      "lacks": [
+        "longIdentifier",
+        "longResult"
+      ],
+      "after": 24
+    },
+    {
+      "after": 24,
+      "contains": [
+        "M long.go",
+        "unified",
+        "-‹cdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij END\"",
+        "1 +‹ghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij END\""
+      ],
+      "dimmed": 1
+    },
+    {
+      "after": 26,
+      "lacks": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 27,
+      "contains": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 28,
+      "lacks": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 29,
+      "contains": [
+        "@@ -1,4 +1,4 @@"
+      ]
+    },
+    {
+      "after": 31,
+      "contains": [
+        "M demo.go",
+        "unified",
+        "@@ -1,4 +1,4 @@ package demo",
+        "package demo",
+        "- func oldName() string {",
+        "return \"old\"",
+        "2 + func newName() string {",
+        "return \"new\""
+      ],
+      "highlighted": 1
+    },
+    {
+      "contains": [
+        "demo.go",
+        "split",
+        "oldName",
+        "newName"
+      ],
+      "after": 33
+    },
+    {
+      "after": 33,
+      "contains": [
+        "M demo.go",
+        "split",
+        "@@ -1,4 +1,4 @@ package demo",
+        "package demo",
+        "2 + func newName() string {",
+        "return \"new\"",
+        "@@ -30,2 +30,3 @@ tail",
+        "// tail",
+        "31 + var next = 2",
+        "32 + // added",
+        "@@ -60,1 +61,1 @@ final",
+        "61 + new final"
+      ],
+      "dimmed": 1
+    },
+    {
+      "contains": [
+        "demo.go",
+        "unified",
+        "oldName",
+        "newName"
+      ],
+      "after": 35
+    },
+    {
+      "after": 35,
+      "contains": [
+        "M demo.go",
+        "unified",
+        "@@ -1,4 +1,4 @@ package demo",
+        "package demo",
+        "- func oldName() string {",
+        "return \"old\"",
+        "2 + func newName() string {",
+        "return \"new\"",
+        "@@ -30,2 +30,3 @@ tail",
+        "// tail",
+        "- var old = 1",
+        "31 + var next = 2",
+        "32 + // added",
+        "@@ -60,1 +61,1 @@ final",
+        "- old final",
+        "61 + new final"
+      ],
+      "dimmed": 1
+    },
+    {
+      "after": 37,
+      "contains": [
+        "Notice: notice from first row · q app.quit"
+      ]
+    },
+    {
+      "notices": [
+        "notice from first row",
+        "notice from a row whose label is long enough to fill the whole footer line on its own, twice over"
+      ],
+      "contains": [
+        "(+1 more) · q app.quit"
+      ],
+      "lacks": [
+        "Notice: notice from first row"
+      ],
+      "after": 39
+    },
+    {
+      "after": 48,
+      "focus": "page1-pane",
+      "mode": "hints",
+      "modal": "",
+      "lacks": [
+        "$ 1",
+        "<enter>",
+        "pasted",
+        "<ctrl+space>"
+      ],
+      "writes": []
+    },
+    {
+      "after": 49,
+      "mode": "terminal",
+      "writes": [
+        "hint type g"
+      ]
+    },
+    {
+      "focus": "page1-pane",
+      "mode": "terminal",
+      "contains": [
+        "$ z",
+        "fake pane"
+      ],
+      "writes": [
+        "hint type g",
+        "hint open o",
+        "hint copy c"
+      ],
+      "after": 57
+    },
+    {
+      "after": 69,
+      "modal": "",
+      "mode": "terminal",
+      "contains": [
+        "answer not opened"
+      ]
+    },
+    {
+      "modal": "",
+      "mode": "terminal",
+      "contains": [
+        "typing-in-paneMORE"
+      ],
+      "after": 71
+    },
+    {
+      "mode": "terminal",
+      "writes": [],
+      "contains": [
+        "Build",
+        "Other"
+      ],
+      "after": 75
+    },
+    {
+      "focus": "page1-pane",
+      "mode": "terminal",
+      "contains": [
+        "<ctrl+a>x<esc><ctrl+a><ctrl+c>"
+      ],
+      "after": 88
+    },
+    {
+      "after": 93,
+      "focus": "page1-pane",
+      "mode": "terminal",
+      "contains": [
+        "ctrl+a x is not bound"
+      ],
+      "lacks": [
+        "<ctrl+a>"
+      ]
+    },
+    {
+      "focus": "page1-pane",
+      "mode": "terminal",
+      "contains": [
+        "$ y"
+      ],
+      "lacks": [
+        "<ctrl+a>",
+        "$ x"
+      ],
+      "after": 95
+    },
+    {
+      "ticker": [
+        "demo.build failed: failed on key"
+      ],
+      "after": 99
+    },
+    {
+      "after": 101,
+      "ticker": [
+        "demo.build running"
+      ],
+      "order": [
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "── demo.build running ─"
+      ]
+    },
+    {
+      "after": 101,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "demo.build running",
+        "q app.quit · r demo.reset · enter d…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 102,
+      "contains": [
+        "demo.ship running · demo.build running"
+      ]
+    },
+    {
+      "ticker": [
+        "demo.build running"
+      ],
+      "after": 105
+    },
+    {
+      "after": 107,
+      "focus": "t2",
+      "highlighted": 1,
+      "highlightedText": "below1",
+      "styled": {
+        "┏━━━": "#78BFA5",
+        "╭───": "#3C514A",
+        "╭─ ● ─": "#3C514A"
+      }
+    },
+    {
+      "after": 107,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "session 1 · ochazuke",
+        "▸ Read AGENTS.md and the codemap, then tell me which files own focus",
+        "jumps and why the walk ranks stops by drawing order instead of",
+        "… 1 more line",
+        "09:12 · done · 41s",
+        "▸ Make the help modal wrap long descriptions onto further lines of their",
+        "row instead of cutting them with an ellipsis.",
+        "09:20 · done · 2m03s",
+        "session 2 · mtm",
+        "▸ 日本語のプロンプトも折り返す: wide runes in a prompt wrap by cells,",
+        "never by bytes, and nothing is cut.",
+        "below1",
+        "a story-card.timeline-append · s story-card.timeline-stream · enter timelin…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 111,
+      "focus": "timeline/body"
+    },
+    {
+      "after": 112,
+      "focus": "t3",
+      "mode": "normal"
+    },
+    {
+      "after": 115,
+      "focus": "timeline/body"
+    },
+    {
+      "after": 117,
+      "focus": "t1",
+      "mode": "normal"
+    },
+    {
+      "focus": "t2",
+      "mode": "normal",
+      "after": 119
+    },
+    {
+      "after": 122,
+      "focus": "t3",
+      "contains": [
+        "Streaming the answer"
+      ]
+    },
+    {
+      "after": 123,
+      "lacks": [
+        "Streaming the answer"
+      ]
+    },
+    {
+      "after": 124,
+      "contains": [
+        "Streaming the answer"
+      ]
+    },
+    {
+      "after": 126,
+      "lacks": [
+        "Streaming the answer",
+        "focus.go owns"
+      ]
+    },
+    {
+      "focus": "t3",
+      "contains": [
+        "Streaming the answer"
+      ],
+      "after": 128
+    },
+    {
+      "after": 131,
+      "modal": "find-line",
+      "contains": [
+        "/golden"
+      ]
+    },
+    {
+      "after": 132,
+      "modal": "",
+      "focus": "t2",
+      "contains": [
+        "the golden needs regenerating"
+      ]
+    },
+    {
+      "after": 133,
+      "focus": "t3"
+    },
+    {
+      "after": 134,
+      "focus": "t2"
+    },
+    {
+      "focus": "t3",
+      "after": 135
+    },
+    {
+      "focus": "t8",
+      "after": 138
+    },
+    {
+      "focus": "turns/body",
+      "contains": [
+        "▌  ok   ofam.dev/ochazuke/pkg15"
+      ],
+      "lacks": [
+        "▾ Make the help modal"
+      ],
+      "after": 151
+    },
+    {
+      "after": 163,
+      "focus": "turns/body",
+      "contains": [
+        "▌  ok   ofam.dev/ochazuke/pkg01",
+        "key g j → timeline.row in normal"
+      ],
+      "lacks": [
+        "▌▾ 4 Bash",
+        "▌  ok   ofam.dev/ochazuke/pkg02"
+      ]
+    },
+    {
+      "after": 165,
+      "contains": [
+        "▌  ok   ofam.dev/ochazuke/pkg02"
+      ],
+      "lacks": [
+        "▌  ok   ofam.dev/ochazuke/pkg01"
+      ]
+    },
+    {
+      "after": 169,
+      "contains": [
+        "▌▾ 4 Bash go test ./... · 41 lines"
+      ],
+      "lacks": [
+        "▌  ok"
+      ]
+    },
+    {
+      "after": 171,
+      "contains": [
+        "▌       return []string{b.Keys, b.Verb, desc}"
+      ],
+      "lacks": [
+        "▌▾ 4 Bash"
+      ]
+    },
+    {
+      "focus": "turns/body",
+      "contains": [
+        "▌▾ 4 Bash go test ./... · 41 lines",
+        "▌  ok   ofam.dev/ochazuke/pkg01",
+        "key j → timeline.step in normal"
+      ],
+      "after": 172
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "width": 80,
+  "height": 18,
+  "chrome": "none",
+  "page": {
+    "diff": {
+      "files": [
+        {
+          "oldPath": "image.bin",
+          "newPath": "image.bin",
+          "status": "M",
+          "binary": true,
+          "oldSize": 512,
+          "newSize": 1024
+        },
+        {
+          "newPath": "generated.go",
+          "status": "A",
+          "truncated": true,
+          "added": 50000,
+          "removed": 0,
+          "hunks": [
+            {
+              "oldStart": 0,
+              "oldCount": 0,
+              "newStart": 1,
+              "newCount": 2,
+              "lines": [
+                {
+                  "kind": 1,
+                  "new": 1,
+                  "text": "package generated"
+                },
+                {
+                  "kind": 1,
+                  "new": 2,
+                  "text": "// first two lines of a bounded snapshot"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,2542 @@
+{
+  "name": "cli end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 160,
+      "height": 54,
+      "page": {
+        "id": "examples",
+        "title": "Examples",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "example",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "example"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "layout": "split",
+            "lists": [
+              {
+                "id": "examples/list",
+                "noun": "example"
+              }
+            ],
+            "detail": {
+              "padding": 0,
+              "sections": [
+                {
+                  "kind": "fields",
+                  "title": "Metadata",
+                  "fields": [
+                    {
+                      "label": "Tool",
+                      "field": "tool"
+                    }
+                  ]
+                },
+                {
+                  "kind": "json",
+                  "title": "Response",
+                  "field": "response",
+                  "parse": true
+                }
+              ]
+            }
+          },
+          "answers": {
+            "example.list": [
+              {
+                "id": "one",
+                "label": "One call",
+                "tool": "probe",
+                "request": {
+                  "alpha": 12,
+                  "nested": {
+                    "ok": true
+                  }
+                },
+                "response": "plain response text"
+              }
+            ]
+          }
+        }
+      },
+      "name": "detail-json-unparseable"
+    },
+    {
+      "width": 200,
+      "height": 32,
+      "page": {
+        "id": "questions",
+        "title": "Questions",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "question",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "question"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "layout": "split",
+            "lists": [
+              {
+                "id": "questions/list",
+                "noun": "question",
+                "title": "Questions"
+              }
+            ],
+            "detail": {
+              "title": "Discussion",
+              "sections": [
+                {
+                  "kind": "markdown",
+                  "field": "question",
+                  "heading": true
+                },
+                {
+                  "kind": "thread",
+                  "field": "answers"
+                },
+                {
+                  "kind": "fields",
+                  "region": "side",
+                  "title": "Metadata",
+                  "fields": [
+                    {
+                      "label": "Status",
+                      "field": "status",
+                      "format": "badge"
+                    },
+                    {
+                      "label": "Project",
+                      "field": "project"
+                    },
+                    {
+                      "label": "Pane",
+                      "field": "pane",
+                      "format": "short-id"
+                    },
+                    {
+                      "label": "Tags",
+                      "field": "tags",
+                      "format": "list"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "answers": {
+            "question.list": [
+              {
+                "id": "q1",
+                "label": "Readable answers",
+                "question": "How should a complete answer stay readable?",
+                "answers": [
+                  {
+                    "author": "codex",
+                    "at": "2026-10-31T12:00:00Z",
+                    "body": "Keep **the question and answer** central. Context belongs beside them when there is room.\n\n- Wrap every paragraph.\n- Keep `render(value)` and links like [the guide](https://example.test/guide) readable.\n\nFinal answer sentence."
+                  }
+                ],
+                "status": "answered",
+                "project": "ochazuke",
+                "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+                "tags": [
+                  "readability",
+                  "catalog"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "name": "detail-sections-fields-copy-expand"
+    },
+    {
+      "width": 100,
+      "height": 26,
+      "page": {
+        "id": "questions",
+        "title": "Questions",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "question",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "question"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "layout": "split",
+            "lists": [
+              {
+                "id": "questions/list",
+                "noun": "question",
+                "title": "Questions"
+              }
+            ],
+            "detail": {
+              "title": "Discussion",
+              "sections": [
+                {
+                  "kind": "markdown",
+                  "field": "question",
+                  "heading": true
+                },
+                {
+                  "kind": "thread",
+                  "field": "answers"
+                },
+                {
+                  "kind": "fields",
+                  "region": "side",
+                  "title": "Metadata",
+                  "fields": [
+                    {
+                      "label": "Status",
+                      "field": "status",
+                      "format": "badge"
+                    },
+                    {
+                      "label": "Project",
+                      "field": "project"
+                    },
+                    {
+                      "label": "Pane",
+                      "field": "pane",
+                      "format": "short-id"
+                    },
+                    {
+                      "label": "Tags",
+                      "field": "tags",
+                      "format": "list"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "answers": {
+            "question.list": [
+              {
+                "id": "q1",
+                "label": "Readable answers",
+                "question": "How should a complete answer stay readable?",
+                "answers": [
+                  {
+                    "author": "codex",
+                    "at": "2026-10-31T12:00:00Z",
+                    "body": "A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. A long answer must wrap through every word without hiding any of the content. Final answer sentinel."
+                  }
+                ],
+                "status": "answered",
+                "project": "ochazuke",
+                "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+                "tags": [
+                  "readability",
+                  "catalog"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "name": "detail-sections-long-markdown-wraps"
+    },
+    {
+      "width": 120,
+      "height": 40,
+      "page": {
+        "id": "questions",
+        "title": "Questions",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "question",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "question"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "layout": "split",
+            "lists": [
+              {
+                "id": "questions/list",
+                "noun": "question",
+                "title": "Questions"
+              }
+            ],
+            "detail": {
+              "title": "Discussion",
+              "sections": [
+                {
+                  "kind": "markdown",
+                  "field": "question",
+                  "heading": true
+                },
+                {
+                  "kind": "thread",
+                  "field": "answers"
+                },
+                {
+                  "kind": "fields",
+                  "region": "side",
+                  "title": "Metadata",
+                  "fields": [
+                    {
+                      "label": "Status",
+                      "field": "status",
+                      "format": "badge"
+                    },
+                    {
+                      "label": "Project",
+                      "field": "project"
+                    },
+                    {
+                      "label": "Pane",
+                      "field": "pane",
+                      "format": "short-id"
+                    },
+                    {
+                      "label": "Tags",
+                      "field": "tags",
+                      "format": "list"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "answers": {
+            "question.list": [
+              {
+                "id": "q1",
+                "label": "Readable answers",
+                "question": "How should a complete answer stay readable?",
+                "answers": [
+                  {
+                    "author": "codex",
+                    "at": "2026-10-31T12:00:00Z",
+                    "body": "Keep **the question and answer** central. Context belongs beside them when there is room.\n\n- Wrap every paragraph.\n- Keep `render(value)` and links like [the guide](https://example.test/guide) readable.\n\nFinal answer sentence."
+                  }
+                ],
+                "status": "answered",
+                "project": "ochazuke",
+                "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+                "tags": [
+                  "readability",
+                  "catalog"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "name": "detail-sections-medium"
+    },
+    {
+      "width": 54,
+      "height": 48,
+      "page": {
+        "id": "questions",
+        "title": "Questions",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "question",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "question"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "layout": "split",
+            "lists": [
+              {
+                "id": "questions/list",
+                "noun": "question",
+                "title": "Questions"
+              }
+            ],
+            "detail": {
+              "title": "Discussion",
+              "sections": [
+                {
+                  "kind": "markdown",
+                  "field": "question",
+                  "heading": true
+                },
+                {
+                  "kind": "thread",
+                  "field": "answers"
+                },
+                {
+                  "kind": "fields",
+                  "region": "side",
+                  "title": "Metadata",
+                  "fields": [
+                    {
+                      "label": "Status",
+                      "field": "status",
+                      "format": "badge"
+                    },
+                    {
+                      "label": "Project",
+                      "field": "project"
+                    },
+                    {
+                      "label": "Pane",
+                      "field": "pane",
+                      "format": "short-id"
+                    },
+                    {
+                      "label": "Tags",
+                      "field": "tags",
+                      "format": "list"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "answers": {
+            "question.list": [
+              {
+                "id": "q1",
+                "label": "Readable answers",
+                "question": "How should a complete answer stay readable?",
+                "answers": [
+                  {
+                    "author": "codex",
+                    "at": "2026-10-31T12:00:00Z",
+                    "body": "Keep **the question and answer** central. Context belongs beside them when there is room.\n\n- Wrap every paragraph.\n- Keep `render(value)` and links like [the guide](https://example.test/guide) readable.\n\nFinal answer sentence."
+                  }
+                ],
+                "status": "answered",
+                "project": "ochazuke",
+                "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+                "tags": [
+                  "readability",
+                  "catalog"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "name": "detail-sections-narrow"
+    },
+    {
+      "width": 200,
+      "height": 32,
+      "page": {
+        "id": "questions",
+        "title": "Questions",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "question",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "question"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "layout": "split",
+            "lists": [
+              {
+                "id": "questions/list",
+                "noun": "question",
+                "title": "Questions"
+              }
+            ],
+            "detail": {
+              "title": "Discussion",
+              "sections": [
+                {
+                  "kind": "markdown",
+                  "field": "question",
+                  "heading": true
+                },
+                {
+                  "kind": "thread",
+                  "field": "answers"
+                },
+                {
+                  "kind": "fields",
+                  "region": "side",
+                  "title": "Metadata",
+                  "fields": [
+                    {
+                      "label": "Status",
+                      "field": "status",
+                      "format": "badge"
+                    },
+                    {
+                      "label": "Project",
+                      "field": "project"
+                    },
+                    {
+                      "label": "Pane",
+                      "field": "pane",
+                      "format": "short-id"
+                    },
+                    {
+                      "label": "Tags",
+                      "field": "tags",
+                      "format": "list"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "answers": {
+            "question.list": [
+              {
+                "id": "q1",
+                "label": "Readable answers",
+                "question": "How should a complete answer stay readable?",
+                "answers": [
+                  {
+                    "author": "author",
+                    "body": "Spaced body."
+                  },
+                  {
+                    "author": "next",
+                    "body": "Another body."
+                  }
+                ],
+                "status": "answered",
+                "project": "ochazuke",
+                "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+                "tags": [
+                  "readability",
+                  "catalog"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "theme": "dark",
+      "settings": [
+        {
+          "name": "detail.padding",
+          "type": "integer",
+          "default": 0
+        }
+      ],
+      "name": "detail-sections-padding-off"
+    },
+    {
+      "width": 200,
+      "height": 32,
+      "page": {
+        "id": "questions",
+        "title": "Questions",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "question",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "question"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "layout": "split",
+            "lists": [
+              {
+                "id": "questions/list",
+                "noun": "question",
+                "title": "Questions"
+              }
+            ],
+            "detail": {
+              "title": "Discussion",
+              "sections": [
+                {
+                  "kind": "markdown",
+                  "field": "question",
+                  "heading": true
+                },
+                {
+                  "kind": "thread",
+                  "field": "answers"
+                },
+                {
+                  "kind": "fields",
+                  "region": "side",
+                  "title": "Metadata",
+                  "fields": [
+                    {
+                      "label": "Status",
+                      "field": "status",
+                      "format": "badge"
+                    },
+                    {
+                      "label": "Project",
+                      "field": "project"
+                    },
+                    {
+                      "label": "Pane",
+                      "field": "pane",
+                      "format": "short-id"
+                    },
+                    {
+                      "label": "Tags",
+                      "field": "tags",
+                      "format": "list"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "answers": {
+            "question.list": [
+              {
+                "id": "q1",
+                "label": "Readable answers",
+                "question": "How should a complete answer stay readable?",
+                "answers": [
+                  {
+                    "author": "author",
+                    "body": "Spaced body."
+                  },
+                  {
+                    "author": "next",
+                    "body": "Another body."
+                  }
+                ],
+                "status": "answered",
+                "project": "ochazuke",
+                "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+                "tags": [
+                  "readability",
+                  "catalog"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "theme": "dark",
+      "name": "detail-sections-padding"
+    },
+    {
+      "width": 200,
+      "height": 32,
+      "page": {
+        "id": "questions",
+        "title": "Questions",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "question",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "question"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "layout": "split",
+            "lists": [
+              {
+                "id": "questions/list",
+                "noun": "question",
+                "title": "Questions"
+              }
+            ],
+            "detail": {
+              "title": "Discussion",
+              "sections": [
+                {
+                  "kind": "markdown",
+                  "field": "question",
+                  "heading": true
+                },
+                {
+                  "kind": "thread",
+                  "field": "answers"
+                },
+                {
+                  "kind": "fields",
+                  "region": "side",
+                  "title": "Metadata",
+                  "fields": [
+                    {
+                      "label": "Status",
+                      "field": "status",
+                      "format": "badge"
+                    },
+                    {
+                      "label": "Project",
+                      "field": "project"
+                    },
+                    {
+                      "label": "Pane",
+                      "field": "pane",
+                      "format": "short-id"
+                    },
+                    {
+                      "label": "Tags",
+                      "field": "tags",
+                      "format": "list"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "answers": {
+            "question.list": [
+              {
+                "id": "q1",
+                "label": "Readable answers",
+                "question": "How should a complete answer stay readable?",
+                "answers": [
+                  {
+                    "author": "codex",
+                    "at": "2026-10-31T12:00:00Z",
+                    "body": "Keep **the question and answer** central. Context belongs beside them when there is room.\n\n- Wrap every paragraph.\n- Keep `render(value)` and links like [the guide](https://example.test/guide) readable.\n\nFinal answer sentence."
+                  }
+                ],
+                "status": "answered",
+                "project": "ochazuke",
+                "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+                "tags": [
+                  "readability",
+                  "catalog"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "settings": [
+        {
+          "name": "detail.side",
+          "type": "boolean",
+          "default": false
+        }
+      ],
+      "name": "detail-sections-side-off"
+    },
+    {
+      "width": 200,
+      "height": 32,
+      "page": {
+        "id": "questions",
+        "title": "Questions",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "question",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "question"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "layout": "split",
+            "lists": [
+              {
+                "id": "questions/list",
+                "noun": "question",
+                "title": "Questions"
+              }
+            ],
+            "detail": {
+              "title": "Discussion",
+              "sections": [
+                {
+                  "kind": "markdown",
+                  "field": "question",
+                  "heading": true
+                },
+                {
+                  "kind": "thread",
+                  "field": "answers"
+                },
+                {
+                  "kind": "fields",
+                  "region": "side",
+                  "title": "Metadata",
+                  "fields": [
+                    {
+                      "label": "Status",
+                      "field": "status",
+                      "format": "badge"
+                    },
+                    {
+                      "label": "Project",
+                      "field": "project"
+                    },
+                    {
+                      "label": "Pane",
+                      "field": "pane",
+                      "format": "short-id"
+                    },
+                    {
+                      "label": "Tags",
+                      "field": "tags",
+                      "format": "list"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "answers": {
+            "question.list": [
+              {
+                "id": "q1",
+                "label": "Readable answers",
+                "question": "How should a complete answer stay readable?",
+                "answers": [
+                  {
+                    "author": "codex",
+                    "at": "2026-10-31T12:00:00Z",
+                    "body": "Keep **the question and answer** central. Context belongs beside them when there is room.\n\n- Wrap every paragraph.\n- Keep `render(value)` and links like [the guide](https://example.test/guide) readable.\n\nFinal answer sentence."
+                  }
+                ],
+                "status": "answered",
+                "project": "ochazuke",
+                "pane": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d",
+                "tags": [
+                  "readability",
+                  "catalog"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "theme": "dark",
+      "name": "detail-sections-wide"
+    },
+    {
+      "width": 100,
+      "height": 22,
+      "page": {
+        "id": "ai",
+        "title": "AI",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "skill",
+              "columns": [
+                {
+                  "title": "Name",
+                  "min": 8
+                },
+                {
+                  "title": "Origin"
+                }
+              ],
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "skill"
+                },
+                {
+                  "name": "show"
+                }
+              ]
+            },
+            {
+              "name": "mcp",
+              "verbs": [
+                {
+                  "name": "tools",
+                  "rows": "mcp-tool"
+                }
+              ]
+            },
+            {
+              "name": "mcp-tool",
+              "verbs": [
+                {
+                  "name": "show"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "title": "AI",
+            "lists": [
+              {
+                "id": "ai/skills",
+                "noun": "skill"
+              },
+              {
+                "id": "ai/tools",
+                "noun": "mcp",
+                "source": "mcp.tools",
+                "title": "tools"
+              }
+            ]
+          },
+          "answers": {
+            "skill.list": [
+              {
+                "id": "s1",
+                "name": "architect",
+                "cells": [
+                  "architect",
+                  "claude"
+                ],
+                "path": "~/.claude/skills/architect",
+                "origin": "claude"
+              },
+              {
+                "id": "s2",
+                "name": "review",
+                "cells": [
+                  "review",
+                  "ai-tools"
+                ],
+                "path": "~/proj/ai-tools/review",
+                "origin": "ai-tools"
+              }
+            ]
+          }
+        }
+      },
+      "name": "a catalog list whose source fails says why; the other list still loads"
+    },
+    {
+      "width": 100,
+      "height": 16,
+      "page": {
+        "id": "ai",
+        "title": "AI",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "skill",
+              "columns": [
+                {
+                  "title": "Name",
+                  "min": 8
+                },
+                {
+                  "title": "Origin"
+                }
+              ],
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "skill"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "title": "AI",
+            "lists": [
+              {
+                "id": "ai/skills",
+                "noun": "skill",
+                "title": "skills"
+              }
+            ]
+          },
+          "answers": {
+            "skill.list": [
+              {
+                "id": "s1",
+                "name": "architect",
+                "cells": [
+                  "architect",
+                  "claude"
+                ]
+              },
+              {
+                "id": "s2",
+                "name": "review",
+                "cells": [
+                  "review",
+                  "ai-tools"
+                ]
+              },
+              {
+                "id": "s3",
+                "name": "reader",
+                "cells": [
+                  "reader",
+                  "claude"
+                ]
+              }
+            ]
+          },
+          "pending": true
+        }
+      },
+      "name": "list filter: rows that land while a filter is kept are filtered (SetItems re-applies it), the title counts shown/all"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.read",
+            "proxy": true,
+            "result": "text",
+            "answer": "readable proxy result"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "Z",
+            "do": "demo.read",
+            "when": "input"
+          },
+          {
+            "noun": "app",
+            "keys": "v",
+            "do": "demo.read"
+          }
+        ]
+      },
+      "name": "catalog/guarded-row-user-row-keeps-guard"
+    },
+    {
+      "width": 100,
+      "height": 22,
+      "page": {
+        "id": "ai",
+        "title": "AI",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "skill",
+              "columns": [
+                {
+                  "title": "Name",
+                  "min": 8
+                },
+                {
+                  "title": "Origin"
+                }
+              ],
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "skill"
+                },
+                {
+                  "name": "show"
+                }
+              ]
+            },
+            {
+              "name": "mcp",
+              "verbs": [
+                {
+                  "name": "tools",
+                  "rows": "mcp-tool"
+                }
+              ]
+            },
+            {
+              "name": "mcp-tool",
+              "verbs": [
+                {
+                  "name": "show"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "title": "AI",
+            "lists": [
+              {
+                "id": "ai/skills",
+                "noun": "skill"
+              },
+              {
+                "id": "ai/tools",
+                "noun": "mcp",
+                "source": "mcp.tools",
+                "title": "tools"
+              }
+            ]
+          },
+          "answers": {
+            "skill.list": [
+              {
+                "id": "s1",
+                "name": "architect",
+                "cells": [
+                  "architect",
+                  "claude"
+                ],
+                "path": "~/.claude/skills/architect",
+                "origin": "claude"
+              },
+              {
+                "id": "s2",
+                "name": "review",
+                "cells": [
+                  "review",
+                  "ai-tools"
+                ],
+                "path": "~/proj/ai-tools/review",
+                "origin": "ai-tools"
+              }
+            ],
+            "mcp.tools": "{\"noun\":\"mcp\",\"id\":\"t1\",\"label\":\"tuios_send_text\",\"data\":{\"server\":\"tuios\"}}\n{\"noun\":\"mcp\",\"id\":\"t2\",\"label\":\"tuios_capture\",\"data\":{\"server\":\"tuios\"}}\n"
+          },
+          "pending": true
+        }
+      },
+      "name": "a catalog page says loading on a list until its rows land, and its loads stay off the ticker"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.thread",
+            "proxy": true,
+            "result": "markdown",
+            "answer": "# Readable question\n\n## Answer\n\nComplete answer without JSON metadata."
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "enter",
+            "do": "demo.thread"
+          },
+          {
+            "noun": "demo",
+            "keys": "v",
+            "do": "demo.thread"
+          }
+        ]
+      },
+      "name": "catalog/restored-row-structured-answer-readable"
+    },
+    {
+      "page": {
+        "id": "git",
+        "title": "Git",
+        "verbs": [
+          {
+            "verb": "demo.inspect",
+            "parameters": {
+              "name": {
+                "type": "string"
+              },
+              "repo": {
+                "type": "string"
+              },
+              "handle": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "bind": [
+          {
+            "noun": "branch",
+            "keys": "v",
+            "do": "demo.inspect",
+            "from": {
+              "name": "row:name",
+              "repo": "row:repo",
+              "handle": "row"
+            }
+          }
+        ],
+        "catalog": {
+          "nouns": [
+            {
+              "name": "branch",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "branch"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "lists": [
+              {
+                "id": "branches",
+                "noun": "branch"
+              }
+            ]
+          },
+          "answers": {
+            "branch.list": [
+              {
+                "id": "repo:main",
+                "label": "main",
+                "data": {
+                  "name": "main",
+                  "repo": "/fixture/repo"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "name": "catalog/row-field-on-mounted-row"
+    },
+    {
+      "width": 80,
+      "height": 14,
+      "page": {
+        "id": "slack",
+        "title": "Slack",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "slack-channel",
+              "verbs": [
+                {
+                  "name": "history",
+                  "rows": "slack-message"
+                },
+                {
+                  "name": "list",
+                  "rows": "slack-channel"
+                }
+              ]
+            },
+            {
+              "name": "slack-message",
+              "verbs": [
+                {
+                  "name": "show"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "title": "Slack",
+            "lists": [
+              {
+                "id": "slack/channels",
+                "noun": "slack-channel",
+                "title": "channels"
+              }
+            ]
+          },
+          "answers": {
+            "slack-channel.list": [
+              {
+                "id": "c1",
+                "label": "#general"
+              },
+              {
+                "id": "c2",
+                "label": "#oncall"
+              }
+            ],
+            "slack-channel.history": [
+              {
+                "id": "m1",
+                "label": "a message in the history"
+              }
+            ]
+          }
+        }
+      },
+      "name": "a catalog list with no source loads the noun's list, not a verb sorted before it that lists another noun's rows (slack-channel.history)"
+    },
+    {
+      "page": {
+        "id": "docs",
+        "title": "Docs",
+        "verbs": [
+          {
+            "verb": "demo.send",
+            "parameters": {
+              "target": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "bind": [
+          {
+            "noun": "lane",
+            "keys": "g s",
+            "do": "demo.send",
+            "from": {
+              "target": "row:doc"
+            }
+          }
+        ],
+        "catalog": {
+          "nouns": [
+            {
+              "name": "lane",
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "lane"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "lists": [
+              {
+                "id": "lanes",
+                "noun": "lane"
+              }
+            ]
+          },
+          "answers": {
+            "lane.list": [
+              {
+                "id": "missing",
+                "label": "unassociated",
+                "data": {
+                  "doc": ""
+                }
+              },
+              {
+                "id": "ready",
+                "label": "ready",
+                "data": {
+                  "doc": "/fixture/report.md"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "name": "catalog/row-target-empty-refuses"
+    },
+    {
+      "width": 90,
+      "height": 30,
+      "page": {
+        "id": "ai",
+        "title": "AI",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "skill",
+              "columns": [
+                {
+                  "title": "Name",
+                  "min": 8
+                },
+                {
+                  "title": "Origin"
+                }
+              ],
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "skill"
+                },
+                {
+                  "name": "show"
+                }
+              ]
+            },
+            {
+              "name": "mcp",
+              "verbs": [
+                {
+                  "name": "tools",
+                  "rows": "mcp-tool"
+                }
+              ]
+            },
+            {
+              "name": "mcp-tool",
+              "verbs": [
+                {
+                  "name": "show"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "title": "AI",
+            "lists": [
+              {
+                "id": "ai/skills",
+                "noun": "skill"
+              }
+            ],
+            "widgets": [
+              {
+                "id": "usage",
+                "kind": "kv",
+                "title": "usage",
+                "source": "usage.show",
+                "fields": [
+                  "skills",
+                  "agents"
+                ]
+              },
+              {
+                "id": "sync",
+                "kind": "status",
+                "title": "sync",
+                "source": "sync.status"
+              },
+              {
+                "id": "recent",
+                "kind": "table",
+                "title": "recent",
+                "source": "skill.recent",
+                "rows": 2,
+                "columns": [
+                  {
+                    "title": "Name",
+                    "min": 8
+                  },
+                  {
+                    "title": "When"
+                  }
+                ],
+                "fields": [
+                  "name",
+                  "at"
+                ]
+              }
+            ]
+          },
+          "answers": {
+            "skill.list": [
+              {
+                "id": "s1",
+                "name": "architect",
+                "cells": [
+                  "architect",
+                  "claude"
+                ],
+                "path": "~/.claude/skills/architect",
+                "origin": "claude"
+              },
+              {
+                "id": "s2",
+                "name": "review",
+                "cells": [
+                  "review",
+                  "ai-tools"
+                ],
+                "path": "~/proj/ai-tools/review",
+                "origin": "ai-tools"
+              }
+            ],
+            "mcp.tools": "{\"noun\":\"mcp\",\"id\":\"t1\",\"label\":\"tuios_send_text\",\"data\":{\"server\":\"tuios\"}}\n{\"noun\":\"mcp\",\"id\":\"t2\",\"label\":\"tuios_capture\",\"data\":{\"server\":\"tuios\"}}\n",
+            "usage.show": {
+              "skills": 12,
+              "agents": 3
+            },
+            "sync.status": {
+              "text": "copying",
+              "done": 5,
+              "total": 10,
+              "state": "running"
+            },
+            "skill.recent": [
+              {
+                "name": "architect",
+                "at": "1m"
+              },
+              {
+                "name": "review",
+                "at": "2m"
+              },
+              {
+                "name": "old",
+                "at": "1d"
+              }
+            ]
+          }
+        }
+      },
+      "name": "catalog widgets: a key/value panel, a status line and a table drawn above the list, which keeps the focus"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.read",
+            "error": "read: child reason"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "E",
+            "do": "demo.read"
+          }
+        ]
+      },
+      "name": "cli/run-mounted-error-wording"
+    },
+    {
+      "width": 100,
+      "height": 16,
+      "page": {
+        "title": "Commands",
+        "commands": {
+          "entries": [
+            {
+              "name": "greet",
+              "kind": "inline",
+              "summary": "say hello",
+              "source": "main.go:12",
+              "help": "usage: hello greet [NAME]\n\nsay hello"
+            },
+            {
+              "name": "web",
+              "kind": "external",
+              "summary": "hello-web on PATH",
+              "source": "/bin/hello-web"
+            }
+          ],
+          "help": {
+            "web": "usage: hello web [PORT]"
+          }
+        }
+      },
+      "name": "i shows an inline command's help at once and fetches an external's"
+    },
+    {
+      "width": 100,
+      "height": 20,
+      "page": {
+        "title": "Commands",
+        "commands": {
+          "entries": [
+            {
+              "name": "greet",
+              "kind": "inline",
+              "summary": "say hello",
+              "source": "main.go:12",
+              "help": "usage: hello greet [NAME] [--loud]\n\nsay hello to *NAME*\n\nflags:\n  --loud     shout_it"
+            }
+          ]
+        }
+      },
+      "name": ":command help greet shows the help in the detail and opens it in the Markdown viewer drawn as written (a --help page is never read as Markdown)"
+    },
+    {
+      "width": 100,
+      "height": 16,
+      "page": {
+        "title": "Commands",
+        "commands": {
+          "entries": [
+            {
+              "name": "greet",
+              "kind": "inline",
+              "summary": "say hello",
+              "source": "main.go:12",
+              "help": "usage: hello greet [NAME]\n\nsay hello"
+            },
+            {
+              "name": "web",
+              "kind": "external",
+              "summary": "hello-web on PATH",
+              "source": "/bin/hello-web"
+            }
+          ],
+          "help": {
+            "web": "usage: hello web [PORT]"
+          }
+        }
+      },
+      "name": "enter runs a command attached; ctrl+a d returns to its row"
+    },
+    {
+      "width": 100,
+      "height": 16,
+      "page": {
+        "title": "Commands",
+        "commands": {
+          "entries": [
+            {
+              "name": "greet",
+              "kind": "inline",
+              "summary": "say hello",
+              "source": "main.go:12",
+              "help": "usage: hello greet [NAME]\n\nsay hello"
+            },
+            {
+              "name": "web",
+              "kind": "external",
+              "summary": "hello-web on PATH",
+              "source": "/bin/hello-web"
+            }
+          ],
+          "help": {
+            "web": "usage: hello web [PORT]"
+          }
+        }
+      },
+      "name": "x stops a run after a confirm and is offered only while one exists"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.synced",
+            "description": "Record a sync"
+          }
+        ]
+      },
+      "config": {
+        "hooks.json": [
+          {
+            "on": "surface.closed",
+            "do": "demo.synced"
+          }
+        ]
+      },
+      "name": "events: hooks.json naming an unknown event loads with a warning notice (hooks check reports the same line)"
+    },
+    {
+      "width": 100,
+      "height": 16,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "config": {
+        "actions.json": [
+          {
+            "noun": "demo",
+            "verb": "open-csv",
+            "command": [
+              "sh",
+              "-c",
+              "exit 0"
+            ],
+            "label": "o-csv",
+            "foreground": true
+          },
+          {
+            "noun": "demo",
+            "verb": "open-bad",
+            "command": [
+              "sh",
+              "-c",
+              "exit 3"
+            ],
+            "foreground": true
+          }
+        ]
+      },
+      "name": "foreground: an actions.json row with foreground true hands the program the terminal; its exit status is told on the status line"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/detail-json-unparseable: detail-json-unparseable"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/detail-sections-fields-copy-expand: detail-sections-fields-copy-expand"
+    },
+    "g",
+    "m",
+    "j",
+    "j",
+    "y",
+    "enter",
+    "q",
+    "q",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/detail-sections-long-markdown-wraps: detail-sections-long-markdown-wraps"
+    },
+    "9",
+    "9",
+    "9",
+    "J",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/detail-sections-medium: detail-sections-medium"
+    },
+    "K",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/detail-sections-narrow: detail-sections-narrow"
+    },
+    "9",
+    "9",
+    "9",
+    "J",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/detail-sections-padding-off: detail-sections-padding-off"
+    },
+    "K",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/detail-sections-padding: detail-sections-padding"
+    },
+    "K",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/detail-sections-side-off: detail-sections-side-off"
+    },
+    "K",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/detail-sections-wide: detail-sections-wide"
+    },
+    "K",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/failed-load-says-why: a catalog list whose source fails says why; the other list still loads"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/filter-setitems: list filter: rows that land while a filter is kept are filtered (SetItems re-applies it), the title counts shown/all"
+    },
+    "/",
+    "r",
+    "e",
+    "enter",
+    {
+      "job": "catalog-load",
+      "state": "done"
+    },
+    "j",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/guarded-row-user-row-keeps-guard: catalog/guarded-row-user-row-keeps-guard"
+    },
+    "Z",
+    "v",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/loading-then-rows: a catalog page says loading on a list until its rows land, and its loads stay off the ticker"
+    },
+    {
+      "job": "catalog-load",
+      "state": "done"
+    },
+    {
+      "job": "catalog-load",
+      "state": "done"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/restored-row-structured-answer-readable: catalog/restored-row-structured-answer-readable"
+    },
+    "enter",
+    "esc",
+    "v",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/row-field-on-mounted-row: catalog/row-field-on-mounted-row"
+    },
+    "v",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/row-source-prefers-list: a catalog list with no source loads the noun's list, not a verb sorted before it that lists another noun's rows (slack-channel.history)"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/row-target-empty-refuses: catalog/row-target-empty-refuses"
+    },
+    "g",
+    "s",
+    "j",
+    "g",
+    "s",
+    {
+      "key": "ctrl+alt+n",
+      "note": "catalog/widgets: catalog widgets: a key/value panel, a status line and a table drawn above the list, which keeps the focus"
+    },
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "cli/run-mounted-error-wording: cli/run-mounted-error-wording"
+    },
+    "E",
+    "g",
+    "<",
+    {
+      "key": "ctrl+alt+n",
+      "note": "commands/help-fetches-external: i shows an inline command's help at once and fetches an external's"
+    },
+    "i",
+    "j",
+    "i",
+    {
+      "job": "command.help",
+      "state": "done"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "commands/help-palette-preformatted: :command help greet shows the help in the detail and opens it in the Markdown viewer drawn as written (a --help page is never read as Markdown)"
+    },
+    ":",
+    {
+      "type": "command help greet"
+    },
+    "enter",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "commands/run-attach-detach: enter runs a command attached; ctrl+a d returns to its row"
+    },
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "h",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "d",
+    {
+      "key": "ctrl+alt+n",
+      "note": "commands/stop-confirmed: x stops a run after a confirm and is offered only while one exists"
+    },
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "d",
+    "x",
+    "y",
+    {
+      "key": "ctrl+alt+n",
+      "note": "events/check-unknown-event: events: hooks.json naming an unknown event loads with a warning notice (hooks check reports the same line)"
+    },
+    "'",
+    "esc",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "foreground/exit-status: foreground: an actions.json row with foreground true hands the program the terminal; its exit status is told on the status line"
+    },
+    ":",
+    {
+      "type": "open-csv"
+    },
+    "enter",
+    {
+      "job": "demo.open-csv",
+      "state": "done"
+    },
+    ":",
+    {
+      "type": "open-bad"
+    },
+    "enter",
+    {
+      "job": "demo.open-bad",
+      "state": "failed"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "contains": [
+        "plain response text"
+      ],
+      "after": 1
+    },
+    {
+      "after": 7,
+      "register": "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d"
+    },
+    {
+      "after": 8,
+      "modal": "text-view",
+      "contains": [
+        "ee6f1a1f-177e-444b-adf9-cf9c18c80e5d"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "questions/list/q1",
+      "after": 10
+    },
+    {
+      "after": 11,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› Questions",
+        "Questions (1) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ Discussion · Readable answers",
+        "Metadata",
+        "# How should a complete answer stay readable?",
+        "Status: [answered]",
+        "Project: ochazuke",
+        "Pane: ee6f1a1f",
+        "Tags: readability, catalog",
+        "when there is room.",
+        "• Wrap every paragraph.",
+        "• Keep render(value) and links like the guide https://example.test/guide",
+        "readable.",
+        "Final answer sentence.",
+        "space collection.mark · q app.quit · ctrl+w >/< resize · : palette.open · ? binding.help · ' page.pick · / filter · g m detail.fields"
+      ],
+      "highlighted": 1
+    },
+    {
+      "contains": [
+        "Final answer sentinel."
+      ],
+      "after": 16
+    },
+    {
+      "after": 16,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› Questions",
+        "through every word without hiding any of",
+        "the content. A long answer must wrap",
+        "the content. Final answer sentinel.",
+        "Metadata",
+        "Status: [answered]",
+        "Project: ochazuke",
+        "Pane: ee6f1a1f",
+        "Tags: readability, catalog",
+        "space collection.mark · q app.quit · J/K detail · ctrl+w >/< resize · : palette.open · ? bindin…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "contains": [
+        "Final answer sentence.",
+        "Metadata",
+        "[answered]"
+      ],
+      "after": 18
+    },
+    {
+      "after": 18,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› Questions",
+        "Questions (1) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ Discussion · Readable answers",
+        "Readable answers",
+        "# How should a complete answer stay readable?",
+        "codex · 2026-10-31 12:00 UTC",
+        "Keep **the question and answer** central. Context",
+        "belongs beside them when there is room.",
+        "• Wrap every paragraph.",
+        "• Keep render(value) and links like the guide",
+        "https://example.test/guide readable.",
+        "Final answer sentence.",
+        "Metadata",
+        "Status: [answered]",
+        "Project: ochazuke",
+        "Pane: ee6f1a1f",
+        "Tags: readability, catalog",
+        "space collection.mark · q app.quit · ctrl+w >/< resize · : palette.open · ? binding.help · ' page.pick · / filter ·…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 20,
+      "contains": [
+        "How should"
+      ]
+    },
+    {
+      "contains": [
+        "Final answer sentence.",
+        "Metadata",
+        "[answered]"
+      ],
+      "after": 23
+    },
+    {
+      "after": 23,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› Questions",
+        "Questions (1)",
+        "Readable answers",
+        "the guide https://example.test/guide",
+        "readable.",
+        "Final answer sentence.",
+        "Metadata",
+        "Status: [answered]",
+        "Project: ochazuke",
+        "Pane: ee6f1a1f",
+        "Tags: readability, catalog",
+        "space collection.mark · q app.quit · J/K detail ·…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 25,
+      "contains": [
+        "Spaced body.",
+        "Another body."
+      ]
+    },
+    {
+      "after": 25,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› Questions",
+        "Questions (1) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ Discussion · Readable answers",
+        "How should a complete answer stay readable?",
+        "Metadata",
+        "Status: [answered]",
+        "Project: ochazuke",
+        "Pane: ee6f1a1f",
+        "Tags: readability, catalog",
+        "next",
+        "Another body.",
+        "space collection.mark · q app.quit · ctrl+w >/< resize · : palette.open · ? binding.help · ' page.pick · / filter · g m detail.fields"
+      ],
+      "highlighted": 1
+    },
+    {
+      "contains": [
+        "    Spaced body.",
+        "    Another body."
+      ],
+      "after": 27
+    },
+    {
+      "after": 27,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› Questions",
+        "Questions (1) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ Discussion · Readable answers",
+        "Metadata",
+        "How should a complete answer stay readable?",
+        "Status: [answered]",
+        "Project: ochazuke",
+        "Pane: ee6f1a1f",
+        "Tags: readability, catalog",
+        "next",
+        "Another body.",
+        "space collection.mark · q app.quit · ctrl+w >/< resize · : palette.open · ? binding.help · ' page.pick · / filter · g m detail.fields"
+      ],
+      "highlighted": 1
+    },
+    {
+      "contains": [
+        "Final answer sentence."
+      ],
+      "lacks": [
+        "Metadata",
+        "[answered]"
+      ],
+      "after": 29
+    },
+    {
+      "after": 29,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› Questions",
+        "Questions (1) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ Discussion · Readable answers",
+        "Readable answers",
+        "# How should a complete answer stay readable?",
+        "codex · 2026-10-31 12:00 UTC",
+        "Keep **the question and answer** central. Context belongs beside them when there is room.",
+        "• Wrap every paragraph.",
+        "• Keep render(value) and links like the guide https://example.test/guide readable.",
+        "Final answer sentence.",
+        "space collection.mark · q app.quit · ctrl+w >/< resize · : palette.open · ? binding.help · ' page.pick · / filter"
+      ],
+      "highlighted": 1
+    },
+    {
+      "contains": [
+        "Final answer sentence.",
+        "Metadata",
+        "[answered]"
+      ],
+      "attrs": {
+        "the question and answer": "bold",
+        "render(value)": "fg"
+      },
+      "after": 31
+    },
+    {
+      "after": 31,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› Questions",
+        "Questions (1) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ Discussion · Readable answers",
+        "Metadata",
+        "How should a complete answer stay readable?",
+        "Status: [answered]",
+        "Project: ochazuke",
+        "Pane: ee6f1a1f",
+        "Tags: readability, catalog",
+        "there is room.",
+        "• Wrap every paragraph.",
+        "• Keep",
+        "render(value)",
+        "and links like the guide https://example.",
+        "test/guide readable.",
+        "Final answer sentence.",
+        "space collection.mark · q app.quit · ctrl+w >/< resize · : palette.open · ? binding.help · ' page.pick · / filter · g m detail.fields"
+      ],
+      "highlighted": 1
+    },
+    {
+      "contains": [
+        "architect",
+        "mcp tools: exit status 1: mcp tools has no answer",
+        "tools (0)"
+      ],
+      "after": 32
+    },
+    {
+      "after": 36,
+      "mode": "list_filter",
+      "contains": [
+        "/re"
+      ]
+    },
+    {
+      "after": 37,
+      "mode": "normal",
+      "contains": [
+        "/re"
+      ]
+    },
+    {
+      "after": 38,
+      "mode": "normal",
+      "focus": "ai/skills/s2",
+      "contains": [
+        "/re",
+        "2 of 3",
+        "skills (2/3)",
+        "review",
+        "reader"
+      ],
+      "lacks": [
+        "architect"
+      ]
+    },
+    {
+      "after": 39,
+      "focus": "ai/skills/s3"
+    },
+    {
+      "after": 40,
+      "mode": "normal",
+      "focus": "ai/skills/s3",
+      "contains": [
+        "architect",
+        "review",
+        "reader",
+        "skills (3)"
+      ],
+      "lacks": [
+        "/re"
+      ]
+    },
+    {
+      "after": 40,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› AI",
+        "skills (3)",
+        "Name",
+        "Origin",
+        "architect",
+        "claude",
+        "review",
+        "ai-tools",
+        "reader",
+        "space collection.mark · q app.quit · : palette.open · ? binding.help · ' page.pick · / filter"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 42,
+      "modal": ""
+    },
+    {
+      "after": 43,
+      "modal": "text-view",
+      "contains": [
+        "readable proxy result"
+      ]
+    },
+    {
+      "modal": "",
+      "after": 44
+    },
+    {
+      "after": 46,
+      "contains": [
+        "loading…"
+      ],
+      "noTicker": true
+    },
+    {
+      "contains": [
+        "architect",
+        "tuios_capture"
+      ],
+      "lacks": [
+        "loading…"
+      ],
+      "noTicker": true,
+      "after": 47
+    },
+    {
+      "after": 49,
+      "modal": "markdown-view",
+      "contains": [
+        "Readable question",
+        "Complete answer"
+      ]
+    },
+    {
+      "modal": "markdown-view",
+      "contains": [
+        "Readable question",
+        "Complete answer"
+      ],
+      "after": 51
+    },
+    {
+      "writes": [
+        "demo.inspect handle=repo:main name=main repo=/fixture/repo"
+      ],
+      "focus": "branches/repo:main",
+      "after": 53
+    },
+    {
+      "contains": [
+        "#general",
+        "#oncall"
+      ],
+      "lacks": [
+        "a message in the history"
+      ],
+      "after": 54
+    },
+    {
+      "after": 57,
+      "contains": [
+        "target",
+        "doc",
+        "lanes/missing"
+      ],
+      "writes": []
+    },
+    {
+      "writes": [
+        "demo.send target=/fixture/report.md"
+      ],
+      "focus": "lanes/ready",
+      "after": 60
+    },
+    {
+      "focus": "ai/skills/s2",
+      "contains": [
+        "skills  12",
+        "agents  3",
+        "sync  copying  [██████████░░░░░░░░░░] 50%  running",
+        "architect  1m",
+        "… 1 more",
+        "skill (2)"
+      ],
+      "lacks": [
+        "1d"
+      ],
+      "order": [
+        "usage",
+        "sync",
+        "recent",
+        "skill (2)"
+      ],
+      "after": 62
+    },
+    {
+      "after": 64,
+      "contains": [
+        "Error: read: child reason"
+      ]
+    },
+    {
+      "modal": "text-view",
+      "contains": [
+        "error: read: child reason"
+      ],
+      "after": 66
+    },
+    {
+      "after": 68,
+      "contains": [
+        "greet · help",
+        "usage: hello greet [NAME]",
+        "enter command.run",
+        "i command.help"
+      ],
+      "lacks": [
+        "x command.stop"
+      ]
+    },
+    {
+      "after": 69,
+      "contains": [
+        "web · help",
+        "source: /bin/hello-web",
+        "enter runs it · i shows its help"
+      ]
+    },
+    {
+      "focus": "command:web",
+      "contains": [
+        "web · help",
+        "usage: hello web [PORT]"
+      ],
+      "after": 71
+    },
+    {
+      "after": 75,
+      "modal": "markdown-view",
+      "contains": [
+        "usage: hello greet [NAME] [--loud]",
+        "say hello to *NAME*",
+        "  --loud     shout_it"
+      ],
+      "lacks": [
+        "```"
+      ]
+    },
+    {
+      "modal": "",
+      "contains": [
+        "greet · help"
+      ],
+      "after": 76
+    },
+    {
+      "after": 81,
+      "focus": "page1/run/1",
+      "mode": "terminal",
+      "contains": [
+        "greet · running · attached",
+        "fake pane: keys echo here",
+        "$ h",
+        "ctrl+a leader"
+      ]
+    },
+    {
+      "focus": "command:greet",
+      "mode": "normal",
+      "contains": [
+        "greet · running · enter attaches",
+        "x command.stop"
+      ],
+      "lacks": [
+        "· attached"
+      ],
+      "after": 83
+    },
+    {
+      "after": 89,
+      "contains": [
+        "Stop greet?"
+      ]
+    },
+    {
+      "focus": "command:greet",
+      "mode": "normal",
+      "contains": [
+        "greet · help",
+        "usage: hello greet [NAME]"
+      ],
+      "lacks": [
+        "x command.stop",
+        "fake pane"
+      ],
+      "after": 90
+    },
+    {
+      "notices": [
+        "warning: hooks.json: row 1: surface.closed → demo.synced: unknown event \"surface.closed\" (events list shows the declared ones)"
+      ],
+      "writes": [],
+      "modal": "",
+      "after": 94
+    },
+    {
+      "after": 99,
+      "contains": [
+        "sh exited"
+      ],
+      "modal": ""
+    },
+    {
+      "contains": [
+        "Error: sh exited with status 3"
+      ],
+      "modal": "",
+      "after": 103
+    },
+    {
+      "page": "examples"
+    }
+  ],
+  "notes": [],
+  "width": 160,
+  "height": 54,
+  "page": {
+    "id": "examples",
+    "title": "Examples",
+    "catalog": {
+      "nouns": [
+        {
+          "name": "example",
+          "verbs": [
+            {
+              "name": "list",
+              "rows": "example"
+            }
+          ]
+        }
+      ],
+      "page": {
+        "layout": "split",
+        "lists": [
+          {
+            "id": "examples/list",
+            "noun": "example"
+          }
+        ],
+        "detail": {
+          "padding": 0,
+          "sections": [
+            {
+              "kind": "fields",
+              "title": "Metadata",
+              "fields": [
+                {
+                  "label": "Tool",
+                  "field": "tool"
+                }
+              ]
+            },
+            {
+              "kind": "json",
+              "title": "Response",
+              "field": "response",
+              "parse": true
+            }
+          ]
+        }
+      },
+      "answers": {
+        "example.list": [
+          {
+            "id": "one",
+            "label": "One call",
+            "tool": "probe",
+            "request": {
+              "alpha": 12,
+              "nested": {
+                "ok": true
+              }
+            },
+            "response": "plain response text"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,3131 @@
+{
+  "name": "forms end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 56,
+      "height": 12,
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "prompt",
+            "label": "prompt",
+            "text": "",
+            "completions": [
+              {
+                "trigger": "@",
+                "items": [
+                  "src/main.go",
+                  "src/main_test.go",
+                  "src/model.go",
+                  "README.md"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "completion: the list as drawn, the highlighted row reversed, the footer naming its keys"
+    },
+    {
+      "width": 56,
+      "height": 12,
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "prompt",
+            "label": "prompt",
+            "text": "see @src/main now",
+            "completions": [
+              {
+                "trigger": "@",
+                "items": [
+                  "src/main.go",
+                  "src/main_test.go",
+                  "src/model.go",
+                  "README.md"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "completion: tab inside an existing token asks for the whole token at once; enter on a highlighted row replaces the whole token"
+    },
+    {
+      "width": 56,
+      "height": 12,
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "prompt",
+            "label": "prompt",
+            "text": "",
+            "completions": [
+              {
+                "trigger": "@",
+                "items": [
+                  "src/main.go",
+                  "src/main_test.go",
+                  "src/model.go",
+                  "README.md"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "completion: typing a trigger token offers its suggestions under the query after the pause; typing keeps editing the input"
+    },
+    {
+      "width": 56,
+      "height": 12,
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "prompt",
+            "label": "prompt",
+            "text": "",
+            "completions": [
+              {
+                "trigger": "@",
+                "items": [
+                  "src/main.go",
+                  "src/main_test.go",
+                  "src/model.go",
+                  "README.md"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "up-from-none-last"
+    },
+    {
+      "width": 56,
+      "height": 12,
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "prompt",
+            "label": "prompt",
+            "text": "",
+            "completions": [
+              {
+                "trigger": "@",
+                "items": [
+                  "src/main.go",
+                  "src/main_test.go",
+                  "src/model.go",
+                  "README.md"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "values": {
+        "picker.up-from-none": "stay"
+      },
+      "name": "up-from-none-stay"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "records": [
+          {
+            "id": "task",
+            "height": 8,
+            "fields": [
+              {
+                "name": "title",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "status",
+                "type": "string",
+                "required": true,
+                "enum": [
+                  "todo",
+                  "doing",
+                  "done"
+                ]
+              },
+              {
+                "name": "estimate",
+                "type": "integer"
+              }
+            ],
+            "values": {
+              "title": "Water the plants",
+              "status": "todo",
+              "estimate": "2"
+            }
+          }
+        ],
+        "texts": [
+          {
+            "id": "stored",
+            "text": "stored: the line under the form"
+          }
+        ],
+        "focus": "task/status"
+      },
+      "name": "form: a choice field's chooser opens beside the field, sized to its rows, so the field and the lines below it stay visible"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "records": [
+          {
+            "id": "task",
+            "height": 8,
+            "fields": [
+              {
+                "name": "title",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "status",
+                "type": "string",
+                "required": true,
+                "enum": [
+                  "todo",
+                  "doing",
+                  "done"
+                ]
+              },
+              {
+                "name": "estimate",
+                "type": "integer"
+              }
+            ],
+            "values": {
+              "title": "Water the plants",
+              "status": "todo",
+              "estimate": "2"
+            }
+          }
+        ],
+        "texts": [
+          {
+            "id": "stored",
+            "text": "stored: the line under the form"
+          }
+        ],
+        "focus": "task/status"
+      },
+      "settings": [
+        {
+          "name": "modal.anchor",
+          "type": "boolean",
+          "default": false
+        }
+      ],
+      "name": "form: with modal.anchor off a choice field's chooser is centered over the form as every modal is"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "records": [
+          {
+            "id": "task",
+            "fields": [
+              {
+                "name": "title",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "status",
+                "type": "string",
+                "required": true,
+                "enum": [
+                  "todo",
+                  "doing",
+                  "done"
+                ]
+              },
+              {
+                "name": "estimate",
+                "type": "integer"
+              },
+              {
+                "name": "notes",
+                "type": "string",
+                "multiline": true
+              }
+            ],
+            "values": {
+              "title": "buy milk",
+              "status": "todo"
+            },
+            "failWrites": 1
+          }
+        ],
+        "focus": "task/title"
+      },
+      "name": "form: a failed write keeps the value, says so, and is retried at the next write"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "settings": [
+        {
+          "name": "forms.outside-write",
+          "type": "string",
+          "default": "close",
+          "enum": [
+            "reload",
+            "close"
+          ]
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "t1"
+              }
+            ]
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "doing",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "status": "todo"
+            }
+          ]
+        },
+        "records": [
+          {
+            "id": "task",
+            "thing": "t1",
+            "reopen": "e",
+            "fields": [
+              {
+                "name": "title",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "status",
+                "type": "string",
+                "required": true,
+                "enum": [
+                  "todo",
+                  "doing",
+                  "done"
+                ]
+              }
+            ]
+          }
+        ],
+        "focus": "task/title"
+      },
+      "name": "form: with forms.outside-write close a write from outside leaves the editor: the focus goes to the list, the footer drops the form's hints, and e edits again"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "t1"
+              }
+            ]
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "doing",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "status": "todo"
+            }
+          ]
+        },
+        "records": [
+          {
+            "id": "task",
+            "thing": "t1",
+            "fields": [
+              {
+                "name": "title",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "status",
+                "type": "string",
+                "required": true,
+                "enum": [
+                  "todo",
+                  "doing",
+                  "done"
+                ]
+              }
+            ]
+          }
+        ],
+        "focus": "task/title"
+      },
+      "name": "form: a write from outside (:demo set) reloads the open editor; it stays open on its field and mode, and its next write keeps the new value"
+    },
+    {
+      "page": {
+        "records": [
+          {
+            "id": "task",
+            "fields": [
+              {
+                "name": "title",
+                "type": "string"
+              }
+            ],
+            "values": {
+              "title": ""
+            }
+          }
+        ],
+        "focus": "task/title"
+      },
+      "name": "form: pasting several lines into a single-line field grows it and keeps the text"
+    },
+    {
+      "width": 100,
+      "height": 18,
+      "files": [
+        "a.json",
+        "b.txt",
+        "sub/c.json",
+        "sub/deep/"
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}"
+              },
+              {
+                "name": "title",
+                "type": "string"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "form: a path field opens the path chooser on browse; enter on a folder browses into it, backspace on an empty query goes up, enter on a file fills the field"
+    },
+    {
+      "width": 100,
+      "height": 20,
+      "files": [
+        "cmd/mtm/main.go",
+        "internal/work/",
+        ".git/objects/",
+        "node_modules/left-pad/",
+        ".worktrees/lane-a/cmd/",
+        "docs/"
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "proj",
+            "fields": [
+              {
+                "name": "folder",
+                "type": "path",
+                "path": "dir",
+                "base": "{{files}}"
+              }
+            ]
+          }
+        ],
+        "pathWalk": {
+          "roots": [
+            {
+              "path": "{{files}}",
+              "label": "project"
+            }
+          ]
+        },
+        "focus": "proj/folder"
+      },
+      "name": "form: a folder field's chooser opens on walk (path.first), which lists every folder under the roots; typing a fragment of a nested path (cmd mtm) finds the deep folder, and .git and node_modules are skipped"
+    },
+    {
+      "width": 100,
+      "height": 20,
+      "files": [
+        "alpha/beta/gamma/",
+        "zulu/"
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "proj",
+            "fields": [
+              {
+                "name": "folder",
+                "type": "path",
+                "path": "dir",
+                "base": "{{files}}"
+              }
+            ]
+          }
+        ],
+        "pathWalk": {
+          "roots": [
+            {
+              "path": "{{files}}",
+              "label": "project"
+            }
+          ],
+          "batch": 1
+        },
+        "focus": "proj/folder"
+      },
+      "name": "form: the walk source streams: the root shows at once, and with one folder per batch the root's own folders show while the walk goes on (the title counts with …), the deeper ones land with later batches"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "p-001",
+                "label": "alpha",
+                "noun": "project"
+              },
+              {
+                "id": "p-002",
+                "label": "beta",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "records": [
+          {
+            "id": "record",
+            "fields": [
+              {
+                "name": "project",
+                "type": "string",
+                "noun": "project",
+                "free": true
+              },
+              {
+                "name": "title",
+                "type": "string"
+              }
+            ],
+            "values": {
+              "project": "p-001"
+            }
+          }
+        ],
+        "focus": "record/project"
+      },
+      "name": "reference fields show labels and write only a chosen id, including deliberate clearing and undo"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "noun": "parcel",
+                "data": {
+                  "id": "t2"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "count",
+              "type": "integer"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "count": 1234567,
+              "stamp": "fixed"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "status": "done",
+              "count": 2,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "a stored whole number reads as written, with no false problem"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "noun": "parcel",
+                "data": {
+                  "id": "t2"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "count",
+              "type": "integer"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "count": 1234567,
+              "stamp": "fixed"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "status": "done",
+              "count": 2,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "an optional integer can be emptied"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Alpha",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "noun": "parcel",
+                "data": {
+                  "id": "t2"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "count",
+              "type": "integer"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Alpha",
+              "status": "todo",
+              "count": 1234567,
+              "stamp": "fixed"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "status": "done",
+              "count": 2,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "forms.edit-apply confirm: retyping the opening value after an outside write writes it"
+    },
+    {
+      "page": {
+        "focus": "t1",
+        "nouns": [
+          {
+            "noun": "parcel",
+            "noEditKey": true
+          }
+        ],
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original"
+            }
+          ]
+        }
+      },
+      "name": "forms/standard-edit-key-off"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "noun": "parcel",
+                "data": {
+                  "id": "t2"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "count",
+              "type": "integer"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "count": 1234567,
+              "stamp": "fixed"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "status": "done",
+              "count": 2,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "R12.5 standard edit's form names the thing it edits"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "noun": "parcel",
+                "data": {
+                  "id": "t2"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "count",
+              "type": "integer"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "count": 1234567,
+              "stamp": "fixed"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "status": "done",
+              "count": 2,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "the offered (none) on an optional enum clears it"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "noun": "parcel",
+                "data": {
+                  "id": "t2"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "count",
+              "type": "integer"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "count": 1234567,
+              "stamp": "fixed"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "status": "done",
+              "count": 2,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "R12.5 palette edit names the thing it edits, not the focused row"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "noun": "parcel",
+                "data": {
+                  "id": "t2"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "count",
+              "type": "integer"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "count": 1234567,
+              "stamp": "fixed"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "status": "done",
+              "count": 2,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "forms.outside-write reload: an open standard edit takes an outside set"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "noun": "parcel",
+                "data": {
+                  "id": "t2"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "count",
+              "type": "integer"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "count": 1234567,
+              "stamp": "fixed"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "status": "done",
+              "count": 2,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "R4.8 standard edit re-targets the open form"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "records": [
+          {
+            "id": "tool",
+            "fields": [
+              {
+                "name": "model",
+                "type": "string",
+                "free": true,
+                "enum": [
+                  "opus",
+                  "sonnet",
+                  "haiku"
+                ]
+              },
+              {
+                "name": "title",
+                "type": "string"
+              }
+            ],
+            "values": {
+              "model": "opus"
+            }
+          }
+        ],
+        "focus": "tool/model"
+      },
+      "name": "form: a free field with suggestions types freely, enter opens the chooser over them, a pick fills the field"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "records": [
+          {
+            "id": "task",
+            "fields": [
+              {
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "name": "note",
+                "type": "string"
+              }
+            ],
+            "values": {
+              "name": "gamma",
+              "note": "delta"
+            }
+          }
+        ],
+        "focus": "task/name"
+      },
+      "name": "form: u at an older field takes that field's own step first, then the chain's; ctrl+r brings all back"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "records": [
+          {
+            "id": "task",
+            "fields": [
+              {
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "name": "note",
+                "type": "string"
+              }
+            ],
+            "values": {
+              "name": "alpha",
+              "note": "beta"
+            }
+          }
+        ],
+        "focus": "task/name"
+      },
+      "name": "form: u and ctrl+r in a text field walk one chain and stop quietly at the end"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "records": [
+          {
+            "id": "task",
+            "fields": [
+              {
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "name": "note",
+                "type": "string"
+              }
+            ],
+            "values": {
+              "name": "gamma",
+              "note": "delta"
+            }
+          }
+        ],
+        "focus": "task/name"
+      },
+      "name": "form: u and ctrl+r walk the same chain across two text fields; each key takes one step"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "records": [
+          {
+            "id": "task",
+            "fields": [
+              {
+                "name": "title",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "status",
+                "type": "string",
+                "required": true,
+                "enum": [
+                  "todo",
+                  "doing",
+                  "done"
+                ]
+              },
+              {
+                "name": "estimate",
+                "type": "integer"
+              },
+              {
+                "name": "notes",
+                "type": "string",
+                "multiline": true
+              }
+            ],
+            "values": {
+              "title": "buy milk",
+              "status": "todo"
+            }
+          }
+        ],
+        "focus": "task/title"
+      },
+      "name": "form: u undoes the record's last change in any field, ctrl+r redoes it; each is written"
+    },
+    {
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.stamp",
+            "description": "Stamp the row",
+            "needs": [
+              "colour"
+            ],
+            "parameters": {
+              "colour": {
+                "type": "string",
+                "description": "The ink"
+              }
+            }
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "T",
+            "do": "demo.stamp"
+          }
+        ]
+      },
+      "name": "esc on the form a handler's need opened leaves no change and runs nothing"
+    },
+    {
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.stamp",
+            "description": "Stamp the row",
+            "needs": [
+              "colour"
+            ],
+            "needReason": "stamping needs a colour",
+            "parameters": {
+              "colour": {
+                "type": "string",
+                "description": "The ink"
+              }
+            }
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "T",
+            "do": "demo.stamp"
+          }
+        ]
+      },
+      "name": "a key whose handler finds late it lacks a value asks for it in the args form, then runs again with it"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original"
+            },
+            {
+              "id": "t2",
+              "title": "Second"
+            }
+          ]
+        },
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "P",
+            "do": "parcel.get"
+          }
+        ]
+      },
+      "name": "a key on a standard verb with nothing of its noun focused asks for the thing in the args form, then runs"
+    },
+    {
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.stamp",
+            "description": "Stamp the row",
+            "needs": [
+              "colour",
+              "size"
+            ],
+            "parameters": {
+              "colour": {
+                "type": "string",
+                "description": "The ink"
+              },
+              "size": {
+                "type": "string",
+                "description": "The size"
+              }
+            }
+          }
+        ]
+      },
+      "name": "a verb run from the palette that finds late it lacks a value asks for it and runs again"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "done",
+              "role": "archive",
+              "type": "boolean"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original"
+            },
+            {
+              "id": "t2",
+              "title": "Second"
+            },
+            {
+              "id": "t3",
+              "title": "Old one",
+              "done": true
+            }
+          ]
+        },
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "P",
+            "do": "parcel.get"
+          }
+        ]
+      },
+      "name": "a noun picker opens on all, the tag counts what the widest scope adds, alt+s steps to archived and shows every value"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "inputs": [
+          {
+            "id": "q",
+            "label": "query"
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "swatch.names",
+            "description": "List the swatches",
+            "parameters": {
+              "project": {
+                "type": "string"
+              }
+            },
+            "rowsArg": "project",
+            "rowsBy": {
+              "": [
+                "alpha",
+                "beta",
+                "gamma",
+                "delta"
+              ],
+              "matomeru": [
+                "alpha",
+                "beta"
+              ]
+            }
+          },
+          {
+            "verb": "swatch.paint",
+            "description": "Paint a swatch",
+            "positional": [
+              "swatch"
+            ],
+            "parameters": {
+              "swatch": {
+                "type": "string",
+                "required": true,
+                "free": true,
+                "source": "swatch.names",
+                "description": "The swatch to paint",
+                "scopes": [
+                  {
+                    "name": "project",
+                    "fixed": {
+                      "project": "matomeru"
+                    }
+                  },
+                  {
+                    "name": "all"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "name": "a declared project scope opens first, the tag counts the rest, alt+s widens to all; a typed value nothing matches is accepted on a free parameter"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "done",
+              "role": "archive",
+              "type": "boolean"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original"
+            },
+            {
+              "id": "t3",
+              "title": "Old one",
+              "done": true
+            }
+          ]
+        }
+      },
+      "name": "picker.open on a noun that archives opens on all and alt+s adds the archived ones"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "completion/look: completion: the list as drawn, the highlighted row reversed, the footer naming its keys"
+    },
+    "A",
+    {
+      "type": "review @src/m"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    "ctrl+n",
+    {
+      "key": "ctrl+alt+n",
+      "note": "completion/mid-token-tab: completion: tab inside an existing token asks for the whole token at once; enter on a highlighted row replaces the whole token"
+    },
+    "A",
+    "left",
+    "left",
+    "left",
+    "left",
+    "left",
+    "left",
+    "tab",
+    {
+      "job": "completion.search"
+    },
+    "down",
+    "down",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "completion/typing-opens: completion: typing a trigger token offers its suggestions under the query after the pause; typing keeps editing the input"
+    },
+    "A",
+    {
+      "type": "review @src/ma"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    {
+      "type": "i"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "completion/up-from-none-last: up-from-none-last"
+    },
+    "A",
+    {
+      "type": "review @src/m"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    "ctrl+p",
+    {
+      "key": "ctrl+alt+n",
+      "note": "completion/up-from-none-stay: up-from-none-stay"
+    },
+    "A",
+    {
+      "type": "review @src/m"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "job": "completion.search"
+    },
+    "ctrl+p",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/chooser-beside-field: form: a choice field's chooser opens beside the field, sized to its rows, so the field and the lines below it stay visible"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/chooser-centered-off: form: with modal.anchor off a choice field's chooser is centered over the form as every modal is"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/failed-write: form: a failed write keeps the value, says so, and is retried at the next write"
+    },
+    "A",
+    {
+      "type": "!"
+    },
+    "esc",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/outside-write-close: form: with forms.outside-write close a write from outside leaves the editor: the focus goes to the list, the footer drops the form's hints, and e edits again"
+    },
+    ":",
+    {
+      "type": "demo set t1 status done"
+    },
+    "enter",
+    "e",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/outside-write-reloads: form: a write from outside (:demo set) reloads the open editor; it stays open on its field and mode, and its next write keeps the new value"
+    },
+    ":",
+    {
+      "type": "demo set t1 status done"
+    },
+    "enter",
+    "A",
+    {
+      "type": "!"
+    },
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/paste-multiline-into-single-line: form: pasting several lines into a single-line field grows it and keeps the text"
+    },
+    "w",
+    "i",
+    {
+      "paste": "one\ntwo\nthree"
+    },
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/path-browse: form: a path field opens the path chooser on browse; enter on a folder browses into it, backspace on an empty query goes up, enter on a file fills the field"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "su"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "backspace",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "b.t"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/path-walk-finds-deep: form: a folder field's chooser opens on walk (path.first), which lists every folder under the roots; typing a fragment of a nested path (cmd mtm) finds the deep folder, and .git and node_modules are skipped"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "cmd mtm"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/path-walk-streams: form: the walk source streams: the root shows at once, and with one folder per batch the root's own folders show while the walk goes on (the title counts with …), the deeper ones land with later batches"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/reference-choice: reference fields show labels and write only a chosen id, including deliberate clearing and undo"
+    },
+    "i",
+    "ctrl+u",
+    {
+      "type": "zz"
+    },
+    "esc",
+    "q",
+    "i",
+    {
+      "type": "bet"
+    },
+    "enter",
+    "i",
+    {
+      "type": "(none)"
+    },
+    "enter",
+    "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/standard-edit-big-number: a stored whole number reads as written, with no false problem"
+    },
+    "i",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/standard-edit-clear-optional-integer: an optional integer can be emptied"
+    },
+    "i",
+    "j",
+    "j",
+    "A",
+    "ctrl+u",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/standard-edit-confirm-retype-opening-value: forms.edit-apply confirm: retyping the opening value after an outside write writes it"
+    },
+    ":",
+    {
+      "type": "setting set forms.edit-apply confirm"
+    },
+    "enter",
+    "i",
+    ":",
+    {
+      "type": "parcel set t1 title Outside"
+    },
+    "enter",
+    "A",
+    "backspace",
+    "backspace",
+    "backspace",
+    "backspace",
+    "backspace",
+    "backspace",
+    "backspace",
+    {
+      "type": "Alpha"
+    },
+    "esc",
+    "enter",
+    "i",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/standard-edit-key-off: forms/standard-edit-key-off"
+    },
+    "i",
+    ":",
+    {
+      "type": "parcel edit t1"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/standard-edit-names-the-thing: R12.5 standard edit's form names the thing it edits"
+    },
+    "i",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/standard-edit-none-clears-enum: the offered (none) on an optional enum clears it"
+    },
+    "i",
+    "j",
+    "enter",
+    "g",
+    "g",
+    "enter",
+    ":",
+    {
+      "type": "parcel get t1"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/standard-edit-palette-names-target: R12.5 palette edit names the thing it edits, not the focused row"
+    },
+    ":",
+    {
+      "type": "parcel edit t2"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/standard-edit-reloads-outside-write: forms.outside-write reload: an open standard edit takes an outside set"
+    },
+    "i",
+    ":",
+    {
+      "type": "parcel set t1 title Outside"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/standard-edit-reopen-while-open: R4.8 standard edit re-targets the open form"
+    },
+    "i",
+    ":",
+    {
+      "type": "parcel edit t2"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/suggestions: form: a free field with suggestions types freely, enter opens the chooser over them, a pick fills the field"
+    },
+    "A",
+    "ctrl+u",
+    {
+      "type": "gpt-x"
+    },
+    "esc",
+    "enter",
+    {
+      "type": "hai"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/undo-chain-any-stop: form: u at an older field takes that field's own step first, then the chain's; ctrl+r brings all back"
+    },
+    "A",
+    {
+      "type": "X"
+    },
+    "esc",
+    "j",
+    "A",
+    {
+      "type": "Y"
+    },
+    "esc",
+    "k",
+    "u",
+    "u",
+    "u",
+    "ctrl+r",
+    "ctrl+r",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/undo-chain-text: form: u and ctrl+r in a text field walk one chain and stop quietly at the end"
+    },
+    "A",
+    {
+      "type": "uc"
+    },
+    "esc",
+    "u",
+    "ctrl+r",
+    "u",
+    "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/undo-chain-two-fields: form: u and ctrl+r walk the same chain across two text fields; each key takes one step"
+    },
+    "A",
+    {
+      "type": "X"
+    },
+    "esc",
+    "j",
+    "A",
+    {
+      "type": "Y"
+    },
+    "esc",
+    "u",
+    "u",
+    "ctrl+r",
+    "ctrl+r",
+    "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "forms/undo-redo: form: u undoes the record's last change in any field, ctrl+r redoes it; each is written"
+    },
+    "A",
+    {
+      "type": "!"
+    },
+    "esc",
+    "j",
+    "enter",
+    "j",
+    "j",
+    "enter",
+    "u",
+    "u",
+    "ctrl+r",
+    {
+      "key": "ctrl+alt+n",
+      "note": "need/key-handler-need-esc: esc on the form a handler's need opened leaves no change and runs nothing"
+    },
+    "T",
+    {
+      "type": "re"
+    },
+    "esc",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "need/key-handler-need: a key whose handler finds late it lacks a value asks for it in the args form, then runs again with it"
+    },
+    "T",
+    {
+      "type": "red"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "need/key-missing-subject: a key on a standard verb with nothing of its noun focused asks for the thing in the args form, then runs"
+    },
+    "P",
+    "enter",
+    {
+      "type": "t2"
+    },
+    "enter",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "need/palette-handler-need: a verb run from the palette that finds late it lacks a value asks for it and runs again"
+    },
+    ":",
+    {
+      "type": "stamp"
+    },
+    "enter",
+    {
+      "type": "red"
+    },
+    "enter",
+    {
+      "type": "big"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "scopes/cycle-all-archived: a noun picker opens on all, the tag counts what the widest scope adds, alt+s steps to archived and shows every value"
+    },
+    "P",
+    "enter",
+    "alt+s",
+    "alt+s",
+    {
+      "key": "ctrl+alt+n",
+      "note": "scopes/cycle-project-all: a declared project scope opens first, the tag counts the rest, alt+s widens to all; a typed value nothing matches is accepted on a free parameter"
+    },
+    ":",
+    {
+      "type": "swatch paint"
+    },
+    "enter",
+    "ctrl+space",
+    "alt+s",
+    {
+      "type": "zzz"
+    },
+    "enter",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "scopes/picker-open-archived: picker.open on a noun that archives opens on all and alt+s adds the archived ones"
+    },
+    ":",
+    {
+      "type": "picker open parcel"
+    },
+    "enter",
+    "alt+s",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "after": 6,
+      "contains": [
+        "◆ o-story",
+        "INSERT",
+        "› page1",
+        "prompt: review @src/m",
+        "src/main.go",
+        "src/main_test.go",
+        "src/model.go",
+        "esc completion.dismiss · tab completion.accept"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 16,
+      "contains": [
+        "src/main.go",
+        "src/main_test.go"
+      ],
+      "lacks": [
+        "src/model.go"
+      ]
+    },
+    {
+      "mode": "insert",
+      "contains": [
+        "prompt: see @src/main_test.go now"
+      ],
+      "lacks": [
+        "completion.accept"
+      ],
+      "after": 19
+    },
+    {
+      "after": 22,
+      "mode": "insert",
+      "lacks": [
+        "src/main.go"
+      ]
+    },
+    {
+      "after": 24,
+      "focus": "prompt",
+      "mode": "insert",
+      "contains": [
+        "prompt: review @src/ma",
+        "src/main.go",
+        "src/main_test.go",
+        "tab completion.accept",
+        "esc completion.dismiss"
+      ],
+      "lacks": [
+        "README.md",
+        "src/model.go"
+      ],
+      "highlighted": 0
+    },
+    {
+      "focus": "prompt",
+      "mode": "insert",
+      "contains": [
+        "prompt: review @src/mai",
+        "src/main_test.go"
+      ],
+      "after": 25
+    },
+    {
+      "after": 30,
+      "highlighted": 0
+    },
+    {
+      "after": 31,
+      "highlighted": 1,
+      "highlightedText": "src/model.go"
+    },
+    {
+      "after": 31,
+      "contains": [
+        "◆ o-story",
+        "INSERT",
+        "› page1",
+        "prompt: review @src/m",
+        "src/main.go",
+        "src/main_test.go",
+        "src/model.go",
+        "esc completion.dismiss · tab completion.accept"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 36,
+      "highlighted": 0
+    },
+    {
+      "after": 37,
+      "highlighted": 0
+    },
+    {
+      "after": 37,
+      "contains": [
+        "◆ o-story",
+        "INSERT",
+        "› page1",
+        "prompt: review @src/m",
+        "src/main.go",
+        "src/main_test.go",
+        "src/model.go",
+        "esc completion.dismiss · tab completion.accept"
+      ]
+    },
+    {
+      "modal": "form-choose",
+      "contains": [
+        "status",
+        "todo ▾",
+        "│ Choose status",
+        "stored: the line under the form"
+      ],
+      "order": [
+        "Water the plants",
+        "Choose status",
+        "todo ▾",
+        "doing",
+        "done",
+        "stored: the line under the form"
+      ],
+      "after": 39
+    },
+    {
+      "modal": "form-choose",
+      "contains": [
+        "│ Choose status",
+        "? binding.help"
+      ],
+      "lacks": [
+        "stored: the line under the form"
+      ],
+      "after": 41
+    },
+    {
+      "after": 45,
+      "contains": [
+        "buy milk!",
+        "! not saved: store unavailable"
+      ],
+      "writes": []
+    },
+    {
+      "lacks": [
+        "not saved"
+      ],
+      "writes": [
+        "write title=\"buy milk!\""
+      ],
+      "after": 46
+    },
+    {
+      "after": 50,
+      "focus": "t1",
+      "mode": "normal",
+      "modal": "",
+      "lacks": [
+        "form.leave",
+        "form.undo",
+        "Water the plants"
+      ],
+      "noNotices": true
+    },
+    {
+      "focus": "task/title",
+      "mode": "normal",
+      "contains": [
+        "Water the plants",
+        "done ▾",
+        "q form.leave"
+      ],
+      "noNotices": true,
+      "after": 51
+    },
+    {
+      "after": 55,
+      "focus": "task/title",
+      "mode": "normal",
+      "modal": "",
+      "contains": [
+        "done ▾",
+        "q form.leave"
+      ],
+      "lacks": [
+        "todo ▾"
+      ],
+      "noNotices": true
+    },
+    {
+      "focus": "task/title",
+      "mode": "normal",
+      "contains": [
+        "Water the plants!",
+        "done ▾"
+      ],
+      "after": 58
+    },
+    {
+      "contains": [
+        "one",
+        "two",
+        "three"
+      ],
+      "writes": [
+        "write title=\"one\\ntwo\\nthree\""
+      ],
+      "after": 63
+    },
+    {
+      "after": 65,
+      "modal": "path-chooser",
+      "contains": [
+        "Choose file · [browse",
+        "loading…"
+      ]
+    },
+    {
+      "after": 66,
+      "contains": [
+        "sub/",
+        "a.json",
+        "b.txt"
+      ]
+    },
+    {
+      "after": 69,
+      "contains": [
+        "deep/",
+        "c.json"
+      ],
+      "lacks": [
+        "a.json"
+      ]
+    },
+    {
+      "after": 71,
+      "contains": [
+        "sub/",
+        "a.json"
+      ],
+      "lacks": [
+        "c.json"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "doc/file",
+      "contains": [
+        "b.txt"
+      ],
+      "writes": [
+        "write file={{files}}/b.txt"
+      ],
+      "after": 73
+    },
+    {
+      "after": 76,
+      "modal": "path-chooser",
+      "contains": [
+        "Choose folder · [walk ",
+        "cmd/mtm/",
+        "internal/work/",
+        ".worktrees/lane-a/",
+        "project"
+      ],
+      "lacks": [
+        ".git",
+        "node_modules",
+        "main.go",
+        "…]"
+      ]
+    },
+    {
+      "after": 77,
+      "contains": [
+        "cmd/mtm/"
+      ],
+      "lacks": [
+        "internal/work/",
+        "docs/"
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "write folder={{files}}/cmd/mtm"
+      ],
+      "after": 78
+    },
+    {
+      "after": 80,
+      "modal": "path-chooser",
+      "contains": [
+        "./",
+        "project",
+        "[walk project · 1…]"
+      ],
+      "lacks": [
+        "alpha/",
+        "zulu/"
+      ]
+    },
+    {
+      "after": 81,
+      "modal": "path-chooser",
+      "contains": [
+        "alpha/",
+        "zulu/",
+        "…]"
+      ],
+      "lacks": [
+        "alpha/beta/"
+      ]
+    },
+    {
+      "after": 82,
+      "contains": [
+        "alpha/beta/",
+        "…]"
+      ],
+      "lacks": [
+        "alpha/beta/gamma/"
+      ]
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "alpha/beta/gamma/",
+        "[walk project · 5]"
+      ],
+      "lacks": [
+        "…]"
+      ],
+      "after": 85
+    },
+    {
+      "after": 98,
+      "contains": [
+        "alpha"
+      ],
+      "lacks": [
+        "p-001"
+      ]
+    },
+    {
+      "after": 89,
+      "modal": "form-suggestions",
+      "writes": []
+    },
+    {
+      "after": 91,
+      "focus": "record/project",
+      "contains": [
+        "alpha"
+      ],
+      "lacks": [
+        "p-001"
+      ],
+      "writes": []
+    },
+    {
+      "after": 94,
+      "modal": "",
+      "focus": "record/project",
+      "contains": [
+        "beta"
+      ],
+      "writes": [
+        "write project=p-002"
+      ]
+    },
+    {
+      "after": 97,
+      "writes": [
+        "write project=p-002",
+        "write project=\"\""
+      ]
+    },
+    {
+      "contains": [
+        "beta"
+      ],
+      "writes": [
+        "write project=p-002",
+        "write project=\"\"",
+        "write project=p-002"
+      ],
+      "after": 98
+    },
+    {
+      "contains": [
+        "1234567"
+      ],
+      "lacks": [
+        "1.234567e+06",
+        "a whole number"
+      ],
+      "after": 100
+    },
+    {
+      "lacks": [
+        "not written",
+        "must be an integer"
+      ],
+      "after": 107
+    },
+    {
+      "modal": "edit-form",
+      "contains": [
+        "Alpha"
+      ],
+      "lacks": [
+        "Outside"
+      ],
+      "after": 127
+    },
+    {
+      "after": 129,
+      "modal": "",
+      "focus": "t1",
+      "writes": []
+    },
+    {
+      "modal": "edit-form",
+      "contains": [
+        "Edit parcel: Original"
+      ],
+      "after": 132
+    },
+    {
+      "modal": "edit-form",
+      "contains": [
+        "Edit parcel: Original"
+      ],
+      "after": 134
+    },
+    {
+      "after": 141,
+      "lacks": [
+        "not written",
+        "must be one of"
+      ]
+    },
+    {
+      "lacks": [
+        "not written"
+      ],
+      "after": 144
+    },
+    {
+      "modal": "edit-form",
+      "contains": [
+        "Edit parcel: Second"
+      ],
+      "lacks": [
+        "Edit parcel: Original"
+      ],
+      "after": 148
+    },
+    {
+      "modal": "edit-form",
+      "contains": [
+        "Outside"
+      ],
+      "after": 153
+    },
+    {
+      "modal": "edit-form",
+      "contains": [
+        "Edit parcel: Second"
+      ],
+      "lacks": [
+        "must be nonempty",
+        "Edit parcel: Original"
+      ],
+      "after": 158
+    },
+    {
+      "after": 163,
+      "focus": "tool/model",
+      "contains": [
+        "gpt-x"
+      ],
+      "writes": [
+        "write model=gpt-x"
+      ]
+    },
+    {
+      "after": 164,
+      "modal": "form-suggestions",
+      "contains": [
+        "Suggest model",
+        "sonnet",
+        "haiku"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "tool/model",
+      "contains": [
+        "haiku"
+      ],
+      "writes": [
+        "write model=gpt-x",
+        "write model=haiku"
+      ],
+      "after": 166
+    },
+    {
+      "after": 176,
+      "focus": "task/name",
+      "contains": [
+        "gamma",
+        "deltaY"
+      ],
+      "lacks": [
+        "gammaX"
+      ]
+    },
+    {
+      "after": 177,
+      "focus": "task/note",
+      "contains": [
+        "gamma",
+        "delta"
+      ],
+      "lacks": [
+        "gammaX",
+        "deltaY"
+      ]
+    },
+    {
+      "after": 178,
+      "focus": "task/note",
+      "contains": [
+        "gamma",
+        "delta"
+      ],
+      "lacks": [
+        "gammaX",
+        "deltaY"
+      ]
+    },
+    {
+      "after": 179,
+      "focus": "task/note",
+      "contains": [
+        "gamma",
+        "deltaY"
+      ],
+      "lacks": [
+        "gammaX"
+      ]
+    },
+    {
+      "focus": "task/name",
+      "contains": [
+        "gammaX",
+        "deltaY"
+      ],
+      "lacks": [
+        "Error:"
+      ],
+      "after": 180
+    },
+    {
+      "after": 184,
+      "contains": [
+        "alphauc"
+      ]
+    },
+    {
+      "after": 185,
+      "contains": [
+        "alpha"
+      ],
+      "lacks": [
+        "alphauc"
+      ]
+    },
+    {
+      "after": 186,
+      "contains": [
+        "alphauc"
+      ]
+    },
+    {
+      "after": 187,
+      "contains": [
+        "alpha"
+      ],
+      "lacks": [
+        "alphauc"
+      ]
+    },
+    {
+      "focus": "task/name",
+      "contains": [
+        "alpha"
+      ],
+      "lacks": [
+        "alphauc",
+        "Error:"
+      ],
+      "writes": [
+        "write name=alphauc",
+        "write name=alpha",
+        "write name=alphauc",
+        "write name=alpha"
+      ],
+      "after": 188
+    },
+    {
+      "after": 196,
+      "focus": "task/note",
+      "contains": [
+        "gammaX",
+        "deltaY"
+      ]
+    },
+    {
+      "after": 197,
+      "focus": "task/note",
+      "contains": [
+        "gammaX",
+        "delta"
+      ],
+      "lacks": [
+        "deltaY"
+      ]
+    },
+    {
+      "after": 198,
+      "focus": "task/name",
+      "contains": [
+        "gamma",
+        "delta"
+      ],
+      "lacks": [
+        "gammaX",
+        "deltaY"
+      ]
+    },
+    {
+      "after": 199,
+      "focus": "task/name",
+      "contains": [
+        "gammaX",
+        "delta"
+      ],
+      "lacks": [
+        "deltaY"
+      ]
+    },
+    {
+      "after": 200,
+      "focus": "task/note",
+      "contains": [
+        "gammaX",
+        "deltaY"
+      ]
+    },
+    {
+      "focus": "task/note",
+      "contains": [
+        "gammaX",
+        "delta"
+      ],
+      "lacks": [
+        "deltaY",
+        "Error:"
+      ],
+      "after": 201
+    },
+    {
+      "after": 211,
+      "focus": "task/status",
+      "contains": [
+        "todo ▾"
+      ]
+    },
+    {
+      "focus": "task/title",
+      "contains": [
+        "buy milk!"
+      ],
+      "writes": [
+        "write title=\"buy milk!\"",
+        "write status=done",
+        "write status=todo",
+        "write title=\"buy milk\"",
+        "write title=\"buy milk!\""
+      ],
+      "after": 213
+    },
+    {
+      "after": 215,
+      "modal": "args-form"
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "writes": [],
+      "after": 218
+    },
+    {
+      "after": 220,
+      "modal": "args-form",
+      "focus": "args-form/colour",
+      "contains": [
+        "stamping needs a colour",
+        "colour"
+      ],
+      "lacks": [
+        "(optional)"
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "demo.stamp colour=red"
+      ],
+      "after": 222
+    },
+    {
+      "after": 224,
+      "contains": [
+        "id",
+        "no parcel is focused"
+      ]
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "lacks": [
+        "no parcel is focused",
+        "is required"
+      ],
+      "after": 228
+    },
+    {
+      "after": 232,
+      "modal": "args-form",
+      "focus": "args-form/colour"
+    },
+    {
+      "after": 234,
+      "modal": "args-form",
+      "focus": "args-form/size",
+      "contains": [
+        "red"
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "demo.stamp colour=red size=big"
+      ],
+      "after": 236
+    },
+    {
+      "after": 239,
+      "contains": [
+        "Original",
+        "Second",
+        "all",
+        "1 more in archived"
+      ],
+      "lacks": [
+        "Old one"
+      ]
+    },
+    {
+      "after": 240,
+      "contains": [
+        "Original",
+        "Second",
+        "Old one",
+        "archived"
+      ],
+      "lacks": [
+        "more in"
+      ]
+    },
+    {
+      "contains": [
+        "all",
+        "1 more in archived"
+      ],
+      "lacks": [
+        "Old one"
+      ],
+      "after": 241
+    },
+    {
+      "after": 246,
+      "contains": [
+        "Suggest swatch",
+        "alpha",
+        "beta",
+        "project",
+        "2 more in all"
+      ],
+      "lacks": [
+        "gamma",
+        "delta"
+      ]
+    },
+    {
+      "after": 247,
+      "contains": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta"
+      ]
+    },
+    {
+      "after": 248,
+      "contains": [
+        "use \"zzz\""
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "swatch.names project=matomeru",
+        "swatch.names project=matomeru",
+        "swatch.names",
+        "swatch.names",
+        "swatch.paint swatch=zzz"
+      ],
+      "after": 250
+    },
+    {
+      "after": 254,
+      "contains": [
+        "Original",
+        "1 more in archived"
+      ],
+      "lacks": [
+        "Old one"
+      ]
+    },
+    {
+      "contains": [
+        "Original",
+        "Old one"
+      ],
+      "lacks": [
+        "more in"
+      ],
+      "after": 255
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "width": 56,
+  "height": 12,
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "prompt",
+        "label": "prompt",
+        "text": "",
+        "completions": [
+          {
+            "trigger": "@",
+            "items": [
+              "src/main.go",
+              "src/main_test.go",
+              "src/model.go",
+              "README.md"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

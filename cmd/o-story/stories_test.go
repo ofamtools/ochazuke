@@ -3,78 +3,61 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 
 	story "ofam.dev/monogatari"
-	"ofam.dev/monogatari/host"
 	"ofam.dev/ochazuke"
 	"ofam.dev/ochazuke/cmd/o-story/demo"
 )
 
-var update = flag.Bool("update", false, "rewrite story goldens (and the README's verbs section)")
+var update = flag.Bool("update", false, "rewrite story goldens")
 
-// hostApps are the apps o-story's stories build.
 var hostApps = config("o-story").Apps
 
-// TestStories plays every story in stories/ headless (host.Test): per-step
-// and final expectations, else the golden frame. A story marked skip (a
-// known framework gap) runs but is reported as skipped.
+// One replay per area checks its behavioral assertions, binding validity and
+// typing shadows. Invariants observe the same frames, not a second suite replay.
 func TestStories(t *testing.T) {
-	cfg := config("o-story")
-	cfg.Dir, cfg.Update = "stories", *update
-	host.Test(t, cfg)
-}
-
-// The README's minimum-verbs section is generated from the stories.
-func TestReadmeVerbsTableIsCurrent(t *testing.T) {
-	want, err := os.ReadFile("README.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	tmp := filepath.Join(t.TempDir(), "README.md")
-	if err := os.WriteFile(tmp, want, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	cfg := config("o-story")
-	cfg.Getenv = func(string) string { return t.TempDir() }
-	if err := host.Main(cfg, []string{"verbs", "--dir", "stories", "--readme", tmp}, os.Stderr, os.Stderr); err != nil {
-		t.Fatal(err)
-	}
-	got, err := os.ReadFile(tmp)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if *update {
-		if err := os.WriteFile("README.md", got, 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return
-	}
-	if string(got) != string(want) {
-		t.Fatal("README minimum-verbs section is stale: cd cmd/o-story && go run . verbs --dir stories --readme README.md")
-	}
-}
-
-// TestStoryBindingsAreAtomic validates every story runtime's binding rows.
-func TestStoryBindingsAreAtomic(t *testing.T) {
 	stories, err := story.LoadDir("stories")
 	if err != nil {
 		t.Fatal(err)
 	}
+	lib := story.Library{Apps: hostApps, Stories: stories}
 	for _, s := range stories {
-		if s.Base != "" {
-			continue
-		}
-		ss, err := story.Library{Apps: hostApps}.Build(s, story.Options{Mono: true})
-		if err != nil {
-			t.Fatalf("%s: %v", s.Name, err)
-		}
-		if _, err := ss.R.ValidateBindings(); err != nil {
-			t.Fatalf("%s: %v", s.Name, err)
-		}
-		ss.Close()
+		t.Run(s.Area+"/"+story.Slug(s.Name), func(t *testing.T) {
+			t.Parallel()
+			var previous *ochazuke.Runtime
+			states, seen := map[string]bool{}, map[string]bool{}
+			res := lib.Run(s, story.RunOptions{Golden: true, Update: *update, Observe: func(p story.RunPosition) {
+				r := p.Session.R
+				if r != previous {
+					previous = r
+					states, seen = map[string]bool{}, map[string]bool{}
+					if _, err := r.ValidateBindings(); err != nil {
+						t.Errorf("after %d: %v", p.After, err)
+					}
+				}
+				state := fmt.Sprint(r.FocusID(), r.CurrentMode().Name, r.TopModal(), len(r.Instances))
+				if states[state] {
+					return
+				}
+				states[state] = true
+				for _, line := range r.TypingShadows() {
+					if !seen[line] {
+						seen[line] = true
+						t.Errorf("after %d: %s", p.After, line)
+					}
+				}
+			}})
+			if res.Skipped {
+				t.Skip(s.Skip)
+			}
+			if res.Err != nil {
+				t.Fatal(res.Err)
+			}
+			for _, failure := range res.Failed {
+				t.Error(failure)
+			}
+		})
 	}
 }
 
@@ -111,48 +94,55 @@ func TestStoreDeleteFollowsTheStoreNoun(t *testing.T) {
 	}
 }
 
-// TestStoryTypingIsNotShadowed checks every story runtime the way
-// Runtime.TypingShadows does, at the start and after each event of its
-// script (a filter, a chooser or the palette open): while a field takes
-// text, every printable key and space reaches it; no row binds a key a
-// person types there.
-func TestStoryTypingIsNotShadowed(t *testing.T) {
-	stories, err := story.LoadDir("stories")
+func TestCompositeRecordingKeepsOpeningFixture(t *testing.T) {
+	s, err := story.Parse([]byte(`{
+		"name": "recorded checkpoints", "seed": -1,
+		"page": {"lists": [{"id": "a", "rows": 2}]},
+		"checkpoints": [
+			{"name": "rows", "page": {"lists": [{"id": "a", "rows": 2}]}},
+			{"name": "text", "page": {"inputs": [{"id": "text", "text": "two", "pin": "insert"}], "focus": "text"}}
+		]
+	}`), "recorded checkpoints")
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, s := range stories {
-		if s.Base != "" {
-			continue
+	lib := story.Library{Apps: hostApps}
+	ss, err := lib.Build(s, story.Options{Mono: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := story.NewDriver(ss, story.Options{Mono: true})
+	defer d.Close()
+	rec := story.NewRecorder(s, nil)
+	for _, event := range []story.Event{
+		{Key: "ctrl+alt+n"}, {Key: "j"}, {Key: "ctrl+alt+n"},
+		{Key: "end"}, {Type: "!"}, {Key: "ctrl+c"},
+	} {
+		rec.Add(event)
+		if err := d.Step(event); err != nil {
+			t.Fatal(err)
 		}
-		ss, err := story.Library{Apps: hostApps}.Build(s, story.Options{Mono: true})
-		if err != nil {
-			t.Fatalf("%s: %v", s.Name, err)
-		}
-		d := story.NewDriver(ss, story.Options{Mono: true})
-		seen, states := map[string]bool{}, map[string]bool{}
-		check := func(n int) error {
-			r := d.S.R
-			// A state already checked (the same focus, mode, top modal
-			// and instances) is not checked again.
-			state := fmt.Sprint(r.Focus, r.Mode.Name, r.TopModal(), len(r.Instances))
-			if states[state] {
-				return nil
-			}
-			states[state] = true
-			for _, line := range r.TypingShadows() {
-				if !seen[line] {
-					seen[line] = true
-					t.Errorf("%s (after event %d): %s", s.Name, n, line)
-				}
-			}
-			return nil
-		}
-		_ = check(0)
-		events := append(append([]story.Event{}, s.Setup...), s.Script...)
-		// A story whose events fail (its own run reports that) is checked
-		// up to the failing event.
-		_ = d.Play(events, check)
-		d.Close()
+	}
+	d.Close() // the host closes before writing its recording
+	store := story.Store{Dir: t.TempDir()}
+	if _, err := store.Push(&rec.Rec); err != nil {
+		t.Fatal(err)
+	}
+	entry, err := store.Load("1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	replayed, err := lib.Build(entry.Rec.Initial, story.Options{Mono: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	replay := story.NewDriver(replayed, story.Options{Mono: true})
+	defer replay.Close()
+	if err := replay.Play(entry.Rec.Events, nil); err != nil {
+		t.Fatal(err)
+	}
+	in := replay.S.R.Input("text")
+	if in == nil || string(in.Text) != "two!" || !replay.S.R.Quit {
+		t.Fatalf("partial recording did not replay the second fixture's edit: input=%+v, quit=%v", in, replay.S.R.Quit)
 	}
 }

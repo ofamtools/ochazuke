@@ -1,0 +1,1266 @@
+{
+  "name": "focus end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "items": [
+              {
+                "id": "a1",
+                "label": "Build"
+              },
+              {
+                "id": "a2",
+                "label": "Other"
+              }
+            ]
+          }
+        ],
+        "terminal": {
+          "fake": true,
+          "attach": "a1"
+        },
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            }
+          ],
+          "things": [
+            {
+              "id": "a1",
+              "title": "Build"
+            },
+            {
+              "id": "a2",
+              "title": "Other"
+            }
+          ]
+        },
+        "verbs": [
+          {
+            "verb": "demo.close-origin",
+            "remove": "page1-pane"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "terminal",
+            "mode": "leader_pending",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "id": "a1",
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "form-field",
+            "mode": "insert",
+            "keys": "ctrl+x",
+            "do": "demo.close-origin"
+          }
+        ]
+      },
+      "name": "focus/modal-return-focus-on-close"
+    },
+    {
+      "width": 60,
+      "height": 16,
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "note",
+            "label": "note",
+            "text": "one\ntwo\nthree\nfour",
+            "multiline": true
+          }
+        ]
+      },
+      "name": "inspector binding leaves the editor's counted gg, gy yank history and gg motions intact"
+    },
+    {
+      "width": 60,
+      "height": 10,
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "view",
+            "label": "view",
+            "text": "alpha beta\ngamma delta",
+            "readOnly": true,
+            "multiline": true
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "p",
+            "do": "ochazuke.palette.open"
+          },
+          {
+            "noun": "app",
+            "keys": "u",
+            "do": "ochazuke.palette.open"
+          },
+          {
+            "noun": "app",
+            "keys": "ctrl+r",
+            "do": "ochazuke.palette.open"
+          },
+          {
+            "noun": "app",
+            "keys": "w",
+            "do": "ochazuke.palette.open"
+          }
+        ]
+      },
+      "name": "a focused read-only input keeps the editor's keys: p, u and ctrl+r (edits, no-ops here) never reach the page's rows on them, and w/e move in normal and visual-line even where the page binds w (no key.ignore rows needed)"
+    },
+    {
+      "width": 40,
+      "height": 3,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "foo bar.baz qux"
+          }
+        ]
+      },
+      "name": "every input answers the standard deleting keys: alt+backspace and ctrl+backspace the word before, cmd+backspace (super) and ctrl+u to the start, alt+d and ctrl+delete the word after, ctrl+k to the end; ctrl+w stays the WORD"
+    },
+    {
+      "page": {
+        "focus": "a2",
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3,
+            "labels": [
+              "alpha",
+              "beta is a row whose label runs wider than the confirm modal drawn over it",
+              "gamma"
+            ]
+          }
+        ]
+      },
+      "settings": [
+        {
+          "name": "modal-highlights",
+          "type": "string",
+          "default": "plain",
+          "enum": [
+            "keep",
+            "plain"
+          ]
+        }
+      ],
+      "name": "modal-highlights plain: beneath the confirm the list's selected row is drawn plain, no sliver of the cursor bar beside the modal"
+    },
+    {
+      "width": 80,
+      "height": 12,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "hello"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "g x",
+            "do": "demo.notify"
+          }
+        ]
+      },
+      "name": "mode badge: on the title row in every state, changed in the frame the mode changes: a prefix, a confirm, help, the palette, insert, visual, an operator (R2.10)"
+    },
+    {
+      "width": 80,
+      "height": 12,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "terminal": {
+          "fake": true,
+          "attach": "a1"
+        }
+      },
+      "name": "mode badge: leader_pending shows the leader key while it waits, then the base mode (R2.10)"
+    },
+    {
+      "width": 60,
+      "height": 8,
+      "page": {
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "hello"
+          }
+        ],
+        "focus": "name"
+      },
+      "name": "mode badge: a recording shows its register beside the mode and drops it when Q stops (R2.10)"
+    },
+    {
+      "width": 60,
+      "height": 12,
+      "page": {
+        "modes": {
+          "table": {
+            "extends": "normal"
+          }
+        },
+        "lists": [
+          {
+            "id": "data",
+            "rows": 4,
+            "pin": "table"
+          }
+        ],
+        "focus": "data1"
+      },
+      "name": "modes: leaving a pending mode returns to the base it shadowed, not to normal: on a list pinned to a custom base (table), a count and a g prefix each enter over table and esc (mode.leave) comes back to TABLE"
+    },
+    {
+      "width": 60,
+      "height": 10,
+      "page": {
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "one\ntwo\nthree"
+          }
+        ],
+        "focus": "name"
+      },
+      "name": "esc in MACRO PENDING entered from VISUAL-LINE returns to VISUAL-LINE with the selection kept (R2.5)"
+    },
+    {
+      "width": 60,
+      "height": 10,
+      "page": {
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "one\ntwo\nthree"
+          }
+        ],
+        "focus": "name"
+      },
+      "name": "esc in REGISTER PENDING entered from VISUAL-LINE (\") returns to VISUAL-LINE with the selection kept (R2.5)"
+    },
+    {
+      "width": 60,
+      "height": 10,
+      "page": {
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "one\ntwo\nthree"
+          }
+        ],
+        "focus": "name"
+      },
+      "name": "esc in REPLAY PENDING entered from VISUAL-LINE (@) returns to VISUAL-LINE with the selection kept (R2.5)"
+    },
+    {
+      "width": 80,
+      "height": 12,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2",
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "c",
+            "do": "ochazuke.palette.open"
+          }
+        ]
+      },
+      "name": "a key that completes a bound sequence whose row is unavailable here (g c, choose-column, on a plain list) is consumed with the sequence: it never runs as a fresh key (c's own row), and the list stays where it was (P3, Vim beeps on an unmapped g key)"
+    },
+    {
+      "width": 80,
+      "height": 10,
+      "pages": [
+        {
+          "id": "p1",
+          "title": "One",
+          "lists": [
+            {
+              "id": "a",
+              "rows": 1
+            }
+          ]
+        },
+        {
+          "id": "runs",
+          "title": "Runs",
+          "defaultHidden": true,
+          "lists": [
+            {
+              "id": "r",
+              "rows": 1
+            }
+          ]
+        },
+        {
+          "id": "p3",
+          "title": "Three",
+          "lists": [
+            {
+              "id": "c",
+              "rows": 1
+            }
+          ]
+        }
+      ],
+      "name": "a page declared hidden by default starts out of the tabs; page show brings it in"
+    },
+    {
+      "width": 100,
+      "height": 22,
+      "state": true,
+      "page": {
+        "id": "ai",
+        "title": "AI",
+        "catalog": {
+          "nouns": [
+            {
+              "name": "skill",
+              "columns": [
+                {
+                  "title": "Name",
+                  "min": 8
+                },
+                {
+                  "title": "Origin"
+                }
+              ],
+              "verbs": [
+                {
+                  "name": "list",
+                  "rows": "skill"
+                },
+                {
+                  "name": "show"
+                }
+              ]
+            },
+            {
+              "name": "mcp",
+              "verbs": [
+                {
+                  "name": "tools",
+                  "rows": "mcp-tool"
+                }
+              ]
+            },
+            {
+              "name": "mcp-tool",
+              "verbs": [
+                {
+                  "name": "show"
+                }
+              ]
+            }
+          ],
+          "page": {
+            "title": "AI",
+            "lists": [
+              {
+                "id": "ai/skills",
+                "noun": "skill"
+              },
+              {
+                "id": "ai/tools",
+                "noun": "mcp",
+                "source": "mcp.tools",
+                "title": "tools"
+              }
+            ],
+            "layout": "split",
+            "detail": {
+              "title": "record"
+            }
+          },
+          "answers": {
+            "skill.list": [
+              {
+                "id": "s1",
+                "name": "architect",
+                "cells": [
+                  "architect",
+                  "claude"
+                ],
+                "path": "~/.claude/skills/architect",
+                "origin": "claude"
+              },
+              {
+                "id": "s2",
+                "name": "review",
+                "cells": [
+                  "review",
+                  "ai-tools"
+                ],
+                "path": "~/proj/ai-tools/review",
+                "origin": "ai-tools"
+              }
+            ],
+            "mcp.tools": "{\"noun\":\"mcp\",\"id\":\"t1\",\"label\":\"tuios_send_text\",\"data\":{\"server\":\"tuios\"}}\n{\"noun\":\"mcp\",\"id\":\"t2\",\"label\":\"tuios_capture\",\"data\":{\"server\":\"tuios\"}}\n"
+          }
+        }
+      },
+      "name": "panes: the divider is remembered per page across a restart (the state dir's panes.json)"
+    },
+    {
+      "width": 60,
+      "height": 14,
+      "page": {
+        "noHeadings": true,
+        "lists": [
+          {
+            "id": "t",
+            "items": [
+              {
+                "id": "r1",
+                "label": "row 1"
+              },
+              {
+                "id": "r2",
+                "label": "row 2"
+              },
+              {
+                "id": "r3",
+                "label": "row 3"
+              },
+              {
+                "id": "r4",
+                "label": "row 4"
+              }
+            ],
+            "selected": 0
+          }
+        ]
+      },
+      "name": "the yank history answers G, g g, a count's G and ctrl+d/ctrl+u through the shared motions (viewport.goto, viewport.scroll by page), as a list does"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "focus/modal-return-focus-on-close: focus/modal-return-focus-on-close"
+    },
+    "enter",
+    "ctrl+a",
+    "r",
+    "ctrl+x",
+    "esc",
+    "q",
+    "esc",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "inputs/inspector-prefixes: inspector binding leaves the editor's counted gg, gy yank history and gg motions intact"
+    },
+    "G",
+    "2",
+    "g",
+    "g",
+    "i",
+    {
+      "type": "X"
+    },
+    "esc",
+    "y",
+    "y",
+    "g",
+    "y",
+    "q",
+    "g",
+    "g",
+    "i",
+    {
+      "type": "A"
+    },
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "inputs/readonly-keys-stay-in-the-input: a focused read-only input keeps the editor's keys: p, u and ctrl+r (edits, no-ops here) never reach the page's rows on them, and w/e move in normal and visual-line even where the page binds w (no key.ignore rows needed)"
+    },
+    "p",
+    "u",
+    "ctrl+r",
+    "w",
+    "v",
+    "e",
+    "y",
+    "V",
+    "w",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "inputs/word-delete-keys: every input answers the standard deleting keys: alt+backspace and ctrl+backspace the word before, cmd+backspace (super) and ctrl+u to the start, alt+d and ctrl+delete the word after, ctrl+k to the end; ctrl+w stays the WORD"
+    },
+    "A",
+    "alt+backspace",
+    "ctrl+backspace",
+    "super+backspace",
+    {
+      "type": "one two three four"
+    },
+    "home",
+    "alt+d",
+    "ctrl+delete",
+    "ctrl+right",
+    "ctrl+k",
+    "ctrl+w",
+    {
+      "type": "x y.z"
+    },
+    "ctrl+u",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "modals/backdrop-plain: modal-highlights plain: beneath the confirm the list's selected row is drawn plain, no sliver of the cursor bar beside the modal"
+    },
+    "x",
+    {
+      "key": "ctrl+alt+n",
+      "note": "modes/badge-every-state: mode badge: on the title row in every state, changed in the frame the mode changes: a prefix, a confirm, help, the palette, insert, visual, an operator (R2.10)"
+    },
+    "g",
+    "esc",
+    "x",
+    "q",
+    "?",
+    "q",
+    ":",
+    "esc",
+    "q",
+    "j",
+    "i",
+    "esc",
+    "v",
+    "esc",
+    "V",
+    "esc",
+    "d",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "modes/badge-leader-prefix: mode badge: leader_pending shows the leader key while it waits, then the base mode (R2.10)"
+    },
+    "enter",
+    {
+      "tick": "terminal"
+    },
+    "ctrl+a",
+    "d",
+    {
+      "key": "ctrl+alt+n",
+      "note": "modes/badge-recording: mode badge: a recording shows its register beside the mode and drops it when Q stops (R2.10)"
+    },
+    "Q",
+    "a",
+    "i",
+    "esc",
+    "Q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "modes/leave-returns-to-base: modes: leaving a pending mode returns to the base it shadowed, not to normal: on a list pinned to a custom base (table), a count and a g prefix each enter over table and esc (mode.leave) comes back to TABLE"
+    },
+    "2",
+    "esc",
+    "g",
+    "esc",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "modes/macro-pending-esc-returns-to-visual: esc in MACRO PENDING entered from VISUAL-LINE returns to VISUAL-LINE with the selection kept (R2.5)"
+    },
+    "V",
+    "j",
+    "Q",
+    "esc",
+    "y",
+    {
+      "key": "ctrl+alt+n",
+      "note": "modes/register-pending-esc-returns-to-visual: esc in REGISTER PENDING entered from VISUAL-LINE (\") returns to VISUAL-LINE with the selection kept (R2.5)"
+    },
+    "V",
+    "j",
+    "\"",
+    "esc",
+    "y",
+    {
+      "key": "ctrl+alt+n",
+      "note": "modes/replay-pending-esc-returns-to-visual: esc in REPLAY PENDING entered from VISUAL-LINE (@) returns to VISUAL-LINE with the selection kept (R2.5)"
+    },
+    "V",
+    "j",
+    "@",
+    "esc",
+    "y",
+    {
+      "key": "ctrl+alt+n",
+      "note": "modes/sequence-unavailable-consumed: a key that completes a bound sequence whose row is unavailable here (g c, choose-column, on a plain list) is consumed with the sequence: it never runs as a fresh key (c's own row), and the list stays where it was (P3, Vim beeps on an unmapped g key)"
+    },
+    "g",
+    "c",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "pages/default-hidden: a page declared hidden by default starts out of the tabs; page show brings it in"
+    },
+    "ctrl+j",
+    "ctrl+k",
+    ":",
+    {
+      "type": "page show runs"
+    },
+    "enter",
+    "ctrl+j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "panes/remembered: panes: the divider is remembered per page across a restart (the state dir's panes.json)"
+    },
+    "ctrl+w",
+    ">",
+    "ctrl+w",
+    ">",
+    {
+      "restart": true
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "yank-history/gg-G: the yank history answers G, g g, a count's G and ctrl+d/ctrl+u through the shared motions (viewport.goto, viewport.scroll by page), as a list does"
+    },
+    "V",
+    "y",
+    "j",
+    "V",
+    "y",
+    "j",
+    "V",
+    "y",
+    "j",
+    "V",
+    "y",
+    "g",
+    "y",
+    "G",
+    "g",
+    "g",
+    "3",
+    "G",
+    "ctrl+u",
+    "ctrl+d",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "modal": "edit-form",
+      "focus": "edit-form/title",
+      "mode": "insert"
+    },
+    {
+      "after": 5,
+      "modal": "edit-form",
+      "focus": "edit-form/title",
+      "mode": "insert",
+      "contains": [
+        "Build"
+      ]
+    },
+    {
+      "after": 8,
+      "modal": "",
+      "focus": "a1",
+      "mode": "normal",
+      "selected": {
+        "a": "a1"
+      }
+    },
+    {
+      "modal": "",
+      "focus": "a2",
+      "mode": "normal",
+      "selected": {
+        "a": "a2"
+      },
+      "after": 9
+    },
+    {
+      "after": 17,
+      "mode": "normal",
+      "contains": [
+        "Xtwo"
+      ]
+    },
+    {
+      "after": 21,
+      "modal": "__yank-history",
+      "contains": [
+        "Yank history"
+      ]
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "focus": "note",
+      "contains": [
+        "Aone"
+      ],
+      "after": 27
+    },
+    {
+      "after": 31,
+      "modal": "",
+      "mode": "normal",
+      "focus": "view",
+      "contains": [
+        "alpha beta"
+      ]
+    },
+    {
+      "after": 32,
+      "modal": "",
+      "mode": "normal"
+    },
+    {
+      "after": 35,
+      "modal": "",
+      "mode": "normal",
+      "register": "beta"
+    },
+    {
+      "after": 37,
+      "modal": "",
+      "mode": "visual-line"
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "focus": "view",
+      "after": 38
+    },
+    {
+      "after": 41,
+      "mode": "insert",
+      "contains": [
+        "name: foo bar.baz"
+      ],
+      "lacks": [
+        "qux"
+      ]
+    },
+    {
+      "after": 42,
+      "contains": [
+        "name: foo bar."
+      ],
+      "lacks": [
+        "baz"
+      ]
+    },
+    {
+      "after": 43,
+      "lacks": [
+        "foo"
+      ]
+    },
+    {
+      "after": 46,
+      "contains": [
+        "name:  two three four"
+      ],
+      "lacks": [
+        "one"
+      ]
+    },
+    {
+      "after": 47,
+      "contains": [
+        "name:  three four"
+      ],
+      "lacks": [
+        "two"
+      ]
+    },
+    {
+      "after": 49,
+      "contains": [
+        "name:  three"
+      ],
+      "lacks": [
+        "four"
+      ]
+    },
+    {
+      "after": 50,
+      "lacks": [
+        "three"
+      ]
+    },
+    {
+      "after": 51,
+      "contains": [
+        "name:  x y.z"
+      ]
+    },
+    {
+      "mode": "normal",
+      "lacks": [
+        "x y.z"
+      ],
+      "after": 53
+    },
+    {
+      "after": 55,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "alpha",
+        "beta is a row whose label runs wider than the confirm modal drawn over it",
+        "gamma",
+        "Confirm",
+        "Delete beta is a row whose label runs wider than the confirm",
+        "y confirm.accept · n modal.close"
+      ]
+    },
+    {
+      "after": 57,
+      "mode": "normal g",
+      "badge": "NORMAL G"
+    },
+    {
+      "after": 58,
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 59,
+      "modal": "confirm",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 60,
+      "modal": "",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 61,
+      "modal": "bindings-help",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 62,
+      "modal": "",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 63,
+      "modal": "palette",
+      "mode": "insert",
+      "badge": "INSERT"
+    },
+    {
+      "after": 64,
+      "modal": "palette",
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 65,
+      "modal": "",
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 66,
+      "focus": "name",
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 67,
+      "mode": "insert",
+      "badge": "INSERT"
+    },
+    {
+      "after": 68,
+      "mode": "normal",
+      "badge": "NORMAL"
+    },
+    {
+      "after": 69,
+      "mode": "visual",
+      "badge": "VISUAL"
+    },
+    {
+      "after": 70,
+      "mode": "normal",
+      "badge": "NORMAL",
+      "focus": "name"
+    },
+    {
+      "after": 71,
+      "mode": "visual-line",
+      "badge": "VISUAL-LINE"
+    },
+    {
+      "after": 72,
+      "mode": "normal",
+      "badge": "NORMAL",
+      "focus": "name"
+    },
+    {
+      "after": 73,
+      "mode": "operator_pending",
+      "badge": "OPERATOR PENDING",
+      "focus": "name"
+    },
+    {
+      "mode": "normal",
+      "badge": "NORMAL",
+      "focus": "name",
+      "after": 74
+    },
+    {
+      "after": 77,
+      "mode": "terminal",
+      "badge": "TERMINAL"
+    },
+    {
+      "after": 78,
+      "mode": "leader_pending",
+      "badge": "LEADER PENDING CTRL+A"
+    },
+    {
+      "mode": "normal",
+      "badge": "NORMAL",
+      "after": 79
+    },
+    {
+      "after": 81,
+      "mode": "macro_pending",
+      "badge": "MACRO PENDING",
+      "focus": "name"
+    },
+    {
+      "after": 82,
+      "mode": "normal",
+      "badge": "NORMAL · REC @a"
+    },
+    {
+      "after": 83,
+      "mode": "insert",
+      "badge": "INSERT · REC @a"
+    },
+    {
+      "after": 84,
+      "mode": "normal",
+      "badge": "NORMAL · REC @a"
+    },
+    {
+      "mode": "normal",
+      "badge": "NORMAL",
+      "lacks": [
+        "REC @a"
+      ],
+      "after": 85
+    },
+    {
+      "after": 87,
+      "focus": "data1",
+      "mode": "count_pending",
+      "badge": "COUNT PENDING"
+    },
+    {
+      "after": 88,
+      "focus": "data1",
+      "mode": "table",
+      "badge": "TABLE"
+    },
+    {
+      "after": 89,
+      "focus": "data1",
+      "mode": "table g"
+    },
+    {
+      "after": 90,
+      "focus": "data1",
+      "mode": "table",
+      "badge": "TABLE"
+    },
+    {
+      "focus": "data2",
+      "mode": "table",
+      "badge": "TABLE",
+      "after": 91
+    },
+    {
+      "after": 94,
+      "mode": "visual-line"
+    },
+    {
+      "after": 95,
+      "mode": "macro_pending",
+      "badge": "MACRO PENDING"
+    },
+    {
+      "after": 96,
+      "mode": "visual-line",
+      "badge": "VISUAL-LINE"
+    },
+    {
+      "mode": "normal",
+      "register": "one\ntwo\n",
+      "after": 97
+    },
+    {
+      "after": 100,
+      "mode": "visual-line"
+    },
+    {
+      "after": 101,
+      "mode": "register_pending"
+    },
+    {
+      "after": 102,
+      "mode": "visual-line",
+      "badge": "VISUAL-LINE"
+    },
+    {
+      "mode": "normal",
+      "register": "one\ntwo\n",
+      "after": 103
+    },
+    {
+      "after": 106,
+      "mode": "visual-line"
+    },
+    {
+      "after": 107,
+      "mode": "replay_pending"
+    },
+    {
+      "after": 108,
+      "mode": "visual-line",
+      "badge": "VISUAL-LINE"
+    },
+    {
+      "mode": "normal",
+      "register": "one\ntwo\n",
+      "after": 109
+    },
+    {
+      "after": 111,
+      "mode": "normal g"
+    },
+    {
+      "after": 112,
+      "modal": "",
+      "mode": "normal",
+      "focus": "a2"
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "focus": "a3",
+      "after": 113
+    },
+    {
+      "after": 115,
+      "page": "p3",
+      "lacks": [
+        "Runs"
+      ]
+    },
+    {
+      "after": 119,
+      "page": "p1",
+      "contains": [
+        "› One  Runs  Three",
+        "Runs is back in the tabs"
+      ]
+    },
+    {
+      "page": "runs",
+      "after": 120
+    },
+    {
+      "after": 125,
+      "shift": 10,
+      "contains": [
+        "┏━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ record"
+      ]
+    },
+    {
+      "shift": 10,
+      "focus": "ai/skills/s1",
+      "contains": [
+        "┏━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ record"
+      ],
+      "after": 126
+    },
+    {
+      "after": 140,
+      "modal": "__yank-history",
+      "contains": [
+        "› 1 ["
+      ]
+    },
+    {
+      "after": 141,
+      "modal": "__yank-history",
+      "contains": [
+        "› 4 ["
+      ]
+    },
+    {
+      "after": 143,
+      "modal": "__yank-history",
+      "contains": [
+        "› 1 ["
+      ]
+    },
+    {
+      "after": 145,
+      "modal": "__yank-history",
+      "contains": [
+        "› 3 ["
+      ]
+    },
+    {
+      "after": 146,
+      "modal": "__yank-history",
+      "contains": [
+        "› 1 ["
+      ]
+    },
+    {
+      "modal": "__yank-history",
+      "mode": "normal",
+      "contains": [
+        "› 4 ["
+      ],
+      "after": 147
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "items": [
+          {
+            "id": "a1",
+            "label": "Build"
+          },
+          {
+            "id": "a2",
+            "label": "Other"
+          }
+        ]
+      }
+    ],
+    "terminal": {
+      "fake": true,
+      "attach": "a1"
+    },
+    "store": {
+      "props": [
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "title",
+          "role": "label"
+        }
+      ],
+      "things": [
+        {
+          "id": "a1",
+          "title": "Build"
+        },
+        {
+          "id": "a2",
+          "title": "Other"
+        }
+      ]
+    },
+    "verbs": [
+      {
+        "verb": "demo.close-origin",
+        "remove": "page1-pane"
+      }
+    ],
+    "bind": [
+      {
+        "noun": "terminal",
+        "mode": "leader_pending",
+        "keys": "r",
+        "do": "demo.edit",
+        "args": {
+          "id": "a1",
+          "field": "@label"
+        }
+      },
+      {
+        "noun": "form-field",
+        "mode": "insert",
+        "keys": "ctrl+x",
+        "do": "demo.close-origin"
+      }
+    ]
+  }
+}

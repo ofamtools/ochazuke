@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -14,11 +13,10 @@ import (
 // frames trim trailing spaces, so row-count expectations alone cannot prove
 // that the cursor reaches both pane edges.
 func TestMarkdownItemCursorThreeThenSixFullWidthLines(t *testing.T) {
-	data, err := os.ReadFile("stories/markdown/cursor-item-wrapped.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, err := story.Parse(data, "markdown/cursor-item-wrapped")
+	s, err := story.Parse([]byte(`{
+		"name": "wrapped item cursor", "width": 40,
+		"page": {"noHeadings": true, "markdown": {"text": "- [x] Finish the 日本 release checklist and check every wrapped line before shipping.\n- [ ] Verify item movement over tasks, paragraphs, headings and table rows, then check the dimmed selection in another pane and confirm that all six wrapped lines stay highlighted.\n"}}
+	}`), "wrapped item cursor")
 	if err != nil {
 		t.Fatal(err)
 	}

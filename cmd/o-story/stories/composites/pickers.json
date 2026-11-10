@@ -1,0 +1,3302 @@
+{
+  "name": "pickers end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 72,
+      "height": 18,
+      "theme": "dark",
+      "files": [
+        "src/main.go",
+        "src/main_test.go"
+      ],
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "origin",
+            "text": ""
+          }
+        ],
+        "picker": "{{files}}/smg"
+      },
+      "name": "picker: the path picker's find source marks fuzzy-matched path runes, keeping its selected row reversed"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: going into a folder browses it and picks nothing"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": ""
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: a file pick goes into folders with enter and picks a file"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: the filter narrows the rows"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "any"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: hidden files show and hide with the toggle"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: home and the root are one key from anywhere"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a/",
+        "b/",
+        "c/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "dirs",
+                "type": "list",
+                "items": {
+                  "type": "path",
+                  "path": "dir",
+                  "base": "{{files}}"
+                }
+              }
+            ]
+          }
+        ],
+        "focus": "doc/dirs"
+      },
+      "name": "directory picker, style columns: adding to a list marks several folders and enter takes them all"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: h and l move between columns, the parent column marks where you came from, $ returns to the deepest place"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: a new folder is named, made and entered"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: opens on the folder, the first row full-width highlighted"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}/sub",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: an absolute path outside every source is typed and taken"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}/sub/deep",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: from a deep start, up one folder at a time reaches / and stays there"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style columns: use this folder picks the folder shown, not a row"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "cmd/mtm/main.go",
+        "internal/work/"
+      ],
+      "values": {
+        "pickers.directory.style": "columns"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir",
+                "start": "walk"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file",
+        "pathWalk": {
+          "roots": [
+            {
+              "path": "{{files}}",
+              "label": "project"
+            }
+          ]
+        }
+      },
+      "name": "directory picker, style columns: opened on the project's walk, up one folder at a time reaches / (a declared start is not a limit)"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: going into a folder browses it and picks nothing"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": ""
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: a file pick goes into folders with enter and picks a file"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: the filter narrows the rows"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "any"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: hidden files show and hide with the toggle"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: home and the root are one key from anywhere"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a/",
+        "b/",
+        "c/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "dirs",
+                "type": "list",
+                "items": {
+                  "type": "path",
+                  "path": "dir",
+                  "base": "{{files}}"
+                }
+              }
+            ]
+          }
+        ],
+        "focus": "doc/dirs"
+      },
+      "name": "directory picker, style hybrid: adding to a list marks several folders and enter takes them all"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: a new folder is named, made and entered"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: opens on the folder, the first row full-width highlighted"
+    },
+    {
+      "width": 160,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: Recent and Browse are sections; ] and [ jump between them and a heading never takes the highlight"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}/sub",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: an absolute path outside every source is typed and taken"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}/sub/deep",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: from a deep start, up one folder at a time reaches / and stays there"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style hybrid: use this folder picks the folder shown, not a row"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "cmd/mtm/main.go",
+        "internal/work/"
+      ],
+      "values": {
+        "pickers.directory.style": "hybrid"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir",
+                "start": "walk"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file",
+        "pathWalk": {
+          "roots": [
+            {
+              "path": "{{files}}",
+              "label": "project"
+            }
+          ]
+        }
+      },
+      "name": "directory picker, style hybrid: opened on the project's walk, up one folder at a time reaches / (a declared start is not a limit)"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: going into a folder browses it and picks nothing"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": ""
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: a file pick goes into folders with enter and picks a file"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: the filter narrows the rows"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "any"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: hidden files show and hide with the toggle"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: home and the root are one key from anywhere"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a/",
+        "b/",
+        "c/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "dirs",
+                "type": "list",
+                "items": {
+                  "type": "path",
+                  "path": "dir",
+                  "base": "{{files}}"
+                }
+              }
+            ]
+          }
+        ],
+        "focus": "doc/dirs"
+      },
+      "name": "directory picker, style list: adding to a list marks several folders and enter takes them all"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: a new folder is named, made and entered"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: opens on the folder, the first row full-width highlighted"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}/sub",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: an absolute path outside every source is typed and taken"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}/sub/deep",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: from a deep start, up one folder at a time reaches / and stays there"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "a.json",
+        "b.txt",
+        ".hidden",
+        "sub/c.json",
+        "sub/deep/",
+        "proj/matomeru/cmd/",
+        "proj/ochazuke/",
+        "empty/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file"
+      },
+      "name": "directory picker, style list: use this folder picks the folder shown, not a row"
+    },
+    {
+      "width": 110,
+      "height": 22,
+      "files": [
+        "cmd/mtm/main.go",
+        "internal/work/"
+      ],
+      "values": {
+        "pickers.directory.style": "list"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "records": [
+          {
+            "id": "doc",
+            "fields": [
+              {
+                "name": "file",
+                "type": "path",
+                "base": "{{files}}",
+                "path": "dir",
+                "start": "walk"
+              }
+            ]
+          }
+        ],
+        "focus": "doc/file",
+        "pathWalk": {
+          "roots": [
+            {
+              "path": "{{files}}",
+              "label": "project"
+            }
+          ]
+        }
+      },
+      "name": "directory picker, style list: opened on the project's walk, up one folder at a time reaches / (a declared start is not a limit)"
+    },
+    {
+      "width": 80,
+      "height": 16,
+      "pages": [
+        {
+          "id": "p01",
+          "title": "Alpha",
+          "lists": [
+            {
+              "id": "l01",
+              "rows": 1
+            }
+          ]
+        },
+        {
+          "id": "p02",
+          "title": "Bravo",
+          "lists": [
+            {
+              "id": "l02",
+              "rows": 1
+            }
+          ]
+        }
+      ],
+      "name": "' does not open the page picker over a modal (? help); esc, then ' does"
+    },
+    {
+      "width": 100,
+      "height": 16,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "chooser": {
+          "kind": "context",
+          "title": "Context",
+          "rows": [
+            {
+              "id": "p1",
+              "label": "prompt: first prompt",
+              "preview": "first answer"
+            },
+            {
+              "id": "p2",
+              "label": "prompt: second prompt",
+              "preview": "second answer in a longer paragraph that wraps across the preview column's lines"
+            },
+            {
+              "id": "u1",
+              "label": "https://example.com"
+            }
+          ]
+        }
+      },
+      "name": "chooser: the preview column follows the highlight at a fixed width"
+    },
+    {
+      "width": 80,
+      "height": 14,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "chooser": {
+          "kind": "pick",
+          "title": "Pick",
+          "sources": [
+            {
+              "name": "one",
+              "rows": [
+                {
+                  "id": "1a",
+                  "label": "alpha"
+                },
+                {
+                  "id": "1b",
+                  "label": "beta"
+                }
+              ]
+            },
+            {
+              "name": "two",
+              "rows": [
+                {
+                  "id": "2a",
+                  "label": "alpine"
+                },
+                {
+                  "id": "2g",
+                  "label": "gamma"
+                }
+              ]
+            },
+            {
+              "name": "three",
+              "rows": [
+                {
+                  "id": "3d",
+                  "label": "delta"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "name": "chooser: ctrl+o and alt+o cycle the sources, the query carries over, the title names the current source and the others"
+    },
+    {
+      "width": 160,
+      "height": 14,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "chooser": {
+          "kind": "context",
+          "title": "Context",
+          "rows": [
+            {
+              "id": "a",
+              "label": "alpha"
+            },
+            {
+              "id": "b",
+              "label": "beta"
+            }
+          ]
+        }
+      },
+      "name": "chooser: at 160 columns the modal is 80% of the width and the rows fill it, short as they are"
+    },
+    {
+      "width": 100,
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "focus": "a1",
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            },
+            {
+              "name": "status"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Write notes",
+              "status": "doing"
+            }
+          ]
+        },
+        "bind": [
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "X",
+            "do": "ochazuke.picker.open",
+            "args": {
+              "name": "demo"
+            }
+          }
+        ]
+      },
+      "name": "a derived noun picker: the demo noun has a list verb, so picker.open demo lists its things with no code, previews the highlighted one through demo.get, and enter picks it (demo.get reads it) and closes"
+    },
+    {
+      "width": 100,
+      "height": 18,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "nouns": [
+          {
+            "noun": "note",
+            "props": [
+              {
+                "name": "by"
+              },
+              {
+                "name": "status"
+              }
+            ],
+            "filters": [
+              {
+                "name": "mine",
+                "where": {
+                  "by": "owner"
+                }
+              },
+              {
+                "name": "agents",
+                "where": {
+                  "by": "agent"
+                }
+              },
+              {
+                "name": "all"
+              }
+            ]
+          }
+        ],
+        "chooser": {
+          "kind": "notes",
+          "title": "Notes",
+          "rows": [
+            {
+              "id": "n1",
+              "label": "Owner alpha",
+              "noun": "note",
+              "props": {
+                "by": "owner",
+                "status": "todo"
+              }
+            },
+            {
+              "id": "n2",
+              "label": "Agent beta",
+              "noun": "note",
+              "props": {
+                "by": "agent",
+                "status": "todo"
+              }
+            },
+            {
+              "id": "n3",
+              "label": "Owner gamma",
+              "noun": "note",
+              "props": {
+                "by": "owner",
+                "status": "done"
+              }
+            }
+          ]
+        }
+      },
+      "values": {
+        "picker.prop-filters": false
+      },
+      "name": "chooser prop filters opt-out"
+    },
+    {
+      "width": 100,
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "focus": "a1",
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants"
+            },
+            {
+              "id": "t2",
+              "title": "Write notes"
+            }
+          ]
+        },
+        "bind": [
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "X",
+            "do": "ochazuke.picker.open",
+            "args": {
+              "name": "pickers"
+            }
+          }
+        ]
+      },
+      "name": "the pickers picker: picker.open pickers lists pages, path, commands and a derived picker for the demo noun (it has a list verb); typing pages and enter opens the page picker"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/colour-fuzzy: picker: the path picker's find source marks fuzzy-matched path runes, keeping its selected row reversed"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-descend-keeps-the-picker-open: directory picker, style columns: going into a folder browses it and picks nothing"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "down",
+    "l",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-file-mode: directory picker, style columns: a file pick goes into folders with enter and picks a file"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "down",
+    "down",
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "down",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-filter: directory picker, style columns: the filter narrows the rows"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "/",
+    {
+      "type": "su"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-hidden-files: directory picker, style columns: hidden files show and hide with the toggle"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    ".",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    ".",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-home-and-root: directory picker, style columns: home and the root are one key from anywhere"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "g",
+    "/",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-mark-several: directory picker, style columns: adding to a list marks several folders and enter takes them all"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "m",
+    "down",
+    "m",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-move-between-columns: directory picker, style columns: h and l move between columns, the parent column marks where you came from, $ returns to the deepest place"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "j",
+    "l",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "h",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "h",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "$",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-new-folder: directory picker, style columns: a new folder is named, made and entered"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "n",
+    {
+      "type": "fresh"
+    },
+    "enter",
+    {
+      "job": "picker.pick"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-open: directory picker, style columns: opens on the folder, the first row full-width highlighted"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-type-outside-path: directory picker, style columns: an absolute path outside every source is typed and taken"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "/",
+    {
+      "type": "/tmp"
+    },
+    {
+      "job": "picker.load"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-up-to-root: directory picker, style columns: from a deep start, up one folder at a time reaches / and stays there"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-use-this-folder: directory picker, style columns: use this folder picks the folder shown, not a row"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "down",
+    "l",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-columns-walk-start-up-to-root: directory picker, style columns: opened on the project's walk, up one folder at a time reaches / (a declared start is not a limit)"
+    },
+    "enter",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-descend-keeps-the-picker-open: directory picker, style hybrid: going into a folder browses it and picks nothing"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "down",
+    "l",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-file-mode: directory picker, style hybrid: a file pick goes into folders with enter and picks a file"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "down",
+    "down",
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "down",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-filter: directory picker, style hybrid: the filter narrows the rows"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "/",
+    {
+      "type": "su"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-hidden-files: directory picker, style hybrid: hidden files show and hide with the toggle"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    ".",
+    {
+      "job": "picker.load"
+    },
+    ".",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-home-and-root: directory picker, style hybrid: home and the root are one key from anywhere"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "g",
+    "/",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-mark-several: directory picker, style hybrid: adding to a list marks several folders and enter takes them all"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "m",
+    "down",
+    "m",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-new-folder: directory picker, style hybrid: a new folder is named, made and entered"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "n",
+    {
+      "type": "fresh"
+    },
+    "enter",
+    {
+      "job": "picker.pick"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-open: directory picker, style hybrid: opens on the folder, the first row full-width highlighted"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-sections-jump: directory picker, style hybrid: Recent and Browse are sections; ] and [ jump between them and a heading never takes the highlight"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "j",
+    "l",
+    {
+      "job": "picker.load"
+    },
+    "u",
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "]",
+    "[",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-type-outside-path: directory picker, style hybrid: an absolute path outside every source is typed and taken"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "/",
+    {
+      "type": "/tmp"
+    },
+    {
+      "job": "picker.load"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-up-to-root: directory picker, style hybrid: from a deep start, up one folder at a time reaches / and stays there"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-use-this-folder: directory picker, style hybrid: use this folder picks the folder shown, not a row"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "down",
+    "l",
+    {
+      "job": "picker.load"
+    },
+    "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-hybrid-walk-start-up-to-root: directory picker, style hybrid: opened on the project's walk, up one folder at a time reaches / (a declared start is not a limit)"
+    },
+    "enter",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    "h",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-descend-keeps-the-picker-open: directory picker, style list: going into a folder browses it and picks nothing"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "down",
+    "ctrl+l",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-file-mode: directory picker, style list: a file pick goes into folders with enter and picks a file"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "down",
+    "down",
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "down",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-filter: directory picker, style list: the filter narrows the rows"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "su"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-hidden-files: directory picker, style list: hidden files show and hide with the toggle"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "alt+.",
+    {
+      "job": "picker.load"
+    },
+    "alt+.",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-home-and-root: directory picker, style list: home and the root are one key from anywhere"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "alt+/",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-mark-several: directory picker, style list: adding to a list marks several folders and enter takes them all"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "alt+m",
+    "down",
+    "alt+m",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-new-folder: directory picker, style list: a new folder is named, made and entered"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "alt+n",
+    {
+      "type": "fresh"
+    },
+    "enter",
+    {
+      "job": "picker.pick"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-open: directory picker, style list: opens on the folder, the first row full-width highlighted"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-type-outside-path: directory picker, style list: an absolute path outside every source is typed and taken"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "/tmp"
+    },
+    {
+      "job": "picker.load"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-up-to-root: directory picker, style list: from a deep start, up one folder at a time reaches / and stays there"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-use-this-folder: directory picker, style list: use this folder picks the folder shown, not a row"
+    },
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "down",
+    "ctrl+l",
+    {
+      "job": "picker.load"
+    },
+    "alt+u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/dir-list-walk-start-up-to-root: directory picker, style list: opened on the project's walk, up one folder at a time reaches / (a declared start is not a limit)"
+    },
+    "enter",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/page-picker-not-in-modal: ' does not open the page picker over a modal (? help); esc, then ' does"
+    },
+    "?",
+    "'",
+    "q",
+    "'",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/preview: chooser: the preview column follows the highlight at a fixed width"
+    },
+    "ctrl+n",
+    "ctrl+n",
+    "ctrl+p",
+    "ctrl+p",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/sources-cycle: chooser: ctrl+o and alt+o cycle the sources, the query carries over, the title names the current source and the others"
+    },
+    {
+      "type": "al"
+    },
+    "ctrl+o",
+    "ctrl+o",
+    "alt+o",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "picker/wide-fills: chooser: at 160 columns the modal is 80% of the width and the rows fill it, short as they are"
+    },
+    "b",
+    {
+      "key": "ctrl+alt+n",
+      "note": "pickers/derived-noun: a derived noun picker: the demo noun has a list verb, so picker.open demo lists its things with no code, previews the highlighted one through demo.get, and enter picks it (demo.get reads it) and closes"
+    },
+    "X",
+    {
+      "type": "notes"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "pickers/filter-prop-opt-out: chooser prop filters opt-out"
+    },
+    "z",
+    "]",
+    "ctrl+f",
+    "alt+]",
+    {
+      "key": "ctrl+alt+n",
+      "note": "pickers/picker-picker: the pickers picker: picker.open pickers lists pages, path, commands and a derived picker for the demo noun (it has a list verb); typing pages and enter opens the page picker"
+    },
+    "X",
+    {
+      "type": "pages"
+    },
+    "enter",
+    "esc",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "src/main.go"
+      ],
+      "attrs": {
+        "src/main.go": "bold,reverse,-bg"
+      },
+      "after": 1
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "matomeru/",
+        "ochazuke/"
+      ],
+      "after": 11
+    },
+    {
+      "after": 19,
+      "modal": "path-chooser"
+    },
+    {
+      "modal": "",
+      "contains": [
+        "c.json"
+      ],
+      "after": 24
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "sub/"
+      ],
+      "lacks": [
+        "empty/"
+      ],
+      "after": 29
+    },
+    {
+      "after": 34,
+      "modal": "path-chooser",
+      "lacks": [
+        ".hidden"
+      ]
+    },
+    {
+      "after": 38,
+      "contains": [
+        ".hidden"
+      ]
+    },
+    {
+      "modal": "path-chooser",
+      "lacks": [
+        ".hidden"
+      ],
+      "after": 42
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[browse /]"
+      ],
+      "after": 50
+    },
+    {
+      "after": 58,
+      "modal": "path-chooser",
+      "contains": [
+        "◉"
+      ]
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/a",
+        "/b"
+      ],
+      "lacks": [
+        "/c"
+      ],
+      "after": 59
+    },
+    {
+      "after": 67,
+      "contains": [
+        "matomeru/",
+        "ochazuke/"
+      ]
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "matomeru/",
+        "ochazuke/"
+      ],
+      "after": 81
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "Choose file",
+        "use ",
+        "fresh/"
+      ],
+      "lacks": [],
+      "after": 91
+    },
+    {
+      "modal": "path-chooser",
+      "mode": "normal",
+      "contains": [
+        "Choose file",
+        "sub/",
+        "empty/",
+        "use ",
+        " │ "
+      ],
+      "highlightedText": "empty/",
+      "after": 94
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/tmp"
+      ],
+      "after": 101
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[browse /]"
+      ],
+      "after": 122
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/proj"
+      ],
+      "after": 133
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[walk /]"
+      ],
+      "after": 155
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "matomeru/",
+        "ochazuke/"
+      ],
+      "after": 161
+    },
+    {
+      "after": 167,
+      "modal": "path-chooser"
+    },
+    {
+      "modal": "",
+      "contains": [
+        "c.json"
+      ],
+      "after": 170
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "sub/"
+      ],
+      "lacks": [
+        "empty/"
+      ],
+      "after": 176
+    },
+    {
+      "after": 179,
+      "modal": "path-chooser",
+      "lacks": [
+        ".hidden"
+      ]
+    },
+    {
+      "after": 181,
+      "contains": [
+        ".hidden"
+      ]
+    },
+    {
+      "modal": "path-chooser",
+      "lacks": [
+        ".hidden"
+      ],
+      "after": 183
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[hybrid /]"
+      ],
+      "after": 189
+    },
+    {
+      "after": 195,
+      "modal": "path-chooser",
+      "contains": [
+        "◉"
+      ]
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/a",
+        "/b"
+      ],
+      "lacks": [
+        "/c"
+      ],
+      "after": 196
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "Choose file",
+        "use "
+      ],
+      "lacks": [
+        "proj/",
+        "sub/"
+      ],
+      "after": 204
+    },
+    {
+      "modal": "path-chooser",
+      "mode": "normal",
+      "contains": [
+        "Choose file",
+        "sub/",
+        "empty/",
+        "use ",
+        "Browse "
+      ],
+      "highlightedText": "empty/",
+      "after": 207
+    },
+    {
+      "after": 216,
+      "modal": "path-chooser",
+      "contains": [
+        "Recent",
+        "Browse "
+      ],
+      "highlightedText": "/proj"
+    },
+    {
+      "after": 217,
+      "highlightedText": "matomeru/"
+    },
+    {
+      "after": 218,
+      "highlightedText": "/proj"
+    },
+    {
+      "modal": "path-chooser",
+      "highlightedText": "matomeru/",
+      "after": 219
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/tmp"
+      ],
+      "after": 226
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[hybrid /]"
+      ],
+      "after": 247
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/proj"
+      ],
+      "after": 254
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[walk /]"
+      ],
+      "after": 276
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "matomeru/",
+        "ochazuke/"
+      ],
+      "after": 282
+    },
+    {
+      "after": 288,
+      "modal": "path-chooser"
+    },
+    {
+      "modal": "",
+      "contains": [
+        "c.json"
+      ],
+      "after": 291
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "sub/"
+      ],
+      "lacks": [
+        "empty/"
+      ],
+      "after": 295
+    },
+    {
+      "after": 298,
+      "modal": "path-chooser",
+      "lacks": [
+        ".hidden"
+      ]
+    },
+    {
+      "after": 300,
+      "contains": [
+        ".hidden"
+      ]
+    },
+    {
+      "modal": "path-chooser",
+      "lacks": [
+        ".hidden"
+      ],
+      "after": 302
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[browse /]"
+      ],
+      "after": 307
+    },
+    {
+      "after": 313,
+      "modal": "path-chooser",
+      "contains": [
+        "◉"
+      ]
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/a",
+        "/b"
+      ],
+      "lacks": [
+        "/c"
+      ],
+      "after": 314
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "Choose file",
+        "use "
+      ],
+      "lacks": [
+        "proj/",
+        "sub/"
+      ],
+      "after": 322
+    },
+    {
+      "modal": "path-chooser",
+      "mode": "insert",
+      "contains": [
+        "Choose file",
+        "sub/",
+        "empty/",
+        "use "
+      ],
+      "highlightedText": "empty/",
+      "after": 325
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/tmp"
+      ],
+      "after": 331
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[browse /]"
+      ],
+      "after": 352
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/proj"
+      ],
+      "after": 359
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[walk /]"
+      ],
+      "after": 381
+    },
+    {
+      "after": 384,
+      "modal": "bindings-help",
+      "lacks": [
+        "Pages"
+      ]
+    },
+    {
+      "modal": "page-picker",
+      "contains": [
+        "Bravo"
+      ],
+      "after": 386
+    },
+    {
+      "after": 388,
+      "modal": "context",
+      "contains": [
+        "│ second answer"
+      ],
+      "lacks": [
+        "first answer"
+      ]
+    },
+    {
+      "after": 389,
+      "lacks": [
+        "first answer",
+        "second answer"
+      ]
+    },
+    {
+      "after": 390,
+      "contains": [
+        "│ second answer"
+      ]
+    },
+    {
+      "modal": "context",
+      "contains": [
+        "│ first answer"
+      ],
+      "lacks": [
+        "second answer"
+      ],
+      "after": 391
+    },
+    {
+      "after": 393,
+      "modal": "pick",
+      "contains": [
+        "Pick · [one] two three",
+        "alpha"
+      ],
+      "lacks": [
+        "alpine",
+        "beta"
+      ]
+    },
+    {
+      "after": 394,
+      "contains": [
+        "Pick · one [two] three",
+        "› al",
+        "alpine"
+      ],
+      "lacks": [
+        "alpha",
+        "gamma"
+      ]
+    },
+    {
+      "after": 395,
+      "contains": [
+        "one two [three]",
+        "› al",
+        "no rows match"
+      ]
+    },
+    {
+      "after": 396,
+      "contains": [
+        "one [two] three",
+        "alpine"
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "pick 2a"
+      ],
+      "after": 397
+    },
+    {
+      "after": 399,
+      "contains": [
+        "◆ o-story",
+        "INSERT",
+        "› page1",
+        "Context",
+        "› b",
+        "fuzzy",
+        "beta",
+        "esc normal · enter picker.pick · tab search.cycle-match"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 401,
+      "modal": "picker-demo",
+      "contains": [
+        "Water the plants",
+        "Write notes",
+        "status: todo"
+      ]
+    },
+    {
+      "after": 402,
+      "modal": "picker-demo",
+      "contains": [
+        "Write notes",
+        "status: doing"
+      ],
+      "lacks": [
+        "Water the plants"
+      ]
+    },
+    {
+      "after": 403,
+      "modal": "",
+      "focus": "a1",
+      "noNotices": true,
+      "writes": [
+        "list",
+        "get t1",
+        "get t1",
+        "get t2",
+        "get t2",
+        "get t2"
+      ]
+    },
+    {
+      "after": 403,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "q app.quit · r demo.reset · enter demo.open · n demo.notify · x demo.delete · space collection.…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "modal": "notes",
+      "contains": [
+        "› z]"
+      ],
+      "lacks": [
+        "[mine]",
+        "prop filter",
+        "next filter"
+      ],
+      "after": 408
+    },
+    {
+      "after": 410,
+      "modal": "picker-pickers",
+      "contains": [
+        "Pickers",
+        "pages",
+        "path",
+        "commands",
+        "demo"
+      ]
+    },
+    {
+      "after": 412,
+      "modal": "page-picker",
+      "contains": [
+        "Pages"
+      ]
+    },
+    {
+      "after": 414,
+      "modal": "",
+      "focus": "a1"
+    },
+    {
+      "after": 414,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "q app.quit · r demo.reset · enter demo.open · n demo.notify · x demo.delete · space collection.…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "width": 72,
+  "height": 18,
+  "theme": "dark",
+  "files": [
+    "src/main.go",
+    "src/main_test.go"
+  ],
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "origin",
+        "text": ""
+      }
+    ],
+    "picker": "{{files}}/smg"
+  }
+}

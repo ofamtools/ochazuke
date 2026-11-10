@@ -1,0 +1,1766 @@
+{
+  "name": "text end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 40,
+      "height": 4,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "title"
+          },
+          {
+            "id": "notes",
+            "label": "notes",
+            "text": "one\ntwo\n\nthree\nfour",
+            "multiline": true
+          }
+        ]
+      },
+      "name": "} and { are paragraph motions inside a multiline input (to the next or previous empty line) and still walk the stops from a single-line one: y} yanks a paragraph, d{ deletes back to the empty line"
+    },
+    {
+      "width": 40,
+      "height": 3,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "f(a, [b]) + c"
+          }
+        ]
+      },
+      "name": "% jumps to the matching bracket (the first bracket at or after the cursor on its line, nesting counted); y% and d% take both brackets"
+    },
+    {
+      "width": 60,
+      "height": 16,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.read",
+            "answer": "row 01\nrow 02\nrow 03\nrow 04\nrow 05\nrow 06\nrow 07\nrow 08\nrow 09\nrow 10\nrow 11\nrow 12\nrow 13\nrow 14\nrow 15\nrow 16\nrow 17\nrow 18\nrow 19\nrow 20\nrow 21\nrow 22\nrow 23\nrow 24\nrow 25\nrow 26\nrow 27\nrow 28\nrow 29\nrow 30\nrow 31\nrow 32\nrow 33\nrow 34\nrow 35\nrow 36\nrow 37\nrow 38\nrow 39\nrow 40",
+            "result": "text"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "v",
+            "do": "demo.read"
+          }
+        ]
+      },
+      "name": "H, M and L move within the lines on screen of a text taller than its view (the text view, drawn at 34–40 after G): H to the first shown, L to the last, M to the middle"
+    },
+    {
+      "width": 40,
+      "height": 3,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "foo.bar baz-qux end"
+          }
+        ]
+      },
+      "name": "W, E and B move by WORDs (blank-separated, punctuation inside): W to the next WORD, E to a WORD's end, B back to its start, dW deletes a WORD and the blank after it"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "Intro.\n",
+          "author": "owner",
+          "today": "2026-10-27"
+        }
+      },
+      "name": "markdown: alt+/ then table then a column count puts a header and its delimiter on the line"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "Intro.\n",
+          "author": "owner",
+          "today": "2026-10-27"
+        }
+      },
+      "name": "markdown: alt+/ on an empty line chooses a block kind to insert; a table asks for its column count"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "# Start\n\n- item 01\n- item 02\n- item 03\n- item 04\n- item 05\n- item 06\n- item 07\n- item 08\n- item 09\n- item 10\n- item 11\n- item 12\n- item 13\n- item 14\n- item 15\n- item 16\n- item 17\n- item 18\n- item 19\n- item 20\n- item 21\n- item 22\n- item 23\n- item 24\n- item 25\n- item 26\n- item 27\n- item 28\n- item 29\n- item 30\n",
+          "author": "owner",
+          "today": "2026-10-27",
+          "height": 12
+        }
+      },
+      "name": "markdown: ctrl+e and ctrl+y scroll the document's window a line; the cursor stays until the window passes it, then rides the scrolloff margin; counts work"
+    },
+    {
+      "width": 40,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "- [x] Finish the 日本 release checklist and check every wrapped line before shipping.\n- [ ] Verify item movement over tasks, paragraphs, headings and table rows, then check the dimmed selection in another pane and confirm that all six wrapped lines stay highlighted.\n"
+        },
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          },
+          {
+            "id": "b",
+            "rows": 1
+          }
+        ],
+        "order": [
+          "a",
+          "markdown",
+          "b"
+        ]
+      },
+      "name": "markdown: item cursor spills in drawing order at both document edges"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "- [ ] Only task\n"
+        }
+      },
+      "settings": [
+        {
+          "name": "markdown.done",
+          "type": "string",
+          "default": "show",
+          "enum": [
+            "show",
+            "hide"
+          ]
+        }
+      ],
+      "values": {
+        "markdown.done": "hide"
+      },
+      "name": "markdown: done-all-hidden"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "- [x] Finished parent\n  - [ ] Unchecked child\n  - [x] Finished child\n- [ ] First visible\n- [x] Finished sibling\n- [ ] Last visible\n"
+        }
+      },
+      "name": "markdown: done-toggle-view"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "- [ ] a\n",
+          "author": "owner",
+          "today": "2026-10-27"
+        }
+      },
+      "name": "markdown: in insert mode enter continues a list item, tab nests it, shift+tab takes it out, enter on an empty item ends the list"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "- [ ] buy milk\n",
+          "author": "owner",
+          "today": "2026-10-27",
+          "preserveNewlines": true
+        }
+      },
+      "name": "markdown: backspace on an empty marker leaves an indented line under the item above: a note line"
+    },
+    {
+      "width": 30,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "- one\n",
+          "author": "owner",
+          "today": "2026-10-27"
+        }
+      },
+      "name": "markdown: typing past the pane's edge in the block editor wraps at the last space that fits, a list item's next rows under its text; the file gets no line break"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "# Links\n\nBefore [alpha](https://a.example) between [beta](https://b.example) after.\n\nTail.\n"
+        }
+      },
+      "name": "markdown: link-open"
+    },
+    {
+      "width": 80,
+      "settings": [
+        {
+          "name": "markdown.link-stops",
+          "type": "boolean",
+          "default": true
+        }
+      ],
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "# Links\n\nBefore [alpha](https://a.example) between [beta](https://b.example) after.\n\nTail.\n"
+        }
+      },
+      "values": {
+        "markdown.link-stops": false
+      },
+      "name": "markdown: link-stops-off"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "# Links\n\nBefore [alpha](https://a.example) between [beta](https://b.example) after.\n\nTail.\n"
+        },
+        "bind": [
+          {
+            "noun": "ochazuke.markdown",
+            "keys": "U",
+            "do": "ochazuke.setting.cycle",
+            "args": {
+              "name": "markdown.link-urls",
+              "step": 1
+            }
+          }
+        ]
+      },
+      "name": "markdown: link-urls-cycle"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "# Links\n\nSee [ochazuke/props.go:231](file:///Users/x/proj/ochazuke/props.go#L231) and [beta](https://b.example/path) after.\n\nTail.\n"
+        }
+      },
+      "name": "markdown: link-urls-on-focus"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "# Plan\n\nIntro paragraph.\n\n- [ ] Inbox page\n  > **owner** 2026-10-27: start from matomeru-old\n- [ ] Prompts\n- plain bullet\n\n| col | val |\n|---|---|\n| a | 1 |\n| b | 2 |\n\n## Code\n\n```sh\ngo test ./...\n```\n\n> a quote\n",
+          "author": "owner",
+          "today": "2026-10-27"
+        }
+      },
+      "name": "markdown: ]] and [[ move to the next and previous block of the kind under the cursor; at the last one they are quiet"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "# Plan\n\n- [ ] Inbox page\n  > **owner** 2026-10-27: start from matomeru-old's action items\n  > **claude** 2026-10-27 · sent: done the read/unread model, see 0c5162b\n  > **owner** 2026-10-26 ✓: an old one, resolved\n- [ ] Prompts\n",
+          "author": "owner",
+          "today": "2026-10-27"
+        }
+      },
+      "name": "markdown: x on a note resolves it, ]n and [n jump between notes, za folds an item's notes to a count of the open ones"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "1. one\n2. two\n3. three\n",
+          "author": "owner",
+          "today": "2026-10-27"
+        }
+      },
+      "name": "markdown: o and O on a numbered item open one numbered in place and renumber the list"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "| name | n |\n|---|---|\n| a | 1 |\n",
+          "author": "owner",
+          "today": "2026-10-27"
+        }
+      },
+      "name": "markdown: o on a table row opens an empty row; tab moves cell to cell, past the last a new row; the pipes line up when it is left"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "# Release checklist\n\nWork through these before **v0.4.0** ships. Each box is saved back to the file the moment it is toggled.\n\n- [x] Changelog section written\n- [ ] Gate green with `GOWORK=off`, which builds what a fresh clone gets from the module proxy\n  - [ ] go vet\n  - [x] go test -race\n1. [ ] Tag the release commit\n\n```sh\n- [ ] this line is code, not a task\n```\n",
+          "external": "# Release checklist\n\nWork through these before **v0.4.0** ships. Each box is saved back to the file the moment it is toggled.\n\n- [x] Changelog section written\n- [ ] Gate green with `GOWORK=off`, which builds what a fresh clone gets from the module proxy\n  - [ ] go vet ./...\n  - [x] go test -race\n1. [ ] Tag the release commit\n\n```sh\n- [ ] this line is code, not a task\n```\n"
+        }
+      },
+      "name": "markdown: a toggle of an item changed on disk since the page loaded is refused"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "preserveNewlines": true,
+          "text": "Standup notes\nwritten as plain lines\none thought per line\n\n- [ ] ship the fix\n  and tell the lane\n- [x] review the branch\n\n```sh\ngo test ./...\ngo vet ./...\n```\n\n| owner | task |\n|---|---|\n| ana | docs |\n"
+        }
+      },
+      "name": "markdown: a note of plain lines at 80 columns with preserveNewlines, a code fence and a table drawn as without it"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "markdown": {
+          "text": "# Release checklist\n\nWork through these before **v0.4.0** ships. Each box is saved back to the file the moment it is toggled.\n\n- [x] Changelog section written\n- [ ] Gate green with `GOWORK=off`, which builds what a fresh clone gets from the module proxy\n  - [ ] go vet\n  - [x] go test -race\n1. [ ] Tag the release commit\n\n```sh\n- [ ] this line is code, not a task\n```\n"
+        }
+      },
+      "name": "markdown: j past a list's last row lands on the document's first line, k before it goes back"
+    },
+    {
+      "width": 120,
+      "height": 50,
+      "theme": "dark",
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "## Status counts\n\n| Area | same | similar | differs on purpose | missing | conflicts | rows |\n|---|---|---|---|---|---|---|\n| 1. Motions | 9 | 4 | 5 | 6 | 2 | 26 |\n| 2. Operators and text objects (editor) | 6 | 0 | 2 | 8 | 2 | 18 |\n| 3. Modes | 7 | 3 | 4 | 4 | 6 | 24 |\n| **Total** | 61 | 42 | 25 | 45 | 25 | 198 |\n\n## 1. Motions\n\n| Feature | Vim/Neovim | ochazuke today | Status | Suggested action |\n|---|---|---|---|---|\n| `j`/`k` on a list | `:help j` `:help k`: stop at the last/first line | `bindings/list.json` `ochazuke.collection/normal j`/`k` → `collection.move {delta}`; past the edge the focus moves to the next/previous stop | **differs on purpose** | Keep it: the invariant \"motions are visual\" (AGENTS.md). Put it in the docs' Vim note. `NoSpill()` and modals clamp the way Vim does. |\n| `j`/`k` in the editor | `:help j` | `bindings/editor.json` `ochazuke.editor/normal j`/`k` → `input.move up/down` with counts | **same** | — |\n| Counts (`3j`, `5G`) | `:help count` | `bindings/registers.json` `app/normal digit-0` → `count_pending`; rows take `from: {steps: count}` | **same** | — |\n| A count at a list's edge | `:help count`: clamps | story `motions/count-spills-once-at-edge`: the count clamps, then a single spill | **differs on purpose** | Same reason as `j`/`k`. |\n| `ctrl+d`/`ctrl+u` on lists | `:help CTRL-D`: half a page; a count sets `'scroll'` for later presses too | `list.json` → `collection.scroll {half}`; a count is rows, for that press only | **similar** (the count does not stick) | Note it in the docs. |\n"
+        }
+      },
+      "name": "markdown: the vim-parity-audit tables at 120 columns, dark: every row's separators line up with the header's and the rule's junctions, code spans measured by display width, wrapped cells keep the columns, a narrow table stays compact"
+    },
+    {
+      "width": 80,
+      "height": 74,
+      "theme": "dark",
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "## Status counts\n\n| Area | same | similar | differs on purpose | missing | conflicts | rows |\n|---|---|---|---|---|---|---|\n| 1. Motions | 9 | 4 | 5 | 6 | 2 | 26 |\n| 2. Operators and text objects (editor) | 6 | 0 | 2 | 8 | 2 | 18 |\n| 3. Modes | 7 | 3 | 4 | 4 | 6 | 24 |\n| **Total** | 61 | 42 | 25 | 45 | 25 | 198 |\n\n## 1. Motions\n\n| Feature | Vim/Neovim | ochazuke today | Status | Suggested action |\n|---|---|---|---|---|\n| `j`/`k` on a list | `:help j` `:help k`: stop at the last/first line | `bindings/list.json` `ochazuke.collection/normal j`/`k` → `collection.move {delta}`; past the edge the focus moves to the next/previous stop | **differs on purpose** | Keep it: the invariant \"motions are visual\" (AGENTS.md). Put it in the docs' Vim note. `NoSpill()` and modals clamp the way Vim does. |\n| `j`/`k` in the editor | `:help j` | `bindings/editor.json` `ochazuke.editor/normal j`/`k` → `input.move up/down` with counts | **same** | — |\n| Counts (`3j`, `5G`) | `:help count` | `bindings/registers.json` `app/normal digit-0` → `count_pending`; rows take `from: {steps: count}` | **same** | — |\n| A count at a list's edge | `:help count`: clamps | story `motions/count-spills-once-at-edge`: the count clamps, then a single spill | **differs on purpose** | Same reason as `j`/`k`. |\n| `ctrl+d`/`ctrl+u` on lists | `:help CTRL-D`: half a page; a count sets `'scroll'` for later presses too | `list.json` → `collection.scroll {half}`; a count is rows, for that press only | **similar** (the count does not stick) | Note it in the docs. |\n"
+        }
+      },
+      "name": "markdown: the vim-parity-audit tables at 80 columns, dark: every row's separators line up with the header's and the rule's junctions, code spans measured by display width, wrapped cells keep the columns, a narrow table stays compact"
+    },
+    {
+      "width": 80,
+      "page": {
+        "noHeadings": true,
+        "markdown": {
+          "text": "- a\n- b\n",
+          "author": "owner",
+          "today": "2026-10-27"
+        }
+      },
+      "name": "markdown: u and ctrl+r undo and redo every edit, typing and deleting included, each written"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": "The find line closes through modal.close on Escape, returning to its text view without changing the last find"
+    },
+    {
+      "settings": [
+        {
+          "name": "palette.text-results",
+          "type": "string",
+          "default": "all"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": "palette text-results all does not turn an ordinary key answer into a text viewer"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.read",
+            "pending": true,
+            "answer": "delayed readable answer",
+            "result": "text"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "v",
+            "do": "demo.read"
+          },
+          {
+            "noun": "app",
+            "keys": "F",
+            "do": "demo.finish",
+            "args": {
+              "verb": "demo.read"
+            }
+          }
+        ]
+      },
+      "name": "text-view/late-answer-says-where"
+    },
+    {
+      "width": 100,
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.read",
+            "answer": "/tmp/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/: No such file or directory",
+            "result": "text"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "v",
+            "do": "demo.read"
+          }
+        ]
+      },
+      "name": "text-view/long-line-wraps"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.read",
+            "pending": true,
+            "answer": "delayed readable answer",
+            "result": "text"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "F",
+            "do": "demo.finish",
+            "args": {
+              "verb": "demo.read"
+            }
+          }
+        ]
+      },
+      "name": "text-view/palette-late-answer-after-move"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.read",
+            "pending": true,
+            "answer": "delayed readable answer",
+            "result": "text"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "F",
+            "do": "demo.finish",
+            "args": {
+              "verb": "demo.read"
+            }
+          }
+        ]
+      },
+      "name": "text-view/palette-pending-inside-help"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "editor/paragraph-motions: } and { are paragraph motions inside a multiline input (to the next or previous empty line) and still walk the stops from a single-line one: y} yanks a paragraph, d{ deletes back to the empty line"
+    },
+    "}",
+    "y",
+    "}",
+    "}",
+    "}",
+    "d",
+    "{",
+    {
+      "key": "ctrl+alt+n",
+      "note": "editor/percent: % jumps to the matching bracket (the first bracket at or after the cursor on its line, nesting counted); y% and d% take both brackets"
+    },
+    "y",
+    "%",
+    "%",
+    "d",
+    "%",
+    {
+      "key": "ctrl+alt+n",
+      "note": "editor/screen-motions: H, M and L move within the lines on screen of a text taller than its view (the text view, drawn at 34–40 after G): H to the first shown, L to the last, M to the middle"
+    },
+    "v",
+    "G",
+    "H",
+    "y",
+    "y",
+    "L",
+    "y",
+    "y",
+    "M",
+    "y",
+    "y",
+    {
+      "key": "ctrl+alt+n",
+      "note": "editor/word-motions: W, E and B move by WORDs (blank-separated, punctuation inside): W to the next WORD, E to a WORD's end, B back to its start, dW deletes a WORD and the blank after it"
+    },
+    "W",
+    "i",
+    {
+      "type": "["
+    },
+    "esc",
+    "E",
+    "a",
+    {
+      "type": "]"
+    },
+    "esc",
+    "B",
+    "d",
+    "W",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/block-chooser-table: markdown: alt+/ then table then a column count puts a header and its delimiter on the line"
+    },
+    "o",
+    "alt+/",
+    "t",
+    "a",
+    "b",
+    "l",
+    "e",
+    "enter",
+    "3",
+    "enter",
+    "w",
+    "h",
+    "o",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/block-chooser: markdown: alt+/ on an empty line chooses a block kind to insert; a table asks for its column count"
+    },
+    "o",
+    "alt+/",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/ctrl-e-scroll: markdown: ctrl+e and ctrl+y scroll the document's window a line; the cursor stays until the window passes it, then rides the scrolloff margin; counts work"
+    },
+    "j",
+    "j",
+    "j",
+    "j",
+    "ctrl+e",
+    "5",
+    "ctrl+e",
+    "ctrl+y",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/cursor-item-spill: markdown: item cursor spills in drawing order at both document edges"
+    },
+    "j",
+    "j",
+    "j",
+    "k",
+    "k",
+    "k",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/done-all-hidden: markdown: done-all-hidden"
+    },
+    "x",
+    "j",
+    "k",
+    ":",
+    {
+      "type": "markdown done-show"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/done-toggle-view: markdown: done-toggle-view"
+    },
+    ":",
+    {
+      "type": "markdown done-toggle"
+    },
+    "enter",
+    ":",
+    {
+      "type": "markdown done-toggle"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/insert-list-keys: markdown: in insert mode enter continues a list item, tab nests it, shift+tab takes it out, enter on an empty item ends the list"
+    },
+    "A",
+    "enter",
+    "b",
+    "enter",
+    "tab",
+    "c",
+    "enter",
+    "shift+tab",
+    "d",
+    "enter",
+    "enter",
+    "a",
+    "f",
+    "t",
+    "e",
+    "r",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/insert-note-line: markdown: backspace on an empty marker leaves an indented line under the item above: a note line"
+    },
+    "o",
+    "backspace",
+    "o",
+    "a",
+    "t",
+    ",",
+    "space",
+    "n",
+    "o",
+    "t",
+    "space",
+    "c",
+    "o",
+    "w",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/insert-wrap: markdown: typing past the pane's edge in the block editor wraps at the last space that fits, a list item's next rows under its text; the file gets no line break"
+    },
+    "A",
+    "space",
+    "t",
+    "w",
+    "o",
+    "space",
+    "t",
+    "h",
+    "r",
+    "e",
+    "e",
+    "space",
+    "f",
+    "o",
+    "u",
+    "r",
+    "space",
+    "f",
+    "i",
+    "v",
+    "e",
+    "space",
+    "s",
+    "i",
+    "x",
+    {
+      "tick": "debounce"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/link-open: markdown: link-open"
+    },
+    "j",
+    "enter",
+    "g",
+    "x",
+    "y",
+    "l",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/link-stops-off: markdown: link-stops-off"
+    },
+    "j",
+    "j",
+    "k",
+    "[",
+    "u",
+    "y",
+    "l",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/link-urls-cycle: markdown: link-urls-cycle"
+    },
+    "j",
+    "U",
+    "U",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/link-urls-on-focus: markdown: link-urls-on-focus"
+    },
+    "j",
+    "]",
+    "u",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/motion-same-kind: markdown: ]] and [[ move to the next and previous block of the kind under the cursor; at the last one they are quiet"
+    },
+    "]",
+    "x",
+    "]",
+    "]",
+    "]",
+    "]",
+    "[",
+    "[",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/notes-fold-resolve: markdown: x on a note resolves it, ]n and [n jump between notes, za folds an item's notes to a count of the open ones"
+    },
+    "]",
+    "n",
+    "x",
+    "]",
+    "n",
+    "z",
+    "a",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/open-numbered: markdown: o and O on a numbered item open one numbered in place and renumber the list"
+    },
+    "j",
+    "o",
+    "n",
+    "e",
+    "w",
+    "esc",
+    "g",
+    "g",
+    "O",
+    "z",
+    "e",
+    "r",
+    "o",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/open-table-cells: markdown: o on a table row opens an empty row; tab moves cell to cell, past the last a new row; the pipes line up when it is left"
+    },
+    "j",
+    "o",
+    "l",
+    "o",
+    "n",
+    "g",
+    "e",
+    "r",
+    "tab",
+    "2",
+    "2",
+    "tab",
+    "c",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/refused-toggle: markdown: a toggle of an item changed on disk since the page loaded is refused"
+    },
+    "]",
+    "x",
+    "]",
+    "x",
+    "]",
+    "x",
+    "x",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/render-preserve-80: markdown: a note of plain lines at 80 columns with preserveNewlines, a code fence and a table drawn as without it"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/spill-from-list: markdown: j past a list's last row lands on the document's first line, k before it goes back"
+    },
+    "j",
+    "j",
+    "k",
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/tables-dark-120: markdown: the vim-parity-audit tables at 120 columns, dark: every row's separators line up with the header's and the rule's junctions, code spans measured by display width, wrapped cells keep the columns, a narrow table stays compact"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/tables-dark-80: markdown: the vim-parity-audit tables at 80 columns, dark: every row's separators line up with the header's and the rule's junctions, code spans measured by display width, wrapped cells keep the columns, a narrow table stays compact"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "markdown/undo-redo-edits: markdown: u and ctrl+r undo and redo every edit, typing and deleting included, each written"
+    },
+    "o",
+    "n",
+    "e",
+    "w",
+    "esc",
+    "d",
+    "d",
+    "u",
+    "u",
+    "ctrl+r",
+    {
+      "key": "ctrl+alt+n",
+      "note": "text-view/find-line-close: The find line closes through modal.close on Escape, returning to its text view without changing the last find"
+    },
+    ":",
+    {
+      "type": "demo mapping"
+    },
+    "enter",
+    "/",
+    {
+      "type": "."
+    },
+    "enter",
+    "/",
+    {
+      "type": "absent"
+    },
+    "esc",
+    "q",
+    "y",
+    "y",
+    "n",
+    "y",
+    "y",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "text-view/key-all-ordinary: palette text-results all does not turn an ordinary key answer into a text viewer"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "text-view/late-answer-says-where: text-view/late-answer-says-where"
+    },
+    "v",
+    "j",
+    "F",
+    {
+      "job": "demo.read",
+      "state": "done"
+    },
+    "g",
+    "<",
+    {
+      "key": "ctrl+alt+n",
+      "note": "text-view/long-line-wraps: text-view/long-line-wraps"
+    },
+    "v",
+    {
+      "key": "ctrl+alt+n",
+      "note": "text-view/palette-late-answer-after-move: text-view/palette-late-answer-after-move"
+    },
+    ":",
+    {
+      "type": "demo read"
+    },
+    "enter",
+    "j",
+    "F",
+    {
+      "job": "demo.read",
+      "state": "done"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "text-view/palette-pending-inside-help: text-view/palette-pending-inside-help"
+    },
+    "?",
+    ":",
+    {
+      "type": "demo read"
+    },
+    "enter",
+    "F",
+    {
+      "job": "demo.read",
+      "state": "done"
+    },
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "notes",
+      "mode": "normal"
+    },
+    {
+      "after": 4,
+      "focus": "notes",
+      "register": "one\ntwo\n"
+    },
+    {
+      "after": 6,
+      "focus": "notes",
+      "contains": [
+        "notes: four"
+      ]
+    },
+    {
+      "focus": "notes",
+      "mode": "normal",
+      "register": "\nthree\nfou",
+      "contains": [
+        "notes: r"
+      ],
+      "after": 8
+    },
+    {
+      "after": 11,
+      "mode": "normal",
+      "register": "f(a, [b])"
+    },
+    {
+      "mode": "normal",
+      "register": "(a, [b])",
+      "contains": [
+        "name: f + c"
+      ],
+      "after": 14
+    },
+    {
+      "after": 16,
+      "modal": "text-view"
+    },
+    {
+      "after": 17,
+      "modal": "text-view",
+      "contains": [
+        "34–40 / 40"
+      ]
+    },
+    {
+      "after": 20,
+      "modal": "text-view",
+      "register": "row 34\n"
+    },
+    {
+      "after": 23,
+      "modal": "text-view",
+      "register": "row 40\n"
+    },
+    {
+      "modal": "text-view",
+      "register": "row 37\n",
+      "after": 26
+    },
+    {
+      "after": 31,
+      "mode": "normal",
+      "contains": [
+        "name: foo.bar [baz-qux end"
+      ]
+    },
+    {
+      "after": 35,
+      "mode": "normal",
+      "contains": [
+        "name: foo.bar [baz-qux] end"
+      ]
+    },
+    {
+      "mode": "normal",
+      "register": "[baz-qux] ",
+      "contains": [
+        "name: foo.bar end"
+      ],
+      "after": 38
+    },
+    {
+      "contains": [
+        "who"
+      ],
+      "writes": [
+        "write 3 +| who |  |  ||| --- | --- | --- ||",
+        "write 3 -| who |  |  | +| who |     |     |"
+      ],
+      "after": 53
+    },
+    {
+      "after": 56,
+      "contains": [
+        "checklist",
+        "heading 1",
+        "code block"
+      ]
+    },
+    {
+      "after": 56,
+      "contains": [
+        "◆ o-story",
+        "INSERT",
+        "› page1",
+        "Intro.",
+        "Insert",
+        "fuzzy",
+        "table",
+        "checklist",
+        "bullets",
+        "numbered list",
+        "heading 1",
+        "heading 2",
+        "heading 3",
+        "code block",
+        "quote",
+        "rule",
+        "esc normal · enter picker.pick · tab search.cycle-match"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 61,
+      "highlightedText": "item 04",
+      "contains": [
+        "1–11 / 32"
+      ]
+    },
+    {
+      "after": 62,
+      "highlightedText": "item 04",
+      "contains": [
+        "2–12 / 32"
+      ]
+    },
+    {
+      "after": 64,
+      "highlightedText": "item 07",
+      "contains": [
+        "7–17 / 32"
+      ]
+    },
+    {
+      "highlightedText": "item 07",
+      "contains": [
+        "6–16 / 32"
+      ],
+      "mode": "normal",
+      "after": 65
+    },
+    {
+      "after": 67,
+      "highlighted": 3
+    },
+    {
+      "after": 68,
+      "highlighted": 6
+    },
+    {
+      "after": 69,
+      "focus": "b1",
+      "highlighted": 1,
+      "dimmed": 7
+    },
+    {
+      "after": 70,
+      "highlighted": 6
+    },
+    {
+      "after": 71,
+      "highlighted": 3
+    },
+    {
+      "focus": "a1",
+      "highlighted": 1,
+      "dimmed": 4,
+      "after": 72
+    },
+    {
+      "after": 76,
+      "contains": [
+        "1 done hidden"
+      ],
+      "lacks": [
+        "Only task"
+      ]
+    },
+    {
+      "contains": [
+        "Only task"
+      ],
+      "lacks": [
+        "done hidden"
+      ],
+      "highlightedText": "Only task",
+      "after": 79
+    },
+    {
+      "after": 83,
+      "contains": [
+        "3 done hidden"
+      ],
+      "lacks": [
+        "Finished parent"
+      ],
+      "highlightedText": "First visible"
+    },
+    {
+      "contains": [
+        "Finished parent",
+        "Unchecked child"
+      ],
+      "lacks": [
+        "done hidden"
+      ],
+      "highlightedText": "First visible",
+      "after": 86
+    },
+    {
+      "contains": [
+        "after"
+      ],
+      "writes": [
+        "write 2 +- [ ] b",
+        "write 3 +  - [ ] c",
+        "write 4 +- [ ] d",
+        "write 6 +after|"
+      ],
+      "after": 104
+    },
+    {
+      "writes": [
+        "write 2 +  oat, not cow"
+      ],
+      "after": 120
+    },
+    {
+      "mode": "insert",
+      "order": [
+        "- one two three four",
+        "    five six"
+      ],
+      "lacks": [
+        "- one two three four five"
+      ],
+      "writes": [
+        "write 1 -- one +- one two three four five six"
+      ],
+      "after": 147
+    },
+    {
+      "writes": [
+        "open https://a.example",
+        "open https://a.example"
+      ],
+      "register": "https://a.example",
+      "after": 154
+    },
+    {
+      "after": 154,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "# Links",
+        "Before alpha between beta after.",
+        "Tail.",
+        "→ https://a.example",
+        "enter markdown.link-open · y l markdown.link-yank · i markdown.insert · o m…"
+      ]
+    },
+    {
+      "after": 156,
+      "attrs": {
+        "alpha": "-bold,reverse",
+        "beta": "-bold,reverse"
+      }
+    },
+    {
+      "after": 157,
+      "highlightedText": "Tail."
+    },
+    {
+      "highlightedText": "Before",
+      "writes": [],
+      "after": 158
+    },
+    {
+      "after": 162,
+      "attrs": {
+        "beta": "bold,underline,reverse"
+      },
+      "register": "https://b.example",
+      "writes": []
+    },
+    {
+      "after": 162,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "# Links",
+        "Before alpha between beta after.",
+        "Tail.",
+        "→ https://b.example",
+        "enter markdown.link-open · y l markdown.link-yank · i markdown.insert · o m…"
+      ]
+    },
+    {
+      "after": 164,
+      "contains": [
+        "Before alpha between beta after.",
+        "→ https://a.example"
+      ]
+    },
+    {
+      "after": 165,
+      "contains": [
+        "alpha https://a.example between beta https://b.example after."
+      ],
+      "lacks": [
+        "→"
+      ]
+    },
+    {
+      "after": 166,
+      "contains": [
+        "Before alpha between beta after."
+      ],
+      "lacks": [
+        "→",
+        "https://a.example"
+      ]
+    },
+    {
+      "after": 166,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "# Links",
+        "Before alpha between beta after.",
+        "Tail.",
+        "U setting.cycle · enter markdown.link-open · y l markdown.link-yank · i mar…"
+      ]
+    },
+    {
+      "after": 168,
+      "contains": [
+        "See ochazuke/props.go:231 and beta after.",
+        "→ file:///Users/x/proj/ochazuke/props.go#L231"
+      ],
+      "lacks": [
+        "https://b.example/path"
+      ],
+      "attrs": {
+        "ochazuke/props.go:231": "bold,underline,reverse"
+      }
+    },
+    {
+      "after": 170,
+      "contains": [
+        "→ https://b.example/path"
+      ],
+      "lacks": [
+        "props.go#L231"
+      ],
+      "attrs": {
+        "beta": "bold,underline,reverse"
+      }
+    },
+    {
+      "after": 171,
+      "highlightedText": "Tail.",
+      "lacks": [
+        "→",
+        "https://b.example/path",
+        "props.go#L231"
+      ]
+    },
+    {
+      "after": 171,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "# Links",
+        "See ochazuke/props.go:231 and beta after.",
+        "Tail.",
+        "i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste ·…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 174,
+      "highlightedText": "[ ] Inbox page"
+    },
+    {
+      "after": 176,
+      "highlightedText": "[ ] Prompts"
+    },
+    {
+      "after": 178,
+      "highlightedText": "[ ] Prompts",
+      "lacks": [
+        "no next"
+      ]
+    },
+    {
+      "highlightedText": "[ ] Inbox page",
+      "after": 180
+    },
+    {
+      "after": 184,
+      "writes": [
+        "write 4 -  > **owner** 2026-10-27: start from matomeru-old's action items +  > **owner** 2026-10-27 ✓: start from matomeru-old's action items"
+      ]
+    },
+    {
+      "contains": [
+        "· 1 note, 2 resolved"
+      ],
+      "lacks": [
+        "start from"
+      ],
+      "after": 188
+    },
+    {
+      "after": 195,
+      "writes": [
+        "write 3 +3. new",
+        "write 4 -3. three +4. three"
+      ]
+    },
+    {
+      "contains": [
+        "zero"
+      ],
+      "writes": [
+        "write 3 +3. new",
+        "write 4 -3. three +4. three",
+        "write 1 +1. zero",
+        "write 2 -1. one|2. two|3. new|4. three +2. one|3. two|4. new|5. three"
+      ],
+      "after": 203
+    },
+    {
+      "after": 206,
+      "mode": "insert"
+    },
+    {
+      "mode": "normal",
+      "contains": [
+        "longer",
+        "22"
+      ],
+      "writes": [
+        "write 4 +| longer | 22 |",
+        "write 1 -| name | n |||---|---||| a | 1 ||| longer | 22 | +| name   | n   ||| ------ | --- ||| a      | 1   ||| longer | 22  |",
+        "write 5 +| c |  |",
+        "write 5 -| c |  | +| c      |     |"
+      ],
+      "after": 218
+    },
+    {
+      "highlighted": 1,
+      "highlightedText": "[ ] go vet ./...",
+      "contains": [
+        "not toggled",
+        "go vet ./..."
+      ],
+      "writes": [],
+      "after": 226
+    },
+    {
+      "after": 227,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "Standup notes",
+        "written as plain lines",
+        "one thought per line",
+        "[ ] ship the fix",
+        "and tell the lane",
+        "[x] review the branch",
+        "go test ./...",
+        "go vet ./...",
+        "owner | task",
+        "ana",
+        "| docs",
+        "i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste ·…"
+      ],
+      "highlighted": 3
+    },
+    {
+      "after": 229,
+      "focus": "a2"
+    },
+    {
+      "after": 230,
+      "focus": "markdown/line/0",
+      "highlighted": 1,
+      "highlightedText": "# Release checklist"
+    },
+    {
+      "focus": "a2",
+      "highlighted": 1,
+      "highlightedText": "a2",
+      "after": 231
+    },
+    {
+      "after": 232,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "## Status counts",
+        "same │ similar │ differs on purpose │ missing │ conflicts │ rows",
+        "## 1. Motions",
+        "Vim/Neovim",
+        "ochazuke today",
+        "Status",
+        "Suggested action",
+        ":help j",
+        ":help",
+        "bindings/list.json",
+        "differs on",
+        "Keep it: the invariant",
+        "k : stop at the",
+        "ochazuke.collection/normal",
+        "purpose",
+        "\"motions are visual\"",
+        "j / k",
+        "collection.move",
+        "(AGENTS.md). Put it in the",
+        "docs' Vim note.",
+        "NoSpill()",
+        "and modals clamp the way",
+        "Vim does.",
+        "bindings/editor.json",
+        "same",
+        "ochazuke.editor/normal",
+        "input.move",
+        "up/down",
+        "with counts",
+        ":help count",
+        "bindings/registers.json",
+        "app/normal digit-0",
+        "count_pending ; rows take",
+        "from: {steps: count}",
+        ":help count :",
+        "story",
+        "Same reason as",
+        "j / k .",
+        "clamps",
+        "motions/count-spills-once-",
+        "at-edge : the count clamps,",
+        "then a single spill",
+        ":help CTRL-D :",
+        "list.json",
+        "similar",
+        "Note it in the docs.",
+        "half a page; a",
+        "collection.scroll {half} ;",
+        "(the count",
+        "count sets",
+        "a count is rows, for that",
+        "does not",
+        "press only",
+        "stick)",
+        "later presses too",
+        "i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste · g O markdown.goto · u markdown.undo · c…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 233,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "## Status counts",
+        "same │ similar │ differs",
+        "missing │ conflicts │ rows",
+        "purpose",
+        "and text",
+        "objects",
+        "(editor)",
+        "## 1. Motions",
+        "Vim/Neovim",
+        "ochazuke today │ Status",
+        "Suggested",
+        "action",
+        ":help j",
+        "bindings/",
+        "differs │ Keep it: the",
+        ":help k :",
+        "list.json",
+        "invariant",
+        "ochazuke.coll │ purpose │ \"motions are",
+        "ection/normal",
+        "visual\"",
+        "j / k",
+        "(AGENTS.md).",
+        "Put it in the",
+        "docs' Vim",
+        "note.",
+        "NoSpill()",
+        "and modals",
+        "clamp the way",
+        "Vim does.",
+        "same",
+        "editor.json",
+        "ochazuke.edit",
+        "or/normal",
+        "input.move",
+        "up/down",
+        "with",
+        "counts",
+        ":help",
+        "count",
+        "registers.json",
+        "app/normal",
+        "digit-0",
+        "count_pending",
+        "; rows take",
+        "from: {steps:",
+        "count}",
+        "story",
+        "differs │ Same reason as",
+        "count :",
+        "motions/",
+        "j / k .",
+        "count-spills-",
+        "once-at-edge :",
+        "the count",
+        "clamps, then a",
+        "single spill",
+        "similar │ Note it in the",
+        "CTRL-D :",
+        "collection.sc │ (the",
+        "docs.",
+        "half a",
+        "roll {half} ;",
+        "a count is",
+        "does",
+        "rows, for that │ not",
+        "press only",
+        "stick)",
+        "for later",
+        "presses too",
+        "i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste ·…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 241,
+      "writes": [
+        "write 2 +- new",
+        "write 2 -- new"
+      ]
+    },
+    {
+      "contains": [
+        "new"
+      ],
+      "writes": [
+        "write 2 +- new",
+        "write 2 -- new",
+        "write 2 +- new",
+        "write 2 -- new",
+        "write 2 +- new"
+      ],
+      "after": 244
+    },
+    {
+      "after": 249,
+      "modal": "find-line",
+      "mode": "insert",
+      "contains": [
+        "q modal.close"
+      ]
+    },
+    {
+      "after": 252,
+      "modal": "find-line",
+      "mode": "insert",
+      "contains": [
+        "q modal.close"
+      ]
+    },
+    {
+      "after": 255,
+      "modal": "text-view",
+      "mode": "normal"
+    },
+    {
+      "after": 257,
+      "register": "  \"name\": \".title\",\n"
+    },
+    {
+      "after": 260,
+      "register": "  \"size\": \".bytes\",\n"
+    },
+    {
+      "modal": "",
+      "focus": "a2",
+      "mode": "normal",
+      "after": 261
+    },
+    {
+      "modal": "",
+      "focus": "a2",
+      "after": 263
+    },
+    {
+      "after": 268,
+      "modal": "",
+      "contains": [
+        "answer not opened"
+      ]
+    },
+    {
+      "modal": "text-view",
+      "contains": [
+        "delayed readable answer"
+      ],
+      "after": 270
+    },
+    {
+      "modal": "text-view",
+      "contains": [
+        "No such file or directory"
+      ],
+      "after": 272
+    },
+    {
+      "modal": "",
+      "contains": [
+        "answer not opened"
+      ],
+      "after": 279
+    },
+    {
+      "after": 286,
+      "modal": "text-view",
+      "contains": [
+        "delayed readable answer"
+      ]
+    },
+    {
+      "modal": "bindings-help",
+      "after": 287
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "width": 40,
+  "height": 4,
+  "chrome": "none",
+  "page": {
+    "noHeadings": true,
+    "inputs": [
+      {
+        "id": "name",
+        "label": "name",
+        "text": "title"
+      },
+      {
+        "id": "notes",
+        "label": "notes",
+        "text": "one\ntwo\n\nthree\nfour",
+        "multiline": true
+      }
+    ]
+  }
+}

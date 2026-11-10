@@ -1,0 +1,3350 @@
+{
+  "name": "settings end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 100,
+      "height": 36,
+      "settings": [
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ],
+        "about": {
+          "module": "github.com/unixsuperhero/demo",
+          "version": "v1.2.3",
+          "revision": "0123456789abcdef0123",
+          "time": "2026-10-30T12:00:00Z",
+          "modified": false,
+          "go": "go1.26.0",
+          "binary": "/usr/local/bin/demo",
+          "deps": [
+            {
+              "path": "charm.land/bubbletea/v2",
+              "version": "v2.1.0"
+            },
+            {
+              "path": "ofam.dev/ochazuke",
+              "version": "v0.74.0",
+              "replace": "../ochazuke"
+            },
+            {
+              "path": "ofam.dev/oden",
+              "version": "(devel)"
+            },
+            {
+              "path": "ofam.dev/monogatari",
+              "version": "v0.3.1"
+            }
+          ],
+          "pid": 4242,
+          "started": "2026-10-31T09:00:00",
+          "uptime": "1h30m",
+          "sections": [
+            {
+              "title": "Data",
+              "rows": [
+                {
+                  "label": "database",
+                  "value": "/tmp/demo/demo.db",
+                  "kind": "path"
+                },
+                {
+                  "label": "daemon",
+                  "value": "not connected"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "name": "the About page from a fixed build: Build, the application's section, the family dependencies (a local replace and a go.work module said) and the process; it is the Settings page's last tab, [ from the first tab opens it, y yanks a row's value, enter opens a path row, ] goes back to the first tab, q returns to the page Settings was opened from"
+    },
+    {
+      "chrome": "none",
+      "width": 60,
+      "height": 16,
+      "values": {
+        "chrome.glyphs": "ascii"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "rows",
+            "rows": 10,
+            "height": 7
+          }
+        ],
+        "texts": [
+          {
+            "id": "marks",
+            "text": "• ◦ ▌ — × ↵"
+          }
+        ]
+      },
+      "name": "ASCII frames preserve framework marks instead of question marks"
+    },
+    {
+      "width": 30,
+      "values": {
+        "focus-display": "stack"
+      },
+      "page": {
+        "id": "work",
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ]
+      },
+      "name": "chrome: at 30 columns the focus path is cut to its innermost end and the title to its kept quarter; the mode badge stays whole at the right end (R2.10)"
+    },
+    {
+      "width": 72,
+      "height": 20,
+      "theme": "dark",
+      "values": {
+        "chrome.color": "rich"
+      },
+      "page": {
+        "layout": "panels",
+        "noHeadings": true,
+        "lists": [
+          {
+            "id": "working",
+            "rows": 2,
+            "panelTone": "state.working"
+          }
+        ],
+        "chooser": {
+          "kind": "pick",
+          "title": "Projects",
+          "rows": [
+            {
+              "id": "a",
+              "label": "ochazuke framework"
+            },
+            {
+              "id": "b",
+              "label": "ochazuke examples"
+            },
+            {
+              "id": "c",
+              "label": "monogatari stories"
+            }
+          ]
+        }
+      },
+      "name": "modal chooser: the selected row keeps one bar and marked rows keep the panel ink"
+    },
+    {
+      "width": 80,
+      "settings": [
+        {
+          "name": "focus-display",
+          "type": "string",
+          "default": "stack",
+          "enum": [
+            "off",
+            "noun",
+            "stack"
+          ]
+        }
+      ],
+      "page": {
+        "id": "work",
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "chooser": {
+          "kind": "dirs",
+          "title": "Directory",
+          "rows": [
+            {
+              "id": "m",
+              "label": "matomeru"
+            },
+            {
+              "id": "o",
+              "label": "ochazuke"
+            }
+          ]
+        }
+      },
+      "name": "chrome: focus-display stack shows a chooser over a list and the list beneath it"
+    },
+    {
+      "width": 44,
+      "settings": [
+        {
+          "name": "focus-display",
+          "type": "string",
+          "default": "stack",
+          "enum": [
+            "off",
+            "noun",
+            "stack"
+          ]
+        }
+      ],
+      "page": {
+        "id": "work",
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "chooser": {
+          "kind": "dirs",
+          "title": "Directory",
+          "rows": [
+            {
+              "id": "m",
+              "label": "matomeru"
+            },
+            {
+              "id": "o",
+              "label": "ochazuke"
+            }
+          ]
+        }
+      },
+      "name": "chrome: a narrow header cuts the focus path from the left and keeps the innermost level"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.fail",
+            "error": "retained diagnostic"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "E",
+            "do": "demo.fail"
+          }
+        ]
+      },
+      "name": "chrome/inspector-keeps-last-error"
+    },
+    {
+      "width": 80,
+      "values": {
+        "keys.echo": "footer"
+      },
+      "page": {
+        "id": "work",
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ]
+      },
+      "name": "chrome: keys.echo shows a palette line as the command typed, :display focus, in place of its keys"
+    },
+    {
+      "width": 80,
+      "theme": "kombu",
+      "accent": "#E8833A",
+      "themes": {
+        "kombu": {
+          "background": "dark",
+          "accent": "#C9A227",
+          "error": "#FF6F61"
+        }
+      },
+      "pages": [
+        {
+          "id": "work",
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ],
+          "jobs": [
+            {
+              "verb": "demo.build",
+              "key": "w",
+              "failOnKey": "X"
+            }
+          ]
+        },
+        {
+          "id": "notes",
+          "lists": [
+            {
+              "id": "b",
+              "rows": 1
+            }
+          ]
+        }
+      ],
+      "name": "chrome: the accent override applies on top of a user scheme; its error colour stays"
+    },
+    {
+      "width": 80,
+      "theme": "kombu",
+      "themes": {
+        "kombu": {
+          "background": "dark",
+          "accent": "#C9A227",
+          "border": "#5C4A1E",
+          "error": {
+            "light": "#B3261E",
+            "dark": "#FF6F61"
+          }
+        }
+      },
+      "pages": [
+        {
+          "id": "work",
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ],
+          "jobs": [
+            {
+              "verb": "demo.build",
+              "key": "w",
+              "failOnKey": "X"
+            }
+          ]
+        },
+        {
+          "id": "notes",
+          "lists": [
+            {
+              "id": "b",
+              "rows": 1
+            }
+          ]
+        }
+      ],
+      "name": "chrome: a user scheme recolours the accent, borders and errors; roles it leaves out keep the built-in palette"
+    },
+    {
+      "width": 100,
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.fail",
+            "error": "/tmp/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/very-long-directory/: No such file or directory"
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "E",
+            "do": "demo.fail"
+          }
+        ]
+      },
+      "name": "chrome/status-cut-full-text"
+    },
+    {
+      "width": 100,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus"
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap long lines"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "S",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page: a • after the name marks a value that is not the default; the description says the default and the source"
+    },
+    {
+      "width": 100,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept around the focus"
+        },
+        {
+          "name": "theme",
+          "type": "string",
+          "default": "dark",
+          "description": "Colour theme",
+          "enum": [
+            "dark",
+            "light",
+            "mono"
+          ]
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap long lines"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "S",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "config": {
+        "settings.json": {
+          "settings.all-section": false
+        }
+      },
+      "name": "settings page: each key saves at once, no save key; esc goes back"
+    },
+    {
+      "width": 80,
+      "height": 30,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Margin rows around a cursor"
+        },
+        {
+          "name": "theme",
+          "type": "string",
+          "default": "dark",
+          "description": "Colour theme",
+          "enum": [
+            "dark",
+            "light",
+            "mono"
+          ]
+        },
+        {
+          "name": "ext.ai.poll-every",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "duration",
+          "default": "30s",
+          "description": "How often the AI extension refreshes its rows"
+        },
+        {
+          "name": "ext.ai.model",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "string",
+          "default": "large",
+          "description": "Model the AI extension asks",
+          "enum": [
+            "small",
+            "large"
+          ]
+        },
+        {
+          "name": "ext.git.fetch",
+          "owner": "extensions",
+          "section": "git",
+          "type": "boolean",
+          "default": true,
+          "description": "Fetch before listing branches"
+        },
+        {
+          "name": "tab-width",
+          "type": "integer",
+          "default": 4,
+          "description": "Columns per tab"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page: / filters the shown section's rows; enter keeps, esc clears"
+    },
+    {
+      "width": 100,
+      "height": 30,
+      "config": {
+        "settings.json": {
+          "settings.layout": "sections"
+        }
+      },
+      "settings": [
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        },
+        {
+          "name": "panes.group",
+          "type": "string",
+          "default": "project",
+          "enum": [
+            "project",
+            "flat"
+          ],
+          "description": "How panes group"
+        },
+        {
+          "name": "ext.ai.model",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "string",
+          "default": "large",
+          "enum": [
+            "small",
+            "large"
+          ],
+          "description": "Model the AI extension asks"
+        },
+        {
+          "name": "ext.git.fetch",
+          "owner": "extensions",
+          "section": "git",
+          "type": "boolean",
+          "default": true,
+          "description": "Fetch before listing branches"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page with settings.layout sections at 100 columns: one section list of every owner's sections, owner headings, the shown section's settings over the detail"
+    },
+    {
+      "width": 100,
+      "settings": [
+        {
+          "name": "ignore",
+          "type": "list",
+          "default": [],
+          "description": "Names left out of every listing"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "S",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page: an empty item is refused and keeps the prompt; esc leaves the list as it was"
+    },
+    {
+      "width": 100,
+      "settings": [
+        {
+          "name": "paths",
+          "type": "list",
+          "default": [
+            "~/proj",
+            "~/hub"
+          ],
+          "description": "Directories searched for projects, in order"
+        },
+        {
+          "name": "ignore",
+          "type": "list",
+          "default": [],
+          "description": "Names left out of every listing"
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap long lines"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "S",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page: a list's items are rows under its name; n adds, enter and i edit, d d deletes, r resets the list"
+    },
+    {
+      "width": 60,
+      "height": 24,
+      "settings": [
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        },
+        {
+          "name": "panes.group",
+          "type": "string",
+          "default": "project",
+          "enum": [
+            "project",
+            "flat"
+          ],
+          "description": "How panes group"
+        },
+        {
+          "name": "panes.percent",
+          "type": "integer",
+          "default": 25,
+          "description": "The queue's share of the height"
+        },
+        {
+          "name": "schedule.gh.enabled",
+          "section": "schedules",
+          "group": "gh-signals",
+          "type": "boolean",
+          "default": true,
+          "description": "Run the gh-signals schedule"
+        },
+        {
+          "name": "schedules.catch-up",
+          "type": "boolean",
+          "default": false,
+          "description": "Run a schedule missed while the app was closed"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "config": {
+        "settings.json": {
+          "settings.all-section": false
+        }
+      },
+      "name": "settings page below settings.narrow-width (72) columns: the section list folds into a selector line at the top of the settings; h/l step it, j goes down into the settings, k on the first setting back to it, s (or enter) picks a section from a chooser"
+    },
+    {
+      "width": 120,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus when a page scrolls to follow it."
+        },
+        {
+          "name": "theme",
+          "type": "string",
+          "default": "dark",
+          "description": "Colour theme",
+          "enum": [
+            "dark",
+            "light",
+            "mono"
+          ]
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap long lines"
+        },
+        {
+          "name": "paths",
+          "type": "list",
+          "default": [
+            "~/proj",
+            "~/hub"
+          ],
+          "description": "Directories searched for projects, in order"
+        },
+        {
+          "name": "ignore",
+          "type": "list",
+          "default": [],
+          "description": "Names left out of every listing"
+        },
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        },
+        {
+          "name": "ext.ai.poll-every",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "duration",
+          "default": "30s",
+          "description": "How often the AI extension refreshes its rows"
+        },
+        {
+          "name": "ext.ai.model",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "string",
+          "default": "large",
+          "description": "Model the AI extension asks",
+          "enum": [
+            "small",
+            "large"
+          ]
+        },
+        {
+          "name": "ext.git.fetch",
+          "owner": "extensions",
+          "section": "git",
+          "type": "boolean",
+          "default": true,
+          "description": "Fetch before listing branches"
+        }
+      ],
+      "page": {
+        "title": "Tasks",
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page at 120 columns: section tabs, name and value rows, a list's items, the description"
+    },
+    {
+      "width": 80,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus when a page scrolls to follow it."
+        },
+        {
+          "name": "theme",
+          "type": "string",
+          "default": "dark",
+          "description": "Colour theme",
+          "enum": [
+            "dark",
+            "light",
+            "mono"
+          ]
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap long lines"
+        },
+        {
+          "name": "paths",
+          "type": "list",
+          "default": [
+            "~/proj",
+            "~/hub"
+          ],
+          "description": "Directories searched for projects, in order"
+        },
+        {
+          "name": "ignore",
+          "type": "list",
+          "default": [],
+          "description": "Names left out of every listing"
+        },
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        },
+        {
+          "name": "ext.ai.poll-every",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "duration",
+          "default": "30s",
+          "description": "How often the AI extension refreshes its rows"
+        },
+        {
+          "name": "ext.ai.model",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "string",
+          "default": "large",
+          "description": "Model the AI extension asks",
+          "enum": [
+            "small",
+            "large"
+          ]
+        },
+        {
+          "name": "ext.git.fetch",
+          "owner": "extensions",
+          "section": "git",
+          "type": "boolean",
+          "default": true,
+          "description": "Fetch before listing branches"
+        }
+      ],
+      "page": {
+        "title": "Tasks",
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page at 80 columns: section tabs, name and value rows, a list's items, the description"
+    },
+    {
+      "width": 120,
+      "height": 17,
+      "settings": [
+        {
+          "name": "poll",
+          "type": "duration",
+          "default": "30s",
+          "description": "How often the rows refresh. A shorter wait shows changes sooner and costs more calls; a longer one is quieter. The first refresh runs when the page opens, whatever the wait. Zero turns the refresh off: the rows then change only when you reload them. Values below one second are rounded up to one second so a typo cannot flood the daemon."
+        },
+        {
+          "name": "colour",
+          "type": "string",
+          "default": "auto",
+          "description": "Colour mode",
+          "enum": [
+            "auto",
+            "always",
+            "never"
+          ]
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "S",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page: the detail shows the whole description; J/K scroll it, the focus stays"
+    },
+    {
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus when a page scrolls to follow it."
+        },
+        {
+          "name": "theme",
+          "type": "string",
+          "default": "dark",
+          "description": "Colour theme",
+          "enum": [
+            "dark",
+            "light",
+            "mono"
+          ]
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap long lines"
+        },
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        },
+        {
+          "name": "ext.ai.poll-every",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "duration",
+          "default": "30s",
+          "description": "How often the AI extension refreshes its rows"
+        },
+        {
+          "name": "ext.ai.model",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "string",
+          "default": "large",
+          "description": "Model the AI extension asks",
+          "enum": [
+            "small",
+            "large"
+          ]
+        },
+        {
+          "name": "ext.git.fetch",
+          "owner": "extensions",
+          "section": "git",
+          "type": "boolean",
+          "default": true,
+          "description": "Fetch before listing branches"
+        }
+      ],
+      "page": {
+        "title": "Tasks",
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2",
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "config": {
+        "settings.json": {
+          "settings.all-section": false
+        }
+      },
+      "name": "settings page: , opens it as a tab: owner tabs, the shown tab's sections, focus on the first setting"
+    },
+    {
+      "settings": [
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap long lines"
+        }
+      ],
+      "pages": [
+        {
+          "id": "one",
+          "title": "One",
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ]
+        },
+        {
+          "id": "two",
+          "title": "Two",
+          "lists": [
+            {
+              "id": "b",
+              "rows": 3
+            }
+          ],
+          "inputs": [
+            {
+              "id": "name",
+              "label": "name",
+              "text": "hello"
+            }
+          ],
+          "bind": [
+            {
+              "noun": "demo",
+              "mode": "insert",
+              "keys": "ctrl+o",
+              "do": "setting.open"
+            }
+          ]
+        }
+      ],
+      "name": "settings page: q goes back to the page it came from, its focus and mode kept"
+    },
+    {
+      "width": 100,
+      "config": {
+        "settings.json": {
+          "settings.all-section": false,
+          "settings.layout": "tabs"
+        }
+      },
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus"
+        },
+        {
+          "name": "theme",
+          "type": "string",
+          "default": "dark",
+          "description": "Colour theme",
+          "enum": [
+            "dark",
+            "light",
+            "mono"
+          ]
+        },
+        {
+          "name": "ext.ai.poll-every",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "duration",
+          "default": "30s",
+          "description": "How often the AI extension refreshes its rows"
+        },
+        {
+          "name": "ext.ai.model",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "string",
+          "default": "large",
+          "description": "Model the AI extension asks",
+          "enum": [
+            "small",
+            "large"
+          ]
+        },
+        {
+          "name": "ext.git.fetch",
+          "owner": "extensions",
+          "section": "git",
+          "type": "boolean",
+          "default": true,
+          "description": "Fetch before listing branches"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page with settings.layout tabs (the page before owners): a tab per section, no section list; tab, shift+tab, ] and [ step them, wrapping, each keeping its row"
+    },
+    {
+      "width": 100,
+      "settings": [
+        {
+          "name": "debounce",
+          "type": "duration",
+          "default": "400ms",
+          "description": "Wait before writing"
+        },
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "S",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page: enter on a text value opens a prompt; a bad value keeps it open"
+    },
+    {
+      "theme": "dark",
+      "width": 80,
+      "settings": [
+        {
+          "name": "stack",
+          "type": "string",
+          "default": "tabs",
+          "enum": [
+            "tabs",
+            "stack",
+            "grid"
+          ],
+          "description": "How panes are laid out"
+        },
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        }
+      ],
+      "values": {
+        "stack": "grid"
+      },
+      "session": {
+        "stack": "stack",
+        "editor": "nvim"
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.diff",
+            "args": {
+              "review": true
+            }
+          }
+        ]
+      },
+      "name": "settings review: W writes every session value, the list empties and the review closes saying so"
+    },
+    {
+      "width": 100,
+      "height": 30,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus"
+        },
+        {
+          "name": "theme",
+          "type": "string",
+          "default": "dark",
+          "description": "Colour theme",
+          "enum": [
+            "dark",
+            "light",
+            "solarized"
+          ]
+        },
+        {
+          "name": "tab-width",
+          "type": "integer",
+          "default": 4,
+          "description": "Columns per tab"
+        },
+        {
+          "name": "ext.ai.model",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "string",
+          "default": "large",
+          "description": "Model the AI extension asks",
+          "enum": [
+            "small",
+            "large"
+          ]
+        },
+        {
+          "name": "ext.git.fetch",
+          "owner": "extensions",
+          "section": "git",
+          "type": "boolean",
+          "default": true,
+          "description": "Fetch before listing branches"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "config": {
+        "settings.json": {
+          "settings.all-section": false
+        }
+      },
+      "name": "settings page with settings.all-section false (the opt-out, as before it): / in the section list searches every setting of every tab (name, description, value, default, choices): typing path keeps the sections holding path settings under their owner, the settings pane shows the shown section's matches, esc restores the page on the section it was on"
+    },
+    {
+      "width": 60,
+      "height": 24,
+      "theme": "mono",
+      "settings": [
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        },
+        {
+          "name": "panes.group",
+          "type": "string",
+          "default": "project",
+          "enum": [
+            "project",
+            "flat"
+          ],
+          "description": "How panes group"
+        },
+        {
+          "name": "panes.percent",
+          "type": "integer",
+          "default": 25,
+          "description": "The queue's share of the height"
+        },
+        {
+          "name": "schedule.gh.enabled",
+          "section": "schedules",
+          "group": "gh-signals",
+          "type": "boolean",
+          "default": true,
+          "description": "Run the gh-signals schedule"
+        },
+        {
+          "name": "schedules.catch-up",
+          "type": "boolean",
+          "default": false,
+          "description": "Run a schedule missed while the app was closed"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "config": {
+        "settings.json": {
+          "settings.all-section": false
+        }
+      },
+      "name": "settings page below settings.narrow-width: with the focus on a setting the section selector line keeps its highlight, faded (UX R5.1, Styles.Selection); the focused row is the one full-strength highlight"
+    },
+    {
+      "width": 80,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus"
+        },
+        {
+          "name": "stack",
+          "type": "string",
+          "default": "tabs",
+          "enum": [
+            "tabs",
+            "stack",
+            "grid"
+          ],
+          "description": "How panes are laid out"
+        },
+        {
+          "name": "editor",
+          "type": "string",
+          "default": "vi",
+          "description": "The command that opens a file"
+        },
+        {
+          "name": "paths",
+          "type": "list",
+          "default": [
+            "~/proj"
+          ],
+          "description": "Directories searched for projects"
+        }
+      ],
+      "values": {
+        "stack": "grid"
+      },
+      "session": {
+        "stack": "stack",
+        "paths": [
+          "~/proj",
+          "~/hub"
+        ]
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page at 80 columns with session values: each marked (saved: …) beside it, the detail naming the session"
+    },
+    {
+      "width": 80,
+      "height": 10,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus"
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": true,
+          "description": "Wrap long lines"
+        }
+      ],
+      "session": {
+        "scrolloff": 2
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ]
+      },
+      "name": "settings apply from the palette: a line with a refused word changes nothing and keeps the palette open with the error"
+    },
+    {
+      "width": 100,
+      "height": 30,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus"
+        },
+        {
+          "name": "theme",
+          "type": "string",
+          "default": "dark",
+          "description": "Colour theme",
+          "enum": [
+            "dark",
+            "light",
+            "solarized"
+          ]
+        },
+        {
+          "name": "tab-width",
+          "type": "integer",
+          "default": 4,
+          "description": "Columns per tab"
+        },
+        {
+          "name": "ext.ai.model",
+          "owner": "extensions",
+          "section": "ai",
+          "type": "string",
+          "default": "large",
+          "description": "Model the AI extension asks",
+          "enum": [
+            "small",
+            "large"
+          ]
+        },
+        {
+          "name": "ext.git.fetch",
+          "owner": "extensions",
+          "section": "git",
+          "type": "boolean",
+          "default": true,
+          "description": "Fetch before listing branches"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page: A (setting.all) shows the All section: every setting of every tab in one list, each under its tab and section heading, its first setting focused; G walks to the last tab's settings"
+    },
+    {
+      "width": 120,
+      "settings": [
+        {
+          "name": "scrolloff",
+          "type": "integer",
+          "default": 2,
+          "description": "Rows kept above and below the focus"
+        },
+        {
+          "name": "ext.git.fetch",
+          "owner": "extensions",
+          "section": "git",
+          "type": "boolean",
+          "default": true,
+          "description": "Fetch before listing branches"
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "S",
+            "do": "setting.open"
+          }
+        ]
+      },
+      "name": "settings page: u (or ctrl+z) takes back the page's last change and shows its row; u answers and is offered only with a change to undo"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "about/page: the About page from a fixed build: Build, the application's section, the family dependencies (a local replace and a go.work module said) and the process; it is the Settings page's last tab, [ from the first tab opens it, y yanks a row's value, enter opens a path row, ] goes back to the first tab, q returns to the page Settings was opened from"
+    },
+    ",",
+    "[",
+    "y",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "enter",
+    "]",
+    "[",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/ascii-framework-marks: ASCII frames preserve framework marks instead of question marks"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/badge-corner-narrow: chrome: at 30 columns the focus path is cut to its innermost end and the title to its kept quarter; the mode badge stays whole at the right end (R2.10)"
+    },
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/bar-one-run-dark: modal chooser: the selected row keeps one bar and marked rows keep the panel ink"
+    },
+    {
+      "type": "oz"
+    },
+    "ctrl+n",
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/focus-stack-chooser-80: chrome: focus-display stack shows a chooser over a list and the list beneath it"
+    },
+    "ctrl+n",
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/focus-stack-narrow: chrome: a narrow header cuts the focus path from the left and keeps the innermost level"
+    },
+    "ctrl+n",
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/inspector-keeps-last-error: chrome/inspector-keeps-last-error"
+    },
+    "E",
+    "alt+?",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/keys-echo-palette: chrome: keys.echo shows a palette line as the command typed, :display focus, in place of its keys"
+    },
+    "j",
+    ":",
+    {
+      "type": "display focus"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/scheme-user-accent: chrome: the accent override applies on top of a user scheme; its error colour stays"
+    },
+    "x",
+    "n",
+    "w",
+    "X",
+    {
+      "job": "demo.build",
+      "state": "failed"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/scheme-user: chrome: a user scheme recolours the accent, borders and errors; roles it leaves out keep the built-in palette"
+    },
+    "x",
+    "n",
+    "w",
+    "X",
+    {
+      "job": "demo.build",
+      "state": "failed"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "chrome/status-cut-full-text: chrome/status-cut-full-text"
+    },
+    "E",
+    "g",
+    "<",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/changed-dot: settings page: a • after the name marks a value that is not the default; the description says the default and the source"
+    },
+    "S",
+    "l",
+    "h",
+    "l",
+    "backspace",
+    "j",
+    "space",
+    "delete",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/edit-in-place: settings page: each key saves at once, no save key; esc goes back"
+    },
+    "S",
+    "l",
+    "j",
+    "enter",
+    "h",
+    "j",
+    "space",
+    "r",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/filter: settings page: / filters the shown section's rows; enter keeps, esc clears"
+    },
+    ",",
+    "/",
+    "t",
+    "h",
+    "enter",
+    "j",
+    "esc",
+    "/",
+    "z",
+    "backspace",
+    "backspace",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/layout-sections-100: settings page with settings.layout sections at 100 columns: one section list of every owner's sections, owner headings, the shown section's settings over the detail"
+    },
+    ",",
+    "h",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/list-empty-item: settings page: an empty item is refused and keeps the prompt; esc leaves the list as it was"
+    },
+    "S",
+    "n",
+    "enter",
+    "esc",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/list-items: settings page: a list's items are rows under its name; n adds, enter and i edit, d d deletes, r resets the list"
+    },
+    "S",
+    "j",
+    "n",
+    {
+      "type": "~/work"
+    },
+    "enter",
+    "i",
+    "ctrl+u",
+    {
+      "type": "~/play"
+    },
+    "enter",
+    "k",
+    "d",
+    "d",
+    "j",
+    "d",
+    "d",
+    "r",
+    "j",
+    "j",
+    "enter",
+    {
+      "type": "*.tmp"
+    },
+    "enter",
+    "d",
+    "d",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/narrow-selector: settings page below settings.narrow-width (72) columns: the section list folds into a selector line at the top of the settings; h/l step it, j goes down into the settings, k on the first setting back to it, s (or enter) picks a section from a chooser"
+    },
+    ",",
+    "h",
+    "l",
+    "l",
+    "h",
+    "j",
+    "k",
+    "s",
+    "s",
+    "c",
+    "h",
+    "enter",
+    "l",
+    "l",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/page-120: settings page at 120 columns: section tabs, name and value rows, a list's items, the description"
+    },
+    ",",
+    "l",
+    "j",
+    "j",
+    "j",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/page-80: settings page at 80 columns: section tabs, name and value rows, a list's items, the description"
+    },
+    ",",
+    "l",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/page-detail: settings page: the detail shows the whole description; J/K scroll it, the focus stays"
+    },
+    "S",
+    "J",
+    "J",
+    "K",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/page-open: settings page: , opens it as a tab: owner tabs, the shown tab's sections, focus on the first setting"
+    },
+    ",",
+    ",",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/page-returns: settings page: q goes back to the page it came from, its focus and mode kept"
+    },
+    "ctrl+j",
+    "j",
+    "j",
+    "j",
+    "i",
+    "ctrl+o",
+    "space",
+    "q",
+    "ctrl+o",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/page-tabs: settings page with settings.layout tabs (the page before owners): a tab per section, no section list; tab, shift+tab, ] and [ step them, wrapping, each keeping its row"
+    },
+    ",",
+    "j",
+    "tab",
+    "j",
+    "tab",
+    "tab",
+    "shift+tab",
+    "[",
+    "]",
+    "]",
+    "[",
+    "[",
+    "[",
+    "shift+tab",
+    "tab",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/prompt-keeps-a-bad-value: settings page: enter on a text value opens a prompt; a bad value keeps it open"
+    },
+    "S",
+    "enter",
+    "ctrl+u",
+    {
+      "type": "soon"
+    },
+    "enter",
+    "ctrl+u",
+    {
+      "type": "2s"
+    },
+    "enter",
+    "j",
+    "enter",
+    "ctrl+u",
+    {
+      "type": "nvim"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/review-write-all: settings review: W writes every session value, the list empties and the review closes saying so"
+    },
+    ",",
+    "W",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/search-path: settings page with settings.all-section false (the opt-out, as before it): / in the section list searches every setting of every tab (name, description, value, default, choices): typing path keeps the sections holding path settings under their owner, the settings pane shows the shown section's matches, esc restores the page on the section it was on"
+    },
+    ",",
+    "k",
+    "/",
+    "p",
+    "a",
+    "t",
+    "h",
+    "down",
+    "down",
+    "down",
+    "down",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/selector-unfocused: settings page below settings.narrow-width: with the focus on a setting the section selector line keeps its highlight, faded (UX R5.1, Styles.Selection); the focused row is the one full-strength highlight"
+    },
+    ",",
+    "h",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/session-marker-80: settings page at 80 columns with session values: each marked (saved: …) beside it, the detail naming the session"
+    },
+    ",",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/set-line-error: settings apply from the palette: a line with a refused word changes nothing and keeps the palette open with the error"
+    },
+    ":",
+    {
+      "type": "setting apply nowrap scrolloff=lots"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/show-all: settings page: A (setting.all) shows the All section: every setting of every tab in one list, each under its tab and section heading, its first setting focused; G walks to the last tab's settings"
+    },
+    ",",
+    "A",
+    "G",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/undo: settings page: u (or ctrl+z) takes back the page's last change and shows its row; u answers and is offered only with a change to undo"
+    },
+    "S",
+    "l",
+    "l",
+    "tab",
+    "space",
+    "u",
+    "ctrl+z",
+    "u",
+    "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "page": "__about",
+      "focus": "__about/row/Build/module",
+      "contains": [
+        "› About",
+        "app",
+        "ochazuke",
+        "github.com/unixsuperhero/demo",
+        "v1.2.3",
+        "0123456789ab",
+        "go1.26.0",
+        "/usr/local/bin/demo",
+        "Data",
+        "/tmp/demo/demo.db",
+        "not connected",
+        "Dependencies",
+        "../ochazuke  (local replace of v0.74.0)",
+        "devel  (local build (go.work))",
+        "v0.3.1",
+        "Runtime",
+        "4242",
+        "2026-10-31 09:00:00",
+        "1h30m0s",
+        "]/[ setting.show-tab",
+        "y about-row.yank"
+      ],
+      "lacks": [
+        "bubbletea"
+      ]
+    },
+    {
+      "after": 4,
+      "register": "github.com/unixsuperhero/demo"
+    },
+    {
+      "after": 10,
+      "focus": "__about/row/Build/binary",
+      "contains": [
+        "enter about-row.open"
+      ]
+    },
+    {
+      "after": 11,
+      "writes": [
+        "open /usr/local/bin/demo"
+      ]
+    },
+    {
+      "after": 12,
+      "page": "__settings",
+      "focus": "__settings/row/editor"
+    },
+    {
+      "after": 13,
+      "page": "__about"
+    },
+    {
+      "page": "page1",
+      "focus": "a1",
+      "lacks": [
+        "Settings",
+        "› About"
+      ],
+      "after": 14
+    },
+    {
+      "contains": [
+        "1-6 / 10",
+        "* o | - x <"
+      ],
+      "lacks": [
+        "?"
+      ],
+      "after": 15
+    },
+    {
+      "focus": "a2",
+      "badge": "NORMAL",
+      "contains": [
+        "◆ o-sto… …2  NORMAL"
+      ],
+      "lacks": [
+        "work ›"
+      ],
+      "after": 17
+    },
+    {
+      "attrs": {
+        "cha": "fg",
+        "uke examples": "fg,reverse"
+      },
+      "after": 20
+    },
+    {
+      "after": 22,
+      "modal": "dirs"
+    },
+    {
+      "after": 22,
+      "contains": [
+        "◆ o-story",
+        "work › collection › a1 › dirs › picker",
+        "INSERT",
+        "› work",
+        "Directory",
+        "fuzzy",
+        "matomeru",
+        "ochazuke",
+        "esc normal · enter picker.pick · tab search.cycle-match"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 24,
+      "modal": "dirs"
+    },
+    {
+      "after": 24,
+      "contains": [
+        "◆ o-story",
+        "… › picker",
+        "INSERT",
+        "› work",
+        "Directory",
+        "fuzzy",
+        "matomeru",
+        "ochazuke",
+        "esc normal · enter picker.pick…",
+        "esc normal · enter picker.pick · tab se…"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "contains": [
+        "retained diagnostic"
+      ],
+      "after": 28
+    },
+    {
+      "after": 31,
+      "modal": "palette",
+      "contains": [
+        "j  :"
+      ]
+    },
+    {
+      "after": 32,
+      "contains": [
+        "\"display focus\""
+      ]
+    },
+    {
+      "after": 33,
+      "modal": "",
+      "contains": [
+        "j  :display focus"
+      ],
+      "lacks": [
+        "\"display focus\""
+      ]
+    },
+    {
+      "after": 33,
+      "contains": [
+        "◆ o-story",
+        "demo",
+        "NORMAL",
+        "› work",
+        "q app.quit · r demo.reset · enter demo.open · …",
+        ":display focus"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 35,
+      "modal": "confirm",
+      "colored": {
+        "› work": "#172720",
+        "╭": "#E8833A"
+      },
+      "noColor": [
+        "#C9A227",
+        "#78BFA5"
+      ]
+    },
+    {
+      "modal": "",
+      "colored": {
+        "Error:": "#DCE9E3"
+      },
+      "noColor": [
+        "#C9A227"
+      ],
+      "after": 39
+    },
+    {
+      "after": 41,
+      "modal": "confirm",
+      "colored": {
+        "◆ o-story": "#DCE9E3",
+        "› work": "#172720",
+        "╭": "#C9A227"
+      },
+      "noColor": [
+        "#78BFA5",
+        "#465D55"
+      ]
+    },
+    {
+      "modal": "",
+      "contains": [
+        "Error:"
+      ],
+      "colored": {
+        "Error:": "#DCE9E3",
+        "› work": "#172720"
+      },
+      "noColor": [
+        "#E99B8D",
+        "#78BFA5"
+      ],
+      "noNotices": true,
+      "after": 45
+    },
+    {
+      "after": 47,
+      "contains": [
+        "g <"
+      ]
+    },
+    {
+      "modal": "text-view",
+      "contains": [
+        "No such file or directory"
+      ],
+      "after": 49
+    },
+    {
+      "after": 51,
+      "contains": [
+        "scrolloff    ‹ 2 ›",
+        "Default is 2. Not in settings.json, so the default applies.",
+        "Takes a whole number."
+      ],
+      "lacks": [
+        "•"
+      ]
+    },
+    {
+      "after": 52,
+      "contains": [
+        "scrolloff •  ‹ 3 ›",
+        "Default is 2. Set in settings.json."
+      ]
+    },
+    {
+      "after": 53,
+      "contains": [
+        "scrolloff    ‹ 2 ›",
+        "Default is 2. Set in settings.json."
+      ],
+      "lacks": [
+        "•"
+      ]
+    },
+    {
+      "after": 54,
+      "contains": [
+        "scrolloff •  ‹ 3 ›"
+      ]
+    },
+    {
+      "after": 55,
+      "contains": [
+        "scrolloff    ‹ 2 ›",
+        "Not in settings.json"
+      ],
+      "lacks": [
+        "•"
+      ]
+    },
+    {
+      "after": 57,
+      "contains": [
+        "wrap •       ‹ true ›",
+        "Default is false. Set in settings.json.",
+        "Takes true or false."
+      ]
+    },
+    {
+      "contains": [
+        "wrap         ‹ false ›"
+      ],
+      "lacks": [
+        "•"
+      ],
+      "after": 58
+    },
+    {
+      "after": 60,
+      "page": "__settings",
+      "modal": "",
+      "focus": "__settings/row/scrolloff",
+      "order": [
+        "Settings",
+        "Sections",
+        "General (3)",
+        "General",
+        "3",
+        "scrolloff",
+        "‹ 2 ›",
+        "theme",
+        "‹ dark ›",
+        "wrap",
+        "‹ false ›",
+        "Rows kept around the focus",
+        "Default is 2."
+      ],
+      "contains": [
+        "enter setting.edit",
+        "h/l setting.cycle",
+        "r setting.reset",
+        "]/[ setting.show-tab"
+      ],
+      "lacks": [
+        "Source"
+      ]
+    },
+    {
+      "after": 61,
+      "contains": [
+        "scrolloff •  ‹ 3 ›",
+        "Set in settings.json."
+      ]
+    },
+    {
+      "after": 63,
+      "focus": "__settings/row/theme",
+      "contains": [
+        "theme •      ‹ light ›"
+      ]
+    },
+    {
+      "after": 64,
+      "focus": "__settings/row/theme",
+      "contains": [
+        "theme        ‹ dark ›"
+      ]
+    },
+    {
+      "after": 66,
+      "focus": "__settings/row/wrap",
+      "contains": [
+        "wrap •       ‹ true ›"
+      ]
+    },
+    {
+      "after": 67,
+      "contains": [
+        "wrap         ‹ false ›",
+        "scrolloff •  ‹ 3 ›"
+      ]
+    },
+    {
+      "page": "page1",
+      "modal": "",
+      "focus": "a1",
+      "lacks": [
+        "scrolloff"
+      ],
+      "after": 68
+    },
+    {
+      "after": 71,
+      "mode": "list_filter",
+      "focus": "__settings/row/scrolloff",
+      "contains": [
+        "enter collection.filter-keep",
+        "scrolloff",
+        "theme",
+        "tab-width"
+      ],
+      "lacks": [
+        "1–"
+      ]
+    },
+    {
+      "after": 73,
+      "mode": "list_filter",
+      "focus": "__settings/row/theme",
+      "contains": [
+        "/th",
+        "2 of 3",
+        "theme",
+        "tab-width"
+      ],
+      "lacks": [
+        "scrolloff"
+      ]
+    },
+    {
+      "after": 74,
+      "mode": "normal",
+      "focus": "__settings/row/theme",
+      "contains": [
+        "/th",
+        "2 of 3"
+      ]
+    },
+    {
+      "after": 75,
+      "focus": "__settings/row/tab-width",
+      "contains": [
+        "Columns per tab"
+      ]
+    },
+    {
+      "after": 76,
+      "mode": "normal",
+      "focus": "__settings/row/tab-width",
+      "contains": [
+        "scrolloff",
+        "theme",
+        "tab-width"
+      ],
+      "lacks": [
+        "/th"
+      ]
+    },
+    {
+      "after": 78,
+      "mode": "list_filter",
+      "contains": [
+        "/z",
+        "no settings match 'z'"
+      ]
+    },
+    {
+      "after": 80,
+      "mode": "normal",
+      "focus": "__settings/row/tab-width",
+      "page": "__settings",
+      "lacks": [
+        "/z"
+      ]
+    },
+    {
+      "after": 80,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "page1",
+        "› Settings",
+        "› app",
+        "extensions",
+        "ochazuke",
+        "About",
+        "Sections ─────╮ ┏━ General (3)",
+        "scrolloff",
+        "theme",
+        "‹ dark ›",
+        "tab-width",
+        "Columns per tab",
+        "Default is 4. Not in settings.json, so the default",
+        "applies.",
+        "Takes a whole number.",
+        "enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ setting.show…"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 84,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "page1",
+        "› Settings",
+        "Sections ━━━━━━┓ ╭─ panes (1)",
+        "panes.group",
+        "‹ project ›",
+        "app",
+        "General",
+        "1 ┃ ╭─ panes",
+        "1 setting in app › panes.",
+        "extensions",
+        "git",
+        "ochazuke",
+        "Appearance",
+        "Keys",
+        "Open",
+        "Help",
+        "Palette",
+        "Records",
+        "Lists",
+        "Search",
+        "Pickers",
+        "Modals",
+        "Hooks",
+        "Status bar",
+        "Pages",
+        "l/enter settings-section.open · ]/[ setting.show-tab · A setting.all · q setting.close · ctrl+w…"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 86,
+      "contains": [
+        "ignore    no items"
+      ]
+    },
+    {
+      "after": 88,
+      "modal": "setting-prompt",
+      "contains": [
+        "an item cannot be empty"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "__settings/row/ignore",
+      "mode": "normal",
+      "contains": [
+        "ignore    no items"
+      ],
+      "lacks": [
+        "•"
+      ],
+      "after": 90
+    },
+    {
+      "after": 92,
+      "focus": "__settings/row/paths",
+      "order": [
+        "paths",
+        "2 items",
+        "~/proj",
+        "~/hub",
+        "ignore",
+        "no items",
+        "wrap",
+        "‹ false ›",
+        "Directories searched for projects, in order",
+        "Default is ~/proj, ~/hub.",
+        "Takes a list of text items."
+      ],
+      "contains": [
+        "enter setting.edit",
+        "n setting.add",
+        "r setting.reset"
+      ],
+      "lacks": [
+        "setting.cycle"
+      ]
+    },
+    {
+      "after": 93,
+      "focus": "__settings/item/paths/0",
+      "contains": [
+        "Item 1 of 2.",
+        "enter/i setting-item.edit",
+        "n setting-item.add",
+        "d d setting-item.delete",
+        "r setting-item.reset"
+      ]
+    },
+    {
+      "after": 94,
+      "modal": "setting-prompt",
+      "mode": "insert",
+      "contains": [
+        "paths (list): new item 2"
+      ]
+    },
+    {
+      "after": 96,
+      "modal": "",
+      "focus": "__settings/item/paths/1",
+      "order": [
+        "paths •",
+        "3 items",
+        "~/proj",
+        "~/work",
+        "~/hub"
+      ],
+      "contains": [
+        "Item 2 of 3.",
+        "Set in settings.json."
+      ]
+    },
+    {
+      "after": 97,
+      "modal": "setting-prompt",
+      "contains": [
+        "paths (list): item 2 of 3",
+        "~/work"
+      ]
+    },
+    {
+      "after": 100,
+      "modal": "",
+      "focus": "__settings/item/paths/1",
+      "order": [
+        "~/proj",
+        "~/play",
+        "~/hub"
+      ],
+      "lacks": [
+        "~/work"
+      ]
+    },
+    {
+      "after": 103,
+      "focus": "__settings/item/paths/0",
+      "order": [
+        "paths •",
+        "2 items",
+        "~/play",
+        "~/hub",
+        "ignore",
+        "Item 1 of 2."
+      ]
+    },
+    {
+      "after": 106,
+      "focus": "__settings/item/paths/0",
+      "order": [
+        "paths •",
+        "1 item",
+        "~/play",
+        "ignore",
+        "Item 1 of 1."
+      ]
+    },
+    {
+      "after": 107,
+      "focus": "__settings/item/paths/0",
+      "order": [
+        "paths",
+        "2 items",
+        "~/proj",
+        "~/hub",
+        "Not in settings.json"
+      ],
+      "lacks": [
+        "•",
+        "~/play"
+      ]
+    },
+    {
+      "after": 109,
+      "focus": "__settings/row/ignore",
+      "contains": [
+        "no items",
+        "Default is no items."
+      ]
+    },
+    {
+      "after": 110,
+      "modal": "setting-prompt",
+      "contains": [
+        "ignore (list): new item 1"
+      ]
+    },
+    {
+      "after": 112,
+      "modal": "",
+      "focus": "__settings/item/ignore/0",
+      "order": [
+        "ignore •",
+        "1 item",
+        "*.tmp",
+        "wrap"
+      ]
+    },
+    {
+      "focus": "__settings/row/ignore",
+      "contains": [
+        "no items"
+      ],
+      "lacks": [
+        "*.tmp",
+        "•"
+      ],
+      "after": 114
+    },
+    {
+      "after": 116,
+      "focus": "__settings/row/editor",
+      "order": [
+        "› app",
+        "app › General (1)",
+        "Section ‹ General  1/3 ›",
+        "editor"
+      ],
+      "lacks": [
+        "Sections",
+        "╭─ Sections"
+      ]
+    },
+    {
+      "after": 117,
+      "focus": "__settings/section/app/general",
+      "contains": [
+        "h/l setting.show-section",
+        "s settings-section.pick",
+        "Settings with no section of their own."
+      ]
+    },
+    {
+      "after": 118,
+      "focus": "__settings/section/app/panes",
+      "contains": [
+        "app › panes (2)",
+        "Section ‹ panes  2/3 ›",
+        "panes.group"
+      ],
+      "lacks": [
+        "editor"
+      ]
+    },
+    {
+      "after": 119,
+      "focus": "__settings/section/app/schedules",
+      "contains": [
+        "Section ‹ schedules  3/3 ›",
+        "gh-signals"
+      ]
+    },
+    {
+      "after": 120,
+      "focus": "__settings/section/app/panes"
+    },
+    {
+      "after": 121,
+      "focus": "__settings/row/panes.group",
+      "contains": [
+        "Section ‹ panes  2/3 ›",
+        "How panes group"
+      ]
+    },
+    {
+      "after": 122,
+      "focus": "__settings/section/app/panes",
+      "contains": [
+        "Section ‹ panes  2/3 ›"
+      ]
+    },
+    {
+      "after": 123,
+      "modal": "settings-section-pick",
+      "mode": "insert",
+      "contains": [
+        "Sections",
+        "General",
+        "panes",
+        "schedules"
+      ]
+    },
+    {
+      "after": 127,
+      "modal": "",
+      "focus": "__settings/section/app/schedules",
+      "contains": [
+        "Section ‹ schedules  3/3 ›"
+      ]
+    },
+    {
+      "after": 128,
+      "focus": "__settings/section/app/general",
+      "contains": [
+        "Section ‹ General  1/3 ›"
+      ]
+    },
+    {
+      "focus": "__settings/section/app/panes",
+      "page": "__settings",
+      "after": 129
+    },
+    {
+      "after": 136,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "Tasks",
+        "› Settings",
+        "› app",
+        "extensions",
+        "ochazuke",
+        "About",
+        "Sections ─────╮ ┏━ General (6)",
+        "scrolloff •",
+        "theme",
+        "‹ dark ›",
+        "wrap",
+        "‹ false ›",
+        "paths",
+        "2 items",
+        "~/proj",
+        "~/hub",
+        "ignore",
+        "no items",
+        "editor",
+        "Item 1 of 2.",
+        "Directories searched for projects, in order",
+        "Default is ~/proj, ~/hub. Not in settings.json, so the default applies.",
+        "Takes a list of text items.",
+        "enter/i setting-item.edit · n setting-item.add · d d setting-item.delete · r setting-item.reset · ]/[ setting.show-…"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 140,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "Tasks",
+        "› Settings",
+        "› app",
+        "extensions",
+        "ochazuke",
+        "About",
+        "Sections ─────╮ ┏━ General (6)",
+        "scrolloff •",
+        "theme",
+        "‹ dark ›",
+        "wrap",
+        "‹ false ›",
+        "paths",
+        "2 items",
+        "~/proj",
+        "~/hub",
+        "ignore",
+        "no items",
+        "editor",
+        "Colour theme",
+        "Default is dark. Not in settings.json, so the default",
+        "applies.",
+        "Takes one of dark, light, mono.",
+        "enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ setting.show…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 142,
+      "focus": "__settings/row/poll",
+      "contains": [
+        "How often the rows refresh",
+        "J/K detail"
+      ]
+    },
+    {
+      "after": 143,
+      "focus": "__settings/row/poll",
+      "contains": [
+        "poll · 2–"
+      ],
+      "lacks": [
+        "How often the rows refresh"
+      ]
+    },
+    {
+      "after": 144,
+      "contains": [
+        "poll · 3–"
+      ]
+    },
+    {
+      "after": 145,
+      "contains": [
+        "poll · 2–"
+      ]
+    },
+    {
+      "focus": "__settings/row/colour",
+      "contains": [
+        "colour",
+        "Colour mode",
+        "one of auto, always, never",
+        "default"
+      ],
+      "lacks": [
+        "J/K detail"
+      ],
+      "after": 146
+    },
+    {
+      "after": 148,
+      "page": "__settings",
+      "modal": "",
+      "mode": "normal",
+      "focus": "__settings/row/scrolloff",
+      "order": [
+        "Tasks",
+        "Settings",
+        "› app",
+        "extensions",
+        "ochazuke",
+        "Sections",
+        "General (4)",
+        "General",
+        "4",
+        "scrolloff",
+        "theme",
+        "wrap",
+        "editor",
+        "scrolloff"
+      ],
+      "contains": [
+        "Rows kept above and below the focus",
+        "Default is 2."
+      ]
+    },
+    {
+      "page": "__settings",
+      "focus": "__settings/row/scrolloff",
+      "after": 149
+    },
+    {
+      "after": 155,
+      "page": "two",
+      "focus": "name",
+      "mode": "insert"
+    },
+    {
+      "after": 156,
+      "page": "__settings",
+      "focus": "__settings/row/wrap",
+      "mode": "normal",
+      "contains": [
+        "One",
+        "Two",
+        "Settings"
+      ]
+    },
+    {
+      "after": 157,
+      "contains": [
+        "wrap •  ‹ true ›"
+      ]
+    },
+    {
+      "after": 158,
+      "page": "two",
+      "focus": "name",
+      "mode": "insert",
+      "lacks": [
+        "Settings",
+        "wrap"
+      ]
+    },
+    {
+      "after": 159,
+      "page": "__settings"
+    },
+    {
+      "page": "two",
+      "focus": "name",
+      "mode": "insert",
+      "after": 160
+    },
+    {
+      "after": 162,
+      "focus": "__settings/row/scrolloff",
+      "order": [
+        "› General",
+        "ai",
+        "git",
+        "Appearance",
+        "General (2)",
+        "scrolloff",
+        "‹ 2 ›",
+        "theme",
+        "‹ dark ›"
+      ],
+      "lacks": [
+        "Sections",
+        "poll-every"
+      ],
+      "contains": [
+        "]/[ setting.show-tab"
+      ]
+    },
+    {
+      "after": 163,
+      "focus": "__settings/row/theme"
+    },
+    {
+      "after": 164,
+      "focus": "__settings/row/ext.ai.poll-every",
+      "order": [
+        "General",
+        "› ai",
+        "git",
+        "ai (2)",
+        "ext.ai.poll-every",
+        "30s",
+        "ext.ai.model",
+        "‹ large ›",
+        "How often the AI extension refreshes its rows"
+      ],
+      "lacks": [
+        "scrolloff"
+      ]
+    },
+    {
+      "after": 165,
+      "focus": "__settings/row/ext.ai.model"
+    },
+    {
+      "after": 166,
+      "focus": "__settings/row/ext.git.fetch",
+      "contains": [
+        "› git",
+        "git (1)",
+        "ext.git.fetch",
+        "‹ true ›"
+      ]
+    },
+    {
+      "after": 167,
+      "focus": "__settings/row/modal-dim",
+      "contains": [
+        "› Appearance"
+      ]
+    },
+    {
+      "after": 168,
+      "focus": "__settings/row/ext.git.fetch"
+    },
+    {
+      "after": 169,
+      "focus": "__settings/row/ext.ai.model"
+    },
+    {
+      "after": 170,
+      "focus": "__settings/row/ext.git.fetch"
+    },
+    {
+      "after": 171,
+      "focus": "__settings/row/modal-dim"
+    },
+    {
+      "after": 174,
+      "focus": "__settings/row/theme",
+      "contains": [
+        "› General"
+      ]
+    },
+    {
+      "after": 175,
+      "focus": "__settings/row/settings.layout",
+      "contains": [
+        "› Settings"
+      ]
+    },
+    {
+      "focus": "__settings/row/theme",
+      "page": "__settings",
+      "modal": "",
+      "after": 176
+    },
+    {
+      "after": 178,
+      "lacks": [
+        "setting.cycle"
+      ]
+    },
+    {
+      "after": 179,
+      "modal": "setting-prompt",
+      "mode": "insert",
+      "contains": [
+        "debounce (duration)",
+        "400ms",
+        "enter setting-value.accept"
+      ]
+    },
+    {
+      "after": 182,
+      "modal": "setting-prompt",
+      "contains": [
+        "must be a duration"
+      ]
+    },
+    {
+      "after": 185,
+      "modal": "",
+      "page": "__settings",
+      "focus": "__settings/row/debounce",
+      "mode": "normal",
+      "contains": [
+        "debounce •  2s",
+        "Set in settings.json."
+      ]
+    },
+    {
+      "after": 187,
+      "modal": "setting-prompt",
+      "contains": [
+        "editor (string)",
+        "vi"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "__settings/row/editor",
+      "mode": "normal",
+      "contains": [
+        "editor •    nvim"
+      ],
+      "after": 190
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "contains": [
+        "No session changes left to review"
+      ],
+      "after": 193
+    },
+    {
+      "after": 196,
+      "focus": "__settings/section/app/general"
+    },
+    {
+      "after": 199,
+      "mode": "list_filter",
+      "contains": [
+        "/pa",
+        "ochazuke",
+        "Appearance"
+      ],
+      "lacks": [
+        "no matches",
+        "no settings match",
+        "scrolloff"
+      ]
+    },
+    {
+      "after": 201,
+      "mode": "list_filter",
+      "focus": "__settings/section/ochazuke/appearance",
+      "order": [
+        "/path",
+        "ochazuke",
+        "Appearance",
+        "Pickers"
+      ],
+      "contains": [
+        "› ochazuke",
+        "focus-display"
+      ],
+      "lacks": [
+        "no matches",
+        "General",
+        "scrolloff",
+        "modal-dim"
+      ]
+    },
+    {
+      "after": 205,
+      "mode": "list_filter",
+      "focus": "__settings/section/ochazuke/pickers",
+      "contains": [
+        "path.start",
+        "path.hidden",
+        "path.no-auto-list"
+      ],
+      "lacks": [
+        "focus-display"
+      ]
+    },
+    {
+      "mode": "normal",
+      "focus": "__settings/section/app/general",
+      "page": "__settings",
+      "contains": [
+        "› app",
+        "General",
+        "scrolloff",
+        "theme",
+        "tab-width"
+      ],
+      "lacks": [
+        "/path",
+        "Pickers",
+        "path.start"
+      ],
+      "after": 206
+    },
+    {
+      "after": 209,
+      "focus": "__settings/section/app/general",
+      "highlighted": 1,
+      "highlightedText": "Section ‹ General  1/3 ›",
+      "dimmed": 1
+    },
+    {
+      "focus": "__settings/row/editor",
+      "highlighted": 1,
+      "highlightedText": "editor",
+      "dimmed": 1,
+      "after": 210
+    },
+    {
+      "after": 213,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "page1",
+        "› Settings",
+        "› app ◦",
+        "ochazuke",
+        "About",
+        "Sections ─────╮ ┏━ General (4)",
+        "scrolloff",
+        "stack •",
+        "‹ stack ›",
+        "(saved: grid)",
+        "editor",
+        "paths •",
+        "2 items",
+        "(saved: 1 item)",
+        "~/proj",
+        "~/hub",
+        "stack",
+        "How panes are laid out",
+        "Default is tabs. Set this session (api, 00:00);",
+        "settings.json holds grid. setting.write saves it,",
+        "setting.revert drops it.",
+        "Takes one of tabs, stack, grid.",
+        "enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ setting.show…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "contains": [
+        "scrolloff takes a whole number: lots; nothing was changed"
+      ],
+      "after": 217
+    },
+    {
+      "after": 219,
+      "focus": "__settings/row/scrolloff",
+      "contains": [
+        "A setting.all"
+      ]
+    },
+    {
+      "after": 220,
+      "focus": "__settings/all/row/scrolloff",
+      "order": [
+        "› app",
+        "All (",
+        "app › General",
+        "scrolloff",
+        "theme",
+        "tab-width"
+      ]
+    },
+    {
+      "page": "__settings",
+      "contains": [
+        "All (",
+        "ochazuke › "
+      ],
+      "lacks": [
+        "app › General"
+      ],
+      "after": 221
+    },
+    {
+      "after": 223,
+      "lacks": [
+        "setting.undo"
+      ]
+    },
+    {
+      "after": 225,
+      "contains": [
+        "scrolloff •  ‹ 4 ›",
+        "u setting.undo"
+      ]
+    },
+    {
+      "after": 227,
+      "focus": "__settings/row/ext.git.fetch",
+      "contains": [
+        "ext.git.fetch •  ‹ false ›"
+      ]
+    },
+    {
+      "after": 228,
+      "focus": "__settings/row/ext.git.fetch",
+      "contains": [
+        "ext.git.fetch    ‹ true ›"
+      ],
+      "lacks": [
+        "•"
+      ]
+    },
+    {
+      "after": 229,
+      "focus": "__settings/row/scrolloff",
+      "contains": [
+        "› app",
+        "General (1)",
+        "scrolloff •  ‹ 3 ›"
+      ]
+    },
+    {
+      "after": 230,
+      "focus": "__settings/row/scrolloff",
+      "contains": [
+        "scrolloff    ‹ 2 ›",
+        "Not in settings.json"
+      ],
+      "lacks": [
+        "setting.undo",
+        "•"
+      ]
+    },
+    {
+      "focus": "__settings/row/scrolloff",
+      "contains": [
+        "scrolloff    ‹ 2 ›"
+      ],
+      "lacks": [
+        "setting.undo",
+        "undo"
+      ],
+      "after": 231
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "width": 100,
+  "height": 36,
+  "settings": [
+    {
+      "name": "editor",
+      "type": "string",
+      "default": "vi",
+      "description": "The command that opens a file"
+    }
+  ],
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": ",",
+        "do": "setting.open"
+      }
+    ],
+    "about": {
+      "module": "github.com/unixsuperhero/demo",
+      "version": "v1.2.3",
+      "revision": "0123456789abcdef0123",
+      "time": "2026-10-30T12:00:00Z",
+      "modified": false,
+      "go": "go1.26.0",
+      "binary": "/usr/local/bin/demo",
+      "deps": [
+        {
+          "path": "charm.land/bubbletea/v2",
+          "version": "v2.1.0"
+        },
+        {
+          "path": "ofam.dev/ochazuke",
+          "version": "v0.74.0",
+          "replace": "../ochazuke"
+        },
+        {
+          "path": "ofam.dev/oden",
+          "version": "(devel)"
+        },
+        {
+          "path": "ofam.dev/monogatari",
+          "version": "v0.3.1"
+        }
+      ],
+      "pid": 4242,
+      "started": "2026-10-31T09:00:00",
+      "uptime": "1h30m",
+      "sections": [
+        {
+          "title": "Data",
+          "rows": [
+            {
+              "label": "database",
+              "value": "/tmp/demo/demo.db",
+              "kind": "path"
+            },
+            {
+              "label": "daemon",
+              "value": "not connected"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

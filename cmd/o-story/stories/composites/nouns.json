@@ -1,0 +1,4252 @@
+{
+  "name": "nouns end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 100,
+      "height": 14,
+      "chrome": "full",
+      "page": {
+        "noHeadings": true,
+        "lists": [
+          {
+            "id": "tasks",
+            "from": true,
+            "height": -1
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Write notes",
+              "status": "todo"
+            },
+            {
+              "id": "t3",
+              "title": "Call mom",
+              "status": "todo"
+            }
+          ],
+          "copy": {
+            "change": {
+              "t1": {
+                "title": "Water the ferns",
+                "status": "done"
+              },
+              "t2": {
+                "status": "doing"
+              }
+            }
+          }
+        },
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "S",
+            "do": "demo.change-source"
+          },
+          {
+            "noun": "demo",
+            "keys": "F",
+            "do": "demo.refresh"
+          }
+        ]
+      },
+      "name": "in a short window the refresh modal keeps the focused pick drawn and highlighted as j and k move, with its own - and + lines above it"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "t1",
+                "props": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "t2",
+                "props": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "t3",
+                "props": {
+                  "id": "t3"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "doing",
+                "done"
+              ]
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "status": "todo",
+              "summary": ""
+            },
+            {
+              "id": "t2",
+              "title": "Write notes",
+              "status": "doing",
+              "summary": ""
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "status": "todo",
+              "summary": "Call the plumber"
+            }
+          ]
+        },
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "visual-line",
+            "keys": "d",
+            "do": "demo.delete"
+          }
+        ]
+      },
+      "name": "standard delete over a visual selection: V d asks the row's own prompt with its label read from the store, V j d counts the rows; neither fills {{label}} from collection.apply's own arguments (\"Delete demo true?\" in v0.56.0)"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "t1",
+                "props": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "t2",
+                "props": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "t3",
+                "props": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "t4",
+                "props": {
+                  "id": "t4"
+                }
+              }
+            ]
+          }
+        ],
+        "focus": "t1",
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "doing",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water",
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Notes",
+              "status": "doing"
+            },
+            {
+              "id": "t3",
+              "title": "Twin",
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Twin",
+              "status": "done"
+            }
+          ]
+        }
+      },
+      "name": "standard get refuses a human key two things hold and names both ids; nothing is read as a prefix"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "t1",
+                "props": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "t2",
+                "props": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "t3",
+                "props": {
+                  "id": "t3"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "doing",
+                "done"
+              ]
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "status": "todo",
+              "summary": ""
+            },
+            {
+              "id": "t2",
+              "title": "Write notes",
+              "status": "doing",
+              "summary": ""
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "status": "todo",
+              "summary": "Call the plumber"
+            }
+          ]
+        },
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "visual-line",
+            "keys": "D",
+            "do": "demo.set",
+            "args": {
+              "prop": "status",
+              "value": "done"
+            }
+          }
+        ]
+      },
+      "name": "standard set over a visual selection: V j then D (demo.set status done) writes each selected row's task once, in order, one notice counts the rows; the row left out is not written"
+    },
+    {
+      "width": 120,
+      "height": 40,
+      "chrome": "full",
+      "page": {
+        "id": "work",
+        "title": "Work",
+        "lists": [
+          {
+            "id": "a",
+            "from": true
+          }
+        ],
+        "order": [
+          "a"
+        ],
+        "trees": [
+          {
+            "id": "steps-tree",
+            "nodes": [
+              {
+                "id": "s1",
+                "label": "custom fill the can",
+                "data": {
+                  "id": "s1",
+                  "title": "fill the can",
+                  "chore": "c1"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "chore",
+          "token": true,
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "type": "string"
+            }
+          ],
+          "things": [
+            {
+              "id": "c1",
+              "title": "Water the plants"
+            },
+            {
+              "id": "c2",
+              "title": "Write notes"
+            }
+          ]
+        },
+        "detail": {
+          "lines": 1,
+          "showForm": true
+        },
+        "related": {
+          "noun": "chore",
+          "keyList": "a",
+          "hidden": [
+            "memo.about"
+          ],
+          "empty": "hide",
+          "nouns": [
+            {
+              "noun": "memo",
+              "prop": "about",
+              "any": true,
+              "things": [
+                {
+                  "id": "m1",
+                  "title": "private memo",
+                  "about": "chore:c1"
+                }
+              ]
+            },
+            {
+              "noun": "step",
+              "prop": "chore",
+              "owner": true,
+              "view": "steps-tree",
+              "things": [
+                {
+                  "id": "s1",
+                  "title": "fill the can",
+                  "chore": "c1"
+                }
+              ]
+            },
+            {
+              "noun": "link",
+              "prop": "chore",
+              "owner": true,
+              "hook": true,
+              "things": [
+                {
+                  "id": "l1",
+                  "title": "notes guide",
+                  "chore": "c2"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "name": "a hand-built show form uses the app related stack once, keeps hidden and empty settings, follows selection, writes fields and shows history last; a borrowed custom view survives stack off/on"
+    },
+    {
+      "width": 120,
+      "height": 34,
+      "chrome": "full",
+      "pages": [
+        {
+          "id": "work",
+          "title": "Work",
+          "lists": [
+            {
+              "id": "a",
+              "from": true
+            }
+          ],
+          "store": {
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "archived",
+                "role": "archive",
+                "type": "boolean"
+              }
+            ],
+            "things": [
+              {
+                "id": "c1",
+                "title": "Water the plants",
+                "archived": false
+              },
+              {
+                "id": "c2",
+                "title": "Write notes",
+                "archived": false
+              }
+            ],
+            "noun": "chore"
+          },
+          "detail": {
+            "lines": 2,
+            "showForm": true
+          }
+        }
+      ],
+      "name": "form under text: a hand-built page that opts in (detail showForm) keeps its own detail text on top and draws the selected thing's show form and its sections under it, following the selection"
+    },
+    {
+      "width": 110,
+      "height": 30,
+      "chrome": "full",
+      "pages": [
+        {
+          "id": "work",
+          "title": "Work",
+          "nounsPage": true,
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ],
+          "store": {
+            "noun": "chore",
+            "paged": true,
+            "token": true,
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "archived",
+                "role": "archive",
+                "type": "boolean"
+              }
+            ],
+            "things": [
+              {
+                "id": "c1",
+                "title": "Water the plants",
+                "archived": false
+              },
+              {
+                "id": "c2",
+                "title": "Old chore",
+                "archived": true
+              },
+              {
+                "id": "c3",
+                "title": "Write notes",
+                "archived": false
+              }
+            ]
+          },
+          "nouns": [
+            {
+              "noun": "deploy",
+              "verbs": [
+                "run",
+                "rollback"
+              ]
+            }
+          ]
+        }
+      ],
+      "name": "z a on an index shows its archived rows, and again hides them; hidden, the filter line counts them"
+    },
+    {
+      "width": 110,
+      "height": 30,
+      "chrome": "full",
+      "pages": [
+        {
+          "id": "work",
+          "title": "Work",
+          "nounsPage": true,
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ],
+          "store": {
+            "noun": "chore",
+            "paged": true,
+            "token": true,
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "archived",
+                "role": "archive",
+                "type": "boolean"
+              }
+            ],
+            "things": [],
+            "generate": {
+              "count": 20000,
+              "thing": {
+                "id": "c{{n}}",
+                "title": "chore {{n}}",
+                "archived": false
+              }
+            }
+          },
+          "nouns": [
+            {
+              "noun": "deploy",
+              "verbs": [
+                "run",
+                "rollback"
+              ]
+            }
+          ]
+        }
+      ],
+      "name": "a 20,000-thing paged store: its index reads one page of 200 and the archived count (no full list: the writes hold no list; the show form gets the selected thing once), says the page and the total, and collection.page-next reads the next page"
+    },
+    {
+      "width": 110,
+      "height": 30,
+      "chrome": "full",
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "paged": true,
+          "token": true,
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "type": "string",
+              "required": true
+            },
+            {
+              "name": "archived",
+              "role": "archive",
+              "type": "boolean"
+            }
+          ],
+          "things": []
+        }
+      },
+      "name": "an empty generated index keeps its row noun's keys without a fake row: help lists n, show asks for a real id, and n opens the creation form and persists the first thing"
+    },
+    {
+      "width": 110,
+      "height": 30,
+      "chrome": "full",
+      "pages": [
+        {
+          "id": "work",
+          "title": "Work",
+          "nounsPage": true,
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ],
+          "store": {
+            "noun": "chore",
+            "paged": true,
+            "token": true,
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "archived",
+                "role": "archive",
+                "type": "boolean"
+              }
+            ],
+            "things": [
+              {
+                "id": "c1",
+                "title": "Water the plants",
+                "archived": false
+              },
+              {
+                "id": "c2",
+                "title": "Old chore",
+                "archived": true
+              },
+              {
+                "id": "c3",
+                "title": "Write notes",
+                "archived": false
+              }
+            ]
+          },
+          "nouns": [
+            {
+              "noun": "deploy",
+              "verbs": [
+                "run",
+                "rollback"
+              ]
+            }
+          ]
+        }
+      ],
+      "name": "enter on a Nouns row opens the noun's index page (nouns/chore): its things in the derived columns (the label, then short choosable props, then updated), one page read from the store, the archived ones hidden and counted on the filter line; the index page is not a tab, and leaving it leaves the tab row as it was"
+    },
+    {
+      "width": 110,
+      "height": 30,
+      "chrome": "full",
+      "pages": [
+        {
+          "id": "work",
+          "title": "Work",
+          "nounsPage": true,
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ],
+          "store": {
+            "noun": "chore",
+            "paged": true,
+            "token": true,
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "archived",
+                "role": "archive",
+                "type": "boolean"
+              }
+            ],
+            "things": [
+              {
+                "id": "c1",
+                "title": "Water the plants",
+                "archived": false
+              },
+              {
+                "id": "c2",
+                "title": "Old chore",
+                "archived": true
+              },
+              {
+                "id": "c3",
+                "title": "Write notes",
+                "archived": false
+              }
+            ]
+          },
+          "nouns": [
+            {
+              "noun": "deploy",
+              "verbs": [
+                "run",
+                "rollback"
+              ]
+            }
+          ]
+        }
+      ],
+      "name": "an index sorts and filters through the list's own keys: the sort goes into the store's query and the page is read again"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "chrome": "full",
+      "pages": [
+        {
+          "id": "work",
+          "title": "Work",
+          "nounsPage": true,
+          "lists": [
+            {
+              "id": "a",
+              "rows": 1
+            }
+          ],
+          "store": {
+            "noun": "chore",
+            "paged": true,
+            "token": true,
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              }
+            ],
+            "things": [
+              {
+                "id": "c1",
+                "title": "Water the plants"
+              }
+            ]
+          }
+        }
+      ],
+      "name": "a noun's index page is not a tab: while it is open the tab row keeps the tab it was opened from current (the Nouns page), never the first tab"
+    },
+    {
+      "width": 110,
+      "height": 30,
+      "chrome": "full",
+      "pages": [
+        {
+          "id": "work",
+          "title": "Work",
+          "nounsPage": true,
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ],
+          "store": {
+            "noun": "chore",
+            "paged": true,
+            "token": true,
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "archived",
+                "role": "archive",
+                "type": "boolean"
+              }
+            ],
+            "things": [
+              {
+                "id": "c1",
+                "title": "Water the plants",
+                "archived": false
+              },
+              {
+                "id": "c2",
+                "title": "Old chore",
+                "archived": true
+              },
+              {
+                "id": "c3",
+                "title": "Write notes",
+                "archived": false
+              }
+            ]
+          },
+          "nouns": [
+            {
+              "noun": "deploy",
+              "verbs": [
+                "run",
+                "rollback"
+              ]
+            }
+          ]
+        }
+      ],
+      "name": "the Nouns page is the last tab: every noun grouped by kind with its count, archived count and store; a paged store is counted with one-row pages (no full list), command nouns list their actions, drawn parts are left out; r reads the counts again and an unchanged change token reads nothing; ctrl+j wraps back to the first tab"
+    },
+    {
+      "width": 110,
+      "height": 30,
+      "chrome": "full",
+      "pages": [
+        {
+          "id": "work",
+          "title": "Work",
+          "nounsPage": true,
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ],
+          "store": {
+            "noun": "chore",
+            "paged": true,
+            "token": true,
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "archived",
+                "role": "archive",
+                "type": "boolean"
+              }
+            ],
+            "things": [
+              {
+                "id": "c1",
+                "title": "Water the plants",
+                "archived": false
+              },
+              {
+                "id": "c2",
+                "title": "Old chore",
+                "archived": true
+              },
+              {
+                "id": "c3",
+                "title": "Write notes",
+                "archived": false
+              }
+            ]
+          },
+          "nouns": [
+            {
+              "noun": "deploy",
+              "verbs": [
+                "run",
+                "rollback"
+              ]
+            }
+          ]
+        }
+      ],
+      "name": "an index page's detail is the edit form over the selected thing: } moves into it, i edits a field, the change is written as typed (no save key), and the form follows the selection"
+    },
+    {
+      "width": 120,
+      "height": 40,
+      "chrome": "full",
+      "pages": [
+        {
+          "id": "work",
+          "title": "Work",
+          "nounsPage": true,
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ],
+          "store": {
+            "noun": "chore",
+            "paged": true,
+            "token": true,
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "archived",
+                "role": "archive",
+                "type": "boolean"
+              }
+            ],
+            "things": [
+              {
+                "id": "c1",
+                "title": "Water the plants",
+                "archived": false
+              },
+              {
+                "id": "c2",
+                "title": "Write notes",
+                "archived": false
+              }
+            ]
+          }
+        },
+        {
+          "id": "memos",
+          "title": "Memos",
+          "lists": [
+            {
+              "id": "b",
+              "rows": 1
+            }
+          ],
+          "store": {
+            "noun": "memo",
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "about",
+                "role": "about",
+                "type": "string",
+                "noun": "*"
+              }
+            ],
+            "things": [
+              {
+                "id": "m1",
+                "title": "see the shelf",
+                "about": "chore:c1"
+              }
+            ]
+          }
+        },
+        {
+          "id": "steps",
+          "title": "Steps",
+          "lists": [
+            {
+              "id": "c",
+              "rows": 1
+            }
+          ],
+          "store": {
+            "noun": "step",
+            "props": [
+              {
+                "name": "id",
+                "key": true
+              },
+              {
+                "name": "title",
+                "role": "label",
+                "type": "string"
+              },
+              {
+                "name": "chore",
+                "type": "string",
+                "noun": "chore"
+              }
+            ],
+            "things": [
+              {
+                "id": "s1",
+                "title": "fill the can",
+                "chore": "c1"
+              }
+            ]
+          }
+        }
+      ],
+      "name": "the show form of an index row: every prop as a form, one section per referring noun (memos about it, steps of it) under it, and its history last, which a write to the thing grows"
+    },
+    {
+      "width": 60,
+      "height": 22,
+      "page": {
+        "id": "projects",
+        "noHeadings": true,
+        "lists": [
+          {
+            "id": "projects-list",
+            "height": 2,
+            "items": [
+              {
+                "id": "p1",
+                "label": "Alpha"
+              },
+              {
+                "id": "p2",
+                "label": "Beta"
+              }
+            ]
+          }
+        ],
+        "related": {
+          "id": "details",
+          "noun": "project",
+          "keyList": "projects-list",
+          "height": 16,
+          "nouns": [
+            {
+              "noun": "task",
+              "prop": "project",
+              "owner": true,
+              "columns": [
+                "id",
+                "title"
+              ],
+              "things": [
+                {
+                  "id": "t1",
+                  "title": "write",
+                  "project": "p1"
+                },
+                {
+                  "id": "t2",
+                  "title": "test",
+                  "project": "p1"
+                },
+                {
+                  "id": "t3",
+                  "title": "ship",
+                  "project": "p2"
+                }
+              ]
+            },
+            {
+              "noun": "note",
+              "prop": "project",
+              "things": [
+                {
+                  "id": "n1",
+                  "title": "idea",
+                  "project": "p1"
+                },
+                {
+                  "id": "n2",
+                  "title": "memo",
+                  "project": "p2"
+                }
+              ]
+            },
+            {
+              "noun": "link",
+              "prop": "project",
+              "owner": true,
+              "hook": true,
+              "things": [
+                {
+                  "id": "l1",
+                  "title": "docs",
+                  "project": "p1"
+                }
+              ]
+            }
+          ]
+        },
+        "focus": "details/task.project/list/@head"
+      },
+      "name": "Related sections: d u unassociates a row, u undoes it"
+    },
+    {
+      "width": 60,
+      "height": 22,
+      "page": {
+        "id": "projects",
+        "noHeadings": true,
+        "lists": [
+          {
+            "id": "projects-list",
+            "height": 2,
+            "items": [
+              {
+                "id": "p1",
+                "label": "Alpha"
+              },
+              {
+                "id": "p2",
+                "label": "Beta"
+              }
+            ]
+          }
+        ],
+        "related": {
+          "id": "details",
+          "noun": "project",
+          "keyList": "projects-list",
+          "height": 16,
+          "nouns": [
+            {
+              "noun": "task",
+              "prop": "project",
+              "owner": true,
+              "columns": [
+                "id",
+                "title"
+              ],
+              "things": [
+                {
+                  "id": "t1",
+                  "title": "write",
+                  "project": "p1"
+                },
+                {
+                  "id": "t2",
+                  "title": "test",
+                  "project": "p1"
+                },
+                {
+                  "id": "t3",
+                  "title": "ship",
+                  "project": "p2"
+                }
+              ]
+            },
+            {
+              "noun": "note",
+              "prop": "project",
+              "things": [
+                {
+                  "id": "n1",
+                  "title": "idea",
+                  "project": "p1"
+                },
+                {
+                  "id": "n2",
+                  "title": "memo",
+                  "project": "p2"
+                }
+              ]
+            },
+            {
+              "noun": "link",
+              "prop": "project",
+              "owner": true,
+              "hook": true,
+              "things": [
+                {
+                  "id": "l1",
+                  "title": "docs",
+                  "project": "p1"
+                }
+              ]
+            }
+          ]
+        },
+        "focus": "details/task.project/list/@head"
+      },
+      "name": "Related sections: j spills across sections, z a folds, ] ] walks headings"
+    },
+    {
+      "width": 100,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "c",
+            "do": "demo.choose"
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "project",
+              "noun": "project",
+              "role": "owner"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ],
+          "undo": true
+        },
+        "chooser": {
+          "title": "Pick a colour",
+          "rows": [
+            {
+              "id": "red",
+              "label": "red"
+            },
+            {
+              "id": "blue",
+              "label": "blue"
+            }
+          ]
+        }
+      },
+      "name": "esc on a story chooser a row verb opened over a visual selection resumes the selection (R5.16, every chooser, not only edit's); a pick ends it"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "parcel",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "parcel.create",
+            "from": {
+              "from": "row"
+            }
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "done"
+            }
+          ]
+        }
+      },
+      "name": "create {from: row} copies the focused thing: every prop create writes, under a new key"
+    },
+    {
+      "width": 100,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "m",
+            "do": "demo.edit",
+            "args": {
+              "field": "@owner"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "U",
+            "do": "demo.set",
+            "args": {
+              "props": {
+                "@archive": false
+              }
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "A",
+            "do": "demo.archive"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "demo.create",
+            "from": {
+              "from": "row"
+            }
+          },
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "u",
+            "do": "ochazuke.history-entry.undo"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "s",
+            "do": "demo.edit",
+            "args": {
+              "field": "status"
+            }
+          },
+          {
+            "noun": "ochazuke.collection",
+            "mode": "normal",
+            "keys": "M",
+            "do": "ochazuke.collection.apply",
+            "args": {
+              "verb": "edit",
+              "args": {
+                "field": "status"
+              }
+            }
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "project",
+              "noun": "project",
+              "role": "owner"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ],
+          "undo": true
+        }
+      },
+      "name": "edit chooser over marked rows: picking the focused row's own value still writes the other marked rows"
+    },
+    {
+      "width": 100,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "m",
+            "do": "demo.edit",
+            "args": {
+              "field": "@owner"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "U",
+            "do": "demo.set",
+            "args": {
+              "props": {
+                "@archive": false
+              }
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "A",
+            "do": "demo.archive"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "demo.create",
+            "from": {
+              "from": "row"
+            }
+          },
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "u",
+            "do": "ochazuke.history-entry.undo"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "s",
+            "do": "demo.edit",
+            "args": {
+              "field": "status"
+            }
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "project",
+              "noun": "project",
+              "role": "owner"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ],
+          "undo": true
+        }
+      },
+      "name": "the edit chooser opens with the current value highlighted (form choice parity)"
+    },
+    {
+      "width": 100,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "m",
+            "do": "demo.edit",
+            "args": {
+              "field": "@owner"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "U",
+            "do": "demo.set",
+            "args": {
+              "props": {
+                "@archive": false
+              }
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "A",
+            "do": "demo.archive"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "demo.create",
+            "from": {
+              "from": "row"
+            }
+          },
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "u",
+            "do": "ochazuke.history-entry.undo"
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "project",
+              "noun": "project",
+              "role": "owner"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ],
+          "undo": true
+        }
+      },
+      "name": "esc on the edit chooser opened over a visual selection resumes the selection (R5.16); a pick then still ends it"
+    },
+    {
+      "width": 100,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "m",
+            "do": "demo.edit",
+            "args": {
+              "field": "@owner"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "U",
+            "do": "demo.set",
+            "args": {
+              "props": {
+                "@archive": false
+              }
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "A",
+            "do": "demo.archive"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "demo.create",
+            "from": {
+              "from": "row"
+            }
+          },
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "u",
+            "do": "ochazuke.history-entry.undo"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "s",
+            "do": "demo.edit",
+            "args": {
+              "field": "status"
+            }
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "project",
+              "noun": "project",
+              "role": "owner"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ],
+          "undo": true
+        }
+      },
+      "name": "edit chooser over a visual selection: picking the value the cursor row already holds still writes the other selected rows"
+    },
+    {
+      "width": 100,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "m",
+            "do": "demo.edit",
+            "args": {
+              "field": "@owner"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "U",
+            "do": "demo.set",
+            "args": {
+              "props": {
+                "@archive": false
+              }
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "A",
+            "do": "demo.archive"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "demo.create",
+            "from": {
+              "from": "row"
+            }
+          },
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "u",
+            "do": "ochazuke.history-entry.undo"
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "project",
+              "noun": "project",
+              "role": "owner"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ],
+          "undo": true
+        }
+      },
+      "name": "m over a visual selection: the edit chooser's title counts the rows a pick writes (Edit 2 demos project), as Move 3 rows to does"
+    },
+    {
+      "width": 100,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "m",
+            "do": "demo.edit",
+            "args": {
+              "field": "@owner"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "U",
+            "do": "demo.set",
+            "args": {
+              "props": {
+                "@archive": false
+              }
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "A",
+            "do": "demo.archive"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "demo.create",
+            "from": {
+              "from": "row"
+            }
+          },
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "u",
+            "do": "ochazuke.history-entry.undo"
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "project",
+              "noun": "project",
+              "role": "owner"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ],
+          "undo": true
+        }
+      },
+      "name": "m over a visual selection opens the owner chooser once and writes the pick to every selected row, one undo step"
+    },
+    {
+      "width": 240,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "m",
+            "do": "demo.edit",
+            "args": {
+              "field": "@owner"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "U",
+            "do": "demo.set",
+            "args": {
+              "props": {
+                "@archive": false
+              }
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "A",
+            "do": "demo.archive"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "demo.create",
+            "from": {
+              "from": "row"
+            }
+          },
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "u",
+            "do": "ochazuke.history-entry.undo"
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "project",
+              "noun": "project",
+              "role": "owner"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ]
+        }
+      },
+      "config": {
+        "bindings.json": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "R",
+            "request": {
+              "noun": "demo",
+              "verb": "rename"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "S",
+            "request": {
+              "noun": "demo",
+              "verb": "set",
+              "args": {
+                "prop": "status",
+                "value": "done"
+              }
+            }
+          }
+        ]
+      },
+      "name": "a user bindings.json row naming a removed verb says what to write instead"
+    },
+    {
+      "width": 100,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "m",
+            "do": "demo.edit",
+            "args": {
+              "field": "@owner"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "U",
+            "do": "demo.set",
+            "args": {
+              "props": {
+                "@archive": false
+              }
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "A",
+            "do": "demo.archive"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "demo.create",
+            "from": {
+              "from": "row"
+            }
+          },
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "u",
+            "do": "ochazuke.history-entry.undo"
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "project",
+              "noun": "project",
+              "role": "owner"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ],
+          "undo": true
+        }
+      },
+      "name": "r over a visual selection edits the human key of the focused row only and says it left the rest as they were"
+    },
+    {
+      "width": 100,
+      "height": 28,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "data": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "Second",
+                "data": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "Call the plumber",
+                "data": {
+                  "id": "t3"
+                }
+              },
+              {
+                "id": "t4",
+                "label": "Old one",
+                "data": {
+                  "id": "t4"
+                }
+              }
+            ]
+          },
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "home",
+                "label": "Home",
+                "noun": "project"
+              },
+              {
+                "id": "work",
+                "label": "Work",
+                "noun": "project"
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "r",
+            "do": "demo.edit",
+            "args": {
+              "field": "@label"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "m",
+            "do": "demo.edit",
+            "args": {
+              "field": "@owner"
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "U",
+            "do": "demo.set",
+            "args": {
+              "props": {
+                "@archive": false
+              }
+            }
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "A",
+            "do": "demo.archive"
+          },
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "y p",
+            "do": "demo.create",
+            "from": {
+              "from": "row"
+            }
+          },
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "u",
+            "do": "ochazuke.history-entry.undo"
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "fallback": "summary"
+            },
+            {
+              "name": "summary",
+              "readOnly": true
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t2",
+              "title": "Second",
+              "summary": "",
+              "project": "home",
+              "retired": false,
+              "status": "done"
+            },
+            {
+              "id": "t3",
+              "title": "",
+              "summary": "Call the plumber",
+              "project": "work",
+              "retired": false,
+              "status": "todo"
+            },
+            {
+              "id": "t4",
+              "title": "Old one",
+              "summary": "",
+              "project": "home",
+              "retired": true,
+              "status": "todo"
+            }
+          ]
+        }
+      },
+      "name": "set of a role the noun lacks says which role is missing"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "copies/small-focus-visible: in a short window the refresh modal keeps the focused pick drawn and highlighted as j and k move, with its own - and + lines above it"
+    },
+    "S",
+    "F",
+    "j",
+    "j",
+    "k",
+    {
+      "key": "ctrl+alt+n",
+      "note": "demo/task-delete-visual-confirm: standard delete over a visual selection: V d asks the row's own prompt with its label read from the store, V j d counts the rows; neither fills {{label}} from collection.apply's own arguments (\"Delete demo true?\" in v0.56.0)"
+    },
+    "V",
+    "d",
+    "n",
+    "j",
+    "d",
+    "n",
+    {
+      "key": "ctrl+alt+n",
+      "note": "demo/task-get-ambiguous-human-key: standard get refuses a human key two things hold and names both ids; nothing is read as a prefix"
+    },
+    ":",
+    {
+      "type": "demo get Twin"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "demo/task-set-visual: standard set over a visual selection: V j then D (demo.set status done) writes each selected row's task once, in order, one notice counts the rows; the row left out is not written"
+    },
+    "V",
+    "j",
+    "D",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/form-custom-related: a hand-built show form uses the app related stack once, keeps hidden and empty settings, follows selection, writes fields and shows history last; a borrowed custom view survives stack off/on"
+    },
+    "j",
+    "k",
+    ":",
+    "chore set c1 title=\"Water the ferns\"",
+    "enter",
+    ":",
+    "set related.enabled=false",
+    "enter",
+    ":",
+    "set related.enabled=true related.empty=header",
+    "enter",
+    ":",
+    "set detail.show-form=false",
+    "enter",
+    ":",
+    "set detail.show-form=true",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/form-under-text: form under text: a hand-built page that opts in (detail showForm) keeps its own detail text on top and draws the selected thing's show form and its sections under it, following the selection"
+    },
+    "j",
+    "k",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/index-archived: z a on an index shows its archived rows, and again hides them; hidden, the filter line counts them"
+    },
+    "ctrl+j",
+    "enter",
+    "z",
+    "a",
+    "z",
+    "a",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/index-big: a 20,000-thing paged store: its index reads one page of 200 and the archived count (no full list: the writes hold no list; the show form gets the selected thing once), says the page and the total, and collection.page-next reads the next page"
+    },
+    "ctrl+j",
+    "enter",
+    ":",
+    {
+      "type": "collection page-next"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/index-empty-new: an empty generated index keeps its row noun's keys without a fake row: help lists n, show asks for a real id, and n opens the creation form and persists the first thing"
+    },
+    ":",
+    "noun show parcel",
+    "enter",
+    "?",
+    "q",
+    "v",
+    "q",
+    "n",
+    {
+      "type": "First parcel"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/index-open: enter on a Nouns row opens the noun's index page (nouns/chore): its things in the derived columns (the label, then short choosable props, then updated), one page read from the store, the archived ones hidden and counted on the filter line; the index page is not a tab, and leaving it leaves the tab row as it was"
+    },
+    "ctrl+j",
+    "enter",
+    "ctrl+k",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/index-sort-filter: an index sorts and filters through the list's own keys: the sort goes into the store's query and the page is read again"
+    },
+    "ctrl+j",
+    "enter",
+    ":",
+    {
+      "type": "collection sort -title"
+    },
+    "enter",
+    "/",
+    {
+      "type": "notes"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/index-tab-marker: a noun's index page is not a tab: while it is open the tab row keeps the tab it was opened from current (the Nouns page), never the first tab"
+    },
+    "ctrl+j",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/page: the Nouns page is the last tab: every noun grouped by kind with its count, archived count and store; a paged store is counted with one-row pages (no full list), command nouns list their actions, drawn parts are left out; r reads the counts again and an unchanged change token reads nothing; ctrl+j wraps back to the first tab"
+    },
+    "ctrl+j",
+    "r",
+    "G",
+    "ctrl+j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/show-form: an index page's detail is the edit form over the selected thing: } moves into it, i edits a field, the change is written as typed (no save key), and the form follows the selection"
+    },
+    "ctrl+j",
+    "enter",
+    "}",
+    "i",
+    "ctrl+u",
+    {
+      "type": "Watered"
+    },
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "nouns/show-relations: the show form of an index row: every prop as a form, one section per referring noun (memos about it, steps of it) under it, and its history last, which a write to the thing grows"
+    },
+    ":",
+    "noun show chore",
+    "enter",
+    ":",
+    "chore set c1 title=\"Water the ferns\"",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "related/associate-unassociate-undo: Related sections: d u unassociates a row, u undoes it"
+    },
+    "j",
+    "d",
+    "u",
+    "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "related/collapse-and-motions: Related sections: j spills across sections, z a folds, ] ] walks headings"
+    },
+    "j",
+    "j",
+    "j",
+    "k",
+    "] ]",
+    "z a",
+    "z a",
+    "z M",
+    "z R",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/chooser-visual-esc-resumes: esc on a story chooser a row verb opened over a visual selection resumes the selection (R5.16, every chooser, not only edit's); a pick ends it"
+    },
+    "esc",
+    "q",
+    "V",
+    "j",
+    "c",
+    "esc",
+    "q",
+    "c",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/create-from-copies: create {from: row} copies the focused thing: every prop create writes, under a new key"
+    },
+    "y",
+    "p",
+    ":",
+    {
+      "type": "parcel list"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/edit-field-chooser-marked-same-value: edit chooser over marked rows: picking the focused row's own value still writes the other marked rows"
+    },
+    "space",
+    "j",
+    "space",
+    "M",
+    {
+      "type": "done"
+    },
+    "enter",
+    ":",
+    {
+      "type": "demo get t1"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/edit-field-chooser-opens-on-current: the edit chooser opens with the current value highlighted (form choice parity)"
+    },
+    "j",
+    "s",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/edit-field-chooser-visual-esc-resumes: esc on the edit chooser opened over a visual selection resumes the selection (R5.16); a pick then still ends it"
+    },
+    "V",
+    "j",
+    "m",
+    "esc",
+    "q",
+    "m",
+    {
+      "type": "Wo"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/edit-field-chooser-visual-same-value: edit chooser over a visual selection: picking the value the cursor row already holds still writes the other selected rows"
+    },
+    "V",
+    "j",
+    "s",
+    {
+      "type": "done"
+    },
+    "enter",
+    ":",
+    {
+      "type": "demo get t1"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/edit-field-chooser-visual-title-count: m over a visual selection: the edit chooser's title counts the rows a pick writes (Edit 2 demos project), as Move 3 rows to does"
+    },
+    "V",
+    "j",
+    "m",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/move-visual-writes-every-row: m over a visual selection opens the owner chooser once and writes the pick to every selected row, one undo step"
+    },
+    "V",
+    "j",
+    "m",
+    {
+      "type": "Wo"
+    },
+    "enter",
+    ":",
+    {
+      "type": "demo get t2"
+    },
+    "enter",
+    "q",
+    ":",
+    {
+      "type": "demo get t1"
+    },
+    "enter",
+    "q",
+    "u",
+    ":",
+    {
+      "type": "demo get t2"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/removed-verb-user-row: a user bindings.json row naming a removed verb says what to write instead"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/rename-visual-edits-focused-row: r over a visual selection edits the human key of the focused row only and says it left the rest as they were"
+    },
+    "V",
+    "j",
+    "r",
+    {
+      "type": "Renamed"
+    },
+    "enter",
+    ":",
+    {
+      "type": "demo get t1"
+    },
+    "enter",
+    "q",
+    ":",
+    {
+      "type": "demo get t2"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "verbs/set-missing-role-says-why: set of a role the noun lacks says which role is missing"
+    },
+    ":",
+    {
+      "type": "demo set t1 @owner=work"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "after": 3,
+      "focus": "copies-refresh/d1",
+      "highlightedText": "local",
+      "contains": [
+        "- title: Water the plants",
+        "+ title: Water the ferns"
+      ]
+    },
+    {
+      "after": 4,
+      "focus": "copies-refresh/d2",
+      "highlightedText": "local",
+      "contains": [
+        "Water the plants · status",
+        "- status: todo",
+        "+ status: done"
+      ]
+    },
+    {
+      "after": 5,
+      "focus": "copies-refresh/d3",
+      "highlightedText": "local",
+      "contains": [
+        "Write notes · status",
+        "- status: todo",
+        "+ status: doing"
+      ]
+    },
+    {
+      "focus": "copies-refresh/d2",
+      "highlightedText": "local",
+      "contains": [
+        "Water the plants · status"
+      ],
+      "after": 6
+    },
+    {
+      "after": 9,
+      "modal": "confirm",
+      "contains": [
+        "Delete demo Water the plants?"
+      ],
+      "lacks": [
+        "true"
+      ]
+    },
+    {
+      "after": 10,
+      "modal": "",
+      "mode": "visual-line"
+    },
+    {
+      "after": 12,
+      "modal": "confirm",
+      "contains": [
+        "Run demo.delete on 2 rows?"
+      ],
+      "lacks": [
+        "true"
+      ]
+    },
+    {
+      "modal": "",
+      "after": 13
+    },
+    {
+      "modal": "palette",
+      "contains": [
+        "human key \"Twin\" names 2 demos: use one id (t3, t4)"
+      ],
+      "after": 17
+    },
+    {
+      "after": 20,
+      "writes": [],
+      "modal": ""
+    },
+    {
+      "writes": [
+        "set t1 status=done",
+        "set t2 status=done"
+      ],
+      "contains": [
+        "done on 2 rows"
+      ],
+      "modal": "",
+      "after": 21
+    },
+    {
+      "after": 23,
+      "contains": [
+        "Write notes",
+        "Links (1)",
+        "notes guide"
+      ],
+      "lacks": [
+        "Memos",
+        "private memo",
+        "Steps",
+        "History"
+      ]
+    },
+    {
+      "after": 24,
+      "contains": [
+        "Water the plants",
+        "Steps (1)",
+        "custom fill the can"
+      ],
+      "lacks": [
+        "Memos",
+        "private memo",
+        "Links",
+        "History"
+      ]
+    },
+    {
+      "after": 27,
+      "contains": [
+        "Water the ferns",
+        "History (1)"
+      ],
+      "lacks": [
+        "private memo"
+      ]
+    },
+    {
+      "after": 30,
+      "contains": [
+        "Water the ferns",
+        "title"
+      ],
+      "lacks": [
+        "Steps",
+        "History",
+        "custom fill the can"
+      ]
+    },
+    {
+      "after": 33,
+      "contains": [
+        "Water the ferns",
+        "Steps (1)",
+        "custom fill the can",
+        "Links (0)",
+        "History (1)"
+      ],
+      "lacks": [
+        "Memos",
+        "private memo"
+      ]
+    },
+    {
+      "after": 36,
+      "contains": [
+        "line 1"
+      ],
+      "lacks": [
+        "History",
+        "Steps",
+        "title"
+      ]
+    },
+    {
+      "contains": [
+        "Water the ferns",
+        "Steps (1)",
+        "custom fill the can",
+        "History (1)"
+      ],
+      "lacks": [
+        "Memos",
+        "private memo"
+      ],
+      "after": 39
+    },
+    {
+      "after": 41,
+      "contains": [
+        "line 1",
+        "line 2",
+        "Write notes",
+        "archived",
+        "History"
+      ]
+    },
+    {
+      "contains": [
+        "Water the plants",
+        "History"
+      ],
+      "after": 42
+    },
+    {
+      "after": 47,
+      "page": "nouns/chore",
+      "contains": [
+        "Old chore",
+        "chore · 3"
+      ],
+      "lacks": [
+        "archived hidden"
+      ]
+    },
+    {
+      "page": "nouns/chore",
+      "contains": [
+        "1 archived hidden"
+      ],
+      "lacks": [
+        "Old chore"
+      ],
+      "after": 49
+    },
+    {
+      "after": 52,
+      "page": "nouns/chore",
+      "contains": [
+        "chore · 20000",
+        "page 1/100 of 20000",
+        "chore 00001"
+      ],
+      "lacks": [
+        "list"
+      ],
+      "writes": [
+        "query page=1 per=1",
+        "query page=1 per=1",
+        "query page=1 per=200",
+        "query page=1 per=1",
+        "get c00001"
+      ]
+    },
+    {
+      "page": "nouns/chore",
+      "contains": [
+        "page 2/100 of 20000",
+        "chore 00201"
+      ],
+      "writes": [
+        "query page=1 per=1",
+        "query page=1 per=1",
+        "query page=1 per=200",
+        "query page=1 per=1",
+        "get c00001",
+        "query page=2 per=200",
+        "query page=1 per=1",
+        "get c00201"
+      ],
+      "after": 55
+    },
+    {
+      "after": 59,
+      "page": "nouns/parcel",
+      "focus": "nouns/parcel/list",
+      "contains": [
+        "no parcels"
+      ]
+    },
+    {
+      "after": 60,
+      "modal": "bindings-help",
+      "contains": [
+        "new",
+        "parcel"
+      ]
+    },
+    {
+      "after": 62,
+      "modal": "args-form",
+      "contains": [
+        "id",
+        "no parcel is focused"
+      ]
+    },
+    {
+      "after": 64,
+      "modal": "args-form",
+      "focus": "args-form/title",
+      "mode": "insert",
+      "contains": [
+        "Run parcel.create",
+        "title"
+      ]
+    },
+    {
+      "modal": "",
+      "page": "nouns/parcel",
+      "focus": "nouns/parcel/list/t1",
+      "contains": [
+        "First parcel"
+      ],
+      "lacks": [
+        "no parcels",
+        "no parcel is focused"
+      ],
+      "after": 66
+    },
+    {
+      "after": 69,
+      "page": "nouns/chore",
+      "contains": [
+        "Work  › Nouns",
+        "chore · 2",
+        "Water the plants",
+        "Write notes",
+        "1 archived hidden"
+      ],
+      "lacks": [
+        "Old chore",
+        "› Work",
+        "nouns/chore  "
+      ]
+    },
+    {
+      "page": "__nouns",
+      "contains": [
+        "Work  › Nouns"
+      ],
+      "after": 70
+    },
+    {
+      "after": 76,
+      "page": "nouns/chore",
+      "contains": [
+        "▼"
+      ]
+    },
+    {
+      "page": "nouns/chore",
+      "contains": [
+        "Write notes"
+      ],
+      "lacks": [
+        "Water the plants"
+      ],
+      "after": 79
+    },
+    {
+      "after": 81,
+      "contains": [
+        "Work  › Nouns"
+      ]
+    },
+    {
+      "page": "nouns/chore",
+      "contains": [
+        "Work  › Nouns",
+        "Water the plants"
+      ],
+      "lacks": [
+        "› Work"
+      ],
+      "after": 82
+    },
+    {
+      "after": 84,
+      "page": "__nouns",
+      "contains": [
+        "Work  › Nouns",
+        "records",
+        "chore",
+        "3         1  local · pages · token",
+        "singletons",
+        "facts"
+      ],
+      "lacks": [
+        "turn-line"
+      ],
+      "writes": [
+        "query page=1 per=1",
+        "query page=1 per=1"
+      ]
+    },
+    {
+      "after": 85,
+      "writes": [
+        "query page=1 per=1",
+        "query page=1 per=1"
+      ]
+    },
+    {
+      "after": 86,
+      "contains": [
+        "commands",
+        "deploy",
+        "run rollback"
+      ]
+    },
+    {
+      "page": "work",
+      "contains": [
+        "› Work  Nouns"
+      ],
+      "after": 87
+    },
+    {
+      "after": 90,
+      "page": "nouns/chore",
+      "contains": [
+        "Water the plants",
+        "title"
+      ]
+    },
+    {
+      "page": "nouns/chore",
+      "contains": [
+        "Watered"
+      ],
+      "after": 95
+    },
+    {
+      "after": 99,
+      "page": "nouns/chore",
+      "contains": [
+        "Water the plants",
+        "Memos (1)",
+        "see the shelf",
+        "Steps (chore) (1)",
+        "fill the can",
+        "History (0)"
+      ]
+    },
+    {
+      "page": "nouns/chore",
+      "contains": [
+        "Water the ferns",
+        "History (1)"
+      ],
+      "after": 102
+    },
+    {
+      "after": 106,
+      "contains": [
+        "▾ Tasks (1)"
+      ],
+      "lacks": [
+        "write"
+      ]
+    },
+    {
+      "contains": [
+        "▾ Tasks (2)",
+        "write"
+      ],
+      "after": 107
+    },
+    {
+      "after": 111,
+      "focus": "details/note.project/list/@head"
+    },
+    {
+      "after": 112,
+      "focus": "details/task.project/list/t2"
+    },
+    {
+      "after": 113,
+      "focus": "details/note.project/list/@head"
+    },
+    {
+      "after": 114,
+      "focus": "details/note.project/list/@head",
+      "contains": [
+        "▸ Notes (project) (1)"
+      ],
+      "lacks": [
+        "idea"
+      ]
+    },
+    {
+      "after": 116,
+      "lacks": [
+        "write",
+        "idea",
+        "docs"
+      ]
+    },
+    {
+      "contains": [
+        "write",
+        "idea",
+        "docs"
+      ],
+      "after": 117
+    },
+    {
+      "after": 120,
+      "modal": "",
+      "mode": "normal"
+    },
+    {
+      "after": 123,
+      "modal": "story-chooser",
+      "contains": [
+        "Pick a colour"
+      ]
+    },
+    {
+      "after": 125,
+      "modal": "",
+      "mode": "visual-line"
+    },
+    {
+      "after": 126,
+      "modal": "story-chooser"
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "after": 127
+    },
+    {
+      "after": 130,
+      "modal": "",
+      "focus": "t1",
+      "writes": [
+        "get t1",
+        "get t1",
+        "create t2 title=Original status=done"
+      ]
+    },
+    {
+      "modal": "palette-results",
+      "order": [
+        "t1",
+        "Original",
+        "done",
+        "t2",
+        "Original",
+        "done"
+      ],
+      "after": 133
+    },
+    {
+      "after": 138,
+      "modal": "edit-choose"
+    },
+    {
+      "modal": "palette-results",
+      "contains": [
+        "status",
+        "done"
+      ],
+      "lacks": [
+        "todo"
+      ],
+      "after": 143
+    },
+    {
+      "modal": "edit-choose",
+      "highlightedText": "done",
+      "after": 146
+    },
+    {
+      "after": 150,
+      "modal": "edit-choose"
+    },
+    {
+      "after": 152,
+      "modal": "",
+      "mode": "visual-line"
+    },
+    {
+      "after": 153,
+      "modal": "edit-choose",
+      "contains": [
+        "Edit 2 demos project"
+      ]
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "contains": [
+        "done on 2 rows"
+      ],
+      "after": 155
+    },
+    {
+      "after": 159,
+      "modal": "edit-choose"
+    },
+    {
+      "modal": "palette-results",
+      "contains": [
+        "status",
+        "done"
+      ],
+      "lacks": [
+        "todo"
+      ],
+      "after": 164
+    },
+    {
+      "modal": "edit-choose",
+      "contains": [
+        "Edit 2 demos project"
+      ],
+      "lacks": [
+        "Edit demo project:"
+      ],
+      "after": 168
+    },
+    {
+      "after": 172,
+      "modal": "edit-choose",
+      "contains": [
+        "Edit 2 demos project"
+      ]
+    },
+    {
+      "after": 174,
+      "modal": "",
+      "contains": [
+        "done on 2 rows"
+      ]
+    },
+    {
+      "after": 177,
+      "modal": "palette-results",
+      "contains": [
+        "project",
+        "work"
+      ]
+    },
+    {
+      "after": 181,
+      "modal": "palette-results",
+      "contains": [
+        "project",
+        "work"
+      ]
+    },
+    {
+      "modal": "palette-results",
+      "contains": [
+        "project",
+        "home"
+      ],
+      "after": 186
+    },
+    {
+      "contains": [
+        "rename was removed in R1: use edit"
+      ],
+      "after": 187
+    },
+    {
+      "after": 191,
+      "modal": "edit-form",
+      "contains": [
+        "Edit demo title",
+        "left 1 as they were"
+      ]
+    },
+    {
+      "after": 193,
+      "modal": ""
+    },
+    {
+      "after": 196,
+      "modal": "palette-results",
+      "contains": [
+        "title",
+        "Original"
+      ],
+      "lacks": [
+        "Renamed"
+      ]
+    },
+    {
+      "modal": "palette-results",
+      "contains": [
+        "title",
+        "Renamed"
+      ],
+      "after": 200
+    },
+    {
+      "contains": [
+        "no writable prop with the role owner"
+      ],
+      "after": 204
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "width": 100,
+  "height": 14,
+  "chrome": "full",
+  "page": {
+    "noHeadings": true,
+    "lists": [
+      {
+        "id": "tasks",
+        "from": true,
+        "height": -1
+      }
+    ],
+    "store": {
+      "props": [
+        {
+          "name": "id",
+          "key": true
+        },
+        {
+          "name": "title",
+          "role": "label",
+          "type": "string"
+        },
+        {
+          "name": "status",
+          "type": "string"
+        }
+      ],
+      "things": [
+        {
+          "id": "t1",
+          "title": "Water the plants",
+          "status": "todo"
+        },
+        {
+          "id": "t2",
+          "title": "Write notes",
+          "status": "todo"
+        },
+        {
+          "id": "t3",
+          "title": "Call mom",
+          "status": "todo"
+        }
+      ],
+      "copy": {
+        "change": {
+          "t1": {
+            "title": "Water the ferns",
+            "status": "done"
+          },
+          "t2": {
+            "status": "doing"
+          }
+        }
+      }
+    },
+    "bind": [
+      {
+        "noun": "demo",
+        "keys": "S",
+        "do": "demo.change-source"
+      },
+      {
+        "noun": "demo",
+        "keys": "F",
+        "do": "demo.refresh"
+      }
+    ]
+  }
+}

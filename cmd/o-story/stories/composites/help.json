@@ -1,0 +1,1815 @@
+{
+  "name": "help end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 110,
+      "height": 20,
+      "values": {
+        "help.markdown": false
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "help.markdown off (the plain docs viewer): G shows the page's end and g g its top through viewport.goto (no more ±1000000-line scrolls); ctrl+d moves half the window"
+    },
+    {
+      "width": 110,
+      "height": 40,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": ":help settings opens the generated settings page in the Markdown viewer: the build as its title, the topic above, headings and code drawn; ] h steps to the next heading; :docs-viewer open bindings replaces it in place"
+    },
+    {
+      "width": 110,
+      "height": 58,
+      "config": {
+        "settings.json": {
+          "focus-display": "stack",
+          "help.markdown": false
+        }
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "help.markdown off (the plain docs viewer): :docs-viewer open settings shows the generated settings page headed by the binary's build; :set docs.show-config=false drops only the yours lines; :help reaches it too; :docs-viewer open bindings shows the global key reference"
+    },
+    {
+      "width": 110,
+      "height": 40,
+      "values": {
+        "help.markdown": false
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "help.markdown off (the plain docs viewer): :help TOPIC while the docs viewer is open shows that topic in the same viewer: no \"already open\" error, no second viewer, esc closes it to the page"
+    },
+    {
+      "width": 110,
+      "height": 40,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "/ in the Markdown viewer (:help settings) finds the next line holding the query and puts the cursor on it; n goes on to the next match, N back"
+    },
+    {
+      "width": 110,
+      "height": 20,
+      "values": {
+        "help.markdown": false
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "help.markdown off (the plain docs viewer): scrolling the docs viewer keeps the panel's width: it is sized from the whole page, not the lines in view"
+    },
+    {
+      "width": 120,
+      "height": 40,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "g x",
+            "do": "demo.reset"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+d",
+            "do": "demo.open"
+          }
+        ]
+      },
+      "name": ":h binding opens effective keys; / filters joined key spellings, Escape clears the filter before closing, and repeated opening restores the page focus"
+    },
+    {
+      "width": 80,
+      "height": 90,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "z l",
+            "do": "demo.open"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a v",
+            "do": "demo.notify"
+          },
+          {
+            "noun": "demo",
+            "keys": "z h",
+            "do": "demo.reset"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a t",
+            "do": "demo.delete"
+          },
+          {
+            "noun": "demo",
+            "keys": "g c y",
+            "do": "notice.clear"
+          },
+          {
+            "noun": "demo",
+            "keys": "g c x",
+            "do": "demo.notify"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a N",
+            "do": "demo.open"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a n",
+            "do": "demo.reset"
+          }
+        ]
+      },
+      "name": "help tree refreshes its fold marks on a live chrome.glyphs change"
+    },
+    {
+      "width": 120,
+      "height": 40,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": "q closes the help, as it closes the docs viewer: it does not start a macro recording beneath it; esc still closes it too"
+    },
+    {
+      "width": 120,
+      "height": 80,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists the noun's places after no place, choosing one moves the header to it"
+    },
+    {
+      "width": 120,
+      "height": 40,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "S in ? help shows pick: n chooses the noun (prompt), m the mode (insert); the rows are what that noun answers there"
+    },
+    {
+      "width": 120,
+      "height": 90,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "z l",
+            "do": "demo.open"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a v",
+            "do": "demo.notify"
+          },
+          {
+            "noun": "demo",
+            "keys": "z h",
+            "do": "demo.reset"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a t",
+            "do": "demo.delete"
+          },
+          {
+            "noun": "demo",
+            "keys": "g c y",
+            "do": "notice.clear"
+          },
+          {
+            "noun": "demo",
+            "keys": "g c x",
+            "do": "demo.notify"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a N",
+            "do": "demo.open"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a n",
+            "do": "demo.reset"
+          }
+        ]
+      },
+      "name": "? help at 120 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count), open, its sequences under it sorted by key, a longer prefix's row under the one it extends; each sequence closed on its steps (R6.10, R6.9, R6.7)"
+    },
+    {
+      "width": 80,
+      "height": 90,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "z l",
+            "do": "demo.open"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a v",
+            "do": "demo.notify"
+          },
+          {
+            "noun": "demo",
+            "keys": "z h",
+            "do": "demo.reset"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a t",
+            "do": "demo.delete"
+          },
+          {
+            "noun": "demo",
+            "keys": "g c y",
+            "do": "notice.clear"
+          },
+          {
+            "noun": "demo",
+            "keys": "g c x",
+            "do": "demo.notify"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a N",
+            "do": "demo.open"
+          },
+          {
+            "noun": "demo",
+            "keys": "ctrl+a n",
+            "do": "demo.reset"
+          }
+        ]
+      },
+      "name": "? help at 80 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count), open, its sequences under it sorted by key, a longer prefix's row under the one it extends; each sequence closed on its steps (R6.10, R6.9, R6.7)"
+    },
+    {
+      "width": 110,
+      "height": 40,
+      "values": {
+        "help.markdown": false
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "help.markdown off (the plain docs viewer): ? inside the help opened over the docs viewer shows the help again in its place, not \"a modal is open above this level\"; esc goes back to the viewer, esc again to the page"
+    },
+    {
+      "width": 120,
+      "height": 40,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": "? or :bindings help while the help is open shows the help again in the same modal, for the focus it opened over: no \"already open\" error, the palette closes, esc closes it back on the row (R4.8)"
+    },
+    {
+      "width": 120,
+      "height": 90,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "g c",
+            "do": "demo.notify"
+          },
+          {
+            "noun": "demo",
+            "keys": "g c x",
+            "do": "demo.reset"
+          },
+          {
+            "noun": "demo",
+            "keys": "z l",
+            "do": "demo.open"
+          }
+        ]
+      },
+      "name": "? help: a sequence opens onto its steps, one key per line (g waits for the next key, then g c, then x runs); a plain two-key one the same; a made prefix row closes and opens on its sequences; a prefix bound alone (g c) keeps its operation and still opens (R6.10, R11.1)"
+    },
+    {
+      "width": 120,
+      "height": 40,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": "g x",
+            "do": "demo.reset"
+          }
+        ]
+      },
+      "name": "? help table: the noun's unbound verbs are rows under an unbound heading below the keys; u keeps only them, U brings the keys back, enter runs one"
+    },
+    {
+      "width": 120,
+      "height": 40,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "S S in ? help shows table: a row per key of the list noun, a column per mode, app's cells in parentheses, guarded ones marked ?"
+    },
+    {
+      "width": 110,
+      "height": 40,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "items": [
+              {
+                "id": "a1",
+                "label": "one",
+                "data": {
+                  "host": "h1"
+                }
+              }
+            ]
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.fail",
+            "description": "Always fails",
+            "error": "boom",
+            "parameters": {
+              "to": {
+                "type": "string",
+                "required": true
+              }
+            }
+          }
+        ]
+      },
+      "name": "a form opened over the help that fails to run stays open with what was typed and one plain sentence"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "docs/gg-G: help.markdown off (the plain docs viewer): G shows the page's end and g g its top through viewport.goto (no more ±1000000-line scrolls); ctrl+d moves half the window"
+    },
+    ":",
+    {
+      "type": "docs-viewer open index"
+    },
+    "enter",
+    "G",
+    "g",
+    "g",
+    "ctrl+d",
+    {
+      "key": "ctrl+alt+n",
+      "note": "docs/markdown-viewer: :help settings opens the generated settings page in the Markdown viewer: the build as its title, the topic above, headings and code drawn; ] h steps to the next heading; :docs-viewer open bindings replaces it in place"
+    },
+    ":",
+    {
+      "type": "help settings"
+    },
+    "enter",
+    "]",
+    "h",
+    ":",
+    {
+      "type": "docs-viewer open bindings"
+    },
+    "enter",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "docs/open-settings: help.markdown off (the plain docs viewer): :docs-viewer open settings shows the generated settings page headed by the binary's build; :set docs.show-config=false drops only the yours lines; :help reaches it too; :docs-viewer open bindings shows the global key reference"
+    },
+    ":",
+    {
+      "type": "docs-viewer open settings"
+    },
+    "enter",
+    "j",
+    "/",
+    {
+      "type": "### `focus-display`"
+    },
+    "enter",
+    "esc",
+    ":",
+    {
+      "type": "set docs.show-config=false"
+    },
+    "enter",
+    ":",
+    {
+      "type": "help settings"
+    },
+    "enter",
+    "/",
+    {
+      "type": "choices `off`, `noun`, `stack`"
+    },
+    "enter",
+    "esc",
+    ":",
+    {
+      "type": "docs-viewer open bindings"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "docs/reopen-while-open: help.markdown off (the plain docs viewer): :help TOPIC while the docs viewer is open shows that topic in the same viewer: no \"already open\" error, no second viewer, esc closes it to the page"
+    },
+    ":",
+    {
+      "type": "docs-viewer open bindings"
+    },
+    "enter",
+    "j",
+    "j",
+    ":",
+    {
+      "type": "help settings"
+    },
+    "enter",
+    ":",
+    {
+      "type": "h index"
+    },
+    "enter",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "docs/slash-finds: / in the Markdown viewer (:help settings) finds the next line holding the query and puts the cursor on it; n goes on to the next match, N back"
+    },
+    ":",
+    {
+      "type": "help settings"
+    },
+    "enter",
+    "/",
+    {
+      "type": "search.open-folds"
+    },
+    "enter",
+    "n",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "docs/width-steady-scroll: help.markdown off (the plain docs viewer): scrolling the docs viewer keeps the panel's width: it is sized from the whole page, not the lines in view"
+    },
+    ":",
+    {
+      "type": "docs-viewer open index"
+    },
+    "enter",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/command-bindings-filter-escape: :h binding opens effective keys; / filters joined key spellings, Escape clears the filter before closing, and repeated opening restores the page focus"
+    },
+    ":",
+    {
+      "type": "h binding"
+    },
+    "enter",
+    "/",
+    {
+      "type": "gx"
+    },
+    "esc",
+    "q",
+    ":",
+    {
+      "type": "h binding"
+    },
+    "enter",
+    "/",
+    {
+      "type": "no-such-binding"
+    },
+    "esc",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/help-tree-glyphs-live: help tree refreshes its fold marks on a live chrome.glyphs change"
+    },
+    "?",
+    ":",
+    {
+      "type": "set chrome.glyphs=nerd"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/leave-with-q: q closes the help, as it closes the docs viewer: it does not start a macro recording beneath it; esc still closes it too"
+    },
+    "?",
+    "q",
+    "?",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/pick-place: S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists the noun's places after no place, choosing one moves the header to it"
+    },
+    "?",
+    "S",
+    "p",
+    "n",
+    "o",
+    "enter",
+    "p",
+    "c",
+    "o",
+    "l",
+    "l",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/pick-view: S in ? help shows pick: n chooses the noun (prompt), m the mode (insert); the rows are what that noun answers there"
+    },
+    "?",
+    "S",
+    "n",
+    "p",
+    "r",
+    "o",
+    "m",
+    "p",
+    "t",
+    "enter",
+    "m",
+    "i",
+    "n",
+    "s",
+    "e",
+    "r",
+    "t",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/prefix-columns-120: ? help at 120 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count), open, its sequences under it sorted by key, a longer prefix's row under the one it extends; each sequence closed on its steps (R6.10, R6.9, R6.7)"
+    },
+    "?",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/prefix-columns-80: ? help at 80 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count), open, its sequences under it sorted by key, a longer prefix's row under the one it extends; each sequence closed on its steps (R6.10, R6.9, R6.7)"
+    },
+    "?",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/reopen-over-docs: help.markdown off (the plain docs viewer): ? inside the help opened over the docs viewer shows the help again in its place, not \"a modal is open above this level\"; esc goes back to the viewer, esc again to the page"
+    },
+    ":",
+    {
+      "type": "help"
+    },
+    "enter",
+    "?",
+    "?",
+    "q",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/reopen-while-open: ? or :bindings help while the help is open shows the help again in the same modal, for the focus it opened over: no \"already open\" error, the palette closes, esc closes it back on the row (R4.8)"
+    },
+    "?",
+    "?",
+    ":",
+    {
+      "type": "binding help"
+    },
+    "enter",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/sequence-steps: ? help: a sequence opens onto its steps, one key per line (g waits for the next key, then g c, then x runs); a plain two-key one the same; a made prefix row closes and opens on its sequences; a prefix bound alone (g c) keeps its operation and still opens (R6.10, R11.1)"
+    },
+    "?",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "h",
+    "j",
+    "j",
+    "j",
+    "j",
+    "l",
+    "k",
+    "k",
+    "k",
+    "k",
+    "k",
+    "k",
+    "h",
+    "l",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/table-unbound: ? help table: the noun's unbound verbs are rows under an unbound heading below the keys; u keeps only them, U brings the keys back, enter runs one"
+    },
+    "?",
+    "S",
+    "S",
+    "n",
+    "d",
+    "e",
+    "m",
+    "o",
+    "enter",
+    "G",
+    "u",
+    "S",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/table-view-120: S S in ? help shows table: a row per key of the list noun, a column per mode, app's cells in parentheses, guarded ones marked ?"
+    },
+    "?",
+    "S",
+    "S",
+    "n",
+    "c",
+    "o",
+    "l",
+    "l",
+    "enter",
+    "j",
+    {
+      "key": "ctrl+alt+n",
+      "note": "help/unbound-bind-conflict-keeps-form: a form opened over the help that fails to run stays open with what was typed and one plain sentence"
+    },
+    "?",
+    "/",
+    {
+      "type": "demo.fail"
+    },
+    "enter",
+    "a",
+    {
+      "type": "mars"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "modal": "docs-viewer",
+      "contains": [
+        "index · 1–"
+      ]
+    },
+    {
+      "after": 5,
+      "modal": "docs-viewer",
+      "contains": [
+        "index · 10–19 / 19"
+      ]
+    },
+    {
+      "after": 7,
+      "modal": "docs-viewer",
+      "contains": [
+        "index · 1–"
+      ]
+    },
+    {
+      "modal": "docs-viewer",
+      "mode": "normal",
+      "lacks": [
+        "index · 1–"
+      ],
+      "after": 8
+    },
+    {
+      "after": 12,
+      "modal": "markdown-view",
+      "contains": [
+        "settings",
+        "Settings"
+      ],
+      "lacks": [
+        "docs-viewer"
+      ]
+    },
+    {
+      "after": 17,
+      "modal": "markdown-view",
+      "contains": [
+        "bindings",
+        "Default key bindings"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "after": 18
+    },
+    {
+      "after": 22,
+      "modal": "docs-viewer",
+      "contains": [
+        "settings · 1–",
+        "# Settings"
+      ]
+    },
+    {
+      "after": 23,
+      "modal": "docs-viewer",
+      "contains": [
+        "settings · 2–"
+      ]
+    },
+    {
+      "after": 26,
+      "modal": "docs-viewer",
+      "contains": [
+        "### `focus-display`",
+        "> yours: `stack` (settings.json)"
+      ]
+    },
+    {
+      "after": 27,
+      "lacks": [
+        "# Settings"
+      ]
+    },
+    {
+      "after": 36,
+      "modal": "docs-viewer",
+      "contains": [
+        "### `focus-display`",
+        "string · default `off` · choices `off`, `noun`, `stack`"
+      ],
+      "lacks": [
+        "yours:"
+      ]
+    },
+    {
+      "modal": "docs-viewer",
+      "contains": [
+        "bindings · 1–",
+        "# Default key bindings"
+      ],
+      "after": 40
+    },
+    {
+      "after": 44,
+      "modal": "docs-viewer",
+      "contains": [
+        "bindings · 1–",
+        "# Default key bindings"
+      ]
+    },
+    {
+      "after": 49,
+      "modal": "docs-viewer",
+      "contains": [
+        "settings · 1–",
+        "# Settings"
+      ],
+      "lacks": [
+        "already open",
+        "# Default key bindings"
+      ]
+    },
+    {
+      "after": 52,
+      "modal": "docs-viewer",
+      "contains": [
+        "index"
+      ],
+      "lacks": [
+        "already open",
+        "# Settings"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "lacks": [
+        "already open"
+      ],
+      "after": 53
+    },
+    {
+      "after": 57,
+      "modal": "markdown-view"
+    },
+    {
+      "after": 59,
+      "modal": "find-line",
+      "contains": [
+        "/search.open-folds"
+      ]
+    },
+    {
+      "after": 60,
+      "modal": "markdown-view",
+      "highlightedText": "search.open-folds"
+    },
+    {
+      "after": 61,
+      "modal": "markdown-view",
+      "highlightedText": "search.open-folds"
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "after": 62
+    },
+    {
+      "after": 66,
+      "modal": "docs-viewer",
+      "contains": [
+        "index · 1–"
+      ]
+    },
+    {
+      "after": 68,
+      "contains": [
+        "index · 3–"
+      ]
+    },
+    {
+      "after": 70,
+      "contains": [
+        "index · 5–"
+      ]
+    },
+    {
+      "after": 72,
+      "contains": [
+        "index · 7–"
+      ]
+    },
+    {
+      "modal": "docs-viewer",
+      "contains": [
+        "index · 10–19 / 19"
+      ],
+      "after": 76
+    },
+    {
+      "after": 80,
+      "modal": "bindings-help",
+      "mode": "normal",
+      "contains": [
+        "g x",
+        "ctrl+d"
+      ]
+    },
+    {
+      "after": 82,
+      "modal": "bindings-help",
+      "mode": "list_filter",
+      "contains": [
+        "/gx",
+        "g x",
+        "demo.reset"
+      ],
+      "lacks": [
+        "ctrl+d"
+      ]
+    },
+    {
+      "after": 83,
+      "modal": "bindings-help",
+      "mode": "normal",
+      "contains": [
+        "g x",
+        "ctrl+d"
+      ]
+    },
+    {
+      "after": 84,
+      "modal": "",
+      "focus": "a1",
+      "mode": "normal"
+    },
+    {
+      "after": 89,
+      "modal": "bindings-help",
+      "mode": "list_filter",
+      "contains": [
+        "/no-such-binding"
+      ]
+    },
+    {
+      "after": 90,
+      "modal": "bindings-help",
+      "mode": "normal",
+      "contains": [
+        "g x",
+        "ctrl+d"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "mode": "normal",
+      "after": 91
+    },
+    {
+      "contains": [
+        ""
+      ],
+      "lacks": [
+        "▾",
+        "▸"
+      ],
+      "after": 96
+    },
+    {
+      "after": 98,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys"
+      ]
+    },
+    {
+      "after": 99,
+      "modal": "",
+      "focus": "a2",
+      "mode": "normal",
+      "lacks": [
+        "recording"
+      ]
+    },
+    {
+      "after": 100,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a2",
+      "mode": "normal",
+      "after": 101
+    },
+    {
+      "after": 104,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys · pick",
+        "noun: demo · mode: normal · place: page1 › demo › collection",
+        "space         collection.mark ?",
+        "p place"
+      ]
+    },
+    {
+      "after": 105,
+      "contains": [
+        "Place",
+        "no place (noun + app)",
+        "page1 › demo › collection  1×  current"
+      ]
+    },
+    {
+      "after": 108,
+      "modal": "bindings-help",
+      "contains": [
+        "noun: demo · mode: normal · place: none"
+      ],
+      "lacks": [
+        "space         collection.mark ?"
+      ]
+    },
+    {
+      "after": 114,
+      "modal": "bindings-help",
+      "contains": [
+        "noun: demo · mode: normal · place: page1 › demo › collection",
+        "space         collection.mark ?"
+      ]
+    },
+    {
+      "after": 114,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "Keys · pick",
+        "noun: demo · mode: normal · place: page1 › demo › collection",
+        "key",
+        "operation",
+        "arguments",
+        "description",
+        "demo",
+        "app.quit",
+        "Exit the application",
+        "demo.reset",
+        "Rebuild the story from",
+        "its file",
+        "enter",
+        "demo.open",
+        "Open the row: attach",
+        "the fake pane when the",
+        "story has one for it",
+        "demo.notify",
+        "Add a persistent",
+        "notice naming the row",
+        "demo.delete",
+        "Remove the row from",
+        "its list",
+        "demo · unbound",
+        "demo.check",
+        "Toggle a [x] mark on",
+        "the outline row, an",
+        "application change on",
+        "the outline's undo",
+        "stack",
+        "demo.choose",
+        "Open the page's story",
+        "chooser again",
+        "demo.finish",
+        "Finish (or fail) the",
+        "oldest running job of",
+        "a demo verb",
+        "demo.guide",
+        "Answer a Markdown",
+        "guide: a Markdown",
+        "result, opened in the",
+        "palette's Markdown",
+        "viewer (help.markdown)",
+        "demo.hide",
+        "Stop drawing a list,",
+        "tree, input or the",
+        "timeline (by id), or",
+        "draw it again: a tab",
+        "switched away from it",
+        "demo.mapping",
+        "Answer a JSON mapping:",
+        "a multiline text",
+        "palette's text view",
+        "demo.ping",
+        "Add a notice saying",
+        "ping and the row",
+        "demo.program",
+        "Answer a one-line jq",
+        "program: a text",
+        "demo.usage",
+        "Answer a --help page:",
+        "a preformatted result,",
+        "drawn as written in",
+        "the palette's viewer",
+        "(help.markdown)",
+        "collection",
+        "space",
+        "collection.mark ?",
+        "when list-marks ·",
+        "Toggle the mark on a",
+        "row (the selected row",
+        "by default) for fan-",
+        "out verbs",
+        "space collection.mark · S view · n noun · m mode · p place · enter run · a args · q modal.c…",
+        "space collection.mark · S view · n noun · m mode · p place · enter run · a args · q modal.close · : palette.open · …"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 133,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "Keys · pick",
+        "noun: prompt · mode: insert · place: none",
+        "key",
+        "operation",
+        "arguments",
+        "description",
+        "prompt",
+        "esc",
+        "normal ?",
+        "mode normal",
+        "when input-unpinned · Switch the",
+        "global interaction mode (a",
+        "registered mode, or declared:",
+        "the mode the focus declares,",
+        "normal if none) and clear any",
+        "pending payload",
+        "app",
+        "ctrl+c",
+        "app.quit ?",
+        "when no-modal · Exit the",
+        "application",
+        "ctrl+space",
+        "palette.open",
+        "Open the command line",
+        "app.quit",
+        "Exit the application",
+        "editor",
+        "mode.switch",
+        "mode declared",
+        "Switch the global interaction",
+        "mode (a registered mode, or",
+        "declared: the mode the focus",
+        "declares, normal if none) and",
+        "clear any pending payload",
+        "tab",
+        "completion.open ?",
+        "when completion-available ·",
+        "Offer suggestions for the",
+        "trigger token at the cursor now",
+        "ctrl+k",
+        "input.kill ?",
+        "motion line-end",
+        "when input-writable · Kill",
+        "preceding WORD/path component,",
+        "space collection.mark · S view · n noun · m mode · enter run · a args · q modal.close · : p…",
+        "space collection.mark · S view · n noun · m mode · enter run · a args · q modal.close · : palette.open · ? binding.…"
+      ],
+      "highlighted": 6,
+      "dimmed": 1
+    },
+    {
+      "after": 135,
+      "modal": "bindings-help",
+      "contains": [
+        "▾ z",
+        "▸ z h",
+        "▾ ctrl+a",
+        "▸ ctrl+a n",
+        "▸ ctrl+a v",
+        "▾ g",
+        "▾ g c",
+        "▸ g c x",
+        "▸ g c y",
+        "waits for",
+        "arguments"
+      ],
+      "lacks": [
+        "▸ z\n"
+      ]
+    },
+    {
+      "after": 135,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "Keys · here",
+        "key",
+        "operation",
+        "arguments",
+        "description",
+        "demo",
+        "app.quit",
+        "Exit the application",
+        "demo.reset",
+        "Rebuild the story from its file",
+        "enter",
+        "demo.open",
+        "Open the row: attach the fake",
+        "pane when the story has one for",
+        "demo.notify",
+        "Add a persistent notice naming",
+        "the row",
+        "demo.delete",
+        "Remove the row from its list",
+        "▾ z",
+        "waits for the next key (2 keys)",
+        "▸ z h",
+        "▸ z l",
+        "▸ z esc",
+        "mode.leave",
+        "Return from a pending mode to",
+        "the mode it shadowed",
+        "▾ ctrl+a",
+        "waits for the next key (4 keys)",
+        "▸ ctrl+a n",
+        "▸ ctrl+a N",
+        "▸ ctrl+a t",
+        "▸ ctrl+a v",
+        "▸ ctrl+a esc",
+        "▾ g",
+        "▾ g c",
+        "▸ g c x",
+        "▸ g c y",
+        "notice.clear",
+        "Clear the persistent notices",
+        "from the footer",
+        "▸ g c esc",
+        "▸ g esc",
+        "demo · unbound",
+        "demo.check",
+        "Toggle a [x] mark on the",
+        "outline row, an application",
+        "change on the outline's undo",
+        "stack",
+        "demo.choose",
+        "Open the page's story chooser",
+        "again",
+        "demo.finish",
+        "Finish (or fail) the oldest",
+        "running job of a demo verb",
+        "demo.guide",
+        "Answer a Markdown guide: a",
+        "Markdown result, opened in the",
+        "palette's Markdown viewer",
+        "(help.markdown)",
+        "demo.hide",
+        "Stop drawing a list, tree,",
+        "input or the timeline (by id),",
+        "or draw it again: a tab",
+        "switched away from it",
+        "demo.mapping",
+        "Answer a JSON mapping: a",
+        "multiline text result, opened",
+        "in the palette's text view",
+        "demo.ping",
+        "Add a notice saying ping and",
+        "demo.program",
+        "Answer a one-line jq program: a",
+        "text result, opened in the",
+        "palette's text view",
+        "space collection.mark · S view · enter run · a args · q modal.close · : palette.open · ? bi…",
+        "space collection.mark · S view · enter run · a args · q modal.close · : palette.open · ? binding.help · / filter"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 137,
+      "modal": "bindings-help",
+      "contains": [
+        "▾ z",
+        "▸ z h",
+        "▾ ctrl+a",
+        "▸ ctrl+a n",
+        "waits for"
+      ],
+      "lacks": [
+        "▸ z\n"
+      ]
+    },
+    {
+      "after": 137,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "Keys · here",
+        "key",
+        "operation",
+        "arguments",
+        "description",
+        "demo",
+        "app.quit",
+        "Exit the",
+        "application",
+        "demo.reset",
+        "Rebuild the",
+        "story from",
+        "its file",
+        "enter",
+        "demo.open",
+        "Open the",
+        "row: attach",
+        "the fake",
+        "pane when",
+        "the story",
+        "has one for",
+        "demo.notify",
+        "Add a",
+        "persistent",
+        "notice",
+        "naming the",
+        "row",
+        "demo.delete",
+        "Remove the",
+        "row from its",
+        "list",
+        "▾ z",
+        "waits for",
+        "the next key",
+        "(2 keys)",
+        "▸ z h",
+        "▸ z l",
+        "▸ z esc",
+        "mode.leave",
+        "Return from",
+        "a pending",
+        "mode to the",
+        "mode it",
+        "shadowed",
+        "▾ ctrl+a",
+        "(4 keys)",
+        "▸ ctrl+a n",
+        "▸ ctrl+a N",
+        "▸ ctrl+a t",
+        "▸ ctrl+a v",
+        "▸ ctrl+a",
+        "space collection.mark · S view · enter run · a args · q mod…",
+        "space collection.mark · S view · enter run · a args · q modal.close · : pal…"
+      ],
+      "highlighted": 2,
+      "dimmed": 1
+    },
+    {
+      "after": 141,
+      "modal": "docs-viewer",
+      "contains": [
+        "index"
+      ]
+    },
+    {
+      "after": 142,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys",
+        "modal.close"
+      ]
+    },
+    {
+      "after": 143,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys",
+        "modal.close"
+      ],
+      "lacks": [
+        "modal is open above",
+        "already open"
+      ]
+    },
+    {
+      "after": 144,
+      "modal": "docs-viewer",
+      "contains": [
+        "index"
+      ],
+      "lacks": [
+        "modal is open above"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "lacks": [
+        "modal is open above"
+      ],
+      "after": 145
+    },
+    {
+      "after": 147,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys"
+      ]
+    },
+    {
+      "after": 148,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys",
+        "demo.open"
+      ],
+      "lacks": [
+        "already open"
+      ]
+    },
+    {
+      "after": 151,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys",
+        "demo.open"
+      ],
+      "lacks": [
+        "already open"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a2",
+      "mode": "normal",
+      "lacks": [
+        "already open"
+      ],
+      "after": 152
+    },
+    {
+      "after": 154,
+      "modal": "bindings-help",
+      "contains": [
+        "▾ g",
+        "▾ g c",
+        "▸ g c x",
+        "▸ z l",
+        "demo.notify"
+      ],
+      "lacks": [
+        "(g c …)"
+      ]
+    },
+    {
+      "after": 162,
+      "contains": [
+        "▾ g c x",
+        "(g …)",
+        "(g c …)"
+      ]
+    },
+    {
+      "after": 163,
+      "contains": [
+        "▸ g c x"
+      ],
+      "lacks": [
+        "(g c …)"
+      ]
+    },
+    {
+      "after": 168,
+      "contains": [
+        "▾ z l",
+        "(z …)"
+      ]
+    },
+    {
+      "after": 175,
+      "contains": [
+        "▸ g"
+      ],
+      "lacks": [
+        "g c x",
+        "▾ g c"
+      ]
+    },
+    {
+      "after": 176,
+      "modal": "bindings-help",
+      "contains": [
+        "▾ g",
+        "▸ g c x"
+      ]
+    },
+    {
+      "after": 176,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "Keys · here",
+        "key",
+        "operation",
+        "arguments",
+        "description",
+        "demo",
+        "app.quit",
+        "Exit the application",
+        "demo.reset",
+        "Rebuild the story from its file",
+        "enter",
+        "demo.open",
+        "Open the row: attach the fake",
+        "pane when the story has one for",
+        "demo.notify",
+        "Add a persistent notice naming",
+        "the row",
+        "demo.delete",
+        "Remove the row from its list",
+        "▾ g",
+        "waits for the next key (2 keys)",
+        "▾ g c",
+        "▸ g c x",
+        "▸ g c esc",
+        "mode.leave",
+        "Return from a pending mode to",
+        "the mode it shadowed",
+        "▸ g esc",
+        "▾ z",
+        "waits for the next key (1 key)",
+        "▾ z l",
+        "waits for the next key (z …)",
+        "▸ z esc",
+        "demo · unbound",
+        "demo.check",
+        "Toggle a [x] mark on the",
+        "outline row, an application",
+        "change on the outline's undo",
+        "stack",
+        "demo.choose",
+        "Open the page's story chooser",
+        "again",
+        "demo.finish",
+        "Finish (or fail) the oldest",
+        "running job of a demo verb",
+        "demo.guide",
+        "Answer a Markdown guide: a",
+        "Markdown result, opened in the",
+        "palette's Markdown viewer",
+        "(help.markdown)",
+        "demo.hide",
+        "Stop drawing a list, tree,",
+        "input or the timeline (by id),",
+        "or draw it again: a tab",
+        "switched away from it",
+        "demo.mapping",
+        "Answer a JSON mapping: a",
+        "multiline text result, opened",
+        "in the palette's text view",
+        "demo.ping",
+        "Add a notice saying ping and",
+        "demo.program",
+        "Answer a one-line jq program: a",
+        "text result, opened in the",
+        "palette's text view",
+        "demo.usage",
+        "Answer a --help page: a",
+        "preformatted result, drawn as",
+        "written in the palette's viewer",
+        "collection",
+        "space",
+        "collection.mark",
+        "Toggle the mark on a row (the",
+        "selected row by default) for",
+        "fan-out verbs",
+        "collection.visual",
+        "Start a visual row selection at",
+        "space collection.mark · S view · q modal.close · : palette.open · ? binding.help · / filter"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 186,
+      "modal": "bindings-help",
+      "contains": [
+        "Keys · table"
+      ]
+    },
+    {
+      "after": 187,
+      "contains": [
+        "unbound",
+        "demo.",
+        "check"
+      ]
+    },
+    {
+      "after": 188,
+      "contains": [
+        "unbound = true",
+        "unbound",
+        ".usage"
+      ],
+      "lacks": [
+        "ctrl+d"
+      ]
+    },
+    {
+      "after": 189,
+      "contains": [
+        "Keys · here",
+        "unbound"
+      ]
+    },
+    {
+      "after": 189,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "Keys · here",
+        "key",
+        "operation",
+        "arguments",
+        "description",
+        "demo",
+        "app.quit",
+        "Exit the application",
+        "demo.reset",
+        "Rebuild the story from its file",
+        "enter",
+        "demo.open",
+        "Open the row: attach the fake",
+        "pane when the story has one for",
+        "demo.notify",
+        "Add a persistent notice naming",
+        "the row",
+        "demo.delete",
+        "Remove the row from its list",
+        "▾ g",
+        "waits for the next key (1 key)",
+        "▸ g x",
+        "▸ g esc",
+        "mode.leave",
+        "Return from a pending mode to",
+        "the mode it shadowed",
+        "demo · unbound",
+        "demo.check",
+        "Toggle a [x] mark on the",
+        "outline row, an application",
+        "change on the outline's undo",
+        "stack",
+        "demo.choose",
+        "Open the page's story chooser",
+        "again",
+        "demo.finish",
+        "Finish (or fail) the oldest",
+        "running job of a demo verb",
+        "demo.guide",
+        "Answer a Markdown guide: a",
+        "Markdown result, opened in the",
+        "space collection.mark · S view · enter run · a args · q modal.close · : palette.open · ? bi…",
+        "space collection.mark · S view · enter run · a args · q modal.close · : palette.open · ? binding.help · / filter"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 200,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "Keys · table",
+        "noun: collection · place: page1 › demo · .verb is collection.verb · (op) answered by app · …",
+        "key",
+        "normal",
+        "list_filter",
+        "visual",
+        "visual-block",
+        "visual-line",
+        ".column?",
+        ".goto",
+        ".visual?",
+        ".yank?",
+        "backspace",
+        ".filter-keep?",
+        "ctrl+b",
+        ".scroll",
+        "ctrl+d",
+        "ctrl+f",
+        "ctrl+h",
+        "ctrl+n",
+        ".move?",
+        "collection.column when no-count · collection",
+        "to first",
+        "then collection.scroll-columns when row-table-no-count · collection",
+        "then viewport.goto when no-count · app",
+        "edge first-col",
+        "space collection.mark · S view · n noun · p place · s sort key · q modal.close · : palette.…",
+        "space collection.mark · S view · n noun · p place · s sort key · q modal.close · : palette.open · ? binding.help · …"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "modal": "args-form",
+      "contains": [
+        "boom",
+        "mars"
+      ],
+      "lacks": [
+        "modal is open above"
+      ],
+      "after": 208
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "width": 110,
+  "height": 20,
+  "values": {
+    "help.markdown": false
+  },
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ]
+  }
+}

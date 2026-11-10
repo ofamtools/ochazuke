@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -14,12 +13,18 @@ import (
 
 func TestChooserMatchKeepsPanelInkAndOneBar(t *testing.T) {
 	t.Parallel()
-	path := "stories/chrome/bar-one-run-dark.json"
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s, err := story.Parse(data, path)
+	s, err := story.Parse([]byte(`{
+		"name": "chooser panel ink", "width": 72, "height": 20,
+		"theme": "dark", "values": {"chrome.color": "rich"},
+		"page": {"layout": "panels", "noHeadings": true,
+			"lists": [{"id": "working", "rows": 2, "panelTone": "state.working"}],
+			"chooser": {"kind": "pick", "title": "Projects", "rows": [
+				{"id": "a", "label": "ochazuke framework"},
+				{"id": "b", "label": "ochazuke examples"},
+				{"id": "c", "label": "monogatari stories"}
+			]}},
+		"script": [{"type": "oz"}, "ctrl+n"]
+	}`), "chooser panel ink")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,5 +75,46 @@ func TestChooserMatchKeepsPanelInkAndOneBar(t *testing.T) {
 		if !found {
 			t.Fatalf("frame lacks %q", text)
 		}
+	}
+}
+
+// Compare the visible geometry while scrolling, not a literal border length
+// tied to the build stamp or generated reference inventory.
+func TestDocsViewerKeepsWidthWhileScrolling(t *testing.T) {
+	s, err := story.Parse([]byte(`{
+		"name": "docs width", "width": 110, "height": 20,
+		"values": {"help.markdown": false},
+		"page": {"lists": [{"id": "a", "rows": 2}]},
+		"script": [":", {"type": "docs-viewer open index"}, "enter",
+			"j", "j", "j", "j", "j", "j", "j", "j", "j", "j"]
+	}`), "docs width")
+	if err != nil {
+		t.Fatal(err)
+	}
+	width := 0
+	res := (story.Library{Apps: hostApps}).Run(s, story.RunOptions{Observe: func(p story.RunPosition) {
+		if p.After < 3 {
+			return
+		}
+		if p.Session.R.TopModal() != "docs-viewer" {
+			t.Fatalf("after %d: docs viewer closed", p.After)
+		}
+		for _, line := range strings.Split(ansi.Strip(p.Session.Frame()), "\n") {
+			start, end := strings.Index(line, "╭"), strings.LastIndex(line, "╮")
+			if start < 0 || end < start {
+				continue
+			}
+			got := ansi.StringWidth(line[start : end+len("╮")])
+			if width == 0 {
+				width = got
+			} else if got != width {
+				t.Errorf("after %d: panel width %d, opened at %d", p.After, got, width)
+			}
+			return
+		}
+		t.Fatalf("after %d: no visible docs panel", p.After)
+	}})
+	if res.Err != nil {
+		t.Fatal(res.Err)
 	}
 }

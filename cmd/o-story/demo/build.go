@@ -47,6 +47,9 @@ type session struct {
 	all []*Page
 	// filesDir is the temp file tree of a story with Files.
 	filesDir string
+	// restoreCheckpoint returns a partial recording's initial story to the
+	// opening fixture when the person leaves, not during a host reset.
+	restoreCheckpoint func()
 
 	pages map[string]*Page
 	lists map[string]*ochazuke.Collection
@@ -137,6 +140,10 @@ func build(env monogatari.Env) (monogatari.Built, error) {
 		if open == "" || p.Open {
 			open = id
 		}
+	}
+	if err := ss.checkpoints(); err != nil {
+		ss.close()
+		return monogatari.Built{}, err
 	}
 	if err := ss.open1(open); err != nil {
 		ss.close()
@@ -287,6 +294,9 @@ func (ss *session) close() {
 	select {
 	case <-ss.done:
 	default:
+		if ss.R.Quit && ss.restoreCheckpoint != nil {
+			ss.restoreCheckpoint()
+		}
 		close(ss.done)
 	}
 }

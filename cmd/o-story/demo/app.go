@@ -16,7 +16,7 @@ func App() monogatari.App {
 	return monogatari.App{
 		Name:     Demo,
 		Summary:  "ochazuke's components on synthetic pages (the story's page and pages)",
-		Fields:   []string{"page", "pages"},
+		Fields:   []string{"page", "pages", "checkpoints"},
 		Expected: Expected,
 		Fixtures: []monogatari.Fixture{{
 			Name:    "pages",

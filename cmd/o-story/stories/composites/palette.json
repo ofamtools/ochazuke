@@ -1,0 +1,2740 @@
+{
+  "name": "palette end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 100,
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.write",
+            "description": "Write the document",
+            "parameters": {
+              "path": {
+                "type": "string",
+                "required": true,
+                "description": "Where to write"
+              },
+              "force": {
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      },
+      "config": {
+        "actions.json": [
+          {
+            "alias": "w!",
+            "action": "demo.write",
+            "args": {
+              "force": true
+            }
+          }
+        ],
+        "bindings.json": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "W",
+            "request": {
+              "noun": "demo",
+              "verb": "w!"
+            }
+          }
+        ]
+      },
+      "name": "an alias whose preset leaves a required argument out (w! is demo.write {force: true}, path required) loads; its key and its palette word open the args form for path, and a typed path runs it (esc comes back to the line as typed)"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "alpha"
+              },
+              {
+                "id": "b",
+                "label": "beta"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "dot-repeat: after typing in an inline line that has closed, . never replays the typing outside an input (R9.5)"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "settings": [
+        {
+          "name": "repeat.empty",
+          "type": "string",
+          "default": "silent",
+          "enum": [
+            "info",
+            "silent"
+          ]
+        }
+      ],
+      "name": "dot-repeat: with repeat.empty silent, . with nothing to repeat shows nothing"
+    },
+    {
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ]
+      },
+      "name": "dot-repeat: . with nothing to repeat says so plainly, never as an Error (R6.4; repeat.empty info, the default)"
+    },
+    {
+      "width": 120,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.add-base",
+            "description": "Add a project base",
+            "aliases": [
+              {
+                "alias": "demo.base.add",
+                "since": "v0.27.0",
+                "removeAfter": "v0.28.0"
+              }
+            ]
+          }
+        ]
+      },
+      "config": {
+        "bindings.json": [
+          {
+            "noun": "demo",
+            "mode": "normal",
+            "keys": "B",
+            "request": {
+              "noun": "demo",
+              "verb": "base.add"
+            }
+          }
+        ]
+      },
+      "name": "a bindings.json row on an old verb name runs the renamed verb and says so once"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.write",
+            "description": "Write the document",
+            "parameters": {
+              "force": {
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      },
+      "config": {
+        "actions.json": [
+          {
+            "alias": "demo.save",
+            "action": "demo.write",
+            "paramAliases": [
+              {
+                "alias": "overwrite",
+                "param": "force",
+                "since": "v0.58.0",
+                "removeAfter": "v0.59.0"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "an actions.json alias's old parameter name (demo save --overwrite for --force, since v0.58.0): the palette runs it as its parameter with one notice, and never completes it"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            },
+            {
+              "name": "retired",
+              "type": "boolean",
+              "role": "archive"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Archived parcel",
+              "retired": true
+            },
+            {
+              "id": "t2",
+              "title": "Live parcel",
+              "retired": false
+            }
+          ]
+        }
+      },
+      "name": "archive lists: hide by default, the archived saved filter reveals records, set @archive=false un-archives them"
+    },
+    {
+      "settings": [
+        {
+          "name": "palette.style",
+          "type": "string",
+          "default": "board",
+          "enum": [
+            "classic",
+            "board"
+          ]
+        }
+      ],
+      "width": 100,
+      "height": 26,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "nouns": [
+          {
+            "noun": "tag",
+            "verbs": [
+              "rename"
+            ]
+          },
+          {
+            "noun": "note",
+            "verbs": [
+              "tag",
+              "show"
+            ]
+          },
+          {
+            "noun": "attach",
+            "verbs": [
+              "add"
+            ]
+          }
+        ]
+      },
+      "name": "board: a word that is a noun and a verb (tag) offers both readings; choosing one shows only the other kind"
+    },
+    {
+      "settings": [
+        {
+          "name": "palette.style",
+          "type": "string",
+          "default": "board",
+          "enum": [
+            "classic",
+            "board"
+          ]
+        }
+      ],
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "nouns": [
+          {
+            "noun": "quad",
+            "verbs": [
+              "warp",
+              "wipe"
+            ]
+          },
+          {
+            "noun": "quill",
+            "verbs": [
+              "wipe"
+            ]
+          }
+        ]
+      },
+      "name": "board: backspace after a committed word takes the word back to the first layer"
+    },
+    {
+      "settings": [
+        {
+          "name": "palette.style",
+          "type": "string",
+          "default": "board",
+          "enum": [
+            "classic",
+            "board"
+          ]
+        }
+      ],
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "nouns": [
+          {
+            "noun": "quad",
+            "verbs": [
+              "warp",
+              "wipe"
+            ]
+          },
+          {
+            "noun": "quill",
+            "verbs": [
+              "wipe"
+            ]
+          }
+        ]
+      },
+      "name": "board: backspace and esc go back a layer; esc from an empty line closes"
+    },
+    {
+      "settings": [
+        {
+          "name": "palette.style",
+          "type": "string",
+          "default": "board",
+          "enum": [
+            "classic",
+            "board"
+          ]
+        }
+      ],
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "nouns": [
+          {
+            "noun": "quad",
+            "verbs": [
+              "warp",
+              "wipe"
+            ]
+          },
+          {
+            "noun": "quill",
+            "verbs": [
+              "wipe"
+            ]
+          }
+        ]
+      },
+      "name": "board: letters narrow the cells and the one cell left commits itself; the second word is a verb of that noun and runs when one is left"
+    },
+    {
+      "settings": [
+        {
+          "name": "palette.style",
+          "type": "string",
+          "default": "board",
+          "enum": [
+            "classic",
+            "board"
+          ]
+        }
+      ],
+      "width": 100,
+      "height": 20,
+      "theme": "dark",
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "nouns": [
+          {
+            "noun": "context-item",
+            "verbs": [
+              "show"
+            ]
+          },
+          {
+            "noun": "cmd.cmd",
+            "verbs": [
+              "show"
+            ]
+          },
+          {
+            "noun": "cmd.job",
+            "verbs": [
+              "show"
+            ]
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.copy",
+            "description": "Copy"
+          }
+        ]
+      },
+      "name": "board: each cell emphasises the shortest prefix that picks it among the cells shown (con for context-item beside copy and cmd.cmd), bold and underlined"
+    },
+    {
+      "settings": [
+        {
+          "name": "palette.style",
+          "type": "string",
+          "default": "board",
+          "enum": [
+            "classic",
+            "board"
+          ]
+        }
+      ],
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 1
+          }
+        ],
+        "nouns": [
+          {
+            "noun": "quad",
+            "verbs": [
+              "warp",
+              "wipe"
+            ]
+          },
+          {
+            "noun": "quill",
+            "verbs": [
+              "wipe"
+            ]
+          }
+        ]
+      },
+      "name": "board: a verb first, then only the nouns that have it; the pair runs the same operation as noun first"
+    },
+    {
+      "width": 110,
+      "height": 30,
+      "settings": [
+        {
+          "name": "delete.archive",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "name": "delete.archive-confirm",
+          "type": "boolean",
+          "default": false
+        }
+      ],
+      "page": {
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            },
+            {
+              "name": "archived",
+              "type": "boolean",
+              "role": "archive"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "archived": false
+            }
+          ]
+        }
+      },
+      "name": "delete.archive-confirm off: delete of a live thing archives it without asking; the real delete still asks"
+    },
+    {
+      "width": 110,
+      "height": 30,
+      "settings": [
+        {
+          "name": "delete.archive",
+          "type": "boolean",
+          "default": true
+        }
+      ],
+      "page": {
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            },
+            {
+              "name": "archived",
+              "type": "boolean",
+              "role": "archive"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "archived": false
+            }
+          ]
+        }
+      },
+      "name": "delete.archive on: delete of a live thing asks Archive demo Water the plants? (delete it again to delete it for good), y archives it; delete of the archived thing asks Delete demo Water the plants?"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "dir"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "dir": "orig"
+            }
+          ]
+        }
+      },
+      "name": "edit: a word after the key is the field, never a prop's value (UX R3 F3)"
+    },
+    {
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.relocate",
+            "description": "Move a file",
+            "positional": [
+              "from",
+              "to"
+            ],
+            "parameters": {
+              "from": {
+                "type": "string",
+                "required": true,
+                "description": "The file to move"
+              },
+              "to": {
+                "type": "string",
+                "required": true,
+                "description": "Where it goes"
+              },
+              "force": {
+                "type": "boolean",
+                "description": "Overwrite what is there"
+              }
+            }
+          }
+        ]
+      },
+      "name": "the args form: required words first, the optional one marked, the typed word kept"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "files": [
+        "doc.json",
+        "undo.json"
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.load",
+            "description": "Open a file",
+            "parameters": {
+              "path": {
+                "type": "path",
+                "required": true,
+                "base": "{{files}}"
+              },
+              "mode": {
+                "type": "string",
+                "description": "How to open it"
+              }
+            }
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "e",
+            "do": "demo.load"
+          }
+        ]
+      },
+      "settings": [
+        {
+          "name": "forms.single-path",
+          "type": "string",
+          "default": "alone",
+          "enum": [
+            "chooser",
+            "alone",
+            "form"
+          ]
+        }
+      ],
+      "name": "forms.single-path alone: a missing path beside optional parameters opens the args form on the path with its chooser open, so typing (u included) reaches the path, not form.undo"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "files": [
+        "doc.json"
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.load",
+            "description": "Open a file",
+            "parameters": {
+              "path": {
+                "type": "path",
+                "required": true,
+                "base": "{{files}}"
+              }
+            }
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "e",
+            "do": "demo.load"
+          }
+        ]
+      },
+      "name": "the path chooser opened for a lone missing path: esc closes it and runs nothing"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "files": [
+        "doc.json",
+        "other.json",
+        "sub/"
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.load",
+            "description": "Open a file",
+            "parameters": {
+              "path": {
+                "type": "path",
+                "required": true,
+                "base": "{{files}}",
+                "description": "The file"
+              }
+            }
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "e",
+            "do": "demo.load"
+          }
+        ]
+      },
+      "name": "a key whose action lacks only a path opens the path chooser at once (forms.single-path chooser, the default): typing reaches it, enter on a file runs the action with it (R7.8, P9)"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "files": [
+        "doc.json",
+        "other.json"
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "verbs": [
+          {
+            "verb": "demo.load",
+            "description": "Open a file",
+            "parameters": {
+              "path": {
+                "type": "path",
+                "required": true,
+                "base": "{{files}}"
+              }
+            }
+          }
+        ],
+        "bind": [
+          {
+            "noun": "app",
+            "keys": "e",
+            "do": "demo.load"
+          }
+        ]
+      },
+      "settings": [
+        {
+          "name": "forms.single-path",
+          "type": "string",
+          "default": "form",
+          "enum": [
+            "chooser",
+            "alone",
+            "form"
+          ]
+        }
+      ],
+      "name": "forms.single-path form: a lone missing path opens the args form, with its path chooser open over it so typing reaches the path"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "t1",
+                "props": {
+                  "id": "t1"
+                }
+              },
+              {
+                "id": "t2",
+                "label": "t2",
+                "props": {
+                  "id": "t2"
+                }
+              },
+              {
+                "id": "t3",
+                "label": "t3",
+                "props": {
+                  "id": "t3"
+                }
+              }
+            ]
+          }
+        ],
+        "focus": "t2",
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "doing",
+                "done"
+              ]
+            },
+            {
+              "name": "starred",
+              "type": "boolean"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "status": "todo",
+              "starred": false
+            },
+            {
+              "id": "t2",
+              "title": "Write notes",
+              "status": "doing",
+              "starred": false
+            },
+            {
+              "id": "t3",
+              "title": "Call the plumber",
+              "status": "todo",
+              "starred": true
+            }
+          ]
+        }
+      },
+      "name": "the key word is optional and a prop follows a noun: :demo set status done writes the focused row's task (the first word is a prop, so the subject is the focus), :demo status reads it into the results view, :demo status doing --id t3 writes another (its --id word is checked against demo list)"
+    },
+    {
+      "width": 80,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": "a Markdown result (:demo guide) opens in the Markdown viewer: the heading, list and code drawn, no fences; j steps by element, y a copies the raw Markdown, q closes it back on the row"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "nouns": [
+          {
+            "noun": "json.doc",
+            "verbs": [
+              "rows"
+            ],
+            "aliases": [
+              {
+                "alias": "doc"
+              },
+              {
+                "alias": "json-doc",
+                "since": "v0.57.0",
+                "removeAfter": "v0.58.0"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "palette: a deprecated noun alias (json-doc, since v0.57.0) still runs, with one notice naming the noun, and is never completed"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "pages": [
+        {
+          "id": "ext/json",
+          "title": "JSON",
+          "lists": [
+            {
+              "id": "a",
+              "rows": 2
+            }
+          ]
+        },
+        {
+          "id": "ext/pulls",
+          "title": "Pull Requests",
+          "lists": [
+            {
+              "id": "b",
+              "rows": 2
+            }
+          ]
+        }
+      ],
+      "name": "palette: page open offers the pages' titles, not their ids, and takes a title (quoted when it holds a space)"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "nouns": [
+          {
+            "noun": "json.doc",
+            "verbs": [
+              "rows"
+            ]
+          },
+          {
+            "noun": "md.doc",
+            "verbs": [
+              "rows"
+            ]
+          }
+        ]
+      },
+      "name": "palette: punctuation narrows the reading (lexicon.punctuation): rows, md.doc is action, noun and json.doc.rows is noun.action"
+    },
+    {
+      "page": {
+        "inputs": [
+          {
+            "id": "name",
+            "label": "name",
+            "text": "hello"
+          }
+        ]
+      },
+      "name": "Q: opens the command line on the last command (Vim's command-line window, q: there); esc twice closes it and Q a still records a macro"
+    },
+    {
+      "width": 120,
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ]
+      },
+      "name": "palette list command opens read-only results table"
+    },
+    {
+      "width": 100,
+      "height": 30,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": ":setting open opens the Settings page with the focus on it; its answer opens no results modal over the page (a verb that opens a page answers nothing the palette shows), and run again on the page it opens nothing over it"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "active",
+              "type": "boolean"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "active": false,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "standard edit change: Escape keeps text and choices already written"
+    },
+    {
+      "width": 100,
+      "height": 24,
+      "values": {
+        "forms.edit-apply": "confirm"
+      },
+      "page": {
+        "focus": "t1",
+        "lists": [
+          {
+            "id": "parcels",
+            "items": [
+              {
+                "id": "t1",
+                "label": "Original",
+                "noun": "parcel",
+                "data": {
+                  "id": "t1"
+                }
+              }
+            ]
+          }
+        ],
+        "store": {
+          "noun": "parcel",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label",
+              "required": true
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "done"
+              ]
+            },
+            {
+              "name": "active",
+              "type": "boolean"
+            },
+            {
+              "name": "stamp",
+              "readOnly": true
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Original",
+              "status": "todo",
+              "active": false,
+              "stamp": "fixed"
+            }
+          ]
+        }
+      },
+      "name": "standard edit: typed props confirm once and escape cancels"
+    },
+    {
+      "width": 100,
+      "height": 44,
+      "values": {
+        "palette.standard-verbs": []
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "tasks",
+            "items": [
+              {
+                "id": "t1",
+                "label": "t1",
+                "props": {
+                  "id": "t1"
+                }
+              }
+            ]
+          }
+        ],
+        "focus": "t1",
+        "verbs": [
+          {
+            "verb": "demo.archive",
+            "description": "Archive the task"
+          }
+        ],
+        "store": {
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            },
+            {
+              "name": "status",
+              "enum": [
+                "todo",
+                "doing",
+                "done"
+              ]
+            },
+            {
+              "name": "starred",
+              "type": "boolean"
+            }
+          ],
+          "things": [
+            {
+              "id": "t1",
+              "title": "Water the plants",
+              "status": "todo",
+              "starred": false
+            },
+            {
+              "id": "t2",
+              "title": "Write notes",
+              "status": "doing",
+              "starred": false
+            },
+            {
+              "id": "t3",
+              "title": "Call the plumber",
+              "status": "todo",
+              "starred": true
+            }
+          ]
+        }
+      },
+      "name": "palette.standard-verbs off ([]): the verb list after :demo is one alphabetical list with no std tag, and get shows no record rows (today's palette)"
+    },
+    {
+      "width": 120,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": "the read-only text view offers no c or d (R9.8): the hint line lacks them, d and c enter no OPERATOR PENDING and change nothing (the w after each moves), y still yanks"
+    },
+    {
+      "width": 80,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": "a second text result while the text view is open (:demo program, then :demo mapping) shows the new answer in the same view, from the top, never a silent no-op (R4.8); esc closes it back on the row"
+    },
+    {
+      "width": 80,
+      "height": 24,
+      "values": {
+        "yank.report": false
+      },
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": "with yank.report off a yank in the read-only text view still yanks but says nothing"
+    },
+    {
+      "width": 80,
+      "height": 24,
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 3
+          }
+        ],
+        "focus": "a2"
+      },
+      "name": "a yank in the read-only text view says what it copied: y y copied 1 line, V j y copied 2 lines, v e y the characters (yank.report)"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "actions/alias-partial-preset: an alias whose preset leaves a required argument out (w! is demo.write {force: true}, path required) loads; its key and its palette word open the args form for path, and a typed path runs it (esc comes back to the line as typed)"
+    },
+    "W",
+    {
+      "type": "a.txt"
+    },
+    "enter",
+    ":",
+    {
+      "type": "w!"
+    },
+    "enter",
+    "esc",
+    "q",
+    {
+      "type": " b.txt"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "actions/dot-after-input-closes: dot-repeat: after typing in an inline line that has closed, . never replays the typing outside an input (R9.5)"
+    },
+    "i",
+    {
+      "type": "q"
+    },
+    "esc",
+    "j",
+    ".",
+    {
+      "key": "ctrl+alt+n",
+      "note": "actions/dot-nothing-silent: dot-repeat: with repeat.empty silent, . with nothing to repeat shows nothing"
+    },
+    ".",
+    {
+      "key": "ctrl+alt+n",
+      "note": "actions/dot-nothing-to-repeat: dot-repeat: . with nothing to repeat says so plainly, never as an Error (R6.4; repeat.empty info, the default)"
+    },
+    ".",
+    {
+      "key": "ctrl+alt+n",
+      "note": "actions/old-name-binding: a bindings.json row on an old verb name runs the renamed verb and says so once"
+    },
+    "B",
+    "B",
+    {
+      "key": "ctrl+alt+n",
+      "note": "actions/param-alias-old-name: an actions.json alias's old parameter name (demo save --overwrite for --force, since v0.58.0): the palette runs it as its parameter with one notice, and never completes it"
+    },
+    ":",
+    {
+      "type": "demo save --"
+    },
+    {
+      "type": "overwrite true"
+    },
+    "enter",
+    ":",
+    {
+      "type": "demo save --overwrite=false"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/archive-list: archive lists: hide by default, the archived saved filter reveals records, set @archive=false un-archives them"
+    },
+    ":",
+    {
+      "type": "demo list"
+    },
+    "enter",
+    "q",
+    ":",
+    {
+      "type": "demo list --filter archived"
+    },
+    "enter",
+    "q",
+    ":",
+    {
+      "type": "demo set t1 @archive=false"
+    },
+    "enter",
+    ":",
+    {
+      "type": "demo list"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/board-ambiguous-word: board: a word that is a noun and a verb (tag) offers both readings; choosing one shows only the other kind"
+    },
+    ":",
+    {
+      "type": "ta"
+    },
+    "down",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/board-backspace: board: backspace after a committed word takes the word back to the first layer"
+    },
+    ":",
+    {
+      "type": "quad"
+    },
+    "backspace",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/board-esc-layers: board: backspace and esc go back a layer; esc from an empty line closes"
+    },
+    ":",
+    {
+      "type": "quad"
+    },
+    {
+      "type": "w"
+    },
+    "esc",
+    "esc",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/board-narrow-commit: board: letters narrow the cells and the one cell left commits itself; the second word is a verb of that noun and runs when one is left"
+    },
+    ":",
+    {
+      "type": "qu"
+    },
+    {
+      "type": "a"
+    },
+    {
+      "type": "wa"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/board-unique-prefix: board: each cell emphasises the shortest prefix that picks it among the cells shown (con for context-item beside copy and cmd.cmd), bold and underlined"
+    },
+    ":",
+    {
+      "type": "con"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/board-verb-first: board: a verb first, then only the nouns that have it; the pair runs the same operation as noun first"
+    },
+    ":",
+    {
+      "type": "wi"
+    },
+    {
+      "type": "quil"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/delete-archive-confirm-off: delete.archive-confirm off: delete of a live thing archives it without asking; the real delete still asks"
+    },
+    ":",
+    {
+      "type": "demo delete t1"
+    },
+    "enter",
+    ":",
+    {
+      "type": "demo delete t1"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/delete-archive-confirm: delete.archive on: delete of a live thing asks Archive demo Water the plants? (delete it again to delete it for good), y archives it; delete of the archived thing asks Delete demo Water the plants?"
+    },
+    ":",
+    {
+      "type": "demo delete t1"
+    },
+    "enter",
+    "y",
+    ":",
+    {
+      "type": "demo delete t1"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/edit-positional-word-not-a-prop: edit: a word after the key is the field, never a prop's value (UX R3 F3)"
+    },
+    ":",
+    {
+      "type": "parcel edit t1 hello"
+    },
+    "enter",
+    "esc",
+    "q",
+    ":",
+    {
+      "type": "parcel get t1"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/form-look: the args form: required words first, the optional one marked, the typed word kept"
+    },
+    ":",
+    {
+      "type": "relocate old.txt"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/form-path-with-optional: forms.single-path alone: a missing path beside optional parameters opens the args form on the path with its chooser open, so typing (u included) reaches the path, not form.undo"
+    },
+    "e",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "u"
+    },
+    "enter",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/form-single-path-esc-cancels: the path chooser opened for a lone missing path: esc closes it and runs nothing"
+    },
+    "e",
+    {
+      "job": "picker.load"
+    },
+    "esc",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/form-single-path-opens-chooser: a key whose action lacks only a path opens the path chooser at once (forms.single-path chooser, the default): typing reaches it, enter on a file runs the action with it (R7.8, P9)"
+    },
+    "e",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "oth"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/form-single-path-setting-form: forms.single-path form: a lone missing path opens the args form, with its path chooser open over it so typing reaches the path"
+    },
+    "e",
+    {
+      "job": "picker.load"
+    },
+    {
+      "type": "oth"
+    },
+    "enter",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/key-prop-grammar: the key word is optional and a prop follows a noun: :demo set status done writes the focused row's task (the first word is a prop, so the subject is the focus), :demo status reads it into the results view, :demo status doing --id t3 writes another (its --id word is checked against demo list)"
+    },
+    ":",
+    {
+      "type": "demo set status done"
+    },
+    "enter",
+    ":",
+    {
+      "type": "demo status"
+    },
+    "enter",
+    "q",
+    ":",
+    {
+      "type": "demo status doing --id t3"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/markdown-result: a Markdown result (:demo guide) opens in the Markdown viewer: the heading, list and code drawn, no fences; j steps by element, y a copies the raw Markdown, q closes it back on the row"
+    },
+    ":",
+    {
+      "type": "demo guide"
+    },
+    "enter",
+    "j",
+    "y",
+    "a",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/noun-alias-deprecated: palette: a deprecated noun alias (json-doc, since v0.57.0) still runs, with one notice naming the noun, and is never completed"
+    },
+    ":",
+    {
+      "type": "json"
+    },
+    {
+      "type": "-doc rows"
+    },
+    "enter",
+    ":",
+    {
+      "type": "json-doc rows"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/page-open-titles: palette: page open offers the pages' titles, not their ids, and takes a title (quoted when it holds a space)"
+    },
+    ":",
+    {
+      "type": "page open "
+    },
+    {
+      "type": "Pu"
+    },
+    "ctrl+n",
+    "enter",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/punctuation-hint: palette: punctuation narrows the reading (lexicon.punctuation): rows, md.doc is action, noun and json.doc.rows is noun.action"
+    },
+    ":",
+    {
+      "type": "rows, md.doc"
+    },
+    "enter",
+    ":",
+    {
+      "type": "json.doc.rows"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/q-colon-history: Q: opens the command line on the last command (Vim's command-line window, q: there); esc twice closes it and Q a still records a macro"
+    },
+    ":",
+    {
+      "type": "notice clear"
+    },
+    "enter",
+    "Q",
+    ":",
+    "esc",
+    "q",
+    "Q",
+    "a",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/results-table: palette list command opens read-only results table"
+    },
+    ":",
+    {
+      "type": "operation list"
+    },
+    "enter",
+    "enter",
+    "j",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/settings-edit-no-results: :setting open opens the Settings page with the focus on it; its answer opens no results modal over the page (a verb that opens a page answers nothing the palette shows), and run again on the page it opens nothing over it"
+    },
+    ":",
+    {
+      "type": "setting open"
+    },
+    "enter",
+    ":",
+    {
+      "type": "setting open"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/standard-edit-change: standard edit change: Escape keeps text and choices already written"
+    },
+    "i",
+    "i",
+    "ctrl+u",
+    {
+      "type": "Applied"
+    },
+    "esc",
+    "j",
+    "space",
+    "j",
+    "enter",
+    "j",
+    "space",
+    "k",
+    "enter",
+    "q",
+    ":",
+    {
+      "type": "parcel get t1"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/standard-edit: standard edit: typed props confirm once and escape cancels"
+    },
+    ":",
+    {
+      "type": "parcel edit t1"
+    },
+    "enter",
+    "i",
+    "ctrl+u",
+    {
+      "type": "Cancelled"
+    },
+    "esc",
+    "esc",
+    ":",
+    {
+      "type": "parcel edit t1"
+    },
+    "enter",
+    "i",
+    "ctrl+u",
+    {
+      "type": "Applied"
+    },
+    "esc",
+    "j",
+    "space",
+    "j",
+    "enter",
+    "j",
+    "space",
+    "k",
+    "enter",
+    "enter",
+    ":",
+    {
+      "type": "parcel get t1"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/std-tag-off: palette.standard-verbs off ([]): the verb list after :demo is one alphabetical list with no std tag, and get shows no record rows (today's palette)"
+    },
+    ":",
+    {
+      "type": "demo "
+    },
+    "ctrl+u",
+    {
+      "type": "demo get"
+    },
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/text-result-readonly-no-operators: the read-only text view offers no c or d (R9.8): the hint line lacks them, d and c enter no OPERATOR PENDING and change nothing (the w after each moves), y still yanks"
+    },
+    ":",
+    {
+      "type": "demo program"
+    },
+    "enter",
+    "d",
+    "w",
+    "c",
+    "w",
+    "y",
+    "w",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/text-result-reinvoke-retargets: a second text result while the text view is open (:demo program, then :demo mapping) shows the new answer in the same view, from the top, never a silent no-op (R4.8); esc closes it back on the row"
+    },
+    ":",
+    {
+      "type": "demo program"
+    },
+    "enter",
+    ":",
+    {
+      "type": "demo mapping"
+    },
+    "enter",
+    "q",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/text-result-yank-report-off: with yank.report off a yank in the read-only text view still yanks but says nothing"
+    },
+    ":",
+    {
+      "type": "demo mapping"
+    },
+    "enter",
+    "j",
+    "y",
+    "y",
+    {
+      "key": "ctrl+alt+n",
+      "note": "palette/text-result-yank-says: a yank in the read-only text view says what it copied: y y copied 1 line, V j y copied 2 lines, v e y the characters (yank.report)"
+    },
+    ":",
+    {
+      "type": "demo mapping"
+    },
+    "enter",
+    "j",
+    "y",
+    "y",
+    "V",
+    "j",
+    "y",
+    "w",
+    "v",
+    "e",
+    "y",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "modal": "args-form",
+      "focus": "args-form/path",
+      "mode": "insert",
+      "noNotices": true
+    },
+    {
+      "after": 4,
+      "modal": "",
+      "writes": [
+        "demo.write force=true path=a.txt via=demo.w!"
+      ]
+    },
+    {
+      "after": 7,
+      "modal": "args-form",
+      "focus": "args-form/path"
+    },
+    {
+      "after": 9,
+      "modal": "palette"
+    },
+    {
+      "modal": "",
+      "writes": [
+        "demo.write force=true path=a.txt via=demo.w!",
+        "demo.write force=true path=b.txt via=demo.w!"
+      ],
+      "after": 11
+    },
+    {
+      "after": 15,
+      "mode": "normal",
+      "contains": [
+        "q"
+      ],
+      "writes": [
+        "rename a: q"
+      ]
+    },
+    {
+      "focus": "b",
+      "mode": "normal",
+      "lacks": [
+        "Error: no focused input",
+        "Error:"
+      ],
+      "contains": [
+        "beta"
+      ],
+      "after": 17
+    },
+    {
+      "focus": "a1",
+      "lacks": [
+        "nothing to repeat"
+      ],
+      "noNotices": true,
+      "after": 19
+    },
+    {
+      "focus": "a1",
+      "contains": [
+        "nothing to repeat"
+      ],
+      "lacks": [
+        "Error: nothing to repeat"
+      ],
+      "after": 21
+    },
+    {
+      "after": 23,
+      "writes": [
+        "demo.add-base via=demo.base.add"
+      ],
+      "notices": [
+        "demo.base.add is an old name of demo.add-base (renamed in v0.27.0; removed after v0.28.0)"
+      ]
+    },
+    {
+      "writes": [
+        "demo.add-base via=demo.base.add",
+        "demo.add-base via=demo.base.add"
+      ],
+      "notices": [
+        "demo.base.add is an old name of demo.add-base (renamed in v0.27.0; removed after v0.28.0)"
+      ],
+      "after": 24
+    },
+    {
+      "after": 27,
+      "lacks": [
+        "overwrite"
+      ]
+    },
+    {
+      "after": 29,
+      "writes": [
+        "demo.write force=true via=demo.save"
+      ],
+      "modal": "",
+      "notices": [
+        "demo.save: overwrite is an old name of force (renamed in v0.58.0; removed after v0.59.0)"
+      ]
+    },
+    {
+      "writes": [
+        "demo.write force=true via=demo.save",
+        "demo.write force=false via=demo.save"
+      ],
+      "modal": "",
+      "after": 32
+    },
+    {
+      "after": 36,
+      "contains": [
+        "Live parcel"
+      ],
+      "lacks": [
+        "Archived parcel"
+      ]
+    },
+    {
+      "after": 40,
+      "contains": [
+        "Archived parcel"
+      ],
+      "lacks": [
+        "Live parcel"
+      ]
+    },
+    {
+      "after": 47,
+      "contains": [
+        "Archived parcel",
+        "Live parcel"
+      ]
+    },
+    {
+      "after": 47,
+      "contains": [
+        "◆ o-story",
+        "NORMAL",
+        "› page1",
+        "Results",
+        "demo.list",
+        "label",
+        "retired",
+        "title",
+        "Archived parcel",
+        "false",
+        "Live parcel",
+        "space collection.mark · q modal.close · : palette.open · ? binding.help · /…",
+        "space collection.mark · q modal.close · : palette.open · ? binding.help · / filter"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 50,
+      "modal": "palette",
+      "contains": [
+        "nouns (",
+        "verbs (",
+        "tag",
+        "tag is a noun with 1 verbs"
+      ],
+      "lacks": [
+        "attach"
+      ]
+    },
+    {
+      "modal": "palette",
+      "contains": [
+        "verbs of tag",
+        "rename"
+      ],
+      "lacks": [
+        "nouns that have"
+      ],
+      "after": 52
+    },
+    {
+      "after": 55,
+      "modal": "palette",
+      "contains": [
+        "verbs of quad"
+      ]
+    },
+    {
+      "modal": "palette",
+      "contains": [
+        "nouns ("
+      ],
+      "lacks": [
+        "verbs of"
+      ],
+      "after": 56
+    },
+    {
+      "after": 59,
+      "modal": "palette",
+      "contains": [
+        "verbs of quad"
+      ]
+    },
+    {
+      "after": 60,
+      "modal": "palette",
+      "contains": [
+        "warp",
+        "wipe"
+      ]
+    },
+    {
+      "after": 61,
+      "modal": "palette",
+      "contains": [
+        "verbs of quad"
+      ]
+    },
+    {
+      "after": 62,
+      "modal": "palette",
+      "contains": [
+        "nouns ("
+      ],
+      "lacks": [
+        "verbs of"
+      ]
+    },
+    {
+      "modal": "",
+      "after": 63
+    },
+    {
+      "after": 65,
+      "modal": "palette",
+      "contains": [
+        "nouns (",
+        "verbs ("
+      ]
+    },
+    {
+      "after": 66,
+      "modal": "palette",
+      "contains": [
+        "quad",
+        "quill"
+      ]
+    },
+    {
+      "after": 67,
+      "modal": "palette",
+      "contains": [
+        "verbs of quad",
+        "warp",
+        "wipe"
+      ],
+      "lacks": [
+        "quill"
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "quad.warp"
+      ],
+      "after": 68
+    },
+    {
+      "modal": "palette",
+      "contains": [
+        "context-item",
+        "config",
+        "confirm"
+      ],
+      "attrs": {
+        "context-": "bold,underline",
+        "item": "-underline",
+        "config": "bold,underline"
+      },
+      "after": 71
+    },
+    {
+      "after": 74,
+      "modal": "palette",
+      "contains": [
+        "nouns that have wipe",
+        "quad",
+        "quill"
+      ],
+      "lacks": [
+        "verbs of"
+      ]
+    },
+    {
+      "modal": "",
+      "writes": [
+        "quill.wipe"
+      ],
+      "after": 75
+    },
+    {
+      "after": 79,
+      "modal": "",
+      "writes": [
+        "list",
+        "get t1",
+        "get t1",
+        "get t1",
+        "set t1 archived=true"
+      ],
+      "contains": [
+        "archived demo Water the plants"
+      ]
+    },
+    {
+      "contains": [
+        "Delete demo Water the plants?"
+      ],
+      "after": 82
+    },
+    {
+      "after": 86,
+      "contains": [
+        "Archive demo Water the plants? (delete it again to delete it for good)"
+      ],
+      "lacks": [
+        "Delete demo"
+      ],
+      "writes": [
+        "list",
+        "get t1",
+        "get t1",
+        "get t1"
+      ]
+    },
+    {
+      "after": 87,
+      "modal": "",
+      "writes": [
+        "list",
+        "get t1",
+        "get t1",
+        "get t1",
+        "get t1",
+        "get t1",
+        "set t1 archived=true"
+      ],
+      "contains": [
+        "archived demo Water the plants"
+      ]
+    },
+    {
+      "contains": [
+        "Delete demo Water the plants?"
+      ],
+      "lacks": [
+        "Archive demo"
+      ],
+      "after": 90
+    },
+    {
+      "after": 94,
+      "contains": [
+        "no prop \"hello\""
+      ],
+      "lacks": [
+        "Edit parcel"
+      ]
+    },
+    {
+      "contains": [
+        "orig"
+      ],
+      "lacks": [
+        "hello"
+      ],
+      "after": 99
+    },
+    {
+      "after": 103,
+      "contains": [
+        "◆ o-story",
+        "INSERT",
+        "› page1",
+        "Run demo.relocate",
+        "from · The file to move",
+        "old.txt",
+        "to · Where it goes · required",
+        "force (optional) · Overwrite what is there",
+        "(none) ▾",
+        "enter form.next-missing"
+      ],
+      "dimmed": 1
+    },
+    {
+      "after": 105,
+      "modal": "path-chooser",
+      "mode": "insert",
+      "noNotices": true
+    },
+    {
+      "after": 107,
+      "modal": "path-chooser",
+      "contains": [
+        "undo.json"
+      ],
+      "lacks": [
+        "doc.json"
+      ],
+      "noNotices": true
+    },
+    {
+      "after": 108,
+      "modal": "args-form",
+      "focus": "args-form/path",
+      "contains": [
+        "mode (optional)"
+      ],
+      "writes": []
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "writes": [
+        "demo.load path={{files}}/undo.json"
+      ],
+      "after": 109
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "writes": [],
+      "after": 114
+    },
+    {
+      "after": 116,
+      "modal": "path-chooser",
+      "mode": "insert"
+    },
+    {
+      "after": 118,
+      "modal": "path-chooser",
+      "contains": [
+        "other.json"
+      ],
+      "lacks": [
+        "doc.json"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "writes": [
+        "demo.load path={{files}}/other.json"
+      ],
+      "after": 119
+    },
+    {
+      "after": 121,
+      "modal": "path-chooser",
+      "mode": "insert",
+      "noNotices": true
+    },
+    {
+      "after": 124,
+      "modal": "args-form",
+      "writes": [],
+      "noNotices": true
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "writes": [
+        "demo.load path={{files}}/other.json"
+      ],
+      "noNotices": true,
+      "after": 125
+    },
+    {
+      "after": 129,
+      "writes": [
+        "set t2 status=done"
+      ],
+      "focus": "t2",
+      "modal": ""
+    },
+    {
+      "after": 132,
+      "modal": "palette-results",
+      "contains": [
+        "demo.status",
+        "prop",
+        "value",
+        "done"
+      ]
+    },
+    {
+      "writes": [
+        "set t2 status=done",
+        "get t2",
+        "list",
+        "get t3",
+        "set t3 status=doing"
+      ],
+      "focus": "t2",
+      "modal": "",
+      "after": 136
+    },
+    {
+      "after": 140,
+      "modal": "markdown-view",
+      "mode": "normal",
+      "contains": [
+        "demo.guide",
+        "Demo guide",
+        "Keys",
+        "demo open ROW",
+        "q modal.close",
+        "y a copy all"
+      ],
+      "lacks": [
+        "```",
+        "i markdown.insert",
+        "x markdown.toggle"
+      ]
+    },
+    {
+      "after": 143,
+      "modal": "markdown-view",
+      "register": "# Demo guide\n\nRows are **demo** things. Read the [docs](https://example.com/docs).\n\n## Keys\n\n- `enter` opens a row\n- `x` deletes it\n\n```sh\ndemo open ROW\n```\n"
+    },
+    {
+      "modal": "",
+      "focus": "a2",
+      "mode": "normal",
+      "after": 144
+    },
+    {
+      "after": 147,
+      "contains": [
+        "json · namespace"
+      ],
+      "lacks": [
+        "json-doc"
+      ]
+    },
+    {
+      "after": 149,
+      "writes": [
+        "json.doc.rows"
+      ],
+      "notices": [
+        "json-doc is an old name of doc (renamed in v0.57.0; removed after v0.58.0)"
+      ]
+    },
+    {
+      "writes": [
+        "json.doc.rows",
+        "json.doc.rows"
+      ],
+      "modal": "",
+      "lacks": [
+        "(+1 more)"
+      ],
+      "after": 152
+    },
+    {
+      "after": 155,
+      "contains": [
+        "JSON  ext/json",
+        "Pull Requests  ext/pulls"
+      ]
+    },
+    {
+      "after": 156,
+      "contains": [
+        "Pull Requests  ext/pulls"
+      ],
+      "lacks": [
+        "JSON  ext/json"
+      ]
+    },
+    {
+      "after": 158,
+      "contains": [
+        ": page open \"Pull Requests\""
+      ]
+    },
+    {
+      "page": "ext/pulls",
+      "modal": "",
+      "after": 159
+    },
+    {
+      "after": 163,
+      "writes": [
+        "md.doc.rows"
+      ]
+    },
+    {
+      "writes": [
+        "md.doc.rows",
+        "json.doc.rows"
+      ],
+      "after": 166
+    },
+    {
+      "after": 170,
+      "modal": ""
+    },
+    {
+      "after": 172,
+      "modal": "palette",
+      "mode": "insert",
+      "contains": [
+        "clear notice"
+      ]
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "contains": [
+        "REC @a"
+      ],
+      "after": 176
+    },
+    {
+      "after": 180,
+      "modal": "palette-results",
+      "contains": [
+        "Results",
+        "description",
+        "namespace",
+        "kind"
+      ]
+    },
+    {
+      "after": 181,
+      "modal": "palette-results"
+    },
+    {
+      "modal": "",
+      "focus": "a1",
+      "after": 183
+    },
+    {
+      "after": 187,
+      "modal": "",
+      "mode": "normal",
+      "page": "__settings",
+      "contains": [
+        "Settings"
+      ],
+      "lacks": [
+        "Results"
+      ]
+    },
+    {
+      "modal": "",
+      "mode": "normal",
+      "page": "__settings",
+      "contains": [
+        "Settings"
+      ],
+      "lacks": [
+        "Results"
+      ],
+      "after": 190
+    },
+    {
+      "after": 192,
+      "contains": [
+        "Edit parcel",
+        "Original",
+        "todo",
+        "false",
+        "stamp"
+      ],
+      "lacks": [
+        "form.run"
+      ]
+    },
+    {
+      "after": 204,
+      "modal": "edit-form",
+      "contains": [
+        "Applied",
+        "done",
+        "true"
+      ],
+      "lacks": [
+        "form.run"
+      ]
+    },
+    {
+      "contains": [
+        "Applied",
+        "done",
+        "true",
+        "fixed"
+      ],
+      "lacks": [
+        "Edit parcel"
+      ],
+      "after": 208
+    },
+    {
+      "after": 212,
+      "contains": [
+        "Edit parcel",
+        "Original",
+        "todo",
+        "false",
+        "stamp",
+        "fixed"
+      ]
+    },
+    {
+      "after": 220,
+      "contains": [
+        "Edit parcel",
+        "Original"
+      ],
+      "lacks": [
+        "Cancelled"
+      ]
+    },
+    {
+      "contains": [
+        "Applied",
+        "done",
+        "true",
+        "fixed"
+      ],
+      "lacks": [
+        "Edit parcel",
+        "Cancelled"
+      ],
+      "after": 236
+    },
+    {
+      "after": 239,
+      "order": [
+        "archive",
+        "create",
+        "delete",
+        "get",
+        "list",
+        "set"
+      ],
+      "lacks": [
+        "std"
+      ]
+    },
+    {
+      "modal": "",
+      "after": 242
+    },
+    {
+      "after": 246,
+      "modal": "text-view",
+      "mode": "normal",
+      "lacks": [
+        "c mode.enter",
+        "d mode.enter"
+      ]
+    },
+    {
+      "after": 247,
+      "modal": "text-view",
+      "mode": "normal"
+    },
+    {
+      "after": 249,
+      "modal": "text-view",
+      "mode": "normal",
+      "contains": [
+        ".items[] | {name, size: .bytes}"
+      ]
+    },
+    {
+      "after": 251,
+      "mode": "operator_pending"
+    },
+    {
+      "modal": "text-view",
+      "mode": "normal",
+      "register": "[] ",
+      "contains": [
+        ".items[] | {name, size: .bytes}"
+      ],
+      "after": 252
+    },
+    {
+      "after": 256,
+      "modal": "text-view",
+      "contains": [
+        "demo.program",
+        ".items[] | {name, size: .bytes}"
+      ]
+    },
+    {
+      "after": 259,
+      "modal": "text-view",
+      "mode": "normal",
+      "contains": [
+        "demo.mapping",
+        "\"name\": \".title\","
+      ],
+      "lacks": [
+        "demo.program",
+        ".items[] | {name"
+      ]
+    },
+    {
+      "modal": "",
+      "focus": "a2",
+      "mode": "normal",
+      "after": 260
+    },
+    {
+      "modal": "text-view",
+      "mode": "normal",
+      "register": "  \"name\": \".title\",\n",
+      "lacks": [
+        "copied"
+      ],
+      "after": 267
+    },
+    {
+      "after": 274,
+      "modal": "text-view",
+      "mode": "normal",
+      "contains": [
+        "copied 1 line"
+      ]
+    },
+    {
+      "after": 277,
+      "modal": "text-view",
+      "mode": "normal",
+      "contains": [
+        "copied 2 lines"
+      ]
+    },
+    {
+      "modal": "text-view",
+      "mode": "normal",
+      "contains": [
+        "copied 5 characters"
+      ],
+      "after": 281
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "width": 100,
+  "height": 30,
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "verbs": [
+      {
+        "verb": "demo.write",
+        "description": "Write the document",
+        "parameters": {
+          "path": {
+            "type": "string",
+            "required": true,
+            "description": "Where to write"
+          },
+          "force": {
+            "type": "boolean"
+          }
+        }
+      }
+    ]
+  },
+  "config": {
+    "actions.json": [
+      {
+        "alias": "w!",
+        "action": "demo.write",
+        "args": {
+          "force": true
+        }
+      }
+    ],
+    "bindings.json": [
+      {
+        "noun": "demo",
+        "mode": "normal",
+        "keys": "W",
+        "request": {
+          "noun": "demo",
+          "verb": "w!"
+        }
+      }
+    ]
+  }
+}

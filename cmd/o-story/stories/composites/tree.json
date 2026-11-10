@@ -1,0 +1,2133 @@
+{
+  "name": "tree end-to-end walkthrough",
+  "area": "composites",
+  "seed": -1,
+  "checkpoints": [
+    {
+      "width": 100,
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "n1",
+                "label": "one"
+              },
+              {
+                "id": "n2",
+                "label": "two"
+              },
+              {
+                "id": "n3",
+                "label": "three"
+              }
+            ]
+          }
+        ],
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "order": [
+          "t",
+          "a"
+        ],
+        "detail": {
+          "lines": 50
+        }
+      },
+      "name": "detail: the outline's J/K still move its rows, the detail stays put"
+    },
+    {
+      "width": 40,
+      "height": 14,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "trees": [
+          {
+            "id": "t",
+            "columns": [
+              {
+                "title": "name",
+                "width": 10
+              },
+              {
+                "title": "alpha",
+                "width": 8
+              },
+              {
+                "title": "bravo",
+                "width": 8
+              },
+              {
+                "title": "charlie",
+                "width": 8
+              },
+              {
+                "title": "delta",
+                "width": 8
+              }
+            ],
+            "nodes": [
+              {
+                "id": "s1",
+                "label": "main",
+                "cells": [
+                  "main",
+                  "a-1",
+                  "b-1",
+                  "c-1",
+                  "d-1"
+                ]
+              },
+              {
+                "id": "p1",
+                "parent": "s1",
+                "label": "editor",
+                "cells": [
+                  "editor",
+                  "a-2",
+                  "b-2",
+                  "c-2",
+                  "d-2"
+                ]
+              }
+            ],
+            "collapsed": [
+              "s1"
+            ]
+          }
+        ],
+        "lists": [
+          {
+            "id": "b",
+            "rows": 2
+          }
+        ],
+        "order": [
+          "t",
+          "b"
+        ]
+      },
+      "name": "tree whose columns do not fit: l and h expand and collapse rather than scroll; z l and z h still scroll its columns (R11.1, R5.9)"
+    },
+    {
+      "width": 60,
+      "height": 14,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "trees": [
+          {
+            "id": "t",
+            "columns": [
+              {
+                "title": "name",
+                "width": 12
+              },
+              {
+                "title": "state",
+                "width": 8
+              }
+            ],
+            "nodes": [
+              {
+                "id": "s1",
+                "label": "main",
+                "cells": [
+                  "main",
+                  "open"
+                ]
+              },
+              {
+                "id": "p1",
+                "parent": "s1",
+                "label": "editor",
+                "cells": [
+                  "editor",
+                  "busy"
+                ]
+              },
+              {
+                "id": "p2",
+                "parent": "s1",
+                "label": "shell",
+                "cells": [
+                  "shell",
+                  "idle"
+                ]
+              },
+              {
+                "id": "s2",
+                "label": "work",
+                "cells": [
+                  "work",
+                  "open"
+                ]
+              },
+              {
+                "id": "p3",
+                "parent": "s2",
+                "label": "logs",
+                "cells": [
+                  "logs",
+                  "idle"
+                ]
+              }
+            ],
+            "collapsed": [
+              "s2"
+            ]
+          }
+        ],
+        "lists": [
+          {
+            "id": "b",
+            "rows": 2
+          }
+        ],
+        "order": [
+          "t",
+          "b"
+        ]
+      },
+      "name": "tree with columns: l on an open node steps onto its first child, on a closed one expands it, and right on a leaf keeps the focus in the tree although a next stop exists (R11.1, R5.11)"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "alpha"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "outline: typing writes once after the pause; leaving the line writes at once"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "alpha"
+              },
+              {
+                "id": "b",
+                "label": "beta",
+                "fixed": [
+                  "remove-empty"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "outline: a row that declares remove-empty keeps its text and its place when its line is emptied; nothing is written and u has nothing to undo"
+    },
+    {
+      "width": 60,
+      "height": 12,
+      "page": {
+        "noHeadings": true,
+        "trees": [
+          {
+            "id": "empty",
+            "nodes": []
+          }
+        ],
+        "focus": "empty/list"
+      },
+      "name": "V on an empty tree leaves focus, mode and registers alone"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "alpha"
+              },
+              {
+                "id": "b",
+                "parent": "a",
+                "label": "beta"
+              },
+              {
+                "id": "r",
+                "label": "root",
+                "fixed": [
+                  "delete"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "outline: a row with children emptied stays (renamed to nothing); a fixed row stays too"
+    },
+    {
+      "width": 60,
+      "height": 12,
+      "page": {
+        "noHeadings": true,
+        "trees": [
+          {
+            "id": "empty",
+            "nodes": []
+          }
+        ],
+        "focus": "empty/list"
+      },
+      "name": "Y on an empty tree leaves focus, mode and registers alone"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "failWrites": 1,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "alpha"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "outline: a failed write keeps the text, marks the row and retries on the next change"
+    },
+    {
+      "width": 100,
+      "height": 16,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "nouns": [
+          {
+            "noun": "note",
+            "props": [
+              {
+                "name": "by"
+              },
+              {
+                "name": "status"
+              }
+            ],
+            "filters": [
+              {
+                "name": "mine",
+                "where": {
+                  "by": "owner"
+                }
+              },
+              {
+                "name": "agents",
+                "where": {
+                  "by": "agent"
+                }
+              },
+              {
+                "name": "all"
+              }
+            ]
+          }
+        ],
+        "trees": [
+          {
+            "id": "notes",
+            "height": -1,
+            "collapsed": [
+              "root"
+            ],
+            "nodes": [
+              {
+                "id": "root",
+                "label": "Context root",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              },
+              {
+                "id": "parent",
+                "parent": "root",
+                "label": "Context parent",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              },
+              {
+                "id": "mine",
+                "parent": "parent",
+                "label": "My note",
+                "noun": "note",
+                "data": {
+                  "by": "owner"
+                }
+              },
+              {
+                "id": "other",
+                "parent": "root",
+                "label": "Other note",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              },
+              {
+                "id": "unrelated",
+                "label": "Unrelated root",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "note",
+            "keys": "enter",
+            "do": "ochazuke.outline.fold"
+          }
+        ]
+      },
+      "name": "prop-filtered tree: h and l and enter fold context ancestors visibly"
+    },
+    {
+      "width": 100,
+      "height": 16,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "nouns": [
+          {
+            "noun": "note",
+            "props": [
+              {
+                "name": "by"
+              },
+              {
+                "name": "status"
+              }
+            ],
+            "filters": [
+              {
+                "name": "mine",
+                "where": {
+                  "by": "owner"
+                }
+              },
+              {
+                "name": "agents",
+                "where": {
+                  "by": "agent"
+                }
+              },
+              {
+                "name": "all"
+              }
+            ]
+          }
+        ],
+        "trees": [
+          {
+            "id": "notes",
+            "height": -1,
+            "collapsed": [
+              "root"
+            ],
+            "nodes": [
+              {
+                "id": "root",
+                "label": "Context root",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              },
+              {
+                "id": "parent",
+                "parent": "root",
+                "label": "Context parent",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              },
+              {
+                "id": "mine",
+                "parent": "parent",
+                "label": "My note",
+                "noun": "note",
+                "data": {
+                  "by": "owner"
+                }
+              },
+              {
+                "id": "other",
+                "parent": "root",
+                "label": "Other note",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              },
+              {
+                "id": "unrelated",
+                "label": "Unrelated root",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "name": "tree marks and row identity survive clearing a prop filter under a collapsed ancestor"
+    },
+    {
+      "width": 100,
+      "height": 16,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "nouns": [
+          {
+            "noun": "note",
+            "props": [
+              {
+                "name": "by"
+              },
+              {
+                "name": "status"
+              }
+            ],
+            "filters": [
+              {
+                "name": "mine",
+                "where": {
+                  "by": "owner"
+                }
+              },
+              {
+                "name": "agents",
+                "where": {
+                  "by": "agent"
+                }
+              },
+              {
+                "name": "all"
+              }
+            ]
+          }
+        ],
+        "trees": [
+          {
+            "id": "notes",
+            "height": -1,
+            "collapsed": [],
+            "nodes": [
+              {
+                "id": "root",
+                "label": "Context root",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              },
+              {
+                "id": "parent",
+                "parent": "root",
+                "label": "Context parent",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              },
+              {
+                "id": "mine",
+                "parent": "parent",
+                "label": "My note",
+                "noun": "note",
+                "data": {
+                  "by": "owner"
+                }
+              },
+              {
+                "id": "other",
+                "parent": "root",
+                "label": "Other note",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              },
+              {
+                "id": "unrelated",
+                "label": "Unrelated root",
+                "noun": "note",
+                "data": {
+                  "by": "agent"
+                }
+              }
+            ]
+          }
+        ],
+        "focus": "mine"
+      },
+      "name": "tree text filter keeps deep selection and returns from zero matches without showing ancestors"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "items"
+              },
+              {
+                "id": "b",
+                "label": "0",
+                "fixed": [
+                  "rename"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "outline: a node fixed for rename alone refuses i but indents and deletes"
+    },
+    {
+      "settings": [
+        {
+          "name": "palette.reach",
+          "type": "boolean",
+          "default": false
+        }
+      ],
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "root",
+                "fixed": [
+                  "rename",
+                  "move",
+                  "delete"
+                ]
+              },
+              {
+                "id": "b",
+                "parent": "a",
+                "label": "child"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "outline: a fixed root refuses d d, J and i, and the palette offers no outline.delete; its child deletes"
+    },
+    {
+      "settings": [
+        {
+          "name": "tree.spill",
+          "type": "string",
+          "default": "off",
+          "enum": [
+            "left",
+            "both",
+            "off"
+          ]
+        }
+      ],
+      "width": 60,
+      "height": 14,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "trees": [
+          {
+            "id": "t",
+            "columns": [
+              {
+                "title": "name",
+                "width": 12
+              },
+              {
+                "title": "state",
+                "width": 8
+              }
+            ],
+            "nodes": [
+              {
+                "id": "p1",
+                "label": "main",
+                "cells": [
+                  "main",
+                  "open"
+                ]
+              },
+              {
+                "id": "p2",
+                "label": "work",
+                "cells": [
+                  "work",
+                  "idle"
+                ]
+              }
+            ]
+          }
+        ],
+        "order": [
+          "a",
+          "t"
+        ],
+        "focus": "p2"
+      },
+      "name": "tree beside a list with tree.spill off: h on a top-level leaf keeps the focus in the tree"
+    },
+    {
+      "width": 60,
+      "height": 14,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "trees": [
+          {
+            "id": "t",
+            "columns": [
+              {
+                "title": "name",
+                "width": 12
+              },
+              {
+                "title": "state",
+                "width": 8
+              }
+            ],
+            "nodes": [
+              {
+                "id": "p1",
+                "label": "main",
+                "cells": [
+                  "main",
+                  "open"
+                ]
+              },
+              {
+                "id": "c1",
+                "parent": "p1",
+                "label": "editor",
+                "cells": [
+                  "editor",
+                  "busy"
+                ]
+              },
+              {
+                "id": "p2",
+                "label": "work",
+                "cells": [
+                  "work",
+                  "idle"
+                ]
+              }
+            ]
+          }
+        ],
+        "order": [
+          "a",
+          "t"
+        ],
+        "focus": "c1"
+      },
+      "name": "tree beside a list: h on a child steps to its parent, on an open parent folds it, and on a top-level node with nothing to fold moves the focus to the previous stop (R11.1, R5.11, tree.spill left)"
+    },
+    {
+      "settings": [
+        {
+          "name": "tree.spill",
+          "type": "string",
+          "default": "both",
+          "enum": [
+            "left",
+            "both",
+            "off"
+          ]
+        }
+      ],
+      "width": 60,
+      "height": 14,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "trees": [
+          {
+            "id": "t",
+            "columns": [
+              {
+                "title": "name",
+                "width": 12
+              },
+              {
+                "title": "state",
+                "width": 8
+              }
+            ],
+            "nodes": [
+              {
+                "id": "p1",
+                "label": "main",
+                "cells": [
+                  "main",
+                  "open"
+                ]
+              },
+              {
+                "id": "c1",
+                "parent": "p1",
+                "label": "editor",
+                "cells": [
+                  "editor",
+                  "busy"
+                ]
+              }
+            ]
+          }
+        ],
+        "lists": [
+          {
+            "id": "b",
+            "rows": 2
+          }
+        ],
+        "order": [
+          "t",
+          "b"
+        ]
+      },
+      "name": "tree above a list with tree.spill both: l on an open node steps onto its child, on a leaf moves the focus to the next stop"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "alpha"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "outline: a pasted indented block becomes nested rows"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "alpha"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "outline: tab while typing, then u undoes the nest, not the typing"
+    },
+    {
+      "width": 60,
+      "height": 10,
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "columns": [
+              {
+                "title": "name"
+              }
+            ],
+            "nodes": [
+              {
+                "id": "a",
+                "label": "alpha",
+                "noun": "demo",
+                "cells": [
+                  "alpha"
+                ]
+              },
+              {
+                "id": "b",
+                "label": "beta",
+                "noun": "demo",
+                "cells": [
+                  "beta"
+                ]
+              },
+              {
+                "id": "c",
+                "label": "gamma",
+                "noun": "demo",
+                "cells": [
+                  "gamma"
+                ]
+              },
+              {
+                "id": "d",
+                "label": "delta",
+                "noun": "demo",
+                "cells": [
+                  "delta"
+                ]
+              }
+            ]
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "mode": "visual-line",
+            "keys": "c",
+            "do": "demo.check"
+          }
+        ]
+      },
+      "name": "outline: V j j then c (a per-row app change on the undo stack) checks 3 rows; one u unchecks all 3, ctrl+r checks them again"
+    },
+    {
+      "width": 40,
+      "height": 16,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "height": -1,
+            "columns": [
+              {
+                "width": 20
+              }
+            ],
+            "nodes": [
+              {
+                "id": "a",
+                "label": "testing wrap start here",
+                "cells": [
+                  "- [ ] testing wrap start here"
+                ]
+              },
+              {
+                "id": "b",
+                "label": "More rows"
+              },
+              {
+                "id": "c",
+                "parent": "b",
+                "label": "testing wrap start here",
+                "cells": [
+                  "- [x] testing wrap start here"
+                ]
+              },
+              {
+                "id": "d",
+                "parent": "c",
+                "label": "testing wrap start here",
+                "cells": [
+                  "12. testing wrap start here"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "tree: checkbox continuations align with their text at 40 columns"
+    },
+    {
+      "width": 80,
+      "height": 16,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "height": -1,
+            "columns": [
+              {
+                "width": 20
+              },
+              {
+                "width": 8
+              }
+            ],
+            "nodes": [
+              {
+                "id": "a",
+                "label": "testing wrap start here",
+                "cells": [
+                  "- [ ] testing wrap start here",
+                  "todo"
+                ]
+              },
+              {
+                "id": "b",
+                "label": "More rows"
+              },
+              {
+                "id": "c",
+                "parent": "b",
+                "label": "testing wrap start here",
+                "cells": [
+                  "- [x] testing wrap start here",
+                  "done"
+                ]
+              },
+              {
+                "id": "d",
+                "parent": "c",
+                "label": "界界 abcdefghijklmnop",
+                "cells": [
+                  "12. 界界 abcdefghijklmnop",
+                  "long"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "tree: checkbox continuations and first-line badges at 80 columns"
+    },
+    {
+      "width": 40,
+      "height": 10,
+      "chrome": "none",
+      "page": {
+        "noHeadings": true,
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "height": -1,
+            "columns": [
+              {
+                "width": 20
+              },
+              {
+                "width": 4
+              }
+            ],
+            "nodes": [
+              {
+                "id": "a",
+                "label": "testing wrap start here",
+                "cells": [
+                  "- [ ] testing wrap start here",
+                  "todo"
+                ]
+              },
+              {
+                "id": "b",
+                "label": "next row",
+                "cells": [
+                  "next row",
+                  "done"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "tree: the inline editor keeps checkbox indentation, selection, and first-line badges"
+    },
+    {
+      "width": 40,
+      "height": 8,
+      "chrome": "none",
+      "values": {
+        "tree.wrap": false
+      },
+      "page": {
+        "noHeadings": true,
+        "trees": [
+          {
+            "id": "t",
+            "height": -1,
+            "columns": [
+              {
+                "width": 20
+              }
+            ],
+            "nodes": [
+              {
+                "id": "a",
+                "label": "testing wrap start here",
+                "cells": [
+                  "- [ ] testing wrap start here"
+                ]
+              },
+              {
+                "id": "b",
+                "parent": "a",
+                "label": "testing wrap start here",
+                "cells": [
+                  "- [x] testing wrap start here"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "tree: tree.wrap false restores clipped single-line rows"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "editable": true,
+            "nodes": [
+              {
+                "id": "a",
+                "label": "alpha"
+              },
+              {
+                "id": "b",
+                "parent": "a",
+                "label": "beta"
+              },
+              {
+                "id": "c",
+                "parent": "b",
+                "label": "gamma"
+              },
+              {
+                "id": "d",
+                "parent": "b",
+                "label": "delta"
+              },
+              {
+                "id": "e",
+                "parent": "a",
+                "label": "epsilon"
+              },
+              {
+                "id": "f",
+                "label": "zeta"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "outline: V j j y yanks the selected rows in order and p puts them; a folded selected row brings its hidden rows"
+    },
+    {
+      "page": {
+        "trees": [
+          {
+            "id": "t",
+            "nodes": [
+              {
+                "id": "r0",
+                "label": "root"
+              },
+              {
+                "id": "a",
+                "parent": "r0",
+                "label": "alpha"
+              },
+              {
+                "id": "b",
+                "parent": "a",
+                "label": "beta"
+              },
+              {
+                "id": "c",
+                "parent": "b",
+                "label": "gamma"
+              },
+              {
+                "id": "d",
+                "parent": "c",
+                "label": "delta"
+              },
+              {
+                "id": "e",
+                "parent": "d",
+                "label": "eps"
+              },
+              {
+                "id": "a2",
+                "parent": "a",
+                "label": "alpha2"
+              },
+              {
+                "id": "s",
+                "label": "side"
+              }
+            ]
+          }
+        ]
+      },
+      "name": "tree zoom: z + zooms on the node (its children the top rows, a breadcrumb line above), z - steps out a level, z 0 shows every level"
+    }
+  ],
+  "script": [
+    {
+      "key": "ctrl+alt+n",
+      "note": "detail/outline-keeps-jk: detail: the outline's J/K still move its rows, the detail stays put"
+    },
+    "J",
+    "K",
+    "}",
+    "J",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/columns-hidden-l-expands: tree whose columns do not fit: l and h expand and collapse rather than scroll; z l and z h still scroll its columns (R11.1, R5.9)"
+    },
+    "l",
+    "l",
+    "h",
+    "h",
+    "z l",
+    "z h",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/columns-l-expands: tree with columns: l on an open node steps onto its first child, on a closed one expands it, and right on a leaf keeps the focus in the tree although a next stop exists (R11.1, R5.11)"
+    },
+    "l",
+    "right",
+    "l",
+    "h",
+    "j",
+    "j",
+    "j",
+    "l",
+    "l",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/debounce: outline: typing writes once after the pause; leaving the line writes at once"
+    },
+    "i",
+    "end",
+    {
+      "type": "bc"
+    },
+    {
+      "tick": "debounce"
+    },
+    {
+      "type": "de"
+    },
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/empty-remove-empty-declared-stays: outline: a row that declares remove-empty keeps its text and its place when its line is emptied; nothing is written and u has nothing to undo"
+    },
+    "j",
+    "i",
+    "backspace",
+    "esc",
+    "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/empty-visual: V on an empty tree leaves focus, mode and registers alone"
+    },
+    "V",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/empty-with-children-stays: outline: a row with children emptied stays (renamed to nothing); a fixed row stays too"
+    },
+    "i",
+    "backspace",
+    "esc",
+    "j",
+    "j",
+    "i",
+    "backspace",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/empty-yank: Y on an empty tree leaves focus, mode and registers alone"
+    },
+    "Y",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/failed-write: outline: a failed write keeps the text, marks the row and retries on the next change"
+    },
+    "i",
+    "end",
+    {
+      "type": "x"
+    },
+    "esc",
+    "o",
+    {
+      "type": "z"
+    },
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/filter-prop-fold: prop-filtered tree: h and l and enter fold context ancestors visibly"
+    },
+    "z",
+    "]",
+    "h",
+    "l",
+    "enter",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/filter-prop-marks-clear: tree marks and row identity survive clearing a prop filter under a collapsed ancestor"
+    },
+    "z",
+    "]",
+    "j",
+    "j",
+    "space",
+    "z",
+    "C",
+    "l",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/filter-text-preserves-selection: tree text filter keeps deep selection and returns from zero matches without showing ancestors"
+    },
+    "/",
+    {
+      "type": "My"
+    },
+    "enter",
+    "esc",
+    "/",
+    "z",
+    "backspace",
+    "esc",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/fixed-rename-only: outline: a node fixed for rename alone refuses i but indents and deletes"
+    },
+    "j",
+    "i",
+    "tab",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/fixed-root-refuses: outline: a fixed root refuses d d, J and i, and the palette offers no outline.delete; its child deletes"
+    },
+    "d",
+    "d",
+    "J",
+    "i",
+    ":",
+    {
+      "type": "outline delete"
+    },
+    "enter",
+    "esc",
+    "q",
+    "j",
+    "d",
+    "d",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/h-spill-off: tree beside a list with tree.spill off: h on a top-level leaf keeps the focus in the tree"
+    },
+    "h",
+    "left",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/h-spills-left: tree beside a list: h on a child steps to its parent, on an open parent folds it, and on a top-level node with nothing to fold moves the focus to the previous stop (R11.1, R5.11, tree.spill left)"
+    },
+    "h",
+    "h",
+    "h",
+    "j",
+    "j",
+    "j",
+    "h",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/l-spill-both: tree above a list with tree.spill both: l on an open node steps onto its child, on a leaf moves the focus to the next stop"
+    },
+    "l",
+    "l",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/paste-nests: outline: a pasted indented block becomes nested rows"
+    },
+    {
+      "paste": "one\n  two\n    three\n\tfour\nfive"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/undo-nest-while-editing: outline: tab while typing, then u undoes the nest, not the typing"
+    },
+    "o",
+    {
+      "type": "beta"
+    },
+    "tab",
+    "esc",
+    "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/visual-undo-group: outline: V j j then c (a per-row app change on the undo stack) checks 3 rows; one u unchecks all 3, ctrl+r checks them again"
+    },
+    "V",
+    "j",
+    "j",
+    "c",
+    "u",
+    "ctrl+r",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/wrap-40: tree: checkbox continuations align with their text at 40 columns"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/wrap-80: tree: checkbox continuations and first-line badges at 80 columns"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/wrap-edit-40: tree: the inline editor keeps checkbox indentation, selection, and first-line badges"
+    },
+    "i",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/wrap-off-40: tree: tree.wrap false restores clipped single-line rows"
+    },
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/yank-put-visual: outline: V j j y yanks the selected rows in order and p puts them; a folded selected row brings its hidden rows"
+    },
+    "j",
+    "V",
+    "j",
+    "j",
+    "y",
+    "G",
+    "p",
+    {
+      "key": "ctrl+alt+n",
+      "note": "tree/zoom-in-out-reset: tree zoom: z + zooms on the node (its children the top rows, a breadcrumb line above), z - steps out a level, z 0 shows every level"
+    },
+    "j",
+    "z",
+    "+",
+    "z",
+    "-",
+    "z",
+    "0",
+    {
+      "key": "ctrl+alt+n",
+      "note": "Return to the opening fixture"
+    }
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "focus": "n1",
+      "order": [
+        "two",
+        "one",
+        "three"
+      ],
+      "contains": [
+        "detail 1–"
+      ]
+    },
+    {
+      "after": 3,
+      "focus": "n1",
+      "order": [
+        "one",
+        "two",
+        "three"
+      ],
+      "contains": [
+        "detail 1–"
+      ]
+    },
+    {
+      "focus": "a1",
+      "contains": [
+        "detail 2–"
+      ],
+      "after": 5
+    },
+    {
+      "after": 7,
+      "focus": "s1",
+      "contains": [
+        "editor",
+        "alpha"
+      ]
+    },
+    {
+      "after": 8,
+      "focus": "p1",
+      "contains": [
+        "alpha"
+      ]
+    },
+    {
+      "after": 9,
+      "focus": "s1",
+      "contains": [
+        "editor",
+        "alpha"
+      ]
+    },
+    {
+      "after": 10,
+      "focus": "s1",
+      "lacks": [
+        "editor"
+      ],
+      "contains": [
+        "alpha"
+      ]
+    },
+    {
+      "after": 11,
+      "focus": "s1",
+      "lacks": [
+        "alpha"
+      ]
+    },
+    {
+      "after": 12,
+      "focus": "s1",
+      "contains": [
+        "alpha"
+      ]
+    },
+    {
+      "after": 12,
+      "contains": [
+        "name",
+        "alpha",
+        "bravo",
+        "▸ main",
+        "a-1",
+        "b-1"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 14,
+      "focus": "p1"
+    },
+    {
+      "after": 15,
+      "focus": "p1"
+    },
+    {
+      "after": 16,
+      "focus": "p1"
+    },
+    {
+      "after": 17,
+      "focus": "s1"
+    },
+    {
+      "after": 20,
+      "focus": "s2",
+      "lacks": [
+        "logs"
+      ]
+    },
+    {
+      "after": 21,
+      "focus": "s2",
+      "contains": [
+        "logs"
+      ]
+    },
+    {
+      "after": 22,
+      "focus": "p3"
+    },
+    {
+      "after": 22,
+      "contains": [
+        "name",
+        "state",
+        "▾ main",
+        "open",
+        "editor",
+        "busy",
+        "shell",
+        "idle",
+        "▾ work",
+        "logs"
+      ],
+      "highlighted": 1,
+      "dimmed": 1
+    },
+    {
+      "after": 26,
+      "writes": []
+    },
+    {
+      "after": 27,
+      "writes": [
+        "rename a: alphabc"
+      ]
+    },
+    {
+      "after": 28,
+      "writes": [
+        "rename a: alphabc"
+      ]
+    },
+    {
+      "focus": "a",
+      "mode": "normal",
+      "writes": [
+        "rename a: alphabc",
+        "rename a: alphabcde"
+      ],
+      "after": 29
+    },
+    {
+      "after": 34,
+      "mode": "normal",
+      "focus": "b",
+      "writes": [],
+      "contains": [
+        "alpha",
+        "beta"
+      ]
+    },
+    {
+      "focus": "b",
+      "writes": [],
+      "contains": [
+        "beta"
+      ],
+      "after": 35
+    },
+    {
+      "focus": "empty/list",
+      "mode": "normal",
+      "register": "",
+      "lacks": [
+        "Error:",
+        "list has no selected row",
+        "no row to copy"
+      ],
+      "after": 37
+    },
+    {
+      "after": 41,
+      "mode": "normal",
+      "writes": [
+        "rename a: "
+      ],
+      "contains": [
+        "beta"
+      ]
+    },
+    {
+      "mode": "normal",
+      "focus": "r",
+      "after": 46
+    },
+    {
+      "focus": "empty/list",
+      "mode": "normal",
+      "register": "",
+      "lacks": [
+        "Error:",
+        "list has no selected row",
+        "no row to copy"
+      ],
+      "after": 48
+    },
+    {
+      "after": 53,
+      "contains": [
+        "alphax",
+        "!"
+      ],
+      "writes": []
+    },
+    {
+      "lacks": [
+        "!"
+      ],
+      "writes": [
+        "rename a: alphax",
+        "add t-n1 under root at 1: ",
+        "rename t-n1: z"
+      ],
+      "after": 56
+    },
+    {
+      "after": 59,
+      "contains": [
+        "Context parent",
+        "My note"
+      ]
+    },
+    {
+      "after": 60,
+      "contains": [
+        "Context root"
+      ],
+      "lacks": [
+        "Context parent",
+        "My note"
+      ]
+    },
+    {
+      "after": 61,
+      "contains": [
+        "Context parent",
+        "My note"
+      ]
+    },
+    {
+      "after": 62,
+      "lacks": [
+        "My note"
+      ]
+    },
+    {
+      "after": 63,
+      "contains": [
+        "My note"
+      ]
+    },
+    {
+      "contains": [
+        "My note"
+      ],
+      "after": 63
+    },
+    {
+      "after": 68,
+      "focus": "mine"
+    },
+    {
+      "after": 71,
+      "focus": "root",
+      "lacks": [
+        "My note"
+      ]
+    },
+    {
+      "after": 72,
+      "focus": "root",
+      "contains": [
+        "*       My note"
+      ]
+    },
+    {
+      "focus": "root",
+      "contains": [
+        "*       My note"
+      ],
+      "after": 72
+    },
+    {
+      "after": 75,
+      "focus": "mine",
+      "contains": [
+        "My note"
+      ],
+      "lacks": [
+        "Context root",
+        "Context parent",
+        "Agent note"
+      ]
+    },
+    {
+      "after": 77,
+      "focus": "mine",
+      "contains": [
+        "Context parent",
+        "Other note"
+      ]
+    },
+    {
+      "after": 79,
+      "focus": "notes/list",
+      "contains": [
+        "no rows match"
+      ]
+    },
+    {
+      "after": 80,
+      "focus": "mine"
+    },
+    {
+      "after": 81,
+      "focus": "mine"
+    },
+    {
+      "focus": "mine",
+      "after": 81
+    },
+    {
+      "after": 84,
+      "mode": "normal",
+      "writes": []
+    },
+    {
+      "writes": [
+        "move b under a at 0"
+      ],
+      "contains": [
+        "▾ items",
+        "    0"
+      ],
+      "after": 85
+    },
+    {
+      "after": 90,
+      "mode": "normal",
+      "writes": [],
+      "contains": [
+        "root",
+        "child"
+      ]
+    },
+    {
+      "after": 93,
+      "writes": [],
+      "contains": [
+        "\"delete\" names no verb of outline here"
+      ]
+    },
+    {
+      "writes": [
+        "delete b"
+      ],
+      "contains": [
+        "root"
+      ],
+      "lacks": [
+        "child"
+      ],
+      "after": 98
+    },
+    {
+      "after": 100,
+      "focus": "p2"
+    },
+    {
+      "focus": "p2",
+      "after": 101
+    },
+    {
+      "after": 103,
+      "focus": "p1",
+      "contains": [
+        "editor"
+      ]
+    },
+    {
+      "after": 104,
+      "focus": "p1",
+      "lacks": [
+        "editor"
+      ]
+    },
+    {
+      "after": 105,
+      "focus": "a1"
+    },
+    {
+      "after": 107,
+      "focus": "p1"
+    },
+    {
+      "after": 108,
+      "focus": "p2"
+    },
+    {
+      "focus": "a2",
+      "after": 109
+    },
+    {
+      "after": 111,
+      "focus": "c1"
+    },
+    {
+      "focus": "b1",
+      "after": 112
+    },
+    {
+      "focus": "t-n5",
+      "order": [
+        "alpha",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five"
+      ],
+      "writes": [
+        "add t-n1 under root at 1: one",
+        "add t-n2 under t-n1 at 0: two",
+        "add t-n3 under t-n2 at 0: three",
+        "add t-n4 under t-n1 at 1: four",
+        "add t-n5 under root at 2: five"
+      ],
+      "after": 114
+    },
+    {
+      "focus": "t-n1",
+      "contains": [
+        "beta"
+      ],
+      "lacks": [
+        "▾ alpha"
+      ],
+      "writes": [
+        "add t-n1 under root at 1: ",
+        "rename t-n1: beta",
+        "move t-n1 under a at 0",
+        "move t-n1 under root at 1"
+      ],
+      "after": 120
+    },
+    {
+      "after": 125,
+      "lacks": [
+        "*"
+      ],
+      "writes": [
+        "check a",
+        "check b",
+        "check c"
+      ]
+    },
+    {
+      "after": 126,
+      "writes": [
+        "check a",
+        "check b",
+        "check c",
+        "uncheck c",
+        "uncheck b",
+        "uncheck a"
+      ]
+    },
+    {
+      "writes": [
+        "check a",
+        "check b",
+        "check c",
+        "uncheck c",
+        "uncheck b",
+        "uncheck a",
+        "check a",
+        "check b",
+        "check c"
+      ],
+      "after": 127
+    },
+    {
+      "after": 128,
+      "contains": [
+        "- [ ] testing wrap",
+        "start here",
+        "▾ More rows",
+        "▾ - [x] testing",
+        "wrap start",
+        "here",
+        "12. testing"
+      ],
+      "highlighted": 2
+    },
+    {
+      "after": 129,
+      "contains": [
+        "- [ ] testing wrap",
+        "todo",
+        "start here",
+        "▾ More rows",
+        "▾ - [x] testing",
+        "done",
+        "wrap start",
+        "here",
+        "long",
+        "abcdefghij",
+        "klmnop"
+      ],
+      "highlighted": 2
+    },
+    {
+      "after": 131,
+      "contains": [
+        "- [ ] testing wrap",
+        "todo",
+        "start here",
+        "next row",
+        "done"
+      ],
+      "highlighted": 2
+    },
+    {
+      "after": 132,
+      "contains": [
+        "▾ - [ ] testing wra…",
+        "- [x] testing w…"
+      ],
+      "highlighted": 1
+    },
+    {
+      "after": 138,
+      "mode": "normal",
+      "register": "beta\n\tgamma\n\tdelta\n"
+    },
+    {
+      "order": [
+        "alpha",
+        "beta",
+        "gamma",
+        "delta",
+        "epsilon",
+        "zeta",
+        "beta",
+        "gamma",
+        "delta"
+      ],
+      "after": 140
+    },
+    {
+      "after": 144,
+      "focus": "b",
+      "contains": [
+        "root › alpha",
+        "▾ beta",
+        "  alpha2"
+      ],
+      "lacks": [
+        "side",
+        "▾ root"
+      ]
+    },
+    {
+      "after": 146,
+      "focus": "b",
+      "contains": [
+        "root",
+        "▾ alpha",
+        "  ▾ beta"
+      ],
+      "lacks": [
+        "side",
+        "▾ root"
+      ]
+    },
+    {
+      "focus": "b",
+      "contains": [
+        "▾ root",
+        "  ▾ alpha",
+        "side"
+      ],
+      "lacks": [
+        "root › alpha"
+      ],
+      "after": 148
+    },
+    {
+      "page": "page1"
+    }
+  ],
+  "notes": [],
+  "width": 100,
+  "page": {
+    "trees": [
+      {
+        "id": "t",
+        "editable": true,
+        "nodes": [
+          {
+            "id": "n1",
+            "label": "one"
+          },
+          {
+            "id": "n2",
+            "label": "two"
+          },
+          {
+            "id": "n3",
+            "label": "three"
+          }
+        ]
+      }
+    ],
+    "lists": [
+      {
+        "id": "a",
+        "rows": 2
+      }
+    ],
+    "order": [
+      "t",
+      "a"
+    ],
+    "detail": {
+      "lines": 50
+    }
+  }
+}
