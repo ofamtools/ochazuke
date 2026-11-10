@@ -525,7 +525,7 @@ Conformance:
 | normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
 | normal | picker | `picker.move` `picker.open` `picker.pick` |
 | normal | project | `project.get` |
-| normal | related-section | `related-section.close-all` `related-section.next` `related-section.open-all` `related-section.toggle` `related-section.unassociate` |
+| normal | related-section | `related-section.close-all` `related-section.new` `related-section.next` `related-section.open` `related-section.open-all` `related-section.toggle` `related-section.unassociate` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
 | normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.diff` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
