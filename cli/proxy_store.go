@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	gomaps "maps"
+	"strings"
 	"time"
 
 	"ofam.dev/ochazuke"
@@ -43,6 +44,11 @@ func proxyStore(noun CatalogNoun, local, key string, h HostMount) ochazuke.Store
 	}
 	if px.has("list") {
 		s.List = px.list
+		// The extension's store pages (CatalogStore.Query): one page of a
+		// list request is asked of it, never its whole list.
+		if noun.Store != nil && noun.Store.Query {
+			s.Query = px.query
+		}
 	}
 	if px.has("create") {
 		s.Create = px.create
@@ -157,6 +163,70 @@ func (px *proxyCalls) get(c ochazuke.Ctx, id string) (ochazuke.Thing, error) {
 func (px *proxyCalls) list(c ochazuke.Ctx, q ochazuke.ListQuery) ([]ochazuke.Thing, error) {
 	v, err := px.call(c, "list", gomaps.Clone(q.Args))
 	return proxyThings(v), err
+}
+
+// query asks the extension's list for one page: conditions as where pairs
+// (equality) and filter words, sort words, the text search, the page and
+// the archive flag. A condition the words cannot say is run here over the
+// extension's whole list instead (Runtime.QueryAll), so an answer is never
+// wrong, only slower.
+func (px *proxyCalls) query(c ochazuke.Ctx, q ochazuke.ListQuery) (ochazuke.ListPage, error) {
+	args := ochazuke.Arguments(gomaps.Clone(q.Args))
+	if args == nil {
+		args = ochazuke.Arguments{}
+	}
+	var where []string
+	for _, f := range q.Filters {
+		text := fmt.Sprint(f.Value)
+		if f.Op != "" && f.Op != "=" || f.Value == nil || strings.ContainsAny(text, " ,=") {
+			things, err := px.list(c, q)
+			if err != nil {
+				return ochazuke.ListPage{}, err
+			}
+			return c.Runtime.QueryAll(px.store, things, q), nil
+		}
+		where = append(where, f.Prop+"="+text)
+	}
+	if len(where) > 0 {
+		args["where"] = strings.Join(where, ",")
+	}
+	var sort []string
+	for _, k := range q.Sort {
+		w := k.Field
+		if k.Desc {
+			w += ":desc"
+		}
+		sort = append(sort, w)
+	}
+	if len(sort) > 0 {
+		args["sort"] = strings.Join(sort, ",")
+	}
+	if q.Text != "" {
+		args["search"] = q.Text
+	}
+	if q.PerPage > 0 {
+		args["page"], args["per-page"] = max(q.Page, 1), q.PerPage
+	}
+	if q.Archived {
+		args["archived"] = true
+	}
+	v, err := px.call(c, "list", args)
+	if err != nil {
+		return ochazuke.ListPage{}, err
+	}
+	things := proxyThings(v)
+	total := len(things)
+	switch a := v.(type) {
+	case ochazuke.ListAnswer:
+		total = a.Total
+	case map[string]any:
+		if n, ok := a["total"].(float64); ok {
+			total = int(n)
+		} else if n, ok := a["total"].(int); ok {
+			total = n
+		}
+	}
+	return ochazuke.ListPage{Items: things, Total: total}, nil
 }
 
 func (px *proxyCalls) create(c ochazuke.Ctx, t ochazuke.Thing) (ochazuke.Thing, error) {

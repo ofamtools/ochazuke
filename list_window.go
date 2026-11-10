@@ -35,6 +35,9 @@ type listWindow struct {
 	// under way.
 	key, token, asked string
 	filled            bool
+	// selectLast selects the last row of the next page read (a move up
+	// past the first row).
+	selectLast bool
 }
 
 // Windowed reports whether the list holds one page of a paging store.
@@ -121,7 +124,13 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 		}
 		w.total, w.archived, w.key, w.token, w.filled = page.Total, archived, key, token, true
 		l.refills++
-		return nil, l.SetItems(r.thingItems(c, n, l.id, page.Items, l.columns))
+		if err := l.SetItems(r.thingItems(c, n, l.id, page.Items, l.columns)); err != nil {
+			return nil, err
+		}
+		if w.selectLast {
+			l.windowSelect()
+		}
+		return nil, nil
 	}
 	w.asked = key
 	res := r.runSteppedBody(c, n.Name+".list", body, finish)
@@ -186,6 +195,7 @@ func (r *Runtime) readStaleWindows() {
 	}
 	ids := h.stale
 	h.stale = nil
+	defer r.syncIndexForm()
 	for _, id := range ids {
 		if l := r.List(id); l != nil {
 			l.windowChanged()
@@ -223,6 +233,49 @@ func (l *Collection) setWindowPage(n int) error {
 	}
 	w.page = n
 	return l.Refill()
+}
+
+// windowEdge moves a windowed list past the edge of its page onto the
+// neighbouring page when there is one (j on the last row loads the next
+// page, its first row selected; k on the first row the previous page, its
+// last row selected) and reports whether it did; at the store's ends the
+// move spills as on any list.
+func (l *Collection) windowEdge(delta int) bool {
+	w := l.paged
+	if w == nil || !w.filled || l.selected < 0 {
+		return false
+	}
+	pages := windowPages(w.total, w.per)
+	switch {
+	case delta > 0 && l.selected == len(l.items)-1 && w.page < pages:
+		w.selectLast = false
+		_ = l.setWindowPage(w.page + 1)
+		l.windowSelect()
+		return true
+	case delta < 0 && l.selected == 0 && w.page > 1:
+		w.selectLast = true // the read selects the page's last row when it lands
+		_ = l.setWindowPage(w.page - 1)
+		return true
+	}
+	return false
+}
+
+// windowSelect selects the first row of a page just read, or its last
+// after a move up; a read still under way selects when it lands.
+func (l *Collection) windowSelect() {
+	w := l.paged
+	if w.asked != "" || len(l.items) == 0 {
+		return
+	}
+	at := 0
+	if w.selectLast {
+		at = len(l.items) - 1
+	}
+	w.selectLast = false
+	_ = l.Select(l.items[at].ID)
+	if r := l.r; slices.Contains(r.InstancePath(r.Focus), l.id) {
+		r.changeFocus(l.focusTarget(), focusMove{cause: focusSettle})
+	}
 }
 
 // windowArchived is how many archived things the windowed list's store

@@ -363,12 +363,12 @@ func TestPropFilterDurationAndCopies(t *testing.T) {
 func TestPropFilterStandardPositionalOrder(t *testing.T) {
 	r, _ := newTaskRuntime(t)
 	op, _ := r.Operation("task.list")
-	if want := []string{"limit", "props", "where", "archived", "filter", "group-by", "group-sort", "page", "per-page", "sort"}; !reflect.DeepEqual(op.ParameterOrder(), want) {
+	if want := []string{"limit", "props", "search", "where", "archived", "filter", "group-by", "group-sort", "page", "per-page", "sort"}; !reflect.DeepEqual(op.ParameterOrder(), want) {
 		t.Fatalf("order %v want %v", op.ParameterOrder(), want)
 	}
 	r.Define("task").Store(Store{List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }, ListParams: map[string]Parameter{"project": {Type: "string", Required: true}}})
 	op, _ = r.Operation("task.list")
-	if want := []string{"project", "limit", "props", "where", "archived", "filter", "group-by", "group-sort", "page", "per-page", "sort"}; !reflect.DeepEqual(op.ParameterOrder(), want) {
+	if want := []string{"project", "limit", "props", "search", "where", "archived", "filter", "group-by", "group-sort", "page", "per-page", "sort"}; !reflect.DeepEqual(op.ParameterOrder(), want) {
 		t.Fatalf("order %v want %v", op.ParameterOrder(), want)
 	}
 }

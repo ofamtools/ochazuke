@@ -186,3 +186,77 @@ func TestIndexLoadingThenEmpty(t *testing.T) {
 		t.Fatalf("after loading:\n%s", frame)
 	}
 }
+
+// j on the last row of a windowed list's page reads the next page and
+// selects its first row; k on the first row goes back to the previous
+// page's last row; at the store's ends the list spills as any list does.
+func TestWindowEdgeLoadsTheNeighbouringPage(t *testing.T) {
+	r, m, _ := indexFixture(t)
+	if _, err := r.Settings().SetSession(ListWindowSetting, 5); err != nil {
+		t.Fatal(err)
+	}
+	mustRun(t, r, Request{Noun: "ochazuke.noun", Verb: "show", Args: Arguments{"noun": "big"}})
+	list := r.List(IndexPageID("big") + "/list")
+	for range 4 {
+		keytest.Press(m, "j")
+	}
+	keytest.Press(m, "j")
+	if page, _ := list.Page(); page != 2 {
+		t.Fatalf("j past the last row: page %d", page)
+	}
+	if item, _ := list.Selected(); item.ID != list.Items()[0].ID || !strings.HasSuffix(r.Focus, item.ID[strings.LastIndex(item.ID, "/"):]) {
+		t.Fatalf("first row of page 2 selected and focused: %s focus %s", item.ID, r.Focus)
+	}
+	keytest.Press(m, "k")
+	if page, _ := list.Page(); page != 1 {
+		t.Fatalf("k past the first row: page %d", page)
+	}
+	if item, _ := list.Selected(); item.ID != list.Items()[len(list.Items())-1].ID {
+		t.Fatalf("last row of page 1 selected: %s", item.ID)
+	}
+}
+
+// An index page's detail is the edit form over the selected thing: it
+// follows the selection, a field edits with i and writes as typed, and u
+// undoes; detail.show-form off draws the props as text.
+func TestIndexShowForm(t *testing.T) {
+	r, m, big := indexFixture(t)
+	mustRun(t, r, Request{Noun: "ochazuke.noun", Verb: "show", Args: Arguments{"noun": "big"}})
+	id := IndexPageID("big")
+	form := r.RecordEditor(id + "/form")
+	if form == nil || form.Values()["title"] != "thing 300" {
+		t.Fatalf("the form holds the selected thing: %v", form)
+	}
+	keytest.Press(m, "j")
+	form = r.RecordEditor(id + "/form")
+	if form == nil || form.Values()["title"] != "thing 301" {
+		t.Fatalf("the form follows the selection: %v", form.Values())
+	}
+	if err := form.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	for _, k := range []string{"i", "ctrl+u"} {
+		keytest.Press(m, k)
+	}
+	typeText(m, "renamed")
+	keytest.Press(m, "esc")
+	var got Thing
+	for _, th := range big.things {
+		if th["id"] == "t00301" {
+			got = th
+		}
+	}
+	if got["title"] != "renamed" {
+		t.Fatalf("the form wrote the title: %v", got)
+	}
+	if frame := ansi.Strip(m.View().Content); !strings.Contains(frame, "renamed") {
+		t.Fatalf("frame:\n%s", frame)
+	}
+	if _, err := r.Settings().SetSession(DetailShowFormSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	r.syncIndexForm()
+	if r.RecordEditor(id+"/form") != nil {
+		t.Fatal("detail.show-form off removes the form")
+	}
+}

@@ -1,0 +1,27 @@
+# scaffoldcheck baseline: noun<TAB>check, a failure accepted today; it only shrinks.
+ochazuke.outline	archive
+ochazuke.outline	delete
+ochazuke.outline	new
+ochazuke.outline	restore
+ochazuke.outline	set
+ochazuke.picker	archive
+ochazuke.picker	delete
+ochazuke.picker	form
+ochazuke.picker	new
+ochazuke.picker	restore
+ochazuke.picker	set
+ochazuke.register	archive
+ochazuke.register	delete
+ochazuke.register	label
+ochazuke.register	new
+ochazuke.register	restore
+ochazuke.setting	archive
+ochazuke.setting	delete
+ochazuke.setting	label
+ochazuke.setting	new
+ochazuke.setting	restore
+ochazuke.setting-item	archive
+ochazuke.setting-item	delete
+ochazuke.setting-item	new
+ochazuke.setting-item	restore
+ochazuke.setting-item	set

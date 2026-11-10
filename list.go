@@ -206,6 +206,18 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	return list, nil
 }
 
+// moveOrSpill moves the selection one step: past the page edge of a
+// windowed list onto its neighbouring page, past the list's edge on to the
+// next stop unless clamp.
+func (l *Collection) moveOrSpill(delta int, clamp bool) {
+	if !clamp && l.windowEdge(delta) {
+		return
+	}
+	if clamp || !l.spill(delta) {
+		l.Move(delta)
+	}
+}
+
 // SetItems copies rows, preserves selection by ID, and falls back to the nearest
 // remaining index if that ID disappears. Invalid updates leave the list unchanged.
 // Filters and view sorting stay and apply to the new rows.
@@ -958,9 +970,8 @@ func registerLists(r *Runtime) {
 					return l.state(), nil
 				}
 			}
-			if clamp, _ := a["clamp"].(bool); clamp || !l.spill(delta) {
-				l.Move(delta)
-			}
+			clamp, _ := a["clamp"].(bool)
+			l.moveOrSpill(delta, clamp)
 			return l.state(), nil
 		}, []opTrait{asMotion, asHistory(HistoryAction)}},
 		{"select", "Select a list item by stable ID without stealing focus", map[string]Parameter{"id": {Plumbing: true, Type: "string"}, "item": {Type: "string", Required: true}}, func(l *Collection, _ Context, a Arguments) (any, error) {

@@ -298,12 +298,16 @@ func (r *Runtime) refreshWatches(nouns []string) {
 // afterRequest refreshes the watches once a top-level request has run
 // that is of the change kind or ran one (the palette's run of a set).
 func (r *Runtime) watchAfterRequest(q Request, depth int, nothing bool) {
+	if depth == 0 && !nothing && r.historyKind(q) == HistoryChange {
+		defer recountOpenNounsPage(r)
+	}
 	h := r.watches
 	if h == nil {
 		return
 	}
 	if depth == 0 {
 		r.readStaleWindows()
+		r.syncIndexForm()
 	}
 	if !nothing && r.historyKind(q) == HistoryChange {
 		h.changed = true
@@ -321,6 +325,7 @@ func (r *Runtime) watchAfterJob(verb string) {
 	}
 	if op, ok := r.Operations.Find(Key(verb)); ok && op.HistoryKindOf() == HistoryChange {
 		r.refreshWatches(nil)
+		recountOpenNounsPage(r)
 	}
 }
 
@@ -367,18 +372,21 @@ func (w *Watch) snapshot() (watchSnapshot, error) {
 	}
 	var things []Thing
 	switch s := n.Store; {
-	case s.List != nil:
+	case s.List != nil && (w.key == "" || s.Get == nil):
 		list, err := s.List(w.ctx, ListQuery{Filters: whereFilters(w.where)})
 		if err != nil {
 			return watchSnapshot{}, err
 		}
 		things = list
-	case s.Get != nil:
+	case s.Get != nil: // one thing's watch reads that thing, never the whole store
 		t, err := s.Get(w.ctx, w.key)
-		if err != nil {
+		switch {
+		case err != nil && s.List != nil:
+			// The store lists too: a thing it cannot get is gone, as a
+			// list without it would say.
+		case err != nil:
 			return watchSnapshot{}, err
-		}
-		if t != nil {
+		case t != nil:
 			things = []Thing{t}
 		}
 	}

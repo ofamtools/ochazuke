@@ -45,6 +45,11 @@ const PropObject = "object"
 // written (ParseTime).
 const PropTime = "time"
 
+// PropURL is the prop type of a link (a URL, or anything the OS opener
+// opens): a noun with one gets the free verbs open and yank-path for it, as
+// for a path (path_verbs.go).
+const PropURL = "url"
+
 // PropPath is the prop type of a file or folder path (a string, Parameter's
 // "path" type: its form field opens the path chooser). A noun with a path
 // prop gets the free verbs reveal, yank-path, open and open-with
@@ -447,7 +452,7 @@ func propFlagError(key string, p PropSpec) error {
 var propTypes = map[string]bool{
 	SettingString: true, SettingInteger: true, SettingNumber: true, SettingBoolean: true,
 	SettingDuration: true, SettingList: true, PropObject: true, PropPath: true,
-	PropTime: true,
+	PropTime: true, PropURL: true,
 }
 
 // prop is the noun's prop of that name, nil when it has none. "@role" names
@@ -919,7 +924,7 @@ func propValue(p PropSpec, value any) (any, error) {
 		return nil, errors.New("must be " + timePhrase)
 	}
 	typ := p.Type
-	if p.IsPath() {
+	if _, opens := openableTypes[p.Type]; opens {
 		typ = SettingString
 	}
 	v, err := coerceType(Setting{Name: p.Name, Type: typ, Enum: p.Enum}, value)
