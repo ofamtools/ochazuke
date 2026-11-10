@@ -2647,6 +2647,8 @@ Hand-built pages can pass `ShowFormSpec.Related: &spec` to reuse their complete 
 
 With `Related` omitted, the native `detail.related` and `detail.related-hidden` settings and history remain unchanged. `NoSections` leaves all sections out even when a related spec is supplied. An explicit `Target` takes precedence over `List` for both the form and sections; `Data`, when supplied, controls reloads instead of the selected row's data. `detail.show-form` defaults to on; turning it off leaves the page's own text.
 
+The show-form wrapper uses the existing framework noun `ochazuke.detail`; placement IDs do not declare application nouns. Like other instance constructors, `AddShowForm` accepts `Kind`, `Parent` and `FocusOnClose` options. The record editor inside it keeps its own `ochazuke.form` noun.
+
 Compared with Vim: `d a`/`d d` are like `:bdelete` and `:bwipeout` (archive is recoverable, delete is for good); `y y` yanks the thing as `yy` yanks a line; `u` undoes the last change; `z A` sits with Vim's `z` fold keys but toggles the archived rows, while `z a` stays the related section's fold (`:help za`); the history section lists changes like `:changes`, without jumping.
 
 ## Pickers (picker.open)

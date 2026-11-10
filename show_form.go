@@ -8,7 +8,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// The show form (noun scaffold b, the ochazuke.record component placed as
+// The show form (noun scaffold b, an ochazuke.detail component placed as
 // a page's detail): a ShowForm follows a list's selection and holds the
 // selected thing's edit form (Runtime.EditSpec, read-only fields muted,
 // commit on change, u undoes) with the relation sections and the history
@@ -60,7 +60,8 @@ type ShowForm struct {
 }
 
 // AddShowForm registers a show form under Parent (its page): the form
-// follows spec.List's selection after every request.
+// follows spec.List's selection after every request. The wrapper's noun
+// defaults to ochazuke.detail; Kind may name another declared noun.
 func (r *Runtime) AddShowForm(id string, spec ShowFormSpec, opts ...InstanceOption) (*ShowForm, error) {
 	if spec.List == nil && spec.Target == nil {
 		return nil, fmt.Errorf("show form %s: no list or target to follow", id)
@@ -73,7 +74,11 @@ func (r *Runtime) AddShowForm(id string, spec ShowFormSpec, opts ...InstanceOpti
 	if spec.Form == "" {
 		spec.Form = id + "/form"
 	}
-	inst := r.Instance(id, opts...)
+	is := instanceSpec{parent: "app", noun: detailNoun}
+	for _, opt := range opts {
+		opt(&is)
+	}
+	inst := r.Instance(id, Parent(is.parent), Kind(is.noun), FocusOnClose(is.closeFocus))
 	sf := &ShowForm{r: r, id: id, spec: spec}
 	inst.Component = sf
 	if !spec.NoSections {

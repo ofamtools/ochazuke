@@ -49,6 +49,53 @@ func showRelatedFixture(t *testing.T, configure func(*Runtime, *RelatedSpec)) (*
 	return f, sf
 }
 
+func TestShowFormUsesFrameworkDetailNoun(t *testing.T) {
+	f, _ := showRelatedFixture(t, nil)
+	r := f.r
+	r.Define("custom-detail").Kind(NounKindPart)
+	for _, tc := range []struct {
+		id   string
+		kind string
+	}{
+		{id: "page/selection", kind: "ochazuke.detail"},
+		{id: "page/preview", kind: "ochazuke.detail"},
+		{id: "page/custom-detail", kind: "custom-detail"},
+	} {
+		t.Run(tc.id, func(t *testing.T) {
+			opts := []InstanceOption{Parent("page"), FocusOnClose("p2")}
+			if tc.kind == "custom-detail" {
+				opts = append(opts, Kind(tc.kind))
+			}
+			sf, err := r.AddShowForm(tc.id, ShowFormSpec{
+				Target: func() (string, string) { return "project", "p1" }, NoSections: true,
+			}, opts...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sf.Sync()
+			inst := r.Instances[tc.id]
+			if inst.Noun != tc.kind || r.Noun(tc.id) != nil || r.NounKind(inst.Noun) != NounKindPart {
+				t.Fatalf("placement became a noun instead of the requested detail kind: %+v", inst)
+			}
+			if tc.kind == "ochazuke.detail" && !r.Noun(inst.Noun).Builtin {
+				t.Fatal("default detail noun is not owned by the framework")
+			}
+			if !strings.Contains(ansi.Strip(sf.Block("", 60, 20).Text), "Alpha") {
+				t.Fatal("classified detail did not render its selected record")
+			}
+			if err := r.SetFocus(tc.id); err != nil {
+				t.Fatal(err)
+			}
+			if err := r.RemoveInstance(tc.id); err != nil {
+				t.Fatal(err)
+			}
+			if r.Focus != "p2" {
+				t.Fatalf("FocusOnClose was not preserved: %s", r.Focus)
+			}
+		})
+	}
+}
+
 func TestShowFormRelatedStackSettingsAndWrites(t *testing.T) {
 	f, sf := showRelatedFixture(t, func(r *Runtime, spec *RelatedSpec) {
 		if err := r.DeclareSetting(Setting{Name: "rel.enabled", Type: SettingBoolean, Default: true}); err != nil {
