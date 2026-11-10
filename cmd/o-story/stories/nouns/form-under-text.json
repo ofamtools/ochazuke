@@ -1,0 +1,76 @@
+{
+  "name": "form under text: a hand-built page that opts in (detail showForm) keeps its own detail text on top and draws the selected thing's show form and its sections under it, following the selection",
+  "area": "nouns",
+  "width": 120,
+  "height": 34,
+  "chrome": "full",
+  "pages": [
+    {
+      "id": "work",
+      "title": "Work",
+      "lists": [
+        {
+          "id": "a",
+          "from": true
+        }
+      ],
+      "store": {
+        "props": [
+          {
+            "name": "id",
+            "key": true
+          },
+          {
+            "name": "title",
+            "role": "label",
+            "type": "string"
+          },
+          {
+            "name": "archived",
+            "role": "archive",
+            "type": "boolean"
+          }
+        ],
+        "things": [
+          {
+            "id": "c1",
+            "title": "Water the plants",
+            "archived": false
+          },
+          {
+            "id": "c2",
+            "title": "Write notes",
+            "archived": false
+          }
+        ],
+        "noun": "chore"
+      },
+      "detail": {
+        "lines": 2,
+        "showForm": true
+      }
+    }
+  ],
+  "script": [
+    "j",
+    "k"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "line 1",
+        "line 2",
+        "Write notes",
+        "archived",
+        "History"
+      ]
+    },
+    {
+      "contains": [
+        "Water the plants",
+        "History"
+      ]
+    }
+  ]
+}

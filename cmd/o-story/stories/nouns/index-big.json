@@ -1,5 +1,5 @@
 {
-  "name": "a 20,000-thing paged store: its index reads one page of 200 and the archived count (no full list: the writes hold no list; the show form gets the selected thing), says the page and the total, and collection.page-next reads the next page",
+  "name": "a 20,000-thing paged store: its index reads one page of 200 and the archived count (no full list: the writes hold no list; the show form gets the selected thing once), says the page and the total, and collection.page-next reads the next page",
   "area": "nouns",
   "width": 110,
   "height": 30,
@@ -70,7 +70,7 @@
       "after": 2,
       "page": "nouns/chore",
       "contains": [
-        "chore \u00b7 20000",
+        "chore · 20000",
         "page 1/100 of 20000",
         "chore 00001"
       ],
@@ -82,9 +82,6 @@
         "query page=1 per=1",
         "query page=1 per=200",
         "query page=1 per=1",
-        "get c00001",
-        "get c00001",
-        "get c00001",
         "get c00001"
       ]
     },
@@ -100,15 +97,8 @@
         "query page=1 per=200",
         "query page=1 per=1",
         "get c00001",
-        "get c00001",
-        "get c00001",
-        "get c00001",
         "query page=2 per=200",
         "query page=1 per=1",
-        "get c00201",
-        "get c00201",
-        "get c00201",
-        "get c00201",
         "get c00201"
       ]
     }

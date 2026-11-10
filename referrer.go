@@ -34,7 +34,11 @@ type Referrer struct {
 	Relation string `json:"relation,omitempty"`
 	Multi    bool   `json:"multi,omitempty"`
 	Outward  bool   `json:"outward,omitempty"`
-	Label    string `json:"label"`
+	// History marks the history section (RelatedSpec.History): the
+	// history entries that changed or named the thing, newest first; Noun
+	// is ochazuke.history-entry.
+	History bool   `json:"history,omitempty"`
+	Label   string `json:"label"`
 }
 
 // Value is what the referring prop holds to name the thing key of noun:

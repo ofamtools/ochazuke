@@ -165,11 +165,6 @@ func (r *Runtime) declareSavedIndexColumns() {
 // indexPage is an index page instance's data: the noun it lists.
 type indexPage struct {
 	Noun string `json:"noun"`
-	// Form is the key of the thing the show form holds ("" none).
-	Form string `json:"form,omitempty"`
-	// syncing is set while the form is made (its get is a request, which
-	// syncs again after it runs).
-	syncing bool
 }
 
 // DetailShowFormSetting draws an index page's detail as the edit form over
@@ -181,44 +176,7 @@ const DetailShowFormSetting = "detail.show-form"
 // thing: the noun's EditSpec placed as a record editor under the page,
 // made again when the selection names another thing. It runs after each
 // request and when the page opens, never while a frame draws.
-func (r *Runtime) syncIndexForm() {
-	inst := r.Instances[r.Page]
-	if inst == nil {
-		return
-	}
-	ref, ok := inst.Data.(*indexPage)
-	if !ok || ref.syncing {
-		return
-	}
-	ref.syncing = true
-	defer func() { ref.syncing = false }()
-	list := r.List(r.Page + "/list")
-	formID := r.Page + "/form"
-	key := ""
-	if item, ok := list.Selected(); ok && list != nil && r.Settings().Bool(DetailShowFormSetting) {
-		key = strings.TrimPrefix(item.ID, r.Page+"/list/")
-	}
-	if key == ref.Form && (key == "" || r.RecordEditor(formID) != nil) {
-		return
-	}
-	if r.Instances[formID] != nil {
-		if inside := slices.Contains(r.InstancePath(r.Focus), formID); inside {
-			r.changeFocus(list.focusTarget(), focusMove{cause: focusSettle})
-		}
-		_ = r.RemoveInstance(formID)
-	}
-	ref.Form = ""
-	if key == "" {
-		return
-	}
-	spec, err := r.EditSpec(ref.Noun, key)
-	if err != nil {
-		return // a noun the form cannot hold keeps the text detail
-	}
-	if _, err := r.AddRecordEditor(formID, spec, Parent(r.Page)); err == nil {
-		ref.Form = key
-	}
-}
+func (r *Runtime) syncIndexForm() { r.syncShowForms() }
 
 // OpenIndex opens the noun's generated index page (made on first use),
 // its row for key selected when key is given. The page is out of the tabs
@@ -267,6 +225,12 @@ func (r *Runtime) addIndexPage(n *Noun, id string) error {
 	detail := id + "/detail"
 	page := &Page{ID: id, Title: id, Focus: list.FocusTarget(), Render: func(r *Runtime, w, h int) Block { return indexPageView(r, id, w, h) }, TabSetting: PagesPinnedSetting}
 	if err := r.RegisterPage(page, Kind(indexNoun)); err != nil {
+		_ = r.RemoveInstance(id)
+		return err
+	}
+	// The show form (show_form.go): the selected thing's form, its
+	// relation sections and its history under it.
+	if _, err := r.AddShowForm(id+"/show", ShowFormSpec{List: func() *Collection { return r.List(id + "/list") }, Form: id + "/form"}, Parent(id)); err != nil {
 		_ = r.RemoveInstance(id)
 		return err
 	}
@@ -338,7 +302,7 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 	}
 	if form := r.RecordEditor(id + "/form"); form != nil && !form.Closed() && r.Settings().Bool(DetailShowFormSetting) {
 		form.Styles = styles
-		body = form.Block(dw, dch)
+		body = r.ShowFormOf(id+"/show").Block("", dw, dch)
 		if slices.Contains(r.InstancePath(r.DrawnFocus(id)), id+"/form") {
 			focused = SplitRight
 		}
@@ -432,4 +396,29 @@ func listArg(a Arguments, name string) []string {
 		return listWords(v)
 	}
 	return []string{}
+}
+
+// formWithSections draws a show form with its relation and history
+// sections under it (the ochazuke.relation-section stack): the form at its
+// natural height up to three fifths of the panel when sections show, the
+// sections in the rest.
+func (r *Runtime) formWithSections(form *RecordEditor, rel *Related, width, height int) Block {
+	full := form.Block(width, height)
+	if rel == nil || height < 8 {
+		return full
+	}
+	if probe := rel.Text(width); probe == "" {
+		return full
+	}
+	formH := min(strings.Count(full.Text, "\n")+1, height*3/5)
+	top := form.Block(width, formH)
+	lines := strings.Split(top.Text, "\n")
+	if len(lines) > formH {
+		lines = lines[:formH]
+	}
+	for len(lines) < formH {
+		lines = append(lines, "")
+	}
+	under := rel.View(width, height-formH-1)
+	return Block{Text: strings.Join(lines, "\n") + "\n\n" + under, Cursor: top.Cursor}
 }

@@ -216,6 +216,12 @@ func runYankThing(r *Runtime, n *Noun, c Ctx) (any, error) {
 	return text, r.storeYank(Yank{Text: text, Shape: "char"}, "", false)
 }
 
+// ThingHistory are the history entries that changed or named the thing
+// (the history verb's rows, the history section's), newest first.
+func (r *Runtime) ThingHistory(noun, key string) []HistoryEntry {
+	return r.thingHistory(r.CanonicalNoun(noun), key)
+}
+
 // thingHistory are the entries that changed the thing (a standard write's
 // changes) or named it (a request on its noun whose key argument is it),
 // newest first.

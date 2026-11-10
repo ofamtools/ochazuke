@@ -3,6 +3,8 @@ package ochazuke
 import (
 	"strings"
 	"testing"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // scaffoldFixture is an application with two stored nouns: task (label,
@@ -208,5 +210,43 @@ func TestGeneratedNounKeysStepAside(t *testing.T) {
 		if b.Generated {
 			t.Fatalf("keys.noun-defaults off left %s", b.Keys)
 		}
+	}
+}
+
+// The show form of an index page has the relation sections under it (the
+// notes about the task) and the history last; enter on a related row
+// follows it: the note's own index, its row selected.
+func TestShowFormSectionsAndFollow(t *testing.T) {
+	r, m := scaffoldFixture(t)
+	id := onlyTask(t, r)["id"].(string)
+	mustRun(t, r, Request{Noun: "note", Verb: "create", Args: Arguments{"title": "see the shelf", "about": "task:" + id}})
+	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": id, "props": map[string]any{"title": "Buy oat milk"}}})
+	if err := r.OpenIndex("task", id); err != nil {
+		t.Fatal(err)
+	}
+	frame := ansi.Strip(m.View().Content)
+	for _, want := range []string{"Notes", "see the shelf", "History", "task.set"} {
+		if !strings.Contains(frame, want) {
+			t.Fatalf("frame lacks %q:\n%s", want, frame)
+		}
+	}
+	rel := r.ShowFormOf(IndexPageID("task") + "/show").Related()
+	var noteRow string
+	for _, s := range rel.sections {
+		if s.ref.Noun == "note" {
+			for _, it := range s.list.Items() {
+				if it.Noun == "note" {
+					noteRow = it.ID
+				}
+			}
+		}
+	}
+	if noteRow == "" {
+		t.Fatal("no note row in the sections")
+	}
+	forceFocus(r, noteRow)
+	press(t, r, "enter")
+	if r.Page != IndexPageID("note") {
+		t.Fatalf("enter on a related row went to %s", r.Page)
 	}
 }

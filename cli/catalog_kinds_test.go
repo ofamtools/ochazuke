@@ -215,3 +215,34 @@ func TestCatalogIndexList(t *testing.T) {
 		t.Fatal("an index list takes no rows from the page")
 	}
 }
+
+// A data page asks for the show form by data alone: detail kind
+// record-form mounts an ochazuke.ShowForm on the page (the selected
+// thing's form, its relation sections, its history), as a generated index
+// page has.
+func TestCatalogRecordFormDetail(t *testing.T) {
+	doc := catalogOf(t, kindsRuntime())
+	host := ochazuke.NewRuntime()
+	host.Config().Disable()
+	ns := Namespace("tool")
+	if got := MountNouns(host, doc.AppNouns(), HostMount{Local: ns, Proxy: func(string, CatalogVerb) any {
+		return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	}}); len(got.Warnings) > 0 {
+		t.Fatal(got.Warnings)
+	}
+	m := ochazuke.NewModel(host)
+	page := CatalogPage{ID: "parcels", Title: "Parcels", Lists: []CatalogList{{ID: "parcels/list", Noun: "parcel", Kind: ListKindIndex}},
+		Detail: &CatalogDetail{Kind: DetailRecordForm}}
+	if _, err := MountPage(m, doc, page, PageConfig{Noun: ns}); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, inst := range host.Children("parcels") {
+		if _, ok := inst.Component.(*ochazuke.ShowForm); ok {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("record-form mounted no show form on the page")
+	}
+}

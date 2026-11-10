@@ -271,6 +271,10 @@ type ItemSpec struct {
 type DetailSpec struct {
 	Lines int `json:"lines"`
 	Width int `json:"width,omitempty"` // columns; default half the page
+	// ShowForm draws the selected thing's show form (ochazuke.AddShowForm:
+	// the form, its relation sections, its history) under the detail's
+	// own lines, as a hand-built page opts in (form-under-text).
+	ShowForm bool `json:"showForm,omitempty"`
 }
 
 // MarkdownSpec is a Markdown document drawn in the page's order with the

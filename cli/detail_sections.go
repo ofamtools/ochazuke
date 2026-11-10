@@ -460,6 +460,40 @@ func init() {
 	})
 }
 
+func init() {
+	// history: the selected thing's history entries (Runtime.ThingHistory),
+	// newest first, one line each, as a record-form's history section.
+	registerSectionKind("history", sectionKind{
+		check: func(s CatalogDetailSection) string {
+			if s.Region == "side" {
+				return "the history section uses the main region"
+			}
+			return ""
+		},
+		mount: func(*PageView) error { return nil },
+		text: func(v *PageView, _ CatalogDetailSection, width int) string {
+			r := v.m.Runtime
+			v.follow()
+			lv := v.lists[v.current]
+			if lv == nil || lv.list == nil {
+				return ""
+			}
+			noun, key := r.SelectionTarget(func() *ochazuke.Collection { return lv.list })()
+			if noun == "" {
+				return ""
+			}
+			lines := []string{"History"}
+			for _, e := range r.ThingHistory(noun, key) {
+				lines = append(lines, ansi.Truncate(fmt.Sprintf("  %s  %s  %s", e.At.Local().Format("Jan 2 15:04"), r.DisplayKey(e.Request.Key()), e.Context.Actor), width, "…"))
+			}
+			if len(lines) == 1 {
+				lines = append(lines, "  (none yet)")
+			}
+			return strings.Join(lines, "\n")
+		},
+	})
+}
+
 func sectionKindNames() []string {
 	names := make([]string, 0, len(sectionKinds))
 	for name := range sectionKinds {

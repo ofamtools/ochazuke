@@ -287,6 +287,7 @@ func (r *Runtime) EditSpec(noun, id string) (RecordSpec, error) {
 		key[kp.Name] = typed
 		writeKey += "\x00" + fmt.Sprint(typed)
 	}
+	r.knownTarget(n.Name, id) // the caller names the key itself: no probe read
 	c := Ctx{Runtime: r, Context: r.contextOf("app"), Args: Arguments{}}
 	es := editSession{
 		editSubject: editSubject{r: r, n: n, key: key, writeKey: writeKey},

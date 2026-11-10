@@ -16,6 +16,7 @@ type countingStore struct {
 	things                 []Thing
 	lists, queries, tokens int
 	rows                   int
+	gets                   int
 	version                int
 }
 
@@ -31,6 +32,7 @@ func (s *countingStore) store(paged, token bool) Store {
 	st := Store{
 		Stamps: true,
 		Get: func(_ Ctx, id string) (Thing, error) {
+			s.gets++
 			for _, t := range s.things {
 				if t["id"] == id {
 					return t, nil
