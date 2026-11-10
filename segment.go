@@ -35,11 +35,31 @@ import (
 // Refreshes are not jobs: they would fill job.list and the history every
 // few seconds.
 //
+// Refresh policy, one mechanism for every segment (never a branch per id):
+//
+//   - Interval: a segment is refreshed every Every (default
+//     DefaultSegmentEvery, at least MinSegmentEvery).
+//   - Cost: one run of its source per refresh, off the loop, bounded by
+//     Timeout. A Command or a Verb that runs a process spawns one each
+//     time, so Every is the process rate; a Provider is in-process.
+//   - Idle: nothing stops a shown segment while the program sits idle;
+//     that is what the backoff is for.
+//   - Backoff: while an answer (text, tone and error) equals the one
+//     before, the wait doubles on each refresh up to MaxEvery (default
+//     DefaultSegmentMaxEvery; a MaxEvery below Every means no backoff) and
+//     returns to Every at once when the answer differs or segment.refresh
+//     asks. An error that repeats backs off like text that repeats.
+//   - Pause: a segment hidden by status.segments or status.segments.<id>
+//     is not refreshed at all. The
+//     runtime does not track terminal focus (no tea.FocusMsg handling, no
+//     ReportFocus), so an unfocused terminal is not paused.
+//
 // Opting out: the status.segments setting hides the whole area (and stops
 // every refresh), status.segments.<id> each segment (its default is the
-// row's Enabled), and status.segment-order holds the order segment.move
-// writes. All three are ordinary settings: the Settings page, settings set
-// and settings.json reach them.
+// row's Enabled), status.segment-backoff (default on) turns the backoff
+// off so every segment refreshes at its Every, and status.segment-order
+// holds the order segment.move writes. All four are ordinary settings: the
+// Settings page, settings set and settings.json reach them.
 
 // The segment settings.
 const (
@@ -50,6 +70,10 @@ const (
 	// (segment.move): ids first to last; segments it leaves out follow in
 	// their rows' order.
 	SegmentOrderSetting = "status.segment-order"
+	// SegmentBackoffSetting (true, the default) lets a segment whose
+	// answer does not change refresh less often, up to its MaxEvery; off,
+	// every segment refreshes at its Every.
+	SegmentBackoffSetting = "status.segment-backoff"
 	// SegmentsFile is the user's segments file in the config directory:
 	// a JSON array of Segment rows. A row naming an existing id changes
 	// that segment's fields; a new id adds a segment.
@@ -61,9 +85,12 @@ func SegmentSetting(id string) string { return SegmentsSetting + "." + id }
 
 // Segment defaults and bounds.
 const (
-	DefaultSegmentEvery   = 5 * time.Second
-	MinSegmentEvery       = 250 * time.Millisecond
-	DefaultSegmentTimeout = 2 * time.Second
+	DefaultSegmentEvery = 5 * time.Second
+	MinSegmentEvery     = 250 * time.Millisecond
+	// DefaultSegmentMaxEvery is the longest wait the backoff reaches when
+	// a row names no MaxEvery.
+	DefaultSegmentMaxEvery = 60 * time.Second
+	DefaultSegmentTimeout  = 2 * time.Second
 	// SegmentMaxWidth is the most cells one segment's text takes.
 	SegmentMaxWidth = 32
 )
@@ -74,7 +101,9 @@ const (
 // are the verb's or the provider's arguments, and a string argument may
 // name a setting as "{name}", read on the loop at each refresh. Every is the refresh interval (default
 // DefaultSegmentEvery, at least MinSegmentEvery) and Timeout the most one
-// refresh may take (default DefaultSegmentTimeout, at most Every). Tone is
+// refresh may take (default DefaultSegmentTimeout, at most Every). MaxEvery
+// is the longest the interval grows to while the answer stays the same
+// (default DefaultSegmentMaxEvery; at or below Every, no backoff). Tone is
 // a named tone (tone.go) the text draws in, unless the answer brings its
 // own (SegmentValue.Tone); none draws muted like the rule. Order sorts
 // the rows (lower first, then the order they were added) before
@@ -93,6 +122,7 @@ type Segment struct {
 	Args     Arguments     `json:"args,omitempty"`
 	Every    time.Duration `json:"-"`
 	Timeout  time.Duration `json:"-"`
+	MaxEvery time.Duration `json:"-"`
 	Tone     string        `json:"tone,omitempty"`
 	Order    int           `json:"order,omitempty"`
 	Enabled  *bool         `json:"enabled,omitempty"`
@@ -115,6 +145,7 @@ type segmentJSON struct {
 	Args        Arguments `json:"args,omitempty"`
 	Every       string    `json:"every,omitempty"`
 	Timeout     string    `json:"timeout,omitempty"`
+	MaxEvery    string    `json:"max-every,omitempty"`
 	Tone        string    `json:"tone,omitempty"`
 	Order       int       `json:"order,omitempty"`
 	Enabled     *bool     `json:"enabled,omitempty"`
@@ -132,6 +163,9 @@ func (s Segment) MarshalJSON() ([]byte, error) {
 	if s.Timeout != 0 {
 		j.Timeout = s.Timeout.String()
 	}
+	if s.MaxEvery != 0 {
+		j.MaxEvery = s.MaxEvery.String()
+	}
 	return json.Marshal(j)
 }
 
@@ -148,7 +182,7 @@ func (s *Segment) UnmarshalJSON(data []byte) error {
 	for _, d := range []struct {
 		name, text string
 		into       *time.Duration
-	}{{"every", j.Every, &out.Every}, {"timeout", j.Timeout, &out.Timeout}} {
+	}{{"every", j.Every, &out.Every}, {"timeout", j.Timeout, &out.Timeout}, {"max-every", j.MaxEvery, &out.MaxEvery}} {
 		if d.text == "" {
 			continue
 		}
@@ -202,6 +236,10 @@ type segmentRow struct {
 	started  time.Time // the last refresh started
 	inflight bool
 	due      bool // refresh at the next chance (segment.refresh)
+	// wait is the interval the backoff has reached (0: the row's every);
+	// answered says value/err hold a real answer to compare with.
+	wait     time.Duration
+	answered bool
 }
 
 // segments is the runtime's segment registry.
@@ -296,6 +334,9 @@ func mergeSegment(base, patch Segment) Segment {
 	if patch.Timeout != 0 {
 		out.Timeout = patch.Timeout
 	}
+	if patch.MaxEvery != 0 {
+		out.MaxEvery = patch.MaxEvery
+	}
 	if patch.Order != 0 {
 		out.Order = patch.Order
 	}
@@ -320,6 +361,34 @@ func (s Segment) every() time.Duration {
 		return DefaultSegmentEvery
 	}
 	return max(s.Every, MinSegmentEvery)
+}
+
+// maxEvery is the longest the backoff grows the interval to: never below
+// every.
+func (s Segment) maxEvery() time.Duration {
+	m := s.MaxEvery
+	if m <= 0 {
+		m = DefaultSegmentMaxEvery
+	}
+	return max(m, s.every())
+}
+
+// segmentWait is how long after a refresh started the row is due again:
+// its every, grown by the backoff while answers repeat (setting
+// status.segment-backoff).
+func (r *Runtime) segmentWait(row *segmentRow) time.Duration {
+	seg := row.row()
+	if row.wait <= 0 || !r.segmentBackoff() {
+		return seg.every()
+	}
+	return min(max(row.wait, seg.every()), seg.maxEvery())
+}
+
+// segmentBackoff reports whether the backoff is on (undeclared reads on).
+func (r *Runtime) segmentBackoff() bool {
+	v, ok := r.Settings().Value(SegmentBackoffSetting)
+	b, isBool := v.(bool)
+	return !ok || !isBool || b
 }
 
 func (s Segment) timeout() time.Duration {
@@ -790,11 +859,20 @@ func (r *Runtime) settleSegment(msg SegmentMsg, now time.Time) {
 	}
 	row.inflight = false
 	row.at = now
+	value, errText := row.value, ""
 	if msg.Err != nil {
-		row.err = msg.Err.Error()
-		return
+		errText = msg.Err.Error()
+	} else {
+		value = msg.Value
 	}
-	row.value, row.err = msg.Value, ""
+	// The answer is the same when text, tone and error are: the wait
+	// doubles; a different answer starts again from every.
+	if row.answered && value == row.value && errText == row.err {
+		row.wait = min(max(2*r.segmentWait(row), row.row().every()), row.row().maxEvery())
+	} else {
+		row.wait = 0
+	}
+	row.value, row.err, row.answered = value, errText, true
 }
 
 // segmentMove is the order after moving id to a position: "first",
@@ -904,7 +982,7 @@ func registerSegments(r *Runtime) {
 		out := []string{}
 		for _, row := range r.segs().rows {
 			if want == "" || row.base.ID == want {
-				row.due = true
+				row.due, row.wait = true, 0
 				out = append(out, row.base.ID)
 			}
 		}

@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -412,5 +413,82 @@ func TestSegmentArgsNameASetting(t *testing.T) {
 	}
 	if row := r.segs().find("echo").row(); row.Args["scale"] != "{demo.scale}" {
 		t.Fatalf("the row's argument was rewritten: %v", row.Args)
+	}
+}
+
+// TestSegmentBacksOffWhileTheAnswerRepeats: an unchanged answer (or a
+// repeated error) doubles the wait up to max-every and a change resets it;
+// status.segment-backoff off keeps every.
+func TestSegmentBacksOffWhileTheAnswerRepeats(t *testing.T) {
+	r, m, _ := segmentFixture(t, nil)
+	var text atomic.Value
+	text.Store("same")
+	r.SegmentProvider("p", func(context.Context, Segment) (SegmentValue, error) {
+		return SegmentValue{Text: text.Load().(string)}, nil
+	})
+	if err := r.AddSegment(Segment{ID: "b", Provider: "p", Every: 2 * time.Second, MaxEvery: 10 * time.Second}); err != nil {
+		t.Fatal(err)
+	}
+	row := r.segs().find("b")
+	answer := func(v string) time.Duration {
+		text.Store(v)
+		r.settleSegment(SegmentMsg{ID: "b", Value: SegmentValue{Text: v}}, time.Unix(0, 0))
+		return r.segmentWait(row)
+	}
+	var got []time.Duration
+	for _, v := range []string{"same", "same", "same", "same", "same", "other"} {
+		got = append(got, answer(v))
+	}
+	want := []time.Duration{2 * time.Second, 4 * time.Second, 8 * time.Second, 10 * time.Second, 10 * time.Second, 2 * time.Second}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("waits %v, want %v", got, want)
+	}
+	// An error that repeats backs off too; a different one resets.
+	fail := func(e string) time.Duration {
+		r.settleSegment(SegmentMsg{ID: "b", Err: errors.New(e)}, time.Unix(0, 0))
+		return r.segmentWait(row)
+	}
+	if a, b, c := fail("down"), fail("down"), fail("up?"); a != 2*time.Second || b != 4*time.Second || c != 2*time.Second {
+		t.Fatalf("error waits %v %v %v", a, b, c)
+	}
+	// A manual refresh resets.
+	answer("x")
+	answer("x")
+	if _, err := r.Execute(Request{Noun: "segment", Verb: "refresh"}); err != nil {
+		t.Fatal(err)
+	}
+	if w := r.segmentWait(row); w != 2*time.Second {
+		t.Fatalf("after refresh wait %v", w)
+	}
+	// Off: every refresh at every.
+	answer("y")
+	answer("y")
+	if err := r.Settings().Set(SegmentBackoffSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	if w := answer("y"); w != 2*time.Second {
+		t.Fatalf("backoff off: wait %v", w)
+	}
+	// MaxEvery below Every: no backoff.
+	row.base.MaxEvery = time.Second
+	_ = r.Settings().Set(SegmentBackoffSetting, true)
+	if w := answer("y"); w != 2*time.Second {
+		t.Fatalf("max-every below every: wait %v", w)
+	}
+	_ = m
+}
+
+// TestSegmentMaxEveryInSegmentsJSON: max-every is a duration string.
+func TestSegmentMaxEveryInSegmentsJSON(t *testing.T) {
+	var s Segment
+	if err := s.UnmarshalJSON([]byte(`{"id":"x","command":["true"],"every":"2s","max-every":"30s"}`)); err != nil {
+		t.Fatal(err)
+	}
+	if s.MaxEvery != 30*time.Second {
+		t.Fatalf("max-every %v", s.MaxEvery)
+	}
+	data, _ := s.MarshalJSON()
+	if !strings.Contains(string(data), `"max-every":"30s"`) {
+		t.Fatalf("marshalled %s", data)
 	}
 }

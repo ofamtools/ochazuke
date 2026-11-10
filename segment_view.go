@@ -33,11 +33,11 @@ func (m *Model) segmentCommand(now time.Time) tea.Cmd {
 		if row.inflight {
 			continue
 		}
-		due := row.started.Add(row.row().every())
+		due := row.started.Add(r.segmentWait(row))
 		if row.started.IsZero() || row.due || !due.After(now) {
 			run := r.startSegment(row, now)
 			commands = append(commands, func() tea.Msg { return run.do() })
-			due = now.Add(row.row().every())
+			due = now.Add(r.segmentWait(row))
 		}
 		if next.IsZero() || due.Before(next) {
 			next = due
