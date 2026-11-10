@@ -248,6 +248,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	for _, name := range topNames {
 		command := top[name].command(name, line)
 		command.Aliases = shortNames[name]
+		markNamespace(&command, name)
 		sh.addGroup(app, command)
 	}
 	app.HelpText = `CLI execution:
@@ -268,6 +269,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 	if stdLine != "" {
 		app.HelpText = stdLine + "\n\n" + app.HelpText
 	}
+	app.HelpBrief = briefHelp(app.Name, stdLine)
 	app.Add(sh.shellCommands()...)
 	// A word that names no command but is a verb of the tool's nouns runs
 	// it (BIN add, and BIN state over the builtin when a noun has one):
@@ -281,6 +283,36 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			doc.Commands[i].Help = ""
 		}
 	})
+}
+
+// briefHelp is the CLI notes of default help; --all has the full text.
+func briefHelp(bin, stdLine string) string {
+	brief := `CLI execution: each call uses a fresh local runtime; results are JSON (--format table|markdown|toon for a list's rows).
+  --target selects an instance; --yes (or -y) accepts confirmation.
+  Run '` + bin + ` help --all' for every command and the full notes.`
+	if stdLine != "" {
+		brief = stdLine + "\n\n" + brief
+	}
+	return brief
+}
+
+// markNamespace says which namespace the top-level command name belongs to,
+// from the name alone: a dotted noun (ochazuke.about) is a member of its
+// first part, and the group NS. of a namespace that is no noun is that
+// namespace's head. A part that starts with "__" is internal (a state or
+// widget noun), hidden from default help. A name of one part is the tool's
+// own and keeps no namespace (oden.Command.Namespace).
+func markNamespace(c *oden.Command, name string) {
+	if ns, ok := strings.CutSuffix(name, NamespaceSuffix); ok && !strings.Contains(ns, ".") {
+		c.Namespace, c.NamespaceHead = ns, true
+	} else if ns, _, ok := strings.Cut(name, "."); ok {
+		c.Namespace = ns
+	}
+	for part := range strings.SplitSeq(name, ".") {
+		if strings.HasPrefix(part, "__") {
+			c.Hidden = true
+		}
+	}
 }
 
 // NamespaceSuffix ends the CLI group name of a namespace that is no noun
@@ -406,7 +438,9 @@ func (g *nounGroup) command(name string, line bool) oden.Command {
 	}
 	nested := g.names()
 	for _, child := range nested {
-		children = append(children, g.children[child].command(child, line))
+		nestedCommand := g.children[child].command(child, line)
+		nestedCommand.Hidden = strings.HasPrefix(child, "__")
+		children = append(children, nestedCommand)
 	}
 	switch {
 	case len(nested) > 4:

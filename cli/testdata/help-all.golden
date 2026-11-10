@@ -1,0 +1,126 @@
+usage: tool COMMAND [ARGS...]
+
+Human commands:
+app
+complete
+completion
+                                               shadows alias completion of ochazuke.completion noun
+help, -h, --help
+info
+ochazuke., ochazuke
+ochazuke.__picker-state, __picker-state
+ochazuke.about, about
+ochazuke.about-page, about-page
+ochazuke.about-row, about-row
+ochazuke.about-state, about-state
+ochazuke.action, action
+ochazuke.agent, agent
+ochazuke.association, association
+ochazuke.binding, binding
+ochazuke.bindings-help, bindings-help
+ochazuke.catalog
+ochazuke.collection, collection
+ochazuke.completion
+ochazuke.config, config
+ochazuke.confirm, confirm
+ochazuke.context, context
+ochazuke.count, count
+ochazuke.detail, detail
+ochazuke.docs-viewer, docs-viewer
+ochazuke.editor, editor
+ochazuke.event, event
+ochazuke.filter-condition, filter-condition
+ochazuke.filter-direction, filter-direction
+ochazuke.filter-form, filter-form
+ochazuke.filter-save-form, filter-save-form
+ochazuke.filter-value, filter-value
+ochazuke.find-line, find-line
+ochazuke.focus, focus
+ochazuke.form, form
+ochazuke.form-chip, form-chip
+ochazuke.form-choice, form-choice
+ochazuke.form-field, form-field
+ochazuke.form-item, form-item
+ochazuke.form-option, form-option
+ochazuke.form-read-only, form-read-only
+ochazuke.form-suggest, form-suggest
+ochazuke.form-text, form-text
+ochazuke.history-entry, history-entry
+ochazuke.hook, hook
+ochazuke.index, index
+ochazuke.input, input
+ochazuke.instance, instance
+ochazuke.job, job
+ochazuke.key, key
+ochazuke.macro, macro
+ochazuke.mcp, mcp
+ochazuke.message, message
+ochazuke.modal, modal
+ochazuke.mode, mode
+ochazuke.noun, noun
+ochazuke.noun-browser, noun-browser
+ochazuke.opener, opener
+ochazuke.operation, operation
+ochazuke.outline, outline
+ochazuke.outline-line, outline-line
+ochazuke.outline-row, outline-row
+ochazuke.page, page
+ochazuke.pane, pane
+ochazuke.picker, picker
+ochazuke.prompt, prompt
+ochazuke.referrer, referrer
+ochazuke.register, register
+ochazuke.related, related
+ochazuke.related-section, related-section
+ochazuke.relation-kind, relation-kind
+ochazuke.request, request
+ochazuke.search, search
+ochazuke.search-state, search-state
+ochazuke.segment, segment
+ochazuke.setting, setting
+ochazuke.setting-change, setting-change
+ochazuke.setting-item, setting-item
+ochazuke.setting-value, setting-value
+ochazuke.settings-page, settings-page
+ochazuke.settings-review, settings-review
+ochazuke.settings-section, settings-section
+ochazuke.settings-tab, settings-tab
+ochazuke.snapshot, snapshot
+ochazuke.terminal, terminal
+ochazuke.text-view, text-view
+ochazuke.timeline, timeline
+ochazuke.timeline-body, timeline-body
+ochazuke.timeline-card, timeline-card
+ochazuke.ui, ui
+ochazuke.user-operation, user-operation
+ochazuke.viewport, viewport
+ochazuke.yank-history, yank-history
+version
+which
+widget
+
+Machine commands (JSON / JSON Lines):
+catalog
+            shadows inline oden@v0.4.0/builtins.go:23
+            shadows alias catalog of ochazuke.catalog noun
+command
+commands
+state
+
+Run 'tool COMMAND --help' for command details.
+
+CLI execution:
+Each call uses a fresh local runtime, not an already-running TUI.
+The framework's nouns are ochazuke.<noun> (ochazuke settings list, ochazuke.settings list);
+a short name (settings list) reaches one unless the tool has a command or noun of its own.
+A namespace NS (an extension's nouns NS.NOUN) is the group NS. with NS as its alias:
+a command of the tool's own named NS owns the word, and NS.NOUN still reaches the noun.
+--target selects an instance; some operations require an existing instance.
+--yes (or -y) accepts confirmation; otherwise the CLI asks on stdin.
+Supply prompt values as arguments: non-confirmation UI prompts need the TUI.
+Bare arguments fill parameters in the order shown; named flags take precedence.
+Boolean parameters use named flags unless explicitly declared positional.
+Results are JSON; --format table|markdown|toon prints a list's rows as a
+table from the noun's columns (table cuts to the width on a terminal).
+Scheduled work settles before the command exits.
+Interaction verbs may require UI state and can have no lasting CLI effect.

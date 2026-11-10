@@ -760,7 +760,7 @@ func TestMountContextualHelpAndDispatch(t *testing.T) {
 				t.Fatalf("help executed runtime: prepared %d, calls %v", prepared, f.calls)
 			}
 			if args[0] == "help" {
-				for _, noun := range []string{"widget", "modal", "mode", "bindings", "history", "input", "app", "binding", "orphan"} {
+				for _, noun := range []string{"widget", "orphan"} {
 					if !strings.Contains(text, noun) {
 						t.Errorf("root help lacks %s: %s", noun, text)
 					}
@@ -1163,7 +1163,7 @@ func TestMountAppCommandsWin(t *testing.T) {
 					t.Fatalf("short name: %v %q", err, out.String())
 				}
 				out.Reset()
-				app.Args = []string{"--help"}
+				app.Args = []string{"--help", "--all"}
 				if err := app.Run(context.Background()); err != nil {
 					t.Fatal(err)
 				}
@@ -1302,7 +1302,7 @@ func TestMountAppCommandOwnsANamespaceWord(t *testing.T) {
 					t.Fatalf("tool %s: %s", strings.Join(args, " "), got)
 				}
 			}
-			help := run("--help")
+			help := run("--help", "--all")
 			if own == "" {
 				if got := strings.TrimSpace(run("mcp", "item", "list")); got != `"ext-owned"` {
 					t.Fatalf("tool mcp item list: %s", got)

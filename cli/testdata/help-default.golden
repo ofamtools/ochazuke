@@ -1,0 +1,26 @@
+usage: tool COMMAND [ARGS...]
+
+Human commands:
+app
+complete
+completion
+help, -h, --help
+info
+version
+which
+widget
+
+Namespaces:
+ochazuke., ochazuke
+
+Machine commands (JSON / JSON Lines):
+catalog
+command
+commands
+state
+
+Run 'tool COMMAND --help' for command details.
+
+CLI execution: each call uses a fresh local runtime; results are JSON (--format table|markdown|toon for a list's rows).
+--target selects an instance; --yes (or -y) accepts confirmation.
+Run 'tool help --all' for every command and the full notes.

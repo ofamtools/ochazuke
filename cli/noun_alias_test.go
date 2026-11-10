@@ -35,7 +35,7 @@ func TestCLINounAliasesMatchThePalette(t *testing.T) {
 			t.Errorf("shell %s = %q (%v)\n%s", strings.Join(args, " "), out, err, errOut)
 		}
 	}
-	help, _, err := f.tool(dir, "help")
+	help, _, err := f.tool(dir, "help", "--all")
 	if err != nil {
 		t.Fatal(err)
 	}
