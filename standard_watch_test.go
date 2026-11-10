@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -405,5 +406,62 @@ func TestMemoryVersionsKeepTheNewest(t *testing.T) {
 	}
 	if err := m.WriteVersion("s", "h", []string{"a"}, nil); err == nil {
 		t.Fatal("a version needs a hash per id")
+	}
+}
+
+// TestWatchSkipsSnapshotWhileChangeTokenHolds: a store with a ChangeToken
+// is not listed, record-built or hashed by a change-kind request while its
+// token is unchanged; a moved token lists once. A store without a token
+// lists once per request.
+func TestWatchSkipsSnapshotWhileChangeTokenHolds(t *testing.T) {
+	r := NewRuntime()
+	s := newTaskStore()
+	for i := 0; i < 20000; i++ {
+		s.things = append(s.things, Thing{"id": fmt.Sprintf("big%d", i), "title": "row", "status": "todo"})
+	}
+	r.Define("task").Props(taskTestProps()...).Store(s.store())
+	gen := 1
+	r.Nouns["task"].Store.ChangeToken = func(Ctx) (string, error) { return fmt.Sprint(gen), nil }
+	lists := countLists(r, "task")
+	r.Define("task").Verb("touch", func(c Ctx) Result { return Done(nil) }, "A change that changes nothing")
+	var rec watchRecorder
+	w, err := r.Watch("task", nil, rec.add)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Stop()
+	rec.events = nil
+	if *lists != 1 {
+		t.Fatalf("start lists once, got %d", *lists)
+	}
+	if _, err := r.Execute(Request{Noun: "task", Verb: "touch"}); err != nil {
+		t.Fatal(err)
+	}
+	r.Changed("task")
+	if *lists != 1 || len(rec.events) != 0 {
+		t.Fatalf("unchanged token: %d lists, %d events; want 1 and 0", *lists, len(rec.events))
+	}
+	s.things[0] = Thing{"id": "t1", "title": "Water the plants", "status": "done"}
+	gen++
+	if _, err := r.Execute(Request{Noun: "task", Verb: "touch"}); err != nil {
+		t.Fatal(err)
+	}
+	if *lists != 2 {
+		t.Fatalf("changed token lists once more, got %d", *lists)
+	}
+	wantEvents(t, rec.take(), "modified t1")
+	r.Changed("task")
+	if *lists != 2 {
+		t.Fatalf("token already seen: %d lists", *lists)
+	}
+
+	// No token: every request lists, once.
+	r.Nouns["task"].Store.ChangeToken = nil
+	before := *lists
+	if _, err := r.Execute(Request{Noun: "task", Verb: "touch"}); err != nil {
+		t.Fatal(err)
+	}
+	if *lists != before+1 {
+		t.Fatalf("no token: %d lists for one request, want 1", *lists-before)
 	}
 }

@@ -331,7 +331,16 @@ type Store struct {
 	Delete     func(Ctx, string) error
 	ListParams map[string]Parameter
 	Watch      func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
-	Confirm    map[string]string
+	// ChangeToken, when set, answers a cheap token for the store's things
+	// as they are now: a version counter, sqlite's data_version, a
+	// generation bumped by every write. Two equal tokens mean nothing
+	// changed between them. A fallback watch (one over List, not Watch)
+	// keeps the token its last snapshot saw and skips the snapshot (the
+	// List, the record build, the hashing) while the token is unchanged.
+	// "" means unknown (always snapshot); an error is treated the same.
+	// The call runs on the loop and must cost far less than List.
+	ChangeToken func(Ctx) (string, error)
+	Confirm     map[string]string
 	// ConfirmFor builds the prompt a standard verb that asks (delete, or
 	// one Confirm gives a prompt) asks for one request: it gets the
 	// request's context and arguments, the verb, the keys of the things

@@ -158,6 +158,10 @@ type Watch struct {
 	// batch, when set, runs after each batch of events reached fn (a
 	// fallback watch's difference, a store's pushed batch).
 	batch func()
+	// token is the store's ChangeToken taken just before the last snapshot;
+	// hasToken says it is set.
+	token    string
+	hasToken bool
 }
 
 // watchKnown is what a fallback watch knows of a thing: its record hash
@@ -258,7 +262,12 @@ func (r *Runtime) Changed(nouns ...string) {
 	r.refreshWatches(names)
 }
 
-// refreshWatches lists every fallback watch of nouns (all when none) again.
+// refreshWatches lists every fallback watch of nouns (all when none) again,
+// except those whose store's ChangeToken says nothing changed. Each watch
+// is snapshotted at most once per call; a request makes one call, however
+// many change-kind verbs it ran. A custom verb may change any noun's store
+// (cascades, side tables), so a request does not narrow nouns: the token
+// is what keeps an untouched store cheap.
 func (r *Runtime) refreshWatches(nouns []string) {
 	h := r.watches
 	if h == nil || h.refreshing || len(h.watches) == 0 {
@@ -319,6 +328,20 @@ func (s watchSnapshot) version() (ids, hashes []string, hash string) {
 	return ids, hashes, ListHash(hashes)
 }
 
+// changeToken asks the store for its change token; ok is false when the
+// store has none, it failed, or it answered "" (unknown).
+func (w *Watch) changeToken() (token string, ok bool) {
+	n := w.r.Nouns[w.noun]
+	if n == nil || n.Store == nil || n.Store.ChangeToken == nil {
+		return "", false
+	}
+	t, err := n.Store.ChangeToken(w.ctx)
+	if err != nil || t == "" {
+		return "", false
+	}
+	return t, true
+}
+
 // snapshot lists the watched things: the store's List (a singleton's Get),
 // the ones where and the key keep, each as get answers it.
 func (w *Watch) snapshot() (watchSnapshot, error) {
@@ -373,10 +396,12 @@ func (w *Watch) snapshot() (watchSnapshot, error) {
 // start takes the first snapshot and emits what changed since (every
 // thing as added for none).
 func (w *Watch) start(since string) error {
+	token, hasToken := w.changeToken() // before the list: a write during it moves the token on
 	snap, err := w.snapshot()
 	if err != nil {
 		return err
 	}
+	w.token, w.hasToken = token, hasToken
 	ids, hashes, hash := snap.version()
 	base := map[string]watchKnown{}
 	switch {
@@ -411,11 +436,16 @@ func (w *Watch) refresh() {
 		}
 		return
 	}
+	token, hasToken := w.changeToken()
+	if hasToken && w.hasToken && token == w.token {
+		return // the store says nothing changed since the last snapshot
+	}
 	snap, err := w.snapshot()
 	if err != nil {
 		w.fail(err)
 		return
 	}
+	w.token, w.hasToken = token, hasToken
 	w.apply(snap, false)
 }
 
