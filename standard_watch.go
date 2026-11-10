@@ -111,6 +111,9 @@ type watchHub struct {
 	// changed is set when a request of the change kind ran inside the
 	// top-level request still running (a palette line's verb).
 	changed bool
+	// stale are the windowed lists whose view changed during the request
+	// running (list_window.go): each reads its page once it has run.
+	stale []string
 }
 
 func (r *Runtime) watchHub() *watchHub {
@@ -162,6 +165,10 @@ type Watch struct {
 	// hasToken says it is set.
 	token    string
 	hasToken bool
+	// notify makes a fallback watch read nothing itself: each refresh
+	// tells fn the noun may have changed, as for a remote store. A
+	// windowed list's watch (list_window.go) is one: it reads its own page.
+	notify bool
 }
 
 // watchKnown is what a fallback watch knows of a thing: its record hash
@@ -181,6 +188,12 @@ func (r *Runtime) Watch(noun string, args Arguments, fn func(WatchEvent)) (*Watc
 }
 
 func (r *Runtime) watch(c Ctx, noun string, fn func(WatchEvent)) (*Watch, error) {
+	return r.watchAs(c, noun, fn, false)
+}
+
+// watchAs is watch; notify makes a fallback watch read nothing itself
+// (Watch.notify).
+func (r *Runtime) watchAs(c Ctx, noun string, fn func(WatchEvent), notify bool) (*Watch, error) {
 	n := r.Nouns[r.CanonicalNoun(noun)]
 	if n == nil {
 		return nil, fmt.Errorf("%s has no store", noun)
@@ -200,7 +213,7 @@ func (r *Runtime) watch(c Ctx, noun string, fn func(WatchEvent)) (*Watch, error)
 	if err != nil {
 		return nil, err
 	}
-	w := &Watch{r: r, noun: n.Name, where: where, ctx: c, fn: fn}
+	w := &Watch{r: r, noun: n.Name, where: where, ctx: c, fn: fn, notify: notify}
 	if key := n.keyProp(); key != nil {
 		if v, ok := c.Args[key.Name]; ok && !emptyProp(v) {
 			w.key = fmt.Sprint(v)
@@ -220,7 +233,7 @@ func (r *Runtime) watch(c Ctx, noun string, fn func(WatchEvent)) (*Watch, error)
 		w.known = map[string]watchKnown{}
 		// A remote store is not listed on the loop: its watcher is told to
 		// reload when something changed (refresh), and starts knowing nothing.
-		if !n.Store.Remote {
+		if !n.Store.Remote && !notify {
 			if err := w.start(since); err != nil {
 				return nil, err
 			}
@@ -288,6 +301,9 @@ func (r *Runtime) watchAfterRequest(q Request, depth int, nothing bool) {
 	h := r.watches
 	if h == nil {
 		return
+	}
+	if depth == 0 {
+		r.readStaleWindows()
 	}
 	if !nothing && r.historyKind(q) == HistoryChange {
 		h.changed = true
@@ -427,7 +443,7 @@ func (w *Watch) start(since string) error {
 // refresh lists again and emits the difference; a failing list ends the
 // watch with its error.
 func (w *Watch) refresh() {
-	if st := w.r.Nouns[w.noun].Store; st == nil || st.Remote {
+	if st := w.r.Nouns[w.noun].Store; st == nil || st.Remote || w.notify {
 		// A proxy has no local snapshot. Existing change notifications
 		// invalidate its readers, which reload through their own get proxy.
 		w.deliver(WatchEvent{Type: WatchModified, ID: w.key})

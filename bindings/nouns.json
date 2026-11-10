@@ -1,6 +1,12 @@
-// ochazuke bindings (JSONC): the Nouns page (noun_browser.go). No key opens the page: it is the last tab (nouns.page), and ochazuke.noun-browser.open runs from the palette and the CLI.
+// ochazuke bindings (JSONC): the Nouns page (noun_browser.go) and a noun's generated index page (index.go): enter on a noun opens its index; z a on an index page shows or hides its archived rows (on the page, so a related section's own z a fold and a list's z keys keep their meaning; any list reaches collection.show-archived from the palette and bindings.json). No key opens the page: it is the last tab (nouns.page), and ochazuke.noun-browser.open runs from the palette and the CLI.
 {
   "bindings": [
+    {"context": "ochazuke.noun/normal", "bindings": [
+      {"key": "enter", "action": "ochazuke.noun.show"}
+    ]},
+    {"context": "ochazuke.index/normal", "bindings": [
+      {"key": "z a", "action": "ochazuke.collection.show-archived", "hint": "archived"}
+    ]},
     {"context": "ochazuke.noun-browser/normal", "bindings": [
       {"key": "r", "action": "ochazuke.noun-browser.refresh"}
     ]}

@@ -1,0 +1,97 @@
+{
+  "name": "z a on an index shows its archived rows, and again hides them; hidden, the filter line counts them",
+  "area": "nouns",
+  "width": 110,
+  "height": 30,
+  "chrome": "full",
+  "pages": [
+    {
+      "id": "work",
+      "title": "Work",
+      "nounsPage": true,
+      "lists": [
+        {
+          "id": "a",
+          "rows": 2
+        }
+      ],
+      "store": {
+        "noun": "chore",
+        "paged": true,
+        "token": true,
+        "props": [
+          {
+            "name": "id",
+            "key": true
+          },
+          {
+            "name": "title",
+            "role": "label",
+            "type": "string"
+          },
+          {
+            "name": "archived",
+            "role": "archive",
+            "type": "boolean"
+          }
+        ],
+        "things": [
+          {
+            "id": "c1",
+            "title": "Water the plants",
+            "archived": false
+          },
+          {
+            "id": "c2",
+            "title": "Old chore",
+            "archived": true
+          },
+          {
+            "id": "c3",
+            "title": "Write notes",
+            "archived": false
+          }
+        ]
+      },
+      "nouns": [
+        {
+          "noun": "deploy",
+          "verbs": [
+            "run",
+            "rollback"
+          ]
+        }
+      ]
+    }
+  ],
+  "script": [
+    "ctrl+j",
+    "enter",
+    "z",
+    "a",
+    "z",
+    "a"
+  ],
+  "expect": [
+    {
+      "after": 4,
+      "page": "nouns/chore",
+      "contains": [
+        "Old chore",
+        "chore \u00b7 3"
+      ],
+      "lacks": [
+        "archived hidden"
+      ]
+    },
+    {
+      "page": "nouns/chore",
+      "contains": [
+        "1 archived hidden"
+      ],
+      "lacks": [
+        "Old chore"
+      ]
+    }
+  ]
+}

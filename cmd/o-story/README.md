@@ -497,7 +497,7 @@ Conformance:
 | normal | app | `app.quit` |
 | normal | binding | `binding.help` |
 | normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.pick` `bindings-help.run` `bindings-help.show` |
-| normal | collection | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
+| normal | collection | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.show-archived` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
 | normal | culprit | `culprit.size` |
@@ -521,7 +521,7 @@ Conformance:
 | normal | modal | `modal.close` |
 | normal | mode | `mode.enter` `mode.leave` `mode.switch` |
 | normal | notice | `notice.clear` |
-| normal | noun | `noun.edit` |
+| normal | noun | `noun.edit` `noun.show` |
 | normal | noun-browser | `noun-browser.refresh` |
 | normal | opener | `opener.show` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
@@ -786,6 +786,7 @@ Mode edges (from → to via):
 - `normal z` → `normal` via `collection.reset-columns`
 - `normal z` → `normal` via `collection.resize-column`
 - `normal z` → `normal` via `collection.scroll-columns`
+- `normal z` → `normal` via `collection.show-archived`
 - `normal z` → `normal` via `collection.sort-column`
 - `normal z` → `normal` via `collection.toggle-pin-column`
 - `normal z` → `normal` via `markdown.fold`

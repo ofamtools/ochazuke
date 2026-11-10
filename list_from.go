@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"maps"
@@ -31,6 +32,7 @@ func From(noun string) InstanceOption { return func(s *instanceSpec) { s.from = 
 // fill again.
 type fromHub struct {
 	noun  string
+	key   string // its key in the hub map: the noun, a windowed hub's marked
 	watch *Watch
 	lists []string
 	dirty bool
@@ -64,6 +66,9 @@ func (l *Collection) Refill() error {
 	}
 	n := l.r.Nouns[l.from]
 	c := Ctx{actor: l.r.Actor(), Runtime: l.r, Context: l.r.Context()}
+	if l.paged != nil {
+		return l.refillWindow(n, c)
+	}
 	if n.Store.Remote {
 		return l.refillRemote(n, c)
 	}
@@ -143,21 +148,28 @@ func (l *Collection) feed() error {
 	if hubs.from == nil {
 		hubs.from = map[string]*fromHub{}
 	}
-	h := hubs.from[l.from]
+	// Windowed lists share a watch that reads nothing (each reads its own
+	// page, token gated); the others share one that snapshots the store.
+	hubKey := l.from
+	if l.paged != nil {
+		hubKey += "\x00window"
+	}
+	h := hubs.from[hubKey]
 	if h == nil || h.watch == nil || h.watch.Stopped() {
 		old := h
-		h = &fromHub{noun: l.from}
+		h = &fromHub{noun: l.from, key: hubKey}
 		if old != nil {
 			h.lists = old.lists
 		}
-		w, err := r.Watch(l.from, nil, func(WatchEvent) { h.dirty = true })
+		c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+		w, err := r.watchAs(c, l.from, func(WatchEvent) { h.dirty = true }, l.paged != nil)
 		if err != nil {
 			return err
 		}
 		w.batch = h.flush
 		h.watch = w
 		h.dirty = false
-		hubs.from[l.from] = h
+		hubs.from[hubKey] = h
 	}
 	h.lists = append(h.lists, l.id)
 	return nil
@@ -189,7 +201,7 @@ func (h *fromHub) flush() {
 	h.lists = slices.Clone(live)
 	if len(h.lists) == 0 {
 		h.watch.Stop()
-		delete(r.watchHub().from, h.noun)
+		delete(r.watchHub().from, cmp.Or(h.key, h.noun))
 	}
 }
 
@@ -217,7 +229,7 @@ func (l *Collection) refillRemote(n *Noun, c Ctx) error {
 	if res.work == nil {
 		return nil // answered at once
 	}
-	_, err := r.Launch("app", n.Name+".list", res.Then(func(c Ctx, _ any, err error) {
+	_, err := r.Launch(l.id, n.Name+".list", res.Replacing(listReadSlot).Then(func(c Ctx, _ any, err error) {
 		if err != nil {
 			c.Error(fmt.Sprintf("%s list: %v", r.DisplayNoun(n.Name), err))
 		}

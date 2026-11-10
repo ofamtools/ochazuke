@@ -18,6 +18,7 @@ func kindsRuntime() *ochazuke.Runtime {
 	r.Define("parcel").Props(ochazuke.PropSpec{Name: "id", Key: true}).Store(ochazuke.Store{
 		Kind: ochazuke.KindCollection,
 		Get:  func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return things[0], nil },
+		List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) { return things, nil },
 		Query: func(ochazuke.Ctx, ochazuke.ListQuery) (ochazuke.ListPage, error) {
 			return ochazuke.ListPage{Items: things, Total: 1}, nil
 		},
@@ -160,5 +161,57 @@ func TestMountedNounsOnTheNounsPage(t *testing.T) {
 	}
 	if _, ok := rows["tool.turn-line"]; ok {
 		t.Fatal("a mounted part is left out")
+	}
+	// Its generated index page opens from the catalog alone and adds no tab.
+	tabs := func() []string {
+		var ids []string
+		for _, p := range host.TabPages() {
+			ids = append(ids, p.ID)
+		}
+		return ids
+	}
+	before := tabs()
+	if err := host.OpenIndex("tool.parcel", ""); err != nil {
+		t.Fatal(err)
+	}
+	if host.Page != ochazuke.IndexPageID("tool.parcel") || host.List(ochazuke.IndexPageID("tool.parcel")+"/list") == nil {
+		t.Fatalf("index page %s", host.Page)
+	}
+	if err := host.OpenPage("home"); err != nil {
+		t.Fatal(err)
+	}
+	if after := tabs(); strings.Join(after, " ") != strings.Join(before, " ") {
+		t.Fatalf("tabs %v, before %v", after, before)
+	}
+}
+
+// A data page's list of kind index is the ochazuke.index component over
+// the host's mounted noun: it fills itself from the noun's (proxy) store,
+// in the derived columns, and takes no rows from the page's answers.
+func TestCatalogIndexList(t *testing.T) {
+	doc := catalogOf(t, kindsRuntime())
+	host := ochazuke.NewRuntime()
+	host.Config().Disable()
+	ns := Namespace("tool")
+	if got := MountNouns(host, doc.AppNouns(), HostMount{Local: ns, Proxy: func(string, CatalogVerb) any {
+		return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	}}); len(got.Warnings) > 0 {
+		t.Fatal(got.Warnings)
+	}
+	m := ochazuke.NewModel(host)
+	page := CatalogPage{ID: "parcels", Title: "Parcels", Lists: []CatalogList{{ID: "parcels/list", Noun: "parcel", Kind: ListKindIndex}}}
+	v, err := MountPage(m, doc, page, PageConfig{Noun: ns})
+	if err != nil {
+		t.Fatal(err)
+	}
+	list := host.List("parcels/list")
+	if list == nil || list.From() != "tool.parcel" {
+		t.Fatalf("index list %v", list)
+	}
+	if cols := list.Columns(); len(cols) == 0 || cols[0].Title != "id" {
+		t.Fatalf("derived columns %v", cols)
+	}
+	if err := v.SetRows("parcels/list", nil); err == nil {
+		t.Fatal("an index list takes no rows from the page")
 	}
 }

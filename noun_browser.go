@@ -423,7 +423,7 @@ func nounsPageView(r *Runtime, width, height int) Block {
 	if list == nil {
 		return Text("")
 	}
-	th := layout.Divide(max(min(list.Height()+headingLines(list)+2, height-6), PaneMinHeight), height, PaneMinHeight)
+	th := layout.Divide(max(min(list.Height()+headingLines(list)+columnHeaderLines(list)+2, height-6), PaneMinHeight), height, PaneMinHeight)
 	tw, tth := PanelContentSize(width, th)
 	tableBody := Text(list.View(tw, tth))
 	dw, dch := PanelContentSize(width, height-th)

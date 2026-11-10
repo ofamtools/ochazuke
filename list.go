@@ -66,12 +66,13 @@ type Collection struct {
 
 	r            *Runtime
 	id           string
-	all          []ListItem // every row, as SetItems gave them
-	from         string     // From: the noun whose store feeds the rows, "" for SetItems
-	refills      int        // reads of that store (tests count them)
-	archived     int        // rows of all that collection.hide-archived hides (archiveHidden)
-	headerTones  []ToneSpan // the header row's tones (SetHeaderTones)
-	items        []ListItem // the rows shown: all, or the ones the filter lets through (list_filter.go)
+	all          []ListItem  // every row, as SetItems gave them
+	from         string      // From: the noun whose store feeds the rows, "" for SetItems
+	paged        *listWindow // a From list over a paging store: the page it holds (list_window.go)
+	refills      int         // reads of that store (tests count them)
+	archived     int         // rows of all that collection.hide-archived hides (archiveHidden)
+	headerTones  []ToneSpan  // the header row's tones (SetHeaderTones)
+	items        []ListItem  // the rows shown: all, or the ones the filter lets through (list_filter.go)
 	linger       filterLinger
 	vs           ListQuery // the view state: text query, prop conditions, sort, saved filter name, groups and page (list_query.go)
 	total        int       // rows the view matches before it pages them (items holds the page)
@@ -191,6 +192,9 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 	r.Instances[id].Component = list
 	var err error
 	if spec.from != "" {
+		list.startWindow(r.Nouns[spec.from])
+		// Loading, never empty, while a read of the store runs.
+		list.placeholder.LoadingJob = JobSlot{Scope: id, Slot: listReadSlot}
 		err = list.feed()
 	} else {
 		err = list.SetItems(items)

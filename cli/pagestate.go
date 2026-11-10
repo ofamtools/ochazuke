@@ -24,7 +24,7 @@ func (v *PageView) speaksDelta() bool {
 func (v *PageView) SinceFlags() []string {
 	hashes := map[string]string{}
 	for _, pl := range v.lists {
-		if pl.verbsListed || pl.live {
+		if pl.ownRows() || pl.live {
 			continue
 		}
 		if h, ok := hashes[pl.spec.Noun]; !ok || h == "" {
@@ -58,7 +58,7 @@ func (v *PageView) ApplyState(a StateAnswer) (mismatched []string, err error) {
 	}
 	var errs []error
 	for _, pl := range v.lists {
-		if pl.verbsListed || pl.live {
+		if pl.ownRows() || pl.live {
 			continue
 		}
 		noun := pl.spec.Noun
@@ -158,7 +158,7 @@ func (v *PageView) Refresh() error {
 // whose hashes mismatch are fetched again, in full, once.
 func (v *PageView) reloadState(noun, verb string, retry bool) error {
 	for _, pl := range v.lists {
-		pl.loading = !pl.verbsListed && !pl.live
+		pl.loading = !pl.ownRows() && !pl.live
 	}
 	flags, fetch := v.SinceFlags(), v.cfg.FetchFlags
 	run := func(ctx context.Context) ([]byte, error) { return fetch(ctx, noun, verb, flags) }
@@ -183,7 +183,7 @@ func (v *PageView) reloadState(noun, verb string, retry bool) error {
 		}
 		if err != nil {
 			for _, pl := range v.lists {
-				if !pl.verbsListed && !pl.live {
+				if !pl.ownRows() && !pl.live {
 					pl.err = fmt.Sprint(err)
 				}
 			}

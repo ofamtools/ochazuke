@@ -109,6 +109,7 @@ ochazuke.collection.resize-column motion=false focusBound=false typing=false kin
 ochazuke.collection.scroll motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.collection.scroll-columns motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.collection.select motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.collection.show-archived motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.collection.sort motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.collection.sort-clear motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.collection.sort-column motion=false focusBound=false typing=false kind=action repeatable=false staying=false
@@ -219,6 +220,7 @@ ochazuke.hook.list motion=false focusBound=false typing=false kind=fetch repeata
 ochazuke.hook.reload motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.hook.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.hook.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.index.columns motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.input.begin motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.input.cancel motion=false focusBound=false typing=false kind=action repeatable=false staying=true
 ochazuke.input.erase motion=false focusBound=false typing=false kind=change repeatable=true staying=false
@@ -285,6 +287,7 @@ ochazuke.noun.get motion=false focusBound=false typing=false kind=fetch repeatab
 ochazuke.noun.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.noun.places motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.noun.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.noun.show motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.noun.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.opener.resolve motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.opener.run motion=false focusBound=false typing=false kind=action repeatable=false staying=false

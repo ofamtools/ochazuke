@@ -1,0 +1,96 @@
+{
+  "name": "enter on a Nouns row opens the noun's index page (nouns/chore): its things in the derived columns (the label, then short choosable props, then updated), one page read from the store, the archived ones hidden and counted on the filter line; the index page is not a tab, and leaving it leaves the tab row as it was",
+  "area": "nouns",
+  "width": 110,
+  "height": 30,
+  "chrome": "full",
+  "pages": [
+    {
+      "id": "work",
+      "title": "Work",
+      "nounsPage": true,
+      "lists": [
+        {
+          "id": "a",
+          "rows": 2
+        }
+      ],
+      "store": {
+        "noun": "chore",
+        "paged": true,
+        "token": true,
+        "props": [
+          {
+            "name": "id",
+            "key": true
+          },
+          {
+            "name": "title",
+            "role": "label",
+            "type": "string"
+          },
+          {
+            "name": "archived",
+            "role": "archive",
+            "type": "boolean"
+          }
+        ],
+        "things": [
+          {
+            "id": "c1",
+            "title": "Water the plants",
+            "archived": false
+          },
+          {
+            "id": "c2",
+            "title": "Old chore",
+            "archived": true
+          },
+          {
+            "id": "c3",
+            "title": "Write notes",
+            "archived": false
+          }
+        ]
+      },
+      "nouns": [
+        {
+          "noun": "deploy",
+          "verbs": [
+            "run",
+            "rollback"
+          ]
+        }
+      ]
+    }
+  ],
+  "script": [
+    "ctrl+j",
+    "enter",
+    "ctrl+k"
+  ],
+  "expect": [
+    {
+      "after": 2,
+      "page": "nouns/chore",
+      "contains": [
+        "Work  Nouns",
+        "chore \u00b7 2",
+        "Water the plants",
+        "Write notes",
+        "1 archived hidden"
+      ],
+      "lacks": [
+        "Old chore",
+        "\u203a Nouns",
+        "nouns/chore  "
+      ]
+    },
+    {
+      "page": "__nouns",
+      "contains": [
+        "Work  \u203a Nouns"
+      ]
+    }
+  ]
+}

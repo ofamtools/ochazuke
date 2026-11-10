@@ -54,7 +54,18 @@ type CatalogList struct {
 	Noun   string `json:"noun"`             // the noun whose rows it shows (a state answer's Row.Noun)
 	Source string `json:"source,omitempty"` // NOUN.VERB answering the rows; default the noun's RowSource
 	Title  string `json:"title,omitempty"`  // the panel title; default the noun
+	// Kind is what draws the list: "" the rows of its row source;
+	// ListKindIndex the ochazuke.index component over the host's mounted
+	// noun (its store, windowed when it pages; derived columns; the archive
+	// toggle), with no row source. A catalog written before the field has
+	// no kind: every list reads its row source, as before; a kind this
+	// host does not know reads its row source too.
+	Kind string `json:"kind,omitempty"`
 }
+
+// ListKindIndex is the CatalogList kind of an index list: the
+// ochazuke.index component over the list's noun (ochazuke.Runtime.AddIndex).
+const ListKindIndex = "index"
 
 // CatalogDetail is a data page's detail panel. Sections declares a built-in
 // read-only document (Markdown, thread and metadata regions). Without
@@ -290,7 +301,12 @@ type pageList struct {
 	loading     bool
 	verbsListed bool
 	live        bool // the noun's rows are outside the state answer (CatalogNoun.Live): filled through the row source
+	index       bool // an index list (ListKindIndex): it fills itself from its noun's store
 }
+
+// ownRows reports whether the list is not filled from the page's row
+// answers: it lists its noun's verbs, or it is an index over a store.
+func (pl *pageList) ownRows() bool { return pl.verbsListed || pl.index }
 
 // LoadVerb is the job verb of a data page's loads: no operation has it,
 // so the jobs ticker leaves loads off.
@@ -345,6 +361,13 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 	}
 	for _, l := range p.Lists {
 		pl := &pageList{spec: l}
+		if mount := listMounts[l.Kind]; mount != nil {
+			if err := mount(v, pl); err != nil {
+				return nil, err
+			}
+			v.lists = append(v.lists, pl)
+			continue
+		}
 		if err := v.resolve(pl); err != nil {
 			return nil, err
 		}
@@ -392,6 +415,22 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 			return nil, err
 		}
 	}
+	if err := v.registerPage(declared); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// listMounts are the CatalogList kinds a data page mounts other than by
+// its row source, by kind.
+var listMounts = map[string]func(*PageView, *pageList) error{
+	ListKindIndex: (*PageView).mountIndex,
+}
+
+// registerPage registers the page MountPage built (or redraws the page
+// DeclarePage registered), focused on its first list or its groups.
+func (v *PageView) registerPage(declared bool) error {
+	r, p := v.m.Runtime, v.spec
 	focus := v.lists[0].list.FocusTarget()
 	if v.groups != nil {
 		focus = v.groups.FocusTarget()
@@ -399,15 +438,15 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 	if declared {
 		page := r.PageOf(p.ID)
 		page.Render, page.Focus = v.ListsRender, focus
-		page.ActionNouns = pageActionNouns(r, doc, v.cfg.Noun)
-		return v, nil
+		page.ActionNouns = pageActionNouns(r, v.doc, v.cfg.Noun)
+		return nil
 	}
 	page, err := r.AddPage(p.ID, p.Title, v.ListsRender, append(pageOptions(p), ochazuke.Focus(focus))...)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	page.ActionNouns = pageActionNouns(r, doc, v.cfg.Noun)
-	return v, nil
+	page.ActionNouns = pageActionNouns(r, v.doc, v.cfg.Noun)
+	return nil
 }
 
 // pageOptions are the page options a catalog page's data asks for.
@@ -415,6 +454,27 @@ func pageOptions(p CatalogPage) []ochazuke.InstanceOption {
 	if p.DefaultHidden {
 		return []ochazuke.InstanceOption{ochazuke.DefaultHidden()}
 	}
+	return nil
+}
+
+// mountIndex mounts an index list: the ochazuke.index component over the
+// host's noun for the list's catalog noun, which fills itself from the
+// noun's store (the host mounted it with MountNouns).
+func (v *PageView) mountIndex(pl *pageList) error {
+	r := v.m.Runtime
+	noun := v.cfg.Noun(pl.spec.Noun)
+	if r.Nouns[r.CanonicalNoun(noun)] == nil {
+		return fmt.Errorf("page %s: index list %s: the host has no noun %s (mount the catalog's nouns first)", v.spec.ID, pl.spec.ID, noun)
+	}
+	opts := []ochazuke.InstanceOption{ochazuke.Parent(v.spec.ID)}
+	if v.spec.Layout == LayoutGroups {
+		opts = append(opts, ochazuke.NoSpill())
+	}
+	list, err := r.AddIndex(pl.spec.ID, noun, opts...)
+	if err != nil {
+		return fmt.Errorf("page %s: index list %s: %w", v.spec.ID, pl.spec.ID, err)
+	}
+	pl.noun, pl.rowNoun, pl.list, pl.index, pl.loaded = pl.spec.Noun, noun, list, true, true
 	return nil
 }
 
@@ -604,6 +664,9 @@ func (v *PageView) SetRows(list string, rows []Row) error {
 	if pl.verbsListed {
 		return fmt.Errorf("list %s lists its noun's verbs", list)
 	}
+	if pl.index {
+		return fmt.Errorf("list %s is an index: it fills itself from its noun's store", list)
+	}
 	return v.setRows(pl, rows, nil)
 }
 
@@ -696,7 +759,7 @@ func (v *PageView) SetState(rows []Row) error {
 	}
 	var errs []error
 	for _, pl := range v.lists {
-		if pl.verbsListed || pl.live {
+		if pl.ownRows() || pl.live {
 			continue
 		}
 		if err := v.SetRows(pl.spec.ID, by[pl.spec.Noun]); err != nil {
@@ -731,7 +794,7 @@ func (v *PageView) Reload() error {
 	}
 	if noun, verb, ok := ochazuke.CutKey(v.doc.State); ok {
 		for _, pl := range v.lists {
-			pl.loading = !pl.verbsListed && !pl.live
+			pl.loading = !pl.ownRows() && !pl.live
 		}
 		return errors.Join(werr, v.reloadLive(), v.launch(v.spec.ID, "state", noun, verb, func(out []byte, err error) {
 			rows, derr := DecodeRows("", out)
@@ -746,7 +809,7 @@ func (v *PageView) Reload() error {
 			}
 			if err != nil {
 				for _, pl := range v.lists {
-					if !pl.verbsListed && !pl.live {
+					if !pl.ownRows() && !pl.live {
 						pl.err = err.Error()
 					}
 				}
@@ -768,7 +831,7 @@ func (v *PageView) reloadLive() error {
 func (v *PageView) reloadRows(want func(*pageList) bool) error {
 	var errs []error
 	for _, pl := range v.lists {
-		if pl.verbsListed || !want(pl) {
+		if pl.ownRows() || !want(pl) {
 			continue
 		}
 		pl.loading = true

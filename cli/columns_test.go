@@ -61,7 +61,7 @@ func TestCatalogCarriesColumns(t *testing.T) {
 	if other.Columns != nil {
 		t.Fatalf("other has columns %+v", other.Columns)
 	}
-	if strings.Count(string(first), `"columns"`) != 1 {
+	if strings.Count(string(first), `"columns": [`) != 1 {
 		t.Fatalf("want one columns key:\n%s", first)
 	}
 }

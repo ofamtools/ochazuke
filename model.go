@@ -223,6 +223,7 @@ func (m *Model) Init() tea.Cmd {
 	_ = m.Runtime.EnsureAboutPage()
 	// The Nouns page after it: the last tab (nouns.page).
 	_ = m.Runtime.EnsureNounsPage()
+	m.Runtime.declareSavedIndexColumns()
 	if err := m.Runtime.OpenVisibleStart(); err != nil {
 		m.Runtime.UI().Error(err.Error())
 	}

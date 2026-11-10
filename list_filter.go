@@ -198,6 +198,7 @@ func (l *Collection) refilter(keep string) {
 	if t := l.tree(); t != nil {
 		t.guideRows()
 	}
+	l.windowStale()
 	l.selected = slices.IndexFunc(l.items, func(item ListItem) bool { return item.ID == keep })
 	if t := l.tree(); t != nil && l.selected < 0 {
 		for p := t.parentOf(keep); p != "" && l.selected < 0; p = t.parentOf(p) {

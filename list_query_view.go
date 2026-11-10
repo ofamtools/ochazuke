@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 )
 
 // ListPerPageSetting is the rows per page of the lists the widget draws (0:
@@ -68,6 +69,9 @@ func (l *Collection) effectiveView() ListQuery {
 // arrange groups and pages the sorted, filtered rows by the view, and
 // notes where the page sits. The row keep shows on the page that holds it.
 func (l *Collection) arrange(items []ListItem, keep string) []ListItem {
+	if l.paged != nil {
+		return l.windowArrange(items)
+	}
 	q := l.effectiveView()
 	l.total, l.pages, l.grouped, l.headCap = len(items), 0, false, 0
 	if !q.Grouped() && !q.Paged() {
@@ -120,22 +124,52 @@ func (l *Collection) pageSummary() string {
 	if l.pages == 0 {
 		return ""
 	}
-	return "page " + strconv.Itoa(l.vs.Page) + "/" + strconv.Itoa(l.pages)
+	page := "page " + strconv.Itoa(l.vs.Page) + "/" + strconv.Itoa(l.pages)
+	if l.paged != nil {
+		page += " of " + strconv.Itoa(l.paged.total) // a windowed list holds one page of the store
+	}
+	return page
+}
+
+// ArchivedCountSetting shows how many archived rows a list hides
+// ("3 archived hidden") on its filter line; off shows nothing.
+const ArchivedCountSetting = "collection.archived-count"
+
+// archivedSummary is "N archived hidden" while the list hides archived
+// rows (collection.hide-archived, its archive toggle off): counted by the
+// store for a windowed list, among the rows for any other.
+func (l *Collection) archivedSummary() string {
+	if l.vs.Archived || !l.r.Settings().Bool(ArchivedCountSetting) {
+		return ""
+	}
+	n := l.archived
+	if l.paged != nil {
+		n = l.windowArchived()
+	}
+	if n <= 0 {
+		return ""
+	}
+	return strconv.Itoa(n) + " archived hidden"
 }
 
 // viewSummary is the view information the filter line shows beside the
 // conditions: the sort and the page.
 func (l *Collection) viewSummary() string {
-	sort, page := l.sortSummary(), l.pageSummary()
-	if sort != "" && page != "" {
-		return sort + " · " + page
+	var parts []string
+	for _, s := range []string{l.sortSummary(), l.pageSummary(), l.archivedSummary()} {
+		if s != "" {
+			parts = append(parts, s)
+		}
 	}
-	return sort + page
+	return strings.Join(parts, " · ")
 }
 
 // SetPage shows page n (from 1); one past the ends shows the end. A list
 // that does not page refuses.
 func (l *Collection) SetPage(n int) error {
+	if l.paged != nil {
+		return l.setWindowPage(n)
+	}
 	if l.pages == 0 {
 		return errors.New("the list is not paged")
 	}
@@ -221,6 +255,14 @@ func registerListQuery(r *Runtime) {
 			return l.SetGroupBy(listWords(StringArg(a, "by", "")), keys)
 		}, []string{"by", "order"}},
 		{"group-clear", "Restore the grouping collection.group-by gives (none by default)", "list-groupable", nil, func(l *Collection, _ Arguments) error { return l.SetGroupBy(nil, nil) }, nil},
+		{"show-archived", "Show or hide the list's archived rows (collection.hide-archived hides them); hidden, the filter line says how many (collection.archived-count)", "", map[string]Parameter{"show": {Type: SettingBoolean, Description: "true shows them, false hides them; omitted, it flips"}}, func(l *Collection, a Arguments) error {
+			show := !l.vs.Archived
+			if v, ok := a["show"].(bool); ok {
+				show = v
+			}
+			l.SetShowArchived(show)
+			return nil
+		}, []string{"show"}},
 	} {
 		params := s.params
 		if params == nil {
@@ -241,6 +283,25 @@ func registerListQuery(r *Runtime) {
 		r.Nouns["ochazuke.collection"].Guards[s.verb] = s.guard
 	}
 }
+
+// SetShowArchived shows (true) or hides the list's archived rows: its
+// view's Archived, which the archive hiding reads (archiveHiding); a
+// windowed list reads its page again.
+func (l *Collection) SetShowArchived(show bool) {
+	if l.vs.Archived == show {
+		return
+	}
+	l.vs.Archived = show
+	keep := ""
+	if item, ok := l.Selected(); ok {
+		keep = item.ID
+	}
+	l.rearranged(keep)
+	l.r.readStaleWindows()
+}
+
+// ShowsArchived reports whether the list shows its archived rows.
+func (l *Collection) ShowsArchived() bool { return l.vs.Archived }
 
 // groupOrder reads group order keys written prop[:desc].
 func (l *Collection) groupOrder(text string) ([]SortKey, error) {

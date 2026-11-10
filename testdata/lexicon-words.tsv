@@ -96,6 +96,7 @@ chip-toggle	action	seed
 choices	relation	seed	
 choose	action	seed	
 choose-column	action	seed	
+columns	action	seed	
 choose-move	action	seed	
 choose-pane	action	seed	
 choose-status	action	seed	
@@ -218,6 +219,7 @@ docs-viewer	noun	seed
 done	action	seed	
 done-hide	action	seed	
 done-show	action	seed	
+show-archived	action	seed	
 done-today	prop	seed	
 done-toggle	action	seed	
 done_when	prop	seed	
