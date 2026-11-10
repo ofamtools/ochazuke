@@ -133,6 +133,7 @@ type actionHistory struct {
 	depth   int                   // requests running now
 	running []*RequestContext     // the running requests' contexts and the acting scopes inside them, innermost last (request_context.go)
 	changes map[int][]ThingChange // the changes noted for the entry at each depth (noteChange)
+	nothing map[int]bool          // requests at each depth whose handler said nothing changed (Ctx.NothingChanged)
 	limit   int                   // the ring's bound while persisted (history-limit); 0 is HistoryLimit
 	group   string                // the group the entries recorded now join (inHistoryGroup)
 	groups  uint64                // groups made (newHistoryGroup)

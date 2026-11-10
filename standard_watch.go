@@ -284,12 +284,12 @@ func (r *Runtime) refreshWatches(nouns []string) {
 
 // afterRequest refreshes the watches once a top-level request has run
 // that is of the change kind or ran one (the palette's run of a set).
-func (r *Runtime) watchAfterRequest(q Request, depth int) {
+func (r *Runtime) watchAfterRequest(q Request, depth int, nothing bool) {
 	h := r.watches
 	if h == nil {
 		return
 	}
-	if r.historyKind(q) == HistoryChange {
+	if !nothing && r.historyKind(q) == HistoryChange {
 		h.changed = true
 	}
 	if depth == 0 && h.changed {

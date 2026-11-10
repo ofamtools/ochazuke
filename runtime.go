@@ -1004,15 +1004,22 @@ func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, err
 	r.history.depth++
 	value, err := r.execute(c, &q, false, run)
 	r.history.depth--
-	r.record(at, q, ctx, depth, from, value, err)
+	nothing := r.takeNothing(depth) && err == nil
+	if nothing {
+		// The handler said it changed nothing (Ctx.NothingChanged): no
+		// history row, no undo record, no count, no watch refresh.
+		r.takeChanges(depth)
+	} else {
+		r.record(at, q, ctx, depth, from, value, err)
+	}
 	if depth == 0 {
 		r.inspectRequest(q, value, err)
 	}
-	if err == nil && r.historyKind(q) == HistoryChange {
+	if err == nil && !nothing && r.historyKind(q) == HistoryChange {
 		// The open surfaces count every change request that ran (events.go).
 		r.countChange([]string{q.Noun})
 	}
-	r.watchAfterRequest(q, depth)
+	r.watchAfterRequest(q, depth, nothing)
 	if depth == 0 {
 		// The hooks of what this request emitted run once it is done.
 		r.runHooks()

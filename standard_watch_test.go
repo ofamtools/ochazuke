@@ -465,3 +465,32 @@ func TestWatchSkipsSnapshotWhileChangeTokenHolds(t *testing.T) {
 		t.Fatalf("no token: %d lists for one request, want 1", *lists-before)
 	}
 }
+
+// TestNothingChangedSkipsRefreshHistoryAndUndo: a change-kind verb whose
+// handler calls Ctx.NothingChanged leaves no history row and does not
+// refresh the watches; one that does not behaves as before.
+func TestNothingChangedSkipsRefreshHistoryAndUndo(t *testing.T) {
+	r, _ := newTaskRuntime(t)
+	lists := countLists(r, "task")
+	r.Define("task").Verb("noop", func(c Ctx) Result { c.NothingChanged(); return Done(nil) }, "Writes nothing").History(HistoryChange).
+		Verb("poke", func(c Ctx) Result { return Done(nil) }, "Writes").History(HistoryChange)
+	var rec watchRecorder
+	w, err := r.Watch("task", nil, rec.add)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Stop()
+	base, rows := *lists, len(r.HistoryOf(0, HistoryChange))
+	if _, err := r.Execute(Request{Noun: "task", Verb: "noop"}); err != nil {
+		t.Fatal(err)
+	}
+	if *lists != base || len(r.HistoryOf(0, HistoryChange)) != rows {
+		t.Fatalf("noop: %d lists, %d change rows; want %d and %d", *lists-base, len(r.HistoryOf(0, HistoryChange)), 0, rows-rows)
+	}
+	if _, err := r.Execute(Request{Noun: "task", Verb: "poke"}); err != nil {
+		t.Fatal(err)
+	}
+	if *lists != base+1 || len(r.HistoryOf(0, HistoryChange)) != rows+1 {
+		t.Fatalf("poke: %d lists, %d rows", *lists-base, len(r.HistoryOf(0, HistoryChange))-rows)
+	}
+}

@@ -66,6 +66,32 @@ func (r *Runtime) noteChange(c ThingChange) {
 	h.changes[d] = append(h.changes[d], c)
 }
 
+// NothingChanged tells the runtime this request changed nothing: a
+// change-kind verb that found nothing to write calls it before returning,
+// and the request leaves no history row and no undo record, counts as no
+// change for the open surfaces, and does not refresh the watches. It
+// applies to the request the handler runs in; work a handler returns to
+// run off the loop (a job) is judged when it completes, as before.
+func (c Ctx) NothingChanged() {
+	r := c.Runtime
+	if r == nil {
+		return
+	}
+	h := &r.history
+	if h.nothing == nil {
+		h.nothing = map[int]bool{}
+	}
+	h.nothing[max(h.depth-1, 0)] = true
+}
+
+// takeNothing reports whether the request at depth said nothing changed,
+// and clears it.
+func (r *Runtime) takeNothing(depth int) bool {
+	ok := r.history.nothing[depth]
+	delete(r.history.nothing, depth)
+	return ok
+}
+
 // takeChanges are the changes noted for the entry at depth, cleared.
 func (r *Runtime) takeChanges(depth int) []ThingChange {
 	out := r.history.changes[depth]
