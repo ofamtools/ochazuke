@@ -294,6 +294,7 @@ path_chooser.go	PathPick.Dir	compare	"dir"	1
 path_find.go	Runtime.findOrigin	case	"path"	1
 path_find.go	Runtime.openFindPicker	compare	"dir"	1
 path_verbs.go	Parameter.IsPath	compare	"path"	1	PropPath is a prop type (a type name like string), not a noun or verb name
+path_verbs.go	var openableTypes	table	"path"	1	the prop types the opener opens, as data: the free verbs read a prop's type from it, never a noun name
 peer_bindings.go	Runtime.syncPeerNotices	compare	"all"	1
 picker_search.go	searchPickerMatch	compare	"dir"	1
 picker_verbs.go	pickerMoveDelta	case	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb

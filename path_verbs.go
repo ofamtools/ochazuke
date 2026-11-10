@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -26,11 +27,29 @@ const (
 var needPathProp = storeNeed{Doc: "a prop of Type path", Lacks: "it has no prop of Type path",
 	Has: func(_ *Runtime, n *Noun) bool { return len(pathProps(n)) > 0 }}
 
+// needOpenProp is a prop the opener opens: a path or a link.
+var needOpenProp = storeNeed{Doc: "a prop of Type path or url", Lacks: "it has no prop of Type path or url",
+	Has: func(_ *Runtime, n *Noun) bool { return len(openProps(n)) > 0 }}
+
+// openableTypes are the prop types the opener opens and the clipboard
+// copies, by type: true for a file system path (reveal and open-with need
+// one), false for a link.
+var openableTypes = map[string]bool{PropPath: true, PropURL: false}
+
 // pathProps are the noun's props of Type path, in declaration order.
 func pathProps(n *Noun) []PropSpec {
+	return propsOf(n, func(p PropSpec) bool { return openableTypes[p.Type] })
+}
+
+// openProps are the noun's props the opener opens: paths and links.
+func openProps(n *Noun) []PropSpec {
+	return propsOf(n, func(p PropSpec) bool { _, ok := openableTypes[p.Type]; return ok })
+}
+
+func propsOf(n *Noun, keep func(PropSpec) bool) []PropSpec {
 	var out []PropSpec
 	for _, p := range n.Props {
-		if p.IsPath() {
+		if keep(p) {
 			out = append(out, p)
 		}
 	}
@@ -40,13 +59,17 @@ func pathProps(n *Noun) []PropSpec {
 // IsPath reports whether the parameter (or prop) is a path: PropPath.
 func (p Parameter) IsPath() bool { return p.Type == PropPath }
 
-func pathVerbParams(n *Noun) map[string]Parameter {
+func pathVerbParams(n *Noun) map[string]Parameter { return propParam(pathProps(n)) }
+
+func openVerbParams(n *Noun) map[string]Parameter { return propParam(openProps(n)) }
+
+func propParam(props []PropSpec) map[string]Parameter {
 	names := make([]string, 0, 2)
-	for _, p := range pathProps(n) {
+	for _, p := range props {
 		names = append(names, p.Name)
 	}
 	return map[string]Parameter{
-		pathPropParam: {Type: "string", Enum: names, Description: "Which path prop (default: the first, " + names[0] + ")"},
+		pathPropParam: {Type: "string", Enum: names, Description: "Which prop (default: the first, " + names[0] + ")"},
 	}
 }
 
@@ -58,18 +81,21 @@ func pathOpenWithParams(n *Noun) map[string]Parameter {
 
 // thingPath is the path the request's subject holds in its path prop,
 // with a leading ~ expanded.
-func thingPath(r *Runtime, n *Noun, c Ctx) (string, error) {
+func thingPath(r *Runtime, n *Noun, c Ctx) (string, error) { return thingValue(r, n, c, pathProps(n)) }
+
+// thingValue is the text the request's subject holds in one of props (the
+// prop argument names which, default the first), a path's ~ expanded.
+func thingValue(r *Runtime, n *Noun, c Ctx, props []PropSpec) (string, error) {
 	if !r.Settings().Bool(PathFreeVerbsSetting) {
-		return "", errors.New("the free path verbs are off (setting paths.free-verbs)")
+		return "", errors.New("the free verbs of a prop's kind are off (setting paths.free-verbs)")
 	}
-	props := pathProps(n)
 	prop := props[0]
 	if name := StringArg(c.Args, pathPropParam, ""); name != "" {
-		p := n.prop(name)
-		if p == nil || !p.IsPath() {
-			return "", &ArgumentError{fmt.Errorf("%s has no path prop %q", n.Name, name)}
+		i := slices.IndexFunc(props, func(p PropSpec) bool { return p.Name == name })
+		if i < 0 {
+			return "", &ArgumentError{fmt.Errorf("%s has no prop %q of that kind", n.Name, name)}
 		}
-		prop = *p
+		prop = props[i]
 	}
 	id, err := r.subjectKey(n, c)
 	if err != nil {
@@ -86,7 +112,7 @@ func thingPath(r *Runtime, n *Noun, c Ctx) (string, error) {
 	if path == "" || t[prop.Name] == nil {
 		return "", fmt.Errorf("%s %q has no %s", r.DisplayNoun(n.Name), id, prop.Name)
 	}
-	if path == "~" || strings.HasPrefix(path, "~/") {
+	if prop.IsPath() && (path == "~" || strings.HasPrefix(path, "~/")) {
 		if home, err := os.UserHomeDir(); err == nil {
 			path = filepath.Join(home, strings.TrimPrefix(path, "~"))
 		}
@@ -110,17 +136,17 @@ func pathVerbs() []standardVerb {
 			}
 			return p, r.Opener().Reveal(p)
 		})
-	yank := row("yank-path", "Yank the thing's path into the active register (a free verb of every noun with a path prop)", HistoryChange, AgentAllow,
+	yank := row("yank-path", "Yank the thing's path or link into the active register (a free verb of every noun with a path or url prop)", HistoryChange, AgentAllow,
 		func(r *Runtime, n *Noun, c Ctx) (any, error) {
-			p, err := thingPath(r, n, c)
+			p, err := thingValue(r, n, c, openProps(n))
 			if err != nil {
 				return nil, err
 			}
 			return p, r.storeYank(Yank{Text: p, Shape: "char"}, "", false)
 		})
-	open := row("open", "Open the thing's path through the opener table (open.openers; the OS by default); a free verb of every noun with a path prop", HistoryAction, AgentConfirm,
+	open := row("open", "Open the thing's path or link through the opener table (open.openers; the OS by default); a free verb of every noun with a path or url prop", HistoryAction, AgentConfirm,
 		func(r *Runtime, n *Noun, c Ctx) (any, error) {
-			p, err := thingPath(r, n, c)
+			p, err := thingValue(r, n, c, openProps(n))
 			if err != nil {
 				return nil, err
 			}
@@ -139,6 +165,9 @@ func pathVerbs() []standardVerb {
 			}
 			return p, r.Opener().OpenWith(app, p)
 		})
+	for _, v := range []*standardVerb{&yank, &open} {
+		v.Needs, v.Params = []storeNeed{needGet, needOpenProp}, openVerbParams
+	}
 	with.Params, with.ParamNames = pathOpenWithParams, []string{pathPropParam, pathWithParam}
 	with.Positional = func(*Noun) []string { return []string{pathWithParam} }
 	return []standardVerb{reveal, yank, open, with}

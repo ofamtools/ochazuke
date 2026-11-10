@@ -728,6 +728,8 @@ func propParameter(p PropSpec) Parameter {
 		return out // a path stays a path: its form field opens the path chooser
 	}
 	switch p.Type {
+	case PropURL:
+		out.Type = SettingString
 	case SettingString, "", SettingInteger, SettingBoolean, PropTime:
 		if out.Type == "" {
 			out.Type = SettingString
