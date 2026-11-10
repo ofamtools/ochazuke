@@ -1,0 +1,16 @@
+{
+  "name": "board: a word that is a noun and a verb (tag) offers both readings; choosing one shows only the other kind",
+  "area": "palette",
+  "settings": [{"name": "palette.style", "type": "string", "default": "board", "enum": ["classic", "board"]}],
+  "width": 100,
+  "height": 26,
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "nouns": [{"noun": "tag", "verbs": ["rename"]}, {"noun": "note", "verbs": ["tag", "show"]}, {"noun": "attach", "verbs": ["add"]}]
+  },
+  "script": [":", {"type": "ta"}, "down", "enter"],
+  "expect": [
+    {"after": 2, "modal": "palette", "contains": ["nouns (", "verbs (", "tag", "tag is a noun with 1 verbs"], "lacks": ["attach"]},
+    {"modal": "palette", "contains": ["verbs of tag", "rename"], "lacks": ["nouns that have"]}
+  ]
+}

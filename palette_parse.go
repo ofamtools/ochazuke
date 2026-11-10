@@ -624,7 +624,8 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 				words[i] = t.Text
 			}
 			verb := a.ShadowedVerb()
-			reading, _, err := p.r.ReadBareAlias(p.origin.Clone(), words, optionValues(ix.nounsOf(verb)))
+			here := p.r.lineIndex(p.offeredHere, p.nounBefore)
+			reading, _, err := p.r.ReadBareAlias(p.origin.Clone(), words, optionValues(here.nounsOf(verb)))
 			switch {
 			case err != nil:
 				c.Words = append(c.Words, PaletteWord{Text: word, Kind: "verb", Value: verb}, PaletteWord{Text: tokens[1].Text})
@@ -804,6 +805,9 @@ func (p *Palette) parseParams(c *commandLine, tokens []lineToken, preset string)
 			return
 		}
 	}
+	// A target nothing focused supplies is a parameter to ask for (the
+	// args form opens its noun's picker), not a reason to refuse the line.
+	c.Missing = p.missingTarget(*c)
 }
 
 // fillParams fills order's parameters from the words, a --NAME flag's

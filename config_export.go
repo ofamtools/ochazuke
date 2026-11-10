@@ -316,6 +316,8 @@ var chromeRoleHelp = [][2]string{
 	{"palette.heading", "command-line completion groups (rich: accent, bold; subtle: muted)"},
 	{"palette.marker", "the command-line completion marker"},
 	{"palette.resolve", "the command line's resolved request"},
+	{"palette.focus", "the palette's focused row or cell, filled across its width (rich: surface on the mode colour, bold; subtle: mode colour on the surface)"},
+	{"palette.prefix", "the shortest prefix that picks a board cell (rich: mode colour; subtle: accent; always bold and underlined)"},
 }
 
 // actionsExample is actions.example.json: one entry in the command form,

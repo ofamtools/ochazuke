@@ -1,0 +1,17 @@
+{
+  "name": "board: each cell emphasises the shortest prefix that picks it among the cells shown (con for context-item beside copy and cmd.cmd), bold and underlined",
+  "area": "palette",
+  "settings": [{"name": "palette.style", "type": "string", "default": "board", "enum": ["classic", "board"]}],
+  "width": 100,
+  "height": 20,
+  "theme": "dark",
+  "page": {
+    "lists": [{"id": "a", "rows": 1}],
+    "nouns": [{"noun": "context-item", "verbs": ["show"]}, {"noun": "cmd.cmd", "verbs": ["show"]}, {"noun": "cmd.job", "verbs": ["show"]}],
+    "verbs": [{"verb": "demo.copy", "description": "Copy"}]
+  },
+  "script": [":", {"type": "con"}],
+  "expect": [
+    {"modal": "palette", "contains": ["context-item", "config", "confirm"], "attrs": {"context-": "bold,underline", "item": "-underline", "config": "bold,underline"}}
+  ]
+}

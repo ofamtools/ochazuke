@@ -1,6 +1,14 @@
 {
-  "name": "the palette highlights nothing until ctrl+n",
+  "name": "with palette.marker arrow the palette marks the focused completion with > and highlights nothing until ctrl+n",
   "area": "palette",
+  "settings": [
+    {
+      "name": "palette.marker",
+      "type": "string",
+      "default": "arrow",
+      "enum": ["line", "arrow"]
+    }
+  ],
   "page": {
     "lists": [
       {

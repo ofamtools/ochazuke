@@ -283,7 +283,43 @@ func fuzzyScore(text string, needle []rune, cm CaseMatch) (int, bool) {
 		before = ch
 		position++
 	}
-	return score, matched == len(needle)
+	if matched != len(needle) {
+		return score, false
+	}
+	return score + prefixTier(text, needle, cm), true
+}
+
+// Prefix tiers: a query spelled at the start of the text, or at the start
+// of one of its words, outranks every scattered match (a gap costs only
+// its length), so ta lists tag before attach and con context-item before
+// anything that merely holds c, o and n in order. The tiers are far wider
+// than any fuzzy score of a label.
+const (
+	prefixTierText = 4000
+	prefixTierWord = 2000
+)
+
+// prefixTier is the bonus for needle spelled at the start of text
+// (prefixTierText) or of a word of it (prefixTierWord, after /, -, _, . or
+// a space); 0 when it is spelled at neither.
+func prefixTier(text string, needle []rune, cm CaseMatch) int {
+	hay := make([]rune, 0, len(text))
+	for _, ch := range text {
+		hay = append(hay, cm.Rune(ch))
+	}
+	tier := 0
+	for i := range hay {
+		if i > 0 && !strings.ContainsRune("/-_. ", hay[i-1]) {
+			continue
+		}
+		if i+len(needle) <= len(hay) && slices.Equal(hay[i:i+len(needle)], needle) {
+			if i == 0 {
+				return prefixTierText
+			}
+			tier = prefixTierWord
+		}
+	}
+	return tier
 }
 
 // matchPositions returns sorted rune offsets, never byte offsets. Matching

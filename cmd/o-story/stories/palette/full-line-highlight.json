@@ -1,0 +1,14 @@
+{
+  "name": "palette: the focused completion is a full-width line in the focus tone, with no arrow; ctrl+n and ctrl+p move it, up and down too",
+  "area": "palette",
+  "width": 70,
+  "height": 18,
+  "theme": "dark",
+  "page": {"lists": [{"id": "a", "rows": 1}]},
+  "script": [":", {"type": "pi"}, "down", "down"],
+  "expect": [
+    {"after": 2, "modal": "palette", "lacks": ["> "], "attrs": {"also choose": "-bold"}},
+    {"after": 3, "modal": "palette", "lacks": ["> "], "attrs": {"also choose": "bold"}},
+    {"modal": "palette", "lacks": ["> "], "attrs": {"also choose": "-bold"}}
+  ]
+}

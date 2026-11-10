@@ -16,7 +16,7 @@ r|  a1
  |        │   true                                                       │
  |        │   false                                                      │
  |        │                                                              │
- |        │ esc normal · enter palette.run · tab palette.complete · up … │
+ |        │ esc normal · enter palette.run · tab palette.complete · ctr… │
  |        ╰──────────────────────────────────────────────────────────────╯
  |
  |
@@ -26,5 +26,5 @@ r|  a1
  |
  |
  |  ────────────────────────────────────────────────────────────────────────────
- |  esc normal · enter palette.run · tab palette.complete · up palette.recall ·…
+ |  esc normal · enter palette.run · tab palette.complete · ctrl+c palette.close
  |

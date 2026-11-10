@@ -49,6 +49,17 @@ type Palette struct {
 	loadingKey  string
 	loadSeq     int
 	loadingNote string
+	// chipWord and chipKind are the first word as the board chose it (a
+	// noun or a verb: tag is both), so the second word shows only the
+	// other kind; cols is the grid's width in cells as last drawn;
+	// committing holds while a typed letter commits the one cell left.
+	chip PaletteEntry
+	// typedFrom is what was typed of the first word when it committed
+	// (qua of quad), so a letter that fits no verb but continues that word
+	// takes the word back (reopenWord).
+	typedFrom  string
+	cols       int
+	committing bool
 }
 
 // paletteID is the palette's modal instance; paletteLineID its line.
@@ -103,7 +114,10 @@ func newPalette(r *Runtime) *Palette {
 	register("move", "Move the completion highlight; from none, down selects first and up follows picker.up-from-none", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) }, asMotion, asHistory(HistoryAction))
 	register("complete", "Append the highlighted completion (or value, or the only one) as the next word", map[string]Parameter{"value": {Type: "string", Description: "A completion's word; omit for the highlighted one"}}, p.complete)
 	register("run", "Run the line or append the highlighted completion; a line missing an argument opens the args form for it (palette.missing-opens-form), else names its first missing word", nil, func(Arguments) error { return p.run() })
-	register("cancel", "Clear the command line, or close it when it is empty", nil, func(Arguments) error { return p.cancel() })
+	register("cancel", "Clear the command line, or close it when it is empty; on the board go up one layer (drop the last word), closing from an empty line", nil, func(Arguments) error { return p.cancel() })
+	register("cell", "Move the board's current cell: left, right, up, down, or to an edge (first, last, first-col, last-col)", map[string]Parameter{"to": {Type: "string", Required: true, Enum: cellMoves}}, func(a Arguments) error { return p.cellTo(StringArg(a, "to", "")) }, asMotion, asHistory(HistoryAction))
+	register("step", "Up or down: the board's cell above or below; in the classic style the completion highlight while the line has completions, else the command history (up older)", map[string]Parameter{"direction": {Type: "string", Required: true, Enum: cellMoves[cellUp : cellDown+1]}}, func(a Arguments) error { return p.step(StringArg(a, "direction", "")) }, asMotion, asHistory(HistoryAction))
+	register("back", "Go back a layer: the last committed word when the line ends in a space, else one character before the cursor", nil, func(Arguments) error { return p.back() })
 	register("recall", "Replace the line with an earlier palette command from the action history: 1 older, -1 newer", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.recallLine(IntArg(a, "delta", 0)) })
 	// The palette's keys (bindings/palette.json), all on its own noun: the
 	// line beneath is an ordinary prompt, so the editor's Readline rows
@@ -169,7 +183,11 @@ func (p *Palette) open() error {
 	}
 	p.seen = ""
 	p.r.setModalFocus(paletteID, p.line.ID)
-	p.r.releaseModalPin(p.line)
+	if !p.styleBoard() {
+		// The board's line stays in insert, so esc goes up a layer
+		// (palette.cancel) instead of leaving insert.
+		p.r.releaseModalPin(p.line)
+	}
 	return nil
 }
 
@@ -250,6 +268,11 @@ func (p *Palette) complete(a Arguments) error {
 // its From to the cursor, with the cursor after it.
 func (p *Palette) accept(entry PaletteEntry) error {
 	if !entry.Splice {
+		if layer, _, board := p.boardLayer(); board && !p.committing {
+			p.committing = true
+			defer func() { p.committing = false }()
+			return p.takeCell(entry, layer)
+		}
 		return p.appendWord(entry.Value)
 	}
 	at := max(0, min(p.line.Cursor, len(p.line.Text)))
@@ -288,6 +311,12 @@ func (p *Palette) run() error {
 	}
 	if entry, ok := p.highlighted(p.completions()); ok {
 		return p.accept(entry)
+	}
+	if _, _, board := p.boardLayer(); board {
+		// The board's current cell is the first until an arrow moves it.
+		if cells := p.completions(); len(cells) > 0 {
+			return p.accept(cells[0])
+		}
 	}
 	c := p.parse(p.Text())
 	if c.Err != nil {
@@ -338,6 +367,9 @@ func (p *Palette) cancel() error {
 	}
 	if p.Text() != "" {
 		p.message = ""
+		if p.styleBoard() {
+			return p.up()
+		}
 		return p.setText("")
 	}
 	return p.close()
@@ -368,6 +400,7 @@ func (p *Palette) dispatch(q Request) error {
 	present := p.r.resultPresenter(q, func(value any) (bool, error) {
 		return p.present(q, value, top)
 	})
+	q = p.reach(q)
 	value, err := p.r.ExecuteAt(origin, q)
 	if err == nil {
 		// Keys and palette share the same focus/mode/page/modal guard.
@@ -494,6 +527,10 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 	line := InputBlock(p.line, max(8, width-ansi.StringWidth(prefix)), GrownRows(p.line, max(8, width-ansi.StringWidth(prefix)), max(1, height/3)))
 	cursor := &Pos{X: ansi.StringWidth(prefix) + line.Cursor.X, Y: line.Cursor.Y}
 	out.WriteString(prefix + indentRows(line.Text, ansi.StringWidth(prefix)) + "\n")
+	if board, ok := p.boardBlock(s, width, height); ok {
+		out.WriteString(board)
+		return Block{Text: out.String(), Cursor: cursor}
+	}
 	c := p.parse(p.Text())
 	entries := p.completions()
 	switch {
@@ -548,12 +585,7 @@ func (p *Palette) viewBlock(s Styles, width, height int) Block {
 			}
 			out.WriteString(s.chromeRender("palette.heading", heading) + "\n")
 		}
-		marker := "  "
-		if i == highlight {
-			marker = "> "
-		}
-		label := paletteEntryLabel(s, entry, matcher, markMatches)
-		fmt.Fprintf(&out, "%s%s\n", s.chromeRender("palette.marker", marker), label)
+		out.WriteString(p.entryLine(s, entry, i == highlight, matcher, markMatches, width) + "\n")
 	}
 	hidden := len(entries) - min(len(entries), start+limit)
 	if hidden > 0 {
@@ -603,4 +635,35 @@ func describeRequest(c commandLine) string {
 		out += " (noun from the focus)"
 	}
 	return out
+}
+
+// focusLine is a row drawn as the focus: the text on the whole width in the
+// palette.focus tone (the accent filled, bold), or reversed where the theme
+// has none, so it reads in a terminal without colour.
+func focusLine(s Styles, text string, width int) string {
+	text = " " + ansi.Truncate(text, max(1, width-2), "…")
+	text += strings.Repeat(" ", max(0, width-1-ansi.StringWidth(text)))
+	style := lipgloss.NewStyle().Reverse(true).Bold(true)
+	if look, ok := s.chromeLook("palette.focus"); ok {
+		style = look.over(lipgloss.NewStyle())
+	}
+	return style.Render(text)
+}
+
+// entryLine is one completion row: the label (with its match marks and the
+// reason it cannot run, when it cannot), the focused one filled across the
+// width, or marked with > under palette.marker arrow.
+func (p *Palette) entryLine(s Styles, entry PaletteEntry, focused bool, matcher Matcher, markMatches bool, width int) string {
+	label := paletteEntryLabel(s, entry, matcher, markMatches)
+	if entry.Reason != "" {
+		label += " · unavailable: " + entry.Reason
+	}
+	if focused && p.r.Settings().String(PaletteMarkerSetting) != PaletteMarkerArrow {
+		return focusLine(s, ansi.Strip(label), width)
+	}
+	marker := "  "
+	if focused {
+		marker = "> "
+	}
+	return s.chromeRender("palette.marker", marker) + label
 }

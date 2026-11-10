@@ -1,6 +1,14 @@
 {
   "name": "palette: match marks and headings follow chrome.color, without selecting a completion",
   "area": "palette",
+  "settings": [
+    {
+      "name": "palette.marker",
+      "type": "string",
+      "default": "arrow",
+      "enum": ["line", "arrow"]
+    }
+  ],
   "width": 70,
   "height": 18,
   "theme": "dark",

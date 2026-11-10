@@ -1525,8 +1525,16 @@ func (r *Runtime) rawGuard(name string) Guard {
 		return func(_ *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Op == op }
 	}
 	// "setting:<name>" holds while the boolean setting is on: a row follows a
-	// setting through data, with no guard of its own.
+	// setting through data, with no guard of its own. "setting:<name>=<value>"
+	// holds while the setting's text is value (palette.style=board), so a
+	// row follows one value of a choice setting the same way.
 	if setting, ok := strings.CutPrefix(name, "setting:"); ok && setting != "" {
+		if setting, want, eq := strings.Cut(setting, "="); eq && setting != "" {
+			return func(r *Runtime, _ KeyEvent) bool {
+				v, _ := r.settingValue(setting)
+				return fmt.Sprint(v) == want
+			}
+		}
 		return func(r *Runtime, _ KeyEvent) bool { return r.settingBool(setting) }
 	}
 	if spec, ok := strings.CutPrefix(name, RowGuardPrefix); ok {
