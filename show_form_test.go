@@ -135,12 +135,18 @@ func TestShowFormRelatedStackSettingsAndWrites(t *testing.T) {
 
 func TestShowFormRelatedPlacedView(t *testing.T) {
 	var scoped string
+	var tree *Tree
 	f, sf := showRelatedFixture(t, func(r *Runtime, spec *RelatedSpec) {
-		tree, err := r.AddTree("page/custom", nil, Parent("page"))
+		var err error
+		tree, err = r.AddTree("page/custom", nil, Parent("page"))
 		if err != nil {
 			t.Fatal(err)
 		}
 		r.Define("task").RelatedView(tree.ID())
+		if err := r.DeclareSetting(Setting{Name: "rel.enabled", Type: SettingBoolean, Default: true}); err != nil {
+			t.Fatal(err)
+		}
+		spec.Enabled = "rel.enabled"
 		spec.Scope = func(c Ctx, ref Referrer, view, key string) error {
 			scoped = view + "@" + key
 			answer, err := c.Runtime.Execute(Request{Noun: ref.Noun, Verb: "list"})
@@ -167,6 +173,44 @@ func TestShowFormRelatedPlacedView(t *testing.T) {
 	text = ansi.Strip(f.m.View().Content)
 	if scoped != "page/custom@p2" || !strings.Contains(text, "custom ship") || strings.Contains(text, "custom write") {
 		t.Fatalf("placed renderer did not follow target: %s\n%s", scoped, text)
+	}
+	if err := f.r.SetFocus(tree.FocusTarget()); err != nil {
+		t.Fatal(err)
+	}
+	left := f.r.List("page/left")
+	for _, enabled := range []bool{false, true} {
+		if _, err := f.r.Settings().SetSession("rel.enabled", enabled); err != nil {
+			t.Fatal(err)
+		}
+		text = ansi.Strip(f.m.View().Content)
+		if f.r.Instances[f.r.Focus] == nil || !enabled && strings.Contains(text, "custom ship") {
+			t.Fatalf("disabled view must be hidden with a valid focus: %s\n%s", f.r.Focus, text)
+		}
+	}
+	if f.r.Tree("page/custom") != tree || f.r.Focus != left.FocusTarget() || !strings.Contains(text, "custom ship") {
+		t.Fatalf("stack toggle lost the borrowed view or visible-list fallback: %s\n%s", f.r.Focus, text)
+	}
+	if err := tree.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if f.r.Focus != tree.FocusTarget() {
+		t.Fatal("reenabled custom view cannot be focused again")
+	}
+	if err := left.SetItems([]ListItem{{ID: "t1", Label: "write", Noun: "task", Data: "t1"}}); err != nil {
+		t.Fatal(err)
+	}
+	sf.Sync()
+	_ = f.m.View()
+	if f.r.Tree("page/custom") != tree || f.r.Instances[tree.ID()].Parent != "page" {
+		t.Fatal("changing target noun destroyed the borrowed view or failed to restore its owner")
+	}
+	if err := left.SetItems([]ListItem{{ID: "p2", Label: "Beta", Noun: "project", Data: "p2"}}); err != nil {
+		t.Fatal(err)
+	}
+	sf.Sync()
+	text = ansi.Strip(f.m.View().Content)
+	if !strings.Contains(text, "custom ship") {
+		t.Fatalf("returning to the noun lost its borrowed view:\n%s", text)
 	}
 }
 

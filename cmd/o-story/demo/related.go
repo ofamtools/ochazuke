@@ -65,6 +65,8 @@ type RelatedNounSpec struct {
 	Hook     bool             `json:"hook,omitempty"`
 	Columns  []string         `json:"columns,omitempty"`
 	Things   []ochazuke.Thing `json:"things,omitempty"`
+	// View names an existing placed component used instead of section rows.
+	View string `json:"view,omitempty"`
 }
 
 func relatedID(p *Page) string {
@@ -155,6 +157,9 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 			prop.Role = ochazuke.RoleOwner
 		}
 		b := r.Define(n.Noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel}, prop)
+		if n.View != "" {
+			b.RelatedView(n.View)
+		}
 		if len(n.Columns) > 0 {
 			var cols []ochazuke.Column
 			for _, c := range n.Columns {

@@ -25,7 +25,9 @@ type RelatedSection struct {
 // and layout, drawn under the section's heading, in place of the generic
 // list. The application narrows it to the key (RelatedSpec.Scope). The view
 // must be registered before the section is made; it is parented under the
-// section so the section's verbs and motions reach it.
+// section so the section's verbs and motions reach it. Section rebuilds
+// return the borrowed view to its original parent before removing the old
+// section, preserving the view's state. Hidden focus settles normally.
 func (b *NounBuilder) RelatedView(componentID string) *NounBuilder {
 	b.n.relatedView = componentID
 	return b

@@ -117,13 +117,14 @@ type Related struct {
 
 // relatedSection is one section: a referrer's things for the key.
 type relatedSection struct {
-	rel   *Related
-	ref   Referrer
-	id    string // the section instance
-	list  *Collection
-	n     *Noun
-	view  string // the placed view standing for the things, "" the list
-	count int    // things shown, archived ones left out
+	rel        *Related
+	ref        Referrer
+	id         string // the section instance
+	list       *Collection
+	n          *Noun
+	view       string // the placed view standing for the things, "" the list
+	viewParent string // the borrowed view's owner before section placement
+	count      int    // things shown, archived ones left out
 }
 
 // AddRelated registers a stack of related sections under Parent (default
@@ -399,11 +400,22 @@ func (rel *Related) enabled() bool {
 // another noun, so its referrers are others. Collapse state stays, by id.
 func (rel *Related) dropSections() {
 	for _, s := range rel.sections {
-		_ = rel.r.RemoveInstance(s.id)
+		s.remove()
 	}
 	rel.sections, rel.byID = nil, map[string]*relatedSection{}
 	rel.lastLine, rel.top = 0, 0
 	rel.look = ""
+}
+
+// remove returns a borrowed view to its owner before removing the section.
+// Its rows survive section rebuilds, including enabled toggles.
+func (s *relatedSection) remove() {
+	r := s.rel.r
+	if view := r.Instances[s.view]; view != nil && view.Parent == s.id {
+		view.Parent = s.viewParent
+		r.renderCache.instances.generation++
+	}
+	_ = r.RemoveInstance(s.id)
 }
 
 // value is what the section's referring prop holds to name the stack's
@@ -489,6 +501,10 @@ func (rel *Related) addSection(ref Referrer) {
 		// The view stands for the things: it sits under the section, so a
 		// z verb or a motion inside it reaches the section.
 		if v := r.Instances[s.view]; v != nil {
+			s.viewParent = v.Parent
+			if owner := componentAt[*relatedSection](r, v.Parent); owner != nil {
+				s.viewParent = owner.viewParent
+			}
 			v.Parent = s.id
 			r.renderCache.instances.generation++
 		}
