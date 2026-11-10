@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -379,6 +380,21 @@ type Store struct {
 	instanceKeyed bool
 }
 
+// hostNounName is what a Parameter.HostNoun looks like: a noun's name.
+var hostNounName = regexp.MustCompile(`^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$`)
+
+// HostNounError says what is wrong with the prop's HostNoun declaration
+// (Parameter.HostNoun): not a noun's name. nil when the prop declares none or it is fine.
+func (p PropSpec) HostNounError() error {
+	switch {
+	case p.HostNoun == "":
+		return nil
+	case !hostNounName.MatchString(p.HostNoun):
+		return fmt.Errorf("hostNoun %q is not a noun name (lower-case words joined by - or .)", p.HostNoun)
+	}
+	return nil
+}
+
 // propFlagError is what is wrong with the prop's flags: fromFocus and
 // association need a reference, through a prop set writes.
 func propFlagError(key string, p PropSpec) error {
@@ -387,6 +403,8 @@ func propFlagError(key string, p PropSpec) error {
 		return fmt.Errorf("prop %s: fromFocus is for a reference (Noun)", key)
 	case p.Association && p.Noun == "":
 		return fmt.Errorf("prop %s: association is for a reference (Noun)", key)
+	case p.HostNounError() != nil:
+		return fmt.Errorf("prop %s: %w", key, p.HostNounError())
 	case p.Through && !p.writable():
 		return fmt.Errorf("prop %s: through is for a prop set writes (not a key, read-only or create-only)", key)
 	}

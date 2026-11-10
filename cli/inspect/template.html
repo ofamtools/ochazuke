@@ -467,7 +467,7 @@ function propsTable(props) {
   const flags = (p) => [p.key && "key", p.role && "role " + p.role, p.fallback && "fallback " + p.fallback, p.readOnly && !p.key && "read-only", p.createOnly && "create-only", p.required && "required", p.secret && "secret", p.multiline && "multiline"].filter(Boolean);
   return `<h4>props (${props.length})</h4>
   <table class="t"><tr><th>prop</th><th>type</th><th>choices</th><th>flags</th><th>description</th></tr>
-  ${props.map((p) => `<tr><td><code>${esc(p.name)}</code></td><td>${esc(p.type || "string")}</td><td>${esc((p.enum || []).join(" ") || (p.noun ? "→ " + p.noun : "") || p.source || "")}</td><td>${flags(p).map((f) => `<span class="tag">${esc(f)}</span>`).join("")}</td><td>${esc(p.description || "")}</td></tr>`).join("")}</table>`;
+  ${props.map((p) => `<tr><td><code>${esc(p.name)}</code></td><td>${esc(p.type || "string")}</td><td>${esc((p.enum || []).join(" ") || [p.noun ? "→ " + p.noun : "", p.hostNoun ? "→ " + p.hostNoun + " (host)" : "", p.items ? "of " + (p.items.type || "string") + (p.items.noun ? " → " + p.items.noun : "") : ""].filter(Boolean).join(" · ") || p.source || "")}</td><td>${flags(p).map((f) => `<span class="tag">${esc(f)}</span>`).join("")}</td><td>${esc(p.description || "")}</td></tr>`).join("")}</table>`;
 }
 function keysTable(rows, showReq) {
   if (!rows.length) return '<p class="muted">None.</p>';

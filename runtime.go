@@ -148,6 +148,17 @@ type Parameter struct {
 	// add, edit, delete, move, yank and edge verbs (record_list.go); a
 	// list without Items stays JSON text. The catalog's items.
 	Items *Parameter `json:"items,omitempty"`
+	// HostNoun names a noun the host program may have, by its own bare
+	// name (project in mtm), that this value names one of, beside Noun,
+	// which names one of the declaring program's nouns. A tool's catalog
+	// declares it (o-lane's project prop: Noun lane.project, HostNoun
+	// project, since o-lane has a noun of its own called project that is
+	// not mtm's); a host that mounts the catalog (cli.MountParameterOn)
+	// makes it the mounted prop's Noun when the host has that noun, and
+	// drops it when it has none, so a standalone tool or another host sees
+	// the prop as it was. The producing runtime does not read it. The
+	// catalog's hostNoun.
+	HostNoun string `json:"hostNoun,omitempty"`
 }
 
 // lacks reports whether args lack the required parameter name: it is

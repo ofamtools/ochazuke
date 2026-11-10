@@ -83,7 +83,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 		mounting = append(mounting, n)
 	}
 	param := func(p ochazuke.Parameter) ochazuke.Parameter {
-		p = MountParameter(p, out.Nouns)
+		p = MountParameterOn(r, p, out.Nouns)
 		if h.Param != nil {
 			p = h.Param(p)
 		}
@@ -177,6 +177,10 @@ func mountFlags(b *ochazuke.NounBuilder, n CatalogNoun) {
 func mountProps(b *ochazuke.NounBuilder, n CatalogNoun, h HostMount, param func(ochazuke.Parameter) ochazuke.Parameter, warn func(string, ...any)) {
 	reads := newProxyCalls(n, "", keyOf(n.Props), h)
 	for _, p := range n.Props {
+		if err := p.HostNounError(); err != nil {
+			warn("%s prop %s: %v; ignored", n.Name, p.Name, err)
+			p.HostNoun = ""
+		}
 		p.Parameter = param(p.Parameter)
 		p.When = ""
 		p.Read = nil
@@ -356,7 +360,16 @@ func designedCoreDrop(r *ochazuke.Runtime, alias ochazuke.ActionAlias, verb stri
 // choice source (a NOUN.VERB of the extension) is the host's NOUN.VERB of
 // a mounted noun, else dropped with its values accepted (Free), as mtm
 // and nabe did by hand.
+//
+// A HostNoun is a noun of the host, not of the extension: MountParameter has
+// no host to ask and drops it (the mounted parameter keeps its Noun);
+// MountParameterOn is the mount with a host runtime.
 func MountParameter(p ochazuke.Parameter, nouns map[string]string) ochazuke.Parameter {
+	p.HostNoun = ""
+	if p.Items != nil {
+		item := MountParameter(*p.Items, nouns)
+		p.Items = &item
+	}
 	if p.Noun != "" {
 		p.Noun = nouns[p.Noun]
 	}
@@ -374,6 +387,27 @@ func MountParameter(p ochazuke.Parameter, nouns map[string]string) ochazuke.Para
 		p.Source = source
 	}
 	p.Enum = slices.Clone(p.Enum)
+	return p
+}
+
+// MountParameterOn is MountParameter for a host whose runtime is r: a
+// parameter declaring a HostNoun (the host's own noun it names, by the
+// host's bare name: project in mtm) takes that noun as its Noun when r has
+// it, in place of the extension's noun the catalog named, and keeps the
+// MountParameter result when r has none. The item parameter of a list is
+// mounted the same way. r nil asks no host.
+func MountParameterOn(r *ochazuke.Runtime, p ochazuke.Parameter, nouns map[string]string) ochazuke.Parameter {
+	host := p.HostNoun
+	var items *ochazuke.Parameter
+	if p.Items != nil {
+		item := MountParameterOn(r, *p.Items, nouns)
+		items = &item
+	}
+	p = MountParameter(p, nouns)
+	p.Items = items
+	if host != "" && r != nil && r.Nouns[host] != nil {
+		p.Noun = host
+	}
 	return p
 }
 

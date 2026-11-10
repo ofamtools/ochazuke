@@ -60,6 +60,8 @@ type Prop struct {
 	Enum        []string          `json:"enum,omitempty"`
 	Source      string            `json:"source,omitempty"`
 	Noun        string            `json:"noun,omitempty"`
+	HostNoun    string            `json:"hostNoun,omitempty"` // the host's own noun this value names, when the host has one
+	Items       *Prop             `json:"items,omitempty"`    // a list's element
 	ReadOnly    bool              `json:"readOnly,omitempty"`
 	CreateOnly  bool              `json:"createOnly,omitempty"`
 	Key         bool              `json:"key,omitempty"`
