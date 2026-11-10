@@ -132,11 +132,12 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 	if !spec.Detail {
 		rowNouns = []string{spec.Noun}
 	}
-	for _, noun := range rowNouns {
-		r.Define(noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
-	}
-	for _, noun := range spec.Plain {
-		r.Define(noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
+	for _, nouns := range [][]string{rowNouns, spec.Plain} {
+		for _, noun := range nouns {
+			if r.Noun(noun) == nil {
+				r.Define(noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
+			}
+		}
 	}
 	for _, n := range spec.Nouns {
 		prop := ochazuke.PropSpec{Name: n.Prop, ReadOnly: n.ReadOnly, Parameter: ochazuke.Parameter{Type: "string", Noun: spec.Noun}}

@@ -25,6 +25,12 @@ func showRelatedFixture(t *testing.T, configure func(*Runtime, *RelatedSpec)) (*
 		configure(r, &related)
 	}
 	left := r.List("page/left")
+	if err := left.SetItems([]ListItem{
+		{ID: "p1", Label: "Alpha", Noun: "project", Data: "p1"},
+		{ID: "p2", Label: "Beta", Noun: "project", Data: "p2"},
+	}); err != nil {
+		t.Fatal(err)
+	}
 	sf, err := r.AddShowForm("page/show", ShowFormSpec{
 		List: func() *Collection { return left }, Related: &related,
 	}, Parent("page"))
@@ -137,7 +143,7 @@ func TestShowFormRelatedPlacedView(t *testing.T) {
 		r.Define("task").RelatedView(tree.ID())
 		spec.Scope = func(c Ctx, ref Referrer, view, key string) error {
 			scoped = view + "@" + key
-			answer, err := c.Runtime.Execute(Request{Noun: ref.Noun, Verb: "list", Args: Arguments{ref.Prop: key}})
+			answer, err := c.Runtime.Execute(Request{Noun: ref.Noun, Verb: "list"})
 			if err != nil {
 				return err
 			}
@@ -170,7 +176,7 @@ func TestShowFormExplicitTargetAndSectionChoices(t *testing.T) {
 	noun, key, revision := "task", "t1", "first"
 	related := RelatedSpec{Target: func() (string, string) { return "project", "p2" }, History: true}
 	sf, err := r.AddShowForm("page/explicit", ShowFormSpec{
-		List: func() *Collection { return r.List("page/left") },
+		List:   func() *Collection { return r.List("page/left") },
 		Target: func() (string, string) { return noun, key }, Data: func() string { return revision }, Related: &related,
 	}, Parent("page"))
 	if err != nil {
