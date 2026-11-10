@@ -124,7 +124,7 @@ type UI struct {
 func registerUI(r *Runtime) {
 	inst := r.Instance(uiID, Kind("ochazuke.ui"))
 	inst.Component = &UI{}
-	r.Define("ochazuke.message").Verb("show", func(c Ctx) Result {
+	r.Define("ochazuke.message").Kind(NounKindPart).Verb("show", func(c Ctx) Result {
 		var lines []string
 		for _, msg := range c.Runtime.UI().messages {
 			lines = append(lines, msg.Line())

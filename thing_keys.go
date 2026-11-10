@@ -114,6 +114,16 @@ func (r *Runtime) resolveTarget(n *Noun, c Ctx, text string) (string, error) {
 	return key, err
 }
 
+// knownTarget records that text is the key itself for the request under
+// way (resolveTarget's memo), so the subject is not probed again: a caller
+// holding a thing's key (a list row's) names it exactly.
+func (r *Runtime) knownTarget(noun, key string) {
+	if r.targets == nil {
+		r.targets = map[string]string{}
+	}
+	r.targets[noun+"\x00"+key] = key
+}
+
 // findTarget walks keyResolvers for a target text.
 func (r *Runtime) findTarget(n *Noun, c Ctx, text string) (string, error) {
 	for _, res := range keyResolvers {

@@ -180,8 +180,15 @@ func TestSetupMountHomeUserItemsAndSkip(t *testing.T) {
 func TestSetupRegistryHistoryAndNoKeys(t *testing.T) {
 	f := newSetupFixture(t)
 	noun := f.r.Noun("setup")
-	if noun == nil || len(noun.Bindings) != 0 {
-		t.Fatal("setup has keys")
+	if noun == nil {
+		t.Fatal("no setup noun")
+	}
+	for mode, rows := range noun.Bindings {
+		for _, b := range rows {
+			if !b.Generated && !strings.HasSuffix(b.Keys, " esc") {
+				t.Fatalf("setup has keys of its own: %s %s", mode, b.Keys) // the generated block (keys.noun-defaults) is every facts noun's
+			}
+		}
 	}
 	for _, v := range setupVerbs {
 		op := f.r.Operations.At(ochazuke.Key(f.r.CanonicalKey("setup." + v.name)))

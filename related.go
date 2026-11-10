@@ -81,6 +81,9 @@ type RelatedSpec struct {
 	// owned by key: called when the key changes, and when the sections are
 	// refilled. Nil: the view is drawn as it stands.
 	Scope func(c Ctx, ref Referrer, view, key string) error
+	// History adds the history section last: the thing's history entries
+	// (the history verb's rows), read again when the history grows.
+	History bool
 }
 
 // Related is a stack of related sections drawn one under the other in a
@@ -107,6 +110,7 @@ type Related struct {
 	watches  []*Watch
 	dirty    map[string]bool // nouns that changed since the last fill
 	relGen   uint64          // the relation generation the relation sections were filled at
+	histSeq  uint64          // the newest history entry the history section was filled at
 	read     time.Time       // when the hook sections were last read
 	closed   bool
 }
@@ -318,6 +322,7 @@ func (rel *Related) sync() {
 			}
 		}
 		rel.dropRelationSections(sections)
+		rel.ensureHistorySection()
 		for _, s := range late {
 			s.fill()
 		}
@@ -332,6 +337,7 @@ func (rel *Related) sync() {
 		rel.fillAll()
 	}
 	rel.syncRelations(keyChanged)
+	rel.syncHistory(keyChanged)
 	if keyChanged {
 		for _, s := range rel.sections {
 			if s.list != nil && s.list.Len() > 0 {
@@ -484,7 +490,7 @@ func (rel *Related) addSection(ref Referrer) {
 	}
 	rel.sections = append(rel.sections, s)
 	rel.byID[ref.ID()] = s
-	if stored && ref.Relation == "" {
+	if stored && ref.Relation == "" && !ref.History {
 		rel.watch(ref.Noun)
 	}
 }
@@ -557,6 +563,9 @@ func (s *relatedSection) read() ([]Thing, error) {
 	if s.ref.Relation != "" {
 		return s.readRelations(c)
 	}
+	if s.ref.History {
+		return factThings(r.thingHistory(rel.noun, rel.key), nil)
+	}
 	if s.hooked() {
 		return rel.spec.Rows(c, s.ref, s.value())
 	}
@@ -604,7 +613,7 @@ func (s *relatedSection) fill() {
 		if empty && rel.emptyMode() == relatedEmptyAtOpen {
 			items = append(items, s.emptyRow())
 		}
-		items = append(items, r.thingItems(c, s.n, s.list.id, shown, s.list.columns)...)
+		items = append(items, s.rowItems(c, shown)...)
 	}
 	if err := s.list.SetItems(items); err != nil {
 		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))

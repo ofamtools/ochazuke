@@ -16,6 +16,7 @@ type countingStore struct {
 	things                 []Thing
 	lists, queries, tokens int
 	rows                   int
+	gets                   int
 	version                int
 }
 
@@ -31,6 +32,7 @@ func (s *countingStore) store(paged, token bool) Store {
 	st := Store{
 		Stamps: true,
 		Get: func(_ Ctx, id string) (Thing, error) {
+			s.gets++
 			for _, t := range s.things {
 				if t["id"] == id {
 					return t, nil
@@ -236,5 +238,46 @@ func TestNounsPageRecountsOnAChangeWhileOpen(t *testing.T) {
 	mustRun(t, r, Request{Noun: "big", Verb: "set", Args: Arguments{"id": "t00011", "props": map[string]any{"archived": true}}})
 	if row := nounRow(t, r, "big"); row.Cells[2] != "5" {
 		t.Fatalf("archived after a write while open: %v (queries %d)", row.Cells, big.queries)
+	}
+}
+
+// A store whose list narrows an omitted argument to a default (state=open)
+// is counted whole: the Nouns page asks with ListQuery.Every, so closed and
+// archived things count and the archived count is not hidden by the
+// default.
+func TestNounsPageCountsIgnoreDefaultListArguments(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	things := []Thing{
+		{"id": "a", "state": "open", "archived": false},
+		{"id": "b", "state": "done", "archived": false},
+		{"id": "c", "state": "done", "archived": true},
+	}
+	r.Define("item").Props(
+		PropSpec{Name: "id", Key: true},
+		PropSpec{Name: "state"},
+		PropSpec{Name: "archived", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}},
+	).Store(Store{
+		Get: func(Ctx, string) (Thing, error) { return nil, nil },
+		Query: func(c Ctx, q ListQuery) (ListPage, error) {
+			var keep []Thing
+			for _, t := range things {
+				if !q.Every && t["state"] != "open" {
+					continue // the store's default: state=open
+				}
+				keep = append(keep, t)
+			}
+			return c.Runtime.QueryAll("item", keep, q), nil
+		},
+	})
+	if err := r.EnsureNounsPage(); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage(NounsPageID); err != nil {
+		t.Fatal(err)
+	}
+	mustRun(t, r, Request{Noun: nounsPageNoun, Verb: "refresh"})
+	if count, archived, known, _ := r.NounCount("item"); !known || count != 3 || archived != 1 {
+		t.Fatalf("count %d archived %d known %v, want 3 and 1", count, archived, known)
 	}
 }

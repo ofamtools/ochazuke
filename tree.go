@@ -1771,7 +1771,7 @@ func registerOutlineThings(r *Runtime) {
 		}
 		return nil, errors.New("no focused tree")
 	}
-	r.Define("ochazuke.outline").Props(
+	r.Define("ochazuke.outline").DefaultKeys(false).Props(
 		PropSpec{Name: "id", Key: true, Parameter: Parameter{Description: "The node's id"}},
 		PropSpec{Name: "label", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The node's line"}},
 		PropSpec{Name: "parent", ReadOnly: true, Parameter: Parameter{Description: "The parent node's id (empty at the top level)"}},

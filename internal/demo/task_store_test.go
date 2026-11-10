@@ -125,7 +125,7 @@ func TestTaskCatalogRoundTrip(t *testing.T) {
 		standard[v.Name] = v.Standard
 	}
 	if want := map[string]string{"edit": "", "follow": "follow", "get": "get", "list": "list", "watch": "watch", "create": "create", "set": "set", "delete": "delete",
-		"archive": "archive"}; !reflect.DeepEqual(standard, want) {
+		"archive": "archive", "show": "show", "restore": "restore", "duplicate": "duplicate", "yank": "yank", "history": "history"}; !reflect.DeepEqual(standard, want) {
 		t.Fatalf("standard %v, want %v", standard, want)
 	}
 	if verb, rows := doc.RowSource("task"); verb != "list" || rows != "task" {

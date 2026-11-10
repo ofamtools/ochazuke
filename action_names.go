@@ -307,7 +307,7 @@ func (r *Runtime) checkAlias(a ActionAlias) (ActionAlias, error) {
 	if a.Alias == a.Action {
 		return a, fmt.Errorf("alias %s names itself", name)
 	}
-	if _, taken := r.Operations.Find(Key(a.Alias)); taken {
+	if r.aliasShadows(a) {
 		return a, fmt.Errorf("alias %s would shadow the action %s", name, name)
 	}
 	if prev, ok := r.actionNames.aliases[a.Alias]; ok && prev.Action != a.Action {
@@ -690,4 +690,25 @@ func (b *NounBuilder) Renamed(old, since, removeAfter string) *NounBuilder {
 		panic(err)
 	}
 	return b
+}
+
+// yieldFreeVerb drops the free verb the standard table generated under
+// the alias's name, for an alias the program declares (page.show as
+// page.set {hidden: false}): it yields as it yields to the application's
+// own verb (ensureStandardVerbs). False when the name holds anything else.
+func (r *Runtime) yieldFreeVerb(a ActionAlias) bool {
+	held, _ := r.Operations.Find(Key(a.Alias))
+	row := standardRow(held.Standard)
+	if a.Source == AliasStandard || row == nil || !row.optional {
+		return false
+	}
+	r.Operations.Delete(Key(a.Alias))
+	return true
+}
+
+// aliasShadows reports whether an operation holds the alias's name and
+// does not yield it (yieldFreeVerb).
+func (r *Runtime) aliasShadows(a ActionAlias) bool {
+	_, taken := r.Operations.Find(Key(a.Alias))
+	return taken && !r.yieldFreeVerb(a)
 }

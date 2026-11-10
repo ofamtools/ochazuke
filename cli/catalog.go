@@ -153,6 +153,9 @@ type CatalogNoun struct {
 	Store *CatalogStore `json:"store,omitempty"`
 	// NoEditKey declines only the implicit edit-key fallback, not edit itself.
 	NoEditKey bool `json:"noEditKey,omitempty"`
+	// NoDefaultKeys declines the generated default key block
+	// (ochazuke.Noun.NoDefaultKeys); a mounted noun keeps it in the host.
+	NoDefaultKeys bool `json:"noDefaultKeys,omitempty"`
 	// NoPicker keeps the noun out of the host's derived pickers
 	// (ochazuke.Noun.NoPicker).
 	NoPicker bool `json:"noPicker,omitempty"`
@@ -498,6 +501,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				noun.About = n.About
 				noun.Pin, noun.Live, noun.Columns = n.Pin, n.Live, slices.Clone(n.Columns)
 				noun.NoEditKey = n.NoEditKey
+				noun.NoDefaultKeys = n.NoDefaultKeys
 				noun.NoPicker = n.NoPicker
 				noun.Main, noun.DefaultAction = n.Main, n.DefaultAction
 				noun.Unpersisted = n.Unpersisted

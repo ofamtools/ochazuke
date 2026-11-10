@@ -214,8 +214,8 @@ func longestRun(s string, c byte) int {
 // registerView defines the viewer's noun and its verbs (keys in
 // bindings.json, context ochazuke.markdown-view/normal).
 func registerView(r *ochazuke.Runtime) {
-	r.Define(ViewNoun).
-		Verb("yank", func(c ochazuke.Ctx) ochazuke.Result {
+	r.Define(ViewNoun).Kind(ochazuke.NounKindPart). // the viewer modal: a drawn part
+							Verb("yank", func(c ochazuke.Ctx) ochazuke.Result {
 			v := viewerOf(c.Runtime)
 			if v == nil {
 				return ochazuke.Failed(errors.New("no Markdown viewer open"))

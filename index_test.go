@@ -260,3 +260,19 @@ func TestIndexShowForm(t *testing.T) {
 		t.Fatal("detail.show-form off removes the form")
 	}
 }
+
+// The show form reads the selected thing once per selection change: one
+// get, however many requests and frames follow.
+func TestIndexFormReadsTheThingOncePerSelection(t *testing.T) {
+	r, m, big := indexFixture(t)
+	mustRun(t, r, Request{Noun: "ochazuke.noun", Verb: "show", Args: Arguments{"noun": "big"}})
+	_ = m.View()
+	before := big.gets
+	press(t, r, "j")
+	for range 3 {
+		_ = m.View()
+	}
+	if got := big.gets - before; got != 1 {
+		t.Fatalf("a selection change read the thing %d times", got)
+	}
+}

@@ -80,12 +80,7 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 	w, r := l.paged, l.r
 	q := l.windowQuery()
 	key := windowKey(q)
-	token := ""
-	if n.Store.ChangeToken != nil {
-		if t, err := n.Store.ChangeToken(c); err == nil {
-			token = t
-		}
-	}
+	token := storeToken(n.Store, c)
 	if w.filled && key == w.key && token != "" && token == w.token {
 		return nil
 	}
@@ -95,7 +90,11 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 	arch := r.archiveHiding(n, q)
 	var page ListPage
 	archived := -1
+	unmoved := false
 	body := func(c Ctx) (any, error) {
+		if token, unmoved = jobToken(n.Store, c, token, w.token, w.filled && key == w.key); unmoved {
+			return nil, nil
+		}
 		p, err := r.queryThings(c, n, q)
 		if err != nil {
 			return nil, err
@@ -115,7 +114,7 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 	}
 	finish := func(_ any, err error) (any, error) {
 		w.asked = ""
-		if err != nil {
+		if err != nil || unmoved {
 			return nil, err
 		}
 		if pages := windowPages(page.Total, w.per); w.page > pages && page.Total > 0 {
@@ -285,4 +284,29 @@ func (l *Collection) windowArchived() int {
 		return -1
 	}
 	return l.paged.archived
+}
+
+// storeToken is the store's change token read now, "" when it keeps none or
+// cannot answer here (a remote store answers only inside a job).
+func storeToken(s *Store, c Ctx) string {
+	if s.ChangeToken == nil {
+		return ""
+	}
+	t, err := s.ChangeToken(c)
+	if err != nil {
+		return ""
+	}
+	return t
+}
+
+// jobToken reads the token inside a read's job when none was read before it
+// (a remote store, a mounted noun, answers only there): the token, and
+// whether it is the one the reader last saw (seen) while what it shows is
+// that read's (current), so nothing more need be read.
+func jobToken(s *Store, c Ctx, token, seen string, current bool) (string, bool) {
+	if token != "" {
+		return token, false
+	}
+	t := storeToken(s, c)
+	return t, t != "" && current && t == seen
 }

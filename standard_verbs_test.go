@@ -81,10 +81,10 @@ func TestStandardVerbsNeeds(t *testing.T) {
 		store Store
 		want  []string
 	}{
-		{"get only", []PropSpec{{Name: "id", Key: true}}, Store{Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }}, []string{"get"}},
+		{"get only", []PropSpec{{Name: "id", Key: true}}, Store{Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }}, []string{"get", "show", "yank", "history"}},
 		{"list only", []PropSpec{{Name: "id", Key: true}}, Store{List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"list", "watch"}},
-		{"both", []PropSpec{{Name: "id", Key: true}}, newTaskStore().store(), []string{"get", "list", "watch"}},
-		{"singleton has no list", []PropSpec{{Name: "theme"}}, Store{Kind: Singleton, Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }, List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"get", "watch"}},
+		{"both", []PropSpec{{Name: "id", Key: true}}, newTaskStore().store(), []string{"get", "list", "show", "yank", "history", "watch"}},
+		{"singleton has no list", []PropSpec{{Name: "theme"}}, Store{Kind: Singleton, Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }, List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"get", "show", "yank", "history", "watch"}},
 		{"nothing", []PropSpec{{Name: "id", Key: true}}, Store{}, nil},
 	}
 	for _, c := range cases {

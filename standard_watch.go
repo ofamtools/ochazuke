@@ -315,6 +315,7 @@ func (r *Runtime) watchAfterRequest(q Request, depth int, nothing bool) {
 	if depth == 0 && h.changed {
 		h.changed = false
 		r.refreshWatches(nil)
+		r.syncIndexForm() // the lists read again: a selection that moved gets its form
 	}
 }
 

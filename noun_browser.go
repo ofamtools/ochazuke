@@ -238,14 +238,9 @@ func countNoun(r *Runtime, n *Noun) {
 	}
 	s := n.Store
 	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context(), Noun: n.Name}
-	token := ""
-	if s.ChangeToken != nil {
-		if t, err := s.ChangeToken(ctx); err == nil {
-			token = t
-		}
-		if token != "" && token == c.token && c.known {
-			return // nothing changed since it was counted
-		}
+	token := storeToken(s, ctx)
+	if token != "" && token == c.token && c.known {
+		return // nothing changed since it was counted
 	}
 	if s.Kind == Singleton {
 		c.count, c.known, c.token = 1, true, token
@@ -261,14 +256,20 @@ func countNoun(r *Runtime, n *Noun) {
 	}
 	arch := n.roleProp(RoleArchive)
 	var total, archived int
+	unmoved := false
 	body := func(cx Ctx) (any, error) {
-		page, err := r.queryThings(cx, n, ListQuery{Archived: true, Page: 1, PerPage: 1})
+		if token, unmoved = jobToken(s, cx, token, c.token, c.known); unmoved {
+			return nil, nil
+		}
+		// Every: the whole store, whatever its default list arguments
+		// (ListQuery.Every); archived things in, then counted apart.
+		page, err := r.queryThings(cx, n, ListQuery{Archived: true, Every: true, Page: 1, PerPage: 1})
 		if err != nil {
 			return nil, err
 		}
 		total = page.Total
 		if arch != nil {
-			page, err := r.queryThings(cx, n, ListQuery{Archived: true, Page: 1, PerPage: 1, Filters: []PropFilter{{Prop: arch.Name, Value: true}}})
+			page, err := r.queryThings(cx, n, ListQuery{Archived: true, Every: true, Page: 1, PerPage: 1, Filters: []PropFilter{{Prop: arch.Name, Value: true}}})
 			if err != nil {
 				return nil, err
 			}
@@ -283,7 +284,9 @@ func countNoun(r *Runtime, n *Noun) {
 			refreshNounsPage(r)
 			return nil, nil // a count that cannot be read is shown as unknown, never an error
 		}
-		c.count, c.archived, c.known, c.hasArch, c.token, c.err = total, archived, true, arch != nil, token, ""
+		if !unmoved {
+			c.count, c.archived, c.known, c.hasArch, c.token, c.err = total, archived, true, arch != nil, token, ""
+		}
 		refreshNounsPage(r)
 		return nil, nil
 	}

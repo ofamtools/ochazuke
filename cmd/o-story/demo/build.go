@@ -680,6 +680,7 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 			t[key] = fmt.Sprintf("t%d", len(things)+1)
 			things = append(things, t)
 			ss.Writes = append(ss.Writes, "create "+fmt.Sprint(t[key])+storeValues(spec.Props, values))
+			version++ // the token moves on every write (Token), a create too
 			return t, nil
 		},
 		Patch: func(_ ochazuke.Ctx, id string, changes ochazuke.Thing) (ochazuke.Thing, error) {
@@ -713,6 +714,7 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 				return fmt.Errorf("no %s %q", Demo, id)
 			}
 			ss.Writes = append(ss.Writes, "delete "+id)
+			version++
 			return nil
 		},
 	}
@@ -1177,6 +1179,12 @@ func (ss *session) addPage(p *Page) error {
 			return fmt.Errorf("detail: %w", err)
 		}
 		ss.details[p.ID] = d
+		if p.Detail.ShowForm && len(p.Lists) > 0 {
+			first := p.Lists[0].ID
+			if _, err := r.AddShowForm(p.ID+"-show", ochazuke.ShowFormSpec{List: func() *ochazuke.Collection { return ss.lists[first] }}, ochazuke.Parent(p.ID)); err != nil {
+				return fmt.Errorf("show form: %w", err)
+			}
+		}
 	}
 	if p.Focus == "" && len(p.Order) > 0 {
 		// The first stop in drawing order is focused, a tree or a list.
@@ -1575,6 +1583,9 @@ func (ss *session) render(p *Page, width, height int) ochazuke.Block {
 		lines[i] = fmt.Sprintf("%s line %d", item, i+1)
 	}
 	body, marker := d.Window(strings.Join(lines, "\n"), dw, max(1, height-1))
+	if sf := ss.R.ShowFormOf(p.ID + "-show"); sf != nil {
+		body, marker = sf.Block(strings.Join(lines, "\n"), dw, max(1, height-1)).Text, ""
+	}
 	head := "detail"
 	if marker != "" {
 		head += " " + marker

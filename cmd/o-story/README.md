@@ -500,7 +500,7 @@ Conformance:
 | normal | app | `app.quit` |
 | normal | binding | `binding.help` |
 | normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.pick` `bindings-help.run` `bindings-help.show` |
-| normal | chore | `chore.get` `chore.set` |
+| normal | chore | `chore.archive` `chore.delete` `chore.duplicate` `chore.get` `chore.restore` `chore.set` `chore.yank` |
 | normal | collection | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.show-archived` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
@@ -637,7 +637,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `outline.leave`
 - `insert` → `normal` via `palette.cancel`
 - `insert` → `normal` via `palette.run`
-- `insert` → `normal` via `palette.run + chore.get + chore.get`
+- `insert` → `normal` via `palette.run + chore.get`
 - `insert` → `normal` via `palette.run + parcel.get`
 - `insert` → `normal` via `picker.normal`
 - `insert` → `normal` via `picker.pick`
@@ -767,11 +767,16 @@ Mode edges (from → to via):
 - `normal ctrl+w` → `normal` via `pane.restore`
 - `normal ctrl+w` → `normal` via `pane.shrink`
 - `normal ctrl+w` → `normal` via `row >`
+- `normal d` → `normal` via `chore.archive + chore.get`
+- `normal d` → `normal` via `chore.delete`
+- `normal d` → `normal` via `chore.delete + chore.get`
+- `normal d` → `normal` via `chore.restore + chore.get`
 - `normal d` → `normal` via `form.item-delete + project.get`
 - `normal d` → `normal` via `markdown.cut`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `related-section.unassociate`
 - `normal d` → `normal` via `setting-item.delete`
+- `normal g` → `normal` via `chore.duplicate`
 - `normal g` → `normal` via `collection.goto`
 - `normal g` → `normal` via `demo.send`
 - `normal g` → `normal` via `detail.fields`
@@ -787,6 +792,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `timeline.row`
 - `normal g` → `normal` via `viewport.goto`
 - `normal g` → `normal` via `yank-history.open`
+- `normal y` → `normal` via `chore.yank`
 - `normal y` → `normal` via `markdown-view.yank`
 - `normal y` → `normal` via `markdown.link-yank`
 - `normal y` → `normal` via `outline.yank`

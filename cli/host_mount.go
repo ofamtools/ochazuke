@@ -158,7 +158,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 
 // mountFlags sets the catalog noun's about text and flags on its builder.
 func mountFlags(b *ochazuke.NounBuilder, n CatalogNoun) {
-	b.About(n.About).EditKey(!n.NoEditKey)
+	b.About(n.About).EditKey(!n.NoEditKey).DefaultKeys(!n.NoDefaultKeys)
 	if n.Unpersisted {
 		b.Unpersisted()
 	}

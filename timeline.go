@@ -1257,6 +1257,7 @@ func (t *Timeline) target(c Context, args Arguments) (string, error) {
 func registerTimelines(r *Runtime) {
 	r.Define(TimelineCardNoun)
 	r.Define(timelineNoun)
+	r.Define(TimelineBodyNoun).Kind(NounKindPart) // a drawn place inside a card, not a command
 	r.DefineGuard("timeline-scrolls", func(r *Runtime, ev KeyEvent) bool {
 		t := r.timelineOf(ev.Focus)
 		return t != nil && t.overflow

@@ -56,7 +56,9 @@ func (r *Runtime) relationEnds(n *Noun, c Ctx) (from, to, subject string, err er
 	case StringArg(c.Args, relationToParam, "") != "" && StringArg(c.Args, relationFromParam, "") != "":
 		return "", "", "", &ArgumentError{errors.New("name the other end with to or from, not both")}
 	case other == "":
-		return "", "", "", &ArgumentError{errors.New("name the other end: to (this thing is the From end) or from (this thing is the To end), as noun:key")}
+		// A person who pressed the key is asked for it (askNeed); the CLI
+		// and agents read the plain error.
+		return "", "", "", c.Need(relationToParam, "name the other end: to (this thing is the From end) or from (this thing is the To end), as noun:key")
 	}
 	if asTo {
 		return this, other, key, nil
@@ -71,6 +73,7 @@ func relationVerbs() []standardVerb {
 	relate.Verb = "relate"
 	relate.Description = "Relate this thing to another (to) or another to this thing (from), as noun:key, in any kind (default relation) with text and data; relating again updates the relation; a declared kind's rules apply. Every noun has it, both ends share one handler"
 	relate.Params = relateVerbParams
+	relate.Aliases = []string{"associate"} // rich verbs: associate is relate, on both nouns
 	relate.Run = func(r *Runtime, n *Noun, c Ctx) (any, error) {
 		from, to, _, err := r.relationEnds(n, c)
 		if err != nil {

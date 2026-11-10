@@ -36,6 +36,13 @@ type ListQuery struct {
 	Page      int
 	PerPage   int
 	Archived  bool
+	// Every asks for every thing whatever the store's own default list
+	// arguments say: a store whose List or Query narrows an omitted
+	// argument to a default (a ListParams parameter that defaults to
+	// state=open) skips that default when Every is set, so a count (the
+	// Nouns page's, the index's archived count) is of the whole store.
+	// Filters still apply. Stores without default arguments ignore it.
+	Every bool
 
 	Text  string
 	Saved string

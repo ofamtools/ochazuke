@@ -326,7 +326,7 @@ func (r *Runtime) terminalOf(c Context, args Arguments) (*Terminal, error) {
 // then the key, swallow drops both. The modes and rows are
 // bindings/terminal.json.
 func registerTerminal(r *Runtime) {
-	r.Define("ochazuke.terminal").Pin("terminal").Focusable().Unpersisted().
+	r.Define("ochazuke.terminal").Kind(NounKindPart).Pin("terminal").Focusable().Unpersisted().
 		Verb("send", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
 			if err != nil {

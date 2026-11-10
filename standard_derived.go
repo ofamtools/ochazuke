@@ -180,7 +180,7 @@ func (r *Runtime) createFill(n *Noun, c Ctx, values Thing) focusFills {
 // archive prop, the setting on); nil when delete will delete it.
 func (r *Runtime) archiveTarget(n *Noun, c Ctx, key string) (*PropSpec, Thing, error) {
 	p := writableRole(n, RoleArchive)
-	if p == nil || n.Store.Patch == nil || n.Store.Get == nil || !r.helpFlag(DeleteArchiveSetting, false) {
+	if p == nil || n.Store.Patch == nil || n.Store.Get == nil || !archiveFirst(r, c.Args) {
 		return nil, nil, nil
 	}
 	t, err := n.Store.Get(c, key)
@@ -229,6 +229,7 @@ func deleteConfirm(r *Runtime, n *Noun, c Context, q Request, prompt string) str
 			insts = append(insts, r.Instances[id])
 		}
 	}
+	var deleted []string
 	for _, inst := range insts {
 		ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: q.Args, Instance: inst}
 		key, err := r.subjectKey(n, ctx)
@@ -236,13 +237,35 @@ func deleteConfirm(r *Runtime, n *Noun, c Context, q Request, prompt string) str
 			return prompt
 		}
 		if p, _, err := r.archiveTarget(n, ctx, key); p == nil || err != nil {
-			return prompt
+			deleted = append(deleted, key)
 		}
 	}
-	if !r.helpFlag(DeleteArchiveConfirmSetting, true) {
-		return ""
+	if len(deleted) > 0 {
+		// The one question names what goes with the things (confirm-delete).
+		if with := r.DeleteGoesWith(n.Name, deleted...); with != "" {
+			return strings.TrimSuffix(prompt, "?") + "? " + with
+		}
+		return prompt
+	}
+	if _, given := q.Args[archiveFirstArg]; given || !r.helpFlag(DeleteArchiveConfirmSetting, true) {
+		return "" // archive-first from the request archives like archive: no question
 	}
 	return DefaultArchiveConfirm
+}
+
+// archiveFirst reports whether a delete archives a live thing first: the
+// request's archive-first argument, else the delete.archive setting.
+func archiveFirst(r *Runtime, a Arguments) bool {
+	if v, given := a[archiveFirstArg]; given {
+		b, _ := v.(bool)
+		return b || v == "true"
+	}
+	return r.helpFlag(DeleteArchiveSetting, false)
+}
+
+// deleteParams is delete's archive-first.
+func deleteParams(*Noun) map[string]Parameter {
+	return map[string]Parameter{archiveFirstArg: {Type: SettingBoolean, Description: "Archive a live thing instead (deleting an archived one deletes it for good); default the delete.archive setting"}}
 }
 
 // propAliasClash refuses a prop that an alias of its noun is already
@@ -310,10 +333,53 @@ func (r *Runtime) StandardShadows() []string {
 		}
 		for _, v := range standardTable() {
 			op, ok := r.Operations.Find(Key(name + "." + v.Verb))
-			if ok && op.Standard == "" && !op.ShadowsStandard && v.unmet(r, n) == "" {
+			if ok && op.Standard == "" && !op.ShadowsStandard && !v.YieldsToProp && v.unmet(r, n) == "" {
 				out = append(out, fmt.Sprintf("info: %s is a named verb: it shadows the standard %s of %s", r.DisplayKey(op.Key.Short()), v.Verb, r.DisplayNoun(name)))
 			}
 		}
 	}
 	return out
+}
+
+// DeleteGoesWith says what goes with deleting the things (the
+// ochazuke.confirm-delete prompt's tail): how many things of each
+// referring noun name them, and how many relations are kept as
+// unassociated. "" when nothing does. Counted through each referring
+// noun's Query (one row asked, its Total read) with archived things
+// included.
+func (r *Runtime) DeleteGoesWith(noun string, keys ...string) string {
+	noun = r.CanonicalNoun(noun)
+	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	var parts []string
+	for _, ref := range r.Referrers(noun) {
+		m := r.Nouns[ref.Noun]
+		if m == nil || m.Store == nil || m.Store.Remote || ref.Relation != "" || ref.Outward {
+			continue
+		}
+		total := 0
+		for _, key := range keys {
+			page, err := r.queryThings(c, m, ListQuery{Archived: true, PerPage: 1, Page: 1, Filters: []PropFilter{{Prop: ref.Prop, Op: "=", Value: ref.Value(noun, key)}}})
+			if err == nil {
+				total += page.Total
+			}
+		}
+		if total > 0 {
+			parts = append(parts, fmt.Sprintf("%d %s name it by %s", total, r.DisplayNoun(ref.Noun), ref.Prop))
+		}
+	}
+	if r.RelationStore() != nil {
+		count := 0
+		for _, key := range keys {
+			if xs, err := r.RelationsOf(RelationQuery{Thing: AnyRef(noun, key), Archived: true}); err == nil {
+				count += len(xs)
+			}
+		}
+		if count > 0 {
+			parts = append(parts, fmt.Sprintf("%d relations are kept as unassociated", count))
+		}
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return "(" + strings.Join(parts, "; ") + ")"
 }

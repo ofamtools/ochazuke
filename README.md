@@ -2633,6 +2633,18 @@ Every noun is listable with no code of its own (noun scaffold, pass 1). The **No
 
 Compared with Vim: `:ls` lists every buffer and the Nouns page lists every noun (similar: buffers are files, nouns are kinds of thing); `:e {file}` opens one and `noun.show` opens a noun's index (similar); netrw lists a directory and `<CR>` opens an entry, as `enter` does on a Nouns row (same idea). Vim has no counterpart for counts read off a store or for paging a list.
 
+### Scaffold verbs and generated keys
+
+Every stored noun gets `show`, `restore`, `duplicate` (alias `dup`), `yank` (as label, key, ref or json), `history`, `annotate` (where a noun has an about prop, `RoleAbout`) and `token` (where its store keeps a change token), from the legacy verb table, each where its needs are met; `relate` answers to `associate` too. A prop of the same name keeps the word. `delete {archive-first: true}` archives a live thing with no question and deletes an archived one after one question naming what goes with it (`Runtime.DeleteGoesWith`).
+
+Every record noun gets the generated key block (`bindings/generated/noun-defaults.json`, setting `keys.noun-defaults`, default on) for the verbs it has: `n` new, `r` rename, `v`/`enter` show, `d a` archive, `d r` restore, `d d` archive then delete, `u` undo, `a` associate, `g d` duplicate, `y y` yank, `y p` yank path, `R` reveal, `z A` archived rows. A declared row on the focus's walk that binds the same keys or a prefix of them wins: the user's or the application's whatever its guard, a framework file's where it answers now. `NounBuilder.DefaultKeys(false)` declines the block for one noun. The rows stay off the footer; `?` lists them.
+
+### Show form: `ShowForm`, catalog detail `record-form`
+
+`Runtime.AddShowForm(id, ShowFormSpec{List | Target})` follows a list's selection (or a target) and draws the thing's edit form with its relation sections (one per referrer and relation kind) and its history under it; `Block(text, w, h)` puts a page's own detail text on top (form under text). A generated index page has one; a catalog page asks for it with `"detail": {"kind": "record-form"}`, and a record detail can add a `history` section beside `related`. It reads the thing once per selection. Setting `detail.show-form` turns it off.
+
+Compared with Vim: `d a`/`d d` are like `:bdelete` and `:bwipeout` (archive is recoverable, delete is for good); `y y` yanks the thing as `yy` yanks a line; `u` undoes the last change; `z A` sits with Vim's `z` fold keys but toggles the archived rows, while `z a` stays the related section's fold (`:help za`); the history section lists changes like `:changes`, without jumping.
+
 ## Pickers (picker.open)
 
 A picker is a declaration, not code (`picker_registry.go`): a `PickerDef` names the picker, the noun its rows belong to, the verb its rows come from (`source`, default the noun's `list`; more in `sources`, cycled like any picker's), the verb run on the highlighted row for a preview (`preview`, default the noun's `get`) and the verb run on pick (`pick`, default the noun's `open` when it takes the row's id, else `get`; with neither the pick answers the id). Declare one with `r.AddPicker(PickerDef{...})`, or in a catalog's `pickers` array, which a host mounts with `cli.MountCatalogPickers(r, doc, prefix, noun)` beside `MountCatalogHooks`. Every noun with a list verb also gets a picker named after it with no code (`picker.derive`, default on; `NounBuilder.NoPicker()` opts a noun out, and a declared picker naming the noun replaces its derived one).

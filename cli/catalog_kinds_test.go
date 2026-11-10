@@ -2,6 +2,8 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -101,8 +103,8 @@ func TestOldCatalogReadsTheSameKinds(t *testing.T) {
 		old.Nouns[i] = n
 	}
 	for i, n := range old.Nouns {
-		if n.Name == "daemon-row" {
-			continue // a declared kind is new data an older catalog cannot hold
+		if rn := r.Noun(n.Name); rn != nil && rn.Kind != "" {
+			continue // a declared kind (daemon-row, the framework's parts) is new data an older catalog cannot hold
 		}
 		if got, want := n.KindOf(), doc.Nouns[i].NounKind; got != want {
 			t.Errorf("%s: an old catalog reads %q, the new one says %q", n.Name, got, want)
@@ -213,5 +215,87 @@ func TestCatalogIndexList(t *testing.T) {
 	}
 	if err := v.SetRows("parcels/list", nil); err == nil {
 		t.Fatal("an index list takes no rows from the page")
+	}
+}
+
+// A data page asks for the show form by data alone: detail kind
+// record-form mounts an ochazuke.ShowForm on the page (the selected
+// thing's form, its relation sections, its history), as a generated index
+// page has.
+func TestCatalogRecordFormDetail(t *testing.T) {
+	doc := catalogOf(t, kindsRuntime())
+	host := ochazuke.NewRuntime()
+	host.Config().Disable()
+	ns := Namespace("tool")
+	if got := MountNouns(host, doc.AppNouns(), HostMount{Local: ns, Proxy: func(string, CatalogVerb) any {
+		return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
+	}}); len(got.Warnings) > 0 {
+		t.Fatal(got.Warnings)
+	}
+	m := ochazuke.NewModel(host)
+	page := CatalogPage{ID: "parcels", Title: "Parcels", Lists: []CatalogList{{ID: "parcels/list", Noun: "parcel", Kind: ListKindIndex}},
+		Detail: &CatalogDetail{Kind: DetailRecordForm}}
+	if _, err := MountPage(m, doc, page, PageConfig{Noun: ns}); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, inst := range host.Children("parcels") {
+		if _, ok := inst.Component.(*ochazuke.ShowForm); ok {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("record-form mounted no show form on the page")
+	}
+}
+
+// A mounted noun whose catalog publishes the token verb (store
+// changeToken) gets a ChangeToken that asks the extension, so the host's
+// index and counts read again only when it moved; without the verb (an
+// older catalog) it has none, as before.
+func TestMountedNounForwardsTheChangeToken(t *testing.T) {
+	doc := catalogOf(t, kindsRuntime())
+	var parcel *CatalogNoun
+	for i := range doc.Nouns {
+		if doc.Nouns[i].Name == "parcel" {
+			parcel = &doc.Nouns[i]
+		}
+	}
+	if parcel == nil || !slices.ContainsFunc(parcel.Verbs, func(v CatalogVerb) bool { return v.Name == "token" }) {
+		t.Fatalf("the catalog lacks parcel.token: %+v", parcel)
+	}
+	mount := func(doc CatalogDoc) *ochazuke.Runtime {
+		host := ochazuke.NewRuntime()
+		host.Config().Disable()
+		MountNouns(host, doc.AppNouns(), HostMount{Local: Namespace("tool"), Proxy: func(_ string, v CatalogVerb) any {
+			return func(ochazuke.Ctx) ochazuke.Result {
+				if v.Name == "token" {
+					return ochazuke.Done("v7")
+				}
+				return ochazuke.Done(nil)
+			}
+		}})
+		return host
+	}
+	host := mount(doc)
+	n := host.Noun("tool.parcel")
+	if n == nil || n.Store.ChangeToken == nil {
+		t.Fatal("no forwarded change token")
+	}
+	// Off a job the proxy answers "not loaded yet" (a remote store's
+	// calls run as jobs, Ctx.Await): readers then read as without a token.
+	if _, err := n.Store.ChangeToken(ochazuke.Ctx{Runtime: host, Context: host.Context()}); !errors.Is(err, ochazuke.ErrNotLoaded) {
+		t.Fatalf("token off a job: %v", err)
+	}
+	if op, ok := host.Operation("tool.parcel.token"); !ok || op.Unavailable != "" {
+		t.Fatalf("tool.parcel.token %v %q", ok, op.Unavailable)
+	}
+	old := doc
+	old.Nouns = slices.Clone(doc.Nouns)
+	for i := range old.Nouns {
+		old.Nouns[i].Verbs = slices.DeleteFunc(slices.Clone(old.Nouns[i].Verbs), func(v CatalogVerb) bool { return v.Name == "token" })
+	}
+	if n := mount(old).Noun("tool.parcel"); n == nil || n.Store.ChangeToken != nil {
+		t.Fatal("an older catalog without token should mount without a change token")
 	}
 }

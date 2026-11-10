@@ -49,6 +49,21 @@ const DefaultArchiveConfirm = "Archive {{noun}} {{label}}? (delete it again to d
 // alias or a nested noun. A row's Aliases come with it, unless the noun
 // has a verb of that name.
 func (r *Runtime) ensureStandardVerbs(n *Noun) {
+	r.ensureVerbsOf(n)
+	if declaresAbout(n) {
+		// An annotating noun gives the nouns it can be about annotate.
+		for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
+			if m := r.Nouns[name]; m != n && m.Store != nil {
+				r.ensureVerbsOf(m)
+			}
+		}
+	}
+}
+
+// ensureVerbsOf is ensureStandardVerbs for one noun, then its generated
+// default keys (noun_keys.go).
+func (r *Runtime) ensureVerbsOf(n *Noun) {
+	defer r.ensureNounKeys(n)
 	for _, v := range standardTable() {
 		key := n.Name + "." + v.Verb
 		existing, ok := r.Operations.Find(Key(key))
@@ -64,6 +79,9 @@ func (r *Runtime) ensureStandardVerbs(n *Noun) {
 		}
 		wasBuiltin := ok && existing.Builtin // a regenerated verb keeps its mark
 		reason := v.unmet(r, n)
+		if v.YieldsToProp && n.prop(v.Verb) != nil {
+			reason = "a prop takes the name" // the word is the prop's
+		}
 		if reason != "" && v.optional {
 			for _, alias := range v.Aliases {
 				r.dropStandardAlias(n.Name + "." + alias)
@@ -229,6 +247,10 @@ func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 	}
 	if v.Rows {
 		op.Rows = name
+		op.Result = ResultRows
+	}
+	if v.RowsOf != "" {
+		op.Rows = v.RowsOf
 		op.Result = ResultRows
 	}
 	op.AppHandler = v.handler(r, n, v.hardReason(r, n))
