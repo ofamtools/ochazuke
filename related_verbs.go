@@ -209,9 +209,15 @@ func registerRelatedMoves(b *NounBuilder) {
 // (rights, history, undo and Through are the noun's).
 func registerRelatedWrites(b *NounBuilder) {
 	sectionVerb(b, "new", "Create a thing of the section's noun that belongs to the section's thing: the noun's create with the referring prop filled", func(c Ctx, s *relatedSection) error {
+		if s.ref.Relation != "" {
+			return s.newRelated(c)
+		}
 		return s.run(c, Request{Noun: s.ref.Noun, Verb: "create", Args: Arguments{s.ref.Prop: s.value()}}, false)
 	})
 	sectionVerb(b, "associate", "Set the referring prop of existing things of the section's noun to the section's thing: name one with thing, or be asked which", func(c Ctx, s *relatedSection) error {
+		if s.ref.Relation != "" {
+			return s.relateSection(c)
+		}
 		if err := s.readOnly("associate"); err != nil {
 			return err
 		}
@@ -222,6 +228,9 @@ func registerRelatedWrites(b *NounBuilder) {
 		return s.run(c, Request{Noun: s.ref.Noun, Verb: "set", Args: Arguments{"props": map[string]any{s.ref.Prop: s.value()}}}, true)
 	}, map[string]Parameter{"thing": {Type: "string", Named: true, Description: "The thing to associate (its key); asked for when missing"}})
 	sectionVerb(b, "unassociate", "Clear the referring prop of the selected (or marked) things of the section: they become unassociated, never deleted; one undo step", func(c Ctx, s *relatedSection) error {
+		if s.ref.Relation != "" {
+			return s.unrelateSection(c)
+		}
 		if err := s.readOnly("unassociate"); err != nil {
 			return err
 		}

@@ -43,6 +43,10 @@ type ThingChange struct {
 	Before map[string]any `json:"before,omitempty"`
 	After  map[string]any `json:"after,omitempty"`
 	Undone bool           `json:"undone,omitempty"`
+	// Relation, when set, is a change to a stored relation (Before nil: it
+	// was made, After nil: it was removed, both: a row rewritten); the
+	// change has no Before or After props. Undo puts the row back.
+	Relation *RelationChange `json:"relation,omitempty"`
 }
 
 // UndoGuard offers history-entry.undo when a newest change exists, including one
@@ -255,6 +259,9 @@ func (r *Runtime) fileChanges(changes []ThingChange) []ThingChange {
 // never make a write unsimple.
 func (r *Runtime) simpleChanges(changes []ThingChange) bool {
 	for _, c := range changes {
+		if c.Relation != nil {
+			return false
+		}
 		n := r.Nouns[c.Noun]
 		for _, m := range []map[string]any{c.Before, c.After} {
 			for name := range m {
@@ -295,6 +302,12 @@ func (r *Runtime) undoable(i int) error {
 		if c.Undone {
 			continue
 		}
+		if c.Relation != nil {
+			if r.RelationStore() == nil {
+				return errNoRelationStore
+			}
+			continue
+		}
 		n := r.Nouns[c.Noun]
 		if n == nil || n.Store == nil || !n.Store.Undo {
 			return fmt.Errorf("%s does not undo its changes", r.DisplayNoun(c.Noun))
@@ -318,6 +331,9 @@ var errNothingToUndo = errors.New("nothing to undo")
 
 // undoChange runs one change's inverse on its store.
 func (r *Runtime) undoChange(c Ctx, ch ThingChange) error {
+	if ch.Relation != nil {
+		return r.undoRelation(*ch.Relation)
+	}
 	n := r.Nouns[ch.Noun]
 	typed := func(m map[string]any) Thing {
 		out := Thing{}
@@ -586,7 +602,7 @@ func (r *Runtime) undoEntry(a Arguments) (int, error) {
 // must not overwrite subsequent edits (by the owner or another agent).
 func (r *Runtime) undoCurrent(ctx Ctx, changes []ThingChange) error {
 	for _, ch := range changes {
-		if ch.Undone {
+		if ch.Undone || ch.Relation != nil {
 			continue
 		}
 		n := r.Nouns[ch.Noun]

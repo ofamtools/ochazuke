@@ -106,6 +106,7 @@ type Related struct {
 	lastLine int             // the focused line of the last draw in the stack
 	watches  []*Watch
 	dirty    map[string]bool // nouns that changed since the last fill
+	relGen   uint64          // the relation generation the relation sections were filled at
 	read     time.Time       // when the hook sections were last read
 	closed   bool
 }
@@ -303,10 +304,22 @@ func (rel *Related) sync() {
 		rel.noun = noun
 	}
 	if noun != "" {
+		sections := rel.r.Settings().Bool(RelationSectionsSetting)
+		var late []*relatedSection
 		for _, ref := range rel.r.Referrers(noun) {
+			if ref.Relation != "" && !sections {
+				continue
+			}
 			if rel.byID[ref.ID()] == nil {
 				rel.addSection(ref)
+				if added := rel.byID[ref.ID()]; added != nil && rel.synced && ref.Relation != "" {
+					late = append(late, added) // switched on after the first read: read it now
+				}
 			}
+		}
+		rel.dropRelationSections(sections)
+		for _, s := range late {
+			s.fill()
 		}
 	}
 	look := fmt.Sprint(rel.countsShown(), rel.emptyMode())
@@ -318,6 +331,7 @@ func (rel *Related) sync() {
 		rel.look = look
 		rel.fillAll()
 	}
+	rel.syncRelations(keyChanged)
 	if keyChanged {
 		for _, s := range rel.sections {
 			if s.list != nil && s.list.Len() > 0 {
@@ -438,7 +452,7 @@ func (rel *Related) addSection(ref Referrer) {
 		return
 	}
 	stored := n.Store != nil && (n.Store.List != nil || n.Store.Query != nil)
-	if !stored && rel.spec.Rows == nil {
+	if !stored && rel.spec.Rows == nil && ref.Relation == "" {
 		return
 	}
 	s := &relatedSection{rel: rel, ref: ref, id: rel.id + "/" + ref.ID(), n: n, view: n.relatedView}
@@ -470,7 +484,7 @@ func (rel *Related) addSection(ref Referrer) {
 	}
 	rel.sections = append(rel.sections, s)
 	rel.byID[ref.ID()] = s
-	if stored {
+	if stored && ref.Relation == "" {
 		rel.watch(ref.Noun)
 	}
 }
@@ -514,7 +528,7 @@ func (s *relatedSection) headID() string  { return s.list.id + "/@head" }
 func (s *relatedSection) emptyID() string { return s.list.id + "/@empty" }
 
 func (s *relatedSection) hooked() bool {
-	return s.rel.spec.Rows != nil && !(s.n.Store != nil && (s.n.Store.List != nil || s.n.Store.Query != nil))
+	return s.ref.Relation == "" && s.rel.spec.Rows != nil && !(s.n.Store != nil && (s.n.Store.List != nil || s.n.Store.Query != nil))
 }
 
 func (s *relatedSection) collapsed() bool { return s.rel.isCollapsed(s.ref.ID()) }
@@ -540,6 +554,9 @@ func (s *relatedSection) read() ([]Thing, error) {
 	}
 	r := rel.r
 	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	if s.ref.Relation != "" {
+		return s.readRelations(c)
+	}
 	if s.hooked() {
 		return rel.spec.Rows(c, s.ref, s.value())
 	}

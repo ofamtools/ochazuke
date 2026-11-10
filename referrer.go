@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"slices"
 	"sort"
 	"strings"
 	"sync/atomic"
@@ -23,8 +24,17 @@ type Referrer struct {
 	ReadOnly bool   `json:"readOnly,omitempty"`
 	// Any marks a prop that names a thing of any noun (Parameter.Noun
 	// AnyNoun): it is listed for every noun, and holds "noun:key".
-	Any   bool   `json:"any,omitempty"`
-	Label string `json:"label"`
+	Any bool `json:"any,omitempty"`
+	// Relation is the relation kind behind the section (a relation-backed
+	// prop, or a declared kind); Multi says the prop holds several keys.
+	// Outward marks the section of a declared kind that lists the things
+	// the section's thing is related TO (its Noun is the other noun, Prop
+	// the kind's prop word), where a plain referrer lists the things that
+	// point at it.
+	Relation string `json:"relation,omitempty"`
+	Multi    bool   `json:"multi,omitempty"`
+	Outward  bool   `json:"outward,omitempty"`
+	Label    string `json:"label"`
 }
 
 // Value is what the referring prop holds to name the thing key of noun:
@@ -58,18 +68,57 @@ func (r *Runtime) Referrers(noun string) []Referrer {
 	out := []Referrer{}
 	for _, n := range nouns {
 		for _, p := range n.Props {
-			any := p.Noun == AnyNoun
-			if p.Noun == "" || noun != "" && p.Noun != noun && !any || p.Read != nil || p.Subject != "" {
+			ref := p.Noun
+			if p.Relation != "" {
+				ref = p.relationNoun()
+			}
+			any := ref == AnyNoun
+			if ref == "" || noun != "" && ref != noun && !any || p.Read != nil || p.Subject != "" {
 				continue
 			}
 			label := r.choicesPlural(Parameter{Noun: n.Name})
 			if p.Role == "" {
 				label += " (" + p.Name + ")"
 			}
-			out = append(out, Referrer{Noun: n.Name, Prop: p.Name, Role: p.Role, ReadOnly: p.ReadOnly, Any: any, Label: strings.ToUpper(label[:1]) + label[1:]})
+			out = append(out, Referrer{Noun: n.Name, Prop: p.Name, Role: p.Role, ReadOnly: p.ReadOnly, Any: any, Relation: p.Relation, Multi: p.Relation != "" && p.Type == SettingList, Label: strings.ToUpper(label[:1]) + label[1:]})
+		}
+	}
+	return append(out, r.kindReferrers(noun, out)...)
+}
+
+// kindReferrers are the sections the declared relation kinds add for noun:
+// for a kind whose To end can be noun and no relation prop of the From noun
+// already lists it, the From things that point at it; for a kind whose From
+// end can be noun, the To things it points at (Outward). An end that is any
+// noun has no section (its rows would be of mixed nouns). Kinds in
+// declaration order.
+func (r *Runtime) kindReferrers(noun string, have []Referrer) []Referrer {
+	var out []Referrer
+	for _, k := range r.RelationKinds() {
+		prop := k.Prop
+		if prop == "" {
+			prop = k.Name
+		}
+		concrete := func(rule string) bool { return rule != "" && rule != AnyNoun && r.Noun(rule) != nil }
+		if concrete(k.From) && (noun == "" || relationNounFits(k.To, noun)) && !slices.ContainsFunc(have, func(f Referrer) bool { return f.Relation == k.Name && f.Noun == k.From }) {
+			inverse := k.Inverse
+			if inverse == "" {
+				inverse = k.Name + "-of"
+			}
+			out = append(out, Referrer{Noun: k.From, Prop: inverse, Relation: k.Name, Multi: true, Label: titleWord(r.choicesPlural(Parameter{Noun: k.From})) + " (" + k.Name + ")"})
+		}
+		if concrete(k.To) && (noun == "" || relationNounFits(k.From, noun)) {
+			out = append(out, Referrer{Noun: k.To, Prop: prop, Relation: k.Name, Outward: true, Multi: true, Label: titleWord(prop)})
 		}
 	}
 	return out
+}
+
+func titleWord(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
 }
 
 // referrerNoun is the fact noun that lists the referrers.

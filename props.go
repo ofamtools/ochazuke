@@ -142,6 +142,15 @@ type PropSpec struct {
 	// decisions Q1, Q3). Data, never code: a noun says which props write
 	// through. A key or read-only prop cannot (set never writes it).
 	Through bool `json:"through,omitempty"`
+	// Relation, when set, backs the prop with relations of that kind
+	// (relation.go): the thing is the From end, the value is the To ends
+	// (a list prop with Items.Noun: the keys in position order; a string
+	// prop with Noun: the one key). get reads them from the runtime's
+	// RelationStore, set, create and the list forms `PROP+=x` / `PROP-=x`
+	// write them (relate and unrelate, kind rules applied), so the noun's
+	// own store never holds the value. An AnyNoun end holds "noun:key". A
+	// runtime with no store reads an empty value and refuses a write.
+	Relation string `json:"relation,omitempty"`
 	// Cell is how the prop reads in a table cell of a list From the noun's
 	// store, given the whole thing (so a cell may show a name for an id, join
 	// an argv with spaces or shorten a path): derived text, never stored.
@@ -370,6 +379,10 @@ type Store struct {
 	// itself, so create and set do not stamp them; the props stay.
 	Stamps bool
 
+	// raw holds the handlers a relation-backed prop's wrapper replaced
+	// (relation_props.go).
+	raw *storeRaw
+
 	// copy is set on a copy store (CopyStore): the source it copies from
 	// and the local copies; NounBuilder.Store binds it to its noun, and the
 	// noun gets refresh (copy_store.go).
@@ -407,6 +420,8 @@ func propFlagError(key string, p PropSpec) error {
 		return fmt.Errorf("prop %s: %w", key, p.HostNounError())
 	case p.Through && !p.writable():
 		return fmt.Errorf("prop %s: through is for a prop set writes (not a key, read-only or create-only)", key)
+	case p.Relation != "" && (p.relationNoun() == "" || p.Key || p.Read != nil || p.Subject != "" || p.Role != "" || p.Through || p.Type != SettingList && p.Type != SettingString || p.Type == SettingList && p.Items == nil):
+		return fmt.Errorf("prop %s: a relation prop is a list with Items.Noun or a string with Noun, with no key, role, through or Read", key)
 	}
 	return nil
 }
@@ -636,6 +651,7 @@ func (r *Runtime) applyStore(n *Noun) {
 	if err := checkSchema(n); err != nil {
 		panic(err.Error())
 	}
+	r.wrapRelations(n)
 	r.ensureStandardVerbs(n)
 }
 
@@ -725,6 +741,16 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 			return fmt.Errorf("prop %s: a key may not take the name %s, a standard verb's parameter", key, p.Name)
 		}
 		p.ReadOnly = true // a key is the thing's identity: never written by set
+	}
+	if p.Relation != "" {
+		p.NoFilter = true // the value lives in the relation store, not the thing's row
+		if p.Items != nil {
+			items := *p.Items
+			if items.Noun != "" && items.Noun != AnyNoun {
+				items.Noun = r.CanonicalNoun(items.Noun)
+			}
+			p.Items = &items
+		}
 	}
 	p.Enum = slices.Clone(p.Enum)
 	p.Aliases = slices.Clone(p.Aliases)

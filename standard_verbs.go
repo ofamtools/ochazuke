@@ -967,6 +967,10 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 	changes := map[string]any{}
 	var order []string
 	add := func(name string, v any) error {
+		edit, base := listEditOf(n, name)
+		if edit != 0 {
+			name = base
+		}
 		p, err := writeTarget(n, name)
 		if err != nil {
 			return err
@@ -974,6 +978,15 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 		name = p.Name
 		if _, dup := changes[name]; dup {
 			return &ArgumentError{fmt.Errorf("%s is written twice", name)}
+		}
+		if edit != 0 {
+			items, err := listEditItems(v)
+			if err != nil {
+				return &ArgumentError{fmt.Errorf("%s%c= %w", name, edit, err)}
+			}
+			changes[name] = listEdit{remove: edit == '-', items: items}
+			order = append(order, name)
+			return nil
 		}
 		if _, toggles := v.(propToggle); !toggles {
 			typed, err := propValue(*p, v)
@@ -1242,6 +1255,22 @@ func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
 		b, _ := current.(bool)
 		changes[name] = !b
 	}
+	for name, v := range changes {
+		edit, isEdit := v.(listEdit)
+		if !isEdit {
+			continue
+		}
+		if n.Store.Get == nil {
+			return nil, fmt.Errorf("%s cannot change a list by item: its store does not read things", r.DisplayNoun(n.Name))
+		}
+		t, err := n.Store.Get(c, key)
+		if err != nil {
+			return nil, err
+		}
+		current, _ := propValue(*n.prop(name), t[name])
+		list, _ := current.([]string)
+		changes[name] = edit.apply(list)
+	}
 	n.stamp(Thing(changes), RoleUpdated)
 	t, err := n.Store.Patch(c, key, Thing(changes))
 	if err != nil {
@@ -1260,6 +1289,13 @@ func runDelete(r *Runtime, n *Noun, c Ctx) (any, error) {
 	}
 	if err := n.Store.Delete(c, key); err != nil {
 		return nil, err
+	}
+	// The thing's relations keep their rows, the end moving to its former
+	// end (relation_ops.go): nothing is lost, nothing points at a ghost.
+	if moved, err := r.DetachRelations(AnyRef(n.Name, key)); err != nil {
+		c.Notify(fmt.Sprintf("deleted %s, but its relations could not be detached: %v", key, err))
+	} else if moved > 0 {
+		c.Notify(fmt.Sprintf("%d relations of %s kept as unassociated", moved, key))
 	}
 	return map[string]any{"deleted": key}, nil
 }
@@ -1394,4 +1430,68 @@ func (r *Runtime) propsAvailable(q Request, focus string, mode ModeState, within
 		return slices.ContainsFunc(writableProps(n), shown)
 	}
 	return true
+}
+
+// listEdit is a write of one list prop by item, not as a whole: `PROP+=x`
+// adds the items missing from the list, `PROP-=x` removes the ones it has
+// (any list prop, a relation-backed one included). Resolved against the
+// current list in runSet, so the store sees the whole new list.
+type listEdit struct {
+	remove bool
+	items  []string
+}
+
+// apply is list with the items added (those it lacks, at the end) or removed.
+func (e listEdit) apply(list []string) []string {
+	out := slices.Clone(list)
+	for _, it := range e.items {
+		switch {
+		case e.remove:
+			out = slices.DeleteFunc(out, func(o string) bool { return o == it })
+		case !slices.Contains(out, it):
+			out = append(out, it)
+		}
+	}
+	if out == nil {
+		out = []string{}
+	}
+	return out
+}
+
+// listEditOf reads a write's name as an item edit: name ends in + or - and
+// the rest is a list prop of the noun (and the whole name is not a prop).
+// It answers '+', '-' or 0, and the list prop's name.
+func listEditOf(n *Noun, name string) (rune, string) {
+	if name == "" || n.prop(name) != nil {
+		return 0, name
+	}
+	last := rune(name[len(name)-1])
+	if last != '+' && last != '-' {
+		return 0, name
+	}
+	if p := n.prop(name[:len(name)-1]); p != nil && p.Type == SettingList {
+		return last, p.Name
+	}
+	return 0, name
+}
+
+// listEditItems reads the items of a list edit's value: a list, a JSON
+// array word, or one item.
+func listEditItems(v any) ([]string, error) {
+	switch x := v.(type) {
+	case []string:
+		return x, nil
+	case string:
+		if t := strings.TrimSpace(x); strings.HasPrefix(t, "[") {
+			if items, err := coerceList(t); err == nil {
+				return items.([]string), nil
+			}
+		}
+		return []string{x}, nil
+	}
+	items, err := coerceList(v)
+	if err != nil {
+		return nil, err
+	}
+	return items.([]string), nil
 }

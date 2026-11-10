@@ -241,6 +241,7 @@ func registerFactNouns(r *Runtime) {
 	registerModeFacts(r)
 	registerAssociations(r)
 	registerReferrers(r)
+	registerRelationKinds(r)
 	registerActionFacts(r)
 	registerStateFacts(r)
 	registerJobFacts(r)

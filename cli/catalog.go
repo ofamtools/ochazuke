@@ -86,9 +86,13 @@ type CatalogDoc struct {
 	// application noun or mounted CLI command shadows left out. Every name is
 	// canonical; a host resolving a name the extension's user typed reads
 	// CanonicalNoun.
-	Aliases  map[string]string  `json:"aliases,omitempty"`
-	Nouns    []CatalogNoun      `json:"nouns"`
-	Bindings []ochazuke.Binding `json:"bindings"`
+	Aliases map[string]string `json:"aliases,omitempty"`
+	// RelationKinds are the relation kinds the program declared
+	// (ochazuke.Runtime.DeclareRelationKind): their rules and the words
+	// each end reads them by. Kinds are data; a kind not listed has no rules.
+	RelationKinds []ochazuke.RelationKind `json:"relationKinds,omitempty"`
+	Nouns         []CatalogNoun           `json:"nouns"`
+	Bindings      []ochazuke.Binding      `json:"bindings"`
 	// PeerBindings are host-only declarations, never loaded by the producer.
 	PeerBindings []ochazuke.Binding `json:"peerBindings,omitempty"`
 	Pages        []CatalogPage      `json:"pages"`
@@ -453,6 +457,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		noun.Verbs = append(noun.Verbs, verb)
 	}
 	doc.Pickers = r.CatalogPickerDefs()
+	doc.RelationKinds = r.RelationKinds()
 	for _, s := range r.Segments() {
 		if s.Verb == "" {
 			continue // a provider or a command runs only in its own process

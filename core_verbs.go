@@ -225,7 +225,7 @@ func coreVerbs() []standardVerb {
 // set's alias patch were purged in R1: removed_verbs.json says what
 // replaces each.)
 func legacyVerbs() []standardVerb {
-	return append(pathVerbs(), []standardVerb{
+	return append(append(pathVerbs(), relationVerbs()...), []standardVerb{
 		{Verb: "watch", Description: "Stream what happens to the things (one, or those where matches): a JSON line per thing added, modified or deleted, from since when given; the CLI streams until interrupted",
 			Kinds: []string{KindCollection, Singleton, Instances}, Needs: []storeNeed{needWatch},
 			TakesSubject: true, NoFocus: true, HistoryKind: HistoryFetch, ParamNames: []string{"where", "since"},
