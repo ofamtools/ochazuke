@@ -221,6 +221,8 @@ func (m *Model) Init() tea.Cmd {
 	m.Runtime.EnsureNounPlaces()
 	// The About page is always registered (hidden from the tabs).
 	_ = m.Runtime.EnsureAboutPage()
+	// The Nouns page after it: the last tab (nouns.page).
+	_ = m.Runtime.EnsureNounsPage()
 	if err := m.Runtime.OpenVisibleStart(); err != nil {
 		m.Runtime.UI().Error(err.Error())
 	}

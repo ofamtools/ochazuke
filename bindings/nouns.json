@@ -1,0 +1,8 @@
+// ochazuke bindings (JSONC): the Nouns page (noun_browser.go). No key opens the page: it is the last tab (nouns.page), and ochazuke.noun-browser.open runs from the palette and the CLI.
+{
+  "bindings": [
+    {"context": "ochazuke.noun-browser/normal", "bindings": [
+      {"key": "r", "action": "ochazuke.noun-browser.refresh"}
+    ]}
+  ]
+}

@@ -33,16 +33,20 @@ var NounKindList = []string{NounKindRecord, NounKindSingleton, NounKindFacts, No
 // nounKindRow is what the runtime knows of one noun kind: whether its
 // nouns have a store, and whether a noun may declare it (NounBuilder.Kind)
 // where its store cannot say.
-type nounKindRow struct{ stored, declared bool }
+// group is the heading of the kind's group on the Nouns page.
+type nounKindRow struct {
+	stored, declared bool
+	group            string
+}
 
 // nounKindTable is the noun kinds' rows, by kind.
 var nounKindTable = map[string]nounKindRow{
-	NounKindRecord:    {stored: true},
-	NounKindSingleton: {stored: true},
-	NounKindFacts:     {stored: true, declared: true},
-	NounKindInstances: {stored: true},
-	NounKindCommand:   {declared: true},
-	NounKindPart:      {declared: true},
+	NounKindRecord:    {stored: true, group: "records"},
+	NounKindSingleton: {stored: true, group: "singletons"},
+	NounKindFacts:     {stored: true, declared: true, group: "facts"},
+	NounKindInstances: {stored: true, group: "instances"},
+	NounKindCommand:   {declared: true, group: "commands"},
+	NounKindPart:      {declared: true, group: "parts"},
 }
 
 // DeclaredKind reports whether a noun may declare the kind

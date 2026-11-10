@@ -98,6 +98,9 @@ type Page struct {
 	// out of the tabs until page.show; a hidden page opened first is left
 	// for the first page in the tabs, as Model.Init does.
 	DefaultHidden bool `json:"defaultHidden,omitempty"`
+	// NounsPage registers the Nouns page (ochazuke.EnsureNounsPage) after
+	// the story's pages and the About page, as Model.Init does.
+	NounsPage bool `json:"nounsPage,omitempty"`
 	// Texts are fixed lines (a settings line, a caption), drawn in the
 	// page's order by id, or after the inputs when Order leaves them out.
 	Texts []TextSpec `json:"texts,omitempty"`
@@ -536,6 +539,21 @@ type StoreSpec struct {
 	// put, so a relation-backed prop (PropSpec.Relation) of the noun reads
 	// and writes them.
 	Relations *RelationsSpec `json:"relations,omitempty"`
+	// Generate adds Count things made from Thing, each string value's
+	// {{n}} the thing's number from 1 (a story about a big store).
+	Generate *GenerateSpec `json:"generate,omitempty"`
+	// Paged gives the store a Query (ochazuke.Store.Query over its things
+	// in memory): each call logs "query page=P per=N" to the writes, so a
+	// story shows a page read instead of a full "list".
+	Paged bool `json:"paged,omitempty"`
+	// Token gives the store a ChangeToken that moves on every write.
+	Token bool `json:"token,omitempty"`
+}
+
+// GenerateSpec makes many things of one shape.
+type GenerateSpec struct {
+	Count int            `json:"count"`
+	Thing ochazuke.Thing `json:"thing"`
 }
 
 // RelationsSpec is a story's relation store: the declared kinds and the

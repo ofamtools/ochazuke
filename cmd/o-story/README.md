@@ -142,7 +142,11 @@ it to the timer's deadline and delivers the timer's message
                                      // then standard verbs (set and edit address the label, owner
                                      // and archive props by role: @label, @owner, @archive); each call
                                      // logs "list", "get KEY", "set KEY p=v", "create KEY p=v" or
-                                     // "delete KEY" (writes); rows stand for things by id
+                                     // "delete KEY" (writes); rows stand for things by id;
+                                     // noun: "chore" puts it on another noun; generate: { count: 20000,
+                                     // thing: { id: "c{{n}}" } } adds many things; paged: true gives it a
+                                     // Query (each call logs "query page=P per=N"); token: true a
+                                     // ChangeToken that moves on every write
     detail: { lines: 50, width: 0 }, // a scrollable detail (AddDetail) on the right:
                                      // "detail 1–11 / 50", then "<row> line N" about the
                                      // focused list row (width 0 = half the page)
@@ -189,6 +193,7 @@ it to the timer's deadline and delivers the timer's message
                                      // a pick writes "pick ID"; demo.choose opens the chooser again
     },                               // enter picks and closes
     defaultHidden: true,             // the page is hidden by default (pages.hidden); a hidden first page gives way to the first in the tabs
+    nounsPage: true,                 // register the Nouns page (EnsureNounsPage) after the pages and About, as Model.Init does
   },
   script: ["j", "j", { type: "ping" }, { paste: "text" },
            { job: "demo.build", state: "done" },
@@ -517,6 +522,7 @@ Conformance:
 | normal | mode | `mode.enter` `mode.leave` `mode.switch` |
 | normal | notice | `notice.clear` |
 | normal | noun | `noun.edit` |
+| normal | noun-browser | `noun-browser.refresh` |
 | normal | opener | `opener.show` |
 | normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
 | normal | page | `page.next` `page.pick` `page.previous` |

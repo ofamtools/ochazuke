@@ -274,6 +274,8 @@ ochazuke.notice.get motion=false focusBound=false typing=false kind=fetch repeat
 ochazuke.notice.list motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.notice.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.notice.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.noun-browser.open motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.noun-browser.refresh motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.noun.archive motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.noun.cancel-edit motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.noun.create motion=false focusBound=false typing=false kind=change repeatable=false staying=false

@@ -40,6 +40,15 @@ type Page struct {
 	// the setting, once the user sets it, decides. Set it before
 	// RegisterPage, or pass the DefaultHidden option.
 	DefaultHidden bool `json:"defaultHidden,omitempty"`
+	// TabSetting, when set, names the setting that puts the page in the
+	// tabs: a boolean setting that is on, or a list setting holding the
+	// page's id (pages.pinned). While it does not, the page is out of the
+	// tabs and ctrl+j/k even while it is current, so opening and leaving
+	// it never changes the tab row; page.open, the page picker, the
+	// palette and the verbs that open it still do. pages.hidden hides it
+	// either way. The Nouns page names nouns.page; a noun's generated
+	// index page names pages.pinned (PagesPinnedSetting).
+	TabSetting string `json:"tabSetting,omitempty"`
 	// ActionNouns are the canonical nouns whose actions this page represents.
 	// They affect palette ordering only, never availability or execution.
 	ActionNouns []string `json:"-"`

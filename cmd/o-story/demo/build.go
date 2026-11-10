@@ -155,6 +155,12 @@ func (ss *session) open1(open string) error {
 		return err
 	}
 	_ = r.EnsureAboutPage() // as Model.Init does, after the pages
+	for _, p := range ss.all {
+		if p.NounsPage {
+			_ = r.EnsureNounsPage() // as Model.Init does, last
+			break
+		}
+	}
 	if err := r.OpenVisibleStart(); err != nil {
 		return err
 	}
@@ -623,6 +629,19 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 		}
 	}
 	things := slices.Clone(spec.Things)
+	if g := spec.Generate; g != nil {
+		for i := 1; i <= g.Count; i++ {
+			t := ochazuke.Thing{}
+			for k, v := range g.Thing {
+				if s, ok := v.(string); ok {
+					v = strings.ReplaceAll(s, "{{n}}", fmt.Sprintf("%05d", i))
+				}
+				t[k] = v
+			}
+			things = append(things, t)
+		}
+	}
+	version := 0
 	ss.storeNoun = d.Noun().Name
 	ss.storeThing = func(id string) ochazuke.Thing {
 		for _, t := range things {
@@ -681,6 +700,7 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 						}
 					}
 					ss.Writes = append(ss.Writes, "set "+id+storeValues(spec.Props, changes))
+					version++
 					return t, nil
 				}
 			}
@@ -695,6 +715,16 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 			ss.Writes = append(ss.Writes, "delete "+id)
 			return nil
 		},
+	}
+	noun := d.Noun().Name
+	if spec.Paged {
+		st.Query = func(_ ochazuke.Ctx, q ochazuke.ListQuery) (ochazuke.ListPage, error) {
+			ss.Writes = append(ss.Writes, fmt.Sprintf("query page=%d per=%d", q.Page, q.PerPage))
+			return ss.R.QueryAll(noun, things, q), nil
+		}
+	}
+	if spec.Token {
+		st.ChangeToken = func(ochazuke.Ctx) (string, error) { return fmt.Sprint(version), nil }
 	}
 	if spec.Copy == nil {
 		d.Props(spec.Props...).Store(st)

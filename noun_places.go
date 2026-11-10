@@ -480,7 +480,7 @@ func (w *placementWriter) failure() error {
 func registerPlacements(r *Runtime) {
 	registerActionThings(r)
 	r.defineFacts(factsSpec{Noun: "ochazuke.noun", Sample: nounFact{}, Key: "noun", Label: "noun",
-		Docs:       map[string]string{"noun": "The noun's name", "verbs": "Its verbs", "seen": "How many places it was seen in (nouns places lists them)"},
+		Docs:       map[string]string{"noun": "The noun's name", "verbs": "Its verbs", "seen": "How many places it was seen in (nouns places lists them)", "kind": "What kind of noun it is: record, singleton, facts, instances, command or part", "store": "What its store can do: local or remote, pages (it answers one page of a list), token (a change token)", "count": "How many things it has, as the Nouns page last read them (none until read)", "archived": "How many of them are archived, as the Nouns page last read them"},
 		ListParams: map[string]Parameter{"action": {Type: "string", Description: "Only the nouns that have this action (ochazuke.action list {noun} is the other side)"}},
 		List: func(c Ctx, q ListQuery) ([]Thing, error) {
 			r := c.Runtime
@@ -490,11 +490,14 @@ func registerPlacements(r *Runtime) {
 				places[one.Noun]++
 			}
 			var rows []nounFact
+			kinds := r.AllNounKinds()
 			for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
 				if only != nil && !only[name] {
 					continue
 				}
-				rows = append(rows, nounFact{Noun: name, Verbs: r.Operations.ActionNames(r.Nouns[name]), Places: places[name]})
+				fact := r.nounFactOf(r.Nouns[name], kinds[name])
+				fact.Places = places[name]
+				rows = append(rows, fact)
 			}
 			return factThings(rows, nil)
 		}})
@@ -514,4 +517,11 @@ type nounFact struct {
 	Noun   string   `json:"noun"`
 	Verbs  []string `json:"verbs"`
 	Places int      `json:"seen"`
+	// Kind is the noun's kind (Runtime.NounKind), Store what its store can
+	// do (local or remote, pages, token), Count and Archived its count and
+	// archived count as the Nouns page last read them (nil: not read).
+	Kind     string `json:"kind"`
+	Store    string `json:"store,omitempty"`
+	Count    *int   `json:"count,omitempty"`
+	Archived *int   `json:"archived,omitempty"`
 }

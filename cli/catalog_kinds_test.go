@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"ofam.dev/ochazuke"
@@ -122,5 +123,42 @@ func TestOldCatalogReadsTheSameKinds(t *testing.T) {
 				t.Errorf("mounted %s: %q, want %q", noun, host.NounKind(noun), kind)
 			}
 		}
+	}
+}
+
+// A mounted extension's nouns are on the host's Nouns page from its
+// catalog alone: records with a remote store, command nouns with their
+// actions, parts left out.
+func TestMountedNounsOnTheNounsPage(t *testing.T) {
+	doc := catalogOf(t, kindsRuntime())
+	host := ochazuke.NewRuntime()
+	host.Config().Disable()
+	got := MountNouns(host, doc.AppNouns(), HostMount{
+		Local: Namespace("tool"),
+		Proxy: func(string, CatalogVerb) any { return func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) } },
+	})
+	if len(got.Warnings) > 0 {
+		t.Fatal(got.Warnings)
+	}
+	if _, err := host.AddPage("home", "Home", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	m := ochazuke.NewModel(host)
+	m.Init()
+	if err := host.OpenPage(ochazuke.NounsPageID); err != nil {
+		t.Fatal(err)
+	}
+	rows := map[string]ochazuke.ListItem{}
+	for _, it := range host.List(ochazuke.NounsListID).Items() {
+		rows[it.Label] = it
+	}
+	if r, ok := rows["tool.parcel"]; !ok || r.Section != "records" || !strings.HasPrefix(r.Cells[3], "remote") {
+		t.Fatalf("tool.parcel row %+v", r)
+	}
+	if r, ok := rows["tool.setup"]; !ok || r.Section != "commands" || r.Cells[4] != "run" {
+		t.Fatalf("tool.setup row %+v", r)
+	}
+	if _, ok := rows["tool.turn-line"]; ok {
+		t.Fatal("a mounted part is left out")
 	}
 }

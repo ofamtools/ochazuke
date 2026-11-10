@@ -373,7 +373,7 @@ import	action	seed
 in	action	seed	
 increase	action	seed	
 indent	action	seed	
-index	prop	seed	
+index	noun+prop	seed	
 info	prop	seed	
 init	action	seed	
 input	noun	seed	
@@ -508,6 +508,7 @@ notify	prop	seed
 notify-due	action	seed	
 notify-status	prop	seed	
 noun	action+noun+prop	seed	
+noun-browser	noun	seed	
 nouns	noun+prop	seed	
 observed_at	prop	seed	
 ochazuke	namespace	seed	

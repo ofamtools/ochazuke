@@ -718,6 +718,7 @@ func (r *Runtime) registerFramework() {
 	registerHistory(r)
 	registerInspector(r)
 	registerPlacements(r)
+	registerNounBrowser(r)
 	registerSegments(r)
 	registerDocs(r)
 	registerTextView(r)

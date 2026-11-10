@@ -458,6 +458,18 @@ func (r *Runtime) queryAll(n *Noun, things []Thing, q ListQuery) ListPage {
 	return page
 }
 
+// QueryAll runs a whole list request over things a store holds in memory
+// (filters, the archive hiding, sort, groups and paging), as the standard
+// list does over a store without Query: a store that holds its things in
+// memory answers Store.Query with it.
+func (r *Runtime) QueryAll(noun string, things []Thing, q ListQuery) ListPage {
+	n := r.Nouns[r.CanonicalNoun(noun)]
+	if n == nil {
+		return ListPage{Items: things, Total: len(things)}
+	}
+	return r.queryAll(n, things, q)
+}
+
 // queryThings answers a list request for a noun: its store's own Query when
 // it has one, else Store.List filtered, sorted, grouped and paged by
 // queryAll. The query given the store's List holds the conditions and

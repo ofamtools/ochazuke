@@ -74,22 +74,45 @@ func (r *Runtime) HiddenPages() []string {
 // PageHidden reports whether pages.hidden holds the page id.
 func (r *Runtime) PageHidden(id string) bool { return slices.Contains(r.HiddenPages(), id) }
 
+// PagesPinnedSetting lists the ids of opt-in pages (a page whose
+// TabSetting names it: a noun's generated index page, nouns/task) that
+// the user put in the tabs. Default empty: no generated page is a tab.
+const PagesPinnedSetting = "pages.pinned"
+
 // TabPages are the pages the tab row draws and page.next/previous cycle,
-// in registration order: every page not hidden, and the current page even
-// when it is (it leaves the tabs once another page opens).
+// in registration order: every page not hidden whose TabSetting (if any)
+// puts it in the tabs, and the current page even when it is hidden (it
+// leaves the tabs once another page opens). A page out of its TabSetting
+// stays out while current.
 func (r *Runtime) TabPages() []*Page {
 	hidden := r.HiddenPages()
-	pages := r.PageList()
-	if len(hidden) == 0 {
-		return pages
-	}
-	return slices.DeleteFunc(pages, func(p *Page) bool { return p.ID != r.Page && slices.Contains(hidden, p.ID) })
+	return slices.DeleteFunc(r.PageList(), func(p *Page) bool {
+		return !r.tabSettingHolds(p) || p.ID != r.Page && slices.Contains(hidden, p.ID)
+	})
 }
 
-// visiblePages are the pages not hidden, in registration order.
+// visiblePages are the pages in the tabs whatever page is current: not
+// hidden and put there by their TabSetting, in registration order.
 func (r *Runtime) visiblePages() []*Page {
 	hidden := r.HiddenPages()
-	return slices.DeleteFunc(r.PageList(), func(p *Page) bool { return slices.Contains(hidden, p.ID) })
+	return slices.DeleteFunc(r.PageList(), func(p *Page) bool { return !r.tabSettingHolds(p) || slices.Contains(hidden, p.ID) })
+}
+
+// tabSettingHolds reports whether the page's TabSetting puts it in the
+// tabs: no TabSetting, a boolean one on, or a list one holding its id. An
+// undeclared setting or one of another type keeps it out.
+func (r *Runtime) tabSettingHolds(p *Page) bool {
+	if p.TabSetting == "" {
+		return true
+	}
+	v, _ := r.Settings().Value(p.TabSetting)
+	switch v := v.(type) {
+	case bool:
+		return v
+	case []string:
+		return slices.Contains(v, p.ID)
+	}
+	return false
 }
 
 // HidePage adds a page to pages.hidden. It refuses an unknown page and the
