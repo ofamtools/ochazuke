@@ -103,8 +103,8 @@ func TestOldCatalogReadsTheSameKinds(t *testing.T) {
 		old.Nouns[i] = n
 	}
 	for i, n := range old.Nouns {
-		if n.Name == "daemon-row" {
-			continue // a declared kind is new data an older catalog cannot hold
+		if rn := r.Noun(n.Name); rn != nil && rn.Kind != "" {
+			continue // a declared kind (daemon-row, the framework's parts) is new data an older catalog cannot hold
 		}
 		if got, want := n.KindOf(), doc.Nouns[i].NounKind; got != want {
 			t.Errorf("%s: an old catalog reads %q, the new one says %q", n.Name, got, want)
