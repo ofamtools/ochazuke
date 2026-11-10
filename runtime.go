@@ -657,6 +657,7 @@ func (r *Runtime) registerFramework() {
 	registerAgentRights(r)
 	registerSettingsEditor(r)
 	registerAbout(r)
+	registerOpen(r)
 	registerConfigExport(r)
 	registerConfigReload(r)
 	registerHooks(r)

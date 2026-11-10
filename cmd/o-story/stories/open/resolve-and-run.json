@@ -1,0 +1,17 @@
+{
+  "name": "open modal: any text is taken (a link, a path, several lines), the line under it says what open would do before enter, and enter hands it to the OS opener (a fake here)",
+  "area": "open",
+  "width": 90,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "bind": [{"noun": "demo", "keys": "O", "do": "ochazuke.open.show"}]
+  },
+  "script": ["O", {"paste": "https://example.com/a.png"}, "enter", "O", {"paste": "one\ntwo words"}],
+  "expect": [
+    {"after": 1, "contains": ["Open", "a link, a path, a file, noun:id"]},
+    {"after": 2, "contains": ["https://example.com/a.png", "→ open https://example.com/a.png"]},
+    {"after": 3, "modal": "", "writes": ["start open -- https://example.com/a.png"]},
+    {"after": 5, "contains": ["one", "two words", "→ open"]}
+  ]
+}
