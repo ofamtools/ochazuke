@@ -736,6 +736,11 @@ func (ss *session) defineVerb(d *ochazuke.NounBuilder, v VerbSpec) error {
 	d = ss.R.Define(noun)
 	key, rows := v.Verb, slices.Clone(v.Rows)
 	d.Verb(verb, func(c ochazuke.Ctx) ochazuke.Result {
+		for _, need := range v.Needs {
+			if got, ok := c.Args[need]; !ok || got == nil || got == "" {
+				return ochazuke.Failed(c.Need(need, v.NeedReason))
+			}
+		}
 		entry := key
 		for _, name := range slices.Sorted(maps.Keys(c.Args)) {
 			entry += fmt.Sprintf(" %s=%v", name, c.Args[name])

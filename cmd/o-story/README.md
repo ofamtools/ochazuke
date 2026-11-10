@@ -474,11 +474,12 @@ Conformance:
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | mode | `mode.list` `mode.switch` |
 | insert | outline | `outline.leave` `outline.next` `outline.row-key` |
-| insert | palette | `palette.complete` `palette.move` `palette.run` |
+| insert | palette | `palette.back` `palette.cancel` `palette.complete` `palette.move` `palette.run` `palette.step` |
 | insert | picker | `picker.clear-props` `picker.into` `picker.move` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.up` |
 | insert | search | `search.cycle-match` |
 | insert | setting | `setting.complete` `setting.open` |
 | insert | setting-value | `setting-value.accept` |
+| insert | swatch | `swatch.names` |
 | jq | collection | `collection.move` |
 | jq | completion | `completion.dismiss` |
 | jq | input | `input.insert` |
@@ -525,6 +526,8 @@ Conformance:
 | normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
 | normal | picker | `picker.move` `picker.open` `picker.pick` |
 | normal | project | `project.get` |
+| normal | quad | `quad.warp` |
+| normal | quill | `quill.wipe` |
 | normal | related-section | `related-section.close-all` `related-section.new` `related-section.next` `related-section.open` `related-section.open-all` `related-section.toggle` `related-section.unassociate` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
@@ -610,6 +613,9 @@ Mode edges (from → to via):
 - `insert` → `normal` via `find-line.accept`
 - `insert` → `normal` via `form.leave`
 - `insert` → `normal` via `form.run`
+- `insert` → `normal` via `input.insert + input.insert + input.insert + quill.wipe`
+- `insert` → `normal` via `input.insert + input.insert + quad.warp`
+- `insert` → `normal` via `input.insert + swatch.names`
 - `insert` → `normal` via `job picker.load`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`
@@ -618,6 +624,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `mode.switch + item.set + item.get`
 - `insert` → `normal` via `mode.switch + parcel.set + parcel.get`
 - `insert` → `normal` via `outline.leave`
+- `insert` → `normal` via `palette.cancel`
 - `insert` → `normal` via `palette.run`
 - `insert` → `normal` via `palette.run + parcel.get`
 - `insert` → `normal` via `picker.normal`
@@ -687,6 +694,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `picker.open`
 - `normal` → `insert` via `picker.pick`
 - `normal` → `insert` via `row R`
+- `normal` → `insert` via `row T`
 - `normal` → `insert` via `row W`
 - `normal` → `insert` via `row e`
 - `normal` → `insert` via `search.find`

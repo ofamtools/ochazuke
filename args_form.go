@@ -131,6 +131,12 @@ func askedTargets(fields []RecordField, asked []string) []RecordField {
 // no form opens: the path chooser does (the editor returned is nil), and
 // its pick runs the request.
 func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEditor, error) {
+	return r.openArgsForm(q, run, nil)
+}
+
+// openArgsForm is OpenArgsForm asking, first and required, for the
+// parameters in needs as well (what a verb said it lacks, askNeed).
+func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []string) (*RecordEditor, error) {
 	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
@@ -151,6 +157,7 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 	if r.Settings().Bool(PaletteReachSetting) {
 		fields = askedTargets(fields, r.missingTargets(op, q.Args, r.requestFocus(q)))
 	}
+	fields = askedTargets(fields, needs)
 	if len(fields) == 0 {
 		return nil, fmt.Errorf("%s takes no arguments a form can hold", q.Key())
 	}
@@ -160,7 +167,12 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 			values[f.Name] = fmt.Sprint(v)
 		}
 	}
-	missing := missingRequired(op, q.Args)
+	missing := slices.Clone(needs)
+	for _, name := range missingRequired(op, q.Args) {
+		if !slices.Contains(missing, name) {
+			missing = append(missing, name)
+		}
+	}
 	for _, name := range r.missingTargets(op, q.Args, r.requestFocus(q)) {
 		if r.Settings().Bool(PaletteReachSetting) && !slices.Contains(missing, name) {
 			missing = append(missing, name)

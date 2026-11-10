@@ -222,7 +222,7 @@ func (r *Runtime) subjectKey(n *Noun, c Ctx) (string, error) {
 	}
 	row := r.subjectRow(n, c)
 	if row == nil {
-		return "", &ArgumentError{fmt.Errorf("%s is required: no %s is focused", key.Name, r.DisplayNoun(n.Name))}
+		return "", &ArgumentError{&MissingParameterError{Param: key.Name, Reason: "no " + r.DisplayNoun(n.Name) + " is focused"}}
 	}
 	return r.rowKey(n, row)
 }

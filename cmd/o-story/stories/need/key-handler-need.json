@@ -1,0 +1,23 @@
+{
+  "name": "a key whose handler finds late it lacks a value asks for it in the args form, then runs again with it",
+  "area": "need",
+  "height": 30,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [
+      {
+        "verb": "demo.stamp",
+        "description": "Stamp the row",
+        "needs": ["colour"],
+        "needReason": "stamping needs a colour",
+        "parameters": {"colour": {"type": "string", "description": "The ink"}}
+      }
+    ],
+    "bind": [{"noun": "app", "keys": "T", "do": "demo.stamp"}]
+  },
+  "script": ["T", {"type": "red"}, "enter"],
+  "expect": [
+    {"after": 1, "modal": "args-form", "focus": "args-form/colour", "contains": ["stamping needs a colour", "colour"], "lacks": ["(optional)"]},
+    {"modal": "", "writes": ["demo.stamp colour=red"]}
+  ]
+}
