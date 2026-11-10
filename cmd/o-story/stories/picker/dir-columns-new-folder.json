@@ -1,0 +1,75 @@
+{
+  "name": "directory picker, style columns: a new folder is named, made and entered",
+  "area": "picker",
+  "width": 110,
+  "height": 22,
+  "files": [
+    "a.json",
+    "b.txt",
+    ".hidden",
+    "sub/c.json",
+    "sub/deep/",
+    "proj/matomeru/cmd/",
+    "proj/ochazuke/",
+    "empty/"
+  ],
+  "values": {
+    "pickers.directory.style": "columns"
+  },
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "records": [
+      {
+        "id": "doc",
+        "fields": [
+          {
+            "name": "file",
+            "type": "path",
+            "base": "{{files}}",
+            "path": "dir"
+          }
+        ]
+      }
+    ],
+    "focus": "doc/file"
+  },
+  "script": [
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "n",
+    {
+      "type": "fresh"
+    },
+    "enter",
+    {
+      "job": "picker.pick"
+    },
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    }
+  ],
+  "expect": [
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "Choose file",
+        "use ",
+        "fresh/"
+      ],
+      "lacks": []
+    }
+  ]
+}

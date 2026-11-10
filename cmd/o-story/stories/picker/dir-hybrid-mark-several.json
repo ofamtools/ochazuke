@@ -1,0 +1,68 @@
+{
+  "name": "directory picker, style hybrid: adding to a list marks several folders and enter takes them all",
+  "area": "picker",
+  "width": 110,
+  "height": 22,
+  "files": [
+    "a/",
+    "b/",
+    "c/"
+  ],
+  "values": {
+    "pickers.directory.style": "hybrid"
+  },
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "records": [
+      {
+        "id": "doc",
+        "fields": [
+          {
+            "name": "dirs",
+            "type": "list",
+            "items": {
+              "type": "path",
+              "path": "dir",
+              "base": "{{files}}"
+            }
+          }
+        ]
+      }
+    ],
+    "focus": "doc/dirs"
+  },
+  "script": [
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    "m",
+    "down",
+    "m",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 5,
+      "modal": "path-chooser",
+      "contains": [
+        "\u25c9"
+      ]
+    },
+    {
+      "modal": "",
+      "contains": [
+        "/a",
+        "/b"
+      ],
+      "lacks": [
+        "/c"
+      ]
+    }
+  ]
+}
