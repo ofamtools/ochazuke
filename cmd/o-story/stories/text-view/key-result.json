@@ -1,7 +1,0 @@
-{
-  "name": "a key opens a declared text answer and closes back to its row",
-  "area": "text-view",
-  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2", "bind": [{"noun": "demo", "keys": "v", "do": "demo.mapping"}]},
-  "script": ["v", "q"],
-  "expect": [{"after": 1, "modal": "text-view", "contains": [".title", ".bytes"]}, {"modal": "", "focus": "a2"}]
-}

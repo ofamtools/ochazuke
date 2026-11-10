@@ -30,26 +30,15 @@ type Page struct {
 	Inputs  []InputSpec  `json:"inputs,omitempty"`
 	Term    *TermSpec    `json:"terminal,omitempty"`
 	Jobs    []JobSpec    `json:"jobs,omitempty"`
-	// Segments are status segments in the header rule, each answering
-	// its Texts in turn, one per refresh (tick segment).
-	Segments []SegmentSpec `json:"segments,omitempty"`
 	// About fixes what the About page reads (ochazuke.SetAboutEnv: the
 	// build, the binary, the pid, the clock; no opener runs) and adds
 	// the application's sections (AddAboutSection).
 	About *AboutSpec `json:"about,omitempty"`
 	Bind  []BindSpec `json:"bind,omitempty"`
-	// Pending are pending modes the story defines (DefineMode with
-	// pending), before its bind rows, which may enter them (do
-	// "ochazuke.mode.enter", args {"mode": NAME}) or be bound in them.
-	Pending []string `json:"pending,omitempty"`
 	// Modes are modes the story defines, by name, as an application's
 	// bindings file declares them (ochazuke.ModeSpec: pending, extends),
 	// before its bind rows and its lists' and inputs' pins.
 	Modes map[string]ochazuke.ModeSpec `json:"modes,omitempty"`
-	// ModeTones are badge hues the story's application declares by mode
-	// (Appearance.SetModeTone: the tone row mode.<name>), under any
-	// themes.json theme the story gives.
-	ModeTones map[string]ochazuke.SchemeColor `json:"modeTones,omitempty"`
 	// Verbs are demo verbs with declared parameters, for palette stories.
 	Verbs []VerbSpec `json:"verbs,omitempty"`
 	// Nouns are nouns besides demo, as a host defines an extension's
@@ -57,10 +46,7 @@ type Page struct {
 	// NOUN.VERB and its arguments to writes, and each alias
 	// (ochazuke.NounAlias: since/removeAfter for a deprecated one) is
 	// registered with Runtime.AddNounAlias.
-	Nouns        []NounSpec             `json:"nouns,omitempty"`
-	PeerBindings []ochazuke.PeerBinding `json:"peerBindings,omitempty"`
-	// LateNouns are installed by demo.load-peers, then the soft layer reloads.
-	LateNouns []NounSpec `json:"lateNouns,omitempty"`
+	Nouns []NounSpec `json:"nouns,omitempty"`
 	// Store gives the demo noun props and an in-memory store
 	// (ochazuke.NounBuilder.Props and Store): demo.get, list, create, set
 	// (alias patch) and delete are then standard verbs over Things (the
@@ -461,17 +447,6 @@ type JobSpec struct {
 	Label       string `json:"label,omitempty"` // the job's Result.Label
 }
 
-// SegmentSpec is a status segment whose provider answers Texts in turn,
-// the last one again once they run out; Tone is the row's tone, Enabled
-// its setting's default (nil: on).
-type SegmentSpec struct {
-	ID      string   `json:"id"`
-	Label   string   `json:"label,omitempty"`
-	Texts   []string `json:"texts"`
-	Tone    string   `json:"tone,omitempty"`
-	Order   int      `json:"order,omitempty"`
-	Enabled *bool    `json:"enabled,omitempty"`
-}
 
 // AboutSpec is a fixed build and process for the About page: the main
 // module, its vcs stamps, its dependencies (replace: a local directory;

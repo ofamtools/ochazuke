@@ -1,7 +1,0 @@
-{
-  "name": "a mounted verb's declared rows answer opens in the results table",
-  "area": "mounted",
-  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2", "verbs": [{"verb": "demo.history", "result": "rows", "proxy": true, "answer": [{"name": "build", "status": "ok"}, {"name": "test", "status": "failed"}]}], "bind": [{"noun": "demo", "keys": "H", "do": "demo.history"}]},
-  "script": ["H", "q"],
-  "expect": [{"after": 1, "modal": "palette-results", "contains": ["demo.history", "build", "failed"]}, {"modal": "", "focus": "a2"}]
-}

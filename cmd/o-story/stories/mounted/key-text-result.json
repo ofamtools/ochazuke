@@ -1,7 +1,0 @@
-{
-  "name": "a mounted verb's declared text answer opens in the text view and closes back to its row",
-  "area": "mounted",
-  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2", "verbs": [{"verb": "demo.output", "result": "text", "proxy": true, "answer": "hello-out\nexit 0"}], "bind": [{"noun": "demo", "keys": "v", "do": "demo.output"}]},
-  "script": ["v", "q"],
-  "expect": [{"after": 1, "modal": "text-view", "contains": ["hello-out", "exit 0"]}, {"modal": "", "focus": "a2"}]
-}

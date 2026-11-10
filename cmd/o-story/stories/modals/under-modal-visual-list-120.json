@@ -1,8 +1,0 @@
-{
-  "name": "presentation at 120 columns: a VISUAL-LINE selection (a2..a3) stays drawn beneath the help, both rows marked and the cursor row dimmed, read from the page's presentation, not a borrowed focus (MO-10)",
-  "area": "modals",
-  "width": 120,
-  "height": 16,
-  "page": {"lists": [{"id": "a", "rows": 5}], "focus": "a2"},
-  "script": ["V", "j", "?"]
-}

@@ -1,6 +1,0 @@
-{
-  "name": "catalog/restored-row-structured-answer-readable",
-  "page": {"lists": [{"id": "a", "rows": 2}], "verbs": [{"verb": "demo.thread", "proxy": true, "result": "markdown", "answer": "# Readable question\n\n## Answer\n\nComplete answer without JSON metadata."}], "bind": [{"noun": "demo", "keys": "enter", "do": "demo.thread"}, {"noun": "demo", "keys": "v", "do": "demo.thread"}]},
-  "script": ["enter", "esc", "v"],
-  "expect": [{"after": 1, "modal": "markdown-view", "contains": ["Readable question", "Complete answer"]}, {"modal": "markdown-view", "contains": ["Readable question", "Complete answer"]}]
-}

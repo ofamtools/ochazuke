@@ -1,7 +1,0 @@
-{
- "name":"actions/peer-row-loads-late",
- "width":220,
- "page":{"lists":[{"id":"a","rows":2}],"peerBindings":[{"extension":"o-lane","row":{"noun":"demo","mode":"normal","keys":"g s","request":{"noun":"md.doc","verb":"show"}}}],"lateNouns":[{"noun":"md.doc","verbs":["show"]}],"bind":[{"noun":"demo","keys":"L","do":"demo.load-peers"}]},
- "script":["g s","L","g s"],
- "expect":[{"writes":["md.doc.show"],"contains":["g s md.doc.show"]}]
-}

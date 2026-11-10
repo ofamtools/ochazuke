@@ -200,7 +200,7 @@ func (ss *session) open1(open string) error {
 }
 
 // start runs once the session is sized and drawn: the open page's scroll
-// offset, the segments and the jobs the pages start.
+// offset and the jobs the pages start.
 func (ss *session) start() error {
 	r := ss.R
 	if page := ss.pages[r.Page]; page != nil && page.Offset > 0 {
@@ -212,20 +212,6 @@ func (ss *session) start() error {
 		for _, q := range p.Requests {
 			if _, err := r.Execute(q); err != nil {
 				return err
-			}
-		}
-		for _, sp := range p.Segments {
-			texts, n := sp.Texts, 0
-			r.SegmentProvider("story-"+sp.ID, func(context.Context, ochazuke.Segment) (ochazuke.SegmentValue, error) {
-				if len(texts) == 0 {
-					return ochazuke.SegmentValue{}, nil
-				}
-				text := texts[min(n, len(texts)-1)]
-				n++
-				return ochazuke.SegmentValue{Text: text}, nil
-			})
-			if err := r.AddSegment(ochazuke.Segment{ID: sp.ID, Label: sp.Label, Provider: "story-" + sp.ID, Tone: sp.Tone, Order: sp.Order, Enabled: sp.Enabled}); err != nil {
-				return fmt.Errorf("segment %s: %w", sp.ID, err)
 			}
 		}
 		if p.About != nil {
@@ -425,19 +411,6 @@ func (ss *session) defineDemo(pages []*Page) error {
 		if err := ss.defineNouns(p.Nouns); err != nil {
 			return err
 		}
-		if len(p.PeerBindings) > 0 {
-			r.ReloadPeerBindings(p.PeerBindings, nil)
-			d.Verb("load-peers", func(ochazuke.Ctx) ochazuke.Result {
-				if err := ss.defineNouns(p.LateNouns); err != nil {
-					return ochazuke.Failed(err)
-				}
-				r.ReloadPeerBindings(p.PeerBindings, nil)
-				return ochazuke.Done(nil)
-			}, "Mount the story's late peer nouns and reload its peer rows")
-			d.Verb("check-bindings", func(ochazuke.Ctx) ochazuke.Result {
-				return ochazuke.Done(strings.Join(r.CheckUserBindings(), "\n"))
-			}, "Show binding diagnostics as text").TextResult()
-		}
 		if p.Store != nil {
 			if err := ss.defineStore(d, p.Store); err != nil {
 				return err
@@ -452,14 +425,6 @@ func (ss *session) defineDemo(pages []*Page) error {
 				walk.Roots = append(walk.Roots, ochazuke.PathRoot{Path: ss.files(root.Path), Label: root.Label})
 			}
 			r.AddWalkPathSource(func(ochazuke.PathPick) ochazuke.PathWalk { return walk })
-		}
-		for _, name := range p.Pending {
-			if err := r.DefineMode(name, true); err != nil {
-				return fmt.Errorf("pending %s: %w", name, err)
-			}
-		}
-		for mode, hue := range p.ModeTones {
-			ss.M.Appearance.SetModeTone(mode, hue)
 		}
 		for _, name := range slices.Sorted(maps.Keys(p.Modes)) {
 			spec := p.Modes[name]

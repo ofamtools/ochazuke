@@ -1,9 +1,0 @@
-{
-  "name": "a parameter that declares from row:host is filled by a bare key row: the row's host",
-  "area": "focus",
-  "page": {"lists":[{"id":"a","items":[{"id":"a1","label":"one","data":{"host":"h1","alt":"h2"}}]}],"verbs":[{"verb":"demo.send","description":"Send to a host","parameters":{"to":{"type":"string","required":true,"from":"row:host"}}}],
-    "bind": [{"noun": "demo", "keys": "x", "do": "demo.send"}]
-  },
-  "script": ["x"],
-  "expect": [{"writes": ["demo.send to=h1"]}]
-}

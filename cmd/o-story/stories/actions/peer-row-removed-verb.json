@@ -1,7 +1,0 @@
-{
- "name":"actions/peer-row-removed-verb: a key row naming a removed verb (settings edit) is a start-up notice that names its replacement, once",
- "width":200,
- "page":{"lists":[{"id":"a","rows":2}],"bind":[{"noun":"demo","keys":"C","do":"demo.check-bindings"}],"peerBindings":[{"extension":"o-lane","row":{"noun":"demo","mode":"normal","keys":"g o","request":{"noun":"settings","verb":"edit"}}}]},
- "script":["C"],
- "expect":[{"contains":["settings edit was removed in R1: use ochazuke.setting.open"],"lacks":["no noun settings","unknown operation"]}]
-}
