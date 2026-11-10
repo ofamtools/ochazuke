@@ -188,7 +188,7 @@ func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 	if v.Params != nil {
 		params = v.Params(n)
 	}
-	op := Operation{Key: KeyOf(name, v.Verb), Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Many: v.Many, Destructive: v.Destructive, Unavailable: reason}
+	op := Operation{Key: KeyOf(name, v.Verb), Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Many: v.Many, Destructive: v.Destructive, Agent: v.Agent, Unavailable: reason}
 	if key := n.keyProp(); v.TakesSubject && key != nil {
 		p := subjectParameter(r, n, *key)
 		if v.NoFocus {
@@ -723,6 +723,9 @@ func writableProps(n *Noun) []PropSpec {
 func propParameter(p PropSpec) Parameter {
 	out := p.Parameter
 	out.Enum = slices.Clone(p.Enum)
+	if out.IsPath() {
+		return out // a path stays a path: its form field opens the path chooser
+	}
 	switch p.Type {
 	case SettingString, "", SettingInteger, SettingBoolean:
 		if out.Type == "" {

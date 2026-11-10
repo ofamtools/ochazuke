@@ -510,8 +510,10 @@ open-json	action	seed
 open-notes	action	seed	
 open-result-json	action	seed	
 open-transcript	action	seed	
+open-with	action	seed	
 open_notes	prop	seed	
 open_tasks	prop	seed	
+opener	noun	yes	the opener table (open.openers) and the OS opener
 opensPage	prop	seed	
 operation	noun	lx4	
 operations	noun	seed	plural

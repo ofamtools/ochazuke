@@ -5,7 +5,7 @@
   "height": 24,
   "page": {
     "lists": [{"id": "a", "rows": 2}],
-    "bind": [{"noun": "demo", "keys": "O", "do": "ochazuke.open.show"}]
+    "bind": [{"noun": "demo", "keys": "O", "do": "ochazuke.opener.show"}]
   },
   "script": ["O", {"paste": "https://example.com/a.png"}, "enter", "O", {"paste": "one\ntwo words"}],
   "expect": [

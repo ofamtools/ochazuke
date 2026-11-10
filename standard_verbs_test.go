@@ -144,7 +144,7 @@ func TestPropClashRules(t *testing.T) {
 	mustPanic(t, "already declared", func() { NewRuntime().Define("x").Props(PropSpec{Name: "a"}, PropSpec{Name: "a"}) })
 	mustPanic(t, "clashes with the verb", func() {
 		r := NewRuntime()
-		r.Define("x").Verb("open", func(Ctx) Result { return Done(nil) }).Props(PropSpec{Name: "open"})
+		r.Define("x").Verb("ping", func(Ctx) Result { return Done(nil) }).Props(PropSpec{Name: "ping"})
 	})
 	mustPanic(t, "clashes with its prop", func() {
 		r := NewRuntime()

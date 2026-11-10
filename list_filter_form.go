@@ -122,7 +122,7 @@ func (l *Collection) filterFields() []*filterField {
 		if spec.Type == SettingBoolean {
 			values["true"], values["false"] = true, false
 		}
-		text := spec.Type == "" || spec.Type == SettingString
+		text := spec.Type == "" || spec.Type == SettingString || spec.IsPath()
 		finite := f.list || len(spec.Enum) > 0 || spec.Type == SettingBoolean || (text && !spec.Multiline && len(values) > 0 && len(values) < carried)
 		switch {
 		case !finite:
@@ -158,7 +158,7 @@ func (f *filterField) sortLabels() {
 // test is the operator test one value makes: contains on a list prop or
 // a free text prop, = on the rest.
 func (f *filterField) test() string {
-	if f.list || f.kind == filterText && (f.spec.Type == "" || f.spec.Type == SettingString) {
+	if f.list || f.kind == filterText && (f.spec.Type == "" || f.spec.Type == SettingString || f.spec.IsPath()) {
 		return "contains"
 	}
 	return "="

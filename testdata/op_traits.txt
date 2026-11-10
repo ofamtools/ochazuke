@@ -273,6 +273,9 @@ ochazuke.noun.list motion=false focusBound=false typing=false kind=fetch repeata
 ochazuke.noun.places motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
 ochazuke.noun.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.noun.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.opener.resolve motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.opener.run motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.opener.show motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.operation.archive motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.operation.create motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.operation.delete motion=false focusBound=false typing=false kind=change repeatable=false staying=false

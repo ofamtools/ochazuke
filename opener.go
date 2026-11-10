@@ -58,6 +58,21 @@ func (o Opener) RevealCommand(path string) (name string, args []string) {
 	return "xdg-open", []string{filepath.Dir(path)}
 }
 
+// OpenWithCommand is the command that opens target with the named
+// application: macOS open -a, elsewhere the application as a command.
+func (o Opener) OpenWithCommand(app, target string) (name string, args []string) {
+	if o.goos() == "darwin" {
+		return "open", []string{"-a", app, "--", target}
+	}
+	return app, []string{target}
+}
+
+// OpenWith opens target with the named application.
+func (o Opener) OpenWith(app, target string) error {
+	name, args := o.OpenWithCommand(app, target)
+	return o.start(name, args)
+}
+
 // Open opens target (a path or a URL) with the system's default application.
 func (o Opener) Open(target string) error {
 	name, args := o.OpenCommand(target)

@@ -145,7 +145,7 @@ func typedPropFilter(p PropSpec, f PropFilter) (PropFilter, error) {
 		}
 		f.Value = v
 	case "contains":
-		if p.Type != "" && p.Type != SettingString && p.Type != SettingList {
+		if p.Type != "" && p.Type != SettingString && !p.IsPath() && p.Type != SettingList {
 			return f, fmt.Errorf("%s needs a string or list prop: %s", f.Op, f.Prop)
 		}
 		if _, ok := f.Value.(string); !ok {

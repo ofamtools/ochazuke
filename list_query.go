@@ -290,7 +290,7 @@ func orderQuery(rows queryRows, idx []int, keys []SortKey) []int {
 // so they order by time; mixed date and text values order as text, which
 // keeps the order transitive.
 func dateTyped(p PropSpec, values func(yield func(any))) PropSpec {
-	if len(p.Enum) > 0 || (p.Type != "" && p.Type != SettingString) {
+	if len(p.Enum) > 0 || (p.Type != "" && p.Type != SettingString && !p.IsPath()) {
 		return p
 	}
 	date, seen := true, false

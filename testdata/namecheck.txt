@@ -290,6 +290,7 @@ param_sources.go	isRowSource	compare	"row"	1
 path_chooser.go	PathPick.Dir	compare	"dir"	1
 path_find.go	Runtime.findOrigin	case	"path"	1
 path_find.go	Runtime.openFindPicker	compare	"dir"	1
+path_verbs.go	Parameter.IsPath	compare	"path"	1	PropPath is a prop type (a type name like string), not a noun or verb name
 peer_bindings.go	Runtime.syncPeerNotices	compare	"all"	1
 picker_search.go	searchPickerMatch	compare	"dir"	1
 picker_verbs.go	pickerMoveDelta	case	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
@@ -309,6 +310,7 @@ props.go	checkSchema	case	"collection"	1
 props.go	checkSchema	compare	"id"	1
 props.go	computedPropError	case	"collection"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 props.go	var propTypes	table	"list"	1	property type names, not a noun table; "list" is a type here
+props.go	var propTypes	table	"path"	1	PropPath is a prop type (a type name like string), not a noun or verb name
 query.go	Runtime.Query	compare	"app"	1
 query.go	Runtime.match	case	"all"	1
 query.go	Runtime.match	case	"not"	1

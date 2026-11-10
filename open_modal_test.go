@@ -13,7 +13,7 @@ func TestOpenVerbs(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: OpenNoun, Verb: "run", Args: Arguments{"text": "https://x.test/a"}}); err != nil || len(f.runs) != 1 {
 		t.Fatalf("run %v ran %v", err, f.runs)
 	}
-	op, _ := r.Operation("ochazuke.open.run")
+	op, _ := r.Operation("ochazuke.opener.run")
 	if op.AgentRightOf(false) != AgentConfirm {
 		t.Fatal("open.run needs confirmation from an agent")
 	}

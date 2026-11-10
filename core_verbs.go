@@ -65,7 +65,10 @@ type standardVerb struct {
 	Repeatable  bool
 	HistoryKind string
 	Destructive bool
-	Confirm     string
+	// Agent is the verb's agent right (AgentConfirm for a verb that
+	// launches an application); "" the default.
+	Agent   string
+	Confirm string
 	// Aliases are other verb names the row is registered under on every
 	// noun that has it, unless the noun has a verb of that name.
 	Aliases []string
@@ -222,7 +225,7 @@ func coreVerbs() []standardVerb {
 // set's alias patch were purged in R1: removed_verbs.json says what
 // replaces each.)
 func legacyVerbs() []standardVerb {
-	return []standardVerb{
+	return append(pathVerbs(), []standardVerb{
 		{Verb: "watch", Description: "Stream what happens to the things (one, or those where matches): a JSON line per thing added, modified or deleted, from since when given; the CLI streams until interrupted",
 			Kinds: []string{KindCollection, Singleton, Instances}, Needs: []storeNeed{needWatch},
 			TakesSubject: true, NoFocus: true, HistoryKind: HistoryFetch, ParamNames: []string{"where", "since"},
@@ -231,7 +234,7 @@ func legacyVerbs() []standardVerb {
 			Kinds: []string{KindCollection}, Needs: []storeNeed{needCopy},
 			TakesSubject: true, NoFocus: true, HistoryKind: HistoryFetch,
 			Handler: func(r *Runtime, n *Noun) AppHandler { return r.refreshHandler(n.Name) }},
-	}
+	}...)
 }
 
 var (

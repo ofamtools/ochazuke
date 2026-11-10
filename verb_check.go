@@ -72,6 +72,7 @@ func generatedVerbs() map[string]bool {
 			{Name: "title", Role: RoleLabel},
 			{Name: "owner", Role: RoleOwner, Parameter: Parameter{Noun: "probe-owner"}},
 			{Name: "archived", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}},
+			{Name: "location", Parameter: Parameter{Type: PropPath}}, // the free path verbs
 		}
 		store := Store{
 			Get:    noop,

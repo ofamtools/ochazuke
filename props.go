@@ -36,6 +36,12 @@ import (
 // same way: a word such as "3", "true" or "400ms", a JSON array or object.
 const PropObject = "object"
 
+// PropPath is the prop type of a file or folder path (a string, Parameter's
+// "path" type: its form field opens the path chooser). A noun with a path
+// prop gets the free verbs reveal, yank-path, open and open-with
+// (path_verbs.go).
+const PropPath = "path"
+
 // The kinds of store (Store.Kind): what the subject is and which standard
 // verbs make sense.
 const (
@@ -390,7 +396,7 @@ func propFlagError(key string, p PropSpec) error {
 // propTypes are the types a prop declares.
 var propTypes = map[string]bool{
 	SettingString: true, SettingInteger: true, SettingNumber: true, SettingBoolean: true,
-	SettingDuration: true, SettingList: true, PropObject: true,
+	SettingDuration: true, SettingList: true, PropObject: true, PropPath: true,
 }
 
 // prop is the noun's prop of that name, nil when it has none. "@role" names
@@ -847,7 +853,11 @@ func propValue(p PropSpec, value any) (any, error) {
 		}
 		return nil, errors.New("must be an object, a JSON object such as {\"a\": 1}")
 	}
-	v, err := coerceType(Setting{Name: p.Name, Type: p.Type, Enum: p.Enum}, value)
+	typ := p.Type
+	if p.IsPath() {
+		typ = SettingString
+	}
+	v, err := coerceType(Setting{Name: p.Name, Type: typ, Enum: p.Enum}, value)
 	if err != nil {
 		return nil, err
 	}

@@ -88,9 +88,7 @@
         "ochazuke › Appearance",
         "focus-display",
         "ochazuke › Palette",
-        "forms.single-path",
-        "ochazuke › Search",
-        "search.case"
+        "forms.single-path"
       ],
       "lacks": [
         "no settings match",

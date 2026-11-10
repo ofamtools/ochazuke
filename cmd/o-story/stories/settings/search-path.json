@@ -75,6 +75,7 @@
     "down",
     "down",
     "down",
+    "down",
     "esc"
   ],
   "expect": [
@@ -118,7 +119,7 @@
       ]
     },
     {
-      "after": 10,
+      "after": 11,
       "mode": "list_filter",
       "focus": "__settings/section/ochazuke/pickers",
       "contains": [
