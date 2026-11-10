@@ -181,7 +181,7 @@ key_echo.go	keyEcho.observe	compare	"palette"	1
 key_echo.go	keyEcho.observe	cyclo	"-"	40
 leader_outside.go	Runtime.dispatchOutside	compare	"all"	1
 list.go	Collection.marksSelection	compare	"hide"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb
-list.go	registerLists	cyclo	"-"	29
+list.go	registerLists	cyclo	"-"	27
 list_filter.go	Collection.editingFilter	compare	"list_filter"	1
 list_filter.go	registerListFilter	compare	"list_filter"	2
 list_filter_compact.go	Collection.openViewForm	compare	"fields"	1
