@@ -590,6 +590,12 @@ also selects the last item on `<C-p>` from none (checked on Neovim 0.12.3).
 Key bindings now use the same text presenter as the palette. `keys.text-results`
 (default `true`) opts keys into declared text, Markdown and preformatted
 viewers; set it to `false` to retain unpresented key answers.
+A verb declared `.RowsResult()` (`Operation.Result` `ResultRows`, `"rows"`; a
+mounted catalog row's `result`) opens a list-of-objects answer from a key in
+the palette's results table (`keys.table-results`, default `true`; `false`
+leaves the answer to the host). The kind alone decides, so a host that mounts a
+tool's catalog (`cli.RunMounted`) presents its text, Markdown and rows answers
+with no presenter of its own; any other answer stays the host's status line.
 `palette.text-results=plain` disables text presentation in both paths; `all`
 only broadens palette answers, never ordinary key results.
 `Runtime.PresentResult(request, value)` is available to other UI adapters and

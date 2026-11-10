@@ -30,7 +30,10 @@ type ProxyCommand struct {
 // Foreground uses the framework's terminal handoff (stdin included), without
 // a deadline. Captured stdout is decoded as JSON when possible, else text;
 // failures include stderr. The caller can attach Label and Then as usual.
-// Key and palette dispatch present declared text results in the runtime.
+// Key and palette dispatch present a declared result by its kind in the
+// runtime (text, Markdown and preformatted in their viewer; rows in the
+// results table: keys.text-results, keys.table-results), so a host sets no
+// presenter of its own; any other answer is the host's to show.
 func RunMounted(v CatalogVerb, call ProxyCommand) ochazuke.Result {
 	command := func(ctx context.Context) *exec.Cmd {
 		cmd := exec.CommandContext(ctx, call.Bin, call.Args...)

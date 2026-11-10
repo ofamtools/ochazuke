@@ -1,0 +1,8 @@
+{
+  "name": "keys.table-results off keeps a rows answer out of the table",
+  "area": "mounted",
+  "settings": [{"name": "keys.table-results", "type": "boolean", "default": false}],
+  "page": {"lists": [{"id": "a", "rows": 3}], "focus": "a2", "verbs": [{"verb": "demo.history", "result": "rows", "proxy": true, "answer": [{"name": "build"}]}], "bind": [{"noun": "demo", "keys": "H", "do": "demo.history"}]},
+  "script": ["H"],
+  "expect": [{"modal": "", "focus": "a2"}]
+}

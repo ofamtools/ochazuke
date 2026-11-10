@@ -37,6 +37,22 @@ const DataResultsSetting = "results.show-data"
 // KeyTextResultsSetting enables declared text results from key bindings.
 const KeyTextResultsSetting = "keys.text-results"
 
+// KeyTableResultsSetting enables declared rows answers (ResultRows) from key
+// bindings: an application verb whose answer is a list of objects opens it
+// in the results table the palette uses.
+const KeyTableResultsSetting = "keys.table-results"
+
+// ResultRows is the Operation.Result of a verb whose answer is a list of
+// objects: the palette (and, with keys.table-results, a key) shows it as a
+// table. A mounted verb declares it in its catalog (result "rows"); it is
+// also what a standard list verb answers.
+const ResultRows = "rows"
+
+// RowsResult marks the last declared verb's answer as a list of objects
+// (Operation.Result ResultRows): the palette shows it as a table, and a key
+// does too (keys.table-results).
+func (b *NounBuilder) RowsResult() *NounBuilder { return b.result("RowsResult", ResultRows) }
+
 // TextAnswer carries a text answer's display title across CLI/catalog calls.
 // Only declared text results interpret this shape as presentation metadata.
 type TextAnswer struct {
@@ -90,15 +106,35 @@ func (r *Runtime) PresentResult(q Request, value any) (bool, error) {
 // never covers a different page, selection, mode or newly opened modal.
 func (r *Runtime) keyResultPresenter(q Request) func(any) error {
 	op, _ := r.Operation(q.Key())
-	if !r.Settings().Bool(KeyTextResultsSetting) || !IsTextResult(op.Result) || r.Settings().String(PaletteTextResultsSetting) == "plain" {
+	text := r.Settings().Bool(KeyTextResultsSetting) && IsTextResult(op.Result) && r.Settings().String(PaletteTextResultsSetting) != "plain"
+	table := op.Result == ResultRows && op.Kind == KindApplication && op.Standard == "" && r.Settings().Bool(KeyTableResultsSetting)
+	if !text && !table {
 		return nil
 	}
 	return r.resultPresenter(q, func(value any) (bool, error) {
-		if !r.Settings().Bool(KeyTextResultsSetting) {
-			return false, nil
+		if text && r.Settings().Bool(KeyTextResultsSetting) {
+			return r.PresentResult(q, value)
 		}
-		return r.PresentResult(q, value)
+		if table && r.Settings().Bool(KeyTableResultsSetting) {
+			return r.presentRows(q, value)
+		}
+		return false, nil
 	})
+}
+
+// presentRows opens a rows answer (ResultRows) in the results table. An
+// answer that is not a list of objects, or an empty one, is left to the
+// caller (shown is false); a modal over the interaction is never covered.
+func (r *Runtime) presentRows(q Request, value any) (bool, error) {
+	value = AnswerRows(value)
+	if value == nil || r.TopModal() != "" {
+		return false, nil
+	}
+	before := r.Instances[r.TopModal()]
+	if err := r.showResults(q.Key(), value); err != nil {
+		return false, err
+	}
+	return r.Instances[r.TopModal()] != before, nil
 }
 
 // resultPresenter is shared by keys and the palette. Presentation acts for

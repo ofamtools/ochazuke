@@ -229,7 +229,7 @@ func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 	}
 	if v.Rows {
 		op.Rows = name
-		op.Result = "rows"
+		op.Result = ResultRows
 	}
 	op.AppHandler = v.handler(r, n, v.hardReason(r, n))
 	return op
