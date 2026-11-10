@@ -762,16 +762,33 @@ func propParameter(p PropSpec) Parameter {
 	return out
 }
 
+const (
+	createObjectArg = "props"
+	createPairsArg  = "pairs"
+	createSourceArg = "from"
+)
+
+// createParamName gives a control parameter a spelling no prop or prop
+// alias owns. The noun's words win; the catalog publishes the escaped name.
+func createParamName(n *Noun, name string) string {
+	for n.prop(name) != nil {
+		name = "create-" + name
+	}
+	return name
+}
+
 func createParams(n *Noun) map[string]Parameter {
 	params := map[string]Parameter{}
 	for _, p := range createProps(n) {
 		param := propParameter(p)
+		param.Pairs = true        // a prop=value word may fill any create slot
 		param.Focus = p.FromFocus // create fills it from the focus (createFill)
 		params[p.Name] = param
 	}
-	params["pairs"] = Parameter{Type: "string", Rest: true, Pairs: true, Description: "prop=value words for the props (plan 2.6: NOUN create [p=v ...]), after the label"}
+	params[createParamName(n, createObjectArg)] = Parameter{Type: PropObject, Named: true, Description: "Props to create: an object of prop (or alias or @role) to value; prop=value words and named props fill the same values"}
+	params[createParamName(n, createPairsArg)] = Parameter{Type: "string", Rest: true, Pairs: true, Description: "prop=value words for the props, after the label"}
 	if n.keyProp() != nil && n.Store.Get != nil {
-		params["from"] = Parameter{Type: AnyParameterType, Noun: n.Name, Free: true, Covers: true, Description: "Copy this thing (an id or a human key, or a row holding its key): every prop create writes, read from it, unless given"}
+		params[createParamName(n, createSourceArg)] = Parameter{Type: AnyParameterType, Noun: n.Name, Free: true, Covers: true, Named: true, Description: "Copy this thing (an id or a human key, or a row holding its key): every prop create writes, read from it, unless given; a colliding prop or alias owns the bare name"}
 	}
 	return params
 }
@@ -808,75 +825,69 @@ func (r *Runtime) createSource(n *Noun, c Ctx, from any) (Thing, error) {
 	return t, nil
 }
 
-// createArgs reads a create request's props as create writes them: the
-// props given by name, a prop=value word given in a prop's own slot (a
-// bare word on the CLI or the palette: the label's, a focus fill's)
-// whose name is a prop create writes, and the pairs words. A word whose
-// left side names no such prop stays the value of its slot (a label
-// "a=b"); a prop given twice is refused. pairs is consumed.
+// createArgs merges the props object, named props and prop=value words,
+// resolving aliases and roles once before required/type checks. The result
+// uses the prop parameters so sources, forms and validation share one shape.
 func createArgs(n *Noun, a Arguments) (Arguments, error) {
-	pairs := StringArg(a, "pairs", "")
-	_, hasPairs := a["pairs"]
-	out := Arguments{}
-	moved := map[string]bool{}
-	for _, k := range sortedKeys(a) {
-		if k == "pairs" {
-			continue
-		}
-		name := k
-		if p := n.prop(k); p != nil {
-			name = p.Name
-		}
-		if _, exists := out[name]; exists {
-			return nil, &ArgumentError{fmt.Errorf("%s is written twice", name)}
-		}
-		out[name] = a[k]
-		if name != k {
-			moved[name] = true
-		}
+	objectArg, pairsArg := createParamName(n, createObjectArg), createParamName(n, createPairsArg)
+	if v, given := a[pairsArg]; given && !kindOf(SettingString).accepts(v) {
+		return nil, &ArgumentError{fmt.Errorf("%s must be string", pairsArg)}
 	}
+	obj, err := propObject(a[objectArg], objectArg)
+	if err != nil {
+		return nil, err
+	}
+	out := Arguments{}
 	writes := func(name string) bool {
 		p := n.prop(name)
-		return p != nil && !p.ReadOnly && !p.Key
+		return p != nil && (!p.ReadOnly && !p.Key || p.Key && p.CreateOnly)
 	}
 	put := func(name string, v any) error {
-		if p := n.prop(name); p != nil {
-			name = p.Name
+		p := n.prop(name)
+		if !writes(name) {
+			return &ArgumentError{fmt.Errorf("%s has no prop %q that create writes", n.Name, name)}
 		}
-		if _, given := out[name]; given || moved[name] {
+		name = p.Name
+		if _, given := out[name]; given {
 			return &ArgumentError{fmt.Errorf("%s is written twice", name)}
 		}
-		out[name], moved[name] = v, true
+		out[name] = v
 		return nil
 	}
+	for _, k := range sortedKeys(a) {
+		if k == objectArg || k == pairsArg {
+			continue
+		}
+		if n.prop(k) == nil {
+			out[k] = a[k] // control parameters; unknown ones fail validation
+			continue
+		}
+		word, text := a[k].(string)
+		name, v, pair := strings.Cut(word, "=")
+		if text && pair && writes(name) {
+			if err := put(name, unquoteWord(v)); err != nil {
+				return nil, err
+			}
+		} else if err := put(k, a[k]); err != nil {
+			return nil, err
+		}
+	}
+	for _, name := range sortedKeys(obj) {
+		if err := put(name, obj[name]); err != nil {
+			return nil, err
+		}
+	}
+	if err := addPairWords(splitPairs(StringArg(a, pairsArg, "")), put); err != nil {
+		return nil, err
+	}
 	for _, p := range createProps(n) {
-		word, ok := a[p.Name].(string)
-		if !ok {
-			continue
+		if v, given := out[p.Name]; given {
+			typed, err := propValue(p, v)
+			if err != nil {
+				return nil, &ArgumentError{fmt.Errorf("%s %w", p.Name, err)}
+			}
+			out[p.Name] = typed
 		}
-		name, v, ok := strings.Cut(word, "=")
-		if !ok || !writes(name) {
-			continue
-		}
-		delete(out, p.Name)
-		if err := put(name, unquoteWord(v)); err != nil {
-			return nil, err
-		}
-	}
-	for _, w := range splitPairs(pairs) {
-		name, v, ok := strings.Cut(w, "=")
-		switch {
-		case !ok:
-			return nil, &ArgumentError{fmt.Errorf("%q is not prop=value", w)}
-		case !writes(name):
-			return nil, &ArgumentError{fmt.Errorf("%s has no prop %q that create writes", n.Name, name)}
-		}
-		if err := put(name, unquoteWord(v)); err != nil {
-			return nil, err
-		}
-	}
-	if !hasPairs && len(moved) == 0 {
-		return a, nil
 	}
 	return out, nil
 }
@@ -1055,11 +1066,20 @@ func setObject(a Arguments) (map[string]any, string, error) {
 	if obj == nil {
 		return nil, "", nil
 	}
+	m, err := propObject(obj, name)
+	return m, name, err
+}
+
+// propObject reads a props mapping in its API or JSON word form.
+func propObject(obj any, name string) (map[string]any, error) {
+	if obj == nil {
+		return nil, nil
+	}
 	m, err := propValue(PropSpec{Name: name, Parameter: Parameter{Type: PropObject}}, obj)
 	if err != nil {
-		return nil, "", &ArgumentError{fmt.Errorf("%s %w", name, err)}
+		return nil, &ArgumentError{fmt.Errorf("%s %w", name, err)}
 	}
-	return m.(map[string]any), name, nil
+	return m.(map[string]any), nil
 }
 
 // setPairWords are a set request's prop=value words: prop, value (the line's
@@ -1164,13 +1184,9 @@ func (r *Runtime) unshownProp(n *Noun, c Ctx, names []string) string {
 }
 
 func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
-	args, err := createArgs(n, c.Args)
-	if err != nil {
-		return nil, err
-	}
-	c.Args = args
+	var err error
 	var source Thing
-	if from, ok := c.Args["from"]; ok && !emptyProp(from) {
+	if from, ok := c.Args[createParamName(n, createSourceArg)]; ok && !emptyProp(from) {
 		if source, err = r.createSource(n, c, from); err != nil {
 			return nil, err
 		}
@@ -1200,8 +1216,7 @@ func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 		}
 		values[p.Name] = typed
 	}
-	given, _ := createWrites(n, c.Args)
-	if name := r.unshownProp(n, c, given); name != "" {
+	if name := r.unshownProp(n, c, sortedKeys(c.Args)); name != "" {
 		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), name)
 	}
 	var filled focusFills

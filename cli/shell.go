@@ -809,6 +809,10 @@ func positional(q ochazuke.Request, op ochazuke.Operation, words []string, prese
 			q.Args[name] = strings.Join(rest, " ")
 			return nil
 		}
+		if op.Parameters[name].Pairs && strings.Contains(word, "=") {
+			q.Args[name] = word // the prop reader types it by the named prop
+			continue
+		}
 		v, err := typed(op.Parameters[name].Type, word)
 		if err != nil {
 			return fmt.Errorf("%s (argument %d): %w", name, i+1, err)

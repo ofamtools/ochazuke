@@ -78,7 +78,7 @@ func createPositional(n *Noun) []string {
 			out = append(out, p.Name)
 		}
 	}
-	return append(out, "pairs") // the rest: prop=value words
+	return append(out, createParamName(n, createPairsArg)) // the rest: prop=value words
 }
 
 // The focus fill: a parameter that declares Focus is filled from the

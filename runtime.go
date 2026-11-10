@@ -1460,14 +1460,14 @@ func withArgs(q Request, args Arguments) Request {
 // standardArgs are a request's arguments as a standard verb reads them,
 // before parameter sources fill them: an unavailable verb fails with its
 // reason (Operation.Unavailable), and a row that reads its words itself
-// (ReadArgs: create's prop aliases and prop=value words) does so on a
-// noun whose props have aliases. Any other operation's arguments are q's.
+// (ReadArgs: create's props mapping, aliases and prop=value words) does so
+// before required checks. Any other operation's arguments are q's.
 func (r *Runtime) standardArgs(op Operation, q Request) (Arguments, error) {
 	if reason := r.unavailableFor(op, q.Args); reason != "" {
 		return nil, fmt.Errorf("%s is unavailable: %s", r.DisplayKey(q.Key()), reason)
 	}
 	row, n := standardRow(op.Standard), r.Noun(op.Noun())
-	if row == nil || row.ReadArgs == nil || n == nil || !slices.ContainsFunc(n.Props, func(p PropSpec) bool { return len(p.Aliases) > 0 }) {
+	if row == nil || row.ReadArgs == nil || n == nil {
 		return q.Args, nil
 	}
 	return row.ReadArgs(n, q.Args)

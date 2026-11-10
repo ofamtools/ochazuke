@@ -34,12 +34,12 @@ type lineToken struct {
 }
 
 // tokenize splits the line on spaces; a word in double quotes may hold
-// spaces. trailing reports that the line ends between words, so the next
-// word is empty rather than the last one being typed.
+// spaces, escaped quotes and escaped backslashes. trailing reports that
+// the line ends between words, so the next word is empty.
 func tokenize(line string) (tokens []lineToken, trailing bool) {
 	rs := []rune(line)
 	var word strings.Builder
-	inWord, quoted := false, false
+	inWord, quoted, escaped := false, false, false
 	start := 0
 	end := func() {
 		tokens = append(tokens, lineToken{Text: word.String(), Start: start, Tail: string(rs[start:])})
@@ -48,6 +48,11 @@ func tokenize(line string) (tokens []lineToken, trailing bool) {
 	}
 	for i, r := range rs {
 		switch {
+		case escaped:
+			word.WriteRune(r)
+			escaped = false
+		case quoted && r == '\\' && i+1 < len(rs) && (rs[i+1] == '"' || rs[i+1] == '\\'):
+			escaped = true
 		case quoted && r == '"':
 			quoted = false
 		case quoted:
@@ -773,7 +778,7 @@ func positionalCount(op Operation) int {
 // it (its refusal then says why).
 func positionalFor(op Operation, order []string, word string) int {
 	for i, name := range order {
-		if op.Parameters[name].Type != "boolean" || word == "true" || word == "false" {
+		if p := op.Parameters[name]; p.Type != "boolean" || word == "true" || word == "false" || p.Pairs && strings.Contains(word, "=") {
 			return i
 		}
 	}
@@ -796,8 +801,17 @@ func (p *Palette) parseParams(c *commandLine, tokens []lineToken, preset string)
 	if a, ok := p.r.actionNames.aliases[c.Via]; ok && c.Via != "" {
 		c.Args = c.Op.WithPresets(c.Args, a.Args)
 	}
-	for _, name := range remainingParams(*c) {
-		if c.Op.lacks(name, c.Args) {
+	args := c.Args
+	if row := standardRow(c.Op.Standard); row != nil && row.ReadArgs != nil {
+		read, err := row.ReadArgs(p.r.Noun(c.Op.Noun()), args)
+		if err != nil {
+			c.Err = err
+			return
+		}
+		args = read
+	}
+	for _, name := range paramOrder(c.Op) {
+		if !slices.Contains(c.Omitted, name) && c.Op.lacks(name, args) {
 			if _, filled := p.r.sourceValue(c.Op, name, focusOf(p.origin)); filled {
 				continue // its source fills it when the line runs
 			}
@@ -817,18 +831,19 @@ func (p *Palette) fillParams(c *commandLine, tokens []lineToken, order []string)
 	positional := 0
 	for i := 0; i < len(tokens); i++ {
 		token := tokens[i]
-		if len(order) > 0 && c.Op.Parameters[order[0]].Rest {
-			// The rest of the line, verbatim, is this parameter's value.
+		flag, flagValue, inline, ok := p.flagWord(c, token.Text)
+		if !ok {
+			flag, flagValue, ok = p.namedWord(c, token.Text, order)
+			inline = ok
+		}
+		if !ok && len(order) > 0 && c.Op.Parameters[order[0]].Rest {
+			// A declared flag still names its parameter before the rest
+			// starts; otherwise the remaining line is taken verbatim.
 			name := order[0]
 			c.Words = append(c.Words, PaletteWord{Text: token.Tail, Kind: "argument", Param: name, Value: token.Tail})
 			c.Args[name] = token.Tail
 			c.Rest = &restSpan{Param: name, Start: token.Start}
 			return true
-		}
-		flag, flagValue, inline, ok := p.flagWord(c, token.Text)
-		if !ok {
-			flag, flagValue, ok = p.namedWord(c, token.Text, order)
-			inline = ok
 		}
 		if name, value := flag, flagValue; ok {
 			word := PaletteWord{Text: token.Text, Kind: "flag", Value: "--" + name, Param: name}
@@ -920,7 +935,8 @@ func (p *Palette) namedWord(c *commandLine, word string, order []string) (name, 
 	if strings.HasPrefix(word, "-") || !strings.Contains(word, "=") {
 		return "", "", false
 	}
-	if len(order) > 0 && c.Op.Parameters[order[0]].Pairs {
+	name, _, _ = strings.Cut(word, "=")
+	if len(order) > 0 && c.Op.Parameters[order[0]].Pairs && p.r.Noun(c.Op.Noun()).prop(name) != nil {
 		return "", "", false
 	}
 	name, value, _, ok = p.flagWord(c, "--"+word)
@@ -965,6 +981,9 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 	choices, sourceErr := p.paramChoices(op, name, word, args)
 	// A ValueOf parameter is checked against the prop it holds a value of.
 	check, _ := p.r.choiceParameter(op, name, args)
+	if param.Pairs && strings.Contains(word, "=") {
+		check.Free = true // the props reader checks the named prop, not this slot
+	}
 	if len(choices) > 0 || p.r.ChoicesSource(check) != "" {
 		hit, matches, exact := matchWord(word, p.choiceOptions("argument", choices))
 		if !exact && check.Noun != "" && p.r.namesThingExactly(check.Noun, p.origin.Clone(), word) {
@@ -978,6 +997,9 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 		case !check.Free && sourceErr == nil:
 			return nil, "", nil, choiceError(name, choices)
 		}
+	}
+	if param.Pairs && strings.Contains(text, "=") {
+		return text, text, nil, nil
 	}
 	k := kindOf(param.Type)
 	if !k.word {

@@ -177,7 +177,7 @@ func runDuplicate(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	args := Arguments{"from": key}
+	args := Arguments{createParamName(n, createSourceArg): key}
 	for name, v := range c.Args {
 		if p := n.prop(name); p != nil && !p.Key {
 			args[name] = v
@@ -188,7 +188,10 @@ func runDuplicate(r *Runtime, n *Noun, c Ctx) (any, error) {
 			args[p.Name] = false // a copy is live
 		}
 	}
-	c.Args = args
+	c.Args, err = createArgs(n, args)
+	if err != nil {
+		return nil, err
+	}
 	return runCreate(r, n, c)
 }
 

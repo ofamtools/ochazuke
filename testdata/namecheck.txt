@@ -400,7 +400,6 @@ standard_edit.go	editSession.bindWrites	compare	"confirm"	1	moved from editHandl
 standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
-standard_verbs.go	createArgs	compare	"pairs"	1
 table.go	Collection.tallView	cyclo	"-"	43
 table.go	tableLineAt	compare	"right"	1
 table_cells.go	Collection.columnTo	compare	"last"	1
