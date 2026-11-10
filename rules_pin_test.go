@@ -33,7 +33,7 @@ func TestActionCheckMessagesPinned(t *testing.T) {
 		{"short call", UserOperation{Noun: "worktree", Verb: "v", Base: Argv{"tool"}, Call: "one"}, `call "one" must be the noun's words and the verb`},
 		{"param name dot", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"a.b": {Type: "string"}}}, `parameter name "a.b" must be one word, not a dot or a reserved name`},
 		{"param reserved", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"target": {Type: "string"}}}, `parameter name "target" must be one word, not a dot or a reserved name`},
-		{"param type", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"n": {Type: "float"}}}, "parameter n: type must be string, integer, boolean or path"},
+		{"param type", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Parameters: map[string]Parameter{"n": {Type: "float"}}}, "parameter n: type must be string, integer, boolean, time or path"},
 		{"positional", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Positional: []string{"n"}}, `positional "n" is not a declared parameter`},
 		{"history", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, History: "x"}, `history "x" must be action, change or fetch`},
 		{"timeout bad", UserOperation{Noun: "worktree", Verb: "v", Command: cmd, Timeout: "soon"}, `timeout "soon" must be a duration such as "30s"`},

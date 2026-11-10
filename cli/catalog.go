@@ -136,6 +136,21 @@ type CatalogNoun struct {
 	Name  string `json:"name"`
 	Pin   string `json:"pin,omitempty"`
 	Kind  string `json:"kind,omitempty"`
+	// NounKind is what kind of noun it is (ochazuke.Runtime.NounKind:
+	// record, singleton, facts, instances, command, part). A catalog
+	// written before the field has none: CatalogNoun.KindOf derives it
+	// from the rest of the entry the same way.
+	NounKind string `json:"nounKind,omitempty"`
+	// Facts says the noun's things are system facts (ochazuke.Store.Facts):
+	// read-only, no times. Absent (false) in a catalog written before the
+	// field; KindOf still reads facts off its writing verbs' reason.
+	Facts bool `json:"facts,omitempty"`
+	// Store is what the noun's store can do beyond get and list, so a
+	// host's generic index picks windowed reads (Query) and skips reads
+	// while nothing changed (ChangeToken) for a mounted noun. nil for a
+	// noun without a store, and in a catalog written before the field:
+	// a host then reads the noun as it always did (whole lists, no token).
+	Store *CatalogStore `json:"store,omitempty"`
 	// NoEditKey declines only the implicit edit-key fallback, not edit itself.
 	NoEditKey bool `json:"noEditKey,omitempty"`
 	// NoPicker keeps the noun out of the host's derived pickers
@@ -250,6 +265,77 @@ type CatalogVerb struct {
 	// Subject is what the verb acts on: "" one thing, "collection" all of
 	// the noun's things (ochazuke.Operation.Subject).
 	Subject string `json:"subject,omitempty"`
+	// Creates marks a verb that makes a new thing of its noun
+	// (ochazuke.Operation.Creates): the standard create, or the verb a
+	// noun creates through instead (lane.define). Absent in older
+	// catalogs: a host then reads only the standard create as creating.
+	Creates bool `json:"creates,omitempty"`
+}
+
+// CatalogStore is what a noun's store offers a host beyond its verbs
+// (ochazuke.Store): Query answers one page of a list request (paging,
+// filters and sort run in the store), ChangeToken a cheap token that is
+// equal while nothing changed, Watch pushes changes, Undo lets history
+// undo its standard changes, Remote says its calls leave the process.
+// Every field false is a store that lists whole.
+type CatalogStore struct {
+	Query       bool `json:"query,omitempty"`
+	ChangeToken bool `json:"changeToken,omitempty"`
+	Watch       bool `json:"watch,omitempty"`
+	Undo        bool `json:"undo,omitempty"`
+	Remote      bool `json:"remote,omitempty"`
+}
+
+// catalogStore is what the catalog publishes of a noun's store: its facts
+// mark and its capabilities; nil for no store.
+func catalogStore(s *ochazuke.Store) (facts bool, out *CatalogStore) {
+	if s == nil {
+		return false, nil
+	}
+	return s.Facts, &CatalogStore{Query: s.Query != nil, ChangeToken: s.ChangeToken != nil, Watch: s.Watch != nil, Undo: s.Undo, Remote: s.Remote}
+}
+
+// KindOf is the noun's kind (ochazuke.NounKindList): NounKind when the
+// catalog says it, else derived from the entry as the runtime derives it,
+// so a catalog written before the field (v0.117 and older) reads the same:
+// a store kind of singleton or instances is that; a store whose writing
+// verbs are unavailable as a fact (ochazuke.FactReason) or marked Facts is
+// facts; any other store a record; no store, a command noun when one of
+// its verbs is an application verb, else a part.
+func (n CatalogNoun) KindOf() string {
+	if n.NounKind != "" {
+		return n.NounKind
+	}
+	switch {
+	case n.Kind == ochazuke.Singleton && !n.factsOf():
+		return ochazuke.NounKindSingleton
+	case n.Kind == ochazuke.Instances:
+		return ochazuke.NounKindInstances
+	case n.Kind != "" && n.factsOf():
+		return ochazuke.NounKindFacts
+	case n.Kind != "":
+		return ochazuke.NounKindRecord
+	}
+	for _, v := range n.Verbs {
+		if v.Kind == ochazuke.KindApplication {
+			return ochazuke.NounKindCommand
+		}
+	}
+	return ochazuke.NounKindPart
+}
+
+// factsOf reports whether the noun's things are facts: the Facts mark, or
+// (an older catalog) a standard verb unavailable as a fact.
+func (n CatalogNoun) factsOf() bool {
+	if n.Facts {
+		return true
+	}
+	for _, v := range n.Verbs {
+		if v.Standard != "" && v.Unavailable == ochazuke.FactReason {
+			return true
+		}
+	}
+	return false
 }
 
 // AppVerbs are the noun's verbs the tool defined: every verb but the
@@ -395,6 +481,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 	// nested under it (app.quit, app.rows.list, app.state), so they are
 	// grouped by noun, never by runs.
 	ops := r.Catalog()
+	kinds := r.AllNounKinds()
 	sort.SliceStable(ops, func(i, j int) bool {
 		if ops[i].Noun() != ops[j].Noun() {
 			return ops[i].Noun() < ops[j].Noun()
@@ -417,6 +504,8 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				noun.Filters = slices.Clone(n.Filters)
 				noun.PropsOff = slices.Clone(n.PropsOff)
 				noun.Kind, noun.Props = n.StoreKind(), r.Props(op.Noun())
+				noun.NounKind = kinds[op.Noun()]
+				noun.Facts, noun.Store = catalogStore(n.Store)
 				noun.ReferencedBy = referencedBy(r, op.Noun())
 				for i := range noun.Props {
 					// A reference's choices, as a verb parameter's: the
@@ -435,6 +524,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		verb.OpensPage = op.OpensPage
 		verb.ByAssociation = op.ByAssociation
 		verb.Subject = op.Subject
+		verb.Creates = op.Creates
 		verb.FocusBound = op.FocusBound
 		verb.Motion, verb.Typing, verb.Staying = op.Motion, op.Typing, op.Staying
 		verb.Slot = op.Slot

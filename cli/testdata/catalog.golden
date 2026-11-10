@@ -8,6 +8,7 @@
     {
       "name": "widget",
       "pin": "normal",
+      "nounKind": "command",
       "verbs": [
         {
           "examples": [

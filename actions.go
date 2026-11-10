@@ -264,7 +264,7 @@ func ruleParameterNames(a UserOperation, r *Runtime) string {
 
 func ruleParameterTypes(a UserOperation, r *Runtime) string {
 	return a.firstParameter(func(name string, p Parameter) string {
-		return when(!kindOf(p.Type).action, "parameter %s: type must be string, integer, boolean or path", name)
+		return when(!kindOf(p.Type).action, "parameter %s: type must be string, integer, boolean, time or path", name)
 	})
 
 }

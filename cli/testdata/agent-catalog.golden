@@ -8,6 +8,7 @@
     {
       "about": "Work to do",
       "name": "task",
+      "nounKind": "command",
       "verbs": [
         {
           "guards": [

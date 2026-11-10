@@ -2,15 +2,18 @@ package ochazuke
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // paramKind is everything the routes know about one parameter type: how
 // each reads text as its value, which Go values the runtime accepts, and
 // an example. Routes keep their own error wording and call these.
 type paramKind struct {
-	// form: a form field can hold it (never an array or an object).
+	// form: a form field can hold it (an array or an object as JSON text
+	// in a multi-line field: the JSON field kind, jsonField).
 	form bool
 	// action: an action in actions.json may declare it.
 	action bool
@@ -98,7 +101,9 @@ var paramKinds = map[string]paramKind{
 		sample:   true,
 	},
 	"array": {
-		flag: jsonFlag,
+		form: true, must: "a JSON array such as [1, 2]", phrase: "a JSON array such as [1, 2]",
+		parse: jsonOf[[]any],
+		flag:  jsonFlag,
 		accepts: func(v any) bool {
 			switch v.(type) {
 			case []any, []Predicate:
@@ -108,7 +113,9 @@ var paramKinds = map[string]paramKind{
 		},
 	},
 	"object": {
-		flag: jsonFlag,
+		form: true, must: "a JSON object such as {\"a\": 1}", phrase: "a JSON object such as {\"a\": 1}",
+		parse: jsonOf[map[string]any],
+		flag:  jsonFlag,
 		accepts: func(v any) bool {
 			switch v.(type) {
 			case map[string]any, Arguments, Request, *Request:
@@ -118,6 +125,71 @@ var paramKinds = map[string]paramKind{
 		},
 	},
 	"duration": {sample: "1s"},
+	PropTime: {
+		form: true, action: true, word: true, trimmed: true, must: timePhrase, phrase: timePhrase,
+		parse: func(text string) (any, bool) {
+			t, ok := ParseTime(text)
+			if !ok {
+				return nil, false
+			}
+			return t.UTC().Format(time.RFC3339), true
+		},
+		flag: func(text string) (any, error) {
+			t, ok := ParseTime(text)
+			if !ok {
+				return nil, errors.New("not " + timePhrase)
+			}
+			return t.UTC().Format(time.RFC3339), nil
+		},
+		accepts: func(v any) bool {
+			switch t := v.(type) {
+			case time.Time:
+				return true
+			case string:
+				_, ok := ParseTime(t)
+				return ok
+			}
+			return false
+		},
+		sample: "2026-11-10T09:30:00Z",
+	},
+}
+
+// timePhrase is what a time value must look like.
+const timePhrase = "a time such as 2026-11-10, 2026-11-10 09:30 or 2026-11-10T09:30:00Z"
+
+// timeLayouts are the forms ParseTime reads, the zoned ones first.
+var timeLayouts = []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04Z07:00", "2006-01-02T15:04:05", "2006-01-02 15:04:05", "2006-01-02T15:04", "2006-01-02 15:04", "2006-01-02"}
+
+// ParseTime reads a time value's text (PropTime): RFC 3339, or a date and
+// time without a zone (local time), or a date (its start, local time).
+// Surrounding spaces are ignored.
+func ParseTime(text string) (time.Time, bool) {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return time.Time{}, false
+	}
+	for _, layout := range timeLayouts {
+		if t, err := time.ParseInLocation(layout, text, time.Local); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
+// jsonField reports whether a field of the type holds JSON text (an array
+// or an object): a form draws it several lines high.
+func jsonField(typ string) bool { return typ == "array" || typ == PropObject }
+
+// jsonOf reads text as JSON of one shape (an array or an object): the
+// form's JSON field kind. Text that is not is kept as typed by the form and
+// marked (paramKind.phrase), never written.
+func jsonOf[T any](text string) (any, bool) {
+	var out T
+	if err := json.Unmarshal([]byte(strings.TrimSpace(text)), &out); err != nil {
+		return nil, false
+	}
+	return out, true
 }
 
 func jsonFlag(text string) (any, error) {

@@ -387,6 +387,11 @@ type Operation struct {
 	// FocusBound marks operations whose editing/selection mode belongs to
 	// their own focused component, not a hypothetical outside context.
 	FocusBound bool `json:"focusBound,omitempty"`
+	// Creates marks a verb that makes a new thing of its noun, the one its
+	// answer names: the standard create, and an application verb that
+	// creates where its noun's store does not (lane.define,
+	// question.ask; NounBuilder.Creates). A generic new form runs it.
+	Creates bool `json:"creates,omitempty"`
 	// Typing marks an operation that passes the key that ran it on as
 	// content rather than acting on it as a command: typing into an input
 	// (input.insert), keys forwarded to a pane (terminal.send,

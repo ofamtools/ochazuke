@@ -600,7 +600,8 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 func RecordFields(op Operation) []RecordField {
 	var out []RecordField
 	for _, name := range op.ParameterOrder() {
-		out = append(out, RecordField{Name: name, Parameter: op.Parameters[name]})
+		p := op.Parameters[name]
+		out = append(out, RecordField{Name: name, Parameter: p, Multiline: jsonField(p.Type) && p.Items == nil})
 	}
 	return out
 }

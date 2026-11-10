@@ -805,6 +805,11 @@ func (r *Runtime) editFields(n *Noun, c Ctx, thing Thing, only *PropSpec, fieldO
 		if (p.Type == SettingList && p.Items == nil) || p.Type == PropObject || p.Type == SettingDuration {
 			field.Type = AnyParameterType
 		}
+		// The JSON field kind: an object is JSON text, several lines high;
+		// text that is not an object is kept as typed and marked.
+		if p.Type == PropObject {
+			field.Multiline = true
+		}
 		fields = append(fields, field)
 	}
 	return fields

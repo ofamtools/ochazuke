@@ -42,7 +42,12 @@ type Noun struct {
 	Unpersisted bool `json:"unpersisted,omitempty"`
 	// Live marks a noun whose rows are fetched on every call, outside the
 	// state verb's answer (NounBuilder.Live).
-	Live      bool                 `json:"live,omitempty"`
+	Live bool `json:"live,omitempty"`
+	// Kind is what kind of noun it is where its store cannot say:
+	// NounKindPart or NounKindCommand without a store, NounKindFacts over a store
+	// that is not marked Facts; "" derives it (NounBuilder.Kind,
+	// Runtime.NounKind).
+	Kind      string               `json:"kind,omitempty"`
 	Focusable bool                 `json:"focusable,omitempty"`
 	Region    bool                 `json:"region,omitempty"`
 	Bindings  map[string][]Binding `json:"bindings"`
@@ -583,6 +588,13 @@ func (b *NounBuilder) Lists() *NounBuilder {
 // same kind is a PropSpec with Subject: SubjectCollection.
 func (b *NounBuilder) OfCollection() *NounBuilder {
 	return b.lastOp("OfCollection", func(o *Operation) { o.Subject = SubjectCollection })
+}
+
+// Creates marks the last declared verb as one that makes a new thing of
+// its noun (Operation.Creates): the verb a noun creates through when it is
+// not create (lane.define, question.ask). The catalog publishes it.
+func (b *NounBuilder) Creates() *NounBuilder {
+	return b.lastOp("Creates", func(o *Operation) { o.Creates = true })
 }
 
 // Quiet marks the last declared verb as bookkeeping (Operation.Quiet): its

@@ -37,6 +37,14 @@ import (
 // same way: a word such as "3", "true" or "400ms", a JSON array or object.
 const PropObject = "object"
 
+// PropTime is the prop type of a moment (Parameter's "time" type): stored
+// as RFC 3339 text in UTC ("2026-11-10T09:30:00Z"), read from RFC 3339, a
+// date and time without seconds or zone ("2026-11-10 09:30", local time)
+// or a date ("2026-11-10", its start in local time). A form field holds it
+// as text; a value it cannot read is kept as typed and marked, never
+// written (ParseTime).
+const PropTime = "time"
+
 // PropPath is the prop type of a file or folder path (a string, Parameter's
 // "path" type: its form field opens the path chooser). A noun with a path
 // prop gets the free verbs reveal, yank-path, open and open-with
@@ -439,6 +447,7 @@ func propFlagError(key string, p PropSpec) error {
 var propTypes = map[string]bool{
 	SettingString: true, SettingInteger: true, SettingNumber: true, SettingBoolean: true,
 	SettingDuration: true, SettingList: true, PropObject: true, PropPath: true,
+	PropTime: true,
 }
 
 // prop is the noun's prop of that name, nil when it has none. "@role" names
@@ -897,6 +906,17 @@ func propValue(p PropSpec, value any) (any, error) {
 			}
 		}
 		return nil, errors.New("must be an object, a JSON object such as {\"a\": 1}")
+	}
+	if p.Type == PropTime {
+		switch v := value.(type) {
+		case time.Time:
+			return v.UTC().Format(time.RFC3339), nil
+		case string:
+			if t, ok := ParseTime(v); ok {
+				return t.UTC().Format(time.RFC3339), nil
+			}
+		}
+		return nil, errors.New("must be " + timePhrase)
 	}
 	typ := p.Type
 	if p.IsPath() {

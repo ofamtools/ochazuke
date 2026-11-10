@@ -256,6 +256,8 @@ noun.go	printableKey	case	"left"	1
 noun.go	printableKey	case	"right"	1
 noun.go	printableKey	case	"up"	1
 noun.go	var keyTexts	table	"enter"	1	key names mapped to their text; the words coincide with vocabulary names, no name branch
+noun_kind.go	var nounKindTable	table	"part"	1	the noun kinds table itself: the kind values are data a noun or catalog declares, not a branch on a noun name
+noun_kind.go	var nounKindTable	table	"record"	1	the noun kinds table itself: the kind values are data a noun or catalog declares, not a branch on a noun name
 noun_places.go	Runtime.placementOf	compare	"app"	1
 pages.go	Runtime.AddPage	compare	"app"	1
 pages.go	Runtime.PageList	compare	"app"	1

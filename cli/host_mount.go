@@ -169,6 +169,13 @@ func mountFlags(b *ochazuke.NounBuilder, n CatalogNoun) {
 		b.Main()
 	}
 	b.DefaultAction(n.DefaultAction)
+	// The kind the extension published (or derived from an older catalog)
+	// where the host's own reading would differ: a storeless noun's proxy
+	// verbs are all application verbs here, and a proxy store is not
+	// marked as facts.
+	if kind := n.KindOf(); ochazuke.DeclaredKind(kind) {
+		b.Kind(kind)
+	}
 }
 
 // mountProps declares the catalog noun's props on the mounted noun. A
