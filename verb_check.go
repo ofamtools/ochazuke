@@ -66,7 +66,8 @@ func generatedVerbs() map[string]bool {
 		generatedSet = map[string]bool{}
 		r := NewRuntime()
 		noop := func(Ctx, string) (Thing, error) { return nil, nil }
-		r.Define("probe-owner").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", Role: RoleLabel})
+		r.Define("probe-owner").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", Role: RoleLabel},
+			PropSpec{Name: "about", Role: RoleAbout, Parameter: Parameter{Noun: AnyNoun}}).Store(Store{Get: noop, Create: func(Ctx, Thing) (Thing, error) { return nil, nil }})
 		props := []PropSpec{
 			{Name: "id", Key: true},
 			{Name: "title", Role: RoleLabel},

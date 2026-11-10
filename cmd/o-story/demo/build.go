@@ -680,6 +680,7 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 			t[key] = fmt.Sprintf("t%d", len(things)+1)
 			things = append(things, t)
 			ss.Writes = append(ss.Writes, "create "+fmt.Sprint(t[key])+storeValues(spec.Props, values))
+			version++ // the token moves on every write (Token), a create too
 			return t, nil
 		},
 		Patch: func(_ ochazuke.Ctx, id string, changes ochazuke.Thing) (ochazuke.Thing, error) {
@@ -713,6 +714,7 @@ func (ss *session) defineStore(d *ochazuke.NounBuilder, spec *StoreSpec) (err er
 				return fmt.Errorf("no %s %q", Demo, id)
 			}
 			ss.Writes = append(ss.Writes, "delete "+id)
+			version++
 			return nil
 		},
 	}

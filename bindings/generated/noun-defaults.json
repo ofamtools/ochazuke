@@ -1,0 +1,23 @@
+// ochazuke generated keys (noun_keys.go): the default key block every stored noun gets in normal mode, one row per key, generated
+// only where the noun has the verb (and the role or prop the row names); keys.noun-defaults off generates none. A generated row steps
+// aside wherever a declared row (an application's, a tool's, the user's bindings.json, any guard) on the focus's walk binds its keys
+// or a prefix of them. The rows stay off the footer (hidden): ? help lists them. i (edit) is the existing app fallback row in
+// standard.json.
+{
+  "rows": [
+    {"key": "n", "verb": "create", "hint": "new", "hidden": true},
+    {"key": "r", "verb": "edit", "args": {"field": "@label"}, "role": "label", "hint": "rename", "hidden": true},
+    {"key": "v", "verb": "show", "hidden": true},
+    {"key": "enter", "verb": "show", "hidden": true},
+    {"key": "d a", "verb": "archive", "hidden": true},
+    {"key": "d r", "verb": "restore", "hidden": true},
+    {"key": "d d", "verb": "delete", "args": {"archive-first": true}, "hint": "delete", "hidden": true},
+    {"key": "u", "verb": "set", "action": "ochazuke.history-entry.undo", "hint": "undo", "hidden": true},
+    {"key": "a", "verb": "relate", "hint": "associate", "hidden": true},
+    {"key": "g d", "verb": "duplicate", "hidden": true},
+    {"key": "y y", "verb": "yank", "hidden": true},
+    {"key": "y p", "verb": "yank-path", "hint": "yank path", "hidden": true},
+    {"key": "R", "verb": "reveal", "hidden": true},
+    {"key": "z A", "verb": "archive", "action": "ochazuke.collection.show-archived", "hint": "archived", "hidden": true}
+  ]
+}

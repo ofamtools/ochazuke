@@ -94,6 +94,13 @@ type standardVerb struct {
 	// ConfirmFor is the row's Operation.ConfirmFor on noun n, set when the
 	// operation asks at all (Confirm, or the store's prompt, not "").
 	ConfirmFor func(r *Runtime, n *Noun, c Context, q Request, prompt string) string
+	// YieldsToProp keeps the row (and its aliases) off a noun that has a
+	// prop of its name: the word is the prop's there, and the name is not
+	// reserved from props (the scaffold verbs: show, history, ...).
+	YieldsToProp bool
+	// RowsOf names the noun the verb's answer rows belong to when they are
+	// not the noun's own (history: rows of ochazuke.history-entry).
+	RowsOf string
 	// optional marks a legacy row: registered only where its needs are
 	// met. Set by standardTable from the table the row is in.
 	optional bool
@@ -206,7 +213,8 @@ func coreVerbs() []standardVerb {
 		{Verb: "delete", Description: "Delete a thing (asks first)",
 			Kinds: []string{KindCollection}, Needs: []storeNeed{needWriter, needDelete},
 			TakesSubject: true, Many: true, Undo: undoByRecreate, Destructive: true, HistoryKind: HistoryChange,
-			Confirm: DefaultDeleteConfirm, ConfirmFor: deleteConfirm, Run: runDelete},
+			Confirm: DefaultDeleteConfirm, ConfirmFor: deleteConfirm, Run: runDelete,
+			ParamNames: []string{archiveFirstArg}, Params: deleteParams},
 		{Verb: "archive", Description: "Archive a thing: set its archive prop",
 			Kinds: []string{KindCollection}, Needs: []storeNeed{needWriter, needPatch, needRole(RoleArchive)},
 			TakesSubject: true, Many: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange,
@@ -225,7 +233,7 @@ func coreVerbs() []standardVerb {
 // set's alias patch were purged in R1: removed_verbs.json says what
 // replaces each.)
 func legacyVerbs() []standardVerb {
-	return append(append(append(pathVerbs(), refVerbs()...), relationVerbs()...), []standardVerb{
+	return append(append(append(append(pathVerbs(), refVerbs()...), relationVerbs()...), scaffoldVerbs()...), []standardVerb{
 		{Verb: "watch", Description: "Stream what happens to the things (one, or those where matches): a JSON line per thing added, modified or deleted, from since when given; the CLI streams until interrupted",
 			Kinds: []string{KindCollection, Singleton, Instances}, Needs: []storeNeed{needWatch},
 			TakesSubject: true, NoFocus: true, HistoryKind: HistoryFetch, ParamNames: []string{"where", "since"},
@@ -296,6 +304,9 @@ func standardRow(verb string) *standardVerb {
 func reservedVerbNames() []string {
 	var out []string
 	for _, v := range standardTable() {
+		if v.YieldsToProp {
+			continue
+		}
 		out = append(out, v.Verb)
 		out = append(out, v.Aliases...)
 	}

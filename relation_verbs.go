@@ -71,6 +71,7 @@ func relationVerbs() []standardVerb {
 	relate.Verb = "relate"
 	relate.Description = "Relate this thing to another (to) or another to this thing (from), as noun:key, in any kind (default relation) with text and data; relating again updates the relation; a declared kind's rules apply. Every noun has it, both ends share one handler"
 	relate.Params = relateVerbParams
+	relate.Aliases = []string{"associate"} // rich verbs: associate is relate, on both nouns
 	relate.Run = func(r *Runtime, n *Noun, c Ctx) (any, error) {
 		from, to, _, err := r.relationEnds(n, c)
 		if err != nil {

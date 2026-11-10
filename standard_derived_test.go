@@ -113,15 +113,16 @@ func newDerivedRuntime(t *testing.T) (*Runtime, *derivedStore) {
 	return r, s
 }
 
-// archive is the role-derived row; the purged verbs (rename, move,
-// duplicate, restore, set's alias patch) are gone, and a request that
+// archive is the role-derived row; the purged verbs (rename, move, set's
+// alias patch) are gone (duplicate and restore came back with the noun
+// scaffold, scaffold_verbs.go), and a request that
 // addresses a role the noun lacks is unavailable, as the verb was.
 func TestDerivedVerbsFollowTheRoles(t *testing.T) {
 	r, _ := newDerivedRuntime(t)
 	if op := r.Operations.At(Key("task.archive")); op.Standard != "archive" {
 		t.Fatalf("task.archive standard %q", op.Standard)
 	}
-	for _, verb := range []string{"rename", "move", "duplicate", "restore", "patch"} {
+	for _, verb := range []string{"rename", "move", "patch"} {
 		if _, ok := r.Operation("task." + verb); ok || slices.Contains(StandardVerbs(), verb) || slices.Contains(reservedVerbNames(), verb) {
 			t.Fatalf("task.%s is still a verb", verb)
 		}

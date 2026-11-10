@@ -305,9 +305,9 @@ picker_verbs.go	var pickerVerbAliases	table	"close"	1	data: the path finder's ol
 prop_filter.go	propTest	compare	"list"	1
 prop_filter.go	typedPropFilter	compare	"list"	1
 props.go	PropSpec.ofCollection	compare	"collection"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
-props.go	Runtime.addProp	case	"archive"	1
-props.go	Runtime.addProp	case	"owner"	1
 props.go	Runtime.addProp	compare	"archive"	1
+props.go	checkPropRole	case	"archive"	1
+props.go	checkPropRole	case	"owner"	1
 props.go	Runtime.addProp	compare	"archived"	1
 props.go	Runtime.validatePropRow	compare	"value"	1
 props.go	checkSchema	case	"collection"	1
@@ -334,8 +334,8 @@ registers.go	yankReport	case	"line"	1
 relation_props.go	PropSpec.listed	compare	"list"	1	the prop type is a declared enum value (SettingList), read as data; not a branch on the verb list
 resolve.go	Runtime.dispatchIn	compare	"ochazuke.key.ignore"	1
 resolve.go	Runtime.dispatchIn	cyclo	"-"	33
-resolve.go	Runtime.lookup	cyclo	"-"	46
-resolve.go	Runtime.scanRowsUncached	cyclo	"-"	37
+resolve.go	Runtime.lookup	cyclo	"-"	45
+resolve.go	Runtime.scanRowsUncached	cyclo	"-"	36
 runtime.go	Operation.HistoryKindOf	compare	"lists"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 runtime.go	Runtime.AddInput	case	"dir"	1
 runtime.go	Runtime.AddInput	case	"path"	1

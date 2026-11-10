@@ -48,6 +48,10 @@ type level struct {
 	// component's even where no row answers (an edit the input refuses, a
 	// row guarded off), consumed rather than passed to the page.
 	owns bool
+	// declared are the keys declared (not generated) rows bind on the
+	// walk in the mode looked up (withDeclared): a generated row on one,
+	// or extending one, steps aside. Nil: none steps aside.
+	declared *map[string]bool
 }
 
 // name is the noun a level answers as: its noun table's, else its
@@ -311,7 +315,7 @@ func (r *Runtime) dispatchIn(focus string, mode ModeState, key MacroKey) (KeyOut
 		return outcome, r.runRow(lv, *hit, ev, "")
 	}
 	drop := r.dropsInheritedSequences()
-	levels := r.walk(focus)
+	levels := r.withDeclared(r.walk(focus), mode, focus, exclusive)
 	bound := false // a row on the sequence typed exists but does not answer here
 	// The capture pass: outer-first, the first level that answers wins.
 	for len(levels) > 0 && levels[0].capture {
@@ -478,7 +482,7 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 	for t, rows := range tables {
 		for i := range rows {
 			row := &rows[i]
-			if row.Unbind || row.Capture != lv.capture {
+			if lv.skips(row) {
 				continue
 			}
 			if lv.owns && owned == nil && matches(row) {
@@ -933,13 +937,14 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.modes[mode.Name].Pending || mode.Payload.Shadow != nil
 	seen := map[string]bool{}
+	declared := r.declaredKeys(levels, mode, focus, exclusive)
 	var out, owned []levelRow
 	var capture, inherited, owns bool
 	var name string
 	var cur level
 	take := func(rows []Binding) {
 		for _, b := range rows {
-			if b.Unbind || b.Capture != capture {
+			if (level{capture: capture, declared: &declared}).skips(&b) {
 				continue
 			}
 			guard := ""

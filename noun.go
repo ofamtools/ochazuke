@@ -33,6 +33,11 @@ type Noun struct {
 	// NoEditKey declines the app-level implicit edit-key fallback only.
 	// The noun's edit verb and explicit binding rows remain available.
 	NoEditKey bool `json:"noEditKey,omitempty"`
+	// NoDefaultKeys declines the generated default key block
+	// (keys.noun-defaults, noun_keys.go) for this noun's things: a noun
+	// whose rows are a component's own (an outline's lines) keeps only
+	// its declared keys. The verbs stay on the palette, CLI and API.
+	NoDefaultKeys bool `json:"noDefaultKeys,omitempty"`
 	// NoPicker keeps the noun out of the derived pickers (NounBuilder.NoPicker,
 	// picker_registry.go): a noun with a list verb gets no picker of its own.
 	NoPicker bool `json:"noPicker,omitempty"`
@@ -155,6 +160,12 @@ type Binding struct {
 	// list adds so a row names its canonical operation and its aliases
 	// once; a stored row never holds them (a file's value is dropped).
 	Aliases []string `json:"aliases,omitempty"`
+	// Generated marks a row of a noun's generated default key block
+	// (noun_keys.go, keys.noun-defaults): it steps aside wherever a
+	// declared row on the walk binds its keys or a prefix of them. Never
+	// read from or written to a file (a file's row is declared); bindings
+	// defaults names its source.
+	Generated bool `json:"-"`
 	// named holds the row's text as written when its keys, hint, help or
 	// a string argument name a setting ("{terminal-leader}"): the row
 	// holds the resolved text and is resolved again from this when the
@@ -464,6 +475,14 @@ func (b *NounBuilder) Pin(mode string) *NounBuilder { b.n.Pin = mode; return b }
 // there. A focused component that owns its keys (KeyOwner) reads it right
 // after the instance instead.
 func (b *NounBuilder) Fallback(noun string) *NounBuilder { b.n.Fallback = noun; return b }
+
+// DefaultKeys enables the generated default key block for this noun (on
+// by default; Noun.NoDefaultKeys).
+func (b *NounBuilder) DefaultKeys(enabled bool) *NounBuilder {
+	b.n.NoDefaultKeys = !enabled
+	b.r.ensureNounKeys(b.n)
+	return b
+}
 
 // EditKey enables the implicit edit-key fallback for this noun (on by
 // default). False keeps edit available to explicit bindings, palette and CLI.

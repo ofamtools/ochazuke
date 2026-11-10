@@ -447,7 +447,7 @@ var settingProps = []PropSpec{
 // registerSettingThings declares the setting noun's props and its store,
 // and tells its watches when any setting changes.
 func registerSettingThings(r *Runtime) {
-	r.Define("ochazuke.setting").Props(settingProps...).Store(Store{
+	r.Define("ochazuke.setting").DefaultKeys(false).Props(settingProps...).Store(Store{
 		Kind: KindCollection,
 		Get: func(c Ctx, name string) (Thing, error) {
 			return settingThing(c.Runtime, name)

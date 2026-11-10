@@ -92,6 +92,10 @@ const (
 	RoleArchive = "archive"
 )
 
+// referenceRoles are the roles beside owner a reference prop takes:
+// about (RoleAbout, scaffold_verbs.go).
+var referenceRoles = []string{RoleAbout}
+
 // PropSpec is one field of a noun's things. Parameter carries the type,
 // Required, Enum, Source, Noun and Description, as a verb parameter does,
 // so the palette, CLI help and forms read it unchanged; Type is a setting
@@ -730,18 +734,8 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	if len(p.Enum) > 0 && p.Type != SettingString {
 		return fmt.Errorf("prop %s: only a string prop takes an enum", key)
 	}
-	switch p.Role {
-	case "", RoleLabel, RoleCreated, RoleUpdated:
-	case RoleOwner:
-		if p.Noun == "" {
-			return fmt.Errorf("prop %s: the owner role needs a reference (Noun)", key)
-		}
-	case RoleArchive:
-		if p.Type != SettingBoolean {
-			return fmt.Errorf("prop %s: the archive role is a boolean prop, not %s", key, p.Type)
-		}
-	default:
-		return fmt.Errorf("prop %s: unknown role %q", key, p.Role)
+	if err := checkPropRole(key, p); err != nil {
+		return err
 	}
 	if err := propFlagError(key, p); err != nil {
 		return err
@@ -1223,4 +1217,28 @@ func asksCollectionProp(n *Noun, a Arguments) bool {
 func (p PropSpec) keepAnyRef() PropSpec {
 	p.Free = p.Free || p.Noun == AnyNoun
 	return p
+}
+
+// checkPropRole is the role rule of one prop: a known role, a reference
+// where the role names a thing, a boolean archive prop.
+func checkPropRole(key string, p PropSpec) error {
+	switch p.Role {
+	case "", RoleLabel, RoleCreated, RoleUpdated:
+	case RoleOwner:
+		if p.Noun == "" {
+			return fmt.Errorf("prop %s: the %s role needs a reference (Noun)", key, p.Role)
+		}
+	case RoleArchive:
+		if p.Type != SettingBoolean {
+			return fmt.Errorf("prop %s: the archive role is a boolean prop, not %s", key, p.Type)
+		}
+	default:
+		if !slices.Contains(referenceRoles, p.Role) {
+			return fmt.Errorf("prop %s: unknown role %q", key, p.Role)
+		}
+		if p.Noun == "" {
+			return fmt.Errorf("prop %s: the %s role needs a reference (Noun)", key, p.Role)
+		}
+	}
+	return nil
 }

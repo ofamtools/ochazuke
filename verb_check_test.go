@@ -21,7 +21,7 @@ func TestVerbCatalog(t *testing.T) {
 			t.Errorf("Known[%s] = %q, %v; want %q", ref, got, ok, std)
 		}
 	}
-	for _, ref := range []string{"task.rename", "task.patch", "task.move", "task.duplicate", "task.restore"} {
+	for _, ref := range []string{"task.rename", "task.patch", "task.move"} {
 		if _, ok := c.Known[ref]; ok {
 			t.Errorf("Known has the purged %s", ref)
 		}

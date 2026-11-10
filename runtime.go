@@ -732,6 +732,8 @@ func (r *Runtime) registerFramework() {
 	for _, name := range frameworkBindingFiles {
 		r.loadFrameworkBindings(name)
 	}
+	registerNounKeys(r)
+	r.ensureAllNounKeys()
 }
 
 // Builtin runs register and marks every operation it registered as the
