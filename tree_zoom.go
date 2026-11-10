@@ -349,13 +349,33 @@ func (r *Runtime) titleCrumb() []string {
 	return nil
 }
 
-// Height is the lines the tree needs to draw every visible row without
-// windowing (a table's header aside): its list's Height, plus the
-// breadcrumb line while a zoom draws one. A host that sizes a tree to its
-// rows sizes it with Height.
+// Height counts logical rows, gaps and the breadcrumb, excluding a table's
+// header. HeightAt counts wrapped display lines at a given drawing width.
 func (t *Tree) Height() int {
 	h := t.list.Height()
 	if t.r.TreeBreadcrumb() == TreeBreadcrumbLine && len(t.Breadcrumb()) > 0 {
+		h++
+	}
+	return h
+}
+
+// HeightAt is Height at the width the tree will be drawn, including soft
+// wraps. Like Height, it excludes a table's header.
+func (t *Tree) HeightAt(width int) int {
+	if width <= 0 || !t.wrapEnabled() || len(t.list.items) == 0 {
+		return t.Height()
+	}
+	t.frameZoom(width)
+	cols, shown, widths := t.wrapLayout(width)
+	t.measureWrapped(cols, shown, widths)
+	if !t.wrap.active {
+		return t.Height()
+	}
+	h := t.wrap.starts[len(t.wrap.rows)]
+	if t.list.Filtering() || t.list.Filter() != "" {
+		h++
+	}
+	if t.crumbLine(width) != "" {
 		h++
 	}
 	return h

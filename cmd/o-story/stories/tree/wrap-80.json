@@ -1,0 +1,14 @@
+{
+  "name": "tree: checkbox continuations and first-line badges at 80 columns",
+  "area": "tree", "width": 80, "height": 16, "chrome": "none",
+  "page": {"noHeadings": true, "trees": [{"id": "t", "editable": true, "height": -1,
+    "columns": [{"width": 20}, {"width": 8}],
+    "nodes": [
+      {"id": "a", "label": "testing wrap start here", "cells": ["- [ ] testing wrap start here", "todo"]},
+      {"id": "b", "label": "More rows"},
+      {"id": "c", "parent": "b", "label": "testing wrap start here", "cells": ["- [x] testing wrap start here", "done"]},
+      {"id": "d", "parent": "c", "label": "界界 abcdefghijklmnop", "cells": ["12. 界界 abcdefghijklmnop", "long"]}
+    ]
+  }]},
+  "script": []
+}

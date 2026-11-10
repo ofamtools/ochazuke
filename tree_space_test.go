@@ -171,6 +171,9 @@ func TestTreeSpaceAboveOpenLineSitsOnItsRow(t *testing.T) {
 		_, m, tree := spaceTree(t, 5, 14, columns)
 		tree.OnChange = func(TreeChange) error { return nil }
 		pressKeys(m, "j", "j", "i")
+		// Start of the logical line, independent of the cursor cell wrapping
+		// past the end of an exactly full table column.
+		tree.input.Cursor = 0
 		block := tree.Block(30, 14)
 		lines := bodyLines(ansi.Strip(block.Text))
 		at := indexOfLine(lines, "row2")

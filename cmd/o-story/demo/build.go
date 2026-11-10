@@ -1774,7 +1774,7 @@ func (ss *session) renderMain(p *Page, width, height int) ochazuke.Block {
 				case h < 0:
 					h = max(1, height-used-head)
 				case h == 0:
-					h = max(1, tree.Height())
+					h = max(1, tree.HeightAt(width))
 					if len(tree.List().Columns()) > 0 {
 						h++ // the header line
 					}
