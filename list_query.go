@@ -446,6 +446,10 @@ func (r *Runtime) thingRows(n *Noun, things []Thing) queryRows {
 // in-memory form of Store.Query. Archived things are left out unless the
 // query includes them or the archive hiding is off for it (archiveHiding).
 func (r *Runtime) queryAll(n *Noun, things []Thing, q ListQuery) ListPage {
+	if strings.TrimSpace(q.Text) != "" {
+		fields := textProps(n)
+		things = slices.DeleteFunc(slices.Clone(things), func(t Thing) bool { return !TextMatches(t, fields, q.Text) })
+	}
 	rows := r.thingRows(n, things)
 	if r.archiveHiding(n, q) == nil {
 		rows.hidden = nil
@@ -692,6 +696,7 @@ func (r *Runtime) listQueryOf(n *Noun, a Arguments) (ListQuery, error) {
 			return q, &ArgumentError{fmt.Errorf("group-sort %q is not a group-by prop", k.Field)}
 		}
 	}
+	q.Text = StringArg(a, "search", "")
 	q.Page, q.PerPage = pageArg(a, "page"), pageArg(a, "per-page")
 	if limit := pageArg(a, "limit"); limit > 0 && q.PerPage == 0 {
 		q.PerPage, q.Page = limit, 1
