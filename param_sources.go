@@ -116,23 +116,27 @@ func (r *Runtime) sourceStart(q Request, focus string) string {
 // their parameters' From (Parameter.From), read for the row at start (see
 // sourceStart). An argument given is kept.
 func (r *Runtime) parameterSources(op Operation, q Request, focus string) (Arguments, error) {
-	return r.sourcesAt(op, q.Args, r.sourceStart(q, focus))
+	return r.sourcesAt(op, q, r.sourceStart(q, focus))
 }
 
-// sourcesAt fills args' omitted arguments from op's parameters' From, read
-// for the row at start ("" fills nothing).
-func (r *Runtime) sourcesAt(op Operation, args Arguments, start string) (Arguments, error) {
+// sourcesAt fills q's omitted arguments from op's parameters' From, read
+// for the row at start ("" fills nothing). An explicit target of the
+// subject's noun already names that subject, ahead of its row source.
+func (r *Runtime) sourcesAt(op Operation, q Request, start string) (Arguments, error) {
 	from := map[string]string{}
 	for name, p := range op.Parameters {
+		if q.Target != "" && p.Focus && r.CanonicalNoun(p.Noun) == op.Noun() && r.nounInstance(op.Noun(), start) != "" {
+			continue
+		}
 		if p.From != "" {
 			from[name] = p.From
 		}
 	}
 	if len(from) == 0 || start == "" {
-		return args, nil
+		return q.Args, nil
 	}
 	optional := func(arg string) bool { return !op.Parameters[arg].Required }
-	return r.fillFrom(args, from, KeyEvent{Focus: start}, false, optional)
+	return r.fillFrom(q.Args, from, KeyEvent{Focus: start}, false, optional)
 }
 
 // formSources is q with its parameters' sources filled in, for the args
@@ -149,7 +153,7 @@ func (r *Runtime) formSources(q Request) Request {
 			start = id
 		}
 	}
-	if args, err := r.sourcesAt(op, q.Args, start); err == nil {
+	if args, err := r.sourcesAt(op, q, start); err == nil {
 		q.Args = args
 	}
 	return q
@@ -162,7 +166,7 @@ func (r *Runtime) sourceValue(op Operation, name, focus string) (any, bool) {
 	if p, ok := op.Parameters[name]; !ok || p.From == "" {
 		return nil, false
 	}
-	args, err := r.sourcesAt(op, nil, focus)
+	args, err := r.sourcesAt(op, Request{}, focus)
 	if err != nil {
 		return nil, false
 	}

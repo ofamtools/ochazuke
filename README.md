@@ -1352,6 +1352,44 @@ For a person's targetless key, palette or macro request whose subject noun is ab
 
 Compared with Vim: explicit `<cword>` expansion (`:help <cword>`) is similar to a declared optional `Focus` value, but Vim has no implicit subject-association equivalent. Following a reference (`:help gf`, `:help CTRL-]`) moves Vim's cursor; this resolution does not move focus.
 
+#### Subjects from row properties
+
+A verb can derive its subject from a related row with the existing
+`Parameter.From`. Put `From: "row:pane"` on its subject parameter to read a
+`pane` property of the row, or use a dotted field such as `row:relation.to`.
+This reads the row's `Data`, then its `ListItem.Props`; it does not query a
+relation store. The parameter keeps its `Noun` and `Focus` declarations, so
+the usual subject checks and chooser still apply.
+
+For an application-owned edit that replaces a standard edit, keep the
+inherited subject parameter and add its source:
+
+```go
+edit := r.Define("pane").Verb("edit", app.EditPane)
+subject := r.Operations.At(ochazuke.Key("pane.edit")).Parameters["id"]
+subject.From = "row:pane"
+edit.Params(map[string]ochazuke.Parameter{"id": subject})
+```
+
+For example, an action-item row holding `Data: map[string]any{"pane": "w1"}`
+now supplies `w1` to `pane edit` before the palette asks which pane. An
+explicit subject argument or a target of the subject's noun wins. Otherwise
+the declared row source precedes focus associations and the ordinary focus
+fill. Keys, the palette and the args form use the same source; the palette
+shows `row: w1`, and the args form holds that value. A missing or blank field
+falls back to the existing subject chooser. Omitting `From` opts out.
+
+CLI, API and MCP requests without a target never borrow UI focus for this
+source. A program can pass the subject argument, target the subject itself,
+or explicitly target a related row whose data supplies the subject. Catalogs
+carry the declaration in `params.id.from`; mounting preserves it and remaps
+the parameter's noun, without rewriting row field names.
+
+Compared with Vim: `:help <cword>` describes explicit expansion of the word
+under the cursor. A declared row source is similar, but does not parse
+screen text or move the cursor. Vim has no noun-subject chooser.
+
+
 #### Leader outside fall-through
 
 `leader_pending` declares `{"pending": true, "outside": "normal"}`. Any pending mode can opt in with `ModeOutside("normal")`; there is no terminal-specific dispatch branch. An unbound key first tries each association's full outside walk on this page, then the live focus's own outside walk. Guards use that hypothetical focus and outside mode; execution uses its context without temporarily moving the real focus or notifying components of a mode change. A form keeps the associated target but returns to the live focus and mode.

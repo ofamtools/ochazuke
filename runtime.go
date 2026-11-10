@@ -1080,7 +1080,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if err := r.checkArguments(op, filled); err != nil {
 		return nil, &ArgumentError{err}
 	}
-	associated, err := r.associationSubject(op, q, focusOf(c))
+	associated, err := r.associationSubject(op, withArgs(q, filled), focusOf(c))
 	if err != nil {
 		return nil, err
 	}

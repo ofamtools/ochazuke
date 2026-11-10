@@ -54,6 +54,9 @@ func (p *Palette) missingTarget(c commandLine) string {
 		if v, set := c.Args[name]; set && !emptyProp(v) {
 			continue
 		}
+		if _, ok := p.r.sourceValue(c.Op, name, focusOf(p.origin)); ok {
+			continue
+		}
 		if _, ok := p.r.focusValue(c.Op, name, focusOf(p.origin)); ok {
 			continue
 		}
@@ -89,11 +92,14 @@ func (p *Palette) reach(q Request) Request {
 		return q
 	}
 	focus := focusOf(p.origin)
-	if p.r.availableWithin(q, p.r.rowInstance(level{}, q, focus), p.originMode, nil) {
-		return q
-	}
 	op, ok := p.r.Operation(q.Key())
 	if !ok {
+		return q
+	}
+	if args, err := p.r.parameterSources(op, q, focus); err == nil {
+		q.Args = args
+	}
+	if p.r.availableWithin(q, p.r.rowInstance(level{}, q, focus), p.originMode, nil) {
 		return q
 	}
 	var homes []string
