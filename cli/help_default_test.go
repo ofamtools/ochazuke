@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -85,8 +86,10 @@ func helpNames(help string) string {
 		}
 		out = append(out, strings.TrimRight(l, " "))
 	}
-	return strings.Join(out, "\n")
+	return versionRe.ReplaceAllString(strings.Join(out, "\n"), "oden@VER")
 }
+
+var versionRe = regexp.MustCompile(`oden@v[0-9.]+`)
 
 func TestHelpGoldens(t *testing.T) {
 	for name, args := range map[string][]string{"help-default": {"help"}, "help-all": {"help", "--all"}} {
@@ -101,5 +104,27 @@ func TestHelpGoldens(t *testing.T) {
 		if err != nil || string(want) != got {
 			t.Errorf("%s differs (go test ./cli -run TestHelpGoldens -update):\n%s", golden, got)
 		}
+	}
+}
+
+// A noun with no verbs has nothing to run from the CLI: --all lists it,
+// default help does not.
+func TestVerblessNounIsNotADefaultHelpRow(t *testing.T) {
+	f := newFixture(t)
+	f.r.Define("blankpage")
+	run := func(args ...string) string {
+		var out bytes.Buffer
+		app := oden.New("tool", args, oden.WithBuiltins(), oden.WithStdio(strings.NewReader(""), &out, io.Discard), oden.WithPath(t.TempDir()))
+		Mount(app, New(f.r, "tool", strings.NewReader(""), &out, io.Discard))
+		if err := app.Run(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+		return out.String()
+	}
+	if got := run("help"); strings.Contains(got, "blankpage") || !strings.Contains(got, "widget") || !strings.Contains(got, "  app ") {
+		t.Errorf("default help:\n%s", got)
+	}
+	if got := run("help", "--all"); !strings.Contains(got, "blankpage") {
+		t.Errorf("--all:\n%s", got)
 	}
 }

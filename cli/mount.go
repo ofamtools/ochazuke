@@ -249,6 +249,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 		command := top[name].command(name, line)
 		command.Aliases = shortNames[name]
 		markNamespace(&command, name)
+		markVerbless(&command, top[name])
 		sh.addGroup(app, command)
 	}
 	app.HelpText = `CLI execution:
@@ -294,6 +295,12 @@ func briefHelp(bin, stdLine string) string {
 		brief = stdLine + "\n\n" + brief
 	}
 	return brief
+}
+
+// markVerbless hides a noun with no verbs and no nested nouns from default
+// help: it has nothing to run from the CLI (help --all lists it).
+func markVerbless(c *oden.Command, g *nounGroup) {
+	c.Hidden = c.Hidden || len(g.verbs) == 0 && len(g.children) == 0
 }
 
 // markNamespace says which namespace the top-level command name belongs to,

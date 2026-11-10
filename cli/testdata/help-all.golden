@@ -101,7 +101,7 @@ widget
 
 Machine commands (JSON / JSON Lines):
 catalog
-            shadows inline oden@v0.4.0/builtins.go:23
+            shadows inline oden@VER/builtins.go:23
             shadows alias catalog of ochazuke.catalog noun
 command
 commands
