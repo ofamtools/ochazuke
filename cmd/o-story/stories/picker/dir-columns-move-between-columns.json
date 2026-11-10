@@ -1,0 +1,110 @@
+{
+  "name": "directory picker, style columns: h and l move between columns, the parent column marks where you came from, $ returns to the deepest place",
+  "area": "picker",
+  "width": 110,
+  "height": 22,
+  "files": [
+    "a.json",
+    "b.txt",
+    ".hidden",
+    "sub/c.json",
+    "sub/deep/",
+    "proj/matomeru/cmd/",
+    "proj/ochazuke/",
+    "empty/"
+  ],
+  "values": {
+    "pickers.directory.style": "columns"
+  },
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "records": [
+      {
+        "id": "doc",
+        "fields": [
+          {
+            "name": "file",
+            "type": "path",
+            "base": "{{files}}",
+            "path": "dir"
+          }
+        ]
+      }
+    ],
+    "focus": "doc/file"
+  },
+  "script": [
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "j",
+    "l",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "h",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "h",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "$",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    }
+  ],
+  "expect": [
+    {
+      "after": 7,
+      "contains": [
+        "matomeru/",
+        "ochazuke/"
+      ]
+    },
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "matomeru/",
+        "ochazuke/"
+      ]
+    }
+  ]
+}

@@ -15,7 +15,7 @@ import (
 type pickerModal interface {
 	pickerPick(args Arguments) Result
 	pickerCancel() Result
-	pickerMove(delta int, to string) Result
+	pickerMove(delta int, to string, sections bool) Result
 	pickerInto() Result
 	pickerUp() Result
 	pickerEnter() Result
@@ -116,8 +116,8 @@ func registerPickerVerbs(r *Runtime) {
 		Verb("pick", verb(func(m pickerModal, ctx Ctx) Result { return m.pickerPick(ctx.Args) }), "Take the highlighted row, else the top match, else create from the query").
 		Params(map[string]Parameter{"current": {Type: "boolean", Description: "Take the source's current row instead of the highlight (the path picker's find: the folder it searches)"}}).
 		Verb("move", verb(func(m pickerModal, ctx Ctx) Result {
-			return m.pickerMove(IntArg(ctx.Args, "delta", 0), StringArg(ctx.Args, "to", ""))
-		}), "Move the highlight; from none, down selects first and up follows picker.up-from-none").Motion().Params(map[string]Parameter{"delta": {Type: "integer"}, "to": {Type: "string", Enum: []string{"first", "last"}}}).
+			return m.pickerMove(IntArg(ctx.Args, "delta", 0), StringArg(ctx.Args, "to", ""), boolArg(ctx.Args, "sections"))
+		}), "Move the highlight; from none, down selects first and up follows picker.up-from-none").Motion().Params(map[string]Parameter{"delta": {Type: "integer"}, "to": {Type: "string", Enum: []string{"first", "last"}}, "sections": {Type: "boolean", Description: "Count sections, not rows: delta 1 is the first row of the next section"}}).
 		Verb("cancel", verb(func(m pickerModal, _ Ctx) Result { return m.pickerCancel() }), "Close without choosing").History(HistoryAction).
 		Verb("into", verb(func(m pickerModal, _ Ctx) Result { return m.pickerInto() }), "Browse into the highlighted row inside its source (a folder)").When(PickerOpensGuard).
 		Verb("up", verb(func(m pickerModal, _ Ctx) Result { return m.pickerUp() }), "Step the source back out (the parent folder)").When(PickerUpGuard).
@@ -175,6 +175,11 @@ func (c *Chooser) pickerPick(args Arguments) Result {
 }
 
 func (c *Chooser) pickerCancel() Result {
+	if c.making {
+		// A new thing is being named: escape drops the name, not the picker.
+		c.endMake()
+		return Done(c.state())
+	}
 	c.sync()
 	if err := c.close(); err != nil {
 		return Failed(err)
@@ -194,8 +199,14 @@ func pickerMoveDelta(delta int, to string, n int) int {
 	return delta
 }
 
-func (c *Chooser) pickerMove(delta int, to string) Result {
+func (c *Chooser) pickerMove(delta int, to string, sections bool) Result {
 	c.sync()
+	if sections {
+		if err := c.section(delta); err != nil {
+			return Failed(err)
+		}
+		return Done(c.state())
+	}
 	c.move(pickerMoveDelta(delta, to, len(c.matches)))
 	return Done(c.state())
 }
@@ -228,11 +239,15 @@ func (c *Chooser) pickerComplete() Result {
 	return Done(c.state())
 }
 
-func (c *Chooser) pickerOpens() bool { return c.opens() }
+func (c *Chooser) pickerOpens() bool { return c.canInto() }
 
 // Enter waits for the rows of the query as typed (pick holds it), so it
 // never opens an older query's row.
-func (c *Chooser) pickerEnterOpens() bool { return !c.waiting() && c.enterOpens() }
-func (c *Chooser) pickerCanUp() bool      { return c.canUp() }
-func (c *Chooser) pickerUpEmpty() bool    { return c.canUp() && c.Query() == "" }
-func (c *Chooser) pickerCompletes() bool  { return c.completes() }
+// With rows marked enter takes the marks, whatever the highlighted row does.
+func (c *Chooser) pickerEnterOpens() bool {
+	return !c.waiting() && len(c.markOrder) == 0 && c.enterOpens()
+}
+
+func (c *Chooser) pickerCanUp() bool     { return c.canUp() }
+func (c *Chooser) pickerUpEmpty() bool   { return c.canUp() && c.Query() == "" }
+func (c *Chooser) pickerCompletes() bool { return c.completes() }

@@ -1501,6 +1501,11 @@ func (ss *session) recordSpec(rs RecordSpec) ochazuke.RecordSpec {
 	fields := make([]ochazuke.RecordField, len(rs.Fields))
 	for i, f := range rs.Fields {
 		f.Base = ss.files(f.Base)
+		if f.Items != nil {
+			item := *f.Items
+			item.Base = ss.files(item.Base)
+			f.Items = &item
+		}
 		fields[i] = f
 	}
 	values := ochazuke.Record{}

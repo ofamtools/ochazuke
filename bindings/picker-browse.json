@@ -1,0 +1,40 @@
+// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
+// The directory picker's browse keys: the normal-mode keys of a picker whose source navigates (guard picker-up: the hybrid and columns styles of setting pickers.directory.style rest in normal mode; a filter picker without navigation falls through to the editor's keys), and the keys every picker with a navigating source answers in any mode (alt+ keys, for the list style whose search line is always typing). Each is a row to a verb of the picker noun; none is handled in code.
+{
+  "bindings": [
+    {"context": "ochazuke.picker/normal", "bindings": [
+      {"key": "h", "when": "picker-up", "action": "ochazuke.picker.up", "hint": "up"},
+      {"key": "l", "when": "picker-up", "action": "ochazuke.picker.into", "hint": "into"},
+      {"key": "0", "when": "picker-up", "action": "ochazuke.picker.goto", "args": {"to": "first-col"}, "hint": "first column"},
+      {"key": "$", "when": "picker-up", "action": "ochazuke.picker.goto", "args": {"to": "last-col"}, "hint": "last column"},
+      {"key": "~", "when": "picker-up", "action": "ochazuke.picker.goto", "args": {"to": "~"}, "hint": "home"},
+      {"key": "g /", "when": "picker-up", "action": "ochazuke.picker.goto", "args": {"to": "/"}, "hint": "root"},
+      {"key": "u", "when": "picker-up", "action": "ochazuke.picker.pick", "args": {"current": true}, "hint": "use this"},
+      {"key": "n", "when": "picker-up", "action": "ochazuke.picker.new", "hint": "new folder"},
+      {"key": "m", "when": "picker-up", "action": "ochazuke.picker.mark", "hint": "mark"},
+      {"key": "M", "when": "picker-up", "action": "ochazuke.picker.mark", "args": {"all": true}, "hint": "mark all"},
+      {"key": ".", "when": "picker-up", "action": "ochazuke.picker.toggle", "args": {"name": "hidden"}, "hint": "hidden"},
+      {"key": "]", "when": "picker-up", "action": "ochazuke.picker.move", "args": {"delta": 1, "sections": true}, "hint": "next section"},
+      {"key": "[", "when": "picker-up", "action": "ochazuke.picker.move", "args": {"delta": -1, "sections": true}, "hint": "previous section"},
+      {"key": "o", "when": "picker-up", "action": "ochazuke.picker.open-with", "hint": "open"},
+      {"key": "R", "when": "picker-up", "action": "ochazuke.picker.reveal", "hint": "reveal"},
+      {"key": "y", "when": "picker-up", "action": "ochazuke.picker.yank-path", "hint": "copy path"},
+      {"key": "/", "when": "picker-up", "action": "ochazuke.input.begin", "args": {"position": "insert"}, "hint": "filter"},
+      {"key": "i", "when": "picker-up", "action": "ochazuke.input.begin", "args": {"position": "insert"}, "hidden": true},
+      {"key": "paste", "when": "picker-up", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true}
+    ]},
+    {"context": "ochazuke.picker", "bindings": [
+      {"key": "alt+down", "action": "ochazuke.picker.goto", "when": "picker-up", "args": {"to": "own"}, "hint": "back to the list", "hidden": true},
+      {"key": "alt+h", "action": "ochazuke.picker.goto", "when": "picker-up", "args": {"to": "~"}, "hint": "home", "hidden": true},
+      {"key": "alt+/", "action": "ochazuke.picker.goto", "when": "picker-up", "args": {"to": "/"}, "hint": "root", "hidden": true},
+      {"key": "alt+u", "action": "ochazuke.picker.pick", "when": "picker-up", "args": {"current": true}, "hint": "use this", "hidden": true},
+      {"key": "alt+n", "action": "ochazuke.picker.new", "when": "picker-up", "hint": "new folder", "hidden": true},
+      {"key": "alt+m", "action": "ochazuke.picker.mark", "when": "picker-up", "hint": "mark", "hidden": true},
+      {"key": "alt+a", "action": "ochazuke.picker.mark", "when": "picker-up", "args": {"all": true}, "hint": "mark all", "hidden": true},
+      {"key": "alt+.", "action": "ochazuke.picker.toggle", "when": "picker-up", "args": {"name": "hidden"}, "hint": "hidden", "hidden": true},
+      {"key": "alt+v", "action": "ochazuke.picker.open-with", "when": "picker-up", "hint": "open", "hidden": true},
+      {"key": "alt+e", "action": "ochazuke.picker.reveal", "when": "picker-up", "hint": "reveal", "hidden": true},
+      {"key": "alt+y", "action": "ochazuke.picker.yank-path", "when": "picker-up", "hint": "copy path", "hidden": true}
+    ]}
+  ]
+}

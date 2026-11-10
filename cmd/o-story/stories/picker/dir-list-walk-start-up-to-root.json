@@ -1,0 +1,75 @@
+{
+  "name": "directory picker, style list: opened on the project's walk, up one folder at a time reaches / (a declared start is not a limit)",
+  "area": "picker",
+  "width": 110,
+  "height": 22,
+  "files": [
+    "cmd/mtm/main.go",
+    "internal/work/"
+  ],
+  "values": {
+    "pickers.directory.style": "list"
+  },
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "records": [
+      {
+        "id": "doc",
+        "fields": [
+          {
+            "name": "file",
+            "type": "path",
+            "base": "{{files}}",
+            "path": "dir",
+            "start": "walk"
+          }
+        ]
+      }
+    ],
+    "focus": "doc/file",
+    "pathWalk": {
+      "roots": [
+        {
+          "path": "{{files}}",
+          "label": "project"
+        }
+      ]
+    }
+  },
+  "script": [
+    "enter",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up",
+    "alt+up"
+  ],
+  "expect": [
+    {
+      "modal": "path-chooser",
+      "contains": [
+        "[walk /]"
+      ]
+    }
+  ]
+}

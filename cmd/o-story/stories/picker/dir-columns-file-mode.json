@@ -1,0 +1,79 @@
+{
+  "name": "directory picker, style columns: a file pick goes into folders with enter and picks a file",
+  "area": "picker",
+  "width": 110,
+  "height": 22,
+  "files": [
+    "a.json",
+    "b.txt",
+    ".hidden",
+    "sub/c.json",
+    "sub/deep/",
+    "proj/matomeru/cmd/",
+    "proj/ochazuke/",
+    "empty/"
+  ],
+  "values": {
+    "pickers.directory.style": "columns"
+  },
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "records": [
+      {
+        "id": "doc",
+        "fields": [
+          {
+            "name": "file",
+            "type": "path",
+            "base": "{{files}}",
+            "path": ""
+          }
+        ]
+      }
+    ],
+    "focus": "doc/file"
+  },
+  "script": [
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "down",
+    "down",
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "down",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 7,
+      "modal": "path-chooser"
+    },
+    {
+      "modal": "",
+      "contains": [
+        "c.json"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "name": "directory picker, style columns: use this folder picks the folder shown, not a row",
+  "area": "picker",
+  "width": 110,
+  "height": 22,
+  "files": [
+    "a.json",
+    "b.txt",
+    ".hidden",
+    "sub/c.json",
+    "sub/deep/",
+    "proj/matomeru/cmd/",
+    "proj/ochazuke/",
+    "empty/"
+  ],
+  "values": {
+    "pickers.directory.style": "columns"
+  },
+  "page": {
+    "lists": [
+      {
+        "id": "a",
+        "rows": 1
+      }
+    ],
+    "records": [
+      {
+        "id": "doc",
+        "fields": [
+          {
+            "name": "file",
+            "type": "path",
+            "base": "{{files}}",
+            "path": "dir"
+          }
+        ]
+      }
+    ],
+    "focus": "doc/file"
+  },
+  "script": [
+    "enter",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "down",
+    "l",
+    {
+      "job": "picker.load"
+    },
+    {
+      "job": "picker.side"
+    },
+    {
+      "job": "picker.preview"
+    },
+    "u"
+  ],
+  "expect": [
+    {
+      "modal": "",
+      "contains": [
+        "/proj"
+      ]
+    }
+  ]
+}

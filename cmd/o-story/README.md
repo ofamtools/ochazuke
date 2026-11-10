@@ -480,7 +480,7 @@ Conformance:
 | insert | mode | `mode.list` `mode.switch` |
 | insert | outline | `outline.leave` `outline.next` `outline.row-key` |
 | insert | palette | `palette.complete` `palette.move` `palette.run` |
-| insert | picker | `picker.clear-props` `picker.into` `picker.move` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.up` |
+| insert | picker | `picker.clear-props` `picker.goto` `picker.into` `picker.mark` `picker.move` `picker.new` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.toggle` `picker.up` |
 | insert | search | `search.cycle-match` |
 | insert | setting | `setting.complete` `setting.open` |
 | insert | setting-value | `setting-value.accept` |
@@ -507,7 +507,7 @@ Conformance:
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
 | normal | filter-form | `filter-form.delete-saved` `filter-form.direction` `filter-form.edit-condition` `filter-form.goto` `filter-form.move` `filter-form.toggle` |
 | normal | focus | `focus.act` `focus.next` `focus.previous` `focus.to` |
-| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.item-delete` `form.item-last` `form.item-next` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
+| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.item-delete` `form.item-edit` `form.item-last` `form.item-next` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history-entry | `history-entry.repeat` `history-entry.undo` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.redo` `input.select` `input.undo` |
@@ -529,7 +529,7 @@ Conformance:
 | normal | palette | `palette.close` `palette.open` |
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
 | normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
-| normal | picker | `picker.move` `picker.open` `picker.pick` |
+| normal | picker | `picker.goto` `picker.into` `picker.mark` `picker.move` `picker.new` `picker.open` `picker.pick` `picker.toggle` `picker.up` |
 | normal | project | `project.get` |
 | normal | related-section | `related-section.close-all` `related-section.new` `related-section.next` `related-section.open` `related-section.open-all` `related-section.toggle` `related-section.unassociate` |
 | normal | search | `search.find` `search.next` |
@@ -617,6 +617,7 @@ Mode edges (from → to via):
 - `insert` → `normal` via `form.leave`
 - `insert` → `normal` via `form.run`
 - `insert` → `normal` via `job picker.load`
+- `insert` → `normal` via `job picker.pick`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`
 - `insert` → `normal` via `mode.switch`
@@ -675,6 +676,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `filter-form.move`
 - `normal` → `insert` via `focus.act`
 - `normal` → `insert` via `form.choose`
+- `normal` → `insert` via `form.item-edit`
 - `normal` → `insert` via `form.next-missing`
 - `normal` → `insert` via `form.suggest`
 - `normal` → `insert` via `input.begin`
@@ -690,6 +692,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `page.pick`
 - `normal` → `insert` via `palette.open`
 - `normal` → `insert` via `parcel.edit`
+- `normal` → `insert` via `picker.new`
 - `normal` → `insert` via `picker.open`
 - `normal` → `insert` via `picker.pick`
 - `normal` → `insert` via `row R`
@@ -763,6 +766,7 @@ Mode edges (from → to via):
 - `normal g` → `normal` via `markdown.link-open`
 - `normal g` → `normal` via `message.show`
 - `normal g` → `normal` via `mode.leave`
+- `normal g` → `normal` via `picker.goto`
 - `normal g` → `normal` via `picker.move`
 - `normal g` → `normal` via `row c`
 - `normal g` → `normal` via `row s`

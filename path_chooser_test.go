@@ -238,10 +238,15 @@ func TestPathRecentDirectoryNavigationForFilePick(t *testing.T) {
 	if got := labels(c.Matches()); !slices.Equal(got, []string{"deep/", "c.json"}) {
 		t.Fatalf("opened recent dir rows %v, want [deep/ c.json]", got)
 	}
-	// Stepping up from subDir returns to the top-level recent list.
+	// Stepping up from subDir goes to the folder above it, and goes on
+	// (a source is never a wall); alt+down returns to the recent list.
 	pressLand(m, "alt+up")
+	if got := labels(c.Matches()); !slices.Equal(got, []string{"sub/", "a.json", "b.txt"}) {
+		t.Fatalf("stepped up rows %v, want the folder above", got)
+	}
+	pressLand(m, "alt+down")
 	if got := labels(c.Matches()); !slices.Equal(got, wantRows) {
-		t.Fatalf("stepped up rows %v, want %v", got, wantRows)
+		t.Fatalf("back to the list rows %v, want %v", got, wantRows)
 	}
 	// Selecting the recent file picks it directly.
 	pressLand(m, "down")

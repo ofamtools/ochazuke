@@ -60,6 +60,13 @@ type PickerRow struct {
 	// that text (an app dims a path prefix, "parent › "). The highlighted
 	// row keeps them over its reverse bar, as a list's selected row does.
 	Tones []ToneSpan
+	// Header marks a section heading (Label is its title, Section its
+	// name): it is drawn like a row but the highlight never rests on it,
+	// the filter never reads it, and it shows only while a row of its
+	// section does. Section names the section a row belongs to
+	// (picker.section moves between sections).
+	Header  bool
+	Section string
 }
 
 // ChooserSpec opens a chooser. Kind is the modal's kind (one open chooser
@@ -136,6 +143,22 @@ type PickerSpec struct {
 	// query is empty and the user has not moved it (a field's current
 	// value), as rows arrive; else the top row.
 	Start func(ChooserRow) bool
+	// StartNormal opens the picker in normal mode (it implies NormalMode):
+	// the keys that move, go into and use rows work at once, and / or i
+	// reaches the search line. Without it the picker opens in insert.
+	StartNormal bool
+	// Many lets rows be marked (picker.mark, picker.mark-all) and enter
+	// pick the marked rows: ChooseMany takes them (in the order they were
+	// marked), else Choose takes each in turn.
+	Many       bool
+	ChooseMany func([]ChooserRow) Result
+	// Toggles are the named options picker.toggle switches (hidden
+	// files); the picker then loads its source again.
+	Toggles []PickerToggle
+	// Columns draws the current source's side column (PickerSource.Side),
+	// the rows and the highlighted row's preview side by side, once the
+	// picker is ColumnsMin cells wide.
+	Columns bool
 	// Hold, when set, holds an enter the user made no choice for (an
 	// empty query, the highlight not moved) while it reports true, as
 	// enter waits for a Live source's rows: what the highlight starts on
@@ -144,6 +167,13 @@ type PickerSpec struct {
 	// highlight as it is. A typed query or a moved highlight is a choice
 	// and is taken at once.
 	Hold func() bool
+}
+
+// PickerToggle is a named option of a picker: Flip switches it and says
+// the new state in words.
+type PickerToggle struct {
+	Name string
+	Flip func() string
 }
 
 // ChooserPreviewMin is the width from which a chooser with a Preview
@@ -211,6 +241,20 @@ type Chooser struct {
 	// list or row instances: the chooser retains its own ranking and focus.
 	filters      *Collection
 	propsEnabled bool
+
+	// marks are the marked rows by id (ChooserSpec.Many), markOrder the
+	// order they were marked in.
+	marks     map[string]ChooserRow
+	markOrder []string
+	// making is a new thing being named in the search line
+	// (PickerSource.Make): the query was held in madeQuery.
+	making    bool
+	madeQuery string
+	// land is the section the highlight goes to once the rows arrive
+	// after a navigation (PickerSource.Landing).
+	land string
+	// side is the current source's side column (PickerSource.Side).
+	side pickerSide
 }
 
 // ChooserStableHeightSetting keeps an open chooser at the height it
@@ -244,6 +288,7 @@ func (c *Chooser) PendingCommand() tea.Cmd {
 	}
 	c.sync()
 	c.queuePreview()
+	c.queueSide()
 	commands := []tea.Cmd{c.filters.PendingCommand()}
 	commands = append(commands, c.r.commands...)
 	c.r.commands = nil
@@ -253,7 +298,7 @@ func (c *Chooser) PendingCommand() tea.Cmd {
 func registerChooser(r *Runtime) {
 	r.DefineGuard(PickerNormalModeGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])
-		return c != nil && (c.spec.NormalMode || c.input.pin == "")
+		return c != nil && (c.spec.NormalMode || c.spec.StartNormal || c.input.pin == "")
 	})
 	r.DefineGuard(PickerPropControlsGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])
@@ -278,11 +323,15 @@ func registerChooser(r *Runtime) {
 			return Done(nil)
 		}), "Clear this picker's prop conditions").When(PickerPropControlsGuard).
 		Verb("normal", verb(func(c *Chooser, _ Ctx) Result {
+			if c.making {
+				c.endMake()
+			}
 			if err := c.r.SetMode("normal"); err != nil {
 				return Failed(err)
 			}
 			return Done(nil)
 		}), "Leave search editing in a picker that supports normal mode").When(PickerNormalModeGuard)
+	registerSectionVerbs(r, verb)
 	registerChooserSources(r)
 	registerPickerGuardAliases(r)
 }
@@ -321,8 +370,13 @@ func (r *Runtime) OpenPicker(spec PickerSpec) (*Chooser, error) {
 		return nil, err
 	}
 	inst.Component, inst.accepts = c, true
-	if spec.NormalMode {
+	if spec.NormalMode || spec.StartNormal {
 		c.input.pin = ""
+	}
+	if spec.StartNormal {
+		if err := r.SetMode("normal"); err != nil {
+			return nil, err
+		}
 	}
 	c.load()
 	return c, nil
@@ -462,6 +516,12 @@ func (c *Chooser) pick() Result {
 		c.pending = true
 		return Done(c.state())
 	}
+	if c.making {
+		return c.makeNow()
+	}
+	if len(c.markOrder) > 0 {
+		return c.pickMarked()
+	}
 	row, ok := c.Highlighted()
 	if !ok || row.ID == chooserCreateRow {
 		return c.create()
@@ -558,7 +618,7 @@ func (c *Chooser) Moved() bool { c.sync(); return c.moved }
 // match; none means Enter creates.
 func (c *Chooser) Highlighted() (ChooserRow, bool) {
 	c.sync()
-	if c.cursor < 0 || c.cursor >= len(c.matches) {
+	if c.cursor < 0 || c.cursor >= len(c.matches) || c.matches[c.cursor].Header {
 		return ChooserRow{}, false
 	}
 	return c.matches[c.cursor], true
@@ -571,6 +631,12 @@ func (c *Chooser) sync() {
 		return
 	}
 	c.pending = false
+	c.land = ""
+	if c.making {
+		// Naming a new thing: the query is its name, not a search.
+		c.refilter()
+		return
+	}
 	c.claim()
 	if c.live() && c.Query() != c.loadedQuery {
 		c.load()
@@ -582,10 +648,23 @@ func (c *Chooser) sync() {
 // true}).
 func (c *Chooser) pickerCurrent() Result {
 	src := c.current()
-	if src == nil || src.Current == nil {
-		return Failed(errors.New("this picker has no current row"))
+	var row ChooserRow
+	var ok bool
+	if src != nil && src.Current != nil {
+		row, ok = src.Current()
 	}
-	row, ok := src.Current()
+	if !ok {
+		// A source with no current row of its own (or none here): the
+		// highlighted row, unless it only opens (a folder in a file pick:
+		// picking it is not what was asked).
+		row, ok = c.Highlighted()
+		if ok && row.NoPick {
+			return Failed(fmt.Errorf("%s only opens; it is not what this picker takes", row.Label))
+		}
+		if ok && row.ID == chooserCreateRow {
+			ok = false
+		}
+	}
 	if !ok {
 		return Failed(errors.New("this picker has no current row"))
 	}
@@ -618,38 +697,14 @@ func (c *Chooser) refilter() {
 		m := c.matcher()
 		filter = func(_ string, row ChooserRow) bool { return m.Match(row.Label) }
 	}
-	var head, tail, fixed []ChooserRow
-	for _, row := range c.spec.Rows {
-		if c.propsEnabled && !c.filters.matchesProps(c.propItem(row)) {
-			continue
-		}
-		if row.Fixed {
-			fixed = append(fixed, row)
-			continue
-		}
-		if !c.ranked() && !filter(c.seen, row) {
-			continue
-		}
-		if row.Trailing {
-			tail = append(tail, row)
-		} else {
-			head = append(head, row)
-		}
-	}
-	// A row whose label holds the query whole outranks a scattered fuzzy
-	// match, so the top match is the one the query spells.
-	// A Live source ranked its rows itself.
-	if !c.live() && (len(c.filters.vs.Sort) == 0 || !c.filters.canSort()) {
-		slices.SortStableFunc(head, func(x, y ChooserRow) int {
-			return cmpBool(cm.Contains(y.Label, c.seen), cm.Contains(x.Label, c.seen))
-		})
-	}
-	head = c.sortedRows(head)
+	head, tail, fixed, sectioned := c.collectRows(filter)
+	head = c.rankRows(head, sectioned, cm)
+	plain := withoutHeaders(head)
 	// A trailing row the query spells from the start of one of its words
 	// ("unp", "no pin") is what the user asked for: it leads, unless an
 	// ordinary row is spelled as well ("no" for a project "notes").
 	spelled := false
-	for _, row := range head {
+	for _, row := range plain {
 		spelled = spelled || spellsWords(cm, c.seen, row.Label)
 	}
 	for i, row := range tail {
@@ -659,15 +714,19 @@ func (c *Chooser) refilter() {
 			break
 		}
 	}
+	plain = withoutHeaders(head)
 	var create []ChooserRow
 	if label, ok := c.createRow(); ok {
 		create = []ChooserRow{Choice{ID: chooserCreateRow, Label: label, RowFlags: RowFlags{Bare: true}}.Row()}
+	}
+	if c.making {
+		head, plain, tail, fixed, create = nil, nil, nil, nil, c.makingRow()
 	}
 	c.matches = slices.Concat(head, tail, create, fixed)
 	c.lingerRows()
 	c.filters.items = nil
 	for _, row := range c.matches {
-		if row.ID != chooserCreateRow {
+		if row.ID != chooserCreateRow && !row.Header {
 			c.filters.items = append(c.filters.items, c.propItem(row))
 		}
 	}
@@ -686,14 +745,75 @@ func (c *Chooser) refilter() {
 	switch {
 	case spelledFixed >= 0:
 		c.cursor = spelledFixed
-	case len(create) > 0 && !c.holds(head):
+	case len(create) > 0 && !c.holds(plain):
 		// Only scattered matches ("unpin" in "tuios-inbox ~/proj/…"):
 		// Enter creates what was typed rather than guess.
 		c.cursor = len(head) + len(tail)
-	case len(head) > 0 || c.seen != "" && len(tail) > 0:
+	case len(create) > 0 && c.making:
+		c.cursor = 0
+	case len(plain) > 0 || c.seen != "" && len(tail) > 0:
 		c.cursor = 0
 	}
+	c.skipHeaders(1)
 	c.startAt()
+	c.landOn()
+}
+
+// collectRows splits the rows into the ones the query kept (head, with
+// section headings), the trailing ones and the fixed ones.
+func (c *Chooser) collectRows(filter func(string, ChooserRow) bool) (head, tail, fixed []ChooserRow, sectioned bool) {
+	for _, row := range c.spec.Rows {
+		if row.Header {
+			sectioned = true
+			head = append(head, row)
+			continue
+		}
+		if c.propsEnabled && !c.filters.matchesProps(c.propItem(row)) {
+			continue
+		}
+		if row.Fixed {
+			fixed = append(fixed, row)
+			continue
+		}
+		if !c.ranked() && !filter(c.seen, row) {
+			continue
+		}
+		if row.Trailing {
+			tail = append(tail, row)
+		} else {
+			head = append(head, row)
+		}
+	}
+	return head, tail, fixed, sectioned
+}
+
+// rankRows orders the kept rows: a row whose label holds the query whole
+// outranks a scattered fuzzy match, so the top match is the one the query
+// spells (a Live source ranked its rows itself). Sections keep their order;
+// the ranking works inside each one, and a heading stays only over rows
+// that matched.
+func (c *Chooser) rankRows(head []ChooserRow, sectioned bool, cm CaseMatch) []ChooserRow {
+	rank := func(part []ChooserRow) []ChooserRow {
+		if !c.live() && (len(c.filters.vs.Sort) == 0 || !c.filters.canSort()) {
+			slices.SortStableFunc(part, func(x, y ChooserRow) int {
+				return cmpBool(cm.Contains(y.Label, c.seen), cm.Contains(x.Label, c.seen))
+			})
+		}
+		return c.sortedRows(part)
+	}
+	if sectioned {
+		return rankSections(head, rank)
+	}
+	return rank(head)
+}
+
+// makingRow is the one row shown while a new thing is named.
+func (c *Chooser) makingRow() []ChooserRow {
+	name := strings.TrimSpace(c.Query())
+	if name == "" {
+		name = "…"
+	}
+	return []ChooserRow{Choice{ID: chooserCreateRow, Label: "+ " + name, RowFlags: RowFlags{Bare: true}}.Row()}
 }
 
 // startAt puts the highlight on the spec's Start row while the query is
@@ -778,7 +898,25 @@ func (c *Chooser) createRow() (string, bool) {
 // move steps the highlight, clamped at both ends (no wrap). A move is a
 // new choice: it drops an enter held for a load or Hold, as typing does.
 func (c *Chooser) move(delta int) {
+	before := c.cursor
 	c.cursor = c.r.moveHighlight(c.cursor, delta, len(c.matches), false)
+	if delta != 0 && c.cursor >= 0 && c.cursor < len(c.matches) && c.matches[c.cursor].Header {
+		// A heading never holds the highlight: go on past it in the
+		// direction of the move, and back if there is no row that way.
+		dir := 1
+		if delta < 0 {
+			dir = -1
+		}
+		at := c.cursor
+		c.skipHeaders(dir)
+		if c.matches[c.cursor].Header {
+			c.cursor = at
+			c.skipHeaders(-dir)
+		}
+		if c.matches[c.cursor].Header {
+			c.cursor = before
+		}
+	}
 	if delta != 0 {
 		c.pending = false
 	}
@@ -811,6 +949,9 @@ func (c *Chooser) HiddenRows() int { return c.hidden }
 // the search input's.
 func (c *Chooser) View(width, height int) Block {
 	c.sync()
+	if c.columnsOn(width) {
+		return c.columnsView(width, height)
+	}
 	if !c.previewing() || width < ChooserPreviewMin {
 		return c.rowsView(width, height)
 	}
@@ -855,7 +996,7 @@ func previewLines(text string, width, height int) []string {
 
 // rowsView is View's search line and rows, each line width cells wide.
 func (c *Chooser) rowsView(width, height int) Block {
-	const prefix = "› "
+	prefix := c.searchPrefix()
 	// The search line's right end says why nothing can match (an invalid
 	// regex) and the match mode (search.show-match), while they apply.
 	var right []string
@@ -898,7 +1039,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 		// jump wider when they land.
 		lines = append(lines, ansi.Truncate("  "+c.emptyLine()+strings.Repeat(" ", width), width, ""))
 	case c.matched() == 0:
-		lines = append(lines, ansi.Truncate("  "+c.hinted(NoMatchText(c.spec.Plural, c.Query())), width, "…"))
+		lines = append(lines, ansi.Truncate("  "+c.noMatchLine(), width, "…"))
 	}
 	hint := ""
 	if label := c.createLabel(); c.cursor < 0 && c.createFunc() != nil && label != nil {
@@ -962,7 +1103,7 @@ func (c *Chooser) rowsView(width, height int) Block {
 				item.Tones = append(slices.Clone(item.Tones), marks...)
 			}
 		}
-		row := ansi.Truncate(c.filters.rowGutter(item.ID)+modalLabel(text), width, "…")
+		row := ansi.Truncate(c.gutter(item.ID)+modalLabel(text), width, "…")
 		if segs := chooserSegs(toned, item, widths, ansi.StringWidth(row)); len(segs) > 0 {
 			lines = append(lines, paintLine(row, width, segs, toned, i == c.cursor, !focused, span{}))
 			return
@@ -1016,7 +1157,7 @@ func shownRow(row ChooserRow, columns, showIDs bool) ChooserRow {
 func (c *Chooser) matched() int {
 	n := 0
 	for _, row := range c.matches {
-		if !row.Fixed && row.ID != chooserCreateRow {
+		if !row.Fixed && !row.Header && row.ID != chooserCreateRow {
 			n++
 		}
 	}
@@ -1238,4 +1379,22 @@ func dropToneRuns(label string, tones []ToneSpan, tone string) (string, []ToneSp
 		out = append(out, t)
 	}
 	return string(kept), out
+}
+
+// searchPrefix is what precedes the search line: a caret, or while a new
+// thing is named, what is made and where.
+func (c *Chooser) searchPrefix() string {
+	if c.making {
+		return c.makeLabel() + " › "
+	}
+	return "› "
+}
+
+// noMatchLine is the line shown when the query kept no row; while a new
+// thing is named, how to finish or drop the name.
+func (c *Chooser) noMatchLine() string {
+	if c.making {
+		return "enter makes it; escape drops it"
+	}
+	return c.hinted(NoMatchText(c.spec.Plural, c.Query()))
 }

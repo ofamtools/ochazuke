@@ -52,6 +52,32 @@ const (
 	PathRecentDirsSetting = "path.recent-dirs"
 )
 
+// PathStyleSetting is the directory picker's style, whichever place opens
+// it: list (the sources one at a time, the default), hybrid (sections on
+// show together, path_hybrid.go) or columns (parent, folder and preview,
+// chooser_columns.go). It is read at each open, so the Settings page
+// switches it live.
+const PathStyleSetting = "pickers.directory.style"
+
+// The path picker's styles.
+const (
+	PathStyleList    = "list"
+	PathStyleHybrid  = "hybrid"
+	PathStyleColumns = "columns"
+)
+
+// pathStyles are the non-list styles the setting accepts; an unknown value is list.
+var pathStyles = []string{PathStyleHybrid, PathStyleColumns}
+
+// pathStyle is the style the setting names; an unknown value is list.
+func (r *Runtime) pathStyle() string {
+	v, _ := r.settingValue(PathStyleSetting)
+	if s, ok := v.(string); ok && slices.Contains(pathStyles, s) {
+		return s
+	}
+	return PathStyleList
+}
+
 // The path chooser's own sources, in order.
 const (
 	PathSourceBrowse = "browse"
@@ -94,6 +120,10 @@ type PathChooserSpec struct {
 	Choose func(path string) Result
 	// Query is the text typed into the search line when it opens.
 	Query string
+	// Many lets the user mark several paths (the parameter is a list):
+	// ChooseMany takes them, else Choose takes each in turn.
+	Many       bool
+	ChooseMany func(paths []string) Result
 }
 
 type namedPathSource struct {
@@ -208,6 +238,12 @@ func (r *Runtime) autoListable(dir string) bool {
 	return autoListableUnder(prefixes, dir)
 }
 
+// PathAutoListable reports whether a folder may be listed without the user
+// asking for it: false under a path.no-auto-list prefix. It reads no file
+// system. An application scanning folders of its own (a known-folder scan)
+// asks it before it lists a base on an external volume.
+func (r *Runtime) PathAutoListable(dir string) bool { return r.autoListable(dir) }
+
 func (r *Runtime) showHidden() bool {
 	v, _ := r.settingValue(PathHiddenSetting)
 	return v == true
@@ -224,51 +260,68 @@ func (r *Runtime) PathStartSource(pick PathPick, source string) string {
 	return strings.TrimSpace(pick.Parameter.Start)
 }
 
-// OpenPathChooser opens the path chooser (browse, recent, typed, then the
-// application's sources) for spec.Pick.
-func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
-	pick := spec.Pick
-	pick.Start = r.PathStart(pick)
-	kind := spec.Kind
-	if kind == "" {
-		kind = PathChooserKind
+// pathStyleDef is what a style of the directory picker is, as data: the
+// whether it opens in normal mode (else the search line only), whether it draws
+// columns, whether enter picks a folder row (and l goes into it), whether
+// one sectioned source stands for the browse and recent sources, and the
+// source it opens on when nothing names one.
+type pathStyleDef struct {
+	Name string
+	// StartNormal: the style opens in normal mode, its browse keys at once.
+	StartNormal bool
+	Columns     bool
+	EnterPicks  bool
+	Sections    bool
+	Start       string
+}
+
+var pathStyleDefs = []pathStyleDef{
+	{Name: PathStyleList},
+	{Name: PathStyleHybrid, StartNormal: true, EnterPicks: true, Sections: true, Start: PathSourceHybrid},
+	{Name: PathStyleColumns, StartNormal: true, EnterPicks: true, Columns: true, Start: PathSourceBrowse},
+}
+
+// pathStyleOf is the style definition named name; an unknown name is the
+// first (list).
+func pathStyleOf(name string) pathStyleDef {
+	i := slices.IndexFunc(pathStyleDefs, func(d pathStyleDef) bool { return d.Name == name })
+	return pathStyleDefs[max(i, 0)]
+}
+
+// pathTitle is the chooser's title for a pick.
+func pathTitle(pick PathPick) string {
+	what := "file"
+	if pick.Dir() {
+		what = "folder"
+	} else if !pick.Files() {
+		what = "path"
 	}
-	title := spec.Title
-	if title == "" {
-		what := "file"
-		if pick.Dir() {
-			what = "folder"
-		} else if !pick.Files() {
-			what = "path"
-		}
-		if pick.Name != "" {
-			what = pick.Name
-		}
-		title = "Choose " + what
+	if pick.Name != "" {
+		what = pick.Name
 	}
-	use := func(path string) Result {
-		path = filepath.Clean(path)
-		mem := r.chooserMemory()
-		mem.picked = slices.DeleteFunc(mem.picked, func(p string) bool { return p == path })
-		mem.picked = append([]string{path}, mem.picked...)
-		if len(mem.picked) > 50 {
-			mem.picked = mem.picked[:50]
-		}
-		if spec.Choose == nil {
-			return Done(path)
-		}
-		return spec.Choose(path)
+	return "Choose " + what
+}
+
+// rememberPicked puts path first among the paths picked this run.
+func (r *Runtime) rememberPicked(path string) string {
+	path = filepath.Clean(path)
+	mem := r.chooserMemory()
+	mem.picked = slices.DeleteFunc(mem.picked, func(p string) bool { return p == path })
+	mem.picked = append([]string{path}, mem.picked...)
+	if len(mem.picked) > 50 {
+		mem.picked = mem.picked[:50]
 	}
-	sources := []ChooserSource{r.browseSource(pick, use), r.recentSource(pick), r.typedSource(pick, use)}
-	// A source behind a setting (find: path.find) is offered while the
-	// setting is on, and whenever the open asks for it by name.
-	for _, gated := range []struct {
-		setting string
-		source  ChooserSource
-	}{{PathFindSetting, r.findSource(pick)}} {
-		if r.settingOn(gated.setting) || gated.source.Name == spec.Source {
-			sources = append(sources, gated.source)
-		}
+	return path
+}
+
+// pathSourceSet is the sources of one open: browse, recent and typed, find
+// while path.find is on (or asked for), then the application's; each made
+// able to go up and into folders (browsable); the hybrid style swaps browse
+// and recent for its one sectioned source.
+func (r *Runtime) pathSourceSet(spec PathChooserSpec, pick PathPick, st *pathState, def pathStyleDef, use func(string) Result) []ChooserSource {
+	sources := []ChooserSource{r.browseSource(pick, st, use), r.recentSource(pick, st, use), r.typedSource(pick, st, use)}
+	if find := r.findSource(pick); r.settingOn(PathFindSetting) || find.Name == spec.Source {
+		sources = append(sources, find)
 	}
 	for _, one := range r.chooserMemory().pathSources {
 		if src, ok := one.fn(pick); ok {
@@ -278,12 +331,90 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 			sources = append(sources, src)
 		}
 	}
+	var sections []ChooserSource
+	for i := range sources {
+		if sources[i].Section != "" {
+			sections = append(sections, sources[i])
+		}
+		sources[i] = r.browsable(sources[i], pick, st, use)
+	}
 	sources = orderPathSources(sources, r.settingList(PathFirstSetting))
-	c, err := r.OpenChooser(ChooserSpec{
+	if def.Sections {
+		one := r.hybridSource(pick, st, use, sections)
+		sources = slices.DeleteFunc(sources, func(s ChooserSource) bool { return slices.Contains(one.Stands, s.Name) })
+		sources = append([]ChooserSource{one}, sources...)
+	}
+	return sources
+}
+
+// pathToggles are the options picker.toggle switches on a path picker.
+func pathToggles(st *pathState) []PickerToggle {
+	return []PickerToggle{{Name: "hidden", Flip: func() string {
+		st.hidden = !st.hidden
+		if st.hidden {
+			return "hidden files shown"
+		}
+		return "hidden files hidden"
+	}}}
+}
+
+// chooseMany takes the marked rows of a path picker as paths.
+func (r *Runtime) chooseMany(spec PathChooserSpec) func([]ChooserRow) Result {
+	return func(rows []ChooserRow) Result {
+		var paths []string
+		for _, row := range rows {
+			if path, ok := row.Data.(string); ok && path != "" {
+				paths = append(paths, r.rememberPicked(path))
+			}
+		}
+		if spec.ChooseMany != nil {
+			return spec.ChooseMany(paths)
+		}
+		if spec.Choose == nil {
+			return Done(paths)
+		}
+		res := Done(nil)
+		for _, path := range paths {
+			if res = spec.Choose(path); res.err != nil {
+				return res
+			}
+		}
+		return res
+	}
+}
+
+// OpenPathChooser opens the path chooser (browse, recent, typed, then the
+// application's sources) for spec.Pick, in the style pickers.directory.style
+// names.
+func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
+	pick := spec.Pick
+	pick.Start = r.PathStart(pick)
+	kind := spec.Kind
+	if kind == "" {
+		kind = PathChooserKind
+	}
+	title := spec.Title
+	if title == "" {
+		title = pathTitle(pick)
+	}
+	def := pathStyleOf(r.pathStyle())
+	st := &pathState{hidden: r.showHidden(), columns: def.Columns, enterPicks: def.EnterPicks}
+	use := func(path string) Result {
+		path = r.rememberPicked(path)
+		if spec.Choose == nil {
+			return Done(path)
+		}
+		return spec.Choose(path)
+	}
+	start := r.PathStartSource(pick, spec.Source)
+	if start == "" {
+		start = def.Start
+	}
+	chooser := ChooserSpec{
 		Kind:    kind,
 		Title:   title,
-		Sources: sources,
-		Source:  r.PathStartSource(pick, spec.Source),
+		Sources: r.pathSourceSet(spec, pick, st, def, use),
+		Source:  start,
 		Hint:    PathChooserHint,
 		Choose: func(row ChooserRow) Result {
 			path, ok := row.Data.(string)
@@ -292,8 +423,16 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 			}
 			return use(path)
 		},
-		CreateRow: true,
-	})
+		CreateRow:   true,
+		Many:        spec.Many,
+		Columns:     def.Columns,
+		StartNormal: def.StartNormal,
+		Toggles:     pathToggles(st),
+	}
+	if spec.Many {
+		chooser.ChooseMany = r.chooseMany(spec)
+	}
+	c, err := r.OpenChooser(chooser)
 	if err == nil && spec.Query != "" {
 		c.SetQuery(spec.Query)
 	}
@@ -350,154 +489,11 @@ func listDir(dir, prefix string, pick PathPick, hidden bool, caseMode string) ([
 	return append(dirs, files...), nil
 }
 
-// browseSource lists one folder; opening a folder row browses into it, up
-// goes to the parent. A folder chooser has a fixed "use <folder>" row.
-func (r *Runtime) browseSource(pick PathPick, use func(string) Result) ChooserSource {
-	dir := pick.Start
-	asked := false // the user opened or went up into dir: list it whatever it is
-	src := ChooserSource{
-		Name:  PathSourceBrowse,
-		Label: func() string { return PathSourceBrowse + " " + displayPath(dir) },
-	}
-	src.Load = func(string) Result {
-		at := dir
-		if !asked && !r.autoListable(at) {
-			return Failed(fmt.Errorf("not listed on its own (path.no-auto-list): open it or type a path; %s", displayPath(at)))
-		}
-		hidden, caseMode := r.showHidden(), r.SearchCase()
-		return Pending(func(context.Context) (any, error) {
-			rows, err := listDir(at, "", pick, hidden, caseMode)
-			if err != nil {
-				return nil, err
-			}
-			if pick.Dir() {
-				rows = append(rows, ChooserRow{ID: at, Label: "use " + displayPath(at), Data: at, Fixed: true})
-			}
-			return rows, nil
-		}).Label("browse " + displayPath(at))
-	}
-	src.Open = func(row ChooserRow) (string, bool) {
-		path, ok := row.Data.(string)
-		if !ok {
-			return "", false
-		}
-		dir, asked = path, true
-		return "", true
-	}
-	src.Up = func(string) (string, bool) {
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", false
-		}
-		dir, asked = parent, true
-		return "", true
-	}
-	if pick.Parameter.New && !pick.Dir() {
-		src.Create = func(query string) Result { return use(expandPath(query, dir)) }
-		src.CreateLabel = func(query string) string { return "new " + displayPath(expandPath(query, dir)) }
-	}
-	return src
-}
-
-// recentSource lists the application's recent paths, then the ones picked
-// this run. For a file pick, recent directories open into browseSource
-// (Opens: true, NoPick: true) and cannot be submitted as files.
-func (r *Runtime) recentSource(pick PathPick) ChooserSource {
-	var (
-		browser *ChooserSource
-		depth   int
-	)
-	src := ChooserSource{
-		Name:  PathSourceRecent,
-		Empty: "no recent paths",
-		Label: func() string {
-			if browser != nil && browser.Label != nil {
-				return strings.Replace(browser.Label(), PathSourceBrowse, PathSourceRecent, 1)
-			}
-			return PathSourceRecent
-		},
-	}
-	src.Load = func(query string) Result {
-		if browser != nil && browser.Load != nil {
-			return browser.Load(query)
-		}
-		mem := r.chooserMemory()
-		var paths []string
-		if mem.recentPaths != nil {
-			paths = append(paths, mem.recentPaths(pick)...)
-		}
-		paths = append(paths, mem.picked...)
-		var rows []ChooserRow
-		recentDirsOn := r.settingOn(PathRecentDirsSetting)
-		seen := map[string]bool{}
-		for _, p := range paths {
-			p = expandPath(p, pick.Start)
-			if seen[p] {
-				continue
-			}
-			seen[p] = true
-			if pick.Files() {
-				if fi, err := os.Stat(p); err == nil && fi.IsDir() {
-					if recentDirsOn {
-						label := displayPath(p)
-						if !strings.HasSuffix(label, "/") {
-							label += "/"
-						}
-						rows = append(rows, ChooserRow{ID: p, Label: label, Data: p, Opens: true, NoPick: true})
-					}
-					continue
-				}
-			}
-			rows = append(rows, ChooserRow{ID: p, Label: displayPath(p), Data: p})
-		}
-		return Done(rows)
-	}
-	src.Open = func(row ChooserRow) (string, bool) {
-		if browser != nil && browser.Open != nil {
-			if q, ok := browser.Open(row); ok {
-				depth++
-				return q, true
-			}
-			return "", false
-		}
-		path, ok := row.Data.(string)
-		if !ok {
-			return "", false
-		}
-		b := r.browseSource(PathPick{Start: path, Parameter: pick.Parameter}, nil)
-		q, ok := b.Open(ChooserRow{Data: path})
-		if !ok {
-			return "", false
-		}
-		browser = &b
-		depth = 0
-		return q, true
-	}
-	src.Up = func(query string) (string, bool) {
-		if browser == nil {
-			return "", false
-		}
-		if depth == 0 {
-			browser = nil
-			return "", true
-		}
-		if browser.Up != nil {
-			if q, ok := browser.Up(query); ok {
-				depth--
-				return q, true
-			}
-		}
-		browser = nil
-		return "", true
-	}
-	return src
-}
-
 // typedSource completes the path being typed (relative to the start
 // folder): the typed path itself when it exists, then the entries of its
 // folder that start with its last part, then the path as new when it may be. Opening a folder
 // row types it with a trailing /; up drops the last part.
-func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSource {
+func (r *Runtime) typedSource(pick PathPick, st *pathState, use func(string) Result) ChooserSource {
 	return ChooserSource{
 		Name:   PathSourceTyped,
 		Live:   true,
@@ -507,7 +503,7 @@ func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSou
 			if strings.TrimSpace(query) == "" {
 				return Done([]ChooserRow(nil))
 			}
-			hidden, caseMode := r.showHidden(), r.SearchCase()
+			hidden, caseMode := st.hidden, r.SearchCase()
 			return Pending(func(context.Context) (any, error) {
 				return typedRows(query, pick, hidden, caseMode), nil
 			}).Label("complete " + query)
@@ -519,9 +515,19 @@ func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSou
 			return strings.TrimSuffix(row.Label, "/") + "/", true
 		},
 		Up: func(query string) (string, bool) {
+			// The folder above what is typed, to the root: the last part
+			// goes; a lone part (~, a name under the start) goes up to the
+			// absolute folder above it.
 			q := strings.TrimSuffix(query, "/")
-			if q == "" {
+			switch {
+			case query == "":
+				return typedParent(pick.Start)
+			case q == "":
 				return "", false
+			case q == "~" || q == ".":
+				return typedParent(expandPath(q, pick.Start))
+			case q == "..":
+				return typedParent(expandPath(q, pick.Start))
 			}
 			i := strings.LastIndex(q, "/")
 			if i < 0 {
@@ -530,6 +536,16 @@ func (r *Runtime) typedSource(pick PathPick, use func(string) Result) ChooserSou
 			return q[:i+1], true
 		},
 	}
+}
+
+// typedParent is the typed query for the folder above dir (an absolute
+// path with a trailing /); false at the root.
+func typedParent(dir string) (string, bool) {
+	parent := filepath.Dir(dir)
+	if parent == dir {
+		return "", false
+	}
+	return strings.TrimSuffix(parent, "/") + "/", true
 }
 
 // pathQuery reports whether query is written as a path ("/", "~", "./",
