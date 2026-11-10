@@ -745,6 +745,7 @@ Mode edges (from → to via):
 - `normal ctrl+w` → `normal` via `pane.restore`
 - `normal ctrl+w` → `normal` via `pane.shrink`
 - `normal ctrl+w` → `normal` via `row >`
+- `normal d` → `normal` via `form.item-delete`
 - `normal d` → `normal` via `form.item-delete + project.get`
 - `normal d` → `normal` via `markdown.cut`
 - `normal d` → `normal` via `outline.delete`
