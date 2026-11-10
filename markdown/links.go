@@ -3,8 +3,6 @@ package markdown
 import (
 	"errors"
 	"html"
-	"os/exec"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -377,7 +375,10 @@ func (d *Doc) OpenLink() error {
 	}
 	open := d.OpenURL
 	if open == nil {
-		open = openURL
+		open = ochazuke.DefaultOpener().Open
+		if d.r != nil {
+			open = d.r.Opener().Open
+		}
 	}
 	return open(l.URL)
 }
@@ -389,20 +390,4 @@ func (d *Doc) CopyLink() error {
 		return errors.New("no Markdown link focused")
 	}
 	return d.r.StoreYank(ochazuke.Yank{Text: l.URL, Shape: "char"}, "", false)
-}
-
-func openURL(url string) error {
-	name, args := "xdg-open", []string{url}
-	switch runtime.GOOS {
-	case "darwin":
-		name = "open"
-	case "windows":
-		name, args = "rundll32", []string{"url.dll,FileProtocolHandler", url}
-	}
-	cmd := exec.Command(name, args...)
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	go func() { _ = cmd.Wait() }()
-	return nil
 }

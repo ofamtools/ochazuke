@@ -8,9 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -59,18 +57,7 @@ func (r *repeated) Set(v string) error { *r = append(*r, v); return nil }
 
 // openPage opens a written page in the user's browser (a variable so
 // tests do not).
-var openPage = func(path string) error {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", path)
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", path)
-	default:
-		cmd = exec.Command("xdg-open", path)
-	}
-	return cmd.Start()
-}
+var openPage = func(path string) error { return ochazuke.DefaultOpener().Open(path) }
 
 // catalogInspect is BIN catalog inspect (catalogInspectUsage).
 func (s *Shell) catalogInspect(ctx context.Context, args []string) error {

@@ -1,0 +1,21 @@
+[
+  {"noun": "*", "action": "verb", "to": "open show"},
+  {"scheme": "http", "action": "os-open"},
+  {"scheme": "https", "action": "os-open"},
+  {"scheme": "mailto", "action": "os-open"},
+  {"scheme": "file", "action": "os-open"},
+  {"prefix": "~", "action": "os-open"},
+  {"prefix": "/", "action": "os-open"},
+  {"prefix": "./", "action": "os-open"},
+  {"prefix": "../", "action": "os-open"},
+  {"ext": "png", "action": "os-open"},
+  {"ext": "jpg", "action": "os-open"},
+  {"ext": "jpeg", "action": "os-open"},
+  {"ext": "gif", "action": "os-open"},
+  {"ext": "webp", "action": "os-open"},
+  {"ext": "svg", "action": "os-open"},
+  {"ext": "pdf", "action": "os-open"},
+  {"ext": "html", "action": "os-open"},
+  {"ext": "md", "action": "os-open"},
+  {"ext": "txt", "action": "os-open"}
+]

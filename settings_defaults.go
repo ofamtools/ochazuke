@@ -170,6 +170,7 @@ var settingChecks = map[string]func(any) error{
 	RenderMaxFPSSetting:          validRenderFPS,
 	AgentRightsSetting:           validAgentRules,
 	"collection.filters":         validSavedFilters,
+	OpenOpenersSetting:           validOpeners,
 	SequenceTimeoutSetting:       nonNegativeDuration,
 	TerminalLeaderSetting:        validLeader,
 	ModalDimSetting:              validDim,

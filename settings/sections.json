@@ -14,6 +14,7 @@
     {"owner": "ochazuke", "id": "appearance", "title": "Appearance", "description": "Colours, dimming, the mode badge and where modals open"},
     {"owner": "ochazuke", "id": "keys", "title": "Keys", "description": "Key sequences, aliases, dot-repeat and the key echo"},
     {"owner": "ochazuke", "id": "terminal", "title": "Terminal", "description": "Terminal panes: the leader key and the emulator"},
+    {"owner": "ochazuke", "id": "open", "title": "Open", "description": "What open does with a link, a file, a folder or a noun:id: the opener rows and unmatched text"},
     {"owner": "ochazuke", "id": "help", "title": "Help", "description": "The ? help and the docs viewer"},
     {"owner": "ochazuke", "id": "palette", "title": "Palette", "description": "The command palette, the CLI's help and the forms a missing argument opens"},
     {"owner": "ochazuke", "id": "records", "title": "Records", "description": "The standard create and delete, and record editors"},

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"runtime"
 	"runtime/debug"
 	"slices"
@@ -92,7 +91,8 @@ type AboutEnv struct {
 	Started time.Time
 	// Now is the clock the uptime reads (time.Now).
 	Now func() time.Time
-	// Open opens a path with the system's opener (open, xdg-open).
+	// Open opens a path in place of the runtime's Opener (a test or host
+	// override); nil uses Runtime.Opener.
 	Open func(path string) error
 }
 
@@ -181,20 +181,11 @@ func (e AboutEnv) now() time.Time {
 	return time.Now()
 }
 
-func (e AboutEnv) open(path string) error {
+func (e AboutEnv) open(r *Runtime, path string) error {
 	if e.Open != nil {
 		return e.Open(path)
 	}
-	name := "xdg-open"
-	if runtime.GOOS == "darwin" {
-		name = "open"
-	}
-	cmd := exec.Command(name, path)
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	go func() { _ = cmd.Wait() }()
-	return nil
+	return r.Opener().Open(path)
 }
 
 func cmpInt(a, b int) int {
@@ -654,7 +645,7 @@ func registerAbout(r *Runtime) {
 		if ref.Kind != AboutPath {
 			return nil, fmt.Errorf("%s is not a path", ref.Label)
 		}
-		if err := r.about().env.open(ref.Value); err != nil {
+		if err := r.about().env.open(r, ref.Value); err != nil {
 			return nil, err
 		}
 		return ref.Value, nil
