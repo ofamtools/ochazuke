@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 	"sync"
 
 	tea "charm.land/bubbletea/v2"
@@ -244,7 +245,19 @@ func (v *PageView) kindPanel(layout ochazuke.Layout, width, height int) ochazuke
 		body = ochazuke.Text(layout.Styles.Muted.Render(plainText(k.err)))
 		k.view.Block(0, 0) // keeps its place in the drawing order
 	} else {
-		body = k.view.Block(cw, ch)
+		stack := v.hostRelated(cw)
+		if stack == "" {
+			body = k.view.Block(cw, ch)
+		} else {
+			// The view keeps the top, shortened by the stack's lines.
+			room := max(1, ch-min(strings.Count(stack, "\n")+2, ch/2))
+			body = k.view.Block(cw, room)
+			lines := strings.Split(body.Text, "\n")
+			for len(lines) < room {
+				lines = append(lines, "")
+			}
+			body = body.WithText(strings.Join(lines[:room], "\n") + "\n\n" + stack)
+		}
 	}
 	return layout.PanelBlock(title, body, width, height, k.view.Focused())
 }

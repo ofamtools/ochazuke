@@ -408,6 +408,7 @@ func (v *PageView) sectionsPanel(layout ochazuke.Layout, width, height int) ocha
 			}
 		}
 	}
+	text = v.withHostRelated(text, cw)
 	text = v.jsonSectionsText(layout, text, cw, ch)
 	// Already wrapped at each region's width. One offset scrolls the whole
 	// composed document, with no height allocation that can hide the answer.

@@ -161,10 +161,59 @@ func (m *detailFieldsModal) Close()                     {}
 // mountRelated makes the stack of a related detail section: it follows
 // the selected row of the followed list, whatever its noun.
 func (v *PageView) mountRelated() error {
-	rel, err := v.m.Runtime.AddRelatedDetail(v.detail.ID()+"/related", func() *ochazuke.Collection {
+	if v.related != nil {
+		return nil
+	}
+	list := func() *ochazuke.Collection {
 		v.follow()
 		return v.lists[v.current].list
-	}, ochazuke.Parent(v.detail.ID()))
+	}
+	spec := ochazuke.RelatedSpec{Target: v.m.Runtime.SelectionTarget(list), Enabled: ochazuke.RelatedDetailSetting, Hidden: ochazuke.RelatedDetailHiddenSetting}
+	if c := v.cfg.Related; c != nil {
+		if c.Hidden != "" {
+			spec.Hidden = c.Hidden
+		}
+		spec.Empty = c.Empty
+	}
+	rel, err := v.m.Runtime.AddRelated(v.detail.ID()+"/related", spec, ochazuke.Parent(v.detail.ID()))
 	v.related = rel
 	return err
+}
+
+// withHostRelated is text with the host's related stack (PageConfig.Related)
+// under it, a blank line between; text as it is when the host asked for none,
+// the stack is empty or off, or the detail declares a related section of
+// its own.
+func (v *PageView) withHostRelated(text string, width int) string {
+	stack := v.hostRelated(width)
+	switch {
+	case stack == "":
+		return text
+	case text == "":
+		return stack
+	}
+	return text + "\n\n" + stack
+}
+
+// hostRelated is the host's related stack drawn width cells wide, "" when
+// there is none to draw.
+func (v *PageView) hostRelated(width int) string {
+	if v.cfg.Related == nil || v.related == nil || v.declaresRelated() {
+		return ""
+	}
+	return v.related.Text(width)
+}
+
+// declaresRelated reports whether the detail's own sections include a
+// related one, which draws the stack itself.
+func (v *PageView) declaresRelated() bool {
+	if v.spec.Detail == nil {
+		return false
+	}
+	for _, s := range v.spec.Detail.Sections {
+		if s.Kind == "related" {
+			return true
+		}
+	}
+	return false
 }

@@ -221,6 +221,27 @@ type PageConfig struct {
 	// host can follow a list's rows (re-sync a pick list) without wrapping
 	// Reload. A failed load keeps the rows and does not call it.
 	OnRows func(list string, rows []Row)
+	// Related, when set, gives every page's detail the related stack of the
+	// selected row (the things that name it: its notes and the rest, one
+	// section per referring noun) under whatever the detail draws: the
+	// record, declared sections (unless one is already of kind related) or a
+	// kind's view. It is the host's way to show a mounted page's row what
+	// refers to it without each catalog declaring a section. A page with no
+	// detail has none. The stack obeys detail.related (off: nothing read or
+	// drawn).
+	Related *RelatedConfig
+}
+
+// RelatedConfig names the settings of the stack PageConfig.Related mounts;
+// "" is the built-in default (detail.related-hidden; the empty mode shows
+// the heading with a count).
+type RelatedConfig struct {
+	// Hidden names a list setting of section ids (NOUN.PROP, or a PREFIX*)
+	// kept out of the stack.
+	Hidden string
+	// Empty names the setting for what a section with nothing in it shows:
+	// header, hide or open.
+	Empty string
 }
 
 // PageView is a mounted data page: its lists of rows (instances of the
@@ -372,6 +393,11 @@ func MountPage(m *ochazuke.Model, doc CatalogDoc, p CatalogPage, cfg PageConfig)
 			return nil, err
 		}
 		v.detail = d
+		if cfg.Related != nil {
+			if err := v.mountRelated(); err != nil {
+				return nil, err
+			}
+		}
 		if len(p.Detail.Sections) > 0 {
 			if err := v.mountDetailSections(); err != nil {
 				return nil, err
@@ -1194,6 +1220,7 @@ func (v *PageView) detailPanel(layout ochazuke.Layout, width, height int) ochazu
 	if v.kindNote != "" {
 		text = v.kindNote + "\n" + text
 	}
+	text = v.withHostRelated(text, cw)
 	body, marker := v.detail.Window(text, cw, ch)
 	if title == "" {
 		title = "detail"

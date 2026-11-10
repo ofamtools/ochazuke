@@ -17,6 +17,11 @@ func relatedDoc() CatalogDoc {
 // runtime that has a note noun with an any-noun "about" prop.
 func relatedPage(t *testing.T, notes []ochazuke.Thing) (*ochazuke.Model, *PageView) {
 	t.Helper()
+	return relatedPageWith(t, notes, relatedDoc(), PageConfig{})
+}
+
+func relatedPageWith(t *testing.T, notes []ochazuke.Thing, doc CatalogDoc, cfg PageConfig) (*ochazuke.Model, *PageView) {
+	t.Helper()
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
 	r.Define("note").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "text", Role: ochazuke.RoleLabel},
@@ -36,10 +41,15 @@ func relatedPage(t *testing.T, notes []ochazuke.Thing) (*ochazuke.Model, *PageVi
 			return out, nil
 		},
 	})
+	if cfg.Related != nil && cfg.Related.Empty != "" {
+		if err := r.DeclareSetting(ochazuke.Setting{Name: cfg.Related.Empty, Type: ochazuke.SettingString, Default: ochazuke.RelatedEmptyHide}); err != nil {
+			t.Fatal(err)
+		}
+	}
 	m := ochazuke.NewModel(r)
 	m.Width, m.Height = 120, 40
 	m.Appearance.Theme = "mono"
-	views, err := MountPages(m, relatedDoc(), PageConfig{})
+	views, err := MountPages(m, doc, cfg)
 	if err != nil || len(views) != 1 {
 		t.Fatalf("MountPages = %v, %v", views, err)
 	}
@@ -89,5 +99,30 @@ func TestCatalogRelatedSectionFollowsTheSelectedRow(t *testing.T) {
 	}
 	if !strings.Contains(frame, "readable") {
 		t.Fatalf("the rest of the detail is gone:\n%s", frame)
+	}
+}
+
+// The host's Related config puts the stack under every detail: the record
+// view and declared sections without a related section of their own, and
+// nothing under a row without notes when the empty mode hides.
+func TestPageConfigRelatedShowsNotesUnderAnyDetail(t *testing.T) {
+	notes := []ochazuke.Thing{{"id": "n1", "text": "first thoughts", "about": "item:one"}}
+	record := sectionDoc()
+	record.Pages[0].Detail = &CatalogDetail{}
+	declared := sectionDoc()
+	for name, doc := range map[string]CatalogDoc{"record": record, "sections": declared} {
+		t.Run(name, func(t *testing.T) {
+			m, v := relatedPageWith(t, notes, doc, PageConfig{Related: &RelatedConfig{Empty: "rel.empty"}})
+			if err := v.SetRows("sections/list", []Row{sectionRow("one"), sectionRow("two")}); err != nil {
+				t.Fatal(err)
+			}
+			if frame := frameOf(m); !strings.Contains(frame, "first thoughts") {
+				t.Fatalf("row one has no notes:\n%s", frame)
+			}
+			press(m, "j")
+			if frame := frameOf(m); strings.Contains(frame, "Notes") || strings.Contains(frame, "first thoughts") {
+				t.Fatalf("row two (no notes) shows a section:\n%s", frame)
+			}
+		})
 	}
 }
