@@ -369,11 +369,13 @@ ochazuke.picker.list motion=false focusBound=false typing=false kind=fetch repea
 ochazuke.picker.mark motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.picker.move motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.picker.new motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.picker.next-scope motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.picker.next-source motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.picker.normal motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.picker.open motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.picker.open-with motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.picker.pick motion=false focusBound=false typing=false kind=change repeatable=false staying=false
+ochazuke.picker.previous-scope motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.picker.previous-source motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.picker.reveal motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.picker.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false

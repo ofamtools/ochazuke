@@ -52,6 +52,10 @@ type Parameter struct {
 	// stands in for an empty Source), else the id of a live instance of
 	// the noun. A Source still wins; Enum values come first.
 	Noun string `json:"noun,omitempty"`
+	// Scopes are the named slices of the values a picker for this
+	// parameter offers (Scope), narrowest first; S steps through them.
+	// Empty is the noun's derived scopes (all, then archived), or none.
+	Scopes []Scope `json:"scopes,omitempty"`
 	// A path parameter (Type "path") names a file, or a folder when Path
 	// is "dir"; its form field opens the path chooser (path_chooser.go),
 	// whose browse starts at Base (~ and relative to the working
@@ -1113,8 +1117,8 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	// Guards are applicability: a verb guarded off where the request acts
 	// (its target, else the caller's focus) is refused, from keys, the
 	// palette, the CLI and the API alike.
-	if !r.Available(withArgs(q, filled), focus, guardMode) {
-		return nil, r.notApplicable(withArgs(q, filled))
+	if err := r.refuseGuarded(op, withArgs(q, filled), focus, guardMode); err != nil {
+		return nil, err
 	}
 	// A request without a target addresses the nearest instance of its
 	// operation's noun on the focus path (row.delete chosen in the palette
@@ -1283,7 +1287,7 @@ func validatePartialArguments(op Operation, args Arguments) error {
 func validateArguments(op Operation, args Arguments) error {
 	for name := range op.Parameters {
 		if op.lacks(name, args) {
-			return fmt.Errorf("%s is required", name)
+			return &MissingParameterError{Param: name}
 		}
 	}
 	for name, v := range args {

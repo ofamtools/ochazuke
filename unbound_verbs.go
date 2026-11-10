@@ -273,6 +273,35 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 		form.Target = focus
 	}
 	var run func(Request) error
+	// attempt executes q; a verb that says it lacks a value (a
+	// MissingParameterError) asks for it in the args form, whose confirm
+	// runs the request again through run (askNeed).
+	attempt := func(q Request, watch bool) error {
+		value, err := execute(q)
+		if err != nil {
+			if r.askNeed(withArgs(form, q.Args), err, run) {
+				return nil
+			}
+			return err
+		}
+		if !watch {
+			return nil
+		}
+		r.afterFailure(value, func(late error) {
+			// The form comes back with what was typed and says why;
+			// where it cannot (a modal is open) the error is told.
+			defer r.forceSource(source)()
+			if r.askNeed(withArgs(form, q.Args), late, run) {
+				return
+			}
+			if e, openErr := r.OpenArgsForm(withArgs(form, q.Args), run); openErr == nil && e != nil {
+				e.out.err = late.Error()
+			} else {
+				r.UI().Error("not run: " + late.Error())
+			}
+		})
+		return nil
+	}
 	run = func(q Request) error {
 		if leave != nil {
 			if err := leave(); err != nil {
@@ -280,20 +309,7 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 			}
 		}
 		defer r.forceSource(source)()
-		value, err := execute(q)
-		if err == nil {
-			r.afterFailure(value, func(late error) {
-				// The form comes back with what was typed and says why;
-				// where it cannot (a modal is open) the error is told.
-				defer r.forceSource(source)()
-				if e, openErr := r.OpenArgsForm(withArgs(form, q.Args), run); openErr == nil && e != nil {
-					e.out.err = late.Error()
-				} else {
-					r.UI().Error("not run: " + late.Error())
-				}
-			})
-		}
-		return err
+		return attempt(q, true)
 	}
 	if always {
 		if op, ok := r.Operations.Find(Key(form.Key())); !ok || len(askableParameters(op)) == 0 {
@@ -312,7 +328,7 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 			return false, err
 		}
 	}
-	_, err := execute(q)
+	err := attempt(q, false)
 	return false, err
 }
 

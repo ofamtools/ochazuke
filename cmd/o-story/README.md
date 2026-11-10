@@ -479,16 +479,19 @@ Conformance:
 | insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
 | insert | mode | `mode.list` `mode.switch` |
 | insert | outline | `outline.leave` `outline.next` `outline.row-key` |
-| insert | palette | `palette.complete` `palette.move` `palette.run` |
-| insert | picker | `picker.clear-props` `picker.goto` `picker.into` `picker.mark` `picker.move` `picker.new` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.toggle` `picker.up` |
+| insert | palette | `palette.back` `palette.cancel` `palette.complete` `palette.move` `palette.run` `palette.step` |
+| insert | parcel | `parcel.list` |
+| insert | picker | `picker.clear-props` `picker.goto` `picker.into` `picker.mark` `picker.move` `picker.new` `picker.next-scope` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.toggle` `picker.up` |
 | insert | search | `search.cycle-match` |
 | insert | setting | `setting.complete` `setting.open` |
 | insert | setting-value | `setting-value.accept` |
+| insert | swatch | `swatch.names` |
 | jq | collection | `collection.move` |
 | jq | completion | `completion.dismiss` |
 | jq | input | `input.insert` |
 | jq | mode | `mode.switch` |
 | jq | palette | `palette.open` |
+| list_filter | chore | `chore.get` |
 | list_filter | collection | `collection.filter` `collection.filter-choose` `collection.filter-clear` `collection.filter-erase` `collection.filter-keep` `collection.filter-type` `collection.move` |
 | list_filter | search | `search.cycle-match` |
 | macro_pending | mode | `mode.leave` |
@@ -497,6 +500,7 @@ Conformance:
 | normal | app | `app.quit` |
 | normal | binding | `binding.help` |
 | normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.pick` `bindings-help.run` `bindings-help.show` |
+| normal | chore | `chore.get` `chore.set` |
 | normal | collection | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.show-archived` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
 | normal | command | `command.help` `command.run` `command.stop` |
 | normal | confirm | `confirm.accept` |
@@ -531,6 +535,8 @@ Conformance:
 | normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
 | normal | picker | `picker.goto` `picker.into` `picker.mark` `picker.move` `picker.new` `picker.open` `picker.pick` `picker.toggle` `picker.up` |
 | normal | project | `project.get` |
+| normal | quad | `quad.warp` |
+| normal | quill | `quill.wipe` |
 | normal | related-section | `related-section.close-all` `related-section.new` `related-section.next` `related-section.open` `related-section.open-all` `related-section.toggle` `related-section.unassociate` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
@@ -616,16 +622,22 @@ Mode edges (from → to via):
 - `insert` → `normal` via `find-line.accept`
 - `insert` → `normal` via `form.leave`
 - `insert` → `normal` via `form.run`
+- `insert` → `normal` via `input.insert + input.insert + input.insert + quill.wipe`
+- `insert` → `normal` via `input.insert + input.insert + quad.warp`
+- `insert` → `normal` via `input.insert + swatch.names`
 - `insert` → `normal` via `job picker.load`
 - `insert` → `normal` via `job picker.pick`
 - `insert` → `normal` via `macro.record`
 - `insert` → `normal` via `markdown.leave`
 - `insert` → `normal` via `mode.switch`
+- `insert` → `normal` via `mode.switch + chore.set + chore.get`
 - `insert` → `normal` via `mode.switch + demo.set + demo.get`
 - `insert` → `normal` via `mode.switch + item.set + item.get`
 - `insert` → `normal` via `mode.switch + parcel.set + parcel.get`
 - `insert` → `normal` via `outline.leave`
+- `insert` → `normal` via `palette.cancel`
 - `insert` → `normal` via `palette.run`
+- `insert` → `normal` via `palette.run + chore.get + chore.get`
 - `insert` → `normal` via `palette.run + parcel.get`
 - `insert` → `normal` via `picker.normal`
 - `insert` → `normal` via `picker.pick`
@@ -696,6 +708,7 @@ Mode edges (from → to via):
 - `normal` → `insert` via `picker.open`
 - `normal` → `insert` via `picker.pick`
 - `normal` → `insert` via `row R`
+- `normal` → `insert` via `row T`
 - `normal` → `insert` via `row W`
 - `normal` → `insert` via `row e`
 - `normal` → `insert` via `search.find`
@@ -754,7 +767,6 @@ Mode edges (from → to via):
 - `normal ctrl+w` → `normal` via `pane.restore`
 - `normal ctrl+w` → `normal` via `pane.shrink`
 - `normal ctrl+w` → `normal` via `row >`
-- `normal d` → `normal` via `form.item-delete`
 - `normal d` → `normal` via `form.item-delete + project.get`
 - `normal d` → `normal` via `markdown.cut`
 - `normal d` → `normal` via `outline.delete`

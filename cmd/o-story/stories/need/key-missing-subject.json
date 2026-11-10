@@ -1,0 +1,16 @@
+{
+  "name": "a key on a standard verb with nothing of its noun focused asks for the thing in the args form, then runs",
+  "area": "need",
+  "width": 100,
+  "height": 24,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "store": {"noun": "parcel", "props": [{"name": "id", "key": true}, {"name": "title", "role": "label", "required": true}], "things": [{"id": "t1", "title": "Original"}, {"id": "t2", "title": "Second"}]},
+    "bind": [{"noun": "app", "keys": "P", "do": "parcel.get"}]
+  },
+  "script": ["P", "enter", {"type": "t2"}, "enter", "enter"],
+  "expect": [
+    {"after": 1, "contains": ["id", "no parcel is focused"]},
+    {"modal": "", "mode": "normal", "lacks": ["no parcel is focused", "is required"]}
+  ]
+}

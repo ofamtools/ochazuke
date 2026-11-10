@@ -416,6 +416,12 @@ func (p *Palette) dispatch(q Request) error {
 			return fmt.Errorf("%w (restoring palette: %v)", err, restoreErr)
 		}
 		p.r.restoreMode(ModeState{Name: mode}, nil)
+		// A verb that says it lacks a value asks for it: the form opens
+		// over the restored line, esc comes back to it, confirm runs the
+		// request again (askNeed).
+		if p.r.askNeed(q, err, p.dispatch) {
+			return nil
+		}
 	}
 	return err
 }

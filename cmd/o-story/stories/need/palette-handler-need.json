@@ -1,0 +1,22 @@
+{
+  "name": "a verb run from the palette that finds late it lacks a value asks for it and runs again",
+  "area": "need",
+  "height": 30,
+  "page": {
+    "lists": [{"id": "a", "rows": 2}],
+    "verbs": [
+      {
+        "verb": "demo.stamp",
+        "description": "Stamp the row",
+        "needs": ["colour", "size"],
+        "parameters": {"colour": {"type": "string", "description": "The ink"}, "size": {"type": "string", "description": "The size"}}
+      }
+    ]
+  },
+  "script": [":", {"type": "stamp"}, "enter", {"type": "red"}, "enter", {"type": "big"}, "enter"],
+  "expect": [
+    {"after": 3, "modal": "args-form", "focus": "args-form/colour"},
+    {"after": 5, "modal": "args-form", "focus": "args-form/size", "contains": ["red"]},
+    {"modal": "", "writes": ["demo.stamp colour=red size=big"]}
+  ]
+}

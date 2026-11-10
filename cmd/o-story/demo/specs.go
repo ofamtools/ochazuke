@@ -597,7 +597,12 @@ type VerbSpec struct {
 	Answer  any                 `json:"answer,omitempty"`
 	Result  string              `json:"result,omitempty"`
 	Error   string              `json:"error,omitempty"`
-	Pending bool                `json:"pending,omitempty"`
+	// Needs lists parameters the handler finds it lacks late: it runs
+	// with the first of them absent from its arguments, answering
+	// Ctx.Need (with NeedReason) for it, and logs nothing.
+	Needs      []string `json:"needs,omitempty"`
+	NeedReason string   `json:"needReason,omitempty"`
+	Pending    bool     `json:"pending,omitempty"`
 	// Remove closes an instance through the runtime when this fixture verb runs.
 	Remove string `json:"remove,omitempty"`
 	Proxy  bool   `json:"proxy,omitempty"`

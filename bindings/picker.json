@@ -11,7 +11,8 @@
       {"key":"j","action":"ochazuke.picker.move","args":{"delta":1}},
       {"key":"k","action":"ochazuke.picker.move","args":{"delta":-1}},
       {"key":"g g","action":"ochazuke.picker.move","args":{"to":"first"}},
-      {"key":"G","action":"ochazuke.picker.move","args":{"to":"last"}}
+      {"key":"G","action":"ochazuke.picker.move","args":{"to":"last"}},
+      {"key":"S","action":"ochazuke.picker.next-scope","hint":"scope"}
     ]},
     {"context": "ochazuke.picker", "bindings": [
       {"key": "ctrl+f", "action": "ochazuke.collection.filter-cycle", "when": "list-prop-filtered", "args": {"step": 1}, "hint": "next filter"},
@@ -28,6 +29,7 @@
       {"key": "backspace", "action": "ochazuke.picker.up", "when": "picker-up-empty"},
       {"key": "ctrl+o", "action": "ochazuke.picker.next-source"},
       {"key": "alt+o", "action": "ochazuke.picker.previous-source"},
+      {"key": "alt+s", "action": "ochazuke.picker.next-scope", "hidden": true},
       {"key": "esc", "action": "ochazuke.modal.close", "when": "setting:modal.esc-closes"},
       {"key": "down", "action": "ochazuke.picker.move", "args": {"delta": 1}},
       {"key": "ctrl+j", "action": "ochazuke.picker.move", "args": {"delta": 1}},
