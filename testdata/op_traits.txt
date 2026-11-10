@@ -171,6 +171,16 @@ ochazuke.form.chip-toggle motion=false focusBound=false typing=false kind=action
 ochazuke.form.choose motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.form.clear motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.form.invert motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-add motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-delete motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-edit motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-first motion=true focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-last motion=true focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-move-down motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-move-up motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-next motion=true focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-previous motion=true focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.form.item-yank motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.form.leave motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.form.next motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.form.next-missing motion=false focusBound=false typing=false kind=action repeatable=false staying=false

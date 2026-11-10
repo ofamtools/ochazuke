@@ -776,6 +776,31 @@ turns that off. `Runtime.EditSpec(noun, id)` returns the same form as a
 `RecordSpec` (fields, `get` load, `set` writes, outside-write watch), so an
 application can place it in a panel with `AddRecordEditor`; the `edit` verb
 opens that spec as a modal, so the two cannot drift.
+A list prop with `Parameter.Items` (the element's parameter: a path, a choice
+or text) is a list field in every record editor, modal or placed. The field is
+one focus stop (instance noun `ochazuke.form-item`) drawn as its label, one row
+per item and an add row. The value is a JSON array, so each change writes the
+whole list at once and is one undo step (`u`); there is no save key. The form's
+item verbs (`form.item-*`, beside the chips' `form.chip-*`: a command noun may
+not take a core verb's name) act on the row under the cursor: `item-edit`
+(`enter`/`i`: a path item opens the path picker, an item with `Enum`, `Source`
+or `Noun` its picker, any other item a line of text whose create row takes what
+is typed, spaces and all), `item-add` (`n`: after this row, at the end from the
+add row), `item-delete` (`d d`), `item-move-up`, `item-move-down` and
+`item-yank` (palette and bindings; no default key), and the edges `item-first`
+and `item-last` (`g g`, `G`). `j` and `k` (`item-next`, `item-previous`) walk
+the rows and spill to the field below or above at the ends. A list is one
+column of rows, so it takes the column edges as a no-op (`SpillEdges`). Leader
+plus a key falls through to the same key as for any form.
+A list without `Items` stays JSON text.
+
+Compared with Vim (rows of a buffer): `dd` (`:help dd`) deletes a row, same
+keys, but nothing is put in a register (use `yank` first); `yy`, `ddp` and
+`:move` (`:help :move`) are the unbound `item-yank`, `item-move-down` and
+`item-move-up` verbs; `o` (`:help o`) is `n`, similar (a picker takes the new row's text);
+`gg`, `G` (`:help gg`, `:help G`) are the same; `0` and `$` (`:help 0`,
+`:help $`) are not applicable to a one-column row.
+
 Reopening edit flushes the old form and retargets it. Escape cancels a pending
 open; another edit replaces its read. Late reads never open over a changed
 focus, page, mode or modal.

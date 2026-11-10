@@ -256,6 +256,7 @@ type editKind struct {
 	suggest bool // a free text field with suggestions
 	path    bool // a path field: its chooser is the path chooser
 	chips   bool // a choice field that takes several choices (Chips)
+	list    bool // a list with Items: rows of items (record_list.go)
 }
 
 // editKindOf is the one test of how a field is edited, read by the form
@@ -265,6 +266,13 @@ type editKind struct {
 // path.field.
 func (r *Runtime) editKindOf(field RecordField) editKind {
 	var k editKind
+	if field.ReadOnly {
+		return k
+	}
+	if isList(field) {
+		k.list = true
+		return k
+	}
 	k.chips = field.Chips && (paramHasChoices(field.Parameter) || field.Type == "boolean")
 	k.choose = !k.chips && (field.Type == "boolean" || field.Noun != "" || (paramHasChoices(field.Parameter) && !field.Free))
 	k.suggest = !k.chips && !k.choose && paramHasChoices(field.Parameter)
@@ -292,6 +300,28 @@ type recordStep struct {
 	changes  []recordStep
 }
 
+// opened tells the spec's OnOpen, if it has one, that the editor is built.
+func (e *RecordEditor) opened() {
+	if e.spec.OnOpen != nil {
+		e.spec.OnOpen(e)
+	}
+}
+
+// valueNoun is the instance noun of a field that holds its value as text
+// and is not an input or a choice (read-only, list, chips), "" for the
+// rest.
+func (f *recordField) valueNoun() string {
+	switch {
+	case f.ReadOnly:
+		return FormReadOnlyNoun
+	case f.list:
+		return FormItemNoun
+	case f.chips:
+		return FormChipsNoun
+	}
+	return ""
+}
+
 // skipped reports whether the field has no focus stop: Hidden (not drawn)
 // or ReadOnly (drawn muted).
 func (f *recordField) skipped() bool { return f.Hidden || f.ReadOnly }
@@ -311,6 +341,8 @@ type recordField struct {
 	choices       []Choice
 	editKind
 	chip int // the chip under the cursor, an index into choices
+	// item is a list field's cursor: an item's index, len(items) the add row.
+	item int
 	// lines are the chips' rows as last drawn (indexes into choices), so
 	// j and k move by what is on screen.
 	lines                 [][]int
@@ -501,9 +533,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
 	for _, field := range fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
-		if !field.ReadOnly {
-			f.editKind = r.editKindOf(field)
-		}
+		f.editKind = r.editKindOf(field)
 		v := values[field.Name]
 		e.out.set(field.Name, v)
 		f.before = v
@@ -512,13 +542,10 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 			f.not = inv == "true"
 			e.out.set(field.Name+RecordInvertSuffix, invertText(f.not))
 		}
-		switch {
-		case f.ReadOnly:
+		switch noun := f.valueNoun(); {
+		case noun != "":
 			f.value = v
-			r.Instance(f.id, Parent(id), Kind(FormReadOnlyNoun))
-		case f.chips:
-			f.value = v
-			r.Instance(f.id, Parent(id), Kind(FormChipsNoun))
+			r.Instance(f.id, Parent(id), Kind(noun))
 		case f.choose:
 			f.value = v
 			r.Instance(f.id, Parent(id), Kind(FormChoiceNoun))
@@ -563,9 +590,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 		}
 		e.watch = w
 	}
-	if spec.OnOpen != nil {
-		spec.OnOpen(e)
-	}
+	e.opened()
 	return e, nil
 }
 
@@ -745,6 +770,9 @@ func (e *RecordEditor) problem(f *recordField) string {
 			return "required"
 		}
 		return ""
+	}
+	if f.list {
+		return e.listProblem(f, v)
 	}
 	if f.chips {
 		return e.chipsProblem(f, v)
@@ -1149,6 +1177,7 @@ func (e *RecordEditor) move(delta int, insert bool) error {
 			return err
 		}
 		e.landChips(e.fields[j], delta)
+		e.landItems(e.fields[j], delta)
 	}
 	if insert && e.fields[j].input != nil {
 		return e.r.SetMode("insert")
@@ -1643,16 +1672,11 @@ func (e *RecordEditor) Block(width, height int) Block {
 		}
 		lines = append(lines, e.fieldStyle(f, style).Render(ansi.Truncate(label, width, "…")))
 		inner := max(1, width-2)
-		if f.chips {
-			chipLines := e.chipBlock(f, width, 4)
+		if rows, at, ok := e.valueRows(f, width); ok {
 			if focused {
-				li, _ := f.chipAt()
-				focusLine = len(lines) + li
+				focusLine = len(lines) + at
 			}
-			if len(chipLines) > 0 {
-				chipLines[0] = e.r.PlacedAt(f.id, chipLines[0], 0, 1)
-			}
-			lines = append(lines, chipLines...)
+			lines = append(lines, rows...)
 			continue
 		}
 		if f.input != nil {
@@ -1708,6 +1732,25 @@ func (e *RecordEditor) Block(width, height int) Block {
 		}
 	}
 	return Block{Text: strings.Join(lines, "\n"), Cursor: cursor}
+}
+
+// valueRows draws the rows under the label of a list or chips field and the
+// row the cursor is on (ok false for any other field). The first row is
+// placed so a click or a jump finds the field.
+func (e *RecordEditor) valueRows(f *recordField, width int) (rows []string, at int, ok bool) {
+	switch {
+	case f.list:
+		rows, at = e.listBlock(f, width, 4), f.itemCursor()
+	case f.chips:
+		rows = e.chipBlock(f, width, 4)
+		at, _ = f.chipAt()
+	default:
+		return nil, 0, false
+	}
+	if len(rows) > 0 {
+		rows[0] = e.r.PlacedAt(f.id, rows[0], 0, 1)
+	}
+	return rows, at, true
 }
 
 // readOnlyLines draws a read-only field muted: its label, then its value
@@ -2026,6 +2069,7 @@ func registerForms(r *Runtime) {
 	_ = r.AddVerbAvailability(FormNoun+".redo", "form-record-history")
 	r.Define(FormChoiceNoun).Focusable()
 	registerFormChips(r)
+	registerFormItems(r)
 	r.Define(FormOptionNoun).
 		Verb("pick", func(r *Runtime, c Context, _ Arguments) (any, error) {
 			inst := r.Instances[focusOf(c)]

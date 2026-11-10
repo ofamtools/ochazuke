@@ -802,7 +802,7 @@ func (r *Runtime) editFields(n *Noun, c Ctx, thing Thing, only *PropSpec, fieldO
 			return err
 		}
 		// Structured props remain JSON text, validated before each save.
-		if p.Type == SettingList || p.Type == PropObject || p.Type == SettingDuration {
+		if (p.Type == SettingList && p.Items == nil) || p.Type == PropObject || p.Type == SettingDuration {
 			field.Type = AnyParameterType
 		}
 		fields = append(fields, field)

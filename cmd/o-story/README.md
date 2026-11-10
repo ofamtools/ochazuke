@@ -502,7 +502,7 @@ Conformance:
 | normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
 | normal | filter-form | `filter-form.delete-saved` `filter-form.direction` `filter-form.edit-condition` `filter-form.goto` `filter-form.move` `filter-form.toggle` |
 | normal | focus | `focus.act` `focus.next` `focus.previous` `focus.to` |
-| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
+| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.item-delete` `form.item-last` `form.item-next` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
 | normal | form-option | `form-option.pick` |
 | normal | history-entry | `history-entry.repeat` `history-entry.undo` |
 | normal | input | `input.begin` `input.move` `input.operator` `input.redo` `input.select` `input.undo` |
@@ -524,6 +524,7 @@ Conformance:
 | normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
 | normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
 | normal | picker | `picker.move` `picker.open` `picker.pick` |
+| normal | project | `project.get` |
 | normal | related-section | `related-section.close-all` `related-section.next` `related-section.open-all` `related-section.toggle` `related-section.unassociate` |
 | normal | search | `search.find` `search.next` |
 | normal | segment | `segment.toggle` |
@@ -744,6 +745,7 @@ Mode edges (from → to via):
 - `normal ctrl+w` → `normal` via `pane.restore`
 - `normal ctrl+w` → `normal` via `pane.shrink`
 - `normal ctrl+w` → `normal` via `row >`
+- `normal d` → `normal` via `form.item-delete + project.get`
 - `normal d` → `normal` via `markdown.cut`
 - `normal d` → `normal` via `outline.delete`
 - `normal d` → `normal` via `related-section.unassociate`

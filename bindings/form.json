@@ -28,6 +28,18 @@
       {"key": "g g", "action": "ochazuke.form.chip-edge", "args": {"edge": "first"}, "hidden": true},
       {"key": "G", "action": "ochazuke.form.chip-edge", "args": {"edge": "last"}, "hidden": true}
     ]},
+    {"context": "ochazuke.form-item/normal", "bindings": [
+      {"key": "j", "action": "ochazuke.form.item-next"},
+      {"key": "down", "action": "ochazuke.form.item-next"},
+      {"key": "k", "action": "ochazuke.form.item-previous"},
+      {"key": "up", "action": "ochazuke.form.item-previous"},
+      {"key": "enter", "action": "ochazuke.form.item-edit", "hint": "enter/i form.item-edit"},
+      {"key": "i", "action": "ochazuke.form.item-edit", "hidden": true},
+      {"key": "n", "action": "ochazuke.form.item-add"},
+      {"key": "d d", "action": "ochazuke.form.item-delete"},
+      {"key": "g g", "action": "ochazuke.form.item-first", "hidden": true},
+      {"key": "G", "action": "ochazuke.form.item-last", "hidden": true}
+    ]},
     {"context": "ochazuke.form-choice/normal", "bindings": [
       {"key": "j", "action": "ochazuke.form.next"},
       {"key": "down", "action": "ochazuke.form.next"},

@@ -141,6 +141,13 @@ type Parameter struct {
 	// args form, help); the palette and the CLI pass over it when they
 	// fill words in order. The catalog's named.
 	Named bool `json:"named,omitempty"`
+	// Items is the element parameter of a list (Type "list"): the type,
+	// choices or path an item takes (a path item opens the path chooser,
+	// an item with Enum, Source or Noun its picker, any other a line of
+	// text). A form draws a list with Items as one row per item, with
+	// add, edit, delete, move, yank and edge verbs (record_list.go); a
+	// list without Items stays JSON text. The catalog's items.
+	Items *Parameter `json:"items,omitempty"`
 }
 
 // lacks reports whether args lack the required parameter name: it is

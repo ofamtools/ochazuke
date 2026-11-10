@@ -16,14 +16,14 @@ func placedRowsFixture(t *testing.T) (*Runtime, *Model) {
 	t.Helper()
 	r := NewRuntime()
 	noop := func(Ctx) Result { return Done(nil) }
-	r.Define("item").Verb("open", noop, "Open the item").Mode("normal").Bind("enter", Do("item.open"))
+	r.Define("tile").Verb("open", noop, "Open the tile").Mode("normal").Bind("enter", Do("tile.open"))
 	r.Define("panel").Verb("refresh", noop, "Refresh the panel").Mode("normal").Bind("R", Do("panel.refresh"))
 	r.Define("ochazuke.page").Verb("tag", noop, "Tag the page").Mode("normal").Bind("T", Do("ochazuke.page.tag"))
 	if _, err := r.AddPage("ctx", "Context", func(r *Runtime, w, h int) Block { return Text(r.List("rows").View(w, h)) }); err != nil {
 		t.Fatal(err)
 	}
 	r.Instance("panel", Parent("ctx"), Kind("panel"))
-	list, err := r.AddList("rows", []ListItem{{ID: "a", Label: "one", Noun: "item"}, {ID: "b", Label: "two", Noun: "item"}}, Parent("panel"))
+	list, err := r.AddList("rows", []ListItem{{ID: "a", Label: "one", Noun: "tile"}, {ID: "b", Label: "two", Noun: "tile"}}, Parent("panel"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,20 +54,20 @@ func TestPlaceHelpMatchesTheLiveRow(t *testing.T) {
 	if r.Focus != "a" {
 		t.Fatalf("focus %q", r.Focus)
 	}
-	live := r.placementOf(r.Focus, "item")
-	places := r.NounPlaces("item")
+	live := r.placementOf(r.Focus, "tile")
+	places := r.NounPlaces("tile")
 	if len(places) == 0 || places[0].key() != live.key() {
 		t.Fatalf("the row's place %+v is not the most seen (%+v)", live, places)
 	}
 	place := places[0]
-	if got := place.Chain(); !slices.Equal(got, []string{"ochazuke.page", "panel", "ochazuke.collection", "item"}) {
+	if got := place.Chain(); !slices.Equal(got, []string{"ochazuke.page", "panel", "ochazuke.collection", "tile"}) {
 		t.Fatalf("chain %v", got)
 	}
 	for _, mode := range []string{"normal", "insert"} {
 		if err := r.SetMode(mode); err != nil {
 			t.Fatal(err)
 		}
-		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(place, r.Mode), "item", "list", "panel", "page", "app")
+		sameAnswers(t, r, r.levelRows(r.Focus), r.nounRows(place, r.Mode), "tile", "list", "panel", "page", "app")
 		here, pick := BindingHelp(r, r.Focus), PlaceHelp(r, place, r.Mode)
 		for _, row := range here {
 			if !helpRowIn(pick, row) {
@@ -78,7 +78,7 @@ func TestPlaceHelpMatchesTheLiveRow(t *testing.T) {
 	if err := r.SetMode("normal"); err != nil {
 		t.Fatal(err)
 	}
-	pick, bare := PlaceHelp(r, place, r.Mode), NounHelp(r, "item", r.Mode)
+	pick, bare := PlaceHelp(r, place, r.Mode), NounHelp(r, "tile", r.Mode)
 	for _, want := range []HelpRow{{Key: "R", Operation: "panel.refresh", Noun: "panel"}, {Key: "T", Operation: "page.tag", Noun: "ochazuke.page"}, {Key: "j", Operation: "collection.move", Noun: "ochazuke.collection"}} {
 		if !helpRowIn(pick, want) {
 			t.Errorf("pick at the place lacks %s → %s", want.Key, want.Operation)
@@ -88,8 +88,8 @@ func TestPlaceHelpMatchesTheLiveRow(t *testing.T) {
 		}
 	}
 	// No place keeps the old walk: the noun, then app.
-	for _, row := range r.nounRows(NounPlace{Noun: "item"}, r.Mode) {
-		if row.level != "item" && row.level != "app" {
+	for _, row := range r.nounRows(NounPlace{Noun: "tile"}, r.Mode) {
+		if row.level != "tile" && row.level != "app" {
 			t.Errorf("no place answers at %s (%s)", row.level, row.Keys)
 		}
 	}
@@ -134,7 +134,7 @@ func TestHelpPlaceChooser(t *testing.T) {
 	r, m := placedRowsFixture(t)
 	pressAll(m, "?", "S")
 	frame := ansi.Strip(m.View().Content)
-	if !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › collection") || !helpListHas(r, "panel.refresh") {
+	if !strings.Contains(frame, "noun: tile · mode: normal · place: Context › page › panel › collection") || !helpListHas(r, "panel.refresh") {
 		t.Fatalf("pick at open:\n%s", frame)
 	}
 	if hints := BindingHints(r, r.Focus); !strings.Contains(hints, "p place") {
@@ -196,10 +196,10 @@ func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for range 3 { // item is seen more often under side than under panel
-		other.SetItems([]ListItem{{ID: "x", Label: "x", Noun: "item"}})
+	for range 3 { // tile is seen more often under side than under panel
+		other.SetItems([]ListItem{{ID: "x", Label: "x", Noun: "tile"}})
 	}
-	places := r.NounPlaces("item")
+	places := r.NounPlaces("tile")
 	if len(places) < 2 || placeLabel(r, places[0]) != "Context › page › page › collection" {
 		t.Fatalf("item places %+v", places)
 	}
@@ -208,7 +208,7 @@ func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 	}
 	pressAll(m, "?", "S")
 	frame := ansi.Strip(m.View().Content)
-	if !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › collection") || !helpListHas(r, "panel.refresh") {
+	if !strings.Contains(frame, "noun: tile · mode: normal · place: Context › page › panel › collection") || !helpListHas(r, "panel.refresh") {
 		t.Fatalf("pick at open is not the origin's place:\n%s", frame)
 	}
 	keytest.Press(m, "n")
@@ -217,8 +217,8 @@ func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 		t.Fatalf("another noun has no most seen place:\n%s", frame)
 	}
 	keytest.Press(m, "n")
-	pressAll(m, "i", "t", "e", "m", "enter")
-	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: item · mode: normal · place: Context › page › panel › collection") {
+	pressAll(m, "t", "i", "l", "e", "enter")
+	if frame = ansi.Strip(m.View().Content); !strings.Contains(frame, "noun: tile · mode: normal · place: Context › page › panel › collection") {
 		t.Fatalf("the origin's noun again is not at the origin's place:\n%s", frame)
 	}
 }
@@ -228,7 +228,7 @@ func TestHelpPlaceDefaultsToTheOrigin(t *testing.T) {
 func TestHelpHomeIsTheRecordersPlace(t *testing.T) {
 	r, _ := placedRowsFixture(t)
 	home := helpHome(r, r.Focus)
-	if home == nil || home.key() != r.placementOf(r.Focus, "item").key() || !slices.Equal(home.Chain(), []string{"ochazuke.page", "panel", "ochazuke.collection", "item"}) {
+	if home == nil || home.key() != r.placementOf(r.Focus, "tile").key() || !slices.Equal(home.Chain(), []string{"ochazuke.page", "panel", "ochazuke.collection", "tile"}) {
 		t.Fatalf("home %+v", home)
 	}
 	if helpHome(r, "missing") != nil {
