@@ -37,3 +37,30 @@ func TestFrameworkNounsScaffold(t *testing.T) {
 	ochazuke.NewModel(r)
 	scaffoldcheck.Check(t, scaffoldcheck.Config{Runtime: r, Baseline: "testdata/scaffoldcheck.txt", Keep: func(*ochazuke.Noun) bool { return true }})
 }
+
+// The scaffold's verbs, generated keys and show-form sections are checked
+// too; a noun that declines the generated keys passes keys; a delete an
+// agent runs only with the owner's confirmation (agents.rights confirm) is
+// not an agent delete, a plain allow is.
+func TestScaffoldVerbsKeysAndDeleteRights(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	r.Config().Disable()
+	props := []ochazuke.PropSpec{
+		{Name: "id", Key: true, CreateOnly: true},
+		{Name: "title", Role: ochazuke.RoleLabel},
+		{Name: "archived", Role: ochazuke.RoleArchive, Parameter: ochazuke.Parameter{Type: ochazuke.SettingBoolean}},
+	}
+	r.Define("pane").Props(props...).Store(ochazuke.DocStore(ochazuke.NewMemDocTable(r, "pane"), "pane"))
+	r.Define("quiet").DefaultKeys(false).Props(props...).Store(ochazuke.DocStore(ochazuke.NewMemDocTable(r, "quiet"), "quiet"))
+	r.Define("loose").Props(props...).Store(ochazuke.DocStore(ochazuke.NewMemDocTable(r, "loose"), "loose"))
+	if err := r.Settings().Set(ochazuke.AgentRightsSetting, `[{"match":"pane.delete","right":"confirm"},{"match":"loose.delete","right":"allow"}]`); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, p := range scaffoldcheck.Problems(scaffoldcheck.Config{Runtime: r}) {
+		got = append(got, p.Row())
+	}
+	if want := []string{"loose\tdelete"}; !slices.Equal(got, want) {
+		t.Fatalf("problems %q, want %q", got, want)
+	}
+}

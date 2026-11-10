@@ -2,8 +2,12 @@
 // the generic scaffold from its declaration alone (noun scaffold plan,
 // section 5 and lane sc-rights-and-conformance): an index, the edit form
 // over its props, new, set, archive and restore through its archive role,
-// delete (never for an agent), a label, the free verbs of its value kinds,
-// and the CLI words get and list. It reads only the registry, so an
+// delete (an agent never runs it alone: never, or confirm from agents.rights
+// so the owner says yes; a plain allow fails), a label, the free verbs of
+// its value kinds, the CLI words get and list, the scaffold's standard
+// verbs (show, duplicate, yank, history, restore, associate), the generated
+// key block's rows for the verbs it has, and the show form's history and
+// relation sections. It reads only the registry, so an
 // application or tool runs it over its own runtime with every extension
 // mounted (their catalogs' nouns are checked as the host serves them).
 //
@@ -41,6 +45,9 @@ const (
 	CheckDelete  = "delete"  // delete, which an agent may never run
 	CheckWords   = "words"   // the CLI words get and list
 	CheckValues  = "values"  // the free verbs of its props' value kinds (path: open, open-with, reveal, yank-path; url: open, yank-path; reference: follow)
+	CheckVerbs   = "verbs"   // the scaffold's standard verbs: show, duplicate (alias dup), yank, history; restore where it archives; associate where relations are kept
+	CheckKeys    = "keys"    // the generated key block (keys.noun-defaults) has a row for each verb it has, unless it declines it (DefaultKeys(false))
+	CheckShow    = "show"    // the show form's sections: the history section reads history, and the relation sections relate where relations are kept
 )
 
 // Problem is one check a noun fails, with why.
@@ -148,9 +155,13 @@ func nounProblems(r *ochazuke.Runtime, n *ochazuke.Noun) []Problem {
 	}
 	if op, why := available(r, n.Name, "delete"); why != "" {
 		fail(CheckDelete, why)
-	} else if op.AgentRightOf(false) != ochazuke.AgentNever {
-		fail(CheckDelete, "an agent may run delete ("+op.AgentRightOf(false)+"); agents only archive")
+	} else if right := r.AgentRight(op, false); right.Right == ochazuke.AgentAllow {
+		// An agent's delete is refused (never) or runs only with the
+		// owner's yes (confirm, from agents.rights: a pane or a session
+		// closes with the owner's OK); a plain allow is an agent delete.
+		fail(CheckDelete, "an agent may run delete ("+right.Right+", "+right.Rule+"); agents only archive, or delete with the owner's confirmation")
 	}
+	out = append(out, scaffoldProblems(r, n, archive != nil)...)
 	for _, verb := range []string{"get", "list"} {
 		if _, why := available(r, n.Name, verb); why != "" {
 			fail(CheckWords, why)
@@ -160,6 +171,71 @@ func nounProblems(r *ochazuke.Runtime, n *ochazuke.Noun) []Problem {
 		fail(CheckValues, "missing "+strings.Join(missing, ", "))
 	}
 	return out
+}
+
+// scaffoldProblems are the checks of the scaffold's standard verbs, the
+// generated keys and the show form's sections.
+func scaffoldProblems(r *ochazuke.Runtime, n *ochazuke.Noun, archives bool) []Problem {
+	var out []Problem
+	fail := func(check, why string) { out = append(out, Problem{Noun: n.Name, Check: check, Why: why}) }
+	verbs := []string{"show", "yank", "history"}
+	if _, why := available(r, n.Name, "create"); why == "" {
+		verbs = append(verbs, "duplicate") // a noun that makes no things fails new, not this
+	}
+	if archives {
+		verbs = append(verbs, "restore")
+	}
+	if r.RelationStore() != nil {
+		verbs = append(verbs, "associate")
+	}
+	var missing []string
+	for _, verb := range verbs {
+		if _, why := available(r, n.Name, verb); why != "" {
+			missing = append(missing, verb)
+		}
+	}
+	if len(missing) > 0 {
+		fail(CheckVerbs, "missing "+strings.Join(missing, ", "))
+	}
+	if keys := missingKeys(r, n); len(keys) > 0 {
+		fail(CheckKeys, "no generated row for "+strings.Join(keys, ", "))
+	}
+	if _, why := available(r, n.Name, "history"); why != "" {
+		fail(CheckShow, "the history section has nothing to read: "+why)
+	} else if r.RelationStore() != nil {
+		if _, why := available(r, n.Name, "relate"); why != "" {
+			fail(CheckShow, "the relation sections cannot relate: "+why)
+		}
+	}
+	return out
+}
+
+// missingKeys are the keys of the generated block the noun should have (its
+// verb available, its role present) and lacks, none when it declines the
+// block or the setting is off.
+func missingKeys(r *ochazuke.Runtime, n *ochazuke.Noun) []string {
+	if n.NoDefaultKeys || n.Pin != "" || !r.Settings().Bool(ochazuke.NounDefaultsSetting) {
+		return nil
+	}
+	have := map[string]bool{}
+	for _, b := range r.RowsOf(n.Name, "normal") {
+		have[b.Keys] = true
+	}
+	var out []string
+	for _, t := range ochazuke.NounKeyRows() {
+		op, why := available(r, n.Name, t.Verb)
+		if why != "" || op.Standard == "" || t.Role != "" && !hasRole(n, t.Role) {
+			continue
+		}
+		if !have[t.Key] {
+			out = append(out, t.Key)
+		}
+	}
+	return out
+}
+
+func hasRole(n *ochazuke.Noun, role string) bool {
+	return slices.ContainsFunc(n.Props, func(p ochazuke.PropSpec) bool { return p.Role == role && !p.ReadOnly })
 }
 
 func createsBySomeVerb(r *ochazuke.Runtime, noun string) bool {
