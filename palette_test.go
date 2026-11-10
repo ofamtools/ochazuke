@@ -65,6 +65,7 @@ func paletteInputSnapshot(t *testing.T, in *Input) string {
 func lineRuntime(t *testing.T) (*Runtime, *Palette, *[]string) {
 	t.Helper()
 	r := NewRuntime()
+	reachOff(t, r)
 	ran := new([]string)
 	run := func(r *Runtime, c Context, a Arguments) (any, error) {
 		names := make([]string, 0, len(a))
@@ -275,8 +276,18 @@ func TestPaletteEnterRunsUnlessAWordIsHighlighted(t *testing.T) {
 		t.Fatalf("a completion is highlighted before ctrl+n:\n%s", view)
 	}
 	paletteKeys(t, p, "ctrl+n")
+	if view := p.View(); p.state()["highlight"] != 0 || !strings.Contains(view, " transform") || strings.Contains(view, "> ") {
+		t.Fatalf("ctrl+n did not highlight the whole row (no arrow):\n%s", view)
+	}
+	// palette.marker arrow keeps the marker before the row.
+	if err := r.Settings().Set(PaletteMarkerSetting, PaletteMarkerArrow); err != nil {
+		t.Fatal(err)
+	}
 	if view := p.View(); !strings.Contains(view, "> transform") {
-		t.Fatalf("ctrl+n did not highlight:\n%s", view)
+		t.Fatalf("palette.marker arrow lost the marker:\n%s", view)
+	}
+	if err := r.Settings().Set(PaletteMarkerSetting, PaletteMarkerLine); err != nil {
+		t.Fatal(err)
 	}
 	typeLine(t, p, "a")
 	if p.state()["highlight"] != -1 {
@@ -374,7 +385,7 @@ func TestPaletteBindingsListIsTruthful(t *testing.T) {
 			rows[b.Keys] = b.Request.Key()
 		}
 	}
-	for key, want := range map[string]string{"enter": "ochazuke.palette.run", "tab": "ochazuke.palette.complete", "ctrl+n": "ochazuke.palette.move", "ctrl+p": "ochazuke.palette.move", "up": "ochazuke.palette.recall", "down": "ochazuke.palette.recall", "esc": "ochazuke.mode.switch", "ctrl+c": "ochazuke.palette.close"} {
+	for key, want := range map[string]string{"enter": "ochazuke.palette.run", "tab": "ochazuke.palette.complete", "ctrl+n": "ochazuke.palette.move", "ctrl+p": "ochazuke.palette.move", "up": "ochazuke.palette.step", "down": "ochazuke.palette.step", "shift+tab": "ochazuke.palette.move", "esc": "ochazuke.mode.switch", "ctrl+c": "ochazuke.palette.close"} {
 		if rows[key] != want {
 			t.Fatalf("%s lists %q, want %s (%v)", key, rows[key], want, rows)
 		}
@@ -654,5 +665,15 @@ func TestPaletteAmbiguousFirstWordCompletesSecond(t *testing.T) {
 	}
 	if !slices.Contains(got, "noun:row") {
 		t.Fatalf("completions %v, want the noun row", got)
+	}
+}
+
+// reachOff turns palette.reach off: the palette lists only the verbs the
+// focus and mode allow, the reading the tests of the line grammar and of
+// guarded verbs were written against.
+func reachOff(t *testing.T, r *Runtime) {
+	t.Helper()
+	if err := r.Settings().Set(PaletteReachSetting, false); err != nil {
+		t.Fatal(err)
 	}
 }

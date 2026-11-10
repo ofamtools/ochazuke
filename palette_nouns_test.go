@@ -191,6 +191,7 @@ func TestPaletteNounRegistrationValidation(t *testing.T) {
 // line pins does not count. A default verb cannot be guarded.
 func TestPaletteHidesGuardedVerbs(t *testing.T) {
 	r := NewRuntime()
+	reachOff(t, r)
 	if err := r.DefineMode("selecting", false); err != nil {
 		t.Fatal(err)
 	}
@@ -353,6 +354,7 @@ func TestPaletteActivePageOrdering(t *testing.T) {
 
 func TestPaletteActivePagePreservesFocusGuardsAndExecution(t *testing.T) {
 	r := NewRuntime()
+	reachOff(t, r)
 	r.Config().Disable()
 	var ran []string
 	run := func(ctx Ctx) Result {

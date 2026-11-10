@@ -43,6 +43,15 @@ type PaletteEntry struct {
 	// cursor, adding no space, instead of replacing the word being typed.
 	Splice bool `json:"splice,omitempty"`
 	From   int  `json:"from,omitempty"`
+	// Reason is why the entry's action cannot run whatever is chosen
+	// (unavailableReason: disabled, a setting off, a store that cannot do
+	// it); the entry is still listed, with the reason beside it.
+	Reason string `json:"reason,omitempty"`
+	// Verbs are a noun entry's verbs and Nouns a verb entry's nouns, as
+	// the first word lists them: the board counts them on the cell and
+	// names them in its help line, and tells the two kinds apart by them.
+	Verbs []string `json:"-"`
+	Nouns []string `json:"-"`
 	// Match holds the drawn label's matching rune offsets. Presentation
 	// only: CLI completion and state JSON keep their existing shape.
 	Match []int `json:"-"`
@@ -145,7 +154,11 @@ func (p *Palette) completions() []PaletteEntry {
 			if len(aliases) > 0 {
 				label += " · also " + strings.Join(aliases, ", ")
 			}
-			out = append(out, PaletteEntry{Value: verb, Kind: "verb", Label: label, Verb: verb, Aliases: aliases})
+			reason := ""
+			if noun != "" {
+				reason = p.r.unavailableReason(ix.ops[noun+"."+verb])
+			}
+			out = append(out, PaletteEntry{Value: verb, Kind: "verb", Label: label, Verb: verb, Aliases: aliases, Reason: reason, Nouns: ix.verbs[verb]})
 		}
 	}
 	props := func(noun string) {
@@ -155,7 +168,7 @@ func (p *Palette) completions() []PaletteEntry {
 	}
 	nouns := func(names []string) {
 		for _, noun := range names {
-			out = append(out, PaletteEntry{Value: noun, Kind: "noun", Label: noun})
+			out = append(out, PaletteEntry{Value: noun, Kind: "noun", Label: noun, Verbs: ix.nouns[noun]})
 		}
 	}
 	p.loadingNote = ""
@@ -172,8 +185,13 @@ func (p *Palette) completions() []PaletteEntry {
 			out = append(out, entry)
 		}
 	}
+	boardWord := p.styleBoard() && len(tokens) < 2 // the board narrows by prefix itself (boardFilter)
 	if len(tokens) == 0 {
-		own, named := p.firstWords(ix, partial)
+		reader := partial
+		if boardWord {
+			reader = ""
+		}
+		own, named := p.firstWords(ix, reader)
 		verbs(own, "")
 		nouns(named)
 		if partial != "" {
@@ -186,6 +204,10 @@ func (p *Palette) completions() []PaletteEntry {
 			out = append(out, entries...)
 		}
 		switch {
+		case boardWord && len(tokens) == 1 && p.boardWords(ix, tokens[0].Text, verbs, props, nouns):
+			// The board committed this word as a noun or as a verb (tag is
+			// both): the next word is the other kind, whatever the reader
+			// would read the word as.
 		case c.Err != nil:
 			pairFits(ix, c, len(tokens), nouns, verbs)
 		case len(tokens) == 1 && c.Words[0].Kind == "verb":
@@ -194,6 +216,8 @@ func (p *Palette) completions() []PaletteEntry {
 			if a, bare := p.r.bareAlias(tokens[0].Text); bare && a.ShadowedVerb() != "" {
 				// set NOUN reads only one-value nouns (owner decision 17).
 				names = p.r.shadowWords(names, a.ShadowedVerb())
+				here := p.r.lineIndex(p.offeredHere, p.nounBefore)
+				names = slices.DeleteFunc(slices.Clone(names), func(n string) bool { return !slices.Contains(here.verbs[a.ShadowedVerb()], n) })
 			}
 			nouns(names)
 		case len(tokens) == 1 && c.Words[0].Kind == "noun":
@@ -211,7 +235,18 @@ func (p *Palette) completions() []PaletteEntry {
 			choices(slot.Op, slot.Name, slot.Args)
 		}
 	}
+	return p.narrow(out, ix, view, partial, boardWord, nounPosition)
+}
+
+// narrow keeps the entries the word being typed (partial) and the filter
+// code leave: the board's cells by prefix (boardCells), else the entries
+// with the word, an alias or the id as a prefix, the active page's first
+// at a noun position.
+func (p *Palette) narrow(out []PaletteEntry, ix lineIndex, view StandardVerbsView, partial string, boardWord, nounPosition bool) []PaletteEntry {
 	kind := map[string]string{"v": "verb", "n": "noun", "p": "choice"}[p.filter]
+	if boardWord {
+		return p.boardCells(out, kind, partial)
+	}
 	filtered := out[:0]
 	for _, entry := range out {
 		if (kind == "" || entry.Kind == kind) && (hasPrefixFold(entry.Value, partial) || partial != "" && (slices.ContainsFunc(entry.Aliases, func(a string) bool { return hasPrefixFold(a, partial) }) || entry.ID != "" && entry.ID != entry.Value && hasPrefixFold(entry.ID, partial))) {
@@ -399,6 +434,20 @@ func (ix lineIndex) aliasWords(r *Runtime, op Operation, word string) []string {
 // guard (Verb(...).When) is false at the focus and mode the palette opened
 // over is left out; a palette noun's default verb always stays.
 func (p *Palette) offered(op Operation) bool {
+	if p.offeredHere(op) {
+		return true
+	}
+	// palette.reach: a guard that is false here is no reason to leave the
+	// verb out; choosing it asks for what it lacks and runs it at a thing
+	// of its noun (reach).
+	return p.r.Settings().Bool(PaletteReachSetting)
+}
+
+// offeredHere is offered under the focus and mode alone (palette.reach
+// off): a palette noun's default verb, or a verb whose guard holds. A bare
+// alias that shadows a verb (set) reads the nouns that have the verb here,
+// so reaching a guarded noun.set never changes how set NAME reads.
+func (p *Palette) offeredHere(op Operation) bool {
 	if config, ok := p.nouns[op.Noun()]; ok && config.DefaultVerb == op.Name() {
 		return true
 	}
@@ -510,7 +559,7 @@ func (p *Palette) propWords(ix lineIndex, noun string) []PropSpec {
 	}
 	var out []PropSpec
 	for _, prop := range n.Props {
-		if p.r.propShown(prop, focusOf(p.origin), p.originMode, nil) {
+		if p.r.propShown(prop, focusOf(p.origin), p.originMode, nil) || p.r.Settings().Bool(PaletteReachSetting) {
 			out = append(out, prop)
 		}
 	}

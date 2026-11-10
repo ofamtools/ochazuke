@@ -86,6 +86,34 @@ func ArgsFields(op Operation) ([]RecordField, error) {
 	return append(required, optional...), nil
 }
 
+// askedTargets makes the fields of the target parameters the form has to
+// ask for (nothing of their noun is focused) required, ahead of the
+// optional ones: a form cannot run without the thing it acts on.
+func askedTargets(fields []RecordField, asked []string) []RecordField {
+	var first, rest []RecordField
+	for _, f := range fields {
+		if slices.Contains(asked, f.Name) {
+			f.Parameter.Required = true
+			f.Label = strings.Replace(f.Label, " (optional)", "", 1)
+			first = append(first, f)
+			continue
+		}
+		rest = append(rest, f)
+	}
+	if len(first) == 0 {
+		return fields
+	}
+	var required, optional []RecordField
+	for _, f := range rest {
+		if f.Required {
+			required = append(required, f)
+		} else {
+			optional = append(optional, f)
+		}
+	}
+	return append(append(first, required...), optional...)
+}
+
 // OpenArgsForm opens the args form over the focus for a request whose
 // verb lacks arguments: one field per parameter (ArgsFields), prefilled
 // from q's arguments, the first missing required one focused (typing,
@@ -120,6 +148,9 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 	if err != nil {
 		return nil, err
 	}
+	if r.Settings().Bool(PaletteReachSetting) {
+		fields = askedTargets(fields, r.missingTargets(op, q.Args, r.requestFocus(q)))
+	}
 	if len(fields) == 0 {
 		return nil, fmt.Errorf("%s takes no arguments a form can hold", q.Key())
 	}
@@ -130,6 +161,11 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 		}
 	}
 	missing := missingRequired(op, q.Args)
+	for _, name := range r.missingTargets(op, q.Args, r.requestFocus(q)) {
+		if r.Settings().Bool(PaletteReachSetting) && !slices.Contains(missing, name) {
+			missing = append(missing, name)
+		}
+	}
 	start := ""
 	if len(missing) > 0 {
 		start = missing[0]
@@ -321,4 +357,15 @@ func (r *Runtime) formForMissing(q Request, run func(Request) error) bool {
 	}
 	_, err := r.OpenArgsForm(q, run)
 	return err == nil
+}
+
+// requestFocus is the focus a form for q is judged at: its target, else
+// the base focus.
+func (r *Runtime) requestFocus(q Request) string {
+	if q.Target != "" {
+		if id, err := r.TargetInstance(q.Target); err == nil {
+			return id
+		}
+	}
+	return r.BaseFocus()
 }

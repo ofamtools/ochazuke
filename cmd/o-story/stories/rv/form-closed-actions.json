@@ -4,6 +4,7 @@
   "width": 100,
   "height": 24,
   "chrome": "full",
+  "settings": [{"name": "palette.reach", "type": "boolean", "default": false}],
   "page": {
     "noHeadings": true,
     "nouns": [

@@ -49,6 +49,7 @@ func ArgsText(a Arguments) string {
 // TestReaderTable runs the same rows).
 func TestReaderTablePalette(t *testing.T) {
 	r := NewRuntime()
+	reachOff(t, r) // the table is the CLI's reading: only the verbs the focus allows
 	var ran []string
 	defineReaderFixture(r, &ran)
 	p := NewPalette(r)

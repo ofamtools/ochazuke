@@ -338,7 +338,9 @@ ochazuke.page.pick motion=false focusBound=false typing=false kind=action repeat
 ochazuke.page.previous motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.page.set motion=false focusBound=false typing=false kind=change repeatable=false staying=false
 ochazuke.page.watch motion=false focusBound=false typing=false kind=fetch repeatable=false staying=false
+ochazuke.palette.back motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.palette.cancel motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.palette.cell motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.palette.close motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.palette.complete motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.palette.fill motion=false focusBound=false typing=false kind=action repeatable=false staying=false
@@ -346,6 +348,7 @@ ochazuke.palette.move motion=true focusBound=false typing=false kind=action repe
 ochazuke.palette.open motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.palette.recall motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.palette.run motion=false focusBound=false typing=false kind=action repeatable=false staying=false
+ochazuke.palette.step motion=true focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.pane.grow motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.pane.only motion=false focusBound=false typing=false kind=action repeatable=false staying=false
 ochazuke.pane.reset motion=false focusBound=false typing=false kind=action repeatable=false staying=false

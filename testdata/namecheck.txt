@@ -275,7 +275,7 @@ palette_choices.go	Palette.slot	compare	"noun"	1
 palette_editing.go	Palette.recallLines	compare	"palette"	2
 palette_nouns.go	Palette.completions	compare	"noun"	1
 palette_nouns.go	Palette.completions	compare	"verb"	1
-palette_nouns.go	Palette.completions	cyclo	"-"	40
+palette_nouns.go	Palette.completions	cyclo	"-"	36
 palette_nouns.go	Palette.preferActivePage	case	"noun"	1
 palette_nouns.go	Palette.preferActivePage	case	"verb"	1
 palette_nouns.go	Palette.preferActivePage	compare	"last"	1

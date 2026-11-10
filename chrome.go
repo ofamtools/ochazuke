@@ -48,6 +48,8 @@ import (
 //	palette.heading             command-line completion group headings
 //	palette.marker              command-line completion marker
 //	palette.resolve             the command line's resolved request
+//	palette.focus               the palette's focused row or cell, filled across its width
+//	palette.prefix              the shortest prefix that picks a board cell
 const (
 	// ChromeColorSetting is the chrome colour level, a row of
 	// settings/ochazuke.json (appearance).
@@ -176,6 +178,10 @@ func chromeTones() map[string]ToneStyle {
 		"chrome.rich.palette.heading":   {Fg: chromeAccent, Bold: true},
 		"chrome.rich.palette.marker":    {Fg: chromeMode, Bold: true},
 		"chrome.rich.palette.resolve":   {Fg: chromeHint},
+		"chrome.rich.palette.focus":     {Fg: chromeSurf, Bg: chromeMode, Bold: true},
+		"chrome.rich.palette.prefix":    {Fg: chromeMode, Bold: true},
+		"chrome.subtle.palette.focus":   {Fg: chromeMode, Bg: chromeSurf, Bold: true},
+		"chrome.subtle.palette.prefix":  {Fg: chromeAccent, Bold: true},
 		"chrome.subtle.match":           {Fg: chromeAccent, Bold: true},
 		"chrome.subtle.palette.match":   {Fg: chromeAccent, Bold: true},
 		"chrome.subtle.palette.heading": {Fg: chromeHint},

@@ -1,6 +1,7 @@
 {
   "name": "outline: a fixed root refuses d d, J and i, and the palette offers no outline.delete; its child deletes",
   "area": "tree",
+  "settings": [{"name": "palette.reach", "type": "boolean", "default": false}],
   "page": {
     "trees": [
       {"id": "t", "editable": true, "nodes": [

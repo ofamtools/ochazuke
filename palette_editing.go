@@ -37,11 +37,16 @@ func (p *Palette) sync() {
 		p.filter = ""
 	}
 	if text != p.seen {
+		grew := len([]rune(text)) > len([]rune(p.seen))
 		p.seen = text
 		p.highlight = -1
 		p.message = ""
 		p.choiceCache = nil
 		p.recall = 0
+		if grew && !p.committing {
+			p.reopenWord()
+			p.autoCommit() // board: the one cell the letters leave commits itself
+		}
 	}
 }
 

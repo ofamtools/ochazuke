@@ -22,7 +22,7 @@
   },
   "script": [":", {"type": "set pa"}, "tab", {"type": "rcel"}],
   "expect": [
-    {"after": 2, "contains": ["palette", "palette.standard-verbs"], "lacks": ["parcel"]},
+    {"after": 2, "contains": ["palette", "palette.reach"], "lacks": ["parcel"]},
     {"after": 3, "contains": ["palette.missing-opens-form"], "lacks": ["parcel ("]},
     {"contains": ["set parcel"], "lacks": ["parcel set", "is ambiguous"]}
   ]
