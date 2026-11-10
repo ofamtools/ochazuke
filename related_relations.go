@@ -32,7 +32,7 @@ func (rel *Related) dropRelationSections(on bool) {
 		if s.ref.Relation == "" {
 			continue
 		}
-		_ = rel.r.RemoveInstance(s.id)
+		s.remove()
 		rel.sections = slices.DeleteFunc(rel.sections, func(o *relatedSection) bool { return o == s })
 		delete(rel.byID, s.ref.ID())
 	}

@@ -1,0 +1,49 @@
+{
+  "name": "a hand-built show form uses the app related stack once, keeps hidden and empty settings, follows selection, writes fields and shows history last; a borrowed custom view survives stack off/on",
+  "area": "nouns",
+  "width": 120,
+  "height": 40,
+  "chrome": "full",
+  "page": {
+    "id": "work",
+    "title": "Work",
+    "lists": [{"id": "a", "from": true}],
+    "order": ["a"],
+    "trees": [{"id": "steps-tree", "nodes": [{"id": "s1", "label": "custom fill the can", "data": {"id": "s1", "title": "fill the can", "chore": "c1"}}]}],
+    "store": {
+      "noun": "chore",
+      "token": true,
+      "props": [{"name": "id", "key": true}, {"name": "title", "role": "label", "type": "string"}],
+      "things": [{"id": "c1", "title": "Water the plants"}, {"id": "c2", "title": "Write notes"}]
+    },
+    "detail": {"lines": 1, "showForm": true},
+    "related": {
+      "noun": "chore",
+      "keyList": "a",
+      "hidden": ["memo.about"],
+      "empty": "hide",
+      "nouns": [
+        {"noun": "memo", "prop": "about", "any": true, "things": [{"id": "m1", "title": "private memo", "about": "chore:c1"}]},
+        {"noun": "step", "prop": "chore", "owner": true, "view": "steps-tree", "things": [{"id": "s1", "title": "fill the can", "chore": "c1"}]},
+        {"noun": "link", "prop": "chore", "owner": true, "hook": true, "things": [{"id": "l1", "title": "notes guide", "chore": "c2"}]}
+      ]
+    }
+  },
+  "script": [
+    "j", "k",
+    ":", "chore set c1 title=\"Water the ferns\"", "enter",
+    ":", "set related.enabled=false", "enter",
+    ":", "set related.enabled=true related.empty=header", "enter",
+    ":", "set detail.show-form=false", "enter",
+    ":", "set detail.show-form=true", "enter"
+  ],
+  "expect": [
+    {"after": 1, "contains": ["Write notes", "Links (1)", "notes guide"], "lacks": ["Memos", "private memo", "Steps", "History"]},
+    {"after": 2, "contains": ["Water the plants", "Steps (1)", "custom fill the can"], "lacks": ["Memos", "private memo", "Links", "History"]},
+    {"after": 5, "contains": ["Water the ferns", "History (1)"], "lacks": ["private memo"]},
+    {"after": 8, "contains": ["Water the ferns", "title"], "lacks": ["Steps", "History", "custom fill the can"]},
+    {"after": 11, "contains": ["Water the ferns", "Steps (1)", "custom fill the can", "Links (0)", "History (1)"], "lacks": ["Memos", "private memo"]},
+    {"after": 14, "contains": ["line 1"], "lacks": ["History", "Steps", "title"]},
+    {"contains": ["Water the ferns", "Steps (1)", "custom fill the can", "History (1)"], "lacks": ["Memos", "private memo"]}
+  ]
+}

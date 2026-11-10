@@ -65,6 +65,8 @@ type RelatedNounSpec struct {
 	Hook     bool             `json:"hook,omitempty"`
 	Columns  []string         `json:"columns,omitempty"`
 	Things   []ochazuke.Thing `json:"things,omitempty"`
+	// View names an existing placed component used instead of section rows.
+	View string `json:"view,omitempty"`
 }
 
 func relatedID(p *Page) string {
@@ -132,11 +134,12 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 	if !spec.Detail {
 		rowNouns = []string{spec.Noun}
 	}
-	for _, noun := range rowNouns {
-		r.Define(noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
-	}
-	for _, noun := range spec.Plain {
-		r.Define(noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
+	for _, nouns := range [][]string{rowNouns, spec.Plain} {
+		for _, noun := range nouns {
+			if r.Noun(noun) == nil {
+				r.Define(noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel})
+			}
+		}
 	}
 	for _, n := range spec.Nouns {
 		prop := ochazuke.PropSpec{Name: n.Prop, ReadOnly: n.ReadOnly, Parameter: ochazuke.Parameter{Type: "string", Noun: spec.Noun}}
@@ -154,6 +157,9 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 			prop.Role = ochazuke.RoleOwner
 		}
 		b := r.Define(n.Noun).Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel}, prop)
+		if n.View != "" {
+			b.RelatedView(n.View)
+		}
 		if len(n.Columns) > 0 {
 			var cols []ochazuke.Column
 			for _, c := range n.Columns {
@@ -174,6 +180,7 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 		return nil, err
 	}
 	for _, s := range []ochazuke.Setting{
+		{Name: "related.enabled", Type: ochazuke.SettingBoolean, Default: true},
 		{Name: "related.order", Type: ochazuke.SettingList, Default: orEmpty(spec.Order)},
 		{Name: "related.hidden", Type: ochazuke.SettingList, Default: orEmpty(spec.Hidden)},
 		{Name: "related.collapsed", Type: ochazuke.SettingList, Default: orEmpty(spec.Collapsed)},
@@ -197,14 +204,13 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 		}
 		return out, nil
 	}
+	related := ochazuke.RelatedSpec{Noun: spec.Noun, Rows: rows, Enabled: "related.enabled",
+		Order: "related.order", Hidden: "related.hidden", Collapsed: "related.collapsed", Counts: "related.counts", Empty: "related.empty"}
 	if spec.Detail {
-		target := r.SelectionTarget(func() *ochazuke.Collection { return ss.lists[listID] })
-		if err := r.Bind(ochazuke.Binding{Noun: "app", Mode: "normal", Keys: "u", Request: ochazuke.Request{Noun: "ochazuke.history-entry", Verb: "undo"}}); err != nil {
-			return nil, err
-		}
-		return r.AddRelated(relatedID(p), ochazuke.RelatedSpec{Target: target, Enabled: ochazuke.RelatedDetailSetting, Hidden: ochazuke.RelatedDetailHiddenSetting, Rows: rows}, ochazuke.Parent(p.ID))
+		related.Target = r.SelectionTarget(func() *ochazuke.Collection { return ss.lists[listID] })
+		related.Enabled, related.Hidden = ochazuke.RelatedDetailSetting, ochazuke.RelatedDetailHiddenSetting
 	}
-	key := func() string {
+	related.Key = func() string {
 		id := listID
 		if l := ss.lists[id]; l != nil {
 			if it, ok := l.Selected(); ok {
@@ -216,9 +222,17 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 	if err := r.Bind(ochazuke.Binding{Noun: "app", Mode: "normal", Keys: "u", Request: ochazuke.Request{Noun: "ochazuke.history-entry", Verb: "undo"}}); err != nil {
 		return nil, err
 	}
-	return r.AddRelated(relatedID(p), ochazuke.RelatedSpec{Noun: spec.Noun, Key: key,
-		Order: "related.order", Hidden: "related.hidden", Collapsed: "related.collapsed", Counts: "related.counts", Empty: "related.empty",
-		Rows: rows}, ochazuke.Parent(p.ID))
+	if p.Detail != nil && p.Detail.ShowForm {
+		related.History = true
+		sf, err := r.AddShowForm(p.ID+"-show", ochazuke.ShowFormSpec{
+			List: func() *ochazuke.Collection { return ss.lists[listID] }, Related: &related,
+		}, ochazuke.Parent(p.ID))
+		if err != nil {
+			return nil, err
+		}
+		return sf.Related(), nil
+	}
+	return r.AddRelated(relatedID(p), related, ochazuke.Parent(p.ID))
 }
 
 func orEmpty(l []string) []string {
