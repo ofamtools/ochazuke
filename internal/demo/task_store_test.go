@@ -124,7 +124,7 @@ func TestTaskCatalogRoundTrip(t *testing.T) {
 		}
 		standard[v.Name] = v.Standard
 	}
-	if want := map[string]string{"edit": "", "get": "get", "list": "list", "watch": "watch", "create": "create", "set": "set", "delete": "delete",
+	if want := map[string]string{"edit": "", "follow": "follow", "get": "get", "list": "list", "watch": "watch", "create": "create", "set": "set", "delete": "delete",
 		"archive": "archive"}; !reflect.DeepEqual(standard, want) {
 		t.Fatalf("standard %v, want %v", standard, want)
 	}

@@ -25,6 +25,19 @@ func open(t *testing.T) *App {
 	return a
 }
 
+// openReachOff opens the sheet with palette.reach off: the palette offers
+// only the verbs whose guards hold here (the pre-reach behaviour), which is
+// what the tests of guard-hidden verbs pin. With reach on (the default) the
+// palette offers every action and asks for a missing target.
+func openReachOff(t *testing.T) *App {
+	t.Helper()
+	a := open(t)
+	if err := a.r.Settings().Set(ochazuke.PaletteReachSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	return a
+}
+
 // press sends keys one by one, failing on the first error the model shows.
 func press(t *testing.T, a *App, keys ...string) {
 	t.Helper()
@@ -367,7 +380,7 @@ func TestColumnVerbsAndSave(t *testing.T) {
 }
 
 func TestPaletteListsTheNounVerbs(t *testing.T) {
-	a := open(t)
+	a := openReachOff(t)
 	verbs := map[string][]string{}
 	for _, op := range a.r.Catalog() {
 		noun := a.r.DisplayNoun(op.Noun()) // the grid's selection is ochazuke.selection
@@ -588,7 +601,7 @@ func paletteFinds(t *testing.T, a *App, query, line string) bool {
 // selection, row and column verbs only while the focus is in the grid.
 // A modal opened over a selection (the palette) keeps it.
 func TestPaletteOffersGuardedVerbsOnlyWhenTheyApply(t *testing.T) {
-	a := open(t)
+	a := openReachOff(t)
 	if paletteFinds(t, a, "selection", "selection") && !paletteFinds(t, a, "selection", "No completions") {
 		t.Fatal("selection verbs offered without a selection")
 	}
@@ -715,4 +728,21 @@ func TestGridHighlightsStayVisibleUnderThePalette(t *testing.T) {
 	if a.r.Focus != "__palette/line" || a.r.Mode.Name != "insert" {
 		t.Fatalf("rendering moved the focus: %s %s", a.r.Focus, a.r.Mode.Name)
 	}
+}
+
+// With palette.reach on (the default) the guard-hidden selection verbs are
+// offered without a selection, and choosing one does not dead-end: the
+// palette stays open (the missing target is asked, never refused).
+func TestPaletteReachOffersGuardedVerbsByDefault(t *testing.T) {
+	a := open(t)
+	if !paletteFinds(t, a, "selection", "selection") || paletteFinds(t, a, "selection", "No completions") {
+		t.Fatal("selection verbs not offered with palette.reach on")
+	}
+	press(t, a, ":")
+	keytest.Type(a.m, "transform selection upper")
+	keytest.Press(a.m, "enter")
+	if !a.m.Palette.IsOpen() {
+		t.Fatalf("choosing a selection verb without a selection closed the palette: %q", a.m.Status)
+	}
+	keytest.Press(a.m, "ctrl+c")
 }
