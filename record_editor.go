@@ -39,6 +39,10 @@ type RecordField struct {
 	Label string `json:"label,omitempty"` // shown above the value (default Name)
 	// Hidden keeps backing state in the record without drawing a field or focus stop.
 	Hidden bool `json:"hidden,omitempty"`
+	// ReadOnly draws the field muted, label and value, with no focus stop:
+	// it is never edited or written (a prop set cannot write, shown beside
+	// the ones it can; forms.show-read-only). Its Parameter is not checked.
+	ReadOnly bool `json:"readOnly,omitempty"`
 	// KeepOnClear preserves this field when form.clear empties the record.
 	KeepOnClear bool `json:"keepOnClear,omitempty"`
 	Parameter
@@ -166,6 +170,9 @@ type RecordSpec struct {
 	Watch string
 	// WatchArgs narrows the existing watch, for example to one subject key.
 	WatchArgs Arguments
+	// OnOpen is called with the editor once it is built, so a spec built away
+	// from its editor (Runtime.EditSpec) can reach it from its Save and Submit.
+	OnOpen func(*RecordEditor)
 }
 
 // FormsOutsideWriteSetting says what an open record editor does when its
@@ -198,8 +205,10 @@ const (
 	// FormSuggestNoun is a free text field with suggestions: an input
 	// whose enter (normal) and ctrl+space open the suggestions chooser.
 	FormSuggestNoun = "ochazuke.form-suggest"
-	formChooseID    = "form-choose"
-	formChooseList  = "__form-choose/list"
+	// FormReadOnlyNoun is a read-only field's instance noun (no focus stop).
+	FormReadOnlyNoun = "ochazuke.form-read-only"
+	formChooseID     = "form-choose"
+	formChooseList   = "__form-choose/list"
 	// FormSuggestionsKind is the suggestions chooser's modal kind
 	// (Runtime.Chooser(FormSuggestionsKind) while it is open).
 	FormSuggestionsKind = "form-suggestions"
@@ -226,11 +235,12 @@ const (
 	FormOneFieldGuard = "form-one-field"
 )
 
-// shownFields counts the fields the form draws (not Hidden).
+// shownFields counts the fields the form draws with a focus stop (not
+// Hidden or ReadOnly).
 func (e *RecordEditor) shownFields() int {
 	n := 0
 	for _, f := range e.fields {
-		if !f.Hidden {
+		if !f.skipped() {
 			n++
 		}
 	}
@@ -281,6 +291,10 @@ type recordStep struct {
 	from, to string
 	changes  []recordStep
 }
+
+// skipped reports whether the field has no focus stop: Hidden (not drawn)
+// or ReadOnly (drawn muted).
+func (f *recordField) skipped() bool { return f.Hidden || f.ReadOnly }
 
 type recordField struct {
 	RecordField
@@ -487,7 +501,9 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 	r.Instance(id, Parent(parent), Kind(FormNoun), FocusOnClose(closeFocus)).Component = e
 	for _, field := range fields {
 		f := &recordField{RecordField: field, id: id + "/" + field.Name}
-		f.editKind = r.editKindOf(field)
+		if !field.ReadOnly {
+			f.editKind = r.editKindOf(field)
+		}
 		v := values[field.Name]
 		e.out.set(field.Name, v)
 		f.before = v
@@ -497,6 +513,9 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 			e.out.set(field.Name+RecordInvertSuffix, invertText(f.not))
 		}
 		switch {
+		case f.ReadOnly:
+			f.value = v
+			r.Instance(f.id, Parent(id), Kind(FormReadOnlyNoun))
 		case f.chips:
 			f.value = v
 			r.Instance(f.id, Parent(id), Kind(FormChipsNoun))
@@ -528,7 +547,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 		e.fields = append(e.fields, f)
 	}
 	for _, f := range e.fields {
-		r.Instances[f.id].Unfocusable = f.Hidden
+		r.Instances[f.id].Unfocusable = f.skipped()
 		if (f.choose || f.chips) && len(f.SourceArgs) == 0 {
 			e.loadChoices(f)
 		}
@@ -543,6 +562,9 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 			return nil, fmt.Errorf("record editor watch: %w", err)
 		}
 		e.watch = w
+	}
+	if spec.OnOpen != nil {
+		spec.OnOpen(e)
 	}
 	return e, nil
 }
@@ -572,10 +594,14 @@ func (e *RecordEditor) ID() string { return e.id }
 // Closed reports whether the editor was left (form.leave) or removed.
 func (e *RecordEditor) Closed() bool { return e.closed }
 
-// Values is every field's value as shown, valid or not.
+// Values is every editable field's value as shown, valid or not (a
+// ReadOnly field is drawn, not a value of the form).
 func (e *RecordEditor) Values() Record {
 	out := Record{}
 	for _, f := range e.fields {
+		if f.ReadOnly {
+			continue
+		}
 		out[f.Name] = f.text()
 	}
 	return out
@@ -615,12 +641,12 @@ func (e *RecordEditor) Focus() error {
 // start is the index of the field focused first: Start, else 0.
 func (e *RecordEditor) start() int {
 	for i, f := range e.fields {
-		if f.Name == e.spec.Start && !f.Hidden {
+		if f.Name == e.spec.Start && !f.skipped() {
 			return i
 		}
 	}
 	for i, f := range e.fields {
-		if !f.Hidden {
+		if !f.skipped() {
 			return i
 		}
 	}
@@ -707,6 +733,9 @@ func (e *RecordEditor) loadChoices(f *recordField) {
 // problem says why a value is not written: required and empty, not of the
 // type, not one of the choices, or Validate's error.
 func (e *RecordEditor) problem(f *recordField) string {
+	if f.ReadOnly {
+		return ""
+	}
 	v := f.text()
 	if f.writeErr != "" && v == f.failedValue {
 		return f.writeErr
@@ -1075,7 +1104,7 @@ func (e *RecordEditor) history(redo bool) error {
 		} else {
 			inverse.changes = append(inverse.changes, back)
 		}
-		if !f.Hidden {
+		if !f.skipped() {
 			focus = f
 		}
 	}
@@ -1107,7 +1136,7 @@ func (e *RecordEditor) move(delta int, insert bool) error {
 		i = 0
 	}
 	j := min(max(0, i+delta), len(e.fields)-1)
-	for e.fields[j].Hidden && j != i {
+	for e.fields[j].skipped() && j != i {
 		next := j + delta
 		if next < 0 || next >= len(e.fields) {
 			j = i
@@ -1583,6 +1612,10 @@ func (e *RecordEditor) Block(width, height int) Block {
 		if f.Hidden {
 			continue
 		}
+		if f.ReadOnly {
+			lines = append(lines, e.readOnlyLines(f, width)...)
+			continue
+		}
 		focused := e.fieldOn(drawn) == f
 		if focused {
 			focusLine = len(lines)
@@ -1675,6 +1708,20 @@ func (e *RecordEditor) Block(width, height int) Block {
 		}
 	}
 	return Block{Text: strings.Join(lines, "\n"), Cursor: cursor}
+}
+
+// readOnlyLines draws a read-only field muted: its label, then its value
+// on one line (newlines shown as spaces), "(none)" when empty.
+func (e *RecordEditor) readOnlyLines(f *recordField, width int) []string {
+	value := strings.Join(strings.Fields(f.value), " ")
+	if value == "" {
+		value = "(none)"
+	}
+	muted := e.Styles.Muted
+	return []string{
+		muted.Render(ansi.Truncate(f.label(), width, "…")),
+		muted.Render(ansi.Truncate("  "+value, width, "…")),
+	}
 }
 
 // reverseVideo draws text in reverse video: the one highlight.

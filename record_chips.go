@@ -351,6 +351,7 @@ func registerFormChips(r *Runtime) {
 		})
 	}
 	r.Define(FormChipsNoun).Focusable()
+	r.Define(FormReadOnlyNoun)
 	r.Define(FormNoun).
 		Verb("invert", on(func(e *RecordEditor, f *recordField, _ Arguments) error { return e.invert(f) }), "Turn the focused field over: is becomes not and back; written at once").When(FormInvertibleGuard).
 		Verb("clear", on(func(e *RecordEditor, _ *recordField, _ Arguments) error { return e.clear() }), "Empty every field and turn every inverted field back; u undoes it a field at a time").When(FormClearableGuard).

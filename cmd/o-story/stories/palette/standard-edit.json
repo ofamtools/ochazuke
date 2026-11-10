@@ -7,5 +7,5 @@
   "store":{"noun":"parcel","props":[{"name":"id","key":true},{"name":"title","role":"label","required":true},{"name":"status","enum":["todo","done"]},{"name":"active","type":"boolean"},{"name":"stamp","readOnly":true}],"things":[{"id":"t1","title":"Original","status":"todo","active":false,"stamp":"fixed"}]}
  },
  "script":[":",{"type":"parcel edit t1"},"enter","i","ctrl+u",{"type":"Cancelled"},"esc","esc",":",{"type":"parcel edit t1"},"enter","i","ctrl+u",{"type":"Applied"},"esc","j","space","j","enter","j","space","k","enter","enter",":",{"type":"parcel get t1"},"enter"],
- "expect":[{"after":3,"contains":["Edit parcel","Original","todo","false"],"lacks":["stamp","fixed"]},{"after":11,"contains":["Edit parcel","Original"],"lacks":["Cancelled"]},{"contains":["Applied","done","true","fixed"],"lacks":["Edit parcel","Cancelled"]}]
+ "expect":[{"after":3,"contains":["Edit parcel","Original","todo","false","stamp","fixed"]},{"after":11,"contains":["Edit parcel","Original"],"lacks":["Cancelled"]},{"contains":["Applied","done","true","fixed"],"lacks":["Edit parcel","Cancelled"]}]
 }

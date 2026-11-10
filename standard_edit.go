@@ -35,6 +35,13 @@ const EditFieldOnlySetting = "edit.field-only"
 // both. Default on.
 const EditFieldChooserSetting = "edit.field-picker"
 
+// EditShowReadOnlySetting: the standard edit form (the modal and a placed
+// EditSpec alike) also draws the thing's read-only props (a prop set cannot
+// write: ReadOnly, CreateOnly; not its key, a computed prop or a secret),
+// muted, in prop order, with no focus stop. Off, the form holds only what
+// can be edited. Default on. Read when the form opens.
+const EditShowReadOnlySetting = "forms.show-read-only"
+
 // editFieldParam is edit's parameter naming the one prop to edit.
 const editFieldParam = "field"
 
@@ -225,6 +232,16 @@ func (es editSession) open(value any) error {
 		_, _, err := r.openEditChooser(c, n, field, values, r.editChooserTitle(n, c, thing, es.key, es.only, es.count()), es.write)
 		return err
 	}
+	spec := es.formSpec(thing, values, fields, fieldOnly)
+	_, err = r.OpenRecordEditor(editFormID, spec)
+	return err
+}
+
+// formSpec is the standard edit form for the loaded thing (values its
+// record, fields its schema): the one builder behind the modal edit and a
+// placed EditSpec, so the two cannot drift.
+func (es editSession) formSpec(thing Thing, values Record, fields []RecordField, fieldOnly bool) RecordSpec {
+	r, n, c := es.r, es.n, es.c
 	r.pendingRecord(es.writeKey, values)
 	label := r.editLabel(n, c, thing, es.key)
 	noun := r.DisplayNoun(n.Name)
@@ -235,8 +252,72 @@ func (es editSession) open(value any) error {
 	spec.Reload = func() Result { return es.reload(c) }
 	var editor *RecordEditor
 	es.bindWrites(&spec, fields, &editor)
-	editor, err = r.OpenRecordEditor(editFormID, spec)
-	return err
+	spec.OnOpen = func(e *RecordEditor) { editor = e }
+	return spec
+}
+
+// EditSpec is the standard edit form of the thing id of a noun (its key
+// prop's value; "" for a singleton) as a RecordSpec: every writable prop as
+// a field, loaded with the noun's get, written with its set (one history
+// group for the whole form, forms.edit-apply deciding change or confirm),
+// watching the noun for outside writes, with its read-only props muted
+// (forms.show-read-only). It is what the noun's edit verb opens as a
+// modal; an application gives it to AddRecordEditor to place the same form
+// in a panel. A get still pending (a mounted noun's) leaves the form empty
+// until it lands and fills it then. The result is the one forms.edit
+// governs for the verb; EditSpec itself ignores that setting.
+func (r *Runtime) EditSpec(noun, id string) (RecordSpec, error) {
+	n := r.Noun(noun)
+	if n == nil {
+		return RecordSpec{}, fmt.Errorf("unknown noun %q", noun)
+	}
+	if _, ok := r.Operation(noun + ".get"); !ok {
+		return RecordSpec{}, fmt.Errorf("%s has no get to load the form from", noun)
+	}
+	if _, ok := r.Operation(noun + ".set"); !ok {
+		return RecordSpec{}, fmt.Errorf("%s has no set to write the form with", noun)
+	}
+	key := Arguments{}
+	writeKey := noun
+	if kp := n.keyProp(); kp != nil {
+		typed, err := propValue(*kp, id)
+		if err != nil {
+			return RecordSpec{}, err
+		}
+		key[kp.Name] = typed
+		writeKey += "\x00" + fmt.Sprint(typed)
+	}
+	c := Ctx{Runtime: r, Context: r.contextOf("app"), Args: Arguments{}}
+	es := editSession{
+		editSubject: editSubject{r: r, n: n, key: key, writeKey: writeKey},
+		c:           c,
+		write:       r.editWriter(n, key, nil, r.newHistoryGroup("edit "+writeKey)),
+	}
+	res, _ := r.readEdit(c, noun, key)
+	if res.err != nil {
+		return RecordSpec{}, res.err
+	}
+	var thing Thing
+	pending := res.work != nil
+	if !pending {
+		var err error
+		if thing, err = ThingOf(res.value); err != nil {
+			return RecordSpec{}, err
+		}
+	}
+	values, err := editRecord(n, thing)
+	if err != nil {
+		return RecordSpec{}, err
+	}
+	spec := es.formSpec(thing, values, r.editFields(n, c, thing, nil, false), false)
+	if pending {
+		bound := spec.OnOpen
+		spec.OnOpen = func(e *RecordEditor) {
+			bound(e)
+			e.fail(e.Reload())
+		}
+	}
+	return spec, nil
 }
 
 // bindWrites sets how the form writes, by forms.edit-apply: confirm sends
@@ -255,7 +336,7 @@ func (es editSession) bindWrites(spec *RecordSpec, fields []RecordField, editor 
 func (es editSession) bindSubmit(spec *RecordSpec, fields []RecordField, editor **RecordEditor) {
 	spec.Submit = func(rec Record) Result {
 		changed := map[string]any{}
-		for _, name := range (*editor).out.changedSince(rec, fieldNames(fields)) {
+		for _, name := range (*editor).out.changedSince(rec, fieldNames(slices.DeleteFunc(slices.Clone(fields), func(f RecordField) bool { return f.ReadOnly }))) {
 			value, err := editPropValue(*es.n.prop(name), rec[name])
 			if err != nil {
 				return Failed(fmt.Errorf("%s %w", name, err))
@@ -698,7 +779,17 @@ func editArgs(n *Noun, args Arguments) (*PropSpec, map[string]any, error) {
 // rows do.
 func (r *Runtime) editFields(n *Noun, c Ctx, thing Thing, only *PropSpec, fieldOnly bool) []RecordField {
 	fields := []RecordField{}
-	for _, p := range writableProps(n) {
+	showRO := !fieldOnly && r.Settings().Bool(EditShowReadOnlySetting)
+	for _, p := range n.Props {
+		if showRO && readOnlyShown(p) && r.propShown(p, focusOf(c.Context), c.mode(), c.Args) {
+			field := PropField(p)
+			field.ReadOnly = true
+			fields = append(fields, field)
+			continue
+		}
+		if !p.writable() {
+			continue
+		}
 		if !r.propShown(p, focusOf(c.Context), c.mode(), c.Args) || fieldOnly && p.Name != only.Name {
 			continue
 		}
@@ -717,6 +808,13 @@ func (r *Runtime) editFields(n *Noun, c Ctx, thing Thing, only *PropSpec, fieldO
 		fields = append(fields, field)
 	}
 	return fields
+}
+
+// readOnlyShown reports whether the standard edit form draws a prop it
+// cannot write (forms.show-read-only): a read-only or create-only prop that
+// is stored with the thing, not its key, not computed, not a secret.
+func readOnlyShown(p PropSpec) bool {
+	return !p.writable() && !p.Key && !p.computed() && !p.Secret
 }
 
 // editStart opens a form on one prop (edit {field}) as a rename opened:
@@ -757,7 +855,10 @@ func editRecord(n *Noun, value any) (Record, error) {
 		return nil, err
 	}
 	values := Record{}
-	for _, p := range writableProps(n) {
+	for _, p := range n.Props {
+		if !p.writable() && !readOnlyShown(p) {
+			continue
+		}
 		values[p.Name] = ""
 		if v := thing[p.Name]; v != nil {
 			v = fileForm(v)

@@ -1,0 +1,76 @@
+{
+ "name": "forms/read-only-props-off",
+ "area": "forms",
+ "width": 100,
+ "height": 24,
+ "page": {
+  "focus": "t1",
+  "lists": [
+   {
+    "id": "parcels",
+    "items": [
+     {
+      "id": "t1",
+      "label": "Original",
+      "noun": "parcel",
+      "data": {
+       "id": "t1"
+      }
+     }
+    ]
+   }
+  ],
+  "store": {
+   "noun": "parcel",
+   "props": [
+    {
+     "name": "id",
+     "key": true
+    },
+    {
+     "name": "title",
+     "role": "label",
+     "required": true
+    },
+    {
+     "name": "status",
+     "enum": [
+      "todo",
+      "done"
+     ]
+    },
+    {
+     "name": "stamp",
+     "readOnly": true
+    }
+   ],
+   "things": [
+    {
+     "id": "t1",
+     "title": "Original",
+     "status": "todo",
+     "stamp": "fixed-stamp"
+    }
+   ]
+  }
+ },
+ "script": [
+  "i"
+ ],
+ "expect": [
+  {
+   "modal": "edit-form",
+   "contains": [
+    "Edit parcel: Original",
+    "status"
+   ],
+   "lacks": [
+    "stamp",
+    "fixed-stamp"
+   ]
+  }
+ ],
+ "values": {
+  "forms.show-read-only": false
+ }
+}

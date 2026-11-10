@@ -769,6 +769,13 @@ available to the palette, CLI/API and bindings.json, and explicit `i` bindings
 at any level keep their normal precedence. A null/unbind row removes only a
 row at its own level, while a noun-level `key.ignore` also swallows explicit
 outer bindings; neither expresses this fallback-only policy.
+The form also draws the thing's read-only props (ReadOnly or CreateOnly,
+stored with the thing; not its key, a computed prop or a secret), muted and
+with no focus stop, in prop order; `forms.show-read-only` (default `true`)
+turns that off. `Runtime.EditSpec(noun, id)` returns the same form as a
+`RecordSpec` (fields, `get` load, `set` writes, outside-write watch), so an
+application can place it in a panel with `AddRecordEditor`; the `edit` verb
+opens that spec as a modal, so the two cannot drift.
 Reopening edit flushes the old form and retargets it. Escape cancels a pending
 open; another edit replaces its read. Late reads never open over a changed
 focus, page, mode or modal.
