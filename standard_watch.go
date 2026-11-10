@@ -298,6 +298,9 @@ func (r *Runtime) refreshWatches(nouns []string) {
 // afterRequest refreshes the watches once a top-level request has run
 // that is of the change kind or ran one (the palette's run of a set).
 func (r *Runtime) watchAfterRequest(q Request, depth int, nothing bool) {
+	if depth == 0 && !nothing && r.historyKind(q) == HistoryChange {
+		defer recountOpenNounsPage(r)
+	}
 	h := r.watches
 	if h == nil {
 		return
@@ -321,6 +324,7 @@ func (r *Runtime) watchAfterJob(verb string) {
 	}
 	if op, ok := r.Operations.Find(Key(verb)); ok && op.HistoryKindOf() == HistoryChange {
 		r.refreshWatches(nil)
+		recountOpenNounsPage(r)
 	}
 }
 

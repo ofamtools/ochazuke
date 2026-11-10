@@ -301,6 +301,15 @@ func countNoun(r *Runtime, n *Noun) {
 	}
 }
 
+// recountOpenNounsPage reads the counts again after a change while the
+// Nouns page is open: a store whose change token did not move is not read
+// (countNoun), so this costs one token call per counted noun.
+func recountOpenNounsPage(r *Runtime) {
+	if r.Page == NounsPageID && r.Instances[NounsPageID] != nil {
+		countNouns(r)
+	}
+}
+
 // nounDetail is the Nouns page's detail of the selected noun: what it is,
 // what its store can do, its count, its props and its verbs.
 func (r *Runtime) nounDetail(name string) (title, text string) {

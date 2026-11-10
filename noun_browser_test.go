@@ -225,3 +225,16 @@ func TestNounsPageCountsGatedByChangeToken(t *testing.T) {
 		t.Fatalf("archived after the write %v", row.Cells)
 	}
 }
+
+// While the Nouns page is open, a change recounts the stores whose token
+// moved, with no refresh key.
+func TestNounsPageRecountsOnAChangeWhileOpen(t *testing.T) {
+	r, _, big, _ := nounsFixture(t)
+	if err := r.OpenPage(NounsPageID); err != nil {
+		t.Fatal(err)
+	}
+	mustRun(t, r, Request{Noun: "big", Verb: "set", Args: Arguments{"id": "t00011", "props": map[string]any{"archived": true}}})
+	if row := nounRow(t, r, "big"); row.Cells[2] != "5" {
+		t.Fatalf("archived after a write while open: %v (queries %d)", row.Cells, big.queries)
+	}
+}

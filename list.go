@@ -958,6 +958,9 @@ func registerLists(r *Runtime) {
 					return l.state(), nil
 				}
 			}
+			if clamp, _ := a["clamp"].(bool); !clamp && l.windowEdge(delta) {
+				return l.state(), nil // the next page of a windowed list, not the next stop
+			}
 			if clamp, _ := a["clamp"].(bool); clamp || !l.spill(delta) {
 				l.Move(delta)
 			}

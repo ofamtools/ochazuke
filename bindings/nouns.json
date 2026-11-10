@@ -5,7 +5,9 @@
       {"key": "enter", "action": "ochazuke.noun.show"}
     ]},
     {"context": "ochazuke.index/normal", "bindings": [
-      {"key": "z a", "action": "ochazuke.collection.show-archived", "hint": "archived"}
+      {"key": "z a", "action": "ochazuke.collection.show-archived", "hint": "archived"},
+      {"key": "]", "action": "ochazuke.collection.page-next", "hint": "]/[ page"},
+      {"key": "[", "action": "ochazuke.collection.page-prev", "hidden": true}
     ]},
     {"context": "ochazuke.noun-browser/normal", "bindings": [
       {"key": "r", "action": "ochazuke.noun-browser.refresh"}
