@@ -74,7 +74,7 @@
       "after": 2,
       "page": "nouns/chore",
       "contains": [
-        "Work  Nouns",
+        "Work  \u203a Nouns",
         "chore \u00b7 2",
         "Water the plants",
         "Write notes",
@@ -82,7 +82,7 @@
       ],
       "lacks": [
         "Old chore",
-        "\u203a Nouns",
+        "\u203a Work",
         "nouns/chore  "
       ]
     },

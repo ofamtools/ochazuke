@@ -463,12 +463,21 @@ func (m *Model) modalBody(id string) ModalBody {
 func (m *Model) pageTitles() ([]string, int) {
 	pages := m.Runtime.TabPages()
 	titles := make([]string, len(pages))
-	active := 0
+	active, opener := -1, 0
+	var last uint64
 	for i, page := range pages {
 		titles[i] = page.Title
 		if page.ID == m.Runtime.Page {
 			active = i
 		}
+		if page.visited > last {
+			// A page out of the tabs (a noun's generated index) marks the
+			// tab it was reached from: the tab visited last.
+			last, opener = page.visited, i
+		}
+	}
+	if active < 0 {
+		active = opener
 	}
 	return titles, active
 }

@@ -1,0 +1,64 @@
+{
+  "name": "a noun's index page is not a tab: while it is open the tab row keeps the tab it was opened from current (the Nouns page), never the first tab",
+  "area": "nouns",
+  "width": 100,
+  "height": 24,
+  "chrome": "full",
+  "pages": [
+    {
+      "id": "work",
+      "title": "Work",
+      "nounsPage": true,
+      "lists": [
+        {
+          "id": "a",
+          "rows": 1
+        }
+      ],
+      "store": {
+        "noun": "chore",
+        "paged": true,
+        "token": true,
+        "props": [
+          {
+            "name": "id",
+            "key": true
+          },
+          {
+            "name": "title",
+            "role": "label",
+            "type": "string"
+          }
+        ],
+        "things": [
+          {
+            "id": "c1",
+            "title": "Water the plants"
+          }
+        ]
+      }
+    }
+  ],
+  "script": [
+    "ctrl+j",
+    "enter"
+  ],
+  "expect": [
+    {
+      "after": 1,
+      "contains": [
+        "Work  › Nouns"
+      ]
+    },
+    {
+      "page": "nouns/chore",
+      "contains": [
+        "Work  › Nouns",
+        "Water the plants"
+      ],
+      "lacks": [
+        "› Work"
+      ]
+    }
+  ]
+}
