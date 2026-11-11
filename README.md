@@ -2863,9 +2863,13 @@ provides `open` and `yank-path`; a path also provides `reveal` and `open-with`.
 A viewer or other modal lists its own walk, without reaching the page beneath.
 URL-typed parameters accept text in the palette, argument forms and user actions.
 
-The palette aliases `:e`, `:edit` and `:open` open the Open line, prefilled
-with any following text. An explicit noun keeps its own verb, as in
-`:open note ID` or `:edit note ID`. The Open line uses the existing
+The palette alias `:e` opens the Open line, prefilled with any following
+text (`:e PATH`). Followed by a noun whose `edit` is the application's own
+verb, it stays that noun's edit: the shadow rule `:set` and `:h` follow.
+`:edit` and `:open` are not aliases: bare or followed by arguments
+(`:edit --field @label`) they are the focused thing's verbs, and
+`:edit note ID` or `:open note ID` name a noun's verb as before.
+The Open line uses the existing
 `open.openers` table, then `open.unmatched` for text without a matching row.
 It neither requires a file to exist nor creates a file itself.
 

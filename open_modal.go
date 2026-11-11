@@ -51,14 +51,11 @@ func registerOpen(r *Runtime) {
 		return nil, r.openModal(StringArg(a, "text", ""))
 	}})
 	r.Define(OpenNoun)
-	for _, a := range []ActionAlias{
-		{Alias: "open", Action: "ochazuke.opener.show", Shadows: true, Palette: true, Note: "Open text; open NOUN ... keeps the noun's open verb"},
-		{Alias: "edit", Action: "ochazuke.opener.show", Shadows: true, Palette: true, Note: "Open text; edit NOUN ... keeps the noun's edit verb"},
-		{Alias: "e", Action: "ochazuke.opener.show", ShadowVerb: "edit", Palette: true, Note: "Vim's :e; opens the Open line, not a file buffer"},
-	} {
-		if err := r.AddActionAlias(a); err != nil {
-			panic(err)
-		}
+	// e is the Open line's one palette word. edit and open stay verbs: a
+	// bare edit or open, or one followed by arguments (edit --field @label),
+	// is the focused thing's verb, as before v0.123.0.
+	if err := r.AddActionAlias(ActionAlias{Alias: "e", Action: "ochazuke.opener.show", ShadowVerb: "edit", Palette: true, Note: "Vim's :e; opens the Open line, not a file buffer"}); err != nil {
+		panic(err)
 	}
 }
 

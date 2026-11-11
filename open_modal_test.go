@@ -73,18 +73,21 @@ func TestOpenAndFocusedActionsDefaultKeys(t *testing.T) {
 
 func TestOpenPaletteAliasesKeepNounVerbs(t *testing.T) {
 	t.Parallel()
-	for _, alias := range []string{"e", "edit", "open"} {
-		t.Run(alias, func(t *testing.T) {
-			r, _, _ := openFixture(t)
-			r.Config().Disable()
-			NewPalette(r)
-			paletteRequest(t, r, "open", "palette", nil)
-			paletteLine(t, r, alias+" /tmp/new-file.json")
-			ed := r.RecordEditor(OpenModalID)
-			if ed == nil || ed.Values()["text"] != "/tmp/new-file.json" {
-				t.Fatalf("%s did not prefill Open: %v", alias, ed)
-			}
-		})
+	// e is the one palette word for the Open line; edit and open stay verbs
+	// (TestPaletteEditAndOpenStayTheFocusedVerbs).
+	r, _, _ := openFixture(t)
+	r.Config().Disable()
+	NewPalette(r)
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteLine(t, r, "e /tmp/new-file.json")
+	ed := r.RecordEditor(OpenModalID)
+	if ed == nil || ed.Values()["text"] != "/tmp/new-file.json" {
+		t.Fatalf("e did not prefill Open: %v", ed)
+	}
+	for _, word := range []string{"edit", "open"} {
+		if a, ok := r.bareAlias(word); ok {
+			t.Fatalf("%s is a bare alias of %s: it must stay a verb", word, a.Action)
+		}
 	}
 	r, _, ran := openFixture(t)
 	p := NewPalette(r)
