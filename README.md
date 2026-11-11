@@ -3524,6 +3524,32 @@ well as discovery. No new setting or binding is introduced.
 `examples/catalog-mcp` is a persistent task-store example requiring an explicit
 `--data` directory; all its task data, configuration and history stay there.
 
+Mounted record actions retain the catalog's typed props and the framework's
+free path actions; an explicit `open` with `.OpensPage(page)` remains the
+tool's native open, distinct from `open-with`. A host handles that declaration
+by calling `PageView.OpenRow(noun, key)`, not just switching tabs. Supply
+`PageConfig.FetchRecord(ctx, noun, key)` to resolve a requested record outside
+the current list and hydrate only the selected record's missing detail fields.
+The callback runs off the interaction loop. `RevealedRow()` lets the host retain
+that explicit row across scope filtering without changing scope preferences.
+
+A cross-noun verb can declare `.Reciprocal(parameter, verb, subject)`: the
+parameter names the receiving noun (including `HostNoun`), `verb` is the action
+installed there, and `subject` is its typed parameter for the original noun.
+For example, a document's send action can declare a pane's receive action.
+Other parameters keep their types and values; the receiver invokes the
+original operation, preserving its execution checks and confirmation.
+Missing receiving nouns install no reverse action, and collisions are reported.
+
+`CanonicalThingKey` uses the fetched record's key rather than the selector
+accepted by its store. The optional `Store.CanonicalKey` callback
+(`HostMount.CanonicalKey` for catalog hosts) receives current human selectors
+and the durable key. A host can call `RekeyReferences` to migrate local typed
+reference props and relation ends, plus its own domain assignments. Unknown
+references are untouched; the helper never keeps stale selector aliases.
+These APIs require the unreleased library change; consumers must adopt its
+released version before building without a development modfile.
+
 Compared with Vim: `catalog` is similar to `:command` (listing) and `describe`
 to `:help` (on-demand lookup). These read the operation registry and its typed
 parameters. `run` follows the palette's execute-by-name model and the CLI's

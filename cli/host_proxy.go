@@ -24,6 +24,9 @@ type ProxyCommand struct {
 	Dir       string
 	Timeout   time.Duration
 	WaitDelay time.Duration
+	// Before runs a captured command's preflight off the loop, under the
+	// same cancellation and deadline. A failure prevents the command.
+	Before func(context.Context) error
 }
 
 // RunMounted executes a catalog verb according to its foreground metadata.
@@ -58,6 +61,11 @@ func RunMounted(v CatalogVerb, call ProxyCommand) ochazuke.Result {
 			var cancel context.CancelFunc
 			ctx, cancel = context.WithTimeout(ctx, limit)
 			defer cancel()
+		}
+		if call.Before != nil {
+			if err := call.Before(ctx); err != nil {
+				return nil, err
+			}
 		}
 		cmd := command(ctx)
 		cmd.WaitDelay = call.WaitDelay

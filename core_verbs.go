@@ -106,6 +106,13 @@ type standardVerb struct {
 	optional bool
 }
 
+func (v standardVerb) subjectScope() string {
+	if v.TakesSubject {
+		return ""
+	}
+	return SubjectCollection
+}
+
 // undoShape is how history-entry.undo reverts a verb's change, and so what the
 // verb records (runRecording): the thing before and after its write.
 type undoShape string

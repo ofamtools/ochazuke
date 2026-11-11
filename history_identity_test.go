@@ -1,0 +1,125 @@
+package ochazuke
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestPersistedHistoryKeepsDurableIdentityWithoutPrivateValues(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	thing := Thing{"id": "stable-1", "file": "/before/plan", "content": "PRIVATE DOCUMENT BODY", "archived": false}
+	makeRuntime := func() *Runtime {
+		r := NewRuntime()
+		r.Config().App = "history-identity"
+		r.Config().Dir = filepath.Join(dir, "config")
+		r.Config().StateDir = dir
+		r.Define("document").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "file", Human: true, Parameter: Parameter{Type: PropPath, Path: "file"}}, PropSpec{Name: "content", Multiline: true}, PropSpec{Name: "archived", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}}).Store(Store{
+			Get: func(_ Ctx, key string) (Thing, error) {
+				if key != thing["id"] && key != thing["file"] {
+					return nil, fmt.Errorf("not found")
+				}
+				return thing, nil
+			},
+			Patch: func(_ Ctx, _ string, patch Thing) (Thing, error) {
+				for k, v := range patch {
+					thing[k] = v
+				}
+				return thing, nil
+			},
+		}).Verb("move", func(c Ctx) Result {
+			return Pending(func(context.Context) (any, error) {
+				thing["file"] = "/after/plan"
+				return thing, nil
+			})
+		}).History(HistoryChange)
+		op, _ := r.Operation("document.move")
+		op.Parameters = map[string]Parameter{"id": {Type: "string", Noun: "document", Free: true}}
+		r.Operations.Set(op)
+		r.EnsureHistory()
+		t.Cleanup(func() { r.Config().Flush() })
+		return r
+	}
+	r := makeRuntime()
+	if _, err := r.Execute(Request{Noun: "document", Verb: "move", Args: Arguments{"id": "/before/plan"}}); err != nil {
+		t.Fatal(err)
+	}
+	settleOnce(t, r)
+	if err := r.Config().Flush(); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(dir, HistoryFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(raw), "PRIVATE DOCUMENT BODY") || !strings.Contains(string(raw), `"things":["document:stable-1"]`) {
+		t.Fatalf("identity/privacy persisted incorrectly: %s", raw)
+	}
+	next := makeRuntime()
+	answer, err := next.Execute(Request{Noun: "document", Verb: "history", Args: Arguments{"id": "/after/plan"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err = json.Marshal(answer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var entries []HistoryEntry
+	if err := json.Unmarshal(raw, &entries); err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Request.Verb != "move" || !entries[0].Restored {
+		t.Fatalf("history after restart/move: %#v", answer)
+	}
+}
+
+func TestCompletedHistoryKeepsSequenceOrderAndNewestRetention(t *testing.T) {
+	t.Parallel()
+	for _, limit := range []int{1, 8} {
+		t.Run(fmt.Sprint(limit), func(t *testing.T) {
+			dir := t.TempDir()
+			makeRuntime := func() *Runtime {
+				r := NewRuntime()
+				r.Config().App = "history-order"
+				r.Config().Dir = filepath.Join(dir, "config")
+				r.Config().StateDir = dir
+				r.Define("work").Verb("later", func(Ctx) Result { return Pending(func(context.Context) (any, error) { return "older", nil }) }).
+					Verb("now", func(Ctx) Result { return Done("newer") })
+				r.EnsureHistory()
+				t.Cleanup(func() { r.Config().Flush() })
+				return r
+			}
+			r := makeRuntime()
+			if _, err := r.Execute(Request{Noun: "work", Verb: "later"}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Execute(Request{Noun: "work", Verb: "now"}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Settings().SetSession(HistorySetting, limit); err != nil {
+				t.Fatal(err)
+			}
+			settleOnce(t, r)
+			if err := r.Config().Flush(); err != nil {
+				t.Fatal(err)
+			}
+			raw, err := os.ReadFile(filepath.Join(dir, HistoryFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if limit == 1 && len(strings.FieldsFunc(string(raw), func(r rune) bool { return r == '\n' })) != 1 {
+				t.Fatalf("retention did not compact to newest entry: %s", raw)
+			}
+			next := makeRuntime()
+			latest := next.History(1)
+			if len(latest) != 1 || latest[0].Request.Verb != "now" || !latest[0].Restored {
+				t.Fatalf("newest history after completion/restart: %+v", latest)
+			}
+		})
+	}
+}

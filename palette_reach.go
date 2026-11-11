@@ -58,6 +58,9 @@ func (p *Palette) missingTarget(op Operation, args Arguments) string {
 // leaves unfilled while nothing of their noun is at focus; the args form
 // asks for them with the missing required ones.
 func (r *Runtime) missingTargets(op Operation, args Arguments, focus string) []string {
+	if op.covered(args) {
+		return nil
+	}
 	var out []string
 	for _, name := range r.targetParams(op) {
 		if op.Parameters[name].Required && !op.lacks(name, args) {

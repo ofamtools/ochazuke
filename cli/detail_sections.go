@@ -364,7 +364,7 @@ func (v *PageView) regionText(region string, data any, width int) string {
 
 func (v *PageView) sectionsPanel(layout ochazuke.Layout, width, height int) ochazuke.Block {
 	cw, ch := ochazuke.PanelContentSize(width, height)
-	row, ok := v.rows[v.selectedID()]
+	row, ok := v.Row(v.selectedID())
 	title, text := "", "no row selected"
 	if ok {
 		title, text = v.detailTitle(row), ""

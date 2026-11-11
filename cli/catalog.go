@@ -231,6 +231,7 @@ type CatalogVerb struct {
 	Repeatable    bool                          `json:"repeatable,omitempty"`
 	Foreground    bool                          `json:"foreground,omitempty"`
 	OpensPage     string                        `json:"opensPage,omitempty"` // a page the verb opens (ochazuke.Operation.OpensPage)
+	Reciprocals   []ochazuke.Reciprocal         `json:"reciprocals,omitempty"`
 	Slot          string                        `json:"slot,omitempty"`
 	Timeout       string                        `json:"timeout,omitempty"`
 	Disabled      bool                          `json:"disabled,omitempty"`
@@ -282,6 +283,11 @@ type CatalogVerb struct {
 // undo its standard changes, Remote says its calls leave the process.
 // Every field false is a store that lists whole.
 type CatalogStore struct {
+	Get         bool `json:"get,omitempty"`
+	List        bool `json:"list,omitempty"`
+	Create      bool `json:"create,omitempty"`
+	Patch       bool `json:"patch,omitempty"`
+	Delete      bool `json:"delete,omitempty"`
 	Query       bool `json:"query,omitempty"`
 	ChangeToken bool `json:"changeToken,omitempty"`
 	Watch       bool `json:"watch,omitempty"`
@@ -295,7 +301,7 @@ func catalogStore(s *ochazuke.Store) (facts bool, out *CatalogStore) {
 	if s == nil {
 		return false, nil
 	}
-	return s.Facts, &CatalogStore{Query: s.Query != nil, ChangeToken: s.ChangeToken != nil, Watch: s.Watch != nil, Undo: s.Undo, Remote: s.Remote}
+	return s.Facts, &CatalogStore{Get: s.Get != nil, List: s.List != nil, Create: s.Create != nil, Patch: s.Patch != nil, Delete: s.Delete != nil, Query: s.Query != nil, ChangeToken: s.ChangeToken != nil, Watch: s.Watch != nil, Undo: s.Undo, Remote: s.Remote}
 }
 
 // KindOf is the noun's kind (ochazuke.NounKindList): NounKind when the
@@ -526,6 +532,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		verb := CatalogVerb{Guards: append(slices.Clone(r.VerbAvailability(op.Key.Short())), op.CatalogGuards...), Examples: op.ExamplesOf(), Destructive: op.Destructive, Agent: op.AgentRightOf(false), AgentDeclared: op.Agent, Name: op.Name(), Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key.Short()), Standard: op.Standard}
 		verb.Foreground = op.Foreground
 		verb.OpensPage = op.OpensPage
+		verb.Reciprocals = slices.Clone(op.Reciprocals)
 		verb.ByAssociation = op.ByAssociation
 		verb.Subject = op.Subject
 		verb.Creates = op.Creates

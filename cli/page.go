@@ -213,6 +213,10 @@ type PageConfig struct {
 	// value for a widget); it runs off the loop and honours ctx. Nil means
 	// the host pushes rows itself (PageView.SetRows, SetState).
 	Fetch func(ctx context.Context, noun, verb string) ([]byte, error)
+	// FetchRecord reads one selected thing by its catalog noun and key,
+	// off the loop. It supplies detail fields omitted from cheap list rows
+	// and resolves an explicit OpenRow outside the current list.
+	FetchRecord func(ctx context.Context, noun, key string) ([]byte, error)
 	// FetchFlags, when set beside Fetch, runs the state verb like Fetch with flags
 	// appended to its command line (the state delta protocol: --since-cache
 	// ID --since LIST=HASH,...; StateFlags). When the catalog declares
@@ -261,19 +265,21 @@ type RelatedConfig struct {
 // Rows are the host's cached state: Reload fetches them off the loop, or
 // the host pushes them; keys, focus and page switches never fetch.
 type PageView struct {
-	m       *ochazuke.Model
-	doc     CatalogDoc
-	spec    CatalogPage
-	cfg     PageConfig
-	lists   []*pageList
-	groups  *ochazuke.Collection
-	detail  *ochazuke.Detail
-	widgets []*widgetState
-	current int               // the list the detail and the groups rail follow
-	rows    map[string]Row    // row instance id -> the row it shows
-	hashes  map[string]string // row instance id -> its record hash (RecordHash), from a delta answer
-	cache   string            // the cache id of the last delta answer
-	status  string
+	m        *ochazuke.Model
+	doc      CatalogDoc
+	spec     CatalogPage
+	cfg      PageConfig
+	lists    []*pageList
+	groups   *ochazuke.Collection
+	detail   *ochazuke.Detail
+	widgets  []*widgetState
+	current  int               // the list the detail and the groups rail follow
+	rows     map[string]Row    // row instance id -> the row it shows
+	hashes   map[string]string // row instance id -> its record hash (RecordHash), from a delta answer
+	cache    string            // the cache id of the last delta answer
+	status   string
+	record   *pageRecord
+	revealed *pageReveal
 
 	// JSON section state stays with this mounted page.
 	jsonSections []*jsonSection
@@ -644,8 +650,10 @@ func (v *PageView) list(id string) *pageList {
 
 // Row is the row a row instance shows.
 func (v *PageView) Row(instance string) (Row, bool) {
-	row, ok := v.rows[instance]
-	return row, ok
+	if v.record != nil && v.record.instance == instance && v.record.row != nil {
+		return *v.record.row, true
+	}
+	return v.baseRow(instance)
 }
 
 // SetStatus sets the muted line under the page's lists (the last verb's
@@ -673,6 +681,10 @@ func (v *PageView) SetRows(list string, rows []Row) error {
 // setRows is SetRows with each row's record hash (by index; nil for none),
 // which sets the list's content hash.
 func (v *PageView) setRows(pl *pageList, rows []Row, hashes []string) error {
+	rows, hashes = v.revealedRows(pl, rows, hashes)
+	if v.record != nil && strings.HasPrefix(v.record.instance, pl.spec.ID+"/") {
+		v.record = nil
+	}
 	items := make([]ochazuke.ListItem, 0, len(rows))
 	seen := map[string]bool{}
 	for _, k := range pl.rowIDs {
@@ -785,6 +797,7 @@ func (v *PageView) SetError(list string, err error) {
 // fetched again in full); Refresh asks for every list in full. Without
 // Fetch it does nothing.
 func (v *PageView) Reload() error {
+	v.record = nil
 	if v.cfg.Fetch == nil {
 		return nil
 	}
@@ -1038,7 +1051,7 @@ func (v *PageView) selectedID() string {
 
 // detailText is the selected row's record as key: value lines.
 func (v *PageView) detailText(id string) (title, text string) {
-	row, ok := v.rows[id]
+	row, ok := v.Row(id)
 	if !ok {
 		if inst := v.m.Runtime.Instances[id]; inst != nil && inst.Label != "" {
 			return inst.Label, ""
@@ -1119,6 +1132,7 @@ func (v *PageView) ListsRender(_ *ochazuke.Runtime, width, height int) ochazuke.
 		return ochazuke.Block{}
 	}
 	v.follow()
+	v.loadDetailRecord()
 	if v.groups != nil {
 		for i, pl := range v.lists {
 			v.m.Runtime.Instances[pl.spec.ID].Unfocusable = i != v.current

@@ -206,7 +206,7 @@ func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 	if v.Params != nil {
 		params = v.Params(n)
 	}
-	op := Operation{Key: KeyOf(name, v.Verb), Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Many: v.Many, Creates: v.Creates, Destructive: v.Destructive, Agent: v.Agent, Unavailable: reason}
+	op := Operation{Key: KeyOf(name, v.Verb), Description: v.Description, Parameters: params, Result: "JSON value", HistoryKind: v.HistoryKind, Standard: v.Verb, Subject: v.subjectScope(), Many: v.Many, Creates: v.Creates, Destructive: v.Destructive, Agent: v.Agent, Unavailable: reason}
 	if key := n.keyProp(); v.TakesSubject && key != nil {
 		p := subjectParameter(r, n, *key)
 		if v.NoFocus {

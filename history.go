@@ -57,6 +57,9 @@ type HistoryEntry struct {
 	// Changes are what a standard write did to each thing, before and
 	// after (standard_undo.go): what history-entry.undo reverts.
 	Changes []ThingChange `json:"changes,omitempty"`
+	// Things preserves durable subject identities independently of redacted
+	// before/after values. It never makes an entry undoable by itself.
+	Things []string `json:"things,omitempty"`
 	// Group joins entries that undo as one step (history-entry.undo reverts
 	// every entry of the newest one's group): the writes one edit form
 	// makes, over every subject and every save. "" for none.
@@ -221,6 +224,7 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 	}
 	if changes := r.takeChanges(depth); err == nil {
 		entry.Changes = changes
+		entry.Things = r.resultThings(q, value)
 	}
 	h := &r.history
 	if fetchRing(entry) {
@@ -228,7 +232,49 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 	} else {
 		h.entries = appendBounded(h.entries, entry, h.ringLimit())
 	}
-	r.persist(entry)
+	if entry.Job == 0 {
+		r.persist(entry)
+	}
+}
+
+func (r *Runtime) resultThings(q Request, value any) []string {
+	n := r.Noun(q.Noun)
+	if n == nil || n.keyProp() == nil || q.Args[n.keyProp().Name] == nil {
+		return nil
+	}
+	var thing map[string]any
+	switch value := value.(type) {
+	case map[string]any:
+		thing = value
+	case Thing:
+		thing = value
+	}
+	if key := thing[n.keyProp().Name]; !emptyProp(key) {
+		return []string{AnyRef(n.Name, fmt.Sprint(key))}
+	}
+	return nil
+}
+
+func (r *Runtime) completeHistory(done Completion, callbackErr error) {
+	err := done.Err
+	if err == nil {
+		err = callbackErr
+	}
+	for _, entries := range [][]HistoryEntry{r.history.entries, r.history.fetches} {
+		for i := range entries {
+			entry := &entries[i]
+			if entry.Restored || entry.Job != done.Job {
+				continue
+			}
+			entry.Result = HistoryResult{OK: err == nil}
+			if err != nil {
+				entry.Result.Error = err.Error()
+			} else if things := r.resultThings(entry.Request, done.Value); len(things) != 0 {
+				entry.Things = things
+			}
+			r.persist(*entry)
+		}
+	}
 }
 
 // historyKind is the kind of entry q records: its operation's HistoryKind,

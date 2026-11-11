@@ -252,6 +252,9 @@ func (r *Runtime) thingHistory(noun, key string) []HistoryEntry {
 }
 
 func (r *Runtime) entryNames(e HistoryEntry, noun, keyName, key string) bool {
+	if len(e.Things) != 0 && slices.Contains(e.Things, AnyRef(noun, key)) {
+		return true
+	}
 	for _, ch := range e.Changes {
 		if r.CanonicalNoun(ch.Noun) == noun && ch.Key == key {
 			return true

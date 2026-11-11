@@ -643,6 +643,15 @@ func (b *NounBuilder) OpensPage(id string) *NounBuilder {
 	return b.lastOp("OpensPage", func(o *Operation) { o.OpensPage = id })
 }
 
+// Reciprocal publishes the reverse of this verb on a typed parameter's noun.
+// verb names the reverse action, and subject names its parameter for this noun.
+// Hosts forward both directions through this same registered handler.
+func (b *NounBuilder) Reciprocal(parameter, verb, subject string) *NounBuilder {
+	return b.lastOp("Reciprocal", func(o *Operation) {
+		o.Reciprocals = append(o.Reciprocals, Reciprocal{Parameter: parameter, Verb: verb, Subject: subject})
+	})
+}
+
 // PersistArgs marks the last declared verb's text-like arguments as safe
 // to keep in the history file (Operation.PersistArgs).
 func (b *NounBuilder) PersistArgs() *NounBuilder {

@@ -133,7 +133,7 @@ func (v *PageView) syncJSONSections() {
 	}
 	r := v.m.Runtime
 	id := v.selectedID()
-	row, ok := v.rows[id]
+	row, ok := v.Row(id)
 	parent := r.Instances[v.jsonParent]
 	parent.Noun, parent.Data, parent.Label = detailRowNoun, nil, ""
 	if ok {
@@ -197,7 +197,7 @@ func (v *PageView) jsonSectionsText(layout ochazuke.Layout, text string, width, 
 		return text
 	}
 	v.syncJSONSections()
-	if _, ok := v.rows[v.selectedID()]; !ok {
+	if _, ok := v.Row(v.selectedID()); !ok {
 		return text
 	}
 	focusStart, focusEnd := -1, -1

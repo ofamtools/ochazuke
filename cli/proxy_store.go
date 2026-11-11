@@ -37,6 +37,11 @@ var proxiedVerbs = []string{"get", "list", "create", "set", "delete"}
 func proxyStore(noun CatalogNoun, local, key string, h HostMount) ochazuke.Store {
 	px := newProxyCalls(noun, local, key, h)
 	s := ochazuke.Store{Kind: noun.Kind, Remote: true, Stamps: true, Missing: px.missing, Undo: px.has("get") && px.has("set")}
+	if h.CanonicalKey != nil {
+		s.CanonicalKey = func(_ ochazuke.Ctx, selector, key string) error {
+			return h.CanonicalKey(noun.Name, selector, key)
+		}
+	}
 	// A call the extension lacks is a nil function, as for any store: the
 	// verb is registered but unavailable, with the reason in Missing.
 	if px.has("get") {
@@ -78,7 +83,7 @@ func newProxyCalls(noun CatalogNoun, local, key string, h HostMount) *proxyCalls
 		px.limit = DefaultProxyTimeout
 	}
 	for _, v := range noun.Verbs {
-		px.add(h, noun.Name, v)
+		px.add(h, noun, v)
 	}
 	for _, verb := range proxiedVerbs {
 		if px.calls[verb] == nil {
@@ -114,16 +119,28 @@ type proxyCalls struct {
 
 // add takes a catalog verb as a call when it is one of the proxied
 // standard verbs the extension can run.
-func (px *proxyCalls) add(h HostMount, noun string, v CatalogVerb) {
-	if v.Standard == "" || v.Unavailable != "" {
-		return // not a standard verb, or the extension has it but cannot run it
+func (px *proxyCalls) add(h HostMount, noun CatalogNoun, v CatalogVerb) {
+	standard := v.Standard
+	if standard == "" && noun.Store != nil {
+		for _, capability := range [...]struct {
+			verb      string
+			available bool
+		}{{"get", noun.Store.Get}, {"list", noun.Store.List}, {"create", noun.Store.Create}, {"set", noun.Store.Patch}, {"delete", noun.Store.Delete}} {
+			if v.Name == capability.verb && capability.available {
+				standard = capability.verb
+				break
+			}
+		}
 	}
-	px.writes[v.Standard] = v.History == ochazuke.HistoryChange
-	switch fn := h.Proxy(noun, v).(type) {
+	if standard == "" || v.Unavailable != "" {
+		return
+	}
+	px.writes[standard] = v.History == ochazuke.HistoryChange
+	switch fn := h.Proxy(noun.Name, v).(type) {
 	case ochazuke.AppHandler:
-		px.calls[v.Standard] = fn
+		px.calls[standard] = fn
 	case func(ochazuke.Ctx) ochazuke.Result:
-		px.calls[v.Standard] = fn
+		px.calls[standard] = fn
 	}
 }
 
