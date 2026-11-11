@@ -96,6 +96,13 @@ so are a parameter's `From` value and a thing of a `Focus` parameter's noun.
 A noun the verb also takes as a parameter of its own fills that parameter,
 never the verb's own subject.
 
+A key bound on a thing acts on that thing: the row that answers at a
+thing's level (any instance on the focus path below `app`) is that thing's
+key, so its verb runs there and its subject is never asked for, whatever
+noun the verb belongs to. Only a key of no thing (an `app` row) is asked for
+the subject the focus does not supply. A missing required argument opens
+the form from either.
+
 Asking never changes which verb a key runs. A verb's availability is decided
 first, by its own guards: a row whose verb is unavailable at the focus passes
 the key on to the next row or level, whatever the verb could ask for. Only an

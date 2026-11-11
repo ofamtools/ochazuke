@@ -250,7 +250,7 @@ func (r *Runtime) runFromHelp(focus string, q Request, ask bool) error {
 		}
 		return value, err
 	}
-	_, err := r.runOrAsk(focus, q, execute, ask, leave)
+	_, err := r.runOrAsk(focus, q, execute, ask, false, leave)
 	return err
 }
 
@@ -265,8 +265,12 @@ const helpSource = "help"
 // fails later (a job) reopens the form with its values. leave, when given,
 // closes what the request was made from (the help) just before it runs. It
 // reports whether the form opened. The one place a key's row (runRow) and a
-// verb run from the help (RunUnbound) ask or run.
-func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, error), always bool, leave func() error) (bool, error) {
+// verb run from the help (RunUnbound) ask or run. held says a thing holds
+// the request (a key that answered at that thing's level, level.holds): the
+// thing is what it acts for, so no form opens for a subject and none marks
+// one required, as before the where-from ask; a missing required argument
+// and a handler's Need still ask.
+func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, error), always, held bool, leave func() error) (bool, error) {
 	source := r.history.source
 	form := q
 	if form.Target == "" && focus != r.Focus {
@@ -279,7 +283,7 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 	attempt := func(q Request, watch bool) error {
 		value, err := execute(q)
 		if err != nil {
-			if r.askNeed(withArgs(form, q.Args), err, run) {
+			if r.askNeed(withArgs(form, q.Args), err, run, held) {
 				return nil
 			}
 			return err
@@ -291,10 +295,10 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 			// The form comes back with what was typed and says why;
 			// where it cannot (a modal is open) the error is told.
 			defer r.forceSource(source)()
-			if r.askNeed(withArgs(form, q.Args), late, run) {
+			if r.askNeed(withArgs(form, q.Args), late, run, held) {
 				return
 			}
-			if e, openErr := r.OpenArgsForm(withArgs(form, q.Args), run); openErr == nil && e != nil {
+			if e, openErr := r.openArgsForm(withArgs(form, q.Args), run, nil, held); openErr == nil && e != nil {
 				e.out.err = late.Error()
 			} else {
 				r.UI().Error("not run: " + late.Error())
@@ -315,12 +319,12 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 		if op, ok := r.Operations.Find(Key(form.Key())); !ok || len(askableParameters(op)) == 0 {
 			return false, fmt.Errorf("%s has no argument to ask for", r.displayRequest(form))
 		}
-		if _, err := r.OpenArgsForm(form, run); err != nil {
+		if _, err := r.openArgsForm(form, run, nil, held); err != nil {
 			return false, fmt.Errorf("cannot open the form for %s: %w", r.displayRequest(form), err)
 		}
 		return true, nil
 	}
-	if r.formForMissing(form, run) {
+	if r.formForMissing(form, run, held) {
 		return true, nil
 	}
 	if leave != nil {

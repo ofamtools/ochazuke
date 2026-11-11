@@ -54,6 +54,13 @@ type level struct {
 	declared *map[string]bool
 }
 
+// holds reports whether the level is a thing's: an instance on the focus
+// path below the root. A row that answers there is that thing's key, so its
+// request acts for the thing and its subject is never asked for (runRow).
+// The root (app acts for the focus, never for itself) and the tables read
+// with no instance (an empty list's row nouns, the fallback) hold nothing.
+func (lv level) holds() bool { return lv.inst != nil && lv.inst.Parent != "" }
+
 // name is the noun a level answers as: its noun table's, else its
 // instance's.
 func (lv level) name() string {
@@ -680,8 +687,10 @@ func (r *Runtime) runRow(lv level, b Binding, ev KeyEvent, guardMode string) err
 		return value, err
 	}
 	// A request lacking a required argument opens the args form for it
-	// (MissingOpensFormSetting); the form runs it as the key's.
-	formed, err := r.runOrAsk(ev.Focus, q, execute, false, nil)
+	// (MissingOpensFormSetting); the form runs it as the key's. A row that
+	// answered at a thing's level acts for that thing: only an app row is
+	// asked for a subject the focus does not supply.
+	formed, err := r.runOrAsk(ev.Focus, q, execute, false, lv.holds(), nil)
 	if r.modes[before].Pending && r.modeGeneration == generation && r.Mode.Name == before {
 		r.leaveMode()
 	}

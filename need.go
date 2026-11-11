@@ -49,7 +49,7 @@ func needed(err error) *MissingParameterError {
 // is another error, the setting is off, a form is open, the verb has no
 // such field a form can hold, or the request already gave that parameter a
 // value (asking again would loop on a value the verb does not accept).
-func (r *Runtime) askNeed(q Request, err error, run func(Request) error) bool {
+func (r *Runtime) askNeed(q Request, err error, run func(Request) error, held bool) bool {
 	need := needed(err)
 	if need == nil || !r.missingOpensForm() || r.Instances[ArgsFormID] != nil {
 		return false
@@ -66,7 +66,7 @@ func (r *Runtime) askNeed(q Request, err error, run func(Request) error) bool {
 	// opens at that form's level, not as a modal from beneath the top one.
 	defer func(before string) { r.reopening = before }(r.reopening)
 	r.reopening = ArgsFormID
-	e, openErr := r.openArgsForm(q, run, []string{need.Param})
+	e, openErr := r.openArgsForm(q, run, []string{need.Param}, held)
 	if openErr != nil {
 		return false
 	}

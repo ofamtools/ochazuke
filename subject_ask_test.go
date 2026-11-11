@@ -914,3 +914,118 @@ func TestSubjectAskNeverAnswersForAnUnavailableVerb(t *testing.T) {
 		})
 	}
 }
+
+// cursorVerbRuntime has a stored noun, value, whose own edit acts on what is
+// under the cursor of the focused thing; as an application's verb under a
+// core row's name it adopts the key subject (adoptFieldParam: an optional
+// Focus parameter of the verb's noun). A table thing and a value thing are
+// on the page. r is the row of each of those nouns, R an app row; ran holds
+// the instance each run acted at.
+func cursorVerbRuntime(t *testing.T) (*Runtime, *[]string) {
+	t.Helper()
+	r := NewRuntime()
+	r.Config().Disable()
+	r.Instance("app")
+	r.Instance("home")
+	ran := new([]string)
+	r.Define("table")
+	r.Define("value").Props(PropSpec{Name: "id", Key: true}).Store(Store{
+		Get:  func(Ctx, string) (Thing, error) { return Thing{"id": "v1"}, nil },
+		List: func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "v1"}}, nil },
+	}).Verb("edit", func(c Ctx) Result {
+		*ran = append(*ran, c.Instance.ID)
+		return Done(nil)
+	}, "Edit the value under the cursor")
+	if p, ok := r.Operations.At(Key("value.edit")).Parameters["id"]; !ok || !p.Focus || p.Required || p.Noun != "value" {
+		t.Fatalf("the verb did not adopt the key subject: %+v", p)
+	}
+	r.Instance("cell", Kind("table")).Label = "Cell"
+	r.Instance("value-row", Kind("value")).Data = Thing{"id": "v1"}
+	if err := r.Bind(
+		Binding{Noun: "table", Mode: "normal", Keys: "r", Request: Request{Noun: "value", Verb: "edit"}},
+		Binding{Noun: "value", Mode: "normal", Keys: "r", Request: Request{Noun: "value", Verb: "edit"}},
+		Binding{Noun: "app", Mode: "normal", Keys: "R", Request: Request{Noun: "value", Verb: "edit"}},
+	); err != nil {
+		t.Fatal(err)
+	}
+	return r, ran
+}
+
+// A key pressed on a focused thing acts on that thing: the row that answers
+// at a thing's level is that thing's key, so its verb runs there and nothing
+// is asked, whether the thing is of the verb's noun or of the noun the row is
+// bound on (a table cell whose r edits the value under the cursor). v0.124.0
+// opened the args form for the value's id in the second case; v0.123.0 ran
+// the verb at the focus.
+func TestSubjectAskKeyOnAFocusedThingActsOnIt(t *testing.T) {
+	for _, focus := range []string{"value-row", "cell"} {
+		t.Run(focus, func(t *testing.T) {
+			r, ran := cursorVerbRuntime(t)
+			if err := r.SetFocus(focus); err != nil {
+				t.Fatal(err)
+			}
+			formKeys(t, r, "r")
+			if !reflect.DeepEqual(*ran, []string{focus}) || r.TopModal() != "" {
+				t.Fatalf("r on %s: ran=%v top=%q", focus, *ran, r.TopModal())
+			}
+		})
+	}
+}
+
+// A key of no thing (an app row) still asks for the subject nothing at the
+// focus supplies, and acts on a thing of the verb's noun when one is there.
+func TestSubjectAskAppKeyAsksOnlyAwayFromTheSubject(t *testing.T) {
+	r, ran := cursorVerbRuntime(t)
+	if err := r.SetFocus("value-row"); err != nil {
+		t.Fatal(err)
+	}
+	formKeys(t, r, "R")
+	if !reflect.DeepEqual(*ran, []string{"value-row"}) || r.TopModal() != "" {
+		t.Fatalf("R on a value: ran=%v top=%q", *ran, r.TopModal())
+	}
+	if err := r.SetFocus("home"); err != nil {
+		t.Fatal(err)
+	}
+	formKeys(t, r, "R")
+	if e := r.RecordEditor(ArgsFormID); e == nil || e.fields[e.start()].Name != "id" || len(*ran) != 1 {
+		t.Fatalf("R away from every value did not ask for it: ran=%v top=%q", *ran, r.TopModal())
+	}
+}
+
+// A thing's key still asks for a required argument it lacks; the form it
+// opens leaves the verb's subject optional, since the thing holds the request
+// (v0.124.0 made the subject a required field, asked first).
+func TestSubjectAskThingKeyAsksOnlyForWhatIsRequired(t *testing.T) {
+	r, ran := cursorVerbRuntime(t)
+	r.Define("value").Verb("note", func(c Ctx) Result {
+		*ran = append(*ran, c.Instance.ID+" "+StringArg(c.Args, "text", ""))
+		return Done(nil)
+	}, "Note the value under the cursor").Params(map[string]Parameter{
+		"target": {Type: "string", Noun: "value"},
+		"text":   {Type: "string", Required: true},
+	})
+	if err := r.Bind(Binding{Noun: "table", Mode: "normal", Keys: "n", Request: Request{Noun: "value", Verb: "note"}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("cell"); err != nil {
+		t.Fatal(err)
+	}
+	formKeys(t, r, "n")
+	e := r.RecordEditor(ArgsFormID)
+	if e == nil {
+		t.Fatalf("the key did not ask for its required text: top=%q", r.TopModal())
+	}
+	if f := e.fields[e.start()]; f.Name != "text" {
+		t.Fatalf("the form starts on %q, not the required text", f.Name)
+	}
+	for _, f := range e.fields {
+		if f.Name == "target" && f.Required {
+			t.Fatal("the form requires the subject of a request a thing holds")
+		}
+	}
+	typeKeys(t, r, "seen")
+	formKeys(t, r, "enter")
+	if !reflect.DeepEqual(*ran, []string{"cell seen"}) || r.Instances[ArgsFormID] != nil {
+		t.Fatalf("ran=%v top=%q", *ran, r.TopModal())
+	}
+}

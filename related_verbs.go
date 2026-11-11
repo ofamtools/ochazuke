@@ -373,7 +373,7 @@ func (s *relatedSection) readOnly(verb string) error {
 func (s *relatedSection) run(c Ctx, q Request, ask bool) error {
 	r := c.Runtime
 	focus := r.relatedFocus(c)
-	_, err := r.runOrAsk(focus, q, func(q Request) (any, error) { return r.ExecuteAt(r.contextOf(focus), q) }, ask, nil)
+	_, err := r.runOrAsk(focus, q, func(q Request) (any, error) { return r.ExecuteAt(r.contextOf(focus), q) }, ask, false, nil)
 	if err == nil {
 		s.fill()
 	}

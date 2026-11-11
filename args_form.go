@@ -131,12 +131,14 @@ func askedTargets(fields []RecordField, asked []string) []RecordField {
 // no form opens: the path chooser does (the editor returned is nil), and
 // its pick runs the request.
 func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEditor, error) {
-	return r.openArgsForm(q, run, nil)
+	return r.openArgsForm(q, run, nil, false)
 }
 
 // openArgsForm is OpenArgsForm asking, first and required, for the
-// parameters in needs as well (what a verb said it lacks, askNeed).
-func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []string) (*RecordEditor, error) {
+// parameters in needs as well (what a verb said it lacks, askNeed). held
+// says a thing holds the request (runOrAsk): its subject is that thing, so
+// no target field is made required.
+func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []string, held bool) (*RecordEditor, error) {
 	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q", q.Key())
@@ -154,9 +156,11 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 	if err != nil {
 		return nil, err
 	}
-	if r.subjectAsks() || r.Settings().Bool(PaletteReachSetting) {
-		fields = askedTargets(fields, r.missingTargets(op, q.Args, r.requestFocus(q)))
+	var targets []string
+	if !held && (r.subjectAsks() || r.Settings().Bool(PaletteReachSetting)) {
+		targets = r.missingTargets(op, q.Args, r.requestFocus(q))
 	}
+	fields = askedTargets(fields, targets)
 	fields = askedTargets(fields, needs)
 	if len(fields) == 0 {
 		return nil, fmt.Errorf("%s takes no arguments a form can hold", q.Key())
@@ -173,8 +177,8 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 			missing = append(missing, name)
 		}
 	}
-	for _, name := range r.missingTargets(op, q.Args, r.requestFocus(q)) {
-		if (r.subjectAsks() || r.Settings().Bool(PaletteReachSetting)) && !slices.Contains(missing, name) {
+	for _, name := range targets {
+		if !slices.Contains(missing, name) {
 			missing = append(missing, name)
 		}
 	}
@@ -368,15 +372,17 @@ func argumentsFrom(op Operation, base Arguments, rec Record) (Arguments, error) 
 // formForMissing opens the args form for a key's request that lacks a
 // required argument, when the setting is on; it reports whether it did. A
 // request it cannot hold in a form runs as before and fails naming the
-// argument.
-func (r *Runtime) formForMissing(q Request, run func(Request) error) bool {
+// argument. A request no thing holds (held false: an app row, the help's
+// enter) is asked for the subject the focus does not supply as well
+// (missingTargets, subject.ask); one a thing holds acts for that thing.
+func (r *Runtime) formForMissing(q Request, run func(Request) error, held bool) bool {
 	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok || !r.missingOpensForm() {
 		return false
 	}
 	args := r.formSources(q).Args
 	missing := missingRequired(op, args)
-	if r.subjectAsks() {
+	if r.subjectAsks() && !held {
 		for _, name := range r.missingTargets(op, args, r.requestFocus(q)) {
 			if !slices.Contains(missing, name) {
 				missing = append(missing, name)
@@ -386,7 +392,7 @@ func (r *Runtime) formForMissing(q Request, run func(Request) error) bool {
 	if len(missing) == 0 {
 		return false
 	}
-	_, err := r.OpenArgsForm(q, run)
+	_, err := r.openArgsForm(q, run, nil, held)
 	return err == nil
 }
 

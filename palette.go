@@ -419,7 +419,7 @@ func (p *Palette) dispatch(q Request) error {
 		// A verb that says it lacks a value asks for it: the form opens
 		// over the restored line, esc comes back to it, confirm runs the
 		// request again (askNeed).
-		if p.r.askNeed(q, err, p.dispatch) {
+		if p.r.askNeed(q, err, p.dispatch, false) {
 			return nil
 		}
 	}
