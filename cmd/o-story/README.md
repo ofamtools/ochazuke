@@ -55,6 +55,10 @@ jobs, and gives each checkpoint fresh temporary directories. Scripts continue
 and assertion offsets never restart. The final reset returns to the opening
 fixture, so the same loaded walkthrough can be replayed.
 
+The hidden capture row belongs to the app instance, not the fixture's initial
+pages, so it also works after a verb creates a noun index or opens Settings.
+Its actual-key guard keeps it out of hypothetical help/binding scans.
+
 The app maintains `checkpoint-start` metadata so recordings and player rewinds
 start from the original fixture, even when saved halfway through a walk.
 Snapshots retain their current checkpoint index and can continue into the next.

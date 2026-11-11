@@ -112,18 +112,12 @@ func (ss *session) checkpoints() error {
 	ss.R.DefineGuard("walkthrough-key", func(_ *ochazuke.Runtime, ev ochazuke.KeyEvent) bool {
 		return ev.Key.Key != ""
 	})
+	// The app instance stays on the walk when a verb creates a new page.
 	for _, mode := range append([]string{""}, ss.R.PendingModeNames()...) {
 		row := ochazuke.Do("walkthrough.next").Hide().Captured().Guard("walkthrough-key")
-		row.Keys, row.Mode, row.Noun = "ctrl+alt+n", mode, "ochazuke.modal"
+		row.Keys, row.Mode, row.Instance = "ctrl+alt+n", mode, "app"
 		if err := ss.R.Bind(row); err != nil {
 			return err
-		}
-		row.Noun = ""
-		for _, page := range ss.all {
-			row.Instance = page.ID
-			if err := ss.R.Bind(row); err != nil {
-				return err
-			}
 		}
 	}
 	// Passthrough skips capture, so its noun needs an exact row before any.
