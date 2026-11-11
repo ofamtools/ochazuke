@@ -2825,6 +2825,11 @@ Compared with Vim:
 
 Every stored noun gets `show`, `restore`, `duplicate` (alias `dup`), `yank` (as label, key, ref or json), `history`, `annotate` (where a noun has an about prop, `RoleAbout`) and `token` (where its store keeps a change token), from the legacy verb table, each where its needs are met; `relate` answers to `associate` too. A prop of the same name keeps the word. `delete {archive-first: true}` archives a live thing with no question and deletes an archived one after one question naming what goes with it (`Runtime.DeleteGoesWith`).
 
+`history` requires only that the store can read a thing with `Store.Get`.
+Read-only facts expose it too: it returns recorded actions that named the
+thing, without making the fact writable. This is runtime action history,
+not an external tool's domain-specific log. Normal fetches are excluded.
+
 Every record noun gets the generated key block (`bindings/generated/noun-defaults.json`, setting `keys.noun-defaults`, default on) for the verbs it has: `n` new, `r` rename, `v`/`enter` show, `d a` archive, `d r` restore, `d d` archive then delete, `u` undo, `a` associate, `g d` duplicate, `y y` yank, `y p` yank path, `R` reveal, `z A` archived rows. A declared row on the focus's walk that binds the same keys or a prefix of them wins: the user's or the application's whatever its guard, a framework file's where it answers now. `NounBuilder.DefaultKeys(false)` declines the block for one noun. The rows stay off the footer; `?` lists them.
 
 An empty focused list keeps its row noun on that same key walk, before the collection's own tables, without creating a row instance. `From(noun)` supplies the noun for generated indexes and store-backed lists. A hand-fed list can declare `RowNoun(noun)` before its first row; otherwise it remembers the nouns of its last rows. Filtering every row out keeps that context too. `binding.list`, `?` help and visible binding hints read the same walk.

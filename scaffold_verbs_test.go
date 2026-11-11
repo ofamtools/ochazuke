@@ -103,6 +103,41 @@ func TestScaffoldVerbsRun(t *testing.T) {
 	}
 }
 
+func TestFactsHistoryReadsPriorActionsWithoutWriters(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	things := map[string]Thing{
+		"north": {"id": "north", "label": "North station"},
+		"south": {"id": "south", "label": "South station"},
+	}
+	r.Define("station").Props(
+		PropSpec{Name: "id", Key: true, ReadOnly: true},
+		PropSpec{Name: "label", Role: RoleLabel, ReadOnly: true},
+	).Store(Store{
+		Facts: true,
+		Get: func(_ Ctx, id string) (Thing, error) {
+			return things[id], nil
+		},
+	})
+	for id, label := range map[string]string{"north": "North station", "south": "South station"} {
+		value := mustRun(t, r, Request{Noun: "station", Verb: "show", Args: Arguments{"id": id}})
+		if got := value.(map[string]any)["label"]; got != label {
+			t.Fatalf("show %s: %v", id, value)
+		}
+	}
+	value := mustRun(t, r, Request{Noun: "station", Verb: "history", Args: Arguments{"id": "north"}})
+	entries := rowsOf[HistoryEntry](t, value)
+	if len(entries) != 1 || entries[0].Request.Key() != "station.show" || entries[0].Request.Args["id"] != "north" || entries[0].Kind != HistoryAction || !entries[0].Result.OK {
+		t.Fatalf("fact history did not retain its prior show action: %+v", entries)
+	}
+	if _, err := r.Execute(Request{Noun: "station", Verb: "set", Args: Arguments{"id": "north", "props": map[string]any{"label": "Changed"}}}); err == nil || !strings.Contains(err.Error(), FactReason) {
+		t.Fatalf("facts acquired a writer: %v", err)
+	}
+	if got := mustRun(t, r, Request{Noun: "station", Verb: "get", Args: Arguments{"id": "north", "prop": "label"}}); got != "North station" {
+		t.Fatalf("read-only fact changed: %v", got)
+	}
+}
+
 // The generated key block: on an index row, d a archives, z A shows the
 // archived rows, d r restores, g d duplicates, y y yanks, d d archives a
 // live thing with no question; the delete of an archived one asks one
