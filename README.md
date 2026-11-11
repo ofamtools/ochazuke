@@ -1928,6 +1928,30 @@ The first request undoes the focused input's last change; the second requests th
 
 Selection and undo belong to each input. Yanks, history, registers, the active register and macro state belong to the `registers` component, one instance under `app` (`r.Registers()` returns it: `Named`, `History`, `Active`, `Macro`), so a yank from notes can be pasted into paths or a modal editor. It is reached through the `register`, `macro` and `yank-history` operations, never through `Runtime` fields.
 
+Named text registers `a` through `z` persist by default in the application's
+state directory as `registers/a.json` through `registers/z.json`. Each write
+atomically replaces one private file, mode `0600`, inside a directory created
+with mode `0700`. Concurrent replacements are last-writer-wins. Register get,
+list, paste and macro reads refresh a changed file, so a host callback from a
+mounted tool updates the same named register a live host reads. An unchanged
+file does not replace newer in-memory state, including a local macro recording.
+Use the register verbs or `StoreYank` and `ReadYank`; direct writes to `Named`
+are memory-only.
+
+These files contain the complete text, unencrypted, without automatic expiry.
+Do not send secrets to named registers when persistence is enabled.
+`register.persist=false` stops reads and writes to disk but leaves existing
+files in place. `Config.Disable()` or no state directory keeps all registers
+in memory. Clipboard, unnamed, numbered and small-delete registers, yank
+history and recorded macros remain transient. The register noun's
+`Unpersisted` flag still prevents register contents entering the history file;
+it does not disable this separate register storage.
+
+Compared with Vim: named registers and uppercase append follow
+`:help quote_alpha`. Vim can save registers through `:help viminfo-file`;
+ochazuke saves only named text registers, immediately per write rather than
+on exit, and never saves macro keys or special registers.
+
 The system clipboard: the clipboard register `+` (and `*`, the same register here) always copies its yank to the system clipboard, and the `clipboard` setting says which other yanks do: `yanks` (default: every yank, not a delete), `unnamed` (every yank and delete, Vim's `clipboard=unnamed`) or `none`. The copy is a command the `registers` component schedules (`PendingCommand`): `Registers.Copy(text) tea.Cmd` when an application sets it (a clipboard program such as pbcopy), else OSC 52 through `tea.SetClipboard`, which TUIOS and ssh pass on. Reading `"+p` pastes the last text yanked into `+`, not the system clipboard's current contents. Compared with Vim: `"+` and `"*` are Vim's clipboard and selection registers (`:help quoteplus`), one register here; `clipboard` takes Vim's `unnamed` (`:help 'clipboard'`), plus `yanks`, which Vim lacks.
 
 ```js
@@ -1959,7 +1983,7 @@ The system clipboard: the clipboard register `+` (and `*`, the same register her
 /tmp/ochazuke macro replay --json '{"register":"a","steps":2}'
 ```
 
-`input.yank` captures a selection/current lines; `input.paste` inserts a stored yank. Insert `Ctrl-W/U/K` publish shared kills and `Ctrl-Y` pastes the unnamed text literally. These operations use the same registry as the keyboard, palette, and CLI. All this state is in memory.
+`input.yank` captures a selection/current lines; `input.paste` inserts a stored yank. Insert `Ctrl-W/U/K` publish shared kills and `Ctrl-Y` pastes the unnamed text literally. These operations use the same registry as the keyboard, palette, and CLI. Only named text registers persist; the rest of this state stays in memory.
 
 
 ## Scoped, customizable keybindings
@@ -2037,6 +2061,12 @@ args)` returns stdout bytes; `host.Call(ctx, noun, verb, args)` makes the noun/
 verb boundary explicit for dotted verbs. Both execute the host, never the peer,
 with closed stdin, no `--yes`, a 60-second deadline, and stderr on failure.
 The argv preserves paths containing spaces and the temporary data directory.
+
+A host call starts a fresh host process, not a call into its live UI loop.
+Named register writes survive through the host's state directory and live
+register reads refresh them. A standalone tool uses its own state directory.
+Clipboard and other transient register writes do not gain persistence from
+`Host.Run`; callers that need retained output must choose a named register.
 
 The callback carries `OCHAZUKE_CALLER`, an incremented
 `OCHAZUKE_HOST_DEPTH`, and `OCHAZUKE_HOST_CHAIN` (JSON names). The shell binds
@@ -2520,6 +2550,14 @@ Parameter{
 ```
 
 Here `catalog.items` declares a `category` parameter, and the form or request declares `kind`. Selecting `kind` supplies its current value as `category` when loading `item` choices. Empty or unset siblings are omitted, preserving the source's defaults. Register the source first: `Runtime.Register` checks the dependency map, record editors check their complete field schema, and catalog hosts check after mounting their verbs. Code that fills `Operation.Parameters` directly can call `Runtime.CheckSourceArgs` after assigning the complete schema. `PropSpec` and `PropField` carry the same metadata.
+
+If a host's `HostMount.Param` removes a choice source and accepts free values,
+its dependency maps remain catalog metadata but have no source to call.
+`CheckSourceArgs` does not remove that verb for those inactive dependencies.
+An explicitly named missing source, or a missing source for a closed field,
+still fails validation. Custom creation verbs keep their own handler,
+parameter kinds, dependency maps, positional order and `Creates` mark when
+mounted; they do not become the proxy store's generated create handler.
 
 Args forms, record editors, value pickers, palette completion and execution validation use these values. `Choices` and `ChoicesFor` accept an optional `Arguments` map for custom callers; `ParameterChoices` also resolves prop-shaped parameters (`ValueOf`, `Pairs`). Sources can combine mapped arguments with the automatically supplied `query`; an explicit `sourceArgs` entry for `query` takes precedence. Pending sources load off the UI loop, and an older dependency response cannot replace a newer one.
 
@@ -3262,7 +3300,7 @@ Compared with Vim: `za`, `zo`, `zc`, `zR`, `zM` (folds, `:help fold-commands`) a
 - Standalone Go module and example application; no gmtm/Matomeru integration.
 - Vim-style editing, not a complete Vim implementation; no promise of text objects, dot-repeat, or full Vim scripting compatibility.
 - Cursor and edit offsets count Unicode runes, not grapheme clusters. Rendering accounts for terminal cell width.
-- Undo trees, yank history, registers, and macros are in memory; they do not persist across restarts.
+- Undo trees, yank history, special registers and macros are in memory. Named text registers persist when `register.persist` is enabled and the app has a state directory.
 - Custom modes are registered names. Applications supply their mode-specific bindings; unknown modes are not silently interpreted as normal or insert.
 - Modals preserve their own state and existing input instances. Closing a modal restores interaction state, not a stale copy of shared application data.
 - Handler registration and widget construction are Go APIs. User-facing operations, including configuration, palette navigation, field editing, and picker actions, are registered and available through the CLI.
