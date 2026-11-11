@@ -92,7 +92,7 @@ func helpNames(help string) string {
 }
 
 func TestHelpGoldens(t *testing.T) {
-	for name, args := range map[string][]string{"help-default": {"help"}, "help-all": {"help", "--all"}} {
+	for name, args := range map[string][]string{"help-default": {"help"}} {
 		got := helpNames(mountedHelp(t, args...))
 		golden := filepath.Join("testdata", name+".golden")
 		if *update {

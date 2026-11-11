@@ -210,13 +210,13 @@ func TestRenderHelpAndHintsFollowAliasShadowing(t *testing.T) {
 	m, _ := renderFixture(t)
 	r := m.Runtime
 	r.Define("long.thing").Verb("open", func(Ctx) Result { return Done(nil) })
-	if err := r.Alias("thing", "long.thing"); err != nil {
+	if err := r.Alias("cached", "long.thing"); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "x", Request: Request{Noun: "long.thing", Verb: "open"}}); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"thing.open", "long.thing.open"} {
+	for _, want := range []string{"cached.open", "long.thing.open"} {
 		if got := BindingHints(r, r.Focus); !strings.Contains(got, want) {
 			t.Fatalf("hints lack %s: %s", want, got)
 		}
@@ -229,7 +229,7 @@ func TestRenderHelpAndHintsFollowAliasShadowing(t *testing.T) {
 		if !found {
 			t.Fatalf("help lacks %s", want)
 		}
-		r.DefineOwn("thing")
+		r.DefineOwn("cached")
 	}
 	if err := r.AliasAction("long.thing.show", "long.thing.open"); err != nil {
 		t.Fatal(err)
