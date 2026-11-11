@@ -69,6 +69,10 @@ remain visible and `enter` or `l` walks through them. Even a matching thing
 can be explored with `l` before taking it. Path requests keep the existing
 on-disk sources and typed entry as well as the graph.
 
+Noun asks keep the argument form first; choosing its missing field opens
+these scopes. Ordinary record-choice editing and already populated fields
+keep their existing sources and editing behavior.
+
 `subject.ask` defaults to `true`; `false` restores automatic missing-subject
 refusals without removing explicit pickers. `picker.scopes=false` leaves the
 graph scope out of these requests; standalone `thing walk` is still
