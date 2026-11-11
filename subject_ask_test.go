@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1027,5 +1028,64 @@ func TestSubjectAskThingKeyAsksOnlyForWhatIsRequired(t *testing.T) {
 	formKeys(t, r, "enter")
 	if !reflect.DeepEqual(*ran, []string{"cell seen"}) || r.Instances[ArgsFormID] != nil {
 		t.Fatalf("ran=%v top=%q", *ran, r.TopModal())
+	}
+}
+
+// esc in a path ask does what it does in the path picker, whatever
+// modal.esc-closes says: off (the default) the first esc leaves typing and
+// the picker stays; on, esc closes it in one press. v0.124.0 gave the ask a
+// normal mode of its own, which released the search line's pin, so with
+// modal.esc-closes on the ask stayed open where the picker closed. The walk
+// still enters normal mode by itself, where its keys are.
+func TestPathAskEscIsThePathPickers(t *testing.T) {
+	param := Parameter{Type: PathParameterType, Required: true, Base: t.TempDir()}
+	for _, closes := range []bool{false, true} {
+		for _, route := range []string{"picker", "key", "palette"} {
+			t.Run(fmt.Sprintf("modal.esc-closes=%v/%s", closes, route), func(t *testing.T) {
+				r, p, ran := subjectAskRuntime(t, param, false)
+				if err := r.Settings().Set(ModalEscClosesSetting, closes); err != nil {
+					t.Fatal(err)
+				}
+				switch route {
+				case "picker":
+					if _, err := r.OpenPathChooser(PathChooserSpec{Pick: PathPick{Name: "swatch", Parameter: param}}); err != nil {
+						t.Fatal(err)
+					}
+				case "key":
+					formKeys(t, r, "z")
+				case "palette":
+					paletteRequest(t, r, "open", "palette", nil)
+					paletteRequest(t, r, "fill", "palette", Arguments{"text": "canvas paint"})
+					if err := p.run(); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if r.Chooser(PathChooserKind) == nil || r.Mode.Name != "insert" {
+					t.Fatalf("no path picker in insert: top=%q mode=%q", r.TopModal(), r.Mode.Name)
+				}
+				formKeys(t, r, "esc")
+				if open := r.Chooser(PathChooserKind) != nil; open == closes || len(*ran) != 0 {
+					t.Fatalf("after one esc the picker is open=%v, want %v: top=%q mode=%q ran=%v", open, !closes, r.TopModal(), r.Mode.Name, *ran)
+				}
+				if !closes && r.Mode.Name != "normal" {
+					t.Fatalf("esc left the search line in %s", r.Mode.Name)
+				}
+			})
+		}
+	}
+	// The walk opens in normal mode under either value; there i types and
+	// esc leaves typing.
+	r, _, _ := subjectAskRuntime(t, param, false)
+	if err := r.Settings().Set(ModalEscClosesSetting, true); err != nil {
+		t.Fatal(err)
+	}
+	c := pathAsk(t, r)
+	formKeys(t, r, "alt+o")
+	if c.Source() != "walk" || r.Mode.Name != "normal" {
+		t.Fatalf("alt+o reached %q in %s, want the walk in normal", c.Source(), r.Mode.Name)
+	}
+	formKeys(t, r, "i", "esc")
+	if r.Chooser(PathChooserKind) == nil || r.Mode.Name != "normal" {
+		t.Fatalf("esc in the walk's search line: top=%q mode=%q", r.TopModal(), r.Mode.Name)
 	}
 }

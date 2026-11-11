@@ -82,7 +82,9 @@ same list (`PickerSpec.ScopeKeys`: one mechanism, two keys). An
 application's own file system source named `walk` reads `on disk · walk`
 beside the relation walk and is remembered under its own name. With
 `picker.scopes` or `subject.ask` off the walk is not offered and nothing
-differs from the path picker.
+differs from the path picker. `esc` is the path picker's too: with
+`modal.esc-closes` off (the default) it leaves typing and `q` closes, with
+it on it closes in one press; the walk opens in normal mode by itself.
 
 Noun asks keep the argument form first; choosing its missing field opens
 these scopes. Ordinary record-choice editing and already populated fields

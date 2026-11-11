@@ -435,10 +435,12 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 	if spec.whereFrom && r.subjectAsks() && r.settingOn(PickerScopesSetting) {
 		// The ask's sources stay sources (the title lists them, ctrl+o and
 		// alt+o step them, the last one used is remembered) and are its
-		// scopes too: S and alt+s step the same list.
+		// scopes too: S and alt+s step the same list. It gets no normal
+		// mode of its own: esc does what it does in the path picker
+		// (modal.esc-closes), and the walk enters normal mode by itself
+		// (PickerSource.StartNormal).
 		chooser.Sources, chooser.Source = r.pathSubjectScopes(chooser.Sources, pick, r.contextOf(r.BaseFocus()), chooser.Source)
 		chooser.ScopeKeys = true
-		chooser.NormalMode = true
 	}
 	if spec.Many {
 		chooser.ChooseMany = r.chooseMany(spec)
