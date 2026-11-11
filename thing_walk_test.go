@@ -461,3 +461,39 @@ func TestThingWalkHiddenColumnsAvoidReadsAndLoadWhenRevealed(t *testing.T) {
 		t.Fatalf("revealed parent did not load its window: rows=%d side=%+v", big.rows, c.Side())
 	}
 }
+
+func TestThingWalkScopePreservesWiderListTeaser(t *testing.T) {
+	r, _, origin := thingWalkFixture(t)
+	near := ChoiceRows([]Choice{{ID: "near", Label: "Nearby choice"}})
+	all := ChoiceRows([]Choice{
+		{ID: "near", Label: "Nearby choice"},
+		{ID: "two", Label: "Second choice"},
+		{ID: "three", Label: "Third choice"},
+		{ID: "far", Label: "Far away choice"},
+	})
+	c, err := r.OpenPicker(PickerSpec{
+		Kind: "scope-teaser", Title: "Where from", Scoped: true, NormalMode: true, StartNormal: true, NoSort: true, NoPropFilters: true,
+		Sources: []PickerSource{
+			{Name: "project", Load: func(string) Result { return Done(near) }, Count: func(string) (int, bool) { return len(near), true }},
+			{Name: "all", Load: func(string) Result { return Done(all) }, Count: func(string) (int, bool) { return len(all), true }},
+			r.walkSource(Parameter{Noun: "task"}, origin, nil),
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := ansi.Strip(c.View(120, 12).Text)
+	if !strings.Contains(text, "3 more in all") || !strings.Contains(text, "Nearby choice") {
+		t.Fatalf("uncounted graph removed the wider list teaser:\n%s", text)
+	}
+	thingWalkKey(t, r, "S")
+	text = ansi.Strip(c.View(120, 12).Text)
+	if !strings.Contains(text, "Far away choice") || strings.Contains(text, "more in all") {
+		t.Fatalf("widest list scope has the wrong rows or teaser:\n%s", text)
+	}
+	thingWalkKey(t, r, "S")
+	text = ansi.Strip(c.View(120, 12).Text)
+	if !strings.Contains(text, "Nouns › project › Home") || !strings.Contains(text, "Write guide") || strings.Contains(text, "more in all") {
+		t.Fatalf("graph scope compared itself to a list count:\n%s", text)
+	}
+}

@@ -101,8 +101,8 @@ type PickerSource struct {
 	Current func() (ChooserRow, bool)
 	// Count, on a scope (ChooserSpec.Scoped), is how many values the scope
 	// holds for the query, when it can say at once; the search-line tag
-	// subtracts the scope in effect from the widest to say how many more
-	// the next S would show.
+	// subtracts the scope in effect from the last scope with a Count to
+	// describe the widest comparable scope. Uncounted scopes are skipped.
 	Count func(query string) (int, bool)
 	// Close, when set, runs when the picker closes: the source stops work
 	// of its own (an index running between loads).
@@ -883,10 +883,17 @@ func (c *Chooser) scopeTag() string {
 	if cur.Label != nil {
 		name = cur.Label()
 	}
-	last := c.spec.Sources[len(c.spec.Sources)-1]
-	if cur.Name == last.Name || cur.Count == nil || last.Count == nil {
+	if cur.Count == nil {
 		return name
 	}
+	lastIndex := len(c.spec.Sources) - 1
+	for lastIndex > c.source && c.spec.Sources[lastIndex].Count == nil {
+		lastIndex--
+	}
+	if lastIndex == c.source {
+		return name
+	}
+	last := c.spec.Sources[lastIndex]
 	query := c.Query()
 	have, ok := cur.Count(query)
 	more, ok2 := last.Count(query)

@@ -141,7 +141,7 @@ type PickerSpec struct {
 	// Scoped makes Sources the picker's scopes (Scope) rather than
 	// alternative sources: S (picker.next-scope) steps through them, the
 	// title does not list them, the search line's tag names the one in
-	// effect and what the widest (the last) holds beyond it
+	// effect and what the widest countable scope holds beyond it
 	// (ChooserSource.Count), and a reopen starts on the first, never on the
 	// one last used.
 	Scoped bool
