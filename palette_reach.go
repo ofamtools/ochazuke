@@ -27,9 +27,9 @@ func (r *Runtime) unavailableReason(op Operation) string {
 	return r.unavailableFor(op, nil)
 }
 
-// targetParams are declared subjects in line order: a noun's own Focus or
-// row-sourced subject, and required noun, path or sourced values. Optional
-// references to another noun (a create's project) remain optional.
+// targetParams are declared subjects in line order: Focus or From sources
+// across nouns, required noun/path/sourced values, and implicit own-noun
+// subjects of stored things. Plain optional references remain optional.
 func (r *Runtime) targetParams(op Operation) []string {
 	var out []string
 	for _, name := range paramOrder(op) {

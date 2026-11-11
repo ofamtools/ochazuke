@@ -18,7 +18,7 @@ func (r *Runtime) declaredSubject(op Operation, p Parameter) bool {
 	own := p.Noun != "" && r.CanonicalNoun(p.Noun) == r.CanonicalNoun(op.Noun())
 	n := r.Nouns[op.Noun()]
 	implicit := op.Kind == KindApplication && n != nil && StoredKind(storedNounKind(n))
-	return own && (p.Focus || p.From != "" || implicit) || p.From != "" && p.Noun == "" || p.Required && asksSubjectParameter(p)
+	return p.Focus || p.From != "" || own && implicit || p.Required && asksSubjectParameter(p)
 }
 
 func asksSubjectParameter(p Parameter) bool {

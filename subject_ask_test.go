@@ -391,3 +391,34 @@ func TestSubjectAskDoesNotInferCommandOrPartSubjects(t *testing.T) {
 		})
 	}
 }
+
+func TestSubjectAskOptionalCrossNounDeclaredSources(t *testing.T) {
+	for _, param := range []Parameter{
+		{Type: "string", Noun: "swatch", Focus: true},
+		{Type: "string", Noun: "swatch", From: "row:paint"},
+	} {
+		name := param.From
+		if param.Focus {
+			name = "focus"
+		}
+		t.Run(name, func(t *testing.T) {
+			r, _, ran := subjectAskRuntime(t, param, false)
+			formKeys(t, r, "z")
+			if r.RecordEditor(ArgsFormID) == nil || len(*ran) != 0 {
+				t.Fatalf("missing declared cross-noun source did not ask: top=%q ran=%v", r.TopModal(), *ran)
+			}
+			finishSubjectAsk(t, r, "blue")
+			if !reflect.DeepEqual(*ran, []string{"blue"}) || r.Instances[ArgsFormID] != nil {
+				t.Fatalf("declared cross-noun subject ran=%v top=%q", *ran, r.TopModal())
+			}
+		})
+	}
+}
+
+func TestSubjectAskKeepsPlainOptionalCrossNounReferenceOptional(t *testing.T) {
+	r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "swatch"}, false)
+	_, err := r.Dispatch(MacroKey{Key: "z"})
+	if err == nil || r.Instances[ArgsFormID] != nil || len(*ran) != 0 {
+		t.Fatalf("plain optional reference must not become a subject: err=%v top=%q ran=%v", err, r.TopModal(), *ran)
+	}
+}
