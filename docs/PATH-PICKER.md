@@ -14,7 +14,7 @@ The sources (recent, the project's folders, the bases, a declared scope) are sta
 
 ## Keys
 
-Every key is a binding row (`bindings/picker.json`, `bindings/picker-browse.json`), reachable from the palette and the CLI and rebindable. In normal mode (hybrid and columns) the picker's own rows are guarded by `picker-up` (the picker navigates), so a filter picker without navigation keeps the editor's keys.
+Every key is a binding row (`bindings/picker.json`, `bindings/picker-browse.json`), reachable from the palette and the CLI and rebindable. Navigation rows use `picker-up` (the source navigates). `/` and `i` use `picker-normal-mode`, so any picker that opts into normal mode can resume editing its filter, including a noun-list scope without navigation.
 
 | Key (normal mode) | Verb | Does |
 |---|---|---|
@@ -40,9 +40,13 @@ The `list` style types in its search line, so the same verbs have `alt+` keys in
 their relation graph. It starts at the focused thing when there is one;
 otherwise it starts with nouns that have things. Nouns show counts, with the
 focused noun first, then the nouns visited recently in this run. A noun's
-things and related sections load bounded pages from stores that support
-`Query`; Previous page and Next page are navigable rows, not a whole-table
-load. `/` filters the focused column, including store-side text search.
+things and inbound reference sections load bounded pages from stores that
+support `Query`; mounted relation-kind sections browse ordered relation
+keys, reading only the current window's endpoints. Previous page and Next
+page are navigable rows, not a whole-table load. `/` searches across all
+matching things, including later relation pages. Searching a mounted
+relation kind reads its candidate endpoints individually to find every
+match and an exact count; it never asks the extension for its whole table.
 
 `l` follows a noun or thing; `h` retraces the walk and restores that column's
 filter and highlight. The breadcrumb records the route. `gg`/`G` select the

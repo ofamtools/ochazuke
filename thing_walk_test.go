@@ -306,3 +306,68 @@ func TestThingWalkPreviewKeepsMixedNounIdentity(t *testing.T) {
 		t.Fatalf("backtracking lost the selected noun with the same key: %+v", restored)
 	}
 }
+
+func TestThingWalkRelationWindowsKeepPositionAndBoundEndpointReads(t *testing.T) {
+	r, _, origin := thingWalkFixture(t)
+	big := newCountingStore(205, 0)
+	big.things[40]["title"] = "Last-window needle"
+	store := big.store(true, false)
+	store.Remote = true
+	query := store.Query
+	store.Query = func(c Ctx, q ListQuery) (ListPage, error) {
+		for _, filter := range q.Filters {
+			if filter.Op != "" && filter.Op != "=" {
+				t.Fatalf("relation window needs an unsupported whole-table filter: %+v", filter)
+			}
+		}
+		return query(c, q)
+	}
+	r.Define("ledger").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(store)
+	if err := r.DeclareRelationKind(RelationKind{Name: "reading", From: "project", To: "ledger"}); err != nil {
+		t.Fatal(err)
+	}
+	for i := range big.things {
+		key := big.things[len(big.things)-1-i]["id"].(string)
+		if err := r.RelationStore().Put(Relation{Kind: "reading", From: "project:p1", To: "ledger:" + key, Position: i}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	c, chosen := thingWalkPicker(t, r, Parameter{Noun: "ledger"}, origin, nil)
+	window := func(count int, first, last string) {
+		t.Helper()
+		var rows []PickerRow
+		for _, row := range c.Matches() {
+			if row.Noun == r.CanonicalNoun("ledger") {
+				rows = append(rows, row)
+			}
+		}
+		if len(rows) != count || rows[0].ID != first || rows[len(rows)-1].ID != last {
+			t.Fatalf("relation position window: %+v; want %d rows %s through %s", rows, count, first, last)
+		}
+	}
+	window(80, "t00204", "t00125")
+	if big.gets != 80 {
+		t.Fatalf("first relation window fetched %d endpoints, want 80", big.gets)
+	}
+	thingWalkKey(t, r, "G")
+	thingWalkKey(t, r, "enter")
+	window(80, "t00124", "t00045")
+	if big.gets != 160 {
+		t.Fatalf("second relation window fetched %d endpoints in all, want 160", big.gets)
+	}
+	thingWalkKey(t, r, "G")
+	thingWalkKey(t, r, "enter")
+	window(45, "t00044", "t00000")
+	// A filtered remote relation searches every candidate key, not only the
+	// current page. No whole-table list is needed to find a later match.
+	c.SetQuery("needle")
+	if big.gets != 410 || big.lists != 0 {
+		t.Fatalf("global endpoint search read %d keys / %d whole tables, want 410 / 0", big.gets, big.lists)
+	}
+	window(1, "t00040", "t00040")
+	thingWalkKey(t, r, "G")
+	thingWalkKey(t, r, "enter")
+	if chosen.ID != "t00040" || chosen.Props["title"] != "Last-window needle" {
+		t.Fatalf("later filtered relation endpoint could not be selected: %+v", chosen)
+	}
+}

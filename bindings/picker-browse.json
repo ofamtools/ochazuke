@@ -1,5 +1,5 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
-// The directory picker's browse keys: the normal-mode keys of a picker whose source navigates (guard picker-up: the hybrid and columns styles of setting pickers.directory.style rest in normal mode; a filter picker without navigation falls through to the editor's keys), and the keys every picker with a navigating source answers in any mode (alt+ keys, for the list style whose search line is always typing). Each is a row to a verb of the picker noun; none is handled in code.
+// Picker browse keys: navigation uses picker-up; / and i use picker-normal-mode so a normal-mode list scope can edit its filter too. Alt keys remain available for navigating sources in the list style, whose search line normally takes text. Each key is a data row, never handled in code.
 {
   "bindings": [
     {"context": "ochazuke.picker/normal", "bindings": [
@@ -19,8 +19,8 @@
       {"key": "o", "when": "picker-up", "action": "ochazuke.picker.open-with", "hint": "open"},
       {"key": "R", "when": "picker-up", "action": "ochazuke.picker.reveal", "hint": "reveal"},
       {"key": "y", "when": "picker-up", "action": "ochazuke.picker.yank-path", "hint": "copy path"},
-      {"key": "/", "when": "picker-up", "action": "ochazuke.input.begin", "args": {"position": "insert"}, "hint": "filter"},
-      {"key": "i", "when": "picker-up", "action": "ochazuke.input.begin", "args": {"position": "insert"}, "hidden": true},
+      {"key": "/", "when": "picker-normal-mode", "action": "ochazuke.input.begin", "args": {"position": "insert"}, "hint": "filter"},
+      {"key": "i", "when": "picker-normal-mode", "action": "ochazuke.input.begin", "args": {"position": "insert"}, "hidden": true},
       {"key": "paste", "when": "picker-up", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true}
     ]},
     {"context": "ochazuke.picker", "bindings": [

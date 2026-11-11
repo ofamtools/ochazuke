@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"fmt"
 	"slices"
+	"strings"
 )
 
 // readRelatedThings is the shared reader of show-form sections and graph
@@ -50,7 +51,7 @@ func (r *Runtime) readRelatedRelations(c Ctx, noun, key string, ref Referrer, q 
 	if err != nil {
 		return ListPage{}, err
 	}
-	var keys []string
+	keys := make([]string, 0, len(rels))
 	for _, x := range rels {
 		otherNoun, otherKey, ok := SplitAnyRef(x.Other(this))
 		if ok && otherNoun == ref.Noun {
@@ -60,13 +61,21 @@ func (r *Runtime) readRelatedRelations(c Ctx, noun, key string, ref Referrer, q 
 	if len(keys) == 0 {
 		return ListPage{}, nil
 	}
-	// A paged graph column searches and windows at the store, not by
-	// fetching every related thing and cutting its rows afterwards.
-	if q.PerPage > 0 && n.Store != nil && n.Store.Query != nil {
+	if q.PerPage > 0 && n.Store != nil && !n.Store.Remote && n.Store.Query != nil {
 		q.Filters = append(clonePropFilters(q.Filters), PropFilter{Prop: n.keyProp().Name, Op: "in", Value: keys})
 		return r.queryThings(c, n, q)
 	}
-	var things []Thing
+	// Mounted Query cannot express set membership without falling back to a
+	// whole-table list. Browse ordered keys with Get instead. A search must
+	// examine all related endpoints for a correct total and global matches.
+	total := len(keys)
+	windowed := q.PerPage > 0 && !relatedQueryNeedsAll(q)
+	if windowed {
+		page := min(max(1, q.Page), windowPages(total, q.PerPage))
+		start := (page - 1) * q.PerPage
+		keys = keys[start:min(start+q.PerPage, total)]
+	}
+	things := make([]Thing, 0, len(keys))
 	for _, otherKey := range keys {
 		var t Thing
 		if n.Store != nil && n.Store.Get != nil && (!n.Store.Remote || c.tape != nil) {
@@ -84,7 +93,19 @@ func (r *Runtime) readRelatedRelations(c Ctx, noun, key string, ref Referrer, q 
 		}
 		things = append(things, t)
 	}
-	return r.queryAll(n, things, q), nil
+	window := q
+	if windowed {
+		window.Page, window.PerPage = 1, 0
+	}
+	page := r.queryAll(n, things, window)
+	if windowed {
+		page.Total = total
+	}
+	return page, nil
+}
+
+func relatedQueryNeedsAll(q ListQuery) bool {
+	return strings.TrimSpace(q.Text) != "" || len(q.Filters) > 0 || len(q.Sort) > 0 || q.Grouped()
 }
 
 // relatedGraphRefs includes the ordinary referrers and the concrete ends of

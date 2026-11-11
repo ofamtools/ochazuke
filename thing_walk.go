@@ -140,6 +140,9 @@ func (r *Runtime) walkOrigin(origin Context) (thingWalkNode, bool) {
 		}
 		label := inst.Label
 		if label == "" {
+			label = n.displayLabel(func(name string) any { return props[name] })
+		}
+		if label == "" {
 			label = key
 		}
 		return thingWalkNode{kind: walkThing, noun: n.Name, key: key, label: label, props: props}, true
@@ -255,7 +258,7 @@ func (w *thingWalk) pageRows(n *Noun, page ListPage, q ListQuery, section, title
 			id = AnyRef(n.Name, key)
 		}
 		choice := Choice{ID: id, Label: label, Noun: n.Name, Props: t, Data: t}
-		row := w.thingRow(choice, node, w.want.Type != PathParameterType && (w.want.Noun == "" || w.want.Noun == AnyNoun || w.r.CanonicalNoun(w.want.Noun) == n.Name))
+		row := w.thingRow(choice, node, !w.want.IsPath() && (w.want.Noun == "" || w.want.Noun == AnyNoun || w.r.CanonicalNoun(w.want.Noun) == n.Name))
 		row.Section = section
 		rows = append(rows, row)
 	}
@@ -278,7 +281,7 @@ func (w *thingWalk) thingRow(choice Choice, node *thingWalkNode, fits bool) Pick
 	row.identity = fmt.Sprintf("%d:%s:%s:%s", node.kind, node.noun, node.key, node.prop)
 	row.Noun, row.Props = node.noun, node.props
 	row.NoPick, row.Opens = !fits, !fits && node.kind == walkThing
-	if fits && (w.want.Noun != "" || w.want.Type == PathParameterType) {
+	if fits && (w.want.Noun != "" || w.want.IsPath()) {
 		row.Label = "✓ " + row.Label
 		for i := range row.Tones {
 			row.Tones[i].From += 2
@@ -375,8 +378,8 @@ func (w *thingWalk) values(n *Noun, key string, t Thing, query string) []PickerR
 		}
 		node := &thingWalkNode{kind: walkValue, noun: n.Name, key: key, prop: p.Name, label: label, props: t}
 		fits := w.want.Noun == "" && w.want.Type == ""
-		if w.want.Type == PathParameterType && p.IsPath() {
-			fits = w.want.Path == PathAny || (w.want.Path == PathDir) == (p.Path == PathDir)
+		if w.want.IsPath() && p.IsPath() {
+			fits = w.want.Path == PathAny || (PathPick{Parameter: w.want}).Dir() == (PathPick{Parameter: p.Parameter}).Dir()
 		}
 		row := w.thingRow(Choice{ID: value, Label: label, Noun: n.Name, Props: t, Data: value, RowFlags: RowFlags{Bare: true}}, node, fits)
 		row.Section = "values"
