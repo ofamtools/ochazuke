@@ -123,29 +123,66 @@ func TestSubjectAskMissingDeclaredRowSource(t *testing.T) {
 	}
 }
 
-func TestSubjectAskOffRefusesPaletteKeyAndNeed(t *testing.T) {
-	for _, route := range []string{"palette", "key", "need"} {
-		t.Run(route, func(t *testing.T) {
-			param := Parameter{Type: "string", Required: true, Noun: "swatch"}
-			if route == "need" {
-				param.Required = false
-			}
-			r, p, ran := subjectAskRuntime(t, param, route == "need")
-			if err := r.Settings().Set(SubjectAskSetting, false); err != nil {
-				t.Fatal(err)
-			}
-			var err error
-			if route == "palette" {
-				paletteRequest(t, r, "open", "palette", nil)
-				paletteRequest(t, r, "fill", "palette", Arguments{"text": "canvas paint"})
-				err = p.run()
-			} else {
-				_, err = r.Dispatch(MacroKey{Key: "z"})
-			}
-			if err == nil || len(*ran) != 0 || r.Instances[ArgsFormID] != nil || r.Chooser(FormSuggestionsKind) != nil {
-				t.Fatalf("err=%v ran=%v top=%q", err, *ran, r.TopModal())
-			}
-		})
+// With subject.ask off every route does what it did before the where-from
+// ask (v0.123.0), exactly: a missing required argument still opens the args
+// form (the path chooser for a lone path), a handler's Need still asks, the
+// palette still asks for the verb's own Focus target, and the subjects the
+// ask added (a From source, a Focus parameter of another noun) are left to
+// the verb, which refuses. v0.124.0 refused all of these with the setting
+// off, a palette line missing a required path among them ("missing swatch
+// (path)").
+func TestSubjectAskOffIsTheBehaviourBeforeTheAsk(t *testing.T) {
+	const form, chooser, refuses = "args form", "path chooser", "refuses"
+	root := t.TempDir()
+	for _, c := range []struct {
+		name               string
+		param              Parameter
+		palette, key, need string
+	}{
+		{"required noun", Parameter{Type: "string", Required: true, Noun: "swatch"}, form, form, form},
+		{"required path", Parameter{Type: PathParameterType, Required: true, Base: root}, chooser, chooser, chooser},
+		{"required from", Parameter{Type: "string", Required: true, Noun: "swatch", From: "row:paint"}, form, form, form},
+		{"optional noun", Parameter{Type: "string", Noun: "swatch"}, refuses, refuses, form},
+		{"optional focus of the verb's noun", Parameter{Type: "string", Noun: "canvas", Focus: true}, form, refuses, form},
+		{"optional focus of another noun", Parameter{Type: "string", Noun: "swatch", Focus: true}, refuses, refuses, form},
+		{"optional from", Parameter{Type: "string", Noun: "swatch", From: "row:paint"}, refuses, refuses, form},
+	} {
+		for route, want := range map[string]string{"palette": c.palette, "key": c.key, "need": c.need} {
+			t.Run(c.name+"/"+route, func(t *testing.T) {
+				r, p, ran := subjectAskRuntime(t, c.param, route == "need")
+				if err := r.Settings().Set(SubjectAskSetting, false); err != nil {
+					t.Fatal(err)
+				}
+				var err error
+				if route == "palette" {
+					paletteRequest(t, r, "open", "palette", nil)
+					paletteRequest(t, r, "fill", "palette", Arguments{"text": "canvas paint"})
+					err = p.run()
+				} else {
+					_, err = r.Dispatch(MacroKey{Key: "z"})
+				}
+				got := refuses
+				switch {
+				case r.Chooser(PathChooserKind) != nil:
+					got = chooser
+				case r.Instances[ArgsFormID] != nil:
+					got = form
+				}
+				if got != want || (err != nil) != (want == refuses) || len(*ran) != 0 {
+					t.Fatalf("%s, want %s: err=%v top=%q ran=%v", got, want, err, r.TopModal(), *ran)
+				}
+				// What opens is the picker it was: no where-from scope.
+				if c := r.Chooser(PathChooserKind); c != nil && slices.Contains(c.Sources(), "walk") {
+					t.Fatalf("the path chooser offers the walk with the ask off: %q", c.Sources())
+				}
+				if got == form {
+					formKeys(t, r, "enter")
+					if c := r.Chooser(FormSuggestionsKind); c != nil && slices.Contains(c.Sources(), "walk") {
+						t.Fatalf("the field's picker offers the walk with the ask off: %q", c.Sources())
+					}
+				}
+			})
+		}
 	}
 }
 

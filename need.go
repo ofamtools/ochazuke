@@ -59,7 +59,7 @@ func (r *Runtime) askNeed(q Request, err error, run func(Request) error) bool {
 		return false
 	}
 	p, ok := op.Parameters[need.Param]
-	if !ok || !formable(p) || !r.mayAskParameter(p) || !emptyProp(r.formSources(q).Args[need.Param]) {
+	if !ok || !formable(p) || !emptyProp(r.formSources(q).Args[need.Param]) {
 		return false
 	}
 	// The form replaces the one this request came from (one at a time): it

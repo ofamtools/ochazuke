@@ -71,8 +71,8 @@ func (r *Runtime) missingTargets(op Operation, args Arguments, focus string) []s
 		if v, set := args[name]; set && !emptyProp(v) {
 			continue
 		}
-		if r.subjectStands(op, name, focus) {
-			continue
+		if r.subjectAsks() && r.subjectStands(op, name, focus) {
+			continue // with subject.ask off the palette asks as it did before: only a thing of the parameter's noun fills a target
 		}
 		if _, ok := r.sourceValue(op, name, focus); ok {
 			continue

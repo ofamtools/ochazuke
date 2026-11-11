@@ -91,8 +91,11 @@ so are a parameter's `From` value and a thing of a `Focus` parameter's noun.
 A noun the verb also takes as a parameter of its own fills that parameter,
 never the verb's own subject.
 
-`subject.ask` defaults to `true`; `false` restores automatic missing-subject
-refusals without removing explicit pickers. `picker.scopes=false` leaves the
+`subject.ask` defaults to `true`; `false` restores what every route did
+before the ask, exactly: a missing required argument still opens the args
+form (the path picker for a lone path), `Ctx.Need` still asks, the palette
+still asks for the verb's own `Focus` target, and the other subjects are
+left to the verb, which refuses. `picker.scopes=false` leaves the
 graph scope out of these requests; standalone `thing walk` is still
 available from the palette. `walk.columns` defaults to `3`: parent, current
 column and the highlighted thing's next column. `2` shows parent/current;

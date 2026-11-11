@@ -11,11 +11,20 @@ const SubjectAskSetting = "subject.ask"
 // WalkColumnsSetting is the number of visible columns in the relation walk.
 const WalkColumnsSetting = "walk.columns"
 
+// declaredSubject reports whether p is a subject of op to ask for when a
+// person's request lacks it. With subject.ask off it is what it was before
+// the where-from ask (v0.123.0), exactly: the verb's own thing, a Focus
+// parameter of the verb's noun, which the palette asks for (palette.reach).
+// A missing required parameter opens the args form either way; the setting
+// only decides the subjects asked for beyond that.
 func (r *Runtime) declaredSubject(op Operation, p Parameter) bool {
+	own := p.Noun != "" && r.CanonicalNoun(p.Noun) == r.CanonicalNoun(op.Noun())
+	if !r.subjectAsks() {
+		return p.Focus && own
+	}
 	if p.Plumbing || op.Motion || op.FocusBound || !p.Required && (p.Covers || op.Creates) {
 		return false
 	}
-	own := p.Noun != "" && r.CanonicalNoun(p.Noun) == r.CanonicalNoun(op.Noun())
 	n := r.Nouns[op.Noun()]
 	implicit := op.Kind == KindApplication && n != nil && StoredKind(storedNounKind(n))
 	return p.Focus || p.From != "" || own && implicit || p.Required && asksSubjectParameter(p)
@@ -253,10 +262,6 @@ func (r *Runtime) canAskSubject(q Request, focus string) bool {
 		return false
 	}
 	return len(r.missingTargets(op, q.Args, focus)) > 0
-}
-
-func (r *Runtime) mayAskParameter(p Parameter) bool {
-	return !asksSubjectParameter(p) || r.subjectAsks()
 }
 
 // pathSubjectScopes adds the relation walk to a path ask's sources, last:

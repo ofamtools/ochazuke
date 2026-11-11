@@ -383,7 +383,7 @@ func (r *Runtime) formForMissing(q Request, run func(Request) error) bool {
 			}
 		}
 	}
-	if len(missing) == 0 || !r.mayAskParameter(op.Parameters[missing[0]]) {
+	if len(missing) == 0 {
 		return false
 	}
 	_, err := r.OpenArgsForm(q, run)
