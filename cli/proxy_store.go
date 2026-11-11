@@ -37,6 +37,11 @@ var proxiedVerbs = []string{"get", "list", "create", "set", "delete"}
 func proxyStore(noun CatalogNoun, local, key string, h HostMount) ochazuke.Store {
 	px := newProxyCalls(noun, local, key, h)
 	s := ochazuke.Store{Kind: noun.Kind, Remote: true, Stamps: true, Missing: px.missing, Undo: px.has("get") && px.has("set")}
+	if h.CanonicalKey != nil {
+		s.CanonicalKey = func(_ ochazuke.Ctx, selector, key string) error {
+			return h.CanonicalKey(noun.Name, selector, key)
+		}
+	}
 	// A call the extension lacks is a nil function, as for any store: the
 	// verb is registered but unavailable, with the reason in Missing.
 	if px.has("get") {

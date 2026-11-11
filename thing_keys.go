@@ -56,13 +56,40 @@ var keyResolvers = []keyResolver{
 	{"human key", humanFinder},
 }
 
-// keyFinder: the text is a key when the store has a thing under it.
+// keyFinder uses the record's canonical key when a store accepts a selector.
 func keyFinder(n *Noun, c Ctx, text string) ([]string, error) {
 	t, err := n.Store.Get(c, text)
 	if err != nil || t == nil {
 		return nil, nil // not found here: the next resolver, or the store's own error
 	}
-	return []string{text}, nil
+	key, err := c.Runtime.CanonicalThingKey(c, n.Name, text, t)
+	if err != nil {
+		return nil, err
+	}
+	return []string{key}, nil
+}
+
+// CanonicalThingKey reads a fetched record's durable key and tells its store
+// about accepted selectors. Hosts use it after off-loop selected-record reads.
+func (r *Runtime) CanonicalThingKey(c Ctx, noun, selector string, thing Thing) (string, error) {
+	n := r.Noun(noun)
+	if n == nil || n.keyProp() == nil || emptyProp(thing[n.keyProp().Name]) {
+		return selector, nil
+	}
+	key := fmt.Sprint(thing[n.keyProp().Name])
+	if n.Store != nil && n.Store.CanonicalKey != nil {
+		for _, prop := range n.Props {
+			if prop.Human && !emptyProp(thing[prop.Name]) {
+				if err := n.Store.CanonicalKey(c, fmt.Sprint(thing[prop.Name]), key); err != nil {
+					return "", err
+				}
+			}
+		}
+		if err := n.Store.CanonicalKey(c, selector, key); err != nil {
+			return "", err
+		}
+	}
+	return key, nil
 }
 
 // humanFinder: the text is a human key when a thing holds it exactly in
@@ -337,8 +364,8 @@ const (
 // them but a facts store's (Store.Facts). A noun that already names a prop (or a role) of its own keeps its
 // own, and the framework stamps that one.
 var baseProps = []PropSpec{
-	{Name: RoleCreated, Role: RoleCreated, ReadOnly: true, Parameter: Parameter{Description: "When the thing was made (RFC 3339, UTC)"}},
-	{Name: RoleUpdated, Role: RoleUpdated, ReadOnly: true, Parameter: Parameter{Description: "When the thing was last written (RFC 3339, UTC)"}},
+	{Name: RoleCreated, Role: RoleCreated, ReadOnly: true, Parameter: Parameter{Type: PropTime, Description: "When the thing was made (RFC 3339, UTC)"}},
+	{Name: RoleUpdated, Role: RoleUpdated, ReadOnly: true, Parameter: Parameter{Type: PropTime, Description: "When the thing was last written (RFC 3339, UTC)"}},
 }
 
 // addBaseProps declares baseProps on a thing noun with keys of its own: not
@@ -369,7 +396,7 @@ func (n *Noun) stamp(t Thing, roles ...string) {
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	for _, role := range roles {
-		if p := n.roleProp(role); p != nil && p.Type == SettingString {
+		if p := n.roleProp(role); p != nil && (p.Type == SettingString || p.Type == PropTime) {
 			t[p.Name] = now
 		}
 	}

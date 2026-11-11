@@ -29,6 +29,8 @@ type HostMount struct {
 	// CallTimeout limits one call of a proxy store to the extension
 	// (DefaultProxyTimeout when 0).
 	CallTimeout time.Duration
+	// CanonicalKey migrates references the host owns outside its runtime.
+	CanonicalKey func(noun, selector, key string) error
 }
 
 // MountedNouns is what MountNouns mounted: each catalog noun's host
@@ -153,6 +155,7 @@ func MountNouns(r *ochazuke.Runtime, nouns []CatalogNoun, h HostMount) MountedNo
 			}
 		}
 	}
+	mountReciprocals(r, mounting, out.Nouns, param, warn)
 	return out
 }
 

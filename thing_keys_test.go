@@ -359,7 +359,7 @@ func TestBaseTimesOnThingNouns(t *testing.T) {
 
 	r, s := newTimesRuntime(t, nil)
 	for _, name := range []string{"created", "updated"} {
-		if p := r.Noun("note").prop("@" + name); p == nil || !p.ReadOnly || p.Name != name {
+		if p := r.Noun("note").prop("@" + name); p == nil || !p.ReadOnly || p.Name != name || p.Type != PropTime {
 			t.Fatalf("@%s = %+v", name, p)
 		}
 	}

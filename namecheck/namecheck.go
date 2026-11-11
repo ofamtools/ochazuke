@@ -12,6 +12,8 @@
 //
 //   - compare: a == or != against a string literal, or a constant whose
 //     value is one, that is in the vocabulary;
+//     constants of local defined string value types are separate domains
+//     (for example pane IDs), not interchangeable dispatch-name strings;
 //   - case: a case label of a tagged switch that is such a literal;
 //   - table: a package-level map literal keyed by such literals.
 //
@@ -133,16 +135,17 @@ type Report struct {
 
 // walker holds one scan's tables.
 type walker struct {
-	cfg       Config
-	vocab     Vocab
-	consts    map[string]string // constant name -> value; "" entries mark ambiguity
-	declCalls map[string]bool
-	declTypes map[string]bool
-	rep       *Report
-	fset      *token.FileSet
-	file      string
-	pkgNames  map[string]bool // package names the current file imports
-	funcName  string
+	cfg        Config
+	vocab      Vocab
+	consts     map[string]string // constant name -> value; "" entries mark ambiguity
+	valueTypes map[string]bool   // package directory + defined string type
+	declCalls  map[string]bool
+	declTypes  map[string]bool
+	rep        *Report
+	fset       *token.FileSet
+	file       string
+	pkgNames   map[string]bool // package names the current file imports
+	funcName   string
 }
 
 // rule finds hits in one node. Code rules run on every node inside
@@ -185,7 +188,7 @@ func b2i(b bool) int {
 // function's complexity.
 func Scan(cfg Config) (*Report, error) {
 	w := &walker{
-		cfg: cfg, vocab: cfg.Vocab, consts: map[string]string{},
+		cfg: cfg, vocab: cfg.Vocab, consts: map[string]string{}, valueTypes: map[string]bool{},
 		declCalls: set(DeclCalls, cfg.DeclCalls), declTypes: set(DeclTypes, cfg.DeclTypes),
 		rep:  &Report{Cyclo: map[Key]int{}, Lines: map[Key]int{}},
 		fset: token.NewFileSet(),
@@ -212,7 +215,12 @@ func Scan(cfg Config) (*Report, error) {
 			continue
 		}
 		all = append(all, parsed{name, f})
-		w.collectConsts(f)
+		w.file = name
+		w.collectValueTypes(f)
+	}
+	for _, p := range all {
+		w.file = p.name
+		w.collectConsts(p.f)
 	}
 	for _, p := range all {
 		w.file = p.name
@@ -325,6 +333,24 @@ func importNames(f *ast.File) map[string]bool {
 	return m
 }
 
+// Defined value types enforce a compile-time boundary from dispatch strings.
+// Aliases, primitive string constants and imported framework key types do not.
+func (w *walker) collectValueTypes(f *ast.File) {
+	for _, decl := range f.Decls {
+		g, ok := decl.(*ast.GenDecl)
+		if !ok || g.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range g.Specs {
+			t := spec.(*ast.TypeSpec)
+			base, ok := t.Type.(*ast.Ident)
+			if ok && base.Name == "string" && !t.Assign.IsValid() {
+				w.valueTypes[filepath.Dir(w.file)+"\x00"+t.Name.Name] = true
+			}
+		}
+	}
+}
+
 // collectConsts records `const X = "lit"` anywhere; two different values
 // for one name make it ambiguous, so it is never resolved.
 func (w *walker) collectConsts(f *ast.File) {
@@ -335,6 +361,12 @@ func (w *walker) collectConsts(f *ast.File) {
 		}
 		for _, s := range g.Specs {
 			vs := s.(*ast.ValueSpec)
+			if typ, ok := vs.Type.(*ast.Ident); ok && w.valueTypes[filepath.Dir(w.file)+"\x00"+typ.Name] {
+				for _, id := range vs.Names {
+					w.consts[id.Name] = "\x00ambiguous"
+				}
+				continue
+			}
 			for i, id := range vs.Names {
 				if i >= len(vs.Values) {
 					continue

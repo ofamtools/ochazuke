@@ -3,7 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -193,7 +192,7 @@ func (k kindSync) PendingCommand() tea.Cmd {
 // instance takes the row's noun, id and label first.
 func (v *PageView) syncKind(id string) {
 	k := v.kind
-	row, ok := v.rows[id]
+	row, ok := v.Row(id)
 	record := ""
 	if ok {
 		js, _ := json.Marshal(row)
@@ -218,7 +217,7 @@ func (v *PageView) syncKind(id string) {
 // rowNounOf is the host noun of a row instance: its list item's noun.
 func (v *PageView) rowNounOf(id string) string {
 	for _, pl := range v.lists {
-		if slices.Contains(pl.rowIDs, id) {
+		if strings.HasPrefix(id, pl.spec.ID+"/") {
 			return pl.rowNoun
 		}
 	}
@@ -232,7 +231,7 @@ func (v *PageView) kindPanel(layout ochazuke.Layout, width, height int) ochazuke
 	v.syncKind(id)
 	cw, ch := ochazuke.PanelContentSize(width, height)
 	title := "detail"
-	if row, ok := v.rows[id]; ok {
+	if row, ok := v.Row(id); ok {
 		title = row.Label
 		if v.spec.Detail.Title != "" {
 			title = v.spec.Detail.Title + " · " + row.Label

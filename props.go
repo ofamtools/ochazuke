@@ -339,15 +339,19 @@ func ThingOf(v any) (Thing, error) {
 // each event to emit, from any goroutine, until stop; without it watch
 // lists again (List, a singleton's Get) whenever things may have changed.
 type Store struct {
-	Kind       string
-	Get        func(Ctx, string) (Thing, error)
-	List       func(Ctx, ListQuery) ([]Thing, error)
-	Query      func(Ctx, ListQuery) (ListPage, error)
-	Create     func(Ctx, Thing) (Thing, error)
-	Patch      func(Ctx, string, Thing) (Thing, error)
-	Delete     func(Ctx, string) error
-	ListParams map[string]Parameter
-	Watch      func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
+	Kind   string
+	Get    func(Ctx, string) (Thing, error)
+	List   func(Ctx, ListQuery) ([]Thing, error)
+	Query  func(Ctx, ListQuery) (ListPage, error)
+	Create func(Ctx, Thing) (Thing, error)
+	Patch  func(Ctx, string, Thing) (Thing, error)
+	Delete func(Ctx, string) error
+	// CanonicalKey migrates host-owned references when Get resolves a
+	// selector (including a Human prop) to the record's durable key.
+	// It runs on the loop and must be idempotent.
+	CanonicalKey func(Ctx, string, string) error
+	ListParams   map[string]Parameter
+	Watch        func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
 	// ChangeToken, when set, answers a cheap token for the store's things
 	// as they are now: a version counter, sqlite's data_version, a
 	// generation bumped by every write. Two equal tokens mean nothing

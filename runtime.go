@@ -325,6 +325,9 @@ type Operation struct {
 	// its own page id) instead of running the verb in the tool; the tool
 	// run on its own still runs the verb. Data for hosts.
 	OpensPage string `json:"opensPage,omitempty"`
+	// Reciprocals declares the other ends of typed cross-noun operations.
+	// A catalog host registers each on the parameter's host noun.
+	Reciprocals []Reciprocal `json:"reciprocals,omitempty"`
 	// Slot admits only one pending invocation per subject row and slot.
 	// A repeat while it runs reports that fact instead of running user work twice.
 	Slot string `json:"slot,omitempty"`

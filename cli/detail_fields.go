@@ -87,7 +87,7 @@ func sectionPage(r *ochazuke.Runtime, focus string) *PageView {
 }
 
 func (v *PageView) metadata() []detailFieldValue {
-	row, ok := v.rows[v.selectedID()]
+	row, ok := v.Row(v.selectedID())
 	if !ok {
 		return nil
 	}
@@ -108,7 +108,7 @@ func (v *PageView) metadata() []detailFieldValue {
 
 // Hints and key availability only need existence, not formatted values.
 func (v *PageView) hasMetadata() bool {
-	row, ok := v.rows[v.selectedID()]
+	row, ok := v.Row(v.selectedID())
 	if !ok {
 		return false
 	}
