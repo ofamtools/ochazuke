@@ -27,15 +27,13 @@ func (r *Runtime) unavailableReason(op Operation) string {
 	return r.unavailableFor(op, nil)
 }
 
-// targetParams are the parameters of op that name a thing of the verb's own
-// noun and are filled from the focus when omitted (Parameter.Focus with
-// that Noun: a standard verb's subject), in line order: the targets a
-// request may need to be given. A reference to another noun filled from
-// the focus (a create's project) is optional and not one.
+// targetParams are declared subjects in line order: Focus or From sources
+// across nouns, required noun/path/sourced values, and implicit own-noun
+// subjects of stored things. Plain optional references remain optional.
 func (r *Runtime) targetParams(op Operation) []string {
 	var out []string
 	for _, name := range paramOrder(op) {
-		if param := op.Parameters[name]; param.Focus && param.Noun != "" && r.CanonicalNoun(param.Noun) == r.CanonicalNoun(op.Noun()) {
+		if r.declaredSubject(op, op.Parameters[name]) {
 			out = append(out, name)
 		}
 	}
@@ -46,21 +44,12 @@ func (r *Runtime) targetParams(op Operation) []string {
 // leaves unfilled while nothing of its noun is focused to fill it: a
 // parameter to ask for with the noun's picker, never a reason to refuse.
 // "" when the line has every target or the focus supplies it.
-func (p *Palette) missingTarget(c commandLine) string {
-	if !c.known() || !p.r.Settings().Bool(PaletteReachSetting) {
+func (p *Palette) missingTarget(op Operation, args Arguments) string {
+	if !p.r.Settings().Bool(PaletteReachSetting) {
 		return ""
 	}
-	for _, name := range p.r.targetParams(c.Op) {
-		if v, set := c.Args[name]; set && !emptyProp(v) {
-			continue
-		}
-		if _, ok := p.r.sourceValue(c.Op, name, focusOf(p.origin)); ok {
-			continue
-		}
-		if _, ok := p.r.focusValue(c.Op, name, focusOf(p.origin)); ok {
-			continue
-		}
-		return name
+	if missing := p.r.missingTargets(op, args, focusOf(p.origin)); len(missing) > 0 {
+		return missing[0]
 	}
 	return ""
 }
@@ -71,7 +60,17 @@ func (p *Palette) missingTarget(c commandLine) string {
 func (r *Runtime) missingTargets(op Operation, args Arguments, focus string) []string {
 	var out []string
 	for _, name := range r.targetParams(op) {
+		if op.Parameters[name].Required && !op.lacks(name, args) {
+			continue
+		}
 		if v, set := args[name]; set && !emptyProp(v) {
+			continue
+		}
+		param := op.Parameters[name]
+		if !param.Required && param.From == "" && param.Noun != "" && r.CanonicalNoun(param.Noun) == r.CanonicalNoun(op.Noun()) && r.nounInstance(op.Noun(), focus) != "" {
+			continue
+		}
+		if _, ok := r.sourceValue(op, name, focus); ok {
 			continue
 		}
 		if _, ok := r.focusValue(op, name, focus); !ok {

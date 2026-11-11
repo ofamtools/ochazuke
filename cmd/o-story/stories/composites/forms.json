@@ -1642,7 +1642,7 @@
           }
         ]
       },
-      "name": "a noun picker opens on all, the tag counts what the widest scope adds, alt+s steps to archived and shows every value"
+      "name": "a missing subject picker counts archived values and cycles all, archived, walk, then all"
     },
     {
       "width": 100,
@@ -2178,9 +2178,7 @@
     },
     "P",
     "enter",
-    {
-      "type": "t2"
-    },
+    "j",
     "enter",
     "enter",
     {
@@ -2202,10 +2200,11 @@
     "enter",
     {
       "key": "ctrl+alt+n",
-      "note": "scopes/cycle-all-archived: a noun picker opens on all, the tag counts what the widest scope adds, alt+s steps to archived and shows every value"
+      "note": "scopes/cycle-all-archived: a missing subject picker counts archived values and cycles all, archived, walk, then all"
     },
     "P",
     "enter",
+    "alt+s",
     "alt+s",
     "alt+s",
     {
@@ -2972,9 +2971,19 @@
     },
     {
       "after": 224,
+      "modal": "args-form",
+      "focus": "args-form/id",
       "contains": [
         "id",
-        "no parcel is focused"
+        "Run parcel.get"
+      ]
+    },
+    {
+      "after": 227,
+      "modal": "args-form",
+      "focus": "args-form/id",
+      "contains": [
+        "Second"
       ]
     },
     {
@@ -3031,6 +3040,14 @@
       ]
     },
     {
+      "after": 241,
+      "modal": "form-suggestions",
+      "contains": [
+        "Choose id",
+        "Nouns"
+      ]
+    },
+    {
       "contains": [
         "all",
         "1 more in archived"
@@ -3038,10 +3055,10 @@
       "lacks": [
         "Old one"
       ],
-      "after": 241
+      "after": 242
     },
     {
-      "after": 246,
+      "after": 247,
       "contains": [
         "Suggest swatch",
         "alpha",
@@ -3055,7 +3072,7 @@
       ]
     },
     {
-      "after": 247,
+      "after": 248,
       "contains": [
         "alpha",
         "beta",
@@ -3064,7 +3081,7 @@
       ]
     },
     {
-      "after": 248,
+      "after": 249,
       "contains": [
         "use \"zzz\""
       ]
@@ -3078,10 +3095,10 @@
         "swatch.names",
         "swatch.paint swatch=zzz"
       ],
-      "after": 250
+      "after": 251
     },
     {
-      "after": 254,
+      "after": 255,
       "contains": [
         "Original",
         "1 more in archived"
@@ -3098,7 +3115,7 @@
       "lacks": [
         "more in"
       ],
-      "after": 255
+      "after": 256
     },
     {
       "page": "page1"

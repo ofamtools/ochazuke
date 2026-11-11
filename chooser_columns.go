@@ -21,17 +21,30 @@ const ColumnsMin = 72
 // chooserSideVerb names a source's side-column job.
 const chooserSideVerb = "ochazuke.picker.side"
 
+func (s *PickerSource) visibleColumns() int {
+	if s == nil || !s.Columns || s.ColumnCount == nil {
+		return 3
+	}
+	return min(3, max(1, s.ColumnCount()))
+}
+
 // columnsOn reports whether the picker draws columns at width.
 func (c *Chooser) columnsOn(width int) bool {
 	src := c.current()
-	return c.spec.Columns && width >= ColumnsMin && src != nil && src.Side != nil
+	return (c.spec.Columns || src != nil && src.Columns) && width >= ColumnsMin && src != nil && src.Side != nil
 }
 
 // queueSide loads the current source's side column when its key changed
 // (the source went to another folder), as a replacing job of the picker.
 func (c *Chooser) queueSide() {
 	src := c.current()
-	if !c.spec.Columns || src == nil || src.Side == nil {
+	if !(c.spec.Columns || src != nil && src.Columns) || src == nil || src.Side == nil {
+		return
+	}
+	if src.visibleColumns() < 2 {
+		if c.side.key != "" {
+			c.side = pickerSide{gen: c.side.gen + 1}
+		}
 		return
 	}
 	key, load := src.Side()
@@ -69,6 +82,25 @@ func (c *Chooser) Side() PickerSide { return c.side.value }
 func (c *Chooser) columnsView(width, height int) Block {
 	const gap = " │ "
 	gapW := ansi.StringWidth(gap)
+	count := c.current().visibleColumns()
+	if count == 1 {
+		return c.rowsView(width, height)
+	}
+	if count == 2 {
+		leftW := max(14, width/3)
+		midW := width - leftW - gapW
+		mid := c.rowsView(midW, height)
+		lines := strings.Split(mid.Text, "\n")
+		left := c.sideColumn(leftW, len(lines))
+		for i, line := range lines {
+			l := ""
+			if i < len(left) {
+				l = left[i]
+			}
+			lines[i] = l + strings.Repeat(" ", max(0, leftW-ansi.StringWidth(l))) + gap + line
+		}
+		return mid.Offset(leftW+gapW, 0).WithText(strings.Join(lines, "\n"))
+	}
 	leftW := max(14, width*26/98)
 	rightW := max(20, width*36/98)
 	midW := width - leftW - rightW - 2*gapW
@@ -77,14 +109,19 @@ func (c *Chooser) columnsView(width, height int) Block {
 	}
 	mid := c.rowsView(midW, height)
 	midLines := strings.Split(mid.Text, "\n")
-	left := c.sideColumn(leftW, len(midLines))
 	text := ""
 	if row, ok := c.Highlighted(); ok {
 		text = c.previewText(row)
 	}
-	right := previewLines(text, rightW, max(1, len(midLines)-1))
-	out := make([]string, len(midLines))
-	for i, line := range midLines {
+	right := previewLines(text, rightW, max(1, height-1))
+	rows := max(len(midLines), len(right)+1)
+	left := c.sideColumn(leftW, rows)
+	out := make([]string, rows)
+	for i := range out {
+		line := ""
+		if i < len(midLines) {
+			line = midLines[i]
+		}
 		l, rt := "", ""
 		if i < len(left) {
 			l = left[i]
@@ -107,10 +144,12 @@ func (c *Chooser) sideColumn(width, n int) []string {
 		title = LoadingText("parent")
 	}
 	lines := []string{ansi.Truncate(title, width, "…")}
-	at := -1
-	for i, l := range side.Lines {
-		if l == side.At {
-			at = i
+	at := side.AtRow - 1
+	if side.AtRow == 0 {
+		for i, l := range side.Lines {
+			if l == side.At {
+				at = i
+			}
 		}
 	}
 	room := max(1, n-1)

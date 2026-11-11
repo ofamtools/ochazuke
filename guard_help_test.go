@@ -8,7 +8,7 @@ func TestHelpHidesARowWhoseGuardIsFalse(t *testing.T) {
 	r := NewRuntime()
 	empty := true
 	r.DefineGuard("empty", func(*Runtime, KeyEvent) bool { return empty })
-	r.Define("thing").
+	r.DefineOwn("thing").
 		Verb("ensure", func(Ctx) Result { return Done(nil) }, "Start the daemon").
 		Verb("open", func(Ctx) Result { return Done(nil) }, "Open it").
 		Mode("normal").

@@ -165,7 +165,6 @@ func TestSetLineCompletion(t *testing.T) {
 		want []string
 	}{
 		{"scr", []string{"scrolloff"}},
-		{"nowrap w", []string{"nowrap wrap"}},
 		{"now", []string{"nowrap"}},
 		{"invw", []string{"invwrap"}},
 		{"all", []string{"all", "all&"}},

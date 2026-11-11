@@ -139,13 +139,16 @@ func (r *Runtime) sourcesAt(op Operation, q Request, start string) (Arguments, e
 	return r.fillFrom(q.Args, from, KeyEvent{Focus: start}, false, optional)
 }
 
-// formSources is q with its parameters' sources filled in, for the args
-// form: a form is a person's, so it reads the row at q's target, else the
-// base focus, whatever route opened it.
+// formSources reads a standard request's arguments before filling parameter
+// sources, just as execution does. A form reads the row at q's target, else
+// the base focus, whichever route opened it.
 func (r *Runtime) formSources(q Request) Request {
 	op, ok := r.Operations.Find(Key(q.Key()))
 	if !ok {
 		return q
+	}
+	if args, err := r.standardArgs(op, q); err == nil {
+		q.Args = args
 	}
 	start := r.BaseFocus()
 	if q.Target != "" && q.Target != "focused-input" {

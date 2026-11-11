@@ -222,7 +222,7 @@ func TestRelationVerbsShareOneHandlerOnBothEnds(t *testing.T) {
 func TestRelationVerbsAbsentWithoutAStore(t *testing.T) {
 	t.Parallel()
 	r := NewRuntime()
-	r.Define("thing").Props(PropSpec{Name: "id", Key: true}).Store((&relMem{}).store())
+	r.DefineOwn("thing").Props(PropSpec{Name: "id", Key: true}).Store((&relMem{}).store())
 	if _, ok := r.Operation("thing.relate"); ok {
 		t.Fatal("relate offered with no relation store")
 	}

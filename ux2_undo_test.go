@@ -12,7 +12,7 @@ func TestUndoReachesChangeUnderAppVerb(t *testing.T) {
 	_ = NewModel(r)
 	data := map[string]Thing{"a": {"id": "a", "title": "A", "status": "todo"}, "b": {"id": "b", "title": "B", "status": "todo"}}
 	calls := []string{}
-	r.Define("thing").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}, PropSpec{Name: "status"}).Store(Store{Undo: true,
+	r.DefineOwn("thing").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}, PropSpec{Name: "status"}).Store(Store{Undo: true,
 		Get: func(_ Ctx, id string) (Thing, error) {
 			calls = append(calls, "Get "+id)
 			if d, ok := data[id]; ok {

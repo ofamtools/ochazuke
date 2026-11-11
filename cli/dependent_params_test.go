@@ -18,6 +18,7 @@ func dependentCLI(t *testing.T) (*ochazuke.Runtime, *Shell, *bytes.Buffer) {
 	t.Helper()
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
+	r.DefineOwn("thing")
 	r.Register(ochazuke.Operation{Key: "choice.list", Parameters: map[string]ochazuke.Parameter{"kind": {Type: "string"}}, AppHandler: func(c ochazuke.Ctx) ochazuke.Result {
 		kind := ochazuke.StringArg(c.Args, "kind", "default")
 		return ochazuke.Pending(func(context.Context) (any, error) { return []string{kind + "-a", kind + "-b"}, nil })

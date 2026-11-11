@@ -41,6 +41,9 @@ type PickerSource struct {
 	// sources load once when they become current (and after Open or Up)
 	// and the chooser's Filter narrows their rows.
 	Live bool
+	// StartNormal enters navigation mode when this source is selected.
+	// Other sources keep the picker's existing editing behavior.
+	StartNormal bool
 	// Matched, on a Live source, lets the chooser's match mode
 	// (chooser.match, ChooserSpec.Match, tab) narrow the rows Load
 	// answered by their labels, as it narrows any source's; the source
@@ -98,8 +101,8 @@ type PickerSource struct {
 	Current func() (ChooserRow, bool)
 	// Count, on a scope (ChooserSpec.Scoped), is how many values the scope
 	// holds for the query, when it can say at once; the search-line tag
-	// subtracts the scope in effect from the widest to say how many more
-	// the next S would show.
+	// subtracts the scope in effect from the last scope with a Count to
+	// describe the widest comparable scope. Uncounted scopes are skipped.
 	Count func(query string) (int, bool)
 	// Close, when set, runs when the picker closes: the source stops work
 	// of its own (an index running between loads).
@@ -129,6 +132,12 @@ type PickerSource struct {
 	// (ChooserSpec.Columns): a key naming what it shows, and the work that
 	// loads it (a PickerSide) when the key changed.
 	Side func() (key string, load func() Result)
+	// Columns requests the columns presentation only while this source is
+	// current. ColumnCount optionally limits it to one, two or three;
+	// Breadcrumb draws the source's navigation path above the columns.
+	Columns     bool
+	ColumnCount func() int
+	Breadcrumb  func() string
 	// Section, with SectionLimit, declares the source as a section of a
 	// sectioned picker (the directory picker's hybrid style): its title and
 	// the most rows it shows while the query is empty. "" leaves the source
@@ -146,6 +155,9 @@ type PickerSide struct {
 	Title string
 	Lines []string
 	At    string
+	// AtRow is the 1-based selected line when labels are not unique;
+	// zero uses At's label, as directory sources have always done.
+	AtRow int
 }
 
 // pickerSide is the chooser's loaded side column.
@@ -187,6 +199,7 @@ type chooserState struct {
 	recentUses  func(PathPick) []PathUse
 	picked      []string // paths picked through a path chooser, newest first
 	walks       *walkCache
+	recentNouns []string // graph nouns visited this run, newest first
 	// pickers are the declared pickers (AddPicker).
 	pickers []PickerDef
 	// findIndex and findStat stand in for the find source's index and
@@ -329,6 +342,9 @@ func (c *Chooser) cycle(delta int) error {
 	c.suppressed = c.claimedBy(c.Query()) >= 0
 	c.claimed = false
 	c.source = ((c.source+delta)%n + n) % n
+	c.enterSourceMode()
+	c.Preview = ChooserPreview{}
+	c.side = pickerSide{}
 	if !c.spec.Scoped {
 		c.r.chooserMemory().lastSource[c.spec.Kind] = c.Source()
 	}
@@ -408,10 +424,23 @@ func (c *Chooser) claim() bool {
 	}
 	c.filters.linger.reset()
 	c.source = to
+	c.enterSourceMode()
+	c.Preview = ChooserPreview{}
+	c.side = pickerSide{}
 	c.spec.Rows = nil
 	c.cachePropRows()
 	c.load()
 	return true
+}
+
+// enterSourceMode lets a navigating scope take its keys immediately without
+// changing the initial editing mode of the picker's other scopes.
+func (c *Chooser) enterSourceMode() {
+	if src := c.current(); src != nil && src.StartNormal {
+		c.spec.NormalMode = true
+		c.input.pin = ""
+		_ = c.r.SetMode("normal")
+	}
 }
 
 // load asks the current source for its rows at the query.
@@ -502,12 +531,19 @@ func (c *Chooser) previewing() bool {
 	return src != nil && src.Preview != nil
 }
 
+func pickerRowKey(row PickerRow) string {
+	if row.identity != "" {
+		return row.identity
+	}
+	return row.ID
+}
+
 // previewText is the highlighted row's preview.
 func (c *Chooser) previewText(row ChooserRow) string {
 	if c.spec.Preview != nil {
 		return c.spec.Preview(row)
 	}
-	if c.Preview.Row != row.ID {
+	if c.Preview.Row != pickerRowKey(row) {
 		return ""
 	}
 	if c.Preview.Loading {
@@ -524,16 +560,23 @@ func (c *Chooser) queuePreview() {
 	if src == nil || src.Preview == nil || c.spec.Preview != nil {
 		return
 	}
+	if src.visibleColumns() < 3 {
+		if c.Preview.Row != "" {
+			c.Preview = ChooserPreview{Gen: c.Preview.Gen + 1}
+		}
+		return
+	}
 	row, ok := c.Highlighted()
 	if !ok || row.ID == chooserCreateRow {
 		row = ChooserRow{}
 	}
-	if row.ID == c.Preview.Row {
+	key := pickerRowKey(row)
+	if key == c.Preview.Row {
 		return
 	}
 	gen := c.Preview.Gen + 1
-	c.Preview = ChooserPreview{Row: row.ID, Gen: gen}
-	if row.ID == "" {
+	c.Preview = ChooserPreview{Row: key, Gen: gen}
+	if key == "" {
 		return
 	}
 	res := src.Preview(row)
@@ -664,13 +707,14 @@ func (c *Chooser) up() error {
 
 // navigated shows query (cursor at its end) and loads the source again.
 func (c *Chooser) navigated(query string) {
+	c.Preview = ChooserPreview{}
 	c.filters.linger.reset()
 	_ = c.input.Replace(0, len(c.input.Text), query)
 	c.input.Cursor = len(c.input.Text)
 	c.spec.Rows = nil
 	c.cachePropRows()
-	c.load()
 	c.refilter()
+	c.load()
 }
 
 // sourceTitle is the title with the sources: the current one in brackets
@@ -839,10 +883,17 @@ func (c *Chooser) scopeTag() string {
 	if cur.Label != nil {
 		name = cur.Label()
 	}
-	last := c.spec.Sources[len(c.spec.Sources)-1]
-	if cur.Name == last.Name || cur.Count == nil || last.Count == nil {
+	if cur.Count == nil {
 		return name
 	}
+	lastIndex := len(c.spec.Sources) - 1
+	for lastIndex > c.source && c.spec.Sources[lastIndex].Count == nil {
+		lastIndex--
+	}
+	if lastIndex == c.source {
+		return name
+	}
+	last := c.spec.Sources[lastIndex]
 	query := c.Query()
 	have, ok := cur.Count(query)
 	more, ok2 := last.Count(query)

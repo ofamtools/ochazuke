@@ -67,6 +67,10 @@ type PickerRow struct {
 	// (picker.section moves between sections).
 	Header  bool
 	Section string
+	// walk keeps graph navigation separate from the caller's Data and ID.
+	walk *thingWalkNode
+	// identity keeps mixed-noun navigation distinct from an argument ID.
+	identity string
 }
 
 // ChooserSpec opens a chooser. Kind is the modal's kind (one open chooser
@@ -137,7 +141,7 @@ type PickerSpec struct {
 	// Scoped makes Sources the picker's scopes (Scope) rather than
 	// alternative sources: S (picker.next-scope) steps through them, the
 	// title does not list them, the search line's tag names the one in
-	// effect and what the widest (the last) holds beyond it
+	// effect and what the widest countable scope holds beyond it
 	// (ChooserSource.Count), and a reopen starts on the first, never on the
 	// one last used.
 	Scoped bool
@@ -385,6 +389,7 @@ func (r *Runtime) OpenPicker(spec PickerSpec) (*Chooser, error) {
 			return nil, err
 		}
 	}
+	c.enterSourceMode()
 	c.load()
 	return c, nil
 }
@@ -596,13 +601,13 @@ func (c *Chooser) SetRows(rows []ChooserRow) {
 	keep := ""
 	wasMoved := c.moved
 	if row, ok := c.Highlighted(); ok {
-		keep = row.ID
+		keep = pickerRowKey(row)
 	}
 	c.spec.Rows = rows
 	c.cachePropRows()
 	c.refilter()
 	for i, row := range c.matches {
-		if keep != "" && row.ID == keep && (wasMoved || c.filters.Lingering(keep)) {
+		if keep != "" && pickerRowKey(row) == keep && (wasMoved || c.filters.Lingering(row.ID)) {
 			c.cursor, c.moved = i, wasMoved
 		}
 	}
@@ -956,10 +961,24 @@ func (c *Chooser) HiddenRows() int { return c.hidden }
 // the search input's.
 func (c *Chooser) View(width, height int) Block {
 	c.sync()
+	src := c.current()
+	crumb := ""
+	if src != nil && src.Breadcrumb != nil {
+		crumb = src.Breadcrumb()
+	}
+	if crumb == "" || height < 2 {
+		return c.bodyView(width, height)
+	}
+	b := c.bodyView(width, height-1)
+	return b.Offset(0, 1).WithText(ansi.Truncate(modalLabel(crumb), width, "…") + "\n" + b.Text)
+}
+
+func (c *Chooser) bodyView(width, height int) Block {
 	if c.columnsOn(width) {
 		return c.columnsView(width, height)
 	}
-	if !c.previewing() || width < ChooserPreviewMin {
+	src := c.current()
+	if !c.previewing() || width < ChooserPreviewMin || src.visibleColumns() < 3 {
 		return c.rowsView(width, height)
 	}
 	// The preview column keeps its width whatever it holds, so the panel

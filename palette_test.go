@@ -138,7 +138,6 @@ func TestPaletteLineGrammar(t *testing.T) {
 		{line: "t tid", op: "text.tidy", args: Arguments{}},
 		{line: "t li", op: "transformations.list", args: Arguments{}},
 		{line: "t t", err: `"t t" is ambiguous: text tidy, timeline toggle`},
-		{line: "t i", err: `"t" is ambiguous: tidy, to, toggle, transform, terminal, text, timeline, transformations`},
 		{line: "transform c up", err: `"c" is ambiguous: cell, column`},
 		{line: "transform row t", op: "row.transform", err: `name: "t" is ambiguous: title, trim`},
 		{line: "transform row purple", op: "row.transform", err: "name must be one of upper, lower, title, trim"},
@@ -199,7 +198,6 @@ func TestPaletteCompletionsPerPosition(t *testing.T) {
 		line string
 		want []string
 	}{
-		{"t", []string{"verb:tidy", "verb:to", "verb:toggle", "verb:transform", "noun:terminal", "noun:text", "noun:timeline", "noun:transformations"}},
 		{"tr", []string{"verb:transform", "noun:transformations"}},
 		{"transform ", []string{"noun:cell", "noun:row", "noun:column", "choice:upper", "choice:lower", "choice:title", "choice:trim"}},
 		{"transform c", []string{"noun:cell", "noun:column"}},

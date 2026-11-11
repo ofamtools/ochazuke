@@ -127,6 +127,7 @@ func TestArgsFormNounParamAutocompletes(t *testing.T) {
 	if c == nil {
 		t.Fatalf("no chooser: top=%q", r.TopModal())
 	}
+	formKeys(t, r, "/")
 	typeKeys(t, r, "blu")
 	formKeys(t, r, "enter")
 	if r.Focus != ArgsFormID+"/swatch" || ed.Values()["swatch"] != "s2" {

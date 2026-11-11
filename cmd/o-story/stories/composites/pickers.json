@@ -1864,6 +1864,77 @@
         ]
       },
       "name": "the pickers picker: picker.open pickers lists pages, path, commands and a derived picker for the demo noun (it has a list verb); typing pages and enter opens the page picker"
+    },
+    {
+      "width": 110,
+      "height": 24,
+      "page": {
+        "noHeadings": true,
+        "lists": [
+          {
+            "id": "projects",
+            "items": [
+              {
+                "id": "p1",
+                "label": "Home",
+                "noun": "project",
+                "data": "p1",
+                "props": {
+                  "id": "p1",
+                  "title": "Home"
+                }
+              }
+            ]
+          }
+        ],
+        "focus": "p1",
+        "store": {
+          "noun": "project",
+          "props": [
+            {
+              "name": "id",
+              "key": true
+            },
+            {
+              "name": "title",
+              "role": "label"
+            }
+          ],
+          "things": [
+            {
+              "id": "p1",
+              "title": "Home"
+            }
+          ]
+        },
+        "related": {
+          "noun": "project",
+          "keyList": "projects",
+          "nouns": [
+            {
+              "noun": "task",
+              "prop": "project",
+              "owner": true,
+              "things": [
+                {
+                  "id": "t1",
+                  "title": "Water the plants",
+                  "project": "p1"
+                }
+              ]
+            }
+          ]
+        },
+        "bind": [
+          {
+            "noun": "app",
+            "mode": "normal",
+            "keys": "X",
+            "do": "ochazuke.thing.walk"
+          }
+        ]
+      },
+      "name": "thing walk: follow a project's incoming task reference, walk back through its owner, and enter follows the task"
     }
   ],
   "script": [
@@ -2651,6 +2722,14 @@
     "q",
     {
       "key": "ctrl+alt+n",
+      "note": "pickers/thing-walk: browse the existing related graph with normal column motions and follow a thing"
+    },
+    "X",
+    "l",
+    "h",
+    "enter",
+    {
+      "key": "ctrl+alt+n",
       "note": "Return to the opening fixture"
     }
   ],
@@ -2716,9 +2795,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[browse /]"
-      ],
       "after": 50
     },
     {
@@ -2786,9 +2862,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[browse /]"
-      ],
       "after": 122
     },
     {
@@ -2800,9 +2873,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[walk /]"
-      ],
       "after": 155
     },
     {
@@ -2856,9 +2926,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[hybrid /]"
-      ],
       "after": 189
     },
     {
@@ -2935,9 +3002,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[hybrid /]"
-      ],
       "after": 247
     },
     {
@@ -2949,9 +3013,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[walk /]"
-      ],
       "after": 276
     },
     {
@@ -3005,9 +3066,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[browse /]"
-      ],
       "after": 307
     },
     {
@@ -3061,9 +3119,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[browse /]"
-      ],
       "after": 352
     },
     {
@@ -3075,9 +3130,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[walk /]"
-      ],
       "after": 381
     },
     {
@@ -3276,6 +3328,41 @@
         "q app.quit · r demo.reset · enter demo.open · n demo.notify · x demo.delete · space collection.…"
       ],
       "highlighted": 1
+    },
+    {
+      "after": 416,
+      "modal": "thing-walk",
+      "mode": "normal",
+      "contains": [
+        "Water the plants"
+      ],
+      "noNotices": true
+    },
+    {
+      "after": 417,
+      "modal": "thing-walk",
+      "mode": "normal",
+      "contains": [
+        "Home",
+        "Water the plants"
+      ],
+      "noNotices": true
+    },
+    {
+      "after": 418,
+      "modal": "thing-walk",
+      "contains": [
+        "Water the plants"
+      ]
+    },
+    {
+      "after": 419,
+      "modal": "",
+      "page": "nouns/task",
+      "contains": [
+        "Water the plants"
+      ],
+      "noNotices": true
     },
     {
       "page": "page1"

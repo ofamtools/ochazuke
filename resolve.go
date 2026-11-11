@@ -505,7 +505,7 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 			if lv.owns && owned == nil && matches(row) {
 				owned = row
 			}
-			if !r.availableWithin(row.Request, r.rowInstance(lv, row.Request, ev.Focus), ev.Mode, ev.Within) {
+			if !r.rowAvailable(lv, row.Request, ev.Focus, ev.Mode, ev.Within) {
 				if prefix != "" && row.Keys == sequence && !key.Paste {
 					look.bound = true
 				}
@@ -610,6 +610,13 @@ func (r *Runtime) rowInstance(lv level, q Request, focus string) string {
 		}
 	}
 	return focus
+}
+
+// rowAvailable is shared by dispatch and its live hints/help/binding listings:
+// a missing declared subject can be asked for even before its verb guard holds.
+// Binding-row guards are still judged separately by each walk.
+func (r *Runtime) rowAvailable(lv level, q Request, focus string, mode ModeState, within *resolutionContext) bool {
+	return r.availableWithin(q, r.rowInstance(lv, q, focus), mode, within) || r.canAskSubject(q, focus)
 }
 
 // runRow executes a row. A pending mode is one-shot: the key that answers it
@@ -965,7 +972,7 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 				continue
 			}
 			guard := ""
-			if live && owns && (!r.availableWithin(b.Request, r.rowInstance(cur, b.Request, focus), mode, within) || !r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus, Within: within})) {
+			if live && owns && (!r.rowAvailable(cur, b.Request, focus, mode, within) || !r.rowGuardHolds(b.When, KeyEvent{Mode: mode, Focus: focus, Within: within})) {
 				// An owning component's key that does not run there is
 				// consumed (level.owns): it claims the key, so the page's
 				// row on it is not offered, and shows nothing itself.
@@ -982,7 +989,7 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 						continue
 					}
 				}
-				if !r.availableWithin(b.Request, r.rowInstance(cur, b.Request, focus), mode, within) {
+				if !r.rowAvailable(cur, b.Request, focus, mode, within) {
 					continue // guarded off where it acts: hints and bindings list match the palette
 				}
 			} else {

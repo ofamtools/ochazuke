@@ -68,7 +68,7 @@ func (c *Chooser) landOn() {
 		if row.Header || row.ID == chooserCreateRow {
 			continue
 		}
-		if byID && row.ID == id || !byID && row.Section == c.land {
+		if byID && pickerRowKey(row) == id || !byID && row.Section == c.land {
 			c.cursor, c.moved, c.land = i, true, ""
 			return
 		}

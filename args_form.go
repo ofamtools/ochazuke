@@ -154,7 +154,7 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 	if err != nil {
 		return nil, err
 	}
-	if r.Settings().Bool(PaletteReachSetting) {
+	if r.subjectAsks() || r.Settings().Bool(PaletteReachSetting) {
 		fields = askedTargets(fields, r.missingTargets(op, q.Args, r.requestFocus(q)))
 	}
 	fields = askedTargets(fields, needs)
@@ -174,7 +174,7 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 		}
 	}
 	for _, name := range r.missingTargets(op, q.Args, r.requestFocus(q)) {
-		if r.Settings().Bool(PaletteReachSetting) && !slices.Contains(missing, name) {
+		if (r.subjectAsks() || r.Settings().Bool(PaletteReachSetting)) && !slices.Contains(missing, name) {
 			missing = append(missing, name)
 		}
 	}
@@ -214,12 +214,21 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 	if err != nil {
 		return e, err
 	}
-	// A form opening on a missing path stop opens its chooser: that is
-	// where the path is typed.
-	if f := e.fields[e.start()]; start != "" && f.path && f.choose {
-		return e, e.choosePath(f)
+	return e, e.chooseMissingPath(start)
+}
+
+// chooseMissingPath keeps the existing initial path-picker flow, opening from
+// its new field rather than the older request below the form.
+func (e *RecordEditor) chooseMissingPath(start string) error {
+	if start == "" {
+		return nil
 	}
-	return e, nil
+	f := e.fields[e.start()]
+	if !f.choose || !f.path {
+		return nil
+	}
+	defer e.r.actingFor(f.id)()
+	return e.choosePath(f)
 }
 
 // argsFormStart fills the args form's declared starting values into
@@ -309,8 +318,9 @@ func (r *Runtime) singlePath(missing []string, fields []RecordField) (RecordFiel
 // over; esc runs nothing.
 func (r *Runtime) choosePathArg(q Request, f RecordField, title string, run func(Request) error) error {
 	_, err := r.OpenPathChooser(PathChooserSpec{
-		Title: title + " · choose " + f.Name,
-		Pick:  PathPick{Name: f.Name, Parameter: f.Parameter},
+		whereFrom: true,
+		Title:     title + " · choose " + f.Name,
+		Pick:      PathPick{Name: f.Name, Parameter: f.Parameter},
 		Choose: func(path string) Result {
 			done := q
 			done.Args = maps.Clone(q.Args)
@@ -364,7 +374,16 @@ func (r *Runtime) formForMissing(q Request, run func(Request) error) bool {
 	if !ok || !r.missingOpensForm() {
 		return false
 	}
-	if len(missingRequired(op, r.formSources(q).Args)) == 0 {
+	args := r.formSources(q).Args
+	missing := missingRequired(op, args)
+	if r.subjectAsks() {
+		for _, name := range r.missingTargets(op, args, r.requestFocus(q)) {
+			if !slices.Contains(missing, name) {
+				missing = append(missing, name)
+			}
+		}
+	}
+	if len(missing) == 0 || !r.mayAskParameter(op.Parameters[missing[0]]) {
 		return false
 	}
 	_, err := r.OpenArgsForm(q, run)

@@ -9,5 +9,5 @@ func TestPropsRefuseAHostNounThatIsNotANounName(t *testing.T) {
 			t.Fatal("a hostNoun with spaces was accepted")
 		}
 	}()
-	NewRuntime().Define("thing").Props(PropSpec{Name: "n", Parameter: Parameter{HostNoun: "Bad Noun"}})
+	NewRuntime().DefineOwn("thing").Props(PropSpec{Name: "n", Parameter: Parameter{HostNoun: "Bad Noun"}})
 }
