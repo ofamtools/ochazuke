@@ -186,6 +186,8 @@ What the framework will not do for you: persistence, domain validation, daemon p
 
 The gate is `make test`: gofmt, `go vet` and `go test -race` (the root module once under `-race` with `-timeout 60m`, no plain run, because the root package alone needs over Go's 10-minute default; the nested modules run plain: o-story under `-race` took 1707 s) of the root module and of both nested modules (`cmd/o-story`: o-story, the demo app and its stories; `examples`). A bare `go test ./...` at the root runs only the root module, so it skips every story; it fails `TestNestedModulesRunToo` saying so, unless `OCHAZUKE_NESTED_TESTS=1` is set, which `make test` sets.
 
+Configuration-only changes (a bindings row, a setting, a catalog row) never need `make test`: run the targeted tests that cover where the key or setting fires (`Binding`, `Keymap`, `Help`, `Hint`, `Reference`, `Setting`, plus one test per setting value) and regenerate the reference with `make reference`. The full gate is for shared-code changes, once. Write few tests; see `~/hub/ai/instructions/AGENTS.md` "Checks scale with the change".
+
 ```sh
 make test
 OCHAZUKE_NESTED_TESTS=1 go test -race -timeout 60m ./...   # the root module only (make test races the root module and runs the nested modules plain)
