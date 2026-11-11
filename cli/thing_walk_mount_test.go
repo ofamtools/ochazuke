@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
+	gomaps "maps"
 	"strings"
 	"testing"
 
@@ -32,10 +32,10 @@ func TestMountedThingWalk(t *testing.T) {
 				if id != thing["id"] {
 					return nil, fmt.Errorf("no thing %q", id)
 				}
-				return maps.Clone(thing), nil
+				return gomaps.Clone(thing), nil
 			},
 			List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
-				return []ochazuke.Thing{maps.Clone(thing)}, nil
+				return []ochazuke.Thing{gomaps.Clone(thing)}, nil
 			},
 		})
 	}
@@ -59,13 +59,13 @@ func TestMountedThingWalk(t *testing.T) {
 					if c.Args["id"] != things[noun]["id"] {
 						return ochazuke.Failed(fmt.Errorf("no %s %v", noun, c.Args["id"]))
 					}
-					value := maps.Clone(things[noun])
+					value := gomaps.Clone(things[noun])
 					return ochazuke.Pending(func(context.Context) (any, error) { return value, nil })
 				case "list":
-					value := []ochazuke.Thing{maps.Clone(things[noun])}
+					value := []ochazuke.Thing{gomaps.Clone(things[noun])}
 					return ochazuke.Pending(func(context.Context) (any, error) { return value, nil })
 				case "open":
-					opened = append(opened, hostCall{noun, verb.Name, maps.Clone(c.Args)})
+					opened = append(opened, hostCall{noun, verb.Name, gomaps.Clone(c.Args)})
 					return ochazuke.Done(nil)
 				default:
 					return ochazuke.Failed(fmt.Errorf("unexpected extension call %s.%s", noun, verb.Name))
@@ -196,7 +196,7 @@ func TestMountedThingWalkQueryRelationEndpoints(t *testing.T) {
 				}
 				// Execute the fixture store on the loop. The worker owns only
 				// the completed answer, never either runtime or a context.
-				value, err := ext.Execute(ochazuke.Request{Noun: noun, Verb: verb.Name, Args: maps.Clone(c.Args), Confirmed: true})
+				value, err := ext.Execute(ochazuke.Request{Noun: noun, Verb: verb.Name, Args: gomaps.Clone(c.Args), Confirmed: true})
 				if err != nil {
 					return ochazuke.Failed(err)
 				}
@@ -292,6 +292,16 @@ func TestMountedThingWalkQueryRelationEndpoints(t *testing.T) {
 	if got := ids("extension.shelf"); len(got) != 80 || got[0] != "s001" || got[79] != "s080" {
 		t.Fatalf("first relation endpoint window: %v", got)
 	}
+	choose("shelf 160", "extension.shelf", "s160")
+	if got := ids("extension.shelf"); len(got) != 1 || got[0] != "s160" {
+		t.Fatalf("search reaches an endpoint beyond the first relation window: %v", got)
+	}
+	r.Chooser(ochazuke.ThingWalkKind).SetQuery("shelf 161")
+	settle()
+	if got := ids("extension.shelf"); len(got) != 0 {
+		t.Fatalf("relation search included an unrelated stored shelf: %v", got)
+	}
+	choose("", "extension.shelf", "s001")
 	press("G")
 	if row, ok := r.Chooser(ochazuke.ThingWalkKind).Highlighted(); !ok || row.Label != "Next page" {
 		t.Fatalf("relation next page: %+v (present %t)", row, ok)
