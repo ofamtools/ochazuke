@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -31,7 +32,12 @@ func TestPersistedHistoryKeepsDurableIdentityWithoutPrivateValues(t *testing.T) 
 				}
 				return thing, nil
 			},
-		}).Verb("move", func(c Ctx) Result { thing["file"] = "/after/plan"; return Done(thing) }).History(HistoryChange)
+		}).Verb("move", func(c Ctx) Result {
+			return Pending(func(context.Context) (any, error) {
+				thing["file"] = "/after/plan"
+				return thing, nil
+			})
+		}).History(HistoryChange)
 		op, _ := r.Operation("document.move")
 		op.Parameters = map[string]Parameter{"id": {Type: "string", Noun: "document", Free: true}}
 		r.Operations.Set(op)
@@ -43,6 +49,7 @@ func TestPersistedHistoryKeepsDurableIdentityWithoutPrivateValues(t *testing.T) 
 	if _, err := r.Execute(Request{Noun: "document", Verb: "move", Args: Arguments{"id": "/before/plan"}}); err != nil {
 		t.Fatal(err)
 	}
+	settleOnce(t, r)
 	if err := r.Config().Flush(); err != nil {
 		t.Fatal(err)
 	}

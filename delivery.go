@@ -598,6 +598,7 @@ func (r *Runtime) Deliver(msg tea.Msg) (bool, error) {
 		if j.then != nil {
 			callbackErr = j.then(j.ctx, done.Value, done.Err)
 		}
+		r.completeHistory(done, callbackErr)
 		// The callback may have removed the owner (a kill verb dropping its
 		// own row): the job is settled, so the message is dropped.
 		if inst := r.Instances[done.Owner]; inst != nil {
