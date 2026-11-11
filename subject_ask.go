@@ -84,10 +84,10 @@ func (r *Runtime) subjectHere(p Parameter, origin Context) []Choice {
 	return out
 }
 
-// subjectScopes keeps the parameter's own list scopes and adds the same nearby
-// candidates and graph walk wherever a noun choice is opened.
+// subjectScopes adds nearby candidates and the graph walk only when a request
+// asks for a missing subject. Ordinary record-choice editing keeps its sources.
 func (r *Runtime) subjectScopes(spec PickerSpec, l choiceLoad) (PickerSpec, bool) {
-	if l.param.Noun == "" || !r.subjectAsks() || !r.settingOn(PickerScopesSetting) {
+	if !l.ask || l.param.Noun == "" || !r.subjectAsks() || !r.settingOn(PickerScopesSetting) {
 		return spec, false
 	}
 	origin := l.ctx

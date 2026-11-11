@@ -1321,8 +1321,8 @@ type choiceLoad struct {
 	siblings func() Arguments
 	fixed    []ChooserRow
 	landed   func([]Choice)
-	// ask starts a missing subject's scopes in normal mode; ordinary
-	// record choice editing retains its insert-mode search.
+	// ask enables where-from scopes for a missing request subject and opens
+	// them in normal mode. Ordinary record-choice editing is unchanged.
 	ask bool
 }
 
@@ -1471,9 +1471,9 @@ func booleanChoices() []Choice {
 // fills it and is written at once.
 func (e *RecordEditor) choosePath(f *recordField) error {
 	_, err := e.r.OpenPathChooser(PathChooserSpec{
-		Title:     "Choose " + f.label(),
-		Pick:      PathPick{Name: f.Name, Parameter: f.Parameter, Value: f.text()},
-		whereFrom: true,
+		Title: "Choose " + f.label(),
+		Pick:  PathPick{Name: f.Name, Parameter: f.Parameter, Value: f.text()},
+		whereFrom: e.spec.Submit != nil && f.text() == "",
 		Choose: func(path string) Result {
 			var err error
 			if f.input != nil {

@@ -214,22 +214,21 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 	if err != nil {
 		return e, err
 	}
-	return e, e.chooseMissingField(start, op.Parameters[start], needs)
+	return e, e.chooseMissingPath(start)
 }
 
-// chooseMissingField opens the initial missing subject's picker from its new
-// field, not the older request that opened the form below it.
-func (e *RecordEditor) chooseMissingField(start string, param Parameter, needs []string) error {
+// chooseMissingPath keeps the existing initial path-picker flow, opening from
+// its new field rather than the older request below the form.
+func (e *RecordEditor) chooseMissingPath(start string) error {
 	if start == "" {
 		return nil
 	}
 	f := e.fields[e.start()]
-	noun := f.Noun != "" && e.r.subjectAsks() && (param.Focus || slices.Contains(needs, start))
-	if !f.choose || !f.path && !noun {
+	if !f.choose || !f.path {
 		return nil
 	}
 	defer e.r.actingFor(f.id)()
-	return e.choose(f)
+	return e.choosePath(f)
 }
 
 // argsFormStart fills the args form's declared starting values into
@@ -375,9 +374,10 @@ func (r *Runtime) formForMissing(q Request, run func(Request) error) bool {
 	if !ok || !r.missingOpensForm() {
 		return false
 	}
-	missing := missingRequired(op, r.formSources(q).Args)
+	args := r.formSources(q).Args
+	missing := missingRequired(op, args)
 	if r.subjectAsks() {
-		for _, name := range r.missingTargets(op, r.formSources(q).Args, r.requestFocus(q)) {
+		for _, name := range r.missingTargets(op, args, r.requestFocus(q)) {
 			if !slices.Contains(missing, name) {
 				missing = append(missing, name)
 			}

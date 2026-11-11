@@ -90,7 +90,7 @@ func TestSubjectAskKeyWithGuardedFocusSubject(t *testing.T) {
 		t.Fatal(err)
 	}
 	handled, err := r.Dispatch(MacroKey{Key: "z"})
-	if err != nil || !handled || r.Chooser(FormSuggestionsKind) == nil {
+	if err != nil || !handled || r.RecordEditor(ArgsFormID) == nil {
 		t.Fatalf("key handled=%v err=%v top=%q", handled, err, r.TopModal())
 	}
 	finishSubjectAsk(t, r, "ink")
@@ -102,6 +102,7 @@ func TestSubjectAskKeyWithGuardedFocusSubject(t *testing.T) {
 func TestSubjectAskCtxNeedUsesSamePicker(t *testing.T) {
 	r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "swatch"}, true)
 	formKeys(t, r, "z")
+	formKeys(t, r, "enter")
 	c := r.Chooser(FormSuggestionsKind)
 	if c == nil || !reflect.DeepEqual(c.Sources(), []string{"list", "walk"}) {
 		t.Fatalf("Ctx.Need did not open subject scopes: top=%q", r.TopModal())
@@ -290,7 +291,7 @@ func TestSubjectAskBindingListingsMatchDispatch(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if (r.Chooser(FormSuggestionsKind) != nil) != want {
+			if (r.RecordEditor(ArgsFormID) != nil) != want {
 				t.Fatalf("state=%s top=%q", state, r.TopModal())
 			}
 			if want {
