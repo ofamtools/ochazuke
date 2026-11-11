@@ -3761,9 +3761,10 @@
     {
       "after": 62,
       "modal": "args-form",
+      "focus": "args-form/id",
       "contains": [
         "id",
-        "no parcel is focused"
+        "Run parcel.show"
       ]
     },
     {
