@@ -422,3 +422,45 @@ func TestSubjectAskKeepsPlainOptionalCrossNounReferenceOptional(t *testing.T) {
 		t.Fatalf("plain optional reference must not become a subject: err=%v top=%q ran=%v", err, r.TopModal(), *ran)
 	}
 }
+
+func TestSubjectAskPreservesFilesystemWalkStart(t *testing.T) {
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaf := filepath.Join(root, "branch", "leaf")
+	if err := os.MkdirAll(leaf, 0700); err != nil {
+		t.Fatal(err)
+	}
+	r, _, ran := subjectAskRuntime(t, Parameter{
+		Type: PathParameterType, Path: PathDir, Required: true, Base: root, Start: PathSourceWalk,
+	}, false)
+	r.AddWalkPathSource(func(PathPick) PathWalk { return PathWalk{Roots: []PathRoot{{Path: root, Label: "fixture"}}} })
+	m := NewModel(r)
+	m.Width, m.Height = 100, 30
+	formKeys(t, r, "z")
+	c := r.Chooser(PathChooserKind)
+	if c == nil {
+		t.Fatalf("path ask did not open: top=%q", r.TopModal())
+	}
+	landAll(m, r.PendingCommands())
+	if c.Source() == PathSourceWalk || !slices.Contains(c.Sources(), PathSourceWalk) {
+		t.Fatalf("explicit filesystem start lost or graph scope missing: source=%q scopes=%v", c.Source(), c.Sources())
+	}
+	filesystem := c.Source()
+	if !slices.ContainsFunc(c.Matches(), func(row PickerRow) bool { return row.ID == leaf }) {
+		t.Fatalf("filesystem walk did not list nested leaf: %#v", c.Matches())
+	}
+	typeKeys(t, r, "leaf")
+	formKeys(t, r, "esc", "l")
+	landAll(m, r.PendingCommands())
+	formKeys(t, r, "alt+up")
+	landAll(m, r.PendingCommands())
+	if c.Source() != filesystem || !slices.ContainsFunc(c.Matches(), func(row PickerRow) bool { return row.ID == leaf }) {
+		t.Fatalf("filesystem navigation escaped into graph: source=%q rows=%#v", c.Source(), c.Matches())
+	}
+	formKeys(t, r, "alt+enter")
+	if !reflect.DeepEqual(*ran, []string{leaf}) || r.Chooser(PathChooserKind) != nil {
+		t.Fatalf("filesystem selection ran=%v top=%q", *ran, r.TopModal())
+	}
+}

@@ -433,7 +433,7 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		Toggles:     pathToggles(st),
 	}
 	if spec.whereFrom && r.subjectAsks() && r.settingOn(PickerScopesSetting) {
-		chooser.Sources = r.pathSubjectScopes(chooser.Sources, pick, r.contextOf(r.BaseFocus()))
+		chooser.Sources, chooser.Source = r.pathSubjectScopes(chooser.Sources, pick, r.contextOf(r.BaseFocus()), chooser.Source)
 		chooser.Scoped = true
 		chooser.NormalMode = true
 	}

@@ -146,7 +146,7 @@ func (r *Runtime) mayAskParameter(p Parameter) bool {
 	return !asksSubjectParameter(p) || r.subjectAsks()
 }
 
-func (r *Runtime) pathSubjectScopes(sources []PickerSource, pick PathPick, origin Context) []PickerSource {
+func (r *Runtime) pathSubjectScopes(sources []PickerSource, pick PathPick, origin Context, start string) ([]PickerSource, string) {
 	graph := r.walkSource(pick.Parameter, origin, func(ch Choice) PickerRow {
 		row := ch.Row()
 		row.Data = ch.ID
@@ -167,9 +167,12 @@ func (r *Runtime) pathSubjectScopes(sources []PickerSource, pick PathPick, origi
 			return "on disk · " + name
 		}
 		if source.Name == graph.Name {
+			if start == source.Name {
+				start = "on disk · " + source.Name
+			}
 			source.Name = "on disk · " + source.Name
 		}
 		disk = append(disk, source)
 	}
-	return append(disk, graph, typed)
+	return append(disk, graph, typed), start
 }
