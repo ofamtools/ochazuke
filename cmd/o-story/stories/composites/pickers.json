@@ -2795,9 +2795,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[browse /]"
-      ],
       "after": 50
     },
     {
@@ -2865,9 +2862,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[browse /]"
-      ],
       "after": 122
     },
     {
@@ -2879,9 +2873,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[walk /]"
-      ],
       "after": 155
     },
     {
@@ -2935,9 +2926,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[hybrid /]"
-      ],
       "after": 189
     },
     {
@@ -3014,9 +3002,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[hybrid /]"
-      ],
       "after": 247
     },
     {
@@ -3028,9 +3013,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[walk /]"
-      ],
       "after": 276
     },
     {
@@ -3084,9 +3066,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[browse /]"
-      ],
       "after": 307
     },
     {
@@ -3140,9 +3119,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[browse /]"
-      ],
       "after": 352
     },
     {
@@ -3154,9 +3130,6 @@
     },
     {
       "modal": "path-chooser",
-      "contains": [
-        "[walk /]"
-      ],
       "after": 381
     },
     {

@@ -16,11 +16,14 @@ func TestMountedThingWalk(t *testing.T) {
 	ext.Config().Disable()
 	things := map[string]ochazuke.Thing{
 		"parcel": {"id": "p1", "title": "Field notes", "shelf": "s1"},
-		"shelf":  {"id": "s1", "title": "Reference shelf", "file": "/fixture/reference.md"},
+		"shelf":  {"id": "s1", "title": "Reference shelf", "other": "/fixture/other.md", "file": "/fixture/reference.md"},
 	}
 	props := map[string][]ochazuke.PropSpec{
 		"parcel": {{Name: "shelf", Role: ochazuke.RoleOwner, Parameter: ochazuke.Parameter{Noun: "shelf"}}},
-		"shelf":  {{Name: "file", Parameter: ochazuke.Parameter{Type: ochazuke.PropPath}}},
+		"shelf": {
+			{Name: "other", Parameter: ochazuke.Parameter{Type: ochazuke.PropPath}},
+			{Name: "file", Parameter: ochazuke.Parameter{Type: ochazuke.PropPath}},
+		},
 	}
 	for _, noun := range []string{"parcel", "shelf"} {
 		thing := things[noun]
@@ -49,7 +52,11 @@ func TestMountedThingWalk(t *testing.T) {
 	}
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
-	var opened []hostCall
+	var opened []string
+	r.SetOpener(ochazuke.Opener{GOOS: "darwin", Start: func(name string, args ...string) error {
+		opened = append(opened, strings.Join(append([]string{name}, args...), " "))
+		return nil
+	}})
 	mounted := MountNouns(r, doc.AppNouns(), HostMount{
 		Local: func(noun string) string { return "extension." + noun },
 		Proxy: func(noun string, verb CatalogVerb) any {
@@ -64,9 +71,6 @@ func TestMountedThingWalk(t *testing.T) {
 				case "list":
 					value := []ochazuke.Thing{gomaps.Clone(things[noun])}
 					return ochazuke.Pending(func(context.Context) (any, error) { return value, nil })
-				case "open":
-					opened = append(opened, hostCall{noun, verb.Name, gomaps.Clone(c.Args)})
-					return ochazuke.Done(nil)
 				default:
 					return ochazuke.Failed(fmt.Errorf("unexpected extension call %s.%s", noun, verb.Name))
 				}
@@ -139,7 +143,7 @@ func TestMountedThingWalk(t *testing.T) {
 		t.Fatalf("mounted path choice: %+v", path)
 	}
 	press("enter")
-	if len(opened) != 1 || opened[0].noun != "shelf" || opened[0].args["id"] != "s1" || opened[0].args["prop"] != "file" || r.TopModal() != "" || r.Focus != "origin" {
+	if len(opened) != 1 || opened[0] != "open -- /fixture/reference.md" || r.TopModal() != "" || r.Focus != "origin" {
 		t.Fatalf("mounted path open: %+v, modal %q focus %q", opened, r.TopModal(), r.Focus)
 	}
 
