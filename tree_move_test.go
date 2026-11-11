@@ -62,7 +62,10 @@ func TestTreeMoveToTheFirstAndLastPlace(t *testing.T) {
 
 func TestTreeMoveSpillsOutOfTheParentAtItsEdges(t *testing.T) {
 	t.Parallel()
-	_, m, tree, writes := deleteFixture(t, "")
+	r, m, tree, writes := deleteFixture(t, "")
+	if err := r.Settings().Set(TreeMoveSpillSetting, true); err != nil {
+		t.Fatal(err)
+	}
 	pressKeys(m, "j", "j", "K") // c is b's first child: it precedes b
 	if got, want := shape(tree), "a<- c<a b<a d<b e<a f<-"; got != want {
 		t.Fatalf("K at the first child: shape %q, want %q", got, want)
@@ -83,10 +86,7 @@ func TestTreeMoveSpillsOutOfTheParentAtItsEdges(t *testing.T) {
 
 func TestTreeMoveSpillOffStopsAtTheEdge(t *testing.T) {
 	t.Parallel()
-	r, m, tree, _ := deleteFixture(t, "")
-	if err := r.Settings().Set(TreeMoveSpillSetting, false); err != nil {
-		t.Fatal(err)
-	}
+	_, m, tree, _ := deleteFixture(t, "")
 	pressKeys(m, "j", "j", "K")
 	if got := shape(tree); got != deleteStart {
 		t.Fatalf("shape %q, want it unchanged", got)
@@ -95,7 +95,10 @@ func TestTreeMoveSpillOffStopsAtTheEdge(t *testing.T) {
 
 func TestTreeMoveSpillStopsWhereTheApplicationRefuses(t *testing.T) {
 	t.Parallel()
-	_, m, tree, _ := deleteFixture(t, "")
+	r, m, tree, _ := deleteFixture(t, "")
+	if err := r.Settings().Set(TreeMoveSpillSetting, true); err != nil {
+		t.Fatal(err)
+	}
 	tree.Refuse = func(_ TreeNode, c TreeChange) error {
 		if c.Op == TreeMove && c.Parent == "" {
 			return errors.New("stays under its parent")
