@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"ofam.dev/ochazuke"
@@ -12,10 +14,26 @@ import (
 func TestMountKeepsCustomCreationWithDependentChoices(t *testing.T) {
 	producer := ochazuke.NewRuntime()
 	producer.Config().Disable()
-	producer.Define("specimen").Props(
-		ochazuke.PropSpec{Name: "id", Key: true, ReadOnly: true},
-		ochazuke.PropSpec{Name: "path", ReadOnly: true, Parameter: ochazuke.Parameter{Type: "path", Path: "dir"}},
-	).Store(ochazuke.Store{Facts: true})
+	records := map[string]map[string]ochazuke.Thing{"specimen": {}, "shipment": {}}
+	for noun, things := range records {
+		producer.Define(noun).Props(
+			ochazuke.PropSpec{Name: "id", Key: true, ReadOnly: true},
+			ochazuke.PropSpec{Name: "path", ReadOnly: true, Parameter: ochazuke.Parameter{Type: "path", Path: "dir"}},
+			ochazuke.PropSpec{Name: "origin", ReadOnly: true},
+		).Store(ochazuke.Store{
+			Facts: true,
+			Get: func(_ ochazuke.Ctx, id string) (ochazuke.Thing, error) {
+				return things[id], nil
+			},
+			List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
+				out := make([]ochazuke.Thing, 0, len(things))
+				for _, thing := range things {
+					out = append(out, thing)
+				}
+				return out, nil
+			},
+		})
+	}
 	producer.Define("specimen").Verb("names", func(ochazuke.Ctx) ochazuke.Result {
 		return ochazuke.Done([]string{"seed"})
 	}).Params(map[string]ochazuke.Parameter{"scope": {Type: "path", Path: "dir"}})
@@ -24,11 +42,16 @@ func TestMountKeepsCustomCreationWithDependentChoices(t *testing.T) {
 		"scope": {Type: "path", Path: "dir", Required: true},
 		"from":  {Type: "string", Source: "specimen.names", Free: true, SourceArgs: map[string]string{"scope": "scope"}},
 	}
-	create := func(c ochazuke.Ctx) ochazuke.Result {
-		return ochazuke.Done(fmt.Sprintf("%s:%s:%s", c.Args["scope"], c.Args["name"], c.Args["from"]))
+	create := func(noun string) ochazuke.AppHandler {
+		return func(c ochazuke.Ctx) ochazuke.Result {
+			id := ochazuke.StringArg(c.Args, "name", "")
+			thing := ochazuke.Thing{"id": id, "path": c.Args["scope"], "origin": c.Args["from"]}
+			records[noun][id] = thing
+			return ochazuke.Done(thing)
+		}
 	}
-	producer.Define("specimen").Verb("create", create).Params(params).Positional("name", "from").Creates()
-	producer.Define("shipment").Verb("add", create).Params(params).Positional("name", "from").Creates()
+	producer.Define("specimen").Verb("create", create("specimen")).Params(params).Positional("name", "from").Creates()
+	producer.Define("shipment").Verb("add", create("shipment")).Params(params).Positional("name", "from").Creates()
 	data, err := Catalog(producer, "lab", "v1")
 	if err != nil {
 		t.Fatal(err)
@@ -75,9 +98,20 @@ func TestMountKeepsCustomCreationWithDependentChoices(t *testing.T) {
 					t.Fatalf("custom operation metadata: %+v", op)
 				}
 				scope := t.TempDir()
-				value, err := host.Execute(ochazuke.Request{Noun: "lab." + noun, Verb: verb, Args: ochazuke.Arguments{"name": "new", "scope": scope, "from": "seed"}})
-				if err != nil || value != scope+":new:seed" {
-					t.Fatalf("original application handler returned %#v %v", value, err)
+				if _, err := host.Execute(ochazuke.Request{Noun: "lab." + noun, Verb: verb, Args: ochazuke.Arguments{"name": "new", "scope": scope, "from": "seed"}}); err != nil {
+					t.Fatalf("create %s: %v", noun, err)
+				}
+				var stdout, stderr bytes.Buffer
+				shell := New(host, "host", strings.NewReader(""), &stdout, &stderr)
+				if err := shell.Run(t.Context(), []string{"lab." + noun, "list"}); err != nil {
+					t.Fatalf("list created %s: %v %s", noun, err, stderr.String())
+				}
+				var listed ochazuke.ListAnswer
+				if err := json.Unmarshal(stdout.Bytes(), &listed); err != nil {
+					t.Fatalf("decode list: %v %s", err, stdout.String())
+				}
+				if len(listed.Items) != 1 || listed.Items[0]["id"] != "new" || listed.Items[0]["path"] != scope || listed.Items[0]["origin"] != "seed" {
+					t.Fatalf("host did not list the created %s: %+v", noun, listed)
 				}
 			}
 		})

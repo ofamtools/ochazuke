@@ -30,8 +30,8 @@ type Registers struct {
 	// terminal as OSC 52 (tea.SetClipboard), which TUIOS and ssh pass on.
 	// An app with a clipboard program of its own (pbcopy) sets it.
 	Copy      func(text string) tea.Cmd
-	selection int     // the yank-history modal's highlighted row
-	clip      *string // the text the next PendingCommand copies
+	selection int                    // the yank-history modal's highlighted row
+	clip      *string                // the text the next PendingCommand copies
 	files     map[string]os.FileInfo // last durable version read or written, by path
 }
 

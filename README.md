@@ -1938,6 +1938,12 @@ file does not replace newer in-memory state, including a local macro recording.
 Use the register verbs or `StoreYank` and `ReadYank`; direct writes to `Named`
 are memory-only.
 
+Register access is synchronous. A cached read stats the file; only a changed
+file is opened and decoded. Writes finish before the operation reports
+success, so errors cannot leave a falsely successful transient value.
+Slow storage or large register contents can block the UI loop.
+`register.persist=false` avoids that disk access.
+
 These files contain the complete text, unencrypted, without automatic expiry.
 Do not send secrets to named registers when persistence is enabled.
 `register.persist=false` stops reads and writes to disk but leaves existing

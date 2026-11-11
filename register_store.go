@@ -32,20 +32,26 @@ func (r *Runtime) namedRegister(key string) (Register, error) {
 		return g.Named[key], nil
 	}
 	path := filepath.Join(dir, key+".json")
-	f, err := os.Open(path)
+	info, err := os.Stat(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return g.Named[key], nil
 	}
 	if err != nil {
 		return Register{}, fmt.Errorf("register %s: %w", key, err)
 	}
-	defer f.Close()
-	info, err := f.Stat()
+	if previous := g.files[path]; previous != nil && os.SameFile(previous, info) && previous.ModTime() == info.ModTime() && previous.Size() == info.Size() {
+		return g.Named[key], nil
+	}
+	f, err := os.Open(path)
 	if err != nil {
 		return Register{}, fmt.Errorf("register %s: %w", key, err)
 	}
-	if previous := g.files[path]; previous != nil && os.SameFile(previous, info) && previous.ModTime() == info.ModTime() && previous.Size() == info.Size() {
-		return g.Named[key], nil
+	defer f.Close()
+	// Read the opened file's identity: another process may replace the
+	// path between Stat and Open.
+	info, err = f.Stat()
+	if err != nil {
+		return Register{}, fmt.Errorf("register %s: %w", key, err)
 	}
 	var y Yank
 	if err := json.NewDecoder(f).Decode(&y); err != nil {
