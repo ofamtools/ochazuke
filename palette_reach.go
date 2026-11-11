@@ -44,11 +44,11 @@ func (r *Runtime) targetParams(op Operation) []string {
 // leaves unfilled while nothing of its noun is focused to fill it: a
 // parameter to ask for with the noun's picker, never a reason to refuse.
 // "" when the line has every target or the focus supplies it.
-func (p *Palette) missingTarget(c commandLine) string {
-	if !c.known() || !p.r.Settings().Bool(PaletteReachSetting) {
+func (p *Palette) missingTarget(op Operation, args Arguments) string {
+	if !p.r.Settings().Bool(PaletteReachSetting) {
 		return ""
 	}
-	if missing := p.r.missingTargets(c.Op, c.Args, focusOf(p.origin)); len(missing) > 0 {
+	if missing := p.r.missingTargets(op, args, focusOf(p.origin)); len(missing) > 0 {
 		return missing[0]
 	}
 	return ""

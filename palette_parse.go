@@ -821,7 +821,7 @@ func (p *Palette) parseParams(c *commandLine, tokens []lineToken, preset string)
 	}
 	// A target nothing focused supplies is a parameter to ask for (the
 	// args form opens its noun's picker), not a reason to refuse the line.
-	c.Missing = p.missingTarget(*c)
+	c.Missing = p.missingTarget(c.Op, args)
 }
 
 // fillParams fills order's parameters from the words, a --NAME flag's

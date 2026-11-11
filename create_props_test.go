@@ -176,3 +176,23 @@ func TestSetPalettePropsObject(t *testing.T) {
 		t.Fatalf("wrote %v, want %v", s.find("t1"), want)
 	}
 }
+
+func TestCreateKeyPropsRequired(t *testing.T) {
+	r, s := createCollisionRuntime(t)
+	r.Instance("home")
+	if err := r.SetFocus("home"); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "z", Request: Request{
+		Noun: "link", Verb: "create", Args: Arguments{
+			"props": map[string]any{"source": "project:x", "to": "task:y", "size": 3},
+		},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	formKeys(t, r, "z")
+	want := Thing{"id": "t2", "from": "project:x", "to": "task:y", "size": 3}
+	if !reflect.DeepEqual(s.find("t2"), want) || r.Instances[ArgsFormID] != nil {
+		t.Fatalf("normalized props did not satisfy key's arguments: created=%v top=%q", s.find("t2"), r.TopModal())
+	}
+}
