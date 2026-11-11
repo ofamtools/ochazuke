@@ -740,6 +740,53 @@ func hints(rows []Binding) []string {
 	return out
 }
 
+// With the sources that existed before v0.124.0 alone (picker.scopes or
+// subject.ask off) a path ask's title, sources and keys are the path
+// picker's own; with the walk they differ by that one source, last.
+func TestPathAskTitleDiffersOnlyByTheWalk(t *testing.T) {
+	param := Parameter{Type: PathParameterType, Required: true, Base: t.TempDir()}
+	r, _, _ := subjectAskRuntime(t, param, false)
+	plain, err := r.OpenPathChooser(PathChooserSpec{Title: "Run canvas.paint · choose swatch", Pick: PathPick{Name: "swatch", Parameter: param}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, title := plain.Sources(), plain.Title()
+	if !strings.HasPrefix(title, "Run canvas.paint · choose swatch · [browse ") || !strings.HasSuffix(title, "] recent typed find") {
+		t.Fatalf("the path picker's own title %q", title)
+	}
+	closePicker(t, r)
+	c := pathAsk(t, r)
+	if got := c.Sources(); !slices.Equal(got, append(slices.Clone(before), "walk")) || c.Title() != title+" walk" {
+		t.Fatalf("with the walk: sources %q title %q", got, c.Title())
+	}
+	closePicker(t, r)
+	for _, off := range []string{PickerScopesSetting, SubjectAskSetting} {
+		if err := r.Settings().Set(off, false); err != nil {
+			t.Fatal(err)
+		}
+		if off == SubjectAskSetting {
+			// The request is the palette's with the ask off: a key refuses
+			// a missing path (TestSubjectAskOffRefusesPaletteKeyAndNeed).
+			if _, err := r.OpenArgsForm(Request{Noun: "canvas", Verb: "paint"}, func(Request) error { return nil }); err != nil {
+				t.Fatal(err)
+			}
+			c = r.Chooser(PathChooserKind)
+		} else {
+			c = pathAsk(t, r)
+		}
+		if c == nil || !slices.Equal(c.Sources(), before) || c.Title() != title {
+			t.Fatalf("%s off: chooser %v", off, c)
+		}
+		if slices.ContainsFunc(HintBindings(r, r.Focus), func(b Binding) bool { return b.Request.Key() == "ochazuke.picker.next-scope" }) {
+			t.Fatalf("%s off: the scope key is offered with no scope", off)
+		}
+		closePicker(t, r)
+		if err := r.Settings().Set(off, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 // An application's file system source named like the walk keeps its rows and
 // its place in the memory: for the ask it is "on disk · walk", and the path
 // picker on its own finds it again as walk.
