@@ -231,6 +231,10 @@ func TestSubjectAskPathWalkAndScopesOptOut(t *testing.T) {
 
 func TestSubjectAskOptionalOwnNounAndMotionExemption(t *testing.T) {
 	r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "canvas"}, false)
+	r.Define("canvas").Props(PropSpec{Name: "id", Key: true}).Store(Store{
+		Get: func(Ctx, string) (Thing, error) { return Thing{"id": "ink"}, nil },
+		List: func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "ink"}}, nil },
+	})
 	r.Instance("ink", Kind("canvas")).Label = "Ink"
 	formKeys(t, r, "z")
 	finishSubjectAsk(t, r, "ink")
@@ -350,6 +354,39 @@ func TestSubjectAskKeepsOptionalCreationSourcesOptional(t *testing.T) {
 			formKeys(t, r, "z")
 			if !reflect.DeepEqual(*ran, []string{"new"}) || r.Instances[ArgsFormID] != nil {
 				t.Fatalf("optional input blocked creation: ran=%v top=%q", *ran, r.TopModal())
+			}
+		})
+	}
+}
+
+func TestSubjectAskDoesNotInferCommandOrPartSubjects(t *testing.T) {
+	for _, kind := range []string{NounKindCommand, NounKindPart} {
+		t.Run(kind, func(t *testing.T) {
+			r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "canvas"}, false)
+			r.Define("canvas").Kind(kind)
+			r.DefineGuard("canvas-context", func(*Runtime, KeyEvent) bool { return false })
+			if err := r.AddVerbAvailability("canvas.paint", "canvas-context"); err != nil {
+				t.Fatal(err)
+			}
+			fallback := 0
+			r.Define("app").Verb("fallback", func(Ctx) Result {
+				fallback++
+				return Done(nil)
+			})
+			if err := r.Bind(
+				Binding{Noun: "app", Mode: "normal", Keys: "z", Request: Request{Noun: "canvas", Verb: "paint"}},
+				Binding{Noun: "app", Mode: "normal", Keys: "z", Request: Request{Noun: "app", Verb: "fallback"}},
+			); err != nil {
+				t.Fatal(err)
+			}
+			rows := r.ListBindings(r.Focus)
+			at := slices.IndexFunc(rows, func(row Binding) bool { return row.Keys == "z" })
+			if at < 0 || rows[at].Request.Key() != "app.fallback" {
+				t.Fatalf("off-focus %s intercepted key listing: %#v", kind, rows)
+			}
+			formKeys(t, r, "z")
+			if fallback != 1 || len(*ran) != 0 || r.Instances[ArgsFormID] != nil {
+				t.Fatalf("off-focus %s intercepted dispatch: fallback=%d ran=%v top=%q", kind, fallback, *ran, r.TopModal())
 			}
 		})
 	}
