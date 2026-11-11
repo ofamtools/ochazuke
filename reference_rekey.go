@@ -35,19 +35,7 @@ func (r *Runtime) RekeyReferences(c Ctx, noun, old, key string) error {
 		for _, thing := range things {
 			var changes Thing
 			for _, p := range props {
-				value, ok := thing[p.Name].(string)
-				if !ok {
-					continue
-				}
-				before, after := old, key
-				if p.Noun == AnyNoun {
-					refNoun, refKey, valid := SplitAnyRef(value)
-					if !valid || r.CanonicalNoun(refNoun) != noun || refKey != old {
-						continue
-					}
-					before, after = value, AnyRef(noun, key)
-				}
-				if value == before {
+				if after, changed := r.rekeyReferenceValue(p, thing[p.Name], noun, old, key); changed {
 					if changes == nil {
 						changes = Thing{}
 					}
@@ -67,6 +55,21 @@ func (r *Runtime) RekeyReferences(c Ctx, noun, old, key string) error {
 		}
 	}
 	return nil
+}
+
+func (r *Runtime) rekeyReferenceValue(p PropSpec, value any, noun, old, key string) (string, bool) {
+	text, ok := value.(string)
+	if !ok {
+		return "", false
+	}
+	if p.Noun == AnyNoun {
+		refNoun, refKey, valid := SplitAnyRef(text)
+		if !valid || r.CanonicalNoun(refNoun) != noun || refKey != old {
+			return "", false
+		}
+		return AnyRef(noun, key), true
+	}
+	return key, text == old
 }
 
 func (r *Runtime) rekeyRelations(old, key string) error {

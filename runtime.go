@@ -171,12 +171,16 @@ func (o Operation) lacks(name string, args Arguments) bool {
 	if _, given := args[name]; given || !o.Parameters[name].Required {
 		return false
 	}
+	return !o.covered(args)
+}
+
+func (o Operation) covered(args Arguments) bool {
 	for other, v := range args {
 		if o.Parameters[other].Covers && !emptyProp(v) {
-			return false
+			return true
 		}
 	}
-	return true
+	return false
 }
 
 // WithPresets is args with presets (an action alias's arguments) filling

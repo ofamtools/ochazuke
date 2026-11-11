@@ -47,7 +47,7 @@ func (r *Runtime) targetParams(op Operation) []string {
 // parameter to ask for with the noun's picker, never a reason to refuse.
 // "" when the line has every target or the focus supplies it.
 func (p *Palette) missingTarget(c commandLine) string {
-	if !c.known() || !p.r.Settings().Bool(PaletteReachSetting) {
+	if !c.known() || !p.r.Settings().Bool(PaletteReachSetting) || c.Op.covered(c.Args) {
 		return ""
 	}
 	for _, name := range p.r.targetParams(c.Op) {
@@ -69,6 +69,9 @@ func (p *Palette) missingTarget(c commandLine) string {
 // leaves unfilled while nothing of their noun is at focus; the args form
 // asks for them with the missing required ones.
 func (r *Runtime) missingTargets(op Operation, args Arguments, focus string) []string {
+	if op.covered(args) {
+		return nil
+	}
 	var out []string
 	for _, name := range r.targetParams(op) {
 		if v, set := args[name]; set && !emptyProp(v) {
