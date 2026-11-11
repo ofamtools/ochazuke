@@ -71,7 +71,7 @@ func (r *Runtime) subjectHere(p Parameter, origin Context) []Choice {
 			if prop.Type != PathParameterType {
 				continue
 			}
-			if value := dataField(inst.Data, prop.Name); !emptyProp(value) {
+			if value := r.rowValue(inst, prop.Name); !emptyProp(value) {
 				add(Choice{ID: fmt.Sprint(value), Label: prop.Name + " · " + fmt.Sprint(value), Noun: inst.Noun})
 			}
 		}

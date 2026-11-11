@@ -243,3 +243,74 @@ func TestSubjectAskOptionalOwnNounAndMotionExemption(t *testing.T) {
 		t.Fatalf("motion should keep its own focus behavior: err=%v top=%q ran=%v", err, r.TopModal(), *ran)
 	}
 }
+
+func TestSubjectAskBindingListingsMatchDispatch(t *testing.T) {
+	for _, state := range []string{"asking", "disabled", "row-guard"} {
+		t.Run(state, func(t *testing.T) {
+			r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "canvas", Focus: true}, false)
+			r.Instance("ink", Kind("canvas")).Label = "Ink"
+			r.DefineGuard("paint-subject", func(_ *Runtime, ev KeyEvent) bool { return StringArg(ev.Args, "swatch", "") != "" })
+			if err := r.AddVerbAvailability("canvas.paint", "paint-subject"); err != nil {
+				t.Fatal(err)
+			}
+			key := "z"
+			if state == "disabled" {
+				op := r.Operations.At(Key("canvas.paint"))
+				op.Disabled = true
+				r.Operations.Set(op)
+			}
+			if state == "row-guard" {
+				key = "Z"
+				r.DefineGuard("paint-row", func(*Runtime, KeyEvent) bool { return false })
+				if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: key, When: "paint-row", Request: Request{Noun: "canvas", Verb: "paint"}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			listed := slices.ContainsFunc(r.ListBindings(r.Focus), func(b Binding) bool { return b.Keys == key })
+			hinted := slices.ContainsFunc(HintBindings(r, r.Focus), func(b Binding) bool { return b.Keys == key })
+			helped := slices.ContainsFunc(BindingHelp(r, r.Focus), func(row HelpRow) bool { return row.Key == key })
+			want := state == "asking"
+			if hinted != want || helped != want {
+				t.Fatalf("state=%s hinted=%v helped=%v, want %v", state, hinted, helped, want)
+			}
+			// binding.list intentionally keeps false binding-row guards;
+			// disabled verbs, unlike those conditional rows, are omitted.
+			if state != "row-guard" && listed != want {
+				t.Fatalf("state=%s listed=%v, want %v", state, listed, want)
+			}
+			_, err := r.Dispatch(MacroKey{Key: key})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if (r.Chooser(FormSuggestionsKind) != nil) != want {
+				t.Fatalf("state=%s top=%q", state, r.TopModal())
+			}
+			if want {
+				finishSubjectAsk(t, r, "ink")
+				if !reflect.DeepEqual(*ran, []string{"ink"}) {
+					t.Fatalf("ran = %v", *ran)
+				}
+			} else if len(*ran) != 0 {
+				t.Fatalf("blocked row ran = %v", *ran)
+			}
+		})
+	}
+}
+
+func TestSubjectHereReadsOpaqueRowProps(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	r.Instance("app")
+	r.Define("swatch").Props(PropSpec{Name: "path", Parameter: Parameter{Type: PathParameterType}})
+	path := filepath.Join(t.TempDir(), "sample.txt")
+	if _, err := r.AddList("swatches", []ListItem{{ID: "opaque-row", Noun: "swatch", Label: "Opaque", Data: "foreign-handle", Props: Thing{"path": path}}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.SetFocus("opaque-row"); err != nil {
+		t.Fatal(err)
+	}
+	choices := r.subjectHere(Parameter{Type: PathParameterType}, r.Context())
+	if len(choices) != 1 || choices[0].ID != path {
+		t.Fatalf("path choices from opaque row = %#v, want %q", choices, path)
+	}
+}
