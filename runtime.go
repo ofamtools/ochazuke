@@ -688,6 +688,7 @@ func (r *Runtime) registerFramework() {
 	registerAbout(r)
 	registerOpen(r)
 	registerFocusActions(r)
+	registerThingWalk(r)
 	registerConfigExport(r)
 	registerConfigReload(r)
 	registerHooks(r)

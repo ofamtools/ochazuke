@@ -34,11 +34,47 @@ Every key is a binding row (`bindings/picker.json`, `bindings/picker-browse.json
 
 The `list` style types in its search line, so the same verbs have `alt+` keys in any mode: `alt+up` up, `alt+down` back to a source's own rows, `alt+h` home, `alt+/` root, `alt+u` use this, `alt+n` new folder, `alt+m` / `alt+a` mark / mark all, `alt+.` hidden, `alt+v` / `alt+e` / `alt+y` open / reveal / copy path. `ctrl+l` goes into the highlighted folder; `enter` does too, and `alt+enter` picks it (`picker.enter`).
 
+## The relation walk
+
+`thing walk` opens this same columns picker over the registered nouns and
+their relation graph. It starts at the focused thing when there is one;
+otherwise it starts with nouns that have things. Nouns show counts, with the
+focused noun first, then the nouns visited recently in this run. A noun's
+things and related sections load bounded pages from stores that support
+`Query`; Previous page and Next page are navigable rows, not a whole-table
+load. `/` filters the focused column, including store-side text search.
+
+`l` follows a noun or thing; `h` retraces the walk and restores that column's
+filter and highlight. The breadcrumb records the route. `gg`/`G` select the
+first/last row, and `0`/`$` return to the first/deepest visited column.
+Related columns show named path/link props, outgoing owner and other
+references, and the same inbound reference and relation-kind sections as
+the show form. Mounted nouns use their catalog's props and proxy stores.
+On its own, `enter` goes to a thing's index, or invokes its noun's `open`
+verb with the selected value's prop explicitly named.
+
+When a palette command, key or `Ctx.Need` asks for a missing declared
+subject, the picker offers nearby candidates when available, the noun's
+list, and the walk. `S` steps scopes in normal mode (`alt+s` while editing);
+`/` begins filtering. The walk marks a thing of the needed noun, or a path
+prop for a path parameter, with `✓`. `enter` takes a match; other things
+remain visible and `enter` or `l` walks through them. Even a matching thing
+can be explored with `l` before taking it. Path requests keep the existing
+on-disk sources and typed entry as well as the graph.
+
+`subject.ask` defaults to `true`; `false` restores automatic missing-subject
+refusals without removing explicit pickers. `picker.scopes=false` leaves the
+graph scope out of these requests; standalone `thing walk` is still
+available from the palette. `walk.columns` defaults to `3`: parent, current
+column and the highlighted thing's next column. `2` shows parent/current;
+`1` shows only the current column. Narrow terminals collapse the layout.
+These settings do not change the directory picker's existing style.
+
 ## Compared with Vim
 
 | Vim form | `:help` tag | Here |
 |---|---|---|
-| `h` `j` `k` `l` | `motion.txt` left-right-motions, up-down-motions | same (netrw: `-` up, `<CR>` into; here `h`/`l` as in Miller-column browsers) |
+| `h` `j` `k` `l` | `motion.txt`, `h`, `j`, `k`, `l` | similar: `j`/`k` move rows; `h`/`l` navigate graph/directory columns, rather than characters |
 | `gg` `G` | `gg`, `G` | same: first and last row |
 | `0` `$` | `0`, `$` | similar: first and last *column* (home and the deepest place visited), not the line ends |
 | `/` | `/` | similar: opens the filter on the search line; it filters, it does not jump |
@@ -49,3 +85,10 @@ The `list` style types in its search line, so the same verbs have `alt+` keys in
 | netrw `x`, `gx` | `netrw-x` | similar: `o` opens through the opener table (the OS by default) |
 | `:cd`, `:e` | `:cd`, `:edit` | similar: a typed or pasted path is the typed source's, with completion |
 | `]]` `[[` | `]]`, `[[` | similar: `]` `[` move between sections |
+| netrw `-`, `<CR>` | `netrw-browse-maps`, `netrw--`, `netrw-cr` | similar: `h` retraces one step and `l` explores the highlighted thing; in the graph, `enter` takes a matching subject instead of exploring it |
+
+The walk has no direct Vim equivalent: a relation graph may have cycles and
+multiple owners, unlike netrw's directory hierarchy. Its breadcrumb records
+the route actually taken, not a unique parent path. The directional motions
+and first/last rows follow Vim's spatial convention; the column edges,
+filtering and subject selection deliberately differ.

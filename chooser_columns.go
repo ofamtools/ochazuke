@@ -24,14 +24,14 @@ const chooserSideVerb = "ochazuke.picker.side"
 // columnsOn reports whether the picker draws columns at width.
 func (c *Chooser) columnsOn(width int) bool {
 	src := c.current()
-	return c.spec.Columns && width >= ColumnsMin && src != nil && src.Side != nil
+	return (c.spec.Columns || src != nil && src.Columns) && width >= ColumnsMin && src != nil && src.Side != nil
 }
 
 // queueSide loads the current source's side column when its key changed
 // (the source went to another folder), as a replacing job of the picker.
 func (c *Chooser) queueSide() {
 	src := c.current()
-	if !c.spec.Columns || src == nil || src.Side == nil {
+	if !(c.spec.Columns || src != nil && src.Columns) || src == nil || src.Side == nil {
 		return
 	}
 	key, load := src.Side()
@@ -69,6 +69,28 @@ func (c *Chooser) Side() PickerSide { return c.side.value }
 func (c *Chooser) columnsView(width, height int) Block {
 	const gap = " │ "
 	gapW := ansi.StringWidth(gap)
+	count := 3
+	if src := c.current(); src != nil && src.ColumnCount != nil {
+		count = min(3, max(1, src.ColumnCount()))
+	}
+	if count == 1 {
+		return c.rowsView(width, height)
+	}
+	if count == 2 {
+		leftW := max(14, width/3)
+		midW := width - leftW - gapW
+		mid := c.rowsView(midW, height)
+		lines := strings.Split(mid.Text, "\n")
+		left := c.sideColumn(leftW, len(lines))
+		for i, line := range lines {
+			l := ""
+			if i < len(left) {
+				l = left[i]
+			}
+			lines[i] = l + strings.Repeat(" ", max(0, leftW-ansi.StringWidth(l))) + gap + line
+		}
+		return mid.Offset(leftW+gapW, 0).WithText(strings.Join(lines, "\n"))
+	}
 	leftW := max(14, width*26/98)
 	rightW := max(20, width*36/98)
 	midW := width - leftW - rightW - 2*gapW

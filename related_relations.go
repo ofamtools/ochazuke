@@ -59,42 +59,8 @@ func (rel *Related) syncRelations(already bool) {
 // readRelations are the other ends' things of the stack's thing in the
 // section's kind, in position order.
 func (s *relatedSection) readRelations(c Ctx) ([]Thing, error) {
-	rel := s.rel
-	r := rel.r
-	if r.RelationStore() == nil {
-		return nil, nil
-	}
-	this := AnyRef(rel.noun, rel.key)
-	q := RelationQuery{Kind: s.ref.Relation, To: this}
-	if s.ref.Outward {
-		q = RelationQuery{Kind: s.ref.Relation, From: this}
-	}
-	rels, err := r.RelationsOf(q)
-	if err != nil {
-		return nil, err
-	}
-	kp := s.n.keyProp()
-	var out []Thing
-	for _, x := range rels {
-		noun, key, ok := SplitAnyRef(x.Other(this))
-		if !ok || noun != s.ref.Noun {
-			continue
-		}
-		var t Thing
-		if s.n.Store != nil && s.n.Store.Get != nil && !s.n.Store.Remote {
-			if got, err := s.n.Store.Get(c, key); err == nil && got != nil {
-				t = got
-			}
-		}
-		if t == nil {
-			t = Thing{kp.Name: key}
-			if lp := s.n.roleProp(RoleLabel); lp != nil && lp.Name != kp.Name {
-				t[lp.Name] = key
-			}
-		}
-		out = append(out, t)
-	}
-	return out, nil
+	page, err := s.rel.r.readRelatedRelations(c, s.rel.noun, s.rel.key, s.ref, ListQuery{Archived: true})
+	return page.Items, err
 }
 
 // relationRequest is the relate or unrelate request for the section's thing

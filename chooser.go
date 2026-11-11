@@ -67,6 +67,8 @@ type PickerRow struct {
 	// (picker.section moves between sections).
 	Header  bool
 	Section string
+	// walk keeps graph navigation separate from the caller's Data and ID.
+	walk *thingWalkNode
 }
 
 // ChooserSpec opens a chooser. Kind is the modal's kind (one open chooser
@@ -385,6 +387,7 @@ func (r *Runtime) OpenPicker(spec PickerSpec) (*Chooser, error) {
 			return nil, err
 		}
 	}
+	c.enterSourceMode()
 	c.load()
 	return c, nil
 }
@@ -956,10 +959,24 @@ func (c *Chooser) HiddenRows() int { return c.hidden }
 // the search input's.
 func (c *Chooser) View(width, height int) Block {
 	c.sync()
+	src := c.current()
+	crumb := ""
+	if src != nil && src.Breadcrumb != nil {
+		crumb = src.Breadcrumb()
+	}
+	if crumb == "" || height < 2 {
+		return c.bodyView(width, height)
+	}
+	b := c.bodyView(width, height-1)
+	return b.Offset(0, 1).WithText(ansi.Truncate(modalLabel(crumb), width, "…") + "\n" + b.Text)
+}
+
+func (c *Chooser) bodyView(width, height int) Block {
 	if c.columnsOn(width) {
 		return c.columnsView(width, height)
 	}
-	if !c.previewing() || width < ChooserPreviewMin {
+	src := c.current()
+	if !c.previewing() || width < ChooserPreviewMin || src != nil && src.ColumnCount != nil && src.ColumnCount() < 2 {
 		return c.rowsView(width, height)
 	}
 	// The preview column keeps its width whatever it holds, so the panel

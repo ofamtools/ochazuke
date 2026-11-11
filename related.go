@@ -587,17 +587,8 @@ func (s *relatedSection) read() ([]Thing, error) {
 	if s.ref.History {
 		return factThings(r.thingHistory(rel.noun, rel.key), nil)
 	}
-	if s.hooked() {
-		return rel.spec.Rows(c, s.ref, s.value())
-	}
-	if s.n.Store.Remote {
-		return nil, nil // a remote store is filled by its own job; not read on the loop
-	}
-	page, err := r.queryThings(c, s.n, ListQuery{Archived: true, Filters: []PropFilter{{Prop: s.ref.Prop, Op: "=", Value: s.value()}}})
-	if err != nil {
-		return nil, err
-	}
-	return page.Items, nil
+	page, err := r.readRelatedThings(c, rel.spec, rel.noun, rel.key, s.ref, ListQuery{Archived: true})
+	return page.Items, err
 }
 
 // fill reads the things and shows them: the heading, then the things unless

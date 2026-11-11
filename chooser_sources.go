@@ -41,6 +41,9 @@ type PickerSource struct {
 	// sources load once when they become current (and after Open or Up)
 	// and the chooser's Filter narrows their rows.
 	Live bool
+	// StartNormal enters navigation mode when this source is selected.
+	// Other sources keep the picker's existing editing behavior.
+	StartNormal bool
 	// Matched, on a Live source, lets the chooser's match mode
 	// (chooser.match, ChooserSpec.Match, tab) narrow the rows Load
 	// answered by their labels, as it narrows any source's; the source
@@ -129,6 +132,12 @@ type PickerSource struct {
 	// (ChooserSpec.Columns): a key naming what it shows, and the work that
 	// loads it (a PickerSide) when the key changed.
 	Side func() (key string, load func() Result)
+	// Columns requests the columns presentation only while this source is
+	// current. ColumnCount optionally limits it to one, two or three;
+	// Breadcrumb draws the source's navigation path above the columns.
+	Columns     bool
+	ColumnCount func() int
+	Breadcrumb  func() string
 	// Section, with SectionLimit, declares the source as a section of a
 	// sectioned picker (the directory picker's hybrid style): its title and
 	// the most rows it shows while the query is empty. "" leaves the source
@@ -187,6 +196,7 @@ type chooserState struct {
 	recentUses  func(PathPick) []PathUse
 	picked      []string // paths picked through a path chooser, newest first
 	walks       *walkCache
+	recentNouns []string // graph nouns visited this run, newest first
 	// pickers are the declared pickers (AddPicker).
 	pickers []PickerDef
 	// findIndex and findStat stand in for the find source's index and
@@ -329,6 +339,9 @@ func (c *Chooser) cycle(delta int) error {
 	c.suppressed = c.claimedBy(c.Query()) >= 0
 	c.claimed = false
 	c.source = ((c.source+delta)%n + n) % n
+	c.enterSourceMode()
+	c.Preview = ChooserPreview{}
+	c.side = pickerSide{}
 	if !c.spec.Scoped {
 		c.r.chooserMemory().lastSource[c.spec.Kind] = c.Source()
 	}
@@ -408,10 +421,23 @@ func (c *Chooser) claim() bool {
 	}
 	c.filters.linger.reset()
 	c.source = to
+	c.enterSourceMode()
+	c.Preview = ChooserPreview{}
+	c.side = pickerSide{}
 	c.spec.Rows = nil
 	c.cachePropRows()
 	c.load()
 	return true
+}
+
+// enterSourceMode lets a navigating scope take its keys immediately without
+// changing the initial editing mode of the picker's other scopes.
+func (c *Chooser) enterSourceMode() {
+	if src := c.current(); src != nil && src.StartNormal {
+		c.spec.NormalMode = true
+		c.input.pin = ""
+		_ = c.r.SetMode("normal")
+	}
 }
 
 // load asks the current source for its rows at the query.
@@ -664,6 +690,7 @@ func (c *Chooser) up() error {
 
 // navigated shows query (cursor at its end) and loads the source again.
 func (c *Chooser) navigated(query string) {
+	c.Preview = ChooserPreview{}
 	c.filters.linger.reset()
 	_ = c.input.Replace(0, len(c.input.Text), query)
 	c.input.Cursor = len(c.input.Text)
