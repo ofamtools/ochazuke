@@ -92,6 +92,12 @@ var DeclTypes = []string{
 	"MotionTable",
 }
 
+// Dispatch fields give a named string type its role in the registry schema.
+// Values of those types remain name branches even when explicitly typed.
+var dispatchFields = map[string]bool{
+	"Key": true, "Noun": true, "Verb": true, "Mode": true, "Motion": true, "Action": true,
+}
+
 // Config is what Check needs.
 type Config struct {
 	// Vocab is the application's names, from its runtime.
@@ -139,6 +145,7 @@ type walker struct {
 	vocab      Vocab
 	consts     map[string]string // constant name -> value; "" entries mark ambiguity
 	valueTypes map[string]bool   // package directory + defined string type
+	nameTypes  map[string]bool   // typed dispatch fields in declarative structs
 	declCalls  map[string]bool
 	declTypes  map[string]bool
 	rep        *Report
@@ -188,7 +195,7 @@ func b2i(b bool) int {
 // function's complexity.
 func Scan(cfg Config) (*Report, error) {
 	w := &walker{
-		cfg: cfg, vocab: cfg.Vocab, consts: map[string]string{}, valueTypes: map[string]bool{},
+		cfg: cfg, vocab: cfg.Vocab, consts: map[string]string{}, valueTypes: map[string]bool{}, nameTypes: map[string]bool{},
 		declCalls: set(DeclCalls, cfg.DeclCalls), declTypes: set(DeclTypes, cfg.DeclTypes),
 		rep:  &Report{Cyclo: map[Key]int{}, Lines: map[Key]int{}},
 		fset: token.NewFileSet(),
@@ -347,6 +354,19 @@ func (w *walker) collectValueTypes(f *ast.File) {
 			if ok && base.Name == "string" && !t.Assign.IsValid() {
 				w.valueTypes[filepath.Dir(w.file)+"\x00"+t.Name.Name] = true
 			}
+			if fields, ok := t.Type.(*ast.StructType); ok && w.declTypes[t.Name.Name] {
+				for _, field := range fields.Fields.List {
+					typ, named := field.Type.(*ast.Ident)
+					if !named {
+						continue
+					}
+					for _, name := range field.Names {
+						if dispatchFields[name.Name] {
+							w.nameTypes[filepath.Dir(w.file)+"\x00"+typ.Name] = true
+						}
+					}
+				}
+			}
 		}
 	}
 }
@@ -361,7 +381,7 @@ func (w *walker) collectConsts(f *ast.File) {
 		}
 		for _, s := range g.Specs {
 			vs := s.(*ast.ValueSpec)
-			if typ, ok := vs.Type.(*ast.Ident); ok && w.valueTypes[filepath.Dir(w.file)+"\x00"+typ.Name] {
+			if typ, ok := vs.Type.(*ast.Ident); ok && w.valueTypes[filepath.Dir(w.file)+"\x00"+typ.Name] && !w.nameTypes[filepath.Dir(w.file)+"\x00"+typ.Name] {
 				for _, id := range vs.Names {
 					w.consts[id.Name] = "\x00ambiguous"
 				}

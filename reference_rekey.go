@@ -78,6 +78,11 @@ func (r *Runtime) rekeyRelations(old, key string) error {
 	if err != nil {
 		return err
 	}
+	detached, err := s.Relations(RelationQuery{Thing: old, Archived: true, Detached: true})
+	if err != nil {
+		return err
+	}
+	rows = append(rows, detached...)
 	planned := make(map[string]bool, len(rows))
 	afterRows := make([]Relation, 0, len(rows))
 	for _, before := range rows {
@@ -89,12 +94,17 @@ func (r *Runtime) rekeyRelations(old, key string) error {
 			after.To = key
 		}
 		id := after.ID()
-		existing, err := s.Relations(RelationQuery{Kind: after.Kind, From: after.From, To: after.To, Archived: true})
+		existing, err := s.Relations(RelationQuery{Kind: after.Kind, From: after.From, To: after.To, Archived: true, Detached: after.FormerFrom != "" || after.FormerTo != ""})
 		if err != nil {
 			return err
 		}
-		if len(existing) != 0 || planned[id] {
+		if planned[id] {
 			return fmt.Errorf("cannot migrate %s to %s: conflicting relation", old, key)
+		}
+		for _, other := range existing {
+			if other.ID() == id {
+				return fmt.Errorf("cannot migrate %s to %s: conflicting relation", old, key)
+			}
 		}
 		planned[id] = true
 		afterRows = append(afterRows, after)

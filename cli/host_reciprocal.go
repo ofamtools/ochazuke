@@ -64,6 +64,12 @@ func mountReciprocal(r *ochazuke.Runtime, noun CatalogNoun, local string, verb C
 	handler := func(c ochazuke.Ctx) ochazuke.Result {
 		args := stdmaps.Clone(c.Args)
 		subject, receiver := args[reverse.Subject], args[receiverKey]
+		if receiver == nil || receiver == "" {
+			receiver = reciprocalReceiver(c, end.Noun, receiverKey)
+		}
+		if receiver == nil || receiver == "" {
+			return ochazuke.Failed(fmt.Errorf("choose a receiving %s", r.DisplayNoun(end.Noun)))
+		}
 		delete(args, reverse.Subject)
 		delete(args, receiverKey)
 		args[key], args[reverse.Parameter] = subject, receiver
@@ -80,5 +86,23 @@ func mountReciprocal(r *ochazuke.Runtime, noun CatalogNoun, local string, verb C
 	op.Parameters, op.Positional = params, []string{reverse.Subject}
 	op.Destructive, op.Agent, op.HistoryKind = forward.Destructive, forward.Agent, forward.HistoryKind
 	r.Operations.Set(op)
+	return nil
+}
+
+func reciprocalReceiver(c ochazuke.Ctx, noun, key string) any {
+	for inst := c.Instance; inst != nil; inst = c.Runtime.Instances[inst.Parent] {
+		if c.Runtime.CanonicalNoun(inst.Noun) != noun {
+			continue
+		}
+		if id, ok := inst.Data.(string); ok && id != "" {
+			return id
+		}
+		if thing, err := ochazuke.ThingOf(inst.Data); err == nil && thing[key] != nil {
+			return thing[key]
+		}
+		if n := c.Runtime.Noun(noun); n != nil && n.Store != nil && n.Store.Kind == ochazuke.Instances {
+			return inst.ID
+		}
+	}
 	return nil
 }

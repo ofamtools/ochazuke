@@ -68,3 +68,30 @@ func TestCanonicalSelectorKeepsReferencesAcrossMove(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestRekeyReferencesPreservesDetachedEndpointsAndMetadata(t *testing.T) {
+	t.Parallel()
+	r := NewRuntime()
+	r.Config().Disable()
+	store := NewMemRelations()
+	r.SetRelationStore(store)
+	before := Relation{Kind: "reference", To: "document:/old/path", FormerFrom: "project:deleted", Archived: true, Position: 73, Text: "retained", Data: map[string]any{"flag": true}}
+	if err := store.Put(before); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.RekeyReferences(Ctx{Runtime: r}, "document", "/old/path", "stable"); err != nil {
+		t.Fatal(err)
+	}
+	rows, err := store.Relations(RelationQuery{Thing: "document:stable", Archived: true, Detached: true})
+	if err != nil || len(rows) != 1 {
+		t.Fatalf("detached references: %+v %v", rows, err)
+	}
+	got := rows[0]
+	if got.From != "" || got.FormerFrom != "project:deleted" || !got.Archived || got.Position != 73 || got.Text != "retained" || got.Data["flag"] != true {
+		t.Fatalf("detached metadata changed: %+v", got)
+	}
+	old, err := store.Relations(RelationQuery{Thing: "document:/old/path", Archived: true, Detached: true})
+	if err != nil || len(old) != 0 {
+		t.Fatalf("legacy endpoint remained: %+v %v", old, err)
+	}
+}

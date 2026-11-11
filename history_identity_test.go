@@ -77,3 +77,49 @@ func TestPersistedHistoryKeepsDurableIdentityWithoutPrivateValues(t *testing.T) 
 		t.Fatalf("history after restart/move: %#v", answer)
 	}
 }
+
+func TestCompletedHistoryKeepsSequenceOrderAndNewestRetention(t *testing.T) {
+	t.Parallel()
+	for _, limit := range []int{1, 8} {
+		t.Run(fmt.Sprint(limit), func(t *testing.T) {
+			dir := t.TempDir()
+			makeRuntime := func() *Runtime {
+				r := NewRuntime()
+				r.Config().App = "history-order"
+				r.Config().Dir = filepath.Join(dir, "config")
+				r.Config().StateDir = dir
+				r.Define("work").Verb("later", func(Ctx) Result { return Pending(func(context.Context) (any, error) { return "older", nil }) }).
+					Verb("now", func(Ctx) Result { return Done("newer") })
+				r.EnsureHistory()
+				t.Cleanup(func() { r.Config().Flush() })
+				return r
+			}
+			r := makeRuntime()
+			if _, err := r.Execute(Request{Noun: "work", Verb: "later"}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Execute(Request{Noun: "work", Verb: "now"}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Settings().SetSession(HistorySetting, limit); err != nil {
+				t.Fatal(err)
+			}
+			settleOnce(t, r)
+			if err := r.Config().Flush(); err != nil {
+				t.Fatal(err)
+			}
+			raw, err := os.ReadFile(filepath.Join(dir, HistoryFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if limit == 1 && len(strings.FieldsFunc(string(raw), func(r rune) bool { return r == '\n' })) != 1 {
+				t.Fatalf("retention did not compact to newest entry: %s", raw)
+			}
+			next := makeRuntime()
+			latest := next.History(1)
+			if len(latest) != 1 || latest[0].Request.Verb != "now" || !latest[0].Restored {
+				t.Fatalf("newest history after completion/restart: %+v", latest)
+			}
+		})
+	}
+}

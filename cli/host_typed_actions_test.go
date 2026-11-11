@@ -176,3 +176,52 @@ func TestMountReciprocalForwardsTypedSubjectsAcrossNamespaces(t *testing.T) {
 		t.Fatalf("confirmed arguments changed: %v", calls)
 	}
 }
+
+func TestMountedReciprocalUsesAddressedReceivingRow(t *testing.T) {
+	t.Parallel()
+	for _, receiver := range []string{"note", "pane", "project"} {
+		t.Run(receiver, func(t *testing.T) {
+			r := ochazuke.NewRuntime()
+			r.Config().Disable()
+			r.DefineOwn(receiver).Props(ochazuke.PropSpec{Name: "id", Key: true}).Store(ochazuke.Store{})
+			producer := ochazuke.NewRuntime()
+			producer.Config().Disable()
+			producer.Define("document").Props(ochazuke.PropSpec{Name: "id", Key: true}).Store(ochazuke.Store{}).
+				Verb("send", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }).
+				Reciprocal("destination", "receive-document", "document")
+			op, _ := producer.Operation("document.send")
+			op.Parameters = map[string]ochazuke.Parameter{"id": {Type: "string", Noun: "document", Required: true}, "destination": {Type: "string", Noun: receiver, HostNoun: receiver, Required: true}, "text": {Type: "string"}}
+			producer.Operations.Set(op)
+			raw, err := Catalog(producer, "source", "1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var doc CatalogDoc
+			if err := json.Unmarshal(raw, &doc); err != nil {
+				t.Fatal(err)
+			}
+			records := map[string]string{receiver + "-1": "before"}
+			mounted := MountCatalog(r, doc, HostMount{Local: func(noun string) string { return "source-" + noun }, Proxy: func(_ string, _ CatalogVerb) any {
+				return func(c ochazuke.Ctx) ochazuke.Result {
+					destination, _ := c.Args["destination"].(string)
+					records[destination] += ":" + fmt.Sprint(c.Args["text"])
+					return ochazuke.Done(records[destination])
+				}
+			}})
+			if len(mounted.Warnings) != 0 {
+				t.Fatal(mounted.Warnings)
+			}
+			row := r.Instance("view/"+receiver, ochazuke.Kind(receiver))
+			row.Data = receiver + "-1"
+			if _, err := r.Execute(ochazuke.Request{Noun: receiver, Verb: "receive-document", Target: row.ID, Args: ochazuke.Arguments{"document": "d1", "text": "payload"}}); err != nil {
+				t.Fatal(err)
+			}
+			if len(records) != 1 || records[receiver+"-1"] != "before:payload" {
+				t.Fatalf("reverse created another receiver instead of using addressed row: %+v", records)
+			}
+			if _, err := r.Execute(ochazuke.Request{Noun: receiver, Verb: "receive-document", Args: ochazuke.Arguments{"document": "d1", "text": "wrong"}}); err == nil {
+				t.Fatal("missing receiver silently created a record")
+			}
+		})
+	}
+}

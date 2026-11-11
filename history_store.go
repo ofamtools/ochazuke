@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -113,6 +114,7 @@ type historyStore struct {
 
 type historyOp struct {
 	line     []byte
+	seq      uint64
 	limit    int
 	setLimit bool
 }
@@ -290,10 +292,15 @@ func (r *Runtime) restoreHistory(path string, limit int) [][]byte {
 	if bad > 0 {
 		c.report(fmt.Sprintf("%s: %d line(s) do not parse, first at line %d (skipped)", HistoryFile, bad, firstBad))
 	}
+	order := historyOrder{entries: entries, lines: lines}
+	reordered := !sort.IsSorted(order)
+	if reordered {
+		sort.Stable(order)
+	}
 	if len(entries) > limit {
 		entries, lines = entries[len(entries)-limit:], lines[len(lines)-limit:]
 	}
-	if len(lines) != total {
+	if len(lines) != total || reordered {
 		if err := writeHistoryFile(path, lines); err != nil {
 			c.report(HistoryFile + ": " + err.Error())
 		}
@@ -347,7 +354,7 @@ func (r *Runtime) persist(entry HistoryEntry) {
 	if err != nil {
 		return
 	}
-	s.ops <- historyOp{line: line}
+	s.ops <- historyOp{line: line, seq: entry.Seq}
 }
 
 func (s *historyStore) failure() error {
@@ -366,6 +373,10 @@ func (s *historyStore) fail(err error) {
 
 // run is the writer goroutine; lines are the file's lines as restored.
 func (s *historyStore) run(lines [][]byte, limit int) {
+	seqs := make([]uint64, len(lines))
+	for i, line := range lines {
+		seqs[i] = historyLineSeq(line)
+	}
 	defer close(s.done)
 	var f *os.File
 	defer func() {
@@ -376,6 +387,7 @@ func (s *historyStore) run(lines [][]byte, limit int) {
 	compact := func() {
 		if len(lines) > limit {
 			lines = lines[len(lines)-limit:]
+			seqs = seqs[len(seqs)-limit:]
 		}
 		if f != nil {
 			f.Close()
@@ -414,7 +426,13 @@ func (s *historyStore) run(lines [][]byte, limit int) {
 			s.fail(err)
 			continue
 		}
-		lines = append(lines, op.line)
+		seq := op.seq
+		if seq == 0 {
+			seq = historyLineSeq(op.line)
+		}
+		at, _ := slices.BinarySearch(seqs, seq)
+		seqs = slices.Insert(seqs, at, seq)
+		lines = slices.Insert(lines, at, op.line)
 		if len(lines) >= 2*limit {
 			compact()
 		}
@@ -429,4 +447,24 @@ func writeHistoryFile(path string, lines [][]byte) error {
 		buf.WriteByte('\n')
 	}
 	return writeAtomic(path, ".history-*.jsonl", buf.Bytes())
+}
+
+type historyOrder struct {
+	entries []HistoryEntry
+	lines   [][]byte
+}
+
+func (h historyOrder) Len() int           { return len(h.entries) }
+func (h historyOrder) Less(i, j int) bool { return h.entries[i].Seq < h.entries[j].Seq }
+func (h historyOrder) Swap(i, j int) {
+	h.entries[i], h.entries[j] = h.entries[j], h.entries[i]
+	h.lines[i], h.lines[j] = h.lines[j], h.lines[i]
+}
+
+func historyLineSeq(line []byte) uint64 {
+	var header struct {
+		Seq uint64 `json:"seq"`
+	}
+	_ = json.Unmarshal(line, &header)
+	return header.Seq
 }
