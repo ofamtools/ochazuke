@@ -497,3 +497,40 @@ func TestThingWalkScopePreservesWiderListTeaser(t *testing.T) {
 		t.Fatalf("graph scope compared itself to a list count:\n%s", text)
 	}
 }
+
+func TestThingWalkValueOpenPreservesCustomNounOpen(t *testing.T) {
+	for _, value := range []string{"/fixture/reference/guide.md", "https://example.test/guide"} {
+		t.Run(value, func(t *testing.T) {
+			r, _, _ := thingWalkFixture(t)
+			customCalls := 0
+			r.Define("document").Verb("open", func(c Ctx) Result {
+				customCalls++
+				return Done(c.Args["repo"])
+			}).Params(map[string]Parameter{"repo": {Type: "string"}})
+			var opened string
+			r.SetOpener(Opener{GOOS: "darwin", Start: func(name string, args ...string) error {
+				opened = strings.Join(append([]string{name}, args...), " ")
+				return nil
+			}})
+			r.Instance("document-origin", Kind("document")).Data = Thing{
+				"id": "x1", "title": "Handbook", "file": "/fixture/reference/guide.md", "url": "https://example.test/guide",
+			}
+			if err := r.SetFocus("document-origin"); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Execute(Request{Noun: "ochazuke.thing", Verb: "walk"}); err != nil {
+				t.Fatal(err)
+			}
+			c := r.Chooser(ThingWalkKind)
+			thingWalkFind(t, c, value, "document", value)
+			thingWalkKey(t, r, "enter")
+			if opened != "open -- "+value || customCalls != 0 || r.Chooser(ThingWalkKind) != nil {
+				t.Fatalf("value open = %q, custom calls = %d, modal = %q", opened, customCalls, r.TopModal())
+			}
+			got, err := r.Execute(Request{Noun: "document", Verb: "open", Args: Arguments{"repo": "chosen-repo"}})
+			if err != nil || got != "chosen-repo" || customCalls != 1 {
+				t.Fatalf("custom open changed: value=%v calls=%d err=%v", got, customCalls, err)
+			}
+		})
+	}
+}

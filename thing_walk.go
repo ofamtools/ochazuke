@@ -64,12 +64,7 @@ func registerThingWalk(r *Runtime) {
 					return Failed(fmt.Errorf("this row is not a graph thing or value"))
 				}
 				if node.kind == walkValue {
-					n := r.Noun(node.noun)
-					args := Arguments{pathPropParam: node.prop}
-					if kp := n.keyProp(); kp != nil {
-						args[kp.Name] = node.key
-					}
-					value, err := r.ExecuteAt(c.Context, Request{Noun: node.noun, Verb: "open", Args: args})
+					value, err := r.ExecuteAt(c.Context, r.valueOpenRequest(*node))
 					if err != nil {
 						return Failed(err)
 					}
@@ -86,6 +81,25 @@ func registerThingWalk(r *Runtime) {
 		}
 		return Done(nil)
 	}, "Walk nouns, their things, values and relations; enter goes to a thing or opens its value").Agent(AgentAllow)
+}
+
+// valueOpenRequest is the request that opens a thing's path or link value
+// picked in the walk. A noun that has the free open verb (path_verbs.go, a
+// generated verb: Operation.Standard) runs it with the prop named, so its
+// history, rights and the paths.free-verbs setting apply. A noun whose open
+// is its own verb (the application declared one: another action, with its
+// own arguments) keeps that verb for itself: the value opens through the
+// opener (opener.run), which is what the free verb does with it.
+func (r *Runtime) valueOpenRequest(node thingWalkNode) Request {
+	n := r.Noun(node.noun)
+	if op, ok := r.Operations.Find(KeyOf(node.noun, pathOpenVerb)); ok && op.Standard != "" && n != nil {
+		args := Arguments{pathPropParam: node.prop}
+		if kp := n.keyProp(); kp != nil {
+			args[kp.Name] = node.key
+		}
+		return Request{Noun: node.noun, Verb: op.Name(), Args: args}
+	}
+	return Request{Noun: OpenNoun, Verb: "run", Args: Arguments{"text": fmt.Sprint(node.props[node.prop])}}
 }
 
 // walkSource is the common thing/value subject picker. Fitting rows keep the

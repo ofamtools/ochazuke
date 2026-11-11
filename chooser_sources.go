@@ -357,8 +357,7 @@ func (c *Chooser) cycle(delta int) error {
 	c.claimed = false
 	c.source = ((c.source+delta)%n + n) % n
 	c.enterSourceMode()
-	c.Preview = ChooserPreview{}
-	c.side = pickerSide{}
+	c.dropColumns()
 	if !c.spec.Scoped {
 		c.r.chooserMemory().lastSource[c.spec.Kind] = c.current().remembered()
 	}
@@ -439,12 +438,21 @@ func (c *Chooser) claim() bool {
 	c.filters.linger.reset()
 	c.source = to
 	c.enterSourceMode()
-	c.Preview = ChooserPreview{}
-	c.side = pickerSide{}
+	c.dropColumns()
 	c.spec.Rows = nil
 	c.cachePropRows()
 	c.load()
 	return true
+}
+
+// dropColumns forgets the preview and the side column when the picker moves
+// to another source or place; the next frame loads them again. Their
+// generations move on and never start over, so work still in flight for the
+// place it left is stale when it lands (queuePreview, queueSide), whatever
+// row id or side key the new place shares with the old.
+func (c *Chooser) dropColumns() {
+	c.Preview = ChooserPreview{Gen: c.Preview.Gen + 1}
+	c.side = pickerSide{gen: c.side.gen + 1}
 }
 
 // enterSourceMode lets a navigating scope take its keys immediately without
@@ -721,7 +729,7 @@ func (c *Chooser) up() error {
 
 // navigated shows query (cursor at its end) and loads the source again.
 func (c *Chooser) navigated(query string) {
-	c.Preview = ChooserPreview{}
+	c.dropColumns()
 	c.filters.linger.reset()
 	_ = c.input.Replace(0, len(c.input.Text), query)
 	c.input.Cursor = len(c.input.Text)

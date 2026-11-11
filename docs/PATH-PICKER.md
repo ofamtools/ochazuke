@@ -57,8 +57,10 @@ first/last row, and `0`/`$` return to the first/deepest visited column.
 Related columns show named path/link props, outgoing owner and other
 references, and the same inbound reference and relation-kind sections as
 the show form. Mounted nouns use their catalog's props and proxy stores.
-On its own, `enter` goes to a thing's index, or invokes its noun's `open`
-verb with the selected value's prop explicitly named.
+On its own, `enter` goes to a thing's index, or opens the selected value:
+through its noun's free `open` verb with the value's prop explicitly named,
+or, when the noun declares an `open` verb of its own, through the opener
+(`opener.run`), so that verb keeps its own meaning and arguments.
 
 When a palette command, key or `Ctx.Need` asks for a missing declared
 subject, the picker offers nearby candidates when available, the noun's

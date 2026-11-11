@@ -299,3 +299,64 @@ func TestPaletteChoicesSeeTheWord(t *testing.T) {
 		t.Fatalf("asked %q", asked)
 	}
 }
+
+func TestChooserSourceTransitionsRejectStaleColumns(t *testing.T) {
+	for _, transition := range []string{"cycle", "claim", "navigate"} {
+		t.Run(transition, func(t *testing.T) {
+			destination := false
+			source := ChooserSource{
+				Name: "old", Columns: true,
+				Load: func(string) Result {
+					return Done([]ChooserRow{{ID: "same-row", Label: "row", Opens: true}})
+				},
+				Open: func(ChooserRow) (string, bool) { destination = true; return "", true },
+				Preview: func(ChooserRow) Result {
+					if destination {
+						return Done("destination preview")
+					}
+					return Pending(func(context.Context) (any, error) { return "old preview", nil })
+				},
+				Side: func() (string, func() Result) {
+					return "same-place", func() Result {
+						if destination {
+							return Done(PickerSide{Title: "destination side"})
+						}
+						return Pending(func(context.Context) (any, error) { return PickerSide{Title: "old side"}, nil })
+					}
+				},
+			}
+			next := source
+			next.Name = "destination"
+			next.Claims = func(query string) bool { return query == "row" }
+			r, _, _ := sourcesFixture(t, "stale-columns", source, next)
+			r.Config().Disable()
+			c := r.Chooser("stale-columns")
+			old := runCmd(r.PendingCommands())
+			if len(old) == 0 {
+				t.Fatal("the original preview and side jobs were not queued")
+			}
+			destination = true
+			switch transition {
+			case "cycle":
+				if err := c.cycle(1); err != nil {
+					t.Fatal(err)
+				}
+			case "claim":
+				c.SetQuery("row")
+			case "navigate":
+				if err := c.open(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			runCmd(r.PendingCommands())
+			for _, msg := range old {
+				if _, err := r.Deliver(msg); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if c.Preview.Text != "destination preview" || c.Side().Title != "destination side" {
+				t.Fatalf("stale columns replaced the destination: preview=%q side=%q", c.Preview.Text, c.Side().Title)
+			}
+		})
+	}
+}

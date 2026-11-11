@@ -22,6 +22,8 @@ const PathFreeVerbsSetting = "paths.free-verbs"
 const (
 	pathPropParam = "prop"
 	pathWithParam = "with"
+	// pathOpenVerb is the free verb that opens a path or link prop.
+	pathOpenVerb = "open"
 )
 
 var needPathProp = storeNeed{Doc: "a prop of Type path", Lacks: "it has no prop of Type path",
@@ -144,7 +146,7 @@ func pathVerbs() []standardVerb {
 			}
 			return p, r.storeYank(Yank{Text: p, Shape: "char"}, "", false)
 		})
-	open := row("open", "Open the thing's path or link through the opener table (open.openers; the OS by default); a free verb of every noun with a path or url prop", HistoryAction, AgentConfirm,
+	open := row(pathOpenVerb, "Open the thing's path or link through the opener table (open.openers; the OS by default); a free verb of every noun with a path or url prop", HistoryAction, AgentConfirm,
 		func(r *Runtime, n *Noun, c Ctx) (any, error) {
 			p, err := thingValue(r, n, c, openProps(n))
 			if err != nil {
