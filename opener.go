@@ -90,6 +90,7 @@ func (o Opener) start(name string, args []string) error {
 		return o.Start(name, args...)
 	}
 	cmd := exec.Command(name, args...)
+	detachOpener(cmd)
 	if err := cmd.Start(); err != nil {
 		return err
 	}

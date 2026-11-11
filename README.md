@@ -202,6 +202,12 @@ Captured Unix processes have their own process group. Cancellation sends TERM,
 allows one second for record finalization, then kills remaining descendants.
 `job.cancel {job}` cancels a running job.
 
+Captured-work cleanup also removes remaining descendants after a successful
+extension exits. Intentional OS opener handoffs start in their own Unix
+process group, so opening a file can finish after the extension returns.
+This does not detach ordinary shell workers or weaken their cancellation.
+An injected `Opener.Start` runner still owns its own launch behavior.
+
 `foreground.hold` defaults to `on-failure`. A failed foreground program waits
 for a key before the host resumes; `off` resumes immediately. Successful exits
 always resume immediately. A bounded stderr tee retains the last line for the
