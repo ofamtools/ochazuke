@@ -252,7 +252,7 @@ func TestThingWalkColumnsSettingAndFocusedRecentNouns(t *testing.T) {
 	if len(rows) == 0 || !strings.HasPrefix(rows[0].Label, "project (") {
 		t.Fatalf("focused noun not first: loadErr=%q query=%q rows=%+v", c.loadErr, c.Query(), rows)
 	}
-	thingWalkKey(t, r, "esc")
+	thingWalkKey(t, r, "q")
 	if err := r.SetFocus("app"); err != nil {
 		t.Fatal(err)
 	}
@@ -435,7 +435,7 @@ func TestThingWalkHiddenColumnsAvoidReadsAndLoadWhenRevealed(t *testing.T) {
 		big.rows = 0
 		landLoads(m, r.PendingCommands())
 		if text := ansi.Strip(c.View(120, 15).Text); big.rows != 80 || !strings.Contains(text, "thing 0") {
-			t.Fatalf("revealed preview did not load its window: rows=%d\n%s", big.rows, text)
+			t.Fatalf("revealed preview did not show its loaded window: rows=%d loading=%v\n%s", big.rows, c.Preview.Loading, text)
 		}
 		columns(1)
 		big.rows = 0
@@ -444,7 +444,7 @@ func TestThingWalkHiddenColumnsAvoidReadsAndLoadWhenRevealed(t *testing.T) {
 			t.Fatalf("hidden preview still read %d rows", big.rows)
 		}
 	}
-	thingWalkKey(t, r, "esc")
+	thingWalkKey(t, r, "q")
 	r.Instance("focused-big", Kind("big")).Data = big.things[0]
 	if err := r.SetFocus("focused-big"); err != nil {
 		t.Fatal(err)

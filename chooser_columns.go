@@ -109,14 +109,19 @@ func (c *Chooser) columnsView(width, height int) Block {
 	}
 	mid := c.rowsView(midW, height)
 	midLines := strings.Split(mid.Text, "\n")
-	left := c.sideColumn(leftW, len(midLines))
 	text := ""
 	if row, ok := c.Highlighted(); ok {
 		text = c.previewText(row)
 	}
-	right := previewLines(text, rightW, max(1, len(midLines)-1))
-	out := make([]string, len(midLines))
-	for i, line := range midLines {
+	right := previewLines(text, rightW, max(1, height-1))
+	rows := max(len(midLines), len(right)+1)
+	left := c.sideColumn(leftW, rows)
+	out := make([]string, rows)
+	for i := range out {
+		line := ""
+		if i < len(midLines) {
+			line = midLines[i]
+		}
 		l, rt := "", ""
 		if i < len(left) {
 			l = left[i]
