@@ -214,15 +214,22 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 	if err != nil {
 		return e, err
 	}
-	// A declared noun subject opens the same scoped picker as the palette.
-	if f := e.fields[e.start()]; start != "" && f.Noun != "" && f.choose && r.subjectAsks() && (op.Parameters[start].Focus || slices.Contains(needs, start)) {
-		return e, e.choose(f)
+	return e, e.chooseMissingField(start, op.Parameters[start], needs)
+}
+
+// chooseMissingField opens the initial missing subject's picker from its new
+// field, not the older request that opened the form below it.
+func (e *RecordEditor) chooseMissingField(start string, param Parameter, needs []string) error {
+	if start == "" {
+		return nil
 	}
-	// A form opening on a missing path stop opens its chooser.
-	if f := e.fields[e.start()]; start != "" && f.path && f.choose {
-		return e, e.choosePath(f)
+	f := e.fields[e.start()]
+	noun := f.Noun != "" && e.r.subjectAsks() && (param.Focus || slices.Contains(needs, start))
+	if !f.choose || !f.path && !noun {
+		return nil
 	}
-	return e, nil
+	defer e.r.actingFor(f.id)()
+	return e.choose(f)
 }
 
 // argsFormStart fills the args form's declared starting values into

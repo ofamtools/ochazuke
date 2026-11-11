@@ -924,7 +924,7 @@ func registerStandardEdit(r *Runtime) {
 	r.Define("ochazuke.noun").Verb("edit", func(r *Runtime, c Context, _ Arguments) (any, error) {
 		q, _ := r.focusedEdit(focusOf(c))
 		return r.ExecuteAt(c, q)
-	}, "Open the focused thing's standard edit form; existing inner edit keys take precedence").When("noun-editable")
+	}, "Open the focused thing's standard edit form; existing inner edit keys take precedence").When("noun-editable").FocusBound()
 	r.DefineGuard("edit-opening", func(r *Runtime, _ KeyEvent) bool {
 		return r.HasRunningJob("app", editOpenSlot)
 	})

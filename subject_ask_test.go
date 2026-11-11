@@ -59,6 +59,7 @@ func TestSubjectAskPaletteAndKeyShareScopes(t *testing.T) {
 		t.Run(route, func(t *testing.T) {
 			r, p, ran := subjectAskRuntime(t, Parameter{Type: "string", Required: true, Noun: "swatch"}, false)
 			if route == "palette" {
+				paletteRequest(t, r, "open", "palette", nil)
 				paletteRequest(t, r, "fill", "palette", Arguments{"text": "canvas paint"})
 				if err := p.run(); err != nil {
 					t.Fatal(err)
@@ -131,6 +132,7 @@ func TestSubjectAskOffRefusesPaletteKeyAndNeed(t *testing.T) {
 			}
 			var err error
 			if route == "palette" {
+				paletteRequest(t, r, "open", "palette", nil)
 				paletteRequest(t, r, "fill", "palette", Arguments{"text": "canvas paint"})
 				err = p.run()
 			} else {
@@ -312,5 +314,16 @@ func TestSubjectHereReadsOpaqueRowProps(t *testing.T) {
 	choices := r.subjectHere(Parameter{Type: PathParameterType}, r.Context())
 	if len(choices) != 1 || choices[0].ID != path {
 		t.Fatalf("path choices from opaque row = %#v, want %q", choices, path)
+	}
+}
+
+func TestSubjectAskFocusBoundExemption(t *testing.T) {
+	r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "canvas", Focus: true}, false)
+	op := r.Operations.At(Key("canvas.paint"))
+	op.FocusBound = true
+	r.Operations.Set(op)
+	_, err := r.Dispatch(MacroKey{Key: "z"})
+	if err == nil || r.Instances[ArgsFormID] != nil || len(*ran) != 0 {
+		t.Fatalf("focus-bound verb must keep its focused context: err=%v top=%q ran=%v", err, r.TopModal(), *ran)
 	}
 }

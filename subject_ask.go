@@ -12,7 +12,7 @@ const SubjectAskSetting = "subject.ask"
 const WalkColumnsSetting = "walk.columns"
 
 func (r *Runtime) declaredSubject(op Operation, p Parameter) bool {
-	if p.Plumbing || op.Motion {
+	if p.Plumbing || op.Motion || op.FocusBound {
 		return false
 	}
 	own := p.Noun != "" && r.CanonicalNoun(p.Noun) == r.CanonicalNoun(op.Noun())
@@ -20,7 +20,7 @@ func (r *Runtime) declaredSubject(op Operation, p Parameter) bool {
 }
 
 func asksSubjectParameter(p Parameter) bool {
-	return !p.Plumbing && (p.Noun != "" || p.Type == PathParameterType || p.Focus || p.From != "")
+	return !p.Plumbing && (p.Noun != "" || p.IsPath() || p.Focus || p.From != "")
 }
 
 func (r *Runtime) subjectAsks() bool { return r.settingOn(SubjectAskSetting) }
@@ -55,12 +55,12 @@ func (r *Runtime) subjectHere(p Parameter, origin Context) []Choice {
 	}
 	for _, id := range r.Ancestry(focus) {
 		inst := r.Instances[id]
-		if p.Noun == AnyNoun && id != "app" {
+		if p.Noun == AnyNoun && inst.Parent != "" {
 			t := r.instanceThing(inst)
 			add(Choice{ID: AnyRef(inst.Noun, t.Key), Label: t.Label, Noun: inst.Noun})
 			break
 		}
-		if p.Type != PathParameterType {
+		if !p.IsPath() {
 			continue
 		}
 		n := r.Nouns[inst.Noun]
@@ -68,7 +68,7 @@ func (r *Runtime) subjectHere(p Parameter, origin Context) []Choice {
 			continue
 		}
 		for _, prop := range n.Props {
-			if prop.Type != PathParameterType {
+			if !prop.IsPath() {
 				continue
 			}
 			if value := r.rowValue(inst, prop.Name); !emptyProp(value) {
