@@ -2790,10 +2790,22 @@ Thus `n` works on an empty index: a creator missing a required value opens its e
 ### Open and focused actions
 
 In normal mode, `g o` opens the Open line (`ochazuke.opener.show`), and `g .`
-opens the focused thing's actions (`ochazuke.focus.act`). The actions include
-the free verbs its path or URL props provide. A URL provides `open` and
-`yank-path`; a path also provides `reveal` and `open-with`. Picking an action
-runs it at the original focus and asks for missing arguments in the usual form.
+opens the focused thing's actions (`ochazuke.focus.act`): every verb from every
+level of its key walk, bound or not. This includes its own noun, the list,
+editor or viewer it sits in, the page and the app, plus operations the walk's
+binding rows name in other namespaces. Groups follow the walk from inside
+out. Each row shows the full `noun.verb`, its key if any, and its description
+or unmet needs. Names and needs keep their column space before keys.
+Filter by name, namespace, description or need; this picker starts in substring
+mode (Tab changes it), so a full name does not pick up scattered description
+letters in an earlier group. A verb with an unmet need stays listed: missing
+arguments, disabled settings, store limitations and failing named guards are
+shown, not filtered out. Enter runs from the original focus
+through the usual argument form, confirmation and result presentation.
+
+The noun's free value verbs are ordinary actions in that listing. A URL
+provides `open` and `yank-path`; a path also provides `reveal` and `open-with`.
+A viewer or other modal lists its own walk, without reaching the page beneath.
 URL-typed parameters accept text in the palette, argument forms and user actions.
 
 The palette aliases `:e`, `:edit` and `:open` open the Open line, prefilled
