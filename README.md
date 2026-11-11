@@ -2781,11 +2781,45 @@ Compared with Vim:
 
 Every stored noun gets `show`, `restore`, `duplicate` (alias `dup`), `yank` (as label, key, ref or json), `history`, `annotate` (where a noun has an about prop, `RoleAbout`) and `token` (where its store keeps a change token), from the legacy verb table, each where its needs are met; `relate` answers to `associate` too. A prop of the same name keeps the word. `delete {archive-first: true}` archives a live thing with no question and deletes an archived one after one question naming what goes with it (`Runtime.DeleteGoesWith`).
 
-Every record noun gets the generated key block (`bindings/generated/noun-defaults.json`, setting `keys.noun-defaults`, default on) for the verbs it has: `n` new, `r` rename, `v`/`enter` show, `d a` archive, `d r` restore, `d d` archive then delete, `u` undo, `a` associate, `g d` duplicate, `y y` yank, `y p` yank path, `R` reveal, `z A` archived rows. A declared row on the focus's walk that binds the same keys or a prefix of them wins: the user's or the application's whatever its guard, a framework file's where it answers now. `NounBuilder.DefaultKeys(false)` declines the block for one noun. The rows stay off the footer; `?` lists them.
+Every record noun gets the generated key block (`bindings/generated/noun-defaults.json`, setting `keys.noun-defaults`, default on) for the verbs it has: `n` new, `r` rename, `v`/`enter` show, `d a` archive, `d r` restore, `d d` archive then delete, `u` undo, `a` associate, `g d` duplicate, `y y` yank, `y p` yank path, `R` reveal, `g F` open through the opener table, `g X` open with a named application, `z A` archived rows. A declared row on the focus's walk that binds the same keys or a prefix of them wins: the user's or the application's whatever its guard, a framework file's where it answers now. `NounBuilder.DefaultKeys(false)` declines the block for one noun. The rows stay off the footer; `?` lists them.
 
 An empty focused list keeps its row noun on that same key walk, before the collection's own tables, without creating a row instance. `From(noun)` supplies the noun for generated indexes and store-backed lists. A hand-fed list can declare `RowNoun(noun)` before its first row; otherwise it remembers the nouns of its last rows. Filtering every row out keeps that context too. `binding.list`, `?` help and visible binding hints read the same walk.
 
 Thus `n` works on an empty index: a creator missing a required value opens its existing argument form, while one needing no values creates immediately as before. A verb needing a subject still asks for a real thing, or reports the missing subject when forms are disabled. Collection motions and keys retain their normal precedence, declared bindings still override generated keys, and populated rows keep their instance and noun bindings. `keys.noun-defaults=false` remains the opt-out for the generated block. Story: `nouns/index-empty-new`.
+
+### Open and focused actions
+
+In normal mode, `g o` opens the Open line (`ochazuke.opener.show`), and `g .`
+opens the focused thing's actions (`ochazuke.focus.act`). The actions include
+the free verbs its path or URL props provide. A URL provides `open` and
+`yank-path`; a path also provides `reveal` and `open-with`. Picking an action
+runs it at the original focus and asks for missing arguments in the usual form.
+URL-typed parameters accept text in the palette, argument forms and user actions.
+
+The palette aliases `:e`, `:edit` and `:open` open the Open line, prefilled
+with any following text. An explicit noun keeps its own verb, as in
+`:open note ID` or `:edit note ID`. The Open line uses the existing
+`open.openers` table, then `open.unmatched` for text without a matching row.
+It neither requires a file to exist nor creates a file itself.
+
+`open.modal` and `actions.focused-picker` default to on and disable their
+respective dialogs when off. `paths.free-verbs` disables free path/URL
+operations; `keys.noun-defaults` disables their generated keys. Both default
+to on. All four shortcuts are ordinary binding rows and can be rebound.
+The uppercase generated keys avoid shipped claims on `g f` and `g x`;
+`open-with` asks which application, rather than bypassing the opener table
+with an implicit system application.
+
+Compared with Vim:
+
+| Vim form | Help tag | Ochazuke |
+|---|---|---|
+| `gf`, `gF` | `gf`, `gF` | Similar: `g F` opens the focused record's path or URL through its opener rows, not a filename under the text cursor; no line-number suffix. |
+| `gx` | `gx` | Different: `g x` remains available to existing components; `g X` asks for a named application on a path. |
+| `:e FILE`, `:edit FILE` | `:edit_f` | Similar: prefill the Open line, including a missing path, but do not create a named Vim buffer. |
+| `:Open` in Neovim | `:Open` | Similar: accepts a path or URL; our lowercase `:open` previews the configured opener route in the Open line before running it. |
+| Focused-actions picker | Not applicable | Vim has no standard picker of the focused record's verbs. |
+
 
 ### Show form: `ShowForm`, catalog detail `record-form`
 

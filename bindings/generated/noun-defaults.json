@@ -18,6 +18,8 @@
     {"key": "y y", "verb": "yank", "hidden": true},
     {"key": "y p", "verb": "yank-path", "hint": "yank path", "hidden": true},
     {"key": "R", "verb": "reveal", "hidden": true},
+    {"key": "g F", "verb": "open", "hint": "open", "hidden": true},
+    {"key": "g X", "verb": "open-with", "hint": "open with", "hidden": true},
     {"key": "z A", "verb": "archive", "action": "ochazuke.collection.show-archived", "hint": "archived", "hidden": true}
   ]
 }

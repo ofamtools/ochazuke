@@ -51,3 +51,26 @@ func TestFocusedActionsPickerOptOut(t *testing.T) {
 		t.Fatal("the verb refuses too")
 	}
 }
+
+func TestFocusedActionsURLVerbs(t *testing.T) {
+	t.Parallel()
+	r := NewRuntime()
+	r.Config().Disable()
+	r.Define("bookmark").Props(
+		PropSpec{Name: "id", Key: true},
+		PropSpec{Name: "url", Parameter: Parameter{Type: PropURL}},
+	).Store(Store{Get: func(Ctx, string) (Thing, error) {
+		return Thing{"id": "b1", "url": "https://example.test/a"}, nil
+	}})
+	r.Instance("b1", Kind("bookmark")).Data = Thing{"id": "b1"}
+	_, choices := r.FocusedActions("b1")
+	var values []string
+	for _, c := range choices {
+		if slices.Contains([]string{"open", "open-with", "reveal", "yank-path"}, c.Label) {
+			values = append(values, c.Label)
+		}
+	}
+	if !slices.Equal(values, []string{"open", "yank-path"}) {
+		t.Fatalf("URL actions %v, want open and yank-path", values)
+	}
+}

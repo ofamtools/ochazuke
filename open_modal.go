@@ -29,8 +29,8 @@ func openResultOf(t OpenTarget, a OpenAction) openResult {
 	return openResult{Text: t.Text, Kind: t.Kind, Action: a.Kind, Does: a.String()}
 }
 
-// registerOpen registers the open verbs: show (the modal), run (open text
-// now) and resolve (what open would do). None has a default key.
+// registerOpen registers the open verbs: show (the modal, g o), run (open
+// text now) and resolve (what open would do).
 func registerOpen(r *Runtime) {
 	text := func(required bool) map[string]Parameter {
 		return map[string]Parameter{"text": {Type: "string", Required: required, Rest: true, Description: "A link, a path, a file, an image or a noun:id: whatever should open"}}
@@ -51,6 +51,15 @@ func registerOpen(r *Runtime) {
 		return nil, r.openModal(StringArg(a, "text", ""))
 	}})
 	r.Define(OpenNoun)
+	for _, a := range []ActionAlias{
+		{Alias: "open", Action: "ochazuke.opener.show", Shadows: true, Palette: true, Note: "Open text; open NOUN ... keeps the noun's open verb"},
+		{Alias: "edit", Action: "ochazuke.opener.show", Shadows: true, Palette: true, Note: "Open text; edit NOUN ... keeps the noun's edit verb"},
+		{Alias: "e", Action: "ochazuke.opener.show", ShadowVerb: "edit", Palette: true, Note: "Vim's :e; opens the Open line, not a file buffer"},
+	} {
+		if err := r.AddActionAlias(a); err != nil {
+			panic(err)
+		}
+	}
 }
 
 // openModal opens the one-field form over the focus: the text is free

@@ -15,7 +15,7 @@ const FocusedPickerSetting = "actions.focused-picker"
 const FocusActionsKind = "focus-actions"
 
 func registerFocusActions(r *Runtime) {
-	r.Register(Operation{Key: "ochazuke.focus.act", Description: "Open a picker of the verbs the focused thing's noun has, each with its key; enter runs the verb on the focused thing (a verb with missing arguments opens its form). No default key (setting actions.focused-picker)", Result: "picker state", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.focus.act", Description: "Open a picker of the verbs the focused thing's noun has, each with its key; enter runs the verb on the focused thing (a verb with missing arguments opens its form). Default g . (setting actions.focused-picker)", Result: "picker state", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		_, err := r.OpenFocusActions()
 		return nil, err
 	}})
