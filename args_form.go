@@ -313,8 +313,8 @@ func (r *Runtime) singlePath(missing []string, fields []RecordField) (RecordFiel
 func (r *Runtime) choosePathArg(q Request, f RecordField, title string, run func(Request) error) error {
 	_, err := r.OpenPathChooser(PathChooserSpec{
 		whereFrom: true,
-		Title: title + " · choose " + f.Name,
-		Pick:  PathPick{Name: f.Name, Parameter: f.Parameter},
+		Title:     title + " · choose " + f.Name,
+		Pick:      PathPick{Name: f.Name, Parameter: f.Parameter},
 		Choose: func(path string) Result {
 			done := q
 			done.Args = maps.Clone(q.Args)

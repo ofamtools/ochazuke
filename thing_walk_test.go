@@ -164,7 +164,7 @@ func TestThingWalkRelationsBothDirectionsAndAnyNounKinds(t *testing.T) {
 	thingWalkFind(t, c, "Home", "project", "project:p1") // outgoing owner prop
 	thingWalkFind(t, c, "Reference", "directory", "directory:d1")
 	thingWalkKey(t, r, "l")
-	thingWalkFind(t, c, "Write guide", "task", "task:t1") // inbound relation kind
+	thingWalkFind(t, c, "Write guide", "task", "task:t1")      // inbound relation kind
 	thingWalkFind(t, c, "Handbook", "document", "document:x1") // inbound any-noun prop
 	// Undeclared relation kinds, and kinds with any-noun ends, are graph
 	// edges too; they must not disappear just because Referrers is static.

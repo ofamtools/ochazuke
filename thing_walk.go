@@ -103,7 +103,7 @@ func (r *Runtime) walkSource(p Parameter, origin Context, row func(Choice) Picke
 		Load: w.load, Open: w.open, Up: w.up, Goto: w.gotoPlace,
 		CanOpen: func(row PickerRow) bool { return row.walk != nil && row.walk.kind == walkThing },
 		Landing: func() string { return w.landing },
-		Label: w.breadcrumb, Breadcrumb: w.breadcrumb,
+		Label:   w.breadcrumb, Breadcrumb: w.breadcrumb,
 		ColumnCount: func() int {
 			if _, ok := r.settingValue(WalkColumnsSetting); ok {
 				return min(3, max(1, r.Settings().Int(WalkColumnsSetting)))

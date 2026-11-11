@@ -193,7 +193,7 @@ func TestSubjectAskPathWalkAndScopesOptOut(t *testing.T) {
 		PropSpec{Name: "id", Key: true},
 		PropSpec{Name: "path", Parameter: Parameter{Type: PathParameterType}},
 	).Store(Store{
-		Get: func(Ctx, string) (Thing, error) { return thing, nil },
+		Get:  func(Ctx, string) (Thing, error) { return thing, nil },
 		List: func(Ctx, ListQuery) ([]Thing, error) { return []Thing{thing}, nil },
 	})
 	r.Instances["red"].Data = thing
