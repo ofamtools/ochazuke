@@ -6,6 +6,7 @@
 // this directory and are declared by the feature that needs them (terminal.json: EnsureTerminalLeader). "deprecated" lists older
 // names that still read and write the setting for one release. The rows' order is their order inside a section.
 [
+  {"name":"register.persist","section":"records","type":"boolean","default":true,"description":"Keep named text registers a-z in private files under the app state directory, shared with its CLI and host callbacks. Special registers and recorded macros stay in memory. Off stops disk reads and writes; existing files remain"},
   {"name":"quit.write-wait","section":"status","type":"duration","default":"10s","description":"Maximum quit wait for queued writes; 0 leaves immediately. A deliberate second quit leaves and unfinished values are reported in notices and on stderr"},
   {"name":"quit.force-after","section":"status","type":"duration","default":"500ms","description":"Minimum time after the first quit before a second press forces exit; 0s accepts any second press. Explicit app.quit --force always leaves immediately"},
   {"name":"bindings.peer-notices","section":"keys","type":"string","default":"user","enum":["user","all","off"],"description":"Missing peer binding notices: user shows user-file warnings, all also shows catalog peer warnings, off keeps both in bindings check only"},

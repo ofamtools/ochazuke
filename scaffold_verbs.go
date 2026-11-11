@@ -113,7 +113,7 @@ func scaffoldVerbs() []standardVerb {
 
 	history := subject
 	history.Verb, history.Description = "history", "The thing's history: the entries that changed or named it, newest first (rows of history-entry, each undoable by its actor)"
-	history.Kinds, history.Needs, history.HistoryKind, history.Agent = []string{KindCollection, Singleton}, []storeNeed{needWriter, needGet}, HistoryFetch, AgentAllow
+	history.Kinds, history.Needs, history.HistoryKind, history.Agent = []string{KindCollection, Singleton}, []storeNeed{needGet}, HistoryFetch, AgentAllow
 	history.RowsOf = historyEntryNoun
 	history.Run = runThingHistory
 

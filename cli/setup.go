@@ -137,7 +137,7 @@ func DeclareSetup(r *ochazuke.Runtime, items []setup.Item, options setup.Options
 			if v == "install" || v == "uninstall" {
 				op.HistoryKind = ochazuke.HistoryChange
 			}
-			op.Parameters = map[string]ochazuke.Parameter{"item": {Type: "string", Rest: true, Required: v == "show" || v == "yank", Description: "Setup item ids (empty selects the default set)"}, "home": {Type: "string", Description: "Use this home directory and isolate harness HOME/XDG paths"}}
+			op.Parameters = map[string]ochazuke.Parameter{"item": {Type: "string", Rest: true, Required: v == "show" || v == "yank", Description: "Setup item ids (empty selects the default set)"}, "home": {Type: "path", Path: "dir", Description: "Use this home directory and isolate harness HOME/XDG paths"}}
 			if v == "install" {
 				op.Parameters["group"] = ochazuke.Parameter{Type: "string", Description: "Only items in this group"}
 				op.Parameters["dry-run"] = ochazuke.Parameter{Type: "boolean", Description: "Show all writes and argv without installing (no confirmation, nothing is written)"}
@@ -178,7 +178,7 @@ var setupProps = []ochazuke.PropSpec{
 	{Name: "description", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "What it sets up"}},
 	{Name: "kind", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "How it is set up (block, file, json, command ...)"}},
 	{Name: "group", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "Its group, when it has one"}},
-	{Name: "path", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "The file it writes or probes"}},
+	{Name: "path", ReadOnly: true, Parameter: ochazuke.Parameter{Type: "path", Path: "file", Description: "The file it writes or probes"}},
 	{Name: "status", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "installed, missing, outdated, manual ..."}},
 	{Name: "reason", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "Why it is in that state, when it says"}},
 	{Name: "next", ReadOnly: true, Parameter: ochazuke.Parameter{Description: "The exact next step"}},

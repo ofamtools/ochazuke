@@ -202,6 +202,12 @@ Captured Unix processes have their own process group. Cancellation sends TERM,
 allows one second for record finalization, then kills remaining descendants.
 `job.cancel {job}` cancels a running job.
 
+Captured-work cleanup also removes remaining descendants after a successful
+extension exits. Intentional OS opener handoffs start in their own Unix
+process group, so opening a file can finish after the extension returns.
+This does not detach ordinary shell workers or weaken their cancellation.
+An injected `Opener.Start` runner still owns its own launch behavior.
+
 `foreground.hold` defaults to `on-failure`. A failed foreground program waits
 for a key before the host resumes; `off` resumes immediately. Successful exits
 always resume immediately. A bounded stderr tee retains the last line for the
@@ -1928,6 +1934,36 @@ The first request undoes the focused input's last change; the second requests th
 
 Selection and undo belong to each input. Yanks, history, registers, the active register and macro state belong to the `registers` component, one instance under `app` (`r.Registers()` returns it: `Named`, `History`, `Active`, `Macro`), so a yank from notes can be pasted into paths or a modal editor. It is reached through the `register`, `macro` and `yank-history` operations, never through `Runtime` fields.
 
+Named text registers `a` through `z` persist by default in the application's
+state directory as `registers/a.json` through `registers/z.json`. Each write
+atomically replaces one private file, mode `0600`, inside a directory created
+with mode `0700`. Concurrent replacements are last-writer-wins. Register get,
+list, paste and macro reads refresh a changed file, so a host callback from a
+mounted tool updates the same named register a live host reads. An unchanged
+file does not replace newer in-memory state, including a local macro recording.
+Use the register verbs or `StoreYank` and `ReadYank`; direct writes to `Named`
+are memory-only.
+
+Register access is synchronous. A cached read stats the file; only a changed
+file is opened and decoded. Writes finish before the operation reports
+success, so errors cannot leave a falsely successful transient value.
+Slow storage or large register contents can block the UI loop.
+`register.persist=false` avoids that disk access.
+
+These files contain the complete text, unencrypted, without automatic expiry.
+Do not send secrets to named registers when persistence is enabled.
+`register.persist=false` stops reads and writes to disk but leaves existing
+files in place. `Config.Disable()` or no state directory keeps all registers
+in memory. Clipboard, unnamed, numbered and small-delete registers, yank
+history and recorded macros remain transient. The register noun's
+`Unpersisted` flag still prevents register contents entering the history file;
+it does not disable this separate register storage.
+
+Compared with Vim: named registers and uppercase append follow
+`:help quote_alpha`. Vim can save registers through `:help viminfo-file`;
+ochazuke saves only named text registers, immediately per write rather than
+on exit, and never saves macro keys or special registers.
+
 The system clipboard: the clipboard register `+` (and `*`, the same register here) always copies its yank to the system clipboard, and the `clipboard` setting says which other yanks do: `yanks` (default: every yank, not a delete), `unnamed` (every yank and delete, Vim's `clipboard=unnamed`) or `none`. The copy is a command the `registers` component schedules (`PendingCommand`): `Registers.Copy(text) tea.Cmd` when an application sets it (a clipboard program such as pbcopy), else OSC 52 through `tea.SetClipboard`, which TUIOS and ssh pass on. Reading `"+p` pastes the last text yanked into `+`, not the system clipboard's current contents. Compared with Vim: `"+` and `"*` are Vim's clipboard and selection registers (`:help quoteplus`), one register here; `clipboard` takes Vim's `unnamed` (`:help 'clipboard'`), plus `yanks`, which Vim lacks.
 
 ```js
@@ -1959,7 +1995,7 @@ The system clipboard: the clipboard register `+` (and `*`, the same register her
 /tmp/ochazuke macro replay --json '{"register":"a","steps":2}'
 ```
 
-`input.yank` captures a selection/current lines; `input.paste` inserts a stored yank. Insert `Ctrl-W/U/K` publish shared kills and `Ctrl-Y` pastes the unnamed text literally. These operations use the same registry as the keyboard, palette, and CLI. All this state is in memory.
+`input.yank` captures a selection/current lines; `input.paste` inserts a stored yank. Insert `Ctrl-W/U/K` publish shared kills and `Ctrl-Y` pastes the unnamed text literally. These operations use the same registry as the keyboard, palette, and CLI. Only named text registers persist; the rest of this state stays in memory.
 
 
 ## Scoped, customizable keybindings
@@ -2037,6 +2073,12 @@ args)` returns stdout bytes; `host.Call(ctx, noun, verb, args)` makes the noun/
 verb boundary explicit for dotted verbs. Both execute the host, never the peer,
 with closed stdin, no `--yes`, a 60-second deadline, and stderr on failure.
 The argv preserves paths containing spaces and the temporary data directory.
+
+A host call starts a fresh host process, not a call into its live UI loop.
+Named register writes survive through the host's state directory and live
+register reads refresh them. A standalone tool uses its own state directory.
+Clipboard and other transient register writes do not gain persistence from
+`Host.Run`; callers that need retained output must choose a named register.
 
 The callback carries `OCHAZUKE_CALLER`, an incremented
 `OCHAZUKE_HOST_DEPTH`, and `OCHAZUKE_HOST_CHAIN` (JSON names). The shell binds
@@ -2521,6 +2563,14 @@ Parameter{
 
 Here `catalog.items` declares a `category` parameter, and the form or request declares `kind`. Selecting `kind` supplies its current value as `category` when loading `item` choices. Empty or unset siblings are omitted, preserving the source's defaults. Register the source first: `Runtime.Register` checks the dependency map, record editors check their complete field schema, and catalog hosts check after mounting their verbs. Code that fills `Operation.Parameters` directly can call `Runtime.CheckSourceArgs` after assigning the complete schema. `PropSpec` and `PropField` carry the same metadata.
 
+If a host's `HostMount.Param` removes a choice source and accepts free values,
+its dependency maps remain catalog metadata but have no source to call.
+`CheckSourceArgs` does not remove that verb for those inactive dependencies.
+An explicitly named missing source, or a missing source for a closed field,
+still fails validation. Custom creation verbs keep their own handler,
+parameter kinds, dependency maps, positional order and `Creates` mark when
+mounted; they do not become the proxy store's generated create handler.
+
 Args forms, record editors, value pickers, palette completion and execution validation use these values. `Choices` and `ChoicesFor` accept an optional `Arguments` map for custom callers; `ParameterChoices` also resolves prop-shaped parameters (`ValueOf`, `Pairs`). Sources can combine mapped arguments with the automatically supplied `query`; an explicit `sourceArgs` entry for `query` takes precedence. Pending sources load off the UI loop, and an older dependency response cannot replace a newer one.
 
 `forms.dependent-choices` defaults to `true`: changing a sibling refreshes the dependent choices. Values are retained so changing one field never erases another. Free fields remain writable and show “outside current choices”; closed fields show a validation problem and require a valid choice before that field is written or a submit form runs. An unavailable source does not discard a value. Setting it to `false` disables automatic refresh and free-value warnings; opening a picker still passes current sibling values.
@@ -2781,6 +2831,11 @@ Compared with Vim:
 
 Every stored noun gets `show`, `restore`, `duplicate` (alias `dup`), `yank` (as label, key, ref or json), `history`, `annotate` (where a noun has an about prop, `RoleAbout`) and `token` (where its store keeps a change token), from the legacy verb table, each where its needs are met; `relate` answers to `associate` too. A prop of the same name keeps the word. `delete {archive-first: true}` archives a live thing with no question and deletes an archived one after one question naming what goes with it (`Runtime.DeleteGoesWith`).
 
+`history` requires only that the store can read a thing with `Store.Get`.
+Read-only facts expose it too: it returns recorded actions that named the
+thing, without making the fact writable. This is runtime action history,
+not an external tool's domain-specific log. Normal fetches are excluded.
+
 Every record noun gets the generated key block (`bindings/generated/noun-defaults.json`, setting `keys.noun-defaults`, default on) for the verbs it has: `n` new, `r` rename, `v`/`enter` show, `d a` archive, `d r` restore, `d d` archive then delete, `u` undo, `a` associate, `g d` duplicate, `y y` yank, `y p` yank path, `R` reveal, `g F` open through the opener table, `g X` open with a named application, `z A` archived rows. A declared row on the focus's walk that binds the same keys or a prefix of them wins: the user's or the application's whatever its guard, a framework file's where it answers now. `NounBuilder.DefaultKeys(false)` declines the block for one noun. The rows stay off the footer; `?` lists them.
 
 An empty focused list keeps its row noun on that same key walk, before the collection's own tables, without creating a row instance. `From(noun)` supplies the noun for generated indexes and store-backed lists. A hand-fed list can declare `RowNoun(noun)` before its first row; otherwise it remembers the nouns of its last rows. Filtering every row out keeps that context too. `binding.list`, `?` help and visible binding hints read the same walk.
@@ -2935,6 +2990,10 @@ ownership, backups and installation. No binding, page or default key is added.
 item (`id`, `name`, `kind`, `group`, `path`, `state`, `reason`, `next`,
 `opt_in`), so `setup get rules` reads one item's state; `setup list` and the
 other setup verbs answer as before.
+The `home` override on every setup verb is a directory parameter, and each
+item's `path` is a file prop. They use the shared path chooser and catalog
+metadata. The item path also supplies the standard reveal, yank-path, open
+and open-with verbs; `paths.free-verbs=false` disables those verbs.
 
 ```go
 items := []setup.Item{
@@ -3312,7 +3371,7 @@ Compared with Vim: `za`, `zo`, `zc`, `zR`, `zM` (folds, `:help fold-commands`) a
 - Standalone Go module and example application; no gmtm/Matomeru integration.
 - Vim-style editing, not a complete Vim implementation; no promise of text objects, dot-repeat, or full Vim scripting compatibility.
 - Cursor and edit offsets count Unicode runes, not grapheme clusters. Rendering accounts for terminal cell width.
-- Undo trees, yank history, registers, and macros are in memory; they do not persist across restarts.
+- Undo trees, yank history, special registers and macros are in memory. Named text registers persist when `register.persist` is enabled and the app has a state directory.
 - Custom modes are registered names. Applications supply their mode-specific bindings; unknown modes are not silently interpreted as normal or insert.
 - Modals preserve their own state and existing input instances. Closing a modal restores interaction state, not a stale copy of shared application data.
 - Handler registration and widget construction are Go APIs. User-facing operations, including configuration, palette navigation, field editing, and picker actions, are registered and available through the CLI.

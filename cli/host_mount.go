@@ -286,6 +286,7 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 	op.Quiet, op.Many, op.Repeatable, op.Standard = v.Quiet, v.Many, v.Repeatable, v.Standard
 	op.ByAssociation = v.ByAssociation
 	op.FocusBound = v.FocusBound
+	op.Creates = v.Creates
 	op.Motion, op.Typing, op.Staying = v.Motion, v.Typing, v.Staying
 	op.Foreground = v.Foreground
 	op.OpensPage = v.OpensPage

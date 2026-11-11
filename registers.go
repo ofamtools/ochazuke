@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 
@@ -29,8 +30,9 @@ type Registers struct {
 	// terminal as OSC 52 (tea.SetClipboard), which TUIOS and ssh pass on.
 	// An app with a clipboard program of its own (pbcopy) sets it.
 	Copy      func(text string) tea.Cmd
-	selection int     // the yank-history modal's highlighted row
-	clip      *string // the text the next PendingCommand copies
+	selection int                    // the yank-history modal's highlighted row
+	clip      *string                // the text the next PendingCommand copies
+	files     map[string]os.FileInfo // last durable version read or written, by path
 }
 
 func registerRegisters(r *Runtime) {
@@ -69,13 +71,21 @@ func registerRegisterThings(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			reg, ok := c.Runtime.Registers().Named[key]
-			if !ok {
+			reg, err := c.Runtime.namedRegister(key)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := c.Runtime.Registers().Named[key]; !ok {
 				return Thing{"name": key, "text": "", "shape": "char", "width": 0}, nil
 			}
 			return thing(key, reg), nil
 		},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
+			for ch := byte('a'); ch <= 'z'; ch++ {
+				if _, err := c.Runtime.namedRegister(string(ch)); err != nil {
+					return nil, err
+				}
+			}
 			named := c.Runtime.Registers().Named
 			out := []Thing{}
 			for _, key := range slices.Sorted(maps.Keys(named)) {
@@ -88,7 +98,11 @@ func registerRegisterThings(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			current := c.Runtime.Registers().Named[key].Yank
+			reg, err := c.Runtime.namedRegister(key)
+			if err != nil {
+				return nil, err
+			}
+			current := reg.Yank
 			y := Yank{Text: current.Text, Shape: current.Shape, Width: current.Width}
 			if v, ok := changes["text"].(string); ok {
 				y.Text = v
@@ -238,7 +252,14 @@ func (r *Runtime) storeYank(y Yank, name string, deletion bool) error {
 		return nil
 	}
 	if appendMode {
-		y = appendYank(g.Named[key].Yank, y)
+		reg, err := r.namedRegister(key)
+		if err != nil {
+			return err
+		}
+		y = appendYank(reg.Yank, y)
+	}
+	if err := r.persistRegister(key, y); err != nil {
+		return err
 	}
 	g.Named[key] = Register{Yank: y}
 	g.Named["\""] = Register{Yank: y}
@@ -278,7 +299,8 @@ func (r *Runtime) readYank(name string) (Yank, error) {
 	if isBlackHole(key) {
 		return Yank{Shape: "char"}, nil
 	}
-	return g.Named[key].Yank, nil
+	reg, err := r.namedRegister(key)
+	return reg.Yank, err
 }
 
 // ClipboardSetting says which yanks also go to the system clipboard

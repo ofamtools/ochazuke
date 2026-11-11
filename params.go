@@ -599,8 +599,8 @@ func (r *Runtime) CheckSourceArgs(params map[string]Parameter) error {
 			continue
 		}
 		source := r.ChoicesSource(p)
-		if source == "" && len(p.SourceArgs) == 0 {
-			continue // fixed arguments of a parameter with no source (a noun with no list) are moot
+		if source == "" && (len(p.SourceArgs) == 0 || p.Free) {
+			continue // no source to receive dependencies; a host may accept free values without its producer's picker
 		}
 		op, ok := r.Operations.Find(Key(source))
 		if !ok {

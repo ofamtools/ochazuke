@@ -75,10 +75,14 @@ func registerMacros(r *Runtime) {
 		if g.Macro.Recording != "" {
 			return nil, errors.New("macro recording already active")
 		}
+		reg, err := r.namedRegister(key)
+		if err != nil {
+			return nil, err
+		}
 		g.Macro.Recording = key
 		g.Macro.Keys = nil
 		if appendMode {
-			g.Macro.Keys = registerMacroKeys(g.Named[key])
+			g.Macro.Keys = registerMacroKeys(reg)
 		}
 		return g.Macro, nil
 	})
@@ -125,7 +129,11 @@ func (r *Runtime) replayMacro(name string, count int) (err error) {
 	if g.Macro.Depth >= 16 {
 		return errors.New("macro recursion limit exceeded")
 	}
-	keys := registerMacroKeys(g.Named[key])
+	reg, err := r.namedRegister(key)
+	if err != nil {
+		return err
+	}
+	keys := registerMacroKeys(reg)
 	if len(keys) == 0 {
 		return errors.New("macro register is empty")
 	}
