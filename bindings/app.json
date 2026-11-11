@@ -11,8 +11,8 @@
     {"context": "app/normal", "fallback": true, "bindings": [
       {"key": ":", "action": "ochazuke.palette.open"},
       {"key": "?", "action": "ochazuke.binding.help"},
-      {"key": "g o", "action": "ochazuke.opener.show", "hint": "open"},
-      {"key": "g .", "action": "ochazuke.focus.act", "hint": "actions"},
+      {"key": "g o", "action": "ochazuke.opener.show", "when": "no-input", "hint": "open"},
+      {"key": "g .", "action": "ochazuke.focus.act", "when": "no-input", "hint": "actions"},
       {"key": "esc", "action": "ochazuke.noun.cancel-edit", "capture": true},
       {"key": "g <", "action": "ochazuke.message.show", "when": "no-input", "hidden": true},
       {"key": "'", "action": "ochazuke.page.pick", "when": "no-modal"},

@@ -117,7 +117,7 @@ func TestHelpCommandBindingsEffectiveFilterAndEscape(t *testing.T) {
 			op := r.Operations.At(Key("widget.open"))
 			op.Parameters = map[string]Parameter{"name": {Type: "string"}}
 			r.Operations.Set(op)
-			if err := r.Bind(Binding{Instance: "w1", Mode: "normal", Keys: "i", Request: Request{Noun: "widget", Verb: "open", Args: Arguments{"name": "focused"}}}); err != nil {
+			if err := r.Bind(Binding{Instance: "w1", Mode: "normal", Keys: "i", Request: Request{Noun: "widget", Verb: "open", Args: Arguments{"name": "row-context-value"}}}); err != nil {
 				t.Fatal(err)
 			}
 			typeKeys := func(text string) {
@@ -147,7 +147,7 @@ func TestHelpCommandBindingsEffectiveFilterAndEscape(t *testing.T) {
 						t.Fatalf("unavailable or shadowed binding shown: %+v", row)
 					}
 					if row.Key == "i" {
-						found = row.Request == "widget.open" && row.Args["name"] == "focused"
+						found = row.Request == "widget.open" && row.Args["name"] == "row-context-value"
 					}
 				}
 				if !found {
@@ -155,12 +155,12 @@ func TestHelpCommandBindingsEffectiveFilterAndEscape(t *testing.T) {
 				}
 				all := list.Shown()
 				keytest.Press(m, "/")
-				typeKeys("focused")
-				if list.Filter() != "focused" || list.Shown() != 1 || r.Mode.Name != ListFilterMode {
+				typeKeys("row-context-value")
+				if list.Filter() != "row-context-value" || list.Shown() != 1 || r.Mode.Name != ListFilterMode {
 					t.Fatalf("query %q shown %d mode %q", list.Filter(), list.Shown(), r.Mode.Name)
 				}
 				frame := ansi.Strip(m.View().Content)
-				if !strings.Contains(frame, "widget.open") || !strings.Contains(frame, "focused") || strings.Contains(frame, "widget.blocked") {
+				if !strings.Contains(frame, "widget.open") || !strings.Contains(frame, "row-context-value") || strings.Contains(frame, "widget.blocked") {
 					t.Fatalf("filtered screen:\n%s", frame)
 				}
 				keytest.Press(m, "ctrl+u")

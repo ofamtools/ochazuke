@@ -2822,6 +2822,10 @@ The uppercase generated keys avoid shipped claims on `g f` and `g x`;
 `open-with` asks which application, rather than bypassing the opener table
 with an implicit system application.
 
+Text inputs reach `g o` and `g .` through the editor's pending `g` mode.
+The app-level sequence rows stand aside there, so counted `g g` keeps its
+count and `g y` still opens yank history with the original input to return to.
+
 Compared with Vim:
 
 | Vim form | Help tag | Ochazuke |

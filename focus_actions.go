@@ -157,7 +157,9 @@ func (r *Runtime) OpenFocusActions() (*Chooser, error) {
 	for _, choice := range choices {
 		if choice.Noun != origin {
 			origin = choice.Noun
-			rows = append(rows, PickerRow{ID: "origin:" + origin, Label: origin, Header: true, Section: origin})
+			header := (Choice{ID: "origin:" + origin, Label: origin, RowFlags: RowFlags{Bare: true}}).Row()
+			header.Header, header.Section = true, origin
+			rows = append(rows, header)
 		}
 		row := choice.Row()
 		row.Section = origin
