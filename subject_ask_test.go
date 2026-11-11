@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -470,5 +471,69 @@ func TestSubjectAskPreservesFilesystemWalkStart(t *testing.T) {
 	formKeys(t, r, "alt+enter")
 	if !reflect.DeepEqual(*ran, []string{leaf}) || r.Chooser(PathChooserKind) != nil {
 		t.Fatalf("filesystem selection ran=%v top=%q", *ran, r.TopModal())
+	}
+}
+
+func TestSubjectAskKeepsArchivedScopeCounts(t *testing.T) {
+	r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Required: true, Noun: "swatch"}, false)
+	things := []Thing{
+		{"id": "red", "title": "Red"},
+		{"id": "blue", "title": "Blue"},
+		{"id": "old", "title": "Old one", "done": true},
+	}
+	reads := 0
+	r.Define("swatch").Props(
+		PropSpec{Name: "id", Key: true},
+		PropSpec{Name: "title", Role: RoleLabel},
+		PropSpec{Name: "done", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean}},
+	).Store(Store{
+		Get: func(_ Ctx, id string) (Thing, error) {
+			for _, thing := range things {
+				if thing["id"] == id {
+					return thing, nil
+				}
+			}
+			return nil, errors.New("unknown swatch")
+		},
+		List: func(_ Ctx, q ListQuery) ([]Thing, error) {
+			reads++
+			var out []Thing
+			for _, thing := range things {
+				if q.Archived || thing["done"] != true {
+					out = append(out, thing)
+				}
+			}
+			return out, nil
+		},
+	})
+	formKeys(t, r, "z", "enter")
+	c := r.Chooser(FormSuggestionsKind)
+	if c == nil || !reflect.DeepEqual(c.Sources(), []string{"all", "archived", "walk"}) {
+		t.Fatalf("missing comparable scopes and walk: top=%q", r.TopModal())
+	}
+	before := reads
+	for range 2 {
+		if frame := c.View(100, 12).Text; !strings.Contains(frame, "1 more in archived") || strings.Contains(frame, "Old one") {
+			t.Fatalf("missing archived teaser over active values:\n%s", frame)
+		}
+	}
+	if reads != before {
+		t.Fatalf("rendering performed source IO: reads before=%d after=%d", before, reads)
+	}
+	formKeys(t, r, "S")
+	if c.Source() != "archived" || !slices.ContainsFunc(c.Matches(), func(row PickerRow) bool { return row.ID == "old" }) {
+		t.Fatalf("archived scope did not expose Old one: source=%q rows=%#v", c.Source(), c.Matches())
+	}
+	formKeys(t, r, "S")
+	if c.Source() != "walk" {
+		t.Fatalf("S skipped the graph scope: %q", c.Source())
+	}
+	formKeys(t, r, "S")
+	if c.Source() != "all" || !strings.Contains(c.View(100, 12).Text, "1 more in archived") {
+		t.Fatal("cycling back to all lost the archived teaser")
+	}
+	finishSubjectAsk(t, r, "blue")
+	if !reflect.DeepEqual(*ran, []string{"blue"}) {
+		t.Fatalf("scope cycling changed the selected subject: ran=%v", *ran)
 	}
 }

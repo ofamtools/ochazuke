@@ -101,19 +101,34 @@ func (r *Runtime) subjectScopes(spec PickerSpec, l choiceLoad) (PickerSpec, bool
 			rows = append(rows, l.choiceRow(ch))
 		}
 		rows = append(rows, l.fixed...)
-		spec.Sources = append(spec.Sources, PickerSource{Name: "here", Load: func(string) Result { return Done(rows) }})
+		spec.Sources = append(spec.Sources, PickerSource{
+			Name: "here", Load: func(string) Result { return Done(rows) },
+			Count: func(string) (int, bool) { return len(here), true },
+		})
 	}
 	scopes := r.scopesOf(l.param, l.siblings())
 	if len(scopes) == 0 {
 		scopes = []Scope{{Name: "list"}}
 	}
+	var countWidest func(string)
 	for _, scope := range scopes {
 		param := scope.within(l.param, l.siblings())
-		source := PickerSource{Name: scope.Name, Live: r.ChoicesTakeQuery(param), Load: r.choiceSourceLoad(l, param)}
+		source, count := r.subjectListScope(scope.Name, param, l, spec.Kind)
+		countWidest = count
 		if param.Noun == AnyNoun && param.Source == "" {
 			anyRefNavigation(&source)
 		}
 		spec.Sources = append(spec.Sources, source)
+	}
+	// Count only the widest list scope in advance, through the same replacing
+	// choices delivery as the palette. Count callbacks never perform IO.
+	for i := range spec.Sources[:len(spec.Sources)-1] {
+		load := spec.Sources[i].Load
+		spec.Sources[i].Load = func(query string) Result {
+			result := load(query)
+			countWidest(query)
+			return result
+		}
 	}
 	spec.Sources = append(spec.Sources, r.walkSource(l.param, origin, l.choiceRow))
 	choose := spec.Choose
@@ -129,6 +144,59 @@ func (r *Runtime) subjectScopes(spec PickerSpec, l choiceLoad) (PickerSpec, bool
 		return Done(row.ID)
 	}
 	return spec, true
+}
+
+// subjectListScope reuses the choice loader and caches its count. prefetch
+// reads the widest scope asynchronously before it is selected, so the tag can
+// say what archived/all adds without executing a source during rendering.
+func (r *Runtime) subjectListScope(name string, param Parameter, l choiceLoad, owner string) (source PickerSource, prefetch func(string)) {
+	live := r.ChoicesTakeQuery(param)
+	key := func(query string) string {
+		if live {
+			return query
+		}
+		return ""
+	}
+	var query string
+	var total int
+	var ready, pending bool
+	original := l.landed
+	l.landed = func(choices []Choice) {
+		total, ready, pending = len(choices), true, false
+		if original != nil {
+			original(choices)
+		}
+	}
+	load := r.choiceSourceLoad(l, param)
+	source = PickerSource{
+		Name: name, Live: live,
+		Load: func(text string) Result {
+			query, ready, pending = key(text), false, true
+			result := load(text)
+			if result.err != nil {
+				pending = false
+			}
+			return result
+		},
+		Count: func(text string) (int, bool) { return total, ready && query == key(text) },
+	}
+	prefetch = func(text string) {
+		want := key(text)
+		if query == want && (ready || pending) {
+			return
+		}
+		query, ready, pending = want, false, true
+		done := func(choices []Choice, err error) {
+			if query == want {
+				total, ready, pending = len(choices), err == nil, false
+			}
+		}
+		choices, waiting, err := r.startChoices(l.ctx, param, text, owner, "subject-count", done, l.siblings())
+		if !waiting {
+			done(choices, err)
+		}
+	}
+	return source, prefetch
 }
 
 // canAskSubject lets a bound row reach the ordinary ask path even when a
