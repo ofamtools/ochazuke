@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 func subjectAskRuntime(t *testing.T, param Parameter, late bool) (*Runtime, *Palette, *[]string) {
@@ -436,14 +438,19 @@ func TestSubjectAskPreservesFilesystemWalkStart(t *testing.T) {
 		Type: PathParameterType, Path: PathDir, Required: true, Base: root, Start: PathSourceWalk,
 	}, false)
 	r.AddWalkPathSource(func(PathPick) PathWalk { return PathWalk{Roots: []PathRoot{{Path: root, Label: "fixture"}}} })
-	m := NewModel(r)
-	m.Width, m.Height = 100, 30
+	land := func() {
+		drain(t, r, func(msg tea.Msg) {
+			if _, err := r.Deliver(msg); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
 	formKeys(t, r, "z")
 	c := r.Chooser(PathChooserKind)
 	if c == nil {
 		t.Fatalf("path ask did not open: top=%q", r.TopModal())
 	}
-	landAll(m, r.PendingCommands())
+	land()
 	if c.Source() == PathSourceWalk || !slices.Contains(c.Sources(), PathSourceWalk) {
 		t.Fatalf("explicit filesystem start lost or graph scope missing: source=%q scopes=%v", c.Source(), c.Sources())
 	}
@@ -453,9 +460,9 @@ func TestSubjectAskPreservesFilesystemWalkStart(t *testing.T) {
 	}
 	typeKeys(t, r, "leaf")
 	formKeys(t, r, "esc", "l")
-	landAll(m, r.PendingCommands())
+	land()
 	formKeys(t, r, "alt+up")
-	landAll(m, r.PendingCommands())
+	land()
 	if c.Source() != filesystem || !slices.ContainsFunc(c.Matches(), func(row PickerRow) bool { return row.ID == leaf }) {
 		t.Fatalf("filesystem navigation escaped into graph: source=%q rows=%#v", c.Source(), c.Matches())
 	}
