@@ -284,6 +284,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	m.ticker.observe(m.Runtime, m.clock())
 	m.Runtime.settlePlacements()
+	m.Runtime.syncHelp()
 	if m.Runtime.Quit {
 		// Quitting writes what components still hold (an open outline line).
 		for _, inst := range m.Runtime.components() {

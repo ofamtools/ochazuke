@@ -85,6 +85,16 @@ type helpState struct {
 	place  *NounPlace
 	home   *NounPlace // the origin focus's place, nil when it has no noun
 	modes  []string   // the table's mode columns, as last shown
+	// built is the bindings generation (Runtime.InvalidateBindings) the
+	// views were last read at; syncHelp reads them again when it moved.
+	built uint64
+	// capture is the interactive bind's keys so far, captureGen the mode
+	// generation they belong to (a mode left another way leaves it behind:
+	// not capturing), manual that only enter ends the capture.
+	capture    []string
+	captureGen uint64
+	manual     bool
+	literal    bool // the next key is taken as it is (ctrl+v)
 }
 
 // newHelpState opens the help over focus; home is focus's place (helpHome),
@@ -94,7 +104,7 @@ func newHelpState(r *Runtime, focus string, home *NounPlace, mode ModeState, row
 	if inst := r.Instances[focus]; inst != nil && inst.Noun != "" {
 		noun = inst.Noun
 	}
-	h := &helpState{r: r, view: HelpHere, origin: focus, here: rows, noun: noun, mode: mode, home: home}
+	h := &helpState{r: r, view: HelpHere, origin: focus, here: rows, noun: noun, mode: mode, home: home, built: r.renderCache.generation}
 	h.setNoun(noun)
 	return h
 }
@@ -258,6 +268,22 @@ func (h *helpState) show() error {
 	return tree.Focus()
 }
 
+// syncHelp is the one path by which an open help follows the bindings: any
+// writer of a binding table bumps the bindings generation
+// (InvalidateBindings), and the help reads its views again when the
+// generation moved since it last did (after every update, and after the
+// writers that refresh at once). The interactive bind, a hand-edited file
+// loaded by config.reload and a default set from code all arrive here.
+func (r *Runtime) syncHelp() {
+	h := r.helpOpen()
+	if h == nil || h.built == r.renderCache.generation {
+		return
+	}
+	if err := h.refreshBindings(); err != nil {
+		r.UI().Error("refresh binding help: " + err.Error())
+	}
+}
+
 // refreshBindings updates an open help in place, including when a chooser
 // is above it. Read here at the focus, mode and modal chain it opened over
 // (a query's resolution context: the modals beneath the help); refreshing
@@ -265,6 +291,7 @@ func (h *helpState) show() error {
 // live mode.
 func (h *helpState) refreshBindings() error {
 	r := h.r
+	h.built = r.renderCache.generation
 	origin, mode := r.ModalReturn(helpID)
 	if r.Instances[origin] != nil {
 		modals := r.modals
@@ -352,6 +379,9 @@ func (h *helpState) ModalTitle() string {
 // header is the line above the list in the hypothetical views: what they
 // are about, and in the table what its marks mean.
 func (h *helpState) header() string {
+	if text := h.captureHeader(); text != "" {
+		return text
+	}
 	switch h.view {
 	case HelpPick:
 		return "noun: " + h.r.DisplayNoun(h.noun) + " · mode: " + h.mode.Name + " · place: " + h.placeText()

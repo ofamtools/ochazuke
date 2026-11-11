@@ -441,16 +441,7 @@ func registerUnboundVerbs(r *Runtime) {
 		})
 		return row.Request, err
 	}})
-	r.Register(Operation{Key: KeyOf(helpID, "bind-key"), Description: "Bind the key just pressed to the selected unbound verb (b waits for it; esc cancels): writes the row to your bindings.json; a key that already runs something asks first", Parameters: map[string]Parameter{
-		"key": {Type: "string", Required: true, Description: "the key, as the bindings file spells it"},
-	}, Result: "binding", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		row, ok := r.selectedHelpRow()
-		if r.helpOpen() == nil || !ok || !row.Unbound {
-			return nil, errors.New("select an unbound verb in the help")
-		}
-		keys := StringArg(a, "key", "")
-		return r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": keys, "action": row.Request}})
-	}})
+	registerHelpCapture(r)
 	n := r.Noun(helpID)
 	if n.Guards == nil {
 		n.Guards = map[string]string{}
@@ -458,7 +449,9 @@ func registerUnboundVerbs(r *Runtime) {
 	n.Guards["run"] = "help-runnable"
 	n.Guards["args"] = "help-has-args"
 	n.Guards["bind"] = "help-unbound-row"
-	n.Guards["bind-key"] = "help-unbound-row"
+	for _, verb := range []string{"bind-start", "bind-key", "bind-finish", "bind-drop", "bind-literal"} {
+		n.Guards[verb] = "help-unbound-row"
+	}
 
 	r.Register(Operation{Key: "ochazuke.binding.bind", Description: "Bind a key to an action by writing a row to the user's bindings.json (the first change you make to it from the program: a comment in the file is not kept, the old file is copied to bindings.json.bak) and loading it. The row goes in the action's noun's table in the mode; a key that already answers something else needs replace", Parameters: map[string]Parameter{
 		"key":     {Type: "string", Required: true, Description: "the key or key sequence, as the bindings file spells it: x, ctrl+x, g n"},
@@ -484,7 +477,7 @@ func keyTaken(r *Runtime, _ Context, a Arguments) Verdict {
 	}
 	keys := strings.Join(strings.Fields(StringArg(a, "key", "")), " ")
 	if b, taken := r.bindConflict(keys); taken {
-		return AskFirst(keys + " already runs " + r.displayRequest(b.Request) + " here; bind anyway?")
+		return AskFirst(r.conflictQuestion(keys, b))
 	}
 	if op, ok := r.Operation(StringArg(a, "action", "")); ok {
 		noun, mode := r.CanonicalNoun(cmp.Or(StringArg(a, "noun", ""), op.Noun())), cmp.Or(StringArg(a, "mode", ""), r.BaseMode())
@@ -573,11 +566,7 @@ func (r *Runtime) bindUserKey(key, action, noun, mode string, replace bool) (any
 	}
 	r.RecordWrittenFile(path)
 	problems := r.ReloadUserBindings()
-	if h := r.helpOpen(); h != nil {
-		if err := h.refreshBindings(); err != nil {
-			r.UI().Error("refresh binding help: " + err.Error())
-		}
-	}
+	r.syncHelp()
 	for _, p := range problems {
 		if strings.Contains(p, row.Keys) && !strings.HasPrefix(p, "warning:") {
 			return nil, fmt.Errorf("written, but not loaded: %s", p)
@@ -587,21 +576,30 @@ func (r *Runtime) bindUserKey(key, action, noun, mode string, replace bool) (any
 	return map[string]any{"key": row.Keys, "action": r.displayRequest(row.Request), "context": noun + "/" + mode, "file": path}, nil
 }
 
+// bindWalkRows are the rows of the walk at the focus the help (else the
+// base focus) is over, in the base mode: what a key pressed there meets.
+func (r *Runtime) bindWalkRows() []levelRow {
+	focus, mode := r.BaseFocus(), r.BaseMode()
+	if origin, at := r.ModalReturn(helpID); r.Instances[origin] != nil {
+		base, _ := baseAndPrefix(at)
+		focus, mode = origin, base
+	}
+	if r.Instances[focus] == nil {
+		return nil
+	}
+	return r.scanRows(r.walk(focus), ModeState{Name: mode}, focus)
+}
+
 // bindConflict is the row of the walk at the focus the help (else the
 // base focus) is over that already answers keys in the base mode: the same
 // key, a sequence that starts with it, or a shorter row it would start a
 // sequence from. The first such row, nearest the focus first.
 func (r *Runtime) bindConflict(keys string) (Binding, bool) {
 	keys = strings.Join(strings.Fields(keys), " ")
-	focus, mode := r.BaseFocus(), r.BaseMode()
-	if origin, at := r.ModalReturn(helpID); r.Instances[origin] != nil {
-		base, _ := baseAndPrefix(at)
-		focus, mode = origin, base
-	}
-	if keys == "" || r.Instances[focus] == nil {
+	if keys == "" {
 		return Binding{}, false
 	}
-	for _, row := range r.scanRows(r.walk(focus), ModeState{Name: mode}, focus) {
+	for _, row := range r.bindWalkRows() {
 		if row.Pattern != "" || row.Keys == "" || isPrefixCancel(row.Binding) || row.Unbind {
 			continue
 		}
@@ -610,6 +608,34 @@ func (r *Runtime) bindConflict(keys string) (Binding, bool) {
 		}
 	}
 	return Binding{}, false
+}
+
+// bindContinues reports whether a row of the walk goes on from keys: keys
+// is the start of a sequence that is bound (g, with g J bound), so the
+// next key may still belong to the sequence being captured.
+func (r *Runtime) bindContinues(keys string) bool {
+	keys = strings.Join(strings.Fields(keys), " ")
+	for _, row := range r.bindWalkRows() {
+		if row.Pattern == "" && !isPrefixCancel(row.Binding) && !row.Unbind && strings.HasPrefix(row.Keys, keys+" ") {
+			return true
+		}
+	}
+	return false
+}
+
+// conflictQuestion is the question a taken key asks, by how it is taken:
+// the same key, a sequence it would cut short (keys alone shadows b), or a
+// shorter row that already answers before keys could.
+func (r *Runtime) conflictQuestion(keys string, b Binding) string {
+	what := r.displayRequest(b.Request)
+	switch {
+	case b.Keys == keys:
+		return keys + " already runs " + what + " here; bind anyway?"
+	case strings.HasPrefix(b.Keys, keys+" "):
+		return keys + " starts the sequence " + b.Keys + " (" + what + "): binding " + keys + " alone would shadow it; bind anyway?"
+	default:
+		return b.Keys + " already runs " + what + " here, so " + keys + " would never be reached; bind anyway?"
+	}
 }
 
 // askableParameters are the parameters a person gives: not the target and

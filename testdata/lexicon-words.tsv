@@ -61,6 +61,11 @@ behind	prop	seed
 binary	prop	seed	
 bind	action	seed	
 bind-key	action	seed	
+bind-start	action	seed	
+bind-finish	action	seed	
+bind-drop	action	seed	
+bind-literal	action	seed	
+bind-cancel	action	seed	
 binding	noun	seed	
 bindings	noun+prop	seed	
 bindings-help	noun	seed	
