@@ -53,7 +53,7 @@ type thingWalk struct {
 }
 
 func registerThingWalk(r *Runtime) {
-	r.Define("ochazuke.thing").Verb("walk", func(c Ctx) Result {
+	r.Define("ochazuke.thing").Kind(NounKindPart).Verb("walk", func(c Ctx) Result {
 		src := r.walkSource(Parameter{}, c.Context, nil)
 		_, err := r.OpenPicker(PickerSpec{
 			Kind: ThingWalkKind, Title: "Walk", Plural: "things", Sources: []PickerSource{src},
