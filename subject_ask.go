@@ -16,10 +16,10 @@ func (r *Runtime) declaredSubject(op Operation, p Parameter) bool {
 		return false
 	}
 	own := p.Noun != "" && r.CanonicalNoun(p.Noun) == r.CanonicalNoun(op.Noun())
-	return own && (p.Focus || p.From != "" || op.Kind == KindApplication) || p.From != "" && p.Noun == "" || p.Required && subjectParameter(p)
+	return own && (p.Focus || p.From != "" || op.Kind == KindApplication) || p.From != "" && p.Noun == "" || p.Required && asksSubjectParameter(p)
 }
 
-func subjectParameter(p Parameter) bool {
+func asksSubjectParameter(p Parameter) bool {
 	return !p.Plumbing && (p.Noun != "" || p.Type == PathParameterType || p.Focus || p.From != "")
 }
 
@@ -141,7 +141,7 @@ func (r *Runtime) canAskSubject(q Request, focus string) bool {
 }
 
 func (r *Runtime) mayAskParameter(p Parameter) bool {
-	return !subjectParameter(p) || r.subjectAsks()
+	return !asksSubjectParameter(p) || r.subjectAsks()
 }
 
 func (r *Runtime) pathSubjectScopes(sources []PickerSource, pick PathPick, origin Context) []PickerSource {
