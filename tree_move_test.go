@@ -86,10 +86,29 @@ func TestTreeMoveSpillsOutOfTheParentAtItsEdges(t *testing.T) {
 
 func TestTreeMoveSpillOffStopsAtTheEdge(t *testing.T) {
 	t.Parallel()
-	_, m, tree, _ := deleteFixture(t, "")
-	pressKeys(m, "j", "j", "K")
-	if got := shape(tree); got != deleteStart {
-		t.Fatalf("shape %q, want it unchanged", got)
+	r, m, tree, writes := deleteFixture(t, "")
+	// Off is the default: a first or last child stays in its parent and the
+	// edge is quiet (no change written, no error).
+	if r.TreeMoveSpill() {
+		t.Fatal("tree.move-spill is on by default")
+	}
+	pressKeys(m, "j", "j", "K") // c, b's first child
+	pressKeys(m, "j", "J")      // d, b's last child
+	if got := shape(tree); got != deleteStart || len(*writes) != 0 {
+		t.Fatalf("shape %q writes %v, want it unchanged and quiet", got, *writes)
+	}
+	// Set off explicitly, the same.
+	if err := r.Settings().Set(TreeMoveSpillSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	pressKeys(m, "K", "K")
+	if got := shape(tree); got != "a<- b<a d<b c<b e<a f<-" && got != deleteStart {
+		t.Fatalf("shape %q", got)
+	}
+	for _, n := range tree.Nodes() {
+		if n.ID == "d" && n.Parent != "b" {
+			t.Fatalf("d left its parent: %q", shape(tree))
+		}
 	}
 }
 
