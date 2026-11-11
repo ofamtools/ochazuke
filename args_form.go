@@ -154,7 +154,7 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 	if err != nil {
 		return nil, err
 	}
-	if r.Settings().Bool(PaletteReachSetting) {
+	if r.subjectAsks() || r.Settings().Bool(PaletteReachSetting) {
 		fields = askedTargets(fields, r.missingTargets(op, q.Args, r.requestFocus(q)))
 	}
 	fields = askedTargets(fields, needs)
@@ -174,7 +174,7 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 		}
 	}
 	for _, name := range r.missingTargets(op, q.Args, r.requestFocus(q)) {
-		if r.Settings().Bool(PaletteReachSetting) && !slices.Contains(missing, name) {
+		if (r.subjectAsks() || r.Settings().Bool(PaletteReachSetting)) && !slices.Contains(missing, name) {
 			missing = append(missing, name)
 		}
 	}
@@ -214,8 +214,11 @@ func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []strin
 	if err != nil {
 		return e, err
 	}
-	// A form opening on a missing path stop opens its chooser: that is
-	// where the path is typed.
+	// A declared noun subject opens the same scoped picker as the palette.
+	if f := e.fields[e.start()]; start != "" && f.Noun != "" && f.choose && r.subjectAsks() && (op.Parameters[start].Focus || slices.Contains(needs, start)) {
+		return e, e.choose(f)
+	}
+	// A form opening on a missing path stop opens its chooser.
 	if f := e.fields[e.start()]; start != "" && f.path && f.choose {
 		return e, e.choosePath(f)
 	}
@@ -309,6 +312,7 @@ func (r *Runtime) singlePath(missing []string, fields []RecordField) (RecordFiel
 // over; esc runs nothing.
 func (r *Runtime) choosePathArg(q Request, f RecordField, title string, run func(Request) error) error {
 	_, err := r.OpenPathChooser(PathChooserSpec{
+		whereFrom: true,
 		Title: title + " · choose " + f.Name,
 		Pick:  PathPick{Name: f.Name, Parameter: f.Parameter},
 		Choose: func(path string) Result {
@@ -364,7 +368,15 @@ func (r *Runtime) formForMissing(q Request, run func(Request) error) bool {
 	if !ok || !r.missingOpensForm() {
 		return false
 	}
-	if len(missingRequired(op, r.formSources(q).Args)) == 0 {
+	missing := missingRequired(op, r.formSources(q).Args)
+	if r.subjectAsks() {
+		for _, name := range r.missingTargets(op, r.formSources(q).Args, r.requestFocus(q)) {
+			if !slices.Contains(missing, name) {
+				missing = append(missing, name)
+			}
+		}
+	}
+	if len(missing) == 0 || !r.mayAskParameter(op.Parameters[missing[0]]) {
 		return false
 	}
 	_, err := r.OpenArgsForm(q, run)

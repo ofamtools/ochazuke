@@ -1,0 +1,173 @@
+package ochazuke
+
+import (
+	"fmt"
+	"slices"
+)
+
+// SubjectAskSetting enables asking for a declared subject a human request lacks.
+const SubjectAskSetting = "subject.ask"
+
+// WalkColumnsSetting is the number of visible columns in the relation walk.
+const WalkColumnsSetting = "walk.columns"
+
+func (r *Runtime) declaredSubject(op Operation, p Parameter) bool {
+	if p.Plumbing || op.Motion {
+		return false
+	}
+	own := p.Noun != "" && r.CanonicalNoun(p.Noun) == r.CanonicalNoun(op.Noun())
+	return own && (p.Focus || p.From != "" || op.Kind == KindApplication) || p.From != "" && p.Noun == "" || p.Required && subjectParameter(p)
+}
+
+func subjectParameter(p Parameter) bool {
+	return !p.Plumbing && (p.Noun != "" || p.Type == PathParameterType || p.Focus || p.From != "")
+}
+
+func (r *Runtime) subjectAsks() bool { return r.settingOn(SubjectAskSetting) }
+
+// subjectHere reads only candidates already available at the origin: declared
+// row sources, the nearest noun or its associations, and typed path props.
+// Store and relation graph reads belong to walkSource, not this scope.
+func (r *Runtime) subjectHere(p Parameter, origin Context) []Choice {
+	focus := focusOf(origin)
+	var out []Choice
+	add := func(c Choice) {
+		if c.ID != "" && !slices.ContainsFunc(out, func(one Choice) bool { return one.ID == c.ID }) {
+			out = append(out, c)
+		}
+	}
+	if p.From != "" {
+		if value := r.argument(p.From, KeyEvent{Focus: focus}); !emptyProp(value) {
+			text := fmt.Sprint(value)
+			add(Choice{ID: text, Label: text, Noun: p.Noun})
+		}
+	}
+	if p.Noun != "" && p.Noun != AnyNoun {
+		id, candidates := r.nearestOf(p.Noun, focus)
+		if id != "" {
+			inst := r.Instances[id]
+			t := r.instanceThing(inst)
+			add(Choice{ID: t.Key, Label: t.Label, Noun: inst.Noun})
+		}
+		for _, t := range candidates {
+			add(Choice{ID: t.Key, Label: t.Label, Noun: p.Noun})
+		}
+	}
+	for _, id := range r.Ancestry(focus) {
+		inst := r.Instances[id]
+		if p.Noun == AnyNoun && id != "app" {
+			t := r.instanceThing(inst)
+			add(Choice{ID: AnyRef(inst.Noun, t.Key), Label: t.Label, Noun: inst.Noun})
+			break
+		}
+		if p.Type != PathParameterType {
+			continue
+		}
+		n := r.Nouns[inst.Noun]
+		if n == nil {
+			continue
+		}
+		for _, prop := range n.Props {
+			if prop.Type != PathParameterType {
+				continue
+			}
+			if value := dataField(inst.Data, prop.Name); !emptyProp(value) {
+				add(Choice{ID: fmt.Sprint(value), Label: prop.Name + " · " + fmt.Sprint(value), Noun: inst.Noun})
+			}
+		}
+		if len(out) > 0 {
+			break
+		}
+	}
+	return out
+}
+
+// subjectScopes keeps the parameter's own list scopes and adds the same nearby
+// candidates and graph walk wherever a noun choice is opened.
+func (r *Runtime) subjectScopes(spec PickerSpec, l choiceLoad) (PickerSpec, bool) {
+	if l.param.Noun == "" || !r.subjectAsks() || !r.settingOn(PickerScopesSetting) {
+		return spec, false
+	}
+	origin := l.ctx
+	if r.TopModal() != "" {
+		origin = r.contextOf(r.BaseFocus())
+	}
+	spec.Scoped, spec.NormalMode, spec.StartNormal = true, true, l.ask
+	if here := r.subjectHere(l.param, origin); len(here) > 0 {
+		rows := make([]PickerRow, 0, len(here)+len(l.fixed))
+		for _, ch := range here {
+			rows = append(rows, l.choiceRow(ch))
+		}
+		rows = append(rows, l.fixed...)
+		spec.Sources = append(spec.Sources, PickerSource{Name: "here", Load: func(string) Result { return Done(rows) }})
+	}
+	scopes := r.scopesOf(l.param, l.siblings())
+	if len(scopes) == 0 {
+		scopes = []Scope{{Name: "list"}}
+	}
+	for _, scope := range scopes {
+		param := scope.within(l.param, l.siblings())
+		source := PickerSource{Name: scope.Name, Live: r.ChoicesTakeQuery(param), Load: r.choiceSourceLoad(l, param)}
+		if param.Noun == AnyNoun && param.Source == "" {
+			anyRefNavigation(&source)
+		}
+		spec.Sources = append(spec.Sources, source)
+	}
+	spec.Sources = append(spec.Sources, r.walkSource(l.param, origin, l.choiceRow))
+	choose := spec.Choose
+	spec.Choose = func(row PickerRow) Result {
+		// A walk may reach an archived thing or a thing absent from the list
+		// source. Keep the selected value as a valid choice for the form.
+		if l.landed != nil {
+			l.landed([]Choice{{ID: row.ID, Label: row.Label, Noun: row.Noun, Props: row.Props}})
+		}
+		if choose != nil {
+			return choose(row)
+		}
+		return Done(row.ID)
+	}
+	return spec, true
+}
+
+// canAskSubject lets a bound row reach the ordinary ask path even when a
+// subject-dependent verb guard cannot hold at the current focus. Row guards,
+// disabled settings and actor rights are not bypassed.
+func (r *Runtime) canAskSubject(q Request, focus string) bool {
+	op, ok := r.Operation(q.Key())
+	if !ok || !r.subjectAsks() || !r.missingOpensForm() || r.unavailableReason(op) != "" || r.missingRole(q) != nil {
+		return false
+	}
+	return len(r.missingTargets(op, q.Args, focus)) > 0
+}
+
+func (r *Runtime) mayAskParameter(p Parameter) bool {
+	return !subjectParameter(p) || r.subjectAsks()
+}
+
+func (r *Runtime) pathSubjectScopes(sources []PickerSource, pick PathPick, origin Context) []PickerSource {
+	graph := r.walkSource(pick.Parameter, origin, func(ch Choice) PickerRow {
+		row := ch.Row()
+		row.Data = ch.ID
+		return row
+	})
+	var typed PickerSource
+	disk := sources[:0]
+	for _, source := range sources {
+		if source.Name == PathSourceTyped {
+			typed = source
+			continue
+		}
+		name, label := source.Name, source.Label
+		source.Label = func() string {
+			if label != nil {
+				return "on disk · " + label()
+			}
+			return "on disk · " + name
+		}
+		if source.Name == graph.Name {
+			source.Name = "on disk · " + source.Name
+		}
+		disk = append(disk, source)
+	}
+	return append(disk, graph, typed)
+}

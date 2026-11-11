@@ -505,7 +505,7 @@ func (r *Runtime) lookup(lv level, mode string, exclusive bool, prefix, sequence
 			if lv.owns && owned == nil && matches(row) {
 				owned = row
 			}
-			if !r.availableWithin(row.Request, r.rowInstance(lv, row.Request, ev.Focus), ev.Mode, ev.Within) {
+			if !r.availableWithin(row.Request, r.rowInstance(lv, row.Request, ev.Focus), ev.Mode, ev.Within) && !r.canAskSubject(row.Request, ev.Focus) {
 				if prefix != "" && row.Keys == sequence && !key.Paste {
 					look.bound = true
 				}

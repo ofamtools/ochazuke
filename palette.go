@@ -331,7 +331,7 @@ func (p *Palette) run() error {
 		}
 	}
 	if c.Missing != "" {
-		if _, param := c.Op.Parameters[c.Missing]; param && c.known() && p.r.missingOpensForm() {
+		if param, declared := c.Op.Parameters[c.Missing]; declared && c.known() && p.r.missingOpensForm() && p.r.mayAskParameter(param) {
 			// The args form asks for what the line lacks; esc there comes
 			// back to this line as typed.
 			if _, err := p.r.OpenArgsForm(c.Request(), p.dispatch); err == nil {

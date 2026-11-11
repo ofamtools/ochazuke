@@ -124,6 +124,9 @@ type PathChooserSpec struct {
 	// ChooseMany takes them, else Choose takes each in turn.
 	Many       bool
 	ChooseMany func(paths []string) Result
+	// whereFrom adds relation graph scopes for a parameter ask, leaving
+	// standalone directory browsing and its remembered source unchanged.
+	whereFrom bool
 }
 
 type namedPathSource struct {
@@ -428,6 +431,11 @@ func (r *Runtime) OpenPathChooser(spec PathChooserSpec) (*Chooser, error) {
 		Columns:     def.Columns,
 		StartNormal: def.StartNormal,
 		Toggles:     pathToggles(st),
+	}
+	if spec.whereFrom && r.subjectAsks() && r.settingOn(PickerScopesSetting) {
+		chooser.Sources = r.pathSubjectScopes(chooser.Sources, pick, r.contextOf(r.BaseFocus()))
+		chooser.Scoped = true
+		chooser.NormalMode = true
 	}
 	if spec.Many {
 		chooser.ChooseMany = r.chooseMany(spec)

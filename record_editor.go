@@ -1293,6 +1293,7 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		row:      f.choiceRow,
 		siblings: e.arguments,
 		fixed:    fixed,
+		ask:      e.spec.Submit != nil && f.Required && f.text() == "",
 		landed: func(choices []Choice) {
 			if len(f.SourceArgs) == 0 {
 				f.choices = choices
@@ -1320,6 +1321,9 @@ type choiceLoad struct {
 	siblings func() Arguments
 	fixed    []ChooserRow
 	landed   func([]Choice)
+	// ask starts a missing subject's scopes in normal mode; ordinary
+	// record choice editing retains its insert-mode search.
+	ask bool
 }
 
 // openChoiceChooser opens the framework chooser (spec) over a parameter's
@@ -1332,6 +1336,9 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 	spec, l.param = r.nounPicker(spec, l.param)
 	if l.siblings == nil {
 		l.siblings = func() Arguments { return nil }
+	}
+	if scoped, ok := r.subjectScopes(spec, l); ok {
+		return r.OpenChooser(scoped)
 	}
 	if scopes := r.scopesOf(l.param, l.siblings()); len(scopes) > 0 {
 		// A picker with scopes opens on the first and S steps to the
@@ -1466,6 +1473,7 @@ func (e *RecordEditor) choosePath(f *recordField) error {
 	_, err := e.r.OpenPathChooser(PathChooserSpec{
 		Title: "Choose " + f.label(),
 		Pick:  PathPick{Name: f.Name, Parameter: f.Parameter, Value: f.text()},
+		whereFrom: true,
 		Choose: func(path string) Result {
 			var err error
 			if f.input != nil {
