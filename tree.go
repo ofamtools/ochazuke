@@ -1307,20 +1307,121 @@ func (t *Tree) rowKey(c Context, key string) error {
 	return err
 }
 
-// move swaps a node with its previous or next sibling.
-func (t *Tree) move(c Context, delta int) error {
+// Values of the move verb's to argument: the edges of a node's siblings.
+const (
+	TreeMoveFirst = "first"
+	TreeMoveLast  = "last"
+)
+
+// movePlace is where id ends up after up to steps places in dir (1 down, -1
+// up) and how many it took: each place swaps it with its next sibling, and
+// at the first or last sibling, with spill, it steps out of its parent to
+// follow it (down) or precede it (up), as the rows are drawn. A step the
+// application refuses (Fixed, Refuse) or a sibling in blocked is the edge,
+// quietly. The tree is not changed.
+func (t *Tree) movePlace(id string, dir, steps int, spill bool, blocked map[string]bool) (parent string, index, taken int) {
+	parent = t.parentOf(id)
+	kids := slices.Clone(t.children(parent))
+	index = slices.Index(kids, id)
+	for taken < steps {
+		to := index + dir
+		if to >= 0 && to < len(kids) {
+			if blocked[kids[to]] {
+				break
+			}
+			index = to
+			taken++
+			continue
+		}
+		if !spill || parent == "" {
+			break
+		}
+		grand := t.parentOf(parent)
+		siblings := t.children(grand)
+		at := slices.Index(siblings, parent)
+		if dir > 0 {
+			at++
+		}
+		if t.refuses(TreeChange{Op: TreeMove, ID: id, Parent: grand, Index: at}) != nil {
+			break
+		}
+		parent, kids, index = grand, slices.Insert(slices.Clone(siblings), at, id), at
+		taken++
+	}
+	return parent, index, taken
+}
+
+// move moves the node under the cursor, or every node of a visual
+// selection as one undo step: steps places down (positive) or up
+// (negative) the way movePlace says, or to the first or last place among
+// its siblings (edge). A selection moves as a block: a node that cannot
+// go its full way stops the ones behind it.
+func (t *Tree) move(c Context, delta, count int, edge string) error {
 	if err := t.closeLineAs(false, false); err != nil {
 		return err
 	}
-	id := t.target(c)
-	parent := t.parentOf(id)
-	kids := t.children(parent)
-	pos := slices.Index(kids, id)
-	to := pos + delta
-	if id == "" || to < 0 || to >= len(kids) {
+	cursor := t.target(c)
+	ids := []string{cursor}
+	l := t.list
+	if l.visual {
+		if marked := l.markedShown(); len(marked) > 0 {
+			ids = ids[:0]
+			for _, it := range marked {
+				ids = append(ids, it.ID)
+			}
+		}
+		// The selection stays, so J can be pressed again to take the block
+		// further; the cursor stays on the row it was on.
+		defer t.group()()
+	}
+	if ids[0] == "" || t.index(ids[0]) < 0 {
 		return nil
 	}
-	return t.commit([]TreeChange{{Op: TreeMove, ID: id, Parent: parent, Index: to}}, id)
+	dir, steps, spill := 1, max(1, count)*max(1, abs(delta)), t.r.TreeMoveSpill()
+	if delta < 0 {
+		dir = -1
+	}
+	switch edge {
+	case TreeMoveFirst:
+		dir, steps, spill = -1, len(t.nodes), false
+	case TreeMoveLast:
+		dir, steps, spill = 1, len(t.nodes), false
+	}
+	// Rows travelling with a selected ancestor are not moved on their own;
+	// the rest go nearest the edge they head for first.
+	var movers []string
+	for _, id := range ids {
+		inside := false
+		for p := t.parentOf(id); p != "" && !inside; p = t.parentOf(p) {
+			inside = slices.Contains(ids, p)
+		}
+		if !inside {
+			movers = append(movers, id)
+		}
+	}
+	slices.SortStableFunc(movers, func(a, b string) int { return dir * (t.index(b) - t.index(a)) })
+	blocked := map[string]bool{}
+	var last string
+	for _, id := range movers {
+		parent, index, taken := t.movePlace(id, dir, steps, spill, blocked)
+		if edge == "" && taken < steps || edge != "" && taken == 0 {
+			blocked[id] = true
+		}
+		if taken == 0 {
+			continue
+		}
+		if err := t.commit([]TreeChange{{Op: TreeMove, ID: id, Parent: parent, Index: index}}, id); err != nil {
+			return err
+		}
+		last = id
+	}
+	if last != "" {
+		if l.visual {
+			last = cursor
+		}
+		t.focusNode(last)
+	}
+	return nil
 }
 
 // history undoes (or redoes) one step: its changes are applied and
@@ -1729,7 +1830,9 @@ func registerTrees(r *Runtime) {
 		}), "Edit (rename) the node's line, with its text selected (select; omitted, the rename.select setting decides) so typing replaces it; typing is written after a pause and when the line is left").When("outline-renamable").
 		Verb("indent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, true) }), "Nest the node under the node above it").When("outline-movable").
 		Verb("outdent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, false) }), "Move the node out to follow its parent").When("outline-movable").
-		Verb("move", edit(func(t *Tree, c Ctx) error { return t.move(c.Context, IntArg(c.Args, "delta", 1)) }), "Swap the node with its next (delta 1) or previous (-1) sibling").When("outline-movable").
+		Verb("move", edit(func(t *Tree, c Ctx) error {
+			return t.move(c.Context, IntArg(c.Args, "delta", 1), IntArg(c.Args, "count", 1), StringArg(c.Args, "to", ""))
+		}), "Move the node (a visual selection: every selected node, as a block and one undo step) down (delta 1) or up (-1) the rows count times, past its siblings and, at the last or first one and with tree.move-spill, out of its parent to follow or precede it; or to the first or last place among its siblings (to)").When("outline-movable").
 		Verb("delete", edit(func(t *Tree, c Ctx) error { return t.remove(c.Context) }), "Delete the node (tree.delete-children says what happens to its children: a collapsed node takes them with it, an expanded one passes them up a level or to the top level); over a visual selection, every selected node, as one undo step; u brings them back").When("outline-deletable").
 		Verb("undo", edit(func(t *Tree, c Ctx) error { return t.history(false) }), "Undo the last change; the undo is written like any change").When("tree-editable").
 		Verb("redo", edit(func(t *Tree, c Ctx) error { return t.history(true) }), "Redo the last undone change").When("tree-editable").
@@ -1745,7 +1848,11 @@ func registerTrees(r *Runtime) {
 	params := map[string]map[string]Parameter{
 		"add":     {"where": {Type: "string", Enum: []string{"below", "above", "child"}}, "text": {Type: "string", Description: "the new line's text, a placeholder when select is set"}, "select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it"}},
 		"edit":    {"select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it; omitted, the rename.select setting decides"}},
-		"move":    {"delta": {Type: "integer", Required: true}},
+		"move": {
+			"delta": {Type: "integer", Description: "Places to move, down when positive, up when negative (default 1)"},
+			"count": {Type: "integer", Description: "Repeat count: the places are multiplied by it (3J); it stops at the edge"},
+			"to":    {Type: "string", Enum: []string{TreeMoveFirst, TreeMoveLast}, Description: "Move to the first or last place among the siblings instead of by delta"},
+		},
 		"paste":   {"text": {Type: "string", Required: true}},
 		"yank":    {"register": {Type: "string", Description: "Register name; the active register, else the unnamed one"}},
 		"put":     {"before": {Type: "boolean", Description: "put before the row instead of after its subtree"}, "register": {Type: "string", Description: "Register name; the active register, else the unnamed one"}},

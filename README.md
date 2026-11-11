@@ -1366,6 +1366,12 @@ On a tree `h` (`outline.collapse`) folds an open node, steps a child onto its pa
 
 Compared with Vim: `zc` on a line in no fold is an error (`E490: No fold found`, `:help zc`) and `h` in column 0 stops (`:help 'whichwrap'`); ochazuke's `h` steps up the tree instead and, at the top, lets the motion move on to the stop drawn before the tree, as `j`/`k` spill at a list's edges (R3.4).
 
+### Moving outline rows
+
+`J` and `K` (`ochazuke.outline.move {delta}`) move the row down or up the rows it shares a parent with, `count` times (`3J`: the `count` argument, filled from the pending count, as `3j` does), stopping at the edge. `g J` and `g K` (`move {to: last}`, `{to: first}`) go to the last or first place among its siblings. With the setting `tree.move-spill` (Lists, default on) a row at its last sibling moved down goes on out of its parent to follow it, and one at its first sibling moved up precedes it, as the rows are drawn; a move the application refuses (`Fixed`, `Tree.Refuse`: a task that must stay under its project) is a quiet edge. Off, a row stops at its siblings' edge. Over a visual selection (`V`) the same keys move every selected row as a block and one undo step (a selected row under a selected parent travels with it; a row that cannot go its full way stops the rows behind it), and the selection stays so the key can be pressed again. A row that moves keeps its id.
+
+Compared with Vim: Vim has no outline rows; its line moves are `:m` (`:help :move`: `:m +1`, `:m -2`, `:m 0`, `:m $`) and the `ddp` and `ddkP` idioms. Same: `J`/`K` by a count, `g K`/`g J` for `:m 0` and `:m $`. Different: Vim's `J` (`:help J`) joins lines and `K` (`:help K`) looks a word up, so these rows are the outline's own; the move carries the row's subtree and keeps its identity (a `dd` and `p` makes a new line); the spill out of the parent has no Vim counterpart (a line has no parent); in Vim's visual mode `:'<,'>m` moves a block and ends the selection, here the selection stays.
+
 ### Outline nodes that refuse a change
 
 In normal mode an outline nests a line with `tab` or Vim's `> >` (`outline.indent`) and takes it out with `shift+tab` or `< <` (`outline.outdent`); `> >`/`< <` are rows of `bindings/tree.json` (story `tree/outline-shift-operators`). Compared with Vim: one line per press, no count or motion (`3>>`, `>j`) yet.

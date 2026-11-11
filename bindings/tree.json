@@ -17,8 +17,10 @@
       {"key": "shift+tab", "action": "ochazuke.outline.outdent"},
       {"key": "> >", "action": "ochazuke.outline.indent", "hidden": true},
       {"key": "< <", "action": "ochazuke.outline.outdent", "hidden": true},
-      {"key": "J", "action": "ochazuke.outline.move", "args": {"delta": 1}},
-      {"key": "K", "action": "ochazuke.outline.move", "args": {"delta": -1}},
+      {"key": "J", "action": "ochazuke.outline.move", "args": {"delta": 1}, "from": {"count": "count"}},
+      {"key": "K", "action": "ochazuke.outline.move", "args": {"delta": -1}, "from": {"count": "count"}},
+      {"key": "g J", "action": "ochazuke.outline.move", "args": {"to": "last"}, "hint": "move to last"},
+      {"key": "g K", "action": "ochazuke.outline.move", "args": {"to": "first"}, "hint": "move to first"},
       {"key": "d d", "action": "ochazuke.outline.delete"},
       {"key": "y y", "action": "ochazuke.outline.yank"},
       {"key": "p", "action": "ochazuke.outline.put"},
@@ -27,8 +29,13 @@
       {"key": "ctrl+r", "action": "ochazuke.outline.redo"},
       {"key": "paste", "action": "ochazuke.outline.paste", "from": {"text": "text"}}
     ]},
+    {"context": "ochazuke.outline/count_pending", "extends": "normal", "bindings": []},
     {"context": "ochazuke.outline/visual-line", "bindings": [
-      {"key": "d", "action": "ochazuke.outline.delete"}
+      {"key": "d", "action": "ochazuke.outline.delete"},
+      {"key": "J", "action": "ochazuke.outline.move", "args": {"delta": 1}, "from": {"count": "count"}},
+      {"key": "K", "action": "ochazuke.outline.move", "args": {"delta": -1}, "from": {"count": "count"}},
+      {"key": "g J", "action": "ochazuke.outline.move", "args": {"to": "last"}, "hint": "move to last"},
+      {"key": "g K", "action": "ochazuke.outline.move", "args": {"to": "first"}, "hint": "move to first"}
     ]},
     {"context": "ochazuke.outline-line/insert", "bindings": [
       {"key": "esc", "action": "ochazuke.outline.leave"},
