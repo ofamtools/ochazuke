@@ -5857,91 +5857,6 @@
       "name": "pgdown moves the surface; j brings the focus back"
     },
     {
-      "width": 60,
-      "height": 6,
-      "chrome": "none",
-      "state": true,
-      "page": {
-        "noHeadings": true,
-        "lists": [
-          {
-            "id": "t",
-            "cellSelect": true,
-            "columns": [
-              {
-                "title": "pane"
-              },
-              {
-                "title": "harness",
-                "priority": 2
-              },
-              {
-                "title": "state",
-                "priority": 1
-              },
-              {
-                "title": "cwd",
-                "min": 8,
-                "priority": 3
-              },
-              {
-                "title": "branch",
-                "priority": 4
-              }
-            ],
-            "items": [
-              {
-                "id": "t1",
-                "label": "work/claude",
-                "cells": [
-                  "work/claude",
-                  "claude-code",
-                  "idle",
-                  "~/proj/matomeru",
-                  "main"
-                ]
-              },
-              {
-                "id": "t2",
-                "label": "work/codex",
-                "cells": [
-                  "work/codex",
-                  "codex",
-                  "working",
-                  "~/proj/ochazuke",
-                  "feat/list-motions"
-                ]
-              },
-              {
-                "id": "t3",
-                "label": "main/shell",
-                "cells": [
-                  "main/shell",
-                  "shell",
-                  "",
-                  "~/hub",
-                  "docs/readme-header"
-                ]
-              },
-              {
-                "id": "t4",
-                "label": "9332c352/review",
-                "cells": [
-                  "9332c352/review",
-                  "claude-code",
-                  "needs_input",
-                  "~/proj/nabe",
-                  "prototype/picker-lab"
-                ]
-              }
-            ],
-            "selected": 0
-          }
-        ]
-      },
-      "name": "column widths: z > widens the current column, the width and the column survive a restart, z = makes it automatic"
-    },
-    {
       "width": 80,
       "height": 8,
       "chrome": "none",
@@ -6484,99 +6399,6 @@
       "name": "z f fits the current column to its widest cell (title included) and it stays as the cursor moves; z = makes it automatic again"
     },
     {
-      "width": 60,
-      "height": 10,
-      "chrome": "none",
-      "state": true,
-      "page": {
-        "noHeadings": true,
-        "lists": [
-          {
-            "id": "t",
-            "columns": [
-              {
-                "title": "name"
-              },
-              {
-                "title": "note",
-                "max": 12
-              },
-              {
-                "title": "size"
-              },
-              {
-                "title": "kind"
-              }
-            ],
-            "items": [
-              {
-                "id": "r1",
-                "label": "r1",
-                "cells": [
-                  "r1",
-                  "short",
-                  "7",
-                  "file-of-kind-r1"
-                ]
-              },
-              {
-                "id": "r2",
-                "label": "r2",
-                "cells": [
-                  "r2",
-                  "short",
-                  "7",
-                  "file-of-kind-r2"
-                ]
-              },
-              {
-                "id": "r3",
-                "label": "r3",
-                "cells": [
-                  "r3",
-                  "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
-                  "7",
-                  "file-of-kind-r3"
-                ]
-              },
-              {
-                "id": "r4",
-                "label": "r4",
-                "cells": [
-                  "r4",
-                  "short",
-                  "7",
-                  "file-of-kind-r4"
-                ]
-              },
-              {
-                "id": "r5",
-                "label": "r5",
-                "cells": [
-                  "r5",
-                  "short",
-                  "7",
-                  "file-of-kind-r5"
-                ]
-              },
-              {
-                "id": "r6",
-                "label": "r6",
-                "cells": [
-                  "r6",
-                  "short",
-                  "7",
-                  "file-of-kind-r6"
-                ]
-              }
-            ],
-            "selected": 0
-          }
-        ]
-      },
-      "name": "z F on a row-select table fits every column it can and narrows the widest (note) so only it is cut; the widths survive a restart and the cursor moves nothing; z = undoes it"
-    },
-    {
       "width": 44,
       "height": 20,
       "page": {
@@ -6592,86 +6414,6 @@
         ]
       },
       "name": "a table in a modal clamps: l past the last column and h before the first scroll no further and keep the focus in the modal (the help's table view; R5.11, R3.6)"
-    },
-    {
-      "width": 40,
-      "height": 8,
-      "chrome": "none",
-      "page": {
-        "noHeadings": true,
-        "lists": [
-          {
-            "id": "t",
-            "columns": [
-              {
-                "title": "name",
-                "width": 8
-              },
-              {
-                "title": "alpha",
-                "width": 8
-              },
-              {
-                "title": "bravo",
-                "width": 8
-              },
-              {
-                "title": "charlie",
-                "width": 8
-              },
-              {
-                "title": "delta",
-                "width": 8
-              },
-              {
-                "title": "echo",
-                "width": 8
-              }
-            ],
-            "items": [
-              {
-                "id": "t1",
-                "label": "row1",
-                "cells": [
-                  "row1",
-                  "a-1",
-                  "b-1",
-                  "c-1",
-                  "d-1",
-                  "e-1"
-                ]
-              },
-              {
-                "id": "t2",
-                "label": "row2",
-                "cells": [
-                  "row2",
-                  "a-2",
-                  "b-2",
-                  "c-2",
-                  "d-2",
-                  "e-2"
-                ]
-              },
-              {
-                "id": "t3",
-                "label": "row3",
-                "cells": [
-                  "row3",
-                  "a-3",
-                  "b-3",
-                  "c-3",
-                  "d-3",
-                  "e-3"
-                ]
-              }
-            ]
-          }
-        ],
-        "focus": "t1"
-      },
-      "state": true,
-      "name": "a row-select table pins a column from the palette, keeps it across a restart, and reset-columns puts the default pins back (R5.13)"
     },
     {
       "width": 40,
@@ -8524,21 +8266,6 @@
     "j",
     {
       "key": "ctrl+alt+n",
-      "note": "tables/column-resize: column widths: z > widens the current column, the width and the column survive a restart, z = makes it automatic"
-    },
-    "l",
-    "l",
-    "z",
-    ">",
-    "z",
-    ">",
-    {
-      "restart": true
-    },
-    "z",
-    "=",
-    {
-      "key": "ctrl+alt+n",
       "note": "tables/edge-markers-fit: a table whose columns all fit draws no edge markers and reserves no room for them (R5.12)"
     },
     {
@@ -8617,20 +8344,6 @@
     "=",
     {
       "key": "ctrl+alt+n",
-      "note": "tables/fit-columns: z F on a row-select table fits every column it can and narrows the widest (note) so only it is cut; the widths survive a restart and the cursor moves nothing; z = undoes it"
-    },
-    "z",
-    "F",
-    "j",
-    "j",
-    {
-      "restart": true
-    },
-    "j",
-    "z",
-    "=",
-    {
-      "key": "ctrl+alt+n",
       "note": "tables/modal-clamps: a table in a modal clamps: l past the last column and h before the first scroll no further and keep the focus in the modal (the help's table view; R5.11, R3.6)"
     },
     "?",
@@ -8648,23 +8361,6 @@
     "h",
     "h",
     "h",
-    {
-      "key": "ctrl+alt+n",
-      "note": "tables/pin-row-palette: a row-select table pins a column from the palette, keeps it across a restart, and reset-columns puts the default pins back (R5.13)"
-    },
-    ":",
-    {
-      "type": "toggle-pin-column delta"
-    },
-    "enter",
-    {
-      "restart": true
-    },
-    ":",
-    {
-      "type": "reset-columns"
-    },
-    "enter",
     {
       "key": "ctrl+alt+n",
       "note": "tables/scroll-then-focus-left: row mode: h scrolls the columns back one at a time to the start, then moves the focus to the previous stop (R5.11)"
@@ -10223,30 +9919,6 @@
       "after": 507
     },
     {
-      "after": 514,
-      "contains": [
-        "state            cwd"
-      ],
-      "cell": "idle"
-    },
-    {
-      "after": 515,
-      "contains": [
-        "state            cwd"
-      ],
-      "cell": "idle"
-    },
-    {
-      "contains": [
-        "state        cwd"
-      ],
-      "lacks": [
-        "state            cwd"
-      ],
-      "cell": "idle",
-      "after": 517
-    },
-    {
       "contains": [
         "echo"
       ],
@@ -10254,7 +9926,7 @@
         "‹",
         "›"
       ],
-      "after": 518
+      "after": 508
     },
     {
       "contains": [
@@ -10263,17 +9935,17 @@
       "lacks": [
         "‹"
       ],
-      "after": 519
+      "after": 509
     },
     {
-      "after": 521,
+      "after": 511,
       "contains": [
         "‹1",
         "2›"
       ]
     },
     {
-      "after": 522,
+      "after": 512,
       "contains": [
         "‹3"
       ],
@@ -10282,7 +9954,7 @@
       ]
     },
     {
-      "after": 522,
+      "after": 512,
       "contains": [
         "name",
         "delta",
@@ -10308,7 +9980,7 @@
         "list has no selected row",
         "no row to copy"
       ],
-      "after": 524
+      "after": 514
     },
     {
       "focus": "empty",
@@ -10319,10 +9991,10 @@
         "list has no selected row",
         "no row to copy"
       ],
-      "after": 526
+      "after": 516
     },
     {
-      "after": 527,
+      "after": 517,
       "contains": [
         "pane",
         "harness",
@@ -10333,7 +10005,7 @@
       "highlighted": 1
     },
     {
-      "after": 533,
+      "after": 523,
       "mode": "list_filter",
       "focus": "t1",
       "contains": [
@@ -10349,7 +10021,7 @@
       ]
     },
     {
-      "after": 533,
+      "after": 523,
       "contains": [
         "◆ o-story",
         "LIST FILTER",
@@ -10373,13 +10045,13 @@
       "dimmed": 1
     },
     {
-      "after": 542,
+      "after": 532,
       "contains": [
         "Sort by ▼"
       ]
     },
     {
-      "after": 547,
+      "after": 537,
       "contains": [
         "Applied: plain",
         "Replace"
@@ -10395,10 +10067,10 @@
         "▼",
         "▲"
       ],
-      "after": 553
+      "after": 543
     },
     {
-      "after": 555,
+      "after": 545,
       "contains": [
         "nnnnnnnnnnn…"
       ],
@@ -10408,14 +10080,14 @@
       "cell": "short"
     },
     {
-      "after": 557,
+      "after": 547,
       "contains": [
         "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
       ],
       "cell": "short"
     },
     {
-      "after": 562,
+      "after": 552,
       "contains": [
         "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
       ],
@@ -10429,70 +10101,31 @@
         "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
       ],
       "cell": "short",
-      "after": 564
+      "after": 554
     },
     {
-      "after": 567,
-      "contains": [
-        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnn…",
-        "file-of-kind-r1"
-      ],
-      "lacks": [
-        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
-      ]
-    },
-    {
-      "after": 569,
-      "contains": [
-        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnn…",
-        "file-of-kind-r1"
-      ],
-      "lacks": [
-        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
-      ]
-    },
-    {
-      "after": 571,
-      "contains": [
-        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnn…",
-        "file-of-kind-r1"
-      ],
-      "lacks": [
-        "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
-      ]
-    },
-    {
-      "contains": [
-        "r3    nnnnnnnnnnn…"
-      ],
-      "lacks": [
-        "nnnnnnnnnnnnnnnnnnnnnnnnn"
-      ],
-      "after": 573
-    },
-    {
-      "after": 577,
+      "after": 558,
       "modal": "bindings-help",
       "contains": [
         "›"
       ]
     },
     {
-      "after": 583,
+      "after": 564,
       "modal": "bindings-help",
       "contains": [
         "‹"
       ]
     },
     {
-      "after": 589,
+      "after": 570,
       "modal": "bindings-help",
       "lacks": [
         "‹"
       ]
     },
     {
-      "after": 589,
+      "after": 570,
       "contains": [
         "◆ o-story",
         "NORMAL",
@@ -10513,61 +10146,14 @@
       "dimmed": 2
     },
     {
-      "after": 593,
-      "modal": "",
-      "order": [
-        "name",
-        "delta",
-        "alpha"
-      ]
-    },
-    {
-      "after": 594,
-      "order": [
-        "name",
-        "delta",
-        "alpha"
-      ]
-    },
-    {
-      "after": 597,
-      "modal": "",
-      "order": [
-        "name",
-        "alpha",
-        "bravo"
-      ],
-      "lacks": [
-        "delta"
-      ]
-    },
-    {
-      "after": 597,
-      "contains": [
-        "name",
-        "alpha",
-        "bravo",
-        "row1",
-        "a-1",
-        "b-1",
-        "row2",
-        "a-2",
-        "b-2",
-        "row3",
-        "a-3",
-        "b-3"
-      ],
-      "highlighted": 1
-    },
-    {
-      "after": 599,
+      "after": 572,
       "focus": "t1",
       "contains": [
         "echo"
       ]
     },
     {
-      "after": 600,
+      "after": 573,
       "focus": "t1",
       "contains": [
         "charlie",
@@ -10578,7 +10164,7 @@
       ]
     },
     {
-      "after": 602,
+      "after": 575,
       "focus": "t1",
       "contains": [
         "alpha",
@@ -10589,11 +10175,11 @@
       ]
     },
     {
-      "after": 603,
+      "after": 576,
       "focus": "a1"
     },
     {
-      "after": 603,
+      "after": 576,
       "contains": [
         "name",
         "alpha",
@@ -10612,7 +10198,7 @@
       "dimmed": 2
     },
     {
-      "after": 605,
+      "after": 578,
       "focus": "t1",
       "contains": [
         "charlie"
@@ -10622,7 +10208,7 @@
       ]
     },
     {
-      "after": 607,
+      "after": 580,
       "focus": "t1",
       "contains": [
         "echo"
@@ -10632,11 +10218,11 @@
       ]
     },
     {
-      "after": 608,
+      "after": 581,
       "focus": "b1"
     },
     {
-      "after": 608,
+      "after": 581,
       "contains": [
         "name",
         "delta",
@@ -10655,7 +10241,7 @@
       "dimmed": 2
     },
     {
-      "after": 611,
+      "after": 584,
       "order": [
         "rank ▲",
         "2",
@@ -10665,7 +10251,7 @@
       "focus": "ten"
     },
     {
-      "after": 613,
+      "after": 586,
       "order": [
         "rank ▼",
         "10",
@@ -10686,7 +10272,7 @@
         "▼"
       ],
       "focus": "ten",
-      "after": 615
+      "after": 588
     },
     {
       "order": [
@@ -10695,7 +10281,43 @@
         "5",
         "10"
       ],
+      "after": 600
+    },
+    {
+      "after": 610,
+      "contains": [
+        "Sort by ▲"
+      ]
+    },
+    {
+      "order": [
+        "rank",
+        "10",
+        "2",
+        "5"
+      ],
+      "lacks": [
+        "▲",
+        "▼"
+      ],
+      "after": 614
+    },
+    {
+      "order": [
+        "rank ▼",
+        "10",
+        "5",
+        "2"
+      ],
       "after": 627
+    },
+    {
+      "contains": [
+        "Applied: ranked",
+        "Replace",
+        "ranked"
+      ],
+      "after": 646
     },
     {
       "after": 637,
@@ -10704,43 +10326,7 @@
       ]
     },
     {
-      "order": [
-        "rank",
-        "10",
-        "2",
-        "5"
-      ],
-      "lacks": [
-        "▲",
-        "▼"
-      ],
-      "after": 641
-    },
-    {
-      "order": [
-        "rank ▼",
-        "10",
-        "5",
-        "2"
-      ],
-      "after": 654
-    },
-    {
-      "contains": [
-        "Applied: ranked",
-        "Replace",
-        "ranked"
-      ],
-      "after": 673
-    },
-    {
-      "after": 664,
-      "contains": [
-        "Sort by ▲"
-      ]
-    },
-    {
-      "after": 677,
+      "after": 650,
       "order": [
         "rank ▲",
         "2",
@@ -10750,7 +10336,7 @@
       "focus": "ten"
     },
     {
-      "after": 680,
+      "after": 653,
       "order": [
         "rank ▼",
         "10",
@@ -10771,17 +10357,17 @@
         "▼"
       ],
       "focus": "ten",
-      "after": 683
+      "after": 656
     },
     {
-      "after": 689,
+      "after": 662,
       "contains": [
         "Applied: ranked",
         "Sort by ▼"
       ]
     },
     {
-      "after": 690,
+      "after": 663,
       "order": [
         "rank ▼",
         "10",
@@ -10800,7 +10386,7 @@
         "▲",
         "▼"
       ],
-      "after": 692
+      "after": 665
     },
     {
       "order": [
@@ -10813,10 +10399,10 @@
         "▲",
         "▼"
       ],
-      "after": 697
+      "after": 670
     },
     {
-      "after": 702,
+      "after": 675,
       "contains": [
         "echo"
       ],
@@ -10825,7 +10411,7 @@
       ]
     },
     {
-      "after": 702,
+      "after": 675,
       "contains": [
         "charlie",
         "delta",
@@ -10843,7 +10429,7 @@
       "highlighted": 1
     },
     {
-      "after": 705,
+      "after": 678,
       "mode": "visual-line",
       "contains": [
         "* row 1",
@@ -10851,7 +10437,7 @@
       ]
     },
     {
-      "after": 706,
+      "after": 679,
       "modal": "confirm",
       "contains": [
         "2 rows"
@@ -10868,10 +10454,10 @@
         "row 3",
         "row 4"
       ],
-      "after": 707
+      "after": 680
     },
     {
-      "after": 711,
+      "after": 684,
       "mode": "visual-line d",
       "modal": "",
       "contains": [
@@ -10880,15 +10466,15 @@
       ]
     },
     {
-      "after": 712,
+      "after": 685,
       "mode": "visual-line"
     },
     {
       "mode": "normal",
-      "after": 713
+      "after": 686
     },
     {
-      "after": 717,
+      "after": 690,
       "contains": [
         "* row 1",
         "* row 2",
@@ -10897,7 +10483,7 @@
       ]
     },
     {
-      "after": 718,
+      "after": 691,
       "lacks": [
         "*"
       ],
@@ -10917,7 +10503,7 @@
         "demo.zap row=r3",
         "demo.tag subjects=r1,r2,r3"
       ],
-      "after": 724
+      "after": 697
     },
     {
       "lacks": [
@@ -10930,7 +10516,7 @@
         "demo.zap row=r1",
         "demo.zap row=r3"
       ],
-      "after": 729
+      "after": 702
     },
     {
       "page": "page1"

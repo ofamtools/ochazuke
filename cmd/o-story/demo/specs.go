@@ -447,7 +447,6 @@ type JobSpec struct {
 	Label       string `json:"label,omitempty"` // the job's Result.Label
 }
 
-
 // AboutSpec is a fixed build and process for the About page: the main
 // module, its vcs stamps, its dependencies (replace: a local directory;
 // replaceVersion with it: another module), the binary, the pid, the start

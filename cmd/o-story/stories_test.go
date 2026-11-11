@@ -114,7 +114,8 @@ func TestCompositeRecordingKeepsOpeningFixture(t *testing.T) {
 	d := story.NewDriver(ss, story.Options{Mono: true})
 	defer d.Close()
 	rec := story.NewRecorder(s, nil)
-	for _, event := range []story.Event{
+	var baked *story.Story
+	for i, event := range []story.Event{
 		{Key: "ctrl+alt+n"}, {Key: "j"}, {Key: "ctrl+alt+n"},
 		{Key: "end"}, {Type: "!"}, {Key: "ctrl+c"},
 	} {
@@ -122,12 +123,19 @@ func TestCompositeRecordingKeepsOpeningFixture(t *testing.T) {
 		if err := d.Step(event); err != nil {
 			t.Fatal(err)
 		}
+		if i == 1 {
+			snap, err := d.S.Snapshot()
+			if err != nil {
+				t.Fatal(err)
+			}
+			baked = &story.Story{Name: "baked checkpoints", Seed: snap.Seed, Fields: snap.Fields}
+		}
 	}
-	d.Close() // the host closes before writing its recording
 	store := story.Store{Dir: t.TempDir()}
 	if _, err := store.Push(&rec.Rec); err != nil {
 		t.Fatal(err)
 	}
+	d.Close()
 	entry, err := store.Load("1")
 	if err != nil {
 		t.Fatal(err)
@@ -144,5 +152,21 @@ func TestCompositeRecordingKeepsOpeningFixture(t *testing.T) {
 	in := replay.S.R.Input("text")
 	if in == nil || string(in.Text) != "two!" || !replay.S.R.Quit {
 		t.Fatalf("partial recording did not replay the second fixture's edit: input=%+v, quit=%v", in, replay.S.R.Quit)
+	}
+	fromSnapshot, err := lib.Build(baked, story.Options{Mono: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := story.NewDriver(fromSnapshot, story.Options{Mono: true})
+	defer snapshot.Close()
+	if snapshot.S.R.FocusID() != "a2" {
+		t.Fatalf("snapshot lost the selected row: %s", snapshot.S.R.FocusID())
+	}
+	if err := snapshot.Play([]story.Event{{Key: "ctrl+alt+n"}, {Key: "end"}, {Type: "!"}}, nil); err != nil {
+		t.Fatal(err)
+	}
+	in = snapshot.S.R.Input("text")
+	if in == nil || string(in.Text) != "two!" {
+		t.Fatalf("snapshot did not advance to its next checkpoint: %+v", in)
 	}
 }

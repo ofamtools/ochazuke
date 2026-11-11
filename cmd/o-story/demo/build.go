@@ -46,10 +46,9 @@ type session struct {
 	// all are the story's pages, page first, then pages.
 	all []*Page
 	// filesDir is the temp file tree of a story with Files.
-	filesDir string
-	// restoreCheckpoint returns a partial recording's initial story to the
-	// opening fixture when the person leaves, not during a host reset.
-	restoreCheckpoint func()
+	filesDir          string
+	restoreCheckpoint func(keepGeometry bool) error
+	checkpointAdvance bool
 
 	pages map[string]*Page
 	lists map[string]*ochazuke.Collection
@@ -106,6 +105,10 @@ func pagesOf(env monogatari.Env) ([]*Page, error) {
 // build is the pages fixture: the story's synthetic pages on a fresh
 // sandboxed runtime.
 func build(env monogatari.Env) (monogatari.Built, error) {
+	if err := prepareCheckpoints(env); err != nil {
+		return monogatari.Built{}, err
+	}
+	env.Width, env.Height = env.Story.Size()
 	pages, err := pagesOf(env)
 	if err != nil {
 		return monogatari.Built{}, err
@@ -228,6 +231,9 @@ func (ss *session) start() error {
 			}
 		}
 	}
+	if ss.restoreCheckpoint != nil {
+		return ss.restoreCheckpoint(true)
+	}
 	return nil
 }
 
@@ -280,8 +286,10 @@ func (ss *session) close() {
 	select {
 	case <-ss.done:
 	default:
-		if ss.R.Quit && ss.restoreCheckpoint != nil {
-			ss.restoreCheckpoint()
+		if !ss.checkpointAdvance && ss.restoreCheckpoint != nil {
+			if err := ss.restoreCheckpoint(false); err != nil {
+				ss.R.UI().Error(err.Error())
+			}
 		}
 		close(ss.done)
 	}
@@ -1988,7 +1996,13 @@ func (ss *session) snapshot() (monogatari.Snapshot, error) {
 	if err != nil {
 		return monogatari.Snapshot{}, err
 	}
-	return monogatari.Snapshot{Fields: map[string]json.RawMessage{"pages": data}, Warn: warn}, nil
+	fields := map[string]json.RawMessage{"pages": data}
+	var seed json.RawMessage
+	if checkpoints, ok := ss.env.Story.Fields["checkpoints"]; ok {
+		fields["checkpoints"] = checkpoints
+		seed = ss.env.Seed
+	}
+	return monogatari.Snapshot{Fields: fields, Seed: seed, Warn: warn}, nil
 }
 
 // completionFakes are a story input's completion triggers: each search

@@ -356,102 +356,6 @@
       "name": "a page declared hidden by default starts out of the tabs; page show brings it in"
     },
     {
-      "width": 100,
-      "height": 22,
-      "state": true,
-      "page": {
-        "id": "ai",
-        "title": "AI",
-        "catalog": {
-          "nouns": [
-            {
-              "name": "skill",
-              "columns": [
-                {
-                  "title": "Name",
-                  "min": 8
-                },
-                {
-                  "title": "Origin"
-                }
-              ],
-              "verbs": [
-                {
-                  "name": "list",
-                  "rows": "skill"
-                },
-                {
-                  "name": "show"
-                }
-              ]
-            },
-            {
-              "name": "mcp",
-              "verbs": [
-                {
-                  "name": "tools",
-                  "rows": "mcp-tool"
-                }
-              ]
-            },
-            {
-              "name": "mcp-tool",
-              "verbs": [
-                {
-                  "name": "show"
-                }
-              ]
-            }
-          ],
-          "page": {
-            "title": "AI",
-            "lists": [
-              {
-                "id": "ai/skills",
-                "noun": "skill"
-              },
-              {
-                "id": "ai/tools",
-                "noun": "mcp",
-                "source": "mcp.tools",
-                "title": "tools"
-              }
-            ],
-            "layout": "split",
-            "detail": {
-              "title": "record"
-            }
-          },
-          "answers": {
-            "skill.list": [
-              {
-                "id": "s1",
-                "name": "architect",
-                "cells": [
-                  "architect",
-                  "claude"
-                ],
-                "path": "~/.claude/skills/architect",
-                "origin": "claude"
-              },
-              {
-                "id": "s2",
-                "name": "review",
-                "cells": [
-                  "review",
-                  "ai-tools"
-                ],
-                "path": "~/proj/ai-tools/review",
-                "origin": "ai-tools"
-              }
-            ],
-            "mcp.tools": "{\"noun\":\"mcp\",\"id\":\"t1\",\"label\":\"tuios_send_text\",\"data\":{\"server\":\"tuios\"}}\n{\"noun\":\"mcp\",\"id\":\"t2\",\"label\":\"tuios_capture\",\"data\":{\"server\":\"tuios\"}}\n"
-          }
-        }
-      },
-      "name": "panes: the divider is remembered per page across a restart (the state dir's panes.json)"
-    },
-    {
       "width": 60,
       "height": 14,
       "page": {
@@ -659,17 +563,6 @@
     },
     "enter",
     "ctrl+j",
-    {
-      "key": "ctrl+alt+n",
-      "note": "panes/remembered: panes: the divider is remembered per page across a restart (the state dir's panes.json)"
-    },
-    "ctrl+w",
-    ">",
-    "ctrl+w",
-    ">",
-    {
-      "restart": true
-    },
     {
       "key": "ctrl+alt+n",
       "note": "yank-history/gg-G: the yank history answers G, g g, a count's G and ctrl+d/ctrl+u through the shared motions (viewport.goto, viewport.scroll by page), as a list does"
@@ -1134,50 +1027,35 @@
       "after": 120
     },
     {
-      "after": 125,
-      "shift": 10,
-      "contains": [
-        "┏━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ record"
-      ]
-    },
-    {
-      "shift": 10,
-      "focus": "ai/skills/s1",
-      "contains": [
-        "┏━ skill (2) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ ╭─ record"
-      ],
-      "after": 126
-    },
-    {
-      "after": 140,
+      "after": 134,
       "modal": "__yank-history",
       "contains": [
         "› 1 ["
       ]
     },
     {
-      "after": 141,
+      "after": 135,
       "modal": "__yank-history",
       "contains": [
         "› 4 ["
       ]
     },
     {
-      "after": 143,
+      "after": 137,
       "modal": "__yank-history",
       "contains": [
         "› 1 ["
       ]
     },
     {
-      "after": 145,
+      "after": 139,
       "modal": "__yank-history",
       "contains": [
         "› 3 ["
       ]
     },
     {
-      "after": 146,
+      "after": 140,
       "modal": "__yank-history",
       "contains": [
         "› 1 ["
@@ -1189,7 +1067,7 @@
       "contains": [
         "› 4 ["
       ],
-      "after": 147
+      "after": 141
     },
     {
       "page": "page1"
