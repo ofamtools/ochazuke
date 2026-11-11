@@ -11,17 +11,19 @@ one entry here by id, or is labelled a judgment.
 | Judgment | `J` | The reviewer thinks it is worse and no entry covers it | suggestion | no |
 
 Severities: `blocker`, `major`, `minor`, `suggestion`. A rule finding is a
-blocker when the story fails, minor when the story passes but the code reaches
+blocker when its regression fails, minor when it passes but the code reaches
 the result the wrong way (a literal where a row should be). A principle
 finding is major at most and carries its reasoning in one or two sentences. A
 judgment never blocks; the applier may skip it with a one-word reason, and
 disagreements go to the owner, not back into the loop.
 
-A story path under `cmd/o-story/stories/` is the executable form of a rule.
-`needed` means no story covers it yet; a finding under such a rule must add
-the story (`"skip": "gap: …"` if it stays red). The source of the long form
-is `AGENTS.md`'s invariants; this file restates them as checks and adds the
-tiers above them. When the two disagree, fix one in the same commit.
+A composite checkpoint or ordinary test is the executable form of a rule.
+`needed` means no verified regression has been identified. Extend the area's
+composite or write an ordinary test; do not add a new story file without the
+owner asking. Composite references below identify the owning area, not proof
+that every retired variant is still exercised. Retained source names are in
+the composites' event notes. The long form is `AGENTS.md`'s invariants; when
+the two disagree, fix one in the same commit.
 
 ---
 
@@ -74,19 +76,15 @@ tiers above them. When the two disagree, fix one in the same commit.
   list's `visual-line` `d`): the mode's own key answers at once and the
   hints leave the shadowed sequence out (`sequence-inherit` `drop`, the
   default; `keep` lets it wait). Stories:
-  `lists/sequence-waits-forever`, `lists/sequence-timeout-expires`,
-  `terminal/sequence-unknown-pass`, `terminal/sequence-unknown-swallow`,
-  `tables/visual-line-inherited-sequence-drop`,
-  `tables/visual-line-inherited-sequence-keep`.
-  Outside stories: `terminal/leader-falls-through`,
-  `terminal/leader-falls-through-association`, `terminal/leader-motion-passes`,
-  `terminal/leader-fall-through-off`, `terminal/leader-row-wins`,
-  `terminal/leader-association-rename-return`.
+  `composites/lists`,
+  `composites/terminal`,
+  `composites/lists`.
+  Outside stories: `composites/terminal`.
 - **R1.7a** A row's key may name a setting (`{terminal-leader}`), as may
   its hint, help and string arguments: the row follows the setting's
   value, declared before or after it, in a defaults file, Go or the
   user's `bindings.json`. Nothing finds rows by what they do. Stories:
-  `terminal/leader-setting-footer`, `terminal/leader-user-row-names-setting`.
+  `composites/terminal`.
 - **R1.8** A row whose action is not available at the focus (its verb
   guard, `Runtime.Available`) does not answer and does not appear in
   `binding.list`, the footer or `?` help; the next row on the key in line
@@ -106,7 +104,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   has (the `?` help's `S`). Where a component has no views, `tab` keeps
   its own meaning (a form's next field, the palette's and the picker's
   completion, an outline's indent, the Settings page's sections) or falls
-  through to `focus.next` (R3.8). Story: `help/tab-cycles-views.json`.
+  through to `focus.next` (R3.8). Story: `composites/help.json`.
 
 ### R2. Modes
 
@@ -120,9 +118,9 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R2.4** A one-shot pending mode is consumed by the answering key before
   its request runs, except when the request is `mode.enter`, `count.append`,
   `mode.leave` or `input.cancel`. Story: needed
-  (`modes/one-shot-consumed-first`).
+  (`composites/focus`).
 - **R2.5** Leaving a pending mode returns to its base (`Payload.Return`),
-  never to a hard-coded `normal`. Story: needed (`modes/leave-returns-to-base`).
+  never to a hard-coded `normal`. Story: needed (`composites/focus`).
 - **R2.6** Unknown mode names are errors, not treated as normal or insert.
   Check: unit test on `SetMode` with a garbage name. A registered mode that
   extends insert (`ModeExtends("insert")`, `"extends": "insert"`, followed
@@ -130,21 +128,20 @@ tiers above them. When the two disagree, fix one in the same commit.
   framework asks: completion opens in it, an input's typing in it is one
   undo change, the bar cursor; leaving it for a mode that is normal steps
   the cursor back. No check names an application's mode. Story:
-  `completion/insert-like-mode.json`; test `insert_like_test.go`.
+  `composites/forms.json`; test `insert_like_test.go`.
 - **R2.7** `prompt` pins insert and `terminal` pins terminal; focusing an
   instance of such a noun enters the pinned mode. Story:
-  `inputs/lone-input.json` covers insert and escape for a plain input;
+  `composites/focus.json` covers insert and escape for a plain input;
   needed for prompt and terminal pins. An instance may declare its own base
   mode (`Instance.Pin`, `Runtime.PinInstance`, `mode.pin`): focus on it, or
   entering a stop beneath it with no nearer pin, enters that mode; a re-pin
   of the focused pane applies in the same update when the runtime stands in
   the mode it declared before (a lifted mode such as insert is kept), never
   a frame later. An `esc` row returns with `mode.switch {mode: declared}`, so
-  no row names a pane's mode. Story: `modes/instance-pin-focus.json`,
-  `modes/instance-pin-live.json`, `modes/esc-declared.json`.
+  no row names a pane's mode. Story: `composites/focus.json`.
 - **R2.8** A passthrough mode has no capture pass: while `terminal` is the
   base mode, the app's captured `ctrl+c` does not fire. Story:
-  `terminal/ctrl-c-reaches-pane.json`.
+  `composites/terminal.json`.
 - **R2.9** Editor rows answer only when an input is on the focus path; a list
   row or page focus ends at `app`. Counts, registers and macros are `app`
   rows and still answer. Story: needed (`modes/editor-rows-need-input`).
@@ -179,10 +176,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   and `showcmd` keeps a fixed column for the pending keys; here the badge
   is the fixed place and the echo the `showcmd` column. Reference: Vim's
   `showmode` and `showcmd` (P2). Story:
-  `modes/badge-every-state.json`, `modes/badge-leader-prefix.json`,
-  `modes/badge-recording.json`, `modes/badge-keys-as-typed.json`,
-  `chrome/badge-corner-focus.json`, `chrome/badge-corner-echo.json`,
-  `chrome/badge-corner-mode.json`, `chrome/badge-corner-narrow.json` (the
+  `composites/focus.json`,
+  `composites/settings.json` (the
   story `badge` expectation reads the title row; the `badge-corner`
   stories pin the whole title row at every step, so the badge's column is
   checked to the cell). Tests `TestBadge*` (`badge_corner_test.go`).
@@ -200,36 +195,34 @@ tiers above them. When the two disagree, fix one in the same commit.
   Story: needed (`focus/leaving-stop-resets-mode`,
   `focus/inside-stop-keeps-mode`).
 - **R3.3** Stop order is the page's recorded drawing order, never
-  registration order. Story: `motions/drawing-order.json`,
-  `pages/tab-order.json`.
+  registration order. Story: `composites/lists.json`,
+  `composites/focus.json`.
 - **R3.4** `j`/`k` past the edge of a focused page list spills to the
   neighbouring stop (next stop's first row, previous stop's last row).
   Its horizontal twin on tables is R5.11 (`h`/`l` scroll, then move the
-  focus). Story: `motions/spill-down.json`, `motions/spill-up.json`.
+  focus). Story: `composites/lists.json`.
 - **R3.5** Spill never wraps at the page's first or last stop. Story:
-  `motions/no-wrap.json`.
+  `composites/lists.json`.
 - **R3.6** A `NoSpill` list and any list inside a modal clamp instead of
   spilling. A card timeline first scrolls to its end (or top) by the
   half-page rule, then clamps or spills (R13.2). Story:
-  `motions/nospill.json`, `timeline/card-end-clamp.json`; needed for the
+  `composites/lists.json`, `composites/terminal.json`; needed for the
   modal case.
 - **R3.7** Spilling into an empty list lands on the list itself. Story:
-  `motions/empty-list.json`.
+  `composites/lists.json`.
 - **R3.8** `}`/`{`/`tab`/`shift+tab` jump stops, `)`/`(` jump regions, on the
-  `app` noun in normal mode only. Story: `pages/tab-order.json`,
-  `pages/ctrl-j-k.json`; needed for the regions case.
+  `app` noun in normal mode only. Story: `composites/focus.json`; needed for the regions case.
 - **R3.9** A jump lands on the stop's remembered child, not its first.
   Story: needed (`focus/jump-lands-on-remembered`).
 - **R3.10** The page scrolls to keep the focus visible with scrolloff 2, and
   a self-windowing list keeps the same margin inside its window. Story:
-  `scroll/follow-scrolloff.json`, `scroll/list-window-scrolloff.json`,
-  `scroll/tall-list.json`.
+  `composites/lists.json`.
 - **R3.11** `pgup`/`pgdn` move the surface only; the next `j` moves from
   where the focus was, not from the new viewport. Story:
-  `scroll/pgdown-then-j.json`.
+  `composites/lists.json`.
 - **R3.12** Removing the focused instance sends the focus to `FocusOnClose`'s
   target when it survives, else the parent, else Pop's return. Story:
-  `terminal/detach-focus-returns.json`; needed for the plain remove case.
+  `composites/terminal.json`; needed for the plain remove case.
 - **R3.13** Focus never rests on an instance the last frame did not draw.
   Right after the Model draws the current page (before the footer), when
   the focus's stop was not placed by that frame (a tab switched away from
@@ -247,9 +240,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   rule), not before the page's first frame (the CLI never draws one), not
   when the frame placed no stop at all, and never for a focus outside a
   stop (the page, a panel). An app does not move the focus off what it
-  stopped drawing. Story: `focus/hidden-stop-moves-focus.json`,
-  `focus/hidden-input-leaves-insert.json`,
-  `focus/hidden-timeline-card.json`; tests `TestFocusHidden*`.
+  stopped drawing. Story: `composites/focus.json`; tests `TestFocusHidden*`.
 - **R3.14** The half-page rule: one motion key press never scrolls a view
   by more than half its height. A motion (`j`/`k`, a step, `}`/`{` between
   neighbouring items) whose target would scroll the view further scrolls
@@ -265,9 +256,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   card to card and step to step and to a timeline's end (R13.2);
   `markdown.Doc`'s `}`/`{`. Single-line rows (lists, tables without
   wrapped cells, trees, the help tree) move one line per press and need
-  nothing. Stories: `timeline/card-half-page.json`,
-  `timeline/step-tall.json`, `timeline/card-end-clamp.json`,
-  `markdown/motion-long-block.json`; test `TestTimelineHalfPageRule`.
+  nothing. Stories: `composites/terminal.json`,
+  `composites/text.json`; test `TestTimelineHalfPageRule`.
 - **R3.15 Navigation units.** One shared key pair names each unit on every
   page. An inner component may answer the key for its own unit before the
   app's row. The default set is:
@@ -288,15 +278,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   `focus.next` and `focus.previous` wrap from the last stop to the first;
   the pane keys use those verbs, so they wrap too. A user's `bindings.json`
   may replace or unbind a default row. Stories:
-  `panes/ctrl-w-l-next-stop.json`, `panes/ctrl-w-h-prev-stop.json`,
-  `panes/ctrl-a-o-next-pane.json`.
+  `composites/focus.json`.
 - **R3.16** One pane alone hides, never closes: `pane.only` draws the
   focused panel of a split over the body and keeps the other pane's
   instances; `ctrl+w o` again, `ctrl+w =` or the focus leaving the kept
   pane (a jump to the hidden side) shows both again, a modal does not.
   `pane.only {pane}` moves the focus into the named pane first, so the
-  pane kept is always the focused one. Story: `panes/only.json`,
-  `panes/only-restore-keys.json`; test `pane_only_test.go`.
+  pane kept is always the focused one. Story: `composites/focus.json`; test `pane_only_test.go`.
 
 ### R4. Modals
 
@@ -308,14 +296,14 @@ tiers above them. When the two disagree, fix one in the same commit.
   (`modals/keys-do-not-reach-page`).
 - **R4.3** Closing a modal restores the focus and mode it opened over; when
   that focus is gone, the nearest surviving ancestor. Story:
-  `modals/pop-restores-focus-and-mode.json`.
+  `composites/focus.json`.
 - **R4.4** A second modal opens only from inside the top one; otherwise the
   open is refused with an ordinary error, first wins, no queue. Story:
   needed (`modals/refuse-from-beneath`).
 - **R4.5** A confirm modal: `y` runs the stored request, `n`/`q` close it (`modal.close`; `esc` does nothing), every
   other key is swallowed, `{{label}}` reads the argument before the target's
   label, and a request addressing no instance of the verb's noun reads its
-  arguments (`TestConfirmWithoutTargetReadsArguments`). Story: `modals/confirm-yes.json`, `modals/confirm-label.json`;
+  arguments (`TestConfirmWithoutTargetReadsArguments`). Story: `composites/focus.json`;
   needed for the swallow case.
 - **R4.6** The backdrop is dimmed (`modal-dim`, default 35 percent toward the
   background plus faint) and the terminal cursor is hidden beneath a
@@ -329,8 +317,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   check runs from every path (a key, the capture row's `ctrl+c`, the
   palette, the CLI), and `force: true` skips it (`app.quit {force: true}`,
   vim's `:q!`). An app never wraps the framework's verb to ask. Stories:
-  `quit/asks-before-quit.json`, `quit/clean-quits.json`,
-  `quit/force-skips.json`, `quit/refuse.json`; tests in
+  `composites/focus.json`; tests in
   `verb_checks_test.go`.
 - **R4.8** Running a command that opens a modal which is already open
   changes that modal's contents; it never errors with "already open" and
@@ -338,13 +325,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   the settings page in the same viewer, from the top, over the focus it
   opened over). The opener says so with `ReplaceOpen` on `OpenModal`; a
   modal that holds a question (a confirm, a prompt, a picker) keeps it and
-  refuses the second open. Story: `docs/reopen-while-open.json`; tests
+  refuses the second open. Story: `composites/help.json`; tests
   `TestOpenModalReplaceOpen`, `TestDocsOpenWhileOpenShowsTheNewTopic`.
 - **R4.9** A modal's size stays fixed while its content scrolls or its
   selection moves; it changes only when the content set changes or the
   screen resizes. A scrolling body sizes from its whole content
   (`Detail.Width`, the widest wrapped line), not the lines in view. Story:
-  `docs/width-steady-scroll.json`; tests
+  `composites/help.json`; tests
   `TestDocsViewerKeepsItsWidthWhileScrolling`,
   `TestDetailWidthIsTheWholeTextsWidestLine`.
 - **R4.10** Closing is one verb: `q` closes every modal through
@@ -359,8 +346,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `modal.esc-closes` (default off) brings back the old `esc` rows (guard
   `setting:modal.esc-closes`) and pins the text input to insert again.
   Macros record on `Q`, so `q` never starts a recording beneath a modal.
-  Stories: `modals/esc-leaves-insert-q-closes.json`,
-  `modals/q-closes-every-kind.json`; tests in `modal_close_test.go` and
+  Stories: `composites/focus.json`; tests in `modal_close_test.go` and
   `modal_esc_test.go`.
 
 ### R5. Lists and selection
@@ -382,9 +368,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   `Reverse` themselves; without the focus each keeps its selection marked,
   faded. Setting `unfocused-selection` (`keep`, the default; `hide` draws
   only the focused component's selection) turns the unfocused marks off.
-  Story: `lists/one-highlight.json`, `lists/unfocused-dimmed.json`,
-  `lists/beside-terminal-keeps-row.json`, `lists/lone-list.json`,
-  `settings/selector-unfocused.json`, `settings/selector-unfocused-hide.json`.
+  Story: `composites/lists.json`,
+  `composites/settings.json`.
   Exception: a card timeline (`AddTimeline`, mtm's Turns) draws its
   selection as the card's border, never reverse video, so a selected
   card's wrapped prompt reads as text: the selected card of the focused
@@ -393,10 +378,9 @@ tiers above them. When the two disagree, fix one in the same commit.
   rounded corners, halfway from the accent to the border colour; every
   other card the light border, dimmed by `dim-unfocused`. In mono the line
   styles alone tell the three apart; the active card's `●` is a separate
-  cue. Story: `timeline/border-focused-*.json`,
-  `timeline/border-unfocused-*.json`.
+  cue. Story: `composites/terminal.json`.
 - **R5.2** Marked rows take a `* ` gutter, and every row of that list gets
-  the gutter while any mark exists. Story: `lists/marked-gutter.json`.
+  the gutter while any mark exists. Story: `composites/lists.json`.
 - **R5.3** Rows are instances of their noun, created and removed by
   `SetItems`; no noun per row; row-specific state goes in `ListItem.Data`.
   Check: the diff.
@@ -414,20 +398,17 @@ tiers above them. When the two disagree, fix one in the same commit.
   such as a pane list) enter with a match chooses it instead: the filter
   clears, the selection stays on the match and stays on screen, the mode is
   normal; with no match enter keeps the filter as on any list. Stories:
-  `lists/filter-open.json`, `lists/filter-move.json`,
-  `lists/filter-enter-keeps.json`, `lists/filter-enter-clears.json`,
-  `lists/filter-esc-clears.json`,
-  `lists/filter-backspace-empty-leaves.json`, `tables/filter-by-cell.json`.
+  `composites/lists.json`.
 - **R5.7** A filter hides rows and never removes them: `SetItems` while
   filtered filters the new rows, marks survive, and `collection.apply` fans out
-  to the marked rows shown. Story: `lists/filter-marks-survive.json`,
-  `catalog/filter-setitems.json`; test `TestListFilterSetItemsMarksAndApply`.
+  to the marked rows shown. Story: `composites/lists.json`,
+  `composites/cli.json`; test `TestListFilterSetItemsMarksAndApply`.
 - **R5.8** Every focused list answers `gg`/`G` (first/last row, a count is
   the row number), `ctrl+d`/`ctrl+u` (half a page, a count is rows) and
   `ctrl+f`/`ctrl+b` (a page, a count is pages) in normal mode; a page is the
   list's own window, else the page body; the window moves with the
   selection; they clamp at the list's edges and never spill; a row noun's
-  own binding of the key answers first. Story: `lists/page-motions.json`;
+  own binding of the key answers first. Story: `composites/lists.json`;
   tests `TestListGotoEndsAndCounts`, `TestListPageMotionsClampWithoutSpilling`.
   The same keys answer on every other component with a cursor or a
   scroll (a timeline, inside its cards too; the docs viewer; the yank
@@ -436,8 +417,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   `viewport.scroll {by: page, delta, half, steps}`; `viewport.goto` names the four edges
   (`first`, `last`, `first-col`, `last-col`; `0` and `$` the column
   edges, only where the cursor moves sideways). No component fakes an edge
-  with a long scroll. Stories: `yank-history/gg-G`, `docs/gg-G`,
-  `timeline/edges`; tests `TestViewMotionsOnTheYankHistory`,
+  with a long scroll. Stories: `composites/focus`, `composites/help`,
+  `composites/terminal`; tests `TestViewMotionsOnTheYankHistory`,
   `TestViewMotionsOnTheDocsViewer`, `TestViewMotionsOnTheTimeline`,
   `TestViewEdgeColumnsOnACellTable`, `TestSharedMotionsMoveTheDocument`.
 - **R5.9** A table that hides a column scrolls its columns: `z l`/`z h`
@@ -447,7 +428,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   key scrolls without a visible change (an offset that draws what the
   start draws is the start); the keys do not answer (and `z` does not
   wait) on a row-select table that fits or a plain list. Story:
-  `tables/column-motions.json`, `tables/row-select.json`; tests
+  `composites/lists.json`; tests
   `TestColumnMotions*`.
 - **R5.10** Cell mode is opt-in. A table selects rows unless it is added
   with `CellSelect()`, for a table one reads cell by cell (a JSON or CSV
@@ -481,13 +462,9 @@ tiers above them. When the two disagree, fix one in the same commit.
   row-select table, R5.11); a row-select table remembers only its pins
   (R5.13) and the widths `z F` gave it. `RowSelect()` is a deprecated no-op. A row noun
   binding one of the keys answers first. The movement keys are motions
-  (off the footer). Story: `tables/cell-motion.json`,
-  `tables/column-count.json`, `tables/column-resize.json`,
-  `tables/fit-column.json`, `tables/fit-columns.json`,
-  `tables/fit-follows-cursor.json`,
-  `tables/visual-apply.json` (a row-select table),
-  `tables/unfocused-cell-dimmed.json`, `tables/row-select.json`,
-  `catalog/groups-table-h.json`; tests `TestCell*`, `TestColumnWidths*`,
+  (off the footer). Story: `composites/lists.json` (a row-select table),
+  `composites/lists.json`,
+  `composites/cli.json`; tests `TestCell*`, `TestColumnWidths*`,
   `TestVisual*`, `TestFit*`.
 - **R5.11** `h`/`l` scroll, then move the focus: the horizontal twin of
   R3.4. On a row-select table `l` scrolls the view one column right until
@@ -505,10 +482,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   inside the tree's, and `z h`/`z l` scroll a tree's columns. Arrows are the same keys.
   Done with guarded rows (`table-column-*`, `table-scrolls-*`,
   `table-spills-*`) that fall through in order, no combined verb. Story:
-  `tables/scroll-then-focus-right.json`,
-  `tables/scroll-then-focus-left.json`, `tables/cell-edge-focus.json`,
-  `tables/nospill-clamps.json`, `tables/modal-clamps.json`,
-  `tables/row-noun-l-wins.json`, `tables/row-select.json`; tests
+  `composites/lists.json`; tests
   `TestRowTableHLScrollThenMoveTheFocus`, `TestCellTableEdgeMovesTheFocus`,
   `TestTableEdgesClampWithoutAStop`, `TestRowNounKeyWinsOverTableScroll`.
 - **R5.12** A table never hides a column silently: a table with a header
@@ -518,8 +492,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `h`/`l` scroll or move on (as R6.8 marks hidden tabs). The cells are
   reserved whenever the table hides a column, so scrolling never shifts the
   pinned columns; a table that fits reserves and draws nothing. Story:
-  `tables/edge-markers.json`, `tables/edge-markers-start.json`,
-  `tables/edge-markers-fit.json`, `tables/modal-clamps.json`; test
+  `composites/lists.json`; test
   `TestEdgeMarkersCountScrollingColumns`.
 - **R5.13** Any table columns can be pinned: pinned columns draw first at
   the left in their declared order and never scroll; the rest scroll after
@@ -533,9 +506,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   no room for a scrolling column, the view (never the saved pins) drops
   pins from the right until one shows; a `Column.Group` pin drops with the
   pin after it (the help's prefix never shows without its key, test
-  `TestGroupPinDropsWithThePinAfterIt`). Story: `tables/pin-cell.json`,
-  `tables/pin-row-palette.json`, `tables/pin-declared.json`,
-  `tables/pin-narrow.json`, `tables/unpin-columns.json`; tests
+  `TestGroupPinDropsWithThePinAfterIt`). Story: `composites/lists.json`; tests
   `TestPinsDrawFirstPersistAndReset`, `TestPinsDroppedInTheViewOnly`.
 - **R5.14** Colour in a cell is a named tone, never text: a row's
   `ListItem.Tones` (a tree node's `TreeNode.Tones`, a catalog row line's
@@ -555,12 +526,11 @@ tiers above them. When the two disagree, fix one in the same commit.
   `list.cell.cursor` tone (the accent background, bold; setting
   `collection.cell-cursor`, default `background`; `underline`, mono and
   `NO_COLOR` draw it underlined inside the bar). Stories
-  `tables/cell-cursor-background.json`, `tables/cell-cursor-underline.json`. The colour comes back as soon as the row is left. A page list
+  `composites/lists.json`. The colour comes back as soon as the row is left. A page list
   without the focus fades its tones with it (`dim-unfocused`). Stories:
-  `tables/tones-table.json`, `tables/tones-selected-row.json`,
-  `tables/tones-mono.json`, `tree/tones-tree-row.json`,
-  `chrome/tones-themes-override.json`, `chrome/tones-user-scheme.json`,
-  `catalog/tones-rows.json`; tests `TestTonesNeverChangeTheText`,
+  `composites/lists.json`, `composites/tree.json`,
+  `composites/settings.json`,
+  `composites/cli.json`; tests `TestTonesNeverChangeTheText`,
   `TestSelectedRowDrawsToneAttributesOnly`, `TestUnfocusedListFadesTones`.
   **Backgrounds:** a tone may carry a background (`ToneStyle.Bg`,
   `themes.json` `bg`, a colour or a role); the built-in `error` tone is
@@ -573,8 +543,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   the colour (the setting `tones.selected-background`, default `drop`);
   `keep` draws that cell on its background, bold, out of the reverse bar,
   the rest of the row still reversed (the opt-out). Stories:
-  `tables/tones-error-background.json`,
-  `tables/tones-error-background-keep.json`; tests in `tone_bg_test.go`.
+  `composites/lists.json`; tests in `tone_bg_test.go`.
 - **R5.15** An action over a visual selection acts on every selected row.
   While `V` is on, a row's own verb (an application verb of the row's
   noun, not a motion), run from its key, the palette or the API, has the
@@ -595,8 +564,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `Y`/`y` copy every selected row, one per line. Where the rows keep an
   undo stack (a tree), the run is one undo step: one `u` restores them
   all. Which verbs take many is data on the verb, never a list of names.
-  Stories: `tables/visual-apply.json`, `tables/visual-many-subjects.json`,
-  `tables/visual-partial-failure.json`, `tree/visual-undo-group.json`;
+  Stories: `composites/lists.json`, `composites/tree.json`;
   tests `TestVisualSelection*`, `TestRequestSubjects`,
   `TestVisualYankCopiesEverySelectedRow`.
 
@@ -625,12 +593,11 @@ tiers above them. When the two disagree, fix one in the same commit.
   pick writes ("Edit 2 tasks project", as "Move 3 rows to" does).
   Leaving the list ends it. Opt out with `visual.list` `marks` (the
   older selection in normal mode). Stories:
-  `tables/visual-line-delete-two.json`, `tables/visual-line-yank-two.json`,
-  `tables/visual-line-motions-esc.json`, `tables/visual-after-keep.json`,
+  `composites/lists.json`,
   `verbs/edit-field-picker-visual-esc-resumes.json`,
   `verbs/picker-visual-esc-resumes.json`,
   `verbs/edit-field-picker-visual-title-count.json`,
-  `tables/visual-after-end.json`, `tree/visual-line-nest.json`; tests
+  `composites/lists.json`, `composites/tree.json`; tests
   `list_visual_test.go`, `TestVisualSelectionChooserEscResumes`.
 - **R5.17** Every search follows `search.case`: the `/` list filter, a
   picker's matching, ranking and word spelling, the path picker's browse
@@ -642,9 +609,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   exactly; `ignore` and `sensitive` are the opt-outs. No search lower-cases
   on its own; a lower-case query ranks exactly as under `ignore`.
   Identifiers (palette words, names, column titles, keys) are not searches.
-  Stories: `lists/filter-smart-case.json`, `lists/filter-ignore-case.json`,
-  `forms/path-smart-case-browse.json`, `forms/path-smart-case-typed.json`,
-  `forms/path-ignore-case.json`; tests `search_case_test.go`.
+  Stories: `composites/lists.json`,
+  `composites/forms.json`; tests `search_case_test.go`.
 - **R5.18** Every search has a match mode, one of three, shared by the
   `/` list filter, pickers and the path finder: `substring` (every word
   of the query, any order), `fuzzy` (the query's characters in order, one
@@ -663,8 +629,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   A picker whose application filters (`PickerSpec.Filter`) or a Live
   source ranks its own rows keeps its own matching: the verb is
   unavailable there and no tag shows. Stories:
-  `lists/filter-match-cycle.json`, `lists/filter-regex-invalid-says-why.json`,
-  `lists/filter-match-setting.json`, `picker/match-cycle-tab.json`; tests
+  `composites/lists.json`, `composites/pickers.json`; tests
   `search_match_test.go`.
 - **R5.19** Empty, loading and no-match texts have one format: lower
   case, no parentheses, the rows' noun named (`no panes`, `loading
@@ -672,7 +637,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `Empty`, `Loading`, `Plural`, `LoadingJob`; the same fields on
   `PickerSpec`), and a component draws `Loading` only while the job that
   fills it runs, then `Empty`: "loading" never reads as "empty" and an
-  empty list never says it is loading. Story: `lists/empty-format.json`;
+  empty list never says it is loading. Story: `composites/lists.json`;
   tests `placeholder_test.go`.
 - **R5.20** One search per shape. On a list-like component `/` is the
   list filter (R5.6); on a text-like one (the text view, the docs
@@ -684,8 +649,8 @@ tiers above them. When the two disagree, fix one in the same commit.
   follows `search.case` (R5.17) and starts in `search.match` (R5.18). A
   component takes part by implementing `TextFinder` and binding the three
   rows on its noun; there is no per-component search. Stories:
-  `docs/slash-finds.json`, `text-view/n-next.json`,
-  `timeline/slash-finds-card.json`; tests `search_find_test.go`,
+  `composites/help.json`, `composites/text.json`,
+  `composites/terminal.json`; tests `search_find_test.go`,
   `markdown/find_test.go`.
 
 ### R6. Chrome: footer, hints, help, ticker, notices
@@ -696,14 +661,14 @@ tiers above them. When the two disagree, fix one in the same commit.
   key names in view code.
 - **R6.1a** The footer leaves out motions (`Operation.Motion`) and
   `Hidden` rows, orders hints innermost level outward, and shows one key per
-  request; `?` still lists every row. Story: `chrome/footer-no-motions.json`.
+  request; `?` still lists every row. Story: `composites/settings.json`.
 - **R6.2** A row's `Hint` replaces the `noun.verb` text in the footer;
   descriptions appear only in help and `binding.list`. Story: needed
   (`chrome/hint-replaces-operation`).
 - **R6.3** `?` opens the help modal over the focus, grouped by the answering
   level's noun innermost first under a section label, app rows after the
   levels, motions last under `movement`, and only in normal mode.
-  Story: `help/row-verbs-first.json`, `help/levels-innermost-first.json`;
+  Story: `composites/help.json`;
   golden `testdata/help-80.golden`.
 - **R6.4** Three things tell the user, kept apart. The status line is one
   slot with two tones, cleared by the next key: an error (a key that
@@ -718,16 +683,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   test. `Notices` persist until `notice.clear`; the
   footer shows the newest at most half the width with `(+N more)`, so the
   hints always keep the rest. The CLI prints the same as `error:`,
-  `status:` and `notice:` lines. Story: `notices/persist.json`,
-  `notices/footer-keeps-hints.json`, `chrome/status-info-plain-80.json`,
-  `chrome/status-error-clears-80.json`; goldens `chrome/status-info-80`,
-  `chrome/status-error-80`.
+  `status:` and `notice:` lines. Story: `composites/terminal.json`, `composites/settings.json`; goldens `composites/settings`.
 - **R6.5** The jobs ticker rides the rule line above the footer: at most
   two entries joined by ` · `, the rest of the line still rule characters;
   it takes no row, so the body never shrinks, moves or loses a row while a
   job runs. Running newest first, finished after, a finished entry lingers
   four seconds, quiet verbs hidden, no jobs the plain rule. Story: the
-  stories under `ticker/` (`ticker/keeps-body.json` pins every body row in
+  stories under `ticker/` (`composites/terminal.json` pins every body row in
   place, the bottom one included).
 - **R6.6** One chrome: everything renders through `Layout.Shell`; no second
   set of height or padding constants. Check: the diff.
@@ -777,16 +739,14 @@ tiers above them. When the two disagree, fix one in the same commit.
   toggles, `j`/`k` move across every row shown, `z l`/`z h` scroll the
   columns. `/` reads a row's text with its steps and its sequences, so a
   closed row is found by what is inside it. Stories
-  `help/leader-sequences.json`, `help/leader-rebound.json`,
-  `help/mode-cycle.json`, `help/sequence-steps.json`,
-  `help/filter-finds-steps.json`, `help/prefix-columns-{80,120}.json`;
+  `composites/help.json`, `help/prefix-columns-{80,120}.json`;
   test `TestHelpListsPendingModeRowsAsSequences`.
 - **R6.8** The tab row never drops a page silently: when the tabs do not
   fit, `‹N` at the left edge and `N›` at the right count the pages hidden on
   each side, the active tab is always on the row, and the shown tabs plus
   the counts are every page; with every tab fitting there are no markers.
   Story: `pages/tabs-{50,80,120}-{start,middle,end}.json`,
-  `pages/tabs-fit.json`, `pages/tabs-50-step.json`; unit test
+  `composites/focus.json`; unit test
   `TestTabsMarkHiddenPagesOnEachSide`.
 
 - **R6.11** Status segments ride the rule under the header, right-aligned,
@@ -799,7 +759,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   until the next answer, a failure draws in `state.errored`, and keys never
   wait for one. A segment that does not fit is dropped from the last; the
   first alone is cut with `…`. Tests `TestSegment*` (`segment_test.go`);
-  story `segments/header-rule.json`.
+  story `composites/settings.json`.
 - **R6.12** Anything that changes the UI has a setting to opt out of it:
   each optional area as a whole and each item inside it, as an ordinary
   setting (the Settings page, `settings set`, settings.json), checked before
@@ -820,7 +780,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   title row never reflows (R4.9's spirit), dropping the oldest entries with
   `…`. Entries go after `keys.echo-linger` on the Model's linger timer. The
   hints and `?` help are unchanged by it. Tests `TestKeyEcho*`
-  (`key_echo_test.go`); stories `chrome/keys-echo-*.json`.
+  (`key_echo_test.go`); stories `composites/settings.json`.
 - **R6.13** Every page can be hidden (R6.12 for pages): one list setting,
   `pages.hidden`, holds the ids left out of the tab row and of
   `page.next`/`page.previous` (ctrl+j/k), the same for an app's own pages,
@@ -836,16 +796,15 @@ tiers above them. When the two disagree, fix one in the same commit.
   (`Model.Init`, `OpenVisibleStart`) to the first page in the tabs.
   `page.show` brings a page back in its registration place; `page.list`
   marks hidden pages. Read every frame, so `settings set`, `config.reload`
-  and the verbs apply live. Stories `pages/hide-tab-gone.json`,
-  `pages/hidden-opens-from-palette.json`, `pages/default-hidden.json`;
+  and the verbs apply live. Stories `composites/focus.json`;
   tests `page_hide_test.go`, `TestCatalogPageDefaultHidden`.
 
 ### R7. Palette
 
 - **R7.1** Nothing is highlighted and no `> ` marker is drawn until
-  `ctrl+n`/`ctrl+p`. Story: `palette/no-highlight.json`.
+  `ctrl+n`/`ctrl+p`. Story: `composites/palette.json`.
 - **R7.2** Enter runs the typed line unless a word is highlighted, in which
-  case it appends the word. Story: `palette/enter-runs-line.json`.
+  case it appends the word. Story: `composites/palette.json`.
 - **R7.3** Words resolve left to right as unique prefixes; an incomplete
   line names its first missing word rather than guessing. Story: needed
   (`palette/names-missing-word`).
@@ -862,18 +821,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   keeps no selection on up. Owner decision 2026-10-31 supersedes UX review
   2 F1's "up from none stays" decision. Palette completion still wraps
   once highlighted; pickers and inline completion still clamp. Stories:
-  `pickers/up-from-none-last.json`, `pickers/up-from-none-stay.json`,
-  `pickers/source-up-from-none-last.json`, `completion/up-from-none-last.json`,
-  `completion/up-from-none-stay.json`. Esc closes over the focus and mode it opened on.
+  `composites/pickers.json`, `composites/forms.json`. Esc closes over the focus and mode it opened on.
   Every page is reachable from the page picker (`'`, `page.pick`): pages
   visited before, most recent first, then the never-visited in
   registration order, the current page last and marked `current`, so enter
-  goes back to the page last left. Story: `picker/page-picker-filter-open.json`,
-  `picker/page-picker-recent-first.json`,
-  `picker/page-picker-esc.json`, `picker/page-picker-move.json`,
-  `picker/page-picker-footer.json`; ranking in `chooser_test.go`. `'`
+  goes back to the page last left. Story: `composites/pickers.json`; ranking in `chooser_test.go`. `'`
   answers only with no modal open (a page cannot open beneath one):
-  `picker/page-picker-not-in-modal.json`.
+  `composites/pickers.json`.
 - **R7.7** A picker with sources shows one source's rows at a time:
   `ctrl+o`/`alt+o` step to the next or previous source, wrapping
   (`picker.next-source`/`previous-source`, guard `picker-sources`;
@@ -898,12 +852,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   a source switch drops it, a failed load drops it and shows the error. A
   picker's `Hint` ends its empty, no-match and refusal lines (path
   pickers: `no known directories; type a path to pick one`). Stories:
-  `picker/path-typed-at-once.json`, `picker/path-typed-at-once-off.json`,
-  `picker/stale-enter.json`, `picker/stale-open.json`, `picker/burst-enter.json`,
-  `picker/empty-folder-dir.json`, `picker/new-trailing.json`,
-  `picker/path-new-missing-parent.json`, `picker/sources-cycle.json`,
-  `picker/live-source.json`, `picker/remember-source-on.json`,
-  `picker/remember-source-off.json`; tests `TestChooserSources*`,
+  `composites/pickers.json`; tests `TestChooserSources*`,
   `TestChooserLiveSource*`, `TestChooserRemembersTheSource`.
 - **R7.8** A path is chosen, not typed blind: a path parameter (type
   `path`, `path: file|dir`) opens the path picker with the sources
@@ -918,9 +867,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   listed on its own: browse says so until the person opens into it or
   types the path. Hidden entries list with `path.hidden` or once the
   typed part starts with `.`. A typed path is always a row; one that
-  cannot be used says why on the row. Stories: `forms/path-browse.json`,
-  `forms/path-dir.json`, `forms/path-typed.json`,
-  `forms/path-text-field.json`, `picker/typed-missing-dir-says-why.json`;
+  cannot be used says why on the row. Stories: `composites/forms.json`, `composites/pickers.json`;
   tests `TestPath*`.
 - **R7.9** One grammar for a noun's things, the same in the palette and
   the CLI (standard verbs, plan 2.6). After a noun a word is a verb, else
@@ -936,8 +883,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   values for `where` (taking `prop=` leaves the cursor after the `=`).
   `:set NOUN` reads only one-value nouns (a noun whose `set` is its own, or
   a singleton store), so `:set pa` offers the settings and `palette`, never
-  a collection named `parcel`. Stories: `palette/key-prop-grammar.json`,
-  `palette/prop-value-completion.json`, `palette/set-shadow-pa-tab.json`;
+  a collection named `parcel`. Stories: `composites/palette.json`;
   tests `TestNounWordPrecedence`, `TestPropShorthandInThePalette`,
   `TestOptionalKeyWord`, `TestPropValueCompletion`,
   `TestSetReadsOnlyOneValueNouns`, demo
@@ -949,8 +895,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   parts of `palette.standard-verbs` (default `[last, tag, record]`;
   `mixed` is one alphabetical list, `hidden` leaves standard verbs out of
   the list while typing their name still runs them; `[]` is the palette
-  before standard verbs). Stories: `palette/get-record-rows.json`,
-  `palette/std-tag-off.json`; test `TestStandardVerbsSetting`.
+  before standard verbs). Stories: `composites/palette.json`; test `TestStandardVerbsSetting`.
 - **R7.11** A noun is typed by any of its names, the same as on the CLI.
   An exact name (the noun's word, its canonical spelling, any alias)
   beats a prefix of another noun's word (`doc` is the alias of `json.doc`,
@@ -961,8 +906,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   claims is read as the namespaced nouns ending in it: one is taken,
   several are offered by their full names (`json.doc, md.doc`) and none
   is picked (`palette.noun-tails`). A noun is drawn by its shortest live
-  alias (`nouns.display`). Stories: `palette/noun-alias-exact.json`,
-  `palette/noun-namespace-words.json`, `palette/noun-tail-ambiguous.json`;
+  alias (`nouns.display`). Stories: `composites/palette.json`;
   tests `TestPaletteNounAliasesAndNamespaceWords`,
   `TestPaletteAmbiguousShortNameOffersEveryNamespace`,
   `TestPaletteNamespaceCompletion`, `TestNounsDisplaySetting`, `cli`
@@ -971,13 +915,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   lists the pages' titles (`JSON  ext/json`) and takes a title, quoted
   when it holds a space; the id, or a prefix of it, still names it
   (`Choice.Word`, `PaletteInstance.Word`; `palette.choice-words` `id`
-  offers ids). Story: `palette/page-open-titles.json`; test
+  offers ids). Story: `composites/palette.json`; test
   `TestPalettePageOpenOffersTitles`.
 
 ### R8. Terminal
 
 - **R8.1** `any`/`paste` rows forward everything to the pane in terminal
-  mode. Story: `terminal/ctrl-c-reaches-pane.json`.
+  mode. Story: `composites/terminal.json`.
 - **R8.2** `ctrl+a` (the `terminal-leader` setting, through rows keyed
   `{terminal-leader}`) enters `leader_pending`; `d` detaches, the leader
   sends itself, a bound key runs. The leader waits as every sequence does
@@ -986,14 +930,14 @@ tiers above them. When the two disagree, fix one in the same commit.
   is `sequence-unknown`'s (`pass`: the leader, then the key alone;
   `swallow`: neither, with a notice). `terminal-leader-timeout` is a
   deprecated name of `sequence-timeout` for one release. Stories:
-  `terminal/detach-focus-returns`, `leader-twice-sends-one`,
+  `composites/terminal`, `leader-twice-sends-one`,
   `sequence-unknown-pass`, `sequence-unknown-swallow`,
   `sequence-timeout-sends-leader`, `sequence-timeout-default-waits`,
   `leader-setting-footer`, `leader-setting-detach`,
   `leader-user-row-names-setting`, `leader-timeout-deprecated-alias`.
 - **R8.3** Frames reach the component only through `Deliver` with a current
   ticket; a frame for a closed terminal is dropped. Story:
-  `terminal/output-ticks.json`.
+  `composites/terminal.json`.
 - **R8.4** Every close path releases the stream exactly once. Check: unit
   test with a counting `TerminalReleaser`.
 
@@ -1017,7 +961,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   removes the range. The alternate kill rows are hidden from the footer.
   Tests `TestInputEditingKeys*`, `TestPromptEditingKeys`,
   `TestTerminalSequencesReachTheRows` (recorded byte sequences); stories
-  `inputs/word-delete-keys.json`, `inputs/word-motion-keys.json`.
+  `composites/focus.json`.
 - **R9.2** Offsets count runes; rendering accounts for cell width. Story:
   needed (`inputs/wide-runes`), with a CJK or emoji string.
 - **R9.3** Undo and redo round-trip every editing operation: for each
@@ -1033,8 +977,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   replayed outside an input; the change before it is. With nothing to
   repeat, `.` is not an error: `repeat.empty` `info` (default) says
   `nothing to repeat` in the plain tone (R6.4), `silent` shows nothing.
-  Stories: `actions/dot-after-input-closes.json`,
-  `actions/dot-nothing-to-repeat.json`, `actions/dot-nothing-silent.json`;
+  Stories: `composites/palette.json`;
   tests `TestDotSkipsTypingOutsideAnInput`, `TestDotDoesNotRepeatMotion`;
   needed (`editor/dot-repeat`).
 - **R9.6** Select: a component that creates or renames a thing may open its
@@ -1050,8 +993,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   is `esc` then a motion. The selection is drawn in the visual-selection
   style (reverse). Select is a state of the input, not a mode: the person
   is inserting, the mode is `insert`, and no binding table is added (modes
-  stay few: what the person is doing). Stories: `tree/select-type-replaces.json`,
-  `tree/select-esc-keeps.json`, `tree/select-move-keeps.json`; tests
+  stay few: what the person is doing). Stories: `composites/tree.json`; tests
   `TestSelectText*`.
 - **R9.7** Inline completion is data on the trigger: a token runs to
   whitespace or one of the trigger's `Boundaries` (a jq `.` after `|` or
@@ -1076,8 +1018,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   offers only what works. `esc` in a visual selection leaves the selection
   before it closes the modal (the `modal` noun's own empty `visual-line`
   table keeps `normal`'s `esc` from answering there). Stories
-  `palette/text-result-multiline.json`, `palette/text-result-one-line.json`,
-  `palette/text-result-plain.json`; tests `TestReadOnlyInput*`,
+  `composites/palette.json`; tests `TestReadOnlyInput*`,
   `TestPaletteTextResult*`, `TestTextViewScrollsAtAFixedSize`.
 
 - **R9.9** An input never refuses content the user put there; it adapts
@@ -1087,7 +1028,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `input.newlines-grow` off each line break becomes a space. `enter` in a
   single-line field keeps its meaning (submit or next field); only content
   already holding a newline grows it. Story
-  `forms/paste-multiline-into-single-line`; tests `TestInputNewlines*`,
+  `composites/forms`; tests `TestInputNewlines*`,
   `TestRecordFieldAndArgsFormFieldGrowOnPastedNewlines`.
 
 ### R10. Delivery and jobs as the user sees them
@@ -1099,13 +1040,13 @@ tiers above them. When the two disagree, fix one in the same commit.
   completion never paints. Story: needed (`jobs/slot-replaces`).
 - **R10.3** Confirmation is a property of the verb, opened at the focus, and
   identical from a key, the palette and the CLI. Story:
-  `modals/confirm-yes.json`; needed for the palette and CLI paths.
+  `composites/focus.json`; needed for the palette and CLI paths.
 - **R10.4** A foreground program (`Foreground`, an actions.json row's
   `"foreground": true`) has the whole terminal: the TUI suspends, nothing
   draws over it, and the TUI comes back where it was when the program
   exits. The exit is always told: `PROGRAM exited` (the plain tone), or
   `Error: PROGRAM exited with status N` with the job failed. Story:
-  `foreground/exit-status.json`; tests in `foreground_test.go`.
+  `composites/cli.json`; tests in `foreground_test.go`.
 - **R10.5** Cancelling a queued write releases its queue head through the
   general job cancellation route. It preserves the thing, field and attempted
   value in a persistent `Not saved` notice; later edits still write, and a
@@ -1124,18 +1065,15 @@ tiers above them. When the two disagree, fix one in the same commit.
   scrolls the columns back, then moves the focus to the previous stop.
   Setting `tree.spill`: `left` (default), `both` (`l` on a leaf too),
   `off` (never). `z h`/`z l` scroll its columns. Story:
-  `tree/expand-collapse.json`, `tree/spill-to-list.json`,
-  `tree/columns-l-expands.json`, `tree/columns-hidden-l-expands.json`,
-  `tree/h-spills-left.json`, `tree/h-spill-off.json`,
-  `tree/l-spill-both.json`; tests `TestTreeHLWinOverTableScroll`,
+  `composites/tree.json`; tests `TestTreeHLWinOverTableScroll`,
   `TestTreeCollapseUnavailableWithNothingToDo`.
 - **R11.2** Every structural edit of an outline is written before the next
   key; typing is written after the pause and when the line is left; esc
-  never discards. Story: `tree/outline-add-nest.json`, `tree/debounce.json`.
-- **R11.3** Undo and redo are written changes. Story: `tree/undo-redo.json`.
-- **R11.4** Pasted indented text nests. Story: `tree/paste-nests.json`.
+  never discards. Story: `composites/tree.json`.
+- **R11.3** Undo and redo are written changes. Story: `composites/tree.json`.
+- **R11.4** Pasted indented text nests. Story: `composites/tree.json`.
 - **R11.5** A failed write keeps the text, marks the row and retries on the
-  next change. Story: `tree/failed-write.json`.
+  next change. Story: `composites/tree.json`.
 - **R11.6** A new node can open with a placeholder selected (R9.6):
   `outline.add {where, text, select: true}` writes the node with `text` at
   once and opens its line selected; `outline.edit {select: true}` and
@@ -1146,7 +1084,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   selected; off: cursor at the end, the opt-out), and so does a record
   editor whose `RecordSpec.Rename` is set (a rename form). `outline.add`
   without `select` is unchanged (empty line, cursor at the end). Stories
-  as R9.6 and `tree/rename-select.json`, `tree/rename-select-off.json`;
+  as R9.6 and `composites/tree.json`;
   tests `TestOutlineAddSelectPlaceholder`, `TestOutlineEditSelect`,
   `TestOutlineEditRename*`, `TestOutlineRenameMotionsKeepTheName`,
   `TestRecordEditorRenameSelects`.
@@ -1165,7 +1103,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   the top row); `tree.breadcrumb` `line` (default: a line above the rows)
   | `title` (in the header beside the mode, while the tree has the focus)
   | `off`. An edit or `Select` that moves the selection out of the zoom
-  steps the zoom out to show it. Stories `tree/zoom-*.json`; tests
+  steps the zoom out to show it. Stories `composites/tree.json`; tests
   `tree_zoom_test.go`.
 - **R11.8** A node can refuse a change: `TreeNode.Fixed` names the
   changes it refuses (`rename`, `move` (move, indent, outdent), `delete`
@@ -1176,8 +1114,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   `outline-renamable`, `outline-movable`, `outline-deletable`), so their
   keys do nothing, their hints drop out and the palette does not offer
   them; `Refuse` answers with its reason on the status line. Never a
-  branch on a node id. Stories: `tree/fixed-root-refuses.json`,
-  `tree/fixed-rename-only.json`; tests in `tree_fixed_test.go`.
+  branch on a node id. Stories: `composites/tree.json`; tests in `tree_fixed_test.go`.
 
 ### R12. Action names and aliases
 
@@ -1194,28 +1131,26 @@ tiers above them. When the two disagree, fix one in the same commit.
   CLI shows them as the verb's oden aliases (`show, display`), the catalog
   and `operation.list` as `aliases`, `bindings list` as a row's `aliases`
   beside its canonical request (`via` keeps a row's alias spelling).
-  Stories: `actions/alias-in-palette.json`,
-  `actions/help-lists-alias-once.json`; test
+  Stories: `composites/palette.json`; test
   `TestAliasesAreListedOnceUnderTheCanonicalName`.
 - **R12.3** A renamed verb keeps its old name as a deprecated alias for one
   release (`NounBuilder.Renamed(old, since, removeAfter)`, Keep actions);
   its first use in a runtime posts one notice naming the new name, and a
   `bindings.json` row on the old name still works, `bindings check` saying
-  what it resolves to. Story: `actions/old-name-binding.json`.
+  what it resolves to. Story: `composites/palette.json`.
   A renamed noun's old name is a deprecated noun alias the same way
   (`Runtime.AddNounAlias` with `since`/`removeAfter`): it runs with one
   notice naming the noun, `bindings check` names a row spelled by it, and
   it is never completed, drawn, listed in CLI help or published in the
   catalog; `Runtime.Unalias` takes a name back. Story:
-  `palette/noun-alias-deprecated.json`; tests
+  `composites/palette.json`; tests
   `TestPaletteDeprecatedNounAlias`,
   `TestBindingsCheckNotesADeprecatedNounAlias`.
 - **R12.4** A bare or short name a user wants is a configured alias row in
   `actions.json` (`{"alias": "pane.k", "action": "pane.kill"}`), not code.
   A row that would take the name of an action or of another alias is
   skipped and reported (a notice at load; `actions check`, `actions reload`
-  and `bindings check` list it). Stories: `actions/user-alias.json`,
-  `actions/alias-clash-reported.json`.
+  and `bindings check` list it). Stories: `composites/palette.json`.
   An alias row may preset arguments (`"args": {"force": true}`): every path
   that runs the alias (a key, the palette, the CLI, the API) runs its action
   with them, and a typed word, a flag or a row's argument of the same name
@@ -1223,8 +1158,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   one word in the palette and on the CLI; a row names it `noun.w!`. A bare
   alias named like a verb is refused unless `aliases.shadow` is `allow`
   (then the typed word runs the alias, `noun verb` still the verb). Stories:
-  `actions/alias-preset-args.json`, `actions/alias-shadow-refused.json`,
-  `actions/alias-shadow-allowed.json`; tests in `alias_args_test.go`,
+  `composites/palette.json`; tests in `alias_args_test.go`,
   `cli` `TestCLIBareAliasWithArgs`.
 - **R12.5** A write is never filled silently: a request with a required
   parameter missing fails naming it (API, CLI: `NAME is required`), and the
@@ -1245,7 +1179,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   run, which closes the help only when the verb runs, shows an answer as the
   palette does. A required parameter that declares nothing is still never
   filled. Stories
-  `palette/create-from-focus.json`, `palette/create-from-focus-off.json`, `palette/param-source-fills.json`, `help/unbound-run-fills-row-sources.json`;
+  `composites/palette.json`, `composites/help.json`;
   tests `TestCreateFillsFromTheFocus`, `TestTaskCreateFillsTheFocusedProject`.
   A subject may also come through a reference prop marked `Association`,
   when the verb declares `ByAssociation` or an optional `Focus` subject.
@@ -1255,11 +1189,10 @@ tiers above them. When the two disagree, fix one in the same commit.
   says `acts on: LABEL`; a form/confirm names the thing, or a completed
   non-modal action posts `NOUN LABEL (from the focus)`. Required parameters
   remain unfilled. Tests `TestAssociationFillIsDeclared`; stories
-  `focus/association-subject-row`, `focus/association-subject-palette`,
-  `focus/association-standard-subject`.
+  `composites/focus`.
   An edit form uses an instance label only when that instance is its subject;
   an explicit other subject uses the fetched thing's label. Story
-  `forms/standard-edit-palette-names-target.json`.
+  `composites/forms.json`.
 - **R12.6** The palette asks for missing arguments with a form. Enter on a
   line whose verb still lacks a required word, or a key whose row leaves a
   required argument out, opens the args form (`Runtime.OpenArgsForm`, modal
@@ -1280,10 +1213,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   reopens the form with the values and `! not run:`. The setting
   `palette.missing-opens-form` (default on) turned off restores
   `missing NAME (type): description`. The CLI and the API never open it.
-  Stories: `palette/form-missing-one.json`, `palette/form-noun-autocomplete.json`,
-  `palette/form-choices.json`, `palette/form-prefill.json`,
-  `palette/form-esc-cancels.json`, `palette/form-setting-off.json`,
-  `palette/form-binding.json`, `palette/form-look.json`; tests in
+  Stories: `composites/palette.json`; tests in
   `palette_form_test.go`. A path parameter's field opens the path picker
   (R7.8): a stop whose `enter`, `space` or `i` opens it (`path.field`
   `picker`, the default), or a text field whose `ctrl+space` (and `enter`
@@ -1296,9 +1226,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   verb's one parameter, else the form; `form` always the form.
   `TestPathFormField`, `TestPathArgsForm`; stories
   `palette/form-single-path-opens-picker.json`,
-  `palette/form-single-path-esc-cancels.json`,
-  `palette/form-single-path-setting-form.json`,
-  `palette/form-path-with-optional.json`.
+  `composites/palette.json`.
 - **R12.7** History undo refuses the newest real write when it has no inverse.
   Navigation, framework actions without a write, and application verbs whose
   nested requests recorded changes do not create barriers. A mounted write
@@ -1307,7 +1235,7 @@ tiers above them. When the two disagree, fix one in the same commit.
 - **R12.8** A confirm-mode edit compares submitted values with its latest loaded
   baseline, including outside reloads. Retyping its opening value writes it
   when the store has changed. Story
-  `forms/standard-edit-confirm-retype-opening-value.json`.
+  `composites/forms.json`.
 
 ### R13. Card timelines: inside a card
 
@@ -1334,8 +1262,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   toggle (closing the card from inside puts the focus on the card); `?`
   help and the footer show only the row that answers at the place.
   So `h` inside folds an open section first and leaves on the next `h`.
-  Stories: `timeline/step-in.json`, `timeline/step-out.json`,
-  `timeline/step-enter-toggles.json`, `timeline/step-fold.json`; tests
+  Stories: `composites/terminal.json`; tests
   `TestTimelineLAndHByPlace`, `TestTimelineHFoldsAnOpenStep`,
   `TestTimelineActionsReportAvailabilityByCardState`.
 - **R13.2** Inside, `j`/`k` move by step (`timeline.step {delta}`, counts
@@ -1351,11 +1278,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   stays: the focus never moves (mtm's Turns timeline is `NoSpill`). `k` on
   the first card scrolls to its top the same way; past the first step `k`
   goes back to the card. A count repeats the key, stops at the edge, and
-  only a move from the edge spills. Stories: `timeline/step-spill.json`,
-  `timeline/step-back.json`, `timeline/step-tall.json`,
-  `timeline/step-explicit.json`, `timeline/card-half-page.json`,
-  `timeline/card-end-clamp.json`, `timeline/step-end-clamp.json`,
-  `timeline/card-top-clamp.json`, `timeline/spill-after-end.json`; tests
+  only a move from the edge spills. Stories: `composites/terminal.json`; tests
   `TestTimelineHalfPageRule`, `TestTimelineNoSpillScrollsToTheEnd`.
 - **R13.3** The current step is marked in the left padding of each of its
   lines (`▌`, the accent, bold), never by reversed text; the window
@@ -1366,7 +1289,7 @@ tiers above them. When the two disagree, fix one in the same commit.
   (`timeline.yank-step`; the active register, else the unnamed); an app
   that also copies to the system clipboard rebinds `y` on the body noun
   to its own verb and keeps `timeline.yank-step`. Story:
-  `timeline/step-yank.json`.
+  `composites/terminal.json`.
 - **R13.5** The body follows the selection: it keeps the focus while its
   card stays selected (a streaming patch, a refresh), and a selection
   that moves (`G`, the filter) or a card that goes hands the focus to the
@@ -1375,22 +1298,21 @@ tiers above them. When the two disagree, fix one in the same commit.
   body, card, list, timeline, so a key the body does not bind answers as
   it does on the card (an app's rows on its card noun: `esc`, `R`, `Y`),
   and the footer and `?` help offer those rows. Story
-  `turns/card-rows-inside.json`.
+  `composites/terminal.json`.
 - **R13.7** `gj`/`gk` inside move by screen row (`timeline.row {delta}`,
   counts work): the header step's lines and every body line but blank
   ones. The marker covers the row alone and the step under it is the
   current step (`y`, `l`, `h` act on it); `gk` crosses into the step
   above; past the last row `gj` goes on as `j`, before the first `gk`
   goes back to the card; `j`/`k` go on by step from the row's step.
-  Story `turns/row-gj-gk.json`.
+  Story `composites/terminal.json`.
 - **R13.8** `J`/`K` (and `ctrl+e`/`ctrl+y`) inside scroll the window; a
   scroll that takes the current step (or row) off screen moves the cursor
   to the nearest one shown (the first going down, the last going up), so
   the next step key goes on from what is on screen. A motion pressed
   before the next frame is drawn (after `G`, an open, a step entered)
   measures from where that frame puts the window. Stories
-  `turns/scroll-keeps-step.json`, `turns/k-after-g-past-open-card.json`,
-  `turns/opened-tall-step-j-scrolls.json`.
+  `composites/terminal.json`.
 
 ---
 
@@ -1498,7 +1420,7 @@ Walk:      <keys and what the screen showed, one line per key where it matters>
 Where:     <file:line>
 Expected:  <one line>
 Observed:  <one line>
-Story:     <path>  (passes | fails | new, fails | needed: <path>)
+Regression: <area composite + checkpoint, or ordinary test> (passes | fails | needed)
 Reasoning: <principle and judgment findings only, one or two sentences>
 Proposed:  <judgment findings only: the rule it would become>
 Fix hint:  <optional, one line>
@@ -1509,6 +1431,11 @@ Fix hint:  <optional, one line>
 ## Notes
 - <remarks that are not findings>
 ```
+
+Extend the area's composite story, or write an ordinary test; do not add a new
+story file without the owner asking. A new finding does not require a new story.
+Prefer state and short frame-region assertions, with at most one or two
+full-frame goldens per composite.
 
 The applier replies with the same ids, one line each: `fixed`, `declined
 <reason>`, or `skip: <word>`, followed by the check output (`go test -race

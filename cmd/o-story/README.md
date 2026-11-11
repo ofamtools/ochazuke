@@ -21,8 +21,56 @@ o story explore NAME --watch [--delay D]   # watch the explorer run in a TUI; sa
 o story explore --dedupe DIR [--reproduce] [--out DIR]   # group the findings of saved reports
 ```
 
-`go test ./...` inside `cmd/o-story` (or `make test` at the root) runs every
-story in `stories/` through `host.Test`.
+`go test ./...` inside `cmd/o-story` (or `make test` at the root) runs the
+composites through monogatari's headless driver.
+
+## Area composites
+
+The committed suite is twelve walkthroughs in `stories/composites/`.
+Each has one sequential script and step-numbered assertions, including the
+distinctive checks from the value report's KEEP sources. Source names remain
+in event notes so a failure's event number identifies its original regression.
+
+| Composite | Walkthrough |
+|---|---|
+| `lists` | Lists and tables: filters, saved views, sort, grouping, folds, windowed paging, marks, four edges |
+| `forms` | Record and args forms: validation, failed writes, undo, choices, completion, fill-in, scopes |
+| `palette` | Classic and board commands: prefix matching, aliases, parameters, results, archive-first deletion |
+| `help` | Help trees, table/pick views, binding conflicts, docs reinvocation and steady scrolling |
+| `pickers` | Noun and path choices: list, hybrid, columns, sources, preview, creation, navigation |
+| `nouns` | Generated indexes and forms, empty indexes, creation, edit, archive/restore, related sections, history, undo |
+| `tree` | Outline editing, failed writes, wrapping, folds, moving, visual undo groups, zoom |
+| `focus` | Custom and pending modes, focus restoration, modal boundaries, registers, panes |
+| `settings` | Settings tabs, sections, bad values, lists, session writes, undo, themes and About |
+| `terminal` | Terminal leaders, overlays, jobs, late answers, timeline yanks and navigation, diffs |
+| `cli` | Command shell, catalog mounts, loading/failure, structured answers, widgets, foreground exit |
+| `text` | Markdown and text viewers: editing, wrapping, links, notes, search, yanks and motions |
+
+The demo's optional `checkpoints` field is a list of starting fixtures, not
+another list of stories: it contains no scripts or expectations. `seed: -1`
+starts before the first checkpoint. `ctrl+alt+n` runs `walkthrough.next`,
+loading the next fixture through monogatari's existing reset. This isolates
+incompatible starting configurations and intentional failures, cancels old
+jobs, and gives each checkpoint fresh temporary directories. Scripts continue
+and assertion offsets never restart. The final reset returns to the opening
+fixture, so the same loaded walkthrough can be replayed.
+
+The app maintains `checkpoint-start` metadata so recordings and player rewinds
+start from the original fixture, even when saved halfway through a walk.
+Snapshots retain their current checkpoint index and can continue into the next.
+Keep true restart/persistence scenarios in ordinary tests rather than giving
+an isolated checkpoint a different storage lifetime. `restart_test.go` retains
+the table pins, column widths, fit-width and pane-divider regressions.
+
+There are no full-screen goldens in the committed composites. Assert focus,
+mode, modal, writes, registers, visibility, styles and short content regions.
+Do not pin inventory counts, a generated verbs table, or whole help tables.
+Binding validity and typing shadows are checked during the same replay.
+
+`make stories` runs only `TestStories`, plain and uncached. It does not run
+vet, unrelated package tests, the explorer, or a README generator. The full
+`cmd/o-story` suite still checks the tool's other behavior.
+
 
 o-story is the demo app's host on
 [monogatari](https://github.com/ofamtools/monogatari), the story library
@@ -40,12 +88,9 @@ The name `o-story` keeps the user stories and recordings below at
 `o-story`, whichever command runs it (`o story`, `mtm story`'s
 pass-through); another host (`mtm story`) keeps its own.
 
-The Turns page (`o story open turns/page`) is mtm's Turns tab as a story:
-a pane row, the card timeline (a plain turn, tool calls with a diff and a
-tall output, a subagent, a notification event card), the prompt box with
-`@` and `/` completions, a settings line, and the key readout in the
-bottom-right corner. The other `turns/` stories walk its timeline keys
-(`base: "story:turns/page"`).
+The Turns fixture is part of `composites/terminal`: a pane row, the card
+timeline, prompt box, settings line and key readout. Its regression walks
+remain in that composite's checkpoints rather than separate base stories.
 
 ## The model
 
@@ -120,8 +165,8 @@ it to the timer's deadline and delivers the timer's message
            { noun: "app", keys: "X", do: "demo.hide", args: { id: "b" } }],
                                   // demo.hide {id} stops drawing a list, tree, input or the
                                   // timeline, or draws it again (a tab switched away: focus/*)
-    pending: ["loop"],            // pending modes defined before bind, which may enter
-                                  // them (do: "mode.enter", args: { mode: "loop" }) or bind in them
+    modes: { loop: { pending: true } }, // custom modes, including pending ones,
+                                  // declared before bind (mode.enter { mode: "loop" })
     verbs: [{ verb: "demo.open-file", description: "Open a file", positional: ["path"],
               parameters: { path: { type: "string", required: true, source: "demo.files" } } },
             { verb: "demo.files", rows: ["main.go", "go.mod"] },
@@ -315,7 +360,7 @@ o story replay spill-bug        # live, with the recorded timing
 o story run --from spill-bug [--expect '{"focus":"b1"}']   # headless; asserts only an expect
 ```
 
-## How a bug becomes a story
+## Reproducing and retaining a bug
 
 1. Reproduce it in the TUI on the nearest story; leave and name the recording.
 2. `o story trim NAME --at K` writes `trimmed/NAME-I-J.json`: events
@@ -326,10 +371,13 @@ o story run --from spill-bug [--expect '{"focus":"b1"}']   # headless; asserts o
    alone. A window is never a single frame.
 3. The expect `trim` writes is the state it observed; edit it to the correct
    state, so the story fails until the fix lands.
-4. Move it into `stories/<area>/` when it is a rule of the framework.
+4. Extend the area's composite story, or write an ordinary test; do not add
+   a new story file without the owner asking.
 
-Every chrome or motion rule has a story here; a UI bug is reproduced as a
-story before it is fixed.
+Keep the recording and trimming tools for diagnosis. A trimmed recording
+does not need to become another committed story file. Prefer assertions on
+state and short frame regions; keep at most one or two full-frame goldens
+per area composite.
 
 ## Explore
 
@@ -345,7 +393,7 @@ settle, operation errors, modes no row leaves.
 
 ```sh
 o story explore                        # every application, depth 3, 2000 steps each
-o story explore lists tables/cell-motion --depth 6 --steps 20000
+o story explore composites/lists --depth 6 --steps 20000
 o story explore --out /tmp/explore     # NAME.json reports and NAME/NN-CHECK.json gap stories
 o story explore --compare-full         # also count states keyed with the screen
 ```
@@ -357,7 +405,8 @@ last block groups the findings of every application. A gap story is the
 application's story with the finding's keys as its script and
 `"skip": "gap: CHECK: SUMMARY"`; waits and resizes have no story event,
 so they are named in the skip. They are written to `--out`, never to
-`stories/`: move one there once it is a rule.
+`stories/`. Retain a confirmed regression by extending the area's composite
+or writing an ordinary test; do not add a new story file without the owner asking.
 
 `o story explore --dedupe DIR` explores nothing: it reads every report under
 DIR (`--out`'s `NAME.json`, and the examples' `OCHAZUKE_EXPLORE_OUT`
@@ -366,13 +415,11 @@ reports), groups the findings by check and normalized summary
 group the shortest path, then the smallest story application, then the name,
 and prints one line per group; `--reproduce` replays each group's best story
 path on this build (`explore.Shows`), `--out` writes `groups.json` and the gap
-story of each group. The same reports give the same bytes. Confirmed bugs
-live in `stories/gaps/`, one story per root cause: the gap story with a
-`lacks` expect on the error, so it fails until fixed and is skipped
-(`"skip": "gap: CHECK: SUMMARY"`); its name says what should happen. Gaps
-only an example shows are `explore.Gap` tests (`TestExploreGaps`) beside
-the example's `TestExplore` (both behind the `explore` build tag: `make
-explore-quick`). Expected refusals are quieted by
+story of each group. The same reports give the same bytes. Retain a confirmed
+bug by extending the area's composite or writing an ordinary regression
+test, not by adding another `stories/gaps/` file. Example-only gaps remain
+`explore.Gap` tests (`TestExploreGaps`) beside the example's `TestExplore`
+(behind the `explore` build tag: `make explore-quick`). Expected refusals are quieted by
 `Subject.Expected`: `explore.FrameworkRefusal` for the framework's own, and
 here `storyFake` for the stories' fakes.
 
@@ -436,425 +483,3 @@ o story recording show --target recording/1
 o story story state              # {"noun":"verb","id":"verb/normal/list.move",...} per line
 ```
 
-## Minimum verbs per component
-
-Every key resolves to a `noun.verb`, so the verbs the core stories exercise
-are the minimum a component needs to be full-featured; which keys reach them
-is the app's choice. The table is derived from the stories (per mode the key
-was resolved in) by `o story verbs`, and `go test` fails when it drifts.
-The edges are the mode changes the stories make. `demo.*` rows are the
-sandbox's own noun.
-
-Conformance:
-
-- An app's bindings must reach every verb in this set. `ValidateBindings`
-  covers the static half (every row atomic and registered).
-- Every mode that can be entered has an exit edge reachable from inside it
-  (terminal needs detach, insert needs esc or cancel, a pending mode a
-  timeout or esc); `o story verbs` fails if a story enters a mode that no
-  story leaves.
-- The core stories must pass when replayed through the app's bindings:
-  `o story run --bindings FILE`, a run mode planned for later (not built).
-
-<!-- verbs:begin (generated by o-story verbs --readme README.md; do not edit) -->
-
-| mode | noun | verbs |
-|---|---|---|
-| count_pending | count | `count.append` |
-| count_pending | mode | `mode.enter` `mode.leave` |
-| edit | collection | `collection.move` |
-| edit | focus | `focus.previous` |
-| edit | mode | `mode.pin` `mode.switch` |
-| flat | mode | `mode.switch` |
-| hints | demo | `demo.hint` `demo.hints-cancel` `demo.hints-ignore` |
-| insert | binding | `binding.help` |
-| insert | collection | `collection.filter-cycle` `collection.filter-prop` |
-| insert | completion | `completion.accept` `completion.dismiss` `completion.move` `completion.open` |
-| insert | demo | `demo.close-origin` `demo.edit` `demo.files` `demo.get` `demo.hide` `demo.set` |
-| insert | filter-form | `filter-form.move` `filter-form.write-saved` |
-| insert | find-line | `find-line.accept` |
-| insert | form | `form.leave` `form.next` `form.run` `form.suggest` |
-| insert | input | `input.erase` `input.insert` `input.kill` `input.move` |
-| insert | macro | `macro.record` |
-| insert | markdown | `markdown.cell` `markdown.continue-item` `markdown.end-list` `markdown.indent` `markdown.insert-block` `markdown.leave` `markdown.outdent` `markdown.unmark` |
-| insert | mode | `mode.list` `mode.switch` |
-| insert | outline | `outline.leave` `outline.next` `outline.row-key` |
-| insert | palette | `palette.back` `palette.cancel` `palette.complete` `palette.move` `palette.run` `palette.step` |
-| insert | parcel | `parcel.list` |
-| insert | picker | `picker.clear-props` `picker.goto` `picker.into` `picker.mark` `picker.move` `picker.new` `picker.next-scope` `picker.next-source` `picker.normal` `picker.pick` `picker.previous-source` `picker.toggle` `picker.up` |
-| insert | search | `search.cycle-match` |
-| insert | setting | `setting.complete` `setting.open` |
-| insert | setting-value | `setting-value.accept` |
-| insert | swatch | `swatch.names` |
-| jq | collection | `collection.move` |
-| jq | completion | `completion.dismiss` |
-| jq | input | `input.insert` |
-| jq | mode | `mode.switch` |
-| jq | palette | `palette.open` |
-| list_filter | chore | `chore.get` |
-| list_filter | collection | `collection.filter` `collection.filter-choose` `collection.filter-clear` `collection.filter-erase` `collection.filter-keep` `collection.filter-type` `collection.move` |
-| list_filter | search | `search.cycle-match` |
-| macro_pending | mode | `mode.leave` |
-| normal | about | `about.close` `about.open` |
-| normal | about-row | `about-row.open` `about-row.yank` |
-| normal | app | `app.quit` |
-| normal | binding | `binding.help` |
-| normal | bindings-help | `bindings-help.args` `bindings-help.bind-key` `bindings-help.pick` `bindings-help.run` `bindings-help.show` |
-| normal | chore | `chore.archive` `chore.delete` `chore.duplicate` `chore.get` `chore.restore` `chore.set` `chore.yank` |
-| normal | collection | `collection.apply` `collection.column` `collection.filter-clear` `collection.filter-cycle` `collection.filter-open` `collection.filter-prop` `collection.filter-prop-clear` `collection.filter-props-clear` `collection.fit-column` `collection.fit-columns` `collection.flush-lingering` `collection.goto` `collection.group` `collection.group-clear` `collection.group-fold` `collection.mark` `collection.move` `collection.next-class` `collection.page-next` `collection.page-prev` `collection.previous-class` `collection.reset-columns` `collection.resize-column` `collection.scroll` `collection.scroll-columns` `collection.show-archived` `collection.sort-column` `collection.toggle-pin-column` `collection.visual` `collection.yank` |
-| normal | command | `command.help` `command.run` `command.stop` |
-| normal | confirm | `confirm.accept` |
-| normal | culprit | `culprit.size` |
-| normal | demo | `demo.add-base` `demo.archive` `demo.build` `demo.change-source` `demo.check` `demo.check-bindings` `demo.choose` `demo.create` `demo.delete` `demo.edit` `demo.edit-task` `demo.finish` `demo.forget-row` `demo.get` `demo.hide` `demo.history` `demo.inspect` `demo.launch` `demo.load-peers` `demo.mapping` `demo.notify` `demo.open` `demo.output` `demo.ping` `demo.read` `demo.refresh` `demo.reload` `demo.send` `demo.set` `demo.ship` `demo.synced` `demo.thread` `demo.write` |
-| normal | detail | `detail.fields` `detail.scroll` |
-| normal | detail-field | `detail-field.show` `detail-field.yank` |
-| normal | diff | `diff.file` `diff.hunk` `diff.move` `diff.scroll` `diff.scroll-columns` |
-| normal | filter-form | `filter-form.delete-saved` `filter-form.direction` `filter-form.edit-condition` `filter-form.goto` `filter-form.move` `filter-form.toggle` |
-| normal | focus | `focus.act` `focus.next` `focus.previous` `focus.to` |
-| normal | form | `form.chip-line` `form.chip-move` `form.chip-toggle` `form.choose` `form.clear` `form.invert` `form.item-delete` `form.item-edit` `form.item-last` `form.item-next` `form.leave` `form.next` `form.next-missing` `form.previous` `form.redo` `form.run` `form.suggest` `form.undo` |
-| normal | form-option | `form-option.pick` |
-| normal | history-entry | `history-entry.repeat` `history-entry.undo` |
-| normal | input | `input.begin` `input.move` `input.operator` `input.redo` `input.select` `input.undo` |
-| normal | item | `item.get` `item.set` |
-| normal | key | `key.ignore` |
-| normal | macro | `macro.record` `macro.start` `macro.stop` |
-| normal | markdown | `markdown.annotate` `markdown.cut` `markdown.fold` `markdown.insert` `markdown.link-open` `markdown.link-yank` `markdown.move` `markdown.next-block` `markdown.next-kind` `markdown.next-link` `markdown.next-same` `markdown.open` `markdown.previous-block` `markdown.previous-kind` `markdown.previous-link` `markdown.previous-same` `markdown.redo` `markdown.resolve` `markdown.toggle` `markdown.undo` |
-| normal | markdown-view | `markdown-view.yank` |
-| normal | md.doc | `md.doc.show` |
-| normal | message | `message.show` |
-| normal | modal | `modal.close` |
-| normal | mode | `mode.enter` `mode.leave` `mode.switch` |
-| normal | notice | `notice.clear` |
-| normal | noun | `noun.edit` `noun.show` |
-| normal | noun-browser | `noun-browser.refresh` |
-| normal | opener | `opener.show` |
-| normal | outline | `outline.add` `outline.collapse` `outline.delete` `outline.edit` `outline.expand` `outline.fold` `outline.indent` `outline.move` `outline.outdent` `outline.paste` `outline.put` `outline.redo` `outline.undo` `outline.yank` `outline.zoom-in` `outline.zoom-out` `outline.zoom-reset` |
-| normal | page | `page.next` `page.pick` `page.previous` |
-| normal | palette | `palette.close` `palette.open` |
-| normal | pane | `pane.grow` `pane.only` `pane.reset` `pane.restore` `pane.shrink` |
-| normal | parcel | `parcel.create` `parcel.edit` `parcel.get` `parcel.set` |
-| normal | picker | `picker.goto` `picker.into` `picker.mark` `picker.move` `picker.new` `picker.open` `picker.pick` `picker.toggle` `picker.up` |
-| normal | project | `project.get` |
-| normal | quad | `quad.warp` |
-| normal | quill | `quill.wipe` |
-| normal | related-section | `related-section.close-all` `related-section.new` `related-section.next` `related-section.open` `related-section.open-all` `related-section.toggle` `related-section.unassociate` |
-| normal | search | `search.find` `search.next` |
-| normal | segment | `segment.toggle` |
-| normal | setting | `setting.add` `setting.all` `setting.close` `setting.cycle` `setting.diff` `setting.edit` `setting.open` `setting.reset` `setting.revert` `setting.show-section` `setting.show-tab` `setting.undo` `setting.write` `setting.write-all` |
-| normal | setting-item | `setting-item.add` `setting-item.delete` `setting-item.edit` `setting-item.reset` |
-| normal | settings-section | `settings-section.open` `settings-section.pick` |
-| normal | snapshot | `snapshot.toggle` |
-| normal | story-card | `story-card.timeline-append` `story-card.timeline-stream` |
-| normal | surface | `surface.scroll` |
-| normal | timeline | `timeline.close` `timeline.close-all` `timeline.enter` `timeline.fold` `timeline.fold-step` `timeline.goto` `timeline.leave` `timeline.open` `timeline.open-all` `timeline.row` `timeline.scroll` `timeline.step` `timeline.toggle` `timeline.yank-step` |
-| normal | viewport | `viewport.goto` `viewport.scroll` |
-| normal | yank-history | `yank-history.open` |
-| operator_pending | input | `input.cancel` |
-| register_pending | mode | `mode.leave` |
-| replay_pending | mode | `mode.leave` |
-| shape | collection | `collection.move` |
-| shape | mode | `mode.switch` |
-| table | binding | `binding.help` |
-| table | collection | `collection.move` |
-| table | mode | `mode.enter` `mode.leave` `mode.pin` `mode.switch` |
-| terminal | binding | `binding.help` |
-| terminal | collection | `collection.select` |
-| terminal | demo | `demo.edit` `demo.finish` `demo.hints` `demo.outside` |
-| terminal | focus | `focus.next` |
-| terminal | item | `item.edit` `item.live-only` `item.rename-associated` `item.set` |
-| terminal | mode | `mode.enter` |
-| terminal | palette | `palette.open` |
-| terminal | terminal | `terminal.detach` `terminal.paste` `terminal.send` |
-| visual | input | `input.cancel` `input.move` `input.operator` |
-| visual-line | binding | `binding.help` |
-| visual-line | collection | `collection.apply` `collection.end-visual` `collection.goto` `collection.move` `collection.yank` |
-| visual-line | confirm | `confirm.accept` |
-| visual-line | demo | `demo.check` `demo.choose` `demo.delete` `demo.edit` `demo.nest` `demo.set` `demo.tag` `demo.zap` |
-| visual-line | input | `input.cancel` `input.move` `input.operator` |
-| visual-line | modal | `modal.close` |
-| visual-line | mode | `mode.enter` `mode.leave` |
-| visual-line | outline | `outline.delete` |
-
-Mode edges (from → to via):
-
-- `count_pending` → `count_pending [` via `row [`
-- `count_pending` → `count_pending ]` via `row ]`
-- `count_pending` → `count_pending ctrl+w` via `row ctrl+w`
-- `count_pending` → `count_pending g` via `row g`
-- `count_pending` → `count_pending z` via `row z`
-- `count_pending` → `g_pending` via `mode.enter`
-- `count_pending` → `normal` via `collection.column`
-- `count_pending` → `normal` via `collection.goto`
-- `count_pending` → `normal` via `collection.move`
-- `count_pending` → `normal` via `collection.scroll`
-- `count_pending` → `normal` via `detail.scroll`
-- `count_pending` → `normal` via `timeline.goto`
-- `count_pending` → `normal` via `timeline.scroll`
-- `count_pending` → `normal` via `timeline.step`
-- `count_pending` → `normal` via `viewport.goto`
-- `count_pending` → `normal` via `viewport.scroll`
-- `count_pending` → `table` via `mode.leave`
-- `count_pending` → `visual` via `mode.switch`
-- `count_pending` → `visual-line` via `collection.move`
-- `count_pending [` → `normal` via `collection.previous-class`
-- `count_pending [` → `normal` via `diff.hunk`
-- `count_pending ]` → `normal` via `collection.next-class`
-- `count_pending ]` → `normal` via `diff.hunk`
-- `count_pending ]` → `normal` via `markdown.next-kind`
-- `count_pending ctrl+w` → `normal` via `pane.grow`
-- `count_pending ctrl+w` → `normal` via `pane.shrink`
-- `count_pending g` → `normal` via `collection.goto`
-- `count_pending z` → `normal` via `diff.scroll-columns`
-- `edit` → `normal` via `focus.previous`
-- `edit` → `normal` via `mode.switch`
-- `edit` → `shape` via `mode.switch`
-- `edit` → `table` via `mode.switch`
-- `flat` → `edit` via `mode.switch`
-- `g_pending` → `normal` via `input.move`
-- `g_pending` → `normal` via `yank-history.open`
-- `help_bind_pending` → `normal` via `bindings-help.bind-key`
-- `hints` → `terminal` via `demo.hint`
-- `hints` → `terminal` via `demo.hints-cancel`
-- `insert` → `jq` via `palette.run`
-- `insert` → `normal` via `binding.help`
-- `insert` → `normal` via `collection.filter-prop`
-- `insert` → `normal` via `filter-form.move`
-- `insert` → `normal` via `find-line.accept`
-- `insert` → `normal` via `form.leave`
-- `insert` → `normal` via `form.run`
-- `insert` → `normal` via `form.run + parcel.get`
-- `insert` → `normal` via `input.insert + input.insert + input.insert + quill.wipe`
-- `insert` → `normal` via `input.insert + input.insert + quad.warp`
-- `insert` → `normal` via `input.insert + swatch.names`
-- `insert` → `normal` via `job picker.load`
-- `insert` → `normal` via `job picker.pick`
-- `insert` → `normal` via `macro.record`
-- `insert` → `normal` via `markdown.leave`
-- `insert` → `normal` via `mode.switch`
-- `insert` → `normal` via `mode.switch + chore.set + chore.get`
-- `insert` → `normal` via `mode.switch + demo.set + demo.get`
-- `insert` → `normal` via `mode.switch + item.set + item.get`
-- `insert` → `normal` via `mode.switch + parcel.set + parcel.get`
-- `insert` → `normal` via `outline.leave`
-- `insert` → `normal` via `palette.cancel`
-- `insert` → `normal` via `palette.run`
-- `insert` → `normal` via `palette.run + chore.get`
-- `insert` → `normal` via `palette.run + parcel.get`
-- `insert` → `normal` via `picker.normal`
-- `insert` → `normal` via `picker.pick`
-- `insert` → `normal` via `picker.pick + demo.get`
-- `insert` → `normal` via `row esc`
-- `insert` → `normal` via `setting-value.accept`
-- `insert` → `normal` via `setting.open`
-- `insert` → `terminal` via `palette.run`
-- `jq` → `insert` via `palette.open`
-- `jq` → `normal` via `collection.move`
-- `jq` → `normal` via `mode.switch`
-- `leader_pending` → `hints` via `demo.hints`
-- `leader_pending` → `insert` via `demo.edit`
-- `leader_pending` → `insert` via `item.edit`
-- `leader_pending` → `insert` via `palette.open`
-- `leader_pending` → `normal` via `binding.help`
-- `leader_pending` → `normal` via `focus.next`
-- `leader_pending` → `normal` via `terminal.detach`
-- `leader_pending` → `terminal` via `collection.select`
-- `leader_pending` → `terminal` via `demo.finish`
-- `leader_pending` → `terminal` via `demo.outside`
-- `leader_pending` → `terminal` via `item.live-only`
-- `leader_pending` → `terminal` via `item.rename-associated`
-- `leader_pending` → `terminal` via `item.set`
-- `leader_pending` → `terminal` via `row r`
-- `leader_pending` → `terminal` via `row x`
-- `leader_pending` → `terminal` via `terminal.send`
-- `leader_pending` → `terminal` via `terminal.send + terminal.send`
-- `list_filter` → `normal` via `collection.filter-choose`
-- `list_filter` → `normal` via `collection.filter-clear`
-- `list_filter` → `normal` via `collection.filter-keep`
-- `macro_pending` → `insert` via `palette.open`
-- `macro_pending` → `normal` via `macro.start`
-- `macro_pending` → `visual-line` via `mode.leave`
-- `normal` → `count_pending` via `mode.enter`
-- `normal` → `edit` via `mode.switch`
-- `normal` → `flat` via `modal.close`
-- `normal` → `g_pending` via `mode.enter`
-- `normal` → `help_bind_pending` via `mode.enter`
-- `normal` → `insert` via `bindings-help.args`
-- `normal` → `insert` via `bindings-help.pick`
-- `normal` → `insert` via `collection.apply`
-- `normal` → `insert` via `demo.choose`
-- `normal` → `insert` via `demo.edit`
-- `normal` → `insert` via `filter-form.delete-saved`
-- `normal` → `insert` via `filter-form.edit-condition`
-- `normal` → `insert` via `filter-form.goto`
-- `normal` → `insert` via `filter-form.move`
-- `normal` → `insert` via `focus.act`
-- `normal` → `insert` via `form.choose`
-- `normal` → `insert` via `form.item-edit`
-- `normal` → `insert` via `form.next-missing`
-- `normal` → `insert` via `form.suggest`
-- `normal` → `insert` via `input.begin`
-- `normal` → `insert` via `job demo.send`
-- `normal` → `insert` via `macro.record`
-- `normal` → `insert` via `markdown.annotate`
-- `normal` → `insert` via `markdown.insert`
-- `normal` → `insert` via `markdown.open`
-- `normal` → `insert` via `modal.close`
-- `normal` → `insert` via `opener.show`
-- `normal` → `insert` via `outline.add`
-- `normal` → `insert` via `outline.edit`
-- `normal` → `insert` via `page.pick`
-- `normal` → `insert` via `palette.open`
-- `normal` → `insert` via `parcel.edit`
-- `normal` → `insert` via `picker.new`
-- `normal` → `insert` via `picker.open`
-- `normal` → `insert` via `picker.pick`
-- `normal` → `insert` via `row R`
-- `normal` → `insert` via `row T`
-- `normal` → `insert` via `row W`
-- `normal` → `insert` via `row e`
-- `normal` → `insert` via `row n`
-- `normal` → `insert` via `search.find`
-- `normal` → `insert` via `setting-item.add`
-- `normal` → `insert` via `setting-item.edit`
-- `normal` → `insert` via `setting.add`
-- `normal` → `insert` via `setting.close`
-- `normal` → `insert` via `setting.edit`
-- `normal` → `insert` via `settings-section.pick`
-- `normal` → `jq` via `collection.move`
-- `normal` → `jq` via `mode.switch`
-- `normal` → `list_filter` via `collection.filter-open`
-- `normal` → `macro_pending` via `mode.enter`
-- `normal` → `normal <` via `row <`
-- `normal` → `normal >` via `row >`
-- `normal` → `normal G` via `row G`
-- `normal` → `normal [` via `row [`
-- `normal` → `normal ]` via `row ]`
-- `normal` → `normal ctrl+a` via `row ctrl+a`
-- `normal` → `normal ctrl+w` via `row ctrl+w`
-- `normal` → `normal d` via `row d`
-- `normal` → `normal g` via `row g`
-- `normal` → `normal y` via `row y`
-- `normal` → `normal z` via `row z`
-- `normal` → `operator_pending` via `mode.enter`
-- `normal` → `table` via `collection.move`
-- `normal` → `table` via `focus.next`
-- `normal` → `terminal` via `command.run`
-- `normal` → `terminal` via `demo.open`
-- `normal` → `terminal` via `modal.close`
-- `normal` → `visual` via `input.select`
-- `normal` → `visual-line` via `collection.visual`
-- `normal` → `visual-line` via `input.select`
-- `normal` → `visual-line` via `modal.close`
-- `normal <` → `normal` via `outline.outdent`
-- `normal >` → `normal` via `outline.indent`
-- `normal G` → `normal` via `mode.leave`
-- `normal [` → `normal` via `collection.previous-class`
-- `normal [` → `normal` via `diff.file`
-- `normal [` → `normal` via `diff.hunk`
-- `normal [` → `normal` via `markdown.previous-kind`
-- `normal [` → `normal` via `markdown.previous-link`
-- `normal [` → `normal` via `markdown.previous-same`
-- `normal ]` → `normal` via `collection.next-class`
-- `normal ]` → `normal` via `diff.file`
-- `normal ]` → `normal` via `diff.hunk`
-- `normal ]` → `normal` via `markdown.next-kind`
-- `normal ]` → `normal` via `markdown.next-link`
-- `normal ]` → `normal` via `markdown.next-same`
-- `normal ctrl+a` → `normal` via `focus.next`
-- `normal ctrl+w` → `normal` via `focus.next`
-- `normal ctrl+w` → `normal` via `focus.previous`
-- `normal ctrl+w` → `normal` via `pane.grow`
-- `normal ctrl+w` → `normal` via `pane.only`
-- `normal ctrl+w` → `normal` via `pane.reset`
-- `normal ctrl+w` → `normal` via `pane.restore`
-- `normal ctrl+w` → `normal` via `pane.shrink`
-- `normal ctrl+w` → `normal` via `row >`
-- `normal d` → `normal` via `chore.archive + chore.get`
-- `normal d` → `normal` via `chore.delete`
-- `normal d` → `normal` via `chore.delete + chore.get`
-- `normal d` → `normal` via `chore.restore + chore.get`
-- `normal d` → `normal` via `form.item-delete + project.get`
-- `normal d` → `normal` via `markdown.cut`
-- `normal d` → `normal` via `outline.delete`
-- `normal d` → `normal` via `related-section.unassociate`
-- `normal d` → `normal` via `setting-item.delete`
-- `normal g` → `normal` via `chore.duplicate`
-- `normal g` → `normal` via `collection.goto`
-- `normal g` → `normal` via `demo.send`
-- `normal g` → `normal` via `detail.fields`
-- `normal g` → `normal` via `markdown.link-open`
-- `normal g` → `normal` via `message.show`
-- `normal g` → `normal` via `mode.leave`
-- `normal g` → `normal` via `picker.goto`
-- `normal g` → `normal` via `picker.move`
-- `normal g` → `normal` via `row c`
-- `normal g` → `normal` via `row s`
-- `normal g` → `normal` via `setting.show-tab`
-- `normal g` → `normal` via `tick binding`
-- `normal g` → `normal` via `timeline.row`
-- `normal g` → `normal` via `viewport.goto`
-- `normal g` → `normal` via `yank-history.open`
-- `normal y` → `normal` via `chore.yank`
-- `normal y` → `normal` via `markdown-view.yank`
-- `normal y` → `normal` via `markdown.link-yank`
-- `normal y` → `normal` via `outline.yank`
-- `normal y` → `normal` via `parcel.create`
-- `normal z` → `insert` via `collection.filter-prop`
-- `normal z` → `insert` via `collection.filter-prop-clear`
-- `normal z` → `insert` via `collection.sort-column`
-- `normal z` → `normal` via `collection.filter-cycle`
-- `normal z` → `normal` via `collection.filter-prop`
-- `normal z` → `normal` via `collection.filter-props-clear`
-- `normal z` → `normal` via `collection.fit-column`
-- `normal z` → `normal` via `collection.fit-columns`
-- `normal z` → `normal` via `collection.reset-columns`
-- `normal z` → `normal` via `collection.resize-column`
-- `normal z` → `normal` via `collection.scroll-columns`
-- `normal z` → `normal` via `collection.show-archived`
-- `normal z` → `normal` via `collection.sort-column`
-- `normal z` → `normal` via `collection.toggle-pin-column`
-- `normal z` → `normal` via `markdown.fold`
-- `normal z` → `normal` via `outline.zoom-in`
-- `normal z` → `normal` via `outline.zoom-out`
-- `normal z` → `normal` via `outline.zoom-reset`
-- `normal z` → `normal` via `timeline.close-all`
-- `normal z` → `normal` via `timeline.fold`
-- `normal z` → `normal` via `timeline.open-all`
-- `operator_pending` → `normal` via `input.cancel`
-- `operator_pending` → `normal` via `input.operator`
-- `register_pending` → `visual-line` via `mode.leave`
-- `replay_pending` → `visual-line` via `mode.leave`
-- `shape` → `edit` via `mode.switch`
-- `shape` → `normal` via `collection.move`
-- `table` → `count_pending` via `mode.enter`
-- `table` → `edit` via `mode.switch`
-- `table` → `flat` via `mode.pin`
-- `table` → `normal` via `binding.help`
-- `table` → `normal` via `collection.move`
-- `table` → `table g` via `row g`
-- `table g` → `table` via `mode.leave`
-- `terminal` → `leader_pending` via `mode.enter`
-- `visual` → `normal` via `input.cancel`
-- `visual` → `normal` via `input.operator`
-- `visual-line` → `count_pending` via `mode.enter`
-- `visual-line` → `insert` via `demo.choose`
-- `visual-line` → `insert` via `demo.edit`
-- `visual-line` → `macro_pending` via `mode.enter`
-- `visual-line` → `normal` via `binding.help`
-- `visual-line` → `normal` via `collection.end-visual`
-- `visual-line` → `normal` via `collection.yank`
-- `visual-line` → `normal` via `confirm.accept`
-- `visual-line` → `normal` via `demo.check`
-- `visual-line` → `normal` via `demo.nest`
-- `visual-line` → `normal` via `demo.set`
-- `visual-line` → `normal` via `demo.tag`
-- `visual-line` → `normal` via `demo.zap`
-- `visual-line` → `normal` via `input.cancel`
-- `visual-line` → `normal` via `input.operator`
-- `visual-line` → `normal` via `outline.delete`
-- `visual-line` → `register_pending` via `mode.enter`
-- `visual-line` → `replay_pending` via `mode.enter`
-- `visual-line` → `visual-line d` via `row d`
-- `visual-line d` → `visual-line` via `mode.leave`
-
-<!-- verbs:end -->

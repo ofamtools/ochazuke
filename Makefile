@@ -36,12 +36,10 @@ test:
 	OCHAZUKE_NESTED_TESTS=1 go test -race -count=1 -timeout $(TEST_TIMEOUT) ./...
 	for d in $(NESTED); do (cd $$d && go vet ./... && go test -count=1 ./...) || exit 1; done
 
-# stories runs only o-story's stories and goldens (about 3 minutes), against the
-# working tree through the go.work above: the quick check after a settings,
-# binding or chrome change, since a new setting shifts the Settings goldens.
-# (cd cmd/o-story && go test -run TestStories -update . rewrites them.)
+# stories runs only the composite walkthroughs, once, without the race detector.
+# It uses the workspace above; no README generation or other package tests.
 stories:
-	cd cmd/o-story && go vet ./... && go test -run 'TestStories|TestReadme' ./...
+	cd cmd/o-story && go test -count=1 -run '^TestStories$$' .
 
 # Explorer surveys are not part of go test ./...: their tests carry the
 # explore build tag. explore-quick runs them at the small survey budget
