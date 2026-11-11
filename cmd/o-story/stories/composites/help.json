@@ -1327,7 +1327,7 @@
         "text result, opened in the",
         "palette's text view",
         "space collection.mark · S view · enter run · a args · q modal.close · : palette.open · ? bi…",
-        "space collection.mark · S view · enter run · a args · q modal.close · : palette.open · ? binding.help · / filter"
+        "g o open"
       ],
       "highlighted": 1,
       "dimmed": 1
@@ -1631,7 +1631,9 @@
         "fan-out verbs",
         "collection.visual",
         "Start a visual row selection at",
-        "space collection.mark · S view · q modal.close · : palette.open · ? binding.help · / filter"
+        "S view · q modal.close",
+        "g o open",
+        "g . actions"
       ],
       "highlighted": 1,
       "dimmed": 1
@@ -1717,7 +1719,7 @@
         "Answer a Markdown guide: a",
         "Markdown result, opened in the",
         "space collection.mark · S view · enter run · a args · q modal.close · : palette.open · ? bi…",
-        "space collection.mark · S view · enter run · a args · q modal.close · : palette.open · ? binding.help · / filter"
+        "g o open"
       ],
       "highlighted": 1,
       "dimmed": 1
