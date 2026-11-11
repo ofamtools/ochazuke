@@ -271,3 +271,38 @@ func TestThingWalkPlainReferencesWithoutRelationStore(t *testing.T) {
 		t.Fatalf("plain-reference walk failed: %s", crumb)
 	}
 }
+
+func TestThingWalkPreviewKeepsMixedNounIdentity(t *testing.T) {
+	r, m, origin := thingWalkFixture(t)
+	for _, noun := range []string{"bookmark", "chapter"} {
+		table := NewMemDocTable(r, noun)
+		r.Define(noun).Props(
+			PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel},
+			PropSpec{Name: "project", Role: RoleOwner, Parameter: Parameter{Noun: "project"}},
+			PropSpec{Name: "file", Parameter: Parameter{Type: PropPath}},
+		).Store(DocStore(table, noun))
+		if err := table.Put("same", Thing{"id": "same", "title": "Shared", "project": "p1", "file": "/" + noun + ".md"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	c, _ := thingWalkPicker(t, r, Parameter{Type: PropPath}, origin, nil)
+	c.SetQuery("Shared")
+	landLoads(m, r.PendingCommands())
+	first, _ := c.Highlighted()
+	if first.ID != "same" || !strings.Contains(c.Preview.Text, "/bookmark.md") {
+		t.Fatalf("first mixed-noun preview: %+v / %s", first, c.Preview.Text)
+	}
+	thingWalkKey(t, r, "j")
+	landLoads(m, r.PendingCommands())
+	second, _ := c.Highlighted()
+	if second.ID != "same" || first.Noun == second.Noun || !strings.Contains(c.Preview.Text, "/chapter.md") {
+		t.Fatalf("same foreign key reused the wrong noun's preview: %+v / %s", second, c.Preview.Text)
+	}
+	thingWalkKey(t, r, "l")
+	landLoads(m, r.PendingCommands())
+	thingWalkKey(t, r, "h")
+	restored, _ := c.Highlighted()
+	if restored.Noun != second.Noun || c.Query() != "Shared" {
+		t.Fatalf("backtracking lost the selected noun with the same key: %+v", restored)
+	}
+}

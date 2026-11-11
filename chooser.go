@@ -69,6 +69,8 @@ type PickerRow struct {
 	Section string
 	// walk keeps graph navigation separate from the caller's Data and ID.
 	walk *thingWalkNode
+	// identity keeps mixed-noun navigation distinct from an argument ID.
+	identity string
 }
 
 // ChooserSpec opens a chooser. Kind is the modal's kind (one open chooser
@@ -599,13 +601,13 @@ func (c *Chooser) SetRows(rows []ChooserRow) {
 	keep := ""
 	wasMoved := c.moved
 	if row, ok := c.Highlighted(); ok {
-		keep = row.ID
+		keep = pickerRowKey(row)
 	}
 	c.spec.Rows = rows
 	c.cachePropRows()
 	c.refilter()
 	for i, row := range c.matches {
-		if keep != "" && row.ID == keep && (wasMoved || c.filters.Lingering(keep)) {
+		if keep != "" && pickerRowKey(row) == keep && (wasMoved || c.filters.Lingering(row.ID)) {
 			c.cursor, c.moved = i, wasMoved
 		}
 	}

@@ -155,6 +155,9 @@ type PickerSide struct {
 	Title string
 	Lines []string
 	At    string
+	// AtRow is the 1-based selected line when labels are not unique;
+	// zero uses At's label, as directory sources have always done.
+	AtRow int
 }
 
 // pickerSide is the chooser's loaded side column.
@@ -528,12 +531,19 @@ func (c *Chooser) previewing() bool {
 	return src != nil && src.Preview != nil
 }
 
+func pickerRowKey(row PickerRow) string {
+	if row.identity != "" {
+		return row.identity
+	}
+	return row.ID
+}
+
 // previewText is the highlighted row's preview.
 func (c *Chooser) previewText(row ChooserRow) string {
 	if c.spec.Preview != nil {
 		return c.spec.Preview(row)
 	}
-	if c.Preview.Row != row.ID {
+	if c.Preview.Row != pickerRowKey(row) {
 		return ""
 	}
 	if c.Preview.Loading {
@@ -554,12 +564,13 @@ func (c *Chooser) queuePreview() {
 	if !ok || row.ID == chooserCreateRow {
 		row = ChooserRow{}
 	}
-	if row.ID == c.Preview.Row {
+	key := pickerRowKey(row)
+	if key == c.Preview.Row {
 		return
 	}
 	gen := c.Preview.Gen + 1
-	c.Preview = ChooserPreview{Row: row.ID, Gen: gen}
-	if row.ID == "" {
+	c.Preview = ChooserPreview{Row: key, Gen: gen}
+	if key == "" {
 		return
 	}
 	res := src.Preview(row)
@@ -696,8 +707,8 @@ func (c *Chooser) navigated(query string) {
 	c.input.Cursor = len(c.input.Text)
 	c.spec.Rows = nil
 	c.cachePropRows()
-	c.load()
 	c.refilter()
+	c.load()
 }
 
 // sourceTitle is the title with the sources: the current one in brackets

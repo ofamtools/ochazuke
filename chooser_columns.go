@@ -129,10 +129,12 @@ func (c *Chooser) sideColumn(width, n int) []string {
 		title = LoadingText("parent")
 	}
 	lines := []string{ansi.Truncate(title, width, "…")}
-	at := -1
-	for i, l := range side.Lines {
-		if l == side.At {
-			at = i
+	at := side.AtRow - 1
+	if side.AtRow == 0 {
+		for i, l := range side.Lines {
+			if l == side.At {
+				at = i
+			}
 		}
 	}
 	room := max(1, n-1)

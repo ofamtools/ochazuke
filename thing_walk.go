@@ -275,6 +275,7 @@ func (w *thingWalk) thingRow(choice Choice, node *thingWalkNode, fits bool) Pick
 		row = w.row(choice)
 	}
 	row.walk = node
+	row.identity = fmt.Sprintf("%d:%s:%s:%s", node.kind, node.noun, node.key, node.prop)
 	row.Noun, row.Props = node.noun, node.props
 	row.NoPick, row.Opens = !fits, !fits && node.kind == walkThing
 	if fits && (w.want.Noun != "" || w.want.Type == PathParameterType) {
@@ -398,7 +399,7 @@ func (w *thingWalk) open(row PickerRow) (string, bool) {
 	if node.kind != walkNoun && node.kind != walkThing {
 		return "", false
 	}
-	frame.land = "row:" + row.ID
+	frame.land = "row:" + pickerRowKey(row)
 	w.trail = append(w.trail[:w.at+1], newWalkFrame(node))
 	w.at++
 	w.landing = ""
@@ -470,6 +471,7 @@ func walkSideRows(rows []PickerRow, parent, child thingWalkNode) PickerSide {
 		side.Lines = append(side.Lines, row.Label)
 		if row.walk != nil && row.walk.noun == child.noun && row.walk.key == child.key && row.walk.kind == child.kind {
 			side.At = row.Label
+			side.AtRow = len(side.Lines)
 		}
 	}
 	return side
