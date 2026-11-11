@@ -64,7 +64,7 @@ func thingWalkPicker(t *testing.T, r *Runtime, p Parameter, origin Context, row 
 
 func thingWalkKey(t *testing.T, r *Runtime, key string) {
 	t.Helper()
-	if err := r.HandleBinding(key); err != nil {
+	if _, err := r.HandleBinding(key); err != nil {
 		t.Fatalf("key %s: %v", key, err)
 	}
 }
