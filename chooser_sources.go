@@ -560,6 +560,12 @@ func (c *Chooser) queuePreview() {
 	if src == nil || src.Preview == nil || c.spec.Preview != nil {
 		return
 	}
+	if src.visibleColumns() < 3 {
+		if c.Preview.Row != "" {
+			c.Preview = ChooserPreview{Gen: c.Preview.Gen + 1}
+		}
+		return
+	}
 	row, ok := c.Highlighted()
 	if !ok || row.ID == chooserCreateRow {
 		row = ChooserRow{}

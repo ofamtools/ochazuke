@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -247,16 +248,18 @@ func TestThingWalkColumnsSettingAndFocusedRecentNouns(t *testing.T) {
 	}
 	thingWalkKey(t, r, "0")
 	c.SetQuery("")
-	if row := c.Matches()[0]; !strings.HasPrefix(row.Label, "project (") {
-		t.Fatalf("focused noun not first: %+v", row)
+	rows := c.Matches()
+	if len(rows) == 0 || !strings.HasPrefix(rows[0].Label, "project (") {
+		t.Fatalf("focused noun not first: loadErr=%q query=%q rows=%+v", c.loadErr, c.Query(), rows)
 	}
 	thingWalkKey(t, r, "esc")
 	if err := r.SetFocus("app"); err != nil {
 		t.Fatal(err)
 	}
 	c, _ = thingWalkPicker(t, r, Parameter{}, r.Context(), nil)
-	if row := c.Matches()[0]; !strings.HasPrefix(row.Label, "directory (") {
-		t.Fatalf("recent noun not first with no focused thing: %+v", row)
+	rows = c.Matches()
+	if len(rows) == 0 || !strings.HasPrefix(rows[0].Label, "directory (") {
+		t.Fatalf("recent noun not first: loadErr=%q query=%q rows=%+v", c.loadErr, c.Query(), rows)
 	}
 }
 
@@ -369,5 +372,92 @@ func TestThingWalkRelationWindowsKeepPositionAndBoundEndpointReads(t *testing.T)
 	thingWalkKey(t, r, "enter")
 	if chosen.ID != "t00040" || chosen.Props["title"] != "Last-window needle" {
 		t.Fatalf("later filtered relation endpoint could not be selected: %+v", chosen)
+	}
+}
+
+func TestThingWalkUnavailableCountKeepsNounVisibleAndUsable(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	big := newCountingStore(200, 0)
+	store := big.store(true, false)
+	query := store.Query
+	store.Query = func(c Ctx, q ListQuery) (ListPage, error) {
+		if q.PerPage == 1 {
+			return ListPage{}, errors.New("count unavailable")
+		}
+		return query(c, q)
+	}
+	r.Define("uncounted").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(store)
+	c, chosen := thingWalkPicker(t, r, Parameter{Noun: "uncounted"}, r.Context(), nil)
+	c.SetQuery("uncounted")
+	rows := c.Matches()
+	if len(rows) != 1 || !strings.Contains(rows[0].Label, "count unavailable") || c.loadErr != "" {
+		t.Fatalf("count failure hid the noun or was lost: rows=%+v loadErr=%q", rows, c.loadErr)
+	}
+	thingWalkKey(t, r, "l")
+	if rows = c.Matches(); len(rows) != 81 || rows[0].ID != "t00000" {
+		t.Fatalf("unknown count stopped browsing: %+v loadErr=%q", rows, c.loadErr)
+	}
+	thingWalkKey(t, r, "enter")
+	if chosen.ID != "t00000" || chosen.Props["title"] != "thing 0" {
+		t.Fatalf("unknown count stopped taking a thing: %+v", chosen)
+	}
+}
+
+func TestThingWalkHiddenColumnsAvoidReadsAndLoadWhenRevealed(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	m := NewModel(r)
+	m.Width, m.Height = 120, 30
+	m.Appearance.Theme = "mono"
+	big := newCountingStore(10000, 0)
+	r.Define("big").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(big.store(true, false))
+	columns := func(n int) {
+		t.Helper()
+		if _, err := r.Settings().SetSession(WalkColumnsSetting, n); err != nil {
+			t.Fatal(err)
+		}
+	}
+	columns(1)
+	c, _ := thingWalkPicker(t, r, Parameter{Noun: "big"}, r.Context(), nil)
+	c.SetQuery("big")
+	big.rows, big.gets = 0, 0
+	for _, n := range []int{1, 2} {
+		columns(n)
+		landLoads(m, r.PendingCommands())
+		text := ansi.Strip(c.View(64, 15).Text)
+		if big.rows != 0 || big.gets != 0 || !strings.Contains(text, "big (10000)") || strings.Contains(text, " │ ") {
+			t.Fatalf("%d columns read hidden data or drew a narrow preview: rows=%d gets=%d\n%s", n, big.rows, big.gets, text)
+		}
+	}
+	for range 2 {
+		columns(3)
+		big.rows = 0
+		landLoads(m, r.PendingCommands())
+		if text := ansi.Strip(c.View(120, 15).Text); big.rows != 80 || !strings.Contains(text, "thing 0") {
+			t.Fatalf("revealed preview did not load its window: rows=%d\n%s", big.rows, text)
+		}
+		columns(1)
+		big.rows = 0
+		landLoads(m, r.PendingCommands())
+		if big.rows != 0 {
+			t.Fatalf("hidden preview still read %d rows", big.rows)
+		}
+	}
+	thingWalkKey(t, r, "esc")
+	r.Instance("focused-big", Kind("big")).Data = big.things[0]
+	if err := r.SetFocus("focused-big"); err != nil {
+		t.Fatal(err)
+	}
+	c, _ = thingWalkPicker(t, r, Parameter{Noun: "big"}, r.Context(), nil)
+	big.rows, big.gets = 0, 0
+	landLoads(m, r.PendingCommands())
+	if big.rows != 0 || big.gets != 0 {
+		t.Fatalf("hidden parent still read rows=%d gets=%d", big.rows, big.gets)
+	}
+	columns(2)
+	landLoads(m, r.PendingCommands())
+	if big.rows != 80 || !strings.Contains(strings.Join(c.Side().Lines, "\n"), "thing 0") {
+		t.Fatalf("revealed parent did not load its window: rows=%d side=%+v", big.rows, c.Side())
 	}
 }

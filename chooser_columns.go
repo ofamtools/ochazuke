@@ -21,6 +21,13 @@ const ColumnsMin = 72
 // chooserSideVerb names a source's side-column job.
 const chooserSideVerb = "ochazuke.picker.side"
 
+func (s *PickerSource) visibleColumns() int {
+	if s == nil || !s.Columns || s.ColumnCount == nil {
+		return 3
+	}
+	return min(3, max(1, s.ColumnCount()))
+}
+
 // columnsOn reports whether the picker draws columns at width.
 func (c *Chooser) columnsOn(width int) bool {
 	src := c.current()
@@ -32,6 +39,12 @@ func (c *Chooser) columnsOn(width int) bool {
 func (c *Chooser) queueSide() {
 	src := c.current()
 	if !(c.spec.Columns || src != nil && src.Columns) || src == nil || src.Side == nil {
+		return
+	}
+	if src.visibleColumns() < 2 {
+		if c.side.key != "" {
+			c.side = pickerSide{gen: c.side.gen + 1}
+		}
 		return
 	}
 	key, load := src.Side()
@@ -69,10 +82,7 @@ func (c *Chooser) Side() PickerSide { return c.side.value }
 func (c *Chooser) columnsView(width, height int) Block {
 	const gap = " │ "
 	gapW := ansi.StringWidth(gap)
-	count := 3
-	if src := c.current(); src != nil && src.ColumnCount != nil {
-		count = min(3, max(1, src.ColumnCount()))
-	}
+	count := c.current().visibleColumns()
 	if count == 1 {
 		return c.rowsView(width, height)
 	}

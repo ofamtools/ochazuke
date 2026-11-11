@@ -47,6 +47,9 @@ page are navigable rows, not a whole-table load. `/` searches across all
 matching things, including later relation pages. Searching a mounted
 relation kind reads its candidate endpoints individually to find every
 match and an exact count; it never asks the extension for its whole table.
+If a noun cannot provide its count, its row stays visible with `?` and the
+error rather than making the whole noun column fail. It can still be
+entered; a list-read failure is shown in that column.
 
 `l` follows a noun or thing; `h` retraces the walk and restores that column's
 filter and highlight. The breadcrumb records the route. `gg`/`G` select the
@@ -71,7 +74,9 @@ refusals without removing explicit pickers. `picker.scopes=false` leaves the
 graph scope out of these requests; standalone `thing walk` is still
 available from the palette. `walk.columns` defaults to `3`: parent, current
 column and the highlighted thing's next column. `2` shows parent/current;
-`1` shows only the current column. Narrow terminals collapse the layout.
+`1` shows only the current column. Hidden side/preview columns do not read
+their stores; revealing them loads their contents. Narrow terminals
+collapse to the current column when fewer than three columns are enabled.
 These settings do not change the directory picker's existing style.
 
 ## Compared with Vim

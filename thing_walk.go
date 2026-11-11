@@ -226,14 +226,15 @@ func (w *thingWalk) nouns(c Ctx, query string) ([]PickerRow, error) {
 		n := w.r.Noun(name)
 		c.Noun = n.Name
 		page, err := w.r.queryThings(c, n, ListQuery{Page: 1, PerPage: 1, Every: true, Archived: true})
+		count := fmt.Sprintf("(%d)", page.Total)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", label, err)
-		}
-		if page.Total == 0 {
+			count = "(? · " + err.Error() + ")"
+		} else if page.Total == 0 {
 			continue
 		}
-		node := &thingWalkNode{kind: walkNoun, noun: name, label: label}
-		rows = append(rows, PickerRow{ID: "walk:noun:" + name, Label: fmt.Sprintf("%s (%d)", label, page.Total), Opens: true, NoPick: true, walk: node})
+		row := Choice{ID: "walk:noun:" + name, Label: label + " " + count, RowFlags: RowFlags{Bare: true, Opens: true, NoPick: true}}.Row()
+		row.walk = &thingWalkNode{kind: walkNoun, noun: name, label: label}
+		rows = append(rows, row)
 	}
 	return rows, nil
 }
@@ -241,7 +242,7 @@ func (w *thingWalk) nouns(c Ctx, query string) ([]PickerRow, error) {
 func (w *thingWalk) pageRows(n *Noun, page ListPage, q ListQuery, section, title string) []PickerRow {
 	var rows []PickerRow
 	if title != "" && page.Total > 0 {
-		rows = append(rows, PickerRow{ID: "walk:head:" + section, Label: fmt.Sprintf("%s (%d)", title, page.Total), Header: true, Section: section})
+		rows = append(rows, sectionHeader(section, fmt.Sprintf("%s (%d)", title, page.Total)))
 	}
 	if q.Page > 1 {
 		rows = append(rows, w.pageRow(section, q.Page-1, "Previous page"))
@@ -269,7 +270,9 @@ func (w *thingWalk) pageRows(n *Noun, page ListPage, q ListQuery, section, title
 }
 
 func (w *thingWalk) pageRow(section string, page int, label string) PickerRow {
-	return PickerRow{ID: fmt.Sprintf("walk:page:%s:%d", section, page), Label: label, Section: section, Opens: true, NoPick: true, walk: &thingWalkNode{kind: walkPage, section: section, page: page}}
+	row := Choice{ID: fmt.Sprintf("walk:page:%s:%d", section, page), Label: label, RowFlags: RowFlags{Bare: true, Opens: true, NoPick: true}}.Row()
+	row.Section, row.walk = section, &thingWalkNode{kind: walkPage, section: section, page: page}
+	return row
 }
 
 func (w *thingWalk) thingRow(choice Choice, node *thingWalkNode, fits bool) PickerRow {
@@ -374,7 +377,7 @@ func (w *thingWalk) values(n *Noun, key string, t Thing, query string) []PickerR
 			continue
 		}
 		if len(rows) == 0 {
-			rows = append(rows, PickerRow{ID: "walk:values", Label: "Values", Header: true, Section: "values"})
+			rows = append(rows, sectionHeader("values", "Values"))
 		}
 		node := &thingWalkNode{kind: walkValue, noun: n.Name, key: key, prop: p.Name, label: label, props: t}
 		fits := w.want.Noun == "" && w.want.Type == ""

@@ -978,7 +978,7 @@ func (c *Chooser) bodyView(width, height int) Block {
 		return c.columnsView(width, height)
 	}
 	src := c.current()
-	if !c.previewing() || width < ChooserPreviewMin || src != nil && src.ColumnCount != nil && src.ColumnCount() < 2 {
+	if !c.previewing() || width < ChooserPreviewMin || src.visibleColumns() < 3 {
 		return c.rowsView(width, height)
 	}
 	// The preview column keeps its width whatever it holds, so the panel
