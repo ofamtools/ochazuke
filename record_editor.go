@@ -1471,8 +1471,8 @@ func booleanChoices() []Choice {
 // fills it and is written at once.
 func (e *RecordEditor) choosePath(f *recordField) error {
 	_, err := e.r.OpenPathChooser(PathChooserSpec{
-		Title: "Choose " + f.label(),
-		Pick:  PathPick{Name: f.Name, Parameter: f.Parameter, Value: f.text()},
+		Title:     "Choose " + f.label(),
+		Pick:      PathPick{Name: f.Name, Parameter: f.Parameter, Value: f.text()},
 		whereFrom: e.spec.Submit != nil && f.text() == "",
 		Choose: func(path string) Result {
 			var err error
