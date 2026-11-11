@@ -39,6 +39,9 @@ func TestMountedOpenerSurvivesSuccessfulExtensionCleanup(t *testing.T) {
 	observed := filepath.Join(dir, "opened")
 	fake := filepath.Join(dir, "fake opener")
 	target := filepath.Join(dir, "capture with spaces.txt")
+	if err := os.WriteFile(target, []byte("captured stream retained\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	// The fake opener cannot publish its effect until the extension has
 	// exited and RunMounted's group cleanup has completed. Bound its wait
 	// so a failed test never leaves a long-lived descendant behind.
@@ -49,7 +52,7 @@ while [ ! -f "$OPENER_RELEASE" ]; do
   [ "$attempt" -lt 500 ] || exit 1
   sleep 0.01
 done
-printf 'opened\n%s\n%s\n' "$1" "$2" > "$OPENER_OBSERVED"
+cat "$1" > "$OPENER_OBSERVED"
 `
 	if err := os.WriteFile(fake, []byte(script), 0700); err != nil {
 		t.Fatal(err)
@@ -65,7 +68,7 @@ printf 'opened\n%s\n%s\n' "$1" "$2" > "$OPENER_OBSERVED"
 	if err := os.WriteFile(release, nil, 0600); err != nil {
 		t.Fatal(err)
 	}
-	want := "opened\n--\n" + target + "\n"
+	want := "captured stream retained\n"
 	deadline := time.After(5 * time.Second)
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
