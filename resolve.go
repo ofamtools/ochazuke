@@ -613,10 +613,14 @@ func (r *Runtime) rowInstance(lv level, q Request, focus string) string {
 }
 
 // rowAvailable is shared by dispatch and its live hints/help/binding listings:
-// a missing declared subject can be asked for even before its verb guard holds.
-// Binding-row guards are still judged separately by each walk.
+// the row's verb is available where the row acts (rowInstance). Availability
+// is decided first and by the verb alone: that a verb could ask for a
+// subject or a path it lacks never makes it answer where its guard is
+// false, so the key passes on to the next row or level (a key that repeats,
+// one row per place it means something). Only an available verb asks
+// (formForMissing). Binding-row guards are judged separately by each walk.
 func (r *Runtime) rowAvailable(lv level, q Request, focus string, mode ModeState, within *resolutionContext) bool {
-	return r.availableWithin(q, r.rowInstance(lv, q, focus), mode, within) || r.canAskSubject(q, focus)
+	return r.availableWithin(q, r.rowInstance(lv, q, focus), mode, within)
 }
 
 // runRow executes a row. A pending mode is one-shot: the key that answers it

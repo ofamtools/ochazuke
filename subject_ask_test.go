@@ -83,16 +83,25 @@ func TestSubjectAskPaletteAndKeyShareScopes(t *testing.T) {
 	}
 }
 
-func TestSubjectAskKeyWithGuardedFocusSubject(t *testing.T) {
-	r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "canvas", Focus: true}, false)
+// A verb guarded off at the focus does not answer a key, whatever it could
+// ask for (TestSubjectAskNeverAnswersForAnUnavailableVerb); the palette still
+// reaches it, asks for its subject and runs it once the guard holds, as
+// before v0.124.0 (palette.reach).
+func TestSubjectAskGuardedVerbAsksFromThePaletteNotAKey(t *testing.T) {
+	r, p, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "canvas", Focus: true}, false)
 	r.Instance("ink", Kind("canvas")).Label = "Ink"
 	r.DefineGuard("paint-subject", func(_ *Runtime, ev KeyEvent) bool { return StringArg(ev.Args, "swatch", "") != "" })
 	if err := r.AddVerbAvailability("canvas.paint", "paint-subject"); err != nil {
 		t.Fatal(err)
 	}
 	handled, err := r.Dispatch(MacroKey{Key: "z"})
-	if err != nil || !handled || r.RecordEditor(ArgsFormID) == nil {
-		t.Fatalf("key handled=%v err=%v top=%q", handled, err, r.TopModal())
+	if err != nil || handled || r.TopModal() != "" || len(*ran) != 0 {
+		t.Fatalf("the key answered for a verb guarded off: handled=%v err=%v top=%q ran=%v", handled, err, r.TopModal(), *ran)
+	}
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteRequest(t, r, "fill", "palette", Arguments{"text": "canvas paint"})
+	if err := p.run(); err != nil || r.RecordEditor(ArgsFormID) == nil {
+		t.Fatalf("the palette did not ask: err=%v top=%q", err, r.TopModal())
 	}
 	finishSubjectAsk(t, r, "ink")
 	if !reflect.DeepEqual(*ran, []string{"ink"}) {
@@ -291,16 +300,22 @@ func TestSubjectAskOptionalOwnNounAndMotionExemption(t *testing.T) {
 	}
 }
 
+// The footer, the help and binding.list offer a row exactly where its key
+// answers: an available verb that lacks its subject is offered and asks; a
+// verb guarded off, a disabled one and a row whose own guard is false are
+// neither offered nor answered.
 func TestSubjectAskBindingListingsMatchDispatch(t *testing.T) {
-	for _, state := range []string{"asking", "disabled", "row-guard"} {
+	for _, state := range []string{"asking", "verb-guard", "disabled", "row-guard"} {
 		t.Run(state, func(t *testing.T) {
 			r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "canvas", Focus: true}, false)
 			r.Instance("ink", Kind("canvas")).Label = "Ink"
-			r.DefineGuard("paint-subject", func(_ *Runtime, ev KeyEvent) bool { return StringArg(ev.Args, "swatch", "") != "" })
-			if err := r.AddVerbAvailability("canvas.paint", "paint-subject"); err != nil {
-				t.Fatal(err)
-			}
 			key := "z"
+			if state == "verb-guard" {
+				r.DefineGuard("paint-subject", func(_ *Runtime, ev KeyEvent) bool { return StringArg(ev.Args, "swatch", "") != "" })
+				if err := r.AddVerbAvailability("canvas.paint", "paint-subject"); err != nil {
+					t.Fatal(err)
+				}
+			}
 			if state == "disabled" {
 				op := r.Operations.At(Key("canvas.paint"))
 				op.Disabled = true
@@ -321,13 +336,13 @@ func TestSubjectAskBindingListingsMatchDispatch(t *testing.T) {
 				t.Fatalf("state=%s hinted=%v helped=%v, want %v", state, hinted, helped, want)
 			}
 			// binding.list intentionally keeps false binding-row guards;
-			// disabled verbs, unlike those conditional rows, are omitted.
+			// unavailable verbs, unlike those conditional rows, are omitted.
 			if state != "row-guard" && listed != want {
 				t.Fatalf("state=%s listed=%v, want %v", state, listed, want)
 			}
-			_, err := r.Dispatch(MacroKey{Key: key})
-			if err != nil {
-				t.Fatal(err)
+			handled, err := r.Dispatch(MacroKey{Key: key})
+			if err != nil || handled != want {
+				t.Fatalf("state=%s handled=%v err=%v, want handled=%v", state, handled, err, want)
 			}
 			if (r.RecordEditor(ArgsFormID) != nil) != want {
 				t.Fatalf("state=%s top=%q", state, r.TopModal())
@@ -851,5 +866,51 @@ func TestPathAskRemembersARenamedSourceByItsOwnName(t *testing.T) {
 	closePicker(t, r)
 	if c = pathAsk(t, r); c.Source() != "on disk · walk" {
 		t.Fatalf("the ask reopened on %q, not the folder walk last used", c.Source())
+	}
+}
+
+// Asking for a missing subject or path never makes an unavailable verb
+// answer a key: availability is decided first, as before v0.124.0, and the
+// key passes on to the next row and the next level. v0.124.0 let the row of
+// a verb that could ask answer where the verb's own guard was false, so a
+// key that repeats (one row per place it means something) ran the first
+// row's verb everywhere.
+func TestSubjectAskNeverAnswersForAnUnavailableVerb(t *testing.T) {
+	for name, param := range map[string]Parameter{
+		"required path":        {Type: PathParameterType, Required: true, Base: t.TempDir()},
+		"required noun":        {Type: "string", Required: true, Noun: "swatch"},
+		"optional own subject": {Type: "string", Noun: "canvas", Focus: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			r, _, ran := subjectAskRuntime(t, param, false)
+			r.DefineGuard("paint-allowed", func(*Runtime, KeyEvent) bool { return false })
+			if err := r.AddVerbAvailability("canvas.paint", "paint-allowed"); err != nil {
+				t.Fatal(err)
+			}
+			fallback := 0
+			r.Define("app").Verb("fallback", func(Ctx) Result {
+				fallback++
+				return Done(nil)
+			})
+			// z: the focused thing's own row, then app's (the fixture's),
+			// both for the unavailable verb, then the row that answers.
+			if err := r.Bind(
+				Binding{Noun: "home", Mode: "normal", Keys: "z", Request: Request{Noun: "canvas", Verb: "paint"}},
+				Binding{Noun: "app", Mode: "normal", Keys: "z", Request: Request{Noun: "app", Verb: "fallback"}},
+			); err != nil {
+				t.Fatal(err)
+			}
+			rows := r.ListBindings(r.Focus)
+			if at := slices.IndexFunc(rows, func(row Binding) bool { return row.Keys == "z" }); at < 0 || rows[at].Request.Key() != "app.fallback" {
+				t.Fatalf("the listing answers z with the unavailable verb (row %d of %d)", at, len(rows))
+			}
+			if slices.ContainsFunc(HintBindings(r, r.Focus), func(b Binding) bool { return b.Request.Key() == "canvas.paint" }) {
+				t.Fatalf("the footer offers the unavailable verb: %v", hints(HintBindings(r, r.Focus)))
+			}
+			formKeys(t, r, "z")
+			if fallback != 1 || len(*ran) != 0 || r.TopModal() != "" {
+				t.Fatalf("z did not pass on to the next row: fallback=%d ran=%v top=%q", fallback, *ran, r.TopModal())
+			}
+		})
 	}
 }

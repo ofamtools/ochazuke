@@ -253,17 +253,6 @@ func (r *Runtime) subjectListScope(name string, param Parameter, l choiceLoad, o
 	return source, prefetch
 }
 
-// canAskSubject lets a bound row reach the ordinary ask path even when a
-// subject-dependent verb guard cannot hold at the current focus. Row guards,
-// disabled settings and actor rights are not bypassed.
-func (r *Runtime) canAskSubject(q Request, focus string) bool {
-	op, ok := r.Operation(q.Key())
-	if !ok || !r.subjectAsks() || !r.missingOpensForm() || r.unavailableReason(op) != "" || r.missingRole(q) != nil {
-		return false
-	}
-	return len(r.missingTargets(op, q.Args, focus)) > 0
-}
-
 // pathSubjectScopes adds the relation walk to a path ask's sources, last:
 // the file system sources keep their order, names and labels, so the ask
 // reads as the path picker it was with one more source. A file system

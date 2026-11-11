@@ -96,6 +96,11 @@ so are a parameter's `From` value and a thing of a `Focus` parameter's noun.
 A noun the verb also takes as a parameter of its own fills that parameter,
 never the verb's own subject.
 
+Asking never changes which verb a key runs. A verb's availability is decided
+first, by its own guards: a row whose verb is unavailable at the focus passes
+the key on to the next row or level, whatever the verb could ask for. Only an
+available verb asks.
+
 `subject.ask` defaults to `true`; `false` restores what every route did
 before the ask, exactly: a missing required argument still opens the args
 form (the path picker for a lone path), `Ctx.Need` still asks, the palette
