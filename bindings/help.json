@@ -1,7 +1,8 @@
 // ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
 {
   "modes": {
-    "help_bind_pending": {"pending": true}
+    "help_bind_pending": {"pending": true},
+    "help_bind_literal": {"pending": true}
   },
   "bindings": [
     {"context": "ochazuke.binding/normal", "bindings": [
@@ -19,11 +20,18 @@
       {"key": "U", "action": "ochazuke.collection.filter-prop-clear", "args": {"prop": "unbound"}, "when": "help-table", "hint": "all", "hidden": true, "help": "Table view: clear the unbound-only filter"},
       {"key": "enter", "action": "ochazuke.bindings-help.run", "hint": "run"},
       {"key": "a", "action": "ochazuke.bindings-help.args", "when": "help-has-args", "hint": "args", "help": "Open the args form for the selected verb before running it"},
-      {"key": "b", "action": "ochazuke.mode.enter", "args": {"mode": "help_bind_pending"}, "when": "help-unbound-row", "hint": "bind", "help": "Bind the next key you press to the selected unbound verb (esc cancels); a key that already runs something asks first"}
+      {"key": "b", "action": "ochazuke.bindings-help.bind-start", "when": "help-unbound-row", "hint": "bind", "help": "Bind the next key you press to the selected unbound verb; a key that starts a sequence goes on (g, then z), enter binds the keys so far (esc cancels); a key that already runs something asks first"},
+      {"key": "B", "action": "ochazuke.bindings-help.bind-start", "args": {"manual": true}, "when": "help-bind-sequence-row", "hint": "bind sequence", "help": "Bind a sequence of keys to the selected unbound verb: every key you press is added, enter binds them (esc cancels, backspace drops the last, ctrl+v takes the next key as it comes)"}
     ]},
     {"context": "ochazuke.bindings-help/help_bind_pending", "bindings": [
-      {"key": "esc", "action": "ochazuke.mode.leave", "hint": "cancel", "help": "Leave without binding"},
-      {"key": "any", "action": "ochazuke.bindings-help.bind-key", "from": {"key": "key"}, "hint": "key to bind", "help": "Bind this key to the selected unbound verb"}
+      {"key": "esc", "action": "ochazuke.bindings-help.bind-cancel", "hint": "cancel", "help": "Leave without binding"},
+      {"key": "enter", "action": "ochazuke.bindings-help.bind-finish", "when": "help-bind-sequence-row", "hint": "bind", "help": "Bind the keys pressed so far"},
+      {"key": "backspace", "action": "ochazuke.bindings-help.bind-drop", "when": "help-bind-sequence-row", "hint": "drop last", "help": "Drop the last key pressed"},
+      {"key": "ctrl+v", "action": "ochazuke.bindings-help.bind-literal", "when": "help-bind-sequence-row", "hint": "literal", "help": "Take the next key as a key to bind, whatever it is (enter, esc and backspace included)"},
+      {"key": "any", "action": "ochazuke.bindings-help.bind-key", "from": {"key": "key"}, "hint": "key to bind", "help": "Add this key to the binding of the selected unbound verb"}
+    ]},
+    {"context": "ochazuke.bindings-help/help_bind_literal", "bindings": [
+      {"key": "any", "action": "ochazuke.bindings-help.bind-key", "args": {"literal": true}, "from": {"key": "key"}, "hint": "key to bind", "help": "Take this key as it is"}
     ]}
   ]
 }

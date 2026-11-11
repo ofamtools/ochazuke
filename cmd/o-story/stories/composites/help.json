@@ -763,6 +763,16 @@
       "type": "demo.fail"
     },
     "enter",
+    "b",
+    "g",
+    "esc",
+    "q",
+    "?",
+    "/",
+    {
+      "type": "demo.fail"
+    },
+    "enter",
     "a",
     {
       "type": "mars"
@@ -1221,8 +1231,19 @@
         "motion line-end",
         "when input-writable"
       ],
-      "order": ["prompt", "mode normal", "app.quit", "palette.open", "editor", "mode declared", "completion.open", "input.kill"],
-      "attrs": {"esc ": "reverse"},
+      "order": [
+        "prompt",
+        "mode normal",
+        "app.quit",
+        "palette.open",
+        "editor",
+        "mode declared",
+        "completion.open",
+        "input.kill"
+      ],
+      "attrs": {
+        "esc ": "reverse"
+      },
       "dimmed": 1
     },
     {
@@ -1763,6 +1784,19 @@
       "dimmed": 1
     },
     {
+      "after": 207,
+      "contains": [
+        "bind demo.fail: g _",
+        "esc cancel"
+      ]
+    },
+    {
+      "after": 209,
+      "lacks": [
+        "bind demo.fail:"
+      ]
+    },
+    {
       "modal": "args-form",
       "contains": [
         "boom",
@@ -1771,7 +1805,7 @@
       "lacks": [
         "modal is open above"
       ],
-      "after": 208
+      "after": 216
     },
     {
       "page": "page1"

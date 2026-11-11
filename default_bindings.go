@@ -306,11 +306,7 @@ func (r *Runtime) SetDefaultBindings(source string, rows []Binding) error {
 	if loaded {
 		r.ReloadUserBindings()
 	}
-	if h := r.helpOpen(); h != nil {
-		if err := h.refreshBindings(); err != nil {
-			r.UI().Error("refresh binding help: " + err.Error())
-		}
-	}
+	r.syncHelp()
 	return nil
 }
 
