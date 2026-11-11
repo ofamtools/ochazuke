@@ -259,33 +259,29 @@ func (r *Runtime) mayAskParameter(p Parameter) bool {
 	return !asksSubjectParameter(p) || r.subjectAsks()
 }
 
+// pathSubjectScopes adds the relation walk to a path ask's sources, last:
+// the file system sources keep their order, names and labels, so the ask
+// reads as the path picker it was with one more source. A file system
+// source of the walk's own name (an application's folder walk) is named
+// "on disk · NAME" for this open and stays remembered under its own name
+// (PickerSource.RememberAs); the walk is remembered under the walk picker's
+// kind, never as a file system source.
 func (r *Runtime) pathSubjectScopes(sources []PickerSource, pick PathPick, origin Context, start string) ([]PickerSource, string) {
 	graph := r.walkSource(pick.Parameter, origin, func(ch Choice) PickerRow {
 		row := ch.Row()
 		row.Data = ch.ID
 		return row
 	})
-	var typed PickerSource
-	disk := sources[:0]
-	for _, source := range sources {
-		if source.Name == PathSourceTyped {
-			typed = source
+	graph.RememberAs = ThingWalkKind
+	for i, source := range sources {
+		if source.Name != graph.Name {
 			continue
 		}
-		name, label := source.Name, source.Label
-		source.Label = func() string {
-			if label != nil {
-				return "on disk · " + label()
-			}
-			return "on disk · " + name
+		renamed := "on disk · " + source.Name
+		if start == source.Name {
+			start = renamed
 		}
-		if source.Name == graph.Name {
-			if start == source.Name {
-				start = "on disk · " + source.Name
-			}
-			source.Name = "on disk · " + source.Name
-		}
-		disk = append(disk, source)
+		sources[i].RememberAs, sources[i].Name = source.remembered(), renamed
 	}
-	return append(disk, graph, typed), start
+	return append(sources, graph), start
 }

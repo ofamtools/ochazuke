@@ -66,8 +66,18 @@ list, and the walk. `S` steps scopes in normal mode (`alt+s` while editing);
 `/` begins filtering. The walk marks a thing of the needed noun, or a path
 prop for a path parameter, with `✓`. `enter` takes a match; other things
 remain visible and `enter` or `l` walks through them. Even a matching thing
-can be explored with `l` before taking it. Path requests keep the existing
-on-disk sources and typed entry as well as the graph.
+can be explored with `l` before taking it.
+
+A path request is the path picker it always was, with the walk as one more
+source, last: the title lists the sources with the current one in brackets
+(`Choose file · [browse ~/proj] recent typed find walk`), `ctrl+o` and
+`alt+o` step them as in any path picker, the footer offers `ctrl+o` while
+typing, and the source last used is remembered. `S` and `alt+s` step the
+same list (`PickerSpec.ScopeKeys`: one mechanism, two keys). An
+application's own file system source named `walk` reads `on disk · walk`
+beside the relation walk and is remembered under its own name. With
+`picker.scopes` or `subject.ask` off the walk is not offered and nothing
+differs from the path picker.
 
 Noun asks keep the argument form first; choosing its missing field opens
 these scopes. Ordinary record-choice editing and already populated fields

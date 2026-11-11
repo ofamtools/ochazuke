@@ -658,3 +658,114 @@ func TestSubjectAskStillAsksWhatTheFocusDoesNotSupply(t *testing.T) {
 		}
 	}
 }
+
+// pathAsk presses z on a verb whose one required path is missing and
+// answers the where-from path ask it opens.
+func pathAsk(t *testing.T, r *Runtime) *Chooser {
+	t.Helper()
+	formKeys(t, r, "z")
+	c := r.Chooser(PathChooserKind)
+	if c == nil {
+		t.Fatalf("path ask did not open: top=%q", r.TopModal())
+	}
+	return c
+}
+
+// closePicker cancels the open path picker.
+func closePicker(t *testing.T, r *Runtime) {
+	t.Helper()
+	if _, err := r.Execute(Request{Noun: PickerNoun, Verb: "cancel"}); err != nil || r.Chooser(PathChooserKind) != nil {
+		t.Fatalf("the path picker stayed open: top=%q err=%v", r.TopModal(), err)
+	}
+}
+
+// A path ask is the path picker it was before v0.124.0 with the relation
+// walk as one more source: ctrl+o and alt+o step its sources (v0.124.0
+// guarded them off and left only S and alt+s), the footer offers the source
+// key while typing, the title says where it is among them, and the source
+// last used is remembered. S and alt+s step the same list.
+func TestPathAskKeepsItsSourceKeysTitleAndMemory(t *testing.T) {
+	root := t.TempDir()
+	r, _, _ := subjectAskRuntime(t, Parameter{Type: PathParameterType, Required: true, Base: root}, false)
+	c := pathAsk(t, r)
+	if got, want := c.Sources(), []string{PathSourceBrowse, PathSourceRecent, PathSourceTyped, PathSourceFind, "walk"}; !slices.Equal(got, want) {
+		t.Fatalf("sources %q, want %q", got, want)
+	}
+	if got, want := c.Title(), "Run canvas.paint · choose swatch · [browse "+displayPath(root)+"] recent typed find walk"; got != want {
+		t.Fatalf("title %q, want %q", got, want)
+	}
+	if r.Mode.Name != "insert" {
+		t.Fatalf("the ask opened in %s, not typing", r.Mode.Name)
+	}
+	hint := func(key, action string) bool {
+		return slices.ContainsFunc(HintBindings(r, r.Focus), func(b Binding) bool { return b.Keys == key && b.Request.Key() == action })
+	}
+	if !hint("ctrl+o", "ochazuke.picker.next-source") {
+		t.Fatalf("the footer lacks the source key while typing: %v", hints(HintBindings(r, r.Focus)))
+	}
+	for _, step := range []struct{ key, source string }{
+		{"ctrl+o", PathSourceRecent}, {"ctrl+o", PathSourceTyped}, {"alt+o", PathSourceRecent}, {"alt+s", PathSourceTyped}, {"alt+o", PathSourceRecent},
+	} {
+		formKeys(t, r, step.key)
+		if c.Source() != step.source {
+			t.Fatalf("%s reached %q, want %q", step.key, c.Source(), step.source)
+		}
+	}
+	if got, want := c.Title(), "Run canvas.paint · choose swatch · browse [recent] typed find walk"; got != want {
+		t.Fatalf("title %q, want %q", got, want)
+	}
+	// In normal mode S steps the same list, and the source key is still
+	// offered beside it.
+	formKeys(t, r, "esc")
+	if r.Mode.Name != "normal" || !hint("S", "ochazuke.picker.next-scope") || !hint("ctrl+o", "ochazuke.picker.next-source") {
+		t.Fatalf("normal mode %q hints %v", r.Mode.Name, hints(HintBindings(r, r.Focus)))
+	}
+	formKeys(t, r, "S")
+	if c.Source() != PathSourceTyped {
+		t.Fatalf("S reached %q, want %q", c.Source(), PathSourceTyped)
+	}
+	formKeys(t, r, "alt+o")
+	closePicker(t, r)
+	if c = pathAsk(t, r); c.Source() != PathSourceRecent {
+		t.Fatalf("the ask reopened on %q, not the source last used", c.Source())
+	}
+}
+
+// hints are the keys of binding rows, for a failure message.
+func hints(rows []Binding) []string {
+	out := make([]string, len(rows))
+	for i, b := range rows {
+		out[i] = b.Keys + " " + b.Request.Key()
+	}
+	return out
+}
+
+// An application's file system source named like the walk keeps its rows and
+// its place in the memory: for the ask it is "on disk · walk", and the path
+// picker on its own finds it again as walk.
+func TestPathAskRemembersARenamedSourceByItsOwnName(t *testing.T) {
+	root := t.TempDir()
+	param := Parameter{Type: PathParameterType, Path: PathDir, Required: true, Base: root}
+	r, _, _ := subjectAskRuntime(t, param, false)
+	r.AddWalkPathSource(func(PathPick) PathWalk { return PathWalk{Roots: []PathRoot{{Path: root, Label: "fixture"}}} })
+	c := pathAsk(t, r)
+	if got, want := c.Sources(), []string{"on disk · walk", PathSourceBrowse, PathSourceRecent, PathSourceTyped, PathSourceFind, "walk"}; !slices.Equal(got, want) {
+		t.Fatalf("sources %q, want %q", got, want)
+	}
+	formKeys(t, r, "ctrl+o", "alt+o")
+	if c.Source() != "on disk · walk" {
+		t.Fatalf("alt+o came back to %q", c.Source())
+	}
+	closePicker(t, r)
+	plain, err := r.OpenPathChooser(PathChooserSpec{Pick: PathPick{Name: "swatch", Parameter: param}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plain.Source() != PathSourceWalk {
+		t.Fatalf("the path picker opened on %q, not the folder walk last used", plain.Source())
+	}
+	closePicker(t, r)
+	if c = pathAsk(t, r); c.Source() != "on disk · walk" {
+		t.Fatalf("the ask reopened on %q, not the folder walk last used", c.Source())
+	}
+}

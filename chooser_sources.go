@@ -104,6 +104,11 @@ type PickerSource struct {
 	// subtracts the scope in effect from the last scope with a Count to
 	// describe the widest comparable scope. Uncounted scopes are skipped.
 	Count func(query string) (int, bool)
+	// RememberAs is the name picker.remember-source keeps for this source
+	// when it differs from Name: a source renamed for one open (a file
+	// system source beside a scope of its name) keeps its place in the
+	// memory, so the next open of the kind finds it under either name.
+	RememberAs string
 	// Close, when set, runs when the picker closes: the source stops work
 	// of its own (an index running between loads).
 	Close func()
@@ -260,7 +265,7 @@ func registerChooserSources(r *Runtime) {
 	})
 	r.DefineGuard(PickerScopesGuard, func(r *Runtime, ev KeyEvent) bool {
 		c := r.chooserAt(r.Instances[ev.Focus])
-		return c != nil && len(c.spec.Sources) > 1 && c.spec.Scoped
+		return c != nil && len(c.spec.Sources) > 1 && (c.spec.Scoped || c.spec.ScopeKeys)
 	})
 }
 
@@ -315,11 +320,20 @@ func (c *Chooser) startSource() int {
 		return 0
 	}
 	if v, _ := c.r.settingValue(ChooserRememberSourceSetting); v != false {
-		if i, ok := find(c.r.chooserMemory().lastSource[c.spec.Kind]); ok {
+		last := c.r.chooserMemory().lastSource[c.spec.Kind]
+		if i := slices.IndexFunc(c.spec.Sources, func(s PickerSource) bool { return last != "" && s.remembered() == last }); i >= 0 {
 			return i
 		}
 	}
 	return 0
+}
+
+// remembered is the name picker.remember-source keeps for the source.
+func (s PickerSource) remembered() string {
+	if s.RememberAs != "" {
+		return s.RememberAs
+	}
+	return s.Name
 }
 
 // keep is the cell columns cut last: the current source's Keep, else the
@@ -346,7 +360,7 @@ func (c *Chooser) cycle(delta int) error {
 	c.Preview = ChooserPreview{}
 	c.side = pickerSide{}
 	if !c.spec.Scoped {
-		c.r.chooserMemory().lastSource[c.spec.Kind] = c.Source()
+		c.r.chooserMemory().lastSource[c.spec.Kind] = c.current().remembered()
 	}
 	c.spec.Rows = nil
 	c.cachePropRows()

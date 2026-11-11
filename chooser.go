@@ -145,6 +145,14 @@ type PickerSpec struct {
 	// (ChooserSource.Count), and a reopen starts on the first, never on the
 	// one last used.
 	Scoped bool
+	// ScopeKeys lets the scope keys (S, alt+s: picker.next-scope and
+	// previous-scope) step this picker's Sources beside its source keys
+	// (ctrl+o, alt+o), when it is not Scoped: the sources of a where-from
+	// ask are its scopes too, so either key walks the same list (one
+	// mechanism, two keys). Everything else stays a sources picker's: the
+	// title lists them, the last one used is remembered and no scope tag
+	// is drawn.
+	ScopeKeys bool
 	// Hint, when set, ends the empty and no-match lines and the refusal
 	// of a pick nothing matches ("no known directories; type a path to
 	// pick one"), whatever the source's own Empty says: one place for
