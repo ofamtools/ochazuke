@@ -43,7 +43,8 @@ func IndexPageID(noun string) string { return IndexPagePrefix + noun }
 // prop (else the key) first, then the props whose values are short and
 // choosable (an enum, a boolean, a noun reference, a number, a time), up
 // to indexMaxDerived of them, then updated when the noun has it; never a
-// secret, computed, multi-line, list or object prop. A later column has a
+// secret, computed, multi-line, list or object prop, nor the created stamp
+// (the prop with RoleCreated). A later column has a
 // lower priority, so a narrow table keeps the first ones.
 func (r *Runtime) IndexColumns(noun string) []Column {
 	n := r.Nouns[r.CanonicalNoun(noun)]
@@ -80,6 +81,11 @@ func (r *Runtime) IndexColumns(noun string) []Column {
 		}
 		if p.Name == "updated" {
 			updated = &n.Props[i]
+			continue
+		}
+		// The created stamp is written by the framework, never chosen:
+		// of the stamps only updated is drawn, last.
+		if p.Role == RoleCreated {
 			continue
 		}
 		if shortProp(p) {

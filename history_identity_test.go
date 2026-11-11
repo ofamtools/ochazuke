@@ -32,13 +32,13 @@ func TestPersistedHistoryKeepsDurableIdentityWithoutPrivateValues(t *testing.T) 
 				}
 				return thing, nil
 			},
-		}).Verb("move", func(c Ctx) Result {
+		}).Verb("relocate", func(c Ctx) Result {
 			return Pending(func(context.Context) (any, error) {
 				thing["file"] = "/after/plan"
 				return thing, nil
 			})
 		}).History(HistoryChange)
-		op, _ := r.Operation("document.move")
+		op, _ := r.Operation("document.relocate")
 		op.Parameters = map[string]Parameter{"id": {Type: "string", Noun: "document", Free: true}}
 		r.Operations.Set(op)
 		r.EnsureHistory()
@@ -46,7 +46,7 @@ func TestPersistedHistoryKeepsDurableIdentityWithoutPrivateValues(t *testing.T) 
 		return r
 	}
 	r := makeRuntime()
-	if _, err := r.Execute(Request{Noun: "document", Verb: "move", Args: Arguments{"id": "/before/plan"}}); err != nil {
+	if _, err := r.Execute(Request{Noun: "document", Verb: "relocate", Args: Arguments{"id": "/before/plan"}}); err != nil {
 		t.Fatal(err)
 	}
 	settleOnce(t, r)
@@ -73,7 +73,7 @@ func TestPersistedHistoryKeepsDurableIdentityWithoutPrivateValues(t *testing.T) 
 	if err := json.Unmarshal(raw, &entries); err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 1 || entries[0].Request.Verb != "move" || !entries[0].Restored {
+	if len(entries) != 1 || entries[0].Request.Verb != "relocate" || !entries[0].Restored {
 		t.Fatalf("history after restart/move: %#v", answer)
 	}
 }
