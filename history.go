@@ -57,6 +57,9 @@ type HistoryEntry struct {
 	// Changes are what a standard write did to each thing, before and
 	// after (standard_undo.go): what history-entry.undo reverts.
 	Changes []ThingChange `json:"changes,omitempty"`
+	// Things preserves durable subject identities independently of redacted
+	// before/after values. It never makes an entry undoable by itself.
+	Things []string `json:"things,omitempty"`
 	// Group joins entries that undo as one step (history-entry.undo reverts
 	// every entry of the newest one's group): the writes one edit form
 	// makes, over every subject and every save. "" for none.
@@ -221,6 +224,18 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 	}
 	if changes := r.takeChanges(depth); err == nil {
 		entry.Changes = changes
+		if n := r.Noun(q.Noun); n != nil && n.keyProp() != nil && q.Args[n.keyProp().Name] != nil {
+			var thing map[string]any
+			switch value := value.(type) {
+			case map[string]any:
+				thing = value
+			case Thing:
+				thing = value
+			}
+			if key := thing[n.keyProp().Name]; !emptyProp(key) {
+				entry.Things = []string{AnyRef(n.Name, fmt.Sprint(key))}
+			}
+		}
 	}
 	h := &r.history
 	if fetchRing(entry) {

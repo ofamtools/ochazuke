@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -51,6 +52,15 @@ func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
 	}
 	// before and after follow the line's own rule: only simple values
 	// reach the file (owner decision 12); a mark without values never.
+	if len(e.Changes) != 0 {
+		e.Things = slices.Clone(e.Things)
+	}
+	for _, change := range e.Changes {
+		ref := AnyRef(change.Noun, change.Key)
+		if !slices.Contains(e.Things, ref) {
+			e.Things = append(e.Things, ref)
+		}
+	}
 	e.Changes = r.fileChanges(e.Changes)
 	if r.writesValues(e.Request) {
 		// A write of prop values keeps its line, values and all, only

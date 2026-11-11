@@ -83,7 +83,7 @@ func newProxyCalls(noun CatalogNoun, local, key string, h HostMount) *proxyCalls
 		px.limit = DefaultProxyTimeout
 	}
 	for _, v := range noun.Verbs {
-		px.add(h, noun.Name, v)
+		px.add(h, noun, v)
 	}
 	for _, verb := range proxiedVerbs {
 		if px.calls[verb] == nil {
@@ -119,16 +119,28 @@ type proxyCalls struct {
 
 // add takes a catalog verb as a call when it is one of the proxied
 // standard verbs the extension can run.
-func (px *proxyCalls) add(h HostMount, noun string, v CatalogVerb) {
-	if v.Standard == "" || v.Unavailable != "" {
-		return // not a standard verb, or the extension has it but cannot run it
+func (px *proxyCalls) add(h HostMount, noun CatalogNoun, v CatalogVerb) {
+	standard := v.Standard
+	if standard == "" && noun.Store != nil {
+		for _, capability := range [...]struct {
+			verb      string
+			available bool
+		}{{"get", noun.Store.Get}, {"list", noun.Store.List}, {"create", noun.Store.Create}, {"set", noun.Store.Patch}, {"delete", noun.Store.Delete}} {
+			if v.Name == capability.verb && capability.available {
+				standard = capability.verb
+				break
+			}
+		}
 	}
-	px.writes[v.Standard] = v.History == ochazuke.HistoryChange
-	switch fn := h.Proxy(noun, v).(type) {
+	if standard == "" || v.Unavailable != "" {
+		return
+	}
+	px.writes[standard] = v.History == ochazuke.HistoryChange
+	switch fn := h.Proxy(noun.Name, v).(type) {
 	case ochazuke.AppHandler:
-		px.calls[v.Standard] = fn
+		px.calls[standard] = fn
 	case func(ochazuke.Ctx) ochazuke.Result:
-		px.calls[v.Standard] = fn
+		px.calls[standard] = fn
 	}
 }
 

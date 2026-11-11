@@ -24,6 +24,15 @@ func TestMountTypedPathKeepsFreeVerbsAndNativeOpen(t *testing.T) {
 		List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) { return []ochazuke.Thing{thing}, nil },
 	}).
 		Verb("open", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("native") }).OpensPage("documents")
+	producer.Define("document").Verb("get", func(c ochazuke.Ctx) ochazuke.Result {
+		if c.Args["id"] != nil {
+			return ochazuke.Done(thing)
+		}
+		return ochazuke.Done(map[string]any{"legacy": c.Args["file"]})
+	})
+	get, _ := producer.Operation("document.get")
+	get.Parameters = map[string]ochazuke.Parameter{"id": {Type: "string", Noun: "document", Free: true}, "file": {Type: ochazuke.PropPath, Path: "file"}}
+	producer.Operations.Set(get)
 	raw, err := Catalog(producer, "example", "1")
 	if err != nil {
 		t.Fatal(err)
@@ -78,6 +87,9 @@ func TestMountTypedPathKeepsFreeVerbsAndNativeOpen(t *testing.T) {
 	}
 	if len(runs) != before {
 		t.Fatal("native open fell through to OS opener")
+	}
+	if got := helpOut(t, r, "tool-document", "get", "--file", "/legacy.json"); !strings.Contains(got, `"legacy": "/legacy.json"`) {
+		t.Fatalf("legacy custom get was replaced by the standard get: %q", got)
 	}
 	restore := r.Sourced("palette")
 	defer restore()

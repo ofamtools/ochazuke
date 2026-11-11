@@ -283,6 +283,11 @@ type CatalogVerb struct {
 // undo its standard changes, Remote says its calls leave the process.
 // Every field false is a store that lists whole.
 type CatalogStore struct {
+	Get         bool `json:"get,omitempty"`
+	List        bool `json:"list,omitempty"`
+	Create      bool `json:"create,omitempty"`
+	Patch       bool `json:"patch,omitempty"`
+	Delete      bool `json:"delete,omitempty"`
 	Query       bool `json:"query,omitempty"`
 	ChangeToken bool `json:"changeToken,omitempty"`
 	Watch       bool `json:"watch,omitempty"`
@@ -296,7 +301,7 @@ func catalogStore(s *ochazuke.Store) (facts bool, out *CatalogStore) {
 	if s == nil {
 		return false, nil
 	}
-	return s.Facts, &CatalogStore{Query: s.Query != nil, ChangeToken: s.ChangeToken != nil, Watch: s.Watch != nil, Undo: s.Undo, Remote: s.Remote}
+	return s.Facts, &CatalogStore{Get: s.Get != nil, List: s.List != nil, Create: s.Create != nil, Patch: s.Patch != nil, Delete: s.Delete != nil, Query: s.Query != nil, ChangeToken: s.ChangeToken != nil, Watch: s.Watch != nil, Undo: s.Undo, Remote: s.Remote}
 }
 
 // KindOf is the noun's kind (ochazuke.NounKindList): NounKind when the
