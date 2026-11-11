@@ -234,7 +234,7 @@ func TestSubjectAskPathWalkAndScopesOptOut(t *testing.T) {
 func TestSubjectAskOptionalOwnNounAndMotionExemption(t *testing.T) {
 	r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "canvas"}, false)
 	r.Define("canvas").Props(PropSpec{Name: "id", Key: true}).Store(Store{
-		Get: func(Ctx, string) (Thing, error) { return Thing{"id": "ink"}, nil },
+		Get:  func(Ctx, string) (Thing, error) { return Thing{"id": "ink"}, nil },
 		List: func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "ink"}}, nil },
 	})
 	r.Instance("ink", Kind("canvas")).Label = "Ink"
