@@ -534,3 +534,59 @@ func TestThingWalkValueOpenPreservesCustomNounOpen(t *testing.T) {
 		})
 	}
 }
+
+// The walk offers only the keys that mean something over things: the path
+// picker's home, root and new folder rows (v0.124.0 hinted them in the walk)
+// are unavailable in a source with no folders, while its own jumps stay.
+func TestThingWalkOffersNoFolderOnlyKeys(t *testing.T) {
+	r, _, _ := thingWalkFixture(t)
+	if _, err := r.Execute(Request{Noun: "ochazuke.thing", Verb: "walk"}); err != nil {
+		t.Fatal(err)
+	}
+	if r.Chooser(ThingWalkKind) == nil || r.Mode.Name != "normal" {
+		t.Fatalf("walk: top=%q mode=%q", r.TopModal(), r.Mode.Name)
+	}
+	hinted := map[string]bool{}
+	for _, b := range HintBindings(r, r.Focus) {
+		hinted[b.Keys] = true
+	}
+	for _, key := range []string{"~", "g /", "n"} {
+		if hinted[key] {
+			t.Errorf("the walk hints %q, a folder key", key)
+		}
+	}
+	// Their keys in any mode (the list style's alt rows) answer nothing
+	// either: no name is asked for and the walk stays where it is.
+	for _, key := range []string{"alt+h", "alt+/", "alt+n"} {
+		if handled, err := r.Dispatch(MacroKey{Key: key}); handled && err == nil {
+			t.Errorf("the walk answers the folder key %s", key)
+		}
+	}
+	if r.Mode.Name != "normal" {
+		t.Fatalf("a folder key left the walk in %s", r.Mode.Name)
+	}
+	for _, key := range []string{"h", "l", "0", "$", "/"} {
+		if !hinted[key] {
+			t.Errorf("the walk lost its own key %q: %v", key, hints(HintBindings(r, r.Focus)))
+		}
+	}
+	// A folder source keeps every one of them.
+	if _, err := r.Execute(Request{Noun: PickerNoun, Verb: "cancel"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Settings().Set(PathStyleSetting, PathStyleColumns); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.OpenPathChooser(PathChooserSpec{Pick: PathPick{Name: "folder", Parameter: Parameter{Type: PathParameterType, Path: PathDir, Base: t.TempDir()}}}); err != nil {
+		t.Fatal(err)
+	}
+	clear(hinted)
+	for _, b := range HintBindings(r, r.Focus) {
+		hinted[b.Keys] = true
+	}
+	for _, key := range []string{"~", "g /", "n", "0", "$"} {
+		if !hinted[key] {
+			t.Errorf("the path picker lost %q: %v", key, hints(HintBindings(r, r.Focus)))
+		}
+	}
+}

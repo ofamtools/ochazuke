@@ -40,6 +40,8 @@ const (
 	PickerCompletesGuard    = "picker-completes"     // complete fills the highlighted row in (a source with Complete: the path picker's find)
 	PickerNormalModeGuard   = "picker-normal-mode"   // the picker has a normal mode (ChooserSpec.NormalMode)
 	PickerPropControlsGuard = "picker-prop-controls" // prop conditions or a saved filter are set
+	PickerMakesGuard        = "picker-makes"         // the current source makes new things (PickerSource.Make)
+	PickerGoesGuard         = "picker-goes"          // the current source jumps to the place asked for (PickerSource.Goto, Places)
 )
 
 // Deprecated: the old guard names, kept for one release.

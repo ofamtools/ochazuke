@@ -114,7 +114,7 @@ func (r *Runtime) walkSource(p Parameter, origin Context, row func(Choice) Picke
 	}
 	return PickerSource{
 		Name: "walk", Live: true, Columns: true, StartNormal: true, Empty: "no things or values here",
-		Load: w.load, Open: w.open, Up: w.up, Goto: w.gotoPlace,
+		Load: w.load, Open: w.open, Up: w.up, Goto: w.gotoPlace, Places: walkPlaces,
 		CanOpen: func(row PickerRow) bool { return row.walk != nil && row.walk.kind == walkThing },
 		Landing: func() string { return w.landing },
 		Label:   w.breadcrumb, Breadcrumb: w.breadcrumb,
@@ -439,9 +439,12 @@ func (w *thingWalk) up(_ string) (string, bool) {
 	return frame.query, true
 }
 
+// walkPlaces are the places the walk jumps to: its first column and the
+// deepest one visited. It has no home folder, root or rows of its own.
+var walkPlaces = []string{"first-col", "last-col"}
+
 func (w *thingWalk) gotoPlace(to string) (string, bool) {
-	places := []string{"first-col", "last-col", "~", "/", "own"}
-	index := slices.Index(places, to)
+	index := slices.Index(walkPlaces, to)
 	if index < 0 {
 		return "", false
 	}

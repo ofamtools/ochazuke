@@ -352,6 +352,13 @@ func (c *Chooser) makeLabel() string {
 	return "new"
 }
 
+// goes reports whether the current source jumps to the place to: it has a
+// Goto, and to is one of its Places when it declares them.
+func (c *Chooser) goes(to string) bool {
+	src := c.current()
+	return src != nil && src.Goto != nil && (to == "" || src.Places == nil || slices.Contains(src.Places, to))
+}
+
 // registerSectionVerbs registers the verbs of marks, new things, options and
 // jumps on the picker noun (sections are move's, picker.move {sections}).
 // Every one is a verb of the chooser noun that a binding row reaches; none
@@ -363,6 +370,17 @@ func registerSectionVerbs(r *Runtime, verb func(fn func(*Chooser, Ctx) Result) A
 		}
 		return Done(c.state())
 	}
+	// What the current source cannot do is unavailable there, so its key
+	// offers no hint: a source of things (the relation walk) has no home
+	// folder, no root and no folder to make.
+	r.DefineGuard(PickerMakesGuard, func(r *Runtime, ev KeyEvent) bool {
+		c := r.chooserAt(r.Instances[ev.Focus])
+		return c != nil && c.canMake()
+	})
+	r.DefineGuard(PickerGoesGuard, func(r *Runtime, ev KeyEvent) bool {
+		c := r.chooserAt(r.Instances[ev.Focus])
+		return c != nil && c.goes(StringArg(ev.Args, "to", ""))
+	})
 	r.Define(chooserNoun).
 		Verb("mark", verb(func(c *Chooser, ctx Ctx) Result {
 			if boolArg(ctx.Args, "all") {
@@ -379,7 +397,9 @@ func registerSectionVerbs(r *Runtime, verb func(fn func(*Chooser, Ctx) Result) A
 			return state(c.gotoSource(StringArg(ctx.Args, "to", "")), c)
 		}), "Send the source to a place: ~ (home), / (the root), first-col (home), last-col (the deepest place visited), own (the source's own rows again)").
 		Params(map[string]Parameter{"to": {Type: "string", Required: true, Enum: []string{"~", "/", "first-col", "last-col", "own"}, Description: "Where to"}}).
+		When(PickerGoesGuard).
 		Verb("new", verb(func(c *Chooser, _ Ctx) Result { return state(c.beginMake(), c) }), "Name a new folder to make in the folder the picker shows; enter makes it, escape drops it").
+		When(PickerMakesGuard).
 		Verb("open-with", verb(func(c *Chooser, ctx Ctx) Result {
 			return c.pathRow(func(p string) error {
 				if app := strings.TrimSpace(StringArg(ctx.Args, "with", "")); app != "" {

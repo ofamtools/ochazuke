@@ -54,6 +54,9 @@ entered; a list-read failure is shown in that column.
 `l` follows a noun or thing; `h` retraces the walk and restores that column's
 filter and highlight. The breadcrumb records the route. `gg`/`G` select the
 first/last row, and `0`/`$` return to the first/deepest visited column.
+The folder keys (`~` home, `g /` root, `n` new folder) are neither hinted
+nor answered in the walk: a browse verb is available only where the current
+source can do it (`picker-goes`, `picker-makes`).
 Related columns show named path/link props, outgoing owner and other
 references, and the same inbound reference and relation-kind sections as
 the show form. Mounted nouns use their catalog's props and proxy stores.

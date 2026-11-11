@@ -104,6 +104,11 @@ type PickerSource struct {
 	// subtracts the scope in effect from the last scope with a Count to
 	// describe the widest comparable scope. Uncounted scopes are skipped.
 	Count func(query string) (int, bool)
+	// Places are the places Goto answers (picker.goto's to: ~, /, first-col,
+	// last-col, own) when it does not answer every one: a jump to another
+	// place is unavailable in this source, so its key shows no hint. nil is
+	// every place.
+	Places []string
 	// RememberAs is the name picker.remember-source keeps for this source
 	// when it differs from Name: a source renamed for one open (a file
 	// system source beside a scope of its name) keeps its place in the
