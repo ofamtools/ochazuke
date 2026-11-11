@@ -9,7 +9,7 @@ import "testing"
 func TestRowGuardReadsTheFocusedRow(t *testing.T) {
 	r := NewRuntime()
 	r.Config().Disable()
-	r.Define("thing")
+	r.DefineOwn("thing")
 	list, err := r.AddList("things", []ListItem{
 		{ID: "things/a", Label: "a", Noun: "thing", Data: map[string]any{"id": "q1", "kind": "question"}},
 		{ID: "things/b", Label: "b", Noun: "thing", Data: "b", Props: Thing{"item": "x", "count": 2}},

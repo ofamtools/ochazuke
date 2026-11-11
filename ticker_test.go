@@ -19,7 +19,7 @@ func tickerFixture(t *testing.T) (*Runtime, *Model, *time.Time) {
 	t.Helper()
 	r := NewRuntime()
 	noop := func(Ctx) Result { return Done(nil) }
-	r.Define("thing").
+	r.DefineOwn("thing").
 		Verb("build", noop, "Build the thing").
 		Verb("ship", noop, "Ship the thing").
 		Verb("reload", noop, "Reload the things").Quiet()

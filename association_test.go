@@ -10,7 +10,7 @@ import (
 func associationFixture(t *testing.T, declared bool) *Runtime {
 	t.Helper()
 	r := NewRuntime()
-	r.Define("thing").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", Role: RoleLabel})
+	r.DefineOwn("thing").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", Role: RoleLabel})
 	r.Define("surface").Props(PropSpec{Name: "subject", Association: declared, Parameter: Parameter{Noun: "thing"}})
 	if _, err := r.AddPage("page", "Page", func(*Runtime, int, int) Block { return Text("page") }); err != nil {
 		t.Fatal(err)

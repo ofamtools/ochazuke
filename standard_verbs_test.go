@@ -90,7 +90,7 @@ func TestStandardVerbsNeeds(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			r := NewRuntime()
-			r.Define("thing").Props(c.props...).Store(c.store)
+			r.DefineOwn("thing").Props(c.props...).Store(c.store)
 			var got []string
 			for _, verb := range StandardVerbs() {
 				if op, ok := r.Operations.Find(Key("thing." + verb)); ok {

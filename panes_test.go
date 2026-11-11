@@ -17,7 +17,7 @@ func paneModel(t *testing.T, stateDir string, split bool) *Model {
 	t.Helper()
 	r := NewRuntime()
 	r.Config().StateDir = stateDir
-	r.Define("thing")
+	r.DefineOwn("thing")
 	r.Instance("p")
 	list, err := r.AddList("p/list", []ListItem{{ID: "a", Label: "a", Noun: "thing"}, {ID: "b", Label: "b", Noun: "thing"}}, Parent("p"))
 	if err != nil {

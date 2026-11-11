@@ -55,7 +55,7 @@ func TestDetailWindowWrapsToWidth(t *testing.T) {
 func detailModel(t *testing.T, lines int) (*Model, *Collection, *Detail) {
 	t.Helper()
 	r := NewRuntime()
-	r.Define("thing")
+	r.DefineOwn("thing")
 	r.Instance("p")
 	list, err := r.AddList("p/list", []ListItem{{ID: "a", Label: "a", Noun: "thing"}, {ID: "b", Label: "b", Noun: "thing"}}, Parent("p"))
 	if err != nil {
@@ -139,7 +139,7 @@ func TestDetailRowsStandAsideForAnInnerJK(t *testing.T) {
 // and a removed detail, or its id reused by another instance, drops out.
 func TestPageDetailFollowsTheTree(t *testing.T) {
 	r := NewRuntime()
-	r.Define("thing")
+	r.DefineOwn("thing")
 	r.Instance("p")
 	if _, err := r.AddList("p/list", []ListItem{{ID: "a", Label: "a", Noun: "thing"}}, Parent("p")); err != nil {
 		t.Fatal(err)

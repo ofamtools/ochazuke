@@ -133,6 +133,7 @@ func TestPaletteInstanceFailurePreservesModalAndOrigin(t *testing.T) {
 
 func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 	r := NewRuntime()
+	r.DefineOwn("thing")
 	var captured Context
 	origin := r.Context()
 	var sourceContext Context
@@ -164,6 +165,7 @@ func TestPaletteInstanceUsesRuntimeValidationAndRestoresOnError(t *testing.T) {
 
 func TestPaletteNounRegistrationValidation(t *testing.T) {
 	r := NewRuntime()
+	r.DefineOwn("thing")
 	r.Register(Operation{Key: "thing.use", Parameters: map[string]Parameter{"count": {Type: "integer", Required: true}, "id": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 	p := NewPalette(r)
 	for _, test := range []struct {
