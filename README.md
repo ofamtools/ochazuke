@@ -2923,6 +2923,10 @@ ownership, backups and installation. No binding, page or default key is added.
 item (`id`, `name`, `kind`, `group`, `path`, `state`, `reason`, `next`,
 `opt_in`), so `setup get rules` reads one item's state; `setup list` and the
 other setup verbs answer as before.
+The `home` override on every setup verb is a directory parameter, and each
+item's `path` is a file prop. They use the shared path chooser and catalog
+metadata. The item path also supplies the standard reveal, yank-path, open
+and open-with verbs; `paths.free-verbs=false` disables those verbs.
 
 ```go
 items := []setup.Item{

@@ -258,3 +258,50 @@ func TestSetupApplicationNounKeepsShortName(t *testing.T) {
 		t.Fatalf("framework setup became unreachable: %v %s %s", err, out, stderr)
 	}
 }
+
+func TestSetupCatalogTypesHomeAndItemPaths(t *testing.T) {
+	f := newSetupFixture(t)
+	data, err := Catalog(f.r, "tool", "v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	var found bool
+	for _, noun := range doc.Nouns {
+		if noun.Name != "ochazuke.setup" {
+			continue
+		}
+		found = true
+		var path bool
+		for _, prop := range noun.Props {
+			if prop.Name == "path" {
+				path = prop.Type == "path" && prop.Path == "file"
+			}
+		}
+		if !path {
+			t.Fatal("setup item path is not a file parameter")
+		}
+		for _, verb := range noun.Verbs {
+			if home, ok := verb.Params["home"]; ok && (home.Type != "path" || home.Path != "dir") {
+				t.Fatalf("setup %s home: %+v", verb.Name, home)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("setup noun missing from catalog")
+	}
+	for _, verb := range []string{"check", "list", "show", "install", "uninstall", "yank"} {
+		op, ok := f.r.Operation("ochazuke.setup." + verb)
+		if home := op.Parameters["home"]; !ok || home.Type != "path" || home.Path != "dir" {
+			t.Fatalf("setup %s lost typed home: %+v", verb, op)
+		}
+	}
+	for _, verb := range []string{"reveal", "yank-path", "open", "open-with"} {
+		if _, ok := f.r.Operation("ochazuke.setup." + verb); !ok {
+			t.Fatalf("typed setup files lack %s", verb)
+		}
+	}
+}
