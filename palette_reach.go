@@ -55,8 +55,10 @@ func (p *Palette) missingTarget(op Operation, args Arguments) string {
 }
 
 // missingTargets names the target parameters (targetParams) of op that q
-// leaves unfilled while nothing of their noun is at focus; the args form
-// asks for them with the missing required ones.
+// leaves unfilled while nothing at focus supplies them: no thing that stands
+// for the subject (subjectStands), no From value (sourceValue) and no thing
+// of the parameter's noun (focusValue). The args form asks for them with the
+// missing required ones; what the focus supplies is never asked for.
 func (r *Runtime) missingTargets(op Operation, args Arguments, focus string) []string {
 	if op.covered(args) {
 		return nil
@@ -69,8 +71,7 @@ func (r *Runtime) missingTargets(op Operation, args Arguments, focus string) []s
 		if v, set := args[name]; set && !emptyProp(v) {
 			continue
 		}
-		param := op.Parameters[name]
-		if !param.Required && param.From == "" && param.Noun != "" && r.CanonicalNoun(param.Noun) == r.CanonicalNoun(op.Noun()) && r.nounInstance(op.Noun(), focus) != "" {
+		if r.subjectStands(op, name, focus) {
 			continue
 		}
 		if _, ok := r.sourceValue(op, name, focus); ok {

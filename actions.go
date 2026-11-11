@@ -585,6 +585,7 @@ func (r *Runtime) CheckUserActions() []string {
 		for _, a := range c.actionAliases {
 			r.actionNames.aliases[a.Alias] = a
 		}
+		r.aliasesChanged()
 	}()
 	seen := map[string]int{}
 	for _, f := range entries {

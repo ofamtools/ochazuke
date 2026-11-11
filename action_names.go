@@ -203,6 +203,45 @@ type actionNames struct {
 	problems   []string               // aliases dropped because an action took their name
 	nouns      nounNames              // the noun aliases' reverse index, deprecated fields and notices (namespace.go)
 	removed    []namecheck.Removed    // the application's removed verbs (verb_check.go), beside the framework's
+	// named is, per noun, the nouns whose actions an alias on it names
+	// (namesActionsOf): built on demand, dropped when the alias table
+	// changes (aliasesChanged).
+	named map[string]map[string]bool
+}
+
+// aliasesChanged drops what was derived from the alias table.
+func (r *Runtime) aliasesChanged() {
+	r.renderCache.generation++
+	r.actionNames.named = nil
+}
+
+// namesActionsOf reports whether an alias declared on noun names an action
+// of other (AliasOn: decision.accept for question.accept), both canonical:
+// noun's things are then things other's verbs act on, seen under another
+// noun (subjectStands).
+func (r *Runtime) namesActionsOf(noun, other string) bool {
+	if noun == other {
+		return false
+	}
+	if r.actionNames.named == nil {
+		named := map[string]map[string]bool{}
+		for _, a := range r.actionNames.aliases {
+			op, ok := r.Operations.Find(Key(a.Action))
+			if !ok || a.Noun == "" {
+				continue
+			}
+			on, of := r.CanonicalNoun(a.Noun), r.CanonicalNoun(op.Noun())
+			if on == of {
+				continue
+			}
+			if named[on] == nil {
+				named[on] = map[string]bool{}
+			}
+			named[on][of] = true
+		}
+		r.actionNames.named = named
+	}
+	return r.actionNames.named[noun][other]
 }
 
 // Invoked is the name the running request named its action by (the
@@ -226,7 +265,7 @@ func (r *Runtime) AliasAction(alias, action string) error {
 // action; registering the same alias for the same action again is a
 // no-op. Source defaults to app, or framework inside Builtin.
 func (r *Runtime) AddActionAlias(a ActionAlias) error {
-	r.renderCache.generation++
+	r.aliasesChanged()
 	if a.Source == "" {
 		a.Source = AliasApp
 		if r.builtinDepth > 0 {
@@ -487,7 +526,7 @@ func (r *Runtime) paramAliasNotices(a ActionAlias, used []ParamAlias) []string {
 // removeAlias drops an alias by name (config reloads, a later Register of
 // that name).
 func (r *Runtime) removeAlias(name string) {
-	r.renderCache.generation++
+	r.aliasesChanged()
 	delete(r.actionNames.aliases, name)
 }
 

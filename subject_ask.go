@@ -21,6 +21,51 @@ func (r *Runtime) declaredSubject(op Operation, p Parameter) bool {
 	return p.Focus || p.From != "" || own && implicit || p.Required && asksSubjectParameter(p)
 }
 
+// subjectStands reports whether a thing on focus's path stands for op's
+// optional subject parameter name, so a request made there acts on it as
+// it did before the where-from ask and nothing is asked: a thing of the
+// verb's own noun, or of a noun that names that noun's actions by an alias
+// (AliasOn: a decision row under a question verb is the same thing seen as
+// another noun, whether the request was spelled by the alias, its via, or
+// by the action's own name). It holds for a parameter of the verb's own
+// noun or of such a naming noun. A thing of a naming noun the verb also
+// takes as a parameter of its own (a project under pane.associate
+// {project}) is that parameter's value, never the own-noun subject.
+func (r *Runtime) subjectStands(op Operation, name, focus string) bool {
+	param := op.Parameters[name]
+	if param.Required || param.From != "" || param.Noun == "" {
+		return false
+	}
+	own, want := r.CanonicalNoun(op.Noun()), r.CanonicalNoun(param.Noun)
+	if want != own && !r.namesActionsOf(want, own) {
+		return false
+	}
+	for _, id := range r.Ancestry(focus) {
+		inst := r.Instances[id]
+		if inst.Parent == "" {
+			continue // the root: an app verb acts for the focus, never for app
+		}
+		at := inst.Noun
+		if at == own || at == want {
+			return true
+		}
+		if r.namesActionsOf(at, own) && (want != own || !r.takesNoun(op, at)) {
+			return true
+		}
+	}
+	return false
+}
+
+// takesNoun reports whether op has a parameter typed with noun (canonical).
+func (r *Runtime) takesNoun(op Operation, noun string) bool {
+	for _, p := range op.Parameters {
+		if p.Noun != "" && r.CanonicalNoun(p.Noun) == noun {
+			return true
+		}
+	}
+	return false
+}
+
 func asksSubjectParameter(p Parameter) bool {
 	return !p.Plumbing && (p.Noun != "" || p.IsPath() || p.Focus || p.From != "")
 }

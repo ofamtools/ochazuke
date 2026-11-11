@@ -537,3 +537,124 @@ func TestSubjectAskKeepsArchivedScopeCounts(t *testing.T) {
 		t.Fatalf("scope cycling changed the selected subject: ran=%v", *ran)
 	}
 }
+
+// aliasNounRuntime has two stored nouns over the same things, ticket and
+// verdict (a ticket seen as a verdict), a row of each and a neutral focus.
+// ticket.approve takes params and is named on verdict by an alias; a on a
+// verdict row runs it by that alias, A anywhere by its own name. ran holds
+// the instance each run acted at.
+func aliasNounRuntime(t *testing.T, params map[string]Parameter) (*Runtime, *Palette, *[]string) {
+	t.Helper()
+	r := NewRuntime()
+	r.Config().Disable()
+	r.Instance("app")
+	r.Instance("home")
+	store := Store{
+		Get:  func(Ctx, string) (Thing, error) { return Thing{"id": "t1"}, nil },
+		List: func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "t1"}}, nil },
+	}
+	ran := new([]string)
+	r.Define("verdict").Props(PropSpec{Name: "id", Key: true}).Store(store)
+	r.Define("ticket").Props(PropSpec{Name: "id", Key: true}).Store(store).
+		Verb("approve", func(c Ctx) Result {
+			*ran = append(*ran, c.Instance.ID+" as "+c.Invoked.Name)
+			return Done(nil)
+		}, "Approve").Params(params).AliasOn("verdict", "approve")
+	r.Instance("ticket-row", Kind("ticket")).Label = "Ticket"
+	r.Instance("verdict-row", Kind("verdict")).Label = "Verdict"
+	if err := r.Bind(
+		Binding{Noun: "verdict", Mode: "normal", Keys: "a", Request: Request{Noun: "ticket", Verb: "approve", Via: "verdict.approve"}},
+		Binding{Noun: "app", Mode: "normal", Keys: "A", Request: Request{Noun: "ticket", Verb: "approve"}},
+	); err != nil {
+		t.Fatal(err)
+	}
+	return r, NewPalette(r), ran
+}
+
+// runAliasNounRoute makes the request by one route at the current focus.
+func runAliasNounRoute(t *testing.T, r *Runtime, p *Palette, route string) {
+	t.Helper()
+	if line, typed := strings.CutPrefix(route, ":"); typed {
+		paletteRequest(t, r, "open", "palette", nil)
+		paletteRequest(t, r, "fill", "palette", Arguments{"text": line})
+		if err := p.run(); err != nil {
+			t.Fatalf("%s: %v", route, err)
+		}
+		return
+	}
+	formKeys(t, r, route)
+}
+
+// A thing of a noun that names the verb's noun's actions by an alias stands
+// for the verb's optional subject: a key on it (by the alias or by the
+// action's own name) and a palette line act on it and ask nothing, as
+// before v0.124.0, which opened the args form for the target.
+func TestSubjectAskAliasNounThingStandsForTheSubject(t *testing.T) {
+	shapes := map[string]map[string]Parameter{
+		"implicit own-noun target": {"target": {Type: "string", Noun: "ticket"}},
+		"focus own-noun target":    {"target": {Type: "string", Noun: "ticket", Focus: true}},
+	}
+	for shape, params := range shapes {
+		for route, as := range map[string]string{"a": "verdict.approve", "A": "ticket.approve", ":ticket approve": "ticket.approve", ":verdict approve": "verdict.approve"} {
+			t.Run(shape+"/"+route, func(t *testing.T) {
+				r, p, ran := aliasNounRuntime(t, params)
+				if err := r.SetFocus("verdict-row"); err != nil {
+					t.Fatal(err)
+				}
+				runAliasNounRoute(t, r, p, route)
+				if want := []string{"verdict-row as " + as}; !reflect.DeepEqual(*ran, want) || r.Instances[ArgsFormID] != nil {
+					t.Fatalf("ran = %v, want %v; top = %q", *ran, want, r.TopModal())
+				}
+			})
+		}
+	}
+}
+
+// A parameter typed with the naming noun (o-questions' question verbs take
+// a decision) is supplied by a thing of the verb's own noun at the focus.
+func TestSubjectAskOwnNounThingStandsForAnAliasNounSubject(t *testing.T) {
+	for _, route := range []string{"A", ":ticket approve"} {
+		t.Run(route, func(t *testing.T) {
+			r, p, ran := aliasNounRuntime(t, map[string]Parameter{"target": {Type: "string", Noun: "verdict", Focus: true}})
+			if err := r.SetFocus("ticket-row"); err != nil {
+				t.Fatal(err)
+			}
+			runAliasNounRoute(t, r, p, route)
+			if want := []string{"ticket-row as ticket.approve"}; !reflect.DeepEqual(*ran, want) || r.Instances[ArgsFormID] != nil {
+				t.Fatalf("ran = %v, want %v; top = %q", *ran, want, r.TopModal())
+			}
+		})
+	}
+}
+
+// What nothing at the focus supplies is still asked for: away from every
+// thing of the verb's noun and of the nouns naming it, and for the own-noun
+// subject of a verb that takes the naming noun as a parameter of its own
+// (the other side of a verb relating two nouns).
+func TestSubjectAskStillAsksWhatTheFocusDoesNotSupply(t *testing.T) {
+	relate := map[string]Parameter{"target": {Type: "string", Noun: "ticket", Focus: true}, "verdict": {Type: "string", Noun: "verdict", Focus: true}}
+	for name, c := range map[string]struct {
+		params map[string]Parameter
+		focus  string
+	}{
+		"neutral focus":          {map[string]Parameter{"target": {Type: "string", Noun: "ticket"}}, "home"},
+		"the other side at hand": {relate, "verdict-row"},
+	} {
+		for _, route := range []string{"A", ":ticket approve"} {
+			t.Run(name+"/"+route, func(t *testing.T) {
+				r, p, ran := aliasNounRuntime(t, c.params)
+				if err := r.SetFocus(c.focus); err != nil {
+					t.Fatal(err)
+				}
+				runAliasNounRoute(t, r, p, route)
+				e := r.RecordEditor(ArgsFormID)
+				if e == nil || len(*ran) != 0 {
+					t.Fatalf("did not ask: ran = %v, top = %q", *ran, r.TopModal())
+				}
+				if f := e.fields[e.start()]; f.Name != "target" {
+					t.Fatalf("asked for %q, want target", f.Name)
+				}
+			})
+		}
+	}
+}

@@ -73,6 +73,14 @@ Noun asks keep the argument form first; choosing its missing field opens
 these scopes. Ordinary record-choice editing and already populated fields
 keep their existing sources and editing behavior.
 
+Only what nothing at the focus supplies is asked for. A thing on the focus
+path of the verb's noun, or of a noun that names that noun's actions by an
+alias (a `decision` row under a `question` verb: the same thing seen as
+another noun), is the optional subject, for a key and a palette line alike;
+so are a parameter's `From` value and a thing of a `Focus` parameter's noun.
+A noun the verb also takes as a parameter of its own fills that parameter,
+never the verb's own subject.
+
 `subject.ask` defaults to `true`; `false` restores automatic missing-subject
 refusals without removing explicit pickers. `picker.scopes=false` leaves the
 graph scope out of these requests; standalone `thing walk` is still
