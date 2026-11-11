@@ -89,7 +89,12 @@ func (t *Tree) rowText(item ListItem) (prefix, text, suffix string) {
 	prefix, text = t.prefix(n), n.Label
 	if len(n.Cells) > 0 {
 		cell := n.Cells[0]
-		if at := strings.Index(cell, n.Label); at >= 0 {
+		if n.Label == "" {
+			// A blank row: nowhere in the cell tells prefix from badges, and
+			// a box or bullet comes first, so all of it is the prefix (the
+			// line opens after it, as it does once the row has text).
+			prefix += cell
+		} else if at := strings.Index(cell, n.Label); at >= 0 {
 			prefix += cell[:at]
 			suffix = cell[at+len(n.Label):]
 		} else {

@@ -115,3 +115,13 @@ func TestTreeWrapHighlightAndVisualSelection(t *testing.T) {
 		t.Fatalf("marks %+v", got)
 	}
 }
+
+// A blank row keeps its box before the line, not after it.
+func TestTreeWrapBlankRowKeepsPrefixBeforeTheLine(t *testing.T) {
+	_, m, tree := wrapTree(t, []TreeNode{{ID: "row", Label: "", Cells: []string{"[ ] ", "todo"}}}, Columns(Column{Width: 20}, Column{Width: 4}))
+	pressKeys(m, "i")
+	rows := bodyLines(ansi.Strip(tree.Block(26, 8).Text))
+	if !strings.HasPrefix(rows[0], "  [ ] ") {
+		t.Fatalf("blank row draws %q", rows[0])
+	}
+}
