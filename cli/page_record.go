@@ -21,18 +21,17 @@ type pageReveal struct {
 }
 
 func (v *PageView) baseRow(instance string) (Row, bool) {
-	if row, ok := v.rows[instance]; ok {
-		return row, true
-	}
 	for _, pl := range v.lists {
-		if !pl.index {
+		if !pl.index || !strings.HasPrefix(instance, pl.spec.ID+"/") {
 			continue
 		}
 		if item, ok := pl.list.Selected(); ok && item.ID == instance {
 			return Row{Noun: pl.spec.Noun, ID: strings.TrimPrefix(instance, pl.spec.ID+"/"), Label: item.Label, Data: map[string]any(item.Props), Cells: item.Cells}, true
 		}
+		return Row{}, false
 	}
-	return Row{}, false
+	row, ok := v.rows[instance]
+	return row, ok
 }
 
 // OpenRow opens this page on a particular thing, not its remembered selection.
@@ -96,23 +95,30 @@ func (v *PageView) RevealedRow() string {
 
 func (v *PageView) revealRow(pl *pageList, row Row) error {
 	v.revealed = &pageReveal{list: pl.spec.ID, row: row}
-	rows := make([]Row, 0, len(pl.rowIDs)+1)
-	for _, id := range pl.rowIDs {
-		if old, ok := v.baseRow(id); ok && old.ID != row.ID {
-			rows = append(rows, old)
-		}
-	}
 	if pl.index {
-		for _, item := range pl.list.Items() {
-			key := strings.TrimPrefix(item.ID, pl.spec.ID+"/")
-			if key != row.ID {
-				rows = append(rows, Row{Noun: pl.spec.Noun, ID: key, Label: item.Label, Data: map[string]any(item.Props), Cells: item.Cells})
+		items := pl.list.Items()
+		item := v.item(pl, row)
+		at := slices.IndexFunc(items, func(existing ochazuke.ListItem) bool { return existing.ID == item.ID })
+		if at < 0 {
+			items = append(items, item)
+		} else {
+			items[at] = item
+		}
+		if err := pl.list.SetItems(items); err != nil {
+			return err
+		}
+		v.record = nil
+	} else {
+		rows := make([]Row, 0, len(pl.rowIDs)+1)
+		for _, id := range pl.rowIDs {
+			if old, ok := v.baseRow(id); ok && old.ID != row.ID {
+				rows = append(rows, old)
 			}
 		}
-	}
-	rows = append(rows, row)
-	if err := v.setRows(pl, rows, nil); err != nil {
-		return err
+		rows = append(rows, row)
+		if err := v.setRows(pl, rows, nil); err != nil {
+			return err
+		}
 	}
 	id := pl.spec.ID + "/" + row.ID
 	if err := pl.list.Select(id); err != nil {

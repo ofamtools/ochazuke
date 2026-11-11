@@ -797,6 +797,7 @@ func (v *PageView) SetError(list string, err error) {
 // fetched again in full); Refresh asks for every list in full. Without
 // Fetch it does nothing.
 func (v *PageView) Reload() error {
+	v.record = nil
 	if v.cfg.Fetch == nil {
 		return nil
 	}
