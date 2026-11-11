@@ -12,7 +12,7 @@ const SubjectAskSetting = "subject.ask"
 const WalkColumnsSetting = "walk.columns"
 
 func (r *Runtime) declaredSubject(op Operation, p Parameter) bool {
-	if p.Plumbing || op.Motion || op.FocusBound {
+	if p.Plumbing || op.Motion || op.FocusBound || !p.Required && (p.Covers || op.Creates) {
 		return false
 	}
 	own := p.Noun != "" && r.CanonicalNoun(p.Noun) == r.CanonicalNoun(op.Noun())

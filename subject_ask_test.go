@@ -327,3 +327,30 @@ func TestSubjectAskFocusBoundExemption(t *testing.T) {
 		t.Fatalf("focus-bound verb must keep its focused context: err=%v top=%q ran=%v", err, r.TopModal(), *ran)
 	}
 }
+
+func TestSubjectAskKeepsOptionalCreationSourcesOptional(t *testing.T) {
+	for _, flags := range []struct {
+		name    string
+		creates bool
+		covers  bool
+	}{
+		{name: "copy alternative", covers: true},
+		{name: "creation reference", creates: true},
+		{name: "creation copy", creates: true, covers: true},
+	} {
+		t.Run(flags.name, func(t *testing.T) {
+			r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Noun: "canvas", Covers: flags.covers}, false)
+			op := r.Operations.At(Key("canvas.paint"))
+			op.Creates = flags.creates
+			op.AppHandler = func(c Ctx) Result {
+				*ran = append(*ran, StringArg(c.Args, "swatch", "new"))
+				return Done(nil)
+			}
+			r.Operations.Set(op)
+			formKeys(t, r, "z")
+			if !reflect.DeepEqual(*ran, []string{"new"}) || r.Instances[ArgsFormID] != nil {
+				t.Fatalf("optional input blocked creation: ran=%v top=%q", *ran, r.TopModal())
+			}
+		})
+	}
+}
