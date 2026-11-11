@@ -210,3 +210,27 @@ func TestFrameworkNounParameters(t *testing.T) {
 		t.Fatalf("confirm.require operation: %v", err)
 	}
 }
+
+func TestURLParameterPaletteAndForm(t *testing.T) {
+	t.Parallel()
+	r := NewRuntime()
+	r.Config().Disable()
+	var got []string
+	r.Define("bookmark").Verb("visit", func(c Ctx) Result {
+		got = append(got, StringArg(c.Args, "url", ""))
+		return Done(nil)
+	}).Params(map[string]Parameter{"url": {Type: PropURL, Required: true}})
+	NewPalette(r)
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteLine(t, r, "bookmark visit https://example.test/a?b=c#d")
+	paletteRequest(t, r, "open", "palette", nil)
+	paletteLine(t, r, "bookmark visit")
+	if r.RecordEditor(ArgsFormID) == nil {
+		t.Fatal("missing URL must open its argument form")
+	}
+	typeKeys(t, r, "https://example.test/new")
+	formKeys(t, r, "enter")
+	if want := []string{"https://example.test/a?b=c#d", "https://example.test/new"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("URL arguments %v, want %v", got, want)
+	}
+}

@@ -63,6 +63,7 @@ var paramKinds = map[string]paramKind{
 	"":                {form: true, word: true, accepts: nil},
 	"string":          {form: true, action: true, word: true, accepts: isString},
 	PathParameterType: {form: true, action: true, word: true, accepts: isString},
+	PropURL:           {form: true, action: true, word: true, accepts: isString},
 	AnyParameterType:  {form: true, word: true, accepts: func(any) bool { return true }},
 	"integer": {
 		form: true, action: true, word: true, trimmed: true, must: "integer", phrase: "a whole number",
