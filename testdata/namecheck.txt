@@ -410,6 +410,8 @@ tree.go	Tree.apply	case	"delete"	1
 tree.go	Tree.apply	case	"move"	1
 tree.go	Tree.fixedFor	compare	"delete"	1
 tree.go	Tree.history	compare	"delete"	1
+tree.go	Tree.move	case	"first"	1
+tree.go	Tree.move	case	"last"	1
 tree.go	Tree.refuses	compare	"add"	1
 tree.go	TreeChange.String	case	"add"	1
 tree.go	TreeChange.String	case	"move"	1
@@ -430,7 +432,6 @@ ui.go	UIMessage.Apply	case	"notice"	1
 ui.go	UIMessage.Apply	case	"status"	1
 ui.go	UIMessage.Line	case	"notice"	1
 ui.go	UIMessage.Line	case	"status"	1
-unbound_verbs.go	Runtime.bindUserKey	cyclo	"-"	27
 unbound_verbs.go	Runtime.runFromHelp	compare	"bindings-help"	1
 unbound_verbs.go	Runtime.unboundOperations	compare	"all"	2
 unbound_verbs.go	Runtime.unboundOperations	compare	"app"	1

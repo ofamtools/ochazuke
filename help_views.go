@@ -94,6 +94,7 @@ type helpState struct {
 	capture    []string
 	captureGen uint64
 	manual     bool
+	literal    bool // the next key is taken as it is (ctrl+v)
 }
 
 // newHelpState opens the help over focus; home is focus's place (helpHome),
@@ -267,16 +268,6 @@ func (h *helpState) show() error {
 	return tree.Focus()
 }
 
-// refreshBindings updates an open help in place, including when a chooser
-// is above it. Read here at the focus, mode and modal chain it opened over
-// (a query's resolution context: the modals beneath the help); refreshing
-// must not borrow the help's own keys, move the live focus or assign the
-// live mode.
-func (h *helpState) refreshBindings() error {
-	h.built = h.r.renderCache.generation
-	return h.refresh()
-}
-
 // syncHelp is the one path by which an open help follows the bindings: any
 // writer of a binding table bumps the bindings generation
 // (InvalidateBindings), and the help reads its views again when the
@@ -293,8 +284,14 @@ func (r *Runtime) syncHelp() {
 	}
 }
 
-func (h *helpState) refresh() error {
+// refreshBindings updates an open help in place, including when a chooser
+// is above it. Read here at the focus, mode and modal chain it opened over
+// (a query's resolution context: the modals beneath the help); refreshing
+// must not borrow the help's own keys, move the live focus or assign the
+// live mode.
+func (h *helpState) refreshBindings() error {
 	r := h.r
+	h.built = r.renderCache.generation
 	origin, mode := r.ModalReturn(helpID)
 	if r.Instances[origin] != nil {
 		modals := r.modals

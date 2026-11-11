@@ -37,7 +37,7 @@ func (h *helpState) captureHeader() string {
 		return ""
 	}
 	text := "bind " + row.Request + ": " + strings.Join(h.capture, " ") + " _"
-	if h.r.Mode.Name == helpLiteralMode {
+	if h.literal {
 		text += "  (the next key is taken as it is)"
 	}
 	return text
@@ -46,9 +46,10 @@ func (h *helpState) captureHeader() string {
 // captureTo moves the capture to a mode and marks it as the mode the keys
 // belong to: a change of the mode's payload in place, so the engine does
 // not leave the pending mode after the key that ran.
-func (h *helpState) captureTo(mode string) {
+func (h *helpState) captureTo(mode string, literal bool) {
 	h.r.changeMode(ModeState{Name: mode, Payload: Payload{Return: h.r.Mode.Payload.Return}}, modePayloadUpdate)
 	h.captureGen = h.r.modeGeneration
+	h.literal = literal
 }
 
 // endCapture drops the held keys and leaves the capture mode.
@@ -106,7 +107,7 @@ func registerHelpCapture(r *Runtime) {
 		h.capture = append(h.capture, StringArg(a, "key", ""))
 		more := r.helpFlag(HelpBindSequencesSetting, true)
 		if more && (h.manual || r.bindContinues(strings.Join(h.capture, " "))) {
-			h.captureTo(helpCaptureMode)
+			h.captureTo(helpCaptureMode, false)
 			return strings.Join(h.capture, " "), nil
 		}
 		return h.bindCaptured(row)
@@ -126,7 +127,7 @@ func registerHelpCapture(r *Runtime) {
 		if n := len(h.capture); n > 0 {
 			h.capture = h.capture[:n-1]
 		}
-		h.captureTo(helpCaptureMode)
+		h.captureTo(helpCaptureMode, false)
 		return strings.Join(h.capture, " "), nil
 	}})
 	r.Register(Operation{Key: KeyOf(helpID, "bind-literal"), Staying: true, Description: "Take the next key as a key to bind, whatever it is (enter, esc and backspace included)", Result: "mode", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
@@ -134,7 +135,7 @@ func registerHelpCapture(r *Runtime) {
 		if err != nil {
 			return nil, err
 		}
-		h.captureTo(helpLiteralMode)
+		h.captureTo(helpLiteralMode, true)
 		return r.Mode, nil
 	}})
 	r.Register(Operation{Key: KeyOf(helpID, "bind-cancel"), Staying: true, Description: "Leave the bind without binding anything", Result: "mode", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
