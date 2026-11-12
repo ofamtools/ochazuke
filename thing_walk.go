@@ -335,11 +335,10 @@ func (w *thingWalk) related(c Ctx, node thingWalkNode, query string, pages map[s
 		thing := Thing{target.keyProp().Name: key}
 		c.Noun = target.Name
 		if target.Store != nil && target.Store.Get != nil {
-			got, err := target.Store.Get(c, key)
-			if err != nil {
-				return nil, err
-			}
-			if got != nil {
+			// A dead reference (a closed pane, a deleted task) stays a row
+			// built from its key; any Get error is read as unresolved, as
+			// no helper tells not-found from a store failure.
+			if got, err := target.Store.Get(c, key); err == nil && got != nil {
 				thing = got
 			}
 		}
