@@ -77,51 +77,60 @@ func (r *Runtime) associationInstance(noun, key string) string {
 	return ""
 }
 
-// nearestOf reads each focus-path level itself before what that level
+// nearestSubject reads each focus-path level itself before what that level
 // reaches through relations (graph_reach.go), nearest distance first. Several
 // distinct things at the nearest distance, and a thing with no live instance
 // to act on, are candidates to choose from, never an arbitrary choice.
-func (r *Runtime) nearestOf(noun, focus string) (string, []focusThing) {
-	return r.nearestWithin(noun, focus, true)
+func (r *Runtime) nearestSubject(noun, focus string) (string, []focusThing) {
+	return r.nearestOf(noun, focus, true)
 }
 
-// nearestWithin is nearestOf; distant says whether one live thing more than
+// nearestOf's distant says whether one live thing more than
 // one hop away may be taken without asking. A verb that changes something
 // passes false, so a distant thing is only ever offered as a candidate.
-func (r *Runtime) nearestWithin(noun, focus string, distant bool) (id string, things []focusThing) {
-	id, things, _ = r.nearestDetail(noun, focus, distant)
-	return id, things
-}
-
-// nearestDetail is nearestWithin plus whether the candidates are the several
-// live things one hop away that always refused to pick one (an ambiguity). Any
-// other candidate list (a stored thing, a distant thing under a change verb)
-// is only something to offer: the request goes on with no subject, as before
-// the graph walk, and the ask picker lists it.
-func (r *Runtime) nearestDetail(noun, focus string, distant bool) (id string, things []focusThing, ambiguous bool) {
+func (r *Runtime) nearestOf(noun, focus string, distant bool) (id string, things []focusThing) {
 	noun = r.CanonicalNoun(noun)
 	if c := r.renderCache.collecting; c != nil {
 		defer func() { c.reaches = append(c.reaches, reachDependency{noun, focus, distant, reachAnswer(id, things)}) }()
 	}
 	for _, level := range r.Ancestry(focus) {
 		if level != "app" && r.Instances[level].Noun == noun {
-			return level, nil, false
+			return level, nil
 		}
 		found := r.nearestReached(noun, level)
 		if len(found) == 0 {
 			continue
 		}
 		if len(found) == 1 && found[0].inst != "" && (distant || found[0].Dist <= 1) {
-			return found[0].inst, nil, false
+			return found[0].inst, nil
 		}
 		things = make([]focusThing, len(found))
 		for i, a := range found {
 			things[i] = focusThing{Key: a.Key, Label: a.Label}
 		}
-		ambiguous = len(found) > 1 && !slices.ContainsFunc(found, func(a reached) bool { return a.inst == "" || a.Dist > 1 })
-		return "", things, ambiguous
+		return "", things
 	}
-	return "", nil, false
+	return "", nil
+}
+
+// asksSubject reports whether op has a subject parameter a request lacking
+// it is asked for (the form or picker of subject.ask).
+func (r *Runtime) asksSubject(op Operation) bool {
+	for _, p := range op.Parameters {
+		if r.declaredSubject(op, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// candidateNames lists candidates as "Label (key)", nearest first.
+func candidateNames(things []focusThing) string {
+	names := make([]string, len(things))
+	for i, t := range things {
+		names[i] = t.Label + " (" + t.Key + ")"
+	}
+	return "several to choose from: " + strings.Join(names, ", ")
 }
 
 func reachAnswer(id string, things []focusThing) string { return id + "|" + fmt.Sprint(things) }
@@ -149,24 +158,10 @@ func (r *Runtime) associationSubject(op Operation, q Request, focus string) (str
 			return "", nil // an explicit subject argument wins
 		}
 	}
-	id, candidates, ambiguous := r.nearestDetail(op.Noun(), focus, op.HistoryKindOf() == HistoryFetch)
-	if ambiguous {
-		if err := r.associationAmbiguity(op.Noun(), candidates); err != nil {
-			return "", err
-		}
-	}
+	// Candidates (several things, a stored one, a distant one under a change
+	// verb) pick nothing: the request goes on with no subject and asks.
+	id, _ := r.nearestOf(op.Noun(), focus, op.HistoryKindOf() == HistoryFetch)
 	return id, nil
-}
-
-func (r *Runtime) associationAmbiguity(noun string, candidates []focusThing) error {
-	if len(candidates) == 0 {
-		return nil
-	}
-	names := make([]string, len(candidates))
-	for i, t := range candidates {
-		names[i] = t.Label + " (" + t.Key + ")"
-	}
-	return fmt.Errorf("%s reached through the focus needs a choice: %s", r.DisplayNoun(noun), strings.Join(names, ", "))
 }
 
 // notifyAssociation shows an implicit subject after a successful action

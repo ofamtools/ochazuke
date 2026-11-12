@@ -7,6 +7,8 @@ import (
 )
 
 type runtimeRenderCache struct {
+	reach      map[reachKey]*reachWalk // graph_reach.go
+	reaching   bool                    // a graph walk is reading stores
 	generation uint64
 	instances  instanceIndex
 	scans      []*bindingScan
@@ -82,7 +84,7 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 			if !valid {
 				break
 			}
-			id, things := r.nearestWithin(dep.noun, dep.focus, dep.distant)
+			id, things := r.nearestOf(dep.noun, dep.focus, dep.distant)
 			valid = reachAnswer(id, things) == dep.answer
 		}
 		if valid {

@@ -35,7 +35,7 @@ func reachFixture(t *testing.T, panes ...Thing) *Runtime {
 }
 
 func reachKeys(r *Runtime, noun string) []string {
-	id, things := r.nearestOf(noun, "term")
+	id, things := r.nearestSubject(noun, "term")
 	keys := []string{}
 	if id != "" {
 		keys = append(keys, id)

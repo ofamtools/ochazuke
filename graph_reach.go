@@ -97,28 +97,28 @@ func (r *Runtime) liveFingerprint(inst *Instance) string {
 // change token of each store read; a store with no token is never cached.
 func (r *Runtime) reachFrom(id string) []reached {
 	depth := r.graphDepth()
-	if depth == 0 || r.Instances[id] == nil || id == "app" {
+	if depth == 0 || r.Instances[id] == nil || r.Instances[id].Parent == "" {
 		return nil
 	}
 	key := reachKey{id, depth, max(1, r.Settings().Int(KeysGraphFanOutSetting))}
-	if w := r.reachCache[key]; w != nil && r.reachValid(w) {
+	if w := r.renderCache.reach[key]; w != nil && r.reachValid(w) {
 		return w.nodes
 	}
 	// A store read can itself run dispatch (a facts store lists the bindings);
 	// a walk begun inside a walk finds nothing rather than recursing.
-	if r.reaching {
+	if r.renderCache.reaching {
 		return nil
 	}
-	r.reaching = true
+	r.renderCache.reaching = true
 	w := r.walkReach(id, key)
-	r.reaching = false
-	if r.reachCache == nil {
-		r.reachCache = map[reachKey]*reachWalk{}
+	r.renderCache.reaching = false
+	if r.renderCache.reach == nil {
+		r.renderCache.reach = map[reachKey]*reachWalk{}
 	}
 	if w.uncachable {
-		delete(r.reachCache, key)
+		delete(r.renderCache.reach, key)
 	} else {
-		r.reachCache[key] = w
+		r.renderCache.reach[key] = w
 	}
 	return w.nodes
 }
@@ -185,11 +185,10 @@ func (r *Runtime) walkReach(from string, key reachKey) *reachWalk {
 				edges = append(edges, edge{e.Noun, e.Key, e.Prop.Name})
 			}
 		}
-		if n := r.Noun(at.noun); n != nil {
+		// The level itself is read through its live instance only: reading
+		// its store would add a read on every key and redraw.
+		if n := r.Noun(at.noun); n != nil && at.dist > 0 {
 			thing := at.thing
-			if thing == nil && at.dist == 0 {
-				thing = r.reachGet(w, n, at.key)
-			}
 			for _, e := range r.outwardRefs(n, thing) {
 				edges = append(edges, edge{e.Noun, e.Key, e.Prop.Name})
 			}

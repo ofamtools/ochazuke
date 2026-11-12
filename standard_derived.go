@@ -125,7 +125,7 @@ func (r *Runtime) focusValue(op Operation, name, focus string) (focusThing, bool
 	}
 	id := r.nounInstance(r.CanonicalNoun(param.Noun), focus)
 	if personSource(r.history.source) {
-		id, _ = r.nearestOf(param.Noun, focus)
+		id, _ = r.nearestSubject(param.Noun, focus)
 	}
 	if id == "" {
 		return focusThing{}, false

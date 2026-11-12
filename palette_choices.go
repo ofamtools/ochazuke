@@ -292,7 +292,7 @@ func (p *Palette) paramHeader(s Styles, slot paramSlot, width int) string {
 		facts = append(facts, "optional")
 	}
 	if slot.Op.byAssociation() && p.r.nounInstance(slot.Op.Noun(), focusOf(p.origin)) == "" {
-		if id, _ := p.r.nearestOf(slot.Op.Noun(), focusOf(p.origin)); id != "" {
+		if id, _ := p.r.nearestSubject(slot.Op.Noun(), focusOf(p.origin)); id != "" {
 			facts = append(facts, "acts on: "+p.r.instanceThing(p.r.Instances[id]).Label)
 		}
 	}

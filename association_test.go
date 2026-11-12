@@ -94,19 +94,19 @@ func TestAssociationResolutionBoundaries(t *testing.T) {
 		t.Fatalf("explicit target %q: %v", acted, err)
 	}
 	r.Instances["surface"].Data = map[string]any{"subject": []string{"a", "row-a"}}
-	if id, many := r.nearestOf("thing", "surface"); id != "row-a" || len(many) != 0 {
+	if id, many := r.nearestSubject("thing", "surface"); id != "row-a" || len(many) != 0 {
 		t.Fatalf("duplicate candidate %q, %+v", id, many)
 	}
 	r.Instances["surface"].Data = map[string]any{"subject": []any{"a", "b"}}
 	acted = ""
-	if _, err := r.Execute(Request{Noun: "thing", Verb: "touch"}); err == nil || !strings.Contains(err.Error(), "Alpha (a), Beta (b)") || acted != "" {
-		t.Fatalf("ambiguity acted %q: %v", acted, err)
+	if _, err := r.Execute(Request{Noun: "thing", Verb: "touch"}); err != nil || acted == "row-a" || acted == "row-b" {
+		t.Fatalf("several candidates acted on %q: %v", acted, err)
 	}
 	r.Instances["surface"].Data = map[string]any{"subject": "missing"}
 	if got := r.Associations("surface", "thing"); len(got) != 0 {
 		t.Fatalf("stale association %+v", got)
 	}
-	if id, _ := r.nearestOf("thing", "row-b"); id != "row-b" {
+	if id, _ := r.nearestSubject("thing", "row-b"); id != "row-b" {
 		t.Fatalf("noun path: %q", id)
 	}
 }
@@ -212,5 +212,22 @@ func TestAssociationGuardedRepeatFollowsNewSubject(t *testing.T) {
 	}
 	if !reflect.DeepEqual(acted, []string{"row-a", "row-b"}) {
 		t.Fatalf("repeat subjects %v", acted)
+	}
+}
+
+// Several candidates on a key press: a verb with a subject parameter asks
+// (the args form opens) and acts on none of them.
+func TestAssociationSeveralCandidatesAsk(t *testing.T) {
+	t.Parallel()
+	r := associationFixture(t, true)
+	var acted string
+	r.Define("thing").Verb("touch", func(c Ctx) Result { acted = c.Instance.ID; return Done(nil) }).ByAssociation()
+	r.Define("app").Mode("normal").Bind("r", Do("thing.touch"))
+	op := r.Operations.At(Key("thing.touch"))
+	op.Parameters = map[string]Parameter{"id": {Type: "string", Focus: true, Noun: "thing", Source: "thing.list"}}
+	r.Operations.Set(op)
+	r.Instances["surface"].Data = map[string]any{"subject": []any{"a", "b"}}
+	if _, err := r.Dispatch(MacroKey{Key: "r"}); err != nil || acted != "" || r.TopModal() == "" {
+		t.Fatalf("key: acted %q modal %q: %v", acted, r.TopModal(), err)
 	}
 }
