@@ -31,6 +31,9 @@ func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (b
 				// acted on directly) pick nothing: the key runs with no
 				// subject, as the outside key does, and asks.
 				if id, things := r.nearestOf(r.Instances[at].Noun, focus, op.HistoryKindOf() == HistoryFetch); id != at {
+					if id != "" {
+						return false, false, nil // another thing is nearer: its own turn comes first
+					}
 					if !r.asksSubject(op) {
 						// No ask path: say which things the key could mean
 						// and run nothing, never an error or a guess.
