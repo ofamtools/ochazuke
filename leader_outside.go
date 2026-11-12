@@ -6,7 +6,7 @@ import "slices"
 const LeaderFallThroughSetting = "leader.fall-through"
 
 // dispatchOutside offers a pending mode's otherwise unbound key to each
-// associated thing's outside walk, then the original focus's walk. The real
+// related thing's outside walk, then the original focus's walk. The real
 // focus and mode are never swapped: guards and handlers use the event context,
 // while a modal remembers the live surface it opened over.
 func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (bool, error) {
@@ -47,13 +47,21 @@ func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (b
 		}
 		return false, false, nil
 	}
-	if r.Settings().Bool(SubjectFromAssociationSetting) {
-		for _, a := range r.Associations(focus, "") {
-			ancestry := r.Ancestry(a.id)
+	// Things the focus path reaches through relations (graph_reach.go) offer
+	// the key to their own outside walk, level by level, nearest first.
+	path := r.Ancestry(focus)
+	tried := map[string]bool{}
+	for _, level := range path {
+		for _, a := range r.reachFrom(level) {
+			if a.inst == "" || tried[a.inst] || slices.Contains(path, a.inst) {
+				continue
+			}
+			tried[a.inst] = true
+			ancestry := r.Ancestry(a.inst)
 			if !slices.Contains(ancestry, r.Page) || r.TopModal() != "" && !slices.Contains(ancestry, r.TopModal()) {
 				continue // outside means this page and this modal boundary
 			}
-			if found, allowed, err := run(a.id); found {
+			if found, allowed, err := run(a.inst); found {
 				return allowed, err
 			}
 		}

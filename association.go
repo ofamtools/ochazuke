@@ -47,41 +47,16 @@ func (r *Runtime) Associations(focus, noun string) []Association {
 }
 
 func (r *Runtime) associationsAt(out []Association, from, noun string) []Association {
-	inst := r.Instances[from]
-	if inst == nil {
-		return out
-	}
-	n := r.Nouns[inst.Noun]
-	if n == nil {
-		return out
-	}
-	for _, p := range n.Props {
-		if !p.Association || noun != "" && p.Noun != noun {
+	for _, e := range r.liveRefs(r.Instances[from]) {
+		if noun != "" && e.Noun != noun {
 			continue
 		}
-		value := dataField(inst.Data, p.Name)
-		var values []any
-		switch v := value.(type) {
-		case []any:
-			values = v
-		case []string:
-			for _, key := range v {
-				values = append(values, key)
-			}
-		default:
-			values = []any{value}
+		id := r.associationInstance(e.Prop.Noun, e.Key)
+		if id == "" || slices.ContainsFunc(out, func(a Association) bool { return a.From == from && a.id == id }) {
+			continue
 		}
-		for _, value := range values {
-			if emptyProp(value) {
-				continue
-			}
-			id := r.associationInstance(p.Noun, fmt.Sprint(value))
-			if id == "" || slices.ContainsFunc(out, func(a Association) bool { return a.From == from && a.id == id }) {
-				continue
-			}
-			t := r.instanceThing(r.Instances[id])
-			out = append(out, Association{Noun: p.Noun, Key: t.Key, Label: t.Label, Via: p.Name, From: from, id: id})
-		}
+		t := r.instanceThing(r.Instances[id])
+		out = append(out, Association{Noun: e.Prop.Noun, Key: t.Key, Label: t.Label, Via: e.Prop.Name, From: from, id: id})
 	}
 	return out
 }
@@ -102,32 +77,43 @@ func (r *Runtime) associationInstance(noun, key string) string {
 	return ""
 }
 
-// nearestOf reads each focus-path level itself before that level's
-// associations. Several distinct candidates at the nearest level are an
-// ambiguity, never an arbitrary choice. No associations are followed twice.
+// nearestOf reads each focus-path level itself before what that level
+// reaches through relations (graph_reach.go), nearest distance first. Several
+// distinct things at the nearest distance, and a thing with no live instance
+// to act on, are candidates to choose from, never an arbitrary choice.
 func (r *Runtime) nearestOf(noun, focus string) (string, []focusThing) {
+	return r.nearestWithin(noun, focus, true)
+}
+
+// nearestWithin is nearestOf; distant says whether one live thing more than
+// one hop away may be taken without asking. A verb that changes something
+// passes false, so a distant thing is only ever offered as a candidate.
+func (r *Runtime) nearestWithin(noun, focus string, distant bool) (id string, things []focusThing) {
 	noun = r.CanonicalNoun(noun)
-	for _, id := range r.Ancestry(focus) {
-		if id != "app" && r.Instances[id].Noun == noun {
-			return id, nil
+	if c := r.renderCache.collecting; c != nil {
+		defer func() { c.reaches = append(c.reaches, reachDependency{noun, focus, distant, reachAnswer(id, things)}) }()
+	}
+	for _, level := range r.Ancestry(focus) {
+		if level != "app" && r.Instances[level].Noun == noun {
+			return level, nil
 		}
-		if !r.Settings().Bool(SubjectFromAssociationSetting) {
+		found := r.nearestReached(noun, level)
+		if len(found) == 0 {
 			continue
 		}
-		candidates := r.associationsAt(nil, id, noun)
-		if len(candidates) == 1 {
-			return candidates[0].id, nil
+		if len(found) == 1 && found[0].inst != "" && (distant || found[0].Dist <= 1) {
+			return found[0].inst, nil
 		}
-		if len(candidates) > 1 {
-			things := make([]focusThing, len(candidates))
-			for i, a := range candidates {
-				things[i] = focusThing{Key: a.Key, Label: a.Label}
-			}
-			return "", things
+		things = make([]focusThing, len(found))
+		for i, a := range found {
+			things[i] = focusThing{Key: a.Key, Label: a.Label}
 		}
+		return "", things
 	}
 	return "", nil
 }
+
+func reachAnswer(id string, things []focusThing) string { return id + "|" + fmt.Sprint(things) }
 
 func (op Operation) byAssociation() bool {
 	if op.ByAssociation {
@@ -152,7 +138,7 @@ func (r *Runtime) associationSubject(op Operation, q Request, focus string) (str
 			return "", nil // an explicit subject argument wins
 		}
 	}
-	id, candidates := r.nearestOf(op.Noun(), focus)
+	id, candidates := r.nearestWithin(op.Noun(), focus, op.HistoryKindOf() == HistoryFetch)
 	if err := r.associationAmbiguity(op.Noun(), candidates); err != nil {
 		return "", err
 	}
@@ -167,7 +153,7 @@ func (r *Runtime) associationAmbiguity(noun string, candidates []focusThing) err
 	for i, t := range candidates {
 		names[i] = t.Label + " (" + t.Key + ")"
 	}
-	return fmt.Errorf("ambiguous %s association: %s", r.DisplayNoun(noun), strings.Join(names, ", "))
+	return fmt.Errorf("%s reached through the focus needs a choice: %s", r.DisplayNoun(noun), strings.Join(names, ", "))
 }
 
 // notifyAssociation shows an implicit subject after a successful action

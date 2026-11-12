@@ -612,6 +612,8 @@ type Runtime struct {
 	prefix         pendingPrefix
 	bindingVersion uint64
 	renderCache    runtimeRenderCache
+	reachCache     map[reachKey]*reachWalk // graph_reach.go
+	reaching       bool                    // a graph walk is reading stores
 	modeGeneration uint64
 	rows           map[string]string         // list row instance id -> owning list id
 	holders        []string                  // every instance that is not a list row, in registration order: the ones that may hold a Component (components())
