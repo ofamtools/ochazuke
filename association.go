@@ -89,28 +89,39 @@ func (r *Runtime) nearestOf(noun, focus string) (string, []focusThing) {
 // one hop away may be taken without asking. A verb that changes something
 // passes false, so a distant thing is only ever offered as a candidate.
 func (r *Runtime) nearestWithin(noun, focus string, distant bool) (id string, things []focusThing) {
+	id, things, _ = r.nearestDetail(noun, focus, distant)
+	return id, things
+}
+
+// nearestDetail is nearestWithin plus whether the candidates are the several
+// live things one hop away that always refused to pick one (an ambiguity). Any
+// other candidate list (a stored thing, a distant thing under a change verb)
+// is only something to offer: the request goes on with no subject, as before
+// the graph walk, and the ask picker lists it.
+func (r *Runtime) nearestDetail(noun, focus string, distant bool) (id string, things []focusThing, ambiguous bool) {
 	noun = r.CanonicalNoun(noun)
 	if c := r.renderCache.collecting; c != nil {
 		defer func() { c.reaches = append(c.reaches, reachDependency{noun, focus, distant, reachAnswer(id, things)}) }()
 	}
 	for _, level := range r.Ancestry(focus) {
 		if level != "app" && r.Instances[level].Noun == noun {
-			return level, nil
+			return level, nil, false
 		}
 		found := r.nearestReached(noun, level)
 		if len(found) == 0 {
 			continue
 		}
 		if len(found) == 1 && found[0].inst != "" && (distant || found[0].Dist <= 1) {
-			return found[0].inst, nil
+			return found[0].inst, nil, false
 		}
 		things = make([]focusThing, len(found))
 		for i, a := range found {
 			things[i] = focusThing{Key: a.Key, Label: a.Label}
 		}
-		return "", things
+		ambiguous = len(found) > 1 && !slices.ContainsFunc(found, func(a reached) bool { return a.inst == "" || a.Dist > 1 })
+		return "", things, ambiguous
 	}
-	return "", nil
+	return "", nil, false
 }
 
 func reachAnswer(id string, things []focusThing) string { return id + "|" + fmt.Sprint(things) }
@@ -138,9 +149,11 @@ func (r *Runtime) associationSubject(op Operation, q Request, focus string) (str
 			return "", nil // an explicit subject argument wins
 		}
 	}
-	id, candidates := r.nearestWithin(op.Noun(), focus, op.HistoryKindOf() == HistoryFetch)
-	if err := r.associationAmbiguity(op.Noun(), candidates); err != nil {
-		return "", err
+	id, candidates, ambiguous := r.nearestDetail(op.Noun(), focus, op.HistoryKindOf() == HistoryFetch)
+	if ambiguous {
+		if err := r.associationAmbiguity(op.Noun(), candidates); err != nil {
+			return "", err
+		}
 	}
 	return id, nil
 }

@@ -109,3 +109,23 @@ func TestReachKeepsEveryProject(t *testing.T) {
 		t.Fatalf("after the pane moved: %v", got)
 	}
 }
+
+// A project that is a stored thing two hops away is offered, never an error:
+// a change verb and a fetch verb both go on to their no-subject handling.
+func TestReachStoredThingIsNotAnError(t *testing.T) {
+	t.Parallel()
+	r := reachFixture(t, Thing{"id": "a", "project": "p1"})
+	var ran int
+	defer r.Sourced("key:r")()
+	r.Define("project").Verb("pin", func(Ctx) Result { ran++; return Done(nil) }).ByAssociation()
+	r.Define("project").Verb("peek", func(Ctx) Result { ran++; return Done(nil) }).ByAssociation()
+	op := r.Operations.At(Key("project.peek"))
+	op.HistoryKind = HistoryFetch
+	r.Operations.Set(op)
+	for _, verb := range []string{"pin", "peek"} {
+		op, _ := r.Operation("project." + verb)
+		if id, err := r.associationSubject(op, Request{Noun: "project", Verb: verb}, "term"); id != "" || err != nil {
+			t.Fatalf("%s: %q, %v", verb, id, err)
+		}
+	}
+}

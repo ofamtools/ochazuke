@@ -28,10 +28,11 @@ func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (b
 			}
 			if at != focus {
 				inst := r.Instances[at]
-				_, candidates := r.nearestOf(inst.Noun, focus)
-				if err := r.associationAmbiguity(inst.Noun, candidates); err != nil {
-					r.leavePrefix()
-					return true, true, err
+				if _, candidates, ambiguous := r.nearestDetail(inst.Noun, focus, true); ambiguous {
+					if err := r.associationAmbiguity(inst.Noun, candidates); err != nil {
+						r.leavePrefix()
+						return true, true, err
+					}
 				}
 			}
 			if lv.inst != nil {
