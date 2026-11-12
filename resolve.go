@@ -612,7 +612,7 @@ func (r *Runtime) rowInstance(lv level, q Request, focus string) string {
 		return lv.inst.ID
 	}
 	if op, ok := r.Operation(q.Key()); ok && op.byAssociation() && r.nounInstance(op.Noun(), focus) == "" {
-		if id, _ := r.nearestOf(op.Noun(), focus); id != "" {
+		if id, _ := r.nearestSubject(op.Noun(), focus); id != "" {
 			return id
 		}
 	}

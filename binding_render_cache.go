@@ -7,6 +7,8 @@ import (
 )
 
 type runtimeRenderCache struct {
+	reach      map[reachKey]*reachWalk // graph_reach.go
+	reaching   bool                    // a graph walk is reading stores
 	generation uint64
 	instances  instanceIndex
 	scans      []*bindingScan
@@ -45,7 +47,8 @@ type bindingScan struct {
 	stamp      RenderStamp
 	levels     []level
 	guards     []guardReading
-	uncachable bool // a standard or prop request: the walk is read live each time
+	reaches    []reachDependency // what nearestOf answered while the walk was read
+	uncachable bool              // a standard or prop request: the walk is read live each time
 	rows       []levelRow
 	grouped    []levelRow
 }
@@ -76,6 +79,13 @@ func (c *runtimeRenderCache) scan(r *Runtime, levels []level, mode ModeState, fo
 				valid = false
 				break
 			}
+		}
+		for _, dep := range old.reaches {
+			if !valid {
+				break
+			}
+			id, things := r.nearestOf(dep.noun, dep.focus, dep.distant)
+			valid = reachAnswer(id, things) == dep.answer
 		}
 		if valid {
 			c.lastScan = old

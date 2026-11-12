@@ -189,3 +189,43 @@ func TestOutsideModeDeclaration(t *testing.T) {
 		t.Fatal(problems)
 	}
 }
+
+// Several associated things pick nothing: the leader key ends the pending
+// mode, runs the verb with no subject (so it asks), and never errors or acts
+// on one of them.
+func TestOutsideSeveralCandidatesPickNothing(t *testing.T) {
+	t.Parallel()
+	r, sent := outsideFixture(t)
+	var touched []string
+	r.Define("thing").Verb("touch", func(c Ctx) Result { touched = append(touched, c.Instance.ID); return Done(nil) }).Mode("normal").Bind("r", Do("thing.touch")).ByAssociation()
+	op := r.Operations.At(Key("thing.touch"))
+	op.Parameters = map[string]Parameter{"id": {Type: "string", Focus: true, Noun: "thing", Source: "thing.list"}}
+	r.Operations.Set(op)
+	r.Instances["surface"].Data = map[string]any{"subject": []any{"a", "b"}}
+	outsideKeys(t, r, "ctrl+x", "r")
+	if len(touched) != 0 && (touched[0] == "row-a" || touched[0] == "row-b") {
+		t.Fatalf("acted on one of %v", touched)
+	}
+	if r.TopModal() == "" || r.Mode.Name == "shortcut" {
+		t.Fatalf("no ask opened or leader left pending: modal %q mode %s base %s touched %v", r.TopModal(), r.Mode.Name, r.BaseMode(), touched)
+	}
+	t.Logf("touched %v sent %v modal %q err-free", touched, *sent, r.TopModal())
+}
+
+// A reached thing that is not the nearest of its noun is not offered the
+// key: no empty "several to choose from" notice, and nothing acts on it.
+func TestOutsideNotTheNearestIsSkipped(t *testing.T) {
+	t.Parallel()
+	r, sent := outsideFixture(t)
+	var touched []string
+	r.DefineGuard("beta", func(_ *Runtime, ev KeyEvent) bool { return ev.Focus == "row-a" })
+	r.Define("thing").Verb("touch", func(c Ctx) Result { touched = append(touched, c.Instance.ID); return Done(nil) }).Mode("normal").Bind("r", Do("thing.touch")).ByAssociation().When("beta")
+	r.Instance("inner", Kind("surface"), Parent("surface")).Data = map[string]any{"subject": "b"}
+	if err := r.SetFocus("inner"); err != nil {
+		t.Fatal(err)
+	}
+	outsideKeys(t, r, "ctrl+x", "r")
+	if len(touched) != 0 {
+		t.Fatalf("acted on %v (sent %v)", touched, *sent)
+	}
+}

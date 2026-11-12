@@ -6,7 +6,7 @@ import "slices"
 const LeaderFallThroughSetting = "leader.fall-through"
 
 // dispatchOutside offers a pending mode's otherwise unbound key to each
-// associated thing's outside walk, then the original focus's walk. The real
+// related thing's outside walk, then the original focus's walk. The real
 // focus and mode are never swapped: guards and handlers use the event context,
 // while a modal remembers the live surface it opened over.
 func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (bool, error) {
@@ -27,11 +27,21 @@ func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (b
 				return true, false, nil
 			}
 			if at != focus {
-				inst := r.Instances[at]
-				_, candidates := r.nearestOf(inst.Noun, focus)
-				if err := r.associationAmbiguity(inst.Noun, candidates); err != nil {
-					r.leavePrefix()
-					return true, true, err
+				// Several candidates of the noun (or none that can be
+				// acted on directly) pick nothing: the key runs with no
+				// subject, as the outside key does, and asks.
+				if id, things := r.nearestOf(r.Instances[at].Noun, focus, op.HistoryKindOf() == HistoryFetch); id != at {
+					if id != "" {
+						return false, false, nil // another thing is nearer: its own turn comes first
+					}
+					if !r.asksSubject(op) {
+						// No ask path: say which things the key could mean
+						// and run nothing, never an error or a guess.
+						r.leavePrefix()
+						r.UI().Notify(r.DisplayNoun(op.Noun()) + ": " + candidateNames(things))
+						return true, true, nil
+					}
+					ev.Focus, lv.inst = focus, nil
 				}
 			}
 			if lv.inst != nil {
@@ -40,20 +50,28 @@ func (r *Runtime) dispatchOutside(focus string, mode ModeState, key MacroKey) (b
 			r.leavePrefix()
 			top := r.TopModal()
 			err := r.runRow(lv, *row, ev, outside)
-			if inst := r.Instances[at]; at != focus && inst != nil && op.Noun() == inst.Noun {
+			if inst := r.Instances[at]; at != focus && lv.inst != nil && inst != nil && op.Noun() == inst.Noun {
 				r.notifyAssociation(op.Noun(), at, top, err)
 			}
 			return true, true, err
 		}
 		return false, false, nil
 	}
-	if r.Settings().Bool(SubjectFromAssociationSetting) {
-		for _, a := range r.Associations(focus, "") {
-			ancestry := r.Ancestry(a.id)
+	// Things the focus path reaches through relations (graph_reach.go) offer
+	// the key to their own outside walk, level by level, nearest first.
+	path := r.Ancestry(focus)
+	tried := map[string]bool{}
+	for _, level := range path {
+		for _, a := range r.reachFrom(level) {
+			if a.inst == "" || tried[a.inst] || slices.Contains(path, a.inst) {
+				continue
+			}
+			tried[a.inst] = true
+			ancestry := r.Ancestry(a.inst)
 			if !slices.Contains(ancestry, r.Page) || r.TopModal() != "" && !slices.Contains(ancestry, r.TopModal()) {
 				continue // outside means this page and this modal boundary
 			}
-			if found, allowed, err := run(a.id); found {
+			if found, allowed, err := run(a.inst); found {
 				return allowed, err
 			}
 		}

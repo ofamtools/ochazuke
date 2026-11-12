@@ -330,30 +330,15 @@ func (w *thingWalk) related(c Ctx, node thingWalkNode, query string, pages map[s
 		}
 	}
 	rows := w.values(n, node.key, t, query)
-	for _, p := range refProps(n) {
-		if p.Relation != "" || emptyProp(t[p.Name]) {
-			continue // relation-backed refs are read once through Related's reader
-		}
-		other, key := p.Noun, fmt.Sprint(t[p.Name])
-		if other == AnyNoun {
-			var ok bool
-			if other, key, ok = SplitAnyRef(key); !ok {
-				continue
-			}
-		}
-		other = w.r.CanonicalNoun(other)
-		target := w.r.Noun(other)
-		if target == nil || target.keyProp() == nil {
-			continue
-		}
+	for _, ref := range w.r.outwardRefs(n, t) {
+		target, key, p := w.r.Noun(ref.Noun), ref.Key, ref.Prop
 		thing := Thing{target.keyProp().Name: key}
 		c.Noun = target.Name
 		if target.Store != nil && target.Store.Get != nil {
-			got, err := target.Store.Get(c, key)
-			if err != nil {
-				return nil, err
-			}
-			if got != nil {
+			// A dead reference (a closed pane, a deleted task) stays a row
+			// built from its key; any Get error is read as unresolved, as
+			// no helper tells not-found from a store failure.
+			if got, err := target.Store.Get(c, key); err == nil && got != nil {
 				thing = got
 			}
 		}
@@ -521,4 +506,36 @@ func (w *thingWalk) preview(row PickerRow) Result {
 		}
 		return strings.Join(lines, "\n"), nil
 	}).OwnedBy("")
+}
+
+// outwardRef is a thing one of a thing's reference props names.
+type outwardRef struct {
+	Prop      PropSpec
+	Noun, Key string
+}
+
+// outwardRefs are the things t (a thing of n) names through its noun-typed
+// reference props, in prop order: the edges the relation walk and the key
+// dispatch's graph reach both follow out of a thing. A relation-backed prop
+// is read through the relation rows instead, an empty value or a noun with no
+// key prop names nothing, and an any-noun value is read as noun:key.
+func (r *Runtime) outwardRefs(n *Noun, t Thing) []outwardRef {
+	var out []outwardRef
+	for _, p := range refProps(n) {
+		if p.Relation != "" || emptyProp(t[p.Name]) {
+			continue
+		}
+		other, key := p.Noun, fmt.Sprint(t[p.Name])
+		if other == AnyNoun {
+			var ok bool
+			if other, key, ok = SplitAnyRef(key); !ok {
+				continue
+			}
+		}
+		other = r.CanonicalNoun(other)
+		if target := r.Noun(other); target != nil && target.keyProp() != nil {
+			out = append(out, outwardRef{Prop: p, Noun: other, Key: key})
+		}
+	}
+	return out
 }

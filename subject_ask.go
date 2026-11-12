@@ -99,7 +99,7 @@ func (r *Runtime) subjectHere(p Parameter, origin Context) []Choice {
 		}
 	}
 	if p.Noun != "" && p.Noun != AnyNoun {
-		id, candidates := r.nearestOf(p.Noun, focus)
+		id, candidates := r.nearestSubject(p.Noun, focus)
 		if id != "" {
 			inst := r.Instances[id]
 			t := r.instanceThing(inst)

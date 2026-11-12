@@ -590,3 +590,17 @@ func TestThingWalkOffersNoFolderOnlyKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestThingWalkDanglingReferenceStaysARow(t *testing.T) {
+	r, _, origin := thingWalkFixture(t)
+	r.SetRelationStore(nil)
+	r.Define("task").Props(PropSpec{Name: "other", Parameter: Parameter{Noun: "project"}})
+	if _, err := r.Noun("task").Store.Patch(r.reachCtx("task"), "t1", Thing{"other": "gone"}); err != nil {
+		t.Fatal(err)
+	}
+	c, _ := thingWalkPicker(t, r, Parameter{Noun: "task"}, origin, nil)
+	thingWalkFind(t, c, "Write guide", "task", "t1")
+	thingWalkKey(t, r, "l")
+	thingWalkFind(t, c, "Home", "project", "p1")
+	thingWalkFind(t, c, "gone", "project", "gone")
+}
