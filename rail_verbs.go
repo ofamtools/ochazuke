@@ -66,7 +66,7 @@ func registerRail(r *Runtime) {
 	}, func(r *Runtime, _ Context, a Arguments, rl *Rail) (any, error) {
 		return rl.state(), r.Settings().Set(RailLookSetting, StringArg(a, "look", ""))
 	})
-	verb("width", "Set the rail's width: cells (36) or a percent of the area (25%)", map[string]Parameter{
+	verb("resize", "Set the rail's width: cells (36) or a percent of the area (25%)", map[string]Parameter{
 		"width": {Type: "string", Required: true, Description: "Cells, or a percent ending in %"},
 	}, func(r *Runtime, _ Context, a Arguments, rl *Rail) (any, error) {
 		w := strings.TrimSpace(StringArg(a, "width", ""))
@@ -90,8 +90,8 @@ func registerRail(r *Runtime) {
 		return rl.state(), nil
 	})
 	thing := map[string]Parameter{"thing": {Type: "string", Description: "The thing, noun:key (default: the thing the rail shows)"}}
-	verb("inspect", "The rail's sections and their things, as it lists them for a thing (default the one it shows): what the owner sees, for an agent or a script", thing, func(_ *Runtime, _ Context, a Arguments, rl *Rail) (any, error) {
-		return rl.rows(StringArg(a, "thing", ""))
+	verb("inspect", "The rail's state (shown, look, width, the pinned thing, the thing it lists) and its sections with their things, as it lists them for a thing (default the one it shows): what the owner sees, for an agent or a script", thing, func(_ *Runtime, _ Context, a Arguments, rl *Rail) (any, error) {
+		return rl.inspect(StringArg(a, "thing", ""))
 	})
 	verb("pin", "Make the rail list a fixed thing instead of the one the page shows", map[string]Parameter{
 		"thing": {Type: "string", Required: true, Description: "The thing, noun:key"},
@@ -107,11 +107,11 @@ func registerRail(r *Runtime) {
 		rl.pinned = ""
 		return rl.state(), nil
 	})
-	verb("get", "The rail's state: shown, look, width, the pinned thing, the thing it lists and its sections", nil, func(_ *Runtime, _ Context, _ Arguments, rl *Rail) (any, error) {
-		return rl.state(), nil
-	})
-	verb("yank", "Yank the rail's state (get's answer, as JSON) into the active register", nil, func(r *Runtime, _ Context, _ Arguments, rl *Rail) (any, error) {
-		state := rl.state()
+	verb("yank", "Yank the rail's state and sections (inspect's answer, as JSON) into the active register", nil, func(r *Runtime, _ Context, _ Arguments, rl *Rail) (any, error) {
+		state, err := rl.inspect("")
+		if err != nil {
+			return nil, err
+		}
 		text, err := json.Marshal(state)
 		if err != nil {
 			return nil, err
@@ -168,8 +168,8 @@ func stepRailWidth(w string, steps int) string {
 	return strconv.Itoa(min(max(n+steps*railWidthStepCells, PaneMinWidth), 120))
 }
 
-// state is what get answers: the settings the rail draws by, the pinned
-// thing, the thing it lists, and its sections in display order.
+// state is what the rail's verbs answer: the settings it draws by, the
+// pinned thing, the thing it lists, and its sections in display order.
 func (rl *Rail) state() map[string]any {
 	r := rl.r
 	out := map[string]any{"id": rl.id, "show": rl.Shown(), "look": r.Settings().String(RailLookSetting),
@@ -191,8 +191,23 @@ func (rl *Rail) state() map[string]any {
 	return out
 }
 
-// rows is what inspect answers: each section in display order with its
-// things (folded ones too), for thing (noun:key) or the thing shown.
+// inspect is what inspect answers: the state, and each section in display
+// order with its things (folded ones too), for thing (noun:key) or the
+// thing shown. Off, it reads nothing and lists no section.
+func (rl *Rail) inspect(thing string) (map[string]any, error) {
+	if !rl.Shown() {
+		return rl.state(), nil
+	}
+	rows, err := rl.rows(thing)
+	if err != nil {
+		return nil, err
+	}
+	state := rl.state()
+	state["rows"] = rows
+	return state, nil
+}
+
+// rows are inspect's sections with their things.
 func (rl *Rail) rows(thing string) ([]map[string]any, error) {
 	if thing != "" {
 		if _, _, ok := SplitAnyRef(thing); !ok {

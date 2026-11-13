@@ -322,7 +322,7 @@ func TestRailSplitListsAndRows(t *testing.T) {
 		t.Fatal(err)
 	}
 	var ids []string
-	for _, row := range out.([]map[string]any) {
+	for _, row := range out.(map[string]any)["rows"].([]map[string]any) {
 		ids = append(ids, fmt.Sprint(row["id"], ":", row["count"]))
 	}
 	if got, want := strings.Join(ids, " "), "task.kind=link:1 task.kind=file:1 note.project:0 link.project:0 today:2"; got != want {

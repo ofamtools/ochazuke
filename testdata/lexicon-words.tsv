@@ -702,6 +702,7 @@ rerun	action	seed
 reset	action	seed	
 reset-all	action	seed	
 reset-columns	action	seed	
+resize	action	yes	och-rail-focus: ochazuke.rail.resize sets the rail's width (rail.width)
 resize-column	action	seed	
 resolve	action	seed	
 resolved	prop	seed	
