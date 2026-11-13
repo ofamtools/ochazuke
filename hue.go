@@ -41,53 +41,51 @@ func PaletteTone(key string) string {
 // thing's key with its hue, "" for none. It reads memory, never a store: a
 // frame calls it.
 func (r *Runtime) SetHueSource(noun string, fn func(id string) string) {
-	if r.hueSources == nil {
-		r.hueSources = map[string]func(string) string{}
+	if n := r.Nouns[noun]; n != nil {
+		n.Hue = fn
 	}
-	r.hueSources[noun] = fn
 }
 
 // HueOf is the hue of thing, of noun: its own when noun has a hue
 // source, else its owner's (the prop with RoleOwner whose noun has one).
 func (r *Runtime) HueOf(noun string, thing Thing) string {
 	n := r.Nouns[noun]
-	if n == nil || len(r.hueSources) == 0 {
+	if n == nil {
 		return ""
 	}
-	if fn := r.hueSources[n.Name]; fn != nil {
-		for _, p := range n.Props {
-			if p.Key {
-				if id, ok := thing[p.Name].(string); ok {
-					return fn(id)
-				}
+	if fn := n.Hue; fn != nil {
+		if key := n.keyProp(); key != nil {
+			if id, ok := thing[key.Name].(string); ok {
+				return fn(id)
 			}
 		}
 		return ""
 	}
-	for _, p := range n.Props {
-		if p.Role != RoleOwner {
-			continue
-		}
-		if fn := r.hueSources[p.Noun]; fn != nil {
-			if id, ok := thing[p.Name].(string); ok && id != "" {
-				return fn(id)
+	if owner := n.roleProp(RoleOwner); owner != nil {
+		if of := r.Nouns[owner.Noun]; of != nil && of.Hue != nil {
+			if id, ok := thing[owner.Name].(string); ok && id != "" {
+				return of.Hue(id)
 			}
 		}
 	}
 	return ""
 }
 
+// hueSettingParts are the parts of a panel each value of panel.hue draws.
+var hueSettingParts = map[string]panelHue{
+	"both":   {border: true, title: true},
+	"border": {border: true},
+	"title":  {title: true},
+	"off":    {},
+}
+
 // hueParts are the parts of a panel the setting panel.hue draws a hue on.
 func (r *Runtime) hueParts() (border, title bool) {
-	switch r.Settings().String(PanelHueSetting) {
-	case "off":
-		return false, false
-	case "border":
-		return true, false
-	case "title":
-		return false, true
+	parts, ok := hueSettingParts[r.Settings().String(PanelHueSetting)]
+	if !ok {
+		parts = hueSettingParts["both"]
 	}
-	return true, true
+	return parts.border, parts.title
 }
 
 // WithHue is l whose next panel draws hue as panel.hue says.

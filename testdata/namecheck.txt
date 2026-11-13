@@ -163,6 +163,7 @@ history_actor.go	Runtime.historyByActor	case	"agent"	1
 history_actor.go	Runtime.historyByActor	case	"all"	1
 history_actor.go	Runtime.historyByActor	case	"owner"	1
 history_store.go	Runtime.persistable	compare	"palette"	1
+hue.go	var hueSettingParts	table	"title"	1	panel.hue's values name the parts of a panel a hue draws (both, border, title, off), a setting value read as data, not a noun or mode name
 input.go	Input.Pending	case	"g_pending"	1
 input.go	Input.Pending	case	"operator_g_pending"	1
 input.go	Input.Pending	case	"operator_pending"	1

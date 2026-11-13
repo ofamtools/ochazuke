@@ -571,8 +571,6 @@ func (o Operation) ParameterOrder() []string {
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
-	// hueSources are the nouns that carry a hue (SetHueSource).
-	hueSources map[string]func(string) string
 	// relations is the relation store and the declared kinds (relation.go).
 	relations *relationState
 	Nouns     map[string]*Noun
