@@ -2,11 +2,14 @@ package cli
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -142,6 +145,16 @@ func (h Host) Call(ctx context.Context, noun, verb string, args ochazuke.Argumen
 	argv := append(slices.Clone(h.Command[1:]), noun, verb, "--json", string(raw))
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
+	// A served tool asks over its pipe (host.run): no host process starts.
+	if answer, piped, err := pipeHostRun(ctx, append([]string{h.Command[0]}, argv...), cmdEnv); piped {
+		if err == nil && answer.Exit != 0 {
+			err = errors.New(cmp.Or(strings.TrimSpace(string(answer.Stderr)), fmt.Sprintf("exit status %d", answer.Exit)))
+		}
+		if err != nil {
+			return nil, fmt.Errorf("host %s.%s: %w", noun, verb, err)
+		}
+		return answer.Stdout, nil
+	}
 	cmd := exec.CommandContext(ctx, h.Command[0], argv...)
 	cmd.Env = cmdEnv
 	cmd.WaitDelay = 5 * time.Second
@@ -158,6 +171,44 @@ func (h Host) Call(ctx context.Context, noun, verb string, args ochazuke.Argumen
 		return nil, fmt.Errorf("host %s.%s: %s", noun, verb, reason)
 	}
 	return out.Bytes(), nil
+}
+
+// HostCommand runs a command line of the host (argv[0] names the host's
+// program, as OCHAZUKE_HOST's first word does, compared by base name) over
+// the served pipe when this process is served by that host (host.run), and
+// any other command line, or every one when not served, as a process of its
+// own. It answers stdout; a failure carries stderr's last line.
+func HostCommand(ctx context.Context, argv []string) ([]byte, error) {
+	if len(argv) == 0 || argv[0] == "" {
+		return nil, errors.New("empty command")
+	}
+	if host, ok, _ := HostFromEnv(); ok && filepath.Base(host.Command[0]) == filepath.Base(argv[0]) {
+		if answer, piped, err := pipeHostRun(ctx, argv, os.Environ()); piped {
+			if err == nil && answer.Exit != 0 {
+				err = errors.New(cmp.Or(lastLine(answer.Stderr), fmt.Sprintf("exit status %d", answer.Exit)))
+			}
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", strings.Join(argv, " "), err)
+			}
+			return answer.Stdout, nil
+		}
+	}
+	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
+	cmd.WaitDelay = 500 * time.Millisecond
+	var out, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &out, &stderr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("%s: %s", strings.Join(argv, " "), cmp.Or(lastLine(stderr.Bytes()), err.Error()))
+	}
+	return out.Bytes(), nil
+}
+
+func lastLine(b []byte) string {
+	text := strings.TrimSpace(string(b))
+	if i := strings.LastIndex(text, "\n"); i >= 0 {
+		text = text[i+1:]
+	}
+	return text
 }
 
 func hostCallContext(getenv func(string) string) (int, []string, error) {

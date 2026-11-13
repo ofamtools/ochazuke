@@ -33,6 +33,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"ofam.dev/ochazuke"
 	"ofam.dev/ochazuke/cli/mcp"
+	"ofam.dev/oden"
 )
 
 // Shell runs BIN NOUN VERB [ARG...] [--target ID] [--json '{...}'] [--ARG VALUE]
@@ -149,6 +150,15 @@ type Shell struct {
 
 	catalogOptions []CatalogOption
 	in             *bufio.Reader
+	// mounted is the program's own oden app (the first Mount saw), which
+	// host serve reads each call's words against.
+	mounted *oden.App
+}
+
+// streamOwners are the framework nouns whose commands own stdout (a stdio
+// server): the shell prints no result of its own after them.
+func (s *Shell) streamOwners() map[string]func(context.Context, []string) error {
+	return map[string]func(context.Context, []string) error{"ochazuke.mcp": s.mcpCommand, "ochazuke.host": s.hostCommand}
 }
 
 // New is a Shell over r for bin with the standard usage line.
@@ -263,8 +273,8 @@ func (s *Shell) Run(ctx context.Context, args []string) error {
 	// The stdio server owns stdout until EOF: do not append the shell's
 	// JSON result to the protocol stream. Resolve its noun normally first,
 	// so an application's own noun wins over the framework alias.
-	if noun == "ochazuke.mcp" {
-		return s.mcpCommand(ctx, append([]string{cmp.Or(verb, prop)}, flags...)) // instructions and config are props of mcp
+	if own := s.streamOwners()[noun]; own != nil {
+		return own(ctx, append([]string{cmp.Or(verb, prop)}, flags...)) // instructions and config are props of mcp
 	}
 	var q ochazuke.Request
 	var opts options

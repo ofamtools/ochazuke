@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -634,6 +635,7 @@ type Runtime struct {
 	watches        *watchHub                 // the watches of nouns' things (standard_watch.go), made on first use
 	events         *eventHub                 // declared events, open surfaces' change counts, hook rows (events.go, hooks.go), made on first use
 	jobSeq         uint64                    // last issued job id
+	jobBase        context.Context           // the context new jobs run under (WithJobContext); nil is context.Background()
 	defaults       defaultSources            // where each default row and extends came from (bindings defaults)
 	deprecations   []string                  // rows that named an operation by its old verb.noun spelling, rewritten once
 	aliases        map[string]string         // registry: a short noun name -> the noun it names (settings -> ochazuke.settings; namespace.go)

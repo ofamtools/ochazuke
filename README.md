@@ -3463,6 +3463,27 @@ requests may still set `Request.Actor`. These are cooperative guard rails, not a
 
 Compared with Vim: not applicable; actor rights have no Vim counterpart.
 
+### Host serve: a tool kept running for its host
+
+A host (mtm) normally starts an extension once per call (`BIN NOUN VERB --json ARGS`). Every `cli.Shell` also answers `BIN ochazuke host serve`: newline JSON-RPC 2.0 over stdin and stdout, so the host keeps the tool running and sends it the same command words. A served call answers the bytes an exec of those words prints (stdout, stderr, exit status), so exec stays the exact fallback.
+
+| Direction | Method | Params | Answer |
+|---|---|---|---|
+| host to tool | `hello` | `{catalog_hash?: bool}` | `{protocol, version, commit, pid, catalog_hash}` |
+| host to tool | `run` | `{argv, env, dir}` | `{stdout, stderr, exit}` (bytes as base64), or `{exec: true}` |
+| host to tool | `watch` | `{argv, env, dir}` | `out {id, line}` per stdout line, then the `run` answer |
+| either | `$/cancel` | `{id}` | (notification) ends that call |
+| tool to host | `host.run` | `{argv, env}` | `{stdout, stderr, exit}` |
+
+- One call at a time per process. `env` (complete, `KEY=VALUE`) and `dir` are applied for the call and restored after it; the call's jobs run under its context (`Runtime.WithJobContext`), so `$/cancel` ends them; modals a call leaves are popped. A tool that keeps environment values from its start must not declare `serve`.
+- `argv` is the words after the program and its global arguments. A mounted verb spelled exactly (`NOUN VERB ...`) runs straight through `Shell.Run`; any other spelling runs through a fresh oden app mounted like the program's own, and words the program's app would run differently (an external, an application command outside Mount, an unresolved word) answer `exec: true`.
+- The process's stdout descriptor is kept for the protocol and descriptor 1 points at stderr while serving, so a stray print cannot corrupt the stream.
+- `cli.Serves()` (a `CatalogOption`) declares `"serve": 1` in the catalog (`CatalogDoc.Serve`, `cli.ServeProtocol`); a host serves only tools that declare it.
+
+`cli.ServePool` is the host side, one per tool: `Run(ctx, ServeCall, read)` and `Watch`, `Connections`, `Restart`, `Close`. Its rules are data the host passes: `After` (the call on which serving starts; earlier calls exec), `Size` (processes kept; a call while all are busy execs, never waits), `IdleTimeout`, `WaitDelay` (a cancelled call that does not answer in time has its process group killed), `StartEnv` (keys whose values pick a process), `CatalogHash` and `OnStale` (a changed `BinStamp` of the binary, or a different catalog, drains the pool and tells the host), `OnHostRun` (answers `host.run`; nil execs it). A read (`read` true; `RunMounted` passes catalog history kind `fetch`) whose process breaks under it runs again by exec; a write is never retried. `ProxyCommand.Pool` makes `RunMounted` use it for captured verbs; a foreground verb always execs. `cli.PoolWatch` is a `HostMount.Watch` over a pool.
+
+From the tool, `Host.Call` and `cli.HostCommand(ctx, argv)` (an argv whose program is the host's, by base name) send `host.run` over the pipe when served, and exec when standalone.
+
 ### Catalog MCP server
 
 Every `cli.Shell` supports `BIN ochazuke mcp serve`, `ochazuke mcp tools`,

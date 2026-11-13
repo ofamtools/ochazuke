@@ -532,6 +532,11 @@ func (s *Shell) registerMCPVerbs() {
 				})
 			}, "MCP "+name).Fetch().Quiet()
 		}
+		// host serve: a host keeps this program running and sends it
+		// calls over stdin and stdout (HostServe, ServePool).
+		r.Define("host").Verb("serve", func(ochazuke.Ctx) ochazuke.Result {
+			return ochazuke.Failed(fmt.Errorf("host serve runs from the CLI: %s ochazuke host serve", s.Bin))
+		}, "Answer a host's calls over stdin and stdout (the host serve protocol)").Fetch().Quiet()
 		s.defineCatalogFacts()
 		r.Register(ochazuke.Operation{Key: "ochazuke.catalog.list", Description: "Discover nouns, verbs and effective agent rights", HistoryKind: ochazuke.HistoryFetch, ShadowsStandard: true, Parameters: map[string]ochazuke.Parameter{"noun": {Type: "string"}, "search": {Type: "string"}, "include": {Type: "string", Enum: []string{"app", "builtin", "all"}}, "limit": {Type: "integer"}, "offset": {Type: "integer"}}, Run: func(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (any, error) {
 			return (&mcpBackend{shell: s, actor: r.Actor()}).catalog(a)

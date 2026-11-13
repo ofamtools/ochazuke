@@ -359,7 +359,11 @@ func (r *Runtime) IssueAt(owner, scope, verb, slot string, c Ctx) (Ticket, conte
 			c.source = "api"
 		}
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	base := r.jobBase
+	if base == nil {
+		base = context.Background()
+	}
+	ctx, cancel := context.WithCancel(base)
 	r.jobSeq++
 	j := &job{JobInfo: JobInfo{Job: r.jobSeq, Owner: owner, Verb: verb, Slot: slot, Scope: scope, Started: time.Now(), Status: JobRunning}, cancel: cancel, ctx: c}
 	if r.jobs == nil {
@@ -367,6 +371,17 @@ func (r *Runtime) IssueAt(owner, scope, verb, slot string, c Ctx) (Ticket, conte
 	}
 	r.jobs[j.Job] = j
 	return j.ticket(), ctx, nil
+}
+
+// WithJobContext makes the jobs issued from now on run under ctx, so
+// cancelling ctx cancels their work, until restore puts the previous base
+// back. A host that runs one call at a time on a long-lived runtime (cli's
+// host serve) sets it to the call's context, as the end of a process ends
+// a CLI call's jobs.
+func (r *Runtime) WithJobContext(ctx context.Context) (restore func()) {
+	before := r.jobBase
+	r.jobBase = ctx
+	return func() { r.jobBase = before }
 }
 
 // Launch starts a pending result as a job of owner under verb and queues

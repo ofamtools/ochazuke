@@ -16,5 +16,9 @@ func TestMain(m *testing.M) {
 	} {
 		os.Unsetenv(k)
 	}
-	os.Exit(m.Run())
+	code := m.Run()
+	if serveToolDir != "" {
+		os.RemoveAll(serveToolDir)
+	}
+	os.Exit(code)
 }

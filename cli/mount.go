@@ -26,6 +26,7 @@ import (
 // Mount chains the application's Default after verb-first words
 // (VerbFirstDefault); an application that sets Default later chains it itself.
 func Mount(app *oden.App, sh *Shell, extra ...string) {
+	sh.remember(app)
 	sh.mountSetup(app)
 	// The user's actions.json verbs are commands too, so oden's help and
 	// dispatch know them.
@@ -284,6 +285,14 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			doc.Commands[i].Help = ""
 		}
 	})
+}
+
+// remember keeps the program's own app (the first Mount sees) for host
+// serve, which reads each call's words against it.
+func (s *Shell) remember(app *oden.App) {
+	if s.mounted == nil {
+		s.mounted = app
+	}
 }
 
 // briefHelp is the CLI notes of default help; --all has the full text.

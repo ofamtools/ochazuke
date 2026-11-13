@@ -27,6 +27,10 @@ type ProxyCommand struct {
 	// Before runs a captured command's preflight off the loop, under the
 	// same cancellation and deadline. A failure prevents the command.
 	Before func(context.Context) error
+	// Pool, when set for the same Bin, runs a captured command on a kept
+	// process of the tool (ServePool; exec stays its fallback). A
+	// foreground verb always execs: it takes the terminal.
+	Pool *ServePool
 }
 
 // RunMounted executes a catalog verb according to its foreground metadata.
@@ -67,18 +71,13 @@ func RunMounted(v CatalogVerb, call ProxyCommand) ochazuke.Result {
 				return nil, err
 			}
 		}
-		cmd := command(ctx)
-		cmd.WaitDelay = call.WaitDelay
-		stop := capturedGroup(cmd)
-		defer stop()
-		var out, errOut bytes.Buffer
-		cmd.Stdout, cmd.Stderr = &out, &errOut
-		if err := cmd.Run(); err != nil {
+		out, errOut, err := call.run(ctx, command, v.History == "fetch")
+		if err != nil {
 			name := v.Name
 			if name == "" {
 				name = filepath.Base(call.Bin)
 			}
-			reason := strings.TrimSpace(errOut.String())
+			reason := strings.TrimSpace(string(errOut))
 			if i := strings.LastIndex(reason, "\n"); i >= 0 {
 				reason = reason[i+1:]
 			}
@@ -92,9 +91,30 @@ func RunMounted(v CatalogVerb, call ProxyCommand) ochazuke.Result {
 			return nil, fmt.Errorf("%s: %s", name, reason)
 		}
 		var value any
-		if json.Unmarshal(out.Bytes(), &value) == nil {
+		if json.Unmarshal(out, &value) == nil {
 			return value, nil
 		}
-		return strings.TrimRight(out.String(), "\r\n"), nil
+		return strings.TrimRight(string(out), "\r\n"), nil
 	})
+}
+
+// run is one captured run of the command: on the pool when it has one for
+// this Bin, else a process of its own. A nonzero exit is an error, as
+// exec.Cmd.Run reports it.
+func (call ProxyCommand) run(ctx context.Context, command func(context.Context) *exec.Cmd, read bool) (out, errOut []byte, err error) {
+	if call.Pool != nil && call.Pool.Bin == call.Bin {
+		answer, err := call.Pool.Run(ctx, ServeCall{Argv: call.Args, Env: call.Env, Dir: call.Dir}, read)
+		if err == nil && answer.Exit != 0 {
+			err = fmt.Errorf("exit status %d", answer.Exit)
+		}
+		return answer.Stdout, answer.Stderr, err
+	}
+	cmd := command(ctx)
+	cmd.WaitDelay = call.WaitDelay
+	stop := capturedGroup(cmd)
+	defer stop()
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	err = cmd.Run()
+	return stdout.Bytes(), stderr.Bytes(), err
 }

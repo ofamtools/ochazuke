@@ -78,6 +78,10 @@ type CatalogDoc struct {
 	State      string             `json:"state,omitempty"`
 	// StateDelta is the state delta protocol version (StateDeltaVersion), 0 for none.
 	StateDelta int `json:"stateDelta,omitempty"`
+	// Serve is the host serve protocol version the program answers
+	// (ServeProtocol, declared with the Serves option), 0 for none: a host
+	// may then keep it running (ServePool) instead of one process per call.
+	Serve int `json:"serve,omitempty"`
 	// Commands records the mounted CLI's effective names, aliases and losing
 	// claims. Oden commands can own a short name without being runtime nouns.
 	Commands []CommandEntry `json:"commands,omitempty"`
