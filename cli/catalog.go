@@ -238,8 +238,11 @@ type CatalogVerb struct {
 	// Unavailable is why the verb cannot run on its noun (a core verb its
 	// store lacks a handler for; Operation.Unavailable); Disabled is then
 	// true too.
-	Unavailable   string `json:"unavailable,omitempty"`
-	Rows          string `json:"rows,omitempty"`
+	Unavailable string `json:"unavailable,omitempty"`
+	Rows        string `json:"rows,omitempty"`
+	// HumanFormat is the format a person at a terminal reads the answer
+	// in (ochazuke.Operation.HumanFormat; setting cli.tty-format).
+	HumanFormat   string `json:"humanFormat,omitempty"`
 	Quiet         bool   `json:"quiet,omitempty"`
 	Many          bool   `json:"many,omitempty"`
 	ByAssociation bool   `json:"byAssociation,omitempty"`
@@ -529,7 +532,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 			doc.State = op.Key.Short()
 		}
 		noun := &doc.Nouns[len(doc.Nouns)-1]
-		verb := CatalogVerb{Guards: append(slices.Clone(r.VerbAvailability(op.Key.Short())), op.CatalogGuards...), Examples: op.ExamplesOf(), Destructive: op.Destructive, Agent: op.AgentRightOf(false), AgentDeclared: op.Agent, Name: op.Name(), Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key.Short()), Standard: op.Standard}
+		verb := CatalogVerb{Guards: append(slices.Clone(r.VerbAvailability(op.Key.Short())), op.CatalogGuards...), Examples: op.ExamplesOf(), Destructive: op.Destructive, Agent: op.AgentRightOf(false), AgentDeclared: op.Agent, Name: op.Name(), Description: op.Description, Kind: op.Kind, Result: op.Result, Confirm: op.Confirm, Repeatable: op.Repeatable, Rows: op.Rows, HumanFormat: op.HumanFormat, Quiet: op.Quiet, Many: op.Many, Positional: op.Positional, History: op.HistoryKindOf(), Builtin: op.Builtin, Aliases: r.AliasesOf(op.Key.Short()), Standard: op.Standard}
 		verb.Foreground = op.Foreground
 		verb.OpensPage = op.OpensPage
 		verb.Reciprocals = slices.Clone(op.Reciprocals)

@@ -77,6 +77,24 @@ const (
 	CLIStandardVerbsSetting = "cli.standard-verbs"
 	CLIStandardVerbsLine    = "line"
 	CLIStandardVerbsList    = "list"
+	// CLITTYFormatSetting is what the CLI prints at a terminal when no
+	// --format is given (cli.Shell): CLITTYFormatAuto (the default) the
+	// verb's Operation.HumanFormat, else JSON; CLITTYFormatJSON always
+	// JSON; CLITTYFormatTable the verb's human format, else a table for
+	// any rows answer. A pipe always gets JSON.
+	CLITTYFormatSetting = "cli.tty-format"
+	CLITTYFormatAuto    = "auto"
+	CLITTYFormatJSON    = "json"
+	CLITTYFormatTable   = "table"
+	// CLIAmbiguousSetting is what a bare noun word several nouns share
+	// reads as (Runtime.SharedNoun): CLIAmbiguousHost (the default) the
+	// host's own noun of that name, else refused naming each in full;
+	// CLIAmbiguousAsk refused; CLIAmbiguousFirst the noun registered
+	// first.
+	CLIAmbiguousSetting = "cli.ambiguous"
+	CLIAmbiguousHost    = "host"
+	CLIAmbiguousAsk     = "ask"
+	CLIAmbiguousFirst   = "first-registered"
 	// CLIVerbFirstSetting lets a tool's argv start with a verb alone
 	// (cli.Mount, through the reader, reader.go): a first word that names
 	// no command but is a verb of the tool's nouns runs it. Default on.

@@ -301,16 +301,19 @@ func tableOf(noun string, declared []ochazuke.Column, recs []record) table {
 // a tabular result; a result that is not tabular prints as JSON with a
 // note on Stderr.
 func (s *Shell) output(q ochazuke.Request, format string, value any) error {
+	op, found := s.Runtime.Operations.Find(ochazuke.Key(q.Key()))
+	explicit := format != ""
+	if !explicit && found {
+		format = s.terminalFormat(op)
+	}
 	if format == "" || format == "json" {
 		return s.print(value)
 	}
-	rowsNoun := ""
-	if op, ok := s.Runtime.Operations.Find(ochazuke.Key(q.Key())); ok {
-		rowsNoun = op.Rows
-	}
-	tables, ok := tablesOf(s.Runtime, rowsNoun, value)
+	tables, ok := tablesOf(s.Runtime, op.Rows, value)
 	if !ok {
-		fmt.Fprintf(s.stderr(), "note: %s does not answer rows; printing JSON instead of --format %s\n", q.Key(), format)
+		if explicit {
+			fmt.Fprintf(s.stderr(), "note: %s does not answer rows; printing JSON instead of --format %s\n", q.Key(), format)
+		}
 		return s.print(value)
 	}
 	var b strings.Builder
@@ -324,6 +327,41 @@ func (s *Shell) output(q ochazuke.Request, format string, value any) error {
 	}
 	_, err := fmt.Fprint(s.stdout(), b.String())
 	return err
+}
+
+// terminalFormat is the format a command with no --format prints in
+// (setting cli.tty-format): "" (JSON) unless a person is at the terminal
+// (Shell.Terminal); then auto is the verb's Operation.HumanFormat, json is
+// JSON, and table is the verb's human format, else a table (a non-rows
+// answer still prints JSON). A verb with a format parameter of its own
+// renders its own output and keeps JSON here.
+func (s *Shell) terminalFormat(op ochazuke.Operation) string {
+	if hasParameter(op, "format") || !s.terminal() {
+		return ""
+	}
+	format := op.HumanFormat
+	switch s.Runtime.Settings().String(ochazuke.CLITTYFormatSetting) {
+	case ochazuke.CLITTYFormatJSON:
+		return ""
+	case ochazuke.CLITTYFormatTable:
+		if format == "" {
+			format = ochazuke.HumanFormatTable
+		}
+	}
+	if !slices.Contains(Formats, format) {
+		return ""
+	}
+	return format
+}
+
+// terminal reports whether a person reads Stdout: Shell.Terminal when
+// set, else whether Stdout is a terminal.
+func (s *Shell) terminal() bool {
+	if s.Terminal != nil {
+		return s.Terminal()
+	}
+	f, ok := s.stdout().(*os.File)
+	return ok && term.IsTerminal(f.Fd())
 }
 
 // tableWidth is the width --format table cuts to: Width when positive,

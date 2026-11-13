@@ -73,7 +73,9 @@ import (
 // with none it runs as given.
 //
 // The result prints as JSON unless --format names another of Formats
-// (json, table, markdown, toon; the grammars are on Formats). A tabular
+// (json, table, markdown, toon; the grammars are on Formats), or, with no
+// --format and a person at the terminal (Terminal), the format the setting
+// cli.tty-format picks (auto: the verb's Operation.HumanFormat). A tabular
 // result (an array of objects: a list verb's rows, a state verb's Lines of
 // Row, bindings list) prints one table per noun, in the columns the noun
 // declares over the rows' cells, else the records' fields; table cuts to
@@ -139,6 +141,11 @@ type Shell struct {
 	// terminal's width when Stdout is a terminal and no cut otherwise; a
 	// negative Width never cuts.
 	Width int
+	// Terminal, when set, says whether a person reads Stdout (a host that
+	// buffers Stdout, a test); nil checks whether Stdout is a terminal.
+	// At a terminal a command with no --format prints as the setting
+	// cli.tty-format says; otherwise it prints JSON.
+	Terminal func() bool
 
 	catalogOptions []CatalogOption
 	in             *bufio.Reader
@@ -705,8 +712,11 @@ func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []st
 	if opts.since != nil && opts.format != "" && opts.format != "json" {
 		return q, opts, fmt.Errorf("--%s answers JSON Lines; --format %s prints a table", SinceFlag, opts.format)
 	}
-	if bareJSON && opts.format != "" && opts.format != "json" {
-		return q, opts, fmt.Errorf("a bare --json asks for JSON output and --format %s for another; pass one (--json '{...}' passes arguments)", opts.format)
+	if bareJSON {
+		if opts.format != "" && opts.format != "json" {
+			return q, opts, fmt.Errorf("a bare --json asks for JSON output and --format %s for another; pass one (--json '{...}' passes arguments)", opts.format)
+		}
+		opts.format = "json" // asked for: beats the terminal's format (cli.tty-format)
 	}
 	return q, opts, nil
 }

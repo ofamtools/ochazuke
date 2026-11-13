@@ -33,15 +33,29 @@ func (r *Runtime) Lexicon() Lexicon {
 	}
 }
 
-// lexNouns is every noun word names, each by the best of its names.
+// lexNouns is every noun word names, each by the best of its names;
+// several nouns named only by their last part keep the one the setting
+// cli.ambiguous gives the word (Runtime.SharedNoun), all of them when it
+// gives it to none.
 func (r *Runtime) lexNouns(word string, tails bool) []Match {
 	var out []Match
+	var tailed []string
 	for _, n := range r.Operations.Nouns() {
 		if m, ok := r.lexNoun(n, word, tails); ok {
 			out = append(out, m)
+			if m.Via == ViaTail {
+				tailed = append(tailed, n.Name)
+			}
 		}
 	}
-	return out
+	if len(tailed) < 2 {
+		return out
+	}
+	keep, err := r.SharedNoun(word, tailed)
+	if err != nil {
+		return out
+	}
+	return slices.DeleteFunc(out, func(m Match) bool { return m.Via == ViaTail && m.Noun.Name != keep })
 }
 
 func (r *Runtime) lexNoun(n *Noun, word string, tails bool) (Match, bool) {

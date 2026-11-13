@@ -595,6 +595,22 @@ func (b *NounBuilder) Rows(noun string) *NounBuilder {
 	})
 }
 
+// HumanFormat declares the output format a person at a terminal reads
+// the last declared verb's answer in (Operation.HumanFormat): one of the
+// CLI's formats other than json (table, markdown, toon). With no --format
+// a terminal gets it under cli.tty-format auto (the default), a pipe gets
+// JSON. An empty format removes the declaration.
+func (b *NounBuilder) HumanFormat(format string) *NounBuilder {
+	return b.lastOp("HumanFormat", func(o *Operation) { o.HumanFormat = format })
+}
+
+// Table is HumanFormat("table"): a person at a terminal reads the last
+// declared verb's rows as a table, a pipe gets JSON.
+func (b *NounBuilder) Table() *NounBuilder { return b.HumanFormat(HumanFormatTable) }
+
+// HumanFormatTable is the table output format (cli --format table).
+const HumanFormatTable = "table"
+
 // Lists marks the last declared verb as the state source (Result =
 // ResultLists): one call answers every list's rows as JSON Lines, each line
 // tagged with the list noun (see cli.CatalogDoc). A host reading the

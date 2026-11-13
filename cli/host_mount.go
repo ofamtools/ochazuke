@@ -318,6 +318,7 @@ func mountVerb(r *ochazuke.Runtime, b *ochazuke.NounBuilder, local, noun string,
 	if v.Rows != "" {
 		op.Rows = nouns[v.Rows]
 	}
+	op.HumanFormat = v.HumanFormat
 	switch v.History {
 	case "", ochazuke.HistoryAction, ochazuke.HistoryChange, ochazuke.HistoryFetch:
 		op.HistoryKind = v.History

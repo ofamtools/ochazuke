@@ -359,6 +359,12 @@ type Operation struct {
 	// rows. It is data for hosts (the catalog's rows); the runtime does
 	// not read it.
 	Rows string `json:"rows,omitempty"`
+	// HumanFormat is the output format (one of cli.Formats other than
+	// json: table, markdown, toon) a person at a terminal reads the verb's
+	// answer in when no --format is given (setting cli.tty-format, auto);
+	// "" prints JSON. A pipe always gets JSON. Set by NounBuilder.Table or
+	// NounBuilder.HumanFormat; the catalog's humanFormat.
+	HumanFormat string `json:"humanFormat,omitempty"`
 	// Subject says what the operation acts on: "" one thing of the noun
 	// (the default), SubjectCollection all of the noun's things. Data for
 	// hosts (the catalog's subject): a collection operation takes no

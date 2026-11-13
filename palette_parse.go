@@ -475,8 +475,23 @@ func (ix lineIndex) tailNouns(r *Runtime) {
 		}
 		ix.tails[tail] = append(ix.tails[tail], word)
 	}
-	for _, words := range ix.tails {
+	for tail, words := range ix.tails {
 		sort.Strings(words)
+		if len(words) < 2 {
+			continue
+		}
+		// One rule with the CLI reader (cli.ambiguous): a word the
+		// setting gives to one noun takes it, else every noun is offered.
+		keep, err := r.SharedNoun(tail, words)
+		if err != nil {
+			continue
+		}
+		for _, w := range words {
+			if r.CanonicalNoun(w) == keep {
+				ix.tails[tail] = []string{w}
+				break
+			}
+		}
 	}
 }
 
