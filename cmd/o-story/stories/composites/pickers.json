@@ -3280,7 +3280,7 @@
         "◆ o-story",
         "NORMAL",
         "› page1",
-        "q app.quit · r demo.reset · enter demo.open · n demo.notify · x demo.delete · space collection.…"
+        "q app.quit │ demo: r reset · enter open · n notify · x delete"
       ],
       "highlighted": 1
     },
@@ -3325,7 +3325,7 @@
         "◆ o-story",
         "NORMAL",
         "› page1",
-        "q app.quit · r demo.reset · enter demo.open · n demo.notify · x demo.delete · space collection.…"
+        "q app.quit │ demo: r reset · enter open · n notify · x delete"
       ],
       "highlighted": 1
     },

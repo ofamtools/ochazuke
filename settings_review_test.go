@@ -41,7 +41,7 @@ func TestSettingsReviewWritesAndRevertsOneByOne(t *testing.T) {
 		t.Fatalf("body noun %q", n)
 	}
 	frame := ansi.Strip(m.View().Content)
-	for _, want := range []string{"Review settings", "2 session values differ", "Setting", "Saved", "Session", "scrolloff", "2 (default)", "5", "theme", "light (file)", "mono", "Writing adds 5 to settings.json", "w setting.write", "r setting.revert", "s skip", "W setting.write-all", "R setting.revert-all"} {
+	for _, want := range []string{"Review settings", "2 session values differ", "Setting", "Saved", "Session", "scrolloff", "2 (default)", "5", "theme", "light (file)", "mono", "Writing adds 5 to settings.json", "setting: w write · r revert · s skip · W write-all · R revert-all"} {
 		if !strings.Contains(frame, want) {
 			t.Fatalf("frame lacks %q:\n%s", want, frame)
 		}

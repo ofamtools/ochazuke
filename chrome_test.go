@@ -162,9 +162,9 @@ func TestChromeRowsFromThemes(t *testing.T) {
 }
 
 // The hint cells join to BindingHints' text, and the coloured line reads
-// as ansi.Truncate cuts the plain one, at every width.
+// as the plain drawn line (HintText, grouped under nouns) at every width.
 func TestHintCells(t *testing.T) {
-	m := hintFixture(t)
+	m := hintGroupsFixture(t)
 	cells := HintCells(m.Runtime, m.Runtime.Focus)
 	if len(cells) == 0 {
 		t.Fatal("no hints")
@@ -183,7 +183,11 @@ func TestHintCells(t *testing.T) {
 			if !ok {
 				t.Fatal("rich has hint rows")
 			}
-			if got, want := ansi.Strip(line), ansi.Truncate(plain, w, "…"); got != want {
+			want := ""
+			if w > 0 {
+				want = HintText(lead, cells, w)
+			}
+			if got := ansi.Strip(line); got != want {
 				t.Fatalf("lead %q width %d: %q, want %q", lead, w, got, want)
 			}
 		}
