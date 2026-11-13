@@ -17,10 +17,10 @@ func hintGroupsFixture(t *testing.T) *Model {
 	detail.Hint = "J/K detail"
 	r.Define("row").
 		Verb("edit", func(Ctx) Result { return Result{} }).
-		Verb("rename", func(Ctx) Result { return Result{} }).
+		Verb("share", func(Ctx) Result { return Result{} }).
 		Mode("normal").
 		Bind("e", Do("row.edit")).
-		Bind("r", Do("row.rename")).
+		Bind("r", Do("row.share")).
 		Bind("J", detail).
 		Bind("ctrl+o", Do("palette.open"))
 	return m
@@ -35,13 +35,13 @@ func TestHintsGroupNoun(t *testing.T) {
 	r := m.Runtime
 	cells := HintCells(r, r.Focus)
 	got := HintText("", cells, 0)
-	if !strings.HasPrefix(got, "row: e edit · r rename · J/K detail │ ctrl+o palette.open") {
+	if !strings.HasPrefix(got, "row: e edit · r share · J/K detail │ ctrl+o palette.open") {
 		t.Fatalf("grouped line %q", got)
 	}
 	if strings.Contains(got, "row.") {
 		t.Fatalf("a grouped hint repeats its noun: %q", got)
 	}
-	if plain := BindingHints(r, r.Focus); !strings.HasPrefix(plain, "e row.edit · r row.rename") || plain != JoinHints(cells) {
+	if plain := BindingHints(r, r.Focus); !strings.HasPrefix(plain, "e row.edit · r row.share") || plain != JoinHints(cells) {
 		t.Fatalf("BindingHints %q", plain)
 	}
 	if got, want := ansi.Strip(m.View().Content), got; !strings.Contains(got, ansi.Truncate(want, 40, "")) {
