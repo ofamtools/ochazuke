@@ -2082,7 +2082,7 @@
         "NORMAL",
         "› page1",
         "demo.build running",
-        "q app.quit · r demo.reset · enter d…"
+        "q app.quit │ demo: r reset"
       ],
       "highlighted": 1
     },
@@ -2127,7 +2127,7 @@
         "▸ 日本語のプロンプトも折り返す: wide runes in a prompt wrap by cells,",
         "never by bytes, and nothing is cut.",
         "below1",
-        "a story-card.timeline-append · s story-card.timeline-stream · enter timelin…"
+        "story-card: a timeline-append · s timeline-stream"
       ],
       "highlighted": 1
     },

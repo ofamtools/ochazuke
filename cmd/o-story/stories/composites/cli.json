@@ -2375,11 +2375,11 @@
       "contains": [
         "greet · help",
         "usage: hello greet [NAME]",
-        "enter command.run",
-        "i command.help"
+        "command: enter run",
+        "command: enter run · i help"
       ],
       "lacks": [
-        "x command.stop"
+        "command: enter run · i help · x stop"
       ]
     },
     {
@@ -2433,7 +2433,7 @@
       "mode": "normal",
       "contains": [
         "greet · running · enter attaches",
-        "x command.stop"
+        "command: enter run · i help · x stop"
       ],
       "lacks": [
         "· attached"
@@ -2454,7 +2454,7 @@
         "usage: hello greet [NAME]"
       ],
       "lacks": [
-        "x command.stop",
+        "command: enter run · i help · x stop",
         "fake pane"
       ],
       "after": 90

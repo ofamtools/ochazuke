@@ -38,7 +38,8 @@ import (
 //	mode.<extends>, mode        the mode's own, pending (a pending mode),
 //	                            the mode it extends, then mode
 //	hint.key, hint.text,        the footer's and every modal's hint line:
-//	hint.sep                    a row's key, its action, the " · " between
+//	hint.sep, hint.group        a row's key, its action, the " · " between
+//	                            (and " │ " around a group), a group's noun
 //	tab.active, tab, tab.more    active tab, other tabs, overflow markers
 //	rule                        header and footer hairlines
 //	footer.error                the error status line
@@ -156,6 +157,7 @@ func chromeTones() map[string]ToneStyle {
 		"chrome.rich.panel.title.focused":      {Fg: chromeMode, Bold: true},
 		"chrome.rich.hint.key":                 {Fg: chromeAccent, Bold: true},
 		"chrome.rich.hint.text":                {Fg: chromeHint},
+		"chrome.rich.hint.group":               {Fg: chromeHint, Bold: true},
 		"chrome.rich.tab.active":               {Fg: chromeSurf, Bg: chromeMode, Bold: true},
 		"chrome.rich.tab":                      {Fg: SchemeColor{"muted", "muted"}},
 		"chrome.rich.tab.more":                 {Fg: SchemeColor{"muted", "muted"}},

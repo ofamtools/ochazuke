@@ -243,7 +243,7 @@ func TestTaskWritesFromThePalette(t *testing.T) {
 	if v := get("t1", "status"); v != "done" {
 		t.Fatalf("x: status %v", v)
 	}
-	if frame := ansi.Strip(m.View().Content); !strings.Contains(frame, "x task.status") {
+	if frame := ansi.Strip(m.View().Content); !strings.Contains(frame, "task: e edit · x status") {
 		t.Fatalf("the prop row's hint:\n%s", frame)
 	}
 }

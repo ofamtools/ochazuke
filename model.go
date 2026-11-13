@@ -670,10 +670,17 @@ func BindingHints(r *Runtime, focus string) string {
 
 // HintCell is one hint of a hint line: the row's key (or "J/K" for a row
 // whose own hint names its keys) and what it does, "" for a key alone.
-// The chrome draws them in the hint.key and hint.text roles.
+// The chrome draws them in the hint.key and hint.text roles. Noun and
+// Verb are Text split when the row runs that request and hints.group is
+// on (HintsGroupSetting): a drawn line (HintText, the footer, a modal's
+// hint line) writes a run of cells of one Noun under it once, "pane: e
+// edit · r rename"; both "" for a row with its own Hint or none, which
+// names no noun and so sits in whatever run it falls in.
 type HintCell struct {
 	Key  string `json:"key"`
 	Text string `json:"text,omitempty"`
+	Noun string `json:"noun,omitempty"`
+	Verb string `json:"verb,omitempty"`
 }
 
 // String is the hint as BindingHints writes it: "key text".
@@ -716,8 +723,12 @@ func HintCellsAt(r *Runtime, id string) []HintCell {
 	}
 	bindings := hintBindingsIn(r, ctx, groupLevelRows(r.rowsIn(ctx)))
 	cells := make([]HintCell, len(bindings))
+	grouped := r.hintsGrouped()
 	for i, b := range bindings {
 		cells[i] = rowHintCell(r, b)
+		if grouped {
+			cells[i] = groupHintCell(r, b, cells[i])
+		}
 	}
 	return cells
 }
@@ -1201,7 +1212,7 @@ func (m *Model) render() Block {
 			hintWidth = modalWidth
 		}
 		cells := HintCellsAt(m.Runtime, id)
-		hint := ansi.Truncate(JoinHints(cells), hintWidth, "…")
+		hint := HintText("", cells, hintWidth)
 		lead := ""
 		if id == m.Runtime.TopModal() {
 			switch {
@@ -1209,7 +1220,7 @@ func (m *Model) render() Block {
 				hint, cells = m.cutMessage("Error: "+safeText(m.Status), hintWidth), nil
 			case m.Info != "":
 				lead = m.cutMessage(m.footerInfo(), hintWidth)
-				hint = ansi.Truncate(lead+" · "+hint, hintWidth, "…")
+				hint = HintText(lead, cells, hintWidth)
 			}
 		}
 		var styled func(int) (string, bool)

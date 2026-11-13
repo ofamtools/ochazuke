@@ -2354,7 +2354,9 @@
       "lacks": [
         "```",
         "i markdown.insert",
-        "x markdown.toggle"
+        "x markdown.toggle",
+        "i insert",
+        "x toggle"
       ]
     },
     {
@@ -2595,7 +2597,9 @@
       "mode": "normal",
       "lacks": [
         "c mode.enter",
-        "d mode.enter"
+        "d mode.enter",
+        "c enter",
+        "d enter"
       ]
     },
     {

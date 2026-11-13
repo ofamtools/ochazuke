@@ -1252,7 +1252,7 @@
         "Before alpha between beta after.",
         "Tail.",
         "→ https://a.example",
-        "enter markdown.link-open · y l markdown.link-yank · i markdown.insert · o m…"
+        "markdown: enter link-open · y l link-yank · i insert"
       ]
     },
     {
@@ -1289,7 +1289,7 @@
         "Before alpha between beta after.",
         "Tail.",
         "→ https://b.example",
-        "enter markdown.link-open · y l markdown.link-yank · i markdown.insert · o m…"
+        "markdown: enter link-open · y l link-yank · i insert"
       ]
     },
     {
@@ -1327,7 +1327,7 @@
         "# Links",
         "Before alpha between beta after.",
         "Tail.",
-        "U setting.cycle · enter markdown.link-open · y l markdown.link-yank · i mar…"
+        "U setting.cycle │ markdown: enter link-open · y l link-yank"
       ]
     },
     {
@@ -1373,7 +1373,7 @@
         "# Links",
         "See ochazuke/props.go:231 and beta after.",
         "Tail.",
-        "i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste ·…"
+        "markdown: i insert · o open · d d cut"
       ],
       "highlighted": 1
     },
@@ -1475,7 +1475,7 @@
         "owner | task",
         "ana",
         "| docs",
-        "i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste ·…"
+        "markdown: i insert · o open · d d cut"
       ],
       "highlighted": 3
     },
@@ -1556,7 +1556,7 @@
         "press only",
         "stick)",
         "later presses too",
-        "i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste · g O markdown.goto · u markdown.undo · c…"
+        "markdown: i insert · o open · d d cut · p paste · g O goto · u undo"
       ],
       "highlighted": 1
     },
@@ -1636,7 +1636,7 @@
         "stick)",
         "for later",
         "presses too",
-        "i markdown.insert · o markdown.open · d d markdown.cut · p markdown.paste ·…"
+        "markdown: i insert · o open · d d cut"
       ],
       "highlighted": 1
     },

@@ -24,6 +24,7 @@ type hintMemo struct {
 type hintCellsMemo struct {
 	generation, version uint64
 	display             string
+	grouped             bool
 	built               bool
 	cells               []HintCell
 	line                string
@@ -32,12 +33,16 @@ type hintCellsMemo struct {
 func (c *runtimeRenderCache) hintCells(r *Runtime, focus string) []HintCell {
 	_, version := c.hintBindingsShared(r, focus)
 	old := &c.cells
-	display := r.nounsDisplay()
-	if !old.built || old.generation != c.generation || old.version != version || old.display != display {
+	display, grouped := r.nounsDisplay(), r.hintsGrouped()
+	if !old.built || old.generation != c.generation || old.version != version || old.display != display || old.grouped != grouped {
 		bindings := c.hints.bindings
-		*old = hintCellsMemo{generation: c.generation, version: version, display: display, built: true}
+		*old = hintCellsMemo{generation: c.generation, version: version, display: display, grouped: grouped, built: true}
 		for _, b := range bindings {
-			old.cells = append(old.cells, rowHintCell(r, b))
+			cell := rowHintCell(r, b)
+			if grouped {
+				cell = groupHintCell(r, b, cell)
+			}
+			old.cells = append(old.cells, cell)
 		}
 		old.line = JoinHints(old.cells)
 	}
