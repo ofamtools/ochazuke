@@ -1,0 +1,18 @@
+// rail settings (JSONC): rows of settings an application has only when it draws a rail (Runtime.AddRail declares them, unless the
+// application declared the name first with its own default). The rail is a region beside or over a page's main area listing what relates
+// to the thing the page shows, as a related stack: the stack's order, hidden, collapsed, counts, empty, groups and refresh settings are these.
+[
+  {"name": "rail.show", "section": "rail", "type": "boolean", "default": true, "description": "Show the rail beside (or over) the page's main area; off draws nothing and reads nothing (ochazuke.rail.toggle)"},
+  {"name": "rail.look", "section": "rail", "type": "string", "default": "full", "enum": ["full", "float"], "description": "full: a column at the right that narrows the main area; float: a panel over the main's top-right corner that resizes nothing. A screen too narrow for the column falls back to the float, then to a one-line strip of counts"},
+  {"name": "rail.width", "section": "rail", "type": "string", "default": "25%", "description": "The rail's width: cells (36) or a percent of the area (25%); a percent is kept to 28..56 cells, and any width to at most 2/5 of the area (ochazuke.rail.grow and shrink change it)"},
+  {"name": "rail.min-main", "section": "rail", "type": "integer", "default": 60, "description": "The least cells the main area keeps beside a full rail; below it the rail steps down to 28 cells, then to the float, then to the strip"},
+  {"name": "rail.float-height", "section": "rail", "type": "integer", "default": 50, "description": "The most the float covers, in percent of the main area's height"},
+  {"name": "rail.order", "section": "rail", "type": "list", "default": [], "description": "Section ids (NOUN.PROP, a group's or a list section's id) the rail draws first, in this order; the others follow"},
+  {"name": "rail.hidden", "section": "rail", "type": "list", "default": [], "description": "Section ids the rail leaves out (a trailing * is a prefix; !ID takes one back out of an earlier pattern)"},
+  {"name": "rail.collapsed", "section": "rail", "type": "list", "default": ["*"], "description": "Section ids that start folded to their heading and count (* every one: a picker of kinds first; !ID keeps one open)"},
+  {"name": "rail.empty", "section": "rail", "type": "string", "default": "hide", "enum": ["header", "hide", "open"], "description": "What a section with nothing in it draws: hide leaves it out, header its heading with (0), open the heading and an empty row"},
+  {"name": "rail.counts", "section": "rail", "type": "boolean", "default": true, "description": "Show each heading's count (N); off shows the headings alone"},
+  {"name": "rail.groups", "section": "rail", "type": "list", "default": [], "description": "Headings that draw several sections under one, as ID = MEMBER, MEMBER (a member is a section id or a noun): needs-you = action-item, question.decision"},
+  {"name": "rail.refresh", "section": "rail", "type": "duration", "default": "15s", "description": "How often the rail reads again the sections of nouns without a store of their own while it is shown; 0 reads them only when the thing changes, a section unfolds or ochazuke.rail.refresh runs"},
+  {"name": "rail.ends", "section": "rail", "type": "string", "default": "stay", "enum": ["stay", "spill"], "description": "j and k at the rail's first and last row: stay keeps them in the rail (leave with { } tab or ctrl+w h); spill moves on to the neighbouring stop as lists do"}
+]

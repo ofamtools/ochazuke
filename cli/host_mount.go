@@ -31,6 +31,14 @@ type HostMount struct {
 	CallTimeout time.Duration
 	// CanonicalKey migrates references the host owns outside its runtime.
 	CanonicalKey func(noun, selector, key string) error
+	// Watch, when set, streams one mounted noun's watch from the
+	// extension (its catalog's watch verb, run as a long-lived call whose
+	// JSON lines are the events): the proxy store of every noun whose
+	// catalog has a watch verb gets it as Store.Watch, so the host's own
+	// standard watch serves it (pushed events, since, where, the CLI's
+	// stream) in place of a one-shot proxy call. stop ends the call. Nil:
+	// the extension's watch mounts as its other verbs do.
+	Watch func(noun string, q ochazuke.WatchQuery, emit func(ochazuke.WatchEvent)) (stop func(), err error)
 }
 
 // MountedNouns is what MountNouns mounted: each catalog noun's host

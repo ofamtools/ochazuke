@@ -175,7 +175,7 @@ func registerRelatedMoves(b *NounBuilder) {
 				return Failed(err)
 			}
 			rel.sync()
-			visible := rel.visible()
+			visible := rel.headed()
 			at := -1
 			if s := c.Runtime.relatedSectionOf(focusOf(c.Context)); s != nil && s.rel == rel {
 				at = slices.Index(visible, s)
@@ -210,13 +210,28 @@ func registerRelatedMoves(b *NounBuilder) {
 // associate and unassociate run the referring noun's own create and set
 // (rights, history, undo and Through are the noun's).
 func registerRelatedWrites(b *NounBuilder) {
-	sectionVerb(b, "new", "Create a thing of the section's noun that belongs to the section's thing: the noun's create with the referring prop filled", func(c Ctx, s *relatedSection) error {
-		if s.ref.Relation != "" {
+	sectionVerb(b, "new", "Create a thing of the section's noun that belongs to the section's thing: the noun's create with the referring prop filled (a list section: its new verb, else the noun's create)", func(c Ctx, s *relatedSection) error {
+		switch {
+		case s.grouping:
+			return s.groupOnly("new")
+		case s.ref.List:
+			if noun, verb, ok := cutVerbKey(s.ref.New); ok {
+				return s.run(c, Request{Noun: noun, Verb: verb}, false)
+			}
+			return s.run(c, Request{Noun: s.ref.Noun, Verb: "create"}, false)
+		case s.ref.Relation != "":
 			return s.newRelated(c)
 		}
-		return s.run(c, Request{Noun: s.ref.Noun, Verb: "create", Args: Arguments{s.ref.Prop: s.value()}}, false)
+		args := Arguments{s.ref.Prop: s.value()}
+		for k, v := range s.ref.Match {
+			args[k] = v
+		}
+		return s.run(c, Request{Noun: s.ref.Noun, Verb: "create", Args: args}, false)
 	})
 	sectionVerb(b, "associate", "Set the referring prop of existing things of the section's noun to the section's thing: name one with thing, or be asked which", func(c Ctx, s *relatedSection) error {
+		if s.grouping || s.ref.List {
+			return s.groupOnly("associate")
+		}
 		if s.ref.Relation != "" {
 			return s.relateSection(c)
 		}
@@ -358,6 +373,28 @@ func relatedTarget(c Ctx) (*relatedSection, error) {
 		return s, nil
 	}
 	return nil, errors.New("no section at the focus: name one with section")
+}
+
+// groupOnly says why a verb that writes the referring prop has no
+// meaning on a group heading or a list section, naming where it does.
+func (s *relatedSection) groupOnly(verb string) error {
+	if s.ref.List {
+		return fmt.Errorf("%s lists a saved filter: no prop names the thing to %s", s.ref.Label, verb)
+	}
+	var ids []string
+	for _, m := range s.members {
+		ids = append(ids, m.ref.ID())
+	}
+	return fmt.Errorf("%s groups %s: run %s on a row of one of them, or name it with section", s.ref.Label, strings.Join(ids, ", "), verb)
+}
+
+// cutVerbKey splits noun.verb at its last dot.
+func cutVerbKey(key string) (noun, verb string, ok bool) {
+	i := strings.LastIndex(key, ".")
+	if i <= 0 || i == len(key)-1 {
+		return "", "", false
+	}
+	return key[:i], key[i+1:], true
 }
 
 // readOnly refuses a write of a read-only referring prop, saying why.

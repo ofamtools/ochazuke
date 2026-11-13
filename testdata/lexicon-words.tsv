@@ -224,6 +224,8 @@ docs-viewer	noun	seed
 done	action	seed	
 done-hide	action	seed	
 done-show	action	seed	
+look	action	yes	och-rail-focus: ochazuke.rail.look sets the rail's look (rail.look: full or float)
+rail	noun	yes	och-rail-focus: the rail region beside a page's main area (ochazuke.rail)
 show-archived	action	seed	
 done-today	prop	seed	
 done-toggle	action	seed	

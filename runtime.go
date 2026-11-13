@@ -707,6 +707,7 @@ func (r *Runtime) registerFramework() {
 	registerTrees(r)
 	registerTimelines(r)
 	registerRelated(r)
+	registerRail(r)
 	registerForms(r)
 	RegisterInputOperations(r)
 	registerCompletion(r)

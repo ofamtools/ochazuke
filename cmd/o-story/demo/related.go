@@ -43,6 +43,13 @@ type RelatedSpec struct {
 	// the key.
 	Relations *RelationsSpec `json:"relations,omitempty"`
 	Plain     []string       `json:"plain,omitempty"`
+	// Rail draws the stack as a rail (ochazuke.AddRail) at the right of
+	// the page's main area, by the rail settings (rail.look, rail.width,
+	// rail.collapsed, ...), in place of a place in the page's order; the
+	// focus starts in the main. GroupBy splits sections by a prop
+	// (RelatedSpec.GroupBy).
+	Rail    bool              `json:"rail,omitempty"`
+	GroupBy map[string]string `json:"groupBy,omitempty"`
 }
 
 // RelatedNounSpec is a noun that names the stack's noun by Prop. Things have
@@ -232,6 +239,17 @@ func (ss *session) addRelated(p *Page) (*ochazuke.Related, error) {
 		}
 		return sf.Related(), nil
 	}
+	if spec.Rail {
+		related.Enabled, related.Order, related.Hidden, related.Collapsed, related.Counts, related.Empty = "", "", "", "", "", ""
+		related.GroupBy = spec.GroupBy
+		rail, err := r.AddRail(relatedID(p), ochazuke.RailSpec{Stack: related}, ochazuke.Parent(p.ID))
+		if err != nil {
+			return nil, err
+		}
+		ss.rails[p.ID] = rail
+		return rail.Stack(), nil
+	}
+	related.GroupBy = spec.GroupBy
 	return r.AddRelated(relatedID(p), related, ochazuke.Parent(p.ID))
 }
 

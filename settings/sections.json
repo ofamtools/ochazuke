@@ -25,6 +25,7 @@
     {"owner": "ochazuke", "id": "hooks", "title": "Hooks", "description": "hooks.json: verbs that run when an event happens"},
     {"owner": "ochazuke", "id": "status", "title": "Status bar", "description": "The status segments in the header rule"},
     {"owner": "ochazuke", "id": "pages", "title": "Pages", "description": "Hidden pages and the action history"},
+    {"owner": "ochazuke", "id": "rail", "title": "Rail", "description": "The rail beside a page's main area: its look, width and sections"},
     {"owner": "ochazuke", "id": "markdown", "title": "Markdown", "description": "Markdown documents and their notes"},
  {"owner":"ochazuke", "id":"agents", "title":"Agents", "description":"Agent rights and confirmation attribution"},
     {"owner": "ochazuke", "id": "about", "title": "About", "description": "The About page: the build, the family dependencies and the process"},

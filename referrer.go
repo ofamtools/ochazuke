@@ -39,6 +39,23 @@ type Referrer struct {
 	// is ochazuke.history-entry.
 	History bool   `json:"history,omitempty"`
 	Label   string `json:"label"`
+	// Section, when set, is the section's id in place of NOUN.PROP: a
+	// list section's own id (RelatedSpec.Lists), or one value of a split
+	// section (RelatedSpec.GroupBy), NOUN.SPLITPROP=VALUE.
+	Section string `json:"section,omitempty"`
+	// Filter names the saved filter a list section lists
+	// (RelatedSpec.Lists): its things are the filter's, whatever thing the
+	// stack shows. A list section has no referring Prop.
+	Filter string `json:"filter,omitempty"`
+	// New is the verb (noun.verb) a list section's new runs; "" runs the
+	// noun's create.
+	New string `json:"new,omitempty"`
+	// Match is what the things of a value section hold besides the
+	// referring prop (RelatedSpec.GroupBy: the split prop and its value);
+	// the section's new fills it.
+	Match map[string]any `json:"-"`
+	// List marks a list section (RelatedSpec.Lists).
+	List bool `json:"listSection,omitempty"`
 }
 
 // Value is what the referring prop holds to name the thing key of noun:
@@ -50,8 +67,14 @@ func (f Referrer) Value(noun, key string) string {
 	return key
 }
 
-// ID is the referrer's place, the section id: NOUN.PROP.
-func (f Referrer) ID() string { return f.Noun + "." + f.Prop }
+// ID is the referrer's place, the section id: NOUN.PROP, or Section when
+// it is set.
+func (f Referrer) ID() string {
+	if f.Section != "" {
+		return f.Section
+	}
+	return f.Noun + "." + f.Prop
+}
 
 // Referrers lists every registered noun's prop that names a thing of noun
 // (Parameter.Noun), owner or plain reference, nouns in registration order
@@ -135,7 +158,8 @@ func registerReferrers(r *Runtime) {
 	r.defineFacts(factsSpec{Noun: referrerNoun, Sample: Referrer{}, Key: "id", Label: "label", Extra: []PropSpec{{Name: "id"}},
 		Docs: map[string]string{"id": "The referring prop's place: NOUN.PROP", "noun": "The noun that declares the prop", "prop": "The referring prop",
 			"role": "The prop's role (owner: the thing belongs to the referenced one)", "readOnly": "Whether set refuses to write the prop", "any": "Whether the prop names a thing of any noun, holding noun:key",
-			"label": "The heading of a section of the referring noun's things"},
+			"label": "The heading of a section of the referring noun's things", "section": "A section id in place of NOUN.PROP (a list section, or one value of a split section)",
+			"filter": "The saved filter a list section lists", "new": "The verb a list section's new runs", "listSection": "Whether it is a list section, listing a saved filter whatever the thing"},
 		ListParams: map[string]Parameter{"noun": {Type: "string", Description: "Only props that name this noun's things", Noun: ""}},
 		List: func(c Ctx, q ListQuery) ([]Thing, error) {
 			rows := c.Runtime.Referrers(StringArg(q.Args, "noun", ""))

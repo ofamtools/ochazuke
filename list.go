@@ -428,7 +428,17 @@ func (l *Collection) trappedAt(edge SpillEdge) bool {
 	if owner := l.holder(); owner != nil {
 		ids = append(ids, owner.ID)
 	}
-	return l.r.noSpillNames(edge, ids...)
+	if l.r.noSpillNames(edge, ids...) {
+		return true
+	}
+	for _, id := range l.r.Ancestry(l.id) {
+		if inst := l.r.Instances[id]; inst != nil {
+			if t, ok := inst.Component.(edgeTrapper); ok && t.trapsEdge(l.id, edge) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // listHolder is implemented by a component that holds a list of its own

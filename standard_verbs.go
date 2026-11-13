@@ -71,6 +71,14 @@ func (r *Runtime) ensureVerbsOf(n *Noun) {
 			r.adoptFieldParam(key) // the application's verb wins, the row's field still reaches its form
 			continue
 		}
+		if ok && existing.CatalogProxy {
+			// A mounted extension's own verb (cli.MountNouns marks it
+			// Standard as the extension's catalog does): the extension
+			// serves it, so a later refresh of the noun's verbs (another
+			// noun declaring about, a setting) neither replaces nor drops
+			// it, whatever the host store meets.
+			continue
+		}
 		if !ok && r.nameTaken(key) {
 			continue // the application's alias or noun wins
 		}

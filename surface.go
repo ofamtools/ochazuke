@@ -113,14 +113,43 @@ func composeModalAt(background, title string, body Block, footer string, styled 
 		background = unhighlight(background)
 	}
 	backdrop := dim(fitSurface(strings.ReplaceAll(background, "\t", "    "), width, height), styles.Backdrop)
+	return cursor.Offset(left, top).WithText(overlayText(backdrop, strings.Join(lines, "\n"), left, top, width, height))
+}
+
+// overlayText draws panel over background at left, top as a second layer,
+// width x height cells: the canvas owns cell clipping, including wide
+// graphemes under the panel's edges. The modal and the rail's float share
+// it.
+func overlayText(background, panel string, left, top, width, height int) string {
 	canvas := lipgloss.NewCanvas(width, height)
 	canvas.Compose(lipgloss.NewCompositor(
-		lipgloss.NewLayer(backdrop),
-		lipgloss.NewLayer(strings.Join(lines, "\n")).X(left).Y(top).Z(1),
+		lipgloss.NewLayer(fitSurface(strings.ReplaceAll(background, "\t", "    "), width, height)),
+		lipgloss.NewLayer(panel).X(left).Y(top).Z(1),
 	))
 	// Canvas.Render trims trailing blanks; every row must stay exactly width cells.
-	text := fitSurface(canvas.Render(), width, height)
-	return cursor.Offset(left, top).WithText(text)
+	return fitSurface(canvas.Render(), width, height)
+}
+
+// OverlayBlock draws panel over background at left, top, in a width x
+// height area, without dimming the background or taking the focus: a
+// non-modal overlay (the rail's float look), generalized from the modal's
+// composition. The panel's cursor wins when panelFirst (it holds the
+// focus), else the background's; a cursor under the panel is dropped.
+func OverlayBlock(background, panel Block, left, top, width, height int, panelFirst bool) Block {
+	if width <= 0 || height <= 0 {
+		return Block{}
+	}
+	text := overlayText(background.Text, panel.Text, left, top, width, height)
+	under := background.Clip(width, height)
+	if c := under.Cursor; c != nil && c.X >= left && c.Y >= top && c.Y < top+strings.Count(panel.Text, "\n")+1 {
+		under = Text(under.Text) // covered by the panel
+	}
+	moved := panel.Offset(left, top)
+	cursor := firstCursor(under, moved)
+	if panelFirst {
+		cursor = firstCursor(moved, under)
+	}
+	return Block{Text: text, Cursor: cursor}
 }
 
 // rewriteSGR passes other text through and replaces each CSI m sequence by

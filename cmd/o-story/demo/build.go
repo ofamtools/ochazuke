@@ -69,6 +69,7 @@ type session struct {
 	// lines timeline-stream added.
 	timelines map[string]*ochazuke.Timeline
 	related   map[string]*ochazuke.Related // the page's related sections by page id
+	rails     map[string]*ochazuke.Rail    // the page's rail by page id (RelatedSpec.Rail)
 	streamed  int
 	streams   []*FakeStream
 	// hidden are the stops demo.hide took off the page (drawn again by
@@ -118,7 +119,7 @@ func build(env monogatari.Env) (monogatari.Built, error) {
 		return monogatari.Built{}, err
 	}
 	m.Title = "o-story"
-	ss := &session{env: env, R: r, M: m, all: pages, filesDir: env.FilesDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.Collection{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, related: map[string]*ochazuke.Related{}, hidden: map[string]bool{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
+	ss := &session{env: env, R: r, M: m, all: pages, filesDir: env.FilesDir, pages: map[string]*Page{}, lists: map[string]*ochazuke.Collection{}, trees: map[string]*ochazuke.Tree{}, records: map[string]*ochazuke.RecordEditor{}, inputs: map[string]*ochazuke.Input{}, details: map[string]*ochazuke.Detail{}, docs: map[string]*markdown.Doc{}, timelines: map[string]*ochazuke.Timeline{}, related: map[string]*ochazuke.Related{}, rails: map[string]*ochazuke.Rail{}, hidden: map[string]bool{}, jobs: map[string][]chan error{}, done: make(chan struct{})}
 	// Stories never launch an application: the opener logs what it would run.
 	r.SetOpener(ochazuke.Opener{GOOS: "darwin", Start: func(name string, args ...string) error {
 		ss.Writes = append(ss.Writes, "start "+strings.Join(append([]string{name}, args...), " "))
@@ -1152,7 +1153,7 @@ func (ss *session) addPage(p *Page) error {
 			return fmt.Errorf("related: %w", err)
 		}
 		ss.related[p.ID] = rel
-		if focus == "" {
+		if focus == "" && ss.rails[p.ID] == nil {
 			focus = rel.FocusTarget()
 		}
 	}
@@ -1550,6 +1551,16 @@ func (ss *session) recordSpec(rs RecordSpec) ochazuke.RecordSpec {
 // render draws a page: the main column, with the detail to its right when
 // the page has one.
 func (ss *session) render(p *Page, width, height int) ochazuke.Block {
+	if rail := ss.rails[p.ID]; rail != nil {
+		fit := rail.Fit(width, height)
+		main := ss.renderBeside(p, fit.MainWidth, fit.MainHeight)
+		return rail.Compose(ochazuke.Layout{Width: width, Height: height, Styles: ss.M.Styles()}, fit, main)
+	}
+	return ss.renderBeside(p, width, height)
+}
+
+// renderBeside draws the page's main area and its detail beside it.
+func (ss *session) renderBeside(p *Page, width, height int) ochazuke.Block {
 	d := ss.details[p.ID]
 	if d == nil {
 		return ss.renderMain(p, width, height)

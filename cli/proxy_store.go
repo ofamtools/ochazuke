@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	gomaps "maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -21,6 +22,10 @@ var proxiedKinds = []string{"", ochazuke.KindCollection, ochazuke.Singleton}
 // proxiedVerbs are the standard verbs of a catalog noun a proxy store calls
 // in the extension, each the store function it answers.
 var proxiedVerbs = []string{"get", "list", "create", "set", "delete"}
+
+// streamedVerbs are the standard verbs of a catalog noun a proxy store
+// streams from the extension through HostMount.Watch (Store.Watch).
+var streamedVerbs = []string{"watch"}
 
 // proxyStore is the Store of a mounted noun: its get, list, create, set
 // (Patch) and delete are the extension's own verbs, the ones the mount
@@ -60,6 +65,14 @@ func proxyStore(noun CatalogNoun, local, key string, h HostMount) ochazuke.Store
 		// and counts read again only when it moved. A catalog without the
 		// verb (an older extension) reads as before.
 		s.ChangeToken = px.token
+	}
+	if h.Watch != nil && slices.ContainsFunc(noun.Verbs, func(v CatalogVerb) bool { return slices.Contains(streamedVerbs, v.Standard) }) {
+		// The extension streams its own watch: the host's standard watch
+		// runs over it (HostMount.Watch), as over any store's Watch.
+		name := noun.Name
+		s.Watch = func(_ ochazuke.Ctx, q ochazuke.WatchQuery, emit func(ochazuke.WatchEvent)) (func(), error) {
+			return h.Watch(name, q, emit)
+		}
 	}
 	if px.has("create") {
 		s.Create = px.create

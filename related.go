@@ -84,6 +84,43 @@ type RelatedSpec struct {
 	// History adds the history section last: the thing's history entries
 	// (the history verb's rows), read again when the history grows.
 	History bool
+	// GroupBy splits a section by a prop of its things: section id
+	// (NOUN.PROP) to the prop. Each value the things hold is a section of
+	// its own, id NOUN.SPLITPROP=VALUE, its heading the value's plural (a
+	// context item's kind: Links, Files, Dirs), in the order the values
+	// first appear; the things are read once for all of them, and a value
+	// section's new fills the value.
+	GroupBy map[string]string
+	// Groups names a list setting whose entries "ID = MEMBER, MEMBER" draw
+	// several sections under one heading ID (needs-you = action-item,
+	// question.decision): a member is a section id (a prefix ending in *)
+	// or a noun, standing for every section of that noun. The heading
+	// counts the members' things and folds them together; each row keeps
+	// its own section's verbs. The heading reads the id with its dashes as
+	// spaces. "" or an empty setting groups nothing.
+	Groups string
+	// Lists are sections that list a noun's saved filter, whatever thing
+	// the stack shows (the day's focus in a pane's rail). They read
+	// through the noun's standard list, refill on its watch and the
+	// refresh verb, never on a draw or a change of the stack's thing, and
+	// take the order, hidden, collapsed, counts and empty settings by
+	// their id.
+	Lists []RelatedList
+	// Ends names a string setting: "stay" keeps j and k inside the stack
+	// at its first and last drawn rows (UX-RULES R3.6, as NoSpill), any
+	// other value or "" lets them spill to the neighbouring stops.
+	Ends string
+	// Plain draws every section as a plain list, without its noun's
+	// columns: a narrow region (the rail).
+	Plain bool
+}
+
+// RelatedList is one list section (RelatedSpec.Lists): the things of Noun
+// its saved filter Filter keeps ("" every thing), under Label (default the
+// noun's plural); New names the verb (noun.verb) the section's new runs,
+// "" the noun's create.
+type RelatedList struct {
+	ID, Noun, Filter, Label, New string
 }
 
 // Related is a stack of related sections drawn one under the other in a
@@ -113,6 +150,17 @@ type Related struct {
 	histSeq  uint64          // the newest history entry the history section was filled at
 	read     time.Time       // when the hook sections were last read
 	closed   bool
+	splits   map[string]*relatedSplit // the split sections by their referrer's id (GroupBy)
+	grouped  string                   // the groups setting and sections the groups were made for
+	shape    int                      // counts section additions and removals: the groups follow it
+}
+
+// relatedSplit is a section split by a prop (RelatedSpec.GroupBy): its
+// referrer's things are read once and shown in one value section each.
+type relatedSplit struct {
+	ref  Referrer
+	prop string
+	at   int // where its referrer came among the sections: its values go there
 }
 
 // relatedSection is one section: a referrer's things for the key.
@@ -125,6 +173,12 @@ type relatedSection struct {
 	view       string // the placed view standing for the things, "" the list
 	viewParent string // the borrowed view's owner before section placement
 	count      int    // things shown, archived ones left out
+	shown      []Thing
+	filled     bool
+	split      *relatedSplit     // a value section's split, nil otherwise
+	group      *relatedSection   // the group heading drawing this section's rows, nil when none
+	members    []*relatedSection // a group heading's sections
+	grouping   bool              // a group heading (RelatedSpec.Groups)
 }
 
 // AddRelated registers a stack of related sections under Parent (default
@@ -147,7 +201,7 @@ func (r *Runtime) AddRelated(id string, spec RelatedSpec, opts ...InstanceOption
 	if r.Instances[is.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", is.parent)
 	}
-	rel := &Related{r: r, id: id, spec: spec, byID: map[string]*relatedSection{}, collapse: map[string]bool{}, seen: map[string]bool{}, dirty: map[string]bool{}}
+	rel := &Related{r: r, id: id, spec: spec, byID: map[string]*relatedSection{}, collapse: map[string]bool{}, seen: map[string]bool{}, dirty: map[string]bool{}, splits: map[string]*relatedSplit{}}
 	r.Instance(id, Parent(is.parent), Kind(RelatedStackNoun), FocusOnClose(is.closeFocus))
 	r.Instances[id].Component = rel
 	rel.sync()
@@ -251,38 +305,83 @@ func (rel *Related) emptyMode() int {
 
 // hiddenBy is the hidden entry that names the section, "" when none does.
 func (rel *Related) hiddenBy(id string) string {
-	for _, entry := range rel.listSetting(rel.spec.Hidden) {
-		if noSpillMatches(strings.TrimSpace(entry), id) {
-			return entry
+	return namedBy(rel.listSetting(rel.spec.Hidden), id)
+}
+
+// namedBy is the entry of a hidden or collapsed setting that names the
+// section id: an id, or a prefix ending in *; a later entry "!PATTERN"
+// takes the ids it names back out ("*", "!needs-you": every section but
+// one). "" when none names it.
+func namedBy(entries []string, id string) string {
+	by := ""
+	for _, entry := range entries {
+		entry = strings.TrimSpace(entry)
+		if not, ok := strings.CutPrefix(entry, "!"); ok {
+			if noSpillMatches(strings.TrimSpace(not), id) {
+				by = ""
+			}
+			continue
+		}
+		if noSpillMatches(entry, id) {
+			by = entry
 		}
 	}
-	return ""
+	return by
 }
 
 // order is every section in display order: the ones the order setting
-// names first, then the others in referrer order, with history last.
+// names first, then the others in referrer order, with history last. A
+// group heading stands where the first of its members would, or where
+// the order setting names it, its members after it.
 func (rel *Related) order() []*relatedSection {
-	out := make([]*relatedSection, 0, len(rel.sections))
+	base := make([]*relatedSection, 0, len(rel.sections))
+	var add func(s *relatedSection)
+	add = func(s *relatedSection) {
+		if s.grouping {
+			for _, m := range s.members {
+				add(m)
+			}
+			return
+		}
+		if !slices.Contains(base, s) {
+			base = append(base, s)
+		}
+	}
 	for _, id := range rel.listSetting(rel.spec.Order) {
-		if s := rel.byID[strings.TrimSpace(id)]; s != nil && !s.ref.History && !slices.Contains(out, s) {
-			out = append(out, s)
+		if s := rel.byID[strings.TrimSpace(id)]; s != nil && !s.ref.History {
+			add(s)
 		}
 	}
 	for _, s := range rel.sections {
-		if !s.ref.History && !slices.Contains(out, s) {
-			out = append(out, s)
+		if !s.ref.History && !s.grouping {
+			add(s)
 		}
 	}
 	for _, s := range rel.sections {
 		if s.ref.History {
+			add(s)
+		}
+	}
+	out := make([]*relatedSection, 0, len(rel.sections))
+	for _, s := range base {
+		switch {
+		case s.group == nil:
 			out = append(out, s)
+		case !slices.Contains(out, s.group):
+			out = append(out, s.group)
+			for _, m := range base {
+				if m.group == s.group {
+					out = append(out, m)
+				}
+			}
 		}
 	}
 	return out
 }
 
 // visible is the sections drawn: not hidden by the setting and, in the
-// omit empty mode, not empty.
+// omit empty mode, not empty. A group's member is drawn under its heading
+// while it has rows to show.
 func (rel *Related) visible() []*relatedSection {
 	if !rel.enabled() {
 		return nil
@@ -290,12 +389,24 @@ func (rel *Related) visible() []*relatedSection {
 	hideEmpty := rel.emptyMode() == relatedEmptyAtHide
 	var out []*relatedSection
 	for _, s := range rel.order() {
-		if rel.hiddenBy(s.ref.ID()) != "" || hideEmpty && s.count == 0 {
-			continue
+		switch {
+		case rel.hiddenBy(s.ref.ID()) != "":
+		case s.group != nil:
+			if slices.Contains(out, s.group) && s.list.Len() > 0 {
+				out = append(out, s)
+			}
+		case hideEmpty && s.count == 0:
+		default:
+			out = append(out, s)
 		}
-		out = append(out, s)
 	}
 	return out
+}
+
+// headed is the drawn sections that have a heading (the members of a
+// group draw under their group's).
+func (rel *Related) headed() []*relatedSection {
+	return slices.DeleteFunc(rel.visible(), func(s *relatedSection) bool { return s.group != nil })
 }
 
 // sync brings the stack in step with the referrers and the key: sections
@@ -320,6 +431,10 @@ func (rel *Related) sync() {
 			if ref.Relation != "" && !sections {
 				continue
 			}
+			if prop := rel.spec.GroupBy[ref.ID()]; prop != "" {
+				rel.addSplit(ref, prop)
+				continue
+			}
 			if rel.byID[ref.ID()] == nil {
 				rel.addSection(ref)
 				if added := rel.byID[ref.ID()]; added != nil && rel.synced && ref.Relation != "" {
@@ -333,34 +448,78 @@ func (rel *Related) sync() {
 			s.fill()
 		}
 	}
+	rel.ensureLists()
 	look := fmt.Sprint(rel.countsShown(), rel.emptyMode())
 	keyChanged := !rel.synced || key != rel.key
 	if keyChanged {
 		rel.synced, rel.key = true, key
 	}
-	if keyChanged || look != rel.look {
+	switch {
+	case look != rel.look:
 		rel.look = look
 		rel.fillAll()
+	case keyChanged:
+		// A list section lists the same things whatever the key: it is
+		// read once, then on its noun's watch and refresh.
+		rel.fillSections(func(ref Referrer) bool { return !ref.List || !rel.filledList(ref) })
 	}
 	rel.syncRelations(keyChanged)
 	rel.syncHistory(keyChanged)
+	rel.syncGroups()
 	if keyChanged {
 		for _, s := range rel.sections {
-			if s.list != nil && s.list.Len() > 0 {
+			if s.list != nil && s.list.Len() > 0 && s.group == nil {
 				_ = s.list.Select(s.headID())
 			}
 		}
 		return
 	}
-	for noun := range rel.dirty {
-		delete(rel.dirty, noun)
-		for _, s := range rel.sections {
-			if s.ref.Noun == noun {
-				s.fill()
-			}
+	rel.fillDirty()
+	rel.refreshDue()
+}
+
+// fillDirty fills the sections of the nouns that changed since the last
+// fill again.
+func (rel *Related) fillDirty() {
+	if len(rel.dirty) == 0 || !rel.enabled() {
+		return // off reads nothing; turned on, the stack is read whole
+	}
+	dirty := rel.dirty
+	rel.dirty = map[string]bool{}
+	rel.fillSections(func(ref Referrer) bool { return dirty[ref.Noun] })
+}
+
+// filledList reports whether the list section of ref has been read.
+func (rel *Related) filledList(ref Referrer) bool {
+	s := rel.byID[ref.ID()]
+	return s != nil && s.filled
+}
+
+// fillSections reads the sections whose referrer want keeps again: a
+// split's things once for all its values. A group heading follows its
+// members.
+func (rel *Related) fillSections(want func(Referrer) bool) {
+	for _, sp := range rel.sortedSplits() {
+		if want(sp.ref) {
+			rel.fillSplit(sp)
 		}
 	}
-	rel.refreshDue()
+	for _, s := range slices.Clone(rel.sections) {
+		if !s.grouping && s.split == nil && want(s.ref) {
+			s.fill()
+		}
+	}
+	rel.syncGroups()
+}
+
+// sortedSplits are the splits in their referrers' order.
+func (rel *Related) sortedSplits() []*relatedSplit {
+	out := make([]*relatedSplit, 0, len(rel.splits))
+	for _, sp := range rel.splits {
+		out = append(out, sp)
+	}
+	slices.SortFunc(out, func(a, b *relatedSplit) int { return strings.Compare(a.ref.ID(), b.ref.ID()) })
+	return out
 }
 
 // target is the noun and key the sections show now: the Target func's
@@ -396,13 +555,27 @@ func (rel *Related) enabled() bool {
 	return rel.r.Settings().Bool(rel.spec.Enabled)
 }
 
-// dropSections removes every section: the selection moved to a thing of
-// another noun, so its referrers are others. Collapse state stays, by id.
+// dropSections removes every section but the list sections: the
+// selection moved to a thing of another noun, so its referrers are
+// others. Collapse state stays, by id.
 func (rel *Related) dropSections() {
+	var kept []*relatedSection
 	for _, s := range rel.sections {
+		if s.ref.List {
+			s.group = nil
+			kept = append(kept, s)
+			continue
+		}
 		s.remove()
 	}
-	rel.sections, rel.byID = nil, map[string]*relatedSection{}
+	rel.sections, rel.byID = kept, map[string]*relatedSection{}
+	for _, s := range kept {
+		rel.byID[s.ref.ID()] = s
+	}
+	rel.splits = map[string]*relatedSplit{}
+	rel.dirty = map[string]bool{}
+	rel.grouped = ""
+	rel.shape++
 	rel.lastLine, rel.top = 0, 0
 	rel.look = ""
 }
@@ -453,37 +626,34 @@ func (rel *Related) now() time.Time {
 // refreshHooks reads the rows of every hook section again.
 func (rel *Related) refreshHooks() {
 	rel.read = rel.now()
-	for _, s := range rel.sections {
-		if s.hooked() {
-			s.fill()
-		}
-	}
+	rel.fillSections(rel.hookedRef)
 }
 
 func (rel *Related) fillAll() {
-	for _, s := range rel.sections {
-		s.fill()
-	}
+	rel.fillSections(func(Referrer) bool { return true })
 }
 
 // addSection makes the section of ref when its things can be listed: the
 // noun has a store with a list and a key prop, or the spec has Rows.
-func (rel *Related) addSection(ref Referrer) {
+func (rel *Related) addSection(ref Referrer) *relatedSection {
 	r := rel.r
 	n := r.Nouns[ref.Noun]
 	if n == nil || n.keyProp() == nil {
-		return
+		return nil
 	}
 	stored := n.Store != nil && (n.Store.List != nil || n.Store.Query != nil)
 	if !stored && rel.spec.Rows == nil && ref.Relation == "" {
-		return
+		return nil
 	}
 	s := &relatedSection{rel: rel, ref: ref, id: rel.id + "/" + ref.ID(), n: n, view: n.relatedView}
+	if ref.List || ref.Section != "" {
+		s.view = "" // a placed view stands for one referrer's things only
+	}
 	r.Instance(s.id, Parent(rel.id), Kind(RelatedNoun))
 	r.Instances[s.id].Component = s
 	r.Instances[s.id].Label = ref.Label
 	opts := []InstanceOption{Parent(s.id)}
-	if len(n.Columns) > 0 && s.view == "" {
+	if len(n.Columns) > 0 && s.view == "" && !rel.spec.Plain {
 		// The heading shares the first column with its rows' cells, so the
 		// column is as wide as the heading needs: no fixed width or cap.
 		cols := slices.Clone(n.Columns)
@@ -493,7 +663,7 @@ func (rel *Related) addSection(ref Referrer) {
 	list, err := r.AddList(s.id+"/list", nil, opts...)
 	if err != nil {
 		_ = r.RemoveInstance(s.id)
-		return
+		return nil
 	}
 	s.list = list
 	list.SetMatchNoun(pluralWord(shortNounName(ref.Noun)))
@@ -511,9 +681,11 @@ func (rel *Related) addSection(ref Referrer) {
 	}
 	rel.sections = append(rel.sections, s)
 	rel.byID[ref.ID()] = s
+	rel.shape++
 	if stored && ref.Relation == "" && !ref.History {
 		rel.watch(ref.Noun)
 	}
+	return s
 }
 
 // shortNounName is the last word of a noun's name (lane.lane is lane).
@@ -536,16 +708,7 @@ func (rel *Related) watch(noun string) {
 	if err != nil {
 		return
 	}
-	w.batch = func() {
-		for n := range rel.dirty {
-			delete(rel.dirty, n)
-			for _, s := range rel.sections {
-				if s.ref.Noun == n {
-					s.fill()
-				}
-			}
-		}
-	}
+	w.batch = rel.fillDirty
 	rel.watches = append(rel.watches, w)
 }
 
@@ -554,8 +717,13 @@ func (rel *Related) watch(noun string) {
 func (s *relatedSection) headID() string  { return s.list.id + "/@head" }
 func (s *relatedSection) emptyID() string { return s.list.id + "/@empty" }
 
-func (s *relatedSection) hooked() bool {
-	return s.ref.Relation == "" && s.rel.spec.Rows != nil && !(s.n.Store != nil && (s.n.Store.List != nil || s.n.Store.Query != nil))
+func (s *relatedSection) hooked() bool { return !s.grouping && s.rel.hookedRef(s.ref) }
+
+// hookedRef reports whether ref's things come from the Rows hook: a noun
+// without a store that lists.
+func (rel *Related) hookedRef(ref Referrer) bool {
+	n := rel.r.Nouns[ref.Noun]
+	return n != nil && ref.Relation == "" && rel.spec.Rows != nil && !(n.Store != nil && (n.Store.List != nil || n.Store.Query != nil))
 }
 
 func (s *relatedSection) collapsed() bool { return s.rel.isCollapsed(s.ref.ID()) }
@@ -564,46 +732,66 @@ func (s *relatedSection) collapsed() bool { return s.rel.isCollapsed(s.ref.ID())
 func (rel *Related) isCollapsed(id string) bool {
 	if !rel.seen[id] {
 		rel.seen[id] = true
-		for _, entry := range rel.listSetting(rel.spec.Collapsed) {
-			if noSpillMatches(strings.TrimSpace(entry), id) {
-				rel.collapse[id] = true
-			}
+		if namedBy(rel.listSetting(rel.spec.Collapsed), id) != "" {
+			rel.collapse[id] = true
 		}
 	}
 	return rel.collapse[id]
 }
 
 // read lists the things owned by the key.
-func (s *relatedSection) read() ([]Thing, error) {
-	rel := s.rel
+func (s *relatedSection) read() ([]Thing, error) { return s.rel.readRef(s.ref) }
+
+// readRef lists the things of ref owned by the key: a list section's
+// filter, whatever the key.
+func (rel *Related) readRef(ref Referrer) ([]Thing, error) {
+	r := rel.r
+	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	if ref.List {
+		return rel.readList(c, ref)
+	}
 	if rel.key == "" {
 		return nil, nil
 	}
-	r := rel.r
-	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
-	if s.ref.Relation != "" {
-		return s.readRelations(c)
+	if ref.Relation != "" {
+		page, err := r.readRelatedRelations(c, rel.noun, rel.key, ref, ListQuery{Archived: true})
+		return page.Items, err
 	}
-	if s.ref.History {
+	if ref.History {
 		return factThings(r.thingHistory(rel.noun, rel.key), nil)
 	}
-	page, err := r.readRelatedThings(c, rel.spec, rel.noun, rel.key, s.ref, ListQuery{Archived: true})
+	page, err := r.readRelatedThings(c, rel.spec, rel.noun, rel.key, ref, ListQuery{Archived: true})
 	return page.Items, err
 }
 
 // fill reads the things and shows them: the heading, then the things unless
-// the section is collapsed (a placed view draws its own).
+// the section is collapsed (a placed view draws its own). A value section
+// reads its split, a group heading its members.
 func (s *relatedSection) fill() {
-	if s.list == nil {
+	switch {
+	case s.split != nil:
+		s.rel.fillSplit(s.split)
+		return
+	case s.grouping:
+		for _, m := range s.members {
+			m.fill()
+		}
+		return
+	case s.list == nil:
 		return
 	}
-	rel := s.rel
-	r := rel.r
+	r := s.rel.r
 	things, err := s.read()
 	if err != nil {
 		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
 		things = nil
 	}
+	s.show(things)
+}
+
+// show keeps the things the archive setting does not hide and draws them.
+func (s *relatedSection) show(things []Thing) {
+	r := s.rel.r
 	hiding := r.archiveHiding(s.n, s.list.vs)
 	shown := make([]Thing, 0, len(things))
 	for _, t := range things {
@@ -611,9 +799,43 @@ func (s *relatedSection) fill() {
 			shown = append(shown, t)
 		}
 	}
-	s.count = len(shown)
+	s.count, s.shown, s.filled = len(shown), shown, true
+	s.render()
+}
+
+// render sets the section list's rows from the things it holds: the
+// heading, then the things unless the section (or its group) is folded.
+// A group's member draws no heading of its own; a group heading draws its
+// heading alone, counting its members' things.
+func (s *relatedSection) render() {
+	rel := s.rel
+	r := rel.r
+	if s.grouping {
+		s.count = 0
+		for _, m := range s.members {
+			if rel.hiddenBy(m.ref.ID()) == "" {
+				s.count += m.count
+			}
+		}
+		if err := s.list.SetItems([]ListItem{s.heading()}); err != nil {
+			r.UI().Error(fmt.Sprintf("%s section: %v", s.ref.Label, err))
+		}
+		return
+	}
+	shown := s.shown
 	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
 	items := []ListItem{s.heading()}
+	if s.group != nil {
+		items = nil
+		if !s.group.collapsed() {
+			items = s.rowItems(c, shown)
+		}
+		if err := s.list.SetItems(items); err != nil {
+			r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
+		}
+		s.group.render()
+		return
+	}
 	empty := len(shown) == 0
 	if s.view != "" {
 		if rel.spec.Scope != nil && rel.key != "" {
@@ -671,15 +893,35 @@ func (s *relatedSection) thing() Thing {
 // setCollapsed folds or unfolds the section; the focus stays on its
 // heading when a fold takes the row it was on.
 func (s *relatedSection) setCollapsed(collapsed bool) {
+	if s.group != nil {
+		s.group.setCollapsed(collapsed) // a member's rows fold with its group
+		return
+	}
 	rel := s.rel
 	rel.isCollapsed(s.ref.ID()) // the setting's start first
 	if rel.collapse[s.ref.ID()] == collapsed {
 		return
 	}
 	rel.collapse[s.ref.ID()] = collapsed
+	if collapsed && s.grouping {
+		for _, m := range s.members {
+			if rel.r.focusInside(m.id) {
+				_ = s.list.Select(s.headID())
+				_ = rel.r.SetFocus(s.list.FocusTarget())
+			}
+		}
+	}
 	if collapsed && rel.r.focusInside(s.id) {
 		_ = s.list.Select(s.headID())
 		_ = rel.r.SetFocus(s.list.FocusTarget())
+	}
+	if collapsed {
+		// Folding shows less of what is held; unfolding reads again.
+		for _, m := range s.members {
+			m.render()
+		}
+		s.render()
+		return
 	}
 	s.fill()
 }
