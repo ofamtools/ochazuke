@@ -240,3 +240,18 @@ func TestEngineDifferences(t *testing.T) {
 		}
 	}
 }
+
+// A frame says whether the program is on the alternate screen.
+func TestFrameCarriesAltScreen(t *testing.T) {
+	for _, name := range availableEngines() {
+		e := newTestEmulator(t, name, 20, 6)
+		_, _ = e.Write([]byte("main"))
+		if EmulatorFrame(e).AltScreen {
+			t.Fatalf("%s: main screen reads as alternate", name)
+		}
+		_, _ = e.Write([]byte("\x1b[?1049h"))
+		if !EmulatorFrame(e).AltScreen {
+			t.Fatalf("%s: alternate screen not reported", name)
+		}
+	}
+}

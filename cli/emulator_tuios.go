@@ -29,6 +29,8 @@ func (x *tuiosEmulator) Resize(cols, rows int)       { x.t.Resize(cols, rows) }
 func (x *tuiosEmulator) Render() string              { return x.t.Render() }
 func (x *tuiosEmulator) Close() error                { return x.t.Close() }
 
+func (x *tuiosEmulator) AltScreen() bool { return x.t.IsAltScreen() }
+
 func (x *tuiosEmulator) Cursor() EmulatorCursor {
 	pos := x.t.CursorPosition()
 	style, _ := x.t.CursorStyle()

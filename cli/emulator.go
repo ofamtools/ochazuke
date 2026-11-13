@@ -33,6 +33,9 @@ type Emulator interface {
 	Render() string
 	// Cursor is the cursor cell, shape and visibility.
 	Cursor() EmulatorCursor
+	// AltScreen reports whether the program is on the alternate screen,
+	// which keeps no scrollback.
+	AltScreen() bool
 	// SendKey queues a key press for the program, encoded for the modes it
 	// set (application cursor keys, the kitty keyboard protocol when the
 	// engine has it).
@@ -60,7 +63,7 @@ func EmulatorFrame(e Emulator) ochazuke.TerminalFrame {
 		lines[i] = strings.TrimSuffix(lines[i], "\r")
 	}
 	c := e.Cursor()
-	return ochazuke.TerminalFrame{Lines: lines, Cursor: ochazuke.Pos{X: c.X, Y: c.Y}, Shape: c.Shape, Hidden: c.Hidden}
+	return ochazuke.TerminalFrame{Lines: lines, Cursor: ochazuke.Pos{X: c.X, Y: c.Y}, Shape: c.Shape, Hidden: c.Hidden, AltScreen: e.AltScreen()}
 }
 
 // TerminalEngine is one emulator implementation, a row of the engine

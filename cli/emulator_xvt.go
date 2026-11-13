@@ -26,6 +26,8 @@ func (x *xvtEmulator) Render() string              { return x.e.Render() }
 func (x *xvtEmulator) SendKey(k uv.KeyPressEvent)  { x.e.SendKey(k) }
 func (x *xvtEmulator) Paste(text string)           { x.e.Paste(text) }
 
+func (x *xvtEmulator) AltScreen() bool { return x.e.IsAltScreen() }
+
 func (x *xvtEmulator) Cursor() EmulatorCursor {
 	pos := x.e.CursorPosition()
 	style, _ := x.e.CursorStyle()

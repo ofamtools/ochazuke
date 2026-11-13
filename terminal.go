@@ -46,6 +46,9 @@ type TerminalFrame struct {
 	Shape  string   `json:"shape,omitempty"`
 	Hidden bool     `json:"hidden,omitempty"`
 	Status string   `json:"status,omitempty"`
+	// AltScreen: the program is on the alternate screen, which keeps no
+	// scrollback (an application decides how to scroll it).
+	AltScreen bool `json:"alt_screen,omitempty"`
 }
 
 // Terminal is the component of a terminal instance: it holds the last frame
