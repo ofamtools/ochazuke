@@ -24,7 +24,7 @@ func TestPaletteToneAtRotates(t *testing.T) {
 			t.Fatalf("position %d does not wrap", i+PaletteSize())
 		}
 	}
-	for hue, want := range map[string]bool{"#7FB685": true, "12": true, "bright-blue": true, "red": true, "palette.1": false, "bluish": false, "": false} {
+	for hue, want := range map[string]bool{"#7FB685": true, "12": true, "bright-blue": true, "red": true, "palette.1": true, "palette.99": false, "palette.01": false, "bluish": false, "": false} {
 		if ValidHue(hue) != want {
 			t.Errorf("ValidHue(%q) = %v, want %v", hue, !want, want)
 		}

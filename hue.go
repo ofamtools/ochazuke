@@ -42,12 +42,17 @@ func PaletteToneAt(n int) string {
 	return "palette." + strconv.Itoa(((n%size)+size)%size)
 }
 
-// ValidHue reports whether hue is a colour literal a panel can draw: a hex,
-// an ANSI index, or an ANSI name such as bright-blue. A tone name is valid
-// to the theme that defines it, not here.
+// ValidHue reports whether hue is one a panel can draw: a colour literal (a
+// hex, an ANSI index, or an ANSI name such as bright-blue) or one of the
+// palette tones. Another tone name is valid to the theme that defines it,
+// not here.
 func ValidHue(hue string) bool {
 	if validColor(hue) {
 		return true
+	}
+	if n, ok := strings.CutPrefix(hue, "palette."); ok {
+		i, err := strconv.Atoi(n)
+		return err == nil && i >= 0 && i < PaletteSize() && strconv.Itoa(i) == n
 	}
 	name, _ := strings.CutPrefix(strings.ToLower(hue), "bright-")
 	_, ok := ansiNames[name]
