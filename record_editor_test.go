@@ -436,7 +436,7 @@ func TestRecordFreeFieldWithSuggestionsTypesFreely(t *testing.T) {
 	if !ops["enter form.suggest"] || !ops["ctrl+space form.suggest"] {
 		t.Fatalf("help lacks the suggest keys: %v", ops)
 	}
-	if s := screen(m); !strings.Contains(s, "enter form.suggest") {
+	if s := screen(m); !strings.Contains(s, "form: enter suggest") {
 		t.Fatalf("the footer hints the suggest key:\n%s", s)
 	}
 	keytest.Press(m, "A")

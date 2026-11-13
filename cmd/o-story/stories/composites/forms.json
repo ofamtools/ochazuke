@@ -2249,7 +2249,7 @@
         "src/main.go",
         "src/main_test.go",
         "src/model.go",
-        "esc completion.dismiss · tab completion.accept"
+        "completion: esc dismiss · tab accept"
       ],
       "highlighted": 1
     },
@@ -2288,8 +2288,8 @@
         "prompt: review @src/ma",
         "src/main.go",
         "src/main_test.go",
-        "tab completion.accept",
-        "esc completion.dismiss"
+        "completion: esc dismiss · tab accept",
+        "completion: esc dismiss"
       ],
       "lacks": [
         "README.md",
@@ -2325,7 +2325,7 @@
         "src/main.go",
         "src/main_test.go",
         "src/model.go",
-        "esc completion.dismiss · tab completion.accept"
+        "completion: esc dismiss · tab accept"
       ],
       "highlighted": 1
     },
@@ -2347,7 +2347,7 @@
         "src/main.go",
         "src/main_test.go",
         "src/model.go",
-        "esc completion.dismiss · tab completion.accept"
+        "completion: esc dismiss · tab accept"
       ]
     },
     {
@@ -2414,7 +2414,7 @@
       "contains": [
         "Water the plants",
         "done ▾",
-        "q form.leave"
+        "form: q leave"
       ],
       "noNotices": true,
       "after": 51
@@ -2426,7 +2426,7 @@
       "modal": "",
       "contains": [
         "done ▾",
-        "q form.leave"
+        "form: q leave"
       ],
       "lacks": [
         "todo ▾"

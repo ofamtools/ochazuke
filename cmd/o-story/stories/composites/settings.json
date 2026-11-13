@@ -1970,7 +1970,7 @@
       "after": 10,
       "focus": "__about/row/Build/binary",
       "contains": [
-        "enter about-row.open"
+        "about-row: y yank · enter open"
       ]
     },
     {
@@ -2102,7 +2102,7 @@
         "demo",
         "NORMAL",
         "› work",
-        "q app.quit · r demo.reset · enter demo.open · …",
+        "q app.quit │ demo: r reset · enter open",
         ":display focus"
       ],
       "highlighted": 1
@@ -2253,9 +2253,9 @@
         "Default is 2."
       ],
       "contains": [
-        "enter setting.edit",
+        "setting: enter edit",
         "h/l setting.cycle",
-        "r setting.reset",
+        "setting: enter edit · h/l setting.cycle · r reset",
         "]/[ setting.show-tab"
       ],
       "lacks": [
@@ -2311,7 +2311,7 @@
       "mode": "list_filter",
       "focus": "__settings/row/scrolloff",
       "contains": [
-        "enter collection.filter-keep",
+        "collection: enter filter-keep",
         "scrolloff",
         "theme",
         "tab-width"
@@ -2400,7 +2400,7 @@
         "Default is 4. Not in settings.json, so the default",
         "applies.",
         "Takes a whole number.",
-        "enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ setting.show…"
+        "setting: enter edit · h/l setting.cycle · r reset"
       ],
       "highlighted": 1,
       "dimmed": 1
@@ -2435,7 +2435,7 @@
         "Hooks",
         "Status bar",
         "Pages",
-        "l/enter settings-section.open · ]/[ setting.show-tab · A setting.all · q setting.close · ctrl+w…"
+        "l/enter settings-section.open · ]/[ setting.show-tab │ setting: A all · q close"
       ],
       "highlighted": 1,
       "dimmed": 1
@@ -2482,9 +2482,9 @@
         "Takes a list of text items."
       ],
       "contains": [
-        "enter setting.edit",
-        "n setting.add",
-        "r setting.reset"
+        "setting: enter edit",
+        "setting: enter edit · n add",
+        "r reset"
       ],
       "lacks": [
         "setting.cycle"
@@ -2496,9 +2496,9 @@
       "contains": [
         "Item 1 of 2.",
         "enter/i setting-item.edit",
-        "n setting-item.add",
-        "d d setting-item.delete",
-        "r setting-item.reset"
+        "setting-item: n add",
+        "setting-item: n add · d d delete",
+        "setting-item: n add · d d delete · r reset"
       ]
     },
     {
@@ -2742,7 +2742,7 @@
         "Directories searched for projects, in order",
         "Default is ~/proj, ~/hub. Not in settings.json, so the default applies.",
         "Takes a list of text items.",
-        "enter/i setting-item.edit · n setting-item.add · d d setting-item.delete · r setting-item.reset · ]/[ setting.show-…"
+        "enter/i setting-item.edit │ setting-item: n add · d d delete · r reset"
       ],
       "highlighted": 1,
       "dimmed": 1
@@ -2775,7 +2775,7 @@
         "Default is dark. Not in settings.json, so the default",
         "applies.",
         "Takes one of dark, light, mono.",
-        "enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ setting.show…"
+        "setting: enter edit · h/l setting.cycle · r reset"
       ],
       "highlighted": 1
     },
@@ -3168,7 +3168,7 @@
         "settings.json holds grid. setting.write saves it,",
         "setting.revert drops it.",
         "Takes one of tabs, stack, grid.",
-        "enter setting.edit · h/l setting.cycle · r setting.reset · ]/[ setting.show…"
+        "setting: enter edit · h/l setting.cycle · r reset"
       ],
       "highlighted": 1
     },
@@ -3182,7 +3182,7 @@
       "after": 219,
       "focus": "__settings/row/scrolloff",
       "contains": [
-        "A setting.all"
+        "setting: enter edit · h/l setting.cycle · r reset · ]/[ setting.show-tab · A all"
       ]
     },
     {
@@ -3218,7 +3218,7 @@
       "after": 225,
       "contains": [
         "scrolloff •  ‹ 4 ›",
-        "u setting.undo"
+        "setting: enter edit · h/l setting.cycle · r reset · ]/[ setting.show-tab · A all · u undo"
       ]
     },
     {

@@ -164,7 +164,7 @@ func TestCommandsPageListsAndShowsHelp(t *testing.T) {
 	if m.Runtime.Focus != rowID("greet") {
 		t.Fatalf("focus = %q, want the first row", m.Runtime.Focus)
 	}
-	if !strings.Contains(frame, "enter command.run") || !strings.Contains(frame, "i command.help") || strings.Contains(frame, "x command.stop") {
+	if !strings.Contains(frame, "command: enter run") || !strings.Contains(frame, "i help") || strings.Contains(frame, "x stop") {
 		t.Fatalf("footer lacks the row keys:\n%s", frame)
 	}
 	// The external's help is fetched off the loop, once, escapes stripped.
@@ -251,7 +251,7 @@ func TestCommandsStopReleasesTheRun(t *testing.T) {
 	term := c.Terminal("greet")
 	stream := c.runs["greet"].stream.(*PtyStream)
 	d.key("ctrl+a", "d")
-	d.until("x in the footer once there is a run", contains("x command.stop"))
+	d.until("x in the footer once there is a run", contains("x stop"))
 	d.key("x")
 	d.until("the confirm", contains("Stop greet?"))
 	d.key("y")
@@ -264,7 +264,7 @@ func TestCommandsStopReleasesTheRun(t *testing.T) {
 		t.Fatal("stop left the process running")
 	}
 	frame := d.until("the help again", contains("greet · help"))
-	if strings.Contains(frame, "x command.stop") {
+	if strings.Contains(frame, "x stop") {
 		t.Fatalf("x still offered without a run:\n%s", frame)
 	}
 	if _, err := d.exec(ochazuke.Request{Noun: "ochazuke.command", Verb: "stop", Args: ochazuke.Arguments{"name": "greet"}, Confirmed: true}); err == nil {

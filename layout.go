@@ -212,8 +212,12 @@ func (l Layout) Shell(h Header, body Block, f Footer) Block {
 	footerText := func(width int) string {
 		if !f.Error {
 			if lead, ok := strings.CutSuffix(f.Text, JoinHints(f.Hints)); ok && len(f.Hints) > 0 {
-				if line, ok := s.hintLine(strings.TrimSuffix(lead, hintSep), f.Hints, width); ok {
+				lead = strings.TrimSuffix(lead, hintSep)
+				if line, ok := s.hintLine(lead, f.Hints, width); ok {
 					return line
+				}
+				if width > 0 {
+					return footerStyle.Render(HintText(lead, f.Hints, width))
 				}
 			}
 		}
@@ -305,30 +309,22 @@ func (l Layout) titleRow(h Header, width int) string {
 
 // hintLine draws a hint line in width cells: lead (a status, a notice;
 // "" for none) muted, then each hint's key in the hint.key role and its
-// text in hint.text, " · " between them in hint.sep, cut with "…". ok is
-// false when the chrome level has none of the hint roles: the line then
-// draws as one muted label, the look before the levels.
+// text in hint.text, " · " between them in hint.sep, a group's noun
+// (hints.group) in hint.group and " │ " around the group in hint.sep, cut
+// with "…" (hintPieces lays it out). ok is false when the chrome level has
+// none of the hint roles: the line then draws as one muted label, the look
+// before the levels.
 func (s Styles) hintLine(lead string, cells []HintCell, width int) (string, bool) {
 	if !s.HasChrome("hint.key", "hint.text", "hint.sep") {
 		return "", false
 	}
-	key, text, sep := s.Chrome("hint.key", s.Muted), s.Chrome("hint.text", s.Muted), s.Chrome("hint.sep", s.Muted)
 	type piece struct {
 		text  string
 		style lipgloss.Style
 	}
 	var pieces []piece
-	if lead != "" {
-		pieces = append(pieces, piece{modalLabel(lead), s.Muted})
-	}
-	for i, c := range cells {
-		if i > 0 || lead != "" {
-			pieces = append(pieces, piece{hintSep, sep})
-		}
-		pieces = append(pieces, piece{modalLabel(c.Key), key})
-		if c.Text != "" {
-			pieces = append(pieces, piece{" " + modalLabel(c.Text), text})
-		}
+	for _, p := range hintPieces(lead, cells, width) {
+		pieces = append(pieces, piece{p.text, s.hintStyle(p.role)})
 	}
 	var b strings.Builder
 	total := 0

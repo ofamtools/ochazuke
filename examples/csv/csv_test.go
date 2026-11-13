@@ -103,7 +103,7 @@ func TestOpenAndNavigateWithCounts(t *testing.T) {
 		t.Fatalf("mode after motions = %q", mode)
 	}
 	view := ansi.Strip(a.m.View().Content)
-	for _, want := range []string{"people.csv", "5 rows × 3 columns", "r0:c2", " 1 ann", "i cell.edit"} {
+	for _, want := range []string{"people.csv", "5 rows × 3 columns", "r0:c2", " 1 ann", "cell: i edit"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("view lacks %q:\n%s", want, view)
 		}

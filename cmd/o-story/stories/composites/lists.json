@@ -8679,7 +8679,7 @@
         "2 of 20",
         "epsilon",
         "sigma",
-        "enter collection.filter-choose"
+        "collection: enter filter-choose"
       ],
       "lacks": [
         "rho",
@@ -8716,7 +8716,7 @@
       "contains": [
         "/xx",
         "no rows match",
-        "enter collection.filter-keep"
+        "collection: enter filter-keep"
       ],
       "lacks": [
         "collection.filter-choose"
@@ -8754,7 +8754,7 @@
         "gamma",
         "delta",
         "epsilon",
-        "q app.quit · r demo.reset · enter demo.open · n demo.notify · x demo.delete · space collection.mark · : palette.open · ? binding.help ·…"
+        "q app.quit │ demo: r reset · enter open · n notify · x delete │ space collection.mark · : palette.open"
       ],
       "highlighted": 1,
       "dimmed": 1
@@ -8777,7 +8777,7 @@
         "alpha",
         "alphabet",
         "delta",
-        "esc collection.filter-clear"
+        "collection: space mark · esc filter-clear"
       ],
       "lacks": [
         "beta",
@@ -8831,7 +8831,7 @@
         "no rows match",
         "substr",
         "no rows match 'lx'",
-        "enter collection.filter-keep · esc collection.filter-clear · tab search.cycle-match"
+        "collection: enter filter-keep · esc filter-clear │ tab search.cycle-match"
       ],
       "highlighted": 2,
       "dimmed": 1
@@ -8998,7 +8998,7 @@
         "status · not",
         "● closed",
         "○ open",
-        "space toggle · ! not · tab controls · u form.un…"
+        "space toggle · ! not · tab controls"
       ],
       "dimmed": 1
     },
@@ -9025,7 +9025,7 @@
         "status · not",
         "● closed",
         "○ open",
-        "space toggle · ! not · tab controls · u form.un…"
+        "space toggle · ! not · tab controls"
       ],
       "dimmed": 1
     },
@@ -9198,7 +9198,7 @@
         "substr",
         "alpha",
         "alphabet",
-        "enter collection.filter-keep · esc collection.filter-clear · tab search.cyc…"
+        "collection: enter filter-keep · esc filter-clear"
       ],
       "highlighted": 2,
       "dimmed": 1
@@ -9213,8 +9213,8 @@
         "gamma",
         "alphabet",
         "delta",
-        "enter collection.filter-keep",
-        "esc collection.filter-clear"
+        "collection: enter filter-keep",
+        "esc filter-clear"
       ]
     },
     {
@@ -9253,7 +9253,7 @@
         "substr",
         "alpha",
         "alphabet",
-        "enter collection.filter-keep · esc collection.filter-clear · tab search.cyc…"
+        "collection: enter filter-keep · esc filter-clear"
       ],
       "highlighted": 2,
       "dimmed": 1
@@ -10039,7 +10039,7 @@
         "~/proj/matomeru",
         "play/pi",
         "~/proj/nabe",
-        "enter collection.filter-keep · esc collection.filter-clear · tab search.cyc…"
+        "collection: enter filter-keep · esc filter-clear"
       ],
       "highlighted": 2,
       "dimmed": 1
