@@ -103,12 +103,9 @@ func thingValue(r *Runtime, n *Noun, c Ctx, props []PropSpec) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	t, err := n.Store.Get(c, id)
+	t, err := r.getThing(c, n, id, id)
 	if err != nil {
 		return "", err
-	}
-	if t == nil {
-		return "", fmt.Errorf("no %s %q", r.DisplayNoun(n.Name), id)
 	}
 	path := strings.TrimSpace(fmt.Sprint(t[prop.Name]))
 	if path == "" || t[prop.Name] == nil {

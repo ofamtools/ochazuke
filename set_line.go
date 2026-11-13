@@ -595,14 +595,16 @@ func setCandidates(candidates []option) string {
 	return strings.Join(names, ", ")
 }
 
-// setUnknown is the error for a word that names no setting, with the
-// three closest names.
+// setUnknown is the error for a word that names no setting, with up to
+// three close names (a mistyped prefix, as a unique prefix is typed, then
+// the whole name, then a name holding the word); every unknown-setting
+// path answers with it (Settings.unknown too).
 func setUnknown(word string, settings []Setting) error {
 	if word == "" {
 		return errors.New("a setting name comes before the operator")
 	}
 	if len(settings) == 0 {
-		return fmt.Errorf("unknown setting %s: this application declares none", word)
+		return &UnknownNameError{Kind: "setting", Name: word, List: "this application declares none"}
 	}
 	bare := strings.ToLower(word)
 	stripped := bare
@@ -612,7 +614,9 @@ func setUnknown(word string, settings []Setting) error {
 		}
 	}
 	// A name is near by its distance from the word over the word's length
-	// (a mistyped prefix, as a unique prefix is typed), then over all of it.
+	// (a mistyped prefix, as a unique prefix is typed), then over all of it;
+	// one that holds the word is near too. A name further than a third of
+	// the word's length is not offered.
 	type near struct {
 		name          string
 		prefix, whole int
@@ -621,12 +625,19 @@ func setUnknown(word string, settings []Setting) error {
 		rs := []rune(name)
 		return string(rs[:min(len(rs), len([]rune(word)))])
 	}
-	nears := make([]near, len(settings))
-	for i, s := range settings {
+	most := nearEdits(stripped)
+	var nears []near
+	for _, s := range settings {
 		name := strings.ToLower(s.Name)
-		nears[i] = near{s.Name,
+		n := near{s.Name,
 			min(editDistance(bare, head(name, bare)), editDistance(stripped, head(name, stripped))),
 			min(editDistance(bare, name), editDistance(stripped, name))}
+		if strings.Contains(name, stripped) && len(stripped) > 2 {
+			n.prefix = min(n.prefix, 1)
+		}
+		if n.prefix <= most || n.whole <= most {
+			nears = append(nears, n)
+		}
 	}
 	slices.SortStableFunc(nears, func(a, b near) int {
 		if a.prefix != b.prefix {
@@ -634,31 +645,37 @@ func setUnknown(word string, settings []Setting) error {
 		}
 		return a.whole - b.whole
 	})
-	names := make([]string, 0, 3)
-	for _, n := range nears[:min(3, len(nears))] {
+	names := make([]string, 0, NearShown)
+	for _, n := range nears[:min(NearShown, len(nears))] {
 		names = append(names, n.name)
 	}
-	return fmt.Errorf("unknown setting %s: did you mean %s?", word, strings.Join(names, ", "))
+	return &UnknownNameError{Kind: "setting", Name: word, Near: names, List: "setting list shows all"}
 }
 
-// editDistance is the Levenshtein distance between two words, in runes.
+// editDistance is the edit distance between two words, in runes: the
+// Levenshtein distance with a swap of two neighbours one edit (focsu is
+// one from focus), the optimal string alignment distance.
 func editDistance(a, b string) int {
 	ra, rb := []rune(a), []rune(b)
-	prev := make([]int, len(rb)+1)
-	cur := make([]int, len(rb)+1)
-	for j := range prev {
-		prev[j] = j
+	d := make([][]int, len(ra)+1)
+	for i := range d {
+		d[i] = make([]int, len(rb)+1)
+		d[i][0] = i
+	}
+	for j := range d[0] {
+		d[0][j] = j
 	}
 	for i := 1; i <= len(ra); i++ {
-		cur[0] = i
 		for j := 1; j <= len(rb); j++ {
 			cost := 1
 			if ra[i-1] == rb[j-1] {
 				cost = 0
 			}
-			cur[j] = min(prev[j]+1, cur[j-1]+1, prev[j-1]+cost)
+			d[i][j] = min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+cost)
+			if i > 1 && j > 1 && ra[i-1] == rb[j-2] && ra[i-2] == rb[j-1] {
+				d[i][j] = min(d[i][j], d[i-2][j-2]+1)
+			}
 		}
-		prev, cur = cur, prev
 	}
-	return prev[len(rb)]
+	return d[len(ra)][len(rb)]
 }

@@ -29,6 +29,10 @@ type Parameter struct {
 	Type        string `json:"type"`
 	Required    bool   `json:"required,omitempty"`
 	Description string `json:"description,omitempty"`
+	// Usage is how the parameter is given, said when a required one is
+	// missing ("value is required: setting set NAME VALUE (or toggle a
+	// boolean)", MissingParameterError.Reason); "" says only that it is.
+	Usage string `json:"usage,omitempty"`
 	// Enum lists the static choices of a string parameter; Source names an
 	// operation (noun.verb) whose result lists more. Free also accepts a
 	// value outside them.
@@ -1310,13 +1314,20 @@ func validatePartialArguments(op Operation, args Arguments) error {
 		param.Required = false
 		optional[name] = param
 	}
-	return validateArguments(Operation{Parameters: optional, CatalogProxy: op.CatalogProxy}, args)
+	return validateArguments(Operation{Key: op.Key, Parameters: optional, CatalogProxy: op.CatalogProxy}, args)
 }
 
 func validateArguments(op Operation, args Arguments) error {
+	// An argument the verb does not take is named first: a mistyped name
+	// (nmae) is why its parameter (name) is missing.
+	for _, name := range slices.Sorted(maps.Keys(args)) {
+		if _, ok := op.Parameters[name]; !ok && !(name == "target" && op.CatalogProxy) {
+			return NoParameter(op, name)
+		}
+	}
 	for name := range op.Parameters {
 		if op.lacks(name, args) {
-			return &MissingParameterError{Param: name}
+			return &MissingParameterError{Param: name, Reason: op.Parameters[name].Usage}
 		}
 	}
 	for name, v := range args {
@@ -1327,7 +1338,7 @@ func validateArguments(op Operation, args Arguments) error {
 			p, ok = Parameter{Type: "string"}, true
 		}
 		if !ok {
-			return fmt.Errorf("unknown argument %q", name)
+			return NoParameter(op, name)
 		}
 		if k := kindOf(p.Type); k.accepts == nil || !k.accepts(v) {
 			return fmt.Errorf("%s must be %s", name, p.Type)

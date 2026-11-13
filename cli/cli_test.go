@@ -479,6 +479,11 @@ func TestShellOwnersRevealAndPrepare(t *testing.T) {
 	if err := sh.Run(context.Background(), []string{"widget", "show", "--target", "w9"}); err != nil || f.calls[1].Target != "w9" || prepared != 1 {
 		t.Fatalf("reveal: %v %+v, prepared %d", err, f.calls, prepared)
 	}
+	// A bare word on a verb that acts on one thing is its target, for
+	// every noun (task show 3 as task show --target 3).
+	if err := sh.Run(context.Background(), []string{"widget", "show", "w1"}); err != nil || f.calls[2].Target != "w1" {
+		t.Fatalf("bare target: %v %+v", err, f.calls)
+	}
 }
 
 func TestShellErrors(t *testing.T) {
@@ -492,7 +497,7 @@ func TestShellErrors(t *testing.T) {
 		{[]string{"widget", "show", "--target", "w99"}, `unknown target "w99"`},
 		{[]string{"widget", "relabel", "--target", "w1", "--colour", "red"}, `widget.relabel has no parameter "colour"`},
 		{[]string{"widget", "relabel", "--target", "w1", "--name"}, "--name needs a value"},
-		{[]string{"widget", "show", "w1"}, `unexpected argument "w1"`},
+		{[]string{"widget", "show", "w1", "w2"}, `unexpected argument "w1"`},
 		{[]string{"widget", "show", "--json", "[1]"}, "arguments"},
 		{[]string{"widget", "ask", "--target", "w1"}, "widget.ask opened a question modal, which needs the TUI; pass its arguments instead (tool operations list)"},
 	} {

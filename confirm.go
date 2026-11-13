@@ -96,7 +96,7 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 			return nil, &RefusedError{Verb: policy.Key.Short(), Rule: right.Rule, Reason: r.agentNeverReason(policy)}
 		}
 		if !r.agentLive() && !r.agentApproved {
-			return nil, &RefusedError{Verb: policy.Key.Short(), Rule: right.Rule, Reason: "needs the owner's confirmation; ask them to run this command"}
+			return nil, &RefusedError{Verb: policy.Key.Short(), Rule: right.Rule, Reason: r.confirmRefusal(stored)}
 		}
 	}
 	stored.Actor, stored.source = &actor, r.history.source

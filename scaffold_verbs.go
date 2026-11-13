@@ -145,12 +145,9 @@ func (r *Runtime) thingOf(n *Noun, c Ctx) (string, Thing, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	t, err := n.Store.Get(c, key)
+	t, err := r.getThing(c, n, key, key)
 	if err != nil {
 		return "", nil, err
-	}
-	if t == nil {
-		return "", nil, fmt.Errorf("no %s %q", r.DisplayNoun(n.Name), key)
 	}
 	return key, t, nil
 }

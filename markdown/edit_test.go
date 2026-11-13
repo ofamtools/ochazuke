@@ -436,6 +436,14 @@ func TestNoteFunctions(t *testing.T) {
 	if _, _, err := AddNote(src, item, "a", "", strings.Repeat("x", NoteMax+1)); err == nil {
 		t.Fatal("a note over the cap must be refused")
 	}
+	// Record first: an empty note is saved, never refused.
+	empty, _, err := AddNote(src, item, "a", "2026-11-13", "  \n")
+	if err != nil {
+		t.Fatalf("an empty note must be saved: %v", err)
+	}
+	if got := Notes(empty); len(got) != 3 || got[2].Author != "a" || got[2].Text != "" {
+		t.Fatalf("empty note %+v in %q", got, empty)
+	}
 }
 
 // An edit made on disk since the Doc read the file is seen first: the

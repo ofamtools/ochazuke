@@ -1070,7 +1070,7 @@ func (t *Tree) openLine(id string, selected bool) error {
 // its text selected, so typing replaces it (Input.SelectText).
 func (t *Tree) Edit(id string, selected bool) error {
 	if !t.Editable() {
-		return errors.New("tree is read-only")
+		return &ReadOnlyError{Noun: "tree", Reason: "its application takes no edits (no OnChange)"}
 	}
 	return t.rename(id, selected)
 }
@@ -1796,7 +1796,7 @@ func registerTrees(r *Runtime) {
 	edit := func(run func(*Tree, Ctx) error) AppHandler {
 		return on(func(t *Tree, c Ctx) error {
 			if !t.Editable() {
-				return errors.New("tree is read-only")
+				return &ReadOnlyError{Noun: "tree", Reason: "its application takes no edits (no OnChange)"}
 			}
 			return run(t, c)
 		})

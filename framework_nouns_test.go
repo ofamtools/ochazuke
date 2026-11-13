@@ -251,7 +251,7 @@ func TestInstancesStoreReadsLiveInstances(t *testing.T) {
 	if got := paletteRequest(t, r, "get", "widget", Arguments{"prop": "name"}); got != "First" {
 		t.Fatalf("widget get in w1 %v", got)
 	}
-	if _, err := r.Execute(Request{Noun: "widget", Verb: "get", Args: Arguments{"id": "other"}}); err == nil || !strings.Contains(err.Error(), `unknown widget "other"`) {
+	if _, err := r.Execute(Request{Noun: "widget", Verb: "get", Args: Arguments{"id": "other"}}); err == nil || !strings.Contains(err.Error(), `no widget "other"`) {
 		t.Fatalf("get of another noun's instance: %v", err)
 	}
 }

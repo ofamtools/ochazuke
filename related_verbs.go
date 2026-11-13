@@ -400,7 +400,7 @@ func cutVerbKey(key string) (noun, verb string, ok bool) {
 // readOnly refuses a write of a read-only referring prop, saying why.
 func (s *relatedSection) readOnly(verb string) error {
 	if s.ref.ReadOnly {
-		return fmt.Errorf("cannot %s: %s.%s is read-only", verb, s.rel.r.DisplayNoun(s.ref.Noun), s.ref.Prop)
+		return fmt.Errorf("cannot %s: %w", verb, &ReadOnlyError{Noun: s.rel.r.DisplayNoun(s.ref.Noun), Prop: s.ref.Prop})
 	}
 	return nil
 }

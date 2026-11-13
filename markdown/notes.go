@@ -38,7 +38,8 @@ func NoteElement(src, id string) int {
 
 // CleanNote is note text as it is written: control characters other than
 // line ends dropped (a tab is a space), trailing blanks trimmed; an error
-// when it is empty or longer than NoteMax.
+// only when it is longer than NoteMax. An empty note is kept (record
+// first): it is saved empty, for the owner to fill or undo.
 func CleanNote(text string) (string, error) {
 	var b strings.Builder
 	for _, r := range strings.ReplaceAll(text, "\r\n", "\n") {
@@ -55,7 +56,7 @@ func CleanNote(text string) (string, error) {
 	out := strings.TrimRight(b.String(), " \n")
 	out = strings.TrimLeft(out, "\n")
 	if strings.TrimSpace(out) == "" {
-		return "", errors.New("the note is empty")
+		return "", nil
 	}
 	if len(out) > NoteMax {
 		return "", fmt.Errorf("the note is %d bytes, more than the %d a note may hold", len(out), NoteMax)
@@ -87,7 +88,7 @@ func noteLines(indent int, head, text string) string {
 	var b strings.Builder
 	for i, l := range lines {
 		if i == 0 {
-			b.WriteString(pad + head + l)
+			b.WriteString(strings.TrimRight(pad+head+l, " ")) // an empty note ends at its colon
 			continue
 		}
 		b.WriteString("\n" + pad + strings.TrimRight("> "+l, " "))

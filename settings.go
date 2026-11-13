@@ -447,16 +447,9 @@ func (s *Settings) entry(one Setting) SettingValue {
 	return out
 }
 
-func (s *Settings) unknown(name string) error {
-	names := make([]string, len(s.declared))
-	for i, one := range s.declared {
-		names[i] = one.Name
-	}
-	if len(names) == 0 {
-		return fmt.Errorf("unknown setting %q: this application declares none", name)
-	}
-	return fmt.Errorf("unknown setting %q: one of %s", name, strings.Join(names, ", "))
-}
+// unknown is the unknown-setting error, the did-you-mean form every
+// path shares (setUnknown).
+func (s *Settings) unknown(name string) error { return setUnknown(name, s.declared) }
 
 // Set validates value against the setting's type and enum (a string is
 // parsed: "3", "true", "400ms"), writes settings.json and tells the

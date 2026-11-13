@@ -86,7 +86,7 @@ func (s *session) compose(buf string) string {
 
 func (d *Doc) editable() error {
 	if d.src.Save == nil {
-		return errors.New("this markdown is read-only")
+		return errReadOnly
 	}
 	return nil
 }

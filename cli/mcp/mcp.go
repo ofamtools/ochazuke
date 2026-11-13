@@ -5,9 +5,12 @@ package mcp
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
+
+	"ofam.dev/ochazuke"
 )
 
 // DataNote accompanies results that can contain app and extension text.
@@ -123,7 +126,11 @@ func (s *Server) Call(ctx context.Context, name string, args map[string]any) (an
 	if args == nil {
 		args = map[string]any{}
 	}
-	if err := validate(tool.InputSchema, args); err != nil {
+	if err := validate(name, tool.InputSchema, args); err != nil {
+		var unknown *ochazuke.UnknownNameError
+		if errors.As(err, &unknown) {
+			return nil, invalid(err.Error())
+		}
 		return nil, invalid(name + ": " + err.Error())
 	}
 	if isAlias {

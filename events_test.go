@@ -250,7 +250,7 @@ func TestHooksCheck(t *testing.T) {
 		`warning: hooks.json: row 1: surface.closed → sync.run: unknown event "surface.closed" (events list shows the declared ones)`,
 		`warning: hooks.json: row 2: surface.left → sync.run: where key "title" is not a field of surface.left`,
 		`hooks.json: row 3: surface.left → nope.verb: unknown verb "nope.verb" (skipped)`,
-		`hooks.json: row 4: surface.left → sync.run: unknown argument "color" (skipped)`,
+		`hooks.json: row 4: surface.left → sync.run: sync.run has no parameter "color"; it takes changes, event, noun, reason (skipped)`,
 		`hooks.json: row 5: surface.left: a row needs do (the verb, noun.verb) (skipped)`,
 	}
 	if len(got) != len(want) {

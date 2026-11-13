@@ -140,10 +140,35 @@ func (s *Shell) resolveMCPVerb(name string) (ochazuke.Operation, error) {
 		}
 	}
 	if len(candidates) == 0 {
-		return ochazuke.Operation{}, fmt.Errorf("unknown verb %q; call catalog", name)
+		keys := make([]string, 0, r.Operations.Len())
+		for _, op := range r.Catalog() {
+			keys = append(keys, op.Key.Short())
+		}
+		return ochazuke.Operation{}, &ochazuke.UnknownNameError{Kind: "verb", Name: name, Near: ochazuke.NearNames(name, keys, ochazuke.NearShown), List: "catalog lists every verb"}
 	}
 	keys := slices.Sorted(stdmaps.Keys(candidates))
-	return ochazuke.Operation{}, fmt.Errorf("ambiguous verb %q: %s", name, strings.Join(keys, ", "))
+	// One verb of several nouns sharing a word (change.list for git.change
+	// and inventory.change): the CLI's rule decides (Runtime.SharedNoun,
+	// setting cli.ambiguous), and its refusal names each in full.
+	verbs := map[string]bool{}
+	var nouns []string
+	for _, op := range candidates {
+		verbs[op.Name()] = true
+		nouns = append(nouns, op.Noun())
+	}
+	if len(verbs) == 1 {
+		word, _ := ochazuke.SplitKey(name)
+		noun, err := r.SharedNoun(word, nouns)
+		if err == nil {
+			for _, op := range candidates {
+				if op.Noun() == noun {
+					return op, nil
+				}
+			}
+		}
+		return ochazuke.Operation{}, &ochazuke.AmbiguousNounError{Word: name, Nouns: keys}
+	}
+	return ochazuke.Operation{}, fmt.Errorf("%q is ambiguous: %s (write one in full)", name, strings.Join(keys, ", "))
 }
 
 func parameterSchema(params map[string]ochazuke.Parameter) map[string]any {
@@ -665,7 +690,11 @@ func (s *Shell) defineCatalogFacts() {
 					return t, nil
 				}
 			}
-			return nil, fmt.Errorf("unknown noun %q", name)
+			names := make([]string, 0, len(things))
+			for _, t := range things {
+				names = append(names, fmt.Sprint(t["name"]))
+			}
+			return nil, &ochazuke.NotFoundError{Noun: "noun", ID: name, Near: ochazuke.NearNames(name, names, ochazuke.NearShown), List: "catalog lists every noun"}
 		},
 	})
 }

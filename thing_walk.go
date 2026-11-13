@@ -246,7 +246,7 @@ func (w *thingWalk) nouns(c Ctx, query string) ([]PickerRow, error) {
 		} else if page.Total == 0 {
 			continue
 		}
-		row := Choice{ID: "walk:noun:" + name, Label: label + " " + count, RowFlags: RowFlags{Bare: true, Opens: true, NoPick: true}}.Row()
+		row := Choice{ID: "walk:noun:" + name, Label: label + " " + count, Keywords: w.r.NounKeywords(name), RowFlags: RowFlags{Bare: true, Opens: true, NoPick: true}}.Row()
 		row.walk = &thingWalkNode{kind: walkNoun, noun: name, label: label}
 		rows = append(rows, row)
 	}

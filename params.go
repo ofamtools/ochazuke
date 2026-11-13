@@ -26,6 +26,9 @@ type Choice struct {
 	// Tones colour runs of the row (PickerRow.Tones): Cell indexes Cells,
 	// or is 0 for the Label.
 	Tones []ToneSpan `json:"tones,omitempty"`
+	// Keywords are other words the choice answers to in a picker's filter,
+	// never drawn (PickerRow.Keywords): a noun's aliases.
+	Keywords []string `json:"keywords,omitempty"`
 	// Data is the opaque handle the picked row carries (PickerRow.Data); a
 	// source whose pick needs more than the id sets it. Noun is the row's
 	// noun when it differs from the picker's (PickerRow.Noun) and Props its
@@ -106,7 +109,7 @@ func (c Choice) Entry(order string) ChoiceEntry {
 // and flags carry across. A choice with no label of its own shows its id
 // alone. The id is not toned on a row with Cells: it is not drawn there.
 func (c Choice) Row() PickerRow {
-	row := PickerRow{ID: c.ID, Label: c.ID, Cells: c.Cells, Tones: slices.Clone(c.Tones),
+	row := PickerRow{ID: c.ID, Label: c.ID, Cells: c.Cells, Tones: slices.Clone(c.Tones), Keywords: c.Keywords,
 		Opens: c.Opens, NoPick: c.NoPick, Refuse: c.Refuse, Trailing: c.Trailing, Fixed: c.Fixed,
 		Data: c.Data, Noun: c.Noun, Props: c.Props}
 	if c.Bare {
@@ -527,7 +530,7 @@ func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 			continue
 		}
 		if !hasChoice(choices, s) {
-			return choiceError(name, choices)
+			return r.choiceError(name, p, s, choices)
 		}
 	}
 	return nil
@@ -537,13 +540,30 @@ func hasChoice(choices []Choice, id string) bool {
 	return slices.ContainsFunc(choices, func(c Choice) bool { return c.ID == id })
 }
 
-func choiceError(name string, choices []Choice) error {
+// choiceError is the error for value, which is none of a parameter's
+// choices: the unknown-name form (UnknownNameError) with the close choices
+// when the choices are a registered noun's things ("unknown setting nosuch:
+// did you mean …; setting list shows all"), else "NAME must be one of …"
+// (the choices when they are few) with the close ones.
+func (r *Runtime) choiceError(name string, p Parameter, value string, choices []Choice) error {
 	ids := make([]string, len(choices))
 	for i, c := range choices {
 		ids[i] = c.ID
 	}
-	return fmt.Errorf("%s must be one of %s", name, strings.Join(ids, ", "))
+	near := NearNames(value, ids, NearShown)
+	if source, ok := r.Operation(r.ChoicesSource(p)); ok && source.Rows != "" && r.Nouns[source.Rows] != nil {
+		kind := r.DisplayNoun(source.Rows)
+		return &UnknownNameError{Kind: kind, Name: value, Near: near, List: kind + " list shows all"}
+	}
+	listed := strings.Join(ids, ", ")
+	if len(ids) > choicesListed {
+		listed = fmt.Sprintf("%d choices (the picker lists them)", len(ids))
+	}
+	return fmt.Errorf("%s must be one of %s%s", name, listed, didYouMean(near))
 }
+
+// choicesListed is how many choices an unknown-choice error lists whole.
+const choicesListed = 12
 
 // choicesLoad is a parameter's choices for query as a Result whose value
 // is a []Choice: Done when they are at hand, Pending when the source verb

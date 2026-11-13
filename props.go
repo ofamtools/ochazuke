@@ -251,6 +251,23 @@ func PropField(p PropSpec) RecordField {
 // never is), not create-only.
 func (p PropSpec) writable() bool { return !p.ReadOnly && !p.Key && !p.CreateOnly }
 
+// readOnlyReason says why a prop that is not writable is not: its key, set
+// only when the thing is made, or "" (declared read-only).
+func (p PropSpec) readOnlyReason() string {
+	switch {
+	case p.Key:
+		return "it is the key"
+	case p.CreateOnly:
+		return "it is set when the thing is made"
+	}
+	return ""
+}
+
+// readOnlyError is the read-only error for a write of prop p of noun.
+func (r *Runtime) readOnlyError(noun string, p PropSpec) error {
+	return &ReadOnlyError{Noun: r.DisplayNoun(noun), Prop: p.Name, Reason: p.readOnlyReason()}
+}
+
 // computed reports whether the prop is computed when asked for (Read) or
 // describes the whole collection: it is never part of a thing's record.
 func (p PropSpec) computed() bool { return p.Read != nil || p.Subject != "" }
@@ -581,7 +598,7 @@ func instancesStore(noun string, s Store) Store {
 		n := r.Nouns[noun]
 		inst := r.Instances[id]
 		if inst == nil || !slices.Contains(r.liveIDs(n), id) {
-			return nil, fmt.Errorf("unknown %s %q", r.DisplayNoun(noun), id)
+			return nil, r.NotFound(noun, id, r.liveIDs(n))
 		}
 		t := r.liveThing(n, inst)
 		if get != nil {
@@ -1070,7 +1087,7 @@ func (r *Runtime) requestProp(q Request) (*Noun, *PropSpec, error) {
 	}
 	switch {
 	case q.Writes() && !p.writable():
-		return nil, nil, &ArgumentError{fmt.Errorf("%s is read-only", r.displayRequest(q))}
+		return nil, nil, &ArgumentError{r.readOnlyError(q.Noun, *p)}
 	case q.Toggle && p.Type != SettingBoolean:
 		return nil, nil, &ArgumentError{fmt.Errorf("%s is %s: only a boolean prop toggles", r.displayRequest(q), p.Type)}
 	}

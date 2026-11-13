@@ -44,6 +44,11 @@ type PickerRow struct {
 	// wide as its widest cell among the rows); Label stays what the
 	// filter reads.
 	Cells []string
+	// Keywords are other words the row answers to, never drawn: the
+	// default filter matches the Label or any of them (setting
+	// picker.keywords), so a row of a noun is found by the noun's aliases
+	// (Runtime.NounKeywords) as well as by the name it is drawn by.
+	Keywords []string
 	// Opens marks a row its source can open (ChooserSource.Open: a
 	// folder to browse into): chooser.open opens it, and so does enter
 	// unless the setting chooser.enter is "pick". NoPick marks a row that
@@ -714,8 +719,7 @@ func (c *Chooser) refilter() {
 	cm := c.r.CaseFor(c.seen)
 	filter := c.spec.Filter
 	if filter == nil {
-		m := c.matcher()
-		filter = func(_ string, row ChooserRow) bool { return m.Match(row.Label) }
+		filter = c.defaultFilter()
 	}
 	head, tail, fixed, sectioned := c.collectRows(filter)
 	head = c.rankRows(head, sectioned, cm)
@@ -1433,3 +1437,20 @@ func (c *Chooser) noMatchLine() string {
 	}
 	return c.hinted(NoMatchText(c.spec.Plural, c.Query()))
 }
+
+// defaultFilter is the match on a row's Label in the chooser's match mode,
+// and with picker.keywords on on its Label and Keywords together.
+func (c *Chooser) defaultFilter() func(string, ChooserRow) bool {
+	m := c.matcher()
+	keywords := c.r.Settings().Bool(PickerKeywordsSetting)
+	return func(_ string, row ChooserRow) bool {
+		if m.Match(row.Label) {
+			return true
+		}
+		return keywords && len(row.Keywords) > 0 && m.Match(row.Label+" "+strings.Join(row.Keywords, " "))
+	}
+}
+
+// PickerKeywordsSetting turns the default filter's reading of a row's
+// Keywords on (default) or off.
+const PickerKeywordsSetting = "picker.keywords"

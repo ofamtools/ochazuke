@@ -108,7 +108,7 @@ func (d *docStore) get(c Ctx, key string) (Thing, error) {
 	case err != nil:
 		return nil, err
 	case !ok:
-		return nil, fmt.Errorf("no %s %q", c.Runtime.DisplayNoun(d.noun), key)
+		return nil, c.Runtime.ThingNotFound(c, d.noun, key)
 	}
 	return t, nil
 }
@@ -198,7 +198,7 @@ func (d *docStore) patch(c Ctx, key string, changes Thing) (Thing, error) {
 	case err != nil:
 		return nil, err
 	case !ok:
-		return nil, fmt.Errorf("no %s %q", c.Runtime.DisplayNoun(d.noun), key)
+		return nil, c.Runtime.ThingNotFound(c, d.noun, key)
 	}
 	t = maps.Clone(t)
 	for k, v := range changes {
@@ -219,7 +219,7 @@ func (d *docStore) delete(c Ctx, key string) error {
 	if _, ok, err := d.table.Get(key); err != nil {
 		return err
 	} else if !ok {
-		return fmt.Errorf("no %s %q", c.Runtime.DisplayNoun(d.noun), key)
+		return c.Runtime.ThingNotFound(c, d.noun, key)
 	}
 	if d.hooks.BeforeDelete != nil {
 		if err := d.hooks.BeforeDelete(c, key); err != nil {

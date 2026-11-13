@@ -292,8 +292,8 @@ func TestSetLineErrors(t *testing.T) {
 	cases := []struct {
 		line, want string
 	}{
-		{"focus-dispaly", "unknown setting focus-dispaly: did you mean focus-display, modal-dim, notify?"},
-		{"nofocsu", "unknown setting nofocsu: did you mean focus-display, zoom, layout?"},
+		{"focus-dispaly", "unknown setting focus-dispaly: did you mean focus-display?; setting list shows all"},
+		{"nofocsu", "unknown setting nofocsu: did you mean focus-display?; setting list shows all"},
 		{"=3", "a setting name comes before the operator"},
 		{"tree", "tree is ambiguous: tree.zoom, tree.zoom.root, tree.breadcrumb"},
 		{"t", "t is ambiguous: title, terminal.engine, tree.zoom, tree.zoom.root, tree.breadcrumb, …"},
@@ -324,7 +324,7 @@ func TestSetLineErrors(t *testing.T) {
 		{"invhelp.pick-view?", "unexpected text after invhelp.pick-view: ?"},
 		{"focus-display&vi", "settings have one default: use focus-display&"},
 		{"help.pick-view modal-dim=3x title=x", "modal-dim takes a whole number: 3x; nothing was changed"},
-		{"all=1", "unknown setting all: did you mean help.pick-view, zoom, title?"},
+		{"all=1", "unknown setting all; setting list shows all"},
 	}
 	settings := setLineSettings()
 	for _, c := range cases {
@@ -336,7 +336,7 @@ func TestSetLineErrors(t *testing.T) {
 			t.Errorf("parseSetLine(%q) answered operations with its error", c.line)
 		}
 	}
-	if _, err := parseSetLine("x", nil); err == nil || err.Error() != "unknown setting x: this application declares none" {
+	if _, err := parseSetLine("x", nil); err == nil || err.Error() != "unknown setting x; this application declares none" {
 		t.Errorf("no settings: %v", err)
 	}
 	_, err := parseSetLine("help.pick-view modal-dim=3x", settings)

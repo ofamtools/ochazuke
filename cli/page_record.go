@@ -53,7 +53,7 @@ func (v *PageView) OpenRow(noun, key string) error {
 			return err
 		}
 	} else if v.cfg.FetchRecord == nil {
-		return fmt.Errorf("no %s %q on page %s", noun, key, v.Page())
+		return &ochazuke.NotFoundError{Noun: v.m.Runtime.DisplayNoun(noun), ID: key, List: "page " + v.Page() + " lists them"}
 	}
 	if v.cfg.FetchRecord == nil {
 		return nil
@@ -155,7 +155,7 @@ func (v *PageView) decodeRecord(pl *pageList, key string, raw []byte) (Row, erro
 		return Row{}, err
 	}
 	if data == nil {
-		return Row{}, fmt.Errorf("no %s %q", pl.spec.Noun, key)
+		return Row{}, v.m.Runtime.ThingNotFound(ochazuke.Ctx{Runtime: v.m.Runtime}, pl.rowNoun, key)
 	}
 	var err error
 	key, err = v.m.Runtime.CanonicalThingKey(ochazuke.Ctx{Runtime: v.m.Runtime}, pl.rowNoun, key, ochazuke.Thing(data))

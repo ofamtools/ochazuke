@@ -53,7 +53,7 @@ func TestAliasPresetArgsAndBareNames(t *testing.T) {
 	if op, inv, ok := r.ResolveAction("w!"); !ok || op.Key.Short() != "doc.write" || !inv.Alias {
 		t.Fatalf("ResolveAction: %v %+v", ok, inv)
 	}
-	if err := r.AddActionAlias(ActionAlias{Alias: "w2", Action: "doc.write", Args: Arguments{"nope": 1}}); err == nil || !strings.Contains(err.Error(), "unknown argument") {
+	if err := r.AddActionAlias(ActionAlias{Alias: "w2", Action: "doc.write", Args: Arguments{"nope": 1}}); err == nil || !strings.Contains(err.Error(), `has no parameter "nope"`) {
 		t.Fatalf("bad preset args: %v", err)
 	}
 	if err := r.AddActionAlias(ActionAlias{Alias: "a.b!", Action: "doc.write"}); err == nil {

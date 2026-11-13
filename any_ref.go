@@ -69,10 +69,11 @@ func (r *Runtime) anyRefChoices(c Context, query string) ([]Choice, error) {
 		var out []Choice
 		for _, noun := range r.anyRefNouns() {
 			label := r.DisplayNoun(noun)
-			if !strings.Contains(strings.ToLower(label+" "+noun), strings.ToLower(strings.TrimSpace(word))) {
+			keywords := r.NounKeywords(noun)
+			if !strings.Contains(strings.ToLower(label+" "+noun+" "+strings.Join(keywords, " ")), strings.ToLower(strings.TrimSpace(word))) {
 				continue
 			}
-			out = append(out, Choice{ID: noun + ":", Label: label, Word: noun, RowFlags: RowFlags{Opens: true, NoPick: true, Bare: true}})
+			out = append(out, Choice{ID: noun + ":", Label: label, Word: noun, Keywords: keywords, RowFlags: RowFlags{Opens: true, NoPick: true, Bare: true}})
 		}
 		return out, nil
 	}

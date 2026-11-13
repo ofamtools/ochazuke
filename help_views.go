@@ -768,7 +768,7 @@ func (h *helpState) placeRows() []ChooserRow {
 	choices := []Choice{{ID: "none", Label: "no place (noun + app)", Data: helpPlaceChoice{Noun: h.noun}, Cells: []string{"no place (noun + app)", "", current(nil)}, RowFlags: RowFlags{Bare: true}}}
 	for i, p := range h.r.NounPlaces(h.noun) {
 		label := placeLabel(h.r, p)
-		choices = append(choices, Choice{ID: fmt.Sprintf("place/%d", i), Label: label, Data: helpPlaceChoice{Noun: p.Noun, Place: &p}, Cells: []string{label, fmt.Sprintf("%d×", p.Count), current(&p)}, RowFlags: RowFlags{Bare: true}})
+		choices = append(choices, Choice{ID: fmt.Sprintf("place/%d", i), Label: label, Keywords: h.r.NounKeywords(p.Noun), Data: helpPlaceChoice{Noun: p.Noun, Place: &p}, Cells: []string{label, fmt.Sprintf("%d×", p.Count), current(&p)}, RowFlags: RowFlags{Bare: true}})
 	}
 	return ChoiceRows(choices)
 }
@@ -781,6 +781,10 @@ type HelpPlaceRow struct {
 	Mode  string
 	Label string
 	Count int
+	// Keywords are the other names of the nouns of the row's chain
+	// (NounKeywords): the place is found by any of them (live for a
+	// terminal an application aliases live).
+	Keywords []string
 }
 
 // HelpPlaceRows is every place the application has, flat, as the ? help's
@@ -804,12 +808,20 @@ func (r *Runtime) HelpPlaceRows(mode string) []HelpPlaceRow {
 		if place != nil {
 			count = place.Count
 		}
+		var keywords []string
+		for _, n := range chain {
+			for _, k := range r.NounKeywords(n) {
+				if !slices.Contains(keywords, k) {
+					keywords = append(keywords, k)
+				}
+			}
+		}
 		for _, m := range modes {
 			full := label + " · mode " + m
 			if place != nil && place.Modal != "" {
 				full += " · modal " + r.DisplayNoun(place.Modal)
 			}
-			out = append(out, HelpPlaceRow{Noun: noun, Place: place, Mode: m, Label: full, Count: count})
+			out = append(out, HelpPlaceRow{Noun: noun, Place: place, Mode: m, Label: full, Count: count, Keywords: keywords})
 		}
 	}
 	for _, p := range r.AllPlaces() {
@@ -870,7 +882,7 @@ func (h *helpState) allPlaceRows() []ChooserRow {
 		if row.Count > 0 {
 			count = fmt.Sprintf("%d×", row.Count)
 		}
-		c := Choice{ID: fmt.Sprintf("place/%d", i), Label: row.Label, Data: helpPlaceChoice{Noun: row.Noun, Place: row.Place, Mode: row.Mode}, Cells: []string{row.Label, count, ""}, RowFlags: RowFlags{Bare: true}}
+		c := Choice{ID: fmt.Sprintf("place/%d", i), Label: row.Label, Keywords: row.Keywords, Data: helpPlaceChoice{Noun: row.Noun, Place: row.Place, Mode: row.Mode}, Cells: []string{row.Label, count, ""}, RowFlags: RowFlags{Bare: true}}
 		if len(first) == 0 && isCurrent(row) {
 			mark = "current"
 			c.Cells[2] = mark
@@ -995,6 +1007,7 @@ func registerHelpViews(r *Runtime) {
 				for i := range rows {
 					rows[i].Label = h.r.DisplayNoun(rows[i].ID)
 					rows[i].Cells[0] = rows[i].Label
+					rows[i].Keywords = h.r.NounKeywords(rows[i].ID)
 				}
 				_, err := h.r.OpenChooser(ChooserSpec{Kind: helpNounKind, Title: "Noun", Keep: []int{0}, Rows: rows, Choose: func(row ChooserRow) Result {
 					h.setNoun(row.ID)

@@ -702,7 +702,7 @@ func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []st
 			p, ok = s.paramAlias(q, op, name)
 		}
 		if !ok {
-			return q, opts, fmt.Errorf("%s has no parameter %q", q.Key(), name)
+			return q, opts, ochazuke.NoParameter(op, name)
 		}
 		if p.Type == "boolean" && !inline && (i+1 >= len(flags) || strings.HasPrefix(flags[i+1], "--")) {
 			q.Args[name] = true
@@ -716,7 +716,7 @@ func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []st
 			return q, opts, fmt.Errorf("--%s: %w", name, err)
 		}
 	}
-	if err := positional(q, op, words, presets); err != nil {
+	if err := positional(&q, op, words, presets, s.takesTarget(op)); err != nil {
 		return q, opts, err
 	}
 	if opts.since != nil && opts.format != "" && opts.format != "json" {
@@ -770,6 +770,28 @@ func (s *Shell) paramAlias(q ochazuke.Request, op ochazuke.Operation, name strin
 	return p, ok
 }
 
+// targetWord moves the first of words into q's target when there is one
+// word more than the open parameters take and no target was given, and
+// answers the words left.
+func targetWord(q *ochazuke.Request, open, words []string) []string {
+	if len(words) != len(open)+1 || q.Target != "" {
+		return words
+	}
+	q.Target = words[0]
+	return words[1:]
+}
+
+// takesTarget reports whether a bare word may name op's target: op acts on
+// one thing (no Subject) of a noun with things or instances (not a
+// singleton) and declares no parameter named target.
+func (s *Shell) takesTarget(op ochazuke.Operation) bool {
+	if op.Subject != "" || hasParameter(op, "target") {
+		return false
+	}
+	n := s.Runtime.Noun(op.Noun())
+	return n != nil && (n.Store == nil || n.Store.Kind != ochazuke.Singleton)
+}
+
 // hasParameter reports whether op declares a parameter called name.
 func hasParameter(op ochazuke.Operation, name string) bool {
 	_, ok := op.Parameters[name]
@@ -779,8 +801,11 @@ func hasParameter(op ochazuke.Operation, name string) bool {
 // positional fills the parameters no flag (and no alias preset) set from
 // words, in Operation.ParameterOrder, typed by each parameter. A boolean
 // takes a bare word only when Operation.Positional names it, and a Named
-// parameter never does; otherwise it is set with --NAME.
-func positional(q ochazuke.Request, op ochazuke.Operation, words []string, presets ochazuke.Arguments) error {
+// parameter never does; otherwise it is set with --NAME. One word more
+// than the open parameters take, on a verb that acts on one thing, with no
+// target given, is the target (task show 3, as --target 3; project show
+// takes it as its key parameter the same way), whatever the noun.
+func positional(q *ochazuke.Request, op ochazuke.Operation, words []string, presets ochazuke.Arguments, takesTarget bool) error {
 	if len(words) == 0 {
 		return nil
 	}
@@ -801,7 +826,13 @@ func positional(q ochazuke.Request, op ochazuke.Operation, words []string, prese
 		// focus or --KEY.
 		open = open[1:]
 	}
-	if rest := slices.IndexFunc(open, func(name string) bool { return op.Parameters[name].Rest }); rest >= 0 {
+	rest := slices.IndexFunc(open, func(name string) bool { return op.Parameters[name].Rest })
+	if rest < 0 && takesTarget {
+		if words = targetWord(q, open, words); len(words) == 0 {
+			return nil
+		}
+	}
+	if rest >= 0 {
 		open = open[:rest+1]
 	} else if len(words) > len(open) {
 		takes := "no positional arguments"

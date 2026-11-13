@@ -471,12 +471,9 @@ func runGet(r *Runtime, n *Noun, c Ctx) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	t, err := n.Store.Get(c, id)
+	t, err := r.getThing(c, n, id, id)
 	if err != nil {
 		return nil, err
-	}
-	if t == nil {
-		return nil, fmt.Errorf("no %s %q", r.DisplayNoun(n.Name), id)
 	}
 	t = maps.Clone(t) // computed props are added to the copy, never to the store's thing
 	if err := readComputed(c, n, t, append([]string{prop}, names...)); err != nil {
@@ -823,12 +820,9 @@ func (r *Runtime) createSource(n *Noun, c Ctx, from any) (Thing, error) {
 	if err != nil {
 		return nil, err
 	}
-	t, err := n.Store.Get(c, id)
+	t, err := r.getThing(c, n, id, text)
 	if err != nil {
 		return nil, err
-	}
-	if t == nil {
-		return nil, fmt.Errorf("no %s %q", r.DisplayNoun(n.Name), text)
 	}
 	return t, nil
 }
@@ -990,7 +984,7 @@ func writeTarget(n *Noun, name string) (*PropSpec, error) {
 	case p == nil:
 		return nil, &ArgumentError{fmt.Errorf("%s has no prop %q; only declared props are writable", n.Name, name)}
 	case !p.writable():
-		return nil, &ArgumentError{fmt.Errorf("%s.%s is read-only", n.Name, p.Name)}
+		return nil, &ArgumentError{&ReadOnlyError{Noun: n.Name, Prop: p.Name, Reason: p.readOnlyReason()}}
 	}
 	return p, nil
 }

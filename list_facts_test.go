@@ -91,7 +91,7 @@ func TestListFactsPropsAndGet(t *testing.T) {
 			t.Fatalf("get %s: %+v", key, got)
 		}
 	}
-	if _, err := r.Execute(Request{Noun: "widget", Verb: "get", Args: Arguments{"id": "nope"}}); err == nil || !strings.Contains(err.Error(), "unknown") {
+	if _, err := r.Execute(Request{Noun: "widget", Verb: "get", Args: Arguments{"id": "nope"}}); err == nil || !strings.Contains(err.Error(), `no widget "nope"`) {
 		t.Fatalf("unknown widget: %v", err)
 	}
 	if _, err := r.Execute(Request{Noun: "widget", Verb: "create", Confirmed: true}); err == nil || !strings.Contains(err.Error(), FactReason) {

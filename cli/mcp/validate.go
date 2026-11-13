@@ -5,10 +5,16 @@ import (
 	"slices"
 	"sort"
 	"strings"
+
+	"ofam.dev/ochazuke"
 )
 
-// Adapted from matomeru internal/mcp: validate the schema subset tools expose.
-func validate(schema map[string]any, args map[string]any) error {
+// Adapted from matomeru internal/mcp: validate the schema subset tools
+// expose. owner names the tool (or the object) in an unknown-argument
+// error, worded as the CLI words it (ochazuke.NoParameter): "owner has no
+// parameter NAME: did you mean …; it takes …". A null an optional
+// argument holds is no argument: it is dropped from args, never refused.
+func validate(owner string, schema map[string]any, args map[string]any) error {
 	props, _ := schema["properties"].(map[string]any)
 	required, _ := schema["required"].([]string)
 	for _, name := range required {
@@ -17,7 +23,11 @@ func validate(schema map[string]any, args map[string]any) error {
 		}
 	}
 	names := make([]string, 0, len(args))
-	for name := range args {
+	for name, v := range args {
+		if v == nil {
+			delete(args, name) // not required (checked above): unset
+			continue
+		}
 		names = append(names, name)
 	}
 	sort.Strings(names)
@@ -25,7 +35,18 @@ func validate(schema map[string]any, args map[string]any) error {
 		prop, ok := props[name].(map[string]any)
 		if !ok {
 			if extra, _ := schema["additionalProperties"].(bool); !extra {
-				return fmt.Errorf("unknown argument %q", name)
+				known := slices.Sorted(func(yield func(string) bool) {
+					for k := range props {
+						if !yield(k) {
+							return
+						}
+					}
+				})
+				takes := "it takes no parameters"
+				if len(known) > 0 {
+					takes = "it takes " + strings.Join(known, ", ")
+				}
+				return &ochazuke.UnknownNameError{Kind: "parameter", Name: name, Of: owner, Near: ochazuke.NearNames(name, known, ochazuke.NearShown), List: takes}
 			}
 			continue
 		}
@@ -87,7 +108,7 @@ func validateValue(prop map[string]any, value any) error {
 		if !ok {
 			return fmt.Errorf("must be an object, not %s", jsonType(value))
 		}
-		return validate(prop, m)
+		return validate("the object", prop, m)
 	}
 
 	var number float64

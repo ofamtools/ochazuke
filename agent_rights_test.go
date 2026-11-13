@@ -90,15 +90,16 @@ func TestAgentConfirmOwnerOnly(t *testing.T) {
 		NewModel(r)
 		var got Actor
 		ran := 0
-		r.Define("work").Verb("kill", func(c Ctx) Result { got = c.Actor(); ran++; return Done(nil) }).Agent(AgentConfirm)
+		r.Define("work").Verb("kill", func(c Ctx) Result { got = c.Actor(); ran++; return Done(nil) }).Params(map[string]Parameter{"why": {Type: "string"}}).Agent(AgentConfirm)
 		if err := r.Settings().Set(AgentConfirmAttributionSetting, attribution); err != nil {
 			t.Fatal(err)
 		}
 		a := testAgent("p")
 		restore := r.BindActor(a, false)
-		_, err := r.Execute(Request{Noun: "work", Verb: "kill", Confirmed: true})
+		_, err := r.Execute(Request{Noun: "work", Verb: "kill", Confirmed: true, Args: Arguments{"why": "stuck pane"}})
 		restore()
-		if err == nil || !strings.Contains(err.Error(), "needs the owner's confirmation") || r.TopModal() != "" || ran != 0 {
+		// The refusal names the verb and the command the owner runs.
+		if err == nil || !strings.Contains(err.Error(), "work.kill: needs the owner's confirmation; ask them to run: work kill --why 'stuck pane'") || r.TopModal() != "" || ran != 0 {
 			t.Fatalf("headless %v", err)
 		}
 		_, err = r.Execute(Request{Noun: "work", Verb: "kill", Actor: &a, Confirmed: true})

@@ -46,13 +46,19 @@ func (s *Shell) tailShadows(namespace string, c ochazuke.Candidate) bool {
 }
 
 // binds is how far the rest of the argv binds on a candidate: all of it
-// when the shell reads it as the operation's flags and arguments, else
-// none.
+// when the shell reads it as the operation's flags and arguments (less
+// when a bare word only binds as the target), else none.
 func (s *Shell) binds(c ochazuke.Candidate) int {
-	if _, _, err := s.request(c.Operation.Noun(), c.Operation.Name(), c.Rest); err != nil {
+	q, _, err := s.request(c.Operation.Noun(), c.Operation.Name(), c.Rest)
+	switch {
+	case err != nil:
 		return 0
+	case q.Target != "" && !slices.ContainsFunc(c.Rest, func(w string) bool { return w == "--target" || strings.HasPrefix(w, "--target=") }):
+		// A bare word read as the target binds less than one a parameter
+		// takes: "q w up" is quad warp up, not quill wipe --target up.
+		return 1
 	}
-	return 1
+	return 2
 }
 
 // verbFirstWords is argv rewritten to the long spelling when the reader

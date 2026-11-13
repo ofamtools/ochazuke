@@ -170,7 +170,7 @@ func (cs *copyStore) nounOf(c Ctx) (*Noun, *PropSpec, error) {
 }
 
 func (cs *copyStore) unknown(c Ctx, key string) error {
-	return fmt.Errorf("unknown %s %q", c.Runtime.DisplayNoun(cs.noun), key)
+	return c.Runtime.NotFound(cs.noun, key, nil)
 }
 
 func tombstoned(t Thing) bool { b, _ := t[CopyTombstone].(bool); return b }

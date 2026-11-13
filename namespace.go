@@ -281,7 +281,7 @@ func (r *Runtime) AddNounAlias(a NounAlias) error {
 	}
 	r.setAlias(alias, noun)
 	a.Shadowed = false
-	if a.Deprecated() || a.Note != "" {
+	if a.Deprecated() || a.Note != "" || a.NoDisplay {
 		if r.actionNames.nouns.meta == nil {
 			r.actionNames.nouns.meta = map[string]NounAlias{}
 		}
@@ -396,6 +396,24 @@ func (r *Runtime) NounAliasesOf(noun string) []NounAlias {
 	return out
 }
 
+// NounKeywords are the other names a noun answers to in a picker's filter
+// (PickerRow.Keywords): its canonical name and every live alias, the name
+// it is drawn by (DisplayNoun) left out; a deprecated alias is not one.
+func (r *Runtime) NounKeywords(noun string) []string {
+	noun = r.CanonicalNoun(noun)
+	shown := r.DisplayNoun(noun)
+	var out []string
+	if noun != shown {
+		out = append(out, noun)
+	}
+	for _, a := range r.NounAliasesOf(noun) {
+		if !a.Deprecated() && a.Alias != shown && !slices.Contains(out, a.Alias) {
+			out = append(out, a.Alias)
+		}
+	}
+	return out
+}
+
 // NounAlias is one alias: the short name, the noun it names, and whether
 // an application noun of that name shadows it (the short name then reaches
 // the application's noun and the framework's stays reachable by Noun).
@@ -408,6 +426,12 @@ type NounAlias struct {
 	Since       string `json:"since,omitempty"`
 	RemoveAfter string `json:"removeAfter,omitempty"`
 	Note        string `json:"note,omitempty"`
+	// NoDisplay keeps the alias out of the name a noun is drawn by
+	// (DisplayNoun under nouns.display shortest): it reaches the noun and
+	// pickers find the noun by it (NounKeywords), but a longer name is
+	// still drawn. An application gives a framework noun a word of its own
+	// UI this way (matomeru: live for ochazuke.terminal).
+	NoDisplay bool `json:"noDisplay,omitempty"`
 }
 
 // Deprecated reports whether the alias is an old name on its way out.
@@ -490,7 +514,7 @@ func (r *Runtime) AliasOf(noun string) string {
 	}
 	best := ""
 	for _, alias := range aliases {
-		if a, ok := r.actionNames.nouns.meta[alias]; ok && a.Deprecated() {
+		if a, ok := r.actionNames.nouns.meta[alias]; ok && (a.Deprecated() || a.NoDisplay) {
 			continue
 		}
 		if r.CanonicalNoun(alias) != noun || len(alias) >= len(noun) {

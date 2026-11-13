@@ -122,7 +122,7 @@ func (r *Runtime) defineFacts(f factsSpec) {
 					return t, nil
 				}
 			}
-			return nil, fmt.Errorf("unknown %s %q", c.Runtime.DisplayNoun(f.Noun), key)
+			return nil, c.Runtime.NotFound(f.Noun, key, factKeys(things, keyName))
 		}
 	}
 	define := r.Define
@@ -371,4 +371,13 @@ func registerJobFacts(r *Runtime) {
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
 			return factThings(c.Runtime.Jobs(), nil)
 		}})
+}
+
+// factKeys are the keys of things, for a not-found error's did-you-mean.
+func factKeys(things []Thing, keyName string) []string {
+	out := make([]string, 0, len(things))
+	for _, t := range things {
+		out = append(out, fmt.Sprint(t[keyName]))
+	}
+	return out
 }

@@ -31,7 +31,7 @@ func (s *taskStore) store() Store {
 					return t, nil
 				}
 			}
-			return nil, fmt.Errorf("no task %q", id)
+			return nil, fmt.Errorf("task %q: %w", id, ErrNotFound)
 		},
 		List: func(Ctx, ListQuery) ([]Thing, error) { return s.things, nil },
 	}

@@ -299,3 +299,33 @@ func TestMCPAliasEffectHints(t *testing.T) {
 		}
 	}
 }
+
+// MCP words a bad argument and an unknown verb as the CLI does: the verb
+// and the parameter named, the close names offered; a null optional
+// argument is no argument.
+func TestMCPSaysWhatTheCLISays(t *testing.T) {
+	_, _, server := mcpFixture(t)
+	text := func(v any, err error) string {
+		if err != nil {
+			return err.Error()
+		}
+		raw, _ := json.Marshal(v)
+		return string(raw)
+	}
+	for _, c := range []struct {
+		tool string
+		args map[string]any
+		want string
+	}{
+		{"run", map[string]any{"verb": "widget.relabel", "target": "w1", "args": map[string]any{"nmae": "x"}}, `widget.relabel has no parameter \"nmae\": did you mean name?`},
+		{"describe", map[string]any{"verb": "widget.zzz"}, `unknown verb widget.zzz`},
+		{"catalog", map[string]any{"serch": "x"}, `catalog has no parameter "serch": did you mean search?`},
+	} {
+		if got := text(server.Call(context.Background(), c.tool, c.args)); !strings.Contains(got, c.want) {
+			t.Errorf("%s %v: %s, want %s", c.tool, c.args, got, c.want)
+		}
+	}
+	if _, err := server.Call(context.Background(), "catalog", map[string]any{"search": nil}); err != nil {
+		t.Fatalf("a null optional argument: %v", err)
+	}
+}

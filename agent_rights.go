@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -165,7 +167,7 @@ func (r *Runtime) agentVerdict(c Context, q Request, op Operation) Verdict {
 			return Allow()
 		}
 		if !r.agentLive() {
-			return refuse("needs the owner's confirmation; ask them to run this command")
+			return refuse(r.confirmRefusal(q))
 		}
 		prompt := op.Confirm
 		if op.ConfirmFor != nil {
@@ -236,4 +238,50 @@ func (r *Runtime) CheckRequest(q Request) error {
 	q = r.canonicalRequest(q)
 	_, err := r.execute(r.Context(), &q, true)
 	return err
+}
+
+// OwnerCommand is the command line the owner runs for q: "APP NOUN VERB
+// --target ID --NAME VALUE …", the noun as drawn (DisplayNoun), the
+// arguments sorted, a value holding a space or quote quoted for a shell.
+// APP is the application's binary name (Config.App), left out when it has
+// none (a test binary).
+func (r *Runtime) OwnerCommand(q Request) string {
+	noun, verb := SplitKey(q.Key())
+	words := []string{r.DisplayNoun(noun), verb}
+	if c := r.Config(); c != nil && c.App != "" {
+		words = append([]string{c.App}, words...)
+	}
+	if q.Target != "" {
+		words = append(words, "--target", shellWord(q.Target))
+	}
+	for _, name := range slices.Sorted(maps.Keys(q.Args)) {
+		v := q.Args[name]
+		if b, ok := v.(bool); ok && b {
+			words = append(words, "--"+name)
+			continue
+		}
+		text := fmt.Sprint(v)
+		if _, isText := v.(string); !isText {
+			if raw, err := json.Marshal(v); err == nil {
+				text = string(raw)
+			}
+		}
+		words = append(words, "--"+name, shellWord(text))
+	}
+	return strings.Join(words, " ")
+}
+
+// shellWord is s as one shell word: as it is when it holds nothing a
+// shell reads, else in single quotes.
+func shellWord(s string) string {
+	if s != "" && !strings.ContainsAny(s, " \t\n'\"\\$`;&|<>()*?[]{}#~!") {
+		return s
+	}
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// confirmRefusal is the headless refusal of a verb that needs the owner's
+// confirmation: it names the command the owner runs.
+func (r *Runtime) confirmRefusal(q Request) string {
+	return "needs the owner's confirmation; ask them to run: " + r.OwnerCommand(q)
 }

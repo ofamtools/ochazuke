@@ -2,7 +2,6 @@ package ochazuke
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -45,10 +44,13 @@ type settingVerb struct {
 	Description string
 	Arg         string
 	ArgHelp     string
-	Fits        func(Setting) bool
-	Next        func(one Setting, current any, a Arguments) (any, error)
-	Reset       bool
-	Extra       map[string]Parameter
+	// Usage is how the operand is given, said when it is missing
+	// (Parameter.Usage); "" is "setting VERB NAME ARG".
+	Usage string
+	Fits  func(Setting) bool
+	Next  func(one Setting, current any, a Arguments) (any, error)
+	Reset bool
+	Extra map[string]Parameter
 	// History is the history kind of a verb that is not the derived one
 	// (set, cycle and reset record changes).
 	History string
@@ -60,7 +62,7 @@ type settingVerb struct {
 var settingVerbs = []settingVerb{
 	{Verb: "show", Description: "Show the setting's value on the status line, name=value (a boolean name or noname); verbose adds where it was set", Fits: anySetting,
 		Extra: map[string]Parameter{"verbose": {Type: "boolean", Description: "Add where the value was set (:verbose)"}}},
-	{Verb: "set", Description: "Set the setting to a value, parsed by its type and checked against its allowed values", History: HistoryChange, Arg: "value", ArgHelp: "The value: text, a number, true or false, a duration such as 400ms, or a list as a,b or a JSON array", Fits: tableFits("set"), Next: nextSet},
+	{Verb: "set", Description: "Set the setting to a value, parsed by its type and checked against its allowed values", History: HistoryChange, Arg: "value", ArgHelp: "The value: text, a number, true or false, a duration such as 400ms, or a list as a,b or a JSON array", Usage: settingSetUsage, Fits: tableFits("set"), Next: nextSet},
 	{Verb: "toggle", Description: "Invert an on/off setting", Fits: tableFits("toggle"), Next: nextToggle},
 	{Verb: "cycle", History: HistoryChange, Description: "Step a boolean, an enum or a number to its next or previous value (an enum wraps)", Fits: settingSteps, Next: nextCycle,
 		Extra: map[string]Parameter{"step": {Type: "integer", Description: "1 for the next value, -1 for the previous"}}},
@@ -153,7 +155,7 @@ func operand(one Setting, a Arguments, arg string) (any, error) {
 func nextSet(one Setting, _ any, a Arguments) (any, error) {
 	v, ok := a["value"]
 	if !ok {
-		return nil, &ArgumentError{errors.New("value is required")}
+		return nil, &ArgumentError{&MissingParameterError{Param: "value", Reason: settingSetUsage}}
 	}
 	if text, isText := v.(string); isText && one.Type == SettingList && !strings.HasPrefix(strings.TrimSpace(text), "[") {
 		return setDecode(text, true), nil
@@ -381,6 +383,18 @@ func settingWritePrompt(v settingVerb) func(r *Runtime, a Arguments) string {
 	}
 }
 
+// settingSetUsage is how setting set takes its value, as the standard set
+// says it of a prop.
+const settingSetUsage = "setting set NAME VALUE (or toggle a boolean)"
+
+// settingUsage is how a value verb's operand is given.
+func settingUsage(v settingVerb) string {
+	if v.Usage != "" {
+		return v.Usage
+	}
+	return "setting " + v.Verb + " NAME " + strings.ToUpper(v.Arg)
+}
+
 // settingParams are a value verb's parameters: name, its operand, scope
 // and its own.
 func settingParams(v settingVerb) map[string]Parameter {
@@ -391,7 +405,7 @@ func settingParams(v settingVerb) map[string]Parameter {
 		params["scope"] = Parameter{Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the value is written: session (the default: settings.json when there is no running session or settings.autosave is on) or file"}
 	}
 	if v.Arg != "" {
-		params[v.Arg] = Parameter{Type: "string", Required: true, Description: v.ArgHelp}
+		params[v.Arg] = Parameter{Type: "string", Required: true, Description: v.ArgHelp, Usage: settingUsage(v)}
 	}
 	for name, p := range v.Extra {
 		params[name] = p

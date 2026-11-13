@@ -592,7 +592,7 @@ func (d *Doc) history(from, to *[]step, redo bool) error {
 // source moved) with want, writes it and puts the cursor there.
 func (d *Doc) splice(at int, ctx, have, want string) error {
 	if d.src.Save == nil {
-		return errors.New("this markdown is read-only")
+		return errReadOnly
 	}
 	current, err := d.src.Load()
 	if err != nil {
@@ -644,7 +644,7 @@ func diff(a, b string) step {
 // holds) and puts the cursor on the element holding byte at.
 func (d *Doc) write(next string, at int) error {
 	if d.src.Save == nil {
-		return errors.New("this markdown is read-only")
+		return errReadOnly
 	}
 	if next == d.text {
 		return nil
@@ -673,7 +673,7 @@ func (d *Doc) nth(tasks []Task, i int) int {
 // it wrote (an item already in that state is not written again).
 func (d *Doc) apply(text string, nth int, want byte) (from byte, wrote bool, err error) {
 	if d.src.Save == nil {
-		return 0, false, errors.New("this markdown is read-only")
+		return 0, false, errReadOnly
 	}
 	current, err := d.src.Load()
 	if err != nil {
@@ -990,3 +990,7 @@ func (d *Doc) Snapshot() map[string]any {
 	}
 	return out
 }
+
+// errReadOnly is a write to a read-only document (Doc.ReadOnly), in the
+// shared read-only wording.
+var errReadOnly = &ochazuke.ReadOnlyError{Noun: "markdown"}

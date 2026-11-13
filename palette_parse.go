@@ -1010,7 +1010,7 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 		case len(matches) > 1:
 			return nil, "", optionValues(matches), fmt.Errorf("%s: %q is ambiguous: %s", name, word, strings.Join(optionValues(matches), ", "))
 		case !check.Free && sourceErr == nil:
-			return nil, "", nil, choiceError(name, choices)
+			return nil, "", nil, p.r.choiceError(name, check, word, choices)
 		}
 	}
 	if param.Pairs && strings.Contains(text, "=") {
