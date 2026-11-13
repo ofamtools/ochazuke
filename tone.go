@@ -201,7 +201,7 @@ var toneRoles = []string{"text", "muted", "accent", "border", "surface", "error"
 // defaultTones are the tones every built-in theme draws; a user scheme
 // starts from them. The state tones keep their meaning without colour:
 // needs-input and errored are bold, exited is dim, so mono reads them too.
-var defaultTones = map[string]ToneStyle{
+var defaultTones = withPaletteTones(map[string]ToneStyle{
 	ToneLingering:      {Fg: SchemeColor{"accent", "accent"}, Bold: true, Dim: true},
 	ToneTreeGuide:      {Fg: SchemeColor{"muted", "muted"}, Dim: true},
 	ToneChoiceID:       {Fg: SchemeColor{"muted", "muted"}, Dim: true},
@@ -231,26 +231,12 @@ var defaultTones = map[string]ToneStyle{
 	ToneHeaderIntersect:    {Fg: SchemeColor{"#1A1A1A", "#1A1A1A"}, Bg: SchemeColor{"#E5B53A", "#C99A2E"}, Bold: true},
 	ToneRowNumber:          {Fg: SchemeColor{"muted", "muted"}},
 	ToneRowNumberIntersect: {Fg: SchemeColor{"surface", "surface"}, Bg: SchemeColor{"muted", "muted"}, Bold: true},
-	// The hue palette (PaletteTone): ten colours spread round the wheel, none
-	// the error red or the needs-input amber, each readable (3.8:1 or more)
-	// against its side's surface; a themes.json tone of the same name
-	// recolours it per theme. mono and NO_COLOR draw none.
-	"palette.0": {Fg: SchemeColor{"#2F6DB5", "#7FB0EA"}},
-	"palette.1": {Fg: SchemeColor{"#0F7C86", "#5CC6CF"}},
-	"palette.2": {Fg: SchemeColor{"#3C8A2E", "#8FCB7A"}},
-	"palette.3": {Fg: SchemeColor{"#6B7F10", "#B5CC5A"}},
-	"palette.4": {Fg: SchemeColor{"#6B4FC4", "#A996EC"}},
-	"palette.5": {Fg: SchemeColor{"#A8329A", "#E08AD6"}},
-	"palette.6": {Fg: SchemeColor{"#C23A71", "#F08DB2"}},
-	"palette.7": {Fg: SchemeColor{"#B8591A", "#F0A066"}},
-	"palette.8": {Fg: SchemeColor{"#1B7FA8", "#6CC5E8"}},
-	"palette.9": {Fg: SchemeColor{"#8A6D3B", "#CBB27E"}},
 	// A binding's arguments in the ? help (help_args.go).
 	ToneHelpArgKey:   {Bold: true},
 	ToneHelpArgValue: {},
 	// The markdown package's note boxes (markdown.NoteTone).
 	"markdown.annotate": {Fg: SchemeColor{"#875f00", "#d7af5f"}},
-}
+})
 
 // DefaultTones are the built-in tones and how the built-in themes draw
 // them, a copy.

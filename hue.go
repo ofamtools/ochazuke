@@ -28,25 +28,31 @@ const (
 	PanelHueOverStateSetting = "panel.hue-over-state"
 )
 
-// PaletteSize is how many palette tones (palette.0 to palette.9) the
-// built-in themes draw: the distinct hues PaletteTone gives.
-const PaletteSize = 10
+// PaletteSize is how many palette tones (palette.0 to palette.N-1) the
+// built-in themes draw: the distinct hues PaletteToneAt gives. They come
+// from a rule ((hue_palette.go)), not a hand-picked list.
+func PaletteSize() int { return len(paletteRows) }
 
-// PaletteToneAt is the palette tone of position n, wrapping round:
-// positions 0 to PaletteSize-1 are all distinct and later ones repeat in
-// rotation. An application ranks its things in a way that never shifts an
-// older one (a project's creation order) and passes the rank, so the first
-// PaletteSize things never share a hue.
+// PaletteToneAt is the palette tone of position n, wrapping round. An
+// application that picks a colour for a thing chooses a position no other
+// thing holds (and keeps it, writing the tone name); positions 0 to
+// PaletteSize()-1 are all distinct.
 func PaletteToneAt(n int) string {
-	return "palette." + strconv.Itoa(((n%PaletteSize)+PaletteSize)%PaletteSize)
+	size := PaletteSize()
+	return "palette." + strconv.Itoa(((n%size)+size)%size)
 }
 
-// ValidHue reports whether hue is a colour literal a panel can draw: a hex,
-// an ANSI index, or an ANSI name such as bright-blue. A tone name is valid
-// to the theme that defines it, not here.
+// ValidHue reports whether hue is one a panel can draw: a colour literal (a
+// hex, an ANSI index, or an ANSI name such as bright-blue) or one of the
+// palette tones. Another tone name is valid to the theme that defines it,
+// not here.
 func ValidHue(hue string) bool {
 	if validColor(hue) {
 		return true
+	}
+	if n, ok := strings.CutPrefix(hue, "palette."); ok {
+		i, err := strconv.Atoi(n)
+		return err == nil && i >= 0 && i < PaletteSize() && strconv.Itoa(i) == n
 	}
 	name, _ := strings.CutPrefix(strings.ToLower(hue), "bright-")
 	_, ok := ansiNames[name]

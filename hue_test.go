@@ -1,6 +1,9 @@
 package ochazuke
 
 import (
+	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -11,17 +14,17 @@ import (
 // colour; later ones repeat in rotation; ValidHue reads literals only.
 func TestPaletteToneAtRotates(t *testing.T) {
 	seen := map[string]bool{}
-	for i := range PaletteSize {
+	for i := range PaletteSize() {
 		tone := PaletteToneAt(i)
 		if _, ok := defaultTones[tone]; !ok || seen[tone] {
 			t.Fatalf("position %d: %q is missing or repeated", i, tone)
 		}
 		seen[tone] = true
-		if PaletteToneAt(i+PaletteSize) != tone {
-			t.Fatalf("position %d does not wrap", i+PaletteSize)
+		if PaletteToneAt(i+PaletteSize()) != tone {
+			t.Fatalf("position %d does not wrap", i+PaletteSize())
 		}
 	}
-	for hue, want := range map[string]bool{"#7FB685": true, "12": true, "bright-blue": true, "red": true, "palette.1": false, "bluish": false, "": false} {
+	for hue, want := range map[string]bool{"#7FB685": true, "12": true, "bright-blue": true, "red": true, "palette.1": true, "palette.99": false, "palette.01": false, "bluish": false, "": false} {
 		if ValidHue(hue) != want {
 			t.Errorf("ValidHue(%q) = %v, want %v", hue, !want, want)
 		}
@@ -33,16 +36,16 @@ func TestPaletteTonesPerTheme(t *testing.T) {
 	for _, theme := range []string{"dark", "light", "adaptive"} {
 		s := NewStyles(Appearance{Theme: theme, Dark: true})
 		distinct := map[string]bool{}
-		for i := range PaletteSize {
-			c, ok := s.hueColor("palette." + string(rune('0'+i)))
+		for i := range PaletteSize() {
+			c, ok := s.hueColor(PaletteToneAt(i))
 			if !ok {
 				t.Fatalf("%s: palette.%d draws nothing", theme, i)
 			}
 			r, g, b, _ := c.RGBA()
 			distinct[strings.Join([]string{string(rune(r)), string(rune(g)), string(rune(b))}, ",")] = true
 		}
-		if len(distinct) != PaletteSize {
-			t.Errorf("%s: %d distinct hues, want %d", theme, len(distinct), PaletteSize)
+		if len(distinct) != PaletteSize() {
+			t.Errorf("%s: %d distinct hues, want %d", theme, len(distinct), PaletteSize())
 		}
 	}
 	if _, ok := NewStyles(Appearance{Theme: "mono"}).hueColor("palette.0"); ok {
@@ -162,6 +165,90 @@ func TestPanelHueOverState(t *testing.T) {
 		}
 		if top := strings.SplitN(draw(base, true), "\n", 2)[0]; top == strings.SplitN(draw(base, false), "\n", 2)[0] {
 			t.Errorf("over=%v tone=%s: the title lost the hue", c.over, c.tone)
+		}
+	}
+}
+
+func hexRGB(h string) (r, g, b float64) {
+	var v [3]int
+	for i := range v {
+		n, _ := strconv.ParseInt(h[1+2*i:3+2*i], 16, 32)
+		v[i] = int(n)
+	}
+	lin := func(c int) float64 {
+		x := float64(c) / 255
+		if x <= 0.04045 {
+			return x / 12.92
+		}
+		return math.Pow((x+0.055)/1.055, 2.4)
+	}
+	return lin(v[0]), lin(v[1]), lin(v[2])
+}
+
+func relLum(h string) float64 {
+	r, g, b := hexRGB(h)
+	return 0.2126*r + 0.7152*g + 0.0722*b
+}
+
+func okLab(h string) [3]float64 {
+	r, g, b := hexRGB(h)
+	l := math.Cbrt(0.4122214708*r + 0.5363325363*g + 0.0514459929*b)
+	m := math.Cbrt(0.2119034982*r + 0.6806995451*g + 0.1073969566*b)
+	s := math.Cbrt(0.0883024619*r + 0.2817188376*g + 0.6299787005*b)
+	return [3]float64{0.2104542553*l + 0.7936177850*m - 0.0040720468*s, 1.9779984951*l - 2.4285922050*m + 0.4505937099*s, 0.0259040371*l + 0.7827717662*m - 0.8086757660*s}
+}
+
+// The generated palette's bounds, per built-in side: every tone readable on
+// the surface (3:1), any two at least 0.10 apart in OKLab, a tone as an
+// unfocused panel draws it (faded by the real fade) at least 0.055 from any
+// other tone at full strength, none within 0.10 of the error red or the
+// needs-input amber.
+func TestPaletteBounds(t *testing.T) {
+	if PaletteSize() < 12 {
+		t.Fatalf("palette has %d tones", PaletteSize())
+	}
+	for i, side := range []string{"light", "dark"} {
+		surface := paletteSurface[i]
+		s := NewStyles(Appearance{Theme: side})
+		var cols []string
+		var full, faded [][3]float64
+		for _, r := range paletteRows {
+			c := r.light
+			if side == "dark" {
+				c = r.dark
+			}
+			cols = append(cols, c)
+			full = append(full, hexOKLab(c))
+			fc, ok := s.hueColor(PaletteToneAt(len(cols) - 1))
+			if !ok {
+				t.Fatalf("%s: tone %d draws nothing", side, len(cols)-1)
+			}
+			r2, g2, b2, _ := s.fadeBy(fc, HueFadePercent).RGBA()
+			faded = append(faded, hexOKLab(fmt.Sprintf("#%02X%02X%02X", r2>>8, g2>>8, b2>>8)))
+		}
+		minFull, minFade, minFadeFade, minRes := 9.0, 9.0, 9.0, 9.0
+		for a, c := range cols {
+			hi, lo := math.Max(relLum(c), relLum(surface)), math.Min(relLum(c), relLum(surface))
+			if ratio := (hi + 0.05) / (lo + 0.05); ratio < 3 {
+				t.Errorf("%s %s: contrast %.2f against %s", side, c, ratio, surface)
+			}
+			for _, r := range paletteReserved[i] {
+				minRes = math.Min(minRes, labDistance(full[a], hexOKLab(r)))
+			}
+			for b := range cols {
+				if a == b {
+					continue
+				}
+				minFade = math.Min(minFade, labDistance(faded[a], full[b]))
+				if b > a {
+					minFull = math.Min(minFull, labDistance(full[a], full[b]))
+					minFadeFade = math.Min(minFadeFade, labDistance(faded[a], faded[b]))
+				}
+			}
+		}
+		t.Logf("%s: %d tones, min full %.3f, faded vs other full %.3f, faded vs faded %.3f, reserved %.3f", side, len(cols), minFull, minFade, minFadeFade, minRes)
+		if minFull < 0.10 || minFade < 0.055 || minRes < 0.10 {
+			t.Errorf("%s: full %.3f faded %.3f reserved %.3f below bounds", side, minFull, minFade, minRes)
 		}
 	}
 }
