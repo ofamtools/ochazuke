@@ -127,11 +127,14 @@ func TestPlaceHelpInsideAModal(t *testing.T) {
 	}
 }
 
-// p chooses the place: no place first, then the noun's places with their
+// With help.places-noun-only, p chooses the place: no place first, then the noun's places with their
 // counts; changing the noun resets it to that noun's most seen place, and
 // a noun never seen has no place and no p.
 func TestHelpPlaceChooser(t *testing.T) {
 	r, m := placedRowsFixture(t)
+	if err := r.Settings().Set(HelpPlacesNounOnlySetting, true); err != nil {
+		t.Fatal(err)
+	}
 	pressAll(m, "?", "S")
 	frame := ansi.Strip(m.View().Content)
 	if !strings.Contains(frame, "noun: tile · mode: normal · place: Context › page › panel › collection") || !helpListHas(r, "panel.refresh") {
@@ -233,5 +236,37 @@ func TestHelpHomeIsTheRecordersPlace(t *testing.T) {
 	}
 	if helpHome(r, "missing") != nil {
 		t.Fatal("a missing focus has a place")
+	}
+}
+
+// By default p offers every place the application has in one flat list,
+// the current one first: a place of another noun on another page, never
+// visited, with its mode (a live screen whose keys are in insert mode) is
+// there, and picking it shows that noun's keys there, in that mode.
+func TestHelpPlaceChooserOffersEveryPlace(t *testing.T) {
+	r, m := placedRowsFixture(t)
+	noop := func(Ctx) Result { return Done(nil) }
+	r.Define("screen").Pin("insert").Verb("go", noop, "Go").Mode("insert").Bind("ctrl+g", Do("screen.go"))
+	if _, err := r.AddPage("live", "Live", func(r *Runtime, w, h int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	r.Instance("scr", Parent("live"), Kind("screen"))
+	pressAll(m, "?", "S", "p")
+	if r.TopModal() != helpPlaceKind {
+		t.Fatalf("p opened %q", r.TopModal())
+	}
+	rows := r.Chooser(helpPlaceKind).Matches()
+	if len(rows) < 3 || rows[0].Cells[0] != "Context › page › panel › collection › tile · mode normal" || rows[0].Cells[2] != "current" {
+		t.Fatalf("place rows %+v", rows[:min(3, len(rows))])
+	}
+	pressAll(m, "L", "i", "v", "e", " ", "s", "c", "r", " ", "i", "n", "s")
+	rows = r.Chooser(helpPlaceKind).Matches()
+	if len(rows) == 0 || rows[0].Label != "Live › page › screen · mode insert" {
+		t.Fatalf("live place not offered: %+v", rows)
+	}
+	keytest.Press(m, "enter")
+	frame := ansi.Strip(m.View().Content)
+	if r.TopModal() != helpID || !strings.Contains(frame, "noun: screen · mode: insert · place: Live › page") || !helpListHas(r, "screen.go") {
+		t.Fatalf("picking the live place (%s):\n%s", m.Status, frame)
 	}
 }

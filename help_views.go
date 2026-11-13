@@ -137,6 +137,22 @@ func (h *helpState) setNoun(noun string) {
 	}
 }
 
+// choosePlace moves the views to a chosen place: its noun becomes the
+// noun and its mode, when the row has one, the mode.
+func (h *helpState) choosePlace(pick helpPlaceChoice) {
+	if noun := h.r.CanonicalNoun(pick.Noun); noun != "" {
+		h.noun = noun
+	}
+	if pick.Mode != "" {
+		h.mode = ModeState{Name: pick.Mode}
+	}
+	h.place = nil
+	if pick.Place != nil {
+		p := *pick.Place
+		h.place = &p
+	}
+}
+
 // at is the place the hypothetical views resolve at: the chosen place, or
 // the noun alone.
 func (h *helpState) at() NounPlace {
@@ -722,21 +738,204 @@ func helpOperationText(noun, text string) string {
 	return text
 }
 
-// placeRows are the place chooser's rows: no place first, then the noun's
+// HelpPlacesNounOnlySetting narrows the help's place chooser (p) to the
+// places the chosen noun was seen in, as it was before every place was
+// offered (default false: every place).
+const HelpPlacesNounOnlySetting = "help.places-noun-only"
+
+// helpPlaceChoice is one place chooser row: the noun, its place (nil: no
+// place) and the mode the row is in ("" keeps the help's mode).
+type helpPlaceChoice struct {
+	Noun  string
+	Place *NounPlace
+	Mode  string
+}
+
+// placeRows are the place chooser's rows: by default (allPlaceRows) every
+// place the application has in one flat list, the current one first and
+// marked. With help.places-noun-only: no place first, then the noun's
 // places most seen first, each with its count; the current one is marked.
 func (h *helpState) placeRows() []ChooserRow {
+	if !h.r.helpFlag(HelpPlacesNounOnlySetting, false) {
+		return h.allPlaceRows()
+	}
 	current := func(p *NounPlace) string {
 		if p == nil && h.place == nil || p != nil && h.place != nil && p.key() == h.place.key() {
 			return "current"
 		}
 		return ""
 	}
-	choices := []Choice{{ID: "none", Label: "no place (noun + app)", Cells: []string{"no place (noun + app)", "", current(nil)}, RowFlags: RowFlags{Bare: true}}}
+	choices := []Choice{{ID: "none", Label: "no place (noun + app)", Data: helpPlaceChoice{Noun: h.noun}, Cells: []string{"no place (noun + app)", "", current(nil)}, RowFlags: RowFlags{Bare: true}}}
 	for i, p := range h.r.NounPlaces(h.noun) {
 		label := placeLabel(h.r, p)
-		choices = append(choices, Choice{ID: fmt.Sprintf("place/%d", i), Label: label, Data: p, Cells: []string{label, fmt.Sprintf("%d×", p.Count), current(&p)}, RowFlags: RowFlags{Bare: true}})
+		choices = append(choices, Choice{ID: fmt.Sprintf("place/%d", i), Label: label, Data: helpPlaceChoice{Noun: p.Noun, Place: &p}, Cells: []string{label, fmt.Sprintf("%d×", p.Count), current(&p)}, RowFlags: RowFlags{Bare: true}})
 	}
 	return ChoiceRows(choices)
+}
+
+// HelpPlaceRow is one row of the help's flat place list: the place (Place
+// nil: the noun with no place) in one mode, named in full.
+type HelpPlaceRow struct {
+	Noun  string
+	Place *NounPlace
+	Mode  string
+	Label string
+	Count int
+}
+
+// HelpPlaceRows is every place the application has, flat, as the ? help's
+// p lists them: each place of AllPlaces once per base mode a noun of its
+// chain has rows in (else once in the noun's pinned mode, else in mode),
+// then every noun with no place the same way; each row names the page, the
+// chain down to the noun, the mode and the modal ("Panes › page ›
+// terminal · mode terminal"), so any of those words finds it.
+func (r *Runtime) HelpPlaceRows(mode string) []HelpPlaceRow {
+	var out []HelpPlaceRow
+	addModes := func(noun string, place *NounPlace, chain []string, label string) {
+		modes := r.chainModes(chain)
+		if len(modes) == 0 {
+			fallback := mode
+			if n := r.Nouns[noun]; n != nil && n.Pin != "" {
+				fallback = n.Pin
+			}
+			modes = []string{fallback}
+		}
+		count := 0
+		if place != nil {
+			count = place.Count
+		}
+		for _, m := range modes {
+			full := label + " · mode " + m
+			if place != nil && place.Modal != "" {
+				full += " · modal " + r.DisplayNoun(place.Modal)
+			}
+			out = append(out, HelpPlaceRow{Noun: noun, Place: place, Mode: m, Label: full, Count: count})
+		}
+	}
+	for _, p := range r.AllPlaces() {
+		q := p
+		bare := q
+		bare.Modal = ""
+		addModes(p.Noun, &q, p.Chain(), placeChainLabel(r, bare))
+	}
+	for _, noun := range slices.SortedFunc(maps.Keys(r.Nouns), func(a, b string) int { return strings.Compare(r.DisplayNoun(a), r.DisplayNoun(b)) }) {
+		addModes(noun, nil, []string{noun}, r.DisplayNoun(noun)+" · no place")
+	}
+	return out
+}
+
+// chainModes are the base modes (helpBaseModes order) any noun of chain
+// has rows of its own in.
+func (r *Runtime) chainModes(chain []string) []string {
+	var out []string
+	for _, base := range r.helpBaseModes() {
+		if slices.ContainsFunc(chain, func(noun string) bool { return r.nounHasRows(noun, base) }) {
+			out = append(out, base)
+		}
+	}
+	return out
+}
+
+// nounHasRows reports whether noun's own tables hold a row in mode.
+func (r *Runtime) nounHasRows(noun, mode string) bool {
+	n := r.Nouns[r.CanonicalNoun(noun)]
+	if n == nil {
+		return false
+	}
+	for _, rows := range r.nounTables(n, mode) {
+		for _, b := range rows {
+			if !b.Unbind && !isPrefixCancel(b) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// allPlaceRows are HelpPlaceRows as chooser rows, the current one (the
+// help's noun, place and mode) first and marked.
+func (h *helpState) allPlaceRows() []ChooserRow {
+	isCurrent := func(row HelpPlaceRow) bool {
+		if row.Noun != h.noun || row.Mode != h.mode.Name {
+			return false
+		}
+		if row.Place == nil || h.place == nil {
+			return row.Place == nil && h.place == nil
+		}
+		return row.Place.key() == h.place.key()
+	}
+	var first, rest []Choice
+	for i, row := range h.r.HelpPlaceRows(h.mode.Name) {
+		count, mark := "", ""
+		if row.Count > 0 {
+			count = fmt.Sprintf("%d×", row.Count)
+		}
+		c := Choice{ID: fmt.Sprintf("place/%d", i), Label: row.Label, Data: helpPlaceChoice{Noun: row.Noun, Place: row.Place, Mode: row.Mode}, Cells: []string{row.Label, count, ""}, RowFlags: RowFlags{Bare: true}}
+		if len(first) == 0 && isCurrent(row) {
+			mark = "current"
+			c.Cells[2] = mark
+			first = append(first, c)
+			continue
+		}
+		rest = append(rest, c)
+	}
+	return ChoiceRows(append(first, rest...))
+}
+
+// AllPlaces is every place the application has: where each noun was seen
+// (NounPlaces, this run's and the placements file's) and where every
+// instance stands now (so a place the record has not settled or dropped is
+// there too), the help modal's own instances left out; sorted by page, then
+// by the place's name, modals after their page's places.
+func (r *Runtime) AllPlaces() []NounPlace {
+	byKey := map[string]NounPlace{}
+	for _, p := range r.NounPlaces("") {
+		// A place recorded under an older name is the same place; one of a
+		// noun the application no longer has cannot be shown.
+		p = r.canonicalPlace(p)
+		if r.Nouns[p.Noun] == nil {
+			continue
+		}
+		if old, ok := byKey[p.key()]; ok {
+			p.Count += old.Count
+		}
+		byKey[p.key()] = p
+	}
+	for id, inst := range r.Instances {
+		if inst == nil || inst.Noun == "" {
+			continue
+		}
+		p := r.placementOf(id, inst.Noun)
+		if p.Modal == frameworkName(helpID) || slices.Contains(r.Ancestry(id), helpID) {
+			continue
+		}
+		if _, ok := byKey[p.key()]; !ok {
+			byKey[p.key()] = p
+		}
+	}
+	out := slices.Collect(maps.Values(byKey))
+	slices.SortFunc(out, func(a, b NounPlace) int {
+		if c := strings.Compare(cmp.Or(a.PageTitle, a.Page), cmp.Or(b.PageTitle, b.Page)); c != 0 {
+			return c
+		}
+		if c := strings.Compare(a.Modal, b.Modal); c != 0 {
+			return c
+		}
+		if c := strings.Compare(placeChainLabel(r, a), placeChainLabel(r, b)); c != 0 {
+			return c
+		}
+		return strings.Compare(a.key(), b.key())
+	})
+	return out
+}
+
+// placeChainLabel names a place down to its noun, as the place chooser
+// lists every place: "Panes › page › terminal", "Context › ask › prompt ·
+// modal ask".
+func placeChainLabel(r *Runtime, p NounPlace) string {
+	q := p
+	q.Ancestors = append(slices.Clone(p.Ancestors), p.Noun)
+	return placeLabel(r, q)
 }
 
 // helpChooserRows are a chooser's rows with the current one first, marked.
@@ -829,14 +1028,12 @@ func registerHelpViews(r *Runtime) {
 		},
 		"place": {
 			ready: func(h *helpState) bool {
-				return (h.view == HelpPick || h.view == HelpTable) && len(h.r.NounPlaces(h.noun)) > 0
+				return (h.view == HelpPick || h.view == HelpTable) && (!h.r.helpFlag(HelpPlacesNounOnlySetting, false) || len(h.r.NounPlaces(h.noun)) > 0)
 			},
 			run: func(h *helpState) error {
 				_, err := h.r.OpenChooser(ChooserSpec{Kind: helpPlaceKind, Title: "Place", Keep: []int{0}, Rows: h.placeRows(), Choose: func(row ChooserRow) Result {
-					h.place = nil
-					if p, ok := row.Data.(NounPlace); ok {
-						h.place = &p
-					}
+					pick, _ := row.Data.(helpPlaceChoice)
+					h.choosePlace(pick)
 					if err := h.show(); err != nil {
 						return Failed(err)
 					}

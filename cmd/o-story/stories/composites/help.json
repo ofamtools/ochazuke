@@ -201,7 +201,7 @@
           }
         ]
       },
-      "name": "S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists the noun's places after no place, choosing one moves the header to it"
+      "name": "S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists every place, the current one first, choosing one moves the header to it"
     },
     {
       "width": 120,
@@ -625,19 +625,19 @@
     "q",
     {
       "key": "ctrl+alt+n",
-      "note": "help/pick-place: S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists the noun's places after no place, choosing one moves the header to it"
+      "note": "help/pick-place: S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists every place, the current one first, choosing one moves the header to it"
     },
     "?",
     "S",
     "p",
-    "n",
-    "o",
+    {"paste": "demo · no place · mode norma"},
+    "l",
     "enter",
     "p",
-    "c",
-    "o",
-    "l",
-    "l",
+    {"paste": "page1 › demo › collection › demo · mode no"},
+    "r",
+    "m",
+    "a",
     "enter",
     {
       "key": "ctrl+alt+n",
@@ -1095,8 +1095,8 @@
       "after": 105,
       "contains": [
         "Place",
-        "no place (noun + app)",
-        "page1 › demo › collection  1×  current"
+        "page1 › demo › collection › demo · mode normal",
+        "current"
       ]
     },
     {
