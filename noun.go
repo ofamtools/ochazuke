@@ -24,6 +24,10 @@ type Noun struct {
 	Name  string `json:"name"`
 	About string `json:"about,omitempty"`
 	Pin   string `json:"pin,omitempty"`
+	// Hue answers a thing's key with its hue, "" for none (SetHueSource):
+	// the colour a panel showing the thing draws, in memory, never a
+	// store read.
+	Hue func(id string) string `json:"-"`
 	// Fallback names the noun whose table a focus on this noun reads
 	// last, after app (NounBuilder.Fallback): the walk's fallback, read
 	// once. A noun naming itself is read there and not at its own level

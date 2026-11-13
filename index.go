@@ -325,6 +325,10 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 	if total := list.WindowTotal(); list.Windowed() {
 		heading = fmt.Sprintf("%s · %d", heading, total)
 	}
+	if item, ok := list.Selected(); ok && n != nil {
+		thing, _ := item.Data.(Thing)
+		layout = r.WithDetailHue(layout, r.HueOf(n.Name, thing))
+	}
 	return layout.panelPair(heading, tableBody, title, body, width, height, th, true, focused)
 }
 
