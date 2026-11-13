@@ -2,7 +2,6 @@ package ochazuke
 
 import (
 	"charm.land/lipgloss/v2"
-	"hash/fnv"
 	"image/color"
 	"strconv"
 	"strings"
@@ -20,21 +19,38 @@ import (
 // off); mono and NO_COLOR draw none, and a thing without a hue keeps its
 // panel's usual look.
 
-// PanelHueSetting is the setting panel.hue's name.
-const PanelHueSetting = "panel.hue"
+// PanelHueSetting is the setting panel.hue's name; PanelHueOverStateSetting
+// panel.hue-over-state: whether the hue beats a panel's state tone on the
+// border (true, the default) or a state tone that draws keeps the border and
+// the hue colours the title alone.
+const (
+	PanelHueSetting          = "panel.hue"
+	PanelHueOverStateSetting = "panel.hue-over-state"
+)
 
 // PaletteSize is how many palette tones (palette.0 to palette.9) the
 // built-in themes draw: the distinct hues PaletteTone gives.
 const PaletteSize = 10
 
-// PaletteTone is the palette tone key maps to: the same key gives the same
-// tone every run and on every machine (a hash of the key, never a list
-// position), so a new thing never recolours the others. Keys beyond
-// PaletteSize share tones.
-func PaletteTone(key string) string {
-	h := fnv.New32a()
-	h.Write([]byte(key))
-	return "palette." + strconv.Itoa(int(h.Sum32()%PaletteSize))
+// PaletteToneAt is the palette tone of position n, wrapping round:
+// positions 0 to PaletteSize-1 are all distinct and later ones repeat in
+// rotation. An application ranks its things in a way that never shifts an
+// older one (a project's creation order) and passes the rank, so the first
+// PaletteSize things never share a hue.
+func PaletteToneAt(n int) string {
+	return "palette." + strconv.Itoa(((n%PaletteSize)+PaletteSize)%PaletteSize)
+}
+
+// ValidHue reports whether hue is a colour literal a panel can draw: a hex,
+// an ANSI index, or an ANSI name such as bright-blue. A tone name is valid
+// to the theme that defines it, not here.
+func ValidHue(hue string) bool {
+	if validColor(hue) {
+		return true
+	}
+	name, _ := strings.CutPrefix(strings.ToLower(hue), "bright-")
+	_, ok := ansiNames[name]
+	return ok
 }
 
 // SetHueSource registers fn as the hue of noun's things: fn answers a
@@ -88,17 +104,22 @@ func (r *Runtime) hueParts() (border, title bool) {
 	return parts.border, parts.title
 }
 
+// hueOf is hue as a panelHue with the settings' parts.
+func (r *Runtime) hueOf(hue string) panelHue {
+	border, title := r.hueParts()
+	return panelHue{hue: hue, border: border, title: title, overState: r.Settings().Bool(PanelHueOverStateSetting)}
+}
+
 // WithHue is l whose next panel draws hue as panel.hue says.
 func (r *Runtime) WithHue(l Layout, hue string) Layout {
-	border, title := r.hueParts()
-	return l.WithPanelHue(hue, border, title)
+	l.panelHue = r.hueOf(hue)
+	return l
 }
 
 // WithDetailHue is l whose split's second panel (the detail, right or
 // below) draws hue as panel.hue says.
 func (r *Runtime) WithDetailHue(l Layout, hue string) Layout {
-	border, title := r.hueParts()
-	l.detailHue = panelHue{hue: hue, border: border, title: title}
+	l.detailHue = r.hueOf(hue)
 	return l
 }
 
@@ -106,6 +127,7 @@ func (r *Runtime) WithDetailHue(l Layout, hue string) Layout {
 type panelHue struct {
 	hue           string
 	border, title bool
+	overState     bool // the hue beats a state tone on the border
 }
 
 // WithPanelHue is the layout whose next panel (Panel, PanelBlock) draws
@@ -114,7 +136,7 @@ type panelHue struct {
 // full brightness, where an unfocused panel's hue is faded toward the
 // background (HueFadePercent).
 func (l Layout) WithPanelHue(hue string, border, title bool) Layout {
-	l.panelHue = panelHue{hue: hue, border: border, title: title}
+	l.panelHue = panelHue{hue: hue, border: border, title: title, overState: true}
 	return l
 }
 
@@ -147,7 +169,7 @@ func (s Styles) hueColor(hue string) (color.Color, bool) {
 
 // hueStyles are the border and title styles of a panel with a hue: ok is
 // false when the hue draws nothing (unknown, mono, or off).
-func (s Styles) hueStyles(h panelHue, focused bool, edge, title lipgloss.Style) (lipgloss.Style, lipgloss.Style) {
+func (s Styles) hueStyles(h panelHue, tone string, focused bool, edge, title lipgloss.Style) (lipgloss.Style, lipgloss.Style) {
 	c, ok := s.hueColor(h.hue)
 	if !ok {
 		return edge, title
@@ -155,7 +177,8 @@ func (s Styles) hueStyles(h panelHue, focused bool, edge, title lipgloss.Style) 
 	if !focused {
 		c = s.fadeBy(c, HueFadePercent)
 	}
-	if h.border {
+	_, stateDrawn := s.chromeLook("border." + tone)
+	if h.border && (h.overState || tone == "" || !stateDrawn) {
 		edge = edge.Foreground(c).Bold(focused).Faint(false)
 	}
 	if h.title {

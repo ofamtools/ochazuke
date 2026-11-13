@@ -517,7 +517,7 @@ func (l Layout) PanelBlock(title string, body Block, width, height int, focused 
 	b := frame.GetBorderStyle()
 	edge := lipgloss.NewStyle().Foreground(frame.GetBorderTopForeground())
 	edge = s.panelEdge(l.panelTone, focused, edge)
-	edge, titleStyle = s.hueStyles(l.panelHue, focused, edge, titleStyle)
+	edge, titleStyle = s.hueStyles(l.panelHue, l.panelTone, focused, edge, titleStyle)
 	inner := width - 2
 	cw, ih := PanelContentSize(width, height)
 	rows := layoutRows(layoutClip(body.Text, ih, s), cw, ih)

@@ -7,23 +7,24 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// The same key always draws the same palette tone, whatever else exists,
-// and a handful of keys spread over several.
-func TestPaletteToneStableAndSpread(t *testing.T) {
-	ids := []string{"matomeru", "ochazuke", "oden", "nabe", "acme-web", "billing-api", "docs-site", "o-lane"}
+// Positions 0 to PaletteSize-1 are all distinct tones with a built-in
+// colour; later ones repeat in rotation; ValidHue reads literals only.
+func TestPaletteToneAtRotates(t *testing.T) {
 	seen := map[string]bool{}
-	for _, id := range ids {
-		tone := PaletteTone(id)
-		if tone != PaletteTone(id) || !strings.HasPrefix(tone, "palette.") {
-			t.Fatalf("PaletteTone(%q) = %q, not stable", id, tone)
-		}
-		if _, ok := defaultTones[tone]; !ok {
-			t.Fatalf("%q has no built-in tone", tone)
+	for i := range PaletteSize {
+		tone := PaletteToneAt(i)
+		if _, ok := defaultTones[tone]; !ok || seen[tone] {
+			t.Fatalf("position %d: %q is missing or repeated", i, tone)
 		}
 		seen[tone] = true
+		if PaletteToneAt(i+PaletteSize) != tone {
+			t.Fatalf("position %d does not wrap", i+PaletteSize)
+		}
 	}
-	if len(seen) < 5 {
-		t.Fatalf("%d ids gave %d tones, want a spread", len(ids), len(seen))
+	for hue, want := range map[string]bool{"#7FB685": true, "12": true, "bright-blue": true, "red": true, "palette.1": false, "bluish": false, "": false} {
+		if ValidHue(hue) != want {
+			t.Errorf("ValidHue(%q) = %v, want %v", hue, !want, want)
+		}
 	}
 }
 
@@ -127,6 +128,40 @@ func TestHueOfThingAndOwner(t *testing.T) {
 	} {
 		if got := r.HueOf(c.noun, c.thing); got != c.want {
 			t.Errorf("HueOf(%s, %v) = %q, want %q", c.noun, c.thing, got, c.want)
+		}
+	}
+}
+
+// panel.hue-over-state: true (default) the hue wins the border over a state
+// tone; false a state tone that draws keeps the border and the hue colours
+// the title. A state with no border row never hides the hue.
+func TestPanelHueOverState(t *testing.T) {
+	r := NewRuntime()
+	s := NewStyles(Appearance{Theme: "dark"}).WithChrome(ChromeRich, nil)
+	draw := func(layout Layout, hue bool) string {
+		if hue {
+			layout = r.WithHue(layout, "palette.2")
+		}
+		return layout.Panel("pane", "body", 30, 5, true)
+	}
+	side := func(text string) string { return strings.Split(text, "\n")[1] }
+	for _, c := range []struct {
+		over bool
+		tone string
+		want string // whose border: "hue" or "state"
+	}{{true, ToneNeedsInput, "hue"}, {false, ToneNeedsInput, "state"}, {false, ToneIdle, "hue"}} {
+		if err := r.Settings().Set(PanelHueOverStateSetting, c.over); err != nil {
+			t.Fatal(err)
+		}
+		base := Layout{Styles: s}.WithPanelTone(c.tone)
+		got := side(draw(base, true))
+		hueOnly := side(r.WithHue(Layout{Styles: s}, "palette.2").Panel("pane", "body", 30, 5, true))
+		stateOnly := side(draw(base, false))
+		if c.want == "hue" && got != hueOnly || c.want == "state" && got != stateOnly {
+			t.Errorf("over=%v tone=%s: border is not the %s's", c.over, c.tone, c.want)
+		}
+		if top := strings.SplitN(draw(base, true), "\n", 2)[0]; top == strings.SplitN(draw(base, false), "\n", 2)[0] {
+			t.Errorf("over=%v tone=%s: the title lost the hue", c.over, c.tone)
 		}
 	}
 }
