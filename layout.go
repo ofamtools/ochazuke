@@ -28,6 +28,9 @@ type Layout struct {
 	// panelTone is the tone PanelBlock draws the next panel's border in
 	// (WithPanelTone); "" is the plain border.
 	panelTone string
+	// panelHue is the hue PanelBlock draws the next panel in (WithPanelHue);
+	// detailHue the hue of a split's second panel (WithDetailHue).
+	panelHue, detailHue panelHue
 }
 
 // WithPanelTone is the layout whose panels (Panel, PanelBlock) carry tone,
@@ -514,6 +517,7 @@ func (l Layout) PanelBlock(title string, body Block, width, height int, focused 
 	b := frame.GetBorderStyle()
 	edge := lipgloss.NewStyle().Foreground(frame.GetBorderTopForeground())
 	edge = s.panelEdge(l.panelTone, focused, edge)
+	edge, titleStyle = s.hueStyles(l.panelHue, focused, edge, titleStyle)
 	inner := width - 2
 	cw, ih := PanelContentSize(width, height)
 	rows := layoutRows(layoutClip(body.Text, ih, s), cw, ih)
@@ -573,7 +577,7 @@ func (l Layout) SplitFocusBlock(focused SplitSide, leftTitle string, leftBody Bl
 		case SplitLeft:
 			return l.PanelBlock(leftTitle, leftBody, bw, bh, true)
 		case SplitRight:
-			return l.PanelBlock(rightTitle, rightBody, bw, bh, true)
+			return l.withDetailHue().PanelBlock(rightTitle, rightBody, bw, bh, true)
 		}
 	}
 	stacked := l.Width < layoutStackAt
@@ -664,7 +668,7 @@ func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, r
 		leftWidth := first
 		rw := bw - 1 - leftWidth
 		left := l.PanelBlock(leftTitle, leftBody, leftWidth, bh, leftFocused)
-		right := l.PanelBlock(rightTitle, rightBody, rw, bh, rightFocused).Offset(leftWidth+1, 0)
+		right := l.withDetailHue().PanelBlock(rightTitle, rightBody, rw, bh, rightFocused).Offset(leftWidth+1, 0)
 		leftRows, rightRows := strings.Split(left.Text, "\n"), strings.Split(right.Text, "\n")
 		rows := make([]string, bh)
 		for i := range rows {
@@ -674,8 +678,15 @@ func (l Layout) panelPair(leftTitle string, leftBody Block, rightTitle string, r
 	}
 	th := first
 	top := l.PanelBlock(leftTitle, leftBody, bw, th, leftFocused)
-	bottom := l.PanelBlock(rightTitle, rightBody, bw, bh-th, rightFocused).Offset(0, th)
+	bottom := l.withDetailHue().PanelBlock(rightTitle, rightBody, bw, bh-th, rightFocused).Offset(0, th)
 	return Block{Text: top.Text + joinIfBoth(th, bh-th) + bottom.Text, Cursor: cursor(top, bottom)}
+}
+
+// withDetailHue is l with the detail's hue as the panel's, and the first
+// panel's cleared.
+func (l Layout) withDetailHue() Layout {
+	l.panelHue, l.detailHue = l.detailHue, panelHue{}
+	return l
 }
 
 func joinIfBoth(a, b int) string {
