@@ -110,6 +110,25 @@ func (a Actor) ThroughExtension(name string) Actor {
 	return Actor{Kind: ActorAgent, Harness: "extension", Name: name, Via: &a}
 }
 
+// The two prefixes of the host's per-pane environment names. The host (mtmd)
+// sets MTM_X; an older TUIOS host still sets TUIOS_X.
+const (
+	HostEnvMTM   = "MTM_"
+	HostEnvTUIOS = "TUIOS_"
+)
+
+// HostEnv reads the host variable NAME (without prefix): MTM_NAME first, then
+// the TUIOS_NAME an older host sets. A nil getenv reads the process.
+func HostEnv(getenv func(string) string, name string) string {
+	if getenv == nil {
+		getenv = os.Getenv
+	}
+	if v := getenv(HostEnvMTM + name); v != "" {
+		return v
+	}
+	return getenv(HostEnvTUIOS + name)
+}
+
 // ActorFromEnv reads CLI identity from OCHAZUKE_ACTOR (a kind or JSON)
 // and detects agent harnesses from their environment markers. Detection only
 // narrows rights: an explicit owner or unknown kind cannot demote a detected
@@ -131,7 +150,8 @@ func ActorFromEnv(getenv func(string) string) (Actor, error) {
 	// its own name; a harness-specific marker supplies the table's name.
 	for _, signal := range []struct{ key, harness string }{
 		{"OCHAZUKE_HARNESS", ""},
-		{"TUIOS_HARNESS", ""},
+		{HostEnvMTM + "HARNESS", ""},
+		{HostEnvTUIOS + "HARNESS", ""},
 		{"AGENT_HARNESS", ""},
 		{"CODEX_THREAD_ID", "codex"},
 		{"CODEX_CI", "codex"},
@@ -153,7 +173,7 @@ func ActorFromEnv(getenv func(string) string) (Actor, error) {
 	}
 	if a.IsAgent() {
 		if a.Name == "" {
-			a.Name = getenv("TUIOS_AGENT_NAME")
+			a.Name = HostEnv(getenv, "AGENT_NAME")
 		}
 		if a.Model == "" {
 			a.Model = getenv("OCHAZUKE_MODEL")
@@ -162,10 +182,10 @@ func ActorFromEnv(getenv func(string) string) (Actor, error) {
 			}
 		}
 		if a.Pane == "" {
-			a.Pane = getenv("TUIOS_PANE_ID")
+			a.Pane = HostEnv(getenv, "PANE_ID")
 		}
 		if a.Session == "" {
-			a.Session = getenv("TUIOS_SESSION")
+			a.Session = HostEnv(getenv, "SESSION")
 		}
 	}
 	if caller := strings.TrimSpace(getenv("OCHAZUKE_CALLER")); caller != "" {

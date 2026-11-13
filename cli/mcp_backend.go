@@ -43,7 +43,7 @@ func (s *Shell) NewMCPServer() (*mcp.Server, error) {
 		}
 	}
 	if !actor.IsAgent() {
-		actor = ochazuke.Actor{Kind: ochazuke.ActorAgent, Harness: os.Getenv("OCHAZUKE_HARNESS"), Model: os.Getenv("OCHAZUKE_MODEL"), Pane: os.Getenv("TUIOS_PANE_ID"), Session: os.Getenv("TUIOS_SESSION")}
+		actor = ochazuke.Actor{Kind: ochazuke.ActorAgent, Harness: os.Getenv("OCHAZUKE_HARNESS"), Model: os.Getenv("OCHAZUKE_MODEL"), Pane: ochazuke.HostEnv(nil, "PANE_ID"), Session: ochazuke.HostEnv(nil, "SESSION")}
 	}
 	if actor.Pane == "" && actor.Name == "" {
 		actor.Name = s.Bin + "-mcp"

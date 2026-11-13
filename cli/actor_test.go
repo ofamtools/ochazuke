@@ -117,3 +117,18 @@ func TestMountedBindingsAgentRightsOpen(t *testing.T) {
 		}
 	}
 }
+
+func TestMCPActorHostNames(t *testing.T) {
+	t.Setenv("MTM_PANE_ID", "mp")
+	t.Setenv("MTM_SESSION", "ms")
+	t.Setenv("TUIOS_PANE_ID", "tp")
+	t.Setenv("TUIOS_SESSION", "ts")
+	if got := ochazuke.HostEnv(nil, "PANE_ID") + "/" + ochazuke.HostEnv(nil, "SESSION"); got != "mp/ms" {
+		t.Fatalf("MTM wins: %s", got)
+	}
+	t.Setenv("MTM_PANE_ID", "")
+	t.Setenv("MTM_SESSION", "")
+	if got := ochazuke.HostEnv(nil, "PANE_ID") + "/" + ochazuke.HostEnv(nil, "SESSION"); got != "tp/ts" {
+		t.Fatalf("TUIOS fallback: %s", got)
+	}
+}

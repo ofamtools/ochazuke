@@ -3442,8 +3442,9 @@ pending confirmations in the header status segments.
 Transport adapters bind startup identity with `Runtime.BindActor(actor, live)`;
 request-supplied actors cannot replace it, including in nested requests. The CLI
 and socket server use this binding. `ActorFromEnv` detects Codex, Claude Code
-and Pi session markers, plus `OCHAZUKE_HARNESS`, `TUIOS_HARNESS` and
-`AGENT_HARNESS`. These signals retain agent status even with an explicit
+and Pi session markers, plus `OCHAZUKE_HARNESS`, `MTM_HARNESS` (or the older `TUIOS_HARNESS`) and
+`AGENT_HARNESS`. Pane, session and agent name come from `MTM_PANE_ID`, `MTM_SESSION` and
+`MTM_AGENT_NAME`, falling back to the `TUIOS_` names (`HostEnv`). These signals retain agent status even with an explicit
 `OCHAZUKE_ACTOR=owner` or `unknown`; explicit identity fields still take
 precedence. A pane or model alone does not imply an agent. Direct in-process API
 requests may still set `Request.Actor`. These are cooperative guard rails, not authentication.

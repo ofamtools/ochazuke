@@ -261,3 +261,21 @@ func TestActorHarnessDetection(t *testing.T) {
 		t.Fatalf("terminal metadata became agent identity: %+v %v", a, err)
 	}
 }
+
+func TestActorFromEnvHostNames(t *testing.T) {
+	get := func(env map[string]string) Actor {
+		a, err := ActorFromEnv(func(k string) string { return env[k] })
+		if err != nil {
+			t.Fatal(err)
+		}
+		return a
+	}
+	mtm := get(map[string]string{"MTM_HARNESS": "h", "MTM_AGENT_NAME": "n", "MTM_PANE_ID": "mp", "MTM_SESSION": "ms", "TUIOS_PANE_ID": "tp", "TUIOS_SESSION": "ts", "TUIOS_AGENT_NAME": "tn"})
+	if want := (Actor{Kind: ActorAgent, Harness: "h", Name: "n", Pane: "mp", Session: "ms"}); mtm != want {
+		t.Fatalf("MTM names must win: %+v", mtm)
+	}
+	old := get(map[string]string{"TUIOS_HARNESS": "h", "TUIOS_AGENT_NAME": "n", "TUIOS_PANE_ID": "tp", "TUIOS_SESSION": "ts"})
+	if want := (Actor{Kind: ActorAgent, Harness: "h", Name: "n", Pane: "tp", Session: "ts"}); old != want {
+		t.Fatalf("TUIOS fallback: %+v", old)
+	}
+}
