@@ -114,6 +114,12 @@ type watchHub struct {
 	// stale are the windowed lists whose view changed during the request
 	// running (list_window.go): each reads its page once it has run.
 	stale []string
+	// hidden are the lists marked stale while nothing showed them
+	// (list_hidden.go): each reads its store once something does.
+	hidden []string
+	// frames counts the frames a Model rendered: 0 while nothing draws
+	// (the CLI, a test runtime), when stale lists read at once.
+	frames uint64
 }
 
 func (r *Runtime) watchHub() *watchHub {
@@ -161,6 +167,10 @@ type Watch struct {
 	// batch, when set, runs after each batch of events reached fn (a
 	// fallback watch's difference, a store's pushed batch).
 	batch func()
+	// idle, when set, reports that nothing needs the watch's snapshot now
+	// (every list a From hub feeds is hidden and marked stale), so a
+	// refresh takes none.
+	idle func() bool
 	// token is the store's ChangeToken taken just before the last snapshot;
 	// hasToken says it is set.
 	token    string
@@ -308,6 +318,7 @@ func (r *Runtime) watchAfterRequest(q Request, depth int, nothing bool) {
 	if depth == 0 {
 		r.readStaleWindows()
 		r.syncIndexForm()
+		defer r.refillShown() // a page or modal the request opened shows its stale lists
 	}
 	if !nothing && r.historyKind(q) == HistoryChange {
 		h.changed = true
@@ -464,6 +475,9 @@ func (w *Watch) refresh() {
 	token, hasToken := w.changeToken()
 	if hasToken && w.hasToken && token == w.token {
 		return // the store says nothing changed since the last snapshot
+	}
+	if w.idle != nil && w.idle() {
+		return // only hidden lists read it: they are marked stale instead
 	}
 	snap, err := w.snapshot()
 	if err != nil {

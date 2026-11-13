@@ -1251,6 +1251,16 @@ func (r *Runtime) targetAsKey(op Operation, q, request *Request) {
 // it is an instance, else what ResolveTarget maps it to. An unknown target
 // is an error naming it.
 func (r *Runtime) TargetInstance(target string) (string, error) {
+	id, err := r.targetInstance(target)
+	if err != nil && r.refillStale() {
+		// A row a stale list had not read yet (refresh.hidden): once more
+		// with every stale list read.
+		return r.targetInstance(target)
+	}
+	return id, err
+}
+
+func (r *Runtime) targetInstance(target string) (string, error) {
 	if len(r.Ancestry(target)) > 0 {
 		return target, nil
 	}

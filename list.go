@@ -70,6 +70,8 @@ type Collection struct {
 	from         string      // From: the noun whose store feeds the rows, "" for SetItems
 	paged        *listWindow // a From list over a paging store: the page it holds (list_window.go)
 	refills      int         // reads of that store (tests count them)
+	stale        bool        // a change came while hidden (refresh.hidden lazy, list_hidden.go)
+	drawnOn      string      // the current page when View last drew the list, "" never drawn
 	archived     int         // rows of all that collection.hide-archived hides (archiveHidden)
 	headerTones  []ToneSpan  // the header row's tones (SetHeaderTones)
 	items        []ListItem  // the rows shown: all, or the ones the filter lets through (list_filter.go)
@@ -298,7 +300,13 @@ func (l *Collection) SetItems(items []ListItem) error {
 // hides included. Cells and Tones are copies too, so editing a returned
 // row in place changes nothing until SetItems, which re-measures it;
 // Data is the application's value, shared as given.
-func (l *Collection) Items() []ListItem { return cloneItems(l.all) }
+//
+// A stale list (refresh.hidden) reads its store first: a reader wants the
+// rows as they are.
+func (l *Collection) Items() []ListItem {
+	l.refreshStale()
+	return cloneItems(l.all)
+}
 
 // cloneItems copies rows with their own Cells, Tones and Classes (one backing
 // array each for all cells and tones): the list and its callers never share a slice, so
@@ -642,6 +650,9 @@ func (l *Collection) syncFocus(previous ListItem, gone map[string]bool) {
 func (l *Collection) Snapshot() map[string]any {
 	out := l.state()
 	out["items"] = slices.Clone(l.items)
+	if l.stale {
+		out["stale"] = true // the rows predate a change (refresh.hidden)
+	}
 	return out
 }
 
@@ -699,6 +710,7 @@ func (l *Collection) View(width, height int) string {
 		t.guideRows()
 	}
 	l.r.Placed(l.id)
+	l.drawnOn = l.r.Page
 	if width <= 0 || height <= 0 {
 		return ""
 	}

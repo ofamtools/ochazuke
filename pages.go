@@ -478,6 +478,7 @@ func (r *Runtime) OpenPage(id string) error {
 	if page.OnOpen != nil && left != id {
 		page.OnOpen(r, left)
 	}
+	r.refillShown() // its stale lists (refresh.hidden) read again
 	return nil
 }
 

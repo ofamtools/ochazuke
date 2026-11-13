@@ -64,6 +64,7 @@ func (l *Collection) Refill() error {
 	if l.from == "" {
 		return errors.New("the list is fed rows, not a noun's store")
 	}
+	l.stale = false // whatever the read, the list asked for the store's rows
 	n := l.r.Nouns[l.from]
 	c := Ctx{actor: l.r.Actor(), Runtime: l.r, Context: l.r.Context()}
 	if l.paged != nil {
@@ -167,6 +168,7 @@ func (l *Collection) feed() error {
 			return err
 		}
 		w.batch = h.flush
+		w.idle = h.idle
 		h.watch = w
 		h.dirty = false
 		hubs.from[hubKey] = h
@@ -194,6 +196,9 @@ func (h *fromHub) flush() {
 			continue
 		}
 		live = append(live, id)
+		if l.markHidden() {
+			continue // nothing shows it: read when something does
+		}
 		if err := l.Refill(); err != nil {
 			r.UI().Error(fmt.Sprintf("%s list: %v", r.DisplayNoun(h.noun), err))
 		}
@@ -203,6 +208,33 @@ func (h *fromHub) flush() {
 		h.watch.Stop()
 		delete(r.watchHub().from, cmp.Or(h.key, h.noun))
 	}
+}
+
+// idle marks every list of the hub stale and reports true when each is
+// hidden (refresh.hidden lazy): the watch then takes no snapshot.
+func (h *fromHub) idle() bool {
+	r := h.watch.r
+	if !r.lazyHidden() || len(h.lists) == 0 {
+		return false
+	}
+	var lists []*Collection
+	for _, id := range h.lists {
+		l := r.List(id)
+		if l == nil {
+			continue
+		}
+		if !l.hidden() {
+			return false
+		}
+		lists = append(lists, l)
+	}
+	if len(lists) == 0 {
+		return false
+	}
+	for _, l := range lists {
+		l.markHidden()
+	}
+	return true
 }
 
 // refillRemote fills the list from a remote store without waiting for it:
