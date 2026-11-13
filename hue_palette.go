@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 )
 
@@ -18,15 +19,16 @@ import (
 // differences: two thin border lines or two titles are told apart at a
 // glance), paletteMinFadedDistance between a colour as an unfocused panel
 // draws it (faded HueFadePercent toward the surface) and any other colour
-// at full strength, and paletteMinReserved from the error red and the
-// needs-input amber, which a hue must not imitate. The first colours chosen
-// are therefore the most different from each other. hue_test.go holds the
+// at full strength. The error red and the needs-input amber start as chosen
+// points (never drawn): a project hue must not read as "errored" or "needs
+// you", so every colour is paletteMinDistance from them too. The first
+// colours chosen are therefore the most different from each other. hue_test.go holds the
 // bounds; a theme overrides any palette.N in themes.json.
 const (
 	paletteHueStep          = 3
 	paletteChroma           = 0.18
 	paletteMinDistance      = 0.10
-	paletteMinFadedDistance = 0.06
+	paletteMinFadedDistance = 0.065
 	paletteMinReserved      = 0.06
 )
 
@@ -54,11 +56,13 @@ type paletteCand struct {
 
 func generatePalette() []paletteRow {
 	surf := [2][3]float64{hexOKLab(paletteSurface[0]), hexOKLab(paletteSurface[1])}
-	var res [2][][3]float64
-	for side := range res {
-		for _, h := range paletteReserved[side] {
-			res[side] = append(res[side], hexOKLab(h))
+	var reserved []paletteCand
+	for i := range paletteReserved[0] {
+		var c paletteCand
+		for side := range surf {
+			c.lab[side] = hexOKLab(paletteReserved[side][i])
 		}
+		reserved = append(reserved, c)
 	}
 	fade := func(c, s [3]float64) [3]float64 {
 		p := float64(HueFadePercent) / 100
@@ -69,35 +73,30 @@ func generatePalette() []paletteRow {
 		for level := range paletteLightL {
 			c := paletteCand{row: paletteRow{oklchHex(paletteLightL[level], paletteChroma, float64(h)), oklchHex(paletteDarkL[level], paletteChroma, float64(h))}}
 			c.lab = [2][3]float64{hexOKLab(c.row.light), hexOKLab(c.row.dark)}
-			keep := true
-			for side := range res {
-				for _, r := range res[side] {
-					keep = keep && labDistance(c.lab[side], r) >= paletteMinReserved
-				}
-			}
-			if keep {
-				cands = append(cands, c)
-			}
+			cands = append(cands, c)
 		}
 	}
 	// score is how far c is from s in units of the least allowed: 1 or more
 	// is far enough.
-	score := func(c, s paletteCand) float64 {
+	// A reserved point is only kept apart at full strength.
+	score := func(c, s paletteCand, faded bool) float64 {
 		m := math.MaxFloat64
 		for side := range surf {
 			m = math.Min(m, labDistance(c.lab[side], s.lab[side])/paletteMinDistance)
-			m = math.Min(m, labDistance(fade(c.lab[side], surf[side]), s.lab[side])/paletteMinFadedDistance)
-			m = math.Min(m, labDistance(fade(s.lab[side], surf[side]), c.lab[side])/paletteMinFadedDistance)
+			if faded {
+				m = math.Min(m, labDistance(fade(c.lab[side], surf[side]), s.lab[side])/paletteMinFadedDistance)
+				m = math.Min(m, labDistance(fade(s.lab[side], surf[side]), c.lab[side])/paletteMinFadedDistance)
+			}
 		}
 		return m
 	}
-	chosen := []paletteCand{cands[0]}
+	chosen := slices.Clone(reserved)
 	for {
 		best, bestScore := -1, -1.0
 		for i, c := range cands {
 			m := math.MaxFloat64
-			for _, s := range chosen {
-				m = math.Min(m, score(c, s))
+			for j, s := range chosen {
+				m = math.Min(m, score(c, s, j >= len(reserved)))
 			}
 			if m > bestScore+1e-9 {
 				best, bestScore = i, m
@@ -108,6 +107,7 @@ func generatePalette() []paletteRow {
 		}
 		chosen = append(chosen, cands[best])
 	}
+	chosen = chosen[len(reserved):]
 	rows := make([]paletteRow, len(chosen))
 	for i, c := range chosen {
 		rows[i] = c.row

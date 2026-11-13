@@ -201,7 +201,7 @@ func okLab(h string) [3]float64 {
 // The generated palette's bounds, per built-in side: every tone readable on
 // the surface (3:1), any two at least 0.10 apart in OKLab, a tone as an
 // unfocused panel draws it (faded by the real fade) at least 0.055 from any
-// other tone at full strength, none within 0.06 of the error red or the
+// other tone at full strength, none within 0.10 of the error red or the
 // needs-input amber.
 func TestPaletteBounds(t *testing.T) {
 	if PaletteSize() < 12 {
@@ -247,7 +247,7 @@ func TestPaletteBounds(t *testing.T) {
 			}
 		}
 		t.Logf("%s: %d tones, min full %.3f, faded vs other full %.3f, faded vs faded %.3f, reserved %.3f", side, len(cols), minFull, minFade, minFadeFade, minRes)
-		if minFull < 0.10 || minFade < 0.055 || minRes < 0.06 {
+		if minFull < 0.10 || minFade < 0.055 || minRes < 0.10 {
 			t.Errorf("%s: full %.3f faded %.3f reserved %.3f below bounds", side, minFull, minFade, minRes)
 		}
 	}
