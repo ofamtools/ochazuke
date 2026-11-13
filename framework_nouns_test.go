@@ -156,7 +156,7 @@ func TestPageThings(t *testing.T) {
 	if got := paletteRequest(t, r, "get", "page", Arguments{"prop": "id"}); got != "alpha" {
 		t.Fatalf("page get on the current page %v", got)
 	}
-	if _, err := r.Execute(Request{Noun: "page", Verb: "get", Args: Arguments{"id": "alpha-editor"}}); err == nil || !strings.Contains(err.Error(), `unknown page "alpha-editor"`) {
+	if _, err := r.Execute(Request{Noun: "page", Verb: "get", Args: Arguments{"id": "alpha-editor"}}); err == nil || !strings.Contains(err.Error(), `no page "alpha-editor": did you mean alpha?; page list shows ids`) {
 		t.Fatalf("get of an instance that is no page: %v", err)
 	}
 	paletteRequest(t, r, "set", "page", Arguments{"id": "beta", "prop": "hidden", "value": "true"})

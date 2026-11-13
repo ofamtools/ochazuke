@@ -262,7 +262,7 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 		line("- `{{%s}}`: %s", p[0], p[1])
 	}
 	line("")
-	line("An argv word that is one placeholder and expands to nothing is left out. Parameters are `string`, `integer` or `boolean`; `required`, `enum`, `source` (an operation, noun.verb, listing more choices), `sourceArgs` (source parameter to sibling field; empty for no dependencies), `sourceFixed` (source parameter to a constant value), `enumLabels` (enum value to the label a pick list shows for it), `free` (accept a value outside them) and `description` are optional.")
+	line("An argv word that is one placeholder and expands to nothing is left out. Parameters are `string`, `integer` or `boolean`; `required`, `enum`, `source` (an operation, noun.verb, listing more choices), `sourceArgs` (source parameter to sibling field; empty for no dependencies), `sourceFixed` (source parameter to a constant value), `enumLabels` (enum value to the label a pick list shows for it), `free` (accept a value outside them), `usage` (how the parameter is given, said when a required one is missing) and `description` are optional.")
 	line("")
 	line("## Theme roles")
 	line("")
@@ -336,7 +336,7 @@ const actionsExample = `[
     "label": "example {{label}}",
     "confirm": "Run on {{label}} ({{mode}})?",
     "parameters": {
-      "mode": {"type": "string", "required": true, "enum": ["fast", "full"], "description": "How to run"},
+      "mode": {"type": "string", "required": true, "enum": ["fast", "full"], "usage": "example run MODE (fast or full)", "description": "How to run; usage is said when it is missing"},
       "count": {"type": "integer", "description": "How many times"},
       "verbose": {"type": "boolean", "description": "Say more"},
       "file": {"type": "string", "from": "row:path", "description": "Filled from the row's path field when you give none"}
