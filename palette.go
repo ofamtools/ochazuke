@@ -60,6 +60,10 @@ type Palette struct {
 	typedFrom  string
 	cols       int
 	committing bool
+	// cache holds the offered answers and line indexes for one stamp
+	// (Palette.index); nounsGen moves on every palette noun registered.
+	cache    *paletteMemo
+	nounsGen int
 }
 
 // paletteID is the palette's modal instance; paletteLineID its line.

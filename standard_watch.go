@@ -332,6 +332,7 @@ func (r *Runtime) watchAfterRequest(q Request, depth int, nothing bool) {
 
 // watchAfterJob refreshes the watches once a job of a change verb is done.
 func (r *Runtime) watchAfterJob(verb string) {
+	r.renderCache.changes++
 	if r.watches == nil {
 		return
 	}

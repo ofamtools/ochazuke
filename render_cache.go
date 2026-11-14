@@ -17,6 +17,7 @@ const RenderMaxFPSSetting = "render.max-fps"
 // visible state after Model.Update, and headless drivers taking an explicit
 // snapshot, can use it to bypass the background frame budget.
 func (m *Model) InvalidateRender() {
+	m.Runtime.renderCache.changes++
 	m.redraw.skip, m.redraw.dirty = false, false
 	m.redraw.urgent = true
 }

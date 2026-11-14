@@ -10,6 +10,11 @@ type runtimeRenderCache struct {
 	reach      map[reachKey]*reachWalk // graph_reach.go
 	reaching   bool                    // a graph walk is reading stores
 	generation uint64
+	// changes moves on every change the runtime is told of (Changed, a
+	// change request, a change job's end, Model.InvalidateRender): what a
+	// guard or a store could answer differently since (the palette's line
+	// index, palette_parse.go).
+	changes    uint64
 	instances  instanceIndex
 	scans      []*bindingScan
 	lastScan   *bindingScan

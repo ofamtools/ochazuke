@@ -229,6 +229,7 @@ func (r *Runtime) Emit(event string, fields map[string]any) {
 // (ochazuke.*: typing into an input, moving a list) are interaction, not
 // the application's data, and are not counted; nor is what a hook changes.
 func (r *Runtime) countChange(nouns []string) {
+	r.renderCache.changes++
 	h := r.eventHub()
 	if h.hooking > 0 {
 		return
