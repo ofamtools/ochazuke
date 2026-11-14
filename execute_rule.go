@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"errors"
 	"fmt"
 	"maps"
 )
@@ -26,41 +25,28 @@ func (r *Runtime) disabledHidden(op Operation) bool {
 // explicitRule applies refuseGuarded to an explicit request: done with the
 // refusal (a missing target asks) or with the Fallback's answer; not done
 // when the verb itself runs (what it Needs is provided just before its
-// handler, after its checks: provideNeeds). The Fallback runs only for a
-// request the original verb's agent rights let run (an agent refused or
-// asked about the verb is refused or asked, whatever its fallback), and
-// never for a check (checkOnly: CheckRequest, a dry run), which judges the
-// verb as asked.
+// handler, after its checks: invoke). The Fallback runs only for a request
+// the original verb's agent rights allow; an agent they refuse or ask
+// about goes on as the verb itself, whose checks refuse or ask (the
+// confirmed request comes back here and falls back). A check (checkOnly:
+// CheckRequest, a dry run) never falls back: it judges the verb as asked.
 func (r *Runtime) explicitRule(c Context, op Operation, q Request, focus string, mode ModeState, checkOnly bool) (any, error, bool) {
 	instead, err := r.refuseGuarded(op, q, focus, mode)
 	switch {
 	case err != nil:
 		return nil, err, true
-	case instead == nil || checkOnly:
+	case instead == nil || checkOnly || r.agentVerdict(c, q, op) != Allow():
 		return nil, nil, false
-	}
-	switch v := r.agentVerdict(c, q, op); {
-	case v.Refuse != "":
-		if v.err != nil {
-			return nil, v.err, true
-		}
-		return nil, errors.New(v.Refuse), true
-	case v.Ask != "":
-		value, err := r.openConfirm(c, q, Operation{Key: KeyOf(op.Noun(), op.Name()), Confirm: v.Ask})
-		return value, err, true
 	}
 	value, err := r.runFallback(c, q, instead)
 	return value, err, true
 }
 
 // asksFirst reports whether a verb with Confirm asks before it runs over
-// subjects things: a verb that Loses always asks, everyone included
-// (exception E2: an agent's allow does not pass it); otherwise not for an
-// agent the rights let pass, and not when undo fully restores the run.
+// subjects things: not for an agent the rights let pass (never past a verb
+// that Loses: agentPassesPrompt), and not when undo fully restores the
+// run.
 func (r *Runtime) asksFirst(op Operation, subjects int) bool {
-	if op.Loses != "" {
-		return true
-	}
 	return !r.agentPassesPrompt(op) && !r.undoRestores(op, subjects)
 }
 

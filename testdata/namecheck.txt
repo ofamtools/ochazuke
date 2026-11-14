@@ -326,7 +326,7 @@ runtime.go	Runtime.AddInput	case	"dir"	1
 runtime.go	Runtime.AddInput	case	"path"	1
 runtime.go	Runtime.AddInput	case	"text"	1
 runtime.go	Runtime.Register	case	"action"	1
-runtime.go	Runtime.execute	cyclo	"-"	48
+runtime.go	Runtime.execute	cyclo	"-"	45
 runtime.go	Runtime.nounInstance	compare	"app"	1
 search_case.go	CaseFor	case	"ignore"	1
 search_case.go	Runtime.SearchCase	case	"ignore"	1

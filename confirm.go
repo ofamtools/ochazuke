@@ -86,7 +86,7 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 	if registered, ok := r.Operation(op.Key.Short()); ok {
 		policy = registered
 	}
-	if r.agentPassesPrompt(policy) && policy.Loses == "" {
+	if r.agentPassesPrompt(policy) {
 		stored.Confirmed = true
 		return r.ExecuteAt(c, stored)
 	}
