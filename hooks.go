@@ -509,7 +509,7 @@ func registerHooks(r *Runtime) {
 		return problems, nil
 	}})
 	r.Define("ochazuke.hook").Props(filePathProp("The application's hooks file: <config dir>/hooks.json ($XDG_CONFIG_HOME/<app>/hooks.json, else ~/.config/<app>/hooks.json)", "this application has no config directory", func(r *Runtime) string { return r.HooksPath() }))
-	r.defineFacts(factsSpec{Noun: "ochazuke.event", Sample: EventSpec{}, Key: "name", Label: "name",
+	r.defineFacts(factsSpec{Noun: "ochazuke.event", StableKeys: true, Sample: EventSpec{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The event's name (noun.happening)", "description": "What it means", "fields": "The fields it carries", "source": "Who declared it"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) { return factThings(c.Runtime.Events(), nil) }})
 	r.Register(Operation{Key: "ochazuke.event.emit", Description: "Emit an event: the hook rows on it whose where matches the fields run", Parameters: map[string]Parameter{

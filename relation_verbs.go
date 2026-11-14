@@ -118,7 +118,7 @@ const relationKindNoun = "ochazuke.relation-kind"
 // the kinds the program declared, key NAME, so stories, agents and the
 // palette see the rules.
 func registerRelationKinds(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: relationKindNoun, Sample: RelationKind{}, Key: "name", Label: "name",
+	r.defineFacts(factsSpec{Noun: relationKindNoun, StableKeys: true, Sample: RelationKind{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The kind: any word relates; a declared kind adds rules", "description": "What the kind says",
 			"from": "The noun allowed at the From end (empty: any)", "to": "The noun allowed at the To end (empty: any)",
 			"maxFrom": "Relations one From thing may hold (0: any)", "maxTo": "Relations one To thing may have (0: any)",

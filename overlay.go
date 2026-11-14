@@ -46,18 +46,27 @@ type OverlayRow struct {
 }
 
 // overlayRows are every noun's rows, read from the file on first use.
+// session names the nouns whose keys hold only in this process
+// (Store.SessionKeys): their rows live here and never reach the file.
 type overlayRows struct {
-	loaded bool
-	path   string
-	rows   map[string]map[string]*OverlayRow
+	loaded  bool
+	path    string
+	rows    map[string]map[string]*OverlayRow
+	session map[string]bool
+}
+
+// overlayHolder is the overlay's state, not read yet.
+func (r *Runtime) overlayHolder() *overlayRows {
+	c := r.Config()
+	if c.overlay == nil {
+		c.overlay = &overlayRows{session: map[string]bool{}}
+	}
+	return c.overlay
 }
 
 func (r *Runtime) overlayState() *overlayRows {
 	c := r.Config()
-	if c.overlay == nil {
-		c.overlay = &overlayRows{}
-	}
-	o := c.overlay
+	o := r.overlayHolder()
 	if path := c.Path(OverlayFile); !o.loaded || o.path != path {
 		o.loaded, o.path, o.rows = true, path, map[string]map[string]*OverlayRow{}
 		if path != "" {
@@ -67,9 +76,18 @@ func (r *Runtime) overlayState() *overlayRows {
 					o.rows = map[string]map[string]*OverlayRow{}
 				}
 			}
+			o.dropSession(o.rows)
 		}
 	}
 	return o
+}
+
+// dropSession takes out of rows read from the file the nouns whose rows
+// are the session's (a row of an earlier run would wear another thing).
+func (o *overlayRows) dropSession(rows map[string]map[string]*OverlayRow) {
+	for noun := range o.session {
+		delete(rows, noun)
+	}
 }
 
 // overlayRow is the overlay of one thing, nil when it has none.
@@ -114,7 +132,9 @@ func (r *Runtime) saveOverlay() error {
 	if o.path == "" {
 		return nil
 	}
-	data, err := json.MarshalIndent(o.rows, "", "  ")
+	kept := maps.Clone(o.rows)
+	o.dropSession(kept)
+	data, err := json.MarshalIndent(kept, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -181,6 +201,9 @@ func (r *Runtime) withOverlay(n *Noun, s Store) Store {
 		// set NOUN still reads the :set line where the noun has none
 		// (shadowsNoun).
 		return s
+	}
+	if s.SessionKeys {
+		r.overlayHolder().session[n.Name] = true
 	}
 	o := &overlayOf{r: r, n: n, srcGet: s.Get, srcList: s.List, srcPatch: s.Patch,
 		create: rowFits("create", s) && s.Create == nil, delete: rowFits("delete", s) && s.Delete == nil}

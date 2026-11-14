@@ -803,7 +803,7 @@ func registerActions(r *Runtime) {
 
 // registerActionFacts declares the actions noun.
 func registerActionFacts(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: "ochazuke.user-operation", Sample: UserOperation{}, Key: "key", Label: "label", Extra: []PropSpec{{Name: "key"}},
+	r.defineFacts(factsSpec{Noun: "ochazuke.user-operation", StableKeys: true, Sample: UserOperation{}, Key: "key", Label: "label", Extra: []PropSpec{{Name: "key"}},
 		Docs: map[string]string{"key": "The verb the action adds (noun.verb)", "noun": "Its noun", "verb": "Its verb", "description": "What it does", "command": "The command it runs",
 			"label": "The label of its thing in the prompt"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {

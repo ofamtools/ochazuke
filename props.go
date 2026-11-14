@@ -446,6 +446,12 @@ type Store struct {
 	// (overlay.go) for what it lacks: props it cannot hold, create, delete
 	// and archive. Facts stores have it always.
 	Overlay bool
+	// SessionKeys says the things' keys hold only in this process (a
+	// position in a list, a counter): the overlay keeps their rows for the
+	// session and never writes them to overlay.json, where another run's
+	// thing of that key would wear them. A facts noun has it unless its
+	// spec says its keys are stable (factsSpec.StableKeys).
+	SessionKeys bool
 	// Stamps says the store writes the base times (created, updated)
 	// itself, so create and set do not stamp them; the props stay.
 	Stamps bool

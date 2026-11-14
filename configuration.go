@@ -767,7 +767,7 @@ func (r *Runtime) unapplyBindingRows(applied []appliedRow) {
 
 // registerModeFacts declares the modes noun.
 func registerModeFacts(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: "ochazuke.mode", Sample: modeFact{}, Key: "name", Label: "name",
+	r.defineFacts(factsSpec{Noun: "ochazuke.mode", StableKeys: true, Sample: modeFact{}, Key: "name", Label: "name",
 		Extra: []PropSpec{{Name: "current", Role: RoleCurrent, Parameter: Parameter{Type: SettingBoolean}}},
 		Docs: map[string]string{"name": "The mode's name", "pending": "A pending mode: exclusive and one-shot",
 			"current": "Whether it is the mode the runtime is in; setting it true switches to the mode (mode set NAME), false returns to the focus's declared mode"},

@@ -179,7 +179,7 @@ func registerGlyphs(r *Runtime, a *Appearance) {
 	a.glyphSet, _ = settings.current(*settings.find(ChromeGlyphsSetting)).(string)
 	r.Settings().Observe(ChromeBorderSetting, func(_ string, value any) { a.borderSet, _ = value.(string) })
 	r.Settings().Observe(ChromeGlyphsSetting, func(_ string, value any) { a.glyphSet, _ = value.(string) })
-	r.defineFacts(factsSpec{Noun: "ochazuke.glyph", Sample: glyphFact{}, Key: "name", Label: "name",
+	r.defineFacts(factsSpec{Noun: "ochazuke.glyph", StableKeys: true, Sample: glyphFact{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The glyph set: auto, ascii, unicode or nerd", "active": "The set in effect", "resolved": "The set auto resolves to", "reason": "Why auto chose it"},
 		List: func(Ctx, ListQuery) ([]Thing, error) {
 			active, reason := a.glyphChoice(r.Settings().String(ChromeGlyphsSetting))

@@ -68,7 +68,7 @@ func registerRelated(r *Runtime) {
 }
 
 func registerRelatedFacts(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: RelatedNoun, Sample: RelatedSection{}, Key: "id", Label: "label",
+	r.defineFacts(factsSpec{Noun: RelatedNoun, StableKeys: true, Sample: RelatedSection{}, Key: "id", Label: "label",
 		Docs: map[string]string{"id": "The section's place: NOUN.PROP of the referring prop", "noun": "The noun whose things the section lists", "prop": "The prop that names the thing",
 			"label": "The section's heading", "count": "How many things it lists", "collapsed": "Whether it is folded to its heading",
 			"hidden": "Whether the hidden setting keeps it out", "position": "Its place in the display order, from 1"},

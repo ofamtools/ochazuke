@@ -2,6 +2,8 @@ package ochazuke
 
 import (
 	"errors"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -84,5 +86,25 @@ func TestSingletonLists(t *testing.T) {
 	got, err := r.Execute(Request{Noun: "ochazuke.snapshot", Verb: "list"})
 	if err != nil || len(got.(ListAnswer).Items) != 1 {
 		t.Fatalf("snapshot list %v %v", got, err)
+	}
+}
+
+// A facts noun whose keys hold only in this process (the default) keeps
+// its overlay rows for the session; one with stable keys writes them to
+// overlay.json.
+func TestOverlayFileHoldsStableKeysOnly(t *testing.T) {
+	for _, stable := range []bool{false, true} {
+		r := NewRuntime()
+		r.Config().Dir = t.TempDir()
+		r.defineFacts(factsSpec{Noun: "fact", Key: "id", StableKeys: stable, Extra: []PropSpec{{Name: "id"}, {Name: "colour"}},
+			List: func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "f1"}}, nil }})
+		mustRun(t, r, Request{Noun: "fact", Verb: "set", Args: Arguments{"id": "f1", "prop": "colour", "value": "red"}})
+		if got, _ := r.Execute(Request{Noun: "fact", Verb: "get", Args: Arguments{"id": "f1", "prop": "colour"}}); got != "red" {
+			t.Fatalf("stable %v: colour %v", stable, got)
+		}
+		data, _ := os.ReadFile(r.Config().Path(OverlayFile))
+		if inFile := strings.Contains(string(data), `"f1"`); inFile != stable {
+			t.Fatalf("stable %v: in the file %v: %s", stable, inFile, data)
+		}
 	}
 }

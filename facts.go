@@ -65,6 +65,11 @@ type factsSpec struct {
 	// Routes names, per prop, the verb (noun.verb) that changes it: set on
 	// the prop runs that verb with the value (PropSpec.WrittenBy).
 	Routes map[string]string
+	// StableKeys says a thing keeps its key across runs (a name, a verb
+	// key), so the overlay writes its rows to overlay.json; off (the
+	// default), keys are positional or of this process (a row number, a
+	// job counter) and the overlay holds the rows for the session only.
+	StableKeys bool
 }
 
 // defineFacts declares the noun, its props and its facts store. The
@@ -131,7 +136,7 @@ func (r *Runtime) defineFacts(f factsSpec) {
 	b.Kind(NounKindFacts)
 	b.Props(props...).Store(Store{
 		Kind: KindCollection, Facts: true, Remote: f.Remote, ListParams: f.ListParams, List: f.List, Get: get,
-		Create: f.Create, Patch: f.Patch, AcceptsKey: f.Create != nil,
+		Create: f.Create, Patch: f.Patch, AcceptsKey: f.Create != nil, SessionKeys: !f.StableKeys,
 	})
 }
 
@@ -213,7 +218,7 @@ func propTypeOf(t reflect.Type) string {
 
 // registerCoreFacts declares the operations and bindings nouns.
 func registerCoreFacts(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: "ochazuke.operation", Sample: Operation{}, Key: "key", Label: "description",
+	r.defineFacts(factsSpec{Noun: "ochazuke.operation", StableKeys: true, Sample: Operation{}, Key: "key", Label: "description",
 		Extra: []PropSpec{{Name: "key"}, {Name: "noun"}, {Name: "verb"}, {Name: "name"}, {Name: "namespace"}},
 		Docs: map[string]string{"key": "The operation's noun.verb", "noun": "The noun", "verb": "The verb", "name": "The operation's name (its verb)", "namespace": "The namespace that defined it", "description": "What the operation does",
 			"parameters": "The arguments it takes, by name", "confirm": "The prompt it asks first, when it asks", "result": "What it answers",

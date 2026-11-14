@@ -155,7 +155,7 @@ const referrerNoun = "ochazuke.referrer"
 // props that name that noun's things (all of them without a noun), so
 // stories, agents and the palette can see which sections a thing has.
 func registerReferrers(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: referrerNoun, Sample: Referrer{}, Key: "id", Label: "label", Extra: []PropSpec{{Name: "id"}},
+	r.defineFacts(factsSpec{Noun: referrerNoun, StableKeys: true, Sample: Referrer{}, Key: "id", Label: "label", Extra: []PropSpec{{Name: "id"}},
 		Docs: map[string]string{"id": "The referring prop's place: NOUN.PROP", "noun": "The noun that declares the prop", "prop": "The referring prop",
 			"role": "The prop's role (owner: the thing belongs to the referenced one)", "readOnly": "Whether set refuses to write the prop", "any": "Whether the prop names a thing of any noun, holding noun:key",
 			"label": "The heading of a section of the referring noun's things", "section": "A section id in place of NOUN.PROP (a list section, or one value of a split section)",

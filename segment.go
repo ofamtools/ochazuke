@@ -940,7 +940,7 @@ func registerSegments(r *Runtime) {
 			}
 			return names, nil
 		}})
-	r.defineFacts(factsSpec{Noun: "ochazuke.segment", Sample: Segment{}, Key: "id", Label: "label",
+	r.defineFacts(factsSpec{Noun: "ochazuke.segment", StableKeys: true, Sample: Segment{}, Key: "id", Label: "label",
 		Docs: map[string]string{"id": "The segment's id", "label": "Its label", "description": "What it shows", "provider": "Where its text comes from", "order": "Its place among the others",
 			"enabled": "Whether it shows by default", "owner": "The settings owner of its setting"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {

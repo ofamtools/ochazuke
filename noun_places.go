@@ -479,7 +479,7 @@ func (w *placementWriter) failure() error {
 
 func registerPlacements(r *Runtime) {
 	registerActionThings(r)
-	r.defineFacts(factsSpec{Noun: "ochazuke.noun", Sample: nounFact{}, Key: "noun", Label: "noun",
+	r.defineFacts(factsSpec{Noun: "ochazuke.noun", StableKeys: true, Sample: nounFact{}, Key: "noun", Label: "noun",
 		Docs:       map[string]string{"noun": "The noun's name", "verbs": "Its verbs", "seen": "How many places it was seen in (nouns places lists them)", "kind": "What kind of noun it is: record, singleton, facts, instances, command or part", "store": "What its store can do: local or remote, pages (it answers one page of a list), token (a change token)", "count": "How many things it has, as the Nouns page last read them (none until read)", "archived": "How many of them are archived, as the Nouns page last read them"},
 		ListParams: map[string]Parameter{"action": {Type: "string", Description: "Only the nouns that have this action (ochazuke.action list {noun} is the other side)"}},
 		List: func(c Ctx, q ListQuery) ([]Thing, error) {

@@ -44,7 +44,7 @@ func actionsOnNoun(r *Runtime, noun string) []string {
 
 // registerActionThings declares ochazuke.action.
 func registerActionThings(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: "ochazuke.action", Sample: actionFact{}, Key: "name", Label: "name",
+	r.defineFacts(factsSpec{Noun: "ochazuke.action", StableKeys: true, Sample: actionFact{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The action's name (an operation's last part)", "nouns": "The nouns that have it",
 			"operations": "Its operations' keys"},
 		ListParams: map[string]Parameter{"noun": {Type: "string", Description: "Only the actions this noun has (ochazuke.noun list {action} is the other side)"}},

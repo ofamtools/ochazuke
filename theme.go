@@ -122,7 +122,7 @@ func newAppearance(r *Runtime) *Appearance {
 			return Thing{"theme": a.Theme, "density": a.Density, "dark": a.Dark}, nil
 		},
 	})
-	r.defineFacts(factsSpec{Noun: "ochazuke.theme", Sample: themeFact{}, Key: "name", Label: "name",
+	r.defineFacts(factsSpec{Noun: "ochazuke.theme", StableKeys: true, Sample: themeFact{}, Key: "name", Label: "name",
 		Docs: map[string]string{"name": "The colour scheme's name: a built-in theme, or one of themes.json"},
 		List: func(Ctx, ListQuery) ([]Thing, error) {
 			var names []themeFact
