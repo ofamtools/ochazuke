@@ -21,9 +21,9 @@ func fixture(t *testing.T, own []string, extra string) *ochazuke.Runtime {
 	r.Config().Disable()
 	noop := func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }
 	tile := r.Define("tile").Verb("open", noop, "Open the tile").Verb("yank", noop, "Yank its id").
-		Verb("kill", noop, "Kill the tile").Verb("rename", noop, "Rename the tile").Mode("normal")
+		Verb("kill", noop, "Kill the tile").Verb("pin", noop, "Pin the tile").Mode("normal")
 	tile.Bind("enter", ochazuke.Do("tile.open")).Bind("y", ochazuke.Do("tile.yank")).
-		Bind("x", ochazuke.Do("tile.kill")).Bind("r", ochazuke.Do("tile.rename"))
+		Bind("x", ochazuke.Do("tile.kill")).Bind("r", ochazuke.Do("tile.pin"))
 	child := r.Define("subagent").Kind(ochazuke.NounKindPart).DefaultKeys(false).
 		Verb("open", noop, "Open the subagent").Verb("yank", noop, "Yank its id").Mode("normal")
 	child.Bind("enter", ochazuke.Do("subagent.open")).Bind("y", ochazuke.Do("subagent.yank"))
@@ -88,7 +88,7 @@ func TestDeadKeys(t *testing.T) {
 		found, _ := rulecheck.DeadKeys(fixture(t, []string{"x"}, ""), func(int) bool { return true })
 		base := rulecheck.Baseline{}
 		for _, f := range found {
-			base[f.Key()] = rulecheck.Row{Fields: f.Fields, Count: 1, Reason: "tiles rename, subagents do not"}
+			base[f.Key()] = rulecheck.Row{Fields: f.Fields, Count: 1, Reason: "tiles pin, subagents do not"}
 		}
 		if res := rulecheck.Compare(found, base); len(res.New)+len(res.Stale) != 0 || res.Legit != 1 {
 			t.Fatalf("a reason row must cover its finding: %+v", res)
