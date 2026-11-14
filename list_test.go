@@ -487,8 +487,9 @@ func TestNoMarksListTakesNoMarks(t *testing.T) {
 			t.Fatalf("%s: marked = %v, want %v", tc.focus, got, tc.marks)
 		}
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "mark", Args: Arguments{"id": "view", "item": "v1"}}); err == nil {
-		t.Fatal("collection.mark marked a NoMarks list")
+	// An explicit request marks even there (no-refusals D3).
+	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "mark", Args: Arguments{"id": "view", "item": "v1"}}); err != nil {
+		t.Fatalf("collection.mark on a NoMarks list: %v", err)
 	}
 }
 
