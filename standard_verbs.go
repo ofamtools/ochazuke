@@ -1271,7 +1271,7 @@ func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
 		list, _ := current.([]string)
 		changes[name] = edit.apply(list)
 	}
-	if routed, err := r.routeWrites(n, c, changes); err != nil || routed && len(changes) == 0 {
+	if routed, err := r.routeWrites(n, c, key, changes); err != nil || routed && len(changes) == 0 {
 		if err != nil {
 			return nil, err
 		}
@@ -1287,17 +1287,16 @@ func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
 
 // routeWrites runs, for each change of a prop with WrittenBy, the verb that
 // changes it (the value as its WrittenArg) in place of the store's Patch,
-// and takes the change out of changes; it reports whether any ran.
-func (r *Runtime) routeWrites(n *Noun, c Ctx, changes map[string]any) (bool, error) {
+// and takes the change out of changes; it reports whether any ran. The
+// verb acts on the thing written, key (routedRequest), not on the focus.
+func (r *Runtime) routeWrites(n *Noun, c Ctx, key string, changes map[string]any) (bool, error) {
 	routed := false
 	for _, name := range slices.Sorted(maps.Keys(changes)) {
 		p := n.prop(name)
 		if p == nil || p.WrittenBy == "" {
 			continue
 		}
-		noun, verb, _ := CutKey(p.WrittenBy)
-		arg := cmp.Or(p.WrittenArg, p.Name)
-		if _, err := r.ExecuteAt(c.Context, Request{Noun: noun, Verb: verb, Args: Arguments{arg: changes[name]}}); err != nil {
+		if _, err := r.ExecuteAt(c.Context, r.routedRequest(n, *p, key, changes[name])); err != nil {
 			return routed, err
 		}
 		r.notice("%s.%s: ran %s", r.DisplayNoun(n.Name), name, p.WrittenBy)
@@ -1305,6 +1304,45 @@ func (r *Runtime) routeWrites(n *Noun, c Ctx, changes map[string]any) (bool, err
 		routed = true
 	}
 	return routed, nil
+}
+
+// routedRequest is the request a write of prop p of the thing key runs
+// (its WrittenBy): the value as WrittenArg, and the thing as the verb's
+// subject: its parameter of the noun (one named after the key prop, else
+// one whose Noun is the noun), else its target when key names an
+// instance. A singleton (no key) keeps the focus.
+func (r *Runtime) routedRequest(n *Noun, p PropSpec, key string, value any) Request {
+	noun, verb, _ := CutKey(p.WrittenBy)
+	arg := cmp.Or(p.WrittenArg, p.Name)
+	q := Request{Noun: noun, Verb: verb, Args: Arguments{arg: value}}
+	op, ok := r.Operation(p.WrittenBy)
+	if key == "" || !ok {
+		return q
+	}
+	if sub := thingParam(op, n); sub != "" && sub != arg {
+		q.Args[sub] = key
+		return q
+	}
+	if _, err := r.TargetInstance(key); err == nil {
+		q.Target = key
+	}
+	return q
+}
+
+// thingParam is op's parameter that names a thing of n: the one named
+// after n's key prop, else the first (by name) whose Noun is n.
+func thingParam(op Operation, n *Noun) string {
+	if k := n.keyProp(); k != nil {
+		if _, ok := op.Parameters[k.Name]; ok {
+			return k.Name
+		}
+	}
+	for _, name := range slices.Sorted(maps.Keys(op.Parameters)) {
+		if op.Parameters[name].Noun == n.Name {
+			return name
+		}
+	}
+	return ""
 }
 
 func runDelete(r *Runtime, n *Noun, c Ctx) (any, error) {

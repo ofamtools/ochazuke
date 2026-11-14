@@ -64,14 +64,17 @@ func TestFactsOverlay(t *testing.T) {
 // A prop a verb changes (Routes, PropSpec.WrittenBy): set runs that verb.
 func TestFactsRouteRunsTheOwnerVerb(t *testing.T) {
 	r := overlayFacts(t)
-	var got any
-	r.Register(Operation{Key: "fact.retitle", Parameters: map[string]Parameter{"title": {Type: "string"}},
-		Run: func(_ *Runtime, _ Context, a Arguments) (any, error) { got = a["title"]; return nil, nil }})
-	if _, err := r.Execute(Request{Noun: "fact", Verb: "set", Args: Arguments{"id": "f1", "prop": "title", "value": "Uno"}}); err != nil {
+	var got, thing any
+	r.Register(Operation{Key: "fact.retitle", Parameters: map[string]Parameter{"id": {Type: "string", Noun: "fact"}, "title": {Type: "string"}},
+		Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
+			got, thing = a["title"], a["id"]
+			return nil, nil
+		}})
+	if _, err := r.Execute(Request{Noun: "fact", Verb: "set", Args: Arguments{"id": "f2", "prop": "title", "value": "Uno"}}); err != nil {
 		t.Fatal(err)
 	}
-	if got != "Uno" {
-		t.Fatalf("retitle ran with %v", got)
+	if got != "Uno" || thing != "f2" {
+		t.Fatalf("retitle ran with %v on %v, want Uno on f2", got, thing)
 	}
 }
 
