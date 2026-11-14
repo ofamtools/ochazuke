@@ -135,3 +135,32 @@ func (r *Runtime) PendingModeNames() []string {
 func (r *Runtime) allModeNames() []string {
 	return r.modeNames(func(ModeSpec) bool { return true })
 }
+
+// modeCurrent reports whether name is the mode the runtime is in: the
+// live mode (a pending one included) or the base mode beneath it.
+func (r *Runtime) modeCurrent(name string) bool {
+	return name == r.Mode.Name || name == r.BaseMode()
+}
+
+// NewModeExtends is the mode a mode nobody registered falls back to when
+// first used (ensureMode): its keys with no row of their own run the rows
+// of this mode, so a new mode is never a trap.
+const NewModeExtends = "normal"
+
+// ensureMode makes name a mode when it is not one yet: a layered base mode
+// (ModeSpec.Layered) that extends NewModeExtends, listed by mode list, with its own binding
+// context (NOUN/name) for rows to target. Any name is accepted (owner
+// 2026-11-13: "If it's in the list, I should be able to use it"); only an
+// empty name or the reserved declared cannot be one.
+func (r *Runtime) ensureMode(name string) error {
+	if r.modeDefined(name) {
+		return nil
+	}
+	if err := r.DefineMode(name, false, ModeExtends(NewModeExtends)); err != nil {
+		return err
+	}
+	spec := r.modes[name]
+	spec.Layered = true
+	r.putMode(name, spec)
+	return nil
+}

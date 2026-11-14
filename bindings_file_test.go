@@ -457,19 +457,23 @@ func TestBindingsCheckReportsFormat(t *testing.T) {
 }
 
 // A user file may repeat the application's modes and extends (the export
-// does); one that differs is reported and ignored.
+// does); one that differs is reported and ignored; a mode the application
+// lacks is defined from the entry.
 func TestBindingsFileModesMustAgree(t *testing.T) {
 	r, dir := exportFixture(t)
 	writeConfig(t, dir, BindingsFile, `{"modes": {"count_pending": {"pending": true}, "made_up": {"pending": true}, "normal": {"pending": true}},
 		"bindings": [{"context": "app/normal", "extends": "insert", "bindings": {"a": "test.beta"}}]}`)
 	problems := r.ReloadUserBindings()
 	joined := strings.Join(problems, "\n")
-	for _, want := range []string{"modes made_up: unknown mode", "modes normal: pending false", `app/normal: extends "insert" differs`} {
+	if !r.modeDefined("made_up") || !r.modes["made_up"].Pending {
+		t.Fatalf("made_up is defined from the entry: %+v", r.modes["made_up"])
+	}
+	for _, want := range []string{"modes normal: pending false", `app/normal: extends "insert" differs`} {
 		if !strings.Contains(joined, want) {
 			t.Fatalf("missing %q in:\n%s", want, joined)
 		}
 	}
-	if len(problems) != 3 {
+	if len(problems) != 2 {
 		t.Fatalf("problems %v", problems)
 	}
 }

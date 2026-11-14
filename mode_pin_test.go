@@ -67,9 +67,10 @@ func TestFocusMovedInstancePin(t *testing.T) {
 	if r.Mode.Name != "normal" {
 		t.Fatalf("unpin: mode %q, want normal", r.Mode.Name)
 	}
-	if err := r.PinInstance("items", "nope"); err == nil {
-		t.Fatal("pin to an unknown mode was accepted")
+	if err := r.PinInstance("items", "nope"); err != nil || !r.IsBaseMode("nope") {
+		t.Fatalf("pin to a name nobody registered makes the mode: %v", err)
 	}
+	must(r.PinInstance("items", ""))
 	if err := r.DefineMode(ModeDeclared, false); err == nil {
 		t.Fatal("the reserved mode name was accepted")
 	}

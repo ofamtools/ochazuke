@@ -1,7 +1,5 @@
 package ochazuke
 
-import "fmt"
-
 // modeCause says why the global mode changes. It describes the kind of
 // transition, never a mode's or a noun's name. The writer treats every
 // cause alike today; the cause documents each call and gives later
@@ -70,8 +68,10 @@ func (r *Runtime) changeMode(next ModeState, cause modeCause, leaving ...string)
 }
 
 // switchMode is the named-mode request mode.switch and Runtime.SetMode
-// share: ModeDeclared resolves to the focus's declared mode, the name must
-// be a registered base mode, and the payload is cleared. When in is set (the
+// share: ModeDeclared resolves to the focus's declared mode, a name nobody
+// registered becomes a base mode at once (ensureMode: its keys fall back
+// to normal's rows), a pending mode's name enters it as mode.enter does
+// with no payload, and the payload is cleared. When in is set (the
 // request's input), the input runs its own transition (insert sessions, the
 // visual anchor, a pin, a read-only viewer) and mirrors the global mode
 // while it is focused; a background input changes only itself. Either way
@@ -79,8 +79,12 @@ func (r *Runtime) changeMode(next ModeState, cause modeCause, leaving ...string)
 // request still counts as a mode change.
 func (r *Runtime) switchMode(mode string, in *Input) (string, error) {
 	mode = r.resolveDeclared(mode)
+	if err := r.ensureMode(mode); err != nil {
+		return "", err
+	}
 	if !r.IsBaseMode(mode) {
-		return "", fmt.Errorf("unknown mode %q", mode)
+		r.enterMode(mode, Payload{})
+		return mode, nil
 	}
 	if in != nil {
 		in.SetMode(mode)

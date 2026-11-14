@@ -66,11 +66,17 @@ func (r *Runtime) DeclaredMode(id string) string {
 // declared before (not in a mode the user lifted into, such as insert),
 // the base mode follows in the same update, so the next frame's badge
 // shows it; under an open modal the mode the outermost modal restores on
-// close follows instead. A pin names a registered base mode.
+// close follows instead. A pin names a base mode; a name nobody registered
+// becomes one (ensureMode).
 func (r *Runtime) PinInstance(id, mode string) error {
 	inst := r.Instances[id]
 	if inst == nil {
 		return fmt.Errorf("unknown instance %q", id)
+	}
+	if mode != "" {
+		if err := r.ensureMode(mode); err != nil {
+			return err
+		}
 	}
 	if mode != "" && !r.IsBaseMode(mode) {
 		if r.modes[mode].Pending {

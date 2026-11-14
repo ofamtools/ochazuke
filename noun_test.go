@@ -248,7 +248,6 @@ func TestLoadBindingsRowsReplaceAddAndUnbind(t *testing.T) {
 		`[{"noun": "nowhere", "keys": "x", "request": {"verb": "quit", "noun": "app"}}]`,
 		`[{"noun": "app", "keys": "x", "request": {"verb": "nope", "noun": "app"}}]`,
 		`[{"noun": "app", "pattern": "letters", "request": {"verb": "quit", "noun": "app"}}]`,
-		`[{"noun": "app", "keys": "x", "mode": "unknown", "request": {"verb": "quit", "noun": "app"}}]`,
 		`[{"noun": "app", "keys": "x", "request": {"verb": "move", "noun": "input", "args": {"motion": "left"}}, "from": {"steps": "nowhere"}}]`,
 	} {
 		if _, err := r.LoadBindings([]byte(bad)); err == nil {

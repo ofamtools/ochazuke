@@ -107,7 +107,6 @@ confirm.go	Runtime.openConfirmAbout	compare	"noun"	1
 confirm.go	Runtime.openConfirmAbout	cyclo	"-"	40
 confirm.go	registerConfirm	compare	"ochazuke.confirm"	1
 default_bindings.go	Runtime.CheckDefaultBindings	compare	"ochazuke.mode.enter"	1
-default_bindings.go	Runtime.loadDefaultDoc	cyclo	"-"	34
 editing.go	Input.begin	case	"append"	2
 editing.go	Input.begin	case	"end"	2
 editing.go	Input.begin	case	"first"	2	a parameter or setting value of the same spelling as the verb, not a branch on the verb
@@ -300,7 +299,6 @@ props.go	PropSpec.ofCollection	compare	"collection"	1	Subject and Result are enu
 props.go	Runtime.addProp	compare	"archive"	1
 props.go	Runtime.addProp	compare	"archived"	1
 props.go	Runtime.validatePropRow	compare	"value"	1
-props.go	checkPropRole	case	"archive"	1
 props.go	checkPropRole	case	"owner"	1
 props.go	checkSchema	case	"collection"	1
 props.go	checkSchema	compare	"id"	1

@@ -90,6 +90,11 @@ type ModeSpec struct {
 	// Outside is the base mode used for an unbound key after this pending
 	// mode's prefix. It considers single-key rows, never outside sequences.
 	Outside string `json:"outside,omitempty"`
+	// Layered makes a noun's own table in the mode add to the mode it
+	// extends instead of replacing it: a key the table does not bind runs
+	// the parent's rows. A mode the runtime makes on first use
+	// (ensureMode) is layered, so a few rows for it never trap the rest.
+	Layered bool `json:"layered,omitempty"`
 	// Typing is a mode that takes text: an input in it inserts what is
 	// typed, groups its typing into one undo change and draws the bar
 	// cursor, and completion opens in it (insert). A mode that extends a
@@ -596,7 +601,7 @@ func (r *Runtime) bindingModes() map[string]ModeSpec {
 	modes := map[string]ModeSpec{}
 	for name, spec := range r.modes {
 		// Only the traits a file declares; a mode with none is not listed.
-		file := ModeSpec{Pending: spec.Pending, Passthrough: spec.Passthrough, Selection: spec.Selection, Extends: spec.Extends, Outside: spec.Outside}
+		file := ModeSpec{Pending: spec.Pending, Passthrough: spec.Passthrough, Selection: spec.Selection, Extends: spec.Extends, Outside: spec.Outside, Layered: spec.Layered}
 		if file != (ModeSpec{}) {
 			modes[name] = file
 		}

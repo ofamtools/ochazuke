@@ -132,16 +132,18 @@ func (o Operation) SubjectOmitted(open []string, word string) bool {
 
 // shadowsNoun reports whether a bare alias that shadows verb (set) reads
 // word as a noun (owner decision 17): a noun whose verb of that name is the
-// application's own (not Standard), or whose store is a singleton. A
-// collection's or an instances store's standard verb is reached as NOUN
-// VERB, never as VERB NOUN, so its name never takes a setting's prefix.
+// application's own (not Standard), whose store is a singleton, or whose
+// things have a current one (a writable RoleCurrent prop: set mode nested
+// is mode set nested, one value as a singleton's). Any other collection's
+// or an instances store's standard verb is reached as NOUN VERB, never as
+// VERB NOUN, so its name never takes a setting's prefix.
 func (r *Runtime) shadowsNoun(word, verb string) bool {
 	op, ok := r.Operation(r.CanonicalNoun(word) + "." + verb)
 	if !ok || op.Standard == "" {
 		return true
 	}
 	n := r.Nouns[op.Noun()]
-	return n != nil && n.Store != nil && n.Store.Kind == Singleton
+	return n != nil && n.Store != nil && (n.Store.Kind == Singleton || writableRole(n, RoleCurrent) != nil)
 }
 
 // shadowWords keeps the noun words a bare alias that shadows verb reads

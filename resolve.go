@@ -1301,7 +1301,12 @@ func registerModeTables(r *Runtime) {
 	r.Register(Operation{Key: "ochazuke.mode.enter", FocusBound: true, Staying: true, HistoryKind: HistoryAction, Description: "Enter a pending mode with a typed payload (op, count, opcount; prefix arms the sequence timer, request is what it runs)", Parameters: map[string]Parameter{"mode": {Type: "string", Required: true, Noun: "ochazuke.mode"}, "op": {Type: "string"}, "count": {Type: "integer"}, "opcount": {Type: "integer"}, "prefix": {Type: "string", Description: "Key sequence the mode holds; the timer runs request when no key follows"}, "request": {Type: "object", Description: "Request run when the sequence times out"}}, Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		mode := StringArg(a, "mode", "")
 		if !r.modes[mode].Pending {
-			return nil, fmt.Errorf("unknown pending mode %q", mode)
+			// A base mode, or a name nobody registered: switch to it, as
+			// mode.switch does, rather than refuse.
+			if _, err := r.switchMode(mode, r.Input(c.InputID)); err != nil {
+				return nil, err
+			}
+			return r.Mode, nil
 		}
 		request, err := requestArg(a, "request")
 		if err != nil {
@@ -1321,8 +1326,8 @@ func registerModeTables(r *Runtime) {
 			outcome, err := r.dispatchIn(focus, r.Mode, key)
 			return outcome != KeyUnhandled, err
 		default:
-			if !r.modeDefined(mode) {
-				return nil, fmt.Errorf("unknown mode %q", mode)
+			if err := r.ensureMode(mode); err != nil {
+				return nil, err
 			}
 			outcome, err := r.dispatchIn(focus, ModeState{Name: mode, Payload: r.Mode.Payload}, key)
 			return outcome != KeyUnhandled, err

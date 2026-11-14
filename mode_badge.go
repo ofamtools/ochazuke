@@ -65,3 +65,20 @@ func (r *Runtime) ModeBadgeWidth() int {
 	}
 	return w
 }
+
+// ModeBadgeInheritSetting lists the modes whose badge shows the mode they
+// extend (ModeExtends) instead of their own name: the opt-out of a mode's
+// own badge (nested reads TERMINAL). A row of settings/ochazuke.json.
+const ModeBadgeInheritSetting = "mode-badge.inherit"
+
+// badgeModeName is the name the badge shows for mode: the mode it extends
+// while mode-badge.inherit lists it, up the chain, else mode itself.
+func (r *Runtime) badgeModeName(mode string) string {
+	inherit := r.Settings().Strings(ModeBadgeInheritSetting)
+	seen := map[string]bool{}
+	for slices.Contains(inherit, mode) && !seen[mode] && r.modes[mode].Extends != "" {
+		seen[mode] = true
+		mode = r.modes[mode].Extends
+	}
+	return mode
+}

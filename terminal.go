@@ -432,13 +432,28 @@ func (r *Runtime) SetTerminalLeader(key string) error {
 	return r.Settings().Set(TerminalLeaderSetting, key)
 }
 
-// EnsureTerminalLeader declares the terminal-leader setting unless the
-// application declared it: an application with terminal panes calls it
+// EnsureTerminalLeader declares the terminal-leader and
+// terminal.nested-escape settings unless the application declared them: an application with terminal panes calls it
 // at setup (cli.AddCommands does), so settings.json, the Settings page
 // and the CLI's settings set know the setting before the first pane
 // opens. An application without terminals does not, and its settings
 // list stays free of it. How long the leader waits is sequence-timeout,
 // as for every other sequence.
 func (r *Runtime) EnsureTerminalLeader() {
-	r.declareFrameworkSettings(TerminalLeaderSetting)
+	r.declareFrameworkSettings(TerminalLeaderSetting, TerminalNestedEscapeSetting)
+}
+
+// TerminalNestedEscapeSetting is the key that leaves the nested mode (its
+// default, ctrl+], is in settings/terminal.json): in nested every other
+// key, the leader included, reaches the program in the pane. The nested
+// rows name it ({terminal.nested-escape}), so they follow it.
+const TerminalNestedEscapeSetting = "terminal.nested-escape"
+
+// validEscapeKey is terminal.nested-escape's check: one key, so nested
+// always has a way out.
+func validEscapeKey(v any) error {
+	if key, _ := v.(string); strings.TrimSpace(key) == "" || strings.Contains(strings.TrimSpace(key), " ") {
+		return errors.New(`must be one key, such as "ctrl+]"`)
+	}
+	return nil
 }

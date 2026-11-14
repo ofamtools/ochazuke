@@ -147,11 +147,12 @@ func TestModeGenerationSameNameAndPayload(t *testing.T) {
 				}
 				steps = append(steps, r.modeGeneration-before)
 			}
-			if r.SetMode("no-such") == nil {
-				t.Fatal("SetMode accepted an unknown mode")
+			// A name nobody registered becomes a mode (ensureMode).
+			if r.SetMode("no-such") != nil || r.Mode.Name != "no-such" {
+				t.Fatalf("SetMode no-such: mode %q", r.Mode.Name)
 			}
-			if _, err := r.Execute(Do("ochazuke.mode.switch", Arguments{"mode": "no-such"}).Request); err == nil {
-				t.Fatal("mode.switch accepted an unknown mode")
+			if _, err := r.Execute(Do("ochazuke.mode.switch", Arguments{"mode": "no-such"}).Request); err != nil || !r.IsBaseMode("no-such") {
+				t.Fatalf("mode.switch no-such: %v", err)
 			}
 			results[via] = []any{cloneModeState(r.Mode), in.Mode, in.Cursor, in.Anchor, steps}
 		}

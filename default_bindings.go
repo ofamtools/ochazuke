@@ -157,36 +157,56 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 	return r.loadDefaultDoc(source, file)
 }
 
+// defineFileMode defines or extends the mode a bindings file's "modes"
+// entry names with the entry's properties (pending, passthrough,
+// selection, extends, outside, layered).
+func (r *Runtime) defineFileMode(name string, m ModeSpec) (err error) {
+	switch {
+	case m.Pending:
+		err = r.DefineMode(name, true)
+	case !r.modeDefined(name):
+		err = r.DefineMode(name, false)
+	}
+	if err == nil && m.Passthrough {
+		err = r.DefinePassthrough(name)
+	}
+	if err == nil && m.Selection != "" {
+		err = r.DefineSelection(name, m.Selection)
+	}
+	if err == nil && m.Extends != "" {
+		if m.Extends == name || !r.modeDefined(m.Extends) {
+			err = fmt.Errorf("extends unknown mode %q", m.Extends)
+		} else {
+			spec := r.modes[name]
+			spec.Extends = m.Extends
+			r.putMode(name, spec)
+		}
+	}
+	if err == nil && m.Outside != "" {
+		err = r.DefineMode(name, m.Pending, ModeOutside(m.Outside))
+	}
+	if err == nil && m.Layered {
+		spec := r.modes[name]
+		spec.Layered = true
+		r.putMode(name, spec)
+	}
+	return err
+}
+
 // loadDefaultDoc installs a parsed file. It treats file as read-only: the
 // doc may be the shared parse of an embedded file.
 func (r *Runtime) loadDefaultDoc(source string, file BindingsDoc) (err error) {
-	for _, name := range slices.Sorted(maps.Keys(file.Modes)) {
-		m := file.Modes[name]
-		switch {
-		case m.Pending:
-			err = r.DefineMode(name, true)
-		case !r.modeDefined(name):
-			err = r.DefineMode(name, false)
-		}
-		if err == nil && m.Passthrough {
-			err = r.DefinePassthrough(name)
-		}
-		if err == nil && m.Selection != "" {
-			err = r.DefineSelection(name, m.Selection)
-		}
-		if err == nil && m.Extends != "" {
-			if m.Extends == name || !r.modeDefined(m.Extends) {
-				err = fmt.Errorf("extends unknown mode %q", m.Extends)
-			} else {
-				spec := r.modes[name]
-				spec.Extends = m.Extends
-				r.putMode(name, spec)
+	names := slices.Sorted(maps.Keys(file.Modes))
+	// Every name first, so a mode may extend one the file defines after it.
+	for _, name := range names {
+		if !r.modeDefined(name) {
+			if err := r.DefineMode(name, file.Modes[name].Pending); err != nil {
+				return fmt.Errorf("%s: mode %q: %w", source, name, err)
 			}
 		}
-		if err == nil && m.Outside != "" {
-			err = r.DefineMode(name, m.Pending, ModeOutside(m.Outside))
-		}
-		if err != nil {
+	}
+	for _, name := range names {
+		if err := r.defineFileMode(name, file.Modes[name]); err != nil {
 			return fmt.Errorf("%s: mode %q: %w", source, name, err)
 		}
 	}

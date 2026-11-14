@@ -1050,6 +1050,11 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 			return nil, nil, err
 		}
 	default:
+		// A thing named with nothing to write is made current where its
+		// noun says what current is (RoleCurrent): mode set nested.
+		if p := writableRole(n, RoleCurrent); p != nil {
+			return changes, order, add(p.Name, true)
+		}
 		return nil, nil, &ArgumentError{errors.New("set needs props (an object of prop to value), prop=value words, or a prop to toggle")}
 	}
 	return changes, order, nil

@@ -1297,8 +1297,13 @@ func (r *Runtime) validateRow(row Binding) (Binding, error) {
 	if row.Pattern != "" && !isPattern(row.Pattern) {
 		return row, fmt.Errorf("unknown key pattern %q", row.Pattern)
 	}
-	if row.Mode != "" && !r.modeDefined(row.Mode) {
-		return row, fmt.Errorf("unknown mode %q", row.Mode)
+	if row.Mode != "" {
+		// A row for a mode nobody registered makes the mode (its other
+		// keys fall back to normal's rows), so a bindings.json table can
+		// target a mode before anything switches to it.
+		if err := r.ensureMode(row.Mode); err != nil {
+			return row, err
+		}
 	}
 	if row.When != "" && r.guard(row.When) == nil {
 		return row, fmt.Errorf("unknown guard %q", row.When)
@@ -1458,7 +1463,8 @@ func (r *Runtime) ModeIs(mode, base string) bool {
 
 // nounTables is what mode reads on n: its own table, then the mode it
 // extends on n (Noun.Extends), and so on; where n has no table of its own
-// for a mode in the chain, the mode's fallback (ModeExtends) continues it.
+// for a mode in the chain, or the mode is Layered, the mode's fallback
+// (ModeExtends) continues it.
 func (r *Runtime) nounTables(n *Noun, mode string) [][]Binding {
 	var out [][]Binding
 	seen := map[string]bool{}
@@ -1467,7 +1473,7 @@ func (r *Runtime) nounTables(n *Noun, mode string) [][]Binding {
 		rows, own := n.Bindings[mode]
 		out = append(out, rows)
 		next := n.Extends[mode]
-		if next == "" && !own {
+		if next == "" && (!own || r.modes[mode].Layered) {
 			next = r.modes[mode].Extends
 		}
 		mode = next

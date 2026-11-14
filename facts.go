@@ -55,6 +55,13 @@ type factsSpec struct {
 	// create-only (create writes it, set does not), the key included: create
 	// names the thing.
 	Create func(Ctx, Thing) (Thing, error)
+	// Patch writes the props named in Writable (each of them, and no
+	// other, is writable): a fact the registry can be told to change. The
+	// store's Patch runs the verb the fact belongs to (the mode noun's
+	// current runs mode.switch), so set on the fact acts instead of
+	// refusing (needPropWriter).
+	Patch    func(Ctx, string, Thing) (Thing, error)
+	Writable []string
 }
 
 // defineFacts declares the noun, its props and its facts store. The
@@ -101,6 +108,9 @@ func (r *Runtime) defineFacts(f factsSpec) {
 		if f.Create != nil {
 			props[i].ReadOnly, props[i].CreateOnly = false, true
 		}
+		if f.Patch != nil && slices.Contains(f.Writable, props[i].Name) {
+			props[i].ReadOnly, props[i].CreateOnly = false, false
+		}
 	}
 	// The key first, then the rest in declaration order.
 	for i, p := range props {
@@ -131,7 +141,7 @@ func (r *Runtime) defineFacts(f factsSpec) {
 	}
 	define(f.Noun).Props(props...).Store(Store{
 		Kind: KindCollection, Facts: true, Remote: f.Remote, ListParams: f.ListParams, List: f.List, Get: get,
-		Create: f.Create, AcceptsKey: f.Create != nil,
+		Create: f.Create, Patch: f.Patch, AcceptsKey: f.Create != nil,
 	})
 }
 
@@ -255,7 +265,7 @@ var stateProps = []PropSpec{
 	{Name: "pages", Parameter: Parameter{Type: PropObject, Description: "The registered pages by id"}},
 	{Name: "focus", Parameter: Parameter{Description: "The focused instance's id"}},
 	{Name: "context", Parameter: Parameter{Type: PropObject, Description: "The focus path, page and mode"}},
-	{Name: "mode", Parameter: Parameter{Description: "The interaction mode's name"}},
+	{Name: "mode", Parameter: Parameter{Description: "The interaction mode's name; set it to switch modes (any name: one nobody registered becomes a mode)", Noun: "ochazuke.mode", Free: true}},
 	{Name: "modeState", Parameter: Parameter{Type: PropObject, Description: "The mode with its payload (count, operator, prefix)"}},
 	{Name: "modes", Parameter: Parameter{Type: SettingList, Description: "Every mode's name"}},
 	{Name: "modals", Parameter: Parameter{Type: SettingList, Description: "The open modals, bottom first"}},
@@ -279,14 +289,27 @@ var stateProps = []PropSpec{
 // system fact) whose props are the public state, so get {prop} reads one
 // field and a dotted path reads inside it (state get
 // instances.editor.noun), as the JSON Pointer of the old snapshot.get did.
+// stateWritable are the snapshot props set writes: mode, through
+// mode.switch's request (snapshot set mode=nested, snapshot mode nested),
+// any name.
+var stateWritable = []string{"mode"}
+
 func registerStateFacts(r *Runtime) {
 	props := slices.Clone(stateProps)
 	for i := range props {
-		props[i].ReadOnly = true
+		props[i].ReadOnly = !slices.Contains(stateWritable, props[i].Name)
 	}
 	n := r.Define("ochazuke.snapshot").Props(props...)
 	n.Store(Store{
 		Kind: Singleton, Facts: true,
+		Patch: func(c Ctx, _ string, t Thing) (Thing, error) {
+			if mode, ok := t["mode"].(string); ok {
+				if _, err := c.Runtime.switchMode(mode, c.Runtime.Input(c.Context.InputID)); err != nil {
+					return nil, err
+				}
+			}
+			return Thing{"mode": c.Runtime.Mode.Name}, nil
+		},
 		// The snapshot in its JSON form, as the old JSON Pointer read it:
 		// what a CLI or an agent sees, never a live Go value.
 		Get: func(c Ctx, _ string) (Thing, error) {

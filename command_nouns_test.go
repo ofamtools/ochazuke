@@ -101,8 +101,8 @@ func TestGetReadsANestedPropPath(t *testing.T) {
 			t.Errorf("state get %s did not fail", bad)
 		}
 	}
-	// state is a system fact: its writing verbs are there, unavailable.
-	if op, ok := r.Operation("ochazuke.snapshot.set"); !ok || op.Unavailable != FactReason {
+	// state is a system fact whose mode set writes (mode.switch).
+	if op, ok := r.Operation("ochazuke.snapshot.set"); !ok || op.Unavailable != "" {
 		t.Fatalf("snapshot.set = %+v %v", op.Unavailable, ok)
 	}
 }

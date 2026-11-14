@@ -90,7 +90,15 @@ const (
 	// a filter names it or collection.hide-archived is off. It declares the
 	// archived saved filter. Delete reads it under delete.archive.
 	RoleArchive = "archive"
+	// RoleCurrent is the boolean prop that says a thing is the current one
+	// of its noun (the mode the runtime is in). Writing it true makes the
+	// thing current; set with a thing and no props writes it true, so
+	// "mode set nested" switches to nested.
+	RoleCurrent = "current"
 )
+
+// booleanRoles are the roles a boolean prop takes: archive and current.
+var booleanRoles = []string{RoleArchive, RoleCurrent}
 
 // referenceRoles are the roles beside owner a reference prop takes:
 // about (RoleAbout, scaffold_verbs.go).
@@ -1243,15 +1251,17 @@ func (p PropSpec) keepAnyRef() PropSpec {
 // checkPropRole is the role rule of one prop: a known role, a reference
 // where the role names a thing, a boolean archive prop.
 func checkPropRole(key string, p PropSpec) error {
+	if slices.Contains(booleanRoles, p.Role) {
+		if p.Type != SettingBoolean {
+			return fmt.Errorf("prop %s: the %s role is a boolean prop, not %s", key, p.Role, p.Type)
+		}
+		return nil
+	}
 	switch p.Role {
 	case "", RoleLabel, RoleCreated, RoleUpdated:
 	case RoleOwner:
 		if p.Noun == "" {
 			return fmt.Errorf("prop %s: the %s role needs a reference (Noun)", key, p.Role)
-		}
-	case RoleArchive:
-		if p.Type != SettingBoolean {
-			return fmt.Errorf("prop %s: the archive role is a boolean prop, not %s", key, p.Type)
 		}
 	default:
 		if !slices.Contains(referenceRoles, p.Role) {

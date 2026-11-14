@@ -582,17 +582,25 @@ func (r *Runtime) readUserBindings(path string) ([]fileRow, []string) {
 }
 
 // fileModeProblems checks a bindings file's "modes" and "extends" against
-// the application's: a user file cannot define a mode or change one's
-// properties or a table's extends, so a value that differs is reported
-// and ignored (the export, which writes the application's own, loads
-// clean).
+// the application's: a mode the application does not have is defined
+// from the entry (a base one that names no extends is layered over
+// NewModeExtends, as ensureMode makes one); a user file cannot change an existing mode's properties or
+// a table's extends, so a value that differs is reported and ignored (the
+// export, which writes the application's own, loads clean).
 func (r *Runtime) fileModeProblems(doc BindingsDoc) []string {
 	var problems []string
 	for _, name := range slices.Sorted(maps.Keys(doc.Modes)) {
 		spec := doc.Modes[name]
 		switch {
 		case !r.modeDefined(name):
-			problems = append(problems, fmt.Sprintf("%s: modes %s: unknown mode; bindings.json cannot define one (ignored)", BindingsFile, name))
+			// A mode nobody registered is defined from the entry, so the
+			// file's own tables can use it (record first, never refuse).
+			if !spec.Pending && spec.Extends == "" {
+				spec.Extends, spec.Layered = NewModeExtends, true
+			}
+			if err := r.defineFileMode(name, spec); err != nil {
+				problems = append(problems, fmt.Sprintf("%s: modes %s: %v (ignored)", BindingsFile, name, err))
+			}
 		case spec.Pending != r.modes[name].Pending || spec.Passthrough != r.modes[name].Passthrough:
 			problems = append(problems, fmt.Sprintf("%s: modes %s: pending %v, passthrough %v differ from the application's (ignored)", BindingsFile, name, r.modes[name].Pending, r.modes[name].Passthrough))
 		case spec.Extends != r.modes[name].Extends:
@@ -753,7 +761,25 @@ func (r *Runtime) unapplyBindingRows(applied []appliedRow) {
 // registerModeFacts declares the modes noun.
 func registerModeFacts(r *Runtime) {
 	r.defineFacts(factsSpec{Noun: "ochazuke.mode", Sample: modeFact{}, Key: "name", Label: "name",
-		Docs: map[string]string{"name": "The mode's name", "pending": "A pending mode: exclusive and one-shot"},
+		Extra: []PropSpec{{Name: "current", Role: RoleCurrent, Parameter: Parameter{Type: SettingBoolean}}},
+		Docs: map[string]string{"name": "The mode's name", "pending": "A pending mode: exclusive and one-shot",
+			"current": "Whether it is the mode the runtime is in; setting it true switches to the mode (mode set NAME), false returns to the focus's declared mode"},
+		// set writes current through mode.switch's own request (switchMode):
+		// any name is accepted, one nobody registered becomes a mode.
+		Writable: []string{"current"},
+		Patch: func(c Ctx, key string, t Thing) (Thing, error) {
+			r := c.Runtime
+			if on, ok := t["current"].(bool); ok && (on || r.modeCurrent(key)) {
+				target := key
+				if !on {
+					target = ModeDeclared
+				}
+				if _, err := r.switchMode(target, r.Input(c.Context.InputID)); err != nil {
+					return nil, err
+				}
+			}
+			return Thing{"name": key, "pending": r.modes[key].Pending, "current": r.modeCurrent(key)}, nil
+		},
 		// create registers an application-defined mode name.
 		Create: func(c Ctx, t Thing) (Thing, error) {
 			name, _ := t["name"].(string)
@@ -769,6 +795,6 @@ func registerModeFacts(r *Runtime) {
 			for _, name := range r.allModeNames() {
 				facts = append(facts, modeFact{Name: name, Pending: r.modes[name].Pending})
 			}
-			return factThings(facts, nil)
+			return factThings(facts, func(i int, t Thing) { t["current"] = r.modeCurrent(facts[i].Name) })
 		}})
 }

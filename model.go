@@ -503,7 +503,7 @@ func (m *Model) modeBadge() string {
 	case strings.HasSuffix(name, " "+keys):
 		name = strings.TrimSuffix(name, " "+keys)
 	}
-	label := strings.ToUpper(modeLabelOf(name))
+	label := strings.ToUpper(modeLabelOf(m.Runtime.badgeModeName(name)))
 	if keys != "" {
 		if m.Runtime.ModeBadgeKeyCase() == ModeBadgeKeysUpper {
 			keys = strings.ToUpper(keys)

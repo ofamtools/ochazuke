@@ -42,8 +42,8 @@ func TestSystemFactsAreReadOnlyThingNouns(t *testing.T) {
 			}
 		}
 		for _, verb := range []string{"create", "set", "delete"} {
-			if verb == "create" && n.Store.Create != nil {
-				continue // a fact the registry can be told (a mode name) is created
+			if verb == "create" && n.Store.Create != nil || verb == "set" && n.Store.Patch != nil {
+				continue // a fact the registry can be told (a mode name) is created, or set (the current mode)
 			}
 			op, ok := r.Operations.Find(Key(name + "." + verb))
 			if !ok || op.Unavailable != FactReason || FactReason != "a system fact" {

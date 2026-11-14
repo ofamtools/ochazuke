@@ -196,7 +196,7 @@ func TestTerminalBindingsListLeaderRowsAndNoEditorRows(t *testing.T) {
 		}
 	}
 	press(t, r, "ctrl+a")
-	if got := keys(); !reflect.DeepEqual(got, []string{"a ochazuke.terminal.send", "ctrl+a ochazuke.terminal.send", "d ochazuke.terminal.detach", "o ochazuke.focus.next"}) {
+	if got := keys(); !reflect.DeepEqual(got, []string{"a ochazuke.terminal.send", "ctrl+a ochazuke.terminal.send", "d ochazuke.terminal.detach", "i ochazuke.mode.switch", "o ochazuke.focus.next"}) {
 		t.Fatalf("leader_pending rows: %v", got)
 	}
 	hints := BindingHints(r, "pane")

@@ -98,10 +98,10 @@ func TestSetResolvesByTheWordAfterIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct{ line, op, err string }{
-		// mode, focus and confirm have no set verb (och-command-nouns:
-		// mode.switch, focus.to, confirm.require): set reads them as a
-		// :set line.
-		{"set mode normal", "ochazuke.setting.apply", ""},
+		// focus and confirm have no set verb (och-command-nouns: focus.to,
+		// confirm.require): set reads them as a :set line; mode's set
+		// switches (its current prop).
+		{"set mode normal", "ochazuke.mode.set", ""}, // a noun with a current thing: mode set normal
 		{"set focus", "ochazuke.setting.apply", ""},
 		{"set setting theme light", "ochazuke.setting.set", ""},
 		{"set appearance", "ochazuke.appearance.set", ""},

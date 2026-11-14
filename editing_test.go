@@ -370,8 +370,8 @@ func TestEditorModeHookAndCustomMode(t *testing.T) {
 		t.Fatalf("custom mode key: handled=%v err=%v", handled, err)
 	}
 	editorTestState(t, in, "cat", 0, "search")
-	if _, err := r.Execute(Request{Verb: "switch", Noun: "ochazuke.mode", Args: Arguments{"mode": "unknown"}}); err == nil {
-		t.Fatal("unregistered mode accepted")
+	if _, err := r.Execute(Request{Verb: "switch", Noun: "ochazuke.mode", Args: Arguments{"mode": "unknown"}}); err != nil || r.Mode.Name != "unknown" {
+		t.Fatalf("an unregistered mode becomes one: %v, mode %q", err, r.Mode.Name)
 	}
 	setMode("normal")
 	editorTestKeys(t, r, "i", "z", "esc", "u")
