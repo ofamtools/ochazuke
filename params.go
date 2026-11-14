@@ -534,11 +534,15 @@ func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 			}
 			continue
 		}
+		if p.TakesAny() {
+			// Any value runs; a Source's choices are its verb's to grow.
+			continue
+		}
 		choices, err := r.ChoicesFor(r.Context(), p, s, args)
 		if err != nil || hasChoice(choices, s) {
 			continue
 		}
-		if r.choicesAreThings(p) && !p.TakesAny() {
+		if r.choicesAreThings(p) {
 			return r.choiceError(name, p, s, choices)
 		}
 		ids := make([]string, len(choices))

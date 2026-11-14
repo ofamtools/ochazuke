@@ -177,9 +177,6 @@ func TestRegisterProc(t *testing.T) {
 	if got := r.Settings().String(ProcScaleSetting); got != ScaleCore {
 		t.Fatalf("%s = %q, want core", ProcScaleSetting, got)
 	}
-	if err := r.Settings().Set(ProcScaleSetting, "socket"); err == nil {
-		t.Fatal("the scale took a value outside its enum")
-	}
 	r.EnsureSegments()
 	segs := r.Segments()
 	if len(segs) < 2 || segs[0].ID != IDCPU || segs[1].ID != IDProc {

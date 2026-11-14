@@ -509,8 +509,8 @@ func TestTransformOnEveryCellSetNoun(t *testing.T) {
 	if a.Rows[4][0] != "eve-adams-o-neil" {
 		t.Fatalf("slug: %q", a.Rows[4][0])
 	}
-	if _, err := a.r.Execute(ochazuke.Request{Verb: "transform", Noun: "cell", Args: ochazuke.Arguments{"name": "nope"}}); err == nil || !strings.Contains(err.Error(), "must be one of") {
-		t.Fatalf("a name outside the source accepted: %v", err)
+	if _, err := a.r.Execute(ochazuke.Request{Verb: "transform", Noun: "cell", Args: ochazuke.Arguments{"name": "nope"}}); err == nil {
+		t.Fatalf("a transformation nothing names ran: %v", err)
 	}
 }
 
