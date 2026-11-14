@@ -460,12 +460,10 @@ func registerOverlayNoun(r *Runtime) {
 	rowThing := func(noun, key string, row *OverlayRow) Thing {
 		return Thing{"id": noun + "/" + key, "noun": noun, "thing": key, "props": maps.Clone(row.Props), "created": row.Created, "archived": row.Archived}
 	}
+	// A noun name has no slash; a thing's key may (a path, branch/x).
 	split := func(id string) (string, string) {
-		i := strings.LastIndex(id, "/")
-		if i < 0 {
-			return id, ""
-		}
-		return id[:i], id[i+1:]
+		noun, key, _ := strings.Cut(id, "/")
+		return noun, key
 	}
 	r.Define(OverlayNoun).Props(
 		PropSpec{Name: "id", Key: true, Parameter: Parameter{Description: "NOUN/KEY: the thing the row is beside"}},

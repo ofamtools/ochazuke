@@ -151,3 +151,14 @@ func TestCorruptOverlayIsKept(t *testing.T) {
 		t.Fatalf("kept %q", data)
 	}
 }
+
+// An overlay row's id is NOUN/KEY split at the first slash: a key may
+// hold slashes.
+func TestOverlayIDKeepsSlashesInTheKey(t *testing.T) {
+	r := overlayFacts(t)
+	mustRun(t, r, Request{Noun: "fact", Verb: "create", Args: Arguments{"id": "a/b", "colour": "red"}})
+	got := mustRun(t, r, Request{Noun: OverlayNoun, Verb: "get", Args: Arguments{"id": "fact/a/b"}}).(map[string]any)
+	if got["noun"] != "fact" || got["thing"] != "a/b" {
+		t.Fatalf("overlay row %v", got)
+	}
+}
