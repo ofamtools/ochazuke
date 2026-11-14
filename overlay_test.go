@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -106,5 +107,47 @@ func TestOverlayFileHoldsStableKeysOnly(t *testing.T) {
 		if inFile := strings.Contains(string(data), `"f1"`); inFile != stable {
 			t.Fatalf("stable %v: in the file %v: %s", stable, inFile, data)
 		}
+	}
+}
+
+// stableFacts is a runtime over dir with a facts noun of stable keys.
+func stableFacts(t *testing.T, dir string) *Runtime {
+	t.Helper()
+	r := NewRuntime()
+	r.Config().Dir = dir
+	r.defineFacts(factsSpec{Noun: "fact", Key: "id", StableKeys: true, Extra: []PropSpec{{Name: "id"}, {Name: "colour"}},
+		List: func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "f1"}, {"id": "f2"}}, nil }})
+	return r
+}
+
+// Two processes over one config directory keep each other's overlay
+// rows: each write merges its one row into the file as it is now.
+func TestOverlayWritesMergeAcrossProcesses(t *testing.T) {
+	dir := t.TempDir()
+	one, two := stableFacts(t, dir), stableFacts(t, dir)
+	mustRun(t, two, Request{Noun: "fact", Verb: "list"}) // two reads the file first
+	mustRun(t, one, Request{Noun: "fact", Verb: "set", Args: Arguments{"id": "f1", "prop": "colour", "value": "red"}})
+	mustRun(t, two, Request{Noun: "fact", Verb: "set", Args: Arguments{"id": "f2", "prop": "colour", "value": "blue"}})
+	data, err := os.ReadFile(filepath.Join(dir, OverlayFile))
+	if err != nil || !strings.Contains(string(data), "red") || !strings.Contains(string(data), "blue") {
+		t.Fatalf("overlay.json %s %v", data, err)
+	}
+}
+
+// A corrupt overlay.json is moved aside, not overwritten by the next
+// write.
+func TestCorruptOverlayIsKept(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, OverlayFile), []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r := stableFacts(t, dir)
+	mustRun(t, r, Request{Noun: "fact", Verb: "set", Args: Arguments{"id": "f1", "prop": "colour", "value": "red"}})
+	bad, _ := filepath.Glob(filepath.Join(dir, OverlayFile+".bad-*"))
+	if len(bad) != 1 {
+		t.Fatalf("moved aside: %v", bad)
+	}
+	if data, _ := os.ReadFile(bad[0]); string(data) != "{not json" {
+		t.Fatalf("kept %q", data)
 	}
 }

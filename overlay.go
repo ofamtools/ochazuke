@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -70,13 +71,7 @@ func (r *Runtime) overlayState() *overlayRows {
 	if path := c.Path(OverlayFile); !o.loaded || o.path != path {
 		o.loaded, o.path, o.rows = true, path, map[string]map[string]*OverlayRow{}
 		if path != "" {
-			if data, err := os.ReadFile(path); err == nil {
-				if err := json.Unmarshal(data, &o.rows); err != nil {
-					r.UI().Notify(fmt.Sprintf("%s: %v (kept, not read)", OverlayFile, err))
-					o.rows = map[string]map[string]*OverlayRow{}
-				}
-			}
-			o.dropSession(o.rows)
+			o.rows = r.readOverlay(path)
 		}
 	}
 	return o
@@ -95,50 +90,99 @@ func (r *Runtime) overlayRow(noun, key string) *OverlayRow {
 	return r.overlayState().rows[noun][key]
 }
 
+// readOverlay reads the rows of the file at path, the session's nouns left
+// out; a missing file is no rows. A file that does not read is moved aside
+// to OverlayFile.bad-<time> (the user's values kept, not overwritten by
+// the next write) with a notice, and reads as no rows.
+func (r *Runtime) readOverlay(path string) map[string]map[string]*OverlayRow {
+	rows := map[string]map[string]*OverlayRow{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return rows
+	}
+	if err := json.Unmarshal(data, &rows); err != nil {
+		bad := path + ".bad-" + time.Now().UTC().Format("20060102-150405")
+		if moved := os.Rename(path, bad); moved != nil {
+			bad = path
+		}
+		r.UI().Notify(fmt.Sprintf("%s: %v (kept as %s, not read)", OverlayFile, err, filepath.Base(bad)))
+		rows = map[string]map[string]*OverlayRow{}
+	}
+	r.overlayHolder().dropSession(rows)
+	return rows
+}
+
+// changeOverlay changes one thing's overlay row: change gets the row (a
+// new one when there is none) and answers false to remove it. With a
+// file, under its lock (lockFile), it reads the file again, changes that
+// one row of what the file holds now and writes it atomically, so
+// processes sharing the config directory (the TUI, mcp serve, a one-shot
+// CLI) keep each other's rows; the session then holds the file's rows. A
+// noun of session keys, or no file, changes the session's rows only. It
+// answers the row, nil when removed.
+func (r *Runtime) changeOverlay(noun, key string, change func(*OverlayRow) bool) (*OverlayRow, error) {
+	o := r.overlayState()
+	apply := func(rows map[string]map[string]*OverlayRow) *OverlayRow {
+		row := rows[noun][key]
+		if row == nil {
+			row = &OverlayRow{}
+		}
+		if !change(row) {
+			delete(rows[noun], key)
+			if len(rows[noun]) == 0 {
+				delete(rows, noun)
+			}
+			return nil
+		}
+		if rows[noun] == nil {
+			rows[noun] = map[string]*OverlayRow{}
+		}
+		rows[noun][key] = row
+		return row
+	}
+	if o.path == "" || o.session[noun] {
+		return apply(o.rows), nil
+	}
+	unlock, err := lockFile(o.path + ".lock")
+	if err != nil {
+		return nil, err
+	}
+	defer unlock()
+	fresh := r.readOverlay(o.path)
+	row := apply(fresh)
+	data, err := json.MarshalIndent(fresh, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	if err := writeAtomic(o.path, ".overlay-*", append(data, '\n')); err != nil {
+		return nil, err
+	}
+	for session := range o.session {
+		if rows, ok := o.rows[session]; ok {
+			fresh[session] = rows
+		}
+	}
+	o.rows = fresh
+	return row, nil
+}
+
 // putOverlay merges props into a thing's overlay row and writes the file.
 func (r *Runtime) putOverlay(noun, key string, props Thing, created bool) error {
-	o := r.overlayState()
-	if o.rows[noun] == nil {
-		o.rows[noun] = map[string]*OverlayRow{}
-	}
-	row := o.rows[noun][key]
-	if row == nil {
-		row = &OverlayRow{}
-		o.rows[noun][key] = row
-	}
-	if row.Props == nil {
-		row.Props = map[string]any{}
-	}
-	maps.Copy(row.Props, props)
-	row.Created = row.Created || created
-	return r.saveOverlay()
+	_, err := r.changeOverlay(noun, key, func(row *OverlayRow) bool {
+		if row.Props == nil {
+			row.Props = map[string]any{}
+		}
+		maps.Copy(row.Props, props)
+		row.Created = row.Created || created
+		return true
+	})
+	return err
 }
 
 // dropOverlay removes a thing's overlay row.
 func (r *Runtime) dropOverlay(noun, key string) error {
-	o := r.overlayState()
-	if _, ok := o.rows[noun][key]; !ok {
-		return nil
-	}
-	delete(o.rows[noun], key)
-	if len(o.rows[noun]) == 0 {
-		delete(o.rows, noun)
-	}
-	return r.saveOverlay()
-}
-
-func (r *Runtime) saveOverlay() error {
-	o := r.overlayState()
-	if o.path == "" {
-		return nil
-	}
-	kept := maps.Clone(o.rows)
-	o.dropSession(kept)
-	data, err := json.MarshalIndent(kept, "", "  ")
-	if err != nil {
-		return err
-	}
-	return writeAtomic(o.path, ".overlay-*", append(data, '\n'))
+	_, err := r.changeOverlay(noun, key, func(*OverlayRow) bool { return false })
+	return err
 }
 
 // overlayOn reports whether writes the source cannot hold go to the
@@ -451,17 +495,19 @@ func registerOverlayNoun(r *Runtime) {
 		},
 		Patch: func(c Ctx, id string, t Thing) (Thing, error) {
 			noun, key := split(id)
-			row := r.overlayRow(noun, key)
-			if row == nil {
+			if r.overlayRow(noun, key) == nil {
 				return nil, r.NotFound(OverlayNoun, id, nil)
 			}
-			if props, ok := t["props"].(map[string]any); ok {
-				row.Props = maps.Clone(props)
-			}
-			if archived, ok := t["archived"].(bool); ok {
-				row.Archived = archived
-			}
-			if err := r.saveOverlay(); err != nil {
+			row, err := r.changeOverlay(noun, key, func(row *OverlayRow) bool {
+				if props, ok := t["props"].(map[string]any); ok {
+					row.Props = maps.Clone(props)
+				}
+				if archived, ok := t["archived"].(bool); ok {
+					row.Archived = archived
+				}
+				return true
+			})
+			if err != nil {
 				return nil, err
 			}
 			return rowThing(noun, key, row), nil
