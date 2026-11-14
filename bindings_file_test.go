@@ -545,3 +545,29 @@ func BenchmarkStandardizeJSONC(b *testing.B) {
 }
 
 func standardizeAlways(data []byte) ([]byte, error) { return hujson.Standardize(data) }
+
+// A file saved from `binding list` output ({"items": [...], paging}) reads
+// as rows: paging fields and row fields the format lacks ("id") are ignored
+// and the effective rows equal the bare array's.
+func TestBindingsListOutputEnvelopeIsRows(t *testing.T) {
+	rows := `[
+  {"noun": "app", "mode": "normal", "keys": "a", "request": {"noun": "test", "verb": "beta"}},
+  {"noun": "app", "mode": "normal", "keys": "z", "request": {"noun": "test", "verb": "alpha"}, "hint": "edited"}
+]`
+	withID := strings.Replace(rows, `{"noun"`, `{"id": "7", "noun"`, -1)
+	envelope := `{"items": ` + withID + `, "page": 1, "per_page": 50, "total": 2}`
+	effective := func(text string) ([]string, string) {
+		r, dir := exportFixture(t)
+		writeConfig(t, dir, BindingsFile, text)
+		r.ReloadUserBindings()
+		return rowsText(t, r.allBindings()), r.Config().BindingsFormat()
+	}
+	want, _ := effective(rows)
+	got, format := effective(envelope)
+	if format != BindingsRows || !slices.Equal(got, want) {
+		t.Fatalf("format %q; rows:\n%s\nwant:\n%s", format, strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	if _, f, err := ParseBindings([]byte(envelope)); err != nil || f != BindingsRows {
+		t.Fatalf("ParseBindings: %q %v", f, err)
+	}
+}

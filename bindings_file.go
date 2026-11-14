@@ -65,8 +65,13 @@ import (
 // The rows format (BindingsRows), the older one, still read: a JSON array
 // of Binding rows in any field order.
 //
+// The list-output envelope is rows too: `binding list` prints
+// {"items": [rows], "page": N, "per_page": N, "total": N}, and a file saved
+// from it reads as the rows in "items" (the paging fields are ignored; a
+// field of a row the format does not know, such as "id", is ignored).
+//
 // The format is told by the top level: an object with "bindings" is
-// grouped, an array is rows.
+// grouped, an object with "items" or an array is rows.
 
 // Bindings file formats, as ParseBindings and bindings check report them.
 const (
@@ -172,6 +177,26 @@ func ParseBindings(data []byte) (BindingsDoc, string, error) {
 	return doc, format, nil
 }
 
+// rowsEnvelope unwraps the list-output envelope: when the top level is an
+// object with an "items" array and no "bindings", it returns that array.
+func rowsEnvelope(std []byte) ([]byte, bool) {
+	trimmed := bytes.TrimSpace(std)
+	if len(trimmed) == 0 || trimmed[0] != '{' {
+		return std, false
+	}
+	var top struct {
+		Items    json.RawMessage `json:"items"`
+		Bindings json.RawMessage `json:"bindings"`
+	}
+	if json.Unmarshal(std, &top) != nil || top.Bindings != nil {
+		return std, false
+	}
+	if items := bytes.TrimSpace(top.Items); len(items) > 0 && items[0] == '[' {
+		return items, true
+	}
+	return std, false
+}
+
 // parseBindingsFile reads either format. err is a file that cannot be
 // read at all; problems are the groups and keys of a grouped file that
 // were skipped (the rest is in doc).
@@ -180,6 +205,7 @@ func parseBindingsFile(data []byte) (doc BindingsDoc, format string, problems []
 	if err != nil {
 		return BindingsDoc{}, "", nil, err
 	}
+	std, _ = rowsEnvelope(std)
 	trimmed := bytes.TrimSpace(std)
 	if len(trimmed) > 0 && trimmed[0] == '[' {
 		var rows []Binding
