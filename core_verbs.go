@@ -207,7 +207,7 @@ func coreVerbs() []standardVerb {
 			TakesSubject: true, Record: true, HistoryKind: HistoryFetch, ParamNames: []string{"prop", "props"},
 			Positional: func(*Noun) []string { return []string{"prop"} }, Params: getParams, Run: runGet},
 		{Verb: "list", Description: "List the things, each its props with id and label, as a page {items, page, per_page, total}; filter and where keep the things that meet conditions, sort orders them, group-by gathers them into groups, per-page and page cut the result into pages (rows, never groups)",
-			Kinds: []string{KindCollection, Instances}, Needs: []storeNeed{needList},
+			Kinds: []string{KindCollection, Singleton, Instances}, Needs: []storeNeed{needList},
 			Rows: true, HistoryKind: HistoryFetch, ParamNames: []string{"filter", "where", "props", "limit", "sort", "group-by", "group-sort", "page", "per-page", "archived"},
 			Params: listParams, Positional: listPositional, Run: runList},
 		{Verb: "create", Description: "Create a thing from props (an object), named props or prop=value words, each omitted prop its default; from copies a thing with the supplied props overriding it; a prop or alias owns its name, and a colliding control parameter gains create- prefixes until unambiguous; answers the new thing",

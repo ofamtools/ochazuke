@@ -2,7 +2,6 @@ package ochazuke
 
 import (
 	"slices"
-	"strings"
 	"testing"
 )
 
@@ -20,8 +19,8 @@ func factsRuntime(t *testing.T) *Runtime {
 }
 
 // Each system fact is a thing noun with a facts store: a key prop (also its
-// human key), list and get standard, no base times; create (unless the store declares Create), set and delete
-// are on the noun but unavailable, "a system fact", and refuse with it.
+// human key), list and get standard, no base times; create, set, delete
+// and archive available, through the overlay where the registry cannot.
 func TestSystemFactsAreReadOnlyThingNouns(t *testing.T) {
 	r := factsRuntime(t)
 	for _, name := range factNouns {
@@ -41,22 +40,11 @@ func TestSystemFactsAreReadOnlyThingNouns(t *testing.T) {
 				t.Fatalf("%s.%s: standard %q unavailable %q", name, verb, op.Standard, op.Unavailable)
 			}
 		}
-		for _, verb := range []string{"create", "set", "delete"} {
-			if verb == "create" && n.Store.Create != nil || verb == "set" && n.Store.Patch != nil {
-				continue // a fact the registry can be told (a mode name) is created, or set (the current mode)
-			}
-			op, ok := r.Operations.Find(Key(name + "." + verb))
-			if n.Store.Patch != nil && ok && op.Unavailable != "" {
-				continue // a writable fact lacks the verb's own store part (no Delete)
-			}
-			if !ok || op.Unavailable != FactReason || FactReason != "a system fact" {
+		// The writing verbs run too (no-refusals D1): the overlay holds
+		// what the registry cannot.
+		for _, verb := range []string{"create", "set", "delete", "archive"} {
+			if op, ok := r.Operations.Find(Key(name + "." + verb)); !ok || op.Unavailable != "" {
 				t.Fatalf("%s.%s: present %v unavailable %q", name, verb, ok, op.Unavailable)
-			}
-			if r.Available(Request{Noun: name, Verb: verb}, "", r.Mode) {
-				t.Fatalf("%s.%s is available", name, verb)
-			}
-			if _, err := r.Execute(Request{Noun: name, Verb: verb, Confirmed: true}); err == nil || !strings.Contains(err.Error(), "a system fact") {
-				t.Fatalf("%s.%s: %v", name, verb, err)
 			}
 		}
 	}

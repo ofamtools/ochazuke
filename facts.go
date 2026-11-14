@@ -62,6 +62,9 @@ type factsSpec struct {
 	// refusing (needPropWriter).
 	Patch    func(Ctx, string, Thing) (Thing, error)
 	Writable []string
+	// Routes names, per prop, the verb (noun.verb) that changes it: set on
+	// the prop runs that verb with the value (PropSpec.WrittenBy).
+	Routes map[string]string
 }
 
 // defineFacts declares the noun, its props and its facts store. The
@@ -94,24 +97,7 @@ func (r *Runtime) defineFacts(f factsSpec) {
 			return things, err
 		}
 	}
-	for i := range props {
-		switch props[i].Name {
-		case f.Key:
-			props[i].Key, props[i].Human = true, true
-		case f.Label:
-			props[i].Role = RoleLabel
-		}
-		if props[i].Description == "" {
-			props[i].Description = f.Docs[props[i].Name]
-		}
-		props[i].ReadOnly = true
-		if f.Create != nil {
-			props[i].ReadOnly, props[i].CreateOnly = false, true
-		}
-		if f.Patch != nil && slices.Contains(f.Writable, props[i].Name) {
-			props[i].ReadOnly, props[i].CreateOnly = false, false
-		}
-	}
+	f.markProps(props)
 	// The key first, then the rest in declaration order.
 	for i, p := range props {
 		if p.Key {
@@ -140,11 +126,9 @@ func (r *Runtime) defineFacts(f factsSpec) {
 		define = r.DefineOwn
 	}
 	b := define(f.Noun)
-	if f.Patch != nil {
-		// A writable fact declares its kind: its writing verbs being
-		// available does not make it a record.
-		b.Kind(NounKindFacts)
-	}
+	// A fact declares its kind: its writing verbs being available (its
+	// Patch, the overlay's) does not make it a record.
+	b.Kind(NounKindFacts)
 	b.Props(props...).Store(Store{
 		Kind: KindCollection, Facts: true, Remote: f.Remote, ListParams: f.ListParams, List: f.List, Get: get,
 		Create: f.Create, Patch: f.Patch, AcceptsKey: f.Create != nil,
@@ -258,6 +242,7 @@ func registerFactNouns(r *Runtime) {
 	registerAssociations(r)
 	registerReferrers(r)
 	registerRelationKinds(r)
+	registerOverlayNoun(r)
 	registerActionFacts(r)
 	registerStateFacts(r)
 	registerJobFacts(r)
@@ -411,4 +396,34 @@ func factKeys(things []Thing, keyName string) []string {
 		out = append(out, fmt.Sprint(t[keyName]))
 	}
 	return out
+}
+
+// markProps sets each prop's part: the key (also the human key), the
+// label, its description from Docs, and who holds it. The source holds
+// none of a fact's props but those its Patch writes (Writable) and those a
+// verb changes (Routes); the rest are the overlay's (no-refusals D1): set
+// keeps the user's value beside the fact, never "a system fact". The key
+// stays read-only (create-only when the registry can be told a new fact).
+func (f factsSpec) markProps(props []PropSpec) {
+	for i := range props {
+		switch props[i].Name {
+		case f.Key:
+			props[i].Key, props[i].Human = true, true
+		case f.Label:
+			props[i].Role = RoleLabel
+		}
+		if props[i].Description == "" {
+			props[i].Description = f.Docs[props[i].Name]
+		}
+		props[i].ReadOnly, props[i].Overlaid = props[i].Key, !props[i].Key
+		if f.Patch != nil && slices.Contains(f.Writable, props[i].Name) {
+			props[i].Overlaid = false
+		}
+		if verb, ok := f.Routes[props[i].Name]; ok {
+			props[i].Overlaid, props[i].WrittenBy = false, verb
+		}
+		if f.Create != nil && props[i].Key {
+			props[i].ReadOnly, props[i].CreateOnly = false, true
+		}
+	}
 }

@@ -62,8 +62,8 @@ func TestListFactsPropsAndGet(t *testing.T) {
 	var names []string
 	for _, p := range n.Props {
 		names = append(names, p.Name)
-		if !p.ReadOnly {
-			t.Fatalf("%s is writable", p.Name)
+		if p.ReadOnly != p.Key || p.Overlaid == p.Key {
+			t.Fatalf("%s: read-only %v overlaid %v (the overlay holds every prop but the key)", p.Name, p.ReadOnly, p.Overlaid)
 		}
 	}
 	if got := strings.Join(names, " "); got != "id label name condition size tags" {
@@ -94,6 +94,7 @@ func TestListFactsPropsAndGet(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "widget", Verb: "get", Args: Arguments{"id": "nope"}}); err == nil || !strings.Contains(err.Error(), `no widget "nope"`) {
 		t.Fatalf("unknown widget: %v", err)
 	}
+	// A remote fact (read through Ctx.Await) has no overlay yet: debt.
 	if _, err := r.Execute(Request{Noun: "widget", Verb: "create", Confirmed: true}); err == nil || !strings.Contains(err.Error(), FactReason) {
 		t.Fatalf("create: %v", err)
 	}

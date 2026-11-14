@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1291,12 +1292,40 @@ func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
 		list, _ := current.([]string)
 		changes[name] = edit.apply(list)
 	}
+	if routed, err := r.routeWrites(n, c, changes); err != nil || routed && len(changes) == 0 {
+		if err != nil {
+			return nil, err
+		}
+		return readBack(c, n, key, nil, changes)
+	}
 	n.stamp(Thing(changes), RoleUpdated)
 	t, err := n.Store.Patch(c, key, Thing(changes))
 	if err != nil {
 		return nil, err
 	}
 	return readBack(c, n, key, t, changes)
+}
+
+// routeWrites runs, for each change of a prop with WrittenBy, the verb that
+// changes it (the value as its WrittenArg) in place of the store's Patch,
+// and takes the change out of changes; it reports whether any ran.
+func (r *Runtime) routeWrites(n *Noun, c Ctx, changes map[string]any) (bool, error) {
+	routed := false
+	for _, name := range slices.Sorted(maps.Keys(changes)) {
+		p := n.prop(name)
+		if p == nil || p.WrittenBy == "" {
+			continue
+		}
+		noun, verb, _ := CutKey(p.WrittenBy)
+		arg := cmp.Or(p.WrittenArg, p.Name)
+		if _, err := r.ExecuteAt(c.Context, Request{Noun: noun, Verb: verb, Args: Arguments{arg: changes[name]}}); err != nil {
+			return routed, err
+		}
+		r.notice("%s.%s: ran %s", r.DisplayNoun(n.Name), name, p.WrittenBy)
+		delete(changes, name)
+		routed = true
+	}
+	return routed, nil
 }
 
 func runDelete(r *Runtime, n *Noun, c Ctx) (any, error) {

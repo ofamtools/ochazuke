@@ -202,6 +202,8 @@ type Config struct {
 	// places is the record of where each noun was seen (NounPlacesFile),
 	// with its writer once EnsureNounPlaces started it.
 	places *placements
+	// overlay holds the props stores cannot (OverlayFile), read on first use.
+	overlay *overlayRows
 	// tables are the table views by id (TablesFile), read on first use.
 	tables map[string]TableState
 	// schemes are themes.json's valid schemes, themeProblems its last

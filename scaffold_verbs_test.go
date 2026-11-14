@@ -130,11 +130,10 @@ func TestFactsHistoryReadsPriorActionsWithoutWriters(t *testing.T) {
 	if len(entries) != 1 || entries[0].Request.Key() != "station.show" || entries[0].Request.Args["id"] != "north" || entries[0].Kind != HistoryAction || !entries[0].Result.OK {
 		t.Fatalf("fact history did not retain its prior show action: %+v", entries)
 	}
-	if _, err := r.Execute(Request{Noun: "station", Verb: "set", Args: Arguments{"id": "north", "props": map[string]any{"label": "Changed"}}}); err == nil || !strings.Contains(err.Error(), FactReason) {
-		t.Fatalf("facts acquired a writer: %v", err)
-	}
-	if got := mustRun(t, r, Request{Noun: "station", Verb: "get", Args: Arguments{"id": "north", "prop": "label"}}); got != "North station" {
-		t.Fatalf("read-only fact changed: %v", got)
+	// A fact's label is the overlay's: set keeps the user's value.
+	mustRun(t, r, Request{Noun: "station", Verb: "set", Args: Arguments{"id": "north", "props": map[string]any{"label": "Changed"}}})
+	if got := mustRun(t, r, Request{Noun: "station", Verb: "get", Args: Arguments{"id": "north", "prop": "label"}}); got != "Changed" {
+		t.Fatalf("overlaid fact: %v", got)
 	}
 }
 

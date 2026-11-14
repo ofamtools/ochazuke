@@ -41,7 +41,11 @@ func (r *Runtime) NameVocab() map[string][]string {
 		add("operation", key)
 		add("verb", op.Name())
 		add("noun", op.Noun())
+		owner := r.Nouns[op.Noun()]
 		for name, p := range op.Parameters {
+			if op.Standard != "" && owner != nil && owner.prop(name) != nil {
+				continue // a generated verb's prop parameter is a prop's name, data
+			}
 			add("parameter", name)
 			if name == "motion" {
 				add("motion", p.Enum...)

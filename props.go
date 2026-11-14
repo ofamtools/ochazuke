@@ -146,6 +146,16 @@ type PropSpec struct {
 	ReadOnly   bool `json:"readOnly,omitempty"`
 	CreateOnly bool `json:"createOnly,omitempty"`
 	Key        bool `json:"key,omitempty"`
+	// Overlaid says the store's source cannot hold the prop: a write keeps
+	// it in the framework's overlay beside the thing (overlay.go), merged
+	// into get and list as the user's value. A facts noun's props are
+	// Overlaid unless the source writes them (factsSpec.Writable, Routes).
+	Overlaid bool `json:"overlaid,omitempty"`
+	// WrittenBy names the verb (noun.verb) that changes the prop: set on it
+	// runs that verb in place, the value as its WrittenArg parameter (the
+	// prop's name when empty), with a notice (no-refusals D1 routing).
+	WrittenBy  string `json:"writtenBy,omitempty"`
+	WrittenArg string `json:"writtenArg,omitempty"`
 	// Human marks the noun's human key (a name, a slug): a request may name
 	// a thing by it where it names one by its Key (thing_keys.go). One per
 	// noun; without one, the label-role prop is the human key.
@@ -589,7 +599,11 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 		s = s.copy.bind(b.n.Name, s)
 	}
 	b.n.Store = &s
+	// Base times come from what the source itself writes; the overlay then
+	// fills what it lacks (overlay.go).
 	b.r.addBaseProps(b.n)
+	s = b.r.withOverlay(b.n, s)
+	b.n.Store = &s
 	b.r.applyStore(b.n)
 	b.last = ""
 	return b

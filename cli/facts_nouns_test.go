@@ -40,8 +40,8 @@ func TestCatalogIsAFactsNoun(t *testing.T) {
 	if thing["name"] != "ochazuke.register" || !strings.Contains(strings.Join(anyStrings(thing["verbs"]), " "), "append") {
 		t.Fatalf("catalog get: %#v", v)
 	}
-	if op := r.Operations.At(ochazuke.Key("ochazuke.catalog.set")); op.Unavailable != ochazuke.FactReason {
-		t.Fatalf("catalog set: unavailable %q", op.Unavailable)
+	if op := r.Operations.At(ochazuke.Key("ochazuke.catalog.set")); op.Unavailable != "" {
+		t.Fatalf("catalog set (the overlay holds it): unavailable %q", op.Unavailable)
 	}
 	if op := r.Operations.At(ochazuke.Key("ochazuke.catalog.list")); op.Standard != "" {
 		t.Fatalf("catalog list became the standard list: %+v", op)
@@ -109,8 +109,8 @@ func TestSetupIsAFactsNoun(t *testing.T) {
 	if _, err := f.r.Execute(ochazuke.Request{Noun: "ochazuke.setup", Verb: "get", Args: ochazuke.Arguments{"id": "nope"}}); err == nil {
 		t.Fatal("setup get of an unknown item")
 	}
-	if op := f.r.Operations.At(ochazuke.Key("ochazuke.setup.delete")); op.Unavailable != ochazuke.FactReason {
-		t.Fatalf("setup delete: unavailable %q", op.Unavailable)
+	if op := f.r.Operations.At(ochazuke.Key("ochazuke.setup.delete")); op.Unavailable != "" {
+		t.Fatalf("setup delete (archives through the overlay): unavailable %q", op.Unavailable)
 	}
 	if op := f.r.Operations.At(ochazuke.Key("ochazuke.setup.list")); op.Standard != "" {
 		t.Fatalf("setup list became the standard list: %+v", op)

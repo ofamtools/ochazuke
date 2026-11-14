@@ -37,7 +37,7 @@ func TestReferenceModelHasPropsKindAndStandard(t *testing.T) {
 		t.Fatalf("no task in %+v", m.Nouns)
 	}
 	task := m.Nouns[i]
-	if task.Kind != KindCollection || len(task.Props) != len(taskTestProps()) || !task.Props[0].Key || task.Props[1].Role != RoleLabel || task.Props[1].Fallback != "summary" {
+	if task.Kind != KindCollection || len(task.Props) != len(r.Noun("task").Props) || !task.Props[0].Key || task.Props[1].Role != RoleLabel || task.Props[1].Fallback != "summary" {
 		t.Fatalf("task %+v", task)
 	}
 	verbs := map[string]string{}
@@ -114,7 +114,7 @@ func TestConfigExportWritesThePropsReference(t *testing.T) {
 		t.Fatalf("%d standard verbs, the table has %d", len(got.StandardVerbs), len(standardTable()))
 	}
 	i := slices.IndexFunc(got.Nouns, func(n refdoc.Noun) bool { return n.Name == "task" })
-	if i < 0 || got.Nouns[i].Kind != KindCollection || len(got.Nouns[i].Props) != len(taskTestProps()) {
+	if i < 0 || got.Nouns[i].Kind != KindCollection || len(got.Nouns[i].Props) != len(r.Noun("task").Props) {
 		t.Fatalf("task in %v", names(got))
 	}
 	readme, err := os.ReadFile(filepath.Join(out, ReferenceReadme))

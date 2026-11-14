@@ -97,8 +97,6 @@ cli/shellstate.go	Shell.speaksDelta	compare	"lists"	1	Subject and Result are enu
 cli/sides.go	var sideVariables	table	"dir"	1	template variable names for the sides of a command, not nouns
 cli/sides.go	var sideVariables	table	"pane"	1	template variable names for the sides of a command, not nouns
 cli/sides.go	var sideVariables	table	"project"	1	template variable names for the sides of a command, not nouns
-cli/widget.go	PageView.widgetsBlock	compare	"status"	3
-cli/widget.go	widgetState.lines	compare	"status"	2
 configuration.go	registerConfiguration	compare	"app"	1
 configuration.go	registerConfiguration	cyclo	"-"	26
 confirm.go	Runtime.openConfirmAbout	case	"id"	2
@@ -169,7 +167,6 @@ input.go	Input.Pending	case	"operator_pending"	1
 input.go	Input.Pending	case	"register_pending"	1
 input.go	Input.adaptYank	compare	"line"	1	moved from checkPaste and pasteYank (were debt there): the shape test that decides a yank needs line breaks; the compare moved with its code
 inspector.go	Inspection.Parts	compare	"app"	1
-inspector.go	Runtime.Inspect	compare	"status"	1
 inspector.go	inspectPreview	cyclo	"-"	28
 instance.go	Runtime.Instance	compare	"app"	1
 key_echo.go	echoEntry.label	compare	"count"	1
@@ -272,7 +269,6 @@ palette_nouns.go	Palette.preferActivePage	case	"verb"	1
 palette_nouns.go	Palette.preferActivePage	compare	"last"	1
 palette_nouns.go	Palette.preferActivePage	compare	"noun"	1
 palette_nouns.go	Palette.preferActivePage	cyclo	"-"	29
-palette_nouns.go	lineIndex.orderVerbs	compare	"hidden"	1
 palette_parse.go	Palette.parseRest	case	"prop"	1
 palette_parse.go	Palette.parseRest	case	"verb"	1
 palette_parse.go	commandLine.Request	compare	"prop"	1
@@ -387,7 +383,6 @@ settings_view.go	settingOfRow	compare	"ochazuke.setting"	1
 standard_edit.go	Runtime.editFields	compare	"list"	1
 standard_edit.go	editRecord	compare	"list"	1
 standard_edit.go	editSession.bindWrites	compare	"confirm"	1	moved from editHandler (was debt there): forms.edit-apply is a two-value setting read once to pick the submit or per-field writer
-standard_grammar.go	Runtime.StandardVerbsView	case	"hidden"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
 table.go	Collection.tallView	cyclo	"-"	39
@@ -429,9 +424,7 @@ ui.go	RecordingSink.Notices	case	"notice"	1
 ui.go	UI.post	compare	"clear"	1
 ui.go	UIMessage.Apply	case	"clear"	1
 ui.go	UIMessage.Apply	case	"notice"	1
-ui.go	UIMessage.Apply	case	"status"	1
 ui.go	UIMessage.Line	case	"notice"	1
-ui.go	UIMessage.Line	case	"status"	1
 unbound_verbs.go	Runtime.runFromHelp	compare	"bindings-help"	1
 unbound_verbs.go	Runtime.unboundOperations	compare	"all"	2
 unbound_verbs.go	Runtime.unboundOperations	compare	"app"	1

@@ -106,6 +106,9 @@ func TestOldCatalogReadsTheSameKinds(t *testing.T) {
 		if rn := r.Noun(n.Name); rn != nil && rn.Kind != "" {
 			continue // a declared kind (daemon-row, the framework's parts) is new data an older catalog cannot hold
 		}
+		if rn := r.Noun(n.Name); rn != nil && rn.Store != nil && rn.Store.Facts && !rn.Store.Remote {
+			continue // writable through the overlay: no FactReason mark left for an old reading
+		}
 		if got, want := n.KindOf(), doc.Nouns[i].NounKind; got != want {
 			t.Errorf("%s: an old catalog reads %q, the new one says %q", n.Name, got, want)
 		}

@@ -280,7 +280,7 @@ func TestStandardParamsAvoidTheKey(t *testing.T) {
 	if s.find("nightly")["title"] != "Every night" {
 		t.Fatalf("%v", s.things)
 	}
-	if p := r.Operations.At(Key("schedule.edit")).Parameters["field"]; !slices.Equal(p.Enum, []string{"title", "@label"}) {
+	if p := r.Operations.At(Key("schedule.edit")).Parameters["field"]; !slices.Contains(p.Enum, "title") || !slices.Contains(p.Enum, "@label") {
 		t.Fatalf("schedule.edit field %+v", p)
 	}
 	for _, name := range []string{"props", "field", "from"} {

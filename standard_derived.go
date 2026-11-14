@@ -322,8 +322,9 @@ func (r *Runtime) aliasPropClash(a ActionAlias) error {
 // StandardShadows lists, as info lines, every verb the application
 // registered under a standard verb's name on a noun whose store would
 // generate it: the named verb wins, and the standard one is not offered.
-// A verb declared to shadow it on purpose (Operation.ShadowsStandard) is
-// not listed.
+// A verb declared to shadow it on purpose (Operation.ShadowsStandard), and
+// the framework's own (Operation.Builtin: its named verbs over the facts
+// the overlay made writable), are not listed.
 func (r *Runtime) StandardShadows() []string {
 	var out []string
 	for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
@@ -333,7 +334,7 @@ func (r *Runtime) StandardShadows() []string {
 		}
 		for _, v := range standardTable() {
 			op, ok := r.Operations.Find(Key(name + "." + v.Verb))
-			if ok && op.Standard == "" && !op.ShadowsStandard && !v.YieldsToProp && v.unmet(r, n) == "" {
+			if ok && op.Standard == "" && !op.ShadowsStandard && !op.Builtin && !v.YieldsToProp && v.unmet(r, n) == "" {
 				out = append(out, fmt.Sprintf("info: %s is a named verb: it shadows the standard %s of %s", r.DisplayKey(op.Key.Short()), v.Verb, r.DisplayNoun(name)))
 			}
 		}
