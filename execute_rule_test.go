@@ -167,6 +167,38 @@ func TestUnknownNameSetting(t *testing.T) {
 	}
 }
 
+// cli.unknown-name create makes the thing only for a request that runs:
+// not for a check, not for an agent the verb's rights refuse.
+func TestUnknownNameCreatesOnlyWhenTheVerbRuns(t *testing.T) {
+	r := NewRuntime()
+	r.Define("tag").Props(PropSpec{Name: "id", Key: true, CreateOnly: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(DocStore(NewMemDocTable(r, "tag"), "tag"))
+	mustRun(t, r, Request{Noun: "tag", Verb: "create", Args: Arguments{"id": "alpha"}})
+	r.Register(Operation{Key: "tag.use", Parameters: map[string]Parameter{"tag": {Type: "string", Source: "tag.list"}}, Run: func(*Runtime, Context, Arguments) (any, error) { return "used", nil }})
+	if err := r.Settings().Set(UnknownNameSetting, "create"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "tag", Verb: "use", Args: Arguments{"tag": "delta"}}); err != nil {
+		t.Fatalf("owner use: %v", err)
+	}
+	exists := func(id string) bool {
+		_, err := r.Execute(Request{Noun: "tag", Verb: "get", Args: Arguments{"id": id}})
+		return err == nil
+	}
+	if err := r.CheckRequest(Request{Noun: "tag", Verb: "use", Args: Arguments{"tag": "beta"}}); err != nil || exists("beta") {
+		t.Fatalf("check: %v, created %v", err, exists("beta"))
+	}
+	if err := r.Settings().Set(AgentRightsSetting, `[{"match":"tag.use","right":"never"}]`); err != nil {
+		t.Fatal(err)
+	}
+	restore, unbind := r.WithActor(testAgent("p")), r.BindActor(testAgent("p"), false)
+	_, err := r.Execute(Request{Noun: "tag", Verb: "use", Args: Arguments{"tag": "gamma"}})
+	unbind()
+	restore()
+	if err == nil || exists("gamma") || !exists("delta") {
+		t.Fatalf("refused agent: %v, created %v; owner's delta %v", err, exists("gamma"), exists("delta"))
+	}
+}
+
 // A delete undo fully restores asks nothing first (no-refusals D7), and
 // only there: a one-shot process (no session to undo in), a store that
 // says what a delete costs (ConfirmFor) and a verb that Loses ask, an

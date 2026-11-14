@@ -518,11 +518,23 @@ func (e *ArgumentError) Unwrap() error { return e.Err }
 // whose rows are a noun's things answers the unknown-name error for a name
 // none of them has (the thing does not exist; the caller chooses), unless
 // the parameter takes any value. A source that fails skips the check.
+// A name cli.unknown-name would create is let through here, nothing
+// created: only execute creates it (argumentCreates), after the verb's
+// checks and never for a check alone.
 func (r *Runtime) checkArguments(op Operation, args Arguments) error {
+	_, err := r.argumentCreates(op, args)
+	return err
+}
+
+// argumentCreates is checkArguments that also answers the things an
+// unknown name would create (cli.unknown-name), for execute to create
+// once the request is to run (createUnknown).
+func (r *Runtime) argumentCreates(op Operation, args Arguments) ([]unknownCreate, error) {
 	normalizeArguments(op, args)
 	if err := validateArguments(op, args); err != nil {
-		return err
+		return nil, err
 	}
+	var creates []unknownCreate
 	for name, v := range args {
 		p := op.Parameters[name]
 		s, ok := v.(string)
@@ -544,9 +556,11 @@ func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 			continue
 		}
 		if r.choicesAreThings(p) {
-			if err := r.unknownName(op, name, p, s, choices, args); err != nil {
-				return err
+			create, err := r.unknownName(op, name, p, s, choices, args)
+			if err != nil {
+				return nil, err
 			}
+			creates = append(creates, create)
 			continue
 		}
 		ids := make([]string, len(choices))
@@ -555,7 +569,7 @@ func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 		}
 		r.acceptArgument(op, name, p, s, ids, args)
 	}
-	return nil
+	return creates, nil
 }
 
 func hasChoice(choices []Choice, id string) bool {

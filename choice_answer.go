@@ -48,20 +48,12 @@ func (a *ChoiceAnswer) Commands() string {
 const UnknownNameSetting = "cli.unknown-name"
 
 // unknownName answers value, a name none of the parameter's things has:
-// it creates the thing (cli.unknown-name create, or create-human on a
-// human key) and lets the request run, or answers the ChoiceAnswer of the
-// close names, each with the command that runs the request with it. The
-// reason is the unknown-name error's words.
-func (r *Runtime) unknownName(op Operation, name string, p Parameter, value string, choices []Choice, args Arguments) error {
+// the thing to create (cli.unknown-name create, or create-human on a human
+// key), for execute to create when the request runs (createUnknown), or
+// the ChoiceAnswer of the close names, each with the command that runs the
+// request with it. The reason is the unknown-name error's words.
+func (r *Runtime) unknownName(op Operation, name string, p Parameter, value string, choices []Choice, args Arguments) (unknownCreate, error) {
 	unknown := r.choiceError(name, p, value, choices)
-	source, _ := r.Operation(r.ChoicesSource(p))
-	if r.createsUnknown(source.Rows) {
-		n := r.Nouns[source.Rows]
-		if _, err := r.Execute(Request{Noun: source.Rows, Verb: "create", Args: Arguments{n.keyProp().Name: value}}); err == nil {
-			r.notice("created %s %s", r.DisplayNoun(source.Rows), value)
-			return nil
-		}
-	}
 	answer := &ChoiceAnswer{Needs: name, Reason: unknown.Error()}
 	ids := make([]string, len(choices))
 	labels := map[string]string{}
@@ -71,7 +63,33 @@ func (r *Runtime) unknownName(op Operation, name string, p Parameter, value stri
 	for _, id := range NearNames(value, ids, NearShown) {
 		answer.Choices = append(answer.Choices, ChoiceRow{ID: id, Label: labels[id], Command: r.commandWith(op, args, name, id)})
 	}
-	return answer
+	source, _ := r.Operation(r.ChoicesSource(p))
+	if r.createsUnknown(source.Rows) {
+		return unknownCreate{noun: source.Rows, name: value, otherwise: answer}, nil
+	}
+	return unknownCreate{}, answer
+}
+
+// unknownCreate is a thing cli.unknown-name creates for a request: its
+// noun and name, and the answer when the create fails.
+type unknownCreate struct {
+	noun, name string
+	otherwise  error
+}
+
+// createUnknown creates the things a request named that do not exist yet
+// (argumentCreates), each with a notice; a create that fails answers the
+// ChoiceAnswer of the close names instead. It runs only for a request
+// about to run its handler, its checks (the agent's rights first) passed.
+func (r *Runtime) createUnknown(creates []unknownCreate) error {
+	for _, c := range creates {
+		n := r.Nouns[c.noun]
+		if _, err := r.Execute(Request{Noun: c.noun, Verb: "create", Args: Arguments{n.keyProp().Name: c.name}}); err != nil {
+			return c.otherwise
+		}
+		r.notice("created %s %s", r.DisplayNoun(c.noun), c.name)
+	}
+	return nil
 }
 
 // createsUnknown reports whether cli.unknown-name creates a thing of noun

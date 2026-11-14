@@ -1121,7 +1121,8 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if err != nil {
 		return nil, err
 	}
-	if err := r.checkArguments(op, filled); err != nil {
+	creates, err := r.argumentCreates(op, filled)
+	if err != nil {
 		return nil, &ArgumentError{err}
 	}
 	associated, err := r.associationSubject(op, withArgs(q, filled), focusOf(c))
@@ -1232,6 +1233,9 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	}
 	// What the verb Needs is provided now, its checks passed, whether or
 	// not its guard held (no-refusals D3).
+	if err := r.createUnknown(creates); err != nil {
+		return nil, &ArgumentError{err}
+	}
 	if err := r.provide(op, q, guardFocus, guardMode); err != nil {
 		return nil, err
 	}
