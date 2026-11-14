@@ -1260,12 +1260,17 @@ func (e *RecordEditor) suggest(f *recordField) error {
 	if f.path {
 		return e.choosePath(f)
 	}
-	fill := func(v string) Result {
-		if err := e.fill(f, v); err != nil {
+	// fillAfter fills the field with v once err (what made v) is nil.
+	fillAfter := func(v string, err error) Result {
+		if err == nil {
+			err = e.fill(f, v)
+		}
+		if err != nil {
 			return Failed(err)
 		}
 		return Done(v)
 	}
+	fill := func(v string) Result { return fillAfter(v, nil) }
 	spec := ChooserSpec{
 		Kind:   FormSuggestionsKind,
 		Title:  "Suggest " + f.label(),
@@ -1284,6 +1289,13 @@ func (e *RecordEditor) suggest(f *recordField) error {
 		spec.Title = "Choose " + f.label()
 		if !f.Required {
 			fixed = append(fixed, noneChoice().Row())
+		}
+		if e.r.pickerCreates(f.Noun) {
+			// A name no thing has makes one (pickers.create-row).
+			noun := f.Noun
+			spec.CreateRow = true
+			spec.CreateLabel = func(query string) string { return "create " + strconv.Quote(query) }
+			spec.Create = func(query string) Result { return fillAfter(e.r.createNamed(noun, query)) }
 		}
 	}
 	c, err := e.r.openChoiceChooser(spec, choiceLoad{

@@ -118,3 +118,38 @@ func (r *Runtime) commandWith(op Operation, args Arguments, name, value string) 
 	}
 	return strings.Join(words, " ")
 }
+
+// PickersCreateRowSetting adds a create "TEXT" row to a field's picker of
+// a noun's things when the noun can create (default true).
+const PickersCreateRowSetting = "pickers.create-row"
+
+// pickerCreates reports whether a picker of noun's things offers a create
+// row: pickers.create-row is on and the noun's create is offered.
+func (r *Runtime) pickerCreates(noun string) bool {
+	if noun == "" || noun == AnyNoun || !r.offers(noun+".create") {
+		return false
+	}
+	s := r.Settings()
+	return !s.Has(PickersCreateRowSetting) || s.Bool(PickersCreateRowSetting)
+}
+
+// createNamed creates a thing of noun named text (its label prop, else its
+// key) and answers the new thing's key.
+func (r *Runtime) createNamed(noun, text string) (string, error) {
+	n := r.Nouns[noun]
+	if n == nil || n.keyProp() == nil {
+		return "", r.NotFound("noun", noun, nil)
+	}
+	name := n.keyProp().Name
+	if p := n.roleProp(RoleLabel); p != nil && !p.ReadOnly {
+		name = p.Name
+	}
+	v, err := r.Execute(Request{Noun: noun, Verb: "create", Args: Arguments{name: text}})
+	if err != nil {
+		return "", err
+	}
+	if t, ok := v.(map[string]any); ok && t[n.keyProp().Name] != nil {
+		return fmt.Sprint(t[n.keyProp().Name]), nil
+	}
+	return text, nil
+}

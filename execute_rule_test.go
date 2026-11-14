@@ -145,3 +145,28 @@ func TestUndoableDeleteDoesNotAsk(t *testing.T) {
 		t.Fatalf("a confirm opened: %s", r.TopModal())
 	}
 }
+
+// pickers.create-row: a picker of a noun that can create offers a create
+// row (on), or lists only the things there are (off); the row makes the
+// thing named by the text.
+func TestPickersCreateRowSetting(t *testing.T) {
+	for _, on := range []bool{true, false} {
+		r := NewRuntime()
+		r.Define("tag").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(DocStore(NewMemDocTable(r, "tag"), "tag"))
+		if err := r.Settings().Set(PickersCreateRowSetting, on); err != nil {
+			t.Fatal(err)
+		}
+		if got := r.pickerCreates("tag"); got != on {
+			t.Fatalf("%v: create row %v", on, got)
+		}
+	}
+	r := NewRuntime()
+	r.Define("tag").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(DocStore(NewMemDocTable(r, "tag"), "tag"))
+	id, err := r.createNamed("tag", "Fresh")
+	if err != nil || id == "" {
+		t.Fatalf("createNamed: %q %v", id, err)
+	}
+	if got, _ := r.Execute(Request{Noun: "tag", Verb: "get", Args: Arguments{"id": id, "prop": "title"}}); got != "Fresh" {
+		t.Fatalf("made %v", got)
+	}
+}
