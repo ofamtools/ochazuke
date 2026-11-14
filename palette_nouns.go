@@ -47,6 +47,10 @@ type PaletteEntry struct {
 	// (unavailableReason: disabled, a setting off, a store that cannot do
 	// it); the entry is still listed, with the reason beside it.
 	Reason string `json:"reason,omitempty"`
+	// Unusual marks a verb not usual where the palette opened (a guard
+	// false there, a component's Unoffered): listed after the usual ones,
+	// drawn with NotUsualHere, run when chosen.
+	Unusual bool `json:"unusual,omitempty"`
 	// Verbs are a noun entry's verbs and Nouns a verb entry's nouns, as
 	// the first word lists them: the board counts them on the cell and
 	// names them in its help line, and tells the two kinds apart by them.
@@ -134,6 +138,12 @@ func (p *Palette) completions() []PaletteEntry {
 	nounPosition := len(tokens) == 0
 	var out []PaletteEntry
 	verbs := func(names []string, noun string) {
+		// A verb not usual here (a guard false at the focus, a component
+		// that declares it Unoffered) is listed after the usual ones,
+		// marked; choosing it runs it (no-refusals D3). palette.reach off
+		// leaves it out (offered).
+		var unusual []PaletteEntry
+		defer func() { out = append(out, unusual...) }()
 		for _, verb := range ix.orderVerbs(names, noun, view) {
 			label := verb
 			var aliases []string
@@ -154,11 +164,8 @@ func (p *Palette) completions() []PaletteEntry {
 			if len(aliases) > 0 {
 				label += " · also " + strings.Join(aliases, ", ")
 			}
-			reason := ""
-			if noun != "" {
-				reason = p.r.unavailableReason(ix.ops[noun+"."+verb])
-			}
-			out = append(out, PaletteEntry{Value: verb, Kind: "verb", Label: label, Verb: verb, Aliases: aliases, Reason: reason, Nouns: ix.verbs[verb]})
+			entry := PaletteEntry{Value: verb, Kind: "verb", Label: label, Verb: verb, Aliases: aliases, Nouns: ix.verbs[verb]}
+			p.placeVerb(ix, noun, verb, entry, &out, &unusual)
 		}
 	}
 	props := func(noun string) {
@@ -602,4 +609,41 @@ func dedupEntries(entries []PaletteEntry) []PaletteEntry {
 		}
 	}
 	return out
+}
+
+// placeVerb appends a verb's entry where verbOffer says it goes: with the
+// usual verbs, after them, or nowhere.
+func (p *Palette) placeVerb(ix lineIndex, noun, verb string, entry PaletteEntry, usual, unusual *[]PaletteEntry) {
+	switch p.verbOffer(ix, noun, verb, &entry) {
+	case offerUsual:
+		*usual = append(*usual, entry)
+	case offerUnusual:
+		*unusual = append(*unusual, entry)
+	}
+}
+
+// How the palette lists a verb (verbOffer).
+const (
+	offerUsual   = iota // with the others, its Reason when it cannot run
+	offerUnusual        // after the usual ones, marked NotUsualHere
+	offerHidden         // not at all (verbs.disabled hide)
+)
+
+// verbOffer says how the palette lists noun's verb and fills the entry's
+// Reason or Unusual mark: a verb verbs.disabled hides is not listed; one
+// that cannot run says why; one not usual here (a false guard, a
+// component's Unoffered) is listed after the rest, marked, and runs.
+func (p *Palette) verbOffer(ix lineIndex, noun, verb string, entry *PaletteEntry) int {
+	if noun == "" {
+		return offerUsual
+	}
+	op := ix.ops[noun+"."+verb]
+	if p.r.disabledHidden(op) {
+		return offerHidden
+	}
+	if entry.Reason = p.r.unavailableReason(op); entry.Reason == "" && !p.offeredHere(op) {
+		entry.Unusual = true
+		return offerUnusual
+	}
+	return offerUsual
 }

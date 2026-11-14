@@ -54,9 +54,7 @@ func TestPropFilterShellAndCatalog(t *testing.T) {
 		t.Fatal(mounted.Warnings)
 	}
 	filters, err := host.SavedFilters("", "ext.note")
-	// The overlay's archived prop (the note store has no Patch) adds the
-	// archived filter beside the saved one.
-	if err != nil || len(filters) != 2 || filters[1].Noun != "ext.note" {
+	if err != nil || len(filters) != 1 || filters[0].Noun != "ext.note" {
 		t.Fatalf("filters %+v err %v", filters, err)
 	}
 	out.Reset()
@@ -238,7 +236,7 @@ func TestPropAliasCatalogAndCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	n, ok := doc.noun("ticket")
-	if !ok || len(n.Props) != 3 /* id, state, the overlay's archived */ || len(n.Props[1].Aliases) != 1 || n.Props[1].Aliases[0] != "status" {
+	if !ok || len(n.Props) != 2 || len(n.Props[1].Aliases) != 1 || n.Props[1].Aliases[0] != "status" {
 		t.Fatalf("%+v", n)
 	}
 	host := ochazuke.NewRuntime()

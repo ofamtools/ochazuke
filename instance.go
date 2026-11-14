@@ -31,18 +31,24 @@ type Instance struct {
 	Label       string    `json:"label,omitempty"` // a display name (a list row's label, a header name); {{label}} in a confirm prompt
 	Data        any       `json:"data,omitempty"`  // an opaque application value (a list row's ListItem.Data)
 	Pin         string    `json:"pin,omitempty"`   // the declared base mode (PinInstance)
-	Component   any       `json:"-"`
-	seq         uint64
-	lastFocus   string // the focus last inside this instance when focus left it; a jump lands there
-	borrowed    string // an open modal's adopted focus (Push of a focus outside it) and that focus's own parent, restored on Pop (modal_stack.go)
-	lentParent  string
-	closeFocus  string      // FocusOnClose: where the focus goes when this instance is removed while it holds the focus
-	inner       string      // an instance whose rows answer before this one's while this one is the focus (an input's open suggestions)
-	close       *Request    // CloseWith/SetModalClose: what modal.close runs while this instance is the top modal; nil pops it
-	accepts     bool        // an open modal that says when it is accepted (a chooser's pick), so what waits on its answer runs then (acceptModal)
-	onAccept    []func()    // what runs when the modal is accepted (the end of the visual selection it was asked over); a close without it drops them
-	drawn       []Placement // modal focus stops in the last rendered drawing order
-	rendering   bool
+	// Unoffered are the verbs (noun.verb, or a bare verb for every noun)
+	// this component says are not usual on it (Unoffers, Runtime.Unoffer):
+	// keys skip their rows and fall through, hints and the footer leave
+	// them out; the palette lists them after the rest, marked, and an
+	// explicit request (palette, CLI, MCP, the help modal) runs them.
+	Unoffered  []string `json:"unoffered,omitempty"`
+	Component  any      `json:"-"`
+	seq        uint64
+	lastFocus  string // the focus last inside this instance when focus left it; a jump lands there
+	borrowed   string // an open modal's adopted focus (Push of a focus outside it) and that focus's own parent, restored on Pop (modal_stack.go)
+	lentParent string
+	closeFocus string      // FocusOnClose: where the focus goes when this instance is removed while it holds the focus
+	inner      string      // an instance whose rows answer before this one's while this one is the focus (an input's open suggestions)
+	close      *Request    // CloseWith/SetModalClose: what modal.close runs while this instance is the top modal; nil pops it
+	accepts    bool        // an open modal that says when it is accepted (a chooser's pick), so what waits on its answer runs then (acceptModal)
+	onAccept   []func()    // what runs when the modal is accepted (the end of the visual selection it was asked over); a close without it drops them
+	drawn      []Placement // modal focus stops in the last rendered drawing order
+	rendering  bool
 }
 
 // Payload is the small typed state a mode carries (Runtime.Mode.Payload).
@@ -71,6 +77,7 @@ func (p Payload) empty() bool {
 }
 
 type instanceSpec struct {
+	unoffered                       []string
 	parent, noun, focus, closeFocus string
 	closeOnDetach, noSpill, noMarks bool
 	clearFilterOnEnter              bool
@@ -175,7 +182,7 @@ func (r *Runtime) Instance(id string, opts ...InstanceOption) *Instance {
 	}
 	spec.noun = r.instanceNoun(spec.noun) // an alias names its noun (Instance("page") answers to ochazuke.page)
 	r.seq++
-	inst := &Instance{ID: id, Noun: spec.noun, Parent: spec.parent, seq: r.seq, closeFocus: spec.closeFocus}
+	inst := &Instance{ID: id, Noun: spec.noun, Parent: spec.parent, seq: r.seq, closeFocus: spec.closeFocus, Unoffered: spec.unoffered}
 	r.register(inst)
 	return inst
 }

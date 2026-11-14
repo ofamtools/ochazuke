@@ -193,7 +193,7 @@ func (r *Runtime) AddList(id string, items []ListItem, opts ...InstanceOption) (
 		}
 	}
 	list := &Collection{r: r, id: id, selected: -1, marks: map[string]bool{}, noSpill: spec.noSpill, toSelected: spec.spillToSelection, noMarks: spec.noMarks, choose: spec.clearFilterOnEnter, columns: slices.Clone(spec.columns), cellSelect: spec.cellSelect, noSort: spec.noSort, declaredNoun: spec.rowNoun, from: spec.from}
-	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus))
+	r.Instance(id, Parent(spec.parent), Kind(spec.noun), FocusOnClose(spec.closeFocus), Unoffers(spec.unoffered...))
 	r.Instances[id].Component = list
 	var err error
 	if spec.from != "" {

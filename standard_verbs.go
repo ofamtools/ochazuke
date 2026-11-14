@@ -456,9 +456,6 @@ func runGet(r *Runtime, n *Noun, c Ctx) (any, error) {
 		prop = p.Name
 	}
 	// Only the props offered where the request acts (PropSpec.When).
-	if hidden := r.unshownProp(n, c, append([]string{prop}, names...)); hidden != "" {
-		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), hidden)
-	}
 	if p := n.prop(prop); p != nil && p.ofCollection() {
 		return readCollectionProp(c, n, p, path)
 	}
@@ -1179,18 +1176,6 @@ func readBack(c Ctx, n *Noun, key string, t Thing, written map[string]any) (map[
 	return thingRecord(n, t, nil), nil
 }
 
-// unshownProp is the first of names whose When guard is false where the
-// request acts, "" when every one is offered there.
-func (r *Runtime) unshownProp(n *Noun, c Ctx, names []string) string {
-	focus := focusOf(c.Context)
-	for _, name := range names {
-		if p := n.prop(name); p != nil && !r.propShown(*p, focus, c.mode(), c.Args) {
-			return name
-		}
-	}
-	return ""
-}
-
 func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 	var err error
 	var source Thing
@@ -1224,9 +1209,6 @@ func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 		}
 		values[p.Name] = r.acceptProp(n.Name, p, typed)
 	}
-	if name := r.unshownProp(n, c, sortedKeys(c.Args)); name != "" {
-		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), name)
-	}
 	var filled focusFills
 	if source == nil { // a copy keeps its source's references
 		filled = r.createFill(n, c, values)
@@ -1244,7 +1226,7 @@ func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 }
 
 func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
-	changes, order, err := setChanges(n, c.Args)
+	changes, _, err := setChanges(n, c.Args)
 	if err != nil {
 		return nil, err
 	}
@@ -1252,9 +1234,6 @@ func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
 		if p := n.prop(name); p != nil {
 			changes[name] = r.acceptProp(n.Name, *p, v)
 		}
-	}
-	if name := r.unshownProp(n, c, order); name != "" {
-		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), name)
 	}
 	key, err := r.subjectKey(n, c)
 	if err != nil {

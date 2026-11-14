@@ -664,6 +664,9 @@ func (p *Palette) entryLine(s Styles, entry PaletteEntry, focused bool, matcher 
 	if entry.Reason != "" {
 		label += " · unavailable: " + entry.Reason
 	}
+	if entry.Unusual {
+		label += " · " + NotUsualHere
+	}
 	if focused && p.r.Settings().String(PaletteMarkerSetting) != PaletteMarkerArrow {
 		return focusLine(s, ansi.Strip(label), width)
 	}

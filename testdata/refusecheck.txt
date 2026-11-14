@@ -261,11 +261,6 @@ cli/setup.go	DeclareSetup	K15	"Failed(…)"	1
 cli/setup.go	DeclareSetup	K15	"setup items are already declared"	1
 cli/setup.go	DeclareSetup	K15	"unknown setup item %q"	1
 cli/setup.go	setupDeclaration.engine	K14	"setup.json: %w"	1	failure
-cli/shell.go	Shell.Run	K10	"%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)"	1
-cli/shell.go	Shell.Run	K14	"%w; pass --target, one of: %s"	1	failure
-cli/shell.go	Shell.Run	K14	"target %s: %w"	2	failure
-cli/shell.go	Shell.Run	K15	"declined: %s"	1
-cli/shell.go	Shell.Run	K15	"errors.New(…)"	1
 cli/shell.go	Shell.call	K15	"errors.New(…)"	2
 cli/shell.go	Shell.parseFlags	K14	"--%s: %w"	1	failure
 cli/shell.go	Shell.parseFlags	K15	"--%s answers JSON Lines; --format %s prints a table"	1
@@ -1089,6 +1084,7 @@ settings.go	coerceType	K2	"unknown setting type %q"	1
 settings.go	coerceType	K7	"must be a number"	1
 settings.go	coerceType	K7	"must be a string"	1
 settings.go	coerceType	K7	"must be an integer"	1
+settings.go	defaultListed	K2	"%q is not one of its enum %s"	1	declaration
 settings.go	var listShape	K15	"must be a list of strings, a JSON array such as [\"a\", \"b\"]"	1
 settings_defaults.go	nonNegativeDuration	K15	"must be 0 (wait for the next key) or a positive duration such as \"1s\""	1
 settings_owners.go	Runtime.DeclareSettingOwner	K15	"setting owner %q must be one word"	1
@@ -1177,13 +1173,10 @@ standard_verbs.go	propObject	K14	"%s %w"	1	failure
 standard_verbs.go	readCollectionProp	K14	"%s.%s: %w"	2	failure
 standard_verbs.go	readComputed	K14	"%s.%s: %w"	1	failure
 standard_verbs.go	refuseCollectionProps	K15	"%s.%s describes all the %s things: read it with prop, not props"	1
-standard_verbs.go	runCreate	K1	"%s.%s is not available here"	1
 standard_verbs.go	runCreate	K14	"%s %w"	1	failure
-standard_verbs.go	runGet	K1	"%s.%s is not available here"	1
 standard_verbs.go	runGet	K3	"get takes prop or props, not both"	1
 standard_verbs.go	runGet	K4	"%s has no prop %q"	1
 standard_verbs.go	runList	K15	"%s.%s is computed when asked for: read it with get, list rows do not hold it"	1
-standard_verbs.go	runSet	K1	"%s.%s is not available here"	1
 standard_verbs.go	runSet	K15	"%s cannot change a list by item: its store does not read things"	1
 standard_verbs.go	runSet	K15	"%s cannot toggle %s: its store does not read things"	1
 standard_verbs.go	setChanges	K15	"%s is %s: only a boolean prop toggles"	1
@@ -1319,4 +1312,9 @@ verb_checks.go	Runtime.AddVerbCheck	K2	"unknown operation %q"	1
 verb_checks.go	Runtime.AddVerbCheck	K3	"a verb check needs a name and a check"	1
 yank_history.go	registerYankHistory	K15	"no yank at history index"	1
 yank_history.go	registerYankHistory	K15	"yank history is not active"	1
-settings.go	defaultListed	K2	"%q is not one of its enum %s"	1	declaration
+execute_rule.go	Runtime.runFallback	K15	"%s: its fallback %s loops"	1	declaration
+cli/shell.go	Shell.Run	K10	"%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)"	1
+cli/shell.go	Shell.Run	K14	"%w; pass --target, one of: %s"	1	failure
+cli/shell.go	Shell.Run	K14	"target %s: %w"	2	failure
+cli/shell.go	Shell.Run	K15	"declined: %s"	1
+cli/shell.go	Shell.Run	K15	"errors.New(…)"	1

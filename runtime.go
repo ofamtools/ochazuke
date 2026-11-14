@@ -306,6 +306,20 @@ type Handler func(*Runtime, Context, Arguments) (any, error)
 // (history-entry.repeat, bound to . on app in normal mode) may run again; set it
 // on the Operation passed to Register.
 type Operation struct {
+	// Fallback is the request (a template: its Args preset, the request's
+	// own arguments added where the fallback declares them) that runs in
+	// place of the verb when an explicit request reaches it where its guard
+	// is false (no-refusals D3): pane.attach on an ended pane falls back to
+	// pane.respawn. Keys never reach it: a false guard skips the row.
+	Fallback *Request `json:"fallback,omitempty"`
+	// Needs are what the verb needs first (the plan's Operation.Requires;
+	// that name is the input guard's), each provided by a verb that runs
+	// before it when its Met guard is false (execute_rule.go).
+	Needs []Requirement `json:"needs,omitempty"`
+	// Loses says what a run destroys that undo cannot restore ("the pane's
+	// process"); only a verb that Loses something asks before it runs
+	// (Confirm; no-refusals D7). Empty: the run is undoable or lossless.
+	Loses       string    `json:"loses,omitempty"`
 	Destructive bool      `json:"destructive,omitempty"`
 	Agent       string    `json:"agent,omitempty"`
 	Examples    []Example `json:"examples,omitempty"`
@@ -582,6 +596,7 @@ func (o Operation) ParameterOrder() []string {
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
+	fallbacks int // the depth of Fallback runs in progress (runFallback)
 	// relations is the relation store and the declared kinds (relation.go).
 	relations *relationState
 	Nouns     map[string]*Noun
@@ -941,7 +956,7 @@ func (r *Runtime) AddInput(in *Input, opts ...InstanceOption) error {
 		in.SetMode(in.pin)
 	}
 	r.seq++
-	inst := &Instance{ID: in.ID, Noun: spec.noun, Parent: spec.parent, Component: in, seq: r.seq, closeFocus: spec.closeFocus}
+	inst := &Instance{ID: in.ID, Noun: spec.noun, Parent: spec.parent, Component: in, seq: r.seq, closeFocus: spec.closeFocus, Unoffered: spec.unoffered}
 	r.register(inst)
 	in.r = r
 	return nil
@@ -1137,11 +1152,12 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if c.InputID != "" && r.Input(c.InputID) == nil {
 		return nil, fmt.Errorf("unknown input %q", c.InputID)
 	}
-	// Guards are applicability: a verb guarded off where the request acts
-	// (its target, else the caller's focus) is refused, from keys, the
-	// palette, the CLI and the API alike.
-	if err := r.refuseGuarded(op, withArgs(q, filled), focus, guardMode); err != nil {
-		return nil, err
+	// Guards route keys (a false guard skips the row); an explicit request
+	// (the palette, the CLI, the API, the help modal) reaching a verb
+	// guarded off where it acts asks for a missing target, runs the verb's
+	// Fallback, provides what it Requires, or runs it (no-refusals D3).
+	if v, err, done := r.explicitRule(c, op, withArgs(q, filled), focus, guardMode, checkOnly); done {
+		return v, err
 	}
 	// A request without a target addresses the nearest instance of its
 	// operation's noun on the focus path (row.delete chosen in the palette
@@ -1190,7 +1206,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if checkOnly {
 		return nil, nil
 	}
-	if op.Confirm != "" && !q.Confirmed && !r.agentPassesPrompt(op) {
+	if op.Confirm != "" && !q.Confirmed && r.asksFirst(op) {
 		if len(subjects) > 1 {
 			q.Subjects = subjects
 		}

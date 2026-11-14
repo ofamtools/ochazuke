@@ -19,6 +19,8 @@ const maxRequestBytes = 1 << 20
 // Response is the reply to a socket call: a result or an error message.
 type Response struct {
 	Refused *RefusedError `json:"refused,omitempty"`
+	// Choice is a ChoiceAnswer: nothing changed, choose one (no-refusals D4).
+	Choice *ChoiceAnswer `json:"choice,omitempty"`
 	// Result is the operation's result. From HandleCall it is detached
 	// from application state: Lines stays Lines (each line encoded), any
 	// other value is its JSON encoding as a json.RawMessage, so object
@@ -79,8 +81,10 @@ func callResponse(result any, err error) Response {
 	if err != nil {
 		var bad *ArgumentError
 		var refused *RefusedError
+		var choice *ChoiceAnswer
 		errors.As(err, &refused)
-		return Response{Error: err.Error(), Argument: errors.As(err, &bad), Refused: refused}
+		errors.As(err, &choice)
+		return Response{Error: err.Error(), Argument: errors.As(err, &bad), Refused: refused, Choice: choice}
 	}
 	// Detach live slices/maps before another message can mutate application state.
 	if lines, ok := result.(Lines); ok {

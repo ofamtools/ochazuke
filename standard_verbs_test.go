@@ -72,9 +72,9 @@ func mustPanic(t *testing.T, want string, fn func()) {
 }
 
 // TestStandardVerbsNeeds: a row is offered (registered and available)
-// exactly when its kind fits and the store, or the overlay over a store
-// that can read a thing (overlay.go), has its handler; every core verb is
-// registered anyway, unavailable with the reason.
+// exactly when its kind fits and the store has its handler (a singleton
+// lists its one thing); every core verb is registered anyway, unavailable
+// with the reason.
 func TestStandardVerbsNeeds(t *testing.T) {
 	cases := []struct {
 		name  string
@@ -82,10 +82,10 @@ func TestStandardVerbsNeeds(t *testing.T) {
 		store Store
 		want  []string
 	}{
-		{"get only", []PropSpec{{Name: "id", Key: true}}, Store{Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }}, []string{"get", "create", "set", "delete", "archive", "edit", "show", "restore", "duplicate", "yank", "history"}},
-		{"list only", []PropSpec{{Name: "id", Key: true}}, Store{List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"list", "create", "set", "delete", "archive", "restore", "watch"}},
-		{"both", []PropSpec{{Name: "id", Key: true}}, newTaskStore().store(), []string{"get", "list", "create", "set", "delete", "archive", "edit", "show", "restore", "duplicate", "yank", "history", "watch"}},
-		{"singleton lists its one thing", []PropSpec{{Name: "theme"}}, Store{Kind: Singleton, Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }, List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"get", "list", "set", "edit", "show", "yank", "history", "watch"}},
+		{"get only", []PropSpec{{Name: "id", Key: true}}, Store{Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }}, []string{"get", "show", "yank", "history"}},
+		{"list only", []PropSpec{{Name: "id", Key: true}}, Store{List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"list", "watch"}},
+		{"both", []PropSpec{{Name: "id", Key: true}}, newTaskStore().store(), []string{"get", "list", "show", "yank", "history", "watch"}},
+		{"singleton lists its one thing", []PropSpec{{Name: "theme"}}, Store{Kind: Singleton, Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }, List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"get", "list", "show", "yank", "history", "watch"}},
 		{"nothing", []PropSpec{{Name: "id", Key: true}}, Store{}, nil},
 	}
 	for _, c := range cases {

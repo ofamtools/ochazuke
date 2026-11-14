@@ -86,13 +86,30 @@ func withValue(q Request, name string, value any) Request {
 	return withArgs(q, args)
 }
 
-// refuseGuarded is the refusal of a request whose verb is guarded off where it
-// acts (refusal), nil when it is available or runs away (runsAway).
-func (r *Runtime) refuseGuarded(op Operation, q Request, focus string, mode ModeState) error {
+// refuseGuarded decides an explicit request whose verb is not available
+// where it acts (no-refusals D3: a guard routes keys, it never refuses an
+// explicit request). In order: a missing target asks (refusal's
+// MissingParameterError); the verb's Fallback runs in place (the request
+// to run is returned); what Needs names is provided first; otherwise
+// the verb runs and its handler copes. Only a verb hidden by verbs.disabled
+// (hide) or disabled outright is still refused.
+func (r *Runtime) refuseGuarded(op Operation, q Request, focus string, mode ModeState) (*Request, error) {
 	if r.Available(q, focus, mode) || r.runsAway(op, q, focus) {
-		return nil
+		return nil, nil
 	}
-	return r.refusal(op, q, focus, mode)
+	if op.Disabled || r.disabledHidden(op) {
+		return nil, r.refusal(op, q, focus, mode)
+	}
+	if err := r.missingRole(q); err != nil {
+		return nil, err
+	}
+	if missing := r.missingTargets(op, q.Args, focus); len(missing) > 0 && r.Settings().Bool(PaletteReachSetting) {
+		return nil, r.refusal(op, q, focus, mode)
+	}
+	if op.Fallback != nil {
+		return fallbackRequest(op, q), nil
+	}
+	return nil, r.provide(op, q, focus, mode)
 }
 
 // refusal is why a request is not run where it is guarded off. A refusal

@@ -844,6 +844,9 @@ func (r *Runtime) availableWithin(q Request, focus string, mode ModeState, withi
 			return false
 		}
 	}
+	if r.unofferedAt(q.Key(), focus) {
+		return false // the component says the verb is not usual on it
+	}
 	return r.propsAvailable(q, focus, mode, within)
 }
 

@@ -95,7 +95,8 @@ import (
 // any sink attached print first).
 //
 // Errors are returned for oden.Report: every failure is exit status 1
-// (oden.ExitCode of a plain error).
+// (oden.ExitCode of a plain error), but a ChoiceAnswer (nothing changed,
+// choose one) is exit status 3 with the command for each choice printed.
 type Shell struct {
 	// MCPCommand is the stable executable and global arguments used by config
 	// and owner confirmation commands. Empty defaults to []string{Bin}.
@@ -182,7 +183,30 @@ func UsageHint(bin string) string {
 
 // Run executes one command and prints its result on Stdout, as JSON
 // unless --format names another format.
-func (s *Shell) Run(ctx context.Context, args []string) error {
+
+// ChoiceExitCode is the exit status of a command answered with a
+// ChoiceAnswer: nothing changed, choose one of the printed commands.
+const ChoiceExitCode = 3
+
+// choiceExit turns a ChoiceAnswer into its printed commands (one per line
+// on Stderr, after the reason oden reports) and exit status 3.
+func (s *Shell) choiceExit(err error) error {
+	var choice *ochazuke.ChoiceAnswer
+	if err == nil || !errors.As(err, &choice) {
+		return err
+	}
+	for _, c := range choice.Choices {
+		line := "  " + c.Command
+		if c.Label != "" && c.Label != c.ID {
+			line += "  # " + c.Label
+		}
+		fmt.Fprintln(s.stderr(), line)
+	}
+	return &oden.ExitError{Code: ChoiceExitCode, Err: err}
+}
+
+func (s *Shell) Run(ctx context.Context, args []string) (err error) {
+	defer func() { err = s.choiceExit(err) }()
 	actor := s.Actor
 	if actor == nil {
 		a, err := ochazuke.ActorFromEnv(nil)
@@ -891,6 +915,9 @@ func (s *Shell) call(q ochazuke.Request) (any, error) {
 	if res.Error != "" {
 		if res.Refused != nil {
 			return nil, res.Refused
+		}
+		if res.Choice != nil {
+			return nil, res.Choice
 		}
 		if res.Argument {
 			return nil, &ochazuke.ArgumentError{Err: errors.New(res.Error)}

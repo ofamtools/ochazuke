@@ -167,17 +167,19 @@ type overlayOf struct {
 // facts store), a Create and a Delete where the rows for them fit the
 // store's kind and it has none, an archive prop where archive fits and the
 // noun has no archive role, and reads (Get, List) that merge the overlay
-// rows in. Only a system fact (Store.Facts) or a store with no Patch is
-// filled; a store that can read no thing, a remote one and a copy are left
-// as they are.
+// rows in. A system fact (Store.Facts) is filled, and any store that sets
+// Store.Overlay (a read-only source the user may annotate); a store that
+// can read no thing, a remote one and a copy are left as they are.
 func (r *Runtime) withOverlay(n *Noun, s Store) Store {
 	if s.Remote || s.copy != nil || s.Get == nil && s.List == nil {
 		return s
 	}
 	s = withSingletonList(s)
-	if !s.Facts && s.Patch != nil {
-		// A store that writes its things (an application's records)
-		// keeps its own shape.
+	if !s.Facts && !s.Overlay || !rowFits("create", s) {
+		// Any other store keeps its own shape unless it asks for the
+		// overlay (Store.Overlay); a singleton fact keeps its own too, so
+		// set NOUN still reads the :set line where the noun has none
+		// (shadowsNoun).
 		return s
 	}
 	o := &overlayOf{r: r, n: n, srcGet: s.Get, srcList: s.List, srcPatch: s.Patch,

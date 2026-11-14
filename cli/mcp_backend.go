@@ -464,6 +464,7 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 			break
 		}
 	}
+	err = choiceAnswer(answer, err)
 	if err != nil {
 		answer["status"] = "failed"
 		var refused *ochazuke.RefusedError
@@ -697,4 +698,17 @@ func (s *Shell) defineCatalogFacts() {
 			return nil, &ochazuke.NotFoundError{Noun: "noun", ID: name, Near: ochazuke.NearNames(name, names, ochazuke.NearShown), List: "catalog lists every noun"}
 		},
 	})
+}
+
+// choiceAnswer writes a ChoiceAnswer into the run's answer (status choose,
+// the reason, what it needs and the choices with their commands) and
+// answers nil: nothing changed, and it is a result, not an error
+// (no-refusals D4). Any other err is returned as it is.
+func choiceAnswer(answer map[string]any, err error) error {
+	var choice *ochazuke.ChoiceAnswer
+	if !errors.As(err, &choice) {
+		return err
+	}
+	answer["status"], answer["reason"], answer["needs"], answer["choices"] = "choose", choice.Reason, choice.Needs, choice.Choices
+	return nil
 }

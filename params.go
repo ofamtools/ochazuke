@@ -543,7 +543,10 @@ func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 			continue
 		}
 		if r.choicesAreThings(p) {
-			return r.choiceError(name, p, s, choices)
+			if err := r.unknownName(op, name, p, s, choices, args); err != nil {
+				return err
+			}
+			continue
 		}
 		ids := make([]string, len(choices))
 		for i, c := range choices {

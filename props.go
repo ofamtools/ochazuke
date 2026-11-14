@@ -437,10 +437,15 @@ type Store struct {
 	Live func(r *Runtime) []string
 
 	// Facts says the things are system facts, read from the registry
-	// (modes, operations, themes ...): create, set, delete and archive are
-	// on the noun but unavailable, with the reason FactReason. A facts
+	// (modes, operations, themes ...): create, set, delete and archive run
+	// through the framework's overlay (overlay.go) where the registry
+	// cannot do them (a remote facts store: unavailable, FactReason). A facts
 	// store has no times (no created or updated prop).
 	Facts bool
+	// Overlay gives a store that is not a fact the framework's overlay
+	// (overlay.go) for what it lacks: props it cannot hold, create, delete
+	// and archive. Facts stores have it always.
+	Overlay bool
 	// Stamps says the store writes the base times (created, updated)
 	// itself, so create and set do not stamp them; the props stay.
 	Stamps bool

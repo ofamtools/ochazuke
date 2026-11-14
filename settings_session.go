@@ -560,17 +560,18 @@ func (s *Settings) relayer() {
 	}
 }
 
-// cliWriteCheck asks before a settings verb writes settings.json from a
+// cliWriteCheck tells, when a settings verb writes settings.json from a
 // CLI process (the request's source is cli and the runtime has no
-// session): prompt says what would be written, "" when nothing would be
-// (the verb then runs, or fails with its own error). --yes answers it.
+// session), what it writes and how to take it back: it no longer asks
+// (no-refusals D7: a write undo restores loses nothing). prompt says what
+// would be written, "" when nothing would be.
 func cliWriteCheck(prompt func(r *Runtime, a Arguments) string) VerbCheck {
 	return VerbCheck{Name: "settings.cli-write", Check: func(r *Runtime, _ Context, a Arguments) Verdict {
 		if r.history.source != "cli" || r.Settings().HasSession() || r.Config().Path(SettingsFile) == "" {
 			return Allow()
 		}
 		if p := prompt(r, a); p != "" {
-			return AskFirst(p)
+			r.notice("%s (done); undo: history-entry undo", strings.TrimSuffix(p, "?"))
 		}
 		return Allow()
 	}}
