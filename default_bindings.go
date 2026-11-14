@@ -161,6 +161,7 @@ func (r *Runtime) LoadDefaultBindings(source string, data []byte) error {
 // entry names with the entry's properties (pending, passthrough,
 // selection, extends, outside, layered).
 func (r *Runtime) defineFileMode(name string, m ModeSpec) (err error) {
+	r.InvalidateBindings()
 	switch {
 	case m.Pending:
 		err = r.DefineMode(name, true)

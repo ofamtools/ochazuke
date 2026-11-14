@@ -299,7 +299,9 @@ func registerStateFacts(r *Runtime) {
 	for i := range props {
 		props[i].ReadOnly = !slices.Contains(stateWritable, props[i].Name)
 	}
-	n := r.Define("ochazuke.snapshot").Props(props...)
+	// Declared facts: a system fact whose one writable prop is mode, so
+	// its writing verb being available does not make it a plain singleton.
+	n := r.Define("ochazuke.snapshot").Kind(NounKindFacts).Props(props...)
 	n.Store(Store{
 		Kind: Singleton, Facts: true,
 		Patch: func(c Ctx, _ string, t Thing) (Thing, error) {

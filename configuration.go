@@ -598,6 +598,7 @@ func (r *Runtime) fileModeProblems(doc BindingsDoc) []string {
 			if !spec.Pending && spec.Extends == "" {
 				spec.Extends, spec.Layered = NewModeExtends, true
 			}
+			r.InvalidateBindings()
 			if err := r.defineFileMode(name, spec); err != nil {
 				problems = append(problems, fmt.Sprintf("%s: modes %s: %v (ignored)", BindingsFile, name, err))
 			}
