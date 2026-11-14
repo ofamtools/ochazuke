@@ -32,7 +32,7 @@ const (
 // TakesAny reports a parameter whose value is typed as much as picked
 // (Accept is not the default): its form field is text with suggestions,
 // not a closed picker, and the palette reads any word for it.
-func (p Parameter) TakesAny() bool { return p.Accept != AcceptDefault }
+func (p Parameter) TakesAny() bool { return p.Accept != AcceptDefault || p.Free }
 
 // Settings the accept rules read.
 const (

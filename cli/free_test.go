@@ -8,8 +8,9 @@ import (
 )
 
 // TestCatalogCarriesFree: a free sourced parameter (mtm's --model: choices
-// from a source, any value accepted) publishes "free": true, and a closed
-// sourced parameter writes no free key, so a host can tell them apart.
+// from a source, any value accepted) publishes "accept": "keep" and, for
+// one release, "free": true; a closed sourced parameter writes neither,
+// so a host can tell them apart; a catalog's free: true still reads.
 func TestCatalogCarriesFree(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	r.Define("harness").Verb("models", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }, "List models")
@@ -51,11 +52,18 @@ func TestCatalogCarriesFree(t *testing.T) {
 	if err := json.Unmarshal(params["harness"], &harness); err != nil {
 		t.Fatalf("harness param: %v", err)
 	}
-	if model["accept"] != "keep" || model["source"] != "harness.models" {
-		t.Fatalf("free sourced param = %v; want accept keep", model)
+	if model["accept"] != "keep" || model["free"] != true || model["source"] != "harness.models" {
+		t.Fatalf("free sourced param = %v; want accept keep and, for one release, free", model)
 	}
-	if _, ok := harness["accept"]; ok || harness["source"] != "harness.models" {
-		t.Fatalf("closed sourced param = %v; want no accept key", harness)
+	_, accepts := harness["accept"]
+	if _, free := harness["free"]; accepts || free || harness["source"] != "harness.models" {
+		t.Fatalf("closed sourced param = %v; want no accept or free key", harness)
+	}
+	// A catalog written before accept says free: true; it still reads as
+	// a parameter that takes any value.
+	var old ochazuke.Parameter
+	if err := json.Unmarshal([]byte(`{"type":"string","source":"harness.models","free":true}`), &old); err != nil || !old.TakesAny() {
+		t.Fatalf("old free param %+v %v", old, err)
 	}
 	var doc CatalogDoc
 	if err := json.Unmarshal(data, &doc); err != nil {

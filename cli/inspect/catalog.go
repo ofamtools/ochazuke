@@ -109,7 +109,11 @@ type Param struct {
 	Source      string            `json:"source,omitempty"`
 	Noun        string            `json:"noun,omitempty"`
 	Accept      string            `json:"accept,omitempty"`
-	Positional  int               `json:"positional"` // index in positional, -1 when named only
+	// Free is the catalog's former word for accept keep, read from a tool
+	// built before accept (Params.UnmarshalJSON sets Accept from
+	// it). Deprecated: it goes with the free key in v0.142.
+	Free       bool `json:"free,omitempty"`
+	Positional int  `json:"positional"` // index in positional, -1 when named only
 }
 
 // Params keeps the catalog's parameter order, which a Go map would lose.
@@ -137,6 +141,9 @@ func (p *Params) UnmarshalJSON(b []byte) error {
 			return err
 		}
 		one.Name = kt.(string)
+		if one.Free && one.Accept == "" {
+			one.Accept = "keep"
+		}
 		*p = append(*p, one)
 	}
 	_, err = dec.Token()

@@ -559,6 +559,9 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				if p.Noun != "" {
 					p.Noun = r.CanonicalNoun(p.Noun)
 				}
+				// The former free key beside accept, for a host built
+				// before accept (one release).
+				p.Free = p.TakesAny()
 				verb.Params[name] = p
 			}
 		}

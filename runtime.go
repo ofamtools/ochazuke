@@ -39,6 +39,11 @@ type Parameter struct {
 	Enum   []string `json:"enum,omitempty"`
 	Source string   `json:"source,omitempty"`
 	Accept Accept   `json:"accept,omitempty"`
+	// Free is the wire's former word for an Accept that is not the default
+	// (TakesAny): a catalog publishes it beside accept, and one written
+	// before accept is read by it, for one release. Deprecated: set
+	// Accept; the free key goes in v0.142.
+	Free bool `json:"free,omitempty"`
 	// Normalize adapts a typed value before it is checked, in order
 	// (normalize.go): trim, slug, escape, coerce. Typed input is adapted,
 	// never refused (no-refusals D5).
