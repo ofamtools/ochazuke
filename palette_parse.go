@@ -283,7 +283,85 @@ type lineIndex struct {
 	byNouns []option
 }
 
-func (p *Palette) index() lineIndex { return p.r.lineIndex(p.offered, p.nounBefore) }
+// index is the palette's line index over the operations it offers.
+// Which operations it offers is a guard per operation (offered), which may
+// walk the graph and read stores, so the answers and the index are kept
+// (paletteMemo) and built again only when what they read may have changed
+// (paletteIndexStamp): drawing the palette asks no guard twice.
+func (p *Palette) index() lineIndex { return p.memoIndex(false) }
+
+// hereIndex is index over offeredHere (palette.reach left out).
+func (p *Palette) hereIndex() lineIndex { return p.memoIndex(true) }
+
+func (p *Palette) memoIndex(here bool) lineIndex {
+	m := p.memo()
+	slot, offered := &m.ix, p.offered
+	if here {
+		slot, offered = &m.hereIx, p.offeredHere
+	}
+	if *slot != nil {
+		return **slot
+	}
+	ix := p.r.lineIndex(offered, p.nounBefore)
+	if p.memo() == m {
+		*slot = &ix // nothing moved while it was built
+	}
+	return ix
+}
+
+// paletteMemo is what the palette read under one paletteIndexStamp: each
+// operation's offered and offeredHere answer and the line indexes over them.
+type paletteMemo struct {
+	stamp         paletteIndexStamp
+	offered, here map[Key]bool
+	ix, hereIx    *lineIndex
+}
+
+// paletteIndexStamp is what offered depends on: the origin it reads the
+// guards at (the open, its focus and mode), the palette nouns, the render
+// stamp (bindings, guards, availability, aliases, nouns, modes, instances,
+// the operation registry), the settings (palette.reach, keys.graph-depth)
+// and every change the runtime is told of (what a store or a guard
+// answers: Runtime.Changed, a change request, Model.InvalidateRender).
+type paletteIndexStamp struct {
+	open     int
+	focus    string
+	mode     string
+	nouns    int
+	render   RenderStamp
+	settings uint64
+	changes  uint64
+}
+
+func (p *Palette) indexStamp() paletteIndexStamp {
+	return paletteIndexStamp{
+		open: p.loadSeq, focus: focusOf(p.origin), mode: p.originMode.Name, nouns: p.nounsGen,
+		render: p.r.renderCache.stamp(p.r), settings: p.r.Settings().gen, changes: p.r.renderCache.changes,
+	}
+}
+
+// memo is the palette's memo for the current stamp, a fresh one when the
+// stamp moved.
+func (p *Palette) memo() *paletteMemo {
+	stamp := p.indexStamp()
+	if p.cache == nil || p.cache.stamp != stamp {
+		p.cache = &paletteMemo{stamp: stamp, offered: map[Key]bool{}, here: map[Key]bool{}}
+	}
+	return p.cache
+}
+
+// remember answers fn for op once per memo.
+func (p *Palette) remember(answers func(*paletteMemo) map[Key]bool, op Operation, fn func(Operation) bool) bool {
+	m := p.memo()
+	if v, ok := answers(m)[op.Key]; ok {
+		return v
+	}
+	v := fn(op)
+	if p.memo() == m {
+		answers(m)[op.Key] = v
+	}
+	return v
+}
 
 // lineIndex indexes the operations offered(op) accepts by verb and by noun
 // word, as the palette reads a line and as the CLI reads argv (ReadPair);
@@ -644,7 +722,7 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 				words[i] = t.Text
 			}
 			verb := a.ShadowedVerb()
-			here := p.r.lineIndex(p.offeredHere, p.nounBefore)
+			here := p.hereIndex()
 			reading, _, err := p.r.ReadBareAlias(p.origin.Clone(), words, optionValues(here.nounsOf(verb)))
 			switch {
 			case err != nil:

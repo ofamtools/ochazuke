@@ -106,9 +106,13 @@ type Settings struct {
 	stamp     fileStamp
 	observers []settingObserver
 	problems  []string
-	page      settingsPage    // the Settings page (settings_view.go)
-	warned    map[string]bool // deprecated names already warned about
-	late      []string        // warnings given before a Model took the reports (flushWarnings)
+	// gen moves on every read of the file, declaration and changed value,
+	// so a cache of what settings decide (the palette's line index)
+	// compares one counter.
+	gen    uint64
+	page   settingsPage    // the Settings page (settings_view.go)
+	warned map[string]bool // deprecated names already warned about
+	late   []string        // warnings given before a Model took the reports (flushWarnings)
 	// framework are the names declared from the embedded rows when the
 	// runtime was made (startupSettings) that no application declared
 	// since: an application's DeclareSetting replaces such a row.
@@ -242,6 +246,7 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 			at = len(s.declared)
 		}
 		s.declared = slices.Insert(s.declared, at, one)
+		s.gen++
 		s.declaredBy(one.Name)
 		s.markFramework(one.Name, r.builtinDepth > 0)
 		if s.loaded {
@@ -594,6 +599,7 @@ func (s *Settings) changed(name string, old any) {
 	if sameSetting(now, old) {
 		return
 	}
+	s.gen++
 	for _, o := range s.observers {
 		if o.name == "" || o.name == name {
 			o.fn(name, now)
@@ -627,6 +633,7 @@ func (s *Settings) ensureCurrent() {
 }
 
 func (s *Settings) load() {
+	s.gen++
 	for _, p := range s.problems {
 		if s.config.Withdraw != nil {
 			s.config.Withdraw(p)
@@ -960,6 +967,7 @@ func registerSettings(r *Runtime) {
 		one.Enum = slices.Clone(one.Enum)
 		one.Deprecated = slices.Clone(one.Deprecated)
 		s.declared = append(s.declared, one)
+		s.gen++
 		s.framework[one.Name] = true
 	}
 	s.owners, s.sections = frameworkSettingLayout()

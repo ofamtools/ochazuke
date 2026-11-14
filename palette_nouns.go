@@ -97,6 +97,7 @@ func (p *Palette) RegisterNoun(noun string, config PaletteNoun) error {
 		}
 	}
 	p.nouns[noun] = config
+	p.nounsGen++
 	return nil
 }
 
@@ -223,7 +224,7 @@ func (p *Palette) completions() []PaletteEntry {
 			if a, bare := p.r.bareAlias(tokens[0].Text); bare && a.ShadowedVerb() != "" {
 				// set NOUN reads only one-value nouns (owner decision 17).
 				names = p.r.shadowWords(names, a.ShadowedVerb())
-				here := p.r.lineIndex(p.offeredHere, p.nounBefore)
+				here := p.hereIndex()
 				names = slices.DeleteFunc(slices.Clone(names), func(n string) bool { return !slices.Contains(here.verbs[a.ShadowedVerb()], n) })
 			}
 			nouns(names)
@@ -441,6 +442,10 @@ func (ix lineIndex) aliasWords(r *Runtime, op Operation, word string) []string {
 // guard (Verb(...).When) is false at the focus and mode the palette opened
 // over is left out; a palette noun's default verb always stays.
 func (p *Palette) offered(op Operation) bool {
+	return p.remember(func(m *paletteMemo) map[Key]bool { return m.offered }, op, p.offeredLive)
+}
+
+func (p *Palette) offeredLive(op Operation) bool {
 	if p.offeredHere(op) {
 		return true
 	}
@@ -455,6 +460,10 @@ func (p *Palette) offered(op Operation) bool {
 // alias that shadows a verb (set) reads the nouns that have the verb here,
 // so reaching a guarded noun.set never changes how set NAME reads.
 func (p *Palette) offeredHere(op Operation) bool {
+	return p.remember(func(m *paletteMemo) map[Key]bool { return m.here }, op, p.offeredHereLive)
+}
+
+func (p *Palette) offeredHereLive(op Operation) bool {
 	if config, ok := p.nouns[op.Noun()]; ok && config.DefaultVerb == op.Name() {
 		return true
 	}

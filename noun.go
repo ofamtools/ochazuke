@@ -1136,7 +1136,7 @@ func isPrefixCancel(b Binding) bool {
 func isPattern(s string) bool {
 	class, _, _ := strings.Cut(s, "-")
 	switch class {
-	case Digit, Alpha, Upper, CtrlAlpha, Printable, Paste, Any:
+	case Digit, Alpha, Upper, CtrlAlpha, Printable, Paste, Any, Unbound:
 		return true
 	}
 	return strings.HasPrefix(s, "one-of:")

@@ -2146,6 +2146,18 @@ The walk above bubbles: the inner level wins. A row may set `capture: true` (`Ca
 
 That row is the only default capture row: `NewModel` installs it (with the bubbling `ctrl+c` row it always had) so an inner `any` row cannot swallow quit. The `no-modal` guard stands it aside while a modal is open, so the palette's own `ctrl+c` still closes the palette. A passthrough mode (`DefinePassthrough`, the `terminal` mode) has no capture pass at all: while it is the base mode, `ctrl+c` goes to the attached pane, and quitting means detaching first (`ctrl+a d`) or a leader row bound to `app.quit`. To rebind `ctrl+c`, bind it on `app` before `NewModel` (then neither row is installed), or override or unbind each row on its own: an unbind or rebind without `when` touches the bubbling row only (the loader's notice says the capture row still answers first), and `{noun: "app", keys: "ctrl+c", when: "no-modal", request: null}` removes the capture row.
 
+### Key redirects
+
+A row drawn under another row (a subagent under its pane, an item under its pane) often has a few keys of its own and means its parent for the rest. A key-redirect row says so as data: the `unbound` pattern bound to `ochazuke.key.redirect` with `to` naming the related thing by relation, never by noun.
+
+```jsonc
+{"context": "subagent/normal", "bindings": [
+  {"key": "unbound", "action": "ochazuke.key.redirect", "args": {"to": "parent"}, "hidden": true}
+]}
+```
+
+The relations are `parent` (the row the focus is drawn under) and `child` (the first row drawn under it that is on screen); `of` (optional) takes only a related row of that noun (`{"to": "child", "of": "action-item"}`: the first item under a pane, not a subagent). They are read from the tree that draws them (`RowRelations`); a new one is a row of `keyRedirectRelations`. With a redirect, the walk is the focus's own level, then the related row's levels, then the levels the two share (the list, the page, `app`), in `walkIn`, so keys, hints, `?` help and `binding list` all read it. The focus's own rows answer first, then the related row's; a list's `j`, its row `d d` and `app`'s undo answer only what neither row binds, and act from the focus as before. A row of the related thing's noun acts on that thing (`rowInstance`); sequences (`d d`) reach the related rows too. One hop: the related thing's own redirect is not followed. The row is a row like any other: an application ships it in a default bindings file, a user's `bindings.json` replaces it or turns it off (`{"key": "unbound", "unbind": true}`) by the same identity, and `binding check` warns of a row that loads and does nothing: an unknown relation, another action on `unbound`, the redirect action on a key (`Operation.KeyRedirect` marks the action). Run alone (the palette), the action names the thing the focus's keys go to. Compared with Vim: Vim has no row hierarchy; the nearest is a buffer-local mapping falling back to the global one, which ochazuke's walk already is.
+
 ## Default bindings are data
 
 Every default key is written once, in an embedded file in the grouped bindings format (see The bindings file format): the framework's in `bindings/*.json`, one per area (`editor.json`, `registers.json`, `list.json`, `table.json`, `list-modes.json`, `tree.json`, `timeline.json`, `form.json`, `terminal.json`, `app.json`, `palette.json`, `picker.json`, ...), the markdown, grid and Commands nouns' in `markdown/`, `grid/` and `cli/bindings.json`. A group may also carry `"fallback": true`: its rows are skipped on the keys its table bound before the file loaded (the app noun's `:`, `?`, `ctrl+c`: an application's row bound before `NewModel` keeps its key).

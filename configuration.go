@@ -434,6 +434,9 @@ func (r *Runtime) CheckUserBindings() []string {
 	if _, err := r.ValidateBindings(); err != nil {
 		problems = append(problems, err.Error())
 	}
+	for _, line := range r.RedirectWarnings() {
+		problems = append(problems, "warning: "+line)
+	}
 	// A row the merged tables never reach (an earlier row on its key is
 	// available whenever it is) is a warning: it loads, and does nothing.
 	for _, line := range r.UnreachableBindings() {
