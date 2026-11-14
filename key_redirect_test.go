@@ -27,7 +27,7 @@ func redirectRuntime(t *testing.T) (*Runtime, *[]string) {
 		}
 	}
 	r.Define("box").Verb("poke", record("box.poke"), "Poke the box").Verb("kick", record("box.kick"), "Kick the box").
-		Mode("normal").Bind("x", Do("box.poke")).Bind("z", Do("box.poke")).Bind("d d", Do("box.kick"))
+		Mode("normal").Bind("x", Do("box.poke")).Bind("z", Do("box.poke")).Bind("w", Do("box.poke")).Bind("d d", Do("box.kick"))
 	r.Define("part").Kind(NounKindPart).DefaultKeys(false).Verb("peek", record("part.peek"), "Peek at the part").
 		Verb("tap", record("part.tap"), "Tap the part").
 		Mode("normal").Bind("z", Do("part.peek")).Bind("t", Do("part.tap"))
@@ -42,8 +42,18 @@ func redirectRuntime(t *testing.T) (*Runtime, *[]string) {
 		t.Fatal(err)
 	}
 	r.Instance("p")
-	if _, err := r.AddTree("p/t", []TreeNode{{ID: "b1", Label: "box", Noun: "box"}, {ID: "b2", Parent: "b1", Label: "inner box", Noun: "box"}, {ID: "s1", Parent: "b1", Label: "part", Noun: "part"}}, Parent("p")); err != nil {
+	tr, err := r.AddTree("p/t", []TreeNode{{ID: "b1", Label: "box", Noun: "box"}, {ID: "b2", Parent: "b1", Label: "inner box", Noun: "box"}, {ID: "s1", Parent: "b1", Label: "part", Noun: "part"}}, Parent("p"))
+	if err != nil {
 		t.Fatal(err)
+	}
+	// The list both rows share binds w and v: the related row's w answers
+	// before it, its v answers from the focus.
+	for _, k := range []string{"w", "v"} {
+		row := Do("part.peek")
+		row.Instance, row.Mode, row.Keys = tr.List().id, "normal", k
+		if err := r.Bind(row); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := r.SetFocus("s1"); err != nil {
 		t.Fatal(err)
@@ -53,18 +63,19 @@ func redirectRuntime(t *testing.T) (*Runtime, *[]string) {
 
 // A key the focus does not bind goes to the thing its redirect row names
 // by relation (parent: the row it is drawn under; child: the first row
-// under it) and acts on it; a key the focus binds stays its own; a
-// sequence reaches the related thing's rows too; a user row unbinding the
+// under it) and acts on it; a key the focus binds stays its own; the
+// related row answers before the list they share, which answers the rest
+// from the focus; a sequence reaches the related thing's rows too; a user row unbinding the
 // redirect turns it off.
 func TestKeyRedirectByRelation(t *testing.T) {
 	t.Parallel()
 	r, ran := redirectRuntime(t)
-	for _, k := range []string{"x", "z", "d", "d"} {
+	for _, k := range []string{"x", "z", "d", "d", "w", "v"} {
 		if _, err := r.HandleBinding(k); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if want := []string{"box.poke@b1", "part.peek@s1", "box.kick@b1"}; !slices.Equal(*ran, want) {
+	if want := []string{"box.poke@b1", "part.peek@s1", "box.kick@b1", "box.poke@b1", "part.peek@s1"}; !slices.Equal(*ran, want) {
 		t.Fatalf("ran %v, want %v", *ran, want)
 	}
 	if r.Focus != "s1" {

@@ -52,6 +52,12 @@ type level struct {
 	// walk in the mode looked up (withDeclared): a generated row on one,
 	// or extending one, steps aside. Nil: none steps aside.
 	declared *map[string]bool
+	// related marks a level a key redirect put on the walk (the related
+	// row's, key_redirect.go); relatedKeys are the keys declared rows bind
+	// on those levels, which move aside only a generated row of another
+	// noun's verb (skips).
+	related     bool
+	relatedKeys *map[string]bool
 }
 
 // holds reports whether the level is a thing's: an instance on the focus
@@ -976,14 +982,15 @@ func (r *Runtime) scanRowsUncached(levels []level, mode ModeState, focus string,
 	base, prefix := baseAndPrefix(mode)
 	exclusive := r.modes[mode.Name].Pending || mode.Payload.Shadow != nil
 	seen := map[string]bool{}
-	declared := r.declaredKeys(levels, mode, focus, exclusive)
+	declared := r.declaredKeys(levels, mode, focus, exclusive, false)
+	relatedKeys := r.declaredKeys(levels, mode, focus, exclusive, true)
 	var out, owned []levelRow
 	var capture, inherited, owns bool
 	var name string
 	var cur level
 	take := func(rows []Binding) {
 		for _, b := range rows {
-			if (level{capture: capture, declared: &declared}).skips(&b) {
+			if (level{capture: capture, declared: &declared, relatedKeys: &relatedKeys, noun: cur.noun}).skips(&b) {
 				continue
 			}
 			guard := ""

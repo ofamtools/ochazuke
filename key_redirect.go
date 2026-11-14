@@ -21,13 +21,12 @@ import (
 // The row lives on the focus's noun (or instance) table, so a user's
 // bindings.json overrides or unbinds it by the same identity (noun, mode,
 // pattern, when) as a key row, binding list lists it, binding check checks
-// it, and the help shows it. The focus's own rows still answer first: the
-// walk is the focus's own level, then the related thing's whole walk (its
-// level, its list, its page, app), in place of the focus's outer levels.
-// A row of the related thing's own noun acts on that thing (rowInstance);
-// a row of an outer level (a list's j) keeps acting from the focus, so
-// motions stay visual. One hop: the related thing's own redirect is not
-// followed.
+// it, and the help shows it. The focus's own rows still answer first:
+// the walk is the focus's own level, then the related row's, then the
+// levels they share (the list, the page, app), so a list's j or row d d
+// and app's undo answer only what neither row binds. A row of the related
+// thing's own noun acts on that thing (rowInstance). One hop: the related
+// thing's own redirect is not followed.
 //
 // The relations are keyRedirectRelations; a new one is a row of that table.
 
@@ -163,8 +162,12 @@ func (r *Runtime) KeyRedirect(focus, mode string) string {
 }
 
 // redirected is the stack inner with the focus's redirect applied: the
-// levels up to and including the focus's own, then the related thing's
-// stack. inner is unchanged when the focus has no redirect in mode.
+// related thing's own levels (its row, up to the first ancestor it shares
+// with the focus) go in just before that shared ancestor's level, so the
+// focus's row answers first, then the related row, then the list, page and
+// app they share (a list's j, its row d d, app's undo). With no shared
+// ancestor the related levels follow the focus's own. inner is unchanged
+// when the focus has no redirect in mode.
 func (r *Runtime) redirected(inner []level, focus string, mode string, modals []string) []level {
 	to := r.KeyRedirect(focus, mode)
 	if to == "" {
@@ -174,7 +177,26 @@ func (r *Runtime) redirected(inner []level, focus string, mode string, modals []
 	if at < 0 {
 		return inner
 	}
-	return append(slices.Clone(inner[:at+1]), r.stackIn(to, modals)...)
+	shared := map[string]bool{}
+	for _, id := range r.Ancestry(focus) {
+		shared[id] = id != focus
+	}
+	related := r.stackIn(to, modals)
+	k := slices.IndexFunc(related, func(lv level) bool { return lv.inst != nil && shared[lv.inst.ID] })
+	j := at + 1
+	if k >= 0 {
+		id := related[k].inst.ID
+		if i := slices.IndexFunc(inner, func(lv level) bool { return lv.inst != nil && lv.inst.ID == id }); i > at {
+			j = i
+		}
+	} else {
+		k = len(related)
+	}
+	spliced := slices.Clone(related[:k])
+	for i := range spliced {
+		spliced[i].related = true
+	}
+	return slices.Concat(inner[:j], spliced, inner[j:])
 }
 
 // redirectWarnings are the key-redirect rows of rows that load but do
