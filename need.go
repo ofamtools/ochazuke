@@ -90,8 +90,8 @@ func withValue(q Request, name string, value any) Request {
 // where it acts (no-refusals D3: a guard routes keys, it never refuses an
 // explicit request). In order: a missing target asks (refusal's
 // MissingParameterError); the verb's Fallback runs in place (the request
-// to run is returned); what Needs names is provided first; otherwise
-// the verb runs and its handler copes. Only a verb hidden by verbs.disabled
+// to run is returned); otherwise the verb runs (what Needs names is
+// provided before its handler, provide) and its handler copes. Only a verb hidden by verbs.disabled
 // (hide) or disabled outright is still refused.
 func (r *Runtime) refuseGuarded(op Operation, q Request, focus string, mode ModeState) (*Request, error) {
 	if r.Available(q, focus, mode) || r.runsAway(op, q, focus) {
@@ -109,7 +109,7 @@ func (r *Runtime) refuseGuarded(op Operation, q Request, focus string, mode Mode
 	if op.Fallback != nil {
 		return fallbackRequest(op, q), nil
 	}
-	return nil, r.provide(op, q, focus, mode)
+	return nil, nil
 }
 
 // refusal is why a request is not run where it is guarded off. A refusal

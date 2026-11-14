@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"errors"
 	"fmt"
 	"maps"
 )
@@ -24,17 +25,32 @@ func (r *Runtime) disabledHidden(op Operation) bool {
 
 // explicitRule applies refuseGuarded to an explicit request: done with the
 // refusal (a missing target asks) or with the Fallback's answer; not done
-// when the verb itself runs.
+// when the verb itself runs (what it Needs is provided just before its
+// handler, after its checks: provideNeeds). The Fallback runs only for a
+// request the original verb's agent rights let run (an agent refused or
+// asked about the verb is refused or asked, whatever its fallback), and
+// never for a check (checkOnly: CheckRequest, a dry run), which judges the
+// verb as asked.
 func (r *Runtime) explicitRule(c Context, op Operation, q Request, focus string, mode ModeState, checkOnly bool) (any, error, bool) {
 	instead, err := r.refuseGuarded(op, q, focus, mode)
 	switch {
 	case err != nil:
 		return nil, err, true
-	case instead != nil && !checkOnly:
-		v, err := r.runFallback(c, q, instead)
-		return v, err, true
+	case instead == nil || checkOnly:
+		return nil, nil, false
 	}
-	return nil, nil, false
+	switch v := r.agentVerdict(c, q, op); {
+	case v.Refuse != "":
+		if v.err != nil {
+			return nil, v.err, true
+		}
+		return nil, errors.New(v.Refuse), true
+	case v.Ask != "":
+		value, err := r.openConfirm(c, q, Operation{Key: KeyOf(op.Noun(), op.Name()), Confirm: v.Ask})
+		return value, err, true
+	}
+	value, err := r.runFallback(c, q, instead)
+	return value, err, true
 }
 
 // asksFirst reports whether a verb with Confirm asks before it runs over
@@ -89,7 +105,9 @@ func fallbackRequest(op Operation, q Request) *Request {
 	if f.Target == "" {
 		f.Target = q.Target
 	}
-	f.Confirmed = q.Confirmed
+	// The fallback's own prompt is not answered by the original's
+	// Confirmed: it asks for what it does.
+	f.Confirmed = false
 	return &f
 }
 
@@ -119,7 +137,10 @@ func (r *Runtime) fallbackLoops(key string) bool {
 
 // provide runs, for each requirement whose Met guard is false at focus,
 // the verb that provides it; one nothing provides answers a ChoiceAnswer
-// naming its setup command. nil when every need is met or provided.
+// naming its setup command. nil when every need is met or provided. It
+// runs for every request about to run its handler, after its checks
+// (agent rights first), whether or not the verb's guard held: a need is
+// not a guard.
 func (r *Runtime) provide(op Operation, q Request, focus string, mode ModeState) error {
 	for _, need := range op.Needs {
 		if guard := r.guard(need.Met); need.Met != "" && guard != nil && guard(r, KeyEvent{Mode: mode, Focus: focus, Level: focus, Args: q.Args}) {

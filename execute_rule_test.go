@@ -50,6 +50,45 @@ func TestGuardedVerbsRunOnExplicitRequest(t *testing.T) {
 	}
 }
 
+// The original verb's agent rights come before its Fallback and what it
+// Needs; a check (CheckRequest) runs neither; the fallback asks its own
+// confirm; a Need is provided where the guard holds too.
+func TestFallbackAndNeedsAfterRights(t *testing.T) {
+	r, ran := ruleRuntime(t)
+	r.Register(Operation{Key: "box.mend", Run: func(*Runtime, Context, Arguments) (any, error) { *ran = append(*ran, "mend"); return nil, nil }, Confirm: "Mend?"})
+	r.Register(Operation{Key: "box.fix", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }, Fallback: &Request{Noun: "box", Verb: "mend"}})
+	r.SetAvailability("box.fix", "never")
+	r.Register(Operation{Key: "box.use", Run: func(*Runtime, Context, Arguments) (any, error) { *ran = append(*ran, "use"); return nil, nil },
+		Needs: []Requirement{{Kind: "daemon", Name: "boxd", Met: "never", By: "box.start"}}})
+	for _, verb := range []string{"attach", "serve"} {
+		if err := r.CheckRequest(Request{Noun: "box", Verb: verb}); err != nil {
+			t.Fatalf("check %s: %v", verb, err)
+		}
+	}
+	if len(*ran) != 0 {
+		t.Fatalf("a check ran %v", *ran)
+	}
+	if _, err := r.Execute(Request{Noun: "box", Verb: "fix", Confirmed: true}); err != nil || r.TopModal() == "" || len(*ran) != 0 {
+		t.Fatalf("fix: %v top %q ran %v", err, r.TopModal(), *ran)
+	}
+	if err := r.CloseModal(r.contextOf(r.TopModal())); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "box", Verb: "use"}); err != nil || !slices.Equal(*ran, []string{"start", "use"}) {
+		t.Fatalf("use: %v ran %v", err, *ran)
+	}
+	*ran = nil
+	if err := r.Settings().Set(AgentRightsSetting, `[{"match":"box.attach","right":"never"}]`); err != nil {
+		t.Fatal(err)
+	}
+	defer r.BindActor(testAgent("p"), false)()
+	defer r.WithActor(testAgent("p"))()
+	var refused *RefusedError
+	if _, err := r.Execute(Request{Noun: "box", Verb: "attach"}); !errors.As(err, &refused) || len(*ran) != 0 {
+		t.Fatalf("agent attach: %v ran %v", err, *ran)
+	}
+}
+
 // A component declares a verb not usual on it (Unoffers): availability
 // (keys, hints) leaves it out there, an explicit request runs it, and the
 // palette lists it after the usual verbs, marked; palette.reach off (the

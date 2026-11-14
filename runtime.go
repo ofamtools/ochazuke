@@ -1157,6 +1157,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if r.Instances[focus] == nil {
 		return nil, fmt.Errorf("unknown instance %q", focus)
 	}
+	guardFocus := focus
 	if c.InputID != "" && r.Input(c.InputID) == nil {
 		return nil, fmt.Errorf("unknown input %q", c.InputID)
 	}
@@ -1228,6 +1229,11 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	}
 	if len(subjects) > 1 && !op.Many {
 		return r.eachSubject(q, subjects)
+	}
+	// What the verb Needs is provided now, its checks passed, whether or
+	// not its guard held (no-refusals D3).
+	if err := r.provide(op, q, guardFocus, guardMode); err != nil {
+		return nil, err
 	}
 	defer r.invoking(r.invocationOf(q))()
 	if fn := r.ActionFor(actions, q.Key()); fn != nil {
