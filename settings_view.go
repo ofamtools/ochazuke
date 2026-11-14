@@ -524,6 +524,12 @@ func undoSettingChange(r *Runtime) (any, error) {
 		}
 		_ = r.SetFocus(settingRowID(r, name, -1))
 	}
+	if s.find(name) == nil {
+		// A name no declaration has (Keep): what it holds now.
+		v, held := s.session[name]
+		_, inFile := s.raw[name]
+		return SettingKept{Name: name, Value: v.value, Kept: held || inFile}, nil
+	}
 	return s.Get(name)
 }
 
@@ -533,7 +539,7 @@ func (s *Settings) restore(sn settingSnap) error {
 	s.ensure()
 	one := s.find(sn.name)
 	if one == nil {
-		return s.unknown(sn.name)
+		return s.restoreKept(sn)
 	}
 	if err := s.checkProtected(*one); err != nil {
 		return err
@@ -562,6 +568,35 @@ func (s *Settings) restore(sn settingSnap) error {
 		delete(s.session, sn.name)
 	}
 	s.changed(sn.name, old)
+	s.relayer()
+	return nil
+}
+
+// restoreKept puts back a name no declaration has (a value Keep wrote):
+// its settings.json row and its session value, as the snap holds them.
+func (s *Settings) restoreKept(sn settingSnap) error {
+	if now, has := s.raw[sn.name]; has != sn.had || !bytes.Equal(now, sn.raw) {
+		next := maps.Clone(s.raw)
+		if next == nil {
+			next = map[string]json.RawMessage{}
+		}
+		if sn.had {
+			next[sn.name] = sn.raw
+		} else {
+			delete(next, sn.name)
+		}
+		if err := s.write(next); err != nil {
+			return err
+		}
+	}
+	if sn.inSession {
+		if s.session == nil {
+			s.session = map[string]sessionValue{}
+		}
+		s.session[sn.name] = sn.session
+	} else {
+		delete(s.session, sn.name)
+	}
 	s.relayer()
 	return nil
 }

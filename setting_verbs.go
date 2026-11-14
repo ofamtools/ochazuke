@@ -521,7 +521,14 @@ func runSettingVerb(v settingVerb) Handler {
 		one, err := settingOfArgs(r, c, a)
 		s := r.Settings()
 		if name := StringArg(a, "name", ""); err != nil && v.Keeps && name != "" && v.Arg != "" {
-			return s.Keep(name, a[v.Arg])
+			scope, scopeErr := settingScope(a)
+			if scopeErr != nil {
+				return nil, scopeErr
+			}
+			// One undo step on the Settings page, as every write is.
+			var kept SettingKept
+			err := pageChange(r, name, func() (err error) { kept, err = s.Keep(name, a[v.Arg], scope); return err })
+			return kept, err
 		}
 		if err != nil {
 			return nil, err

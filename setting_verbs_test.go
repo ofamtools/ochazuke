@@ -316,3 +316,29 @@ func TestSettingsPageKeysRunTheSettingVerbs(t *testing.T) {
 		t.Fatalf("r: %d %v", r.Settings().Int("scrolloff"), readSettingsFile(t, dir))
 	}
 }
+
+// setting set of a name nothing declares honours its scope: session holds
+// it unwritten, file writes settings.json; either is one undo step.
+func TestSettingSetUnknownNameHonoursScope(t *testing.T) {
+	for _, scope := range []string{ScopeSession, ScopeFile} {
+		r, dir, _ := verbsFixture(t)
+		got, err := runSetting(t, r, "set", Arguments{"name": "future", "value": "7", "scope": scope})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if kept := got.(SettingKept); kept.Written != scope {
+			t.Fatalf("%s: written %q", scope, kept.Written)
+		}
+		data, _ := os.ReadFile(filepath.Join(dir, SettingsFile))
+		if inFile := strings.Contains(string(data), "future"); inFile != (scope == ScopeFile) {
+			t.Fatalf("%s: in settings.json %v: %s", scope, inFile, data)
+		}
+		if _, err := runSetting(t, r, "undo", nil); err != nil {
+			t.Fatalf("%s: undo: %v", scope, err)
+		}
+		data, _ = os.ReadFile(filepath.Join(dir, SettingsFile))
+		if _, held := r.Settings().session["future"]; held || strings.Contains(string(data), "future") {
+			t.Fatalf("%s: undo left it (session %v): %s", scope, held, data)
+		}
+	}
+}

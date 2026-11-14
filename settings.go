@@ -1095,14 +1095,36 @@ func sameJSON(a, b []byte) bool {
 // of settings.json, kept as written (a word that reads as JSON is stored as
 // that value, else as text) and reported as an unknown setting with the
 // near names, as a hand-written key is. Nothing reads it until a
-// declaration of that name does (no-refusals D2: E518 is not ours).
-func (s *Settings) Keep(name string, value any) (SettingKept, error) {
+// declaration of that name does (no-refusals D2: E518 is not ours). scope
+// is the request's (settingScope): session holds the value for this
+// session only, unwritten, where SetSession would (a running UI without
+// settings.autosave); file, and session where there is no session to hold
+// it, write settings.json. Written names the layer.
+func (s *Settings) Keep(name string, value any, scope string) (SettingKept, error) {
 	s.ensure()
 	if text, ok := value.(string); ok {
 		var parsed any
 		if json.Unmarshal([]byte(text), &parsed) == nil {
 			value = parsed
 		}
+	}
+	names := make([]string, len(s.declared))
+	for i, one := range s.declared {
+		names[i] = one.Name
+	}
+	kept := SettingKept{Name: name, Value: value, Kept: true, Near: NearNames(name, names, NearShown), Written: OriginFile}
+	if scope == ScopeSession && !s.writesFile() {
+		o := Origin{Layer: OriginSession, At: s.clock()}
+		if s.source != nil {
+			o.Source, o.Via = s.source()
+		}
+		if s.session == nil {
+			s.session = map[string]sessionValue{}
+		}
+		s.session[name] = sessionValue{value: value, origin: o}
+		kept.Written = OriginSession
+		s.relayer()
+		return kept, nil
 	}
 	data, err := json.Marshal(value)
 	if err != nil {
@@ -1116,11 +1138,6 @@ func (s *Settings) Keep(name string, value any) (SettingKept, error) {
 	if err := s.write(raw); err != nil {
 		return SettingKept{}, err
 	}
-	names := make([]string, len(s.declared))
-	for i, one := range s.declared {
-		names[i] = one.Name
-	}
-	kept := SettingKept{Name: name, Value: value, Kept: true, Near: NearNames(name, names, NearShown)}
 	s.problem(fmt.Sprintf("%s: unknown setting %q (kept)", SettingsFile, name))
 	return kept, nil
 }
@@ -1128,10 +1145,12 @@ func (s *Settings) Keep(name string, value any) (SettingKept, error) {
 // SettingKept answers a setting set of a name nothing declares: the row
 // written as the user's own, and the declared names close to it.
 type SettingKept struct {
-	Name  string   `json:"name"`
-	Value any      `json:"value"`
-	Kept  bool     `json:"kept"`
-	Near  []string `json:"near,omitempty"`
+	Name  string `json:"name"`
+	Value any    `json:"value"`
+	Kept  bool   `json:"kept"`
+	// Written is the layer the value went to: session or file.
+	Written string   `json:"written,omitempty"`
+	Near    []string `json:"near,omitempty"`
 }
 
 // defaultListed is the declaration check that a setting's default is one
