@@ -8,7 +8,8 @@ import (
 
 // redirectRuntime is a tree of a "box" row with a "part" row drawn under
 // it; box binds x, z and d d, part binds z and t; part's unbound keys go
-// to its parent and box's to its first child, by default data rows. ran
+// to its parent and box's to its first part child (an inner box comes
+// first), by default data rows. ran
 // records "verb@instance".
 func redirectRuntime(t *testing.T) (*Runtime, *[]string) {
 	t.Helper()
@@ -35,13 +36,13 @@ func redirectRuntime(t *testing.T) (*Runtime, *[]string) {
 			{"key": "unbound", "action": "ochazuke.key.redirect", "args": {"to": "parent"}, "hidden": true}
 		]},
 		{"context": "box/normal", "bindings": [
-			{"key": "unbound", "action": "ochazuke.key.redirect", "args": {"to": "child"}, "hidden": true}
+			{"key": "unbound", "action": "ochazuke.key.redirect", "args": {"to": "child", "of": "part"}, "hidden": true}
 		]}
 	]}`)); err != nil {
 		t.Fatal(err)
 	}
 	r.Instance("p")
-	if _, err := r.AddTree("p/t", []TreeNode{{ID: "b1", Label: "box", Noun: "box"}, {ID: "s1", Parent: "b1", Label: "part", Noun: "part"}}, Parent("p")); err != nil {
+	if _, err := r.AddTree("p/t", []TreeNode{{ID: "b1", Label: "box", Noun: "box"}, {ID: "b2", Parent: "b1", Label: "inner box", Noun: "box"}, {ID: "s1", Parent: "b1", Label: "part", Noun: "part"}}, Parent("p")); err != nil {
 		t.Fatal(err)
 	}
 	if err := r.SetFocus("s1"); err != nil {
@@ -69,8 +70,9 @@ func TestKeyRedirectByRelation(t *testing.T) {
 	if r.Focus != "s1" {
 		t.Fatalf("focus moved to %q", r.Focus)
 	}
-	// child: the box row's unbound t is its first child's; one hop, so
-	// the part's own redirect back is not followed.
+	// child of part: the box row's unbound t is its first part child's,
+	// past the inner box; one hop, so the part's redirect back is not
+	// followed.
 	if err := r.SetFocus("b1"); err != nil {
 		t.Fatal(err)
 	}

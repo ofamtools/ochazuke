@@ -10,7 +10,9 @@ import (
 // A key redirect sends the keys a focused thing does not bind to another
 // thing, named by its relation to the focus, never by its noun. It is a
 // binding row like any other: the "unbound" pattern and the
-// ochazuke.key.redirect action, with "to" naming the relation:
+// ochazuke.key.redirect action, with "to" naming the relation (and "of",
+// optionally, the noun the related row must be: the first child that is
+// an item):
 //
 //	{"context": "subagent/normal", "bindings": [
 //	  {"key": "unbound", "action": "ochazuke.key.redirect", "args": {"to": "parent"}}
@@ -56,34 +58,36 @@ func (t *Tree) RowChildren(id string) []string {
 	return t.children(id)
 }
 
-// rowRelation is the first live instance pick finds from the focus through
-// the RowRelations component on its path, "" for none.
-func rowRelation(r *Runtime, focus string, pick func(RowRelations) []string) string {
+// rowRelation is what pick finds from the focus through the first
+// RowRelations component on its path that holds the focus.
+func rowRelation(r *Runtime, focus string, pick func(RowRelations) []string) []string {
 	for _, id := range r.Ancestry(focus) {
-		rr, ok := r.Instances[id].Component.(RowRelations)
-		if !ok {
-			continue
-		}
-		for _, to := range pick(rr) {
-			if to != "" && r.Instances[to] != nil {
-				return to
+		if rr, ok := r.Instances[id].Component.(RowRelations); ok {
+			if got := pick(rr); len(got) > 0 {
+				return got
 			}
 		}
 	}
-	return ""
+	return nil
 }
 
 // keyRedirectRelations are the relations a redirect's "to" names: each
-// finds the related instance from the focus, "" for none.
-var keyRedirectRelations = map[string]func(r *Runtime, focus string) string{
+// lists the related rows from the focus, nearest first; the first one on
+// screen (of the row's "of" noun, when it names one) is the thing.
+var keyRedirectRelations = map[string]func(r *Runtime, focus string) []string{
 	// parent: the row the focus is drawn under (a tree's child row and
 	// its parent row).
-	"parent": func(r *Runtime, focus string) string {
-		return rowRelation(r, focus, func(rr RowRelations) []string { return []string{rr.RowParent(focus)} })
+	"parent": func(r *Runtime, focus string) []string {
+		return rowRelation(r, focus, func(rr RowRelations) []string {
+			if p := rr.RowParent(focus); p != "" {
+				return []string{p}
+			}
+			return nil
+		})
 	},
-	// child: the first row drawn under the focus that is on screen (a row
-	// folded away is not one).
-	"child": func(r *Runtime, focus string) string {
+	// child: the rows drawn under the focus, in order (a row folded away
+	// is not on screen).
+	"child": func(r *Runtime, focus string) []string {
 		return rowRelation(r, focus, func(rr RowRelations) []string { return rr.RowChildren(focus) })
 	},
 }
@@ -95,18 +99,28 @@ func registerKeyRedirect(r *Runtime) {
 	r.Register(Operation{Key: KeyRedirectAction, KeyRedirect: true,
 		Description: "Bound to the unbound pattern: the keys the focus does not bind go to the thing related to it by to (parent: the row it is drawn under; child: the first row drawn under it); run alone, it names that thing (nothing for a relation it does not know)",
 		Parameters: map[string]Parameter{"to": {Type: "string", Required: true,
-			Description: "The relation that names the thing: " + strings.Join(KeyRedirectRelations(), ", ")}},
+			Description: "The relation that names the thing: " + strings.Join(KeyRedirectRelations(), ", ")},
+			"of": {Type: "string", Description: "Only a related row of this noun (the first child that is an item, not a subagent)"}},
 		Result: "string",
 		Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-			return r.relatedThing(StringArg(a, "to", ""), focusOf(c)), nil
+			return r.relatedThing(a, focusOf(c)), nil
 		}})
 }
 
-// relatedThing is the instance related to focus by the relation to, ""
-// for none or a relation nobody defined.
-func (r *Runtime) relatedThing(to, focus string) string {
-	if find := keyRedirectRelations[to]; find != nil {
-		return find(r, focus)
+// relatedThing is the instance related to focus by the redirect's
+// arguments: the first row on screen its relation "to" lists, of the noun
+// "of" when it names one; "" for none or a relation nobody defined.
+func (r *Runtime) relatedThing(args Arguments, focus string) string {
+	find := keyRedirectRelations[StringArg(args, "to", "")]
+	if find == nil {
+		return ""
+	}
+	of := StringArg(args, "of", "")
+	for _, id := range find(r, focus) {
+		inst := r.Instances[id]
+		if inst != nil && (of == "" || inst.Noun == r.CanonicalNoun(of)) {
+			return id
+		}
 	}
 	return ""
 }
@@ -142,7 +156,7 @@ func (r *Runtime) KeyRedirect(focus, mode string) string {
 	if row == nil {
 		return ""
 	}
-	if to := r.relatedThing(StringArg(row.Request.Args, "to", ""), focus); to != focus {
+	if to := r.relatedThing(row.Request.Args, focus); to != focus {
 		return to
 	}
 	return ""
