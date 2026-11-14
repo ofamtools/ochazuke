@@ -25,8 +25,10 @@ import (
 // the walk is the focus's own level, then the related row's, then the
 // levels they share (the list, the page, app), so a list's j or row d d
 // and app's undo answer only what neither row binds. A row of the related
-// thing's own noun acts on that thing (rowInstance). One hop: the related
-// thing's own redirect is not followed.
+// thing's own noun acts on that thing (rowInstance). Redirects chain: the
+// related thing's own redirect is followed (a subagent's parent pane, then
+// that pane's first item), each hop's row after the one before, a hop
+// back to a thing already in the chain ending it (KeyRedirects).
 //
 // The relations are keyRedirectRelations; a new one is a row of that table.
 
@@ -144,33 +146,58 @@ func (r *Runtime) redirectRow(inst *Instance, mode string) *Binding {
 	return nil
 }
 
-// KeyRedirect is the instance the focus's unbound keys go to in mode, ""
-// for none.
+// keyRedirectDepth bounds a redirect chain: the related things the focus's
+// keys can reach, one hop per redirect row followed.
+const keyRedirectDepth = 4
+
+// KeyRedirect is the instance the focus's unbound keys go to first in
+// mode (the first hop of KeyRedirects), "" for none.
 func (r *Runtime) KeyRedirect(focus, mode string) string {
-	inst := r.Instances[focus]
-	if inst == nil {
-		return ""
-	}
-	row := r.redirectRow(inst, mode)
-	if row == nil {
-		return ""
-	}
-	if to := r.relatedThing(row.Request.Args, focus); to != focus {
-		return to
+	if chain := r.KeyRedirects(focus, mode); len(chain) > 0 {
+		return chain[0]
 	}
 	return ""
 }
 
-// redirected is the stack inner with the focus's redirect applied: the
-// related thing's own levels (its row, up to the first ancestor it shares
-// with the focus) go in just before that shared ancestor's level, so the
-// focus's row answers first, then the related row, then the list, page and
-// app they share (a list's j, its row d d, app's undo). With no shared
-// ancestor the related levels follow the focus's own. inner is unchanged
-// when the focus has no redirect in mode.
+// KeyRedirects is the chain of instances the focus's unbound keys go to
+// in mode, nearest first: the focus's redirect names the first, that
+// thing's own redirect the next, and so on up to keyRedirectDepth hops. A
+// hop back to a thing already in the chain (the focus included: pane →
+// child → parent) ends it.
+func (r *Runtime) KeyRedirects(focus, mode string) []string {
+	seen := map[string]bool{focus: true}
+	var out []string
+	for at := focus; len(out) < keyRedirectDepth; {
+		inst := r.Instances[at]
+		if inst == nil {
+			break
+		}
+		row := r.redirectRow(inst, mode)
+		if row == nil {
+			break
+		}
+		to := r.relatedThing(row.Request.Args, at)
+		if to == "" || seen[to] {
+			break
+		}
+		seen[to] = true
+		out = append(out, to)
+		at = to
+	}
+	return out
+}
+
+// redirected is the stack inner with the focus's redirect chain applied:
+// each related thing's own levels (its row, up to the first ancestor it
+// shares with the focus) go in just before that shared ancestor's level,
+// in chain order, so the focus's row answers first, then the first related
+// row, then the next, then the list, page and app they share (a list's j,
+// its row d d, app's undo). With no shared ancestor the related levels
+// follow the focus's own. A level already on the walk is not added twice.
+// inner is unchanged when the focus has no redirect in mode.
 func (r *Runtime) redirected(inner []level, focus string, mode string, modals []string) []level {
-	to := r.KeyRedirect(focus, mode)
-	if to == "" {
+	chain := r.KeyRedirects(focus, mode)
+	if len(chain) == 0 {
 		return inner
 	}
 	at := slices.IndexFunc(inner, func(lv level) bool { return lv.inst != nil && lv.inst.ID == focus })
@@ -181,22 +208,49 @@ func (r *Runtime) redirected(inner []level, focus string, mode string, modals []
 	for _, id := range r.Ancestry(focus) {
 		shared[id] = id != focus
 	}
-	related := r.stackIn(to, modals)
-	k := slices.IndexFunc(related, func(lv level) bool { return lv.inst != nil && shared[lv.inst.ID] })
-	j := at + 1
-	if k >= 0 {
-		id := related[k].inst.ID
-		if i := slices.IndexFunc(inner, func(lv level) bool { return lv.inst != nil && lv.inst.ID == id }); i > at {
-			j = i
+	onWalk := map[string]bool{}
+	for _, lv := range inner {
+		if lv.inst != nil {
+			onWalk[lv.inst.ID] = true
 		}
-	} else {
-		k = len(related)
 	}
-	spliced := slices.Clone(related[:k])
-	for i := range spliced {
-		spliced[i].related = true
+	// inserts[j] are the related levels that go in before inner[j].
+	inserts := map[int][]level{}
+	floor := at + 1
+	for _, to := range chain {
+		related := r.stackIn(to, modals)
+		k := slices.IndexFunc(related, func(lv level) bool { return lv.inst != nil && shared[lv.inst.ID] })
+		j := at + 1
+		if k >= 0 {
+			id := related[k].inst.ID
+			if i := slices.IndexFunc(inner, func(lv level) bool { return lv.inst != nil && lv.inst.ID == id }); i > at {
+				j = i
+			}
+		} else {
+			k = len(related)
+		}
+		// A later hop never answers before an earlier one.
+		j = max(j, floor)
+		floor = j
+		for _, lv := range related[:k] {
+			if lv.inst != nil {
+				if onWalk[lv.inst.ID] {
+					continue
+				}
+				onWalk[lv.inst.ID] = true
+			}
+			lv.related = true
+			inserts[j] = append(inserts[j], lv)
+		}
 	}
-	return slices.Concat(inner[:j], spliced, inner[j:])
+	out := make([]level, 0, len(inner)+len(chain))
+	for i := 0; i <= len(inner); i++ {
+		out = append(out, inserts[i]...)
+		if i < len(inner) {
+			out = append(out, inner[i])
+		}
+	}
+	return out
 }
 
 // redirectWarnings are the key-redirect rows of rows that load but do

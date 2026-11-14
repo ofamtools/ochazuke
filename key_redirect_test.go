@@ -6,9 +6,10 @@ import (
 	"testing"
 )
 
-// redirectRuntime is a tree of a "box" row with a "part" row drawn under
-// it; box binds x, z and d d, part binds z and t; part's unbound keys go
-// to its parent and box's to its first part child (an inner box comes
+// redirectRuntime is a tree of a "box" row with an inner box, a "tag" and
+// a "part" row drawn under it; box binds x, z and d d, part binds z and
+// t, tag binds nothing; part's and tag's unbound keys go to their parent
+// and box's to its first part child (the inner box and the tag come
 // first), by default data rows. ran
 // records "verb@instance".
 func redirectRuntime(t *testing.T) (*Runtime, *[]string) {
@@ -31,8 +32,12 @@ func redirectRuntime(t *testing.T) (*Runtime, *[]string) {
 	r.Define("part").Kind(NounKindPart).DefaultKeys(false).Verb("peek", record("part.peek"), "Peek at the part").
 		Verb("tap", record("part.tap"), "Tap the part").
 		Mode("normal").Bind("z", Do("part.peek")).Bind("t", Do("part.tap"))
+	r.Define("tag").Kind(NounKindPart).DefaultKeys(false)
 	if err := r.LoadDefaultBindings("test/redirect.json", []byte(`{"bindings": [
 		{"context": "part/normal", "bindings": [
+			{"key": "unbound", "action": "ochazuke.key.redirect", "args": {"to": "parent"}, "hidden": true}
+		]},
+		{"context": "tag/normal", "bindings": [
 			{"key": "unbound", "action": "ochazuke.key.redirect", "args": {"to": "parent"}, "hidden": true}
 		]},
 		{"context": "box/normal", "bindings": [
@@ -42,7 +47,7 @@ func redirectRuntime(t *testing.T) (*Runtime, *[]string) {
 		t.Fatal(err)
 	}
 	r.Instance("p")
-	tr, err := r.AddTree("p/t", []TreeNode{{ID: "b1", Label: "box", Noun: "box"}, {ID: "b2", Parent: "b1", Label: "inner box", Noun: "box"}, {ID: "s1", Parent: "b1", Label: "part", Noun: "part"}}, Parent("p"))
+	tr, err := r.AddTree("p/t", []TreeNode{{ID: "b1", Label: "box", Noun: "box"}, {ID: "b2", Parent: "b1", Label: "inner box", Noun: "box"}, {ID: "g1", Parent: "b1", Label: "tag", Noun: "tag"}, {ID: "s1", Parent: "b1", Label: "part", Noun: "part"}}, Parent("p"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,8 +87,8 @@ func TestKeyRedirectByRelation(t *testing.T) {
 		t.Fatalf("focus moved to %q", r.Focus)
 	}
 	// child of part: the box row's unbound t is its first part child's,
-	// past the inner box; one hop, so the part's redirect back is not
-	// followed.
+	// past the inner box and the tag; the part's redirect back to the box
+	// ends the chain.
 	if err := r.SetFocus("b1"); err != nil {
 		t.Fatal(err)
 	}
@@ -93,6 +98,27 @@ func TestKeyRedirectByRelation(t *testing.T) {
 	}
 	if want := []string{"part.tap@s1"}; !slices.Equal(*ran, want) {
 		t.Fatalf("child ran %v, want %v", *ran, want)
+	}
+	// Two hops: the tag's keys go to its parent box, then to the box's
+	// first part child: x is the box's, t only the part binds; the part's
+	// redirect back to the box ends the chain, so q answers nowhere.
+	if err := r.SetFocus("g1"); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := r.KeyRedirects("g1", "normal"), []string{"b1", "s1"}; !slices.Equal(got, want) {
+		t.Fatalf("chain %v, want %v", got, want)
+	}
+	*ran = nil
+	for _, k := range []string{"x", "t"} {
+		if _, err := r.HandleBinding(k); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if want := []string{"box.poke@b1", "part.tap@s1"}; !slices.Equal(*ran, want) {
+		t.Fatalf("two hops ran %v, want %v", *ran, want)
+	}
+	if handled, _ := r.HandleBinding("q"); handled {
+		t.Fatal("q handled through the cycle")
 	}
 	if err := r.SetFocus("s1"); err != nil {
 		t.Fatal(err)
