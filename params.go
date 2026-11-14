@@ -519,6 +519,7 @@ func (e *ArgumentError) Unwrap() error { return e.Err }
 // none of them has (the thing does not exist; the caller chooses), unless
 // the parameter takes any value. A source that fails skips the check.
 func (r *Runtime) checkArguments(op Operation, args Arguments) error {
+	normalizeArguments(op, args)
 	if err := validateArguments(op, args); err != nil {
 		return err
 	}

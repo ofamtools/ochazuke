@@ -151,7 +151,9 @@ func TestPropFilterPickerCycleAndStrip(t *testing.T) {
 	if err := r.Settings().Set("collection.filter-cycle", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "collection", Verb: "filter-cycle"}); err == nil {
+	// The opt-out takes the key and hint away; asked for by name it still
+	// runs (verbs.disabled run).
+	if r.Available(Request{Noun: "collection", Verb: "filter-cycle"}, focusOf(r.Context()), r.Mode) {
 		t.Fatal("cycle opt out")
 	}
 }

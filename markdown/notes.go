@@ -9,8 +9,9 @@ import (
 	"unicode"
 )
 
-// NoteMax is the most bytes one note's text may hold; a longer note is
-// refused, never cut.
+// NoteMax was the most bytes a note could hold. Since no-refusals N5 a
+// note of any length is stored whole (owner rule "no input
+// restrictions"); the constant stays for callers that size a field.
 const NoteMax = 4096
 
 // noteHead is the start of a new note line: "> **author** date: ".
@@ -37,9 +38,9 @@ func NoteElement(src, id string) int {
 }
 
 // CleanNote is note text as it is written: control characters other than
-// line ends dropped (a tab is a space), trailing blanks trimmed; an error
-// only when it is longer than NoteMax. An empty note is kept (record
-// first): it is saved empty, for the owner to fill or undo.
+// line ends dropped (a tab is a space), trailing blanks trimmed; any
+// length is kept whole. An empty note is kept (record first): it is saved
+// empty, for the owner to fill or undo. The error is always nil.
 func CleanNote(text string) (string, error) {
 	var b strings.Builder
 	for _, r := range strings.ReplaceAll(text, "\r\n", "\n") {
@@ -57,9 +58,6 @@ func CleanNote(text string) (string, error) {
 	out = strings.TrimLeft(out, "\n")
 	if strings.TrimSpace(out) == "" {
 		return "", nil
-	}
-	if len(out) > NoteMax {
-		return "", fmt.Errorf("the note is %d bytes, more than the %d a note may hold", len(out), NoteMax)
 	}
 	return out, nil
 }

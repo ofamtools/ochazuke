@@ -486,9 +486,9 @@ func (r *Runtime) openFindPicker(c Context, args Arguments) (any, error) {
 	if path == "" {
 		path = cwd + string(filepath.Separator)
 	}
-	if strings.ContainsAny(path, "\r\n") {
-		return nil, errors.New("picker path cannot contain newlines")
-	}
+	// A pasted path with line ends reads as the path without them (no
+	// input restrictions: adapt, never refuse).
+	path = strings.NewReplacer("\r", "", "\n", "").Replace(path)
 	root, query, err := pickerLocation(cwd, path)
 	if err != nil {
 		return nil, err

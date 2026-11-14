@@ -39,6 +39,10 @@ type Parameter struct {
 	Enum   []string `json:"enum,omitempty"`
 	Source string   `json:"source,omitempty"`
 	Accept Accept   `json:"accept,omitempty"`
+	// Normalize adapts a typed value before it is checked, in order
+	// (normalize.go): trim, slug, escape, coerce. Typed input is adapted,
+	// never refused (no-refusals D5).
+	Normalize []string `json:"normalize,omitempty"`
 	// EnumLabels gives an Enum value the human label a pick list shows
 	// for it (a thing's label-role prop beside its id): a host that
 	// caches a source's rows into Enum keeps their labels here, so the

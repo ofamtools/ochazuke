@@ -433,8 +433,9 @@ func TestNoteFunctions(t *testing.T) {
 	if _, err := FindItem(src, "promts page"); err == nil || !strings.Contains(err.Error(), "Prompts") {
 		t.Fatalf("close matches: %v", err)
 	}
-	if _, _, err := AddNote(src, item, "a", "", strings.Repeat("x", NoteMax+1)); err == nil {
-		t.Fatal("a note over the cap must be refused")
+	// No input restrictions: a long note is stored whole.
+	if _, _, err := AddNote(src, item, "a", "", strings.Repeat("x", NoteMax+1)); err != nil {
+		t.Fatalf("a long note: %v", err)
 	}
 	// Record first: an empty note is saved, never refused.
 	empty, _, err := AddNote(src, item, "a", "2026-11-13", "  \n")

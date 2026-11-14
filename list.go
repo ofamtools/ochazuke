@@ -563,12 +563,10 @@ func (l *Collection) selectID(id string) {
 	}
 }
 
-// ToggleMark marks or unmarks a row for fan-out verbs; a list added with
-// NoMarks refuses.
+// ToggleMark marks or unmarks a row for fan-out verbs. A list added with
+// NoMarks offers no mark key (its guard routes keys), but an explicit
+// request marks (no-refusals D3).
 func (l *Collection) ToggleMark(id string) error {
-	if l.noMarks {
-		return fmt.Errorf("list %s takes no marks", l.id)
-	}
 	if !slices.ContainsFunc(l.all, func(item ListItem) bool { return item.ID == id }) {
 		return fmt.Errorf("unknown list item %q", id)
 	}

@@ -151,7 +151,7 @@ func (c *Chooser) mark() error {
 	}
 	row, ok := c.Highlighted()
 	if !ok || !markable(row) {
-		return errors.New("that row cannot be marked")
+		return nil // a heading or the create row: nothing to mark, nothing refused
 	}
 	c.setMark(row, !c.marked(row.ID))
 	c.pending = false

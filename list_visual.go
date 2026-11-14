@@ -37,11 +37,9 @@ import (
 func (l *Collection) Visual() bool { return l.visual }
 
 // StartVisual starts a visual row selection at the selected row; a list
-// without rows or one added with NoMarks refuses.
+// without rows refuses. A list added with NoMarks offers no V key (its
+// guard routes keys), but an explicit request starts one (no-refusals D3).
 func (l *Collection) StartVisual() error {
-	if l.noMarks {
-		return fmt.Errorf("list %s takes no marks", l.id)
-	}
 	selected, ok := l.Selected()
 	if !ok {
 		return errors.New("list has no selected row")

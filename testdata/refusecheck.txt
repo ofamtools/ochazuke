@@ -109,7 +109,6 @@ chooser_sections.go	Chooser.makeNow	K15	"Failed(…)"	1
 chooser_sections.go	Chooser.makeNow	K15	"this picker has nothing to make here"	1
 chooser_sections.go	Chooser.makeNow	K15	"type a name first"	1
 chooser_sections.go	Chooser.mark	K15	"this picker takes one row; nothing to mark"	1
-chooser_sections.go	Chooser.mark	K5	"that row cannot be marked"	1
 chooser_sections.go	Chooser.markAll	K15	"this picker takes one row; nothing to mark"	1
 chooser_sections.go	Chooser.pathRow	K15	"Failed(…)"	1
 chooser_sections.go	Chooser.pathRow	K15	"no path is highlighted"	1
@@ -261,6 +260,11 @@ cli/setup.go	DeclareSetup	K15	"Failed(…)"	1
 cli/setup.go	DeclareSetup	K15	"setup items are already declared"	1
 cli/setup.go	DeclareSetup	K15	"unknown setup item %q"	1
 cli/setup.go	setupDeclaration.engine	K14	"setup.json: %w"	1	failure
+cli/shell.go	Shell.Run	K10	"%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)"	1
+cli/shell.go	Shell.Run	K14	"%w; pass --target, one of: %s"	1	failure
+cli/shell.go	Shell.Run	K14	"target %s: %w"	2	failure
+cli/shell.go	Shell.Run	K15	"declined: %s"	1
+cli/shell.go	Shell.Run	K15	"errors.New(…)"	1
 cli/shell.go	Shell.call	K15	"errors.New(…)"	2
 cli/shell.go	Shell.parseFlags	K14	"--%s: %w"	1	failure
 cli/shell.go	Shell.parseFlags	K15	"--%s answers JSON Lines; --format %s prints a table"	1
@@ -393,6 +397,7 @@ editor.go	onInput	K5	"no focused input"	1
 errors_shared.go	var ErrNotFound	K4	"not found"	1
 events.go	Runtime.DeclareEvent	K15	"event %q is the framework's"	1
 events.go	Runtime.DeclareEvent	K15	"event name %q is not noun.happening"	1
+execute_rule.go	Runtime.runFallback	K15	"%s: its fallback %s loops"	1	declaration
 facts.go	Runtime.listRows	K14	"%s: %w"	1	failure
 facts.go	registerStateFacts	K15	"Failed(…)"	2
 focus.go	Runtime.CloseModal	K15	"no modal to close"	1
@@ -463,7 +468,6 @@ list.go	Collection.Select	K4	"unknown list item %q"	1
 list.go	Collection.SetItems	K13	"list item ID %q must be nonempty and unique"	1	declaration
 list.go	Collection.SetItems	K15	"list item ID %q is already another instance"	1
 list.go	Collection.SetItems	K4	"list item %q: unknown noun %q"	1
-list.go	Collection.ToggleMark	K13	"list %s takes no marks"	1	declaration
 list.go	Collection.ToggleMark	K4	"unknown list item %q"	1
 list.go	Runtime.AddList	K13	"list ID must be nonempty"	1	declaration
 list.go	Runtime.AddList	K15	"list %q: a list from %s takes no rows"	1
@@ -540,7 +544,6 @@ list_sort.go	Collection.canonicalSort	K15	"row order is owned by the source"	1
 list_sort.go	Collection.sortColumn	K15	"Failed(…)"	1
 list_sort.go	registerListSort	K1	"unknown or disabled sort field %q"	1
 list_sort.go	registerListSort	K15	"no row view to sort"	1
-list_visual.go	Collection.StartVisual	K13	"list %s takes no marks"	1	declaration
 list_visual.go	Collection.StartVisual	K4	"list has no selected row"	1
 list_visual.go	Collection.apply	K11	"Confirm: <expr> without Loses"	1
 list_visual.go	registerListVisual	K5	"no focused list"	1
@@ -614,7 +617,6 @@ markdown/links.go	Doc.MoveLink	K15	"no link in that direction"	1
 markdown/links.go	Doc.OpenLink	K15	"no Markdown link focused"	1
 markdown/links.go	Doc.selectLink	K15	"no link"	1
 markdown/notes.go	AddNote	K15	"notes go under a list item"	1
-markdown/notes.go	CleanNote	K7	"the note is %d bytes, more than the %d a note may hold"	1
 markdown/notes.go	FindItem	K15	"--item needs some text to match"	1
 markdown/notes.go	FindItem	K15	"errors.New(…)"	1
 markdown/notes.go	ReplyNote	K4	"no such note"	1
@@ -762,7 +764,6 @@ path_browse.go	browseNav.make	K15	"type a name first"	1
 path_browse.go	browsing.make	K15	"open a folder first: nothing can be made here"	1
 path_chooser.go	Runtime.OpenPathChooser	K8	"%s is not a path"	1
 path_find.go	Runtime.openFindPicker	K15	"filter must be any, file or dir"	1
-path_find.go	Runtime.openFindPicker	K7	"picker path cannot contain newlines"	1
 path_find.go	findField.choose	K15	"Failed(…)"	1
 path_find.go	findField.choose	K7	"paths fields cannot contain a filename with a newline"	1
 path_find.go	findField.choose	K9	"originating input changed while the picker was open; open it again to choose safely"	1
@@ -1312,9 +1313,3 @@ verb_checks.go	Runtime.AddVerbCheck	K2	"unknown operation %q"	1
 verb_checks.go	Runtime.AddVerbCheck	K3	"a verb check needs a name and a check"	1
 yank_history.go	registerYankHistory	K15	"no yank at history index"	1
 yank_history.go	registerYankHistory	K15	"yank history is not active"	1
-execute_rule.go	Runtime.runFallback	K15	"%s: its fallback %s loops"	1	declaration
-cli/shell.go	Shell.Run	K10	"%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)"	1
-cli/shell.go	Shell.Run	K14	"%w; pass --target, one of: %s"	1	failure
-cli/shell.go	Shell.Run	K14	"target %s: %w"	2	failure
-cli/shell.go	Shell.Run	K15	"declined: %s"	1
-cli/shell.go	Shell.Run	K15	"errors.New(…)"	1
