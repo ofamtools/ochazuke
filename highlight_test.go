@@ -16,7 +16,4 @@ func TestHighlightEmptyAndZeroMove(t *testing.T) {
 			t.Fatalf("zero move: %d", got)
 		}
 	}
-	if err := r.Settings().Set("chooser.up-from-none", "invalid"); err == nil {
-		t.Fatal("accepted invalid initial-selection policy")
-	}
 }

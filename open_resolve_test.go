@@ -2,7 +2,6 @@ package ochazuke
 
 import (
 	"reflect"
-	"strings"
 	"sync"
 	"testing"
 )
@@ -186,9 +185,6 @@ func TestOpenersSettingRefusesBadRows(t *testing.T) {
 		if err := r.Settings().Set(OpenOpenersSetting, bad); err == nil {
 			t.Errorf("%s accepted", bad)
 		}
-	}
-	if err := r.Settings().Set(OpenUnmatchedSetting, "maybe"); err == nil || !strings.Contains(err.Error(), "os") {
-		t.Errorf("unmatched enum: %v", err)
 	}
 }
 

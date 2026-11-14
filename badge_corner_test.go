@@ -92,9 +92,6 @@ func TestBadgeWidthWidestHoldsBothEdges(t *testing.T) {
 	if ansi.StringWidth(visual) != ansi.StringWidth(normal) {
 		t.Fatalf("fit moved the right edge:\n%q\n%q", visual, normal)
 	}
-	if err := r.Settings().Set(ModeBadgeWidthSetting, "bogus"); err == nil {
-		t.Fatal("mode-badge.width took a value outside its enum")
-	}
 }
 
 // keys.echo badge draws the echo between the focus and the badge in cells

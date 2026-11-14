@@ -77,7 +77,7 @@ func propParam(props []PropSpec) map[string]Parameter {
 
 func pathOpenWithParams(n *Noun) map[string]Parameter {
 	params := pathVerbParams(n)
-	params[pathWithParam] = Parameter{Type: "string", Required: true, Free: true, Description: "The application to open it with (macOS: its name, as open -a takes it; elsewhere a command)"}
+	params[pathWithParam] = Parameter{Type: "string", Required: true, Accept: AcceptKeep, Description: "The application to open it with (macOS: its name, as open -a takes it; elsewhere a command)"}
 	return params
 }
 

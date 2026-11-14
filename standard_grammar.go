@@ -165,7 +165,7 @@ func (r *Runtime) choiceParameter(op Operation, name string, args Arguments) (Pa
 	prop := StringArg(args, param.ValueOf, "")
 	p := r.Noun(op.Noun()).prop(prop)
 	if p == nil {
-		return Parameter{Type: param.Type, Free: true, Description: param.Description}, ""
+		return Parameter{Type: param.Type, Accept: AcceptKeep, Description: param.Description}, ""
 	}
 	out := p.Parameter
 	out.Enum = slices.Clone(p.Enum)
@@ -174,7 +174,7 @@ func (r *Runtime) choiceParameter(op Operation, name string, args Arguments) (Pa
 		out.Type = SettingString
 	}
 	if out.Type != SettingBoolean && len(out.Enum) == 0 && out.Source == "" && out.Noun == "" {
-		out.Free = true
+		out.Accept = AcceptKeep
 	}
 	if out.Description == "" {
 		out.Description = param.Description

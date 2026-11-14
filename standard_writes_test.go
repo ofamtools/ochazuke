@@ -157,7 +157,6 @@ func TestSetOneAndSeveralProps(t *testing.T) {
 		args Arguments
 		want string
 	}{
-		{Arguments{"id": "t1", "prop": "status", "value": "nope"}, "must be one of"},
 		{Arguments{"id": "t1", "prop": "summary", "value": "x"}, "read-only"},
 		{Arguments{"id": "t1", "prop": "id", "value": "t9"}, "read-only"},
 		{Arguments{"id": "t1", "prop": "status"}, "value is required"},
@@ -308,7 +307,6 @@ func TestPropRowsInBindings(t *testing.T) {
 		want string
 	}{
 		{SetProp("task", "summary", "x"), "read-only"},
-		{SetProp("task", "status", "nope"), "must be one of"},
 		{ToggleProp("task", "title"), "only a boolean"},
 		{SetProp("task", "nope", 1), "no prop"},
 		{Binding{Request: Request{Noun: "task", Prop: "status", Value: "done"}, From: map[string]string{"id": SourceKey}}, "only its value"},

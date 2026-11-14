@@ -71,9 +71,6 @@ func TestFocusDisplaySettingAppliesLive(t *testing.T) {
 	if row := titleRowOf(m); !strings.HasSuffix(row, " Work › collection › file  NORMAL") {
 		t.Fatalf("stack after a move: %q", row)
 	}
-	if err := r.Settings().Set(FocusDisplaySetting, "bogus"); err == nil {
-		t.Fatal("focus-display took a value outside its enum")
-	}
 }
 
 // focus.display with no mode cycles off → noun → stack → off; a mode sets
@@ -94,9 +91,6 @@ func TestFocusDisplayVerbCycles(t *testing.T) {
 	}
 	if r.FocusDisplay() != "stack" {
 		t.Fatalf("mode stack left %q", r.FocusDisplay())
-	}
-	if _, err := r.Execute(Request{Verb: "display", Noun: "ochazuke.focus", Args: Arguments{"mode": "wide"}}); err == nil {
-		t.Fatal("focus.display took a mode outside its enum")
 	}
 	op, ok := r.Operation("ochazuke.focus.display")
 	if !ok || !op.Builtin {

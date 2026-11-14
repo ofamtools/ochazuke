@@ -19,22 +19,41 @@ func TestParameterChoiceValidation(t *testing.T) {
 	r.Register(Operation{Key: "broken.list", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, failing }})
 	ok := func(*Runtime, Context, Arguments) (any, error) { return "ok", nil }
 	r.Register(Operation{Key: "check.enum", Parameters: map[string]Parameter{"v": {Type: "string", Enum: []string{"a", "b"}}}, Run: ok})
-	r.Register(Operation{Key: "check.free", Parameters: map[string]Parameter{"v": {Type: "string", Enum: []string{"a"}, Free: true}}, Run: ok})
+	r.Register(Operation{Key: "check.free", Parameters: map[string]Parameter{"v": {Type: "string", Enum: []string{"a"}, Accept: AcceptKeep}}, Run: ok})
 	r.Register(Operation{Key: "check.source", Parameters: map[string]Parameter{"v": {Type: "string", Source: "colors.list"}}, Run: ok})
+	echo := func(_ *Runtime, _ Context, a Arguments) (any, error) { return a["v"], nil }
+	r.Register(Operation{Key: "check.register", Parameters: map[string]Parameter{"v": {Type: "string", Enum: []string{"a"}, Accept: AcceptRegister}}, Run: ok})
+	r.Register(Operation{Key: "check.near", Parameters: map[string]Parameter{"v": {Type: "string", Enum: []string{"alpha", "beta"}, Accept: AcceptNear}}, Run: echo})
 	r.Register(Operation{Key: "check.broken", Parameters: map[string]Parameter{"v": {Type: "string", Source: "broken.list"}}, Run: ok})
 	for _, tc := range []struct {
 		verb, value, err string
 	}{
 		{"enum", "a", ""},
-		{"enum", "c", "v must be one of a, b"},
+		{"enum", "c", ""}, // the default keeps a value outside the enum
+		{"register", "c", ""},
+		{"near", "alphx", ""},
+		{"near", "gamma", ""},
 		{"free", "z", ""},
 		{"source", "c1", ""},
-		{"source", "Cyan", "v must be one of c1, m1"},
+		{"source", "Cyan", ""},
 		{"broken", "anything", ""},
 	} {
 		_, err := r.Execute(Request{Verb: tc.verb, Noun: "check", Args: Arguments{"v": tc.value}})
 		if (tc.err == "" && err != nil) || (tc.err != "" && (err == nil || err.Error() != tc.err)) {
 			t.Fatalf("%s %q: error %v, want %q", tc.verb, tc.value, err, tc.err)
+		}
+	}
+	// register made c a choice; near used the one name an edit away and
+	// kept a value nothing is near.
+	if op, _ := r.Operation("check.register"); !slices.Equal(op.Parameters["v"].Enum, []string{"a", "c"}) {
+		t.Fatalf("register: enum %v", op.Parameters["v"].Enum)
+	}
+	if got := []string{"a", "c"}; !slices.Equal(got, []string{"a", "c"}) {
+		t.Fatalf("register: enum %v", got)
+	}
+	for value, want := range map[string]string{"alphx": "alpha", "gamma": "gamma"} {
+		if got, _ := r.Execute(Request{Verb: "near", Noun: "check", Args: Arguments{"v": value}}); got != want {
+			t.Fatalf("near %q ran with %v, want %q", value, got, want)
 		}
 	}
 	if _, err := r.Execute(Request{Verb: "enum", Noun: "check", Args: Arguments{"v": 3}}); err == nil || err.Error() != "v must be string" {
@@ -44,7 +63,7 @@ func TestParameterChoiceValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{`"enum":["a","b"]`, `"source":"colors.list"`, `"free":true`} {
+	for _, want := range []string{`"enum":["a","b"]`, `"source":"colors.list"`, `"accept":"keep"`} {
 		if !strings.Contains(string(data), want) {
 			t.Fatalf("catalog missing %s", want)
 		}

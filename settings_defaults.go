@@ -165,6 +165,9 @@ var frameworkSettingFiles = sync.OnceValue(func() map[string][]Setting {
 		}
 		for _, one := range rows {
 			def, err := coerceSetting(one, one.Default)
+			if err == nil {
+				err = defaultListed(one, def)
+			}
 			if err != nil {
 				panic(fmt.Sprintf("settings/%s: %s default: %v", entry.Name(), one.Name, err))
 			}

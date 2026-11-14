@@ -40,16 +40,17 @@ func TestSourceArgsChoicesAndValidation(t *testing.T) {
 			t.Fatalf("%v: %v %v", tc.args, choices, err)
 		}
 	}
+	// A value outside the dependent choices is accepted (no-refusals D2).
 	for _, tc := range []struct {
 		value string
 		valid bool
-	}{{"other-a", true}, {"default-a", false}} {
+	}{{"other-a", true}, {"default-a", true}} {
 		_, err := r.Execute(Request{Noun: "record", Verb: "create", Args: Arguments{"category": "other", "item": tc.value}})
 		if (err == nil) != tc.valid {
 			t.Fatalf("%s: %v", tc.value, err)
 		}
 	}
-	p.Free = true
+	p.Accept = AcceptKeep
 	params["item"] = p
 	if err := r.checkArguments(Operation{Parameters: params}, Arguments{"category": "other", "item": "custom"}); err != nil {
 		t.Fatal(err)
@@ -81,7 +82,7 @@ func TestDependentRecordChoicesRetainValues(t *testing.T) {
 	for _, free := range []bool{false, true} {
 		t.Run(map[bool]string{false: "closed", true: "free"}[free], func(t *testing.T) {
 			r, p := dependentFixture(t, false)
-			p.Free = free
+			p.Accept = map[bool]Accept{true: AcceptKeep}[free]
 			e, err := r.AddRecordEditor("rec", RecordSpec{Fields: []RecordField{{Name: "item", Parameter: p}, {Name: "category", Parameter: Parameter{Type: "string"}}}, Load: func() (Record, error) { return Record{"category": "one", "item": "one-a"}, nil }, Save: func(RecordWrite) Result { return Done(nil) }})
 			if err != nil {
 				t.Fatal(err)
@@ -168,7 +169,7 @@ func TestDependentChoicesSourceFailureKeepsValue(t *testing.T) {
 
 func TestDependentArgsFormAndPropFields(t *testing.T) {
 	r, p := dependentFixture(t, false)
-	p.Free = true
+	p.Accept = AcceptKeep
 	op := Operation{Key: "record.create", Parameters: map[string]Parameter{"category": {Type: "string"}, "item": p}, Run: func(*Runtime, Context, Arguments) (any, error) { return true, nil }}
 	r.Register(op)
 	ed, err := r.OpenArgsForm(Request{Noun: op.Noun(), Verb: op.Name(), Args: Arguments{"category": "two"}}, func(Request) error { return nil })
@@ -200,7 +201,7 @@ func TestDependentPaletteChoicesUseCurrentSibling(t *testing.T) {
 
 func TestGeneratedPropPaletteCompletion(t *testing.T) {
 	r, item := dependentFixture(t, false)
-	item.Free = true
+	item.Accept = AcceptKeep
 	r.Define("options").Verb("empty", func(Ctx) Result { return Done([]string{}) })
 	table := NewMemDocTable(r, "record")
 	r.Define("record").Props(
@@ -210,7 +211,7 @@ func TestGeneratedPropPaletteCompletion(t *testing.T) {
 		PropSpec{Name: "shade", Parameter: Parameter{Enum: []string{"amber", "blue"}}},
 		PropSpec{Name: "option", Parameter: Parameter{Noun: "option"}},
 		PropSpec{Name: "enabled", Parameter: Parameter{Type: SettingBoolean}},
-		PropSpec{Name: "empty", Parameter: Parameter{Source: "options.empty", Free: true}},
+		PropSpec{Name: "empty", Parameter: Parameter{Source: "options.empty", Accept: AcceptKeep}},
 	).Store(DocStore(table, "record"))
 	r.Define("option")
 	r.Instance("opt-a", Kind("option"))
@@ -275,7 +276,7 @@ func TestSourceArgsSynchronousReadsKeepHistory(t *testing.T) {
 
 func TestDependentOpenChooserDropsOldSiblingResponses(t *testing.T) {
 	r, p := dependentFixture(t, true)
-	p.Free = true
+	p.Accept = AcceptKeep
 	e, err := r.AddRecordEditor("rec", RecordSpec{Fields: []RecordField{{Name: "category", Parameter: Parameter{Type: "string"}}, {Name: "item", Parameter: p}}, Load: func() (Record, error) { return Record{"category": "one"}, nil }})
 	if err != nil {
 		t.Fatal(err)

@@ -25,10 +25,8 @@ func TestAppearanceUpdatesAreAtomicSnapshots(t *testing.T) {
 		t.Fatalf("set returned %T %#v, want the appearance's props", result, result)
 	}
 	for _, args := range []Arguments{
-		{"changes": map[string]any{"theme": "light", "density": "crowded"}},
 		{"changes": map[string]any{"theme": "missing", "density": "comfortable"}},
 		{"prop": "theme", "value": ""},
-		{"prop": "density", "value": ""},
 		{"changes": map[string]any{"density": false, "theme": "light"}},
 		{"prop": "dark", "value": false},
 		{"prop": "unknown", "value": "light"},

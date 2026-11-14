@@ -225,7 +225,7 @@ func TestPaletteMissingTargetOpensThePicker(t *testing.T) {
 	build := func() (*Runtime, *Palette, *[]string) {
 		r := NewRuntime()
 		ran := new([]string)
-		r.Register(Operation{Key: "card.flip", Parameters: map[string]Parameter{"card": {Type: "string", Noun: "card", Focus: true, Free: true}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
+		r.Register(Operation{Key: "card.flip", Parameters: map[string]Parameter{"card": {Type: "string", Noun: "card", Focus: true, Accept: AcceptKeep}}, Run: func(_ *Runtime, _ Context, a Arguments) (any, error) {
 			*ran = append(*ran, StringArg(a, "card", ""))
 			return nil, nil
 		}})

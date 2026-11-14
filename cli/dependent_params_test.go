@@ -47,8 +47,9 @@ func TestCLICompletionDependentValues(t *testing.T) {
 	if err := sh.Run(context.Background(), []string{"thing", "create", "--a", "two", "--b", "two-a"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := sh.Run(context.Background(), []string{"thing", "create", "--a", "two", "--b", "default-a"}); err == nil {
-		t.Fatal("accepted stale choice")
+	// A value outside the dependent choices is kept (no-refusals D2).
+	if err := sh.Run(context.Background(), []string{"thing", "create", "--a", "two", "--b", "default-a"}); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -59,11 +60,11 @@ func TestGeneratedPropCLICompletion(t *testing.T) {
 	r.Define("record").Props(
 		ochazuke.PropSpec{Name: "id", Key: true},
 		ochazuke.PropSpec{Name: "category"},
-		ochazuke.PropSpec{Name: "item", Parameter: ochazuke.Parameter{Type: "string", Source: "choice.list", SourceArgs: map[string]string{"kind": "category"}, Free: true}},
+		ochazuke.PropSpec{Name: "item", Parameter: ochazuke.Parameter{Type: "string", Source: "choice.list", SourceArgs: map[string]string{"kind": "category"}, Accept: ochazuke.AcceptKeep}},
 		ochazuke.PropSpec{Name: "shade", Parameter: ochazuke.Parameter{Enum: []string{"amber", "blue"}}},
 		ochazuke.PropSpec{Name: "option", Parameter: ochazuke.Parameter{Noun: "option"}},
 		ochazuke.PropSpec{Name: "enabled", Parameter: ochazuke.Parameter{Type: ochazuke.SettingBoolean}},
-		ochazuke.PropSpec{Name: "empty", Parameter: ochazuke.Parameter{Source: "choice.empty", Free: true}},
+		ochazuke.PropSpec{Name: "empty", Parameter: ochazuke.Parameter{Source: "choice.empty", Accept: ochazuke.AcceptKeep}},
 	).Store(ochazuke.DocStore(table, "record"))
 	r.Define("option")
 	r.Instance("opt-a", ochazuke.Kind("option"))

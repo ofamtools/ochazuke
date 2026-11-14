@@ -122,7 +122,7 @@ func Mount(app *oden.App, sh *Shell, extra ...string) {
 			p := op.Parameters[name]
 			parameters = append(parameters, oden.Parameter{
 				Name: name, Type: p.Type, Description: p.Description,
-				Required: p.Required, Choices: p.Enum, Source: r.ChoicesSource(p), Free: p.Free,
+				Required: p.Required, Choices: p.Enum, Source: r.ChoicesSource(p), Free: p.TakesAny(),
 			})
 		}
 		details := verbDetails(op)

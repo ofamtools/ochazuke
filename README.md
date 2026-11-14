@@ -2571,7 +2571,7 @@ Parameters can pass sibling values to their choice source with `SourceArgs` (cat
 
 ```go
 Parameter{
-    Type: "string", Source: "catalog.items", Free: true,
+    Type: "string", Source: "catalog.items", Accept: ochazuke.AcceptKeep,
     SourceArgs: map[string]string{"category": "kind"},
 }
 ```

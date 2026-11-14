@@ -27,9 +27,9 @@ var needRelations = storeNeed{Doc: "a relation store (Runtime.SetRelationStore)"
 
 func relationVerbParams(n *Noun) map[string]Parameter {
 	return map[string]Parameter{
-		relationToParam:   {Type: "string", Noun: AnyNoun, Free: true, Excludes: []string{relationFromParam}, Description: "The other end, noun:key, when this thing is the From end"},
-		relationFromParam: {Type: "string", Noun: AnyNoun, Free: true, Excludes: []string{relationToParam}, Description: "The other end, noun:key, when this thing is the To end"},
-		relationKindParam: {Type: "string", Free: true, Source: "ochazuke.relation-kind.list", Description: "The kind of relation, any word (default " + DefaultRelationKind + "); a declared kind adds rules"},
+		relationToParam:   {Type: "string", Noun: AnyNoun, Accept: AcceptKeep, Excludes: []string{relationFromParam}, Description: "The other end, noun:key, when this thing is the From end"},
+		relationFromParam: {Type: "string", Noun: AnyNoun, Accept: AcceptKeep, Excludes: []string{relationToParam}, Description: "The other end, noun:key, when this thing is the To end"},
+		relationKindParam: {Type: "string", Accept: AcceptKeep, Source: "ochazuke.relation-kind.list", Description: "The kind of relation, any word (default " + DefaultRelationKind + "); a declared kind adds rules"},
 	}
 }
 

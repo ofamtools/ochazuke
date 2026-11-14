@@ -25,7 +25,7 @@ func relatedPageWith(t *testing.T, notes []ochazuke.Thing, doc CatalogDoc, cfg P
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
 	r.Define("note").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "text", Role: ochazuke.RoleLabel},
-		ochazuke.PropSpec{Name: "about", Parameter: ochazuke.Parameter{Noun: ochazuke.AnyNoun, Free: true}}).Store(ochazuke.Store{
+		ochazuke.PropSpec{Name: "about", Parameter: ochazuke.Parameter{Noun: ochazuke.AnyNoun, Accept: ochazuke.AcceptKeep}}).Store(ochazuke.Store{
 		Kind: ochazuke.KindCollection, AcceptsKey: true,
 		List: func(_ ochazuke.Ctx, q ochazuke.ListQuery) ([]ochazuke.Thing, error) {
 			var out []ochazuke.Thing

@@ -36,7 +36,4 @@ func TestModeBadgeKeyCase(t *testing.T) {
 			}
 		}
 	}
-	if err := r.Settings().Set(ModeBadgeKeyCaseSetting, "lower"); err == nil {
-		t.Fatal("mode-badge.key-case took a value outside its enum")
-	}
 }

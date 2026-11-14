@@ -228,7 +228,6 @@ func TestRoleWritesReplaceThePurgedVerbs(t *testing.T) {
 		set("t1", map[string]any{"summary": "x"}),
 		{Noun: "task", Verb: "create", Args: Arguments{"from": "t1", "pairs": "summary=x"}},
 		{Noun: "task", Verb: "create", Args: Arguments{"from": "t1", "pairs": "nope=x"}},
-		{Noun: "task", Verb: "create", Args: Arguments{"from": "t1", "pairs": "status=x"}},
 		{Noun: "task", Verb: "create", Args: Arguments{"from": "nonesuch"}},
 		{Noun: "task", Verb: "create", Args: Arguments{"from": map[string]any{"title": "no key"}}},
 	} {

@@ -271,7 +271,7 @@ var stateProps = []PropSpec{
 	{Name: "pages", Parameter: Parameter{Type: PropObject, Description: "The registered pages by id"}},
 	{Name: "focus", Parameter: Parameter{Description: "The focused instance's id"}},
 	{Name: "context", Parameter: Parameter{Type: PropObject, Description: "The focus path, page and mode"}},
-	{Name: "mode", Parameter: Parameter{Description: "The interaction mode's name; set it to switch modes (any name: one nobody registered becomes a mode)", Noun: "ochazuke.mode", Free: true}},
+	{Name: "mode", Parameter: Parameter{Description: "The interaction mode's name; set it to switch modes (any name: one nobody registered becomes a mode)", Noun: "ochazuke.mode", Accept: AcceptRegister}},
 	{Name: "modeState", Parameter: Parameter{Type: PropObject, Description: "The mode with its payload (count, operator, prefix)"}},
 	{Name: "modes", Parameter: Parameter{Type: SettingList, Description: "Every mode's name"}},
 	{Name: "modals", Parameter: Parameter{Type: SettingList, Description: "The open modals, bottom first"}},

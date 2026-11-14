@@ -392,7 +392,7 @@ func registerSectionVerbs(r *Runtime, verb func(fn func(*Chooser, Ctx) Result) A
 		Verb("toggle", verb(func(c *Chooser, ctx Ctx) Result {
 			return state(c.toggle(StringArg(ctx.Args, "name", "")), c)
 		}), "Switch a named option of this picker (hidden: hidden files) and list again").
-		Params(map[string]Parameter{"name": {Type: "string", Required: true, Free: true, Description: "The option: hidden"}}).
+		Params(map[string]Parameter{"name": {Type: "string", Required: true, Accept: AcceptKeep, Description: "The option: hidden"}}).
 		Verb("goto", verb(func(c *Chooser, ctx Ctx) Result {
 			return state(c.gotoSource(StringArg(ctx.Args, "to", "")), c)
 		}), "Send the source to a place: ~ (home), / (the root), first-col (home), last-col (the deepest place visited), own (the source's own rows again)").
@@ -409,7 +409,7 @@ func registerSectionVerbs(r *Runtime, verb func(fn func(*Chooser, Ctx) Result) A
 				return err
 			})
 		}), "Open the highlighted path through the opener table (open.openers; the OS by default), or with a named application").History(HistoryAction).
-		Params(map[string]Parameter{"with": {Type: "string", Free: true, Description: "The application to open it with (macOS: its name, as open -a takes it; elsewhere a command); omitted, the opener table decides"}}).
+		Params(map[string]Parameter{"with": {Type: "string", Accept: AcceptKeep, Description: "The application to open it with (macOS: its name, as open -a takes it; elsewhere a command); omitted, the opener table decides"}}).
 		agentRight(AgentConfirm).
 		Verb("reveal", verb(func(c *Chooser, _ Ctx) Result {
 			return c.pathRow(c.r.Opener().Reveal)

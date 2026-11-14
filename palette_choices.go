@@ -314,7 +314,7 @@ func (p *Palette) paramHeader(s Styles, slot paramSlot, width int) string {
 	} else if param.Noun != "" {
 		facts = append(facts, article(p.r.DisplayNoun(param.Noun)))
 	}
-	if param.Free && (len(param.Enum) > 0 || param.Source != "" || param.Noun != "") {
+	if param.TakesAny() && (len(param.Enum) > 0 || param.Source != "" || param.Noun != "") {
 		facts = append(facts, "or any text")
 	}
 	desc := param.Description

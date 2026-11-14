@@ -108,7 +108,7 @@ type Param struct {
 	Enum        []string          `json:"enum,omitempty"`
 	Source      string            `json:"source,omitempty"`
 	Noun        string            `json:"noun,omitempty"`
-	Free        bool              `json:"free,omitempty"`
+	Accept      string            `json:"accept,omitempty"`
 	Positional  int               `json:"positional"` // index in positional, -1 when named only
 }
 

@@ -21,7 +21,7 @@ func TestNounPickerShowsHumanLabels(t *testing.T) {
 	if err := r.OpenPage("main"); err != nil {
 		t.Fatal(err)
 	}
-	target := Parameter{Type: "string", Noun: "question", Free: true,
+	target := Parameter{Type: "string", Noun: "question", Accept: AcceptKeep,
 		Enum:       []string{"question/q-aaaa", "question/q-bbbb", "question/q-cccc"},
 		EnumLabels: map[string]string{"question/q-aaaa": "Ship the Decisions page?", "question/q-bbbb": "Rename the verb?", "question/q-cccc": "Drop the alias?"}}
 	spec := RecordSpec{

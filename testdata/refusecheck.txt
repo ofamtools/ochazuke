@@ -121,7 +121,6 @@ chooser_sections.go	Chooser.section	K4	"this picker has no sections"	1
 chooser_sections.go	Chooser.toggle	K4	"this picker has no option %q"	1
 chooser_sections.go	registerSectionVerbs	K1	"When(…) without Fallback"	2
 chooser_sections.go	registerSectionVerbs	K15	"Failed(…)"	1
-chooser_sections.go	registerSectionVerbs	K2	"Enum without Accept: <expr>"	1
 chooser_sources.go	Chooser.complete	K15	"cannot complete %s"	1
 chooser_sources.go	Chooser.complete	K15	"this picker has nothing to complete"	1
 chooser_sources.go	Chooser.cycle	K15	"the picker has one source"	1
@@ -135,7 +134,6 @@ chooser_sources.go	registerChooserSources	K15	"Failed(…)"	1
 chooser_sources.go	registerChooserSources	K5	"no picker is open"	1
 chrome_shape.go	Appearance.SetGlyph	K13	"glyph %q needs one-cell Unicode and Nerd marks"	1	declaration
 chrome_shape.go	registerGlyphs	K15	"unknown glyph set %q"	1
-chrome_shape.go	registerGlyphs	K2	"Enum without Accept: <expr>"	1
 cli.go	ParseArguments	K14	"arguments: %w"	1	failure
 cli.go	ParseArguments	K15	"arguments must be a JSON object"	1
 cli.go	decodeRequest	K15	"expected exactly one JSON request"	1
@@ -173,7 +171,6 @@ cli/detail_sections.go	checkDetailSections	K13	"padding must not be negative"	1	
 cli/detail_sections.go	checkDetailSections	K13	"sideWidth must not be negative"	1	declaration
 cli/detail_sections.go	checkDetailSections	K15	"section %d: %s"	1
 cli/emulator.go	EnsureTerminalEngine	K15	"errors.New(…)"	1
-cli/emulator.go	EnsureTerminalEngine	K2	"Enum without Accept: <expr>"	1
 cli/emulator.go	RegisterTerminalEngine	K1	"terminal engine %s needs New or Unavailable"	1
 cli/emulator.go	RegisterTerminalEngine	K15	"terminal engine name %q must be one word"	1
 cli/emulator.go	RegisterTerminalEngine	K8	"terminal engine %s is already registered"	1
@@ -222,7 +219,6 @@ cli/instructions.go	CatalogDoc.ValidateAgentText	K7	"%s %s exceeds %d tokens (ch
 cli/mcp_backend.go	Shell.mcpCommand	K15	"usage: %s ochazuke mcp serve|tools|instructions|config"	1
 cli/mcp_backend.go	Shell.mcpValue	K15	"unknown mcp command %q"	1
 cli/mcp_backend.go	Shell.registerMCPVerbs	K15	"host serve runs from the CLI: %s ochazuke host serve"	1
-cli/mcp_backend.go	Shell.registerMCPVerbs	K2	"Enum without Accept: <expr>"	1
 cli/mcp_backend.go	Shell.resolveMCPVerb	K8	"%q is ambiguous: %s (write one in full)"	1
 cli/mcp_backend.go	mcpBackend.Call	K15	"unknown catalog tool %q"	1
 cli/odencommands.go	odenCommands.Command	K14	"find this program to run %s: %w"	1	failure
@@ -334,7 +330,6 @@ confirm.go	registerConfirm	K15	"no confirm modal is open"	1
 copy_refresh.go	Runtime.pickCopy	K15	"Failed(…)"	1
 copy_refresh.go	Runtime.readRefresh	K15	"%s: the source reads no single thing"	1
 copy_refresh.go	Runtime.refreshHandler	K8	"%s: its store is not a copy of a source"	1
-copy_refresh.go	Runtime.showRefresh	K2	"Enum without Accept: <expr>"	1
 copy_refresh.go	var needCopy	K1	"Lacks: its store is not a copy of a source"	1
 copy_store.go	copyStore.create	K15	"%s %q is already there"	1
 copy_store.go	copyStore.delete	K15	"the source deletes no things (copies.delete is source)"	1
@@ -378,12 +373,9 @@ doc_store.go	MemDocTable.Put	K3	"a document needs a key"	1
 doc_store.go	docStore.create	K8	"%s %q already exists"	1
 doc_store.go	docStore.nounOf	K4	"doc store %s: no such noun with a key prop"	1
 docs_reference.go	Runtime.DocsPage	K4	"unknown docs topic %q (topics: %s)"	1
-docs_reference.go	Runtime.ReferenceModel	K2	"Enum without Accept: <expr>"	1
 docs_reference.go	Runtime.referenceNouns	K1	"Unavailable: <expr>"	1
-docs_reference.go	Runtime.referenceNouns	K2	"Enum without Accept: <expr>"	1
 docs_reference.go	referenceRow	K1	"When: <expr> without Fallback"	1
 docs_reference.go	referenceStandardVerbs	K11	"Confirm: <expr> without Loses"	1
-docs_reference.go	registerDocs	K2	"Enum without Accept: <expr>"	1
 edit_chooser.go	Runtime.openEditChooser	K15	"Failed(…)"	1
 editing.go	Input.begin	K15	"unknown insertion position"	1
 editing.go	Input.deleteRunes	K15	"steps must be positive"	1
@@ -399,7 +391,6 @@ editor.go	Input.pasteYank	K15	"steps must be positive"	1
 editor.go	Input.pasteYank	K7	"paste exceeds size limit"	1
 editor.go	editorOperator	K15	"operator must be y, d, or c"	1
 editor.go	editorOperator	K15	"steps must be positive"	1
-editor.go	editorOps	K2	"Enum without Accept: <expr>"	1
 editor.go	editorPaste	K15	"steps must be positive"	1
 editor.go	editorPaste	K7	"paste exceeds size limit"	1
 editor.go	editorSelect	K15	"unknown selection shape"	1
@@ -430,7 +421,6 @@ focus_actions.go	Runtime.OpenFocusActions	K1	"the focused-actions picker is off 
 focus_actions.go	Runtime.OpenFocusActions	K14	"%s: %w"	1	failure
 focus_actions.go	Runtime.OpenFocusActions	K15	"nothing at the focus has verbs to list"	1
 focus_actions.go	Runtime.OpenFocusActions	K2	"unknown operation %q"	1
-focus_display.go	registerFocusDisplay	K2	"Enum without Accept: <expr>"	1
 foreground.go	Foreground	K3	"Foreground needs a command"	1
 foreground.go	ForegroundMsg.Done	K14	"%s: %w"	1	failure
 foreground.go	ForegroundMsg.Done	K15	"%s exited with status %d"	1
@@ -448,7 +438,6 @@ help_capture.go	helpState.bindCaptured	K15	"no key pressed: nothing to bind"	1
 help_capture.go	registerHelpCapture	K5	"select an unbound verb in the help"	1
 help_views.go	registerHelpViews	K15	"Failed(…)"	3
 help_views.go	registerHelpViews	K15	"pick %q: want noun, mode or place"	1
-help_views.go	registerHelpViews	K2	"Enum without Accept: <expr>"	1
 help_views.go	registerHelpViews	K9	"the help is not open"	1
 history.go	historyKinds	K15	"unknown history kind %q (action, change, fetch, system or all)"	1
 history.go	registerHistory	K4	"no history entry %q"	1
@@ -475,7 +464,6 @@ input.go	Input.SelectText	K15	"invalid select range"	1
 input.go	Input.Undo	K15	"steps must be positive"	1
 input.go	RegisterInputOperations	K5	"no focused input"	1
 jsonc.go	StandardizeJSONC	K15	"errors.New(…)"	1
-key_echo.go	registerKeyEcho	K2	"Enum without Accept: <expr>"	1
 list.go	Collection.Select	K4	"unknown list item %q"	1
 list.go	Collection.SetItems	K13	"list item ID %q must be nonempty and unique"	1	declaration
 list.go	Collection.SetItems	K15	"list item ID %q is already another instance"	1
@@ -498,7 +486,6 @@ list_filter.go	registerListFilter	K4	"unknown list %v"	1
 list_filter.go	registerListFilter	K5	"no focused list"	1
 list_filter_compact.go	Collection.openViewForm	K15	"Failed(…)"	2
 list_filter_compact.go	Collection.openViewForm	K15	"list rows have no filterable props"	1
-list_filter_compact.go	Collection.openViewForm	K2	"Enum without Accept: <expr>"	2
 list_filter_compact.go	filterViewForm.conditionAction	K1	"this prop is unavailable; its condition is kept as-is"	1
 list_filter_compact.go	filterViewForm.conditionAction	K15	"this condition is kept as-is; remove it to replace it"	1
 list_filter_compact.go	filterViewForm.editField	K15	"Failed(…)"	2
@@ -513,7 +500,6 @@ list_filter_compact.go	filterViewForm.toggleHighlighted	K15	"no selected values"
 list_filter_compact.go	filterViewForm.toggleHighlighted	K15	"this prop takes text"	1
 list_filter_compact.go	filterViewForm.toggleValue	K15	"no selected prop"	1
 list_filter_compact.go	filterViewForm.write	K15	"Failed(…)"	4
-list_filter_compact.go	registerFilterViewForm	K2	"Enum without Accept: <expr>"	1
 list_filter_compact.go	registerFilterViewForm	K5	"no filter form"	1
 list_filter_save_form.go	filterViewForm.deleteSaved	K15	"Failed(…)"	1
 list_filter_save_form.go	filterViewForm.savedAction	K1	"save controls are disabled"	1
@@ -522,7 +508,6 @@ list_from.go	Runtime.listSource	K4	"list from %q: no such noun"	1
 list_from.go	Runtime.listSource	K4	"list from %s: it has no key prop to name its rows by"	1
 list_from.go	Runtime.listSource	K4	"list from %s: its store has no List or Query"	1
 list_group.go	Collection.foldGroup	K15	"no group %q on this page"	1
-list_motions.go	registerListMotions	K2	"Enum without Accept: <expr>"	1
 list_motions.go	registerListMotions	K4	"unknown list %v"	1
 list_motions.go	registerListMotions	K5	"no focused list"	1
 list_prop_filter.go	Collection.ApplyFilter	K15	"unknown saved filter %q"	1
@@ -539,7 +524,6 @@ list_prop_filter.go	registerListPropFilter	K15	"Failed(…)"	1
 list_prop_filter.go	registerListPropFilter	K15	"no row view at %v"	1
 list_prop_filter.go	registerListPropFilter	K15	"no saved filters"	1
 list_prop_filter.go	registerListPropFilter	K15	"no valid saved filters; skipped %s"	1
-list_prop_filter.go	registerListPropFilter	K2	"Enum without Accept: <expr>"	1
 list_prop_filter.go	registerListPropFilter	K4	"no such prop condition"	1
 list_prop_filter.go	registerListPropFilter	K5	"no focused row view"	1
 list_query.go	Runtime.listQueryOf	K8	"group-sort %q is not a group-by prop"	1
@@ -641,8 +625,6 @@ markdown/notes.go	FindItem	K15	"errors.New(…)"	1
 markdown/notes.go	ReplyNote	K4	"no such note"	1
 markdown/notes.go	SetFlags	K5	"no note selected"	3
 markdown/verbs.go	byKind	K2	"unknown kind %q"	1
-markdown/verbs.go	docParams	K2	"Enum without Accept: <expr>"	3
-markdown/verbs.go	docSettings	K2	"Enum without Accept: <expr>"	4
 markdown/verbs.go	resolve	K15	"no markdown on the focus path"	1
 markdown/verbs.go	resolve	K4	"unknown markdown %q"	1
 markdown/view.go	registerView	K15	"Failed(…)"	1
@@ -654,9 +636,7 @@ mode_pin.go	registerModePin	K15	"no instance to pin"	1
 model_hooks.go	Model.quitHooks	K15	"%s"	1
 motion_scroll.go	registerViewMotions	K15	"no %s edge here"	1
 motion_scroll.go	registerViewMotions	K15	"nothing to move here"	1
-motion_scroll.go	registerViewMotions	K2	"Enum without Accept: <expr>"	1
 motion_scroll.go	registerViewScroll	K15	"unknown scroll %q: want line or page"	1
-motion_scroll.go	registerViewScroll	K2	"Enum without Accept: <expr>"	1
 motion_scroll.go	scrollBys	K15	"nothing to page here"	1
 motion_scroll.go	scrollBys	K5	"nothing to scroll here"	1
 namespace.go	Runtime.AddNounAlias	K13	"alias %q already names %s"	1	declaration
@@ -735,7 +715,6 @@ palette.go	Palette.move	K15	"no completions for this word"	1
 palette.go	Palette.requireOpen	K15	"palette is covered by another modal"	1
 palette.go	Palette.requireOpen	K9	"palette is not open"	1
 palette.go	Palette.run	K3	"missing %s"	1
-palette.go	newPalette	K2	"Enum without Accept: <expr>"	2
 palette_board.go	Palette.cellTo	K15	"no cells for this word"	1
 palette_board.go	Palette.cellTo	K15	"unknown cell move %q"	1
 palette_choices.go	var errChoicesLoading	K9	"choices are loading"	1
@@ -773,7 +752,6 @@ params.go	Runtime.CheckSourceArgs	K4	"%s: sourceArgs names no sibling %q"	1
 params.go	Runtime.ChoicesFor	K13	"unknown choices source %q"	1	declaration
 params.go	Runtime.ChoicesFor	K14	"choices source %q: %w"	2	failure
 params.go	Runtime.ChoicesFor	K15	"choices source %q asks for confirmation"	1
-params.go	Runtime.choiceError	K2	"%s must be one of %s%s"	1
 params.go	Runtime.choicesContext	K15	"choices source %q asks for confirmation"	1
 params.go	Runtime.choicesContext	K15	"choices source %q is not applicable now"	1
 params.go	Runtime.choicesContext	K15	"choices source %q: %s"	1
@@ -795,7 +773,6 @@ path_find.go	findField.choose	K7	"paths fields cannot contain a filename with a 
 path_find.go	findField.choose	K9	"originating input changed while the picker was open; open it again to choose safely"	1
 path_find.go	pathFind.load	K15	"Failed(…)"	1
 path_verbs.go	pathVerbs	K15	"open-with needs with, the application"	1
-path_verbs.go	propParam	K2	"Enum without Accept: <expr>"	1
 path_verbs.go	thingValue	K15	"the free verbs of a prop's kind are off (setting paths.free-verbs)"	1
 path_verbs.go	thingValue	K4	"%s %q has no %s"	1
 path_verbs.go	thingValue	K4	"%s has no prop %q of that kind"	1
@@ -827,7 +804,6 @@ picker_verbs.go	Chooser.pickerInto	K15	"Failed(…)"	1
 picker_verbs.go	Chooser.pickerMove	K15	"Failed(…)"	1
 picker_verbs.go	Chooser.pickerUp	K15	"Failed(…)"	1
 picker_verbs.go	registerPickerVerbs	K1	"When(…) without Fallback"	3
-picker_verbs.go	registerPickerVerbs	K2	"Enum without Accept: <expr>"	1
 picker_verbs.go	registerPickerVerbs	K5	"no picker is open"	1
 prop_filter.go	NounBuilder.Filters	K14	"saved filter %s: %w"	1	failure
 prop_filter.go	NounBuilder.PropsOff	K15	"props off %q: not a field pattern"	1
@@ -900,8 +876,6 @@ props.go	propFlagError	K6	"prop %s: through is for a prop set writes (not a key,
 props.go	propValue	K15	"must be %v"	1
 props.go	propValue	K15	"must be an object, a JSON object such as {\"a\": 1}"	1
 props.go	propValue	K15	"required"	1
-props.go	propValue	K2	"Enum without Accept: <expr>"	1
-props.go	propValue	K2	"must be one of %s"	1
 query.go	ParsePredicates	K15	"where must be an array of predicates"	1
 query.go	Runtime.checkPredicates	K15	"unknown predicate %q"	1
 query.go	Runtime.checkPredicates	K3	"%s needs a predicate list"	1
@@ -916,7 +890,6 @@ rail_verbs.go	parseRailWidth	K15	"width %q is not cells (36) or a percent (25%%)
 rail_verbs.go	railOf	K15	"no rail"	1
 rail_verbs.go	railOf	K15	"unknown rail %q"	1
 rail_verbs.go	registerRail	K15	"thing %q is not noun:key of a known noun"	1
-rail_verbs.go	registerRail	K2	"Enum without Accept: <expr>"	1
 reader.go	Ambiguity	K8	"%q is ambiguous: %s"	1
 record_chips.go	RecordEditor.clear	K15	"this form has nothing to clear"	1
 record_chips.go	RecordEditor.invert	K15	"the focused field cannot be inverted"	1
@@ -924,7 +897,6 @@ record_chips.go	RecordEditor.toggleChip	K5	"no chip under the cursor"	1
 record_chips.go	recordField.chipEdge	K15	"no chips"	1
 record_chips.go	recordField.chipEdge	K15	"unknown edge %q"	1
 record_chips.go	registerFormChips	K1	"When(…) without Fallback"	6
-record_chips.go	registerFormChips	K2	"Enum without Accept: <expr>"	1
 record_chips.go	registerFormChips	K4	"the focused field has no chips"	1
 record_chips.go	registerFormChips	K5	"no focused record editor"	1
 record_editor.go	RecordEditor.choose	K4	"%s has no choices"	1
@@ -969,8 +941,6 @@ register_store.go	Runtime.persistRegister	K14	"register %s: %w"	4	failure
 registers.go	registerName	K15	"register must be one character"	1
 registers.go	registerName	K15	"unsupported register"	1
 registers.go	registerRegisterThings	K15	"width must be nonnegative"	1
-registers.go	registerRegisterThings	K2	"Enum without Accept: <expr>"	1
-registers.go	var registerThingProps	K2	"Enum without Accept: <expr>"	1
 related.go	Runtime.AddRelated	K13	"related ID %q must be nonempty and unused"	1	declaration
 related.go	Runtime.AddRelated	K4	"related %q: no such noun %q"	1
 related.go	Runtime.AddRelated	K4	"unknown parent %q"	1
@@ -1050,13 +1020,10 @@ runtime.go	checkRestParameter	K15	"%s: required parameter %s comes after the res
 runtime.go	checkRestParameter	K7	"%s: rest parameter %s must be a string, not %s"	1
 runtime.go	registerCore	K15	"unknown modal input"	1
 runtime.go	validateArguments	K15	"%s must be %s"	1
-runtime.go	validateArguments	K2	"%s must be one of %s"	1
 scaffold_verbs.go	runAnnotate	K15	"%s cannot be about a %s (annotators: %s)"	1
-scaffold_verbs.go	scaffoldVerbs	K2	"Enum without Accept: <expr>"	1
 scaffold_verbs.go	var needAnnotator	K1	"Lacks: no noun can be about it (no about prop)"	1
 scaffold_verbs.go	var needToken	K1	"Lacks: its store keeps no change token (no Store.ChangeToken)"	1
 scheme.go	ParseSchemes	K15	"null"	1
-scheme.go	Runtime.ensureThemeSetting	K2	"Enum without Accept: <expr>"	1
 scheme.go	SchemeColor.UnmarshalJSON	K15	"a colour is \"#RRGGBB\" or {\"light\": \"#RRGGBB\", \"dark\": \"#RRGGBB\"}"	1
 scheme.go	parseScheme	K13	"error must differ from %s, so errors stay distinct"	1	declaration
 scheme.go	parseScheme	K13	"is a built-in theme: it takes only tones"	1	declaration
@@ -1075,7 +1042,6 @@ search_find.go	registerSearchFind	K15	"nothing to search here (a text view, the 
 search_match.go	regexError	K15	"regex: %v"	2
 search_match.go	registerSearchMatch	K15	"no open search here (a / filter line or a picker)"	1
 search_match.go	registerSearchMatch	K15	"unknown match mode %v (substring, fuzzy or regex)"	1
-search_match.go	registerSearchMatch	K2	"Enum without Accept: <expr>"	1
 segment.go	Runtime.checkSegment	K15	"names more than one of provider, command and verb"	1
 segment.go	Runtime.checkSegment	K15	"no provider %q is registered"	1
 segment.go	Runtime.checkSegment	K3	"needs a provider, a command or a verb"	1
@@ -1104,24 +1070,19 @@ set_line.go	setValue	K8	"%s: %s is ambiguous: %s"	1
 setting_verbs.go	arithmetic	K15	"%s: not a number"	1
 setting_verbs.go	fitError	K15	"%s is %s, not on/off: %s"	1
 setting_verbs.go	fitError	K15	"%s is %s: setting.%s is for %s"	1
-setting_verbs.go	fitError	K2	"Enum without Accept: <expr>"	1
 setting_verbs.go	nextSet	K15	"value"	1
 setting_verbs.go	operand	K15	"%s takes %s: %v"	1
 setting_verbs.go	operand	K3	"%s is required"	1
 setting_verbs.go	planSetting	K14	"%s: %w"	1	failure
 setting_verbs.go	readApplyLine	K14	"%w; nothing was changed"	1	failure
-setting_verbs.go	registerSettingsApply	K2	"Enum without Accept: <expr>"	1
-setting_verbs.go	settingParams	K2	"Enum without Accept: <expr>"	1
 setting_verbs.go	settingScope	K15	"scope is session or file: %s"	1
 setting_verbs.go	settingsApply	K14	"%w; nothing was changed"	1	failure
-setting_verbs.go	var settingProps	K2	"Enum without Accept: <expr>"	2
 settings.go	Runtime.DeclareSetting	K14	"setting %s default: %w"	1	failure
 settings.go	Runtime.DeclareSetting	K15	"setting %q is already declared"	1
 settings.go	Runtime.DeclareSetting	K15	"setting %s: only a string setting takes an enum"	1
 settings.go	Runtime.DeclareSetting	K15	"setting name %q must be one word"	1
 settings.go	Settings.Set	K14	"%s: %w"	1	failure
 settings.go	Settings.write	K14	"%s does not parse; fix or remove it first: %w"	1	failure
-settings.go	coerceSetting	K2	"must be one of %s"	1
 settings.go	coerceType	K15	"must be a duration such as \"400ms\" or \"2s\""	1
 settings.go	coerceType	K15	"must be true or false"	1
 settings.go	coerceType	K2	"unknown setting type %q"	1
@@ -1137,7 +1098,6 @@ settings_owners.go	Settings.unknownOwner	K13	"this application declares no setti
 settings_owners.go	Settings.unknownOwner	K2	"no settings owner %q: one of %s"	1
 settings_page_layout.go	findUnit	K2	"no settings section %q: one of %s"	1
 settings_page_layout.go	registerSettingsLayoutView	K1	"there is no All section: settings.all-section is off"	1
-settings_page_layout.go	registerSettingsLayoutView	K2	"Enum without Accept: <expr>"	1
 settings_page_layout.go	runScopeCopy	K5	"every setting here is at its default: nothing to copy"	1
 settings_page_layout.go	showSettingsSection	K13	"this application declares no settings"	1	declaration
 settings_page_layout.go	showSettingsSection	K9	"the settings page is not open"	1
@@ -1153,7 +1113,6 @@ settings_view.go	commitSettingPrompt	K15	"an item cannot be empty"	1
 settings_view.go	commitSettingPrompt	K4	"%s has no item %d"	1
 settings_view.go	focusedSettingRow	K5	"no setting is focused"	1
 settings_view.go	openItemPrompt	K4	"%s has no item %d"	1
-settings_view.go	registerSettingEdit	K2	"Enum without Accept: <expr>"	1
 settings_view.go	registerSettingItemThings	K15	"a setting item is named setting/index, not %q"	1
 settings_view.go	registerSettingItemThings	K15	"no setting item %q"	1
 settings_view.go	settingAdd	K8	"%s is not a list"	1
@@ -1256,9 +1215,7 @@ subjects.go	Runtime.subjectsOf	K8	"subject %q is not a %s"	1
 table_cells.go	Runtime.cellTable	K15	"not a cell table (CellSelect)"	1
 table_cells.go	Runtime.tableList	K4	"unknown list %q"	1
 table_cells.go	Runtime.tableList	K5	"no focused list"	1
-table_cells.go	tableCellVerbs	K2	"Enum without Accept: <expr>"	2
 table_cells.go	tableYank	K15	"not a cell table (CellSelect): only the row copies"	1
-table_columns.go	registerColumnMotions	K2	"Enum without Accept: <expr>"	1
 table_columns.go	registerColumnMotions	K5	"no focused list"	1
 table_fit.go	registerTableFit	K15	"not a cell table (CellSelect)"	1
 table_fit.go	registerTableFit	K15	"not a table"	1
@@ -1272,7 +1229,6 @@ terminal.go	Runtime.terminalOf	K15	"unknown terminal %q"	1
 terminal.go	Runtime.terminalOf	K5	"no focused terminal"	1
 terminal.go	registerTerminal	K3	"keys is required"	1
 terminal.go	validLeader	K15	"must be one ctrl+ or alt+ key, such as \"ctrl+b\""	1
-theme.go	newAppearance	K2	"Enum without Accept: <expr>"	1
 theme.go	newAppearance	K2	"unknown theme %q: use %s"	1
 theme.go	validDim	K15	"must be 0 to %d"	1
 thing_keys.go	Runtime.findTarget	K15	"%s %q names %d %s: use one id (%s)"	1
@@ -1294,7 +1250,6 @@ timeline.go	Timeline.SetOpen	K15	"unknown card %q"	1
 timeline.go	Timeline.target	K15	"unknown card %q"	1
 timeline.go	Timeline.target	K4	"timeline has no cards"	1
 timeline.go	registerTimelines	K15	"unknown timeline %q"	1
-timeline.go	registerTimelines	K2	"Enum without Accept: <expr>"	1
 timeline.go	registerTimelines	K5	"no focused timeline"	1
 timeline_steps.go	Timeline.foldStep	K15	"the current step is not in an open section"	1
 timeline_steps.go	registerTimelineSteps	K15	"not inside a card"	4
@@ -1342,7 +1297,6 @@ tree.go	registerTrees	K1	"When(\"tree-editable\") without Fallback"	9
 tree.go	registerTrees	K1	"When(\"tree-zoom\") without Fallback"	3
 tree.go	registerTrees	K15	"Failed(…)"	1
 tree.go	registerTrees	K15	"tree"	1
-tree.go	registerTrees	K2	"Enum without Accept: <expr>"	2
 tree.go	registerTrees	K5	"no focused tree"	1
 tree.go	var ErrTreeRefused	K15	"change refused"	1
 tree_delete.go	Tree.remove	K5	"no row selected"	1
@@ -1365,3 +1319,4 @@ verb_checks.go	Runtime.AddVerbCheck	K2	"unknown operation %q"	1
 verb_checks.go	Runtime.AddVerbCheck	K3	"a verb check needs a name and a check"	1
 yank_history.go	registerYankHistory	K15	"no yank at history index"	1
 yank_history.go	registerYankHistory	K15	"yank history is not active"	1
+settings.go	defaultListed	K2	"%q is not one of its enum %s"	1	declaration

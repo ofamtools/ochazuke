@@ -39,6 +39,10 @@ type Setting struct {
 	Default     any      `json:"default"`
 	Description string   `json:"description,omitempty"`
 	Enum        []string `json:"enum,omitempty"`
+	// Accept says what a value outside Enum does (accept.go): kept (the
+	// default; the typed getter then answers Default), registered as a
+	// new choice, or swapped for the one name an edit away.
+	Accept Accept `json:"accept,omitempty"`
 	// Protected keeps agents from changing this setting, even with the rights gate off.
 	Protected bool `json:"protected,omitempty"`
 	// Owner says which owner (a tab of the Settings page) the setting
@@ -191,6 +195,9 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 			return fmt.Errorf("setting %s: only a string setting takes an enum", one.Name)
 		}
 		def, err := coerceSetting(one, one.Default)
+		if err == nil {
+			err = defaultListed(one, def)
+		}
 		if err != nil {
 			return fmt.Errorf("setting %s default: %w", one.Name, err)
 		}
@@ -380,7 +387,17 @@ func (s *Settings) persisted(one Setting) any {
 }
 
 // String is a string setting's value ("" when undeclared or another type).
-func (s *Settings) String(name string) string { v, _ := s.Value(name); t, _ := v.(string); return t }
+// A kept value outside the setting's Enum answers the declared default, so
+// behaviour stays defined while the value stays as written (Vim's
+// 'filetype': any value, nothing registered for it means the default).
+func (s *Settings) String(name string) string {
+	v, _ := s.Value(name)
+	t, _ := v.(string)
+	if one := s.find(s.canonical(name)); one != nil && len(one.Enum) > 0 && !slices.Contains(one.Enum, t) {
+		t, _ = one.Default.(string)
+	}
+	return t
+}
 
 // Int is an integer setting's value.
 func (s *Settings) Int(name string) int { v, _ := s.Value(name); t, _ := v.(int); return t }
@@ -469,6 +486,7 @@ func (s *Settings) Set(name string, value any) error {
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)
 	}
+	s.registerValue(name, v)
 	data, err := json.Marshal(fileForm(v))
 	if err != nil {
 		return err
@@ -761,13 +779,24 @@ func coerceSetting(one Setting, value any) (any, error) {
 	if err == nil && one.Validate != nil {
 		err = one.Validate(v)
 	}
-	if text, ok := v.(string); err == nil && ok && len(one.Enum) > 0 && !slices.Contains(one.Enum, text) {
-		err = fmt.Errorf("must be one of %s", strings.Join(one.Enum, ", "))
-	}
 	if err != nil {
 		return nil, err
 	}
+	if text, ok := v.(string); ok && len(one.Enum) > 0 && !slices.Contains(one.Enum, text) {
+		v, _ = acceptValue(one.Accept, text, one.Enum)
+	}
 	return v, nil
+}
+
+// registerValue adds a value outside a register setting's Enum to it, so
+// every list of its choices shows it.
+func (s *Settings) registerValue(name string, v any) {
+	one := s.find(name)
+	text, ok := v.(string)
+	if one == nil || !ok || one.Accept != AcceptRegister || len(one.Enum) == 0 || slices.Contains(one.Enum, text) {
+		return
+	}
+	one.Enum = append(slices.Clone(one.Enum), text)
 }
 
 func coerceType(one Setting, value any) (any, error) {
@@ -1052,4 +1081,56 @@ func sameJSON(a, b []byte) bool {
 		return false
 	}
 	return bytes.Equal(ca.Bytes(), cb.Bytes())
+}
+
+// Keep writes a value under a name no declaration has: the user's own row
+// of settings.json, kept as written (a word that reads as JSON is stored as
+// that value, else as text) and reported as an unknown setting with the
+// near names, as a hand-written key is. Nothing reads it until a
+// declaration of that name does (no-refusals D2: E518 is not ours).
+func (s *Settings) Keep(name string, value any) (SettingKept, error) {
+	s.ensure()
+	if text, ok := value.(string); ok {
+		var parsed any
+		if json.Unmarshal([]byte(text), &parsed) == nil {
+			value = parsed
+		}
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return SettingKept{}, err
+	}
+	raw := maps.Clone(s.raw)
+	if raw == nil {
+		raw = map[string]json.RawMessage{}
+	}
+	raw[name] = data
+	if err := s.write(raw); err != nil {
+		return SettingKept{}, err
+	}
+	names := make([]string, len(s.declared))
+	for i, one := range s.declared {
+		names[i] = one.Name
+	}
+	kept := SettingKept{Name: name, Value: value, Kept: true, Near: NearNames(name, names, NearShown)}
+	s.problem(fmt.Sprintf("%s: unknown setting %q (kept)", SettingsFile, name))
+	return kept, nil
+}
+
+// SettingKept answers a setting set of a name nothing declares: the row
+// written as the user's own, and the declared names close to it.
+type SettingKept struct {
+	Name  string   `json:"name"`
+	Value any      `json:"value"`
+	Kept  bool     `json:"kept"`
+	Near  []string `json:"near,omitempty"`
+}
+
+// defaultListed is the declaration check that a setting's default is one
+// of its Enum (a developer's error, caught at registration: exception E4).
+func defaultListed(one Setting, def any) error {
+	if text, ok := def.(string); ok && len(one.Enum) > 0 && !slices.Contains(one.Enum, text) {
+		return fmt.Errorf("%q is not one of its enum %s", text, strings.Join(one.Enum, ", "))
+	}
+	return nil
 }

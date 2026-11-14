@@ -54,6 +54,10 @@ type settingVerb struct {
 	// History is the history kind of a verb that is not the derived one
 	// (set, cycle and reset record changes).
 	History string
+	// Keeps writes a name no declaration has as the user's own row of
+	// settings.json (kept, with the near names as a notice) instead of
+	// answering the unknown-setting error (no-refusals D2).
+	Keeps bool
 }
 
 // settingVerbs are the setting noun's value verbs, in the order help lists
@@ -62,7 +66,7 @@ type settingVerb struct {
 var settingVerbs = []settingVerb{
 	{Verb: "show", Description: "Show the setting's value on the status line, name=value (a boolean name or noname); verbose adds where it was set", Fits: anySetting,
 		Extra: map[string]Parameter{"verbose": {Type: "boolean", Description: "Add where the value was set (:verbose)"}}},
-	{Verb: "set", Description: "Set the setting to a value, parsed by its type and checked against its allowed values", History: HistoryChange, Arg: "value", ArgHelp: "The value: text, a number, true or false, a duration such as 400ms, or a list as a,b or a JSON array", Usage: settingSetUsage, Fits: tableFits("set"), Next: nextSet},
+	{Verb: "set", Description: "Set the setting to a value, parsed by its type and checked against its allowed values", History: HistoryChange, Arg: "value", ArgHelp: "The value: text, a number, true or false, a duration such as 400ms, or a list as a,b or a JSON array", Usage: settingSetUsage, Fits: tableFits("set"), Next: nextSet, Keeps: true},
 	{Verb: "toggle", Description: "Invert an on/off setting", Fits: tableFits("toggle"), Next: nextToggle},
 	{Verb: "cycle", History: HistoryChange, Description: "Step a boolean, an enum or a number to its next or previous value (an enum wraps)", Fits: settingSteps, Next: nextCycle,
 		Extra: map[string]Parameter{"step": {Type: "integer", Description: "1 for the next value, -1 for the previous"}}},
@@ -401,6 +405,11 @@ func settingParams(v settingVerb) map[string]Parameter {
 	params := map[string]Parameter{
 		"name": {Type: "string", Description: "Setting name (default: the focused Settings row)", Source: "ochazuke.setting.list"},
 	}
+	if v.Keeps {
+		p := params["name"]
+		p.Accept = AcceptKeep
+		params["name"] = p
+	}
 	if v.Next != nil {
 		params["scope"] = Parameter{Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the value is written: session (the default: settings.json when there is no running session or settings.autosave is on) or file"}
 	}
@@ -510,10 +519,13 @@ func settingThing(r *Runtime, name string) (Thing, error) {
 func runSettingVerb(v settingVerb) Handler {
 	return func(r *Runtime, c Context, a Arguments) (any, error) {
 		one, err := settingOfArgs(r, c, a)
+		s := r.Settings()
+		if name := StringArg(a, "name", ""); err != nil && v.Keeps && name != "" && v.Arg != "" {
+			return s.Keep(name, a[v.Arg])
+		}
 		if err != nil {
 			return nil, err
 		}
-		s := r.Settings()
 		if v.Next == nil {
 			return showSetting(r, *one, boolArg(a, "verbose"))
 		}
@@ -752,7 +764,7 @@ func registerSettingsApply(r *Runtime) {
 	r.Register(Operation{Key: "ochazuke.setting.apply", Checks: []VerbCheck{applyCheck},
 		Description: "Run a :set line over the settings (opt, noopt, opt!, opt?, opt&, opt<, opt=v, opt+=v, opt-=v, opt^=v, all, all&; several words, all or nothing); a leading verbose adds where values were set",
 		Parameters: map[string]Parameter{
-			"line":    {Type: "string", Rest: true, Free: true, Source: "ochazuke.setting.complete", Description: "The :set line, the rest of the command: scrolloff=5 nowrap (empty: the settings that differ from their saved values)"},
+			"line":    {Type: "string", Rest: true, Accept: AcceptKeep, Source: "ochazuke.setting.complete", Description: "The :set line, the rest of the command: scrolloff=5 nowrap (empty: the settings that differ from their saved values)"},
 			"verbose": {Type: "boolean", Description: "Add where each shown value was set (:verbose)"},
 			"scope":   {Type: "string", Enum: []string{ScopeSession, ScopeFile}, Description: "Where the line's values are written: session (the default) or file"},
 		},

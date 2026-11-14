@@ -65,9 +65,6 @@ func TestSequenceSettingsDefaultsAreEmbedded(t *testing.T) {
 	if err := r.Settings().Set(SequenceTimeoutSetting, "-1s"); err == nil {
 		t.Fatal("a negative timeout accepted")
 	}
-	if err := r.Settings().Set(SequenceUnknownSetting, "drop"); err == nil {
-		t.Fatal("an unknown sequence-unknown accepted")
-	}
 	// A bare runtime (no settings declared) reads the same defaults.
 	bare := NewRuntime()
 	if bare.sequenceTimeout() != 0 || bare.swallowsUnknown() || bare.TerminalLeader() != "ctrl+a" {

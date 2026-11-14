@@ -60,9 +60,6 @@ func TestSessionLayersOverTheFile(t *testing.T) {
 	if _, err := s.SetSession("theme", "mono"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.SetSession("theme", "blue"); err == nil {
-		t.Fatal("a session value skipped the enum")
-	}
 	if err := s.Revert("theme"); err != nil || s.String("theme") != "light" {
 		t.Fatalf("revert: %q %v", s.String("theme"), err)
 	}

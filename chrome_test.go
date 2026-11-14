@@ -219,7 +219,4 @@ func TestModelStylesFollowTheSetting(t *testing.T) {
 			t.Errorf("level %q, want %q", got, level)
 		}
 	}
-	if err := m.Runtime.Settings().Set(ChromeColorSetting, "loud"); err == nil {
-		t.Error("chrome.color takes only off, subtle and rich")
-	}
 }

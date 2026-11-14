@@ -138,9 +138,9 @@ func newModel(r *Runtime) *Model {
 	r.Settings().now = m.clock
 	// The framework's theme setting (EnsureConfigSettings) drives the
 	// scheme; an application that declared its own theme applies it itself.
-	r.Settings().Observe(ThemeSetting, func(_ string, v any) {
-		if name, ok := v.(string); ok && r.Config().FrameworkTheme() {
-			m.Appearance.Theme = name
+	r.Settings().Observe(ThemeSetting, func(string, any) {
+		if r.Config().FrameworkTheme() {
+			m.Appearance.Theme = r.Settings().String(ThemeSetting)
 		}
 	})
 	m.ModalViews[paletteID] = ModalView{Title: "Command palette", Render: func(_ *Runtime, _ *Instance, width, height int) Block {
@@ -334,10 +334,9 @@ func (m *Model) applyThemeSetting() {
 	if !c.FrameworkTheme() {
 		return
 	}
+	// String reads a kept name no scheme has as the default.
 	if v, err := m.Runtime.Settings().Get(ThemeSetting); err == nil && v.Set {
-		if name, ok := v.Value.(string); ok {
-			m.Appearance.Theme = name
-		}
+		m.Appearance.Theme = m.Runtime.Settings().String(ThemeSetting)
 	}
 }
 

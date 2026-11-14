@@ -10,7 +10,8 @@
 //     built by Ctx.Need is an enabling answer and not a site);
 //   - declarations that make a verb or value refuse: an Unavailable: or
 //     Lacks: field, a When guard on a verb with no Fallback, a Confirm
-//     without Loses, an Enum without Accept (or the older Free).
+//     without Loses. (An Enum no longer refuses: Parameter.Accept keeps,
+//     registers or nears a value outside it, so it is not a site.)
 //
 // Each site is classified into one of the kinds K1 to K15 of the
 // no-refusals plan by classes.json (an ordered list of message patterns;
@@ -310,10 +311,6 @@ func (s *scanner) composite(cl *ast.CompositeLit) {
 	}
 	if t, ok := nonEmpty("Confirm"); ok && !has("Loses") {
 		s.add(cl.Pos(), ClassConfirm, "Confirm: "+t+" without Loses")
-	}
-	if _, ok := keys["Enum"]; ok && !has("Accept") && !has("Free") {
-		name, _ := lit(keys["Name"])
-		s.add(cl.Pos(), ClassChoice, "Enum without Accept: "+orExpr(name))
 	}
 }
 

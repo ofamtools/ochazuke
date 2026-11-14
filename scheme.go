@@ -370,7 +370,11 @@ func (s *Settings) setEnum(name string, enum []string) {
 	if one == nil || slices.Equal(one.Enum, enum) {
 		return
 	}
+	// What it read: a kept value outside the old choices read the default.
 	old := s.current(*one)
+	if text, ok := old.(string); ok && !slices.Contains(one.Enum, text) {
+		old = one.Default
+	}
 	one.Enum = slices.Clone(enum)
 	if !s.loaded {
 		return

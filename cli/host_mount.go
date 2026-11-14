@@ -402,7 +402,7 @@ func MountParameter(p ochazuke.Parameter, nouns map[string]string) ochazuke.Para
 			}
 		}
 		if source == "" {
-			p.Free = true
+			p.Accept = ochazuke.AcceptKeep
 		}
 		p.Source = source
 	}

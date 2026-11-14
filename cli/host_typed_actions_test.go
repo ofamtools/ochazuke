@@ -31,7 +31,7 @@ func TestMountTypedPathKeepsFreeVerbsAndNativeOpen(t *testing.T) {
 		return ochazuke.Done(map[string]any{"legacy": c.Args["file"]})
 	})
 	get, _ := producer.Operation("document.get")
-	get.Parameters = map[string]ochazuke.Parameter{"id": {Type: "string", Noun: "document", Free: true}, "file": {Type: ochazuke.PropPath, Path: "file"}}
+	get.Parameters = map[string]ochazuke.Parameter{"id": {Type: "string", Noun: "document", Accept: ochazuke.AcceptKeep}, "file": {Type: ochazuke.PropPath, Path: "file"}}
 	producer.Operations.Set(get)
 	raw, err := Catalog(producer, "example", "1")
 	if err != nil {

@@ -59,7 +59,7 @@ func newAnyFixture(t *testing.T) *anyFixture {
 	f.notes.add("id", "n2", "text", "about the lane", "about", "lane:w1")
 	f.notes.add("id", "n3", "text", "about the doc", "about", "doc:/a/b:c.md")
 	r.Define("note").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "text", Role: RoleLabel},
-		PropSpec{Name: "about", Parameter: Parameter{Noun: AnyNoun, Free: true}}).Store(f.notes.store())
+		PropSpec{Name: "about", Parameter: Parameter{Noun: AnyNoun, Accept: AcceptKeep}}).Store(f.notes.store())
 	r.Instance("page")
 	list, err := r.AddList("page/rows", []ListItem{
 		{ID: "page/rows/widget", Label: "shell", Noun: "widget", Data: "w1"},
@@ -192,7 +192,7 @@ func TestAnyRelatedNewAndAssociateFillNounAndKey(t *testing.T) {
 func TestAnyRefChoicesNounThenThing(t *testing.T) {
 	t.Parallel()
 	f := newAnyFixture(t)
-	p := Parameter{Type: "string", Noun: AnyNoun, Free: true}
+	p := Parameter{Type: "string", Noun: AnyNoun, Accept: AcceptKeep}
 	if !f.r.ChoicesTakeQuery(p) {
 		t.Fatal("an any-noun reference does not take the typed text")
 	}
@@ -237,7 +237,7 @@ func TestAnyRefChoicesNounThenThing(t *testing.T) {
 func TestAnyRefChooserBrowsesIntoANoun(t *testing.T) {
 	t.Parallel()
 	f := newAnyFixture(t)
-	p := Parameter{Type: "string", Noun: AnyNoun, Free: true}
+	p := Parameter{Type: "string", Noun: AnyNoun, Accept: AcceptKeep}
 	c, err := f.r.openChoiceChooser(ChooserSpec{Kind: FormSuggestionsKind, Title: "About"}, choiceLoad{
 		ctx: f.r.Context(), param: p, label: func(ch Choice) string { return ch.Label }, siblings: func() Arguments { return nil },
 	})
@@ -421,7 +421,7 @@ func TestAnyRefValueIsKeptAsWritten(t *testing.T) {
 	for _, free := range []bool{true, false} {
 		r := NewRuntime()
 		mem := &relMem{}
-		r.Define("note").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "about", Parameter: Parameter{Noun: AnyNoun, Free: free}}).Store(mem.store())
+		r.Define("note").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "about", Parameter: Parameter{Noun: AnyNoun, Accept: map[bool]Accept{true: AcceptKeep}[free]}}).Store(mem.store())
 		for _, about := range []string{"widget:w1", "gone.noun:/a/b:c", "plain"} {
 			res, err := r.Execute(Request{Noun: "note", Verb: "create", Args: Arguments{"about": about}})
 			if err != nil {
@@ -438,7 +438,7 @@ func TestAnyRefValueIsKeptAsWritten(t *testing.T) {
 func TestAnyRefNounsSetting(t *testing.T) {
 	t.Parallel()
 	f := newAnyFixture(t)
-	p := Parameter{Type: "string", Noun: AnyNoun, Free: true}
+	p := Parameter{Type: "string", Noun: AnyNoun, Accept: AcceptKeep}
 	ids := func() []string {
 		chs, err := f.r.ChoicesFor(f.r.Context(), p, "")
 		if err != nil {

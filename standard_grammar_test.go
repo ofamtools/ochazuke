@@ -184,9 +184,9 @@ func TestPropValueCompletion(t *testing.T) {
 	if got := p.Text(); got != "task list --where status=" {
 		t.Fatalf("after taking status= the line is %q", got)
 	}
-	// A value outside a prop's Enum is refused on the line.
-	if c := p.parse("task status nope"); c.Err == nil {
-		t.Fatal("task status nope parsed")
+	// A value outside a prop's Enum is read as typed (Accept).
+	if c := p.parse("task status nope"); c.Err != nil {
+		t.Fatalf("task status nope: %v", c.Err)
 	}
 }
 

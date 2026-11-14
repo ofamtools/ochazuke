@@ -72,9 +72,6 @@ func TestDoneVisibilityAndMotions(t *testing.T) {
 			if !strings.Contains(ansi.Strip(d.View(70, 0, mono)), "unfinished child") {
 				t.Fatal("show did not restore subtree")
 			}
-			if err := r.Settings().Set(DoneSetting, "invalid"); err == nil {
-				t.Fatal("accepted bad visibility")
-			}
 		})
 	}
 }

@@ -59,8 +59,8 @@ func mountReciprocal(r *ochazuke.Runtime, noun CatalogNoun, local string, verb C
 	if _, taken := params[receiverKey]; taken {
 		return fmt.Errorf("receiver key parameter %q is already in use", receiverKey)
 	}
-	params[reverse.Subject] = ochazuke.Parameter{Type: "string", Required: true, Noun: local, Free: true, Description: "The " + r.DisplayNoun(local) + " to use"}
-	params[receiverKey] = ochazuke.Parameter{Type: "string", Noun: end.Noun, Focus: true, Free: true, Description: "The receiving " + r.DisplayNoun(end.Noun) + " (default: selected)"}
+	params[reverse.Subject] = ochazuke.Parameter{Type: "string", Required: true, Noun: local, Accept: ochazuke.AcceptKeep, Description: "The " + r.DisplayNoun(local) + " to use"}
+	params[receiverKey] = ochazuke.Parameter{Type: "string", Noun: end.Noun, Focus: true, Accept: ochazuke.AcceptKeep, Description: "The receiving " + r.DisplayNoun(end.Noun) + " (default: selected)"}
 	handler := func(c ochazuke.Ctx) ochazuke.Result {
 		args := stdmaps.Clone(c.Args)
 		subject, receiver := args[reverse.Subject], args[receiverKey]

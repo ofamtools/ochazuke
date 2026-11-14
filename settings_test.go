@@ -94,7 +94,7 @@ func TestSettingsSetValidatesPersistsAndNotifies(t *testing.T) {
 	if !reflect.DeepEqual(seen, []string{"scrolloff=5", "theme=light", "wrap=true", "debounce=1s", "ratio=0.25"}) || !reflect.DeepEqual(themes, []any{"light"}) {
 		t.Fatalf("observers %v %v", seen, themes)
 	}
-	for _, bad := range [][2]string{{"scrolloff", "five"}, {"theme", "neon"}, {"wrap", "maybe"}, {"debounce", "soon"}, {"nope", "1"}} {
+	for _, bad := range [][2]string{{"scrolloff", "five"}, {"wrap", "maybe"}, {"debounce", "soon"}} {
 		if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "set", Args: Arguments{"name": bad[0], "value": bad[1]}}); err == nil {
 			t.Fatalf("accepted %v", bad)
 		}

@@ -34,11 +34,11 @@ type Parameter struct {
 	// boolean)", MissingParameterError.Reason); "" says only that it is.
 	Usage string `json:"usage,omitempty"`
 	// Enum lists the static choices of a string parameter; Source names an
-	// operation (noun.verb) whose result lists more. Free also accepts a
-	// value outside them.
+	// operation (noun.verb) whose result lists more. A value outside them
+	// is never refused: Accept says what happens to it (accept.go).
 	Enum   []string `json:"enum,omitempty"`
 	Source string   `json:"source,omitempty"`
-	Free   bool     `json:"free,omitempty"`
+	Accept Accept   `json:"accept,omitempty"`
 	// EnumLabels gives an Enum value the human label a pick list shows
 	// for it (a thing's label-role prop beside its id): a host that
 	// caches a source's rows into Enum keeps their labels here, so the
@@ -1343,9 +1343,6 @@ func validateArguments(op Operation, args Arguments) error {
 		if k := kindOf(p.Type); k.accepts == nil || !k.accepts(v) {
 			return fmt.Errorf("%s must be %s", name, p.Type)
 		}
-		if s, ok := v.(string); ok && len(p.Enum) > 0 && p.Source == "" && !p.Free && !slices.Contains(p.Enum, s) {
-			return fmt.Errorf("%s must be one of %s", name, strings.Join(p.Enum, ", "))
-		}
 	}
 	return nil
 }
@@ -1455,7 +1452,7 @@ func registerCore(r *Runtime) {
 		}
 		return mode, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.modal.push", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true, Noun: "ochazuke.editor", Free: true}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.modal.push", Description: "Open a modal focused on a registered input", Parameters: map[string]Parameter{"id": {Type: "string", Required: true}, "input": {Type: "string", Required: true, Noun: "ochazuke.editor", Accept: AcceptKeep}}, Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		id := StringArg(a, "input", "")
 		if r.Input(id) == nil {
 			return nil, errors.New("unknown modal input")

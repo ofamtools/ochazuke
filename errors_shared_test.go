@@ -91,7 +91,7 @@ func TestUnknownSettingOneWording(t *testing.T) {
 		q    Request
 		want string
 	}{
-		{Request{Noun: "setting", Verb: "set", Args: Arguments{"name": "modal-dimm", "value": "1"}}, "unknown setting modal-dimm: did you mean modal-dim?; setting list shows all"},
+		{Request{Noun: "setting", Verb: "show", Args: Arguments{"name": "modal-dimm"}}, "unknown setting modal-dimm: did you mean modal-dim?; setting list shows all"},
 		{Request{Noun: "setting", Verb: "get", Args: Arguments{"name": "nosuch"}}, "unknown setting nosuch; setting list shows all"},
 		{Request{Noun: "setting", Verb: "set", Args: Arguments{"name": "modal-dim"}}, "value is required: setting set NAME VALUE (or toggle a boolean)"},
 	} {

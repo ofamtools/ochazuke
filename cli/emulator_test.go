@@ -207,12 +207,12 @@ func TestTerminalEngineSetting(t *testing.T) {
 	if got := TerminalEngineOf(r); got != "x-vt" {
 		t.Fatalf("engine after set %q", got)
 	}
-	err := r.Settings().Set(TerminalEngineSetting, "nope")
-	if err == nil || !strings.Contains(err.Error(), "must be one of") {
+	// An engine nothing registered is kept; the engine read is the default.
+	if err := r.Settings().Set(TerminalEngineSetting, "nope"); err != nil {
 		t.Fatalf("set nope = %v", err)
 	}
 	if e, _ := engineRow("ghostty"); e.Unavailable != "" {
-		err = r.Settings().Set(TerminalEngineSetting, "ghostty")
+		err := r.Settings().Set(TerminalEngineSetting, "ghostty")
 		if err == nil || !strings.Contains(err.Error(), "-tags ghostty") {
 			t.Fatalf("set ghostty = %v", err)
 		}

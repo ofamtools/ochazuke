@@ -955,9 +955,6 @@ func propValue(p PropSpec, value any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if s, ok := v.(string); ok && len(p.Enum) > 0 && !slices.Contains(p.Enum, s) {
-		return nil, fmt.Errorf("must be one of %s", strings.Join(p.Enum, ", "))
-	}
 	return v, nil
 }
 
@@ -1245,7 +1242,9 @@ func asksCollectionProp(n *Noun, a Arguments) bool {
 // the thing may be gone, or its noun not registered here, and the reference
 // is kept as written (record first, never refuse).
 func (p PropSpec) keepAnyRef() PropSpec {
-	p.Free = p.Free || p.Noun == AnyNoun
+	if p.Noun == AnyNoun && p.Accept == AcceptDefault {
+		p.Accept = AcceptKeep
+	}
 	return p
 }
 

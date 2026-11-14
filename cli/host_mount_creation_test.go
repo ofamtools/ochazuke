@@ -40,7 +40,7 @@ func TestMountKeepsCustomCreationWithDependentChoices(t *testing.T) {
 	params := map[string]ochazuke.Parameter{
 		"name":  {Type: "string", Required: true},
 		"scope": {Type: "path", Path: "dir", Required: true},
-		"from":  {Type: "string", Source: "specimen.names", Free: true, SourceArgs: map[string]string{"scope": "scope"}},
+		"from":  {Type: "string", Source: "specimen.names", Accept: ochazuke.AcceptKeep, SourceArgs: map[string]string{"scope": "scope"}},
 	}
 	create := func(noun string) ochazuke.AppHandler {
 		return func(c ochazuke.Ctx) ochazuke.Result {
@@ -68,7 +68,7 @@ func TestMountKeepsCustomCreationWithDependentChoices(t *testing.T) {
 				Local: func(noun string) string { return "lab." + noun },
 				Param: func(p ochazuke.Parameter) ochazuke.Parameter {
 					if disableSource && p.Source != "" {
-						p.Source, p.Free = "", true
+						p.Source, p.Accept = "", ochazuke.AcceptKeep
 					}
 					return p
 				},

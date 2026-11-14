@@ -16,7 +16,7 @@ func TestCatalogCarriesFree(t *testing.T) {
 	r.Define("task").Verb("launch", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }, "Launch")
 	op := r.Operations.At(ochazuke.Key("task.launch"))
 	op.Parameters = map[string]ochazuke.Parameter{
-		"model":   {Type: "string", Source: "harness.models", Free: true},
+		"model":   {Type: "string", Source: "harness.models", Accept: ochazuke.AcceptKeep},
 		"harness": {Type: "string", Source: "harness.models"},
 	}
 	r.Operations.Set(op)
@@ -51,11 +51,11 @@ func TestCatalogCarriesFree(t *testing.T) {
 	if err := json.Unmarshal(params["harness"], &harness); err != nil {
 		t.Fatalf("harness param: %v", err)
 	}
-	if model["free"] != true || model["source"] != "harness.models" {
-		t.Fatalf("free sourced param = %v; want free true", model)
+	if model["accept"] != "keep" || model["source"] != "harness.models" {
+		t.Fatalf("free sourced param = %v; want accept keep", model)
 	}
-	if _, ok := harness["free"]; ok || harness["source"] != "harness.models" {
-		t.Fatalf("closed sourced param = %v; want no free key", harness)
+	if _, ok := harness["accept"]; ok || harness["source"] != "harness.models" {
+		t.Fatalf("closed sourced param = %v; want no accept key", harness)
 	}
 	var doc CatalogDoc
 	if err := json.Unmarshal(data, &doc); err != nil {
@@ -63,7 +63,7 @@ func TestCatalogCarriesFree(t *testing.T) {
 	}
 	for _, n := range doc.Nouns {
 		for _, v := range n.Verbs {
-			if n.Name == "task" && (!v.Params["model"].Free || v.Params["harness"].Free) {
+			if n.Name == "task" && (!v.Params["model"].TakesAny() || v.Params["harness"].TakesAny()) {
 				t.Fatalf("decoded params %+v", v.Params)
 			}
 		}

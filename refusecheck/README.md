@@ -33,7 +33,8 @@ A place that answers "no" to a request that could have run. The scan finds:
   `NotApplicableError{}`, `MissingParameterError{}` that carry a message;
 - declarations that make a verb or value refuse: an `Unavailable:` or
   `Lacks:` field, a `When` guard on a verb with no `Fallback`, a `Confirm`
-  without `Loses`, an `Enum` without `Accept` (or the older `Free`).
+  without `Loses`. An `Enum` is not a site: since no-refusals N2 a value
+  outside it is accepted (`Parameter.Accept`: keep, register, near).
 
 `Fallback`, `Loses` and `Accept` may not exist in the framework yet; until
 they do, such a declaration is a site in the baseline, and it leaves the

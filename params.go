@@ -511,10 +511,13 @@ type ArgumentError struct{ Err error }
 func (e *ArgumentError) Error() string { return e.Err.Error() }
 func (e *ArgumentError) Unwrap() error { return e.Err }
 
-// checkArguments is validateArguments plus the lazy Source check: a string
-// argument of a parameter with a Source must be one of the source's choices
-// at execution time. A source that fails skips the check rather than
-// blocking the operation; Free skips it always.
+// checkArguments is validateArguments plus the choices rule: a string
+// argument outside its parameter's Enum, or outside its Source's choices at
+// execution time, is accepted by the parameter's Accept (acceptArgument:
+// kept, registered or swapped for the near name), never refused. A Source
+// whose rows are a noun's things answers the unknown-name error for a name
+// none of them has (the thing does not exist; the caller chooses), unless
+// the parameter takes any value. A source that fails skips the check.
 func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 	if err := validateArguments(op, args); err != nil {
 		return err
@@ -522,16 +525,27 @@ func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 	for name, v := range args {
 		p := op.Parameters[name]
 		s, ok := v.(string)
-		if !ok || p.Source == "" || p.Free {
+		if !ok {
+			continue
+		}
+		if p.Source == "" {
+			if len(p.Enum) > 0 && !slices.Contains(p.Enum, s) {
+				r.acceptArgument(op, name, p, s, p.Enum, args)
+			}
 			continue
 		}
 		choices, err := r.ChoicesFor(r.Context(), p, s, args)
-		if err != nil {
+		if err != nil || hasChoice(choices, s) {
 			continue
 		}
-		if !hasChoice(choices, s) {
+		if r.choicesAreThings(p) && !p.TakesAny() {
 			return r.choiceError(name, p, s, choices)
 		}
+		ids := make([]string, len(choices))
+		for i, c := range choices {
+			ids[i] = c.ID
+		}
+		r.acceptArgument(op, name, p, s, ids, args)
 	}
 	return nil
 }
@@ -540,30 +554,29 @@ func hasChoice(choices []Choice, id string) bool {
 	return slices.ContainsFunc(choices, func(c Choice) bool { return c.ID == id })
 }
 
-// choiceError is the error for value, which is none of a parameter's
-// choices: the unknown-name form (UnknownNameError) with the close choices
-// when the choices are a registered noun's things ("unknown setting nosuch:
-// did you mean …; setting list shows all"), else "NAME must be one of …"
-// (the choices when they are few) with the close ones.
+// choicesAreThings reports a parameter whose choices are a registered
+// noun's things (its source's rows): a value none of them has names a
+// thing that does not exist, answered by the unknown-name error, where any
+// other listed choice accepts the value (Accept).
+func (r *Runtime) choicesAreThings(p Parameter) bool {
+	source, ok := r.Operation(r.ChoicesSource(p))
+	return ok && source.Rows != "" && r.Nouns[source.Rows] != nil
+}
+
+// choiceError is the unknown-name error (UnknownNameError) for a value
+// none of a noun's things is: the close names and the list verb ("unknown
+// setting nosuch: did you mean …; setting list shows all").
 func (r *Runtime) choiceError(name string, p Parameter, value string, choices []Choice) error {
 	ids := make([]string, len(choices))
 	for i, c := range choices {
 		ids[i] = c.ID
 	}
-	near := NearNames(value, ids, NearShown)
-	if source, ok := r.Operation(r.ChoicesSource(p)); ok && source.Rows != "" && r.Nouns[source.Rows] != nil {
-		kind := r.DisplayNoun(source.Rows)
-		return &UnknownNameError{Kind: kind, Name: value, Near: near, List: kind + " list shows all"}
+	kind := r.DisplayNoun(r.ChoicesSource(p))
+	if source, ok := r.Operation(r.ChoicesSource(p)); ok && source.Rows != "" {
+		kind = r.DisplayNoun(source.Rows)
 	}
-	listed := strings.Join(ids, ", ")
-	if len(ids) > choicesListed {
-		listed = fmt.Sprintf("%d choices (the picker lists them)", len(ids))
-	}
-	return fmt.Errorf("%s must be one of %s%s", name, listed, didYouMean(near))
+	return &UnknownNameError{Kind: kind, Name: value, Near: NearNames(value, ids, NearShown), List: kind + " list shows all"}
 }
-
-// choicesListed is how many choices an unknown-choice error lists whole.
-const choicesListed = 12
 
 // choicesLoad is a parameter's choices for query as a Result whose value
 // is a []Choice: Done when they are at hand, Pending when the source verb
@@ -619,7 +632,7 @@ func (r *Runtime) CheckSourceArgs(params map[string]Parameter) error {
 			continue
 		}
 		source := r.ChoicesSource(p)
-		if source == "" && (len(p.SourceArgs) == 0 || p.Free) {
+		if source == "" && (len(p.SourceArgs) == 0 || p.TakesAny()) {
 			continue // no source to receive dependencies; a host may accept free values without its producer's picker
 		}
 		op, ok := r.Operations.Find(Key(source))
@@ -699,7 +712,7 @@ func (r *Runtime) choicesContext(c Context, op Operation, p Parameter, query str
 // completesPairs distinguishes a prop=value slot from a prop's own value
 // choices. Create props accept pair words too, without replacing their source.
 func (p Parameter) completesPairs(word string) bool {
-	return p.Pairs && (strings.Contains(word, "=") || p.Rest || p.Free && len(p.Enum) == 0 && p.Noun == "" && p.Source == "")
+	return p.Pairs && (strings.Contains(word, "=") || p.Rest || p.TakesAny() && len(p.Enum) == 0 && p.Noun == "" && p.Source == "")
 }
 
 // ParameterChoices lists a request parameter's choices, including ValueOf

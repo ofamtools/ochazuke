@@ -267,7 +267,7 @@ func TestStandardEditReferenceChoice(t *testing.T) {
 	r.Instance("p1", Kind("project")).Label = "Alpha"
 	r.Instance("p2", Kind("project")).Label = "Beta"
 	s.find("t1")["project"] = "p1"
-	r.Define("parcel").Props(PropSpec{Name: "project", Parameter: Parameter{Noun: "project", Free: true}})
+	r.Define("parcel").Props(PropSpec{Name: "project", Parameter: Parameter{Noun: "project", Accept: AcceptKeep}})
 	m := NewModel(r)
 	mustRun(t, r, Request{Noun: "parcel", Verb: "edit"})
 	if err := r.SetFocus(editFormID + "/project"); err != nil {

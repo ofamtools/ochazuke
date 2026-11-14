@@ -125,9 +125,6 @@ func TestItemCursorLineSettingChangesLive(t *testing.T) {
 	if e, off := d.Cursor(); e != 0 || off != 0 {
 		t.Fatalf("k: %d/%d", e, off)
 	}
-	if err := r.Settings().Set(CursorSetting, "invalid"); err == nil {
-		t.Fatal("invalid cursor setting accepted")
-	}
 }
 
 func TestItemCursorLongElementPacingAndScrolling(t *testing.T) {

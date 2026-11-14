@@ -132,9 +132,6 @@ func TestRegisterThings(t *testing.T) {
 	if got := mustRun(t, r, Request{Noun: "ochazuke.register", Verb: "get", Args: Arguments{"name": "b"}}).(map[string]any); got["text"] != "x\n" || got["shape"] != "line" {
 		t.Fatalf("register b = %v", got)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.register", Verb: "set", Args: Arguments{"name": "a", "prop": "shape", "value": "round"}}); err == nil {
-		t.Fatal("an unknown shape was written")
-	}
 	rows := rowsOf[map[string]any](t, mustRun(t, r, Request{Noun: "ochazuke.register", Verb: "list"}))
 	ids := []string{}
 	for _, row := range rows {

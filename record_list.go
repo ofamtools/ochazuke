@@ -79,7 +79,7 @@ func (e *RecordEditor) listProblem(f *recordField, v string) string {
 	if len(items) == 0 && f.Required {
 		return "required"
 	}
-	if it := f.Items; it != nil && len(it.Enum) > 0 && !it.Free {
+	if it := f.Items; it != nil && len(it.Enum) > 0 && !it.TakesAny() {
 		for _, item := range items {
 			if !slices.Contains(it.Enum, item) {
 				return fmt.Sprintf("%q is not one of %s", item, strings.Join(it.Enum, ", "))
@@ -307,7 +307,7 @@ func (e *RecordEditor) itemPrompt(f *recordField, at int, insert bool, current s
 		Choose: func(row ChooserRow) Result { return take(row.ID) },
 		Start:  func(row ChooserRow) bool { return heldChoice(current, row.ID) },
 	}
-	free := it.Free || !paramHasChoices(it)
+	free := it.TakesAny() || !paramHasChoices(it)
 	if free {
 		spec.Create, spec.CreateRow = take, true
 		spec.CreateLabel = func(query string) string { return "use " + strconv.Quote(query) }

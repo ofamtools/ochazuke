@@ -82,9 +82,6 @@ func TestRuntimeSearchCaseSetting(t *testing.T) {
 			t.Fatalf("set %q read %q", v, r.SearchCase())
 		}
 	}
-	if err := r.Settings().Set(SearchCaseSetting, "loud"); err == nil {
-		t.Fatal("a value outside the enum should be refused")
-	}
 }
 
 // readmeEntries are a README.md and a readme.txt: distinct names on a

@@ -599,7 +599,7 @@
                 "name": "project",
                 "type": "string",
                 "noun": "project",
-                "free": true
+                "accept": "keep"
               },
               {
                 "name": "title",
@@ -1284,7 +1284,7 @@
               {
                 "name": "model",
                 "type": "string",
-                "free": true,
+                "accept": "keep",
                 "enum": [
                   "opus",
                   "sonnet",
@@ -1687,7 +1687,7 @@
               "swatch": {
                 "type": "string",
                 "required": true,
-                "free": true,
+                "accept": "keep",
                 "source": "swatch.names",
                 "description": "The swatch to paint",
                 "scopes": [

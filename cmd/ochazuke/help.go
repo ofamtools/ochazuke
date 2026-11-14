@@ -83,7 +83,7 @@ func writeOperationHelp(out io.Writer, op ochazuke.Operation, choices choicesFun
 			}
 		}
 		free := ""
-		if p.Free {
+		if p.TakesAny() {
 			free = " (or any value)"
 		}
 		fmt.Fprintf(out, "    choices%s: %s\n", free, strings.Join(ids, ", "))

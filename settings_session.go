@@ -194,6 +194,7 @@ func (s *Settings) SetSession(name string, value any) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", one.Name, err)
 	}
+	s.registerValue(one.Name, v)
 	return OriginSession, s.putSession(*one, v, false)
 }
 

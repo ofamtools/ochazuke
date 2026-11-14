@@ -149,7 +149,7 @@ func TestMalformedSchemeFallsBack(t *testing.T) {
 		t.Fatalf("theme %q", m.Appearance.Theme)
 	}
 	joined := strings.Join(m.Notices, "\n")
-	if !strings.Contains(joined, `themes.json: kombu: accent: "teal"`) || !strings.Contains(joined, "settings.json: theme: must be one of") {
+	if !strings.Contains(joined, `themes.json: kombu: accent: "teal"`) {
 		t.Fatalf("notices: %q", m.Notices)
 	}
 	if err := os.WriteFile(r.Config().Path(ThemesFile), []byte(`{"kombu": {"accent": "#C9A227"}}`), 0o600); err != nil {

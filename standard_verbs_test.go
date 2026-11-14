@@ -353,7 +353,7 @@ func TestListRows(t *testing.T) {
 	if got := list(Arguments{"props": "status,token", "limit": 1}); !reflect.DeepEqual(got[0], map[string]any{"id": "t1", "label": "Water the plants", "status": "todo", "token": "s3cret"}) {
 		t.Fatalf("props = %v", got[0])
 	}
-	for _, bad := range []Arguments{{"where": "nope=1"}, {"where": "status"}, {"where": "status=late"}, {"where": "estimate=x"}, {"props": "nope"}} {
+	for _, bad := range []Arguments{{"where": "nope=1"}, {"where": "status"}, {"where": "estimate=x"}, {"props": "nope"}} {
 		if _, err := r.Execute(Request{Noun: "task", Verb: "list", Args: bad}); err == nil {
 			t.Fatalf("list %v: no error", bad)
 		}

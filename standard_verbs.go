@@ -354,7 +354,7 @@ func subjectParameter(r *Runtime, n *Noun, key PropSpec) Parameter {
 	if key.Type == SettingInteger {
 		typ = "integer"
 	}
-	return Parameter{Type: typ, Noun: n.Name, Focus: true, Free: true,
+	return Parameter{Type: typ, Noun: n.Name, Focus: true, Accept: AcceptKeep,
 		Description: fmt.Sprintf("The %s's %s (default: the %s the request acts for)", r.DisplayNoun(n.Name), key.Name, r.DisplayNoun(n.Name))}
 }
 
@@ -369,21 +369,21 @@ func propNames(n *Noun) []string {
 
 func getParams(n *Noun) map[string]Parameter {
 	return map[string]Parameter{
-		"prop":  {Type: "string", Enum: slices.Concat(propNames(n), n.roleNames()), Free: true, Description: "One prop (or @role: the prop with that role): answer its value alone; a dotted path (prop.key.0.key) reads inside an object or list prop"},
+		"prop":  {Type: "string", Enum: slices.Concat(propNames(n), n.roleNames()), Accept: AcceptKeep, Description: "One prop (or @role: the prop with that role): answer its value alone; a dotted path (prop.key.0.key) reads inside an object or list prop"},
 		"props": {Type: "string", Description: "The props to answer, comma-separated (default: every prop but secrets)"},
 	}
 }
 
 func listParams(n *Noun) map[string]Parameter {
 	params := map[string]Parameter{
-		"filter":     {Type: "string", Free: true, Description: "Keep the things that meet every condition: words prop=value, prop!=value, prop~value (contains), prop!~value, with a|b for alternatives; or the name of a saved prop filter for this noun. ANDed with where"},
-		"where":      {Type: "string", Free: true, Pairs: true, Description: "prop=value pairs, comma- or space-separated: keep the things whose props equal every value"},
+		"filter":     {Type: "string", Accept: AcceptKeep, Description: "Keep the things that meet every condition: words prop=value, prop!=value, prop~value (contains), prop!~value, with a|b for alternatives; or the name of a saved prop filter for this noun. ANDed with where"},
+		"where":      {Type: "string", Accept: AcceptKeep, Pairs: true, Description: "prop=value pairs, comma- or space-separated: keep the things whose props equal every value"},
 		"props":      {Type: "string", Description: "The props each row holds besides id and label, comma-separated (default: every prop but secrets)"},
 		"limit":      {Type: "integer", Description: "At most this many rows: the first page of that size (0: every row)"},
-		"sort":       {Type: "string", Free: true, Description: "Order the rows by props, comma-separated, each prop[:desc]; ties keep the store's order"},
-		"group-by":   {Type: "string", Free: true, Description: "Gather the rows that share these props' values into groups (comma-separated props); each row names its group"},
-		"search":     {Type: "string", Free: true, Named: true, Description: "Only the things holding every word of this text in their key, label or text props (case-insensitive); a store that pages searches the whole store"},
-		"group-sort": {Type: "string", Free: true, Description: "Order the groups by group-by props, each prop[:desc] (default: the order the groups first appear in)"},
+		"sort":       {Type: "string", Accept: AcceptKeep, Description: "Order the rows by props, comma-separated, each prop[:desc]; ties keep the store's order"},
+		"group-by":   {Type: "string", Accept: AcceptKeep, Description: "Gather the rows that share these props' values into groups (comma-separated props); each row names its group"},
+		"search":     {Type: "string", Accept: AcceptKeep, Named: true, Description: "Only the things holding every word of this text in their key, label or text props (case-insensitive); a store that pages searches the whole store"},
+		"group-sort": {Type: "string", Accept: AcceptKeep, Description: "Order the groups by group-by props, each prop[:desc] (default: the order the groups first appear in)"},
 		"page":       {Type: "integer", Description: "The page to answer, from 1 (with per-page)"},
 		"per-page":   {Type: "integer", Description: "Rows per page, counting rows, never groups (0: one page of every row)"},
 		"archived":   {Type: "boolean", Description: "Include the archived things collection.hide-archived hides by default"},
@@ -793,7 +793,7 @@ func createParams(n *Noun) map[string]Parameter {
 	params[createParamName(n, createObjectArg)] = Parameter{Type: PropObject, Named: true, Description: "Props to create: an object of prop (or alias or @role) to value; prop=value words and named props fill the same values"}
 	params[createParamName(n, createPairsArg)] = Parameter{Type: "string", Rest: true, Pairs: true, Description: "prop=value words for the props, after the label"}
 	if n.keyProp() != nil && n.Store.Get != nil {
-		params[createParamName(n, createSourceArg)] = Parameter{Type: AnyParameterType, Noun: n.Name, Free: true, Covers: true, Named: true, Description: "Copy this thing (an id or a human key, or a row holding its key): every prop create writes, read from it, unless given; a colliding prop or alias owns the bare name"}
+		params[createParamName(n, createSourceArg)] = Parameter{Type: AnyParameterType, Noun: n.Name, Accept: AcceptKeep, Covers: true, Named: true, Description: "Copy this thing (an id or a human key, or a row holding its key): every prop create writes, read from it, unless given; a colliding prop or alias owns the bare name"}
 	}
 	return params
 }
@@ -901,7 +901,7 @@ func setParams(n *Noun) map[string]Parameter {
 	}
 	return map[string]Parameter{
 		"props":   {Type: "object", Description: "The props to write: an object of prop (or @role: @label, @owner, @archive) to value, a subset or all of them; the others keep their values"},
-		"prop":    {Type: "string", Enum: names, Free: true, Pairs: true, Description: "The prop toggle flips; a prop=value word fills props (with value, the one-prop form props replaces)"},
+		"prop":    {Type: "string", Enum: names, Accept: AcceptKeep, Pairs: true, Description: "The prop toggle flips; a prop=value word fills props (with value, the one-prop form props replaces)"},
 		"value":   {Type: AnyParameterType, ValueOf: "prop", Description: "The prop's new value, typed by the prop (a word such as 3, true or 400ms, a JSON array or object); props replaces it"},
 		"toggle":  {Type: "boolean", Excludes: []string{"value"}, Description: "Flip the boolean prop instead of giving a value"},
 		"changes": {Type: "object", Description: "The old name of props (accepted for one release)"},
@@ -1221,7 +1221,7 @@ func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 		if err != nil {
 			return nil, &ArgumentError{fmt.Errorf("%s %w", p.Name, err)}
 		}
-		values[p.Name] = typed
+		values[p.Name] = r.acceptProp(n.Name, p, typed)
 	}
 	if name := r.unshownProp(n, c, sortedKeys(c.Args)); name != "" {
 		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), name)
@@ -1246,6 +1246,11 @@ func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
 	changes, order, err := setChanges(n, c.Args)
 	if err != nil {
 		return nil, err
+	}
+	for name, v := range changes {
+		if p := n.prop(name); p != nil {
+			changes[name] = r.acceptProp(n.Name, *p, v)
+		}
 	}
 	if name := r.unshownProp(n, c, order); name != "" {
 		return nil, fmt.Errorf("%s.%s is not available here", r.DisplayNoun(n.Name), name)

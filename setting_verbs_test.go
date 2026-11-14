@@ -131,8 +131,7 @@ func TestSettingVerbErrors(t *testing.T) {
 		{"cycle", Arguments{"name": "debounce"}, "debounce is a duration: setting.cycle is for on/off settings, numbers and fixed values"},
 		{"increase", Arguments{"name": "scrolloff", "by": "x"}, "scrolloff takes a whole number: x"},
 		{"increase", Arguments{"name": "level", "by": "20"}, "level: must be at most 9"},
-		{"set", Arguments{"name": "theme", "value": "blue"}, "theme: must be one of dark, light, mono"},
-		{"set", Arguments{"name": "scrolloff", "value": "1", "scope": "disk"}, "scope must be one of session, file"},
+		{"set", Arguments{"name": "scrolloff", "value": "1", "scope": "disk"}, "scope is session or file: disk"},
 		{"show", nil, "name a setting (no setting is focused)"},
 	} {
 		if _, err := runSetting(t, r, c.verb, c.args); err == nil || err.Error() != c.want {

@@ -140,7 +140,7 @@ func TestPaletteLineGrammar(t *testing.T) {
 		{line: "t t", err: `"t t" is ambiguous: text tidy, timeline toggle`},
 		{line: "transform c up", err: `"c" is ambiguous: cell, column`},
 		{line: "transform row t", op: "row.transform", err: `name: "t" is ambiguous: title, trim`},
-		{line: "transform row purple", op: "row.transform", err: "name must be one of upper, lower, title, trim"},
+		{line: "transform row purple", op: "row.transform", args: Arguments{"name": "purple"}},
 		{line: "transform row upper more", op: "row.transform", err: `unexpected word "more"`},
 		{line: "zap", err: `"zap" names no verb or noun here`},
 		{line: "row zap", missing: "verb", err: `"zap" names no verb of row here`},
@@ -587,7 +587,7 @@ func TestPaletteParamHeader(t *testing.T) {
 	p := NewPalette(r)
 	r.Register(Operation{Key: "file.open", Parameters: map[string]Parameter{
 		"path": {Type: "string", Required: true, Source: "file.list", Description: "The file to open"},
-		"mode": {Type: "string", Enum: []string{"read", "write"}, Free: true},
+		"mode": {Type: "string", Enum: []string{"read", "write"}, Accept: AcceptKeep},
 		"row":  {Noun: "ochazuke.collection"},
 	}, Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 	op := r.Operations.At(Key("file.open"))

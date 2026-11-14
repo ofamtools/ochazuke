@@ -730,7 +730,7 @@ func TestMountContextualHelpAndDispatch(t *testing.T) {
 			op := f.r.Operations.At(ochazuke.Key("widget.relabel"))
 			op.Parameters["name"] = ochazuke.Parameter{
 				Type: "string", Required: true, Description: "Widget name",
-				Enum: []string{"one", "two"}, Source: "widget.list", Free: true,
+				Enum: []string{"one", "two"}, Source: "widget.list", Accept: ochazuke.AcceptKeep,
 			}
 			f.r.Operations.Set(op)
 			orphan := f.r.Operations.At(ochazuke.Key("widget.list"))

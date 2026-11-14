@@ -274,7 +274,7 @@ func (r *Runtime) editKindOf(field RecordField) editKind {
 		return k
 	}
 	k.chips = field.Chips && (paramHasChoices(field.Parameter) || field.Type == "boolean")
-	k.choose = !k.chips && (field.Type == "boolean" || field.Noun != "" || (paramHasChoices(field.Parameter) && !field.Free))
+	k.choose = !k.chips && (field.Type == "boolean" || field.Noun != "" || (paramHasChoices(field.Parameter) && !field.TakesAny()))
 	k.suggest = !k.chips && !k.choose && paramHasChoices(field.Parameter)
 	if field.Type == PathParameterType {
 		// A path field is a stop that opens the path chooser, or a
@@ -787,10 +787,10 @@ func (e *RecordEditor) problem(f *recordField) string {
 			return k.phrase
 		}
 	}
-	if !f.Free && f.choiceLoading {
+	if !f.TakesAny() && f.choiceLoading {
 		return "loading choices"
 	}
-	if !f.Free && paramHasChoices(f.Parameter) && (len(f.SourceArgs) == 0 && len(f.choices) > 0 || len(f.SourceArgs) > 0 && f.choicesReady) && !hasChoice(f.choices, v) {
+	if !f.TakesAny() && paramHasChoices(f.Parameter) && (len(f.SourceArgs) == 0 && len(f.choices) > 0 || len(f.SourceArgs) > 0 && f.choicesReady) && !hasChoice(f.choices, v) {
 		ids := make([]string, len(f.choices))
 		for i, c := range f.choices {
 			ids[i] = c.ID
@@ -1714,7 +1714,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 			}
 			style = s.Error
 		}
-		if f.Free && e.staleChoice(f) {
+		if f.TakesAny() && e.staleChoice(f) {
 			label += " · outside current choices"
 		}
 		lines = append(lines, e.fieldStyle(f, style).Render(ansi.Truncate(label, width, "…")))

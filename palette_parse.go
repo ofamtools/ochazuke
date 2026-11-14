@@ -997,7 +997,7 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 	// A ValueOf parameter is checked against the prop it holds a value of.
 	check, _ := p.r.choiceParameter(op, name, args)
 	if param.Pairs && strings.Contains(word, "=") {
-		check.Free = true // the props reader checks the named prop, not this slot
+		check.Accept = AcceptKeep // the props reader checks the named prop, not this slot
 	}
 	if len(choices) > 0 || p.r.ChoicesSource(check) != "" {
 		hit, matches, exact := matchWord(word, p.choiceOptions("argument", choices))
@@ -1009,7 +1009,7 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 			text = hit.Value
 		case len(matches) > 1:
 			return nil, "", optionValues(matches), fmt.Errorf("%s: %q is ambiguous: %s", name, word, strings.Join(optionValues(matches), ", "))
-		case !check.Free && sourceErr == nil:
+		case !check.TakesAny() && sourceErr == nil && p.r.choicesAreThings(check):
 			return nil, "", nil, p.r.choiceError(name, check, word, choices)
 		}
 	}

@@ -401,9 +401,9 @@ func suggestFixture(t *testing.T, source string) (*Runtime, *Model, *RecordEdito
 	if err := r.OpenPage("main"); err != nil {
 		t.Fatal(err)
 	}
-	model := Parameter{Type: "string", Free: true, Enum: []string{"opus", "sonnet", "haiku"}}
+	model := Parameter{Type: "string", Accept: AcceptKeep, Enum: []string{"opus", "sonnet", "haiku"}}
 	if source != "" {
-		model = Parameter{Type: "string", Free: true, Source: source}
+		model = Parameter{Type: "string", Accept: AcceptKeep, Source: source}
 	}
 	var writes []string
 	spec := RecordSpec{
@@ -638,7 +638,7 @@ func TestRecordReferenceChoices(t *testing.T) {
 			})
 			var writes []string
 			e, err := r.OpenRecordEditor("reference", RecordSpec{
-				Fields: []RecordField{{Name: "project", Parameter: Parameter{Noun: "project", Free: free}}},
+				Fields: []RecordField{{Name: "project", Parameter: Parameter{Noun: "project", Accept: map[bool]Accept{true: AcceptKeep}[free]}}},
 				Load:   func() (Record, error) { return Record{"project": "p1"}, nil },
 				Save: func(w RecordWrite) Result {
 					writes = append(writes, w.String())

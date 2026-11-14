@@ -39,7 +39,7 @@ func TestPersistedHistoryKeepsDurableIdentityWithoutPrivateValues(t *testing.T) 
 			})
 		}).History(HistoryChange)
 		op, _ := r.Operation("document.relocate")
-		op.Parameters = map[string]Parameter{"id": {Type: "string", Noun: "document", Free: true}}
+		op.Parameters = map[string]Parameter{"id": {Type: "string", Noun: "document", Accept: AcceptKeep}}
 		r.Operations.Set(op)
 		r.EnsureHistory()
 		t.Cleanup(func() { r.Config().Flush() })
