@@ -1,0 +1,6 @@
+# rulecheck deadkeys baseline: list, row noun, mode, key, sibling noun, count, reason (tab separated).
+# A row says: on ROW-NOUN rows of the LIST (its instance id), in MODE, KEY does nothing of the row's own (it falls to the list, page or app),
+# though a SIBLING-NOUN row beside it answers KEY. Count is 1. Fix it with the row noun's own row on KEY
+# or a key redirect (the unbound pattern, ochazuke.key.redirect {to: parent}).
+# A row with a reason is a reviewed difference that stays ("panes kill, items archive"); a row without one is debt that only shrinks
+# (RULECHECK_UPDATE=1 removes and lowers rows, never adds one; adding a row is a reviewed edit).
