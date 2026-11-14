@@ -118,7 +118,7 @@ func TestEmptyListKeepsSelectionErrorsForInvalidTargets(t *testing.T) {
 	if err := unmarked.Focus(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := r.Execute(Request{Noun: "collection", Verb: "visual"}); err == nil {
+	if r.Available(Request{Noun: "collection", Verb: "visual"}, r.Focus, r.Mode) {
 		t.Fatal("NoMarks list must keep its visual guard")
 	}
 }

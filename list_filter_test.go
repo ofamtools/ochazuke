@@ -189,8 +189,8 @@ func TestListFilterVerbAndView(t *testing.T) {
 	}
 	// filter-clear is guarded off with nothing to clear, so esc stands
 	// aside for the level outside the list.
-	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "filter-clear", Target: "p/l"}); err == nil {
-		t.Fatal("filter-clear with no filter should be refused")
+	if r.Available(Request{Noun: "ochazuke.collection", Verb: "filter-clear"}, "p/l", r.Mode) {
+		t.Fatal("filter-clear with no filter is available")
 	}
 }
 

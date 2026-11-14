@@ -40,11 +40,13 @@ func TestMissingRequiredIsTyped(t *testing.T) {
 	}
 }
 
-// A guard refusal states which guards are false without changing its text.
+// A refusal of a hidden verb (verbs.disabled hide) states which guards are
+// false without changing its text.
 func TestRefusalNamesHeldGuards(t *testing.T) {
 	r, _, _ := applicabilityFixture(t)
 	guardVerb(r, "row.poke", "open")
-	_, err := r.Execute(Request{Noun: "row", Verb: "poke"})
+	op, _ := r.Operation("row.poke")
+	err := r.refusal(op, Request{Noun: "row", Verb: "poke"}, r.Focus, r.Mode)
 	var na *NotApplicableError
 	if !errors.As(err, &na) || len(na.Held) != 1 || na.Held[0] != "open" {
 		t.Fatalf("err = %v, want a NotApplicableError held by open", err)
@@ -62,8 +64,8 @@ func TestStandardVerbRunsAwayFromItsNoun(t *testing.T) {
 	r.DefineGuard("never", func(*Runtime, KeyEvent) bool { return false })
 	guardVerb(r, "task.get", "never")
 	q := Request{Noun: "task", Verb: "get", Args: Arguments{"id": "t2"}}
-	if _, err := r.Execute(q); err == nil {
-		t.Fatal("a program's request guarded off must be refused")
+	if _, err := r.Execute(q); err != nil {
+		t.Fatalf("a program's explicit request runs too (no-refusals D3): %v", err)
 	}
 	defer r.forceSource("palette")()
 	if _, err := r.Execute(q); err != nil {

@@ -79,17 +79,27 @@ func fallbackRequest(op Operation, q Request) *Request {
 }
 
 // runFallback runs a verb's Fallback in place of it, with a notice. A
-// fallback that names the verb itself, or that is guarded off too and
-// falls back again, runs the verb instead after two steps, so a cycle of
-// fallbacks cannot loop.
+// chain of fallbacks that comes back to a verb it passed is a declaration
+// error, answered before anything runs (fallbackLoops).
 func (r *Runtime) runFallback(c Context, q Request, instead *Request) (any, error) {
-	r.notice("%s: ran %s instead", r.DisplayKey(Key(q.Key()).Short()), r.DisplayKey(Key(instead.Key()).Short()))
-	r.fallbacks++
-	defer func() { r.fallbacks-- }()
-	if r.fallbacks > 2 || instead.Key() == q.Key() {
+	if r.fallbackLoops(q.Key()) {
 		return nil, fmt.Errorf("%s: its fallback %s loops", q.Key(), instead.Key())
 	}
+	r.notice("%s: ran %s instead", r.DisplayKey(Key(q.Key()).Short()), r.DisplayKey(Key(instead.Key()).Short()))
 	return r.ExecuteAt(c, *instead)
+}
+
+// fallbackLoops reports whether following key's Fallback chain comes back
+// to a verb already passed.
+func (r *Runtime) fallbackLoops(key string) bool {
+	seen := map[string]bool{}
+	for op, ok := r.Operation(key); ok && op.Fallback != nil; op, ok = r.Operation(op.Fallback.Key()) {
+		if seen[op.Key.Short()] {
+			return true
+		}
+		seen[op.Key.Short()] = true
+	}
+	return false
 }
 
 // provide runs, for each requirement whose Met guard is false at focus,

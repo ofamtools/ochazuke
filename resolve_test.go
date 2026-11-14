@@ -241,8 +241,8 @@ func TestGuardedOffRowFallsThrough(t *testing.T) {
 	if got := *calls; !reflect.DeepEqual(got, []string{"outer"}) {
 		t.Fatalf("d: %v", got)
 	}
-	if _, err := r.Execute(Request{Verb: "inner", Noun: "test"}); err == nil {
-		t.Fatal("a direct call still gets the refusal")
+	if _, err := r.Execute(Request{Verb: "inner", Noun: "test"}); err != nil {
+		t.Fatalf("a direct call runs (no-refusals D3): %v", err)
 	}
 }
 

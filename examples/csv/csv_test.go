@@ -579,10 +579,12 @@ func TestTransformTargetsFromTheCommandLine(t *testing.T) {
 	press(t, a, ":")
 	keytest.Type(a.m, "transform selection upper")
 	keytest.Press(a.m, "enter")
-	if !a.m.Palette.IsOpen() || a.m.Status != "selection.transform is not applicable now" {
+	if a.m.Status == "selection.transform is not applicable now" {
 		t.Fatalf("selection transform without a selection: open=%v status=%q", a.m.Palette.IsOpen(), a.m.Status)
 	}
-	keytest.Press(a.m, "ctrl+c")
+	if a.m.Palette.IsOpen() {
+		keytest.Press(a.m, "ctrl+c")
+	}
 }
 
 // paletteFinds reports whether the palette shows line after query is typed
@@ -741,8 +743,11 @@ func TestPaletteReachOffersGuardedVerbsByDefault(t *testing.T) {
 	press(t, a, ":")
 	keytest.Type(a.m, "transform selection upper")
 	keytest.Press(a.m, "enter")
-	if !a.m.Palette.IsOpen() {
-		t.Fatalf("choosing a selection verb without a selection closed the palette: %q", a.m.Status)
+	// An explicit request runs (no-refusals D3): no error on the line.
+	if strings.HasPrefix(a.m.Status, "selection.transform") {
+		t.Fatalf("choosing a selection verb without a selection was refused: %q", a.m.Status)
 	}
-	keytest.Press(a.m, "ctrl+c")
+	if a.m.Palette.IsOpen() {
+		keytest.Press(a.m, "ctrl+c")
+	}
 }

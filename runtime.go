@@ -600,7 +600,6 @@ func (o Operation) ParameterOrder() []string {
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
-	fallbacks int // the depth of Fallback runs in progress (runFallback)
 	// relations is the relation store and the declared kinds (relation.go).
 	relations *relationState
 	Nouns     map[string]*Noun

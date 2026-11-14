@@ -145,8 +145,9 @@ func TestVisualSelectionOnlyVerbIsAvailable(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"id": "a", "verb": "nest"}}); err != nil {
 		t.Fatalf("collection.apply nest over a selection: %v", err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"id": "a", "verb": "nest"}}); err == nil {
-		t.Fatal("collection.apply nest without a selection was not refused")
+	// Without one the key stands aside; an explicit request runs (D3).
+	if r.Available(Request{Noun: "ochazuke.collection", Verb: "apply", Args: Arguments{"id": "a", "verb": "nest"}}, r.Focus, r.Mode) {
+		t.Fatal("collection.apply nest without a selection is available")
 	}
 }
 

@@ -353,7 +353,8 @@ func TestPropGuardsAndStoreWhen(t *testing.T) {
 	if !r.Available(Request{Noun: "task", Verb: "set", Args: Arguments{"id": "t1", "prop": "status", "value": "done"}}, focus, r.Mode) {
 		t.Fatal("an unguarded prop is not writable")
 	}
-	if _, err := r.Execute(set); err == nil || !strings.Contains(err.Error(), "not applicable") {
+	// An explicit write runs (no-refusals D3).
+	if _, err := r.Execute(set); err != nil {
 		t.Fatalf("set secretly: %v", err)
 	}
 	s.things[0]["secretly"] = "shh"

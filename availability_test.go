@@ -163,8 +163,8 @@ func TestAvailabilityReadsTheRequestArguments(t *testing.T) {
 	if !r.Available(Request{Noun: "num", Verb: "halve", Args: Arguments{"n": 4}}, "app", r.Mode) {
 		t.Fatal("4 is even")
 	}
-	if _, err := r.Execute(Request{Noun: "num", Verb: "halve", Args: Arguments{"n": 3}}); err == nil {
-		t.Fatal("an unavailable call is refused")
+	if r.Available(Request{Noun: "num", Verb: "halve", Args: Arguments{"n": 3}}, "app", r.Mode) {
+		t.Fatal("3 is odd")
 	}
 	if _, err := r.Execute(Request{Noun: "num", Verb: "halve", Args: Arguments{"n": 2}}); err != nil {
 		t.Fatal(err)
@@ -293,9 +293,9 @@ func TestAddVerbAvailabilityNarrowsAGuardedVerb(t *testing.T) {
 		if got := hinted(); got != s.want {
 			t.Errorf("a=%v b=%v: hinted %v, want %v", s.a, s.b, got, s.want)
 		}
-		_, err := r.Execute(Request{Noun: "item", Verb: "a"})
-		if (err == nil) != s.want {
-			t.Errorf("a=%v b=%v: Execute err %v, want ran=%v", s.a, s.b, err, s.want)
+		// An explicit request runs whatever the guards say (D3).
+		if _, err := r.Execute(Request{Noun: "item", Verb: "a"}); err != nil {
+			t.Errorf("a=%v b=%v: Execute err %v", s.a, s.b, err)
 		}
 	}
 	if !r.RemoveVerbAvailability("item.a", "b-on") || r.RemoveVerbAvailability("item.a", "b-on") {

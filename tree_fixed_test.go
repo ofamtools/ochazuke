@@ -41,7 +41,10 @@ func TestFixedNodeRefusesFromEveryPath(t *testing.T) {
 		t.Fatalf("keys changed a fixed node: %v editing=%q", *writes, tree.Editing())
 	}
 	for _, verb := range []string{"delete", "edit", "indent", "outdent"} {
-		if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: verb, Target: "a"}); err == nil || !strings.Contains(err.Error(), "not applicable") {
+		// The keys stand aside; an explicit request reaches the tree,
+		// which keeps the fixed node (a refusal debt: the nearest-legal
+		// rule is no-refusals N5's).
+		if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: verb, Target: "a"}); len(tree.Nodes()) != 4 {
 			t.Fatalf("outline.%s on the fixed root: %v", verb, err)
 		}
 	}

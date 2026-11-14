@@ -171,7 +171,8 @@ func TestTaskWritesFromTheCLI(t *testing.T) {
 	owner := ochazuke.Owner()
 	sh.Actor = &owner
 	cli.Mount(app, sh)
-	if err := app.Run(context.Background()); err == nil || !strings.Contains(stderr.String(), "Delete task Call the plumber about the sink?") {
+	// Undo fully restores a delete, so it does not ask (no-refusals D7).
+	if err := app.Run(context.Background()); err != nil || strings.Contains(stderr.String(), "Delete task Call the plumber about the sink?") {
 		t.Fatalf("delete without --yes: %v\n%s", err, stderr.String())
 	}
 }
@@ -208,10 +209,10 @@ func TestTaskWritesFromThePalette(t *testing.T) {
 	if v := get("t1", "estimate"); v != 7 {
 		t.Fatalf("estimate %v", v)
 	}
-	if frame := palette("task delete t2"); !strings.Contains(frame, "Delete task Write the release notes?") {
-		t.Fatalf("no confirm:\n%s", frame)
+	// Undo restores it, so the delete runs without asking (D7).
+	if frame := palette("task delete t2"); strings.Contains(frame, "Delete task Write the release notes?") {
+		t.Fatalf("an undoable delete asked:\n%s", frame)
 	}
-	keytest.Press(m, "y")
 	if _, err := r.Execute(ochazuke.Request{Noun: "task", Verb: "get", Args: ochazuke.Arguments{"id": "t2"}}); err == nil {
 		t.Fatal("t2 is still there")
 	}

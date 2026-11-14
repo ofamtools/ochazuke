@@ -93,11 +93,12 @@ func TestPageHideLeavesTabsAndCycling(t *testing.T) {
 // tabs cannot be hidden; an unknown page is refused.
 func TestPageHideRefusals(t *testing.T) {
 	r, _ := pageHideFixture(t)
-	if _, err := r.Execute(Request{Noun: "page", Verb: "show", Args: Arguments{"id": "beta"}}); err == nil || !strings.Contains(err.Error(), "not applicable") {
+	// Showing a page already in the tabs runs and changes nothing.
+	if _, err := r.Execute(Request{Noun: "page", Verb: "show", Args: Arguments{"id": "beta"}}); err != nil && !strings.Contains(err.Error(), "already") {
 		t.Fatalf("show on a page in the tabs: %v", err)
 	}
 	paletteRequest(t, r, "hide", "page", Arguments{"id": "beta"})
-	if _, err := r.Execute(Request{Noun: "page", Verb: "hide", Args: Arguments{"id": "beta"}}); err == nil || !strings.Contains(err.Error(), "not applicable") {
+	if _, err := r.Execute(Request{Noun: "page", Verb: "hide", Args: Arguments{"id": "beta"}}); err != nil && !strings.Contains(err.Error(), "already") {
 		t.Fatalf("hide twice: %v", err)
 	}
 	paletteRequest(t, r, "hide", "page", Arguments{"id": "gamma"})

@@ -185,7 +185,8 @@ func TestMCPBackendDryRunGuardAndPolicyHash(t *testing.T) {
 		t.Fatal(err)
 	}
 	result := mcpCall(t, server, "run", map[string]any{"verb": "widget.relabel", "target": "w1", "args": map[string]any{"name": "dry"}, "dry_run": true})
-	if result["status"] != "failed" || !strings.Contains(result["reason"].(string), "not applicable") {
+	// Guarded off, an explicit request still passes the dry run (D3).
+	if result["status"] != "done" {
 		t.Fatal(result)
 	}
 	if len(f.calls) != 0 {

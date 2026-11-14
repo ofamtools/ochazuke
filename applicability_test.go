@@ -49,27 +49,27 @@ func TestBindingRowsHideGuardedOffVerbs(t *testing.T) {
 	}
 }
 
-// A verb guarded off is refused from the API, the CLI and keys, and the
-// refusal is the request's error in history; unguarded verbs are untouched.
+// A verb guarded off is skipped by keys; an explicit request (the API, the
+// CLI) runs it (no-refusals D3); unguarded verbs are untouched.
 func TestExecuteRefusesGuardedOffVerb(t *testing.T) {
 	r, open, acted := applicabilityFixture(t)
 	guardVerb(r, "row.poke", "open")
-	if _, err := r.Execute(Request{Verb: "poke", Noun: "row"}); err == nil || err.Error() != "row.poke is not applicable now" {
+	if _, err := r.Execute(Request{Verb: "poke", Noun: "row"}); err != nil {
 		t.Fatalf("api: %v", err)
 	}
 	reply := make(chan Response, 1)
 	r.HandleCall(CallMsg{Request: Request{Verb: "poke", Noun: "row"}, Reply: reply})
-	if resp := <-reply; resp.Error != "row.poke is not applicable now" {
+	if resp := <-reply; resp.Error != "" {
 		t.Fatalf("cli: %+v", resp)
 	}
-	if e := r.History(1)[0]; e.Result.OK || e.Context.Source != "cli" {
+	if e := r.History(1)[0]; !e.Result.OK || e.Context.Source != "cli" {
 		t.Fatalf("history: %+v", e)
 	}
-	if len(*acted) != 0 {
+	if len(*acted) != 2 {
 		t.Fatalf("ran: %v", *acted)
 	}
 	*open = true
-	if _, err := r.Execute(Request{Verb: "poke", Noun: "row"}); err != nil || len(*acted) != 1 {
+	if _, err := r.Execute(Request{Verb: "poke", Noun: "row"}); err != nil || len(*acted) != 3 {
 		t.Fatalf("guard holds: %v %v", err, *acted)
 	}
 	if _, err := r.Execute(Request{Verb: "ignore", Noun: "ochazuke.key"}); err != nil {
