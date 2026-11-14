@@ -540,6 +540,7 @@ func (r *Runtime) readUserBindings(path string) ([]fileRow, []string) {
 	if err != nil {
 		return nil, []string{BindingsFile + ": not a bindings file: " + err.Error()}
 	}
+	std, _ = rowsEnvelope(std)
 	if trimmed := bytes.TrimSpace(std); len(trimmed) > 0 && trimmed[0] == '[' {
 		c.bindingsFormat = BindingsRows
 		var raw []json.RawMessage
