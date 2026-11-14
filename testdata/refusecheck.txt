@@ -1,0 +1,1372 @@
+# refusecheck baseline: file, function, class, template, count, reason (tab separated).
+# A row with a reason (E1..E5: rights, loses, failure, declaration, cancel) is a legitimate refusal that stays.
+# A row without one is debt that may only shrink: REFUSECHECK_UPDATE=1 removes rows and lowers counts, never adds.
+# Adding a row is a reviewed edit.
+about.go	aboutRowOf	K5	"no about row is focused"	1
+about.go	aboutSections	K2	"no about section %q: one of %s"	1
+about.go	closeAboutPage	K15	"there is no page to go back to"	1
+about.go	closeAboutPage	K9	"the about page is not open"	1
+about.go	registerAbout	K8	"%s is not a path"	1
+action_names.go	Runtime.checkAlias	K13	"alias %s clashes with the noun %s"	2	declaration
+action_names.go	Runtime.checkAlias	K13	"alias and action are both required"	1	declaration
+action_names.go	Runtime.checkAlias	K15	"action %q is not registered"	1
+action_names.go	Runtime.checkAlias	K15	"alias %q must be one name without spaces"	1
+action_names.go	Runtime.checkAlias	K15	"alias %s args: %v"	1
+action_names.go	Runtime.checkAlias	K15	"alias %s is already an alias of %s (%s)"	2
+action_names.go	Runtime.checkAlias	K15	"alias %s would shadow the action %s"	1
+action_names.go	Runtime.checkAlias	K15	"alias %s would shadow the verb %s (%s is %s)"	1
+action_names.go	Runtime.checkAlias	K15	"alias %s: %v"	1
+action_names.go	Runtime.checkAlias	K15	"alias %s: shadowVerb is for a bare alias (a name without a dot)"	1
+action_names.go	Runtime.checkAlias	K15	"alias %s: shadowVerb must be one verb without spaces"	1
+action_names.go	Runtime.checkAlias	K15	"alias %s: shadows is for a bare alias (a name without a dot)"	1
+action_names.go	Runtime.checkAlias	K4	"alias %q names no registered noun (an alias is noun.verb, or a bare name without a dot)"	1
+action_names.go	Runtime.checkAlias	K8	"alias %s names itself"	1
+action_names.go	checkParamAliases	K15	"a parameter alias needs alias and param"	1
+action_names.go	checkParamAliases	K15	"parameter alias %q must be one name (no spaces, =, or leading -)"	1
+action_names.go	checkParamAliases	K15	"parameter alias %s is a parameter of %s"	1
+action_names.go	checkParamAliases	K15	"parameter alias %s is given twice"	1
+action_names.go	checkParamAliases	K4	"parameter alias %s: %s has no parameter %s"	1
+actions.go	Argv.UnmarshalJSON	K7	"must be a string or an array of strings"	1
+actions.go	Runtime.checkUserAlias	K15	"alias %s is already an alias of %s (%s)"	1
+actions.go	Runtime.checkUserAlias	K15	"alias %s is already declared by entry %d"	2
+actions.go	Runtime.installAction	K11	"Confirm: <expr> without Loses"	1
+actions.go	UserOperation.check	K15	"errors.New(…)"	1
+actions.go	UserOperation.handler	K3	"%s: the command is empty"	1
+actions.go	runAction	K14	"%s: %w"	1	failure
+actions.go	runAction	K15	"%s: %v: %s"	1
+actions.go	runAction	K15	"%s: timed out after %s"	1
+actor.go	Actor.validate	K12	"unknown actor kind %q (owner, agent or unknown)"	1	rights
+actor.go	ActorFromEnv	K14	"OCHAZUKE_ACTOR: %w"	1	failure
+actor.go	ParseActor	K15	"actor must be owner, agent, unknown or an actor JSON object"	1
+agent_rights.go	Runtime.agentVerdict	K15	"refuse(…)"	2
+agent_rights.go	parseAgentRules	K12	"agent rights must be an array"	1	rights
+agent_rights.go	parseAgentRules	K12	"agent rights must be one JSON array"	1	rights
+agent_rights.go	parseAgentRules	K12	"invalid agent right %q"	1	rights
+agent_rights.go	parseAgentRules	K12	"invalid agent rights match %q"	1	rights
+agent_rights.go	parseAgentRules	K12	"invalid agent rights where %q"	1	rights
+agent_rights.go	parseAgentRules	K12	"must be a JSON array of agent rights rows"	1	rights
+agent_rights.go	parseAgentRules	K14	"agent rights: %w"	1	failure
+alias_shadow.go	Runtime.restChoices	K13	"unknown choices source %q"	1	declaration
+alias_shadow.go	Runtime.restChoices	K14	"choices source %q: %w"	1	failure
+alias_shadow.go	Runtime.restChoices	K15	"choices source %q asks for confirmation"	1
+alias_shadow.go	Runtime.shadowNoun	K8	"%q is ambiguous: noun %s, or %s %s"	1
+args_form.go	ArgsFields	K6	"%s (%s) cannot be filled in a form"	1
+args_form.go	Runtime.choosePathArg	K15	"Failed(…)"	1
+args_form.go	Runtime.openArgsForm	K15	"%s takes no arguments a form can hold"	1
+args_form.go	Runtime.openArgsForm	K15	"Failed(…)"	2
+args_form.go	Runtime.openArgsForm	K15	"an args form is already open"	1
+args_form.go	Runtime.openArgsForm	K2	"unknown operation %q"	1
+args_form.go	Runtime.openArgsForm	K3	"args form needs a run"	1
+args_form.go	argumentsFrom	K15	"%s must be %s"	1
+binding_settings.go	Runtime.resolveNamedRow	K2	"keys %q name the unknown setting %q"	1
+bindings_file.go	FormatBindings	K14	"%s %q: %w"	1	failure
+bindings_file.go	actionRequest	K13	"action %q is not noun.verb"	1	declaration
+bindings_file.go	bindingValue.row	K1	"When: <expr> without Fallback"	1
+bindings_file.go	bindingValue.row	K15	"a prop row takes a value or toggle in its request, not \"args\""	1
+bindings_file.go	bindingValue.row	K15	"a row's \"request\" names a noun and a prop"	1
+bindings_file.go	bindingValue.row	K15	"an unbind takes no action"	1
+bindings_file.go	bindingValue.row	K15	"an unbind takes no request"	1
+bindings_file.go	bindingValue.row	K15	"no \"action\" (\"unbind\": true unbinds)"	1
+bindings_file.go	bindingValue.row	K3	"a row takes \"action\" or \"request\", not both"	1
+bindings_file.go	orderedMembers	K15	"key %q twice: put its rows in one array"	1
+bindings_file.go	orderedMembers	K15	"want an object of key: value"	1
+bindings_file.go	parseBindingGroup	K14	"%s: %w"	2	failure
+bindings_file.go	parseBindingGroup	K14	"bindings: %w"	2	failure
+bindings_file.go	parseBindingGroup	K15	"a context group names its mode in \"context\" (\"noun/mode\"), not \"mode\""	1
+bindings_file.go	parseBindingGroup	K15	"a group needs \"context\" (\"noun/mode\") or \"instance\""	1
+bindings_file.go	parseBindingGroup	K15	"extends applies to a noun's table, not an instance's"	1
+bindings_file.go	parseBindingGroup	K3	"a group takes context or instance, not both"	1
+bindings_file.go	parseBindingGroup	K4	"context %q names no noun"	1
+bindings_file.go	parseBindingLine	K15	"a row needs \"key\""	1
+bindings_file.go	parseBindingLine	K15	"want a row {\"key\": ..., \"action\": ...}, got %s"	1
+bindings_file.go	parseBindingValue	K14	"[%d]: %w"	1	failure
+bindings_file.go	parseBindingValue	K15	"an array inside an array"	1
+bindings_file.go	parseBindingValue	K15	"no value"	1
+bindings_file.go	parseBindingValue	K15	"want an action string, an object, null or an array, got %s"	1
+bindings_file.go	parseBindingsFile	K14	"%s %w (skipped)"	1	failure
+bindings_file.go	parseBindingsFile	K14	"%s: %w (group skipped)"	1	failure
+bindings_file.go	parseBindingsFile	K15	"not a bindings file: want {\"bindings\": [groups]} or an array of rows"	1
+chooser.go	Chooser.close	K15	"picker %s is not the top modal"	1
+chooser.go	Chooser.create	K15	"Failed(…)"	1
+chooser.go	Chooser.create	K15	"errors.New(…)"	1
+chooser.go	Chooser.pick	K15	"Failed(…)"	2
+chooser.go	Chooser.pick	K15	"errors.New(…)"	1
+chooser.go	Chooser.pickerCurrent	K15	"%s only opens; it is not what this picker takes"	1
+chooser.go	Chooser.pickerCurrent	K15	"Failed(…)"	1
+chooser.go	Chooser.pickerCurrent	K15	"errors.New(…)"	1
+chooser.go	Chooser.pickerCurrent	K4	"this picker has no current row"	1
+chooser.go	Runtime.AddChooser	K13	"picker kind must be nonempty and unused"	1	declaration
+chooser.go	Runtime.AddChooser	K15	"unknown picker parent or noun"	1
+chooser.go	Runtime.OpenPicker	K3	"picker kind is required"	1
+chooser.go	registerChooser	K1	"When(…) without Fallback"	2
+chooser.go	registerChooser	K15	"Failed(…)"	2
+chooser.go	registerChooser	K5	"no picker is open"	1
+chooser_sections.go	Chooser.beginMake	K15	"open a folder first: nothing can be made here"	1
+chooser_sections.go	Chooser.beginMake	K15	"this picker has nothing to make here"	1
+chooser_sections.go	Chooser.gotoSource	K15	"nowhere to go for %q"	1
+chooser_sections.go	Chooser.gotoSource	K15	"this picker cannot jump"	1
+chooser_sections.go	Chooser.makeNow	K15	"Failed(…)"	1
+chooser_sections.go	Chooser.makeNow	K15	"this picker has nothing to make here"	1
+chooser_sections.go	Chooser.makeNow	K15	"type a name first"	1
+chooser_sections.go	Chooser.mark	K15	"this picker takes one row; nothing to mark"	1
+chooser_sections.go	Chooser.mark	K5	"that row cannot be marked"	1
+chooser_sections.go	Chooser.markAll	K15	"this picker takes one row; nothing to mark"	1
+chooser_sections.go	Chooser.pathRow	K15	"Failed(…)"	1
+chooser_sections.go	Chooser.pathRow	K15	"no path is highlighted"	1
+chooser_sections.go	Chooser.pathRow	K15	"the free path verbs are off (setting paths.free-verbs)"	1
+chooser_sections.go	Chooser.pathRow	K8	"%v is not a path"	1
+chooser_sections.go	Chooser.pickMarked	K15	"Failed(…)"	1
+chooser_sections.go	Chooser.section	K15	"no row in that section"	1
+chooser_sections.go	Chooser.section	K4	"this picker has no sections"	1
+chooser_sections.go	Chooser.toggle	K4	"this picker has no option %q"	1
+chooser_sections.go	registerSectionVerbs	K1	"When(…) without Fallback"	2
+chooser_sections.go	registerSectionVerbs	K15	"Failed(…)"	1
+chooser_sections.go	registerSectionVerbs	K2	"Enum without Accept: <expr>"	1
+chooser_sources.go	Chooser.complete	K15	"cannot complete %s"	1
+chooser_sources.go	Chooser.complete	K15	"this picker has nothing to complete"	1
+chooser_sources.go	Chooser.cycle	K15	"the picker has one source"	1
+chooser_sources.go	Chooser.enterNow	K15	"Failed(…)"	1
+chooser_sources.go	Chooser.open	K15	"cannot open %s"	1
+chooser_sources.go	Chooser.open	K15	"the highlighted row does not open"	1
+chooser_sources.go	Chooser.up	K15	"nowhere to go up to"	1
+chooser_sources.go	Chooser.up	K9	"the source cannot step up"	1
+chooser_sources.go	registerChooserSources	K1	"When(…) without Fallback"	4
+chooser_sources.go	registerChooserSources	K15	"Failed(…)"	1
+chooser_sources.go	registerChooserSources	K5	"no picker is open"	1
+chrome_shape.go	Appearance.SetGlyph	K13	"glyph %q needs one-cell Unicode and Nerd marks"	1	declaration
+chrome_shape.go	registerGlyphs	K15	"unknown glyph set %q"	1
+chrome_shape.go	registerGlyphs	K2	"Enum without Accept: <expr>"	1
+cli.go	ParseArguments	K14	"arguments: %w"	1	failure
+cli.go	ParseArguments	K15	"arguments must be a JSON object"	1
+cli.go	decodeRequest	K15	"expected exactly one JSON request"	1
+cli.go	decodeRequest	K15	"noun and a verb or prop are required"	1
+cli/catalog.go	CatalogNamespace	K14	"extension %q declares namespace %q: %w"	1	failure
+cli/catalog.go	ExtensionNamespace	K13	"extension %q: namespace %q is reserved"	1	declaration
+cli/catalog.go	ExtensionNamespace	K15	"extension %q: namespace %q is the short name of the framework noun %s"	1
+cli/catalog.go	ExtensionNamespace	K8	"extension %q: namespace %q is not a noun word"	1
+cli/catalog.go	catalog	K11	"Confirm: <expr> without Loses"	1
+cli/catalog.go	catalog	K7	"%s about exceeds %d tokens (chars/4)"	1
+cli/catalog_inspect.go	Shell.catalogCommand	K15	"catalog takes no arguments but inspect, got %q"	1
+cli/catalog_inspect.go	Shell.catalogInspect	K14	"%s: %w"	1	failure
+cli/catalog_inspect.go	Shell.catalogInspect	K15	"catalog inspect: pass --annotations or --audit, not both"	1
+cli/catalog_inspect.go	Shell.catalogInspect	K15	"catalog inspect: unexpected arguments %s"	1
+cli/commands.go	AddCommands	K15	"a model and a command source are required"	1
+cli/commands.go	AddCommands	K15	"noun %q is already defined"	1
+cli/commands.go	Commands.helpVerb	K15	"Failed(…)"	2
+cli/commands.go	Commands.nameAt	K3	"name is required off a command row"	1
+cli/commands.go	Commands.nameAt	K4	"unknown command %q"	1
+cli/commands.go	Commands.register	K1	"When(…) without Fallback"	1
+cli/commands.go	Commands.stopVerb	K4	"%s has no run"	1
+cli/completion.go	Shell.completionCommand	K15	"completion takes bash or zsh"	2
+cli/detail_fields.go	PageView.mountSections	K1	"When(\"catalog-detail-fields\") without Fallback"	1
+cli/detail_fields.go	PageView.mountSections	K15	"Failed(…)"	2
+cli/detail_fields.go	PageView.mountSections	K15	"no section detail on this page"	1
+cli/detail_fields.go	PageView.mountSections	K5	"no metadata field selected"	4
+cli/detail_fields.go	PageView.openFields	K15	"Failed(…)"	3
+cli/detail_json.go	registerJSONNodes	K15	"Failed(…)"	2
+cli/detail_json.go	registerJSONNodes	K15	"no JSON value pane"	1
+cli/detail_json.go	registerJSONNodes	K5	"no JSON node selected"	3
+cli/detail_kind.go	PageView.mountKind	K14	"page %s: detail kind %s: %w"	1	failure
+cli/detail_kind.go	RegisterDetailKind	K15	"detail kind %q is the record view"	1
+cli/detail_record_form.go	newRecordFormView	K15	"record-form: no runtime"	1
+cli/detail_sections.go	checkDetailSections	K13	"padding must not be negative"	1	declaration
+cli/detail_sections.go	checkDetailSections	K13	"sideWidth must not be negative"	1	declaration
+cli/detail_sections.go	checkDetailSections	K15	"section %d: %s"	1
+cli/emulator.go	EnsureTerminalEngine	K15	"errors.New(…)"	1
+cli/emulator.go	EnsureTerminalEngine	K2	"Enum without Accept: <expr>"	1
+cli/emulator.go	RegisterTerminalEngine	K1	"terminal engine %s needs New or Unavailable"	1
+cli/emulator.go	RegisterTerminalEngine	K15	"terminal engine name %q must be one word"	1
+cli/emulator.go	RegisterTerminalEngine	K8	"terminal engine %s is already registered"	1
+cli/emulator.go	checkEngine	K15	"terminal engine %s is not in this build: %s"	1
+cli/emulator.go	checkEngine	K15	"unknown terminal engine %q (one of %s)"	1
+cli/emulator_noghostty.go	init	K1	"Unavailable: build with -tags ghostty (libghostty-vt through cgo, needs the Zig toolchain)"	1
+cli/host.go	Host.Call	K14	"host %s.%s: %w"	1	failure
+cli/host.go	Host.Call	K15	"errors.New(…)"	1
+cli/host.go	Host.Call	K15	"host %s.%s: %s"	1
+cli/host.go	Host.Call	K15	"host call needs an extension caller"	1
+cli/host.go	Host.Call	K15	"no ochazuke host is configured"	1
+cli/host.go	Host.Peers	K14	"host peers: %w"	1	failure
+cli/host.go	Host.Run	K15	"host operation must be noun.verb: %q"	1
+cli/host.go	HostCommand	K14	"%s: %w"	1	failure
+cli/host.go	HostCommand	K15	"%s: %s"	1
+cli/host.go	HostCommand	K15	"empty command"	1
+cli/host.go	HostCommand	K15	"errors.New(…)"	1
+cli/host.go	Shell.hostCallBoundary	K15	"host call depth %d > %d: %s"	1
+cli/host.go	hostCallContext	K14	"invalid OCHAZUKE_HOST_CHAIN: %w"	1	failure
+cli/host.go	hostCallContext	K15	"invalid OCHAZUKE_HOST_DEPTH %q"	1
+cli/host.go	hostFromEnv	K13	"OCHAZUKE_HOST must be a nonempty JSON argv"	1	declaration
+cli/host.go	hostFromEnv	K14	"host caller: %w"	1	failure
+cli/host_mount.go	mountAlias	K15	"its noun %s is not mounted"	1
+cli/host_mount.go	mountVerb	K11	"Confirm: <expr> without Loses"	1
+cli/host_mount.go	mountVerb	K15	"invalid execution timeout %q"	1
+cli/host_mount.go	mountVerb	K15	"the host did not register %s"	1
+cli/host_mount.go	try	K15	"%v"	1
+cli/host_proxy.go	ProxyCommand.run	K15	"exit status %d"	1
+cli/host_proxy.go	RunMounted	K15	"%s: %s"	1
+cli/host_proxy.go	RunMounted	K15	"invalid execution timeout %q"	1
+cli/host_reciprocal.go	mountReciprocal	K15	"Failed(…)"	1
+cli/host_reciprocal.go	mountReciprocal	K15	"choose a receiving %s"	1
+cli/host_reciprocal.go	mountReciprocal	K15	"receiver key parameter %q is already in use"	1
+cli/host_reciprocal.go	mountReciprocal	K15	"subject parameter %q is already in use"	1
+cli/host_reciprocal.go	mountReciprocal	K15	"the original operation did not mount"	1
+cli/host_reciprocal.go	mountReciprocal	K15	"the receiver already has that verb"	1
+cli/host_reciprocal.go	mountReciprocal	K3	"a reciprocal needs a keyed source noun, verb and subject parameter"	1
+cli/host_reciprocal.go	mountReciprocal	K3	"parameter %q must name a noun"	1
+cli/host_reciprocal.go	mountReciprocal	K3	"the receiver needs a distinct key prop"	1
+cli/host_serve.go	Shell.HostServe	K15	"host serve is already running in this process"	1
+cli/host_serve.go	Shell.hostCommand	K15	"host serve is already running in this process"	1
+cli/host_serve.go	Shell.hostCommand	K15	"usage: %s ochazuke host serve"	1
+cli/instructions.go	AgentInstructionsMode	K15	"MCP instructions and tool descriptions exceed %d tokens"	1
+cli/instructions.go	AgentInstructionsMode	K15	"unknown MCP instruction nouns mode %q"	1
+cli/instructions.go	CatalogDoc.ValidateAgentText	K7	"%s %s exceeds %d tokens (chars/4)"	1
+cli/mcp_backend.go	Shell.mcpCommand	K15	"usage: %s ochazuke mcp serve|tools|instructions|config"	1
+cli/mcp_backend.go	Shell.mcpValue	K15	"unknown mcp command %q"	1
+cli/mcp_backend.go	Shell.registerMCPVerbs	K15	"host serve runs from the CLI: %s ochazuke host serve"	1
+cli/mcp_backend.go	Shell.registerMCPVerbs	K2	"Enum without Accept: <expr>"	1
+cli/mcp_backend.go	Shell.resolveMCPVerb	K8	"%q is ambiguous: %s (write one in full)"	1
+cli/mcp_backend.go	mcpBackend.Call	K15	"unknown catalog tool %q"	1
+cli/odencommands.go	odenCommands.Command	K14	"find this program to run %s: %w"	1	failure
+cli/odencommands.go	odenCommands.Command	K3	"the program's own path is empty"	1
+cli/odencommands.go	odenCommands.Help	K14	"%s --help: %w"	1	failure
+cli/odencommands.go	odenCommands.entry	K4	"unknown command %q"	1
+cli/page.go	DecodeRows	K14	"rows: %w"	1	failure
+cli/page.go	MountPage	K3	"a model is required"	1
+cli/page.go	MountPage	K8	"page %s: instance already exists"	1
+cli/page.go	PageView.SetRows	K15	"list %s lists its noun's verbs"	1
+cli/page.go	PageView.SetRows	K4	"page %s has no list %s"	1
+cli/page.go	PageView.SetRows	K8	"list %s is an index: it fills itself from its noun's store"	1
+cli/page.go	PageView.addGroups	K1	"When: list-first-column without Fallback"	1
+cli/page.go	PageView.launchWith	K14	"%s %s: %w"	1	failure
+cli/page.go	PageView.mountIndex	K14	"page %s: index list %s: %w"	1	failure
+cli/page.go	PageView.mountIndex	K4	"page %s: index list %s: the host has no noun %s (mount the catalog's nouns first)"	1
+cli/page.go	PageView.resolve	K15	"page %s: list %s: noun %s is not in the catalog"	1
+cli/page.go	PageView.resolve	K15	"page %s: list %s: source %s is not in the catalog"	2
+cli/page.go	checkPage	K13	"page %s: list %s: source %q is not NOUN.VERB"	1	declaration
+cli/page.go	checkPage	K13	"page id and title must be nonempty"	1	declaration
+cli/page.go	checkPage	K14	"page %s: detail: %w"	1	failure
+cli/page.go	checkPage	K15	"page %s: a list needs an id and a noun"	1
+cli/page.go	checkPage	K15	"page %s: list %s is declared twice"	1
+cli/page.go	checkPage	K15	"page %s: widget %s is declared twice"	1
+cli/page.go	checkPage	K2	"page %s: layout %q is not one of %s"	1
+cli/page.go	checkPage	K3	"page %s: a data page needs a list"	1
+cli/page_record.go	PageView.OpenRow	K4	"page %s has no list of %s"	1
+cli/proxy_store.go	proxyCalls.call	K15	"%s"	1
+cli/pty.go	StartPtyWith	K14	"open pty: %w"	1	failure
+cli/pty.go	StartPtyWith	K14	"start %s: %w"	1	failure
+cli/pty.go	StartPtyWith	K3	"command is required"	1
+cli/pty.go	var ErrReleased	K15	"pty stream released"	1
+cli/ptykeys.go	keyEvent	K4	"unknown key %q"	1
+cli/rows.go	var ErrNoRows	K15	"no line decodes as a row ({noun, id, label})"	1
+cli/serve_pool.go	ServePool.start	K15	"protocol %d, want %d"	1
+cli/serve_pool.go	poolProc.broke	K14	"served process: %w%s"	1	failure
+cli/serve_pool.go	var errServeExec	K15	"exec"	1
+cli/setup.go	DeclareSetup	K15	"%s needs exactly one setup item"	1
+cli/setup.go	DeclareSetup	K15	"Failed(…)"	1
+cli/setup.go	DeclareSetup	K15	"setup items are already declared"	1
+cli/setup.go	DeclareSetup	K15	"unknown setup item %q"	1
+cli/setup.go	setupDeclaration.engine	K14	"setup.json: %w"	1	failure
+cli/shell.go	Shell.Run	K10	"%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)"	1
+cli/shell.go	Shell.Run	K14	"%w; pass --target, one of: %s"	1	failure
+cli/shell.go	Shell.Run	K14	"target %s: %w"	2	failure
+cli/shell.go	Shell.Run	K15	"declined: %s"	1
+cli/shell.go	Shell.Run	K15	"errors.New(…)"	1
+cli/shell.go	Shell.call	K15	"errors.New(…)"	2
+cli/shell.go	Shell.parseFlags	K14	"--%s: %w"	1	failure
+cli/shell.go	Shell.parseFlags	K15	"--%s answers JSON Lines; --format %s prints a table"	1
+cli/shell.go	Shell.parseFlags	K15	"a bare --json asks for JSON output and --format %s for another; pass one (--json '{...}' passes arguments)"	1
+cli/shell.go	Shell.parseFlags	K15	"unexpected argument %q; %s"	1
+cli/shell.go	Shell.parseFlags	K2	"--format %q: one of %s"	1
+cli/shell.go	Shell.parseFlags	K3	"--%s needs a value"	1
+cli/shell.go	Shell.propRequest	K15	"%s %s: the %s cannot be read or written"	1
+cli/shell.go	Shell.propRequest	K3	"%s %s takes one value; name the %s with --%s"	1
+cli/shell.go	Shell.request	K2	"unknown operation %q (%s %s); operations list prints them"	1
+cli/shell.go	Shell.verb	K8	"%s %s is ambiguous: %s"	1
+cli/shell.go	bindTarget	K14	"--target: %w"	1	failure
+cli/shell.go	positional	K14	"%s (argument %d): %w"	1	failure
+cli/shell.go	positional	K15	"unexpected argument %q; %s takes %s"	1
+cli/shellstate.go	Shell.stateDelta	K14	"%s: %w"	1	failure
+cli/shellstate.go	encodedLines	K15	"a state answer is Lines or an array of rows"	1
+cli/sides.go	CatalogDoc.ValidateSides	K15	"side %s is declared twice"	1
+cli/sides.go	DeclareSide	K15	"side %s is declared twice"	1
+cli/sides.go	DeclareSide	K15	"side %s: instance %s is already in use"	1
+cli/sides.go	ExpandSideCommand	K13	"unknown side placeholder {%s}"	1	declaration
+cli/sides.go	ExpandSideCommand	K15	"side command argument %d: unmatched {"	1
+cli/sides.go	ExpandSideCommand	K15	"side command argument %d: unmatched }"	1
+cli/sides.go	ExpandSideCommand	K3	"missing side placeholder {%s}"	1
+cli/sides.go	checkSide	K13	"side %s: command executable must be nonempty"	1	declaration
+cli/sides.go	checkSide	K13	"side %s: command must be nonempty"	1	declaration
+cli/sides.go	checkSide	K13	"side name must be nonempty"	1	declaration
+cli/sides.go	checkSide	K14	"side %s: %w"	2	failure
+cli/sides.go	checkSide	K15	"side %s: key must be a single key name"	1
+cli/sides.go	checkSide	K7	"side %q: name must contain only a-z, 0-9 and -"	1
+cli/state.go	ParseSince	K15	"--since %q: want LIST=HASH[,LIST=HASH...]"	1
+cli/widget.go	PageView.SetWidget	K4	"page %s has no widget %s"	1
+cli/widget.go	PageView.reloadWidgets	K14	"%s: %w"	1	failure
+cli/widget.go	checkWidget	K13	"page %s: widget %s: source %q is not NOUN.VERB"	1	declaration
+cli/widget.go	checkWidget	K15	"page %s: a widget needs an id"	1
+cli/widget.go	checkWidget	K15	"page %s: widget %s: a table needs columns"	1
+cli/widget.go	checkWidget	K2	"page %s: widget %s: kind %q is not one of %s"	1
+completion.go	validTriggers	K15	"completion trigger %q completes every token: its Trigger must be empty"	1
+completion.go	validTriggers	K15	"completion trigger %q must not hold its boundaries %q"	1
+completion.go	validTriggers	K15	"completion trigger %q must not hold whitespace"	1
+completion.go	validTriggers	K3	"completion trigger %q needs a search"	1
+completion.go	validTriggers	K3	"completion trigger must not be empty"	1
+completion_list.go	Completer.accept	K15	"no suggestion to accept"	1
+completion_list.go	Completer.accept	K15	"no suggestions are open"	1
+completion_list.go	Completer.accept	K15	"the cursor left the completion token"	1
+completion_list.go	Completer.openAt	K15	"no completion trigger at the cursor"	1
+completion_list.go	Completer.openAt	K5	"no focused input"	1
+completion_list.go	registerCompletion	K1	"When(\"completion-available\") without Fallback"	1
+config_export.go	Runtime.ExportConfig	K15	"%s is the live %s; export elsewhere, or pass --force to overwrite it"	1
+config_export.go	Runtime.ExportConfig	K3	"this application has no config directory: name a directory to export to"	1
+config_export.go	registerConfigExport	K4	"this application has no config or state directory"	1
+config_reload.go	Runtime.ReloadConfig	K4	"this application has no config directory"	1
+configuration.go	Runtime.LoadBindings	K14	"bindings: %w"	1	failure
+configuration.go	Runtime.LoadBindings	K14	"bindings[%d] %s: %w"	1	failure
+configuration.go	registerConfiguration	K15	"%s is the live %s; export elsewhere, or pass --force to overwrite it"	1
+configuration.go	registerConfiguration	K15	"input does not belong to this interaction path"	1
+configuration.go	registerConfiguration	K15	"interaction path must start at app"	1
+configuration.go	registerConfiguration	K15	"invalid path for %q"	1
+configuration.go	registerConfiguration	K3	"instance or path is required"	1
+configuration.go	registerConfiguration	K3	"this application has no config directory: name a file to export to"	1
+confirm.go	Runtime.SetConfirm	K2	"unknown operation %q"	1
+confirm.go	registerConfirm	K15	"no confirm modal is open"	1
+copy_refresh.go	Runtime.pickCopy	K15	"Failed(…)"	1
+copy_refresh.go	Runtime.readRefresh	K15	"%s: the source reads no single thing"	1
+copy_refresh.go	Runtime.refreshHandler	K8	"%s: its store is not a copy of a source"	1
+copy_refresh.go	Runtime.showRefresh	K2	"Enum without Accept: <expr>"	1
+copy_refresh.go	var needCopy	K1	"Lacks: its store is not a copy of a source"	1
+copy_store.go	copyStore.create	K15	"%s %q is already there"	1
+copy_store.go	copyStore.delete	K15	"the source deletes no things (copies.delete is source)"	1
+copy_store.go	copyStore.nounOf	K15	"copy store: declare it on a noun (NounBuilder.Store)"	1
+copy_store.go	copyStore.nounOf	K3	"copy store %s: it needs a key prop"	1
+copy_store.go	copyStore.patch	K15	"the source writes no props"	1
+core_verbs.go	coreVerbs	K11	"Confirm: <expr> without Loses"	1
+core_verbs.go	needRole	K1	"Lacks: <expr>"	1
+core_verbs.go	var needFactCreator	K1	"Lacks: <expr>"	1
+core_verbs.go	var needGet	K1	"Lacks: forms.edit is off"	1
+core_verbs.go	var needGet	K1	"Lacks: it has no prop create writes"	1
+core_verbs.go	var needGet	K1	"Lacks: it has no writable prop"	1
+core_verbs.go	var needGet	K1	"Lacks: its store creates no things (no Store.Create)"	1
+core_verbs.go	var needGet	K1	"Lacks: its store deletes no things (no Store.Delete)"	1
+core_verbs.go	var needGet	K1	"Lacks: its store has no Watch, List or (for a singleton) Get (a remote store: no Watch)"	1
+core_verbs.go	var needGet	K1	"Lacks: its store lists no things (no Store.List)"	1
+core_verbs.go	var needGet	K1	"Lacks: its store reads no single thing (no Store.Get)"	1
+core_verbs.go	var needGet	K1	"Lacks: its store writes no props (no Store.Patch)"	1
+core_verbs.go	var needWriter	K1	"Lacks: <expr>"	1
+default_bindings.go	Runtime.LoadDefaultBindings	K14	"%s: %w"	1	failure
+default_bindings.go	Runtime.LoadDefaultBindingsFS	K15	"default bindings: no file matches %q"	1
+default_bindings.go	Runtime.SetDefaultBindings	K13	"default bindings: source %q must be nonempty and not reserved"	1	declaration
+default_bindings.go	Runtime.SetDefaultBindings	K14	"%s: row %d %q: %w"	1	failure
+default_bindings.go	Runtime.loadDefaultDoc	K14	"%s: %s %q: %w"	1	failure
+default_bindings.go	Runtime.loadDefaultDoc	K14	"%s: mode %q: %w"	1	failure
+default_bindings.go	Runtime.loadDefaultDoc	K2	"%s: %s: extends unknown mode %q"	1
+default_bindings.go	Runtime.loadDefaultDoc	K2	"%s: %s: unknown mode %q"	1
+default_bindings.go	Runtime.loadDefaultDoc	K2	"extends unknown mode %q"	1
+default_bindings.go	Runtime.loadDefaultDoc	K4	"%s: %s: unknown instance %q"	1
+delivery.go	Failed	K15	"application verb failed"	1
+delivery.go	Result.Await	K10	"the verb needs the terminal and cannot be awaited"	1
+delivery.go	Runtime.IssueAt	K15	"slot scope %q is not %s or one of its ancestors"	1
+delivery.go	Runtime.IssueAt	K4	"unknown instance %v"	1
+delivery.go	Runtime.Launch	K15	"Launch needs pending work"	1
+delivery.go	registerJobs	K15	"job %d is not running"	1
+detail.go	Runtime.AddDetail	K13	"detail ID must be nonempty"	1	declaration
+detail.go	Runtime.AddDetail	K4	"unknown parent %q"	1
+detail.go	Runtime.AddDetail	K8	"detail %q is already registered"	1
+detail.go	registerDetail	K15	"no detail on this page"	1
+doc_store.go	MemDocTable.Delete	K15	"no document %q"	1
+doc_store.go	MemDocTable.Put	K3	"a document needs a key"	1
+doc_store.go	docStore.create	K8	"%s %q already exists"	1
+doc_store.go	docStore.nounOf	K4	"doc store %s: no such noun with a key prop"	1
+docs_reference.go	Runtime.DocsPage	K4	"unknown docs topic %q (topics: %s)"	1
+docs_reference.go	Runtime.ReferenceModel	K2	"Enum without Accept: <expr>"	1
+docs_reference.go	Runtime.referenceNouns	K1	"Unavailable: <expr>"	1
+docs_reference.go	Runtime.referenceNouns	K2	"Enum without Accept: <expr>"	1
+docs_reference.go	referenceRow	K1	"When: <expr> without Fallback"	1
+docs_reference.go	referenceStandardVerbs	K11	"Confirm: <expr> without Loses"	1
+docs_reference.go	registerDocs	K2	"Enum without Accept: <expr>"	1
+edit_chooser.go	Runtime.openEditChooser	K15	"Failed(…)"	1
+editing.go	Input.begin	K15	"unknown insertion position"	1
+editing.go	Input.deleteRunes	K15	"steps must be positive"	1
+editing.go	Input.deleteRunes	K15	"unknown delete direction"	1
+editing.go	Input.killRange	K15	"unknown kill motion"	1
+editing.go	Input.move	K15	"unknown input motion"	1
+editing.go	Input.moveBy	K15	"line must be positive or omitted"	1
+editing.go	Input.moveBy	K15	"steps must be positive"	1
+editor.go	Input.checkPaste	K7	"paste exceeds size limit"	1
+editor.go	Input.operatorSelect	K15	"line must be positive or omitted"	1
+editor.go	Input.operatorSelect	K15	"unknown input motion"	1
+editor.go	Input.pasteYank	K15	"steps must be positive"	1
+editor.go	Input.pasteYank	K7	"paste exceeds size limit"	1
+editor.go	editorOperator	K15	"operator must be y, d, or c"	1
+editor.go	editorOperator	K15	"steps must be positive"	1
+editor.go	editorOps	K2	"Enum without Accept: <expr>"	1
+editor.go	editorPaste	K15	"steps must be positive"	1
+editor.go	editorPaste	K7	"paste exceeds size limit"	1
+editor.go	editorSelect	K15	"unknown selection shape"	1
+editor.go	onInput	K5	"no focused input"	1
+errors_shared.go	var ErrNotFound	K4	"not found"	1
+events.go	Runtime.DeclareEvent	K15	"event %q is the framework's"	1
+events.go	Runtime.DeclareEvent	K15	"event name %q is not noun.happening"	1
+facts.go	Runtime.listRows	K14	"%s: %w"	1	failure
+facts.go	registerStateFacts	K15	"Failed(…)"	2
+focus.go	Runtime.CloseModal	K15	"no modal to close"	1
+focus.go	Runtime.JumpFocus	K15	"unknown focus scope %q"	1
+focus.go	Runtime.OpenModal	K15	"modal %q is already open"	1
+focus.go	Runtime.OpenModal	K3	"modal kind is required"	1
+focus.go	Runtime.OpenModal	K8	"modal input %q is already registered"	1
+focus.go	Runtime.Pop	K15	"no modal to close"	1
+focus.go	Runtime.Push	K15	"modal is already open"	1
+focus.go	Runtime.Push	K3	"modal ID is required"	1
+focus.go	Runtime.Push	K4	"unknown instance %q"	1
+focus.go	Runtime.SetModalClose	K4	"unknown instance %q"	1
+focus.go	Runtime.removeInstance	K4	"instance %q has no parent to fall back to"	1
+focus.go	Runtime.removeInstance	K4	"unknown instance %q"	1
+focus.go	Runtime.validateFocus	K15	"focus is outside the open modal"	1
+focus.go	Runtime.validateFocus	K15	"open page %q before selecting its context"	1
+focus.go	Runtime.validateFocus	K4	"unknown instance %q"	1
+focus.go	Runtime.validateFocus	K5	"select a context inside the current page; open a modal for a modal input"	1
+focus.go	var errModalAbove	K15	"a modal is open above this level"	1
+focus_actions.go	Runtime.OpenFocusActions	K1	"the focused-actions picker is off (setting actions.focused-picker)"	1
+focus_actions.go	Runtime.OpenFocusActions	K14	"%s: %w"	1	failure
+focus_actions.go	Runtime.OpenFocusActions	K15	"nothing at the focus has verbs to list"	1
+focus_actions.go	Runtime.OpenFocusActions	K2	"unknown operation %q"	1
+focus_display.go	registerFocusDisplay	K2	"Enum without Accept: <expr>"	1
+foreground.go	Foreground	K3	"Foreground needs a command"	1
+foreground.go	ForegroundMsg.Done	K14	"%s: %w"	1	failure
+foreground.go	ForegroundMsg.Done	K15	"%s exited with status %d"	1
+foreground.go	ForegroundMsg.Done	K15	"%s: %s (exit %d)"	1
+grid/grid.go	Grid.Goto	K15	"row %d is not visible"	1
+grid/grid.go	Grid.Move	K15	"unknown motion %q"	1
+grid/grid.go	Grid.Select	K15	"unknown selection shape %q"	1
+grid/grid.go	New	K13	"grid id %q must be unique and nonempty"	1	declaration
+grid/grid.go	New	K4	"unknown parent %q"	1
+grid/ops.go	Resolve	K15	"no grid under the focus"	1
+grid/ops.go	Resolve	K15	"unknown grid %q"	1
+grid/ops.go	register	K1	"When(…) without Fallback"	4
+grid/ops.go	register	K15	"start a selection before marking"	1
+help_capture.go	helpState.bindCaptured	K15	"no key pressed: nothing to bind"	1
+help_capture.go	registerHelpCapture	K5	"select an unbound verb in the help"	1
+help_views.go	registerHelpViews	K15	"Failed(…)"	3
+help_views.go	registerHelpViews	K15	"pick %q: want noun, mode or place"	1
+help_views.go	registerHelpViews	K2	"Enum without Accept: <expr>"	1
+help_views.go	registerHelpViews	K9	"the help is not open"	1
+history.go	historyKinds	K15	"unknown history kind %q (action, change, fetch, system or all)"	1
+history.go	registerHistory	K4	"no history entry %q"	1
+history.go	var errNothingToRepeat	K15	"nothing to repeat"	1
+hooks.go	Runtime.AddDefaultHooks	K15	"default hook %d: a default row needs on and do (and is never off)"	1
+hooks.go	Runtime.ExportHooks	K15	"%s is the live %s; export elsewhere, or pass --force to overwrite it"	1
+hooks.go	Runtime.ExportHooks	K3	"this application has no config directory; give a path"	1
+hooks.go	Runtime.hookOperation	K4	"unknown verb %q"	1
+hooks.go	registerHooks	K14	"fields: %w"	1	failure
+hooks.go	registerHooks	K15	"fields is a JSON object"	1
+hooks.go	registerHooks	K3	"event is required"	1
+index.go	Runtime.AddIndex	K4	"index of %q: no such noun"	1
+index.go	Runtime.OpenIndex	K15	"no noun %q"	1
+index.go	Runtime.OpenIndex	K4	"%s is a %s noun: it has no things to list (its verbs: %s)"	1
+index.go	registerIndex	K15	"Failed(…)"	1
+index.go	registerIndex	K15	"columns of which noun? pass noun=NAME or run it on an index page"	1
+index.go	registerIndex	K4	"%s has no prop %s"	1
+input.go	Input.Redo	K15	"branch must be nonnegative or omitted"	1
+input.go	Input.Redo	K15	"steps must be positive"	1
+input.go	Input.Redo	K15	"unknown undo branch"	1
+input.go	Input.Replace	K15	"invalid edit range"	1
+input.go	Input.SelectText	K15	"input is pinned to %v"	1
+input.go	Input.SelectText	K15	"invalid select range"	1
+input.go	Input.Undo	K15	"steps must be positive"	1
+input.go	RegisterInputOperations	K5	"no focused input"	1
+jsonc.go	StandardizeJSONC	K15	"errors.New(…)"	1
+key_echo.go	registerKeyEcho	K2	"Enum without Accept: <expr>"	1
+list.go	Collection.Select	K4	"unknown list item %q"	1
+list.go	Collection.SetItems	K13	"list item ID %q must be nonempty and unique"	1	declaration
+list.go	Collection.SetItems	K15	"list item ID %q is already another instance"	1
+list.go	Collection.SetItems	K4	"list item %q: unknown noun %q"	1
+list.go	Collection.ToggleMark	K13	"list %s takes no marks"	1	declaration
+list.go	Collection.ToggleMark	K4	"unknown list item %q"	1
+list.go	Runtime.AddList	K13	"list ID must be nonempty"	1	declaration
+list.go	Runtime.AddList	K15	"list %q: a list from %s takes no rows"	1
+list.go	Runtime.AddList	K4	"unknown parent %q"	1
+list.go	Runtime.AddList	K8	"list %q is already registered"	1
+list.go	registerLists	K4	"list has no selected row"	1
+list.go	registerLists	K4	"unknown list %q"	1
+list.go	registerLists	K5	"no focused list"	1
+list_delta.go	Collection.Patch	K14	"list %s: %w"	1	failure
+list_delta.go	PatchItems	K15	"patch: %d indexes for %d upserted rows"	1
+list_delta.go	PatchItems	K15	"patch: index %d (row %q) is out of order or past the %d rows"	1
+list_delta.go	PatchItems	K15	"patch: row %q is upserted twice or also removed"	1
+list_facts.go	ListFacts.things	K15	"%s list answered %T, not rows"	1
+list_filter.go	registerListFilter	K4	"unknown list %v"	1
+list_filter.go	registerListFilter	K5	"no focused list"	1
+list_filter_compact.go	Collection.openViewForm	K15	"Failed(…)"	2
+list_filter_compact.go	Collection.openViewForm	K15	"list rows have no filterable props"	1
+list_filter_compact.go	Collection.openViewForm	K2	"Enum without Accept: <expr>"	2
+list_filter_compact.go	filterViewForm.conditionAction	K1	"this prop is unavailable; its condition is kept as-is"	1
+list_filter_compact.go	filterViewForm.conditionAction	K15	"this condition is kept as-is; remove it to replace it"	1
+list_filter_compact.go	filterViewForm.editField	K15	"Failed(…)"	2
+list_filter_compact.go	filterViewForm.editField	K15	"no filter field %q"	1
+list_filter_compact.go	filterViewForm.focusPart	K1	"save controls are disabled"	1
+list_filter_compact.go	filterViewForm.focusPart	K1	"sort controls are disabled"	1
+list_filter_compact.go	filterViewForm.focusPart	K4	"no such form control"	1
+list_filter_compact.go	filterViewForm.selectedCondition	K15	"no selected condition"	1
+list_filter_compact.go	filterViewForm.setField	K15	"unknown form field %q"	1
+list_filter_compact.go	filterViewForm.toggleHighlighted	K15	"no matching value"	1
+list_filter_compact.go	filterViewForm.toggleHighlighted	K15	"no selected values"	1
+list_filter_compact.go	filterViewForm.toggleHighlighted	K15	"this prop takes text"	1
+list_filter_compact.go	filterViewForm.toggleValue	K15	"no selected prop"	1
+list_filter_compact.go	filterViewForm.write	K15	"Failed(…)"	4
+list_filter_compact.go	registerFilterViewForm	K2	"Enum without Accept: <expr>"	1
+list_filter_compact.go	registerFilterViewForm	K5	"no filter form"	1
+list_filter_save_form.go	filterViewForm.deleteSaved	K15	"Failed(…)"	1
+list_filter_save_form.go	filterViewForm.savedAction	K1	"save controls are disabled"	1
+list_from.go	Collection.Refill	K15	"the list is fed rows, not a noun's store"	1
+list_from.go	Runtime.listSource	K4	"list from %q: no such noun"	1
+list_from.go	Runtime.listSource	K4	"list from %s: it has no key prop to name its rows by"	1
+list_from.go	Runtime.listSource	K4	"list from %s: its store has no List or Query"	1
+list_group.go	Collection.foldGroup	K15	"no group %q on this page"	1
+list_motions.go	registerListMotions	K2	"Enum without Accept: <expr>"	1
+list_motions.go	registerListMotions	K4	"unknown list %v"	1
+list_motions.go	registerListMotions	K5	"no focused list"	1
+list_prop_filter.go	Collection.ApplyFilter	K15	"unknown saved filter %q"	1
+list_prop_filter.go	Collection.DeleteSavedFilter	K15	"%q is an app default; only user saved filters can be deleted"	1
+list_prop_filter.go	Collection.DeleteSavedFilter	K15	"unknown saved filter %q"	1
+list_prop_filter.go	Collection.SaveFilter	K3	"saved filter needs a name"	1
+list_prop_filter.go	Collection.pickPropFilter	K15	"Failed(…)"	4
+list_prop_filter.go	Collection.pickPropFilter	K15	"list rows have no filterable props"	1
+list_prop_filter.go	Collection.pickPropFilter	K15	"no visible values for prop %q"	1
+list_prop_filter.go	Collection.pickSavedFilter	K15	"Failed(…)"	1
+list_prop_filter.go	Collection.validatePropFilters	K4	"list has no prop %q"	1
+list_prop_filter.go	registerListPropFilter	K1	"unknown or disabled row view %q"	1
+list_prop_filter.go	registerListPropFilter	K15	"Failed(…)"	1
+list_prop_filter.go	registerListPropFilter	K15	"no row view at %v"	1
+list_prop_filter.go	registerListPropFilter	K15	"no saved filters"	1
+list_prop_filter.go	registerListPropFilter	K15	"no valid saved filters; skipped %s"	1
+list_prop_filter.go	registerListPropFilter	K2	"Enum without Accept: <expr>"	1
+list_prop_filter.go	registerListPropFilter	K4	"no such prop condition"	1
+list_prop_filter.go	registerListPropFilter	K5	"no focused row view"	1
+list_query.go	Runtime.listQueryOf	K8	"group-sort %q is not a group-by prop"	1
+list_query.go	Runtime.parseListFilter	K15	"filter takes prop=value words or a saved filter's name; unknown saved filter %q for %s"	1
+list_query.go	parseGroupWords	K15	"group-by takes prop names; order the groups with group-sort"	1
+list_query.go	parseSortWords	K14	"%s %w"	1	failure
+list_query.go	parseSortWords	K15	"cannot %s by secret prop %q"	1
+list_query.go	parseSortWords	K15	"repeated %s prop %q"	1
+list_query.go	parseSortWords	K4	"%s has no prop %q to %s by"	1
+list_query.go	splitSortWord	K15	"direction is %s, not %q"	1
+list_query_view.go	Collection.SetGroupBy	K1	"unknown or disabled group field %q"	1
+list_query_view.go	Collection.SetGroupBy	K15	"this list does not group its rows"	1
+list_query_view.go	Collection.SetGroupBy	K8	"group order %q is not a group field"	1
+list_query_view.go	Collection.SetPage	K15	"the list is not paged"	1
+list_query_view.go	registerListQuery	K15	"no list to arrange"	1
+list_sort.go	Collection.canonicalSort	K1	"unknown or disabled sort field %q"	1
+list_sort.go	Collection.canonicalSort	K15	"repeated sort field %q"	1
+list_sort.go	Collection.canonicalSort	K15	"row order is owned by the source"	1
+list_sort.go	Collection.sortColumn	K15	"Failed(…)"	1
+list_sort.go	registerListSort	K1	"unknown or disabled sort field %q"	1
+list_sort.go	registerListSort	K15	"no row view to sort"	1
+list_visual.go	Collection.StartVisual	K13	"list %s takes no marks"	1	declaration
+list_visual.go	Collection.StartVisual	K4	"list has no selected row"	1
+list_visual.go	Collection.apply	K11	"Confirm: <expr> without Loses"	1
+list_visual.go	registerListVisual	K5	"no focused list"	1
+macros.go	Runtime.replayMacro	K15	"macro count must be between 1 and 10000"	1
+macros.go	Runtime.replayMacro	K15	"macro recursion limit exceeded"	1
+macros.go	Runtime.replayMacro	K15	"no previous macro"	1
+macros.go	Runtime.replayMacro	K3	"macro register is empty"	1
+macros.go	Runtime.replayMacro	K9	"macro step limit exceeded"	1
+macros.go	registerMacros	K15	"macro recording already active"	1
+macros.go	registerMacros	K15	"no macro recording"	2
+macros.go	registerMacros	K7	"macro recording exceeds 10000 keys"	1
+macros.go	registerMacros	K9	"cannot record into black-hole register"	1
+markdown/doc.go	Doc.Reload	K14	"load markdown: %w"	1	failure
+markdown/doc.go	Doc.Select	K15	"no task %d"	1
+markdown/doc.go	Doc.Select	K15	"task %d is not drawn"	1
+markdown/doc.go	Doc.SetSource	K3	"markdown source needs a Load"	1
+markdown/doc.go	Doc.Toggle	K5	"no task item selected"	1
+markdown/doc.go	Doc.apply	K14	"not toggled: load markdown: %w"	1	failure
+markdown/doc.go	Doc.apply	K14	"not toggled: save markdown: %w"	1	failure
+markdown/doc.go	Doc.apply	K15	"not toggled: %q changed or is gone in the source"	1
+markdown/doc.go	Doc.history	K15	"nothing to redo"	1
+markdown/doc.go	Doc.history	K15	"nothing to undo"	1
+markdown/doc.go	Doc.selectAt	K15	"no element %d drawn"	1
+markdown/doc.go	Doc.selectLine	K8	"line %d is not a row"	1
+markdown/doc.go	Doc.splice	K14	"not written: load markdown: %w"	1	failure
+markdown/doc.go	Doc.splice	K14	"not written: save markdown: %w"	1	failure
+markdown/doc.go	Doc.splice	K15	"not written: the text changed in the source"	1
+markdown/doc.go	Doc.write	K14	"not written: save markdown: %w"	1	failure
+markdown/doc.go	New	K13	"markdown id %q must be unique and nonempty"	1	declaration
+markdown/doc.go	New	K14	"load markdown: %w"	1	failure
+markdown/doc.go	New	K3	"markdown source needs a Load"	1
+markdown/doc.go	New	K4	"unknown parent %q"	1
+markdown/doc.go	var ErrRefused	K15	"not toggled"	1
+markdown/doc.go	var errReadOnly	K15	"markdown"	1
+markdown/done.go	Doc.SetDone	K15	"unknown done visibility %q: use show, hide or toggle"	1
+markdown/edit.go	Doc.AddNote	K15	"notes go under a list item"	1
+markdown/edit.go	Doc.Delete	K15	"nothing to delete"	1
+markdown/edit.go	Doc.Edit	K14	"not written: load markdown: %w"	1	failure
+markdown/edit.go	Doc.Fold	K15	"no list item here"	1
+markdown/edit.go	Doc.Fold	K4	"this item has no notes"	1
+markdown/edit.go	Doc.GotoHeading	K15	"no heading %q"	1
+markdown/edit.go	Doc.GotoHeading	K8	"heading %q is ambiguous: %d start with it"	1
+markdown/edit.go	Doc.Outline	K15	"Failed(…)"	1
+markdown/edit.go	Doc.Outline	K15	"no headings"	1
+markdown/edit.go	Doc.Paste	K15	"nothing to paste"	1
+markdown/edit.go	Doc.Resolve	K5	"no note selected"	1
+markdown/edit.go	Doc.Yank	K5	"nothing to yank"	1
+markdown/edit.go	Doc.flush	K14	"not written: load markdown: %w"	1	failure
+markdown/edit.go	Doc.flush	K14	"not written: save markdown: %w"	1	failure
+markdown/edit.go	Doc.flush	K15	"not written: the text around the edited block changed in the source"	1
+markdown/edit.go	Doc.leave	K14	"%w (the text is in the unnamed register)"	1	failure
+markdown/edit.go	Doc.target	K14	"not written: load markdown: %w"	1	failure
+markdown/edit.go	Doc.target	K15	"not written: %q changed or is gone in the source"	1
+markdown/edit.go	Doc.target	K15	"not written: the element is hidden"	1
+markdown/insert.go	Doc.AfterHeading	K15	"no block is open"	1
+markdown/insert.go	Doc.BlockChooser	K15	"no block is open"	1
+markdown/insert.go	Doc.Cell	K15	"no block is open"	1
+markdown/insert.go	Doc.ContinueItem	K15	"no block is open"	1
+markdown/insert.go	Doc.EndList	K15	"no block is open"	1
+markdown/insert.go	Doc.Indent	K15	"no block is open"	1
+markdown/insert.go	Doc.NextRow	K15	"no block is open"	1
+markdown/insert.go	Doc.QuoteLine	K15	"no block is open"	1
+markdown/insert.go	Doc.Unmark	K15	"no block is open"	1
+markdown/insert.go	Doc.Unmark	K15	"no list marker here"	1
+markdown/insert.go	Doc.columnsChooser	K3	"a table needs a number of columns"	1
+markdown/insert.go	Doc.putLine	K15	"no block is open"	1
+markdown/insert.go	result	K15	"Failed(…)"	1
+markdown/links.go	Doc.CopyLink	K15	"no Markdown link focused"	1
+markdown/links.go	Doc.MoveLink	K15	"Markdown links are text while editing"	1
+markdown/links.go	Doc.MoveLink	K15	"no link in that direction"	1
+markdown/links.go	Doc.OpenLink	K15	"no Markdown link focused"	1
+markdown/links.go	Doc.selectLink	K15	"no link"	1
+markdown/notes.go	AddNote	K15	"notes go under a list item"	1
+markdown/notes.go	CleanNote	K7	"the note is %d bytes, more than the %d a note may hold"	1
+markdown/notes.go	FindItem	K15	"--item needs some text to match"	1
+markdown/notes.go	FindItem	K15	"errors.New(…)"	1
+markdown/notes.go	ReplyNote	K4	"no such note"	1
+markdown/notes.go	SetFlags	K5	"no note selected"	3
+markdown/verbs.go	byKind	K2	"unknown kind %q"	1
+markdown/verbs.go	docParams	K2	"Enum without Accept: <expr>"	3
+markdown/verbs.go	docSettings	K2	"Enum without Accept: <expr>"	4
+markdown/verbs.go	resolve	K15	"no markdown on the focus path"	1
+markdown/verbs.go	resolve	K4	"unknown markdown %q"	1
+markdown/view.go	registerView	K15	"Failed(…)"	1
+markdown/view.go	registerView	K15	"no Markdown viewer open"	1
+mode_change.go	Runtime.switchMode	K2	"unknown mode %q"	1
+mode_pin.go	Runtime.PinInstance	K15	"mode %q is a pending mode; pin a base mode"	1
+mode_pin.go	Runtime.PinInstance	K2	"unknown mode %q"	1
+mode_pin.go	Runtime.PinInstance	K4	"unknown instance %q"	1
+mode_pin.go	registerModePin	K15	"no instance to pin"	1
+model_hooks.go	Model.quitHooks	K15	"%s"	1
+motion_scroll.go	registerViewMotions	K15	"no %s edge here"	1
+motion_scroll.go	registerViewMotions	K15	"nothing to move here"	1
+motion_scroll.go	registerViewMotions	K2	"Enum without Accept: <expr>"	1
+motion_scroll.go	registerViewScroll	K15	"unknown scroll %q: want line or page"	1
+motion_scroll.go	registerViewScroll	K2	"Enum without Accept: <expr>"	1
+motion_scroll.go	scrollBys	K15	"nothing to page here"	1
+motion_scroll.go	scrollBys	K5	"nothing to scroll here"	1
+namespace.go	Runtime.AddNounAlias	K13	"alias %q already names %s"	1	declaration
+namespace.go	Runtime.AddNounAlias	K13	"alias and noun must be nonempty"	1	declaration
+namespace.go	Runtime.AddNounAlias	K15	"alias %q holds a dot"	1
+namespace.go	Runtime.AddNounAlias	K15	"alias %q is a registered noun"	1
+namespace.go	Runtime.AddNounAlias	K8	"alias %q names itself"	1
+namespace.go	Runtime.Unalias	K8	"%q is not a noun alias"	1
+namespace.go	Runtime.checkNounOverlap	K13	"noun %s clashes with the operation %s (verb %s of %s): a noun may not be nested under a noun with a verb of that name"	1	declaration
+namespace.go	Runtime.checkOverlap	K13	"operation %s clashes with the noun %s: a verb may not share its name with a noun nested under its noun"	1	declaration
+need.go	Runtime.refusal	K15	"NotApplicableError{…}"	1
+need.go	Runtime.refusal	K5	"no %v is focused"	1
+noun.go	ModeBuilder.UnbindGuarded	K1	"When: <expr> without Fallback"	1
+noun.go	Runtime.AddVerbAvailability	K15	"AddVerbAvailability: empty guard name"	1
+noun.go	Runtime.AddVerbAvailability	K2	"unknown operation %q"	1
+noun.go	Runtime.AddVerbAvailability	K4	"unknown noun %q"	1
+noun.go	Runtime.DefineMode	K13	"mode name %q is reserved (mode.switch reads it as the focus's declared mode)"	1	declaration
+noun.go	Runtime.DefineMode	K15	"mode %q outside must name another base mode"	1
+noun.go	Runtime.DefineMode	K15	"mode name cannot be empty"	1
+noun.go	Runtime.DefineMode	K2	"mode %q extends unknown mode %q"	1
+noun.go	Runtime.DefinePassthrough	K15	"unknown base mode %q"	1
+noun.go	Runtime.DefineSelection	K15	"unknown base mode %q"	1
+noun.go	Runtime.ValidateBindings	K14	"instance %s mode %q row %s%s: %w"	1	failure
+noun.go	Runtime.ValidateBindings	K14	"noun %s mode %q row %s%s: %w"	1	failure
+noun.go	Runtime.validateRow	K13	"unknown guard %q"	1	declaration
+noun.go	Runtime.validateRow	K15	"%s has an empty source"	1
+noun.go	Runtime.validateRow	K15	"binding needs keys or a pattern"	1
+noun.go	Runtime.validateRow	K2	"unknown mode %q"	1
+noun.go	Runtime.validateRow	K3	"binding takes keys or a pattern, not both"	1
+noun.go	Runtime.validateRow	K4	"%s has no argument %q"	1
+noun.go	Runtime.validateRow	K4	"unknown instance %q"	1
+noun.go	Runtime.validateRow	K4	"unknown key pattern %q"	1
+noun.go	Runtime.validateRow	K4	"unknown noun %q"	1
+noun.go	validSource	K15	"unknown argument source %q"	1
+noun_browser.go	openNounsPage	K8	"a page titled Nouns already exists"	1
+noun_rename.go	Runtime.RenameNoun	K15	"rename needs from and to"	1
+noun_rename.go	Runtime.RenameNoun	K3	"rename %v: since or removeAfter is required"	1
+open_modal.go	Runtime.openModal	K15	"Failed(…)"	1
+open_modal.go	Runtime.openModal	K15	"the open modal is already open"	1
+open_modal.go	registerOpen	K1	"the open modal is off (setting open.modal); opener.run opens text directly"	1
+open_resolve.go	OpenerRow.check	K14	"action %s %w"	1	failure
+open_resolve.go	OpenerRow.check	K4	"unknown action %q (os-open, os-reveal, page, viewer, verb)"	1
+open_resolve.go	OpenerRow.check	K8	"a row needs exactly one of scheme, prefix, ext and noun"	1
+open_resolve.go	init	K15	"needs to (the page id)"	1
+open_resolve.go	init	K15	"needs to (the verbs to try, such as \"open show\")"	1
+open_resolve.go	init	K15	"needs to as \"noun.verb\""	1
+open_resolve.go	parseOpenerRows	K14	"%s must be a JSON array of opener rows: %w"	1	failure
+open_resolve.go	parseOpenerRows	K14	"%s row %d: %w"	1	failure
+open_resolve.go	parseOpenerRows	K15	"%s must be a JSON array, use [] for no rows"	1
+open_resolve.go	parseOpenerRows	K15	"%s must contain one JSON array"	1
+operations.go	DeclareNamespace	K8	"namespace %q is not a lower-case noun word of its own"	1
+operations.go	Key.Check	K15	"operation key %q is not namespace.noun.name"	1
+page_hide.go	Runtime.HidePage	K15	"%s is the only page in the tabs: show another page before hiding it"	1
+page_hide.go	Runtime.HidePage	K4	"unknown page %q"	1
+page_hide.go	Runtime.ShowPage	K4	"unknown page %q"	1
+page_hide.go	patchPage	K15	"%s is already hidden from the tabs"	1
+page_hide.go	patchPage	K15	"%s is already in the tabs"	1
+page_hide.go	registerPageHiding	K1	"When: <expr> without Fallback"	1
+page_hide.go	registerPageHiding	K4	"unknown page %q"	1
+pages.go	Runtime.AddPage	K15	"page %q must be registered under app"	1
+pages.go	Runtime.OpenPage	K15	"close the active modal before opening a page"	1
+pages.go	Runtime.OpenPage	K4	"unknown page %q"	1
+pages.go	Runtime.OpenPagePicker	K15	"Failed(…)"	1
+pages.go	Runtime.RegisterPage	K13	"page ID and title must be nonempty"	1	declaration
+pages.go	Runtime.RegisterPage	K15	"page %q must be registered under app"	1
+pages.go	Runtime.RegisterPage	K15	"page focus %q must sit beneath page %q"	2
+pages.go	Runtime.RegisterPage	K3	"page renderer is required"	1
+pages.go	Runtime.RegisterPage	K8	"page ID %q is already registered"	1
+pages.go	Runtime.RegisterPage	K8	"page title %q is already registered"	1
+pages.go	Runtime.movePage	K15	"no pages registered"	1
+palette.go	Palette.close	K15	"palette is covered by another modal"	1
+palette.go	Palette.complete	K15	"no completion highlighted (ctrl+n / ctrl+p)"	1
+palette.go	Palette.complete	K15	"unknown palette completion %q"	1
+palette.go	Palette.dispatch	K14	"%w (restoring palette: %v)"	1	failure
+palette.go	Palette.dispatch	K15	"recursive palette execution is not allowed"	1
+palette.go	Palette.move	K15	"no completions for this word"	1
+palette.go	Palette.requireOpen	K15	"palette is covered by another modal"	1
+palette.go	Palette.requireOpen	K9	"palette is not open"	1
+palette.go	Palette.run	K3	"missing %s"	1
+palette.go	newPalette	K2	"Enum without Accept: <expr>"	2
+palette_board.go	Palette.cellTo	K15	"no cells for this word"	1
+palette_board.go	Palette.cellTo	K15	"unknown cell move %q"	1
+palette_choices.go	var errChoicesLoading	K9	"choices are loading"	1
+palette_editing.go	Palette.recallLine	K15	"no palette history"	1
+palette_nouns.go	Palette.RegisterNoun	K15	"palette noun %q: default action %s is guarded by %q; a default verb is never guarded"	1
+palette_nouns.go	Palette.RegisterNoun	K15	"palette noun %q: unknown default action %q"	1
+palette_nouns.go	Palette.RegisterNoun	K3	"palette noun %q: default action %s also requires argument %q"	1
+palette_nouns.go	Palette.RegisterNoun	K3	"palette noun %q: default action %s requires a string instance argument; got %q"	1
+palette_nouns.go	Palette.RegisterNoun	K3	"palette noun %q: source is required"	1
+palette_nouns.go	Palette.RegisterNoun	K4	"palette: unknown noun %q"	1
+palette_parse.go	Palette.argument	K15	"%s must be %s"	1
+palette_parse.go	Palette.argument	K15	"unsupported argument type %q for %s"	1
+palette_parse.go	Palette.argument	K8	"%s: %q is ambiguous: %s"	1
+palette_parse.go	Palette.fillParams	K15	"unexpected word %q: %s takes %d argument(s)"	1
+palette_parse.go	Palette.parseProp	K15	"%s %s: the %s cannot be read or written here"	1
+palette_parse.go	Palette.parseProp	K6	"%s.%s is read-only here: %s %s reads it"	1
+palette_parse.go	unresolvedError	K4	"%q names no %s here"	1
+palette_parse.go	unresolvedError	K8	"%q is ambiguous: %s"	1
+palette_reader.go	Palette.guardedNoun	K15	"%s.%s is not applicable now"	1
+panes.go	Runtime.RestorePanes	K4	"unknown page %q"	1
+panes.go	Runtime.SetPaneShift	K15	"no config"	1
+panes.go	Runtime.SetPaneShift	K4	"unknown page %q"	1
+panes.go	Runtime.ShowPaneOnly	K4	"unknown page %q"	1
+panes.go	Runtime.ShowPaneOnly	K4	"unknown pane %q"	1
+panes.go	Runtime.ShowPaneOnly	K5	"pane %q is not on page %q"	1
+param_kinds.go	var paramKinds	K15	"not %v"	1
+param_sources.go	CheckParameterSources	K15	"%s: parameter %s has from %q: name one source"	1
+param_sources.go	CheckParameterSources	K3	"%s: parameter %s has from %q: only %q and %q name a source without a key"	1
+param_sources.go	Runtime.fillFrom	K3	"row %q: target field %q is empty"	1
+params.go	ParseChoices	K15	"unsupported choices result %T"	1
+params.go	Runtime.CheckSourceArgs	K13	"%s: unknown choices source %q"	1	declaration
+params.go	Runtime.CheckSourceArgs	K15	"%s: sourceArgs must name another field"	1
+params.go	Runtime.CheckSourceArgs	K4	"%s: choices source %s has no parameter %q"	2
+params.go	Runtime.CheckSourceArgs	K4	"%s: sourceArgs names no sibling %q"	1
+params.go	Runtime.ChoicesFor	K13	"unknown choices source %q"	1	declaration
+params.go	Runtime.ChoicesFor	K14	"choices source %q: %w"	2	failure
+params.go	Runtime.ChoicesFor	K15	"choices source %q asks for confirmation"	1
+params.go	Runtime.choiceError	K2	"%s must be one of %s%s"	1
+params.go	Runtime.choicesContext	K15	"choices source %q asks for confirmation"	1
+params.go	Runtime.choicesContext	K15	"choices source %q is not applicable now"	1
+params.go	Runtime.choicesContext	K15	"choices source %q: %s"	1
+params.go	Runtime.choicesLoad	K14	"choices source %q: %w"	3	failure
+params.go	Runtime.choicesLoad	K15	"Failed(…)"	3
+params.go	Runtime.loadChoicesFor	K14	"choices source %q: %w"	3	failure
+params.go	Runtime.runChoicesApp	K15	"a choices source cannot run a foreground program"	1
+params.go	Runtime.startChoices	K14	"choices source %q: %w"	2	failure
+params.go	mapChoice	K3	"choice map needs a string id, key or name"	1
+params.go	parseChoice	K15	"unsupported choice %T"	1
+path_browse.go	Runtime.browseSourceAt	K15	"not listed on its own (path.no-auto-list): open it or type a path; %s"	1
+path_browse.go	browseNav.make	K15	"type a name first"	1
+path_browse.go	browsing.make	K15	"open a folder first: nothing can be made here"	1
+path_chooser.go	Runtime.OpenPathChooser	K8	"%s is not a path"	1
+path_find.go	Runtime.openFindPicker	K15	"filter must be any, file or dir"	1
+path_find.go	Runtime.openFindPicker	K7	"picker path cannot contain newlines"	1
+path_find.go	findField.choose	K15	"Failed(…)"	1
+path_find.go	findField.choose	K7	"paths fields cannot contain a filename with a newline"	1
+path_find.go	findField.choose	K9	"originating input changed while the picker was open; open it again to choose safely"	1
+path_find.go	pathFind.load	K15	"Failed(…)"	1
+path_verbs.go	pathVerbs	K15	"open-with needs with, the application"	1
+path_verbs.go	propParam	K2	"Enum without Accept: <expr>"	1
+path_verbs.go	thingValue	K15	"the free verbs of a prop's kind are off (setting paths.free-verbs)"	1
+path_verbs.go	thingValue	K4	"%s %q has no %s"	1
+path_verbs.go	thingValue	K4	"%s has no prop %q of that kind"	1
+path_verbs.go	var needOpenProp	K1	"Lacks: it has no prop of Type path or url"	1
+path_verbs.go	var needPathProp	K1	"Lacks: it has no prop of Type path"	1
+picker.go	pickerAbsolutePath	K14	"resolve home directory: %w"	1	failure
+picker.go	pickerLocation	K14	"open search root %q: %w"	1	failure
+picker.go	pickerLocation	K15	"no accessible search root for %q"	1
+picker_registry.go	Runtime.AddPicker	K15	"picker %s needs open, verb, source or noun"	1
+picker_registry.go	Runtime.AddPicker	K15	"picker name %q must be one word"	1
+picker_registry.go	Runtime.AddPicker	K2	"picker %s: match %q is not one of %s"	1
+picker_registry.go	Runtime.OpenNamedPicker	K15	"no picker named %q (picker.list lists them)"	1
+picker_registry.go	Runtime.openPickersPicker	K15	"Failed(…)"	1
+picker_registry.go	Runtime.runPickerPick	K13	"picker %s: unknown pick verb %q"	1	declaration
+picker_registry.go	Runtime.runPickerPick	K15	"Failed(…)"	1
+picker_registry.go	registerPickerRegistry	K15	"no picker named %q"	1
+picker_search.go	indexPickerEntries	K14	"index %q: %w"	1	failure
+picker_search.go	indexPickerEntries	K14	"open search root: %w"	1	failure
+picker_search.go	pickerIgnore.close	K14	"Git ignore parser: %w: %s"	1	failure
+picker_search.go	pickerIgnore.close	K15	"Git ignore parser: %s"	1
+picker_search.go	pickerIgnore.ignored	K14	"read Git ignore decision for %q: %w"	1	failure
+picker_search.go	startPickerIgnore	K14	"check search root ignore rule: %w: %s"	1	failure
+picker_search.go	startPickerIgnore	K14	"initialize Git ignore parser: %w: %s"	1	failure
+picker_search.go	startPickerIgnore	K14	"locate Git ignore rules: %w: %s"	1	failure
+picker_search.go	startPickerIgnore	K14	"start Git ignore parser: %w"	1	failure
+picker_verbs.go	Chooser.pickerCancel	K15	"Failed(…)"	1
+picker_verbs.go	Chooser.pickerComplete	K15	"Failed(…)"	1
+picker_verbs.go	Chooser.pickerInto	K15	"Failed(…)"	1
+picker_verbs.go	Chooser.pickerMove	K15	"Failed(…)"	1
+picker_verbs.go	Chooser.pickerUp	K15	"Failed(…)"	1
+picker_verbs.go	registerPickerVerbs	K1	"When(…) without Fallback"	3
+picker_verbs.go	registerPickerVerbs	K2	"Enum without Accept: <expr>"	1
+picker_verbs.go	registerPickerVerbs	K5	"no picker is open"	1
+prop_filter.go	NounBuilder.Filters	K14	"saved filter %s: %w"	1	failure
+prop_filter.go	NounBuilder.PropsOff	K15	"props off %q: not a field pattern"	1
+prop_filter.go	Runtime.SavedFilters	K3	"collection.filters: a saved filter needs a name"	1
+prop_filter.go	Runtime.filterPropName	K8	"ambiguous prop %q: %s or %s"	1
+prop_filter.go	filterValues	K14	"in takes a JSON array: %w"	1	failure
+prop_filter.go	filterValues	K15	"in takes an array of values"	1
+prop_filter.go	parseSavedFilters	K14	"collection.filters must be a JSON array of saved filters: %w"	1	failure
+prop_filter.go	parseSavedFilters	K15	"collection.filters must be a JSON array, use [] for no filters"	1
+prop_filter.go	parseSavedFilters	K15	"collection.filters must contain one JSON array of saved filters"	1
+prop_filter.go	parseSavedFilters	K3	"collection.filters: %s needs a noun or list scope"	1
+prop_filter.go	parseSavedFilters	K3	"collection.filters: a saved filter needs a name"	1
+prop_filter.go	typedFilter	K4	"%s has no prop %q"	1
+prop_filter.go	typedPropFilter	K14	"filter %s: %w"	2	failure
+prop_filter.go	typedPropFilter	K15	"cannot filter secret prop %q"	1
+prop_filter.go	typedPropFilter	K2	"unknown filter operator %q"	1
+prop_filter.go	typedPropFilter	K3	"%s needs a string or list prop: %s"	1
+prop_filter.go	typedPropFilter	K3	"%s needs a string value"	1
+props.go	PropSpec.HostNounError	K8	"hostNoun %q is not a noun name (lower-case words joined by - or .)"	1
+props.go	Runtime.addProp	K15	"prop %s: a key is a string or an integer, not %s"	1
+props.go	Runtime.addProp	K15	"prop %s: a key may not take the name %s, a standard verb's parameter"	1
+props.go	Runtime.addProp	K15	"prop %s: a reference (noun %s) holds a key, type string"	1
+props.go	Runtime.addProp	K15	"prop %s: only a string prop takes an enum"	1
+props.go	Runtime.addProp	K15	"prop %s: repeated name %q"	1
+props.go	Runtime.addProp	K2	"prop %s: unknown type %q"	1
+props.go	Runtime.checkPropName	K13	"prop %s clashes with the noun %s nested under %s"	1	declaration
+props.go	Runtime.checkPropName	K13	"prop %s clashes with the verb %s: a word after a noun is a verb or a prop, never both"	1	declaration
+props.go	Runtime.checkPropName	K15	"prop %q of %s must be one word without a dot"	1
+props.go	Runtime.checkPropName	K15	"prop %s is already declared"	1
+props.go	Runtime.checkPropName	K15	"prop %s of %s takes a standard verb's name"	1
+props.go	Runtime.propVerbRequest	K4	"%s has no %s: its store cannot %s it"	1
+props.go	Runtime.readOnlyError	K15	"ReadOnlyError{…}"	1
+props.go	Runtime.requestProp	K15	"%s is %s: only a boolean prop toggles"	1
+props.go	Runtime.requestProp	K15	"%s is a prop: it takes a value or toggle, not the argument %q"	1
+props.go	Runtime.requestProp	K15	"%s is a verb, not a prop"	1
+props.go	Runtime.requestProp	K15	"a request names a verb or a prop, not both"	1
+props.go	Runtime.requestProp	K15	"value and toggle go with a prop"	1
+props.go	Runtime.requestProp	K3	"a prop request takes a value or toggle, not both"	1
+props.go	Runtime.requestProp	K4	"%s has no prop %q"	1
+props.go	Runtime.requestProp	K4	"unknown noun %q"	1
+props.go	Runtime.validatePropRow	K14	"%s %w"	1	failure
+props.go	Runtime.validatePropRow	K15	"%s has an empty source"	1
+props.go	Runtime.validatePropRow	K15	"a prop row fills only its value, not %q"	1
+props.go	Runtime.validatePropRow	K4	"%s: %s has no store verb %s"	1
+props.go	ThingOf	K15	"no thing"	1
+props.go	ThingOf	K8	"thing: %T is not an object"	1
+props.go	checkPropRole	K13	"prop %s: unknown role %q"	1	declaration
+props.go	checkPropRole	K15	"prop %s: the archive role is a boolean prop, not %s"	1
+props.go	checkPropRole	K3	"prop %s: the %s role needs a reference (Noun)"	2
+props.go	checkSchema	K13	"%s: list parameter %s takes the key's name, which is reserved"	1	declaration
+props.go	checkSchema	K15	"%s: a %s store needs exactly one Key prop, not %d"	1
+props.go	checkSchema	K15	"%s: list parameter %s takes a standard parameter's name"	1
+props.go	checkSchema	K15	"%s: props %s and %s both take the role %s"	1
+props.go	checkSchema	K15	"%s: store %s names %q, not a standard verb"	1
+props.go	checkSchema	K15	"%s: unknown store kind %q"	1
+props.go	checkSchema	K15	"prop %s.%s: fallback %q is not another prop of %s"	1
+props.go	checkSchema	K15	"prop %s.id: a prop named id is the key (list rows carry the key as id)"	1
+props.go	checkSchema	K15	"prop %s.label: a prop named label has the label role (list rows carry the label as label)"	1
+props.go	checkSchema	K4	"%s: a singleton has no Key prop"	1
+props.go	collectionThings	K4	"%s has no list to count"	1
+props.go	computedPropError	K15	"prop %s: a collection prop needs Read"	1
+props.go	computedPropError	K15	"prop %s: unknown subject %q"	1
+props.go	computedPropError	K6	"prop %s: a computed prop is only read: no key, role, required, secret, create-only or default"	1
+props.go	filePathProp	K15	"errors.New(…)"	1
+props.go	propFlagError	K14	"prop %s: %w"	1	failure
+props.go	propFlagError	K15	"prop %s: a relation prop is a list with Items.Noun or a string with Noun, with no key, role, through or Read"	1
+props.go	propFlagError	K15	"prop %s: association is for a reference (Noun)"	1
+props.go	propFlagError	K15	"prop %s: fromFocus is for a reference (Noun)"	1
+props.go	propFlagError	K6	"prop %s: through is for a prop set writes (not a key, read-only or create-only)"	1
+props.go	propValue	K15	"must be %v"	1
+props.go	propValue	K15	"must be an object, a JSON object such as {\"a\": 1}"	1
+props.go	propValue	K15	"required"	1
+props.go	propValue	K2	"Enum without Accept: <expr>"	1
+props.go	propValue	K2	"must be one of %s"	1
+query.go	ParsePredicates	K15	"where must be an array of predicates"	1
+query.go	Runtime.checkPredicates	K15	"unknown predicate %q"	1
+query.go	Runtime.checkPredicates	K3	"%s needs a predicate list"	1
+query.go	parsePredicate	K14	"%s: %w"	1	failure
+query.go	parsePredicate	K15	"predicate must be [name, arg]: %v"	1
+query.go	parsePredicate	K7	"%s argument must be a string"	1
+query.go	parsePredicate	K7	"predicate name must be a string: %v"	1
+rail.go	Runtime.AddRail	K13	"rail ID %q must be nonempty and unused"	1	declaration
+rail.go	Runtime.AddRail	K4	"unknown parent %q"	1
+rail_verbs.go	Rail.rows	K15	"thing %q is not noun:key"	1
+rail_verbs.go	parseRailWidth	K15	"width %q is not cells (36) or a percent (25%%)"	1
+rail_verbs.go	railOf	K15	"no rail"	1
+rail_verbs.go	railOf	K15	"unknown rail %q"	1
+rail_verbs.go	registerRail	K15	"thing %q is not noun:key of a known noun"	1
+rail_verbs.go	registerRail	K2	"Enum without Accept: <expr>"	1
+reader.go	Ambiguity	K8	"%q is ambiguous: %s"	1
+record_chips.go	RecordEditor.clear	K15	"this form has nothing to clear"	1
+record_chips.go	RecordEditor.invert	K15	"the focused field cannot be inverted"	1
+record_chips.go	RecordEditor.toggleChip	K5	"no chip under the cursor"	1
+record_chips.go	recordField.chipEdge	K15	"no chips"	1
+record_chips.go	recordField.chipEdge	K15	"unknown edge %q"	1
+record_chips.go	registerFormChips	K1	"When(…) without Fallback"	6
+record_chips.go	registerFormChips	K2	"Enum without Accept: <expr>"	1
+record_chips.go	registerFormChips	K4	"the focused field has no chips"	1
+record_chips.go	registerFormChips	K5	"no focused record editor"	1
+record_editor.go	RecordEditor.choose	K4	"%s has no choices"	1
+record_editor.go	RecordEditor.choose	K8	"the focused field is not a choice field"	1
+record_editor.go	RecordEditor.choosePath	K15	"Failed(…)"	1
+record_editor.go	RecordEditor.outsideWrite	K14	"load record: %w"	1	failure
+record_editor.go	RecordEditor.outsideWrite	K15	"load record must return a Record"	1
+record_editor.go	RecordEditor.run	K15	"%s: %s"	1
+record_editor.go	RecordEditor.run	K15	"this form has nothing to run"	1
+record_editor.go	RecordEditor.send	K14	"write %s: %w"	1	failure
+record_editor.go	RecordEditor.suggest	K15	"Failed(…)"	1
+record_editor.go	RecordEditor.suggest	K4	"the focused field has no suggestions"	1
+record_editor.go	Runtime.AddRecordEditor	K13	"record editor ID %q must be nonempty and unused"	1	declaration
+record_editor.go	Runtime.AddRecordEditor	K4	"unknown parent %q"	1
+record_editor.go	Runtime.OpenRecordEditor	K13	"record editor ID %q must be nonempty and unused"	1	declaration
+record_editor.go	Runtime.newRecordEditor	K13	"record field name %q must be nonempty, unique and without / or %s"	1	declaration
+record_editor.go	Runtime.newRecordEditor	K14	"load record: %w"	1	failure
+record_editor.go	Runtime.newRecordEditor	K14	"record editor watch: %w"	1	failure
+record_editor.go	Runtime.newRecordEditor	K15	"record editor needs at least one field"	1
+record_editor.go	registerForms	K1	"When(…) without Fallback"	2
+record_editor.go	registerForms	K15	"no open picker"	1
+record_editor.go	registerForms	K5	"no focused record editor"	1
+record_list.go	RecordEditor.itemDelete	K5	"no item under the cursor"	1
+record_list.go	RecordEditor.itemMove	K15	"already the first item"	1
+record_list.go	RecordEditor.itemMove	K15	"already the last item"	1
+record_list.go	RecordEditor.itemMove	K5	"no item under the cursor"	1
+record_list.go	RecordEditor.itemPrompt	K15	"Failed(…)"	2
+record_list.go	RecordEditor.itemPrompt	K15	"the item is gone"	1
+record_list.go	RecordEditor.itemYank	K5	"no item under the cursor"	1
+record_list.go	recordField.itemFirst	K15	"no items"	1
+record_list.go	recordField.itemLast	K15	"no items"	1
+record_list.go	registerFormItems	K1	"When(…) without Fallback"	10
+record_list.go	registerFormItems	K5	"no focused record editor"	1
+record_list.go	registerFormItems	K8	"the focused field is not a list"	1
+ref_verbs.go	refVerbs	K8	"%s is not a noun:key reference"	1
+ref_verbs.go	var needRefProp	K1	"Lacks: it has no reference prop"	1
+reference_rekey.go	Runtime.RekeyReferences	K14	"migrate %s %s references: %w"	1	failure
+reference_rekey.go	Runtime.RekeyReferences	K14	"migrate %s references: %w"	1	failure
+reference_rekey.go	Runtime.rekeyRelations	K15	"cannot migrate %s to %s: conflicting relation"	2
+register_store.go	Runtime.namedRegister	K14	"register %s: %w"	4	failure
+register_store.go	Runtime.persistRegister	K14	"register %s: %w"	4	failure
+registers.go	registerName	K15	"register must be one character"	1
+registers.go	registerName	K15	"unsupported register"	1
+registers.go	registerRegisterThings	K15	"width must be nonnegative"	1
+registers.go	registerRegisterThings	K2	"Enum without Accept: <expr>"	1
+registers.go	var registerThingProps	K2	"Enum without Accept: <expr>"	1
+related.go	Runtime.AddRelated	K13	"related ID %q must be nonempty and unused"	1	declaration
+related.go	Runtime.AddRelated	K4	"related %q: no such noun %q"	1
+related.go	Runtime.AddRelated	K4	"unknown parent %q"	1
+related_kinds.go	Related.readList	K4	"%s has no saved filter %q"	1
+related_relations.go	relatedSection.newRelated	K15	"new is not offered in %s: it is a relation, not a prop of %s; create the thing, then associate it"	1
+related_relations.go	relatedSection.unrelateSection	K5	"no %s selected in %s"	1
+related_verbs.go	doneOr	K15	"Failed(…)"	1
+related_verbs.go	registerRelatedFolds	K15	"Failed(…)"	1
+related_verbs.go	registerRelatedMoves	K15	"Failed(…)"	2
+related_verbs.go	registerRelatedRefresh	K15	"Failed(…)"	1
+related_verbs.go	registerRelatedRefresh	K15	"unknown section %q"	1
+related_verbs.go	registerRelatedSettings	K15	"%s is hidden by the pattern %s: change the setting"	1
+related_verbs.go	registerRelatedSettings	K4	"the stack names no setting for %s"	1
+related_verbs.go	registerRelatedWrites	K5	"no %s selected in %s"	1
+related_verbs.go	relatedSection.groupOnly	K15	"%s groups %s: run %s on a row of one of them, or name it with section"	1
+related_verbs.go	relatedSection.groupOnly	K15	"%s lists a saved filter: no prop names the thing to %s"	1
+related_verbs.go	relatedSection.readOnly	K14	"cannot %s: %w"	1	failure
+related_verbs.go	relatedSection.readOnly	K15	"ReadOnlyError{…}"	1
+related_verbs.go	relatedStack	K15	"no related sections"	1
+related_verbs.go	relatedStack	K15	"unknown related stack %q"	1
+related_verbs.go	relatedTarget	K15	"no section at the focus: name one with section"	1
+related_verbs.go	relatedTarget	K15	"unknown section %q"	1
+related_verbs.go	sectionVerb	K15	"Failed(…)"	2
+relation.go	Runtime.DeclareRelationKind	K13	"relation kind %s: a maximum is 0 (any) or more"	1	declaration
+relation.go	Runtime.DeclareRelationKind	K15	"relation kind %q is one word"	1
+relation.go	Runtime.DeclareRelationKind	K15	"relation kind %s: onFull is %s or %s"	1
+relation.go	Runtime.DeclareRelationKind	K3	"relation kind needs a name"	1
+relation.go	Runtime.DeclareRelationKind	K4	"relation kind %s: no such noun %q"	1
+relation_ops.go	Runtime.Relate	K15	"relation %s: the %s end is a %s, not a %s"	1
+relation_ops.go	Runtime.Unrelate	K15	"no %s relation from %s to %s"	1
+relation_ops.go	Runtime.relationEnd	K15	"%s %q is not noun:key"	1
+relation_ops.go	var errNoRelationStore	K15	"no relation store: the application gives the runtime one with SetRelationStore"	1
+relation_props.go	Runtime.writeRelationProp	K15	"%s.%s: relation values are keys"	1
+relation_props.go	relationWrap.create	K4	"%s: the created thing has no key to relate"	1
+relation_verbs.go	Runtime.relationEnds	K3	"name the other end with to or from, not both"	1
+relation_verbs.go	relationVerbs	K14	"data %w"	1	failure
+relation_verbs.go	var needRelations	K1	"Lacks: the application keeps no relations (no relation store)"	1
+remote.go	Ctx.Await	K10	"a call that needs the terminal cannot be made by a store"	1
+remote.go	Ctx.Await	K14	"%s %s %s: %w"	1	failure
+remote.go	Ctx.Await	K15	"%s: a write to a remote store runs as a job"	1
+remote.go	Ctx.Await	K15	"a stepped result cannot be awaited inside a plan"	1
+remote.go	Ctx.Await	K15	"remote call changed between runs: the tape holds %s %s, the run made %s %s; the verb stops"	1
+remote.go	Runtime.runRemote	K4	"%s has no store"	1
+remote.go	remoteRun.result	K15	"Failed(…)"	1
+remote.go	remoteRun.unitCtx	K9	"%s is no longer there"	1
+remote.go	var ErrNotLoaded	K15	"not loaded yet"	1
+render_cache.go	validRenderFPS	K15	"render.max-fps must be between 0 and 240"	1
+resolve.go	registerModeTables	K15	"digit must be 0 to 9"	1
+resolve.go	registerModeTables	K15	"no stored request"	1
+resolve.go	registerModeTables	K15	"unknown pending mode %q"	1
+resolve.go	registerModeTables	K2	"unknown mode %q"	1
+resolve.go	registerModeTables	K7	"count exceeds 1000000"	1
+resolve.go	requestArg	K14	"%s: %w"	1	failure
+resolve.go	requestArg	K15	"%s must be a request"	1
+resolve.go	requestArg	K3	"%s needs a noun and a verb or prop"	1
+rows_format.go	FormatRowsJSON	K14	"not a JSON array of rows: %w"	1	failure
+rows_format.go	orderedObject.add	K14	"%s: %w"	1	failure
+runtime.go	JSONPointer	K15	"cannot descend into %q"	1
+runtime.go	JSONPointer	K15	"invalid array index %q"	1
+runtime.go	JSONPointer	K15	"state path must be a JSON Pointer starting with /"	1
+runtime.go	JSONPointer	K2	"unknown state path %q"	1
+runtime.go	Runtime.AddInput	K13	"input ID must be unique and nonempty"	1	declaration
+runtime.go	Runtime.AddInput	K15	"input kind must be text, path, or paths"	1
+runtime.go	Runtime.AddInput	K15	"path filter must be any, file, or dir"	1
+runtime.go	Runtime.AddInput	K4	"unknown noun %q"	1
+runtime.go	Runtime.AddInput	K4	"unknown parent %q"	1
+runtime.go	Runtime.execute	K11	"Confirm: <expr> without Loses"	1
+runtime.go	Runtime.execute	K15	"errors.New(…)"	1
+runtime.go	Runtime.execute	K15	"interaction path must start at app"	1
+runtime.go	Runtime.execute	K15	"unknown input %q"	1
+runtime.go	Runtime.execute	K4	"unknown instance %q"	1
+runtime.go	Runtime.notApplicable	K15	"%s is not applicable now"	1
+runtime.go	Runtime.standardArgs	K1	"%s is unavailable: %s"	1
+runtime.go	Runtime.targetInstance	K14	"target %q: %w"	1	failure
+runtime.go	Runtime.targetInstance	K4	"unknown target %q"	1
+runtime.go	Runtime.targetInstance	K8	"target %q resolved to %q, which is not an instance"	1
+runtime.go	checkRestParameter	K15	"%s: parameters %s and %s both take the rest of the line"	1
+runtime.go	checkRestParameter	K15	"%s: required parameter %s comes after the rest parameter %s"	1
+runtime.go	checkRestParameter	K7	"%s: rest parameter %s must be a string, not %s"	1
+runtime.go	registerCore	K15	"unknown modal input"	1
+runtime.go	validateArguments	K15	"%s must be %s"	1
+runtime.go	validateArguments	K2	"%s must be one of %s"	1
+scaffold_verbs.go	runAnnotate	K15	"%s cannot be about a %s (annotators: %s)"	1
+scaffold_verbs.go	scaffoldVerbs	K2	"Enum without Accept: <expr>"	1
+scaffold_verbs.go	var needAnnotator	K1	"Lacks: no noun can be about it (no about prop)"	1
+scaffold_verbs.go	var needToken	K1	"Lacks: its store keeps no change token (no Store.ChangeToken)"	1
+scheme.go	ParseSchemes	K15	"null"	1
+scheme.go	Runtime.ensureThemeSetting	K2	"Enum without Accept: <expr>"	1
+scheme.go	SchemeColor.UnmarshalJSON	K15	"a colour is \"#RRGGBB\" or {\"light\": \"#RRGGBB\", \"dark\": \"#RRGGBB\"}"	1
+scheme.go	parseScheme	K13	"error must differ from %s, so errors stay distinct"	1	declaration
+scheme.go	parseScheme	K13	"is a built-in theme: it takes only tones"	1	declaration
+scheme.go	parseScheme	K13	"unknown role %q: use background, text, muted, accent, border, surface, error, tones"	1	declaration
+scheme.go	parseScheme	K15	"%s: %q is not #RRGGBB, #RGB or an ANSI index 0-255"	1
+scheme.go	parseScheme	K15	"%s: %v"	1
+scheme.go	parseScheme	K15	"a scheme is an object of roles"	1
+scheme.go	parseScheme	K15	"a scheme name is one word"	1
+scheme.go	parseScheme	K15	"background is adaptive, light or dark"	1
+search_find.go	Runtime.FindText	K15	"no search pattern"	1
+search_find.go	Runtime.FindText	K15	"nothing to search here (a text view, the docs viewer, a Markdown viewer or a timeline)"	1
+search_find.go	Runtime.FindText	K4	"pattern not found: %s"	1
+search_find.go	registerSearchFind	K15	"no find line is open"	3
+search_find.go	registerSearchFind	K15	"no previous search"	1
+search_find.go	registerSearchFind	K15	"nothing to search here (a text view, the docs viewer, a Markdown viewer or a timeline)"	1
+search_match.go	regexError	K15	"regex: %v"	2
+search_match.go	registerSearchMatch	K15	"no open search here (a / filter line or a picker)"	1
+search_match.go	registerSearchMatch	K15	"unknown match mode %v (substring, fuzzy or regex)"	1
+search_match.go	registerSearchMatch	K2	"Enum without Accept: <expr>"	1
+segment.go	Runtime.checkSegment	K15	"names more than one of provider, command and verb"	1
+segment.go	Runtime.checkSegment	K15	"no provider %q is registered"	1
+segment.go	Runtime.checkSegment	K3	"needs a provider, a command or a verb"	1
+segment.go	Runtime.checkSegment	K4	"unknown verb %q"	1
+segment.go	Runtime.segmentVerb	K4	"%s has no handler"	1
+segment.go	Runtime.segmentVerb	K4	"unknown verb %q"	1
+segment.go	Segment.UnmarshalJSON	K8	"%s %q is not a duration such as 2s"	1
+segment.go	checkSegmentID	K15	"segment id %q must be one word without dots"	1
+segment.go	registerSegments	K15	"unknown segment %q"	2
+segment.go	segmentMove	K15	"to %q is not first, last, up, down, +N, -N or a position"	1
+segment.go	segmentMove	K15	"unknown segment %q"	1
+segment.go	segmentRun.do	K15	"timed out after %s"	1
+set_line.go	parseSetLine	K14	"%w; nothing was changed"	1	failure
+set_line.go	parseSetWord	K15	"%s has a type :set does not read: %s"	1
+set_line.go	parseSetWord	K15	"settings have one default: use %s&"	1
+set_line.go	parseSetWord	K15	"unexpected text after %s%s: %s"	1
+set_line.go	parseSetWord	K15	"unexpected text after %s%s: %s%s"	1
+set_line.go	resolveSetName	K8	"%s is ambiguous: %s"	1
+set_line.go	setFormError	K15	"%s is %s, not on/off: %s"	1
+set_line.go	setFormError	K15	"%s takes %s: %s is for %s"	1
+set_line.go	setUnknown	K15	"a setting name comes before the operator"	1
+set_line.go	setValue	K14	"%s: %w"	1	failure
+set_line.go	setValue	K15	"%s takes %s: %s"	1
+set_line.go	setValue	K4	"%s has no value %s: %s"	1
+set_line.go	setValue	K8	"%s: %s is ambiguous: %s"	1
+setting_verbs.go	arithmetic	K15	"%s: not a number"	1
+setting_verbs.go	fitError	K15	"%s is %s, not on/off: %s"	1
+setting_verbs.go	fitError	K15	"%s is %s: setting.%s is for %s"	1
+setting_verbs.go	fitError	K2	"Enum without Accept: <expr>"	1
+setting_verbs.go	nextSet	K15	"value"	1
+setting_verbs.go	operand	K15	"%s takes %s: %v"	1
+setting_verbs.go	operand	K3	"%s is required"	1
+setting_verbs.go	planSetting	K14	"%s: %w"	1	failure
+setting_verbs.go	readApplyLine	K14	"%w; nothing was changed"	1	failure
+setting_verbs.go	registerSettingsApply	K2	"Enum without Accept: <expr>"	1
+setting_verbs.go	settingParams	K2	"Enum without Accept: <expr>"	1
+setting_verbs.go	settingScope	K15	"scope is session or file: %s"	1
+setting_verbs.go	settingsApply	K14	"%w; nothing was changed"	1	failure
+setting_verbs.go	var settingProps	K2	"Enum without Accept: <expr>"	2
+settings.go	Runtime.DeclareSetting	K14	"setting %s default: %w"	1	failure
+settings.go	Runtime.DeclareSetting	K15	"setting %q is already declared"	1
+settings.go	Runtime.DeclareSetting	K15	"setting %s: only a string setting takes an enum"	1
+settings.go	Runtime.DeclareSetting	K15	"setting name %q must be one word"	1
+settings.go	Settings.Set	K14	"%s: %w"	1	failure
+settings.go	Settings.write	K14	"%s does not parse; fix or remove it first: %w"	1	failure
+settings.go	coerceSetting	K2	"must be one of %s"	1
+settings.go	coerceType	K15	"must be a duration such as \"400ms\" or \"2s\""	1
+settings.go	coerceType	K15	"must be true or false"	1
+settings.go	coerceType	K2	"unknown setting type %q"	1
+settings.go	coerceType	K7	"must be a number"	1
+settings.go	coerceType	K7	"must be a string"	1
+settings.go	coerceType	K7	"must be an integer"	1
+settings.go	var listShape	K15	"must be a list of strings, a JSON array such as [\"a\", \"b\"]"	1
+settings_defaults.go	nonNegativeDuration	K15	"must be 0 (wait for the next key) or a positive duration such as \"1s\""	1
+settings_owners.go	Runtime.DeclareSettingOwner	K15	"setting owner %q must be one word"	1
+settings_owners.go	Runtime.DeclareSettingSection	K15	"setting section %q must be one word"	1
+settings_owners.go	Runtime.DeclareSettingSection	K15	"setting section %s: owner %q must be one word"	1
+settings_owners.go	Settings.unknownOwner	K13	"this application declares no settings"	1	declaration
+settings_owners.go	Settings.unknownOwner	K2	"no settings owner %q: one of %s"	1
+settings_page_layout.go	findUnit	K2	"no settings section %q: one of %s"	1
+settings_page_layout.go	registerSettingsLayoutView	K1	"there is no All section: settings.all-section is off"	1
+settings_page_layout.go	registerSettingsLayoutView	K2	"Enum without Accept: <expr>"	1
+settings_page_layout.go	runScopeCopy	K5	"every setting here is at its default: nothing to copy"	1
+settings_page_layout.go	showSettingsSection	K13	"this application declares no settings"	1	declaration
+settings_page_layout.go	showSettingsSection	K9	"the settings page is not open"	1
+settings_page_layout.go	showSettingsTab	K13	"this application declares no settings"	1	declaration
+settings_page_layout.go	showSettingsTab	K9	"the settings page is not open"	1
+settings_page_layout.go	unitsOfArgs	K13	"this application declares no settings"	1	declaration
+settings_page_layout.go	unitsOfArgs	K15	"no settings section is shown"	1
+settings_session.go	Settings.SetSession	K14	"%s: %w"	1	failure
+settings_session.go	settingOfArgs	K3	"name a setting (no setting is focused)"	1
+settings_view.go	closeSettingsPage	K15	"there is no page to go back to"	1
+settings_view.go	closeSettingsPage	K9	"the settings page is not open"	1
+settings_view.go	commitSettingPrompt	K15	"an item cannot be empty"	1
+settings_view.go	commitSettingPrompt	K4	"%s has no item %d"	1
+settings_view.go	focusedSettingRow	K5	"no setting is focused"	1
+settings_view.go	openItemPrompt	K4	"%s has no item %d"	1
+settings_view.go	registerSettingEdit	K2	"Enum without Accept: <expr>"	1
+settings_view.go	registerSettingItemThings	K15	"a setting item is named setting/index, not %q"	1
+settings_view.go	registerSettingItemThings	K15	"no setting item %q"	1
+settings_view.go	settingAdd	K8	"%s is not a list"	1
+settings_view.go	settingItemDelete	K4	"%s has no item %d"	1
+settings_view.go	settingItemOf	K5	"no list item is focused"	1
+settings_view.go	settingPromptCancel	K15	"no setting prompt is open"	1
+settings_view.go	settingPromptCommit	K15	"no setting prompt is open"	1
+settings_view.go	settingsOpen	K13	"this application declares no settings"	1	declaration
+settings_view.go	undoSettingChange	K15	"no change on the settings page to undo"	1
+show_form.go	Runtime.AddShowForm	K15	"show form %s: no list or target to follow"	1
+standard_derived.go	Runtime.aliasPropClash	K13	"alias %s clashes with the prop %s of %s: a word after a noun is a verb or a prop, never both (an alias of %s.set with prop %s may share it)"	1	declaration
+standard_derived.go	Runtime.propAliasClash	K13	"prop %s clashes with the alias %s of %s: a word after a noun is a verb or a prop, never both"	1	declaration
+standard_edit.go	Runtime.EditSpec	K4	"%s has no get to load the form from"	1
+standard_edit.go	Runtime.EditSpec	K4	"%s has no set to write the form with"	1
+standard_edit.go	Runtime.EditSpec	K4	"unknown noun %q"	1
+standard_edit.go	Runtime.editChooserEarly	K15	"Failed(…)"	1
+standard_edit.go	Runtime.editHandler	K15	"Failed(…)"	3
+standard_edit.go	Runtime.editWriter	K15	"Failed(…)"	2
+standard_edit.go	Runtime.readEdit	K15	"Failed(…)"	1
+standard_edit.go	editArgs	K6	"%s.%s is not writable"	1
+standard_edit.go	editSession.bindFieldWrites	K15	"Failed(…)"	1
+standard_edit.go	editSession.bindSubmit	K14	"%s %w"	1	failure
+standard_edit.go	editSubject.reload	K15	"Failed(…)"	1
+standard_edit.go	registerStandardEdit	K1	"When(\"edit-opening\") without Fallback"	1
+standard_edit.go	registerStandardEdit	K1	"When(\"noun-editable\") without Fallback"	1
+standard_undo.go	Runtime.undoBody	K14	"undo %s %s: %w"	1	failure
+standard_undo.go	Runtime.undoCurrent	K14	"undo %s %s: %w"	2	failure
+standard_undo.go	Runtime.undoCurrent	K9	"%s %s changed since this history entry; undo would overwrite later work"	2
+standard_undo.go	Runtime.undoCurrent	K9	"%s cannot check whether the thing changed since this entry"	1
+standard_undo.go	Runtime.undoEntry	K15	"an agent may undo only its own history entries; entry %d belongs to %s"	1
+standard_undo.go	Runtime.undoEntry	K15	"history entry %d is not in this session's change history"	1
+standard_undo.go	Runtime.undoEntry	K4	"history entry %d has no changes left to undo"	1
+standard_undo.go	Runtime.undoEntry	K6	"history entry %d is from an earlier session and cannot be undone"	1
+standard_undo.go	Runtime.undoEntry	K7	"entry must be a positive history seq"	1
+standard_undo.go	Runtime.undoVerb	K15	"Failed(…)"	4
+standard_undo.go	Runtime.undoable	K15	"%s cannot undo a create: its store does not delete"	1
+standard_undo.go	Runtime.undoable	K15	"%s cannot undo a delete: its store does not create under a given key"	1
+standard_undo.go	Runtime.undoable	K15	"%s cannot undo a write: its store does not write"	1
+standard_undo.go	Runtime.undoable	K15	"%s cannot undo: its store does not read things"	1
+standard_undo.go	Runtime.undoable	K15	"%s does not undo its changes"	1
+standard_undo.go	var errNothingToUndo	K15	"nothing to undo"	1
+standard_verbs.go	Runtime.adoptFieldParam	K15	"Failed(…)"	1
+standard_verbs.go	Runtime.createSource	K15	"%s create takes no from: its things are not read by key"	1
+standard_verbs.go	Runtime.createSource	K4	"from names no %s: give an id, a human key or a row holding its %s"	1
+standard_verbs.go	addPairWords	K15	"%q is not prop=value: the one-prop and several-prop forms do not mix"	1
+standard_verbs.go	createArgs	K13	"%s is written twice"	1	declaration
+standard_verbs.go	createArgs	K14	"%s %w"	1	failure
+standard_verbs.go	createArgs	K15	"%s must be string"	1
+standard_verbs.go	createArgs	K4	"%s has no prop %q that create writes"	1
+standard_verbs.go	nestedValue	K15	"cannot read %q inside a %T"	1
+standard_verbs.go	nestedValue	K15	"no index %q (a list of %d)"	1
+standard_verbs.go	nestedValue	K15	"no key %q"	1
+standard_verbs.go	newChangeAdder	K13	"%s is written twice"	1	declaration
+standard_verbs.go	newChangeAdder	K14	"%s %w"	1	failure
+standard_verbs.go	newChangeAdder	K14	"%s%c= %w"	1	failure
+standard_verbs.go	parseWhere	K14	"where %s %w"	1	failure
+standard_verbs.go	parseWhere	K15	"where takes prop=value pairs, not %q"	1
+standard_verbs.go	parseWhere	K4	"%s has no prop %q"	1
+standard_verbs.go	pickedProps	K4	"%s has no prop %q"	1
+standard_verbs.go	propAnswer	K14	"%s.%s: %w"	1	failure
+standard_verbs.go	propObject	K14	"%s %w"	1	failure
+standard_verbs.go	readCollectionProp	K14	"%s.%s: %w"	2	failure
+standard_verbs.go	readComputed	K14	"%s.%s: %w"	1	failure
+standard_verbs.go	refuseCollectionProps	K15	"%s.%s describes all the %s things: read it with prop, not props"	1
+standard_verbs.go	runCreate	K1	"%s.%s is not available here"	1
+standard_verbs.go	runCreate	K14	"%s %w"	1	failure
+standard_verbs.go	runGet	K1	"%s.%s is not available here"	1
+standard_verbs.go	runGet	K3	"get takes prop or props, not both"	1
+standard_verbs.go	runGet	K4	"%s has no prop %q"	1
+standard_verbs.go	runList	K15	"%s.%s is computed when asked for: read it with get, list rows do not hold it"	1
+standard_verbs.go	runSet	K1	"%s.%s is not available here"	1
+standard_verbs.go	runSet	K15	"%s cannot change a list by item: its store does not read things"	1
+standard_verbs.go	runSet	K15	"%s cannot toggle %s: its store does not read things"	1
+standard_verbs.go	setChanges	K15	"%s is %s: only a boolean prop toggles"	1
+standard_verbs.go	setChanges	K15	"set %s takes one value, not %q too"	1
+standard_verbs.go	setChanges	K15	"set needs props (an object of prop to value), prop=value words, or a prop to toggle"	1
+standard_verbs.go	setChanges	K15	"toggle goes with one prop, not prop=value words"	1
+standard_verbs.go	setChanges	K3	"set takes %s or prop words, not both"	1
+standard_verbs.go	setChanges	K3	"set takes a value or toggle, not both"	1
+standard_verbs.go	setChanges	K3	"value is required: set %s VALUE (or toggle a boolean)"	1
+standard_verbs.go	setObject	K15	"set takes props, not changes too (changes is props' old name)"	1
+standard_verbs.go	standardVerb.handler	K15	"Failed(…)"	1
+standard_verbs.go	standardVerb.handler	K15	"errors.New(…)"	1
+standard_verbs.go	standardVerb.handler	K4	"%s has no store"	2
+standard_verbs.go	standardVerb.operation	K1	"Unavailable: <expr>"	1
+standard_verbs.go	writeTarget	K15	"ReadOnlyError{…}"	1
+standard_verbs.go	writeTarget	K4	"%s has no prop %q; only declared props are writable"	1
+standard_verbs.go	writeTarget	K4	"%s has no writable prop with the role %s"	1
+standard_watch.go	Runtime.watchAs	K4	"%s cannot be watched: its store has no Watch, List or (for a singleton) Get"	1
+standard_watch.go	Runtime.watchAs	K4	"%s has no store"	1
+standard_watch.go	Runtime.watchAs	K4	"%s has no store or get operation"	1
+standard_watch.go	Watch.snapshot	K14	"%s %s: %w"	1	failure
+standard_watch.go	Watch.snapshot	K4	"%s has no store"	1
+standard_watch.go	Watch.start	K8	"since %s is not a version this watch keeps; watch without since to start from every %s"	1
+standard_watch.go	memoryVersions.WriteVersion	K15	"a version needs one hash per id"	1
+subjects.go	Ctx.Each	K15	"%s: pending work is not run for several subjects"	1
+subjects.go	Ctx.Each	K15	"Failed(…)"	1
+subjects.go	Runtime.subjectsNotice	K14	"%s failed on all %d rows: %w"	1	failure
+subjects.go	Runtime.subjectsOf	K8	"subject %q is not a %s"	1
+table_cells.go	Runtime.cellTable	K15	"not a cell table (CellSelect)"	1
+table_cells.go	Runtime.tableList	K4	"unknown list %q"	1
+table_cells.go	Runtime.tableList	K5	"no focused list"	1
+table_cells.go	tableCellVerbs	K2	"Enum without Accept: <expr>"	2
+table_cells.go	tableYank	K15	"not a cell table (CellSelect): only the row copies"	1
+table_columns.go	registerColumnMotions	K2	"Enum without Accept: <expr>"	1
+table_columns.go	registerColumnMotions	K5	"no focused list"	1
+table_fit.go	registerTableFit	K15	"not a cell table (CellSelect)"	1
+table_fit.go	registerTableFit	K15	"not a table"	1
+table_pins.go	Collection.columnNamed	K15	"no column %q"	1
+table_pins.go	registerTablePins	K15	"not a table"	1
+terminal.go	Runtime.AddTerminal	K13	"terminal ID must be unique and nonempty"	1	declaration
+terminal.go	Runtime.AddTerminal	K3	"terminal stream is required"	1
+terminal.go	Runtime.AddTerminal	K4	"unknown parent %q"	1
+terminal.go	Runtime.SetTerminalLeader	K14	"terminal leader %q: %w"	1	failure
+terminal.go	Runtime.terminalOf	K15	"unknown terminal %q"	1
+terminal.go	Runtime.terminalOf	K5	"no focused terminal"	1
+terminal.go	registerTerminal	K3	"keys is required"	1
+terminal.go	validLeader	K15	"must be one ctrl+ or alt+ key, such as \"ctrl+b\""	1
+theme.go	newAppearance	K2	"Enum without Accept: <expr>"	1
+theme.go	newAppearance	K2	"unknown theme %q: use %s"	1
+theme.go	validDim	K15	"must be 0 to %d"	1
+thing_keys.go	Runtime.findTarget	K15	"%s %q names %d %s: use one id (%s)"	1
+thing_keys.go	Runtime.rowKey	K15	"the %s row %q holds no %s: put it in the row's Data or Props"	1
+thing_keys.go	Runtime.subjectKey	K5	"no %v is focused"	1
+thing_keys.go	Thing.Into	K14	"thing: %s: %w"	1	failure
+thing_keys.go	Thing.Into	K3	"thing: Into needs a pointer to a struct, not %T"	1
+thing_keys.go	checkHumanKey	K13	"%s: props %s and %s are both the Human key; a noun has one"	1	declaration
+thing_keys.go	checkHumanKey	K15	"%s: the Human key %s is a secret prop"	1
+thing_keys.go	durationValue	K8	"%T is not a duration"	1
+thing_walk.go	registerThingWalk	K15	"Failed(…)"	3
+thing_walk.go	registerThingWalk	K8	"this row is not a graph thing or value"	1
+timeline.go	Runtime.AddTimeline	K13	"timeline ID %q must be nonempty and unused"	1	declaration
+timeline.go	Runtime.AddTimeline	K4	"unknown parent %q"	1
+timeline.go	Timeline.Patch	K4	"card %q: unknown noun %q"	1
+timeline.go	Timeline.SetFolded	K15	"unknown card %q"	1
+timeline.go	Timeline.SetFolded	K4	"card %s has no section %q"	1
+timeline.go	Timeline.SetOpen	K15	"unknown card %q"	1
+timeline.go	Timeline.target	K15	"unknown card %q"	1
+timeline.go	Timeline.target	K4	"timeline has no cards"	1
+timeline.go	registerTimelines	K15	"unknown timeline %q"	1
+timeline.go	registerTimelines	K2	"Enum without Accept: <expr>"	1
+timeline.go	registerTimelines	K5	"no focused timeline"	1
+timeline_steps.go	Timeline.foldStep	K15	"the current step is not in an open section"	1
+timeline_steps.go	registerTimelineSteps	K15	"not inside a card"	4
+timeline_steps.go	registerTimelineSteps	K15	"unknown timeline %q"	1
+timeline_steps.go	registerTimelineSteps	K5	"no focused timeline"	1
+tone.go	ToneStyle.UnmarshalJSON	K15	"a tone is a colour, a role, or {\"fg\": ..., \"bg\": ..., \"bold\": true, \"dim\": true}"	1
+tone.go	parseTones	K15	"tone %q: a tone name is one word"	1
+tone.go	parseTones	K15	"tone %s: %q is not #RRGGBB, #RGB, an ANSI index 0-255 or a role (%s)"	1
+tone.go	parseTones	K15	"tone %s: %v"	1
+tone.go	parseTones	K15	"tones is an object of tones by name"	1
+transport.go	CallResponse	K15	"%s"	1
+transport.go	Listen	K10	"socket parent %s is mode %04o, readable by others: run chmod 700 %s, or choose a socket path in a private directory you own"	1
+transport.go	Listen	K10	"socket parent %s is not owned by the current user: choose a socket path in a private directory (mode 0700) you own"	1
+transport.go	Listen	K8	"socket parent %s is not a directory: choose a socket path in a private directory (mode 0700) you own"	1
+transport.go	removeStaleSocket	K10	"listen %s: another application is listening on this socket; quit it or choose another socket path"	1
+transport.go	removeStaleSocket	K14	"listen %s: the socket is in use and did not answer: %w"	1	failure
+transport.go	removeStaleSocket	K8	"listen %s: the path exists and is not a socket"	1
+tree.go	Runtime.AddTree	K13	"tree ID %q must be nonempty and unused"	1	declaration
+tree.go	Runtime.AddTree	K4	"unknown parent %q"	1
+tree.go	Tree.Edit	K15	"tree"	1
+tree.go	Tree.Record	K15	"tree action needs Undo and Redo"	1
+tree.go	Tree.Select	K4	"unknown tree node %q"	1
+tree.go	Tree.SetCollapsed	K4	"unknown tree node %q"	1
+tree.go	Tree.SetNodes	K13	"tree node ID %q must be nonempty and unique"	1	declaration
+tree.go	Tree.SetNodes	K15	"tree node %q: parent %q must come before it"	1
+tree.go	Tree.apply	K15	"unknown tree change %q"	1
+tree.go	Tree.apply	K4	"unknown tree node %q"	3
+tree.go	Tree.apply	K8	"tree node %q exists"	1
+tree.go	Tree.commitPlan	K14	"write %s: %w"	1	failure
+tree.go	Tree.openLine	K4	"unknown tree node %q"	2
+tree.go	Tree.refuses	K15	"%s holds %s, which refuses %s"	1
+tree.go	Tree.refuses	K15	"%s refuses %s"	1
+tree.go	Tree.refuses	K15	"Refuse(…)"	1
+tree.go	Tree.rowKey	K15	"no key to run on the row"	1
+tree.go	Tree.rowKey	K4	"tree has no selected node"	1
+tree.go	Tree.shift	K4	"tree has no selected node"	1
+tree.go	Tree.write	K14	"write %s: %w"	1	failure
+tree.go	registerOutlineThings	K15	"no node %q"	1
+tree.go	registerOutlineThings	K5	"no focused tree"	1
+tree.go	registerTrees	K1	"When(\"outline-collapses\") without Fallback"	1
+tree.go	registerTrees	K1	"When(\"outline-deletable\") without Fallback"	1
+tree.go	registerTrees	K1	"When(\"outline-movable\") without Fallback"	3
+tree.go	registerTrees	K1	"When(\"outline-renamable\") without Fallback"	1
+tree.go	registerTrees	K1	"When(\"tree-editable\") without Fallback"	9
+tree.go	registerTrees	K1	"When(\"tree-zoom\") without Fallback"	3
+tree.go	registerTrees	K15	"Failed(…)"	1
+tree.go	registerTrees	K15	"tree"	1
+tree.go	registerTrees	K2	"Enum without Accept: <expr>"	2
+tree.go	registerTrees	K5	"no focused tree"	1
+tree.go	var ErrTreeRefused	K15	"change refused"	1
+tree_delete.go	Tree.remove	K5	"no row selected"	1
+tree_yank.go	Tree.yank	K5	"no row selected"	1
+tree_zoom.go	Tree.Zoom	K4	"unknown tree node %q"	1
+ui.go	registerUI	K15	"Failed(…)"	1
+unbound_verbs.go	Runtime.bindUserKey	K14	"%s does not parse, so it is left alone: %w"	1	failure
+unbound_verbs.go	Runtime.bindUserKey	K15	"written, but not loaded: %s"	1
+unbound_verbs.go	Runtime.bindUserKey	K2	"unknown operation %q"	1
+unbound_verbs.go	Runtime.bindUserKey	K4	"this application has no config directory: nothing to write the binding to"	1
+unbound_verbs.go	Runtime.runFromHelp	K4	"unknown instance %q"	1
+unbound_verbs.go	Runtime.runOrAsk	K14	"cannot open the form for %s: %w"	1	failure
+unbound_verbs.go	Runtime.runOrAsk	K4	"%s has no argument to ask for"	1
+unbound_verbs.go	registerUnboundVerbs	K5	"select a verb in the help"	1
+unbound_verbs.go	registerUnboundVerbs	K5	"select an unbound verb in the help"	1
+verb_check.go	Runtime.AddRemovedVerbs	K3	"removed verb %q needs a verb and a replacement"	1
+verb_check.go	Runtime.removedVerbError	K15	"%s: use %s"	1
+verb_check.go	Runtime.unknownOperation	K2	"unknown operation %q"	1
+verb_checks.go	Runtime.AddVerbCheck	K2	"unknown operation %q"	1
+verb_checks.go	Runtime.AddVerbCheck	K3	"a verb check needs a name and a check"	1
+yank_history.go	registerYankHistory	K15	"no yank at history index"	1
+yank_history.go	registerYankHistory	K15	"yank history is not active"	1

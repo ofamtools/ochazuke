@@ -1,0 +1,122 @@
+[
+ {
+  "id": "K13",
+  "name": "declaration",
+  "title": "Developer declaration errors",
+  "pattern": "already names|defined twice|are both|unknown role|declares no|is not NOUN.VERB|must not be negative|unknown side placeholder|a maximum is|built-in theme|trailing text|invalid JSON pointer|^store: |nonempty|must differ|clashes with|is reserved|duplicate |unknown guard|unknown pick verb|unknown choices source|one-cell|takes no marks|is written twice|nil setup|must render as|does not carry|^%v: %v$|^noun$|names the session|statuses|a word after a noun",
+  "use": "a developer error at registration (exception E4, reason declaration); a user's config row is a warning, never an error",
+  "stays": "yes for code at registration (a developer's bug); no for user config rows"
+ },
+ {
+  "id": "K9",
+  "name": "stale-state",
+  "title": "The surface or process the verb needed has gone",
+  "pattern": "no longer there|has exited|stream ended|changed while|is not open|has closed|is closed|are loading|reopen|changed since|plan again|expired or was replaced|cannot step up|step limit|black-hole|already recorded|same (server|file)",
+  "use": "name the surface the verb needs (Operation.Opens) and let the runtime reopen it",
+  "stays": "no"
+ },
+ {
+  "id": "K12",
+  "name": "rights",
+  "title": "Agent rights",
+  "pattern": "agents? (may )?never|needs the owner's confirmation|unknown actor|agent right",
+  "use": "agent rights stay as designed (exception E1, reason rights)",
+  "stays": "yes, owner rule"
+ },
+ {
+  "id": "K11",
+  "name": "confirm",
+  "title": "Asks first",
+  "pattern": "\\[y/N\\]",
+  "use": "ask only on a verb that destroys what undo cannot restore: declare Loses; otherwise write and offer undo",
+  "stays": "yes, for data the owner cannot get back (hard delete, pane kill)"
+ },
+ {
+  "id": "K1",
+  "name": "availability",
+  "title": "Unavailable: the verb is listed but its store, guard or a setting holds it back",
+  "pattern": "unavailable|no Store\\.|system fact|lacks|is off\\b|predates|not available|is not enabled|disabled|build with -tags|nodaemon|this application declares none",
+  "use": "declare Fallback on the verb, route the write to the verb that owns it (PropSpec.WrittenBy), or let the verb ask for the missing thing; a guard only routes keys",
+  "stays": "no"
+ },
+ {
+  "id": "K6",
+  "name": "read-only",
+  "title": "A prop or thing is read-only",
+  "pattern": "read-only|cannot be (written|edited|changed|set|filled)|is not writable|create-only|createOnly|is fixed|cannot be renamed|cannot be deleted|cannot be undone",
+  "use": "route the write with PropSpec.WrittenBy, or keep an overlay value",
+  "stays": "no"
+ },
+ {
+  "id": "K2",
+  "name": "choice",
+  "title": "A value outside the listed choices is refused",
+  "pattern": "[:;] one of %|is one of %|unknown copy motion|unknown filter operator|unknown stdin kind|is not one of|not one of|must be one of|expected true or false|unknown day|unknown context origin|unknown (setting|mode|theme|format|kind|type|value|layout|scope|status|state|source|direction|item|runner|harness|op|operation|field|column|sort|shape|style)|not a valid|invalid (value|choice|mode|kind|format)|did you mean|known: |expected (one of|a|an) ",
+  "use": "declare Accept (register, keep or near) on the parameter, setting or prop, so an unlisted value runs",
+  "stays": "no"
+ },
+ {
+  "id": "K3",
+  "name": "required",
+  "title": "A required value is missing",
+  "pattern": "needs a value|needs kind|needs a |takes? .* not both|name the |give one of|is required|must not be empty|requires (a|an|exactly|one)|missing |name a |give a |no .* given|empty (name|title|text|script)|is empty|nothing to (save|send|add)",
+  "use": "open the args form on the field (Ctx.Need), give the parameter a Default or DefaultFrom, or record an untitled thing",
+  "stays": "no"
+ },
+ {
+  "id": "K4",
+  "name": "not-found",
+  "title": "The named thing does not exist",
+  "pattern": "^no (turn|tree|history entry|linked module|open picker) |names no |no tree holds|not found|^no %[svq] %[svq]|^no %[svq] %[svq]$|^unknown %[svq] %[svq]|unknown (pane|session|row|task|project|note|tree node|instance|parent|noun|verb|lane|question|command|schedule|reminder|page|list|doc|id|key|binding|action|register|mark|window|target)|no such|does not exist|has no ",
+  "use": "create the thing when its noun can, or answer a Choice result (near ids and the create command)",
+  "stays": "no"
+ },
+ {
+  "id": "K5",
+  "name": "selection",
+  "title": "Nothing is focused or selected, or the row cannot be picked",
+  "pattern": "is focused|under the cursor|nothing to scroll|is attached|works on a |no picker is open|no filter form|is not on page|is not listed|select a|no .* selected|cannot be (marked|picked|selected|chosen)|nothing to (open|pick|show|select|yank|copy)|no (pane|draft|turn|row|subagent) (attached|shown|selected)|no focused|nothing (is )?focused|nothing selected",
+  "use": "return Ctx.Need(noun) so the picker opens",
+  "stays": "no"
+ },
+ {
+  "id": "K7",
+  "name": "input-limit",
+  "title": "Typed or pasted input is restricted",
+  "pattern": "use lowercase|must contain only|use letters|more than the %v|bytes, more than|cannot contain|newline|too long|must be at (least|most)|out of range|must be (a|an) (string|number|integer|boolean|positive)|must not be null|not %T|exceeds|at most %",
+  "use": "adapt the input with Parameter.Normalize and keep the original; never restrict typed or pasted content",
+  "stays": "no"
+ },
+ {
+  "id": "K8",
+  "name": "shape",
+  "title": "Conflicting, ambiguous, cyclic or duplicate requests",
+  "pattern": "cannot be under|of itself|itself|cycle|ambiguous|exactly one of|both .* and|only one of|conflicts? with|already (exists|holds|registered|taken)|exists$|is not (a|an) ",
+  "use": "open a picker of the candidates, let the later argument win with a notice, or return the existing thing",
+  "stays": "no"
+ },
+ {
+  "id": "K10",
+  "name": "environment",
+  "title": "A program, daemon or session is missing",
+  "pattern": "needs the (TUIOS )?daemon|needs the terminal|needs the TUI|not on PATH|no daemon|socket|session_not_found|executable|install ",
+  "use": "name the need (Operation.Requires) and let the runtime provide it, or record a pending job",
+  "stays": "no (a pending job, never a refusal)"
+ },
+ {
+  "id": "K14",
+  "name": "wrap-prefix",
+  "title": "Wrap prefixes over a cause (disk, network, daemon, OS)",
+  "pattern": "",
+  "use": "a real failure stays reported with advice and the request kept (exception E3, reason failure)",
+  "stays": "yes: a real failure is reported, never a refusal, and never loses input"
+ },
+ {
+  "id": "K15",
+  "name": "other",
+  "title": "Not yet classified by the scanner",
+  "pattern": "",
+  "use": "classify it in classes.json when you touch it",
+  "stays": "per site"
+ }
+]
