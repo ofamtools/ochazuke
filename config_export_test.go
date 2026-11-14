@@ -380,8 +380,10 @@ func TestConfigExportExamplesInstallWithoutNotices(t *testing.T) {
 		// which a value excludes, and create's from, which covers the
 		// required props; an action's parameter does not take them. items
 		// is a list prop's element and hostNoun the host noun a catalog
-		// prop names: both are declared on props, not on actions.
-		if !params[f] && f != "focus" && f != "edits" && f != "valueOf" && f != "pairs" && f != "excludes" && f != "covers" && f != "forwards" && f != "plumbing" && f != "items" && f != "hostNoun" {
+		// prop names: both are declared on props, not on actions. free is
+		// the catalog wire's former word for accept (deprecated), never
+		// written in a config file.
+		if !params[f] && f != "free" && f != "focus" && f != "edits" && f != "valueOf" && f != "pairs" && f != "excludes" && f != "covers" && f != "forwards" && f != "plumbing" && f != "items" && f != "hostNoun" {
 			t.Errorf("actions example lacks parameter field %q", f)
 		}
 	}

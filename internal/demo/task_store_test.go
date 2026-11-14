@@ -171,8 +171,7 @@ func TestTaskWritesFromTheCLI(t *testing.T) {
 	owner := ochazuke.Owner()
 	sh.Actor = &owner
 	cli.Mount(app, sh)
-	// Undo fully restores a delete, so it does not ask (no-refusals D7).
-	if err := app.Run(context.Background()); err != nil || strings.Contains(stderr.String(), "Delete task Call the plumber about the sink?") {
+	if err := app.Run(context.Background()); err == nil || !strings.Contains(stderr.String(), "Delete task Call the plumber about the sink?") {
 		t.Fatalf("delete without --yes: %v\n%s", err, stderr.String())
 	}
 }
@@ -186,6 +185,8 @@ func TestTaskWritesFromThePalette(t *testing.T) {
 	m.Width, m.Height = 100, 24
 	m.Appearance.Theme = "mono"
 	r := m.Runtime
+	// A running UI has a session (Model.Init), so undo reaches its deletes.
+	r.Settings().StartSession()
 	if err := r.OpenPage("task"); err != nil {
 		t.Fatal(err)
 	}

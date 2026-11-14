@@ -836,8 +836,8 @@ func TestShellAppliesTheUserBindingsFile(t *testing.T) {
 	}
 }
 
-// settings set NAME VALUE takes bare words, validates and writes the file
-// (no-refusals: it no longer asks first): a CLI process has no session, so the write goes to
+// settings set NAME VALUE takes bare words, validates and writes the file,
+// after asking: a CLI process has no session, so the write goes to
 // settings.json, and --yes (or y on stdin) confirms it.
 func TestShellSetsASetting(t *testing.T) {
 	f := newFixture(t)
@@ -846,9 +846,11 @@ func TestShellSetsASetting(t *testing.T) {
 	if err := f.r.DeclareSetting(ochazuke.Setting{Name: "scrolloff", Type: ochazuke.SettingInteger, Default: 2, Description: "Rows around the focus"}); err != nil {
 		t.Fatal(err)
 	}
-	// A CLI write no longer asks: it writes and says how to undo it.
-	if _, errOut, err := f.run("", "setting", "set", "scrolloff", "4"); err != nil || !strings.Contains(errOut, "Write scrolloff = 4 to "+filepath.Join(dir, "settings.json")+" (done)") {
-		t.Fatalf("set: %s %v", errOut, err)
+	if _, errOut, err := f.run("", "setting", "set", "scrolloff", "4"); err == nil || !strings.Contains(err.Error(), "declined") || !strings.Contains(errOut, "Write scrolloff = 4 to "+filepath.Join(dir, "settings.json")+"? [y/N]") {
+		t.Fatalf("unanswered set: %s %v", errOut, err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "settings.json")); err == nil {
+		t.Fatal("a declined set wrote settings.json")
 	}
 	out, _, err := f.run("y\n", "setting", "set", "scrolloff", "5")
 	if err != nil || !strings.Contains(out, `"value": 5`) {
@@ -865,8 +867,11 @@ func TestShellSetsASetting(t *testing.T) {
 		t.Fatalf("file %s %v", data, err)
 	}
 	// reset asks too, --yes answers; with nothing in the file it does not ask.
-	if out, _, err := f.run("", "setting", "reset", "scrolloff"); err != nil || !strings.Contains(out, `"value": 2`) {
-		t.Fatalf("reset: %s %v", out, err)
+	if _, _, err := f.run("", "setting", "reset", "scrolloff"); err == nil || !strings.Contains(err.Error(), "Write remove scrolloff to") {
+		t.Fatalf("unanswered reset: %v", err)
+	}
+	if out, _, err := f.run("", "setting", "reset", "scrolloff", "--yes"); err != nil || !strings.Contains(out, `"value": 2`) {
+		t.Fatalf("reset --yes: %s %v", out, err)
 	}
 	if _, _, err := f.run("", "setting", "reset", "scrolloff"); err != nil {
 		t.Fatalf("reset of an unset setting asked: %v", err)
@@ -954,9 +959,12 @@ func TestShellAppliesASetLine(t *testing.T) {
 		{[]string{"setting", "remove", "paths", "a,c"}, "paths", []any{"z", "b", "d"}},
 		{[]string{"setting", "reset", "scrolloff"}, "scrolloff", nil},
 	} {
-		out, _, err := f.run("", c.args...)
+		if _, errOut, err := f.run("", c.args...); err == nil || !strings.Contains(errOut, "? [y/N]") {
+			t.Fatalf("%v did not ask: %s %v", c.args, errOut, err)
+		}
+		out, _, err := f.run("", append(c.args, "--yes")...)
 		if err != nil || !strings.Contains(out, `"written": "file"`) {
-			t.Fatalf("%v: %s %v", c.args, out, err)
+			t.Fatalf("%v --yes: %s %v", c.args, out, err)
 		}
 		if got := read()[c.key]; !reflect.DeepEqual(got, c.want) {
 			t.Fatalf("%v: file holds %v; want %v", c.args, got, c.want)
