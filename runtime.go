@@ -409,6 +409,10 @@ type Operation struct {
 	// FocusBound marks operations whose editing/selection mode belongs to
 	// their own focused component, not a hypothetical outside context.
 	FocusBound bool `json:"focusBound,omitempty"`
+	// KeyRedirect marks the operation a key-redirect row binds to the
+	// unbound pattern (key_redirect.go): the walk reads the row's "to"
+	// instead of running it.
+	KeyRedirect bool `json:"keyRedirect,omitempty"`
 	// Creates marks a verb that makes a new thing of its noun, the one its
 	// answer names: the standard create, and an application verb that
 	// creates where its noun's store does not (lane.define,
@@ -729,6 +733,7 @@ func (r *Runtime) registerFramework() {
 	registerBindingHelp(r)
 	registerMacros(r)
 	registerModeTables(r)
+	registerKeyRedirect(r)
 	registerEditorNoun(r)
 	registerConfirm(r)
 	registerTerminal(r)

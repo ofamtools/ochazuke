@@ -89,7 +89,9 @@ func (r *Runtime) walk(focus string) []level {
 // chain, the capture pass skipped while its base mode is a passthrough
 // mode. A query reads it for its own focus, mode and modals.
 func (r *Runtime) walkIn(ctx resolutionContext) []level {
-	return r.walkOf(r.stackIn(ctx.Focus, ctx.Modals), r.modes[r.baseModeOf(ctx.Mode)].Passthrough)
+	base := r.baseModeOf(ctx.Mode)
+	inner := r.redirected(r.stackIn(ctx.Focus, ctx.Modals), ctx.Focus, base, ctx.Modals)
+	return r.walkOf(inner, r.modes[base].Passthrough)
 }
 
 // walkOf is walk over a given stack: the capture pass (skipped in a
