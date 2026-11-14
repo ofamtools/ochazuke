@@ -128,21 +128,53 @@ func TestUnknownNameSetting(t *testing.T) {
 	}
 }
 
-// A delete undo fully restores asks nothing first (no-refusals D7).
-func TestUndoableDeleteDoesNotAsk(t *testing.T) {
-	r := NewRuntime()
-	table := NewMemDocTable(r, "tag")
-	r.Define("tag").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(DocStore(table, "tag"))
-	made := mustRun(t, r, Request{Noun: "tag", Verb: "create", Args: Arguments{"title": "alpha"}}).(map[string]any)
-	op, _ := r.Operation("tag.delete")
-	if !r.undoRestores(op) {
-		t.Skip("the doc store records no undo here")
-	}
-	if _, err := r.Execute(Request{Noun: "tag", Verb: "delete", Args: Arguments{"id": made["id"]}}); err != nil {
-		t.Fatal(err)
-	}
-	if r.TopModal() != "" {
-		t.Fatalf("a confirm opened: %s", r.TopModal())
+// A delete undo fully restores asks nothing first (no-refusals D7), and
+// only there: a one-shot process (no session to undo in), a store that
+// says what a delete costs (ConfirmFor) and a verb that Loses ask, an
+// agent whose right is allow included.
+func TestUndoableDeleteAsksOnlyWhereUndoRestores(t *testing.T) {
+	for _, c := range []struct {
+		name                  string
+		session, costs, agent bool
+		loses                 string
+		asks                  bool
+	}{
+		{name: "session", session: true},
+		{name: "one-shot", asks: true},
+		{name: "store cost", session: true, costs: true, asks: true},
+		{name: "loses, allowed agent", session: true, agent: true, loses: "the tag", asks: true},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r := NewRuntime()
+			if c.session {
+				r.Settings().StartSession()
+			}
+			store := DocStore(NewMemDocTable(r, "tag"), "tag")
+			if c.costs {
+				store.ConfirmFor = func(_ Ctx, _ string, _ []string, prompt string) string { return prompt }
+			}
+			r.Define("tag").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(store)
+			made := mustRun(t, r, Request{Noun: "tag", Verb: "create", Args: Arguments{"title": "alpha"}}).(map[string]any)
+			verb := "delete"
+			if c.loses != "" {
+				verb = "purge"
+				r.Register(Operation{Key: "tag.purge", Confirm: "Purge?", Loses: c.loses, Parameters: map[string]Parameter{"id": {Type: "string"}},
+					Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
+			}
+			if c.agent {
+				if err := r.Settings().Set(AgentRightsSetting, `[{"match":"tag.purge","right":"allow"}]`); err != nil {
+					t.Fatal(err)
+				}
+				defer r.BindActor(testAgent("p"), true)()
+				defer r.WithActor(testAgent("p"))()
+			}
+			if _, err := r.Execute(Request{Noun: "tag", Verb: verb, Args: Arguments{"id": made["id"]}, Confirmed: c.agent}); err != nil {
+				t.Fatal(err)
+			}
+			if asked := r.TopModal() != ""; asked != c.asks {
+				t.Fatalf("asked %v, want %v (top %q)", asked, c.asks, r.TopModal())
+			}
+		})
 	}
 }
 

@@ -1214,7 +1214,7 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if checkOnly {
 		return nil, nil
 	}
-	if op.Confirm != "" && !q.Confirmed && r.asksFirst(op) {
+	if op.Confirm != "" && !r.confirmedFor(op, q) && r.asksFirst(op, len(subjects)) {
 		if len(subjects) > 1 {
 			q.Subjects = subjects
 		}

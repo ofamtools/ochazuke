@@ -37,10 +37,25 @@ func (r *Runtime) explicitRule(c Context, op Operation, q Request, focus string,
 	return nil, nil, false
 }
 
-// asksFirst reports whether a verb with Confirm asks before it runs: not
-// for an agent the rights let pass, and not when undo fully restores it.
-func (r *Runtime) asksFirst(op Operation) bool {
-	return !r.agentPassesPrompt(op) && !r.undoRestores(op)
+// asksFirst reports whether a verb with Confirm asks before it runs over
+// subjects things: a verb that Loses always asks, everyone included
+// (exception E2: an agent's allow does not pass it); otherwise not for an
+// agent the rights let pass, and not when undo fully restores the run.
+func (r *Runtime) asksFirst(op Operation, subjects int) bool {
+	if op.Loses != "" {
+		return true
+	}
+	return !r.agentPassesPrompt(op) && !r.undoRestores(op, subjects)
+}
+
+// confirmedFor reports whether q's Confirmed answers op's prompt: always,
+// but for an agent's request to a verb that Loses, which only the owner's
+// answer to the prompt confirms (E2: Confirmed is on the wire).
+func (r *Runtime) confirmedFor(op Operation, q Request) bool {
+	if !q.Confirmed {
+		return false
+	}
+	return op.Loses == "" || !r.Actor().IsAgent() || q.agentApproved || r.agentApproved
 }
 
 // Requirement is one thing a verb needs before it runs: Kind says what
@@ -126,16 +141,24 @@ func (r *Runtime) provide(op Operation, q Request, focus string, mode ModeState)
 	return nil
 }
 
-// undoRestores reports a verb whose run undo fully restores and that
-// declares no loss: a standard verb whose undo recreates what it removed
-// (its row's Undo shape) on a store that records undo. Such a verb does not
-// ask first (no-refusals D7: confirm only on loss; owner 2026-11-13: drop
-// the prompt on a delete undo fully restores). A verb with Loses always
-// asks.
-func (r *Runtime) undoRestores(op Operation) bool {
-	if op.Loses != "" || op.Standard == "" {
+// undoRestores reports a verb whose run over subjects things undo fully
+// restores and that declares no loss: a standard verb whose undo recreates
+// what it removed (its row's Undo shape) on a store that records undo and
+// can create under the old key (the undo's own condition, undoable); in a
+// session whose history undo can reach (a one-shot CLI process exits with
+// its history, and entries read back from the file are never undone). Such
+// a verb does not ask first (no-refusals D7: confirm only on loss; owner
+// 2026-11-13: drop the prompt on a delete undo fully restores). A store
+// that says what a run costs (ConfirmFor: cascades, orphans) and a run
+// over a selection of several things still ask, as a verb with Loses does.
+func (r *Runtime) undoRestores(op Operation, subjects int) bool {
+	if op.Loses != "" || op.Standard == "" || subjects > 1 || !r.Settings().HasSession() {
 		return false
 	}
 	row, n := standardRow(op.Standard), r.Nouns[op.Noun()]
-	return row != nil && row.Undo == undoByRecreate && n != nil && n.Store != nil && n.Store.Undo
+	if row == nil || row.Undo != undoByRecreate || n == nil || n.Store == nil {
+		return false
+	}
+	s := n.Store
+	return s.Undo && s.Create != nil && s.AcceptsKey && s.ConfirmFor == nil
 }
