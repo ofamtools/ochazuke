@@ -139,7 +139,13 @@ func (r *Runtime) defineFacts(f factsSpec) {
 	if f.Own {
 		define = r.DefineOwn
 	}
-	define(f.Noun).Props(props...).Store(Store{
+	b := define(f.Noun)
+	if f.Patch != nil {
+		// A writable fact declares its kind: its writing verbs being
+		// available does not make it a record.
+		b.Kind(NounKindFacts)
+	}
+	b.Props(props...).Store(Store{
 		Kind: KindCollection, Facts: true, Remote: f.Remote, ListParams: f.ListParams, List: f.List, Get: get,
 		Create: f.Create, Patch: f.Patch, AcceptsKey: f.Create != nil,
 	})

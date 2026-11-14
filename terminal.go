@@ -448,12 +448,3 @@ func (r *Runtime) EnsureTerminalLeader() {
 // key, the leader included, reaches the program in the pane. The nested
 // rows name it ({terminal.nested-escape}), so they follow it.
 const TerminalNestedEscapeSetting = "terminal.nested-escape"
-
-// validEscapeKey is terminal.nested-escape's check: one key, so nested
-// always has a way out.
-func validEscapeKey(v any) error {
-	if key, _ := v.(string); strings.TrimSpace(key) == "" || strings.Contains(strings.TrimSpace(key), " ") {
-		return errors.New(`must be one key, such as "ctrl+]"`)
-	}
-	return nil
-}

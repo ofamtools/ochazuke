@@ -191,7 +191,6 @@ var settingChecks = map[string]func(any) error{
 	OpenOpenersSetting:           validOpeners,
 	SequenceTimeoutSetting:       nonNegativeDuration,
 	TerminalLeaderSetting:        validLeader,
-	TerminalNestedEscapeSetting:  validEscapeKey,
 	ModalDimSetting:              validDim,
 	DimUnfocusedSetting:          validDim,
 	DimUnfocusedSelectionSetting: validDim,

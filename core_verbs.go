@@ -174,17 +174,13 @@ var (
 const FactReason = "a system fact"
 
 // needWriter is the need of a store whose things can be written: not a
-// system fact (Store.Facts), whose things the registry holds. The writing
-// verbs list it first, so a facts store has them unavailable with this
-// reason.
-var needWriter = storeNeed{Doc: "a store that is not a system fact (Store.Facts)", Lacks: FactReason,
-	Has: func(_ *Runtime, n *Noun) bool { return !n.Store.Facts }}
-
-// needPropWriter is the need of set: a store that is not a system fact, or
-// a facts store that declares Patch (the registry can be told a write: the
-// current mode). Where it does, set runs the store's Patch, which runs the
-// verb the fact belongs to (mode.switch), never a refusal.
-var needPropWriter = storeNeed{Doc: "a store that is not a system fact (Store.Facts), or a facts store with Patch", Lacks: FactReason,
+// system fact (Store.Facts), whose things the registry holds, or a facts
+// store that declares Patch (the registry can be told a write: the current
+// mode; its Patch runs the verb the fact belongs to, mode.switch). The
+// writing verbs list it first, so a facts store has them unavailable with
+// this reason; each still needs its own store part (set Patch, delete
+// Delete, archive an archive prop).
+var needWriter = storeNeed{Doc: "a store that is not a system fact (Store.Facts), or a facts store with Patch", Lacks: FactReason,
 	Has: func(_ *Runtime, n *Noun) bool { return !n.Store.Facts || n.Store.Patch != nil }}
 
 // needFactCreator is the need of create: a store that is not a system fact,
@@ -219,7 +215,7 @@ func coreVerbs() []standardVerb {
 			Creates: true, Undo: undoByDelete, HistoryKind: HistoryChange, FocusSetting: CreateFromFocusSetting, ParamNames: []string{"props", "pairs", "from"},
 			Positional: createPositional, Params: createParams, ReadArgs: createArgs, Writes: createWrites, Run: runCreate},
 		{Verb: "set", Description: "Write a thing's props: props, an object of prop to value (a subset or all of them; @label, @owner and @archive name a prop by its role), or prop=value words; toggle flips one boolean prop; answers the thing after the write",
-			Kinds: []string{KindCollection, Singleton, Instances}, Needs: []storeNeed{needPropWriter, needPatch, needWritable},
+			Kinds: []string{KindCollection, Singleton, Instances}, Needs: []storeNeed{needWriter, needPatch, needWritable},
 			TakesSubject: true, Many: true, WritesProps: true, Undo: undoByRestore, Repeatable: true, HistoryKind: HistoryChange,
 			ParamNames: []string{"props", "prop", "value", "toggle", "changes", "pairs"},
 			Positional: func(*Noun) []string { return []string{"prop", "value", "pairs"} },

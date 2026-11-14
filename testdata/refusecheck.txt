@@ -362,7 +362,6 @@ default_bindings.go	Runtime.loadDefaultDoc	K14	"%s: %s %q: %w"	1	failure
 default_bindings.go	Runtime.loadDefaultDoc	K14	"%s: mode %q: %w"	1	failure
 default_bindings.go	Runtime.loadDefaultDoc	K2	"%s: %s: extends unknown mode %q"	1
 default_bindings.go	Runtime.loadDefaultDoc	K2	"%s: %s: unknown mode %q"	1
-default_bindings.go	Runtime.loadDefaultDoc	K2	"extends unknown mode %q"	1
 default_bindings.go	Runtime.loadDefaultDoc	K4	"%s: %s: unknown instance %q"	1
 delivery.go	Failed	K15	"application verb failed"	1
 delivery.go	Result.Await	K10	"the verb needs the terminal and cannot be awaited"	1
@@ -648,7 +647,6 @@ markdown/verbs.go	resolve	K15	"no markdown on the focus path"	1
 markdown/verbs.go	resolve	K4	"unknown markdown %q"	1
 markdown/view.go	registerView	K15	"Failed(…)"	1
 markdown/view.go	registerView	K15	"no Markdown viewer open"	1
-mode_change.go	Runtime.switchMode	K2	"unknown mode %q"	1
 mode_pin.go	Runtime.PinInstance	K15	"mode %q is a pending mode; pin a base mode"	1
 mode_pin.go	Runtime.PinInstance	K2	"unknown mode %q"	1
 mode_pin.go	Runtime.PinInstance	K4	"unknown instance %q"	1
@@ -686,7 +684,6 @@ noun.go	Runtime.ValidateBindings	K14	"noun %s mode %q row %s%s: %w"	1	failure
 noun.go	Runtime.validateRow	K13	"unknown guard %q"	1	declaration
 noun.go	Runtime.validateRow	K15	"%s has an empty source"	1
 noun.go	Runtime.validateRow	K15	"binding needs keys or a pattern"	1
-noun.go	Runtime.validateRow	K2	"unknown mode %q"	1
 noun.go	Runtime.validateRow	K3	"binding takes keys or a pattern, not both"	1
 noun.go	Runtime.validateRow	K4	"%s has no argument %q"	1
 noun.go	Runtime.validateRow	K4	"unknown instance %q"	1
@@ -1023,8 +1020,6 @@ remote.go	var ErrNotLoaded	K15	"not loaded yet"	1
 render_cache.go	validRenderFPS	K15	"render.max-fps must be between 0 and 240"	1
 resolve.go	registerModeTables	K15	"digit must be 0 to 9"	1
 resolve.go	registerModeTables	K15	"no stored request"	1
-resolve.go	registerModeTables	K15	"unknown pending mode %q"	1
-resolve.go	registerModeTables	K2	"unknown mode %q"	1
 resolve.go	registerModeTables	K7	"count exceeds 1000000"	1
 resolve.go	requestArg	K14	"%s: %w"	1	failure
 resolve.go	requestArg	K15	"%s must be a request"	1

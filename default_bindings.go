@@ -174,10 +174,10 @@ func (r *Runtime) defineFileMode(name string, m ModeSpec) (err error) {
 	if err == nil && m.Selection != "" {
 		err = r.DefineSelection(name, m.Selection)
 	}
-	if err == nil && m.Extends != "" {
-		if m.Extends == name || !r.modeDefined(m.Extends) {
-			err = fmt.Errorf("extends unknown mode %q", m.Extends)
-		} else {
+	if err == nil && m.Extends != "" && m.Extends != name {
+		// A parent nobody registered becomes a mode (ensureMode); a mode
+		// that names itself extends nothing.
+		if err = r.ensureMode(m.Extends); err == nil {
 			spec := r.modes[name]
 			spec.Extends = m.Extends
 			r.putMode(name, spec)
@@ -198,16 +198,18 @@ func (r *Runtime) defineFileMode(name string, m ModeSpec) (err error) {
 // doc may be the shared parse of an embedded file.
 func (r *Runtime) loadDefaultDoc(source string, file BindingsDoc) (err error) {
 	names := slices.Sorted(maps.Keys(file.Modes))
-	// Every name first, so a mode may extend one the file defines after it.
-	for _, name := range names {
-		if !r.modeDefined(name) {
-			if err := r.DefineMode(name, file.Modes[name].Pending); err != nil {
-				return fmt.Errorf("%s: mode %q: %w", source, name, err)
-			}
+	// Every name first (pass 0), so a mode may extend one the file defines
+	// after it; then each entry's properties (pass 1).
+	for i := range 2 * len(names) {
+		name := names[i%len(names)]
+		var err error
+		switch {
+		case i >= len(names):
+			err = r.defineFileMode(name, file.Modes[name])
+		case !r.modeDefined(name):
+			err = r.DefineMode(name, file.Modes[name].Pending)
 		}
-	}
-	for _, name := range names {
-		if err := r.defineFileMode(name, file.Modes[name]); err != nil {
+		if err != nil {
 			return fmt.Errorf("%s: mode %q: %w", source, name, err)
 		}
 	}

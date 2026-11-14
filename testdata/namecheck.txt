@@ -299,6 +299,7 @@ props.go	PropSpec.ofCollection	compare	"collection"	1	Subject and Result are enu
 props.go	Runtime.addProp	compare	"archive"	1
 props.go	Runtime.addProp	compare	"archived"	1
 props.go	Runtime.validatePropRow	compare	"value"	1
+props.go	checkPropRole	case	"archive"	1
 props.go	checkPropRole	case	"owner"	1
 props.go	checkSchema	case	"collection"	1
 props.go	checkSchema	compare	"id"	1

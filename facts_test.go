@@ -46,6 +46,9 @@ func TestSystemFactsAreReadOnlyThingNouns(t *testing.T) {
 				continue // a fact the registry can be told (a mode name) is created, or set (the current mode)
 			}
 			op, ok := r.Operations.Find(Key(name + "." + verb))
+			if n.Store.Patch != nil && ok && op.Unavailable != "" {
+				continue // a writable fact lacks the verb's own store part (no Delete)
+			}
 			if !ok || op.Unavailable != FactReason || FactReason != "a system fact" {
 				t.Fatalf("%s.%s: present %v unavailable %q", name, verb, ok, op.Unavailable)
 			}

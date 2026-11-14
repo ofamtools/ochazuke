@@ -97,8 +97,9 @@ const (
 	RoleCurrent = "current"
 )
 
-// booleanRoles are the roles a boolean prop takes: archive and current.
-var booleanRoles = []string{RoleArchive, RoleCurrent}
+// freeRoles are the roles any prop may take with no further rule: current
+// (set writes true to it; a prop of another type reads that as its value).
+var freeRoles = []string{RoleCurrent}
 
 // referenceRoles are the roles beside owner a reference prop takes:
 // about (RoleAbout, scaffold_verbs.go).
@@ -1251,14 +1252,15 @@ func (p PropSpec) keepAnyRef() PropSpec {
 // checkPropRole is the role rule of one prop: a known role, a reference
 // where the role names a thing, a boolean archive prop.
 func checkPropRole(key string, p PropSpec) error {
-	if slices.Contains(booleanRoles, p.Role) {
-		if p.Type != SettingBoolean {
-			return fmt.Errorf("prop %s: the %s role is a boolean prop, not %s", key, p.Role, p.Type)
-		}
+	if slices.Contains(freeRoles, p.Role) {
 		return nil
 	}
 	switch p.Role {
 	case "", RoleLabel, RoleCreated, RoleUpdated:
+	case RoleArchive:
+		if p.Type != SettingBoolean {
+			return fmt.Errorf("prop %s: the archive role is a boolean prop, not %s", key, p.Type)
+		}
 	case RoleOwner:
 		if p.Noun == "" {
 			return fmt.Errorf("prop %s: the %s role needs a reference (Noun)", key, p.Role)
