@@ -657,7 +657,7 @@ func (r *Runtime) CheckDefaultBindings(source string, data []byte) []string {
 			placed = append(placed, normalized)
 		}
 	}
-	for _, line := range r.checkFileReachability(placed) {
+	for _, line := range append(r.checkFileReachability(placed), r.redirectWarnings(placed)...) {
 		report("%s", line)
 	}
 	return problems

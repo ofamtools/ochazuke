@@ -149,7 +149,7 @@ func (r *Runtime) userUnbound(row Binding) bool {
 // cell-mode y off cell mode does not take y y from the thing; the
 // framework keeps its files and the block apart). Prefix cancels are
 // left out.
-func (r *Runtime) declaredKeys(levels []level, mode ModeState, focus string, exclusive bool) map[string]bool {
+func (r *Runtime) declaredKeys(levels []level, mode ModeState, focus string, exclusive, related bool) map[string]bool {
 	out := map[string]bool{}
 	user := r.userRowKeys()
 	base, _ := baseAndPrefix(mode)
@@ -165,6 +165,9 @@ func (r *Runtime) declaredKeys(levels []level, mode ModeState, focus string, exc
 		}
 	}
 	for _, lv := range levels {
+		if lv.related != related {
+			continue
+		}
 		if lv.inst != nil {
 			add(lv, rowsForMode(lv.inst.Bindings, base, exclusive))
 		}
@@ -210,10 +213,11 @@ func stepsAside(keys string, declared map[string]bool) bool {
 
 // withDeclared marks each level with the walk's declared keys in mode.
 func (r *Runtime) withDeclared(levels []level, mode ModeState, focus string, exclusive bool) []level {
-	declared := r.declaredKeys(levels, mode, focus, exclusive)
+	declared := r.declaredKeys(levels, mode, focus, exclusive, false)
+	relatedKeys := r.declaredKeys(levels, mode, focus, exclusive, true)
 	out := slices.Clone(levels)
 	for i := range out {
-		out[i].declared = &declared
+		out[i].declared, out[i].relatedKeys = &declared, &relatedKeys
 	}
 	return out
 }
@@ -228,7 +232,14 @@ func (lv level) skips(row *Binding) bool {
 	if row.Unbind || row.Capture != lv.capture {
 		return true
 	}
-	return lv.declared != nil && generatedAside(*row, *lv.declared)
+	if lv.declared != nil && generatedAside(*row, *lv.declared) {
+		return true
+	}
+	// A key redirect's related row (key_redirect.go) moves aside only a
+	// generated row of another noun's verb (a pane's generic undo), never
+	// one of the level's own noun (an item's delete): the focus's own keys
+	// stay its own.
+	return lv.relatedKeys != nil && lv.noun != nil && row.Request.Noun != lv.noun.Name && generatedAside(*row, *lv.relatedKeys)
 }
 
 // generatedAside reports whether b is a generated row stepping aside for
