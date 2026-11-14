@@ -49,7 +49,8 @@ const redirect = `{"bindings": [{"context": "subagent/normal", "bindings": [
 	{"key": "unbound", "action": "ochazuke.key.redirect", "args": {"to": "parent"}, "hidden": true}]}]}`
 
 // R1 reports the keys a tile row answers that its subagent row does not
-// (x, r), drops the one the subagent binds itself, and reports nothing
+// (x, r), drops the one the subagent binds itself (or begins a sequence
+// of: x of x x), and reports nothing
 // once the subagent redirects its unbound keys to its parent tile; a
 // reason row covers a finding.
 func TestDeadKeys(t *testing.T) {
@@ -61,6 +62,8 @@ func TestDeadKeys(t *testing.T) {
 	}{
 		{name: "missing", want: []string{"subagent r tile", "subagent x tile"}},
 		{name: "own key", own: []string{"x"}, want: []string{"subagent r tile"}},
+		// x x on the subagent answers the tile's x (and x esc): a prefix.
+		{name: "sequence prefix", own: []string{"x x"}, want: []string{"subagent r tile"}},
 		{name: "redirected", extra: redirect},
 	}
 	for _, tc := range cases {

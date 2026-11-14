@@ -108,11 +108,22 @@ func DeadKeys(r *ochazuke.Runtime, work func(int) bool) ([]Finding, DeadKeysCove
 }
 
 // answers reports whether a row's level keys answer key: its own row on
-// it, or an any row.
+// it, an any row, a row on a sequence key begins (y of y y: the key
+// waits for the rest there), or a row on a key that begins key (y y esc
+// never gets past a row's y).
 func answers(keys map[string]ochazuke.Request, key string) bool {
-	_, ok := keys[key]
-	_, all := keys[ochazuke.Any]
-	return ok || all
+	if _, ok := keys[key]; ok {
+		return true
+	}
+	if _, all := keys[ochazuke.Any]; all {
+		return true
+	}
+	for k := range keys {
+		if strings.HasPrefix(k, key+" ") || strings.HasPrefix(key, k+" ") {
+			return true
+		}
+	}
+	return false
 }
 
 type rep struct{ id, noun string }
