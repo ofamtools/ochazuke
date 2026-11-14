@@ -60,12 +60,12 @@ begin	action	seed
 behind	prop	seed	
 binary	prop	seed	
 bind	action	seed	
-bind-key	action	seed	
-bind-start	action	seed	
-bind-finish	action	seed	
-bind-drop	action	seed	
-bind-literal	action	seed	
 bind-cancel	action	seed	
+bind-drop	action	seed	
+bind-finish	action	seed	
+bind-key	action	seed	
+bind-literal	action	seed	
+bind-start	action	seed	
 binding	noun	seed	
 bindings	noun+prop	seed	
 bindings-help	noun	seed	
@@ -101,7 +101,6 @@ chip-toggle	action	seed
 choices	relation	seed	
 choose	action	seed	
 choose-column	action	seed	
-columns	action	seed	
 choose-move	action	seed	
 choose-pane	action	seed	
 choose-status	action	seed	
@@ -116,6 +115,7 @@ collapse	action	seed
 collection	noun	seed	
 color	prop	seed	
 column	action	seed	
+columns	action	seed	
 command	noun+prop	seed	
 command_id	prop	seed	
 command_name	prop	seed	
@@ -224,9 +224,6 @@ docs-viewer	noun	seed
 done	action	seed	
 done-hide	action	seed	
 done-show	action	seed	
-look	action	yes	och-rail-focus: ochazuke.rail.look sets the rail's look (rail.look: full or float)
-rail	noun	yes	och-rail-focus: the rail region beside a page's main area (ochazuke.rail)
-show-archived	action	seed	
 done-today	prop	seed	
 done-toggle	action	seed	
 done_when	prop	seed	
@@ -450,6 +447,7 @@ locked	prop	seed
 log	prop	seed	
 login	action	seed	
 logout	action	seed	
+look	action	yes	och-rail-focus: ochazuke.rail.look sets the rail's look (rail.look: full or float)
 macro	noun+prop	seed	
 made-by	prop	seed	
 main	prop	seed	
@@ -559,6 +557,7 @@ outline-root	noun	seed
 outline-row	noun	seed	
 outline-task	noun	seed	
 output	prop	seed	
+overlay	noun	yes	no-refusals N3: the framework overlay rows (ochazuke.overlay)
 overview	prop	seed	
 owner	prop	seed	
 owners	prop	seed	
@@ -654,6 +653,7 @@ quiet	prop	seed
 quit	action+prop	seed	
 quota	noun	seed	
 quote-line	action	seed	
+rail	noun	yes	och-rail-focus: the rail region beside a page's main area (ochazuke.rail)
 ratio	prop	seed	
 read	prop	seed	
 read-activities	prop	seed	
@@ -676,8 +676,8 @@ registers	prop	seed
 registry	prop	seed	
 reject	action	seed	
 related	noun	seed	
-relation-kind	noun	yes	the declared rules of a relation kind (ochazuke.relation-kind)
 related-section	noun	seed	
+relation-kind	noun	yes	the declared rules of a relation kind (ochazuke.relation-kind)
 reload	action	seed	
 reminder	noun	seed	
 remote	prop	seed	
@@ -790,6 +790,7 @@ sha	prop	seed
 shape	prop	seed	
 short_sha	prop	seed	
 show	action	seed	
+show-archived	action	seed	
 show-section	action	seed	
 show-tab	action	seed	
 shrink	action	seed	
@@ -851,8 +852,8 @@ text	prop	seed
 text-view	noun	seed	
 theme	prop	seed	
 themes	noun	seed	plural
-thinking	noun	seed	
 thing	noun	ua11	the registered thing walk graph picker
+thinking	noun	seed	
 tier	prop	seed	
 time	prop	seed	
 timeline	noun	seed	
