@@ -143,8 +143,8 @@ func TestVerbsDisabledSetting(t *testing.T) {
 func TestUnknownNameSetting(t *testing.T) {
 	for _, value := range []string{"choices", "create"} {
 		r := NewRuntime()
-		r.defineFacts(factsSpec{Noun: "tag", Key: "id", Extra: []PropSpec{{Name: "id"}},
-			List: func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "alpha"}}, nil }})
+		r.Define("tag").Props(PropSpec{Name: "id", Key: true, CreateOnly: true}).Store(DocStore(NewMemDocTable(r, "tag"), "tag"))
+		mustRun(t, r, Request{Noun: "tag", Verb: "create", Args: Arguments{"id": "alpha"}})
 		r.Register(Operation{Key: "tag.use", Parameters: map[string]Parameter{"tag": {Type: "string", Source: "tag.list"}}, Run: func(*Runtime, Context, Arguments) (any, error) { return "used", nil }})
 		if err := r.Settings().Set(UnknownNameSetting, value); err != nil {
 			t.Fatal(err)
@@ -246,6 +246,21 @@ func TestUndoableDeleteAsksOnlyWhereUndoRestores(t *testing.T) {
 				t.Fatalf("asked %v, want %v (top %q)", asked, c.asks, r.TopModal())
 			}
 		})
+	}
+}
+
+// A facts noun is never made from a typed name: no create row in its
+// picker, no create for cli.unknown-name (a mode named by mistake is not
+// a new mode).
+func TestFactsAreNotCreatedFromTypedNames(t *testing.T) {
+	r := NewRuntime()
+	r.defineFacts(factsSpec{Noun: "tag", Key: "id", Extra: []PropSpec{{Name: "id"}},
+		List: func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "alpha"}}, nil }})
+	if err := r.Settings().Set(UnknownNameSetting, "create"); err != nil {
+		t.Fatal(err)
+	}
+	if r.pickerCreates("tag") || r.createsUnknown("tag") {
+		t.Fatalf("facts create: picker %v, unknown name %v", r.pickerCreates("tag"), r.createsUnknown("tag"))
 	}
 }
 

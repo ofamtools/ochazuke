@@ -96,7 +96,7 @@ func (r *Runtime) createUnknown(creates []unknownCreate) error {
 // for a name it does not have (unknownNamePolicies).
 func (r *Runtime) createsUnknown(noun string) bool {
 	n := r.Nouns[noun]
-	if n == nil || n.keyProp() == nil || !r.offers(noun+".create") {
+	if n == nil || n.keyProp() == nil || !r.makesThings(noun) {
 		return false
 	}
 	value := r.Settings().String(UnknownNameSetting)
@@ -137,6 +137,15 @@ func (r *Runtime) commandWith(op Operation, args Arguments, name, value string) 
 	return strings.Join(words, " ")
 }
 
+// makesThings reports whether a name a person types can make a thing of
+// noun: its create is offered and its things are not system facts
+// (Store.Facts: a fact the overlay "creates" is only a row of the user's
+// own beside the registry, not the mode, theme or verb the name asks for).
+func (r *Runtime) makesThings(noun string) bool {
+	n := r.Nouns[noun]
+	return n != nil && n.Store != nil && !n.Store.Facts && r.offers(noun+".create")
+}
+
 // PickersCreateRowSetting adds a create "TEXT" row to a field's picker of
 // a noun's things when the noun can create (default true).
 const PickersCreateRowSetting = "pickers.create-row"
@@ -144,7 +153,7 @@ const PickersCreateRowSetting = "pickers.create-row"
 // pickerCreates reports whether a picker of noun's things offers a create
 // row: pickers.create-row is on and the noun's create is offered.
 func (r *Runtime) pickerCreates(noun string) bool {
-	if noun == "" || noun == AnyNoun || !r.offers(noun+".create") {
+	if noun == "" || noun == AnyNoun || !r.makesThings(noun) {
 		return false
 	}
 	s := r.Settings()
