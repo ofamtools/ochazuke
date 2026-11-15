@@ -168,10 +168,28 @@ func (r *Runtime) declareSavedIndexColumns() {
 	}
 }
 
-// indexPage is an index page instance's data: the noun it lists.
+// indexPage is an index page instance's data: the noun it lists, and,
+// for a page whose rows are not its store's From list (noun_page.go),
+// where they come from and the rows it set last.
 type indexPage struct {
 	Noun string `json:"noun"`
+	// Rows is NounAnswers.Rows when the page was made, Why its words.
+	Rows   string `json:"rows"`
+	Why    string `json:"why,omitempty"`
+	fed    bool
+	sig    string
+	failed string // the store's first read failed: why (the page shows the declaration)
 }
+
+// The settings of a noun page's related stack (noun_page.go).
+const (
+	// IndexRelatedOutwardSetting adds the thing's own references.
+	IndexRelatedOutwardSetting = "index.related-outward"
+	// IndexRelatedExplainSetting keeps sections that cannot be read, saying why.
+	IndexRelatedExplainSetting = "index.related-explain"
+	// IndexRelatedCollapsedSetting lists the sections that start folded.
+	IndexRelatedCollapsedSetting = "index.related-collapsed"
+)
 
 // DetailShowFormSetting draws an index page's detail as the edit form over
 // the selected thing's props (read-only until a field is edited, commit on
@@ -182,7 +200,34 @@ const DetailShowFormSetting = "detail.show-form"
 // thing: the noun's EditSpec placed as a record editor under the page,
 // made again when the selection names another thing. It runs after each
 // request and when the page opens, never while a frame draws.
-func (r *Runtime) syncIndexForm() { r.syncShowForms() }
+func (r *Runtime) syncIndexForm() {
+	r.refreshFedIndex(r.Page)
+	r.syncShowForms()
+}
+
+// refreshFedIndex gives a noun page whose rows are not a From list its
+// rows again when what they are made of changed (an instance came or
+// went): read after a request, never while a frame draws.
+func (r *Runtime) refreshFedIndex(id string) {
+	inst := r.Instances[id]
+	if inst == nil {
+		return
+	}
+	ref, ok := inst.Data.(*indexPage)
+	list := r.List(id + "/list")
+	if !ok || !ref.fed || list == nil {
+		return
+	}
+	if ref.failed == "" {
+		a := r.NounAnswers(ref.Noun) // instances come and go: the source may move
+		ref.Rows, ref.Why = a.Rows, a.Why
+	}
+	items := r.nounPageItems(Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}, ref.Noun, list.id, ref.Rows, ref.Why)
+	if sig := rowsSignature(items); sig != ref.sig {
+		ref.sig = sig
+		_ = list.SetItems(items)
+	}
+}
 
 // OpenIndex opens the noun's generated index page (made on first use),
 // its row for key selected when key is given. The page is out of the tabs
@@ -193,9 +238,6 @@ func (r *Runtime) OpenIndex(noun, key string) error {
 	if n == nil {
 		return fmt.Errorf("no noun %q", noun)
 	}
-	if !StoredKind(r.NounKind(n.Name)) {
-		return fmt.Errorf("%s is a %s noun: it has no things to list (its verbs: %s)", r.DisplayNoun(n.Name), r.NounKind(n.Name), strings.Join(r.Operations.ActionNames(n), ", "))
-	}
 	id := IndexPageID(n.Name)
 	if r.PageOf(id) == nil {
 		if err := r.addIndexPage(n, id); err != nil {
@@ -205,6 +247,7 @@ func (r *Runtime) OpenIndex(noun, key string) error {
 	if err := r.OpenPage(id); err != nil {
 		return err
 	}
+	r.refreshFedIndex(id)
 	list := r.List(id + "/list")
 	if list == nil {
 		return nil
@@ -222,11 +265,32 @@ func (r *Runtime) OpenIndex(noun, key string) error {
 // addIndexPage registers the noun's index page: its list and detail.
 func (r *Runtime) addIndexPage(n *Noun, id string) error {
 	inst := r.Instance(id, Parent("app"), Kind(indexNoun))
-	inst.Data = &indexPage{Noun: n.Name}
-	list, err := r.AddIndex(id+"/list", n.Name, Parent(id))
-	if err != nil {
-		_ = r.RemoveInstance(id)
-		return err
+	answers := r.NounAnswers(n.Name)
+	ref := &indexPage{Noun: n.Name, Rows: answers.Rows, Why: answers.Why}
+	inst.Data = ref
+	var list *Collection
+	var err error
+	if answers.Rows == NounRowsStore {
+		if list, err = r.AddIndex(id+"/list", n.Name, Parent(id)); err != nil {
+			// The store did not answer its first read: the page opens on the
+			// declaration row, saying so.
+			_ = r.RemoveInstance(id + "/list")
+			ref.Rows, ref.Why = NounRowsDeclaration, "its store did not answer: "+err.Error()
+			ref.failed = ref.Why
+		}
+	}
+	if list == nil {
+		ref.fed = true
+		if list, err = r.AddList(id+"/list", nil, Parent(id)); err != nil {
+			_ = r.RemoveInstance(id)
+			return err
+		}
+		p := list.Placeholder()
+		p.Plural = pluralWord(r.DisplayNoun(n.Name))
+		list.SetPlaceholder(p)
+		items := r.nounPageItems(Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}, n.Name, list.id, ref.Rows, ref.Why)
+		ref.sig = rowsSignature(items)
+		_ = list.SetItems(items)
 	}
 	detail := id + "/detail"
 	page := &Page{ID: id, Title: id, Focus: list.FocusTarget(), Render: func(r *Runtime, w, h int) Block { return indexPageView(r, id, w, h) }, TabSetting: PagesPinnedSetting}
@@ -236,7 +300,9 @@ func (r *Runtime) addIndexPage(n *Noun, id string) error {
 	}
 	// The show form (show_form.go): the selected thing's form, its
 	// relation sections and its history under it.
-	if _, err := r.AddShowForm(id+"/show", ShowFormSpec{List: func() *Collection { return r.List(id + "/list") }, Form: id + "/form"}, Parent(id)); err != nil {
+	related := RelatedSpec{Enabled: RelatedDetailSetting, Hidden: RelatedDetailHiddenSetting, History: true,
+		Outward: IndexRelatedOutwardSetting, Explain: IndexRelatedExplainSetting, Collapsed: IndexRelatedCollapsedSetting}
+	if _, err := r.AddShowForm(id+"/show", ShowFormSpec{List: func() *Collection { return r.List(id + "/list") }, Form: id + "/form", Related: &related}, Parent(id)); err != nil {
 		_ = r.RemoveInstance(id)
 		return err
 	}
@@ -252,26 +318,12 @@ func (r *Runtime) addIndexPage(n *Noun, id string) error {
 	return nil
 }
 
-// indexDetail is the selected thing's props as key: value lines, in prop
-// order (secrets left out).
-func (r *Runtime) indexDetail(n *Noun, item ListItem) string {
+// indexDetail is the selected row's props as name: value lines
+// (ThingProps of the row's noun: every declared prop, then the ones the
+// thing carries that are not declared); with declared false only those.
+func (r *Runtime) indexDetail(item ListItem, declared bool) string {
 	thing, _ := item.Data.(Thing)
-	var b strings.Builder
-	width := 0
-	for _, p := range n.Props {
-		width = max(width, len(p.Name))
-	}
-	for _, p := range n.Props {
-		if p.Secret || p.computed() {
-			continue
-		}
-		v, ok := thing[p.Name]
-		if !ok || v == nil {
-			continue
-		}
-		fmt.Fprintf(&b, "%-*s  %s\n", width, p.Name, cellValueText(v))
-	}
-	return strings.TrimRight(b.String(), "\n")
+	return thingPropsText(r.ThingProps(item.Noun, thing), declared)
 }
 
 // indexPageView draws an index page: the list and the selected thing's
@@ -297,8 +349,9 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 	tableBody := Text(list.View(tw, tth))
 	dw, dch := PanelContentSize(width, height-th)
 	title, text := "Detail", ""
-	if item, ok := list.Selected(); ok && n != nil {
-		title, text = item.Label, r.indexDetail(n, item)
+	item, selected := list.Selected()
+	if selected && n != nil {
+		title, text = item.Label, r.indexDetail(item, true)
 	}
 	content, marker := "", ""
 	var body Block
@@ -308,7 +361,11 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 	}
 	if form := r.RecordEditor(id + "/form"); form != nil && !form.Closed() && r.Settings().Bool(DetailShowFormSetting) {
 		form.Styles = styles
-		body = r.ShowFormOf(id+"/show").Block("", dw, dch)
+		extra := "" // the props the form has no field for: the ones the thing carries undeclared
+		if selected {
+			extra = r.indexDetail(item, false)
+		}
+		body = r.ShowFormOf(id+"/show").Block(extra, dw, dch)
 		if slices.Contains(r.InstancePath(r.DrawnFocus(id)), id+"/form") {
 			focused = SplitRight
 		}
@@ -324,6 +381,9 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 	heading := r.DisplayNoun(ref.Noun)
 	if total := list.WindowTotal(); list.Windowed() {
 		heading = fmt.Sprintf("%s · %d", heading, total)
+	}
+	if ref.Rows != NounRowsStore && ref.Rows != "" {
+		heading += " · " + ref.Rows
 	}
 	if item, ok := list.Selected(); ok && n != nil {
 		thing, _ := item.Data.(Thing)
@@ -382,7 +442,7 @@ func registerIndex(r *Runtime) {
 			return Failed(err)
 		}
 		return Done(map[string]any{"page": IndexPageID(r.CanonicalNoun(noun))})
-	}, "Show a noun's things: open its index page (nouns/NOUN), every noun's own even when an application page lists it too").Params(map[string]Parameter{
+	}, "Show a noun's page (nouns/NOUN): its things, else its live instances, else its declaration, each with its props and its relations one step away; every noun's own even when an application page lists it too").Params(map[string]Parameter{
 		"noun": {Type: "string", Required: true, Noun: "ochazuke.noun", From: "row:noun", Description: "The noun whose things to show"},
 		"key":  {Type: "string", Description: "Select this thing's row"},
 	})

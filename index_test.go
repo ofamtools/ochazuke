@@ -150,13 +150,15 @@ func TestIndexPagesAreNotTabs(t *testing.T) {
 	}
 }
 
-// A command noun has no index: show says what it is and what it does.
+// A command noun has no things: show opens its page on one row, its
+// declaration, saying what it is and naming its verbs.
 func TestIndexOfACommandNoun(t *testing.T) {
 	r, _, _ := indexFixture(t)
 	r.Define("setup").Verb("run", func(Ctx) Result { return Done(nil) }, "Run the setup")
-	_, err := r.Execute(Request{Noun: "ochazuke.noun", Verb: "show", Args: Arguments{"noun": "setup"}})
-	if err == nil || !strings.Contains(err.Error(), "command") || !strings.Contains(err.Error(), "run") {
-		t.Fatalf("show of a command noun: %v", err)
+	mustRun(t, r, Request{Noun: "ochazuke.noun", Verb: "show", Args: Arguments{"noun": "setup"}})
+	items := r.List(IndexPageID("setup") + "/list").Items()
+	if len(items) != 1 || !strings.Contains(items[0].Label, "command") || !slices.Contains(items[0].Data.(Thing)["verbs"].([]any), any("run")) {
+		t.Fatalf("show of a command noun: %+v", items)
 	}
 }
 

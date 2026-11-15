@@ -451,7 +451,6 @@ hooks.go	registerHooks	K15	"fields is a JSON object"	1
 hooks.go	registerHooks	K3	"event is required"	1
 index.go	Runtime.AddIndex	K4	"index of %q: no such noun"	1
 index.go	Runtime.OpenIndex	K15	"no noun %q"	1
-index.go	Runtime.OpenIndex	K4	"%s is a %s noun: it has no things to list (its verbs: %s)"	1
 index.go	registerIndex	K15	"Failed(…)"	1
 index.go	registerIndex	K15	"columns of which noun? pass noun=NAME or run it on an index page"	1
 index.go	registerIndex	K4	"%s has no prop %s"	1

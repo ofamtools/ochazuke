@@ -65,6 +65,23 @@ func registerRelated(r *Runtime) {
 	registerRelatedMoves(b)
 	registerRelatedWrites(b)
 	registerRelatedSettings(b)
+	registerRelatedJump(b)
+}
+
+// registerRelatedJump declares jump: from a thing in a section, its
+// noun's page (nouns/NOUN) with that thing selected; from a heading, the
+// section noun's page. page.back comes back to the row it left.
+func registerRelatedJump(b *NounBuilder) {
+	sectionVerb(b, "jump", "Go to the page of the thing at the focus (its noun's page, nouns/NOUN, with its row selected); on a heading, the page of the section's noun. page.back (-) comes back", func(c Ctx, s *relatedSection) error {
+		r := c.Runtime
+		noun, key := s.ref.Noun, ""
+		if inst := r.Instances[r.relatedFocus(c)]; inst != nil && inst.Noun == s.ref.Noun && s.n.keyProp() != nil {
+			if k, err := r.rowKey(s.n, inst); err == nil {
+				key = k
+			}
+		}
+		return r.OpenIndex(noun, key)
+	})
 }
 
 func registerRelatedFacts(r *Runtime) {
@@ -221,6 +238,8 @@ func registerRelatedWrites(b *NounBuilder) {
 			return s.run(c, Request{Noun: s.ref.Noun, Verb: "create"}, false)
 		case s.ref.Relation != "":
 			return s.newRelated(c)
+		case s.ref.own():
+			return s.readOnly("new") // the thing's own prop names these: its form writes it
 		}
 		args := Arguments{s.ref.Prop: s.value()}
 		for k, v := range s.ref.Match {

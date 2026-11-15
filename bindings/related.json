@@ -12,7 +12,9 @@
       {"key": "[ [", "action": "ochazuke.related-section.previous", "hidden": true},
       {"key": "n", "action": "ochazuke.related-section.new", "when": "related-on-heading"},
       {"key": "a", "action": "ochazuke.related-section.associate", "when": "related-on-heading"},
-      {"key": "d u", "action": "ochazuke.related-section.unassociate", "when": "related-on-row"}
+      {"key": "d u", "action": "ochazuke.related-section.unassociate", "when": "related-on-row"},
+      {"key": "g f", "action": "ochazuke.related-section.jump", "hint": "jump"},
+      {"key": "enter", "action": "ochazuke.related-section.jump", "when": "related-on-row", "hidden": true}
     ]}
   ]
 }

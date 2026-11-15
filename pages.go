@@ -56,6 +56,9 @@ type Page struct {
 	// visited orders the page picker: the stamp of the last OpenPage that
 	// made this page current (larger is more recent), 0 for never.
 	visited uint64
+	// came is the page this one was last opened from ("" none): page.back
+	// goes there, so a walk from page to page comes back the way it went.
+	came string
 	// drawn is the order the last frame drew the page's focus stops in
 	// (Placed calls during Render), with where each landed in the body;
 	// drawing collects the frame in progress.
@@ -459,6 +462,9 @@ func (r *Runtime) OpenPage(id string) error {
 	left := r.Page
 	r.Page = id
 	page.visited = r.lastPageVisit() + 1
+	if left != id && left != "" {
+		page.came = left
+	}
 	// The page lands with the mode it remembers, else by the focus rule,
 	// else (reopened at the focus it holds) where it stands: one mode
 	// commit at most, after Page names the new page.
@@ -534,7 +540,28 @@ func registerPages(r *Runtime) {
 		err := r.movePage(-1)
 		return r.Context(), err
 	}})
+	r.Register(Operation{Key: "ochazuke.page.back", Motion: true, HistoryKind: HistoryAction, Description: "Go back to the page this one was opened from, at the focus it was left on; again goes further back the same way (nothing to go back to says so)", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		return r.Context(), r.pageBack()
+	}})
 	registerPageHiding(r)
+}
+
+// pageBack opens the page the current one was opened from, keeping that
+// page's own way back, so pressing it again walks further back. With none
+// it tells the user so and does nothing.
+func (r *Runtime) pageBack() error {
+	page := r.PageOf(r.Page)
+	if page == nil || page.came == "" || r.PageOf(page.came) == nil || page.came == r.Page {
+		r.UI().Info("no page to go back to")
+		return nil
+	}
+	target := r.PageOf(page.came)
+	came := target.came
+	if err := r.OpenPage(target.ID); err != nil {
+		return err
+	}
+	target.came = came
+	return nil
 }
 
 // lastPageVisit is the newest page visit stamp, 0 before any page opened.

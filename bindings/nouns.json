@@ -1,4 +1,4 @@
-// ochazuke bindings (JSONC): the Nouns page (noun_browser.go) and a noun's generated index page (index.go): enter on a noun opens its index; z A on every list shows or hides its archived rows (list.json); an index page keeps z a as a hidden extra row on the page (the related section's own z a fold is inner and keeps its meaning; both are whole two-key sequences, so z is not made ambiguous). No key opens the page: it is the last tab (nouns.page), and ochazuke.noun-browser.open runs from the palette and the CLI.
+// ochazuke bindings (JSONC): the Nouns page (noun_browser.go) and a noun's page (index.go, noun_page.go): enter on a noun opens its page; - (page.back) goes back to the page it was opened from; z A on every list shows or hides its archived rows (list.json); an index page keeps z a as a hidden extra row on the page (the related section's own z a fold is inner and keeps its meaning; both are whole two-key sequences, so z is not made ambiguous). No key opens the page: it is the last tab (nouns.page), and ochazuke.noun-browser.open runs from the palette and the CLI.
 {
   "bindings": [
     {"context": "ochazuke.noun/normal", "bindings": [
@@ -8,10 +8,12 @@
       {"key": "z A", "action": "ochazuke.collection.show-archived", "hint": "archived"},
       {"key": "z a", "action": "ochazuke.collection.show-archived", "hidden": true},
       {"key": "]", "action": "ochazuke.collection.page-next", "hint": "]/[ page"},
-      {"key": "[", "action": "ochazuke.collection.page-prev", "hidden": true}
+      {"key": "[", "action": "ochazuke.collection.page-prev", "hidden": true},
+      {"key": "-", "action": "ochazuke.page.back", "hint": "back"}
     ]},
     {"context": "ochazuke.noun-browser/normal", "bindings": [
-      {"key": "r", "action": "ochazuke.noun-browser.refresh"}
+      {"key": "r", "action": "ochazuke.noun-browser.refresh"},
+      {"key": "-", "action": "ochazuke.page.back", "hint": "back"}
     ]}
   ]
 }

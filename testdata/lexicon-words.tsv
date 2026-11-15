@@ -412,6 +412,7 @@ job	noun+prop	seed
 jobs	prop	seed	
 json	namespace+prop	seed	
 json-node	noun	seed	
+jump	action	yes	go to a related thing's noun page (related-section.jump)
 key	noun+prop	seed	
 keys	action+prop	seed	
 kill	action	seed	

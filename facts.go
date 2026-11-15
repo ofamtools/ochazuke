@@ -36,6 +36,12 @@ type factsSpec struct {
 	Rename map[string]string
 	// Docs describes the props by name.
 	Docs map[string]string
+	// Refs names, per prop, the noun whose things the prop's value names
+	// (its key): the prop becomes a reference (Parameter.Noun), so the
+	// named noun's page lists the facts that name a thing of it and the
+	// fact's page lists the thing it names (a binding's mode, an
+	// operation's noun).
+	Refs map[string]string
 	// ListParams are list's parameters beside where, props and limit.
 	ListParams map[string]Parameter
 	// List answers the things, in order.
@@ -85,6 +91,9 @@ func (r *Runtime) defineFacts(f factsSpec) {
 	for i := range props {
 		if to, ok := f.Rename[props[i].Name]; ok {
 			props[i].Name = to
+		}
+		if noun, ok := f.Refs[props[i].Name]; ok {
+			props[i].Noun = noun
 		}
 	}
 	if len(f.Rename) > 0 {
@@ -218,7 +227,7 @@ func propTypeOf(t reflect.Type) string {
 
 // registerCoreFacts declares the operations and bindings nouns.
 func registerCoreFacts(r *Runtime) {
-	r.defineFacts(factsSpec{Noun: "ochazuke.operation", StableKeys: true, Sample: Operation{}, Key: "key", Label: "description",
+	r.defineFacts(factsSpec{Noun: "ochazuke.operation", StableKeys: true, Sample: Operation{}, Key: "key", Label: "description", Refs: map[string]string{"noun": "ochazuke.noun"},
 		Extra: []PropSpec{{Name: "key"}, {Name: "noun"}, {Name: "verb"}, {Name: "name"}, {Name: "namespace"}},
 		Docs: map[string]string{"key": "The operation's noun.verb", "noun": "The noun", "verb": "The verb", "name": "The operation's name (its verb)", "namespace": "The namespace that defined it", "description": "What the operation does",
 			"parameters": "The arguments it takes, by name", "confirm": "The prompt it asks first, when it asks", "result": "What it answers",
@@ -227,7 +236,7 @@ func registerCoreFacts(r *Runtime) {
 			ops := c.Runtime.Catalog()
 			return factThings(ops, func(i int, t Thing) { t["key"] = ops[i].Key.Short() })
 		}})
-	r.defineFacts(factsSpec{Noun: "ochazuke.binding", Sample: Binding{}, Key: "id", Extra: []PropSpec{{Name: "id"}}, Rename: map[string]string{"help": "helptext"},
+	r.defineFacts(factsSpec{Noun: "ochazuke.binding", Sample: Binding{}, Key: "id", Extra: []PropSpec{{Name: "id"}}, Rename: map[string]string{"help": "helptext"}, Refs: map[string]string{"noun": "ochazuke.noun", "mode": "ochazuke.mode"},
 		Docs:       map[string]string{"id": "The row's place in the list", "helptext": "Its help text, in place of the operation's description", "keys": "The keys that run it", "request": "The request it runs", "noun": "The noun whose table holds it", "mode": "The mode it answers in"},
 		ListParams: map[string]Parameter{"all": {Type: "boolean", Description: "Return every stored binding row, including inactive modes and contexts, in configuration JSON format"}},
 		List: func(c Ctx, q ListQuery) ([]Thing, error) {

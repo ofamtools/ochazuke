@@ -113,6 +113,18 @@ type RelatedSpec struct {
 	// Plain draws every section as a plain list, without its noun's
 	// columns: a narrow region (the rail).
 	Plain bool
+	// Outward names a boolean setting: on, the stack also has a section
+	// per reference prop of the thing's own noun (Runtime.OwnReferences),
+	// listing the things the thing names, so its relations show in both
+	// directions. "" or a missing setting: none (the stack lists only what
+	// names the thing).
+	Outward string
+	// Explain names a boolean setting: on, a referrer whose things cannot
+	// be read (its noun has no store that lists, or no key prop, and no
+	// Rows hook) still has its section, its heading counting – and, open,
+	// one row saying why, so every relation of the noun shows. "" or a
+	// missing setting: such a referrer has no section.
+	Explain string
 }
 
 // RelatedList is one list section (RelatedSpec.Lists): the things of Noun
@@ -175,6 +187,7 @@ type relatedSection struct {
 	count      int    // things shown, archived ones left out
 	shown      []Thing
 	filled     bool
+	unreadable string            // why the things cannot be read ("" they can): the section explains (RelatedSpec.Explain)
 	split      *relatedSplit     // a value section's split, nil otherwise
 	group      *relatedSection   // the group heading drawing this section's rows, nil when none
 	members    []*relatedSection // a group heading's sections
@@ -427,7 +440,7 @@ func (rel *Related) sync() {
 	if noun != "" {
 		sections := rel.r.Settings().Bool(RelationSectionsSetting)
 		var late []*relatedSection
-		for _, ref := range rel.r.Referrers(noun) {
+		for _, ref := range rel.refs(noun) {
 			if ref.Relation != "" && !sections {
 				continue
 			}
@@ -443,6 +456,7 @@ func (rel *Related) sync() {
 			}
 		}
 		rel.dropRelationSections(sections)
+		rel.dropOwnSections()
 		rel.ensureHistorySection()
 		for _, s := range late {
 			s.fill()
@@ -486,7 +500,45 @@ func (rel *Related) fillDirty() {
 	}
 	dirty := rel.dirty
 	rel.dirty = map[string]bool{}
-	rel.fillSections(func(ref Referrer) bool { return dirty[ref.Noun] })
+	rel.fillSections(func(ref Referrer) bool { return dirty[ref.Noun] || ref.own() && dirty[rel.noun] })
+}
+
+// flag reads a boolean setting the spec names: false for "" or a setting
+// that does not exist.
+func (rel *Related) flag(name string) bool {
+	if name == "" {
+		return false
+	}
+	if _, ok := rel.r.settingValue(name); !ok {
+		return false
+	}
+	return rel.r.Settings().Bool(name)
+}
+
+// refs are the referrers the stack has sections for: every referrer of
+// noun, then, with the Outward setting on, the noun's own references.
+func (rel *Related) refs(noun string) []Referrer {
+	refs := rel.r.Referrers(noun)
+	if rel.flag(rel.spec.Outward) {
+		refs = append(refs, rel.r.OwnReferences(noun)...)
+	}
+	return refs
+}
+
+// dropOwnSections removes the own-reference sections while the Outward
+// setting is off.
+func (rel *Related) dropOwnSections() {
+	if rel.flag(rel.spec.Outward) {
+		return
+	}
+	for _, s := range slices.Clone(rel.sections) {
+		if s.ref.own() {
+			s.remove()
+			rel.sections = slices.DeleteFunc(rel.sections, func(o *relatedSection) bool { return o == s })
+			delete(rel.byID, s.ref.ID())
+			rel.shape++
+		}
+	}
 }
 
 // filledList reports whether the list section of ref has been read.
@@ -638,14 +690,15 @@ func (rel *Related) fillAll() {
 func (rel *Related) addSection(ref Referrer) *relatedSection {
 	r := rel.r
 	n := r.Nouns[ref.Noun]
-	if n == nil || n.keyProp() == nil {
+	if n == nil {
 		return nil
 	}
 	stored := n.Store != nil && (n.Store.List != nil || n.Store.Query != nil)
-	if !stored && rel.spec.Rows == nil && ref.Relation == "" {
+	why := sectionUnreadable(n, stored || ref.own(), rel.spec.Rows != nil, ref)
+	if why != "" && !rel.flag(rel.spec.Explain) {
 		return nil
 	}
-	s := &relatedSection{rel: rel, ref: ref, id: rel.id + "/" + ref.ID(), n: n, view: n.relatedView}
+	s := &relatedSection{rel: rel, ref: ref, id: rel.id + "/" + ref.ID(), n: n, view: n.relatedView, unreadable: why}
 	if ref.List || ref.Section != "" {
 		s.view = "" // a placed view stands for one referrer's things only
 	}
@@ -682,10 +735,27 @@ func (rel *Related) addSection(ref Referrer) *relatedSection {
 	rel.sections = append(rel.sections, s)
 	rel.byID[ref.ID()] = s
 	rel.shape++
-	if stored && ref.Relation == "" && !ref.History {
+	if stored && ref.Relation == "" && !ref.History && why == "" {
 		rel.watch(ref.Noun)
 	}
+	if ref.own() && rel.noun != "" {
+		rel.watch(rel.noun) // the thing's own prop changes what it names
+	}
 	return s
+}
+
+// sectionUnreadable says why a referrer's things cannot be read, "" when
+// they can: a key prop to name its rows by, and a store that lists (read
+// says so for a section that reads otherwise: the thing's own
+// references), a Rows hook or a relation kind behind it.
+func sectionUnreadable(n *Noun, read, rows bool, ref Referrer) string {
+	switch {
+	case n.keyProp() == nil:
+		return "its things have no key to name them by"
+	case !read && !rows && ref.Relation == "":
+		return "its store cannot list its things"
+	}
+	return ""
 }
 
 // shortNounName is the last word of a noun's name (lane.lane is lane).
@@ -746,7 +816,13 @@ func (s *relatedSection) read() ([]Thing, error) { return s.rel.readRef(s.ref) }
 // filter, whatever the key.
 func (rel *Related) readRef(ref Referrer) ([]Thing, error) {
 	r := rel.r
-	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	return rel.readRefWith(Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}, ref)
+}
+
+// readRefWith is readRef in c: a remote read's replayed context
+// (fillRemote) reaches the remote store, any other reads none.
+func (rel *Related) readRefWith(c Ctx, ref Referrer) ([]Thing, error) {
+	r := rel.r
 	if ref.List {
 		return rel.readList(c, ref)
 	}
@@ -781,12 +857,79 @@ func (s *relatedSection) fill() {
 		return
 	}
 	r := s.rel.r
+	if s.unreadable != "" {
+		s.show(nil)
+		return
+	}
+	if s.remote() {
+		s.fillRemote()
+		return
+	}
 	things, err := s.read()
 	if err != nil {
 		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
 		things = nil
 	}
 	s.show(things)
+}
+
+// RelatedRemoteSetting turns the reads of remote stores in related
+// sections on (default) or off: on, a section whose things live in a
+// remote store (a mounted extension's) is read as a job off the loop and
+// shows its things when it lands; off, it reads as empty.
+const RelatedRemoteSetting = "detail.related-remote"
+
+// remote reports whether reading the section's things needs a remote
+// store: its noun's, or, for the thing's own references, the thing's
+// noun's.
+func (s *relatedSection) remote() bool {
+	if s.ref.List || s.ref.History || !s.rel.r.Settings().Bool(RelatedRemoteSetting) {
+		return false
+	}
+	if s.ref.own() {
+		if own := s.rel.r.Nouns[s.rel.noun]; own != nil && own.Store != nil && own.Store.Remote {
+			return true
+		}
+	}
+	return s.n.Store != nil && s.n.Store.Remote
+}
+
+// fillRemote reads the section's things through its remote store as a job
+// (the windowed list's way: runSteppedBody replays the read on the loop)
+// and shows them when it lands, unless the stack shows another thing by
+// then. Until then the section shows what it showed.
+func (s *relatedSection) fillRemote() {
+	rel, r := s.rel, s.rel.r
+	noun, key := rel.noun, rel.key
+	var things []Thing
+	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	body := func(c Ctx) (any, error) {
+		got, err := rel.readRefWith(c, s.ref)
+		things = got
+		return nil, err
+	}
+	finish := func(_ any, err error) (any, error) {
+		if r.Instances[s.id] == nil || rel.noun != noun || rel.key != key {
+			return nil, nil // the stack moved on: its own read shows
+		}
+		if err != nil {
+			things = nil
+		}
+		s.show(things)
+		return nil, err
+	}
+	res := r.runSteppedBody(c, s.ref.Noun+".list", body, finish)
+	if res.err != nil || res.work == nil {
+		if res.err != nil {
+			r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), res.err))
+		}
+		return // answered at once
+	}
+	_, _ = r.Launch(s.id, s.ref.Noun+".list", res.Replacing("related-read").Then(func(c Ctx, _ any, err error) {
+		if err != nil {
+			c.Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
+		}
+	}), c)
 }
 
 // show keeps the things the archive setting does not hide and draws them.
@@ -844,7 +987,10 @@ func (s *relatedSection) render() {
 			}
 		}
 	} else if !s.collapsed() {
-		if empty && rel.emptyMode() == relatedEmptyAtOpen {
+		switch {
+		case s.unreadable != "":
+			items = append(items, s.whyRow())
+		case empty && rel.emptyMode() == relatedEmptyAtOpen:
 			items = append(items, s.emptyRow())
 		}
 		items = append(items, s.rowItems(c, shown)...)
@@ -858,11 +1004,15 @@ func (s *relatedSection) render() {
 // count; a focus stop whose verbs are the section's.
 func (s *relatedSection) heading() ListItem {
 	mark := "▾"
-	if s.collapsed() || s.count == 0 {
+	if s.collapsed() || s.count == 0 && s.unreadable == "" {
 		mark = "▸"
 	}
 	label := mark + " " + s.ref.Label
-	if s.rel.countsShown() {
+	switch {
+	case !s.rel.countsShown():
+	case s.unreadable != "":
+		label += " (–)"
+	default:
 		label += fmt.Sprintf(" (%d)", s.count)
 	}
 	item := ListItem{ID: s.headID(), Label: label, Noun: RelatedNoun, Data: s.thing(), Tones: []ToneSpan{{Cell: 0, Tone: ToneHeader}}}
@@ -877,6 +1027,16 @@ func (s *relatedSection) heading() ListItem {
 func (s *relatedSection) emptyRow() ListItem {
 	text := EmptyText(pluralWord(shortNounName(s.ref.Noun)))
 	item := ListItem{ID: s.emptyID(), Label: "  " + text, Noun: RelatedNoun, Data: s.thing()}
+	if n := len(s.list.columns); n > 0 {
+		item.Cells = make([]string, n)
+		item.Cells[0] = item.Label
+	}
+	return item
+}
+
+// whyRow is the open row of a section whose things cannot be read: why.
+func (s *relatedSection) whyRow() ListItem {
+	item := ListItem{ID: s.emptyID(), Label: "  " + s.unreadable, Noun: RelatedNoun, Data: s.thing()}
 	if n := len(s.list.columns); n > 0 {
 		item.Cells = make([]string, n)
 		item.Cells[0] = item.Label

@@ -1095,6 +1095,13 @@
           }
         }
       ],
+      "settings": [
+        {
+          "name": "index.related-collapsed",
+          "type": "list",
+          "default": []
+        }
+      ],
       "name": "the show form of an index row: every prop as a form, one section per referring noun (memos about it, steps of it) under it, and its history last, which a write to the thing grows"
     },
     {

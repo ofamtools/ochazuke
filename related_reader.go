@@ -21,6 +21,9 @@ func (r *Runtime) readRelatedThings(c Ctx, spec RelatedSpec, noun, key string, r
 	if ref.Relation != "" {
 		return r.readRelatedRelations(c, noun, key, ref, q)
 	}
+	if ref.own() {
+		return r.readOwnReferences(c, noun, key, ref, q)
+	}
 	value := ref.Value(noun, key)
 	if n.Store == nil || n.Store.List == nil && n.Store.Query == nil {
 		if spec.Rows == nil {
@@ -61,6 +64,18 @@ func (r *Runtime) readRelatedRelations(c Ctx, noun, key string, ref Referrer, q 
 	if len(keys) == 0 {
 		return ListPage{}, nil
 	}
+	return r.thingsOfKeys(c, n, keys, q)
+}
+
+// thingsOfKeys reads the things of n named by keys, in order, as a page of
+// q: through the store's Query when it pages locally, else each by Get (a
+// stub holding only the key, as the label too, when the store cannot get
+// it).
+func (r *Runtime) thingsOfKeys(c Ctx, n *Noun, keys []string, q ListQuery) (ListPage, error) {
+	if n == nil || n.keyProp() == nil || len(keys) == 0 {
+		return ListPage{}, nil
+	}
+	c.Noun = n.Name
 	if q.PerPage > 0 && n.Store != nil && !n.Store.Remote && n.Store.Query != nil {
 		q.Filters = append(clonePropFilters(q.Filters), PropFilter{Prop: n.keyProp().Name, Op: "in", Value: keys})
 		return r.queryThings(c, n, q)

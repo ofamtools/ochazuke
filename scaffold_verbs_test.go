@@ -252,6 +252,9 @@ func TestGeneratedNounKeysStepAside(t *testing.T) {
 // follows it: the note's own index, its row selected.
 func TestShowFormSectionsAndFollow(t *testing.T) {
 	r, m := scaffoldFixture(t)
+	if _, err := r.Settings().SetSession(IndexRelatedCollapsedSetting, []string{}); err != nil {
+		t.Fatal(err) // the sections start open, as before index.related-collapsed
+	}
 	id := onlyTask(t, r)["id"].(string)
 	mustRun(t, r, Request{Noun: "note", Verb: "create", Args: Arguments{"title": "see the shelf", "about": "task:" + id}})
 	mustRun(t, r, Request{Noun: "task", Verb: "set", Args: Arguments{"id": id, "props": map[string]any{"title": "Buy oat milk"}}})
