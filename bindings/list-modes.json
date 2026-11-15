@@ -30,8 +30,6 @@
       {"key": "E", "action": "ochazuke.collection.filter-choose", "hidden": true},
       {"key": "F", "action": "ochazuke.collection.filter-erase", "hidden": true},
       {"key": "H", "action": "ochazuke.collection.filter-keep", "hidden": true},
-      {"key": "M", "action": "ochazuke.collection.filter-save", "hidden": true},
-      {"key": "X", "action": "ochazuke.collection.filter-saved-pick", "hidden": true},
       {"key": "ctrl+g", "action": "ochazuke.collection.filter-type", "hidden": true},
       {"key": "ctrl+h", "action": "ochazuke.collection.filters", "hidden": true},
       {"key": "ctrl+l", "action": "ochazuke.collection.flush-lingering", "hidden": true},

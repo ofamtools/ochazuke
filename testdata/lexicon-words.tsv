@@ -675,8 +675,8 @@ rebase	action	seed
 recall	action	seed	
 recheck	action	seed	
 record	action	seed	
-redirect	action	seed	
 redo	action	seed	
+redirect	action	seed	
 ref	prop	seed	
 referrer	noun	seed	
 refocus	action	yes	walk the binding help page from another focus
@@ -959,4 +959,3 @@ zoom	action	seed
 zoom-in	action	seed	
 zoom-out	action	seed	
 zoom-reset	action	seed	
-||||||| parent of 6d9cc26e (binding help page, stage 1: ? opens a page with the walk as a graph)

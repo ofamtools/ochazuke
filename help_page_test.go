@@ -101,6 +101,14 @@ func TestHelpPageKeysTakeNoKeyOfTheWalk(t *testing.T) {
 	}
 	check(r.List(helpRowsID).FocusTarget())
 	check(r.Tree(helpRailID).FocusTarget())
+	// Hidden default rows are listed like any other, with their file.
+	found := false
+	for _, v := range r.helpPage().Rows {
+		found = found || v.Hidden && v.Key == "E" && v.Operation == "collection.filter-choose" && v.Source == FrameworkBindingsSource+"bindings/list-modes.json"
+	}
+	if !found {
+		t.Error("the hidden row E collection.filter-choose is not listed with its file")
+	}
 }
 
 // The hint line can be turned off: hints.group hidden draws none.
@@ -124,4 +132,29 @@ func modalHelp(r *Runtime) *Runtime {
 		panic(err)
 	}
 	return r
+}
+
+// ? on a noun page walks from that page's focused row, and q goes back to
+// the noun page with its row focused.
+func TestHelpPageFromANounPage(t *testing.T) {
+	r, m := nounPageFixture(t)
+	m.Width, m.Height = 140, 40
+	if err := r.OpenIndex("task", ""); err != nil {
+		t.Fatal(err)
+	}
+	landLoads(m, r.PendingCommands())
+	list := r.List(IndexPageID("task") + "/list")
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	page, focus := r.Page, r.Focus
+	keytest.Press(m, "?")
+	p := r.helpPage()
+	if r.Page != HelpPageID || p.Current.Focus != focus || p.Walk.Place.Noun != "task" {
+		t.Fatalf("? from the noun page: page %q, walking from %q (%s), want %q", r.Page, p.Current.Focus, p.Walk.Place.Noun, focus)
+	}
+	keytest.Press(m, "q")
+	if r.Page != page || r.Focus != focus {
+		t.Fatalf("q returned to page %q focus %q, want %q %q", r.Page, r.Focus, page, focus)
+	}
 }
