@@ -263,8 +263,10 @@ func (p *HelpPage) read() {
 		p.Walk = r.HelpWalkAtPlace(p.Current.Place, mode)
 	}
 	p.Rows = r.HelpRows(p.Walk)
-	p.Built = r.renderCache.generation
 	p.arrange()
+	// After the rows are placed: placing them must not read as a change of
+	// the bindings next update.
+	p.Built = r.renderCache.generation
 }
 
 // arrange gives the list the rows grouped and sorted (the filter narrows
@@ -273,7 +275,9 @@ func (p *HelpPage) arrange() {
 	r := p.r
 	p.Lines = Arrange(p.Rows, p.Walk, HelpQuery{}, GroupingNamed(p.Group), SortNamed(p.Sort)).Lines
 	if list := r.List(helpRowsID); list != nil {
-		_ = list.SetItems(p.listItems())
+		if err := list.SetItems(p.listItems()); err != nil {
+			r.UI().Error("binding help rows: " + err.Error())
+		}
 		p.filtered()
 	}
 	p.railNodes()
@@ -286,7 +290,7 @@ func (p *HelpPage) arrange() {
 func (p *HelpPage) listItems() []ListItem {
 	var out []ListItem
 	section := ""
-	for i, line := range p.Lines {
+	for _, line := range p.Lines {
 		switch line.Kind {
 		case HelpLineGroup:
 			section = p.groupHeader(line.Group)
@@ -307,7 +311,7 @@ func (p *HelpPage) listItems() []ListItem {
 			if v.Unbound {
 				mode = ""
 			}
-			out = append(out, ListItem{ID: fmt.Sprintf("%s#%d", v.ID, i), Label: v.Key, Noun: helpRowNoun, Section: section, Data: line,
+			out = append(out, ListItem{ID: v.ID, Label: v.Key, Noun: helpRowNoun, Section: section, Data: line,
 				Cells: []string{v.Key, runs, mode, v.Defined(), v.Guard, v.StatusText()}, Search: []string{v.Help}})
 		}
 	}

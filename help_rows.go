@@ -126,8 +126,12 @@ func (v HelpPageRow) Where() []string {
 // it when rows load: SourceUser for a row the user's bindings.json put
 // there, the file a default row came from, SourceGenerated for a generated
 // row (a noun's default block, a prefix cancel), else SourceGo.
-func (r *Runtime) BindingSource(b Binding) string {
-	if r.userRowKeys()[sourceKey(b)] {
+func (r *Runtime) BindingSource(b Binding) string { return r.bindingSourceIn(b, r.userRowKeys()) }
+
+// bindingSourceIn is BindingSource with the user rows' identities read
+// once for many rows.
+func (r *Runtime) bindingSourceIn(b Binding, user map[string]bool) string {
+	if user[sourceKey(b)] {
 		return SourceUser
 	}
 	return r.defaultSource(b)
@@ -167,6 +171,7 @@ func (r *Runtime) sourceClass(source string, b Binding) string {
 func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 	var out []HelpPageRow
 	onWalk := map[string]bool{}
+	user := r.userRowKeys()
 	by := func(i int) *HelpBy {
 		if i < 0 {
 			return nil
@@ -176,7 +181,7 @@ func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 	}
 	for _, e := range w.Entries {
 		onWalk[sourceKey(e.Row)+"\x00"+fmt.Sprint(e.Capture)] = true
-		v := r.helpPageRow(e.Row, len(out))
+		v := r.helpPageRow(e.Row, user, len(out))
 		v.Level, v.LevelName, v.Table, v.State, v.By = e.Level, w.LevelLabel(e.Level), w.TableOf(e).Label(), e.Status(), by(e.By)
 		out = append(out, v)
 	}
@@ -184,7 +189,7 @@ func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 		if onWalk[sourceKey(b)+"\x00"+fmt.Sprint(b.Capture)] {
 			continue
 		}
-		v := r.helpPageRow(b, len(out))
+		v := r.helpPageRow(b, user, len(out))
 		v.Level = w.LevelOf(b)
 		v.LevelName = w.LevelLabel(v.Level)
 		v.Table = WalkTable{Noun: b.Noun, Instance: b.Instance, Mode: b.Mode}.Label()
@@ -199,6 +204,17 @@ func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 		level := slices.IndexFunc(w.Levels, func(l HelpLevel) bool { return l.Noun == noun })
 		out = append(out, HelpPageRow{Unbound: true, ID: "verb:" + op.Key.Short(), Key: "(no key)", Operation: r.displayRequest(Request{Noun: noun, Verb: op.Name()}),
 			Verb: op.Name(), Noun: noun, Help: op.Description, Level: level, LevelName: w.LevelLabel(level), Table: noun + " verbs", State: StatusNoKey, Order: len(out)})
+	}
+	// A table may hold alternatives on one key (the first available
+	// answers): each row keeps an id of its own.
+	seen := map[string]int{}
+	for i := range out {
+		if n := seen[out[i].ID]; n > 0 {
+			seen[out[i].ID]++
+			out[i].ID += fmt.Sprintf("#%d", n+1)
+			continue
+		}
+		seen[out[i].ID] = 1
 	}
 	return out
 }
@@ -217,8 +233,8 @@ func (r *Runtime) storedRows() []Binding {
 }
 
 // helpPageRow is a binding's page row before the walk places it.
-func (r *Runtime) helpPageRow(b Binding, order int) HelpPageRow {
-	source := r.BindingSource(b)
+func (r *Runtime) helpPageRow(b Binding, user map[string]bool, order int) HelpPageRow {
+	source := r.bindingSourceIn(b, user)
 	owner := b.Noun
 	if b.Instance != "" {
 		owner = "instance " + b.Instance
@@ -230,7 +246,11 @@ func (r *Runtime) helpPageRow(b Binding, order int) HelpPageRow {
 	}
 	help := cmp.Or(b.Help, r.Operations.At(Key(r.CanonicalKey(requestOperation(b.Request)))).Description)
 	guard := r.rowGuardText(b)
-	return HelpPageRow{ID: "row:" + sourceKey(b) + "\x00" + fmt.Sprint(b.Capture), Row: b, Key: rowKey(b),
+	id := "row:" + strings.ReplaceAll(sourceKey(b), "\x00", "|") + "|" + b.Request.Key()
+	if b.Capture {
+		id += "|capture"
+	}
+	return HelpPageRow{ID: id, Row: b, Key: rowKey(b),
 		Operation: r.displayRequest(b.Request), Verb: b.Request.Verb, Noun: owner, Args: args, Mode: modeLabel(b.Mode),
 		Source: source, Class: r.sourceClass(source, b), Guard: guard, Help: help, Hidden: b.Hidden, Order: order}
 }
