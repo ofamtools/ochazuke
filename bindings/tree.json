@@ -31,9 +31,7 @@
       {"key": "b", "action": "ochazuke.outline.archive", "hidden": true},
       {"key": "F", "action": "ochazuke.outline.create", "hidden": true},
       {"key": "z 1", "action": "ochazuke.outline.fold", "hidden": true},
-      {"key": "H", "action": "ochazuke.outline.history", "hidden": true},
       {"key": "c", "action": "ochazuke.outline.leave", "hidden": true},
-      {"key": "ctrl+g", "action": "ochazuke.outline.list", "hidden": true},
       {"key": "f", "action": "ochazuke.outline.next", "hidden": true},
       {"key": "k", "action": "ochazuke.outline.row-key", "hidden": true}
     ]},

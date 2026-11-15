@@ -104,10 +104,10 @@ func TestHelpPageKeysTakeNoKeyOfTheWalk(t *testing.T) {
 	// Hidden default rows are listed like any other, with their file.
 	found := false
 	for _, v := range r.helpPage().Rows {
-		found = found || v.Hidden && v.Key == "E" && v.Operation == "collection.filter-choose" && v.Source == FrameworkBindingsSource+"bindings/list-modes.json"
+		found = found || v.Hidden && v.Key == "F" && v.Operation == "outline.create" && v.Source == FrameworkBindingsSource+"bindings/tree.json"
 	}
 	if !found {
-		t.Error("the hidden row E collection.filter-choose is not listed with its file")
+		t.Error("the hidden row F outline.create is not listed with its file")
 	}
 }
 

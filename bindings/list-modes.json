@@ -26,29 +26,12 @@
     {"context": "ochazuke.collection/normal", "bindings": [
       {"key": "V", "action": "ochazuke.collection.visual", "hidden": true},
       {"key": "esc", "action": "ochazuke.collection.end-visual", "when": "list-visual"},
-      {"key": "esc", "action": "ochazuke.collection.filter-clear"},
-      {"key": "E", "action": "ochazuke.collection.filter-choose", "hidden": true},
-      {"key": "F", "action": "ochazuke.collection.filter-erase", "hidden": true},
-      {"key": "H", "action": "ochazuke.collection.filter-keep", "hidden": true},
-      {"key": "ctrl+g", "action": "ochazuke.collection.filter-type", "hidden": true},
-      {"key": "ctrl+h", "action": "ochazuke.collection.filters", "hidden": true},
-      {"key": "ctrl+l", "action": "ochazuke.collection.flush-lingering", "hidden": true},
-      {"key": "ctrl+n", "action": "ochazuke.collection.group", "hidden": true},
-      {"key": "ctrl+o", "action": "ochazuke.collection.group-clear", "hidden": true},
-      {"key": "ctrl+p", "action": "ochazuke.collection.group-fold", "hidden": true},
-      {"key": "ctrl+s", "action": "ochazuke.collection.page-first", "hidden": true},
-      {"key": "ctrl+t", "action": "ochazuke.collection.page-last", "hidden": true},
-      {"key": "alt+a", "action": "ochazuke.collection.select", "hidden": true},
-      {"key": "alt+b", "action": "ochazuke.collection.sort", "hidden": true},
-      {"key": "alt+c", "action": "ochazuke.collection.sort-clear", "hidden": true},
-      {"key": "alt+d", "action": "ochazuke.collection.unpin-column", "hidden": true},
-      {"key": "alt+e", "action": "ochazuke.collection.unpin-columns", "hidden": true}
+      {"key": "esc", "action": "ochazuke.collection.filter-clear"}
     ]},
     {"context": "ochazuke.collection/visual-line", "extends": "normal", "bindings": [
       {"key": "esc", "action": "ochazuke.collection.end-visual"},
       {"key": "y", "action": "ochazuke.collection.yank", "args": {"what": "row"}, "hint": "yank"},
-      {"key": "digit-0", "action": "ochazuke.mode.enter", "args": {"mode": "count_pending"}, "from": {"count": "digit"}, "hidden": true},
-      {"key": "S", "action": "ochazuke.collection.filter-open", "hidden": true}
+      {"key": "digit-0", "action": "ochazuke.mode.enter", "args": {"mode": "count_pending"}, "from": {"count": "digit"}, "hidden": true}
     ]}
   ]
 }

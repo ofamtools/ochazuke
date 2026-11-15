@@ -27,7 +27,6 @@
       {"key": "enter", "action": "ochazuke.noun-browser.open", "hidden": true}
     ]},
     {"context": "ochazuke.page/normal", "bindings": [
-      {"key": "F", "action": "ochazuke.page.create", "hidden": true},
       {"key": "v", "action": "ochazuke.page.get", "hidden": true},
       {"key": "ctrl+g", "action": "ochazuke.page.list", "hidden": true},
       {"key": "*", "action": "ochazuke.page.set", "hidden": true},

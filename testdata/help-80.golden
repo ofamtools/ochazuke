@@ -56,9 +56,9 @@
         │                                                 then acts on │
         │                                                 every        │
         │                                                 selected row │
-        │   H           collection.filter-                Close the    │
-        │               keep                              filter line  │
-        │ 1–10 / 66                                                    │
+        │ page                                                         │
+        │   v           page.get                          Read a       │
+        │ 1–10 / 61                                                    │
         │ space collection.mark · S view · enter run · q modal.close … │
         ╰──────────────────────────────────────────────────────────────╯
 
