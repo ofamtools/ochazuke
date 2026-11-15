@@ -1470,18 +1470,25 @@ func (r *Runtime) ModeIs(mode, base string) bool {
 // (ModeExtends) continues it.
 func (r *Runtime) nounTables(n *Noun, mode string) [][]Binding {
 	var out [][]Binding
+	r.eachNounTable(n, mode, func(_ string, rows []Binding) { out = append(out, rows) })
+	return out
+}
+
+// eachNounTable calls fn with each table nounTables reads, in its order,
+// and the mode that table belongs to (the mode asked, then each one it
+// extends).
+func (r *Runtime) eachNounTable(n *Noun, mode string, fn func(mode string, rows []Binding)) {
 	seen := map[string]bool{}
 	for mode != "" && !seen[mode] {
 		seen[mode] = true
 		rows, own := n.Bindings[mode]
-		out = append(out, rows)
+		fn(mode, rows)
 		next := n.Extends[mode]
 		if next == "" && (!own || r.modes[mode].Layered) {
 			next = r.modes[mode].Extends
 		}
 		mode = next
 	}
-	return out
 }
 
 // Selection shapes: a mode that holds a selection says which shape it
