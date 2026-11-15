@@ -272,6 +272,8 @@ exists	prop	seed
 exit_code	prop	seed	
 exited	prop	seed	
 expand	action	seed	
+explain	action	yes	follow a key along the walk and say why each row answers or not
+explain-key	action	yes	follow a typed key along the walk
 export	action	seed	
 exported	prop	seed	
 extension	noun	seed	
@@ -880,8 +882,6 @@ tone	prop	seed
 tool	noun	seed	
 tools	relation	seed	
 torrent	noun	seed	
-trace	action	yes	follow a key along the walk
-trace-key	action	yes	follow a typed key along the walk
 tracker	noun	seed	
 transcript	prop	seed	
 transfer	noun	seed	

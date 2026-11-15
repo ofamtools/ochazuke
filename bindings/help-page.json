@@ -11,7 +11,7 @@
       {"key": "M", "action": "ochazuke.help-page.cycle-mode", "args": {"step": -1}, "hidden": true},
       {"key": "o", "action": "ochazuke.help-page.group", "hint": "group"},
       {"key": "O", "action": "ochazuke.help-page.sort", "hint": "sort"},
-      {"key": "T", "action": "ochazuke.help-page.trace-key", "hint": "trace a key"},
+      {"key": "T", "action": "ochazuke.help-page.explain-key", "hint": "trace a key"},
       {"key": "x x", "action": "ochazuke.help-page.drop", "hint": "drop chip", "help": "Remove the last filter chip"},
       {"key": "x a", "action": "ochazuke.help-page.clear", "help": "Remove every filter chip"},
       {"key": "x 1", "action": "ochazuke.help-page.drop", "args": {"nth": 1}, "help": "Remove filter chip 1"},
@@ -37,7 +37,7 @@
     ]},
     {"context": "ochazuke.help-row/normal", "bindings": [
       {"key": "enter", "action": "ochazuke.help-page.where", "hint": "where"},
-      {"key": "t", "action": "ochazuke.help-page.trace", "hint": "trace"},
+      {"key": "t", "action": "ochazuke.help-page.explain", "hint": "trace"},
       {"key": "*", "action": "ochazuke.help-page.narrow", "args": {"field": "verb"}, "hint": "same verb"},
       {"key": "=", "action": "ochazuke.help-page.narrow", "args": {"field": "key"}, "hint": "same key"},
       {"key": "#", "action": "ochazuke.help-page.narrow", "args": {"field": "noun"}, "hint": "same noun"},

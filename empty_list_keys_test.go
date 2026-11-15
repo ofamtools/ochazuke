@@ -77,6 +77,7 @@ func TestEmptyIndexGeneratedCreate(t *testing.T) {
 
 func TestEmptyIndexEffectiveKeys(t *testing.T) {
 	r, _, list := emptyIndexFixture(t, false, true)
+	modalHelp(r)
 	r.Define("parcel").Verb("refresh", func(c Ctx) Result { return Done(c.Instance.ID) }, "Refresh parcels").
 		Mode("normal").Bind("x", Do("parcel.refresh").Hinted("refresh parcels"))
 	listed := map[string]string{}
