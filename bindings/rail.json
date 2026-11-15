@@ -5,7 +5,17 @@
       {"key": "ctrl+w >", "action": "ochazuke.rail.grow", "from": {"steps": "count"}, "hidden": true},
       {"key": "ctrl+w <", "action": "ochazuke.rail.shrink", "from": {"steps": "count"}, "hidden": true},
       {"key": "h", "action": "ochazuke.related-section.close", "when": "related-on-row"},
-      {"key": "l", "action": "ochazuke.related-section.open", "when": "related-on-heading"}
+      {"key": "l", "action": "ochazuke.related-section.open", "when": "related-on-heading"},
+      {"key": "right", "action": "ochazuke.rail.enter", "hidden": true},
+      {"key": "-", "action": "ochazuke.rail.hide", "hidden": true},
+      {"key": "enter", "action": "ochazuke.rail.inspect", "hidden": true},
+      {"key": "a", "action": "ochazuke.rail.look", "hidden": true},
+      {"key": "s", "action": "ochazuke.rail.pin", "hidden": true},
+      {"key": "F", "action": "ochazuke.rail.refresh", "hidden": true},
+      {"key": "ctrl+s", "action": "ochazuke.rail.resize", "hidden": true},
+      {"key": "v", "action": "ochazuke.rail.show", "hidden": true},
+      {"key": "w", "action": "ochazuke.rail.unpin", "hidden": true},
+      {"key": "y y", "action": "ochazuke.rail.yank", "hidden": true}
     ]}
   ]
 }

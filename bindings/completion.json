@@ -9,6 +9,12 @@
       {"key": "down", "action": "ochazuke.completion.move", "args": {"delta": 1}, "when": "completion-rows"},
       {"key": "ctrl+p", "action": "ochazuke.completion.move", "args": {"delta": -1}, "when": "completion-rows"},
       {"key": "up", "action": "ochazuke.completion.move", "args": {"delta": -1}, "when": "completion-rows"}
+    ]},
+    {"context": "ochazuke.completion/normal", "bindings": [
+      {"key": "x", "action": "ochazuke.completion.accept", "hidden": true},
+      {"key": "-", "action": "ochazuke.completion.dismiss", "hidden": true},
+      {"key": "j", "action": "ochazuke.completion.move", "hidden": true},
+      {"key": "enter", "action": "ochazuke.completion.open", "hidden": true}
     ]}
   ]
 }

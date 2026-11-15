@@ -4,7 +4,8 @@
     {"context": "ochazuke.about-row/normal", "bindings": [
       {"key": "y", "action": "ochazuke.about-row.yank"},
       {"key": "enter", "action": "ochazuke.about-row.open", "when": "about-row-path"},
-      {"key": "o", "action": "ochazuke.about-row.open", "when": "about-row-path", "hidden": true}
+      {"key": "o", "action": "ochazuke.about-row.open", "when": "about-row-path", "hidden": true},
+      {"key": "v", "action": "ochazuke.about-row.show", "hidden": true}
     ]},
     {"context": "ochazuke.about-page/normal", "bindings": [
       {"key": "]", "action": "ochazuke.setting.show-tab", "args": {"step": 1}, "when": "about-tab", "hint": "]/[ setting.show-tab"},

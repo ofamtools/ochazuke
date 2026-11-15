@@ -2,18 +2,65 @@
 {
   "bindings": [
     {"context": "ochazuke.noun/normal", "bindings": [
-      {"key": "enter", "action": "ochazuke.noun.show"}
+      {"key": "enter", "action": "ochazuke.noun.show"},
+      {"key": "d a", "action": "ochazuke.noun.archive", "hidden": true},
+      {"key": "n", "action": "ochazuke.noun.create", "hidden": true},
+      {"key": "d d", "action": "ochazuke.noun.delete", "hidden": true},
+      {"key": "v", "action": "ochazuke.noun.get", "hidden": true},
+      {"key": "H", "action": "ochazuke.noun.history", "hidden": true},
+      {"key": "ctrl+g", "action": "ochazuke.noun.list", "hidden": true},
+      {"key": "a", "action": "ochazuke.noun.places", "hidden": true},
+      {"key": "*", "action": "ochazuke.noun.set", "hidden": true},
+      {"key": "w", "action": "ochazuke.noun.watch", "hidden": true},
+      {"key": "p", "action": "ochazuke.noun.yank", "hidden": true}
     ]},
     {"context": "ochazuke.index/normal", "bindings": [
       {"key": "z A", "action": "ochazuke.collection.show-archived", "hint": "archived"},
       {"key": "z a", "action": "ochazuke.collection.show-archived", "hidden": true},
       {"key": "]", "action": "ochazuke.collection.page-next", "hint": "]/[ page"},
       {"key": "[", "action": "ochazuke.collection.page-prev", "hidden": true},
-      {"key": "-", "action": "ochazuke.page.back", "hint": "back"}
+      {"key": "-", "action": "ochazuke.page.back", "hint": "back"},
+      {"key": "a", "action": "ochazuke.index.columns", "hidden": true}
     ]},
     {"context": "ochazuke.noun-browser/normal", "bindings": [
       {"key": "r", "action": "ochazuke.noun-browser.refresh"},
-      {"key": "-", "action": "ochazuke.page.back", "hint": "back"}
+      {"key": "-", "action": "ochazuke.page.back", "hint": "back"},
+      {"key": "enter", "action": "ochazuke.noun-browser.open", "hidden": true}
+    ]},
+    {"context": "ochazuke.page/normal", "bindings": [
+      {"key": "F", "action": "ochazuke.page.create", "hidden": true},
+      {"key": "r", "action": "ochazuke.page.edit", "hidden": true},
+      {"key": "v", "action": "ochazuke.page.get", "hidden": true},
+      {"key": "ctrl+g", "action": "ochazuke.page.list", "hidden": true},
+      {"key": "*", "action": "ochazuke.page.set", "hidden": true},
+      {"key": "w", "action": "ochazuke.page.watch", "hidden": true}
+    ]},
+    {"context": "ochazuke.register/normal", "bindings": [
+      {"key": "b", "action": "ochazuke.register.append", "hidden": true},
+      {"key": "d a", "action": "ochazuke.register.archive", "hidden": true},
+      {"key": "n", "action": "ochazuke.register.create", "hidden": true},
+      {"key": "d d", "action": "ochazuke.register.delete", "hidden": true},
+      {"key": "r", "action": "ochazuke.register.edit", "hidden": true},
+      {"key": "M", "action": "ochazuke.register.get", "hidden": true},
+      {"key": "H", "action": "ochazuke.register.history", "hidden": true},
+      {"key": "ctrl+g", "action": "ochazuke.register.list", "hidden": true},
+      {"key": "alt+a", "action": "ochazuke.register.select", "hidden": true},
+      {"key": "*", "action": "ochazuke.register.set", "hidden": true},
+      {"key": "w", "action": "ochazuke.register.watch", "hidden": true}
+    ]},
+    {"context": "ochazuke.snapshot/normal", "bindings": [
+      {"key": "d a", "action": "ochazuke.snapshot.archive", "hidden": true},
+      {"key": "n", "action": "ochazuke.snapshot.create", "hidden": true},
+      {"key": "d d", "action": "ochazuke.snapshot.delete", "hidden": true},
+      {"key": "r", "action": "ochazuke.snapshot.edit", "hidden": true},
+      {"key": "enter", "action": "ochazuke.snapshot.follow", "hidden": true},
+      {"key": "v", "action": "ochazuke.snapshot.get", "hidden": true},
+      {"key": "a", "action": "ochazuke.snapshot.inspect", "hidden": true},
+      {"key": "ctrl+g", "action": "ochazuke.snapshot.list", "hidden": true},
+      {"key": "*", "action": "ochazuke.snapshot.set", "hidden": true},
+      {"key": "g v", "action": "ochazuke.snapshot.show", "hidden": true},
+      {"key": "w", "action": "ochazuke.snapshot.watch", "hidden": true},
+      {"key": "y y", "action": "ochazuke.snapshot.yank", "hidden": true}
     ]}
   ]
 }

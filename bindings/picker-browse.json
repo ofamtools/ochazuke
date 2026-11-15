@@ -21,7 +21,19 @@
       {"key": "y", "when": "picker-up", "action": "ochazuke.picker.yank-path", "hint": "copy path"},
       {"key": "/", "when": "picker-normal-mode", "action": "ochazuke.input.begin", "args": {"position": "insert"}, "hint": "filter"},
       {"key": "i", "when": "picker-normal-mode", "action": "ochazuke.input.begin", "args": {"position": "insert"}, "hidden": true},
-      {"key": "paste", "when": "picker-up", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true}
+      {"key": "paste", "when": "picker-up", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},
+      {"key": "U", "action": "ochazuke.picker.cancel", "hidden": true},
+      {"key": "F", "action": "ochazuke.picker.create", "hidden": true},
+      {"key": "r", "action": "ochazuke.picker.edit", "hidden": true},
+      {"key": "H", "action": "ochazuke.picker.history", "hidden": true},
+      {"key": "ctrl+g", "action": "ochazuke.picker.list", "hidden": true},
+      {"key": "b", "action": "ochazuke.picker.normal", "hidden": true},
+      {"key": "g F", "action": "ochazuke.picker.open", "hidden": true},
+      {"key": "c", "action": "ochazuke.picker.previous-scope", "hidden": true},
+      {"key": "*", "action": "ochazuke.picker.set", "hidden": true},
+      {"key": "g v", "action": "ochazuke.picker.show", "hidden": true},
+      {"key": "w", "action": "ochazuke.picker.watch", "hidden": true},
+      {"key": "t", "action": "ochazuke.picker.yank", "hidden": true}
     ]},
     {"context": "ochazuke.picker", "bindings": [
       {"key": "alt+down", "action": "ochazuke.picker.goto", "when": "picker-up", "args": {"to": "own"}, "hint": "back to the list", "hidden": true},
