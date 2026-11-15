@@ -134,13 +134,16 @@ type HelpLevel struct {
 func (l HelpLevel) Label() string { return l.Noun }
 
 // HelpEntry is one row on the walk: the level and table that read it,
-// whether it is read in the capture pass, its status and the entry that
-// keeps it from answering (By, -1 for none).
+// whether it is read in the capture pass, the guard it answers under (its
+// own when, else its verb's availability guards; not judged: the walk
+// names guards as the help's hypothetical views do), its status and the
+// entry that keeps it from answering (By, -1 for none).
 type HelpEntry struct {
 	Row     Binding   `json:"row"`
 	Level   int       `json:"level"`
 	Table   int       `json:"table"`
 	Capture bool      `json:"capture,omitempty"`
+	Guard   string    `json:"guard,omitempty"`
 	State   RowStatus `json:"status"`
 	By      int       `json:"by"`
 }
@@ -259,7 +262,7 @@ func (r *Runtime) helpWalkOf(levels []level, mode ModeState, focus string) HelpW
 			for t, table := range w.Levels[i].Tables {
 				for _, b := range table.Rows {
 					if b.Capture == capture {
-						w.Entries = append(w.Entries, HelpEntry{Row: b, Level: i, Table: t, Capture: capture, By: -1})
+						w.Entries = append(w.Entries, HelpEntry{Row: b, Level: i, Table: t, Capture: capture, Guard: r.rowGuardText(b), By: -1})
 					}
 				}
 			}
@@ -293,7 +296,7 @@ func (r *Runtime) levelRole(lv level, i int) string {
 		return LevelFallback
 	case i == 0:
 		return LevelFocus
-	case lv.inst != nil && lv.inst.ID == AppNoun:
+	case lv.inst != nil && lv.inst.Parent == "":
 		return LevelApp
 	case lv.noun != nil && lv.noun.Name == FrameworkNamespace+".modal":
 		return LevelModal
@@ -342,7 +345,7 @@ func (w *HelpWalk) judge(declared map[string]bool) {
 			continue
 		}
 		if e.Row.Keys == "" {
-			if e.Row.When != "" {
+			if e.Guard != "" {
 				e.State = StatusGuarded
 			}
 			continue // an open pattern is never shadowed by a later row
@@ -353,7 +356,7 @@ func (w *HelpWalk) judge(declared map[string]bool) {
 			if o.State == StatusStepsAside || !takesSameKey(o, *e) {
 				continue
 			}
-			if o.Row.When == "" {
+			if o.Guard == "" {
 				e.State, e.By, guarded = StatusShadowed, j, -2
 				break
 			}
@@ -364,7 +367,7 @@ func (w *HelpWalk) judge(declared map[string]bool) {
 		switch {
 		case guarded >= 0:
 			e.State, e.By = StatusMaybe, guarded
-		case guarded == -1 && e.Row.When != "":
+		case guarded == -1 && e.Guard != "":
 			e.State = StatusGuarded
 		}
 	}
@@ -384,6 +387,15 @@ func (w *HelpWalk) judge(declared map[string]bool) {
 		}
 		w.Levels[i].Counts = c
 	}
+}
+
+// rowGuardText is the guard a row answers under: its own when, else the
+// availability guards of the operation it runs.
+func (r *Runtime) rowGuardText(b Binding) string {
+	if b.When != "" || b.Request.Empty() {
+		return b.When
+	}
+	return strings.Join(r.VerbAvailability(requestOperation(b.Request)), " ")
 }
 
 // takesSameKey reports whether an earlier entry o takes the key of e first:

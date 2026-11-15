@@ -197,7 +197,10 @@
           }
         ]
       },
-      "name": "mode badge: on the title row in every state, changed in the frame the mode changes: a prefix, a confirm, help, the palette, insert, visual, an operator (R2.10)"
+      "name": "mode badge: on the title row in every state, changed in the frame the mode changes: a prefix, a confirm, help, the palette, insert, visual, an operator (R2.10)",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 80,

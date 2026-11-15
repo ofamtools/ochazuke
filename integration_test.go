@@ -30,12 +30,14 @@ func TestHelpListsDetailJKOnlyWhileItOverflows(t *testing.T) {
 func TestPagePickKeyDoesNotAnswerInsideAModal(t *testing.T) {
 	r, m := pagePickerTest(t, 3)
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	if err := r.DeclareSetting(Setting{Name: "editor", Type: SettingString, Default: "vi", Description: "Editor"}); err != nil {
 		t.Fatal(err)
 	}
 	r.Define("app").Mode("normal").Bind("ctrl+o", Do("ochazuke.setting.open"))
 	m.Width, m.Height = 100, 24
 	m.Init()
+	modalHelp(r)
 	open := map[string]func(){
 		"settings prompt": func() { keytest.Press(m, "ctrl+o"); keytest.Press(m, "enter") },
 		"help":            func() { keytest.Press(m, "?") },

@@ -13,12 +13,6 @@ import (
 // with its status from the walk's focus, where it is defined and the
 // fields the query reads. Values: no drawing, no writes.
 
-// Row kinds of HelpPageRow.Kind.
-const (
-	HelpRowBinding = "row"
-	HelpRowVerb    = "verb"
-)
-
 // Source classes of HelpPageRow.Class: where a row comes from, as source:
 // terms name them.
 const (
@@ -30,9 +24,10 @@ const (
 // HelpPageRow is one line of the page's list: a binding row, or a verb
 // with no key. The fields are what the columns show and the query reads.
 type HelpPageRow struct {
-	Kind string `json:"kind"`
-	ID   string `json:"id"`
-	// Row is the binding (Kind row); zero for a verb.
+	// Unbound marks a verb with no key (Row is then zero).
+	Unbound bool   `json:"unbound,omitempty"`
+	ID      string `json:"id"`
+	// Row is the binding; zero for a verb with no key.
 	Row       Binding   `json:"row,omitzero"`
 	Key       string    `json:"key"`
 	Operation string    `json:"operation"`
@@ -81,7 +76,7 @@ func (v HelpPageRow) StatusText() string {
 	case StatusStepsAside:
 		return s + " (" + v.By.Key + ")"
 	case StatusMaybe:
-		return s + " (" + v.By.Guard + ")"
+		return s + " (" + cmp.Or(v.By.Guard, v.By.Key) + ")"
 	}
 	return s
 }
@@ -94,7 +89,7 @@ func (v HelpPageRow) OnWalk() bool { return v.Level >= 0 }
 // key, the noun it is a verb of.
 func (v HelpPageRow) Defined() string {
 	switch {
-	case v.Kind == HelpRowVerb:
+	case v.Unbound:
 		return "verb of " + v.Noun
 	case v.Source == SourceUser:
 		return "your bindings.json"
@@ -106,7 +101,7 @@ func (v HelpPageRow) Defined() string {
 
 // Where is the row's definition in sentences, the page's detail lines.
 func (v HelpPageRow) Where() []string {
-	if v.Kind == HelpRowVerb {
+	if v.Unbound {
 		return []string{v.Operation + " has no key from this focus.", "It is a verb of " + v.Noun + "; the palette and the CLI run it, and y y copies a bindings.json row for it."}
 	}
 	lines := []string{fmt.Sprintf("%s runs %s, in the table %s.", v.Key, v.Operation, v.Table)}
@@ -177,7 +172,7 @@ func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 			return nil
 		}
 		o := w.Entries[i]
-		return &HelpBy{Key: rowKey(o.Row), Operation: r.displayRequest(o.Row.Request), Level: w.LevelLabel(o.Level), Guard: o.Row.When, Capture: o.Row.Capture}
+		return &HelpBy{Key: rowKey(o.Row), Operation: r.displayRequest(o.Row.Request), Level: w.LevelLabel(o.Level), Guard: o.Guard, Capture: o.Row.Capture}
 	}
 	for _, e := range w.Entries {
 		onWalk[sourceKey(e.Row)+"\x00"+fmt.Sprint(e.Capture)] = true
@@ -202,7 +197,7 @@ func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 	for _, op := range w.Unbound {
 		noun := op.Noun()
 		level := slices.IndexFunc(w.Levels, func(l HelpLevel) bool { return l.Noun == noun })
-		out = append(out, HelpPageRow{Kind: HelpRowVerb, ID: "verb:" + op.Key.Short(), Key: "(no key)", Operation: r.displayRequest(Request{Noun: noun, Verb: op.Name()}),
+		out = append(out, HelpPageRow{Unbound: true, ID: "verb:" + op.Key.Short(), Key: "(no key)", Operation: r.displayRequest(Request{Noun: noun, Verb: op.Name()}),
 			Verb: op.Name(), Noun: noun, Help: op.Description, Level: level, LevelName: w.LevelLabel(level), Table: noun + " verbs", State: StatusNoKey, Order: len(out)})
 	}
 	return out
@@ -234,11 +229,8 @@ func (r *Runtime) helpPageRow(b Binding, order int) HelpPageRow {
 		args = string(data)
 	}
 	help := cmp.Or(b.Help, r.Operations.At(Key(r.CanonicalKey(requestOperation(b.Request)))).Description)
-	guard := b.When
-	if guard == "" && !b.Request.Empty() {
-		guard = strings.Join(r.VerbAvailability(requestOperation(b.Request)), " ")
-	}
-	return HelpPageRow{Kind: HelpRowBinding, ID: "row:" + sourceKey(b) + "\x00" + fmt.Sprint(b.Capture), Row: b, Key: rowKey(b),
+	guard := r.rowGuardText(b)
+	return HelpPageRow{ID: "row:" + sourceKey(b) + "\x00" + fmt.Sprint(b.Capture), Row: b, Key: rowKey(b),
 		Operation: r.displayRequest(b.Request), Verb: b.Request.Verb, Noun: owner, Args: args, Mode: modeLabel(b.Mode),
 		Source: source, Class: r.sourceClass(source, b), Guard: guard, Help: help, Hidden: b.Hidden, Order: order}
 }
@@ -248,7 +240,7 @@ func (r *Runtime) helpPageRow(b Binding, order int) HelpPageRow {
 // caller chose) in normal mode.
 func (v HelpPageRow) BindingsLine(key string) (string, error) {
 	row := v.Row
-	if v.Kind == HelpRowVerb {
+	if v.Unbound {
 		noun, _ := strings.CutSuffix(v.Operation, "."+v.Verb)
 		row = Binding{Noun: v.Noun, Mode: "normal", Keys: key, Request: Request{Noun: noun, Verb: v.Verb}}
 	}

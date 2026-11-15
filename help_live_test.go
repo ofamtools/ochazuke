@@ -62,6 +62,7 @@ func boundKeys(t *testing.T, r *Runtime) string {
 func TestHelpBindCapturesASequence(t *testing.T) {
 	r, m, ran := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	keytest.Press(m, "?")
 	selectHelpRow(t, r, "widget.ping")
 	keytest.Press(m, "b")
@@ -86,6 +87,7 @@ func TestHelpBindCapturesASequence(t *testing.T) {
 func TestHelpBindManualKeysDropAndLiteral(t *testing.T) {
 	r, m, ran := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	keytest.Press(m, "?")
 	selectHelpRow(t, r, "widget.ping")
 	for _, k := range []string{"B", "x", "y", "backspace", "ctrl+v", "esc", "z"} {
@@ -112,6 +114,7 @@ func TestHelpBindManualKeysDropAndLiteral(t *testing.T) {
 func TestHelpBindPrefixConflictOffersReplace(t *testing.T) {
 	r, m, _ := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	keytest.Press(m, "?")
 	selectHelpRow(t, r, "widget.ping")
 	keytest.Press(m, "b")
@@ -135,6 +138,7 @@ func TestHelpBindSequencesOff(t *testing.T) {
 	r, m, _ := unboundFixture(t)
 	r.EnsureConfigSettings()
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	if err := r.Settings().Set(HelpBindSequencesSetting, false); err != nil {
 		t.Fatal(err)
 	}

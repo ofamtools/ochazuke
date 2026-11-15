@@ -16,9 +16,17 @@ const HintsGroupSetting = "hints.group"
 
 // The hints.group values.
 const (
-	HintsGroupNoun = "noun"
-	HintsGroupOff  = "off"
+	HintsGroupNoun   = "noun"
+	HintsGroupOff    = "off"
+	HintsGroupHidden = "hidden"
 )
+
+// hintLineDrawn reports whether the footer and the modals draw a hint line
+// (hints.group is not hidden). The cells are still computed for every
+// other reader (HintCells, binding.list, the help).
+func (r *Runtime) hintLineDrawn() bool {
+	return r.Settings().String(HintsGroupSetting) != HintsGroupHidden
+}
 
 // hintGroupSep is what a drawn hint line puts before and after a group of
 // hints written under their noun, where it meets other hints: as wide as

@@ -12,7 +12,7 @@ import (
 // A tree node's Search text is matched by the / filter as a list row's
 // is, and never drawn.
 func TestTreeFilterSearchText(t *testing.T) {
-	r := NewRuntime()
+	r := modalHelp(NewRuntime())
 	r.Config().Disable()
 	tree, err := r.AddTree("tree", []TreeNode{
 		{ID: "a", Label: "Alpha", Search: []string{"hidden"}},

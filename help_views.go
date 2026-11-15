@@ -291,6 +291,7 @@ func (h *helpState) show() error {
 // writers that refresh at once). The interactive bind, a hand-edited file
 // loaded by config.reload and a default set from code all arrive here.
 func (r *Runtime) syncHelp() {
+	r.syncHelpPage()
 	h := r.helpOpen()
 	if h == nil || h.built == r.renderCache.generation {
 		return
@@ -867,17 +868,24 @@ func (r *Runtime) nounHasRows(noun, mode string) bool {
 // allPlaceRows are HelpPlaceRows as chooser rows, the current one (the
 // help's noun, place and mode) first and marked.
 func (h *helpState) allPlaceRows() []ChooserRow {
+	return placeChoiceRows(h.r, h.noun, h.place, h.mode.Name)
+}
+
+// placeChoiceRows are HelpPlaceRows as chooser rows, each row's data a
+// helpPlaceChoice, the current one (noun, place and mode) first and marked:
+// the place chooser of the ? help and of the binding help page.
+func placeChoiceRows(r *Runtime, noun string, place *NounPlace, mode string) []ChooserRow {
 	isCurrent := func(row HelpPlaceRow) bool {
-		if row.Noun != h.noun || row.Mode != h.mode.Name {
+		if row.Noun != noun || row.Mode != mode {
 			return false
 		}
-		if row.Place == nil || h.place == nil {
-			return row.Place == nil && h.place == nil
+		if row.Place == nil || place == nil {
+			return row.Place == nil && place == nil
 		}
-		return row.Place.key() == h.place.key()
+		return row.Place.key() == place.key()
 	}
 	var first, rest []Choice
-	for i, row := range h.r.HelpPlaceRows(h.mode.Name) {
+	for i, row := range r.HelpPlaceRows(mode) {
 		count, mark := "", ""
 		if row.Count > 0 {
 			count = fmt.Sprintf("%d×", row.Count)

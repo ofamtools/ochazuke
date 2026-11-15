@@ -12,33 +12,93 @@ import (
 // a numbered chip. A value: it says which rows match, and for an empty
 // result which terms emptied it.
 
-// HelpQueryFields are the fields a term may name.
-var HelpQueryFields = []string{"key", "noun", "verb", "mode", "source", "guard", "level", "table", "status", "is"}
-
-// helpIs are the is: words, each a test of a row.
-var helpIs = map[string]func(HelpPageRow) bool{
-	"bound":     func(v HelpPageRow) bool { return v.Kind == HelpRowBinding },
-	"unbound":   func(v HelpPageRow) bool { return v.Kind == HelpRowVerb },
-	"nokey":     func(v HelpPageRow) bool { return v.Kind == HelpRowVerb },
-	"shadowed":  func(v HelpPageRow) bool { return v.State.Hidden() },
-	"answers":   func(v HelpPageRow) bool { return v.State == StatusAnswers },
-	"maybe":     func(v HelpPageRow) bool { return v.State == StatusMaybe },
-	"guarded":   func(v HelpPageRow) bool { return v.Guard != "" },
-	"hidden":    func(v HelpPageRow) bool { return v.Hidden },
-	"generated": func(v HelpPageRow) bool { return v.Class == SourceGenerated },
-	"user":      func(v HelpPageRow) bool { return v.Class == SourceUser },
-	"walk":      func(v HelpPageRow) bool { return v.OnWalk() },
-	"off":       func(v HelpPageRow) bool { return v.State == StatusOffWalk },
-	"pattern":   func(v HelpPageRow) bool { return v.Kind == HelpRowBinding && v.Row.Keys == "" },
+// helpField is one field a term may name and the test it runs on a row
+// with the term's value.
+type helpField struct {
+	Name  string
+	Match func(v HelpPageRow, val string) bool
 }
 
-// HelpIsWords are the words is: takes, sorted.
-func HelpIsWords() []string {
-	out := make([]string, 0, len(helpIs))
-	for w := range helpIs {
-		out = append(out, w)
+// helpFields are the fields a term may name, in the order the page lists
+// them.
+var helpFields = []helpField{
+	{"key", keyTermMatches},
+	{"noun", func(v HelpPageRow, val string) bool { return strings.Contains(strings.ToLower(v.Noun), val) }},
+	{"verb", verbTermMatches},
+	{"mode", func(v HelpPageRow, val string) bool {
+		return strings.ToLower(v.Mode) == val || val == "any" && v.Mode == modeLabel("")
+	}},
+	{"source", func(v HelpPageRow, val string) bool {
+		return v.Class == val || strings.Contains(strings.ToLower(v.Source), val)
+	}},
+	{"guard", func(v HelpPageRow, val string) bool { return strings.Contains(strings.ToLower(v.Guard), val) }},
+	{"level", func(v HelpPageRow, val string) bool { return strings.ToLower(v.LevelName) == val }},
+	{"table", func(v HelpPageRow, val string) bool { return strings.ToLower(v.Table) == val }},
+	{"status", func(v HelpPageRow, val string) bool { return strings.Contains(string(v.State), val) }},
+	{"is", func(v HelpPageRow, val string) bool {
+		is := helpIsNamed(val)
+		return is != nil && is(v)
+	}},
+}
+
+// HelpQueryFields are the fields a term may name.
+func HelpQueryFields() []string {
+	out := make([]string, len(helpFields))
+	for i, f := range helpFields {
+		out[i] = f.Name
 	}
-	slices.Sort(out)
+	return out
+}
+
+// helpFieldNamed is the field of that name, nil for none.
+func helpFieldNamed(name string) *helpField {
+	for i := range helpFields {
+		if helpFields[i].Name == name {
+			return &helpFields[i]
+		}
+	}
+	return nil
+}
+
+// helpIsWord is one is: word and its test of a row.
+type helpIsWord struct {
+	Word string
+	Test func(HelpPageRow) bool
+}
+
+// helpIs are the is: words.
+var helpIs = []helpIsWord{
+	{"bound", func(v HelpPageRow) bool { return !v.Unbound }},
+	{"unbound", func(v HelpPageRow) bool { return v.Unbound }},
+	{"nokey", func(v HelpPageRow) bool { return v.Unbound }},
+	{"shadowed", func(v HelpPageRow) bool { return v.State.Hidden() }},
+	{"answers", func(v HelpPageRow) bool { return v.State == StatusAnswers }},
+	{"maybe", func(v HelpPageRow) bool { return v.State == StatusMaybe }},
+	{"guarded", func(v HelpPageRow) bool { return v.Guard != "" }},
+	{"hidden", func(v HelpPageRow) bool { return v.Hidden }},
+	{"generated", func(v HelpPageRow) bool { return v.Class == SourceGenerated }},
+	{"user", func(v HelpPageRow) bool { return v.Class == SourceUser }},
+	{"walk", HelpPageRow.OnWalk},
+	{"off", func(v HelpPageRow) bool { return v.State == StatusOffWalk }},
+	{"pattern", func(v HelpPageRow) bool { return !v.Unbound && v.Row.Keys == "" }},
+}
+
+// helpIsNamed is the test of an is: word, nil for none.
+func helpIsNamed(word string) func(HelpPageRow) bool {
+	for _, w := range helpIs {
+		if w.Word == word {
+			return w.Test
+		}
+	}
+	return nil
+}
+
+// HelpIsWords are the words is: takes.
+func HelpIsWords() []string {
+	out := make([]string, len(helpIs))
+	for i, w := range helpIs {
+		out[i] = w.Word
+	}
 	return out
 }
 
@@ -68,7 +128,7 @@ func ParseHelpQuery(text string) HelpQuery {
 		if m[4] != "" || strings.HasPrefix(m[3], `"`) {
 			value = m[4]
 		}
-		if m[2] != "" && !slices.Contains(HelpQueryFields, field) {
+		if m[2] != "" && helpFieldNamed(field) == nil {
 			field, value = "", m[2]+":"+value
 		}
 		if value == "" {
@@ -115,43 +175,27 @@ func (q HelpQuery) Matching(rows []HelpPageRow) []HelpPageRow {
 	return out
 }
 
-// Matches reports whether a row meets the term, negation aside.
+// Matches reports whether a row meets the term, negation aside: its
+// field's test, or for a free word the row's text.
 func (t HelpTerm) Matches(v HelpPageRow) bool {
-	val := t.Value
-	low := strings.ToLower
-	switch t.Field {
-	case "key":
-		return keyTermMatches(v, val)
-	case "noun":
-		return strings.Contains(low(v.Noun), val)
-	case "verb":
-		if prefix, ok := strings.CutSuffix(val, "*"); ok {
-			return strings.HasPrefix(low(v.Verb), prefix) || strings.HasPrefix(low(v.Operation), prefix)
-		}
-		return low(v.Verb) == val || low(v.Operation) == val
-	case "mode":
-		return low(v.Mode) == val || val == "any" && v.Mode == modeLabel("")
-	case "source":
-		return v.Class == val || strings.Contains(low(v.Source), val)
-	case "guard":
-		return strings.Contains(low(v.Guard), val)
-	case "level":
-		return low(v.LevelName) == val
-	case "table":
-		return low(v.Table) == val
-	case "status":
-		return strings.Contains(string(v.State), val)
-	case "is":
-		is, ok := helpIs[val]
-		return ok && is(v)
+	if f := helpFieldNamed(t.Field); f != nil {
+		return f.Match(v, t.Value)
 	}
-	return strings.Contains(helpHaystack(v), val)
+	return strings.Contains(helpHaystack(v), t.Value)
+}
+
+// verbTermMatches: the verb or noun.verb exactly; a trailing * a prefix.
+func verbTermMatches(v HelpPageRow, val string) bool {
+	if prefix, ok := strings.CutSuffix(val, "*"); ok {
+		return strings.HasPrefix(strings.ToLower(v.Verb), prefix) || strings.HasPrefix(strings.ToLower(v.Operation), prefix)
+	}
+	return strings.ToLower(v.Verb) == val || strings.ToLower(v.Operation) == val
 }
 
 // keyTermMatches: the key or sequence itself, or a sequence it starts
 // (key:g finds g d); a pattern row by its pattern or a one-of member.
 func keyTermMatches(v HelpPageRow, val string) bool {
-	if v.Kind != HelpRowBinding {
+	if v.Unbound {
 		return val == "none" || val == "(no key)"
 	}
 	keys := []string{v.Row.Keys}
@@ -297,6 +341,7 @@ func (q HelpQuery) Refocus(old, cur HelpWalk) HelpRefocus {
 	for _, l := range old.Levels {
 		oldNouns[lc(l.Noun)] = true
 	}
+	at := refocusAt{oldFocus: oldFocus, newFocus: newFocus, levels: levels, tables: tables, nouns: nouns, oldNouns: oldNouns}
 	var out HelpRefocus
 	for _, t := range q.Terms {
 		prefix := t.Field + ":"
@@ -304,31 +349,13 @@ func (q HelpQuery) Refocus(old, cur HelpWalk) HelpRefocus {
 			prefix = "-" + prefix
 		}
 		next, keep := t.Text, true
-		switch t.Field {
-		case "level":
-			switch {
-			case levels[t.Value]:
-			case t.Value == lc(oldFocus.Label()):
-				next = prefix + quote(newFocus.Label())
-			default:
-				keep = false
-			}
-		case "table":
-			switch {
-			case tables[t.Value]:
-			case strings.HasPrefix(t.Value, lc(oldFocus.Noun)+" "):
-				twin := lc(newFocus.Noun) + t.Value[len(oldFocus.Noun):]
-				next, keep = prefix+quote(twin), tables[twin]
-			default:
-				keep = false
-			}
-		case "noun":
-			switch {
-			case nouns[t.Value]:
-			case t.Value == lc(oldFocus.Noun):
-				next = prefix + quote(newFocus.Noun)
-			case oldNouns[t.Value]:
-				keep = false
+		for _, rule := range refocusRules {
+			if rule.Field == t.Field {
+				var moved string
+				moved, keep = rule.Move(at, t.Value)
+				if moved != "" {
+					next = prefix + quote(moved)
+				}
 			}
 		}
 		if !keep {
@@ -341,4 +368,52 @@ func (q HelpQuery) Refocus(old, cur HelpWalk) HelpRefocus {
 		out.Query.Terms = append(out.Query.Terms, ParseHelpQuery(next).Terms...)
 	}
 	return out
+}
+
+// refocusAt is what a refocus rule reads: the old and new walks' focus
+// levels and the new walk's levels, tables and nouns (lower case), and the
+// old walk's nouns.
+type refocusAt struct {
+	oldFocus, newFocus              HelpLevel
+	levels, tables, nouns, oldNouns map[string]bool
+}
+
+// refocusRule moves a chip of one field to the new walk: the value it
+// moves to ("" stays as it is) and whether it stays at all.
+type refocusRule struct {
+	Field string
+	Move  func(at refocusAt, value string) (string, bool)
+}
+
+// refocusRules are the fields that name a walk: a level, a table, a noun.
+var refocusRules = []refocusRule{
+	{"level", func(at refocusAt, value string) (string, bool) {
+		switch {
+		case at.levels[value]:
+			return "", true
+		case value == strings.ToLower(at.oldFocus.Label()):
+			return at.newFocus.Label(), true
+		}
+		return "", false
+	}},
+	{"table", func(at refocusAt, value string) (string, bool) {
+		if at.tables[value] {
+			return "", true
+		}
+		rest, ok := strings.CutPrefix(value, strings.ToLower(at.oldFocus.Noun)+" ")
+		if !ok {
+			return "", false
+		}
+		twin := strings.ToLower(at.newFocus.Noun) + " " + rest
+		return twin, at.tables[twin]
+	}},
+	{"noun", func(at refocusAt, value string) (string, bool) {
+		switch {
+		case at.nouns[value]:
+			return "", true
+		case value == strings.ToLower(at.oldFocus.Noun):
+			return at.newFocus.Noun, true
+		}
+		return "", !at.oldNouns[value]
+	}},
 }

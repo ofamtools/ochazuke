@@ -599,7 +599,10 @@ func (m *Model) footer() Footer {
 	if notice != "" {
 		parts = append(parts, notice)
 	}
-	cells := HintCells(m.Runtime, m.Runtime.Focus)
+	var cells []HintCell
+	if m.Runtime.hintLineDrawn() {
+		cells = HintCells(m.Runtime, m.Runtime.Focus)
+	}
 	if hints := JoinHints(cells); hints != "" {
 		parts = append(parts, hints)
 	}
@@ -1210,7 +1213,10 @@ func (m *Model) render() Block {
 		if place != nil {
 			hintWidth = modalWidth
 		}
-		cells := HintCellsAt(m.Runtime, id)
+		var cells []HintCell
+		if m.Runtime.hintLineDrawn() {
+			cells = HintCellsAt(m.Runtime, id)
+		}
 		hint := HintText("", cells, hintWidth)
 		lead := ""
 		if id == m.Runtime.TopModal() {

@@ -1,0 +1,47 @@
+// ochazuke bindings (JSONC): the binding help page (help_page.go). The page noun's rows answer anywhere on the page; the rail's nodes
+// (help-node) and the list's lines (help-row) add their own. Motions are the tree's and the list's own (j k g g G ctrl+d ctrl+u, l h on
+// the rail); tab and shift+tab move between the rail and the list (focus.next), / opens the list's filter (the help query).
+{
+  "bindings": [
+    {"context": "ochazuke.help-page/normal", "bindings": [
+      {"key": "q", "action": "ochazuke.help-page.close", "hint": "back"},
+      {"key": "f", "action": "ochazuke.help-page.refocus", "hint": "focus"},
+      {"key": "-", "action": "ochazuke.help-page.back", "hint": "previous focus"},
+      {"key": "m", "action": "ochazuke.help-page.cycle-mode", "args": {"step": 1}, "hint": "mode"},
+      {"key": "M", "action": "ochazuke.help-page.cycle-mode", "args": {"step": -1}, "hidden": true},
+      {"key": "o", "action": "ochazuke.help-page.group", "hint": "group"},
+      {"key": "O", "action": "ochazuke.help-page.sort", "hint": "sort"},
+      {"key": "T", "action": "ochazuke.help-page.trace-key", "hint": "trace a key"},
+      {"key": "x x", "action": "ochazuke.help-page.drop", "hint": "drop chip", "help": "Remove the last filter chip"},
+      {"key": "x a", "action": "ochazuke.help-page.clear", "help": "Remove every filter chip"},
+      {"key": "x 1", "action": "ochazuke.help-page.drop", "args": {"nth": 1}, "help": "Remove filter chip 1"},
+      {"key": "x 2", "action": "ochazuke.help-page.drop", "args": {"nth": 2}, "hidden": true, "help": "Remove filter chip 2"},
+      {"key": "x 3", "action": "ochazuke.help-page.drop", "args": {"nth": 3}, "hidden": true, "help": "Remove filter chip 3"},
+      {"key": "x 4", "action": "ochazuke.help-page.drop", "args": {"nth": 4}, "hidden": true, "help": "Remove filter chip 4"},
+      {"key": "x 5", "action": "ochazuke.help-page.drop", "args": {"nth": 5}, "hidden": true, "help": "Remove filter chip 5"},
+      {"key": "x 6", "action": "ochazuke.help-page.drop", "args": {"nth": 6}, "hidden": true, "help": "Remove filter chip 6"},
+      {"key": "x 7", "action": "ochazuke.help-page.drop", "args": {"nth": 7}, "hidden": true, "help": "Remove filter chip 7"},
+      {"key": "x 8", "action": "ochazuke.help-page.drop", "args": {"nth": 8}, "hidden": true, "help": "Remove filter chip 8"},
+      {"key": "x 9", "action": "ochazuke.help-page.drop", "args": {"nth": 9}, "hidden": true, "help": "Remove filter chip 9"},
+      {"key": "s u", "action": "ochazuke.help-page.toggle", "args": {"term": "is:unbound"}, "help": "Show only verbs with no key (again: show all)"},
+      {"key": "s s", "action": "ochazuke.help-page.toggle", "args": {"term": "is:shadowed"}, "help": "Show only rows a nearer row shadows"},
+      {"key": "s g", "action": "ochazuke.help-page.toggle", "args": {"term": "is:guarded"}, "help": "Show only rows with a guard"},
+      {"key": "s w", "action": "ochazuke.help-page.toggle", "args": {"term": "is:walk"}, "help": "Show only rows on this walk"},
+      {"key": "s y", "action": "ochazuke.help-page.toggle", "args": {"term": "source:user"}, "help": "Show only rows from your bindings.json"},
+      {"key": "s l", "action": "ochazuke.help-page.narrow", "args": {"field": "level"}, "help": "Show only the level selected in the rail"},
+      {"key": "]", "action": "ochazuke.help-page.jump", "args": {"step": 1}, "hint": "next level"},
+      {"key": "[", "action": "ochazuke.help-page.jump", "args": {"step": -1}, "hidden": true}
+    ]},
+    {"context": "ochazuke.help-node/normal", "bindings": [
+      {"key": "enter", "action": "ochazuke.help-page.choose", "hint": "choose"}
+    ]},
+    {"context": "ochazuke.help-row/normal", "bindings": [
+      {"key": "enter", "action": "ochazuke.help-page.where", "hint": "where"},
+      {"key": "t", "action": "ochazuke.help-page.trace", "hint": "trace"},
+      {"key": "*", "action": "ochazuke.help-page.narrow", "args": {"field": "verb"}, "hint": "same verb"},
+      {"key": "=", "action": "ochazuke.help-page.narrow", "args": {"field": "key"}, "hint": "same key"},
+      {"key": "#", "action": "ochazuke.help-page.narrow", "args": {"field": "noun"}, "hint": "same noun"},
+      {"key": "c", "action": "ochazuke.help-page.yank", "hint": "copy row"}
+    ]}
+  ]
+}

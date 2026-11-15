@@ -11,7 +11,7 @@ import (
 // surface's bindings tell which mode they were read in.
 func drawnBindingsFixture(t *testing.T) *Runtime {
 	t.Helper()
-	r := nestedModalFixture(t)
+	r := modalHelp(nestedModalFixture(t))
 	app := r.Define("app")
 	app.Mode("normal").Bind("Z", Do("ochazuke.binding.help"))
 	app.Mode("insert").Bind("ctrl+y", Do("ochazuke.binding.help"))

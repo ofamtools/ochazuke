@@ -63,6 +63,14 @@ type Collection struct {
 	// focused lists always mark their row, and unfocused modal lists do not.
 	// The predicate runs during rendering and must not mutate runtime state.
 	UnfocusedSelection func() bool
+	// QueryFilter, when set, reads the filter's text query in place of the
+	// matcher: it is called once per refilter with the query and answers
+	// the test each row must pass (prop filters still apply), also for an
+	// empty query, so rows the owner shows only under a filter (or only
+	// without one) follow it. A list whose
+	// rows a query language selects (the binding help page's field:value
+	// terms) sets it; nil matches the text as the search.match setting says.
+	QueryFilter func(query string) func(ListItem) bool
 
 	r            *Runtime
 	id           string

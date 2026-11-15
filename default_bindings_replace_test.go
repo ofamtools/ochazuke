@@ -204,6 +204,7 @@ func TestSetDefaultBindingsRefreshesOpenHelp(t *testing.T) {
 		t.Run(view, func(t *testing.T) {
 			t.Parallel()
 			r, _, _, _ := configFixture(t)
+			modalHelp(r)
 			if err := r.SetDefaultBindings("dynamic", []Binding{replacementRow("s", "alpha")}); err != nil {
 				t.Fatal(err)
 			}

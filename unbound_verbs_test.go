@@ -32,7 +32,7 @@ func unboundFixture(t *testing.T) (*Runtime, *Model, *[]string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := NewModel(r)
+	m := NewModel(modalHelp(r))
 	if err := r.OpenPage("main"); err != nil {
 		t.Fatal(err)
 	}
@@ -218,6 +218,7 @@ func TestBindingsBindWritesTheUserFile(t *testing.T) {
 func TestHelpBindCapturesTheNextKey(t *testing.T) {
 	r, m, ran := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	keytest.Press(m, "?")
 	selectHelpRow(t, r, "widget.ping")
 	keytest.Press(m, "b")
@@ -249,6 +250,7 @@ func TestHelpBindCapturesTheNextKey(t *testing.T) {
 func TestHelpBindAsksBeforeTakingAnAnsweredKey(t *testing.T) {
 	r, m, ran := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	r.Define("widget").Mode("normal").Bind("x", Do("widget.ping"))
 	keytest.Press(m, "?")
 	selectHelpRow(t, r, "widget.wipe")
@@ -295,6 +297,7 @@ func TestHelpBindAsksBeforeTakingAnAnsweredKey(t *testing.T) {
 func TestFormOverAModalReopensOnAFailedRun(t *testing.T) {
 	r, m, _ := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	keytest.Press(m, "?")
 	r.Register(Operation{Key: "widget.fail", Parameters: map[string]Parameter{"key": {Type: "string", Required: true}}, Run: func(*Runtime, Context, Arguments) (any, error) {
 		return nil, errors.New("j already runs collection.move here")
@@ -387,6 +390,7 @@ func TestUnboundScopesListOnlyUnboundVerbs(t *testing.T) {
 func TestHelpRefreshKeepsFoldState(t *testing.T) {
 	r, m, _ := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	for _, keys := range []string{"g a", "g b"} {
 		if err := r.Bind(Binding{Noun: "widget", Mode: "normal", Keys: keys, Request: Request{Noun: "widget", Verb: "open"}}); err != nil {
 			t.Fatal(err)
@@ -544,6 +548,7 @@ func TestAskUnboundRefusesWhenTheFormCannotOpen(t *testing.T) {
 func TestCoveredHelpKeepsItsOwnHints(t *testing.T) {
 	r, m, _ := unboundFixture(t)
 	r.Config().Dir = t.TempDir()
+	modalHelp(r)
 	keytest.Press(m, "?")
 	if _, err := r.Execute(Request{Noun: "ochazuke.binding", Verb: "bind", Args: Arguments{"key": "enter", "action": "widget.wipe"}}); err != nil {
 		t.Fatal(err)

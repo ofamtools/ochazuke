@@ -27,7 +27,7 @@ func placedRowsFixture(t *testing.T) (*Runtime, *Model) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := NewModel(r)
+	m := NewModel(modalHelp(r))
 	if err := r.OpenPage("ctx"); err != nil {
 		t.Fatal(err)
 	}

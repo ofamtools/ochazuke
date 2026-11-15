@@ -119,7 +119,10 @@
           }
         ]
       },
-      "name": ":h binding opens effective keys; / filters joined key spellings, Escape clears the filter before closing, and repeated opening restores the page focus"
+      "name": ":h binding opens effective keys; / filters joined key spellings, Escape clears the filter before closing, and repeated opening restores the page focus",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 80,
@@ -174,7 +177,10 @@
           }
         ]
       },
-      "name": "help tree refreshes its fold marks on a live chrome.glyphs change"
+      "name": "help tree refreshes its fold marks on a live chrome.glyphs change",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 120,
@@ -188,7 +194,10 @@
         ],
         "focus": "a2"
       },
-      "name": "q closes the help, as it closes the docs viewer: it does not start a macro recording beneath it; esc still closes it too"
+      "name": "q closes the help, as it closes the docs viewer: it does not start a macro recording beneath it; esc still closes it too",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 120,
@@ -201,7 +210,10 @@
           }
         ]
       },
-      "name": "S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists every place, the current one first, choosing one moves the header to it"
+      "name": "S in ? help on a row: pick resolves at the row's own place (where ? was opened) with its list's keys, p lists every place, the current one first, choosing one moves the header to it",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 120,
@@ -214,7 +226,10 @@
           }
         ]
       },
-      "name": "S in ? help shows pick: n chooses the noun (prompt), m the mode (insert); the rows are what that noun answers there"
+      "name": "S in ? help shows pick: n chooses the noun (prompt), m the mode (insert); the rows are what that noun answers there",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 120,
@@ -269,7 +284,10 @@
           }
         ]
       },
-      "name": "? help at 120 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count), open, its sequences under it sorted by key, a longer prefix's row under the one it extends; each sequence closed on its steps (R6.10, R6.9, R6.7)"
+      "name": "? help at 120 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count), open, its sequences under it sorted by key, a longer prefix's row under the one it extends; each sequence closed on its steps (R6.10, R6.9, R6.7)",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 80,
@@ -324,13 +342,17 @@
           }
         ]
       },
-      "name": "? help at 80 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count), open, its sequences under it sorted by key, a longer prefix's row under the one it extends; each sequence closed on its steps (R6.10, R6.9, R6.7)"
+      "name": "? help at 80 columns: every row's key is the whole sequence; a prefix has a row of its own (waits for the next key, with the count), open, its sequences under it sorted by key, a longer prefix's row under the one it extends; each sequence closed on its steps (R6.10, R6.9, R6.7)",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 110,
       "height": 40,
       "values": {
-        "help.markdown": false
+        "help.markdown": false,
+        "help.style": "modal"
       },
       "page": {
         "lists": [
@@ -354,7 +376,10 @@
         ],
         "focus": "a2"
       },
-      "name": "? or :bindings help while the help is open shows the help again in the same modal, for the focus it opened over: no \"already open\" error, the palette closes, esc closes it back on the row (R4.8)"
+      "name": "? or :bindings help while the help is open shows the help again in the same modal, for the focus it opened over: no \"already open\" error, the palette closes, esc closes it back on the row (R4.8)",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 120,
@@ -384,7 +409,10 @@
           }
         ]
       },
-      "name": "? help: a sequence opens onto its steps, one key per line (g waits for the next key, then g c, then x runs); a plain two-key one the same; a made prefix row closes and opens on its sequences; a prefix bound alone (g c) keeps its operation and still opens (R6.10, R11.1)"
+      "name": "? help: a sequence opens onto its steps, one key per line (g waits for the next key, then g c, then x runs); a plain two-key one the same; a made prefix row closes and opens on its sequences; a prefix bound alone (g c) keeps its operation and still opens (R6.10, R11.1)",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 120,
@@ -404,7 +432,10 @@
           }
         ]
       },
-      "name": "? help table: the noun's unbound verbs are rows under an unbound heading below the keys; u keeps only them, U brings the keys back, enter runs one"
+      "name": "? help table: the noun's unbound verbs are rows under an unbound heading below the keys; u keeps only them, U brings the keys back, enter runs one",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 120,
@@ -417,7 +448,10 @@
           }
         ]
       },
-      "name": "S S in ? help shows table: a row per key of the list noun, a column per mode, app's cells in parentheses, guarded ones marked ?"
+      "name": "S S in ? help shows table: a row per key of the list noun, a column per mode, app's cells in parentheses, guarded ones marked ?",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 110,
@@ -451,7 +485,10 @@
           }
         ]
       },
-      "name": "a form opened over the help that fails to run stays open with what was typed and one plain sentence"
+      "name": "a form opened over the help that fails to run stays open with what was typed and one plain sentence",
+      "values": {
+        "help.style": "modal"
+      }
     }
   ],
   "script": [

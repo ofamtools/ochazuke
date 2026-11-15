@@ -5,7 +5,7 @@ import "testing"
 // A row whose guard is false at the focus would not answer, so ? help
 // leaves it out as the footer does; bindings list keeps it (UX review 2 F9).
 func TestHelpHidesARowWhoseGuardIsFalse(t *testing.T) {
-	r := NewRuntime()
+	r := modalHelp(NewRuntime())
 	empty := true
 	r.DefineGuard("empty", func(*Runtime, KeyEvent) bool { return empty })
 	r.DefineOwn("thing").

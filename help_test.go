@@ -32,7 +32,7 @@ func helpFixture(t *testing.T) (*Runtime, *Model) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := NewModel(r)
+	m := NewModel(modalHelp(r))
 	if err := r.OpenPage("main"); err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestHelpDoesNotShadowInsertOrTerminal(t *testing.T) {
 	if err := r.AddInput(in); err != nil {
 		t.Fatal(err)
 	}
-	m := NewModel(r)
+	m := NewModel(modalHelp(r))
 	if err := r.SetFocus("field"); err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +160,7 @@ func TestHelpDoesNotShadowInsertOrTerminal(t *testing.T) {
 	}
 
 	r, _, stream := terminalFixture(t)
-	m = NewModel(r)
+	m = NewModel(modalHelp(r))
 	keytest.Press(m, "?")
 	if r.TopModal() != "" || len(stream.sent) == 0 || stream.sent[len(stream.sent)-1][0] != "?" {
 		t.Fatalf("terminal ?: modal %q sent %v", r.TopModal(), stream.sent)
@@ -194,7 +194,7 @@ func TestHelpGoldenAt80Columns(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := NewModel(r)
+	m := NewModel(modalHelp(r))
 	if err := r.OpenPage("main"); err != nil {
 		t.Fatal(err)
 	}

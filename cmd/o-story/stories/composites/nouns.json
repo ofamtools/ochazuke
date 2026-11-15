@@ -665,7 +665,10 @@
           "things": []
         }
       },
-      "name": "an empty generated index keeps its row noun's keys without a fake row: help lists n, show asks for a real id, and n opens the creation form and persists the first thing"
+      "name": "an empty generated index keeps its row noun's keys without a fake row: help lists n, show asks for a real id, and n opens the creation form and persists the first thing",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 110,

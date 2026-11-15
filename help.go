@@ -44,9 +44,16 @@ func registerBindingHelp(r *Runtime) {
 		row, ok := r.selectedHelpRow()
 		return r.Tree(helpTreeID) != nil && !(ok && helpRunnable(row))
 	})
-	r.Register(Operation{Key: "ochazuke.binding.help", Description: "Open the keys the focus answers to, with the operation each runs and its description", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.binding.help", Description: "Open the keys the focus answers to: the binding help page (help.style page), or the keys modal (help.style modal, and inside a modal)", Result: "help row[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		focus := focusOf(c)
 		mode := ModeState{Name: r.BaseMode()}
+		// help.style page opens the binding help page; inside a modal (a page
+		// cannot show over one) and with help.style modal, the modal.
+		if r.helpOnPage() && r.TopModal() == "" {
+			if opened, err := r.openHelpPage(focus, mode); opened || err != nil {
+				return r.helpPage().state(), err
+			}
+		}
 		// Opened again while it is the top modal (? or :bindings help
 		// inside the help), the help shows again in its place, for the
 		// focus and mode it opened over (ReplaceOpen, R4.8).
@@ -69,6 +76,7 @@ func registerBindingHelp(r *Runtime) {
 	registerHelpViews(r)
 	registerHelpTable(r)
 	registerUnboundVerbs(r)
+	registerHelpPage(r)
 }
 
 // bindingHelpArgs previews arguments without executing the binding. Pattern

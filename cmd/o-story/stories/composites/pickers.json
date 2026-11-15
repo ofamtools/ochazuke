@@ -1571,7 +1571,10 @@
           ]
         }
       ],
-      "name": "' does not open the page picker over a modal (? help); esc, then ' does"
+      "name": "' does not open the page picker over a modal (? help); esc, then ' does",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 100,

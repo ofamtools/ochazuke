@@ -6413,7 +6413,10 @@
           }
         ]
       },
-      "name": "a table in a modal clamps: l past the last column and h before the first scroll no further and keep the focus in the modal (the help's table view; R5.11, R3.6)"
+      "name": "a table in a modal clamps: l past the last column and h before the first scroll no further and keep the focus in the modal (the help's table view; R5.11, R3.6)",
+      "values": {
+        "help.style": "modal"
+      }
     },
     {
       "width": 40,

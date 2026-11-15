@@ -168,6 +168,7 @@ cwd_status	prop	seed
 cycle	action	seed	
 cycle-group	action	seed	
 cycle-match	action	seed	
+cycle-mode	action	yes	walk the binding help page in the next mode
 daemon	noun	seed	
 daily	noun	seed	
 dark	prop	seed	
@@ -230,6 +231,7 @@ done_when	prop	seed
 downloading	filter	seed	
 draft	noun	seed	
 drive	prop	seed	
+drop	action	yes	remove a filter chip
 due-today	prop	seed	
 duplicate	action	seed	
 easy	prop	seed	
@@ -357,6 +359,10 @@ harvest	action	seed
 hash	prop	seed	
 head	prop	seed	
 help	action	seed	
+help-node	noun	yes	a node of the binding help page's rail
+help-page	noun	yes	the binding help page (help_page.go)
+help-page-state	noun	yes	the binding help page's state component
+help-row	noun	yes	a line of the binding help page's list
 helptext	prop	seed	
 hidden	prop	seed	
 hide	action	seed	
@@ -496,6 +502,7 @@ msg	prop	seed
 multiply	action	seed	
 name	prop	seed	
 names	action+prop	seed	
+narrow	action	yes	filter the binding help page to the selected row's verb, key, noun or level
 new	action	seed	
 next	action	seed	
 next-block	action	seed	
@@ -666,10 +673,11 @@ rebase	action	seed
 recall	action	seed	
 recheck	action	seed	
 record	action	seed	
-redo	action	seed	
 redirect	action	seed	
+redo	action	seed	
 ref	prop	seed	
 referrer	noun	seed	
+refocus	action	yes	walk the binding help page from another focus
 refresh	action	seed	
 refresh-turns	action	seed	
 refuse	action	seed	
@@ -872,6 +880,8 @@ tone	prop	seed
 tool	noun	seed	
 tools	relation	seed	
 torrent	noun	seed	
+trace	action	yes	follow a key along the walk
+trace-key	action	yes	follow a typed key along the walk
 tracker	noun	seed	
 transcript	prop	seed	
 transfer	noun	seed	
@@ -949,3 +959,4 @@ zoom	action	seed
 zoom-in	action	seed	
 zoom-out	action	seed	
 zoom-reset	action	seed	
+||||||| parent of 6d9cc26e (binding help page, stage 1: ? opens a page with the walk as a graph)

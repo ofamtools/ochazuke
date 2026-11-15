@@ -250,7 +250,7 @@ func TestHelpArrange(t *testing.T) {
 	r := helpWalkFixture(t, helpWalkRows)
 	w := r.HelpWalkAt(r.Focus, ModeState{Name: "normal"}, nil)
 	rows := r.HelpRows(w)
-	a := Arrange(rows, w, ParseHelpQuery("verb:panel.refresh"), "level", "walk")
+	a := Arrange(rows, w, ParseHelpQuery("verb:panel.refresh"), GroupingNamed("level"), SortNamed("walk"))
 	headers := 0
 	var panel, refresh = -1, -1
 	for i, line := range a.Lines {
@@ -276,7 +276,7 @@ func TestHelpArrange(t *testing.T) {
 		t.Fatalf("ModeFor a noun with visual rows only: %q", got)
 	}
 	w2 := r2.HelpWalkAt(r2.Focus, ModeState{Name: "normal"}, nil)
-	a2 := Arrange(r2.HelpRows(w2), w2, HelpQuery{}, "level", "walk")
+	a2 := Arrange(r2.HelpRows(w2), w2, HelpQuery{}, GroupingNamed("level"), SortNamed("walk"))
 	note := slices.IndexFunc(a2.Lines, func(l HelpLine) bool { return l.Kind == HelpLineNote })
 	if note < 1 || a2.Lines[note].Mode != "visual" || a2.Lines[note-1].Kind != HelpLineGroup || a2.Lines[note].Level != 0 {
 		t.Fatalf("no visual note under the tile level: %+v", a2.Lines)

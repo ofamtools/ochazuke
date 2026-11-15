@@ -18,7 +18,7 @@ func helpInsertFixture(t *testing.T) (*Runtime, *Model, *Input) {
 	if err := r.AddInput(in, Parent("p")); err != nil {
 		t.Fatal(err)
 	}
-	m := NewModel(r)
+	m := NewModel(modalHelp(r))
 	m.Width, m.Height = 100, 30
 	if err := r.OpenPage("p"); err != nil {
 		t.Fatal(err)
@@ -115,7 +115,7 @@ func TestHelpInsertKeyInAChooser(t *testing.T) {
 // nouns (forms, outlines, completion, the palette, choosers, settings).
 func TestHelpInsertKeyIsNotShadowed(t *testing.T) {
 	r := NewRuntime()
-	NewModel(r)
+	NewModel(modalHelp(r))
 	for name, noun := range r.Nouns {
 		for mode, rows := range noun.Bindings {
 			if mode != "insert" && mode != "" {

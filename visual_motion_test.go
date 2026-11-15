@@ -38,7 +38,7 @@ func visualPage(t *testing.T, added []string, rows map[string]int, drawOrder []s
 	if err := r.OpenPage("page"); err != nil {
 		t.Fatal(err)
 	}
-	m := NewModel(r)
+	m := NewModel(modalHelp(r))
 	m.Width, m.Height = 60, 30
 	m.View()
 	return m, r
@@ -99,7 +99,7 @@ func TestFocusJumpsBeforeAFrameUseTreeOrder(t *testing.T) {
 	if err := r.JumpFocus(1, "stop"); err != nil || focusedList(r) != "a" {
 		t.Fatalf("tree order: %q %v", focusedList(r), err)
 	}
-	m := NewModel(r)
+	m := NewModel(modalHelp(r))
 	m.Width, m.Height = 60, 30
 	m.View()
 	for _, want := range []string{"b", "a", "b"} {
@@ -154,7 +154,7 @@ func TestListSpillOptOutAndEmptyList(t *testing.T) {
 	if err := r.OpenPage("page"); err != nil {
 		t.Fatal(err)
 	}
-	m := NewModel(r)
+	m := NewModel(modalHelp(r))
 	for _, step := range []struct{ key, want string }{{"j", "a1"}, {"}", "b"}, {"j", "c1"}, {"k", "b"}, {"k", "a1"}, {"}", "b"}, {"k", "a1"}} {
 		keytest.Press(m, step.key)
 		if r.Focus != step.want {

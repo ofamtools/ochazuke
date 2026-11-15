@@ -176,7 +176,7 @@ func (l *Collection) refilter(keep string) {
 				l.items = append(l.items, item)
 			}
 		}
-	} else if strings.TrimSpace(l.vs.Text) == "" && len(l.vs.Filters) == 0 {
+	} else if l.unfiltered() {
 		l.items = l.all
 		if l.archived > 0 {
 			l.items = make([]ListItem, 0, len(l.all)-l.archived)
@@ -187,10 +187,10 @@ func (l *Collection) refilter(keep string) {
 			}
 		}
 	} else {
-		m := l.matcher()
+		match := l.textMatch()
 		shown := make([]ListItem, 0, len(l.all))
 		for _, item := range l.all {
-			if !hidden[item.ID] && l.matchesProps(item) && m.MatchPrepared(l.preparedRow(item, m)) {
+			if !hidden[item.ID] && l.matchesProps(item) && match(item) {
 				shown = append(shown, item)
 			}
 		}
@@ -215,6 +215,22 @@ func (l *Collection) refilter(keep string) {
 		l.selected = 0
 	}
 	l.offset = min(l.offset, max(0, len(l.items)-1))
+}
+
+// unfiltered reports whether no filter narrows the rows: no text query,
+// no prop filter and no QueryFilter (which reads an empty query too).
+func (l *Collection) unfiltered() bool {
+	return strings.TrimSpace(l.vs.Text) == "" && len(l.vs.Filters) == 0 && l.QueryFilter == nil
+}
+
+// textMatch is the test of the text query: the list's QueryFilter when it
+// has one, else its matcher over each row's search text.
+func (l *Collection) textMatch() func(ListItem) bool {
+	if l.QueryFilter != nil {
+		return l.QueryFilter(l.vs.Text)
+	}
+	m := l.matcher()
+	return func(item ListItem) bool { return m.MatchPrepared(l.preparedRow(item, m)) }
 }
 
 // ListFilterKeepsChildrenSetting makes the filter keep a matching row's

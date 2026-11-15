@@ -550,7 +550,10 @@
           }
         ]
       },
-      "name": "text-view/palette-pending-inside-help"
+      "name": "text-view/palette-pending-inside-help",
+      "values": {
+        "help.style": "modal"
+      }
     }
   ],
   "script": [

@@ -61,7 +61,7 @@ func sameAnswers(t *testing.T, r *Runtime, live, hypo []levelRow, levels ...stri
 func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 	t.Run("list", func(t *testing.T) {
 		r := NewRuntime()
-		NewModel(r)
+		NewModel(modalHelp(r))
 		list, err := r.AddList("rows", nil)
 		if err != nil {
 			t.Fatal(err)
@@ -73,7 +73,7 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 	})
 	t.Run("input", func(t *testing.T) {
 		r := NewRuntime()
-		NewModel(r)
+		NewModel(modalHelp(r))
 		if err := r.AddInput(NewInput("note", "", false), Kind("ochazuke.prompt")); err != nil {
 			t.Fatal(err)
 		}
@@ -95,7 +95,7 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 	})
 	t.Run("terminal", func(t *testing.T) {
 		r, _, _ := terminalFixture(t)
-		NewModel(r)
+		NewModel(modalHelp(r))
 		if r.Mode.Name != "terminal" {
 			t.Fatalf("terminal focus in %q", r.Mode.Name)
 		}
@@ -111,7 +111,7 @@ func TestNounRowsMatchTheLiveWalk(t *testing.T) {
 // when the guard is false follow it on the same key.
 func TestNounHelpMarksGuardedRows(t *testing.T) {
 	r := NewRuntime()
-	NewModel(r)
+	NewModel(modalHelp(r))
 	rows := NounHelp(r, "collection", ModeState{Name: "normal"})
 	i := slices.IndexFunc(rows, func(h HelpRow) bool { return h.Key == "space" })
 	if i < 0 || rows[i].Guard != "list-marks" || rows[i].Operation != "collection.mark ?" || !strings.HasPrefix(rows[i].Description, "when list-marks · ") {
@@ -145,7 +145,7 @@ func TestNounHelpMarksGuardedRows(t *testing.T) {
 // An exclusive pending mode reads only its own table: no any-mode rows.
 func TestNounRowsExclusivePendingMode(t *testing.T) {
 	r := NewRuntime()
-	NewModel(r)
+	NewModel(modalHelp(r))
 	rows := r.nounRows(NounPlace{Noun: "app"}, ModeState{Name: "count_pending"})
 	if len(rows) == 0 {
 		t.Fatal("count_pending answers nothing")
@@ -168,7 +168,7 @@ func TestNounRowsExclusivePendingMode(t *testing.T) {
 // marked; pending modes are columns only with help.pending-modes.
 func TestHelpTableColumns(t *testing.T) {
 	r := NewRuntime()
-	NewModel(r)
+	NewModel(modalHelp(r))
 	modes, keys := r.HelpTable(NounPlace{Noun: "ochazuke.collection"}, false)
 	if !slices.Contains(modes, "normal") || !slices.Contains(modes, ListFilterMode) || slices.Contains(modes, "insert") || slices.Contains(modes, "terminal") {
 		t.Fatalf("list modes: %v", modes)

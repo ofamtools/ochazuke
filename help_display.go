@@ -12,17 +12,85 @@ import (
 // a walk level with rows only in other modes noted, and the trace of one
 // key from the walk's focus. Values: no drawing.
 
-// Groupings and sorts the page cycles through (o and O).
+// HelpGrouping is one way the page groups its rows (o cycles them): by the
+// walk's levels (every level keeps its header, a row of no level groups
+// under its noun after them), or by what Of names (noun, verb).
+type HelpGrouping struct {
+	Name   string
+	Levels bool
+	Of     func(HelpPageRow) string
+}
+
+// HelpSort is one order inside a group (O cycles them): Cmp, walk order
+// breaking ties; nil is walk order alone.
+type HelpSort struct {
+	Name string
+	Cmp  func(a, b HelpPageRow) int
+}
+
+// HelpGroupings and HelpSorts are what o and O cycle through, the first
+// the default.
 var (
-	HelpGroupings = []string{"level", "noun", "verb"}
-	HelpSorts     = []string{"walk", "key", "verb", "noun"}
+	HelpGroupings = []HelpGrouping{
+		{Name: "level", Levels: true},
+		{Name: "noun", Of: func(v HelpPageRow) string { return v.Noun }},
+		{Name: "verb", Of: func(v HelpPageRow) string { return v.Verb }},
+	}
+	HelpSorts = []HelpSort{
+		{Name: "walk"},
+		{Name: "key", Cmp: func(a, b HelpPageRow) int { return strings.Compare(a.Key, b.Key) }},
+		{Name: "verb", Cmp: func(a, b HelpPageRow) int { return strings.Compare(a.Verb, b.Verb) }},
+		{Name: "noun", Cmp: func(a, b HelpPageRow) int { return strings.Compare(a.Noun, b.Noun) }},
+	}
 )
 
-// Line kinds of HelpLine.Kind.
+// GroupingNamed is the grouping of that name, the default for none.
+func GroupingNamed(name string) HelpGrouping {
+	for _, g := range HelpGroupings {
+		if g.Name == name {
+			return g
+		}
+	}
+	return HelpGroupings[0]
+}
+
+// SortNamed is the sort of that name, the default for none.
+func SortNamed(name string) HelpSort {
+	for _, s := range HelpSorts {
+		if s.Name == name {
+			return s
+		}
+	}
+	return HelpSorts[0]
+}
+
+// groupNames and sortNames are the groupings' and sorts' names.
+func groupNames() []string {
+	out := make([]string, len(HelpGroupings))
+	for i, g := range HelpGroupings {
+		out[i] = g.Name
+	}
+	return out
+}
+
+func sortNames() []string {
+	out := make([]string, len(HelpSorts))
+	for i, s := range HelpSorts {
+		out[i] = s.Name
+	}
+	return out
+}
+
+// HelpLineKind is what a line of the arranged list is.
+type HelpLineKind int
+
 const (
-	HelpLineGroup = "group"
-	HelpLineRow   = "row"
-	HelpLineNote  = "note"
+	// HelpLineGroup is a group's header.
+	HelpLineGroup HelpLineKind = iota
+	// HelpLineRow is a row.
+	HelpLineRow
+	// HelpLineNote says a walk level's rows are all in other modes.
+	HelpLineNote
 )
 
 // HelpGroup is one group of the arrangement: its id ("level:2",
@@ -41,7 +109,7 @@ type HelpGroup struct {
 // note under a walk level whose rows are all in other modes (Modes, the
 // busiest first; Mode is the one enter walks in).
 type HelpLine struct {
-	Kind  string       `json:"kind"`
+	Kind  HelpLineKind `json:"kind"`
 	Group *HelpGroup   `json:"group,omitempty"`
 	Row   *HelpPageRow `json:"row,omitempty"`
 	Level int          `json:"level"`
@@ -64,64 +132,72 @@ type HelpArrangement struct {
 	Total   int        `json:"total"`
 }
 
-// Arrange groups and sorts the rows that match q. With group level every
-// walk level keeps its header, matched or not, so the walk never loses a
-// level; a row of no level groups under its noun after them.
-func Arrange(rows []HelpPageRow, w HelpWalk, q HelpQuery, group, sort string) HelpArrangement {
-	hits := q.Matching(rows)
-	groupOf := func(v HelpPageRow) string {
-		switch {
-		case group == "verb":
-			return "verb:" + v.Verb
-		case group == "noun":
-			return "noun:" + v.Noun
-		case v.Level >= 0:
-			return fmt.Sprintf("level:%d", v.Level)
-		}
-		return "off:" + v.Noun
+// groupID is the group a row falls in under g.
+func (g HelpGrouping) groupID(v HelpPageRow) string {
+	switch {
+	case !g.Levels:
+		return g.Name + ":" + g.Of(v)
+	case v.Level >= 0:
+		return fmt.Sprintf("level:%d", v.Level)
 	}
-	groups := map[string]*HelpGroup{}
-	var order []string
-	ensure := func(id string, make func() HelpGroup) *HelpGroup {
-		if g := groups[id]; g != nil {
-			return g
-		}
-		g := make()
-		g.ID = id
-		groups[id] = &g
-		order = append(order, id)
-		return &g
+	return "off:" + v.Noun
+}
+
+// rowGroups gathers rows into groups: with a level grouping every walk
+// level first, so it keeps its header.
+type rowGroups struct {
+	by    map[string]*HelpGroup
+	order []string
+}
+
+func (gs *rowGroups) ensure(id string, make func() HelpGroup) *HelpGroup {
+	if g := gs.by[id]; g != nil {
+		return g
 	}
-	if group == "level" || group == "" {
+	g := make()
+	g.ID = id
+	gs.by[id] = &g
+	gs.order = append(gs.order, id)
+	return &g
+}
+
+// gather puts the rows that match into their groups and counts every row.
+func gather(rows, hits []HelpPageRow, w HelpWalk, grouping HelpGrouping) *rowGroups {
+	gs := &rowGroups{by: map[string]*HelpGroup{}}
+	if grouping.Levels {
 		for _, l := range w.Levels {
 			sub := l.Role
 			if l.Instance != "" {
 				sub = "instance " + l.Instance
 			}
-			ensure(fmt.Sprintf("level:%d", l.Index), func() HelpGroup { return HelpGroup{Label: l.Label(), Level: l.Index, Sub: sub} })
+			gs.ensure(fmt.Sprintf("level:%d", l.Index), func() HelpGroup { return HelpGroup{Label: l.Label(), Level: l.Index, Sub: sub} })
 		}
 	}
 	for _, v := range hits {
-		id := groupOf(v)
-		g := ensure(id, func() HelpGroup {
-			label := id[strings.Index(id, ":")+1:]
-			sub := ""
+		id := grouping.groupID(v)
+		g := gs.ensure(id, func() HelpGroup {
+			g := HelpGroup{Label: id[strings.Index(id, ":")+1:], Level: -1}
 			if strings.HasPrefix(id, "off:") {
-				sub = "not on this walk"
+				g.Sub = "not on this walk"
 			}
-			level := -1
-			if strings.HasPrefix(id, "level:") {
-				level = v.Level
+			if grouping.Levels && v.Level >= 0 {
+				g.Level = v.Level
 			}
-			return HelpGroup{Label: label, Level: level, Sub: sub}
+			return g
 		})
 		g.Rows = append(g.Rows, v)
 	}
 	for _, v := range rows {
-		if g := groups[groupOf(v)]; g != nil {
+		if g := gs.by[grouping.groupID(v)]; g != nil {
 			g.Total++
 		}
 	}
+	return gs
+}
+
+// sorted orders the groups: walk levels in walk order, then (grouped by
+// noun or verb) the groups with a walk row first, then by label.
+func (gs *rowGroups) sorted(levels bool) []*HelpGroup {
 	rank := func(g *HelpGroup) int {
 		if g.Level >= 0 {
 			return g.Level
@@ -129,35 +205,49 @@ func Arrange(rows []HelpPageRow, w HelpWalk, q HelpQuery, group, sort string) He
 		return 1 << 20
 	}
 	onWalk := func(g *HelpGroup) bool { return slices.ContainsFunc(g.Rows, HelpPageRow.OnWalk) }
-	slices.SortStableFunc(order, func(a, b string) int {
-		ga, gb := groups[a], groups[b]
-		if c := cmp.Compare(rank(ga), rank(gb)); c != 0 {
-			return c
-		}
-		if group != "level" {
-			if c := cmpBool(onWalk(gb), onWalk(ga)); c != 0 {
-				return c
-			}
-		}
-		return strings.Compare(ga.Label, gb.Label)
-	})
-	other := map[int]map[string]int{}
-	if group == "level" {
-		for _, v := range rows {
-			if v.State == StatusOtherMode {
-				if other[v.Level] == nil {
-					other[v.Level] = map[string]int{}
-				}
-				other[v.Level][v.Mode]++
-			}
+	out := make([]*HelpGroup, 0, len(gs.order))
+	for _, id := range gs.order {
+		if g := gs.by[id]; len(g.Rows) > 0 || g.Level >= 0 {
+			out = append(out, g)
 		}
 	}
-	out := HelpArrangement{Query: q, Matched: len(hits), Total: len(rows)}
-	for _, id := range order {
-		g := groups[id]
-		if len(g.Rows) == 0 && g.Level < 0 {
-			continue
+	slices.SortStableFunc(out, func(a, b *HelpGroup) int {
+		c := cmp.Compare(rank(a), rank(b))
+		if c == 0 && !levels {
+			c = cmpBool(onWalk(b), onWalk(a))
 		}
+		return cmp.Or(c, strings.Compare(a.Label, b.Label))
+	})
+	return out
+}
+
+// otherModeCounts are, per walk level, the modes its other-mode rows are
+// in and how many.
+func otherModeCounts(rows []HelpPageRow) map[int]map[string]int {
+	out := map[int]map[string]int{}
+	for _, v := range rows {
+		if v.State == StatusOtherMode {
+			if out[v.Level] == nil {
+				out[v.Level] = map[string]int{}
+			}
+			out[v.Level][v.Mode]++
+		}
+	}
+	return out
+}
+
+// Arrange groups and sorts the rows that match q. Grouped by level, every
+// walk level keeps its header, matched or not, so the walk never loses a
+// level, and a level with no rows in the walk's mode but rows in others
+// gets a note naming them.
+func Arrange(rows []HelpPageRow, w HelpWalk, q HelpQuery, grouping HelpGrouping, sort HelpSort) HelpArrangement {
+	hits := q.Matching(rows)
+	var other map[int]map[string]int
+	if grouping.Levels {
+		other = otherModeCounts(rows)
+	}
+	out := HelpArrangement{Query: q, Matched: len(hits), Total: len(rows)}
+	for _, g := range gather(rows, hits, w, grouping).sorted(grouping.Levels) {
 		g.Rows = SortHelpRows(g.Rows, sort)
 		out.Lines = append(out.Lines, HelpLine{Kind: HelpLineGroup, Group: g, Level: g.Level})
 		if g.Level >= 0 && g.Level < len(w.Levels) && w.Levels[g.Level].Counts.Rows == 0 && len(other[g.Level]) > 0 {
@@ -196,23 +286,18 @@ func (l HelpLine) NoteText() string {
 	return "no rows in this mode; rows in " + strings.Join(parts, ", ")
 }
 
+// IsRow reports whether the line is a binding row (not a verb with no key,
+// a header or a note).
+func (l HelpLine) IsRow() bool { return l.Kind == HelpLineRow && !l.Row.Unbound }
+
 // SortHelpRows orders rows inside a group: verbs with no key after the
-// bound rows, then by sort (walk order, key, verb or noun), walk order
-// breaking ties.
-func SortHelpRows(rows []HelpPageRow, sort string) []HelpPageRow {
+// bound rows, then by sort, walk order breaking ties.
+func SortHelpRows(rows []HelpPageRow, sort HelpSort) []HelpPageRow {
 	out := slices.Clone(rows)
 	slices.SortStableFunc(out, func(a, b HelpPageRow) int {
-		if c := cmpBool(a.Kind == HelpRowVerb, b.Kind == HelpRowVerb); c != 0 {
-			return c
-		}
-		var c int
-		switch sort {
-		case "key":
-			c = strings.Compare(a.Key, b.Key)
-		case "verb":
-			c = strings.Compare(a.Verb, b.Verb)
-		case "noun":
-			c = strings.Compare(a.Noun, b.Noun)
+		c := cmpBool(a.Unbound, b.Unbound)
+		if c == 0 && sort.Cmp != nil {
+			c = sort.Cmp(a, b)
 		}
 		return cmp.Or(c, cmp.Compare(a.Order, b.Order))
 	})
@@ -226,16 +311,29 @@ func nextOf(list []string, current string, step int) string {
 	return list[((i+step)%n+n)%n]
 }
 
-// HelpTraceStep is one row on the walk a traced key touches: how (exact,
-// longer: the key starts this row's sequence, prefix: this row's key
-// starts the traced sequence, pattern) and what came of it.
+// TraceHit is how a row touches a traced key.
+type TraceHit int
+
+const (
+	// TraceExact: the row's keys are the traced key.
+	TraceExact TraceHit = iota + 1
+	// TraceLonger: the traced key starts the row's longer sequence.
+	TraceLonger
+	// TracePattern: the row's pattern takes the traced key.
+	TracePattern
+	// TraceStarts: the row's key starts the traced sequence.
+	TraceStarts
+)
+
+// HelpTraceStep is one row on the walk a traced key touches: how and what
+// came of it.
 type HelpTraceStep struct {
-	Level   string  `json:"level"`
-	Table   string  `json:"table"`
-	Row     Binding `json:"row"`
-	Hit     string  `json:"hit"`
-	Outcome string  `json:"outcome"`
-	Capture bool    `json:"capture,omitempty"`
+	Level   string   `json:"level"`
+	Table   string   `json:"table"`
+	Row     Binding  `json:"row"`
+	Hit     TraceHit `json:"hit"`
+	Outcome string   `json:"outcome"`
+	Capture bool     `json:"capture,omitempty"`
 }
 
 // HelpTrace is the trace of a key from a walk's focus: every row that
@@ -257,34 +355,22 @@ func (w HelpWalk) Trace(key string) HelpTrace {
 	for i := range w.Entries {
 		e := &w.Entries[i]
 		r := e.Row
-		hit := ""
-		switch {
-		case r.Keys == key && key != "":
-			hit = "exact"
-		case r.Keys != "" && strings.HasPrefix(r.Keys, key+" "):
-			hit = "longer"
-		case r.Keys == "" && len(tokens) == 1:
-			if ok, _ := matchesPattern(r.Pattern, MacroKey{Key: key}); ok {
-				hit = "pattern"
-			}
-		case len(tokens) > 1 && r.Keys == tokens[0]:
-			hit = "prefix"
-		}
-		if hit == "" {
+		hit := traceHit(r, key, tokens)
+		if hit == 0 {
 			continue
 		}
 		var outcome string
 		switch {
 		case e.State == StatusStepsAside:
 			outcome = "steps aside: a declared row on this walk binds its keys"
-		case hit == "longer":
+		case hit == TraceLonger:
 			outcome = "waits: this key starts the longer sequence " + r.Keys
-		case hit == "prefix":
+		case hit == TraceStarts:
 			outcome = "answers " + tokens[0] + " alone; the sequence is looked up after it"
 		case answer != nil:
 			outcome = "not reached: " + rowKey(answer.Row) + " at " + w.LevelLabel(answer.Level) + " answered first"
-		case r.When != "":
-			outcome = "answers only when " + r.When + "; otherwise the walk goes on"
+		case e.Guard != "":
+			outcome = "answers only when " + e.Guard + "; otherwise the walk goes on"
 		default:
 			outcome = "ANSWERS"
 			answer = e
@@ -296,6 +382,24 @@ func (w HelpWalk) Trace(key string) HelpTrace {
 		t.Answer = &row
 	}
 	return t
+}
+
+// traceHit is how row touches the traced key (tokens its keys), 0 when it
+// does not.
+func traceHit(row Binding, key string, tokens []string) TraceHit {
+	switch {
+	case row.Keys == key && key != "":
+		return TraceExact
+	case row.Keys != "" && strings.HasPrefix(row.Keys, key+" "):
+		return TraceLonger
+	case row.Keys == "" && len(tokens) == 1:
+		if ok, _ := matchesPattern(row.Pattern, MacroKey{Key: key}); ok {
+			return TracePattern
+		}
+	case len(tokens) > 1 && row.Keys == tokens[0]:
+		return TraceStarts
+	}
+	return 0
 }
 
 // Lines are the trace as the page's detail lines.
