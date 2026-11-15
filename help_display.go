@@ -177,7 +177,9 @@ func otherModesNote(level int, modes map[string]int) HelpLine {
 	for m, n := range modes {
 		list = append(list, ModeCount{Mode: m, Count: n})
 	}
-	slices.SortFunc(list, func(a, b ModeCount) int { return cmp.Or(cmp.Compare(b.Count, a.Count), strings.Compare(a.Mode, b.Mode)) })
+	slices.SortFunc(list, func(a, b ModeCount) int {
+		return cmp.Or(cmp.Compare(b.Count, a.Count), strings.Compare(a.Mode, b.Mode))
+	})
 	mode := list[0].Mode
 	if mode == modeLabel("") {
 		mode = ""
