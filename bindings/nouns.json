@@ -19,8 +19,7 @@
       {"key": "z a", "action": "ochazuke.collection.show-archived", "hidden": true},
       {"key": "]", "action": "ochazuke.collection.page-next", "hint": "]/[ page"},
       {"key": "[", "action": "ochazuke.collection.page-prev", "hidden": true},
-      {"key": "-", "action": "ochazuke.page.back", "hint": "back"},
-      {"key": "a", "action": "ochazuke.index.columns", "hidden": true}
+      {"key": "-", "action": "ochazuke.page.back", "hint": "back"}
     ]},
     {"context": "ochazuke.noun-browser/normal", "bindings": [
       {"key": "r", "action": "ochazuke.noun-browser.refresh"},
@@ -29,7 +28,6 @@
     ]},
     {"context": "ochazuke.page/normal", "bindings": [
       {"key": "F", "action": "ochazuke.page.create", "hidden": true},
-      {"key": "r", "action": "ochazuke.page.edit", "hidden": true},
       {"key": "v", "action": "ochazuke.page.get", "hidden": true},
       {"key": "ctrl+g", "action": "ochazuke.page.list", "hidden": true},
       {"key": "*", "action": "ochazuke.page.set", "hidden": true},

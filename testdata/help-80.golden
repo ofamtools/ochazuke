@@ -58,7 +58,7 @@
         │                                                 selected row │
         │   H           collection.filter-                Close the    │
         │               keep                              filter line  │
-        │ 1–10 / 67                                                    │
+        │ 1–10 / 66                                                    │
         │ space collection.mark · S view · enter run · q modal.close … │
         ╰──────────────────────────────────────────────────────────────╯
 

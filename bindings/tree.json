@@ -35,9 +35,7 @@
       {"key": "c", "action": "ochazuke.outline.leave", "hidden": true},
       {"key": "ctrl+g", "action": "ochazuke.outline.list", "hidden": true},
       {"key": "f", "action": "ochazuke.outline.next", "hidden": true},
-      {"key": "k", "action": "ochazuke.outline.row-key", "hidden": true},
-      {"key": "g v", "action": "ochazuke.outline.show", "hidden": true},
-      {"key": "w", "action": "ochazuke.outline.watch", "hidden": true}
+      {"key": "k", "action": "ochazuke.outline.row-key", "hidden": true}
     ]},
     {"context": "ochazuke.outline/count_pending", "extends": "normal", "bindings": []},
     {"context": "ochazuke.outline/visual-line", "bindings": [
