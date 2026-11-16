@@ -30,6 +30,8 @@ import (
 // It is told after every top-level request of the change kind, or that
 // ran one (a palette line's set), once it has run, after the completion of a job of a change verb, and when the
 // application calls Runtime.Changed (its store changed some other way).
+// A verb that declares the stores it writes (Operation.Writes) tells only
+// their watches; one that declares none (terminal.send) tells none.
 // There is no polling loop: nothing runs while nothing happens.
 //
 // Each list a fallback watch sees is a version (its things' ids, sorted,
@@ -109,8 +111,12 @@ type watchHub struct {
 	// from are the watch and lists of each noun a From list shows (list_from.go).
 	from map[string]*fromHub
 	// changed is set when a request of the change kind ran inside the
-	// top-level request still running (a palette line's verb).
-	changed bool
+	// top-level request still running (a palette line's verb); anyStore
+	// when one of them may change any store (Operation.Writes nil), else
+	// writes are the nouns they declared (none: nothing re-reads).
+	changed  bool
+	anyStore bool
+	writes   []string
 	// stale are the windowed lists whose view changed during the request
 	// running (list_window.go): each reads its page once it has run.
 	stale []string
@@ -293,8 +299,9 @@ func (r *Runtime) Changed(nouns ...string) {
 // except those whose store's ChangeToken says nothing changed. Each watch
 // is snapshotted at most once per call; a request makes one call, however
 // many change-kind verbs it ran. A custom verb may change any noun's store
-// (cascades, side tables), so a request does not narrow nouns: the token
-// is what keeps an untouched store cheap.
+// (cascades, side tables), so a request does not narrow nouns unless its
+// verb declares what it writes (Operation.Writes): otherwise the token is
+// what keeps an untouched store cheap.
 func (r *Runtime) refreshWatches(nouns []string) {
 	h := r.watches
 	if h == nil || h.refreshing || len(h.watches) == 0 || r.ShuttingDown() {
@@ -312,7 +319,12 @@ func (r *Runtime) refreshWatches(nouns []string) {
 // afterRequest refreshes the watches once a top-level request has run
 // that is of the change kind or ran one (the palette's run of a set).
 func (r *Runtime) watchAfterRequest(q Request, depth int, nothing bool) {
-	if depth == 0 && !nothing && r.historyKind(q) == HistoryChange {
+	change := !nothing && r.historyKind(q) == HistoryChange
+	writes, anyStore := r.requestWrites(q)
+	if change && !anyStore && len(writes) == 0 {
+		change = false // it changes no store (Operation.Writes): nothing re-reads
+	}
+	if depth == 0 && change {
 		defer recountOpenNounsPage(r)
 	}
 	h := r.watches
@@ -324,14 +336,49 @@ func (r *Runtime) watchAfterRequest(q Request, depth int, nothing bool) {
 		r.syncIndexForm()
 		defer r.refillShown() // a page or modal the request opened shows its stale lists
 	}
-	if !nothing && r.historyKind(q) == HistoryChange {
+	if change {
 		h.changed = true
+		h.anyStore = h.anyStore || anyStore
+		h.writes = append(h.writes, writes...)
 	}
 	if depth == 0 && h.changed {
-		h.changed = false
-		r.refreshWatches(nil)
+		anyStore, writes := h.anyStore, h.writes
+		h.changed, h.anyStore, h.writes = false, false, nil
+		r.refreshWritten(anyStore, writes)
 		r.syncIndexForm() // the lists read again: a selection that moved gets its form
 	}
+}
+
+// requestWrites is what a request's verb declares it writes
+// (Operation.Writes): the nouns, or anyStore when it may change any store
+// (nothing declared, a prop request, an unknown verb).
+func (r *Runtime) requestWrites(q Request) (writes []string, anyStore bool) {
+	if q.IsProp() {
+		return nil, true
+	}
+	op, ok := r.Operations.Find(Key(q.Key()))
+	if !ok || op.Writes == nil {
+		return nil, true
+	}
+	return op.Writes, false
+}
+
+// refreshWritten tells the watches of what changed: every one when a verb
+// may have changed any store, else those of the nouns written and the
+// nouns derived from them, none when nothing was written.
+func (r *Runtime) refreshWritten(anyStore bool, writes []string) {
+	if anyStore {
+		r.refreshWatches(nil)
+		return
+	}
+	if len(writes) == 0 {
+		return
+	}
+	names := make([]string, len(writes))
+	for i, n := range writes {
+		names[i] = r.CanonicalNoun(n)
+	}
+	r.refreshWatches(r.withDependents(names))
 }
 
 // watchAfterJob refreshes the watches once a job of a change verb is done.
@@ -341,7 +388,10 @@ func (r *Runtime) watchAfterJob(verb string) {
 		return
 	}
 	if op, ok := r.Operations.Find(Key(verb)); ok && op.HistoryKindOf() == HistoryChange {
-		r.refreshWatches(nil)
+		if op.Writes != nil && len(op.Writes) == 0 {
+			return // it changes no store (Operation.Writes)
+		}
+		r.refreshWritten(op.Writes == nil, op.Writes)
 		recountOpenNounsPage(r)
 	}
 }

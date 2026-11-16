@@ -305,6 +305,11 @@ type JobInfo struct {
 	// Queued is true while a running background job waits for a slot
 	// (jobs.background-max): its work has not started.
 	Queued bool `json:"queued,omitempty"`
+	// Background is true for a job launched for nobody waiting
+	// (RequestFromBackground: a list reading its store, a detail's related
+	// sections): the jobs ticker shows it only when it fails, unless
+	// jobs.ticker-background is on.
+	Background bool `json:"background,omitempty"`
 }
 
 // job is one entry of the runtime's jobs list.
@@ -379,7 +384,7 @@ func (r *Runtime) IssueAt(owner, scope, verb, slot string, c Ctx) (Ticket, conte
 	ctx, cancel := r.jobContext()
 	ctx = context.WithValue(ctx, requestSourceKey{}, RequestSource(c.source))
 	r.jobSeq++
-	j := &job{JobInfo: JobInfo{Job: r.jobSeq, Owner: owner, Verb: verb, Slot: slot, Scope: scope, Started: time.Now(), Status: JobRunning}, cancel: cancel, ctx: c, background: RequestSource(c.source).Background()}
+	j := &job{JobInfo: JobInfo{Job: r.jobSeq, Owner: owner, Verb: verb, Slot: slot, Scope: scope, Started: time.Now(), Status: JobRunning, Background: RequestSource(c.source).Background()}, cancel: cancel, ctx: c, background: RequestSource(c.source).Background()}
 	if r.jobs == nil {
 		r.jobs = map[uint64]*job{}
 	}
