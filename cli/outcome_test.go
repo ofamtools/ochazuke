@@ -103,15 +103,15 @@ func TestNeedsStatusSetting(t *testing.T) {
 }
 
 // Every candidate command a failed command prints runs: a thing whose
-// instance id is not its key (a store's row, live as pane:s/w1) is named
+// instance id is not its key (a store's row, live as parcel:s/w1) is named
 // by the instance the CLI's --target resolves, never by the bare key it
-// would refuse (unknown target "w1").
+// would refuse (unknown target "w1"; mtm's pane preview --target w2).
 func TestCLIPrintedTargetCommandsRun(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
 	things := []ochazuke.Thing{{"id": "w1"}, {"id": "w2"}}
 	var ran []string
-	r.Define("pane").Props(ochazuke.PropSpec{Name: "id", Key: true}).Store(ochazuke.Store{
+	r.Define("parcel").Props(ochazuke.PropSpec{Name: "id", Key: true}).Store(ochazuke.Store{
 		Kind: ochazuke.KindCollection,
 		Get: func(_ ochazuke.Ctx, key string) (ochazuke.Thing, error) {
 			for _, th := range things {
@@ -119,7 +119,7 @@ func TestCLIPrintedTargetCommandsRun(t *testing.T) {
 					return th, nil
 				}
 			}
-			return nil, errors.New("no pane " + key)
+			return nil, errors.New("no parcel " + key)
 		},
 		List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) { return things, nil },
 		Query: func(ochazuke.Ctx, ochazuke.ListQuery) (ochazuke.ListPage, error) {
@@ -127,33 +127,33 @@ func TestCLIPrintedTargetCommandsRun(t *testing.T) {
 		},
 	}).Verb("preview", func(c ochazuke.Ctx) ochazuke.Result {
 		if c.Instance == nil {
-			return ochazuke.Failed(errors.New("no pane"))
+			return ochazuke.Failed(errors.New("no parcel"))
 		}
-		if c.Instance.Noun != "pane" {
-			return ochazuke.Failed(errors.New("no pane at " + c.Instance.ID + " (" + c.Instance.Noun + ")"))
+		if c.Instance.Noun != "parcel" {
+			return ochazuke.Failed(errors.New("no parcel at " + c.Instance.ID + " (" + c.Instance.Noun + ")"))
 		}
 		ran = append(ran, c.Instance.ID)
 		return ochazuke.Done(nil)
-	}, "Preview a pane")
-	page, err := r.AddPage("panes", "Panes", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Block{} })
+	}, "Preview a parcel")
+	page, err := r.AddPage("parcels", "Parcels", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Block{} })
 	if err != nil {
 		t.Fatal(err)
 	}
 	items := []ochazuke.ListItem{
-		{ID: "pane:s/w1", Label: "one", Noun: "pane", Data: map[string]any{"id": "w1"}},
-		{ID: "pane:s/w2", Label: "two", Noun: "pane", Data: map[string]any{"id": "w2"}},
+		{ID: "parcel:s/w1", Label: "one", Noun: "parcel", Data: map[string]any{"id": "w1"}},
+		{ID: "parcel:s/w2", Label: "two", Noun: "parcel", Data: map[string]any{"id": "w2"}},
 	}
-	if _, err := r.AddList("panes/list", items, ochazuke.Parent(page.ID)); err != nil {
+	if _, err := r.AddList("parcels/list", items, ochazuke.Parent(page.ID)); err != nil {
 		t.Fatal(err)
 	}
-	err = New(r, "test", nil, &bytes.Buffer{}, &bytes.Buffer{}).Run(context.Background(), []string{"pane", "preview"})
+	err = New(r, "test", nil, &bytes.Buffer{}, &bytes.Buffer{}).Run(context.Background(), []string{"parcel", "preview"})
 	if err == nil {
-		t.Fatal("pane preview without a target ran")
+		t.Fatal("parcel preview without a target ran")
 	}
 	var commands [][]string
 	for _, line := range strings.Split(err.Error(), "\n") {
 		command, _, _ := strings.Cut(strings.TrimSpace(line), "  # ")
-		if strings.HasPrefix(command, "pane preview --target ") {
+		if strings.HasPrefix(command, "parcel preview --target ") {
 			commands = append(commands, strings.Fields(command))
 		}
 	}
@@ -165,7 +165,7 @@ func TestCLIPrintedTargetCommandsRun(t *testing.T) {
 			t.Errorf("%s: %v", strings.Join(words, " "), err)
 		}
 	}
-	if !slices.Contains(ran, "pane:s/w1") || !slices.Contains(ran, "pane:s/w2") {
+	if !slices.Contains(ran, "parcel:s/w1") || !slices.Contains(ran, "parcel:s/w2") {
 		t.Fatalf("ran %v from %v", ran, commands)
 	}
 }
