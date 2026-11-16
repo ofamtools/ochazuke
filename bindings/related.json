@@ -30,7 +30,10 @@
       {"key": "*", "action": "ochazuke.related-section.set", "hidden": true},
       {"key": "g v", "action": "ochazuke.related-section.show", "hidden": true},
       {"key": "w", "action": "ochazuke.related-section.watch", "hidden": true},
-      {"key": "p", "action": "ochazuke.related-section.yank", "hidden": true}
+      {"key": "p", "action": "ochazuke.related-section.yank", "hidden": true},
+      {"key": "X", "action": "ochazuke.related-section.duplicate", "hidden": true},
+      {"key": "ctrl+h", "action": "ochazuke.related-section.hide", "hidden": true},
+      {"key": "ctrl+n", "action": "ochazuke.related-section.restore", "hidden": true}
     ]}
   ]
 }

@@ -33,7 +33,9 @@
       {"key": "*", "action": "ochazuke.picker.set", "hidden": true},
       {"key": "g v", "action": "ochazuke.picker.show", "hidden": true},
       {"key": "w", "action": "ochazuke.picker.watch", "hidden": true},
-      {"key": "t", "action": "ochazuke.picker.yank", "hidden": true}
+      {"key": "t", "action": "ochazuke.picker.yank", "hidden": true},
+      {"key": "alt+x", "action": "ochazuke.picker.archive", "hidden": true},
+      {"key": "alt+z", "action": "ochazuke.picker.delete", "hidden": true}
     ]},
     {"context": "ochazuke.picker", "bindings": [
       {"key": "alt+down", "action": "ochazuke.picker.goto", "when": "picker-up", "args": {"to": "own"}, "hint": "back to the list", "hidden": true},

@@ -14,7 +14,11 @@
       {"key":"z [", "action":"ochazuke.collection.filter-cycle", "args":{"step":-1}, "hidden":true},
       {"key":"D", "action":"ochazuke.filter-form.delete-saved", "hint":"delete saved"},
       {"key": "b", "action": "ochazuke.filter-form.edit-condition", "hidden": true},
-      {"key": "f", "action": "ochazuke.filter-form.write-saved", "hidden": true}
+      {"key": "f", "action": "ochazuke.filter-form.write-saved", "hidden": true},
+      {"key": "R", "action": "ochazuke.filter-form.direction", "hidden": true},
+      {"key": "U", "action": "ochazuke.filter-form.invert-condition", "hidden": true},
+      {"key": "Y", "action": "ochazuke.filter-form.remove-condition", "hidden": true},
+      {"key": "space", "action": "ochazuke.filter-form.toggle", "hidden": true}
     ]},
     {"context":"ochazuke.filter-value/normal", "bindings":[
       {"key":"space", "action":"ochazuke.filter-form.toggle", "capture":true, "hint":"toggle"},

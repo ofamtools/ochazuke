@@ -56,9 +56,9 @@
         │                                                 then acts on │
         │                                                 every        │
         │                                                 selected row │
-        │ page                                                         │
-        │   ctrl+g      page.list                         List the     │
-        │ 1–10 / 58                                                    │
+        │   ctrl+q      collection.filter                 Filter the   │
+        │                                                 rows to      │
+        │ 1–10 / 59                                                    │
         │ space collection.mark · S view · enter run · q modal.close … │
         ╰──────────────────────────────────────────────────────────────╯
 

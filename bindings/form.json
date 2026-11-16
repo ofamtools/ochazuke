@@ -26,7 +26,8 @@
       {"key": "A", "action": "ochazuke.form.next-missing", "hidden": true},
       {"key": "B", "action": "ochazuke.form.previous", "hidden": true},
       {"key": "D", "action": "ochazuke.form.run", "hidden": true},
-      {"key": "E", "action": "ochazuke.form.suggest", "hidden": true}
+      {"key": "E", "action": "ochazuke.form.suggest", "hidden": true},
+      {"key": "F", "action": "ochazuke.form.next", "hidden": true}
     ]},
     {"context": "ochazuke.form-chip/normal", "bindings": [
       {"key": "j", "action": "ochazuke.form.chip-line", "args": {"delta": 1}},
