@@ -82,10 +82,12 @@ func TestStandardVerbsNeeds(t *testing.T) {
 		store Store
 		want  []string
 	}{
-		{"get only", []PropSpec{{Name: "id", Key: true}}, Store{Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }}, []string{"get", "show", "yank", "history"}},
-		{"list only", []PropSpec{{Name: "id", Key: true}}, Store{List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"list", "watch"}},
-		{"both", []PropSpec{{Name: "id", Key: true}}, newTaskStore().store(), []string{"get", "list", "show", "yank", "history", "watch"}},
-		{"singleton lists its one thing", []PropSpec{{Name: "theme"}}, Store{Kind: Singleton, Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }, List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"get", "list", "show", "yank", "history", "watch"}},
+		// NoOverlay: the needs as the store alone meets them (the overlay
+		// fills a store that cannot write: TestOverlayFillsARecordStore).
+		{"get only", []PropSpec{{Name: "id", Key: true}}, Store{NoOverlay: true, Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }}, []string{"get", "show", "yank", "history"}},
+		{"list only", []PropSpec{{Name: "id", Key: true}}, Store{NoOverlay: true, List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"list", "watch"}},
+		{"both", []PropSpec{{Name: "id", Key: true}}, func() Store { s := newTaskStore().store(); s.NoOverlay = true; return s }(), []string{"get", "list", "show", "yank", "history", "watch"}},
+		{"singleton lists its one thing", []PropSpec{{Name: "theme"}}, Store{Kind: Singleton, NoOverlay: true, Get: func(Ctx, string) (Thing, error) { return Thing{}, nil }, List: func(Ctx, ListQuery) ([]Thing, error) { return nil, nil }}, []string{"get", "list", "show", "yank", "history", "watch"}},
 		{"nothing", []PropSpec{{Name: "id", Key: true}}, Store{}, nil},
 	}
 	for _, c := range cases {
@@ -200,7 +202,7 @@ func TestKeyNameReserved(t *testing.T) {
 		NewRuntime().Define("x").Props(PropSpec{Name: "name", Key: true}).Store(Store{List: ok.List, ListParams: map[string]Parameter{"where": {Type: "string"}}})
 	})
 	r := NewRuntime()
-	r.Define("schedule").Props(PropSpec{Name: "name", Key: true}).Store(Store{Get: func(_ Ctx, id string) (Thing, error) { return Thing{"name": id}, nil }})
+	r.Define("schedule").Props(PropSpec{Name: "name", Key: true}).Store(Store{NoOverlay: true, Get: func(_ Ctx, id string) (Thing, error) { return Thing{"name": id}, nil }})
 	if p, ok := r.Props("schedule")[0], true; !ok || !p.ReadOnly {
 		t.Fatalf("a Key prop is read-only: %+v", p)
 	}

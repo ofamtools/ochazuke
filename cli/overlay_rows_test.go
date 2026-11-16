@@ -12,21 +12,25 @@ import (
 
 // overlayLocalRows are the 44 local verbs mtm's catalog listed unavailable
 // on 2026-11-16 (overlay-every-store, groups N to S), each with the
-// dry-run outcome it answers now: the overlay fills the rest, so only the
-// picker (NoOverlay: the owner's open Q6 picker-edit) and the page (an
-// instances store, which the overlay leaves to its routes) still do
-// nothing here.
+// dry-run outcome it answers now. The overlay fills the stores that cannot
+// write their things and the system facts; still nothing here: the picker
+// and setting-item (NoOverlay: the owner's open Q6, picker-edit and
+// rows keyed by place as binding-row-edit), the outline (NoOverlay: its
+// nodes are the application's tree), the page (an instances store, left
+// to its routes), and appearance, binding-file and register (stores that
+// write their own props: their authors decide create, delete and
+// archive).
 var overlayLocalRows = map[string]string{
 	"ochazuke.agent.archive": "done", "ochazuke.agent.create": "done", "ochazuke.agent.delete": "done", "ochazuke.agent.edit": "done", "ochazuke.agent.set": "done",
-	"ochazuke.appearance.archive": "done", "ochazuke.appearance.create": "done", "ochazuke.appearance.delete": "done",
-	"ochazuke.binding-file.archive": "done", "ochazuke.binding-file.create": "done", "ochazuke.binding-file.delete": "done",
+	"ochazuke.appearance.archive": "nothing", "ochazuke.appearance.create": "nothing", "ochazuke.appearance.delete": "nothing",
+	"ochazuke.binding-file.archive": "nothing", "ochazuke.binding-file.create": "nothing", "ochazuke.binding-file.delete": "nothing",
 	"ochazuke.config.archive": "done", "ochazuke.config.create": "done", "ochazuke.config.delete": "done", "ochazuke.config.edit": "done", "ochazuke.config.set": "done",
 	"ochazuke.mcp.archive": "done", "ochazuke.mcp.create": "done", "ochazuke.mcp.delete": "done", "ochazuke.mcp.edit": "done", "ochazuke.mcp.set": "done",
 	"ochazuke.snapshot.archive": "done", "ochazuke.snapshot.create": "done", "ochazuke.snapshot.delete": "done",
-	"ochazuke.outline.archive": "needs", "ochazuke.outline.create": "done", "ochazuke.outline.set": "needs",
-	"ochazuke.register.archive": "needs", "ochazuke.register.create": "done", "ochazuke.register.delete": "needs",
-	"ochazuke.setting.archive": "needs", "ochazuke.setting.create": "done", "ochazuke.setting.delete": "needs",
-	"ochazuke.setting-item.archive": "needs", "ochazuke.setting-item.create": "done", "ochazuke.setting-item.set": "needs",
+	"ochazuke.outline.archive": "nothing", "ochazuke.outline.create": "nothing", "ochazuke.outline.set": "nothing",
+	"ochazuke.register.archive": "nothing", "ochazuke.register.create": "nothing", "ochazuke.register.delete": "nothing",
+	"ochazuke.setting.archive": "done", "ochazuke.setting.create": "done", "ochazuke.setting.delete": "done",
+	"ochazuke.setting-item.archive": "nothing", "ochazuke.setting-item.create": "nothing", "ochazuke.setting-item.set": "nothing",
 	"ochazuke.page.archive": "nothing", "ochazuke.page.create": "nothing", "ochazuke.page.delete": "nothing",
 	"ochazuke.picker.archive": "nothing", "ochazuke.picker.create": "nothing", "ochazuke.picker.delete": "nothing", "ochazuke.picker.edit": "nothing", "ochazuke.picker.set": "nothing",
 }

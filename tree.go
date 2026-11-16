@@ -1915,13 +1915,16 @@ func registerOutlineThings(r *Runtime) {
 		}
 		return nil, c.NeedTarget("target", "")
 	}
+	// NoOverlay: the outline's nodes are the application's tree, drawn from
+	// it, so a node or a value kept beside them would show nowhere, and a
+	// read-only tree (no OnChange) keeps its editing keys off.
 	r.Define("ochazuke.outline").DefaultKeys(false).Props(
 		PropSpec{Name: "id", Key: true, Parameter: Parameter{Description: "The node's id"}},
 		PropSpec{Name: "label", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The node's line"}},
 		PropSpec{Name: "parent", ReadOnly: true, Parameter: Parameter{Description: "The parent node's id (empty at the top level)"}},
 		PropSpec{Name: "noun", ReadOnly: true, Parameter: Parameter{Description: "The row's noun (ochazuke.outline-row unless the application names its own)"}},
 	).Store(Store{
-		Kind: KindCollection,
+		Kind: KindCollection, NoOverlay: true,
 		Get: func(c Ctx, id string) (Thing, error) {
 			t, err := tree(c)
 			if err != nil {

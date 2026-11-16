@@ -15,16 +15,19 @@ import (
 // The overlay (no-refusals D1, overlay-every-store OV1): what a local
 // store's source cannot do is done by the framework beside the thing, keyed
 // by noun, key and prop, merged into get and list and marked as the
-// user's. It fills every store that reads things (Get or List) and lacks a
-// write, a system fact or not: props the source cannot hold (every prop of
-// a store with no Patch, the Overlaid ones of one with a Patch), a create
+// user's. It fills every store that reads things (Get or List) and cannot
+// write them (no Patch), a system fact or not, and every system fact:
+// props the source cannot hold (every prop of a store with no Patch, the
+// Overlaid ones of a fact with a Patch), a create
 // (a thing of the user's own), a delete (it archives; nothing is
 // destroyed; a thing of the user's own is removed) and an archive prop. A
 // singleton's create is its set, and its delete resets the user's changes
 // (the source's values show again). A store whose every write is the
 // overlay's undoes them.
 //
-// It leaves alone a store whose author keeps a missing write missing
+// It leaves alone a store that writes its own props (a Patch, not a
+// fact: its author decides its create, delete and archive), a store whose
+// author keeps a missing write missing
 // (Store.NoOverlay, the catalog's noOverlay), a remote store (a mounted
 // tool's proxy, ListFacts: their calls run off the loop), a copy (it keeps
 // the user's values itself, CopyStore) and an instances store (its things
@@ -318,8 +321,8 @@ type overlayOf struct {
 // archive prop where archive fits and the noun has no archive role, and
 // reads (Get, List) that merge the overlay rows in (fill). A store with NoOverlay, a remote one, a copy, one
 // that reads no thing and an instances store (create does not fit its
-// live instances) are left as they are, and so is one that writes
-// everything itself.
+// live instances) are left as they are, and so are one that writes its
+// own props (not a fact) and one that writes everything itself.
 func (r *Runtime) withOverlay(n *Noun, s Store) Store {
 	if s.NoOverlay || s.Remote || s.copy != nil || s.Get == nil && s.List == nil {
 		return s
@@ -327,6 +330,12 @@ func (r *Runtime) withOverlay(n *Noun, s Store) Store {
 	s = withSingletonList(n, s)
 	if !rowFits("create", s) {
 		return s // an instances store: its things are live instances
+	}
+	if s.Patch != nil && !s.Facts {
+		// A store that writes its own props keeps its shape: its author
+		// decides its create, delete and archive (OV1 fills the stores
+		// that cannot write their things, and system facts).
+		return s
 	}
 	if s.SessionKeys {
 		r.overlayHolder().session[n.Name] = true
@@ -534,10 +543,11 @@ func (o *overlayOf) patch(c Ctx, key string, t Thing) (Thing, error) {
 			return nil, err
 		}
 	}
-	if len(mine) > 0 {
-		if err := o.r.putOverlay(o.n.Name, key, mine, false); err != nil {
-			return nil, err
-		}
+	if len(mine) == 0 {
+		return o.merge(key, after), nil // the source wrote it all: its answer
+	}
+	if err := o.r.putOverlay(o.n.Name, key, mine, false); err != nil {
+		return nil, err
 	}
 	if o.n.Store != nil && o.n.Store.Get != nil {
 		if got, err := o.n.Store.Get(c, key); err == nil {

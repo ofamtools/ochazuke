@@ -23,11 +23,12 @@ func TestSettingThingsAndProps(t *testing.T) {
 	var props []string
 	for _, p := range r.Props("setting") {
 		props = append(props, p.Name)
-		if !p.Key && p.writable() {
+		if !p.Key && p.writable() && !p.Overlaid {
 			t.Fatalf("setting prop %s is writable", p.Name)
 		}
 	}
-	if want := []string{"name", "type", "default", "value", "enum", "protected", "description", "section", "owner", "group", "origin", "owners", "names", "path"}; !reflect.DeepEqual(props, want) {
+	// archived is the overlay's (the store writes nothing: your mark beside it).
+	if want := []string{"name", "type", "default", "value", "enum", "protected", "description", "section", "owner", "group", "origin", "owners", "names", "path", "archived"}; !reflect.DeepEqual(props, want) {
 		t.Fatalf("setting props %v", props)
 	}
 	rec := paletteRequest(t, r, "get", "setting", Arguments{"name": "theme"}).(map[string]any)
@@ -84,14 +85,15 @@ func TestNamedSettingSetStillWins(t *testing.T) {
 			t.Fatalf("setting.%s standard %q", verb, op.Standard)
 		}
 	}
-	// A read-only collection: the core writes are listed, unavailable
-	// with the reason; the purged ones are absent.
+	// A collection whose store writes nothing: the overlay runs the core
+	// writes (a setting of yours, delete archives); the purged ones are
+	// absent.
 	for _, verb := range []string{"create", "delete"} {
-		if op, ok := r.Operations.Find(Key("ochazuke.setting." + verb)); !ok || op.Unavailable == "" || r.offers(op.Key.Short()) {
+		if op, ok := r.Operations.Find(Key("ochazuke.setting." + verb)); !ok || op.Unavailable != "" {
 			t.Fatalf("setting.%s: ok %v unavailable %q", verb, ok, op.Unavailable)
 		}
 	}
-	for _, verb := range []string{"rename", "duplicate"} {
+	for _, verb := range []string{"rename"} {
 		if _, ok := r.Operations.Find(Key("ochazuke.setting." + verb)); ok {
 			t.Fatalf("setting.%s is registered", verb)
 		}
