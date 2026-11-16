@@ -36,8 +36,7 @@
       {"key": "a", "action": "ochazuke.timeline.fold-step", "hidden": true},
       {"key": "g /", "action": "ochazuke.timeline.goto", "hidden": true},
       {"key": "b", "action": "ochazuke.timeline.row", "hidden": true},
-      {"key": "c", "action": "ochazuke.timeline.step", "hidden": true},
-      {"key": "d", "action": "ochazuke.timeline.yank-step", "hidden": true}
+      {"key": "c", "action": "ochazuke.timeline.step", "hidden": true}
     ]},
     {"context": "ochazuke.timeline-body/normal", "bindings": [
       {"key": "j", "action": "ochazuke.timeline.step", "args": {"delta": 1}, "from": {"count": "count"}},

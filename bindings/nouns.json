@@ -3,9 +3,7 @@
   "bindings": [
     {"context": "ochazuke.noun/normal", "bindings": [
       {"key": "enter", "action": "ochazuke.noun.show"},
-      {"key": "d a", "action": "ochazuke.noun.archive", "hidden": true},
       {"key": "n", "action": "ochazuke.noun.create", "hidden": true},
-      {"key": "d d", "action": "ochazuke.noun.delete", "hidden": true},
       {"key": "v", "action": "ochazuke.noun.get", "hidden": true},
       {"key": "H", "action": "ochazuke.noun.history", "hidden": true},
       {"key": "ctrl+g", "action": "ochazuke.noun.list", "hidden": true},
@@ -13,16 +11,14 @@
       {"key": "*", "action": "ochazuke.noun.set", "hidden": true},
       {"key": "w", "action": "ochazuke.noun.watch", "hidden": true},
       {"key": "p", "action": "ochazuke.noun.yank", "hidden": true},
-      {"key": "g d", "action": "ochazuke.noun.duplicate", "hidden": true},
-      {"key": "d r", "action": "ochazuke.noun.restore", "hidden": true}
+      {"key": "g d", "action": "ochazuke.noun.duplicate", "hidden": true}
     ]},
     {"context": "ochazuke.index/normal", "bindings": [
       {"key": "z A", "action": "ochazuke.collection.show-archived", "hint": "archived"},
       {"key": "z a", "action": "ochazuke.collection.show-archived", "hidden": true},
       {"key": "]", "action": "ochazuke.collection.page-next", "hint": "]/[ page"},
       {"key": "[", "action": "ochazuke.collection.page-prev", "hidden": true},
-      {"key": "-", "action": "ochazuke.page.back", "hint": "back"},
-      {"key": "m", "action": "ochazuke.index.columns", "hidden": true}
+      {"key": "-", "action": "ochazuke.page.back", "hint": "back"}
     ]},
     {"context": "ochazuke.noun-browser/normal", "bindings": [
       {"key": "r", "action": "ochazuke.noun-browser.refresh"},
@@ -34,9 +30,7 @@
     ]},
     {"context": "ochazuke.register/normal", "bindings": [
       {"key": "b", "action": "ochazuke.register.append", "hidden": true},
-      {"key": "d a", "action": "ochazuke.register.archive", "hidden": true},
       {"key": "n", "action": "ochazuke.register.create", "hidden": true},
-      {"key": "d d", "action": "ochazuke.register.delete", "hidden": true},
       {"key": "r", "action": "ochazuke.register.edit", "hidden": true},
       {"key": "M", "action": "ochazuke.register.get", "hidden": true},
       {"key": "H", "action": "ochazuke.register.history", "hidden": true},

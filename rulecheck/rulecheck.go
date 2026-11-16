@@ -1,6 +1,7 @@
 // Package rulecheck runs the family's rule checks as one test: static
 // scans of the source (names, refusals) and walks over a built runtime
-// (dead keys, the lexicon, the noun rules). Every check runs in-process in
+// (dead keys, hidden rows that take a used key, the lexicon, the noun
+// rules). Every check runs in-process in
 // seconds, with no PTY, daemon, story or subprocess. An application adopts
 // it with one test over its runtime:
 //
@@ -64,6 +65,16 @@ type Config struct {
 	// vocabulary read beside Runtime (ochazuke: the demo app). The
 	// lexicon reads Runtime only.
 	Runtimes []*ochazuke.Runtime
+	// Places are more places the hiddenkeys walk reads beside each
+	// runtime's own (Runtime.AllPlaces): a recorded noun-places file
+	// (LoadPlaces), so a component kind the fixture does not build is
+	// walked where the application really places it.
+	Places []ochazuke.NounPlace
+	// FrameworkRows makes hiddenkeys judge the rows ochazuke's own
+	// binding files declare too (ochazuke's own TestRules). Unset, an
+	// application's hiddenkeys judges only its own rows and keeps the
+	// framework's as part of what each key does.
+	FrameworkRows bool
 	// Root is the directory the static scans start at and their file
 	// names are relative to; default ".".
 	Root string
@@ -114,6 +125,8 @@ func Checks() []Rule {
 	return []Rule{
 		{ID: "deadkeys", Kind: Registry, Run: runDeadKeys,
 			Doc: "a key one list row answers at its own level, a sibling row of another noun answers too (its own row or its key redirect)"},
+		{ID: "hiddenkeys", Kind: Registry, Run: runHiddenKeys,
+			Doc: "a hidden row takes no key that did something at any place and mode without it (HiddenKeys)"},
 		{ID: "names", Kind: Static, Run: runNames,
 			Doc: "no comparison, case or table keyed by a noun, verb, mode, motion or parameter name (namecheck)"},
 		{ID: "refusals", Kind: Static, Run: runRefusals,

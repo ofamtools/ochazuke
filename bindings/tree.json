@@ -30,9 +30,7 @@
       {"key": "paste", "action": "ochazuke.outline.paste", "from": {"text": "text"}},
       {"key": "b", "action": "ochazuke.outline.archive", "hidden": true},
       {"key": "F", "action": "ochazuke.outline.create", "hidden": true},
-      {"key": "z 1", "action": "ochazuke.outline.fold", "hidden": true},
-      {"key": "f", "action": "ochazuke.outline.next", "hidden": true},
-      {"key": "k", "action": "ochazuke.outline.row-key", "hidden": true}
+      {"key": "z 1", "action": "ochazuke.outline.fold", "hidden": true}
     ]},
     {"context": "ochazuke.outline/count_pending", "extends": "normal", "bindings": []},
     {"context": "ochazuke.outline/visual-line", "bindings": [
@@ -46,14 +44,10 @@
       {"key": "c", "action": "ochazuke.outline.collapse", "hidden": true},
       {"key": "E", "action": "ochazuke.outline.create", "hidden": true},
       {"key": "H", "action": "ochazuke.outline.edit", "hidden": true},
-      {"key": "f", "action": "ochazuke.outline.expand", "hidden": true},
       {"key": "i", "action": "ochazuke.outline.fold", "hidden": true},
       {"key": "M", "action": "ochazuke.outline.get", "hidden": true},
       {"key": "P", "action": "ochazuke.outline.history", "hidden": true},
-      {"key": "j", "action": "ochazuke.outline.indent", "hidden": true},
-      {"key": "k", "action": "ochazuke.outline.leave", "hidden": true},
       {"key": "S", "action": "ochazuke.outline.list", "hidden": true},
-      {"key": "m", "action": "ochazuke.outline.next", "hidden": true},
       {"key": "t", "action": "ochazuke.outline.outdent", "hidden": true},
       {"key": "w", "action": "ochazuke.outline.paste", "hidden": true},
       {"key": "A", "action": "ochazuke.outline.put", "hidden": true},

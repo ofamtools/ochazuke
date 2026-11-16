@@ -99,6 +99,41 @@ func TestDeadKeys(t *testing.T) {
 	})
 }
 
+// A hidden row on the tile's k answers before the list's own k (a motion
+// it guards at a trapped edge) and is reported; one on a key nothing at
+// the focus binds is not; a kept (baseline) row is reported as kept, and
+// another hidden row on its key is reported against it.
+func TestHiddenKeys(t *testing.T) {
+	row := func(key, verb string) string {
+		return `{"key": "` + key + `", "action": "tile.` + verb + `", "hidden": true}`
+	}
+	file := func(rows ...string) string {
+		return `{"bindings": [{"context": "tile/normal", "bindings": [` + strings.Join(rows, ",") + `]}]}`
+	}
+	all := func(int) bool { return true }
+	got := func(found []rulecheck.Finding) []string {
+		var out []string
+		for _, f := range found {
+			if strings.HasPrefix(f.Fields[0], "tile/") {
+				out = append(out, f.Fields[1]+" "+f.Fields[2])
+			}
+		}
+		slices.Sort(out)
+		return out
+	}
+	found, cov := rulecheck.HiddenKeys(fixture(t, nil, file(row("k", "pin"), row("alt+q", "open"))), nil, nil, all)
+	if g := got(found); !slices.Equal(g, []string{"k tile.pin"}) || cov.Walks == 0 {
+		t.Fatalf("findings %v (coverage %+v), want k tile.pin only", g, cov)
+	}
+	// Kept (a baseline row), the k row is still reported, so its baseline
+	// row stays covered.
+	keep := func(f rulecheck.Finding) bool { return f.Fields[1] == "k" && f.Fields[2] == "tile.pin" }
+	found, _ = rulecheck.HiddenKeys(fixture(t, nil, file(row("k", "pin"))), nil, keep, all)
+	if g := got(found); !slices.Equal(g, []string{"k tile.pin"}) {
+		t.Fatalf("kept findings %v, want the kept row once", g)
+	}
+}
+
 // RULECHECK_UPDATE=1 lowers a debt row and removes a row nothing matches,
 // and never adds a row for a new finding.
 func TestBaselineOnlyShrinks(t *testing.T) {
@@ -134,7 +169,7 @@ func TestCheckRunsSubtests(t *testing.T) {
 	for _, c := range rulecheck.Checks() {
 		ids = append(ids, c.ID)
 	}
-	if got := strings.Join(ids, " "); got != "deadkeys names refusals lexicon nouns" {
+	if got := strings.Join(ids, " "); got != "deadkeys hiddenkeys names refusals lexicon nouns" {
 		t.Fatalf("checks %q", got)
 	}
 }

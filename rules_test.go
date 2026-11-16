@@ -16,8 +16,11 @@ import (
 // non-test Go. Each check is a subtest with its own baseline under
 // testdata: names (namecheck.txt), refusals (refusecheck.txt), lexicon
 // (lexiconcheck.txt, words lexicon-words.tsv), nouns (no baseline: every
-// thing noun has the core verbs and a key prop) and deadkeys
-// (rules/deadkeys.txt). Every baseline only shrinks (RULECHECK_UPDATE=1).
+// thing noun has the core verbs and a key prop), deadkeys
+// (rules/deadkeys.txt) and hiddenkeys (rules/hiddenkeys.txt; it also walks
+// rules/places.json, the framework nouns' places as matomeru recorded
+// them, so the tree, timeline, rail, forms and pickers it nests the lists
+// in are walked though neither runtime here builds them). Every baseline only shrinks (RULECHECK_UPDATE=1).
 // This test replaces TestNoNewNameBranches, TestNoNewRefusals,
 // TestLexicon and TestNounsAreThingsOrCommands.
 func TestRules(t *testing.T) {
@@ -26,9 +29,15 @@ func TestRules(t *testing.T) {
 	ochazuke.NewPicker(r)
 	markdown.Register(r)
 	grid.Register(r)
+	places, err := rulecheck.LoadPlaces("testdata/rules/places.json")
+	if err != nil {
+		t.Fatal(err)
+	}
 	rulecheck.Check(t, rulecheck.Config{
-		Runtime:  r,
-		Runtimes: []*ochazuke.Runtime{demo.New().Runtime},
-		Dirs:     []string{".", "cli", "markdown", "grid"},
+		Places:        places,
+		FrameworkRows: true,
+		Runtime:       r,
+		Runtimes:      []*ochazuke.Runtime{demo.New().Runtime},
+		Dirs:          []string{".", "cli", "markdown", "grid"},
 	})
 }

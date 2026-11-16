@@ -39,7 +39,6 @@
       {"key": "s l", "action": "ochazuke.help-page.narrow", "args": {"field": "level"}, "help": "Show only the level selected in the rail"},
       {"key": "]", "action": "ochazuke.help-page.jump", "args": {"step": 1}, "hint": "next level"},
       {"key": "[", "action": "ochazuke.help-page.jump", "args": {"step": -1}, "hidden": true},
-      {"key": "a", "action": "ochazuke.help-page.choose", "hidden": true},
       {"key": "R", "action": "ochazuke.help-page.reveal", "hidden": true}
     ]},
     {"context": "ochazuke.help-node/normal", "bindings": [

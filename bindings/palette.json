@@ -21,9 +21,7 @@
       {"key": "ctrl+c", "action": "ochazuke.palette.close"}
     ]},
     {"context": "ochazuke.palette/normal", "bindings": [
-      {"key": "q", "action": "ochazuke.palette.close"},
-      {"key": "a", "action": "ochazuke.palette.fill", "hidden": true},
-      {"key": "b", "action": "ochazuke.palette.recall", "hidden": true}
+      {"key": "q", "action": "ochazuke.palette.close"}
     ]},
     {"context": "ochazuke.palette/insert", "bindings": [
       {"key": "printable", "action": "ochazuke.input.insert", "from": {"text": "text"}, "hidden": true},

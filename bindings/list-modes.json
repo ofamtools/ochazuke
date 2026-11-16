@@ -29,7 +29,6 @@
       {"key": "esc", "action": "ochazuke.collection.filter-clear"},
       {"key": "ctrl+p", "action": "ochazuke.collection.apply", "hidden": true},
       {"key": "ctrl+q", "action": "ochazuke.collection.filter", "hidden": true},
-      {"key": "ctrl+t", "action": "ochazuke.collection.filter-choose", "hidden": true},
       {"key": "ctrl+x", "action": "ochazuke.collection.filter-erase", "hidden": true}
     ]},
     {"context": "ochazuke.collection/visual-line", "extends": "normal", "bindings": [
