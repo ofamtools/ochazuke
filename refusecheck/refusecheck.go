@@ -55,11 +55,15 @@ import (
 var classesJSON []byte
 
 // Class is one kind of refusal. Pattern (case-insensitive) matches the
-// message templates of the kind; Use says what to do instead.
+// message templates of the kind; Use says what to do instead; Outcome is
+// what its sites should answer once converted, "KIND" or "KIND/CAUSE" of
+// an ochazuke.Outcome ("needs/target", "nothing/kept", "done"), or
+// "unclassified" for the sites no class has taken yet.
 type Class struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Title   string `json:"title"`
+	Outcome string `json:"outcome"`
 	Pattern string `json:"pattern"`
 	Use     string `json:"use"`
 	Stays   string `json:"stays"`

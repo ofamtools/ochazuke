@@ -1,37 +1,23 @@
 // Package offercheck fails a test when something the UI offers would be
 // refused (no-refusals standing check 3: "if it is offered, it works").
 //
-// It is a dry run on one shared runtime, never an execution: for every
-// operation the runtime registers as offered (registered, not
-// Operation.Unavailable, not a catalog proxy), and for each value of each
-// parameter's Enum, it calls Runtime.CheckRequest (arguments, target,
-// subjects, guards and verb checks, without the handler, a modal or
-// history) and fails on any answer that is not an accepted one:
-//
-//   - nil (the request would run);
-//   - a MissingParameterError or a ChoiceAnswer (it asks);
-//   - a RefusedError (agent rights, exception E1);
-//   - an UnknownNameError (the request names a thing that does not exist
-//     here; the dry run fills no thing).
-//
-// The walk counts its work and fails past Config.Cap requests rather than
-// timing anything, so it stays a check of seconds (owner 2026-11-13: "we
-// can't have a command line TUI that takes an hour").
-//
-// An application adopts it with one test over its own runtime:
-//
-//	func TestEveryOfferIsAccepted(t *testing.T) {
-//		offercheck.Check(t, app.Runtime)
-//	}
+// Deprecated: the walk is the rule check outcomes (rulecheck.Outcomes),
+// which every application's TestRules runs: it dry-runs every verb
+// offered at every place, not only at one focus, and classifies each
+// answer as the MCP gateway does. This package is that walk over one
+// runtime, kept for a caller that has not moved to TestRules; it is
+// removed after one release.
 package offercheck
 
 import (
+	"encoding/json"
 	"errors"
-	"slices"
 	"strconv"
+	"strings"
 	"testing"
 
 	"ofam.dev/ochazuke"
+	"ofam.dev/ochazuke/rulecheck"
 )
 
 // DefaultCap is the most requests one walk makes.
@@ -70,55 +56,33 @@ func CheckConfig(t testing.TB, r *ochazuke.Runtime, c Config) {
 	}
 }
 
-// Walk dry-runs every offer and answers the refusals and the number of
-// requests made; err when the walk would pass the cap.
+// Walk is rulecheck.Outcomes over r alone: its failed answers as
+// refusals, and the number of dry runs made; err when the walk would pass
+// the cap.
 func Walk(r *ochazuke.Runtime, c Config) ([]Refusal, int, error) {
-	cap := c.Cap
-	if cap <= 0 {
-		cap = DefaultCap
+	limit := c.Cap
+	if limit <= 0 {
+		limit = DefaultCap
+	}
+	units := 0
+	found, cov := rulecheck.Outcomes([]*ochazuke.Runtime{r}, nil, func(n int) bool { units += n; return units <= limit })
+	if units > limit {
+		return nil, cov.Runs, errors.New("offercheck: more than " + strconv.Itoa(limit) + " offered requests; raise Config.Cap or skip reviewed operations")
 	}
 	var out []Refusal
-	n := 0
-	for _, op := range r.Operations.List() {
-		key := op.Key.Short()
-		if op.Unavailable != "" || op.CatalogProxy || c.Skip[key] != "" {
+	for _, f := range found {
+		if f.Fields[0] != rulecheck.OutcomeFailedKind {
 			continue
 		}
-		for _, args := range offers(*op) {
-			if n++; n > cap {
-				return out, n, errors.New("offercheck: more than " + strconv.Itoa(cap) + " offered requests; raise Config.Cap or skip reviewed operations")
-			}
-			q := ochazuke.Request{Noun: op.Noun(), Verb: op.Name(), Args: args}
-			if err := r.CheckRequest(q); err != nil && !accepted(err) {
-				out = append(out, Refusal{Key: key, Args: args, Err: err})
-			}
+		key, args, _ := strings.Cut(f.Fields[1], " ")
+		if c.Skip[key] != "" {
+			continue
 		}
-	}
-	return out, n, nil
-}
-
-// offers are the requests an operation is offered with: no arguments,
-// then each Enum value of each parameter.
-func offers(op ochazuke.Operation) []ochazuke.Arguments {
-	out := []ochazuke.Arguments{{}}
-	names := make([]string, 0, len(op.Parameters))
-	for name := range op.Parameters {
-		names = append(names, name)
-	}
-	slices.Sort(names)
-	for _, name := range names {
-		for _, v := range op.Parameters[name].Enum {
-			out = append(out, ochazuke.Arguments{name: v})
+		var a ochazuke.Arguments
+		if args != "" {
+			_ = json.Unmarshal([]byte(args), &a)
 		}
+		out = append(out, Refusal{Key: key, Args: a, Err: errors.New(f.Message)})
 	}
-	return out
-}
-
-// accepted reports an answer that is not a refusal of what was offered.
-func accepted(err error) bool {
-	var missing *ochazuke.MissingParameterError
-	var choice *ochazuke.ChoiceAnswer
-	var rights *ochazuke.RefusedError
-	var unknown *ochazuke.UnknownNameError
-	return errors.As(err, &missing) || errors.As(err, &choice) || errors.As(err, &rights) || errors.As(err, &unknown)
+	return out, cov.Runs, nil
 }

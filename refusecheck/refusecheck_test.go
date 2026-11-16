@@ -3,6 +3,7 @@ package refusecheck
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -78,6 +79,15 @@ func TestRefusecheck(t *testing.T) {
 	}
 	if res := Compare(sites, base); len(res.New)+len(res.Stale) != 0 {
 		t.Fatalf("seeded baseline: %v %v", res.New, res.Stale)
+	} else if got := res.Summary.DebtByOutcome; got["needs/value"] != 1 || got["done"] != 1 || got["failed/failure"] != 0 {
+		t.Errorf("debt by expected outcome %v: want the K3 site under needs/value, K2 under done, the K14 exception under none", got)
+	}
+	// Every class names the outcome its sites become.
+	for _, c := range Classes() {
+		kind, _, _ := strings.Cut(c.Outcome, "/")
+		if !slices.Contains([]string{"done", "nothing", "needs", "failed", "unclassified"}, kind) {
+			t.Errorf("class %s outcome %q: want KIND or KIND/CAUSE of an ochazuke.Outcome, or unclassified", c.ID, c.Outcome)
+		}
 	}
 
 	// a new refusal fails and names what to use instead

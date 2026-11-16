@@ -190,6 +190,26 @@ func CheckFindings(t testing.TB, id, path string, width int, header string, foun
 	if len(res.New)+len(res.Stale) == 0 {
 		return
 	}
+	if len(res.New) > 0 {
+		// The rows a reviewed edit would add, as the file writes them, for
+		// a host that cannot seed (a remote gate): each uncovered key at
+		// the count found, with no reason.
+		uncovered := Baseline{}
+		for _, f := range found {
+			if row, ok := base[f.Key()]; ok && row.Reason != "" {
+				continue
+			}
+			r := uncovered[f.Key()]
+			r.Fields, r.Count = f.Fields, r.Count+1
+			uncovered[f.Key()] = r
+		}
+		for k, r := range uncovered {
+			if r.Count <= base[k].Count {
+				delete(uncovered, k)
+			}
+		}
+		t.Logf("%s: rows not covered (key fields, count found):\n%s", id, uncovered.Format("rows not covered by "+path))
+	}
 	var sb strings.Builder
 	for _, m := range res.New {
 		sb.WriteString("new:   " + m + "\n")

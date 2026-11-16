@@ -20,7 +20,10 @@ import (
 // (rules/deadkeys.txt) and hiddenkeys (rules/hiddenkeys.txt; it also walks
 // rules/places.json, the framework nouns' places as matomeru recorded
 // them, so the tree, timeline, rail, forms and pickers it nests the lists
-// in are walked though neither runtime here builds them). Every baseline only shrinks (RULECHECK_UPDATE=1).
+// in are walked though neither runtime here builds them), modeexits
+// (rules/modeexits.txt) and outcomes (rules/outcomes.txt: every offered
+// verb's dry run, the places' coverage; it replaces TestEveryOfferIsAccepted).
+// Every baseline only shrinks (RULECHECK_UPDATE=1).
 // This test replaces TestNoNewNameBranches, TestNoNewRefusals,
 // TestLexicon and TestNounsAreThingsOrCommands.
 func TestRules(t *testing.T) {

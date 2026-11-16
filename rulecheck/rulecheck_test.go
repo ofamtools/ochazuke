@@ -205,13 +205,13 @@ func TestBaselineOnlyShrinks(t *testing.T) {
 // Check runs the checks in the table's order as subtests and skips one
 // turned off with its reason.
 func TestCheckRunsSubtests(t *testing.T) {
-	off := map[string]string{"modeexits": "fixture", "names": "fixture", "refusals": "fixture", "lexicon": "fixture", "nouns": "fixture"}
+	off := map[string]string{"modeexits": "fixture", "outcomes": "fixture", "names": "fixture", "refusals": "fixture", "lexicon": "fixture", "nouns": "fixture"}
 	rulecheck.Check(t, rulecheck.Config{Runtime: fixture(t, nil, redirect), Baselines: t.TempDir(), Off: off})
 	var ids []string
 	for _, c := range rulecheck.Checks() {
 		ids = append(ids, c.ID)
 	}
-	if got := strings.Join(ids, " "); got != "deadkeys hiddenkeys modeexits names refusals lexicon nouns" {
+	if got := strings.Join(ids, " "); got != "deadkeys hiddenkeys modeexits outcomes names refusals lexicon nouns" {
 		t.Fatalf("checks %q", got)
 	}
 }

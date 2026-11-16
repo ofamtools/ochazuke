@@ -1,7 +1,7 @@
 // Package rulecheck runs the family's rule checks as one test: static
 // scans of the source (names, refusals) and walks over a built runtime
 // (dead keys, hidden rows that take a used key, modes with no way out,
-// the lexicon, the noun rules). Every check runs in-process in
+// offered verbs whose dry run fails, the lexicon, the noun rules). Every check runs in-process in
 // seconds, with no PTY, daemon, story or subprocess. An application adopts
 // it with one test over its runtime:
 //
@@ -65,8 +65,9 @@ type Config struct {
 	// vocabulary read beside Runtime (ochazuke: the demo app). The
 	// lexicon reads Runtime only.
 	Runtimes []*ochazuke.Runtime
-	// Places are more places the hiddenkeys walk reads beside each
-	// runtime's own (Runtime.AllPlaces): a recorded noun-places file
+	// Places are more places the hiddenkeys, modeexits and outcomes walks
+	// read beside each runtime's own (Runtime.AllPlaces): a recorded
+	// noun-places file
 	// (LoadPlaces), so a component kind the fixture does not build is
 	// walked where the application really places it.
 	Places []ochazuke.NounPlace
@@ -129,6 +130,8 @@ func Checks() []Rule {
 			Doc: "a hidden row takes no key that did something at any place and mode without it (HiddenKeys)"},
 		{ID: "modeexits", Kind: Registry, Run: runModeExits,
 			Doc: "every mode that can be entered at a place has a key there that leaves it (ModeExits)"},
+		{ID: "outcomes", Kind: Registry, Run: runOutcomes,
+			Doc: "every verb offered at every place passes a dry run (it runs, asks or does nothing; failed is a fault), every noun that can be focused stands at a walked place, every recorded place names a noun (Outcomes)"},
 		{ID: "names", Kind: Static, Run: runNames,
 			Doc: "no comparison, case or table keyed by a noun, verb, mode, motion or parameter name (namecheck)"},
 		{ID: "refusals", Kind: Static, Run: runRefusals,

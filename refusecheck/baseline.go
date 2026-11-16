@@ -2,6 +2,7 @@ package refusecheck
 
 import (
 	"bufio"
+	"cmp"
 	"fmt"
 	"os"
 	"sort"
@@ -119,10 +120,13 @@ type Problem struct {
 	Message string
 }
 
-// Summary counts the sites in the code now, by class.
+// Summary counts the sites in the code now, by class, and the debt by
+// the outcome its class should become (Class.Outcome), so a lane sees
+// what is left of each kind.
 type Summary struct {
-	ByClass     map[string]int
-	Legit, Debt int
+	ByClass       map[string]int
+	DebtByOutcome map[string]int
+	Legit, Debt   int
 }
 
 func (s Summary) String() string {
@@ -135,7 +139,16 @@ func (s Summary) String() string {
 	for i, k := range keys {
 		parts[i] = fmt.Sprintf("%s=%d", k, s.ByClass[k])
 	}
-	return fmt.Sprintf("refusecheck: %d exceptions, %d debt; by class {%s}", s.Legit, s.Debt, strings.Join(parts, " "))
+	outcomes := make([]string, 0, len(s.DebtByOutcome))
+	for k := range s.DebtByOutcome {
+		outcomes = append(outcomes, k)
+	}
+	sort.Strings(outcomes)
+	debt := make([]string, len(outcomes))
+	for i, k := range outcomes {
+		debt[i] = fmt.Sprintf("%s=%d", k, s.DebtByOutcome[k])
+	}
+	return fmt.Sprintf("refusecheck: %d exceptions, %d debt; by class {%s}; debt by expected outcome {%s}", s.Legit, s.Debt, strings.Join(parts, " "), strings.Join(debt, " "))
 }
 
 func classNum(id string) int {
@@ -158,13 +171,17 @@ type Result struct {
 // the code does (Stale).
 func Compare(sites []Site, base Baseline) Result {
 	uses := classUse()
+	outcome := map[string]string{}
+	for _, c := range Classes() {
+		outcome[c.ID] = c.Outcome
+	}
 	now := map[Key]int{}
 	lines := map[Key][]int{}
 	for _, s := range sites {
 		now[s.Key()]++
 		lines[s.Key()] = append(lines[s.Key()], s.Line)
 	}
-	res := Result{Shrunk: Baseline{}, Summary: Summary{ByClass: map[string]int{}}}
+	res := Result{Shrunk: Baseline{}, Summary: Summary{ByClass: map[string]int{}, DebtByOutcome: map[string]int{}}}
 	keys := make([]Key, 0, len(now)+len(base))
 	for k := range now {
 		keys = append(keys, k)
@@ -193,8 +210,9 @@ func Compare(sites []Site, base Baseline) Result {
 		res.Summary.ByClass[k.Class] += have
 		if base[k].Reason != "" {
 			res.Summary.Legit += have
-		} else {
+		} else if have > 0 {
 			res.Summary.Debt += have
+			res.Summary.DebtByOutcome[cmp.Or(outcome[k.Class], "unclassified")] += have
 		}
 	}
 	return res

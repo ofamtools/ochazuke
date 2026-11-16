@@ -45,6 +45,11 @@ patterns; declarations carry their class; a `%w` wrap is K14; the rest is
 K15, which only shrinks as each lane classifies what it touches). A failure
 names the class and what to use instead.
 
+Each class also names the outcome its sites become once converted
+(`outcome`: `needs/target`, `needs/value`, `nothing/kept`, `done`, ...; K15
+`unclassified`), and the check's log groups the debt by it (`debt by expected
+outcome {...}`), so a lane sees what is left of each kind.
+
 ## The four enabling answers
 
 Replace the refusal with one of these:

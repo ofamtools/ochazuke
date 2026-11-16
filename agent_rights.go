@@ -231,7 +231,16 @@ func (r *Runtime) agentActivity() string {
 // CheckRequest resolves arguments, target, subjects, guards and verb checks
 // without invoking the handler, opening a modal or recording history. Checks
 // should be read-only, as they are when judging an ordinary request.
-func (r *Runtime) CheckRequest(q Request) error {
+func (r *Runtime) CheckRequest(q Request) error { return r.CheckRequestAt(r.Focus, q) }
+
+// CheckRequestAt is CheckRequest asked from the instance focus (its
+// context, as a key pressed there would be), without moving the focus:
+// the rule checks' dry run at every live place (rulecheck outcomes). A
+// focus no instance has is the current focus.
+func (r *Runtime) CheckRequestAt(focus string, q Request) error {
+	if r.Instances[focus] == nil {
+		focus = r.Focus
+	}
 	actor := r.Actor()
 	if r.agentTransport != nil {
 		actor = r.agentTransport.actor
@@ -243,7 +252,7 @@ func (r *Runtime) CheckRequest(q Request) error {
 	}
 	defer r.WithActor(actor)()
 	q = r.canonicalRequest(q)
-	_, err := r.execute(r.Context(), &q, true)
+	_, err := r.execute(r.contextOf(focus), &q, true)
 	return err
 }
 
