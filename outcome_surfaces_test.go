@@ -195,8 +195,8 @@ func TestHookOutcomes(t *testing.T) {
 // without Patch, Create or Delete, a singleton's collection verb, a system
 // fact) answers nothing / not-here with the declared reason from every
 // route: the API (ExecuteOutcome), a person at the palette (an info line,
-// no error) and a dry run (CheckRequest); it leaves no history row and
-// calls no store write. The CLI and MCP encoders are covered in package
+// no error) and a dry run (CheckRequest); it leaves no change row in the
+// history and calls no store write. The CLI and MCP encoders are covered in package
 // cli (TestCLIOutcomes, TestMCPOutcomes).
 func TestUnavailableAnswersNothing(t *testing.T) {
 	read := func(Ctx, string) (Thing, error) { return Thing{"id": "a", "name": "a"}, nil }
@@ -244,12 +244,12 @@ func TestUnavailableAnswersNothing(t *testing.T) {
 			if op.Unavailable == "" || !strings.Contains(op.Unavailable, k.reason) {
 				t.Fatalf("%s: shelf.%s unavailable %q, want %q", k.name, k.verb, op.Unavailable, k.reason)
 			}
-			rows := len(r.HistoryOf(0))
+			rows := len(r.HistoryOf(0, HistoryChange)) // the palette opening is an action row
 			o := route.run(r, sink, Request{Noun: "shelf", Verb: k.verb})
 			if o.Kind != OutcomeNothing || o.Cause != CauseNotHere || !strings.Contains(o.Reason, op.Unavailable) {
 				t.Errorf("%s %s: %s/%s %q, want nothing/not-here with %q", k.name, route.name, o.Kind, o.Cause, o.Reason, op.Unavailable)
 			}
-			if n := len(r.HistoryOf(0)); n != rows {
+			if n := len(r.HistoryOf(0, HistoryChange)); n != rows {
 				t.Errorf("%s %s: %d history rows, want %d", k.name, route.name, n, rows)
 			}
 		}
