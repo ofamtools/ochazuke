@@ -17,11 +17,6 @@ func subjectAskRuntime(t *testing.T, param Parameter, late bool) (*Runtime, *Pal
 	t.Helper()
 	r := NewRuntime()
 	r.Config().Disable()
-	// These tests walk the form and press enter for the field's picker;
-	// TestAskTargetSetting covers the picker opening at once (ask.target).
-	if err := r.Settings().Set(AskTargetSetting, "form"); err != nil {
-		t.Fatal(err)
-	}
 	r.Instance("app")
 	r.Instance("home")
 	r.Define("swatch")

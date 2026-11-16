@@ -200,7 +200,7 @@ func TestTargetLinkedSetting(t *testing.T) {
 // ask.target, one value each: a key whose verb lacks its thing opens the
 // args form, with the field's picker on top (picker) or not (form).
 func TestAskTargetSetting(t *testing.T) {
-	for value, picker := range map[string]bool{"picker": true, "form": false} {
+	for value, picker := range map[string]bool{"form": false, "picker": true} {
 		t.Run(value, func(t *testing.T) {
 			r, _, ran := subjectAskRuntime(t, Parameter{Type: "string", Required: true, Noun: "swatch"}, false)
 			if err := r.Settings().Set(AskTargetSetting, value); err != nil {

@@ -236,7 +236,7 @@ func (e *RecordEditor) chooseMissingPath(start string) error {
 }
 
 // suggestStart opens the picker of the form's start field over it when
-// that field takes a thing of a noun (pickTarget, ask.target picker): what
+// that field takes a thing of a noun (pickTarget: ask.target picker, not the default): what
 // pressing enter on the field opens, at once. A path field keeps its own
 // picker (chooseMissingPath); any other field opens nothing.
 func (e *RecordEditor) suggestStart() error {

@@ -121,7 +121,8 @@ func (r *Runtime) answerPerson(q Request, err error, run func(Request) error, he
 type askWay func(r *Runtime, q Request, o Outcome, run func(Request) error, held bool) bool
 
 // askWays are ask.choices's values: the ways tried in order. The first is
-// the default.
+// the default (form: the args form on the needed field; picker, the other
+// value, opens the candidates' picker first).
 type askWays struct {
 	value string
 	ways  []askWay
@@ -130,17 +131,18 @@ type askWays struct {
 func (a askWays) settingValue() string { return a.value }
 
 var askChoices = []askWays{
-	{"picker", []askWay{(*Runtime).pickNeed, (*Runtime).formNeed}},
 	{"form", []askWay{(*Runtime).formNeed}},
+	{"picker", []askWay{(*Runtime).pickNeed, (*Runtime).formNeed}},
 }
 
 // askTargets are ask.target's values: the ways a need of a thing of a noun
 // (Need.Target) is asked for, tried in order. The first is the default:
-// the args form with the field's picker on top (its ranked candidates
-// first, then every thing of the noun), else a picker of the candidates.
+// the args form on the field, whose own picker (enter) lists its ranked
+// candidates first, then every thing of the noun; else a picker of the
+// candidates. The picker value opens that field's picker on top at once.
 var askTargets = []askWays{
-	{"picker", []askWay{(*Runtime).pickTarget, (*Runtime).pickNeed}},
 	{"form", []askWay{(*Runtime).formNeed, (*Runtime).pickNeed}},
+	{"picker", []askWay{(*Runtime).pickTarget, (*Runtime).pickNeed}},
 }
 
 // targetPicker is one value of ask.target as the args form reads it when
@@ -155,7 +157,7 @@ func (t targetPicker) settingValue() string { return t.value }
 
 // targetPickers are ask.target's values for a form that opens before the
 // request runs; the first is the default.
-var targetPickers = []targetPicker{{"picker", true}, {"form", false}}
+var targetPickers = []targetPicker{{"form", false}, {"picker", true}}
 
 // picksTarget reports whether ask.target opens a needed thing's picker
 // over the args form at once; never with subject.ask off.
@@ -251,7 +253,7 @@ func needRows(o Outcome) []PickerRow {
 }
 
 // pickTarget opens the args form on the parameter o needs, as formNeed
-// does, with that field's picker on top at once (ask.target picker): the
+// does, with that field's picker on top at once (ask.target picker, not the default): the
 // subject picker, its ranked candidates as the here source, then every
 // thing of the noun, flat and filterable, then the walk. It reports
 // whether the form opened. With subject.ask off it is formNeed alone, as

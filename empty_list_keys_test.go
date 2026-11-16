@@ -158,14 +158,11 @@ func TestEmptyIndexDeclaredKeysWin(t *testing.T) {
 func TestEmptyIndexSubjectAndOptOut(t *testing.T) {
 	r, _, list := emptyIndexFixture(t, false, true)
 	formKeys(t, r, "v")
-	// ask.target picker: the subject's picker opens over the form at once.
-	if e := r.RecordEditor(ArgsFormID); e == nil || e.fields[e.start()].Name != "id" || r.Chooser(FormSuggestionsKind) == nil || list.Len() != 0 {
+	if r.TopModal() != ArgsFormID || r.Focus != ArgsFormID+"/id" || list.Len() != 0 {
 		t.Fatalf("show must ask for a real subject: modal %q, focus %q, rows %d", r.TopModal(), r.Focus, list.Len())
 	}
-	for r.TopModal() != "" {
-		if err := r.Pop(); err != nil {
-			t.Fatal(err)
-		}
+	if err := r.Pop(); err != nil {
+		t.Fatal(err)
 	}
 	if err := r.Settings().Set(MissingOpensFormSetting, false); err != nil {
 		t.Fatal(err)

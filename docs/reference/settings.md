@@ -1128,16 +1128,16 @@ ochazuke.focus.act (default g .) lists every verb from the focused thing's key w
 <a id="setting-ask.choices"></a>
 ### `ask.choices`
 
-string · default `picker` · choices `picker`, `form` · section Pickers · declared by ochazuke
+string · default `form` · choices `picker`, `form` · section Pickers · declared by ochazuke
 
-What opens when something you ran needs a value or a thing it was not given: picker opens a picker of the candidates at once (best first; a pick runs it again), and the args form when there are none; form opens the args form on the needed field, as before, and a choice with nothing to fill in is an error line
+What opens when something you ran needs a value or a thing it was not given: form (the default) opens the args form on the needed field, marked and focused, and a choice with nothing to fill in is an error line; picker opens a picker of the candidates at once (best first; a pick runs it again), and the args form when there are none
 
 <a id="setting-ask.target"></a>
 ### `ask.target`
 
-string · default `picker` · choices `picker`, `form` · section Pickers · declared by ochazuke
+string · default `form` · choices `picker`, `form` · section Pickers · declared by ochazuke
 
-What opens when something you ran needs a thing it was not given (a pane, a task): picker opens the args form with that field's picker on top at once, the things found from where you are first (selected, focused, holding the focus, on the page, linked, recent), then every thing of its kind, flat and filterable; form opens the args form on the field, and enter opens its picker, as before
+What opens when something you ran needs a thing it was not given (a pane, a task): form (the default) opens the args form on the field, and enter opens its picker, the things found from where you are first (selected, focused, holding the focus, on the page, linked, recent), then every thing of its kind, flat and filterable; picker opens that field's picker on top of the form at once
 
 <a id="setting-path.field"></a>
 ### `path.field`

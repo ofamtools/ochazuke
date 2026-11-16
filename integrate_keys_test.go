@@ -91,8 +91,7 @@ func TestScaffoldVerbsAskForWhatTheyLack(t *testing.T) {
 			t.Fatal(err)
 		}
 		press(t, r, "a")
-		// ask.target picker: the other end's picker opens over the form at once.
-		if e := r.RecordEditor(ArgsFormID); e == nil || e.fields[e.start()].Name != "to" || r.Chooser(FormSuggestionsKind) == nil {
+		if r.TopModal() != ArgsFormID || !strings.HasSuffix(r.Focus, "/to") {
 			t.Fatalf("a on a note asks for the other end: modal %q focus %q", r.TopModal(), r.Focus)
 		}
 	})
