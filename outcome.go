@@ -92,6 +92,16 @@ func as[E error](err error) error {
 	return nil
 }
 
+// is is the Find of a row for the sentinel error target.
+func is(target error) func(error) error {
+	return func(err error) error {
+		if errors.Is(err, target) {
+			return target
+		}
+		return nil
+	}
+}
+
 // outcomeTable maps today's typed errors to an outcome, first match wins.
 // Any error no row matches is failed / failure. Order matters only where
 // one error wraps another: the narrower type first.
@@ -103,6 +113,8 @@ var outcomeTable = []outcomeRow{
 	{Type: "*UnknownNameError", Find: as[*UnknownNameError], Kind: OutcomeNeeds, Cause: CauseChoice, Fill: fillUnknownName},
 	{Type: "*AmbiguousNounError", Find: as[*AmbiguousNounError], Kind: OutcomeNeeds, Cause: CauseChoice, Fill: fillAmbiguous},
 	{Type: "*ReadOnlyError", Find: as[*ReadOnlyError], Kind: OutcomeNothing, Cause: CauseKept, Fill: fillReadOnly},
+	{Type: "*KeptError", Find: as[*KeptError], Kind: OutcomeNothing, Cause: CauseKept},
+	{Type: "ErrTreeRefused", Find: is(ErrTreeRefused), Kind: OutcomeNothing, Cause: CauseKept},
 	{Type: "*NotApplicableError", Find: as[*NotApplicableError], Kind: OutcomeNothing, Cause: CauseNotHere},
 	{Type: "*RefusedError", Find: as[*RefusedError], Kind: OutcomeFailed, Cause: CauseRights, Fill: fillRefused},
 }

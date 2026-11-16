@@ -95,6 +95,13 @@ const (
 	// thing current; set with a thing and no props writes it true, so
 	// "mode set nested" switches to nested.
 	RoleCurrent = "current"
+	// RoleFixed is the prop that names the kinds of change a thing keeps
+	// itself from (fixed.go): a list of kinds ("rename", "move",
+	// "delete", any word a verb's Operation.Changes uses), or an object
+	// of kind to the reason told for it. A verb whose Changes names one
+	// of them answers nothing / kept on that thing before its handler
+	// runs, from every route, and its keys are not offered there.
+	RoleFixed = "fixed"
 )
 
 // freeRoles are the roles any prop may take with no further rule: current
@@ -1280,7 +1287,7 @@ func checkPropRole(key string, p PropSpec) error {
 		return nil
 	}
 	switch p.Role {
-	case "", RoleLabel, RoleCreated, RoleUpdated:
+	case "", RoleLabel, RoleCreated, RoleUpdated, RoleFixed:
 	case RoleArchive:
 		if p.Type != SettingBoolean {
 			return fmt.Errorf("prop %s: the archive role is a boolean prop, not %s", key, p.Type)

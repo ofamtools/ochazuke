@@ -41,15 +41,14 @@ func TestFixedNodeRefusesFromEveryPath(t *testing.T) {
 		t.Fatalf("keys changed a fixed node: %v editing=%q", *writes, tree.Editing())
 	}
 	for _, verb := range []string{"delete", "edit", "indent", "outdent"} {
-		// The keys stand aside; an explicit request reaches the tree,
-		// which keeps the fixed node (a refusal debt: the nearest-legal
-		// rule is no-refusals N5's).
-		if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: verb, Target: "a"}); len(tree.Nodes()) != 4 {
+		// The keys stand aside; an explicit request answers nothing /
+		// kept before the tree's handler runs (fixed.go).
+		if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: verb, Target: "a"}); err != nil || len(tree.Nodes()) != 4 {
 			t.Fatalf("outline.%s on the fixed root: %v", verb, err)
 		}
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: "move", Target: "a", Args: Arguments{"delta": 1}}); err == nil {
-		t.Fatal("outline.move on the fixed root must be refused")
+	if o := r.ExecuteOutcome(Request{Noun: "ochazuke.outline", Verb: "move", Target: "a", Args: Arguments{"delta": 1}}); o.Kind != OutcomeNothing || o.Cause != CauseKept {
+		t.Fatalf("outline.move on the fixed root: %+v", o)
 	}
 	if err := tree.Edit("a", false); err == nil || !strings.Contains(err.Error(), "refuses a rename") {
 		t.Fatalf("Tree.Edit: %v", err)
@@ -71,8 +70,8 @@ func TestFixedNodeRefusesFromEveryPath(t *testing.T) {
 // here), and a fixed-delete descendant blocks its ancestor's delete.
 func TestFixedNodeGranularity(t *testing.T) {
 	r, _, tree, writes := fixedTree(t)
-	if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: "edit", Target: "d"}); err == nil {
-		t.Fatal("rename of d must be refused")
+	if o := r.ExecuteOutcome(Request{Noun: "ochazuke.outline", Verb: "edit", Target: "d"}); o.Kind != OutcomeNothing || tree.Editing() != "" {
+		t.Fatalf("rename of d must be kept: %+v", o)
 	}
 	if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: "outdent", Target: "d"}); err != nil {
 		t.Fatalf("d moves: %v", err)

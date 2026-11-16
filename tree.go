@@ -964,7 +964,7 @@ func (t *Tree) commit(changes []TreeChange, selectID string) error {
 }
 
 // refuses is why the change may not be made, nil when it may: a node's
-// Fixed, then the application's Refuse.
+// Fixed (a KeptError: nothing / kept), then the application's Refuse.
 func (t *Tree) refuses(c TreeChange) error {
 	var node TreeNode
 	if c.Op == TreeAdd {
@@ -973,11 +973,8 @@ func (t *Tree) refuses(c TreeChange) error {
 		}
 	} else if i := t.index(c.ID); i >= 0 {
 		node = t.nodes[i]
-		if blocker, ok := t.fixedFor(c.Op, c.ID); ok {
-			if blocker.ID == node.ID {
-				return fmt.Errorf("%s refuses %s", nodeName(node), changeVerb(c.Op))
-			}
-			return fmt.Errorf("%s holds %s, which refuses %s", nodeName(node), nodeName(blocker), changeVerb(c.Op))
+		if kept := t.kept(c.Op, c.ID); kept != nil {
+			return kept
 		}
 	}
 	if t.Refuse != nil {
@@ -1817,6 +1814,12 @@ func registerTrees(r *Runtime) {
 				return Failed(errors.New("no focused tree"))
 			}
 			if err := run(t, c); err != nil {
+				// What the outcome table calls nothing (a node its Fixed
+				// keeps, a change the store refused, a tree that takes no
+				// edits) changed nothing, and nothing is wrong.
+				if o := OutcomeOf(nil, err); o.Kind == OutcomeNothing {
+					return Nothing(o.Cause, o.Reason)
+				}
 				return Failed(err)
 			}
 			return Done(t.target(c.Context))
@@ -1856,13 +1859,13 @@ func registerTrees(r *Runtime) {
 				selected = t.r.RenameSelect()
 			}
 			return t.rename(t.target(c.Context), selected)
-		}), "Edit (rename) the node's line, with its text selected (select; omitted, the rename.select setting decides) so typing replaces it; typing is written after a pause and when the line is left").When("outline-renamable").
-		Verb("indent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, true) }), "Nest the node under the node above it").When("outline-movable").
-		Verb("outdent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, false) }), "Move the node out to follow its parent").When("outline-movable").
+		}), "Edit (rename) the node's line, with its text selected (select; omitted, the rename.select setting decides) so typing replaces it; typing is written after a pause and when the line is left").When("outline-renamable").Changes(TreeRename).
+		Verb("indent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, true) }), "Nest the node under the node above it").When("outline-movable").Changes(TreeMove).
+		Verb("outdent", edit(func(t *Tree, c Ctx) error { return t.shift(c.Context, false) }), "Move the node out to follow its parent").When("outline-movable").Changes(TreeMove).
 		Verb("move", edit(func(t *Tree, c Ctx) error {
 			return t.move(c.Context, IntArg(c.Args, "delta", 1), IntArg(c.Args, "count", 1), StringArg(c.Args, "to", ""))
-		}), "Move the node (a visual selection: every selected node, as a block and one undo step) down (delta 1) or up (-1) the rows count times, past its siblings and, at the last or first one and with tree.move-spill, out of its parent to follow or precede it; or to the first or last place among its siblings (to)").When("outline-movable").
-		Verb("delete", edit(func(t *Tree, c Ctx) error { return t.remove(c.Context) }), "Delete the node (tree.delete-children says what happens to its children: a collapsed node takes them with it, an expanded one passes them up a level or to the top level); over a visual selection, every selected node, as one undo step; u brings them back").When("outline-deletable").
+		}), "Move the node (a visual selection: every selected node, as a block and one undo step) down (delta 1) or up (-1) the rows count times, past its siblings and, at the last or first one and with tree.move-spill, out of its parent to follow or precede it; or to the first or last place among its siblings (to)").When("outline-movable").Changes(TreeMove).
+		Verb("delete", edit(func(t *Tree, c Ctx) error { return t.remove(c.Context) }), "Delete the node (tree.delete-children says what happens to its children: a collapsed node takes them with it, an expanded one passes them up a level or to the top level); over a visual selection, every selected node, as one undo step; u brings them back").When("outline-deletable").Changes(TreeDelete).
 		Verb("undo", edit(func(t *Tree, c Ctx) error { return t.history(false) }), "Undo the last change; the undo is written like any change").When("tree-editable").
 		Verb("redo", edit(func(t *Tree, c Ctx) error { return t.history(true) }), "Redo the last undone change").When("tree-editable").
 		Verb("paste", edit(func(t *Tree, c Ctx) error { return t.paste(c.Context, StringArg(c.Args, "text", "")) }), "Add pasted lines below the node, nested by their indent").When("tree-editable").

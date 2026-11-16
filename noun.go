@@ -711,6 +711,14 @@ func (b *NounBuilder) Exits(kind string) *NounBuilder {
 	return b.lastOp("Exits", func(o *Operation) { o.Exits = kind })
 }
 
+// Changes declares the kinds of change the last declared verb makes to
+// its subject (Operation.Changes: TreeRename, TreeMove, TreeDelete or an
+// application's word): a thing that keeps itself from one (RoleFixed, a
+// tree node's Fixed) answers the verb nothing / kept.
+func (b *NounBuilder) Changes(kinds ...string) *NounBuilder {
+	return b.lastOp("Changes", func(o *Operation) { o.Changes = append(o.Changes, kinds...) })
+}
+
 // Repeatable marks the last declared verb as a change dot-repeat replays
 // (Operation.Repeatable).
 func (b *NounBuilder) Repeatable() *NounBuilder {

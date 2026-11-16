@@ -123,6 +123,9 @@ func (t *Tree) remove(c Context) error {
 			continue
 		}
 		if err := t.removeOne(id); err != nil {
+			if kept := (*KeptError)(nil); selection && errors.As(err, &kept) {
+				continue // a selected node its Fixed keeps stays; the others go
+			}
 			if !selection {
 				failure = err
 				break
@@ -197,7 +200,8 @@ func (t *Tree) yankDeleted(rows []snap) error {
 }
 
 // removeOne deletes one node by its plan and puts the cursor on the row
-// that follows it, else the one before, else the tree's list.
+// that follows it, else the one before, else the tree's list; a node that
+// stays (its Fixed keeps it, the store refused) keeps the cursor.
 func (t *Tree) removeOne(id string) error {
 	changes := t.deletePlan(id)
 	gone := map[string]bool{}
@@ -220,6 +224,9 @@ func (t *Tree) removeOne(id string) error {
 		}
 	}
 	err := t.commitPlan(changes, next)
+	if t.index(id) >= 0 {
+		return err // nothing was deleted (kept, refused, a failed write put back): the focus stays
+	}
 	switch {
 	case next != "":
 		_ = t.r.SetFocus(next)

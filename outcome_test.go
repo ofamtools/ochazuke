@@ -25,6 +25,8 @@ func TestOutcomeOf(t *testing.T) {
 		{"unknown name", &UnknownNameError{Kind: "setting", Name: "colr"}, OutcomeNeeds, CauseChoice},
 		{"ambiguous noun", &AmbiguousNounError{Word: "doc", Nouns: []string{"json.doc", "md.doc"}}, OutcomeNeeds, CauseChoice},
 		{"read-only", &ReadOnlyError{Noun: "task", Prop: "id"}, OutcomeNothing, CauseKept},
+		{"kept", &KeptError{Thing: "a", Change: TreeDelete, Reason: `"a" refuses deletion`}, OutcomeNothing, CauseKept},
+		{"store refused", fmt.Errorf("no: %w", ErrTreeRefused), OutcomeNothing, CauseKept},
 		{"not applicable", &NotApplicableError{Key: "task.done"}, OutcomeNothing, CauseNotHere},
 		{"rights never", &RefusedError{Verb: "task.delete", Rule: "r", Reason: "never"}, OutcomeFailed, CauseRights},
 		{"rights confirm", &RefusedError{Verb: "task.delete", Rule: "r", Reason: "ask", Approvable: true, Command: "app task delete"}, OutcomeNeeds, CauseConfirm},

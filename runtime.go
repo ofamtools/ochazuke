@@ -328,7 +328,14 @@ type Operation struct {
 	// Loses says what a run destroys that undo cannot restore ("the pane's
 	// process"); only a verb that Loses something asks before it runs
 	// (Confirm; no-refusals D7). Empty: the run is undoable or lossless.
-	Loses       string    `json:"loses,omitempty"`
+	Loses string `json:"loses,omitempty"`
+	// Changes names the kinds of change the verb makes to its subject
+	// (TreeRename, TreeMove, TreeDelete, or any word an application's
+	// things use): where the subject keeps itself from one of them (its
+	// RoleFixed prop, a tree node's Fixed), the verb answers nothing /
+	// kept before its handler runs, from every route, and its keys are
+	// not offered there (fixed.go). Empty: no thing keeps itself from it.
+	Changes     []string  `json:"changes,omitempty"`
 	Destructive bool      `json:"destructive,omitempty"`
 	Agent       string    `json:"agent,omitempty"`
 	Examples    []Example `json:"examples,omitempty"`
@@ -1203,9 +1210,11 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	if c.InputID != "" && r.Input(c.InputID) == nil {
 		return nil, fmt.Errorf("unknown input %q", c.InputID)
 	}
-	// Guards route keys (a false guard skips the row); an explicit request
-	// (the palette, the CLI, the API, the help modal) reaching a verb
-	// guarded off where it acts asks for a missing target, runs the verb's
+	// A subject that keeps itself from the verb's change answers nothing /
+	// kept first, from every route (explicitRule, fixed.go). Guards route
+	// keys (a false guard skips the row); an explicit request (the
+	// palette, the CLI, the API, the help modal) reaching a verb guarded
+	// off where it acts asks for a missing target, runs the verb's
 	// Fallback, provides what it Requires, or runs it (no-refusals D3).
 	if v, err, done := r.explicitRule(c, op, withArgs(q, filled), focus, guardMode, checkOnly); done {
 		return v, err

@@ -22,7 +22,9 @@ func (r *Runtime) disabledHidden(op Operation) bool {
 	return s.String(VerbsDisabledSetting) != def
 }
 
-// explicitRule applies refuseGuarded to an explicit request: done with the
+// explicitRule first answers nothing / kept, done, for a request whose
+// subject keeps itself from the verb's change (keeps, fixed.go). Then it
+// applies refuseGuarded to an explicit request: done with the
 // refusal (a missing target asks) or with the Fallback's answer; not done
 // when the verb itself runs (what it Needs is provided just before its
 // handler, after its checks: invoke). The Fallback runs only for a request
@@ -31,6 +33,9 @@ func (r *Runtime) disabledHidden(op Operation) bool {
 // confirmed request comes back here and falls back). A check (checkOnly:
 // CheckRequest, a dry run) never falls back: it judges the verb as asked.
 func (r *Runtime) explicitRule(c Context, op Operation, q Request, focus string, mode ModeState, checkOnly bool) (any, error, bool) {
+	if r.keeps(op, q, focus, checkOnly) {
+		return nil, nil, true
+	}
 	instead, err := r.refuseGuarded(op, q, focus, mode)
 	switch {
 	case err != nil:

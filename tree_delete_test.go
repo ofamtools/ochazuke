@@ -152,7 +152,7 @@ func TestTreeDeleteOrphanMovesChildrenToTheTopLevel(t *testing.T) {
 // (Fixed: deleting it or any ancestor), however its children would be kept.
 func TestTreeDeleteFixedRowsStillRefuse(t *testing.T) {
 	t.Parallel()
-	_, m, tree, writes := deleteFixture(t, "")
+	r, m, tree, writes := deleteFixture(t, "")
 	nodes := tree.Nodes()
 	nodes[0].Fixed = []string{TreeDelete}
 	_ = tree.SetNodes(nodes)
@@ -166,6 +166,11 @@ func TestTreeDeleteFixedRowsStillRefuse(t *testing.T) {
 	pressKeys(m, "g", "g", "j", "d", "d")
 	if got := shape(tree); got != deleteStart || len(*writes) != 0 {
 		t.Fatalf("an ancestor of a fixed row was deleted: %q %v", got, *writes)
+	}
+	// Asked by name (the palette, the CLI), the delete is kept: no error,
+	// and the focus stays on b instead of moving to the next row.
+	if _, err := r.Execute(Request{Noun: "ochazuke.outline", Verb: "delete"}); err != nil || shape(tree) != deleteStart || r.Focus != "b" {
+		t.Fatalf("explicit delete of b: %v shape %q focus %q", err, shape(tree), r.Focus)
 	}
 }
 
@@ -228,6 +233,9 @@ func TestTreeDeletePlanStopsAtAFailedMove(t *testing.T) {
 		pressKeys(m, "j", "d", "d") // b: move c, move d (fails), delete b
 		if got, want := shape(tree), "a<- c<a b<a d<b e<a f<-"; got != want {
 			t.Fatalf("%s: shape %q, want %q", name, got, want)
+		}
+		if focus := m.Runtime.Focus; focus != "b" {
+			t.Fatalf("%s: b stays, and so does the focus: %q", name, focus)
 		}
 		if want := []string{"move c under a at 0"}; !slices.Equal(*writes, want) {
 			t.Fatalf("%s: writes %v, want %v", name, *writes, want)

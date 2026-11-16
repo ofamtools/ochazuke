@@ -65,6 +65,10 @@ type standardVerb struct {
 	Repeatable  bool
 	HistoryKind string
 	Destructive bool
+	// Changes are the kinds of change the verb makes to its subject
+	// (Operation.Changes): delete's TreeDelete, so a thing whose RoleFixed
+	// prop names delete keeps itself (fixed.go).
+	Changes []string
 	// Agent is the verb's agent right (AgentConfirm for a verb that
 	// launches an application); "" the default.
 	Agent   string
@@ -222,7 +226,7 @@ func coreVerbs() []standardVerb {
 			Params:     setParams, Writes: setWrites, Run: runSet},
 		{Verb: "delete", Description: "Delete a thing (asks first)",
 			Kinds: []string{KindCollection}, Needs: []storeNeed{needWriter, needDelete},
-			TakesSubject: true, Many: true, Undo: undoByRecreate, Destructive: true, HistoryKind: HistoryChange,
+			TakesSubject: true, Many: true, Undo: undoByRecreate, Destructive: true, Changes: []string{TreeDelete}, HistoryKind: HistoryChange,
 			Confirm: DefaultDeleteConfirm, ConfirmFor: deleteConfirm, Run: runDelete,
 			ParamNames: []string{archiveFirstArg}, Params: deleteParams},
 		{Verb: "archive", Description: "Archive a thing: set its archive prop",

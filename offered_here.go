@@ -29,7 +29,8 @@ func (r *Runtime) Unoffer(id string, verbs ...string) {
 }
 
 // unofferedAt reports whether the focus, or a component it sits in,
-// declares the verb of key not usual there.
+// declares the verb of key not usual there, or the thing at the focus
+// keeps itself from the change the verb makes (fixed.go).
 func (r *Runtime) unofferedAt(key, focus string) bool {
 	if focus == "" {
 		return false
@@ -37,6 +38,9 @@ func (r *Runtime) unofferedAt(key, focus string) bool {
 	op, ok := r.Operation(key)
 	if !ok {
 		return false
+	}
+	if !r.offersChange(op, focus) {
+		return true // the thing at the focus keeps itself from the verb's change (fixed.go)
 	}
 	names := []string{key, op.Key.Short(), op.Name(), r.DisplayKey(op.Key.Short())}
 	for _, id := range r.Ancestry(focus) {

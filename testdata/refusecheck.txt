@@ -1272,8 +1272,6 @@ tree.go	Tree.apply	K4	"unknown tree node %q"	3
 tree.go	Tree.apply	K8	"tree node %q exists"	1
 tree.go	Tree.commitPlan	K14	"write %s: %w"	1	failure
 tree.go	Tree.openLine	K4	"unknown tree node %q"	2
-tree.go	Tree.refuses	K15	"%s holds %s, which refuses %s"	1
-tree.go	Tree.refuses	K15	"%s refuses %s"	1
 tree.go	Tree.refuses	K15	"Refuse(…)"	1
 tree.go	Tree.rowKey	K15	"no key to run on the row"	1
 tree.go	Tree.rowKey	K4	"tree has no selected node"	1
