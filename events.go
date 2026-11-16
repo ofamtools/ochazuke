@@ -99,6 +99,8 @@ type eventHub struct {
 	quitWriteDeadline time.Time
 	quitRequested     time.Time
 	quitForced        bool
+	// quitHooks are the registered before-quit hooks (quit_hooks.go).
+	quitHooks quitHookState
 }
 
 type surfaceCount struct {

@@ -54,9 +54,15 @@ import (
 //     runtime does not track terminal focus (no tea.FocusMsg handling, no
 //     ReportFocus), so an unfocused terminal is not paused.
 //
-// Opting out: the status.segments setting hides the whole area (and stops
-// every refresh), status.segments.<id> each segment (its default is the
-// row's Enabled), status.segment-backoff (default on) turns the backoff
+// Placement: a row draws in the header rule (placement status, the
+// default) or at the left of the title row, before the title (placement
+// lead, the RESTART REQUESTED badge's place, drawn in the badge.alert
+// role; its Short label when the row is narrow). One registry, one
+// refresh, one setting per row: the placement only says where it draws.
+//
+// Opting out: the status.segments setting hides the whole status area
+// (and stops its refreshes; a lead row is not in it), status.segments.<id>
+// each segment (its default is the row's Enabled), status.segment-backoff (default on) turns the backoff
 // off so every segment refreshes at its Every, and status.segment-order
 // holds the order segment.move writes. All four are ordinary settings: the
 // Settings page, settings set and settings.json reach them.
@@ -79,6 +85,20 @@ const (
 	// that segment's fields; a new id adds a segment.
 	SegmentsFile = "segments.json"
 )
+
+// The segment placements: where a row draws (Segment.Placement).
+const (
+	// SegmentPlaceStatus is the header rule, right-aligned: the default.
+	SegmentPlaceStatus = "status"
+	// SegmentPlaceLead is the left of the title row, before the title, in
+	// the badge.alert role.
+	SegmentPlaceLead = "lead"
+)
+
+// segmentAreas is the area setting that shows or hides every row of a
+// placement; a placement without one is shown by its rows' own settings
+// alone.
+var segmentAreas = map[string]string{SegmentPlaceStatus: SegmentsSetting, SegmentPlaceLead: ""}
 
 // SegmentSetting is the setting that shows or hides one segment.
 func SegmentSetting(id string) string { return SegmentsSetting + "." + id }
@@ -108,7 +128,10 @@ const (
 // own (SegmentValue.Tone); none draws muted like the rule. Order sorts
 // the rows (lower first, then the order they were added) before
 // status.segment-order. Enabled is the default of the segment's setting
-// (nil: on). Path is the provider's path (disk free reads it).
+// (nil: on). Path is the provider's path (disk free reads it). Placement
+// is where it draws (SegmentPlaceStatus, the default, or SegmentPlaceLead);
+// Short is the label a lead row draws when the title row is too narrow for
+// its text.
 //
 // In segments.json the durations are strings ("2s"), as settings.json
 // writes them.
@@ -127,6 +150,9 @@ type Segment struct {
 	Order    int           `json:"order,omitempty"`
 	Enabled  *bool         `json:"enabled,omitempty"`
 	Path     string        `json:"path,omitempty"`
+	// Placement and Short: see the type's comment.
+	Placement string `json:"placement,omitempty"`
+	Short     string `json:"short,omitempty"`
 	// Description is the line segment list and the segment's setting show.
 	Description string `json:"description,omitempty"`
 	// Owner is the settings owner of the segment's setting (a tab of the
@@ -150,13 +176,15 @@ type segmentJSON struct {
 	Order       int       `json:"order,omitempty"`
 	Enabled     *bool     `json:"enabled,omitempty"`
 	Path        string    `json:"path,omitempty"`
+	Placement   string    `json:"placement,omitempty"`
+	Short       string    `json:"short,omitempty"`
 	Description string    `json:"description,omitempty"`
 	Owner       string    `json:"owner,omitempty"`
 }
 
 // MarshalJSON writes the durations as strings ("2s").
 func (s Segment) MarshalJSON() ([]byte, error) {
-	j := segmentJSON{ID: s.ID, Label: s.Label, Format: s.Format, Provider: s.Provider, Command: s.Command, Verb: s.Verb, Args: s.Args, Tone: s.Tone, Order: s.Order, Enabled: s.Enabled, Path: s.Path, Description: s.Description, Owner: s.Owner}
+	j := segmentJSON{ID: s.ID, Label: s.Label, Format: s.Format, Provider: s.Provider, Command: s.Command, Verb: s.Verb, Args: s.Args, Tone: s.Tone, Order: s.Order, Enabled: s.Enabled, Path: s.Path, Placement: s.Placement, Short: s.Short, Description: s.Description, Owner: s.Owner}
 	if s.Every != 0 {
 		j.Every = s.Every.String()
 	}
@@ -178,7 +206,7 @@ func (s *Segment) UnmarshalJSON(data []byte) error {
 	if err := dec.Decode(&j); err != nil {
 		return err
 	}
-	out := Segment{ID: j.ID, Label: j.Label, Format: j.Format, Provider: j.Provider, Command: j.Command, Verb: j.Verb, Args: j.Args, Tone: j.Tone, Order: j.Order, Enabled: j.Enabled, Path: j.Path, Description: j.Description, Owner: j.Owner}
+	out := Segment{ID: j.ID, Label: j.Label, Format: j.Format, Provider: j.Provider, Command: j.Command, Verb: j.Verb, Args: j.Args, Tone: j.Tone, Order: j.Order, Enabled: j.Enabled, Path: j.Path, Placement: j.Placement, Short: j.Short, Description: j.Description, Owner: j.Owner}
 	for _, d := range []struct {
 		name, text string
 		into       *time.Duration
@@ -328,6 +356,8 @@ func mergeSegment(base, patch Segment) Segment {
 	set(&out.Tone, patch.Tone)
 	set(&out.Path, patch.Path)
 	set(&out.Description, patch.Description)
+	set(&out.Placement, patch.Placement)
+	set(&out.Short, patch.Short)
 	if patch.Every != 0 {
 		out.Every = patch.Every
 	}
@@ -397,6 +427,15 @@ func (s Segment) timeout() time.Duration {
 		t = DefaultSegmentTimeout
 	}
 	return min(t, s.every())
+}
+
+// placement is where the row draws: its Placement when it names one,
+// else (none, or one there is not) the status rule.
+func (s Segment) placement() string {
+	if _, ok := segmentAreas[s.Placement]; ok {
+		return s.Placement
+	}
+	return SegmentPlaceStatus
 }
 
 // sourceKind names the row's source, "" when it has none.
@@ -558,19 +597,27 @@ func (r *Runtime) ReloadUserSegments() []string {
 
 // SegmentsShown reports whether the segments area is on (its setting
 // undeclared reads on).
-func (r *Runtime) SegmentsShown() bool {
-	v, ok := r.Settings().Value(SegmentsSetting)
+func (r *Runtime) SegmentsShown() bool { return r.placementShown(SegmentPlaceStatus) }
+
+// placementShown reports whether a placement's area is on: its area
+// setting (segmentAreas; undeclared reads on), or on when it has none.
+func (r *Runtime) placementShown(placement string) bool {
+	name := segmentAreas[placement]
+	if name == "" {
+		return true
+	}
+	v, ok := r.Settings().Value(name)
 	b, isBool := v.(bool)
 	return !ok || !isBool || b
 }
 
 // segmentOn reports whether one segment's setting is on.
 func (r *Runtime) segmentOn(row *segmentRow) bool {
-	v, ok := r.Settings().Value(SegmentSetting(row.base.ID))
+	seg := row.row()
+	v, ok := r.Settings().Value(SegmentSetting(seg.ID))
 	if b, isBool := v.(bool); ok && isBool {
 		return b
 	}
-	seg := row.row()
 	return seg.Enabled == nil || *seg.Enabled
 }
 
@@ -596,15 +643,16 @@ func (r *Runtime) ordered() []*segmentRow {
 	return rows
 }
 
-// active are the rows that show and refresh: the area on, the segment's
-// setting on and its row valid, in drawing order.
+// active are the rows that show and refresh: their placement's area on,
+// the segment's setting on and its row valid, in drawing order.
 func (r *Runtime) active() []*segmentRow {
-	if len(r.segs().rows) == 0 || !r.SegmentsShown() {
+	if len(r.segs().rows) == 0 {
 		return nil
 	}
 	var out []*segmentRow
 	for _, row := range r.ordered() {
-		if r.segmentOn(row) && r.checkSegment(row.row()) == nil {
+		seg := row.row()
+		if r.placementShown(seg.placement()) && r.segmentOn(row) && r.checkSegment(seg) == nil {
 			out = append(out, row)
 		}
 	}
@@ -614,7 +662,6 @@ func (r *Runtime) active() []*segmentRow {
 // Segments lists every segment in drawing order, with whether it shows
 // and its last answer.
 func (r *Runtime) Segments() []SegmentState {
-	area := r.SegmentsShown()
 	out := []SegmentState{}
 	for i, row := range r.ordered() {
 		seg := row.row()
@@ -624,7 +671,7 @@ func (r *Runtime) Segments() []SegmentState {
 		} else if row.patch != nil {
 			from = "app+" + SegmentsFile
 		}
-		st := SegmentState{Segment: seg, Source: seg.sourceKind(), From: from, Shown: area && r.segmentOn(row), Position: i + 1, Text: row.value.Text, Error: row.err, At: row.at}
+		st := SegmentState{Segment: seg, Source: seg.sourceKind(), From: from, Shown: r.placementShown(seg.placement()) && r.segmentOn(row), Position: i + 1, Text: row.value.Text, Error: row.err, At: row.at}
 		if err := r.checkSegment(seg); err != nil && st.Error == "" {
 			st.Error = err.Error()
 		}
@@ -664,24 +711,37 @@ func firstLine(s string) string {
 	return ""
 }
 
-// SegmentCell is one drawn segment: its text and tone ("" muted).
+// SegmentCell is one drawn segment: its text, tone ("" muted) and the
+// shorter label a lead row draws when the row is narrow (Segment.Short).
 type SegmentCell struct {
-	ID   string
-	Text string
-	Tone string
+	ID    string
+	Text  string
+	Tone  string
+	Short string
 }
 
-// SegmentCells are the segments the header rule draws now: the active
-// rows that have answered, in order. A failed refresh keeps the last text
-// and draws it in state.errored; one that never answered draws its label
-// and "!" in state.errored.
+// SegmentCells are the segments the header rule draws now: the agent's
+// activity, then the active status rows that have answered, in order
+// (SegmentCellsAt).
 func (r *Runtime) SegmentCells() []SegmentCell {
 	var out []SegmentCell
 	if text := r.agentActivity(); text != "" {
 		out = append(out, SegmentCell{ID: "agent", Text: text})
 	}
+	return append(out, r.SegmentCellsAt(SegmentPlaceStatus)...)
+}
+
+// SegmentCellsAt are the cells of the active rows of one placement that
+// have answered, in order. A failed refresh keeps the last text and draws
+// it in state.errored; one that never answered draws its label and "!" in
+// state.errored; an answer with no text draws nothing.
+func (r *Runtime) SegmentCellsAt(placement string) []SegmentCell {
+	var out []SegmentCell
 	for _, row := range r.active() {
 		seg := row.row()
+		if seg.placement() != placement {
+			continue
+		}
 		switch {
 		case row.err != "" && row.value.Text == "":
 			label := seg.Label
@@ -700,7 +760,7 @@ func (r *Runtime) SegmentCells() []SegmentCell {
 				tone = ToneErrored
 			}
 			if text := segmentText(seg, row.value); text != "" {
-				out = append(out, SegmentCell{ID: seg.ID, Text: text, Tone: tone})
+				out = append(out, SegmentCell{ID: seg.ID, Text: text, Tone: tone, Short: seg.Short})
 			}
 		}
 	}
@@ -962,11 +1022,18 @@ func registerSegments(r *Runtime) {
 		row := r.segs().find(s.ID)
 		return set(!r.segmentOn(row))(r, c, a)
 	}})
-	r.Register(Operation{Key: "ochazuke.segment.move", Description: "Move a status segment: to first, last, up, down, +N, -N or a position; saved in status.segment-order", Parameters: map[string]Parameter{"id": id, "to": {Type: "string", Required: true, Description: "first, last, up, down, +N, -N or a 1-based position"}}, Positional: []string{"id", "to"}, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.segment.move", Description: "Move a status segment among those of its placement: to first, last, up, down, +N, -N or a position; saved in status.segment-order", Parameters: map[string]Parameter{"id": id, "to": {Type: "string", Required: true, Description: "first, last, up, down, +N, -N or a 1-based position"}}, Positional: []string{"id", "to"}, Result: "string[]", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		r.EnsureSegments()
+		// A segment moves among those of its placement.
+		place := SegmentPlaceStatus
+		if row := r.segs().find(StringArg(a, "id", "")); row != nil {
+			place = row.row().placement()
+		}
 		var order []string
 		for _, s := range r.Segments() {
-			order = append(order, s.ID)
+			if s.placement() == place {
+				order = append(order, s.ID)
+			}
 		}
 		out, err := segmentMove(order, StringArg(a, "id", ""), StringArg(a, "to", ""))
 		if err != nil {

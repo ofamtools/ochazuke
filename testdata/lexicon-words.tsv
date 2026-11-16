@@ -29,6 +29,7 @@ agent_session	prop	seed
 agent_type	prop	seed	
 ahead	prop	seed	
 ai	namespace	seed	
+alert	action	seed	
 aliases	prop	seed	
 all	action	seed	
 annotate	action	seed	
@@ -891,6 +892,7 @@ todos	noun	seed	plural
 toggle	action	seed	
 toggle-fast	action	seed	
 toggle-pin-column	action	seed	
+token	action	seed	
 tone	prop	seed	
 tool	noun	seed	
 tools	relation	seed	
