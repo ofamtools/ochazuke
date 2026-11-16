@@ -117,7 +117,7 @@ func TestCompositeRecordingKeepsOpeningFixture(t *testing.T) {
 	var baked *story.Story
 	for i, event := range []story.Event{
 		{Key: "ctrl+alt+n"}, {Key: "j"}, {Key: "ctrl+alt+n"},
-		{Key: "end"}, {Type: "!"}, {Key: "ctrl+c"},
+		{Key: "end"}, {Type: "!"}, {Key: "ctrl+c"}, {Key: "ctrl+c"}, // the second ctrl+c answers "Quit?" (quit.confirm)
 	} {
 		rec.Add(event)
 		if err := d.Step(event); err != nil {
