@@ -13,11 +13,18 @@ import (
 )
 
 // outcomeRuntime has one verb of each outcome kind (tag.use done,
-// tag.keep nothing / kept, tag.pick needs a choice, tag.burn failed) and
-// tag.name, which needs its required name.
+// tag.keep nothing / kept, tag.pick needs a choice, tag.burn failed),
+// tag.name, which needs its required name, and shelf, whose store creates
+// nothing (shelf.create is unavailable: nothing / not-here).
 func outcomeRuntime() *ochazuke.Runtime {
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
+	r.Define("shelf").Props(ochazuke.PropSpec{Name: "id", Key: true}).Store(ochazuke.Store{
+		Get: func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return ochazuke.Thing{"id": "a"}, nil },
+		List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
+			return []ochazuke.Thing{{"id": "a"}}, nil
+		},
+	})
 	tag := r.Define("tag")
 	tag.Verb("use", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done("used") }, "Use")
 	tag.Verb("keep", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Nothing(ochazuke.CauseKept, "the root stays") }, "Keep")
@@ -33,7 +40,8 @@ func outcomeRuntime() *ochazuke.Runtime {
 }
 
 // The CLI answers each kind by its encoder: done exit 0 with the value;
-// nothing exit 0 with the wording as a status: line; needs exit 3 with one
+// nothing exit 0 with the wording as a status: line (a verb declared
+// unavailable on its noun too); needs exit 3 with one
 // command per candidate on stderr and the outcome as JSON on a piped
 // stdout (a missing argument too, through the socket); failed exit 1.
 func TestCLIOutcomes(t *testing.T) {
@@ -45,13 +53,18 @@ func TestCLIOutcomes(t *testing.T) {
 	}{
 		{"use", 0, "", `"used"`},
 		{"keep", 0, "status: tag.keep: kept: the root stays", ""},
+		{"shelf create", 0, "status: shelf.create: does nothing here: its store creates no things (no Store.Create)", ""},
 		{"pick", ChoiceExitCode, "tag pick --tag alpha", `"outcome":"needs"`},
 		{"name", ChoiceExitCode, "", `"cause":"value"`},
 		{"burn", 1, "", ""},
 	} {
 		var stdout, stderr bytes.Buffer
 		sh := New(outcomeRuntime(), "test", nil, &stdout, &stderr)
-		err := sh.Run(context.Background(), []string{"tag", c.verb})
+		args := []string{"tag", c.verb}
+		if strings.Contains(c.verb, " ") {
+			args = strings.Fields(c.verb)
+		}
+		err := sh.Run(context.Background(), args)
 		if oden.ExitCode(err) != c.exit || !strings.Contains(stderr.String(), c.stderr) || !strings.Contains(stdout.String(), c.stdout) {
 			t.Errorf("%s: %v (exit %d) stdout %q stderr %q", c.verb, err, oden.ExitCode(err), stdout.String(), stderr.String())
 		}
@@ -64,6 +77,7 @@ func TestMCPOutcomes(t *testing.T) {
 	for _, c := range []struct{ verb, status, reason string }{
 		{"tag.use", "done", ""},
 		{"tag.keep", "nothing", "tag.keep: kept: the root stays"},
+		{"shelf.create", "nothing", "shelf.create: does nothing here: its store creates no things (no Store.Create)"},
 		{"tag.pick", "choose", "unknown tag alphb"},
 		{"tag.name", "choose", "tag.name needs name"},
 		{"tag.burn", "failed", "disk on fire"},

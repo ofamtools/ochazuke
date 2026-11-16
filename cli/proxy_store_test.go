@@ -156,9 +156,9 @@ func TestProxyStoreMissingCapability(t *testing.T) {
 			t.Fatalf("%s is offered: %v", verb, n.Store.Missing)
 		}
 	}
-	_, err := r.Execute(ochazuke.Request{Noun: "ext-task", Verb: "create", Args: ochazuke.Arguments{"title": "x"}})
-	if err == nil || !strings.Contains(err.Error(), "extension offers no create") {
-		t.Fatalf("create should refuse with the reason: %v", err)
+	o := r.ExecuteOutcome(ochazuke.Request{Noun: "ext-task", Verb: "create", Args: ochazuke.Arguments{"title": "x"}})
+	if o.Kind != ochazuke.OutcomeNothing || o.Cause != ochazuke.CauseNotHere || !strings.Contains(o.Reason, "extension offers no create") {
+		t.Fatalf("create should do nothing here, with the reason: %s/%s %q", o.Kind, o.Cause, o.Reason)
 	}
 	// A verb the extension lacks is registered but unavailable, with the reason.
 	if op := r.Operations.At(ochazuke.Key("ext-project.get")); op.Unavailable == "" || !strings.Contains(op.Unavailable, "offers no get") {

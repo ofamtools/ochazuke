@@ -977,7 +977,6 @@ runtime.go	Runtime.execute	K15	"interaction path must start at app"	1
 runtime.go	Runtime.execute	K15	"unknown input %q"	1
 runtime.go	Runtime.execute	K4	"unknown instance %q"	1
 runtime.go	Runtime.notApplicable	K15	"%s is not applicable now"	1
-runtime.go	Runtime.standardArgs	K1	"%s is unavailable: %s"	1
 runtime.go	Runtime.targetInstance	K14	"target %q: %w"	1	failure
 runtime.go	Runtime.targetInstance	K4	"unknown target %q"	1
 runtime.go	Runtime.targetInstance	K8	"target %q resolved to %q, which is not an instance"	1
@@ -1156,7 +1155,6 @@ standard_verbs.go	setChanges	K3	"set takes a value or toggle, not both"	1
 standard_verbs.go	setChanges	K3	"value is required: set %s VALUE (or toggle a boolean)"	1
 standard_verbs.go	setObject	K15	"set takes props, not changes too (changes is props' old name)"	1
 standard_verbs.go	standardVerb.handler	K15	"Failed(…)"	1
-standard_verbs.go	standardVerb.handler	K15	"errors.New(…)"	1
 standard_verbs.go	standardVerb.handler	K4	"%s has no store"	2
 standard_verbs.go	standardVerb.operation	K1	"Unavailable: <expr>"	1
 standard_verbs.go	writeTarget	K15	"ReadOnlyError{…}"	1

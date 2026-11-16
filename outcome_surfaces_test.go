@@ -190,3 +190,73 @@ func TestHookOutcomes(t *testing.T) {
 		}
 	}
 }
+
+// A verb declared unavailable for its noun (Operation.Unavailable: a store
+// without Patch, Create or Delete, a singleton's collection verb, a system
+// fact) answers nothing / not-here with the declared reason from every
+// route: the API (ExecuteOutcome), a person at the palette (an info line,
+// no error) and a dry run (CheckRequest); it leaves no history row and
+// calls no store write. The CLI and MCP encoders are covered in package
+// cli (TestCLIOutcomes, TestMCPOutcomes).
+func TestUnavailableAnswersNothing(t *testing.T) {
+	read := func(Ctx, string) (Thing, error) { return Thing{"id": "a", "name": "a"}, nil }
+	list := func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "a", "name": "a"}}, nil }
+	props := []PropSpec{{Name: "id", Key: true}, {Name: "name"}}
+	kinds := []struct {
+		name, verb string
+		props      []PropSpec
+		store      Store
+		reason     string
+	}{
+		{"no Patch", "set", props, Store{Get: read, List: list}, "no Store.Patch"},
+		{"no Create", "create", props, Store{Get: read, List: list}, "no Store.Create"},
+		{"no Delete", "delete", props, Store{Get: read, List: list}, "no Store.Delete"},
+		{"singleton", "archive", []PropSpec{{Name: "name"}}, Store{Kind: Singleton, Get: read}, "singleton"},
+		{"system fact", "set", []PropSpec{{Name: "name"}}, Store{Kind: Singleton, Facts: true, Get: read}, FactReason},
+	}
+	routes := []struct {
+		name string
+		run  func(r *Runtime, sink *RecordingSink, q Request) Outcome
+	}{
+		{"api", func(r *Runtime, _ *RecordingSink, q Request) Outcome { return r.ExecuteOutcome(q) }},
+		{"palette", func(r *Runtime, sink *RecordingSink, q Request) Outcome {
+			m := NewModel(r)
+			r.UI().Attach(sink)
+			if err := m.Palette.Open(); err != nil {
+				return OutcomeOf(nil, err)
+			}
+			if err := m.Palette.dispatch(q); err != nil {
+				return OutcomeOf(nil, err) // a person never sees an error for it
+			}
+			return Outcome{Kind: OutcomeNothing, Cause: CauseNotHere, Reason: lastInfo(sink)}
+		}},
+		{"dry run", func(r *Runtime, _ *RecordingSink, q Request) Outcome { return OutcomeOf(nil, r.CheckRequest(q)) }},
+	}
+	for _, k := range kinds {
+		for _, route := range routes {
+			r := NewRuntime()
+			r.Config().Disable()
+			r.Instance("app")
+			sink := &RecordingSink{}
+			r.UI().Attach(sink)
+			r.Define("shelf").Props(k.props...).Store(k.store)
+			op := r.Operations.At(Key("shelf." + k.verb))
+			if op.Unavailable == "" || !strings.Contains(op.Unavailable, k.reason) {
+				t.Fatalf("%s: shelf.%s unavailable %q, want %q", k.name, k.verb, op.Unavailable, k.reason)
+			}
+			rows := len(r.HistoryOf(0))
+			o := route.run(r, sink, Request{Noun: "shelf", Verb: k.verb})
+			if o.Kind != OutcomeNothing || o.Cause != CauseNotHere || !strings.Contains(o.Reason, op.Unavailable) {
+				t.Errorf("%s %s: %s/%s %q, want nothing/not-here with %q", k.name, route.name, o.Kind, o.Cause, o.Reason, op.Unavailable)
+			}
+			if n := len(r.HistoryOf(0)); n != rows {
+				t.Errorf("%s %s: %d history rows, want %d", k.name, route.name, n, rows)
+			}
+		}
+	}
+	r := NewRuntime()
+	r.Define("shelf").Props(props...).Store(Store{Get: read, List: list})
+	if o := r.ExecuteOutcome(Request{Noun: "shelf", Verb: "set"}); o.Text() != "shelf.set: does nothing here: its store writes no props (no Store.Patch)" {
+		t.Errorf("wording %q", o.Text())
+	}
+}

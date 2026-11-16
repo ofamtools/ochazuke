@@ -11,7 +11,7 @@ import (
 
 // An offered verb whose dry run answers a plain failure (a verb check
 // that refuses blue) is reported; one that asks for a missing value is
-// not. A focusable noun at no place is unwalked until a place names it; a
+// not, nor one declared unavailable (it runs and answers nothing). A focusable noun at no place is unwalked until a place names it; a
 // place naming a noun no runtime has is skipped and reported.
 func TestOutcomes(t *testing.T) {
 	r := ochazuke.NewRuntime()
@@ -28,6 +28,7 @@ func TestOutcomes(t *testing.T) {
 	}}); err != nil {
 		t.Fatal(err)
 	}
+	r.Register(ochazuke.Operation{Key: "box.ship", Unavailable: "boxes stay here", Run: ok})
 	r.Define("gauge").Focusable()
 	all := func(int) bool { return true }
 	mine := func(found []rulecheck.Finding) []string {
@@ -44,7 +45,7 @@ func TestOutcomes(t *testing.T) {
 	found, cov := rulecheck.Outcomes([]*ochazuke.Runtime{r}, nil, all)
 	got := mine(found)
 	want := []string{`failed box.paint {"colour":"blue"}`, "unwalked gauge"}
-	if !slices.Equal(got, want) || cov.Runs == 0 || cov.ByStatus["choose"] == 0 {
+	if !slices.Equal(got, want) || cov.Runs == 0 || cov.ByStatus["choose"] == 0 || cov.Unavailable == 0 {
 		t.Fatalf("findings %v, want %v (coverage %s)", got, want, cov)
 	}
 

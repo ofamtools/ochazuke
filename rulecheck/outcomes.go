@@ -55,8 +55,10 @@ type OutcomesCoverage struct {
 	Runs, Verbs int
 	ByStatus    map[string]int
 	// NotDryRunnable are verbs offered but not run, with why; Unavailable
-	// the verbs declared never available (Operation.Unavailable: a
-	// refusecheck K1 site), not run.
+	// the dry runs of verbs declared unavailable on their noun
+	// (Operation.Unavailable: a refusecheck K1 site) that answered nothing
+	// / not-here, as they must (any other answer is counted by status and
+	// a failed one is a finding).
 	NotDryRunnable []string
 	Unavailable    int
 	// PerNoun is the number of walked places each noun stands at (as a
@@ -84,7 +86,7 @@ func (c OutcomesCoverage) String() string {
 			walked++
 		}
 	}
-	return fmt.Sprintf("places recorded %d; walked %d (live instances %d); skipped, noun unknown %d (unknown names: %s); nouns walked alone %d; nouns at a walked place %d (floor holds %d); dry runs %d of %d verbs; by status {%s}; declared unavailable, not run %d; not dry-runnable %d (%s)",
+	return fmt.Sprintf("places recorded %d; walked %d (live instances %d); skipped, noun unknown %d (unknown names: %s); nouns walked alone %d; nouns at a walked place %d (floor holds %d); dry runs %d of %d verbs; by status {%s}; declared unavailable, answered nothing %d; not dry-runnable %d (%s)",
 		c.Recorded, c.Walked, c.Live, c.Skipped, unknown, c.Alone, walked, c.Focusable, c.Runs, c.Verbs, strings.Join(status, " "), c.Unavailable, len(c.NotDryRunnable), nd)
 }
 
@@ -112,7 +114,8 @@ func (c OutcomesCoverage) String() string {
 // place's (which has no instance to stand at) from the runtime's focus,
 // each request once per focus. A catalog proxy (its checks run in the
 // extension's process) is not dry-runnable and is listed; a verb declared
-// Unavailable is counted and not run.
+// Unavailable runs like any other and must answer nothing / not-here (a
+// pass, counted apart).
 //
 // The places are the live instances, each runtime's recorded places
 // (NounPlaces) and the extra places given (a recorded noun-places file,
@@ -351,12 +354,8 @@ func (w *outcomeWalk) run(focus string, op ochazuke.Operation, q ochazuke.Reques
 		return true
 	}
 	w.ran[focus+"\x00"+text] = true
-	switch {
-	case op.CatalogProxy:
+	if op.CatalogProxy {
 		w.notRun[op.Key.Short()+" (catalog proxy: its checks run in the extension)"] = true
-		return true
-	case op.Unavailable != "":
-		w.cov.Unavailable++
 		return true
 	}
 	if !w.work(1) {
@@ -370,6 +369,9 @@ func (w *outcomeWalk) run(focus string, op ochazuke.Operation, q ochazuke.Reques
 	mcp.Answer(answer, o, true)
 	status, _ := answer["status"].(string)
 	w.cov.ByStatus[status]++
+	if op.Unavailable != "" && o.Kind == ochazuke.OutcomeNothing && o.Cause == ochazuke.CauseNotHere {
+		w.cov.Unavailable++
+	}
 	if status != "failed" {
 		return true
 	}

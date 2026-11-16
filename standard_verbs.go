@@ -208,7 +208,7 @@ func (r *Runtime) dropStandardAlias(name string) {
 
 // operation is the row's operation on noun n; reason, when not "", is why
 // it cannot run there (Operation.Unavailable): the operation is listed,
-// never available, and fails with the reason if run.
+// never available, and answers nothing / not-here with the reason if run.
 func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 	name := n.Name
 	params := map[string]Parameter{}
@@ -266,12 +266,12 @@ func (v standardVerb) operation(r *Runtime, n *Noun, reason string) Operation {
 	return op
 }
 
-// handler is the row's AppHandler on noun n: one that fails with reason
-// when the verb is unavailable there, the row's own Handler, else Run
+// handler is the row's AppHandler on noun n: one that answers nothing /
+// not-here with reason when the verb is unavailable there, the row's own Handler, else Run
 // through runRecording, once per selected row for a Many verb.
 func (v standardVerb) handler(r *Runtime, n *Noun, reason string) AppHandler {
 	if reason != "" {
-		return func(Ctx) Result { return Failed(errors.New(reason)) }
+		return func(Ctx) Result { return Nothing(CauseNotHere, reason) }
 	}
 	if v.Handler != nil {
 		h := v.Handler(r, n)

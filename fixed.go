@@ -71,6 +71,28 @@ func (r *Runtime) answerKept(op Operation, reason string) {
 	r.tellNothing(o)
 }
 
+// answerUnavailable is the answer of a request for a verb that cannot run
+// for its noun or thing (Operation.Unavailable: a store without the call,
+// a singleton's collection verb, a system fact): nothing / not-here with
+// the declared reason, one mechanism for every such verb. A run is marked
+// as one that changed nothing (no history row, no undo record, no data
+// change) and the reason is told as a handler's Nothing is (tellNothing,
+// outcome.nothing for a person, the CLI's stderr with exit status 0, MCP's
+// status nothing); a dry run (checkOnly) answers the NothingError, so a
+// check classifies it as nothing too. Its keys are not offered (the row
+// is unavailable and the key falls through); the palette lists it with
+// its reason and runs it.
+func (r *Runtime) answerUnavailable(op Operation, reason string, checkOnly bool) error {
+	if checkOnly {
+		return NothingErr(CauseNotHere, reason)
+	}
+	o := Outcome{Kind: OutcomeNothing, Cause: CauseNotHere, Reason: reason}
+	r.noteNothing(o)
+	o.Verb = r.DisplayKey(op.Key.Short())
+	r.tellNothing(o)
+	return nil
+}
+
 // subjectFixed is what the subject of q keeps itself from, with its
 // label: the thing its key argument names (read through the noun's
 // store), else the row it acts on from focus (subjectRowAt), read from the

@@ -122,14 +122,15 @@ func TestStandardWriteVerbs(t *testing.T) {
 		t.Fatalf("delete many %v confirm %q", del.Many, del.Confirm)
 	}
 	// A store without the handler, or with nothing writable, has the verb,
-	// unavailable with the reason; running it fails with that reason.
+	// unavailable with the reason; running it does nothing here, with that
+	// reason.
 	r2 := NewRuntime()
 	r2.Define("ro").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", ReadOnly: true}).Store(Store{Patch: func(Ctx, string, Thing) (Thing, error) { return nil, nil }})
 	if op := r2.Operations.At(Key("ro.set")); op.Unavailable != "it has no writable prop" {
 		t.Fatalf("set on a noun with no writable prop: %q", op.Unavailable)
 	}
-	if _, err := r2.Execute(Request{Noun: "ro", Verb: "set", Args: Arguments{"id": "x", "prop": "name", "value": "y"}}); err == nil || !strings.Contains(err.Error(), "it has no writable prop") {
-		t.Fatalf("unavailable set ran: %v", err)
+	if o := r2.ExecuteOutcome(Request{Noun: "ro", Verb: "set", Args: Arguments{"id": "x", "prop": "name", "value": "y"}}); o.Kind != OutcomeNothing || o.Cause != CauseNotHere || o.Reason != "it has no writable prop" {
+		t.Fatalf("unavailable set: %s/%s %q", o.Kind, o.Cause, o.Reason)
 	}
 }
 
