@@ -1,0 +1,87 @@
+package ochazuke
+
+import "slices"
+
+// A list's scope as data (docstore-for-nouns): a noun's list narrows to the
+// things of the current scope (the pinned project) unless a parameter
+// widens it (all), or to the value a list parameter gives. The store
+// declares how (Store.ListScope rows), the application supplies the values
+// it does not hold itself (Store.ScopeValue), and the framework adds each
+// condition to the request before the store runs it: a store with a Query
+// (DocStore over a sqlite table) runs it in the table, paged, and a
+// condition on a derived prop runs where every such condition runs
+// (withDerivations).
+
+// ListScope is one condition a list adds. Prop is the prop the condition is
+// on and Op its operator (PropFilter.Op: "" is equals). The condition's
+// value is the list parameter Arg when the request gives it, else the
+// value named Value that the store's ScopeValue answers. Unless names a
+// boolean list parameter that, when true, leaves the condition out (all:
+// every thing, not only those in scope). With no value (Arg not given,
+// ScopeValue answering nil or ""), the condition is left out: nothing
+// pinned is everything. A request that asks for every thing
+// (ListQuery.Every: a count, a derivation's read) has no scope.
+type ListScope struct {
+	Prop   string `json:"prop"`
+	Op     string `json:"op,omitempty"`
+	Arg    string `json:"arg,omitempty"`
+	Value  string `json:"value,omitempty"`
+	Unless string `json:"unless,omitempty"`
+}
+
+// scopeFilters are the conditions s's scope rows add to q.
+func scopeFilters(c Ctx, s Store, q ListQuery) []PropFilter {
+	if q.Every {
+		return nil
+	}
+	var out []PropFilter
+	for _, row := range s.ListScope {
+		if row.Unless != "" {
+			if on, _ := q.Args[row.Unless].(bool); on {
+				continue
+			}
+		}
+		var v any
+		if row.Arg != "" {
+			v = q.Args[row.Arg]
+		}
+		if emptyProp(v) && row.Value != "" && s.ScopeValue != nil {
+			v = s.ScopeValue(c, row.Value)
+		}
+		if emptyProp(v) {
+			continue
+		}
+		out = append(out, PropFilter{Prop: row.Prop, Op: row.Op, Value: v})
+	}
+	return out
+}
+
+// withListScope adds the store's scope conditions to every List and Query
+// request of noun; a store with no ListScope rows is as it is. A List
+// answer is held to the conditions too (a List that reads no Filters).
+func withListScope(noun string, s Store) Store {
+	if len(s.ListScope) == 0 {
+		return s
+	}
+	raw := s
+	scoped := func(c Ctx, q ListQuery) ListQuery {
+		if extra := scopeFilters(c, raw, q); len(extra) > 0 {
+			q.Filters = slices.Concat(clonePropFilters(q.Filters), extra)
+		}
+		return q
+	}
+	if raw.List != nil {
+		s.List = func(c Ctx, q ListQuery) ([]Thing, error) {
+			extra := scopeFilters(c, raw, q)
+			things, err := raw.List(c, scoped(c, q))
+			if err != nil || len(extra) == 0 || c.Runtime == nil || c.Runtime.Nouns[noun] == nil {
+				return things, err
+			}
+			return c.Runtime.queryAll(c.Runtime.Nouns[noun], things, ListQuery{Filters: extra, Archived: true}).Items, nil
+		}
+	}
+	if raw.Query != nil {
+		s.Query = func(c Ctx, q ListQuery) (ListPage, error) { return raw.Query(c, scoped(c, q)) }
+	}
+	return s
+}

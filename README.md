@@ -2993,6 +2993,60 @@ on each prop, so it needs no store file:
   derived props, so two nouns that derive from each other never loop.
 - Both fields are on the catalog wire (`field`, `derivation`), in MCP
   `describe`'s props, on the Nouns page's props and in the reference docs.
+- `first` is a derivation that keeps a value of its own: `Reads` are tried
+  in order and the first that holds a value shows. `REF.PROP` is the prop
+  `PROP` of the thing the reference prop `REF` names (read through its
+  noun's `Get`, once per key per read); the prop's own name is its own
+  stored value (under its `Field`). `{Name: "project", Field: "project_id",
+  Derivation: &Derivation{Of: "first", Reads: []string{"task.project",
+  "project"}}}` shows the task's project, else the thing's own; `Reads:
+  ["project", "task.project"]` the other way round. When `Reads` names the
+  prop itself it is stored and writable like any other prop (it may have a
+  role, a default, `FromFocus`); `REF`'s noun is a dependency. A set stores
+  the own field when the read would then show it: no entry before the own
+  name holds a value (no task, a task that is not found, a task with no
+  project), or the one that does holds the value written. Otherwise the
+  prop is not written, and the set answers nothing ("project comes from
+  task t1's project (p1), which wins over its own value"); with other
+  props in the same set, those are written and the reason is told as
+  information. A set that also clears or changes `REF` is read after its
+  own changes, so `{task: "", project: "p9"}` applies. A create always
+  stores what it is given and tells the reason when the read shows another
+  value.
+
+#### Writes, list scope and keys (DocStore)
+
+- `DocHooks.BeforeWrite func(c Ctx, w *DocWrite) error` sees every create
+  and set before it is stored: `w.Key` ("" on a create that makes its key),
+  `w.Old` (the thing as it is, nil on a create), `w.Changes` (the props
+  written by name; nil clears one). The hook may set, add or delete
+  entries (a name no prop declares is written as a document field of that
+  name, for `former_*` fields) and append `w.Info` lines, told as
+  information once the write is stored. It resolves and normalises (an
+  owner that wins, one not found saved unassociated with a line saying
+  so); it does not refuse: an error it answers is a failure and nothing is
+  stored. The `first` check above runs after it.
+- `Store.ListScope []ListScope` declares, as data, conditions a list adds:
+  `{Prop, Op, Arg, Value, Unless}`. The value is the list parameter `Arg`
+  when the request gives it, else the value named `Value` that
+  `Store.ScopeValue func(c Ctx, name string) any` answers (the
+  application's pinned project); `Unless` names a boolean list parameter
+  that drops the condition (`all`); no value drops it too (nothing pinned
+  is everything), and so does `ListQuery.Every` (counts, derivations). The
+  framework adds the conditions to the request (`withListScope`, outside
+  the derivations), so a store with a `Query` runs them in its table,
+  paged, and a List answer is held to them. Declare `Arg` and `Unless` in
+  `ListParams`. Any store may use it, not only DocStore.
+- `DocTable.Put` contract: a field given as nil is removed; DocStore always
+  hands `Put` the whole document (the fields it read, with the changes and
+  the nils), so a table may merge or replace and store the same document.
+  `MemDocTable.Put` merges.
+- `DocKeyTable{NextKey(prefix) (string, error)}` is optional on a table:
+  the next numbered key (prefix and one past the largest `prefix+N`) with
+  no read of the whole table. DocStore's create uses it when the table has
+  it and reads every document otherwise. `MemDocTable` has it;
+  `NextNumberedKey(prefix, keys)` is the shared rule. The `doctest`
+  contract checks both paths and the nil clear.
 
 `collection.group-fold {group?, closed?}` folds a group to one selectable
 heading. Omit `group` to use the selection's group; omit `closed` to toggle,

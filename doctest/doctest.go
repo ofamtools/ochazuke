@@ -71,6 +71,58 @@ func Run(t *testing.T, newTable NewTable) {
 	t.Run("version", func(t *testing.T) { checkVersion(t, newTable) })
 	t.Run("query", func(t *testing.T) { checkQuery(t, newTable) })
 	t.Run("archive", func(t *testing.T) { checkArchive(t, newTable) })
+	t.Run("clear", func(t *testing.T) { checkClear(t, newTable) })
+	t.Run("next-key", func(t *testing.T) { checkNextKey(t, newTable) })
+}
+
+// checkClear: a prop cleared by a set reaches Put as nil and the table
+// removes the field, while a field no prop declares stays.
+func checkClear(t *testing.T, newTable NewTable) {
+	r, table := fixture(t, newTable)
+	if err := table.Put("d1", ochazuke.Thing{"id": "d1", "title": "kept", "status": "todo", "note": "not a prop"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Nouns[Noun].Store.Patch(ochazuke.Ctx{Runtime: r, Noun: Noun}, "d1", ochazuke.Thing{"status": nil}); err != nil {
+		t.Fatal(err)
+	}
+	got, ok, err := table.Get("d1")
+	if err != nil || !ok {
+		t.Fatalf("get: %v %v", ok, err)
+	}
+	if _, has := got["status"]; has {
+		t.Fatalf("a field given as nil is removed: %v", got)
+	}
+	if got["note"] != "not a prop" || got["title"] != "kept" {
+		t.Fatalf("the other fields stay: %v", got)
+	}
+}
+
+// keysOnly is a table without its own next key (DocKeyTable hidden).
+type keysOnly struct{ ochazuke.DocTable }
+
+// checkNextKey: a create without a key makes the next numbered key, from
+// the table's own NextKey when it has one and from a read of every
+// document when it has none.
+func checkNextKey(t *testing.T, newTable NewTable) {
+	for _, hide := range []bool{false, true} {
+		r := ochazuke.NewRuntime()
+		r.Config().Disable()
+		var table ochazuke.DocTable = newTable(t, r, Noun)
+		if hide {
+			table = keysOnly{table}
+		}
+		r.Define(Noun).Props(Props...).Store(ochazuke.DocStore(table, Noun))
+		seed(t, r, 3)
+		if k, ok := table.(ochazuke.DocKeyTable); ok {
+			if next, err := k.NextKey("d"); err != nil || next != "d4" {
+				t.Fatalf("NextKey: %q %v", next, err)
+			}
+		}
+		made, _ := ochazuke.ThingOf(run(t, r, "create", ochazuke.Arguments{"title": "next"}))
+		if made["id"] != "d4" {
+			t.Fatalf("hidden %v: the next key after d3 is d4, got %v", hide, made["id"])
+		}
+	}
 }
 
 func checkCRUD(t *testing.T, newTable NewTable) {

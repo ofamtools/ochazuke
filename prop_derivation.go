@@ -20,14 +20,22 @@ import (
 // a write leaves it out (set answers the typed read-only outcome, as for
 // any read-only prop), and a list request that filters, sorts or groups on
 // it reads the store's matching things unpaged and runs those parts here.
+//
+// One kind keeps a value of its own (derivationKind.Own): first, whose
+// Reads may name the prop itself for the value the store holds for it
+// (under its Field). Such a prop is stored and writable like any other
+// prop; the derivation only decides what a read shows, and a write that
+// the read would not show answers nothing with the reason (writeReasons).
 
 // Derivation is how a derived prop is computed: Of names one of the
 // framework's derivations (Derivations), Reads what it reads. Each entry of
 // Reads is a prop of the noun (PROP) or, for a derivation over another
 // noun's things, NOUN.PROP (the noun is everything before the last dot).
-// The nouns it reads (the NOUN of NOUN.PROP, the noun a reference prop
-// names) are the noun's dependencies: a change there marks the noun's
-// lists changed (Runtime.Changed, the store's ChangeToken).
+// For a derivation that follows a reference (first), REF.PROP is the prop
+// PROP of the thing the noun's reference prop REF names. The nouns it
+// reads (the NOUN of NOUN.PROP, the noun a reference prop names) are the
+// noun's dependencies: a change there marks the noun's lists changed
+// (Runtime.Changed, the store's ChangeToken).
 type Derivation struct {
 	Of    string   `json:"of"`
 	Reads []string `json:"reads"`
@@ -40,15 +48,21 @@ func (d Derivation) String() string {
 
 // derivationKind is one derivation the framework runs: its name (Of), the
 // type a prop declaring it gets when it declares none, whether its Reads
-// name another noun's props (NOUN.PROP), and what it computes for each
-// thing of a batch (things are written in place; a value it cannot compute
-// is left out).
+// name another noun's props (Other: NOUN.PROP) or a prop of the thing a
+// reference prop names (Via: REF.PROP), whether a Reads entry naming the
+// prop itself is the prop's own stored value (Own: the prop is then stored
+// and writable), what it computes for each thing of a batch (things are
+// written in place; a value it cannot compute is left out) and, for an Own
+// kind, why a write would not show (write: "" when it would).
 type derivationKind struct {
 	Name  string
 	About string
 	Type  string
 	Other bool
+	Via   bool
+	Own   bool
 	run   func(c Ctx, n *Noun, p PropSpec, things []Thing)
+	write func(c Ctx, n *Noun, p PropSpec, after Thing) string
 }
 
 // derivationKinds are the derivations a prop may name. They are data: a
@@ -58,6 +72,7 @@ var derivationKinds = []derivationKind{
 	{Name: "label", About: "The label of the thing a reference prop names (Reads: PROP); its key when it has none or is gone", run: deriveLabel},
 	{Name: "since", About: "How long ago a time prop was (Reads: PROP), a duration", Type: SettingDuration, run: deriveSince},
 	{Name: "first-line", About: "The first line of a text prop that is not blank (Reads: PROP)", run: deriveFirstLine},
+	{Name: "first", About: "The first of Reads that holds a value: REF.PROP is the prop PROP of the thing the reference prop REF names, the prop's own name its own stored value (Reads: task.project, project); stored and writable when Reads names it", Via: true, Own: true, run: deriveFirst, write: firstWriteReason},
 }
 
 // Derivations are the derivations a PropSpec.Derivation may name (Of), with
@@ -100,6 +115,42 @@ func (n *Noun) derivedProp(name string) bool {
 	return p != nil && p.Derivation != nil
 }
 
+// derivedOnly reports whether the noun's prop of that name is derived and
+// holds no stored value of its own (derivedOnly on the prop).
+func (n *Noun) derivedOnly(name string) bool {
+	p := n.prop(name)
+	return p != nil && p.derivedOnly()
+}
+
+// derivedOnly reports whether the prop is derived and holds no value of
+// its own: never stored, read-only. A prop whose derivation is of an Own
+// kind and whose Reads name the prop itself keeps its own stored value.
+func (p PropSpec) derivedOnly() bool {
+	return p.Derivation != nil && !p.ownsValue()
+}
+
+// ownsValue reports whether the prop's derivation reads the prop's own
+// stored value (an Own kind whose Reads name the prop).
+func (p PropSpec) ownsValue() bool {
+	if p.Derivation == nil {
+		return false
+	}
+	k := derivationKindOf(p.Derivation.Of)
+	return k != nil && k.Own && slices.Contains(p.Derivation.Reads, p.Name)
+}
+
+// derivedOnlyProps are the noun's props that are derived and hold no
+// value of their own.
+func (n *Noun) derivedOnlyProps() []PropSpec {
+	var out []PropSpec
+	for _, p := range n.derivedProps() {
+		if p.derivedOnly() {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 // splitRead is a Reads entry NOUN.PROP as its noun and prop; a plain PROP
 // answers noun "".
 func splitRead(read string) (noun, prop string) {
@@ -116,7 +167,16 @@ func (r *Runtime) dependencies(n *Noun) []string {
 		k := derivationKindOf(p.Derivation.Of)
 		for _, read := range p.Derivation.Reads {
 			noun, prop := splitRead(read)
-			if k == nil || !k.Other {
+			switch {
+			case k != nil && k.Via:
+				// REF.PROP reads the thing REF names; the prop's own
+				// value or another own prop reads nothing outside.
+				ref := noun
+				noun = ""
+				if spec := n.prop(ref); ref != "" && spec != nil {
+					noun = spec.Noun
+				}
+			case k == nil || !k.Other:
 				if ref := n.prop(prop); ref != nil {
 					noun = ref.Noun
 				}
@@ -171,8 +231,10 @@ func (r *Runtime) derive(c Ctx, n *Noun, things []Thing) []Thing {
 	}
 	c.Runtime = r
 	for _, p := range props {
-		for _, t := range out {
-			delete(t, p.Name) // never the store's value: the derivation's
+		if !p.ownsValue() {
+			for _, t := range out {
+				delete(t, p.Name) // never the store's value: the derivation's
+			}
 		}
 		if k := derivationKindOf(p.Derivation.Of); k != nil && len(p.Derivation.Reads) > 0 {
 			k.run(c, n, p, out)
@@ -379,10 +441,11 @@ func (w derivationWrap) get(c Ctx, key string) (Thing, error) {
 	return w.one(c, w.of(c), t, err)
 }
 
-// stored is values without the derived props.
+// stored is values without the derived props that hold no value of their
+// own (a prop that keeps its own value is written like any other).
 func stored(n *Noun, values Thing) Thing {
 	out := cloneThing(values)
-	for _, p := range n.derivedProps() {
+	for _, p := range n.derivedOnlyProps() {
 		delete(out, p.Name)
 		for _, a := range p.Aliases {
 			delete(out, a)
@@ -509,9 +572,11 @@ func derivationOf(p PropSpec) string {
 	return p.Derivation.Of
 }
 
-// derivationProp is a derived prop as the noun keeps it: read-only, its
-// own copy of the derivation, nothing stored (no Field). A prop with a
-// Read is computed by it, so its Derivation is dropped.
+// derivationProp is a derived prop as the noun keeps it: its own copy of
+// the derivation; read-only and nothing stored (no Field) unless it keeps
+// a value of its own (ownsValue: stored under its Field, writable as
+// declared). A prop with a Read is computed by it, so its Derivation is
+// dropped.
 func derivationProp(p PropSpec) PropSpec {
 	if p.Read != nil || p.Subject != "" {
 		p.Derivation = nil
@@ -519,8 +584,123 @@ func derivationProp(p PropSpec) PropSpec {
 	}
 	d := *p.Derivation
 	d.Reads = slices.Clone(d.Reads)
-	p.Derivation, p.ReadOnly, p.Field = &d, true, ""
+	p.Derivation = &d
+	if !p.ownsValue() {
+		p.ReadOnly, p.Field = true, ""
+	}
 	return p
+}
+
+// firstEntry is the value one Reads entry of a first derivation gives the
+// thing t, and where it came from: the prop's own value or another prop of
+// t (from ""), or (REF.PROP) the prop PROP of the thing t's reference prop
+// REF names, read through its noun's Get once per key (got caches it; a
+// thing that is not found gives none).
+func firstEntry(c Ctx, n *Noun, read string, t Thing, got map[string]Thing) (any, string) {
+	refName, prop := splitRead(read)
+	if refName == "" {
+		name := prop
+		if spec := n.prop(prop); spec != nil {
+			name = spec.Name
+		}
+		return t[name], ""
+	}
+	ref := n.prop(refName)
+	if ref == nil || emptyProp(t[ref.Name]) {
+		return nil, ""
+	}
+	key := fmt.Sprint(t[ref.Name])
+	other := c.Runtime.Noun(ref.Noun)
+	if other == nil || other.Store == nil || other.Store.Get == nil {
+		return nil, ""
+	}
+	id := other.Name + "\x00" + key
+	thing, ok := got[id]
+	if !ok {
+		oc := c
+		oc.Noun, oc.underived = other.Name, true
+		thing, _ = other.Store.Get(oc, key)
+		got[id] = thing
+	}
+	if thing == nil {
+		return nil, ""
+	}
+	name := prop
+	if spec := other.prop(prop); spec != nil {
+		name = spec.Name
+	}
+	return thing[name], c.Runtime.DisplayNoun(other.Name) + " " + key + "'s " + name
+}
+
+// deriveFirst is, for each thing, the first of Reads that holds a value
+// (firstEntry); a thing where none does keeps its own value as it is.
+func deriveFirst(c Ctx, n *Noun, p PropSpec, things []Thing) {
+	got := map[string]Thing{}
+	for _, t := range things {
+		as := cloneThing(t) // every entry reads the thing as the store answered it
+		for _, read := range p.Derivation.Reads {
+			if v, _ := firstEntry(c, n, read, as, got); !emptyProp(v) {
+				t[p.Name] = v
+				break
+			}
+		}
+	}
+}
+
+// firstWriteReason is why a write of a first prop would not show: an entry
+// before the prop's own name in Reads gives the thing as written (after:
+// the thing with the write's changes) another value, which a read shows
+// instead. "" when the write shows: no entry before it holds a value, or
+// the one that does holds the value written.
+func firstWriteReason(c Ctx, n *Noun, p PropSpec, after Thing) string {
+	got := map[string]Thing{}
+	for _, read := range p.Derivation.Reads {
+		if read == p.Name {
+			return ""
+		}
+		v, from := firstEntry(c, n, read, after, got)
+		switch {
+		case emptyProp(v):
+			continue
+		case fmt.Sprint(v) == fmt.Sprint(after[p.Name]):
+			return ""
+		case from == "":
+			from = read
+		}
+		return fmt.Sprintf("%s comes from %s (%v), which wins over its own value (%s)", p.Name, from, v, p.Derivation)
+	}
+	return ""
+}
+
+// writeReasons are the props of changes that keep a value of their own
+// and whose write would not show on the thing after it (old with
+// changes), each with the reason (derivationKind.write).
+func (r *Runtime) writeReasons(c Ctx, n *Noun, old, changes Thing) map[string]string {
+	var out map[string]string
+	var after Thing
+	c.Runtime = r
+	for _, p := range n.derivedProps() {
+		if _, written := changes[p.Name]; !written || !p.ownsValue() {
+			continue
+		}
+		k := derivationKindOf(p.Derivation.Of)
+		if k == nil || k.write == nil {
+			continue
+		}
+		if after == nil {
+			after = cloneThing(old)
+			for name, v := range changes {
+				after[name] = v
+			}
+		}
+		if reason := k.write(c, n, p, after); reason != "" {
+			if out == nil {
+				out = map[string]string{}
+			}
+			out[p.Name] = reason
+		}
+	}
+	return out
 }
 
 // derivationText is the prop's derivation as one phrase, "" for none.

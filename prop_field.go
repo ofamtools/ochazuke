@@ -25,7 +25,7 @@ func (n *Noun) renamedProps() []PropSpec {
 	}
 	var out []PropSpec
 	for _, p := range n.Props {
-		if p.Field != "" && p.Field != p.Name && p.Derivation == nil {
+		if p.Field != "" && p.Field != p.Name && !p.derivedOnly() {
 			out = append(out, p)
 		}
 	}
@@ -58,7 +58,7 @@ func (n *Noun) storedDoc(t Thing) Thing {
 	if n == nil {
 		return out
 	}
-	for _, p := range n.derivedProps() {
+	for _, p := range n.derivedOnlyProps() {
 		delete(out, p.Name)
 	}
 	for _, p := range n.renamedProps() {

@@ -31,6 +31,16 @@ import (
 // DocStore reads and writes. Query answers one page of a DocQuery and how
 // many documents match it in all; Version answers a token that is equal
 // while the table is unchanged (a write counter, sqlite's data_version).
+//
+// Put writes t into the document under key: a field t gives with a value
+// is set to it, and a field t gives as nil is removed (a prop cleared by a
+// set, an undo, a BeforeWrite hook). A table may merge t into the stored
+// document, keeping every field t does not give, or store t's fields with
+// a value in place of it: DocStore always hands Put the whole document (the
+// fields it read, with the changes and the nils), so both store the same
+// document. A new key stores t's fields that have a value.
+//
+// A table may also answer a create's next key itself (DocKeyTable).
 type DocTable interface {
 	Get(key string) (Thing, bool, error)
 	Put(key string, t Thing) error
@@ -61,14 +71,69 @@ type DocQuery struct {
 	PerPage    int
 }
 
-// DocHooks are a DocStore's side effects: BeforeDelete may refuse a delete
-// (or delete what goes with the thing), AfterWrite hears every create, set
-// and delete (t nil for a delete), ConfirmFor is Store.ConfirmFor. Each is
-// optional.
+// DocKeyTable is a DocTable that answers a create's next key itself, with
+// no read of the whole table (a max-key query): NextKey is prefix and one
+// past the largest whole number N of a key prefix+N the table holds
+// (prefix+"1" when it holds none). A DocStore over a table without it
+// reads every document to find that number.
+type DocKeyTable interface {
+	NextKey(prefix string) (string, error)
+}
+
+// DocHooks are a DocStore's side effects: BeforeWrite sees every create
+// and set before it is stored and may change what is written (DocWrite),
+// BeforeDelete may refuse a delete (or delete what goes with the thing),
+// AfterWrite hears every create, set and delete (t nil for a delete),
+// ConfirmFor is Store.ConfirmFor. Each is optional.
+//
+// BeforeWrite is how a noun resolves or normalises values without a store
+// of its own: an owner looked up (a reference that wins over another, one
+// not found saved unassociated with a line saying so), a field that is no
+// prop set beside a change (former_* fields when an owner goes away). It
+// does not refuse: an error it answers is a failure (a disk, a lookup that
+// broke), and the write is not stored.
 type DocHooks struct {
+	BeforeWrite  func(c Ctx, w *DocWrite) error
 	BeforeDelete func(c Ctx, key string) error
 	AfterWrite   func(c Ctx, key string, t Thing)
 	ConfirmFor   func(c Ctx, verb string, keys []string, prompt string) string
+}
+
+// DocWrite is one create or set as DocHooks.BeforeWrite sees it. Key is
+// the thing's key ("" on a create that makes one); Old is the thing as it
+// is (nil on a create). Changes are the props written, by prop name: on a
+// create every value given, on a set the props changed (nil clears one).
+// The hook may set, add or delete entries; a name no prop declares is
+// written as a document field of that name. Info lines are told as
+// information (Ctx.Info) once the write is stored.
+type DocWrite struct {
+	Key     string
+	Old     Thing
+	Changes Thing
+	Info    []string
+}
+
+// beforeWrite runs the BeforeWrite hook over a write: the changes to
+// store and the lines to tell once it is.
+func (d *docStore) beforeWrite(c Ctx, key string, old, changes Thing) (Thing, []string, error) {
+	if d.hooks.BeforeWrite == nil {
+		return changes, nil, nil
+	}
+	w := &DocWrite{Key: key, Old: old, Changes: maps.Clone(changes)}
+	if w.Changes == nil {
+		w.Changes = Thing{}
+	}
+	if err := d.hooks.BeforeWrite(c, w); err != nil {
+		return nil, nil, err
+	}
+	return w.Changes, w.Info, nil
+}
+
+// tell posts a write's info lines as one line of information.
+func tell(c Ctx, info []string) {
+	if len(info) > 0 && c.Runtime != nil {
+		c.Info(strings.Join(info, "; "))
+	}
 }
 
 // DocStore is the Store of noun over table: a collection whose things are
@@ -168,7 +233,18 @@ func (d *docStore) create(c Ctx, values Thing) (Thing, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	key := n.keyProp().Name
-	t := n.storedDoc(values)
+	given := ""
+	if !emptyProp(values[key]) {
+		given = fmt.Sprint(values[key])
+	}
+	values, info, err := d.beforeWrite(c, given, nil, values)
+	if err != nil {
+		return nil, err
+	}
+	// A value whose read would show another (writeReasons) is still the
+	// thing's own: a create records what it is given, and says so.
+	info = append(info, sortedReasons(c.Runtime.writeReasons(c, n, nil, values))...)
+	t := withoutNil(n.storedDoc(values))
 	id := fmt.Sprint(values[key])
 	if emptyProp(values[key]) {
 		if id, err = d.nextKey(n); err != nil {
@@ -185,28 +261,75 @@ func (d *docStore) create(c Ctx, values Thing) (Thing, error) {
 	}
 	t = n.docThing(t)
 	d.wrote(c, id, t)
+	tell(c, info)
 	return t, nil
 }
 
+// onlyStamps reports whether changes hold nothing but the times the
+// framework stamps on a write (the created and updated roles).
+func onlyStamps(n *Noun, changes Thing) bool {
+	for name := range changes {
+		if p := n.prop(name); p == nil || p.Role != RoleCreated && p.Role != RoleUpdated {
+			return false
+		}
+	}
+	return true
+}
+
+// withoutNil is t without its nil fields (a copy).
+func withoutNil(t Thing) Thing {
+	out := maps.Clone(t)
+	maps.DeleteFunc(out, func(_ string, v any) bool { return v == nil })
+	if out == nil {
+		out = Thing{}
+	}
+	return out
+}
+
+// sortedReasons are a writeReasons map's reasons in prop order.
+func sortedReasons(reasons map[string]string) []string {
+	out := make([]string, 0, len(reasons))
+	for _, name := range slices.Sorted(maps.Keys(reasons)) {
+		out = append(out, reasons[name])
+	}
+	return out
+}
+
 // nextKey is a new key: the noun's first letter and one past the largest
-// number a key of that form holds.
+// number a key of that form holds, from the table itself when it answers
+// it (DocKeyTable), else from a read of every document.
 func (d *docStore) nextKey(n *Noun) (string, error) {
 	word := n.Name[strings.LastIndex(n.Name, ".")+1:]
 	prefix := word[:1]
+	if k, ok := d.table.(DocKeyTable); ok {
+		return k.NextKey(prefix)
+	}
 	page, err := d.table.Query(DocQuery{})
 	if err != nil {
 		return "", err
 	}
-	most := 0
 	key := n.fieldOf(n.keyProp().Name)
-	for _, t := range page.Items {
-		if v, ok := strings.CutPrefix(fmt.Sprint(t[key]), prefix); ok {
+	keys := make([]string, len(page.Items))
+	for i, t := range page.Items {
+		keys[i] = fmt.Sprint(t[key])
+	}
+	return NextNumberedKey(prefix, keys), nil
+}
+
+// NextNumberedKey is prefix and one past the largest whole number N of a
+// key prefix+N among keys (prefix+"1" when there is none): the key a
+// DocStore's create makes, for a DocKeyTable that holds its keys in
+// memory.
+func NextNumberedKey(prefix string, keys []string) string {
+	most := 0
+	for _, k := range keys {
+		if v, ok := strings.CutPrefix(k, prefix); ok {
 			if i, err := strconv.Atoi(v); err == nil {
 				most = max(most, i)
 			}
 		}
 	}
-	return prefix + strconv.Itoa(most+1), nil
+	return prefix + strconv.Itoa(most+1)
 }
 
 func (d *docStore) patch(c Ctx, key string, changes Thing) (Thing, error) {
@@ -220,22 +343,37 @@ func (d *docStore) patch(c Ctx, key string, changes Thing) (Thing, error) {
 		return nil, c.Runtime.ThingNotFound(c, d.noun, key)
 	}
 	n := c.Runtime.Nouns[c.Runtime.CanonicalNoun(d.noun)]
+	old := n.docThing(t)
+	changes, info, err := d.beforeWrite(c, key, old, changes)
+	if err != nil {
+		return nil, err
+	}
+	// A prop that keeps its own value but whose read would show another
+	// (a reference's value wins: writeReasons) is not written; alone, the
+	// set does nothing and says why.
+	if reasons := c.Runtime.writeReasons(c, n, old, changes); len(reasons) > 0 {
+		changes = maps.Clone(changes)
+		for name := range reasons {
+			delete(changes, name)
+		}
+		if onlyStamps(n, changes) {
+			return nil, NothingErr(CauseKept, strings.Join(sortedReasons(reasons), "; "))
+		}
+		info = append(info, sortedReasons(reasons)...)
+	}
 	t = maps.Clone(t)
 	for k, v := range changes {
-		if n.derivedProp(k) {
+		if n.derivedOnly(k) {
 			continue
 		}
-		if v == nil {
-			delete(t, n.fieldOf(k))
-		} else {
-			t[n.fieldOf(k)] = v
-		}
+		t[n.fieldOf(k)] = v // nil removes the field (DocTable.Put)
 	}
 	if err := d.table.Put(key, t); err != nil {
 		return nil, err
 	}
-	t = n.docThing(t)
+	t = n.docThing(withoutNil(t))
 	d.wrote(c, key, t)
+	tell(c, info)
 	return t, nil
 }
 
@@ -269,7 +407,7 @@ func (d *docStore) wrote(c Ctx, key string, t Thing) {
 func textProps(n *Noun) []string {
 	var out []string
 	for _, p := range n.Props {
-		if p.Secret || p.computed() || p.Derivation != nil {
+		if p.Secret || p.computed() || p.derivedOnly() {
 			continue
 		}
 		if p.Key || p.Role == RoleLabel || !p.ReadOnly && (p.Type == "" || p.Type == SettingString) && len(p.Enum) == 0 && p.Noun == "" {
@@ -328,19 +466,39 @@ func (m *MemDocTable) Get(key string) (Thing, bool, error) {
 	return maps.Clone(t), ok, nil
 }
 
-// Put writes the document with that key (a new key goes last).
+// Put merges t into the document with that key (a new key goes last): a
+// field with a value is set, a field given as nil is removed, every other
+// field is kept (DocTable).
 func (m *MemDocTable) Put(key string, t Thing) error {
 	if key == "" {
 		return errors.New("a document needs a key")
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, ok := m.docs[key]; !ok {
+	doc, ok := m.docs[key]
+	if !ok {
 		m.order = append(m.order, key)
+		doc = Thing{}
 	}
-	m.docs[key] = maps.Clone(t)
+	doc = maps.Clone(doc)
+	for k, v := range t {
+		if v == nil {
+			delete(doc, k)
+		} else {
+			doc[k] = v
+		}
+	}
+	m.docs[key] = doc
 	m.ver++
 	return nil
+}
+
+// NextKey answers the next numbered key from the keys it holds, with no
+// Query (DocKeyTable).
+func (m *MemDocTable) NextKey(prefix string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return NextNumberedKey(prefix, m.order), nil
 }
 
 // Delete removes the document with that key.

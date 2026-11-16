@@ -7,7 +7,8 @@ import (
 
 // A noun declared with props over a DocStore needs no store code: its
 // index over 20,000 documents reads one page, and the index's text search
-// reaches the whole table, not only the page on screen.
+// reaches the whole table, not only the page on screen; a create makes
+// its key without reading the table (DocKeyTable).
 func TestDocStoreIndexReadsOnePageAndSearchesTheWholeTable(t *testing.T) {
 	r := NewRuntime()
 	r.Config().Disable()
@@ -37,8 +38,11 @@ func TestDocStoreIndexReadsOnePageAndSearchesTheWholeTable(t *testing.T) {
 	if items := list.Items(); len(items) != 1 || items[0].Label != "needle in the haystack" || list.WindowTotal() != 1 {
 		t.Fatalf("search the whole table: %d rows, total %d", len(list.Items()), list.WindowTotal())
 	}
-	mustRun(t, r, Request{Noun: "chore", Verb: "create", Args: Arguments{"title": "new one"}})
-	if _, ok, _ := table.Get("c20001"); !ok {
-		t.Fatal("create makes the next key")
+	queries := table.Queries
+	if _, err := r.Nouns["chore"].Store.Create(Ctx{Runtime: r, Noun: "chore"}, Thing{"title": "new one"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, _ := table.Get("c20001"); !ok || table.Queries != queries {
+		t.Fatalf("create makes the next key from the table's NextKey, no query (%d queries)", table.Queries-queries)
 	}
 }

@@ -408,7 +408,15 @@ type Store struct {
 	// It runs on the loop and must be idempotent.
 	CanonicalKey func(Ctx, string, string) error
 	ListParams   map[string]Parameter
-	Watch        func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
+	// ListScope are conditions a list adds from its parameters or from
+	// values the application supplies (ScopeValue), declared as data: a
+	// list parameter or a context value (the pinned project) becomes a
+	// condition on the query, run by the store's own Query or List
+	// (list_scope.go). ScopeValue answers the value a scope row names (nil
+	// or "" for none).
+	ListScope  []ListScope
+	ScopeValue func(c Ctx, name string) any
+	Watch      func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
 	// ChangeToken, when set, answers a cheap token for the store's things
 	// as they are now: a version counter, sqlite's data_version, a
 	// generation bumped by every write. Two equal tokens mean nothing
@@ -631,6 +639,7 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 		s.Kind = KindCollection
 	}
 	s.ListParams = cloneParams(s.ListParams)
+	s.ListScope = slices.Clone(s.ListScope)
 	s.Confirm, s.When, s.Missing = maps.Clone(s.Confirm), maps.Clone(s.When), maps.Clone(s.Missing)
 	if s.Kind == Instances {
 		s = instancesStore(b.n.Name, s)
@@ -646,6 +655,9 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 	s = b.r.withOverlay(b.n, s)
 	// Derived props are computed over what every layer below answers.
 	s = withDerivations(b.n.Name, s)
+	// A list's scope is a condition like any other, so it reaches a
+	// derived prop's handling and the store's own query.
+	s = withListScope(b.n.Name, s)
 	b.n.Store = &s
 	b.r.applyStore(b.n)
 	b.last = ""
@@ -872,8 +884,8 @@ func computedPropError(key string, p PropSpec) error {
 		return fmt.Errorf("prop %s: unknown subject %q", key, p.Subject)
 	}
 	switch {
-	case !p.computed() && p.Derivation == nil:
-		return nil
+	case !p.computed() && !p.derivedOnly():
+		return nil // a prop that keeps its own value (ownsValue) is declared like any other
 	case p.Key || p.Role != "" || p.Required || p.Secret || p.CreateOnly || p.Default != nil:
 		return fmt.Errorf("prop %s: a computed prop is only read: no key, role, required, secret, create-only or default", key)
 	case p.ofCollection() && p.Read == nil:
