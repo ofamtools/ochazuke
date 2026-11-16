@@ -715,7 +715,7 @@ func TestCatalogListsEachNounOnce(t *testing.T) {
 	for _, v := range app.Verbs {
 		verbs = append(verbs, v.Name)
 	}
-	if want := []string{"quit", "state", "zz"}; !slices.Equal(verbs, want) {
+	if want := []string{"quit", "restart", "state", "zz"}; !slices.Equal(verbs, want) {
 		t.Fatalf("app verbs %v, want %v", verbs, want)
 	}
 	if !seen["app.rows"] || !seen["ochazuke.snapshot"] {

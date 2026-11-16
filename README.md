@@ -1779,6 +1779,49 @@ r.BeforeQuit("unsaved", func(r *ochazuke.Runtime, c ochazuke.Context) ochazuke.V
 
 `BeforeQuit(name, check)` is `AddVerbCheck("app.quit", VerbCheck{Name, Check})`; `app.quit` declares `force` (boolean), so a row `{"key": "Q", "action": "app.quit", "args": {"force": true}}` quits without asking, as vim's `:q!`. `RemoveVerbCheck(key, name)` takes one off, `VerbChecks(key)` names them. A check of the same name replaces the earlier one in place.
 
+#### Asking before quitting; restart requests
+
+Every quit verb asks first: `app.quit` (keys `ctrl+c`, the palette, the CLI) and `app.restart`, the only verbs that set `Runtime.Quit`. The setting `quit.confirm` decides when `app.quit` asks: `always` (the default), `when-busy` (only while jobs the ticker shows are running; the question says how many) or `never`. `app.quit {force: true}` and the `quit-wait` keys (a second `q`/`ctrl+c` while quitting) never ask. Asking again is yes: the person's request for the verb whose question is open accepts it (`openConfirm`), so `ctrl+c` over "Quit NAME?" quits (the confirm modal binds `ctrl+c` to `app.quit`; over any other question `ctrl+c` asks to quit), and nobody is trapped. The CLI and MCP follow the confirm rule they follow for every verb: the CLI asks on stdin unless `--yes`; an agent gets the owner's question (both verbs declare `Loses`, so an allow right never passes it) or, headless, a refusal naming the owner's command. A `BeforeQuit` check's question replaces the quit question (its yes runs the quit confirmed).
+
+An agent that installed a new build asks for a restart instead of saying so in chat:
+
+```sh
+mtm restart-request post "installed v0.39.0" --version "mtm v0.39.0 (ochazuke v0.147.0)"
+```
+
+`ochazuke.restart-request` is a command noun: `post {reason, version}` records who asked (the run's actor), when and why, tells the person with a notice naming the restart key, and draws a **RESTART REQUESTED** badge at the left of the title row (`Header.Lead`, `Runtime.LeadCells`; the `badge.alert` chrome role, by default the error colour reversed, so it reads in every theme and in mono); a second post while one is pending updates it (`count`); `show` answers it (`pending` false when none); `dismiss` drops it, its notice and its badge. Agents may run all three (right `allow`). The request lives in memory: restarting clears it. Setting `restart.badge` (default on) turns the badge off; the request and its notice still work. The badge takes at most half the title row: at 80 columns the whole label (20 cells with its padding and space), the title cut first; narrower than 40 columns its short label `RESTART`, cut with `…` below that; the mode badge on the right keeps its place.
+
+`app.restart` (key `&` in normal mode, hidden; the request's notice names it) asks:
+
+```
+Restart mtm in this terminal?
+
+Running:   mtm v0.38.0-65-gf722695 (commit …, ochazuke v0.146.4)
+Installed: mtm v0.39.0 (commit …, ochazuke v0.147.0)
+
+Requested by agent claude-code (pane …) at 14:03
+New version: mtm v0.39.0
+Reason: installed v0.39.0
+```
+
+The installed line reads `checking…` while the application's probe runs off the loop (bounded by `restart.probe-timeout`, default 2s), then the answer, or `unknown (REASON)` when the probe fails or prints nothing; when it equals the running build the dialog adds "Already running the installed build." and still lets the person restart. Yes quits through the ordinary path (queued writes, `app.quitting` hooks), then, with the terminal released (`tea.Exec`), runs the application's `BeforeExec`, `Config.Flush`, `Runtime.Shutdown`, and replaces the process with the installed binary: same arguments (`os.Args`) and environment, `syscall.Exec` on unix. Where it cannot (no `RestartHook.Path`, a path that is not an executable file, a platform with no exec) the same dialog reads "Quit NAME? It cannot restart itself here (REASON); start it again yourself." and yes just quits. An exec that fails prints `restart failed: start PATH: ERR` on the restored terminal, is kept in `Runtime.RestartError()`, and the program exits cleanly (the runtime was already shut down, so it does not try to run on).
+
+The application supplies what only it knows through one hook:
+
+```go
+r.SetRestart(ochazuke.RestartHook{
+	Name:       "mtm",
+	Path:       func() string { return installedPath() },            // "" = cannot restart
+	Running:    func() string { return versionLine() },              // default RunningVersion(): build info
+	Installed:  func(ctx context.Context, p string) (string, error) { return ochazuke.ProbeVersion(ctx, p) }, // the default: p --version
+	BeforeExec: func() error { return app.close() },                 // the app's own cleanup
+})
+```
+
+`Args`, `Env` and `Exec` default to `os.Args`, `os.Environ()` and the platform's exec (tests inject `Exec`). The demo (`ochazuke run`) wires it: `ochazuke ochazuke.restart-request post --json '{"reason":"smoke"}'` from another terminal, then `&` and `y`.
+
+Compared with Vim: Vim's `:q` refuses with unsaved buffers (E37) where ochazuke asks (`BeforeQuit`), and Vim has no quit question for a clean session (`confirm` / `:confirm q` asks only about changed buffers; `quit.confirm when-busy` is the nearest). Vim has no restart; recent Neovim's `:restart` (`:help :restart`) restarts the editor under the same UI, which does not apply here (one process owns the terminal), so ochazuke replaces the process instead.
+
 Local checks:
 
 ```sh

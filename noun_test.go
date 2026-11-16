@@ -23,6 +23,7 @@ func recorder(t *testing.T, r *Runtime, verbs ...string) *[]string {
 
 func TestDefineBuilderBindsVerbsActionsAndRows(t *testing.T) {
 	r := NewRuntime()
+	_, _ = r.Settings().SetSession(QuitConfirmSetting, "never") // the action override, not the question
 	calls := recorder(t, r, "open", "close")
 	b := r.Define("panel").
 		Verb("toggle", func(*Runtime, Context, Arguments) (any, error) { return "toggled", nil }).

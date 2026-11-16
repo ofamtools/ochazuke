@@ -33,6 +33,7 @@ func TestNounActionResolutionAndMissingOnlyFallback(t *testing.T) {
 }
 func TestBindingsOverlayAndSequenceCancellation(t *testing.T) {
 	r := NewRuntime()
+	_, _ = r.Settings().SetSession(QuitConfirmSetting, "never") // the rows, not the question
 	r.Instance("panel")
 	_ = r.AddInput(NewInput("field", "", false), Parent("panel"))
 	_ = r.SetFocus("field")

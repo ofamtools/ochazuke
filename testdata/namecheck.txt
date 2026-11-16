@@ -98,11 +98,11 @@ cli/sides.go	var sideVariables	table	"pane"	1	template variable names for the si
 cli/sides.go	var sideVariables	table	"project"	1	template variable names for the sides of a command, not nouns
 configuration.go	registerConfiguration	compare	"app"	1
 configuration.go	registerConfiguration	cyclo	"-"	26
+confirm.go	Runtime.confirmOpen	compare	"ochazuke.confirm"	1
 confirm.go	Runtime.openConfirmAbout	case	"id"	2
 confirm.go	Runtime.openConfirmAbout	compare	"id"	1
 confirm.go	Runtime.openConfirmAbout	compare	"noun"	1
 confirm.go	Runtime.openConfirmAbout	cyclo	"-"	40
-confirm.go	registerConfirm	compare	"ochazuke.confirm"	1
 default_bindings.go	Runtime.CheckDefaultBindings	compare	"ochazuke.mode.enter"	1
 editing.go	Input.begin	case	"append"	2
 editing.go	Input.begin	case	"end"	2

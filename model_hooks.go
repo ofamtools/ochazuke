@@ -87,6 +87,11 @@ func (m *Model) quitCommand() tea.Cmd {
 		return nil
 	}
 	m.quitClosing = true
+	// A confirmed restart starts the installed binary once the terminal
+	// is released; it prints the report itself.
+	if cmd := m.Runtime.restartCommand(m.quitReport); cmd != nil {
+		return cmd
+	}
 	if len(m.quitReport) == 0 {
 		return tea.Quit
 	}

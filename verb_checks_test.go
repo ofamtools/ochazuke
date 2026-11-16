@@ -44,6 +44,7 @@ func TestBeforeQuitAsksThenQuits(t *testing.T) {
 		t.Fatalf("force must quit without asking: %v quit=%v modal=%q", err, r.Quit, r.TopModal())
 	}
 	r.Quit, dirty = false, false
+	_, _ = r.Settings().SetSession(QuitConfirmSetting, "never") // the check's answer, not quit.confirm's
 	if _, err := r.Execute(Request{Noun: "app", Verb: "quit"}); err != nil || !r.Quit {
 		t.Fatalf("nothing to lose quits at once: %v", err)
 	}

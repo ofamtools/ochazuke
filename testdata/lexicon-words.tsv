@@ -626,6 +626,7 @@ plist	action	seed
 port	prop	seed	
 pose	action	seed	
 position	prop	seed	
+post	action	yes	put a request before the person (restart-request.post)
 positional	prop	seed	
 pr	noun	seed	
 prefs	prop	seed	
@@ -728,6 +729,8 @@ resize-column	action	seed
 resolve	action	seed	
 resolved	prop	seed	
 restart	action	seed	
+restart-request	noun	yes	a pending request to restart the application (restart-request.post|show|dismiss)
+restart-state	noun	yes	the runtime's restart state component (the request, the hook)
 restore	action	seed	
 restored	prop	seed	
 result	prop	seed	

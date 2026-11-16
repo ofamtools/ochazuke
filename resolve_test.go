@@ -77,6 +77,7 @@ func TestModelCtrlCCapturedOutsideModals(t *testing.T) {
 	t.Parallel()
 	r, _, stream := terminalFixture(t)
 	m := NewModel(r)
+	_, _ = r.Settings().SetSession(QuitConfirmSetting, "never") // the rows that reach app.quit, not its question
 	for _, b := range r.ListBindings(r.Focus) {
 		if b.Keys == "ctrl+c" {
 			t.Fatalf("an attached terminal lists ctrl+c as %s", b.Request.Key())

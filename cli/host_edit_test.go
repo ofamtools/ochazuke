@@ -52,6 +52,7 @@ func mountedEditFixture(t *testing.T, mode string, beforeSet ...func(context.Con
 		t.Fatal(err)
 	}
 	m := ochazuke.NewModel(r)
+	_, _ = r.Settings().SetSession(ochazuke.QuitConfirmSetting, "never") // these tests quit to flush, not to be asked
 	m.Width, m.Height = 100, 24
 	local := func(noun string) string { return "ext-" + noun }
 	// The extension runtime and its thing are one remote process: its calls run

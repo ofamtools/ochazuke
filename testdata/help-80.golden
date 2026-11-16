@@ -58,7 +58,7 @@
         │                                                 selected row │
         │   ctrl+q      collection.filter                 Filter the   │
         │                                                 rows to      │
-        │ 1–10 / 59                                                    │
+        │ 1–10 / 60                                                    │
         │ space collection.mark · S view · enter run · q modal.close … │
         ╰──────────────────────────────────────────────────────────────╯
 

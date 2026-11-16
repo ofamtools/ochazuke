@@ -27,6 +27,7 @@ func run(args []string) error {
 	}
 	flags := flag.NewFlagSet("ofam.dev/ochazuke", flag.ContinueOnError)
 	socket := flags.String("socket", filepath.Join(cache, "ofam.dev/ochazuke", "app.sock"), "Unix socket identifying the running app")
+	version := flags.Bool("version", false, "Print the build and exit (what app.restart's confirmation reads from the installed binary)")
 	flags.Usage = func() {
 		fmt.Fprintln(flags.Output(), "Usage:\n  ochazuke keybinding\n  ochazuke [--socket PATH] run [--headless]\n  ochazuke [--socket PATH] NOUN VERB [--json '{...}'] [--target INSTANCE_ID]\n\nDiscover actions: ochazuke operations list\nExample: ochazuke input undo --json '{\"steps\":2}'\nEvery registered operation is available as NOUN VERB.")
 		flags.PrintDefaults()
@@ -36,6 +37,10 @@ func run(args []string) error {
 			return nil
 		}
 		return err
+	}
+	if *version {
+		fmt.Println(ochazuke.RunningVersion())
+		return nil
 	}
 	rest := flags.Args()
 	if len(rest) == 0 {
@@ -72,6 +77,14 @@ func run(args []string) error {
 			return err
 		}
 		defer server.Close()
+		// app.restart (&, after a restart-request post) starts this binary
+		// again in place: the socket is closed first so the new process
+		// can listen on it.
+		model.Runtime.SetRestart(ochazuke.RestartHook{
+			Name:       "ochazuke",
+			Path:       func() string { path, _ := os.Executable(); return path },
+			BeforeExec: server.Close,
+		})
 		if *headless {
 			fmt.Fprintln(os.Stderr, "Listening:", *socket)
 		}

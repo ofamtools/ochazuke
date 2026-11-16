@@ -12,6 +12,7 @@ import (
 func editFixture(t *testing.T) (*Runtime, *derivedStore) {
 	t.Helper()
 	r := NewRuntime()
+	_, _ = r.Settings().SetSession(QuitConfirmSetting, "never") // the edit tests quit to flush, not to be asked
 	s := &derivedStore{key: "id", things: []Thing{{"id": "t1", "title": "Original", "status": "todo", "active": false, "stamp": "fixed"}}}
 	st := s.store()
 	st.Undo = true

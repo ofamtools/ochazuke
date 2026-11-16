@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // The confirm noun: a framework modal a verb with a Confirm prompt opens
@@ -15,15 +17,10 @@ import (
 // from, n or esc pops, every other key is swallowed.
 func registerConfirm(r *Runtime) {
 	r.Register(Operation{Key: "ochazuke.confirm.accept", Agent: AgentNever, Description: "Run the request the open confirm modal holds and close it", Result: "JSON value", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		inst := r.Instances[r.TopModal()]
-		if inst == nil || inst.Noun != "ochazuke.confirm" || inst.Payload.Request == nil {
+		if r.confirmOpen() == nil {
 			return nil, errors.New("no confirm modal is open")
 		}
-		q := *inst.Payload.Request
-		if err := r.Pop(); err != nil {
-			return nil, err
-		}
-		return r.Execute(q)
+		return r.acceptConfirm()
 	}})
 	r.Register(Operation{Key: "ochazuke.confirm.require", HistoryKind: HistoryChange, Agent: AgentNever, Description: "Require confirmation before an operation runs: set its confirm prompt ({{id}}, {{noun}}, {{label}} and {{<arg>}} expand; a label argument wins over the instance label); an empty prompt removes it", Parameters: map[string]Parameter{"operation": {Type: "string", Required: true, Description: "noun.verb", Noun: "ochazuke.operation"}, "prompt": {Type: "string"}}, Result: "operation", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		key := StringArg(a, "operation", "")
@@ -43,6 +40,26 @@ func (r *Runtime) SetConfirm(key, prompt string) error {
 	op.Confirm = prompt
 	r.Operations.Set(op)
 	return nil
+}
+
+// confirmOpen is the confirm modal on top of the modal chain, nil when
+// the top modal is not one (or holds no request).
+func (r *Runtime) confirmOpen() *Instance {
+	inst := r.Instances[r.TopModal()]
+	if inst == nil || inst.Noun != "ochazuke.confirm" || inst.Payload.Request == nil {
+		return nil
+	}
+	return inst
+}
+
+// acceptConfirm closes the confirm modal on top and runs the request it
+// holds (confirm.accept).
+func (r *Runtime) acceptConfirm() (any, error) {
+	q := *r.confirmOpen().Payload.Request
+	if err := r.Pop(); err != nil {
+		return nil, err
+	}
+	return r.Execute(q)
 }
 
 var promptField = regexp.MustCompile(`\{\{\s*(\w+)\s*\}\}`)
@@ -67,6 +84,11 @@ var promptField = regexp.MustCompile(`\{\{\s*(\w+)\s*\}\}`)
 // arguments. A label argument always wins for {{label}};
 // {{<arg>}} is that argument everywhere.
 func (r *Runtime) openConfirm(c Context, q Request, op Operation) (any, error) {
+	// Asking again is yes: the person's request for the verb whose
+	// question is open (a second ctrl+c over "Quit?") accepts it.
+	if top := r.confirmOpen(); top != nil && top.Payload.Request.Key() == q.Key() && !r.Actor().IsAgent() {
+		return r.acceptConfirm()
+	}
 	return r.openConfirmAbout(c, q, q, op)
 }
 
@@ -212,12 +234,16 @@ func firstArgument(op Operation, args Arguments) (any, bool) {
 	return args[names[0]], true
 }
 
-// confirmView renders the confirm modal body: the prompt alone. Its keys
-// are the modal's hint line (BindingHints), never a second hand-written
-// line; the swallowing any row is hidden from it.
+// confirmView renders the confirm modal body: the prompt alone, wrapped
+// at the modal's width (a long line, a version string, wraps rather than
+// being cut). Its keys are the modal's hint line (BindingHints), never a
+// second hand-written line; the swallowing any row is hidden from it.
 func confirmView(r *Runtime, inst *Instance, width, height int) Block {
 	if inst == nil {
 		return Text("")
+	}
+	if width > 0 {
+		return Text(ansi.Wrap(inst.Payload.Prompt, width, ""))
 	}
 	return Text(inst.Payload.Prompt)
 }

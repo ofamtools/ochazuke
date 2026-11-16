@@ -162,6 +162,11 @@ type Header struct {
 	Segments []SegmentCell
 	// Keys is the key echo when keys.echo puts it beside the badge.
 	Keys *KeyEchoCell
+	// Lead are badges drawn at the left of the title row, before the
+	// title (Runtime.LeadCells: RESTART REQUESTED), in the badge.alert
+	// role. They take at most half the row: past that each draws its
+	// Short label, cut to fit; the title is cut before them.
+	Lead []LeadCell
 	// BadgeWidth is the fewest cells the badge's label takes: a shorter
 	// label is padded inside the badge, so the badge keeps its left edge
 	// as the mode changes (the shell passes Runtime.ModeBadgeWidth).
@@ -287,9 +292,11 @@ func (l Layout) titleRow(h Header, width int) string {
 		right = cell + right
 		reserved = chromeWidth(right) + 1
 	}
+	lead := l.leadBadges(h.Lead, width)
+	leadWidth := chromeWidth(lead)
 	if len(h.Focus) > 0 {
 		title := chromeWidth(modalLabel(h.Title))
-		room := width - 2 - min(title, focusTitleKeep(width)) - reserved - 1
+		room := width - 2 - min(title, focusTitleKeep(width)) - reserved - leadWidth - 1
 		if focus := FitFocusPath(h.Focus, room); focus != "" {
 			focus = s.Muted.Render(focus)
 			if right != "" {
@@ -299,12 +306,57 @@ func (l Layout) titleRow(h Header, width int) string {
 			reserved = chromeWidth(right) + 1
 		}
 	}
-	title := s.Chrome("title.mark", s.Accent).Render(s.Glyph("title.mark")+" ") + s.Chrome("title", s.Title).Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved), "…"))
+	title := lead + s.Chrome("title.mark", s.Accent).Render(s.Glyph("title.mark")+" ") + s.Chrome("title", s.Title).Render(ansi.Truncate(modalLabel(h.Title), max(0, width-2-reserved-leadWidth), "…"))
 	if right == "" {
 		return title
 	}
 	gap := max(1, width-chromeWidth(title)-chromeWidth(right))
 	return title + strings.Repeat(" ", gap) + right
+}
+
+// leadBadges draws the lead badges and the space after them in at most
+// half of width: each badge's Text when they all fit, else each Short
+// (Text when it has none), cut with "…" to fit.
+func (l Layout) leadBadges(cells []LeadCell, width int) string {
+	if len(cells) == 0 || width <= 0 {
+		return ""
+	}
+	s := l.Styles
+	style := s.Chrome("badge.alert", s.Error.Reverse(true).Padding(0, 1))
+	room := width / 2
+	draw := func(short bool) []string {
+		var out []string
+		for _, c := range cells {
+			label := c.Text
+			if short && c.Short != "" {
+				label = c.Short
+			}
+			out = append(out, modalLabel(label))
+		}
+		return out
+	}
+	labels := draw(false)
+	fits := func(labels []string) bool {
+		total := 0
+		for _, label := range labels {
+			total += chromeWidth(label) + 3 // padding and the space after
+		}
+		return total <= room
+	}
+	if !fits(labels) {
+		labels = draw(true)
+	}
+	var b strings.Builder
+	left := room
+	for _, label := range labels {
+		if left < 4 {
+			break
+		}
+		label = ansi.Truncate(label, left-3, "…")
+		b.WriteString(style.Render(label) + " ")
+		left -= chromeWidth(label) + 3
+	}
+	return b.String()
 }
 
 // hintLine draws a hint line in width cells: lead (a status, a notice;

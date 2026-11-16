@@ -20,7 +20,8 @@
       {"key": "ctrl+k", "action": "ochazuke.page.previous"},
       {"key": "/", "action": "ochazuke.collection.filter-open", "hint": "filter", "when": "list-filterable"},
       {"key": "alt+?", "action": "ochazuke.snapshot.toggle", "hidden": true},
-      {"key": "g y", "action": "ochazuke.yank-history.open", "when": "no-input", "hidden": true}
+      {"key": "g y", "action": "ochazuke.yank-history.open", "when": "no-input", "hidden": true},
+      {"key": "&", "action": "app.restart", "when": "no-input", "hidden": true, "help": "Restart in this terminal, asking first; a restart request's notice names this key"}
     ]},
     {"context": "app/quit-wait", "bindings": [
       {"key": "ctrl+c", "action": "app.quit", "confirmed": true},
