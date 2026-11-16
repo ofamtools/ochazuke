@@ -459,8 +459,8 @@ func TestShellOwnersRevealAndPrepare(t *testing.T) {
 	f := newFixture(t)
 	var out, errOut bytes.Buffer
 	sh := New(f.r, "tool", strings.NewReader(""), &out, &errOut)
-	// Two rows and no owner: the error names them.
-	if err := sh.Run(context.Background(), []string{"widget", "show"}); err == nil || !strings.Contains(err.Error(), "pass --target, one of: w1, w2") {
+	// Two rows and no owner: the error names them, each with its command.
+	if err := sh.Run(context.Background(), []string{"widget", "show"}); err == nil || !strings.Contains(err.Error(), "pass --target, one of:") || !strings.Contains(err.Error(), "--target w1") || !strings.Contains(err.Error(), "--target w2") {
 		t.Fatalf("no target: %v", err)
 	}
 	// A bad argument is not the target's fault: no candidates are listed.

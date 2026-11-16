@@ -144,7 +144,7 @@ func (s *Shell) targetHint(q ochazuke.Request, err error) error {
 	if q.Target != "" || errors.As(err, &bad) || ochazuke.OutcomeOf(nil, err).Kind != ochazuke.OutcomeFailed {
 		return err
 	}
-	o := s.Runtime.ChoicesShown(ochazuke.Outcome{Kind: ochazuke.OutcomeNeeds, Needs: s.Runtime.SubjectTarget(q).Need()}, ochazuke.Request{})
+	o := s.Runtime.ChoicesShown(ochazuke.Outcome{Kind: ochazuke.OutcomeNeeds, Needs: s.Runtime.SubjectTarget(q).Need()}, q)
 	if len(o.Needs.Choices) == 0 {
 		return err
 	}

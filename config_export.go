@@ -356,7 +356,7 @@ const actionsExample = `[
     "label": "{{noun}}.{{verb}} {{target}}",
     "parameters": {
       "name": {"type": "string", "source": "setting.names", "sourceArgs": {}, "sourceFixed": {}, "enumLabels": {}, "accept": "keep", "normalize": ["trim"], "scopes": [{"name": "listed"}, {"name": "all", "source": "setting.names"}], "description": "A setting name; accept keep takes one the source does not list (any value is accepted; keep also makes the field free text); scopes are slices of the values S steps through in the picker (a scope may name its own source, fixed arguments, and a sibling argument it needs)"},
-      "page": {"type": "string", "noun": "page", "description": "A page; noun lists the noun's rows (page.list) or its live instances"},
+      "page": {"type": "string", "noun": "page", "acts": ["focused", "on-path"], "description": "A page; noun lists the noun's rows (page.list) or its live instances; acts names the reasons a found page may have for the verb to act on it without asking (selected, marked, focused, on-path, on-page, linked, recent; default selected, focused, on-path), else it asks with them ranked"},
       "lines": {"type": "integer", "min": 1, "max": 100, "description": "A number; min and max bound it, and a value outside them is clamped, kept or asked for again (values.out-of-range), never refused"},
       "out": {"type": "path", "path": "file", "base": "~", "start": "browse", "new": true, "named": true, "description": "A file to write; a path field opens the path picker (browse from base, recent, typed); start names the source it opens on; new allows a file not there yet; named takes no bare word, only out=PATH or --out"}
     },

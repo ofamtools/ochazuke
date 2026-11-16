@@ -98,6 +98,9 @@ type Target struct {
 	Chosen     *TargetCandidate  `json:"chosen,omitempty"`
 	Candidates []TargetCandidate `json:"candidates"`
 	All        string            `json:"all,omitempty"`
+	// byInstance: the target is a request's own subject, named by its
+	// instance (--target), not by the thing's key.
+	byInstance bool
 }
 
 // Need is the target as what a needs outcome lacks: its parameter and noun,
@@ -408,7 +411,7 @@ func (r *Runtime) targetOf(op Operation, name, focus string, args Arguments) Tar
 	if !declared {
 		p = Parameter{Noun: op.Noun()}
 	}
-	t := Target{Param: name, Noun: r.CanonicalNoun(p.Noun), Candidates: []TargetCandidate{}, All: r.allCommand(p.Noun)}
+	t := Target{Param: name, Noun: r.CanonicalNoun(p.Noun), Candidates: []TargetCandidate{}, All: r.allCommand(p.Noun), byInstance: !declared}
 	if v, set := args[name]; set && !emptyProp(v) {
 		given := TargetCandidate{ID: fmt.Sprint(v), Noun: t.Noun, Why: WhyGiven}
 		t.Given, t.Chosen = true, &given
@@ -525,35 +528,61 @@ func (r *Runtime) ChoicesShown(o Outcome, q Request) Outcome {
 	return o
 }
 
-// listedChoices are need's choices and, when it needs a thing of a noun
-// whose store pages, the first things of the noun not among them (one page
-// of as many as are still to show), each with the command that runs q
-// with it, and how many things of the noun the page did not hold.
+// listedChoices are need's choices and, when it needs a thing of a noun,
+// the first things of the noun not among them, each with the command that
+// runs q with it, and how many things of the noun were not read. A noun
+// whose store pages (Store.Query) is read one page of as many as are still
+// to show; a noun with no store lists its live instances (in memory); a
+// store that only lists is not read (the command that lists every thing,
+// Target.All, follows).
 func (r *Runtime) listedChoices(need Need, q Request, limit int) ([]ChoiceRow, int) {
 	choices := slices.Clone(need.Choices)
 	op, ok := r.Operations.Find(Key(r.CanonicalRequest(q).Key()))
 	n := r.Nouns[r.CanonicalNoun(need.Noun)]
-	if need.Target == nil || !ok || n == nil || n.Store == nil || n.Store.Query == nil || n.keyProp() == nil {
-		return choices, 0
-	}
 	want := 0
 	if limit > 0 {
 		want = limit - len(choices)
-		if want <= 0 {
-			return choices, 0
-		}
 	}
-	page, err := n.Store.Query(r.reachCtx(n.Name), ListQuery{Page: 1, PerPage: want})
-	if err != nil {
+	if need.Target == nil || !ok || n == nil || limit > 0 && want <= 0 {
 		return choices, 0
 	}
-	for _, thing := range page.Items {
-		key := fmt.Sprint(thing[n.keyProp().Name])
-		if slices.ContainsFunc(choices, func(c ChoiceRow) bool { return c.ID == key }) {
-			continue
+	listed, more := r.listedRows(n, need.Target.byInstance, want)
+	for _, row := range listed {
+		if !slices.ContainsFunc(choices, func(c ChoiceRow) bool { return c.ID == row.ID }) {
+			row.Command, row.Why = r.commandWith(op, q.Args, need.Param, row.ID), WhyListed
+			choices = append(choices, row)
 		}
-		label := n.displayLabel(func(name string) any { return thing[name] })
-		choices = append(choices, ChoiceRow{ID: key, Label: label, Command: r.commandWith(op, q.Args, need.Param, key), Why: WhyListed})
 	}
-	return choices, max(0, page.Total-len(page.Items))
+	return choices, more
+}
+
+// listedRows are up to want things of n (every one for 0) and how many
+// more there are: one page of a store that pages, else, for a noun with no
+// store, its live instances (named by instance when byInstance).
+func (r *Runtime) listedRows(n *Noun, byInstance bool, want int) ([]ChoiceRow, int) {
+	var out []ChoiceRow
+	switch {
+	case n.Store != nil && n.Store.Query != nil && n.keyProp() != nil:
+		page, err := n.Store.Query(r.reachCtx(n.Name), ListQuery{Page: 1, PerPage: want})
+		if err != nil {
+			return nil, 0
+		}
+		for _, thing := range page.Items {
+			out = append(out, ChoiceRow{ID: fmt.Sprint(thing[n.keyProp().Name]), Label: n.displayLabel(func(name string) any { return thing[name] })})
+		}
+		return out, max(0, page.Total-len(page.Items))
+	case n.Store == nil:
+		live := r.nounInstanceChoices(n.Name)
+		for _, c := range live {
+			id := c.ID
+			if inst := r.Instances[c.ID]; !byInstance && inst != nil {
+				id = r.instanceThing(inst).Key
+			}
+			if want == 0 || len(out) < want {
+				out = append(out, ChoiceRow{ID: id, Label: c.Label})
+			}
+		}
+		return out, len(live) - len(out)
+	}
+	return nil, 0
 }

@@ -2203,7 +2203,6 @@
       "note": "scopes/cycle-all-archived: a missing subject picker counts archived values and cycles all, archived, walk, then all"
     },
     "P",
-    "enter",
     "alt+s",
     "alt+s",
     "alt+s",
@@ -3016,7 +3015,7 @@
       "after": 236
     },
     {
-      "after": 239,
+      "after": 238,
       "contains": [
         "Original",
         "Second",
@@ -3028,7 +3027,7 @@
       ]
     },
     {
-      "after": 240,
+      "after": 239,
       "contains": [
         "Original",
         "Second",
@@ -3040,7 +3039,7 @@
       ]
     },
     {
-      "after": 241,
+      "after": 240,
       "modal": "form-suggestions",
       "contains": [
         "Choose id",
@@ -3055,10 +3054,10 @@
       "lacks": [
         "Old one"
       ],
-      "after": 242
+      "after": 241
     },
     {
-      "after": 247,
+      "after": 246,
       "contains": [
         "Suggest swatch",
         "alpha",
@@ -3072,7 +3071,7 @@
       ]
     },
     {
-      "after": 248,
+      "after": 247,
       "contains": [
         "alpha",
         "beta",
@@ -3081,7 +3080,7 @@
       ]
     },
     {
-      "after": 249,
+      "after": 248,
       "contains": [
         "use \"zzz\""
       ]
@@ -3095,10 +3094,10 @@
         "swatch.names",
         "swatch.paint swatch=zzz"
       ],
-      "after": 251
+      "after": 250
     },
     {
-      "after": 255,
+      "after": 254,
       "contains": [
         "Original",
         "1 more in archived"
@@ -3115,7 +3114,7 @@
       "lacks": [
         "more in"
       ],
-      "after": 256
+      "after": 255
     },
     {
       "page": "page1"
