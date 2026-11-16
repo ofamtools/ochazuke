@@ -1649,6 +1649,32 @@ job    = { owner: "row-3", job: 45, slot: "preview", scope: "panes" } // Replaci
 
 History eviction does not suppress completion delivery: a slow job still runs its `Then` callback and reaches its owning component even when newer jobs fill the retained history before it finishes.
 
+#### How a run ends: the Outcome
+
+Every run, from any route, ends in one `Outcome` (`outcome.go`): a kind, a cause and one reason sentence. The kinds are separated by who can change the answer:
+
+| Kind | Meaning | Causes |
+|---|---|---|
+| `done` | it ran; the answer is its value | (none) |
+| `nothing` | it ran and there was nothing to change; nothing is wrong | `kept`, `unchanged`, `empty`, `not-here`, `cancelled` |
+| `needs` | it changed nothing because it lacks a value or a target the caller can give | `target`, `value`, `choice`, `setup`, `confirm` |
+| `failed` | it tried and the world, the program or the owner's rights said no | `failure`, `declaration`, `rights` |
+
+`OutcomeOf(value, err)` classifies any run's answer through one table of today's typed errors (`outcomeTable`, data; any other error is `failed / failure`):
+
+| Error | Outcome |
+|---|---|
+| none | done |
+| `DeclinedError` (a confirm answered no) | nothing / cancelled |
+| `MissingParameterError` | needs / value; needs / target when its `Noun` is set |
+| `ChoiceAnswer` | needs / choice; its `Cause` when set (`provide` sets setup) |
+| `NotFoundError`, `UnknownNameError`, `AmbiguousNounError` | needs / choice (the near names are the candidates) |
+| `ReadOnlyError` | nothing / kept |
+| `NotApplicableError` | nothing / not-here |
+| `RefusedError` | failed / rights; needs / confirm when `Approvable` (with the owner's `Command`) |
+
+A handler that ran and found nothing to change returns `Nothing(cause, reason)`: like `Ctx.NothingChanged` it leaves no history row and no undo record, and its reason goes to the status line as information (`Ctx.Info`), never a modal or an error: `task.retitle: kept: the root has no name`. `Outcome.Text` is the one wording of each cause. `Runtime.ExecuteOutcome(q)` runs a request as `Execute` does and answers its Outcome; `Execute`'s signature is unchanged. Each history entry's result carries the outcome kind and cause (`HistoryResult.Outcome`, `Cause`). `Outcome` is unrelated to `KeyOutcome`, the answer of resolving one key.
+
 #### Delivery contract
 
 Work that completes later reports through one contract. A component is any `Instance.Component` implementing

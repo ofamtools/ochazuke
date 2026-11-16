@@ -133,7 +133,7 @@ func (r *Runtime) provide(op Operation, q Request, focus string, mode ModeState)
 			continue
 		}
 		if need.By == "" {
-			answer := &ChoiceAnswer{Needs: need.Kind, Reason: fmt.Sprintf("%s needs the %s %s, which nothing here can provide now", r.DisplayKey(op.Key.Short()), need.Kind, need.Name)}
+			answer := &ChoiceAnswer{Needs: need.Kind, Cause: CauseSetup, Reason: fmt.Sprintf("%s needs the %s %s, which nothing here can provide now", r.DisplayKey(op.Key.Short()), need.Kind, need.Name)}
 			if need.Setup != "" {
 				answer.Choices = []ChoiceRow{{ID: need.Name, Label: "provide it, then run again", Command: need.Setup}}
 			}

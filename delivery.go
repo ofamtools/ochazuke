@@ -97,6 +97,7 @@ type Result struct {
 	launched  func(Ticket)
 	cont      continuation
 	owner     string
+	nothing   *Outcome // Nothing: ran and changed nothing, the cause and reason
 }
 
 // Done reports a synchronous result.
@@ -789,6 +790,12 @@ func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, 
 	switch {
 	case res.err != nil:
 		return nil, res.err
+	case res.nothing != nil:
+		r.noteNothing(*res.nothing)
+		said := *res.nothing
+		said.Verb = r.DisplayKey(op.Key.Short())
+		ctx.Info(said.Text())
+		return res.value, nil
 	case res.work == nil && res.fg == nil:
 		return res.value, nil
 	}

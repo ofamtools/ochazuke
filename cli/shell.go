@@ -366,7 +366,7 @@ func (s *Shell) Run(ctx context.Context, args []string) (err error) {
 			if _, err := s.call(ochazuke.Request{Verb: "close", Noun: "ochazuke.modal"}); err != nil {
 				return err
 			}
-			return fmt.Errorf("declined: %s", top.Payload.Prompt)
+			return &ochazuke.DeclinedError{Prompt: top.Payload.Prompt}
 		}
 		if value, err = s.call(ochazuke.Request{Verb: "accept", Noun: "ochazuke.confirm"}); err != nil {
 			return err

@@ -1052,6 +1052,14 @@ func (r *Runtime) ExecuteAt(c Context, q Request) (any, error) {
 type operationRunner func(Operation, Context, Arguments) (any, error)
 
 func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, error) {
+	value, _, err := r.executeAtNoting(c, q, run)
+	return value, err
+}
+
+// executeAtNoting is executeAt that also answers the outcome the handler
+// noted when it said it changed nothing (Nothing, Ctx.NothingChanged); nil
+// when it did not, or when the request failed.
+func (r *Runtime) executeAtNoting(c Context, q Request, run operationRunner) (any, *Outcome, error) {
 	actor := r.Actor()
 	if r.agentTransport != nil {
 		actor = r.agentTransport.actor
@@ -1059,7 +1067,7 @@ func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, err
 		actor = q.Actor.normalized()
 	}
 	if err := actor.validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer r.WithActor(actor)()
 	approved := r.agentApproved
@@ -1090,7 +1098,11 @@ func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, err
 	r.history.depth++
 	value, err := r.execute(c, &q, false, run)
 	r.history.depth--
-	nothing := r.takeNothing(depth) && err == nil
+	noted := r.takeNothing(depth)
+	if err != nil {
+		noted = nil
+	}
+	nothing := noted != nil
 	if nothing {
 		// The handler said it changed nothing (Ctx.NothingChanged): no
 		// history row, no undo record, no count, no watch refresh.
@@ -1110,7 +1122,7 @@ func (r *Runtime) executeAt(c Context, q Request, run operationRunner) (any, err
 		// The hooks of what this request emitted run once it is done.
 		r.runHooks()
 	}
-	return value, err
+	return value, noted, err
 }
 
 // endRequest drops what a top-level request memoized: its resolved targets.
@@ -1412,7 +1424,7 @@ func validateArguments(op Operation, args Arguments) error {
 	}
 	for name := range op.Parameters {
 		if op.lacks(name, args) {
-			return &MissingParameterError{Param: name, Reason: op.Parameters[name].Usage}
+			return &MissingParameterError{Param: name, Reason: op.Parameters[name].Usage, Noun: op.Parameters[name].Noun}
 		}
 	}
 	for name, v := range args {

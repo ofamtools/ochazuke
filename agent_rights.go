@@ -36,6 +36,11 @@ type RefusedError struct {
 	Verb   string `json:"verb"`
 	Rule   string `json:"rule"`
 	Reason string `json:"reason"`
+	// Approvable is a refusal the owner can lift by confirming (the right
+	// confirm, refused headless): OutcomeOf answers needs / confirm, with
+	// Command, the owner's command line (OwnerCommand).
+	Approvable bool   `json:"approvable,omitempty"`
+	Command    string `json:"command,omitempty"`
 }
 
 func (e *RefusedError) Error() string { return fmt.Sprintf("%s: %s (%s)", e.Verb, e.Reason, e.Rule) }
@@ -155,19 +160,19 @@ func (r *Runtime) agentVerdict(c Context, q Request, op Operation) Verdict {
 		return Allow()
 	}
 	right := r.AgentRight(op, r.agentLive())
-	refuse := func(reason string) Verdict {
-		err := &RefusedError{Verb: op.Key.Short(), Rule: right.Rule, Reason: reason}
+	refuse := func(err *RefusedError) Verdict {
+		err.Verb, err.Rule = op.Key.Short(), right.Rule
 		return Verdict{Refuse: err.Error(), err: err}
 	}
 	switch right.Right {
 	case AgentNever:
-		return refuse(r.agentNeverReason(op))
+		return refuse(&RefusedError{Reason: r.agentNeverReason(op)})
 	case AgentConfirm:
 		if q.agentApproved || r.agentApproved {
 			return Allow()
 		}
 		if !r.agentLive() {
-			return refuse(r.confirmRefusal(q))
+			return refuse(&RefusedError{Reason: r.confirmRefusal(q), Approvable: true, Command: r.OwnerCommand(q)})
 		}
 		prompt := op.Confirm
 		if op.ConfirmFor != nil {

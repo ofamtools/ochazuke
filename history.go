@@ -93,13 +93,26 @@ type HistoryContext struct {
 	Source string `json:"source"`
 }
 
-// HistoryResult is the outcome: ok, or the error. The value the operation
-// returned is the caller's (the CLI prints it), not the history's; a
-// reference to it (a hash into a content-addressed store) would go here,
-// beside ok.
+// HistoryResult is the outcome: ok, or the error, and the run's Outcome
+// kind and cause (OutcomeOf over the value and error: done, nothing,
+// needs or failed). The value the operation returned is the caller's (the
+// CLI prints it), not the history's; a reference to it (a hash into a
+// content-addressed store) would go here, beside ok.
 type HistoryResult struct {
-	OK    bool   `json:"ok"`
-	Error string `json:"error,omitempty"`
+	OK      bool         `json:"ok"`
+	Error   string       `json:"error,omitempty"`
+	Outcome OutcomeKind  `json:"outcome,omitempty"`
+	Cause   OutcomeCause `json:"cause,omitempty"`
+}
+
+// historyResult is the history's record of a run that answered value, err.
+func historyResult(value any, err error) HistoryResult {
+	o := OutcomeOf(value, err)
+	res := HistoryResult{OK: err == nil, Outcome: o.Kind, Cause: o.Cause}
+	if err != nil {
+		res.Error = err.Error()
+	}
+	return res
 }
 
 // HistoryPlace is where the interaction stands: the focused instance (a
@@ -136,7 +149,7 @@ type actionHistory struct {
 	depth   int                   // requests running now
 	running []*RequestContext     // the running requests' contexts and the acting scopes inside them, innermost last (request_context.go)
 	changes map[int][]ThingChange // the changes noted for the entry at each depth (noteChange)
-	nothing map[int]bool          // requests at each depth whose handler said nothing changed (Ctx.NothingChanged)
+	nothing map[int]*Outcome      // requests at each depth whose handler said nothing changed (Ctx.NothingChanged, Nothing), with the outcome
 	limit   int                   // the ring's bound while persisted (history-limit); 0 is HistoryLimit
 	group   string                // the group the entries recorded now join (inHistoryGroup)
 	groups  uint64                // groups made (newHistoryGroup)
@@ -212,10 +225,7 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 		q.Args = args
 	}
 	r.history.seq++
-	entry := HistoryEntry{Seq: r.history.seq, At: at, Kind: r.historyKind(q), Request: q, Context: ctx, Depth: depth, Result: HistoryResult{OK: err == nil}, Group: r.history.group}
-	if err != nil {
-		entry.Result.Error = err.Error()
-	}
+	entry := HistoryEntry{Seq: r.history.seq, At: at, Kind: r.historyKind(q), Request: q, Context: ctx, Depth: depth, Result: historyResult(value, err), Group: r.history.group}
 	if to := r.place(); to != from {
 		entry.Moved = &HistoryMove{From: from, To: to}
 	}
@@ -266,11 +276,11 @@ func (r *Runtime) completeHistory(done Completion, callbackErr error) {
 			if entry.Restored || entry.Job != done.Job {
 				continue
 			}
-			entry.Result = HistoryResult{OK: err == nil}
-			if err != nil {
-				entry.Result.Error = err.Error()
-			} else if things := r.resultThings(entry.Request, done.Value); len(things) != 0 {
-				entry.Things = things
+			entry.Result = historyResult(done.Value, err)
+			if err == nil {
+				if things := r.resultThings(entry.Request, done.Value); len(things) != 0 {
+					entry.Things = things
+				}
 			}
 			r.persist(*entry)
 		}

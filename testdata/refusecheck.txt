@@ -263,7 +263,6 @@ cli/setup.go	setupDeclaration.engine	K14	"setup.json: %w"	1	failure
 cli/shell.go	Shell.Run	K10	"%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)"	1
 cli/shell.go	Shell.Run	K14	"%w; pass --target, one of: %s"	1	failure
 cli/shell.go	Shell.Run	K14	"target %s: %w"	2	failure
-cli/shell.go	Shell.Run	K15	"declined: %s"	1
 cli/shell.go	Shell.Run	K15	"errors.New(…)"	1
 cli/shell.go	Shell.call	K15	"errors.New(…)"	2
 cli/shell.go	Shell.parseFlags	K14	"--%s: %w"	1	failure

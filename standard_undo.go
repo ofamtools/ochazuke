@@ -73,23 +73,28 @@ func (r *Runtime) noteChange(c ThingChange) {
 // applies to the request the handler runs in; work a handler returns to
 // run off the loop (a job) is judged when it completes, as before.
 func (c Ctx) NothingChanged() {
-	r := c.Runtime
-	if r == nil {
-		return
+	if c.Runtime != nil {
+		c.Runtime.noteNothing(Outcome{Kind: OutcomeNothing, Cause: CauseUnchanged})
 	}
-	h := &r.history
-	if h.nothing == nil {
-		h.nothing = map[int]bool{}
-	}
-	h.nothing[max(h.depth-1, 0)] = true
 }
 
-// takeNothing reports whether the request at depth said nothing changed,
-// and clears it.
-func (r *Runtime) takeNothing(depth int) bool {
-	ok := r.history.nothing[depth]
+// noteNothing marks the running request as one that changed nothing, with
+// the outcome it answers (Nothing's cause and reason; NothingChanged's
+// unchanged).
+func (r *Runtime) noteNothing(o Outcome) {
+	h := &r.history
+	if h.nothing == nil {
+		h.nothing = map[int]*Outcome{}
+	}
+	h.nothing[max(h.depth-1, 0)] = &o
+}
+
+// takeNothing is the outcome the request at depth noted when it said
+// nothing changed (nil when it did not), and clears it.
+func (r *Runtime) takeNothing(depth int) *Outcome {
+	o := r.history.nothing[depth]
 	delete(r.history.nothing, depth)
-	return ok
+	return o
 }
 
 // takeChanges are the changes noted for the entry at depth, cleared.

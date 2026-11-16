@@ -16,6 +16,7 @@ import (
 type MissingParameterError struct {
 	Param  string // the parameter the request needs
 	Reason string // why, in the person's words ("" for a plain missing argument)
+	Noun   string // the noun the parameter's value names, "" for a plain value (OutcomeOf: needs a target, not a value)
 }
 
 func (e *MissingParameterError) Error() string {
@@ -29,7 +30,13 @@ func (e *MissingParameterError) Error() string {
 // when it finds late that it lacks a value of its parameter param: the
 // person is asked for it, not told no.
 func (c Ctx) Need(param, reason string) error {
-	return &MissingParameterError{Param: param, Reason: reason}
+	need := &MissingParameterError{Param: param, Reason: reason}
+	if c.Runtime != nil {
+		if op, ok := c.Runtime.Operation(c.Invoked.Name); ok {
+			need.Noun = op.Parameters[param].Noun
+		}
+	}
+	return need
 }
 
 // needed is the parameter err says a request needs, nil when it is not
@@ -126,7 +133,7 @@ func (r *Runtime) refusal(op Operation, q Request, focus string, mode ModeState)
 	if r.Settings().Bool(PaletteReachSetting) {
 		if missing := r.missingTargets(op, q.Args, focus); len(missing) > 0 {
 			noun := r.DisplayNoun(op.Parameters[missing[0]].Noun)
-			return &ArgumentError{&MissingParameterError{Param: missing[0], Reason: "no " + noun + " is focused"}}
+			return &ArgumentError{&MissingParameterError{Param: missing[0], Reason: "no " + noun + " is focused", Noun: op.Parameters[missing[0]].Noun}}
 		}
 	}
 	var held []string

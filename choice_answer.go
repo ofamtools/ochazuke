@@ -18,6 +18,9 @@ type ChoiceAnswer struct {
 	Needs   string      `json:"needs,omitempty"`
 	Reason  string      `json:"reason"`
 	Choices []ChoiceRow `json:"choices"`
+	// Cause is the needs outcome it answers (OutcomeOf): "" is a choice;
+	// CauseSetup for a requirement nothing here provides (provide).
+	Cause OutcomeCause `json:"cause,omitempty"`
 }
 
 // ChoiceRow is one candidate of a ChoiceAnswer.
