@@ -16,6 +16,7 @@ activeRegister	prop	seed
 activity	prop	seed	
 add	action	seed	
 add-base	action	seed	
+add-key	action	yes	give the help page row's verb another key (binding.bind)
 added	prop	seed	
 added_on	prop	seed	
 address	prop	seed	
@@ -67,6 +68,7 @@ bind-key	action	seed
 bind-literal	action	seed	
 bind-start	action	seed	
 binding	noun	seed	
+binding-file	noun	yes	the user's bindings.json as one thing: its text (binding_edit.go)
 bindings	noun+prop	seed	
 bindings-help	noun	seed	
 branch	noun+prop	seed	
@@ -78,7 +80,12 @@ calls	relation	seed
 cancel	action	seed	
 cancel-edit	action	seed	
 capture	prop	seed	
+capture-apply	action	yes	apply the help page edit on the keys captured
+capture-cancel	action	yes	leave the help page key capture
+capture-drop	action	yes	drop the last key captured for a help page edit
 capture-hook	action	seed	
+capture-key	action	yes	add a pressed key to a help page edit
+capture-literal	action	yes	take the next key as it is in a help page capture
 capture-turn	action	seed	
 captured	prop	seed	
 catalog	noun	seed	
@@ -672,6 +679,7 @@ read-settings	prop	seed
 read-turns	prop	seed	
 reason	prop	seed	
 rebase	action	seed	
+rebind	action	yes	move a binding row to another key or change its fields (binding_edit.go)
 recall	action	seed	
 recheck	action	seed	
 record	action	seed	
@@ -730,6 +738,7 @@ revert	action	seed
 revert-all	action	seed	
 review	action+noun	seed	
 reviews	relation	seed	
+revise	action	yes	edit a binding row's fields in a form from the help page
 reword	action	seed	
 rights	prop	seed	
 roles	prop	seed	
@@ -803,6 +812,7 @@ shape	prop	seed
 short_sha	prop	seed	
 show	action	seed	
 show-archived	action	seed	
+show-file	action	yes	show the user's bindings.json and its changes from the help page
 show-section	action	seed	
 show-tab	action	seed	
 shrink	action	seed	
@@ -904,6 +914,7 @@ uncheck	action	seed
 undecide	action	seed	
 undismiss	action	seed	
 undo	action	seed	
+unify	action	yes	one key for a verb on every noun that has it
 unignore	action	seed	
 uninstall	action	seed	
 unlink	action	seed	

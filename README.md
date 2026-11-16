@@ -2171,6 +2171,27 @@ The page is a thin layer over values that hold the logic (`help_walk.go` `HelpWa
 
 Compared with Vim: Vim's `:map` lists mappings and `:verbose map {lhs}` says where one was last set, which `enter` and the defined-in column cover; `]`/`[` move between levels as Vim's `]]`/`[[` move between sections, one key here since nothing else starts with `]` on the page; Vim has no stack of tables to walk, so the rail has no counterpart.
 
+### Editing your bindings.json from the page
+
+The page edits your `bindings.json` (setting `help.edit`, default on; off leaves the page read-only). Every edit is a verb of `ochazuke.binding` that the palette, the CLI and MCP run with explicit arguments (a row is named by its table, `noun` or `instance`, its `mode`, `key` and `when`; with no table, the first row on the key from the focus):
+
+| Key | Verb | Does |
+|---|---|---|
+| `r` | `binding.rebind {to}` | move the row to another key or sequence; a default left on its old key gets an unbind row |
+| `a` | `binding.bind` | another key for the row's verb (a verb with no key: its first), in the row's table, with its arguments |
+| `d d` | `binding.remove` | take the row off its key: your own row is deleted, a default gets an unbind row (listed as `removed`) |
+| `e` | `binding.rebind` (form) | the row's key, arguments, hint, `hint-hidden`, guard, table (`to-noun`) and mode (`to-mode`) |
+| `U` | `binding.reset` | put the default back: every row of your file on the row's table, key and guard goes |
+| `C` | `binding.unify {verb, key}` | one key for the verb on every noun that has it (`move` takes each noun's row off its old key) |
+| `u` | `history-entry.undo` | undo the last change: the file's old text is written back |
+| `W` | `help-page.show-file` | your file as written, after its changes since the page opened (`+` added, `~` changed, `-` removed) |
+
+`r`, `a` and `C` take the keys in a pass-through mode (`help_page_capture`: every key is captured; `enter` applies, `esc` leaves, `backspace` drops the last key, `ctrl+v` takes the next key as it is), and after every key the detail lines show what the edit does from the walked focus before `enter` applies it: what the key runs now and after, the row it replaces (same table, key and guard), the rows it shadows (or that it was shadowed already), and the keys each operation that loses one keeps. Nothing is refused: a key a nearer row takes is applied and said to be taken. Changed rows are marked `✎` (`is:changed`), unbound defaults are listed with status `removed` (`is:removed`).
+
+Every edit is planned as a value (`help_edit.go`: `BindingEditor.PlanRebind`/`PlanAdd`/`PlanRemove`/`PlanReset`/`PlanUnify`, `HelpWalk.With` and `Preview`, `DiffBindings`) and written by one writer (`writeUserBindings`, `binding_edit.go`: the old file kept as `bindings.json.bak`, the file loaded again), which notes the text before and after on the `ochazuke.binding-file` thing (its `text` prop: `binding-file set text=...` writes the file whole), so undo is the runtime's `history-entry.undo`. Commit on change: there is no save key.
+
+Compared with Vim: `:map {lhs} {rhs}` is `a`/`binding.bind`, `:unmap {lhs}` is `d d`/`binding.remove` (here a default is unbound by a row of your file, as `:unmap` removes it for the session), and moving a mapping is `:unmap` then `:map`, which `r` does in one step (`:help :map`, `:help :unmap`). Vim writes nothing: `:mkvimrc` saves the mappings by hand, while every edit here is written at once, with undo; Vim has no preview of what a new mapping shadows.
+
 ## Default bindings are data
 
 Every default key is written once, in an embedded file in the grouped bindings format (see The bindings file format): the framework's in `bindings/*.json`, one per area (`editor.json`, `registers.json`, `list.json`, `table.json`, `list-modes.json`, `tree.json`, `timeline.json`, `form.json`, `terminal.json`, `app.json`, `palette.json`, `picker.json`, ...), the markdown, grid and Commands nouns' in `markdown/`, `grid/` and `cli/bindings.json`. A group may also carry `"fallback": true`: its rows are skipped on the keys its table bound before the file loaded (the app noun's `:`, `?`, `ctrl+c`: an application's row bound before `NewModel` keeps its key).

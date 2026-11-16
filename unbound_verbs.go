@@ -4,8 +4,6 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -459,9 +457,12 @@ func registerUnboundVerbs(r *Runtime) {
 		"mode":    {Type: "string", Description: "the mode the key answers in (default: the current one)"},
 		"noun":    {Type: "string", Description: "the noun whose table holds the row (default: the action's noun)"},
 		"replace": {Type: "boolean", Description: "Take the key from the row that answers it now"},
-	}, Positional: []string{"key", "action"}, Result: "binding", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		return r.bindUserKey(StringArg(a, "key", ""), StringArg(a, "action", ""), StringArg(a, "noun", ""), StringArg(a, "mode", ""), a["replace"] == true)
+		"args":    {Type: PropObject, Description: "the arguments the row passes to the action"},
+	}, Positional: []string{"key", "action"}, Result: "binding", HistoryKind: HistoryChange, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+		args, _ := a["args"].(map[string]any)
+		return r.bindUserKey(StringArg(a, "key", ""), StringArg(a, "action", ""), StringArg(a, "noun", ""), StringArg(a, "mode", ""), Arguments(args))
 	}})
+	registerBindingEdits(r)
 	if err := r.AddVerbCheck("ochazuke.binding.bind", VerbCheck{Name: "key-taken", Check: keyTaken}); err != nil {
 		panic(err.Error())
 	}
@@ -494,9 +495,10 @@ func keyTaken(r *Runtime, _ Context, a Arguments) Verdict {
 
 // bindUserKey is binding.bind: it validates the row against the live
 // tables, adds it to the user's bindings file (the file kept, as a grouped
-// file, with the row last in its table), loads the file again and refreshes
-// an open help.
-func (r *Runtime) bindUserKey(key, action, noun, mode string, replace bool) (any, error) {
+// file, with the row last in its table; PlanAdd), writes it through the one
+// writer (which loads it again and refreshes an open help) and notes the
+// change, so history-entry.undo takes it back.
+func (r *Runtime) bindUserKey(key, action, noun, mode string, args Arguments) (any, error) {
 	path := r.Config().Path(BindingsFile)
 	if path == "" {
 		return nil, errors.New("this application has no config directory: nothing to write the binding to")
@@ -512,61 +514,23 @@ func (r *Runtime) bindUserKey(key, action, noun, mode string, replace bool) (any
 	if mode == "" {
 		mode = r.BaseMode()
 	}
-	row, err := r.validateRow(Binding{Noun: noun, Mode: mode, Keys: strings.TrimSpace(key), Request: Request{Noun: op.Noun(), Verb: op.Name()}})
+	q := Request{Noun: op.Noun(), Verb: op.Name()}
+	if len(args) > 0 {
+		q.Args = cloneArgs(args)
+	}
+	row, err := r.validateRow(Binding{Noun: noun, Mode: mode, Keys: strings.TrimSpace(key), Request: q})
 	if err != nil {
 		return nil, err
 	}
-	var doc BindingsDoc
-	old, err := os.ReadFile(path)
-	switch {
-	case err == nil:
-		if doc, _, err = ParseBindings(old); err != nil {
-			return nil, fmt.Errorf("%s does not parse, so it is left alone: %w", BindingsFile, err)
-		}
-	case !errors.Is(err, os.ErrNotExist):
-		return nil, err
+	old, doc, err := r.readUserBindingsDoc()
+	if err != nil {
+		return nil, fmt.Errorf("%s does not parse, so it is left alone: %w", BindingsFile, err)
 	}
-	line := row
-	line.Noun, line.Instance, line.Mode = noun, "", mode
-	placed := false
-	for i, g := range doc.Groups {
-		if g.Instance != "" || g.Noun != noun || g.Mode != mode {
-			continue
-		}
-		for j, b := range g.Rows {
-			if b.same(line) {
-				doc.Groups[i].Rows[j] = line
-				placed = true
-				break
-			}
-		}
-		if !placed {
-			doc.Groups[i].Rows = append(doc.Groups[i].Rows, line)
-			placed = true
-		}
-		break
-	}
-	if !placed {
-		doc.Groups = append(doc.Groups, BindingGroup{Noun: noun, Mode: mode, Rows: []Binding{line}})
-	}
-	data, err := FormatBindings(doc)
+	plan := r.bindingEditor(doc).PlanAdd(Binding{Noun: noun, Mode: mode}, row.Request, row.Keys)
+	problems, err := r.applyUserPlan(path, old, plan)
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return nil, err
-	}
-	if len(old) > 0 {
-		if err := os.WriteFile(path+".bak", old, 0o644); err != nil {
-			return nil, err
-		}
-	}
-	if err := writeFileAtomic(path, data); err != nil {
-		return nil, err
-	}
-	r.RecordWrittenFile(path)
-	problems := r.ReloadUserBindings()
-	r.syncHelp()
 	for _, p := range problems {
 		if strings.Contains(p, row.Keys) && !strings.HasPrefix(p, "warning:") {
 			return nil, fmt.Errorf("written, but not loaded: %s", p)

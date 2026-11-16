@@ -49,9 +49,8 @@ func registerHelpPage(r *Runtime) {
 	r.Define(helpPageNoun).About("The binding help page: the walk a key press takes from a focus, as a graph, beside every binding row and verb with no key, each with its status from that focus")
 	r.Define(helpRowNoun).About("A line of the binding help page's list: a binding row, a verb with no key, a level's own line or a note")
 	r.Define(helpNodeNoun).About("A node of the binding help page's rail: a level of the walk, one of its tables or other modes, a place beside the focus, or the way back")
-	for _, v := range helpPageVerbs() {
-		v := v
-		r.Register(Operation{Key: KeyOf(helpPageNoun, v.name), Description: v.desc, Parameters: v.params, Result: "help-page", HistoryKind: HistoryAction, Agent: AgentAllow,
+	register := func(v helpPageVerb, staying bool) {
+		r.Register(Operation{Key: KeyOf(helpPageNoun, v.name), Description: v.desc, Parameters: v.params, Result: "help-page", HistoryKind: HistoryAction, Agent: AgentAllow, Staying: staying,
 			Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 				p := r.helpPage()
 				if v.run == nil || r.Page != HelpPageID {
@@ -62,6 +61,13 @@ func registerHelpPage(r *Runtime) {
 				return p.state(), v.run(p, a)
 			}})
 	}
+	for _, v := range append(helpPageVerbs(), helpPageEditVerbs()...) {
+		register(v, false)
+	}
+	for _, v := range helpPageCaptureVerbs() {
+		register(v, true)
+	}
+	registerHelpPageEdits(r)
 }
 
 // HelpPageState is what a help-page verb answers: the focus walked from,

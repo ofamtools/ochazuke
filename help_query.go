@@ -81,6 +81,8 @@ var helpIs = []helpIsWord{
 	{"walk", HelpPageRow.OnWalk},
 	{"off", func(v HelpPageRow) bool { return v.State == StatusOffWalk }},
 	{"pattern", func(v HelpPageRow) bool { return !v.Unbound && v.Row.Keys == "" }},
+	{"changed", func(v HelpPageRow) bool { return v.Changed }},
+	{"removed", func(v HelpPageRow) bool { return v.State == StatusRemoved }},
 }
 
 // helpIsNamed is the test of an is: word, nil for none.

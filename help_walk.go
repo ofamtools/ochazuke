@@ -43,10 +43,13 @@ const (
 	// StatusNoKey: a verb the focused noun has that no row of the walk
 	// binds.
 	StatusNoKey RowStatus = "no key"
+	// StatusRemoved: a default row the user's bindings.json unbinds (U
+	// puts it back).
+	StatusRemoved RowStatus = "removed"
 )
 
 // RowStatuses are the statuses in the order the help explains them.
-var RowStatuses = []RowStatus{StatusAnswers, StatusGuarded, StatusMaybe, StatusShadowed, StatusStepsAside, StatusOtherMode, StatusOffWalk, StatusNoKey}
+var RowStatuses = []RowStatus{StatusAnswers, StatusGuarded, StatusMaybe, StatusShadowed, StatusStepsAside, StatusOtherMode, StatusOffWalk, StatusNoKey, StatusRemoved}
 
 // Answering reports whether a row with the status answers from the focus,
 // at once or when a guard holds.
@@ -164,6 +167,12 @@ type HelpWalk struct {
 	// Unbound are the verbs of the focused noun (by help.unbound-scope, of
 	// the chain) no row of the walk binds.
 	Unbound []Operation `json:"-"`
+	// CapturePass reports whether the walk reads capture rows first (no
+	// passthrough mode), and Declared are the keys of the declared rows
+	// generated rows step aside for: what judging the entries again
+	// (With) needs.
+	CapturePass bool            `json:"-"`
+	Declared    map[string]bool `json:"-"`
 }
 
 // TableOf is the table an entry was read from.
@@ -256,37 +265,45 @@ func (r *Runtime) helpWalkOf(levels []level, mode ModeState, focus string) HelpW
 		}
 		w.Levels = append(w.Levels, hl)
 	}
-	declared := r.declaredKeys(inner, mode, focus, exclusive, false)
+	w.Declared = r.declaredKeys(inner, mode, focus, exclusive, false)
+	w.CapturePass = !passthrough
+	w.collect(r.rowGuardText)
+	return w
+}
+
+// collect lists every row of the walk's tables as its entries in
+// resolution order (the capture pass outer first with the fallback table
+// last, as walkOf reads it; then the bubbling pass inner first), each with
+// the guard it answers under, and judges them.
+func (w *HelpWalk) collect(guard func(Binding) string) {
+	w.Entries = nil
 	push := func(capture bool, order []int) {
 		for _, i := range order {
 			for t, table := range w.Levels[i].Tables {
 				for _, b := range table.Rows {
 					if b.Capture == capture {
-						w.Entries = append(w.Entries, HelpEntry{Row: b, Level: i, Table: t, Capture: capture, Guard: r.rowGuardText(b), By: -1})
+						w.Entries = append(w.Entries, HelpEntry{Row: b, Level: i, Table: t, Capture: capture, Guard: guard(b), By: -1})
 					}
 				}
 			}
 		}
 	}
-	// The capture pass reads outer first with the fallback table last
-	// (walkOf); the bubbling pass inner first.
 	var bubbling, capture, fallback []int
-	for i := len(inner) - 1; i >= 0; i-- {
-		if inner[i].fallback {
+	for i := len(w.Levels) - 1; i >= 0; i-- {
+		if w.Levels[i].Role == LevelFallback {
 			fallback = append(fallback, i)
 		} else {
 			capture = append(capture, i)
 		}
 	}
-	for i := range inner {
+	for i := range w.Levels {
 		bubbling = append(bubbling, i)
 	}
-	if !passthrough {
+	if w.CapturePass {
 		push(true, append(capture, fallback...))
 	}
 	push(false, bubbling)
-	w.judge(declared)
-	return w
+	w.judge(w.Declared)
 }
 
 // levelRole names what a resolver level stands for on the page.
@@ -372,7 +389,7 @@ func (w *HelpWalk) judge(declared map[string]bool) {
 		}
 	}
 	for i := range w.Levels {
-		c := HelpCounts{}
+		c := HelpCounts{NoKey: w.Levels[i].Counts.NoKey}
 		for _, e := range w.Entries {
 			if e.Level != i {
 				continue

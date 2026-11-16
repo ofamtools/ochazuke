@@ -48,6 +48,9 @@ type HelpPageRow struct {
 	// and level; nil when none does.
 	By    *HelpBy `json:"by,omitempty"`
 	Order int     `json:"order"`
+	// Changed marks a row your bindings.json added or changed since the
+	// page opened (✎, is:changed).
+	Changed bool `json:"changed,omitempty"`
 }
 
 // HelpBy is the row a shadowed, maybe or stepping-aside row gives way to.
@@ -91,6 +94,8 @@ func (v HelpPageRow) Defined() string {
 	switch {
 	case v.Unbound:
 		return "verb of " + v.Noun
+	case v.State == StatusRemoved:
+		return "unbound by your bindings.json"
 	case v.Source == SourceUser:
 		return "your bindings.json"
 	case v.Source == SourceGo:
@@ -199,6 +204,17 @@ func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 		}
 		out = append(out, v)
 	}
+	for _, b := range r.removedDefaults() {
+		v := r.helpPageRow(b, user, len(out))
+		v.ID = "removed:" + strings.TrimPrefix(v.ID, "row:")
+		v.Source = r.defaultSource(b)
+		v.Class = r.sourceClass(v.Source, b)
+		v.Level = w.LevelOf(b)
+		v.LevelName = w.LevelLabel(v.Level)
+		v.Table = WalkTable{Noun: b.Noun, Instance: b.Instance, Mode: b.Mode}.Label()
+		v.State = StatusRemoved
+		out = append(out, v)
+	}
 	for _, op := range w.Unbound {
 		noun := op.Noun()
 		level := slices.IndexFunc(w.Levels, func(l HelpLevel) bool { return l.Noun == noun })
@@ -226,6 +242,30 @@ func (r *Runtime) storedRows() []Binding {
 	for _, b := range r.AllBindings() {
 		if !b.Unbind {
 			b.Aliases = nil
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
+// removedDefaults are the default rows the user's bindings.json unbinds
+// and no row of it puts back on their identity: what U restores.
+func (r *Runtime) removedDefaults() []Binding {
+	c := r.Config()
+	if c == nil {
+		return nil
+	}
+	live := map[string]bool{}
+	for _, b := range r.storedRows() {
+		live[sourceKey(b)] = true
+	}
+	var out []Binding
+	for _, a := range c.applied {
+		if !a.row.Unbind || live[sourceKey(a.row)] {
+			continue
+		}
+		for _, b := range a.replaced {
+			b.Noun, b.Instance, b.Mode, b.Aliases = a.row.Noun, a.row.Instance, a.row.Mode, nil
 			out = append(out, b)
 		}
 	}

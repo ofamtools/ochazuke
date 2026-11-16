@@ -1,9 +1,17 @@
 // ochazuke bindings (JSONC): the binding help page (help_page.go). The page noun's rows answer anywhere on the page; the rail's nodes
 // (help-node) and the list's lines (help-row) add their own. Motions are the tree's and the list's own (j k g g G ctrl+d ctrl+u, l h on
 // the rail); tab and shift+tab move between the rail and the list (focus.next), / opens the list's filter (the help query).
+// Editing (help_page_edit.go, setting help.edit): r, a and C capture a key in help_page_capture (every key is taken; enter applies,
+// esc leaves, backspace drops the last key, ctrl+v takes the next key as it is) with the preview in the detail lines.
 {
+  "modes": {
+    "help_page_capture": {"pending": true},
+    "help_page_literal": {"pending": true}
+  },
   "bindings": [
     {"context": "ochazuke.help-page/normal", "bindings": [
+      {"key": "u", "action": "ochazuke.help-page.undo", "hint": "undo", "help": "Undo the last change: an edit of your bindings.json writes the old text back"},
+      {"key": "W", "action": "ochazuke.help-page.show-file", "hint": "your file", "help": "Your bindings.json as written, after its changes since the page opened"},
       {"key": "q", "action": "ochazuke.help-page.close", "hint": "back"},
       {"key": "f", "action": "ochazuke.help-page.refocus", "hint": "focus"},
       {"key": "-", "action": "ochazuke.help-page.back", "hint": "previous focus"},
@@ -41,7 +49,23 @@
       {"key": "*", "action": "ochazuke.help-page.narrow", "args": {"field": "verb"}, "hint": "same verb"},
       {"key": "=", "action": "ochazuke.help-page.narrow", "args": {"field": "key"}, "hint": "same key"},
       {"key": "#", "action": "ochazuke.help-page.narrow", "args": {"field": "noun"}, "hint": "same noun"},
-      {"key": "c", "action": "ochazuke.help-page.yank", "hint": "copy row"}
+      {"key": "c", "action": "ochazuke.help-page.yank", "hint": "copy row"},
+      {"key": "r", "action": "ochazuke.help-page.rebind", "hint": "rebind", "help": "Rebind the row: press the new key or sequence, see what it replaces or shadows, enter applies"},
+      {"key": "a", "action": "ochazuke.help-page.add-key", "hint": "add key", "help": "Another key for the row's verb (a verb with no key: its first); press it, see the preview, enter applies"},
+      {"key": "d d", "action": "ochazuke.help-page.remove", "hint": "remove", "help": "Take the row off its key: your row is deleted, a default gets an unbind row"},
+      {"key": "e", "action": "ochazuke.help-page.revise", "hint": "edit", "help": "Edit the row's fields in a form: key, arguments, hint, hidden, guard, table, mode"},
+      {"key": "U", "action": "ochazuke.help-page.reset", "hint": "default", "help": "Put the default back on the row's key"},
+      {"key": "C", "action": "ochazuke.help-page.unify", "hint": "one key everywhere", "help": "One key for this verb on every noun that has it; press it, see the preview, enter applies"}
+    ]},
+    {"context": "ochazuke.help-page/help_page_capture", "bindings": [
+      {"key": "esc", "action": "ochazuke.help-page.capture-cancel", "hint": "leave", "help": "Leave without changing anything"},
+      {"key": "enter", "action": "ochazuke.help-page.capture-apply", "hint": "apply", "help": "Apply the edit on the keys pressed so far"},
+      {"key": "backspace", "action": "ochazuke.help-page.capture-drop", "hint": "drop last", "help": "Drop the last key pressed"},
+      {"key": "ctrl+v", "action": "ochazuke.help-page.capture-literal", "hint": "literal", "help": "Take the next key as it is (enter, esc and backspace included)"},
+      {"key": "any", "action": "ochazuke.help-page.capture-key", "from": {"key": "key"}, "hint": "key", "help": "Add this key to the edit's keys"}
+    ]},
+    {"context": "ochazuke.help-page/help_page_literal", "bindings": [
+      {"key": "any", "action": "ochazuke.help-page.capture-key", "from": {"key": "key"}, "hint": "key", "help": "Take this key as it is"}
     ]}
   ]
 }

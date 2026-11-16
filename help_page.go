@@ -74,6 +74,11 @@ type HelpPage struct {
 	Detail    []string      `json:"detail,omitempty"`
 	RailLevel int           `json:"railLevel"`
 	Built     uint64        `json:"built"`
+	// Edit is the edit capturing keys (r, a, C), nil when none; FileStart
+	// is the user's bindings.json when the page opened, what W diffs
+	// against.
+	Edit      *HelpPageEdit `json:"edit,omitempty"`
+	FileStart string        `json:"-"`
 }
 
 // The delivery contract: the page runs no jobs.
@@ -123,7 +128,8 @@ func (r *Runtime) openHelpPage(focus string, mode ModeState) (bool, error) {
 	}
 	if r.Page != HelpPageID {
 		p.From = r.Page
-		p.Back, p.Walk, p.Current = nil, HelpWalk{}, HelpFocus{}
+		p.Back, p.Walk, p.Current, p.Edit = nil, HelpWalk{}, HelpFocus{}, nil
+		p.FileStart = r.fileText()
 	}
 	if err := r.OpenPage(HelpPageID); err != nil {
 		return false, err
@@ -205,7 +211,7 @@ func (r *Runtime) closeHelpPage() error {
 			return err
 		}
 	}
-	p.From, p.Back, p.Current, p.Detail = "", nil, HelpFocus{}, nil
+	p.From, p.Back, p.Current, p.Detail, p.Edit = "", nil, HelpFocus{}, nil, nil
 	return r.RemoveInstance(HelpPageID)
 }
 
@@ -228,13 +234,9 @@ func (p *HelpPage) walkTo(next HelpFocus) {
 	p.Current, p.Detail = next, nil
 	p.read()
 	notes := []string{"Walking from " + r.DisplayNoun(next.Place.Noun) + placeOn(next.Place) + " in " + next.Mode + "."}
-	if list := r.List(helpRowsID); list != nil && hadWalk {
-		f := ParseHelpQuery(list.Filter()).Refocus(old, p.Walk)
-		if note := f.Note(); note != "" {
+	if hadWalk {
+		if note := p.refocusChips(old); note != "" {
 			notes = append(notes, note)
-		}
-		if f.Query.String() != list.Filter() {
-			list.SetFilter(f.Query.String())
 		}
 	}
 	if next.Mode != asked {
@@ -242,6 +244,35 @@ func (p *HelpPage) walkTo(next HelpFocus) {
 	}
 	p.selectLevel(0)
 	r.UI().Info(strings.Join(notes, " "))
+}
+
+// refocusChips moves the filter's chips that name the old walk to their
+// counterpart on the walk now, or takes them out, and says which: after a
+// change of focus, and after an edit reads the walk again.
+func (p *HelpPage) refocusChips(old HelpWalk) string {
+	list := p.r.List(helpRowsID)
+	if list == nil {
+		return ""
+	}
+	f := ParseHelpQuery(list.Filter()).Refocus(old, p.Walk)
+	if f.Query.String() != list.Filter() {
+		list.SetFilter(f.Query.String())
+	}
+	return f.Note()
+}
+
+// markChanged marks the rows your bindings.json added or changed since
+// the page opened.
+func (p *HelpPage) markChanged() {
+	_, now, err := p.r.readUserBindingsDoc()
+	if err != nil {
+		return
+	}
+	start, _, _ := ParseBindings([]byte(p.FileStart))
+	touched := DiffBindings(start, now).Touched(p.r.CanonicalNoun)
+	for i, v := range p.Rows {
+		p.Rows[i].Changed = !v.Unbound && touched[sourceKey(v.Row)]
+	}
 }
 
 // placeOn names a place's page for the status line.
@@ -263,6 +294,7 @@ func (p *HelpPage) read() {
 		p.Walk = r.HelpWalkAtPlace(p.Current.Place, mode)
 	}
 	p.Rows = r.HelpRows(p.Walk)
+	p.markChanged()
 	p.arrange()
 	// After the rows are placed: placing them must not read as a change of
 	// the bindings next update.
@@ -311,8 +343,12 @@ func (p *HelpPage) listItems() []ListItem {
 			if v.Unbound {
 				mode = ""
 			}
+			defined := v.Defined()
+			if v.Changed {
+				defined = "✎ " + defined
+			}
 			out = append(out, ListItem{ID: v.ID, Label: v.Key, Noun: helpRowNoun, Section: section, Data: line,
-				Cells: []string{v.Key, runs, mode, v.Defined(), v.Guard, v.StatusText()}, Search: []string{v.Help}})
+				Cells: []string{v.Key, runs, mode, defined, v.Guard, v.StatusText()}, Search: []string{v.Help}})
 		}
 	}
 	return out
@@ -536,7 +572,11 @@ func (r *Runtime) syncHelpPage() {
 	}
 	p := r.helpPage()
 	if p.Built != r.renderCache.generation && len(p.Walk.Levels) > 0 {
+		old := p.Walk
 		p.read()
+		if note := p.refocusChips(old); note != "" {
+			r.UI().Info(note)
+		}
 	}
 	tree, list := r.Tree(helpRailID), r.List(helpRowsID)
 	if tree == nil || list == nil || !r.focusInside(helpRailID) {
