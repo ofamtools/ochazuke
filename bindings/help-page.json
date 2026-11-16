@@ -53,7 +53,7 @@
       {"key": "r", "action": "ochazuke.help-page.rebind", "hint": "rebind", "help": "Rebind the row: press the new key or sequence, see what it replaces or shadows, enter applies"},
       {"key": "a", "action": "ochazuke.help-page.add-key", "hint": "add key", "help": "Another key for the row's verb (a verb with no key: its first); press it, see the preview, enter applies"},
       {"key": "d d", "action": "ochazuke.help-page.remove", "hint": "remove", "help": "Take the row off its key: your row is deleted, a default gets an unbind row"},
-      {"key": "e", "action": "ochazuke.help-page.revise", "hint": "edit", "help": "Edit the row's fields in a form: key, arguments, hint, hidden, guard, table, mode"},
+      {"key": "e", "action": "ochazuke.help-page.edit-fields", "hint": "edit", "help": "Edit the row's fields in a form: key, arguments, hint, hidden, guard, table, mode"},
       {"key": "U", "action": "ochazuke.help-page.reset", "hint": "default", "help": "Put the default back on the row's key"},
       {"key": "C", "action": "ochazuke.help-page.unify", "hint": "one key everywhere", "help": "One key for this verb on every noun that has it; press it, see the preview, enter applies"}
     ]},

@@ -126,7 +126,7 @@ func bindingRequest(verb string, a Arguments) Request {
 	return Request{Noun: "ochazuke.binding", Verb: verb, Args: a}
 }
 
-// addAt is where a another key for a row goes, and the request it runs:
+// addAt is where another key for a row goes, and the request it runs:
 // the row's table (an instance row's noun, as binding.bind writes noun
 // tables) and request; for a verb with no key, the verb's noun in the
 // walk's mode.
@@ -228,9 +228,9 @@ func (p *HelpPage) applyNow(verb string, plan func(BindingEditor, Binding) Bindi
 	return nil
 }
 
-// revise opens binding.rebind's form on the selected row, holding its
+// editFields opens binding.rebind's form on the selected row, holding its
 // key, arguments, hint, hidden and guard.
-func (p *HelpPage) revise(Arguments) error {
+func (p *HelpPage) editFields(Arguments) error {
 	v, ok := p.selectedRow()
 	if !ok {
 		return nil
@@ -353,7 +353,7 @@ func helpPageEditVerbs() []helpPageVerb {
 		{"reset", "Put the default back on the selected row's key, dropping your rows over it (binding.reset)", nil, func(p *HelpPage, _ Arguments) error {
 			return p.applyNow("reset", BindingEditor.PlanReset)
 		}},
-		{"revise", "Edit the selected row's fields in a form: key, arguments, hint, hidden, guard, table, mode (binding.rebind)", nil, (*HelpPage).revise},
+		{"edit-fields", "Edit the selected row's fields in a form: key, arguments, hint, hidden, guard, table, mode (binding.rebind)", nil, (*HelpPage).editFields},
 		{"unify", "One key for the selected row's verb on every noun that has it: press it, see the preview, enter applies (binding.unify)", nil, (*HelpPage).startUnify},
 		{"show-file", "Show your bindings.json as written, after its changes since the page opened", nil, (*HelpPage).showFile},
 		{"undo", "Undo the last change (history-entry.undo): an edit of your bindings.json writes the file's old text back", nil, func(p *HelpPage, _ Arguments) error {
@@ -377,6 +377,7 @@ func helpPageCaptureVerbs() []helpPageVerb {
 
 // registerHelpPageEdits adds the guard and marks the editing verbs.
 func registerHelpPageEdits(r *Runtime) {
+	r.InvalidateBindings()
 	r.DefineGuard("help-edits", func(r *Runtime, _ KeyEvent) bool { return r.helpFlag(HelpEditSetting, true) })
 	n := r.Noun(helpPageNoun)
 	if n.Guards == nil {

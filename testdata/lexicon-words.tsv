@@ -247,6 +247,7 @@ edge	action+noun	seed
 edit	action	seed	
 edit-condition	action	seed	
 edit-directory	action	seed	
+edit-fields	action	yes	edit a binding row's fields in a form from the help page
 edit-stdin	action	seed	
 editor	noun	seed	
 effective_project	prop	seed	
@@ -738,7 +739,6 @@ revert	action	seed
 revert-all	action	seed	
 review	action+noun	seed	
 reviews	relation	seed	
-revise	action	yes	edit a binding row's fields in a form from the help page
 reword	action	seed	
 rights	prop	seed	
 roles	prop	seed	
