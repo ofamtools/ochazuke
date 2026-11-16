@@ -142,7 +142,7 @@ func TestDerivedVerbsFollowTheRoles(t *testing.T) {
 	}{
 		{"no roles", []PropSpec{{Name: "id", Key: true}, {Name: "status"}}, nil, []string{"archive"}, []Request{label, owner}},
 		{"read-only label", []PropSpec{{Name: "id", Key: true}, {Name: "title", Role: RoleLabel, ReadOnly: true}, {Name: "status"}}, nil, nil, []Request{label}},
-		{"no patch", derivedProps(), func(s Store) Store { s.Patch = nil; return s }, []string{"archive", "set", "edit"}, nil},
+		{"no patch", derivedProps(), func(s Store) Store { s.Patch, s.NoOverlay = nil, true; return s }, []string{"archive", "set", "edit"}, nil},
 		{"no create", derivedProps(), func(s Store) Store { s.Create = nil; return s }, []string{"create"}, nil},
 	} {
 		r := NewRuntime()

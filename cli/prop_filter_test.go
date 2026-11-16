@@ -15,7 +15,7 @@ import (
 func TestPropFilterShellAndCatalog(t *testing.T) {
 	testenv.ClearActor(t)
 	r := ochazuke.NewRuntime()
-	r.Define("note").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "by"}).Store(ochazuke.Store{List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
+	r.Define("note").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "by"}).Store(ochazuke.Store{NoOverlay: true, List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
 		return []ochazuke.Thing{{"id": "a", "by": "agent"}, {"id": "b", "by": "owner"}}, nil
 	}}).Filters(ochazuke.SavedFilter{Name: "mine", Where: map[string]any{"by": "owner"}})
 	var out, stderr bytes.Buffer
@@ -201,7 +201,7 @@ func TestPropFilterCatalogRowsOfferFields(t *testing.T) {
 func TestPropAliasCatalogAndCLI(t *testing.T) {
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
-	r.Define("ticket").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "state", Aliases: []string{"status"}}).Store(ochazuke.Store{
+	r.Define("ticket").Props(ochazuke.PropSpec{Name: "id", Key: true}, ochazuke.PropSpec{Name: "state", Aliases: []string{"status"}}).Store(ochazuke.Store{NoOverlay: true,
 		List: func(_ ochazuke.Ctx, q ochazuke.ListQuery) ([]ochazuke.Thing, error) {
 			if len(q.Filters) == 0 || slices.ContainsFunc(q.Filters, func(f ochazuke.PropFilter) bool { return f.Prop != "state" || f.Value != "todo" }) {
 				t.Fatalf("store got alias in where: %v", q)

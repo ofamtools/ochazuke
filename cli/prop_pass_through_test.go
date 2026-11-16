@@ -94,7 +94,7 @@ func TestMCPDescribeShowsProps(t *testing.T) {
 	for _, p := range props {
 		found[p["name"].(string)] = p
 	}
-	if found["names"]["subject"] != "collection" || found["names"]["computed"] != true || found["name"]["readOnly"] != true {
+	if found["names"]["subject"] != "collection" || found["names"]["computed"] != true || found["description"]["readOnly"] != true {
 		t.Fatalf("props %v", found)
 	}
 }

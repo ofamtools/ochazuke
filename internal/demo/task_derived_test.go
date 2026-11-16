@@ -37,11 +37,11 @@ func TestTaskRoleWritesFromTheCLI(t *testing.T) {
 	if got := read("task", "set", "t3", "@archive=false"); got["archived"] != false {
 		t.Fatalf("set @archive=false = %v", got)
 	}
-	// The project noun is a read-only store: the core writes are listed,
-	// unavailable with the reason, and the purged ones are absent.
+	// The project noun's store writes nothing: the overlay runs the core
+	// writes (your values beside it), and the purged ones are absent.
 	m := New()
 	for _, verb := range []string{"archive", "set", "create", "delete"} {
-		if op, ok := m.Runtime.Operations.Find(ochazuke.Key("project." + verb)); !ok || op.Unavailable == "" || m.Runtime.Available(ochazuke.Request{Noun: "project", Verb: verb}, "app", m.Runtime.Mode) {
+		if op, ok := m.Runtime.Operations.Find(ochazuke.Key("project." + verb)); !ok || op.Unavailable != "" {
 			t.Fatalf("project.%s: ok %v unavailable %q", verb, ok, op.Unavailable)
 		}
 	}
