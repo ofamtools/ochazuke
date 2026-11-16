@@ -22,6 +22,12 @@ func TestNeedIsTyped(t *testing.T) {
 	if err.Error() != "colour is required: painting needs a colour" {
 		t.Fatalf("message = %q", err)
 	}
+	// With no runtime, Need and NeedTarget answer alike (no panic).
+	for _, err := range []error{Ctx{}.Need("pane", "no pane"), Ctx{}.NeedTarget("pane", "no pane")} {
+		if mp := needed(err); mp == nil || mp.Param != "pane" || mp.Reason != "no pane" {
+			t.Fatalf("no runtime: %v", err)
+		}
+	}
 }
 
 // A missing required argument is the same typed error, so every route asks

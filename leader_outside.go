@@ -16,25 +16,25 @@ const (
 )
 
 // reachedAction decides what the reached thing at does with the key's
-// operation op, the original focus being focus. The nearest thing of the
-// noun takes the key when target.linked lets op act on a linked thing
-// (linkedActs); otherwise, and when none can be acted on directly, the key
-// runs with no subject, as the outside key does, and asks, the linked
-// things first, or, for a verb with no way to ask, names them and runs
-// nothing.
+// operation op, the original focus being focus. The reached thing whose
+// outside walk found the key is the key's outside focus, the thing the
+// person is in (a live terminal's pane): when it is the nearest thing of
+// its noun (one hop away for a verb that changes something, any distance
+// for one that only reads or opens) it takes the key, which runs there
+// exactly as the key pressed with the focus on it, so the verb's Target
+// ranks it focused. target.linked decides only what that verb does with
+// the things its Target finds linked from there, as it does outside. When
+// no thing can be taken, the key runs with no subject at the original
+// focus, as the outside key does there, and asks; for a verb with no
+// subject to ask for it names the candidates and runs nothing.
 func (r *Runtime) reachedAction(op Operation, at, focus string) reachedOutcome {
-	acts, distant := r.linkedActs(op)
-	noun := r.Instances[at].Noun
-	id, things := r.nearestOf(noun, focus, distant)
+	id, things := r.nearestOf(r.Instances[at].Noun, focus, op.onlyReads())
 	switch {
-	case id == at && acts:
+	case id == at:
 		return reachRun
-	case id != "" && id != at:
+	case id != "":
 		return reachYield
 	case !r.asksSubject(op):
-		if id != "" {
-			things = r.linkedThings(noun, focus)
-		}
 		// No ask path: say which things the key could mean and run
 		// nothing, never an error or a guess.
 		r.leavePrefix()
@@ -119,17 +119,6 @@ func (r *Runtime) outsideReached(focus string) []string {
 			}
 			out = append(out, a.inst)
 		}
-	}
-	return out
-}
-
-// linkedThings are the things of noun the focus path reaches, ranked as a
-// target's linked candidates are (linkedCandidates), for a notice naming
-// them.
-func (r *Runtime) linkedThings(noun, focus string) []focusThing {
-	var out []focusThing
-	for _, c := range r.linkedCandidates(targetScan{noun: r.CanonicalNoun(noun), focus: focus}) {
-		out = append(out, focusThing{Key: c.ID, Label: c.Label})
 	}
 	return out
 }

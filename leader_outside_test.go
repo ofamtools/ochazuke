@@ -190,29 +190,88 @@ func TestOutsideModeDeclaration(t *testing.T) {
 	}
 }
 
-// Several associated things pick nothing: the leader key ends the pending
-// mode, runs the verb with no subject (so it asks), and never errors or acts
-// on one of them.
-func TestOutsideSeveralCandidatesPickNothing(t *testing.T) {
+// The leader key does what the same key does outside: the associated
+// thing whose outside walk answers is the key's outside focus (a live
+// terminal's pane), so the leader key and the key pressed in normal mode
+// with the focus on that thing act on the same thing, or both ask, under
+// every target.linked value. Three keys: an outer (app) row whose verb is
+// another noun's, a verb of the associated thing's own noun (one or two
+// associated things take the same path: the first), and an app row whose
+// change verb's thing is only linked from the associated thing.
+func TestOutsideKeyMatchesTheOutsideKey(t *testing.T) {
 	t.Parallel()
-	r, sent := outsideFixture(t)
-	var touched []string
-	r.Define("thing").Verb("touch", func(c Ctx) Result { touched = append(touched, c.Instance.ID); return Done(nil) }).Mode("normal").Bind("r", Do("thing.touch")).ByAssociation()
-	op := r.Operations.At(Key("thing.touch"))
-	op.Parameters = map[string]Parameter{"id": {Type: "string", Focus: true, Noun: "thing", Source: "thing.list"}}
-	r.Operations.Set(op)
-	r.Instances["surface"].Data = map[string]any{"subject": []any{"a", "b"}}
-	if err := r.Settings().Set(TargetLinkedSetting, "ask-on-change"); err != nil {
-		t.Fatal(err)
+	type outcome struct {
+		acted []string
+		asked bool
 	}
-	outsideKeys(t, r, "ctrl+x", "r")
-	if len(touched) != 0 && (touched[0] == "row-a" || touched[0] == "row-b") {
-		t.Fatalf("acted on one of %v", touched)
+	setup := func(t *testing.T, linked string, subject any) (*Runtime, *[]string) {
+		r, _ := outsideFixture(t)
+		var acted []string
+		change := func(key string) {
+			op := r.Operations.At(Key(key))
+			op.HistoryKind = HistoryChange
+			r.Operations.Set(op)
+		}
+		r.Define("other").Verb("open", func(c Ctx) Result { acted = append(acted, "other@"+focusOf(c.Context)); return Done(nil) })
+		change("other.open")
+		r.Define("app").Mode("normal").Bind("o", Do("other.open"))
+		r.Define("thing").Verb("touch", func(c Ctx) Result { acted = append(acted, c.Instance.ID); return Done(nil) }).Mode("normal").Bind("r", Do("thing.touch")).ByAssociation()
+		op := r.Operations.At(Key("thing.touch"))
+		op.Parameters = map[string]Parameter{"id": {Type: "string", Focus: true, Noun: "thing", Source: "thing.list"}}
+		op.HistoryKind = HistoryChange
+		r.Operations.Set(op)
+		r.DefineOwn("tag").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", Role: RoleLabel})
+		r.Define("thing").Props(PropSpec{Name: "tag", Association: true, Parameter: Parameter{Noun: "tag"}})
+		if _, err := r.AddList("tags", []ListItem{{ID: "tag-1", Noun: "tag", Label: "T1", Data: map[string]any{"id": "t1", "name": "T1"}}}, Parent("page")); err != nil {
+			t.Fatal(err)
+		}
+		r.Instances["row-a"].Data = map[string]any{"id": "a", "name": "Alpha", "tag": "t1"}
+		r.Define("tag").Verb("poke", func(c Ctx) Result { acted = append(acted, c.Instance.ID); return Done(nil) }).ByAssociation()
+		op = r.Operations.At(Key("tag.poke"))
+		op.Parameters = map[string]Parameter{"id": {Type: "string", Focus: true, Noun: "tag", Source: "tag.list"}}
+		op.HistoryKind = HistoryChange
+		r.Operations.Set(op)
+		r.Define("app").Mode("normal").Bind("p", Do("tag.poke"))
+		r.Instances["surface"].Data = map[string]any{"subject": subject}
+		if err := r.Settings().Set(TargetLinkedSetting, linked); err != nil {
+			t.Fatal(err)
+		}
+		return r, &acted
 	}
-	if r.TopModal() == "" || r.Mode.Name == "shortcut" {
-		t.Fatalf("no ask opened or leader left pending: modal %q mode %s base %s touched %v", r.TopModal(), r.Mode.Name, r.BaseMode(), touched)
+	for _, linked := range []string{"ask-on-change", "act", "always-pick"} {
+		for _, tc := range []struct {
+			name, key string
+			subject   any
+			want      outcome
+		}{
+			{"other-noun", "o", "a", outcome{acted: []string{"other@row-a"}}},
+			{"own-noun", "r", "a", outcome{acted: []string{"row-a"}}},
+			{"own-noun-two", "r", []any{"a", "b"}, outcome{acted: []string{"row-a"}}},
+			{"only-linked", "p", "a", outcome{acted: map[bool][]string{true: {"tag-1"}}[linked == "act"], asked: linked != "act"}},
+		} {
+			t.Run(linked+"/"+tc.name, func(t *testing.T) {
+				t.Parallel()
+				outside, acted := setup(t, linked, tc.subject)
+				if err := outside.SetMode("normal"); err != nil {
+					t.Fatal(err)
+				}
+				if err := outside.List("things").Select("row-a"); err != nil {
+					t.Fatal(err)
+				}
+				if err := outside.SetFocus("row-a"); err != nil {
+					t.Fatal(err)
+				}
+				outsideKeys(t, outside, tc.key)
+				out := outcome{acted: *acted, asked: outside.TopModal() != ""}
+				leader, acted := setup(t, linked, tc.subject)
+				outsideKeys(t, leader, "ctrl+x", tc.key)
+				got := outcome{acted: *acted, asked: leader.TopModal() != ""}
+				if !reflect.DeepEqual(got, tc.want) || !reflect.DeepEqual(out, tc.want) {
+					t.Fatalf("leader %+v outside %+v, want %+v (mode %s)", got, out, tc.want, leader.Mode.Name)
+				}
+			})
+		}
 	}
-	t.Logf("touched %v sent %v modal %q err-free", touched, *sent, r.TopModal())
 }
 
 // A reached thing that is not the nearest of its noun is not offered the

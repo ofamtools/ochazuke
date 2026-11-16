@@ -379,8 +379,12 @@ var linkedPolicies = []linkedPolicy{
 // read or open is the history kind op declares (HistoryKindOf: a fetch or
 // an action reads or opens, a change changes), never a list of verb names.
 func (r *Runtime) linkedActs(op Operation) (acts, distant bool) {
-	return settingRow(r, TargetLinkedSetting, linkedPolicies).choose(op.HistoryKindOf() != HistoryChange)
+	return settingRow(r, TargetLinkedSetting, linkedPolicies).choose(op.onlyReads())
 }
+
+// onlyReads reports whether op only reads or opens: its history kind is a
+// fetch or an action, not a change.
+func (o Operation) onlyReads() bool { return o.HistoryKindOf() != HistoryChange }
 
 // chooseCandidate is the candidate op acts on without asking: the first
 // whose Why is in acts (DefaultActs when empty), or a linked one when
@@ -421,7 +425,7 @@ func (r *Runtime) targetOf(op Operation, name, focus string, args Arguments) Tar
 	for i, c := range t.Candidates {
 		value := c.ID
 		if !declared {
-			value = cmp.Or(c.Instance, c.ID)
+			value = r.subjectValue(t.Noun, c.Instance, c.ID)
 		}
 		if op.Key != "" {
 			t.Candidates[i].Command = r.commandWith(op, args, name, value)
@@ -429,6 +433,15 @@ func (r *Runtime) targetOf(op Operation, name, focus string, args Arguments) Tar
 	}
 	t.Chosen = r.chooseCandidate(op, p.Acts, t.Candidates)
 	return t
+}
+
+// subjectValue is the --target that names a request's own subject, the
+// thing of noun with key: its instance (inst, else the live instance
+// holding the key), which TargetInstance resolves, so a printed candidate
+// command runs; the key when no instance holds it (a verb that takes its
+// thing by key reads it, targetThingKey).
+func (r *Runtime) subjectValue(noun, inst, key string) string {
+	return cmp.Or(inst, r.associationInstance(noun, key), key)
 }
 
 // allCommand is the command that lists every thing of noun, "" when the
@@ -460,6 +473,9 @@ func (c Ctx) Target(param string) Target {
 // candidates (the picker, ask.target) and the CLI and MCP list them, each
 // with its command.
 func (c Ctx) NeedTarget(param, reason string) error {
+	if c.Runtime == nil {
+		return c.Need(param, reason) // no runtime to rank candidates: the plain needs, as Ctx.Need
+	}
 	t := c.Target(param)
 	return &MissingParameterError{Param: param, Reason: reason, Noun: t.Noun, Target: &t}
 }
@@ -549,7 +565,11 @@ func (r *Runtime) listedChoices(need Need, q Request, limit int) ([]ChoiceRow, i
 	listed, more := r.listedRows(n, need.Target.byInstance, want)
 	for _, row := range listed {
 		if !slices.ContainsFunc(choices, func(c ChoiceRow) bool { return c.ID == row.ID }) {
-			row.Command, row.Why = r.commandWith(op, q.Args, need.Param, row.ID), WhyListed
+			value := row.ID
+			if need.Target.byInstance {
+				value = r.subjectValue(n.Name, "", row.ID)
+			}
+			row.Command, row.Why = r.commandWith(op, q.Args, need.Param, value), WhyListed
 			choices = append(choices, row)
 		}
 	}

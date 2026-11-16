@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
@@ -98,5 +99,70 @@ func TestNeedsStatusSetting(t *testing.T) {
 		if oden.ExitCode(err) != c.exit || answer.(map[string]any)["status"] != c.status {
 			t.Errorf("%s: exit %d status %v", c.value, oden.ExitCode(err), answer)
 		}
+	}
+}
+
+// Every candidate command a failed command prints runs: a thing whose
+// instance id is not its key (a store's row, live as pane:s/w1) is named
+// by the instance the CLI's --target resolves, never by the bare key it
+// would refuse (unknown target "w1").
+func TestCLIPrintedTargetCommandsRun(t *testing.T) {
+	r := ochazuke.NewRuntime()
+	r.Config().Disable()
+	things := []ochazuke.Thing{{"id": "w1"}, {"id": "w2"}}
+	var ran []string
+	r.Define("pane").Props(ochazuke.PropSpec{Name: "id", Key: true}).Store(ochazuke.Store{
+		Kind: ochazuke.KindCollection,
+		Get: func(_ ochazuke.Ctx, key string) (ochazuke.Thing, error) {
+			for _, th := range things {
+				if th["id"] == key {
+					return th, nil
+				}
+			}
+			return nil, errors.New("no pane " + key)
+		},
+		List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) { return things, nil },
+		Query: func(ochazuke.Ctx, ochazuke.ListQuery) (ochazuke.ListPage, error) {
+			return ochazuke.ListPage{Items: things, Total: len(things)}, nil
+		},
+	}).Verb("preview", func(c ochazuke.Ctx) ochazuke.Result {
+		if c.Instance == nil || c.Instance.Noun != "pane" {
+			return ochazuke.Failed(errors.New("no pane"))
+		}
+		ran = append(ran, c.Instance.ID)
+		return ochazuke.Done(nil)
+	}, "Preview a pane")
+	page, err := r.AddPage("panes", "Panes", func(*ochazuke.Runtime, int, int) ochazuke.Block { return ochazuke.Block{} })
+	if err != nil {
+		t.Fatal(err)
+	}
+	items := []ochazuke.ListItem{
+		{ID: "pane:s/w1", Label: "one", Noun: "pane", Data: map[string]any{"id": "w1"}},
+		{ID: "pane:s/w2", Label: "two", Noun: "pane", Data: map[string]any{"id": "w2"}},
+	}
+	if _, err := r.AddList("panes/list", items, ochazuke.Parent(page.ID)); err != nil {
+		t.Fatal(err)
+	}
+	err = New(r, "test", nil, &bytes.Buffer{}, &bytes.Buffer{}).Run(context.Background(), []string{"pane", "preview"})
+	if err == nil {
+		t.Fatal("pane preview without a target ran")
+	}
+	var commands [][]string
+	for _, line := range strings.Split(err.Error(), "\n") {
+		command, _, _ := strings.Cut(strings.TrimSpace(line), "  # ")
+		if strings.HasPrefix(command, "pane preview --target ") {
+			commands = append(commands, strings.Fields(command))
+		}
+	}
+	if len(commands) == 0 {
+		t.Fatalf("no candidate commands: %v", err)
+	}
+	for _, words := range commands {
+		if err := New(r, "test", nil, &bytes.Buffer{}, &bytes.Buffer{}).Run(context.Background(), words); err != nil {
+			t.Errorf("%s: %v", strings.Join(words, " "), err)
+		}
+	}
+	if !slices.Contains(ran, "pane:s/w1") || !slices.Contains(ran, "pane:s/w2") {
+		t.Fatalf("ran %v from %v", ran, commands)
 	}
 }
