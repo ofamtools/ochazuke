@@ -1176,15 +1176,10 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 	// candidates (Target), read at the focus it was asked at.
 	origin := focusOf(c)
 	defer func() { err = r.withTarget(op, q, origin, err, checkOnly) }()
-	// A verb declared unavailable for this request (Operation.Unavailable,
-	// unless the request waives what is missing) does nothing here: it
-	// answers nothing / not-here with the declared reason, from every route,
-	// before anything else runs (answerUnavailable).
-	if reason := r.unavailableFor(op, q.Args); reason != "" {
-		return nil, r.answerUnavailable(op, reason, checkOnly)
-	}
-	if q.Args, err = r.standardArgs(op, q); err != nil {
-		return nil, err
+	// A verb declared unavailable for this request does nothing here
+	// (requestArgs, answerUnavailable): answered, it ends with no error.
+	if q.Args, err = r.requestArgs(op, q, checkOnly); err != nil {
+		return nil, answeredErr(err)
 	}
 	// Parameter sources (Parameter.From) fill what the request omits, for
 	// every route; what a fan-out over several subjects runs is filled
@@ -1620,6 +1615,38 @@ func (r *Runtime) notApplicable(q Request) error {
 func withArgs(q Request, args Arguments) Request {
 	q.Args = args
 	return q
+}
+
+// requestArgs are standardArgs for a request execute runs: a verb declared
+// unavailable for it (Operation.Unavailable, unless the request waives
+// what is missing) is answered first, nothing / not-here with the declared
+// reason from every route, before anything else runs (answerUnavailable);
+// a run so answered returns errAnswered (answeredErr: no error).
+func (r *Runtime) requestArgs(op Operation, q Request, checkOnly bool) (Arguments, error) {
+	if reason := r.unavailableFor(op, q.Args); reason != "" {
+		if err := r.answerUnavailable(op, reason, checkOnly); err != nil {
+			return nil, err
+		}
+		return nil, errAnswered
+	}
+	return r.standardArgs(op, q)
+}
+
+// answeredError is the error requestArgs returns for a request it
+// answered itself; execute ends such a request with no error
+// (answeredErr). It is no refusal: the request was answered.
+type answeredError struct{}
+
+func (answeredError) Error() string { return "answered" }
+
+var errAnswered error = answeredError{}
+
+// answeredErr is err, or nil for errAnswered.
+func answeredErr(err error) error {
+	if errors.Is(err, errAnswered) {
+		return nil
+	}
+	return err
 }
 
 // standardArgs are a request's arguments as a standard verb reads them,
