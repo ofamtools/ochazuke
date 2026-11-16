@@ -124,8 +124,10 @@ func (r *Runtime) focusValue(op Operation, name, focus string) (focusThing, bool
 		return focusThing{}, false
 	}
 	id := r.nounInstance(r.CanonicalNoun(param.Noun), focus)
-	if personSource(r.history.source) {
-		id, _ = r.nearestSubject(param.Noun, focus)
+	// A person's request also takes a linked thing when target.linked lets
+	// the verb act on one without asking (linkedActs).
+	if acts, distant := r.linkedActs(op); id == "" && acts && personSource(r.history.source) {
+		id, _ = r.nearestOf(param.Noun, focus, distant)
 	}
 	if id == "" {
 		return focusThing{}, false

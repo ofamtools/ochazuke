@@ -78,16 +78,20 @@ func (r *Runtime) associationInstance(noun, key string) string {
 }
 
 // nearestSubject reads each focus-path level itself before what that level
-// reaches through relations (graph_reach.go), nearest distance first. Several
-// distinct things at the nearest distance, and a thing with no live instance
-// to act on, are candidates to choose from, never an arbitrary choice.
+// reaches through relations (graph_reach.go), nearest distance first: the
+// first live thing found there, whatever how many share that distance (key
+// availability, the palette's facts, a focus value). A thing with no live
+// instance to act on is a candidate to choose from, never an arbitrary
+// choice. Whether a verb acts on a linked thing without asking is
+// target.linked's (linkedActs), read by associationSubject.
 func (r *Runtime) nearestSubject(noun, focus string) (string, []focusThing) {
 	return r.nearestOf(noun, focus, true)
 }
 
-// nearestOf's distant says whether one live thing more than
-// one hop away may be taken without asking. A verb that changes something
-// passes false, so a distant thing is only ever offered as a candidate.
+// nearestOf's distant says whether a live thing more than one hop away may
+// be taken; when not, a distant thing is only offered as a candidate. The
+// nearest level's things are ranked in the order the walk found them, and
+// the first is taken: one, two or N take the same path.
 func (r *Runtime) nearestOf(noun, focus string, distant bool) (id string, things []focusThing) {
 	noun = r.CanonicalNoun(noun)
 	if c := r.renderCache.collecting; c != nil {
@@ -101,7 +105,7 @@ func (r *Runtime) nearestOf(noun, focus string, distant bool) (id string, things
 		if len(found) == 0 {
 			continue
 		}
-		if len(found) == 1 && found[0].inst != "" && (distant || found[0].Dist <= 1) {
+		if found[0].inst != "" && (distant || found[0].Dist <= 1) {
 			return found[0].inst, nil
 		}
 		things = make([]focusThing, len(found))
@@ -158,9 +162,15 @@ func (r *Runtime) associationSubject(op Operation, q Request, focus string) (str
 			return "", nil // an explicit subject argument wins
 		}
 	}
-	// Candidates (several things, a stored one, a distant one under a change
-	// verb) pick nothing: the request goes on with no subject and asks.
-	id, _ := r.nearestOf(op.Noun(), focus, op.HistoryKindOf() == HistoryFetch)
+	// target.linked says whether the verb acts on a linked thing without
+	// asking (linkedActs); when not, and for a stored or (under a change
+	// verb) distant thing, it picks nothing: the request goes on with no
+	// subject and asks, the linked things first.
+	acts, distant := r.linkedActs(op)
+	if !acts {
+		return "", nil
+	}
+	id, _ := r.nearestOf(op.Noun(), focus, distant)
 	return id, nil
 }
 

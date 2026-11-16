@@ -117,8 +117,10 @@ func TestMCPBackendPendingModalMessagesAndAliases(t *testing.T) {
 	if result["status"] != "failed" || f.r.TopModal() != "" {
 		t.Fatal(result)
 	}
+	// The owner's marks are not here: the run needs its target named, and
+	// answers the widgets it could act on, each with its command.
 	result = mcpCall(t, server, "run", map[string]any{"verb": "widget.list", "acts": "marks"})
-	if result["status"] != "refused" {
+	if result["status"] != "choose" || result["needs"] == nil {
 		t.Fatal(result)
 	}
 	if err := f.r.AddActionAlias(ochazuke.ActionAlias{Alias: "widget.retitle", Action: "widget.relabel", Args: ochazuke.Arguments{"name": "preset"}}); err != nil {

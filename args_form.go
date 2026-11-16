@@ -235,6 +235,19 @@ func (e *RecordEditor) chooseMissingPath(start string) error {
 	return e.choosePath(f)
 }
 
+// suggestStart opens the picker of the form's start field over it when
+// that field takes a thing of a noun (pickTarget, ask.target picker): what
+// pressing enter on the field opens, at once. A path field keeps its own
+// picker (chooseMissingPath); any other field opens nothing.
+func (e *RecordEditor) suggestStart() error {
+	f := e.fields[e.start()]
+	if f.path || f.Noun == "" || !f.choose && !f.suggest || e.r.Chooser(FormSuggestionsKind) != nil {
+		return nil
+	}
+	defer e.r.actingFor(f.id)()
+	return e.suggest(f)
+}
+
 // argsFormStart fills the args form's declared starting values into
 // values (and placeholders into fields) for the fields q leaves out: a
 // Focus parameter's focused thing (focusValue) and an Edits parameter's
@@ -392,7 +405,10 @@ func (r *Runtime) formForMissing(q Request, run func(Request) error, held bool) 
 	if len(missing) == 0 {
 		return false
 	}
-	_, err := r.openArgsForm(q, run, nil, held)
+	e, err := r.openArgsForm(q, run, nil, held)
+	if err == nil && e != nil && r.picksTarget() {
+		_ = e.suggestStart()
+	}
 	return err == nil
 }
 

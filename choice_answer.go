@@ -23,11 +23,14 @@ type ChoiceAnswer struct {
 	Cause OutcomeCause `json:"cause,omitempty"`
 }
 
-// ChoiceRow is one candidate of a ChoiceAnswer.
+// ChoiceRow is one candidate of a ChoiceAnswer or a needs outcome: its
+// id, label and command, and for a thing a target names why it was found
+// (Why: focused, linked, recent, listed, ...).
 type ChoiceRow struct {
 	ID      string `json:"id"`
 	Label   string `json:"label,omitempty"`
 	Command string `json:"command,omitempty"`
+	Why     Why    `json:"why,omitempty"`
 }
 
 // Error is the reason alone; the CLI prints each choice's command after

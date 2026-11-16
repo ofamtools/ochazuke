@@ -23,8 +23,9 @@ var statuses = []struct {
 // failed, as cli.needs-status error says) and, for any outcome but done,
 // its kind (outcome), verb, cause and reason in the one wording
 // (Outcome.Text); for needs what it needs (needs: param, noun, given and
-// the choices) and the choices with their commands (choices); the
-// command the owner or the caller runs (command) when it names one.
+// the choices) and the choices with their commands (choices), and how many
+// candidates were not listed (more, cli.choices-max); the command the owner
+// or the caller runs (command) when it names one.
 func Answer(answer map[string]any, o ochazuke.Outcome, needs bool) {
 	status := "failed"
 	for _, row := range statuses {
@@ -43,6 +44,9 @@ func Answer(answer map[string]any, o ochazuke.Outcome, needs bool) {
 	answer["outcome"], answer["verb"], answer["cause"], answer["reason"] = o.Kind, o.Verb, o.Cause, o.Text()
 	if o.Needs != nil {
 		answer["needs"], answer["choices"] = o.Needs, o.Needs.Choices
+		if o.Needs.More > 0 {
+			answer["more"] = o.Needs.More
+		}
 	}
 	if o.Command != "" {
 		answer["command"] = o.Command

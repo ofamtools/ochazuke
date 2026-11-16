@@ -17,6 +17,10 @@ type MissingParameterError struct {
 	Param  string // the parameter the request needs
 	Reason string // why, in the person's words ("" for a plain missing argument)
 	Noun   string // the noun the parameter's value names, "" for a plain value (OutcomeOf: needs a target, not a value)
+	// Target is the parameter's ranked candidates (Ctx.NeedTarget; the
+	// runtime fills it for a request it answers with this error), which
+	// every surface asks with; nil for a plain value.
+	Target *Target
 }
 
 func (e *MissingParameterError) Error() string {

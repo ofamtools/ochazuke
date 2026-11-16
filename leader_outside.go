@@ -16,16 +16,21 @@ const (
 )
 
 // reachedAction decides what the reached thing at does with the key's
-// operation op, the original focus being focus. Several candidates of the
-// noun (or none that can be acted on directly) pick nothing: the key runs
-// with no subject, as the outside key does, and asks.
+// operation op, the original focus being focus. The nearest thing of the
+// noun takes the key when target.linked lets op act on a linked thing
+// (linkedActs), or when op has no way to ask; otherwise, and when none can
+// be acted on directly, the key runs with no subject, as the outside key
+// does, and asks, the linked things first.
 func (r *Runtime) reachedAction(op Operation, at, focus string) reachedOutcome {
-	id, things := r.nearestOf(r.Instances[at].Noun, focus, op.HistoryKindOf() == HistoryFetch)
+	acts, distant := r.linkedActs(op)
+	id, things := r.nearestOf(r.Instances[at].Noun, focus, distant)
 	switch {
-	case id == at:
+	case id == at && (acts || !r.asksSubject(op)):
 		return reachRun
-	case id != "":
+	case id != "" && id != at:
 		return reachYield
+	case id != "":
+		return reachAsk
 	case !r.asksSubject(op):
 		// No ask path: say which things the key could mean and run
 		// nothing, never an error or a guess.

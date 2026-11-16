@@ -1,10 +1,5 @@
 package ochazuke
 
-import (
-	"fmt"
-	"slices"
-)
-
 // SubjectAskSetting enables asking for a declared subject a human request lacks.
 const SubjectAskSetting = "subject.ask"
 
@@ -81,59 +76,17 @@ func asksSubjectParameter(p Parameter) bool {
 
 func (r *Runtime) subjectAsks() bool { return r.settingOn(SubjectAskSetting) }
 
-// subjectHere reads only candidates already available at the origin: declared
-// row sources, the nearest noun or its associations, and typed path props.
-// Store and relation graph reads belong to walkSource, not this scope.
+// subjectHere is the "here" source of a subject ask: the ranked candidates
+// of a value of p at the origin (Target's sources: selected, marked,
+// focused and the parameter's From, on-path and path props, on-page,
+// linked, recent), nearest first, each answering to its reason in the
+// picker's filter. Every thing of the noun follows in the list scope, and
+// store reads beyond what the focus path reaches belong to walkSource.
 func (r *Runtime) subjectHere(p Parameter, origin Context) []Choice {
-	focus := focusOf(origin)
-	var out []Choice
-	add := func(c Choice) {
-		if c.ID != "" && !slices.ContainsFunc(out, func(one Choice) bool { return one.ID == c.ID }) {
-			out = append(out, c)
-		}
-	}
-	if p.From != "" {
-		if value := r.argument(p.From, KeyEvent{Focus: focus}); !emptyProp(value) {
-			text := fmt.Sprint(value)
-			add(Choice{ID: text, Label: text, Noun: p.Noun})
-		}
-	}
-	if p.Noun != "" && p.Noun != AnyNoun {
-		id, candidates := r.nearestSubject(p.Noun, focus)
-		if id != "" {
-			inst := r.Instances[id]
-			t := r.instanceThing(inst)
-			add(Choice{ID: t.Key, Label: t.Label, Noun: inst.Noun})
-		}
-		for _, t := range candidates {
-			add(Choice{ID: t.Key, Label: t.Label, Noun: p.Noun})
-		}
-	}
-	for _, id := range r.Ancestry(focus) {
-		inst := r.Instances[id]
-		if p.Noun == AnyNoun && inst.Parent != "" {
-			t := r.instanceThing(inst)
-			add(Choice{ID: AnyRef(inst.Noun, t.Key), Label: t.Label, Noun: inst.Noun})
-			break
-		}
-		if !p.IsPath() {
-			continue
-		}
-		n := r.Nouns[inst.Noun]
-		if n == nil {
-			continue
-		}
-		for _, prop := range n.Props {
-			if !prop.IsPath() {
-				continue
-			}
-			if value := r.rowValue(inst, prop.Name); !emptyProp(value) {
-				add(Choice{ID: fmt.Sprint(value), Label: prop.Name + " · " + fmt.Sprint(value), Noun: inst.Noun})
-			}
-		}
-		if len(out) > 0 {
-			break
-		}
+	candidates := r.candidatesFor(p, focusOf(origin))
+	out := make([]Choice, 0, len(candidates))
+	for _, c := range candidates {
+		out = append(out, Choice{ID: c.ID, Label: c.Label, Noun: c.Noun, Keywords: []string{string(c.Why)}})
 	}
 	return out
 }

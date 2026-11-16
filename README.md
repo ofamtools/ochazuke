@@ -1693,7 +1693,36 @@ Each surface has one encoder of the four kinds, chosen by the request's source (
 | Hook (`hookAnswer`) | not told | not told | a notice: `hook EVENT → VERB: TEXT; run: COMMAND` (never a picker) | the failure notice |
 | Background | not told | not told | not told | as the job says |
 
-Every answer but done carries `outcome` (kind), `verb`, `cause` and `reason` (the one wording, `Outcome.Text`) to MCP, and `needs` (`Need{Param, Noun, Accepts, Given, Choices}`) with `choices` for needs. A client reading the socket gets the outcome back as an `OutcomeError`, so `OutcomeOf` answers what the runtime classified. History keeps a needs run's row (`OK: false`, `Outcome: needs`); nothing leaves none.
+Every answer but done carries `outcome` (kind), `verb`, `cause` and `reason` (the one wording, `Outcome.Text`) to MCP, and `needs` (`Need{Param, Noun, Accepts, Given, Target, Choices, More}`) with `choices` (and `more` when some were not listed) for needs. A client reading the socket gets the outcome back as an `OutcomeError`, so `OutcomeOf` answers what the runtime classified. History keeps a needs run's row (`OK: false`, `Outcome: needs`); nothing leaves none.
+
+##### Which thing a verb acts on: the Target
+
+A `Target` (`target.go`) is the value that says which thing a verb's parameter acts on. A value the request gives wins (`Given`, and it is `Chosen`). Otherwise the things of the parameter's noun are found from the whole context and ranked by why they were found (`Why`), in this order, each source reading only what is live or in memory and at most 50 things:
+
+| Why | Source | What it reads, and when |
+|---|---|---|
+| `selected` | the rows of the visual selection in the nearest list on the focus path | the list's marks, in memory |
+| `marked` | that list's marked rows when it is not in visual mode | the same |
+| `focused` | what the parameter's `From` reads at the focus, then the focus when it is a thing of the noun | the focus row's data |
+| `on-path` | things of the noun above the focus; a path parameter's path props | the focus path |
+| `on-page` | other live things of the noun on the current page | the instances and the lists' rows, in memory, stopping at 50 |
+| `linked` | what the nearest level of the focus path reaches through relations and associations, nearest first | the same walk key dispatch reads (`keys.graph-depth`, never a remote store) |
+| `recent` | things the newest 200 history entries name (their target, the things they changed or answered), newest first | the history, in memory |
+| `listed` | for a program's list only: the noun's things from one paged read of its store | `Store.Query` only (a store that only lists is not read), one page of as many rows as are still to show, when the CLI or MCP answers |
+
+Every thing of the noun follows the ranked candidates and is read only when it is shown: in the TUI the subject picker's list scope reads it as you open and filter it, and `Target.All` is the command that lists every one (`NOUN list`). `Ctx.Target(param)` answers a handler its parameter's Target; `Ctx.NeedTarget(param, reason)` is the error a handler returns when it has no chosen candidate, a needs / target outcome carrying the Target. The runtime fills the Target of every `MissingParameterError` for a parameter that names a thing (a missing required argument, a guarded-off request's missing target, `Ctx.Need`), so every surface asks with the same candidates, each with the command that runs the request with it (`ChoiceRow.Why` says why it was found). `Runtime.SubjectTarget(q)` is the Target of a request's own subject, named by its instance (`--target`).
+
+The verb acts without asking only on a candidate whose `Why` is in the parameter's acting set, `Parameter.Acts` (data; empty is `DefaultActs`: `selected`, `focused`, `on-path`, what a request acted on before targets were ranked). Whether a linked thing joins it is the setting `target.linked`:
+
+- `ask-on-change` (default): a verb that only reads or opens (its history kind is a fetch or an action) acts on the best-ranked linked thing; a verb that changes something (a change) asks, linked things first.
+- `act`: every verb acts on the best-ranked linked thing; a change only on one a single hop away (a farther one is asked about).
+- `always-pick`: every verb asks, linked things first.
+
+How many candidates there are never changes which of these happens: one, two or N take the same path, and only the list of choices differs.
+
+How each surface asks: the TUI opens the args form with the needed field's picker on top at once (setting `ask.target`: `picker`, the default; `form` opens the form on the field and enter opens its picker, as before; with `subject.ask` off nothing opens on top), its ranked candidates as the `here` source (each answering to its reason in the filter), then every thing of the noun flat and filterable, then the walk. The CLI exits 3 and lists one command per candidate, `  COMMAND  # LABEL · WHY`, at most `cli.choices-max` of them (default 20; 0 lists every one), then `  NOUN list  # N more`; MCP answers `status: choose` with `needs.target`, `choices` and `more`. A CLI command that named no `--target` and failed lists, under its error, the things of its noun it could act on, each with its `--target` command; it stays a failure (exit 1): an untyped failure is not read as a missing target. MCP `run` asked to act on the owner's selection or marks (`acts`), which a headless session does not have, answers `status: choose` with those candidates (it answered `refused`).
+
+Compared with Vim: `:bdelete` with no argument deletes the current buffer (same: no argument acts on the focused thing, `focused`/`on-path`); `:buffer abc` with several matches gives `E93` (different: the picker lists the ranked candidates, then every thing of the noun, flat); `:buffer nosuch` gives `E94` (different: needs / choice, the picker filtered by the text).
 
 #### Delivery contract
 

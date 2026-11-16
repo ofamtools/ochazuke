@@ -202,6 +202,9 @@ func TestOutsideSeveralCandidatesPickNothing(t *testing.T) {
 	op.Parameters = map[string]Parameter{"id": {Type: "string", Focus: true, Noun: "thing", Source: "thing.list"}}
 	r.Operations.Set(op)
 	r.Instances["surface"].Data = map[string]any{"subject": []any{"a", "b"}}
+	if err := r.Settings().Set(TargetLinkedSetting, "ask-on-change"); err != nil {
+		t.Fatal(err)
+	}
 	outsideKeys(t, r, "ctrl+x", "r")
 	if len(touched) != 0 && (touched[0] == "row-a" || touched[0] == "row-b") {
 		t.Fatalf("acted on one of %v", touched)

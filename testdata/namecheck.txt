@@ -59,7 +59,7 @@ cli/mcp_backend.go	mcpBackend.Call	case	"run"	1
 cli/mcp_backend.go	mcpBackend.Call	case	"snapshot"	1
 cli/mcp_backend.go	mcpBackend.catalog	compare	"app"	1
 cli/mcp_backend.go	mcpBackend.run	compare	"focus"	1
-cli/mcp_backend.go	mcpBackend.run	cyclo	"-"	28
+cli/mcp_backend.go	mcpBackend.run	cyclo	"-"	26
 cli/mcp_backend.go	parameterSchema	case	"list"	1
 cli/mount.go	Mount	compare	"app"	1
 cli/mount.go	Mount	compare	"list"	1
@@ -86,13 +86,12 @@ cli/setup.go	printSetup	compare	"check"	1
 cli/setup.go	printSetup	compare	"list"	1
 cli/shell.go	Shell.nounWord	case	"prop"	1
 cli/shell.go	Shell.nounWord	case	"verb"	1
-cli/shell.go	Shell.ownersOf	compare	"app"	1
 cli/shell.go	Shell.parseFlags	compare	"since"	1
 cli/shell.go	Shell.parseFlags	cyclo	"-"	44
 cli/shell.go	Shell.propRequest	compare	"toggle"	1
 cli/shell.go	Shell.propRequest	compare	"value"	1
 cli/shell.go	Shell.run	compare	"ochazuke.confirm"	1
-cli/shell.go	Shell.run	cyclo	"-"	63
+cli/shell.go	Shell.run	cyclo	"-"	59
 cli/shellstate.go	Shell.speaksDelta	compare	"lists"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
 cli/sides.go	var sideVariables	table	"dir"	1	template variable names for the sides of a command, not nouns
 cli/sides.go	var sideVariables	table	"pane"	1	template variable names for the sides of a command, not nouns

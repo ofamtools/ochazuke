@@ -66,12 +66,14 @@ import (
 // modal.close and a non-zero exit). Any other modal (a prompt, the palette)
 // needs the TUI and fails, naming the arguments to pass instead.
 //
-// A command without --target has no focus to act from, so the shell names
-// the owner: Owners[noun] when that instance exists (an application
-// declares it for a noun with no instance of its own), else the one
-// instance of the noun when exactly one exists. With several the command
-// runs as given and, if it fails, the error lists them to pass as --target;
-// with none it runs as given.
+// A command without --target acts from the runtime's focus: Owners[noun]
+// when that instance exists (an application declares it for a noun with no
+// instance of its own) is its target; otherwise it runs as given, acting
+// on the nearest thing of its noun on the focus path. When it fails, the
+// error lists the things of its noun it could act on, ranked
+// (Runtime.SubjectTarget), each with the command that runs it with that
+// --target, at most cli.choices-max of them; how many there are never
+// changes what runs.
 //
 // The result prints as JSON unless --format names another of Formats
 // (json, table, markdown, toon; the grammars are on Formats), or, with no
@@ -306,7 +308,7 @@ func (s *Shell) run(ctx context.Context, args []string, ran *cliRun) error {
 	if err != nil {
 		return err
 	}
-	ran.verb = r.DisplayKey(q.Key())
+	ran.verb, ran.request = r.DisplayKey(q.Key()), q
 	if len(presets) > 0 {
 		op, _ := r.Operation(q.Key())
 		q.Args = op.WithPresets(q.Args, presets)
@@ -319,13 +321,7 @@ func (s *Shell) run(ctx context.Context, args []string, ran *cliRun) error {
 			return fmt.Errorf("target %s: %w", q.Target, err)
 		}
 	}
-	var candidates []string
-	if q.Target == "" {
-		candidates = s.ownersOf(q.Noun)
-		if len(candidates) == 1 {
-			q.Target = candidates[0]
-		}
-	}
+	q.Target = cmp.Or(q.Target, s.ownerOf(q.Noun))
 	var fingerprint string
 	if opts.since != nil {
 		var lines Lines
@@ -342,11 +338,7 @@ func (s *Shell) run(ctx context.Context, args []string, ran *cliRun) error {
 	}
 	value, err := s.callNoting(q, ran)
 	if err != nil {
-		var bad *ochazuke.ArgumentError
-		if len(candidates) > 1 && !errors.As(err, &bad) {
-			return fmt.Errorf("%w; pass --target, one of: %s", err, listed(candidates))
-		}
-		return err
+		return s.targetHint(q, err)
 	}
 	if w, ok := value.(*ochazuke.Watch); ok {
 		return s.stream(ctx, w)
@@ -558,34 +550,16 @@ func (s *Shell) verb(noun, word string) (string, error) {
 	return "", fmt.Errorf("%s %s is ambiguous: %s", noun, word, strings.Join(matches, ", "))
 }
 
-// ownersOf is the instances a command of noun without --target can act
-// for: the declared owner when it exists, else every instance of noun (app
-// aside), in id order.
-func (s *Shell) ownersOf(noun string) []string {
+// ownerOf is the instance a command of noun without --target acts for:
+// the owner the application declares (Owners) when that instance exists,
+// else "" (the command acts from the focus).
+func (s *Shell) ownerOf(noun string) string {
 	for _, name := range []string{noun, s.Runtime.DisplayNoun(noun)} {
 		if id := s.Owners[name]; id != "" && s.Runtime.Instances[id] != nil {
-			return []string{id}
+			return id
 		}
 	}
-	var ids []string
-	for id, inst := range s.Runtime.Instances {
-		if id != "app" && inst.Noun == noun {
-			ids = append(ids, id)
-		}
-	}
-	sort.Strings(ids)
-	return ids
-}
-
-// maxCandidates is how many instance ids an ambiguous command's error lists.
-const maxCandidates = 10
-
-// listed joins ids for an error, at most maxCandidates of them.
-func listed(ids []string) string {
-	if len(ids) <= maxCandidates {
-		return strings.Join(ids, ", ")
-	}
-	return fmt.Sprintf("%s and %d more", strings.Join(ids[:maxCandidates], ", "), len(ids)-maxCandidates)
+	return ""
 }
 
 // options are the shell's own flags of a command: --yes and the output

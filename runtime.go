@@ -120,6 +120,13 @@ type Parameter struct {
 	// row without Data or the field fills nothing. A fill is always shown
 	// (the palette slot, the args form). The catalog's from.
 	From string `json:"from,omitempty"`
+	// Acts is the acting set of a parameter that names a thing: the
+	// reasons (Why) a candidate may have for the verb to act on it without
+	// asking (Ctx.Target's Chosen). Empty is DefaultActs (selected,
+	// focused, on-path: what a request acted on before targets were
+	// ranked); whether linked things join it is target.linked. A candidate
+	// of no reason in the set is asked about, ranked, never refused.
+	Acts []Why `json:"acts,omitempty"`
 	// Plumbing marks a parameter that is the verb's machinery, not
 	// something a person gives: a list's id, the row an action acts on, the
 	// flag that says the confirm was answered. The args form leaves it out
@@ -1165,6 +1172,10 @@ func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...op
 		return nil, r.unknownOperation(q.Noun, q.Verb)
 	}
 	r.targetAsKey(op, &q, request)
+	// A request that needs a thing of a noun answers with its ranked
+	// candidates (Target), read at the focus it was asked at.
+	origin := focusOf(c)
+	defer func() { err = r.withTarget(op, q, origin, err, checkOnly) }()
 	if q.Args, err = r.standardArgs(op, q); err != nil {
 		return nil, err
 	}

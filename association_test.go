@@ -27,6 +27,12 @@ func associationFixture(t *testing.T, declared bool) *Runtime {
 	if err := r.SetFocus("surface"); err != nil {
 		t.Fatal(err)
 	}
+	// These tests are about how an association is declared and followed:
+	// the verb acts on the linked thing (target.linked act, which keeps a
+	// change verb to one hop); TestTargetLinkedSetting covers each value.
+	if err := r.Settings().Set(TargetLinkedSetting, "act"); err != nil {
+		t.Fatal(err)
+	}
 	return r
 }
 
@@ -99,6 +105,9 @@ func TestAssociationResolutionBoundaries(t *testing.T) {
 	}
 	r.Instances["surface"].Data = map[string]any{"subject": []any{"a", "b"}}
 	acted = ""
+	if err := r.Settings().Set(TargetLinkedSetting, "ask-on-change"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := r.Execute(Request{Noun: "thing", Verb: "touch"}); err != nil || acted == "row-a" || acted == "row-b" {
 		t.Fatalf("several candidates acted on %q: %v", acted, err)
 	}
@@ -227,6 +236,9 @@ func TestAssociationSeveralCandidatesAsk(t *testing.T) {
 	op.Parameters = map[string]Parameter{"id": {Type: "string", Focus: true, Noun: "thing", Source: "thing.list"}}
 	r.Operations.Set(op)
 	r.Instances["surface"].Data = map[string]any{"subject": []any{"a", "b"}}
+	if err := r.Settings().Set(TargetLinkedSetting, "ask-on-change"); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := r.Dispatch(MacroKey{Key: "r"}); err != nil || acted != "" || r.TopModal() == "" {
 		t.Fatalf("key: acted %q modal %q: %v", acted, r.TopModal(), err)
 	}

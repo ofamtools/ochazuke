@@ -134,13 +134,46 @@ var askChoices = []askWays{
 	{"form", []askWay{(*Runtime).formNeed}},
 }
 
-// askOutcome asks a person for what o needs, by ask.choices, and reports
-// whether an ask opened.
+// askTargets are ask.target's values: the ways a need of a thing of a noun
+// (Need.Target) is asked for, tried in order. The first is the default:
+// the args form with the field's picker on top (its ranked candidates
+// first, then every thing of the noun), else a picker of the candidates.
+var askTargets = []askWays{
+	{"picker", []askWay{(*Runtime).pickTarget, (*Runtime).pickNeed}},
+	{"form", []askWay{(*Runtime).formNeed, (*Runtime).pickNeed}},
+}
+
+// targetPicker is one value of ask.target as the args form reads it when
+// it opens for a request's missing arguments (formForMissing): whether the
+// start field's picker opens on top at once.
+type targetPicker struct {
+	value string
+	opens bool
+}
+
+func (t targetPicker) settingValue() string { return t.value }
+
+// targetPickers are ask.target's values for a form that opens before the
+// request runs; the first is the default.
+var targetPickers = []targetPicker{{"picker", true}, {"form", false}}
+
+// picksTarget reports whether ask.target opens a needed thing's picker
+// over the args form at once; never with subject.ask off.
+func (r *Runtime) picksTarget() bool {
+	return r.subjectAsks() && settingRow(r, AskTargetSetting, targetPickers).opens
+}
+
+// askOutcome asks a person for what o needs, and reports whether an ask
+// opened: a thing of a noun by ask.target, anything else by ask.choices.
 func (r *Runtime) askOutcome(q Request, o Outcome, run func(Request) error, held bool) bool {
 	if o.Needs == nil {
 		return false
 	}
-	for _, way := range settingRow(r, AskChoicesSetting, askChoices).ways {
+	setting, table := AskChoicesSetting, askChoices
+	if o.Needs.Target != nil {
+		setting, table = AskTargetSetting, askTargets
+	}
+	for _, way := range settingRow(r, setting, table).ways {
 		if way(r, q, o, run, held) {
 			return true
 		}
@@ -202,14 +235,35 @@ func (r *Runtime) formNeed(q Request, o Outcome, run func(Request) error, held b
 }
 
 // needRows are the picker rows of what o needs: the candidates the
-// outcome carries, in its order. Lane O6 adds every thing of the noun
-// (and the ranked Target) after them.
+// outcome carries, in its order, each answering to why it was found in the
+// filter. A need of a thing of a noun asks with the field's picker first
+// (pickTarget), which follows them with every thing of the noun.
 func needRows(o Outcome) []PickerRow {
 	rows := make([]PickerRow, 0, len(o.Needs.Choices))
 	for _, c := range o.Needs.Choices {
-		rows = append(rows, Choice{ID: c.ID, Label: c.Label}.Row())
+		choice := Choice{ID: c.ID, Label: c.Label}
+		if c.Why != "" {
+			choice.Keywords = []string{string(c.Why)}
+		}
+		rows = append(rows, choice.Row())
 	}
 	return rows
+}
+
+// pickTarget opens the args form on the parameter o needs, as formNeed
+// does, with that field's picker on top at once (ask.target picker): the
+// subject picker, its ranked candidates as the here source, then every
+// thing of the noun, flat and filterable, then the walk. It reports
+// whether the form opened. With subject.ask off it is formNeed alone, as
+// before the ask.
+func (r *Runtime) pickTarget(q Request, o Outcome, run func(Request) error, held bool) bool {
+	if !r.formNeed(q, o, run, held) {
+		return false
+	}
+	if e := r.RecordEditor(ArgsFormID); e != nil && r.picksTarget() {
+		_ = e.suggestStart()
+	}
+	return true
 }
 
 // pickNeed opens a picker of the candidates o carries for the parameter
@@ -241,6 +295,7 @@ func (r *Runtime) hookAnswer(row HookRow, q Request, err error) {
 	switch o.Kind {
 	case OutcomeNothing:
 	case OutcomeNeeds:
+		o = r.ChoicesFor(o, Request{}) // at most cli.choices-max commands
 		text := o.Text()
 		if !strings.HasPrefix(text, o.Verb) {
 			text = o.Verb + ": " + text

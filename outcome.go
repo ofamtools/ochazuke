@@ -64,13 +64,18 @@ type Outcome struct {
 // subject), the noun its value names, what it takes, the value the caller
 // gave that named nothing (Given: a not-found id, an unknown name; a
 // surface reruns the request with a candidate in the argument that held
-// it), and the candidates, each with its exact command when one is known.
+// it), the Target when it lacks a thing of a noun (its ranked candidates
+// and the command that lists every thing), the candidates as choices, each
+// with its exact command when one is known, and how many candidates a
+// program was not listed (More, cli.choices-max).
 type Need struct {
 	Param   string      `json:"param,omitempty"`
 	Noun    string      `json:"noun,omitempty"`
 	Accepts string      `json:"accepts,omitempty"`
 	Given   string      `json:"given,omitempty"`
+	Target  *Target     `json:"target,omitempty"`
 	Choices []ChoiceRow `json:"choices"`
+	More    int         `json:"more,omitempty"`
 }
 
 // outcomeRow is one row of the table OutcomeOf reads: the typed error it
@@ -157,11 +162,17 @@ func fillOutcome(err error, o *Outcome) {
 
 // fillMissing: a parameter whose value names a thing of a noun needs a
 // target, any other a value; the reason is the error's own reason, ""
-// for a plain missing argument (the wording says what it needs).
+// for a plain missing argument (the wording says what it needs). A
+// target's ranked candidates (MissingParameterError.Target) are its
+// choices, each with its command.
 func fillMissing(err error, o *Outcome) {
 	e := err.(*MissingParameterError)
 	o.Needs = &Need{Param: e.Param, Noun: e.Noun, Choices: []ChoiceRow{}}
-	if e.Noun != "" {
+	if e.Target != nil {
+		o.Needs = e.Target.Need()
+		o.Needs.Param, o.Needs.Noun = e.Param, e.Noun
+	}
+	if e.Noun != "" || e.Target != nil {
 		o.Cause = CauseTarget
 	}
 	o.Reason = e.Reason

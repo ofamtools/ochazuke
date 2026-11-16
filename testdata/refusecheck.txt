@@ -271,7 +271,6 @@ cli/shell.go	Shell.propRequest	K15	"%s %s: the %s cannot be read or written"	1
 cli/shell.go	Shell.propRequest	K3	"%s %s takes one value; name the %s with --%s"	1
 cli/shell.go	Shell.request	K2	"unknown operation %q (%s %s); operations list prints them"	1
 cli/shell.go	Shell.run	K10	"%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)"	1
-cli/shell.go	Shell.run	K14	"%w; pass --target, one of: %s"	1	failure
 cli/shell.go	Shell.run	K14	"target %s: %w"	2	failure
 cli/shell.go	Shell.run	K15	"errors.New(…)"	1
 cli/shell.go	Shell.verb	K8	"%s %s is ambiguous: %s"	1

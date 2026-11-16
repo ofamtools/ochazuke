@@ -114,6 +114,10 @@ func TestArgsFormEnterMovesToTheNextMissingField(t *testing.T) {
 
 func TestArgsFormNounParamAutocompletes(t *testing.T) {
 	r, _, ran := formRuntime(t)
+	// enter opens the field's picker (ask.target form; picker opens it at once).
+	if err := r.Settings().Set(AskTargetSetting, "form"); err != nil {
+		t.Fatal(err)
+	}
 	paletteLine(t, r, "sheet pick")
 	if r.Focus != ArgsFormID+"/swatch" || r.Mode.Name != "normal" {
 		t.Fatalf("focus=%q mode=%q", r.Focus, r.Mode.Name)

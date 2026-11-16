@@ -2,17 +2,22 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"strings"
 
 	"ofam.dev/ochazuke"
 	"ofam.dev/oden"
 )
 
 // cliRun is what a command's run notes for its answer: the verb as
-// displayed, and the outcome of a request that changed nothing (its error
-// is nil, so OutcomeOf cannot tell it).
+// displayed, the request it ran (the listed candidates' commands run it
+// again), and the outcome of a request that changed nothing (its error is
+// nil, so OutcomeOf cannot tell it).
 type cliRun struct {
 	verb    string
+	request ochazuke.Request
 	nothing *ochazuke.Outcome
 }
 
@@ -78,16 +83,7 @@ var cliAnswers = map[ochazuke.OutcomeKind]cliAnswer{
 		if !answersNeeds(s.Runtime) {
 			return err
 		}
-		for _, c := range o.Needs.Choices {
-			line := "  " + c.ID
-			if c.Command != "" {
-				line = "  " + c.Command
-			}
-			if c.Label != "" && c.Label != c.ID {
-				line += "  # " + c.Label
-			}
-			fmt.Fprintln(s.stderr(), line)
-		}
+		writeChoices(s.stderr(), o.Needs)
 		if o.Command != "" {
 			fmt.Fprintln(s.stderr(), "  "+o.Command)
 		}
@@ -101,14 +97,82 @@ var cliAnswers = map[ochazuke.OutcomeKind]cliAnswer{
 	ochazuke.OutcomeFailed: asError,
 }
 
+// writeChoices prints need's candidates, one line each (its command, else
+// its id, then its label and why it was found), then how many were not
+// listed (cli.choices-max) and the command that lists every thing of the
+// noun.
+func writeChoices(w io.Writer, need *ochazuke.Need) {
+	for _, c := range need.Choices {
+		line := "  " + c.ID
+		if c.Command != "" {
+			line = "  " + c.Command
+		}
+		var notes []string
+		if c.Label != "" && c.Label != c.ID {
+			notes = append(notes, c.Label)
+		}
+		if c.Why != "" {
+			notes = append(notes, string(c.Why))
+		}
+		if len(notes) > 0 {
+			line += "  # " + strings.Join(notes, " · ")
+		}
+		fmt.Fprintln(w, line)
+	}
+	all := ""
+	if need.Target != nil {
+		all = need.Target.All
+	}
+	switch {
+	case need.More > 0 && all != "":
+		fmt.Fprintf(w, "  %s  # %d more\n", all, need.More)
+	case need.More > 0:
+		fmt.Fprintf(w, "  # %d more\n", need.More)
+	case all != "":
+		fmt.Fprintf(w, "  %s  # every one\n", all)
+	}
+}
+
+// targetHint is err, the failure of a command that named no --target, with
+// the things of its noun it could act on (Runtime.SubjectTarget): ranked,
+// each with the command that runs it with that --target, at most
+// cli.choices-max of them, then how many more and the command that lists
+// every one. The failure stays a failure (exit status 1): a handler's
+// untyped failure is not read as a missing target. Any other error is err.
+func (s *Shell) targetHint(q ochazuke.Request, err error) error {
+	var bad *ochazuke.ArgumentError
+	if q.Target != "" || errors.As(err, &bad) || ochazuke.OutcomeOf(nil, err).Kind != ochazuke.OutcomeFailed {
+		return err
+	}
+	o := s.Runtime.ChoicesFor(ochazuke.Outcome{Kind: ochazuke.OutcomeNeeds, Needs: s.Runtime.SubjectTarget(q).Need()}, ochazuke.Request{})
+	if len(o.Needs.Choices) == 0 {
+		return err
+	}
+	var b strings.Builder
+	writeChoices(&b, o.Needs)
+	return &hintError{err: err, hint: strings.TrimRight(b.String(), "\n")}
+}
+
+// hintError is a failure with the --target values to run it again with.
+type hintError struct {
+	err  error
+	hint string
+}
+
+func (e *hintError) Error() string { return e.err.Error() + "; pass --target, one of:\n" + e.hint }
+func (e *hintError) Unwrap() error { return e.err }
+
 // answer is the CLI's encoder: the run's error, or the nothing ran noted,
 // as its Outcome (kept for an MCP caller in s.outcome), printed and turned
-// into Run's error by cliAnswers.
+// into Run's error by cliAnswers. What it needs is listed as a program is
+// answered (Runtime.ChoicesFor: the noun's things after its ranked
+// candidates, at most cli.choices-max).
 func (s *Shell) answer(ran cliRun, err error) error {
 	o := ochazuke.OutcomeOf(nil, err)
 	if err == nil && ran.nothing != nil {
 		o = *ran.nothing
 	}
+	o = s.Runtime.ChoicesFor(o, ran.request)
 	if o.Verb == "" {
 		o.Verb = ran.verb
 	}

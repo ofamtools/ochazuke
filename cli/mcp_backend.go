@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -366,8 +367,10 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 	values, _ := args["args"].(map[string]any)
 	answer := map[string]any{"status": "done", "result": nil, "messages": []ochazuke.UIMessage{}}
 	if acts := ochazuke.StringArg(args, "acts", "focus"); acts != "focus" {
-		answer["status"] = "refused"
-		answer["reason"] = "headless sessions have no owner's selection or marks; pass an explicit target"
+		// A headless session has no owner's selection or marks: the run
+		// needs its target named, and answers the things of its noun it
+		// could act on, each with its command (status choose).
+		mcpAnswer(r, answer, actsNeed(r, op, values))
 		return answer, nil
 	}
 	raw, err := json.Marshal(values)
@@ -399,11 +402,7 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 		mcpAnswer(r, answer, outcomeNamed(ochazuke.OutcomeOf(nil, err), r.DisplayKey(op.Key.Short())))
 		return answer, nil
 	}
-	if target == "" {
-		if owners := s.ownersOf(q.Noun); len(owners) == 1 {
-			q.Target = owners[0]
-		}
-	}
+	q.Target = cmp.Or(q.Target, s.ownerOf(q.Noun))
 	o := ochazuke.Outcome{Kind: ochazuke.OutcomeDone}
 	if dry, _ := args["dry_run"].(bool); dry {
 		restore := r.BindActor(b.actor, false)
@@ -721,7 +720,18 @@ func outcomeNamed(o ochazuke.Outcome, verb string) ochazuke.Outcome {
 }
 
 // mcpAnswer is the MCP run's encoder (mcp.Answer), a needs outcome
-// answered as one unless cli.needs-status says error.
+// answered as one unless cli.needs-status says error, with at most
+// cli.choices-max candidates (Runtime.ChoicesFor).
 func mcpAnswer(r *ochazuke.Runtime, answer map[string]any, o ochazuke.Outcome) {
-	mcp.Answer(answer, o, answersNeeds(r))
+	mcp.Answer(answer, r.ChoicesFor(o, ochazuke.Request{}), answersNeeds(r))
+}
+
+// actsNeed is the answer to a run that asked to act on the owner's
+// selection or marks, which a headless session does not have: it needs
+// its target, and the candidates are the things of op's noun found from
+// the session's focus (Runtime.SubjectTarget), each with its command.
+func actsNeed(r *ochazuke.Runtime, op ochazuke.Operation, values map[string]any) ochazuke.Outcome {
+	t := r.SubjectTarget(ochazuke.Request{Noun: op.Noun(), Verb: op.Name(), Args: values})
+	return ochazuke.Outcome{Kind: ochazuke.OutcomeNeeds, Cause: ochazuke.CauseTarget, Verb: r.DisplayKey(op.Key.Short()),
+		Reason: "headless sessions have no owner's selection or marks; pass an explicit target", Needs: t.Need()}
 }
