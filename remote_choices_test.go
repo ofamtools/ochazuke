@@ -81,6 +81,11 @@ func TestParseChoicesReadsRowShapes(t *testing.T) {
 func TestChoiceChooserFailureShowsOverFixedRows(t *testing.T) {
 	t.Parallel()
 	r, _ := widgetFacts(t, func(Ctx) Result { return Failed(errors.New("widget host down")) })
+	// The overlay gives widget an archive prop, so its picker would open
+	// scoped (all, archived); this test is the unscoped chooser's.
+	if err := r.Settings().Set(PickerScopesSetting, false); err != nil {
+		t.Fatal(err)
+	}
 	c, err := r.openChoiceChooser(ChooserSpec{Kind: "pick-widget", Title: "Choose widget", Choose: func(ChooserRow) Result { return Done(nil) }}, choiceLoad{
 		ctx:      r.Context(),
 		param:    Parameter{Noun: "widget"},

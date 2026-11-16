@@ -264,21 +264,9 @@ func countNoun(r *Runtime, n *Noun) {
 		if token, unmoved = jobToken(s, cx, initialToken, c.token, c.known); unmoved {
 			return nil, nil
 		}
-		// Every: the whole store, whatever its default list arguments
-		// (ListQuery.Every); archived things in, then counted apart.
-		page, err := r.queryThings(cx, n, ListQuery{Archived: true, Every: true, Page: 1, PerPage: 1})
-		if err != nil {
-			return nil, err
-		}
-		total = page.Total
-		if arch != nil {
-			page, err := r.queryThings(cx, n, ListQuery{Archived: true, Every: true, Page: 1, PerPage: 1, Filters: []PropFilter{{Prop: arch.Name, Value: true}}})
-			if err != nil {
-				return nil, err
-			}
-			archived = page.Total
-		}
-		return nil, nil
+		var err error
+		total, archived, err = r.countThings(cx, n, arch)
+		return nil, err
 	}
 	finish := func(_ any, err error) (any, error) {
 		c.reading = false
@@ -476,4 +464,39 @@ func registerNounBrowser(r *Runtime) {
 		countNouns(r)
 		return r.Context(), nil
 	}})
+}
+
+// countThings counts a noun's things for the Nouns page: every one
+// (ListQuery.Every, whatever the store's default list arguments, archived
+// in) and the archived ones apart (arch, the archive prop; nil counts
+// none). A store that only lists is read once for both.
+func (r *Runtime) countThings(cx Ctx, n *Noun, arch *PropSpec) (total, archived int, err error) {
+	all := ListQuery{Archived: true, Every: true, Page: 1, PerPage: 1}
+	var archivedOnly ListQuery
+	if arch != nil {
+		archivedOnly = all
+		archivedOnly.Filters = []PropFilter{{Prop: arch.Name, Value: true}}
+	}
+	if n.Store.Query == nil && n.Store.List != nil {
+		things, err := n.Store.List(cx, ListQuery{Archived: true, Every: true})
+		if err != nil {
+			return 0, 0, err
+		}
+		if arch != nil {
+			archived = r.queryAll(n, things, archivedOnly).Total
+		}
+		return r.queryAll(n, things, all).Total, archived, nil
+	}
+	page, err := r.queryThings(cx, n, all)
+	if err != nil {
+		return 0, 0, err
+	}
+	if arch != nil {
+		got, err := r.queryThings(cx, n, archivedOnly)
+		if err != nil {
+			return 0, 0, err
+		}
+		archived = got.Total
+	}
+	return page.Total, archived, nil
 }
