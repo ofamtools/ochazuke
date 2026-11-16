@@ -215,6 +215,7 @@ cli/mcp_backend.go	Shell.mcpValue	K15	"unknown mcp command %q"	1
 cli/mcp_backend.go	Shell.registerMCPVerbs	K15	"host serve runs from the CLI: %s ochazuke host serve"	1
 cli/mcp_backend.go	Shell.resolveMCPVerb	K8	"%q is ambiguous: %s (write one in full)"	1
 cli/mcp_backend.go	mcpBackend.Call	K15	"unknown catalog tool %q"	1
+cli/nounfile.go	nounLoader.verb	K1	"When(…) without Fallback"	1	declaration
 cli/odencommands.go	odenCommands.Command	K14	"find this program to run %s: %w"	1	failure
 cli/odencommands.go	odenCommands.Command	K3	"the program's own path is empty"	1
 cli/odencommands.go	odenCommands.Help	K14	"%s --help: %w"	1	failure
