@@ -451,6 +451,7 @@ func (o *overlayOf) fill(s Store) Store {
 	}
 	if o.delete {
 		s.Delete = o.deleteThing
+		s.DeleteKeeps = o.deleteKeeps
 		s.Overlaid = append(s.Overlaid, "delete")
 		delete(s.Missing, "delete")
 	}
@@ -747,6 +748,20 @@ func (o *overlayOf) deleteThing(c Ctx, key string) error {
 		return o.r.overlayOff(o.n.Name, key, stop, slices.Sorted(maps.Keys(row.Props)))
 	}
 	return o.r.dropOverlay(o.n.Name, key)
+}
+
+// deleteKeeps is the prompt for what deleteThing will do for key, decided
+// by the same test: hide, archive, or "" for a thing of the user's own
+// (deleted).
+func (o *overlayOf) deleteKeeps(_ Ctx, key string) string {
+	row := o.r.overlayRow(o.n.Name, key)
+	if o.keyName == "" || row != nil && row.Created {
+		return ""
+	}
+	if o.hiddenName != "" {
+		return DefaultHideConfirm
+	}
+	return DefaultKeepArchiveConfirm
 }
 
 // archivedInstead is what the overlay's Delete answers when it archived or

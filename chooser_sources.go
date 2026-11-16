@@ -54,6 +54,9 @@ type PickerSource struct {
 	// Empty is the line shown while the source has no rows ("no recent
 	// paths"); the spec's Empty else (its Loading while a load runs).
 	Empty string
+	// Plural names the source's rows; a failed load then says "no PLURAL:
+	// REASON" (the one format), as the line of an empty source does.
+	Plural string
 	// Loading and LoadingJob, when set, stand in for the spec's while the
 	// source is current: the line while the job that fills the source runs
 	// (a scan whose completion reloads it), so its Empty never shows then.
@@ -488,8 +491,11 @@ func (c *Chooser) load() {
 	land := func(value any, err error, first bool) {
 		rows, more, replace := chooserRowsOf(value)
 		if err != nil && !errors.Is(err, context.Canceled) {
+			// The failure shows over the fixed rows a source's load kept
+			// with it ("(none)"); the rows it would have loaded are gone.
 			c.loadErr = err.Error()
-			rows, more = nil, Result{}
+			rows = slices.DeleteFunc(slices.Clone(rows), func(row ChooserRow) bool { return !row.Fixed })
+			more = Result{}
 		}
 		if !first && !replace {
 			rows = append(slices.Clone(c.spec.Rows), rows...)
@@ -782,6 +788,8 @@ func (c *Chooser) emptyLine() string {
 		p.Loading = src.Loading
 	}
 	switch {
+	case c.loadErr != "" && src != nil && src.Plural != "":
+		return EmptyText(src.Plural) + ": " + c.loadErr
 	case c.loadErr != "":
 		return "! " + c.loadErr
 	case c.loading || p.LoadingJob.Running(c.r):

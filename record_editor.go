@@ -1359,9 +1359,10 @@ func (r *Runtime) openChoiceChooser(spec ChooserSpec, l choiceLoad) (*Chooser, e
 		for _, sc := range scopes {
 			param := sc.within(l.param, l.siblings())
 			spec.Sources = append(spec.Sources, ChooserSource{
-				Name: sc.Name,
-				Live: r.ChoicesTakeQuery(param),
-				Load: r.choiceSourceLoad(l, param),
+				Name:   sc.Name,
+				Plural: r.choicesPlural(l.param),
+				Live:   r.ChoicesTakeQuery(param),
+				Load:   r.choiceSourceLoad(l, param),
 				Count: func(query string) (int, bool) {
 					choices, err := r.ChoicesFor(l.ctx, param, query, l.siblings())
 					return len(choices), err == nil
@@ -1439,7 +1440,7 @@ func (r *Runtime) choiceSourceLoad(l choiceLoad, param Parameter) func(query str
 		}
 		if res.work == nil {
 			if res.err != nil {
-				return res
+				return Result{value: rows(nil), err: res.err} // the fixed rows stay under the failure
 			}
 			choices, _ := res.value.([]Choice)
 			landed(choices)
@@ -1447,7 +1448,7 @@ func (r *Runtime) choiceSourceLoad(l choiceLoad, param Parameter) func(query str
 		}
 		return res.bare().Map(func(value any, err error) (any, error) {
 			if err != nil {
-				return nil, err
+				return rows(nil), err
 			}
 			return rows(value), nil
 		}).Then(func(_ Ctx, value any, _ error) {

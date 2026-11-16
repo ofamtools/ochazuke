@@ -231,7 +231,7 @@ func deleteConfirm(r *Runtime, n *Noun, c Context, q Request, prompt string) str
 			insts = append(insts, r.Instances[id])
 		}
 	}
-	var deleted []string
+	var deleted, kept []string
 	for _, inst := range insts {
 		ctx := Ctx{actor: r.Actor(), Runtime: r, Context: c, Args: q.Args, Instance: inst}
 		key, err := r.subjectKey(n, ctx)
@@ -239,8 +239,20 @@ func deleteConfirm(r *Runtime, n *Noun, c Context, q Request, prompt string) str
 			return prompt
 		}
 		if p, _, err := r.archiveTarget(n, ctx, key); p == nil || err != nil {
+			if how := storeKeeps(n, ctx, key); how != "" {
+				kept = append(kept, how)
+				continue
+			}
 			deleted = append(deleted, key)
 		}
+	}
+	if len(deleted) == 0 && len(kept) > 0 {
+		// Every thing is only kept (the store cannot delete it): the
+		// store's own prompt says so; a mix of effects asks the delete's.
+		if len(slices.Compact(kept)) == 1 {
+			return kept[0]
+		}
+		return prompt
 	}
 	if len(deleted) > 0 {
 		// The one question names what goes with the things (confirm-delete).
@@ -253,6 +265,23 @@ func deleteConfirm(r *Runtime, n *Noun, c Context, q Request, prompt string) str
 		return "" // archive-first from the request archives like archive: no question
 	}
 	return DefaultArchiveConfirm
+}
+
+// DefaultHideConfirm is what a standard delete asks when the store cannot
+// delete the thing and the delete will hide it (Store.DeleteKeeps).
+const DefaultHideConfirm = "Hide {{noun}} {{label}}? It stays in its source; undo shows it again."
+
+// DefaultKeepArchiveConfirm is what it asks when the delete will archive
+// a thing the store cannot delete.
+const DefaultKeepArchiveConfirm = "Archive {{noun}} {{label}}? Its source keeps it; restore shows it again."
+
+// storeKeeps is the prompt for what the store's delete does for key when
+// it does not delete ("" when it deletes).
+func storeKeeps(n *Noun, c Ctx, key string) string {
+	if n.Store == nil || n.Store.DeleteKeeps == nil {
+		return ""
+	}
+	return n.Store.DeleteKeeps(c, key)
 }
 
 // archiveFirst reports whether a delete archives a live thing first: the

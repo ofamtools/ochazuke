@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -80,10 +81,19 @@ func TestParseChoicesReadsRowShapes(t *testing.T) {
 // even when the chooser has fixed rows ("(none)") under it (R5.19).
 func TestChoiceChooserFailureShowsOverFixedRows(t *testing.T) {
 	t.Parallel()
+	// The overlay gives widget an archive prop, so its picker opens scoped
+	// (all, archived) unless picker.scopes is off: both say the same.
+	for _, scopes := range []bool{false, true} {
+		t.Run(fmt.Sprint("scopes=", scopes), func(t *testing.T) {
+			t.Parallel()
+			testChoiceChooserFailure(t, scopes)
+		})
+	}
+}
+
+func testChoiceChooserFailure(t *testing.T, scopes bool) {
 	r, _ := widgetFacts(t, func(Ctx) Result { return Failed(errors.New("widget host down")) })
-	// The overlay gives widget an archive prop, so its picker would open
-	// scoped (all, archived); this test is the unscoped chooser's.
-	if err := r.Settings().Set(PickerScopesSetting, false); err != nil {
+	if err := r.Settings().Set(PickerScopesSetting, scopes); err != nil {
 		t.Fatal(err)
 	}
 	c, err := r.openChoiceChooser(ChooserSpec{Kind: "pick-widget", Title: "Choose widget", Choose: func(ChooserRow) Result { return Done(nil) }}, choiceLoad{

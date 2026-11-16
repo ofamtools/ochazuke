@@ -491,6 +491,13 @@ type Store struct {
 	// mounts the store can tell a write the source makes from one kept in
 	// the user's changes.
 	Overlaid []string
+	// DeleteKeeps answers the prompt template to ask for a delete of the
+	// thing of that key when the delete does not delete it (the overlay
+	// hides a remote source's thing, or archives a local one:
+	// DefaultHideConfirm, DefaultKeepArchiveConfirm), or "" when it
+	// deletes. Set by the overlay, read by the standard delete's prompt so
+	// it says the real effect.
+	DeleteKeeps func(c Ctx, key string) string
 	// SessionKeys says the things' keys hold only in this process (a
 	// position in a list, a counter): the overlay keeps their rows for the
 	// session and never writes them to overlay.json, where another run's
