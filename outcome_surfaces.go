@@ -295,7 +295,7 @@ func (r *Runtime) hookAnswer(row HookRow, q Request, err error) {
 	switch o.Kind {
 	case OutcomeNothing:
 	case OutcomeNeeds:
-		o = r.ChoicesFor(o, Request{}) // at most cli.choices-max commands
+		o = r.ChoicesShown(o, Request{}) // at most cli.choices-max commands
 		text := o.Text()
 		if !strings.HasPrefix(text, o.Verb) {
 			text = o.Verb + ": " + text

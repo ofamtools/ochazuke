@@ -222,7 +222,7 @@ func TestChoicesMaxSetting(t *testing.T) {
 		if err := r.Settings().Set(ChoicesMaxSetting, c.max); err != nil {
 			t.Fatal(err)
 		}
-		o := r.ChoicesFor(r.ExecuteOutcome(Request{Noun: "thing", Verb: "poke"}), Request{Noun: "thing", Verb: "poke"})
+		o := r.ChoicesShown(r.ExecuteOutcome(Request{Noun: "thing", Verb: "poke"}), Request{Noun: "thing", Verb: "poke"})
 		if len(o.Needs.Choices) != c.shown || o.Needs.More != c.more || len(o.Needs.Target.Candidates) != c.shown {
 			t.Errorf("max %d: %d shown, %d more", c.max, len(o.Needs.Choices), o.Needs.More)
 		}

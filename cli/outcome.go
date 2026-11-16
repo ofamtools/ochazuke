@@ -144,7 +144,7 @@ func (s *Shell) targetHint(q ochazuke.Request, err error) error {
 	if q.Target != "" || errors.As(err, &bad) || ochazuke.OutcomeOf(nil, err).Kind != ochazuke.OutcomeFailed {
 		return err
 	}
-	o := s.Runtime.ChoicesFor(ochazuke.Outcome{Kind: ochazuke.OutcomeNeeds, Needs: s.Runtime.SubjectTarget(q).Need()}, ochazuke.Request{})
+	o := s.Runtime.ChoicesShown(ochazuke.Outcome{Kind: ochazuke.OutcomeNeeds, Needs: s.Runtime.SubjectTarget(q).Need()}, ochazuke.Request{})
 	if len(o.Needs.Choices) == 0 {
 		return err
 	}
@@ -165,14 +165,14 @@ func (e *hintError) Unwrap() error { return e.err }
 // answer is the CLI's encoder: the run's error, or the nothing ran noted,
 // as its Outcome (kept for an MCP caller in s.outcome), printed and turned
 // into Run's error by cliAnswers. What it needs is listed as a program is
-// answered (Runtime.ChoicesFor: the noun's things after its ranked
+// answered (Runtime.ChoicesShown: the noun's things after its ranked
 // candidates, at most cli.choices-max).
 func (s *Shell) answer(ran cliRun, err error) error {
 	o := ochazuke.OutcomeOf(nil, err)
 	if err == nil && ran.nothing != nil {
 		o = *ran.nothing
 	}
-	o = s.Runtime.ChoicesFor(o, ran.request)
+	o = s.Runtime.ChoicesShown(o, ran.request)
 	if o.Verb == "" {
 		o.Verb = ran.verb
 	}

@@ -12,7 +12,7 @@ import (
 // things of the parameter's noun found from the whole context, ranked by why
 // they were found (Why, in the order of targetSources), and last every thing
 // of the noun, which is read only when a picker shows it or a program lists
-// it (Target.All, Runtime.ChoicesFor). No rule reads how many candidates
+// it (Target.All, Runtime.ChoicesShown). No rule reads how many candidates
 // there are: one, two or N take the same path, and the verb acts without
 // asking only on a candidate whose Why is in its acting set (Parameter.Acts,
 // target.linked).
@@ -69,11 +69,11 @@ const (
 	ChoicesMaxSetting = "cli.choices-max"
 )
 
-// Candidate is one thing a target may name: its id (the thing's key, an
+// TargetCandidate is one thing a target may name: its id (the thing's key, an
 // AnyRef for a parameter of any noun, the value itself for a path), how it
 // is shown, its noun, why it was found, the live instance that stands for
 // it when there is one, and the exact command that runs the request with it.
-type Candidate struct {
+type TargetCandidate struct {
 	ID       string `json:"id"`
 	Label    string `json:"label,omitempty"`
 	Noun     string `json:"noun,omitempty"`
@@ -92,12 +92,12 @@ type Candidate struct {
 // noun), and All, the command that lists every thing of the noun ("" when
 // the noun has no list verb).
 type Target struct {
-	Param      string      `json:"param"`
-	Noun       string      `json:"noun,omitempty"`
-	Given      bool        `json:"given"`
-	Chosen     *Candidate  `json:"chosen,omitempty"`
-	Candidates []Candidate `json:"candidates"`
-	All        string      `json:"all,omitempty"`
+	Param      string            `json:"param"`
+	Noun       string            `json:"noun,omitempty"`
+	Given      bool              `json:"given"`
+	Chosen     *TargetCandidate  `json:"chosen,omitempty"`
+	Candidates []TargetCandidate `json:"candidates"`
+	All        string            `json:"all,omitempty"`
 }
 
 // Need is the target as what a needs outcome lacks: its parameter and noun,
@@ -134,7 +134,7 @@ func (s targetScan) anyNoun() bool { return s.noun == AnyNoun }
 // its candidates carries.
 type targetSource struct {
 	why  Why
-	read func(r *Runtime, s targetScan) []Candidate
+	read func(r *Runtime, s targetScan) []TargetCandidate
 }
 
 // targetSources are the candidate sources in rank order. Each reads only
@@ -144,8 +144,8 @@ type targetSource struct {
 // not a source: a picker's list scope and a program's listed rows read it,
 // one page, when they show it.
 var targetSources = []targetSource{
-	{WhySelected, func(r *Runtime, s targetScan) []Candidate { return r.markedCandidates(s, true) }},
-	{WhyMarked, func(r *Runtime, s targetScan) []Candidate { return r.markedCandidates(s, false) }},
+	{WhySelected, func(r *Runtime, s targetScan) []TargetCandidate { return r.markedCandidates(s, true) }},
+	{WhyMarked, func(r *Runtime, s targetScan) []TargetCandidate { return r.markedCandidates(s, false) }},
 	{WhyFocused, (*Runtime).focusedCandidates},
 	{WhyOnPath, (*Runtime).pathCandidates},
 	{WhyOnPage, (*Runtime).pageCandidates},
@@ -155,12 +155,12 @@ var targetSources = []targetSource{
 
 // candidatesFor are the ranked candidates for a value of p at focus: each
 // source in rank order, a thing found twice kept where it was found first.
-func (r *Runtime) candidatesFor(p Parameter, focus string) []Candidate {
+func (r *Runtime) candidatesFor(p Parameter, focus string) []TargetCandidate {
 	s := targetScan{p: p, noun: r.CanonicalNoun(p.Noun), focus: focus}
-	var out []Candidate
+	var out []TargetCandidate
 	for _, source := range targetSources {
 		for _, c := range source.read(r, s) {
-			if c.ID == "" || slices.ContainsFunc(out, func(one Candidate) bool { return one.ID == c.ID }) {
+			if c.ID == "" || slices.ContainsFunc(out, func(one TargetCandidate) bool { return one.ID == c.ID }) {
 				continue
 			}
 			c.Why = source.why
@@ -178,25 +178,25 @@ func (s targetScan) ofNoun(inst *Instance) bool {
 
 // thingCandidate is inst as a candidate: the thing's key (an AnyRef for a
 // parameter of any noun) and label.
-func (r *Runtime) thingCandidate(inst *Instance, s targetScan) Candidate {
+func (r *Runtime) thingCandidate(inst *Instance, s targetScan) TargetCandidate {
 	t := r.instanceThing(inst)
 	id := t.Key
 	if s.anyNoun() {
 		id = AnyRef(inst.Noun, t.Key)
 	}
-	return Candidate{ID: id, Label: t.Label, Noun: inst.Noun, Instance: inst.ID}
+	return TargetCandidate{ID: id, Label: t.Label, Noun: inst.Noun, Instance: inst.ID}
 }
 
 // markedCandidates are the marked rows of the scan's noun in the nearest
 // list on the focus path: its visual selection when visual is true and the
 // list is in visual mode, its marks when visual is false and it is not.
-func (r *Runtime) markedCandidates(s targetScan, visual bool) []Candidate {
+func (r *Runtime) markedCandidates(s targetScan, visual bool) []TargetCandidate {
 	for _, id := range r.Ancestry(s.focus) {
 		l, ok := r.Instances[id].Component.(*Collection)
 		if !ok {
 			continue
 		}
-		var out []Candidate
+		var out []TargetCandidate
 		for _, item := range l.Marked() {
 			if inst := r.Instances[item.ID]; l.Visual() == visual && s.ofNoun(inst) && len(out) < targetReadMax {
 				out = append(out, r.thingCandidate(inst, s))
@@ -211,12 +211,12 @@ func (r *Runtime) markedCandidates(s targetScan, visual bool) []Candidate {
 // verb's own declaration of where to look), then the focus itself when it
 // is a thing of the noun; for a parameter of any noun, the nearest thing on
 // the focus path.
-func (r *Runtime) focusedCandidates(s targetScan) []Candidate {
-	var out []Candidate
+func (r *Runtime) focusedCandidates(s targetScan) []TargetCandidate {
+	var out []TargetCandidate
 	if s.p.From != "" {
 		if value := r.argument(s.p.From, KeyEvent{Focus: s.focus}); !emptyProp(value) {
 			text := fmt.Sprint(value)
-			out = append(out, Candidate{ID: text, Label: text, Noun: s.p.Noun})
+			out = append(out, TargetCandidate{ID: text, Label: text, Noun: s.p.Noun})
 		}
 	}
 	for _, id := range r.Ancestry(s.focus) {
@@ -231,8 +231,8 @@ func (r *Runtime) focusedCandidates(s targetScan) []Candidate {
 // pathCandidates are the things of the noun on the focus path above the
 // focus, nearest first, and for a path parameter the path props of the
 // nearest level that has one.
-func (r *Runtime) pathCandidates(s targetScan) []Candidate {
-	var out []Candidate
+func (r *Runtime) pathCandidates(s targetScan) []TargetCandidate {
+	var out []TargetCandidate
 	for _, id := range r.Ancestry(s.focus) {
 		if inst := r.Instances[id]; !s.anyNoun() && id != s.focus && s.ofNoun(inst) {
 			out = append(out, r.thingCandidate(inst, s))
@@ -252,19 +252,19 @@ func (r *Runtime) pathCandidates(s targetScan) []Candidate {
 
 // pathProps are the path props inst's noun declares that inst holds, each
 // a candidate labelled "PROP · VALUE".
-func (r *Runtime) pathProps(inst *Instance) []Candidate {
+func (r *Runtime) pathProps(inst *Instance) []TargetCandidate {
 	n := r.Nouns[inst.Noun]
 	if n == nil {
 		return nil
 	}
-	var out []Candidate
+	var out []TargetCandidate
 	for _, prop := range n.Props {
 		if !prop.IsPath() {
 			continue
 		}
 		if value := r.rowValue(inst, prop.Name); !emptyProp(value) {
 			text := fmt.Sprint(value)
-			out = append(out, Candidate{ID: text, Label: prop.Name + " · " + text, Noun: inst.Noun})
+			out = append(out, TargetCandidate{ID: text, Label: prop.Name + " · " + text, Noun: inst.Noun})
 		}
 	}
 	return out
@@ -273,11 +273,11 @@ func (r *Runtime) pathProps(inst *Instance) []Candidate {
 // pageCandidates are the other live things of the noun on the current page
 // (an instance whose ancestry holds the page), in registration and list
 // order, at most targetReadMax.
-func (r *Runtime) pageCandidates(s targetScan) []Candidate {
+func (r *Runtime) pageCandidates(s targetScan) []TargetCandidate {
 	if s.noun == "" || s.anyNoun() || r.Page == "" {
 		return nil
 	}
-	var out []Candidate
+	var out []TargetCandidate
 	add := func(inst *Instance) {
 		if s.ofNoun(inst) && len(out) < targetReadMax && slices.Contains(r.Ancestry(inst.ID), r.Page) {
 			out = append(out, r.thingCandidate(inst, s))
@@ -301,7 +301,7 @@ func (r *Runtime) pageCandidates(s targetScan) []Candidate {
 // linkedCandidates are the things of the noun the nearest level of the
 // focus path that reaches any reaches through relations and associations,
 // at the nearest distance (nearestReached, as key dispatch reads them).
-func (r *Runtime) linkedCandidates(s targetScan) []Candidate {
+func (r *Runtime) linkedCandidates(s targetScan) []TargetCandidate {
 	if s.noun == "" || s.anyNoun() {
 		return nil
 	}
@@ -310,9 +310,9 @@ func (r *Runtime) linkedCandidates(s targetScan) []Candidate {
 		if len(found) == 0 {
 			continue
 		}
-		out := make([]Candidate, 0, min(len(found), targetReadMax))
+		out := make([]TargetCandidate, 0, min(len(found), targetReadMax))
 		for _, a := range found[:min(len(found), targetReadMax)] {
-			out = append(out, Candidate{ID: a.Key, Label: a.Label, Noun: a.Noun, Instance: a.inst, dist: a.Dist})
+			out = append(out, TargetCandidate{ID: a.Key, Label: a.Label, Noun: a.Noun, Instance: a.inst, dist: a.Dist})
 		}
 		return out
 	}
@@ -321,12 +321,12 @@ func (r *Runtime) linkedCandidates(s targetScan) []Candidate {
 
 // recentCandidates are the things of the noun the newest history entries
 // name (their target, the things they changed or answered), newest first.
-func (r *Runtime) recentCandidates(s targetScan) []Candidate {
+func (r *Runtime) recentCandidates(s targetScan) []TargetCandidate {
 	if s.noun == "" || s.anyNoun() {
 		return nil
 	}
 	entries := r.HistoryOf(recentEntries)
-	var out []Candidate
+	var out []TargetCandidate
 	for i := len(entries) - 1; i >= 0 && len(out) < targetReadMax; i-- {
 		out = append(out, r.entryCandidates(entries[i], s)...)
 	}
@@ -336,8 +336,8 @@ func (r *Runtime) recentCandidates(s targetScan) []Candidate {
 // entryCandidates are the things of the scan's noun one history entry
 // names: its target's instance when it is still live, the things it
 // changed, and the things it answered.
-func (r *Runtime) entryCandidates(e HistoryEntry, s targetScan) []Candidate {
-	var out []Candidate
+func (r *Runtime) entryCandidates(e HistoryEntry, s targetScan) []TargetCandidate {
+	var out []TargetCandidate
 	if inst := r.Instances[e.Request.Target]; s.ofNoun(inst) {
 		out = append(out, r.thingCandidate(inst, s))
 	}
@@ -347,7 +347,7 @@ func (r *Runtime) entryCandidates(e HistoryEntry, s targetScan) []Candidate {
 	}
 	for _, ref := range refs {
 		if noun, key, ok := SplitAnyRef(ref); ok && r.CanonicalNoun(noun) == s.noun {
-			out = append(out, Candidate{ID: key, Label: key, Noun: s.noun})
+			out = append(out, TargetCandidate{ID: key, Label: key, Noun: s.noun})
 		}
 	}
 	return out
@@ -382,7 +382,7 @@ func (r *Runtime) linkedActs(op Operation) (acts, distant bool) {
 // chooseCandidate is the candidate op acts on without asking: the first
 // whose Why is in acts (DefaultActs when empty), or a linked one when
 // target.linked lets op act on it; nil when none is, so the verb asks.
-func (r *Runtime) chooseCandidate(op Operation, acts []Why, candidates []Candidate) *Candidate {
+func (r *Runtime) chooseCandidate(op Operation, acts []Why, candidates []TargetCandidate) *TargetCandidate {
 	if len(acts) == 0 {
 		acts = DefaultActs
 	}
@@ -408,9 +408,9 @@ func (r *Runtime) targetOf(op Operation, name, focus string, args Arguments) Tar
 	if !declared {
 		p = Parameter{Noun: op.Noun()}
 	}
-	t := Target{Param: name, Noun: r.CanonicalNoun(p.Noun), Candidates: []Candidate{}, All: r.allCommand(p.Noun)}
+	t := Target{Param: name, Noun: r.CanonicalNoun(p.Noun), Candidates: []TargetCandidate{}, All: r.allCommand(p.Noun)}
 	if v, set := args[name]; set && !emptyProp(v) {
-		given := Candidate{ID: fmt.Sprint(v), Noun: t.Noun, Why: WhyGiven}
+		given := TargetCandidate{ID: fmt.Sprint(v), Noun: t.Noun, Why: WhyGiven}
 		t.Given, t.Chosen = true, &given
 		return t
 	}
@@ -495,7 +495,7 @@ func (r *Runtime) choicesMax() int {
 	return 20
 }
 
-// ChoicesFor is o as a program (the CLI, MCP) is answered with it: a needs
+// ChoicesShown is o as a program (the CLI, MCP) is answered with it: a needs
 // outcome for a thing of a noun lists, after its ranked candidates, the
 // noun's things one paged read of its store gives (Why listed; only a
 // store that pages, Store.Query, is read, and only for the rows still to
@@ -503,7 +503,7 @@ func (r *Runtime) choicesMax() int {
 // one), Need.More counting the ones left out. q is the request o answers
 // (the listed rows' commands run it); an empty q lists nothing more. Any
 // outcome that needs nothing is o.
-func (r *Runtime) ChoicesFor(o Outcome, q Request) Outcome {
+func (r *Runtime) ChoicesShown(o Outcome, q Request) Outcome {
 	if o.Needs == nil {
 		return o
 	}

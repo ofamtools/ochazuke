@@ -721,9 +721,9 @@ func outcomeNamed(o ochazuke.Outcome, verb string) ochazuke.Outcome {
 
 // mcpAnswer is the MCP run's encoder (mcp.Answer), a needs outcome
 // answered as one unless cli.needs-status says error, with at most
-// cli.choices-max candidates (Runtime.ChoicesFor).
+// cli.choices-max candidates (Runtime.ChoicesShown).
 func mcpAnswer(r *ochazuke.Runtime, answer map[string]any, o ochazuke.Outcome) {
-	mcp.Answer(answer, r.ChoicesFor(o, ochazuke.Request{}), answersNeeds(r))
+	mcp.Answer(answer, r.ChoicesShown(o, ochazuke.Request{}), answersNeeds(r))
 }
 
 // actsNeed is the answer to a run that asked to act on the owner's
