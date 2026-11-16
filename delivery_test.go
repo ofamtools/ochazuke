@@ -425,11 +425,13 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	// keys (resolveTarget); it is emptied when the request ends.
 	// jobBase is the context the jobs of one served call run under
 	// (WithJobContext), set for that call and restored, like source.
+	// derivations are the derivation kinds the application registered
+	// (RegisterDerivation): a registry, like events.
 	// jobQueue holds the background jobs waiting for a slot; life is the
 	// runtime's lifetime (Shutdown), a registry of what it started.
 	want := []string{
 		"BindingTimeout", "Focus", "Instances", "ModalReturns", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
-		"bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "diffRenderer", "events", "guards", "history", "holders", "jobBase", "jobQueue", "jobSeq", "jobs", "life", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "predicates", "prefix", "relations", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rows", "seq", "targets", "watches",
+		"bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "derivations", "diffRenderer", "events", "guards", "history", "holders", "jobBase", "jobQueue", "jobSeq", "jobs", "life", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "predicates", "prefix", "relations", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rows", "seq", "targets", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)
