@@ -118,7 +118,7 @@ func (r *Runtime) overlayState() *overlayRows {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if !o.loaded || o.path != path {
-		o.loaded, o.path, o.rows = true, path, map[string]map[string]*OverlayRow{}
+		o.loaded, o.path, o.rows, o.versions = true, path, map[string]map[string]*OverlayRow{}, nil
 		if path != "" {
 			o.rows = r.readOverlay(path)
 		}
