@@ -2177,8 +2177,8 @@
       "note": "need/key-missing-subject: a key on a standard verb with nothing of its noun focused asks for the thing in the args form, then runs"
     },
     "P",
-    "q",
     "down",
+    "enter",
     "enter",
     {
       "key": "ctrl+alt+n",
