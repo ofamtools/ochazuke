@@ -192,8 +192,9 @@ func TestHookOutcomes(t *testing.T) {
 }
 
 // A verb declared unavailable for its noun (Operation.Unavailable: a store
-// without Patch, Create or Delete, a singleton's collection verb, a system
-// fact) answers nothing / not-here with the declared reason from every
+// without Patch, Create or Delete that keeps them missing (NoOverlay), an
+// instances store's create, a system fact the overlay does not fill)
+// answers nothing / not-here with the declared reason from every
 // route: the API (ExecuteOutcome), a person at the palette (an info line,
 // no error) and a dry run (CheckRequest); it leaves no change row in the
 // history and calls no store write. The CLI and MCP encoders are covered in package
@@ -208,11 +209,11 @@ func TestUnavailableAnswersNothing(t *testing.T) {
 		store      Store
 		reason     string
 	}{
-		{"no Patch", "set", props, Store{Get: read, List: list}, "no Store.Patch"},
-		{"no Create", "create", props, Store{Get: read, List: list}, "no Store.Create"},
-		{"no Delete", "delete", props, Store{Get: read, List: list}, "no Store.Delete"},
-		{"singleton", "archive", []PropSpec{{Name: "name"}}, Store{Kind: Singleton, Get: read}, "singleton"},
-		{"system fact", "set", []PropSpec{{Name: "name"}}, Store{Kind: Singleton, Facts: true, Get: read}, FactReason},
+		{"no Patch", "set", props, Store{Get: read, List: list, NoOverlay: true}, "no Store.Patch"},
+		{"no Create", "create", props, Store{Get: read, List: list, NoOverlay: true}, "no Store.Create"},
+		{"no Delete", "delete", props, Store{Get: read, List: list, NoOverlay: true}, "no Store.Delete"},
+		{"instances", "create", props, Store{Kind: Instances}, "instances"},
+		{"system fact", "set", []PropSpec{{Name: "name"}}, Store{Kind: Singleton, Facts: true, Get: read, NoOverlay: true}, FactReason},
 	}
 	routes := []struct {
 		name string
@@ -255,7 +256,7 @@ func TestUnavailableAnswersNothing(t *testing.T) {
 		}
 	}
 	r := NewRuntime()
-	r.Define("shelf").Props(props...).Store(Store{Get: read, List: list})
+	r.Define("shelf").Props(props...).Store(Store{Get: read, List: list, NoOverlay: true})
 	if o := r.ExecuteOutcome(Request{Noun: "shelf", Verb: "set"}); o.Text() != "shelf.set: does nothing here: its store writes no props (no Store.Patch)" {
 		t.Errorf("wording %q", o.Text())
 	}

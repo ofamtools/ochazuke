@@ -41,7 +41,8 @@ var streamedVerbs = []string{"watch"}
 // extension lists, so the extension answers everything its list does.
 func proxyStore(noun CatalogNoun, local, key string, h HostMount) ochazuke.Store {
 	px := newProxyCalls(noun, local, key, h)
-	s := ochazuke.Store{Kind: noun.Kind, Remote: true, Stamps: true, Missing: px.missing, Undo: px.has("get") && px.has("set")}
+	s := ochazuke.Store{Kind: noun.Kind, Remote: true, Stamps: true, Missing: px.missing, Undo: px.has("get") && px.has("set"),
+		NoOverlay: noun.Store != nil && noun.Store.NoOverlay}
 	if h.CanonicalKey != nil {
 		s.CanonicalKey = func(_ ochazuke.Ctx, selector, key string) error {
 			return h.CanonicalKey(noun.Name, selector, key)

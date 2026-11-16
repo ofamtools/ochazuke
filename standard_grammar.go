@@ -136,14 +136,25 @@ func (o Operation) SubjectOmitted(open []string, word string) bool {
 // things have a current one (a writable RoleCurrent prop: set mode nested
 // is mode set nested, one value as a singleton's). Any other collection's
 // or an instances store's standard verb is reached as NOUN VERB, never as
-// VERB NOUN, so its name never takes a setting's prefix.
+// VERB NOUN, so its name never takes a setting's prefix; nor does a
+// singleton fact whose every prop set writes is the overlay's
+// (overlayOnly: set agent stays the :set line, as before the overlay
+// filled its set).
 func (r *Runtime) shadowsNoun(word, verb string) bool {
 	op, ok := r.Operation(r.CanonicalNoun(word) + "." + verb)
 	if !ok || op.Standard == "" {
 		return true
 	}
 	n := r.Nouns[op.Noun()]
-	return n != nil && n.Store != nil && (n.Store.Kind == Singleton || writableRole(n, RoleCurrent) != nil)
+	return n != nil && n.Store != nil && (n.Store.Kind == Singleton && !overlayOnly(n) || writableRole(n, RoleCurrent) != nil)
+}
+
+// overlayOnly reports whether n is a system fact whose every prop set
+// writes is held by the overlay (PropSpec.Overlaid): its store writes
+// nothing of its own.
+func overlayOnly(n *Noun) bool {
+	props := writableProps(n)
+	return n.Store.Facts && len(props) > 0 && !slices.ContainsFunc(props, func(p PropSpec) bool { return !p.Overlaid })
 }
 
 // shadowWords keeps the noun words a bare alias that shadows verb reads

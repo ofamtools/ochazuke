@@ -125,8 +125,9 @@ func (r *Runtime) runRecording(row standardVerb, n *Noun, c Ctx) (any, error) {
 	if row.Undo == undoNone {
 		return run(r, n, c)
 	}
-	// The thing it acts on: its subject, or (Creates) the one it answers.
-	subject := row.TakesSubject && !row.Creates
+	// The thing it acts on: its subject, or (Creates) the one it answers; a
+	// singleton's every write acts on its one thing (its create is a set).
+	subject := row.TakesSubject && !row.Creates || n.keyProp() == nil
 	if !n.Store.Undo || n.Store.Get == nil {
 		key, _ := r.subjectKey(n, c)
 		value, err := run(r, n, c)
@@ -212,10 +213,31 @@ func (r *Runtime) noteAfter(row standardVerb, n *Noun, key string, value any, re
 		if after == nil {
 			after = map[string]any{}
 		}
+		if names == nil && before != nil {
+			// The whole thing was read on both sides (a delete that kept
+			// it: archived, or a reset): the change is the props that
+			// differ, so undo writes back only those.
+			before, after = differingProps(before, after)
+		}
 	}
 	if before != nil || after != nil {
 		r.noteChange(ThingChange{Noun: n.Name, Key: key, Before: before, After: after})
 	}
+}
+
+// differingProps are the props whose values differ between before and
+// after (a prop on one side only included, nil on the other), each side's
+// value; two empty maps when none differs.
+func differingProps(before, after map[string]any) (map[string]any, map[string]any) {
+	b, a := map[string]any{}, map[string]any{}
+	for _, m := range []map[string]any{before, after} {
+		for name := range m {
+			if !reflect.DeepEqual(before[name], after[name]) {
+				b[name], a[name] = before[name], after[name]
+			}
+		}
+	}
+	return b, a
 }
 
 // sideChanges are the writable props, beside the written ones, whose
@@ -380,7 +402,11 @@ func (r *Runtime) undoChange(c Ctx, ch ThingChange) error {
 	}
 	switch {
 	case ch.Before == nil:
-		return n.Store.Delete(c, ch.Key)
+		var kept *archivedInstead
+		if err := n.Store.Delete(c, ch.Key); err != nil && !errors.As(err, &kept) {
+			return err // archived instead (the source cannot delete): undone as far as it goes
+		}
+		return nil
 	case ch.After == nil:
 		values := typed(ch.Before)
 		if key := n.keyProp(); key != nil {

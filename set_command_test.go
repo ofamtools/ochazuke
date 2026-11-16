@@ -301,7 +301,10 @@ func TestSetCollisionsAcrossTheFamily(t *testing.T) {
 		}
 	}
 	slices.Sort(own)
-	if want := []string{"agent", "setting"}; !reflect.DeepEqual(own, want) {
+	// agent is not among them: its set is the overlay's alone (a system
+	// fact with no write of its own, overlayOnly), so set agent is the
+	// :set line, as the fixture says.
+	if want := []string{"setting"}; !reflect.DeepEqual(own, want) {
 		t.Fatalf("framework collisions %v, want %v", own, want)
 	}
 }

@@ -956,7 +956,9 @@ func registerSettingItemThings(r *Runtime) {
 		PropSpec{Name: "index", ReadOnly: true, Parameter: Parameter{Type: SettingInteger, Description: "Its 0-based place in the list"}},
 		PropSpec{Name: "text", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The item"}},
 	).Store(Store{
-		Kind: KindCollection,
+		// Its keys are places in a list (name/index), which move when the
+		// list changes: the overlay keeps its rows for the session only.
+		Kind: KindCollection, SessionKeys: true,
 		Get: func(c Ctx, id string) (Thing, error) {
 			cut := strings.LastIndex(id, "/")
 			if cut < 0 {

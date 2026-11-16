@@ -20,7 +20,8 @@ func outcomeRuntime() *ochazuke.Runtime {
 	r := ochazuke.NewRuntime()
 	r.Config().Disable()
 	r.Define("shelf").Props(ochazuke.PropSpec{Name: "id", Key: true}).Store(ochazuke.Store{
-		Get: func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return ochazuke.Thing{"id": "a"}, nil },
+		NoOverlay: true, // its author keeps the missing create missing
+		Get:       func(ochazuke.Ctx, string) (ochazuke.Thing, error) { return ochazuke.Thing{"id": "a"}, nil },
 		List: func(ochazuke.Ctx, ochazuke.ListQuery) ([]ochazuke.Thing, error) {
 			return []ochazuke.Thing{{"id": "a"}}, nil
 		},

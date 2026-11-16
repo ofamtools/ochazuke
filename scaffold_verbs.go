@@ -77,7 +77,7 @@ func scaffoldVerbs() []standardVerb {
 
 	restore := subject
 	restore.Verb, restore.Description = "restore", "Restore an archived thing: set its archive prop false (archive's inverse)"
-	restore.Kinds, restore.Needs = []string{KindCollection}, []storeNeed{needWriter, needPatch, needRole(RoleArchive)}
+	restore.Kinds, restore.Needs = []string{KindCollection, Singleton}, []storeNeed{needWriter, needPatch, needRole(RoleArchive)}
 	restore.Many, restore.WritesProps, restore.Undo, restore.Repeatable, restore.HistoryKind, restore.Agent = true, true, undoByRestore, true, HistoryChange, AgentAllow
 	restore.Writes = roleWrites(RoleArchive)
 	restore.Run = func(r *Runtime, n *Noun, c Ctx) (any, error) {

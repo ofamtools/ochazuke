@@ -5,7 +5,7 @@
 
 # Settings
 
-242 settings, by section (the Settings page's tabs) then name. Change one with `:set NAME=VALUE`, `settings set NAME VALUE` or the Settings page; the values live in settings.json.
+243 settings, by section (the Settings page's tabs) then name. Change one with `:set NAME=VALUE`, `settings set NAME VALUE` or the Settings page; the values live in settings.json.
 
 ## About
 
@@ -1405,7 +1405,7 @@ edit with a field that takes a choice (an enum, a choice source, a noun referenc
 
 boolean · default `true` · section Records · declared by ochazuke
 
-A write a thing's store cannot hold (a prop of a system fact, a store with no write, a create or delete it cannot do) is kept by the framework beside the thing in overlay.json and shown as yours (ochazuke.overlay lists them); off answers such a write with the verbs that do change the thing
+A write a local store cannot do (a prop of a system fact or of a store with no write, a create, delete or archive it has no call for; a singleton's create is its set and its delete resets your changes) is kept by the framework beside the thing in overlay.json, shown as yours and undoable (ochazuke.overlay lists them); a mounted tool's store, a copy, an instances store and a store marked noOverlay are not covered. Off answers such a write with the verbs that do change the thing
 
 <a id="setting-forms.dependent-choices"></a>
 ### `forms.dependent-choices`
@@ -1462,6 +1462,13 @@ Text with line breaks (a paste, a register put, a set) makes a single-line input
 boolean · default `true` · section Records · declared by ochazuke
 
 Every stored noun gets the generated default keys for the verbs it has (n new, r rename, v and enter show, d a archive, d r restore, d d archive then delete, u undo, a associate, g d duplicate, y y yank, z A archived rows, and y p and R for a thing with a file); a declared row on the same key (the application's, a tool's, yours) always wins; off generates none
+
+<a id="setting-overlay.stores"></a>
+### `overlay.stores`
+
+string · default `all` · choices `all`, `facts` · section Records · declared by ochazuke
+
+Which stores the overlay (facts.overlay) writes for: all, every local store that lacks a write (records, settings, registers, singletons and system facts); facts, only system facts (the modes, the bindings, the agent), as before; a write on any other store then answers with the verbs that do change the thing
 
 <a id="setting-register.persist"></a>
 ### `register.persist`

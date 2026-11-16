@@ -460,13 +460,22 @@ type Store struct {
 	// Facts says the things are system facts, read from the registry
 	// (modes, operations, themes ...): create, set, delete and archive run
 	// through the framework's overlay (overlay.go) where the registry
-	// cannot do them (a remote facts store: unavailable, FactReason). A facts
-	// store has no times (no created or updated prop).
+	// cannot do them (a remote facts store: unavailable, FactReason), and
+	// its read-only props are the overlay's to hold. A facts store has no
+	// times (no created or updated prop).
 	Facts bool
-	// Overlay gives a store that is not a fact the framework's overlay
-	// (overlay.go) for what it lacks: props it cannot hold, create, delete
-	// and archive. Facts stores have it always.
+	// Overlay asked for the framework's overlay (overlay.go) on a store
+	// that is not a fact. Since OV1 every local store that lacks a write
+	// has it (NoOverlay turns it off), so the field changes nothing; it is
+	// kept for the stores that set it.
 	Overlay bool
+	// NoOverlay says a write the store lacks stays missing: the framework's
+	// overlay fills nothing for it (no Patch, Create, Delete or archive prop
+	// of the user's), and those verbs stay unavailable with the store's own
+	// reason. For a store whose author knows the user's changes would do
+	// nothing useful (an open picker's rows). The catalog says it as
+	// noOverlay.
+	NoOverlay bool
 	// SessionKeys says the things' keys hold only in this process (a
 	// position in a list, a counter): the overlay keeps their rows for the
 	// session and never writes them to overlay.json, where another run's

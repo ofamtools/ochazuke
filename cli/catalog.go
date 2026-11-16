@@ -303,6 +303,10 @@ type CatalogStore struct {
 	Watch       bool `json:"watch,omitempty"`
 	Undo        bool `json:"undo,omitempty"`
 	Remote      bool `json:"remote,omitempty"`
+	// NoOverlay says the store keeps a write it lacks missing
+	// (ochazuke.Store.NoOverlay): no overlay of the user's changes fills
+	// it, in the tool or in a host that mounts it.
+	NoOverlay bool `json:"noOverlay,omitempty"`
 }
 
 // catalogStore is what the catalog publishes of a noun's store: its facts
@@ -311,7 +315,7 @@ func catalogStore(s *ochazuke.Store) (facts bool, out *CatalogStore) {
 	if s == nil {
 		return false, nil
 	}
-	return s.Facts, &CatalogStore{Get: s.Get != nil, List: s.List != nil, Create: s.Create != nil, Patch: s.Patch != nil, Delete: s.Delete != nil, Query: s.Query != nil, ChangeToken: s.ChangeToken != nil, Watch: s.Watch != nil, Undo: s.Undo, Remote: s.Remote}
+	return s.Facts, &CatalogStore{Get: s.Get != nil, List: s.List != nil, Create: s.Create != nil, Patch: s.Patch != nil, Delete: s.Delete != nil, Query: s.Query != nil, ChangeToken: s.ChangeToken != nil, Watch: s.Watch != nil, Undo: s.Undo, Remote: s.Remote, NoOverlay: s.NoOverlay}
 }
 
 // KindOf is the noun's kind (ochazuke.NounKindList): NounKind when the

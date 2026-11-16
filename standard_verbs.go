@@ -1359,6 +1359,13 @@ func runDelete(r *Runtime, n *Noun, c Ctx) (any, error) {
 		return archived, err
 	}
 	if err := n.Store.Delete(c, key); err != nil {
+		var kept *archivedInstead
+		if errors.As(err, &kept) {
+			// The store archived it (the overlay, over a source that
+			// cannot delete): it is still there, its relations with it.
+			c.Notify(kept.Error())
+			return map[string]any{"archived": key}, nil
+		}
 		return nil, err
 	}
 	// The thing's relations keep their rows, the end moving to its former
