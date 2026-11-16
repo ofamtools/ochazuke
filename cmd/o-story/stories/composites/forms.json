@@ -2178,6 +2178,7 @@
     },
     "P",
     "q",
+    "q",
     "j",
     "enter",
     "enter",
@@ -2969,7 +2970,7 @@
       "after": 222
     },
     {
-      "after": 224,
+      "after": 225,
       "modal": "args-form",
       "focus": "args-form/id",
       "contains": [
@@ -2978,7 +2979,7 @@
       ]
     },
     {
-      "after": 227,
+      "after": 228,
       "modal": "args-form",
       "focus": "args-form/id",
       "contains": [
@@ -2992,15 +2993,15 @@
         "no parcel is focused",
         "is required"
       ],
-      "after": 228
+      "after": 229
     },
     {
-      "after": 232,
+      "after": 233,
       "modal": "args-form",
       "focus": "args-form/colour"
     },
     {
-      "after": 234,
+      "after": 235,
       "modal": "args-form",
       "focus": "args-form/size",
       "contains": [
@@ -3012,10 +3013,10 @@
       "writes": [
         "demo.stamp colour=red size=big"
       ],
-      "after": 236
+      "after": 237
     },
     {
-      "after": 238,
+      "after": 239,
       "contains": [
         "Original",
         "Second",
@@ -3027,7 +3028,7 @@
       ]
     },
     {
-      "after": 239,
+      "after": 240,
       "contains": [
         "Original",
         "Second",
@@ -3039,7 +3040,7 @@
       ]
     },
     {
-      "after": 240,
+      "after": 241,
       "modal": "form-suggestions",
       "contains": [
         "Choose id",
@@ -3054,10 +3055,10 @@
       "lacks": [
         "Old one"
       ],
-      "after": 241
+      "after": 242
     },
     {
-      "after": 246,
+      "after": 247,
       "contains": [
         "Suggest swatch",
         "alpha",
@@ -3071,7 +3072,7 @@
       ]
     },
     {
-      "after": 247,
+      "after": 248,
       "contains": [
         "alpha",
         "beta",
@@ -3080,7 +3081,7 @@
       ]
     },
     {
-      "after": 248,
+      "after": 249,
       "contains": [
         "use \"zzz\""
       ]
@@ -3094,10 +3095,10 @@
         "swatch.names",
         "swatch.paint swatch=zzz"
       ],
-      "after": 250
+      "after": 251
     },
     {
-      "after": 254,
+      "after": 255,
       "contains": [
         "Original",
         "1 more in archived"
@@ -3114,7 +3115,7 @@
       "lacks": [
         "more in"
       ],
-      "after": 255
+      "after": 256
     },
     {
       "page": "page1"
