@@ -469,6 +469,13 @@ type Operation struct {
 	// unless keys.echo-terminal is on. Set by NounBuilder.Typing or at
 	// registration.
 	Typing bool `json:"typing,omitempty"`
+	// Writes names the nouns whose stores a run of the verb may change,
+	// so the watches and lists re-read after it are only theirs (and the
+	// nouns derived from them). Nil (the default): it may change any
+	// noun's store, and every watch is told. Empty but not nil: it changes
+	// no store (keys forwarded to a pane, terminal.send), and a run tells
+	// no watch, so no list reads again. Set by NounBuilder.Writes.
+	Writes []string `json:"-"`
 	// Staying marks an operation that manages the pending mode itself, or
 	// re-dispatches the key inside it (recording): a row running it leaves
 	// the one-shot pending mode in place (NounBuilder.Staying).

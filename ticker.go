@@ -68,12 +68,22 @@ type tickerJob struct {
 	at time.Time
 }
 
+// JobsTickerBackgroundSetting shows background jobs (JobInfo.Background:
+// what nobody waits on, a list re-reading its store) on the jobs ticker.
+// Off (the default) the ticker shows one only when it fails: a re-read
+// nobody asked for is not news.
+const JobsTickerBackgroundSetting = "jobs.ticker-background"
+
 // tickerShows reports whether a job belongs on the ticker: an application
-// verb the definition did not mark quiet (Operation.Quiet). Framework jobs
-// (a terminal's stream read) never show.
+// verb the definition did not mark quiet (Operation.Quiet), and not a
+// background job that did not fail (unless jobs.ticker-background is on).
+// Framework jobs (a terminal's stream read) never show.
 func tickerShows(r *Runtime, j JobInfo) bool {
 	op, ok := r.Operations.Find(Key(j.Verb))
-	return ok && op.Kind == KindApplication && !op.Quiet
+	if !ok || op.Kind != KindApplication || op.Quiet {
+		return false
+	}
+	return !j.Background || j.Status == JobFailed || r.Settings().Bool(JobsTickerBackgroundSetting)
 }
 
 // observe remembers the jobs that finished since the last frame, stamped

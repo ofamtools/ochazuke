@@ -96,6 +96,32 @@ func TestJobsTickerHidesQuietAndFrameworkJobs(t *testing.T) {
 	}
 }
 
+// A background job (a list re-reading its store, nobody waiting) shows
+// only when it fails, unless jobs.ticker-background is on.
+func TestJobsTickerHidesBackgroundJobsUnlessOn(t *testing.T) {
+	for _, on := range []bool{false, true} {
+		r, m, _ := tickerFixture(t)
+		if err := r.Settings().Set(JobsTickerBackgroundSetting, on); err != nil {
+			t.Fatal(err)
+		}
+		bg := func() Ticket {
+			ticket, _, err := r.Issue("owner", "thing.build", "", r.backgroundCtx())
+			if err != nil {
+				t.Fatal(err)
+			}
+			return ticket
+		}
+		r.Settle(bg(), nil)
+		if on {
+			tickerIs(t, m, "thing.build done")
+			continue
+		}
+		tickerIs(t, m)
+		r.Settle(bg(), errors.New("boom"))
+		tickerIs(t, m, "thing.build failed: boom")
+	}
+}
+
 // The ticker rides the rule line above the footer: the page keeps its full
 // height and every body row stays drawn, so a job starting or lingering out
 // never moves or hides the body (UX review 2 F13).

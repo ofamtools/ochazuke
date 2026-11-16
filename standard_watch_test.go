@@ -494,3 +494,40 @@ func TestNothingChangedSkipsRefreshHistoryAndUndo(t *testing.T) {
 		t.Fatalf("poke: %d lists, %d rows", *lists-base, len(r.HistoryOf(0, HistoryChange))-rows)
 	}
 }
+
+// TestWatchSkipsVerbsThatWriteNoStore: a change verb that declares the
+// stores it writes (Operation.Writes) tells only their watches; keys typed
+// into a terminal (terminal.send, Writes none) tell none. The watch is a
+// notify one, as a related section's or a windowed list's over a remote
+// store: each time it is told, its reader reads the store again.
+func TestWatchSkipsVerbsThatWriteNoStore(t *testing.T) {
+	r, _, stream := terminalFixture(t)
+	s := newTaskStore()
+	r.Define("task").Props(taskTestProps()...).Store(s.store())
+	r.Define("memo").Verb("touch", func(Ctx) Result { return Done(nil) }, "Write a memo").Writes("memo").
+		Verb("tick", func(Ctx) Result { return Done(nil) }, "Write a task").Writes("task")
+	told := 0
+	w, err := r.watchAs(r.backgroundCtx(), "task", func(WatchEvent) { told++ }, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Stop()
+	for range 100 {
+		press(t, r, "x")
+	}
+	if len(stream.sent) != 100 {
+		t.Fatalf("the keys reached the pane: %v", stream.sent)
+	}
+	if _, err := r.Execute(Request{Noun: "memo", Verb: "touch"}); err != nil {
+		t.Fatal(err)
+	}
+	if told != 0 {
+		t.Fatalf("100 typed keys and a memo write told the task watch %d times", told)
+	}
+	if _, err := r.Execute(Request{Noun: "memo", Verb: "tick"}); err != nil {
+		t.Fatal(err)
+	}
+	if told != 1 {
+		t.Fatalf("a verb declaring it writes task told the task watch %d times, want 1", told)
+	}
+}
