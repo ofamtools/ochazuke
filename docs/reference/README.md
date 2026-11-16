@@ -9,7 +9,7 @@ Generated from ochazuke's catalog: every declared setting with its default and e
 
 | Topic | Page | What it holds |
 |---|---|---|
-| `settings` | [settings.md](settings.md) | 235 settings: name, type, default, allowed values, section, who declares it, description |
+| `settings` | [settings.md](settings.md) | 236 settings: name, type, default, allowed values, section, who declares it, description |
 | `bindings` | [bindings.md](bindings.md) | 1142 default key rows in 97 tables, by noun and mode |
 | `standard-verbs` | [standard-verbs.md](standard-verbs.md) | the 23 standard verbs and what each needs; 30 nouns with props: kind, props, verbs |
 
