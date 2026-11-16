@@ -67,7 +67,7 @@ func TestRegisterIsOffByDefault(t *testing.T) {
 			t.Fatal(err)
 		}
 		r.EnsureSegments()
-		got := r.Segments()
+		got := ownSegments(r)
 		if len(got) != 4 || got[0].ID != IDCPU || got[1].ID != IDProc || got[2].ID != IDRAM || got[3].ID != IDDisk {
 			t.Fatalf("segments = %+v", got)
 		}
@@ -178,7 +178,7 @@ func TestRegisterProc(t *testing.T) {
 		t.Fatalf("%s = %q, want core", ProcScaleSetting, got)
 	}
 	r.EnsureSegments()
-	segs := r.Segments()
+	segs := ownSegments(r)
 	if len(segs) < 2 || segs[0].ID != IDCPU || segs[1].ID != IDProc {
 		t.Fatalf("segments = %+v, want proc after cpu", segs)
 	}
@@ -227,4 +227,16 @@ func TestProcProviderReadsScaleArg(t *testing.T) {
 			t.Errorf("scale %s: %+v, %v; want %s", scale, v, err, want)
 		}
 	}
+}
+
+// ownSegments are the runtime's segments but ochazuke's own (the restart
+// badge every runtime has).
+func ownSegments(r *ochazuke.Runtime) []ochazuke.SegmentState {
+	var out []ochazuke.SegmentState
+	for _, s := range r.Segments() {
+		if s.From != ochazuke.SegmentFromFramework {
+			out = append(out, s)
+		}
+	}
+	return out
 }

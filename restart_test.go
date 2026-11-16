@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -46,14 +47,13 @@ func TestQuitConfirmSetting(t *testing.T) {
 }
 
 // A request records who asked, shows a notice and the badge at the left of
-// the title row; a second request updates it; restart.badge off hides the
-// badge only; dismiss clears everything.
+// the title row (the lead segment restart); a second request updates it;
+// restart.badge off hides the badge only; dismiss clears everything.
 func TestRestartRequestBadge(t *testing.T) {
 	t.Parallel()
-	r := NewRuntime()
-	m := NewModel(r)
+	r, m, _ := segmentFixture(t, nil)
 	m.Title = "Demo"
-	m.Width, m.Height = 80, 12
+	settleSegments(t, m, m.Init())
 	mustRun(t, r, Request{Noun: "ochazuke.restart-request", Verb: "post", Args: Arguments{"reason": "new build", "version": "v2"}})
 	mustRun(t, r, Request{Noun: "ochazuke.restart-request", Verb: "post", Args: Arguments{"reason": "again"}})
 	req := r.RestartRequested()
@@ -63,25 +63,56 @@ func TestRestartRequestBadge(t *testing.T) {
 	if len(m.Notices) != 1 || !strings.Contains(m.Notices[0], "again") || !strings.Contains(m.Notices[0], "& restarts") {
 		t.Fatalf("notices %q", m.Notices)
 	}
-	top := titleLine(m.View().Content)
+	settleSegments(t, m, m.segmentCommand(m.clock()))
+	top := frame(m)[0]
 	if !strings.Contains(top, RestartBadgeText) || !strings.Contains(top, "Demo") || strings.Index(top, RestartBadgeText) > strings.Index(top, "Demo") {
 		t.Fatalf("title row %q", top)
 	}
 	// Narrow, the badge keeps at most half the row: its short label.
 	m.Update(tea.WindowSizeMsg{Width: 36, Height: 12})
-	if top := titleLine(m.View().Content); !strings.Contains(top, "RESTART") || strings.Contains(top, "REQUESTED") || !strings.Contains(top, "NORMAL") {
+	if top := frame(m)[0]; !strings.Contains(top, "RESTART") || strings.Contains(top, "REQUESTED") || !strings.Contains(top, "NORMAL") {
 		t.Fatalf("narrow title row %q", top)
 	}
 	if _, err := r.Settings().SetSession(RestartBadgeSetting, "false"); err != nil {
 		t.Fatal(err)
 	}
-	m.Update(tea.WindowSizeMsg{Width: 81, Height: 12}) // a new frame
-	if top := titleLine(m.View().Content); strings.Contains(top, "RESTART") {
+	_, cmd := m.Update(tea.WindowSizeMsg{Width: 81, Height: 12})
+	settleSegments(t, m, cmd)
+	if top := frame(m)[0]; strings.Contains(top, "RESTART") {
 		t.Fatalf("badge off: %q", top)
 	}
 	mustRun(t, r, Request{Noun: "ochazuke.restart-request", Verb: "dismiss"})
 	if r.RestartRequested().Pending || len(m.Notices) != 0 {
 		t.Fatalf("dismissed: %+v %q", r.RestartRequested(), m.Notices)
+	}
+}
+
+// A request posted through one runtime is seen by every runtime on the
+// same table that started before it (its badge and notice); one started
+// after it runs the build already; a dismiss from any clears it for all.
+func TestRestartRequestSharedThroughTheTable(t *testing.T) {
+	t.Parallel()
+	table := NewMemDocTable(NewRuntime(), RestartRequestNoun)
+	poster, viewer := NewRuntime(), NewRuntime()
+	seen := NewModel(viewer)
+	viewer.restart().started = time.Now().Add(-time.Minute)
+	poster.SetRestartTable(table)
+	viewer.SetRestartTable(table)
+	mustRun(t, poster, Request{Noun: RestartRequestNoun, Verb: "post", Args: Arguments{"reason": "installed v9", "version": "v9"}})
+	if req := viewer.RestartRequested(); !req.Pending || req.Version != "v9" {
+		t.Fatalf("viewer: %+v", req)
+	}
+	if v := viewer.restartBadge(); v.Text != RestartBadgeText || len(seen.Notices) != 1 {
+		t.Fatalf("viewer badge %+v notices %q", v, seen.Notices)
+	}
+	later := NewRuntime()
+	later.SetRestartTable(table)
+	if later.RestartRequested().Pending || later.restartBadge().Text != "" {
+		t.Fatal("a program started after the request shows it")
+	}
+	mustRun(t, later, Request{Noun: RestartRequestNoun, Verb: "dismiss"})
+	if viewer.restartBadge().Text != "" || len(seen.Notices) != 0 || poster.RestartRequested().Pending {
+		t.Fatal("dismissed in one runtime, still pending in another")
 	}
 }
 
@@ -159,19 +190,31 @@ func TestRestartShutsDownThenExecs(t *testing.T) {
 	var order []string
 	execErr := error(nil)
 	r.SetRestart(RestartHook{
-		Path:       func() string { return self },
-		Installed:  func(context.Context, string) (string, error) { return "x", nil },
-		Args:       func() []string { return []string{"demo", "--flag"} },
-		BeforeExec: func() error { order = append(order, "cleanup"); return nil },
+		Path:      func() string { return self },
+		Installed: func(context.Context, string) (string, error) { return "x", nil },
+		Args:      func() []string { return []string{"demo", "--flag"} },
 		Exec: func(path string, argv, env []string) error {
 			order = append(order, "exec shut="+boolText(r.ShuttingDown())+" "+path+" "+strings.Join(argv, " "))
 			return execErr
 		},
 	})
+	waiting := true
+	r.AddQuitHook(QuitHook{Name: "sides",
+		Wait:  func(*Runtime) string { return map[bool]string{true: "waiting for a side"}[waiting] },
+		Close: func() error { order = append(order, "cleanup"); return nil }})
 	mustRun(t, r, Request{Noun: "app", Verb: "restart"})
 	keytest.Press(m, "y")
 	if !r.Quit || !r.restart().armed {
 		t.Fatalf("yes: quit %v armed %v", r.Quit, r.restart().armed)
+	}
+	// app.restart quits through app.quit, so the quit hook holds it.
+	if m.quitClosing || !strings.Contains(m.Info, "waiting for a side") {
+		t.Fatalf("the quit hook did not hold the quit: closing %v info %q", m.quitClosing, m.Info)
+	}
+	waiting = false
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 12})
+	if !m.quitClosing {
+		t.Fatal("the quit did not finish once the hook was done")
 	}
 	var stderr bytes.Buffer
 	p := &restartProcess{r: r, stderr: &stderr}
@@ -183,7 +226,10 @@ func TestRestartShutsDownThenExecs(t *testing.T) {
 		t.Fatalf("order %q", order)
 	}
 	execErr = errors.New("denied")
-	if err := p.Run(); err == nil || r.RestartError() == nil || !strings.Contains(stderr.String(), "restart failed: start "+self+": denied") {
+	order = nil
+	if err := p.Run(); len(order) != 1 { // the hooks' Close ran once
+		t.Fatalf("second run: %q", order)
+	} else if err == nil || r.RestartError() == nil || !strings.Contains(stderr.String(), "restart failed: start "+self+": denied") {
 		t.Fatalf("failed exec: %v %v %q", err, r.RestartError(), stderr.String())
 	}
 }

@@ -81,10 +81,10 @@ func run(args []string) error {
 		// again in place: the socket is closed first so the new process
 		// can listen on it.
 		model.Runtime.SetRestart(ochazuke.RestartHook{
-			Name:       "ochazuke",
-			Path:       func() string { path, _ := os.Executable(); return path },
-			BeforeExec: server.Close,
+			Name: "ochazuke",
+			Path: func() string { path, _ := os.Executable(); return path },
 		})
+		model.Runtime.AddQuitHook(ochazuke.QuitHook{Name: "socket", Close: server.Close})
 		if *headless {
 			fmt.Fprintln(os.Stderr, "Listening:", *socket)
 		}

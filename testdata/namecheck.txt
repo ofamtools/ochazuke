@@ -33,7 +33,7 @@ chrome.go	var chromeModes	table	"mode"	1
 cli/catalog.go	CatalogDoc.RowSource	compare	"list"	2
 cli/catalog.go	ExtensionNamespace	compare	"app"	1
 cli/catalog.go	catalog	compare	"lists"	1	Subject and Result are enums of what an operation or prop covers, read as data; not a noun or mode name
-cli/catalog.go	catalog	cyclo	"-"	37
+cli/catalog.go	catalog	cyclo	"-"	36
 cli/catalog_inspect.go	Shell.catalogCommand	compare	"inspect"	1
 cli/commands.go	Commands.showsRun	compare	"run"	1
 cli/detail_fields.go	PageView.hasMetadata	compare	"fields"	1

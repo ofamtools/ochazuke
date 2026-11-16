@@ -469,6 +469,13 @@ type Operation struct {
 	// unless keys.echo-terminal is on. Set by NounBuilder.Typing or at
 	// registration.
 	Typing bool `json:"typing,omitempty"`
+	// Writes names the nouns whose stores a run of the verb may change,
+	// so the watches and lists re-read after it are only theirs (and the
+	// nouns derived from them). Nil (the default): it may change any
+	// noun's store, and every watch is told. Empty but not nil: it changes
+	// no store (keys forwarded to a pane, terminal.send), and a run tells
+	// no watch, so no list reads again. Set by NounBuilder.Writes.
+	Writes []string `json:"-"`
 	// Staying marks an operation that manages the pending mode itself, or
 	// re-dispatches the key inside it (recording): a row running it leaves
 	// the one-shot pending mode in place (NounBuilder.Staying).
@@ -829,6 +836,7 @@ func (r *Runtime) registerFramework() {
 	registerNounBrowser(r)
 	registerIndex(r)
 	registerSegments(r)
+	registerRestartBadge(r)
 	registerDocs(r)
 	registerTextView(r)
 	registerSearchFind(r)
@@ -1597,10 +1605,7 @@ func registerCore(r *Runtime) {
 		return r.Context(), err
 	}})
 	r.Register(Operation{Key: "ochazuke.modal.close", Exits: ExitsClose, Description: "Close the active modal: run its close request (CloseWith), else pop it back to the focus and mode it opened over", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.CloseModal(c); return r.Context(), err }})
-	r.Register(Operation{Key: "app.quit", Confirm: "Quit?", ConfirmFor: quitConfirm, Loses: "the running session: its open views and what it holds in memory", Description: "Exit the application", Parameters: map[string]Parameter{"force": {Type: "boolean", Description: "quit without checks, the question or waiting for writes; report unfinished values"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
-		r.quit(a["force"] == true)
-		return true, nil
-	}})
+	r.Register(Operation{Key: "app.quit", Confirm: "Quit?", ConfirmFor: quitConfirm, Loses: "the running session: its open views and what it holds in memory", Description: "Exit the application", Parameters: quitParameters, Result: "boolean", AppHandler: quitApp})
 	registerRestart(r)
 	r.Register(Operation{Key: "ochazuke.key.ignore", Description: "The noop: always available, does nothing; a row bound to it consumes its key (DispatchOutcome reports KeyConsumed), how a container clamps a key its children leave unhandled", Result: "null", Run: func(*Runtime, Context, Arguments) (any, error) { return nil, nil }})
 }

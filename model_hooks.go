@@ -58,6 +58,13 @@ func (m *Model) quitHooks() (tea.Cmd, bool) {
 	if h.quitForced {
 		return nil, false
 	}
+	// A registered quit hook that still waits (a side pane opening) keeps
+	// the program running until it is done or the quit is forced; what it
+	// waits on ends with a message, which runs this again.
+	if why := r.quitWaitingFor(); why != "" {
+		r.UI().Info(why)
+		return tea.Batch(r.PendingCommands(), timeout), true
+	}
 	if !r.flushJobsRunning() && (!r.quitHooksRunning() || !m.clock().Before(h.quitDeadline)) {
 		return nil, false
 	}

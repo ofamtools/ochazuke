@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"context"
 	"errors"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -194,8 +195,16 @@ func TestSegmentDisabledBySetting(t *testing.T) {
 	if got := m.StatusSegments(); len(got) != 0 {
 		t.Fatalf("the area is off but draws %q", got)
 	}
-	if cmd := m.segmentCommand(m.clock().Add(time.Hour)); cmd != nil || m.SegmentsInFlight() != 0 {
-		t.Fatal("the area is off but a refresh started")
+	// A lead row (the restart badge) is in no area; the status rows stop.
+	mu.Lock()
+	before := maps.Clone(runs)
+	mu.Unlock()
+	settleSegments(t, m, m.segmentCommand(m.clock().Add(time.Hour)))
+	mu.Lock()
+	after := maps.Clone(runs)
+	mu.Unlock()
+	if !maps.Equal(before, after) {
+		t.Fatalf("the area is off but a refresh started: %v then %v", before, after)
 	}
 	rows := frame(m)
 	if strings.TrimSpace(rows[2]) != strings.Repeat("─", 76) {
@@ -380,7 +389,7 @@ func TestSegmentRowsLayer(t *testing.T) {
 		t.Fatalf("StatusSegments = %q", got)
 	}
 	names, _ := r.Execute(Request{Noun: "segment", Prop: "names"})
-	if !reflect.DeepEqual(names, []string{"cpu"}) {
+	if !reflect.DeepEqual(names, []string{RestartSegment, "cpu"}) {
 		t.Fatalf("names = %v", names)
 	}
 }

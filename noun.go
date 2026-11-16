@@ -706,6 +706,14 @@ func (b *NounBuilder) Typing() *NounBuilder {
 	return b.lastOp("Typing", func(o *Operation) { o.Typing = true })
 }
 
+// Writes declares the nouns whose stores the last declared verb may change
+// (Operation.Writes): after a run only their watches and lists read again.
+// Called with none, the verb changes no store, and a run re-reads nothing.
+// Not called, the verb may change any store.
+func (b *NounBuilder) Writes(nouns ...string) *NounBuilder {
+	return b.lastOp("Writes", func(o *Operation) { o.Writes = append([]string{}, nouns...) })
+}
+
 // Staying marks the last declared verb as managing the pending mode itself
 // (Operation.Staying): a row running it keeps the one-shot mode.
 func (b *NounBuilder) Staying() *NounBuilder {

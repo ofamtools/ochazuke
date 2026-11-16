@@ -588,10 +588,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 	}
 	doc.Pickers = r.CatalogPickerDefs()
 	doc.RelationKinds = r.RelationKinds()
-	for _, s := range r.Segments() {
-		if s.Verb == "" {
-			continue // a provider or a command runs only in its own process
-		}
+	for _, s := range r.SharedSegments() {
 		doc.Segments = append(doc.Segments, catalogSegment(r, s.Segment))
 	}
 	commands := map[string]bool{}

@@ -354,6 +354,7 @@ from	prop	seed
 get	action	seed	
 gh	namespace	seed	
 git	namespace	seed	
+glance	action	seed	
 glyph	prop	seed	
 glyphs	noun	seed	plural
 gone	action+prop	seed	
@@ -892,6 +893,7 @@ todos	noun	seed	plural
 toggle	action	seed	
 toggle-fast	action	seed	
 toggle-pin-column	action	seed	
+token	action	seed	
 tone	prop	seed	
 tool	noun	seed	
 tools	relation	seed	

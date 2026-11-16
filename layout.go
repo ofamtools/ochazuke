@@ -162,11 +162,12 @@ type Header struct {
 	Segments []SegmentCell
 	// Keys is the key echo when keys.echo puts it beside the badge.
 	Keys *KeyEchoCell
-	// Lead are badges drawn at the left of the title row, before the
-	// title (Runtime.LeadCells: RESTART REQUESTED), in the badge.alert
-	// role. They take at most half the row: past that each draws its
-	// Short label, cut to fit; the title is cut before them.
-	Lead []LeadCell
+	// Lead are the lead-placed status segments, drawn at the left of the
+	// title row, before the title (Runtime.SegmentCellsAt(SegmentPlaceLead):
+	// RESTART REQUESTED), in the badge.alert role. They take at most half
+	// the row: past that each draws its Short label, cut to fit; the title
+	// is cut before them.
+	Lead []SegmentCell
 	// BadgeWidth is the fewest cells the badge's label takes: a shorter
 	// label is padded inside the badge, so the badge keeps its left edge
 	// as the mode changes (the shell passes Runtime.ModeBadgeWidth).
@@ -317,7 +318,7 @@ func (l Layout) titleRow(h Header, width int) string {
 // leadBadges draws the lead badges and the space after them in at most
 // half of width: each badge's Text when they all fit, else each Short
 // (Text when it has none), cut with "…" to fit.
-func (l Layout) leadBadges(cells []LeadCell, width int) string {
+func (l Layout) leadBadges(cells []SegmentCell, width int) string {
 	if len(cells) == 0 || width <= 0 {
 		return ""
 	}

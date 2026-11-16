@@ -340,7 +340,7 @@ func registerTerminal(r *Runtime) {
 				return nil, needValue("keys", "")
 			}
 			return keys, t.stream.Send(keys...)
-		}, "Forward key names, in order, to the pane").Typing().History(HistoryChange).
+		}, "Forward key names, in order, to the pane").Typing().History(HistoryChange).Writes().
 		Verb("paste", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
 			if err != nil {
@@ -353,7 +353,7 @@ func registerTerminal(r *Runtime) {
 			}
 			text := StringArg(a, "text", "")
 			return text, t.stream.Paste(text)
-		}, "Paste text into the pane, after forwarding any keys given (the leader, under it)").Typing().History(HistoryChange).
+		}, "Paste text into the pane, after forwarding any keys given (the leader, under it)").Typing().History(HistoryChange).Writes().
 		Verb("attach", func(r *Runtime, c Context, a Arguments) (any, error) {
 			t, err := r.terminalOf(c, a)
 			if err != nil {
