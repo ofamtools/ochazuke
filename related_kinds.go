@@ -28,9 +28,14 @@ func (rel *Related) addSplit(ref Referrer, prop string) {
 		return
 	}
 	rel.splits[ref.ID()] = &relatedSplit{ref: ref, prop: prop, at: len(rel.sections)}
-	if stored && ref.Relation == "" {
-		rel.watch(ref.Noun)
-	}
+}
+
+// watched reports whether the split's noun is watched: its things are read
+// whenever the key changes (its value sections are made from them), so they
+// are kept in step as a section's would be.
+func (sp *relatedSplit) watched(r *Runtime) bool {
+	n := r.Nouns[sp.ref.Noun]
+	return n != nil && sp.ref.Relation == "" && n.Store != nil && (n.Store.List != nil || n.Store.Query != nil)
 }
 
 // splitValue is the value a thing holds in the split prop, as text; ""
@@ -130,30 +135,30 @@ func (rel *Related) ensureLists() {
 	}
 }
 
-// readList lists a list section's things: its noun's saved filter
-// (conditions and sort), through the store's standard list, or the Rows
-// hook for a noun without a store (with an empty key).
-func (rel *Related) readList(c Ctx, ref Referrer) ([]Thing, error) {
+// readList lists a list section's things as a page of q: its noun's saved
+// filter (conditions and sort), through the store's standard list, or the
+// Rows hook for a noun without a store (with an empty key).
+func (rel *Related) readList(c Ctx, ref Referrer, q ListQuery) (ListPage, error) {
 	r := rel.r
 	n := r.Noun(ref.Noun)
 	if n == nil {
-		return nil, nil
+		return ListPage{}, nil
 	}
 	c.Noun = n.Name
-	q := ListQuery{Archived: true}
+	q.Filters = clonePropFilters(q.Filters)
 	if ref.Filter != "" {
 		filters, err := r.SavedFilters("", n.Name)
 		if err != nil {
-			return nil, err
+			return ListPage{}, err
 		}
 		i := slices.IndexFunc(filters, func(f SavedFilter) bool { return f.Name == ref.Filter })
 		if i < 0 {
-			return nil, fmt.Errorf("%s has no saved filter %q", r.DisplayNoun(n.Name), ref.Filter)
+			return ListPage{}, fmt.Errorf("%s has no saved filter %q", r.DisplayNoun(n.Name), ref.Filter)
 		}
 		for _, cond := range filters[i].conditions() {
 			typed, err := typedFilter(n, cond)
 			if err != nil {
-				return nil, err
+				return ListPage{}, err
 			}
 			q.Filters = append(q.Filters, typed)
 		}
@@ -161,16 +166,15 @@ func (rel *Related) readList(c Ctx, ref Referrer) ([]Thing, error) {
 	}
 	if n.Store == nil || n.Store.List == nil && n.Store.Query == nil {
 		if rel.spec.Rows == nil {
-			return nil, nil
+			return ListPage{}, nil
 		}
 		things, err := rel.spec.Rows(c, ref, "")
-		return r.queryAll(n, things, q).Items, err
+		return r.queryAll(n, things, q), err
 	}
 	if n.Store.Remote && c.tape == nil {
-		return nil, nil // as any section: a stack starts no remote work itself
+		return ListPage{}, nil // as any section: a stack starts no remote work itself
 	}
-	page, err := r.queryThings(c, n, q)
-	return page.Items, err
+	return r.queryThings(c, n, q)
 }
 
 // relatedGroupEntry is one entry of the groups setting.

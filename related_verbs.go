@@ -15,6 +15,7 @@ type RelatedSection struct {
 	Prop      string `json:"prop"`
 	Label     string `json:"label"`
 	Count     int    `json:"count"`
+	Counted   bool   `json:"counted"`
 	Collapsed bool   `json:"collapsed"`
 	Hidden    bool   `json:"hidden"`
 	Position  int    `json:"position"`
@@ -87,7 +88,7 @@ func registerRelatedJump(b *NounBuilder) {
 func registerRelatedFacts(r *Runtime) {
 	r.defineFacts(factsSpec{Noun: RelatedNoun, StableKeys: true, Sample: RelatedSection{}, Key: "id", Label: "label",
 		Docs: map[string]string{"id": "The section's place: NOUN.PROP of the referring prop", "noun": "The noun whose things the section lists", "prop": "The prop that names the thing",
-			"label": "The section's heading", "count": "How many things it lists", "collapsed": "Whether it is folded to its heading",
+			"label": "The section's heading", "count": "How many things it lists", "counted": "Whether the count is known (a folded section is counted only where a one-row page costs no full read, detail.related-folded-count)", "collapsed": "Whether it is folded to its heading",
 			"hidden": "Whether the hidden setting keeps it out", "position": "Its place in the display order, from 1"},
 		ListParams: relatedParams,
 		List: func(c Ctx, q ListQuery) ([]Thing, error) {

@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -157,10 +158,11 @@ type Related struct {
 	top      int             // the first line the stack shows
 	lastLine int             // the focused line of the last draw in the stack
 	watches  []*Watch
-	dirty    map[string]bool // nouns that changed since the last fill
-	relGen   uint64          // the relation generation the relation sections were filled at
-	histSeq  uint64          // the newest history entry the history section was filled at
-	read     time.Time       // when the hook sections were last read
+	tokens   map[string]string // each watched noun's store change token when last seen
+	dirty    map[string]bool   // nouns that changed since the last fill
+	relGen   uint64            // the relation generation the relation sections were filled at
+	histSeq  uint64            // the newest history entry the history section was filled at
+	read     time.Time         // when the hook sections were last read
 	closed   bool
 	splits   map[string]*relatedSplit // the split sections by their referrer's id (GroupBy)
 	grouped  string                   // the groups setting and sections the groups were made for
@@ -185,6 +187,7 @@ type relatedSection struct {
 	view       string // the placed view standing for the things, "" the list
 	viewParent string // the borrowed view's owner before section placement
 	count      int    // things shown, archived ones left out
+	counted    bool   // count is known: false for a folded section no one-row page counts
 	shown      []Thing
 	filled     bool
 	unreadable string            // why the things cannot be read ("" they can): the section explains (RelatedSpec.Explain)
@@ -214,7 +217,7 @@ func (r *Runtime) AddRelated(id string, spec RelatedSpec, opts ...InstanceOption
 	if r.Instances[is.parent] == nil {
 		return nil, fmt.Errorf("unknown parent %q", is.parent)
 	}
-	rel := &Related{r: r, id: id, spec: spec, byID: map[string]*relatedSection{}, collapse: map[string]bool{}, seen: map[string]bool{}, dirty: map[string]bool{}, splits: map[string]*relatedSplit{}}
+	rel := &Related{r: r, id: id, spec: spec, byID: map[string]*relatedSection{}, collapse: map[string]bool{}, seen: map[string]bool{}, tokens: map[string]string{}, dirty: map[string]bool{}, splits: map[string]*relatedSplit{}}
 	r.Instance(id, Parent(is.parent), Kind(RelatedStackNoun), FocusOnClose(is.closeFocus))
 	r.Instances[id].Component = rel
 	rel.sync()
@@ -264,10 +267,16 @@ func (rel *Related) PendingCommand() tea.Cmd { return nil }
 // Close stops the watches of the referring nouns.
 func (rel *Related) Close() {
 	rel.closed = true
+	rel.stopWatches()
+}
+
+// stopWatches stops every watch the stack holds.
+func (rel *Related) stopWatches() {
 	for _, w := range rel.watches {
 		w.Stop()
 	}
 	rel.watches = nil
+	clear(rel.tokens)
 }
 
 // holdsList declares a section's list its child table (listHolder).
@@ -408,7 +417,7 @@ func (rel *Related) visible() []*relatedSection {
 			if slices.Contains(out, s.group) && s.list.Len() > 0 {
 				out = append(out, s)
 			}
-		case hideEmpty && s.count == 0:
+		case hideEmpty && s.counted && s.count == 0:
 		default:
 			out = append(out, s)
 		}
@@ -430,8 +439,10 @@ func (rel *Related) sync() {
 	}
 	if !rel.enabled() {
 		rel.synced = false // read again once it is turned on
+		rel.stopWatches()
 		return
 	}
+	defer rel.syncWatches()
 	noun, key := rel.target()
 	if !rel.synced || noun != rel.noun {
 		rel.dropSections()
@@ -463,7 +474,7 @@ func (rel *Related) sync() {
 		}
 	}
 	rel.ensureLists()
-	look := fmt.Sprint(rel.countsShown(), rel.emptyMode())
+	look := fmt.Sprint(rel.countsShown(), rel.emptyMode(), rel.foldedCount())
 	keyChanged := !rel.synced || key != rel.key
 	if keyChanged {
 		rel.synced, rel.key = true, key
@@ -735,12 +746,6 @@ func (rel *Related) addSection(ref Referrer) *relatedSection {
 	rel.sections = append(rel.sections, s)
 	rel.byID[ref.ID()] = s
 	rel.shape++
-	if stored && ref.Relation == "" && !ref.History && why == "" {
-		rel.watch(ref.Noun)
-	}
-	if ref.own() && rel.noun != "" {
-		rel.watch(rel.noun) // the thing's own prop changes what it names
-	}
 	return s
 }
 
@@ -766,15 +771,87 @@ func shortNounName(noun string) string {
 	return noun
 }
 
-// watch listens to a referring noun's store: any change fills its sections
-// again, once per batch.
+// syncWatches watches the nouns the open sections read and stops the
+// watches no open section needs: a folded section reads nothing and
+// watches nothing until it is opened (its count, when shown, is a one-row
+// page read with the key). A split's noun is watched while it has its
+// split: its things are read on every key change.
+func (rel *Related) syncWatches() {
+	want := map[string]bool{}
+	for _, s := range rel.sections {
+		for _, noun := range s.watchedNouns() {
+			want[noun] = true
+		}
+	}
+	for _, sp := range rel.splits {
+		if sp.watched(rel.r) {
+			want[sp.ref.Noun] = true
+		}
+	}
+	kept := rel.watches[:0]
+	for _, w := range rel.watches {
+		if want[w.noun] {
+			kept = append(kept, w)
+			continue
+		}
+		w.Stop()
+		delete(rel.tokens, w.noun)
+	}
+	clear(rel.watches[len(kept):])
+	rel.watches = kept
+	for _, noun := range slices.Sorted(maps.Keys(want)) {
+		rel.watch(noun)
+	}
+}
+
+// watchedNouns are the nouns an open section reads from a store, so a
+// change there fills it again: its own noun's (a store that lists) and,
+// for the thing's own references, the thing's noun's (its prop changes
+// what it names). None for a folded section, a group heading, the history
+// and relation sections, and one that cannot be read.
+func (s *relatedSection) watchedNouns() []string {
+	if s.grouping || s.list == nil || s.folded() || s.unreadable != "" || s.ref.History || s.ref.Relation != "" {
+		return nil
+	}
+	var out []string
+	if st := s.n.Store; st != nil && (st.List != nil || st.Query != nil) {
+		out = append(out, s.ref.Noun)
+	}
+	if s.ref.own() && s.rel.noun != "" {
+		out = append(out, s.rel.noun)
+	}
+	return out
+}
+
+// watch listens to a noun's store: any change fills the sections that read
+// it again, once per batch. The watch reads nothing itself (a notify watch,
+// as a windowed list's): it marks the noun dirty unless the store's change
+// token says nothing changed since it last did, and the sections read
+// their own things.
 func (rel *Related) watch(noun string) {
 	for _, w := range rel.watches {
 		if w.noun == noun {
 			return
 		}
 	}
-	w, err := rel.r.Watch(noun, nil, func(WatchEvent) { rel.dirty[noun] = true })
+	r := rel.r
+	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	token := func() string {
+		if n := r.Nouns[noun]; n != nil && n.Store != nil {
+			return storeToken(n.Store, c)
+		}
+		return ""
+	}
+	rel.tokens[noun] = token()
+	w, err := r.watchAs(c, noun, func(WatchEvent) {
+		if t := token(); t != "" {
+			if t == rel.tokens[noun] {
+				return // the store says nothing changed since the last fill
+			}
+			rel.tokens[noun] = t
+		}
+		rel.dirty[noun] = true
+	}, true)
 	if err != nil {
 		return
 	}
@@ -797,6 +874,15 @@ func (rel *Related) hookedRef(ref Referrer) bool {
 }
 
 func (s *relatedSection) collapsed() bool { return s.rel.isCollapsed(s.ref.ID()) }
+
+// folded reports whether the section's things are out of sight: it is
+// collapsed, or a member of a collapsed group.
+func (s *relatedSection) folded() bool {
+	if s.group != nil {
+		return s.group.collapsed()
+	}
+	return s.collapsed()
+}
 
 // isCollapsed is the section's collapse state, starting from the setting.
 func (rel *Related) isCollapsed(id string) bool {
@@ -822,22 +908,101 @@ func (rel *Related) readRef(ref Referrer) ([]Thing, error) {
 // readRefWith is readRef in c: a remote read's replayed context
 // (fillRemote) reaches the remote store, any other reads none.
 func (rel *Related) readRefWith(c Ctx, ref Referrer) ([]Thing, error) {
+	page, err := rel.readRefPage(c, ref, ListQuery{Archived: true})
+	return page.Items, err
+}
+
+// readRefPage reads the things of ref owned by the key as a page of q (a
+// folded section's count is a one-row page's total).
+func (rel *Related) readRefPage(c Ctx, ref Referrer, q ListQuery) (ListPage, error) {
 	r := rel.r
 	if ref.List {
-		return rel.readList(c, ref)
+		return rel.readList(c, ref, q)
 	}
 	if rel.key == "" {
-		return nil, nil
+		return ListPage{}, nil
 	}
 	if ref.Relation != "" {
-		page, err := r.readRelatedRelations(c, rel.noun, rel.key, ref, ListQuery{Archived: true})
-		return page.Items, err
+		return r.readRelatedRelations(c, rel.noun, rel.key, ref, q)
 	}
 	if ref.History {
-		return factThings(r.thingHistory(rel.noun, rel.key), nil)
+		things, err := factThings(r.thingHistory(rel.noun, rel.key), nil)
+		return ListPage{Items: things, Total: len(things)}, err
 	}
-	page, err := r.readRelatedThings(c, rel.spec, rel.noun, rel.key, ref, ListQuery{Archived: true})
-	return page.Items, err
+	return r.readRelatedThings(c, rel.spec, rel.noun, rel.key, ref, q)
+}
+
+// The values of RelatedFoldedCountSetting: what a folded section reads.
+const (
+	// RelatedFoldedCountPage counts a folded section with a one-row page
+	// where that costs no full read of a store (a store that answers a
+	// query, the relations, the history, the thing's own references); any
+	// other folded section shows no count until it is opened. The default.
+	RelatedFoldedCountPage = "page"
+	// RelatedFoldedCountFull reads a folded section's things to count them,
+	// as before v0.143.1 (still without a watch while folded).
+	RelatedFoldedCountFull = "full"
+	// RelatedFoldedCountNone reads nothing for a folded section: no count
+	// until it is opened.
+	RelatedFoldedCountNone = "none"
+)
+
+// RelatedFoldedCountSetting says what a folded related section reads.
+const RelatedFoldedCountSetting = "detail.related-folded-count"
+
+// foldedCount is the folded-count setting's value, the page mode when the
+// setting is missing.
+func (rel *Related) foldedCount() string {
+	if _, ok := rel.r.settingValue(RelatedFoldedCountSetting); !ok {
+		return RelatedFoldedCountPage
+	}
+	return rel.r.Settings().String(RelatedFoldedCountSetting)
+}
+
+// countable reports whether a one-row page counts the section without a
+// full read of a store (the Nouns page's rule, countNoun): the history and
+// the relations are read from memory and indexes, the thing's own
+// references by key, a store with Query pages itself, and facts and live
+// instances are the registry's memory. A store that only lists (a remote
+// one too), and the Rows hook, cannot.
+func (s *relatedSection) countable() bool {
+	if s.ref.History || s.ref.Relation != "" || s.ref.own() {
+		return true
+	}
+	st := s.n.Store
+	return st != nil && (st.Query != nil || st.Facts || st.Kind == Instances)
+}
+
+// fillFolded reads what a folded section shows by the folded-count
+// setting: a one-row page's total, or nothing. It reports false when the
+// section is to be read whole (the full mode).
+func (s *relatedSection) fillFolded() bool {
+	mode := s.rel.foldedCount()
+	if mode == RelatedFoldedCountFull {
+		return false
+	}
+	if mode == RelatedFoldedCountNone || !s.countable() {
+		s.counted, s.count, s.shown, s.filled = false, 0, nil, false
+		s.render()
+		return true
+	}
+	r := s.rel.r
+	q := ListQuery{Archived: r.archiveHiding(s.n, s.list.vs) == nil, Page: 1, PerPage: 1}
+	land := func(page ListPage) {
+		s.counted, s.count, s.shown, s.filled = true, page.Total, nil, true
+		s.render()
+	}
+	if s.remote() {
+		s.fillRemote(q, land)
+		return true
+	}
+	page, err := s.rel.readRefPage(Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}, s.ref, q)
+	if err != nil {
+		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
+		page = ListPage{}
+	}
+	land(page)
+	return true
 }
 
 // fill reads the things and shows them: the heading, then the things unless
@@ -861,8 +1026,11 @@ func (s *relatedSection) fill() {
 		s.show(nil)
 		return
 	}
+	if s.folded() && s.fillFolded() {
+		return
+	}
 	if s.remote() {
-		s.fillRemote()
+		s.fillRemote(ListQuery{Archived: true}, func(page ListPage) { s.show(page.Items) })
 		return
 	}
 	things, err := s.read()
@@ -894,18 +1062,19 @@ func (s *relatedSection) remote() bool {
 	return s.n.Store != nil && s.n.Store.Remote
 }
 
-// fillRemote reads the section's things through its remote store as a job
-// (the windowed list's way: runSteppedBody replays the read on the loop)
-// and shows them when it lands, unless the stack shows another thing by
-// then. Until then the section shows what it showed.
-func (s *relatedSection) fillRemote() {
+// fillRemote reads the section's things through its remote store as a
+// page of q in a job (the windowed list's way: runSteppedBody replays the
+// read on the loop) and hands the page to land when it lands, unless the
+// stack shows another thing by then. Until then the section shows what it
+// showed.
+func (s *relatedSection) fillRemote(q ListQuery, land func(ListPage)) {
 	rel, r := s.rel, s.rel.r
 	noun, key := rel.noun, rel.key
-	var things []Thing
+	var page ListPage
 	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
 	body := func(c Ctx) (any, error) {
-		got, err := rel.readRefWith(c, s.ref)
-		things = got
+		got, err := rel.readRefPage(c, s.ref, q)
+		page = got
 		return nil, err
 	}
 	finish := func(_ any, err error) (any, error) {
@@ -913,9 +1082,9 @@ func (s *relatedSection) fillRemote() {
 			return nil, nil // the stack moved on: its own read shows
 		}
 		if err != nil {
-			things = nil
+			page = ListPage{}
 		}
-		s.show(things)
+		land(page)
 		return nil, err
 	}
 	res := r.runSteppedBody(c, s.ref.Noun+".list", body, finish)
@@ -942,7 +1111,7 @@ func (s *relatedSection) show(things []Thing) {
 			shown = append(shown, t)
 		}
 	}
-	s.count, s.shown, s.filled = len(shown), shown, true
+	s.count, s.counted, s.shown, s.filled = len(shown), true, shown, true
 	s.render()
 }
 
@@ -954,10 +1123,11 @@ func (s *relatedSection) render() {
 	rel := s.rel
 	r := rel.r
 	if s.grouping {
-		s.count = 0
+		s.count, s.counted = 0, true
 		for _, m := range s.members {
 			if rel.hiddenBy(m.ref.ID()) == "" {
 				s.count += m.count
+				s.counted = s.counted && m.counted
 			}
 		}
 		if err := s.list.SetItems([]ListItem{s.heading()}); err != nil {
@@ -1012,6 +1182,9 @@ func (s *relatedSection) heading() ListItem {
 	case !s.rel.countsShown():
 	case s.unreadable != "":
 		label += " (–)"
+	case !s.counted:
+		// folded and not counted (RelatedFoldedCountSetting): no count
+		// until it is opened
 	default:
 		label += fmt.Sprintf(" (%d)", s.count)
 	}
@@ -1046,7 +1219,7 @@ func (s *relatedSection) whyRow() ListItem {
 
 // thing is the section as the noun's thing: what list and get answer.
 func (s *relatedSection) thing() Thing {
-	return Thing{"id": s.ref.ID(), "noun": s.ref.Noun, "prop": s.ref.Prop, "label": s.ref.Label, "count": s.count,
+	return Thing{"id": s.ref.ID(), "noun": s.ref.Noun, "prop": s.ref.Prop, "label": s.ref.Label, "count": s.count, "counted": s.counted,
 		"collapsed": s.collapsed(), "hidden": s.rel.hiddenBy(s.ref.ID()) != "", "position": slices.Index(s.rel.order(), s) + 1}
 }
 
@@ -1075,6 +1248,7 @@ func (s *relatedSection) setCollapsed(collapsed bool) {
 		_ = s.list.Select(s.headID())
 		_ = rel.r.SetFocus(s.list.FocusTarget())
 	}
+	defer rel.syncWatches() // an open section is watched, a folded one is not
 	if collapsed {
 		// Folding shows less of what is held; unfolding reads again.
 		for _, m := range s.members {

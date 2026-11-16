@@ -1154,10 +1154,11 @@
         "╭─ rail",
         "▸ Links (1)",
         "▸ Files (1)",
-        "▸ Notes (project) (1)"
+        "▸ Notes (project)"
       ],
       "lacks": [
-        "write"
+        "write",
+        "Notes (project) ("
       ]
     },
     {

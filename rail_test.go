@@ -166,7 +166,7 @@ func TestRailLooks(t *testing.T) {
 			_ = r.DeclareSetting(Setting{Name: RailCollapsedSetting, Type: SettingList, Default: []string{"*", "!task.kind=link"}})
 		})
 	full := f.body()
-	for _, want := range []string{"╭─ rail", "▾ Links (2)", "write", "ship", "▸ Files (1)", "▸ Notes (project) (1)", "▸ Links (1)"} {
+	for _, want := range []string{"╭─ rail", "▾ Links (2)", "write", "ship", "▸ Files (1)", "▸ Notes (project)", "▸ Links"} {
 		if !strings.Contains(full, want) {
 			t.Fatalf("full look lacks %q:\n%s", want, full)
 		}
@@ -241,8 +241,12 @@ func TestRailFocusAndEdges(t *testing.T) {
 func TestRailSettingValues(t *testing.T) {
 	t.Parallel()
 	f := newRailFixture(t, 120, nil, nil)
+	if !strings.Contains(f.body(), "▸ Tasks\n") && !strings.Contains(f.body(), "▸ Tasks ") || strings.Contains(f.body(), "Tasks (") {
+		t.Fatalf("rail.collapsed * folds every section, no count for a store that only lists:\n%s", f.body())
+	}
+	f.set(t, RelatedFoldedCountSetting, RelatedFoldedCountFull) // folded sections read whole: counted
 	if !strings.Contains(f.body(), "▸ Tasks (3)") {
-		t.Fatalf("rail.collapsed * folds every section:\n%s", f.body())
+		t.Fatalf("detail.related-folded-count full counts a folded section:\n%s", f.body())
 	}
 	f.set(t, RailCountsSetting, false)
 	if strings.Contains(f.body(), "Tasks (3)") || !strings.Contains(f.body(), "▸ Tasks") {

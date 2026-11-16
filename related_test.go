@@ -337,7 +337,8 @@ func TestRelatedCollapsedStartsFromTheSetting(t *testing.T) {
 			t.Fatal(err)
 		}
 	}, nil)
-	if text := f.frame(); !strings.Contains(text, "▸ Tasks (2)") || strings.Contains(text, "write") {
+	// Folded, a store that only lists is not read: no count until opened.
+	if text := f.frame(); !strings.Contains(text, "▸ Tasks ") || strings.Contains(text, "Tasks (") || strings.Contains(text, "write") {
 		t.Fatalf("tasks start folded:\n%s", text)
 	}
 	f.press("enter")

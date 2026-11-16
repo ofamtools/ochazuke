@@ -129,21 +129,32 @@ func TestEveryNounOpensItsPage(t *testing.T) {
 }
 
 // A thing's page shows its props, undeclared ones too, and its relations
-// in both directions with their counts: the tasks and the remote boxes
-// that name a project (read as a job), the project a task names.
+// in both directions: folded, the tasks counted by a one-row page (their
+// store pages itself) and the remote boxes, whose store only lists, with
+// no count until opened (then read as a job), the project a task names.
 func TestNounPageRelationsBothWays(t *testing.T) {
 	r, m := nounPageFixture(t)
 	mustRun(t, r, Request{Noun: "ochazuke.noun", Verb: "show", Args: Arguments{"noun": "project", "key": "p1"}})
 	landLoads(m, r.PendingCommands())
 	rel := r.ShowFormOf(IndexPageID("project") + "/show").Related()
-	for id, want := range map[string]int{"task.project": 2, "box.project": 1} {
-		if s := rel.byID[id]; s == nil || s.count != want || !s.collapsed() {
-			t.Fatalf("section %s: %+v (want %d, folded)", id, s, want)
-		}
+	if s := rel.byID["task.project"]; s == nil || !s.counted || s.count != 2 || !s.collapsed() {
+		t.Fatalf("section task.project: %+v (want 2, folded)", s)
+	}
+	box := rel.byID["box.project"]
+	if box == nil || box.counted || !box.collapsed() {
+		t.Fatalf("section box.project: %+v (want no count, folded)", box)
+	}
+	box.setCollapsed(false)
+	landLoads(m, r.PendingCommands())
+	if !box.counted || box.count != 1 {
+		t.Fatalf("box.project opened: %+v (want 1)", box)
 	}
 	mustRun(t, r, Request{Noun: "ochazuke.noun", Verb: "show", Args: Arguments{"noun": "task", "key": "t1"}})
 	rel = r.ShowFormOf(IndexPageID("task") + "/show").Related()
-	if s := rel.byID["task.project>"]; s == nil || s.count != 1 || s.shown[0]["title"] != "Alpha" {
+	if s := rel.byID["task.project>"]; s != nil {
+		s.setCollapsed(false)
+	}
+	if s := rel.byID["task.project>"]; s == nil || s.count != 1 || len(s.shown) != 1 || s.shown[0]["title"] != "Alpha" {
 		t.Fatalf("the task's own project: %+v", s)
 	}
 	props := r.ThingProps("task", Thing{"id": "t1", "title": "One", "project": "p1", "extra": "kept"})
@@ -163,6 +174,96 @@ func TestNounPageRelationsBothWays(t *testing.T) {
 	mustRun(t, r2, Request{Noun: "ochazuke.noun", Verb: "show", Args: Arguments{"noun": "project", "key": "p1"}})
 	if s := r2.ShowFormOf(IndexPageID("project") + "/show").Related().byID["box.project"]; s == nil || s.count != 0 || r2.PendingCommands() != nil {
 		t.Fatalf("detail.related-remote off reads the remote section as empty: %+v", s)
+	}
+}
+
+// Opening a noun page reads none of its related stores whole and watches
+// none: the sections start folded, counted by a one-row page where the
+// store pages itself (task) and not at all where it only lists (note).
+// Opening a section reads that section's store alone and watches it until
+// it is folded again. A List call is the full read here.
+func TestNounPageFoldedSectionsReadNoStoreWhole(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	lists := map[string]int{}
+	counting := func(noun string, st Store, pages bool) Store {
+		list := st.List
+		st.List = func(c Ctx, q ListQuery) ([]Thing, error) { lists[noun]++; return list(c, q) }
+		if !pages {
+			st.Query = nil
+		}
+		return st
+	}
+	tables := map[string]*MemDocTable{}
+	for _, noun := range []string{"project", "task", "note"} {
+		tables[noun] = NewMemDocTable(r, noun)
+	}
+	label := PropSpec{Name: "title", Role: RoleLabel}
+	r.Define("project").Props(PropSpec{Name: "id", Key: true}, label).Store(DocStore(tables["project"], "project"))
+	for _, noun := range []string{"task", "note"} {
+		r.Define(noun).Props(PropSpec{Name: "id", Key: true}, label, PropSpec{Name: "project", Parameter: Parameter{Noun: "project"}}).
+			Store(counting(noun, DocStore(tables[noun], noun), noun == "task"))
+	}
+	for noun, rows := range map[string][]Thing{"project": {{"id": "p1", "title": "Alpha"}},
+		"task": {{"id": "t1", "title": "One", "project": "p1"}, {"id": "t2", "title": "Two", "project": "p1"}},
+		"note": {{"id": "n1", "title": "Idea", "project": "p1"}}} {
+		for _, row := range rows {
+			if err := tables[noun].Put(row["id"].(string), row); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	m := NewModel(r)
+	m.Init()
+	m.Width, m.Height = 120, 40
+	if err := r.OpenIndex("project", "p1"); err != nil {
+		t.Fatal(err)
+	}
+	landLoads(m, r.PendingCommands())
+	_ = m.View()
+	rel := r.ShowFormOf(IndexPageID("project") + "/show").Related()
+	watched := func() []string {
+		var out []string
+		for _, w := range rel.watches {
+			out = append(out, w.Noun())
+		}
+		return out
+	}
+	task, note := rel.byID["task.project"], rel.byID["note.project"]
+	if task == nil || note == nil {
+		t.Fatalf("sections %v", branchIDs(rel))
+	}
+	if lists["task"]+lists["note"] != 0 || len(watched()) != 0 {
+		t.Fatalf("opening the page read %v and watches %v, want nothing", lists, watched())
+	}
+	if !task.counted || task.count != 2 || note.counted {
+		t.Fatalf("folded counts: task %v %d, note %v (want 2 and none)", task.counted, task.count, note.counted)
+	}
+	note.setCollapsed(false)
+	if lists["note"] != 1 || lists["task"] != 0 || !note.counted || note.count != 1 || !slices.Equal(watched(), []string{"note"}) {
+		t.Fatalf("opening notes read %v (count %d), watches %v; want one note read and its watch", lists, note.count, watched())
+	}
+	note.setCollapsed(true)
+	r.Changed("note")
+	rel.Key()
+	if lists["note"] != 1 || len(watched()) != 0 {
+		t.Fatalf("folded again: read %v, watches %v; want no watch and no read", lists, watched())
+	}
+	// The setting's other values: full reads a folded section whole to
+	// count it (still unwatched); none reads nothing and counts nothing.
+	set := func(v string) {
+		if _, err := r.Settings().SetSession(RelatedFoldedCountSetting, v); err != nil {
+			t.Fatal(err)
+		}
+		rel.Key() // a change of the setting reads the sections again
+	}
+	set(RelatedFoldedCountFull)
+	if lists["note"] != 2 || !note.counted || note.count != 1 || len(watched()) != 0 {
+		t.Fatalf("full: read %v, note %v %d, watches %v", lists, note.counted, note.count, watched())
+	}
+	set(RelatedFoldedCountNone)
+	if lists["note"] != 2 || task.counted || note.counted {
+		t.Fatalf("none: read %v, task counted %v, note counted %v", lists, task.counted, note.counted)
 	}
 }
 
