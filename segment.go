@@ -100,6 +100,10 @@ const (
 // alone.
 var segmentAreas = map[string]string{SegmentPlaceStatus: SegmentsSetting, SegmentPlaceLead: ""}
 
+// SegmentFromFramework is SegmentState.From of ochazuke's own rows (the
+// restart badge): every program has them, so a catalog never exports them.
+const SegmentFromFramework = "framework"
+
 // SegmentSetting is the setting that shows or hides one segment.
 func SegmentSetting(id string) string { return SegmentsSetting + "." + id }
 
@@ -153,6 +157,10 @@ type Segment struct {
 	// Placement and Short: see the type's comment.
 	Placement string `json:"placement,omitempty"`
 	Short     string `json:"short,omitempty"`
+	// OnDemand refreshes the row only when asked (segment.refresh, or its
+	// owner marking it changed), never on a timer and not at the start:
+	// a source whose changes are all known in this process.
+	OnDemand bool `json:"on-demand,omitempty"`
 	// Description is the line segment list and the segment's setting show.
 	Description string `json:"description,omitempty"`
 	// Owner is the settings owner of the segment's setting (a tab of the
@@ -178,13 +186,14 @@ type segmentJSON struct {
 	Path        string    `json:"path,omitempty"`
 	Placement   string    `json:"placement,omitempty"`
 	Short       string    `json:"short,omitempty"`
+	OnDemand    bool      `json:"on-demand,omitempty"`
 	Description string    `json:"description,omitempty"`
 	Owner       string    `json:"owner,omitempty"`
 }
 
 // MarshalJSON writes the durations as strings ("2s").
 func (s Segment) MarshalJSON() ([]byte, error) {
-	j := segmentJSON{ID: s.ID, Label: s.Label, Format: s.Format, Provider: s.Provider, Command: s.Command, Verb: s.Verb, Args: s.Args, Tone: s.Tone, Order: s.Order, Enabled: s.Enabled, Path: s.Path, Placement: s.Placement, Short: s.Short, Description: s.Description, Owner: s.Owner}
+	j := segmentJSON{ID: s.ID, Label: s.Label, Format: s.Format, Provider: s.Provider, Command: s.Command, Verb: s.Verb, Args: s.Args, Tone: s.Tone, Order: s.Order, Enabled: s.Enabled, Path: s.Path, Placement: s.Placement, Short: s.Short, OnDemand: s.OnDemand, Description: s.Description, Owner: s.Owner}
 	if s.Every != 0 {
 		j.Every = s.Every.String()
 	}
@@ -206,7 +215,7 @@ func (s *Segment) UnmarshalJSON(data []byte) error {
 	if err := dec.Decode(&j); err != nil {
 		return err
 	}
-	out := Segment{ID: j.ID, Label: j.Label, Format: j.Format, Provider: j.Provider, Command: j.Command, Verb: j.Verb, Args: j.Args, Tone: j.Tone, Order: j.Order, Enabled: j.Enabled, Path: j.Path, Placement: j.Placement, Short: j.Short, Description: j.Description, Owner: j.Owner}
+	out := Segment{ID: j.ID, Label: j.Label, Format: j.Format, Provider: j.Provider, Command: j.Command, Verb: j.Verb, Args: j.Args, Tone: j.Tone, Order: j.Order, Enabled: j.Enabled, Path: j.Path, Placement: j.Placement, Short: j.Short, OnDemand: j.OnDemand, Description: j.Description, Owner: j.Owner}
 	for _, d := range []struct {
 		name, text string
 		into       *time.Duration
@@ -244,7 +253,7 @@ type SegmentProvider func(ctx context.Context, s Segment) (SegmentValue, error)
 type SegmentState struct {
 	Segment
 	Source   string    `json:"source"` // provider, command or verb
-	From     string    `json:"from"`   // app, or segments.json
+	From     string    `json:"from"`   // app, framework, or segments.json
 	Shown    bool      `json:"shown"`  // its setting is on (and the area is)
 	Position int       `json:"position"`
 	Text     string    `json:"text,omitempty"`
@@ -258,6 +267,7 @@ type segmentRow struct {
 	base     Segment  // the application's row (AddSegment, merged)
 	patch    *Segment // the user's segments.json row for this id, nil for none
 	user     bool     // the row exists only in segments.json
+	builtin  bool     // ochazuke's own row (added inside Builtin)
 	value    SegmentValue
 	err      string
 	at       time.Time // the last answer
@@ -322,7 +332,7 @@ func (r *Runtime) AddSegment(rows ...Segment) error {
 			row.user = false
 		} else {
 			g.seq++
-			g.rows = append(g.rows, &segmentRow{seq: g.seq, base: s})
+			g.rows = append(g.rows, &segmentRow{seq: g.seq, base: s, builtin: r.builtinDepth > 0})
 		}
 		r.declareSegmentSetting(g.find(s.ID))
 	}
@@ -373,6 +383,7 @@ func mergeSegment(base, patch Segment) Segment {
 	if patch.Enabled != nil {
 		out.Enabled = patch.Enabled
 	}
+	out.OnDemand = out.OnDemand || patch.OnDemand
 	return out
 }
 
@@ -666,6 +677,9 @@ func (r *Runtime) Segments() []SegmentState {
 	for i, row := range r.ordered() {
 		seg := row.row()
 		from := "app"
+		if row.builtin {
+			from = SegmentFromFramework
+		}
 		if row.user {
 			from = SegmentsFile
 		} else if row.patch != nil {
@@ -676,6 +690,19 @@ func (r *Runtime) Segments() []SegmentState {
 			st.Error = err.Error()
 		}
 		out = append(out, st)
+	}
+	return out
+}
+
+// SharedSegments are the segments a catalog carries to a host: the
+// application's rows whose source is a verb (a provider or a command runs
+// only in its own process; ochazuke's own rows every host has already).
+func (r *Runtime) SharedSegments() []SegmentState {
+	var out []SegmentState
+	for _, s := range r.Segments() {
+		if s.Verb != "" && s.From != SegmentFromFramework {
+			out = append(out, s)
+		}
 	}
 	return out
 }

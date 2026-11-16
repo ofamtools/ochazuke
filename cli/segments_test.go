@@ -47,7 +47,13 @@ func TestCatalogSegmentsRoundTrip(t *testing.T) {
 	if err := host.AddSegment(rows...); err != nil {
 		t.Fatal(err)
 	}
-	if got := host.Segments(); len(got) != 1 || got[0].Error != "" || got[0].Source != "verb" {
+	var got []ochazuke.SegmentState
+	for _, s := range host.Segments() {
+		if s.From != ochazuke.SegmentFromFramework { // the restart badge every host has
+			got = append(got, s)
+		}
+	}
+	if len(got) != 1 || got[0].Error != "" || got[0].Source != "verb" {
 		t.Fatalf("host segments = %+v", got)
 	}
 }

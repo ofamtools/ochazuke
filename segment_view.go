@@ -33,6 +33,15 @@ func (m *Model) segmentCommand(now time.Time) tea.Cmd {
 		if row.inflight {
 			continue
 		}
+		// An on-demand row refreshes only when asked (Segment.OnDemand):
+		// no first run, no timer.
+		if row.row().OnDemand {
+			if row.due {
+				run := r.startSegment(row, now)
+				commands = append(commands, func() tea.Msg { return run.do() })
+			}
+			continue
+		}
 		due := row.started.Add(r.segmentWait(row))
 		if row.started.IsZero() || row.due || !due.After(now) {
 			run := r.startSegment(row, now)

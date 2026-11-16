@@ -158,7 +158,11 @@ func (r *Runtime) SetRestart(h RestartHook) { r.restart().hook = h }
 func (r *Runtime) SetRestartTable(table DocTable) {
 	s := r.restart()
 	s.table, s.read, s.token = table, false, ""
-	_ = r.AddSegment(Segment{ID: RestartSegment, Every: RestartPollEvery, MaxEvery: RestartPollEvery})
+	// Other processes write the table: the badge reads it on a timer.
+	if row := r.segs().find(RestartSegment); row != nil {
+		row.base.OnDemand, row.base.Every, row.base.MaxEvery = false, RestartPollEvery, RestartPollEvery
+		row.due = true
+	}
 }
 
 // RestartRequested is the restart request pending for this program:
@@ -657,7 +661,7 @@ func registerRestart(r *Runtime) {
 func registerRestartBadge(r *Runtime) {
 	// The badge follows restart.badge at once, not at the next refresh.
 	r.Settings().Observe(RestartBadgeSetting, func(string, any) { r.restartChanged() })
-	_ = r.AddSegment(Segment{ID: RestartSegment, Placement: SegmentPlaceLead, Verb: RestartRequestNoun + ".glance", Short: restartBadgeShort,
+	_ = r.AddSegment(Segment{ID: RestartSegment, Placement: SegmentPlaceLead, Verb: RestartRequestNoun + ".glance", Short: restartBadgeShort, OnDemand: true,
 		Description: "Draw the restart badge at the left of the title row and look for restart requests (restart.badge hides the badge alone)"})
 }
 
