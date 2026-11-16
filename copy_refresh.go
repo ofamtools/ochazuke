@@ -75,7 +75,7 @@ func (r *Runtime) marksOf(noun string) *copyMarks {
 func diffProps(n *Noun) []PropSpec {
 	var out []PropSpec
 	for _, p := range n.Props {
-		if p.Key || p.Secret || p.Derived || p.Role == RoleCreated || p.Role == RoleUpdated {
+		if p.Key || p.Secret || p.Derived || p.Derivation != nil || p.Role == RoleCreated || p.Role == RoleUpdated {
 			continue
 		}
 		out = append(out, p)

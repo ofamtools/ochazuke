@@ -277,6 +277,10 @@ func (r *Runtime) Changed(nouns ...string) {
 	for i, n := range nouns {
 		names[i] = r.CanonicalNoun(n)
 	}
+	// A noun whose derived props read a changed noun changed too.
+	if len(names) > 0 {
+		names = r.withDependents(names)
+	}
 	// The open surfaces count the change too (surface.left, events.go).
 	r.countChange(names)
 	if r.watches == nil {

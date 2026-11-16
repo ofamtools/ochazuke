@@ -91,6 +91,7 @@ func (r *Runtime) referenceNouns() []refdoc.Noun {
 				Name: p.Name, Type: p.Type, Description: p.Description, Noun: p.Noun, Enum: slices.Clone(p.Enum),
 				Aliases: slices.Clone(p.Aliases), Default: p.Default, Role: p.Role, Fallback: p.Fallback, When: p.When, Key: p.Key, Required: p.Required,
 				ReadOnly: p.ReadOnly, CreateOnly: p.CreateOnly, FromFocus: p.FromFocus, Secret: p.Secret, Multiline: p.Multiline,
+				Field: p.Field, Derivation: derivationText(p),
 			})
 		}
 		var verbs []string

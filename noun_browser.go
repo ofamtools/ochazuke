@@ -353,6 +353,12 @@ func (r *Runtime) nounDetail(name string) (title, text string) {
 			if p.Role != "" {
 				typ += ", " + p.Role
 			}
+			if p.Field != "" {
+				typ += ", field " + p.Field
+			}
+			if p.Derivation != nil {
+				typ += ", derived: " + p.Derivation.String()
+			}
 			fmt.Fprintf(&b, "  %-16s %s\n", p.Name, typ)
 		}
 	}

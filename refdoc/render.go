@@ -334,7 +334,8 @@ func renderStandardVerbs(m Model, opts Options) string {
 			}{{p.Key, "key"}, {p.Required, "required"}, {p.ReadOnly && !p.Key, "read-only"}, {p.CreateOnly, "create-only"},
 				{len(p.Aliases) > 0, "also: " + strings.Join(p.Aliases, ", ")},
 				{p.Role != "", "role " + p.Role}, {p.Fallback != "", "fallback " + p.Fallback}, {p.FromFocus, "from focus"},
-				{p.Secret, "secret"}, {p.Multiline, "multiline"}, {p.When != "", "when " + p.When}} {
+				{p.Secret, "secret"}, {p.Multiline, "multiline"}, {p.When != "", "when " + p.When},
+				{p.Field != "", "field " + p.Field}, {p.Derivation != "", "derived: " + p.Derivation}} {
 				if f.on {
 					flags = append(flags, f.text)
 				}

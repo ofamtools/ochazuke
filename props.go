@@ -194,6 +194,18 @@ type PropSpec struct {
 	// own store never holds the value. An AnyNoun end holds "noun:key". A
 	// runtime with no store reads an empty value and refuses a write.
 	Relation string `json:"relation,omitempty"`
+	// Field is the name of the stored document's field that holds the
+	// prop, when it is not the prop's name (a task's project in
+	// project_id): DocStore reads and writes the prop through it in every
+	// path (get, list, a DocQuery's conditions, sort, groups, text fields
+	// and archive hiding, create, set). "" is the prop's name.
+	Field string `json:"field,omitempty"`
+	// Derivation makes the prop derived: never stored, computed by the
+	// framework whenever a thing is read (one of Derivations, over what it
+	// Reads), part of get's record and list's rows, filterable and
+	// sortable (prop_derivation.go). It is read-only; set answers the
+	// read-only outcome and create leaves it out.
+	Derivation *Derivation `json:"derivation,omitempty"`
 	// Cell is how the prop reads in a table cell of a list From the noun's
 	// store, given the whole thing (so a cell may show a name for an id, join
 	// an argv with spaces or shorten a path): derived text, never stored.
@@ -283,6 +295,8 @@ func (p PropSpec) readOnlyReason() string {
 	switch {
 	case p.Key:
 		return "it is the key"
+	case p.Derivation != nil:
+		return "it is derived: " + p.Derivation.String()
 	case p.CreateOnly:
 		return "it is set when the thing is made"
 	}
@@ -621,6 +635,8 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 	// fills what it lacks (overlay.go).
 	b.r.addBaseProps(b.n)
 	s = b.r.withOverlay(b.n, s)
+	// Derived props are computed over what every layer below answers.
+	s = withDerivations(b.n.Name, s)
 	b.n.Store = &s
 	b.r.applyStore(b.n)
 	b.last = ""
@@ -781,6 +797,9 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 		}
 	}
 	p = p.keepAnyRef()
+	if k := derivationKindOf(derivationOf(p)); p.Type == "" && k != nil && k.Type != "" {
+		p.Type = k.Type
+	}
 	if p.Type == "" {
 		p.Type = SettingString
 	}
@@ -804,6 +823,9 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	}
 	if err := r.propAliasClash(n, p.Name); err != nil {
 		return err
+	}
+	if p.Derivation != nil {
+		p = derivationProp(p)
 	}
 	if err := computedPropError(key, p); err != nil {
 		return err
@@ -841,7 +863,7 @@ func computedPropError(key string, p PropSpec) error {
 		return fmt.Errorf("prop %s: unknown subject %q", key, p.Subject)
 	}
 	switch {
-	case !p.computed():
+	case !p.computed() && p.Derivation == nil:
 		return nil
 	case p.Key || p.Role != "" || p.Required || p.Secret || p.CreateOnly || p.Default != nil:
 		return fmt.Errorf("prop %s: a computed prop is only read: no key, role, required, secret, create-only or default", key)

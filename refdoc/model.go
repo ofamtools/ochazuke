@@ -82,6 +82,11 @@ type Prop struct {
 	FromFocus   bool     `json:"fromFocus,omitempty"`
 	Secret      bool     `json:"secret,omitempty"`
 	Multiline   bool     `json:"multiline,omitempty"`
+	// Field is the stored field that holds the prop when it is not its
+	// name (PropSpec.Field); Derivation how a derived prop is computed, as
+	// one phrase ("count of note.task", PropSpec.Derivation).
+	Field      string `json:"field,omitempty"`
+	Derivation string `json:"derivation,omitempty"`
 }
 
 // Verb is one verb of a noun with props: its name, the standard verb it

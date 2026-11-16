@@ -57,11 +57,15 @@ type Ctx struct {
 	standard string
 	// tape, set while a remote store's standard verb plans (remote.go),
 	// holds the answers of the store calls made so far.
-	tape     *tape
-	Runtime  *Runtime
-	Context  Context
-	Args     Arguments
-	Instance *Instance
+	tape *tape
+	// underived, set while a derived prop reads another noun's things
+	// (prop_derivation.go), reads them without their own derived props, so
+	// two nouns that derive from each other never read in a circle.
+	underived bool
+	Runtime   *Runtime
+	Context   Context
+	Args      Arguments
+	Instance  *Instance
 	// Noun is the noun a prop is read of, set for PropSpec.Read (a
 	// collection prop such as CountProp lists that noun's things); "" in
 	// every other handler.

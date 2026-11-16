@@ -2958,6 +2958,40 @@ protocol cannot express is unchanged.
 Fold preferences retain only the labels the user has closed, independent of
 page-row storage; reopening a group removes its preference.
 
+#### Stored field names and derived props (DocStore)
+
+A noun over `DocStore` says how its documents differ from its props as data
+on each prop, so it needs no store file:
+
+- `PropSpec.Field` names the document field that holds the prop when it is
+  not the prop's name (`{Name: "project", Field: "project_id"}`). DocStore
+  renames on get, list, create and set, and hands the table a `DocQuery` in
+  field names (conditions, sort, groups, `TextFields`, the archive `Hide`).
+  Fields that are no prop stay in the document. A prop with no `Field`
+  behaves as before.
+- `PropSpec.Derivation{Of, Reads}` makes a prop derived: never stored,
+  computed on every read, read-only (`set` answers the read-only outcome:
+  "is read-only: it is derived: count of note.task"; `create` leaves it
+  out). `Of` is one of `Derivations()`: `count` (things of `NOUN` whose
+  `PROP` names this thing, `Reads: ["NOUN.PROP"]`; one list of `NOUN` per
+  read), `label` (the label of the thing a reference prop names), `since`
+  (a duration since a time prop), `first-line` (of a text prop). A
+  derivation outside these stays a `PropSpec.Read` function.
+- Derived props are in get's record, list's rows and columns, and
+  filterable and sortable. The framework wraps every store once
+  (`withDerivations`, any store, not only DocStore). A request that filters,
+  sorts or groups on a derived prop cannot run in the table: the store is
+  asked for every thing matching its other conditions, text and archive
+  hiding, unpaged, and the derived part, the sort and the page run in
+  memory. Any other request is the table's own page, derived after it.
+- The nouns a derivation reads are the noun's dependencies:
+  `Runtime.Changed(dep)` marks the noun changed too, and the store's
+  `ChangeToken` is its own joined with each dependency's (unknown when one
+  keeps none). A derivation reads another noun without that noun's own
+  derived props, so two nouns that derive from each other never loop.
+- Both fields are on the catalog wire (`field`, `derivation`), in MCP
+  `describe`'s props, on the Nouns page's props and in the reference docs.
+
 `collection.group-fold {group?, closed?}` folds a group to one selectable
 heading. Omit `group` to use the selection's group; omit `closed` to toggle,
 or give `true` to close and `false` to open. It has no default key, so it does

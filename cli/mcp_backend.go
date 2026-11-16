@@ -327,6 +327,12 @@ func (b *mcpBackend) describe(name string) (any, error) {
 		if p.Computed {
 			row["computed"] = true
 		}
+		if p.Field != "" {
+			row["field"] = p.Field
+		}
+		if p.Derivation != nil {
+			row["derivation"] = p.Derivation
+		}
 		if len(p.Enum) > 0 {
 			row["enum"] = p.Enum
 		}

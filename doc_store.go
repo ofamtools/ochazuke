@@ -19,6 +19,13 @@ import (
 // search, paging), and the table's Version is the store's ChangeToken. The
 // side effects a hand-written store had (a task's subtasks on delete) are
 // hooks (DocHooks), not a store of their own.
+//
+// A document's fields are the noun's props, except where a prop names the
+// field that holds it (PropSpec.Field: the prop project in the field
+// project_id): DocStore renames between the two on every read and write,
+// and hands the table a DocQuery in field names. A derived prop
+// (PropSpec.Derivation) is never in a document. Fields that are no prop
+// stay in the document: a write merges into it.
 
 // DocTable is a table of documents keyed by text, each a Thing: what a
 // DocStore reads and writes. Query answers one page of a DocQuery and how
@@ -36,7 +43,9 @@ type DocTable interface {
 // archive hiding (Hide names a boolean prop: a document where it is true is
 // left out; one where it is false or missing is kept), the sort keys,
 // GroupBy and GroupSort (the same sort-then-group order as ListQuery),
-// a text search and the page. Text matches a document when each word is in
+// a text search and the page. Every name in it (a condition's prop, a sort
+// key, Hide, TextFields) is a document's field name (PropSpec.Field, else
+// the prop's name). Text matches a document when each word is in
 // one of the TextFields (case-insensitive substring); "" matches every
 // document. PerPage 0 answers every match. Paging counts documents, not
 // groups; ListPage.Groups labels each returned document's group.
@@ -110,7 +119,12 @@ func (d *docStore) get(c Ctx, key string) (Thing, error) {
 	case !ok:
 		return nil, c.Runtime.ThingNotFound(c, d.noun, key)
 	}
-	return t, nil
+	return d.thingOf(c, t), nil
+}
+
+// thingOf is a document as the noun's thing (fields renamed to props).
+func (d *docStore) thingOf(c Ctx, doc Thing) Thing {
+	return c.Runtime.Nouns[c.Runtime.CanonicalNoun(d.noun)].docThing(doc)
 }
 
 // docQuery is a list request as the table runs it: the archive hiding as
@@ -124,7 +138,7 @@ func (d *docStore) docQuery(c Ctx, q ListQuery) (DocQuery, error) {
 	if p := c.Runtime.archiveHiding(n, q); p != nil {
 		out.Hide = p.Name
 	}
-	return out, nil
+	return n.fieldQuery(out), nil
 }
 
 func (d *docStore) query(c Ctx, q ListQuery) (ListPage, error) {
@@ -132,7 +146,11 @@ func (d *docStore) query(c Ctx, q ListQuery) (ListPage, error) {
 	if err != nil {
 		return ListPage{}, err
 	}
-	return d.table.Query(dq)
+	page, err := d.table.Query(dq)
+	for i, t := range page.Items {
+		page.Items[i] = d.thingOf(c, t)
+	}
+	return page, err
 }
 
 func (d *docStore) list(c Ctx, q ListQuery) ([]Thing, error) {
@@ -150,13 +168,13 @@ func (d *docStore) create(c Ctx, values Thing) (Thing, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	key := n.keyProp().Name
-	t := maps.Clone(values)
-	id := fmt.Sprint(t[key])
-	if emptyProp(t[key]) {
+	t := n.storedDoc(values)
+	id := fmt.Sprint(values[key])
+	if emptyProp(values[key]) {
 		if id, err = d.nextKey(n); err != nil {
 			return nil, err
 		}
-		t[key] = id
+		t[n.fieldOf(key)] = id
 	} else if _, ok, err := d.table.Get(id); err != nil {
 		return nil, err
 	} else if ok {
@@ -165,6 +183,7 @@ func (d *docStore) create(c Ctx, values Thing) (Thing, error) {
 	if err := d.table.Put(id, t); err != nil {
 		return nil, err
 	}
+	t = n.docThing(t)
 	d.wrote(c, id, t)
 	return t, nil
 }
@@ -179,7 +198,7 @@ func (d *docStore) nextKey(n *Noun) (string, error) {
 		return "", err
 	}
 	most := 0
-	key := n.keyProp().Name
+	key := n.fieldOf(n.keyProp().Name)
 	for _, t := range page.Items {
 		if v, ok := strings.CutPrefix(fmt.Sprint(t[key]), prefix); ok {
 			if i, err := strconv.Atoi(v); err == nil {
@@ -200,17 +219,22 @@ func (d *docStore) patch(c Ctx, key string, changes Thing) (Thing, error) {
 	case !ok:
 		return nil, c.Runtime.ThingNotFound(c, d.noun, key)
 	}
+	n := c.Runtime.Nouns[c.Runtime.CanonicalNoun(d.noun)]
 	t = maps.Clone(t)
 	for k, v := range changes {
+		if n.derivedProp(k) {
+			continue
+		}
 		if v == nil {
-			delete(t, k)
+			delete(t, n.fieldOf(k))
 		} else {
-			t[k] = v
+			t[n.fieldOf(k)] = v
 		}
 	}
 	if err := d.table.Put(key, t); err != nil {
 		return nil, err
 	}
+	t = n.docThing(t)
 	d.wrote(c, key, t)
 	return t, nil
 }
@@ -245,7 +269,7 @@ func (d *docStore) wrote(c Ctx, key string, t Thing) {
 func textProps(n *Noun) []string {
 	var out []string
 	for _, p := range n.Props {
-		if p.Secret || p.computed() {
+		if p.Secret || p.computed() || p.Derivation != nil {
 			continue
 		}
 		if p.Key || p.Role == RoleLabel || !p.ReadOnly && (p.Type == "" || p.Type == SettingString) && len(p.Enum) == 0 && p.Noun == "" {
@@ -354,9 +378,16 @@ func (m *MemDocTable) Query(q DocQuery) (ListPage, error) {
 		}
 	}
 	m.mu.Unlock()
-	page := m.r.QueryAll(m.noun, things, ListQuery{Filters: q.Filters, Sort: q.Sort, GroupBy: q.GroupBy, GroupSort: q.GroupSort, Page: q.Page, PerPage: q.PerPage, Archived: true})
+	// The documents hold field names (PropSpec.Field); the standard list
+	// runs over the noun's props, so both are renamed to props for it.
+	n := m.r.Nouns[m.r.CanonicalNoun(m.noun)]
+	for i, t := range things {
+		things[i] = n.docThing(t)
+	}
+	pq := n.propQuery(q)
+	page := m.r.QueryAll(m.noun, things, ListQuery{Filters: pq.Filters, Sort: pq.Sort, GroupBy: pq.GroupBy, GroupSort: pq.GroupSort, Page: q.Page, PerPage: q.PerPage, Archived: true})
 	for i, t := range page.Items {
-		page.Items[i] = maps.Clone(t)
+		page.Items[i] = n.storedDoc(t)
 	}
 	m.mu.Lock()
 	m.Reads += len(page.Items)
