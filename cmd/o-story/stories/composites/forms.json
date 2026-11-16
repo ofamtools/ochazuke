@@ -2178,10 +2178,7 @@
     },
     "P",
     "q",
-    "q",
-    "enter",
     "j",
-    "enter",
     "enter",
     {
       "key": "ctrl+alt+n",
@@ -2971,16 +2968,16 @@
       "after": 222
     },
     {
-      "after": 225,
-      "modal": "args-form",
-      "focus": "args-form/id",
+      "after": 224,
+      "modal": "form-suggestions",
       "contains": [
-        "id",
-        "Run parcel.get"
+        "Choose id",
+        "Original",
+        "Second"
       ]
     },
     {
-      "after": 229,
+      "after": 226,
       "modal": "args-form",
       "focus": "args-form/id",
       "contains": [
@@ -2994,15 +2991,15 @@
         "no parcel is focused",
         "is required"
       ],
-      "after": 230
+      "after": 227
     },
     {
-      "after": 234,
+      "after": 231,
       "modal": "args-form",
       "focus": "args-form/colour"
     },
     {
-      "after": 236,
+      "after": 233,
       "modal": "args-form",
       "focus": "args-form/size",
       "contains": [
@@ -3014,10 +3011,10 @@
       "writes": [
         "demo.stamp colour=red size=big"
       ],
-      "after": 238
+      "after": 235
     },
     {
-      "after": 240,
+      "after": 237,
       "contains": [
         "Original",
         "Second",
@@ -3029,7 +3026,7 @@
       ]
     },
     {
-      "after": 241,
+      "after": 238,
       "contains": [
         "Original",
         "Second",
@@ -3041,7 +3038,7 @@
       ]
     },
     {
-      "after": 242,
+      "after": 239,
       "modal": "form-suggestions",
       "contains": [
         "Choose id",
@@ -3056,10 +3053,10 @@
       "lacks": [
         "Old one"
       ],
-      "after": 243
+      "after": 240
     },
     {
-      "after": 248,
+      "after": 245,
       "contains": [
         "Suggest swatch",
         "alpha",
@@ -3073,7 +3070,7 @@
       ]
     },
     {
-      "after": 249,
+      "after": 246,
       "contains": [
         "alpha",
         "beta",
@@ -3082,7 +3079,7 @@
       ]
     },
     {
-      "after": 250,
+      "after": 247,
       "contains": [
         "use \"zzz\""
       ]
@@ -3096,10 +3093,10 @@
         "swatch.names",
         "swatch.paint swatch=zzz"
       ],
-      "after": 252
+      "after": 249
     },
     {
-      "after": 256,
+      "after": 253,
       "contains": [
         "Original",
         "1 more in archived"
@@ -3116,7 +3113,7 @@
       "lacks": [
         "more in"
       ],
-      "after": 257
+      "after": 254
     },
     {
       "page": "page1"
