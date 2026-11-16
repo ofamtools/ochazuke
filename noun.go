@@ -34,6 +34,10 @@ type Noun struct {
 	// (the editor noun). An instance whose noun names none takes its
 	// component's (FallbackKeys: every Input names the editor noun).
 	Fallback string `json:"fallback,omitempty"`
+	// Parent names the reference prop that holds a thing's parent (a
+	// pane's session): lists nest a thing under it and Inherit walks it
+	// (spine S1, S5). Declared and carried; nothing reads it yet.
+	Parent string `json:"parent,omitempty"`
 	// NoEditKey declines the app-level implicit edit-key fallback only.
 	// The noun's edit verb and explicit binding rows remain available.
 	NoEditKey bool `json:"noEditKey,omitempty"`
@@ -479,6 +483,10 @@ func (b *NounBuilder) Pin(mode string) *NounBuilder { b.n.Pin = mode; return b }
 // there. A focused component that owns its keys (KeyOwner) reads it right
 // after the instance instead.
 func (b *NounBuilder) Fallback(noun string) *NounBuilder { b.n.Fallback = noun; return b }
+
+// Parent declares the reference prop that holds a thing's parent
+// (Noun.Parent).
+func (b *NounBuilder) Parent(prop string) *NounBuilder { b.n.Parent = prop; return b }
 
 // DefaultKeys enables the generated default key block for this noun (on
 // by default; Noun.NoDefaultKeys).

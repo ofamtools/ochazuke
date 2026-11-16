@@ -185,8 +185,11 @@ type CatalogNoun struct {
 	Main bool `json:"main,omitempty"`
 	// DefaultAction is the action the noun's words run with no action
 	// word, or only flags (ochazuke.Noun.DefaultAction).
-	DefaultAction string        `json:"defaultAction,omitempty"`
-	Verbs         []CatalogVerb `json:"verbs"`
+	DefaultAction string `json:"defaultAction,omitempty"`
+	// Parent is the reference prop that holds a thing's parent
+	// (ochazuke.Noun.Parent), "" for none.
+	Parent string        `json:"parent,omitempty"`
+	Verbs  []CatalogVerb `json:"verbs"`
 }
 
 // CatalogVerb is one ochazuke.Operation. Params are the operation's
@@ -530,6 +533,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 				noun.NoDefaultKeys = n.NoDefaultKeys
 				noun.NoPicker = n.NoPicker
 				noun.Main, noun.DefaultAction = n.Main, n.DefaultAction
+				noun.Parent = n.Parent
 				noun.Unpersisted = n.Unpersisted
 				noun.Filters = slices.Clone(n.Filters)
 				noun.PropsOff = slices.Clone(n.PropsOff)

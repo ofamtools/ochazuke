@@ -138,6 +138,8 @@ func Checks() []Rule {
 			Doc: "no new refusal site (refusecheck)"},
 		{ID: "lexicon", Kind: Registry, Run: runLexicon,
 			Doc: "a word is one part of speech; nouns singular; keys of three parts (lexiconcheck)"},
+		{ID: "handlers", Kind: Registry, Run: runHandlers,
+			Doc: "every declaration row names a registered handler, hook or source, every registered one is cited by a row, and a verb row's parameters are its handler's (Handlers)"},
 		{ID: "nouns", Kind: Registry, Run: runNouns,
 			Doc: "thing nouns have the core verbs and a key prop; command nouns no core verb names (nouncheck)"},
 	}

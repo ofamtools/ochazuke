@@ -665,6 +665,12 @@ type Runtime struct {
 	// read them with IsBaseMode, IsPendingMode and ModeTraits.
 	Modes      map[string]bool
 	Operations Operations
+	// Names is the name table: the Go handlers, hooks and sources
+	// declaration files cite by name (handlers.go), with the problems the
+	// loaders reported.
+	Names NameTable
+	// SchemaDocs are the file kinds' schemas (schema.go, AddSchema).
+	SchemaDocs []SchemaDoc
 	Quit       bool
 	Pending    string
 	// BindingTimeout, when positive, is how long every pending key
@@ -785,6 +791,8 @@ func (r *Runtime) registerFramework() {
 	registerConfigExport(r)
 	registerConfigReload(r)
 	registerHooks(r)
+	registerHandlers(r)
+	registerSchemas(r)
 	registerPages(r)
 	registerPickerRegistry(r)
 	registerModalAliases(r)

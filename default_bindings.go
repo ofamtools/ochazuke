@@ -146,6 +146,44 @@ func cloneValue(v any) any {
 // source, the table and the key, and the rows after it are not installed.
 // An application loads its files at setup, after it registered the verbs
 // and guards they name and before Model.Init applies the user's file;
+// LoadDefaultBindingsAhead is LoadDefaultBindings for the rows of nouns
+// whose stores came first (a noun file's keys, bound after its store): the
+// file's rows go ahead of each noun's generated key block (noun_keys.go),
+// as rows bound before the store would, and a generated row whose identity
+// a file row now holds stays replaced. The table then reads as it would
+// had the rows been bound with the noun.
+func (r *Runtime) LoadDefaultBindingsAhead(source string, data []byte) error {
+	file, _, err := ParseBindings(data)
+	if err != nil {
+		return err // the loader names the file in its problem
+	}
+	held := map[*Noun][]Binding{}
+	for _, g := range file.Groups {
+		n := r.Nouns[g.Noun]
+		if g.Instance != "" || n == nil || g.Mode != nounKeysMode {
+			continue
+		}
+		if _, ok := held[n]; ok {
+			continue
+		}
+		rows := n.Bindings[nounKeysMode]
+		held[n] = slices.DeleteFunc(slices.Clone(rows), func(b Binding) bool { return !b.Generated })
+		n.Bindings[nounKeysMode] = slices.DeleteFunc(slices.Clone(rows), func(b Binding) bool { return b.Generated })
+	}
+	err = r.loadDefaultDoc(source, file)
+	for n, generated := range held {
+		rows := n.Bindings[nounKeysMode]
+		for _, g := range generated {
+			if !slices.ContainsFunc(rows, g.same) {
+				rows = append(rows, g)
+			}
+		}
+		n.Bindings[nounKeysMode] = withPrefixCancels(rows)
+	}
+	r.InvalidateBindings()
+	return err
+}
+
 // MustLoadDefaultBindings panics instead, so a test that builds the app
 // catches a bad row. source tags the rows in bindings defaults ("mtm/
 // bindings/app.json").

@@ -384,6 +384,7 @@ hints-ignore	action	seed
 history	action+noun+prop	seed	
 history-entry	noun	lx4	
 historyKind	prop	seed	
+handler	noun	yes	the name table's entries (ochazuke.handler)
 hook	noun	lx4	
 hooks	noun	seed	plural
 host	noun+prop	seed	
@@ -764,7 +765,7 @@ save_path	prop	seed
 saved	noun	seed	
 say	action	seed	
 schedule	noun	seed	
-schema	prop	seed	
+schema	noun+prop	yes	ochazuke.schema, the file kinds' schemas
 scope	noun+prop	seed	
 script_path	prop	seed	
 scroll	action	seed	

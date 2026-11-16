@@ -180,6 +180,7 @@ func mountFlags(b *ochazuke.NounBuilder, n CatalogNoun) {
 		b.Main()
 	}
 	b.DefaultAction(n.DefaultAction)
+	b.Parent(n.Parent)
 	// The kind the extension published (or derived from an older catalog)
 	// where the host's own reading would differ: a storeless noun's proxy
 	// verbs are all application verbs here, and a proxy store is not

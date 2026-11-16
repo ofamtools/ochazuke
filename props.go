@@ -236,6 +236,17 @@ type PropSpec struct {
 	// they live in). A collection-scope prop needs Read, is read with
 	// get {prop} without a subject, and never belongs to a thing's record.
 	Subject string `json:"subject,omitempty"`
+	// Ref makes the prop a single-valued reference (spine S5): its value
+	// names one thing of one of these nouns, by key. Declared and carried
+	// in the catalog; a key or a label read at the edge and the stored
+	// {noun, key} come with run plan 5.2. A many-valued reference is a
+	// relation kind's rows (Relation), never a list on the record.
+	Ref []string `json:"ref,omitempty"`
+	// Inherit names the reference prop (the parent, as Noun.Parent) whose
+	// thing's value of this prop a thing reads while its own is not set
+	// (spine S5 rule 3, decision 38). Declared and carried; the read that
+	// walks it comes with run plan 5.3.
+	Inherit string `json:"inherit,omitempty"`
 	// loose marks a derived prop whose rows hold values of several kinds:
 	// propValue reads every scalar as its text, so they compare as strings.
 	loose bool
