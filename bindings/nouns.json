@@ -27,10 +27,7 @@
       {"key": "enter", "action": "ochazuke.noun-browser.open", "hidden": true}
     ]},
     {"context": "ochazuke.page/normal", "bindings": [
-      {"key": "v", "action": "ochazuke.page.get", "hidden": true},
-      {"key": "ctrl+g", "action": "ochazuke.page.list", "hidden": true},
-      {"key": "*", "action": "ochazuke.page.set", "hidden": true},
-      {"key": "w", "action": "ochazuke.page.watch", "hidden": true}
+      {"key": "ctrl+g", "action": "ochazuke.page.list", "hidden": true}
     ]},
     {"context": "ochazuke.register/normal", "bindings": [
       {"key": "b", "action": "ochazuke.register.append", "hidden": true},
