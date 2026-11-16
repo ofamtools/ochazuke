@@ -258,3 +258,74 @@ func TestTreeDeleteOrphanParent(t *testing.T) {
 		t.Fatalf("writes %v, want %v", *writes, want)
 	}
 }
+
+// Undoing a delete puts back the nodes as they were: every field (noun,
+// data, props, cells, search words, ...), the whole subtree, in the same
+// place, with the same collapsed states. The plan's leaf-first deletes and
+// one delete of a node with children (a change an application commits)
+// both come back whole.
+func TestTreeDeleteUndoRestoresTheNodes(t *testing.T) {
+	t.Parallel()
+	rich := func(t *testing.T) (*Model, *Tree, []TreeNode) {
+		t.Helper()
+		r, m, tree, _ := deleteFixture(t, "")
+		r.Define("leaf")
+		nodes := tree.Nodes()
+		for i := range nodes {
+			n := &nodes[i]
+			n.Data = map[string]any{"id": n.ID, "n": i}
+			n.Props = Thing{"status": "open-" + n.ID}
+			n.Cells = []string{n.ID + "-1", n.ID + "-2"}
+			n.Search = []string{"word-" + n.ID}
+			n.Section = "s"
+			n.PutInto = i%2 == 0
+			if n.ID == "c" {
+				n.Noun = "leaf"
+			}
+		}
+		if err := tree.SetNodes(nodes); err != nil {
+			t.Fatal(err)
+		}
+		for _, id := range []string{"b", "c"} {
+			if err := tree.SetCollapsed(id, true); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return m, tree, tree.Nodes()
+	}
+	same := func(t *testing.T, tree *Tree, want []TreeNode) {
+		t.Helper()
+		if got := tree.Nodes(); fmt.Sprintf("%#v", got) != fmt.Sprintf("%#v", want) {
+			t.Fatalf("after undo\n got %#v\nwant %#v", got, want)
+		}
+		for _, id := range []string{"b", "c"} {
+			if !tree.Collapsed(id) {
+				t.Fatalf("%s is no longer collapsed after undo", id)
+			}
+		}
+	}
+	t.Run("plan", func(t *testing.T) {
+		m, tree, want := rich(t)
+		pressKeys(m, "j", "d", "d") // b is collapsed: its subtree goes, leaf first
+		if got := shape(tree); got != "a<- e<a f<-" {
+			t.Fatalf("shape %q", got)
+		}
+		pressKeys(m, "u")
+		same(t, tree, want)
+		pressKeys(m, "ctrl+r", "u")
+		same(t, tree, want)
+	})
+	t.Run("one change", func(t *testing.T) {
+		_, tree, want := rich(t)
+		if err := tree.commit([]TreeChange{{Op: TreeDelete, ID: "b"}}, ""); err != nil {
+			t.Fatal(err)
+		}
+		if got := shape(tree); got != "a<- e<a f<-" {
+			t.Fatalf("shape %q", got)
+		}
+		if err := tree.history(false); err != nil {
+			t.Fatal(err)
+		}
+		same(t, tree, want)
+	})
+}

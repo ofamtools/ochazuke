@@ -72,6 +72,14 @@ type TreeChange struct {
 	Parent string `json:"parent,omitempty"`
 	Index  int    `json:"index"`
 	Text   string `json:"text,omitempty"`
+	// Nodes, on an add that takes back a delete, are the deleted node and
+	// its subtree as they were (root first, every field), so undo puts
+	// back the node's data, noun and children, not only its label; the add
+	// inserts them as child Index of Parent. Collapsed are the ones among
+	// them that were collapsed. An add without Nodes makes a new node from
+	// Text.
+	Nodes     []TreeNode `json:"nodes,omitempty"`
+	Collapsed []string   `json:"collapsed,omitempty"`
 	// Undone marks a change that takes back (or, redoing, repeats) an
 	// earlier one: u and ctrl+r write their changes with it set, so an
 	// application can tell an undone add from a delete the user made.
@@ -861,8 +869,15 @@ func (t *Tree) apply(c TreeChange) (TreeChange, error) {
 		if t.index(c.ID) >= 0 {
 			return TreeChange{}, fmt.Errorf("tree node %q exists", c.ID)
 		}
-		noun := t.RowNoun
-		t.insert(c.Parent, c.Index, []TreeNode{{ID: c.ID, Parent: c.Parent, Label: c.Text, Noun: noun}})
+		sub := []TreeNode{{ID: c.ID, Parent: c.Parent, Label: c.Text, Noun: t.RowNoun}}
+		if len(c.Nodes) > 0 && c.Nodes[0].ID == c.ID {
+			sub = slices.Clone(c.Nodes)
+			sub[0].Parent = c.Parent
+		}
+		t.insert(c.Parent, c.Index, sub)
+		for _, id := range c.Collapsed {
+			t.collapsed[id] = true
+		}
 		return TreeChange{Op: TreeDelete, ID: c.ID}, nil
 	case TreeRename:
 		i := t.index(c.ID)
@@ -894,10 +909,17 @@ func (t *Tree) apply(c TreeChange) (TreeChange, error) {
 		}
 		n := t.nodes[i]
 		index := slices.Index(t.children(n.Parent), c.ID)
-		t.nodes = slices.Delete(t.nodes, i, t.subtreeEnd(i))
+		sub := slices.Clone(t.nodes[i:t.subtreeEnd(i)])
+		var collapsed []string
+		for _, d := range sub {
+			if t.collapsed[d.ID] {
+				collapsed = append(collapsed, d.ID)
+			}
+			delete(t.collapsed, d.ID)
+		}
+		t.nodes = slices.Delete(t.nodes, i, i+len(sub))
 		t.idx = nil
-		delete(t.collapsed, c.ID)
-		return TreeChange{Op: TreeAdd, ID: n.ID, Parent: n.Parent, Index: index, Text: n.Label}, nil
+		return TreeChange{Op: TreeAdd, ID: n.ID, Parent: n.Parent, Index: index, Text: n.Label, Nodes: sub, Collapsed: collapsed}, nil
 	}
 	return TreeChange{}, fmt.Errorf("unknown tree change %q", c.Op)
 }
@@ -1464,7 +1486,9 @@ func (t *Tree) history(redo bool) error {
 		return err
 	}
 	var inverse []TreeChange
+	added := map[string]bool{} // nodes the step puts back (absent before it)
 	for _, c := range step.undo {
+		added[c.ID] = added[c.ID] || t.index(c.ID) < 0
 		inv, err := t.apply(c)
 		if err != nil {
 			return err
@@ -1478,6 +1502,11 @@ func (t *Tree) history(redo bool) error {
 	}
 	err := t.write(written)
 	focus := step.undo[len(step.undo)-1].ID
+	// A subtree put back node by node (root first): the cursor goes to
+	// its root, so selecting it opens no node the subtree kept closed.
+	for added[focus] && added[t.parentOf(focus)] {
+		focus = t.parentOf(focus)
+	}
 	if last := step.undo[len(step.undo)-1]; last.Op == TreeDelete {
 		focus = t.parentOf(last.ID)
 		if focus == "" {
