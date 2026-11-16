@@ -56,7 +56,7 @@ func (r *Runtime) relationEnds(n *Noun, c Ctx) (from, to, subject string, err er
 	case StringArg(c.Args, relationToParam, "") != "" && StringArg(c.Args, relationFromParam, "") != "":
 		return "", "", "", &ArgumentError{errors.New("name the other end with to or from, not both")}
 	case other == "":
-		// A person who pressed the key is asked for it (askNeed); the CLI
+		// A person who pressed the key is asked for it (answerPerson); the CLI
 		// and agents read the plain error.
 		return "", "", "", c.Need(relationToParam, "name the other end: to (this thing is the From end) or from (this thing is the To end), as noun:key")
 	}

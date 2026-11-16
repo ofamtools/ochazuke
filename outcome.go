@@ -61,12 +61,15 @@ type Outcome struct {
 }
 
 // Need is what a needs outcome lacks: the parameter ("target" for the
-// subject), the noun its value names, what it takes, and the candidates,
-// each with its exact command when one is known.
+// subject), the noun its value names, what it takes, the value the caller
+// gave that named nothing (Given: a not-found id, an unknown name; a
+// surface reruns the request with a candidate in the argument that held
+// it), and the candidates, each with its exact command when one is known.
 type Need struct {
 	Param   string      `json:"param,omitempty"`
 	Noun    string      `json:"noun,omitempty"`
 	Accepts string      `json:"accepts,omitempty"`
+	Given   string      `json:"given,omitempty"`
 	Choices []ChoiceRow `json:"choices"`
 }
 
@@ -106,6 +109,7 @@ func is(target error) func(error) error {
 // Any error no row matches is failed / failure. Order matters only where
 // one error wraps another: the narrower type first.
 var outcomeTable = []outcomeRow{
+	{Type: "*OutcomeError", Find: as[*OutcomeError], Fill: fillOutcome},
 	{Type: "*DeclinedError", Find: as[*DeclinedError], Kind: OutcomeNothing, Cause: CauseCancelled},
 	{Type: "*MissingParameterError", Find: as[*MissingParameterError], Kind: OutcomeNeeds, Cause: CauseValue, Fill: fillMissing},
 	{Type: "*ChoiceAnswer", Find: as[*ChoiceAnswer], Kind: OutcomeNeeds, Cause: CauseChoice, Fill: fillChoice},
@@ -142,17 +146,25 @@ func OutcomeOf(value any, err error) Outcome {
 	return Outcome{Kind: OutcomeFailed, Cause: CauseFailure, Reason: err.Error(), Err: err}
 }
 
+// fillOutcome: an outcome already classified (one that crossed the
+// socket, OutcomeError) is itself, with the error it arrived as.
+func fillOutcome(err error, o *Outcome) {
+	e := err.(*OutcomeError)
+	err = o.Err
+	*o = e.Outcome
+	o.Err = err
+}
+
 // fillMissing: a parameter whose value names a thing of a noun needs a
-// target, any other a value; the reason is the error's own.
+// target, any other a value; the reason is the error's own reason, ""
+// for a plain missing argument (the wording says what it needs).
 func fillMissing(err error, o *Outcome) {
 	e := err.(*MissingParameterError)
 	o.Needs = &Need{Param: e.Param, Noun: e.Noun, Choices: []ChoiceRow{}}
 	if e.Noun != "" {
 		o.Cause = CauseTarget
 	}
-	if e.Reason != "" {
-		o.Reason = e.Reason
-	}
+	o.Reason = e.Reason
 }
 
 // fillChoice: the answer's candidates, and the cause it declares (setup for
@@ -171,14 +183,14 @@ func fillChoice(err error, o *Outcome) {
 // fillNotFound: the near ids are the candidates.
 func fillNotFound(err error, o *Outcome) {
 	e := err.(*NotFoundError)
-	o.Needs = &Need{Noun: e.Noun, Choices: nameRows(e.Near)}
+	o.Needs = &Need{Noun: e.Noun, Given: e.ID, Choices: nameRows(e.Near)}
 }
 
 // fillUnknownName: the near names are the candidates; the kind names what
 // is needed (a parameter, a setting, a verb).
 func fillUnknownName(err error, o *Outcome) {
 	e := err.(*UnknownNameError)
-	o.Needs = &Need{Param: e.Kind, Choices: nameRows(e.Near)}
+	o.Needs = &Need{Param: e.Kind, Given: e.Name, Choices: nameRows(e.Near)}
 }
 
 // fillAmbiguous: each noun the word reaches, in full, is a candidate.
@@ -263,6 +275,17 @@ func (o Outcome) Text() string {
 	}
 	return head + ": " + o.Reason
 }
+
+// OutcomeError is an outcome that crossed a boundary as an error (the
+// socket's Response.Outcome, read back by a CLI or MCP client): OutcomeOf
+// answers the outcome it carries, so the client encodes it as the runtime
+// classified it. Text is the original error's text.
+type OutcomeError struct {
+	Outcome Outcome
+	Text    string
+}
+
+func (e *OutcomeError) Error() string { return e.Text }
 
 // DeclinedError is a confirm the person answered no to: the request ran
 // nothing. The CLI answers it when a prompt is declined.

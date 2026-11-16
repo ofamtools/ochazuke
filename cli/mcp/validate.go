@@ -14,11 +14,14 @@ import (
 // error, worded as the CLI words it (ochazuke.NoParameter): "owner has no
 // parameter NAME: did you mean …; it takes …". A null an optional
 // argument holds is no argument: it is dropped from args, never refused.
-func validate(owner string, schema map[string]any, args map[string]any) error {
+// A tool whose schema mirrors a verb's parameters (an alias) passes a
+// missing required argument on (verbArgs): the runtime answers what the
+// verb needs, as for the run tool; a tool's own arguments are checked.
+func validate(owner string, schema map[string]any, args map[string]any, verbArgs bool) error {
 	props, _ := schema["properties"].(map[string]any)
 	required, _ := schema["required"].([]string)
 	for _, name := range required {
-		if v, ok := args[name]; !ok || v == nil {
+		if v, ok := args[name]; (!ok || v == nil) && !verbArgs {
 			return fmt.Errorf("%s is required", name)
 		}
 	}
@@ -108,7 +111,7 @@ func validateValue(prop map[string]any, value any) error {
 		if !ok {
 			return fmt.Errorf("must be an object, not %s", jsonType(value))
 		}
-		return validate("the object", prop, m)
+		return validate("the object", prop, m, false)
 	}
 
 	var number float64

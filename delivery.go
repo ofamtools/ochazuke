@@ -794,7 +794,7 @@ func (r *Runtime) runApplication(op Operation, c Context, args Arguments) (any, 
 		r.noteNothing(*res.nothing)
 		said := *res.nothing
 		said.Verb = r.DisplayKey(op.Key.Short())
-		ctx.Info(said.Text())
+		r.tellNothing(said)
 		return res.value, nil
 	case res.work == nil && res.fg == nil:
 		return res.value, nil

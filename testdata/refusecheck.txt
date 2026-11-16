@@ -260,11 +260,7 @@ cli/setup.go	DeclareSetup	K15	"Failed(…)"	1
 cli/setup.go	DeclareSetup	K15	"setup items are already declared"	1
 cli/setup.go	DeclareSetup	K15	"unknown setup item %q"	1
 cli/setup.go	setupDeclaration.engine	K14	"setup.json: %w"	1	failure
-cli/shell.go	Shell.Run	K10	"%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)"	1
-cli/shell.go	Shell.Run	K14	"%w; pass --target, one of: %s"	1	failure
-cli/shell.go	Shell.Run	K14	"target %s: %w"	2	failure
-cli/shell.go	Shell.Run	K15	"errors.New(…)"	1
-cli/shell.go	Shell.call	K15	"errors.New(…)"	2
+cli/shell.go	Shell.callOutcome	K15	"errors.New(…)"	1
 cli/shell.go	Shell.parseFlags	K14	"--%s: %w"	1	failure
 cli/shell.go	Shell.parseFlags	K15	"--%s answers JSON Lines; --format %s prints a table"	1
 cli/shell.go	Shell.parseFlags	K15	"a bare --json asks for JSON output and --format %s for another; pass one (--json '{...}' passes arguments)"	1
@@ -274,6 +270,10 @@ cli/shell.go	Shell.parseFlags	K3	"--%s needs a value"	1
 cli/shell.go	Shell.propRequest	K15	"%s %s: the %s cannot be read or written"	1
 cli/shell.go	Shell.propRequest	K3	"%s %s takes one value; name the %s with --%s"	1
 cli/shell.go	Shell.request	K2	"unknown operation %q (%s %s); operations list prints them"	1
+cli/shell.go	Shell.run	K10	"%s opened a %s modal, which needs the TUI; pass its arguments instead (%s operations list)"	1
+cli/shell.go	Shell.run	K14	"%w; pass --target, one of: %s"	1	failure
+cli/shell.go	Shell.run	K14	"target %s: %w"	2	failure
+cli/shell.go	Shell.run	K15	"errors.New(…)"	1
 cli/shell.go	Shell.verb	K8	"%s %s is ambiguous: %s"	1
 cli/shell.go	bindTarget	K14	"--target: %w"	1	failure
 cli/shell.go	positional	K14	"%s (argument %d): %w"	1	failure

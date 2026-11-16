@@ -94,9 +94,12 @@ import (
 // shell is the runtime's UI sink until Run returns (messages posted before
 // any sink attached print first).
 //
-// Errors are returned for oden.Report: every failure is exit status 1
-// (oden.ExitCode of a plain error), but a ChoiceAnswer (nothing changed,
-// choose one) is exit status 3 with the command for each choice printed.
+// Errors are returned for oden.Report, each answer encoded as its Outcome
+// (Shell.answer): a failure is exit status 1 (oden.ExitCode of a plain
+// error); nothing to change is exit status 0 with a status: line; a
+// request that needs a value or a target (a ChoiceAnswer, a missing
+// argument, a name no thing has) is exit status 3 with the command for
+// each candidate printed (cli.needs-status).
 type Shell struct {
 	// MCPCommand is the stable executable and global arguments used by config
 	// and owner confirmation commands. Empty defaults to []string{Bin}.
@@ -104,6 +107,9 @@ type Shell struct {
 	// MCPAliases keeps legacy app tool names over registered verbs.
 	MCPAliases []mcp.Alias
 	messages   *[]ochazuke.UIMessage
+	// outcome, when set, receives each Run's answer as its Outcome (the
+	// MCP run reads it to say how the run ended).
+	outcome *ochazuke.Outcome
 	// Actor overrides CLI environment identity (OCHAZUKE_ACTOR); nil reads it
 	// once per Run. MCP servers set this to their startup identity.
 	Actor *ochazuke.Actor
@@ -184,29 +190,19 @@ func UsageHint(bin string) string {
 // Run executes one command and prints its result on Stdout, as JSON
 // unless --format names another format.
 
-// ChoiceExitCode is the exit status of a command answered with a
-// ChoiceAnswer: nothing changed, choose one of the printed commands.
+// ChoiceExitCode is the exit status of a command answered with a needs
+// outcome: nothing changed, choose one of the printed commands.
 const ChoiceExitCode = 3
 
-// choiceExit turns a ChoiceAnswer into its printed commands (one per line
-// on Stderr, after the reason oden reports) and exit status 3.
-func (s *Shell) choiceExit(err error) error {
-	var choice *ochazuke.ChoiceAnswer
-	if err == nil || !errors.As(err, &choice) {
-		return err
-	}
-	for _, c := range choice.Choices {
-		line := "  " + c.Command
-		if c.Label != "" && c.Label != c.ID {
-			line += "  # " + c.Label
-		}
-		fmt.Fprintln(s.stderr(), line)
-	}
-	return &oden.ExitError{Code: ChoiceExitCode, Err: err}
+func (s *Shell) Run(ctx context.Context, args []string) error {
+	var ran cliRun
+	err := s.run(ctx, args, &ran)
+	return s.answer(ran, err)
 }
 
-func (s *Shell) Run(ctx context.Context, args []string) (err error) {
-	defer func() { err = s.choiceExit(err) }()
+// run is Run before its answer is encoded: it notes in ran the verb it
+// ran and the outcome of a request that changed nothing.
+func (s *Shell) run(ctx context.Context, args []string, ran *cliRun) error {
 	actor := s.Actor
 	if actor == nil {
 		a, err := ochazuke.ActorFromEnv(nil)
@@ -310,6 +306,7 @@ func (s *Shell) Run(ctx context.Context, args []string) (err error) {
 	if err != nil {
 		return err
 	}
+	ran.verb = r.DisplayKey(q.Key())
 	if len(presets) > 0 {
 		op, _ := r.Operation(q.Key())
 		q.Args = op.WithPresets(q.Args, presets)
@@ -343,7 +340,7 @@ func (s *Shell) Run(ctx context.Context, args []string) (err error) {
 		// command's --since resumes.
 		defer r.SetWatchVersions(r.SetWatchVersions(cacheVersions{s}))
 	}
-	value, err := s.call(q)
+	value, err := s.callNoting(q, ran)
 	if err != nil {
 		var bad *ochazuke.ArgumentError
 		if len(candidates) > 1 && !errors.As(err, &bad) {
@@ -368,7 +365,7 @@ func (s *Shell) Run(ctx context.Context, args []string) (err error) {
 			}
 			return &ochazuke.DeclinedError{Prompt: top.Payload.Prompt}
 		}
-		if value, err = s.call(ochazuke.Request{Verb: "accept", Noun: "ochazuke.confirm"}); err != nil {
+		if value, err = s.callNoting(ochazuke.Request{Verb: "accept", Noun: "ochazuke.confirm"}, ran); err != nil {
 			return err
 		}
 	}
@@ -903,6 +900,24 @@ func typed(kind, v string) (any, error) { return ochazuke.ParseFlagValue(kind, v
 
 // call runs one request through the runtime's CLI entry.
 func (s *Shell) call(q ochazuke.Request) (any, error) {
+	value, _, err := s.callOutcome(q)
+	return value, err
+}
+
+// callNoting is call that notes in ran the outcome of a request that
+// changed nothing.
+func (s *Shell) callNoting(q ochazuke.Request, ran *cliRun) (any, error) {
+	value, o, err := s.callOutcome(q)
+	if err == nil && o != nil && o.Kind == ochazuke.OutcomeNothing {
+		ran.nothing = o
+	}
+	return value, err
+}
+
+// callOutcome is call that also answers the call's outcome when it was not
+// done (Response.Outcome). An error carries the outcome the runtime gave
+// it (an OutcomeError), so OutcomeOf reads it on this side.
+func (s *Shell) callOutcome(q ochazuke.Request) (any, *ochazuke.Outcome, error) {
 	reply := make(chan ochazuke.Response, 1)
 	actor := ochazuke.Owner()
 	if s.actor != nil {
@@ -914,17 +929,21 @@ func (s *Shell) call(q ochazuke.Request) (any, error) {
 	res := <-reply
 	if res.Error != "" {
 		if res.Refused != nil {
-			return nil, res.Refused
+			return nil, res.Outcome, res.Refused
 		}
 		if res.Choice != nil {
-			return nil, res.Choice
+			return nil, res.Outcome, res.Choice
+		}
+		err := errors.New(res.Error)
+		if res.Outcome != nil {
+			err = &ochazuke.OutcomeError{Outcome: *res.Outcome, Text: res.Error}
 		}
 		if res.Argument {
-			return nil, &ochazuke.ArgumentError{Err: errors.New(res.Error)}
+			return nil, res.Outcome, &ochazuke.ArgumentError{Err: err}
 		}
-		return nil, errors.New(res.Error)
+		return nil, res.Outcome, err
 	}
-	return res.Result, nil
+	return res.Result, res.Outcome, nil
 }
 
 // accepts prints a confirm prompt and reads the answer from Stdin.

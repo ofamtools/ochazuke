@@ -275,16 +275,14 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 		form.Target = focus
 	}
 	var run func(Request) error
-	// attempt executes q; a verb that says it lacks a value (a
-	// MissingParameterError) asks for it in the args form, whose confirm
-	// runs the request again through run (askNeed).
+	// attempt executes q; its answer is shown as a person's (answerPerson):
+	// nothing to change is told, what it needs is asked for (a picker or
+	// the args form, whose pick or confirm runs the request again through
+	// run), a failure is the caller's error line.
 	attempt := func(q Request, watch bool) error {
 		value, err := execute(q)
 		if err != nil {
-			if r.askNeed(withArgs(form, q.Args), err, run, held) {
-				return nil
-			}
-			return err
+			return r.answerPerson(withArgs(form, q.Args), err, run, held)
 		}
 		if !watch {
 			return nil
@@ -293,7 +291,7 @@ func (r *Runtime) runOrAsk(focus string, q Request, execute func(Request) (any, 
 			// The form comes back with what was typed and says why;
 			// where it cannot (a modal is open) the error is told.
 			defer r.forceSource(source)()
-			if r.askNeed(withArgs(form, q.Args), late, run, held) {
+			if r.answerPerson(withArgs(form, q.Args), late, run, held) == nil {
 				return
 			}
 			if e, openErr := r.openArgsForm(withArgs(form, q.Args), run, nil, held); openErr == nil && e != nil {

@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	stdmaps "maps"
 	"os"
@@ -359,7 +358,9 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 	name := ochazuke.StringArg(args, "verb", "")
 	op, err := s.resolveMCPVerb(name)
 	if err != nil {
-		return map[string]any{"status": "failed", "reason": err.Error(), "result": nil, "messages": []ochazuke.UIMessage{}}, nil
+		answer := map[string]any{"result": nil, "messages": []ochazuke.UIMessage{}}
+		mcpAnswer(r, answer, outcomeNamed(ochazuke.OutcomeOf(nil, err), name))
+		return answer, nil
 	}
 	target := ochazuke.StringArg(args, "target", "")
 	values, _ := args["args"].(map[string]any)
@@ -395,8 +396,7 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 	// Parse the same typed request and alias presets as CLI flags do.
 	q, _, err := s.request(noun, verb, flags)
 	if err != nil {
-		answer["status"] = "failed"
-		answer["reason"] = err.Error()
+		mcpAnswer(r, answer, outcomeNamed(ochazuke.OutcomeOf(nil, err), r.DisplayKey(op.Key.Short())))
 		return answer, nil
 	}
 	if target == "" {
@@ -404,10 +404,12 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 			q.Target = owners[0]
 		}
 	}
+	o := ochazuke.Outcome{Kind: ochazuke.OutcomeDone}
 	if dry, _ := args["dry_run"].(bool); dry {
 		restore := r.BindActor(b.actor, false)
 		err = r.CheckRequest(q)
 		restore()
+		o = outcomeNamed(ochazuke.OutcomeOf(nil, err), r.DisplayKey(op.Key.Short()))
 		answer["dry_run"] = true
 		answer["right"] = r.AgentRight(op, false)
 	} else {
@@ -428,15 +430,10 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 		clone.StateCache.Off = true
 		messages := []ochazuke.UIMessage{}
 		clone.messages = &messages
+		clone.outcome = &o
 		err = clone.Run(ctx, append(command, flags...))
 		answer["messages"] = messages
-		if err == nil {
-			var result any
-			if parseErr := json.Unmarshal(out.Bytes(), &result); parseErr != nil {
-				result = strings.TrimSpace(out.String())
-			}
-			answer["result"] = result
-		}
+		answer["result"] = runResult(err, o, &out)
 		// This headless runtime has no place to leave a modal. Clear it after
 		// reporting the CLI's "needs the TUI" failure so future calls can run.
 		for r.TopModal() != "" {
@@ -464,19 +461,34 @@ func (b *mcpBackend) run(ctx context.Context, args map[string]any) (any, error) 
 			break
 		}
 	}
-	err = choiceAnswer(answer, err)
-	if err != nil {
-		answer["status"] = "failed"
-		var refused *ochazuke.RefusedError
-		if errors.As(err, &refused) {
-			answer["status"] = "refused"
-		}
-		answer["reason"] = err.Error()
-		if r.AgentRight(op, false).Right == ochazuke.AgentConfirm {
-			answer["owner_command"] = s.commandFor(op, target, values)
-		}
-	}
+	mcpAnswer(r, answer, o)
+	s.ownerCommand(answer, o, op, target, values)
 	return answer, nil
+}
+
+// runResult is a run's result from the CLI's stdout: its JSON, else its
+// text; nil when the run failed or answered no done result.
+func runResult(err error, o ochazuke.Outcome, out *bytes.Buffer) any {
+	if err != nil || (o.Kind != ochazuke.OutcomeDone && out.Len() == 0) {
+		return nil
+	}
+	var result any
+	if parseErr := json.Unmarshal(out.Bytes(), &result); parseErr != nil {
+		result = strings.TrimSpace(out.String())
+	}
+	return result
+}
+
+// ownerCommand adds to a run's answer the command the owner runs when the
+// agent's right to the verb is confirm and the run did not end on its own
+// (needs, failed).
+func (s *Shell) ownerCommand(answer map[string]any, o ochazuke.Outcome, op ochazuke.Operation, target string, values map[string]any) {
+	if o.Kind != ochazuke.OutcomeNeeds && o.Kind != ochazuke.OutcomeFailed {
+		return
+	}
+	if s.Runtime.AgentRight(op, false).Right == ochazuke.AgentConfirm {
+		answer["owner_command"] = s.commandFor(op, target, values)
+	}
 }
 
 func (b *mcpBackend) snapshot(args map[string]any) map[string]any {
@@ -700,15 +712,16 @@ func (s *Shell) defineCatalogFacts() {
 	})
 }
 
-// choiceAnswer writes a ChoiceAnswer into the run's answer (status choose,
-// the reason, what it needs and the choices with their commands) and
-// answers nil: nothing changed, and it is a result, not an error
-// (no-refusals D4). Any other err is returned as it is.
-func choiceAnswer(answer map[string]any, err error) error {
-	var choice *ochazuke.ChoiceAnswer
-	if !errors.As(err, &choice) {
-		return err
+// outcomeNamed is o with its verb set when it has none.
+func outcomeNamed(o ochazuke.Outcome, verb string) ochazuke.Outcome {
+	if o.Verb == "" {
+		o.Verb = verb
 	}
-	answer["status"], answer["reason"], answer["needs"], answer["choices"] = "choose", choice.Reason, choice.Needs, choice.Choices
-	return nil
+	return o
+}
+
+// mcpAnswer is the MCP run's encoder (mcp.Answer), a needs outcome
+// answered as one unless cli.needs-status says error.
+func mcpAnswer(r *ochazuke.Runtime, answer map[string]any, o ochazuke.Outcome) {
+	mcp.Answer(answer, o, answersNeeds(r))
 }

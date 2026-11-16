@@ -126,7 +126,7 @@ func (s *Server) Call(ctx context.Context, name string, args map[string]any) (an
 	if args == nil {
 		args = map[string]any{}
 	}
-	if err := validate(name, tool.InputSchema, args); err != nil {
+	if err := validate(name, tool.InputSchema, args, isAlias); err != nil {
 		var unknown *ochazuke.UnknownNameError
 		if errors.As(err, &unknown) {
 			return nil, invalid(err.Error())

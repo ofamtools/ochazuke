@@ -31,6 +31,13 @@ type Response struct {
 	// Argument is true when Error is an ArgumentError: the request was
 	// refused for its arguments, before any instance was chosen.
 	Argument bool `json:"argument,omitempty"`
+	// Outcome is how the call ended when it did not simply answer its
+	// result: nothing (with Result when the verb answers its state),
+	// needs (with Choice when it was a ChoiceAnswer) or failed (with
+	// Error, Refused); nil for done. Its Value is left to Result. A
+	// client reads it back as an OutcomeError, so OutcomeOf answers the
+	// same outcome on the far side.
+	Outcome *Outcome `json:"outcome,omitempty"`
 	// Messages are what the call told the user while it ran (ctx.Notify,
 	// ctx.ClearNotice, ctx.Status), in order; the runtime's sink got them
 	// too. Messages posted later, by a job's Then, reach only the sink.
@@ -62,14 +69,19 @@ func (r *Runtime) HandleCall(msg CallMsg) {
 	defer r.BindActor(actor, !msg.Headless)()
 	defer r.WithActor(actor)()
 	stop := r.UI().capture()
-	result, err := r.Execute(msg.Request)
+	o := r.ExecuteOutcome(msg.Request)
 	messages := stop()
 	restore()
+	result, err := o.Value, o.Err
 	var response Response
 	if w, ok := result.(*Watch); ok && err == nil && msg.Stream {
 		response = Response{Result: w} // live: the caller reads it on the loop
 	} else {
 		response = callResponse(result, err)
+	}
+	if o.Kind != OutcomeDone {
+		o.Value, o.Err = nil, nil
+		response.Outcome = &o
 	}
 	response.Messages = messages
 	msg.Reply <- response

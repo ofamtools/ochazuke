@@ -9,8 +9,6 @@ import (
 	"io"
 	"slices"
 	"strings"
-
-	"ofam.dev/ochazuke"
 )
 
 // Versions match matomeru's server and the stable MCP lifecycle specification.
@@ -133,13 +131,7 @@ func (s *Server) handle(ctx context.Context, req request, protocol string) (any,
 				return nil, &rpcError{-32602, err.Error()}
 			}
 		}
-		result, err := s.Call(ctx, p.Name, arguments)
-		// A ChoiceAnswer (nothing changed, choose one) is a result, not an
-		// error: the choices and their commands are the answer's data.
-		var choice *ochazuke.ChoiceAnswer
-		if errors.As(err, &choice) {
-			result, err = map[string]any{"status": "choose", "needs": choice.Needs, "reason": choice.Reason, "choices": choice.Choices}, nil
-		}
+		result, err := outcomeResult(s.Call(ctx, p.Name, arguments))
 		var bad *argumentError
 		if errors.As(err, &bad) {
 			return nil, &rpcError{-32602, err.Error()}

@@ -135,7 +135,7 @@ func (r *Runtime) OpenArgsForm(q Request, run func(Request) error) (*RecordEdito
 }
 
 // openArgsForm is OpenArgsForm asking, first and required, for the
-// parameters in needs as well (what a verb said it lacks, askNeed). held
+// parameters in needs as well (what a verb said it lacks, answerPerson). held
 // says a thing holds the request (runOrAsk): its subject is that thing, so
 // no target field is made required.
 func (r *Runtime) openArgsForm(q Request, run func(Request) error, needs []string, held bool) (*RecordEditor, error) {

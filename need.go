@@ -11,8 +11,8 @@ import (
 // asks: wherever a person runs a verb in the TUI (a key, the palette, the
 // footer, the help's enter) it opens the args form on that field with the
 // values already given, and the confirmed form runs the same request again
-// (askNeed). The CLI and the MCP gateway have no form: they answer with the
-// error as it reads, Error().
+// (answerPerson). The CLI and MCP answer it as a needs outcome (exit status
+// 3, status choose; cli.needs-status).
 type MissingParameterError struct {
 	Param  string // the parameter the request needs
 	Reason string // why, in the person's words ("" for a plain missing argument)
@@ -47,40 +47,6 @@ func needed(err error) *MissingParameterError {
 		return mp
 	}
 	return nil
-}
-
-// askNeed opens the args form for q on the parameter err says it needs and
-// reports whether it did: the form holds the request's values, marks that
-// field required, shows the reason, and runs the request again through run
-// when it is confirmed (esc leaves it with no effect). It does not when err
-// is another error, the setting is off, a form is open, the verb has no
-// such field a form can hold, or the request already gave that parameter a
-// value (asking again would loop on a value the verb does not accept).
-func (r *Runtime) askNeed(q Request, err error, run func(Request) error, held bool) bool {
-	need := needed(err)
-	if need == nil || !r.missingOpensForm() || r.Instances[ArgsFormID] != nil {
-		return false
-	}
-	op, ok := r.Operations.Find(Key(q.Key()))
-	if !ok {
-		return false
-	}
-	p, ok := op.Parameters[need.Param]
-	if !ok || !formable(p) || !emptyProp(r.formSources(q).Args[need.Param]) {
-		return false
-	}
-	// The form replaces the one this request came from (one at a time): it
-	// opens at that form's level, not as a modal from beneath the top one.
-	defer func(before string) { r.reopening = before }(r.reopening)
-	r.reopening = ArgsFormID
-	e, openErr := r.openArgsForm(q, run, []string{need.Param}, held)
-	if openErr != nil {
-		return false
-	}
-	if e != nil && need.Reason != "" {
-		e.out.err = need.Reason
-	}
-	return true
 }
 
 // withValue is q with one more argument, q's own arguments untouched.

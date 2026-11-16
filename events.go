@@ -378,7 +378,7 @@ func (r *Runtime) runHook(row HookRow, f firing) {
 	h.hooking--
 	restore()
 	if err != nil {
-		r.UI().Notify(hookFailure(row, err))
+		r.hookAnswer(row, q, err)
 		return
 	}
 	if t, ok := value.(Ticket); ok {
@@ -386,7 +386,7 @@ func (r *Runtime) runHook(row HookRow, f firing) {
 			then := j.then
 			j.then = func(c Ctx, v any, err error) error {
 				if err != nil {
-					r.UI().Notify(hookFailure(row, err))
+					r.hookAnswer(row, q, err)
 				}
 				if then != nil {
 					return then(c, v, err)

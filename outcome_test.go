@@ -32,6 +32,7 @@ func TestOutcomeOf(t *testing.T) {
 		{"rights confirm", &RefusedError{Verb: "task.delete", Rule: "r", Reason: "ask", Approvable: true, Command: "app task delete"}, OutcomeNeeds, CauseConfirm},
 		{"wrapped", fmt.Errorf("saving: %w", &NotFoundError{Noun: "task", ID: "x"}), OutcomeNeeds, CauseChoice},
 		{"untyped", errors.New("disk full"), OutcomeFailed, CauseFailure},
+		{"over the wire", &ArgumentError{&OutcomeError{Outcome: Outcome{Kind: OutcomeNeeds, Cause: CauseTarget}, Text: "id is required"}}, OutcomeNeeds, CauseTarget},
 	}
 	rows := map[string]bool{}
 	for _, c := range cases {

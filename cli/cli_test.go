@@ -495,7 +495,7 @@ func TestShellErrors(t *testing.T) {
 		{[]string{"nope", "list"}, `unknown operation "nope.list"`},
 		{[]string{"widget", "fly"}, `unknown operation "widget.fly"`},
 		{[]string{"widget", "show", "--target", "w99"}, `unknown target "w99"`},
-		{[]string{"widget", "relabel", "--target", "w1", "--colour", "red"}, `widget.relabel has no parameter "colour"`},
+
 		{[]string{"widget", "relabel", "--target", "w1", "--name"}, "--name needs a value"},
 		{[]string{"widget", "show", "w1", "w2"}, `unexpected argument "w1"`},
 		{[]string{"widget", "show", "--json", "[1]"}, "arguments"},
@@ -505,6 +505,11 @@ func TestShellErrors(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), c.want) || oden.ExitCode(err) != 1 {
 			t.Errorf("tool %s: err = %v (exit %d), want %q", strings.Join(c.args, " "), err, oden.ExitCode(err), c.want)
 		}
+	}
+	// A parameter the verb does not have is a name to choose (needs /
+	// choice): exit status 3, the near names listed.
+	if _, _, err := f.run("", "widget", "relabel", "--target", "w1", "--colour", "red"); !strings.Contains(fmt.Sprint(err), `widget.relabel has no parameter "colour"`) || oden.ExitCode(err) != ChoiceExitCode {
+		t.Errorf("unknown parameter: %v (exit %d)", err, oden.ExitCode(err))
 	}
 }
 

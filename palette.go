@@ -410,24 +410,26 @@ func (p *Palette) dispatch(q Request) error {
 		// Keys and palette share the same focus/mode/page/modal guard.
 		err = present(value)
 	}
-	if err != nil {
-		// Dismiss before dispatch so focus/push/pop act on the originating
-		// focus. A failure reopens this same line with its focus and mode.
-		p.r.reopening = paletteID // its own level: it opened over whatever is open now
-		restoreErr := p.r.Push(paletteID, focus)
-		p.r.reopening = ""
-		if restoreErr != nil {
-			return fmt.Errorf("%w (restoring palette: %v)", err, restoreErr)
-		}
-		p.r.restoreMode(ModeState{Name: mode}, nil)
-		// A verb that says it lacks a value asks for it: the form opens
-		// over the restored line, esc comes back to it, confirm runs the
-		// request again (askNeed).
-		if p.r.askNeed(q, err, p.dispatch, false) {
-			return nil
-		}
+	if err == nil {
+		return nil
 	}
-	return err
+	if o := p.r.requestOutcome(q, err); o.Kind == OutcomeNothing {
+		p.r.tellNothing(o) // nothing to change: told, the line stays closed
+		return nil
+	}
+	// Dismiss before dispatch so focus/push/pop act on the originating
+	// focus. A failure reopens this same line with its focus and mode.
+	p.r.reopening = paletteID // its own level: it opened over whatever is open now
+	restoreErr := p.r.Push(paletteID, focus)
+	p.r.reopening = ""
+	if restoreErr != nil {
+		return fmt.Errorf("%w (restoring palette: %v)", err, restoreErr)
+	}
+	p.r.restoreMode(ModeState{Name: mode}, nil)
+	// A verb that says it lacks a value asks for it (answerPerson): the
+	// picker or the form opens over the restored line, esc comes back to
+	// it, a pick or confirm runs the request again.
+	return p.r.answerPerson(q, err, p.dispatch, false)
 }
 
 func (p *Palette) present(q Request, value any, top string) (bool, error) {

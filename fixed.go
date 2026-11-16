@@ -62,13 +62,13 @@ func (r *Runtime) keeps(op Operation, q Request, focus string, checkOnly bool) b
 }
 
 // answerKept marks the running request as one that changed nothing
-// because its subject keeps itself, and tells the reason as information
-// (as a handler's Nothing does).
+// because its subject keeps itself, and tells the reason as a handler's
+// Nothing is told (tellNothing).
 func (r *Runtime) answerKept(op Operation, reason string) {
 	o := Outcome{Kind: OutcomeNothing, Cause: CauseKept, Reason: reason}
 	r.noteNothing(o)
 	o.Verb = r.DisplayKey(op.Key.Short())
-	r.UI().Info(o.Text())
+	r.tellNothing(o)
 }
 
 // subjectFixed is what the subject of q keeps itself from, with its
