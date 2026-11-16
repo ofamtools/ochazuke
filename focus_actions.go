@@ -145,7 +145,7 @@ func (r *Runtime) focusedActionNeeds(op Operation, focus string) string {
 // including a viewer or another modal, without crossing its key-walk boundary.
 func (r *Runtime) OpenFocusActions() (*Chooser, error) {
 	if !r.Settings().Bool(FocusedPickerSetting) {
-		return nil, errors.New("the focused-actions picker is off (setting actions.focused-picker)")
+		return nil, NothingErr(CauseNotHere, "the focused-actions picker is off (setting actions.focused-picker)")
 	}
 	focus := r.Focus
 	noun, choices := r.FocusedActions(focus)

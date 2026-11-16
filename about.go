@@ -525,7 +525,7 @@ func aboutRowOf(r *Runtime, c Context) (aboutRowRef, error) {
 			}
 		}
 	}
-	return aboutRowRef{}, errors.New("no about row is focused")
+	return aboutRowRef{}, needThing("ochazuke.about-row", "")
 }
 
 // aboutRowDetail is the detail of the selected row: its section and label,

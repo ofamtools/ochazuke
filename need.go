@@ -43,6 +43,32 @@ func (c Ctx) Need(param, reason string) error {
 	return need
 }
 
+// needThing is the error a handler or resolver without a Ctx returns
+// (Ctx.NeedTarget needs one) when the thing its verb acts on, the noun's
+// own word for it, is not there: a needs / target outcome for the verb's
+// own subject (the parameter "target"), so the person is asked for it
+// with the Target's candidates, never told no.
+func needThing(noun, reason string) error {
+	return &MissingParameterError{Param: requestSubject, Reason: reason, Noun: noun}
+}
+
+// needValue is the error a handler or resolver without a Ctx returns
+// (Ctx.Need needs one) when it lacks the value of its parameter param: a
+// needs / value outcome, so the person is asked for it.
+func needValue(param, reason string) error {
+	return &MissingParameterError{Param: param, Reason: reason}
+}
+
+// requestSubject is the parameter a request's own subject goes by: the thing
+// its verb acts on, given as --target (an undeclared parameter, Target).
+const requestSubject = "target"
+
+// notFocused is the reason a request that names no thing of noun gives
+// when nothing of it is on the focus path: the one wording of it.
+func (r *Runtime) notFocused(noun string) string {
+	return "no " + r.DisplayNoun(noun) + " is focused"
+}
+
 // needed is the parameter err says a request needs, nil when it is not
 // that error.
 func needed(err error) *MissingParameterError {
@@ -102,8 +128,8 @@ func (r *Runtime) refusal(op Operation, q Request, focus string, mode ModeState)
 	}
 	if r.Settings().Bool(PaletteReachSetting) {
 		if missing := r.missingTargets(op, q.Args, focus); len(missing) > 0 {
-			noun := r.DisplayNoun(op.Parameters[missing[0]].Noun)
-			return &ArgumentError{&MissingParameterError{Param: missing[0], Reason: "no " + noun + " is focused", Noun: op.Parameters[missing[0]].Noun}}
+			noun := op.Parameters[missing[0]].Noun
+			return &ArgumentError{&MissingParameterError{Param: missing[0], Reason: r.notFocused(noun), Noun: noun}}
 		}
 	}
 	var held []string

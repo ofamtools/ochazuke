@@ -478,7 +478,7 @@ func registerHistory(r *Runtime) {
 					return ThingOf(e)
 				}
 			}
-			return nil, fmt.Errorf("no history entry %q", key)
+			return nil, c.Runtime.NotFound("ochazuke.history-entry", key, nil)
 		}})
 	r.Define("ochazuke.history-entry").Props(filePathProp("The history file: $XDG_STATE_HOME/<app>/history.jsonl, else ~/.local/state/<app>/history.jsonl", "this application does not keep its history", func(r *Runtime) string { return r.Config().HistoryPath() }))
 	registerUndo(r)

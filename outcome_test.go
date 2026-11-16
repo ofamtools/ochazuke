@@ -27,6 +27,7 @@ func TestOutcomeOf(t *testing.T) {
 		{"read-only", &ReadOnlyError{Noun: "task", Prop: "id"}, OutcomeNothing, CauseKept},
 		{"kept", &KeptError{Thing: "a", Change: TreeDelete, Reason: `"a" refuses deletion`}, OutcomeNothing, CauseKept},
 		{"store refused", fmt.Errorf("no: %w", ErrTreeRefused), OutcomeNothing, CauseKept},
+		{"nothing as an error", NothingErr(CauseNotHere, "save controls are disabled"), OutcomeNothing, CauseNotHere},
 		{"not applicable", &NotApplicableError{Key: "task.done"}, OutcomeNothing, CauseNotHere},
 		{"rights never", &RefusedError{Verb: "task.delete", Rule: "r", Reason: "never"}, OutcomeFailed, CauseRights},
 		{"rights confirm", &RefusedError{Verb: "task.delete", Rule: "r", Reason: "ask", Approvable: true, Command: "app task delete"}, OutcomeNeeds, CauseConfirm},
@@ -99,6 +100,31 @@ func TestHistoryRecordsOutcome(t *testing.T) {
 		h := r.HistoryOf(1, HistoryChange)
 		if len(h) != 1 || h[0].Result.Outcome != c.kind || h[0].Result.Cause != c.cause {
 			t.Errorf("%s: %+v", c.verb, h)
+		}
+	}
+}
+
+// TestNearestLookupsAnswerNeeds: a resolver that finds no thing of its
+// noun on the focus path (a table's list, a terminal) answers needs /
+// target and a handler that lacks a value answers needs / value; none
+// changes anything.
+func TestNearestLookupsAnswerNeeds(t *testing.T) {
+	r := NewRuntime()
+	here := Context{Path: []string{"app"}}
+	_, noList := r.tableList(here, nil)
+	_, noTerminal := r.terminalOf(here, nil)
+	for _, c := range []struct {
+		name  string
+		err   error
+		kind  OutcomeKind
+		cause OutcomeCause
+	}{
+		{"no focused list", noList, OutcomeNeeds, CauseTarget},
+		{"no focused terminal", noTerminal, OutcomeNeeds, CauseTarget},
+		{"missing keys", needValue("keys", ""), OutcomeNeeds, CauseValue},
+	} {
+		if o := OutcomeOf(nil, c.err); o.Kind != c.kind || o.Cause != c.cause {
+			t.Errorf("%s: %s/%s (%v), want %s/%s", c.name, o.Kind, o.Cause, c.err, c.kind, c.cause)
 		}
 	}
 }

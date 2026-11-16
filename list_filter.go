@@ -436,7 +436,7 @@ func registerListFilter(r *Runtime) {
 				return list, nil
 			}
 		}
-		return nil, errors.New("no focused list")
+		return nil, needThing("list", "")
 	}
 	leave := func() {
 		if r.Mode.Name == ListFilterMode {

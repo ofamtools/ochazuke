@@ -251,7 +251,7 @@ func registerChooserSources(r *Runtime) {
 		return func(ctx Ctx) Result {
 			c := r.chooserAt(ctx.Instance)
 			if c == nil {
-				return Failed(errors.New("no picker is open"))
+				return Failed(ctx.NeedTarget("target", ""))
 			}
 			if err := c.cycle(delta); err != nil {
 				return Failed(err)

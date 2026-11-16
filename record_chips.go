@@ -337,7 +337,7 @@ func registerFormChips(r *Runtime) {
 		return func(r *Runtime, c Context, a Arguments) (any, error) {
 			e := r.recordEditorOf(focusOf(c))
 			if e == nil {
-				return nil, errors.New("no focused record editor")
+				return nil, needThing("record editor", "")
 			}
 			return nil, run(e, e.fieldOn(focusOf(c)), a)
 		}

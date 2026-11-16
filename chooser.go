@@ -332,7 +332,7 @@ func registerChooser(r *Runtime) {
 		return func(ctx Ctx) Result {
 			c := r.chooserAt(ctx.Instance)
 			if c == nil {
-				return Failed(errors.New("no picker is open"))
+				return Failed(ctx.NeedTarget("target", ""))
 			}
 			c.sync()
 			return fn(c, ctx)

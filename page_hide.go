@@ -199,7 +199,7 @@ func registerPageHiding(r *Runtime) {
 			r := c.Runtime
 			page := r.PageOf(id)
 			if page == nil {
-				return nil, fmt.Errorf("unknown page %q", id)
+				return nil, c.Runtime.NotFound("ochazuke.page", id, nil)
 			}
 			return Thing{"title": r.pageLabel(id), "hidden": r.PageHidden(id), "active": id == r.Page}, nil
 		},

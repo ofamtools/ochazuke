@@ -597,7 +597,7 @@ func registerListPropFilter(r *Runtime) {
 		if l := r.propFilterList(focusOf(c)); l != nil {
 			return l, nil
 		}
-		return nil, errors.New("no focused row view")
+		return nil, needThing("row view", "")
 	}
 	guardList := func(ev KeyEvent) *Collection {
 		if id := StringArg(ev.Args, "id", ""); id != "" {

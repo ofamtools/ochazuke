@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"errors"
 	"slices"
 	"strconv"
 )
@@ -434,7 +433,7 @@ func registerColumnMotions(r *Runtime) {
 			}
 		}
 		if l == nil {
-			return nil, errors.New("no focused list")
+			return nil, needThing("list", "")
 		}
 		l.scrollColumns(StringArg(a, "to", ""), IntArg(a, "delta", 0)*max(1, IntArg(a, "steps", 1)))
 		return l.state(), nil

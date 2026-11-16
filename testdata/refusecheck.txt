@@ -2,7 +2,6 @@
 # A row with a reason (E1..E5: rights, loses, failure, declaration, cancel) is a legitimate refusal that stays.
 # A row without one is debt that may only shrink: REFUSECHECK_UPDATE=1 removes rows and lowers counts, never adds.
 # Adding a row is a reviewed edit.
-about.go	aboutRowOf	K5	"no about row is focused"	1
 about.go	aboutSections	K2	"no about section %q: one of %s"	1
 about.go	closeAboutPage	K15	"there is no page to go back to"	1
 about.go	closeAboutPage	K9	"the about page is not open"	1
@@ -100,7 +99,6 @@ chooser.go	Runtime.AddChooser	K15	"unknown picker parent or noun"	1
 chooser.go	Runtime.OpenPicker	K3	"picker kind is required"	1
 chooser.go	registerChooser	K1	"When(…) without Fallback"	2
 chooser.go	registerChooser	K15	"Failed(…)"	2
-chooser.go	registerChooser	K5	"no picker is open"	1
 chooser_sections.go	Chooser.beginMake	K15	"open a folder first: nothing can be made here"	1
 chooser_sections.go	Chooser.beginMake	K15	"this picker has nothing to make here"	1
 chooser_sections.go	Chooser.gotoSource	K15	"nowhere to go for %q"	1
@@ -130,7 +128,6 @@ chooser_sources.go	Chooser.up	K15	"nowhere to go up to"	1
 chooser_sources.go	Chooser.up	K9	"the source cannot step up"	1
 chooser_sources.go	registerChooserSources	K1	"When(…) without Fallback"	4
 chooser_sources.go	registerChooserSources	K15	"Failed(…)"	1
-chooser_sources.go	registerChooserSources	K5	"no picker is open"	1
 chrome_shape.go	Appearance.SetGlyph	K13	"glyph %q needs one-cell Unicode and Nerd marks"	1	declaration
 chrome_shape.go	registerGlyphs	K15	"unknown glyph set %q"	1
 cli.go	ParseArguments	K14	"arguments: %w"	1	failure
@@ -158,11 +155,9 @@ cli/completion.go	Shell.completionCommand	K15	"completion takes bash or zsh"	2
 cli/detail_fields.go	PageView.mountSections	K1	"When(\"catalog-detail-fields\") without Fallback"	1
 cli/detail_fields.go	PageView.mountSections	K15	"Failed(…)"	2
 cli/detail_fields.go	PageView.mountSections	K15	"no section detail on this page"	1
-cli/detail_fields.go	PageView.mountSections	K5	"no metadata field selected"	4
 cli/detail_fields.go	PageView.openFields	K15	"Failed(…)"	3
 cli/detail_json.go	registerJSONNodes	K15	"Failed(…)"	2
 cli/detail_json.go	registerJSONNodes	K15	"no JSON value pane"	1
-cli/detail_json.go	registerJSONNodes	K5	"no JSON node selected"	3
 cli/detail_kind.go	PageView.mountKind	K14	"page %s: detail kind %s: %w"	1	failure
 cli/detail_kind.go	RegisterDetailKind	K15	"detail kind %q is the record view"	1
 cli/detail_record_form.go	newRecordFormView	K15	"record-form: no runtime"	1
@@ -415,7 +410,6 @@ focus.go	Runtime.validateFocus	K15	"open page %q before selecting its context"	1
 focus.go	Runtime.validateFocus	K4	"unknown instance %q"	1
 focus.go	Runtime.validateFocus	K5	"select a context inside the current page; open a modal for a modal input"	1
 focus.go	var errModalAbove	K15	"a modal is open above this level"	1
-focus_actions.go	Runtime.OpenFocusActions	K1	"the focused-actions picker is off (setting actions.focused-picker)"	1
 focus_actions.go	Runtime.OpenFocusActions	K14	"%s: %w"	1	failure
 focus_actions.go	Runtime.OpenFocusActions	K15	"nothing at the focus has verbs to list"	1
 focus_actions.go	Runtime.OpenFocusActions	K2	"unknown operation %q"	1
@@ -438,7 +432,6 @@ help_views.go	registerHelpViews	K15	"Failed(…)"	3
 help_views.go	registerHelpViews	K15	"pick %q: want noun, mode or place"	1
 help_views.go	registerHelpViews	K9	"the help is not open"	1
 history.go	historyKinds	K15	"unknown history kind %q (action, change, fetch, system or all)"	1
-history.go	registerHistory	K4	"no history entry %q"	1
 history.go	var errNothingToRepeat	K15	"nothing to repeat"	1
 hooks.go	Runtime.AddDefaultHooks	K15	"default hook %d: a default row needs on and do (and is never off)"	1
 hooks.go	Runtime.ExportHooks	K15	"%s is the live %s; export elsewhere, or pass --force to overwrite it"	1
@@ -446,7 +439,6 @@ hooks.go	Runtime.ExportHooks	K3	"this application has no config directory; give 
 hooks.go	Runtime.hookOperation	K4	"unknown verb %q"	1
 hooks.go	registerHooks	K14	"fields: %w"	1	failure
 hooks.go	registerHooks	K15	"fields is a JSON object"	1
-hooks.go	registerHooks	K3	"event is required"	1
 index.go	Runtime.AddIndex	K4	"index of %q: no such noun"	1
 index.go	Runtime.OpenIndex	K15	"no noun %q"	1
 index.go	registerIndex	K15	"Failed(…)"	1
@@ -472,22 +464,17 @@ list.go	Runtime.AddList	K4	"unknown parent %q"	1
 list.go	Runtime.AddList	K8	"list %q is already registered"	1
 list.go	registerLists	K4	"list has no selected row"	1
 list.go	registerLists	K4	"unknown list %q"	1
-list.go	registerLists	K5	"no focused list"	1
 list_delta.go	Collection.Patch	K14	"list %s: %w"	1	failure
 list_delta.go	PatchItems	K15	"patch: %d indexes for %d upserted rows"	1
 list_delta.go	PatchItems	K15	"patch: index %d (row %q) is out of order or past the %d rows"	1
 list_delta.go	PatchItems	K15	"patch: row %q is upserted twice or also removed"	1
 list_facts.go	ListFacts.things	K15	"%s list answered %T, not rows"	1
 list_filter.go	registerListFilter	K4	"unknown list %v"	1
-list_filter.go	registerListFilter	K5	"no focused list"	1
 list_filter_compact.go	Collection.openViewForm	K15	"Failed(…)"	2
 list_filter_compact.go	Collection.openViewForm	K15	"list rows have no filterable props"	1
-list_filter_compact.go	filterViewForm.conditionAction	K1	"this prop is unavailable; its condition is kept as-is"	1
 list_filter_compact.go	filterViewForm.conditionAction	K15	"this condition is kept as-is; remove it to replace it"	1
 list_filter_compact.go	filterViewForm.editField	K15	"Failed(…)"	2
 list_filter_compact.go	filterViewForm.editField	K15	"no filter field %q"	1
-list_filter_compact.go	filterViewForm.focusPart	K1	"save controls are disabled"	1
-list_filter_compact.go	filterViewForm.focusPart	K1	"sort controls are disabled"	1
 list_filter_compact.go	filterViewForm.focusPart	K4	"no such form control"	1
 list_filter_compact.go	filterViewForm.selectedCondition	K15	"no selected condition"	1
 list_filter_compact.go	filterViewForm.setField	K15	"unknown form field %q"	1
@@ -498,14 +485,12 @@ list_filter_compact.go	filterViewForm.toggleValue	K15	"no selected prop"	1
 list_filter_compact.go	filterViewForm.write	K15	"Failed(…)"	4
 list_filter_compact.go	registerFilterViewForm	K5	"no filter form"	1
 list_filter_save_form.go	filterViewForm.deleteSaved	K15	"Failed(…)"	1
-list_filter_save_form.go	filterViewForm.savedAction	K1	"save controls are disabled"	1
 list_from.go	Collection.Refill	K15	"the list is fed rows, not a noun's store"	1
 list_from.go	Runtime.listSource	K4	"list from %q: no such noun"	1
 list_from.go	Runtime.listSource	K4	"list from %s: it has no key prop to name its rows by"	1
 list_from.go	Runtime.listSource	K4	"list from %s: its store has no List or Query"	1
 list_group.go	Collection.foldGroup	K15	"no group %q on this page"	1
 list_motions.go	registerListMotions	K4	"unknown list %v"	1
-list_motions.go	registerListMotions	K5	"no focused list"	1
 list_prop_filter.go	Collection.ApplyFilter	K15	"unknown saved filter %q"	1
 list_prop_filter.go	Collection.DeleteSavedFilter	K15	"%q is an app default; only user saved filters can be deleted"	1
 list_prop_filter.go	Collection.DeleteSavedFilter	K15	"unknown saved filter %q"	1
@@ -521,7 +506,6 @@ list_prop_filter.go	registerListPropFilter	K15	"no row view at %v"	1
 list_prop_filter.go	registerListPropFilter	K15	"no saved filters"	1
 list_prop_filter.go	registerListPropFilter	K15	"no valid saved filters; skipped %s"	1
 list_prop_filter.go	registerListPropFilter	K4	"no such prop condition"	1
-list_prop_filter.go	registerListPropFilter	K5	"no focused row view"	1
 list_query.go	Runtime.listQueryOf	K8	"group-sort %q is not a group-by prop"	1
 list_query.go	Runtime.parseListFilter	K15	"filter takes prop=value words or a saved filter's name; unknown saved filter %q for %s"	1
 list_query.go	parseGroupWords	K15	"group-by takes prop names; order the groups with group-sort"	1
@@ -543,7 +527,6 @@ list_sort.go	registerListSort	K1	"unknown or disabled sort field %q"	1
 list_sort.go	registerListSort	K15	"no row view to sort"	1
 list_visual.go	Collection.StartVisual	K4	"list has no selected row"	1
 list_visual.go	Collection.apply	K11	"Confirm: <expr> without Loses"	1
-list_visual.go	registerListVisual	K5	"no focused list"	1
 macros.go	Runtime.replayMacro	K15	"macro count must be between 1 and 10000"	1
 macros.go	Runtime.replayMacro	K15	"macro recursion limit exceeded"	1
 macros.go	Runtime.replayMacro	K15	"no previous macro"	1
@@ -587,7 +570,6 @@ markdown/edit.go	Doc.Outline	K15	"Failed(…)"	1
 markdown/edit.go	Doc.Outline	K15	"no headings"	1
 markdown/edit.go	Doc.Paste	K15	"nothing to paste"	1
 markdown/edit.go	Doc.Resolve	K5	"no note selected"	1
-markdown/edit.go	Doc.Yank	K5	"nothing to yank"	1
 markdown/edit.go	Doc.flush	K14	"not written: load markdown: %w"	1	failure
 markdown/edit.go	Doc.flush	K14	"not written: save markdown: %w"	1	failure
 markdown/edit.go	Doc.flush	K15	"not written: the text around the edited block changed in the source"	1
@@ -620,7 +602,6 @@ markdown/notes.go	ReplyNote	K4	"no such note"	1
 markdown/notes.go	SetFlags	K5	"no note selected"	3
 markdown/verbs.go	byKind	K2	"unknown kind %q"	1
 markdown/verbs.go	resolve	K15	"no markdown on the focus path"	1
-markdown/verbs.go	resolve	K4	"unknown markdown %q"	1
 markdown/view.go	registerView	K15	"Failed(…)"	1
 markdown/view.go	registerView	K15	"no Markdown viewer open"	1
 mode_pin.go	Runtime.PinInstance	K15	"mode %q is a pending mode; pin a base mode"	1
@@ -632,7 +613,6 @@ motion_scroll.go	registerViewMotions	K15	"no %s edge here"	1
 motion_scroll.go	registerViewMotions	K15	"nothing to move here"	1
 motion_scroll.go	registerViewScroll	K15	"unknown scroll %q: want line or page"	1
 motion_scroll.go	scrollBys	K15	"nothing to page here"	1
-motion_scroll.go	scrollBys	K5	"nothing to scroll here"	1
 namespace.go	Runtime.AddNounAlias	K13	"alias %q already names %s"	1	declaration
 namespace.go	Runtime.AddNounAlias	K13	"alias and noun must be nonempty"	1	declaration
 namespace.go	Runtime.AddNounAlias	K15	"alias %q holds a dot"	1
@@ -642,7 +622,6 @@ namespace.go	Runtime.Unalias	K8	"%q is not a noun alias"	1
 namespace.go	Runtime.checkNounOverlap	K13	"noun %s clashes with the operation %s (verb %s of %s): a noun may not be nested under a noun with a verb of that name"	1	declaration
 namespace.go	Runtime.checkOverlap	K13	"operation %s clashes with the noun %s: a verb may not share its name with a noun nested under its noun"	1	declaration
 need.go	Runtime.refusal	K15	"NotApplicableError{…}"	1
-need.go	Runtime.refusal	K5	"no %v is focused"	1
 noun.go	ModeBuilder.UnbindGuarded	K1	"When: <expr> without Fallback"	1
 noun.go	Runtime.AddVerbAvailability	K15	"AddVerbAvailability: empty guard name"	1
 noun.go	Runtime.AddVerbAvailability	K2	"unknown operation %q"	1
@@ -669,7 +648,6 @@ noun_rename.go	Runtime.RenameNoun	K15	"rename needs from and to"	1
 noun_rename.go	Runtime.RenameNoun	K3	"rename %v: since or removeAfter is required"	1
 open_modal.go	Runtime.openModal	K15	"Failed(…)"	1
 open_modal.go	Runtime.openModal	K15	"the open modal is already open"	1
-open_modal.go	registerOpen	K1	"the open modal is off (setting open.modal); opener.run opens text directly"	1
 open_resolve.go	OpenerRow.check	K14	"action %s %w"	1	failure
 open_resolve.go	OpenerRow.check	K4	"unknown action %q (os-open, os-reveal, page, viewer, verb)"	1
 open_resolve.go	OpenerRow.check	K8	"a row needs exactly one of scheme, prefix, ext and noun"	1
@@ -688,7 +666,6 @@ page_hide.go	Runtime.ShowPage	K4	"unknown page %q"	1
 page_hide.go	patchPage	K15	"%s is already hidden from the tabs"	1
 page_hide.go	patchPage	K15	"%s is already in the tabs"	1
 page_hide.go	registerPageHiding	K1	"When: <expr> without Fallback"	1
-page_hide.go	registerPageHiding	K4	"unknown page %q"	1
 pages.go	Runtime.AddPage	K15	"page %q must be registered under app"	1
 pages.go	Runtime.OpenPage	K15	"close the active modal before opening a page"	1
 pages.go	Runtime.OpenPage	K4	"unknown page %q"	1
@@ -797,7 +774,6 @@ picker_verbs.go	Chooser.pickerInto	K15	"Failed(…)"	1
 picker_verbs.go	Chooser.pickerMove	K15	"Failed(…)"	1
 picker_verbs.go	Chooser.pickerUp	K15	"Failed(…)"	1
 picker_verbs.go	registerPickerVerbs	K1	"When(…) without Fallback"	3
-picker_verbs.go	registerPickerVerbs	K5	"no picker is open"	1
 prop_filter.go	NounBuilder.Filters	K14	"saved filter %s: %w"	1	failure
 prop_filter.go	NounBuilder.PropsOff	K15	"props off %q: not a field pattern"	1
 prop_filter.go	Runtime.SavedFilters	K3	"collection.filters: a saved filter needs a name"	1
@@ -891,7 +867,6 @@ record_chips.go	recordField.chipEdge	K15	"no chips"	1
 record_chips.go	recordField.chipEdge	K15	"unknown edge %q"	1
 record_chips.go	registerFormChips	K1	"When(…) without Fallback"	6
 record_chips.go	registerFormChips	K4	"the focused field has no chips"	1
-record_chips.go	registerFormChips	K5	"no focused record editor"	1
 record_editor.go	RecordEditor.choose	K4	"%s has no choices"	1
 record_editor.go	RecordEditor.choose	K8	"the focused field is not a choice field"	1
 record_editor.go	RecordEditor.choosePath	K15	"Failed(…)"	1
@@ -911,7 +886,6 @@ record_editor.go	Runtime.newRecordEditor	K14	"record editor watch: %w"	1	failure
 record_editor.go	Runtime.newRecordEditor	K15	"record editor needs at least one field"	1
 record_editor.go	registerForms	K1	"When(…) without Fallback"	2
 record_editor.go	registerForms	K15	"no open picker"	1
-record_editor.go	registerForms	K5	"no focused record editor"	1
 record_list.go	RecordEditor.itemDelete	K5	"no item under the cursor"	1
 record_list.go	RecordEditor.itemMove	K15	"already the first item"	1
 record_list.go	RecordEditor.itemMove	K15	"already the last item"	1
@@ -922,7 +896,6 @@ record_list.go	RecordEditor.itemYank	K5	"no item under the cursor"	1
 record_list.go	recordField.itemFirst	K15	"no items"	1
 record_list.go	recordField.itemLast	K15	"no items"	1
 record_list.go	registerFormItems	K1	"When(…) without Fallback"	10
-record_list.go	registerFormItems	K5	"no focused record editor"	1
 record_list.go	registerFormItems	K8	"the focused field is not a list"	1
 ref_verbs.go	refVerbs	K8	"%s is not a noun:key reference"	1
 ref_verbs.go	var needRefProp	K1	"Lacks: it has no reference prop"	1
@@ -1091,7 +1064,6 @@ settings_owners.go	Runtime.DeclareSettingSection	K15	"setting section %s: owner 
 settings_owners.go	Settings.unknownOwner	K13	"this application declares no settings"	1	declaration
 settings_owners.go	Settings.unknownOwner	K2	"no settings owner %q: one of %s"	1
 settings_page_layout.go	findUnit	K2	"no settings section %q: one of %s"	1
-settings_page_layout.go	registerSettingsLayoutView	K1	"there is no All section: settings.all-section is off"	1
 settings_page_layout.go	runScopeCopy	K5	"every setting here is at its default: nothing to copy"	1
 settings_page_layout.go	showSettingsSection	K13	"this application declares no settings"	1	declaration
 settings_page_layout.go	showSettingsSection	K9	"the settings page is not open"	1
@@ -1105,13 +1077,11 @@ settings_view.go	closeSettingsPage	K15	"there is no page to go back to"	1
 settings_view.go	closeSettingsPage	K9	"the settings page is not open"	1
 settings_view.go	commitSettingPrompt	K15	"an item cannot be empty"	1
 settings_view.go	commitSettingPrompt	K4	"%s has no item %d"	1
-settings_view.go	focusedSettingRow	K5	"no setting is focused"	1
 settings_view.go	openItemPrompt	K4	"%s has no item %d"	1
 settings_view.go	registerSettingItemThings	K15	"a setting item is named setting/index, not %q"	1
 settings_view.go	registerSettingItemThings	K15	"no setting item %q"	1
 settings_view.go	settingAdd	K8	"%s is not a list"	1
 settings_view.go	settingItemDelete	K4	"%s has no item %d"	1
-settings_view.go	settingItemOf	K5	"no list item is focused"	1
 settings_view.go	settingPromptCancel	K15	"no setting prompt is open"	1
 settings_view.go	settingPromptCommit	K15	"no setting prompt is open"	1
 settings_view.go	settingsOpen	K13	"this application declares no settings"	1	declaration
@@ -1126,7 +1096,6 @@ standard_edit.go	Runtime.editChooserEarly	K15	"Failed(…)"	1
 standard_edit.go	Runtime.editHandler	K15	"Failed(…)"	3
 standard_edit.go	Runtime.editWriter	K15	"Failed(…)"	2
 standard_edit.go	Runtime.readEdit	K15	"Failed(…)"	1
-standard_edit.go	editArgs	K6	"%s.%s is not writable"	1
 standard_edit.go	editSession.bindFieldWrites	K15	"Failed(…)"	1
 standard_edit.go	editSession.bindSubmit	K14	"%s %w"	1	failure
 standard_edit.go	editSubject.reload	K15	"Failed(…)"	1
@@ -1205,9 +1174,7 @@ subjects.go	Runtime.subjectsNotice	K14	"%s failed on all %d rows: %w"	1	failure
 subjects.go	Runtime.subjectsOf	K8	"subject %q is not a %s"	1
 table_cells.go	Runtime.cellTable	K15	"not a cell table (CellSelect)"	1
 table_cells.go	Runtime.tableList	K4	"unknown list %q"	1
-table_cells.go	Runtime.tableList	K5	"no focused list"	1
 table_cells.go	tableYank	K15	"not a cell table (CellSelect): only the row copies"	1
-table_columns.go	registerColumnMotions	K5	"no focused list"	1
 table_fit.go	registerTableFit	K15	"not a cell table (CellSelect)"	1
 table_fit.go	registerTableFit	K15	"not a table"	1
 table_pins.go	Collection.columnNamed	K15	"no column %q"	1
@@ -1217,14 +1184,11 @@ terminal.go	Runtime.AddTerminal	K3	"terminal stream is required"	1
 terminal.go	Runtime.AddTerminal	K4	"unknown parent %q"	1
 terminal.go	Runtime.SetTerminalLeader	K14	"terminal leader %q: %w"	1	failure
 terminal.go	Runtime.terminalOf	K15	"unknown terminal %q"	1
-terminal.go	Runtime.terminalOf	K5	"no focused terminal"	1
-terminal.go	registerTerminal	K3	"keys is required"	1
 terminal.go	validLeader	K15	"must be one ctrl+ or alt+ key, such as \"ctrl+b\""	1
 theme.go	newAppearance	K2	"unknown theme %q: use %s"	1
 theme.go	validDim	K15	"must be 0 to %d"	1
 thing_keys.go	Runtime.findTarget	K15	"%s %q names %d %s: use one id (%s)"	1
 thing_keys.go	Runtime.rowKey	K15	"the %s row %q holds no %s: put it in the row's Data or Props"	1
-thing_keys.go	Runtime.subjectKey	K5	"no %v is focused"	1
 thing_keys.go	Thing.Into	K14	"thing: %s: %w"	1	failure
 thing_keys.go	Thing.Into	K3	"thing: Into needs a pointer to a struct, not %T"	1
 thing_keys.go	checkHumanKey	K13	"%s: props %s and %s are both the Human key; a noun has one"	1	declaration
@@ -1241,11 +1205,9 @@ timeline.go	Timeline.SetOpen	K15	"unknown card %q"	1
 timeline.go	Timeline.target	K15	"unknown card %q"	1
 timeline.go	Timeline.target	K4	"timeline has no cards"	1
 timeline.go	registerTimelines	K15	"unknown timeline %q"	1
-timeline.go	registerTimelines	K5	"no focused timeline"	1
 timeline_steps.go	Timeline.foldStep	K15	"the current step is not in an open section"	1
 timeline_steps.go	registerTimelineSteps	K15	"not inside a card"	4
 timeline_steps.go	registerTimelineSteps	K15	"unknown timeline %q"	1
-timeline_steps.go	registerTimelineSteps	K5	"no focused timeline"	1
 tone.go	ToneStyle.UnmarshalJSON	K15	"a tone is a colour, a role, or {\"fg\": ..., \"bg\": ..., \"bold\": true, \"dim\": true}"	1
 tone.go	parseTones	K15	"tone %q: a tone name is one word"	1
 tone.go	parseTones	K15	"tone %s: %q is not #RRGGBB, #RGB, an ANSI index 0-255 or a role (%s)"	1
@@ -1277,7 +1239,6 @@ tree.go	Tree.rowKey	K4	"tree has no selected node"	1
 tree.go	Tree.shift	K4	"tree has no selected node"	1
 tree.go	Tree.write	K14	"write %s: %w"	1	failure
 tree.go	registerOutlineThings	K15	"no node %q"	1
-tree.go	registerOutlineThings	K5	"no focused tree"	1
 tree.go	registerTrees	K1	"When(\"outline-collapses\") without Fallback"	1
 tree.go	registerTrees	K1	"When(\"outline-deletable\") without Fallback"	1
 tree.go	registerTrees	K1	"When(\"outline-movable\") without Fallback"	3
@@ -1286,10 +1247,7 @@ tree.go	registerTrees	K1	"When(\"tree-editable\") without Fallback"	9
 tree.go	registerTrees	K1	"When(\"tree-zoom\") without Fallback"	3
 tree.go	registerTrees	K15	"Failed(…)"	1
 tree.go	registerTrees	K15	"tree"	1
-tree.go	registerTrees	K5	"no focused tree"	1
 tree.go	var ErrTreeRefused	K15	"change refused"	1
-tree_delete.go	Tree.remove	K5	"no row selected"	1
-tree_yank.go	Tree.yank	K5	"no row selected"	1
 tree_zoom.go	Tree.Zoom	K4	"unknown tree node %q"	1
 ui.go	registerUI	K15	"Failed(…)"	1
 unbound_verbs.go	Runtime.bindUserKey	K14	"%s does not parse, so it is left alone: %w"	1	failure

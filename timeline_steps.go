@@ -888,7 +888,7 @@ func registerTimelineSteps(r *Runtime) {
 		if t := r.timelineOf(focusOf(c)); t != nil {
 			return t, nil
 		}
-		return nil, errors.New("no focused timeline")
+		return nil, needThing("ochazuke.timeline", "")
 	}
 	id := Parameter{Type: "string", Description: "The timeline (default: the focused one)", Noun: timelineNoun}
 	card := Parameter{Type: "string", Description: "The card (default: the selected one)"}

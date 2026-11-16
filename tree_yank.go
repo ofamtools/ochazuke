@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -84,7 +83,7 @@ func (t *Tree) yank(c Context, register string) error {
 	}
 	id := t.target(c)
 	if t.index(id) < 0 {
-		return errors.New("no row selected")
+		return needThing("row", "")
 	}
 	text, n := t.outlineText(t.subtreeIDs(id))
 	if err := t.r.storeYank(lineYank(text), register, false); err != nil {

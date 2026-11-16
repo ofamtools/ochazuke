@@ -351,7 +351,7 @@ func (r *Runtime) tableList(c Context, args Arguments) (*Collection, error) {
 			}
 		}
 	}
-	return nil, errors.New("no focused list")
+	return nil, needThing("list", "")
 }
 
 // cellTable is tableList for the verbs that need a current column.

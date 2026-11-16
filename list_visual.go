@@ -423,7 +423,7 @@ func registerListVisual(r *Runtime) {
 			}
 		}
 		if l == nil {
-			return nil, errors.New("no focused list")
+			return nil, needThing("list", "")
 		}
 		if _, ok := l.Selected(); !ok {
 			return l.state(), nil

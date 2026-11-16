@@ -123,6 +123,7 @@ var outcomeTable = []outcomeRow{
 	{Type: "*AmbiguousNounError", Find: as[*AmbiguousNounError], Kind: OutcomeNeeds, Cause: CauseChoice, Fill: fillAmbiguous},
 	{Type: "*ReadOnlyError", Find: as[*ReadOnlyError], Kind: OutcomeNothing, Cause: CauseKept, Fill: fillReadOnly},
 	{Type: "*KeptError", Find: as[*KeptError], Kind: OutcomeNothing, Cause: CauseKept},
+	{Type: "*NothingError", Find: as[*NothingError], Kind: OutcomeNothing, Cause: CauseUnchanged, Fill: fillNothing},
 	{Type: "ErrTreeRefused", Find: is(ErrTreeRefused), Kind: OutcomeNothing, Cause: CauseKept},
 	{Type: "*NotApplicableError", Find: as[*NotApplicableError], Kind: OutcomeNothing, Cause: CauseNotHere},
 	{Type: "*RefusedError", Find: as[*RefusedError], Kind: OutcomeFailed, Cause: CauseRights, Fill: fillRefused},
@@ -313,6 +314,29 @@ func (e *DeclinedError) Error() string { return "declined: " + e.Prompt }
 // line as information (Ctx.Info), never a modal or an error.
 func Nothing(cause OutcomeCause, reason string) Result {
 	return Result{nothing: &Outcome{Kind: OutcomeNothing, Cause: cause, Reason: reason}}
+}
+
+// NothingError is Nothing as an error: the way an interaction handler (it
+// returns (any, error), not a Result) or a helper it calls says it ran and
+// found nothing to change, with the cause. It is an error like ReadOnlyError
+// and KeptError: OutcomeOf answers nothing with its cause, the surfaces tell
+// the reason as information, and the history row says nothing.
+type NothingError struct {
+	Cause  OutcomeCause
+	Reason string
+}
+
+func (e *NothingError) Error() string { return e.Reason }
+
+// NothingErr is the NothingError for cause (CauseKept, CauseUnchanged,
+// CauseEmpty, CauseNotHere) and reason.
+func NothingErr(cause OutcomeCause, reason string) error {
+	return &NothingError{Cause: cause, Reason: reason}
+}
+
+func fillNothing(err error, o *Outcome) {
+	e := err.(*NothingError)
+	o.Cause, o.Reason = e.Cause, e.Reason
 }
 
 // ExecuteOutcome runs q at the current focus as Execute does and answers

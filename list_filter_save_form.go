@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"errors"
 	"slices"
 	"strings"
 
@@ -17,7 +16,7 @@ func (v *filterViewForm) saveHeight() int {
 
 func (v *filterViewForm) savedAction(verb string) error {
 	if v.saveInput == nil {
-		return errors.New("save controls are disabled")
+		return NothingErr(CauseNotHere, "save controls are disabled")
 	}
 	if err := v.e.flush(); err != nil {
 		return err

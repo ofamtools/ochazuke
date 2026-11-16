@@ -349,7 +349,7 @@ func (v *filterViewForm) focusPart(part string) error {
 	switch part {
 	case "save":
 		if v.saveInput == nil {
-			return errors.New("save controls are disabled")
+			return NothingErr(CauseNotHere, "save controls are disabled")
 		}
 		if err := v.l.r.SetFocus(v.saveInput.ID); err != nil {
 			return err
@@ -357,7 +357,7 @@ func (v *filterViewForm) focusPart(part string) error {
 		return v.saveInput.SelectAll()
 	case "sort":
 		if v.sortPicker == nil {
-			return errors.New("sort controls are disabled")
+			return NothingErr(CauseNotHere, "sort controls are disabled")
 		}
 		if err := v.l.r.SetFocus(v.sortPicker.input.ID); err != nil {
 			return err
@@ -601,7 +601,7 @@ func (v *filterViewForm) conditionAction(action string) error {
 				return v.editField(f.prop)
 			}
 		}
-		return errors.New("this prop is unavailable; its condition is kept as-is")
+		return NothingErr(CauseNotHere, "this prop is unavailable; its condition is kept as-is")
 	case "remove":
 		conds = slices.Delete(conds, i, i+1)
 	case "invert":

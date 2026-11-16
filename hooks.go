@@ -518,7 +518,7 @@ func registerHooks(r *Runtime) {
 	}, Positional: []string{"event"}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		event := StringArg(a, "event", "")
 		if event == "" {
-			return nil, errors.New("event is required")
+			return nil, needValue("event", "")
 		}
 		fields := map[string]any{}
 		switch v := a["fields"].(type) {

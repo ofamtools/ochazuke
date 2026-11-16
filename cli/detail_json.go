@@ -74,7 +74,7 @@ func registerJSONNodes(r *ochazuke.Runtime) {
 			Verb("show", func(c ochazuke.Ctx) ochazuke.Result {
 				n := jsonNode(c)
 				if n == nil {
-					return ochazuke.Failed(errors.New("no JSON node selected"))
+					return ochazuke.Failed(c.NeedTarget("target", ""))
 				}
 				_, err := c.Runtime.OpenTextView(n.Path(), jsontree.Pretty(n))
 				if err != nil {
@@ -85,7 +85,7 @@ func registerJSONNodes(r *ochazuke.Runtime) {
 			Verb("yank", func(c ochazuke.Ctx) ochazuke.Result {
 				n := jsonNode(c)
 				if n == nil {
-					return ochazuke.Failed(errors.New("no JSON node selected"))
+					return ochazuke.Failed(c.NeedTarget("target", ""))
 				}
 				text := jsontree.Pretty(n)
 				if err := c.Runtime.StoreYank(ochazuke.Yank{Text: text, Shape: "char"}, ochazuke.StringArg(c.Args, "register", ""), false); err != nil {
@@ -96,7 +96,7 @@ func registerJSONNodes(r *ochazuke.Runtime) {
 			}, "Copy the complete selected JSON value").Fetch().
 			Verb("scroll", func(c ochazuke.Ctx) ochazuke.Result {
 				if c.Instance == nil {
-					return ochazuke.Failed(errors.New("no JSON node selected"))
+					return ochazuke.Failed(c.NeedTarget("target", ""))
 				}
 				for _, id := range c.Runtime.Ancestry(c.Instance.ID) {
 					if inst := c.Runtime.Instances[id]; inst != nil {

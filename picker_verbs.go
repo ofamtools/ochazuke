@@ -1,7 +1,6 @@
 package ochazuke
 
 import (
-	"errors"
 	"maps"
 	"slices"
 )
@@ -110,7 +109,7 @@ func registerPickerVerbs(r *Runtime) {
 		return func(ctx Ctx) Result {
 			m := r.pickerAt(ctx.Instance)
 			if m == nil {
-				return Failed(errors.New("no picker is open"))
+				return Failed(ctx.NeedTarget("target", ""))
 			}
 			return fn(m, ctx)
 		}

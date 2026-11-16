@@ -1059,7 +1059,7 @@ func registerSettingsLayoutView(r *Runtime) {
 	}})
 	r.Register(Operation{Key: "ochazuke.setting.all", Description: "Show the Settings page's All section: every setting in one list, each under its tab and section (opens the page when it is closed)", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if !r.Settings().Bool(SettingsAllSectionSetting) {
-			return nil, errors.New("there is no All section: settings.all-section is off")
+			return nil, NothingErr(CauseNotHere, "there is no All section: settings.all-section is off")
 		}
 		if _, err := r.Execute(Request{Noun: settingsSectionNoun, Verb: "open", Args: Arguments{"section": unitKey("", settingsAllID)}}); err != nil {
 			return nil, err

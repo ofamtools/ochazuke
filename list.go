@@ -986,7 +986,7 @@ func registerLists(r *Runtime) {
 				return list, nil
 			}
 		}
-		return nil, errors.New("no focused list")
+		return nil, needThing("list", "")
 	}
 	// rowOf names the row an operation addresses: args.item, else the row on
 	// the context, else the selection.

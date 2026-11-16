@@ -767,7 +767,7 @@ func editArgs(n *Noun, args Arguments) (*PropSpec, map[string]any, error) {
 	for name, value := range rest {
 		p := n.prop(name)
 		if p == nil || !p.writable() {
-			return nil, nil, fmt.Errorf("%s.%s is not writable", n.Name, name)
+			return nil, nil, &ReadOnlyError{Noun: n.Name, Prop: name}
 		}
 		changes[name] = value
 	}

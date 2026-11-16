@@ -1811,7 +1811,7 @@ func registerTrees(r *Runtime) {
 		return func(c Ctx) Result {
 			t := c.Runtime.treeOf(focusOf(c.Context))
 			if t == nil {
-				return Failed(errors.New("no focused tree"))
+				return Failed(c.NeedTarget("target", ""))
 			}
 			if err := run(t, c); err != nil {
 				// What the outcome table calls nothing (a node its Fixed
@@ -1913,7 +1913,7 @@ func registerOutlineThings(r *Runtime) {
 		if t := c.Runtime.treeOf(focusOf(c.Context)); t != nil {
 			return t, nil
 		}
-		return nil, errors.New("no focused tree")
+		return nil, c.NeedTarget("target", "")
 	}
 	r.Define("ochazuke.outline").DefaultKeys(false).Props(
 		PropSpec{Name: "id", Key: true, Parameter: Parameter{Description: "The node's id"}},

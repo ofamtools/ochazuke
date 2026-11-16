@@ -41,11 +41,11 @@ func (v *PageView) mountSections() {
 		r.Define(detailFieldNoun).
 			Verb("show", func(c ochazuke.Ctx) ochazuke.Result {
 				if c.Instance == nil {
-					return ochazuke.Failed(errors.New("no metadata field selected"))
+					return ochazuke.Failed(c.NeedTarget("target", ""))
 				}
 				value, ok := c.Instance.Data.(detailFieldValue)
 				if !ok {
-					return ochazuke.Failed(errors.New("no metadata field selected"))
+					return ochazuke.Failed(c.NeedTarget("target", ""))
 				}
 				_, err := c.Runtime.OpenTextView(value.label, value.full)
 				if err != nil {
@@ -55,11 +55,11 @@ func (v *PageView) mountSections() {
 			}, "Expand the complete metadata value in a read-only text view").Fetch().
 			Verb("yank", func(c ochazuke.Ctx) ochazuke.Result {
 				if c.Instance == nil {
-					return ochazuke.Failed(errors.New("no metadata field selected"))
+					return ochazuke.Failed(c.NeedTarget("target", ""))
 				}
 				value, ok := c.Instance.Data.(detailFieldValue)
 				if !ok {
-					return ochazuke.Failed(errors.New("no metadata field selected"))
+					return ochazuke.Failed(c.NeedTarget("target", ""))
 				}
 				if err := c.Runtime.StoreYank(ochazuke.Yank{Text: value.full, Shape: "char"}, ochazuke.StringArg(c.Args, "register", ""), false); err != nil {
 					return ochazuke.Failed(err)

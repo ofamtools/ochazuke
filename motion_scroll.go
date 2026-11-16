@@ -222,7 +222,7 @@ func scrollBys() map[string]scrollBy {
 			run: func(r *Runtime, c Context, a Arguments) (any, error) {
 				scroll := r.viewScroller(focusOf(c))
 				if scroll == nil {
-					return nil, errors.New("nothing to scroll here")
+					return nil, NothingErr(CauseEmpty, "nothing to scroll here")
 				}
 				scroll(IntArg(a, "lines", 1) * max(1, IntArg(a, "count", 1)))
 				return true, nil

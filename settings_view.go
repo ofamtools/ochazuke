@@ -261,14 +261,14 @@ func focusedSettingRow(r *Runtime, c Context) (*Setting, error) {
 	if one := focusedSetting(r, focusOf(c)); one != nil {
 		return one, nil
 	}
-	return nil, errors.New("no setting is focused")
+	return nil, needThing("ochazuke.setting", "")
 }
 
 // settingItemOf is the list item on the focus, and its setting.
 func settingItemOf(r *Runtime, c Context) (*Setting, settingItemRef, error) {
 	inst := r.Instances[focusOf(c)]
 	if inst == nil || inst.Noun != settingItemNoun {
-		return nil, settingItemRef{}, errors.New("no list item is focused")
+		return nil, settingItemRef{}, needThing("list item", "")
 	}
 	ref, _ := inst.Data.(settingItemRef)
 	one := r.Settings().find(ref.Name)

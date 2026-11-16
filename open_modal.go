@@ -46,7 +46,7 @@ func registerOpen(r *Runtime) {
 	}})
 	r.Register(Operation{Key: KeyOf(OpenNoun, "show"), Description: "Open the open modal: type or paste anything, see what it would do, enter opens it (setting open.modal)", Parameters: text(false), Result: "open result", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if !r.Settings().Bool(OpenModalSetting) {
-			return nil, errors.New("the open modal is off (setting open.modal); opener.run opens text directly")
+			return nil, NothingErr(CauseNotHere, "the open modal is off (setting open.modal); opener.run opens text directly")
 		}
 		return nil, r.openModal(StringArg(a, "text", ""))
 	}})

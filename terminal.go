@@ -314,7 +314,7 @@ func (r *Runtime) terminalOf(c Context, args Arguments) (*Terminal, error) {
 			return t, nil
 		}
 	}
-	return nil, errors.New("no focused terminal")
+	return nil, needThing("ochazuke.terminal", "")
 }
 
 // registerTerminal defines the terminal noun: the terminal mode, where every
@@ -337,7 +337,7 @@ func registerTerminal(r *Runtime) {
 			}
 			keys := strings.Fields(StringArg(a, "keys", ""))
 			if len(keys) == 0 {
-				return nil, errors.New("keys is required")
+				return nil, needValue("keys", "")
 			}
 			return keys, t.stream.Send(keys...)
 		}, "Forward key names, in order, to the pane").Typing().History(HistoryChange).

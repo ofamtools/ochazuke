@@ -413,7 +413,7 @@ func resolve(r *ochazuke.Runtime, c ochazuke.Context, a ochazuke.Arguments) (*Do
 		if d := Of(r, id); d != nil {
 			return d, nil
 		}
-		return nil, fmt.Errorf("unknown markdown %q", id)
+		return nil, r.NotFound("ochazuke.markdown", id, nil)
 	}
 	for i := len(c.Path) - 1; i >= 0; i-- {
 		if d := Of(r, c.Path[i]); d != nil {

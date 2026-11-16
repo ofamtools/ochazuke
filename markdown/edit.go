@@ -791,7 +791,7 @@ func (d *Doc) Yank() error {
 	}
 	e, off := d.cursor()
 	if e < 0 {
-		return errors.New("nothing to yank")
+		return ochazuke.NothingErr(ochazuke.CauseEmpty, "nothing to yank")
 	}
 	start, end := d.deletion(e, off)
 	return d.r.StoreYank(ochazuke.Yank{Text: d.text[start:end] + "\n", Shape: "line"}, "", false)

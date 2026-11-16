@@ -101,7 +101,7 @@ func registerListMotions(r *Runtime) {
 				return list, nil
 			}
 		}
-		return nil, errors.New("no focused list")
+		return nil, needThing("list", "")
 	}
 	for _, direction := range []struct {
 		verb  string
