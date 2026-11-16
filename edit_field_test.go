@@ -47,15 +47,15 @@ func TestEditFieldOnAppEditAndFormsEditOff(t *testing.T) {
 		if err := e.Leave(); err != nil {
 			t.Fatal(err)
 		}
-		plain, err := r.Execute(Request{Noun: "parcel", Verb: "edit"})
+		o := r.ExecuteOutcome(Request{Noun: "parcel", Verb: "edit"})
 		switch c.name {
 		case "forms.edit off":
-			if err == nil || !strings.Contains(err.Error(), "forms.edit is off") {
-				t.Fatalf("%s: the full form ran: %v %v", c.name, plain, err)
+			if o.Kind != OutcomeNothing || o.Cause != CauseNotHere || !strings.Contains(o.Reason, "forms.edit is off") {
+				t.Fatalf("%s: the full form ran: %s/%s %q", c.name, o.Kind, o.Cause, o.Reason)
 			}
 		default:
-			if err != nil || plain != "own edit" {
-				t.Fatalf("%s: the app's edit lost: %v %v", c.name, plain, err)
+			if o.Kind != OutcomeDone || o.Value != "own edit" {
+				t.Fatalf("%s: the app's edit lost: %+v", c.name, o)
 			}
 		}
 	}

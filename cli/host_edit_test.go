@@ -180,8 +180,8 @@ func TestMountedStandardEditOptOut(t *testing.T) {
 	if len(got.Warnings) > 0 {
 		t.Fatal(got.Warnings)
 	}
-	if _, err := r.Execute(ochazuke.Request{Noun: "ext-task", Verb: "edit", Args: ochazuke.Arguments{"id": "t1"}}); err == nil {
-		t.Fatal("disabled mounted editor ran")
+	if o := r.ExecuteOutcome(ochazuke.Request{Noun: "ext-task", Verb: "edit", Args: ochazuke.Arguments{"id": "t1"}}); o.Kind != ochazuke.OutcomeNothing || o.Cause != ochazuke.CauseNotHere {
+		t.Fatalf("disabled mounted editor ran: %+v", o)
 	}
 	// set runs here over the proxy store, whose set the proxy answers.
 	if _, err := r.Execute(ochazuke.Request{Noun: "ext-task", Verb: "set", Args: ochazuke.Arguments{"id": "t1", "prop": "title", "value": "Still writable"}}); err != nil {

@@ -95,8 +95,8 @@ func TestListFactsPropsAndGet(t *testing.T) {
 		t.Fatalf("unknown widget: %v", err)
 	}
 	// A remote fact (read through Ctx.Await) has no overlay yet: debt.
-	if _, err := r.Execute(Request{Noun: "widget", Verb: "create", Confirmed: true}); err == nil || !strings.Contains(err.Error(), FactReason) {
-		t.Fatalf("create: %v", err)
+	if o := r.ExecuteOutcome(Request{Noun: "widget", Verb: "create", Confirmed: true}); o.Kind != OutcomeNothing || o.Cause != CauseNotHere || o.Reason != FactReason {
+		t.Fatalf("create: %s/%s %q", o.Kind, o.Cause, o.Reason)
 	}
 	if v, err := r.Execute(Request{Noun: "widget", Verb: "list"}); err != nil || len(v.([]ListItem)) != 2 {
 		t.Fatalf("the tool's own list: %v %v", v, err)
