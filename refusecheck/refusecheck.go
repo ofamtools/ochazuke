@@ -127,7 +127,11 @@ type Config struct {
 var (
 	errCalls     = map[string]bool{"fmt.Errorf": true, "errors.New": true}
 	surfaceCalls = map[string]bool{"Failed": true, "Refuse": true, "resultError": true, "refused": true, "refuse": true, "contextError": true}
-	typedErrors  = map[string]bool{"ReadOnlyError": true, "NotApplicableError": true, "MissingParameterError": true}
+	// asking calls build the typed answer that asks, answers a thing that
+	// is not found, or says nothing to do: a surface call wrapping one is
+	// an enabling answer, not a refusal.
+	askingCalls = map[string]bool{"Need": true, "NeedTarget": true, "NotFound": true, "NothingErr": true, "needThing": true, "needValue": true}
+	typedErrors = map[string]bool{"ReadOnlyError": true, "NotApplicableError": true, "MissingParameterError": true}
 )
 
 type scanner struct {
@@ -259,7 +263,7 @@ func (s *scanner) call(c *ast.CallExpr) {
 		}
 		s.add(c.Pos(), class, tmpl)
 	case surfaceCalls[lastName(name)]:
-		if hasErrConstruction(c.Args) {
+		if hasErrConstruction(c.Args) || hasAskingCall(c.Args) {
 			return
 		}
 		tmpl, ok := template(c.Args)
@@ -361,6 +365,17 @@ func literalFields(cl *ast.CompositeLit) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// hasAskingCall reports whether an argument is a call of one of the typed
+// answers that ask (askingCalls).
+func hasAskingCall(args []ast.Expr) bool {
+	for _, a := range args {
+		if c, ok := a.(*ast.CallExpr); ok && askingCalls[lastName(calleeName(c.Fun))] {
+			return true
+		}
+	}
+	return false
 }
 
 func hasErrConstruction(args []ast.Expr) bool {

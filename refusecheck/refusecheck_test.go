@@ -22,6 +22,7 @@ type Operation struct {
 func choose(v string) error { return fmt.Errorf("status %v is not one of %v", v, "a") }
 func missing() error        { return errors.New("name is required") }
 func disk(err error) error  { return fmt.Errorf("open store: %w", err) }
+func asks(c Ctx) Result     { return Failed(c.NeedTarget("target", "")) } // asks: not a site
 
 var ops = []Operation{
 	{Unavailable: "a system fact"},
