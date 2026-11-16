@@ -461,8 +461,10 @@ func (o *overlayOf) fill(s Store) Store {
 // has no archive role), makes the key the prop create writes (when the
 // overlay creates), gives the overlay a facts store's read-only props, and
 // lets the user's value of a computed prop the overlay holds show
-// (yoursOver). A derived prop (PropSpec.Derivation) stays read-only: the
-// derivations wrap the filled store and strip it from every write.
+// (yoursOver). A derived prop that holds no value of its own
+// (derivedOnly) stays read-only: the derivations wrap the filled store and
+// strip it from every write; one that keeps its own stored value (a first
+// derivation's, ownsValue) is a prop the overlay can hold like any other.
 func (o *overlayOf) markProps(archive bool, archiveName string) {
 	n := o.n
 	if archive {
@@ -478,8 +480,8 @@ func (o *overlayOf) markProps(archive bool, archiveName string) {
 	for i := range n.Props {
 		p := &n.Props[i]
 		switch {
-		case p.Derivation != nil:
-			continue // derived: the framework computes it, nothing holds it
+		case p.derivedOnly():
+			continue // derived with no value of its own: the framework computes it, nothing holds it
 		case p.Key:
 			o.keyName = p.Name
 			if o.create {
