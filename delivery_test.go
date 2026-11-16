@@ -429,8 +429,10 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	// (RegisterDerivation): a registry, like events.
 	// jobQueue holds the background jobs waiting for a slot; life is the
 	// runtime's lifetime (Shutdown), a registry of what it started.
+	// Declarations is the registry the noun files read (the name table of
+	// handlers, hooks and sources, loader problems, schemas), like Operations.
 	want := []string{
-		"BindingTimeout", "Focus", "Instances", "ModalReturns", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
+		"BindingTimeout", "Declarations", "Focus", "Instances", "ModalReturns", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
 		"bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "derivations", "diffRenderer", "events", "guards", "history", "holders", "jobBase", "jobQueue", "jobSeq", "jobs", "life", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "predicates", "prefix", "relations", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rows", "seq", "targets", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {

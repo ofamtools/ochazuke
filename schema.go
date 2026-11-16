@@ -56,20 +56,20 @@ func (r *Runtime) AddSchema(doc SchemaDoc) {
 	if doc.URL == "" {
 		doc.URL = SchemaURL(doc.Kind, doc.Version)
 	}
-	if i := slices.IndexFunc(r.SchemaDocs, func(d SchemaDoc) bool { return d.Kind == doc.Kind }); i >= 0 {
-		r.SchemaDocs[i] = doc
+	if i := slices.IndexFunc(r.Declarations.Schemas, func(d SchemaDoc) bool { return d.Kind == doc.Kind }); i >= 0 {
+		r.Declarations.Schemas[i] = doc
 		return
 	}
-	r.SchemaDocs = append(r.SchemaDocs, doc)
+	r.Declarations.Schemas = append(r.Declarations.Schemas, doc)
 }
 
 // SchemaOf is kind's registered schema.
 func (r *Runtime) SchemaOf(kind string) (SchemaDoc, bool) {
-	i := slices.IndexFunc(r.SchemaDocs, func(d SchemaDoc) bool { return d.Kind == kind })
+	i := slices.IndexFunc(r.Declarations.Schemas, func(d SchemaDoc) bool { return d.Kind == kind })
 	if i < 0 {
 		return SchemaDoc{}, false
 	}
-	return r.SchemaDocs[i], true
+	return r.Declarations.Schemas[i], true
 }
 
 // registerSchemas declares the schema noun.
@@ -77,7 +77,7 @@ func registerSchemas(r *Runtime) {
 	r.defineFacts(factsSpec{Noun: "ochazuke.schema", StableKeys: true, Sample: SchemaDoc{}, Key: "kind", Label: "kind",
 		Docs: map[string]string{"kind": "The file kind (noun: a nouns/NOUN.json declaration)", "version": "The schema's version; a file names it in $schema",
 			"url": "The URL a file's $schema names", "about": "What the files of the kind hold", "schema": "The JSON Schema, generated from the declarations"},
-		List: func(c Ctx, _ ListQuery) ([]Thing, error) { return factThings(c.Runtime.SchemaDocs, nil) }})
+		List: func(c Ctx, _ ListQuery) ([]Thing, error) { return factThings(c.Runtime.Declarations.Schemas, nil) }})
 }
 
 // JSONSchemaOf is the JSON Schema (draft 2020-12) of the values a Go type

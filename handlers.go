@@ -82,12 +82,14 @@ const (
 	ProblemBadRow      = "bad-row"      // a row that does not decode or apply
 )
 
-// NameTable is the runtime's name table (Runtime.Names) and the problems
-// the declaration loaders reported (Problems).
-type NameTable struct {
+// Declarations is the runtime's registry for declaration files
+// (Runtime.Declarations): the name table (Entries, in registration Order),
+// the problems the loaders reported and the file kinds' schemas.
+type Declarations struct {
 	Entries  map[string]*Named
 	Order    []string
 	Problems []DeclProblem
+	Schemas  []SchemaDoc
 }
 
 // HandlerOption adds to a handler's entry.
@@ -143,7 +145,7 @@ func (r *Runtime) addNamed(n Named, skip int, opts ...HandlerOption) {
 	for _, opt := range opts {
 		opt(&n)
 	}
-	t := &r.Names
+	t := &r.Declarations
 	if t.Entries == nil {
 		t.Entries = map[string]*Named{}
 	}
@@ -183,7 +185,7 @@ func shortGoPath(file string) string {
 
 // Named is the entry name has, of kind (any kind when "").
 func (r *Runtime) Named(kind, name string) (*Named, bool) {
-	n, ok := r.Names.Entries[name]
+	n, ok := r.Declarations.Entries[name]
 	if !ok || kind != "" && n.Kind != kind {
 		return nil, false
 	}
@@ -192,9 +194,9 @@ func (r *Runtime) Named(kind, name string) (*Named, bool) {
 
 // NamedAll are the table's entries by name.
 func (r *Runtime) NamedAll() []Named {
-	out := make([]Named, 0, len(r.Names.Order))
-	for _, name := range slices.Sorted(maps.Keys(r.Names.Entries)) {
-		out = append(out, *r.Names.Entries[name])
+	out := make([]Named, 0, len(r.Declarations.Order))
+	for _, name := range slices.Sorted(maps.Keys(r.Declarations.Entries)) {
+		out = append(out, *r.Declarations.Entries[name])
 	}
 	return out
 }
@@ -202,18 +204,18 @@ func (r *Runtime) NamedAll() []Named {
 // UseNamed records that row (a verb key, NOUN.store, NOUN.hooks.NAME)
 // cites the entry, which must exist.
 func (r *Runtime) UseNamed(name, row string) {
-	if n, ok := r.Names.Entries[name]; ok && !slices.Contains(n.Rows, row) {
+	if n, ok := r.Declarations.Entries[name]; ok && !slices.Contains(n.Rows, row) {
 		n.Rows = append(n.Rows, row)
 	}
 }
 
 // AddDeclProblem records a problem a declaration loader found.
 func (r *Runtime) AddDeclProblem(p DeclProblem) {
-	r.Names.Problems = append(r.Names.Problems, p)
+	r.Declarations.Problems = append(r.Declarations.Problems, p)
 }
 
 // DeclProblems are the problems the declaration loaders reported.
-func (r *Runtime) DeclProblems() []DeclProblem { return slices.Clone(r.Names.Problems) }
+func (r *Runtime) DeclProblems() []DeclProblem { return slices.Clone(r.Declarations.Problems) }
 
 // TypedHandler is fn as an AppHandler that decodes the request's arguments
 // into a P (Ctx.Decode) first, with the parameters P declares (ParamsOf)
