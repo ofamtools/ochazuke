@@ -66,7 +66,7 @@ func (l *Collection) Refill() error {
 	}
 	l.stale = false // whatever the read, the list asked for the store's rows
 	n := l.r.Nouns[l.from]
-	c := Ctx{actor: l.r.Actor(), Runtime: l.r, Context: l.r.Context()}
+	c := l.r.backgroundCtx()
 	if l.paged != nil {
 		return l.refillWindow(n, c)
 	}
@@ -162,7 +162,7 @@ func (l *Collection) feed() error {
 		if old != nil {
 			h.lists = old.lists
 		}
-		c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+		c := r.backgroundCtx()
 		w, err := r.watchAs(c, l.from, func(WatchEvent) { h.dirty = true }, l.paged != nil)
 		if err != nil {
 			return err

@@ -835,7 +835,7 @@ func (rel *Related) watch(noun string) {
 		}
 	}
 	r := rel.r
-	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	c := r.backgroundCtx()
 	token := func() string {
 		if n := r.Nouns[noun]; n != nil && n.Store != nil {
 			return storeToken(n.Store, c)
@@ -902,7 +902,7 @@ func (s *relatedSection) read() ([]Thing, error) { return s.rel.readRef(s.ref) }
 // filter, whatever the key.
 func (rel *Related) readRef(ref Referrer) ([]Thing, error) {
 	r := rel.r
-	return rel.readRefWith(Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}, ref)
+	return rel.readRefWith(r.backgroundCtx(), ref)
 }
 
 // readRefWith is readRef in c: a remote read's replayed context
@@ -969,7 +969,15 @@ func (s *relatedSection) countable() bool {
 	if s.ref.History || s.ref.Relation != "" || s.ref.own() {
 		return true
 	}
-	st := s.n.Store
+	return countsCheaply(s.n.Store)
+}
+
+// countsCheaply reports whether a one-row page counts a store's things
+// without reading them all: the store pages itself (Query), or its things
+// are the registry's memory (facts, live instances). A store that only
+// lists, remote or local, does not. The Nouns page's counts and a folded
+// related section's count share it.
+func countsCheaply(st *Store) bool {
 	return st != nil && (st.Query != nil || st.Facts || st.Kind == Instances)
 }
 
@@ -996,7 +1004,7 @@ func (s *relatedSection) fillFolded() bool {
 		s.fillRemote(q, land)
 		return true
 	}
-	page, err := s.rel.readRefPage(Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}, s.ref, q)
+	page, err := s.rel.readRefPage(r.backgroundCtx(), s.ref, q)
 	if err != nil {
 		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
 		page = ListPage{}
@@ -1071,7 +1079,7 @@ func (s *relatedSection) fillRemote(q ListQuery, land func(ListPage)) {
 	rel, r := s.rel, s.rel.r
 	noun, key := rel.noun, rel.key
 	var page ListPage
-	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	c := r.backgroundCtx()
 	body := func(c Ctx) (any, error) {
 		got, err := rel.readRefPage(c, s.ref, q)
 		page = got
@@ -1136,7 +1144,7 @@ func (s *relatedSection) render() {
 		return
 	}
 	shown := s.shown
-	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	c := r.backgroundCtx()
 	items := []ListItem{s.heading()}
 	if s.group != nil {
 		items = nil

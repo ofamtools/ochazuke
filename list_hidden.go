@@ -157,7 +157,7 @@ func (l *Collection) waitFrame(seen uint64, tries int) {
 	if fps := r.Settings().Int(RenderMaxFPSSetting); fps > 0 {
 		wait = time.Second / time.Duration(fps)
 	}
-	c := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}
+	c := r.backgroundCtx()
 	res := Pending(func(ctx context.Context) (any, error) {
 		select {
 		case <-time.After(wait):

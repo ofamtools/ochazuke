@@ -37,8 +37,8 @@ const (
 	// group order (default every kind but part).
 	NounsKindsSetting = "nouns.kinds"
 	// NounsCountListsSetting counts a noun whose store can only list all
-	// its things (no Query) by listing them (default off: such a count
-	// shows –).
+	// its things (no Query, not facts or instances), remote or local, by
+	// listing them (default off: such a count shows –).
 	NounsCountListsSetting = "nouns.count-lists"
 
 	nounsPageNoun  = "ochazuke.noun-browser"
@@ -209,7 +209,8 @@ func refreshNounsPage(r *Runtime) {
 
 // countNouns reads the count of every shown stored noun whose count may
 // have changed (its ChangeToken moved, or it has none), each off the frame:
-// a job for a remote store, at once for the rest.
+// a job for a remote store, at once for the rest. The jobs are background
+// ones, so at most jobs.background-max of them run at once.
 func countNouns(r *Runtime) {
 	kinds := r.AllNounKinds()
 	shown := map[string]bool{}
@@ -237,7 +238,8 @@ func countNoun(r *Runtime, n *Noun) {
 		return
 	}
 	s := n.Store
-	ctx := Ctx{actor: r.Actor(), Runtime: r, Context: r.Context(), Noun: n.Name}
+	ctx := r.backgroundCtx() // nobody waits on a count: its jobs take background slots
+	ctx.Noun = n.Name
 	token := storeToken(s, ctx)
 	if token != "" && token == c.token && c.known {
 		return // nothing changed since it was counted
@@ -250,9 +252,9 @@ func countNoun(r *Runtime, n *Noun) {
 		c.known = false
 		return // a store that cannot list cannot be counted
 	}
-	if s.Query == nil && !s.Facts && s.Kind != Instances && !s.Remote && !r.Settings().Bool(NounsCountListsSetting) {
+	if !countsCheaply(s) && !r.Settings().Bool(NounsCountListsSetting) {
 		c.known = false
-		return // a store that can only list everything is not read to count it
+		return // a store that can only list everything, remote or local, is not read to count it
 	}
 	arch := n.roleProp(RoleArchive)
 	var total, archived int

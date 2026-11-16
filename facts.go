@@ -397,7 +397,8 @@ func registerJobFacts(r *Runtime) {
 	r.defineFacts(factsSpec{Noun: "ochazuke.job", Sample: JobInfo{}, Key: "job", Label: "label",
 		Docs: map[string]string{"job": "The job's number", "owner": "The instance that started it", "verb": "The verb it runs", "label": "What it says it does",
 			"slot": "Its replacing slot, when it has one", "scope": "The scope of its slot", "started": "When it started",
-			"status": "running, done, failed or cancelled", "error": "Why it failed, when it did"},
+			"status": "running, done, failed or cancelled", "error": "Why it failed, when it did",
+			"queued": "A running background job waiting for a slot (jobs.background-max): its work has not started"},
 		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
 			return factThings(c.Runtime.Jobs(), nil)
 		}})

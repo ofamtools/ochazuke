@@ -293,6 +293,9 @@ type JobInfo struct {
 	Started time.Time `json:"started"`
 	Status  string    `json:"status"`
 	Error   string    `json:"error,omitempty"`
+	// Queued is true while a running background job waits for a slot
+	// (jobs.background-max): its work has not started.
+	Queued bool `json:"queued,omitempty"`
 }
 
 // job is one entry of the runtime's jobs list.
@@ -306,6 +309,11 @@ type job struct {
 	abandon   func(string) []string // releases cancelled work and reports unfinished values
 	cont      continuation
 	run       context.Context // the context the job's work runs under
+	// background is a job launched for nobody waiting (RequestFromBackground):
+	// it takes one of jobs.background-max slots, or waits in the queue
+	// with its work in start (job_queue.go).
+	background bool
+	start      tea.Cmd
 }
 
 // alsoThen runs fn after any callback already set on the job. The earlier
@@ -359,18 +367,29 @@ func (r *Runtime) IssueAt(owner, scope, verb, slot string, c Ctx) (Ticket, conte
 			c.source = "api"
 		}
 	}
-	base := r.jobBase
-	if base == nil {
-		base = context.Background()
-	}
-	ctx, cancel := context.WithCancel(base)
+	ctx, cancel := r.jobContext()
+	ctx = context.WithValue(ctx, requestSourceKey{}, RequestSource(c.source))
 	r.jobSeq++
-	j := &job{JobInfo: JobInfo{Job: r.jobSeq, Owner: owner, Verb: verb, Slot: slot, Scope: scope, Started: time.Now(), Status: JobRunning}, cancel: cancel, ctx: c}
+	j := &job{JobInfo: JobInfo{Job: r.jobSeq, Owner: owner, Verb: verb, Slot: slot, Scope: scope, Started: time.Now(), Status: JobRunning}, cancel: cancel, ctx: c, background: RequestSource(c.source).Background()}
 	if r.jobs == nil {
 		r.jobs = map[uint64]*job{}
 	}
 	r.jobs[j.Job] = j
 	return j.ticket(), ctx, nil
+}
+
+// jobContext is a new job's context: under the base WithJobContext set,
+// else the runtime's lifetime, and cancelled by Shutdown either way.
+func (r *Runtime) jobContext() (context.Context, context.CancelFunc) {
+	if r.jobBase == nil {
+		return context.WithCancel(r.Lifetime())
+	}
+	ctx, cancel := context.WithCancel(r.jobBase)
+	if r.life == nil {
+		return ctx, cancel
+	}
+	stop := context.AfterFunc(r.life.ctx, cancel)
+	return ctx, func() { stop(); cancel() }
 }
 
 // WithJobContext makes the jobs issued from now on run under ctx, so
@@ -413,7 +432,7 @@ func (r *Runtime) Launch(owner, verb string, res Result, c Ctx) (Ticket, error) 
 	r.jobs[ticket.Job].Label = res.label
 	r.jobs[ticket.Job].presented = res.presented
 	work := res.work
-	r.commands = append(r.commands, func() tea.Msg {
+	r.startJob(r.jobs[ticket.Job], func() tea.Msg {
 		value, err := work(ctx)
 		return Completion{Ticket: ticket, Value: value, Err: err}
 	})
@@ -456,6 +475,7 @@ func (r *Runtime) finish(j *job, state string, err error) []string {
 	}
 	j.cancel()
 	j.Status = state
+	r.releaseSlot(j)
 	var messages []string
 	if state == JobCancelled && j.abandon != nil {
 		reason := "job cancelled; completion was not confirmed"

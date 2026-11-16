@@ -222,7 +222,7 @@ func (r *Runtime) refreshFedIndex(id string) {
 		a := r.NounAnswers(ref.Noun) // instances come and go: the source may move
 		ref.Rows, ref.Why = a.Rows, a.Why
 	}
-	items := r.nounPageItems(Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}, ref.Noun, list.id, ref.Rows, ref.Why)
+	items := r.nounPageItems(r.backgroundCtx(), ref.Noun, list.id, ref.Rows, ref.Why)
 	if sig := rowsSignature(items); sig != ref.sig {
 		ref.sig = sig
 		_ = list.SetItems(items)
@@ -288,7 +288,7 @@ func (r *Runtime) addIndexPage(n *Noun, id string) error {
 		p := list.Placeholder()
 		p.Plural = pluralWord(r.DisplayNoun(n.Name))
 		list.SetPlaceholder(p)
-		items := r.nounPageItems(Ctx{actor: r.Actor(), Runtime: r, Context: r.Context()}, n.Name, list.id, ref.Rows, ref.Why)
+		items := r.nounPageItems(r.backgroundCtx(), n.Name, list.id, ref.Rows, ref.Why)
 		ref.sig = rowsSignature(items)
 		_ = list.SetItems(items)
 	}

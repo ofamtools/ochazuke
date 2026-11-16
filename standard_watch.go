@@ -236,7 +236,7 @@ func (r *Runtime) watchAs(c Ctx, noun string, fn func(WatchEvent), notify bool) 
 		if err != nil {
 			return nil, err
 		}
-		w.stopStore = stop
+		w.stopStore = r.life.keepStop(w, stop) // Shutdown runs it too, once
 		r.commands = append(r.commands, w.listen())
 	} else if n.Store != nil {
 		w.scope = watchScope(n.Name, w.key, where)
@@ -293,7 +293,7 @@ func (r *Runtime) Changed(nouns ...string) {
 // is what keeps an untouched store cheap.
 func (r *Runtime) refreshWatches(nouns []string) {
 	h := r.watches
-	if h == nil || h.refreshing || len(h.watches) == 0 {
+	if h == nil || h.refreshing || len(h.watches) == 0 || r.ShuttingDown() {
 		return
 	}
 	h.refreshing = true
@@ -585,6 +585,8 @@ func (w *Watch) listen() tea.Cmd {
 			case <-w.signal:
 			case <-w.done:
 				return nil
+			case <-w.r.Lifetime().Done():
+				return nil // Shutdown: the store's stop has run
 			}
 		}
 	}
