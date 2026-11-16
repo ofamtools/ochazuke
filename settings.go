@@ -790,7 +790,7 @@ func coerceSetting(one Setting, value any) (any, error) {
 		return nil, err
 	}
 	if text, ok := v.(string); ok && len(one.Enum) > 0 && !slices.Contains(one.Enum, text) {
-		v, _ = acceptValue(one.Accept, text, one.Enum)
+		v, _, _ = acceptValue(one.Accept, text, one.Enum) // a tie keeps the text: a setting has no one to ask
 	}
 	return v, nil
 }

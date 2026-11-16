@@ -53,50 +53,70 @@ func (r *Runtime) notice(format string, args ...any) {
 	r.UI().Info(fmt.Sprintf(format, args...))
 }
 
-// nearOne is the one listed id a single edit from value (case ignored), or
-// "" when there is none or more than one.
-func nearOne(value string, ids []string) string {
+// nearIDs are the listed ids a single edit from value (case ignored), all
+// of them equally near: one is the name to use, several are a tie the
+// caller asks about. None is empty.
+func nearIDs(value string, ids []string) []string {
 	v := strings.ToLower(value)
-	found := ""
+	var found []string
 	for _, id := range ids {
-		if editDistance(v, strings.ToLower(id)) != 1 {
-			continue
+		if editDistance(v, strings.ToLower(id)) == 1 {
+			found = append(found, id)
 		}
-		if found != "" {
-			return ""
-		}
-		found = id
 	}
 	return found
 }
 
 // acceptValue answers a value outside a listed set of ids under a policy:
-// the value to use and whether it should be registered as a new choice.
-func acceptValue(policy Accept, value string, ids []string) (use string, register bool) {
+// the value to use, whether it should be registered as a new choice, and,
+// for near with equally near names, the tied names (the value is then kept
+// and the caller asks which).
+func acceptValue(policy Accept, value string, ids []string) (use string, register bool, tied []string) {
 	switch policy {
 	case AcceptNear:
-		if n := nearOne(value, ids); n != "" {
-			return n, false
+		if near := nearIDs(value, ids); len(near) == 1 {
+			return near[0], false, nil
+		} else if len(near) > 1 {
+			return value, false, near
 		}
 	case AcceptRegister:
-		return value, true
+		return value, true, nil
 	}
-	return value, false
+	return value, false, nil
+}
+
+// tieAnswer is the ChoiceAnswer for a value as near to several listed
+// names as to any: nothing changes and each tied name is a choice, with the
+// command that runs the request with it when op and args say which.
+func (r *Runtime) tieAnswer(op Operation, args Arguments, name, value string, tied []string) error {
+	answer := &ChoiceAnswer{Needs: name, Reason: fmt.Sprintf("%s: %s is as near to %s", name, value, strings.Join(tied, " as to "))}
+	for _, id := range tied {
+		row := ChoiceRow{ID: id}
+		if op.Key != "" {
+			row.Command = r.commandWith(op, args, name, id)
+		}
+		answer.Choices = append(answer.Choices, row)
+	}
+	return answer
 }
 
 // acceptArgument handles a string argument outside its parameter's listed
 // choices: near swaps the one close name into args (with a notice), and
 // register adds the value to the operation's Enum when the choices are the
-// Enum (a Source's choices are its verb's to grow). Nothing is refused.
-func (r *Runtime) acceptArgument(op Operation, name string, p Parameter, value string, ids []string, args Arguments) {
-	use, register := acceptValue(p.Accept, value, ids)
+// Enum (a Source's choices are its verb's to grow). Nothing is refused;
+// names equally near answer a ChoiceAnswer (tieAnswer).
+func (r *Runtime) acceptArgument(op Operation, name string, p Parameter, value string, ids []string, args Arguments) error {
+	use, register, tied := acceptValue(p.Accept, value, ids)
+	if len(tied) > 0 {
+		return r.tieAnswer(op, args, name, value, tied)
+	}
 	if use != value {
 		args[name] = use
 		r.notice("%s: used %s for %s", name, use, value)
-		return
+		return nil
 	}
 	if !register || p.Source != "" || len(p.Enum) == 0 {
-		return
+		return nil
 	}
 	if live, ok := r.Operations.Get(op.Key); ok && live.Parameters != nil {
 		lp := live.Parameters[name]
@@ -105,6 +125,7 @@ func (r *Runtime) acceptArgument(op Operation, name string, p Parameter, value s
 			live.Parameters[name] = lp
 		}
 	}
+	return nil
 }
 
 // propAccept is a prop's policy: its own Accept, else the application's
@@ -122,16 +143,21 @@ func (r *Runtime) propAccept(p PropSpec) Accept {
 // acceptProp answers a value written to an enum prop that is not one of
 // its choices: near gives the one close name, register adds the value to
 // the noun's prop Enum (every list of the prop's choices shows it), keep
-// stores it as given. The value to write is returned.
-func (r *Runtime) acceptProp(noun string, p PropSpec, value any) any {
+// stores it as given. The value to write is returned; names equally near
+// answer a ChoiceAnswer (tieAnswer) for the request c runs.
+func (r *Runtime) acceptProp(c Ctx, noun string, p PropSpec, value any) (any, error) {
 	s, ok := value.(string)
 	if !ok || len(p.Enum) == 0 || slices.Contains(p.Enum, s) {
-		return value
+		return value, nil
 	}
-	use, register := acceptValue(r.propAccept(p), s, p.Enum)
+	use, register, tied := acceptValue(r.propAccept(p), s, p.Enum)
+	if len(tied) > 0 {
+		op, _ := r.Operation(c.Invoked.Name)
+		return nil, r.tieAnswer(op, c.Args, p.Name, s, tied)
+	}
 	if use != s {
 		r.notice("%s: used %s for %s", p.Name, use, s)
-		return use
+		return use, nil
 	}
 	if register {
 		if n := r.Nouns[noun]; n != nil {
@@ -142,7 +168,7 @@ func (r *Runtime) acceptProp(noun string, p PropSpec, value any) any {
 			}
 		}
 	}
-	return s
+	return s, nil
 }
 
 // Has reports whether a setting of that name is declared.

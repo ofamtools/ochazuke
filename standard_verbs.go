@@ -1207,7 +1207,9 @@ func runCreate(r *Runtime, n *Noun, c Ctx) (any, error) {
 		if err != nil {
 			return nil, &ArgumentError{fmt.Errorf("%s %w", p.Name, err)}
 		}
-		values[p.Name] = r.acceptProp(n.Name, p, typed)
+		if values[p.Name], err = r.acceptProp(c, n.Name, p, typed); err != nil {
+			return nil, err
+		}
 	}
 	var filled focusFills
 	if source == nil { // a copy keeps its source's references
@@ -1232,7 +1234,10 @@ func runSet(r *Runtime, n *Noun, c Ctx) (any, error) {
 	}
 	for name, v := range changes {
 		if p := n.prop(name); p != nil {
-			changes[name] = r.acceptProp(n.Name, *p, v)
+			var err error
+			if changes[name], err = r.acceptProp(c, n.Name, *p, v); err != nil {
+				return nil, err
+			}
 		}
 	}
 	key, err := r.subjectKey(n, c)

@@ -534,6 +534,9 @@ func (r *Runtime) argumentCreates(op Operation, args Arguments) ([]unknownCreate
 	if err := validateArguments(op, args); err != nil {
 		return nil, err
 	}
+	if err := r.rangeArguments(op, args); err != nil {
+		return nil, err
+	}
 	var creates []unknownCreate
 	for name, v := range args {
 		p := op.Parameters[name]
@@ -543,7 +546,9 @@ func (r *Runtime) argumentCreates(op Operation, args Arguments) ([]unknownCreate
 		}
 		if p.Source == "" {
 			if len(p.Enum) > 0 && !slices.Contains(p.Enum, s) {
-				r.acceptArgument(op, name, p, s, p.Enum, args)
+				if err := r.acceptArgument(op, name, p, s, p.Enum, args); err != nil {
+					return nil, err
+				}
 			}
 			continue
 		}
@@ -567,7 +572,9 @@ func (r *Runtime) argumentCreates(op Operation, args Arguments) ([]unknownCreate
 		for i, c := range choices {
 			ids[i] = c.ID
 		}
-		r.acceptArgument(op, name, p, s, ids, args)
+		if err := r.acceptArgument(op, name, p, s, ids, args); err != nil {
+			return nil, err
+		}
 	}
 	return creates, nil
 }

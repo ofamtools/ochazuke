@@ -48,6 +48,12 @@ type Parameter struct {
 	// (normalize.go): trim, slug, escape, coerce. Typed input is adapted,
 	// never refused (no-refusals D5).
 	Normalize []string `json:"normalize,omitempty"`
+	// Min and Max bound a number parameter (integer or number), as data.
+	// A value outside them never fails the run: values.out-of-range says
+	// whether it is clamped to the bound with a notice (the default), kept
+	// as typed, or asked for again naming the range (normalize.go).
+	Min *float64 `json:"min,omitempty"`
+	Max *float64 `json:"max,omitempty"`
 	// EnumLabels gives an Enum value the human label a pick list shows
 	// for it (a thing's label-role prop beside its id): a host that
 	// caches a source's rows into Enum keeps their labels here, so the

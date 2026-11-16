@@ -1435,6 +1435,13 @@ boolean · default `true` · section Records · declared by ochazuke
 
 Keep named text registers a-z in private files under the app state directory, shared with its CLI and host callbacks. Special registers and recorded macros stay in memory. Off stops disk reads and writes; existing files remain
 
+<a id="setting-values.out-of-range"></a>
+### `values.out-of-range`
+
+string · default `clamp` · choices `clamp`, `keep`, `reopen` · section Records · declared by ochazuke
+
+A number outside its parameter's declared range (min, max), typed in a form, the palette, the CLI or by an agent: clamp uses the nearest allowed value and says so on the status line (fallback.notice); keep stores it as typed; reopen asks for the value again, naming the range. Nothing is refused for its size
+
 ## Search
 
 <a id="setting-collection.filter-chip-max"></a>
