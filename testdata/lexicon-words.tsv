@@ -29,7 +29,6 @@ agent_session	prop	seed
 agent_type	prop	seed	
 ahead	prop	seed	
 ai	namespace	seed	
-alert	action	seed	
 aliases	prop	seed	
 all	action	seed	
 annotate	action	seed	
@@ -355,6 +354,7 @@ from	prop	seed
 get	action	seed	
 gh	namespace	seed	
 git	namespace	seed	
+glance	action	seed	
 glyph	prop	seed	
 glyphs	noun	seed	plural
 gone	action+prop	seed	

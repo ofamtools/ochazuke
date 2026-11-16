@@ -22,7 +22,7 @@ import (
 // so a request posted by any process on it, a command or the MCP gateway,
 // reaches every program running on it; in memory by default). A running
 // program reads it through the table's change token: the lead status
-// segment "restart" (placement lead, verb restart-request.alert) draws a
+// segment "restart" (placement lead, verb restart-request.glance) draws a
 // RESTART REQUESTED badge at the left of the title row (setting
 // restart.badge), and the first read of a new request tells the person
 // with a notice. A request applies to the programs started before it was
@@ -644,7 +644,7 @@ func registerRestart(r *Runtime) {
 	}, Positional: []string{"reason"}, Result: "restart-request", Run: postRestart})
 	r.Register(Operation{Key: RestartRequestNoun + ".show", HistoryKind: HistoryFetch, Agent: AgentAllow, Description: "Answer the stored restart request (pending false when there is none)", Result: "restart-request", Run: showRestart})
 	r.Register(Operation{Key: RestartRequestNoun + ".dismiss", HistoryKind: HistoryChange, Agent: AgentAllow, Description: "Drop the stored restart request, its notice and its badge in every program, without restarting", Result: "restart-request", Run: dismissRestart})
-	r.Register(Operation{Key: RestartRequestNoun + ".alert", HistoryKind: HistoryFetch, Agent: AgentAllow, Description: "Answer the restart badge's text for this program: RESTART REQUESTED while a request posted after it started is pending and restart.badge is on, else nothing (the source of the lead status segment restart; reading it tells this program's notice about a new request)", Result: "segment-value", AppHandler: func(c Ctx) Result { return Done(c.Runtime.restartBadge()) }})
+	r.Register(Operation{Key: RestartRequestNoun + ".glance", HistoryKind: HistoryFetch, Agent: AgentAllow, Description: "Answer the restart badge's text for this program: RESTART REQUESTED while a request posted after it started is pending and restart.badge is on, else nothing (the source of the lead status segment restart; reading it tells this program's notice about a new request)", Result: "segment-value", AppHandler: func(c Ctx) Result { return Done(c.Runtime.restartBadge()) }})
 	r.Register(Operation{Key: AppNoun + ".restart", HistoryKind: HistoryAction, Agent: AgentConfirm, Confirm: "Restart?", ConfirmFor: restartConfirm, Loses: "the running session: its open views and what it holds in memory", Description: "Restart the application in this terminal: ask first (the running and installed builds, the pending request), then run app.quit and start the installed binary with the same arguments; where it cannot restart itself it asks to quit and quits", Result: "boolean", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		// The one quit: its checks, hooks and history run once, and this
 		// verb's question stands for quit's own (asked).
@@ -657,7 +657,7 @@ func registerRestart(r *Runtime) {
 func registerRestartBadge(r *Runtime) {
 	// The badge follows restart.badge at once, not at the next refresh.
 	r.Settings().Observe(RestartBadgeSetting, func(string, any) { r.restartChanged() })
-	_ = r.AddSegment(Segment{ID: RestartSegment, Placement: SegmentPlaceLead, Verb: RestartRequestNoun + ".alert", Short: restartBadgeShort,
+	_ = r.AddSegment(Segment{ID: RestartSegment, Placement: SegmentPlaceLead, Verb: RestartRequestNoun + ".glance", Short: restartBadgeShort,
 		Description: "Draw the restart badge at the left of the title row and look for restart requests (restart.badge hides the badge alone)"})
 }
 
