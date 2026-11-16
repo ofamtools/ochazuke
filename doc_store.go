@@ -105,36 +105,57 @@ type DocHooks struct {
 // create every value given, on a set the props changed (nil clears one).
 // The hook may set, add or delete entries; a name no prop declares is
 // written as a document field of that name. Info lines are told as
-// information (Ctx.Info) once the write is stored.
+// information (Ctx.Info), joined in one line, once the write is stored.
+// Messages are told each on its own once the write is stored, by kind:
+// UINotice a notice (Ctx.Notify), UIInfo the status line (Ctx.Info),
+// UIError the status line in its error tone (Ctx.Error); a write that is
+// not stored tells none.
 type DocWrite struct {
-	Key     string
-	Old     Thing
-	Changes Thing
-	Info    []string
+	Key      string
+	Old      Thing
+	Changes  Thing
+	Info     []string
+	Messages []UIMessage
 }
 
 // beforeWrite runs the BeforeWrite hook over a write: the changes to
-// store and the lines to tell once it is.
-func (d *docStore) beforeWrite(c Ctx, key string, old, changes Thing) (Thing, []string, error) {
+// store, and the lines and messages to tell once it is.
+func (d *docStore) beforeWrite(c Ctx, key string, old, changes Thing) (Thing, []string, []UIMessage, error) {
 	if d.hooks.BeforeWrite == nil {
-		return changes, nil, nil
+		return changes, nil, nil, nil
 	}
 	w := &DocWrite{Key: key, Old: old, Changes: maps.Clone(changes)}
 	if w.Changes == nil {
 		w.Changes = Thing{}
 	}
 	if err := d.hooks.BeforeWrite(c, w); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
-	return w.Changes, w.Info, nil
+	return w.Changes, w.Info, w.Messages, nil
 }
 
-// tell posts a write's info lines as one line of information.
-func tell(c Ctx, info []string) {
-	if len(info) > 0 && c.Runtime != nil {
+// tell posts a write's info lines as one line of information, then each
+// message by its kind.
+func tell(c Ctx, info []string, said []UIMessage) {
+	if c.Runtime == nil {
+		return
+	}
+	if len(info) > 0 {
 		c.Info(strings.Join(info, "; "))
 	}
+	for _, m := range said {
+		m.Apply(ctxSink{c})
+	}
 }
+
+// ctxSink is a UISink that posts through a request's Ctx (its tape, its
+// runtime's UI): what a message told by kind (UIMessage.Apply) reaches.
+type ctxSink struct{ c Ctx }
+
+func (s ctxSink) Notify(_ NoticeID, text string) { s.c.Notify(text) }
+func (s ctxSink) ClearNotice(id NoticeID)        { s.c.ClearNotice(id) }
+func (s ctxSink) Status(text string)             { s.c.Error(text) }
+func (s ctxSink) Info(text string)               { s.c.Info(text) }
 
 // DocStore is the Store of noun over table: a collection whose things are
 // the table's documents, keyed by the noun's key prop. Create takes the
@@ -158,6 +179,7 @@ func DocStore(table DocTable, noun string, hooks ...DocHooks) Store {
 		ConfirmFor:  h.ConfirmFor,
 		Undo:        true,
 		AcceptsKey:  true,
+		Stored:      d.stored,
 	}
 }
 
@@ -189,7 +211,49 @@ func (d *docStore) get(c Ctx, key string) (Thing, error) {
 
 // thingOf is a document as the noun's thing (fields renamed to props).
 func (d *docStore) thingOf(c Ctx, doc Thing) Thing {
-	return c.Runtime.Nouns[c.Runtime.CanonicalNoun(d.noun)].docThing(doc)
+	return c.Runtime.Nouns[c.Runtime.CanonicalNoun(d.noun)].docRead(doc)
+}
+
+// docRead is a stored document as the noun's thing (docThing) with each
+// ReadDefault prop the document lacks read as its default.
+func (n *Noun) docRead(doc Thing) Thing {
+	t := n.docThing(doc)
+	if t == nil {
+		return nil
+	}
+	for _, p := range n.Props {
+		if p.ReadDefault && t[p.Name] == nil {
+			t[p.Name] = readDefault(p)
+		}
+	}
+	return t
+}
+
+// readDefault is the value a ReadDefault prop reads when its field is
+// missing: its Default, else its type's zero.
+func readDefault(p PropSpec) any {
+	if obj, ok := p.Default.(map[string]any); ok {
+		return maps.Clone(obj) // each read its own
+	}
+	if p.Default != nil {
+		return p.Default
+	}
+	if p.listed() {
+		return []string{}
+	}
+	if zero := propZeros[p.Type]; zero != nil {
+		return zero()
+	}
+	return ""
+}
+
+// propZeros are the zero values of the scalar and object prop types whose
+// zero is not "" (a fresh object each time); a list's is an empty list.
+var propZeros = map[string]func() any{
+	SettingBoolean: func() any { return false },
+	SettingInteger: func() any { return 0 },
+	SettingNumber:  func() any { return 0.0 },
+	PropObject:     func() any { return map[string]any{} },
 }
 
 // docQuery is a list request as the table runs it: the archive hiding as
@@ -232,12 +296,17 @@ func (d *docStore) create(c Ctx, values Thing) (Thing, error) {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if doc := c.restoring; doc != nil {
+		if t, ok, err := d.restore(c, n, values, doc); ok || err != nil {
+			return t, err
+		}
+	}
 	key := n.keyProp().Name
 	given := ""
 	if !emptyProp(values[key]) {
 		given = fmt.Sprint(values[key])
 	}
-	values, info, err := d.beforeWrite(c, given, nil, values)
+	values, info, said, err := d.beforeWrite(c, given, nil, values)
 	if err != nil {
 		return nil, err
 	}
@@ -259,10 +328,43 @@ func (d *docStore) create(c Ctx, values Thing) (Thing, error) {
 	if err := d.table.Put(id, t); err != nil {
 		return nil, err
 	}
-	t = n.docThing(t)
+	t = n.docRead(t)
 	d.wrote(c, id, t)
-	tell(c, info)
+	tell(c, info, said)
 	return t, nil
+}
+
+// restore is an undo's create of a deleted thing (Ctx.Restoring): its
+// stored document put back whole under its key, every field it held, with
+// no BeforeWrite (the document is what was stored). A key the table holds
+// again is not restored (false): the create runs as any other.
+func (d *docStore) restore(c Ctx, n *Noun, values, doc Thing) (Thing, bool, error) {
+	id := fmt.Sprint(values[n.keyProp().Name])
+	if emptyProp(values[n.keyProp().Name]) {
+		id = fmt.Sprint(doc[n.fieldOf(n.keyProp().Name)])
+	}
+	if _, ok, err := d.table.Get(id); err != nil || ok {
+		return nil, false, err
+	}
+	doc = withoutNil(doc)
+	if err := d.table.Put(id, doc); err != nil {
+		return nil, false, err
+	}
+	t := n.docRead(doc)
+	d.wrote(c, id, t)
+	return t, true, nil
+}
+
+// stored is the document under key as the table keeps it (Store.Stored).
+func (d *docStore) stored(c Ctx, key string) (Thing, error) {
+	doc, ok, err := d.table.Get(key)
+	switch {
+	case err != nil:
+		return nil, err
+	case !ok:
+		return nil, c.Runtime.ThingNotFound(c, d.noun, key)
+	}
+	return doc, nil
 }
 
 // onlyStamps reports whether changes hold nothing but the times the
@@ -343,8 +445,8 @@ func (d *docStore) patch(c Ctx, key string, changes Thing) (Thing, error) {
 		return nil, c.Runtime.ThingNotFound(c, d.noun, key)
 	}
 	n := c.Runtime.Nouns[c.Runtime.CanonicalNoun(d.noun)]
-	old := n.docThing(t)
-	changes, info, err := d.beforeWrite(c, key, old, changes)
+	old := n.docRead(t)
+	changes, info, said, err := d.beforeWrite(c, key, old, changes)
 	if err != nil {
 		return nil, err
 	}
@@ -371,9 +473,9 @@ func (d *docStore) patch(c Ctx, key string, changes Thing) (Thing, error) {
 	if err := d.table.Put(key, t); err != nil {
 		return nil, err
 	}
-	t = n.docThing(withoutNil(t))
+	t = n.docRead(withoutNil(t))
 	d.wrote(c, key, t)
-	tell(c, info)
+	tell(c, info, said)
 	return t, nil
 }
 

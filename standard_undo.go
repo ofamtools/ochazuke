@@ -47,7 +47,18 @@ type ThingChange struct {
 	// was made, After nil: it was removed, both: a row rewritten); the
 	// change has no Before or After props. Undo puts the row back.
 	Relation *RelationChange `json:"relation,omitempty"`
+	// Stored is the whole thing a delete removed as its store kept it
+	// (Store.Stored: every field, ones no prop declares included), kept in
+	// memory with the entry and never written to the history file (whose
+	// entries are never undone); undo hands it to Create (Ctx.Restoring).
+	Stored map[string]any `json:"-"`
 }
+
+// Restoring is the thing as its store kept it while history-entry.undo
+// creates a deleted thing again (the store's Stored answer, recorded by
+// the delete), nil in every other Create: a store that keeps fields its
+// props do not declare puts the thing back whole from it.
+func (c Ctx) Restoring() Thing { return c.restoring }
 
 // UndoGuard offers history-entry.undo when a newest change exists, including one
 // the handler must explain it cannot undo; with none, a store declares Undo.
@@ -150,10 +161,15 @@ func (r *Runtime) runRecording(row standardVerb, n *Noun, c Ctx) (any, error) {
 		names, _ = row.Writes(n, c.Args)
 	}
 	key, keyed := "", false
-	var before, whole map[string]any
+	var before, whole, stored map[string]any
 	if subject {
 		if k, err := r.subjectKey(n, c); err == nil {
 			key, keyed = k, true
+			if row.Undo == undoByRecreate && n.Store.Stored != nil {
+				if doc, err := n.Store.Stored(c, k); err == nil && doc != nil {
+					stored = doc
+				}
+			}
 			if t := read(k); t != nil {
 				before = changeProps(n, t, names)
 				if before == nil {
@@ -175,7 +191,24 @@ func (r *Runtime) runRecording(row standardVerb, n *Noun, c Ctx) (any, error) {
 		}
 	}
 	r.noteAfter(row, n, key, value, read, before, whole, names)
+	if stored != nil {
+		r.keepStored(n.Name, key, stored)
+	}
 	return value, nil
+}
+
+// keepStored puts a deleted thing's stored form on the change the delete
+// just noted for it (one with no After: the thing is gone; an archive
+// instead keeps none).
+func (r *Runtime) keepStored(noun, key string, stored map[string]any) {
+	h := &r.history
+	changes := h.changes[max(h.depth-1, 0)]
+	for i := len(changes) - 1; i >= 0; i-- {
+		if ch := &changes[i]; ch.Noun == noun && ch.Key == key && ch.After == nil && ch.Before != nil {
+			ch.Stored = stored
+			return
+		}
+	}
 }
 
 // noteAfter notes the change a standard write made, once it has run: the
@@ -412,6 +445,7 @@ func (r *Runtime) undoChange(c Ctx, ch ThingChange) error {
 		if key := n.keyProp(); key != nil {
 			values[key.Name] = ch.Key
 		}
+		c.restoring = ch.Stored
 		_, err := n.Store.Create(c, values)
 		return err
 	default:

@@ -172,8 +172,14 @@ type PropSpec struct {
 	FromFocus bool   `json:"fromFocus,omitempty"`
 	// Association lets declared verbs of Noun act through this reference,
 	// read only from the focused instance's Data, never its store.
-	Association bool   `json:"association,omitempty"`
-	Default     any    `json:"default,omitempty"`
+	Association bool `json:"association,omitempty"`
+	Default     any  `json:"default,omitempty"`
+	// ReadDefault makes a DocStore read of a document that lacks the
+	// prop's field (or holds null there) give Default, or the type's zero
+	// value when Default is nil ("", false, 0, an empty list or object): a
+	// document written with empty fields left out reads them as empty. The
+	// value is never written back.
+	ReadDefault bool   `json:"readDefault,omitempty"`
 	Secret      bool   `json:"secret,omitempty"`
 	Multiline   bool   `json:"multiline,omitempty"`
 	When        string `json:"availability,omitempty"`
@@ -416,7 +422,19 @@ type Store struct {
 	// or "" for none).
 	ListScope  []ListScope
 	ScopeValue func(c Ctx, name string) any
-	Watch      func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
+	// Order is the store's own order (store_order.go): the order a list
+	// answers when the request sorts on nothing, and the tie-break after
+	// the request's sort keys. A Query request gets the keys after its own
+	// (so a DocStore's table sorts on them in its paged query: DocQuery.Sort),
+	// a List answer is sorted by them. Empty is the store's order as it is.
+	Order []SortKey
+	// Stored, when set, answers the thing with that key as the store keeps
+	// it, every field (a DocStore's document, fields no prop declares
+	// included). A delete records it in its history change (ThingChange,
+	// in memory only) and its undo hands it back to Create whole
+	// (Ctx.Restoring), so nothing the props do not declare is lost.
+	Stored func(c Ctx, key string) (Thing, error)
+	Watch  func(c Ctx, q WatchQuery, emit func(WatchEvent)) (stop func(), err error)
 	// ChangeToken, when set, answers a cheap token for the store's things
 	// as they are now: a version counter, sqlite's data_version, a
 	// generation bumped by every write. Two equal tokens mean nothing
@@ -654,6 +672,7 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 	}
 	s.ListParams = cloneParams(s.ListParams)
 	s.ListScope = slices.Clone(s.ListScope)
+	s.Order = slices.Clone(s.Order)
 	s.Confirm, s.When, s.Missing = maps.Clone(s.Confirm), maps.Clone(s.When), maps.Clone(s.Missing)
 	if s.Kind == Instances {
 		s = instancesStore(b.n.Name, s)
@@ -672,6 +691,8 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 	// A list's scope is a condition like any other, so it reaches a
 	// derived prop's handling and the store's own query.
 	s = withListScope(b.n.Name, s)
+	// The store's own order goes after every other key, a derived one too.
+	s = withOrder(b.n.Name, s)
 	b.n.Store = &s
 	b.r.applyStore(b.n)
 	b.last = ""
@@ -832,7 +853,7 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 		}
 	}
 	p = p.keepAnyRef()
-	if k := derivationKindOf(derivationOf(p)); p.Type == "" && k != nil && k.Type != "" {
+	if k := r.derivationKind(derivationOf(p)); p.Type == "" && k != nil && k.Type != "" {
 		p.Type = k.Type
 	}
 	if p.Type == "" {

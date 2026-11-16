@@ -62,6 +62,10 @@ type Ctx struct {
 	// (prop_derivation.go), reads them without their own derived props, so
 	// two nouns that derive from each other never read in a circle.
 	underived bool
+	// restoring, set while history-entry.undo creates a deleted thing
+	// again, is the thing as its store kept it (Store.Stored, recorded by
+	// the delete): a store puts it back whole (Ctx.Restoring).
+	restoring Thing
 	Runtime   *Runtime
 	Context   Context
 	Args      Arguments

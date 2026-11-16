@@ -652,11 +652,14 @@ func (o Operation) ParameterOrder() []string {
 type Runtime struct {
 	// relations is the relation store and the declared kinds (relation.go).
 	relations *relationState
-	Nouns     map[string]*Noun
-	Instances map[string]*Instance
-	Focus     string    // the focused instance; Context() is derived from it
-	Mode      ModeState // the one interaction mode; mode.switch writes it, a focus change to another stop resets it
-	Page      string    // the current page instance; always an ancestor of BaseFocus()
+	// derivations are the derivation kinds the application registered
+	// (RegisterDerivation), beside the framework's (derivationKinds).
+	derivations map[string]*derivationKind
+	Nouns       map[string]*Noun
+	Instances   map[string]*Instance
+	Focus       string    // the focused instance; Context() is derived from it
+	Mode        ModeState // the one interaction mode; mode.switch writes it, a focus change to another stop resets it
+	Page        string    // the current page instance; always an ancestor of BaseFocus()
 	// Modes is the defined base modes, a read-only view of the mode
 	// table kept for callers that index it: write modes with DefineMode,
 	// read them with IsBaseMode, IsPendingMode and ModeTraits.

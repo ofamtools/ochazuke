@@ -211,6 +211,12 @@ func checkQuery(t *testing.T, newTable NewTable) {
 	if page.Total != 12 || fmt.Sprint(ids(page)) != "[d7 d6 d5 d4 d3]" {
 		t.Fatalf("sorted page 2: total %d %v", page.Total, ids(page))
 	}
+	// A second key orders what the first leaves tied, across the page cut
+	// (a store's Order is such a key: Store.Order).
+	page = q(ochazuke.DocQuery{Sort: []ochazuke.SortKey{{Field: "archived"}, {Field: "size", Desc: true}}, Page: 3, PerPage: 4})
+	if fmt.Sprint(ids(page)) != "[d2 d1 d10 d5]" {
+		t.Fatalf("ties broken by the second key: %v", ids(page))
+	}
 	if page := q(ochazuke.DocQuery{Text: "DOC 1", TextFields: []string{"id", "title"}}); fmt.Sprint(ids(page)) != "[d1 d10 d11 d12]" {
 		t.Fatalf("text: %v", ids(page))
 	}

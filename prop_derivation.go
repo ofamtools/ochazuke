@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Derived props as data (overlay-every-store plan, lane STF): a prop the
@@ -36,9 +38,28 @@ import (
 // reads (the NOUN of NOUN.PROP, the noun a reference prop names) are the
 // noun's dependencies: a change there marks the noun's lists changed
 // (Runtime.Changed, the store's ChangeToken).
+//
+// A first derivation's Reads entry may also be text with placeholders,
+// task:{task}: each {READ} (PROP or REF.PROP) is replaced by its value,
+// and the entry holds none when one of them is empty. REF.PROP where REF
+// is an object prop (no reference) is the field PROP of REF's value.
+//
+// The rest shapes what any derivation gives, in this order: Blank trims
+// text and counts text of only spaces as empty (for first, an entry that
+// is only spaces is passed over); Max cuts text to that many cells, Tail
+// (counted in Max) ending a cut; Else is the value when the derivation
+// gives none. FirstOnly and Untrimmed are first-line's: the text's first
+// line whether or not it is blank (a blank one gives none), and the line
+// as written, spaces kept.
 type Derivation struct {
-	Of    string   `json:"of"`
-	Reads []string `json:"reads"`
+	Of        string   `json:"of"`
+	Reads     []string `json:"reads"`
+	Blank     bool     `json:"blank,omitempty"`
+	Max       int      `json:"max,omitempty"`
+	Tail      string   `json:"tail,omitempty"`
+	Else      any      `json:"else,omitempty"`
+	FirstOnly bool     `json:"firstOnly,omitempty"`
+	Untrimmed bool     `json:"untrimmed,omitempty"`
 }
 
 // String is the derivation as one phrase: "count of note.task".
@@ -71,8 +92,53 @@ var derivationKinds = []derivationKind{
 	{Name: "count", About: "How many things of NOUN have PROP naming this thing (Reads: NOUN.PROP)", Type: SettingInteger, Other: true, run: deriveCount},
 	{Name: "label", About: "The label of the thing a reference prop names (Reads: PROP); its key when it has none or is gone", run: deriveLabel},
 	{Name: "since", About: "How long ago a time prop was (Reads: PROP), a duration", Type: SettingDuration, run: deriveSince},
-	{Name: "first-line", About: "The first line of a text prop that is not blank (Reads: PROP)", run: deriveFirstLine},
-	{Name: "first", About: "The first of Reads that holds a value: REF.PROP is the prop PROP of the thing the reference prop REF names, the prop's own name its own stored value (Reads: task.project, project); stored and writable when Reads names it", Via: true, Own: true, run: deriveFirst, write: firstWriteReason},
+	{Name: "first-line", About: "The first line of a text prop that is not blank, trimmed (Reads: PROP); FirstOnly takes the first line blank or not, Untrimmed keeps its spaces", run: deriveFirstLine},
+	{Name: "first", About: "The first of Reads that holds a value: REF.PROP is the prop PROP of the thing the reference prop REF names (or the field of an object prop), the prop's own name its own stored value, text with {READ} placeholders that text when each holds a value (Reads: task.project, project; about, task:{task}); stored and writable when Reads names it", Via: true, Own: true, run: deriveFirst, write: firstWriteReason},
+}
+
+// DerivationKind is a derivation an application adds to a runtime
+// (Runtime.RegisterDerivation): About says what it computes, Type is the
+// type a prop declaring it gets when it declares none, and Derive computes
+// the value for one thing (its props by name; d is the prop's Derivation,
+// Reads naming the props it reads), false when it gives none. A Reads
+// entry naming a reference prop makes the referenced noun a dependency, as
+// for the framework's kinds. A derived prop of a registered kind is like
+// any other: part of get's record and list's rows, filterable, sortable,
+// change-tracked, shaped by Blank, Max, Tail and Else; it never keeps a
+// value of its own.
+type DerivationKind struct {
+	About  string
+	Type   string
+	Derive func(c Ctx, d Derivation, t Thing) (any, bool)
+}
+
+// RegisterDerivation adds a derivation kind under name for this runtime's
+// props, before the nouns that declare it: a name the framework already
+// has keeps the framework's.
+func (r *Runtime) RegisterDerivation(name string, kind DerivationKind) {
+	if r.derivations == nil {
+		r.derivations = map[string]*derivationKind{}
+	}
+	derive := kind.Derive
+	r.derivations[name] = &derivationKind{Name: name, About: kind.About, Type: kind.Type, run: func(c Ctx, _ *Noun, p PropSpec, things []Thing) {
+		if derive == nil {
+			return
+		}
+		for _, t := range things {
+			if v, ok := derive(c, *p.Derivation, t); ok {
+				t[p.Name] = v
+			}
+		}
+	}}
+}
+
+// derivationKind is the kind a derivation names: the framework's, else one
+// the application registered on r.
+func (r *Runtime) derivationKind(of string) *derivationKind {
+	if k := derivationKindOf(of); k != nil || r == nil {
+		return k
+	}
+	return r.derivations[of]
 }
 
 // Derivations are the derivations a PropSpec.Derivation may name (Of), with
@@ -164,8 +230,8 @@ func splitRead(read string) (noun, prop string) {
 func (r *Runtime) dependencies(n *Noun) []string {
 	var out []string
 	for _, p := range n.derivedProps() {
-		k := derivationKindOf(p.Derivation.Of)
-		for _, read := range p.Derivation.Reads {
+		k := r.derivationKind(p.Derivation.Of)
+		for _, read := range readsOf(p.Derivation.Reads) {
 			noun, prop := splitRead(read)
 			switch {
 			case k != nil && k.Via:
@@ -187,6 +253,38 @@ func (r *Runtime) dependencies(n *Noun) []string {
 		}
 	}
 	return out
+}
+
+// readsOf are the entries of Reads with each text entry's placeholders
+// (task:{task}) in its place.
+func readsOf(reads []string) []string {
+	var out []string
+	for _, read := range reads {
+		if holes := placeholders(read); holes != nil {
+			out = append(out, holes...)
+		} else {
+			out = append(out, read)
+		}
+	}
+	return out
+}
+
+// placeholders are the {READ} names of a text entry, nil for an entry with
+// none.
+func placeholders(entry string) []string {
+	var out []string
+	for rest := entry; ; {
+		i := strings.IndexByte(rest, '{')
+		if i < 0 {
+			return out
+		}
+		j := strings.IndexByte(rest[i:], '}')
+		if j < 0 {
+			return out
+		}
+		out = append(out, rest[i+1:i+j])
+		rest = rest[i+j+1:]
+	}
 }
 
 // withDependents is names with every noun whose derived props read one of
@@ -236,11 +334,51 @@ func (r *Runtime) derive(c Ctx, n *Noun, things []Thing) []Thing {
 				delete(t, p.Name) // never the store's value: the derivation's
 			}
 		}
-		if k := derivationKindOf(p.Derivation.Of); k != nil && len(p.Derivation.Reads) > 0 {
+		if k := r.derivationKind(p.Derivation.Of); k != nil && len(p.Derivation.Reads) > 0 {
 			k.run(c, n, p, out)
 		}
+		shapeDerived(p, out)
 	}
 	return out
+}
+
+// shapeDerived applies the derivation's Blank, Max, Tail and Else to the
+// value each thing got (see Derivation); a derivation that sets none of
+// them leaves the values as they are.
+func shapeDerived(p PropSpec, things []Thing) {
+	d := p.Derivation
+	if !d.Blank && d.Max <= 0 && d.Else == nil {
+		return
+	}
+	for _, t := range things {
+		v := t[p.Name]
+		if text, ok := v.(string); ok {
+			if d.Blank {
+				text = strings.TrimSpace(text)
+			}
+			if d.Max > 0 {
+				text = ansi.Truncate(text, d.Max, d.Tail)
+			}
+			v = text
+		}
+		if emptyProp(v) && d.Else != nil {
+			v = d.Else
+		}
+		if v == nil {
+			delete(t, p.Name)
+		} else {
+			t[p.Name] = v
+		}
+	}
+}
+
+// blankOut is v as a derivation with Blank counts it: text of only spaces
+// is empty.
+func blankOut(d *Derivation, v any) any {
+	if text, ok := v.(string); ok && d.Blank && strings.TrimSpace(text) == "" {
+		return nil
+	}
+	return v
 }
 
 func cloneThing(t Thing) Thing {
@@ -312,33 +450,86 @@ func deriveLabel(c Ctx, n *Noun, p PropSpec, things []Thing) {
 		return
 	}
 	other := c.Runtime.Noun(ref.Noun)
-	labels := map[string]string{}
+	got := map[string]Thing{}
+	readRefs(c, other, batchKeys(things, ref.Name), got)
 	for _, t := range things {
-		key := fmt.Sprint(t[ref.Name])
 		if emptyProp(t[ref.Name]) {
 			continue
 		}
-		if _, ok := labels[key]; !ok {
-			labels[key] = refLabel(c, other, key)
-		}
-		t[p.Name] = labels[key]
+		t[p.Name] = refLabel(other, fmt.Sprint(t[ref.Name]), got)
 	}
 }
 
-func refLabel(c Ctx, other *Noun, key string) string {
-	if other == nil || other.Store == nil || other.Store.Get == nil {
+// refLabel is the label of the thing of other with that key, read into got
+// (readRefs); the key itself when it has none or was not read.
+func refLabel(other *Noun, key string, got map[string]Thing) string {
+	if other == nil {
 		return key
 	}
-	oc := c
-	oc.Noun, oc.underived = other.Name, true
-	t, err := other.Store.Get(oc, key)
-	if err != nil || t == nil {
+	t := got[other.Name+"\x00"+key]
+	if t == nil {
 		return key
 	}
 	if label := other.displayLabel(func(name string) any { return t[name] }); label != "" {
 		return label
 	}
 	return key
+}
+
+// batchKeys are the distinct keys the reference prop holds over the batch.
+func batchKeys(things []Thing, prop string) []string {
+	var out []string
+	for _, t := range things {
+		if v := t[prop]; !emptyProp(v) {
+			if key := fmt.Sprint(v); !slices.Contains(out, key) {
+				out = append(out, key)
+			}
+		}
+	}
+	return out
+}
+
+// readRefs reads the things of other with these keys into got (by
+// other.Name, NUL, key; a thing that cannot be read is nil there), for a
+// derivation over a batch: one Query for every key not yet read when the
+// store has one (every thing, archived ones too, without its own derived
+// props), then the store's Get for each key the query did not answer, or
+// for every key when it has no Query.
+func readRefs(c Ctx, other *Noun, keys []string, got map[string]Thing) {
+	if other == nil || other.Store == nil || len(keys) == 0 {
+		return
+	}
+	id := func(key string) string { return other.Name + "\x00" + key }
+	var want []any
+	for _, key := range keys {
+		if _, ok := got[id(key)]; !ok {
+			want = append(want, key)
+		}
+	}
+	if len(want) == 0 {
+		return
+	}
+	oc := c
+	oc.Noun, oc.underived = other.Name, true
+	if kp := other.keyProp(); kp != nil && other.Store.Query != nil {
+		page, err := other.Store.Query(oc, ListQuery{Filters: []PropFilter{{Prop: kp.Name, Op: "in", Value: want}}, Archived: true, Every: true, Args: Arguments{}})
+		if err == nil {
+			for _, t := range page.Items {
+				got[id(fmt.Sprint(t[kp.Name]))] = t
+			}
+		}
+	}
+	for _, key := range want {
+		k := fmt.Sprint(key)
+		if _, ok := got[id(k)]; ok {
+			continue
+		}
+		var t Thing
+		if other.Store.Get != nil {
+			t, _ = other.Store.Get(oc, k)
+		}
+		got[id(k)] = t
+	}
 }
 
 // deriveSince is how long ago a time prop was, to the second: a time
@@ -371,16 +562,25 @@ func deriveSince(c Ctx, n *Noun, p PropSpec, things []Thing) {
 // deriveFirstLine is the first line of a text prop that is not blank,
 // trimmed; left out when there is none.
 func deriveFirstLine(c Ctx, n *Noun, p PropSpec, things []Thing) {
-	name := p.Derivation.Reads[0]
+	d := p.Derivation
+	name := d.Reads[0]
 	if spec := n.prop(name); spec != nil {
 		name = spec.Name
 	}
 	for _, t := range things {
 		for line := range strings.Lines(cellValueText(t[name])) {
-			if line = strings.TrimSpace(line); line != "" {
-				t[p.Name] = line
-				break
+			line = strings.TrimRight(line, "\r\n")
+			if strings.TrimSpace(line) == "" {
+				if d.FirstOnly {
+					break
+				}
+				continue
 			}
+			if !d.Untrimmed {
+				line = strings.TrimSpace(line)
+			}
+			t[p.Name] = line
+			break
 		}
 	}
 }
@@ -597,6 +797,17 @@ func derivationProp(p PropSpec) PropSpec {
 // REF names, read through its noun's Get once per key (got caches it; a
 // thing that is not found gives none).
 func firstEntry(c Ctx, n *Noun, read string, t Thing, got map[string]Thing) (any, string) {
+	if holes := placeholders(read); holes != nil {
+		text := read
+		for _, hole := range holes {
+			v, _ := firstEntry(c, n, hole, t, got)
+			if emptyProp(v) {
+				return nil, ""
+			}
+			text = strings.Replace(text, "{"+hole+"}", cellValueText(v), 1)
+		}
+		return text, ""
+	}
 	refName, prop := splitRead(read)
 	if refName == "" {
 		name := prop
@@ -607,6 +818,16 @@ func firstEntry(c Ctx, n *Noun, read string, t Thing, got map[string]Thing) (any
 	}
 	ref := n.prop(refName)
 	if ref == nil || emptyProp(t[ref.Name]) {
+		return nil, ""
+	}
+	if ref.Noun == "" {
+		// An object prop: the field of its value.
+		switch obj := t[ref.Name].(type) {
+		case map[string]any:
+			return obj[prop], ""
+		case Thing:
+			return obj[prop], ""
+		}
 		return nil, ""
 	}
 	key := fmt.Sprint(t[ref.Name])
@@ -636,10 +857,18 @@ func firstEntry(c Ctx, n *Noun, read string, t Thing, got map[string]Thing) (any
 // (firstEntry); a thing where none does keeps its own value as it is.
 func deriveFirst(c Ctx, n *Noun, p PropSpec, things []Thing) {
 	got := map[string]Thing{}
+	// The things every REF.PROP names, read for the whole batch at once.
+	for _, read := range readsOf(p.Derivation.Reads) {
+		if refName, _ := splitRead(read); refName != "" {
+			if ref := n.prop(refName); ref != nil && ref.Noun != "" {
+				readRefs(c, c.Runtime.Noun(ref.Noun), batchKeys(things, ref.Name), got)
+			}
+		}
+	}
 	for _, t := range things {
 		as := cloneThing(t) // every entry reads the thing as the store answered it
 		for _, read := range p.Derivation.Reads {
-			if v, _ := firstEntry(c, n, read, as, got); !emptyProp(v) {
+			if v, _ := firstEntry(c, n, read, as, got); !emptyProp(blankOut(p.Derivation, v)) {
 				t[p.Name] = v
 				break
 			}
@@ -683,7 +912,7 @@ func (r *Runtime) writeReasons(c Ctx, n *Noun, old, changes Thing) map[string]st
 		if _, written := changes[p.Name]; !written || !p.ownsValue() {
 			continue
 		}
-		k := derivationKindOf(p.Derivation.Of)
+		k := r.derivationKind(p.Derivation.Of)
 		if k == nil || k.write == nil {
 			continue
 		}

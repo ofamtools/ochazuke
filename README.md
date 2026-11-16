@@ -3022,8 +3022,25 @@ on each prop, so it needs no store file:
   out). `Of` is one of `Derivations()`: `count` (things of `NOUN` whose
   `PROP` names this thing, `Reads: ["NOUN.PROP"]`; one list of `NOUN` per
   read), `label` (the label of the thing a reference prop names), `since`
-  (a duration since a time prop, or a whole number of Unix milliseconds), `first-line` (of a text prop). A
-  derivation outside these stays a `PropSpec.Read` function.
+  (a duration since a time prop, or a whole number of Unix milliseconds), `first-line` (of a text prop). An
+  application adds a kind of its own with `Runtime.RegisterDerivation(name,
+  DerivationKind{About, Type, Derive})` (before the nouns that declare it;
+  `Derive(c, d, t) (value, ok)` computes one thing's value from its props;
+  a framework name keeps the framework's kind), with no `Read` function.
+- A derivation's value is shaped as data on the `Derivation`: `Blank`
+  trims text and counts text of only spaces as empty (for `first`, an
+  entry of only spaces is passed over: a title of spaces falls back to the
+  summary); `Max` cuts text to that many cells, `Tail` ending a cut
+  (counted in `Max`); `Else` is the value when the derivation gives none
+  (`"untitled"`). `first-line` takes `FirstOnly` (the first line whether or
+  not it is blank; a blank one gives none) and `Untrimmed` (spaces kept). A
+  note's summary is `{Of: "first-line", Reads: ["text"], FirstOnly: true,
+  Untrimmed: true, Max: 70, Tail: "…", Else: "untitled"}`.
+- `PropSpec.ReadDefault` makes a DocStore read of a document that lacks
+  the prop's field (or holds null there) give the prop's `Default`, or its
+  type's zero (`""`, `false`, `0`, an empty list or object): a document
+  written with empty fields left out reads them as empty. Nothing is
+  written back; a table's own conditions still run on the stored fields.
 - Derived props are in get's record, list's rows and columns, and
   filterable and sortable. The framework wraps every store once
   (`withDerivations`, any store, not only DocStore). A request that filters,
@@ -3040,9 +3057,17 @@ on each prop, so it needs no store file:
   `describe`'s props, on the Nouns page's props and in the reference docs.
 - `first` is a derivation that keeps a value of its own: `Reads` are tried
   in order and the first that holds a value shows. `REF.PROP` is the prop
-  `PROP` of the thing the reference prop `REF` names (read through its
-  noun's `Get`, once per key per read); the prop's own name is its own
-  stored value (under its `Field`). `{Name: "project", Field: "project_id",
+  `PROP` of the thing the reference prop `REF` names, or the field `PROP`
+  of `REF`'s value when `REF` is an object prop (`created-by.kind`); the
+  prop's own name is its own stored value (under its `Field`); an entry
+  with `{READ}` placeholders is that text with each replaced by its value,
+  and holds none when one of them is empty (`Reads: ["about",
+  "task:{task}"]`: the own value, else `task:ID`). The things a batch's
+  `REF.PROP` entries (and a `label` derivation) name are read once for the
+  batch: one `Query` of the referenced store for the distinct keys (every
+  thing, archived too, without its derived props) when it has one, then
+  its `Get` for each key the query did not answer, or for each key when
+  it has no `Query` (26 notes on 26 tasks: 2 queries in place of 52 gets). `{Name: "project", Field: "project_id",
   Derivation: &Derivation{Of: "first", Reads: []string{"task.project",
   "project"}}}` shows the task's project, else the thing's own; `Reads:
   ["project", "task.project"]` the other way round. When `Reads` names the
@@ -3066,8 +3091,10 @@ on each prop, so it needs no store file:
   `w.Old` (the thing as it is, nil on a create), `w.Changes` (the props
   written by name; nil clears one). The hook may set, add or delete
   entries (a name no prop declares is written as a document field of that
-  name, for `former_*` fields) and append `w.Info` lines, told as
-  information once the write is stored. It resolves and normalises (an
+  name, for `former_*` fields) and append `w.Info` lines, told as one line
+  of information once the write is stored, and `w.Messages` (`UIMessage`
+  by `Kind`: `UINotice`, `UIInfo`, `UIError`), each told on its own once
+  the write is stored (a write not stored tells none). It resolves and normalises (an
   owner that wins, one not found saved unassociated with a line saying
   so); it does not refuse: an error it answers is a failure and nothing is
   stored. The `first` check above runs after it.
@@ -3077,7 +3104,13 @@ on each prop, so it needs no store file:
   `Store.ScopeValue func(c Ctx, name string) any` answers (the
   application's pinned project); `Unless` names a boolean list parameter
   that drops the condition (`all`); no value drops it too (nothing pinned
-  is everything), and so does `ListQuery.Every` (counts, derivations). The
+  is everything), and so does `ListQuery.Every` (the Nouns page's counts,
+  thing pickers, walks, derivations) unless the row says `Every: true`:
+  pickers show all things and narrowing is optional, never a pre-filter,
+  so `Every` defaults to false, for a store that must keep its scope even
+  there. The values `ScopeValue` answers are part of the store's
+  `ChangeToken`, so a list refreshes when the pin moves; `Arg` and
+  `Unless` are the request's own and need no token. The
   framework adds the conditions to the request (`withListScope`, outside
   the derivations), so a store with a `Query` runs them in its table,
   paged, and a List answer is held to them. Declare `Arg` and `Unless` in
@@ -3092,6 +3125,22 @@ on each prop, so it needs no store file:
   it and reads every document otherwise. `MemDocTable` has it;
   `NextNumberedKey(prefix, keys)` is the shared rule. The `doctest`
   contract checks both paths and the nil clear.
+- `Store.Order []SortKey` is the store's own order (`withOrder`, any
+  store): the order a list answers when the request sorts on nothing, and
+  the tie-break after the request's keys. A `Query` request gets the keys
+  after its own (a key on a field the request sorts on is left out), so a
+  DocStore's table sorts on them in its paged query (`DocQuery.Sort`); a
+  `List` answer is sorted by them. The `doctest` contract checks that a
+  second sort key orders what the first leaves tied, across the page cut.
+- Undo of a delete puts the whole document back. `DocStore` answers
+  `Store.Stored` (the document as the table keeps it, fields no prop
+  declares included); the standard delete records it on its history
+  change (`ThingChange.Stored`, in memory with the entry and never in the
+  history file, whose entries are never undone: one document per deleted
+  thing, for as long as the entry is kept), and its undo hands it to
+  `Create` as `Ctx.Restoring()`; DocStore puts it back whole under its key
+  with no `BeforeWrite`. Any store may answer `Stored` and read
+  `Restoring`.
 
 `collection.group-fold {group?, closed?}` folds a group to one selectable
 heading. Omit `group` to use the selection's group; omit `closed` to toggle,

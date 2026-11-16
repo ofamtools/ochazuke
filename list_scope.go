@@ -1,6 +1,10 @@
 package ochazuke
 
-import "slices"
+import (
+	"fmt"
+	"slices"
+	"strings"
+)
 
 // A list's scope as data (docstore-for-nouns): a noun's list narrows to the
 // things of the current scope (the pinned project) unless a parameter
@@ -19,23 +23,32 @@ import "slices"
 // boolean list parameter that, when true, leaves the condition out (all:
 // every thing, not only those in scope). With no value (Arg not given,
 // ScopeValue answering nil or ""), the condition is left out: nothing
-// pinned is everything. A request that asks for every thing
-// (ListQuery.Every: a count, a derivation's read) has no scope.
+// pinned is everything.
+//
+// A request that asks for every thing (ListQuery.Every: the Nouns page's
+// counts, a thing picker, a walk, a derivation's read) has no scope unless
+// the row says Every: pickers show all things, and narrowing is optional,
+// never a pre-filter (the owner's rule), so false is the default. A store
+// whose every read must stay in scope sets Every on that row.
+//
+// The values ScopeValue answers are part of the store's change token
+// (withListScope), so a list refreshes when the pin moves.
 type ListScope struct {
 	Prop   string `json:"prop"`
 	Op     string `json:"op,omitempty"`
 	Arg    string `json:"arg,omitempty"`
 	Value  string `json:"value,omitempty"`
 	Unless string `json:"unless,omitempty"`
+	Every  bool   `json:"every,omitempty"`
 }
 
 // scopeFilters are the conditions s's scope rows add to q.
 func scopeFilters(c Ctx, s Store, q ListQuery) []PropFilter {
-	if q.Every {
-		return nil
-	}
 	var out []PropFilter
 	for _, row := range s.ListScope {
+		if q.Every && !row.Every {
+			continue
+		}
 		if row.Unless != "" {
 			if on, _ := q.Args[row.Unless].(bool); on {
 				continue
@@ -58,7 +71,9 @@ func scopeFilters(c Ctx, s Store, q ListQuery) []PropFilter {
 
 // withListScope adds the store's scope conditions to every List and Query
 // request of noun; a store with no ListScope rows is as it is. A List
-// answer is held to the conditions too (a List that reads no Filters).
+// answer is held to the conditions too (a List that reads no Filters). The
+// store's change token is joined with the values its rows read from
+// ScopeValue (scopeToken).
 func withListScope(noun string, s Store) Store {
 	if len(s.ListScope) == 0 {
 		return s
@@ -83,5 +98,31 @@ func withListScope(noun string, s Store) Store {
 	if raw.Query != nil {
 		s.Query = func(c Ctx, q ListQuery) (ListPage, error) { return raw.Query(c, scoped(c, q)) }
 	}
+	if raw.ChangeToken != nil && raw.ScopeValue != nil {
+		s.ChangeToken = func(c Ctx) (string, error) {
+			own, err := raw.ChangeToken(c)
+			if err != nil || own == "" {
+				return own, err
+			}
+			return own + scopeToken(c, raw), nil
+		}
+	}
 	return s
+}
+
+// scopeToken is what a change token adds for the store's scope: each value
+// a row reads from ScopeValue, by its name. A row's list parameter (Arg,
+// Unless) is the request's own, so it needs no token: a request that gives
+// another is another request.
+func scopeToken(c Ctx, s Store) string {
+	var b strings.Builder
+	var seen []string
+	for _, row := range s.ListScope {
+		if row.Value == "" || slices.Contains(seen, row.Value) {
+			continue
+		}
+		seen = append(seen, row.Value)
+		fmt.Fprintf(&b, "|scope.%s=%v", row.Value, s.ScopeValue(c, row.Value))
+	}
+	return b.String()
 }
