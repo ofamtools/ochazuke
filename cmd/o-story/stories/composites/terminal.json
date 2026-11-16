@@ -259,7 +259,7 @@
           }
         ]
       },
-      "name": "R12.5 two associated things: a leader key names them and runs nothing"
+      "name": "R12.5 two associated things: a leader key takes the same path as one, the first is the outside focus and runs"
     },
     {
       "settings": [
@@ -1577,7 +1577,7 @@
     },
     {
       "key": "ctrl+alt+n",
-      "note": "terminal/leader-ambiguous-association: R12.5 two associated things: a leader key names them and runs nothing"
+      "note": "terminal/leader-several-associations: R12.5 two associated things: a leader key takes the same path as one, the first is the outside focus and runs"
     },
     "enter",
     "ctrl+a",
@@ -2017,7 +2017,9 @@
     },
     {
       "mode": "terminal",
-      "writes": [],
+      "writes": [
+        "item.rename-associated row=a1"
+      ],
       "contains": [
         "Build",
         "Other"

@@ -126,8 +126,11 @@ func TestCLIPrintedTargetCommandsRun(t *testing.T) {
 			return ochazuke.ListPage{Items: things, Total: len(things)}, nil
 		},
 	}).Verb("preview", func(c ochazuke.Ctx) ochazuke.Result {
-		if c.Instance == nil || c.Instance.Noun != "pane" {
+		if c.Instance == nil {
 			return ochazuke.Failed(errors.New("no pane"))
+		}
+		if c.Instance.Noun != "pane" {
+			return ochazuke.Failed(errors.New("no pane at " + c.Instance.ID + " (" + c.Instance.Noun + ")"))
 		}
 		ran = append(ran, c.Instance.ID)
 		return ochazuke.Done(nil)
