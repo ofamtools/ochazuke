@@ -236,7 +236,7 @@ func (r *Runtime) applyUserPlan(path string, old []byte, p BindingPlan) ([]strin
 	if err != nil {
 		return nil, err
 	}
-	r.noteChange(ThingChange{Noun: bindingFileNoun, Before: map[string]any{"text": string(old)}, After: map[string]any{"text": string(data)}})
+	r.noteChange(ThingChange{Noun: bindingFileNoun, Key: BindingsFile, Before: map[string]any{"text": string(old)}, After: map[string]any{"text": string(data)}})
 	return problems, nil
 }
 

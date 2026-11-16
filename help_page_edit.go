@@ -358,6 +358,7 @@ func helpPageEditVerbs() []helpPageVerb {
 		{"show-file", "Show your bindings.json as written, after its changes since the page opened", nil, (*HelpPage).showFile},
 		{"undo", "Undo the last change (history-entry.undo): an edit of your bindings.json writes the file's old text back", nil, func(p *HelpPage, _ Arguments) error {
 			_, err := p.r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo"})
+			p.Detail = nil
 			return err
 		}},
 	}

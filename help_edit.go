@@ -595,22 +595,10 @@ func (w HelpWalk) Preview(plan BindingPlan, guard func(Binding) string, display 
 	if key == "" {
 		return out
 	}
-	runs := func(v HelpWalk) string {
-		t := v.Trace(key)
-		if t.Answer == nil {
-			return "nothing"
-		}
-		level := -1
-		if i := slices.IndexFunc(v.Entries, func(en HelpEntry) bool {
-			return en.Row.same(*t.Answer) && en.Row.Request.Key() == t.Answer.Request.Key()
-		}); i >= 0 {
-			level = v.Entries[i].Level
-		}
-		return display(t.Answer.Request) + " (at " + v.LevelLabel(level) + ")"
-	}
+	runs := func(v HelpWalk) string { return v.runsText(key, display) }
 	add("", fmt.Sprintf("From %s in %s, %s runs now: %s", w.Place.Noun, w.Mode, key, runs(w)))
 	tone := string(StatusMaybe)
-	if t := after.Trace(key); t.Answer != nil && t.Answer.Request.Key() == plan.Action {
+	if first := after.firstOn(key); first >= 0 && after.Entries[first].Row.Request.Key() == plan.Action {
 		tone = string(StatusAnswers)
 	}
 	add(tone, fmt.Sprintf("After this change, %s runs: %s", key, runs(after)))
@@ -643,6 +631,46 @@ func (w HelpWalk) Preview(plan BindingPlan, guard func(Binding) string, display 
 		add(string(StatusAnswers), "Nothing else loses "+key+".")
 	}
 	return out
+}
+
+// firstOn is the entry that takes key first on the walk (its own keys or
+// pattern; a generated row that steps aside is passed over), guarded or
+// not; -1 for none.
+func (w HelpWalk) firstOn(key string) int {
+	tokens := strings.Fields(key)
+	for i, en := range w.Entries {
+		if en.State == StatusStepsAside {
+			continue
+		}
+		if hit := traceHit(en.Row, key, tokens); hit == TraceExact || hit == TracePattern {
+			return i
+		}
+	}
+	return -1
+}
+
+// runsText is what key runs on the walk, as the preview says it: the row
+// that takes it first and where, with the guard it answers under, and
+// whether the key also starts sequences (so a press waits).
+func (w HelpWalk) runsText(key string, display func(Request) string) string {
+	text := "nothing"
+	if i := w.firstOn(key); i >= 0 {
+		en := w.Entries[i]
+		text = display(en.Row.Request) + " (at " + w.LevelLabel(en.Level) + ")"
+		if en.Guard != "" {
+			text += " when " + en.Guard + " holds"
+		}
+	}
+	longer := 0
+	for _, en := range w.Entries {
+		if en.State != StatusStepsAside && en.Row.Keys != "" && strings.HasPrefix(en.Row.Keys, key+" ") {
+			longer++
+		}
+	}
+	if longer > 0 {
+		text += fmt.Sprintf("; it also starts %d sequences, so a press waits for the next key", longer)
+	}
+	return text
 }
 
 // shadowLines adds the lines about a put row on the walk after (w is the
