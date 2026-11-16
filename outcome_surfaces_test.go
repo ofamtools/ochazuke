@@ -81,6 +81,11 @@ func TestPersonOutcomeSurfaces(t *testing.T) {
 	for _, route := range routes {
 		for _, k := range kinds {
 			r, sink, ran := outcomeFixture(t)
+			// This test is about the candidates' picker (ask.choices picker);
+			// TestAskChoicesSetting covers each value.
+			if err := r.Settings().Set(AskChoicesSetting, "picker"); err != nil {
+				t.Fatal(err)
+			}
 			err := route.run(r, sink, k.key, k.verb)
 			got := ""
 			if err != nil {
