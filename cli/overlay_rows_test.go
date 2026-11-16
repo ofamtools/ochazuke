@@ -3,7 +3,6 @@ package cli
 import (
 	"fmt"
 	"io"
-	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -51,7 +50,12 @@ func TestOverlayLocalRowsAnswer(t *testing.T) {
 		}
 	}
 	var wrong []string
-	for _, key := range slices.Sorted(maps.Keys(got)) {
+	keys := make([]string, 0, len(got))
+	for key := range got {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	for _, key := range keys {
 		if kind, _, _ := strings.Cut(got[key], ":"); kind != overlayLocalRows[key] {
 			wrong = append(wrong, fmt.Sprintf("%s: %s, want %s", key, got[key], overlayLocalRows[key]))
 		}
