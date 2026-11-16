@@ -514,7 +514,7 @@ Let declared human requests act through reference props marked association on th
 
 string · default `ask-on-change` · choices `ask-on-change`, `act`, `always-pick` · section Keys · declared by ochazuke
 
-What a verb does with a thing linked to what you are on (through a relation or an association, a task's pane) when nothing of its noun is selected, focused or on the focus path: ask-on-change acts on the best-ranked linked thing for a verb that only reads or opens, and asks with the picker, linked things first, for a verb that changes something; act acts on the best-ranked linked thing for every verb (a change only on one a single hop away); always-pick always asks, linked things first. How many linked things there are never changes which of these happens
+What a verb does with a thing linked to what you are on (through a relation or an association, a task's pane) when nothing of its noun is selected, focused or holds the focus: ask-on-change acts on the best-ranked linked thing for a verb that only reads or opens, and asks with the picker, linked things first, for a verb that changes something; act acts on the best-ranked linked thing for every verb (a change only on one a single hop away); always-pick always asks, linked things first. How many linked things there are never changes which of these happens
 
 <a id="setting-yank.report"></a>
 ### `yank.report`
@@ -1137,7 +1137,7 @@ What opens when something you ran needs a value or a thing it was not given: pic
 
 string · default `picker` · choices `picker`, `form` · section Pickers · declared by ochazuke
 
-What opens when something you ran needs a thing it was not given (a pane, a task): picker opens the args form with that field's picker on top at once, the things found from where you are first (selected, focused, on the path, on the page, linked, recent), then every thing of its kind, flat and filterable; form opens the args form on the field, and enter opens its picker, as before
+What opens when something you ran needs a thing it was not given (a pane, a task): picker opens the args form with that field's picker on top at once, the things found from where you are first (selected, focused, holding the focus, on the page, linked, recent), then every thing of its kind, flat and filterable; form opens the args form on the field, and enter opens its picker, as before
 
 <a id="setting-path.field"></a>
 ### `path.field`

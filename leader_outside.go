@@ -18,20 +18,23 @@ const (
 // reachedAction decides what the reached thing at does with the key's
 // operation op, the original focus being focus. The nearest thing of the
 // noun takes the key when target.linked lets op act on a linked thing
-// (linkedActs), or when op has no way to ask; otherwise, and when none can
-// be acted on directly, the key runs with no subject, as the outside key
-// does, and asks, the linked things first.
+// (linkedActs); otherwise, and when none can be acted on directly, the key
+// runs with no subject, as the outside key does, and asks, the linked
+// things first, or, for a verb with no way to ask, names them and runs
+// nothing.
 func (r *Runtime) reachedAction(op Operation, at, focus string) reachedOutcome {
 	acts, distant := r.linkedActs(op)
-	id, things := r.nearestOf(r.Instances[at].Noun, focus, distant)
+	noun := r.Instances[at].Noun
+	id, things := r.nearestOf(noun, focus, distant)
 	switch {
-	case id == at && (acts || !r.asksSubject(op)):
+	case id == at && acts:
 		return reachRun
 	case id != "" && id != at:
 		return reachYield
-	case id != "":
-		return reachAsk
 	case !r.asksSubject(op):
+		if id != "" {
+			things = r.linkedThings(noun, focus)
+		}
 		// No ask path: say which things the key could mean and run
 		// nothing, never an error or a guess.
 		r.leavePrefix()
@@ -116,6 +119,17 @@ func (r *Runtime) outsideReached(focus string) []string {
 			}
 			out = append(out, a.inst)
 		}
+	}
+	return out
+}
+
+// linkedThings are the things of noun the focus path reaches, ranked as a
+// target's linked candidates are (linkedCandidates), for a notice naming
+// them.
+func (r *Runtime) linkedThings(noun, focus string) []focusThing {
+	var out []focusThing
+	for _, c := range r.linkedCandidates(targetScan{noun: r.CanonicalNoun(noun), focus: focus}) {
+		out = append(out, focusThing{Key: c.ID, Label: c.Label})
 	}
 	return out
 }

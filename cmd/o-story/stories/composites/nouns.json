@@ -3260,6 +3260,7 @@
     "q",
     "v",
     "q",
+    "q",
     "n",
     {
       "type": "First parcel"
@@ -3769,7 +3770,7 @@
       ]
     },
     {
-      "after": 62,
+      "after": 63,
       "modal": "args-form",
       "focus": "args-form/id",
       "contains": [
@@ -3778,7 +3779,7 @@
       ]
     },
     {
-      "after": 64,
+      "after": 65,
       "modal": "args-form",
       "focus": "args-form/title",
       "mode": "insert",
@@ -3798,10 +3799,10 @@
         "no parcels",
         "no parcel is focused"
       ],
-      "after": 66
+      "after": 67
     },
     {
-      "after": 69,
+      "after": 70,
       "page": "nouns/chore",
       "contains": [
         "Work  › Nouns",
@@ -3821,10 +3822,10 @@
       "contains": [
         "Work  › Nouns"
       ],
-      "after": 70
+      "after": 71
     },
     {
-      "after": 76,
+      "after": 77,
       "page": "nouns/chore",
       "contains": [
         "▼"
@@ -3838,10 +3839,10 @@
       "lacks": [
         "Water the plants"
       ],
-      "after": 79
+      "after": 80
     },
     {
-      "after": 81,
+      "after": 82,
       "contains": [
         "Work  › Nouns"
       ]
@@ -3855,10 +3856,10 @@
       "lacks": [
         "› Work"
       ],
-      "after": 82
+      "after": 83
     },
     {
-      "after": 84,
+      "after": 85,
       "page": "__nouns",
       "contains": [
         "Work  › Nouns",
@@ -3877,14 +3878,14 @@
       ]
     },
     {
-      "after": 85,
+      "after": 86,
       "writes": [
         "query page=1 per=1",
         "query page=1 per=1"
       ]
     },
     {
-      "after": 86,
+      "after": 87,
       "contains": [
         "commands",
         "deploy",
@@ -3896,10 +3897,10 @@
       "contains": [
         "› Work  Nouns"
       ],
-      "after": 87
+      "after": 88
     },
     {
-      "after": 90,
+      "after": 91,
       "page": "nouns/chore",
       "contains": [
         "Water the plants",
@@ -3911,10 +3912,10 @@
       "contains": [
         "Watered"
       ],
-      "after": 95
+      "after": 96
     },
     {
-      "after": 99,
+      "after": 100,
       "page": "nouns/chore",
       "contains": [
         "Water the plants",
@@ -3931,10 +3932,10 @@
         "Water the ferns",
         "History (1)"
       ],
-      "after": 102
+      "after": 103
     },
     {
-      "after": 106,
+      "after": 107,
       "contains": [
         "▾ Tasks (1)"
       ],
@@ -3947,22 +3948,22 @@
         "▾ Tasks (2)",
         "write"
       ],
-      "after": 107
-    },
-    {
-      "after": 111,
-      "focus": "details/note.project/list/@head"
+      "after": 108
     },
     {
       "after": 112,
-      "focus": "details/task.project/list/t2"
-    },
-    {
-      "after": 113,
       "focus": "details/note.project/list/@head"
     },
     {
+      "after": 113,
+      "focus": "details/task.project/list/t2"
+    },
+    {
       "after": 114,
+      "focus": "details/note.project/list/@head"
+    },
+    {
+      "after": 115,
       "focus": "details/note.project/list/@head",
       "contains": [
         "▸ Notes (project) (1)"
@@ -3972,7 +3973,7 @@
       ]
     },
     {
-      "after": 116,
+      "after": 117,
       "lacks": [
         "write",
         "idea",
@@ -3985,36 +3986,36 @@
         "idea",
         "docs"
       ],
-      "after": 117
+      "after": 118
     },
     {
-      "after": 120,
+      "after": 121,
       "modal": "",
       "mode": "normal"
     },
     {
-      "after": 123,
+      "after": 124,
       "modal": "story-chooser",
       "contains": [
         "Pick a colour"
       ]
     },
     {
-      "after": 125,
+      "after": 126,
       "modal": "",
       "mode": "visual-line"
     },
     {
-      "after": 126,
+      "after": 127,
       "modal": "story-chooser"
     },
     {
       "modal": "",
       "mode": "normal",
-      "after": 127
+      "after": 128
     },
     {
-      "after": 130,
+      "after": 131,
       "modal": "",
       "focus": "t1",
       "writes": [
@@ -4033,10 +4034,10 @@
         "Original",
         "done"
       ],
-      "after": 133
+      "after": 134
     },
     {
-      "after": 138,
+      "after": 139,
       "modal": "edit-choose"
     },
     {
@@ -4048,24 +4049,24 @@
       "lacks": [
         "todo"
       ],
-      "after": 143
+      "after": 144
     },
     {
       "modal": "edit-choose",
       "highlightedText": "done",
-      "after": 146
+      "after": 147
     },
     {
-      "after": 150,
+      "after": 151,
       "modal": "edit-choose"
     },
     {
-      "after": 152,
+      "after": 153,
       "modal": "",
       "mode": "visual-line"
     },
     {
-      "after": 153,
+      "after": 154,
       "modal": "edit-choose",
       "contains": [
         "Edit 2 demos project"
@@ -4077,10 +4078,10 @@
       "contains": [
         "done on 2 rows"
       ],
-      "after": 155
+      "after": 156
     },
     {
-      "after": 159,
+      "after": 160,
       "modal": "edit-choose"
     },
     {
@@ -4092,7 +4093,7 @@
       "lacks": [
         "todo"
       ],
-      "after": 164
+      "after": 165
     },
     {
       "modal": "edit-choose",
@@ -4102,24 +4103,24 @@
       "lacks": [
         "Edit demo project:"
       ],
-      "after": 168
+      "after": 169
     },
     {
-      "after": 172,
+      "after": 173,
       "modal": "edit-choose",
       "contains": [
         "Edit 2 demos project"
       ]
     },
     {
-      "after": 174,
+      "after": 175,
       "modal": "",
       "contains": [
         "done on 2 rows"
       ]
     },
     {
-      "after": 177,
+      "after": 178,
       "modal": "palette-results",
       "contains": [
         "project",
@@ -4127,7 +4128,7 @@
       ]
     },
     {
-      "after": 181,
+      "after": 182,
       "modal": "palette-results",
       "contains": [
         "project",
@@ -4140,16 +4141,16 @@
         "project",
         "home"
       ],
-      "after": 186
+      "after": 187
     },
     {
       "contains": [
         "rename was removed in R1: use edit"
       ],
-      "after": 187
+      "after": 188
     },
     {
-      "after": 191,
+      "after": 192,
       "modal": "edit-form",
       "contains": [
         "Edit demo title",
@@ -4157,11 +4158,11 @@
       ]
     },
     {
-      "after": 193,
+      "after": 194,
       "modal": ""
     },
     {
-      "after": 196,
+      "after": 197,
       "modal": "palette-results",
       "contains": [
         "title",
@@ -4177,13 +4178,13 @@
         "title",
         "Renamed"
       ],
-      "after": 200
+      "after": 201
     },
     {
       "contains": [
         "no writable prop with the role owner"
       ],
-      "after": 204
+      "after": 205
     },
     {
       "page": "page1"
