@@ -484,6 +484,13 @@ type Store struct {
 	// nothing useful (an open picker's rows). The catalog says it as
 	// noOverlay.
 	NoOverlay bool
+	// Overlaid names the parts of the store the framework's overlay
+	// supplies where its source has none ("patch", "create", "delete",
+	// "archive": the archive prop): set by the overlay, read by the
+	// catalog (Runtime.OverlayFills, a verb's overlay mark) so a host that
+	// mounts the store can tell a write the source makes from one kept in
+	// the user's changes.
+	Overlaid []string
 	// SessionKeys says the things' keys hold only in this process (a
 	// position in a list, a counter): the overlay keeps their rows for the
 	// session and never writes them to overlay.json, where another run's

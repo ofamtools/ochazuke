@@ -9,11 +9,13 @@ import (
 // ListFacts declares a thing noun over the noun's own list verb: the
 // standard get and list read the rows that verb answers, so the verb stays
 // what it was (its rows, its parameters, its TUI list) and the noun gains
-// the core verbs. The things are read-only (a facts store): create, set,
-// delete and archive are on the noun, unavailable, unless the application
-// registers a verb of that name itself, which then wins. The store is
-// Remote: List runs off the loop through Ctx.Await, which takes the verb's
-// pending work and leaves its Then (the TUI list update) alone.
+// the core verbs. The things are read-only facts of the tool's source:
+// create, set, delete and archive run through the framework's overlay
+// (overlay.go), the user's changes kept beside the rows (a delete hides the
+// row; the source keeps it), unless the application registers a verb of
+// that name itself, which then wins. The store is Remote: List's work runs
+// off the loop through Ctx.Await, which takes the verb's pending work and
+// leaves its Then (the TUI list update) alone.
 //
 // A thing's key is its row's id (also the human key, found with or without
 // the "noun/" prefix), its label the row's label, and its other props the
@@ -38,6 +40,12 @@ type ListFacts struct {
 	List func(Ctx) Result
 	// Limit bounds the wait for List's work (0 none).
 	Limit time.Duration
+	// SessionKeys says the rows' ids hold only in this process (a place in
+	// the list, a counter): the overlay keeps the user's changes for the
+	// session. Off (the default), an id names the same row in every run (the
+	// tool's own id), so the changes are written to overlay.json and
+	// survive a restart (factsSpec.StableKeys).
+	SessionKeys bool
 }
 
 // DefineListFacts declares each spec's noun, its props (the row's id as the
@@ -55,7 +63,7 @@ func (r *Runtime) DefineListFacts(specs ...ListFacts) {
 		r.defineFacts(factsSpec{
 			Noun: f.Noun, Sample: f.Sample, Key: "id", Label: "label", Extra: extra,
 			Rename: f.Rename, Docs: f.Docs, ListParams: f.ListParams,
-			KeyPrefix: f.Noun + "/", Own: true, Remote: true,
+			KeyPrefix: f.Noun + "/", Own: true, Remote: true, StableKeys: !f.SessionKeys,
 			List: f.list,
 		})
 	}

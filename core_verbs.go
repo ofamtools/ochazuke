@@ -144,6 +144,10 @@ type storeNeed struct {
 	Doc   string
 	Lacks string
 	Has   func(r *Runtime, n *Noun) bool
+	// Part is the store part the need is met by ("patch", "create",
+	// "delete", "archive": the names Store.Overlaid uses), "" for one the
+	// overlay never supplies; OverlayFills reads it.
+	Part string
 	// WaivedBy names a parameter whose value, given, waives the need for
 	// that request (edit's field waives forms.edit: the setting controls
 	// the generated full form, not the one-field form). The verb is still
@@ -156,11 +160,11 @@ var (
 		Has: func(_ *Runtime, n *Noun) bool { return n.Store.Get != nil }}
 	needList = storeNeed{Doc: "Store.List", Lacks: "its store lists no things (no Store.List)",
 		Has: func(_ *Runtime, n *Noun) bool { return n.Store.List != nil }}
-	needCreate = storeNeed{Doc: "Store.Create", Lacks: "its store creates no things (no Store.Create)",
+	needCreate = storeNeed{Doc: "Store.Create", Lacks: "its store creates no things (no Store.Create)", Part: "create",
 		Has: func(_ *Runtime, n *Noun) bool { return n.Store.Create != nil }}
-	needPatch = storeNeed{Doc: "Store.Patch", Lacks: "its store writes no props (no Store.Patch)",
+	needPatch = storeNeed{Doc: "Store.Patch", Lacks: "its store writes no props (no Store.Patch)", Part: "patch",
 		Has: func(_ *Runtime, n *Noun) bool { return n.Store.Patch != nil }}
-	needDelete = storeNeed{Doc: "Store.Delete", Lacks: "its store deletes no things (no Store.Delete)",
+	needDelete = storeNeed{Doc: "Store.Delete", Lacks: "its store deletes no things (no Store.Delete)", Part: "delete",
 		Has: func(_ *Runtime, n *Noun) bool { return n.Store.Delete != nil }}
 	needCreateProp = storeNeed{Doc: "a prop create writes", Lacks: "it has no prop create writes",
 		Has: func(_ *Runtime, n *Noun) bool { return len(createProps(n)) > 0 }}
@@ -199,7 +203,23 @@ func needRole(role string) storeNeed {
 		Doc:   fmt.Sprintf("a writable %s prop (role %s)", role, role),
 		Lacks: fmt.Sprintf("it has no writable %s prop (role %s)", role, role),
 		Has:   func(_ *Runtime, n *Noun) bool { return writableRole(n, role) != nil },
+		Part:  role, // the archive prop the overlay gives a noun with none
 	}
+}
+
+// OverlayFills reports whether op, a standard verb, runs through the
+// framework's overlay on its noun: a part of the store it needs is one the
+// overlay supplies where the source has none (Store.Overlaid). The catalog
+// publishes it as the verb's overlay mark, so a host mounting the noun can
+// tell the tool's own writes from the user's changes the tool keeps.
+func (r *Runtime) OverlayFills(op Operation) bool {
+	row, n := standardRow(op.Standard), r.Nouns[op.Noun()]
+	if row == nil || n == nil || n.Store == nil || len(n.Store.Overlaid) == 0 || op.Unavailable != "" {
+		return false
+	}
+	return slices.ContainsFunc(row.Needs, func(need storeNeed) bool {
+		return need.Part != "" && slices.Contains(n.Store.Overlaid, need.Part)
+	})
 }
 
 // coreVerbs are the seven verbs every thing noun has, in the order help

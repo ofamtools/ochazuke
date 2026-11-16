@@ -1364,6 +1364,9 @@ func runDelete(r *Runtime, n *Noun, c Ctx) (any, error) {
 			// The store archived it (the overlay, over a source that
 			// cannot delete): it is still there, its relations with it.
 			c.Notify(kept.Error())
+			if kept.hid {
+				return map[string]any{"hidden": key}, nil // a remote source's thing: hidden here
+			}
 			return map[string]any{"archived": key}, nil
 		}
 		return nil, err

@@ -62,11 +62,11 @@ func TestListFactsPropsAndGet(t *testing.T) {
 	var names []string
 	for _, p := range n.Props {
 		names = append(names, p.Name)
-		if p.ReadOnly != p.Key || p.Overlaid == p.Key {
-			t.Fatalf("%s: read-only %v overlaid %v (the overlay holds every prop but the key)", p.Name, p.ReadOnly, p.Overlaid)
+		if p.ReadOnly || !p.Overlaid && !p.Key || p.Key != p.CreateOnly {
+			t.Fatalf("%s: read-only %v overlaid %v create-only %v (the overlay holds every prop but the key, which create names)", p.Name, p.ReadOnly, p.Overlaid, p.CreateOnly)
 		}
 	}
-	if got := strings.Join(names, " "); got != "id label name condition size tags" {
+	if got := strings.Join(names, " "); got != "id label name condition size tags archived hidden" {
 		t.Fatalf("props %q", got)
 	}
 	if key := n.keyProp(); key == nil || key.Name != "id" || !key.Human {
@@ -94,8 +94,9 @@ func TestListFactsPropsAndGet(t *testing.T) {
 	if _, err := r.Execute(Request{Noun: "widget", Verb: "get", Args: Arguments{"id": "nope"}}); err == nil || !strings.Contains(err.Error(), `no widget "nope"`) {
 		t.Fatalf("unknown widget: %v", err)
 	}
-	// A remote fact (read through Ctx.Await) has no overlay yet: debt.
-	if o := r.ExecuteOutcome(Request{Noun: "widget", Verb: "create", Confirmed: true}); o.Kind != OutcomeNothing || o.Cause != CauseNotHere || o.Reason != FactReason {
+	// A remote fact (read through Ctx.Await) is filled by the overlay
+	// (OV3): create makes a thing of the user's own.
+	if o := r.ExecuteOutcome(Request{Noun: "widget", Verb: "create", Args: Arguments{"name": "mine"}, Confirmed: true}); o.Kind != OutcomeDone {
 		t.Fatalf("create: %s/%s %q", o.Kind, o.Cause, o.Reason)
 	}
 	if v, err := r.Execute(Request{Noun: "widget", Verb: "list"}); err != nil || len(v.([]ListItem)) != 2 {

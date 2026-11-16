@@ -276,6 +276,12 @@ type CatalogVerb struct {
 	// hand. A generated verb is not builtin: it is the tool's, on the
 	// tool's noun, and mounts like any of its verbs.
 	Standard string `json:"standard,omitempty"`
+	// Overlay marks a standard verb that runs through the tool's overlay
+	// (ochazuke.Runtime.OverlayFills): its store lacks the part the verb
+	// needs, and the write is kept in the tool's own changes, not made in
+	// its source. A host that mounts the noun can fill it from its own
+	// overlay instead (the host's changes win).
+	Overlay bool `json:"overlay,omitempty"`
 	// Subject is what the verb acts on: "" one thing, "collection" all of
 	// the noun's things (ochazuke.Operation.Subject).
 	Subject string `json:"subject,omitempty"`
@@ -549,6 +555,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		verb.Reciprocals = slices.Clone(op.Reciprocals)
 		verb.ByAssociation = op.ByAssociation
 		verb.Subject = op.Subject
+		verb.Overlay = r.OverlayFills(op)
 		verb.Creates = op.Creates
 		verb.FocusBound = op.FocusBound
 		verb.Motion, verb.Typing, verb.Staying = op.Motion, op.Typing, op.Staying

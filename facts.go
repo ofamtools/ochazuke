@@ -16,8 +16,8 @@ import (
 // (Store.Facts): list and get are the standard verbs over the registry's
 // own data, and create, set, delete and archive run through the
 // framework's overlay (overlay.go): the user's values kept beside the
-// fact. Only a remote facts store (ListFacts), which the overlay does not
-// fill, has them unavailable, "a system fact". The props of a fact noun are the JSON
+// fact, a remote facts store (ListFacts) too. A facts store with
+// NoOverlay has them unavailable, "a system fact". The props of a fact noun are the JSON
 // fields of the struct it already answered with, so what a host read from
 // the old list is still there, one row per thing.
 

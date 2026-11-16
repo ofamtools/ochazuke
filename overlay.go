@@ -3,33 +3,45 @@ package ochazuke
 import (
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"maps"
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
-// The overlay (no-refusals D1, overlay-every-store OV1): what a local
+// The overlay (no-refusals D1, overlay-every-store OV1, OV3): what a
 // store's source cannot do is done by the framework beside the thing, keyed
-// by noun, key and prop, merged into get and list and marked as the
-// user's. It fills every store that reads things (Get or List) and cannot
-// write them (no Patch), a system fact or not, and every system fact:
-// props the source cannot hold (every prop of a store with no Patch, the
-// Overlaid ones of a fact with a Patch), a create
-// (a thing of the user's own), a delete (it archives; nothing is
-// destroyed; a thing of the user's own is removed) and an archive prop. A
-// singleton's create is its set, and its delete resets the user's changes
-// (the source's values show again). A store whose every write is the
-// overlay's undoes them.
+// by noun, key and prop, merged into get, list, the paged list (Query) and
+// the change token, and marked as the user's. It fills every store that
+// reads things (Get or List) and cannot write them (no Patch), a system
+// fact or not, local or remote (a mounted tool's proxy, ListFacts), and
+// every system fact: props the source cannot hold (every prop of a store
+// with no Patch, the Overlaid ones of a fact with a Patch), a create (a
+// thing of the user's own), a delete and an archive prop. A delete on a
+// local store archives; on a remote one it hides the thing (the prop
+// hidden: left out of every list, page and count, still answered by get,
+// undoable), since the thing goes on existing in the tool's source; a thing
+// of the user's own is removed. A singleton's create is its set, and its
+// delete resets the user's changes (the source's values show again). A
+// store whose every write is the overlay's undoes them.
+//
+// A remote store's calls run off the loop as the work of a job; the verb's
+// body (its plan and record runs, remote.go) runs on the loop, and so does
+// everything the overlay does inside it: the merge reads copies of the rows
+// under the read lock, and the writes (changeOverlay) are the body's, as on
+// a local store. A paged list stays paged: one source call per page, one
+// row lookup per thing on it; nothing reads the source whole to lay the
+// overlay over it.
 //
 // It leaves alone a store that writes its own props (a Patch, not a
 // fact: its author decides its create, delete and archive), a store whose
 // author keeps a missing write missing
-// (Store.NoOverlay, the catalog's noOverlay), a remote store (a mounted
-// tool's proxy, ListFacts: their calls run off the loop), a copy (it keeps
+// (Store.NoOverlay, the catalog's noOverlay), a copy (it keeps
 // the user's values itself, CopyStore) and an instances store (its things
 // are live instances; create does not fit them).
 //
@@ -54,6 +66,10 @@ const (
 	// OverlayArchiveProp is the archive-role prop the overlay gives a
 	// collection that has none, so archive and restore run on it.
 	OverlayArchiveProp = "archived"
+	// OverlayHiddenProp is the prop the overlay gives a remote collection
+	// whose source cannot delete: a delete sets it, and the thing is left
+	// out of every list, page and count (filter hidden=true lists them).
+	OverlayHiddenProp = "hidden"
 	// OverlayNoun lists the overlay's rows, so the user can see and clear
 	// the values the framework keeps for them.
 	OverlayNoun = "ochazuke.overlay"
@@ -79,6 +95,9 @@ type overlayRows struct {
 	path    string
 	rows    map[string]map[string]*OverlayRow
 	session map[string]bool
+	// versions caches each noun's overlay version (overlayVersion); a
+	// write clears it.
+	versions map[string]string
 }
 
 // overlayHolder is the overlay's state, not read yet.
@@ -210,6 +229,7 @@ func (r *Runtime) changeOverlay(noun, key string, change func(*OverlayRow) bool)
 		rows[noun][key] = row
 		return row
 	}
+	o.versions = nil
 	if o.path == "" || o.session[noun] {
 		return apply(o.rows).clone(), nil
 	}
@@ -234,6 +254,31 @@ func (r *Runtime) changeOverlay(noun, key string, change func(*OverlayRow) bool)
 	}
 	o.rows = fresh
 	return row.clone(), nil
+}
+
+// overlayVersion is a short hash of a noun's overlay rows as this process
+// holds them, "" when it has none: it moves on every write that changes
+// them (and on rows another process wrote, read again with it), so a
+// change token joined with it moves too, without a call to the source.
+func (r *Runtime) overlayVersion(noun string) string {
+	o := r.overlayState()
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if v, ok := o.versions[noun]; ok {
+		return v
+	}
+	v := ""
+	if rows := o.rows[noun]; len(rows) > 0 {
+		data, _ := json.Marshal(rows) // map keys sorted: the same rows, the same text
+		h := fnv.New64a()
+		h.Write(data)
+		v = strconv.FormatUint(h.Sum64(), 36)
+	}
+	if o.versions == nil {
+		o.versions = map[string]string{}
+	}
+	o.versions[noun] = v
+	return v
 }
 
 // putOverlay merges props into a thing's overlay row and writes the file.
@@ -310,24 +355,37 @@ type overlayOf struct {
 	keyName        string
 	srcGet         func(Ctx, string) (Thing, error)
 	srcList        func(Ctx, ListQuery) ([]Thing, error)
+	srcQuery       func(Ctx, ListQuery) (ListPage, error)
 	srcPatch       func(Ctx, string, Thing) (Thing, error)
 	create, delete bool
+	// hiddenName is the prop a delete sets on a remote store's thing
+	// (hidden, or hidden-by-you), "" where a delete archives; added are
+	// the props the overlay gave the noun (the source knows nothing of
+	// them, so a paged list keeps their conditions from it).
+	hiddenName string
+	added      []string
 }
 
 // withOverlay fills what a store's source lacks with the overlay (see the
 // top of this file): a List for a singleton (its one thing), a Patch that
 // keeps the props the source cannot hold, a Create and a Delete where the
 // store has none (a singleton's create is its set, its delete a reset), an
-// archive prop where archive fits and the noun has no archive role, and
-// reads (Get, List) that merge the overlay rows in (fill). A store with NoOverlay, a remote one, a copy, one
-// that reads no thing and an instances store (create does not fit its
-// live instances) are left as they are, and so are one that writes its
-// own props (not a fact) and one that writes everything itself.
+// archive prop where archive fits and the noun has no archive role, a hidden
+// prop where a remote store's delete hides, and reads (Get, List, Query,
+// ChangeToken) that merge the overlay rows in (fill). A store with
+// NoOverlay, a copy, one that reads no thing and an instances store
+// (create does not fit its live instances) are left as they are, and so
+// are one that writes its own props (not a fact) and one that writes
+// everything itself. A remote store is filled as a local one is.
 func (r *Runtime) withOverlay(n *Noun, s Store) Store {
-	if s.NoOverlay || s.Remote || s.copy != nil || s.Get == nil && s.List == nil {
+	if s.NoOverlay || s.copy != nil || s.Get == nil && s.List == nil {
 		return s
 	}
+	hadList := s.List != nil
 	s = withSingletonList(n, s)
+	if !hadList && s.List != nil {
+		delete(s.Missing, "list") // a mounted singleton lists its one thing
+	}
 	if !rowFits("create", s) {
 		return s // an instances store: its things are live instances
 	}
@@ -340,7 +398,7 @@ func (r *Runtime) withOverlay(n *Noun, s Store) Store {
 	if s.SessionKeys {
 		r.overlayHolder().session[n.Name] = true
 	}
-	o := &overlayOf{r: r, n: n, facts: s.Facts, srcGet: s.Get, srcList: s.List, srcPatch: s.Patch,
+	o := &overlayOf{r: r, n: n, facts: s.Facts, srcGet: s.Get, srcList: s.List, srcQuery: s.Query, srcPatch: s.Patch,
 		create: s.Create == nil, delete: rowFits("delete", s) && s.Delete == nil}
 	archiveName := overlayArchiveName(n)
 	archive := rowFits("archive", s) && n.roleProp(RoleArchive) == nil && n.prop(archiveName) == nil
@@ -348,7 +406,13 @@ func (r *Runtime) withOverlay(n *Noun, s Store) Store {
 	if s.Patch != nil && !o.create && !o.delete && !archive && !overlaid {
 		return s // it writes everything itself
 	}
+	if o.delete && s.Remote && n.keyProp() != nil {
+		o.hiddenName = overlayHiddenName(n) // the tool's source keeps the thing: a delete hides it
+	}
 	o.markProps(archive, archiveName)
+	if archive {
+		s.Overlaid = append(s.Overlaid, "archive")
+	}
 	return o.fill(s)
 }
 
@@ -356,7 +420,11 @@ func (r *Runtime) withOverlay(n *Noun, s Store) Store {
 // lacks. A store whose every write is then the overlay's (it had no
 // Patch, Create or Delete) undoes (Store.Undo); one with writes of its own
 // keeps its author's Undo, which covers those writes too. A create it
-// fills keeps the key it is given (Store.AcceptsKey).
+// fills keeps the key it is given (Store.AcceptsKey). A paged store's
+// Query merges each page (query), and its ChangeToken carries the
+// overlay's version (token). Store.Overlaid names the parts it supplied
+// where the source had none, and Store.Missing (a mounted tool's reasons
+// for the calls it lacks) no longer names them.
 func (o *overlayOf) fill(s Store) Store {
 	own := s.Patch != nil || s.Create != nil || s.Delete != nil
 	if s.Get != nil {
@@ -365,12 +433,26 @@ func (o *overlayOf) fill(s Store) Store {
 	if s.List != nil {
 		s.List = o.list
 	}
+	if s.Query != nil {
+		s.Query = o.query
+	}
+	if src := s.ChangeToken; src != nil {
+		s.ChangeToken = func(c Ctx) (string, error) { return o.token(c, src) }
+	}
+	if s.Patch == nil {
+		s.Overlaid = append(s.Overlaid, "patch")
+		delete(s.Missing, "set")
+	}
 	s.Patch, s.Undo = o.patch, s.Undo || !own
 	if o.create {
 		s.AcceptsKey, s.Create = true, o.createThing
+		s.Overlaid = append(s.Overlaid, "create")
+		delete(s.Missing, "create")
 	}
 	if o.delete {
 		s.Delete = o.deleteThing
+		s.Overlaid = append(s.Overlaid, "delete")
+		delete(s.Missing, "delete")
 	}
 	return s
 }
@@ -386,6 +468,12 @@ func (o *overlayOf) markProps(archive bool, archiveName string) {
 	if archive {
 		n.Props = append(n.Props, PropSpec{Name: archiveName, Role: RoleArchive, Overlaid: true,
 			Parameter: Parameter{Type: SettingBoolean, Description: "Archived by you: the thing is hidden from lists (the framework keeps the flag beside it)"}})
+		o.added = append(o.added, archiveName)
+	}
+	if o.hiddenName != "" {
+		n.Props = append(n.Props, PropSpec{Name: o.hiddenName, Overlaid: true,
+			Parameter: Parameter{Type: SettingBoolean, Description: "Hidden by you (a delete here): the thing still exists in its source and is left out of every list and count; a list with the condition " + o.hiddenName + "=true shows them, and undo or set " + o.hiddenName + "=false shows one again"}})
+		o.added = append(o.added, o.hiddenName)
 	}
 	for i := range n.Props {
 		p := &n.Props[i]
@@ -438,6 +526,25 @@ func overlayArchiveName(n *Noun) string {
 		return "archived-by-you"
 	}
 	return OverlayArchiveProp
+}
+
+// overlayHiddenName is the name of the hidden prop the overlay gives a
+// noun: hidden, unless the noun's own prop holds the word.
+func overlayHiddenName(n *Noun) string {
+	if n.prop(OverlayHiddenProp) != nil {
+		return "hidden-by-you"
+	}
+	return OverlayHiddenProp
+}
+
+// hides reports whether a thing is hidden by the user (its hidden prop
+// true) and the request q does not ask for hidden things (a condition on
+// the prop).
+func (o *overlayOf) hides(t Thing, q ListQuery) bool {
+	if o.hiddenName == "" || t[o.hiddenName] != true {
+		return false
+	}
+	return !slices.ContainsFunc(q.Filters, func(f PropFilter) bool { return f.Prop == o.hiddenName })
 }
 
 // archiveProp is the name of the noun's archive prop: its own (role
@@ -502,17 +609,20 @@ func (o *overlayOf) list(c Ctx, q ListQuery) ([]Thing, error) {
 	}
 	rows := o.r.overlayNounRows(o.n.Name)
 	seen := map[string]bool{}
-	for i, t := range things {
+	out := make([]Thing, 0, len(things))
+	for _, t := range things {
 		key := o.keyOf(t)
 		seen[key] = true
-		things[i] = mergeRow(rows[key], t)
+		if t = mergeRow(rows[key], t); !o.hides(t, q) {
+			out = append(out, t)
+		}
 	}
 	for _, key := range slices.Sorted(maps.Keys(rows)) {
 		if rows[key].Created && !seen[key] {
-			things = append(things, createdThing(o.keyName, key, rows[key]))
+			out = append(out, createdThing(o.keyName, key, rows[key]))
 		}
 	}
-	return things, nil
+	return out, nil
 }
 
 // held reports whether the overlay holds a prop of the thing whose row is
@@ -558,8 +668,10 @@ func (o *overlayOf) patch(c Ctx, key string, t Thing) (Thing, error) {
 }
 
 // createThing records a thing of the user's own under the key given (else
-// untitled-<time>). A singleton's create is its set: the props the
-// request names are written as set writes them.
+// the one the overlay assigns, yoursKey). A singleton's create is its set:
+// the props the request names are written as set writes them. It makes no
+// call to the source, so a remote verb's runs (replayed on the loop) write
+// it once, in the run that finishes.
 func (o *overlayOf) createThing(c Ctx, t Thing) (Thing, error) {
 	if o.keyName == "" {
 		return o.patch(c, "", givenProps(o.n, c.Args, t))
@@ -569,7 +681,7 @@ func (o *overlayOf) createThing(c Ctx, t Thing) (Thing, error) {
 	}
 	key := fmt.Sprint(t[o.keyName])
 	if t[o.keyName] == nil || key == "" {
-		key = "untitled-" + time.Now().UTC().Format("20060102-150405.000")
+		key = o.yoursKey(time.Now())
 	}
 	props := maps.Clone(t)
 	delete(props, o.keyName)
@@ -577,6 +689,20 @@ func (o *overlayOf) createThing(c Ctx, t Thing) (Thing, error) {
 		return nil, err
 	}
 	return createdThing(o.keyName, key, o.r.overlayRow(o.n.Name, key)), nil
+}
+
+// yoursKey is the key the overlay gives a thing of the user's own made
+// with none: yours-<UTC time to the millisecond>, with -2, -3 ... after it
+// while the overlay already holds that key. The yours- word keeps it apart
+// from the keys a source makes (a tool's row ids, ListFacts' noun/ ids).
+func (o *overlayOf) yoursKey(at time.Time) string {
+	base := "yours-" + at.UTC().Format("20060102-150405.000")
+	rows := o.r.overlayNounRows(o.n.Name)
+	key := base
+	for i := 2; rows[key] != nil; i++ {
+		key = base + "-" + strconv.Itoa(i)
+	}
+	return key
 }
 
 // givenProps are the props of t the request a names (createWrites): the
@@ -603,10 +729,14 @@ func givenProps(n *Noun, a Arguments, t Thing) Thing {
 func (o *overlayOf) deleteThing(c Ctx, key string) error {
 	row := o.r.overlayRow(o.n.Name, key)
 	if o.keyName != "" && (row == nil || !row.Created) {
-		if _, err := o.r.setVia(o.n, c, o.archiveProp(), true); err != nil {
+		prop, hid := o.archiveProp(), o.hiddenName != ""
+		if hid {
+			prop = o.hiddenName
+		}
+		if _, err := o.r.setVia(o.n, c, prop, true); err != nil {
 			return err
 		}
-		return &archivedInstead{noun: o.r.DisplayNoun(o.n.Name), key: key}
+		return &archivedInstead{noun: o.r.DisplayNoun(o.n.Name), key: key, how: prop, hid: hid}
 	}
 	if row == nil {
 		return NothingErr(CauseUnchanged, o.r.DisplayNoun(o.n.Name)+" has no changes of yours to reset")
@@ -617,12 +747,20 @@ func (o *overlayOf) deleteThing(c Ctx, key string) error {
 	return o.r.dropOverlay(o.n.Name, key)
 }
 
-// archivedInstead is what the overlay's Delete answers when it archived
-// the thing (its source cannot delete it): the delete ran, and the thing is
-// still there, so runDelete leaves its relations as they are.
-type archivedInstead struct{ noun, key string }
+// archivedInstead is what the overlay's Delete answers when it archived or
+// hid the thing (its source cannot delete it): the delete ran, and the
+// thing is still there, so runDelete leaves its relations as they are. how
+// is the prop the delete set (the archive prop, or the hidden prop of a
+// remote source's thing: hid).
+type archivedInstead struct {
+	noun, key, how string
+	hid            bool
+}
 
 func (a *archivedInstead) Error() string {
+	if a.hid {
+		return "hid " + a.noun + " " + a.key + ": it still exists in its source (the tool that lists " + a.noun + "); it is left out of every list here, and undo or set " + a.how + "=false shows it again"
+	}
 	return "archived " + a.noun + " " + a.key + ": its source keeps it (restore shows it again)"
 }
 
