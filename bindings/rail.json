@@ -11,7 +11,10 @@
       {"key": "F", "action": "ochazuke.rail.refresh", "hidden": true},
       {"key": "ctrl+s", "action": "ochazuke.rail.resize", "hidden": true},
       {"key": "v", "action": "ochazuke.rail.show", "hidden": true},
-      {"key": "w", "action": "ochazuke.rail.unpin", "hidden": true}
+      {"key": "w", "action": "ochazuke.rail.unpin", "hidden": true},
+      {"key": "alt+p", "action": "ochazuke.rail.enter", "hidden": true},
+      {"key": "b", "action": "ochazuke.rail.inspect", "hidden": true},
+      {"key": "p", "action": "ochazuke.rail.yank", "hidden": true}
     ]}
   ]
 }

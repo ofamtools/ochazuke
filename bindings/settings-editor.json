@@ -35,7 +35,10 @@
       {"key": "alt+m", "action": "ochazuke.setting.watch", "hidden": true},
       {"key": "C", "action": "ochazuke.setting.write", "hidden": true},
       {"key": "D", "action": "ochazuke.setting.write-all", "hidden": true},
-      {"key": "E", "action": "ochazuke.setting.yank", "hidden": true}
+      {"key": "E", "action": "ochazuke.setting.yank", "hidden": true},
+      {"key": "alt+x", "action": "ochazuke.setting.archive", "hidden": true},
+      {"key": "alt+z", "action": "ochazuke.setting.delete", "hidden": true},
+      {"key": "ctrl+n", "action": "ochazuke.setting.reset-all", "hidden": true}
     ]},
     {"context": "ochazuke.settings-section/normal", "bindings": [
       {"key": "l", "action": "ochazuke.setting.show-section", "args": {"step": 1}, "when": "settings-narrow", "hidden": true},
@@ -65,7 +68,8 @@
       {"key": "H", "action": "ochazuke.setting-item.history", "hidden": true},
       {"key": "ctrl+g", "action": "ochazuke.setting-item.list", "hidden": true},
       {"key": "*", "action": "ochazuke.setting-item.set", "hidden": true},
-      {"key": "w", "action": "ochazuke.setting-item.watch", "hidden": true}
+      {"key": "w", "action": "ochazuke.setting-item.watch", "hidden": true},
+      {"key": "alt+x", "action": "ochazuke.setting-item.archive", "hidden": true}
     ]},
     {"context": "ochazuke.setting-value/insert", "bindings": [
       {"key": "enter", "action": "ochazuke.setting-value.accept"},

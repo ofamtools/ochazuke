@@ -31,7 +31,9 @@
       {"key": "p", "action": "ochazuke.related-section.yank", "hidden": true},
       {"key": "X", "action": "ochazuke.related-section.duplicate", "hidden": true},
       {"key": "ctrl+h", "action": "ochazuke.related-section.hide", "hidden": true},
-      {"key": "ctrl+n", "action": "ochazuke.related-section.restore", "hidden": true}
+      {"key": "ctrl+n", "action": "ochazuke.related-section.restore", "hidden": true},
+      {"key": "E", "action": "ochazuke.related-section.archive", "hidden": true},
+      {"key": "g a", "action": "ochazuke.related-section.delete", "hidden": true}
     ]}
   ]
 }

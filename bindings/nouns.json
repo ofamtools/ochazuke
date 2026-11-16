@@ -11,14 +11,18 @@
       {"key": "*", "action": "ochazuke.noun.set", "hidden": true},
       {"key": "w", "action": "ochazuke.noun.watch", "hidden": true},
       {"key": "p", "action": "ochazuke.noun.yank", "hidden": true},
-      {"key": "g d", "action": "ochazuke.noun.duplicate", "hidden": true}
+      {"key": "g d", "action": "ochazuke.noun.duplicate", "hidden": true},
+      {"key": "alt+x", "action": "ochazuke.noun.archive", "hidden": true},
+      {"key": "alt+z", "action": "ochazuke.noun.delete", "hidden": true},
+      {"key": "ctrl+n", "action": "ochazuke.noun.restore", "hidden": true}
     ]},
     {"context": "ochazuke.index/normal", "bindings": [
       {"key": "z A", "action": "ochazuke.collection.show-archived", "hint": "archived"},
       {"key": "z a", "action": "ochazuke.collection.show-archived", "hidden": true},
       {"key": "]", "action": "ochazuke.collection.page-next", "hint": "]/[ page"},
       {"key": "[", "action": "ochazuke.collection.page-prev", "hidden": true},
-      {"key": "-", "action": "ochazuke.page.back", "hint": "back"}
+      {"key": "-", "action": "ochazuke.page.back", "hint": "back"},
+      {"key": "ctrl+g", "action": "ochazuke.index.columns", "hidden": true}
     ]},
     {"context": "ochazuke.noun-browser/normal", "bindings": [
       {"key": "r", "action": "ochazuke.noun-browser.refresh"},
@@ -37,7 +41,9 @@
       {"key": "ctrl+g", "action": "ochazuke.register.list", "hidden": true},
       {"key": "alt+a", "action": "ochazuke.register.select", "hidden": true},
       {"key": "*", "action": "ochazuke.register.set", "hidden": true},
-      {"key": "w", "action": "ochazuke.register.watch", "hidden": true}
+      {"key": "w", "action": "ochazuke.register.watch", "hidden": true},
+      {"key": "alt+x", "action": "ochazuke.register.archive", "hidden": true},
+      {"key": "alt+z", "action": "ochazuke.register.delete", "hidden": true}
     ]},
     {"context": "ochazuke.snapshot/normal", "bindings": [
       {"key": "d a", "action": "ochazuke.snapshot.archive", "hidden": true},

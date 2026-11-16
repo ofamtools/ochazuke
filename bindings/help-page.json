@@ -39,7 +39,20 @@
       {"key": "s l", "action": "ochazuke.help-page.narrow", "args": {"field": "level"}, "help": "Show only the level selected in the rail"},
       {"key": "]", "action": "ochazuke.help-page.jump", "args": {"step": 1}, "hint": "next level"},
       {"key": "[", "action": "ochazuke.help-page.jump", "args": {"step": -1}, "hidden": true},
-      {"key": "R", "action": "ochazuke.help-page.reveal", "hidden": true}
+      {"key": "R", "action": "ochazuke.help-page.reveal", "hidden": true},
+      {"key": "n", "action": "ochazuke.help-page.add-key", "hidden": true},
+      {"key": "v", "action": "ochazuke.help-page.capture-apply", "hidden": true},
+      {"key": "E", "action": "ochazuke.help-page.capture-cancel", "hidden": true},
+      {"key": "ctrl+g", "action": "ochazuke.help-page.capture-drop", "hidden": true},
+      {"key": "ctrl+l", "action": "ochazuke.help-page.capture-literal", "hidden": true},
+      {"key": "ctrl+m", "action": "ochazuke.help-page.choose", "hidden": true},
+      {"key": "ctrl+n", "action": "ochazuke.help-page.edit-fields", "hidden": true},
+      {"key": "ctrl+o", "action": "ochazuke.help-page.explain", "hidden": true},
+      {"key": "ctrl+s", "action": "ochazuke.help-page.remove", "hidden": true},
+      {"key": "backspace", "action": "ochazuke.help-page.reset", "hidden": true},
+      {"key": "ctrl+t", "action": "ochazuke.help-page.unify", "hidden": true},
+      {"key": "ctrl+v", "action": "ochazuke.help-page.where", "hidden": true},
+      {"key": "ctrl+z", "action": "ochazuke.help-page.yank", "hidden": true}
     ]},
     {"context": "ochazuke.help-node/normal", "bindings": [
       {"key": "enter", "action": "ochazuke.help-page.choose", "hint": "choose"}

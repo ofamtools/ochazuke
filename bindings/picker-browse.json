@@ -29,7 +29,10 @@
       {"key": "*", "action": "ochazuke.picker.set", "hidden": true},
       {"key": "t", "action": "ochazuke.picker.yank", "hidden": true},
       {"key": "alt+x", "action": "ochazuke.picker.archive", "hidden": true},
-      {"key": "alt+z", "action": "ochazuke.picker.delete", "hidden": true}
+      {"key": "alt+z", "action": "ochazuke.picker.delete", "hidden": true},
+      {"key": "alt+p", "action": "ochazuke.picker.enter", "hidden": true},
+      {"key": "alt+q", "action": "ochazuke.picker.get", "hidden": true},
+      {"key": "alt+r", "action": "ochazuke.picker.history", "hidden": true}
     ]},
     {"context": "ochazuke.picker", "bindings": [
       {"key": "alt+down", "action": "ochazuke.picker.goto", "when": "picker-up", "args": {"to": "own"}, "hint": "back to the list", "hidden": true},

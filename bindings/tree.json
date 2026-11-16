@@ -60,7 +60,9 @@
       {"key": "alt+r", "action": "ochazuke.outline.yank", "hidden": true},
       {"key": "F", "action": "ochazuke.outline.zoom-in", "hidden": true},
       {"key": "G", "action": "ochazuke.outline.zoom-out", "hidden": true},
-      {"key": "I", "action": "ochazuke.outline.zoom-reset", "hidden": true}
+      {"key": "I", "action": "ochazuke.outline.zoom-reset", "hidden": true},
+      {"key": "alt+u", "action": "ochazuke.outline.expand", "hidden": true},
+      {"key": "alt+v", "action": "ochazuke.outline.indent", "hidden": true}
     ]},
     {"context": "ochazuke.outline-line/insert", "bindings": [
       {"key": "esc", "action": "ochazuke.outline.leave"},
