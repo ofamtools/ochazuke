@@ -2975,7 +2975,7 @@ on each prop, so it needs no store file:
   out). `Of` is one of `Derivations()`: `count` (things of `NOUN` whose
   `PROP` names this thing, `Reads: ["NOUN.PROP"]`; one list of `NOUN` per
   read), `label` (the label of the thing a reference prop names), `since`
-  (a duration since a time prop), `first-line` (of a text prop). A
+  (a duration since a time prop, or a whole number of Unix milliseconds), `first-line` (of a text prop). A
   derivation outside these stays a `PropSpec.Read` function.
 - Derived props are in get's record, list's rows and columns, and
   filterable and sortable. The framework wraps every store once

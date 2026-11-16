@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -278,8 +279,9 @@ func refLabel(c Ctx, other *Noun, key string) string {
 	return key
 }
 
-// deriveSince is how long ago a time prop was, to the second; left out
-// when the prop holds no time.
+// deriveSince is how long ago a time prop was, to the second: a time
+// (ParseTime) or a whole number of Unix milliseconds; left out when the
+// prop holds neither.
 func deriveSince(c Ctx, n *Noun, p PropSpec, things []Thing) {
 	name := p.Derivation.Reads[0]
 	if spec := n.prop(name); spec != nil {
@@ -294,7 +296,7 @@ func deriveSince(c Ctx, n *Noun, p PropSpec, things []Thing) {
 		case nil:
 			continue
 		default:
-			parsed, ok := ParseTime(fmt.Sprint(v))
+			parsed, ok := timeOrUnixMilli(fmt.Sprint(v))
 			if !ok {
 				continue
 			}
@@ -527,4 +529,17 @@ func derivationText(p PropSpec) string {
 		return ""
 	}
 	return p.Derivation.String()
+}
+
+// timeOrUnixMilli reads a time's text, or a whole number as Unix
+// milliseconds (the stamps an application's documents hold).
+func timeOrUnixMilli(text string) (time.Time, bool) {
+	if t, ok := ParseTime(text); ok {
+		return t, true
+	}
+	ms, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
+	if err != nil || ms <= 0 {
+		return time.Time{}, false
+	}
+	return time.UnixMilli(ms), true
 }
