@@ -156,49 +156,51 @@ type docVerb struct {
 	verb, description string
 	run               ochazuke.Handler
 	motion            bool
+	// exits is the verb's declared way out (ochazuke.Operation.Exits).
+	exits string
 }
 
 // docVerbs are the Doc noun's verbs, in the order they are declared.
 func docVerbs() []docVerb {
 	return []docVerb{
-		{"move", "Move by Markdown element, or drawn line with markdown.cursor=line; spill at the document's edges", on(docMove), true},
-		{"link-open", "Open the focused Markdown link with the system URL handler", plain((*Doc).OpenLink), false},
-		{"link-yank", "Yank the focused Markdown link URL", plain((*Doc).CopyLink), false},
-		{"next-link", "Jump to the next Markdown link", on(docNextLink), true},
-		{"previous-link", "Jump to the previous Markdown link", on(docPreviousLink), true},
-		{"toggle", "Toggle the checklist item under the cursor: rewrites only its box character in the source, written at once", plain((*Doc).Toggle), false},
-		{"done-show", "Show checked tasks in this document for the session; never changes the source or settings", plain(docDoneShow), false},
-		{"done-hide", "Hide checked tasks and their subtrees in this document for the session", plain(docDoneHide), false},
-		{"done-toggle", "Toggle checked-task visibility in this document for the session", plain(docDoneToggle), false},
-		{"undo", "Undo the last edit (a toggle, a typed block, a line deleted or pasted); the undo is written like any edit", plain((*Doc).Undo), false},
-		{"redo", "Redo the last undone edit", plain((*Doc).Redo), false},
-		{"reload", "Read the Markdown source again", plain((*Doc).Reload), false},
-		{"next-block", "Move the cursor to the next component: a heading, a paragraph, a whole list, a table, a code block, a quote, an item's notes", paced(docNextBlock), true},
-		{"previous-block", "Move the cursor to the start of the previous component", paced(docPreviousBlock), true},
-		{"next-same", "Move the cursor to the next block of the same kind as the one it is on", move(1, same, true, sameWhat), true},
-		{"previous-same", "Move the cursor to the previous block of the same kind as the one it is on", move(-1, same, true, sameWhat), true},
-		{"next-kind", "Move the cursor to the next block of a kind: h heading, t table, x checklist item, l list item, c code, q quote, n note, p paragraph", byKind(1), true},
-		{"previous-kind", "Move the cursor to the previous block of a kind (see next-kind)", byKind(-1), true},
-		{"insert", "Edit the block under the cursor as Markdown, in place: at the start of the cursor line's text (cursor), the end of the block (after), the start of the line (start) or its end (end); written as you type", on(docInsert), false},
-		{"open", "Open a new line below or above the block in insert mode, continuing its structure: a list item with the same marker, a table row, a note, else a paragraph", on(docOpen), false},
-		{"cut", "Cut the cursor's line or block (an item with its notes and nested items, a heading's line only); yanked, written at once", plain((*Doc).Delete), false},
-		{"yank", "Yank the cursor's line or block as lines (what cut would take)", plain((*Doc).Yank), false},
-		{"paste", "Paste the yanked lines below (or above) the block; written at once", on(docPaste), false},
-		{"annotate", "Add a note under the list item: insert mode in a new note line after its notes, signed by the note author (the markdown.note-author setting) and dated today", plain((*Doc).AddNote), false},
-		{"resolve", "Mark the note under the cursor resolved (✓ after its date), or open again; it stays in the file", plain((*Doc).Resolve), false},
-		{"fold", "Fold or unfold the list item's notes; a folded item shows how many are open", plain((*Doc).Fold), false},
-		{"goto", "Jump to a heading: the one heading names (its text, case ignored, or a prefix of it that is unique), else a picker over the document's headings", on(docGoto), false},
-		{"leave", "Leave the block editor: the block is written, tidied (table pipes aligned, numbers renumbered) and drawn again", plain((*Doc).Leave), false},
-		{"continue-item", "Enter on a list item: end it at the cursor and start the next item below, the rest of the line in it", plain((*Doc).ContinueItem), false},
-		{"end-list", "Enter on an empty list item: drop it and start a paragraph after the list", plain((*Doc).EndList), false},
-		{"next-row", "Enter on a table row: start a new row below it", plain((*Doc).NextRow), false},
-		{"after-heading", "Enter on a heading: start a paragraph below it", plain((*Doc).AfterHeading), false},
-		{"quote-line", "Enter in a quote or note: break the line and quote the next", plain((*Doc).QuoteLine), false},
-		{"indent", "Nest the list item being edited under the item above it", plain(docIndent), false},
-		{"outdent", "Take the list item being edited out one level", plain(docOutdent), false},
-		{"cell", "Move to the next (delta 1) or previous (-1) table cell; past the last, a new row", on(docCell), true},
-		{"unmark", "Take the marker off an empty list item, leaving an indented line under the item above", plain((*Doc).Unmark), false},
-		{"insert-block", "On an empty line: choose a block to insert (table, checklist, bullets, numbered list, heading 1 to 3, code block, quote, rule)", plain((*Doc).BlockChooser), false},
+		{"move", "Move by Markdown element, or drawn line with markdown.cursor=line; spill at the document's edges", on(docMove), true, ""},
+		{"link-open", "Open the focused Markdown link with the system URL handler", plain((*Doc).OpenLink), false, ""},
+		{"link-yank", "Yank the focused Markdown link URL", plain((*Doc).CopyLink), false, ""},
+		{"next-link", "Jump to the next Markdown link", on(docNextLink), true, ""},
+		{"previous-link", "Jump to the previous Markdown link", on(docPreviousLink), true, ""},
+		{"toggle", "Toggle the checklist item under the cursor: rewrites only its box character in the source, written at once", plain((*Doc).Toggle), false, ""},
+		{"done-show", "Show checked tasks in this document for the session; never changes the source or settings", plain(docDoneShow), false, ""},
+		{"done-hide", "Hide checked tasks and their subtrees in this document for the session", plain(docDoneHide), false, ""},
+		{"done-toggle", "Toggle checked-task visibility in this document for the session", plain(docDoneToggle), false, ""},
+		{"undo", "Undo the last edit (a toggle, a typed block, a line deleted or pasted); the undo is written like any edit", plain((*Doc).Undo), false, ""},
+		{"redo", "Redo the last undone edit", plain((*Doc).Redo), false, ""},
+		{"reload", "Read the Markdown source again", plain((*Doc).Reload), false, ""},
+		{"next-block", "Move the cursor to the next component: a heading, a paragraph, a whole list, a table, a code block, a quote, an item's notes", paced(docNextBlock), true, ""},
+		{"previous-block", "Move the cursor to the start of the previous component", paced(docPreviousBlock), true, ""},
+		{"next-same", "Move the cursor to the next block of the same kind as the one it is on", move(1, same, true, sameWhat), true, ""},
+		{"previous-same", "Move the cursor to the previous block of the same kind as the one it is on", move(-1, same, true, sameWhat), true, ""},
+		{"next-kind", "Move the cursor to the next block of a kind: h heading, t table, x checklist item, l list item, c code, q quote, n note, p paragraph", byKind(1), true, ""},
+		{"previous-kind", "Move the cursor to the previous block of a kind (see next-kind)", byKind(-1), true, ""},
+		{"insert", "Edit the block under the cursor as Markdown, in place: at the start of the cursor line's text (cursor), the end of the block (after), the start of the line (start) or its end (end); written as you type", on(docInsert), false, ""},
+		{"open", "Open a new line below or above the block in insert mode, continuing its structure: a list item with the same marker, a table row, a note, else a paragraph", on(docOpen), false, ""},
+		{"cut", "Cut the cursor's line or block (an item with its notes and nested items, a heading's line only); yanked, written at once", plain((*Doc).Delete), false, ""},
+		{"yank", "Yank the cursor's line or block as lines (what cut would take)", plain((*Doc).Yank), false, ""},
+		{"paste", "Paste the yanked lines below (or above) the block; written at once", on(docPaste), false, ""},
+		{"annotate", "Add a note under the list item: insert mode in a new note line after its notes, signed by the note author (the markdown.note-author setting) and dated today", plain((*Doc).AddNote), false, ""},
+		{"resolve", "Mark the note under the cursor resolved (✓ after its date), or open again; it stays in the file", plain((*Doc).Resolve), false, ""},
+		{"fold", "Fold or unfold the list item's notes; a folded item shows how many are open", plain((*Doc).Fold), false, ""},
+		{"goto", "Jump to a heading: the one heading names (its text, case ignored, or a prefix of it that is unique), else a picker over the document's headings", on(docGoto), false, ""},
+		{"leave", "Leave the block editor: the block is written, tidied (table pipes aligned, numbers renumbered) and drawn again", plain((*Doc).Leave), false, ochazuke.ExitsClose},
+		{"continue-item", "Enter on a list item: end it at the cursor and start the next item below, the rest of the line in it", plain((*Doc).ContinueItem), false, ""},
+		{"end-list", "Enter on an empty list item: drop it and start a paragraph after the list", plain((*Doc).EndList), false, ""},
+		{"next-row", "Enter on a table row: start a new row below it", plain((*Doc).NextRow), false, ""},
+		{"after-heading", "Enter on a heading: start a paragraph below it", plain((*Doc).AfterHeading), false, ""},
+		{"quote-line", "Enter in a quote or note: break the line and quote the next", plain((*Doc).QuoteLine), false, ""},
+		{"indent", "Nest the list item being edited under the item above it", plain(docIndent), false, ""},
+		{"outdent", "Take the list item being edited out one level", plain(docOutdent), false, ""},
+		{"cell", "Move to the next (delta 1) or previous (-1) table cell; past the last, a new row", on(docCell), true, ""},
+		{"unmark", "Take the marker off an empty list item, leaving an indented line under the item above", plain((*Doc).Unmark), false, ""},
+		{"insert-block", "On an empty line: choose a block to insert (table, checklist, bullets, numbered list, heading 1 to 3, code block, quote, rule)", plain((*Doc).BlockChooser), false, ""},
 	}
 }
 
@@ -356,6 +358,9 @@ func register(r *ochazuke.Runtime) {
 		b.Verb(v.verb, v.run, v.description)
 		if v.motion {
 			b.Motion()
+		}
+		if v.exits != "" {
+			b.Exits(v.exits)
 		}
 	}
 	if n := r.Noun(DocNoun); n != nil {

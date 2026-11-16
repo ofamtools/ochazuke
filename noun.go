@@ -704,6 +704,13 @@ func (b *NounBuilder) Staying() *NounBuilder {
 	return b.lastOp("Staying", func(o *Operation) { o.Staying = true })
 }
 
+// Exits declares how the last declared verb takes the focus out of where
+// it is (Operation.Exits: ExitsMode, ExitsClose, ExitsPending), for the
+// mode-exit rule check.
+func (b *NounBuilder) Exits(kind string) *NounBuilder {
+	return b.lastOp("Exits", func(o *Operation) { o.Exits = kind })
+}
+
 // Repeatable marks the last declared verb as a change dot-repeat replays
 // (Operation.Repeatable).
 func (b *NounBuilder) Repeatable() *NounBuilder {

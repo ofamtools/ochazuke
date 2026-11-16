@@ -2078,7 +2078,7 @@ func registerForms(r *Runtime) {
 	}
 	insert := map[string]Parameter{"insert": {Type: "boolean", Description: "keep typing when the field is a text field"}}
 	r.Define(FormNoun).
-		Verb("leave", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.leave() }), "Leave the editor; every change is already written").
+		Verb("leave", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.leave() }), "Leave the editor; every change is already written").Exits(ExitsClose).
 		Verb("undo", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.history(false) }), "Undo the record's last change; the undo is written like any change").History(HistoryChange).
 		Verb("redo", on(func(e *RecordEditor, _ Context, _ Arguments) error { return e.history(true) }), "Redo the record's last undone change").History(HistoryChange).
 		Verb("next", on(func(e *RecordEditor, _ Context, a Arguments) error { return e.move(1, boolArg(a, "insert")) }), "Focus the next field; the field left is written").Motion().
@@ -2126,6 +2126,13 @@ func registerForms(r *Runtime) {
 	})
 	_ = r.AddVerbAvailability(FormNoun+".undo", "form-record-history")
 	_ = r.AddVerbAvailability(FormNoun+".redo", "form-record-history")
+	// A text field is an input (AddInput): its keys fall back to the
+	// editor's, as the live instance declares (Input.FallbackNoun); said
+	// on the nouns too, so a walk with no live field (the bindings help,
+	// the rule checks) reads the same rows.
+	for _, noun := range []string{FormFieldNoun, FormTextNoun, FormSuggestNoun} {
+		r.Define(noun).Fallback(EditorNoun)
+	}
 	r.Define(FormChoiceNoun).Focusable()
 	registerFormChips(r)
 	registerFormItems(r)

@@ -112,7 +112,7 @@ func registerHelpCapture(r *Runtime) {
 		}
 		return h.bindCaptured(row)
 	}})
-	r.Register(Operation{Key: KeyOf(helpID, "bind-finish"), Staying: true, Description: "Bind the keys captured so far to the selected unbound verb (a taken key or a sequence it cuts short asks first)", Result: "binding", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: KeyOf(helpID, "bind-finish"), Staying: true, Exits: ExitsPending, Description: "Bind the keys captured so far to the selected unbound verb (a taken key or a sequence it cuts short asks first)", Result: "binding", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		h, row, err := selected(r)
 		if err != nil {
 			return nil, err
@@ -138,7 +138,7 @@ func registerHelpCapture(r *Runtime) {
 		h.captureTo(helpLiteralMode, true)
 		return r.Mode, nil
 	}})
-	r.Register(Operation{Key: KeyOf(helpID, "bind-cancel"), Staying: true, Description: "Leave the bind without binding anything", Result: "mode", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
+	r.Register(Operation{Key: KeyOf(helpID, "bind-cancel"), Staying: true, Exits: ExitsPending, Description: "Leave the bind without binding anything", Result: "mode", Run: func(r *Runtime, _ Context, _ Arguments) (any, error) {
 		if h := r.helpOpen(); h != nil {
 			h.endCapture()
 		} else if r.pending() {

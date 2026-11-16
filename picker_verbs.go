@@ -121,7 +121,7 @@ func registerPickerVerbs(r *Runtime) {
 		Verb("move", verb(func(m pickerModal, ctx Ctx) Result {
 			return m.pickerMove(IntArg(ctx.Args, "delta", 0), StringArg(ctx.Args, "to", ""), boolArg(ctx.Args, "sections"))
 		}), "Move the highlight; from none, down selects first and up follows picker.up-from-none").Motion().Params(map[string]Parameter{"delta": {Type: "integer"}, "to": {Type: "string", Enum: []string{"first", "last"}}, "sections": {Type: "boolean", Description: "Count sections, not rows: delta 1 is the first row of the next section"}}).
-		Verb("cancel", verb(func(m pickerModal, _ Ctx) Result { return m.pickerCancel() }), "Close without choosing").History(HistoryAction).
+		Verb("cancel", verb(func(m pickerModal, _ Ctx) Result { return m.pickerCancel() }), "Close without choosing").History(HistoryAction).Exits(ExitsClose).
 		Verb("into", verb(func(m pickerModal, _ Ctx) Result { return m.pickerInto() }), "Browse into the highlighted row inside its source (a folder)").When(PickerOpensGuard).
 		Verb("up", verb(func(m pickerModal, _ Ctx) Result { return m.pickerUp() }), "Step the source back out (the parent folder)").When(PickerUpGuard).
 		Verb("enter", verb(func(m pickerModal, _ Ctx) Result { return m.pickerEnter() }), "Browse into the highlighted row when it opens, else pick it").History(HistoryAction).

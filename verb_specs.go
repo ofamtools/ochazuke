@@ -83,6 +83,9 @@ var (
 	asRepeatable opTrait = func(o *Operation) { o.Repeatable = true }
 )
 
+// asExits declares how the operation leaves (Operation.Exits).
+func asExits(kind string) opTrait { return func(o *Operation) { o.Exits = kind } }
+
 // asHistory sets the kind of history entry the operation records.
 func asHistory(kind string) opTrait { return func(o *Operation) { o.HistoryKind = kind } }
 

@@ -18,30 +18,32 @@ type helpPageVerb struct {
 	name, desc string
 	params     map[string]Parameter
 	run        func(p *HelpPage, a Arguments) error
+	// exits is the verb's declared way out (Operation.Exits).
+	exits string
 }
 
 // helpPageVerbs are the page's verbs.
 func helpPageVerbs() []helpPageVerb {
 	step := map[string]Parameter{"step": {Type: "integer", Description: "1 for the next (the default), -1 for the previous"}}
 	return []helpPageVerb{
-		{"open", "Open the binding help page walking from the focus (on the page: walk from the page's own focus, its own keys)", nil, nil},
-		{"close", "Leave the binding help page for the page it was opened from", nil, func(p *HelpPage, _ Arguments) error { return p.r.closeHelpPage() }},
-		{"refocus", "Choose another focus to walk from: every place the application has, filtered as you type", nil, (*HelpPage).pickPlace},
-		{"back", "Walk from the previous focus again", nil, func(p *HelpPage, _ Arguments) error { return p.back() }},
-		{"cycle-mode", "Walk the stack in the next or previous mode the walk's nouns have rows in", step, (*HelpPage).stepMode},
-		{"group", "Group the list by the next of level, noun and verb (by: one of them)", map[string]Parameter{"by": {Type: "string", Enum: groupNames(), Description: "level, noun or verb; default the next"}}, (*HelpPage).regroup},
-		{"sort", "Sort inside the groups by the next of walk order, key, verb and noun (by: one of them)", map[string]Parameter{"by": {Type: "string", Enum: sortNames(), Description: "walk, key, verb or noun; default the next"}}, (*HelpPage).resort},
-		{"toggle", "Add a filter chip, or remove it when the filter has it (is:unbound, is:shadowed, source:user...)", map[string]Parameter{"term": {Type: "string", Required: true, Description: "The chip, as the filter line writes it"}}, (*HelpPage).toggle},
-		{"drop", "Remove a filter chip by its number (default the last)", map[string]Parameter{"nth": {Type: "integer", Description: "The chip's number, 1 first; default the last"}}, (*HelpPage).drop},
-		{"clear", "Remove every filter chip", nil, func(p *HelpPage, _ Arguments) error { p.setQuery(HelpQuery{}); return nil }},
-		{"choose", "Act on the rail's node: show only a level or table, walk in a mode, walk from a place, or go back", nil, func(p *HelpPage, _ Arguments) error { return p.choose() }},
-		{"where", "Show where the selected row is defined and why it has its status (on a note: walk in that mode)", nil, func(p *HelpPage, _ Arguments) error { return p.where() }},
-		{"explain", "What the selected row's key does from this focus: every row on the walk that takes it, and why", nil, (*HelpPage).traceRow},
-		{"explain-key", "Trace any key or sequence from this focus (key: \"g d\")", map[string]Parameter{"key": {Type: "string", Required: true, Description: "A key or a sequence, keys separated by spaces"}}, (*HelpPage).traceKey},
-		{"narrow", "Filter to the selected row's verb on every noun, its key or its noun, or to the rail's level", map[string]Parameter{"field": {Type: "string", Required: true, Enum: narrowFields(), Description: "verb, key, noun or level"}}, (*HelpPage).narrow},
-		{"yank", "Copy the selected row as a bindings.json row (for a verb with no key: with a key free here)", nil, func(p *HelpPage, _ Arguments) error { return p.yank() }},
-		{"reveal", "Go to the selected row's level in the rail", nil, func(p *HelpPage, _ Arguments) error { return p.reveal() }},
-		{"jump", "Move to the next or previous level of the walk, in the rail and the list", step, (*HelpPage).jump},
+		{"open", "Open the binding help page walking from the focus (on the page: walk from the page's own focus, its own keys)", nil, nil, ""},
+		{"close", "Leave the binding help page for the page it was opened from", nil, func(p *HelpPage, _ Arguments) error { return p.r.closeHelpPage() }, ExitsClose},
+		{"refocus", "Choose another focus to walk from: every place the application has, filtered as you type", nil, (*HelpPage).pickPlace, ""},
+		{"back", "Walk from the previous focus again", nil, func(p *HelpPage, _ Arguments) error { return p.back() }, ""},
+		{"cycle-mode", "Walk the stack in the next or previous mode the walk's nouns have rows in", step, (*HelpPage).stepMode, ""},
+		{"group", "Group the list by the next of level, noun and verb (by: one of them)", map[string]Parameter{"by": {Type: "string", Enum: groupNames(), Description: "level, noun or verb; default the next"}}, (*HelpPage).regroup, ""},
+		{"sort", "Sort inside the groups by the next of walk order, key, verb and noun (by: one of them)", map[string]Parameter{"by": {Type: "string", Enum: sortNames(), Description: "walk, key, verb or noun; default the next"}}, (*HelpPage).resort, ""},
+		{"toggle", "Add a filter chip, or remove it when the filter has it (is:unbound, is:shadowed, source:user...)", map[string]Parameter{"term": {Type: "string", Required: true, Description: "The chip, as the filter line writes it"}}, (*HelpPage).toggle, ""},
+		{"drop", "Remove a filter chip by its number (default the last)", map[string]Parameter{"nth": {Type: "integer", Description: "The chip's number, 1 first; default the last"}}, (*HelpPage).drop, ""},
+		{"clear", "Remove every filter chip", nil, func(p *HelpPage, _ Arguments) error { p.setQuery(HelpQuery{}); return nil }, ""},
+		{"choose", "Act on the rail's node: show only a level or table, walk in a mode, walk from a place, or go back", nil, func(p *HelpPage, _ Arguments) error { return p.choose() }, ""},
+		{"where", "Show where the selected row is defined and why it has its status (on a note: walk in that mode)", nil, func(p *HelpPage, _ Arguments) error { return p.where() }, ""},
+		{"explain", "What the selected row's key does from this focus: every row on the walk that takes it, and why", nil, (*HelpPage).traceRow, ""},
+		{"explain-key", "Trace any key or sequence from this focus (key: \"g d\")", map[string]Parameter{"key": {Type: "string", Required: true, Description: "A key or a sequence, keys separated by spaces"}}, (*HelpPage).traceKey, ""},
+		{"narrow", "Filter to the selected row's verb on every noun, its key or its noun, or to the rail's level", map[string]Parameter{"field": {Type: "string", Required: true, Enum: narrowFields(), Description: "verb, key, noun or level"}}, (*HelpPage).narrow, ""},
+		{"yank", "Copy the selected row as a bindings.json row (for a verb with no key: with a key free here)", nil, func(p *HelpPage, _ Arguments) error { return p.yank() }, ""},
+		{"reveal", "Go to the selected row's level in the rail", nil, func(p *HelpPage, _ Arguments) error { return p.reveal() }, ""},
+		{"jump", "Move to the next or previous level of the walk, in the rail and the list", step, (*HelpPage).jump, ""},
 	}
 }
 
@@ -50,7 +52,7 @@ func registerHelpPage(r *Runtime) {
 	r.Define(helpRowNoun).About("A line of the binding help page's list: a binding row, a verb with no key, a level's own line or a note")
 	r.Define(helpNodeNoun).About("A node of the binding help page's rail: a level of the walk, one of its tables or other modes, a place beside the focus, or the way back")
 	register := func(v helpPageVerb, staying bool) {
-		r.Register(Operation{Key: KeyOf(helpPageNoun, v.name), Description: v.desc, Parameters: v.params, Result: "help-page", HistoryKind: HistoryAction, Agent: AgentAllow, Staying: staying,
+		r.Register(Operation{Key: KeyOf(helpPageNoun, v.name), Description: v.desc, Parameters: v.params, Result: "help-page", HistoryKind: HistoryAction, Agent: AgentAllow, Staying: staying, Exits: v.exits,
 			Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 				p := r.helpPage()
 				if v.run == nil || r.Page != HelpPageID {

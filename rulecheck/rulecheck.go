@@ -1,7 +1,7 @@
 // Package rulecheck runs the family's rule checks as one test: static
 // scans of the source (names, refusals) and walks over a built runtime
-// (dead keys, hidden rows that take a used key, the lexicon, the noun
-// rules). Every check runs in-process in
+// (dead keys, hidden rows that take a used key, modes with no way out,
+// the lexicon, the noun rules). Every check runs in-process in
 // seconds, with no PTY, daemon, story or subprocess. An application adopts
 // it with one test over its runtime:
 //
@@ -127,6 +127,8 @@ func Checks() []Rule {
 			Doc: "a key one list row answers at its own level, a sibling row of another noun answers too (its own row or its key redirect)"},
 		{ID: "hiddenkeys", Kind: Registry, Run: runHiddenKeys,
 			Doc: "a hidden row takes no key that did something at any place and mode without it (HiddenKeys)"},
+		{ID: "modeexits", Kind: Registry, Run: runModeExits,
+			Doc: "every mode that can be entered at a place has a key there that leaves it (ModeExits)"},
 		{ID: "names", Kind: Static, Run: runNames,
 			Doc: "no comparison, case or table keyed by a noun, verb, mode, motion or parameter name (namecheck)"},
 		{ID: "refusals", Kind: Static, Run: runRefusals,

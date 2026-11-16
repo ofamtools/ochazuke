@@ -345,33 +345,33 @@ func (p *HelpPage) captureCancel(Arguments) error {
 // of the capture modes only.
 func helpPageEditVerbs() []helpPageVerb {
 	return []helpPageVerb{
-		{"rebind", "Rebind the selected row: press the new key or sequence, see what it replaces or shadows from this focus, enter applies (binding.rebind)", nil, (*HelpPage).startRebind},
-		{"add-key", "Give the selected row's verb another key (a verb with no key its first): press it, see the preview, enter applies (binding.bind)", nil, (*HelpPage).startAdd},
+		{"rebind", "Rebind the selected row: press the new key or sequence, see what it replaces or shadows from this focus, enter applies (binding.rebind)", nil, (*HelpPage).startRebind, ""},
+		{"add-key", "Give the selected row's verb another key (a verb with no key its first): press it, see the preview, enter applies (binding.bind)", nil, (*HelpPage).startAdd, ""},
 		{"remove", "Take the selected row off its key: your own row is deleted, a default gets an unbind row (binding.remove)", nil, func(p *HelpPage, _ Arguments) error {
 			return p.applyNow("remove", BindingEditor.PlanRemove)
-		}},
+		}, ""},
 		{"reset", "Put the default back on the selected row's key, dropping your rows over it (binding.reset)", nil, func(p *HelpPage, _ Arguments) error {
 			return p.applyNow("reset", BindingEditor.PlanReset)
-		}},
-		{"edit-fields", "Edit the selected row's fields in a form: key, arguments, hint, hidden, guard, table, mode (binding.rebind)", nil, (*HelpPage).editFields},
-		{"unify", "One key for the selected row's verb on every noun that has it: press it, see the preview, enter applies (binding.unify)", nil, (*HelpPage).startUnify},
-		{"show-file", "Show your bindings.json as written, after its changes since the page opened", nil, (*HelpPage).showFile},
+		}, ""},
+		{"edit-fields", "Edit the selected row's fields in a form: key, arguments, hint, hidden, guard, table, mode (binding.rebind)", nil, (*HelpPage).editFields, ""},
+		{"unify", "One key for the selected row's verb on every noun that has it: press it, see the preview, enter applies (binding.unify)", nil, (*HelpPage).startUnify, ""},
+		{"show-file", "Show your bindings.json as written, after its changes since the page opened", nil, (*HelpPage).showFile, ""},
 		{"undo", "Undo the last change (history-entry.undo): an edit of your bindings.json writes the file's old text back", nil, func(p *HelpPage, _ Arguments) error {
 			_, err := p.r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo"})
 			p.Detail = nil
 			return err
-		}},
+		}, ""},
 	}
 }
 
 // helpPageCaptureVerbs are the capture modes' verbs.
 func helpPageCaptureVerbs() []helpPageVerb {
 	return []helpPageVerb{
-		{"capture-key", "Add the key just pressed to the keys being captured for the edit", map[string]Parameter{"key": {Type: "string", Required: true, Description: "the key, as the bindings file spells it"}}, (*HelpPage).captureKey},
-		{"capture-drop", "Drop the last key captured for the edit", nil, (*HelpPage).captureDrop},
-		{"capture-literal", "Take the next key as a key for the edit, whatever it is (enter, esc and backspace included)", nil, (*HelpPage).captureLiteral},
-		{"capture-apply", "Apply the edit on the keys captured", nil, (*HelpPage).captureApply},
-		{"capture-cancel", "Leave the capture without changing anything", nil, (*HelpPage).captureCancel},
+		{"capture-key", "Add the key just pressed to the keys being captured for the edit", map[string]Parameter{"key": {Type: "string", Required: true, Description: "the key, as the bindings file spells it"}}, (*HelpPage).captureKey, ""},
+		{"capture-drop", "Drop the last key captured for the edit", nil, (*HelpPage).captureDrop, ""},
+		{"capture-literal", "Take the next key as a key for the edit, whatever it is (enter, esc and backspace included)", nil, (*HelpPage).captureLiteral, ""},
+		{"capture-apply", "Apply the edit on the keys captured", nil, (*HelpPage).captureApply, ExitsPending},
+		{"capture-cancel", "Leave the capture without changing anything", nil, (*HelpPage).captureCancel, ExitsPending},
 	}
 }
 

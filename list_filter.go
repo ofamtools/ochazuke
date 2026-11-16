@@ -504,15 +504,15 @@ func registerListFilter(r *Runtime) {
 			l.back = ""
 			leave()
 			return nil
-		}, nil},
+		}, []opTrait{asExits(ExitsMode)}},
 		{"filter-clear", "Clear the filter, put the selection back where it was when the filter line opened, and close the line", id, func(l *Collection, _ Arguments) error {
 			unfilter(l, l.back)
 			return nil
-		}, nil},
+		}, []opTrait{asExits(ExitsMode)}},
 		{"filter-choose", "Choose the selected match: clear the filter keeping the selection on its row, and close the line (enter on a ClearFilterOnEnter list)", id, func(l *Collection, _ Arguments) error {
 			unfilter(l, "")
 			return nil
-		}, nil},
+		}, []opTrait{asExits(ExitsMode)}},
 	} {
 		op := Operation{Key: KeyOf("ochazuke.collection", spec.verb), Description: spec.description, Parameters: spec.parameters, Result: "list state", Run: func(_ *Runtime, c Context, args Arguments) (any, error) {
 			list, err := resolve(c, args)

@@ -1843,7 +1843,7 @@ func registerTrees(r *Runtime) {
 			return t.put(c.Context, before, StringArg(c.Args, "register", ""))
 		}), "Put a register's rows after the row's subtree as its next sibling, or before the row (before), with fresh ids (rows of the delete just made, put back as its text, keep their ids: a move, once), nested as yanked, as one undo step; on an empty tree they become the top level").When("tree-editable").
 		Verb("row-key", edit(func(t *Tree, c Ctx) error { return t.rowKey(c.Context, StringArg(c.Args, "key", "")) }), "Run what key does on the line's row in normal mode (the row's own rows first), then go on editing the line where the cursor was: tab and shift+tab on an open line indent and outdent it, or do what the application binds them to on the row").When("tree-editable").
-		Verb("leave", edit(func(t *Tree, c Ctx) error { return t.closeLine(true) }), "Leave the line: it is written, never discarded").When("tree-editable").
+		Verb("leave", edit(func(t *Tree, c Ctx) error { return t.closeLine(true) }), "Leave the line: it is written, never discarded").When("tree-editable").Exits(ExitsMode).
 		Verb("next", edit(func(t *Tree, c Ctx) error { return t.add(c.Context, "below", "", false) }), "Write the line and start a new one below it").When("tree-editable")
 	params := map[string]map[string]Parameter{
 		"add":  {"where": {Type: "string", Enum: []string{"below", "above", "child"}}, "text": {Type: "string", Description: "the new line's text, a placeholder when select is set"}, "select": {Type: "boolean", Description: "open the line with its text selected: typing replaces it, esc or a motion keeps it"}},

@@ -458,7 +458,7 @@ func registerListVisual(r *Runtime) {
 	// selection is on. The row guard keeps it apart from the filter's esc
 	// row (bound after this, unguarded), which would otherwise replace it.
 	r.Nouns["ochazuke.collection"].Guards["end-visual"] = "list-visual"
-	r.Register(Operation{Key: "ochazuke.collection.end-visual", FocusBound: true, HistoryKind: HistoryAction, Description: "End the visual row selection (esc), and visual-line with it: the marks go back to the ones it found", Parameters: map[string]Parameter{
+	r.Register(Operation{Key: "ochazuke.collection.end-visual", FocusBound: true, Exits: ExitsMode, HistoryKind: HistoryAction, Description: "End the visual row selection (esc), and visual-line with it: the marks go back to the ones it found", Parameters: map[string]Parameter{
 		"id": {Plumbing: true, Type: "string", Description: "The list (default: the focused one)"},
 	}, Result: "list state", Run: func(_ *Runtime, c Context, a Arguments) (any, error) {
 		return visual(c, Arguments{"id": a["id"], "on": false})

@@ -599,7 +599,7 @@ func registerAbout(r *Runtime) {
 		}
 		return r.about().shown, nil
 	}})
-	r.Register(Operation{Key: "ochazuke.about.close", Description: "Leave the About page for the page it was opened from", Result: "context", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.about.close", Exits: ExitsClose, Description: "Leave the About page for the page it was opened from", Result: "context", HistoryKind: HistoryAction, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		return r.Context(), closeAboutPage(r)
 	}})
 	r.Register(Operation{Key: "ochazuke.about.refresh", Description: "Evaluate the About page's rows again", Result: "about-section[]", HistoryKind: HistoryFetch, Agent: AgentAllow, Run: func(r *Runtime, c Context, a Arguments) (any, error) {

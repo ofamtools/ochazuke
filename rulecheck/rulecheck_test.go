@@ -134,6 +134,48 @@ func TestHiddenKeys(t *testing.T) {
 	}
 }
 
+// A mode the tile enters (s switches to stuck) with no key out is
+// reported at the tile's place; a row switching back to normal, or a row
+// whose verb declares it leaves (Operation.Exits), is a way out. A
+// pending mode is left by any verb that does not stay (its one-shot
+// return), but not by a Staying one.
+func TestModeExits(t *testing.T) {
+	all := func(int) bool { return true }
+	stuck := func(t *testing.T, rows string) []string {
+		t.Helper()
+		r := fixture(t, nil, `{"modes": {"stuck": {}, "trap": {"pending": true}}, "bindings": [
+			{"context": "tile/normal", "bindings": [
+				{"key": "s", "action": "ochazuke.mode.switch", "args": {"mode": "stuck"}},
+				{"key": "T", "action": "ochazuke.mode.enter", "args": {"mode": "trap"}}]},
+			{"context": "tile/stuck", "bindings": [`+rows+`]},
+			{"context": "tile/trap", "bindings": [{"key": "c", "action": "ochazuke.count.append", "args": {"digit": 1}}]}]}`)
+		found, cov := rulecheck.ModeExits(r, nil, all)
+		if cov.Entered == 0 {
+			t.Fatalf("no mode entered: %+v", cov)
+		}
+		var out []string
+		for _, f := range found {
+			if strings.HasPrefix(f.Fields[0], "p>") || strings.HasPrefix(f.Fields[0], "tile") {
+				out = append(out, f.Fields[1]+" "+f.Fields[2])
+			}
+		}
+		slices.Sort(out)
+		return slices.Compact(out)
+	}
+	if got := stuck(t, `{"key": "x", "action": "tile.kill"}`); !slices.Equal(got, []string{"stuck exit-not-declared", "trap exit-not-declared"}) {
+		t.Fatalf("no way out: findings %v", got)
+	}
+	if got := stuck(t, `{"key": "x", "action": "tile.kill"}, {"key": "esc", "action": "ochazuke.mode.switch", "args": {"mode": "normal"}}`); !slices.Equal(got, []string{"trap exit-not-declared"}) {
+		t.Fatalf("esc back to normal: findings %v", got)
+	}
+	if got := stuck(t, `{"key": "esc", "action": "ochazuke.mode.leave"}, {"key": "q", "action": "tile.kill"}`); !slices.Equal(got, []string{"stuck exit-not-declared", "trap exit-not-declared"}) {
+		t.Fatalf("mode.leave ends a pending mode only, no way out of a base mode: findings %v", got)
+	}
+	if got := stuck(t, `{"key": "q", "action": "ochazuke.modal.close"}`); !slices.Equal(got, []string{"trap exit-not-declared"}) {
+		t.Fatalf("modal.close declares it closes: findings %v", got)
+	}
+}
+
 // RULECHECK_UPDATE=1 lowers a debt row and removes a row nothing matches,
 // and never adds a row for a new finding.
 func TestBaselineOnlyShrinks(t *testing.T) {
@@ -163,13 +205,13 @@ func TestBaselineOnlyShrinks(t *testing.T) {
 // Check runs the checks in the table's order as subtests and skips one
 // turned off with its reason.
 func TestCheckRunsSubtests(t *testing.T) {
-	off := map[string]string{"names": "fixture", "refusals": "fixture", "lexicon": "fixture", "nouns": "fixture"}
+	off := map[string]string{"modeexits": "fixture", "names": "fixture", "refusals": "fixture", "lexicon": "fixture", "nouns": "fixture"}
 	rulecheck.Check(t, rulecheck.Config{Runtime: fixture(t, nil, redirect), Baselines: t.TempDir(), Off: off})
 	var ids []string
 	for _, c := range rulecheck.Checks() {
 		ids = append(ids, c.ID)
 	}
-	if got := strings.Join(ids, " "); got != "deadkeys hiddenkeys names refusals lexicon nouns" {
+	if got := strings.Join(ids, " "); got != "deadkeys hiddenkeys modeexits names refusals lexicon nouns" {
 		t.Fatalf("checks %q", got)
 	}
 }

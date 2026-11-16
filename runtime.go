@@ -453,6 +453,15 @@ type Operation struct {
 	// re-dispatches the key inside it (recording): a row running it leaves
 	// the one-shot pending mode in place (NounBuilder.Staying).
 	Staying bool `json:"staying,omitempty"`
+	// Exits declares that the verb takes the focus out of where it is, as
+	// data the mode-exit rule check (rulecheck modeexits) reads: ExitsMode
+	// returns from the mode it runs in to the mode it was entered from (or
+	// the declared one), ExitsClose closes the modal or view the focus is
+	// in (and with it any mode), ExitsPending ends a pending mode only (a
+	// no-op in a base mode). "" declares nothing: a switch row's mode
+	// argument and a pending mode's one-shot return are read from the row
+	// and the mode table. The catalog's exits.
+	Exits string `json:"exits,omitempty"`
 	// HistoryKind is the kind of entry the operation records
 	// (HistoryAction, HistoryChange, HistoryFetch); empty derives it
 	// (HistoryKindOf). Set it to HistoryFetch on a verb that only asks for
@@ -509,6 +518,18 @@ type Operation struct {
 // for hosts (the catalog's state names the first such verb): a host runs
 // it once instead of one row source per list. It replaces the State flag.
 const ResultLists = "lists"
+
+// Values of Operation.Exits.
+const (
+	ExitsMode    = "mode"
+	ExitsClose   = "close"
+	ExitsPending = "pending"
+)
+
+// ModeNoun is the noun naming the interaction modes: a parameter whose
+// Noun it is takes a mode (mode.enter, mode.switch), so a row giving it a
+// literal value enters or switches to that mode.
+const ModeNoun = "ochazuke.mode"
 
 // HistoryKindOf is the kind of history entry the operation records: its
 // HistoryKind when set; else a fetch for a verb that answers rows (Rows,
@@ -1524,7 +1545,7 @@ func registerCore(r *Runtime) {
 		err := r.Push(StringArg(a, "id", ""), id)
 		return r.Context(), err
 	}})
-	r.Register(Operation{Key: "ochazuke.modal.close", Description: "Close the active modal: run its close request (CloseWith), else pop it back to the focus and mode it opened over", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.CloseModal(c); return r.Context(), err }})
+	r.Register(Operation{Key: "ochazuke.modal.close", Exits: ExitsClose, Description: "Close the active modal: run its close request (CloseWith), else pop it back to the focus and mode it opened over", Result: "context", Run: func(r *Runtime, c Context, a Arguments) (any, error) { err := r.CloseModal(c); return r.Context(), err }})
 	r.Register(Operation{Key: "app.quit", Description: "Exit the application", Parameters: map[string]Parameter{"force": {Type: "boolean", Description: "quit without checks or waiting for writes; report unfinished values"}}, Result: "boolean", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		h := r.eventHub()
 		now := time.Now()

@@ -108,7 +108,7 @@ func newPalette(r *Runtime) *Palette {
 		}
 		return nil
 	})
-	register("close", "Close the command line without running it", nil, func(Arguments) error { return p.close() })
+	register("close", "Close the command line without running it", nil, func(Arguments) error { return p.close() }, asExits(ExitsClose))
 	register("fill", "Fill the command line: replace its text", map[string]Parameter{"text": {Type: "string", Required: true}}, func(a Arguments) error {
 		if err := p.requireOpen(); err != nil {
 			return err
@@ -118,7 +118,7 @@ func newPalette(r *Runtime) *Palette {
 	register("move", "Move the completion highlight; from none, down selects first and up follows picker.up-from-none", map[string]Parameter{"delta": {Type: "integer", Required: true}}, func(a Arguments) error { return p.move(IntArg(a, "delta", 0)) }, asMotion, asHistory(HistoryAction))
 	register("complete", "Append the highlighted completion (or value, or the only one) as the next word", map[string]Parameter{"value": {Type: "string", Description: "A completion's word; omit for the highlighted one"}}, p.complete)
 	register("run", "Run the line or append the highlighted completion; a line missing an argument opens the args form for it (palette.missing-opens-form), else names its first missing word", nil, func(Arguments) error { return p.run() })
-	register("cancel", "Clear the command line, or close it when it is empty; on the board go up one layer (drop the last word), closing from an empty line", nil, func(Arguments) error { return p.cancel() })
+	register("cancel", "Clear the command line, or close it when it is empty; on the board go up one layer (drop the last word), closing from an empty line", nil, func(Arguments) error { return p.cancel() }, asExits(ExitsClose))
 	register("cell", "Move the board's current cell: left, right, up, down, or to an edge (first, last, first-col, last-col)", map[string]Parameter{"to": {Type: "string", Required: true, Enum: cellMoves}}, func(a Arguments) error { return p.cellTo(StringArg(a, "to", "")) }, asMotion, asHistory(HistoryAction))
 	register("step", "Up or down: the board's cell above or below; in the classic style the completion highlight while the line has completions, else the command history (up older)", map[string]Parameter{"direction": {Type: "string", Required: true, Enum: cellMoves[cellUp : cellDown+1]}}, func(a Arguments) error { return p.step(StringArg(a, "direction", "")) }, asMotion, asHistory(HistoryAction))
 	register("back", "Go back a layer: the last committed word when the line ends in a space, else one character before the cursor", nil, func(Arguments) error { return p.back() })

@@ -377,7 +377,7 @@ func registerTerminal(r *Runtime) {
 				err = r.RemoveInstance(t.id)
 			}
 			return r.Context(), err
-		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed, its stream released and the focus sent to its FocusOnClose target)")
+		}, "Return focus to the instance around the terminal; the pane keeps running (a CloseOnDetach terminal is removed, its stream released and the focus sent to its FocusOnClose target)").Exits(ExitsClose)
 	// Required-parameter metadata for the rows (bindings/terminal.json) and
 	// for the CLI.
 	for verb, params := range map[string]map[string]Parameter{

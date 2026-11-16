@@ -354,7 +354,7 @@ func registerChooser(r *Runtime) {
 				return Failed(err)
 			}
 			return Done(nil)
-		}), "Leave search editing in a picker that supports normal mode").When(PickerNormalModeGuard)
+		}), "Leave search editing in a picker that supports normal mode").When(PickerNormalModeGuard).Exits(ExitsMode)
 	registerSectionVerbs(r, verb)
 	registerChooserSources(r)
 	registerPickerGuardAliases(r)

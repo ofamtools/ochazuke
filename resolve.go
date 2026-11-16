@@ -1342,7 +1342,7 @@ func registerModeTables(r *Runtime) {
 			return outcome != KeyUnhandled, err
 		}
 	}})
-	r.Register(Operation{Key: "ochazuke.mode.leave", Staying: true, HistoryKind: HistoryAction, Description: "Return from a pending mode to the mode it shadowed", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
+	r.Register(Operation{Key: "ochazuke.mode.leave", Staying: true, Exits: ExitsPending, HistoryKind: HistoryAction, Description: "Return from a pending mode to the mode it shadowed", Result: "mode", Run: func(r *Runtime, c Context, a Arguments) (any, error) {
 		if r.pending() {
 			r.leaveMode()
 		}

@@ -256,9 +256,12 @@ type CatalogVerb struct {
 	// Staying a verb that manages the pending mode itself
 	// (ochazuke.Operation.Motion, Typing, Staying); a host mounting the
 	// verb keeps them.
-	Motion     bool     `json:"motion,omitempty"`
-	Typing     bool     `json:"typing,omitempty"`
-	Staying    bool     `json:"staying,omitempty"`
+	Motion  bool `json:"motion,omitempty"`
+	Typing  bool `json:"typing,omitempty"`
+	Staying bool `json:"staying,omitempty"`
+	// Exits is the verb's declared way out (ochazuke.Operation.Exits:
+	// mode, close, pending); a host mounting the verb keeps it.
+	Exits      string   `json:"exits,omitempty"`
 	Positional []string `json:"positional,omitempty"`
 	History    string   `json:"history,omitempty"`
 	Builtin    bool     `json:"builtin"`
@@ -545,6 +548,7 @@ func catalog(r *ochazuke.Runtime, name, version string, delta bool, opts ...Cata
 		verb.Creates = op.Creates
 		verb.FocusBound = op.FocusBound
 		verb.Motion, verb.Typing, verb.Staying = op.Motion, op.Typing, op.Staying
+		verb.Exits = op.Exits
 		verb.Slot = op.Slot
 		verb.Disabled, verb.Unavailable = verbDisabled(r, op), op.Unavailable
 		if op.Timeout > 0 {
