@@ -347,6 +347,26 @@ func TestShellConfirm(t *testing.T) {
 	}
 }
 
+func TestShellAssumeYesEnvironment(t *testing.T) {
+	f := newFixture(t)
+	f.r.Define("gadget").Verb("drop", func(ochazuke.Ctx) ochazuke.Result { return ochazuke.Done(nil) }, "Drop").Confirm("Drop it?").Agent(ochazuke.AgentConfirm)
+	t.Setenv("OCHAZUKE_ASSUME_YES", "")
+	if _, errOut, err := f.run("", "widget", "remove", "--target", "w1"); err == nil || !strings.Contains(errOut, "[y/N]") || len(f.calls) != 0 {
+		t.Fatalf("unset asks: %v %+v %q", err, f.calls, errOut)
+	}
+	t.Setenv("OCHAZUKE_ASSUME_YES", "1")
+	if _, errOut, err := f.run("", "widget", "remove", "--target", "w1"); err != nil || len(f.calls) != 1 || strings.Contains(errOut, "[y/N]") {
+		t.Fatalf("set answers yes: %v %+v %q", err, f.calls, errOut)
+	}
+	t.Setenv("OCHAZUKE_ACTOR", "agent")
+	t.Setenv("OCHAZUKE_HARNESS", "test")
+	if _, errOut, err := f.run("", "gadget", "drop"); err == nil || strings.Contains(errOut, "[y/N]") {
+		t.Fatalf("agent with confirm right must be refused: %v %q", err, errOut)
+	} else if !strings.Contains(err.Error(), "confirm") {
+		t.Fatalf("not a rights refusal: %v", err)
+	}
+}
+
 func TestShellSettlesPendingWork(t *testing.T) {
 	f := newFixture(t)
 	settles := 0

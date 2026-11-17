@@ -60,7 +60,8 @@ import (
 // ("job #N noun.verb LABEL STATE" for a labelled job),
 // except a job of a quiet verb (Operation.Quiet, as the jobs ticker hides
 // it) that did not fail: a failure always prints. A confirm modal the
-// operation opened is answered: --yes (or -y) runs
+// operation opened is answered: --yes (or -y), or OCHAZUKE_ASSUME_YES=1 in
+// the environment, runs
 // confirm.accept, otherwise the prompt is printed and a line read from
 // Stdin (y or yes accepts; anything else, or end of input, declines with
 // modal.close and a non-zero exit). Any other modal (a prompt, the palette)
@@ -562,6 +563,19 @@ func (s *Shell) ownerOf(noun string) string {
 	return ""
 }
 
+// assumeYes is the family-wide standing answer: OCHAZUKE_ASSUME_YES=1 (or
+// true, yes) answers a confirm exactly as --yes does, for every program built
+// on the shell. It stands in for typing y at a prompt that would be shown
+// anyway: an agent whose right on the verb is confirm or never is refused
+// before any prompt, with or without it.
+func assumeYes() bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("OCHAZUKE_ASSUME_YES"))) {
+	case "1", "true", "yes":
+		return true
+	}
+	return false
+}
+
 // options are the shell's own flags of a command: --yes and the output
 // format.
 type options struct {
@@ -608,7 +622,7 @@ func (s *Shell) request(noun, verb string, flags []string) (ochazuke.Request, op
 // presets are an alias's arguments, applied by the caller afterwards: a
 // bare word does not fill a parameter a preset gives.
 func (s *Shell) parseFlags(q ochazuke.Request, op ochazuke.Operation, flags []string, presets ochazuke.Arguments) (ochazuke.Request, options, error) {
-	var opts options
+	opts := options{yes: assumeYes()}
 	bareJSON := false
 	var words []string
 	for i := 0; i < len(flags); i++ {
