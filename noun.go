@@ -709,7 +709,9 @@ func (b *NounBuilder) Typing() *NounBuilder {
 // Writes declares the nouns whose stores the last declared verb may change
 // (Operation.Writes): after a run only their watches and lists read again.
 // Called with none, the verb changes no store, and a run re-reads nothing.
-// Not called, the verb may change any store.
+// Not called, the verb may change any store. A verb of another kind than
+// change (a fetch that loads what those stores answer) tells their
+// watches once its job is done.
 func (b *NounBuilder) Writes(nouns ...string) *NounBuilder {
 	return b.lastOp("Writes", func(o *Operation) { o.Writes = append([]string{}, nouns...) })
 }

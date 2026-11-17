@@ -482,7 +482,9 @@ type Operation struct {
 	// nouns derived from them). Nil (the default): it may change any
 	// noun's store, and every watch is told. Empty but not nil: it changes
 	// no store (keys forwarded to a pane, terminal.send), and a run tells
-	// no watch, so no list reads again. Set by NounBuilder.Writes.
+	// no watch, so no list reads again. A verb of another kind than change
+	// (a fetch loading what those stores answer) that names nouns tells
+	// their watches once its job is done. Set by NounBuilder.Writes.
 	Writes []string `json:"-"`
 	// Staying marks an operation that manages the pending mode itself, or
 	// re-dispatches the key inside it (recording): a row running it leaves

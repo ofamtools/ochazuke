@@ -92,6 +92,7 @@ var derivationKinds = []derivationKind{
 	{Name: "count", About: "How many things of NOUN have PROP naming this thing (Reads: NOUN.PROP)", Type: SettingInteger, Other: true, run: deriveCount},
 	{Name: "label", About: "The label of the thing a reference prop names (Reads: PROP); its key when it has none or is gone", run: deriveLabel},
 	{Name: "since", About: "How long ago a time prop was (Reads: PROP), a duration", Type: SettingDuration, run: deriveSince},
+	{Name: "mark", About: "A row mark: the text when a boolean prop is true, nothing (Else) when it is false or unset (Reads: PROP, TEXT: starred, ★); a column of it marks the rows, as the star of a starred thing", run: deriveMark},
 	{Name: "first-line", About: "The first line of a text prop that is not blank, trimmed (Reads: PROP); FirstOnly takes the first line blank or not, Untrimmed keeps its spaces", run: deriveFirstLine},
 	{Name: inheritKind, About: "The prop's own value, else (a prop that declares Inherit) the value its parent reference reaches, walked until one is set; an empty value is not set (Reads: PROP, REF.PROP, written for Inherit)", Via: true, Own: true, run: deriveInherit},
 	{Name: "first", About: "The first of Reads that holds a value: REF.PROP is the prop PROP of the thing the reference prop REF names (or the field of an object prop), the prop's own name its own stored value, text with {READ} placeholders that text when each holds a value (Reads: task.project, project; about, task:{task}); stored and writable when Reads names it", Via: true, Own: true, run: deriveFirst, write: firstWriteReason},
@@ -576,6 +577,25 @@ func deriveSince(c Ctx, n *Noun, p PropSpec, things []Thing) {
 			at = parsed
 		}
 		t[p.Name] = now.Sub(at).Truncate(time.Second).String()
+	}
+}
+
+// deriveMark is the mark kind: Reads[1] (the mark's text) for each thing
+// whose prop Reads[0] is true (a boolean, or its text "true"); left out
+// otherwise. A derivation with no text gives none.
+func deriveMark(c Ctx, n *Noun, p PropSpec, things []Thing) {
+	reads := p.Derivation.Reads
+	if len(reads) < 2 || reads[1] == "" {
+		return
+	}
+	name := reads[0]
+	if spec := n.prop(name); spec != nil {
+		name = spec.Name
+	}
+	for _, t := range things {
+		if v, ok := t[name].(bool); ok && v || fmt.Sprint(t[name]) == "true" {
+			t[p.Name] = reads[1]
+		}
 	}
 }
 

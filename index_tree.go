@@ -32,6 +32,7 @@ type indexTree struct {
 	dirty   bool
 	watches []*Watch
 	fills   int
+	round   uint64 // the refresh pass it last read in (watchHub.round)
 }
 
 // AddIndexTree adds the index of noun drawn as a tree by its declared
@@ -120,6 +121,14 @@ func (it *indexTree) flush() {
 		return // read when its page opens (IndexTreeRefill)
 	}
 	it.dirty = false
+	// A pass that told both nouns' watches reads the stores once: the
+	// first watch's fill already read what the second's would.
+	if h := it.r.watchHub(); h.refreshing {
+		if it.round == h.round {
+			return
+		}
+		it.round = h.round
+	}
 	// A failure is the tree's empty line, never an error on screen: the
 	// stores answer again on the next change or open.
 	_ = it.refresh()
@@ -141,21 +150,38 @@ func (it *indexTree) shown() bool {
 func (it *indexTree) fill() error {
 	r := it.r
 	c := r.backgroundCtx()
+	// One read of each store per fill: the parents are read first and kept
+	// as the batch's other things (Ctx.refs), so the listed noun's derived
+	// props that read its parent (an inherited owner) and the cells that
+	// show a reference's label find them there instead of reading them
+	// again, one by one.
+	c.refs = map[string]Thing{}
 	n := r.Nouns[it.noun]
+	id := it.tree.id
+	var pn *Noun
+	var parents ListPage
+	if it.pnoun != "" {
+		pn = r.Nouns[it.pnoun]
+		var err error
+		if parents, err = r.queryThings(c, pn, ListQuery{}); err != nil {
+			return err
+		}
+		if kp := pn.keyProp(); kp != nil {
+			for _, t := range parents.Items {
+				if !emptyProp(t[kp.Name]) {
+					c.refs[pn.Name+"\x00"+fmt.Sprint(t[kp.Name])] = t
+				}
+			}
+		}
+	}
 	page, err := r.queryThings(c, n, ListQuery{})
 	if err != nil {
 		return err
 	}
 	it.fills++
-	id := it.tree.id
 	items := r.thingItems(c, n, id, page.Items, it.columns)
-	if it.pnoun == "" {
+	if pn == nil {
 		return it.tree.SetNodes(it.nodes(items, nil))
-	}
-	pn := r.Nouns[it.pnoun]
-	parents, err := r.queryThings(c, pn, ListQuery{})
-	if err != nil {
-		return err
 	}
 	pitems := r.thingItems(c, pn, id, parents.Items, it.columns)
 	known := map[string]bool{}

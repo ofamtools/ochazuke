@@ -28,7 +28,9 @@ import (
 // (RecordHash, the state delta protocol's) and, whenever the runtime is
 // told its things may have changed, lists again and emits the difference.
 // It is told after every top-level request of the change kind, or that
-// ran one (a palette line's set), once it has run, after the completion of a job of a change verb, and when the
+// ran one (a palette line's set), once it has run, after the completion of a job of a change verb, or of
+// a verb of any kind that declares the stores it writes (a fetch that
+// loads a store's source), and when the
 // application calls Runtime.Changed (its store changed some other way).
 // A verb that declares the stores it writes (Operation.Writes) tells only
 // their watches; one that declares none (terminal.send) tells none.
@@ -108,6 +110,9 @@ type watchHub struct {
 	watches    []*Watch
 	versions   WatchVersions
 	refreshing bool
+	// round counts refreshWatches passes: a reader fed by several watches
+	// (an index tree's, one per noun) reads once per pass.
+	round uint64
 	// from are the watch and lists of each noun a From list shows (list_from.go).
 	from map[string]*fromHub
 	// changed is set when a request of the change kind ran inside the
@@ -308,6 +313,7 @@ func (r *Runtime) refreshWatches(nouns []string) {
 		return
 	}
 	h.refreshing = true
+	h.round++
 	defer func() { h.refreshing = false }()
 	for _, w := range slices.Clone(h.watches) {
 		if !w.push && !w.ended && (len(nouns) == 0 || slices.Contains(nouns, w.noun)) {
@@ -381,18 +387,28 @@ func (r *Runtime) refreshWritten(anyStore bool, writes []string) {
 	r.refreshWatches(r.withDependents(names))
 }
 
-// watchAfterJob refreshes the watches once a job of a change verb is done.
+// watchAfterJob refreshes the watches once a job of a change verb is done,
+// and once a job of any other verb that declares the stores it writes
+// (Operation.Writes) is done: a fetch that loads what a store answers (a
+// daemon's listing read into the app's cache) tells that store's readers,
+// as a change verb does. A verb of another kind that declares nothing
+// tells nothing.
 func (r *Runtime) watchAfterJob(verb string) {
 	r.renderCache.changes++
 	if r.watches == nil {
 		return
 	}
-	if op, ok := r.Operations.Find(Key(verb)); ok && op.HistoryKindOf() == HistoryChange {
+	op, ok := r.Operations.Find(Key(verb))
+	switch {
+	case !ok:
+	case op.HistoryKindOf() == HistoryChange:
 		if op.Writes != nil && len(op.Writes) == 0 {
 			return // it changes no store (Operation.Writes)
 		}
 		r.refreshWritten(op.Writes == nil, op.Writes)
 		recountOpenNounsPage(r)
+	case len(op.Writes) > 0:
+		r.refreshWritten(false, op.Writes)
 	}
 }
 

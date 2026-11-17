@@ -90,6 +90,7 @@ func (r *Runtime) thingItems(c Ctx, n *Noun, list string, things []Thing, column
 	for i, col := range columns {
 		props[i] = n.prop(columnField(col.Title))
 	}
+	labels := r.refCellLabels(c, props, things)
 	items := make([]ListItem, 0, len(things))
 	seen := map[string]bool{}
 	for _, t := range things {
@@ -109,6 +110,8 @@ func (r *Runtime) thingItems(c Ctx, n *Noun, list string, things []Thing, column
 				case p == nil:
 				case p.Cell != nil:
 					item.Cells[i] = p.Cell(c, t)
+				case labels[i] != nil:
+					item.Cells[i] = labels[i](t[p.Name])
 				default:
 					item.Cells[i] = cellValueText(t[p.Name])
 				}
