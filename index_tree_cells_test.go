@@ -125,3 +125,35 @@ func TestFetchJobWithWritesRefillsTheIndexTree(t *testing.T) {
 		t.Fatalf("item reads after the job: %v", items.calls)
 	}
 }
+
+// A load whose stores keep change tokens that did not move leaves a shown
+// index tree as it is (its notify watches tell it nothing); one that moved
+// a token fills it again.
+func TestUnchangedLoadLeavesTheIndexTree(t *testing.T) {
+	r, tree, groups, items := cellsFixture(t)
+	version := 0
+	for _, noun := range []string{"item", "group"} {
+		r.Nouns[noun].Store.ChangeToken = func(Ctx) (string, error) { return fmt.Sprint(version), nil }
+	}
+	r.Define("cache").Kind(NounKindPart).Verb("load", func(Ctx) Result {
+		return Pending(func(context.Context) (any, error) { return nil, nil })
+	}, "Load the items").Fetch().Writes("item", "group")
+	load := func() {
+		t.Helper()
+		mustRun(t, r, Request{Noun: "cache", Verb: "load"})
+		settleJob(t, r)
+	}
+	load() // the watches' first telling
+	clear(groups.calls)
+	clear(items.calls)
+	load()
+	if len(items.calls)+len(groups.calls) != 0 {
+		t.Fatalf("an unchanged load read the stores: items %v, groups %v", items.calls, groups.calls)
+	}
+	items.things = append(items.things, Thing{"id": "i3", "title": "three", "group": "g1"})
+	version++
+	load()
+	if got := treeCells(tree); !strings.Contains(got, "three") || items.calls["list"] != 1 {
+		t.Fatalf("a load that moved the token: reads %v, tree %s", items.calls, got)
+	}
+}

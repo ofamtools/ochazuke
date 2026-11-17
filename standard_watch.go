@@ -182,8 +182,9 @@ type Watch struct {
 	// (every list a From hub feeds is hidden and marked stale), so a
 	// refresh takes none.
 	idle func() bool
-	// token is the store's ChangeToken taken just before the last snapshot;
-	// hasToken says it is set.
+	// token is the store's ChangeToken taken just before the last snapshot
+	// (a notify watch's: before it last told its readers); hasToken says it
+	// is set.
 	token    string
 	hasToken bool
 	// notify makes a fallback watch read nothing itself: each refresh
@@ -592,6 +593,16 @@ func (w *Watch) refresh() (moved bool) {
 	if st := w.r.Nouns[w.noun].Store; st == nil || st.Remote || w.notify {
 		// A proxy has no local snapshot. Existing change notifications
 		// invalidate its readers, which reload through their own get proxy.
+		// A notify watch of a local store with a change token tells its
+		// readers only when the token moved since it last told them (an
+		// index tree, a windowed list): they read after each telling.
+		if w.notify && st != nil && !st.Remote {
+			token, ok := w.changeToken()
+			if ok && w.hasToken && token == w.token {
+				return false
+			}
+			w.token, w.hasToken = token, ok
+		}
 		w.deliver(WatchEvent{Type: WatchModified, ID: w.key})
 		if w.batch != nil && !w.ended {
 			w.batch()
