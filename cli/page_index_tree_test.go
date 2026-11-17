@@ -35,7 +35,8 @@ func TestMountedIndexTreeRowsAreTheirOwnNouns(t *testing.T) {
 		Store(store(ochazuke.Thing{"id": "i1", "title": "Item one", "group": "g1"}))
 	m := ochazuke.NewModel(r)
 	m.Width, m.Height = 100, 30
-	page := CatalogPage{ID: "items", Title: "Items", Layout: LayoutSplit, Lists: []CatalogList{{ID: "items/list", Noun: "item", Kind: ListKindIndex, Tree: true}}, Detail: &CatalogDetail{}}
+	page := CatalogPage{ID: "items", Title: "Items", Layout: LayoutSplit, Lists: []CatalogList{{ID: "items/list", Noun: "item", Kind: ListKindIndex, Tree: true,
+		Columns: []ochazuke.Column{{Title: "title"}, {Title: "group"}}}}, Detail: &CatalogDetail{}}
 	v, err := MountPage(m, CatalogDoc{}, page, PageConfig{})
 	if err != nil {
 		t.Fatal(err)
@@ -53,6 +54,11 @@ func TestMountedIndexTreeRowsAreTheirOwnNouns(t *testing.T) {
 	row, ok = v.Row("items/list/i1")
 	if !ok || row.Noun != "item" || row.ID != "i1" {
 		t.Fatalf("child row: %+v %v", row, ok)
+	}
+	// The page's columns, not the noun's: the group column shows the
+	// group's label.
+	if n, ok := r.Tree("items/list").Selected(); !ok || strings.Join(n.Cells, "|") != "Item one|Group one" {
+		t.Fatalf("cells: %+v", n.Cells)
 	}
 	f := frameOf(m)
 	if !strings.Contains(f, "Group one") || !strings.Contains(f, "  Item one") {

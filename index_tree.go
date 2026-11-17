@@ -36,7 +36,8 @@ type indexTree struct {
 }
 
 // AddIndexTree adds the index of noun drawn as a tree by its declared
-// parent (see above). Options are AddTree's (Parent, Guides, NoSpill...).
+// parent (see above). Options are AddTree's (Parent, Guides, NoSpill...);
+// a Columns option replaces the noun's index columns.
 func (r *Runtime) AddIndexTree(id, noun string, opts ...InstanceOption) (*Tree, error) {
 	n, err := r.listSource(noun)
 	if err != nil {
@@ -56,6 +57,7 @@ func (r *Runtime) AddIndexTree(id, noun string, opts ...InstanceOption) (*Tree, 
 		return nil, err
 	}
 	it.tree = tree
+	it.columns = tree.List().Columns() // a caller's Columns option wins over the index columns
 	r.Instances[id].Data = it
 	list := tree.List()
 	p := list.Placeholder()

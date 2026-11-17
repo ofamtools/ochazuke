@@ -63,6 +63,12 @@ type CatalogList struct {
 	// no kind: every list reads its row source, as before; a kind this
 	// host does not know reads its row source too.
 	Kind string `json:"kind,omitempty"`
+	// Columns are the columns an index list draws, each a prop of its noun
+	// by title (ochazuke.Column); none: the noun's index columns
+	// (ochazuke.Runtime.IndexColumns: index.columns.NOUN, the noun's own,
+	// the derived rule). A page shows a column the noun's other lists (its
+	// CLI state rows) do not, such as a row mark.
+	Columns []ochazuke.Column `json:"columns,omitempty"`
 }
 
 // ListKindIndex is the CatalogList kind of an index list: the
@@ -504,6 +510,9 @@ func (v *PageView) mountIndex(pl *pageList) error {
 	opts := []ochazuke.InstanceOption{ochazuke.Parent(v.spec.ID)}
 	if v.spec.Layout == LayoutGroups {
 		opts = append(opts, ochazuke.NoSpill())
+	}
+	if len(pl.spec.Columns) > 0 {
+		opts = append(opts, ochazuke.Columns(pl.spec.Columns...))
 	}
 	pl.noun, pl.rowNoun, pl.index, pl.loaded = pl.spec.Noun, noun, true, true
 	var err error
