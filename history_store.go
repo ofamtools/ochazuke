@@ -140,6 +140,27 @@ func (c *Config) StateDirectory() string {
 	return filepath.Join(base, c.App)
 }
 
+// DataDirectory is the application's data directory, "" when there is
+// none: DataDir when set, else $XDG_DATA_HOME/<App>, else
+// ~/.local/share/<App>. Retention rows' {data} paths expand to it.
+func (c *Config) DataDirectory() string {
+	if c.DataDir != "" {
+		return c.DataDir
+	}
+	if c.App == "" {
+		return ""
+	}
+	base := os.Getenv("XDG_DATA_HOME")
+	if base == "" {
+		home, err := os.UserHomeDir()
+		if err != nil || home == "" {
+			return ""
+		}
+		base = filepath.Join(home, ".local", "share")
+	}
+	return filepath.Join(base, c.App)
+}
+
 // HistoryPath is the history file, "" when the history is not persisted
 // (no state directory, or the application set NoHistoryFile).
 func (c *Config) HistoryPath() string {

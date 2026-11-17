@@ -613,6 +613,7 @@ func (s *Shell) mcpValue(ctx context.Context, verb string) (any, error) {
 	switch verb {
 	case "serve":
 		s.Runtime.EnsureHistory()
+		s.Runtime.RetentionDue()
 		defer s.Runtime.Config().Flush()
 		in := s.Stdin
 		if in == nil {

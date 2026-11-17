@@ -189,10 +189,17 @@ type Config struct {
 	// StateDir, when set, is the state directory (the history file);
 	// else $XDG_STATE_HOME/<App>, else ~/.local/state/<App>.
 	StateDir string
+	// DataDir, when set, is the data directory (what retention rows'
+	// {data} paths expand to); else $XDG_DATA_HOME/<App>, else
+	// ~/.local/share/<App> (DataDirectory).
+	DataDir string
 	// NoHistoryFile keeps the action history in memory only: an
 	// application opts out of history.jsonl.
 	NoHistoryFile bool
 
+	// retention is the declared retention rows and their state
+	// (retention.go).
+	retention *retention
 	// history is the history file's writer once EnsureHistory started it.
 	history        *historyStore
 	historyStarted bool

@@ -738,6 +738,7 @@ restored	prop	seed
 result	prop	seed	
 resume	action	seed	
 retarget	action	seed	
+retention-rule	noun	yes	a declared retention rule: what a program keeps of its files or things and what it would remove now (retention-rule.apply|log)
 reveal	action	seed	
 reversed	prop	seed	
 revert	action	seed	

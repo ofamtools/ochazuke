@@ -961,6 +961,14 @@ resolve.go	registerModeTables	K7	"count exceeds 1000000"	1
 resolve.go	requestArg	K14	"%s: %w"	1	failure
 resolve.go	requestArg	K15	"%s must be a request"	1
 resolve.go	requestArg	K3	"%s needs a noun and a verb or prop"	1
+retention.go	removeGuard	K15	"retention never removes %s"	1	declaration
+retention.go	removeGuard	K8	"retention never removes %s itself"	1	declaration
+retention.go	runRetentionLog	K15	"Failed(…)"	1	failure
+retention.go	validRetentionRow	K15	"retention row %s: a file row names paths (or a noun for a record row)"	1	declaration
+retention.go	validRetentionRow	K15	"retention row %s: a record row names a verb and no paths"	1	declaration
+retention.go	validRetentionRow	K15	"retention row %s: keep, days and min_keep are not negative"	1	declaration
+retention.go	validRetentionRow	K15	"retention row %s: path %q is neither absolute nor starts with {data}, {state}, {config} or {home}"	1	declaration
+retention.go	validRetentionRow	K15	"retention row name %q must be one word"	1	declaration
 rows_format.go	FormatRowsJSON	K14	"not a JSON array of rows: %w"	1	failure
 rows_format.go	orderedObject.add	K14	"%s: %w"	1	failure
 runtime.go	JSONPointer	K15	"cannot descend into %q"	1

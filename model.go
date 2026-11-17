@@ -219,6 +219,8 @@ func (m *Model) Init() tea.Cmd {
 	m.applyThemeSetting()
 	m.Runtime.EnsureHistory()
 	m.Runtime.EnsureNounPlaces()
+	// The retention rules due today (retention.auto; none declared: nothing).
+	m.Runtime.RetentionDue()
 	// The About page is always registered (hidden from the tabs).
 	_ = m.Runtime.EnsureAboutPage()
 	// The Nouns page after it: the last tab (nouns.page).
@@ -227,7 +229,7 @@ func (m *Model) Init() tea.Cmd {
 	if err := m.Runtime.OpenVisibleStart(); err != nil {
 		m.Runtime.UI().Error(err.Error())
 	}
-	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll(), m.segmentCommand(m.clock()))
+	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll(), m.segmentCommand(m.clock()), m.retentionTick())
 }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if cmd, handled := m.redraw.begin(m, msg); handled {
@@ -322,6 +324,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if _, ok := msg.(SettingsPollMsg); ok {
 		commands = append(commands, m.settingsPoll())
 	}
+	commands = append(commands, m.retentionTickFor(msg))
 	return m, tea.Batch(commands...)
 }
 
