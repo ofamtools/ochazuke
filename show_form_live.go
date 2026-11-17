@@ -132,15 +132,16 @@ func registerDetailLive(r *Runtime) {
 		// From the row the show page follows, or from inside the show page.
 		return sf != nil && !slices.Contains(r.InstancePath(ev.Focus), sf.liveID())
 	})
-	r.Define(detailNoun).Verb("attach", func(r *Runtime, c Context, _ Arguments) (any, error) {
-		sf, hook := r.liveForm()
-		if sf == nil {
-			return nil, nil // nothing here goes live: the key fell through to it
-		}
-		t, err := sf.openLive(Ctx{Runtime: r, Context: c}, hook, focusOf(c))
-		if err != nil {
-			return nil, err
-		}
-		return map[string]any{"noun": sf.liveNoun, "key": sf.liveKey, "terminal": t.id}, nil
-	}, "Show the selected thing's terminal live in its show page and focus it: keys go to it until the leader's d comes back to the row")
+	r.Register(Operation{Key: KeyOf(detailNoun, "attach"), Description: "Show the selected thing's terminal live in its show page and focus it: keys go to it until the leader's d comes back to the row",
+		Parameters: map[string]Parameter{}, Result: "the noun, key and terminal shown live", Run: func(r *Runtime, c Context, _ Arguments) (any, error) {
+			sf, hook := r.liveForm()
+			if sf == nil {
+				return nil, nil // nothing here goes live: the key fell through to it
+			}
+			t, err := sf.openLive(Ctx{Runtime: r, Context: c}, hook, focusOf(c))
+			if err != nil {
+				return nil, err
+			}
+			return map[string]any{"noun": sf.liveNoun, "key": sf.liveKey, "terminal": t.id}, nil
+		}})
 }
