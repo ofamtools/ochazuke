@@ -820,7 +820,7 @@ func (r *Runtime) editFields(n *Noun, c Ctx, thing Thing, only *PropSpec, fieldO
 // cannot write (forms.show-read-only): a read-only or create-only prop that
 // is stored with the thing, not its key, not computed, not a secret.
 func readOnlyShown(p PropSpec) bool {
-	return !p.writable() && !p.Key && !p.computed() && !p.Secret
+	return !p.writable() && !p.Key && !p.computed() && !p.Secret && p.View == nil
 }
 
 // editStart opens a form on one prop (edit {field}) as a rename opened:

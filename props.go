@@ -212,6 +212,11 @@ type PropSpec struct {
 	// sortable (prop_derivation.go). It is read-only; set answers the
 	// read-only outcome and create leaves it out.
 	Derivation *Derivation `json:"derivation,omitempty"`
+	// View draws the prop as a view of its own on the thing's show page
+	// instead of a form field (show_form_live.go): kind terminal is the
+	// thing's terminal, live, its stream opened by the hook the view
+	// names. The store never holds the prop; the form leaves it out.
+	View *PropView `json:"view,omitempty"`
 	// Cell is how the prop reads in a table cell of a list From the noun's
 	// store, given the whole thing (so a cell may show a name for an id, join
 	// an argv with spaces or shorten a path): derived text, never stored.

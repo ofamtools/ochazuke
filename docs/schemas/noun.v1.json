@@ -636,10 +636,25 @@
         "valueOf": {
           "type": "string"
         },
+        "view": {
+          "$ref": "#/$defs/ochazuke.PropView"
+        },
         "writtenArg": {
           "type": "string"
         },
         "writtenBy": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ochazuke.PropView": {
+      "additionalProperties": false,
+      "properties": {
+        "hook": {
+          "type": "string"
+        },
+        "kind": {
           "type": "string"
         }
       },

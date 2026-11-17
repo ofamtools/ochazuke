@@ -40,6 +40,10 @@ type ShowFormSpec struct {
 	Related *RelatedSpec
 	// NoSections leaves all sections out, including Related when supplied.
 	NoSections bool
+	// Row is the instance that stands for the shown thing (a mounted
+	// page's detail row): the live view's terminal goes under it, so the
+	// thing's verbs answer from inside it. "" is the show form's parent.
+	Row string
 }
 
 // ShowForm is a page's show form: the record editor of the selected
@@ -57,6 +61,9 @@ type ShowForm struct {
 	// running sync runs once more when it ends.
 	again   bool
 	related *Related
+	// liveNoun and liveKey are the thing the live view is of (set
+	// whether or not a form holds it): another thing closes the view.
+	liveNoun, liveKey string
 }
 
 // AddShowForm registers a show form under Parent (its page): the form
@@ -136,6 +143,7 @@ func (sf *ShowForm) syncOnce() {
 	if sf.spec.List != nil {
 		list = sf.spec.List()
 	}
+	sf.followLive()
 	if r.Settings().Bool(DetailShowFormSetting) {
 		noun, key = sf.spec.Target()
 		if sf.spec.Data != nil {
@@ -185,6 +193,9 @@ func (sf *ShowForm) syncOnce() {
 // height up to three fifths of what is left with the sections under it.
 // With detail.show-form off, or no form, it is the text alone.
 func (sf *ShowForm) Block(text string, width, height int) Block {
+	if t := sf.r.Terminal(sf.liveID()); t != nil {
+		return t.ViewBlock(width, height) // the live view, while it is open
+	}
 	form := sf.Form()
 	if form == nil || form.Closed() || !sf.r.Settings().Bool(DetailShowFormSetting) {
 		return Text(text)
@@ -205,7 +216,8 @@ func (sf *ShowForm) Block(text string, width, height int) Block {
 
 // Holds reports whether the focus is inside the show form's form.
 func (sf *ShowForm) Holds(focus string) bool {
-	return slices.Contains(sf.r.InstancePath(focus), sf.spec.Form)
+	path := sf.r.InstancePath(focus)
+	return slices.Contains(path, sf.spec.Form) || slices.Contains(path, sf.liveID())
 }
 
 // syncShowForms syncs every show form of the current page.

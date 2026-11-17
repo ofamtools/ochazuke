@@ -312,6 +312,15 @@ func (l *nounLoader) load(f NounFile) {
 	props := l.props(f)
 	for _, p := range props {
 		l.try(noun+".props."+p.Name, func() { b.Props(p) })
+		if p.View != nil && p.View.Hook != "" {
+			// A view's hook (a terminal's stream) is cited as a store's is.
+			row := noun + ".props." + p.Name + ".view"
+			if _, ok := r.Named(ochazuke.NamedHook, p.View.Hook); !ok {
+				l.addNamed(row, ochazuke.ProblemMissingName, p.View.Hook, "no hook %q is registered (Runtime.AddHook)", p.View.Hook)
+			} else {
+				r.UseNamed(p.View.Hook, row)
+			}
+		}
 	}
 	if f.Store != nil {
 		l.store(b, noun, f.Store.Source)
