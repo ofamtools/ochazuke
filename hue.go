@@ -84,8 +84,9 @@ func (r *Runtime) HueOf(noun string, thing Thing) string {
 		return ""
 	}
 	if owner := n.roleProp(RoleOwner); owner != nil {
-		if of := r.Nouns[owner.Noun]; of != nil && of.Hue != nil {
-			if id, ok := thing[owner.Name].(string); ok && id != "" {
+		link := inheritLink{nouns: owner.refNouns()}
+		if noun, id, ok := link.target(thing[owner.Name]); ok {
+			if of := r.Noun(noun); of != nil && of.Hue != nil {
 				return of.Hue(id)
 			}
 		}

@@ -19,7 +19,7 @@ type bellParams struct {
 	Tone  string `json:"tone"`
 }
 
-// One noun file through the loader: its props (the owner applied), store
+// One noun file through the loader: its props (a polymorphic owner), store
 // source, verbs with named handlers (a typed one supplying the
 // parameters), guard, key rows and settings land on the runtime, and every
 // problem (an unknown key, a missing handler, a restated parameter list
@@ -37,8 +37,7 @@ func TestLoadNounFile(t *testing.T) {
 	r.DefineGuard("bell-ok", func(*ochazuke.Runtime, ochazuke.KeyEvent) bool { return true })
 	file := `{"$schema": "` + cli.NounSchemaURL + `", "name": "bell", "about": "A bell", "noEditKey": true, "parent": "house",
 	  "props": [{"name": "id", "type": "string", "key": true}, {"name": "name", "type": "string", "role": "label"},
-	            {"name": "house", "type": "string", "ref": ["house"]}, {"name": "owner", "type": "string", "noun": "project", "inherit": "house"}],
-	  "owner": {"prop": "owner", "nouns": ["project", "task"]},
+	            {"name": "house", "type": "string", "ref": ["house"]}, {"name": "owner", "ref": ["project", "task"], "role": "owner", "inherit": "house"}],
 	  "store": {"source": "bell.store"},
 	  "verbs": [
 	    {"verb": "ring", "handler": "bell.ring", "description": "Ring it", "parameters": {"times": {"type": "string"}}},

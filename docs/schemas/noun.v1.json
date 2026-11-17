@@ -1,20 +1,5 @@
 {
   "$defs": {
-    "cli.NounOwner": {
-      "additionalProperties": false,
-      "properties": {
-        "nouns": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        },
-        "prop": {
-          "type": "string"
-        }
-      },
-      "type": "object"
-    },
     "cli.NounStore": {
       "additionalProperties": false,
       "properties": {
@@ -998,9 +983,6 @@
     },
     "nounKind": {
       "type": "string"
-    },
-    "owner": {
-      "$ref": "#/$defs/cli.NounOwner"
     },
     "parent": {
       "type": "string"

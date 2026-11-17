@@ -241,8 +241,12 @@ type PropSpec struct {
 	// rows (Relation), never a list on the record.
 	// Inherit names the reference prop (the parent, as Noun.Parent) whose
 	// thing's value of this prop a thing reads while its own is not set
-	// (spine S5 rule 3, decision 38). Declared and carried; the read that
-	// walks it comes with run plan 5.3.
+	// (spine S5 rule 3, decisions 38 and 40; prop_inherit.go): an empty
+	// value is not set. When the reference names a thing of a noun this
+	// prop references, that thing is the value (a project prop inheriting
+	// from a polymorphic owner reads the owner when it is a project, the
+	// owner task's project otherwise). Read as a derivation of the inherit
+	// kind: the store keeps the prop's own value, a write writes it.
 	Inherit string `json:"inherit,omitempty"`
 	// loose marks a derived prop whose rows hold values of several kinds:
 	// propValue reads every scalar as its text, so they compare as strings.
@@ -870,6 +874,7 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	if !propTypes[p.Type] {
 		return fmt.Errorf("prop %s: unknown type %q", key, p.Type)
 	}
+	p = declaredRef(p)
 	if p.Noun != "" {
 		if p.Type != SettingString {
 			return fmt.Errorf("prop %s: a reference (noun %s) holds a key, type string", key, p.Noun)
@@ -1379,14 +1384,14 @@ func checkPropRole(key string, p PropSpec) error {
 			return fmt.Errorf("prop %s: the archive role is a boolean prop, not %s", key, p.Type)
 		}
 	case RoleOwner:
-		if p.Noun == "" {
+		if p.Noun == "" && len(p.Ref) == 0 {
 			return fmt.Errorf("prop %s: the %s role needs a reference (Noun)", key, p.Role)
 		}
 	default:
 		if !slices.Contains(referenceRoles, p.Role) {
 			return fmt.Errorf("prop %s: unknown role %q", key, p.Role)
 		}
-		if p.Noun == "" {
+		if p.Noun == "" && len(p.Ref) == 0 {
 			return fmt.Errorf("prop %s: the %s role needs a reference (Noun)", key, p.Role)
 		}
 	}

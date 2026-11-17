@@ -377,6 +377,10 @@ func (r *Runtime) ChoicesFor(c Context, p Parameter, query string, siblings ...A
 		more, err := r.anyRefChoices(c, query)
 		return append(out, more...), err
 	}
+	if source == "" && p.Noun == "" && len(p.Ref) > 1 {
+		more, err := r.refChoices(c, p.Ref, query)
+		return append(out, more...), err
+	}
 	if source == "" {
 		if p.Noun != "" {
 			out = append(out, r.nounInstanceChoices(p.Noun)...)

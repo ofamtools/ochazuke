@@ -274,7 +274,7 @@ func (r *Runtime) editKindOf(field RecordField) editKind {
 		return k
 	}
 	k.chips = field.Chips && (paramHasChoices(field.Parameter) || field.Type == "boolean")
-	k.choose = !k.chips && (field.Type == "boolean" || field.Noun != "" || (paramHasChoices(field.Parameter) && !field.TakesAny()))
+	k.choose = !k.chips && (field.Type == "boolean" || field.refers() || (paramHasChoices(field.Parameter) && !field.TakesAny()))
 	k.suggest = !k.chips && !k.choose && paramHasChoices(field.Parameter)
 	if field.Type == PathParameterType {
 		// A path field is a stop that opens the path chooser, or a
@@ -288,9 +288,9 @@ func (r *Runtime) editKindOf(field RecordField) editKind {
 }
 
 // paramHasChoices reports whether a parameter's values come from a list:
-// an Enum, a Source, or a Noun's things (Runtime.Choices).
+// an Enum, a Source, or the things a reference names (Runtime.Choices).
 func paramHasChoices(p Parameter) bool {
-	return len(p.Enum) > 0 || p.Source != "" || p.Noun != ""
+	return len(p.Enum) > 0 || p.Source != "" || p.refers()
 }
 
 // recordStep is one undo step: a field's written value before and after.
@@ -1214,7 +1214,7 @@ func (e *RecordEditor) choose(f *recordField) error {
 	if f.path {
 		return e.choosePath(f)
 	}
-	if f.Noun != "" || len(f.SourceArgs) > 0 || e.r.ChoicesSource(f.Parameter) != "" {
+	if f.refers() || len(f.SourceArgs) > 0 || e.r.ChoicesSource(f.Parameter) != "" {
 		return e.suggest(f)
 	}
 	e.loadChoices(f)

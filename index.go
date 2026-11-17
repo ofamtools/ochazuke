@@ -108,7 +108,7 @@ func shortProp(p PropSpec) bool {
 	if p.Secret || p.computed() || p.Multiline || p.Key {
 		return false
 	}
-	if len(p.Enum) > 0 || p.Noun != "" {
+	if len(p.Enum) > 0 || p.refers() {
 		return true
 	}
 	switch p.Type {

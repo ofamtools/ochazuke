@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"errors"
 	"slices"
 	"strings"
 )
@@ -129,4 +130,29 @@ func (r *Runtime) refArguments(op Operation, args Arguments) {
 		}
 		args[name] = r.refValue(c, name, p, v)
 	}
+}
+
+// refers reports whether the parameter names things of a noun: a Noun,
+// or a reference (Ref) over one noun or several.
+func (p Parameter) refers() bool { return p.Noun != "" || len(p.Ref) > 0 }
+
+// refChoices are the choices of a reference over several nouns: the
+// things of every noun it may name, flat, in the nouns' order, each by
+// its stored form ("noun:key", Ref.Stored), so a picker lists projects
+// and tasks together and its filter finds either.
+func (r *Runtime) refChoices(c Context, nouns []string, query string) ([]Choice, error) {
+	var out []Choice
+	var errs []error
+	for _, noun := range nouns {
+		noun = r.CanonicalNoun(noun)
+		things, err := r.ChoicesFor(c, Parameter{Noun: noun}, query)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		for _, ch := range things {
+			ch.ID = Ref{Noun: noun, Key: ch.ID}.Stored(nouns)
+			out = append(out, ch)
+		}
+	}
+	return out, errors.Join(errs...)
 }

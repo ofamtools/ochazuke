@@ -93,6 +93,7 @@ var derivationKinds = []derivationKind{
 	{Name: "label", About: "The label of the thing a reference prop names (Reads: PROP); its key when it has none or is gone", run: deriveLabel},
 	{Name: "since", About: "How long ago a time prop was (Reads: PROP), a duration", Type: SettingDuration, run: deriveSince},
 	{Name: "first-line", About: "The first line of a text prop that is not blank, trimmed (Reads: PROP); FirstOnly takes the first line blank or not, Untrimmed keeps its spaces", run: deriveFirstLine},
+	{Name: inheritKind, About: "The prop's own value, else (a prop that declares Inherit) the value its parent reference reaches, walked until one is set; an empty value is not set (Reads: PROP, REF.PROP, written for Inherit)", Via: true, Own: true, run: deriveInherit},
 	{Name: "first", About: "The first of Reads that holds a value: REF.PROP is the prop PROP of the thing the reference prop REF names (or the field of an object prop), the prop's own name its own stored value, text with {READ} placeholders that text when each holds a value (Reads: task.project, project; about, task:{task}); stored and writable when Reads names it", Via: true, Own: true, run: deriveFirst, write: firstWriteReason},
 }
 
@@ -240,7 +241,14 @@ func (r *Runtime) dependencies(n *Noun) []string {
 				ref := noun
 				noun = ""
 				if spec := n.prop(ref); ref != "" && spec != nil {
-					noun = spec.Noun
+					for _, other := range spec.refNouns()[min(1, len(spec.refNouns())):] {
+						if other = r.CanonicalNoun(other); other != n.Name && !slices.Contains(out, other) {
+							out = append(out, other)
+						}
+					}
+					if nouns := spec.refNouns(); len(nouns) > 0 {
+						noun = nouns[0]
+					}
 				}
 			case k == nil || !k.Other:
 				if ref := n.prop(prop); ref != nil {

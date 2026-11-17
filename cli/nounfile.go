@@ -50,10 +50,6 @@ type NounFile struct {
 	// Store names the Go source that answers the noun's store
 	// (Runtime.AddSource), called once when the noun loads.
 	Store *NounStore `json:"store,omitempty"`
-	// Owner names the noun's owner reference prop and the nouns that may
-	// own a thing: the loader gives that prop the owner role and those
-	// nouns as its Ref.
-	Owner *NounOwner `json:"owner,omitempty"`
 	// Relations are relation kinds this noun declares (Runtime.DeclareRelationKind).
 	Relations []ochazuke.RelationKind `json:"relations,omitempty"`
 	// Verbs are the noun's own verbs; the standard verbs its store
@@ -78,12 +74,6 @@ type NounFile struct {
 // NounStore is a noun file's store: the source that answers it.
 type NounStore struct {
 	Source string `json:"source"`
-}
-
-// NounOwner is a noun file's owner reference.
-type NounOwner struct {
-	Prop  string   `json:"prop"`
-	Nouns []string `json:"nouns,omitempty"`
 }
 
 // NounVerb is one verb row: the verb's name, the handler it names, the
@@ -387,18 +377,18 @@ func (l *nounLoader) flags(b *ochazuke.NounBuilder, f NounFile) {
 	}
 }
 
-// props are the file's props with its owner applied.
+// props are the file's props, each Inherit and the parent checked to name
+// a reference prop of the noun (a prop with the owner role is an ordinary
+// prop: its role and its Ref are on the prop).
 func (l *nounLoader) props(f NounFile) []ochazuke.PropSpec {
 	props := slices.Clone(f.Props)
-	if f.Owner != nil {
-		i := slices.IndexFunc(props, func(p ochazuke.PropSpec) bool { return p.Name == f.Owner.Prop })
-		if i < 0 {
-			l.add(f.Name+".owner", ochazuke.ProblemBadRow, "the owner prop %q is not one of the noun's props", f.Owner.Prop)
-		} else {
-			props[i].Role = ochazuke.RoleOwner
-			if len(f.Owner.Nouns) > 0 {
-				props[i].Ref = slices.Clone(f.Owner.Nouns)
-			}
+	isRef := func(name string) bool {
+		i := slices.IndexFunc(props, func(p ochazuke.PropSpec) bool { return p.Name == name })
+		return i >= 0 && (len(props[i].Ref) > 0 || props[i].Noun != "")
+	}
+	for _, p := range props {
+		if p.Inherit != "" && !isRef(p.Inherit) {
+			l.add(f.Name+"."+p.Name+".inherit", ochazuke.ProblemBadRow, "inherit names %q, which is not a reference prop of the noun", p.Inherit)
 		}
 	}
 	if f.Parent != "" && !slices.ContainsFunc(props, func(p ochazuke.PropSpec) bool { return p.Name == f.Parent }) {
