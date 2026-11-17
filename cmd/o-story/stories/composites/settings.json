@@ -2497,8 +2497,8 @@
         "Item 1 of 2.",
         "enter/i setting-item.edit",
         "setting-item: n add",
-        "setting-item: n add · d d delete",
-        "setting-item: n add · d d delete · r reset"
+        "setting-item: n add · enter/i setting-item.edit · d d delete",
+        "setting-item: n add · enter/i setting-item.edit · d d delete · r reset"
       ]
     },
     {
@@ -2742,7 +2742,7 @@
         "Directories searched for projects, in order",
         "Default is ~/proj, ~/hub. Not in settings.json, so the default applies.",
         "Takes a list of text items.",
-        "enter/i setting-item.edit │ setting-item: n add · d d delete · r reset"
+        "setting-item: n add · enter/i setting-item.edit · d d delete · r reset"
       ],
       "highlighted": 1,
       "dimmed": 1
