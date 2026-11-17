@@ -44,11 +44,25 @@ func (r *Runtime) unofferedAt(key, focus string) bool {
 	}
 	names := []string{key, op.Key.Short(), op.Name(), r.DisplayKey(op.Key.Short())}
 	for _, id := range r.Ancestry(focus) {
-		if inst := r.Instances[id]; inst != nil && slices.ContainsFunc(inst.Unoffered, func(v string) bool { return slices.Contains(names, v) }) {
+		inst := r.Instances[id]
+		if inst == nil {
+			continue
+		}
+		if slices.ContainsFunc(inst.Unoffered, func(v string) bool { return slices.Contains(names, v) }) {
+			return true
+		}
+		if u, ok := inst.Component.(unofferer); ok && u.unoffers(op) {
 			return true
 		}
 	}
 	return false
+}
+
+// unofferer is a component that declares, from what it is, verbs that are
+// not usual on it, as Unoffered does for a list of names: a Tree keeps the
+// standard writes of its noun off its keys (Tree.unoffers).
+type unofferer interface {
+	unoffers(op Operation) bool
 }
 
 // NotUsualHere is the mark the palette puts on a verb that is not usual

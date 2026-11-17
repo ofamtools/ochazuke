@@ -279,7 +279,11 @@ func defaultAppName() string {
 
 // Config returns the config component.
 func (r *Runtime) Config() *Config {
-	c, _ := r.Instances[configID].Component.(*Config)
+	inst := r.Instances[configID]
+	if inst == nil {
+		return nil // not made yet: the framework's nouns are being registered
+	}
+	c, _ := inst.Component.(*Config)
 	return c
 }
 

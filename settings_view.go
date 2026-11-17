@@ -956,11 +956,11 @@ func registerSettingItemThings(r *Runtime) {
 		PropSpec{Name: "index", ReadOnly: true, Parameter: Parameter{Type: SettingInteger, Description: "Its 0-based place in the list"}},
 		PropSpec{Name: "text", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The item"}},
 	).Store(Store{
-		// NoOverlay: its keys are places in a list (name/index), which move
-		// when the list changes, so a change of yours kept beside one would
-		// land on another item (as binding rows by number, the owner's open
-		// overlay-every-store Q6 binding-row-edit, recommended unchecked).
-		Kind: KindCollection, NoOverlay: true,
+		// Its keys are places in a list (name/index), which move when the
+		// list changes: a change of yours kept beside one is the session's
+		// (SessionKeys), so it never lands on another item in a later run
+		// (decision 56, as binding rows by number).
+		Kind: KindCollection, SessionKeys: true,
 		Get: func(c Ctx, id string) (Thing, error) {
 			cut := strings.LastIndex(id, "/")
 			if cut < 0 {

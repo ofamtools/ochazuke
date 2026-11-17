@@ -51,7 +51,7 @@ func (o *overlayOf) query(c Ctx, q ListQuery) (ListPage, error) {
 	for i, t := range page.Items {
 		row := rows[o.keyOf(t)]
 		if row != nil {
-			t = mergeRow(row, t)
+			t = r.mergeOver(row, t)
 			if o.hides(t, q) || r.queryAll(n, []Thing{t}, check).Total == 0 {
 				dropped++
 				continue
@@ -134,7 +134,7 @@ func (o *overlayOf) rowsPage(c Ctx, q ListQuery, rows map[string]*OverlayRow, mi
 			if err != nil {
 				continue // gone from the source: its row is still on ochazuke.overlay
 			}
-			t = mergeRow(row, got)
+			t = r.mergeOver(row, got)
 		}
 		out.Items = append(out.Items, t)
 	}

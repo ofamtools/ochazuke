@@ -632,7 +632,7 @@ func registerRestart(r *Runtime) {
 		PropSpec{Name: "at", ReadOnly: true, Parameter: Parameter{Description: "When it was asked (RFC 3339)"}},
 		PropSpec{Name: "count", ReadOnly: true, Parameter: Parameter{Type: SettingInteger, Description: "How many requests it gathers"}},
 	).Store(Store{
-		Kind: Singleton, NoOverlay: true,
+		Kind: Singleton,
 		Get: func(c Ctx, _ string) (Thing, error) {
 			req, err := c.Runtime.storedRestart()
 			if err != nil {

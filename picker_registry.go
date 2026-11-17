@@ -630,13 +630,11 @@ func registerPickerRegistry(r *Runtime) {
 	// The picker noun is a thing noun: its things are the pickers, keyed by
 	// name, so get, list and watch are its standard verbs (picker.list,
 	// picker.get).
-	// NoOverlay: the owner's decision on changing pickers through the
-	// overlay is open (overlay-every-store Q6, picker-edit); until it is
-	// made its recommendation holds, so set, create, delete, archive and
-	// edit stay "does nothing here". Drop the field to let the overlay
-	// fill them.
+	// The store writes nothing: set, create, delete, archive and edit run
+	// through your changes (the overlay; decision 56, picker-edit): a
+	// value of yours beside a picker, a picker row of your own.
 	r.Define(PickerNoun).About("The pickers: declared (AddPicker, a catalog's pickers) and one per noun with a list verb (picker.derive)").Props(pickerProps...).Store(Store{
-		Kind: KindCollection, NoOverlay: true,
+		Kind: KindCollection,
 		Get: func(c Ctx, name string) (Thing, error) {
 			def, ok := c.Runtime.PickerDef(name)
 			if !ok {

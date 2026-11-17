@@ -175,7 +175,7 @@ var (
 			return watchFits(*n.Store) && (!n.Store.Remote || n.Store.Watch != nil)
 		}}
 	needEditForms = storeNeed{Doc: "forms.edit (unless field is given)", Lacks: "forms.edit is off",
-		Has: func(r *Runtime, _ *Noun) bool { return r.Settings().Bool(EditFormsSetting) }, WaivedBy: editFieldParam}
+		Has: func(r *Runtime, _ *Noun) bool { return r.settingOn(EditFormsSetting) }, WaivedBy: editFieldParam}
 )
 
 // FactReason is why a facts store's writing verbs are unavailable.

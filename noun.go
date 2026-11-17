@@ -21,9 +21,13 @@ import (
 // mode; a pending mode (operator_pending, a key-sequence prefix, ...) is
 // exclusive and reads only its own table.
 type Noun struct {
-	Name  string `json:"name"`
-	About string `json:"about,omitempty"`
-	Pin   string `json:"pin,omitempty"`
+	Name string `json:"name"`
+	// overlay is what the framework's overlay fills for the noun's store
+	// (withOverlay), nil when it fills nothing: OverlayChanges reads the
+	// source through it.
+	overlay *overlayOf
+	About   string `json:"about,omitempty"`
+	Pin     string `json:"pin,omitempty"`
 	// Hue answers a thing's key with its hue, "" for none (SetHueSource):
 	// the colour a panel showing the thing draws, in memory, never a
 	// store read.

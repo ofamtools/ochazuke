@@ -13,11 +13,10 @@ import (
 // overlayLocalRows are the 44 local verbs mtm's catalog listed unavailable
 // on 2026-11-16 (overlay-every-store, groups N to S), each with the
 // dry-run outcome it answers now. The overlay fills the stores that cannot
-// write their things and the system facts; still nothing here: the picker
-// and setting-item (NoOverlay: the owner's open Q6, picker-edit and
-// rows keyed by place as binding-row-edit), the outline (NoOverlay: its
-// nodes are the application's tree), the page (an instances store, left
-// to its routes), and appearance, binding-file and register (stores that
+// write their things and the system facts, the picker, setting-item and
+// the outline among them since run plan 5.4a (decisions 51 and 56: nothing
+// is exempt); still nothing here: the page (an instances store, left to
+// its routes), and appearance, binding-file and register (stores that
 // write their own props: their authors decide create, delete and
 // archive).
 var overlayLocalRows = map[string]string{
@@ -27,12 +26,12 @@ var overlayLocalRows = map[string]string{
 	"ochazuke.config.archive": "done", "ochazuke.config.create": "done", "ochazuke.config.delete": "done", "ochazuke.config.edit": "done", "ochazuke.config.set": "done",
 	"ochazuke.mcp.archive": "done", "ochazuke.mcp.create": "done", "ochazuke.mcp.delete": "done", "ochazuke.mcp.edit": "done", "ochazuke.mcp.set": "done",
 	"ochazuke.snapshot.archive": "done", "ochazuke.snapshot.create": "done", "ochazuke.snapshot.delete": "done",
-	"ochazuke.outline.archive": "nothing", "ochazuke.outline.create": "nothing", "ochazuke.outline.set": "nothing",
+	"ochazuke.outline.archive": "done", "ochazuke.outline.create": "done", "ochazuke.outline.set": "done",
 	"ochazuke.register.archive": "nothing", "ochazuke.register.create": "nothing", "ochazuke.register.delete": "nothing",
 	"ochazuke.setting.archive": "done", "ochazuke.setting.create": "done", "ochazuke.setting.delete": "done",
-	"ochazuke.setting-item.archive": "nothing", "ochazuke.setting-item.create": "nothing", "ochazuke.setting-item.set": "nothing",
+	"ochazuke.setting-item.archive": "done", "ochazuke.setting-item.create": "done", "ochazuke.setting-item.set": "done",
 	"ochazuke.page.archive": "nothing", "ochazuke.page.create": "nothing", "ochazuke.page.delete": "nothing",
-	"ochazuke.picker.archive": "nothing", "ochazuke.picker.create": "nothing", "ochazuke.picker.delete": "nothing", "ochazuke.picker.edit": "nothing", "ochazuke.picker.set": "nothing",
+	"ochazuke.picker.archive": "done", "ochazuke.picker.create": "done", "ochazuke.picker.delete": "done", "ochazuke.picker.edit": "done", "ochazuke.picker.set": "done",
 }
 
 // The 44 local rows dry-run (Runtime.CheckRequest, as the outcomes rule

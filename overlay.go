@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"maps"
-	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -41,13 +39,15 @@ import (
 // It leaves alone a store that writes its own props (a Patch, not a
 // fact: its author decides its create, delete and archive), a store whose
 // author keeps a missing write missing
-// (Store.NoOverlay, the catalog's noOverlay), a copy (it keeps
+// (Store.NoOverlay, deprecated: nothing is exempt), a copy (it keeps
 // the user's values itself, CopyStore) and an instances store (its things
 // are live instances; create does not fit them).
 //
-// The rows live in overlay.json beside settings.json (Config.Path), written
-// atomically under a file lock, and a mutex keeps the session's rows; with
-// no config directory (a sandbox, a test) they live for the session.
+// The rows live where overlay.store says (overlay_backend.go): overlay.json
+// beside settings.json (Config.Path, the default), the family's shared
+// file, or an application's own place (mtm's database); a mutex keeps the
+// session's rows; with no config directory (a sandbox, a test) and no
+// application backend they live for the session.
 // Setting facts.overlay off, or overlay.stores facts for a store that is not
 // a system fact, answers a write the source cannot hold with a ChoiceAnswer
 // naming the verbs that do change the thing.
@@ -76,25 +76,31 @@ const (
 )
 
 // OverlayRow is one thing's overlay: the props the user wrote that the
-// source cannot hold, and whether the thing is the user's own (created
+// source cannot hold, what is known of each (Changes: the original as last
+// seen, who, when), and whether the thing is the user's own (created
 // here, unknown to the source).
 type OverlayRow struct {
-	Props    map[string]any `json:"props,omitempty"`
-	Created  bool           `json:"created,omitempty"`
-	Archived bool           `json:"archived,omitempty"`
+	Props    map[string]any         `json:"props,omitempty"`
+	Changes  map[string]*PropChange `json:"changes,omitempty"`
+	Created  bool                   `json:"created,omitempty"`
+	Archived bool                   `json:"archived,omitempty"`
 }
 
-// overlayRows are every noun's rows, read from the file on first use.
-// session names the nouns whose keys hold only in this process
-// (Store.SessionKeys): their rows live here and never reach the file. mu
-// guards loaded, path and rows: a read takes copies under it, so a merge
-// made off the loop never races a write.
+// overlayRows are every noun's rows, read from the backend (overlay.store,
+// OverlayBackend) on first use and again when the setting or the config
+// directory changes. session names the nouns whose keys hold only in this
+// process (Store.SessionKeys): their rows live here and never reach the
+// backend. mu guards loaded, ident, backend and rows: a read takes copies
+// under it, so a merge made off the loop never races a write. backends are
+// the applications' (SetOverlayBackend).
 type overlayRows struct {
-	mu      sync.RWMutex
-	loaded  bool
-	path    string
-	rows    map[string]map[string]*OverlayRow
-	session map[string]bool
+	mu       sync.RWMutex
+	loaded   bool
+	ident    string
+	backend  OverlayBackend
+	rows     map[string]map[string]*OverlayRow
+	session  map[string]bool
+	backends map[string]OverlayBackend
 	// versions caches each noun's overlay version (overlayVersion); a
 	// write clears it.
 	versions map[string]string
@@ -109,18 +115,25 @@ func (r *Runtime) overlayHolder() *overlayRows {
 	return c.overlay
 }
 
-// overlayState is the overlay's state, its rows read from the file when
-// the config directory changed or they were never read.
+// overlayState is the overlay's state, its rows read from the backend when
+// the backend (overlay.store, the config directory) changed or they were
+// never read.
 func (r *Runtime) overlayState() *overlayRows {
-	c := r.Config()
 	o := r.overlayHolder()
-	path := c.Path(OverlayFile)
+	backend, ident := r.overlayBackend()
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	if !o.loaded || o.path != path {
-		o.loaded, o.path, o.rows, o.versions = true, path, map[string]map[string]*OverlayRow{}, nil
-		if path != "" {
-			o.rows = r.readOverlay(path)
+	if !o.loaded || o.ident != ident {
+		o.loaded, o.ident, o.backend, o.rows, o.versions = true, ident, backend, map[string]map[string]*OverlayRow{}, nil
+		if backend != nil {
+			rows, err := backend.Rows()
+			if err != nil {
+				r.UI().Notify("your changes (" + OverlayStoreSetting + "): " + err.Error())
+			}
+			if rows != nil {
+				o.dropSession(rows)
+				o.rows = rows
+			}
 		}
 	}
 	return o
@@ -133,10 +146,17 @@ func (row *OverlayRow) clone() *OverlayRow {
 	}
 	out := *row
 	out.Props = maps.Clone(row.Props)
+	if row.Changes != nil {
+		out.Changes = make(map[string]*PropChange, len(row.Changes))
+		for name, ch := range row.Changes {
+			one := *ch
+			out.Changes[name] = &one
+		}
+	}
 	return &out
 }
 
-// dropSession takes out of rows read from the file the nouns whose rows
+// dropSession takes out of rows read from the backend the nouns whose rows
 // are the session's (a row of an earlier run would wear another thing).
 func (o *overlayRows) dropSession(rows map[string]map[string]*OverlayRow) {
 	for noun := range o.session {
@@ -177,76 +197,35 @@ func (r *Runtime) overlayAllRows() map[string]map[string]*OverlayRow {
 	return out
 }
 
-// readOverlay reads the rows of the file at path, the session's nouns left
-// out; a missing file is no rows. A file that does not read is moved aside
-// to OverlayFile.bad-<time> (the user's values kept, not overwritten by
-// the next write) with a notice, and reads as no rows.
-func (r *Runtime) readOverlay(path string) map[string]map[string]*OverlayRow {
-	rows := map[string]map[string]*OverlayRow{}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return rows
-	}
-	if err := json.Unmarshal(data, &rows); err != nil {
-		bad := path + ".bad-" + time.Now().UTC().Format("20060102-150405")
-		if moved := os.Rename(path, bad); moved != nil {
-			bad = path
-		}
-		r.UI().Notify(fmt.Sprintf("%s: %v (kept as %s, not read)", OverlayFile, err, filepath.Base(bad)))
-		rows = map[string]map[string]*OverlayRow{}
-	}
-	r.overlayHolder().dropSession(rows)
-	return rows
-}
-
 // changeOverlay changes one thing's overlay row: change gets the row (a
 // new one when there is none) and answers false to remove it. With a
-// file, under its lock (lockFile), it reads the file again, changes that
-// one row of what the file holds now and writes it atomically, so
-// processes sharing the config directory (the TUI, mcp serve, a one-shot
-// CLI) keep each other's rows; the session then holds the file's rows. A
-// noun of session keys, or no file, changes the session's rows only. It
-// answers the row, nil when removed.
+// backend it changes the row as the backend holds it now (Change, under
+// the backend's lock), so processes sharing it (the TUI, mcp serve, a
+// one-shot CLI) keep each other's rows; the session then holds what the
+// backend answered. A noun of session keys, or no backend, changes the
+// session's rows only. It answers the row, nil when removed.
 func (r *Runtime) changeOverlay(noun, key string, change func(*OverlayRow) bool) (*OverlayRow, error) {
 	o := r.overlayState()
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	apply := func(rows map[string]map[string]*OverlayRow) *OverlayRow {
-		row := rows[noun][key]
-		if row == nil {
-			row = &OverlayRow{}
-		}
-		if !change(row) {
-			delete(rows[noun], key)
-			if len(rows[noun]) == 0 {
-				delete(rows, noun)
-			}
-			return nil
-		}
-		if rows[noun] == nil {
-			rows[noun] = map[string]*OverlayRow{}
-		}
-		rows[noun][key] = row
-		return row
-	}
 	o.versions = nil
-	if o.path == "" || o.session[noun] {
-		return apply(o.rows).clone(), nil
+	if o.backend == nil || o.session[noun] {
+		return ApplyOverlayChange(o.rows, noun, key, change).clone(), nil
 	}
-	unlock, err := lockFile(o.path + ".lock")
+	row, fresh, err := o.backend.Change(noun, key, change)
 	if err != nil {
 		return nil, err
 	}
-	defer unlock()
-	fresh := r.readOverlay(o.path)
-	row := apply(fresh)
-	data, err := json.MarshalIndent(fresh, "", "  ")
-	if err != nil {
-		return nil, err
+	if fresh == nil {
+		ApplyOverlayChange(o.rows, noun, key, func(held *OverlayRow) bool {
+			if row != nil {
+				*held = *row.clone()
+			}
+			return row != nil
+		})
+		return row.clone(), nil
 	}
-	if err := writeAtomic(o.path, ".overlay-*", append(data, '\n')); err != nil {
-		return nil, err
-	}
+	o.dropSession(fresh)
 	for session := range o.session {
 		if rows, ok := o.rows[session]; ok {
 			fresh[session] = rows
@@ -281,11 +260,14 @@ func (r *Runtime) overlayVersion(noun string) string {
 	return v
 }
 
-// putOverlay merges props into a thing's overlay row and writes the file.
-// A nil value takes the prop out of the row (the source's value shows
-// again: what undo writes back for a prop the user had not changed), and
-// a row left with nothing of the user's is removed.
-func (r *Runtime) putOverlay(noun, key string, props Thing, created bool) error {
+// putOverlay merges props into a thing's overlay row and writes it. A nil
+// value takes the prop out of the row (the source's value shows again:
+// what undo writes back for a prop the user had not changed), and a row
+// left with nothing of the user's is removed. src is the source's thing as
+// it is now (nil when it was not read): each prop written keeps its value
+// there as the original, with who wrote it (by) and when.
+func (r *Runtime) putOverlay(noun, key string, props Thing, created bool, src Thing, by Actor) error {
+	at := time.Now().UTC()
 	_, err := r.changeOverlay(noun, key, func(row *OverlayRow) bool {
 		if row.Props == nil {
 			row.Props = map[string]any{}
@@ -297,6 +279,7 @@ func (r *Runtime) putOverlay(noun, key string, props Thing, created bool) error 
 				row.Props[name] = v
 			}
 		}
+		row.noteChanges(props, src, by, at)
 		row.Created = row.Created || created
 		return row.Created || row.Archived || len(row.Props) > 0
 	})
@@ -409,6 +392,7 @@ func (r *Runtime) withOverlay(n *Noun, s Store) Store {
 	if o.delete && s.Remote && n.keyProp() != nil {
 		o.hiddenName = overlayHiddenName(n) // the tool's source keeps the thing: a delete hides it
 	}
+	n.overlay = o
 	o.markProps(archive, archiveName)
 	if archive {
 		s.Overlaid = append(s.Overlaid, "archive")
@@ -579,19 +563,9 @@ func singletonList(get func(Ctx, string) (Thing, error)) func(Ctx, ListQuery) ([
 	}
 }
 
-// mergeRow is a thing with its overlay row's props over the source's.
-func mergeRow(row *OverlayRow, t Thing) Thing {
-	if row == nil || t == nil {
-		return t
-	}
-	out := maps.Clone(t)
-	maps.Copy(out, row.Props)
-	return out
-}
-
 // merge is a thing with its overlay row's props over the source's.
 func (o *overlayOf) merge(key string, t Thing) Thing {
-	return mergeRow(o.r.overlayRow(o.n.Name, key), t)
+	return o.r.mergeOver(o.r.overlayRow(o.n.Name, key), t)
 }
 
 func (o *overlayOf) get(c Ctx, key string) (Thing, error) {
@@ -616,7 +590,7 @@ func (o *overlayOf) list(c Ctx, q ListQuery) ([]Thing, error) {
 	for _, t := range things {
 		key := o.keyOf(t)
 		seen[key] = true
-		if t = mergeRow(rows[key], t); !o.hides(t, q) {
+		if t = o.r.mergeOver(rows[key], t); !o.hides(t, q) {
 			out = append(out, t)
 		}
 	}
@@ -649,6 +623,12 @@ func (o *overlayOf) patch(c Ctx, key string, t Thing) (Thing, error) {
 	if stop := o.r.overlayStop(o.facts); len(mine) > 0 && stop != "" {
 		return nil, o.r.overlayOff(o.n.Name, key, stop, slices.Sorted(maps.Keys(mine)))
 	}
+	var seen Thing // the source's thing before the write: the originals of the props written
+	if o.srcGet != nil && (row == nil || !row.Created) {
+		if got, err := o.srcGet(c, key); err == nil {
+			seen = got
+		}
+	}
 	var after Thing
 	if len(src) > 0 {
 		var err error
@@ -659,7 +639,7 @@ func (o *overlayOf) patch(c Ctx, key string, t Thing) (Thing, error) {
 	if len(mine) == 0 {
 		return o.merge(key, after), nil // the source wrote it all: its answer
 	}
-	if err := o.r.putOverlay(o.n.Name, key, mine, false); err != nil {
+	if err := o.r.putOverlay(o.n.Name, key, mine, false, seen, c.Actor()); err != nil {
 		return nil, err
 	}
 	if o.n.Store != nil && o.n.Store.Get != nil {
@@ -688,7 +668,7 @@ func (o *overlayOf) createThing(c Ctx, t Thing) (Thing, error) {
 	}
 	props := maps.Clone(t)
 	delete(props, o.keyName)
-	if err := o.r.putOverlay(o.n.Name, key, props, true); err != nil {
+	if err := o.r.putOverlay(o.n.Name, key, props, true, nil, c.Actor()); err != nil {
 		return nil, err
 	}
 	return createdThing(o.keyName, key, o.r.overlayRow(o.n.Name, key)), nil
@@ -800,7 +780,17 @@ func createdThing(keyName, key string, row *OverlayRow) Thing {
 // other copy: it asks first, as every delete does).
 func registerOverlayNoun(r *Runtime) {
 	rowThing := func(noun, key string, row *OverlayRow) Thing {
-		return Thing{"id": noun + "/" + key, "noun": noun, "thing": key, "props": maps.Clone(row.Props), "created": row.Created, "archived": row.Archived}
+		t := Thing{"id": noun + "/" + key, "noun": noun, "thing": key, "props": maps.Clone(row.Props), "created": row.Created, "archived": row.Archived}
+		originals := map[string]any{}
+		for name, ch := range row.Changes {
+			if ch.Seen {
+				originals[name] = ch.Original
+			}
+		}
+		if len(originals) > 0 {
+			t["originals"] = originals
+		}
+		return t
 	}
 	// A noun name has no slash; a thing's key may (a path, branch/x).
 	split := func(id string) (string, string) {
@@ -812,6 +802,7 @@ func registerOverlayNoun(r *Runtime) {
 		PropSpec{Name: "noun", ReadOnly: true, Parameter: Parameter{Description: "The thing's noun"}},
 		PropSpec{Name: "thing", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The thing's key"}},
 		PropSpec{Name: "props", Parameter: Parameter{Type: PropObject, Description: "The props the framework keeps for you"}},
+		PropSpec{Name: "originals", ReadOnly: true, Parameter: Parameter{Type: PropObject, Description: "The source's value of each prop when you changed it (the original as last seen)"}},
 		PropSpec{Name: "created", ReadOnly: true, Parameter: Parameter{Type: SettingBoolean, Description: "The thing is your own (its source does not have it)"}},
 		PropSpec{Name: "archived", Role: RoleArchive, Parameter: Parameter{Type: SettingBoolean, Description: "Hidden from the list (restore shows it again)"}},
 	).Store(Store{
@@ -855,7 +846,7 @@ func registerOverlayNoun(r *Runtime) {
 		Create: func(c Ctx, t Thing) (Thing, error) {
 			noun, key := split(fmt.Sprint(t["id"]))
 			props, _ := t["props"].(map[string]any)
-			if err := r.putOverlay(noun, key, props, false); err != nil {
+			if err := r.putOverlay(noun, key, props, false, nil, c.Actor()); err != nil {
 				return nil, err
 			}
 			return rowThing(noun, key, r.overlayRow(noun, key)), nil

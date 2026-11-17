@@ -510,9 +510,12 @@ type Store struct {
 	// NoOverlay says a write the store lacks stays missing: the framework's
 	// overlay fills nothing for it (no Patch, Create, Delete or archive prop
 	// of the user's), and those verbs stay unavailable with the store's own
-	// reason. For a store whose author knows the user's changes would do
-	// nothing useful (an open picker's rows). The catalog says it as
-	// noOverlay.
+	// reason. The catalog says it as noOverlay.
+	//
+	// Deprecated: nothing is exempt from keeping the user's changes
+	// (decision 51, spine S1 rule 6); no framework noun sets it since run
+	// plan 5.4a, and it goes in a later release. A store whose keys are
+	// places sets SessionKeys instead.
 	NoOverlay bool
 	// Overlaid names the parts of the store the framework's overlay
 	// supplies where its source has none ("patch", "create", "delete",

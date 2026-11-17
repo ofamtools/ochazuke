@@ -327,6 +327,17 @@ func (t *Tree) Nodes() []TreeNode { return slices.Clone(t.nodes) }
 // Editable reports whether the tree takes edits (OnChange is set).
 func (t *Tree) Editable() bool { return t.OnChange != nil }
 
+// unoffers keeps the standard writes of the tree's noun (set, create,
+// archive, delete, kept in the user's changes by the overlay and shown on
+// the noun's get and list) off the tree's keys: the tree draws its own
+// nodes and writes them with its own verbs (add, edit, d d), so a key row
+// for a standard write falls through to the next row (a component the tree
+// hosts keeps its keys). The palette, the CLI and MCP still run them.
+func (t *Tree) unoffers(op Operation) bool {
+	inst := t.r.Instances[t.id]
+	return inst != nil && op.Noun() == inst.Noun && op.Standard != "" && op.HistoryKind == HistoryChange
+}
+
 // Editing is the node whose line is open, or "".
 func (t *Tree) Editing() string { return t.editing }
 
@@ -1915,16 +1926,18 @@ func registerOutlineThings(r *Runtime) {
 		}
 		return nil, c.NeedTarget("target", "")
 	}
-	// NoOverlay: the outline's nodes are the application's tree, drawn from
-	// it, so a node or a value kept beside them would show nowhere, and a
-	// read-only tree (no OnChange) keeps its editing keys off.
+	// The outline's nodes are the application's tree: set, create, delete
+	// and archive run through your changes (the overlay, decision 51:
+	// nothing is exempt), shown on the noun's get and list; the tree draws
+	// its own nodes, and a read-only tree (no OnChange) keeps its editing
+	// keys off (its add and edit, not the standard verbs).
 	r.Define("ochazuke.outline").DefaultKeys(false).Props(
 		PropSpec{Name: "id", Key: true, Parameter: Parameter{Description: "The node's id"}},
 		PropSpec{Name: "label", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "The node's line"}},
 		PropSpec{Name: "parent", ReadOnly: true, Parameter: Parameter{Description: "The parent node's id (empty at the top level)"}},
 		PropSpec{Name: "noun", ReadOnly: true, Parameter: Parameter{Description: "The row's noun (ochazuke.outline-row unless the application names its own)"}},
 	).Store(Store{
-		Kind: KindCollection, NoOverlay: true,
+		Kind: KindCollection,
 		Get: func(c Ctx, id string) (Thing, error) {
 			t, err := tree(c)
 			if err != nil {
