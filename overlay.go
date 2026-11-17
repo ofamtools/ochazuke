@@ -356,6 +356,33 @@ type overlayOf struct {
 	// them, so a paged list keeps their conditions from it).
 	hiddenName string
 	added      []string
+	// remote is a store whose calls leave the process: a write takes the
+	// originals of the props it writes from the source's thing the verb
+	// read before it (seen, by key: o.get keeps it), never a call more.
+	remote bool
+	seenMu sync.Mutex
+	seen   map[string]Thing
+}
+
+// keepSeen keeps the source's thing a remote store's get answered, for the
+// write that follows it in the same verb (takeSeen).
+func (o *overlayOf) keepSeen(key string, t Thing) {
+	o.seenMu.Lock()
+	defer o.seenMu.Unlock()
+	if o.seen == nil || len(o.seen) >= 64 {
+		o.seen = map[string]Thing{}
+	}
+	o.seen[key] = t
+}
+
+// takeSeen is the source's thing keepSeen kept for key (nil for none),
+// taken out.
+func (o *overlayOf) takeSeen(key string) Thing {
+	o.seenMu.Lock()
+	defer o.seenMu.Unlock()
+	t := o.seen[key]
+	delete(o.seen, key)
+	return t
 }
 
 // withOverlay fills what a store's source lacks with the overlay (see the
@@ -391,7 +418,7 @@ func (r *Runtime) withOverlay(n *Noun, s Store) Store {
 		r.overlayHolder().session[n.Name] = true
 	}
 	o := &overlayOf{r: r, n: n, facts: s.Facts, srcGet: s.Get, srcList: s.List, srcQuery: s.Query, srcPatch: s.Patch,
-		create: s.Create == nil, delete: rowFits("delete", s) && s.Delete == nil}
+		create: s.Create == nil, delete: rowFits("delete", s) && s.Delete == nil, remote: s.Remote}
 	archiveName := overlayArchiveName(n)
 	archive := rowFits("archive", s) && n.roleProp(RoleArchive) == nil && n.prop(archiveName) == nil
 	overlaid := slices.ContainsFunc(n.Props, func(p PropSpec) bool { return p.Overlaid })
@@ -579,6 +606,9 @@ func (o *overlayOf) merge(key string, t Thing) Thing {
 
 func (o *overlayOf) get(c Ctx, key string) (Thing, error) {
 	t, err := o.srcGet(c, key)
+	if err == nil && o.remote {
+		o.keepSeen(key, t)
+	}
 	if err != nil {
 		if row := o.r.overlayRow(o.n.Name, key); row != nil && row.Created {
 			return createdThing(o.keyName, key, row), nil
@@ -633,7 +663,11 @@ func (o *overlayOf) patch(c Ctx, key string, t Thing) (Thing, error) {
 		return nil, o.r.overlayOff(o.n.Name, key, stop, slices.Sorted(maps.Keys(mine)))
 	}
 	var seen Thing // the source's thing before the write: the originals of the props written
-	if o.srcGet != nil && (row == nil || !row.Created) {
+	switch {
+	case row != nil && row.Created:
+	case o.remote:
+		seen = o.takeSeen(key) // the verb read it already: no call more
+	case o.srcGet != nil:
 		if got, err := o.srcGet(c, key); err == nil {
 			seen = got
 		}

@@ -15,7 +15,8 @@ import (
 // dry-run outcome it answers now. The overlay fills the stores that cannot
 // write their things and the system facts, the picker, setting-item and
 // the outline among them since run plan 5.4a (decisions 51 and 56: nothing
-// is exempt); still nothing here: the page (an instances store, left to
+// is exempt), and the restart request (exempt until 5.4a too, so not one of
+// the 44); still nothing here: the page (an instances store, left to
 // its routes), and appearance, binding-file and register (stores that
 // write their own props: their authors decide create, delete and
 // archive).
@@ -31,6 +32,7 @@ var overlayLocalRows = map[string]string{
 	"ochazuke.setting.archive": "done", "ochazuke.setting.create": "done", "ochazuke.setting.delete": "done",
 	"ochazuke.setting-item.archive": "done", "ochazuke.setting-item.create": "done", "ochazuke.setting-item.set": "done",
 	"ochazuke.page.archive": "nothing", "ochazuke.page.create": "nothing", "ochazuke.page.delete": "nothing",
+	"ochazuke.restart-request.archive": "done", "ochazuke.restart-request.create": "done", "ochazuke.restart-request.delete": "done", "ochazuke.restart-request.set": "done",
 	"ochazuke.picker.archive": "done", "ochazuke.picker.create": "done", "ochazuke.picker.delete": "done", "ochazuke.picker.edit": "done", "ochazuke.picker.set": "done",
 }
 
