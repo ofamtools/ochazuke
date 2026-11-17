@@ -157,3 +157,87 @@ func TestUnchangedLoadLeavesTheIndexTree(t *testing.T) {
 		t.Fatalf("a load that moved the token: reads %v, tree %s", items.calls, got)
 	}
 }
+
+// A fill that failed after its watches told it of a change is read again
+// on the next load, though no change token moved since (a transient busy
+// database must not leave the tree saying it did not answer).
+func TestFailedFillIsReadAgain(t *testing.T) {
+	r, tree, _, items := cellsFixture(t)
+	version := 0
+	for _, noun := range []string{"item", "group"} {
+		r.Nouns[noun].Store.ChangeToken = func(Ctx) (string, error) { return fmt.Sprint(version), nil }
+	}
+	fail := false
+	list := r.Nouns["item"].Store.List
+	r.Nouns["item"].Store.List = func(c Ctx, q ListQuery) ([]Thing, error) {
+		if fail {
+			return nil, fmt.Errorf("database is locked")
+		}
+		return list(c, q)
+	}
+	r.Define("cache").Kind(NounKindPart).Verb("load", func(Ctx) Result {
+		return Pending(func(context.Context) (any, error) { return nil, nil })
+	}, "Load the items").Fetch().Writes("item", "group")
+	load := func() {
+		t.Helper()
+		mustRun(t, r, Request{Noun: "cache", Verb: "load"})
+		settleJob(t, r)
+	}
+	load()
+	items.things = append(items.things, Thing{"id": "i3", "title": "three", "group": "g1"})
+	version++
+	fail = true
+	load()
+	if got := treeCells(tree); strings.Contains(got, "three") {
+		t.Fatalf("the failing fill showed rows: %s", got)
+	}
+	fail = false
+	load()
+	if got := treeCells(tree); !strings.Contains(got, "three") {
+		t.Fatalf("the tree was not read again after a failed fill: %s", got)
+	}
+}
+
+// A shown index tree redraws a reference cell when the thing it names is
+// renamed, though the listed stores' change tokens held: the tree watches
+// the nouns its reference columns read labels from.
+func TestIndexTreeFollowsAReferencedRename(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	tables := map[string]DocTable{}
+	add := func(noun string, props []PropSpec, things ...Thing) *NounBuilder {
+		table := NewMemDocTable(r, noun)
+		tables[noun] = table
+		b := r.Define(noun).Props(append([]PropSpec{{Name: "id", Key: true}, {Name: "title", Role: RoleLabel}}, props...)...).Store(DocStore(table, noun))
+		for _, th := range things {
+			if err := table.Put(th["id"].(string), th); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return b
+	}
+	add("tag", nil, Thing{"id": "t1", "title": "Red"})
+	add("item", []PropSpec{{Name: "tag", Parameter: Parameter{Ref: []string{"tag"}}}}, Thing{"id": "i1", "title": "one", "tag": "t1"}).
+		Columns(Column{Title: "title"}, Column{Title: "tag"})
+	if _, err := r.AddPage("p", "P", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	tree, err := r.AddIndexTree("p/items", "item", Parent("p"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("p"); err != nil {
+		t.Fatal(err)
+	}
+	if got := treeCells(tree); !strings.Contains(got, "Red") {
+		t.Fatalf("cells before: %s", got)
+	}
+	// The first change is every watch's first telling; the second is
+	// told only by the tag's watch.
+	for _, title := range []string{"Green", "Blue"} {
+		mustRun(t, r, Request{Noun: "tag", Verb: "set", Args: Arguments{"id": "t1", "props": map[string]any{"title": title}}})
+	}
+	if got := treeCells(tree); !strings.Contains(got, "Blue") {
+		t.Fatalf("the renamed tag's label did not reach the tree: %s", got)
+	}
+}

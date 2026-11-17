@@ -465,6 +465,11 @@ func (r *Runtime) watchAfterJob(verb string) {
 	}
 }
 
+// forgetToken makes the watch's next refresh tell its readers whatever the
+// store's token says: a reader whose read failed after a telling (an index
+// tree's fill, a list's refill) is told again, though the token held.
+func (w *Watch) forgetToken() { w.hasToken = false }
+
 // watchSnapshot is a fallback watch's list: ids in the store's order, each
 // one's record and record hash.
 type watchSnapshot struct {

@@ -203,6 +203,7 @@ func (h *fromHub) flush() {
 			continue // nothing shows it: read when something does
 		}
 		if err := l.Refill(); err != nil {
+			h.watch.forgetToken() // read again on the next refresh, though no token moved
 			r.UI().Error(fmt.Sprintf("%s list: %v", r.DisplayNoun(h.noun), err))
 		}
 	}

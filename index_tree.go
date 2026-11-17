@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -13,7 +14,8 @@ import (
 // noun (a parent row is a thing of the parent noun, with that noun's keys
 // and verbs), its cells the index columns of the listed noun (cell 0 the
 // label). It fills itself from both stores and again after any change of
-// either (a notify-only watch each, so a change reads each store once).
+// either or of a noun a reference column reads labels from (a notify-only
+// watch each, so a change reads each store once).
 // A noun without a parent is drawn as a flat tree of its things.
 //
 // It is what a catalog page's index list with "tree": true mounts
@@ -66,10 +68,7 @@ func (r *Runtime) AddIndexTree(id, noun string, opts ...InstanceOption) (*Tree, 
 	// A store that does not answer yet (a daemon not running) leaves the
 	// tree empty, saying why; the next open or change reads it again.
 	_ = it.refresh()
-	for _, name := range []string{it.noun, it.pnoun} {
-		if name == "" {
-			continue
-		}
+	for _, name := range it.watched() {
 		w, err := r.watchAs(r.backgroundCtx(), name, func(WatchEvent) { it.dirty = true }, true)
 		if err != nil {
 			continue // not watchable: it fills on open (IndexTreeRefill) and after this noun's changes
@@ -78,6 +77,34 @@ func (r *Runtime) AddIndexTree(id, noun string, opts ...InstanceOption) (*Tree, 
 		it.watches = append(it.watches, w)
 	}
 	return tree, nil
+}
+
+// watched are the nouns whose changes the tree shows: its noun, the parent
+// noun, and every noun a reference column of either reads labels from
+// (refCellNouns), so renaming a referenced thing redraws its cells even
+// when the listed stores' change tokens held.
+func (it *indexTree) watched() []string {
+	out := []string{it.noun}
+	add := func(name string) {
+		if name != "" && !slices.Contains(out, name) {
+			out = append(out, name)
+		}
+	}
+	add(it.pnoun)
+	for _, name := range []string{it.noun, it.pnoun} {
+		n := it.r.Nouns[name]
+		if name == "" || n == nil {
+			continue
+		}
+		for _, col := range it.columns {
+			if p := n.prop(columnField(col.Title)); p != nil && p.Cell == nil {
+				for _, ref := range it.r.refCellNouns(*p) {
+					add(ref)
+				}
+			}
+		}
+	}
+	return out
 }
 
 // IndexTreeRefill fills the index tree id again (a page opening it); a
@@ -105,6 +132,9 @@ func (it *indexTree) refresh() error {
 	p.Empty = ""
 	if err != nil {
 		p.Empty = fmt.Sprintf("%s did not answer: %v", pluralWord(it.r.DisplayNoun(it.noun)), err)
+		for _, w := range it.watches {
+			w.forgetToken() // read again on the next refresh, though no token moved
+		}
 	}
 	list.SetPlaceholder(p)
 	return err
