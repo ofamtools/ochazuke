@@ -124,6 +124,10 @@ func (r *Runtime) overlayState() *overlayRows {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if !o.loaded || o.ident != ident {
+		held := o.rows
+		if o.ident != ident {
+			held = nil // another backend: the session's rows were of the other one's things too
+		}
 		o.loaded, o.ident, o.backend, o.rows, o.versions = true, ident, backend, map[string]map[string]*OverlayRow{}, nil
 		if backend != nil {
 			rows, err := backend.Rows()
@@ -133,6 +137,11 @@ func (r *Runtime) overlayState() *overlayRows {
 			if rows != nil {
 				o.dropSession(rows)
 				o.rows = rows
+			}
+		}
+		for noun := range o.session {
+			if rows, ok := held[noun]; ok {
+				o.rows[noun] = rows // read again (ReloadOverlay): the session's rows stay
 			}
 		}
 	}

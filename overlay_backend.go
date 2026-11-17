@@ -340,3 +340,33 @@ func (r *Runtime) OverlayChanges(c Ctx, noun, key string) ([]OverlayPropChange, 
 	}
 	return out, nil
 }
+
+// OverlayRow is a copy of the row the overlay keeps beside one thing, nil
+// when it keeps none: for an application that reads a change it records
+// itself (ChangeOverlay).
+func (r *Runtime) OverlayRow(noun, key string) *OverlayRow { return r.overlayRow(noun, key) }
+
+// OverlayRows are copies of every row the overlay keeps for one noun, by
+// the thing's key.
+func (r *Runtime) OverlayRows(noun string) map[string]*OverlayRow { return r.overlayNounRows(noun) }
+
+// ChangeOverlay changes one thing's row in the overlay's backend, as the
+// overlay's own writes do (change gets the row, a new one when there is
+// none, and answers false to remove it), so the process's rows and the
+// change token follow: for an application that records a change of the
+// user's beside a thing it does not own (mtm: the project of a tool's row).
+// It answers the row after, nil when removed.
+func (r *Runtime) ChangeOverlay(noun, key string, change func(*OverlayRow) bool) (*OverlayRow, error) {
+	return r.changeOverlay(noun, key, change)
+}
+
+// ReloadOverlay drops the rows the process holds, so the next read takes
+// them from the backend again: after an application changed the backend
+// outside ChangeOverlay (a one-time move of rows into it, a project's
+// delete rewriting the rows that name it).
+func (r *Runtime) ReloadOverlay() {
+	o := r.overlayHolder()
+	o.mu.Lock()
+	o.loaded, o.versions = false, nil
+	o.mu.Unlock()
+}
