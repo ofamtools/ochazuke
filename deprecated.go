@@ -54,3 +54,16 @@ const DefaultBindingTimeout = 1000 * time.Millisecond
 //
 // Deprecated: use SequenceTimeoutSetting.
 const TerminalLeaderTimeoutSetting = "terminal-leader-timeout"
+
+// AnyRef is the stored value of a reference to the thing key of noun.
+//
+// Deprecated: use Ref{Noun: noun, Key: key}.String() (spine S5).
+func AnyRef(noun, key string) string { return Ref{Noun: noun, Key: key}.String() }
+
+// SplitAnyRef splits a stored any-noun reference at its first colon.
+//
+// Deprecated: use ParseRef, which answers a Ref.
+func SplitAnyRef(value string) (noun, key string, ok bool) {
+	ref, ok := ParseRef(value)
+	return ref.Noun, ref.Key, ok
+}

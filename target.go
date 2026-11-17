@@ -69,8 +69,8 @@ const (
 	ChoicesMaxSetting = "cli.choices-max"
 )
 
-// TargetCandidate is one thing a target may name: its id (the thing's key, an
-// AnyRef for a parameter of any noun, the value itself for a path), how it
+// TargetCandidate is one thing a target may name: its id (the thing's key, a
+// Ref.String for a parameter of any noun, the value itself for a path), how it
 // is shown, its noun, why it was found, the live instance that stands for
 // it when there is one, and the exact command that runs the request with it.
 type TargetCandidate struct {
@@ -179,13 +179,13 @@ func (s targetScan) ofNoun(inst *Instance) bool {
 	return inst != nil && inst.Parent != "" && (s.anyNoun() || inst.Noun == s.noun)
 }
 
-// thingCandidate is inst as a candidate: the thing's key (an AnyRef for a
+// thingCandidate is inst as a candidate: the thing's key (a Ref.String for a
 // parameter of any noun) and label.
 func (r *Runtime) thingCandidate(inst *Instance, s targetScan) TargetCandidate {
 	t := r.instanceThing(inst)
 	id := t.Key
 	if s.anyNoun() {
-		id = AnyRef(inst.Noun, t.Key)
+		id = Ref{Noun: inst.Noun, Key: t.Key}.String()
 	}
 	return TargetCandidate{ID: id, Label: t.Label, Noun: inst.Noun, Instance: inst.ID}
 }
@@ -346,11 +346,11 @@ func (r *Runtime) entryCandidates(e HistoryEntry, s targetScan) []TargetCandidat
 	}
 	refs := slices.Clone(e.Things)
 	for _, change := range e.Changes {
-		refs = append(refs, AnyRef(change.Noun, change.Key))
+		refs = append(refs, Ref{Noun: change.Noun, Key: change.Key}.String())
 	}
 	for _, ref := range refs {
-		if noun, key, ok := SplitAnyRef(ref); ok && r.CanonicalNoun(noun) == s.noun {
-			out = append(out, TargetCandidate{ID: key, Label: key, Noun: s.noun})
+		if thing, ok := ParseRef(ref); ok && r.CanonicalNoun(thing.Noun) == s.noun {
+			out = append(out, TargetCandidate{ID: thing.Key, Label: thing.Key, Noun: s.noun})
 		}
 	}
 	return out

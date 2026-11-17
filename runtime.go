@@ -72,6 +72,14 @@ type Parameter struct {
 	// stands in for an empty Source), else the id of a live instance of
 	// the noun. A Source still wins; Enum values come first.
 	Noun string `json:"noun,omitempty"`
+	// Ref makes the value a single-valued reference (spine S5, Ref): it
+	// names one thing of one of these nouns. At the edge (the CLI, MCP, a
+	// hook, the palette) a key, a "noun:key" reference or a label one
+	// thing holds is read through the noun's store once (ResolveRef), so
+	// the verb and the store receive the key (the key alone for one noun,
+	// "noun:key" for several); a value no store resolves is kept as
+	// written. One mechanism for every Ref parameter and prop.
+	Ref []string `json:"ref,omitempty"`
 	// Scopes are the named slices of the values a picker for this
 	// parameter offers (Scope), narrowest first; S steps through them.
 	// Empty is the noun's derived scopes (all, then archived), or none.

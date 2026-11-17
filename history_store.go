@@ -57,7 +57,7 @@ func (r *Runtime) persistable(e HistoryEntry) (HistoryEntry, bool) {
 		e.Things = slices.Clone(e.Things)
 	}
 	for _, change := range e.Changes {
-		ref := AnyRef(change.Noun, change.Key)
+		ref := Ref{Noun: change.Noun, Key: change.Key}.String()
 		if !slices.Contains(e.Things, ref) {
 			e.Things = append(e.Things, ref)
 		}

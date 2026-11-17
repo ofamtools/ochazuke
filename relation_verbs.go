@@ -47,7 +47,7 @@ func (r *Runtime) relationEnds(n *Noun, c Ctx) (from, to, subject string, err er
 	if err != nil {
 		return "", "", "", err
 	}
-	this := AnyRef(n.Name, key)
+	this := Ref{Noun: n.Name, Key: key}.String()
 	other, asTo := StringArg(c.Args, relationToParam, ""), true
 	if other == "" {
 		other, asTo = StringArg(c.Args, relationFromParam, ""), false

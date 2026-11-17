@@ -9,7 +9,7 @@ import (
 )
 
 // Relations: anything points to anything. A relation is one row of a many
-// to many with two any-noun ends (From and To, each "noun:key", AnyRef), a
+// to many with two any-noun ends ((From and To, each "noun:key", Ref.String)), a
 // Kind (any word), free Text, a JSON-like Data object and a Position for
 // order. The library models relations and enforces the rules a declared
 // kind adds; it never persists them. The application (or a tool, in its own

@@ -1373,7 +1373,7 @@ func runDelete(r *Runtime, n *Noun, c Ctx) (any, error) {
 	}
 	// The thing's relations keep their rows, the end moving to its former
 	// end (relation_ops.go): nothing is lost, nothing points at a ghost.
-	if moved, err := r.DetachRelations(AnyRef(n.Name, key)); err != nil {
+	if moved, err := r.DetachRelations(Ref{Noun: n.Name, Key: key}.String()); err != nil {
 		c.Notify(fmt.Sprintf("deleted %s, but its relations could not be detached: %v", key, err))
 	} else if moved > 0 {
 		c.Notify(fmt.Sprintf("%d relations of %s kept as unassociated", moved, key))

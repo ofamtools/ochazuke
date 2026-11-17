@@ -10,7 +10,7 @@ func (r *Runtime) RekeyReferences(c Ctx, noun, old, key string) error {
 	if old == "" || key == "" || old == key {
 		return nil
 	}
-	if err := r.rekeyRelations(AnyRef(noun, old), AnyRef(noun, key)); err != nil {
+	if err := r.rekeyRelations(Ref{Noun: noun, Key: old}.String(), Ref{Noun: noun, Key: key}.String()); err != nil {
 		return err
 	}
 	for _, n := range r.Operations.Nouns() {
@@ -63,11 +63,11 @@ func (r *Runtime) rekeyReferenceValue(p PropSpec, value any, noun, old, key stri
 		return "", false
 	}
 	if p.Noun == AnyNoun {
-		refNoun, refKey, valid := SplitAnyRef(text)
-		if !valid || r.CanonicalNoun(refNoun) != noun || refKey != old {
+		ref, valid := ParseRef(text)
+		if !valid || r.CanonicalNoun(ref.Noun) != noun || ref.Key != old {
 			return "", false
 		}
-		return AnyRef(noun, key), true
+		return Ref{Noun: noun, Key: key}.String(), true
 	}
 	return key, text == old
 }

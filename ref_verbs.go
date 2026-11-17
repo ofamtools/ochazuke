@@ -36,10 +36,11 @@ func refVerbs() []standardVerb {
 			}
 			noun, key := prop.Noun, value
 			if noun == AnyNoun {
-				var ok bool
-				if noun, key, ok = SplitAnyRef(value); !ok {
+				ref, ok := ParseRef(value)
+				if !ok {
 					return nil, fmt.Errorf("%s is not a noun:key reference", value)
 				}
+				noun, key = ref.Noun, ref.Key
 			}
 			if err := r.OpenIndex(noun, strings.TrimSpace(key)); err != nil {
 				return nil, err

@@ -20,11 +20,11 @@ var errNoRelationStore = errors.New("no relation store: the application gives th
 // relationEnd reads an end as "noun:key": the noun canonical, the key as
 // written. An end without a noun is refused (a thing is named by both).
 func (r *Runtime) relationEnd(label, ref string) (string, error) {
-	noun, key, ok := SplitAnyRef(strings.TrimSpace(ref))
-	if !ok || key == "" {
+	end, ok := ParseRef(strings.TrimSpace(ref))
+	if !ok || end.Key == "" {
 		return "", &ArgumentError{fmt.Errorf("%s %q is not noun:key", label, ref)}
 	}
-	return AnyRef(r.CanonicalNoun(noun), key), nil
+	return Ref{Noun: r.CanonicalNoun(end.Noun), Key: end.Key}.String(), nil
 }
 
 // RelationsOf answers the stored relations that meet q (position order).
@@ -69,7 +69,8 @@ func (r *Runtime) Relate(c Ctx, x Relation) (Relation, error) {
 	kind, declared := r.RelationKindOf(x.Kind)
 	if declared {
 		for _, end := range []struct{ label, ref, rule string }{{"from", from, kind.From}, {"to", to, kind.To}} {
-			noun, _, _ := SplitAnyRef(end.ref)
+			endRef, _ := ParseRef(end.ref)
+			noun := endRef.Noun
 			if !relationNounFits(end.rule, noun) {
 				return Relation{}, &ArgumentError{fmt.Errorf("relation %s: the %s end is a %s, not a %s", kind.Name, end.label, r.DisplayNoun(noun), r.DisplayNoun(end.rule))}
 			}
@@ -479,8 +480,8 @@ func (r *Runtime) noteRelation(ch RelationChange) {
 	if ref == "" {
 		ref = row.To
 	}
-	noun, key, _ := SplitAnyRef(ref)
-	r.noteChange(ThingChange{Noun: noun, Key: key, Relation: &ch})
+	thing, _ := ParseRef(ref)
+	r.noteChange(ThingChange{Noun: thing.Noun, Key: thing.Key, Relation: &ch})
 }
 
 // quietly runs f with relation changes not noted.

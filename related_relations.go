@@ -70,7 +70,7 @@ func (s *relatedSection) readRelations(c Ctx) ([]Thing, error) {
 func (s *relatedSection) relationRequest(verb, other string) Request {
 	rel := s.rel
 	n := rel.r.Nouns[s.ref.Noun]
-	this := AnyRef(rel.noun, rel.key)
+	this := Ref{Noun: rel.noun, Key: rel.key}.String()
 	args := Arguments{relationKindParam: s.ref.Relation}
 	if s.ref.Outward {
 		thisNoun := rel.r.Nouns[rel.noun]
@@ -78,7 +78,7 @@ func (s *relatedSection) relationRequest(verb, other string) Request {
 			args[kp.Name] = rel.key
 		}
 		if other != "" {
-			args[relationToParam] = AnyRef(s.ref.Noun, other)
+			args[relationToParam] = Ref{Noun: s.ref.Noun, Key: other}.String()
 		}
 		return Request{Noun: rel.noun, Verb: verb, Args: args}
 	}

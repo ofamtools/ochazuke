@@ -10,7 +10,7 @@ import (
 	"ofam.dev/ochazuke/keytest"
 )
 
-func TestAnyRefSplitsAtTheFirstColon(t *testing.T) {
+func TestRefSplitsAtTheFirstColon(t *testing.T) {
 	t.Parallel()
 	for _, c := range []struct {
 		value, noun, key string
@@ -24,12 +24,12 @@ func TestAnyRefSplitsAtTheFirstColon(t *testing.T) {
 		{":x", "", "", false},
 		{"", "", "", false},
 	} {
-		noun, key, ok := SplitAnyRef(c.value)
-		if noun != c.noun || key != c.key || ok != c.ok {
-			t.Errorf("SplitAnyRef(%q) = %q, %q, %v; want %q, %q, %v", c.value, noun, key, ok, c.noun, c.key, c.ok)
+		ref, ok := ParseRef(c.value)
+		if ref.Noun != c.noun || ref.Key != c.key || ok != c.ok {
+			t.Errorf("ParseRef(%q) = %+v, %v; want %q, %q, %v", c.value, ref, ok, c.noun, c.key, c.ok)
 		}
-		if c.ok && AnyRef(noun, key) != c.value {
-			t.Errorf("AnyRef(%q, %q) = %q, want %q", noun, key, AnyRef(noun, key), c.value)
+		if c.ok && ref.String() != c.value {
+			t.Errorf("%+v.String() = %q, want %q", ref, ref.String(), c.value)
 		}
 	}
 }

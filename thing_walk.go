@@ -270,7 +270,7 @@ func (w *thingWalk) pageRows(n *Noun, page ListPage, q ListQuery, section, title
 		node := &thingWalkNode{kind: walkThing, noun: n.Name, key: key, label: label, props: t}
 		id := key
 		if w.want.Noun == AnyNoun {
-			id = AnyRef(n.Name, key)
+			id = Ref{Noun: n.Name, Key: key}.String()
 		}
 		choice := Choice{ID: id, Label: label, Noun: n.Name, Props: t, Data: t}
 		row := w.thingRow(choice, node, !w.want.IsPath() && (w.want.Noun == "" || w.want.Noun == AnyNoun || w.r.CanonicalNoun(w.want.Noun) == n.Name))
@@ -527,10 +527,11 @@ func (r *Runtime) outwardRefs(n *Noun, t Thing) []outwardRef {
 		}
 		other, key := p.Noun, fmt.Sprint(t[p.Name])
 		if other == AnyNoun {
-			var ok bool
-			if other, key, ok = SplitAnyRef(key); !ok {
+			ref, ok := ParseRef(key)
+			if !ok {
 				continue
 			}
+			other, key = ref.Noun, ref.Key
 		}
 		other = r.CanonicalNoun(other)
 		if target := r.Noun(other); target != nil && target.keyProp() != nil {

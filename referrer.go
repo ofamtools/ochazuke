@@ -62,7 +62,7 @@ type Referrer struct {
 // the key itself, or "noun:key" for an any-noun reference.
 func (f Referrer) Value(noun, key string) string {
 	if f.Any {
-		return AnyRef(noun, key)
+		return Ref{Noun: noun, Key: key}.String()
 	}
 	return key
 }

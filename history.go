@@ -260,7 +260,7 @@ func (r *Runtime) resultThings(q Request, value any) []string {
 		thing = value
 	}
 	if key := thing[n.keyProp().Name]; !emptyProp(key) {
-		return []string{AnyRef(n.Name, fmt.Sprint(key))}
+		return []string{Ref{Noun: n.Name, Key: fmt.Sprint(key)}.String()}
 	}
 	return nil
 }

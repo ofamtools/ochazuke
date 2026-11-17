@@ -131,8 +131,8 @@ func (r *Runtime) AddRail(id string, spec RailSpec, opts ...InstanceOption) (*Ra
 	}
 	target, noun, key := st.Target, st.Noun, st.Key
 	st.Target = func() (string, string) {
-		if n, k, ok := SplitAnyRef(rl.pinned); ok {
-			return n, k
+		if pinned, ok := ParseRef(rl.pinned); ok {
+			return pinned.Noun, pinned.Key
 		}
 		switch {
 		case target != nil:

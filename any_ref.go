@@ -7,28 +7,14 @@ import (
 
 // AnyNoun is the Parameter.Noun of a reference to a thing of any noun (a
 // note's "about", a tag's target, a comment's subject). The prop holds the
-// noun and the key together, "noun:key" (AnyRef): the key may hold colons
-// and slashes (a path), so the value splits at the first colon only
-// (SplitAnyRef). Every noun with a picker (a derived noun picker, or a
+// noun and the key together, "noun:key" (Ref.String): the key may hold
+// colons and slashes (a path), so the value splits at the first colon only
+// (ParseRef). Every noun with a picker (a derived noun picker, or a
 // declared one) can be the target; the chooser asks for the noun, then for
 // the thing. A prop that names AnyNoun is Free (props.go): it is never
 // refused for naming a noun or a thing that does not exist, the reference
 // is kept as written (record first, never refuse).
 const AnyNoun = "*"
-
-// AnyRef is the stored value of a reference to the thing key of noun.
-func AnyRef(noun, key string) string { return noun + ":" + key }
-
-// SplitAnyRef splits a stored any-noun reference at its first colon: the
-// noun and the key (which may hold colons). ok is false when there is no
-// noun before a colon.
-func SplitAnyRef(value string) (noun, key string, ok bool) {
-	noun, key, ok = strings.Cut(value, ":")
-	if !ok || noun == "" {
-		return "", "", false
-	}
-	return noun, key, true
-}
 
 // AnyRefNounsSetting says which nouns the any-noun chooser offers: "stored"
 // (the default) the application's nouns with a store, not the framework's
@@ -91,7 +77,7 @@ func (r *Runtime) anyRefChoices(c Context, query string) ([]Choice, error) {
 		if rest != "" && !strings.Contains(strings.ToLower(ch.Label+" "+ch.ID), rest) {
 			continue
 		}
-		ch.ID = AnyRef(noun, ch.ID)
+		ch.ID = Ref{Noun: noun, Key: ch.ID}.String()
 		out = append(out, ch)
 	}
 	return out, nil

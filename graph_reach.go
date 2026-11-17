@@ -24,7 +24,7 @@ type reached struct {
 	inst             string
 }
 
-func (a reached) ref() string { return AnyRef(a.Noun, a.Key) }
+func (a reached) ref() string { return Ref{Noun: a.Noun, Key: a.Key}.String() }
 
 // reachWalk is the cached result of one walk and what it depends on.
 type reachWalk struct {
@@ -162,7 +162,7 @@ func (r *Runtime) walkReach(from string, key reachKey) *reachWalk {
 	w := &reachWalk{instGen: r.renderCache.instances.generation, relGen: r.relationGen(), live: map[string]string{}, tokens: map[string]string{}}
 	start := r.Instances[from]
 	startThing := r.instanceThing(start)
-	seen := map[string]bool{AnyRef(start.Noun, startThing.Key): true, "instance:" + from: true}
+	seen := map[string]bool{Ref{Noun: start.Noun, Key: startThing.Key}.String(): true, "instance:" + from: true}
 	type item struct {
 		noun, key string
 		thing     Thing
@@ -194,11 +194,11 @@ func (r *Runtime) walkReach(from string, key reachKey) *reachWalk {
 			}
 		}
 		if s := r.RelationStore(); s != nil {
-			this := AnyRef(at.noun, at.key)
+			this := Ref{Noun: at.noun, Key: at.key}.String()
 			if rels, err := r.RelationsOf(RelationQuery{Thing: this}); err == nil {
 				for _, x := range rels {
-					if noun, k, ok := SplitAnyRef(x.Other(this)); ok && r.Noun(noun) != nil {
-						edges = append(edges, edge{r.CanonicalNoun(noun), k, x.Kind})
+					if other, ok := ParseRef(x.Other(this)); ok && r.Noun(other.Noun) != nil {
+						edges = append(edges, edge{r.CanonicalNoun(other.Noun), other.Key, x.Kind})
 					}
 				}
 			}
@@ -207,7 +207,7 @@ func (r *Runtime) walkReach(from string, key reachKey) *reachWalk {
 			edges = edges[:key.fan]
 		}
 		for _, e := range edges {
-			ref := AnyRef(e.noun, e.key)
+			ref := Ref{Noun: e.noun, Key: e.key}.String()
 			if seen[ref] {
 				continue
 			}

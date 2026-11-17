@@ -531,6 +531,7 @@ func (r *Runtime) checkArguments(op Operation, args Arguments) error {
 // once the request is to run (createUnknown).
 func (r *Runtime) argumentCreates(op Operation, args Arguments) ([]unknownCreate, error) {
 	normalizeArguments(op, args)
+	r.refArguments(op, args)
 	if err := validateArguments(op, args); err != nil {
 		return nil, err
 	}

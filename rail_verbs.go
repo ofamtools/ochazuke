@@ -97,7 +97,7 @@ func registerRail(r *Runtime) {
 		"thing": {Type: "string", Required: true, Description: "The thing, noun:key"},
 	}, func(r *Runtime, _ Context, a Arguments, rl *Rail) (any, error) {
 		t := StringArg(a, "thing", "")
-		if noun, _, ok := SplitAnyRef(t); !ok || r.Noun(noun) == nil {
+		if ref, ok := ParseRef(t); !ok || r.Noun(ref.Noun) == nil {
 			return nil, fmt.Errorf("thing %q is not noun:key of a known noun", t)
 		}
 		rl.pinned = t
@@ -210,7 +210,7 @@ func (rl *Rail) inspect(thing string) (map[string]any, error) {
 // rows are inspect's sections with their things.
 func (rl *Rail) rows(thing string) ([]map[string]any, error) {
 	if thing != "" {
-		if _, _, ok := SplitAnyRef(thing); !ok {
+		if _, ok := ParseRef(thing); !ok {
 			return nil, fmt.Errorf("thing %q is not noun:key", thing)
 		}
 		was := rl.pinned

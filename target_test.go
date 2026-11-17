@@ -30,7 +30,7 @@ func targetFixture(t *testing.T) *Runtime {
 	r.Instance("far", Kind("thing")).Data = map[string]any{"id": "f", "name": "Far"}
 	r.Instance("other", Kind("thing"), Parent("page")).Data = map[string]any{"id": "o", "name": "Other"}
 	r.Instance("leaf", Kind("box"), Parent("other"))
-	r.history.entries = append(r.history.entries, HistoryEntry{Seq: 1, Kind: HistoryChange, Things: []string{AnyRef("thing", "r")}})
+	r.history.entries = append(r.history.entries, HistoryEntry{Seq: 1, Kind: HistoryChange, Things: []string{Ref{Noun: "thing", Key: "r"}.String()}})
 	r.Define("thing").Verb("poke", func(Ctx) Result { return Done(nil) }, "Poke").Params(map[string]Parameter{"thing": {Type: "string", Required: true, Noun: "thing"}})
 	if err := r.OpenPage("page"); err != nil {
 		t.Fatal(err)

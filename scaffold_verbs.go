@@ -201,7 +201,7 @@ var yankForms = func() map[string]func(*Runtime, *Noun, string, Thing) (string, 
 		"label": label,
 		"key":   func(_ *Runtime, _ *Noun, key string, _ Thing) (string, error) { return key, nil },
 		"ref": func(r *Runtime, n *Noun, key string, _ Thing) (string, error) {
-			return AnyRef(r.CanonicalNoun(n.Name), key), nil
+			return Ref{Noun: r.CanonicalNoun(n.Name), Key: key}.String(), nil
 		},
 		"json": func(_ *Runtime, n *Noun, _ string, t Thing) (string, error) {
 			raw, err := json.Marshal(thingRecord(n, t, nil))
@@ -249,7 +249,7 @@ func (r *Runtime) thingHistory(noun, key string) []HistoryEntry {
 }
 
 func (r *Runtime) entryNames(e HistoryEntry, noun, keyName, key string) bool {
-	if len(e.Things) != 0 && slices.Contains(e.Things, AnyRef(noun, key)) {
+	if len(e.Things) != 0 && slices.Contains(e.Things, Ref{Noun: noun, Key: key}.String()) {
 		return true
 	}
 	for _, ch := range e.Changes {
@@ -300,7 +300,7 @@ func runAnnotate(r *Runtime, n *Noun, c Ctx) (any, error) {
 	about := writableRole(m, RoleAbout)
 	value := key
 	if about.Noun == AnyNoun {
-		value = AnyRef(n.Name, key)
+		value = Ref{Noun: n.Name, Key: key}.String()
 	}
 	args := Arguments{about.Name: value}
 	if label := writableRole(m, RoleLabel); label != nil {

@@ -45,7 +45,7 @@ func (r *Runtime) readRelatedRelations(c Ctx, noun, key string, ref Referrer, q 
 	}
 	n := r.Noun(ref.Noun)
 	c.Noun = n.Name
-	this := AnyRef(noun, key)
+	this := Ref{Noun: noun, Key: key}.String()
 	query := RelationQuery{Kind: ref.Relation, To: this}
 	if ref.Outward {
 		query = RelationQuery{Kind: ref.Relation, From: this}
@@ -56,9 +56,9 @@ func (r *Runtime) readRelatedRelations(c Ctx, noun, key string, ref Referrer, q 
 	}
 	keys := make([]string, 0, len(rels))
 	for _, x := range rels {
-		otherNoun, otherKey, ok := SplitAnyRef(x.Other(this))
-		if ok && otherNoun == ref.Noun {
-			keys = append(keys, otherKey)
+		other, ok := ParseRef(x.Other(this))
+		if ok && other.Noun == ref.Noun {
+			keys = append(keys, other.Key)
 		}
 	}
 	if len(keys) == 0 {
@@ -132,13 +132,14 @@ func (r *Runtime) relatedGraphRefs(noun, key string) ([]Referrer, error) {
 	if r.RelationStore() == nil {
 		return refs, nil
 	}
-	this := AnyRef(noun, key)
+	this := Ref{Noun: noun, Key: key}.String()
 	rels, err := r.RelationsOf(RelationQuery{Thing: this})
 	if err != nil {
 		return nil, err
 	}
 	for _, x := range rels {
-		other, _, ok := SplitAnyRef(x.Other(this))
+		otherRef, ok := ParseRef(x.Other(this))
+		other := otherRef.Noun
 		if !ok || r.Noun(other) == nil {
 			continue
 		}

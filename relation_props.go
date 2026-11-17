@@ -77,7 +77,7 @@ type storeRaw struct {
 // an any-noun prop ("noun:key"), else the noun and the key.
 func (p PropSpec) propRelationEnd(item string) string {
 	if noun := p.relationNoun(); noun != AnyNoun {
-		return AnyRef(noun, item)
+		return Ref{Noun: noun, Key: item}.String()
 	}
 	return item
 }
@@ -92,13 +92,14 @@ func (r *Runtime) readRelationProp(p PropSpec, n *Noun, key string) (any, error)
 		}
 		return nil, nil
 	}
-	rels, err := r.RelationsOf(RelationQuery{Kind: p.Relation, From: AnyRef(n.Name, key)})
+	rels, err := r.RelationsOf(RelationQuery{Kind: p.Relation, From: Ref{Noun: n.Name, Key: key}.String()})
 	if err != nil {
 		return nil, err
 	}
 	var out []string
 	for _, x := range rels {
-		noun, k, _ := SplitAnyRef(x.To)
+		to, _ := ParseRef(x.To)
+		noun, k := to.Noun, to.Key
 		switch {
 		case p.relationNoun() == AnyNoun:
 			out = append(out, x.To)
@@ -137,7 +138,7 @@ func (r *Runtime) writeRelationProp(c Ctx, p PropSpec, n *Noun, key string, v an
 	for i, it := range items {
 		ends[i] = p.propRelationEnd(it)
 	}
-	return r.SetRelated(c, p.Relation, AnyRef(n.Name, key), ends)
+	return r.SetRelated(c, p.Relation, Ref{Noun: n.Name, Key: key}.String(), ends)
 }
 
 // wrapRelations (re)builds the noun's store handlers around its relation

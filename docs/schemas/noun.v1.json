@@ -383,6 +383,12 @@
         "plumbing": {
           "type": "boolean"
         },
+        "ref": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "required": {
           "type": "boolean"
         },

@@ -402,7 +402,7 @@ func (r *Runtime) DeleteGoesWith(noun string, keys ...string) string {
 	if r.RelationStore() != nil {
 		count := 0
 		for _, key := range keys {
-			if xs, err := r.RelationsOf(RelationQuery{Thing: AnyRef(noun, key), Archived: true}); err == nil {
+			if xs, err := r.RelationsOf(RelationQuery{Thing: Ref{Noun: noun, Key: key}.String(), Archived: true}); err == nil {
 				count += len(xs)
 			}
 		}

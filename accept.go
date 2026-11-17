@@ -140,12 +140,14 @@ func (r *Runtime) propAccept(p PropSpec) Accept {
 	return AcceptRegister
 }
 
-// acceptProp answers a value written to an enum prop that is not one of
+// acceptProp reads a reference prop's value through refValue (a label to
+// its key, spine S5), then answers a value written to an enum prop that is not one of
 // its choices: near gives the one close name, register adds the value to
 // the noun's prop Enum (every list of the prop's choices shows it), keep
 // stores it as given. The value to write is returned; names equally near
 // answer a ChoiceAnswer (tieAnswer) for the request c runs.
 func (r *Runtime) acceptProp(c Ctx, noun string, p PropSpec, value any) (any, error) {
+	value = r.refValue(c, p.Name, p.Parameter, value)
 	s, ok := value.(string)
 	if !ok || len(p.Enum) == 0 || slices.Contains(p.Enum, s) {
 		return value, nil
