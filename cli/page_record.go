@@ -26,7 +26,13 @@ func (v *PageView) baseRow(instance string) (Row, bool) {
 			continue
 		}
 		if item, ok := pl.list.Selected(); ok && item.ID == instance {
-			return Row{Noun: pl.spec.Noun, ID: strings.TrimPrefix(instance, pl.spec.ID+"/"), Label: item.Label, Data: map[string]any(item.Props), Cells: item.Cells}, true
+			noun, key := pl.spec.Noun, strings.TrimPrefix(instance, pl.spec.ID+"/")
+			// An index tree's parent row is a thing of the parent noun,
+			// its id LIST/NOUN:KEY (ochazuke.AddIndexTree).
+			if item.Noun != "" && item.Noun != pl.rowNoun {
+				noun, key = item.Noun, strings.TrimPrefix(key, item.Noun+":")
+			}
+			return Row{Noun: noun, ID: key, Label: item.Label, Data: map[string]any(item.Props), Cells: item.Cells}, true
 		}
 		return Row{}, false
 	}
@@ -47,6 +53,11 @@ func (v *PageView) OpenRow(noun, key string) error {
 	}
 	if err := v.m.Runtime.OpenPage(v.Page()); err != nil {
 		return err
+	}
+	if pl.index && pl.tree != nil {
+		// An index tree holds every thing of its stores: the row is
+		// selected where it is (its parent opened), never added.
+		return pl.tree.Select(pl.spec.ID + "/" + key)
 	}
 	if row, ok := v.Row(pl.spec.ID + "/" + key); ok {
 		if err := v.revealRow(pl, row); err != nil {

@@ -45,8 +45,10 @@ type CatalogPage struct {
 }
 
 // CatalogList is one list of a data page. Tree draws hierarchical rows
-// (Row.Parent, parents before children); Guides opts that tree into branch
-// lines. Both default false, preserving ordinary lists.
+// (Row.Parent, parents before children; on an index list, the noun's
+// things under its declared parent, ochazuke.AddIndexTree); Guides opts
+// that tree into branch lines. Both default false, preserving ordinary
+// lists.
 type CatalogList struct {
 	Tree   bool   `json:"tree,omitempty"`
 	Guides bool   `json:"guides,omitempty"`
@@ -452,7 +454,35 @@ func (v *PageView) registerPage(declared bool) error {
 		return err
 	}
 	page.ActionNouns = pageActionNouns(r, v.doc, v.cfg.Noun)
+	v.refillTreesOnOpen(page)
 	return nil
+}
+
+// refillTreesOnOpen makes the page's index trees read their stores again
+// each time the page is opened (a store whose things change outside a
+// verb, a daemon's listing, tells no watch); a host's OnOpen set later
+// wraps it.
+func (v *PageView) refillTreesOnOpen(page *ochazuke.Page) {
+	var trees []string
+	for _, pl := range v.lists {
+		if pl.index && pl.tree != nil {
+			trees = append(trees, pl.spec.ID)
+		}
+	}
+	if len(trees) == 0 {
+		return
+	}
+	next := page.OnOpen
+	page.OnOpen = func(r *ochazuke.Runtime, from string) {
+		for _, id := range trees {
+			if err := r.IndexTreeRefill(id); err != nil {
+				r.UI().Error(err.Error())
+			}
+		}
+		if next != nil {
+			next(r, from)
+		}
+	}
 }
 
 // pageOptions are the page options a catalog page's data asks for.
@@ -476,11 +506,22 @@ func (v *PageView) mountIndex(pl *pageList) error {
 	if v.spec.Layout == LayoutGroups {
 		opts = append(opts, ochazuke.NoSpill())
 	}
-	list, err := r.AddIndex(pl.spec.ID, noun, opts...)
+	pl.noun, pl.rowNoun, pl.index, pl.loaded = pl.spec.Noun, noun, true, true
+	var err error
+	if pl.spec.Tree {
+		// A tree by the noun's declared parent (spine S7 rule 2).
+		if pl.spec.Guides {
+			opts = append(opts, ochazuke.Guides())
+		}
+		if pl.tree, err = r.AddIndexTree(pl.spec.ID, noun, opts...); err == nil {
+			pl.list = pl.tree.List()
+		}
+	} else {
+		pl.list, err = r.AddIndex(pl.spec.ID, noun, opts...)
+	}
 	if err != nil {
 		return fmt.Errorf("page %s: index list %s: %w", v.spec.ID, pl.spec.ID, err)
 	}
-	pl.noun, pl.rowNoun, pl.list, pl.index, pl.loaded = pl.spec.Noun, noun, list, true, true
 	return nil
 }
 

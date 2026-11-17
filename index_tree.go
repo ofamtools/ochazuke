@@ -1,0 +1,196 @@
+package ochazuke
+
+import (
+	"fmt"
+	"strings"
+)
+
+// The index tree (spine S7 rule 2, run plan 5.6): the index of a noun that
+// declares a parent (Noun.Parent, a reference prop) drawn as a read-only
+// tree: the parent noun's things are the parent rows, each followed by the
+// noun's things that name it, and a thing whose parent is empty or not
+// listed sits at the top level (S7 rule 5). Every row is a row of its own
+// noun (a parent row is a thing of the parent noun, with that noun's keys
+// and verbs), its cells the index columns of the listed noun (cell 0 the
+// label). It fills itself from both stores and again after any change of
+// either (a notify-only watch each, so a change reads each store once).
+// A noun without a parent is drawn as a flat tree of its things.
+//
+// It is what a catalog page's index list with "tree": true mounts
+// (cli.ListKindIndex); its row ids are LIST/KEY for the noun's things and
+// LIST/PARENT-NOUN:KEY for the parent rows.
+
+// indexTree is an index tree's state: its tree, the nouns it reads, and
+// whether a change was heard since the last fill.
+type indexTree struct {
+	r       *Runtime
+	tree    *Tree
+	noun    string
+	parent  string // the reference prop naming a thing's parent, "" none
+	pnoun   string // the noun that prop names
+	columns []Column
+	dirty   bool
+	watches []*Watch
+	fills   int
+}
+
+// AddIndexTree adds the index of noun drawn as a tree by its declared
+// parent (see above). Options are AddTree's (Parent, Guides, NoSpill...).
+func (r *Runtime) AddIndexTree(id, noun string, opts ...InstanceOption) (*Tree, error) {
+	n, err := r.listSource(noun)
+	if err != nil {
+		return nil, err
+	}
+	r.declareIndexColumns(n.Name)
+	it := &indexTree{r: r, noun: n.Name, columns: r.IndexColumns(n.Name)}
+	if p := n.prop(n.Parent); p != nil {
+		if refs := declaredRef(*p).refNouns(); len(refs) > 0 {
+			if pn := r.Nouns[r.CanonicalNoun(refs[0])]; pn != nil && pn.Store != nil && (pn.Store.List != nil || pn.Store.Query != nil) && pn.keyProp() != nil {
+				it.parent, it.pnoun = p.Name, pn.Name
+			}
+		}
+	}
+	tree, err := r.AddTree(id, nil, append([]InstanceOption{Columns(it.columns...)}, opts...)...)
+	if err != nil {
+		return nil, err
+	}
+	it.tree = tree
+	r.Instances[id].Data = it
+	list := tree.List()
+	p := list.Placeholder()
+	p.Plural = pluralWord(r.DisplayNoun(n.Name))
+	list.SetPlaceholder(p)
+	// A store that does not answer yet (a daemon not running) leaves the
+	// tree empty, saying why; the next open or change reads it again.
+	_ = it.refresh()
+	for _, name := range []string{it.noun, it.pnoun} {
+		if name == "" {
+			continue
+		}
+		w, err := r.watchAs(r.backgroundCtx(), name, func(WatchEvent) { it.dirty = true }, true)
+		if err != nil {
+			continue // not watchable: it fills on open (IndexTreeRefill) and after this noun's changes
+		}
+		w.batch = it.flush
+		it.watches = append(it.watches, w)
+	}
+	return tree, nil
+}
+
+// IndexTreeRefill fills the index tree id again (a page opening it); a
+// tree that is not an index tree is left alone.
+func (r *Runtime) IndexTreeRefill(id string) error {
+	inst := r.Instances[id]
+	if inst == nil {
+		return nil
+	}
+	it, ok := inst.Data.(*indexTree)
+	if !ok {
+		return nil
+	}
+	return it.refresh()
+}
+
+// refresh fills the tree and says on its empty line why it could not:
+// the failure is the tree's, never its page's.
+func (it *indexTree) refresh() error {
+	err := it.fill()
+	list := it.tree.List()
+	p := list.Placeholder()
+	p.Empty = ""
+	if err != nil {
+		p.Empty = fmt.Sprintf("%s did not answer: %v", pluralWord(it.r.DisplayNoun(it.noun)), err)
+	}
+	list.SetPlaceholder(p)
+	return err
+}
+
+// flush fills the tree again when a change was heard, and stops the
+// watches once the tree is gone.
+func (it *indexTree) flush() {
+	if inst := it.r.Instances[it.tree.id]; inst == nil || inst.Data != it {
+		for _, w := range it.watches {
+			w.Stop()
+		}
+		return
+	}
+	if !it.dirty {
+		return
+	}
+	it.dirty = false
+	if err := it.refresh(); err != nil {
+		it.r.UI().Error(fmt.Sprintf("%s list: %v", it.r.DisplayNoun(it.noun), err))
+	}
+}
+
+// fill reads both stores and sets the tree's nodes: each parent thing,
+// then the things naming it; then the things with no listed parent.
+func (it *indexTree) fill() error {
+	r := it.r
+	c := r.backgroundCtx()
+	n := r.Nouns[it.noun]
+	page, err := r.queryThings(c, n, ListQuery{})
+	if err != nil {
+		return err
+	}
+	it.fills++
+	id := it.tree.id
+	items := r.thingItems(c, n, id, page.Items, it.columns)
+	if it.pnoun == "" {
+		return it.tree.SetNodes(it.nodes(items, nil))
+	}
+	pn := r.Nouns[it.pnoun]
+	parents, err := r.queryThings(c, pn, ListQuery{})
+	if err != nil {
+		return err
+	}
+	pitems := r.thingItems(c, pn, id, parents.Items, it.columns)
+	known := map[string]bool{}
+	for i := range pitems { // LIST/NOUN:KEY: never an id of the listed noun
+		key := strings.TrimPrefix(pitems[i].ID, id+"/")
+		pitems[i].ID = id + "/" + pn.Name + ":" + key
+		known[key] = true
+	}
+	under := map[string][]ListItem{}
+	var top []ListItem
+	for _, item := range items {
+		t, _ := item.Data.(Thing)
+		ref := ""
+		if t != nil && !emptyProp(t[it.parent]) {
+			ref = fmt.Sprint(t[it.parent])
+		}
+		if known[ref] {
+			under[ref] = append(under[ref], item)
+		} else {
+			top = append(top, item)
+		}
+	}
+	var nodes []TreeNode
+	for _, row := range pitems {
+		key := strings.TrimPrefix(row.ID, id+"/"+pn.Name+":")
+		nodes = append(nodes, it.nodes([]ListItem{row}, nil)...)
+		nodes = append(nodes, it.nodes(under[key], &row)...)
+	}
+	nodes = append(nodes, it.nodes(top, nil)...)
+	return it.tree.SetNodes(nodes)
+}
+
+// nodes are rows as tree nodes under parent (nil: the top level); cell 0
+// is the label when the columns name no prop for it.
+func (it *indexTree) nodes(items []ListItem, parent *ListItem) []TreeNode {
+	out := make([]TreeNode, 0, len(items))
+	for _, item := range items {
+		node := TreeNode{ID: item.ID, Label: item.Label, Noun: item.Noun, Data: item.Data, Cells: item.Cells, Tones: item.Tones, Search: item.Search}
+		if t, ok := item.Data.(Thing); ok {
+			node.Props = t
+		}
+		if len(node.Cells) > 0 && node.Cells[0] == "" {
+			node.Cells[0] = item.Label
+		}
+		if parent != nil {
+			node.Parent = parent.ID
+		}
+		out = append(out, node)
+	}
+	return out
+}
