@@ -280,6 +280,23 @@ func sizeOf(path string, info fs.FileInfo) int64 {
 	return n
 }
 
+// Size is n bytes in binary units, one decimal under 10 ("5.4G", "512M"),
+// for a line a person reads (the sysstat segment's form).
+func Size(n int64) string {
+	const unit = 1024
+	units := []string{"B", "K", "M", "G", "T", "P"}
+	v := float64(max(n, 0))
+	i := 0
+	for v >= unit && i < len(units)-1 {
+		v /= unit
+		i++
+	}
+	if v < 10 && i > 0 {
+		return fmt.Sprintf("%.1f%s", v, units[i])
+	}
+	return fmt.Sprintf("%.0f%s", v, units[i])
+}
+
 // Entry is one log line: a copy or thing removed (or that failed to be).
 type Entry struct {
 	Time  time.Time `json:"time"`

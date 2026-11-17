@@ -122,12 +122,53 @@ func TestRetentionAuto(t *testing.T) {
 		if err := r.Settings().Set(RetentionAutoSetting, on); err != nil {
 			t.Fatal(err)
 		}
+		if err := r.Settings().Set(RetentionFirstRunSetting, false); err != nil {
+			t.Fatal(err)
+		}
 		first, second := r.RetentionDue(), r.RetentionDue()
 		if on && (len(first) != 2 || len(second) != 0 || len(*asked) != 2) {
 			t.Fatalf("on: each row once a day: %d then %d, asked %v", len(first), len(second), *asked)
 		}
 		if !on && (first != nil || len(*asked) != 0) {
 			t.Fatalf("off: nothing runs: %v", *asked)
+		}
+	}
+}
+
+// TestRetentionFirstRun: one test per retention.first-run-ask value. On: the
+// automatic run holds a row's first removal of more than its keep (backups
+// keep 1 would remove 2), records it on the row and removes it only once
+// the row is applied by hand; from then on automatic runs remove. Off: the
+// automatic run removes at once.
+func TestRetentionFirstRun(t *testing.T) {
+	for _, ask := range []bool{true, false} {
+		r, asked, _ := retentionFixture(t)
+		if err := r.Settings().Set(RetentionFirstRunSetting, ask); err != nil {
+			t.Fatal(err)
+		}
+		runs := r.RetentionDue()
+		if !ask {
+			if !slices.Equal(*asked, []string{"2026-11-16.tar.gz", "2026-11-15.tar.gz"}) || runs[0].Held {
+				t.Fatalf("off: the first run removes: %v %+v", *asked, runs[0])
+			}
+			continue
+		}
+		if len(*asked) != 0 || !runs[0].Held || runs[0].Remove != 2 || runs[1].Held {
+			t.Fatalf("on: the large first removal is held, the small one is not: %v %+v", *asked, runs)
+		}
+		v, _ := r.Execute(Request{Noun: "retention-rule", Verb: "get", Args: Arguments{"name": "backups"}})
+		if got, _ := ThingOf(v); !strings.Contains(fmt.Sprint(got["held"]), "retention-rule apply backups") || got["approved"] != "" {
+			t.Fatalf("on: the row shows what it holds: %v", got)
+		}
+		if _, err := r.Execute(Request{Noun: "retention-rule", Verb: "apply", Args: Arguments{"name": "backups", "after-write": true}}); err != nil || len(*asked) != 0 {
+			t.Fatalf("on: a run after a write (after-write) still holds: %v %v", *asked, err)
+		}
+		if _, err := r.Execute(Request{Noun: "retention-rule", Verb: "apply", Args: Arguments{"name": "backups"}}); err != nil || len(*asked) != 2 {
+			t.Fatalf("on: apply by hand removes at once: %v %v", *asked, err)
+		}
+		v, _ = r.Execute(Request{Noun: "retention-rule", Verb: "get", Args: Arguments{"name": "backups"}})
+		if got, _ := ThingOf(v); got["held"] != "" || got["approved"] == "" {
+			t.Fatalf("on: applied by hand, the row holds nothing and is approved: %v", got)
 		}
 	}
 }

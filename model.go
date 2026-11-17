@@ -220,7 +220,8 @@ func (m *Model) Init() tea.Cmd {
 	m.Runtime.EnsureHistory()
 	m.Runtime.EnsureNounPlaces()
 	// The retention rules due today (retention.auto; none declared: nothing).
-	m.Runtime.RetentionDue()
+	// A first large removal held earlier (another process) is told too.
+	m.Runtime.notifyRetentionHeld(m.Runtime.RetentionDue())
 	// The About page is always registered (hidden from the tabs).
 	_ = m.Runtime.EnsureAboutPage()
 	// The Nouns page after it: the last tab (nouns.page).

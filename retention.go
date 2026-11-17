@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -31,7 +32,14 @@ const (
 	// RetentionAutoSetting turns the automatic runs (at start, the daily
 	// tick, RetentionDue) on or off; the verbs always work.
 	RetentionAutoSetting = "retention.auto"
-	// RetentionStateFile holds each row's last run day; RetentionLogFile
+	// RetentionFirstRunSetting decides what an automatic run does when a
+	// row nobody has applied yet would remove more than its keep (at least
+	// one) in one go: on (the default) holds the removal, records it and
+	// tells the owner, and the row removes by itself only after someone
+	// applied it once (retention-rule apply NAME); off removes at once.
+	RetentionFirstRunSetting = "retention.first-run-ask"
+	// RetentionStateFile holds each row's last run day, whether it was
+	// applied by hand once and what it holds; RetentionLogFile
 	// one JSON line per removal. Both live in the state directory.
 	RetentionStateFile = "retention.json"
 	RetentionLogFile   = "retention.log"
@@ -91,14 +99,32 @@ type retention struct {
 	remove func(string) error
 	// now is the clock; nil is time.Now.
 	now func() time.Time
-	// ran is each row's last run day when there is no state directory.
-	ran map[string]string
+	// state is each row's state when there is no state directory.
+	state map[string]retentionState
+}
+
+// retentionState is one row's line of retention.json: the UTC day it last
+// ran automatically, when someone first applied it by hand (from then on a
+// large automatic removal is not held), and the removal it holds.
+type retentionState struct {
+	Ran      string         `json:"ran,omitempty"`
+	Approved string         `json:"approved,omitempty"`
+	Held     *RetentionHeld `json:"held,omitempty"`
+}
+
+// RetentionHeld is a first large automatic removal a row holds for the
+// owner (retention.first-run-ask): when, how many copies or things, how
+// many bytes.
+type RetentionHeld struct {
+	At    string `json:"at"`
+	Count int    `json:"count"`
+	Bytes int64  `json:"bytes,omitempty"`
 }
 
 func (r *Runtime) retention() *retention {
 	c := r.Config()
 	if c.retention == nil {
-		c.retention = &retention{ran: map[string]string{}}
+		c.retention = &retention{state: map[string]retentionState{}}
 	}
 	return c.retention
 }
@@ -267,11 +293,14 @@ type RetentionRun struct {
 	Items  []RetentionItem `json:"removals"`
 	Remove int             `json:"would_remove"`
 	// RemoveBytes is what the removals hold; Freed what apply freed.
-	RemoveBytes int64  `json:"would_free"`
-	Applied     bool   `json:"applied,omitempty"`
-	Removed     int    `json:"removed,omitempty"`
-	Freed       int64  `json:"freed,omitempty"`
-	Error       string `json:"error,omitempty"`
+	RemoveBytes int64 `json:"would_free"`
+	Applied     bool  `json:"applied,omitempty"`
+	// Held is an automatic run that removed nothing because the row's
+	// first large removal waits for the owner (retention.first-run-ask).
+	Held    bool   `json:"held,omitempty"`
+	Removed int    `json:"removed,omitempty"`
+	Freed   int64  `json:"freed,omitempty"`
+	Error   string `json:"error,omitempty"`
 }
 
 // planRetention is what the row removes now.
@@ -367,10 +396,24 @@ func (r *Runtime) retentionRequest(c Context, row RetentionRow, q Request) (any,
 // applyRetention removes what the row's plan lists: files through the
 // remover, things through the row's verb (Confirmed: the owner's rule asks
 // no question; the verb's agent right still decides for an agent). Every
-// removal, done or failed, is one line of the retention log.
-func (r *Runtime) applyRetention(c Context, row RetentionRow) RetentionRun {
+// removal, done or failed, is one line of the retention log. An automatic
+// run (auto) holds a first large removal (retentionHolds) and removes
+// nothing; a run by hand (auto false) marks the row applied, so later
+// automatic runs remove by themselves.
+func (r *Runtime) applyRetention(c Context, row RetentionRow, auto bool) RetentionRun {
 	run := r.planRetention(c, row)
-	if run.Error != "" || run.Off {
+	if run.Error != "" {
+		return run
+	}
+	if auto && r.retentionHolds(row, run) {
+		r.holdRetention(row, run)
+		run.Held = true
+		return run
+	}
+	if !auto {
+		r.approveRetention(row)
+	}
+	if run.Off {
 		return run
 	}
 	st := r.retention()
@@ -455,34 +498,105 @@ func (r *Runtime) retentionPath(name string) string {
 	return filepath.Join(dir, name)
 }
 
-// retentionRan reads each row's last run day (retention.json, else memory).
-func (r *Runtime) retentionRan() map[string]string {
-	st := r.retention()
+// retentionStates reads each row's state (retention.json, else memory). A
+// row whose value is a bare day string (the first form of the file) reads
+// as its last run day.
+func (r *Runtime) retentionStates() map[string]retentionState {
 	path := r.retentionPath(RetentionStateFile)
 	if path == "" {
-		return st.ran
+		return maps.Clone(r.retention().state)
 	}
-	out := map[string]string{}
+	out := map[string]retentionState{}
+	raw := map[string]json.RawMessage{}
 	if data, err := os.ReadFile(path); err == nil {
-		_ = json.Unmarshal(data, &out)
+		_ = json.Unmarshal(data, &raw)
+	}
+	for name, value := range raw {
+		var s retentionState
+		if json.Unmarshal(value, &s.Ran) != nil {
+			_ = json.Unmarshal(value, &s)
+		}
+		out[name] = s
 	}
 	return out
 }
 
-// markRetentionRan records the rows' run day (temp file + rename).
-func (r *Runtime) markRetentionRan(names []string, day string) {
-	ran := r.retentionRan()
+// updateRetentionStates changes the named rows' states and writes them back
+// (temp file + rename).
+func (r *Runtime) updateRetentionStates(names []string, change func(*retentionState)) {
+	states := r.retentionStates()
 	for _, name := range names {
-		ran[name] = day
+		s := states[name]
+		change(&s)
+		states[name] = s
 	}
 	path := r.retentionPath(RetentionStateFile)
 	if path == "" {
-		r.retention().ran = ran
+		r.retention().state = states
 		return
 	}
-	data, _ := json.MarshalIndent(ran, "", "  ")
+	data, _ := json.MarshalIndent(states, "", "  ")
 	if err := errors.Join(os.MkdirAll(filepath.Dir(path), 0o700), writeFileAtomic(path, data)); err != nil {
 		r.UI().Notify("retention: " + err.Error())
+	}
+}
+
+// markRetentionRan records the rows' run day.
+func (r *Runtime) markRetentionRan(names []string, day string) {
+	r.updateRetentionStates(names, func(s *retentionState) { s.Ran = day })
+}
+
+// retentionHolds reports whether an automatic run of the row holds its
+// removal: retention.first-run-ask is on, nobody has applied the row by hand
+// yet, and the run would remove more than the row's keep (at least one).
+func (r *Runtime) retentionHolds(row RetentionRow, run RetentionRun) bool {
+	if !r.Settings().Bool(RetentionFirstRunSetting) || run.Off {
+		return false
+	}
+	return r.retentionStates()[row.Name].Approved == "" && run.Remove > max(run.Keep, 1)
+}
+
+// holdRetention records the held removal (apply tells the owner).
+func (r *Runtime) holdRetention(row RetentionRow, run RetentionRun) {
+	held := &RetentionHeld{At: r.retention().clock().UTC().Format(time.RFC3339), Count: run.Remove, Bytes: run.RemoveBytes}
+	r.updateRetentionStates([]string{row.Name}, func(s *retentionState) { s.Held = held })
+	r.Changed(RetentionNoun)
+}
+
+// approveRetention marks the row applied by hand: its held removal is gone
+// and later automatic runs remove by themselves.
+func (r *Runtime) approveRetention(row RetentionRow) {
+	if s := r.retentionStates()[row.Name]; s.Approved != "" && s.Held == nil {
+		return
+	}
+	at := r.retention().clock().UTC().Format(time.RFC3339)
+	r.updateRetentionStates([]string{row.Name}, func(s *retentionState) {
+		s.Approved = cmp.Or(s.Approved, at)
+		s.Held = nil
+	})
+	r.Changed(RetentionNoun)
+}
+
+// retentionHeldText is the line the owner reads about a held removal.
+func retentionHeldText(name string, held RetentionHeld) string {
+	what := fmt.Sprintf("%d", held.Count)
+	if held.Bytes > 0 {
+		what += " (" + retain.Size(held.Bytes) + ")"
+	}
+	return fmt.Sprintf("retention: %s would remove %s on its first run and waits for you: retention-rule show %s lists them, retention-rule apply %s removes them", name, what, name, name)
+}
+
+// notifyRetentionHeld notifies the rows whose first large removal waits
+// for the owner, except those a run just told about: a program's start
+// shows what a run in another process (mcp serve, a tool) held.
+func (r *Runtime) notifyRetentionHeld(told []RetentionRun) {
+	states := r.retentionStates()
+	for _, row := range r.retention().rows {
+		held := states[row.Name].Held
+		if held == nil || slices.ContainsFunc(told, func(run RetentionRun) bool { return run.Name == row.Name && run.Held }) {
+			continue
+		}
+		r.UI().Notify(retentionHeldText(row.Name, *held))
 	}
 }
 
@@ -536,6 +650,11 @@ func (r *Runtime) retentionThing(c Context, row RetentionRow) Thing {
 	for _, it := range run.Items {
 		items = append(items, it.line())
 	}
+	state := r.retentionStates()[row.Name]
+	held := ""
+	if state.Held != nil {
+		held = retentionHeldText(row.Name, *state.Held)
+	}
 	paths := slices.Clone(row.Paths)
 	if paths == nil {
 		paths = []string{}
@@ -546,7 +665,8 @@ func (r *Runtime) retentionThing(c Context, row RetentionRow) Thing {
 		"keep": run.Keep, "days": run.Days, "min_keep": row.MinKeep,
 		"keep_setting": row.KeepSetting, "days_setting": row.DaysSetting,
 		"count": run.Count, "bytes": run.Bytes, "would_remove": run.Remove, "would_free": run.RemoveBytes,
-		"removals": items, "error": run.Error, "last_run": r.retentionRan()[row.Name],
+		"removals": items, "error": run.Error, "last_run": state.Ran,
+		"held": held, "approved": state.Approved,
 	}
 }
 
@@ -578,6 +698,8 @@ var retentionProps = []PropSpec{
 	{Name: "removals", ReadOnly: true, Parameter: Parameter{Type: SettingList, Description: "What the row would remove now, a line each with its reason (apply --dry-run answers them as data)"}},
 	{Name: "error", ReadOnly: true, Parameter: Parameter{Description: "Why the row cannot run here, when it cannot"}},
 	{Name: "last_run", ReadOnly: true, Parameter: Parameter{Description: "The UTC day the row last ran automatically"}},
+	{Name: "held", ReadOnly: true, Parameter: Parameter{Description: "A first large removal an automatic run held for you (retention.first-run-ask), until the row is applied by hand"}},
+	{Name: "approved", ReadOnly: true, Parameter: Parameter{Description: "When the row was first applied by hand; from then on automatic runs remove what it says"}},
 }
 
 // registerRetention declares the retention-rule noun: a collection of the
@@ -603,11 +725,12 @@ func registerRetention(r *Runtime) {
 		},
 		Patch: patchRetention,
 	}).
-		Verb("apply", AppHandler(runRetentionApply), "Apply the retention rules now: one row (name) or every row; dry-run lists what would go and removes nothing; due runs only the rows not run yet today (the automatic run). Files go through the remover, things through the row's own verb under the caller's rights; every removal is a line of the retention log").
+		Verb("apply", AppHandler(runRetentionApply), "Apply the retention rules now: one row (name) or every row; dry-run lists what would go and removes nothing; due runs only the rows not run yet today (the automatic run); due or after-write holds the first large removal of a row nobody applied by hand yet (retention.first-run-ask), and a run by hand marks the row applied. Files go through the remover, things through the row's own verb under the caller's rights; every removal is a line of the retention log").
 		Params(map[string]Parameter{
-			"name":    {Type: "string", Noun: RetentionNoun, Description: "The row to apply; every row when omitted"},
-			"dry-run": {Type: "boolean", Description: "List what would be removed; remove nothing"},
-			"due":     {Type: "boolean", Description: "Only the rows not run yet this UTC day, and record that they ran"},
+			"name":        {Type: "string", Noun: RetentionNoun, Description: "The row to apply; every row when omitted"},
+			"dry-run":     {Type: "boolean", Description: "List what would be removed; remove nothing"},
+			"due":         {Type: "boolean", Description: "Only the rows not run yet this UTC day, and record that they ran (an automatic run)"},
+			"after-write": {Type: "boolean", Description: "Run as the automatic run does, without the day check: a program pruning after its own write (a backup); a first large removal is held for the owner"},
 		}).Positional("name").History(HistoryChange).
 		Verb("log", AppHandler(runRetentionLog), "The retention log: one line per removal (time, row, path or thing, bytes, reason, who), newest first").
 		Params(map[string]Parameter{
@@ -646,23 +769,28 @@ func runRetentionApply(c Ctx) Result {
 		}
 	}
 	due := boolArg(c.Args, "due")
+	auto := due || boolArg(c.Args, "after-write")
 	dry := boolArg(c.Args, "dry-run")
 	day := r.retention().clock().UTC().Format(time.DateOnly)
-	ran := map[string]string{}
+	states := map[string]retentionState{}
 	if due {
-		ran = r.retentionRan()
+		states = r.retentionStates()
 	}
 	runs := []RetentionRun{}
 	ranNow := []string{}
 	for _, row := range rows {
-		if due && ran[row.Name] == day {
+		if due && states[row.Name].Ran == day {
 			continue
 		}
 		if dry {
 			runs = append(runs, r.planRetention(c.Context, row))
 			continue
 		}
-		runs = append(runs, r.applyRetention(c.Context, row))
+		run := r.applyRetention(c.Context, row, auto)
+		if run.Held {
+			r.UI().Notify(retentionHeldText(row.Name, RetentionHeld{Count: run.Remove, Bytes: run.RemoveBytes}))
+		}
+		runs = append(runs, run)
 		ranNow = append(ranNow, row.Name)
 	}
 	if due && len(ranNow) > 0 {
