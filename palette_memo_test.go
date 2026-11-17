@@ -197,7 +197,8 @@ func TestPaletteListLive(t *testing.T) {
 // TestPaletteChoicesFetchedOnce: an argument's values are fetched once when
 // its step opens and typing filters them; a source that sees the typed text
 // is asked with none first, and with the word only when nothing it gave
-// starts with that word (a completer); the next open asks again.
+// starts with that word (a completer); another verb's parameter over the
+// same source shares the answer; the next open asks again.
 func TestPaletteChoicesFetchedOnce(t *testing.T) {
 	t.Parallel()
 	r := NewRuntime()
@@ -215,6 +216,10 @@ func TestPaletteChoicesFetchedOnce(t *testing.T) {
 	op := r.Operations.At(Key("doc.open"))
 	op.Parameters = map[string]Parameter{"name": {Type: "string", Required: true, Source: "names.complete"}}
 	r.Operations.Set(op)
+	r.Define("doc").Verb("rename", func(Ctx) Result { return Done(nil) })
+	other := r.Operations.At(Key("doc.rename"))
+	other.Parameters = map[string]Parameter{"name": {Type: "string", Required: true, Source: "names.complete"}}
+	r.Operations.Set(other)
 	if err := m.Palette.Open(); err != nil {
 		t.Fatal(err)
 	}
@@ -234,5 +239,13 @@ func TestPaletteChoicesFetchedOnce(t *testing.T) {
 	m.View()
 	if strings.Join(asked, " ") != " alpzz" {
 		t.Fatalf("a word nothing starts with asks the source with it: asked %q", asked)
+	}
+	if err := m.Palette.line.Replace(0, len(m.Palette.line.Text), ""); err != nil {
+		t.Fatal(err)
+	}
+	typeText(m, "doc rename alp")
+	m.View()
+	if strings.Join(asked, " ") != " alpzz" {
+		t.Fatalf("another verb over the same source asked it again: asked %q", asked)
 	}
 }

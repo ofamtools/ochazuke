@@ -157,8 +157,15 @@ const paletteChoicesSlot = "choices"
 // as a job of the palette (one in flight; a newer key replaces it), and
 // until it lands the parameter's Enum and errChoicesLoading answer, so
 // keys echo at once. The answer is kept by key until the palette opens
-// again, so the source runs once per line rather than once per key.
+// again, so the source runs once per line rather than once per key. A
+// source verb's answer is kept by its request (choicesSourceKey) instead,
+// so the parameters of many verbs that read one source (every pane verb's
+// id is pane.list) ask it once, not once per verb.
 func (p *Palette) sourceChoices(key string, param Parameter, word string, args Arguments) ([]Choice, error) {
+	shared := p.r.choicesSourceKey(param, word, args)
+	if shared != "" {
+		key = shared
+	}
 	if got, ok := p.loads[key]; ok {
 		return got.choices, got.err
 	}
@@ -177,6 +184,12 @@ func (p *Palette) sourceChoices(key string, param Parameter, word string, args A
 		p.loadingKey = ""
 	}, args)
 	if !pending {
+		if shared != "" {
+			if p.loads == nil {
+				p.loads = map[string]choiceList{}
+			}
+			p.loads[key] = choiceList{choices: choices, err: err}
+		}
 		return choices, err
 	}
 	p.loadSeq++

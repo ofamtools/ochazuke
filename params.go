@@ -506,6 +506,23 @@ func (r *Runtime) startChoices(c Context, p Parameter, query, owner, slot string
 	return choices, false, err
 }
 
+// choicesSourceKey names the request startChoices makes of a parameter's
+// source verb, with the Enum its answer starts with: two parameters (of
+// any verbs) with the same key get the same choices. "" when the choices
+// are not one source verb's answer (ChoicesFor reads them).
+func (r *Runtime) choicesSourceKey(p Parameter, query string, siblings ...Arguments) string {
+	source := r.ChoicesSource(p)
+	op, ok := r.Operations.Find(Key(source))
+	if source == "" || !ok || op.Confirm != "" {
+		return ""
+	}
+	raw, err := json.Marshal([]any{source, choicesSourceArgs(op, p, query, siblings...), enumChoices(p)})
+	if err != nil {
+		return ""
+	}
+	return "source\x00" + string(raw)
+}
+
 // ArgumentError is a request refused for its arguments (a missing required
 // one, a wrong type, a value outside the enum or the source's choices)
 // before any instance was chosen, so a caller never blames the target for
