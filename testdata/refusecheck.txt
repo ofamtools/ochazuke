@@ -1104,17 +1104,16 @@ standard_edit.go	Runtime.editChooserEarly	K15	"Failed(…)"	1
 standard_edit.go	Runtime.editHandler	K15	"Failed(…)"	3
 standard_edit.go	Runtime.editWriter	K15	"Failed(…)"	2
 standard_edit.go	Runtime.readEdit	K15	"Failed(…)"	1
+standard_edit.go	editArgs	K6	"%s.%s is not writable"	1
 standard_edit.go	editSession.bindFieldWrites	K15	"Failed(…)"	1
 standard_edit.go	editSession.bindSubmit	K14	"%s %w"	1	failure
 standard_edit.go	editSubject.reload	K15	"Failed(…)"	1
 standard_edit.go	registerStandardEdit	K1	"When(\"edit-opening\") without Fallback"	1
 standard_edit.go	registerStandardEdit	K1	"When(\"noun-editable\") without Fallback"	1
-standard_edit.go	editArgs	K6	"%s.%s is not writable"	1
 standard_undo.go	Runtime.undoBody	K14	"undo %s %s: %w"	1	failure
 standard_undo.go	Runtime.undoCurrent	K14	"undo %s %s: %w"	2	failure
 standard_undo.go	Runtime.undoCurrent	K9	"%s %s changed since this history entry; undo would overwrite later work"	2
 standard_undo.go	Runtime.undoCurrent	K9	"%s cannot check whether the thing changed since this entry"	1
-standard_undo.go	Runtime.undoEntry	K15	"an agent may undo only its own history entries; entry %d belongs to %s"	1
 standard_undo.go	Runtime.undoEntry	K15	"history entry %d is not in this session's change history"	1
 standard_undo.go	Runtime.undoEntry	K4	"history entry %d has no changes left to undo"	1
 standard_undo.go	Runtime.undoEntry	K6	"history entry %d is from an earlier session and cannot be undone"	1

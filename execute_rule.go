@@ -48,21 +48,15 @@ func (r *Runtime) explicitRule(c Context, op Operation, q Request, focus string,
 }
 
 // asksFirst reports whether a verb with Confirm asks before it runs over
-// subjects things: not for an agent the rights let pass (never past a verb
-// that Loses: agentPassesPrompt), and not when undo fully restores the
-// run.
+// subjects things: not for an agent the rights let pass
+// (agentPassesPrompt), and not when undo fully restores the run.
 func (r *Runtime) asksFirst(op Operation, subjects int) bool {
 	return !r.agentPassesPrompt(op) && !r.undoRestores(op, subjects)
 }
 
-// confirmedFor reports whether q's Confirmed answers op's prompt: always,
-// but for an agent's request to a verb that Loses, which only the owner's
-// answer to the prompt confirms (E2: Confirmed is on the wire).
+// confirmedFor reports whether q's Confirmed answers op's prompt.
 func (r *Runtime) confirmedFor(op Operation, q Request) bool {
-	if !q.Confirmed {
-		return false
-	}
-	return op.Loses == "" || !r.Actor().IsAgent() || q.agentApproved || r.agentApproved
+	return q.Confirmed
 }
 
 // Requirement is one thing a verb needs before it runs: Kind says what

@@ -3970,5 +3970,5 @@ Compared with Vim (checked in Neovim 0.12.3):
 
 | Vim form | Help tag | Ochazuke behavior |
 |---|---|---|
-| `:undo` / `u` | `:undo`, `u` | Similar: reverse the newest standard change group; an agent is scoped to its own entries. This is store history, not a buffer undo tree. |
+| `:undo` / `u` | `:undo`, `u` | Similar: reverse the newest standard change group. This is store history, not a buffer undo tree. |
 | `:undo {N}` | `:undo`, `undo-branches` | Different: Vim jumps to the state **after** change N; `history-entry.undo {entry: N}` reverses only entry N, preserving unrelated later changes and refusing conflicting edits. |

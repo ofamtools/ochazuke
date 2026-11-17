@@ -373,7 +373,7 @@ func (r *Runtime) undoTarget() int {
 	entries := r.history.entries
 	for i := len(entries) - 1; i >= 0; i-- {
 		e := entries[i]
-		if e.Restored || !e.Result.OK || (r.Actor().IsAgent() && !r.Actor().SameAgent(e.Context.Actor)) {
+		if e.Restored || !e.Result.OK {
 			continue
 		}
 		if slices.ContainsFunc(e.Changes, func(c ThingChange) bool { return !c.Undone }) {
@@ -533,7 +533,6 @@ func (r *Runtime) undoVerb(c Ctx) Result {
 	}
 	seq := r.history.entries[i].Seq
 	_, targeted := a["entry"]
-	targeted = targeted || r.Actor().IsAgent()
 	var out undoRun
 	body := r.undoBody(seqs, targeted, &out)
 	finish := r.undoFinish(seq, &out)
@@ -632,7 +631,7 @@ func (r *Runtime) undoGroupOf(i int) []int {
 	var out []int
 	for j := i; j >= 0; j-- {
 		e := entries[j]
-		if e.Group != group || e.Restored || !e.Result.OK || (r.Actor().IsAgent() && !r.Actor().SameAgent(e.Context.Actor)) {
+		if e.Group != group || e.Restored || !e.Result.OK {
 			continue
 		}
 		if slices.ContainsFunc(e.Changes, func(c ThingChange) bool { return !c.Undone }) {
@@ -680,9 +679,6 @@ func (r *Runtime) undoEntry(a Arguments) (int, error) {
 	for i, e := range r.history.entries {
 		if e.Seq != uint64(seq) {
 			continue
-		}
-		if r.Actor().IsAgent() && !r.Actor().SameAgent(e.Context.Actor) {
-			return -1, fmt.Errorf("an agent may undo only its own history entries; entry %d belongs to %s", seq, e.Context.Actor)
 		}
 		if e.Restored {
 			return -1, fmt.Errorf("history entry %d is from an earlier session and cannot be undone", seq)

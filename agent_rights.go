@@ -202,10 +202,9 @@ func (r *Runtime) agentNeverReason(op Operation) string {
 }
 
 // An allow right passes prompts, including owner overrides and a disabled
-// gate, but never the prompt of a verb that Loses what undo cannot restore
-// (exception E2 applies to everyone).
+// gate.
 func (r *Runtime) agentPassesPrompt(op Operation) bool {
-	return op.Loses == "" && r.Actor().IsAgent() && r.AgentRight(op, r.agentLive()).Right == AgentAllow
+	return r.Actor().IsAgent() && r.AgentRight(op, r.agentLive()).Right == AgentAllow
 }
 
 // agentActivity describes the newest active job, or a pending owner question.

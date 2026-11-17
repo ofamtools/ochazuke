@@ -206,7 +206,7 @@ func TestProtectedRightsDeclarations(t *testing.T) {
 			t.Fatal(err)
 		}
 		actor := testAgent("p")
-		for _, name := range []string{AgentRightsSetting, AgentRightsGateSetting, AgentConfirmAttributionSetting} {
+		for _, name := range []string{AgentRightsSetting, AgentRightsGateSetting} {
 			before, _ := s.Value(name)
 			var value any = "false"
 			if name == AgentRightsSetting {

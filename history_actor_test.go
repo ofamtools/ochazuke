@@ -11,44 +11,27 @@ func actorSet(t *testing.T, r *Runtime, actor Actor, id, status string) uint64 {
 	return lastEntry(t, r).Seq
 }
 
+// An agent undoes like the owner: any entry, the newest by default.
 func TestActorUndoEntryScope(t *testing.T) {
 	r, s := newUndoRuntime(t, true, true)
 	a, b := testAgent("a"), testAgent("b")
 	own := actorSet(t, r, a, "t1", "done")
-	owner := actorSet(t, r, Owner(), "t2", "done")
+	actorSet(t, r, Owner(), "t2", "done")
 	other := actorSet(t, r, b, "t2", "todo")
-	for _, seq := range []uint64{owner, other} {
-		_, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(seq)}})
-		if err == nil || !strings.Contains(err.Error(), "only its own") {
-			t.Fatalf("undo %d: %v", seq, err)
-		}
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(other)}})
+	if taskStatus(s, "t2") != "done" || taskStatus(s, "t1") != "done" {
+		t.Fatal("agent undo of another actor's entry did not apply alone")
 	}
-	changedSession := a
-	changedSession.Session = "other"
-	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &changedSession, Args: Arguments{"entry": int(own)}}); err == nil {
-		t.Fatal("another session claimed entry")
+	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a})
+	if taskStatus(s, "t2") != "doing" {
+		t.Fatal("default agent undo did not take the newest entry")
 	}
 	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(own)}})
-	if taskStatus(s, "t1") != "todo" || taskStatus(s, "t2") != "todo" {
-		t.Fatal("undo affected another entry")
+	if taskStatus(s, "t1") != "todo" {
+		t.Fatal("own entry not undone")
 	}
 	if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: Arguments{"entry": int(own)}}); err == nil {
 		t.Fatal("undid entry twice")
-	}
-}
-
-func TestActorUndoDefaultSkipsOtherActors(t *testing.T) {
-	r, s := newUndoRuntime(t, true, true)
-	a := testAgent("a")
-	actorSet(t, r, a, "t1", "done")
-	actorSet(t, r, Owner(), "t2", "done")
-	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a})
-	if taskStatus(s, "t1") != "todo" || taskStatus(s, "t2") != "done" {
-		t.Fatal("default agent undo touched owner")
-	}
-	mustRun(t, r, Request{Noun: "ochazuke.history-entry", Verb: "undo"})
-	if taskStatus(s, "t2") != "doing" {
-		t.Fatal("owner default undo changed")
 	}
 }
 
@@ -57,7 +40,7 @@ func TestActorUndoRefusesLaterEdits(t *testing.T) {
 	a := testAgent("a")
 	seq := actorSet(t, r, a, "t1", "done")
 	actorSet(t, r, Owner(), "t1", "todo")
-	for _, args := range []Arguments{nil, {"entry": int(seq)}} {
+	for _, args := range []Arguments{{"entry": int(seq)}} {
 		if _, err := r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo", Actor: &a, Args: args}); err == nil || !strings.Contains(err.Error(), "later work") {
 			t.Fatalf("stale undo: %v", err)
 		}
