@@ -7,7 +7,8 @@ import (
 // The live view of a show page (run plan 5.6, spine S9): a noun declares a
 // prop drawn as a view, {"name": "live", "view": {"kind": "terminal",
 // "hook": NAME}}, and the show form of one of its things draws the thing's
-// terminal in its place. ochazuke.detail.attach opens it on the current
+// terminal in its place (a show form that asks for it, ShowFormSpec.Live:
+// a catalog record-form detail does). ochazuke.detail.attach opens it on the current
 // page's show form (a key row names it with when detail-live, so the key
 // goes on to its next row where nothing can go live): the hook opens the thing's stream, a
 // terminal under the show form's row stands in for the form, focused, in
@@ -45,7 +46,7 @@ func (sf *ShowForm) Live() *Terminal { return sf.r.Terminal(sf.liveID()) }
 // liveHook is the terminal hook of the thing the show form holds: its
 // noun's first prop with a terminal view whose hook is registered.
 func (sf *ShowForm) liveHook() TerminalHook {
-	if sf.liveKey == "" || !sf.r.Settings().Bool(DetailLiveSetting) {
+	if !sf.spec.Live || sf.liveKey == "" || !sf.r.Settings().Bool(DetailLiveSetting) {
 		return nil
 	}
 	return sf.r.terminalHook(sf.liveNoun)

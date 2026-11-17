@@ -34,6 +34,7 @@ func newRecordFormView(h DetailHost) (DetailView, error) {
 	sf, err := v.r.AddShowForm(h.Parent+"/show", ochazuke.ShowFormSpec{
 		Target: func() (string, string) { return v.noun, v.key },
 		Data:   func() string { return v.data },
+		Live:   true,
 		Row:    h.Parent, // a live view goes under the row: its noun's verbs answer inside it
 	}, ochazuke.Parent(h.Page))
 	if err != nil {

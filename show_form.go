@@ -40,6 +40,10 @@ type ShowFormSpec struct {
 	Related *RelatedSpec
 	// NoSections leaves all sections out, including Related when supplied.
 	NoSections bool
+	// Live lets the form show its thing's terminal view live in its place
+	// (show_form_live.go): a catalog record-form detail sets it; a page
+	// that draws its thing's terminal its own way leaves it off.
+	Live bool
 	// Row is the instance that stands for the shown thing (a mounted
 	// page's detail row): the live view's terminal goes under it, so the
 	// thing's verbs answer from inside it. "" is the show form's parent.
