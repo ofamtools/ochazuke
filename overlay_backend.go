@@ -75,6 +75,15 @@ type OverlayVersioner interface {
 	Version() (string, error)
 }
 
+// OverlayVersionedChange is a versioned backend whose change also answers
+// its version read inside the write's transaction, before and after the
+// write: when before is the version the process read the rows at, the
+// process keeps its rows (only its own write moved it); otherwise the next
+// read pass reads them again. The overlay uses it in place of Change.
+type OverlayVersionedChange interface {
+	ChangeVersioned(noun, key string, change func(*OverlayRow) bool) (row *OverlayRow, before, after string, err error)
+}
+
 // PropChange is what the overlay keeps about one prop the user wrote:
 // the source's value when they wrote it (the original as last seen; Seen
 // is false when the source held no value of that prop then, or was not

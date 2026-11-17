@@ -314,6 +314,7 @@ func (r *Runtime) refreshWatches(nouns []string) {
 	}
 	h.refreshing = true
 	h.round++
+	r.readPass++
 	defer func() { h.refreshing = false }()
 	for _, w := range slices.Clone(h.watches) {
 		if !w.push && !w.ended && (len(nouns) == 0 || slices.Contains(nouns, w.noun)) {

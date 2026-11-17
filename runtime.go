@@ -667,6 +667,10 @@ func (o Operation) ParameterOrder() []string {
 // inputs, lists, the picker and the registers are instances, never fields;
 // TestRuntimeHoldsNoComponentFields pins this list.
 type Runtime struct {
+	// readPass moves at the start of each request and each watch round
+	// (ReadPass): a cache of what other processes write checks their
+	// version once per pass, never per row.
+	readPass uint64
 	// relations is the relation store and the declared kinds (relation.go).
 	relations *relationState
 	// derivations are the derivation kinds the application registered
@@ -1087,6 +1091,12 @@ func (r *Runtime) instancesInOrder() []*Instance {
 // Execute runs an operation at the current focus context; see ExecuteAt.
 func (r *Runtime) Execute(q Request) (any, error) { return r.ExecuteAt(r.Context(), q) }
 
+// ReadPass is a number that moves at the start of each request and each
+// watch round: a cache of data other processes write (the overlay's rows,
+// an application's) reads the source's version once per pass, then trusts
+// what it holds until the pass moves.
+func (r *Runtime) ReadPass() uint64 { return r.readPass }
+
 // ExecuteAt runs an operation for a context. The innermost noun on the
 // focus stack that overrides the operation handles it; otherwise its Run does.
 // Every request is appended to the action history with its kind, the
@@ -1182,6 +1192,7 @@ func (r *Runtime) endRequest() {
 
 func (r *Runtime) execute(c Context, request *Request, checkOnly bool, run ...operationRunner) (value any, err error) {
 	defer r.endRequest()
+	r.readPass++
 	q := *request
 	// A binding row's own request (runRow) is this request's only: the
 	// handler's own requests start from their own.

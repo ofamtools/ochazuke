@@ -105,6 +105,8 @@ type overlayRows struct {
 	// (OverlayVersioner); a read whose backend answers another reads the
 	// rows again.
 	version string
+	// checked is the read pass the version was last read in.
+	checked uint64
 	// versions caches each noun's overlay version (overlayVersion); a
 	// write clears it.
 	versions map[string]string
@@ -127,9 +129,10 @@ func (r *Runtime) overlayState() *overlayRows {
 	backend, ident := r.overlayBackend()
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	version := ""
-	if v, ok := backend.(OverlayVersioner); ok {
-		version, _ = v.Version()
+	version := o.version
+	if v, ok := backend.(OverlayVersioner); ok && (!o.loaded || o.ident != ident || o.checked != r.readPass) {
+		version, _ = v.Version() // once per read pass (ReadPass), never per row
+		o.checked = r.readPass
 	}
 	if !o.loaded || o.ident != ident || version != o.version {
 		held := o.rows
@@ -229,18 +232,20 @@ func (r *Runtime) changeOverlay(noun, key string, change func(*OverlayRow) bool)
 	if o.backend == nil || o.session[noun] {
 		return ApplyOverlayChange(o.rows, noun, key, change).clone(), nil
 	}
-	versioner, versioned := o.backend.(OverlayVersioner)
-	current := versioned
-	if versioned {
-		before, _ := versioner.Version()
-		current = before == o.version // nothing else wrote since this process read the rows
+	var row *OverlayRow
+	var fresh map[string]map[string]*OverlayRow
+	var err error
+	if vc, ok := o.backend.(OverlayVersionedChange); ok {
+		var before, after string
+		row, before, after, err = vc.ChangeVersioned(noun, key, change)
+		if err == nil && before == o.version {
+			o.version = after // this write alone moved it (read inside its transaction): the rows held stay right
+		}
+	} else {
+		row, fresh, err = o.backend.Change(noun, key, change)
 	}
-	row, fresh, err := o.backend.Change(noun, key, change)
 	if err != nil {
 		return nil, err
-	}
-	if current {
-		o.version, _ = versioner.Version() // this write alone moved it: the rows held stay right
 	}
 	if fresh == nil {
 		ApplyOverlayChange(o.rows, noun, key, func(held *OverlayRow) bool {

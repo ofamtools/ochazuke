@@ -110,7 +110,8 @@ func TestOverlayConflictValues(t *testing.T) {
 }
 
 // A versioned backend: a row another process wrote (the version moved) is
-// read on the next read; the process's own write reads nothing again.
+// read in the next read pass, not before; the process's own write reads
+// nothing again.
 func TestOverlayBackendVersion(t *testing.T) {
 	r := NewRuntime()
 	mem := &memOverlay{rows: map[string]map[string]*OverlayRow{}}
@@ -126,6 +127,10 @@ func TestOverlayBackendVersion(t *testing.T) {
 	}
 	ApplyOverlayChange(mem.rows, "n", "other", func(o *OverlayRow) bool { o.Props = map[string]any{"b": 2}; return true })
 	mem.version++ // another process wrote
+	if r.OverlayRow("n", "other") != nil {
+		t.Fatal("read again inside the same read pass")
+	}
+	r.readPass++ // the next request
 	if r.OverlayRow("n", "other") == nil {
 		t.Fatal("another process's row is not read")
 	}
