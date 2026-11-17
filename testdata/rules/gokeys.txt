@@ -1,0 +1,14 @@
+# rulecheck gokeys baseline: file, function, key (the Bind call's key: a constant in quotes, a Binding literal's Keys, else the argument's expression), count, reason (tab separated).
+# A row says: FUNCTION in FILE binds a key row in Go with a Bind call (spine S1 keys: every key is a row of a bindings or noun
+# file, so the owner's bindings.json can override it and help, the palette and the CLI read it). Fix it by moving the row into
+# the noun's keys (a noun file) or a bindings file. A row with a reason is a reviewed exception (the loader binding the rows it
+# read); a row without one is debt that only shrinks (RULECHECK_UPDATE=1 removes and lowers rows, never adds one).
+# Seeded 2026-11-17 by run plan 5.4a (owed by 5.1): the rows without a reason are the Bind calls present that day; run plan
+# steps 6b to 6m (each noun's batch, its key rows moving to its noun file) remove them, 5.9 seeds what is left.
+cli/nounfile.go	LoadNouns	r	1	the noun-file loader binding the key rows it read (NounFiles.Bind), not a Go key row
+cli/page.go	PageView.addGroups	key	2
+cli/page.go	PageView.listVerbs	row	1
+grid/grid.go	Grid.syncInstances	row	1
+list_classes.go	NounBuilder.Classes	<expr>	1
+reader.go	Reading.bind	c	1
+timeline.go	Runtime.AddTimeline	row	1

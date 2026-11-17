@@ -142,6 +142,20 @@ func Checks() []Rule {
 			Doc: "every declaration row names a registered handler, hook or source, every registered one is cited by a row, and a verb row's parameters are its handler's (Handlers)"},
 		{ID: "nouns", Kind: Registry, Run: runNouns,
 			Doc: "thing nouns have the core verbs and a key prop; command nouns no core verb names (nouncheck)"},
+		{ID: "declarations", Kind: Static, Run: runDeclarations,
+			Doc: "no Define call outside the noun-file loader (spine S1 rule 1)"},
+		{ID: "gokeys", Kind: Static, Run: runGoKeys,
+			Doc: "no Bind key row in Go (spine S1 keys)"},
+		{ID: "stringids", Kind: Static, Run: runStringIDs,
+			Doc: "no id glued or cut in a string with : or / or a literal prefix outside Ref (spine S5 rule 4, report 1f)"},
+		{ID: "storeliterals", Kind: Static, Run: runStoreLiterals,
+			Doc: "no ochazuke.Store literal (spine S6 rule 1)"},
+		{ID: "storeui", Kind: Static, Run: runStoreUI,
+			Doc: "no store function or hook reads a UI field (spine S6 rule 2)"},
+		{ID: "hookrefusal", Kind: Static, Run: runHookRefusal,
+			Doc: "no store hook answers a refusal, Nothing or Need (spine S6 rule 3)"},
+		{ID: "nounlines", Kind: Registry, Run: runNounLines,
+			Doc: "per stored noun, the Go lines that name it may only fall (spine S12 measure; reads the runtimes' nouns and the source)"},
 	}
 }
 
@@ -150,6 +164,7 @@ func Checks() []Rule {
 type Context struct {
 	Config
 	work, max int
+	src       *sourceCache // the static checks' one parse, shared by Check
 }
 
 // AllRuntimes are Runtime and Config.Runtimes, nil ones left out.
@@ -213,9 +228,10 @@ func Check(t *testing.T, cfg Config) {
 	}
 	start := time.Now()
 	var times []string
+	src := &sourceCache{}
 	for _, rule := range rules {
 		began := time.Now()
-		c := &Context{Config: cfg, max: cfg.MaxWork}
+		c := &Context{Config: cfg, max: cfg.MaxWork, src: src}
 		t.Run(rule.ID, func(t *testing.T) {
 			if why, off := cfg.Off[rule.ID]; off {
 				t.Skipf("off: %s", why)

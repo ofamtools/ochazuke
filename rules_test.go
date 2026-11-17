@@ -22,7 +22,11 @@ import (
 // them, so the tree, timeline, rail, forms and pickers it nests the lists
 // in are walked though neither runtime here builds them), modeexits
 // (rules/modeexits.txt) and outcomes (rules/outcomes.txt: every offered
-// verb's dry run, the places' coverage; it replaces TestEveryOfferIsAccepted).
+// verb's dry run, the places' coverage; it replaces TestEveryOfferIsAccepted),
+// and the restructure's syntax checks (seeded 2026-11-17, run plan 5.4a):
+// declarations, gokeys, stringids, storeliterals, storeui, hookrefusal and
+// nounlines (rules/<id>.txt; the library's own Go is debt like an app's,
+// the loader and Ref's text form are rows with a reason).
 // Every baseline only shrinks (RULECHECK_UPDATE=1).
 // This test replaces TestNoNewNameBranches, TestNoNewRefusals,
 // TestLexicon and TestNounsAreThingsOrCommands.
