@@ -373,6 +373,17 @@ func registerTerminal(r *Runtime) {
 					back = to
 				}
 			}
+			// The place the attach came from may be on another page (a
+			// row of a page that attached the terminal on its own page):
+			// open that page first, so the focus can land there.
+			for _, step := range r.Ancestry(back) {
+				if step != r.Page && r.PageOf(step) != nil && len(r.modals) == 0 {
+					if err := r.OpenPage(step); err != nil {
+						return nil, err
+					}
+					break
+				}
+			}
 			if err = r.SetFocus(back); err == nil && t.closeOnDetach {
 				err = r.RemoveInstance(t.id)
 			}

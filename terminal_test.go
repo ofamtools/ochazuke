@@ -433,11 +433,19 @@ func focusOnCloseFixture(t *testing.T) *Runtime {
 }
 
 // A CloseOnDetach terminal with FocusOnClose hands the focus to the named
-// row on the leader detach; a target that does not exist falls back to the
-// parent.
+// row on the leader detach, opening the row's page when it is another
+// (an attach made from a row of another page); a target that does not
+// exist falls back to the parent.
 func TestTerminalFocusOnCloseReturnsToNamedInstance(t *testing.T) {
-	for _, tc := range []struct{ target, want string }{{"b", "b"}, {"missing", "panes"}} {
+	for _, tc := range []struct{ target, want string }{{"b", "b"}, {"missing", "panes"}, {"x", "x"}} {
 		r := focusOnCloseFixture(t)
+		r.Instance("index")
+		if _, err := r.AddList("index/rows", []ListItem{{ID: "x", Label: "X", Noun: "row"}}, Parent("index")); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := r.AddPage("index", "Index", func(*Runtime, int, int) Block { return Text("") }, Focus("index/rows")); err != nil {
+			t.Fatal(err)
+		}
 		stream := newFakeStream()
 		if _, err := r.AddTerminal("live", stream, Parent("panes"), CloseOnDetach(), FocusOnClose(tc.target)); err != nil {
 			t.Fatal(err)
