@@ -10,7 +10,7 @@ import (
 // (Palette.index); drawing it again with nothing changed asks no guard and
 // reads no store, and a change the runtime is told of reads again. The
 // stores have no change token, as an app's own store often has none, so the
-// graph walk behind a by-association verb is never cached below the palette.
+// graph walk behind a by-association verb holds only until such a change.
 func TestPaletteRedrawReadsNoStore(t *testing.T) {
 	t.Parallel()
 	r := NewRuntime()

@@ -28,12 +28,16 @@ func (a reached) ref() string { return Ref{Noun: a.Noun, Key: a.Key}.String() }
 
 // reachWalk is the cached result of one walk and what it depends on.
 type reachWalk struct {
-	nodes      []reached
-	uncachable bool
-	instGen    uint64
-	relGen     uint64
-	live       map[string]string // live instance read → its association fingerprint
-	tokens     map[string]string // local store read → its change token
+	nodes []reached
+	// untokened: the walk read a store with no change token, so it holds
+	// only while the runtime is told of no change (renderCache.changes, the
+	// counter the palette's line index keys on) since changes was read.
+	untokened bool
+	changes   uint64
+	instGen   uint64
+	relGen    uint64
+	live      map[string]string // live instance read → its association fingerprint
+	tokens    map[string]string // local store read → its change token
 }
 
 type reachKey struct {
@@ -94,7 +98,10 @@ func (r *Runtime) liveFingerprint(inst *Instance) string {
 // relation rows), up to keys.graph-depth hops and keys.graph-fan-out
 // neighbours per thing. The result is cached on the level, the settings, the
 // instance set, the relation generation, each live instance read and the
-// change token of each store read; a store with no token is never cached.
+// change token of each store read; a walk that read a store with no token
+// holds until the runtime is told of a change (renderCache.changes), so one
+// palette open or key walks each level once, not once per by-association
+// verb.
 func (r *Runtime) reachFrom(id string) []reached {
 	depth := r.graphDepth()
 	if depth == 0 || r.Instances[id] == nil || r.Instances[id].Parent == "" {
@@ -115,16 +122,12 @@ func (r *Runtime) reachFrom(id string) []reached {
 	if r.renderCache.reach == nil {
 		r.renderCache.reach = map[reachKey]*reachWalk{}
 	}
-	if w.uncachable {
-		delete(r.renderCache.reach, key)
-	} else {
-		r.renderCache.reach[key] = w
-	}
+	r.renderCache.reach[key] = w
 	return w.nodes
 }
 
 func (r *Runtime) reachValid(w *reachWalk) bool {
-	if w.instGen != r.renderCache.instances.generation || w.relGen != r.relationGen() {
+	if w.instGen != r.renderCache.instances.generation || w.relGen != r.relationGen() || w.untokened && w.changes != r.renderCache.changes {
 		return false
 	}
 	for id, fp := range w.live {
@@ -159,7 +162,7 @@ func (r *Runtime) reachCtx(noun string) Ctx {
 // never called here (a process call must not happen inside key dispatch):
 // such a thing is listed by its key and has no edges of its own.
 func (r *Runtime) walkReach(from string, key reachKey) *reachWalk {
-	w := &reachWalk{instGen: r.renderCache.instances.generation, relGen: r.relationGen(), live: map[string]string{}, tokens: map[string]string{}}
+	w := &reachWalk{changes: r.renderCache.changes, instGen: r.renderCache.instances.generation, relGen: r.relationGen(), live: map[string]string{}, tokens: map[string]string{}}
 	start := r.Instances[from]
 	startThing := r.instanceThing(start)
 	seen := map[string]bool{Ref{Noun: start.Noun, Key: startThing.Key}.String(): true, "instance:" + from: true}
@@ -242,8 +245,8 @@ func (r *Runtime) walkReach(from string, key reachKey) *reachWalk {
 
 // reachGet reads a thing from a local store with a token, noting the token.
 // A store that calls out of the process (Remote), a store without Get, and a
-// failed read give nil; a store without a change token makes the walk
-// uncachable.
+// failed read give nil; a store without a change token makes the walk hold
+// only until the next change the runtime is told of (untokened).
 func (r *Runtime) reachGet(w *reachWalk, n *Noun, key string) Thing {
 	if n.Store == nil || n.Store.Get == nil || n.Store.Remote || n.keyProp() == nil {
 		return nil
@@ -254,7 +257,7 @@ func (r *Runtime) reachGet(w *reachWalk, n *Noun, key string) Thing {
 		return nil
 	}
 	if n.Store.ChangeToken == nil {
-		w.uncachable = true
+		w.untokened = true
 	} else if _, ok := w.tokens[n.Name]; !ok {
 		w.tokens[n.Name] = storeToken(n.Store, c)
 	}

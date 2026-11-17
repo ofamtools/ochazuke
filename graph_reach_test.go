@@ -129,3 +129,39 @@ func TestReachStoredThingIsNotAnError(t *testing.T) {
 		}
 	}
 }
+
+// A walk that reads a store with no change token (an app's own store often
+// has none) is walked once while the runtime is told of no change, however
+// many by-association verbs ask (the palette asks once per verb), and is
+// walked again after a change it is told of.
+func TestReachWithoutTokenHoldsUntilAChange(t *testing.T) {
+	t.Parallel()
+	r := reachFixture(t, Thing{"id": "a", "project": "p1"})
+	gets := 0
+	for _, noun := range []string{"pane", "project"} {
+		store := r.Noun(noun).Store
+		get := store.Get
+		store.ChangeToken = nil
+		store.Get = func(c Ctx, key string) (Thing, error) { gets++; return get(c, key) }
+	}
+	if got := reachKeys(r, "project"); !slices.Equal(got, []string{"p1"}) {
+		t.Fatalf("projects %v", got)
+	}
+	walked := gets
+	if walked == 0 {
+		t.Fatal("the walk read no store: the fixture proves nothing")
+	}
+	for range 50 {
+		reachKeys(r, "project")
+	}
+	if gets != walked {
+		t.Fatalf("50 more asks read the stores %d more times", gets-walked)
+	}
+	if _, err := r.Noun("pane").Store.Patch(r.reachCtx("pane"), "a", Thing{"project": "p2"}); err != nil {
+		t.Fatal(err)
+	}
+	r.Changed("pane")
+	if got := reachKeys(r, "project"); !slices.Equal(got, []string{"p2"}) || gets == walked {
+		t.Fatalf("after a change: %v (%d reads)", got, gets-walked)
+	}
+}
