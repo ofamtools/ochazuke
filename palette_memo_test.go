@@ -216,8 +216,8 @@ func TestPaletteChoicesFetchedOnce(t *testing.T) {
 	op := r.Operations.At(Key("doc.open"))
 	op.Parameters = map[string]Parameter{"name": {Type: "string", Required: true, Source: "names.complete"}}
 	r.Operations.Set(op)
-	r.Define("doc").Verb("rename", func(Ctx) Result { return Done(nil) })
-	other := r.Operations.At(Key("doc.rename"))
+	r.Define("doc").Verb("read", func(Ctx) Result { return Done(nil) })
+	other := r.Operations.At(Key("doc.read"))
 	other.Parameters = map[string]Parameter{"name": {Type: "string", Required: true, Source: "names.complete"}}
 	r.Operations.Set(other)
 	if err := m.Palette.Open(); err != nil {
@@ -243,7 +243,7 @@ func TestPaletteChoicesFetchedOnce(t *testing.T) {
 	if err := m.Palette.line.Replace(0, len(m.Palette.line.Text), ""); err != nil {
 		t.Fatal(err)
 	}
-	typeText(m, "doc rename alp")
+	typeText(m, "doc read alp")
 	m.View()
 	if strings.Join(asked, " ") != " alpzz" {
 		t.Fatalf("another verb over the same source asked it again: asked %q", asked)
