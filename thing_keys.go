@@ -58,7 +58,9 @@ var keyResolvers = []keyResolver{
 
 // keyFinder uses the record's canonical key when a store accepts a selector.
 func keyFinder(n *Noun, c Ctx, text string) ([]string, error) {
-	t, err := n.Store.Get(c, text)
+	probe := c
+	probe.Probe = true // a miss is not an error here: no did-you-mean listing
+	t, err := n.Store.Get(probe, text)
 	if err != nil || t == nil {
 		return nil, nil // not found here: the next resolver, or the store's own error
 	}

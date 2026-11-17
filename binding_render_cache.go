@@ -11,10 +11,16 @@ type runtimeRenderCache struct {
 	reaching   bool                    // a graph walk is reading stores
 	generation uint64
 	// changes moves on every change the runtime is told of (Changed, a
-	// change request, a change job's end, Model.InvalidateRender): what a
-	// guard or a store could answer differently since (the palette's line
-	// index, palette_parse.go).
-	changes    uint64
+	// change request or a change job's end whose verb may write a store,
+	// Model.InvalidateRender): what a guard or a store could answer
+	// differently since (the palette's line index, palette_parse.go). A
+	// verb that declares it writes no store (Operation.Writes empty: text
+	// typed into an input, keys sent to a pane) leaves it.
+	changes uint64
+	// loadTokens are the stores' ChangeTokens as the last load that wrote
+	// them saw them (Runtime.storeTokenSame): a periodic load whose store
+	// answers the same token leaves changes where it is.
+	loadTokens map[string]string
 	instances  instanceIndex
 	scans      []*bindingScan
 	lastScan   *bindingScan

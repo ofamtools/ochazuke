@@ -1174,6 +1174,12 @@ func (r *Runtime) executeAtNoting(c Context, q Request, run operationRunner) (an
 	if err == nil && !nothing && r.historyKind(q) == HistoryChange {
 		// The open surfaces count every change request that ran (events.go).
 		r.countChange([]string{q.Noun})
+		// What a guard or a store answers may have changed, unless the
+		// verb declares it writes no store (Operation.Writes empty: text
+		// typed into an input, keys sent to a pane).
+		if writes, anyStore := r.requestWrites(q); anyStore || len(writes) > 0 {
+			r.renderCache.changes++
+		}
 	}
 	r.watchAfterRequest(q, depth, nothing)
 	if depth == 0 {
@@ -1527,8 +1533,12 @@ func IntArg(a Arguments, name string, fallback int) int {
 }
 func (r *Runtime) Catalog() []Operation {
 	out := make([]Operation, 0, r.Operations.Len())
+	byAction := r.aliasesByAction() // one pass over the aliases, not one per operation
 	for _, op := range r.Operations.Entries() {
-		op.Aliases = r.aliasNames(op.Key.Short())
+		op.Aliases = nil
+		for _, a := range byAction[op.Key.Short()] {
+			op.Aliases = append(op.Aliases, r.DisplayKey(a.Alias))
+		}
 		out = append(out, op)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Key.Short() < out[j].Key.Short() })

@@ -486,13 +486,13 @@ func RegisterInputOperations(r *Runtime) {
 			in.resetKeys()
 			start, end := in.typeOverRange()
 			return in.Replace(start, end, StringArg(a, "text", ""))
-		}, true, Operation{Typing: true, Repeatable: true, HistoryKind: HistoryChange}},
+		}, true, Operation{Typing: true, Repeatable: true, HistoryKind: HistoryChange, Writes: []string{}}},
 		{"replace", "Replace a half-open rune range", map[string]Parameter{"start": {Type: "integer", Required: true}, "end": {Type: "integer", Required: true}, "text": {Type: "string", Required: true}}, func(in *Input, a Arguments) error {
 			in.resetKeys()
 			return in.Replace(IntArg(a, "start", 0), IntArg(a, "end", 0), StringArg(a, "text", ""))
-		}, true, Operation{Repeatable: true, HistoryKind: HistoryChange}},
-		{"undo", "Undo changes in this input", map[string]Parameter{"steps": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Undo(IntArg(a, "steps", 1)) }, true, Operation{HistoryKind: HistoryChange}},
-		{"redo", "Redo changes; branch is a zero-based child index for the first step", map[string]Parameter{"steps": {Type: "integer"}, "branch": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Redo(IntArg(a, "steps", 1), IntArg(a, "branch", -1)) }, true, Operation{HistoryKind: HistoryChange}},
+		}, true, Operation{Repeatable: true, HistoryKind: HistoryChange, Writes: []string{}}},
+		{"undo", "Undo changes in this input", map[string]Parameter{"steps": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Undo(IntArg(a, "steps", 1)) }, true, Operation{HistoryKind: HistoryChange, Writes: []string{}}},
+		{"redo", "Redo changes; branch is a zero-based child index for the first step", map[string]Parameter{"steps": {Type: "integer"}, "branch": {Type: "integer"}}, func(in *Input, a Arguments) error { return in.Redo(IntArg(a, "steps", 1), IntArg(a, "branch", -1)) }, true, Operation{HistoryKind: HistoryChange, Writes: []string{}}},
 		{"move", "Move by a text motion: left/right/up/down, Vim word- and WORD-forward/backward/end, Readline word-next/previous, line-start/end, first-line/last-line, paragraph-forward/backward, screen-top/middle/bottom, match (%)", map[string]Parameter{"motion": {Type: "string", Required: true}, "steps": {Type: "integer"}, "line": {Type: "integer"}}, func(in *Input, a Arguments) error {
 			return in.move(StringArg(a, "motion", ""), IntArg(a, "steps", 1), IntArg(a, "line", 0))
 		}, false, Operation{Motion: true, HistoryKind: HistoryAction}},
@@ -522,10 +522,16 @@ func RegisterInputOperations(r *Runtime) {
 				return err
 			}
 			if normal && killed != "" {
-				return r.storeYank(Yank{Text: killed, Shape: "char"}, "", true)
+				// Only a normal-mode kill writes a store (the registers):
+				// the verb declares none, so a backspace while typing
+				// tells no watch and keeps the palette's memo.
+				if err := r.storeYank(Yank{Text: killed, Shape: "char"}, "", true); err != nil {
+					return err
+				}
+				r.Changed("ochazuke.register", "ochazuke.yank-history")
 			}
 			return nil
-		}, true, Operation{Repeatable: true, HistoryKind: HistoryChange}},
+		}, true, Operation{Repeatable: true, HistoryKind: HistoryChange, Writes: []string{}}},
 	} {
 		fn, edit := spec.fn, spec.edit
 		op := spec.traits

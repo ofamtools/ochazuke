@@ -88,6 +88,10 @@ type Ctx struct {
 	// an operation reachable under two nouns), with that name's noun as
 	// the subject side.
 	Invoked Invocation
+	// Probe is set while a store is asked only whether a key names a
+	// thing (keyFinder): a not-found answer then leaves out the
+	// did-you-mean keys (ThingNotFound), which cost a listing nobody reads.
+	Probe bool
 }
 
 // AppHandler is the signature of an application verb: it reads the Ctx and

@@ -581,13 +581,27 @@ func (r *Runtime) AliasesOf(name string) []ActionAlias {
 	if !ok {
 		return nil
 	}
+	short := op.Key.Short()
 	var out []ActionAlias
 	for _, a := range r.actionNames.aliases {
-		if a.Action == op.Key.Short() {
+		if a.Action == short {
 			out = append(out, a)
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Alias < out[j].Alias })
+	return out
+}
+
+// aliasesByAction is every action alias by the action it names, each list
+// sorted by alias as AliasesOf sorts one action's.
+func (r *Runtime) aliasesByAction() map[string][]ActionAlias {
+	out := map[string][]ActionAlias{}
+	for _, a := range r.actionNames.aliases {
+		out[a.Action] = append(out[a.Action], a)
+	}
+	for _, list := range out {
+		sort.Slice(list, func(i, j int) bool { return list[i].Alias < list[j].Alias })
+	}
 	return out
 }
 

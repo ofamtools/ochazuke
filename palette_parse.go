@@ -281,6 +281,10 @@ type lineIndex struct {
 	nouns   map[string][]string // noun -> its verbs
 	byVerbs []option
 	byNouns []option
+	// aliasesOf are the action aliases by the short key of the action
+	// they name, each sorted by alias (Runtime.AliasesOf, read once per
+	// index rather than once per completion).
+	aliasesOf map[string][]ActionAlias
 }
 
 // index is the palette's line index over the operations it offers.
@@ -315,6 +319,9 @@ type paletteMemo struct {
 	stamp         paletteIndexStamp
 	offered, here map[Key]bool
 	ix, hereIx    *lineIndex
+	// names answers namesThing by noun and word: a store read (a Get,
+	// and its not-found listing) once per word, not once per key.
+	names map[string]bool
 }
 
 // paletteIndexStamp is what offered depends on: the origin it reads the
@@ -322,7 +329,10 @@ type paletteMemo struct {
 // stamp (bindings, guards, availability, aliases, nouns, modes, instances,
 // the operation registry), the settings (palette.reach, keys.graph-depth)
 // and every change the runtime is told of (what a store or a guard
-// answers: Runtime.Changed, a change request, Model.InvalidateRender).
+// answers: Runtime.Changed, a change request or job that may write a
+// store, Model.InvalidateRender). Typing into the palette's own line
+// writes no store (ochazuke.input's Writes), so a key that only edits the
+// line keeps the memo: it filters and ranks what the open computed.
 type paletteIndexStamp struct {
 	open     int
 	focus    string
@@ -335,7 +345,7 @@ type paletteIndexStamp struct {
 
 func (p *Palette) indexStamp() paletteIndexStamp {
 	return paletteIndexStamp{
-		open: p.loadSeq, focus: focusOf(p.origin), mode: p.originMode.Name, nouns: p.nounsGen,
+		open: p.opens, focus: focusOf(p.origin), mode: p.originMode.Name, nouns: p.nounsGen,
 		render: p.r.renderCache.stamp(p.r), settings: p.r.Settings().gen, changes: p.r.renderCache.changes,
 	}
 }
@@ -348,6 +358,25 @@ func (p *Palette) memo() *paletteMemo {
 		p.cache = &paletteMemo{stamp: stamp, offered: map[Key]bool{}, here: map[Key]bool{}}
 	}
 	return p.cache
+}
+
+// namesThing reports whether word names exactly one of noun's things at
+// the origin (Runtime.namesThingExactly), read from the store once per
+// memo: a key that only extends the line asks no store again.
+func (p *Palette) namesThing(noun, word string) bool {
+	m := p.memo()
+	key := noun + "\x00" + word
+	if v, ok := m.names[key]; ok {
+		return v
+	}
+	v := p.r.namesThingExactly(noun, p.origin.Clone(), word)
+	if p.memo() == m {
+		if m.names == nil {
+			m.names = map[string]bool{}
+		}
+		m.names[key] = v
+	}
+	return v
 }
 
 // remember answers fn for op once per memo.
@@ -367,7 +396,7 @@ func (p *Palette) remember(answers func(*paletteMemo) map[Key]bool, op Operation
 // word, as the palette reads a line and as the CLI reads argv (ReadPair);
 // before orders noun words.
 func (r *Runtime) lineIndex(offered func(Operation) bool, nounBefore func(a, b string) bool) lineIndex {
-	ix := lineIndex{ops: map[string]Operation{}, names: map[string]string{}, old: map[string]string{}, tails: map[string][]string{}, spaces: map[string]map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}, aliasOps: map[string]Operation{}, aliasVia: map[string]string{}, aliasVerbs: map[string][]string{}, aliasNouns: map[string][]string{}}
+	ix := lineIndex{ops: map[string]Operation{}, names: map[string]string{}, old: map[string]string{}, tails: map[string][]string{}, spaces: map[string]map[string]string{}, verbs: map[string][]string{}, nouns: map[string][]string{}, aliasOps: map[string]Operation{}, aliasVia: map[string]string{}, aliasVerbs: map[string][]string{}, aliasNouns: map[string][]string{}, aliasesOf: r.aliasesByAction()}
 	for _, op := range r.Catalog() {
 		if !offered(op) {
 			continue
@@ -1079,7 +1108,7 @@ func (p *Palette) argument(op Operation, name, word string, args Arguments) (val
 	}
 	if len(choices) > 0 || p.r.ChoicesSource(check) != "" {
 		hit, matches, exact := matchWord(word, p.choiceOptions("argument", choices))
-		if !exact && check.Noun != "" && p.r.namesThingExactly(check.Noun, p.origin.Clone(), word) {
+		if !exact && check.Noun != "" && p.namesThing(check.Noun, word) {
 			hit, matches = option{Kind: "argument", Value: word}, nil // an exact key beats a prefix
 		}
 		switch {

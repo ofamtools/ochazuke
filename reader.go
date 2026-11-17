@@ -431,11 +431,16 @@ func best(cs []Candidate, score func(Candidate) []int) []Candidate {
 // uniqueCandidates keeps the first candidate of each operation and prop
 // read the same way.
 func uniqueCandidates(cs []Candidate) []Candidate {
+	type reading struct {
+		op         *Operation
+		prop, read string
+	}
 	var out []Candidate
+	seen := make(map[reading]bool, len(cs))
 	for _, c := range cs {
-		if !slices.ContainsFunc(out, func(o Candidate) bool {
-			return o.Operation == c.Operation && o.Prop == c.Prop && slices.Equal(o.TypedReading(), c.TypedReading())
-		}) {
+		k := reading{c.Operation, c.Prop, strings.Join(c.TypedReading(), "\x00")}
+		if !seen[k] {
+			seen[k] = true
 			out = append(out, c)
 		}
 	}

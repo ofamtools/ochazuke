@@ -425,7 +425,7 @@ func (ix lineIndex) aliasWords(r *Runtime, op Operation, word string) []string {
 		return nil
 	}
 	var out []string
-	for _, a := range r.AliasesOf(op.Key.Short()) {
+	for _, a := range ix.aliasesOf[op.Key.Short()] {
 		if _, offered := ix.aliasOps[r.DisplayNoun(a.Noun)+"."+a.Verb]; !offered {
 			continue
 		}

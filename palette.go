@@ -64,6 +64,9 @@ type Palette struct {
 	// (Palette.index); nounsGen moves on every palette noun registered.
 	cache    *paletteMemo
 	nounsGen int
+	// opens counts the palette's opens: the memo is kept within one
+	// (paletteIndexStamp.open), however many choice loads run in it.
+	opens int
 }
 
 // paletteID is the palette's modal instance; paletteLineID its line.
@@ -182,6 +185,7 @@ func (p *Palette) open() error {
 	p.choiceCache = nil
 	p.loads, p.loadingKey, p.loadingNote = nil, "", ""
 	p.loadSeq++
+	p.opens++
 	if err := p.line.Replace(0, len(p.line.Text), ""); err != nil {
 		return err
 	}

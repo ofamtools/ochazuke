@@ -294,6 +294,7 @@ func (r *Runtime) Changed(nouns ...string) {
 	}
 	// The open surfaces count the change too (surface.left, events.go).
 	r.countChange(names)
+	r.renderCache.changes++
 	if r.watches == nil {
 		return
 	}
@@ -307,20 +308,26 @@ func (r *Runtime) Changed(nouns ...string) {
 // (cascades, side tables), so a request does not narrow nouns unless its
 // verb declares what it writes (Operation.Writes): otherwise the token is
 // what keeps an untouched store cheap.
-func (r *Runtime) refreshWatches(nouns []string) {
+//
+// It reports, by noun, whether a watch it refreshed may answer
+// differently (movedBy; a noun no watch was refreshed for is absent).
+func (r *Runtime) refreshWatches(nouns []string) (movedBy map[string]bool) {
 	h := r.watches
 	if h == nil || h.refreshing || len(h.watches) == 0 || r.ShuttingDown() {
-		return
+		return nil
 	}
 	h.refreshing = true
 	h.round++
 	r.readPass++
 	defer func() { h.refreshing = false }()
+	movedBy = map[string]bool{}
 	for _, w := range slices.Clone(h.watches) {
 		if !w.push && !w.ended && (len(nouns) == 0 || slices.Contains(nouns, w.noun)) {
-			w.refresh()
+			m := w.refresh()
+			movedBy[w.noun] = movedBy[w.noun] || m
 		}
 	}
+	return movedBy
 }
 
 // afterRequest refreshes the watches once a top-level request has run
@@ -373,19 +380,54 @@ func (r *Runtime) requestWrites(q Request) (writes []string, anyStore bool) {
 // refreshWritten tells the watches of what changed: every one when a verb
 // may have changed any store, else those of the nouns written and the
 // nouns derived from them, none when nothing was written.
-func (r *Runtime) refreshWritten(anyStore bool, writes []string) {
+//
+// It reports whether what was written may answer differently now: for a
+// written noun neither its store's ChangeToken (the same as at the last
+// load) nor a local watch's snapshot says it is the same.
+func (r *Runtime) refreshWritten(anyStore bool, writes []string) (moved bool) {
 	if anyStore {
 		r.refreshWatches(nil)
-		return
+		return true
 	}
 	if len(writes) == 0 {
-		return
+		return false
 	}
 	names := make([]string, len(writes))
 	for i, n := range writes {
 		names[i] = r.CanonicalNoun(n)
 	}
-	r.refreshWatches(r.withDependents(names))
+	movedBy := r.refreshWatches(r.withDependents(names))
+	for _, n := range names {
+		if r.storeTokenSame(n) {
+			continue // its ChangeToken is the one the last load saw
+		}
+		if m, watched := movedBy[n]; watched && !m {
+			continue // a local snapshot says the listing is the same
+		}
+		moved = true
+	}
+	return moved
+}
+
+// storeTokenSame reports whether noun's store answers the ChangeToken it
+// answered when last asked here, and keeps the token for the next ask; no
+// token (or an error) is never the same.
+func (r *Runtime) storeTokenSame(noun string) bool {
+	n := r.Nouns[noun]
+	if n == nil || n.Store == nil || n.Store.ChangeToken == nil {
+		return false
+	}
+	token, err := n.Store.ChangeToken(Ctx{Runtime: r, actor: r.Actor()})
+	if err != nil || token == "" {
+		return false
+	}
+	c := &r.renderCache
+	same := c.loadTokens[noun] == token
+	if c.loadTokens == nil {
+		c.loadTokens = map[string]string{}
+	}
+	c.loadTokens[noun] = token
+	return same
 }
 
 // watchAfterJob refreshes the watches once a job of a change verb is done,
@@ -394,11 +436,14 @@ func (r *Runtime) refreshWritten(anyStore bool, writes []string) {
 // daemon's listing read into the app's cache) tells that store's readers,
 // as a change verb does. A verb of another kind that declares nothing
 // tells nothing.
+//
+// The change counter the palette's memo compares (renderCache.changes)
+// moves after a change verb that may write a store, and after such a fetch
+// only when what it wrote may answer differently: a watch of a written
+// noun saw its listing change, or a written noun has no local watch that
+// could tell (then it moves, as nothing says the store is the same). A
+// periodic refresh whose listing is unchanged keeps the memo.
 func (r *Runtime) watchAfterJob(verb string) {
-	r.renderCache.changes++
-	if r.watches == nil {
-		return
-	}
 	op, ok := r.Operations.Find(Key(verb))
 	switch {
 	case !ok:
@@ -406,10 +451,16 @@ func (r *Runtime) watchAfterJob(verb string) {
 		if op.Writes != nil && len(op.Writes) == 0 {
 			return // it changes no store (Operation.Writes)
 		}
+		r.renderCache.changes++ // what a guard or a store answers may differ now
+		if r.watches == nil {
+			return
+		}
 		r.refreshWritten(op.Writes == nil, op.Writes)
 		recountOpenNounsPage(r)
 	case len(op.Writes) > 0:
-		r.refreshWritten(false, op.Writes)
+		if r.refreshWritten(false, op.Writes) {
+			r.renderCache.changes++
+		}
 	}
 }
 
@@ -534,7 +585,10 @@ func (w *Watch) start(since string) error {
 
 // refresh lists again and emits the difference; a failing list ends the
 // watch with its error.
-func (w *Watch) refresh() {
+// refresh reports whether the store may answer differently than at the
+// last snapshot: false only when its token or a new snapshot says it is
+// the same.
+func (w *Watch) refresh() (moved bool) {
 	if st := w.r.Nouns[w.noun].Store; st == nil || st.Remote || w.notify {
 		// A proxy has no local snapshot. Existing change notifications
 		// invalidate its readers, which reload through their own get proxy.
@@ -542,27 +596,27 @@ func (w *Watch) refresh() {
 		if w.batch != nil && !w.ended {
 			w.batch()
 		}
-		return
+		return true
 	}
 	token, hasToken := w.changeToken()
 	if hasToken && w.hasToken && token == w.token {
-		return // the store says nothing changed since the last snapshot
+		return false // the store says nothing changed since the last snapshot
 	}
 	if w.idle != nil && w.idle() {
-		return // only hidden lists read it: they are marked stale instead
+		return true // only hidden lists read it: they are marked stale instead
 	}
 	snap, err := w.snapshot()
 	if err != nil {
 		w.fail(err)
-		return
+		return true
 	}
 	w.token, w.hasToken = token, hasToken
-	w.apply(snap, false)
+	return w.apply(snap, false)
 }
 
 // apply emits the difference between what the watch knows and snap, and
 // keeps snap's version (always on start, so a later since finds it).
-func (w *Watch) apply(snap watchSnapshot, first bool) {
+func (w *Watch) apply(snap watchSnapshot, first bool) (changed bool) {
 	ids, hashes, hash := snap.version()
 	var events []WatchEvent
 	for _, id := range snap.ids {
@@ -602,6 +656,7 @@ func (w *Watch) apply(snap watchSnapshot, first bool) {
 	if len(events) > 0 && !first && w.batch != nil {
 		w.batch()
 	}
+	return first || len(events) > 0
 }
 
 // deliver hands one event to the subscriber.

@@ -265,8 +265,11 @@ const nearKeysRead = 500
 
 // ThingNotFound is the NotFoundError for id of noun, the close ids read
 // from the noun's store (its first things; none when the noun has no
-// store or reading fails).
+// store or reading fails, or when the caller only probes: Ctx.Probe).
 func (r *Runtime) ThingNotFound(c Ctx, noun, id string) error {
+	if c.Probe {
+		return r.NotFound(noun, id, nil)
+	}
 	return r.NotFound(noun, id, r.thingKeys(c, noun))
 }
 
