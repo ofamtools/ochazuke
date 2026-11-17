@@ -101,6 +101,10 @@ type overlayRows struct {
 	rows     map[string]map[string]*OverlayRow
 	session  map[string]bool
 	backends map[string]OverlayBackend
+	// version is the backend's version the rows were read at
+	// (OverlayVersioner); a read whose backend answers another reads the
+	// rows again.
+	version string
 	// versions caches each noun's overlay version (overlayVersion); a
 	// write clears it.
 	versions map[string]string
@@ -123,12 +127,16 @@ func (r *Runtime) overlayState() *overlayRows {
 	backend, ident := r.overlayBackend()
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	if !o.loaded || o.ident != ident {
+	version := ""
+	if v, ok := backend.(OverlayVersioner); ok {
+		version, _ = v.Version()
+	}
+	if !o.loaded || o.ident != ident || version != o.version {
 		held := o.rows
 		if o.ident != ident {
 			held = nil // another backend: the session's rows were of the other one's things too
 		}
-		o.loaded, o.ident, o.backend, o.rows, o.versions = true, ident, backend, map[string]map[string]*OverlayRow{}, nil
+		o.loaded, o.ident, o.backend, o.rows, o.versions, o.version = true, ident, backend, map[string]map[string]*OverlayRow{}, nil, version
 		if backend != nil {
 			rows, err := backend.Rows()
 			if err != nil {
@@ -221,9 +229,18 @@ func (r *Runtime) changeOverlay(noun, key string, change func(*OverlayRow) bool)
 	if o.backend == nil || o.session[noun] {
 		return ApplyOverlayChange(o.rows, noun, key, change).clone(), nil
 	}
+	versioner, versioned := o.backend.(OverlayVersioner)
+	current := versioned
+	if versioned {
+		before, _ := versioner.Version()
+		current = before == o.version // nothing else wrote since this process read the rows
+	}
 	row, fresh, err := o.backend.Change(noun, key, change)
 	if err != nil {
 		return nil, err
+	}
+	if current {
+		o.version, _ = versioner.Version() // this write alone moved it: the rows held stay right
 	}
 	if fresh == nil {
 		ApplyOverlayChange(o.rows, noun, key, func(held *OverlayRow) bool {
@@ -357,32 +374,9 @@ type overlayOf struct {
 	hiddenName string
 	added      []string
 	// remote is a store whose calls leave the process: a write takes the
-	// originals of the props it writes from the source's thing the verb
-	// read before it (seen, by key: o.get keeps it), never a call more.
+	// originals of the props it writes from the source's thing the same
+	// verb's get answered before it (tape.seen), never a call more.
 	remote bool
-	seenMu sync.Mutex
-	seen   map[string]Thing
-}
-
-// keepSeen keeps the source's thing a remote store's get answered, for the
-// write that follows it in the same verb (takeSeen).
-func (o *overlayOf) keepSeen(key string, t Thing) {
-	o.seenMu.Lock()
-	defer o.seenMu.Unlock()
-	if o.seen == nil || len(o.seen) >= 64 {
-		o.seen = map[string]Thing{}
-	}
-	o.seen[key] = t
-}
-
-// takeSeen is the source's thing keepSeen kept for key (nil for none),
-// taken out.
-func (o *overlayOf) takeSeen(key string) Thing {
-	o.seenMu.Lock()
-	defer o.seenMu.Unlock()
-	t := o.seen[key]
-	delete(o.seen, key)
-	return t
 }
 
 // withOverlay fills what a store's source lacks with the overlay (see the
@@ -606,8 +600,8 @@ func (o *overlayOf) merge(key string, t Thing) Thing {
 
 func (o *overlayOf) get(c Ctx, key string) (Thing, error) {
 	t, err := o.srcGet(c, key)
-	if err == nil && o.remote {
-		o.keepSeen(key, t)
+	if err == nil && o.remote && c.tape != nil {
+		c.tape.keepSeen(o.n.Name, key, t)
 	}
 	if err != nil {
 		if row := o.r.overlayRow(o.n.Name, key); row != nil && row.Created {
@@ -666,7 +660,7 @@ func (o *overlayOf) patch(c Ctx, key string, t Thing) (Thing, error) {
 	switch {
 	case row != nil && row.Created:
 	case o.remote:
-		seen = o.takeSeen(key) // the verb read it already: no call more
+		seen = c.tape.takeSeen(o.n.Name, key) // this verb read it already: no call more
 	case o.srcGet != nil:
 		if got, err := o.srcGet(c, key); err == nil {
 			seen = got

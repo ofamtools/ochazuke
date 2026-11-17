@@ -245,7 +245,7 @@ func (r *Runtime) declareFrameworkSettings(names ...string) {
 // when the value fails the setting's check, or, before the setting is
 // declared, the embedded default. False for a name no one declares.
 func (r *Runtime) settingValue(name string) (any, bool) {
-	if c := r.Config(); c != nil && c.settings != nil {
+	if c := r.configMade(); c != nil && c.settings != nil {
 		s := c.settings
 		if one := s.find(s.canonical(name)); one != nil {
 			v, _ := s.Value(one.Name)

@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,11 +10,15 @@ import (
 
 // memOverlay is an application's backend: its rows in memory, counted.
 type memOverlay struct {
-	rows    map[string]map[string]*OverlayRow
-	changes int
+	rows          map[string]map[string]*OverlayRow
+	changes, read int
+	version       int
 }
 
+func (m *memOverlay) Version() (string, error) { return fmt.Sprint(m.version), nil }
+
 func (m *memOverlay) Rows() (map[string]map[string]*OverlayRow, error) {
+	m.read++
 	out := map[string]map[string]*OverlayRow{}
 	for noun, rows := range m.rows {
 		out[noun] = map[string]*OverlayRow{}
@@ -26,6 +31,7 @@ func (m *memOverlay) Rows() (map[string]map[string]*OverlayRow, error) {
 
 func (m *memOverlay) Change(noun, key string, change func(*OverlayRow) bool) (*OverlayRow, map[string]map[string]*OverlayRow, error) {
 	m.changes++
+	m.version++
 	return ApplyOverlayChange(m.rows, noun, key, change).clone(), nil, nil
 }
 
@@ -100,5 +106,27 @@ func TestOverlayConflictValues(t *testing.T) {
 		if row := r.overlayRow("fact", "f1"); row == nil || row.Props["colour"] != "red" {
 			t.Fatalf("%s: a read dropped the value: %+v", value, row)
 		}
+	}
+}
+
+// A versioned backend: a row another process wrote (the version moved) is
+// read on the next read; the process's own write reads nothing again.
+func TestOverlayBackendVersion(t *testing.T) {
+	r := NewRuntime()
+	mem := &memOverlay{rows: map[string]map[string]*OverlayRow{}}
+	if err := r.SetOverlayBackend("mine", mem); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.ChangeOverlay("n", "k", func(o *OverlayRow) bool { o.Props = map[string]any{"a": 1}; return true }); err != nil {
+		t.Fatal(err)
+	}
+	reads := mem.read
+	if r.OverlayRow("n", "k") == nil || mem.read != reads {
+		t.Fatalf("own write: row %v, read again %d times", r.OverlayRow("n", "k"), mem.read-reads)
+	}
+	ApplyOverlayChange(mem.rows, "n", "other", func(o *OverlayRow) bool { o.Props = map[string]any{"b": 2}; return true })
+	mem.version++ // another process wrote
+	if r.OverlayRow("n", "other") == nil {
+		t.Fatal("another process's row is not read")
 	}
 }

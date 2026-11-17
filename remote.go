@@ -65,6 +65,26 @@ type tape struct {
 	// same source calls whatever earlier runs wrote to the copy.
 	missing map[string]bool
 	filled  map[string]bool
+	// seen are the source's things the overlay's get read in this verb
+	// (keepSeen), by noun and key.
+	seen map[string]Thing
+}
+
+// keepSeen keeps the source's thing a remote store's get answered in this
+// verb's run, for the overlay's write later in the same verb (the
+// originals it keeps); takeSeen answers it (nil when the verb read none).
+func (t *tape) keepSeen(noun, key string, thing Thing) {
+	if t.seen == nil {
+		t.seen = map[string]Thing{}
+	}
+	t.seen[noun+"\x00"+key] = thing
+}
+
+func (t *tape) takeSeen(noun, key string) Thing {
+	if t == nil {
+		return nil
+	}
+	return t.seen[noun+"\x00"+key]
 }
 
 type tapeAnswer struct {

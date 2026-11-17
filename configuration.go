@@ -279,12 +279,19 @@ func defaultAppName() string {
 
 // Config returns the config component.
 func (r *Runtime) Config() *Config {
-	inst := r.Instances[configID]
-	if inst == nil {
-		return nil // not made yet: the framework's nouns are being registered
-	}
-	c, _ := inst.Component.(*Config)
+	c, _ := r.Instances[configID].Component.(*Config)
 	return c
+}
+
+// configMade is the config component, nil while the framework's nouns
+// register (before it is made): for the reads that run then (a setting's
+// embedded default, settingValue).
+func (r *Runtime) configMade() *Config {
+	if inst := r.Instances[configID]; inst != nil {
+		c, _ := inst.Component.(*Config)
+		return c
+	}
+	return nil
 }
 
 // HandleMessage: the config does no off-loop work.

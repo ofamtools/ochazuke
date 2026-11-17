@@ -67,6 +67,14 @@ type OverlayBackend interface {
 	Change(noun, key string, change func(*OverlayRow) bool) (row *OverlayRow, fresh map[string]map[string]*OverlayRow, err error)
 }
 
+// OverlayVersioner is a backend that tells cheaply whether its rows
+// changed (another process wrote them): a read whose version differs from
+// the one the process read the rows at reads them again; the process's own
+// write moves it without a read.
+type OverlayVersioner interface {
+	Version() (string, error)
+}
+
 // PropChange is what the overlay keeps about one prop the user wrote:
 // the source's value when they wrote it (the original as last seen; Seen
 // is false when the source held no value of that prop then, or was not
