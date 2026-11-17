@@ -172,3 +172,59 @@ func TestRetentionFirstRun(t *testing.T) {
 		}
 	}
 }
+
+// TestRetentionStoreRow: a store row's Expire counts (the dry run: the
+// row's would_remove and its one removals line) and removes (apply); with
+// retention.first-run-ask on, an automatic run holds the first large
+// removal of a store row like any row, and removes at once when the row
+// was declared with the owner's decision (Approved). Each run is one log
+// line with the count.
+func TestRetentionStoreRow(t *testing.T) {
+	r := NewRuntime()
+	c := r.Config()
+	c.Disable()
+	c.DataDir, c.StateDir = t.TempDir(), t.TempDir()
+	// A fake store of 10 entries, 6 of them older than 7 days.
+	stores := map[string]*[]RetentionCut{}
+	row := func(name, approved string) RetentionRow {
+		cuts := &[]RetentionCut{}
+		stores[name] = cuts
+		left := 10
+		return RetentionRow{Name: name, Days: 7, MinKeep: 1, Approved: approved, Expire: func(cut RetentionCut) (RetentionCount, error) {
+			*cuts = append(*cuts, cut)
+			n := 0
+			if cut.Days == 7 && left == 10 {
+				n = 6
+			}
+			if !cut.DryRun {
+				left -= n
+			}
+			return RetentionCount{Count: left, Bytes: int64(left) * 100, Remove: n, RemoveBytes: int64(n) * 100, What: fmt.Sprintf("%d entries", n)}, nil
+		}}
+	}
+	if err := r.DeclareRetention(row("held", ""), row("approved", "owner 2026-11-17: clear it")); err != nil {
+		t.Fatal(err)
+	}
+	v, err := r.Execute(Request{Noun: "retention-rule", Verb: "get", Args: Arguments{"name": "held"}})
+	got, _ := ThingOf(v)
+	if err != nil || got["kind"] != "store" || fmt.Sprint(got["would_remove"]) != "6" || fmt.Sprint(got["removals"]) != "[6 entries (about 600B): older than 7 days]" {
+		t.Fatalf("the dry run counts through Expire: %v %v", got, err)
+	}
+	for _, cut := range *stores["held"] {
+		if !cut.DryRun || cut.Before.IsZero() {
+			t.Fatalf("a dry run asks a dry cut with its cutoff: %+v", cut)
+		}
+	}
+	runs := r.RetentionDue()
+	if len(runs) != 2 || !runs[0].Held || runs[0].Removed != 0 || runs[1].Held || runs[1].Removed != 6 || runs[1].Freed != 600 {
+		t.Fatalf("held waits for the owner, approved removes at once: %+v", runs)
+	}
+	v, _ = r.Execute(Request{Noun: "retention-rule", Verb: "get", Args: Arguments{"name": "approved"}})
+	if got, _ := ThingOf(v); got["approved"] != "owner 2026-11-17: clear it" || got["held"] != "" {
+		t.Fatalf("the declared decision shows as approved: %v", got)
+	}
+	logged, err := r.Execute(Request{Noun: "retention-rule", Verb: "log"})
+	if entries, _ := logged.([]retain.Entry); err != nil || len(entries) != 1 || entries[0].Rule != "approved" || entries[0].Count != 6 || entries[0].Label != "6 entries" {
+		t.Fatalf("one log line for the cut, with its count: %v %v", logged, err)
+	}
+}

@@ -23,7 +23,10 @@ import (
 // verb removes it. A file row is a retain.Rule over globs; a record row
 // names a noun, a where condition and an existing verb, and runs that
 // verb, through Do, on each thing the noun's list verb answers whose
-// updated prop is older than the row's days. Nothing here names a tool, a
+// updated prop is older than the row's days. A store row has an Expire
+// function instead: the program's own store removes what the row's limits
+// say, its own way (a database table's old rows, in batches), and answers
+// what it holds and what the cut removes. Nothing here names a tool, a
 // folder or a noun: every row is the declaring program's data.
 
 const (
@@ -59,11 +62,20 @@ const (
 // has Noun, Where (the list verb's where, prop=value pairs, may be empty)
 // and Verb (an existing verb of the noun, such as archive or delete): the
 // same rule (retain.Reasons) runs over the things the list answers, newest
-// first by their updated prop, and each thing it removes gets the verb.
+// first by their updated prop, and each thing it removes gets the verb. A
+// store row has Expire and neither Paths nor Noun: the program's store
+// applies the cut itself (RetentionCut, in its own unit: rows of a table)
+// and answers what it holds and what the cut removes (RetentionCount).
 // Keep and Days here are the defaults of the row's settings, KeepSetting
 // and DaysSetting (default retention.NAME.keep and retention.NAME.days; a
 // row may name a setting the program already declares, such as
 // backup.keep, so nothing is renamed). Both 0 turn the row off.
+//
+// Approved, when set, is the owner's recorded decision that approves the
+// row's removals from its declaration (the decision's words, its date):
+// an automatic run removes what the row says at once, as after a first
+// apply by hand, instead of holding a first large removal
+// (retention.first-run-ask, which still holds every other row).
 type RetentionRow struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description,omitempty"`
@@ -78,15 +90,58 @@ type RetentionRow struct {
 	Noun        string   `json:"noun,omitempty"`
 	Where       string   `json:"where,omitempty"`
 	Verb        string   `json:"verb,omitempty"`
+	Approved    string   `json:"approved,omitempty"`
+	// Expire is a store row's cut (see RetentionCut).
+	Expire func(RetentionCut) (RetentionCount, error) `json:"-"`
+}
+
+// RetentionCut is what a store row's Expire is asked: the row's limits
+// now (Keep, Days, MinKeep; Before is now minus Days, zero with Days 0)
+// and whether to remove (DryRun false) or only count.
+type RetentionCut struct {
+	Keep    int
+	Days    int
+	MinKeep int
+	Before  time.Time
+	DryRun  bool
+}
+
+// RetentionCount is a store row's answer: what the store holds (Count,
+// Bytes), what the cut removes or removed (Remove, RemoveBytes: an
+// estimate where the store cannot say exactly), and a line naming it for
+// a person (What: "62,684 history rows from 2026-10-19 to 2026-11-10").
+type RetentionCount struct {
+	Count       int
+	Bytes       int64
+	Remove      int
+	RemoveBytes int64
+	What        string
 }
 
 // records reports whether the row rules a noun's things (not files).
 func (row RetentionRow) records() bool { return row.Noun != "" }
 
+// what names what the row removes, for its settings' descriptions.
+func (row RetentionRow) what() string {
+	switch {
+	case row.records():
+		return row.Noun + " things (" + row.Verb + ")"
+	case row.stored():
+		return "entries"
+	}
+	return "copies"
+}
+
+// stored reports whether the row is a store row (its store's own cut).
+func (row RetentionRow) stored() bool { return row.Expire != nil }
+
 // kind is the row's kind as its thing shows it.
 func (row RetentionRow) kind() string {
-	if row.records() {
+	switch {
+	case row.records():
 		return "records"
+	case row.stored():
+		return "store"
 	}
 	return "files"
 }
@@ -167,14 +222,10 @@ func (r *Runtime) DeclareRetention(rows ...RetentionRow) error {
 		}
 		row.KeepSetting = cmp.Or(row.KeepSetting, "retention."+row.Name+".keep")
 		row.DaysSetting = cmp.Or(row.DaysSetting, "retention."+row.Name+".days")
-		what := "copies"
-		if row.records() {
-			what = row.Noun + " things (" + row.Verb + ")"
-		}
-		if err := r.declareRetentionSetting(row.KeepSetting, row.Keep, "Retention rule "+row.Name+": keep at most this many newest "+what+" (0: no count limit; with days 0 too the rule is off)"); err != nil {
+		if err := r.declareRetentionSetting(row.KeepSetting, row.Keep, "Retention rule "+row.Name+": keep at most this many newest "+row.what()+" (0: no count limit; with days 0 too the rule is off)"); err != nil {
 			return err
 		}
-		if err := r.declareRetentionSetting(row.DaysSetting, row.Days, "Retention rule "+row.Name+": remove "+what+" older than this many days (0: no age limit; with keep 0 too the rule is off)"); err != nil {
+		if err := r.declareRetentionSetting(row.DaysSetting, row.Days, "Retention rule "+row.Name+": remove "+row.what()+" older than this many days (0: no age limit; with keep 0 too the rule is off)"); err != nil {
 			return err
 		}
 		if i := slices.IndexFunc(st.rows, func(o RetentionRow) bool { return o.Name == row.Name }); i >= 0 {
@@ -196,6 +247,9 @@ func validRetentionRow(row RetentionRow) error {
 	}
 	if row.Keep < 0 || row.Days < 0 || row.MinKeep < 0 {
 		return fmt.Errorf("retention row %s: keep, days and min_keep are not negative", row.Name)
+	}
+	if row.stored() {
+		return nil // a store row's Expire is its cut: paths and a noun are not read
 	}
 	if row.records() {
 		if row.Verb == "" || len(row.Paths) > 0 {
@@ -263,20 +317,25 @@ func (r *Runtime) expandRetention(row RetentionRow) ([]string, string) {
 // RetentionItem is one copy or thing a rule removes (or removed): a file
 // copy's path, or a thing's {noun, key} with its label.
 type RetentionItem struct {
-	Path   string   `json:"path,omitempty"`
-	Paths  []string `json:"paths,omitempty"`
-	Noun   string   `json:"noun,omitempty"`
-	Key    string   `json:"key,omitempty"`
-	Label  string   `json:"label,omitempty"`
-	Bytes  int64    `json:"bytes,omitempty"`
-	Reason string   `json:"reason"`
-	Error  string   `json:"error,omitempty"`
+	Path  string   `json:"path,omitempty"`
+	Paths []string `json:"paths,omitempty"`
+	Noun  string   `json:"noun,omitempty"`
+	Key   string   `json:"key,omitempty"`
+	Label string   `json:"label,omitempty"`
+	// Count is how many entries a store row's one item stands for.
+	Count  int    `json:"count,omitempty"`
+	Bytes  int64  `json:"bytes,omitempty"`
+	Reason string `json:"reason"`
+	Error  string `json:"error,omitempty"`
 }
 
 // line is the item as one line of text: what, how big, why.
 func (it RetentionItem) line() string {
-	if it.Noun != "" {
+	switch {
+	case it.Noun != "":
 		return fmt.Sprintf("%s %s %q: %s", it.Noun, it.Key, it.Label, it.Reason)
+	case it.Path == "":
+		return fmt.Sprintf("%s (about %s): %s", it.Label, retain.Size(it.Bytes), it.Reason)
 	}
 	return fmt.Sprintf("%s (%d bytes): %s", it.Path, it.Bytes, it.Reason)
 }
@@ -307,8 +366,11 @@ type RetentionRun struct {
 func (r *Runtime) planRetention(c Context, row RetentionRow) RetentionRun {
 	keep, days := r.retentionLimits(row)
 	run := RetentionRun{Name: row.Name, Kind: row.kind(), Keep: keep, Days: days, Off: keep == 0 && days == 0, Items: []RetentionItem{}}
-	if row.records() {
+	switch {
+	case row.records():
 		return r.planRecords(c, row, run)
+	case row.stored():
+		return r.planStore(c, row, run)
 	}
 	paths, problem := r.expandRetention(row)
 	if problem != "" {
@@ -385,6 +447,65 @@ func (r *Runtime) planRecords(c Context, row RetentionRow, run RetentionRun) Ret
 	return run
 }
 
+// planStore asks a store row's Expire to count what its cut removes now
+// (one item standing for every entry, with its reason).
+func (r *Runtime) planStore(_ Context, row RetentionRow, run RetentionRun) RetentionRun {
+	if run.Off {
+		return run
+	}
+	got, err := row.Expire(r.retentionCut(row, run, true))
+	if err != nil {
+		run.Error = fmt.Sprintf("retention row %s: %v", row.Name, err)
+		return run
+	}
+	run.Count, run.Bytes = got.Count, got.Bytes
+	if got.Remove > 0 {
+		run.Items = append(run.Items, RetentionItem{Label: got.What, Count: got.Remove, Bytes: got.RemoveBytes, Reason: storeReason(run)})
+		run.Remove, run.RemoveBytes = got.Remove, got.RemoveBytes
+	}
+	return run
+}
+
+// applyStoreRow runs a store row's cut for its item i (the one the plan
+// counted) and answers the log line: the count it removed and the plan's
+// byte estimate for that share.
+func (r *Runtime) applyStoreRow(row RetentionRow, run *RetentionRun, i int, now time.Time, who, source string) retain.Entry {
+	item := &run.Items[i]
+	got, err := row.Expire(r.retentionCut(row, *run, false))
+	if err != nil {
+		item.Error = err.Error()
+	}
+	var freed int64
+	if item.Count > 0 {
+		freed = item.Bytes * int64(min(got.Remove, item.Count)) / int64(item.Count)
+	}
+	run.Removed += got.Remove
+	run.Freed += freed
+	item.Label = cmp.Or(got.What, item.Label)
+	return retain.Entry{Time: now, Rule: row.Name, Label: item.Label, Count: got.Remove, Bytes: freed, Reason: item.Reason, Error: item.Error, Actor: who, Source: source}
+}
+
+// retentionCut is the cut a store row's Expire is asked for now.
+func (r *Runtime) retentionCut(row RetentionRow, run RetentionRun, dry bool) RetentionCut {
+	cut := RetentionCut{Keep: run.Keep, Days: run.Days, MinKeep: row.MinKeep, DryRun: dry}
+	if run.Days > 0 {
+		cut.Before = r.retention().clock().Add(-time.Duration(run.Days) * 24 * time.Hour)
+	}
+	return cut
+}
+
+// storeReason is why a store row's entries go, in retain.Reasons' words.
+func storeReason(run RetentionRun) string {
+	var why []string
+	if run.Days > 0 {
+		why = append(why, fmt.Sprintf("older than %d days", run.Days))
+	}
+	if run.Keep > 0 {
+		why = append(why, fmt.Sprintf("beyond the newest %d", run.Keep))
+	}
+	return strings.Join(why, " or ")
+}
+
 // retentionRequest runs a request a rule makes, through the one public
 // trigger, with the rule as its history source. The actor is the caller's:
 // an agent's call reaches the verb under the agent's rights.
@@ -421,6 +542,10 @@ func (r *Runtime) applyRetention(c Context, row RetentionRow, auto bool) Retenti
 	var entries []retain.Entry
 	who, source := r.Actor().String(), retentionSource+":"+row.Name
 	for i, item := range run.Items {
+		if row.stored() {
+			entries = append(entries, r.applyStoreRow(row, &run, i, now, who, source))
+			continue
+		}
 		if row.records() {
 			_, err := r.retentionRequest(c, row, Request{Noun: item.Noun, Verb: row.Verb, Args: Arguments{r.keyParam(item.Noun): item.Key}, Confirmed: true})
 			if err != nil {
@@ -553,7 +678,7 @@ func (r *Runtime) retentionHolds(row RetentionRow, run RetentionRun) bool {
 	if !r.Settings().Bool(RetentionFirstRunSetting) || run.Off {
 		return false
 	}
-	return r.retentionStates()[row.Name].Approved == "" && run.Remove > max(run.Keep, 1)
+	return row.Approved == "" && r.retentionStates()[row.Name].Approved == "" && run.Remove > max(run.Keep, 1)
 }
 
 // holdRetention records the held removal (apply tells the owner).
@@ -666,7 +791,7 @@ func (r *Runtime) retentionThing(c Context, row RetentionRow) Thing {
 		"keep_setting": row.KeepSetting, "days_setting": row.DaysSetting,
 		"count": run.Count, "bytes": run.Bytes, "would_remove": run.Remove, "would_free": run.RemoveBytes,
 		"removals": items, "error": run.Error, "last_run": state.Ran,
-		"held": held, "approved": state.Approved,
+		"held": held, "approved": cmp.Or(state.Approved, row.Approved),
 	}
 }
 
@@ -681,7 +806,7 @@ func (r *Runtime) retentionRow(name string) (RetentionRow, error) {
 var retentionProps = []PropSpec{
 	{Name: "name", Key: true, Parameter: Parameter{Description: "The row's name, as the program declared it"}},
 	{Name: "description", Role: RoleLabel, ReadOnly: true, Parameter: Parameter{Description: "What the row keeps"}},
-	{Name: "kind", ReadOnly: true, Parameter: Parameter{Enum: []string{"files", "records"}, Description: "files: globs of files; records: a noun's things"}},
+	{Name: "kind", ReadOnly: true, Parameter: Parameter{Enum: []string{"files", "records", "store"}, Description: "files: globs of files; records: a noun's things; store: entries the program's own store removes by age (a table's old rows)"}},
 	{Name: "paths", ReadOnly: true, Parameter: Parameter{Type: SettingList, Description: "A file row's globs ({data}, {state}, {config}, {home} expand)"}},
 	{Name: "noun", ReadOnly: true, Parameter: Parameter{Description: "A record row's noun"}},
 	{Name: "where", ReadOnly: true, Parameter: Parameter{Description: "A record row's condition (the list verb's where)"}},
@@ -699,7 +824,7 @@ var retentionProps = []PropSpec{
 	{Name: "error", ReadOnly: true, Parameter: Parameter{Description: "Why the row cannot run here, when it cannot"}},
 	{Name: "last_run", ReadOnly: true, Parameter: Parameter{Description: "The UTC day the row last ran automatically"}},
 	{Name: "held", ReadOnly: true, Parameter: Parameter{Description: "A first large removal an automatic run held for you (retention.first-run-ask), until the row is applied by hand"}},
-	{Name: "approved", ReadOnly: true, Parameter: Parameter{Description: "When the row was first applied by hand; from then on automatic runs remove what it says"}},
+	{Name: "approved", ReadOnly: true, Parameter: Parameter{Description: "When the row was first applied by hand, or the owner's decision the program declared it with; from then on automatic runs remove what it says"}},
 }
 
 // registerRetention declares the retention-rule noun: a collection of the

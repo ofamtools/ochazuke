@@ -304,8 +304,12 @@ type Entry struct {
 	Path  string    `json:"path"`
 	Paths []string  `json:"paths,omitempty"`
 	// Noun and Key name a thing a record rule removed ({noun, key}).
-	Noun   string `json:"noun,omitempty"`
-	Key    string `json:"key,omitempty"`
+	Noun string `json:"noun,omitempty"`
+	Key  string `json:"key,omitempty"`
+	// Label and Count name a store's entries removed together (a table's
+	// old rows: one line for the batch, not one per row).
+	Label  string `json:"label,omitempty"`
+	Count  int    `json:"count,omitempty"`
 	Bytes  int64  `json:"bytes"`
 	Reason string `json:"reason"`
 	Error  string `json:"error,omitempty"`
