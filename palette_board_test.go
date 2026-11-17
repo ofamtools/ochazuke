@@ -24,6 +24,39 @@ func TestUniquePrefix(t *testing.T) {
 			t.Errorf("uniquePrefix(%q) = %d, want %d", word, got, want)
 		}
 	}
+	// uniquePrefixes (the board's static highlights) answers the same.
+	all := uniquePrefixes(words)
+	for _, word := range words {
+		if all[word] != uniquePrefix(word, words) {
+			t.Errorf("uniquePrefixes[%q] = %d, want %d", word, all[word], uniquePrefix(word, words))
+		}
+	}
+}
+
+// The board's highlighted prefixes are worked out over the layer's whole
+// cell set and kept as the letters narrow it (palette.list static); live
+// works them out over the cells shown at each draw.
+func TestBoardPrefixesStayAsYouType(t *testing.T) {
+	t.Parallel()
+	for _, list := range []string{PaletteListStatic, PaletteListLive} {
+		r, p, _ := boardRuntime(t)
+		if err := r.Settings().Set(PaletteListSetting, list); err != nil {
+			t.Fatal(err)
+		}
+		p.View()
+		before := p.boardPrefixes()
+		if _, err := p.HandleKey("t"); err != nil {
+			t.Fatal(err)
+		}
+		p.View()
+		after := p.boardPrefixes()
+		switch {
+		case list == PaletteListLive && after != nil:
+			t.Fatalf("live keeps prefixes %v", after)
+		case list == PaletteListStatic && (len(after) == 0 || !reflect.DeepEqual(before, after)):
+			t.Fatalf("static: prefixes moved as the line was typed: %v then %v", before, after)
+		}
+	}
 }
 
 func TestBoardFilterIsPrefixFirstAndNeverFuzzy(t *testing.T) {

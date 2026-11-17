@@ -41,7 +41,6 @@ func (p *Palette) sync() {
 		p.seen = text
 		p.highlight = -1
 		p.message = ""
-		p.choiceCache = nil
 		p.recall = 0
 		if grew && !p.committing {
 			p.reopenWord()

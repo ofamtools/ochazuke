@@ -98,6 +98,85 @@ func uniquePrefix(word string, words []string) int {
 	return min(need, len(runes))
 }
 
+// boardPrefixes are how many runes pick each cell of the board's layer
+// (uniquePrefix), by lower-cased word, worked out once over the layer's whole
+// cell set (the cells of the line up to the word being typed) and kept with
+// the static index: typing narrows the cells and never moves a highlight.
+// Under palette.list live it is nil, and each draw works the prefixes out
+// over the cells shown.
+func (p *Palette) boardPrefixes() map[string]int {
+	if p.listLive() {
+		return nil
+	}
+	text := p.Text()
+	if tokens, trailing := tokenize(text); !trailing {
+		text = string([]rune(text)[:tokens[len(tokens)-1].Start])
+	}
+	key := fmt.Sprintf("%s\x00%s\x00%s\x00%s\x00%d", text, p.chip.Kind, p.chip.Value, p.filter, p.r.Settings().gen)
+	if p.prefixAt != p.static {
+		p.prefixes, p.prefixAt = nil, p.static
+	}
+	if got, ok := p.prefixes[key]; ok {
+		return got
+	}
+	note := p.loadingNote
+	cells := p.listFor(text)
+	p.loadingNote = note
+	words := make([]string, len(cells))
+	for i, c := range cells {
+		words[i] = c.Value
+	}
+	out := uniquePrefixes(words)
+	if p.prefixes == nil {
+		p.prefixes = map[string]map[string]int{}
+	}
+	p.prefixes[key] = out
+	return out
+}
+
+// uniquePrefixes is uniquePrefix for every word, by lower-cased word, in
+// one sort: the longest prefix a word shares with another is the one it
+// shares with a neighbour in sorted order.
+func uniquePrefixes(words []string) map[string]int {
+	lower := make([][]rune, 0, len(words))
+	seen := map[string]bool{}
+	for _, w := range words {
+		if l := strings.ToLower(w); !seen[l] {
+			seen[l] = true
+			lower = append(lower, []rune(l))
+		}
+	}
+	slices.SortFunc(lower, func(a, b []rune) int { return strings.Compare(string(a), string(b)) })
+	common := func(a, b []rune) int {
+		n := 0
+		for n < len(a) && n < len(b) && a[n] == b[n] {
+			n++
+		}
+		return n
+	}
+	out := make(map[string]int, len(lower))
+	for i, w := range lower {
+		need := 1
+		if i > 0 {
+			need = max(need, common(w, lower[i-1])+1)
+		}
+		if i+1 < len(lower) {
+			need = max(need, common(w, lower[i+1])+1)
+		}
+		out[string(w)] = min(need, len(w))
+	}
+	return out
+}
+
+// prefixLen is word's highlighted prefix: the kept one (boardPrefixes),
+// else worked out over the words shown.
+func prefixLen(kept map[string]int, word string, shown []string) int {
+	if k, ok := kept[strings.ToLower(word)]; ok {
+		return k
+	}
+	return uniquePrefix(word, shown)
+}
+
 // boardRows are the grid's rows as indexes into the cells: the nouns,
 // then the verbs (then the rest), each kind starting a row, cols to a row.
 func boardRows(cells []PaletteEntry, cols int) [][]int {
@@ -362,6 +441,7 @@ func (p *Palette) boardView(s Styles, width, height int, layer int, partial stri
 	if layer == 1 && len(tokens) > 0 {
 		first = tokens[0].Text
 	}
+	prefixes := p.boardPrefixes()
 	words := make([]string, len(cells))
 	label := 0
 	for i, c := range cells {
@@ -426,7 +506,7 @@ func (p *Palette) boardView(s Styles, width, height int, layer int, partial stri
 		for _, r := range section[start:end] {
 			for _, i := range rows[r] {
 				c := cells[i]
-				k := uniquePrefix(c.Value, words)
+				k := prefixLen(prefixes, c.Value, words)
 				runes := []rune(c.Value)
 				head, rest := string(runes[:min(k, len(runes))]), string(runes[min(k, len(runes)):])
 				n := count(c)

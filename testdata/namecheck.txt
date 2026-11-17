@@ -260,9 +260,9 @@ palette_choices.go	Palette.choiceWords	compare	"id"	1
 palette_choices.go	Palette.paramHeader	cyclo	"-"	26
 palette_choices.go	Palette.slot	compare	"noun"	1
 palette_editing.go	Palette.recallLines	compare	"palette"	2
-palette_nouns.go	Palette.completions	compare	"noun"	1
-palette_nouns.go	Palette.completions	compare	"verb"	1
-palette_nouns.go	Palette.completions	cyclo	"-"	35
+palette_nouns.go	Palette.listFor	compare	"noun"	1
+palette_nouns.go	Palette.listFor	compare	"verb"	1
+palette_nouns.go	Palette.listFor	cyclo	"-"	32
 palette_nouns.go	Palette.preferActivePage	case	"noun"	1
 palette_nouns.go	Palette.preferActivePage	case	"verb"	1
 palette_nouns.go	Palette.preferActivePage	compare	"last"	1

@@ -60,13 +60,25 @@ type Palette struct {
 	typedFrom  string
 	cols       int
 	committing bool
-	// cache holds the offered answers and line indexes for one stamp
-	// (Palette.index); nounsGen moves on every palette noun registered.
-	cache    *paletteMemo
+	// static is the line index over every operation, built from the
+	// registry alone for one shape (staticAt) and kept across opens
+	// (staticIndex); builds counts its builds. prefixes are the board's
+	// highlighted prefixes over a layer's whole cell set (boardPrefixes),
+	// kept with static. nounsGen moves on every palette noun registered.
+	static   *lineIndex
+	staticAt paletteShape
+	opsAt    int // Operations.Invalidations the static index's operations were read at
+	builds   int
+	prefixes map[string]map[string]int
+	prefixAt *lineIndex
 	nounsGen int
-	// opens counts the palette's opens: the memo is kept within one
-	// (paletteIndexStamp.open), however many choice loads run in it.
+	// cache is what this open worked out over the static index
+	// (paletteOpen); opens counts the palette's opens.
+	cache *paletteOpen
 	opens int
+	// exact holds while run reads the line: its last word is read whole
+	// (namesThing asks the store), not as a word still being typed.
+	exact bool
 }
 
 // paletteID is the palette's modal instance; paletteLineID its line.
@@ -182,7 +194,7 @@ func (p *Palette) open() error {
 		}
 	}
 	p.highlight, p.marked, p.filter, p.recall, p.draft, p.message = -1, "", "", 0, "", ""
-	p.choiceCache = nil
+	p.keepTokenedChoices()
 	p.loads, p.loadingKey, p.loadingNote = nil, "", ""
 	p.loadSeq++
 	p.opens++
@@ -326,7 +338,9 @@ func (p *Palette) run() error {
 			return p.accept(cells[0])
 		}
 	}
+	p.exact = true // the word typed last is read as a whole word now (namesThing)
 	c := p.parse(p.Text())
+	p.exact = false
 	if c.Err != nil {
 		return c.Err
 	}

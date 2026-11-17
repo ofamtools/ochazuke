@@ -109,3 +109,59 @@ func BenchmarkPaletteOpenByAssociation(b *testing.B) {
 	}
 	b.ReportMetric(float64(reads)/float64(n), "reads/open")
 }
+
+// BenchmarkPaletteOpen opens and draws the palette over 2,400 verbs, each
+// behind a guard that reads a store, with a store change told between
+// opens (what a daemon refresh does). The list is built from the registry
+// once (builds/op 0 after the first), so an open asks no guard and reads no
+// store: guards/open and reads/open stay 0. Before the static index each
+// open asked every verb's guard.
+func BenchmarkPaletteOpen(b *testing.B) {
+	r := NewRuntime()
+	r.Config().Disable()
+	reads, guards := 0, 0
+	table := NewMemDocTable(r, "item")
+	store := DocStore(table, "item")
+	get := store.Get
+	store.ChangeToken = nil
+	store.Get = func(c Ctx, key string) (Thing, error) { reads++; return get(c, key) }
+	r.Define("item").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title", Role: RoleLabel}).Store(store)
+	if err := table.Put("a", Thing{"id": "a", "title": "A"}); err != nil {
+		b.Fatal(err)
+	}
+	r.DefineGuard("bench-reads", func(r *Runtime, _ KeyEvent) bool {
+		guards++
+		_, err := r.Noun("item").Store.Get(Ctx{Runtime: r}, "a")
+		return err == nil
+	})
+	for i := range 150 {
+		n := r.Define(fmt.Sprintf("noun%03d", i))
+		for j := range 16 {
+			n.Verb(fmt.Sprintf("verb%02d", j), func(Ctx) Result { return Done(nil) }).When("bench-reads")
+		}
+	}
+	p := NewPalette(r)
+	open := func() {
+		if _, err := r.Execute(Request{Noun: "ochazuke.palette", Verb: "open"}); err != nil {
+			b.Fatal(err)
+		}
+		p.View()
+		if _, err := r.Execute(Request{Noun: "ochazuke.palette", Verb: "close"}); err != nil {
+			b.Fatal(err)
+		}
+		r.Changed("item")
+	}
+	open() // the first open builds the list
+	reads, guards = 0, 0
+	built := p.builds
+	b.ReportAllocs()
+	b.ResetTimer()
+	n := 0
+	for b.Loop() {
+		open()
+		n++
+	}
+	b.ReportMetric(float64(guards)/float64(n), "guards/open")
+	b.ReportMetric(float64(reads)/float64(n), "reads/open")
+	b.ReportMetric(float64(p.builds-built)/float64(n), "builds/open")
+}

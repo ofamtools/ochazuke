@@ -118,16 +118,30 @@ const PaletteActivePageSetting = "palette.active-page"
 // accepts, grouped verbs, nouns, then parameter choices, narrowed by the
 // word being typed (a prefix, as abbreviation resolves) and by the filter
 // code, if one was typed for this position.
+// The answer is kept for the line as it is (paletteLineKey): a draw and a
+// state read of one key share it, and a selection move lists nothing again.
 func (p *Palette) completions() []PaletteEntry {
-	if entries, ok := p.restCompletions(); ok {
-		if p.filter != "" && p.filter != "p" {
-			return nil
+	o, key := p.openMemo(), p.lineKey()
+	if m := o.list; m == nil || m.key != key {
+		entries, rest := p.restCompletions()
+		switch {
+		case rest && p.filter != "" && p.filter != "p":
+			entries = nil
+		case !rest:
+			entries = p.listFor(p.Text())
 		}
-		return entries
+		o.list = &paletteListMemo{key: key, entries: entries, note: p.loadingNote}
 	}
-	tokens, trailing := tokenize(p.Text())
+	p.loadingNote = o.list.note
+	return slices.Clone(o.list.entries)
+}
+
+// listFor is the completion list for text as the palette's line, outside
+// a rest parameter.
+func (p *Palette) listFor(text string) []PaletteEntry {
+	tokens, trailing := tokenize(text)
 	partial := ""
-	partialStart := len([]rune(p.Text()))
+	partialStart := len([]rune(text))
 	if !trailing {
 		partial = tokens[len(tokens)-1].Text
 		partialStart = tokens[len(tokens)-1].Start
@@ -223,9 +237,8 @@ func (p *Palette) completions() []PaletteEntry {
 			names := ix.verbs[c.Words[0].Value]
 			if a, bare := p.r.bareAlias(tokens[0].Text); bare && a.ShadowedVerb() != "" {
 				// set NOUN reads only one-value nouns (owner decision 17).
-				names = p.r.shadowWords(names, a.ShadowedVerb())
-				here := p.hereIndex()
-				names = slices.DeleteFunc(slices.Clone(names), func(n string) bool { return !slices.Contains(here.verbs[a.ShadowedVerb()], n) })
+				here := p.shadowNouns(ix, a.ShadowedVerb())
+				names = slices.DeleteFunc(slices.Clone(p.r.shadowWords(names, a.ShadowedVerb())), func(n string) bool { return !slices.Contains(here, n) })
 			}
 			nouns(names)
 		case len(tokens) == 1 && c.Words[0].Kind == "noun":
@@ -438,29 +451,25 @@ func (ix lineIndex) aliasWords(r *Runtime, op Operation, word string) []string {
 	return out
 }
 
-// offered reports whether the palette lists an operation: a verb whose
-// guard (Verb(...).When) is false at the focus and mode the palette opened
-// over is left out; a palette noun's default verb always stays.
+// offered reports whether the palette lists an operation: every one with
+// palette.reach on (the static index); off, those the focus and mode allow
+// (offeredHere).
 func (p *Palette) offered(op Operation) bool {
-	return p.remember(func(m *paletteMemo) map[Key]bool { return m.offered }, op, p.offeredLive)
+	return p.r.Settings().Bool(PaletteReachSetting) || p.offeredHere(op)
 }
 
-func (p *Palette) offeredLive(op Operation) bool {
-	if p.offeredHere(op) {
-		return true
-	}
-	// palette.reach: a guard that is false here is no reason to leave the
-	// verb out; choosing it asks for what it lacks and runs it at a thing
-	// of its noun (reach).
-	return p.r.Settings().Bool(PaletteReachSetting)
-}
-
-// offeredHere is offered under the focus and mode alone (palette.reach
-// off): a palette noun's default verb, or a verb whose guard holds. A bare
-// alias that shadows a verb (set) reads the nouns that have the verb here,
-// so reaching a guarded noun.set never changes how set NAME reads.
+// offeredHere is offered under the focus and mode alone, asked at most
+// once per operation per open and only by palette.reach off and
+// palette.list live: a palette noun's default verb, or a verb whose guard
+// holds.
 func (p *Palette) offeredHere(op Operation) bool {
-	return p.remember(func(m *paletteMemo) map[Key]bool { return m.here }, op, p.offeredHereLive)
+	o := p.openMemo()
+	if v, ok := o.here[op.Key]; ok {
+		return v
+	}
+	v := p.offeredHereLive(op)
+	o.here[op.Key] = v
+	return v
 }
 
 func (p *Palette) offeredHereLive(op Operation) bool {
@@ -575,7 +584,7 @@ func (p *Palette) propWords(ix lineIndex, noun string) []PropSpec {
 	}
 	var out []PropSpec
 	for _, prop := range n.Props {
-		if p.r.propShown(prop, focusOf(p.origin), p.originMode, nil) || p.r.Settings().Bool(PaletteReachSetting) {
+		if p.r.Settings().Bool(PaletteReachSetting) || p.r.propShown(prop, focusOf(p.origin), p.originMode, nil) {
 			out = append(out, prop)
 		}
 	}
@@ -640,8 +649,10 @@ const (
 
 // verbOffer says how the palette lists noun's verb and fills the entry's
 // Reason or Unusual mark: a verb verbs.disabled hides is not listed; one
-// that cannot run says why; one not usual here (a false guard, a
-// component's Unoffered) is listed after the rest, marked, and runs.
+// that cannot run says why (what the registry and settings say, no guard).
+// Under palette.list live one not usual here (a false guard, a
+// component's Unoffered) is listed after the rest, marked; static lists it
+// in its place, and its run answers where it fits.
 func (p *Palette) verbOffer(ix lineIndex, noun, verb string, entry *PaletteEntry) int {
 	if noun == "" {
 		return offerUsual
@@ -650,7 +661,7 @@ func (p *Palette) verbOffer(ix lineIndex, noun, verb string, entry *PaletteEntry
 	if p.r.disabledHidden(op) {
 		return offerHidden
 	}
-	if entry.Reason = p.r.unavailableReason(op); entry.Reason == "" && !p.offeredHere(op) {
+	if entry.Reason = p.r.unavailableReason(op); entry.Reason == "" && p.listLive() && !p.offeredHere(op) {
 		entry.Unusual = true
 		return offerUnusual
 	}

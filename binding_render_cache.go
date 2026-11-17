@@ -21,6 +21,11 @@ type runtimeRenderCache struct {
 	// them saw them (Runtime.storeTokenSame): a periodic load whose store
 	// answers the same token leaves changes where it is.
 	loadTokens map[string]string
+	// names moves on every write to the noun alias or action alias table
+	// (setAlias, dropAlias, aliasesChanged, claimName): with the operation
+	// registry's Invalidations it is the shape the palette's static index is
+	// built from (paletteShape).
+	names      uint64
 	instances  instanceIndex
 	scans      []*bindingScan
 	lastScan   *bindingScan

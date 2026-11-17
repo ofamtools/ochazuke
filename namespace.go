@@ -306,6 +306,7 @@ func (r *Runtime) Unalias(alias string) error {
 // setAlias files alias -> noun in the table and the reverse index.
 func (r *Runtime) setAlias(alias, noun string) {
 	r.renderCache.generation++
+	r.renderCache.names++
 	if r.aliases[alias] == noun {
 		return
 	}
@@ -320,6 +321,7 @@ func (r *Runtime) setAlias(alias, noun string) {
 // deprecated fields.
 func (r *Runtime) dropAlias(alias string) {
 	r.renderCache.generation++
+	r.renderCache.names++
 	noun := r.aliases[alias]
 	delete(r.aliases, alias)
 	delete(r.actionNames.nouns.meta, alias)

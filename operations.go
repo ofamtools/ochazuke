@@ -245,6 +245,10 @@ type Operations struct {
 	// for inspection.
 	Invalidations int
 	Builds        int
+	// Keys moves on every key added (Push of a key not there) or removed
+	// (Delete): the registry's shape, which a Set over an existing key (its
+	// parameters' choices loaded, say) leaves where it is.
+	Keys int
 }
 
 // NewOperations is an empty registry over a noun table.
@@ -273,6 +277,7 @@ func (ops *Operations) Push(key Key, app App, handler HandlerID) *Operation {
 	}
 	if _, ok := ops.All[full]; !ok {
 		ops.Order = append(ops.Order, full)
+		ops.Keys++
 	}
 	op := &Operation{Key: full, App: app, Handler: handler}
 	ops.All[full] = op
@@ -326,6 +331,7 @@ func (ops *Operations) Delete(key Key) {
 		return
 	}
 	delete(ops.All, full)
+	ops.Keys++
 	ops.Order = slices.DeleteFunc(ops.Order, func(k Key) bool { return k == full })
 	ops.changed()
 }

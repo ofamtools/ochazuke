@@ -212,6 +212,7 @@ type actionNames struct {
 // aliasesChanged drops what was derived from the alias table.
 func (r *Runtime) aliasesChanged() {
 	r.renderCache.generation++
+	r.renderCache.names++
 	r.actionNames.named = nil
 }
 
@@ -536,6 +537,7 @@ func (r *Runtime) removeAlias(name string) {
 // starting.
 func (r *Runtime) claimName(name string) {
 	r.renderCache.generation++
+	r.renderCache.names++
 	a, ok := r.actionNames.aliases[name]
 	if !ok {
 		return

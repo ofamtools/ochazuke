@@ -4,16 +4,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
 )
 
-// choiceList caches one parameter's choices until the line changes, so a
-// Source runs once per edit rather than once per parse.
+// choiceList caches one parameter's choices for the open (the argument
+// step): a Source runs once, and typing filters its answer (narrow). One
+// read from a noun's store that has a ChangeToken holds the token (noun,
+// token, focus), and is kept into the next open while the store answers the
+// same token at the same focus (keepTokenedChoices).
 type choiceList struct {
-	choices []Choice
-	err     error
+	choices            []Choice
+	err                error
+	noun, token, focus string
 }
 
 // paramChoices lists the values a parameter's word completes to in the
@@ -28,10 +33,18 @@ func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) 
 	param, prop := p.r.choiceParameter(op, name, args)
 	key := op.Key.Short() + "/" + name + "\x00" + prop
 	pairs := param.completesPairs(word)
+	if all, err, ok := p.unqueriedChoices(op, name, word, args, param, pairs); ok {
+		return all, err
+	}
 	switch {
 	case pairs:
-		before, _, _ := strings.Cut(word, "=")
-		key += "\x00pairs\x00" + before + fmt.Sprint(strings.Contains(word, "="))
+		// The prop names (no = yet) are one list whatever is typed; after
+		// NAME= the values are that prop's.
+		before, _, typed := strings.Cut(word, "=")
+		if !typed {
+			before = ""
+		}
+		key += "\x00pairs\x00" + before + fmt.Sprint(typed)
 	case !p.r.ChoicesTakeQuery(param):
 		word = ""
 	default:
@@ -41,12 +54,19 @@ func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) 
 		raw, _ := json.Marshal(args)
 		key += "\x00" + string(raw)
 	}
+	instances := false
+	if config, ok := p.nouns[op.Noun()]; ok && config.DefaultVerb == op.Name() && config.Argument == name {
+		// A palette noun's instances are read from the runtime's own
+		// registry (no store): a page registered since is listed.
+		instances = true
+		key += fmt.Sprintf("\x00instances %d", p.r.renderCache.instances.generation)
+	}
 	if cached, ok := p.choiceCache[key]; ok {
 		return cached.choices, cached.err
 	}
 	var choices []Choice
 	var err error
-	if config, ok := p.nouns[op.Noun()]; ok && config.DefaultVerb == op.Name() && config.Argument == name {
+	if instances {
 		choices = p.instanceChoices(op.Noun())
 	} else if pairs {
 		choices, err = p.r.pairChoices(p.origin.Clone(), op, word, args)
@@ -61,8 +81,67 @@ func (p *Palette) paramChoices(op Operation, name, word string, args Arguments) 
 	if p.choiceCache == nil {
 		p.choiceCache = map[string]choiceList{}
 	}
-	p.choiceCache[key] = choiceList{choices, err}
+	entry := choiceList{choices: choices, err: err}
+	if err == nil && len(param.SourceArgs) == 0 && !pairs {
+		entry.noun, entry.token = p.choiceToken(param)
+		entry.focus = focusOf(p.origin)
+	}
+	p.choiceCache[key] = entry
 	return choices, err
+}
+
+// choiceToken is the noun and ChangeToken of the store a parameter's
+// choices are read from, when they are that noun's things (its list verb is
+// the source) and its store has a token; "" otherwise.
+func (p *Palette) choiceToken(param Parameter) (noun, token string) {
+	if param.Noun == "" || param.Noun == AnyNoun {
+		return "", ""
+	}
+	noun = p.r.CanonicalNoun(param.Noun)
+	list, ok := p.r.standardOperation(noun, "list")
+	if !ok || p.r.ChoicesSource(param) != list.Key.Short() {
+		return "", ""
+	}
+	n := p.r.Nouns[noun]
+	if n == nil || n.Store == nil || n.Store.ChangeToken == nil {
+		return "", ""
+	}
+	token, err := n.Store.ChangeToken(Ctx{Runtime: p.r, actor: p.r.Actor()})
+	if err != nil || token == "" {
+		return "", ""
+	}
+	return noun, token
+}
+
+// keepTokenedChoices drops, as the palette opens, every cached choice list
+// but those read from a store that still answers the same ChangeToken at
+// the same focus: what no token vouches for is read again in this open.
+func (p *Palette) keepTokenedChoices() {
+	focus := focusOf(p.r.Context())
+	for key, entry := range p.choiceCache {
+		if entry.token == "" || entry.focus != focus {
+			delete(p.choiceCache, key)
+			continue
+		}
+		if _, token := p.choiceToken(Parameter{Noun: entry.noun}); token != entry.token {
+			delete(p.choiceCache, key)
+		}
+	}
+}
+
+// unqueriedChoices answers a source that sees the typed text without the
+// word: it is asked once with none, and typing filters that answer like any
+// other list (narrow); ok is false, and the source is asked with the word,
+// only when nothing in that answer starts with it (a completer or an
+// unbounded search, which answers for the text it is given). Any-noun
+// choices (any_ref) are asked per word, as before.
+func (p *Palette) unqueriedChoices(op Operation, name, word string, args Arguments, param Parameter, pairs bool) ([]Choice, error, bool) {
+	if word == "" || pairs || !p.r.ChoicesTakeQuery(param) || param.Noun == AnyNoun && param.Source == "" {
+		return nil, nil, false
+	}
+	all, err := p.paramChoices(op, name, "", args)
+	ok := errors.Is(err, errChoicesLoading) || slices.ContainsFunc(all, func(c Choice) bool { return hasPrefixFold(c.ID, word) || c.Word != "" && hasPrefixFold(c.Word, word) })
+	return all, err, ok
 }
 
 // errChoicesLoading is paramChoices' answer while the source's choices
@@ -94,7 +173,7 @@ func (p *Palette) sourceChoices(key string, param Parameter, word string, args A
 		if p.loads == nil {
 			p.loads = map[string]choiceList{}
 		}
-		p.loads[key] = choiceList{choices, err}
+		p.loads[key] = choiceList{choices: choices, err: err}
 		p.loadingKey = ""
 	}, args)
 	if !pending {

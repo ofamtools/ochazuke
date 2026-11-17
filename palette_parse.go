@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -287,109 +288,238 @@ type lineIndex struct {
 	aliasesOf map[string][]ActionAlias
 }
 
-// index is the palette's line index over the operations it offers.
-// Which operations it offers is a guard per operation (offered), which may
-// walk the graph and read stores, so the answers and the index are kept
-// (paletteMemo) and built again only when what they read may have changed
-// (paletteIndexStamp): drawing the palette asks no guard twice.
-func (p *Palette) index() lineIndex { return p.memoIndex(false) }
-
-// hereIndex is index over offeredHere (palette.reach left out).
-func (p *Palette) hereIndex() lineIndex { return p.memoIndex(true) }
-
-func (p *Palette) memoIndex(here bool) lineIndex {
-	m := p.memo()
-	slot, offered := &m.ix, p.offered
-	if here {
-		slot, offered = &m.hereIx, p.offeredHere
+// index is the palette's line index for this open: the static index
+// (staticIndex, built from the registry alone and kept across opens) with
+// the nouns of the focus path the palette opened over first. With
+// palette.reach off it is the index over the operations the focus and mode
+// allow (offeredHere), worked out once per open: that setting's own list.
+// Nothing here is worked out again while the line is typed.
+func (p *Palette) index() lineIndex {
+	o := p.openMemo()
+	if o.ix == nil {
+		if o.reach {
+			ix := o.static.inFront(p.frontNouns())
+			o.ix = &ix
+		} else {
+			ix := p.r.lineIndex(p.offeredHere, p.nounBefore)
+			o.ix = &ix
+		}
 	}
-	if *slot != nil {
-		return **slot
-	}
-	ix := p.r.lineIndex(offered, p.nounBefore)
-	if p.memo() == m {
-		*slot = &ix // nothing moved while it was built
-	}
-	return ix
+	return *o.ix
 }
 
-// paletteMemo is what the palette read under one paletteIndexStamp: each
-// operation's offered and offeredHere answer and the line indexes over them.
-type paletteMemo struct {
-	stamp         paletteIndexStamp
-	offered, here map[Key]bool
-	ix, hereIx    *lineIndex
+// paletteShape is what the static index is built from (staticIndex): the
+// operation registry's keys (Operations.Keys moves on every operation
+// registered under a new key or removed: a noun's verbs defined, an
+// extension mounted, refreshed or dropped), the noun and action alias
+// tables (renderCache.names), the palette nouns (nounsGen) and the two
+// settings the index reads (palette.noun-tails, cli.ambiguous). A store
+// change, a job, a daemon refresh, a focus or mode move and an open leave it
+// where it is; so does a Set over an existing operation (its choices
+// loaded), which refreshes the operations the index holds (refreshOps).
+type paletteShape struct {
+	operations int
+	names      uint64
+	nouns      int
+	tails      bool
+	ambiguous  string
+}
+
+func (p *Palette) shape() paletteShape {
+	return paletteShape{
+		operations: p.r.Operations.Keys, names: p.r.renderCache.names, nouns: p.nounsGen,
+		tails: p.r.Settings().Bool(PaletteNounTailsSetting), ambiguous: p.r.Settings().String(CLIAmbiguousSetting),
+	}
+}
+
+// staticIndex is the line index over every operation, built from the
+// registry alone (no guard, no store, no focus): its nouns by name. It is
+// kept, across keys and opens, until the shape moves.
+func (p *Palette) staticIndex() *lineIndex {
+	if shape := p.shape(); p.static == nil || p.staticAt != shape {
+		ix := p.r.lineIndex(func(Operation) bool { return true }, func(a, b string) bool { return a < b })
+		p.static, p.staticAt, p.opsAt = &ix, shape, p.r.Operations.Invalidations
+		p.builds++
+	} else if p.opsAt != p.r.Operations.Invalidations {
+		p.refreshOps()
+	}
+	return p.static
+}
+
+// refreshOps puts the registry's current operations (an operation Set over
+// its key since: its parameters, its guard, its confirm) in place of the
+// ones the static index holds, keeping their aliases: the words stay.
+func (p *Palette) refreshOps() {
+	p.opsAt = p.r.Operations.Invalidations
+	for _, m := range []map[string]Operation{p.static.ops, p.static.aliasOps} {
+		for word, op := range m {
+			if cur, ok := p.r.Operations.Get(op.Key); ok {
+				fresh := *cur
+				fresh.Aliases = op.Aliases
+				m[word] = fresh
+			}
+		}
+	}
+}
+
+// paletteOpen is what one open of the palette worked out over the static
+// index: the index in focus order, the offeredHere answers palette.list
+// live and palette.reach off ask for, the instance words read, and the last
+// list and parse (a draw and a state read share them).
+type paletteOpen struct {
+	open   int
+	static *lineIndex
+	reach  bool
+	ix     *lineIndex
+	here   map[Key]bool
 	// names answers namesThing by noun and word: a store read (a Get,
 	// and its not-found listing) once per word, not once per key.
-	names map[string]bool
+	names   map[string]bool
+	list    *paletteListMemo
+	parses  map[string]commandLine
+	parseAt paletteLineKey
 }
 
-// paletteIndexStamp is what offered depends on: the origin it reads the
-// guards at (the open, its focus and mode), the palette nouns, the render
-// stamp (bindings, guards, availability, aliases, nouns, modes, instances,
-// the operation registry), the settings (palette.reach, keys.graph-depth)
-// and every change the runtime is told of (what a store or a guard
-// answers: Runtime.Changed, a change request or job that may write a
-// store, Model.InvalidateRender). Typing into the palette's own line
-// writes no store (ochazuke.input's Writes), so a key that only edits the
-// line keeps the memo: it filters and ranks what the open computed.
-type paletteIndexStamp struct {
-	open     int
-	focus    string
-	mode     string
-	nouns    int
-	render   RenderStamp
-	settings uint64
-	changes  uint64
+// paletteListMemo is the last completions answer and what it read.
+type paletteListMemo struct {
+	key     paletteLineKey
+	entries []PaletteEntry
+	note    string
 }
 
-func (p *Palette) indexStamp() paletteIndexStamp {
-	return paletteIndexStamp{
-		open: p.opens, focus: focusOf(p.origin), mode: p.originMode.Name, nouns: p.nounsGen,
-		render: p.r.renderCache.stamp(p.r), settings: p.r.Settings().gen, changes: p.r.renderCache.changes,
+// paletteLineKey is what a list or a parse of the line reads besides the
+// static index and the open: the line and cursor, the filter code, the
+// board's chip, the choices loaded so far, the settings and the instances
+// (a palette noun's instances are choices).
+type paletteLineKey struct {
+	text, filter, chip, loading string
+	cursor, filterAt, loads     int
+	settings, instances         uint64
+	exact                       bool // the line runs (Palette.exact)
+}
+
+func (p *Palette) lineKey() paletteLineKey {
+	k := paletteLineKey{text: p.Text(), filter: p.filter, filterAt: p.filterAt, chip: p.chip.Kind + "\x00" + p.chip.Value, loading: p.loadingKey, loads: len(p.loads), settings: p.r.Settings().gen, instances: p.r.renderCache.instances.generation, exact: p.exact}
+	if p.line != nil {
+		k.cursor = p.line.Cursor
 	}
+	return k
 }
 
-// memo is the palette's memo for the current stamp, a fresh one when the
-// stamp moved.
-func (p *Palette) memo() *paletteMemo {
-	stamp := p.indexStamp()
-	if p.cache == nil || p.cache.stamp != stamp {
-		p.cache = &paletteMemo{stamp: stamp, offered: map[Key]bool{}, here: map[Key]bool{}}
+// openMemo is this open's memo, a fresh one after an open, a shape move or
+// palette.reach switched.
+func (p *Palette) openMemo() *paletteOpen {
+	static, reach := p.staticIndex(), p.r.Settings().Bool(PaletteReachSetting)
+	if o := p.cache; o != nil && o.open == p.opens && o.static == static && o.reach == reach {
+		return o
 	}
+	p.cache = &paletteOpen{open: p.opens, static: static, reach: reach, here: map[Key]bool{}, names: map[string]bool{}}
 	return p.cache
+}
+
+// frontNouns are the noun words of the focus path the palette opened over,
+// the focused one first (nounBefore's order).
+func (p *Palette) frontNouns() []string {
+	var out []string
+	for _, id := range p.r.Ancestry(focusOf(p.origin)) {
+		if inst := p.r.Instances[id]; inst != nil {
+			if word := p.r.DisplayNoun(inst.Noun); !slices.Contains(out, word) {
+				out = append(out, word)
+			}
+		}
+	}
+	return out
+}
+
+// inFront is ix with front's nouns first, in that order, wherever nouns are
+// listed (byNouns, a verb's nouns): the rest keep their order. The maps it
+// does not reorder are shared with ix, which stays as it was.
+func (ix lineIndex) inFront(front []string) lineIndex {
+	if len(front) == 0 {
+		return ix
+	}
+	rank := func(word string) int {
+		if i := slices.Index(front, word); i >= 0 {
+			return i
+		}
+		return len(front)
+	}
+	reorder := func(words []string) []string {
+		if !slices.ContainsFunc(words, func(w string) bool { return rank(w) < len(front) }) {
+			return words
+		}
+		out := slices.Clone(words)
+		slices.SortStableFunc(out, func(a, b string) int { return rank(a) - rank(b) })
+		return out
+	}
+	byWord := func(m map[string][]string) map[string][]string {
+		out := make(map[string][]string, len(m))
+		for k, words := range m {
+			out[k] = reorder(words)
+		}
+		return out
+	}
+	ix.verbs, ix.aliasVerbs = byWord(ix.verbs), byWord(ix.aliasVerbs)
+	ix.byNouns = slices.Clone(ix.byNouns)
+	slices.SortStableFunc(ix.byNouns, func(a, b option) int {
+		if a.to != "" || b.to != "" {
+			return 0 // the other names keep their place after the nouns' own words
+		}
+		return rank(a.Value) - rank(b.Value)
+	})
+	return ix
 }
 
 // namesThing reports whether word names exactly one of noun's things at
 // the origin (Runtime.namesThingExactly), read from the store once per
-// memo: a key that only extends the line asks no store again.
+// open: a key that only extends the line asks no store again.
+//
+// The word being typed (the line's last word, no space after it) is not
+// read while the line is typed: it reads by prefix among the step's choices
+// until it is complete (a space after it) or the line runs (p.exact), so a
+// key typed into a word reads no store.
 func (p *Palette) namesThing(noun, word string) bool {
-	m := p.memo()
+	o := p.openMemo()
 	key := noun + "\x00" + word
-	if v, ok := m.names[key]; ok {
+	if v, ok := o.names[key]; ok {
 		return v
 	}
-	v := p.r.namesThingExactly(noun, p.origin.Clone(), word)
-	if p.memo() == m {
-		if m.names == nil {
-			m.names = map[string]bool{}
+	if !p.exact {
+		if tokens, trailing := tokenize(p.Text()); !trailing && len(tokens) > 0 && tokens[len(tokens)-1].Text == word {
+			return false
 		}
-		m.names[key] = v
 	}
+	v := p.r.namesThingExactly(noun, p.origin.Clone(), word)
+	o.names[key] = v
 	return v
 }
 
-// remember answers fn for op once per memo.
-func (p *Palette) remember(answers func(*paletteMemo) map[Key]bool, op Operation, fn func(Operation) bool) bool {
-	m := p.memo()
-	if v, ok := answers(m)[op.Key]; ok {
-		return v
+// PaletteListSetting says how the palette builds its list: static (the
+// default) from the registry alone, live with each verb's guard asked at
+// every open (PaletteListLive).
+const (
+	PaletteListSetting = "palette.list"
+	PaletteListStatic  = "static"
+	PaletteListLive    = "live"
+)
+
+// listLive is palette.list live: the list before the static index.
+func (p *Palette) listLive() bool {
+	return p.r.Settings().String(PaletteListSetting) == PaletteListLive
+}
+
+// shadowNouns are the noun words a bare alias that shadows verb (set) reads
+// its second word among: every noun that has the verb, as the CLI reads it;
+// palette.list live keeps those whose verb fits the focus here.
+func (p *Palette) shadowNouns(ix lineIndex, verb string) []string {
+	words := optionValues(ix.nounsOf(verb))
+	if !p.listLive() && p.r.Settings().Bool(PaletteReachSetting) {
+		return words
 	}
-	v := fn(op)
-	if p.memo() == m {
-		answers(m)[op.Key] = v
-	}
-	return v
+	return slices.DeleteFunc(words, func(n string) bool {
+		op, _ := ix.op(n, verb)
+		return !p.offeredHere(op)
+	})
 }
 
 // lineIndex indexes the operations offered(op) accepts by verb and by noun
@@ -725,7 +855,30 @@ func (p *Palette) removedLine(tokens []lineToken) (commandLine, bool) {
 // all of them: a removed noun.verb (a renamed command verb, a merged
 // plural noun) says what to write instead before its words resolve, and
 // no misread of its words heads a parameter or offers choices.
+//
+// A parse is kept per open for its words (paletteOpen.parses), while the
+// filter, the board's chip, the choices loaded and the settings are as they
+// were: a draw, the list and a state read of one key share one parse.
 func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
+	o, ctx := p.openMemo(), p.lineKey()
+	ctx.text, ctx.cursor = "", 0
+	if o.parses == nil || o.parseAt != ctx {
+		o.parses, o.parseAt = map[string]commandLine{}, ctx
+	}
+	var key strings.Builder
+	for _, t := range tokens {
+		fmt.Fprintf(&key, "%d\x00%s\x00%s\x01", t.Start, t.Text, t.Tail)
+	}
+	c, ok := o.parses[key.String()]
+	if !ok {
+		c = p.parseTokensUncached(ix, tokens)
+		o.parses[key.String()] = c
+	}
+	c.Words, c.Args, c.Omitted, c.Old, c.OldParams = slices.Clone(c.Words), maps.Clone(c.Args), slices.Clone(c.Omitted), slices.Clone(c.Old), slices.Clone(c.OldParams)
+	return c
+}
+
+func (p *Palette) parseTokensUncached(ix lineIndex, tokens []lineToken) commandLine {
 	if c, removed := p.removedLine(tokens); removed {
 		return c
 	}
@@ -751,8 +904,7 @@ func (p *Palette) parseTokens(ix lineIndex, tokens []lineToken) commandLine {
 				words[i] = t.Text
 			}
 			verb := a.ShadowedVerb()
-			here := p.hereIndex()
-			reading, _, err := p.r.ReadBareAlias(p.origin.Clone(), words, optionValues(here.nounsOf(verb)))
+			reading, _, err := p.r.ReadBareAlias(p.origin.Clone(), words, p.shadowNouns(ix, verb))
 			switch {
 			case err != nil:
 				c.Words = append(c.Words, PaletteWord{Text: word, Kind: "verb", Value: verb}, PaletteWord{Text: tokens[1].Text})
