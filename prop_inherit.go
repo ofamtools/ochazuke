@@ -165,15 +165,16 @@ func (l inheritLink) target(v any) (noun, key string, ok bool) {
 
 // deriveInherit is the inherit kind: each thing whose own value of the
 // prop is not set reads it through the noun's inheritance (Value), each
-// parent read once through its noun's store (the parents of the batch in
-// one query when the store has one).
+// parent read once for the batch through its noun's store (the parents of
+// the batch in one query when the store has one), never written: a read
+// for a derivation is read-only (Ctx.ReadOnly).
 func deriveInherit(c Ctx, n *Noun, p PropSpec, things []Thing) {
 	h := c.Runtime.Inheritance()
 	link, ok := h.links[n.Name][p.Name]
 	if !ok {
 		return
 	}
-	got := map[string]Thing{}
+	got := batchRefs(c)
 	if len(link.nouns) == 1 && !slices.Contains(link.self, link.nouns[0]) {
 		readRefs(c, c.Runtime.Noun(link.nouns[0]), batchKeys(things, link.ref), got)
 	}

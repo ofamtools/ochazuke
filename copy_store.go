@@ -16,7 +16,8 @@ import (
 //
 //   - the first read of a thing (get, or a list that meets it) copies it
 //     from the source once, the backfill; after that the copy IS the thing:
-//     no background sync, no fingerprints, no remembered originals;
+//     no background sync, no fingerprints, no remembered originals. A read
+//     another noun's derived prop makes (Ctx.ReadOnly) copies nothing in;
 //   - create and archive are the copy's alone, and so is set, except the
 //     props the noun declares Through (PropSpec.Through), which set sends on
 //     to the source's Patch too;
@@ -215,12 +216,17 @@ func (cs *copyStore) filled(c Ctx, key string) {
 }
 
 // backfill copies a source thing in: the copy stamps its own base times.
+// A read-only read (Ctx.ReadOnly) answers the source's thing as it is and
+// copies nothing in: the next read that may write does.
 func (cs *copyStore) backfill(c Ctx, n *Noun, key string, src Thing) (Thing, error) {
 	t := maps.Clone(src)
 	if t == nil {
 		t = Thing{}
 	}
 	delete(t, CopyTombstone)
+	if c.ReadOnly() {
+		return t, nil
+	}
 	n.stamp(t, RoleCreated, RoleUpdated)
 	if err := cs.local.Put(key, t); err != nil {
 		return nil, err

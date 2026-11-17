@@ -77,3 +77,56 @@ func TestInheritWalksDeclaredReferences(t *testing.T) {
 		t.Errorf("off-loop walk = %v", v)
 	}
 }
+
+// countingLocal is a copy store's LocalStore that counts its writes.
+type countingLocal struct {
+	*MemoryLocal
+	puts int
+}
+
+func (l *countingLocal) Put(key string, t Thing) error { l.puts++; return l.MemoryLocal.Put(key, t) }
+
+// A read never writes (spine S6): an inherit walk to parents held by a
+// copy store reads each parent once for a list's batch and copies none
+// in, on a list and on a get.
+func TestInheritWalkReadsParentsWithoutWriting(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	gets := 0
+	shelves := map[string]Thing{"s1": {"id": "s1", "room": "r1"}, "s2": {"id": "s2", "room": "r2"}}
+	local := &countingLocal{MemoryLocal: NewMemoryLocal()}
+	r.Define("room").Props(PropSpec{Name: "id", Key: true}).Store(DocStore(NewMemDocTable(r, "room"), "room"))
+	r.Define("shelf").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "room", Parameter: Parameter{Ref: []string{"room"}}}).
+		Store(CopyStore(Store{
+			Get: func(_ Ctx, key string) (Thing, error) { gets++; return shelves[key], nil },
+			List: func(Ctx, ListQuery) ([]Thing, error) {
+				return []Thing{shelves["s1"], shelves["s2"]}, nil
+			},
+		}, local))
+	bins := NewMemDocTable(r, "bin")
+	r.Define("bin").Props(PropSpec{Name: "id", Key: true},
+		PropSpec{Name: "shelf", Parameter: Parameter{Ref: []string{"shelf"}}},
+		PropSpec{Name: "room", Inherit: "shelf", Parameter: Parameter{Ref: []string{"room"}}}).Store(DocStore(bins, "bin"))
+	for i, shelf := range []string{"s1", "s1", "s2", "s2"} {
+		id := fmt.Sprint("b", i)
+		_ = bins.Put(id, Thing{"id": id, "shelf": shelf})
+	}
+	rows, err := r.Execute(Request{Noun: "bin", Verb: "list"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range rows.(ListAnswer).Items {
+		if want := map[string]string{"s1": "r1", "s2": "r2"}[fmt.Sprint(row["shelf"])]; cellValueText(row["room"]) != want {
+			t.Errorf("%v room = %v, want %s", row["id"], row["room"], want)
+		}
+	}
+	if gets != 2 {
+		t.Errorf("the list read %d parents, want 2 (each once)", gets)
+	}
+	if _, err := r.Execute(Request{Noun: "bin", Verb: "get", Args: Arguments{"id": "b0"}}); err != nil {
+		t.Fatal(err)
+	}
+	if local.puts != 0 {
+		t.Errorf("the walk wrote %d copies, want none", local.puts)
+	}
+}

@@ -60,8 +60,13 @@ type Ctx struct {
 	tape *tape
 	// underived, set while a derived prop reads another noun's things
 	// (prop_derivation.go), reads them without their own derived props, so
-	// two nouns that derive from each other never read in a circle.
+	// two nouns that derive from each other never read in a circle. Such a
+	// read writes nothing (ReadOnly).
 	underived bool
+	// refs, set while one batch's derived props are read (Runtime.derive),
+	// holds the things they read of other nouns (by noun, NUL, key), so the
+	// batch reads each once whichever of its props names it.
+	refs map[string]Thing
 	// restoring, set while history-entry.undo creates a deleted thing
 	// again, is the thing as its store kept it (Store.Stored, recorded by
 	// the delete): a store puts it back whole (Ctx.Restoring).

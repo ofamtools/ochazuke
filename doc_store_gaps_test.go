@@ -253,7 +253,8 @@ func TestDerivationReadsReferencedThingsInOneQuery(t *testing.T) {
 			t.Fatalf("derived rows: %v", a.Items[3])
 		}
 		t.Logf("with Query %v: %d gets, %d queries", withQuery, gets, queries)
-		if withQuery && (gets != 0 || queries != 2) || !withQuery && gets != 52 {
+		// The batch's two derived props share their reads: one per task.
+		if withQuery && (gets != 0 || queries != 1) || !withQuery && gets != 26 {
 			t.Fatalf("with Query %v: %d gets, %d queries", withQuery, gets, queries)
 		}
 	}

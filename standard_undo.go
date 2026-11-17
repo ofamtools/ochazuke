@@ -60,6 +60,12 @@ type ThingChange struct {
 // props do not declare puts the thing back whole from it.
 func (c Ctx) Restoring() Thing { return c.restoring }
 
+// ReadOnly reports whether the read is one a derived prop of another noun
+// makes (an inherit walk to a parent, a reference's label, a count): the
+// store answers what it has and writes nothing (spine S6: a read never
+// writes), so a copy store copies nothing in.
+func (c Ctx) ReadOnly() bool { return c.underived }
+
 // UndoGuard offers history-entry.undo when a newest change exists, including one
 // the handler must explain it cannot undo; with none, a store declares Undo.
 const UndoGuard = "history-undoable"

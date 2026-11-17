@@ -336,6 +336,9 @@ func (r *Runtime) derive(c Ctx, n *Noun, things []Thing) []Thing {
 		out[i] = cloneThing(t)
 	}
 	c.Runtime = r
+	if c.refs == nil {
+		c.refs = map[string]Thing{} // one read of each other thing for the batch's props
+	}
 	for _, p := range props {
 		if !p.ownsValue() {
 			for _, t := range out {
@@ -458,7 +461,7 @@ func deriveLabel(c Ctx, n *Noun, p PropSpec, things []Thing) {
 		return
 	}
 	other := c.Runtime.Noun(ref.Noun)
-	got := map[string]Thing{}
+	got := batchRefs(c)
 	readRefs(c, other, batchKeys(things, ref.Name), got)
 	for _, t := range things {
 		if emptyProp(t[ref.Name]) {
@@ -495,6 +498,15 @@ func batchKeys(things []Thing, prop string) []string {
 		}
 	}
 	return out
+}
+
+// batchRefs is the map of other nouns' things the batch's derived props
+// read (Ctx.refs, by noun, NUL, key), a new one outside a batch.
+func batchRefs(c Ctx) map[string]Thing {
+	if c.refs != nil {
+		return c.refs
+	}
+	return map[string]Thing{}
 }
 
 // readRefs reads the things of other with these keys into got (by
@@ -864,7 +876,7 @@ func firstEntry(c Ctx, n *Noun, read string, t Thing, got map[string]Thing) (any
 // deriveFirst is, for each thing, the first of Reads that holds a value
 // (firstEntry); a thing where none does keeps its own value as it is.
 func deriveFirst(c Ctx, n *Noun, p PropSpec, things []Thing) {
-	got := map[string]Thing{}
+	got := batchRefs(c)
 	// The things every REF.PROP names, read for the whole batch at once.
 	for _, read := range readsOf(p.Derivation.Reads) {
 		if refName, _ := splitRead(read); refName != "" {
