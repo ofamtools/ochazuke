@@ -1,6 +1,8 @@
 package ochazuke
 
 import (
+	"context"
+	"fmt"
 	"slices"
 	"testing"
 )
@@ -163,5 +165,56 @@ func TestReachWithoutTokenHoldsUntilAChange(t *testing.T) {
 	r.Changed("pane")
 	if got := reachKeys(r, "project"); !slices.Equal(got, []string{"p2"}) || gets == walked {
 		t.Fatalf("after a change: %v (%d reads)", got, gets-walked)
+	}
+}
+
+// A walk over stores that keep change tokens is served across a load
+// (a fetch that declares Writes, as a daemon's periodic listing) that left
+// the tokens where they were, and walked again after one that moved them;
+// a store answering an unknown token ("") holds no longer than one with
+// none.
+func TestReachFollowsTokensAcrossALoad(t *testing.T) {
+	t.Parallel()
+	r := reachFixture(t, Thing{"id": "a", "project": "p1"})
+	gets, version, project := 0, 0, "p1"
+	store := r.Noun("pane").Store
+	get := store.Get
+	store.Get = func(c Ctx, key string) (Thing, error) {
+		gets++
+		t, err := get(c, key)
+		if t != nil {
+			t["project"] = project
+		}
+		return t, err
+	}
+	store.ChangeToken = func(Ctx) (string, error) { return fmt.Sprint(version), nil }
+	r.Define("cache").Kind(NounKindPart).Verb("load", func(Ctx) Result {
+		return Pending(func(context.Context) (any, error) { return nil, nil })
+	}, "Load the panes").Fetch().Writes("pane")
+	load := func() {
+		t.Helper()
+		mustRun(t, r, Request{Noun: "cache", Verb: "load"})
+		settleJob(t, r)
+	}
+	if got := reachKeys(r, "project"); !slices.Equal(got, []string{"p1"}) {
+		t.Fatalf("projects %v", got)
+	}
+	walked := gets
+	load()
+	if got := reachKeys(r, "project"); !slices.Equal(got, []string{"p1"}) || gets != walked {
+		t.Fatalf("after an unchanged load: %v (%d reads)", got, gets-walked)
+	}
+	project, version = "p2", version+1
+	load()
+	if got := reachKeys(r, "project"); !slices.Equal(got, []string{"p2"}) {
+		t.Fatalf("a walk cached before the load was served after it: %v", got)
+	}
+	// Unknown tokens: the walk holds only until a change is told.
+	store.ChangeToken = func(Ctx) (string, error) { return "", nil }
+	reachKeys(r, "project")
+	project = "p1"
+	r.Changed("pane")
+	if got := reachKeys(r, "project"); !slices.Equal(got, []string{"p1"}) {
+		t.Fatalf("a walk over an unknown token outlived a change: %v", got)
 	}
 }

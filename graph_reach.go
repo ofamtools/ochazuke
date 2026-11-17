@@ -245,8 +245,9 @@ func (r *Runtime) walkReach(from string, key reachKey) *reachWalk {
 
 // reachGet reads a thing from a local store with a token, noting the token.
 // A store that calls out of the process (Remote), a store without Get, and a
-// failed read give nil; a store without a change token makes the walk hold
-// only until the next change the runtime is told of (untokened).
+// failed read give nil; a store without a change token (or one answering
+// "", unknown) makes the walk hold only until the next change the runtime
+// is told of (untokened).
 func (r *Runtime) reachGet(w *reachWalk, n *Noun, key string) Thing {
 	if n.Store == nil || n.Store.Get == nil || n.Store.Remote || n.keyProp() == nil {
 		return nil
@@ -256,10 +257,14 @@ func (r *Runtime) reachGet(w *reachWalk, n *Noun, key string) Thing {
 	if err != nil {
 		return nil
 	}
-	if n.Store.ChangeToken == nil {
-		w.untokened = true
-	} else if _, ok := w.tokens[n.Name]; !ok {
-		w.tokens[n.Name] = storeToken(n.Store, c)
+	if _, ok := w.tokens[n.Name]; !ok {
+		// An unknown token ("": none, an error, a store that cannot tell
+		// yet) holds no more than no token does.
+		if token := storeToken(n.Store, c); token == "" {
+			w.untokened = true
+		} else {
+			w.tokens[n.Name] = token
+		}
 	}
 	return t
 }
