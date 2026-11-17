@@ -91,12 +91,20 @@ func TestFallbackAndNeedsAfterRights(t *testing.T) {
 
 // A component declares a verb not usual on it (Unoffers): availability
 // (keys, hints) leaves it out there, an explicit request runs it, and the
-// palette lists it after the usual verbs, marked; palette.reach off (the
-// opt-out) leaves it out of the palette.
+// palette lists it: in its place, unmarked (palette.list static), or after
+// the usual verbs, marked (palette.list live); palette.reach off (the
+// opt-out) lists only what the focus allows, never marked.
 func TestUnofferedVerbs(t *testing.T) {
-	for _, reach := range []bool{true, false} {
+	for _, c := range []struct {
+		reach          bool
+		list           string
+		listed, marked bool
+	}{{true, PaletteListStatic, true, false}, {true, PaletteListLive, true, true}, {false, PaletteListStatic, false, false}} {
 		r, p, ran := lineRuntime(t)
-		if err := r.Settings().Set(PaletteReachSetting, reach); err != nil {
+		if err := r.Settings().Set(PaletteReachSetting, c.reach); err != nil {
+			t.Fatal(err)
+		}
+		if err := r.Settings().Set(PaletteListSetting, c.list); err != nil {
 			t.Fatal(err)
 		}
 		r.Unoffer("sheet", "sheet.save")
@@ -107,14 +115,14 @@ func TestUnofferedVerbs(t *testing.T) {
 			t.Fatalf("explicit save: %v %v", err, *ran)
 		}
 		typeLine(t, p, "sheet ")
-		var unusual []string
+		listed, marked := false, false
 		for _, e := range p.completions() {
-			if e.Unusual {
-				unusual = append(unusual, e.Value)
+			if e.Value == "save" {
+				listed, marked = true, e.Unusual
 			}
 		}
-		if got := slices.Contains(unusual, "save"); got != reach {
-			t.Fatalf("reach %v: unusual %v", reach, unusual)
+		if c.listed != listed && c.reach || marked != c.marked {
+			t.Fatalf("reach %v, list %s: listed %v marked %v", c.reach, c.list, listed, marked)
 		}
 	}
 }
