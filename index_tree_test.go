@@ -42,6 +42,9 @@ func TestIndexTreeNestsByTheDeclaredParent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := r.OpenPage("p"); err != nil {
+		t.Fatal(err)
+	}
 	shape := func() string {
 		var out []string
 		for _, n := range tree.Nodes() {

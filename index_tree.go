@@ -78,7 +78,8 @@ func (r *Runtime) AddIndexTree(id, noun string, opts ...InstanceOption) (*Tree, 
 }
 
 // IndexTreeRefill fills the index tree id again (a page opening it); a
-// tree that is not an index tree is left alone.
+// tree that is not an index tree is left alone. A store that does not
+// answer is said on the tree's empty line and returned.
 func (r *Runtime) IndexTreeRefill(id string) error {
 	inst := r.Instances[id]
 	if inst == nil {
@@ -88,6 +89,7 @@ func (r *Runtime) IndexTreeRefill(id string) error {
 	if !ok {
 		return nil
 	}
+	it.dirty = false
 	return it.refresh()
 }
 
@@ -114,13 +116,24 @@ func (it *indexTree) flush() {
 		}
 		return
 	}
-	if !it.dirty {
-		return
+	if !it.dirty || !it.shown() {
+		return // read when its page opens (IndexTreeRefill)
 	}
 	it.dirty = false
-	if err := it.refresh(); err != nil {
-		it.r.UI().Error(fmt.Sprintf("%s list: %v", it.r.DisplayNoun(it.noun), err))
+	// A failure is the tree's empty line, never an error on screen: the
+	// stores answer again on the next change or open.
+	_ = it.refresh()
+}
+
+// shown reports whether the tree's page is the current page (a tree on no
+// page is always shown): a change heard while it is not is read on open.
+func (it *indexTree) shown() bool {
+	for _, step := range it.r.Ancestry(it.tree.id) {
+		if it.r.PageOf(step) != nil {
+			return step == it.r.Page
+		}
 	}
+	return true
 }
 
 // fill reads both stores and sets the tree's nodes: each parent thing,

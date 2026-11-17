@@ -475,9 +475,8 @@ func (v *PageView) refillTreesOnOpen(page *ochazuke.Page) {
 	next := page.OnOpen
 	page.OnOpen = func(r *ochazuke.Runtime, from string) {
 		for _, id := range trees {
-			if err := r.IndexTreeRefill(id); err != nil {
-				r.UI().Error(err.Error())
-			}
+			// A failure shows on the tree's empty line, not as an error.
+			_ = r.IndexTreeRefill(id)
 		}
 		if next != nil {
 			next(r, from)
