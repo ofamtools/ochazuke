@@ -431,9 +431,10 @@ func TestRuntimeHoldsNoComponentFields(t *testing.T) {
 	// runtime's lifetime (Shutdown), a registry of what it started.
 	// Declarations is the registry the noun files read (the name table of
 	// handlers, hooks and sources, loader problems, schemas), like Operations.
+	// readPass counts requests and watch rounds (ReadPass), like seq.
 	want := []string{
 		"BindingTimeout", "Declarations", "Focus", "Instances", "ModalReturns", "Mode", "Modes", "Nouns", "Operations", "Page", "Pending", "Quit", "ResolveTarget", "actionNames", "agentApproved", "agentTransport", "aliases",
-		"bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "derivations", "diffRenderer", "events", "guards", "history", "holders", "jobBase", "jobQueue", "jobSeq", "jobs", "life", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "predicates", "prefix", "relations", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rows", "seq", "targets", "watches",
+		"bindingVersion", "builtinDepth", "commands", "copyMarks", "defaults", "deprecations", "derivations", "diffRenderer", "events", "guards", "history", "holders", "jobBase", "jobQueue", "jobSeq", "jobs", "life", "modalInstances", "modals", "modeGeneration", "modes", "namedSettings", "predicates", "prefix", "readPass", "relations", "remoteQueue", "remoteSeen", "renderCache", "reopening", "rows", "seq", "targets", "watches",
 	}
 	if !reflect.DeepEqual(fields, want) {
 		t.Fatalf("Runtime fields:\n got %v\nwant %v", fields, want)
