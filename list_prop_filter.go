@@ -27,6 +27,8 @@ type filterRow struct {
 	node     TreeNode
 	thing    Thing
 	decoded  bool
+	record   Thing // the row's own record (rowRecord), before thing adds to it
+	recorded bool
 	hay      [2]string
 	prepared [2]bool
 }
@@ -38,7 +40,7 @@ func (l *Collection) treeHasNode(id string) bool {
 
 func (l *Collection) cacheRows() {
 	l.rowCache = make(map[string]*filterRow, len(l.all))
-	l.derived = nil
+	l.derived, l.bareNouns = nil, nil
 	set := map[string]bool{}
 	if t := l.tree(); t != nil {
 		for _, n := range t.nodes {
@@ -99,9 +101,36 @@ func (l *Collection) thing(item ListItem) Thing {
 		return l.cellThing(item, rowThing(l.r.Noun(item.Noun), item))
 	}
 	if !row.decoded {
-		row.thing, row.decoded = l.cellThing(item, rowThing(l.r.Noun(item.Noun), item)), true
+		row.thing, row.decoded = l.cellThing(item, thingOfRecord(l.r.Noun(item.Noun), item, maps.Clone(l.rowRecord(item)))), true
 	}
 	return row.thing
+}
+
+// rowRecord is the row's own record, its Props or its decoded Data (nil when
+// it has none), decoded once per row generation: decoding Data is what a read
+// of a row costs.
+func (l *Collection) rowRecord(item ListItem) Thing {
+	row := l.cachedRow(item)
+	if row == nil {
+		return itemRecord(item)
+	}
+	if !row.recorded {
+		row.record, row.recorded = itemRecord(item), true
+	}
+	return row.record
+}
+
+// itemRecord reads a row's Props, else its Data as a Thing; nil when it holds
+// no record.
+func itemRecord(item ListItem) Thing {
+	if item.Props != nil {
+		return item.Props
+	}
+	record, err := ThingOf(item.Data)
+	if err != nil {
+		return nil
+	}
+	return record
 }
 
 // cellThing gives a table row that carries no data (no Props, no Data) a
@@ -141,14 +170,13 @@ func (l *Collection) propFocus() string {
 }
 
 func rowThing(n *Noun, item ListItem) Thing {
-	var thing Thing
-	var err error
-	if item.Props != nil {
-		thing = maps.Clone(item.Props)
-	} else {
-		thing, err = ThingOf(item.Data)
-	}
-	if err != nil || thing == nil {
+	return thingOfRecord(n, item, maps.Clone(itemRecord(item)))
+}
+
+// thingOfRecord completes a row's record, which it owns, with the noun's key
+// and label props.
+func thingOfRecord(n *Noun, item ListItem, thing Thing) Thing {
+	if thing == nil {
 		thing = Thing{}
 	}
 	if p := n.keyProp(); p != nil {

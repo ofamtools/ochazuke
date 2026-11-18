@@ -375,3 +375,74 @@ func TestListSortUnmappedColumnUsesFieldPicker(t *testing.T) {
 		t.Fatal(l.Sort())
 	}
 }
+
+// countedRecord is row Data that counts how often it is decoded.
+type countedRecord struct{ reads *int }
+
+func (c countedRecord) MarshalJSON() ([]byte, error) {
+	*c.reads++
+	return []byte(`{"name":"x"}`), nil
+}
+
+// The sort fields follow the rows: a titled column is a field only while a
+// row has no record of its own. The rows are read once per generation, however
+// often the guards ask, and a new generation is read again, on a list and on a
+// tree.
+func TestSortSpecsReadTheRowsOncePerGeneration(t *testing.T) {
+	reads := 0
+	record, bare := countedRecord{&reads}, ListItem{ID: "a", Noun: "cached-row", Cells: []string{"1"}}
+	hasColumn := func(l *Collection) bool { _, ok := l.sortSpecs()["size"]; return ok }
+	check := func(t *testing.T, l *Collection, toRecord, toBare func() error) {
+		t.Helper()
+		if err := toRecord(); err != nil {
+			t.Fatal(err)
+		}
+		if hasColumn(l) {
+			t.Fatal("a row with a record offers the column")
+		}
+		first := reads
+		for range 3 {
+			l.Sortable()
+		}
+		if reads != first || first == 0 {
+			t.Fatalf("decoded %d times, then %d more", first, reads-first)
+		}
+		if err := toBare(); err != nil {
+			t.Fatal(err)
+		}
+		if !hasColumn(l) {
+			t.Fatal("new rows with no record do not offer the column")
+		}
+		if err := toRecord(); err != nil {
+			t.Fatal(err)
+		}
+		if hasColumn(l) {
+			t.Fatal("new rows with a record still offer the column")
+		}
+	}
+	r := NewRuntime()
+	r.Config().Disable()
+	r.Define("cached-row")
+	t.Run("list", func(t *testing.T) {
+		l, err := r.AddList("cached", nil, Columns(Column{Title: "Size"}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		check(t, l,
+			func() error {
+				return l.SetItems([]ListItem{{ID: "a", Noun: "cached-row", Data: record, Cells: []string{"1"}}})
+			},
+			func() error { return l.SetItems([]ListItem{bare}) })
+	})
+	t.Run("tree", func(t *testing.T) {
+		tree, err := r.AddTree("cached-tree", nil, Columns(Column{Title: "Size"}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		check(t, tree.list,
+			func() error {
+				return tree.SetNodes([]TreeNode{{ID: "n", Noun: "cached-row", Data: record, Cells: []string{"1"}}})
+			},
+			func() error { return tree.SetNodes([]TreeNode{{ID: "n", Noun: "cached-row", Cells: []string{"1"}}}) })
+	})
+}

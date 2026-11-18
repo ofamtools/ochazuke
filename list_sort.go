@@ -133,11 +133,8 @@ func (l *Collection) sortSpecs() map[string]PropSpec {
 	if len(l.columns) == 0 {
 		return out
 	}
-	for _, item := range l.filterRows() {
-		if !rowWithoutProps(item) {
-			continue
-		}
-		n := l.r.Noun(item.Noun)
+	for _, noun := range l.bareRowNouns() {
+		n := l.r.Noun(noun)
 		if n == nil {
 			continue
 		}
@@ -161,12 +158,23 @@ func (l *Collection) sortSpecs() map[string]PropSpec {
 	return out
 }
 
-func rowWithoutProps(item ListItem) bool {
-	if item.Props != nil {
-		return len(item.Props) == 0
+// bareRowNouns are the nouns of the rows with no prop record, each once, in
+// row order. Reading a row's record can decode its Data, and the list-sortable
+// guard asks on every draw and key, so the answer is kept for the row
+// generation (cacheRows clears it, as it clears fieldProps).
+func (l *Collection) bareRowNouns() []string {
+	if l.bareNouns != nil {
+		return l.bareNouns
 	}
-	record, err := ThingOf(item.Data)
-	return err != nil || len(record) == 0
+	l.bareNouns = []string{}
+	seen := map[string]bool{}
+	for _, item := range l.filterRows() {
+		if !seen[item.Noun] && len(l.rowRecord(item)) == 0 {
+			seen[item.Noun] = true
+			l.bareNouns = append(l.bareNouns, item.Noun)
+		}
+	}
+	return l.bareNouns
 }
 
 func (l *Collection) sortRaw(item ListItem, field string) any {
@@ -184,7 +192,7 @@ func (l *Collection) sortRaw(item ListItem, field string) any {
 	} else if n.prop(field) != nil {
 		return nil
 	}
-	if !rowWithoutProps(item) {
+	if len(l.rowRecord(item)) > 0 {
 		return nil
 	}
 	p := PropSpec{Name: field}

@@ -95,6 +95,7 @@ type Collection struct {
 	noSort       bool              // source-owned or virtualized rows cannot sort locally
 	rowCache     map[string]*filterRow
 	derived      fieldProps // the rows' undeclared fields as props (list_props.go); nil until asked, cleared with the rows
+	bareNouns    []string   // the nouns of the rows with no prop record (list_sort.go); nil until asked, cleared with the rows
 	nouns        []string
 	declaredNoun string // RowNoun: the row noun while no row says it
 	match        string // the filter's match mode set by search.cycle-match/set-match; "" is search.match (search_match.go)
