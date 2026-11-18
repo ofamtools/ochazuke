@@ -39,6 +39,10 @@ type TreeNode struct {
 	// Search is more text the / filter matches the node by, never drawn
 	// (ListItem.Search).
 	Search []string `json:"search,omitempty"`
+	// Classes are application-defined labels of the row (ListItem.Classes)
+	// for collection.next-class and previous-class: a class on a top-level
+	// row lets those verbs walk the tree's folds.
+	Classes []string `json:"classes,omitempty"`
 	// Fixed names the changes the node refuses: TreeRename, TreeMove
 	// (move, indent, outdent) and TreeDelete (deleting it or any
 	// ancestor). An outline's document root is Fixed all three; an array
@@ -593,7 +597,7 @@ func (t *Tree) refresh(selectID string) error {
 			if noun == "" {
 				noun = t.RowNoun
 			}
-			row = &filterRow{node: n, item: ListItem{ID: n.ID, Label: n.Label, Noun: noun, Data: n.Data, Props: n.Props, Cells: n.Cells, Search: n.Search}}
+			row = &filterRow{node: n, item: ListItem{ID: n.ID, Label: n.Label, Noun: noun, Data: n.Data, Props: n.Props, Cells: n.Cells, Search: n.Search, Classes: n.Classes}}
 		}
 		cache[n.ID] = row
 	}
@@ -609,7 +613,7 @@ func (t *Tree) refresh(selectID string) error {
 			noun = t.RowNoun
 		}
 		prefix := t.prefix(n)
-		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Props: n.Props, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section, SpaceAbove: n.SpaceAbove, Search: slices.Clone(n.Search)}
+		item := ListItem{ID: n.ID, Label: prefix + n.Label, Noun: noun, Data: n.Data, Props: n.Props, Tones: shiftTones(n.Tones, utf8.RuneCountInString(prefix)), Section: n.Section, SpaceAbove: n.SpaceAbove, Search: slices.Clone(n.Search), Classes: slices.Clone(n.Classes)}
 		if len(n.Cells) > 0 {
 			item.Cells = slices.Clone(n.Cells)
 			item.Cells[0] = prefix + item.Cells[0]

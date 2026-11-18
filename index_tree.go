@@ -251,7 +251,7 @@ func (it *indexTree) fill() error {
 func (it *indexTree) nodes(items []ListItem, parent *ListItem) []TreeNode {
 	out := make([]TreeNode, 0, len(items))
 	for _, item := range items {
-		node := TreeNode{ID: item.ID, Label: item.Label, Noun: item.Noun, Data: item.Data, Cells: item.Cells, Tones: item.Tones, Search: item.Search}
+		node := TreeNode{ID: item.ID, Label: item.Label, Noun: item.Noun, Data: item.Data, Cells: item.Cells, Tones: item.Tones, Search: item.Search, Classes: item.Classes}
 		if t, ok := item.Data.(Thing); ok {
 			node.Props = t
 		}

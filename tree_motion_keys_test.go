@@ -47,3 +47,60 @@ func TestTreeMotionKeysKeepTheirMeaning(t *testing.T) {
 		t.Fatalf("motions wrote %v", writes)
 	}
 }
+
+// A class on a tree's top-level rows lets collection.next-class and
+// previous-class walk the folds: from a child (its own fold first, going
+// up), from a classed row, with a count, across a collapsed row (not
+// opened) and at both edges (the cursor stays).
+func TestTreeClassMotionsWalkFolds(t *testing.T) {
+	r := NewRuntime()
+	m := NewModel(r)
+	m.Width, m.Height = 80, 24
+	_ = m
+	if _, err := r.AddPage("main", "Main", func(r *Runtime, w, h int) Block { return r.Tree("t").Block(w, h) }); err != nil {
+		t.Fatal(err)
+	}
+	top := []string{"project"}
+	tree, err := r.AddTree("t", []TreeNode{
+		{ID: "p1", Label: "one", Classes: top}, {ID: "c1", Label: "c1", Parent: "p1"}, {ID: "g1", Label: "g1", Parent: "c1"},
+		{ID: "p2", Label: "two", Classes: top}, {ID: "c2", Label: "c2", Parent: "p2"},
+		{ID: "p3", Label: "three", Classes: top}, {ID: "c3", Label: "c3", Parent: "p3"},
+	}, Parent("main"), NoSpill())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("main"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tree.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if err := tree.SetCollapsed("p2", true); err != nil {
+		t.Fatal(err)
+	}
+	for i, s := range []struct {
+		from, verb string
+		steps      int
+		want       string
+	}{
+		{"g1", "previous-class", 1, "p1"},
+		{"p1", "previous-class", 1, "p1"},
+		{"p3", "previous-class", 1, "p2"},
+		{"c3", "previous-class", 1, "p3"},
+		{"c3", "previous-class", 9, "p1"},
+		{"c3", "next-class", 1, "c3"},
+		{"g1", "next-class", 1, "p2"},
+		{"p1", "next-class", 2, "p3"},
+		{"p1", "next-class", 9, "p3"},
+	} {
+		if err := r.SetFocus(s.from); err != nil {
+			t.Fatal(i, err)
+		}
+		if _, err := r.Execute(Request{Noun: "ochazuke.collection", Verb: s.verb, Args: Arguments{"class": "project", "steps": s.steps}}); err != nil {
+			t.Fatal(i, err)
+		}
+		if r.Focus != s.want || !tree.Collapsed("p2") {
+			t.Fatalf("case %d %s %s x%d: focus %q, want %q with p2 collapsed", i, s.from, s.verb, s.steps, r.Focus, s.want)
+		}
+	}
+}
