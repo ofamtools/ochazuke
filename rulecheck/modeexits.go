@@ -65,8 +65,8 @@ func (c ModeExitsCoverage) String() string {
 // except in a modal, where it needs a key that closes the modal. A key
 // leaves mode M when its answering row (at once or under a guard):
 //   - names, as its mode argument, the resting mode or a mode the mode
-//     was entered from (a switch back; a switch on to a third mode, the
-//     terminal's leader i to nested, is not a way out);
+//     was entered from (a switch back; a switch on to a third mode is
+//     not a way out);
 //   - runs a verb that declares it leaves (Operation.Exits): ExitsClose
 //     always, ExitsMode in any mode but a modal's resting mode,
 //     ExitsPending in a pending mode;
