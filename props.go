@@ -93,7 +93,7 @@ const (
 	// RoleCurrent is the boolean prop that says a thing is the current one
 	// of its noun (the mode the runtime is in). Writing it true makes the
 	// thing current; set with a thing and no props writes it true, so
-	// "mode set nested" switches to nested.
+	// "mode set review" switches to review.
 	RoleCurrent = "current"
 	// RoleFixed is the prop that names the kinds of change a thing keeps
 	// itself from (fixed.go): a list of kinds ("rename", "move",

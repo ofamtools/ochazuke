@@ -133,8 +133,8 @@ func (o Operation) SubjectOmitted(open []string, word string) bool {
 // shadowsNoun reports whether a bare alias that shadows verb (set) reads
 // word as a noun (owner decision 17): a noun whose verb of that name is the
 // application's own (not Standard), whose store is a singleton, or whose
-// things have a current one (a writable RoleCurrent prop: set mode nested
-// is mode set nested, one value as a singleton's). Any other collection's
+// things have a current one (a writable RoleCurrent prop: set mode review
+// is mode set review, one value as a singleton's). Any other collection's
 // or an instances store's standard verb is reached as NOUN VERB, never as
 // VERB NOUN, so its name never takes a setting's prefix; nor does a
 // singleton fact whose every prop set writes is the overlay's

@@ -1049,7 +1049,7 @@ func setChanges(n *Noun, a Arguments) (map[string]any, []string, error) {
 		}
 	default:
 		// A thing named with nothing to write is made current where its
-		// noun says what current is (RoleCurrent): mode set nested.
+		// noun says what current is (RoleCurrent): mode set review.
 		if p := writableRole(n, RoleCurrent); p != nil {
 			return changes, order, add(p.Name, true)
 		}

@@ -297,7 +297,7 @@ var stateProps = []PropSpec{
 // field and a dotted path reads inside it (state get
 // instances.editor.noun), as the JSON Pointer of the old snapshot.get did.
 // stateWritable are the snapshot props set writes: mode, through
-// mode.switch's request (snapshot set mode=nested, snapshot mode nested),
+// mode.switch's request (snapshot set mode=review, snapshot mode review),
 // any name.
 var stateWritable = []string{"mode"}
 
