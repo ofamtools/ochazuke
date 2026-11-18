@@ -506,6 +506,9 @@ func (m *Model) modeBadge() string {
 	case strings.HasSuffix(name, " "+keys):
 		name = strings.TrimSuffix(name, " "+keys)
 	}
+	if through := m.Runtime.UI().through.mode; through != "" && keys != "" {
+		name = through // a sequence held in a through mode is still that mode
+	}
 	label := strings.ToUpper(modeLabelOf(m.Runtime.badgeModeName(name)))
 	if keys != "" {
 		if m.Runtime.ModeBadgeKeyCase() == ModeBadgeKeysUpper {

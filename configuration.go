@@ -632,6 +632,8 @@ func (r *Runtime) fileModeProblems(doc BindingsDoc) []string {
 			problems = append(problems, fmt.Sprintf("%s: modes %s: extends %q differs from the application's %q (ignored)", BindingsFile, name, spec.Extends, r.modes[name].Extends))
 		case spec.Outside != r.modes[name].Outside:
 			problems = append(problems, fmt.Sprintf("%s: modes %s: outside %q differs from the application's %q (ignored)", BindingsFile, name, spec.Outside, r.modes[name].Outside))
+		case spec.Through != r.modes[name].Through:
+			problems = append(problems, fmt.Sprintf("%s: modes %s: through %q differs from the application's %q (ignored)", BindingsFile, name, spec.Through, r.modes[name].Through))
 		case spec.Selection != r.modes[name].Selection:
 			problems = append(problems, fmt.Sprintf("%s: modes %s: selection %q differs from the application's %q (ignored)", BindingsFile, name, spec.Selection, r.modes[name].Selection))
 		}

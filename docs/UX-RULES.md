@@ -935,6 +935,14 @@ the two disagree, fix one in the same commit.
   `sequence-timeout-sends-leader`, `sequence-timeout-default-waits`,
   `leader-setting-footer`, `leader-setting-detach`,
   `leader-user-row-names-setting`, `leader-timeout-deprecated-alias`.
+- **R8.2a** The leader then `_` enters `ephemeral`, a pending mode with
+  `through: normal`: keys resolve in `normal` itself (R1.7 unchanged), and
+  the pane is live again once a binding has resolved and nothing is held.
+  `d` then `x` runs `d`, then `x`, and `x` never reaches the pane. A key
+  with no row goes to the pane; `esc` returns and sends nothing; a held
+  sequence's `esc` cancels it and keeps waiting. A modal returns to the live
+  pane when it closes; a binding that moves the focus or page stays moved.
+  Check: unit `TestThrough*`.
 - **R8.3** Frames reach the component only through `Deliver` with a current
   ticket; a frame for a closed terminal is dropped. Story:
   `composites/terminal.json`.

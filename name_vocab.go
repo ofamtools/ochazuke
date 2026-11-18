@@ -53,7 +53,7 @@ func (r *Runtime) NameVocab() map[string][]string {
 		}
 	}
 	for mode, spec := range r.modes {
-		add("mode", mode, spec.Extends, spec.Outside)
+		add("mode", mode, spec.Extends, spec.Outside, spec.Through)
 	}
 	for _, d := range r.DefaultBindings() {
 		add("mode", d.Mode)

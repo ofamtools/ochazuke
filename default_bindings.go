@@ -224,6 +224,9 @@ func (r *Runtime) defineFileMode(name string, m ModeSpec) (err error) {
 	if err == nil && m.Outside != "" {
 		err = r.DefineMode(name, m.Pending, ModeOutside(m.Outside))
 	}
+	if err == nil && m.Through != "" {
+		err = r.DefineMode(name, m.Pending, ModeThrough(m.Through))
+	}
 	if err == nil && m.Layered {
 		spec := r.modes[name]
 		spec.Layered = true

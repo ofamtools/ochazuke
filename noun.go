@@ -1439,6 +1439,9 @@ func (r *Runtime) DefineMode(name string, pending bool, opts ...ModeOption) erro
 	if spec.Outside != "" {
 		entry.Outside = spec.Outside
 	}
+	if spec.Through != "" && spec.Through != name && pending && r.ensureMode(spec.Through) == nil && r.IsBaseMode(spec.Through) {
+		entry.Through = spec.Through // a name nobody registered becomes a mode (ensureMode)
+	}
 	entry.Typing = entry.Typing || spec.Typing
 	entry.CursorOnChar = entry.CursorOnChar || spec.CursorOnChar
 	r.putMode(name, entry)
@@ -1478,6 +1481,12 @@ func ModeExtends(parent string) ModeOption {
 // ModeOutside gives a pending mode an outside base mode for unbound keys.
 func ModeOutside(outside string) ModeOption {
 	return func(s *ModeSpec) { s.Outside = outside }
+}
+
+// ModeThrough makes a pending mode resolve its keys in base for one binding,
+// then return to the mode it was entered over (mode_through.go).
+func ModeThrough(base string) ModeOption {
+	return func(s *ModeSpec) { s.Through = base }
 }
 
 // ModeParent is the mode name falls back to for a noun with no table of

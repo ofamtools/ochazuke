@@ -116,7 +116,8 @@ type UI struct {
 	attached         bool // a sink attached once: the ring is gone for good
 	ring             []UIMessage
 	messages         []UIMessage
-	passthroughInput uint64 // answered rows in any passthrough mode
+	passthroughInput uint64       // answered rows in any passthrough mode
+	through          throughState // a through mode's key in progress (mode_through.go)
 	next             NoticeID
 	captures         []*[]UIMessage // HandleCall's open captures, innermost last
 }

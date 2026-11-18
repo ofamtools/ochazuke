@@ -292,6 +292,9 @@ func (r *Runtime) Dispatch(key MacroKey) (bool, error) {
 // key had: handled, unhandled (no level had an available row on it), or
 // consumed by a noop row.
 func (r *Runtime) DispatchOutcome(key MacroKey) (KeyOutcome, error) {
+	if r.throughApplies() {
+		return r.dispatchThrough(key)
+	}
 	if err := r.expirePrefix(); err != nil {
 		return KeyHandled, err
 	}
@@ -1295,9 +1298,11 @@ func (r *Runtime) finishPrefix() (bool, error) {
 	defer r.Sourced("key:" + r.Pending)()
 	r.leavePrefix()
 	if fallback == nil {
+		r.settleThrough(false)
 		return false, nil
 	}
 	_, err := r.Execute(*fallback)
+	r.settleThrough(true)
 	return true, err
 }
 

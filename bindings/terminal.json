@@ -2,6 +2,7 @@
 {
   "modes": {
     "leader_pending": {"pending": true, "outside": "normal"},
+    "ephemeral": {"pending": true, "through": "normal"},
     "terminal": {"passthrough": true},
     "nested": {"passthrough": true, "extends": "terminal"}
   },
@@ -10,8 +11,12 @@
       {"key": "d", "action": "ochazuke.terminal.detach"},
       {"key": "o", "action": "ochazuke.focus.next", "hidden": true},
       {"key": "i", "action": "ochazuke.mode.switch", "args": {"mode": "nested"}, "hint": "nested: every key to the pane, {terminal.nested-escape} returns"},
+      {"key": "_", "action": "ochazuke.mode.enter", "args": {"mode": "ephemeral"}, "hint": "ephemeral: run one normal-mode binding, then back to the pane"},
       {"key": "a", "action": "ochazuke.terminal.send", "args": {"keys": "{terminal-leader}"}, "hidden": true},
       {"key": "{terminal-leader}", "action": "ochazuke.terminal.send", "args": {"keys": "{terminal-leader}"}}
+    ]},
+    {"context": "ochazuke.terminal/ephemeral", "bindings": [
+      {"key": "esc", "action": "ochazuke.mode.leave", "hint": "back to the pane"}
     ]},
     {"context": "ochazuke.terminal/terminal", "bindings": [
       {"key": "{terminal-leader}", "action": "ochazuke.mode.enter", "args": {"mode": "leader_pending", "prefix": "{terminal-leader}", "request": {"args": {"keys": "{terminal-leader}"}, "noun": "ochazuke.terminal", "verb": "send"}}, "hint": "leader: d detaches, {terminal-leader} sends {terminal-leader}"},
