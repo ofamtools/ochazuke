@@ -103,8 +103,9 @@ func (r *Runtime) offerToSurface(key MacroKey) (KeyOutcome, error) {
 // settleThrough decides where a finished key leaves the runtime; ran says a
 // binding resolved. While a sequence is still held on the surface nothing
 // changes. Otherwise the state is cleared, so it can never act later on some
-// other surface: a modal the key opened returns to the mode entered over when
-// it closes, a key that moved the person elsewhere leaves them there, a
+// other surface: a modal the key opened, or a page it left, returns to the
+// mode entered over when the person comes back, a key that moved the focus
+// on the page leaves them there, a
 // resolved binding returns to the mode entered over, and a key that resolved
 // nothing (a cancelled sequence) waits in the through mode for the next one.
 func (r *Runtime) settleThrough(ran bool) {
@@ -127,6 +128,12 @@ func (r *Runtime) settleThrough(ran bool) {
 			ret.Mode = ModeState{Name: t.returns}
 			return ret, true
 		})
+	case r.Page != t.page:
+		// The page left remembers the mode the key was typed over, as it
+		// does when the page is left from that mode itself.
+		if left := r.PageOf(t.page); left != nil && left.Remembered == t.focus {
+			left.mode = ModeState{Name: t.returns}
+		}
 	case !surface:
 	case ran:
 		r.restoreMode(ModeState{Name: t.returns}, nil)

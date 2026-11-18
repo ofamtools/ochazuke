@@ -130,6 +130,33 @@ func TestThroughReturnsWhenHeldSequenceExpires(t *testing.T) {
 	}
 }
 
+// A binding that opens another page leaves the person there; coming back
+// finds the pane live.
+func TestThroughPageLeftReturnsToLive(t *testing.T) {
+	t.Parallel()
+	r, _, _ := throughFixture(t)
+	if _, err := r.AddPage("other", "Other", func(*Runtime, int, int) Block { return Text("") }); err != nil {
+		t.Fatal(err)
+	}
+	r.Define("probe").Verb("away", func(c Ctx) Result {
+		if err := c.Runtime.OpenPage("other"); err != nil {
+			return Failed(err)
+		}
+		return Done(nil)
+	})
+	r.Define("ochazuke.terminal").Mode("normal").Bind("v", Do("probe.away"))
+	throughKeys(t, r, "ctrl+a", "_", "v")
+	if r.Page != "other" || r.UI().through.mode != "" {
+		t.Fatalf("page %q state %+v", r.Page, r.UI().through)
+	}
+	if err := r.OpenPage("console"); err != nil {
+		t.Fatal(err)
+	}
+	if r.Mode.Name != "terminal" || r.Focus != "pane" {
+		t.Fatalf("mode %q focus %q", r.Mode.Name, r.Focus)
+	}
+}
+
 // A binding that takes the person elsewhere leaves them there, with nothing
 // left to fire later.
 func TestThroughLeavesAMovedFocusAlone(t *testing.T) {

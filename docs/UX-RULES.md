@@ -941,7 +941,8 @@ the two disagree, fix one in the same commit.
   `d` then `x` runs `d`, then `x`, and `x` never reaches the pane. A key
   with no row goes to the pane; `esc` returns and sends nothing; a held
   sequence's `esc` cancels it and keeps waiting. A modal returns to the live
-  pane when it closes; a binding that moves the focus or page stays moved.
+  pane when it closes, a page the binding opens returns to it when the
+  person comes back, and a binding that moves the focus stays moved.
   Check: unit `TestThrough*`.
 - **R8.3** Frames reach the component only through `Deliver` with a current
   ticket; a frame for a closed terminal is dropped. Story:
