@@ -88,6 +88,7 @@ type Model struct {
 	ticker      jobTicker    // the finished jobs the ticker remembers (ticker.go)
 	segTimer    segmentTimer // the status segments' refresh timer (segment_view.go)
 	echo        keyEcho      // the keys the key echo shows (key_echo.go)
+	timing      timingLog    // the slow-frame log (timing_log.go)
 	styles      modelStyles
 	redraw      modelRedraw
 	viewCache   modelViewports
@@ -105,6 +106,7 @@ type Model struct {
 func NewModel(r *Runtime) *Model {
 	var m *Model
 	r.Builtin(func() { m = newModel(r) })
+	m.watchTimingLog()
 	return m
 }
 
@@ -222,6 +224,7 @@ func (m *Model) Init() tea.Cmd {
 	// The retention rules due today (retention.auto; none declared: nothing).
 	// A first large removal held earlier (another process) is told too.
 	m.Runtime.notifyRetentionHeld(m.Runtime.RetentionDue())
+	m.readTimingLog()
 	// The About page is always registered (hidden from the tabs).
 	_ = m.Runtime.EnsureAboutPage()
 	// The Nouns page after it: the last tab (nouns.page).
@@ -233,6 +236,7 @@ func (m *Model) Init() tea.Cmd {
 	return tea.Batch(tea.RequestBackgroundColor, m.settingsPoll(), m.segmentCommand(m.clock()), m.retentionTick())
 }
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	defer m.timeUpdate(msg)()
 	if cmd, handled := m.redraw.begin(m, msg); handled {
 		return m, cmd
 	}
@@ -1073,6 +1077,7 @@ func SplitKeys(keys string) (prefix, final string) {
 // modal that holds it: a bar in insert mode, a block in normal mode and an
 // underline in visual modes. It is hidden when the block reports no cursor.
 func (m *Model) View() tea.View {
+	defer m.timeView()()
 	if v, ok := m.redraw.reuse(); ok {
 		return v
 	}
