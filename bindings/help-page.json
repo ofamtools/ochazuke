@@ -13,6 +13,7 @@
       {"key": "u", "action": "ochazuke.help-page.undo", "hint": "undo", "help": "Undo the last change: an edit of your bindings.json writes the old text back"},
       {"key": "W", "action": "ochazuke.help-page.show-file", "hint": "your file", "help": "Your bindings.json as written, after its changes since the page opened"},
       {"key": "q", "action": "ochazuke.help-page.close", "hint": "back"},
+      {"key": "esc", "action": "ochazuke.help-page.close", "when": "setting:modal.esc-closes"},
       {"key": "f", "action": "ochazuke.help-page.refocus", "hint": "focus"},
       {"key": "-", "action": "ochazuke.help-page.back", "hint": "previous focus"},
       {"key": "m", "action": "ochazuke.help-page.cycle-mode", "args": {"step": 1}, "hint": "mode"},

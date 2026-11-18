@@ -17,6 +17,35 @@ func helpPageFixture(t *testing.T) (*Runtime, *Model) {
 	return r, m
 }
 
+// esc goes back from the help page exactly when modal.esc-closes is on, from
+// the list and from the rail; off, it leaves the page open and q goes back.
+func TestHelpPageEscFollowsModalEscCloses(t *testing.T) {
+	for _, closes := range []bool{true, false} {
+		t.Run(fmt.Sprintf("esc-closes=%v", closes), func(t *testing.T) {
+			r, m := helpPageFixture(t)
+			r.EnsureConfigSettings()
+			if err := r.Settings().Set(ModalEscClosesSetting, closes); err != nil {
+				t.Fatal(err)
+			}
+			for _, keys := range [][]string{{"?"}, {"?", "tab"}} {
+				for _, key := range keys {
+					keytest.Press(m, key)
+				}
+				keytest.Press(m, "esc")
+				if open := r.Page == HelpPageID; open == closes {
+					t.Fatalf("after %v esc: page %q with esc-closes %v", keys, r.Page, closes)
+				}
+				if !closes {
+					keytest.Press(m, "q")
+				}
+				if r.Page == HelpPageID {
+					t.Fatalf("after %v the help page is still open", keys)
+				}
+			}
+		})
+	}
+}
+
 // ? opens the binding help page over the focus: the rail draws the walk,
 // the list the rows; j in the rail walks the levels and the list follows
 // without narrowing; / filters through the help query and x a clears it;
