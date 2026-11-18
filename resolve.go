@@ -875,10 +875,23 @@ func (r *Runtime) AllBindings() []Binding {
 // (bindings list): the row names the canonical operation, its aliases
 // listed once beside it.
 func (r *Runtime) withAliases(rows []Binding) []Binding {
+	byAction := r.aliasesByAction()
+	names := map[string][]string{}
 	for i, row := range rows {
-		if row.Request.Verb != "" && !row.Request.IsProp() {
-			rows[i].Aliases = r.aliasNames(row.Request.Key())
+		if row.Request.Verb == "" || row.Request.IsProp() {
+			continue
 		}
+		key := row.Request.Key()
+		list, seen := names[key]
+		if !seen {
+			if op, ok := r.Operation(key); ok {
+				for _, a := range byAction[op.Key.Short()] {
+					list = append(list, r.DisplayKey(a.Alias))
+				}
+			}
+			names[key] = list
+		}
+		rows[i].Aliases = slices.Clone(list)
 	}
 	return rows
 }
