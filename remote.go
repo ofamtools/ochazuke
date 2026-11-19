@@ -176,11 +176,14 @@ func (c Ctx) Await(call StoreCall, start func() Result, limit time.Duration) (an
 // read must touch nothing the loop writes: work out what to read on the
 // loop, before the call (the query text, its arguments), and give read only
 // those values; turn its answer into things after the call, on the loop.
-// call names the read so a replay can tell it is the same one: Store and
-// Op, and a Key that differs whenever the read would (the query and its
-// arguments). A replay that makes a different call (the state it was worked
-// out from changed meanwhile) reads again, off the loop. The answer is kept
-// for the run only, never as a remote store's last known answer.
+// call names the read (Store, Op; Key is for people reading a job). A
+// replay hands back the answer of the read made at the same place in the
+// run with the same Store and Op, even when the query it works out has
+// moved meanwhile (a clock in its arguments): the answer is the store as it
+// was when the read started, and a later write is its watch's to report. A
+// replay that reaches a different read there reads that one again, off the
+// loop. The answer is kept for the run only, never as a remote store's last
+// known answer.
 func (c Ctx) OffLoop(call StoreCall, read func(context.Context) (any, error)) (any, error) {
 	t := c.tape
 	if t == nil || !t.offLoop {
@@ -191,13 +194,12 @@ func (c Ctx) OffLoop(call StoreCall, read func(context.Context) (any, error)) (a
 		return read(ctx)
 	}
 	if t.next < len(t.done) {
-		if a := t.done[t.next]; a.call == call {
+		if a := t.done[t.next]; a.local && a.call.Store == call.Store && a.call.Op == call.Op {
 			t.next++
 			return a.value, a.err
 		}
-		// What the read was worked out from changed while it ran: the
-		// answers from here on are of other reads, so this one is read
-		// again.
+		// The run took another path since: the answers from here on are of
+		// other reads, so this one is read again.
 		t.done = t.done[:t.next]
 	}
 	panic(&needCall{call: call, res: Pending(read), local: true})

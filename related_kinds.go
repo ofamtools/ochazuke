@@ -240,9 +240,10 @@ func (rel *Related) syncGroups() {
 		return
 	}
 	was := map[*relatedSection]*relatedSection{}
+	wasFolded := map[*relatedSection]bool{}
 	for _, s := range rel.sections {
 		if !s.grouping {
-			was[s] = s.group
+			was[s], wasFolded[s] = s.group, s.folded()
 			s.group = nil
 		}
 	}
@@ -256,7 +257,11 @@ func (rel *Related) syncGroups() {
 		}
 	}
 	for _, s := range rel.sections {
-		if !s.grouping && was[s] != s.group && s.list != nil {
+		switch {
+		case s.grouping || was[s] == s.group || s.list == nil:
+		case s.filled && wasFolded[s] && !s.folded():
+			s.fill() // read folded (a count), it now shows its rows under an open group
+		default:
 			s.render() // a heading of its own again, or none
 		}
 	}

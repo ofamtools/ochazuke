@@ -490,6 +490,7 @@ func (rel *Related) sync() {
 	if keyChanged {
 		rel.synced, rel.key = true, key
 	}
+	rel.syncGroups() // a member reads as its group shows it
 	switch {
 	case look != rel.look:
 		rel.look = look
