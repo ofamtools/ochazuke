@@ -42,6 +42,9 @@ func (rel *Related) View(width, height int) string {
 		return ""
 	}
 	var lines []string
+	if line := rel.filterLine(width); line != "" {
+		lines = append(lines, line) // the stack's one filter line (related_filter.go)
+	}
 	type span struct {
 		s          *relatedSection
 		start, end int

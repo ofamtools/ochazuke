@@ -71,6 +71,13 @@ type Collection struct {
 	// rows a query language selects (the binding help page's field:value
 	// terms) sets it; nil matches the text as the search.match setting says.
 	QueryFilter func(query string) func(ListItem) bool
+	// SharedFilter, when set and answering non-nil, owns the list's text
+	// filter: "/", typing, backspace, enter and esc on the list read and
+	// write its query instead of the list's own, and the list draws no
+	// filter line of its own (the owner draws one, and filters its rows).
+	// A related stack sets it on its sections' lists so one query filters
+	// every section (RelatedFilterScopeSetting).
+	SharedFilter func() SharedFilter
 
 	r            *Runtime
 	id           string

@@ -316,7 +316,7 @@ func (rel *Related) addGroup(id string) *relatedSection {
 		_ = r.RemoveInstance(s.id)
 		return nil
 	}
-	s.list = list
+	s.list, list.SharedFilter = list, rel.sharedFilter // a heading's "/" filters the stack too
 	rel.sections = append(rel.sections, s)
 	rel.byID[id] = s
 	rel.shape++

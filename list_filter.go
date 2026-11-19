@@ -98,10 +98,47 @@ func (l *Collection) matcher() Matcher { return l.r.Matcher(l.MatchMode(), l.vs.
 // The matchSearcher contract (search_match.go): the mode decides the
 // filter while its line shows.
 func (l *Collection) matchMode() string  { return l.MatchMode() }
-func (l *Collection) matchApplies() bool { return l.vs.Text != "" || l.editingFilter() }
+func (l *Collection) matchApplies() bool { return l.vs.Text != "" || l.typingOwn() }
+
+// typingOwn reports whether the list's own query is being typed: its
+// filter line is open and no shared filter owns the query.
+func (l *Collection) typingOwn() bool { return l.shared() == nil && l.editingFilter() }
 func (l *Collection) setMatchMode(mode string) {
 	l.match = mode
 	l.SetFilter(l.vs.Text)
+}
+
+// SharedFilter is a filter query several lists share (Collection.SharedFilter).
+type SharedFilter interface {
+	FilterQuery() string
+	SetFilterQuery(query string)
+}
+
+// shared is the filter that owns the list's query now, nil for its own.
+func (l *Collection) shared() SharedFilter {
+	if l.SharedFilter == nil {
+		return nil
+	}
+	return l.SharedFilter()
+}
+
+// query is the text query the list's filter verbs read: its shared
+// filter's, else its own.
+func (l *Collection) query() string {
+	if f := l.shared(); f != nil {
+		return f.FilterQuery()
+	}
+	return l.vs.Text
+}
+
+// setQuery is what the filter verbs write: the shared filter's query, else
+// the list's own filter.
+func (l *Collection) setQuery(query string) {
+	if f := l.shared(); f != nil {
+		f.SetFilterQuery(query)
+		return
+	}
+	l.SetFilter(query)
 }
 
 // Filter is the list's filter query ("" when every row is shown).
@@ -110,7 +147,7 @@ func (l *Collection) Filter() string { return l.vs.Text }
 // Filtering reports whether the filter line shows: a filter is set, or
 // its query is being typed on this list.
 func (l *Collection) Filtering() bool {
-	return l.vs.Text != "" || l.editingFilter() || len(l.vs.Filters) > 0 || l.vs.Saved != ""
+	return l.vs.Text != "" || l.typingOwn() || len(l.vs.Filters) > 0 || l.vs.Saved != ""
 }
 
 // Height is the lines the list needs to draw every row without
@@ -127,7 +164,7 @@ func (l *Collection) Height() int {
 	if perPage := l.effectiveView().PerPage; perPage > 0 {
 		rows = min(rows, perPage) // a paged list is one page tall whichever page shows
 	}
-	if l.vs.Text != "" || l.editingFilter() || l.propStrip() != "" || l.viewSummary() != "" {
+	if l.vs.Text != "" || l.typingOwn() || l.propStrip() != "" || l.viewSummary() != "" {
 		return rows + gaps + 1
 	}
 	if l.Filtering() {
@@ -319,7 +356,7 @@ func (l *Collection) editingFilter() bool {
 // regex), then the match mode's tag (search.show-match). "" when there is
 // none.
 func (l *Collection) filterLine(width int) string {
-	editing := l.editingFilter()
+	editing := l.typingOwn()
 	strip := l.propStrip()
 	sort := l.viewSummary()
 	if l.vs.Text == "" && !editing && strip == "" && sort == "" {
@@ -401,14 +438,14 @@ func registerListFilter(r *Runtime) {
 	// pop, a page's close) in the walk and on the footer alike.
 	r.DefineGuard("list-filtered", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
-		return l != nil && (l.vs.Text != "" || ev.Mode.Name == ListFilterMode)
+		return l != nil && (l.query() != "" || ev.Mode.Name == ListFilterMode)
 	})
 	// list-query holds while the query has text: filter-erase's verb
 	// guard, so on an empty query backspace is the list-unfiltered row
 	// that leaves the line.
 	r.DefineGuard("list-query", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
-		return l != nil && l.vs.Text != ""
+		return l != nil && l.query() != ""
 	})
 	// list-chooses holds on a ClearFilterOnEnter list with a row
 	// selected: filter-choose's verb guard, so enter on any other list,
@@ -421,7 +458,7 @@ func registerListFilter(r *Runtime) {
 	})
 	r.DefineGuard("list-unfiltered", func(r *Runtime, ev KeyEvent) bool {
 		l := r.focusedList(ev.Focus)
-		return l != nil && l.vs.Text == ""
+		return l != nil && l.query() == ""
 	})
 
 	resolve := func(c Context, args Arguments) (*Collection, error) {
@@ -449,7 +486,7 @@ func registerListFilter(r *Runtime) {
 	unfilter := func(l *Collection, back string) {
 		// back is cleared after the filter, so a list's OnFilter still
 		// reads the row the line opened on.
-		l.SetFilter("")
+		l.setQuery("")
 		l.back = ""
 		if back != "" && l.shows(back) {
 			_ = l.Select(back)
@@ -474,7 +511,7 @@ func registerListFilter(r *Runtime) {
 		traits            []opTrait
 	}{
 		{"filter", "Filter the rows to those whose label or cells match query in the list's match mode (search.match; substring: every word) and case as search.case says; an empty query shows every row", with(map[string]Parameter{"query": {Type: "string", Required: true, Description: "The words every shown row holds; empty clears the filter"}}), func(l *Collection, a Arguments) error {
-			l.SetFilter(StringArg(a, "query", ""))
+			l.setQuery(StringArg(a, "query", ""))
 			return nil
 		}, nil},
 		{"filter-open", "Open the list's filter line and type its query (" + ListFilterMode + " mode); a kept filter is edited", id, func(l *Collection, _ Arguments) error {
@@ -490,13 +527,13 @@ func registerListFilter(r *Runtime) {
 			return r.SetMode(ListFilterMode)
 		}, []opTrait{asFocusBound, asHistory(HistoryAction)}},
 		{"filter-type", "Type text at the end of the filter query", with(map[string]Parameter{"text": {Type: "string", Required: true}}), func(l *Collection, a Arguments) error {
-			l.SetFilter(l.vs.Text + StringArg(a, "text", ""))
+			l.setQuery(l.query() + StringArg(a, "text", ""))
 			return nil
 		}, nil},
 		{"filter-erase", "Erase the filter query's last character", id, func(l *Collection, _ Arguments) error {
-			if l.vs.Text != "" {
-				_, size := utf8.DecodeLastRuneInString(l.vs.Text)
-				l.SetFilter(l.vs.Text[:len(l.vs.Text)-size])
+			if q := l.query(); q != "" {
+				_, size := utf8.DecodeLastRuneInString(q)
+				l.setQuery(q[:len(q)-size])
 			}
 			return nil
 		}, nil},

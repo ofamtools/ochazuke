@@ -176,6 +176,7 @@ type Related struct {
 	readSeq  uint64                   // numbers the reads, so only a read's newest answer lands
 	drawn    uint64                   // the frame (watchHub.frames) the stack was last drawn in
 	archived string                   // the archived setting's value the sections' lists were last set from
+	query    string                   // the stack's filter query (related_filter.go)
 }
 
 // relatedSplit is a section split by a prop (RelatedSpec.GroupBy): its
@@ -205,6 +206,7 @@ type relatedSection struct {
 	members    []*relatedSection // a group heading's sections
 	grouping   bool              // a group heading (RelatedSpec.Groups)
 	loading    bool              // never filled and its first read runs off the loop: it says so
+	matched    int               // rows the stack's filter query matches (related_filter.go)
 }
 
 // AddRelated registers a stack of related sections under Parent (default
@@ -427,7 +429,7 @@ func (rel *Related) visible() []*relatedSection {
 			if slices.Contains(out, s.group) && s.list.Len() > 0 {
 				out = append(out, s)
 			}
-		case hideEmpty && s.counted && s.count == 0:
+		case hideEmpty && s.counted && s.shownCount() == 0:
 		default:
 			out = append(out, s)
 		}
@@ -741,7 +743,7 @@ func (rel *Related) addSection(ref Referrer) *relatedSection {
 		_ = r.RemoveInstance(s.id)
 		return nil
 	}
-	s.list = list
+	s.list, list.SharedFilter = list, rel.sharedFilter // one "/" filters the stack (related_filter.go)
 	list.SetMatchNoun(pluralWord(shortNounName(ref.Noun)))
 	if rel.spec.Archived != "" {
 		rel.setArchived(s, rel.listSetting(rel.spec.Archived)) // before its first read
@@ -893,6 +895,9 @@ func (s *relatedSection) collapsed() bool { return s.rel.isCollapsed(s.ref.ID())
 // folded reports whether the section's things are out of sight: it is
 // collapsed, or a member of a collapsed group.
 func (s *relatedSection) folded() bool {
+	if s.rel.filtering() {
+		return false // a stack filter reads and shows every section's matches
+	}
 	if s.group != nil {
 		return s.group.collapsed()
 	}
@@ -1061,10 +1066,11 @@ func (s *relatedSection) render() {
 	rel := s.rel
 	r := rel.r
 	if s.grouping {
-		s.count, s.counted = 0, true
+		s.count, s.matched, s.counted = 0, 0, true
 		for _, m := range s.members {
 			if rel.hiddenBy(m.ref.ID()) == "" {
 				s.count += m.count
+				s.matched += m.matched
 				s.counted = s.counted && m.counted
 			}
 		}
@@ -1075,11 +1081,16 @@ func (s *relatedSection) render() {
 	}
 	shown := s.shown
 	c := r.backgroundCtx()
+	rows := s.rowItems(c, shown)
+	if rel.filtering() {
+		rows = s.matching(rows) // the stack's one filter (related_filter.go)
+	}
+	s.matched = len(rows)
 	items := []ListItem{s.heading()}
 	if s.group != nil {
 		items = nil
-		if !s.group.collapsed() {
-			items = s.rowItems(c, shown)
+		if !s.group.collapsed() || rel.filtering() {
+			items = rows
 		}
 		if err := s.list.SetItems(items); err != nil {
 			r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
@@ -1094,8 +1105,9 @@ func (s *relatedSection) render() {
 				r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
 			}
 		}
-	} else if !s.collapsed() {
+	} else if !s.collapsed() || rel.filtering() {
 		switch {
+		case rel.filtering():
 		case s.unreadable != "":
 			items = append(items, s.noteRow(s.unreadable))
 		case empty && s.loading:
@@ -1103,7 +1115,7 @@ func (s *relatedSection) render() {
 		case empty && rel.emptyMode() == relatedEmptyAtOpen:
 			items = append(items, s.noteRow(EmptyText(pluralWord(shortNounName(s.ref.Noun)))))
 		}
-		items = append(items, s.rowItems(c, shown)...)
+		items = append(items, rows...)
 	}
 	if err := s.list.SetItems(items); err != nil {
 		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
@@ -1114,7 +1126,7 @@ func (s *relatedSection) render() {
 // count; a focus stop whose verbs are the section's.
 func (s *relatedSection) heading() ListItem {
 	mark := "▾"
-	if s.collapsed() || s.count == 0 && s.unreadable == "" {
+	if !s.rel.filtering() && s.collapsed() || s.shownCount() == 0 && s.unreadable == "" {
 		mark = "▸"
 	}
 	label := mark + " " + s.ref.Label
@@ -1126,7 +1138,7 @@ func (s *relatedSection) heading() ListItem {
 		// folded and not counted (RelatedFoldedCountSetting): no count
 		// until it is opened
 	default:
-		label += fmt.Sprintf(" (%d)", s.count)
+		label += fmt.Sprintf(" (%d)", s.shownCount())
 	}
 	item := ListItem{ID: s.headID(), Label: label, Noun: RelatedNoun, Data: s.thing(), Tones: []ToneSpan{{Cell: 0, Tone: ToneHeader}}}
 	if n := len(s.list.columns); n > 0 {

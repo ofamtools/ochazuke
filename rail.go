@@ -304,6 +304,9 @@ func (rl *Rail) FitWith(width, height int, look string) RailFit {
 // alone.
 func (rel *Related) lineCounts() (all, heads int) {
 	rel.markDrawn()
+	if rel.filterLine(1) != "" {
+		all, heads = 1, 1 // the stack's filter line
+	}
 	for _, s := range rel.visible() {
 		n := s.list.Len()
 		if len(s.list.columns) > 0 {

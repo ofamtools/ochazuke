@@ -86,3 +86,56 @@ func TestRelatedReadsOffTheLoopKeepTheLastSelection(t *testing.T) {
 		}
 	}
 }
+
+// One "/" query filters every section of the stack at once, a folded one
+// too: each shows only its matching rows and counts them, one without a
+// match is its heading and 0, and the stack draws the one filter line.
+func TestRelatedStackFilterHidesUnmatchedRowsInEverySection(t *testing.T) {
+	t.Parallel()
+	// The notes are one folded group (the rail's "needs you" shape): a
+	// per-list filter hid such a heading and left its members unfiltered.
+	f := newRelFixtureWith(t, func(r *Runtime) {
+		if err := r.DeclareSetting(Setting{Name: "rel.groups", Type: SettingList, Default: []string{"all-notes = note"}}); err != nil {
+			panic(err)
+		}
+		if _, err := r.Settings().SetSession("rel.collapsed", []string{"all-notes"}); err != nil {
+			panic(err)
+		}
+	}, func(spec *RelatedSpec) { spec.Groups = "rel.groups" })
+	f.mustHave(t, "write", "docs", "▸ All notes")
+	if err := f.r.SetFocus(f.rel.List("all-notes").FocusTarget()); err != nil { // "/" on the group's heading
+		t.Fatal(err)
+	}
+	f.press("/ i d")
+	text := f.frame()
+	for _, want := range []string{"idea", "▾ All notes (1)", "▸ Tasks (0)", "▸ Links (0)"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("filtered stack lacks %q:\n%s", want, text)
+		}
+	}
+	for _, not := range []string{"write", "test", "docs", "no rows match"} {
+		if strings.Contains(text, not) {
+			t.Fatalf("filtered stack shows %q:\n%s", not, text)
+		}
+	}
+	if n := strings.Count(text, "/id"); n != 1 {
+		t.Fatalf("the filter line is drawn %d times:\n%s", n, text)
+	}
+}
+
+// esc clears the stack's filter in every section: every row is back and
+// a folded section folds again.
+func TestRelatedStackFilterEscClearsEverySection(t *testing.T) {
+	t.Parallel()
+	f := newRelFixtureWith(t, func(r *Runtime) {
+		if _, err := r.Settings().SetSession("rel.collapsed", []string{"note.project"}); err != nil {
+			panic(err)
+		}
+	}, nil)
+	f.press("/ i d", "esc")
+	text := f.frame()
+	if strings.Contains(text, "/id") || strings.Contains(text, "idea") || f.rel.FilterQuery() != "" {
+		t.Fatalf("esc left the filter:\n%s", text)
+	}
+	f.mustHave(t, "write", "test", "docs", "▸ Notes (project)")
+}
