@@ -89,14 +89,15 @@ func (r *Runtime) nounRefNouns(typed string) []Suggestion {
 }
 
 // nounRefThings are the things of a picker's noun whose label holds
-// typed, then Create "TYPED"… when the noun creates.
+// typed, the ones it begins first, then Create "TYPED"… when the noun
+// creates.
 func (r *Runtime) nounRefThings(def PickerDef, name, typed string) Result {
 	noun := r.CanonicalNoun(def.Noun)
 	cm := r.CaseFor(typed)
 	creates := typed != "" && r.pickerCreates(noun)
 	ref := func(label string) string { return Ref{Noun: name, Key: quoteRef(label)}.String() }
 	build := func(choices []Choice) []Suggestion {
-		var out []Suggestion
+		var out, more []Suggestion
 		for _, ch := range choices {
 			label := ch.Label
 			if label == "" {
@@ -106,11 +107,13 @@ func (r *Runtime) nounRefThings(def PickerDef, name, typed string) Result {
 				continue
 			}
 			row := Suggestion{Text: ref(label), Label: label}
-			if ch.ID != label && !ch.Bare {
-				row.Detail = ch.ID
+			if cm.HasPrefix(label, typed) {
+				out = append(out, row)
+			} else {
+				more = append(more, row)
 			}
-			out = append(out, row)
 		}
+		out = append(out, more...)
 		if creates {
 			out = append(out, Suggestion{Text: ref(typed), Label: "Create " + strconv.Quote(typed) + "…", Make: typed})
 		}
