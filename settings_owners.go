@@ -61,6 +61,10 @@ type SettingSection struct {
 	ID          string `json:"id"`
 	Title       string `json:"title,omitempty"`
 	Description string `json:"description,omitempty"`
+	// Contexts are the places every setting of the section applies to
+	// (Setting.Contexts adds a row's own). An owner's section without
+	// any takes those of the section declared for every owner.
+	Contexts []Ref `json:"contexts,omitempty"`
 }
 
 // SettingOwnerInfo is an owner as setting.owners answers: the declaration

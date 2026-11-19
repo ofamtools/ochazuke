@@ -34,7 +34,7 @@ ochazuke.restart-request	54
 ochazuke.retention-rule	138
 ochazuke.schema	6
 ochazuke.segment	91
-ochazuke.setting	704
+ochazuke.setting	695
 ochazuke.setting-item	178
 ochazuke.snapshot	62
 ochazuke.theme	51

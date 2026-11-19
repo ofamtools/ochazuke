@@ -64,8 +64,8 @@ type settingVerb struct {
 // them. edit, add, revert and write are registered beside them (the page's
 // prompts and the session layer's verbs).
 var settingVerbs = []settingVerb{
-	{Verb: "show", Description: "Show the setting's value on the status line, name=value (a boolean name or noname); verbose adds where it was set", Fits: anySetting,
-		Extra: map[string]Parameter{"verbose": {Type: "boolean", Description: "Add where the value was set (:verbose)"}}},
+	{Verb: "show", Description: "Show the setting's value on the status line, name=value (a boolean name or noname); verbose adds where it was set and where it applies (its context points)", Fits: anySetting,
+		Extra: map[string]Parameter{"verbose": {Type: "boolean", Description: "Add where the value was set and where the setting applies (:verbose)"}}},
 	{Verb: "set", Description: "Set the setting to a value, parsed by its type and checked against its allowed values", History: HistoryChange, Arg: "value", ArgHelp: "The value: text, a number, true or false, a duration such as 400ms, or a list as a,b or a JSON array", Usage: settingSetUsage, Fits: tableFits("set"), Next: nextSet, Keeps: true},
 	{Verb: "toggle", Description: "Invert an on/off setting", Fits: tableFits("toggle"), Next: nextToggle},
 	{Verb: "cycle", History: HistoryChange, Description: "Step a boolean, an enum or a number to its next or previous value (an enum wraps)", Fits: settingSteps, Next: nextCycle,
@@ -326,6 +326,9 @@ type SettingShown struct {
 	SettingValue
 	Line   string  `json:"line"`
 	Origin *Origin `json:"origin,omitempty"`
+	// Points are where the setting applies (its row's context points,
+	// then its section's).
+	Points []SettingPoint `json:"points,omitempty"`
 }
 
 // showLine is a setting's value as :set shows it: name=value, a boolean
@@ -442,6 +445,16 @@ func registerSettingVerbs(r *Runtime) {
 		r.Register(op)
 	}
 	registerSettingThings(r)
+	r.Register(Operation{Key: "ochazuke.setting.check", HistoryKind: HistoryFetch, Description: "Report, as warnings, the settings' context points that name no context noun or nothing this program has (each still loads), and the sections whose settings have no context point", Result: "problem[]", Run: runSettingCheck})
+}
+
+// runSettingCheck is setting.check: the context points' warnings.
+func runSettingCheck(r *Runtime, _ Context, _ Arguments) (any, error) {
+	problems := r.CheckSettingContexts()
+	if problems == nil {
+		problems = []string{}
+	}
+	return problems, nil
 }
 
 // The setting noun's things (standard verbs, lane S7): ochazuke.setting is
@@ -465,6 +478,10 @@ var settingProps = []PropSpec{
 	{Name: "owner", ReadOnly: true, Parameter: Parameter{Description: "The owner it is filed under, a tab of the Settings page: app (the application's), ochazuke (the framework's, also when the application changed its default) or one the application declares (setting.owners lists them)"}},
 	{Name: "group", ReadOnly: true, Parameter: Parameter{Description: "The heading it sits under inside its section, when it has one"}},
 	{Name: "origin", ReadOnly: true, Parameter: Parameter{Enum: []string{OriginDefault, OriginFile, OriginSession}, Description: "Where the value in effect comes from: the default, settings.json or this session (setting.show --verbose says more)"}},
+	{Name: "contexts", ReadOnly: true, Parameter: Parameter{Type: SettingList, Description: "Where the setting applies, as noun:key references (its row's, then its section's): ochazuke.noun:NOUN, ochazuke.page:ID, ochazuke.instance:ID or ochazuke.mode:MODE"}},
+	{Name: "level", ReadOnly: true, Parameter: Parameter{Type: SettingInteger, Description: "With list's at: the index of the innermost walk level from at that one of its contexts matches (0 the focus), -1 when none does"}},
+	{Name: "level_label", ReadOnly: true, Parameter: Parameter{Description: "With list's at: that level's label (its noun), or not on this walk"}},
+	{Name: "level_role", ReadOnly: true, Parameter: Parameter{Description: "With list's at: that level's role (focus, container, page, modal, app or fallback), empty when not on the walk"}},
 }
 
 // registerSettingThings declares the setting noun's props and its store,
@@ -475,20 +492,39 @@ func registerSettingThings(r *Runtime) {
 		Get: func(c Ctx, name string) (Thing, error) {
 			return settingThing(c.Runtime, name)
 		},
-		List: func(c Ctx, _ ListQuery) ([]Thing, error) {
-			s := c.Runtime.Settings()
-			out := []Thing{}
-			for _, one := range s.List() {
-				t, err := settingThing(c.Runtime, one.Name)
-				if err != nil {
-					return nil, err
-				}
-				out = append(out, t)
-			}
-			return out, nil
-		},
+		ListParams: map[string]Parameter{"at": {Type: "string", Accept: AcceptKeep, Description: "Place each setting on the focus walk from this instance (empty: the live focus): its level, level_label and level_role, the rows in walk order, innermost first, those on no level last"}},
+		List:       settingThings,
 	})
 	r.Settings().Observe("", func(string, any) { r.Changed("ochazuke.setting") })
+}
+
+// settingThings are the declared settings as things; with the at
+// argument each is placed on the focus walk from at (SettingPlacesAt) and
+// the things come in walk order, innermost first, those on no level last.
+func settingThings(c Ctx, q ListQuery) ([]Thing, error) {
+	s := c.Runtime.Settings()
+	at, placed := q.Args["at"]
+	var places map[string]SettingPlace
+	if placed {
+		places = c.Runtime.SettingPlacesAt(fmt.Sprint(at))
+	}
+	out := []Thing{}
+	for _, one := range s.List() {
+		t, err := settingThing(c.Runtime, one.Name)
+		if err != nil {
+			return nil, err
+		}
+		if place, ok := places[one.Name]; ok {
+			t["level"], t["level_label"], t["level_role"] = place.Level, place.Label, place.Role
+		}
+		out = append(out, t)
+	}
+	if placed {
+		slices.SortStableFunc(out, func(a, b Thing) int {
+			return compareLevels(places[a["name"].(string)].Level, places[b["name"].(string)].Level)
+		})
+	}
+	return out, nil
 }
 
 // settingThing is one declared setting as a thing (settingProps); an old
@@ -510,7 +546,20 @@ func settingThing(r *Runtime, name string) (Thing, error) {
 	return Thing{
 		"name": v.Name, "type": v.Type, "default": v.Default, "value": v.Value, "enum": enum,
 		"description": v.Description, "section": v.Section, "owner": v.Owner, "group": v.Group, "origin": origin.Layer, "protected": v.Protected,
+		"contexts": pointStrings(s.Points(v.Name)),
 	}, nil
+}
+
+// compareLevels orders walk levels innermost first, -1 (not on the walk)
+// last.
+func compareLevels(a, b int) int {
+	if (a < 0) != (b < 0) {
+		if a < 0 {
+			return 1
+		}
+		return -1
+	}
+	return a - b
 }
 
 // runSettingVerb is a value verb's handler: find the setting (its name,
@@ -563,11 +612,14 @@ func showSetting(r *Runtime, one Setting, verbose bool) (SettingShown, error) {
 	if err != nil {
 		return SettingShown{}, err
 	}
-	out := SettingShown{SettingValue: got, Line: showLine(one, s.current(one))}
+	out := SettingShown{SettingValue: got, Line: showLine(one, s.current(one)), Points: s.Points(one.Name)}
 	if verbose {
 		o, _ := s.Origin(one.Name)
 		out.Origin = &o
 		out.Line += " — " + o.String()
+		if len(out.Points) > 0 {
+			out.Line += " — applies at " + strings.Join(pointStrings(out.Points), ", ")
+		}
 	}
 	if s.shown != nil {
 		*s.shown = append(*s.shown, out.Line)

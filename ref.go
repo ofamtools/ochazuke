@@ -13,8 +13,8 @@ import (
 // other code joins or splits ids with ":" or "/". The key may hold colons
 // and slashes (a path), so the text splits at the first colon only.
 type Ref struct {
-	Noun string // canonical noun name
-	Key  string // the thing's key in the noun's store
+	Noun string `json:"noun"` // canonical noun name
+	Key  string `json:"key"`  // the thing's key in the noun's store
 }
 
 // String is the reference's text form, "noun:key".

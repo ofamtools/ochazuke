@@ -124,12 +124,16 @@ type HelpCounts struct {
 // HelpLevel is one level of the walk, the focused thing first and app
 // last.
 type HelpLevel struct {
-	Index    int         `json:"index"`
-	Noun     string      `json:"noun"`
-	Instance string      `json:"instance,omitempty"`
-	Role     string      `json:"role"`
-	Tables   []WalkTable `json:"tables"`
-	Counts   HelpCounts  `json:"counts"`
+	Index    int    `json:"index"`
+	Noun     string `json:"noun"`
+	Instance string `json:"instance,omitempty"`
+	// At is the instance the level stands for, whether or not it holds
+	// rows of its own (Instance is set only when it does); "" for a noun
+	// level (the modal noun, a fallback table).
+	At     string      `json:"at,omitempty"`
+	Role   string      `json:"role"`
+	Tables []WalkTable `json:"tables"`
+	Counts HelpCounts  `json:"counts"`
 }
 
 // Label is the level's name as the rail and the level: chip write it: the
@@ -243,6 +247,9 @@ func (r *Runtime) helpWalkOf(levels []level, mode ModeState, focus string) HelpW
 	}
 	for i, lv := range inner {
 		hl := HelpLevel{Index: i, Noun: lv.name(), Role: r.levelRole(lv, i)}
+		if lv.inst != nil {
+			hl.At = lv.inst.ID
+		}
 		if lv.inst != nil && len(lv.inst.Bindings) > 0 {
 			hl.Instance = lv.inst.ID
 			hl.Tables = append(hl.Tables, helpInstanceTable(lv.inst, base))

@@ -2917,6 +2917,14 @@ The Settings page draws a session value bold with the saved value beside it whil
 
 and its description reads `Set this session (palette, 14:02); settings.json holds grid. setting.write saves it, setting.revert drops it.` Stories `settings/session-marker*`.
 
+### Where a setting applies: context points and `setting.list {at}`
+
+A setting row and a section row may carry `contexts` (`Setting.Contexts`, `SettingSection.Contexts`, `settings_contexts.go`): `{noun, key}` references to where the setting applies. The reference's noun says what the key names: `ochazuke.noun` (any walk level of that noun; `app` is the app level), `ochazuke.page` (a page instance by id), `ochazuke.instance` (one instance) or `ochazuke.mode` (the focus level while the base mode is the key). A setting's points are its row's, then its section's (`Settings.Points`, `setting show` answers them as `points`, `:verbose set NAME?` adds "applies at ..."). Every framework section in `settings/sections.json` names its points, so each framework setting has one. `setting check` warns on a point that names nothing here or no context noun (it still loads, and matches nothing until its thing exists) and on a section whose settings have none.
+
+`setting list --at ID` places every setting on the focus walk from instance `ID` (an empty `at` is the live focus): the walk is `HelpWalkAt`'s levels, the one the keys modal reads, and a setting sits at the innermost level one of its points matches, as the first binding row wins. Each row gains `level` (0 the focus, -1 on no level), `level_label` (the level's noun, or "not on this walk") and `level_role` (`focus`, `container`, `page`, `modal`, `app`, `fallback`), and the rows come innermost first, the settings on no level last. A toggle still changes the setting everywhere: contexts decide where a setting shows, not its value.
+
+Compared with Vim: `:options` lists every option (`setting.open`); filetype plugins (`:help ftplugin`) group options by the buffer's filetype, and a context point is similar but decides where a setting is listed, not its value; `:setlocal` (`:help local-options`) has no counterpart, values stay global.
+
 ### Reviewing session values: `setting.diff {review}`
 
 `setting.diff {review: true}` (`:setting diff review=true`, `BIN setting diff --review`; `settings_review.go`; it was the verb `review`) opens a modal over whatever is open, one row per `setting.diff` entry: the setting, its saved value and where it is saved (`grid (file)`, `vi (default)`), the session value (in the session tone) and its origin (`Origin.String()`). Under the rows the selected setting's description, its default and origin, and what writing or reverting changes ("Writing puts stack in settings.json in place of grid; reverting shows grid again"; a reset session value says writing removes the key).

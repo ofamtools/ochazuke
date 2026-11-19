@@ -1,36 +1,39 @@
 // ochazuke setting owners and sections (JSONC): the Settings page's tabs (owners) and the sections of each, {owners: [{id, title,
-// description, order}], sections: [{owner, id, title, description}]}. Owners draw by order, then as listed here; an application's
+// description, order}], sections: [{owner, id, title, description, contexts}]}. Owners draw by order, then as listed here; an application's
 // owners (DeclareSettingOwner) default to order 0, so they come after app and before ochazuke. A section row with no owner titles
 // that section in every owner. Sections draw in the order of these rows (then an application's DeclareSettingSection rows), the
 // sections nobody declared after them in the order of their first setting. A setting's owner and section come from its own row
-// (Setting.Owner, Setting.Section, else the name before its first dot), never from code looking at its name.
+// (Setting.Owner, Setting.Section, else the name before its first dot), never from code looking at its name. A section's contexts
+// are where its settings apply (a row's own contexts add to them): {noun, key} references to a noun (ochazuke.noun; key app is the
+// app level), a page (ochazuke.page), an instance (ochazuke.instance) or a base mode (ochazuke.mode); setting check warns on one
+// that names nothing.
 {
   "owners": [
     {"id": "app", "order": 0, "description": "The application's own settings"},
     {"id": "ochazuke", "title": "ochazuke", "order": 100, "description": "The framework's settings, every ochazuke application has them: how pages look, keys, lists, pickers, the palette"}
   ],
   "sections": [
-    {"id": "general", "title": "General", "description": "Settings with no section of their own"},
-    {"owner": "ochazuke", "id": "appearance", "title": "Appearance", "description": "Colours, dimming, the mode badge and where modals open"},
-    {"owner": "ochazuke", "id": "keys", "title": "Keys", "description": "Key sequences, aliases, dot-repeat and the key echo"},
-    {"owner": "ochazuke", "id": "terminal", "title": "Terminal", "description": "Terminal panes: the leader key and the emulator"},
-    {"owner": "ochazuke", "id": "open", "title": "Open", "description": "What open does with a link, a file, a folder or a noun:id: the opener rows and unmatched text"},
-    {"owner": "ochazuke", "id": "help", "title": "Help", "description": "The ? help and the docs viewer"},
-    {"owner": "ochazuke", "id": "palette", "title": "Palette", "description": "The command palette, the CLI's help and the forms a missing argument opens"},
-    {"owner": "ochazuke", "id": "records", "title": "Records", "description": "The standard create and delete, and record editors"},
-    {"owner": "ochazuke", "id": "lists", "title": "Lists", "description": "Lists, tables and trees: rename, visual selection, zoom and breadcrumbs"},
-    {"owner": "ochazuke", "id": "search", "title": "Search", "description": "How every search and filter treats case and matches its query: the path picker, pickers and the / list filter"},
-    {"owner": "ochazuke", "id": "pickers", "title": "Pickers", "description": "Pickers: the path picker and every picker that lists things to pick"},
-    {"owner": "ochazuke", "id": "modals", "title": "Modals", "description": "Modals: which keys leave and close them"},
-    {"owner": "ochazuke", "id": "hooks", "title": "Hooks", "description": "hooks.json: verbs that run when an event happens"},
-    {"owner": "ochazuke", "id": "status", "title": "Status bar", "description": "The status segments in the header rule"},
-    {"owner": "ochazuke", "id": "pages", "title": "Pages", "description": "Hidden pages and the action history"},
-    {"owner": "ochazuke", "id": "data", "title": "Data", "description": "Retention: when the program's retention rules run (retention-rule list shows them)"},
-    {"owner": "ochazuke", "id": "rail", "title": "Rail", "description": "The rail beside a page's main area: its look, width and sections"},
-    {"owner": "ochazuke", "id": "markdown", "title": "Markdown", "description": "Markdown documents and their notes"},
- {"owner":"ochazuke", "id":"agents", "title":"Agents", "description":"Agent rights and confirmation attribution"},
-    {"owner": "ochazuke", "id": "about", "title": "About", "description": "The About page: the build, the family dependencies and the process"},
-    {"owner": "ochazuke", "id": "debug", "title": "Debug", "description": "Diagnostics you turn on to see how the program runs"},
-    {"owner": "ochazuke", "id": "settings", "title": "Settings", "description": "This page, :set and session values"}
+    {"id": "general", "title": "General", "description": "Settings with no section of their own", "contexts": [{"noun": "ochazuke.noun", "key": "app"}]},
+    {"owner": "ochazuke", "id": "appearance", "title": "Appearance", "description": "Colours, dimming, the mode badge and where modals open", "contexts": [{"noun": "ochazuke.noun", "key": "app"}]},
+    {"owner": "ochazuke", "id": "keys", "title": "Keys", "description": "Key sequences, aliases, dot-repeat and the key echo", "contexts": [{"noun": "ochazuke.noun", "key": "app"}]},
+    {"owner": "ochazuke", "id": "terminal", "title": "Terminal", "description": "Terminal panes: the leader key and the emulator", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.terminal"}]},
+    {"owner": "ochazuke", "id": "open", "title": "Open", "description": "What open does with a link, a file, a folder or a noun:id: the opener rows and unmatched text", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.opener"}]},
+    {"owner": "ochazuke", "id": "help", "title": "Help", "description": "The ? help and the docs viewer", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.help-page"}, {"noun": "ochazuke.noun", "key": "ochazuke.bindings-help"}, {"noun": "ochazuke.noun", "key": "ochazuke.text-view"}, {"noun": "ochazuke.noun", "key": "ochazuke.docs-viewer"}]},
+    {"owner": "ochazuke", "id": "palette", "title": "Palette", "description": "The command palette, the CLI's help and the forms a missing argument opens", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.palette"}]},
+    {"owner": "ochazuke", "id": "records", "title": "Records", "description": "The standard create and delete, and record editors", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.form"}, {"noun": "ochazuke.noun", "key": "ochazuke.editor"}, {"noun": "ochazuke.noun", "key": "ochazuke.input"}]},
+    {"owner": "ochazuke", "id": "lists", "title": "Lists", "description": "Lists, tables and trees: rename, visual selection, zoom and breadcrumbs", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.collection"}, {"noun": "ochazuke.noun", "key": "ochazuke.outline"}, {"noun": "ochazuke.noun", "key": "ochazuke.index"}]},
+    {"owner": "ochazuke", "id": "search", "title": "Search", "description": "How every search and filter treats case and matches its query: the path picker, pickers and the / list filter", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.collection"}, {"noun": "ochazuke.noun", "key": "ochazuke.picker"}, {"noun": "ochazuke.noun", "key": "ochazuke.search"}]},
+    {"owner": "ochazuke", "id": "pickers", "title": "Pickers", "description": "Pickers: the path picker and every picker that lists things to pick", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.picker"}]},
+    {"owner": "ochazuke", "id": "modals", "title": "Modals", "description": "Modals: which keys leave and close them", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.modal"}]},
+    {"owner": "ochazuke", "id": "hooks", "title": "Hooks", "description": "hooks.json: verbs that run when an event happens", "contexts": [{"noun": "ochazuke.noun", "key": "app"}]},
+    {"owner": "ochazuke", "id": "status", "title": "Status bar", "description": "The status segments in the header rule", "contexts": [{"noun": "ochazuke.noun", "key": "app"}]},
+    {"owner": "ochazuke", "id": "pages", "title": "Pages", "description": "Hidden pages and the action history", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.page"}, {"noun": "ochazuke.noun", "key": "ochazuke.detail"}, {"noun": "ochazuke.noun", "key": "ochazuke.related"}]},
+    {"owner": "ochazuke", "id": "data", "title": "Data", "description": "Retention: when the program's retention rules run (retention-rule list shows them)", "contexts": [{"noun": "ochazuke.noun", "key": "app"}]},
+    {"owner": "ochazuke", "id": "rail", "title": "Rail", "description": "The rail beside a page's main area: its look, width and sections", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.rail"}]},
+    {"owner": "ochazuke", "id": "markdown", "title": "Markdown", "description": "Markdown documents and their notes", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.markdown"}, {"noun": "ochazuke.noun", "key": "ochazuke.markdown-view"}, {"noun": "ochazuke.noun", "key": "ochazuke.markdown-edit"}]},
+    {"owner": "ochazuke", "id": "agents", "title": "Agents", "description": "Agent rights and confirmation attribution", "contexts": [{"noun": "ochazuke.noun", "key": "app"}]},
+    {"owner": "ochazuke", "id": "about", "title": "About", "description": "The About page: the build, the family dependencies and the process", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.about-page"}]},
+    {"owner": "ochazuke", "id": "debug", "title": "Debug", "description": "Diagnostics you turn on to see how the program runs", "contexts": [{"noun": "ochazuke.noun", "key": "app"}]},
+    {"owner": "ochazuke", "id": "settings", "title": "Settings", "description": "This page, :set and session values", "contexts": [{"noun": "ochazuke.noun", "key": "ochazuke.settings-page"}, {"noun": "ochazuke.noun", "key": "ochazuke.setting"}]}
   ]
 }

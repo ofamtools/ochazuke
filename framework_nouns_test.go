@@ -28,12 +28,12 @@ func TestSettingThingsAndProps(t *testing.T) {
 		}
 	}
 	// archived is the overlay's (the store writes nothing: your mark beside it).
-	if want := []string{"name", "type", "default", "value", "enum", "protected", "description", "section", "owner", "group", "origin", "owners", "names", "path", "archived"}; !reflect.DeepEqual(props, want) {
+	if want := []string{"name", "type", "default", "value", "enum", "protected", "description", "section", "owner", "group", "origin", "contexts", "level", "level_label", "level_role", "owners", "names", "path", "archived"}; !reflect.DeepEqual(props, want) {
 		t.Fatalf("setting props %v", props)
 	}
 	rec := paletteRequest(t, r, "get", "setting", Arguments{"name": "theme"}).(map[string]any)
 	want := map[string]any{"name": "theme", "type": "string", "default": "dark", "value": "dark", "enum": []string{"dark", "light", "mono"},
-		"protected": false, "description": "Colour theme", "section": "general", "owner": "app", "group": "", "origin": "default"}
+		"protected": false, "description": "Colour theme", "section": "general", "owner": "app", "group": "", "origin": "default", "contexts": []string{"ochazuke.noun:app"}}
 	if !reflect.DeepEqual(rec, want) {
 		t.Fatalf("setting get theme %#v", rec)
 	}

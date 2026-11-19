@@ -271,7 +271,7 @@ func TestSettingsApplyShowsAndLists(t *testing.T) {
 	if _, err := apply("verbose scrolloff?"); err != nil || !strings.HasPrefix(sink.LastInfo(), "scrolloff=4 — set this session by ochazuke.setting.apply (api, ") {
 		t.Fatalf("verbose %q %v", sink.LastInfo(), err)
 	}
-	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "apply", Args: Arguments{"line": "modal-dim", "verbose": true}}); err != nil || sink.LastInfo() != "modal-dim=35 — default, settings/ochazuke.json (ochazuke)" {
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "apply", Args: Arguments{"line": "modal-dim", "verbose": true}}); err != nil || sink.LastInfo() != "modal-dim=35 — default, settings/ochazuke.json (ochazuke) — applies at ochazuke.noun:ochazuke.modal, ochazuke.noun:app" {
 		t.Fatalf("verbose argument %q %v", sink.LastInfo(), err)
 	}
 	if got, err := apply(""); err != nil || len(got.([]SettingDiff)) != 1 {

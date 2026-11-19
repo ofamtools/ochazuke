@@ -71,6 +71,12 @@ type Setting struct {
 	// this setting, each warning once, and a write moves the file's value
 	// to this name. A declaration under an old name declares this one.
 	Deprecated []string `json:"deprecated,omitempty"`
+	// Contexts are the places the setting applies to beside its
+	// section's (SettingSection.Contexts): references {noun, key} to a
+	// noun (ochazuke.noun), a page (ochazuke.page), an instance
+	// (ochazuke.instance) or a base mode (ochazuke.mode), matched against
+	// the focus walk (settings_contexts.go). Settings.Points merges them.
+	Contexts []Ref `json:"contexts,omitempty"`
 }
 
 // SettingValue is a setting with its current value, as setting.list and
@@ -207,6 +213,7 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 		}
 		one.Default = def
 		one.Enum = slices.Clone(one.Enum)
+		one.Contexts = slices.Clone(one.Contexts)
 		if one.Owner == "" && r.builtinDepth > 0 {
 			// A framework feature's setting (Runtime.Builtin, or
 			// declareBuiltinSetting) is the framework's.
@@ -219,6 +226,9 @@ func (r *Runtime) DeclareSetting(settings ...Setting) error {
 			one.Section = cmp.Or(one.Section, framework.Section)
 			one.Group = cmp.Or(one.Group, framework.Group)
 			one.Protected = one.Protected || framework.Protected
+			if len(one.Contexts) == 0 {
+				one.Contexts = framework.Contexts
+			}
 			// The application's own declaration of a framework
 			// setting: its row (default, description) replaces the
 			// embedded one, the embedded check kept when it gives none.
