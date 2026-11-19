@@ -213,6 +213,7 @@ func (v *PageView) loadDetailRecord() {
 			var full Row
 			full, err = v.decodeRecord(pl, row.ID, raw)
 			if err == nil {
+				full = withListedFields(row, full)
 				state.row = &full
 			}
 		}
@@ -222,6 +223,33 @@ func (v *PageView) loadDetailRecord() {
 	}); err != nil {
 		v.SetStatus(err.Error())
 	}
+}
+
+// withListedFields is the record a detail shows: the fetched record's
+// fields, and every field the listed row has that the record leaves out
+// (a list answer often carries display fields, such as a rendered
+// script, that the noun's get does not), so fetching the fields a row
+// lacks never takes away what the row already showed. The row's label,
+// cells and tones stay.
+func withListedFields(listed, record Row) Row {
+	base, ok := listed.Data.(map[string]any)
+	if !ok || len(base) == 0 {
+		return record
+	}
+	got, _ := record.Data.(map[string]any)
+	data := make(map[string]any, len(base)+len(got))
+	for k, val := range base {
+		data[k] = val
+	}
+	for k, val := range got {
+		data[k] = val
+	}
+	record.Data = data
+	if listed.Label != "" {
+		record.Label = listed.Label
+	}
+	record.Cells, record.Tones = listed.Cells, listed.Tones
+	return record
 }
 
 func (v *PageView) missingDetailField(data any) bool {

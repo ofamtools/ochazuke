@@ -60,17 +60,22 @@ func TestMountedDetailFetchesOnlySelectedMissingFields(t *testing.T) {
 	var calls atomic.Int32
 	cfg := PageConfig{FetchRecord: func(_ context.Context, noun, key string) ([]byte, error) {
 		calls.Add(1)
+		if key == "s1" {
+			return []byte(fmt.Sprintf(`{"id":%q,"path":%q}`, key, "/record/"+key)), nil
+		}
 		return []byte(fmt.Sprintf(`{"id":%q,"path":%q,"origin":"selected"}`, key, "/record/"+key)), nil
 	}}
 	m, v := mountedPage(t, pageDoc(LayoutSplit, true), cfg, 100, 30)
-	if err := v.SetRows("ai/skills", []Row{{Noun: "skill", ID: "s1", Label: "one"}, {Noun: "skill", ID: "s2", Label: "two"}}); err != nil {
+	// s1's listed origin is a field its record leaves out: the detail keeps
+	// it after the record lands (the Commands page's script went blank).
+	if err := v.SetRows("ai/skills", []Row{{Noun: "skill", ID: "s1", Label: "one", Data: map[string]any{"origin": "listed-only"}}, {Noun: "skill", ID: "s2", Label: "two"}}); err != nil {
 		t.Fatal(err)
 	}
 	frameOf(m)
 	if err := Settle(m.Runtime, nil); err != nil {
 		t.Fatal(err)
 	}
-	if f := frameOf(m); !strings.Contains(f, "/record/s1") {
+	if f := frameOf(m); !strings.Contains(f, "/record/s1") || !strings.Contains(f, "listed-only") {
 		t.Fatalf("missing selected detail:\n%s", f)
 	}
 	frameOf(m)
