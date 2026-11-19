@@ -44,11 +44,14 @@ const (
 	RailGroupsSetting      = "rail.groups"
 	RailRefreshSetting     = "rail.refresh"
 	RailEndsSetting        = "rail.ends"
+	RailFocusExpandSetting = "rail.focus-expand"
+	RailFocusWidthSetting  = "rail.focus-width"
+	RailFocusWrapSetting   = "rail.focus-wrap"
 )
 
 var railSettings = []string{RailShowSetting, RailLookSetting, RailWidthSetting, RailMinMainSetting, RailFloatHeightSetting,
 	RailOrderSetting, RailHiddenSetting, RailCollapsedSetting, RailEmptySetting, RailCountsSetting, RailGroupsSetting,
-	RailRefreshSetting, RailEndsSetting}
+	RailRefreshSetting, RailEndsSetting, RailFocusExpandSetting, RailFocusWidthSetting, RailFocusWrapSetting}
 
 // The rail's looks (RailFit.Look). Full and float are the setting's values;
 // strip and only are what the width rules and pane.only make of them.
@@ -119,7 +122,8 @@ func (r *Runtime) AddRail(id string, spec RailSpec, opts ...InstanceOption) (*Ra
 		name *string
 		def  string
 	}{{&st.Enabled, RailShowSetting}, {&st.Order, RailOrderSetting}, {&st.Hidden, RailHiddenSetting}, {&st.Collapsed, RailCollapsedSetting},
-		{&st.Counts, RailCountsSetting}, {&st.Empty, RailEmptySetting}, {&st.Groups, RailGroupsSetting}, {&st.Interval, RailRefreshSetting}, {&st.Ends, RailEndsSetting}} {
+		{&st.Counts, RailCountsSetting}, {&st.Empty, RailEmptySetting}, {&st.Groups, RailGroupsSetting}, {&st.Interval, RailRefreshSetting}, {&st.Ends, RailEndsSetting},
+		{&st.Wrap, RailFocusWrapSetting}} {
 		if *d.name == "" {
 			*d.name = d.def
 		}
@@ -181,7 +185,11 @@ type RailFit struct {
 	Look string
 	// Narrow says the look stepped down from the one the setting asks for
 	// (the full column did not fit).
-	Narrow                bool
+	Narrow bool
+	// Expanded says the focused rail is drawn wider than its look's width
+	// (RailParams.FocusWidth): it covers the main's right part, which keeps
+	// its size, so a terminal behind it is not resized.
+	Expanded              bool
 	Width, Height         int
 	MainWidth, MainHeight int
 	MainTop               int
@@ -197,6 +205,10 @@ type RailParams struct {
 	MinMain, FloatHeight int
 	Lines, HeadLines     int
 	Focused              bool
+	// FocusWidth is the width the focused rail grows to (rail.focus-width
+	// while rail.focus-expand is on), cells or a percent of the area; ""
+	// keeps the focused rail at Width.
+	FocusWidth string
 }
 
 // railWidth is the rail's preferred width in an area width cells wide:
@@ -219,7 +231,29 @@ func railWidth(setting string, width int) int {
 	return min(cells, width*2/5)
 }
 
-// FitRail places a rail in an area of width x height cells. The full look
+// focusRailWidth is the focused rail's width in an area width cells wide:
+// cells or a percent of width, at least RailMinWidth and leaving the main
+// at least RailFloatMinWidth cells; 0 for "" or an unreadable value.
+func focusRailWidth(setting string, width int) int {
+	setting = strings.TrimSpace(setting)
+	cells := 0
+	if p, ok := strings.CutSuffix(setting, "%"); ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(p)); err == nil && n > 0 {
+			cells = width * n / 100
+		}
+	} else if n, err := strconv.Atoi(setting); err == nil && n > 0 {
+		cells = n
+	}
+	if cells == 0 {
+		return 0
+	}
+	return min(max(cells, RailMinWidth), width-RailFloatMinWidth)
+}
+
+// FitRail places a rail in an area of width x height cells, then, when
+// the rail has the focus and p.FocusWidth is wider than the width it got,
+// widens it over the main (Expanded): the main keeps its size, the rail
+// covers its right part. The full look
 // steps down rather than starve the main (tuios's sidebarResponsiveWidth
 // steps): the preferred width while the main keeps MinMain cells, then
 // RailMinWidth, then the float (Narrow), then, when even the float would
@@ -228,6 +262,18 @@ func railWidth(setting string, width int) int {
 // what it shows (the headings alone unless focused), at most FloatHeight
 // percent of the area.
 func FitRail(width, height int, p RailParams) RailFit {
+	fit := fitRail(width, height, p)
+	if !p.Focused || (fit.Look != RailLookFull && fit.Look != RailLookFloat) {
+		return fit
+	}
+	if w := focusRailWidth(p.FocusWidth, width); w > fit.RailWidth {
+		fit.RailWidth, fit.RailLeft, fit.Expanded = w, width-w, true
+	}
+	return fit
+}
+
+// fitRail is FitRail before the focused rail's expansion.
+func fitRail(width, height int, p RailParams) RailFit {
 	fit := RailFit{Width: width, Height: height, MainWidth: width, MainHeight: height}
 	if width <= 0 || height <= 0 {
 		return fit
@@ -295,9 +341,13 @@ func (rl *Rail) FitWith(width, height int, look string) RailFit {
 		look = RailLookOnly
 	}
 	lines, heads := rl.stack.lineCounts()
+	focusWidth := ""
+	if r.Settings().Bool(RailFocusExpandSetting) {
+		focusWidth = r.Settings().String(RailFocusWidthSetting)
+	}
 	return FitRail(width, height, RailParams{Look: look, Width: r.Settings().String(RailWidthSetting),
 		MinMain: r.Settings().Int(RailMinMainSetting), FloatHeight: r.Settings().Int(RailFloatHeightSetting),
-		Lines: lines, HeadLines: heads, Focused: r.focusInside(rl.id)})
+		Lines: lines, HeadLines: heads, Focused: r.focusInside(rl.id), FocusWidth: focusWidth})
 }
 
 // lineCounts are the drawn sections' lines: every row, and the headings
@@ -336,6 +386,11 @@ func (rl *Rail) Compose(l Layout, fit RailFit, main Block) Block {
 	case RailLookOnly:
 		return rl.panel(l, fit, fit.RailWidth, fit.RailHeight, true, false)
 	case RailLookFull:
+		if fit.Expanded {
+			// Widened on focus: over the main, which keeps its size.
+			rail := rl.panel(l, fit, fit.RailWidth, fit.RailHeight, focused, false)
+			return OverlayBlock(main, rail, fit.RailLeft, 0, fit.Width, fit.Height, focused)
+		}
 		rail := rl.panel(l, fit, fit.RailWidth, fit.RailHeight, focused, false).Offset(fit.MainWidth+1, 0)
 		mainRows, railRows := strings.Split(main.Text, "\n"), strings.Split(rail.Text, "\n")
 		rows := make([]string, fit.Height)

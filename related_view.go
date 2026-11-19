@@ -50,14 +50,14 @@ func (rel *Related) View(width, height int) string {
 		start, end int
 	}
 	var spans []span
-	focus := -1
+	focus, tall := -1, 1 // the focused line and how many lines its row takes
 	for _, s := range rel.visible() {
 		text, at := s.draw(width)
 		start := len(lines)
 		lines = append(lines, strings.Split(text, "\n")...)
 		spans = append(spans, span{s, start, len(lines)})
 		if at >= 0 {
-			focus = start + at
+			focus, tall = start+at, 1+s.list.WrappedExtra(width)
 		}
 	}
 	if len(lines) == 0 {
@@ -68,7 +68,7 @@ func (rel *Related) View(width, height int) string {
 	}
 	focus = min(focus, len(lines)-1)
 	rel.lastLine = focus
-	top := scrollToShow(rel.top, focus, focus+1, height, len(lines), relatedMargin)
+	top := scrollToShow(rel.top, focus, focus+tall, height, len(lines), relatedMargin)
 	if top > 0 && focus == top {
 		top-- // the first line is the breadcrumb: the focus stays under it
 	}
@@ -88,6 +88,12 @@ func (rel *Related) View(width, height int) string {
 	return strings.Join(layoutRows(strings.Join(window, "\n"), width, height), "\n")
 }
 
+// wrapsSelected reports whether the stack's Wrap setting is on: its
+// lists' WrapSelected.
+func (rel *Related) wrapsSelected() bool {
+	return rel.spec.Wrap != "" && rel.r.Settings().Bool(rel.spec.Wrap)
+}
+
 // headLabel is the heading's text.
 func (s *relatedSection) headLabel() string { return s.heading().Label }
 
@@ -95,7 +101,7 @@ func (s *relatedSection) headLabel() string { return s.heading().Label }
 // focus in them, -1 when the focus is not in the section.
 func (s *relatedSection) draw(width int) (string, int) {
 	r := s.rel.r
-	h := max(1, s.list.Height())
+	h := max(1, s.list.Height()) + s.list.WrappedExtra(width) // a wrapped selected row (RelatedSpec.Wrap)
 	if len(s.list.columns) > 0 {
 		h++ // the header line
 	}

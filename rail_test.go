@@ -134,6 +134,8 @@ func TestFitRailSteps(t *testing.T) {
 		{"120 float look", 120, func(p *RailParams) { p.Look = RailLookFloat }, "float 30 h 5 main 120"},
 		{"cells width", 200, func(p *RailParams) { p.Width = "36" }, "full 36 main 163"},
 		{"only", 120, func(p *RailParams) { p.Look = RailLookOnly }, "alone 120 main 0"},
+		{"120 focused widens over the main", 120, func(p *RailParams) { p.Focused, p.FocusWidth = true, "50%" }, "full 60 main 89"},
+		{"120 focused, no focus width", 120, func(p *RailParams) { p.Focused = true }, "full 30 main 89"},
 	} {
 		p := params
 		if tc.edit != nil {
@@ -182,6 +184,47 @@ func TestRailLooks(t *testing.T) {
 	}
 	if got := len(strings.TrimSpace(lines[6])); got != 0 && strings.Contains(lines[6], "│") {
 		t.Fatalf("the float is taller than its headings:\n%s", float)
+	}
+}
+
+// The focused rail widens to rail.focus-width over the main, which keeps
+// its width, and its focused row shows its whole text wrapped
+// (rail.focus-wrap); each setting off draws the rail as before.
+func TestRailFocusExpandsAndWraps(t *testing.T) {
+	t.Parallel()
+	long := "/Users/someone/hub/o-plans/docs/a-long-report-name-that-the-rail-cuts-off-2026-11-19.md"
+	f := newRailFixture(t, 120, nil, func(r *Runtime) {
+		_ = r.DeclareSetting(Setting{Name: RailCollapsedSetting, Type: SettingList, Default: []string{}})
+	})
+	f.tasks.add("id", "t0", "title", long, "kind", "link", "project", "p1")
+	f.rail.Stack().Refill()
+	f.press("}")
+	for range 10 {
+		if row, ok := f.r.Instances[f.r.Focus].Data.(Thing); ok && row["id"] == "t0" {
+			break
+		}
+		f.press("j")
+	}
+	railWidth := func() int {
+		for _, line := range strings.Split(f.body(), "\n") {
+			if i := strings.IndexAny(line, "╭┏"); i >= 0 && strings.Contains(line, " rail ") {
+				return ansi.StringWidth(line) - ansi.StringWidth(line[:i])
+			}
+		}
+		return 0
+	}
+	area := ansi.StringWidth(strings.Split(f.body(), "\n")[0]) // the page body's width
+	joined := strings.NewReplacer("│", "", "┃", "", " ", "", "\n", "").Replace(f.body())
+	if w := railWidth(); w != area/2 || !strings.Contains(joined, long) || !strings.HasPrefix(f.body(), "Alpha") {
+		t.Fatalf("focused: rail %d cells (want half of %d), whole row %v:\n%s", w, area, strings.Contains(joined, long), f.body())
+	}
+	f.set(t, RailFocusWrapSetting, false)
+	if strings.Contains(strings.NewReplacer("│", "", "┃", "", " ", "", "\n", "").Replace(f.body()), long) || !strings.Contains(f.body(), "…") {
+		t.Fatalf("rail.focus-wrap off still wraps the row:\n%s", f.body())
+	}
+	f.set(t, RailFocusExpandSetting, false)
+	if w := railWidth(); w != max(area/4, RailMinWidth) {
+		t.Fatalf("rail.focus-expand off: rail %d cells, want rail.width's 25%% of %d:\n%s", w, area, f.body())
 	}
 }
 

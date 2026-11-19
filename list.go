@@ -63,6 +63,13 @@ type Collection struct {
 	// focused lists always mark their row, and unfocused modal lists do not.
 	// The predicate runs during rendering and must not mutate runtime state.
 	UnfocusedSelection func() bool
+	// WrapSelected, when set and true, draws a plain list's selected row
+	// whole while the list has the drawn focus: its text wraps over as many
+	// lines as it needs (at spaces and at / - _ .) instead of being cut at
+	// the width with "…". The other rows stay one line each. A related
+	// stack sets it from its Wrap setting (the rail's rail.focus-wrap). The
+	// predicate runs during rendering and must not mutate runtime state.
+	WrapSelected func() bool
 	// QueryFilter, when set, reads the filter's text query in place of the
 	// matcher: it is called once per refilter with the query and answers
 	// the test each row must pass (prop filters still apply), also for an
@@ -904,6 +911,7 @@ func (l *Collection) rowsView(width, height int) (string, int, int) {
 		}
 		rows = append(rows, row)
 	}
+	rows = l.wrapSelectedRow(rows, width, marked, bar)
 	if l.lineCount(spaced) > height && height > 1 {
 		rows = append(rows, fmt.Sprintf("%d–%d / %d", l.offset+1, end, len(l.items)))
 	}
@@ -914,6 +922,55 @@ func (l *Collection) rowsView(width, height int) (string, int, int) {
 		focus, focusHeight = l.selLine, 1
 	}
 	return strings.Join(layoutRows(strings.Join(rows, "\n"), width, height), "\n"), focus, focusHeight
+}
+
+// wrapSelectedRow replaces the selected row's line in rows (at selLine)
+// by its label wrapped to width (wrapSelected), drawn as the selected row
+// when marked; rows is unchanged when the row is not wrapped.
+func (l *Collection) wrapSelectedRow(rows []string, width int, marked bool, bar ansi.Style) []string {
+	if l.selLine < 0 || l.selLine >= len(rows) || l.selected < 0 || l.selected >= len(l.items) {
+		return rows
+	}
+	lines := l.wrapSelected(l.selected, l.selectedLabel(), width)
+	if len(lines) < 2 {
+		return rows
+	}
+	for i := range lines {
+		if marked {
+			lines[i] = barRow(lines[i], bar)
+		}
+	}
+	return slices.Concat(rows[:l.selLine], lines, rows[l.selLine+1:])
+}
+
+// selectedLabel is the selected row's text as rowsView draws it: its
+// label after the mark gutter when the list has one.
+func (l *Collection) selectedLabel() string {
+	label := modalLabel(l.items[l.selected].Label)
+	if l.hasGutter() {
+		label = l.rowGutter(l.items[l.selected].ID) + label
+	}
+	return label
+}
+
+// wrapSelected is row i's label wrapped to width when i is the selected
+// row of a focused plain list whose WrapSelected holds and the label is
+// wider than width; nil otherwise (the row is drawn cut, as any row).
+func (l *Collection) wrapSelected(i int, label string, width int) []string {
+	if i != l.selected || l.WrapSelected == nil || width <= 0 || ansi.StringWidth(label) <= width || !l.DrawnFocused() || !l.WrapSelected() {
+		return nil
+	}
+	return strings.Split(ansi.Wrap(label, width, "/-_."), "\n")
+}
+
+// WrappedExtra is how many lines more than one the selected row takes
+// when drawn width cells wide (WrapSelected): what a host sizing the list
+// to its rows (a related stack) adds to its height.
+func (l *Collection) WrappedExtra(width int) int {
+	if len(l.columns) > 0 || l.selected < 0 || l.selected >= len(l.items) {
+		return 0
+	}
+	return max(0, len(l.wrapSelected(l.selected, l.selectedLabel(), width))-1)
 }
 
 // labelSegs places a plain list row's cell-0 tones on its label, after the

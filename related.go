@@ -114,6 +114,11 @@ type RelatedSpec struct {
 	// Plain draws every section as a plain list, without its noun's
 	// columns: a narrow region (the rail).
 	Plain bool
+	// Wrap names a boolean setting: on, the focused section's selected
+	// row shows its whole text, wrapped over the lines it needs, instead of
+	// being cut at the stack's width (Collection.WrapSelected). "" or a
+	// missing setting: rows are cut.
+	Wrap string
 	// Outward names a boolean setting: on, the stack also has a section
 	// per reference prop of the thing's own noun (Runtime.OwnReferences),
 	// listing the things the thing names, so its relations show in both
@@ -743,7 +748,7 @@ func (rel *Related) addSection(ref Referrer) *relatedSection {
 		_ = r.RemoveInstance(s.id)
 		return nil
 	}
-	s.list, list.SharedFilter = list, rel.sharedFilter // one "/" filters the stack (related_filter.go)
+	s.list, list.SharedFilter, list.WrapSelected = list, rel.sharedFilter, rel.wrapsSelected // one "/" filters the stack (related_filter.go)
 	list.SetMatchNoun(pluralWord(shortNounName(ref.Noun)))
 	if rel.spec.Archived != "" {
 		rel.setArchived(s, rel.listSetting(rel.spec.Archived)) // before its first read
