@@ -167,6 +167,50 @@ func TestDependentChoicesSourceFailureKeepsValue(t *testing.T) {
 	}
 }
 
+func TestClearStaleEmptiesValueOnSiblingChange(t *testing.T) {
+	r, p := dependentFixture(t, false)
+	p.ClearStale = true
+	e, err := r.AddRecordEditor("rec", RecordSpec{Fields: []RecordField{{Name: "category", Parameter: Parameter{Type: "string"}}, {Name: "item", Parameter: p}}, Load: func() (Record, error) { return Record{"category": "one", "item": "saved"}, nil }, Save: func(RecordWrite) Result { return Done(nil) }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if e.Values()["item"] != "saved" || e.Problem("item") != "" {
+		t.Fatalf("opening changed the held value: %v %q", e.Values(), e.Problem("item"))
+	}
+	if err := e.fill(e.field("category"), "two"); err != nil {
+		t.Fatal(err)
+	}
+	if e.Values()["item"] != "" || e.Problem("item") != "" || e.Written()["item"] != "" {
+		t.Fatalf("stale value not cleared: %v %q", e.Values(), e.Problem("item"))
+	}
+	for range 2 {
+		if err := e.history(false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := e.Values(); got["category"] != "one" || got["item"] != "saved" {
+		t.Fatalf("undo did not restore: %v", got)
+	}
+}
+
+func TestClearStaleFailedLoadKeepsValue(t *testing.T) {
+	r, p := dependentFixture(t, false)
+	p.ClearStale = true
+	e, err := r.AddRecordEditor("rec", RecordSpec{Fields: []RecordField{{Name: "category", Parameter: Parameter{Type: "string"}}, {Name: "item", Parameter: p}}, Load: func() (Record, error) { return Record{"category": "one", "item": "one-a"}, nil }, Save: func(RecordWrite) Result { return Done(nil) }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	op := r.Operations.At(Key("options.list"))
+	op.AppHandler = func(Ctx) Result { return Failed(errors.New("offline")) }
+	r.Operations.Set(op)
+	if err := e.fill(e.field("category"), "two"); err != nil {
+		t.Fatal(err)
+	}
+	if e.Values()["item"] != "one-a" {
+		t.Fatalf("a failed load cleared the value: %v", e.Values())
+	}
+}
+
 func TestDependentArgsFormAndPropFields(t *testing.T) {
 	r, p := dependentFixture(t, false)
 	p.Accept = AcceptKeep

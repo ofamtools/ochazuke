@@ -67,6 +67,12 @@ type Parameter struct {
 	// (the standard restore asks its noun's list for archived rows only).
 	// A sibling mapped by SourceArgs wins over it.
 	SourceFixed map[string]any `json:"sourceFixed,omitempty"`
+	// ClearStale empties a form's closed dependent field when a sibling
+	// changes and the choices that load no longer hold its value, as one
+	// form.undo step and with no error. A failed load keeps the value, and
+	// so does opening the form: a value the record already holds is never
+	// flagged as outside the choices. Off, the value is retained and flagged.
+	ClearStale bool `json:"clearStale,omitempty"`
 	// Noun says the value names one of that noun's things: a row of its
 	// list verb (NOUN.list, when it is a read with no required parameter,
 	// stands in for an empty Source), else the id of a live instance of

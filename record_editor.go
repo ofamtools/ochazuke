@@ -338,6 +338,8 @@ type recordField struct {
 	choiceSeq     uint64
 	choicesReady  bool
 	choiceLoading bool
+	siblingKey    string // the sibling arguments the choices were last loaded for
+	held          string // ClearStale: the value the record holds, never flagged as outside the choices
 	choices       []Choice
 	editKind
 	chip int // the chip under the cursor, an index into choices
@@ -426,6 +428,7 @@ type RecordEditor struct {
 	closed      bool
 	loading     bool // outsideWrite is loading the record
 	reloadAgain bool
+	applying    bool // applyLoaded is taking outside values: ClearStale leaves them
 	walking     int  // history's undo (-1) or redo (+1) while it flushes
 	ran         bool // form.run handed the values to Submit
 	failure     error
@@ -536,7 +539,7 @@ func (r *Runtime) newRecordEditor(id string, spec RecordSpec, parent, closeFocus
 		f.editKind = r.editKindOf(field)
 		v := values[field.Name]
 		e.out.set(field.Name, v)
-		f.before = v
+		f.before, f.held = v, v
 		if field.Invertible {
 			inv := values[field.Name+RecordInvertSuffix]
 			f.not = inv == "true"
@@ -790,15 +793,8 @@ func (e *RecordEditor) problem(f *recordField) string {
 	if !f.TakesAny() && f.choiceLoading {
 		return "loading choices"
 	}
-	if !f.TakesAny() && paramHasChoices(f.Parameter) && (len(f.SourceArgs) == 0 && len(f.choices) > 0 || len(f.SourceArgs) > 0 && f.choicesReady) && !hasChoice(f.choices, v) {
-		ids := make([]string, len(f.choices))
-		for i, c := range f.choices {
-			ids[i] = c.ID
-		}
-		if len(ids) == 0 {
-			return "no current choices"
-		}
-		return "one of " + strings.Join(ids, ", ")
+	if problem := f.choiceProblem(v); problem != "" {
+		return problem
 	}
 	if f.Validate != nil {
 		if err := f.Validate(v); err != nil {
@@ -806,6 +802,26 @@ func (e *RecordEditor) problem(f *recordField) string {
 		}
 	}
 	return ""
+}
+
+// choiceProblem says why a closed field's value is not one of its loaded
+// choices; a ClearStale field never flags the value its record holds.
+func (f *recordField) choiceProblem(v string) string {
+	if f.TakesAny() || !paramHasChoices(f.Parameter) || f.ClearStale && v == f.held {
+		return ""
+	}
+	loaded := len(f.SourceArgs) == 0 && len(f.choices) > 0 || len(f.SourceArgs) > 0 && f.choicesReady
+	if !loaded || hasChoice(f.choices, v) {
+		return ""
+	}
+	ids := make([]string, len(f.choices))
+	for i, c := range f.choices {
+		ids[i] = c.ID
+	}
+	if len(ids) == 0 {
+		return "no current choices"
+	}
+	return "one of " + strings.Join(ids, ", ")
 }
 
 // flush takes every changed valid value into the record and writes it.
@@ -2024,7 +2040,7 @@ func (e *RecordEditor) applyLoaded(loaded Record) error {
 		changed = true
 		typed := f.text() != e.out.value(f.Name)
 		e.out.set(f.Name, v)
-		f.before = v
+		f.before, f.held = v, v
 		if !typed {
 			if f.input != nil {
 				// Its own history starts over too: it no longer leads to
@@ -2042,7 +2058,9 @@ func (e *RecordEditor) applyLoaded(loaded Record) error {
 	if !changed {
 		return nil
 	}
+	e.applying = true
 	e.refreshChoices()
+	e.applying = false
 	e.seen = e.snapshot()
 	if v, _ := e.r.settingValue(FormsOutsideWriteSetting); v == "close" {
 		return e.leave()
@@ -2156,7 +2174,8 @@ func boolArg(a Arguments, name string) bool {
 }
 
 // DependentChoicesSetting enables refreshing and marking dependent choices as
-// sibling fields change. Values are always retained; Free values remain writable.
+// sibling fields change. Values are retained unless the field opts in with
+// Parameter.ClearStale; Free values remain writable.
 const DependentChoicesSetting = "forms.dependent-choices"
 
 func (e *RecordEditor) arguments() Arguments {
@@ -2197,6 +2216,12 @@ func (e *RecordEditor) refreshChoices() {
 			continue
 		}
 		f.choiceKey = key
+		// Only a sibling's change clears: a source that takes the query
+		// also reloads for the field's own value.
+		rawSiblings, _ := json.Marshal(choicesSourceArgs(op, f.Parameter, "", args))
+		siblings := string(rawSiblings)
+		clear := f.ClearStale && f.siblingKey != "" && f.siblingKey != siblings && !e.applying && e.walking == 0
+		f.siblingKey = siblings
 		if f.chooser != nil && e.r.Chooser(FormSuggestionsKind) == f.chooser {
 			f.chooser.SetRows(nil)
 			f.chooser.load()
@@ -2209,6 +2234,10 @@ func (e *RecordEditor) refreshChoices() {
 				return
 			}
 			f.choices, f.choicesReady, f.choiceLoading = choices, err == nil, false
+			if clear && err == nil && f.text() != "" && !hasChoice(choices, f.text()) {
+				e.fail(e.fill(f, ""))
+				return
+			}
 			if f.choose && !e.typing && f.text() != e.out.value(f.Name) {
 				e.fail(e.seal(f))
 			}
