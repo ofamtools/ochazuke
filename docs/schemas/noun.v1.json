@@ -681,6 +681,18 @@
       },
       "type": "object"
     },
+    "ochazuke.Ref": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "noun": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "ochazuke.Referrer": {
       "additionalProperties": false,
       "properties": {
@@ -892,6 +904,12 @@
       "properties": {
         "accept": {
           "type": "string"
+        },
+        "contexts": {
+          "items": {
+            "$ref": "#/$defs/ochazuke.Ref"
+          },
+          "type": "array"
         },
         "default": {},
         "deprecated": {
