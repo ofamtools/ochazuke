@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"image/color"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 	"ofam.dev/ochazuke/keytest"
 )
@@ -452,6 +454,135 @@ func TestRenderStampInvalidatesOnEveryInput(t *testing.T) {
 		if r.renderCache.stamp(r) == before {
 			t.Fatalf("%s: the render stamp did not move", step.name)
 		}
+		agree(step.name)
+	}
+}
+
+// TestRenderCachesStandardRowWalks: a walk holding standard verbs' and
+// prop rows (every store noun has them) is read once while nothing
+// changes, and a change of what their availability reads, the noun's store
+// or its props, reads it again with no further call.
+func TestRenderCachesStandardRowWalks(t *testing.T) {
+	m, _ := renderFixture(t)
+	r := m.Runtime
+	list := func(Ctx, ListQuery) ([]Thing, error) { return []Thing{{"id": "a"}}, nil }
+	get := func(Ctx, string) (Thing, error) { return Thing{"id": "a"}, nil }
+	r.Define("stamp-thing").Props(PropSpec{Name: "id", Key: true}).Store(Store{List: list})
+	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "alt+g", Request: Request{Noun: "stamp-thing", Verb: "get"}}); err != nil {
+		t.Fatal(err)
+	}
+	// A prop row naming a prop the noun does not have yet (Bind refuses
+	// one, a host's table may hold it).
+	app := r.Nouns["app"]
+	app.Bindings["normal"] = append(app.Bindings["normal"], Binding{Keys: "alt+t", Request: Request{Noun: "stamp-thing", Prop: "title", Toggle: true}})
+	r.InvalidateBindings()
+	hinted := func(name, keys string, want bool) {
+		t.Helper()
+		r.levelRows(r.Focus)
+		first := r.renderCache.lastScan
+		if r.levelRows(r.Focus); first == nil || r.renderCache.lastScan != first {
+			t.Fatalf("%s: a second read with nothing changed walked the rows again", name)
+		}
+		live := r.scanRowsUncached(r.walk(r.Focus), r.Mode, r.Focus, nil)
+		hints := HintBindings(r, r.Focus)
+		if want := hintBindingsUncached(r, r.Focus, groupLevelRows(live)); !reflect.DeepEqual(hints, want) {
+			t.Fatalf("%s: cached hints differ from the live resolver", name)
+		}
+		if got := slices.ContainsFunc(hints, func(b Binding) bool { return b.Keys == keys }); got != want {
+			t.Fatalf("%s: %s hinted %v, want %v", name, keys, got, want)
+		}
+	}
+	hinted("store without get", "alt+g", false)
+	r.Define("stamp-thing").Store(Store{List: list, Get: get})
+	hinted("store with get", "alt+g", true)
+	hinted("no title prop", "alt+t", false)
+	r.Define("stamp-thing").Props(PropSpec{Name: "title", Parameter: Parameter{Type: SettingBoolean}})
+	hinted("title prop", "alt+t", true)
+}
+
+// TestRenderBindingHelpOncePerFrame: inside a frame BindingHelp reads each
+// focus once however often the page asks (a sentence of keys per action),
+// and the next frame reads again, so a row bound between frames shows.
+func TestRenderBindingHelpOncePerFrame(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	m := NewModel(r)
+	var drawn [][]HelpRow
+	if _, err := r.AddPage("page", "Page", func(r *Runtime, _, _ int) Block {
+		drawn = append(drawn, BindingHelp(r, r.Focus), BindingHelp(r, r.Focus), BindingHelp(r, "app"))
+		return Text("page")
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("page"); err != nil {
+		t.Fatal(err)
+	}
+	r.Define("app").Verb("once", func(Ctx) Result { return Done(nil) })
+	has := func(rows []HelpRow, key string) bool {
+		return slices.ContainsFunc(rows, func(h HelpRow) bool { return h.Key == key })
+	}
+	m.View()
+	if n := len(r.renderCache.helpFrame.rows); n != 2 {
+		t.Fatalf("a frame asking for 2 focuses read %d", n)
+	}
+	if !reflect.DeepEqual(drawn[0], drawn[1]) || !reflect.DeepEqual(drawn[0], r.bindingHelpIn(r.liveResolution(r.Focus))) {
+		t.Fatal("the frame's answers differ from a live reading")
+	}
+	if err := r.Bind(Binding{Noun: "app", Mode: "normal", Keys: "alt+o", Request: Request{Noun: "app", Verb: "once"}}); err != nil {
+		t.Fatal(err)
+	}
+	if !has(BindingHelp(r, r.Focus), "alt+o") {
+		t.Fatal("between frames BindingHelp kept the frame's answer")
+	}
+	drawn = nil
+	m.Update(tea.WindowSizeMsg{Width: 80, Height: 24})
+	m.View()
+	if len(drawn) == 0 || !has(drawn[0], "alt+o") {
+		t.Fatal("the next frame kept the last frame's answer")
+	}
+}
+
+// TestRenderHelpPageRowsFollowTheirInputs: the help page's stored rows,
+// read once and kept between opens, are read again after each thing they
+// depend on moves: a table (edited in place), the registry (a description), the alias
+// names, and an instance holding rows of its own going away.
+func TestRenderHelpPageRowsFollowTheirInputs(t *testing.T) {
+	m, _ := renderFixture(t)
+	r := m.Runtime
+	r.Define("app").Verb("stored", func(Ctx) Result { return Done(nil) }, "first words")
+	r.Instance("side", Parent("app"))
+	if err := r.Bind(Binding{Instance: "side", Mode: "normal", Keys: "alt+s", Request: Request{Noun: "app", Verb: "stored"}}); err != nil {
+		t.Fatal(err)
+	}
+	agree := func(name string) {
+		t.Helper()
+		walk := r.HelpWalkAt(r.Focus, r.Mode, nil)
+		got := r.HelpRows(walk)
+		r.renderCache.stored = helpStoredMemo{}
+		if want := r.HelpRows(walk); !reflect.DeepEqual(got, want) {
+			t.Fatalf("%s: kept help rows differ from a fresh reading", name)
+		}
+	}
+	agree("start")
+	r.HelpRows(r.HelpWalkAt(r.Focus, r.Mode, nil))
+	for _, step := range []struct {
+		name  string
+		write func()
+	}{
+		{"table edit", func() {
+			r.Instances["side"].Bindings[0].Hint = "edited"
+			r.InvalidateBindings()
+		}},
+		{"description", func() {
+			op := r.Operations.At(Key("app.stored"))
+			op.Description = "other words"
+			r.Operations.Set(op)
+		}},
+		{"alias", func() { _ = r.AddActionAlias(ActionAlias{Alias: "kept", Action: "app.stored"}) }},
+		{"bound instance removed", func() { _ = r.RemoveInstance("side") }},
+	} {
+		r.HelpRows(r.HelpWalkAt(r.Focus, r.Mode, nil)) // fill the memo
+		step.write()
 		agree(step.name)
 	}
 }

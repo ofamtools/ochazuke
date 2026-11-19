@@ -86,6 +86,81 @@ func (c *runtimeRenderCache) hintBindingsShared(r *Runtime, focus string) ([]Bin
 	return old.bindings, version
 }
 
+// helpStoredMemo is every table's stored rows and their help page rows
+// before a walk places them (HelpRows' rows off the walk), read once per
+// change of the tables rather than on every ?: thousands of rows, whose
+// reading, sort and guard text were most of opening the page. Valid while
+// the binding generation (every table, the props and stores, the
+// settings), the operation registry, the alias names and the set of
+// instances that hold rows of their own are unchanged.
+type helpStoredMemo struct {
+	built                         bool
+	generation, operations, names uint64
+	bound                         []string
+	rows                          []Binding
+	page                          []HelpPageRow
+}
+
+// storedHelpRows is storedRows and each row's helpPageRow (Order 0),
+// memoized; callers copy a page row before changing it.
+func (c *runtimeRenderCache) storedHelpRows(r *Runtime) ([]Binding, []HelpPageRow) {
+	var bound []string
+	for id, inst := range r.Instances {
+		if len(inst.Bindings) > 0 {
+			bound = append(bound, id)
+		}
+	}
+	slices.Sort(bound)
+	m := &c.stored
+	ops := uint64(r.Operations.Invalidations)
+	if m.built && m.generation == c.generation && m.operations == ops && m.names == c.names && slices.Equal(m.bound, bound) {
+		return m.rows, m.page
+	}
+	rows, user := r.storedRows(), r.userRowKeys()
+	page := make([]HelpPageRow, len(rows))
+	for i, b := range rows {
+		page[i] = r.helpPageRow(b, user, 0)
+	}
+	*m = helpStoredMemo{built: true, generation: c.generation, operations: ops, names: c.names, bound: bound, rows: rows, page: page}
+	return rows, page
+}
+
+// helpFrameMemo is BindingHelp's answers in the frame being drawn. An
+// application that names keys in its own text (a sentence of "KEY does"
+// per action) asks for one focus's help once per action, several times a
+// frame; nothing a help row reads changes while a frame is drawn, so each
+// focus and mode is read once per frame. Between frames (drawing 0: an
+// update, a CLI or MCP query) every call reads afresh.
+type helpFrameMemo struct {
+	frame uint64
+	rows  map[helpFrameKey][]HelpRow
+}
+
+type helpFrameKey struct {
+	focus string
+	mode  ModeState
+}
+
+func (c *runtimeRenderCache) bindingHelp(r *Runtime, focus string) []HelpRow {
+	if c.drawing == 0 {
+		return r.bindingHelpIn(r.liveResolution(focus))
+	}
+	if c.helpFrame.frame != c.drawing {
+		c.helpFrame = helpFrameMemo{frame: c.drawing, rows: map[helpFrameKey][]HelpRow{}}
+	}
+	k := helpFrameKey{focus, r.Mode}
+	rows, ok := c.helpFrame.rows[k]
+	if !ok {
+		rows = r.bindingHelpIn(r.liveResolution(focus))
+		c.helpFrame.rows[k] = rows
+	}
+	out := make([]HelpRow, len(rows))
+	for i, row := range rows {
+		out[i] = cloneHelpRow(row)
+	}
+	return out
+}
+
 // Cache the static HelpRow formatting independently of its tree placement.
 // Resolved arguments and operation descriptions stay live; aliases and noun
 // spellings use the registry generation and nouns.display setting. The row's
@@ -119,5 +194,6 @@ func cloneHelpRow(row HelpRow) HelpRow {
 		row.Args = cloneRenderValue(row.Args).(Arguments)
 	}
 	row.Aliases = slices.Clone(row.Aliases)
+	row.Steps = slices.Clone(row.Steps)
 	return row
 }

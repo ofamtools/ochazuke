@@ -198,7 +198,7 @@ func (r *Runtime) ShowPaneOnly(page, pane string) error {
 		// first stop.
 		target := r.landing(pane)
 		if target == pane && !r.focusable(pane) {
-			if stops, _ := r.units(pane, r.focusable); len(stops) > 0 {
+			if stops := r.stops(pane, r.focusable); len(stops) > 0 {
 				target = r.landing(stops[0])
 			}
 		}

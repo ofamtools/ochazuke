@@ -549,7 +549,7 @@ func (l *Collection) neighbour(step int) (string, bool) {
 	if l.r.PageOf(root) == nil {
 		return "", false
 	}
-	ring, _ := l.r.units(root, l.r.focusable)
+	ring := l.r.stops(root, l.r.focusable)
 	i := slices.Index(ring, l.id)
 	if i < 0 || i+step < 0 || i+step >= len(ring) {
 		return "", false

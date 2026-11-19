@@ -636,7 +636,7 @@ func registerListPropFilter(r *Runtime) {
 	r.DefineGuard("list-prop-conditions", func(_ *Runtime, ev KeyEvent) bool { l := guardList(ev); return l != nil && len(l.vs.Filters) > 0 })
 	r.DefineGuard("list-props", func(r *Runtime, ev KeyEvent) bool {
 		l := guardList(ev)
-		return l != nil && (len(l.filterProps()) > 0 || l.r.Settings().Bool(ListFilterSortSetting) && l.Sortable())
+		return l != nil && (l.hasFilterSpec() || l.r.Settings().Bool(ListFilterSortSetting) && l.Sortable())
 	})
 	r.DefineGuard("list-prop-filtered", func(r *Runtime, ev KeyEvent) bool {
 		l := guardList(ev)

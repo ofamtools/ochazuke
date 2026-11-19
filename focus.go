@@ -704,6 +704,21 @@ func (r *Runtime) region(id string) bool {
 // undrawn stop is skipped. order ranks every instance under root the same
 // way. No map is iterated: the walk uses the tree and frame slices.
 func (r *Runtime) units(root string, unit func(string) bool) (out []string, order map[string]int) {
+	return r.unitWalk(root, unit, true)
+}
+
+// stops is units without the order: the walk does not descend into a unit
+// (a list's thousands of row instances), which only the order of every
+// instance needs; the units and their drawing order are the same.
+func (r *Runtime) stops(root string, unit func(string) bool) []string {
+	out, _ := r.unitWalk(root, unit, false)
+	return out
+}
+
+// unitWalk is units; deep walks inside each unit too, for an order that
+// ranks every instance under root (without it, order ranks the units and
+// the instances outside them).
+func (r *Runtime) unitWalk(root string, unit func(string) bool, deep bool) (out []string, order map[string]int) {
 	var tree []string
 	kids := r.childIndex()
 	var walk func(id string, inside bool)
@@ -712,7 +727,9 @@ func (r *Runtime) units(root string, unit func(string) bool) (out []string, orde
 			tree = append(tree, child.ID)
 			if !inside && unit(child.ID) {
 				out = append(out, child.ID)
-				walk(child.ID, true)
+				if deep {
+					walk(child.ID, true)
+				}
 				continue
 			}
 			walk(child.ID, inside)
@@ -796,7 +813,7 @@ func (r *Runtime) landing(id string) string {
 		return last
 	}
 	if r.region(id) {
-		if stops, _ := r.units(id, r.focusable); len(stops) > 0 {
+		if stops := r.stops(id, r.focusable); len(stops) > 0 {
 			return r.landing(stops[0])
 		}
 	}
@@ -952,7 +969,7 @@ func (r *Runtime) keepFocusShown() bool {
 		}
 	}
 	if target == "" {
-		stops, _ := r.units(r.Page, r.focusable)
+		stops := r.stops(r.Page, r.focusable)
 		for _, stop := range stops {
 			if land := r.landing(stop); r.shownIn(page, land) {
 				target = land

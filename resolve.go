@@ -850,7 +850,10 @@ func (r *Runtime) allBindings() []Binding { return r.AllBindings() }
 // AllBindings is every stored binding row, each with the noun or instance
 // whose table holds it and its mode: what bindings list all answers and
 // config export writes.
-func (r *Runtime) AllBindings() []Binding {
+func (r *Runtime) AllBindings() []Binding { return r.withAliases(r.allStoredRows()) }
+
+// allStoredRows is AllBindings without the aliases, sorted.
+func (r *Runtime) allStoredRows() []Binding {
 	out := []Binding{}
 	for _, name := range slices.Sorted(maps.Keys(r.Nouns)) {
 		noun := r.Nouns[name]
@@ -868,7 +871,7 @@ func (r *Runtime) AllBindings() []Binding {
 		}
 	}
 	SortBindings(out)
-	return r.withAliases(out)
+	return out
 }
 
 // withAliases fills each row's Aliases with its operation's other names

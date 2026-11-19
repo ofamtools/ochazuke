@@ -51,7 +51,9 @@ func (l *Collection) canSort() bool {
 // Sortable reports whether local ordering is allowed and the rows expose
 // a sortable prop or column. Secrets and props turned off for filters are
 // not offered for sorting either.
-func (l *Collection) Sortable() bool { return l.canSort() && len(l.sortSpecs()) > 0 }
+func (l *Collection) Sortable() bool {
+	return l.canSort() && (l.hasFilterSpec() || len(l.sortSpecs()) > 0)
+}
 
 // Sort returns a copy of the view's sort keys. They are in-memory state,
 // preserved by SetItems, Patch and column changes and included in saved filters.

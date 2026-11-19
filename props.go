@@ -687,6 +687,7 @@ func (b *NounBuilder) Store(s Store) *NounBuilder {
 	if len(b.n.Props) == 0 {
 		panic(fmt.Sprintf("%s: declare Props before Store", b.n.Name))
 	}
+	b.r.InvalidateBindings() // a standard row's availability reads the store
 	if s.Kind == "" {
 		s.Kind = KindCollection
 	}
@@ -923,6 +924,7 @@ func (r *Runtime) addProp(n *Noun, p PropSpec) error {
 	r.relationPropInit(&p)
 	p.Enum = slices.Clone(p.Enum)
 	p.Aliases = slices.Clone(p.Aliases)
+	r.InvalidateBindings() // a prop row's availability reads the props
 	n.Props = append(n.Props, p)
 	if p.Role == RoleArchive && !slices.ContainsFunc(n.Filters, func(f SavedFilter) bool { return f.Name == "archived" }) {
 		n.Filters = append([]SavedFilter{{Name: "archived", Noun: n.Name, Where: map[string]any{p.Name: true}}}, n.Filters...)

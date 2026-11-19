@@ -383,7 +383,7 @@ standard_edit.go	editRecord	compare	"list"	1
 standard_edit.go	editSession.bindWrites	compare	"confirm"	1	moved from editHandler (was debt there): forms.edit-apply is a two-value setting read once to pick the submit or per-field writer
 standard_grammar.go	Runtime.StandardVerbsView	case	"last"	1
 standard_grammar.go	Runtime.StandardVerbsView	case	"record"	1
-table.go	Collection.tallView	cyclo	"-"	39
+table.go	Collection.tallView	cyclo	"-"	29
 table_cells.go	Collection.columnTo	compare	"last"	1
 table_cells.go	Collection.yankSubject	compare	"row"	2	moved from registerTableCells (was debt there): a verb table row named a handler; the compare moved with its code
 table_cells.go	tableColumn	compare	"first"	1	a parameter or setting value of the same spelling as the verb, not a branch on the verb

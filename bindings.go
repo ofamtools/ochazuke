@@ -132,13 +132,13 @@ func (r *Runtime) StopBindings() []StopBindings {
 		read(page, stop, focus, mode)
 	}
 	for _, page := range r.PageList() {
-		stops, _ := r.units(page.ID, r.focusable)
+		stops := r.stops(page.ID, r.focusable)
 		for _, stop := range stops {
 			add(page.ID, stop)
 		}
 	}
 	for _, modal := range r.modals {
-		stops, _ := r.units(modal, r.focusable)
+		stops := r.stops(modal, r.focusable)
 		if len(stops) == 0 {
 			stops = []string{modal}
 		}

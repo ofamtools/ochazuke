@@ -11,18 +11,22 @@ import (
 )
 
 // renderInputFields are the public table fields the binding render cache
-// trusts its RenderStamp for: a write to one must sit in a function that also
+// trusts its RenderStamp for (a noun's Props and Store decide a standard or
+// prop row's availability): a write to one must sit in a function that also
 // bumps the stamp (InvalidateBindings, or the generation itself).
-var renderInputFields = map[string]bool{"Bindings": true, "Guards": true, "Availability": true, "Extends": true}
+var renderInputFields = map[string]bool{"Bindings": true, "Guards": true, "Availability": true, "Extends": true, "Props": true, "Store": true}
 
 // renderInputOtherTypes are files whose Bindings/Extends belong to other
 // types (a bindings file document, the reference doc).
 var renderInputOtherTypes = map[string]bool{"docs_reference.go": true, "bindings_file.go": true}
 
-// renderInputOtherFuncs write an Extends that is not a Noun table: ModeExtends
-// fills a ModeSpec that DefineMode (which bumps) applies, and the two
-// default-bindings functions read and write BindingsDoc groups and ModeSpecs.
-var renderInputOtherFuncs = map[string]bool{"ModeExtends": true, "defaultBindingsDoc": true, "loadDefaultDoc": true}
+// renderInputOtherFuncs write an Extends or Props that is not a Noun table:
+// ModeExtends fills a ModeSpec that DefineMode (which bumps) applies, the two
+// default-bindings functions read and write BindingsDoc groups and ModeSpecs,
+// and the rest fill a list item's, an overlay row's, a tree node's or a
+// report's own Props.
+var renderInputOtherFuncs = map[string]bool{"ModeExtends": true, "defaultBindingsDoc": true, "loadDefaultDoc": true,
+	"NounAnswers": true, "clone": true, "cloneItem": true, "cloneItems": true, "nodes": true, "putOverlay": true, "registerOverlayNoun": true, "thingRow": true}
 
 func writesRenderInput(e ast.Expr) bool {
 	for {

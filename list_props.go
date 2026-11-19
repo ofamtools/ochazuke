@@ -219,6 +219,52 @@ func (r *Runtime) propOff(n *Noun, field string) bool {
 	return false
 }
 
+// hasFilterSpec is len(filterSpecs()) > 0 answered, while the rows' fields
+// are not read yet, at the first prop a filter could take: one declared
+// prop, or one undeclared field of one row. The list-props and
+// list-sortable guards ask on every draw and key, and filterSpecs reads
+// every row's fields (fieldProps decodes each row's Data: tens of ms over
+// the help page's thousands of rows) the first time.
+func (l *Collection) hasFilterSpec() bool {
+	if l.derived == nil && l.anyFilterField() {
+		return true
+	}
+	return len(l.filterSpecs()) > 0
+}
+
+// anyFilterField reports whether a row noun declares a filterable prop or
+// a row has a field fieldProps would derive and the filter would offer (a
+// derived prop is never secret, no-filter or guarded: only props-off takes
+// it out).
+func (l *Collection) anyFilterField() bool {
+	focus := l.propFocus()
+	nouns := map[string]*Noun{}
+	for _, noun := range l.rowNouns() {
+		n := l.r.Noun(noun)
+		if n == nil {
+			continue
+		}
+		nouns[n.Name] = n
+		for _, p := range n.Props {
+			if l.r.propFilterable(n, p, focus) {
+				return true
+			}
+		}
+	}
+	for _, item := range l.filterRows() {
+		n := nouns[l.r.CanonicalNoun(item.Noun)]
+		if n == nil {
+			continue
+		}
+		for name := range l.thing(item) {
+			if n.prop(name) == nil && propName(name) && !l.r.propOff(n, name) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // filterSpecs are the props the list's rows offer to filters by name: a
 // declared prop where one of the row nouns declares it, else the derived
 // one.

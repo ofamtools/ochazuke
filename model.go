@@ -914,7 +914,7 @@ const MovementSection = "movement"
 // pending mode (the terminal leader) is followed by that mode's rows as
 // whole sequences (helpEnters, R6.10).
 func BindingHelp(r *Runtime, focus string) []HelpRow {
-	return r.bindingHelpIn(r.liveResolution(focus))
+	return r.renderCache.bindingHelp(r, focus)
 }
 
 // bindingHelpIn is BindingHelp in a resolution context: the live one, or
@@ -1083,8 +1083,11 @@ func (m *Model) View() tea.View {
 	if v, ok := m.redraw.reuse(); ok {
 		return v
 	}
-	m.Runtime.watchHub().frames++
+	hub := m.Runtime.watchHub()
+	hub.frames++
+	m.Runtime.renderCache.drawing = hub.frames
 	block := m.render()
+	m.Runtime.renderCache.drawing = 0
 	v := tea.NewView(block.Text)
 	if m.Styles().glyphSet == "ascii" {
 		v.Content = asciiFrame(v.Content)

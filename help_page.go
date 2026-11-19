@@ -306,13 +306,15 @@ func (p *HelpPage) read() {
 func (p *HelpPage) arrange() {
 	r := p.r
 	p.Lines = Arrange(p.Rows, p.Walk, HelpQuery{}, GroupingNamed(p.Group), SortNamed(p.Sort)).Lines
-	if list := r.List(helpRowsID); list != nil {
-		if err := list.SetItems(p.listItems()); err != nil {
-			r.UI().Error("binding help rows: " + err.Error())
-		}
-		p.filtered()
+	list := r.List(helpRowsID)
+	if list == nil {
+		p.railNodes()
+		return
 	}
-	p.railNodes()
+	if err := list.SetItems(p.listItems()); err != nil {
+		r.UI().Error("binding help rows: " + err.Error())
+	}
+	p.filtered() // the rail's nodes too: each reads every place (neighbours)
 }
 
 // listItems are the arranged lines as list rows: each row under its

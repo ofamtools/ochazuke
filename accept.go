@@ -163,6 +163,7 @@ func (r *Runtime) acceptProp(c Ctx, noun string, p PropSpec, value any) (any, er
 	}
 	if register {
 		if n := r.Nouns[noun]; n != nil {
+			r.InvalidateBindings() // a prop's enum, as the props table changes
 			for i := range n.Props {
 				if n.Props[i].Name == p.Name && !slices.Contains(n.Props[i].Enum, s) {
 					n.Props[i].Enum = append(slices.Clone(n.Props[i].Enum), s)

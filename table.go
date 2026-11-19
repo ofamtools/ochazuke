@@ -713,27 +713,13 @@ func (l *Collection) tableItemLines(i, top int, toned *Styles, cols []Column, sh
 func (l *Collection) tallView(lines []string, width, height, body int, cols []Column, shown, widths []int, span span) (string, int, int) {
 	section := lipgloss.NewStyle().Bold(true).Underline(true)
 	gutter := l.hasGutter()
-	rows := make([][]string, len(l.items))
-	toneLines := make([][][]toneSeg, len(l.items))
-	opens := make([]bool, len(l.items))
-	// gap: row i has a blank line above it when it is not the first drawn
-	// (top), spacing.go.
-	spaced := l.spacing()
-	gap := func(i, top int) bool { return spaced && i > top && l.items[i].SpaceAbove }
 	toned, faded := l.listTones(), l.faded()
 	cursor, bar := l.cursorStyle(span, toned, faded), l.bar(faded)
-	total := 0
-	for i, item := range l.items {
-		opens[i] = item.Section != "" && (i == 0 || l.items[i-1].Section != item.Section)
-		rows[i], toneLines[i] = l.tableItemLines(i, 0, toned, cols, shown, widths, gutter, &section)
-		total += len(rows[i])
-		if opens[i] {
-			total++
-		}
-		if gap(i, 0) {
-			total++
-		}
-	}
+	t := l.newTallRows(func(i int) ([]string, [][]toneSeg) {
+		return l.tableItemLines(i, 0, toned, cols, shown, widths, gutter, &section)
+	})
+	rows, toneLines, opens, gap := t.rows, t.tones, t.opens, t.gap
+	total := t.span(0, len(l.items)-1, body)
 	visible := body
 	if len(l.items) > 1 && body > 1 && total > body {
 		visible--
@@ -743,22 +729,12 @@ func (l *Collection) tallView(lines []string, width, height, body int, cols []Co
 		return visible > 1 && l.items[from].Section != "" && !opens[from]
 	}
 	// lineSpan is what rows from..to take when from is the first row drawn:
-	// the repeated section label, section labels, lines and gaps.
+	// the repeated section label, then tallRows.span.
 	lineSpan := func(from, to int) int {
-		n := 0
 		if sticky(from) {
-			n++
+			return 1 + t.span(from, to, visible-1)
 		}
-		for i := from; i <= to; i++ {
-			n += len(rows[i])
-			if opens[i] {
-				n++
-			}
-			if gap(i, from) {
-				n++
-			}
-		}
-		return n
+		return t.span(from, to, visible)
 	}
 	// The selected row keeps the scrolloff margin of rows above and below
 	// it (shrunk in a short window, relaxed at the ends), and the window
@@ -778,6 +754,7 @@ func (l *Collection) tallView(lines []string, width, height, body int, cols []Co
 	if l.offset > 0 && l.hasGroup() {
 		// The first row drawn shows its Group cells.
 		rows[l.offset], toneLines[l.offset] = l.tableItemLines(l.offset, l.offset, toned, cols, shown, widths, gutter, &section)
+		t.built[l.offset] = true
 	}
 	top := len(lines)
 	var out []string
@@ -794,6 +771,7 @@ func (l *Collection) tallView(lines []string, width, height, body int, cols []Co
 		if opens[i] && len(out) < visible {
 			out = append(out, section.Render(modalLabel(l.groupHeading(l.items[i].Section))))
 		}
+		t.lines(i)
 		if i == l.selected && len(out) < visible {
 			focus, focusHeight = top+len(out), min(len(rows[i]), visible-len(out))
 			l.selLine = focus
@@ -824,6 +802,60 @@ func (l *Collection) tallView(lines []string, width, height, body int, cols []Co
 		lines = append(lines, fmt.Sprintf("%d–%d / %d", l.offset+1, end, len(l.items)))
 	}
 	return strings.Join(layoutRows(strings.Join(lines, "\n"), width, height), "\n"), focus, focusHeight
+}
+
+// tallRows are a tall table's rows as tallView reads them: each row's lines
+// built when the window first needs them (the counts stop once they pass
+// what the window holds, so a frame builds the rows it draws and their
+// neighbours, not every row of a long list), which rows open a section,
+// and the gaps of spacing.
+type tallRows struct {
+	rows   [][]string
+	tones  [][][]toneSeg
+	built  []bool
+	opens  []bool
+	build  func(int) ([]string, [][]toneSeg)
+	spaced bool
+	items  []ListItem
+}
+
+func (l *Collection) newTallRows(build func(int) ([]string, [][]toneSeg)) *tallRows {
+	n := len(l.items)
+	t := &tallRows{rows: make([][]string, n), tones: make([][][]toneSeg, n), built: make([]bool, n), opens: make([]bool, n), build: build, spaced: l.spacing(), items: l.items}
+	for i, item := range l.items {
+		t.opens[i] = item.Section != "" && (i == 0 || l.items[i-1].Section != item.Section)
+	}
+	return t
+}
+
+// lines builds row i's lines once and counts them.
+func (t *tallRows) lines(i int) int {
+	if !t.built[i] {
+		t.rows[i], t.tones[i] = t.build(i)
+		t.built[i] = true
+	}
+	return len(t.rows[i])
+}
+
+// gap: row i has a blank line above it when it is not the first drawn
+// (top), spacing.go.
+func (t *tallRows) gap(i, top int) bool { return t.spaced && i > top && t.items[i].SpaceAbove }
+
+// span is what rows from..to take when from is the first drawn: section
+// labels, lines and gaps, counted only until it passes limit (its callers
+// compare it with limit alone).
+func (t *tallRows) span(from, to, limit int) int {
+	n := 0
+	for i := from; i <= to && n <= limit; i++ {
+		n += t.lines(i)
+		if t.opens[i] {
+			n++
+		}
+		if t.gap(i, from) {
+			n++
+		}
+	}
+	return n
 }
 
 // span is the cells of a line a table's current column takes: from x, w

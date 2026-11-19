@@ -487,6 +487,7 @@ func (o *overlayOf) fill(s Store) Store {
 // derivation's, ownsValue) is a prop the overlay can hold like any other.
 func (o *overlayOf) markProps(archive bool, archiveName string) {
 	n := o.n
+	o.r.InvalidateBindings() // the props a standard row's availability reads
 	if archive {
 		n.Props = append(n.Props, PropSpec{Name: archiveName, Role: RoleArchive, Overlaid: true,
 			Parameter: Parameter{Type: SettingBoolean, Description: "Archived by you: the thing is hidden from lists (the framework keeps the flag beside it)"}})

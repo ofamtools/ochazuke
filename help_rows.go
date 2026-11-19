@@ -190,11 +190,13 @@ func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 		v.Level, v.LevelName, v.Table, v.State, v.By = e.Level, w.LevelLabel(e.Level), w.TableOf(e).Label(), e.Status(), by(e.By)
 		out = append(out, v)
 	}
-	for _, b := range r.storedRows() {
+	stored, page := r.renderCache.storedHelpRows(r)
+	for i, b := range stored {
 		if onWalk[sourceKey(b)+"\x00"+fmt.Sprint(b.Capture)] {
 			continue
 		}
-		v := r.helpPageRow(b, user, len(out))
+		v := page[i]
+		v.Order = len(out)
 		v.Level = w.LevelOf(b)
 		v.LevelName = w.LevelLabel(v.Level)
 		v.Table = WalkTable{Noun: b.Noun, Instance: b.Instance, Mode: b.Mode}.Label()
@@ -204,7 +206,7 @@ func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 		}
 		out = append(out, v)
 	}
-	for _, b := range r.removedDefaults() {
+	for _, b := range r.removedDefaultsOf(stored) {
 		v := r.helpPageRow(b, user, len(out))
 		v.ID = "removed:" + strings.TrimPrefix(v.ID, "row:")
 		v.Source = r.defaultSource(b)
@@ -236,10 +238,10 @@ func (r *Runtime) HelpRows(w HelpWalk) []HelpPageRow {
 }
 
 // storedRows are every stored row of every table, nouns then instances
-// (AllBindings without its sort and aliases), unbind rows left out.
+// (AllBindings without its aliases), unbind rows left out.
 func (r *Runtime) storedRows() []Binding {
 	var out []Binding
-	for _, b := range r.AllBindings() {
+	for _, b := range r.allStoredRows() {
 		if !b.Unbind {
 			b.Aliases = nil
 			out = append(out, b)
@@ -248,15 +250,16 @@ func (r *Runtime) storedRows() []Binding {
 	return out
 }
 
-// removedDefaults are the default rows the user's bindings.json unbinds
-// and no row of it puts back on their identity: what U restores.
-func (r *Runtime) removedDefaults() []Binding {
+// removedDefaultsOf are the default rows the user's bindings.json unbinds
+// and no row of it puts back on their identity (what U restores), given
+// the stored rows.
+func (r *Runtime) removedDefaultsOf(stored []Binding) []Binding {
 	c := r.Config()
 	if c == nil {
 		return nil
 	}
 	live := map[string]bool{}
-	for _, b := range r.storedRows() {
+	for _, b := range stored {
 		live[sourceKey(b)] = true
 	}
 	var out []Binding
