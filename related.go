@@ -120,6 +120,11 @@ type RelatedSpec struct {
 	// directions. "" or a missing setting: none (the stack lists only what
 	// names the thing).
 	Outward string
+	// Archived names a list setting of section ids (a prefix ending in *)
+	// whose lists show their archived things (each list's archived toggle,
+	// set when the section is made and again when the setting changes;
+	// a change reads again only the sections it changed). "" sets none.
+	Archived string
 	// Explain names a boolean setting: on, a referrer whose things cannot
 	// be read (its noun has no store that lists, or no key prop, and no
 	// Rows hook) still has its section, its heading counting – and, open,
@@ -167,6 +172,10 @@ type Related struct {
 	splits   map[string]*relatedSplit // the split sections by their referrer's id (GroupBy)
 	grouped  string                   // the groups setting and sections the groups were made for
 	shape    int                      // counts section additions and removals: the groups follow it
+	landing  *relatedLanding          // the reads off the loop whose answers land together (related_read.go)
+	readSeq  uint64                   // numbers the reads, so only a read's newest answer lands
+	drawn    uint64                   // the frame (watchHub.frames) the stack was last drawn in
+	archived string                   // the archived setting's value the sections' lists were last set from
 }
 
 // relatedSplit is a section split by a prop (RelatedSpec.GroupBy): its
@@ -195,6 +204,7 @@ type relatedSection struct {
 	group      *relatedSection   // the group heading drawing this section's rows, nil when none
 	members    []*relatedSection // a group heading's sections
 	grouping   bool              // a group heading (RelatedSpec.Groups)
+	loading    bool              // never filled and its first read runs off the loop: it says so
 }
 
 // AddRelated registers a stack of related sections under Parent (default
@@ -474,6 +484,7 @@ func (rel *Related) sync() {
 		}
 	}
 	rel.ensureLists()
+	rel.syncArchived()
 	look := fmt.Sprint(rel.countsShown(), rel.emptyMode(), rel.foldedCount())
 	keyChanged := !rel.synced || key != rel.key
 	if keyChanged {
@@ -731,6 +742,9 @@ func (rel *Related) addSection(ref Referrer) *relatedSection {
 	}
 	s.list = list
 	list.SetMatchNoun(pluralWord(shortNounName(ref.Noun)))
+	if rel.spec.Archived != "" {
+		rel.setArchived(s, rel.listSetting(rel.spec.Archived)) // before its first read
+	}
 	if s.view != "" {
 		// The view stands for the things: it sits under the section, so a
 		// z verb or a motion inside it reaches the section.
@@ -895,23 +909,6 @@ func (rel *Related) isCollapsed(id string) bool {
 	return rel.collapse[id]
 }
 
-// read lists the things owned by the key.
-func (s *relatedSection) read() ([]Thing, error) { return s.rel.readRef(s.ref) }
-
-// readRef lists the things of ref owned by the key: a list section's
-// filter, whatever the key.
-func (rel *Related) readRef(ref Referrer) ([]Thing, error) {
-	r := rel.r
-	return rel.readRefWith(r.backgroundCtx(), ref)
-}
-
-// readRefWith is readRef in c: a remote read's replayed context
-// (fillRemote) reaches the remote store, any other reads none.
-func (rel *Related) readRefWith(c Ctx, ref Referrer) ([]Thing, error) {
-	page, err := rel.readRefPage(c, ref, ListQuery{Archived: true})
-	return page.Items, err
-}
-
 // readRefPage reads the things of ref owned by the key as a page of q (a
 // folded section's count is a one-row page's total).
 func (rel *Related) readRefPage(c Ctx, ref Referrer, q ListQuery) (ListPage, error) {
@@ -981,41 +978,11 @@ func countsCheaply(st *Store) bool {
 	return st != nil && (st.Query != nil || st.Facts || st.Kind == Instances)
 }
 
-// fillFolded reads what a folded section shows by the folded-count
-// setting: a one-row page's total, or nothing. It reports false when the
-// section is to be read whole (the full mode).
-func (s *relatedSection) fillFolded() bool {
-	mode := s.rel.foldedCount()
-	if mode == RelatedFoldedCountFull {
-		return false
-	}
-	if mode == RelatedFoldedCountNone || !s.countable() {
-		s.counted, s.count, s.shown, s.filled = false, 0, nil, false
-		s.render()
-		return true
-	}
-	r := s.rel.r
-	q := ListQuery{Archived: r.archiveHiding(s.n, s.list.vs) == nil, Page: 1, PerPage: 1}
-	land := func(page ListPage) {
-		s.counted, s.count, s.shown, s.filled = true, page.Total, nil, true
-		s.render()
-	}
-	if s.remote() {
-		s.fillRemote(q, land)
-		return true
-	}
-	page, err := s.rel.readRefPage(r.backgroundCtx(), s.ref, q)
-	if err != nil {
-		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
-		page = ListPage{}
-	}
-	land(page)
-	return true
-}
-
 // fill reads the things and shows them: the heading, then the things unless
 // the section is collapsed (a placed view draws its own). A value section
-// reads its split, a group heading its members.
+// reads its split, a group heading its members. A folded section reads by
+// the folded-count setting: a one-row page's total, or nothing. The read
+// itself is rel.readSection's: on the loop, or as a job off it (related_read.go).
 func (s *relatedSection) fill() {
 	switch {
 	case s.split != nil:
@@ -1034,19 +1001,23 @@ func (s *relatedSection) fill() {
 		s.show(nil)
 		return
 	}
-	if s.folded() && s.fillFolded() {
-		return
+	q, land := ListQuery{Archived: true}, func(page ListPage) { s.show(page.Items) }
+	if s.folded() {
+		switch mode := s.rel.foldedCount(); {
+		case mode == RelatedFoldedCountFull:
+		case mode == RelatedFoldedCountNone || !s.countable():
+			s.counted, s.count, s.shown, s.filled, s.loading = false, 0, nil, false, false
+			s.render()
+			return
+		default:
+			q = ListQuery{Archived: r.archiveHiding(s.n, s.list.vs) == nil, Page: 1, PerPage: 1}
+			land = func(page ListPage) {
+				s.counted, s.count, s.shown, s.filled, s.loading = true, page.Total, nil, true, false
+				s.render()
+			}
+		}
 	}
-	if s.remote() {
-		s.fillRemote(ListQuery{Archived: true}, func(page ListPage) { s.show(page.Items) })
-		return
-	}
-	things, err := s.read()
-	if err != nil {
-		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
-		things = nil
-	}
-	s.show(things)
+	s.rel.readSection(s.ref.ID(), s, s.ref, q, land)
 }
 
 // RelatedRemoteSetting turns the reads of remote stores in related
@@ -1055,58 +1026,16 @@ func (s *relatedSection) fill() {
 // shows its things when it lands; off, it reads as empty.
 const RelatedRemoteSetting = "detail.related-remote"
 
-// remote reports whether reading the section's things needs a remote
-// store: its noun's, or, for the thing's own references, the thing's
-// noun's.
-func (s *relatedSection) remote() bool {
-	if s.ref.List || s.ref.History || !s.rel.r.Settings().Bool(RelatedRemoteSetting) {
-		return false
-	}
-	if s.ref.own() {
-		if own := s.rel.r.Nouns[s.rel.noun]; own != nil && own.Store != nil && own.Store.Remote {
+// remoteRef reports whether reading ref's things needs a remote store:
+// its noun's, or, for the thing's own references, the thing's noun's.
+func (rel *Related) remoteRef(ref Referrer) bool {
+	if ref.own() {
+		if own := rel.r.Nouns[rel.noun]; own != nil && own.Store != nil && own.Store.Remote {
 			return true
 		}
 	}
-	return s.n.Store != nil && s.n.Store.Remote
-}
-
-// fillRemote reads the section's things through its remote store as a
-// page of q in a job (the windowed list's way: runSteppedBody replays the
-// read on the loop) and hands the page to land when it lands, unless the
-// stack shows another thing by then. Until then the section shows what it
-// showed.
-func (s *relatedSection) fillRemote(q ListQuery, land func(ListPage)) {
-	rel, r := s.rel, s.rel.r
-	noun, key := rel.noun, rel.key
-	var page ListPage
-	c := r.backgroundCtx()
-	body := func(c Ctx) (any, error) {
-		got, err := rel.readRefPage(c, s.ref, q)
-		page = got
-		return nil, err
-	}
-	finish := func(_ any, err error) (any, error) {
-		if r.Instances[s.id] == nil || rel.noun != noun || rel.key != key {
-			return nil, nil // the stack moved on: its own read shows
-		}
-		if err != nil {
-			page = ListPage{}
-		}
-		land(page)
-		return nil, err
-	}
-	res := r.runSteppedBody(c, s.ref.Noun+".list", body, finish)
-	if res.err != nil || res.work == nil {
-		if res.err != nil {
-			r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), res.err))
-		}
-		return // answered at once
-	}
-	_, _ = r.Launch(s.id, s.ref.Noun+".list", res.Replacing("related-read").Then(func(c Ctx, _ any, err error) {
-		if err != nil {
-			c.Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(s.ref.Noun), err))
-		}
-	}), c)
+	n := rel.r.Nouns[ref.Noun]
+	return n != nil && n.Store != nil && n.Store.Remote
 }
 
 // show keeps the things the archive setting does not hide and draws them.
@@ -1119,7 +1048,7 @@ func (s *relatedSection) show(things []Thing) {
 			shown = append(shown, t)
 		}
 	}
-	s.count, s.counted, s.shown, s.filled = len(shown), true, shown, true
+	s.count, s.counted, s.shown, s.filled, s.loading = len(shown), true, shown, true, false
 	s.render()
 }
 
@@ -1167,9 +1096,11 @@ func (s *relatedSection) render() {
 	} else if !s.collapsed() {
 		switch {
 		case s.unreadable != "":
-			items = append(items, s.whyRow())
+			items = append(items, s.noteRow(s.unreadable))
+		case empty && s.loading:
+			items = append(items, s.noteRow(LoadingText(pluralWord(shortNounName(s.ref.Noun)))))
 		case empty && rel.emptyMode() == relatedEmptyAtOpen:
-			items = append(items, s.emptyRow())
+			items = append(items, s.noteRow(EmptyText(pluralWord(shortNounName(s.ref.Noun)))))
 		}
 		items = append(items, s.rowItems(c, shown)...)
 	}
@@ -1204,20 +1135,11 @@ func (s *relatedSection) heading() ListItem {
 	return item
 }
 
-// emptyRow is the row of an open empty section.
-func (s *relatedSection) emptyRow() ListItem {
-	text := EmptyText(pluralWord(shortNounName(s.ref.Noun)))
+// noteRow is the one row an open section draws in place of things: why
+// they cannot be read, that its first read runs (the one loading text), or
+// that it has none (the open empty mode).
+func (s *relatedSection) noteRow(text string) ListItem {
 	item := ListItem{ID: s.emptyID(), Label: "  " + text, Noun: RelatedNoun, Data: s.thing()}
-	if n := len(s.list.columns); n > 0 {
-		item.Cells = make([]string, n)
-		item.Cells[0] = item.Label
-	}
-	return item
-}
-
-// whyRow is the open row of a section whose things cannot be read: why.
-func (s *relatedSection) whyRow() ListItem {
-	item := ListItem{ID: s.emptyID(), Label: "  " + s.unreadable, Noun: RelatedNoun, Data: s.thing()}
 	if n := len(s.list.columns); n > 0 {
 		item.Cells = make([]string, n)
 		item.Cells[0] = item.Label

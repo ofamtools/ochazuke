@@ -28,7 +28,7 @@ ochazuke.page	439
 ochazuke.picker	339
 ochazuke.referrer	12
 ochazuke.register	202
-ochazuke.related-section	150
+ochazuke.related-section	144
 ochazuke.relation-kind	18
 ochazuke.restart-request	54
 ochazuke.retention-rule	138

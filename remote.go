@@ -68,6 +68,9 @@ type tape struct {
 	// seen are the source's things the overlay's get read in this verb
 	// (keepSeen), by noun and key.
 	seen map[string]Thing
+	// offLoop lets the run's local reads (Ctx.OffLoop) run as jobs off the
+	// loop (runSteppedReads); without it they are read at once.
+	offLoop bool
 }
 
 // keepSeen keeps the source's thing a remote store's get answered in this
@@ -91,6 +94,7 @@ type tapeAnswer struct {
 	call  StoreCall
 	value any
 	err   error
+	local bool // a local store's read (Ctx.OffLoop): not remembered past the run
 }
 
 // needCall stops a planning run at a store call that has no answer yet.
@@ -98,6 +102,7 @@ type needCall struct {
 	call  StoreCall
 	res   Result
 	limit time.Duration
+	local bool
 }
 
 // replayMismatch stops a planning run that made a different call than the
@@ -152,11 +157,50 @@ func (c Ctx) Await(call StoreCall, start func() Result, limit time.Duration) (an
 	case res.fg != nil:
 		return nil, errors.New("a call that needs the terminal cannot be made by a store")
 	case res.work == nil:
-		t.done = append(t.done, tapeAnswer{call, res.value, res.err}) // answered at once
+		t.done = append(t.done, tapeAnswer{call: call, value: res.value, err: res.err}) // answered at once
 		t.next++
 		return res.value, res.err
 	}
 	panic(&needCall{call: call, res: res, limit: limit})
+}
+
+// OffLoop is how a local store makes a read that may be slow (a SQLite
+// query) so that a run that allows it can make it off the loop. Outside
+// such a run (a draw, a verb, a watch, a windowed list's read, a test) it
+// calls read at once on the calling goroutine, exactly as calling it
+// directly would. Inside one (runSteppedReads: a related section's read,
+// Related) it replays the answer the tape holds, else stops the run so
+// read runs as a job; the run is then replayed on the loop with the
+// answer.
+//
+// read must touch nothing the loop writes: work out what to read on the
+// loop, before the call (the query text, its arguments), and give read only
+// those values; turn its answer into things after the call, on the loop.
+// call names the read so a replay can tell it is the same one: Store and
+// Op, and a Key that differs whenever the read would (the query and its
+// arguments). A replay that makes a different call (the state it was worked
+// out from changed meanwhile) reads again, off the loop. The answer is kept
+// for the run only, never as a remote store's last known answer.
+func (c Ctx) OffLoop(call StoreCall, read func(context.Context) (any, error)) (any, error) {
+	t := c.tape
+	if t == nil || !t.offLoop {
+		ctx := context.Background()
+		if c.Runtime != nil {
+			ctx = c.Runtime.Lifetime()
+		}
+		return read(ctx)
+	}
+	if t.next < len(t.done) {
+		if a := t.done[t.next]; a.call == call {
+			t.next++
+			return a.value, a.err
+		}
+		// What the read was worked out from changed while it ran: the
+		// answers from here on are of other reads, so this one is read
+		// again.
+		t.done = t.done[:t.next]
+	}
+	panic(&needCall{call: call, res: Pending(read), local: true})
 }
 
 // lastKnown is the answer to a read the last call to it got, on the loop.
@@ -168,7 +212,7 @@ func (r *Runtime) lastKnown(call StoreCall) (any, bool) {
 // remember keeps an answer as the last known one; a write forgets what is
 // known of the store, which it may have changed.
 func (r *Runtime) remember(a tapeAnswer) {
-	if a.err != nil {
+	if a.err != nil || a.local {
 		return
 	}
 	if r.remoteSeen == nil {
@@ -213,12 +257,14 @@ type remoteRun struct {
 	unit     int
 	tape     *tape
 	asked    StoreCall
-	job      uint64
-	changes  []ThingChange
-	applied  []string
-	skipped  []string
-	first    error
-	ending   bool
+	// askedLocal: the call is a local store's read (Ctx.OffLoop).
+	askedLocal bool
+	job        uint64
+	changes    []ThingChange
+	applied    []string
+	skipped    []string
+	first      error
+	ending     bool
 }
 
 // runRemote is the handler of a standard verb over a remote store (see the
@@ -360,7 +406,7 @@ func (s *remoteRun) next(value any, err error) (func(context.Context) (any, erro
 		s.waiting = false
 		return s.advance()
 	}
-	a := tapeAnswer{s.asked, value, err}
+	a := tapeAnswer{s.asked, value, err, s.askedLocal}
 	s.r.remember(a)
 	s.tape.done = append(s.tape.done, a)
 	return s.advance()
@@ -385,7 +431,7 @@ func (s *remoteRun) step() (func(context.Context) (any, error), any, error) {
 		if need != nil {
 			return need, nil, nil
 		}
-		s.tape = &tape{}
+		s.tape = &tape{offLoop: s.tape.offLoop}
 		if err != nil {
 			return nil, nil, err
 		}
@@ -407,7 +453,7 @@ func (s *remoteRun) step() (func(context.Context) (any, error), any, error) {
 		if need != nil {
 			return need, nil, nil
 		}
-		s.tape = &tape{}
+		s.tape = &tape{offLoop: s.tape.offLoop}
 		if !s.many {
 			s.settle()
 			r.attachChanges(s.job, s.changes)
@@ -494,7 +540,7 @@ func (s *remoteRun) pass(c Ctx, body func(Ctx) (any, error)) (value any, err err
 			switch p := v.(type) {
 			case *needCall:
 				r.takeChanges(0)
-				s.asked = p.call
+				s.asked, s.askedLocal = p.call, p.local
 				need = p.work()
 			case *replayMismatch:
 				r.takeChanges(0)
@@ -558,6 +604,14 @@ func (r *Runtime) attachChanges(job uint64, changes []ThingChange) {
 // until it needs a call, then as a job. finish gives the verb's answer.
 func (r *Runtime) runSteppedBody(c Ctx, label string, body func(Ctx) (any, error), finish func(any, error) (any, error)) Result {
 	s := &remoteRun{r: r, base: c.withRequestMode(r.Mode), label: label, tape: &tape{}, body: body, finish: finish, owned: true}
+	return s.start()
+}
+
+// runSteppedReads is runSteppedBody for a body that only reads, and whose
+// local stores' slow reads (Ctx.OffLoop) may run off the loop as well as
+// its remote calls.
+func (r *Runtime) runSteppedReads(c Ctx, label string, body func(Ctx) (any, error), finish func(any, error) (any, error)) Result {
+	s := &remoteRun{r: r, base: c.withRequestMode(r.Mode), label: label, tape: &tape{offLoop: true}, body: body, finish: finish, owned: true}
 	return s.start()
 }
 

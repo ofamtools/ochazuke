@@ -37,7 +37,7 @@ func (rel *Related) Focus() error { return rel.r.SetFocus(rel.FocusTarget()) }
 // line so you can tell where you are. Every drawn section is placed in
 // drawing order, so j and k spill from one into the next.
 func (rel *Related) View(width, height int) string {
-	rel.sync()
+	rel.markDrawn()
 	if width <= 0 || height <= 0 {
 		return ""
 	}

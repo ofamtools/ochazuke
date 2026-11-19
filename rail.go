@@ -303,7 +303,7 @@ func (rl *Rail) FitWith(width, height int, look string) RailFit {
 // lineCounts are the drawn sections' lines: every row, and the headings
 // alone.
 func (rel *Related) lineCounts() (all, heads int) {
-	rel.sync()
+	rel.markDrawn()
 	for _, s := range rel.visible() {
 		n := s.list.Len()
 		if len(s.list.columns) > 0 {
@@ -374,7 +374,7 @@ func (rl *Rail) panel(l Layout, fit RailFit, w, h int, focused, heads bool) Bloc
 // headingsText is the drawn sections' headings, one a line, width cells
 // wide; each section is placed (Runtime.Placed) so } and tab reach it.
 func (rel *Related) headingsText(width int) string {
-	rel.sync()
+	rel.markDrawn()
 	var lines []string
 	for _, s := range rel.headed() {
 		rel.r.Placed(s.list.id)
@@ -390,7 +390,7 @@ func (rel *Related) headingsText(width int) string {
 func (rl *Rail) strip(l Layout, width int) string {
 	r := rl.r
 	rel := rl.stack
-	rel.sync()
+	rel.markDrawn()
 	var parts []string
 	for i, s := range rel.headed() {
 		if i == 0 {

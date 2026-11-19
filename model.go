@@ -293,6 +293,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.Runtime.settlePlacements()
 	m.Runtime.syncHelp()
 	m.Runtime.refillShown()
+	m.Runtime.syncDrawnRelated()
 	if m.Runtime.Quit {
 		// Quitting writes what components still hold (an open outline line).
 		for _, inst := range m.Runtime.components() {

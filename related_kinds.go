@@ -65,11 +65,13 @@ func (sp *relatedSplit) valueRef(value string) Referrer {
 // section, in the order the values first appear; a value no thing holds
 // any more keeps its section, empty (hidden in the hide mode).
 func (rel *Related) fillSplit(sp *relatedSplit) {
-	r := rel.r
-	things, err := rel.readRef(sp.ref)
-	if err != nil {
-		r.UI().Error(fmt.Sprintf("%s section: %v", r.DisplayNoun(sp.ref.Noun), err))
-		things = nil
+	rel.readSection(sp.ref.ID(), nil, sp.ref, ListQuery{Archived: true}, func(page ListPage) { rel.showSplit(sp, page.Items) })
+}
+
+// showSplit shows a split's things, each value's in its section.
+func (rel *Related) showSplit(sp *relatedSplit, things []Thing) {
+	if rel.splits[sp.ref.ID()] != sp {
+		return // the split went with its sections
 	}
 	byValue := map[string][]Thing{}
 	var values []string
