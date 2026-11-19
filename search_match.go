@@ -233,6 +233,23 @@ func (m Matcher) MatchPrepared(hay string) bool {
 	return ok
 }
 
+// MatchRow reports whether hay, a row's lines from Prepare (label, cells
+// and search text, one per line), matches. A regex runs on each line on
+// its own, so \s, \W and [^x] never match the newline that joins two
+// cells and a pattern never spans two; the row matches when any line does.
+// The other modes are MatchPrepared.
+func (m Matcher) MatchRow(hay string) bool {
+	if m.re == nil || m.err != nil {
+		return m.MatchPrepared(hay)
+	}
+	for _, line := range strings.Split(hay, "\n") {
+		if m.re.MatchString(line) {
+			return true
+		}
+	}
+	return false
+}
+
 // ScorePrepared reports whether hay (from Prepare) matches and how well:
 // fuzzyScore for fuzzy (compact runs and word starts score higher), the
 // sum of each word's fuzzyScore for substring, 0 for regex. Higher is

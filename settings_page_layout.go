@@ -405,7 +405,7 @@ func syncSectionList(r *Runtime, key string) {
 			if query := list.Filter(); query != "" {
 				m := list.matcher()
 				for _, name := range u.Settings {
-					if m.Match(strings.Join(search[name], "\n")) {
+					if m.MatchRow(m.Prepare(strings.Join(search[name], "\n"))) {
 						item.Search = append(item.Search, search[name]...)
 					}
 				}

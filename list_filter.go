@@ -267,7 +267,7 @@ func (l *Collection) textMatch() func(ListItem) bool {
 		return l.QueryFilter(l.vs.Text)
 	}
 	m := l.matcher()
-	return func(item ListItem) bool { return m.MatchPrepared(l.preparedRow(item, m)) }
+	return func(item ListItem) bool { return m.MatchRow(l.preparedRow(item, m)) }
 }
 
 // ListFilterKeepsChildrenSetting makes the filter keep a matching row's

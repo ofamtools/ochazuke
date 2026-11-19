@@ -63,7 +63,7 @@ func (s *relatedSection) matching(items []ListItem) []ListItem {
 	m := s.rel.r.Matcher(s.rel.r.Settings().String(SearchMatchSetting), s.rel.query)
 	out := items[:0:0]
 	for _, item := range items {
-		if m.MatchPrepared(s.list.preparedRow(item, m)) {
+		if m.MatchRow(s.list.preparedRow(item, m)) {
 			out = append(out, item)
 		}
 	}

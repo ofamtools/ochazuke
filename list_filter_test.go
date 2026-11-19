@@ -402,3 +402,26 @@ func TestListFilterRegexHint(t *testing.T) {
 		t.Fatalf(`regex \w+: %s %v`, list.MatchMode(), shownIDs(list))
 	}
 }
+
+// A regex filter runs on each cell alone: \s does not match the line break
+// between two cells, \w\s\w does not span them, and both still match inside one.
+func TestListFilterRegexMatchesEachCell(t *testing.T) {
+	r, m, list := filterFixture(t)
+	r.EnsureConfigSettings()
+	if err := r.Settings().Set(SearchMatchSetting, MatchRegex); err != nil {
+		t.Fatal(err)
+	}
+	if err := list.SetItems([]ListItem{
+		{ID: "a", Label: "one", Noun: "a", Cells: []string{"one", "two"}},
+		{ID: "b", Label: "one two", Noun: "a"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	m.View()
+	for q, want := range map[string][]string{`\s`: {"b"}, `\w\s\w`: {"b"}} {
+		list.SetFilter(q)
+		if got := shownIDs(list); !reflect.DeepEqual(got, want) {
+			t.Fatalf("%q: %v, want %v", q, got, want)
+		}
+	}
+}

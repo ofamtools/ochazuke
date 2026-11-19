@@ -492,7 +492,7 @@ func (t *Tree) filterNodes(hidden map[string]bool) map[string]bool {
 	m := t.list.matcher()
 	for _, n := range t.nodes {
 		item := t.rowCache[n.ID].item
-		if !hidden[item.ID] && t.list.matchesProps(item) && m.MatchPrepared(t.list.preparedRow(item, m)) {
+		if !hidden[item.ID] && t.list.matchesProps(item) && m.MatchRow(t.list.preparedRow(item, m)) {
 			kept[item.ID] = true
 		}
 	}
