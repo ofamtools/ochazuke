@@ -181,6 +181,69 @@ func (t *Tree) Record(a TreeAction) error {
 	return err
 }
 
+// RecordRequest runs q (a standard verb an outline's own verb runs for a
+// row: archive the row's thing, restore it) and puts the writes it made
+// on the tree's undo stack, in order with the tree's edits: undo reverts
+// their history entries (history-entry.undo, one per group), redo runs q
+// again. refresh runs after each (the application re-reads its rows). A
+// q that writes nothing records nothing. id is the row the step returns
+// the cursor to.
+func (t *Tree) RecordRequest(id string, q Request, refresh func() error) (any, error) {
+	r := t.r
+	since := lastSeq(r)
+	v, err := r.Execute(q)
+	if err != nil {
+		return v, err
+	}
+	seqs := undoableSince(r, since)
+	if len(seqs) == 0 {
+		return v, nil
+	}
+	undo := func() error {
+		for _, seq := range seqs {
+			if err := r.undoHistory(seq); err != nil {
+				return err
+			}
+		}
+		return refresh()
+	}
+	redo := func() error {
+		mark := lastSeq(r)
+		if _, err := r.Execute(q); err != nil {
+			return err
+		}
+		seqs = undoableSince(r, mark)
+		return refresh()
+	}
+	return v, t.Record(TreeAction{ID: id, Label: q.Key(), Undo: undo, Redo: redo})
+}
+
+// lastSeq is the newest history entry's seq, 0 for none.
+func lastSeq(r *Runtime) uint64 {
+	if h := r.History(1); len(h) > 0 {
+		return h[len(h)-1].Seq
+	}
+	return 0
+}
+
+// undoableSince are the seqs of the entries after since that wrote
+// things, newest first, one per group (undoing one entry of a group
+// reverts the group).
+func undoableSince(r *Runtime, since uint64) []uint64 {
+	var out []uint64
+	groups := map[string]bool{}
+	h := r.History(0)
+	for i := len(h) - 1; i >= 0 && h[i].Seq > since; i-- {
+		e := h[i]
+		if len(e.Changes) == 0 || e.Restored || e.Group != "" && groups[e.Group] {
+			continue
+		}
+		groups[e.Group] = e.Group != ""
+		out = append(out, e.Seq)
+	}
+	return out
+}
+
 // Tree is a list whose rows are nested nodes: expand and collapse, the
 // same motions as a list (it is one: rows spill to the neighbouring stops
 // in drawing order), the one highlighted row, columns like a table. Given

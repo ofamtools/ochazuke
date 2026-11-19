@@ -354,6 +354,9 @@ func (l *nounLoader) flags(b *ochazuke.NounBuilder, f NounFile) {
 	if f.NoEditKey {
 		b.EditKey(false)
 	}
+	if f.ActorPane {
+		b.ActorPane()
+	}
 	if f.NoDefaultKeys {
 		b.DefaultKeys(false)
 	}

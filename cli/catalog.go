@@ -157,6 +157,9 @@ type CatalogNoun struct {
 	Store *CatalogStore `json:"store,omitempty"`
 	// NoEditKey declines only the implicit edit-key fallback, not edit itself.
 	NoEditKey bool `json:"noEditKey,omitempty"`
+	// ActorPane says an agent's pane names a thing of this noun
+	// (ochazuke.Noun.ActorPane).
+	ActorPane bool `json:"actorPane,omitempty"`
 	// NoDefaultKeys declines the generated default key block
 	// (ochazuke.Noun.NoDefaultKeys); a mounted noun keeps it in the host.
 	NoDefaultKeys bool `json:"noDefaultKeys,omitempty"`

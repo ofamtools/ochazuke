@@ -667,6 +667,17 @@ func registerUndo(r *Runtime) {
 	r.SetAvailability("ochazuke.history-entry.undo", UndoGuard)
 }
 
+// undoHistory runs history-entry.undo from Go: the entry with seq, or the
+// newest change for 0, as its key would.
+func (r *Runtime) undoHistory(seq uint64) error {
+	q := Request{Noun: historyEntryNoun, Verb: "undo"}
+	if seq > 0 {
+		q.Args = Arguments{"entry": int(seq)}
+	}
+	_, err := r.Execute(q)
+	return err
+}
+
 // undoEntry selects an explicit sequence, or the newest eligible change.
 func (r *Runtime) undoEntry(a Arguments) (int, error) {
 	if _, targeted := a["entry"]; !targeted {

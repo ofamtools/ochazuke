@@ -51,6 +51,11 @@ type Noun struct {
 	// NoEditKey declines the app-level implicit edit-key fallback only.
 	// The noun's edit verb and explicit binding rows remain available.
 	NoEditKey bool `json:"noEditKey,omitempty"`
+	// ActorPane says an agent's Actor.Pane names a thing of this noun by
+	// its key: where a person reads who did something (ActorLabel), the
+	// pane shows the thing's label, read from the noun's store, instead of
+	// its id.
+	ActorPane bool `json:"actorPane,omitempty"`
 	// NoDefaultKeys declines the generated default key block
 	// (keys.noun-defaults, noun_keys.go) for this noun's things: a noun
 	// whose rows are a component's own (an outline's lines) keeps only
@@ -503,6 +508,13 @@ func (b *NounBuilder) Parent(prop string) *NounBuilder { b.n.Parent = prop; retu
 func (b *NounBuilder) DefaultKeys(enabled bool) *NounBuilder {
 	b.n.NoDefaultKeys = !enabled
 	b.r.ensureNounKeys(b.n)
+	return b
+}
+
+// ActorPane marks the noun as the one an agent's Actor.Pane names
+// (Noun.ActorPane): actor labels show the thing's label.
+func (b *NounBuilder) ActorPane() *NounBuilder {
+	b.n.ActorPane = true
 	return b
 }
 

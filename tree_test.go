@@ -131,3 +131,26 @@ func TestTreeShiftEnterBreaksTheLine(t *testing.T) {
 		t.Fatalf("writes %q, want last %q", *writes, want)
 	}
 }
+
+// A standard write an outline's verb runs for a row goes on the outline's
+// undo stack (Tree.RecordRequest): u reverts it through its history
+// entry, ctrl+r runs it again.
+func TestTreeRecordRequestUndoesTheWrite(t *testing.T) {
+	r, _, tree, _ := treeFixture(t)
+	s := &derivedStore{key: "id", things: []Thing{{"id": "t1", "title": "Original"}}}
+	st := s.store()
+	st.Undo = true
+	r.Define("parcel").Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "title"}).Store(st)
+	refreshed := 0
+	refresh := func() error { refreshed++; return nil }
+	q := Request{Noun: "parcel", Verb: "set", Args: Arguments{"id": "t1", "props": map[string]any{"title": "Changed"}}}
+	if _, err := tree.RecordRequest("a", q, refresh); err != nil {
+		t.Fatal(err)
+	}
+	if err := tree.history(false); err != nil || s.find("t1")["title"] != "Original" {
+		t.Fatalf("undo: %v %v", err, s.find("t1"))
+	}
+	if err := tree.history(true); err != nil || s.find("t1")["title"] != "Changed" || refreshed != 2 {
+		t.Fatalf("redo: %v %v refreshed %d", err, s.find("t1"), refreshed)
+	}
+}

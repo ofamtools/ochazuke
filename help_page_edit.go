@@ -357,7 +357,7 @@ func helpPageEditVerbs() []helpPageVerb {
 		{"unify", "One key for the selected row's verb on every noun that has it: press it, see the preview, enter applies (binding.unify)", nil, (*HelpPage).startUnify, ""},
 		{"show-file", "Show your bindings.json as written, after its changes since the page opened", nil, (*HelpPage).showFile, ""},
 		{"undo", "Undo the last change (history-entry.undo): an edit of your bindings.json writes the file's old text back", nil, func(p *HelpPage, _ Arguments) error {
-			_, err := p.r.Execute(Request{Noun: "ochazuke.history-entry", Verb: "undo"})
+			err := p.r.undoHistory(0)
 			p.Detail = nil
 			return err
 		}, ""},

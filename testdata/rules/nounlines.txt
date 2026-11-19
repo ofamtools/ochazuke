@@ -15,7 +15,7 @@ ochazuke.config	31
 ochazuke.event	65
 ochazuke.glyph	56
 ochazuke.handler	13
-ochazuke.history-entry	343
+ochazuke.history-entry	331
 ochazuke.hook	65
 ochazuke.job	23
 ochazuke.mode	279

@@ -971,6 +971,9 @@
     "about": {
       "type": "string"
     },
+    "actorPane": {
+      "type": "boolean"
+    },
     "columns": {
       "items": {
         "$ref": "#/$defs/ochazuke.Column"

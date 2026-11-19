@@ -257,21 +257,23 @@ func runModelCommand(m *Model, cmd tea.Cmd) {
 	m.Update(msg)
 }
 
-// The restart dialog names the requesting agent's pane by the name the
-// application gives it (ActorLabels.Pane), not its window id; with
-// actor.pane-labels off, or a pane it cannot name, the id shows.
+// The restart dialog names the requesting agent's pane by its label in
+// the noun that declares ActorPane, not its window id; with
+// actor.pane-labels off, or a pane its store cannot read, the id shows.
 func TestRestartPromptNamesTheAgentsPane(t *testing.T) {
 	t.Parallel()
 	r := NewRuntime()
 	r.EnsureConfigSettings()
 	agent := Actor{Kind: ActorAgent, Name: "claude", Pane: "6ef88c2f-b85f"}
 	mustRun(t, r, Request{Noun: "ochazuke.restart-request", Verb: "post", Actor: &agent, Args: Arguments{"reason": "new build"}})
-	r.SetActorLabels(ActorLabels{Pane: func(id string) string {
-		if id == agent.Pane {
-			return "hub/orchestrator"
-		}
-		return ""
-	}})
+	r.Define("window").ActorPane().Props(PropSpec{Name: "id", Key: true}, PropSpec{Name: "name", Role: RoleLabel}).Store(Store{
+		Get: func(_ Ctx, key string) (Thing, error) {
+			if key != agent.Pane {
+				return nil, errors.New("no such window")
+			}
+			return Thing{"id": key, "name": "hub/orchestrator"}, nil
+		},
+	})
 	if got := r.restartPrompt(""); !strings.Contains(got, "Requested by agent claude (pane hub/orchestrator)") {
 		t.Fatalf("prompt %q", got)
 	}
