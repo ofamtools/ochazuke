@@ -87,15 +87,6 @@ func TestNounsPageRemoteListCountsAreBounded(t *testing.T) {
 			t.Fatal(err)
 		}
 		restore()
-		if !countLists {
-			if lists != 0 || len(r.Jobs()) != 0 {
-				t.Fatalf("count-lists off: %d whole reads, jobs %+v", lists, r.Jobs())
-			}
-			if _, _, known, _ := r.NounCount("remote0"); known {
-				t.Fatal("an uncounted remote noun shows no count")
-			}
-			continue
-		}
 		for round := 0; ; round++ {
 			msgs := drainOnce(r)
 			if len(msgs) == 0 {
@@ -112,6 +103,15 @@ func TestNounsPageRemoteListCountsAreBounded(t *testing.T) {
 			if round > 4*nouns {
 				t.Fatal("counts never settled")
 			}
+		}
+		if !countLists {
+			if lists != 0 {
+				t.Fatalf("count-lists off: %d whole reads", lists)
+			}
+			if _, _, known, _ := r.NounCount("remote0"); known {
+				t.Fatal("an uncounted remote noun shows no count")
+			}
+			continue
 		}
 		for i := range nouns {
 			if count, _, known, _ := r.NounCount(fmt.Sprintf("remote%d", i)); !known || count != 2 {

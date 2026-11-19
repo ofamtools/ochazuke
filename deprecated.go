@@ -67,3 +67,12 @@ func SplitAnyRef(value string) (noun, key string, ok bool) {
 	ref, ok := ParseRef(value)
 	return ref.Noun, ref.Key, ok
 }
+
+// RelatedBackgroundSetting is the old name of reads.background, which now
+// moves every store read off the loop (related sections, From lists, the
+// Nouns page counts), not only related sections: setting.get/set/reset, a
+// declaration and a settings.json key under this name read and write
+// reads.background, warning once.
+//
+// Deprecated: use ReadsBackgroundSetting.
+const RelatedBackgroundSetting = "detail.related-background"

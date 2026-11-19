@@ -11,10 +11,10 @@ import (
 
 // offLoopTasks makes the fixture's task store read through Ctx.OffLoop, as
 // a SQLite store does, with a third project's task; on says whether the
-// stack reads off the loop (RelatedBackgroundSetting).
+// stack reads off the loop (ReadsBackgroundSetting).
 func offLoopTasks(on bool) func(*Runtime) {
 	return func(r *Runtime) {
-		if _, err := r.Settings().SetSession(RelatedBackgroundSetting, on); err != nil {
+		if _, err := r.Settings().SetSession(ReadsBackgroundSetting, on); err != nil {
 			panic(err)
 		}
 		st := r.Nouns["task"].Store

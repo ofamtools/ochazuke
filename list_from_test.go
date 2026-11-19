@@ -1,10 +1,13 @@
 package ochazuke
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 // fromStore is a small mutable store of nouns "note" and "other".
@@ -221,5 +224,106 @@ func TestListFromPropCellHook(t *testing.T) {
 	res, err := r.Execute(Request{Noun: "note", Verb: "get", Args: Arguments{"id": "n1"}})
 	if err != nil || !strings.Contains(fmt.Sprint(res), "go test") || strings.Contains(fmt.Sprint(res), "daemon shell") {
 		t.Fatalf("get: %v %v", res, err)
+	}
+}
+
+// offLoopNotes makes the note store read through Ctx.OffLoop, as a SQLite
+// store does: the rows are taken on the loop when the read is asked (its
+// arguments), handed back by the read; on sets ReadsBackgroundSetting.
+func offLoopNotes(t *testing.T, r *Runtime, notes *fromStore, on bool) {
+	t.Helper()
+	if _, err := r.Settings().SetSession(ReadsBackgroundSetting, on); err != nil {
+		t.Fatal(err)
+	}
+	r.Nouns["note"].Store.List = func(c Ctx, _ ListQuery) ([]Thing, error) {
+		rows := slices.Clone(notes.things)
+		v, err := c.OffLoop(StoreCall{Store: "note", Op: "list"}, func(context.Context) (any, error) { return rows, nil })
+		things, _ := v.([]Thing)
+		return things, err
+	}
+}
+
+// deliverCmd runs cmd's work and delivers what it answers, a batch's
+// children one by one.
+func deliverCmd(t *testing.T, r *Runtime, cmd tea.Cmd) {
+	t.Helper()
+	if cmd == nil {
+		return
+	}
+	msg := cmd()
+	if batch, ok := msg.(tea.BatchMsg); ok {
+		for _, c := range batch {
+			deliverCmd(t, r, c)
+		}
+		return
+	}
+	if _, err := r.Deliver(msg); err != nil {
+		t.Fatalf("deliver %T: %v", msg, err)
+	}
+}
+
+// Read off the loop, a From list shows exactly what a read on the loop
+// shows once its read lands, and keeps its rows until then.
+func TestListFromReadOffTheLoopLandsAsAReadOnTheLoop(t *testing.T) {
+	lists := map[bool]*Collection{}
+	stores := map[bool]*fromStore{}
+	for _, on := range []bool{true, false} {
+		r, notes, _ := fromRuntime(t)
+		offLoopNotes(t, r, notes, on)
+		l, err := r.AddList("a", nil, From("note"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if on && len(l.Items()) != 0 {
+			t.Fatalf("read on the loop: %v", fromIDs(l))
+		}
+		pumpRemote(t, r)
+		lists[on], stores[on] = l, notes
+		notes.things = append(notes.things, Thing{"id": "n4", "title": "Fourth"})
+		r.Changed("note")
+		if on && !slices.Equal(fromIDs(l), []string{"a/n1", "a/n2", "a/n3"}) {
+			t.Fatalf("before the read lands the list shows %v, not its old rows", fromIDs(l))
+		}
+		pumpRemote(t, r)
+	}
+	got, want := lists[true].Items(), lists[false].Items()
+	if len(want) != 4 || !slices.EqualFunc(got, want, func(a, b ListItem) bool {
+		return a.ID == b.ID && a.Label == b.Label && slices.Equal(a.Cells, b.Cells)
+	}) {
+		t.Fatalf("landed off the loop %v, read on the loop %v", fromIDs(lists[true]), fromIDs(lists[false]))
+	}
+}
+
+// A newer read of a From list replaces an older one still running: the
+// older one's answer never lands, whatever order they finish in.
+func TestListFromReadOffTheLoopDropsASupersededRead(t *testing.T) {
+	r, notes, _ := fromRuntime(t)
+	offLoopNotes(t, r, notes, true)
+	l, err := r.AddList("a", nil, From("note"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pumpRemote(t, r)
+	notes.things = append(notes.things, Thing{"id": "n4", "title": "Fourth"})
+	if err := l.Refill(); err != nil {
+		t.Fatal(err)
+	}
+	older := r.PendingCommands()
+	notes.things = append(notes.things[1:], Thing{"id": "n5", "title": "Fifth"})
+	if err := l.Refill(); err != nil {
+		t.Fatal(err)
+	}
+	newer := r.PendingCommands()
+	if older == nil || newer == nil {
+		t.Fatal("a refill read on the loop")
+	}
+	deliverCmd(t, r, older)
+	if got := fromIDs(l); !slices.Equal(got, []string{"a/n1", "a/n2", "a/n3"}) {
+		t.Fatalf("the superseded read landed: %v", got)
+	}
+	deliverCmd(t, r, newer)
+	pumpRemote(t, r)
+	if got := fromIDs(l); !slices.Equal(got, []string{"a/n2", "a/n3", "a/n4", "a/n5"}) {
+		t.Fatalf("the newest read shows %v", got)
 	}
 }

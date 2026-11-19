@@ -155,6 +155,10 @@ func TestNounsPageListsKindsAndCounts(t *testing.T) {
 	if err := r.OpenPage(NounsPageID); err != nil {
 		t.Fatal(err)
 	}
+	if big.queries != 0 {
+		t.Fatal("the update that opened the page counted a store (reads.background on)")
+	}
+	settleAll(t, r) // the counts start after the update that opened the page
 	row := nounRow(t, r, "big")
 	if row.Section != "records" || row.Cells[1] != "30" || row.Cells[2] != "4" || row.Cells[3] != "local · pages · token" {
 		t.Fatalf("big row %q %v", row.Section, row.Cells)
@@ -201,6 +205,7 @@ func TestNounsPageListsKindsAndCounts(t *testing.T) {
 		t.Fatal(err)
 	}
 	mustRun(t, r, Request{Noun: nounsPageNoun, Verb: "refresh"})
+	settleAll(t, r)
 	if row := nounRow(t, r, "whole"); row.Cells[1] != "5" || whole.lists != 1 {
 		t.Fatalf("count-lists: %v lists %d", row.Cells, whole.lists)
 	}
@@ -213,12 +218,15 @@ func TestNounsPageCountsGatedByChangeToken(t *testing.T) {
 	if err := r.OpenPage(NounsPageID); err != nil {
 		t.Fatal(err)
 	}
+	settleAll(t, r) // the counts start after the update that opened the page
 	queries := big.queries
 	mustRun(t, r, Request{Noun: nounsPageNoun, Verb: "refresh"})
+	settleAll(t, r)
 	if big.queries != queries {
 		t.Fatalf("an unchanged token read the store again: %d -> %d", queries, big.queries)
 	}
 	mustRun(t, r, Request{Noun: "big", Verb: "set", Args: Arguments{"id": "t00010", "props": map[string]any{"archived": true}}})
+	settleAll(t, r)
 	mustRun(t, r, Request{Noun: nounsPageNoun, Verb: "refresh"})
 	if big.queries == queries {
 		t.Fatal("a moved token must read the count again")
@@ -235,7 +243,9 @@ func TestNounsPageRecountsOnAChangeWhileOpen(t *testing.T) {
 	if err := r.OpenPage(NounsPageID); err != nil {
 		t.Fatal(err)
 	}
+	settleAll(t, r) // the counts start after the update that opened the page
 	mustRun(t, r, Request{Noun: "big", Verb: "set", Args: Arguments{"id": "t00011", "props": map[string]any{"archived": true}}})
+	settleAll(t, r)
 	if row := nounRow(t, r, "big"); row.Cells[2] != "5" {
 		t.Fatalf("archived after a write while open: %v (queries %d)", row.Cells, big.queries)
 	}
@@ -248,6 +258,10 @@ func TestNounsPageRecountsOnAChangeWhileOpen(t *testing.T) {
 func TestNounsPageCountsIgnoreDefaultListArguments(t *testing.T) {
 	r := NewRuntime()
 	r.Config().Disable()
+	// Off, the counts are read in the update that asks for them.
+	if _, err := r.Settings().SetSession(ReadsBackgroundSetting, false); err != nil {
+		t.Fatal(err)
+	}
 	things := []Thing{
 		{"id": "a", "state": "open", "archived": false},
 		{"id": "b", "state": "done", "archived": false},

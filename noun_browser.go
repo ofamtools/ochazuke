@@ -2,11 +2,13 @@ package ochazuke
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"maps"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // The noun browser (noun scaffold plan, section f): the Nouns page lists
@@ -52,6 +54,11 @@ const (
 type NounBrowser struct {
 	counts map[string]*nounCount
 	from   string
+	// due are the nouns to count after the update that asked
+	// (countDueLater), stepping says a step to count them is queued, and
+	// counting that one is counting now.
+	due                map[string]bool
+	stepping, counting bool
 }
 
 // nounCount is what is known of one noun's count.
@@ -209,18 +216,88 @@ func refreshNounsPage(r *Runtime) {
 
 // countNouns reads the count of every shown stored noun whose count may
 // have changed (its ChangeToken moved, or it has none), each off the frame:
-// a job for a remote store, at once for the rest. The jobs are background
-// ones, so at most jobs.background-max of them run at once.
+// a job for a remote store and for a local one whose read is slow
+// (Ctx.OffLoop), at once for the rest. The jobs are background ones, so at
+// most jobs.background-max of them run at once. While
+// ReadsBackgroundSetting is on, the counts start after the update that
+// asked (a page open, a change, refresh), a few per update
+// (countDueLater), so that update draws at once and a key waits for at
+// most one step; off, every count starts in that update, as before.
 func countNouns(r *Runtime) {
 	kinds := r.AllNounKinds()
 	shown := map[string]bool{}
 	for _, k := range r.shownKinds() {
 		shown[k] = true
 	}
+	later := r.readsBackground()
+	b := r.nounBrowser()
 	for _, name := range slices.Sorted(maps.Keys(kinds)) {
-		if kind := kinds[name]; StoredKind(kind) && shown[kind] {
-			countNoun(r, r.Nouns[name])
+		if kind := kinds[name]; !StoredKind(kind) || !shown[kind] {
+			continue
 		}
+		if !later {
+			countNoun(r, r.Nouns[name])
+			continue
+		}
+		if b.due == nil {
+			b.due = map[string]bool{}
+		}
+		b.due[name] = true
+	}
+	refreshNounsPage(r)
+	countDueLater(r)
+}
+
+// countStepBudget is how long one step of countDueLater counts before it
+// yields to the next update.
+const countStepBudget = 15 * time.Millisecond
+
+// countDueLater counts the due nouns in later updates: each step is a
+// background job that does nothing off the loop, whose landing counts due
+// nouns in name order until countStepBudget has passed (at least one), then
+// queues the next step; the page shows the counts when the last step has
+// run. Asking again while steps run only adds nouns to the due ones.
+func countDueLater(r *Runtime) {
+	b := r.nounBrowser()
+	if b.stepping || len(b.due) == 0 {
+		return
+	}
+	b.stepping = true
+	step := Pending(func(context.Context) (any, error) { return nil, nil }).Then(func(Ctx, any, error) {
+		b.stepping = false
+		countDue(r, countStepBudget)
+		countDueLater(r)
+	})
+	if _, err := r.Launch("app", nounsPageNoun+".refresh", step, r.backgroundCtx()); err != nil {
+		b.stepping = false
+		countDue(r, 0) // no job can run: count them all here
+	}
+}
+
+// countDue counts due nouns in name order until budget has passed (at
+// least one; 0 counts them all), then shows the counts once none is due.
+func countDue(r *Runtime, budget time.Duration) {
+	b := r.nounBrowser()
+	b.counting = true
+	start := time.Now()
+	for _, name := range slices.Sorted(maps.Keys(b.due)) {
+		delete(b.due, name)
+		if n := r.Nouns[name]; n != nil {
+			countNoun(r, n)
+		}
+		if budget > 0 && time.Since(start) >= budget {
+			break
+		}
+	}
+	b.counting = false
+	countLanded(r)
+}
+
+// countLanded shows the counts read so far, unless a step is counting or
+// due nouns wait for one: the last step shows them all at once.
+func countLanded(r *Runtime) {
+	if b := r.nounBrowser(); b.counting || len(b.due) > 0 {
+		return
 	}
 	refreshNounsPage(r)
 }
@@ -272,17 +349,17 @@ func countNoun(r *Runtime, n *Noun) {
 		c.reading = false
 		if err != nil {
 			c.known, c.err = false, err.Error()
-			refreshNounsPage(r)
+			countLanded(r)
 			return nil, nil // a count that cannot be read is shown as unknown, never an error
 		}
 		if !unmoved {
 			c.count, c.archived, c.known, c.hasArch, c.token, c.err = total, archived, true, arch != nil, token, ""
 		}
-		refreshNounsPage(r)
+		countLanded(r)
 		return nil, nil
 	}
 	c.reading = true
-	res := r.runSteppedBody(ctx, n.Name+".list", body, finish)
+	res := r.runStoreReads(ctx, n.Name+".list", body, finish)
 	if res.err != nil {
 		c.reading, c.known = false, false
 		return

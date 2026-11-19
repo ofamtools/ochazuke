@@ -77,8 +77,10 @@ func windowKey(q ListQuery) string {
 	return fmt.Sprintf("%v|%v|%v|%v|%q|%v|%d|%d", q.Filters, q.Sort, q.GroupBy, q.GroupSort, q.Text, q.Archived, q.Page, q.PerPage)
 }
 
-// refillWindow reads the windowed list's page: at once from a local store,
-// as a job from a remote one (the list draws its loading line meanwhile).
+// refillWindow reads the windowed list's page: as a job from a remote
+// store, and from a local one whose read is slow (Ctx.OffLoop) while
+// ReadsBackgroundSetting is on (the list draws its rows or its loading line
+// meanwhile); at once from the rest.
 // Nothing is read while the store's token and the query are unchanged.
 func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 	w, r := l.paged, l.r
@@ -146,7 +148,11 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 		return nil, nil
 	}
 	w.asked = key
-	res := r.runSteppedBody(c, n.Name+".list", body, finish)
+	older := r.slotJob(l.id, listReadSlot)
+	res := r.runStoreReads(c, n.Name+".list", body, finish)
+	if res.work == nil && older != nil {
+		r.finish(older, JobCancelled, nil) // a newer read answered at once: the older never lands over it
+	}
 	if res.err != nil {
 		w.asked = ""
 		return res.err

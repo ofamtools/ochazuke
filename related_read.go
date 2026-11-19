@@ -8,7 +8,7 @@ import (
 // The reads of a related stack's sections, kept off the UI loop.
 //
 // A section (or a split, for all its values) reads its things through
-// Related.readSection. With RelatedBackgroundSetting on (the default) the
+// Related.readSection. With ReadsBackgroundSetting on (the default) the
 // read is a stepped run (runSteppedReads, as a remote section's read
 // was): it runs on the loop until a store makes a slow call through
 // Ctx.OffLoop (a local store's SQLite query) or Ctx.Await (a remote
@@ -30,10 +30,14 @@ import (
 // watch saw starts its reads in the update, whose commands the adapter
 // runs, never as a read inside View.
 
-// RelatedBackgroundSetting turns the off-loop reads of related sections
-// on (default) or off: off, every local section is read on the loop when
-// the stack's thing changes, as before.
-const RelatedBackgroundSetting = "detail.related-background"
+// ReadsBackgroundSetting turns the off-loop reads of stores on (default)
+// or off: related sections (here), a From list's refill (whole or
+// windowed, list_from.go, list_window.go) and the Nouns page counts
+// (noun_browser.go) all read through Runtime.runStoreReads, so one setting
+// moves every one of them. Off, a local store is read on the loop, as
+// before. Its old name, detail.related-background, reads and writes it for
+// one release.
+const ReadsBackgroundSetting = "reads.background"
 
 // relatedLanding is one round of a stack's reads off the loop: the reads
 // still running (by read id, the sequence of their newest read and the
@@ -46,13 +50,29 @@ type relatedLanding struct {
 }
 
 // background reports whether the stack reads its local sections off the
-// loop (RelatedBackgroundSetting; a setting that does not exist counts as
+// loop (ReadsBackgroundSetting).
+func (rel *Related) background() bool { return rel.r.readsBackground() }
+
+// readsBackground reports whether local stores' slow reads may run off the
+// loop (ReadsBackgroundSetting; a setting that does not exist counts as
 // on).
-func (rel *Related) background() bool {
-	if _, ok := rel.r.settingValue(RelatedBackgroundSetting); !ok {
+func (r *Runtime) readsBackground() bool {
+	if _, ok := r.settingValue(ReadsBackgroundSetting); !ok {
 		return true
 	}
-	return rel.r.Settings().Bool(RelatedBackgroundSetting)
+	return r.Settings().Bool(ReadsBackgroundSetting)
+}
+
+// runStoreReads runs a body that only reads stores as a stepped run: its
+// remote calls (Ctx.Await) always leave the loop, and its local stores'
+// slow reads (Ctx.OffLoop) do too while ReadsBackgroundSetting is on; off,
+// those answer on the loop as before. A body that makes no such call
+// answers at once (Result.work is nil and finish has run).
+func (r *Runtime) runStoreReads(c Ctx, label string, body func(Ctx) (any, error), finish func(any, error) (any, error)) Result {
+	if r.readsBackground() {
+		return r.runSteppedReads(c, label, body, finish)
+	}
+	return r.runSteppedBody(c, label, body, finish)
 }
 
 // stepped reports whether ref's things are read by a stepped run: a remote

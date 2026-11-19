@@ -70,8 +70,8 @@ func (l *Collection) Refill() error {
 	if l.paged != nil {
 		return l.refillWindow(n, c)
 	}
-	if n.Store.Remote {
-		return l.refillRemote(n, c)
+	if n.Store.Remote || l.r.readsBackground() {
+		return l.refillStepped(n, c)
 	}
 	page, err := l.r.queryThings(c, n, ListQuery{Archived: true})
 	if err != nil {
@@ -241,9 +241,14 @@ func (h *fromHub) idle() bool {
 	return true
 }
 
-// refillRemote fills the list from a remote store without waiting for it:
-// the read is a job (remote.go) that shows the things when it is answered.
-func (l *Collection) refillRemote(n *Noun, c Ctx) error {
+// refillStepped fills the list without waiting for its store: a remote
+// store's read, and a local store's slow read (Ctx.OffLoop) while
+// ReadsBackgroundSetting is on, is a job (remote.go) that shows the things
+// when it is answered; the list keeps its rows (or draws its loading line)
+// meanwhile, and a newer read of the list replaces an older one
+// (listReadSlot), so only the newest lands. A store that makes no such
+// read answers at once, as before.
+func (l *Collection) refillStepped(n *Noun, c Ctx) error {
 	r := l.r
 	var page ListPage
 	body := func(c Ctx) (any, error) {
@@ -258,7 +263,11 @@ func (l *Collection) refillRemote(n *Noun, c Ctx) error {
 		l.refills++
 		return nil, l.SetItems(r.thingItems(c, n, l.id, page.Items, l.columns))
 	}
-	res := r.runSteppedBody(c, n.Name+".list", body, finish)
+	older := r.slotJob(l.id, listReadSlot)
+	res := r.runStoreReads(c, n.Name+".list", body, finish)
+	if res.work == nil && older != nil {
+		r.finish(older, JobCancelled, nil) // a newer read answered at once: the older never lands over it
+	}
 	if res.err != nil {
 		return res.err
 	}
