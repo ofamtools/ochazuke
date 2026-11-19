@@ -221,6 +221,19 @@ var rowKeyReaders = []func(r *Runtime, n *Noun, row *Instance, key string) any{
 	},
 }
 
+// ThingKey is the key of the thing an instance stands for, as the
+// standard verbs read a row's (rowKeyReaders), else its instance id: an
+// application handler that acts on a row reads its thing's key with it,
+// since the instance id is the key only where a list names its rows by
+// their things (an outline's rows are named by the outline; their
+// TreeNode.Props hold the keys). "" for no instance.
+func (r *Runtime) ThingKey(inst *Instance) string {
+	if inst == nil {
+		return ""
+	}
+	return r.instanceThing(inst).Key
+}
+
 // rowKey is the key of the thing a row stands for.
 func (r *Runtime) rowKey(n *Noun, row *Instance) (string, error) {
 	key := n.keyProp()

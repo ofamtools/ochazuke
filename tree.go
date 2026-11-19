@@ -191,7 +191,9 @@ func (t *Tree) Record(a TreeAction) error {
 func (t *Tree) RecordRequest(id string, q Request, refresh func() error) (any, error) {
 	r := t.r
 	since := lastSeq(r)
+	t.replaying++ // its writes are this step, not one RecordWrites adds
 	v, err := r.Execute(q)
+	t.replaying--
 	if err != nil {
 		return v, err
 	}
@@ -295,8 +297,25 @@ type Tree struct {
 	Refuse func(node TreeNode, change TreeChange) error
 	// Debounce is the pause in typing before a line is written.
 	Debounce time.Duration
+	// RowKeysLast makes the tree's own keys the first on its rows: a row
+	// whose noun is another thing's (a task, a project) reads its noun's
+	// key rows after the tree, what holds it and app, so an outline's keys
+	// stay the outline's and the row's noun answers the keys nobody on the
+	// way binds (tree_row_keys.go). The tree.row-keys setting turns the
+	// row nouns' keys off on such a tree.
+	RowKeysLast bool
+	// RecordWrites puts a person's writes to the things the tree's rows
+	// stand for (a key, the palette) on its undo stack, one step per
+	// request, in order with its own edits: u reverts their history
+	// entries, ctrl+r runs them again (tree_record_writes.go). Reload runs
+	// after either, to read the rows again; nil reads nothing.
+	RecordWrites bool
+	Reload       func() error
 
 	seq       int
+	things    map[string]bool   // the noun and key of every thing a row has stood for (tree_record_writes.go)
+	pending   []HistoryEntry    // the writes the request running now made to the rows' things (tree_record_writes.go)
+	replaying int               // >0 while the tree writes its own change, an undo or a redo: writes then are its own, not recorded again
 	removed   *removedRows      // the rows of the last delete, for a put of them (tree_yank.go)
 	fresh     map[string]bool   // rows add made that have not held text yet (tree_empty.go)
 	origin    map[string]string // the row a fresh row was added from
@@ -436,6 +455,7 @@ func (t *Tree) SetNodes(nodes []TreeNode) error {
 	}
 	walk("")
 	t.nodes, t.idx, t.rowCache = ordered, nil, nil
+	t.noteThings(ordered)
 	return t.refresh("")
 }
 
@@ -847,7 +867,7 @@ func (t *Tree) write(changes []TreeChange) error {
 		if t.OnChange == nil {
 			break
 		}
-		if err := t.OnChange(c); err != nil {
+		if err := t.onChange(c); err != nil {
 			if errors.Is(err, ErrTreeRefused) {
 				refused = errors.Join(refused, err)
 				continue
@@ -902,7 +922,7 @@ func (t *Tree) commitPlan(changes []TreeChange, selectID string) error {
 	var failure error
 	done := len(changes)
 	for i, c := range queue {
-		err := t.OnChange(c)
+		err := t.onChange(c)
 		if err == nil || errors.Is(err, ErrTreeRefused) && i < pending {
 			delete(t.failed, c.ID)
 			continue
@@ -1524,6 +1544,8 @@ func (t *Tree) move(c Context, delta, count int, edge string) error {
 // history undoes (or redoes) one step: its changes are applied and
 // written like any other, and the inverse goes on the other stack.
 func (t *Tree) history(redo bool) error {
+	t.replaying++
+	defer func() { t.replaying-- }()
 	if err := t.closeLineAs(true, false); err != nil {
 		return err
 	}

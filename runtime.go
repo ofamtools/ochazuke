@@ -1179,6 +1179,7 @@ func (r *Runtime) executeAtNoting(c Context, q Request, run operationRunner) (an
 	}
 	if depth == 0 {
 		r.inspectRequest(q, value, err)
+		r.flushTreeWrites()
 	}
 	if err == nil && !nothing && r.historyKind(q) == HistoryChange {
 		// The open surfaces count every change request that ran (events.go).

@@ -245,6 +245,9 @@ func (r *Runtime) record(at time.Time, q Request, ctx HistoryContext, depth int,
 	if entry.Job == 0 {
 		r.persist(entry)
 	}
+	if err == nil && len(entry.Changes) > 0 {
+		r.noteTreeWrite(entry) // a write to an outline row's thing joins its undo (tree_record_writes.go)
+	}
 }
 
 func (r *Runtime) resultThings(q Request, value any) []string {

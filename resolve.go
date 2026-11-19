@@ -187,8 +187,15 @@ func (r *Runtime) stackIn(focus string, modals []string) []level {
 	if len(ancestry) > 0 {
 		fallback, owns = r.fallbackOf(r.Instances[ancestry[0]])
 	}
+	// A row of a tree that keeps its own keys first reads its noun's rows
+	// after app (tree_row_keys.go).
+	var last []level
 	for i, id := range ancestry {
 		inst := r.Instances[id]
+		if lv, ok := r.lastRowLevel(i, inst); ok {
+			last = append(last, lv)
+			continue
+		}
 		if i == 0 {
 			out = r.emptyRowLevels(out, inst)
 		}
@@ -215,6 +222,7 @@ func (r *Runtime) stackIn(focus string, modals []string) []level {
 			out = append(out, level{noun: fallback, fallback: true, owns: true})
 		}
 	}
+	out = append(out, last...)
 	if fallback != nil && !owns {
 		out = append(out, level{noun: fallback, fallback: true})
 	}

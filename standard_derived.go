@@ -94,11 +94,11 @@ type focusThing struct {
 // instanceThing reads an instance as the thing it stands for.
 func (r *Runtime) instanceThing(inst *Instance) focusThing {
 	key := inst.ID
-	if n := r.Nouns[inst.Noun]; n != nil {
-		if kp := n.keyProp(); kp != nil {
-			if v := dataField(inst.Data, kp.Name); !emptyProp(v) {
-				key = fmt.Sprint(v)
-			}
+	if n := r.Nouns[inst.Noun]; n != nil && n.keyProp() != nil {
+		// The row's key as rowKey reads it (Data, then the row's Props): an
+		// outline row's id is the outline's, its thing's key is in its Props.
+		if k, err := r.rowKey(n, inst); err == nil {
+			key = k
 		}
 	}
 	label := r.thingLabel(inst)
