@@ -1441,6 +1441,8 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 	}
 	lo, hi := in.selectionRange()
 	painted := in.shape() != ""
+	// Noun reference chips (noun_ref_chips.go) are drawn in the chip tone.
+	chips := in.chipPainter()
 	// An open select range (SelectText) is drawn as a visual selection.
 	if start, end, ok := in.SelectedText(); ok {
 		lo, hi, painted = start, end, true
@@ -1499,6 +1501,7 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 		i := runeIndex
 		runeIndex += utf8.RuneCountInString(text)
 		wrapAt(i)
+		write(chips.at(i), 0, false)
 		onCursor := i <= cursor && cursor < runeIndex
 		selected := painted && i < hi && runeIndex > lo
 		w := cellWidth(text)
@@ -1529,6 +1532,7 @@ func inputBlockFrom(in *Input, width, height, top int) Block {
 		} else {
 			write(text, w, selected)
 		}
+		write(chips.past(runeIndex), 0, false)
 	}
 	wrapAt(runeIndex)
 	writeLineEnd(false, cursor == len(in.Text))

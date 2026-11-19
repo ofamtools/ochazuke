@@ -249,6 +249,9 @@ func (es editSession) formSpec(thing Thing, values Record, fields []RecordField,
 	editStart(&spec, es.only, fieldOnly, noun, label)
 	spec.Watch = n.Name
 	spec.WatchArgs = es.key
+	if kp := n.keyProp(); kp != nil && len(es.others) == 0 && !emptyProp(es.key[kp.Name]) {
+		spec.Subject = Ref{Noun: n.Name, Key: fmt.Sprint(es.key[kp.Name])}
+	}
 	spec.Reload = func() Result { return es.reload(c) }
 	var editor *RecordEditor
 	es.bindWrites(&spec, fields, &editor)

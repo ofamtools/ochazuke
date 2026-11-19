@@ -173,6 +173,11 @@ type RecordSpec struct {
 	// OnOpen is called with the editor once it is built, so a spec built away
 	// from its editor (Runtime.EditSpec) can reach it from its Save and Submit.
 	OnOpen func(*RecordEditor)
+	// Subject is the thing the record is (EditSpec sets it): with
+	// text.noun-refs on, each write relates it to the things its text
+	// fields' noun references name and unrelates the ones they no longer
+	// name (noun_ref_chips.go). Zero links nothing.
+	Subject Ref
 }
 
 // FormsOutsideWriteSetting says what an open record editor does when its
@@ -432,6 +437,7 @@ type RecordEditor struct {
 	walking     int  // history's undo (-1) or redo (+1) while it flushes
 	ran         bool // form.run handed the values to Submit
 	failure     error
+	linked      map[string]string // each field's text as its noun references were last linked (Subject)
 }
 
 // AddRecordEditor places a record editor under Parent (default app); the
@@ -878,6 +884,7 @@ func (e *RecordEditor) send() error {
 		return nil
 	}
 	e.out.stage(changed)
+	e.linkBefore(changed)
 	w := e.recordWrite(changed)
 	var res Result
 	if e.spec.Submit != nil {
@@ -916,6 +923,7 @@ func (e *RecordEditor) dispatch(w RecordWrite, res Result) error {
 	}
 	if res.work == nil {
 		e.out.err = ""
+		e.linkRefs(w)
 		if e.spec.FieldWrites {
 			return e.send()
 		}
@@ -938,6 +946,48 @@ func (e *RecordEditor) dispatch(w RecordWrite, res Result) error {
 	}
 	e.markFlush(e.r.jobs[ticket.Job], w)
 	return nil
+}
+
+// linkBefore notes, for each field a write is about to change that has
+// not been linked yet, its text as loaded: what linkRefs compares with.
+func (e *RecordEditor) linkBefore(changed []string) {
+	if e.spec.Subject.IsZero() {
+		return
+	}
+	if e.linked == nil {
+		e.linked = map[string]string{}
+	}
+	for _, name := range changed {
+		if _, ok := e.linked[name]; !ok {
+			e.linked[name] = e.out.baseline[name]
+		}
+	}
+}
+
+// linkRefs links the noun references a write changed (RecordSpec.Subject):
+// each changed text field against its text when last linked (at first, as
+// loaded, linkBefore), keeping what the other text fields still name.
+func (e *RecordEditor) linkRefs(w RecordWrite) {
+	subject := e.spec.Subject
+	if subject.Noun == "" || subject.IsZero() || e.linked == nil || !e.r.Settings().Bool(NounRefsSetting) {
+		return
+	}
+	text := func(f *recordField) bool { return f.input != nil && !f.Secret && !f.Chips }
+	for _, name := range w.Changed {
+		f := e.field(name)
+		if f == nil || !text(f) {
+			continue
+		}
+		before, after := e.linked[name], w.Values[name]
+		e.linked[name] = after
+		var kept []string
+		for _, other := range e.fields {
+			if other.Name != name && text(other) {
+				kept = append(kept, e.out.value(other.Name))
+			}
+		}
+		e.r.linkNounRefs(subject, before, after, kept)
+	}
 }
 
 // fieldNames are the form's field names in order.
@@ -1010,6 +1060,7 @@ func (e *RecordEditor) saved(w RecordWrite, err error) {
 		}
 	} else {
 		e.out.err = ""
+		e.linkRefs(w)
 	}
 	if nextErr := e.send(); nextErr != nil {
 		e.fail(nextErr)

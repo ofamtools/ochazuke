@@ -145,7 +145,10 @@ func (in *Input) deleteRunes(direction string, steps int) error {
 		lower, upper = in.lineBounds(in.Cursor)
 	}
 	steps = min(steps, len(in.Text))
-	if direction == "backward" {
+	// A noun reference chip goes whole while typing (noun_ref_chips.go).
+	if chip, ok := in.nounRefChipAt(direction); ok && steps == 1 && !modeSpecOf(in.r, in.Mode).CursorOnChar {
+		start, end = chip.Start, chip.End
+	} else if direction == "backward" {
 		start = max(lower, start-steps)
 	} else {
 		end = min(upper, end+steps)

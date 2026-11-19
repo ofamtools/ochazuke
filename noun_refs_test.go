@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -41,12 +42,13 @@ func TestNounRefsSetting(t *testing.T) {
 	}
 }
 
-// Picking a noun lists its things; picking one inserts #noun:Label,
+// "#ta" and tab complete the noun with its colon and list its things;
+// picking one inserts #noun:Label,
 // quoted when it has a space, and the token runs over the quotes; the
 // last row creates the typed name and inserts its reference.
 func TestNounRefsPickThingAndCreate(t *testing.T) {
 	g := nounRefRig(t, true)
-	g.typeText("see #tag")
+	g.typeText("see #ta")
 	g.settle()
 	g.keys("tab")
 	g.answers()
@@ -75,5 +77,87 @@ func TestNounRefsPickThingAndCreate(t *testing.T) {
 	}
 	if tags, err := g.r.Choices(g.r.Context(), Parameter{Noun: "tag"}); err != nil || len(tags) != 3 {
 		t.Fatalf("tags after create: %v %v", tags, err)
+	}
+}
+
+// A reference is drawn as a chip (text.noun-ref-chips) that backspace
+// erases whole; off, it is plain text erased a rune at a time.
+func TestNounRefChips(t *testing.T) {
+	for _, on := range []bool{true, false} {
+		g := nounRefRig(t, true)
+		if err := g.r.Settings().Set(NounRefChipsSetting, on); err != nil {
+			t.Fatal(err)
+		}
+		g.typeText("see #tag:Alpha")
+		g.c.dismiss()
+		if drawn := InputBlock(g.in, 40, 1).Text; strings.Contains(drawn, "\x1b[4m#tag:Alpha\x1b[24m") != on {
+			t.Fatalf("on %v: drawn %q", on, drawn)
+		}
+		g.keys("backspace")
+		want := "see "
+		if !on {
+			want = "see #tag:Alph"
+		}
+		if string(g.in.Text) != want {
+			t.Fatalf("on %v: after backspace %q, want %q", on, string(g.in.Text), want)
+		}
+	}
+}
+
+// A form over a thing links on its write, not on typing: the references
+// the written text holds are related (kind mentions), one removed before
+// the write never is, and one the text loses is unrelated.
+func TestNounRefsLinkOnWrite(t *testing.T) {
+	g := nounRefRig(t, true)
+	g.r.SetRelationStore(NewMemRelations())
+	self, err := g.r.createNamed("tag", "Self")
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec, err := g.r.EditSpec("tag", self)
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := g.r.AddRecordEditor("placed", spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := Ctx{Runtime: g.r, Context: g.r.Context()}
+	key := func(label string) string {
+		k, ok := g.r.nounRefKey(c, Ref{Noun: "tag", Key: label})
+		if !ok {
+			t.Fatalf("no tag %q", label)
+		}
+		return "tag:" + k
+	}
+	links := func() []string {
+		rows, err := g.r.RelationStore().Relations(RelationQuery{Kind: NounRefKind})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out []string
+		for _, x := range rows {
+			out = append(out, x.To)
+		}
+		return out
+	}
+	f := e.field("title")
+	write := func(texts ...string) {
+		for _, text := range texts {
+			if err := e.set(f, text); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if err := e.seal(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("Self #tag:Alpha", `Self #tag:"North Star"`)
+	if got := links(); !slices.Equal(got, []string{key("North Star")}) {
+		t.Fatalf("after write: %v", got)
+	}
+	write("Self #tag:Alpha")
+	if got := links(); !slices.Equal(got, []string{key("Alpha")}) {
+		t.Fatalf("after swap: %v", got)
 	}
 }

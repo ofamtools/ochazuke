@@ -585,6 +585,12 @@ that noun's things, from the same source its picker reads, with
 `Create "TYPED"…` last for a noun that creates. Picking inserts
 `#noun:Label`, quoted when the label has spaces (`#project:"North Star"`).
 `esc` or a space closes the list; `# ` (a Markdown heading) does nothing.
+`#ta` and `tab` complete the noun with its colon (`#task:`) and list its
+things. A reference is a chip (`text.noun-ref-chips`, default on): drawn in
+the chip tone, erased whole by backspace at its end. A record editor with a
+`Subject` (the standard edit form, or an application's `RecordSpec.Subject`)
+links on each write: the subject is related to each thing the text names
+(kind `mentions`) and unrelated from one it no longer names.
 
 Compared with Vim: the nearest is user-defined insert completion
 (`:help compl-function`, `'completefunc'`): a function answers the word
