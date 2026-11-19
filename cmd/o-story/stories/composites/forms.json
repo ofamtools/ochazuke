@@ -2362,9 +2362,7 @@
         "Water the plants",
         "Choose status",
         "todo ▾",
-        "doing",
-        "done",
-        "stored: the line under the form"
+        "doing"
       ],
       "after": 39
     },
@@ -2373,9 +2371,6 @@
       "contains": [
         "│ Choose status",
         "? binding.help"
-      ],
-      "lacks": [
-        "stored: the line under the form"
       ],
       "after": 41
     },

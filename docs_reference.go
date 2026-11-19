@@ -320,6 +320,10 @@ type docsViewer struct {
 	// wrapped line the last find landed on, -1 for none (search_find.go).
 	width int
 	found int
+	// pending is the page line (unwrapped) a find landed on before the
+	// viewer was first drawn, when the wrapped line is not known yet; the
+	// next frame scrolls to it (-1 for none).
+	pending int
 }
 
 // ModalTitle is the build the page was rendered from.
@@ -333,6 +337,18 @@ func (v *docsViewer) ModalBlock(s Styles, width, height int) Block {
 	}
 	v.width = width
 	body, marker := v.detail.Window(v.text, width, max(height-1, 1))
+	if v.pending >= 0 {
+		// A find before the first frame: its page line, wrapped as this
+		// frame wraps, is the window's first line.
+		raw := strings.Split(strings.ReplaceAll(v.text, "\t", "    "), "\n")
+		line := 0
+		for _, l := range raw[:min(v.pending, len(raw))] {
+			line += strings.Count(ansi.Wrap(l, width, ""), "\n") + 1
+		}
+		v.found, v.pending = line, -1
+		v.detail.Scroll(line - v.detail.Offset())
+		body, marker = v.detail.Window(v.text, width, max(height-1, 1))
+	}
 	top := v.topic
 	if marker != "" {
 		top += " · " + marker
@@ -359,6 +375,15 @@ func (v *docsViewer) FindText(m Matcher, back bool) bool {
 	text := strings.ReplaceAll(v.text, "\t", "    ")
 	if v.width > 0 {
 		text = ansi.Wrap(text, v.width, "")
+	} else {
+		// Not drawn yet: the line found is a page line, scrolled to once
+		// the first frame knows how the page wraps.
+		lines := strings.Split(text, "\n")
+		if line, ok := FindLine(len(lines), -1, back, func(i int) bool { return m.Match(lines[i]) }); ok {
+			v.pending = line
+			return true
+		}
+		return false
 	}
 	lines := strings.Split(text, "\n")
 	top, rows := v.detail.Offset(), v.detail.height
@@ -408,7 +433,7 @@ func registerDocs(r *Runtime) {
 			if err != nil {
 				return nil, err
 			}
-			v := &docsViewer{r: r, topic: topic, header: header, text: text, found: -1}
+			v := &docsViewer{r: r, topic: topic, header: header, text: text, found: -1, pending: -1}
 			d, err := r.AddDetail(docsTextID, func() string { return v.topic }, Parent(docsViewerID))
 			if err != nil {
 				_ = r.Pop()

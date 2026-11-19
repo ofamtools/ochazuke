@@ -1726,24 +1726,8 @@ func (e *RecordEditor) Block(width, height int) Block {
 		if focused {
 			focusLine = len(lines)
 		}
-		label, style := e.fieldLabel(f, focused)
-		annotated := label != e.plainLabel(f)
-		label = e.fieldStyle(f, style).Render(ansi.Truncate(label, width, "…"))
-		// Inline (forms.labels inline): the label and a one-row value share
-		// a line, the label padded to the column. A field whose value takes
-		// rows (a list, chips, a multiline text) keeps its label above, and
-		// so does one whose label says something (why a value is not
-		// written), whole, with its value under it in the value column.
-		lead, inner := "  ", max(1, width-2)
-		switch {
-		case col > 0 && e.oneRow(f) && !annotated:
-			lead, inner = labelCell(label, col), max(1, width-col)
-		case col > 0 && e.oneRow(f):
-			lines = append(lines, label)
-			lead, inner = strings.Repeat(" ", col), max(1, width-col)
-		default:
-			lines = append(lines, label)
-		}
+		above, lead, inner := e.labelLead(f, focused, col, width)
+		lines = append(lines, above...)
 		if rows, at, ok := e.valueRows(f, width); ok {
 			if focused {
 				focusLine = len(lines) + at
@@ -1771,16 +1755,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 			}
 			continue
 		}
-		value := "(none)"
-		for _, c := range f.choices {
-			if c.ID == f.value {
-				value = c.Label
-			}
-		}
-		if f.value != "" && value == "(none)" {
-			value = f.value
-		}
-		value = ansi.Truncate(value+" "+e.Styles.Glyph("fold.open"), inner, "…")
+		value := ansi.Truncate(e.choiceText(f), inner, "…")
 		value = e.fieldStyle(f, lipgloss.NewStyle()).Render(value)
 		if focused && drawn == f.id {
 			value = reverseVideo(value)
@@ -1836,8 +1811,8 @@ func (e *RecordEditor) readOnlyLines(f *recordField, width, col int) []string {
 		value = "(none)"
 	}
 	muted := e.Styles.Muted
-	if col > 0 {
-		label := muted.Render(ansi.Truncate(f.label(), col, "…"))
+	if col > 0 && ansi.StringWidth(f.label()) < col {
+		label := muted.Render(f.label())
 		return []string{ansi.Truncate(labelCell(label, col)+muted.Render(value), width, "…")}
 	}
 	return []string{
@@ -1854,7 +1829,8 @@ func (e *RecordEditor) readOnlyLines(f *recordField, width, col int) []string {
 const FormLabelsSetting = "forms.labels"
 
 // labelColumn is the inline label column's width, the widest plain label
-// (plainLabel) plus one space; 0 draws labels above (setting
+// (plainLabel) narrower than a third of the form plus one space (a wider
+// label is drawn above its value); 0 draws labels above (setting
 // forms.labels above, or a form too narrow to share a line).
 func (e *RecordEditor) labelColumn(width int) int {
 	if e.r == nil || e.r.Settings().String(FormLabelsSetting) != "inline" {
@@ -1865,9 +1841,11 @@ func (e *RecordEditor) labelColumn(width int) int {
 		if f.Hidden || !f.ReadOnly && !e.oneRow(f) {
 			continue
 		}
-		widest = max(widest, ansi.StringWidth(e.plainLabel(f)))
+		if w := ansi.StringWidth(e.plainLabel(f)); w < width/3 {
+			widest = max(widest, w)
+		}
 	}
-	col := min(widest+1, width/3)
+	col := widest + 1
 	if widest == 0 || width-col < 12 {
 		return 0
 	}
@@ -1878,6 +1856,50 @@ func (e *RecordEditor) labelColumn(width int) int {
 // a single-line text, not a list, chips or a multiline text.
 func (e *RecordEditor) oneRow(f *recordField) bool {
 	return !f.list && !f.chips && (f.input == nil || !f.input.Multiline)
+}
+
+// choiceWidth is how wide a choice field's value draws (its label and
+// the open glyph): one that does not fit beside the label column keeps its
+// label above, so the inline layout never cuts what fits on a line alone.
+func (e *RecordEditor) choiceWidth(f *recordField) int { return ansi.StringWidth(e.choiceText(f)) }
+
+// choiceText is a choice field's value as drawn: its choice's label (the
+// value itself when no choice has it, "(none)" when empty) and the open
+// glyph.
+func (e *RecordEditor) choiceText(f *recordField) string {
+	value := "(none)"
+	for _, c := range f.choices {
+		if c.ID == f.value {
+			value = c.Label
+		}
+	}
+	if f.value != "" && value == "(none)" {
+		value = f.value
+	}
+	return value + " " + e.Styles.Glyph("fold.open")
+}
+
+// labelLead places a field's label: inline (forms.labels inline), the
+// label and a one-row value share a line, the label padded to the column
+// (lead); a field whose value takes rows (a list, chips, a multiline
+// text) keeps its label above, and so does one whose label says
+// something (why a value is not written) or is wider than the column,
+// whole, with its value under it in the value column; a choice too wide
+// for the value column is drawn as above. above are the lines drawn
+// before the value, inner the value's width.
+func (e *RecordEditor) labelLead(f *recordField, focused bool, col, width int) (above []string, lead string, inner int) {
+	label, style := e.fieldLabel(f, focused)
+	plain := e.plainLabel(f)
+	annotated := label != plain || ansi.StringWidth(plain) >= col
+	wide := col > 0 && f.input == nil && e.choiceWidth(f) > width-col
+	label = e.fieldStyle(f, style).Render(ansi.Truncate(label, width, "…"))
+	switch {
+	case col > 0 && e.oneRow(f) && !annotated && !wide:
+		return nil, labelCell(label, col), max(1, width-col)
+	case col > 0 && e.oneRow(f) && !wide:
+		return []string{label}, strings.Repeat(" ", col), max(1, width-col)
+	}
+	return []string{label}, "  ", max(1, width-2)
 }
 
 // plainLabel is a field's label and its inverted word, without what

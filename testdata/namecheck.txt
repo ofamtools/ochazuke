@@ -306,7 +306,6 @@ query.go	Runtime.match	case	"all"	1
 query.go	Runtime.match	case	"not"	1
 query.go	isCombinator	compare	"all"	1
 query.go	isCombinator	compare	"not"	1
-record_editor.go	RecordEditor.Block	cyclo	"-"	31
 record_editor.go	RecordEditor.applyLoaded	compare	"close"	1
 record_editor.go	Runtime.editKindOf	compare	"path"	1
 record_editor.go	Runtime.editKindOf	compare	"text"	2
