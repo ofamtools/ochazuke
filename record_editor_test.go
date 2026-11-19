@@ -680,3 +680,23 @@ func TestRecordReferenceChoices(t *testing.T) {
 		})
 	}
 }
+
+// forms.labels inline (the default) draws a one-row field's label and
+// value on one line; above draws the label on its own line over it.
+func TestRecordFormLabelsSetting(t *testing.T) {
+	for _, place := range []string{"inline", "above"} {
+		r, m, _, _ := recordFixture(t, nil)
+		if err := r.Settings().Set(FormLabelsSetting, place); err != nil {
+			t.Fatal(err)
+		}
+		same := false
+		for _, line := range strings.Split(screen(m), "\n") {
+			if strings.Contains(line, "title") && strings.Contains(line, "buy milk") {
+				same = true
+			}
+		}
+		if same != (place == "inline") {
+			t.Fatalf("%s: title and its value on one line = %v:\n%s", place, same, screen(m))
+		}
+	}
+}

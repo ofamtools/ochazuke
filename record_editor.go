@@ -1713,41 +1713,37 @@ func (e *RecordEditor) Block(width, height int) Block {
 	drawn := e.r.DrawnFocus(e.id)
 	var cursor *Pos
 	focusLine := 0
+	col := e.labelColumn(width)
 	for _, f := range e.fields {
 		if f.Hidden {
 			continue
 		}
 		if f.ReadOnly {
-			lines = append(lines, e.readOnlyLines(f, width)...)
+			lines = append(lines, e.readOnlyLines(f, width, col)...)
 			continue
 		}
 		focused := e.fieldOn(drawn) == f
 		if focused {
 			focusLine = len(lines)
 		}
-		label := f.label()
-		if f.Invertible {
-			label += " · " + invertWord(f.not)
+		label, style := e.fieldLabel(f, focused)
+		annotated := label != e.plainLabel(f)
+		label = e.fieldStyle(f, style).Render(ansi.Truncate(label, width, "…"))
+		// Inline (forms.labels inline): the label and a one-row value share
+		// a line, the label padded to the column. A field whose value takes
+		// rows (a list, chips, a multiline text) keeps its label above, and
+		// so does one whose label says something (why a value is not
+		// written), whole, with its value under it in the value column.
+		lead, inner := "  ", max(1, width-2)
+		switch {
+		case col > 0 && e.oneRow(f) && !annotated:
+			lead, inner = labelCell(label, col), max(1, width-col)
+		case col > 0 && e.oneRow(f):
+			lines = append(lines, label)
+			lead, inner = strings.Repeat(" ", col), max(1, width-col)
+		default:
+			lines = append(lines, label)
 		}
-		style := s.Muted
-		if focused {
-			style = s.Accent
-		}
-		if problem := e.problem(f); problem != "" {
-			// A form that runs once writes nothing: the label says what
-			// the value still needs.
-			if e.spec.Submit != nil {
-				label += " · " + problem
-			} else {
-				label += " · not written: " + problem
-			}
-			style = s.Error
-		}
-		if f.TakesAny() && e.staleChoice(f) {
-			label += " · outside current choices"
-		}
-		lines = append(lines, e.fieldStyle(f, style).Render(ansi.Truncate(label, width, "…")))
-		inner := max(1, width-2)
 		if rows, at, ok := e.valueRows(f, width); ok {
 			if focused {
 				focusLine = len(lines) + at
@@ -1762,13 +1758,16 @@ func (e *RecordEditor) Block(width, height int) Block {
 			}
 			block := InputBlock(f.input, inner, h)
 			if block.Cursor != nil && drawn == f.id {
-				cursor = &Pos{X: block.Cursor.X + 2, Y: len(lines) + block.Cursor.Y}
+				cursor = &Pos{X: block.Cursor.X + ansi.StringWidth(lead), Y: len(lines) + block.Cursor.Y}
 			}
 			if f.Placeholder != "" && len(f.input.Text) == 0 {
 				block.Text = e.fieldStyle(f, s.Muted).Render(ansi.Truncate(f.Placeholder, inner, "…"))
 			}
-			for _, row := range strings.Split(block.Text, "\n") {
-				lines = append(lines, "  "+e.fieldStyle(f, lipgloss.NewStyle()).Render(row))
+			for i, row := range strings.Split(block.Text, "\n") {
+				if i > 0 {
+					lead = strings.Repeat(" ", ansi.StringWidth(lead))
+				}
+				lines = append(lines, lead+e.fieldStyle(f, lipgloss.NewStyle()).Render(row))
 			}
 			continue
 		}
@@ -1786,7 +1785,7 @@ func (e *RecordEditor) Block(width, height int) Block {
 		if focused && drawn == f.id {
 			value = reverseVideo(value)
 		}
-		lines = append(lines, e.r.PlacedAt(f.id, "  "+value, 0, 1))
+		lines = append(lines, e.r.PlacedAt(f.id, lead+value, 0, 1))
 	}
 	if e.out.err != "" {
 		prefix := "! not saved: "
@@ -1831,16 +1830,96 @@ func (e *RecordEditor) valueRows(f *recordField, width int) (rows []string, at i
 
 // readOnlyLines draws a read-only field muted: its label, then its value
 // on one line (newlines shown as spaces), "(none)" when empty.
-func (e *RecordEditor) readOnlyLines(f *recordField, width int) []string {
+func (e *RecordEditor) readOnlyLines(f *recordField, width, col int) []string {
 	value := strings.Join(strings.Fields(f.value), " ")
 	if value == "" {
 		value = "(none)"
 	}
 	muted := e.Styles.Muted
+	if col > 0 {
+		label := muted.Render(ansi.Truncate(f.label(), col, "…"))
+		return []string{ansi.Truncate(labelCell(label, col)+muted.Render(value), width, "…")}
+	}
 	return []string{
 		muted.Render(ansi.Truncate(f.label(), width, "…")),
 		muted.Render(ansi.Truncate("  "+value, width, "…")),
 	}
+}
+
+// FormLabelsSetting is forms.labels: where a form draws a field's label,
+// "inline" (the default: on the value's line, in a column as wide as the
+// longest label, at most a third of the form) or "above" (its own line
+// over the value, as before). A field whose value takes rows (a list,
+// chips, a multiline text) keeps its label above either way.
+const FormLabelsSetting = "forms.labels"
+
+// labelColumn is the inline label column's width, the widest plain label
+// (plainLabel) plus one space; 0 draws labels above (setting
+// forms.labels above, or a form too narrow to share a line).
+func (e *RecordEditor) labelColumn(width int) int {
+	if e.r == nil || e.r.Settings().String(FormLabelsSetting) != "inline" {
+		return 0
+	}
+	widest := 0
+	for _, f := range e.fields {
+		if f.Hidden || !f.ReadOnly && !e.oneRow(f) {
+			continue
+		}
+		widest = max(widest, ansi.StringWidth(e.plainLabel(f)))
+	}
+	col := min(widest+1, width/3)
+	if widest == 0 || width-col < 12 {
+		return 0
+	}
+	return col
+}
+
+// oneRow reports whether a field's value is drawn on one row: a choice or
+// a single-line text, not a list, chips or a multiline text.
+func (e *RecordEditor) oneRow(f *recordField) bool {
+	return !f.list && !f.chips && (f.input == nil || !f.input.Multiline)
+}
+
+// plainLabel is a field's label and its inverted word, without what
+// fieldLabel adds when the value needs something.
+func (e *RecordEditor) plainLabel(f *recordField) string {
+	label := f.label()
+	if f.Invertible {
+		label += " · " + invertWord(f.not)
+	}
+	return label
+}
+
+// fieldLabel is a field's label with what it says beside it (inverted,
+// why a value is not written, a value outside the choices) and its style.
+func (e *RecordEditor) fieldLabel(f *recordField, focused bool) (string, lipgloss.Style) {
+	s := e.Styles
+	label := e.plainLabel(f)
+	style := s.Muted
+	if focused {
+		style = s.Accent
+	}
+	if problem := e.problem(f); problem != "" {
+		// A form that runs once writes nothing: the label says what
+		// the value still needs.
+		if e.spec.Submit != nil {
+			label += " · " + problem
+		} else {
+			label += " · not written: " + problem
+		}
+		style = s.Error
+	}
+	if f.TakesAny() && e.staleChoice(f) {
+		label += " · outside current choices"
+	}
+	return label, style
+}
+
+// labelCell is a drawn label cut and padded to col cells, its last cell a
+// space.
+func labelCell(label string, col int) string {
+	label = ansi.Truncate(label, col-1, "…")
+	return label + strings.Repeat(" ", col-ansi.StringWidth(label))
 }
 
 // reverseVideo draws text in reverse video: the one highlight.
