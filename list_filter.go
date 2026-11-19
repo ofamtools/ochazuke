@@ -384,7 +384,7 @@ func (l *Collection) filterLine(width int) string {
 		case err != nil:
 			right = append(right, err.Error())
 		case len(l.items) == 0:
-			right = append(right, "no "+pluralOr(l.placeholder.Plural)+" match")
+			right = append(right, "no "+pluralOr(l.placeholder.Plural)+" match"+l.r.RegexHint(l.MatchMode(), l.vs.Text))
 		default:
 			right = append(right, strconv.Itoa(l.total)+" of "+strconv.Itoa(l.Len()))
 		}

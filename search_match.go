@@ -39,6 +39,9 @@ const (
 	ChooserMatchSetting = "picker.match"
 	// SearchShowMatchSetting draws the mode's tag on the search line.
 	SearchShowMatchSetting = "search.show-match"
+	// SearchRegexHintSetting adds "tab: regex" to the empty-result line of
+	// a non-regex search whose query is regex syntax.
+	SearchRegexHintSetting = "search.regex-hint"
 )
 
 // The match modes.
@@ -431,6 +434,25 @@ func (r *Runtime) ShowMatch() bool {
 		}
 	}
 	return true
+}
+
+// RegexHint is the words an empty search in mode adds to its "no match"
+// line when query reads as regex syntax (a backslash, a class, a group:
+// QuoteMeta changes it and it compiles) but mode is not regex, so the
+// query was matched as text: "" when search.regex-hint is off.
+func (r *Runtime) RegexHint(mode, query string) string {
+	if r == nil || matchOr(mode, MatchSubstring) == MatchRegex || regexp.QuoteMeta(query) == query {
+		return ""
+	}
+	if v, ok := r.settingValue(SearchRegexHintSetting); ok {
+		if b, ok := v.(bool); ok && !b {
+			return ""
+		}
+	}
+	if _, err := regexp.Compile(query); err != nil {
+		return ""
+	}
+	return " (tab: regex)"
 }
 
 // Matcher compiles query in mode with case as search.case says.

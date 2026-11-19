@@ -380,3 +380,25 @@ func TestListFilterSearchTextOnFilterAndMatchNoun(t *testing.T) {
 		t.Fatalf("Items drops Search: %v", items[0])
 	}
 }
+
+// A substring search for regex syntax that finds nothing says tab runs it
+// as a regex; search.regex-hint off drops the words; in regex mode the
+// pattern's class works.
+func TestListFilterRegexHint(t *testing.T) {
+	r, m, list := filterFixture(t)
+	r.EnsureConfigSettings()
+	pressKeys(m, "/", `\`, "w", "+", "!")
+	if !strings.Contains(m.View().Content, "(tab: regex)") {
+		t.Fatalf("no hint:\n%s", m.View().Content)
+	}
+	if err := r.Settings().Set(SearchRegexHintSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(m.View().Content, "(tab: regex)") {
+		t.Fatalf("hint with the setting off:\n%s", m.View().Content)
+	}
+	pressKeys(m, "backspace", "tab", "tab")
+	if list.MatchMode() != MatchRegex || len(shownIDs(list)) != 5 {
+		t.Fatalf(`regex \w+: %s %v`, list.MatchMode(), shownIDs(list))
+	}
+}
