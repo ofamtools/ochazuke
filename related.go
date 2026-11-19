@@ -41,8 +41,9 @@ const (
 //
 // The setting names are the application's own (it declares them, so its
 // Settings page and settings.json own them); "" means no setting and the
-// built-in default. Order lists section ids (NOUN.PROP), the ones it names
-// first in that order, the others after in registration order. Hidden
+// built-in default. Order lists section ids (NOUN.PROP, or a prefix ending
+// in *: task.*), the ones it names first in that order, the others after
+// in registration order. Hidden
 // lists ids kept out (an entry ending in * is a prefix). Collapsed lists
 // ids that start collapsed; the state afterwards is the stack's view state.
 // Counts is a boolean (default on): the heading shows (N). Empty is
@@ -368,8 +369,20 @@ func namedBy(entries []string, id string) string {
 	return by
 }
 
+// canonicalEntry is an order entry with its noun canonical (pane.* names
+// the sections of the noun pane resolves to, ochazuke.pane.*): the noun is
+// what comes before the last dot.
+func (rel *Related) canonicalEntry(entry string) string {
+	at := strings.LastIndex(entry, ".")
+	if at <= 0 {
+		return entry
+	}
+	return rel.r.CanonicalNoun(entry[:at]) + entry[at:]
+}
+
 // order is every section in display order: the ones the order setting
-// names first, then the others in referrer order, with history last. A
+// names first (an id, or a prefix ending in * standing for its sections
+// in referrer order), then the others in referrer order, with history last. A
 // group heading stands where the first of its members would, or where
 // the order setting names it, its members after it.
 func (rel *Related) order() []*relatedSection {
@@ -386,9 +399,19 @@ func (rel *Related) order() []*relatedSection {
 			base = append(base, s)
 		}
 	}
-	for _, id := range rel.listSetting(rel.spec.Order) {
-		if s := rel.byID[strings.TrimSpace(id)]; s != nil && !s.ref.History {
+	for _, entry := range rel.listSetting(rel.spec.Order) {
+		entry = rel.canonicalEntry(strings.TrimSpace(entry))
+		if s := rel.byID[entry]; s != nil && !s.ref.History {
 			add(s)
+			continue
+		}
+		if !strings.HasSuffix(entry, "*") {
+			continue
+		}
+		for _, s := range rel.sections { // a prefix (task.*): its sections in referrer order
+			if !s.ref.History && !s.grouping && noSpillMatches(entry, s.ref.ID()) {
+				add(s)
+			}
 		}
 	}
 	for _, s := range rel.sections {

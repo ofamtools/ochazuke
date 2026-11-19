@@ -31,6 +31,10 @@ import (
 // never a pre-filter (the owner's rule), so false is the default. A store
 // whose every read must stay in scope sets Every on that row.
 //
+// A request that filters the row's prop itself (a rail a followed link
+// filtered to project = p2) replaces the row's condition: the filter
+// asked for wins over the scope given.
+//
 // The values ScopeValue answers are part of the store's change token
 // (withListScope), so a list refreshes when the pin moves.
 type ListScope struct {
@@ -48,6 +52,9 @@ func scopeFilters(c Ctx, s Store, q ListQuery) []PropFilter {
 	for _, row := range s.ListScope {
 		if q.Every && !row.Every {
 			continue
+		}
+		if slices.ContainsFunc(q.Filters, func(f PropFilter) bool { return f.Prop == row.Prop }) {
+			continue // the request filters the prop itself: its filter replaces the scope
 		}
 		if row.Unless != "" {
 			if on, _ := q.Args[row.Unless].(bool); on {

@@ -124,6 +124,9 @@ focus.go	Runtime.removeInstance	compare	"app"	1
 focus.go	Runtime.validateFocus	compare	"app"	1
 focus_display.go	Runtime.focusDisplayLevels	case	"noun"	1
 focus_display.go	Runtime.focusPathIDs	compare	"app"	1
+frame.go	var frameBodies	table	"edit"	1	the frame's body kinds table: a body is data the body parameter and binding rows name (frame.open body=show), read as fields, not a branch on a verb
+frame.go	var frameBodies	table	"index"	1	the frame's body kinds table: a body is data the body parameter and binding rows name (frame.open body=show), read as fields, not a branch on a verb
+frame.go	var frameBodies	table	"show"	1	the frame's body kinds table: a body is data the body parameter and binding rows name (frame.open body=show), read as fields, not a branch on a verb
 grid/grid.go	Grid.At	compare	"cell"	1
 grid/grid.go	Grid.Move	case	"down"	1
 grid/grid.go	Grid.Move	case	"left"	1

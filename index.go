@@ -178,7 +178,8 @@ type indexPage struct {
 	Why    string `json:"why,omitempty"`
 	fed    bool
 	sig    string
-	failed string // the store's first read failed: why (the page shows the declaration)
+	frame  framePlace // the page as a frame (pages.frame, frame.go)
+	failed string     // the store's first read failed: why (the page shows the declaration)
 }
 
 // The settings of a noun page's related stack (noun_page.go).
@@ -203,6 +204,7 @@ const DetailShowFormSetting = "detail.show-form"
 func (r *Runtime) syncIndexForm() {
 	r.refreshFedIndex(r.Page)
 	r.syncShowForms()
+	r.syncFrame()
 }
 
 // refreshFedIndex gives a noun page whose rows are not a From list its
@@ -300,7 +302,7 @@ func (r *Runtime) addIndexPage(n *Noun, id string) error {
 	}
 	// The show form (show_form.go): the selected thing's form, its
 	// relation sections and its history under it.
-	related := RelatedSpec{Enabled: RelatedDetailSetting, Hidden: RelatedDetailHiddenSetting, History: true,
+	related := RelatedSpec{Enabled: RelatedDetailSetting, Hidden: RelatedDetailHiddenSetting, History: true, Order: ShowSectionOrderSetting,
 		Outward: IndexRelatedOutwardSetting, Explain: IndexRelatedExplainSetting, Collapsed: IndexRelatedCollapsedSetting}
 	if _, err := r.AddShowForm(id+"/show", ShowFormSpec{List: func() *Collection { return r.List(id + "/list") }, Form: id + "/form", Related: &related}, Parent(id)); err != nil {
 		_ = r.RemoveInstance(id)
@@ -344,6 +346,13 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 		styles = view.styles(id)
 	}
 	layout := r.PaneLayout(id, Layout{Styles: styles})
+	if r.FrameOn(ref.Noun) {
+		if item, ok := list.Selected(); ok && n != nil {
+			thing, _ := item.Data.(Thing)
+			layout = r.WithDetailHue(layout, r.HueOf(n.Name, thing))
+		}
+		return frameView(r, id, ref, list, layout, r.indexHeading(ref, list), width, height)
+	}
 	th := layout.Divide(max(min(list.Height()+headingLines(list)+columnHeaderLines(list)+2, height-6), PaneMinHeight), height, PaneMinHeight)
 	tw, tth := PanelContentSize(width, th)
 	tableBody := Text(list.View(tw, tth))
@@ -378,6 +387,17 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 	if marker != "" {
 		title += " · " + marker
 	}
+	heading := r.indexHeading(ref, list)
+	if item, ok := list.Selected(); ok && n != nil {
+		thing, _ := item.Data.(Thing)
+		layout = r.WithDetailHue(layout, r.HueOf(n.Name, thing))
+	}
+	return layout.panelPair(heading, tableBody, title, body, width, height, th, true, focused)
+}
+
+// indexHeading is a noun page's list heading: the noun, its total when
+// the list pages, and where its rows come from when not its store.
+func (r *Runtime) indexHeading(ref *indexPage, list *Collection) string {
 	heading := r.DisplayNoun(ref.Noun)
 	if total := list.WindowTotal(); list.Windowed() {
 		heading = fmt.Sprintf("%s · %d", heading, total)
@@ -385,11 +405,7 @@ func indexPageView(r *Runtime, id string, width, height int) Block {
 	if ref.Rows != NounRowsStore && ref.Rows != "" {
 		heading += " · " + ref.Rows
 	}
-	if item, ok := list.Selected(); ok && n != nil {
-		thing, _ := item.Data.(Thing)
-		layout = r.WithDetailHue(layout, r.HueOf(n.Name, thing))
-	}
-	return layout.panelPair(heading, tableBody, title, body, width, height, th, true, focused)
+	return heading
 }
 
 // columnHeaderLines is the line a table's column titles take, 0 for a

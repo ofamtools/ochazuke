@@ -572,7 +572,7 @@ func (l Layout) PanelBlock(title string, body Block, width, height int, focused 
 	rows := layoutRows(layoutClip(body.Text, ih, s), cw, ih)
 
 	label := ""
-	if inner >= 5 {
+	if inner >= 5 && title != "" {
 		label = " " + ansi.Truncate(modalLabel(title), inner-4, "…") + " "
 	}
 	fill := max(0, inner-chromeWidth(label)-1)

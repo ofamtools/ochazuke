@@ -854,6 +854,7 @@ func (r *Runtime) registerFramework() {
 	registerPlacements(r)
 	registerNounBrowser(r)
 	registerIndex(r)
+	registerFrame(r)
 	registerSegments(r)
 	registerRestartBadge(r)
 	registerDocs(r)

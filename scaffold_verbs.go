@@ -71,7 +71,7 @@ var needAnnotator = storeNeed{Doc: "a noun with an about prop (RoleAbout) whose 
 func scaffoldVerbs() []standardVerb {
 	subject := standardVerb{TakesSubject: true, YieldsToProp: true}
 	show := subject
-	show.Verb, show.Description = "show", "Show a thing: its props (the CLI prints them); at the UI its noun's index opens with the thing selected and the focus in its form"
+	show.Verb, show.Description = "show", "Show a thing: its props (the CLI prints them); at the UI its show body opens when pages.frame lists its noun, else its noun's index with the thing selected and the focus in its form"
 	show.Kinds, show.Needs, show.Record, show.HistoryKind, show.Agent = []string{KindCollection, Singleton}, []storeNeed{needGet}, true, HistoryAction, AgentAllow
 	show.Run = runShow
 
@@ -158,8 +158,14 @@ func runShow(r *Runtime, n *Noun, c Ctx) (any, error) {
 		return nil, err
 	}
 	if personSource(r.history.source) && StoredKind(r.NounKind(n.Name)) {
-		// A person asked: the thing in its noun's index, the focus in its
-		// form. A program reads the props and moves nobody's screen.
+		// A person asked: the thing's show body when pages.frame lists its
+		// noun (frame.go), else the thing in its noun's index, the focus in
+		// its form. A program reads the props and moves nobody's screen.
+		if r.FrameOn(n.Name) {
+			if err := r.OpenFrame(n.Name, key, FrameShow, nil); err == nil {
+				return thingRecord(n, t, nil), nil
+			}
+		}
 		if err := r.OpenIndex(n.Name, key); err == nil {
 			if form := r.Instances[r.Page+"/form"]; form != nil && r.Page == IndexPageID(n.Name) {
 				r.changeFocus(r.focusTargetOf(form.ID), focusMove{cause: focusSettle})

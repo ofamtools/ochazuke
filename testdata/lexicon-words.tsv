@@ -248,6 +248,7 @@ edit	action	seed
 edit-condition	action	seed	
 edit-directory	action	seed	
 edit-fields	action	yes	edit a binding row's fields in a form from the help page
+edit-here	action	yes	edit a noun page's thing in place, its form in the frame's body (pages.frame)
 edit-stdin	action	seed	
 editor	noun	seed	
 effective_project	prop	seed	

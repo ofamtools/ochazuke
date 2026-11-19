@@ -73,13 +73,18 @@ func registerRelated(r *Runtime) {
 // noun's page (nouns/NOUN) with that thing selected; from a heading, the
 // section noun's page. page.back comes back to the row it left.
 func registerRelatedJump(b *NounBuilder) {
-	sectionVerb(b, "jump", "Go to the page of the thing at the focus (its noun's page, nouns/NOUN, with its row selected); on a heading, the page of the section's noun. page.back (-) comes back", func(c Ctx, s *relatedSection) error {
+	sectionVerb(b, "jump", "Go to the page of the thing at the focus (its noun's page, nouns/NOUN, with its row selected; with pages.frame listing its noun, its show body, the rail filtered by the section's relation); on a heading, the page of the section's noun. page.back (-) comes back", func(c Ctx, s *relatedSection) error {
 		r := c.Runtime
 		noun, key := s.ref.Noun, ""
 		if inst := r.Instances[r.relatedFocus(c)]; inst != nil && inst.Noun == s.ref.Noun && s.n.keyProp() != nil {
 			if k, err := r.rowKey(s.n, inst); err == nil {
 				key = k
 			}
+		}
+		if key != "" && r.FrameOn(noun) {
+			// The frame moves to the thing, its rail filtered by the
+			// relation the row came through (frame.go).
+			return r.OpenFrame(noun, key, FrameShow, frameLink(s))
 		}
 		return r.OpenIndex(noun, key)
 	})
