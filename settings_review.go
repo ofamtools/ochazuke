@@ -75,6 +75,7 @@ func registerSettingsReview(r *Runtime) {
 	r.Define(settingsReviewNoun)
 	r.Define(settingChangeNoun)
 	r.Settings().Observe("", func(string, any) { refreshSettingsReview(r) })
+	registerSettingPick(r)
 }
 
 // settingsReviewColumns are the review's table: the name, the saved value

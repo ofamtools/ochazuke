@@ -95,6 +95,9 @@
       {"key": "s", "action": "ochazuke.collection.move", "args": {"delta": 1}, "hint": "skip"},
       {"key": "space", "action": "ochazuke.collection.move", "args": {"delta": 1}, "hidden": true}
     ]},
+    {"context": "ochazuke.setting-pick/normal", "bindings": [
+      {"key": ",", "action": "ochazuke.setting.open"}
+    ]},
     {"context": "ochazuke.settings-review/normal", "bindings": [
       {"key": "W", "action": "ochazuke.setting.write-all"},
       {"key": "R", "action": "ochazuke.setting.revert-all"}

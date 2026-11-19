@@ -108,3 +108,78 @@ func TestSettingListAtPlacesOnTheWalk(t *testing.T) {
 		t.Fatalf("list at %s:\n%s", r.Focus, strings.Join(got, "\n"))
 	}
 }
+
+// pickFixture is the walk fixture with two application settings, one on
+// the focused row's noun and one on the page.
+func pickFixture(t *testing.T) *Runtime {
+	t.Helper()
+	r := helpWalkFixture(t, helpWalkRows)
+	if err := r.DeclareSetting(
+		Setting{Name: "tiles.wide", Type: SettingBoolean, Default: false, Contexts: []Ref{nounRef("tile")}},
+		Setting{Name: "ctx.dense", Type: SettingBoolean, Default: false, Contexts: []Ref{{Noun: ContextPage, Key: "ctx"}}},
+	); err != nil {
+		t.Fatal(err)
+	}
+	return r
+}
+
+func pickHeadings(r *Runtime) []string {
+	var out []string
+	for _, g := range r.SettingPickGroups(r.Focus) {
+		out = append(out, g.Heading)
+	}
+	return out
+}
+
+// One case per value of settings.pick-framework and settings.pick-rest.
+func TestSettingPickGroupsFollowTheSettings(t *testing.T) {
+	lists := "ochazuke.collection: Lists"
+	for _, tc := range []struct {
+		name, value string
+		check       func(h []string) bool
+	}{
+		{SettingsPickFrameworkSetting, PickFrameworkWalk, func(h []string) bool {
+			return h[0] == "tile: tiles" && slices.Index(h, lists) == 1 && slices.Index(h, lists) < slices.Index(h, "Context page: ctx")
+		}},
+		{SettingsPickFrameworkSetting, PickFrameworkAfter, func(h []string) bool {
+			return h[0] == "tile: tiles" && h[1] == "Context page: ctx" && h[2] == lists
+		}},
+		{SettingsPickFrameworkSetting, PickFrameworkRest, func(h []string) bool {
+			return slices.Equal(h[:2], []string{"tile: tiles", "Context page: ctx"}) && !slices.Contains(h, lists) && slices.Contains(h, "elsewhere: ochazuke, Lists")
+		}},
+		{SettingsPickRestSetting, PickRestShown, func(h []string) bool { return slices.Contains(h, "elsewhere: ochazuke, Palette") }},
+		{SettingsPickRestSetting, PickRestOff, func(h []string) bool {
+			return !slices.ContainsFunc(h, func(s string) bool { return strings.HasPrefix(s, "elsewhere") })
+		}},
+	} {
+		r := pickFixture(t)
+		if err := r.Settings().Set(tc.name, tc.value); err != nil {
+			t.Fatal(err)
+		}
+		if h := pickHeadings(r); !tc.check(h) {
+			t.Errorf("%s=%s: %q", tc.name, tc.value, h)
+		}
+	}
+}
+
+// setting.pick opens the modal with the focus on its first row, the
+// focused row's settings first; settings.pick off opens the Settings page.
+func TestSettingPickOpensTheModalOrThePage(t *testing.T) {
+	r := pickFixture(t)
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "pick"}); err != nil {
+		t.Fatal(err)
+	}
+	if r.TopModal() != settingPickID || r.Focus != settingPickRowPrefix+"tiles.wide" {
+		t.Fatalf("pick: modal %q focus %q", r.TopModal(), r.Focus)
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "open"}); err != nil || r.TopModal() != "" || r.Page != SettingsPageID {
+		t.Fatalf(", in the modal: modal %q page %q %v", r.TopModal(), r.Page, err)
+	}
+	r = pickFixture(t)
+	if err := r.Settings().Set(SettingsPickSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Execute(Request{Noun: "ochazuke.setting", Verb: "pick"}); err != nil || r.TopModal() != "" || r.Page != SettingsPageID {
+		t.Fatalf("settings.pick off: modal %q page %q %v", r.TopModal(), r.Page, err)
+	}
+}

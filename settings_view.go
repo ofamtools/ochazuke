@@ -133,6 +133,8 @@ func settingPageVerbs() []verbSpec {
 		{"open", "ochazuke.setting", "Open the Settings page (or switch to it): every change is saved as it is made", "setting[]", nil, settingsOpen, "", "", Operation{}},
 		{"close", "ochazuke.setting", "Leave the Settings page for the page it was opened from", "context", nil, settingsClose, "", "", Operation{}},
 		{"undo", "ochazuke.setting", "Take back the last change made on the Settings page", "setting", nil, settingsUndo, "", "", Operation{}},
+		{"pick", "ochazuke.setting", "Open the settings that apply at the focus, grouped by the stack, innermost first; space, h and l change a setting in place. settings.pick off opens the Settings page", "setting-pick-group[]", nil, runSettingPick, "", "", Operation{HistoryKind: HistoryAction, Agent: AgentAllow}},
+		{"check", "ochazuke.setting", "Report, as warnings, the settings' context points that name no context noun or nothing this program has (each still loads), and the sections whose settings have no context point", "problem[]", nil, runSettingCheck, "", "", Operation{HistoryKind: HistoryFetch}},
 	}
 }
 
@@ -210,6 +212,13 @@ func settingsOpen(r *Runtime, c Context, a Arguments) (any, error) {
 	s := r.Settings()
 	if len(s.Declared()) == 0 {
 		return nil, errors.New("this application declares no settings")
+	}
+	// Run from inside a modal (, in the in-context settings modal), the
+	// modals close first: a page never opens over one.
+	for r.TopModal() != "" {
+		if err := r.Pop(); err != nil {
+			return nil, err
+		}
 	}
 	if r.Page == SettingsPageID {
 		// Already shown: nothing to switch to, and no answer for the

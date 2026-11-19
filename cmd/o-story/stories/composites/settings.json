@@ -1571,6 +1571,51 @@
         ]
       },
       "name": "settings page: u (or ctrl+z) takes back the page's last change and shows its row; u answers and is offered only with a change to undo"
+    },
+    {
+      "width": 100,
+      "height": 30,
+      "settings": [
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "default": false,
+          "description": "Wrap long lines",
+          "contexts": [
+            {
+              "noun": "ochazuke.noun",
+              "key": "demo"
+            }
+          ]
+        },
+        {
+          "name": "theme",
+          "type": "string",
+          "default": "dark",
+          "description": "Colour theme",
+          "enum": [
+            "dark",
+            "light",
+            "mono"
+          ]
+        }
+      ],
+      "page": {
+        "lists": [
+          {
+            "id": "a",
+            "rows": 2
+          }
+        ],
+        "bind": [
+          {
+            "noun": "demo",
+            "keys": ",",
+            "do": "setting.pick"
+          }
+        ]
+      },
+      "name": "settings pick: , opens the settings that apply at the focus, the focused row's first, then the page's and the app's, the rest after; space writes at once, / filters, , opens the Settings page"
     }
   ],
   "script": [
@@ -1925,6 +1970,20 @@
     "ctrl+z",
     "u",
     "u",
+    {
+      "key": "ctrl+alt+n",
+      "note": "settings/pick: settings pick: , opens the settings that apply at the focus, the focused row's first, then the page's and the app's, the rest after; space writes at once, / filters, , opens the Settings page"
+    },
+    ",",
+    "space",
+    "/",
+    "w",
+    "r",
+    "a",
+    "p",
+    "enter",
+    "esc",
+    ",",
     {
       "key": "ctrl+alt+n",
       "note": "Return to the opening fixture"
@@ -3272,6 +3331,43 @@
     },
     {
       "page": "page1"
+    },
+    {
+      "after": 233,
+      "modal": "ochazuke.setting-pick",
+      "focus": "__setting-pick/row/wrap",
+      "order": [
+        "demo: General",
+        "wrap",
+        "‹ false ›",
+        "app: General",
+        "theme",
+        "ochazuke.collection: Lists"
+      ],
+      "contains": [
+        "Wrap long lines",
+        "h/l setting.cycle"
+      ]
+    },
+    {
+      "after": 234,
+      "focus": "__setting-pick/row/wrap",
+      "contains": [
+        "wrap •",
+        "‹ true ›"
+      ]
+    },
+    {
+      "after": 240,
+      "modal": "ochazuke.setting-pick",
+      "lacks": [
+        "‹ dark ›"
+      ]
+    },
+    {
+      "after": 242,
+      "page": "__settings",
+      "modal": ""
     }
   ],
   "notes": [],

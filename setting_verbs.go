@@ -445,7 +445,6 @@ func registerSettingVerbs(r *Runtime) {
 		r.Register(op)
 	}
 	registerSettingThings(r)
-	r.Register(Operation{Key: "ochazuke.setting.check", HistoryKind: HistoryFetch, Description: "Report, as warnings, the settings' context points that name no context noun or nothing this program has (each still loads), and the sections whose settings have no context point", Result: "problem[]", Run: runSettingCheck})
 }
 
 // runSettingCheck is setting.check: the context points' warnings.
@@ -488,12 +487,11 @@ var settingProps = []PropSpec{
 // and tells its watches when any setting changes.
 func registerSettingThings(r *Runtime) {
 	r.Define("ochazuke.setting").DefaultKeys(false).Props(settingProps...).Store(Store{
-		Kind: KindCollection,
+		Kind: KindCollection, ListParams: map[string]Parameter{"at": {Type: "string", Accept: AcceptKeep, Description: "Place each setting on the focus walk from this instance (empty: the live focus): its level, level_label and level_role, the rows in walk order, innermost first, those on no level last"}},
 		Get: func(c Ctx, name string) (Thing, error) {
 			return settingThing(c.Runtime, name)
 		},
-		ListParams: map[string]Parameter{"at": {Type: "string", Accept: AcceptKeep, Description: "Place each setting on the focus walk from this instance (empty: the live focus): its level, level_label and level_role, the rows in walk order, innermost first, those on no level last"}},
-		List:       settingThings,
+		List: settingThings,
 	})
 	r.Settings().Observe("", func(string, any) { r.Changed("ochazuke.setting") })
 }
