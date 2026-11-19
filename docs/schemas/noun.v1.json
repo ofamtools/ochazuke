@@ -293,6 +293,9 @@
         "base": {
           "type": "string"
         },
+        "clearStale": {
+          "type": "boolean"
+        },
         "covers": {
           "type": "boolean"
         },
@@ -453,6 +456,9 @@
         },
         "base": {
           "type": "string"
+        },
+        "clearStale": {
+          "type": "boolean"
         },
         "computed": {
           "type": "boolean"

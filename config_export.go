@@ -262,7 +262,7 @@ func (r *Runtime) referenceReadme(settings, rows int) []byte {
 		line("- `{{%s}}`: %s", p[0], p[1])
 	}
 	line("")
-	line("An argv word that is one placeholder and expands to nothing is left out. Parameters are `string`, `integer` or `boolean`; `required`, `enum`, `source` (an operation, noun.verb, listing more choices), `sourceArgs` (source parameter to sibling field; empty for no dependencies), `sourceFixed` (source parameter to a constant value), `enumLabels` (enum value to the label a pick list shows for it), `free` (accept a value outside them), `usage` (how the parameter is given, said when a required one is missing) and `description` are optional.")
+	line("An argv word that is one placeholder and expands to nothing is left out. Parameters are `string`, `integer` or `boolean`; `required`, `enum`, `source` (an operation, noun.verb, listing more choices), `sourceArgs` (source parameter to sibling field; empty for no dependencies), `sourceFixed` (source parameter to a constant value), `clearStale` (a form empties the value when a sibling change leaves it outside the choices), `enumLabels` (enum value to the label a pick list shows for it), `free` (accept a value outside them), `usage` (how the parameter is given, said when a required one is missing) and `description` are optional.")
 	line("")
 	line("## Theme roles")
 	line("")
@@ -355,7 +355,7 @@ const actionsExample = `[
     "target": "{{data.id}}",
     "label": "{{noun}}.{{verb}} {{target}}",
     "parameters": {
-      "name": {"type": "string", "source": "setting.names", "sourceArgs": {}, "sourceFixed": {}, "enumLabels": {}, "accept": "keep", "normalize": ["trim"], "scopes": [{"name": "listed"}, {"name": "all", "source": "setting.names"}], "description": "A setting name; accept keep takes one the source does not list (any value is accepted; keep also makes the field free text); scopes are slices of the values S steps through in the picker (a scope may name its own source, fixed arguments, and a sibling argument it needs)"},
+      "name": {"type": "string", "source": "setting.names", "sourceArgs": {}, "sourceFixed": {}, "clearStale": false, "enumLabels": {}, "accept": "keep", "normalize": ["trim"], "scopes": [{"name": "listed"}, {"name": "all", "source": "setting.names"}], "description": "A setting name; accept keep takes one the source does not list (any value is accepted; keep also makes the field free text); scopes are slices of the values S steps through in the picker (a scope may name its own source, fixed arguments, and a sibling argument it needs)"},
       "page": {"type": "string", "noun": "page", "acts": ["focused", "on-path"], "description": "A page; noun lists the noun's rows (page.list) or its live instances; acts names the reasons a found page may have for the verb to act on it without asking (selected, marked, focused, on-path, on-page, linked, recent; default selected, focused, on-path), else it asks with them ranked"},
       "of": {"type": "string", "ref": ["page"], "description": "A reference to a page: a key, page:KEY or a label one page holds, read once through the noun's store so the command receives the key (a value none holds is kept as written)"},
       "lines": {"type": "integer", "min": 1, "max": 100, "description": "A number; min and max bound it, and a value outside them is clamped, kept or asked for again (values.out-of-range), never refused"},
