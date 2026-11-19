@@ -213,7 +213,7 @@ func (r *Runtime) agentActivity() string {
 		return ""
 	}
 	if inst := r.Instances[r.TopModal()]; inst != nil && inst.Payload.Request != nil && inst.Payload.Request.Actor != nil && inst.Payload.Request.Actor.IsAgent() {
-		return inst.Payload.Request.Actor.String() + " asks"
+		return r.ActorLabel(*inst.Payload.Request.Actor) + " asks"
 	}
 	var newest *job
 	for _, j := range r.jobs {

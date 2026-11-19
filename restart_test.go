@@ -256,3 +256,29 @@ func runModelCommand(m *Model, cmd tea.Cmd) {
 	}
 	m.Update(msg)
 }
+
+// The restart dialog names the requesting agent's pane by the name the
+// application gives it (ActorLabels.Pane), not its window id; with
+// actor.pane-labels off, or a pane it cannot name, the id shows.
+func TestRestartPromptNamesTheAgentsPane(t *testing.T) {
+	t.Parallel()
+	r := NewRuntime()
+	r.EnsureConfigSettings()
+	agent := Actor{Kind: ActorAgent, Name: "claude", Pane: "6ef88c2f-b85f"}
+	mustRun(t, r, Request{Noun: "ochazuke.restart-request", Verb: "post", Actor: &agent, Args: Arguments{"reason": "new build"}})
+	r.SetActorLabels(ActorLabels{Pane: func(id string) string {
+		if id == agent.Pane {
+			return "hub/orchestrator"
+		}
+		return ""
+	}})
+	if got := r.restartPrompt(""); !strings.Contains(got, "Requested by agent claude (pane hub/orchestrator)") {
+		t.Fatalf("prompt %q", got)
+	}
+	if err := r.Settings().Set(ActorPaneLabelsSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.restartPrompt(""); !strings.Contains(got, "(pane 6ef88c2f-b85f)") {
+		t.Fatalf("labels off: %q", got)
+	}
+}

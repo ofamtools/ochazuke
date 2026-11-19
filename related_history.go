@@ -55,7 +55,7 @@ func (s *relatedSection) rowItems(c Ctx, things []Thing) []ListItem {
 			continue
 		}
 		label := fmt.Sprintf("%s  %s", e.At.Local().Format("Jan 2 15:04"), r.DisplayKey(e.Request.Key()))
-		if who := strings.TrimSpace(e.Context.Actor.String()); who != "" {
+		if who := strings.TrimSpace(r.ActorLabel(e.Context.Actor)); who != "" {
 			label += "  " + who
 		}
 		item := ListItem{ID: fmt.Sprintf("%s/%d", s.list.id, e.Seq), Label: label, Noun: historyEntryNoun, Data: t}

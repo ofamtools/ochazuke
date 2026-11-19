@@ -284,7 +284,7 @@ func (r *Runtime) observeRestart() RestartRequest {
 	if !req.Pending {
 		return req
 	}
-	text := "Restart requested by " + req.Actor.String()
+	text := "Restart requested by " + r.ActorLabel(req.Actor)
 	if req.Version != "" {
 		text += ": " + req.Version
 	}
@@ -410,7 +410,7 @@ func (r *Runtime) restartPrompt(installed string) string {
 		}
 	}
 	if req := r.RestartRequested(); req.Pending {
-		fmt.Fprintf(&b, "\nRequested by %s at %s", req.Actor.String(), req.At.Format("15:04"))
+		fmt.Fprintf(&b, "\nRequested by %s at %s", r.ActorLabel(req.Actor), req.At.Format("15:04"))
 		if req.Count > 1 {
 			fmt.Fprintf(&b, " (%d requests)", req.Count)
 		}

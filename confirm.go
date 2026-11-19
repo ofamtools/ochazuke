@@ -193,7 +193,7 @@ func (r *Runtime) openConfirmAbout(c Context, q, run Request, op Operation) (any
 		prompt = "Run " + q.Key() + "?"
 	}
 	if actor.IsAgent() && r.Settings().Bool(AgentConfirmAttributionSetting) {
-		prompt = actor.String() + " asks:\n" + prompt
+		prompt = r.ActorLabel(actor) + " asks:\n" + prompt
 	}
 	body, err := r.OpenModal("confirm", Payload{Prompt: prompt, Request: &stored})
 	if err != nil {
