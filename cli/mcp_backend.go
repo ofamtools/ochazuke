@@ -677,7 +677,20 @@ var catalogProps = []ochazuke.PropSpec{
 // verbs registered beside it (an application verb under a core name wins:
 // list keeps its search and agent rights).
 func (s *Shell) defineCatalogFacts() {
+	// The things of the last build, by the registry's token: the catalog
+	// document is built and parsed again only when the registry moved
+	// (about 130 ms in mtm, once per Nouns page count before).
+	var kept []ochazuke.Thing
+	keptAt := ""
 	list := func(c ochazuke.Ctx, _ ochazuke.ListQuery) ([]ochazuke.Thing, error) {
+		token := c.Runtime.RegistryToken()
+		if kept != nil && token == keptAt {
+			out := make([]ochazuke.Thing, len(kept))
+			for i, t := range kept {
+				out[i] = stdmaps.Clone(t)
+			}
+			return out, nil
+		}
 		raw, err := Catalog(c.Runtime, s.Bin, s.version(), s.catalogOptions...)
 		if err != nil {
 			return nil, err
@@ -694,10 +707,15 @@ func (s *Shell) defineCatalogFacts() {
 			}
 			out = append(out, ochazuke.Thing{"name": n.Name, "about": n.About, "kind": n.Kind, "verbs": verbs})
 		}
+		kept, keptAt = make([]ochazuke.Thing, len(out)), token
+		for i, t := range out {
+			kept[i] = stdmaps.Clone(t)
+		}
 		return out, nil
 	}
 	s.Runtime.Define("ochazuke.catalog").Props(catalogProps...).Store(ochazuke.Store{
 		Kind: ochazuke.KindCollection, Facts: true, List: list,
+		ChangeToken: func(c ochazuke.Ctx) (string, error) { return c.Runtime.RegistryToken(), nil },
 		Get: func(c ochazuke.Ctx, name string) (ochazuke.Thing, error) {
 			things, err := list(c, ochazuke.ListQuery{})
 			if err != nil {

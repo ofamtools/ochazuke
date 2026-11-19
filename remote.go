@@ -222,6 +222,7 @@ func (r *Runtime) remember(a tapeAnswer) {
 	}
 	if a.call.Write {
 		delete(r.remoteSeen, a.call.Store)
+		r.cacheForget(a.call.Store) // the kept rows too (read_cache.go)
 		return
 	}
 	seen := r.remoteSeen[a.call.Store]

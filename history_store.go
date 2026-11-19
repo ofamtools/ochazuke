@@ -179,6 +179,9 @@ func (c *Config) Flush() error {
 	if p := c.places; p != nil {
 		err = p.flush(c)
 	}
+	if rc := c.cache; rc != nil {
+		err = errors.Join(err, rc.flush())
+	}
 	s := c.history
 	if s == nil {
 		return err

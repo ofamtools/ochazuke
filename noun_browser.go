@@ -317,6 +317,7 @@ func countNoun(r *Runtime, n *Noun) {
 	s := n.Store
 	ctx := r.backgroundCtx() // nobody waits on a count: its jobs take background slots
 	ctx.Noun = n.Name
+	r.seedCountFromCache(n, c) // what an earlier run counted, under its token (read_cache.go)
 	token := storeToken(s, ctx)
 	if token != "" && token == c.token && c.known {
 		return // nothing changed since it was counted
@@ -336,6 +337,7 @@ func countNoun(r *Runtime, n *Noun) {
 	arch := n.roleProp(RoleArchive)
 	var total, archived int
 	unmoved := false
+	start := time.Now()
 	initialToken := token
 	body := func(cx Ctx) (any, error) {
 		if token, unmoved = jobToken(s, cx, initialToken, c.token, c.known); unmoved {
@@ -354,6 +356,7 @@ func countNoun(r *Runtime, n *Noun) {
 		}
 		if !unmoved {
 			c.count, c.archived, c.known, c.hasArch, c.token, c.err = total, archived, true, arch != nil, token, ""
+			r.keepCount(n, c, time.Since(start))
 		}
 		countLanded(r)
 		return nil, nil

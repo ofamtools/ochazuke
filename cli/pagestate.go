@@ -141,6 +141,7 @@ func (v *PageView) patch(pl *pageList, l StateList, rows []Row, hashes []string)
 	if v.cfg.OnRows != nil {
 		v.cfg.OnRows(pl.spec.ID, filed)
 	}
+	v.keepRows(pl, filed)
 	return pl.hash == l.Hash, nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -93,6 +94,9 @@ type Collection struct {
 	paged        *listWindow // a From list over a paging store: the page it holds (list_window.go)
 	refills      int         // reads of that store (tests count them)
 	stale        bool        // a change came while hidden (refresh.hidden lazy, list_hidden.go)
+	seeded       bool        // the read cache was asked for the list's rows (read_cache.go)
+	seedToken    string      // the token the kept rows were read under, "" once confirmed or read
+	cachedAt     time.Time   // when the kept rows drawn were read; zero once the store confirmed or replaced them
 	drawnOn      string      // the current page when View last drew the list, "" never drawn
 	archived     int         // rows of all that collection.hide-archived hides (archiveHidden)
 	headerTones  []ToneSpan  // the header row's tones (SetHeaderTones)
@@ -271,6 +275,7 @@ func (l *Collection) SetItems(items []ListItem) error {
 		}
 		ids[item.ID] = true
 	}
+	l.cacheFresh() // new rows are the store's, not the read cache's (seedFromCache marks its own after)
 	gone := map[string]bool{}
 	var drop []string
 	for _, old := range l.all {

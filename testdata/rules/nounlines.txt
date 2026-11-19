@@ -26,6 +26,7 @@ ochazuke.outline	215
 ochazuke.overlay	80
 ochazuke.page	439
 ochazuke.picker	339
+ochazuke.read-cache	24	new facts noun (lane read-cache, 2026-11-19): its facts store and clear verb in registerReadCache, the one function that names it
 ochazuke.referrer	12
 ochazuke.register	202
 ochazuke.related-section	144

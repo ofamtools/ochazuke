@@ -209,6 +209,8 @@ type Config struct {
 	// places is the record of where each noun was seen (NounPlacesFile),
 	// with its writer once EnsureNounPlaces started it.
 	places *placements
+	// cache is the read cache (read_cache.go), made on first use.
+	cache *readCache
 	// overlay holds the props stores cannot (OverlayFile), read on first use.
 	overlay *overlayRows
 	// tables are the table views by id (TablesFile), read on first use.

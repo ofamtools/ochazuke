@@ -157,7 +157,7 @@ func (l *Collection) archivedSummary() string {
 // conditions: the sort and the page.
 func (l *Collection) viewSummary() string {
 	var parts []string
-	for _, s := range []string{l.sortSummary(), l.pageSummary(), l.archivedSummary()} {
+	for _, s := range []string{l.sortSummary(), l.pageSummary(), l.archivedSummary(), l.cacheSummary()} {
 		if s != "" {
 			parts = append(parts, s)
 		}

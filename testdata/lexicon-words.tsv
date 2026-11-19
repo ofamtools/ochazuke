@@ -680,6 +680,7 @@ ratio	prop	seed
 read	prop	seed	
 read-activities	prop	seed	
 read-at	prop	seed	
+read-cache	noun	yes	a kept answer of a store: a list's rows or a count, with the change token it was read under (read-cache.clear)
 read-settings	prop	seed	
 read-turns	prop	seed	
 reason	prop	seed	

@@ -751,6 +751,10 @@ type Runtime struct {
 	builtinDepth   int                       // >0 while Builtin runs: framework registration, whose nouns are ochazuke.<noun>
 	actionNames    actionNames               // the action alias table and the running request's name (action_names.go)
 
+	// registryToken is RegistryToken at registryStamp (read_cache.go).
+	registryToken string
+	registryStamp [3]int
+
 	// namedSettings indexes the settings rows name (binding_settings.go).
 	namedSettings map[string]bool
 }
@@ -852,6 +856,7 @@ func (r *Runtime) registerFramework() {
 	registerHistory(r)
 	registerInspector(r)
 	registerPlacements(r)
+	registerReadCache(r)
 	registerNounBrowser(r)
 	registerIndex(r)
 	registerFrame(r)

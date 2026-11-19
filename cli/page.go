@@ -9,6 +9,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/x/ansi"
 	"ofam.dev/ochazuke"
@@ -299,6 +300,9 @@ type PageView struct {
 	// kindNote says why a kind the catalog names is drawn as the record.
 	kind     *kindView
 	kindNote string
+	// seeding is set while the read cache's rows are drawn (seedCached):
+	// they are not kept again.
+	seeding bool
 }
 
 // pageList is one mounted list.
@@ -314,8 +318,9 @@ type pageList struct {
 	loaded      bool
 	loading     bool
 	verbsListed bool
-	live        bool // the noun's rows are outside the state answer (CatalogNoun.Live): filled through the row source
-	index       bool // an index list (ListKindIndex): it fills itself from its noun's store
+	live        bool      // the noun's rows are outside the state answer (CatalogNoun.Live): filled through the row source
+	index       bool      // an index list (ListKindIndex): it fills itself from its noun's store
+	asked       time.Time // when the page last asked for the rows (Reload), for the read cache
 }
 
 // ownRows reports whether the list is not filled from the page's row
@@ -786,7 +791,48 @@ func (v *PageView) setRows(pl *pageList, rows []Row, hashes []string) error {
 	if v.cfg.OnRows != nil {
 		v.cfg.OnRows(pl.spec.ID, filed)
 	}
+	v.keepRows(pl, filed)
 	return nil
+}
+
+// cacheKey is the key a list's rows are kept under in the read cache.
+func (v *PageView) cacheKey(pl *pageList) string { return "page " + v.spec.ID + "/" + pl.spec.ID }
+
+// seedCached draws the rows the read cache kept for each list that has
+// none yet (a page's first load in a run), marked as kept until the
+// extension's answer replaces them in place; a tree is drawn when its
+// answer lands.
+func (v *PageView) seedCached() {
+	now := time.Now()
+	for _, pl := range v.lists {
+		pl.asked = now
+		if pl.loaded || pl.ownRows() || pl.tree != nil || pl.list == nil {
+			continue
+		}
+		var rows []Row
+		at, _, ok := v.m.Runtime.CachedAnswer(pl.rowNoun, v.cacheKey(pl), &rows)
+		if !ok {
+			continue
+		}
+		v.seeding = true
+		err := v.setRows(pl, rows, nil)
+		v.seeding = false
+		if err == nil {
+			pl.list.MarkCached(at)
+		}
+	}
+}
+
+// keepRows keeps the rows a list was just given in the read cache.
+func (v *PageView) keepRows(pl *pageList, rows []Row) {
+	if v.seeding || pl.tree != nil {
+		return
+	}
+	took := time.Duration(0)
+	if !pl.asked.IsZero() {
+		took = time.Since(pl.asked)
+	}
+	v.m.Runtime.KeepAnswer(pl.rowNoun, v.cacheKey(pl), "", rows, took)
 }
 
 // item is the list row of a row (its label filled in).
@@ -850,6 +896,7 @@ func (v *PageView) Reload() error {
 	if v.cfg.Fetch == nil {
 		return nil
 	}
+	v.seedCached()
 	werr := v.reloadWidgets()
 	if noun, verb, ok := ochazuke.CutKey(v.doc.State); ok && v.speaksDelta() {
 		return errors.Join(werr, v.reloadState(noun, verb, true))

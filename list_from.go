@@ -7,6 +7,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"time"
 )
 
 // From makes a list the view of a noun's store (AddList(id, nil, From(noun))):
@@ -67,18 +68,33 @@ func (l *Collection) Refill() error {
 	l.stale = false // whatever the read, the list asked for the store's rows
 	n := l.r.Nouns[l.from]
 	c := l.r.backgroundCtx()
+	if !l.seeded {
+		l.seeded = true
+		l.seedFromCache(n) // the kept rows, drawn until the store answers (read_cache.go)
+	}
 	if l.paged != nil {
 		return l.refillWindow(n, c)
 	}
 	if n.Store.Remote || l.r.readsBackground() {
 		return l.refillStepped(n, c)
 	}
+	start := time.Now()
+	token := storeToken(n.Store, c)
+	if l.seedToken != "" && token == l.seedToken {
+		l.cacheFresh() // the kept rows are the store's: nothing to read
+		return nil
+	}
 	page, err := l.r.queryThings(c, n, ListQuery{Archived: true})
 	if err != nil {
 		return err
 	}
 	l.refills++
-	return l.SetItems(l.r.thingItems(c, n, l.id, page.Items, l.columns))
+	items := l.r.thingItems(c, n, l.id, page.Items, l.columns)
+	if err := l.SetItems(items); err != nil {
+		return err
+	}
+	l.keepRows(n, token, items, page.Total, nil, start)
+	return nil
 }
 
 // thingItems are the rows of things, listed under list. A cell is its
@@ -250,8 +266,21 @@ func (h *fromHub) idle() bool {
 // read answers at once, as before.
 func (l *Collection) refillStepped(n *Noun, c Ctx) error {
 	r := l.r
+	start := time.Now()
+	initialToken := storeToken(n.Store, c)
+	seed := l.seedToken
+	if seed != "" && initialToken == seed {
+		l.cacheFresh() // the kept rows are the store's: nothing to read
+		return nil
+	}
 	var page ListPage
+	token, unmoved := initialToken, false
 	body := func(c Ctx) (any, error) {
+		// A remote store's token is read here, in the job: when it is the
+		// kept rows' the store is not read.
+		if token, unmoved = jobToken(n.Store, c, initialToken, seed, seed != ""); unmoved {
+			return nil, nil
+		}
 		p, err := r.queryThings(c, n, ListQuery{Archived: true})
 		page = p
 		return nil, err
@@ -260,8 +289,17 @@ func (l *Collection) refillStepped(n *Noun, c Ctx) error {
 		if err != nil {
 			return nil, err
 		}
+		if unmoved {
+			l.cacheFresh()
+			return nil, nil
+		}
 		l.refills++
-		return nil, l.SetItems(r.thingItems(c, n, l.id, page.Items, l.columns))
+		items := r.thingItems(c, n, l.id, page.Items, l.columns)
+		if err := l.SetItems(items); err != nil {
+			return nil, err
+		}
+		l.keepRows(n, token, items, page.Total, nil, start)
+		return nil, nil
 	}
 	older := r.slotJob(l.id, listReadSlot)
 	res := r.runStoreReads(c, n.Name+".list", body, finish)

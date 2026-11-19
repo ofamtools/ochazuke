@@ -222,6 +222,7 @@ func (m *Model) Init() tea.Cmd {
 	m.applyThemeSetting()
 	m.Runtime.EnsureHistory()
 	m.Runtime.EnsureNounPlaces()
+	m.Runtime.EnsureReadCache()
 	// The retention rules due today (retention.auto; none declared: nothing).
 	// A first large removal held earlier (another process) is told too.
 	m.Runtime.notifyRetentionHeld(m.Runtime.RetentionDue())
@@ -292,6 +293,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	m.ticker.observe(m.Runtime, m.clock())
 	m.Runtime.settlePlacements()
+	m.Runtime.settleReadCache()
 	m.Runtime.syncHelp()
 	m.Runtime.refillShown()
 	m.Runtime.syncDrawnRelated()

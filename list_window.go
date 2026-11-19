@@ -3,6 +3,7 @@ package ochazuke
 import (
 	"fmt"
 	"slices"
+	"time"
 )
 
 // Windowed lists (noun scaffold plan, a): a list From a noun whose store
@@ -88,12 +89,14 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 	key := windowKey(q)
 	token := storeToken(n.Store, c)
 	if w.filled && key == w.key && token != "" && token == w.token {
+		l.cacheFresh() // rows kept from an earlier run are confirmed too (read_cache.go)
 		return nil
 	}
 	if key == w.asked {
 		return nil // the same read is under way
 	}
 	arch := r.archiveHiding(n, q)
+	start := time.Now()
 	var page ListPage
 	archived := -1
 	unmoved := false
@@ -122,7 +125,7 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 	finish := func(_ any, err error) (any, error) {
 		w.asked = ""
 		if err != nil || unmoved {
-			return nil, err
+			return nil, l.unmovedRead(err)
 		}
 		if pages := windowPages(page.Total, w.per); w.page > pages && page.Total > 0 {
 			w.page = pages // the store shrank under the page: show its last page
@@ -142,6 +145,7 @@ func (l *Collection) refillWindow(n *Noun, c Ctx) error {
 		if err := l.SetItems(items); err != nil {
 			return nil, err
 		}
+		l.keepRows(n, token, items, page.Total, countedArchived(archived), start)
 		if w.selectNext {
 			l.windowSelect()
 		}
