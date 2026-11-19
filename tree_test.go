@@ -109,3 +109,25 @@ func TestTreeCollapseUnavailableWithNothingToDo(t *testing.T) {
 		}
 	}
 }
+
+// shift+enter on an open line breaks the line inside the row's text: no
+// new row, the line stays open, and leaving it writes both lines as the
+// row's one label (alt+enter and ctrl+j, for terminals that report no
+// shift+enter, do the same).
+func TestTreeShiftEnterBreaksTheLine(t *testing.T) {
+	t.Parallel()
+	r, m, tree, writes := treeFixture(t)
+	pressKeys(m, "i", "x", "shift+enter", "y", "ctrl+j", "z", "esc")
+	if r.Mode.Name != "normal" || tree.Editing() != "" {
+		t.Fatalf("mode %q editing %q", r.Mode.Name, tree.Editing())
+	}
+	if got := nodeIDs(tree); !slices.Equal(got, []string{"a", "b"}) {
+		t.Fatalf("nodes %v: a newline made a row", got)
+	}
+	if n, _ := tree.Selected(); n.Label != "x\ny\nz" {
+		t.Fatalf("label %q, want x\\ny\\nz", n.Label)
+	}
+	if want := "rename a: x\ny\nz"; len(*writes) == 0 || (*writes)[len(*writes)-1] != want {
+		t.Fatalf("writes %q, want last %q", *writes, want)
+	}
+}

@@ -27,6 +27,10 @@ const (
 // FocusDisplayModes are focus-display's values, in cycle order.
 var FocusDisplayModes = []string{FocusDisplayOff, FocusDisplayNoun, FocusDisplayStack}
 
+// FocusDisplayThingsSetting names a part by the noun of the thing it draws
+// (Noun.Shows) in the focus display; off names the part's own noun.
+const FocusDisplayThingsSetting = "focus-display.things"
+
 // FocusLabelMax is the widest label (in cells) the stack shows for a
 // level; a level with a longer label, or none, shows its noun.
 const FocusLabelMax = 16
@@ -97,14 +101,24 @@ func (r *Runtime) focusLevelName(id string) string {
 	if label != "" && ansi.StringWidth(label) <= FocusLabelMax {
 		return label
 	}
-	return r.DisplayNoun(inst.Noun)
+	return r.shownNoun(inst.Noun)
 }
 
-// FocusNoun is the focused instance's noun as DisplayNoun, "" without a
-// focus.
+// shownNoun is the name the focus display gives a noun: the noun its
+// instances draw (Noun.Shows) while focus-display.things is on, else the
+// noun itself, as DisplayNoun.
+func (r *Runtime) shownNoun(noun string) string {
+	if n := r.Nouns[noun]; n != nil && n.Shows != "" && r.Settings().Bool(FocusDisplayThingsSetting) {
+		return r.DisplayNoun(n.Shows)
+	}
+	return r.DisplayNoun(noun)
+}
+
+// FocusNoun is the focused instance's noun as the focus display names it
+// (the noun it shows, Noun.Shows, else DisplayNoun), "" without a focus.
 func (r *Runtime) FocusNoun() string {
 	if inst := r.Instances[r.Focus]; inst != nil {
-		return r.DisplayNoun(inst.Noun)
+		return r.shownNoun(inst.Noun)
 	}
 	return ""
 }

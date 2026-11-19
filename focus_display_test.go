@@ -135,6 +135,27 @@ func TestFocusPathLabelOrNoun(t *testing.T) {
 	}
 }
 
+// A part that draws another noun's thing (Noun.Shows) is named as that
+// noun where its label is too wide; focus-display.things off names the
+// part's own noun.
+func TestFocusDisplayNamesTheShownNoun(t *testing.T) {
+	r, _ := focusDisplayApp(t)
+	r.Define("file-row").Shows("file")
+	r.Instances["f2"].Noun = "file-row"
+	if err := r.SetFocus("f2"); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(r.FocusPath(), " › "); got != "Work › collection › file" || r.FocusNoun() != "file" {
+		t.Fatalf("things on: path %q noun %q", got, r.FocusNoun())
+	}
+	if err := r.Settings().Set(FocusDisplayThingsSetting, false); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(r.FocusPath(), " › "); got != "Work › collection › file-row" || r.FocusNoun() != "file-row" {
+		t.Fatalf("things off: path %q noun %q", got, r.FocusNoun())
+	}
+}
+
 // Cutting drops whole levels from the left behind "… › " and keeps the
 // innermost level; an innermost level wider than the room is cut from its
 // left behind "…".

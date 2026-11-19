@@ -38,6 +38,12 @@ type Noun struct {
 	// (the editor noun). An instance whose noun names none takes its
 	// component's (FallbackKeys: every Input names the editor noun).
 	Fallback string `json:"fallback,omitempty"`
+	// Shows names the noun of the things this noun's instances draw
+	// (NounBuilder.Shows): an application's outline row of a task names
+	// task. The focus display (focus-display) names that noun in place of
+	// this one while focus-display.things is on; keys, the palette, the
+	// CLI and the catalog keep the noun's own name.
+	Shows string `json:"shows,omitempty"`
 	// Parent names the reference prop that holds a thing's parent (a
 	// pane's session): lists nest a thing under it and Inherit walks it
 	// (spine S1, S5). Declared and carried; nothing reads it yet.
@@ -764,6 +770,12 @@ func (b *NounBuilder) NoPicker() *NounBuilder { b.n.NoPicker = true; return b }
 // Main marks the noun as its program's main noun (Noun.Main): a word that
 // leaves the noun out reads as this one first, within its namespace.
 func (b *NounBuilder) Main() *NounBuilder { b.n.Main = true; return b }
+
+// Shows names the noun of the things the noun's instances draw, for the
+// focus display (Noun.Shows): a part that draws another noun's thing (an
+// outline row drawing a task) is named as that noun where the focus is
+// shown.
+func (b *NounBuilder) Shows(noun string) *NounBuilder { b.n.Shows = noun; return b }
 
 // DefaultAction names the action the noun's words run with no action word,
 // or only flags, after them (Noun.DefaultAction).
