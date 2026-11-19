@@ -578,6 +578,25 @@ also selects the last item on `<C-p>` from none (checked on Neovim 0.12.3).
 | `<C-n>` from no selection | `i_CTRL-N` | Same: selects the first item |
 | Completion at an edge | `ins-completion` | Similar: palette wraps; pickers and inline completion clamp |
 
+Noun references (`text.noun-refs`, ochazuke › Records, default off): in any
+text input, `#` at the start of a word lists the nouns that have a picker;
+picking one (`tab`, or `enter` once highlighted) leaves `#noun:` and lists
+that noun's things, from the same source its picker reads, with
+`Create "TYPED"…` last for a noun that creates. Picking inserts
+`#noun:Label`, quoted when the label has spaces (`#project:"North Star"`).
+`esc` or a space closes the list; `# ` (a Markdown heading) does nothing.
+
+Compared with Vim: the nearest is user-defined insert completion
+(`:help compl-function`, `'completefunc'`): a function answers the word
+before the cursor. Vim has no two-step completion (a kind, then its items)
+and no row that makes a new item.
+
+| Vim form | Help tag | Ochazuke behavior |
+|---|---|---|
+| User completion function | `compl-function` | Similar: `#` is a trigger whose answer comes from the noun registry, opened by typing rather than `CTRL-X CTRL-U` |
+| Completion of a kind, then its items | (none) | Not in Vim: picking a noun reopens the list on its things |
+| Make a new item from the menu | (none) | Not in Vim: `Create "TYPED"…` runs the noun's create |
+
 
 - `:` opens the palette: an ex-mode command line, one `prompt` input (insert pinned, the Readline rows edit it: `Ctrl-W` deletes a word, `Ctrl-U` the line). The line's text is the command; there are no stages.
 - Words resolve left to right. The first word is a verb or a noun; the second is the complement (a noun that has the verb, or a verb or instance of the noun); then the operation's parameters in order (required first, then by name). Every word may be a unique prefix (`tr r up`); an ambiguous prefix stays unresolved and the list shows its candidates. A first word that is a prefix of exactly one verb and one noun takes the reading the next words resolve. A value with spaces is quoted (`add note "two words"`).
@@ -1591,6 +1610,7 @@ result, err := r.Execute(ochazuke.Request{
 | `path_chooser.go` | Path parameters (`Type: "path"`, `Path`, `Base`, `New`, `Start`: the source it opens on) and the path picker (`OpenPathChooser`): browse, recent (file picks navigate recent directories with `Opens`/`NoPick`; directory picks select directly; `path.recent-dirs` toggles directory rows for file picks), typed, then `AddPathSource` sources (each may set `PickerSource.Keep`, its columns cut last); `PathChooserSpec.Source` names the source it opens on (else `picker.remember-source`'s); `PathStart`, `SetPathBase`, `SetRecentPaths`; settings `path.start`, `path.field`, `path.hidden`, `path.no-auto-list`, `path.recent-dirs`, `path.first` (the sources listed first, default `walk`) |
 | `path_walk.go` | The walk path source: `AddWalkPathSource(func(PathPick) PathWalk)` (or `WalkSource` under another name) lists every folder (files for a file pick) under the application's roots, breadth first, streamed into the picker in batches (`ChooserBatch`), rows relative to their root with the root's label, the filter on the whole path; settings `path.walk`, `path.walk-depth`, `path.walk-limit`, `path.walk-ignore`, `path.walk-hidden`, `path.walk-include`; a finished root walk is reused for 30 seconds. Compared with Vim: like `:find` over `'path'` with `**` (`:help starstar`, depth 30 there, `path.walk-depth` here) and `'wildignore'` (`path.walk-ignore`), but the candidates stream into a fuzzy picker rather than completing on tab, and hidden folders are skipped unless `path.walk-hidden` or `path.walk-include` names them |
 | `completion.go`, `completion_list.go` | Inline completion: an input's triggers and searches (`Completions`, `NounBuilder.Completions`, `CompletionTrigger`, `Suggestion`, `SearchStrings`), the token rule (`FindCompletionToken`) and the `Completer`, the suggestion list that answers as the input's inner level while typing keeps editing it |
+| `noun_refs.go` | Noun references in text (`text.noun-refs`): the `#` trigger every text input gets, its nouns (`PickerDefs` naming a noun), a noun's things (its picker's source) and the `Create "TYPED"…` row (`createNamed`) |
 | `terminal.go` | The `terminal` noun: `AddTerminal`, `TerminalStream`, frames through the delivery contract, the leader contract, pane cursor |
 | `layout.go` | `Layout.Shell`, the one page chrome (title row with badge, tabs or subtitle, body, footer), panels, splits, sidebar |
 | `panes.go` | Resizable list/detail splits: the divider per page (`Layout.Shift`, read through `Runtime.PaneLayout(page, layout)`, applied by `Layout.Divide` and every `Split*`), `Runtime.PaneShift`/`SetPaneShift`, `pane.grow`/`pane.shrink {steps, page}` and `pane.reset {page}`, the `ctrl+w >` `ctrl+w <` `ctrl+w =` rows guarded by `pane-split`, one pane alone (`pane.only {pane, page}`, `pane.restore {page}`, `Layout.Only`, `ctrl+w o` guarded by `pane-split`/`pane-only`), `panes.json` in the state directory |

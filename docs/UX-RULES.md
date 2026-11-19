@@ -1016,6 +1016,14 @@ the two disagree, fix one in the same commit.
   `TestCompletionTriggerBoundaries`, `TestCompletionSearchAtSeesTheText`,
   `TestChoicesSeeTheTypedText`, `TestFormSuggestionsFollowTheQuery`,
   `TestPaletteChoicesSeeTheWord`.
+  With `text.noun-refs` on (default off), every text input that is not
+  Secret or read-only also completes `#` (unless its own trigger is `#` or
+  completes every token): `#` lists the nouns with a picker, a noun leaves
+  `#noun:` and lists its things, `Create "TYPED"…` (last, for a noun that
+  creates) makes one by the noun's create, and a pick inserts
+  `#noun:Label`, quoted when it has spaces; a `Quoted` trigger's token runs
+  over its quotes. `# ` (a heading) and `esc` leave the text as typed.
+  Tests `TestNounRefsSetting`, `TestNounRefsPickThingAndCreate`.
 - **R9.8** A read-only input (`Input.ReadOnly`; the text view a palette
   text result opens) is a viewer, not a disabled field: the cursor, every
   motion, `v`/`V`/`ctrl+v` and `y` work as in any input, and yanks reach

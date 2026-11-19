@@ -30,6 +30,13 @@ type Suggestion struct {
 	Text   string `json:"text"`
 	Label  string `json:"label,omitempty"`
 	Detail string `json:"detail,omitempty"`
+	// Continue asks, once the suggestion is in, for the suggestions of the
+	// token it leaves at once (a noun's name, then that noun's things).
+	Continue bool `json:"continue,omitempty"`
+	// Make, when set, is a name to make: accepting the suggestion runs its
+	// trigger's Make on the loop first, which answers the text that goes
+	// in place of Text; an error leaves the input as it was.
+	Make string `json:"make,omitempty"`
 }
 
 // label is what the suggestion list draws for the suggestion.
@@ -83,6 +90,17 @@ type CompletionTrigger struct {
 	// field whose words all come from a list (a filter form's values).
 	// An empty Trigger without Every is refused.
 	Every bool
+	// Quoted lets a token that starts with the trigger hold a double-quoted
+	// run that whitespace does not end (#project:"North Star"); a line
+	// break always ends it.
+	Quoted bool
+	// Load, when set in place of Search, answers on the loop: Done with the
+	// []Suggestion at hand, or Pending work answering them, run off the
+	// loop as the search job (a picker's own source).
+	Load func(r *Runtime, q CompletionQuery) Result
+	// Make makes what an accepted suggestion's Make names (a thing of a
+	// noun, by its standard create) and answers the text to insert.
+	Make func(r *Runtime, s Suggestion) (string, error)
 }
 
 // CompletionQuery is what a SearchAt search is asked: the query (the
@@ -138,7 +156,7 @@ func validTriggers(triggers []CompletionTrigger) error {
 			return fmt.Errorf("completion trigger %q completes every token: its Trigger must be empty", t.Trigger)
 		case strings.IndexFunc(t.Trigger, unicode.IsSpace) >= 0:
 			return fmt.Errorf("completion trigger %q must not hold whitespace", t.Trigger)
-		case t.Search == nil && t.SearchAt == nil:
+		case t.Search == nil && t.SearchAt == nil && t.Load == nil:
 			return fmt.Errorf("completion trigger %q needs a search", t.Trigger)
 		case strings.ContainsAny(t.Boundaries, t.Trigger):
 			return fmt.Errorf("completion trigger %q must not hold its boundaries %q", t.Trigger, t.Boundaries)
@@ -148,21 +166,22 @@ func validTriggers(triggers []CompletionTrigger) error {
 }
 
 // CompletionTriggers are the triggers an input completes with: its own,
-// else its noun's.
+// else its noun's, then the noun references' "#" while text.noun-refs is
+// on (nounRefTriggers).
 func (r *Runtime) CompletionTriggers(id string) []CompletionTrigger {
 	in := r.Input(id)
 	if in == nil {
 		return nil
 	}
-	if len(in.Completions) > 0 {
-		return in.Completions
-	}
-	if inst := r.Instances[id]; inst != nil {
-		if n := r.Nouns[inst.Noun]; n != nil {
-			return n.Completions
+	own := in.Completions
+	if len(own) == 0 {
+		if inst := r.Instances[id]; inst != nil {
+			if n := r.Nouns[inst.Noun]; n != nil {
+				own = n.Completions
+			}
 		}
 	}
-	return nil
+	return r.nounRefTriggers(in, own)
 }
 
 // CompletionToken is the trigger token under an input's cursor: the rune
@@ -200,11 +219,15 @@ func FindCompletionTokenIn(text []rune, cursor int, triggers []CompletionTrigger
 		}
 		ends := func(r rune) bool { return unicode.IsSpace(r) || strings.ContainsRune(t.Boundaries, r) }
 		start, end := cursor, cursor
-		for start > 0 && !ends(text[start-1]) {
-			start--
-		}
-		for end < len(text) && !ends(text[end]) {
-			end++
+		if t.Quoted {
+			start, end = quotedSpan(text, cursor, []rune(t.Trigger), ends)
+		} else {
+			for start > 0 && !ends(text[start-1]) {
+				start--
+			}
+			for end < len(text) && !ends(text[end]) {
+				end++
+			}
 		}
 		token := string(text[start:end])
 		if !strings.HasPrefix(token, t.Trigger) {
@@ -218,6 +241,46 @@ func FindCompletionTokenIn(text []rune, cursor int, triggers []CompletionTrigger
 		return CompletionToken{}, -1, false
 	}
 	return found, best, true
+}
+
+// quotedSpan is the token holding the cursor on its line where a token
+// that starts with trigger may hold double-quoted runs (a backslash
+// escapes the next rune inside one) that ends does not split; a quote in
+// any other token is a plain rune.
+func quotedSpan(text []rune, cursor int, trigger []rune, ends func(rune) bool) (int, int) {
+	line := cursor
+	for line > 0 && text[line-1] != '\n' {
+		line--
+	}
+	start := line
+	starts := func(at int) bool {
+		return at+len(trigger) <= len(text) && slices.Equal(text[at:at+len(trigger)], trigger)
+	}
+	triggered, quoted, escaped := starts(start), false, false
+	for i := line; ; i++ {
+		last := i >= len(text) || text[i] == '\n'
+		if !last {
+			r := text[i]
+			switch {
+			case escaped:
+				escaped = false
+				continue
+			case quoted && r == '\\':
+				escaped = true
+				continue
+			case triggered && r == '"':
+				quoted = !quoted
+				continue
+			case quoted || !ends(r):
+				continue
+			}
+		}
+		if i >= cursor || last {
+			return start, i
+		}
+		start = i + 1
+		triggered, quoted = starts(start), false
+	}
 }
 
 // completionToken is FindCompletionTokenIn over an input's triggers.

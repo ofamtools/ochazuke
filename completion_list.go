@@ -303,11 +303,25 @@ func (c *Completer) launch() {
 	r := c.r
 	seq, query, trigger := c.seq, c.token.Query, c.trigger
 	q := CompletionQuery{Query: query, Text: c.text, Cursor: c.cursorAt, Token: c.token}
-	work := func(ctx context.Context) (any, error) {
+	res := Pending(func(ctx context.Context) (any, error) {
 		rows, err := trigger.search(ctx, q)
 		return completionAnswer{seq: seq, rows: rows, err: err}, nil
+	})
+	if trigger.Load != nil {
+		res = trigger.Load(r, q)
+		if res.work == nil {
+			// At hand on the loop: shown now, no job.
+			rows, _ := res.value.([]Suggestion)
+			c.launched = seq
+			c.answer(completionAnswer{seq: seq, rows: rows, err: res.err})
+			return
+		}
+		res = res.bare().Map(func(value any, err error) (any, error) {
+			rows, _ := value.([]Suggestion)
+			return completionAnswer{seq: seq, rows: rows, err: err}, nil
+		})
 	}
-	ticket, err := r.Launch(completionID, "ochazuke.completion.search", Pending(work).Label(c.token.Trigger+query), Ctx{Runtime: r, Context: r.contextOf(completionID), Instance: r.Instances[completionID]})
+	ticket, err := r.Launch(completionID, "ochazuke.completion.search", res.Label(c.token.Trigger+query), Ctx{Runtime: r, Context: r.contextOf(completionID), Instance: r.Instances[completionID]})
 	if err != nil {
 		c.rows, c.err = nil, err
 	} else {
@@ -384,8 +398,9 @@ func (c *Completer) move(delta int) {
 
 // accept replaces the token under the cursor with the highlighted
 // suggestion (else the first), keeping the trigger unless it says
-// DropTrigger, as its own undo step,
-// and closes the list.
+// DropTrigger, as its own undo step, and closes the list; a suggestion
+// that Makes its text makes it first, and one that says Continue opens
+// the list again on the token it leaves.
 func (c *Completer) accept() error {
 	in := c.r.Input(c.input)
 	if in == nil || !c.open {
@@ -400,12 +415,23 @@ func (c *Completer) accept() error {
 		c.stop()
 		return errors.New("the cursor left the completion token")
 	}
+	text := pick.Text
+	if pick.Make != "" && trigger.Make != nil {
+		made, err := trigger.Make(c.r, pick)
+		if err != nil {
+			return err
+		}
+		text = made
+	}
 	// One undoable edit: the typing before it and after it are other steps.
 	in.endGroup()
-	err := in.Replace(tok.Start, tok.End, trigger.replacement(pick.Text))
+	err := in.Replace(tok.Start, tok.End, trigger.replacement(text))
 	in.endGroup()
 	c.stop()
 	c.seen, c.text = snapshotOf(in), string(in.Text)
+	if err == nil && pick.Continue {
+		return c.openAt(in.ID)
+	}
 	return err
 }
 
