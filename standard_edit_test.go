@@ -180,6 +180,13 @@ func TestStandardEditKeyPrecedence(t *testing.T) {
 	if s.find("t1")["title"] != "Custom" || r.TopModal() != "" {
 		t.Fatalf("custom edit: %v modal %s", s.find("t1"), r.TopModal())
 	}
+	// g E is the standard edit-props key: it opens the edit form where the
+	// noun gave i another meaning.
+	keytest.Press(m, "g")
+	keytest.Press(m, "E")
+	if r.TopModal() == "" {
+		t.Fatal("g E did not open the edit form")
+	}
 	other, store := editFixture(t)
 	input := NewInput("text", "Original", false)
 	if err := other.AddInput(input, Parent("row")); err != nil {
