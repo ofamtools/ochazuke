@@ -2,6 +2,7 @@ package ochazuke
 
 import (
 	"fmt"
+	"image/color"
 	"slices"
 	"strconv"
 	"strings"
@@ -1245,7 +1246,11 @@ func (m *Model) render() Block {
 		if len(cells) > 0 {
 			styled = func(w int) (string, bool) { return layout.Styles.hintLine(lead, cells, min(w, hintWidth)) }
 		}
-		surface = m.modalBlock(id, layout, surface.Text, title, body, hint, lead, cells, hintWidth, styled, place)
+		var border color.Color
+		if m.Runtime.settingBool(ModalModeBorderSetting) {
+			border = layout.Styles.ModalBorder(id == m.Runtime.TopModal() && m.Runtime.EscCooling())
+		}
+		surface = m.modalBlock(id, layout, surface.Text, title, body, hint, lead, cells, hintWidth, styled, place, border)
 	}
 	if len(m.Runtime.modals) == 0 {
 		m.surfaces.modals = nil

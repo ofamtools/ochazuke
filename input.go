@@ -4,6 +4,7 @@ import (
 	"errors"
 	"slices"
 	"strings"
+	"time"
 )
 
 // EditNode is one state in an input's undo tree: its text, cursor, parent and children.
@@ -64,6 +65,11 @@ type Input struct {
 	// insert mode the next text typed replaces it; nil when none is open.
 	typeOver *[2]int
 	r        *Runtime // set by AddInput; while the input is focused its mode is r.Mode
+	// LeftInsert is when the input last left a typing mode for another
+	// (esc in insert): a modal's esc does not close it until
+	// modal.esc-cooldown has passed since (guard esc-closes), and its
+	// border shows the cooling tone meanwhile. Zero for never.
+	LeftInsert time.Time
 }
 
 // InputScreen is the text lines a draw of an input showed: the first
@@ -155,6 +161,9 @@ func (in *Input) transition(mode string, stepBack bool) {
 	wasInsert, isInsert := typingMode(in.r, old), typingMode(in.r, mode)
 	if wasInsert {
 		in.finishBlockChange()
+		if !isInsert {
+			in.LeftInsert = time.Now()
+		}
 	}
 	edited := in.groupNode == in.Head
 	in.endGroup()

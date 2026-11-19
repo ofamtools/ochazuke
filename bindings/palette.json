@@ -17,7 +17,7 @@
       {"key": "alt+right", "action": "ochazuke.palette.cell", "args": {"to": "last-col"}, "when": "setting:palette.style=board"},
       {"key": "backspace", "action": "ochazuke.palette.back", "when": "setting:palette.style=board"},
       {"key": "esc", "action": "ochazuke.palette.cancel", "when": "setting:palette.style=board"},
-      {"key": "esc", "action": "ochazuke.modal.close", "when": "setting:modal.esc-closes"},
+      {"key": "esc", "action": "ochazuke.modal.close", "when": "esc-closes"},
       {"key": "ctrl+c", "action": "ochazuke.palette.close"}
     ]},
     {"context": "ochazuke.palette/normal", "bindings": [

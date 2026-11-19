@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"image/color"
 	"strings"
 	"unicode"
 
@@ -52,7 +53,7 @@ func ComposeModalBlock(background, title string, body Block, footer string, widt
 // styled, when not nil, draws the footer in the panel's width as the
 // chrome colours a hint line (Styles.hintLine); its ok false, or a nil
 // styled, draws footer as one muted label. footer still sizes the panel.
-func composeModalAt(background, title string, body Block, footer string, styled func(width int) (string, bool), width, height int, styles Styles, place func(panelWidth, panelHeight int) (left, top int)) Block {
+func composeModalAt(background, title string, body Block, footer string, styled func(width int) (string, bool), width, height int, styles Styles, place func(panelWidth, panelHeight int) (left, top int), border ...color.Color) Block {
 	contentWidth, contentHeight, bordered := modalBounds(width, height)
 	if contentWidth == 0 || contentHeight == 0 {
 		if width <= 0 || height <= 0 {
@@ -96,7 +97,11 @@ func composeModalAt(background, title string, body Block, footer string, styled 
 				rows[i] = modalForeground(row, foreground)
 			}
 		}
-		panel := lipgloss.NewStyle().Foreground(styles.Panel.GetForeground()).Border(styles.Border(false)).BorderForeground(styles.Chrome("border.modal", lipgloss.NewStyle().Foreground(styles.Accent.GetForeground())).GetForeground()).Padding(0, 1)
+		edge := styles.Chrome("border.modal", lipgloss.NewStyle().Foreground(styles.Accent.GetForeground())).GetForeground()
+		if len(border) > 0 && border[0] != nil {
+			edge = border[0] // modal.mode-border: the mode's hue, or the cooling tone
+		}
+		panel := lipgloss.NewStyle().Foreground(styles.Panel.GetForeground()).Border(styles.Border(false)).BorderForeground(edge).Padding(0, 1)
 		lines = strings.Split(panel.Render(strings.Join(rows, "\n")), "\n")
 		panelWidth += 4
 		// Border and padding on the left; border and title row above.

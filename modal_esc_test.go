@@ -127,3 +127,40 @@ func TestSettingGuardFollowsTheSetting(t *testing.T) {
 		t.Fatal("does not hold with the setting on")
 	}
 }
+
+// With modal.esc-closes on, the esc that leaves insert in a modal's field
+// and a quick second one never close the modal together: for
+// modal.esc-cooldown after leaving insert, esc stands aside (q still
+// closes); with the cooldown 0 the second esc closes at once.
+func TestModalEscCooldownKeepsTheModalOpen(t *testing.T) {
+	t.Parallel()
+	for _, wait := range []string{"1h", "0s"} {
+		r := escFixture(t)
+		if err := r.Settings().Set(ModalEscClosesSetting, true); err != nil {
+			t.Fatal(err)
+		}
+		if err := r.Settings().Set(ModalEscCooldownSetting, wait); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := r.OpenModal("ask", Payload{}, WithInput(NewInput("ask-field", "x", false))); err != nil {
+			t.Fatal(err)
+		}
+		press(t, r, "i", "esc")
+		if r.TopModal() != "ask" || r.Mode.Name != "normal" {
+			t.Fatalf("%s: esc in insert: modal %q mode %q", wait, r.TopModal(), r.Mode.Name)
+		}
+		if got := r.EscCooling(); got != (wait != "0s") {
+			t.Fatalf("%s: cooling %v", wait, got)
+		}
+		press(t, r, "esc")
+		if open := r.TopModal() == "ask"; open != (wait != "0s") {
+			t.Fatalf("%s: second esc left the modal open=%v", wait, open)
+		}
+		if wait != "0s" {
+			press(t, r, "q")
+			if r.TopModal() != "" {
+				t.Fatalf("q did not close the cooling modal")
+			}
+		}
+	}
+}

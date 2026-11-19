@@ -298,9 +298,38 @@ func (r *Runtime) dropsInheritedSequences() bool {
 
 // ModalEscClosesSetting is the modal.esc-closes setting: off (the default),
 // esc only leaves insert in a modal and q closes it; on, esc closes a modal
-// as it did before (rows guarded "setting:modal.esc-closes", and a modal's
+// as it did before (rows guarded "esc-closes", which also waits out modal.esc-cooldown, and a modal's
 // text input pinned to insert).
 const ModalEscClosesSetting = "modal.esc-closes"
+
+// ModalEscCooldownSetting is modal.esc-cooldown: how long after a modal's
+// input left insert (esc) an esc row guarded esc-closes stays out, so the
+// esc that leaves insert and a quick second one never close the modal
+// together. 0 turns the wait off.
+const ModalEscCooldownSetting = "modal.esc-cooldown"
+
+// ModalModeBorderSetting is modal.mode-border: a modal's border is drawn
+// in the current mode's badge colour (insert, normal, a pending key)
+// even when the application has its own accent, and in the
+// border.modal.cooling tone while modal.esc-cooldown runs. Off, the
+// border is drawn as before (border.modal).
+const ModalModeBorderSetting = "modal.mode-border"
+
+// escCooling reports whether the input at focus left insert less than
+// modal.esc-cooldown ago.
+func (r *Runtime) escCooling(focus string) bool {
+	in := r.Input(focus)
+	if in == nil || in.LeftInsert.IsZero() {
+		return false
+	}
+	wait := r.Settings().Duration(ModalEscCooldownSetting)
+	return wait > 0 && time.Since(in.LeftInsert) < wait
+}
+
+// EscCooling reports whether the focus is in its esc cooldown
+// (modal.esc-cooldown after its input left insert): an esc row guarded
+// esc-closes stands aside, and a modal's border shows the cooling tone.
+func (r *Runtime) EscCooling() bool { return r.escCooling(r.Focus) }
 
 // releaseModalPin lets esc leave insert in a text input a modal hosts: the
 // input stays in insert on open, but is no longer pinned there, unless

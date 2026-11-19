@@ -204,6 +204,7 @@ type Styles struct {
 	chrome         string              // the chrome level (chrome.color), "" before WithChrome (chrome.go)
 	appAccent      color.Color         // Appearance.Accent when it draws (not mono, not NO_COLOR)
 	modeColor      color.Color         // the mode role: the current mode's badge colour (WithChrome)
+	modeHue        color.Color         // the current mode's own badge hue, even under an app accent (WithChrome; ModalBorder)
 
 	borderSet, glyphSet string
 	glyphRows           *GlyphRows

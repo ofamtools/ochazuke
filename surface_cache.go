@@ -1,6 +1,9 @@
 package ochazuke
 
-import "slices"
+import (
+	"image/color"
+	"slices"
+)
 
 // The input to a composer is already a value snapshot. Compare it before
 // fitting rows, measuring graphemes or allocating a canvas. Page renderers
@@ -26,6 +29,7 @@ type modalFrame struct {
 	cells                         []HintCell
 	hintWidth, x, y               int
 	anchored                      bool
+	border                        color.Color // modal.mode-border's colour; nil draws border.modal
 }
 
 type modelSurfaces struct {
@@ -82,17 +86,20 @@ func (m *Model) shellBlock(l Layout, h Header, b Block, f Footer) Block {
 	return out
 }
 
-func (m *Model) modalBlock(id string, l Layout, background, title string, body Block, hint, lead string, cells []HintCell, hintWidth int, styled func(int) (string, bool), place func(int, int) (int, int)) Block {
+func (m *Model) modalBlock(id string, l Layout, background, title string, body Block, hint, lead string, cells []HintCell, hintWidth int, styled func(int) (string, bool), place func(int, int) (int, int), border ...color.Color) Block {
 	key := modalFrame{style: m.surfaceStyle(), background: background, title: title, body: body, hint: hint, lead: lead, cells: cells, hintWidth: hintWidth, anchored: place != nil}
+	if len(border) > 0 && border[0] != nil {
+		key.border = border[0]
+	}
 	if place != nil {
 		key.x, key.y = place(0, 0)
 	}
 	old, ok := m.surfaces.modals[id]
 	if ok && old.style == key.style && old.background == background && old.title == title && sameBlock(old.body, body) && old.hint == hint && old.lead == lead &&
-		old.hintWidth == hintWidth && old.anchored == key.anchored && old.x == key.x && old.y == key.y && slices.Equal(old.cells, cells) && m.Runtime.Settings().Int(RenderMaxFPSSetting) > 0 {
+		old.hintWidth == hintWidth && old.border == key.border && old.anchored == key.anchored && old.x == key.x && old.y == key.y && slices.Equal(old.cells, cells) && m.Runtime.Settings().Int(RenderMaxFPSSetting) > 0 {
 		return copyBlock(old.block)
 	}
-	out := composeModalAt(background, title, body, hint, styled, m.Width, m.Height, l.Styles, place)
+	out := composeModalAt(background, title, body, hint, styled, m.Width, m.Height, l.Styles, place, key.border)
 	if m.redraw.trace != nil {
 		m.redraw.trace.modalCompositions++
 	}

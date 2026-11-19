@@ -1613,7 +1613,8 @@ func selectionModeOf(modes map[string]string, shape string) string {
 // requires (Binding.When; bindings check lists such rows as debts). The built-in guards are
 // "input" and "no-input" (the focus is or is not an input), "multiline", "count" and "no-count" (the
 // pending count is present or absent), "self" (the focus is the instance
-// whose level the row sits on, not a descendant), "shadow-idle" (the mode a
+// whose level the row sits on, not a descendant), "esc-closes" (setting
+// modal.esc-closes is on and the focus is past its modal.esc-cooldown), "shadow-idle" (the mode a
 // shadow mode such as macro_recording re-dispatches in is normal with an
 // empty payload), "op:<key>" (the pending operator), "setting:<name>" (a
 // boolean setting is on) and the row guards "row:<field>", "row:!<field>",
@@ -1639,6 +1640,12 @@ func builtinGuards() map[string]Guard {
 		"count":     func(r *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Count > 0 },
 		"no-count":  func(r *Runtime, ev KeyEvent) bool { return ev.Mode.Payload.Count == 0 },
 		"self":      func(r *Runtime, ev KeyEvent) bool { return ev.Focus == ev.Level },
+		// esc-closes guards the esc rows that close a modal: the setting
+		// modal.esc-closes is on and the focus is not in its esc
+		// cooldown (modal.esc-cooldown after its input left insert).
+		"esc-closes": func(r *Runtime, ev KeyEvent) bool {
+			return r.settingBool(ModalEscClosesSetting) && !r.escCooling(ev.Focus)
+		},
 		"shadow-idle": func(r *Runtime, ev KeyEvent) bool {
 			shadow := ev.Mode.Payload.Shadow
 			return shadow != nil && r.modes[shadow.Name].CursorOnChar && shadow.Payload.empty()

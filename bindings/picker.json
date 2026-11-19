@@ -30,7 +30,7 @@
       {"key": "ctrl+o", "action": "ochazuke.picker.next-source"},
       {"key": "alt+o", "action": "ochazuke.picker.previous-source"},
       {"key": "alt+s", "action": "ochazuke.picker.next-scope", "hidden": true},
-      {"key": "esc", "action": "ochazuke.modal.close", "when": "setting:modal.esc-closes"},
+      {"key": "esc", "action": "ochazuke.modal.close", "when": "esc-closes"},
       {"key": "down", "action": "ochazuke.picker.move", "args": {"delta": 1}},
       {"key": "ctrl+j", "action": "ochazuke.picker.move", "args": {"delta": 1}},
       {"key": "ctrl+n", "action": "ochazuke.picker.move", "args": {"delta": 1}},

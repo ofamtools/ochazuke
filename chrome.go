@@ -1,6 +1,7 @@
 package ochazuke
 
 import (
+	"image/color"
 	"maps"
 	"slices"
 	"strings"
@@ -148,6 +149,7 @@ func chromeTones() map[string]ToneStyle {
 		"chrome.rich.border":                   {Fg: chromeTeal},
 		"chrome.rich.border.focused":           {Fg: chromeMode, Bold: true},
 		"chrome.rich.border.modal":             {Fg: chromeMode},
+		"chrome.rich.border.modal.cooling":     {Fg: chromeError, Bold: true},
 		"chrome.rich.border.completion":        {Fg: chromeMode},
 		"chrome.rich.border.split":             {Fg: chromeTeal},
 		"chrome.rich.border.state.working":     {Fg: chromeInsert},
@@ -169,6 +171,7 @@ func chromeTones() map[string]ToneStyle {
 
 		"chrome.subtle.border.state.needs-input": {Fg: chromeAmber},
 		"chrome.subtle.border.state.errored":     {Fg: chromeError},
+		"chrome.subtle.border.modal.cooling":     {Fg: chromeError},
 		"chrome.subtle.hint.key":                 {Fg: chromeText},
 		"chrome.subtle.tab.active":               {Fg: chromeMode, Bg: chromeSurf, Bold: true},
 		"chrome.subtle.job.running":              {Fg: chromeInsert, Bold: true},
@@ -259,12 +262,23 @@ func (s Styles) WithChrome(level string, modeRoles []string) Styles {
 	} else {
 		s.modeColor = s.accent
 	}
+	s.modeHue = nil
 	for _, role := range modeRoles {
 		look, ok := s.chromeLook(role)
 		if !ok {
 			continue
 		}
 		s.Badge = look.over(s.Badge)
+		// The mode's own hue, whatever the application's accent: what a
+		// modal's border shows under modal.mode-border.
+		switch {
+		case level == ChromeSubtle && look.fg != nil && !look.fgMode:
+			s.modeHue = look.fg
+		case look.bg != nil && !look.bgMode:
+			s.modeHue = look.bg
+		case look.fg != nil && !look.fgMode:
+			s.modeHue = look.fg
+		}
 		if s.appAccent == nil {
 			switch {
 			case level == ChromeSubtle && look.fg != nil && !look.fgMode:
@@ -289,6 +303,23 @@ func (s Styles) WithChrome(level string, modeRoles []string) Styles {
 		}
 	}
 	return s
+}
+
+// ModalBorder is the colour a modal's border is drawn in under
+// modal.mode-border: the border.modal.cooling row while the esc cooldown
+// runs (cooling), else the current mode's own hue, even under an
+// application accent. nil when the level has no such colour (off, plain):
+// the border stays border.modal.
+func (s Styles) ModalBorder(cooling bool) color.Color {
+	if s.plain {
+		return nil
+	}
+	if cooling {
+		if look, ok := s.chromeLook("border.modal.cooling"); ok && look.fg != nil {
+			return look.fg
+		}
+	}
+	return s.modeHue
 }
 
 // ChromeLevel is the level WithChrome set ("" before it).
