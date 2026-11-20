@@ -95,6 +95,9 @@ type readCache struct {
 	writer  *cacheWriter
 	sent    time.Time
 	now     func() time.Time
+	// registryToken is RegistryToken at registryStamp.
+	registryToken string
+	registryStamp [3]int
 }
 
 // cacheStore is one store's kept answers, by key.
@@ -722,8 +725,9 @@ func (r *Runtime) keepCount(n *Noun, c *nounCount, took time.Duration) {
 // catalog) answers it as its ChangeToken.
 func (r *Runtime) RegistryToken() string {
 	stamp := [3]int{r.Operations.Invalidations, r.Operations.Keys, len(r.Nouns)}
-	if r.registryToken != "" && r.registryStamp == stamp {
-		return r.registryToken
+	rc := r.readCache()
+	if rc != nil && rc.registryToken != "" && rc.registryStamp == stamp {
+		return rc.registryToken
 	}
 	h := fnv.New64a()
 	type named struct {
@@ -752,8 +756,11 @@ func (r *Runtime) RegistryToken() string {
 		}
 		h.Write([]byte{0})
 	}
-	r.registryToken, r.registryStamp = strconv.FormatUint(h.Sum64(), 36), stamp
-	return r.registryToken
+	token := strconv.FormatUint(h.Sum64(), 36)
+	if rc != nil {
+		rc.registryToken, rc.registryStamp = token, stamp
+	}
+	return token
 }
 
 // registryToken is RegistryToken as a store's ChangeToken.
@@ -919,8 +926,12 @@ func (r *Runtime) EnsureReadCache() {
 // declareReadCacheRetention declares the cache's retention row: a store's
 // file not written for 14 days goes.
 func (r *Runtime) declareReadCacheRetention() {
-	if c := r.Config(); c == nil || c.ReadCachePath() == "" {
+	c := r.Config()
+	if c == nil || c.ReadCachePath() == "" {
 		return // no state directory: nothing is kept, so nothing to remove
+	}
+	if _, err := os.Stat(c.ReadCachePath()); err != nil {
+		return // nothing kept yet: the row is declared from the next start on
 	}
 	_ = r.DeclareRetention(RetentionRow{Name: "read-cache", Description: "The read cache's files (" + ReadCacheNoun + "): rebuilt from the stores when gone",
 		Paths: []string{filepath.Join("{state}", ReadCacheDir, "*.json")}, Days: 14})
