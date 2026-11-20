@@ -1162,6 +1162,9 @@ func (r *Runtime) executeAtNoting(c Context, q Request, run operationRunner) (an
 	ctx := HistoryContext{Focus: focusOf(c), Page: r.Page, Mode: r.Mode.Name, Source: source, Actor: actor}
 	depth := r.history.depth
 	from := r.place()
+	if depth == 0 {
+		r.noteTreeThings() // the rows a request may hide (an archive) still count as written to
+	}
 	r.history.depth++
 	value, err := r.execute(c, &q, false, run)
 	r.history.depth--

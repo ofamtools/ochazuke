@@ -89,41 +89,45 @@ func (r *Runtime) recordingTrees() []*Tree {
 	return out
 }
 
-// noteWrite takes a history entry a person's request recorded: a write to
-// a thing one of the tree's rows stands for joins the tree's step for the
-// request (flushTreeWrites).
-func (t *Tree) noteWrite(e HistoryEntry) bool {
-	if t.replaying > 0 || len(e.Changes) == 0 || e.Restored {
-		return false
-	}
-	if !slices.ContainsFunc(e.Changes, t.standsFor) {
-		return false
-	}
-	t.pending = append(t.pending, e)
-	return true
-}
-
-// noteTreeWrite hands a recorded entry to the recording trees while a
-// person's request runs.
-func (r *Runtime) noteTreeWrite(e HistoryEntry) {
-	if !personSource(e.Context.Source) {
+// noteWrite takes a history entry a request recorded: a write to a thing
+// one of the tree's rows stands for has the rows read again when the
+// request ends (Reload), and a person's write that can be undone joins the
+// tree's step for the request (flushTreeWrites).
+func (t *Tree) noteWrite(e HistoryEntry) {
+	if t.replaying > 0 || len(e.Changes) == 0 || e.Restored || !slices.ContainsFunc(e.Changes, t.standsFor) {
 		return
 	}
+	t.stale = true
+	if personSource(e.Context.Source) && t.r.entryUndoable(e.Seq) {
+		t.pending = append(t.pending, e)
+	}
+}
+
+// noteTreeWrite hands a recorded entry to the recording trees.
+func (r *Runtime) noteTreeWrite(e HistoryEntry) {
 	for _, t := range r.recordingTrees() {
 		t.noteWrite(e)
 	}
 }
 
 // flushTreeWrites ends a top-level request: each recording tree that
-// noted writes puts them on its undo stack as one step.
+// noted writes puts them on its undo stack as one step and reads its rows
+// again.
 func (r *Runtime) flushTreeWrites() {
 	for _, t := range r.recordingTrees() {
-		if len(t.pending) == 0 {
-			continue
+		if len(t.pending) > 0 {
+			entries := t.pending
+			t.pending = nil
+			t.recordEntries(entries)
 		}
-		entries := t.pending
-		t.pending = nil
-		t.recordEntries(entries)
+		if t.stale {
+			t.stale = false
+			if t.Reload != nil {
+				if err := t.Reload(); err != nil {
+					r.UI().Notify(err.Error())
+				}
+			}
+		}
 	}
 }
 
@@ -147,8 +151,9 @@ func (t *Tree) recordEntries(entries []HistoryEntry) {
 		return out
 	}
 	requests := make([]Request, len(entries))
+	focuses := make([]string, len(entries))
 	for i, e := range entries {
-		requests[i] = e.Request
+		requests[i], focuses[i] = e.Request, e.Context.Focus
 	}
 	seqs := seqsOf(entries)
 	reload := func() error {
@@ -167,8 +172,14 @@ func (t *Tree) recordEntries(entries []HistoryEntry) {
 	}
 	redo := func() error {
 		mark := lastSeq(r)
-		for _, q := range requests {
-			if _, err := r.Execute(q); err != nil {
+		for i, q := range requests {
+			// Again at the row it acted for, when the row is drawn: a
+			// request that named no target took its subject from there.
+			c := r.Context()
+			if r.Instances[focuses[i]] != nil {
+				c = r.contextOf(focuses[i])
+			}
+			if _, err := r.ExecuteAt(c, q); err != nil {
 				return err
 			}
 		}
@@ -188,4 +199,25 @@ func (t *Tree) onChange(c TreeChange) error {
 	t.replaying++
 	defer func() { t.replaying-- }()
 	return t.OnChange(c)
+}
+
+// entryUndoable reports whether history-entry.undo can revert the entry
+// (undoable): a write it cannot undo is not a step, as u would refuse it
+// and stop there.
+func (r *Runtime) entryUndoable(seq uint64) bool {
+	for i := len(r.history.entries) - 1; i >= 0; i-- {
+		if r.history.entries[i].Seq == seq {
+			return r.undoable(i) == nil
+		}
+	}
+	return false
+}
+
+// noteTreeThings notes, before a top-level request runs, the things the
+// recording trees' rows stand for: a write that hides its row (archive,
+// a move out of the outline) is still a write to one of them.
+func (r *Runtime) noteTreeThings() {
+	for _, t := range r.recordingTrees() {
+		t.noteThings(t.nodes)
+	}
 }

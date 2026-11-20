@@ -307,13 +307,15 @@ type Tree struct {
 	// RecordWrites puts a person's writes to the things the tree's rows
 	// stand for (a key, the palette) on its undo stack, one step per
 	// request, in order with its own edits: u reverts their history
-	// entries, ctrl+r runs them again (tree_record_writes.go). Reload runs
-	// after either, to read the rows again; nil reads nothing.
+	// entries, ctrl+r runs them again (tree_record_writes.go). Reload reads
+	// the rows again after either, and after any request that wrote a
+	// row's thing; nil reads nothing.
 	RecordWrites bool
 	Reload       func() error
 
 	seq       int
 	things    map[string]bool   // the noun and key of every thing a row has stood for (tree_record_writes.go)
+	stale     bool              // a request wrote a row\'s thing: the rows are read again when it ends (Reload)
 	pending   []HistoryEntry    // the writes the request running now made to the rows' things (tree_record_writes.go)
 	replaying int               // >0 while the tree writes its own change, an undo or a redo: writes then are its own, not recorded again
 	removed   *removedRows      // the rows of the last delete, for a put of them (tree_yank.go)
