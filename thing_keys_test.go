@@ -280,6 +280,13 @@ func TestInstanceNounRowKeyIsItsId(t *testing.T) {
 	if n.resolvable() {
 		t.Fatal("an instances noun's targets are ids, never human keys")
 	}
+	// A row that names its thing in its Data (a listed row whose instance id
+	// is the list's) keeps that key where the focus is read (ThingKey).
+	r.Instance("viewport:v2")
+	r.Instances["viewport:v2"].Noun, r.Instances["viewport:v2"].Data = "viewport", map[string]any{"id": "v2"}
+	if got := r.ThingKey(r.Instances["viewport:v2"]); got != "v2" {
+		t.Fatalf("listed row's thing key = %q, want v2", got)
+	}
 }
 
 type everyType struct {

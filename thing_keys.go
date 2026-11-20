@@ -221,8 +221,8 @@ var rowKeyReaders = []func(r *Runtime, n *Noun, row *Instance, key string) any{
 	},
 }
 
-// ThingKey is the key of the thing an instance stands for, as the
-// standard verbs read a row's (rowKeyReaders), else its instance id: an
+// ThingKey is the key of the thing an instance stands for: the key prop in
+// its Data, then in its row's ListItem.Props, else its instance id: an
 // application handler that acts on a row reads its thing's key with it,
 // since the instance id is the key only where a list names its rows by
 // their things (an outline's rows are named by the outline; their
@@ -231,7 +231,14 @@ func (r *Runtime) ThingKey(inst *Instance) string {
 	if inst == nil {
 		return ""
 	}
-	return r.instanceThing(inst).Key
+	if n := r.Noun(inst.Noun); n != nil {
+		if kp := n.keyProp(); kp != nil {
+			if v := r.rowValue(inst, kp.Name); !emptyProp(v) {
+				return fmt.Sprint(v)
+			}
+		}
+	}
+	return inst.ID
 }
 
 // rowKey is the key of the thing a row stands for.
