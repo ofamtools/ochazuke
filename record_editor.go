@@ -157,6 +157,12 @@ type RecordSpec struct {
 	// reopens the modal with the values and the error (`! not run:`);
 	// leaving (form.leave, esc) runs nothing.
 	Submit func(Record) Result
+	// EnterMoves makes enter never run a Submit form: in a field it moves
+	// to the next field (a text area takes it as a new line), and form.run
+	// answers only its own key (alt+enter, shown in the hints) from any
+	// field, in normal or insert. For a form where the owner types several
+	// things before sending, so a stray enter never sends it half done.
+	EnterMoves bool
 	// Start names the field focused first ("" the first field).
 	Start string
 	// Clearable offers form.clear: every field emptied and every inverted
@@ -238,6 +244,11 @@ const (
 	// FormOneFieldGuard holds in a form of one shown field that writes
 	// each change: enter closes it (bindings/form.json).
 	FormOneFieldGuard = "form-one-field"
+	// FormEnterRunsGuard holds where enter runs the form: form-runnable
+	// and not RecordSpec.EnterMoves. FormEnterMovesGuard holds on a
+	// Submit form with EnterMoves: enter moves on, alt+enter runs.
+	FormEnterRunsGuard  = "form-enter-runs"
+	FormEnterMovesGuard = "form-enter-moves"
 )
 
 // shownFields counts the fields the form draws with a focus stop (not
@@ -2265,6 +2276,14 @@ func registerForms(r *Runtime) {
 	r.DefineGuard(FormRunnableGuard, func(r *Runtime, ev KeyEvent) bool {
 		e := r.recordEditorOf(ev.Focus)
 		return e != nil && e.Runnable()
+	})
+	r.DefineGuard(FormEnterRunsGuard, func(r *Runtime, ev KeyEvent) bool {
+		e := r.recordEditorOf(ev.Focus)
+		return e != nil && e.Runnable() && !e.spec.EnterMoves
+	})
+	r.DefineGuard(FormEnterMovesGuard, func(r *Runtime, ev KeyEvent) bool {
+		e := r.recordEditorOf(ev.Focus)
+		return e != nil && e.spec.Submit != nil && e.spec.EnterMoves && !e.closed
 	})
 	// A form of one field that writes each change (no Submit: edit
 	// {field}) has nothing to move to: enter closes it (form.leave, which

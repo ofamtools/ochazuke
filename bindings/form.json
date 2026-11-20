@@ -24,7 +24,11 @@
       {"key": "alt+i", "action": "ochazuke.form.next-missing", "hidden": true},
       {"key": "alt+j", "action": "ochazuke.form.previous", "hidden": true},
       {"key": "alt+k", "action": "ochazuke.form.run", "hidden": true},
+      {"key": "alt+enter", "action": "ochazuke.form.run", "when": "form-enter-moves", "hint": "run"},
       {"key": "alt+l", "action": "ochazuke.form.suggest", "hidden": true}
+    ]},
+    {"context": "ochazuke.form/insert", "bindings": [
+      {"key": "alt+enter", "action": "ochazuke.form.run", "when": "form-enter-moves", "hint": "run"}
     ]},
     {"context": "ochazuke.form-chip/normal", "bindings": [
       {"key": "j", "action": "ochazuke.form.chip-line", "args": {"delta": 1}},
@@ -63,7 +67,7 @@
       {"key": "down", "action": "ochazuke.form.next"},
       {"key": "k", "action": "ochazuke.form.previous"},
       {"key": "up", "action": "ochazuke.form.previous"},
-      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.run", "when": "form-enter-runs"},
       {"key": "enter", "action": "ochazuke.form.next-missing"},
       {"key": "enter", "action": "ochazuke.form.choose"},
       {"key": "space", "action": "ochazuke.form.choose"},
@@ -71,7 +75,7 @@
       {"key": "/", "action": "ochazuke.form.suggest"}
     ]},
     {"context": "ochazuke.form-field/insert", "bindings": [
-      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.run", "when": "form-enter-runs"},
       {"key": "enter", "action": "ochazuke.form.next-missing", "args": {"insert": true}},
       {"key": "enter", "action": "ochazuke.form.leave", "when": "form-one-field", "help": "In a form of one field that writes each change (edit {field}: r, m), enter writes it and closes the form"},
       {"key": "enter", "action": "ochazuke.form.next", "args": {"insert": true}},
@@ -80,9 +84,10 @@
     ]},
     {"context": "ochazuke.form-field/normal", "bindings": [
       {"key": "!", "action": "ochazuke.form.invert", "hint": "not"},
-      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.run", "when": "form-enter-runs"},
       {"key": "enter", "action": "ochazuke.form.next-missing"},
       {"key": "enter", "action": "ochazuke.form.leave", "when": "form-one-field", "help": "In a form of one field that writes each change (edit {field}: r, m), enter writes it and closes the form"},
+      {"key": "enter", "action": "ochazuke.form.next", "when": "form-enter-moves", "help": "In a form whose enter never runs it (RecordSpec.EnterMoves), enter moves to the next field and alt+enter runs it"},
       {"key": "j", "action": "ochazuke.form.next"},
       {"key": "down", "action": "ochazuke.form.next"},
       {"key": "k", "action": "ochazuke.form.previous"},
@@ -93,7 +98,7 @@
       {"key": "space", "action": "ochazuke.form-option.pick"}
     ]},
     {"context": "ochazuke.form-suggest/insert", "bindings": [
-      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.run", "when": "form-enter-runs"},
       {"key": "enter", "action": "ochazuke.form.next-missing", "args": {"insert": true}},
       {"key": "enter", "action": "ochazuke.form.next", "args": {"insert": true}},
       {"key": "tab", "action": "ochazuke.form.next", "args": {"insert": true}},
@@ -105,7 +110,7 @@
       {"key": "down", "action": "ochazuke.form.next"},
       {"key": "k", "action": "ochazuke.form.previous"},
       {"key": "up", "action": "ochazuke.form.previous"},
-      {"key": "enter", "action": "ochazuke.form.run"},
+      {"key": "enter", "action": "ochazuke.form.run", "when": "form-enter-runs"},
       {"key": "enter", "action": "ochazuke.form.next-missing"},
       {"key": "enter", "action": "ochazuke.form.suggest"},
       {"key": "ctrl+space", "action": "ochazuke.form.suggest"}
