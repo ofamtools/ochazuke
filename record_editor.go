@@ -1593,6 +1593,24 @@ func (e *RecordEditor) fill(f *recordField, v string) error {
 	return e.seal(f)
 }
 
+// setByRef sets a field to v as a pick in it would ("#field:value" in
+// another field, noun_refs.go): written at once as one undo step, its
+// dependent fields refreshed; the status line says what was set.
+func (e *RecordEditor) setByRef(f *recordField, v string) error {
+	var err error
+	if f.input != nil {
+		err = e.fill(f, v)
+	} else {
+		f.value = v
+		e.seen = e.snapshot()
+		err = e.seal(f)
+	}
+	if err == nil {
+		e.r.UI().Info(f.label() + ": " + e.nounRefValueLabel(f))
+	}
+	return err
+}
+
 // pick sets the chooser's field to a choice, writes it at once and closes
 // the chooser.
 func (e *RecordEditor) pick(f *recordField, v string) error {

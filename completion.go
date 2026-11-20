@@ -37,6 +37,11 @@ type Suggestion struct {
 	// trigger's Make on the loop first, which answers the text that goes
 	// in place of Text; an error leaves the input as it was.
 	Make string `json:"make,omitempty"`
+	// Act, when set, makes accepting act in place of inserting: the token
+	// is taken out of the text (with one space beside it) and its
+	// trigger's Act runs on the loop with the suggestion (a "#field:value"
+	// that sets a form's field to Act); an error puts the token back.
+	Act string `json:"act,omitempty"`
 }
 
 // label is what the suggestion list draws for the suggestion.
@@ -101,6 +106,11 @@ type CompletionTrigger struct {
 	// Make makes what an accepted suggestion's Make names (a thing of a
 	// noun, by its standard create) and answers the text to insert.
 	Make func(r *Runtime, s Suggestion) (string, error)
+	// Act does what an accepted suggestion's Act names in place of
+	// inserting it (Suggestion.Act) and answers the text that then goes
+	// where the token was: "" leaves it out, the suggestion's Text when
+	// there was nothing to act on.
+	Act func(r *Runtime, s Suggestion) (string, error)
 }
 
 // CompletionQuery is what a SearchAt search is asked: the query (the

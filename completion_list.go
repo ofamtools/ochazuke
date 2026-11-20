@@ -415,6 +415,9 @@ func (c *Completer) accept() error {
 		c.stop()
 		return errors.New("the cursor left the completion token")
 	}
+	if pick.Act != "" && trigger.Act != nil {
+		return c.act(in, tok, trigger, pick)
+	}
 	text := pick.Text
 	if pick.Make != "" && trigger.Make != nil {
 		made, err := trigger.Make(c.r, pick)
@@ -432,6 +435,39 @@ func (c *Completer) accept() error {
 	if err == nil && pick.Continue {
 		return c.openAt(in.ID)
 	}
+	return err
+}
+
+// act takes an acting suggestion's token out of the input, with one
+// space beside it (the one after, else the one before), as its own undo
+// step, closes the list and runs the trigger's Act on the suggestion;
+// text Act answers goes in where the token was, and an error puts the
+// token back.
+func (c *Completer) act(in *Input, tok CompletionToken, trigger CompletionTrigger, pick Suggestion) error {
+	start, end := tok.Start, tok.End
+	switch {
+	case end < len(in.Text) && in.Text[end] == ' ':
+		end++
+	case start > 0 && in.Text[start-1] == ' ':
+		start--
+	}
+	removed := string(in.Text[start:end])
+	in.endGroup()
+	err := in.Replace(start, end, "")
+	in.endGroup()
+	c.stop()
+	if err == nil {
+		var text string
+		if text, err = trigger.Act(c.r, pick); err != nil {
+			_ = in.Replace(start, start, removed)
+		} else if text != "" {
+			// The spaces taken with the token go back around the text.
+			around := []rune(removed)
+			err = in.Replace(start, start, string(around[:tok.Start-start])+trigger.replacement(text)+string(around[tok.End-start:]))
+		}
+		in.endGroup()
+	}
+	c.seen, c.text = snapshotOf(in), string(in.Text)
 	return err
 }
 

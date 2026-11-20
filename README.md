@@ -592,6 +592,15 @@ the chip tone, erased whole by backspace at its end. A record editor with a
 links on each write: the subject is related to each thing the text names
 (kind `mentions`) and unrelated from one it no longer names.
 
+Inside a form, `#` in a text field also lists the form's other fields
+(`text.noun-refs-fields`, default on), first, with their value; a field
+shadows a noun of its name. `#model:` lists that field's own choices, as its
+picker reads them (the sibling fields applied), and accepting one sets the
+field, as a pick in it would (written, undoable, dependent fields refreshed),
+and takes the `#model:…` token out of the text. `#` lists narrow by
+`text.noun-refs-match` (`fuzzy`, the default, `substring` or `regex`, as
+`search.match`), best match first: `#model:62` finds `GPT-6.2`.
+
 Compared with Vim: the nearest is user-defined insert completion
 (`:help compl-function`, `'completefunc'`): a function answers the word
 before the cursor. Vim has no two-step completion (a kind, then its items)
