@@ -66,6 +66,8 @@ type DocQuery struct {
 	GroupBy    []string
 	GroupSort  []SortKey
 	Text       string
+	TextMatch  string
+	TextCase   string
 	TextFields []string
 	Page       int
 	PerPage    int
@@ -263,7 +265,7 @@ func (d *docStore) docQuery(c Ctx, q ListQuery) (DocQuery, error) {
 	if err != nil {
 		return DocQuery{}, err
 	}
-	out := DocQuery{Filters: clonePropFilters(q.Filters), Sort: slices.Clone(q.Sort), GroupBy: slices.Clone(q.GroupBy), GroupSort: slices.Clone(q.GroupSort), Text: q.Text, Page: q.Page, PerPage: q.PerPage, TextFields: textProps(n)}
+	out := DocQuery{Filters: clonePropFilters(q.Filters), Sort: slices.Clone(q.Sort), GroupBy: slices.Clone(q.GroupBy), GroupSort: slices.Clone(q.GroupSort), Text: q.Text, TextMatch: q.TextMatch, TextCase: q.TextCase, Page: q.Page, PerPage: q.PerPage, TextFields: textProps(n)}
 	if p := c.Runtime.archiveHiding(n, q); p != nil {
 		out.Hide = p.Name
 	}
@@ -523,19 +525,42 @@ func textProps(n *Noun) []string {
 // fields, case-insensitive: a DocQuery's text search, as a table that holds
 // its documents in memory runs it.
 func TextMatches(t Thing, fields []string, text string) bool {
-	for _, word := range strings.Fields(strings.ToLower(text)) {
-		found := false
-		for _, f := range fields {
-			if v, ok := t[f]; ok && v != nil && strings.Contains(strings.ToLower(cellValueText(v)), word) {
-				found = true
-				break
+	return TextMatchesMode(t, fields, text, MatchSubstring, SearchCaseIgnore)
+}
+
+// TextMatchesMode reports whether text matches the thing's fields under
+// matchMode (substring, fuzzy or regex; "" is substring) and caseMode
+// (smart, ignore or sensitive; "" is ignore).
+func TextMatchesMode(t Thing, fields []string, text, matchMode, caseMode string) bool {
+	if strings.TrimSpace(text) == "" {
+		return true
+	}
+	return textMatchesWith(t, fields, textMatcher(matchMode, caseMode, text))
+}
+
+func textMatcher(matchMode, caseMode, text string) Matcher {
+	if caseMode == "" {
+		caseMode = SearchCaseIgnore
+	}
+	return NewMatcher(matchMode, caseMode, text)
+}
+
+func textMatchesWith(t Thing, fields []string, m Matcher) bool {
+	if m.Err() != nil {
+		return false
+	}
+	var parts []string
+	for _, f := range fields {
+		if v, ok := t[f]; ok && v != nil {
+			if s := cellValueText(v); s != "" {
+				parts = append(parts, s)
 			}
 		}
-		if !found {
-			return false
-		}
 	}
-	return true
+	if len(parts) == 0 {
+		return m.re == nil && len(m.terms) == 0 && len(m.needle) == 0
+	}
+	return m.MatchRow(m.Prepare(strings.Join(parts, "\n")))
 }
 
 // MemDocTable is a DocTable in memory, the reference table: conditions,
@@ -628,12 +653,17 @@ func (m *MemDocTable) Version() (string, error) {
 func (m *MemDocTable) Query(q DocQuery) (ListPage, error) {
 	m.mu.Lock()
 	things := make([]Thing, 0, len(m.order))
+	var matcher Matcher
+	hasText := strings.TrimSpace(q.Text) != ""
+	if hasText {
+		matcher = textMatcher(q.TextMatch, q.TextCase, q.Text)
+	}
 	for _, k := range m.order {
 		t := m.docs[k]
 		if q.Hide != "" && t[q.Hide] == true {
 			continue
 		}
-		if q.Text == "" || TextMatches(t, q.TextFields, q.Text) {
+		if !hasText || textMatchesWith(t, q.TextFields, matcher) {
 			things = append(things, t)
 		}
 	}

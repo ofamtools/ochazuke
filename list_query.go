@@ -44,9 +44,11 @@ type ListQuery struct {
 	// Filters still apply. Stores without default arguments ignore it.
 	Every bool
 
-	Text  string
-	Saved string
-	Args  Arguments
+	Text      string
+	TextMatch string
+	TextCase  string
+	Saved     string
+	Args      Arguments
 }
 
 // WithSort is the query with these sort keys; a saved filter name no
@@ -455,7 +457,8 @@ func (r *Runtime) thingRows(n *Noun, things []Thing) queryRows {
 func (r *Runtime) queryAll(n *Noun, things []Thing, q ListQuery) ListPage {
 	if strings.TrimSpace(q.Text) != "" {
 		fields := textProps(n)
-		things = slices.DeleteFunc(slices.Clone(things), func(t Thing) bool { return !TextMatches(t, fields, q.Text) })
+		m := textMatcher(q.TextMatch, q.TextCase, q.Text)
+		things = slices.DeleteFunc(slices.Clone(things), func(t Thing) bool { return !textMatchesWith(t, fields, m) })
 	}
 	rows := r.thingRows(n, things)
 	if r.archiveHiding(n, q) == nil {

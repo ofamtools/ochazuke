@@ -105,12 +105,21 @@ func HelpIsWords() []string {
 }
 
 // HelpTerm is one chip of the query: its field ("" a free word), value
-// (lower case), whether it is negated, and its text as typed.
+// (lower case), raw unquoted text (preserving case for regex/smart-case
+// matchers), whether it is negated, and its text as typed.
 type HelpTerm struct {
 	Not   bool   `json:"not,omitempty"`
 	Field string `json:"field,omitempty"`
 	Value string `json:"value"`
+	Raw   string `json:"raw,omitempty"`
 	Text  string `json:"text"`
+}
+
+func (t HelpTerm) rawValue() string {
+	if t.Raw != "" {
+		return t.Raw
+	}
+	return t.Value
 }
 
 // HelpQuery is the page's filter, parsed.
@@ -136,7 +145,7 @@ func ParseHelpQuery(text string) HelpQuery {
 		if value == "" {
 			continue
 		}
-		q.Terms = append(q.Terms, HelpTerm{Not: m[1] != "", Field: field, Value: strings.ToLower(value), Text: m[0]})
+		q.Terms = append(q.Terms, HelpTerm{Not: m[1] != "", Field: field, Value: strings.ToLower(value), Raw: value, Text: m[0]})
 	}
 	return q
 }
@@ -153,28 +162,101 @@ func (q HelpQuery) String() string {
 // Empty reports whether the query has no terms (every row matches).
 func (q HelpQuery) Empty() bool { return len(q.Terms) == 0 }
 
-// Matches reports whether a row passes every term.
-func (q HelpQuery) Matches(v HelpPageRow) bool {
-	for _, t := range q.Terms {
-		if t.Matches(v) == t.Not {
+type compiledHelpTerm struct {
+	term    HelpTerm
+	field   *helpField
+	matcher Matcher
+}
+
+type compiledHelpQuery struct {
+	terms []compiledHelpTerm
+	err   error
+}
+
+// compile compiles q's free terms under matchMode and caseMode once so
+// repeated row checks do not recompile regexes.
+func (q HelpQuery) compile(matchMode, caseMode string) compiledHelpQuery {
+	cq := compiledHelpQuery{terms: make([]compiledHelpTerm, len(q.Terms))}
+	for i, t := range q.Terms {
+		ct := compiledHelpTerm{term: t, field: helpFieldNamed(t.Field)}
+		if ct.field == nil {
+			ct.matcher = NewMatcher(matchMode, caseMode, t.rawValue())
+			if ct.matcher.Err() != nil && cq.err == nil {
+				cq.err = ct.matcher.Err()
+			}
+		}
+		cq.terms[i] = ct
+	}
+	return cq
+}
+
+func (cq compiledHelpQuery) matches(v HelpPageRow) bool {
+	if cq.err != nil {
+		return false
+	}
+	var hay string
+	var hayBuilt bool
+	for _, ct := range cq.terms {
+		var ok bool
+		if ct.field != nil {
+			ok = ct.field.Match(v, ct.term.Value)
+		} else {
+			if !hayBuilt {
+				hay = helpHaystackLines(v)
+				hayBuilt = true
+			}
+			ok = ct.matcher.MatchRow(ct.matcher.Prepare(hay))
+		}
+		if ok == ct.term.Not {
 			return false
 		}
 	}
 	return true
 }
 
-// Matching are the rows that pass.
-func (q HelpQuery) Matching(rows []HelpPageRow) []HelpPageRow {
-	if q.Empty() {
+func (cq compiledHelpQuery) matching(rows []HelpPageRow) []HelpPageRow {
+	if cq.err != nil {
+		return nil
+	}
+	if len(cq.terms) == 0 {
 		return rows
 	}
 	var out []HelpPageRow
 	for _, v := range rows {
-		if q.Matches(v) {
+		if cq.matches(v) {
 			out = append(out, v)
 		}
 	}
 	return out
+}
+
+// Err reports the first matcher error (such as an invalid regex) among q's
+// free terms under matchMode and caseMode, or nil when all terms compile.
+func (q HelpQuery) Err(matchMode, caseMode string) error {
+	return q.compile(matchMode, caseMode).err
+}
+
+// Matches reports whether a row passes every term (case-insensitive substring
+// for free terms).
+func (q HelpQuery) Matches(v HelpPageRow) bool {
+	return q.MatchesWith(v, MatchSubstring, SearchCaseIgnore)
+}
+
+// MatchesWith reports whether a row passes every term, evaluating free terms
+// with matchMode and caseMode.
+func (q HelpQuery) MatchesWith(v HelpPageRow, matchMode, caseMode string) bool {
+	return q.compile(matchMode, caseMode).matches(v)
+}
+
+// Matching are the rows that pass (case-insensitive substring for free terms).
+func (q HelpQuery) Matching(rows []HelpPageRow) []HelpPageRow {
+	return q.MatchingWith(rows, MatchSubstring, SearchCaseIgnore)
+}
+
+// MatchingWith are the rows that pass, evaluating free terms with matchMode
+// and caseMode.
+func (q HelpQuery) MatchingWith(rows []HelpPageRow, matchMode, caseMode string) []HelpPageRow {
+	return q.compile(matchMode, caseMode).matching(rows)
 }
 
 // Matches reports whether a row meets the term, negation aside: its
@@ -183,7 +265,8 @@ func (t HelpTerm) Matches(v HelpPageRow) bool {
 	if f := helpFieldNamed(t.Field); f != nil {
 		return f.Match(v, t.Value)
 	}
-	return strings.Contains(helpHaystack(v), t.Value)
+	m := NewMatcher(MatchSubstring, SearchCaseIgnore, t.rawValue())
+	return m.Err() == nil && m.MatchRow(m.Prepare(helpHaystackLines(v)))
 }
 
 // verbTermMatches: the verb or noun.verb exactly; a trailing * a prefix.
@@ -213,9 +296,17 @@ func keyTermMatches(v HelpPageRow, val string) bool {
 	return false
 }
 
-// helpHaystack is the text a free word is looked for in.
-func helpHaystack(v HelpPageRow) string {
-	return strings.ToLower(strings.Join([]string{v.Key, v.Operation, v.Args, v.Mode, v.Table, v.Source, v.Guard, string(v.State), v.LevelName, v.Row.Hint, v.Help}, " "))
+// helpHaystackLines is the text a free word is looked for in: each non-empty
+// field on its own line, case preserved, so Matcher.MatchRow checks each
+// field independently (and \s never matches synthetic separators).
+func helpHaystackLines(v HelpPageRow) string {
+	parts := make([]string, 0, 11)
+	for _, s := range []string{v.Key, v.Operation, v.Args, v.Mode, v.Table, v.Source, v.Guard, string(v.State), v.LevelName, v.Row.Hint, v.Help} {
+		if s != "" {
+			parts = append(parts, s)
+		}
+	}
+	return strings.Join(parts, "\n")
 }
 
 // Toggle is the query with term added, or taken out when a chip of that
@@ -264,6 +355,11 @@ type HelpChipEffect struct {
 // Explain says, for a query that leaves no row of the walk, how many walk
 // rows removing each chip alone brings back.
 func (q HelpQuery) Explain(rows []HelpPageRow) []HelpChipEffect {
+	return q.ExplainWith(rows, MatchSubstring, SearchCaseIgnore)
+}
+
+// ExplainWith is Explain evaluating free terms under matchMode and caseMode.
+func (q HelpQuery) ExplainWith(rows []HelpPageRow, matchMode, caseMode string) []HelpChipEffect {
 	var walk []HelpPageRow
 	for _, v := range rows {
 		if v.OnWalk() {
@@ -272,15 +368,20 @@ func (q HelpQuery) Explain(rows []HelpPageRow) []HelpChipEffect {
 	}
 	out := make([]HelpChipEffect, len(q.Terms))
 	for i, t := range q.Terms {
-		out[i] = HelpChipEffect{Index: i + 1, Term: t, Without: len(q.Without(i + 1).Matching(walk))}
+		out[i] = HelpChipEffect{Index: i + 1, Term: t, Without: len(q.Without(i+1).MatchingWith(walk, matchMode, caseMode))}
 	}
 	return out
 }
 
 // ExplainText is Explain as the empty list's lines.
 func (q HelpQuery) ExplainText(rows []HelpPageRow) string {
+	return q.ExplainTextWith(rows, MatchSubstring, SearchCaseIgnore)
+}
+
+// ExplainTextWith is ExplainText evaluating free terms under matchMode and caseMode.
+func (q HelpQuery) ExplainTextWith(rows []HelpPageRow, matchMode, caseMode string) string {
 	lines := []string{"No row of this walk matches."}
-	for _, e := range q.Explain(rows) {
+	for _, e := range q.ExplainWith(rows, matchMode, caseMode) {
 		lines = append(lines, fmt.Sprintf("x %d drops %s: %d back", e.Index, e.Term.Text, e.Without))
 	}
 	if len(q.Terms) > 1 {

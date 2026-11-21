@@ -167,6 +167,7 @@ func (r *Runtime) ensureHelpPage() error {
 		return err
 	}
 	list.QueryFilter = r.helpPage().filter
+	list.QueryError = r.helpPage().queryErr
 	list.OnFilter(func(*Collection) { r.helpPage().filtered() })
 	return nil
 }
@@ -366,12 +367,26 @@ func (p *HelpPage) groupHeader(g *HelpGroup) string {
 	return fmt.Sprintf("%d %s  %s  %d rows in %s, %d no key", g.Level+1, l.Label(), g.Sub, l.Counts.Rows, p.Walk.Mode, l.Counts.NoKey)
 }
 
+// matchMode is the match mode the help page's list uses for free query terms.
+func (p *HelpPage) matchMode() string {
+	if list := p.r.List(helpRowsID); list != nil {
+		return list.MatchMode()
+	}
+	return p.r.SearchMatch()
+}
+
+// queryErr reports any matcher error (such as an invalid regex) in the free
+// terms of text under the list's match mode.
+func (p *HelpPage) queryErr(text string) error {
+	return ParseHelpQuery(text).Err(p.matchMode(), p.r.SearchCase())
+}
+
 // filter is the list's QueryFilter: the query's test of each line, a walk
 // level's own row shown only while no row of that level matches.
 func (p *HelpPage) filter(text string) func(ListItem) bool {
-	q := ParseHelpQuery(text)
+	cq := ParseHelpQuery(text).compile(p.matchMode(), p.r.SearchCase())
 	matched := map[int]bool{}
-	for _, v := range q.Matching(p.Rows) {
+	for _, v := range cq.matching(p.Rows) {
 		matched[v.Level] = true
 	}
 	return func(item ListItem) bool {
@@ -381,7 +396,7 @@ func (p *HelpPage) filter(text string) func(ListItem) bool {
 		}
 		switch line.Kind {
 		case HelpLineRow:
-			return q.Matches(*line.Row)
+			return cq.matches(*line.Row)
 		case HelpLineNote:
 			return true
 		}
@@ -401,7 +416,7 @@ func (p *HelpPage) filtered() {
 	pl := list.Placeholder()
 	pl.Empty = "No rows."
 	if !q.Empty() {
-		pl.Empty = q.ExplainText(p.Rows)
+		pl.Empty = q.ExplainTextWith(p.Rows, p.matchMode(), r.SearchCase())
 	}
 	list.SetPlaceholder(pl)
 	p.railNodes()
@@ -422,7 +437,7 @@ func (p *HelpPage) railNodes() {
 		q = ParseHelpQuery(list.Filter())
 	}
 	matches := map[int]int{}
-	for _, v := range q.Matching(p.Rows) {
+	for _, v := range q.MatchingWith(p.Rows, p.matchMode(), r.SearchCase()) {
 		matches[v.Level]++
 	}
 	var nodes []TreeNode
@@ -694,7 +709,7 @@ func (p *HelpPage) title() string {
 // chipsLine is the filter as numbered chips and how many rows match.
 func (p *HelpPage) chipsLine() string {
 	q := p.query()
-	matched := len(q.Matching(p.Rows))
+	matched := len(q.MatchingWith(p.Rows, p.matchMode(), p.r.SearchCase()))
 	if q.Empty() {
 		return fmt.Sprintf("/ filter: words, key: noun: verb: mode: source: guard: level: table: status: is:   %d rows", len(p.Rows))
 	}

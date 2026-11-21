@@ -68,3 +68,77 @@ func TestProxyStoreForwardsQuery(t *testing.T) {
 		t.Fatalf("the extension read %d documents for a page of 3 (asked %v)", table.Reads, asked)
 	}
 }
+
+// When a mounted extension store receives a regex or fuzzy text query, proxy
+// query falls back to filtering in Go over list so mounted lists support regex
+// and fuzzy filtering cleanly.
+func TestProxyStoreRegexQueryFallsBackInGo(t *testing.T) {
+	ext := ochazuke.NewRuntime()
+	ext.Config().Disable()
+	table := ochazuke.NewMemDocTable(ext, "parcel")
+	ext.Define("parcel").Props(
+		ochazuke.PropSpec{Name: "id", Key: true, CreateOnly: true},
+		ochazuke.PropSpec{Name: "title", Role: ochazuke.RoleLabel},
+	).Store(ochazuke.DocStore(table, "parcel"))
+	for _, doc := range []ochazuke.Thing{
+		{"id": "p1", "title": "search parcel"},
+		{"id": "p2", "title": "filter parcel"},
+		{"id": "p3", "title": "other box"},
+	} {
+		_ = table.Put(doc["id"].(string), doc)
+	}
+	raw, err := Catalog(ext, "extension", "v1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc CatalogDoc
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatal(err)
+	}
+	host := ochazuke.NewRuntime()
+	host.Config().Disable()
+	got := MountNouns(host, doc.AppNouns(), HostMount{
+		Local: func(n string) string { return "ext-" + n },
+		Proxy: func(noun string, v CatalogVerb) any {
+			return func(c ochazuke.Ctx) ochazuke.Result {
+				value, err := ext.Execute(ochazuke.Request{Noun: noun, Verb: v.Name, Args: c.Args, Confirmed: true})
+				if err != nil {
+					return ochazuke.Failed(err)
+				}
+				return ochazuke.Pending(func(context.Context) (any, error) { return value, nil })
+			}
+		},
+	})
+	if len(got.Warnings) > 0 {
+		t.Fatal(got.Warnings)
+	}
+	if _, err := host.Settings().SetSession(ochazuke.ListWindowSetting, 2); err != nil {
+		t.Fatal(err)
+	}
+	list, err := host.AddList("parcels", nil, ochazuke.From("ext-parcel"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := newPump(t, host)
+	p.until("initial window", p.idle)
+	if !list.Windowed() || list.WindowTotal() != 3 {
+		t.Fatalf("initial windowed=%v total=%d", list.Windowed(), list.WindowTotal())
+	}
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.Execute(ochazuke.Request{Noun: "ochazuke.collection", Verb: "filter", Args: ochazuke.Arguments{"query": "search|filter"}}); err != nil {
+		t.Fatal(err)
+	}
+	p.until("substring window", p.idle)
+	if list.WindowTotal() != 0 {
+		t.Fatalf("substring search|filter total=%d, want 0", list.WindowTotal())
+	}
+	if _, err := host.Execute(ochazuke.Request{Noun: "ochazuke.search", Verb: "set-match", Args: ochazuke.Arguments{"mode": ochazuke.MatchRegex}}); err != nil {
+		t.Fatal(err)
+	}
+	p.until("regex window", p.idle)
+	if list.WindowTotal() != 2 {
+		t.Fatalf("regex search|filter total=%d, want 2", list.WindowTotal())
+	}
+}

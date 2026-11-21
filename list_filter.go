@@ -95,6 +95,14 @@ func (l *Collection) MatchMode() string {
 // matcher is the filter query compiled in the list's match mode.
 func (l *Collection) matcher() Matcher { return l.r.Matcher(l.MatchMode(), l.vs.Text) }
 
+// queryErr is why the filter query cannot match, or nil.
+func (l *Collection) queryErr() error {
+	if l.QueryError != nil {
+		return l.QueryError(l.vs.Text)
+	}
+	return l.matcher().Err()
+}
+
 // The matchSearcher contract (search_match.go): the mode decides the
 // filter while its line shows.
 func (l *Collection) matchMode() string  { return l.MatchMode() }
@@ -380,7 +388,7 @@ func (l *Collection) filterLine(width int) string {
 	}
 	var right []string
 	if strings.TrimSpace(l.vs.Text) != "" || strip != "" {
-		switch err := l.matcher().Err(); {
+		switch err := l.queryErr(); {
 		case err != nil:
 			right = append(right, err.Error())
 		case len(l.items) == 0:

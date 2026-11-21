@@ -64,18 +64,20 @@ func (l *Collection) startWindow(n *Noun) {
 }
 
 // windowQuery is the store query of the windowed list's page: the effective
-// filters, sort, grouping, text and archive toggle, and the bounded page.
+// filters, sort, grouping, text (with its match and case modes) and archive
+// toggle, and the bounded page.
 func (l *Collection) windowQuery() ListQuery {
 	q := l.effectiveView()
 	q.Filters, q.Sort = clonePropFilters(q.Filters), slices.Clone(q.Sort)
 	q.GroupBy, q.GroupSort = slices.Clone(q.GroupBy), slices.Clone(q.GroupSort)
+	q.TextMatch, q.TextCase = l.MatchMode(), l.r.SearchCase()
 	q.Page, q.PerPage = l.paged.page, l.paged.per
 	return q
 }
 
 // windowKey is a query as the window compares it.
 func windowKey(q ListQuery) string {
-	return fmt.Sprintf("%v|%v|%v|%v|%q|%v|%d|%d", q.Filters, q.Sort, q.GroupBy, q.GroupSort, q.Text, q.Archived, q.Page, q.PerPage)
+	return fmt.Sprintf("%v|%v|%v|%v|%q|%q|%q|%v|%d|%d", q.Filters, q.Sort, q.GroupBy, q.GroupSort, q.Text, q.TextMatch, q.TextCase, q.Archived, q.Page, q.PerPage)
 }
 
 // refillWindow reads the windowed list's page: as a job from a remote

@@ -220,6 +220,13 @@ func (px *proxyCalls) query(c ochazuke.Ctx, q ochazuke.ListQuery) (ochazuke.List
 	if args == nil {
 		args = ochazuke.Arguments{}
 	}
+	if strings.TrimSpace(q.Text) != "" && (q.TextMatch == ochazuke.MatchRegex || q.TextMatch == ochazuke.MatchFuzzy || (q.TextCase != "" && !ochazuke.CaseFor(q.TextCase, q.Text).Fold())) {
+		things, err := px.list(c, q)
+		if err != nil {
+			return ochazuke.ListPage{}, err
+		}
+		return c.Runtime.QueryAll(px.store, things, q), nil
+	}
 	var where []string
 	for _, f := range q.Filters {
 		text := fmt.Sprint(f.Value)

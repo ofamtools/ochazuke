@@ -183,6 +183,7 @@ type Related struct {
 	drawn    uint64                   // the frame (watchHub.frames) the stack was last drawn in
 	archived string                   // the archived setting's value the sections' lists were last set from
 	query    string                   // the stack's filter query (related_filter.go)
+	match    string                   // the stack's match mode set by search.cycle-match/set-match; "" is search.match
 }
 
 // relatedSplit is a section split by a prop (RelatedSpec.GroupBy): its

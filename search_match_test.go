@@ -325,3 +325,79 @@ func TestChooserSpecMatchWinsOverTheSetting(t *testing.T) {
 		}
 	}
 }
+
+// A windowed From(noun) list backed by MemDocTable invalidates and re-queries
+// its store when tab switches match mode to regex, matching RE2 patterns.
+func TestWindowedFromListRegexFilter(t *testing.T) {
+	r := NewRuntime()
+	r.Config().Disable()
+	r.EnsureConfigSettings()
+	if _, err := r.Settings().SetSession(ListWindowSetting, 3); err != nil {
+		t.Fatal(err)
+	}
+	table := NewMemDocTable(r, "entry")
+	r.Define("entry").Props(
+		PropSpec{Name: "id", Key: true},
+		PropSpec{Name: "title", Role: RoleLabel},
+	).Store(DocStore(table, "entry"))
+	docs := []Thing{
+		{"id": "e1", "title": "search docs"},
+		{"id": "e2", "title": "filter rows"},
+		{"id": "e3", "title": "find needle"},
+		{"id": "e4", "title": "build 42"},
+		{"id": "e5", "title": "plain alpha"},
+	}
+	for _, doc := range docs {
+		if err := table.Put(doc["id"].(string), doc); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var list *Collection
+	if _, err := r.AddPage("p", "Entries", func(_ *Runtime, w, h int) Block { return Text(list.View(w, h)) }); err != nil {
+		t.Fatal(err)
+	}
+	var err error
+	list, err = r.AddList("entries", nil, Parent("p"), From("entry"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.OpenPage("p"); err != nil {
+		t.Fatal(err)
+	}
+	if err := list.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	if !list.Windowed() || list.WindowTotal() != 5 {
+		t.Fatalf("windowed=%v total=%d", list.Windowed(), list.WindowTotal())
+	}
+	m := NewModel(r)
+	m.Width, m.Height = 80, 20
+	keytest.Press(m, "/")
+	keytest.Type(m, "search|filter|find")
+	if list.MatchMode() != MatchSubstring || list.WindowTotal() != 0 {
+		t.Fatalf("substring search|filter|find: mode=%q total=%d", list.MatchMode(), list.WindowTotal())
+	}
+	keytest.Press(m, "tab")
+	keytest.Press(m, "tab")
+	if list.MatchMode() != MatchRegex || list.WindowTotal() != 3 || !slices.Equal(shownIDs(list), []string{"entries/e1", "entries/e2", "entries/e3"}) {
+		t.Fatalf("regex search|filter|find: mode=%q total=%d shown=%v", list.MatchMode(), list.WindowTotal(), shownIDs(list))
+	}
+	keytest.Press(m, "ctrl+u")
+	keytest.Type(m, `\S+`)
+	if list.WindowTotal() != 5 {
+		t.Fatalf(`regex \S+: total=%d, want 5`, list.WindowTotal())
+	}
+	keytest.Press(m, "ctrl+u")
+	keytest.Type(m, `[0-9]{2,}`)
+	if list.WindowTotal() != 1 || !slices.Equal(shownIDs(list), []string{"entries/e4"}) {
+		t.Fatalf("regex [0-9]{2,}: total=%d shown=%v", list.WindowTotal(), shownIDs(list))
+	}
+	keytest.Press(m, "ctrl+u")
+	keytest.Type(m, "(abc")
+	if list.WindowTotal() != 0 {
+		t.Fatalf("invalid regex: total=%d, want 0", list.WindowTotal())
+	}
+	if line := list.filterLine(80); !strings.Contains(line, "regex: missing closing )") || !strings.Contains(line, "regex") {
+		t.Fatalf("invalid regex filter line: %q", line)
+	}
+}

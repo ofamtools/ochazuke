@@ -79,6 +79,10 @@ type Collection struct {
 	// rows a query language selects (the binding help page's field:value
 	// terms) sets it; nil matches the text as the search.match setting says.
 	QueryFilter func(query string) func(ListItem) bool
+	// QueryError, when set, reports why the filter's text query cannot match
+	// (such as an invalid regex in a free term of a QueryFilter query). Nil
+	// checks the list's own matcher.
+	QueryError func(query string) error
 	// SharedFilter, when set and answering non-nil, owns the list's text
 	// filter: "/", typing, backspace, enter and esc on the list read and
 	// write its query instead of the list's own, and the list draws no

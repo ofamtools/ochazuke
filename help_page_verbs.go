@@ -87,7 +87,7 @@ type HelpPageState struct {
 
 func (p *HelpPage) state() HelpPageState {
 	q := p.query()
-	return HelpPageState{Focus: p.Current, Levels: p.Walk.Levels, Filter: q.String(), Matched: len(q.Matching(p.Rows)), Rows: len(p.Rows), Group: p.Group, Sort: p.Sort, Detail: p.Detail}
+	return HelpPageState{Focus: p.Current, Levels: p.Walk.Levels, Filter: q.String(), Matched: len(q.MatchingWith(p.Rows, p.matchMode(), p.r.SearchCase())), Rows: len(p.Rows), Group: p.Group, Sort: p.Sort, Detail: p.Detail}
 }
 
 // pickPlace opens the chooser of every place; picking one walks from it.
@@ -239,7 +239,7 @@ func (p *HelpPage) where() error {
 		next.Mode = line.Mode
 		p.walkTo(next)
 	case line.Kind == HelpLineGroup:
-		p.Detail = strings.Split(p.query().ExplainText(p.Rows), "\n")
+		p.Detail = strings.Split(p.query().ExplainTextWith(p.Rows, p.matchMode(), p.r.SearchCase()), "\n")
 	default:
 		p.Detail = line.Row.Where()
 	}

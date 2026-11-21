@@ -139,3 +139,47 @@ func TestRelatedStackFilterEscClearsEverySection(t *testing.T) {
 	}
 	f.mustHave(t, "write", "test", "docs", "▸ Notes (project)")
 }
+
+// tab in a related stack's shared / filter switches its match mode (including
+// regex), re-filters every section at once, and surfaces regex errors on the
+// stack's filter line.
+func TestRelatedStackFilterTabCyclesToRegex(t *testing.T) {
+	t.Parallel()
+	f := newRelFixtureWith(t, nil, nil)
+	f.tasks.add("id", "t9", "title", "alpha work", "project", "p1")
+	f.notes.add("id", "n9", "title", "beta memo", "project", "p1")
+	f.rel.Refill()
+	if err := f.rel.Focus(); err != nil {
+		t.Fatal(err)
+	}
+	f.press("/")
+	for _, ch := range "alpha|beta" {
+		f.press(string(ch))
+	}
+	if f.rel.MatchMode() != MatchSubstring {
+		t.Fatalf("initial match mode %q, want %q", f.rel.MatchMode(), MatchSubstring)
+	}
+	if text := f.frame(); !strings.Contains(text, "no rows match") || !strings.Contains(text, "substr") {
+		t.Fatalf("substring alpha|beta:\n%s", text)
+	}
+	f.press("tab", "tab")
+	if f.rel.MatchMode() != MatchRegex {
+		t.Fatalf("after 2 tabs: mode %q, want %q", f.rel.MatchMode(), MatchRegex)
+	}
+	text := f.frame()
+	for _, want := range []string{"alpha work", "beta memo", "2 match", "regex"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("regex alpha|beta lacks %q:\n%s", want, text)
+		}
+	}
+	for _, not := range []string{"write", "docs", "no rows match"} {
+		if strings.Contains(text, not) {
+			t.Fatalf("regex alpha|beta still shows %q:\n%s", not, text)
+		}
+	}
+	f.press("ctrl+u", "(")
+	bad := f.frame()
+	if !strings.Contains(bad, "regex: missing closing )") || !strings.Contains(bad, "regex") {
+		t.Fatalf("invalid regex in related stack:\n%s", bad)
+	}
+}
