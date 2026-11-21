@@ -10,6 +10,8 @@ import (
 	"testing"
 )
 
+const mod = "ofam.dev/ochazuke"
+
 type pkgError struct {
 	Err string `json:"Err"`
 }
@@ -52,20 +54,53 @@ func runGoList(t *testing.T, args ...string) []pkgInfo {
 	return pkgs
 }
 
-func isForbiddenImport(path string) bool {
-	lower := strings.ToLower(path)
-	return strings.Contains(lower, "bubbletea") ||
-		strings.Contains(lower, "lipgloss") ||
-		strings.Contains(lower, "charm.land/") ||
-		strings.Contains(lower, "charmbracelet/")
+// policy states what a package may import outside the standard library.
+type policy struct {
+	// allow lists the exact non-stdlib import paths the package (and its
+	// tests) may import directly.
+	allow []string
+	// closed also restricts the transitive dependencies to stdlib + allow.
+	closed bool
+	// forbidDeps lists substrings no transitive dependency may contain.
+	forbidDeps []string
 }
 
-func TestTier0DependencyBoundaries(t *testing.T) {
+const (
+	lipgloss  = "charm.land/lipgloss/v2"
+	bubbletea = "charm.land/bubbletea/v2"
+	uniseg    = "github.com/rivo/uniseg"
+)
+
+var policies = map[string]policy{
+	// Tier 0: stdlib only, except buffer (layout + uniseg).
+	mod:             {closed: true},
+	mod + "/trie":   {closed: true},
+	mod + "/expr":   {closed: true},
+	mod + "/layout": {closed: true},
+	mod + "/buffer": {closed: true, allow: []string{mod + "/layout", uniseg}},
+	// Tier 1: the kernel is pure; ui renders with Lip Gloss; tea owns Bubble Tea.
+	mod + "/core": {closed: true, allow: []string{mod + "/trie", mod + "/expr", mod + "/layout"}},
+	mod + "/ui": {
+		allow:      []string{mod + "/core", mod + "/layout", mod + "/buffer", lipgloss},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/tea": {
+		allow: []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/buffer", bubbletea},
+	},
+}
+
+func TestDependencyBoundaries(t *testing.T) {
 	pkgs := runGoList(t, "list", "-json", "./...")
 
-	byPath := make(map[string]pkgInfo, len(pkgs))
-	uniqueDeps := make(map[string]struct{})
+	// Standard-library membership, including everything tests pull in.
+	std := map[string]bool{}
+	for _, p := range runGoList(t, "list", "-deps", "-test", "-json", "./...") {
+		if p.Standard {
+			std[p.ImportPath] = true
+		}
+	}
 
+	byPath := map[string]pkgInfo{}
 	for _, p := range pkgs {
 		if p.Error != nil {
 			t.Fatalf("package %s error: %s", p.ImportPath, p.Error.Err)
@@ -74,140 +109,43 @@ func TestTier0DependencyBoundaries(t *testing.T) {
 			t.Fatalf("package %s has incomplete metadata or deps errors: %+v", p.ImportPath, p.DepsErrors)
 		}
 		byPath[p.ImportPath] = p
+	}
 
-		collect := func(list []string) {
+	for _, req := range []string{"trie", "expr", "layout", "buffer", "core", "ui", "tea"} {
+		if _, ok := byPath[mod+"/"+req]; !ok {
+			t.Fatalf("required package %q missing from go list ./...", mod+"/"+req)
+		}
+	}
+
+	for _, p := range pkgs {
+		pol, governed := policies[p.ImportPath]
+		isExample := strings.HasPrefix(p.ImportPath, mod+"/examples/")
+		if !governed && !isExample {
+			t.Errorf("unexpected package %q: add a policy to deps_test.go", p.ImportPath)
+			continue
+		}
+
+		for kind, list := range map[string][]string{"Imports": p.Imports, "Deps": p.Deps, "TestImports": p.TestImports, "XTestImports": p.XTestImports} {
 			for _, imp := range list {
 				if imp == "C" {
-					t.Fatalf("package %s imports forbidden cgo pseudo-package %q", p.ImportPath, imp)
+					t.Errorf("%s %s imports cgo pseudo-package %q", p.ImportPath, kind, imp)
 				}
-				if isForbiddenImport(imp) {
-					t.Fatalf("package %s has forbidden import %q", p.ImportPath, imp)
-				}
-				uniqueDeps[imp] = struct{}{}
-			}
-		}
-		collect(p.Imports)
-		collect(p.TestImports)
-		collect(p.XTestImports)
-		collect(p.Deps)
-	}
-
-	requiredTier0 := []string{
-		"ofam.dev/ochazuke/trie",
-		"ofam.dev/ochazuke/expr",
-		"ofam.dev/ochazuke/layout",
-		"ofam.dev/ochazuke/buffer",
-	}
-	for _, req := range requiredTier0 {
-		if _, ok := byPath[req]; !ok {
-			t.Fatalf("required Tier 0 package %q missing from go list ./...", req)
-		}
-	}
-
-	depPaths := make([]string, 0, len(uniqueDeps))
-	for dep := range uniqueDeps {
-		depPaths = append(depPaths, dep)
-	}
-	slices.Sort(depPaths)
-
-	meta := make(map[string]pkgInfo, len(depPaths))
-	if len(depPaths) > 0 {
-		args := append([]string{"list", "-deps", "-json", "--"}, depPaths...)
-		resolved := runGoList(t, args...)
-		for _, r := range resolved {
-			if r.Error != nil {
-				t.Fatalf("dependency %s error: %s", r.ImportPath, r.Error.Err)
-			}
-			if r.Incomplete || len(r.DepsErrors) > 0 {
-				t.Fatalf("dependency %s has incomplete metadata or deps errors: %+v", r.ImportPath, r.DepsErrors)
-			}
-			if isForbiddenImport(r.ImportPath) {
-				t.Fatalf("forbidden transitive dependency %q", r.ImportPath)
-			}
-			for _, d := range r.Deps {
-				if d == "C" || isForbiddenImport(d) {
-					t.Fatalf("dependency %s has forbidden transitive dep %q", r.ImportPath, d)
-				}
-			}
-			meta[r.ImportPath] = r
-		}
-	}
-
-	assertStdlibOnly := func(pkg pkgInfo) {
-		checkSlice := func(kind string, list []string, allowSelf bool) {
-			for _, imp := range list {
-				if allowSelf && imp == pkg.ImportPath {
+				if isExample || imp == p.ImportPath { // examples are free; xtests import their own package
 					continue
 				}
-				m, ok := meta[imp]
-				if !ok {
-					t.Fatalf("%s %s %q missing from resolved metadata", pkg.ImportPath, kind, imp)
-				}
-				if !m.Standard {
-					t.Errorf("%s %s %q is non-stdlib (Standard=false)", pkg.ImportPath, kind, imp)
-				}
-				if kind == "TestImports" || kind == "XTestImports" {
-					for _, td := range m.Deps {
-						if tm, ok := meta[td]; !ok || !tm.Standard {
-							t.Errorf("%s %s %q has non-stdlib transitive dep %q", pkg.ImportPath, kind, imp, td)
-						}
-					}
-				}
-			}
-		}
-		checkSlice("Imports", pkg.Imports, false)
-		checkSlice("Deps", pkg.Deps, false)
-		checkSlice("TestImports", pkg.TestImports, false)
-		checkSlice("XTestImports", pkg.XTestImports, true)
-	}
-
-	allowedBufferDep := func(path string) bool {
-		if path == "ofam.dev/ochazuke/layout" || path == "github.com/rivo/uniseg" {
-			return true
-		}
-		m, ok := meta[path]
-		return ok && m.Standard
-	}
-
-	assertBufferDeps := func(pkg pkgInfo) {
-		checkSlice := func(kind string, list []string, allowSelf bool) {
-			for _, imp := range list {
-				if allowSelf && imp == pkg.ImportPath {
+				if std[imp] {
 					continue
 				}
-				if !allowedBufferDep(imp) {
-					t.Errorf("%s %s %q violates Tier 0 buffer allowlist", pkg.ImportPath, kind, imp)
-				}
-				if kind == "TestImports" || kind == "XTestImports" {
-					m, ok := meta[imp]
-					if !ok {
-						t.Fatalf("%s %s %q missing from resolved metadata", pkg.ImportPath, kind, imp)
-					}
-					for _, td := range m.Deps {
-						if !allowedBufferDep(td) {
-							t.Errorf("%s %s %q has disallowed transitive dep %q", pkg.ImportPath, kind, imp, td)
+				if kind == "Deps" && !pol.closed {
+					for _, f := range pol.forbidDeps {
+						if strings.Contains(imp, f) {
+							t.Errorf("%s has forbidden transitive dependency %q", p.ImportPath, imp)
 						}
 					}
+				} else if !slices.Contains(pol.allow, imp) {
+					t.Errorf("%s %s %q is outside its allowlist %v", p.ImportPath, kind, imp, pol.allow)
 				}
 			}
-		}
-		checkSlice("Imports", pkg.Imports, false)
-		checkSlice("Deps", pkg.Deps, false)
-		checkSlice("TestImports", pkg.TestImports, false)
-		checkSlice("XTestImports", pkg.XTestImports, true)
-	}
-
-	for _, pkg := range pkgs {
-		switch pkg.ImportPath {
-		case "ofam.dev/ochazuke/trie",
-			"ofam.dev/ochazuke/expr",
-			"ofam.dev/ochazuke/layout",
-			"ofam.dev/ochazuke":
-			assertStdlibOnly(pkg)
-		case "ofam.dev/ochazuke/buffer":
-			assertBufferDeps(pkg)
-		default:
-			t.Errorf("unexpected package %q in Tier 0 module", pkg.ImportPath)
 		}
 	}
 }
