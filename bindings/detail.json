@@ -1,9 +1,0 @@
-// ochazuke bindings (JSONC): groups by "noun/mode" context; one row per line, {key, action, args, hint, ...} or {key, unbind: true}; a key may repeat: the first row whose action is available answers
-{
-  "bindings": [
-    {"context": "app/normal", "bindings": [
-      {"key": "J", "action": "ochazuke.detail.scroll", "args": {"lines": 1}, "hint": "J/K detail", "when": "detail-scrolls", "from": {"count": "count"}},
-      {"key": "K", "action": "ochazuke.detail.scroll", "args": {"lines": -1}, "when": "detail-scrolls", "from": {"count": "count"}, "hidden": true}
-    ]}
-  ]
-}
