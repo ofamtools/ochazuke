@@ -56,9 +56,10 @@ func runGoList(t *testing.T, args ...string) []pkgInfo {
 
 // policy states what a package may import outside the standard library.
 type policy struct {
-	// allow lists the exact non-stdlib import paths the package (and its
-	// tests) may import directly.
+	// allow lists the exact non-stdlib imports the package and tests may use.
 	allow []string
+	// allowTests adds direct imports allowed only from test files.
+	allowTests []string
 	// closed also restricts the transitive dependencies to stdlib + allow.
 	closed bool
 	// forbidDeps lists substrings no transitive dependency may contain.
@@ -73,7 +74,7 @@ const (
 
 var policies = map[string]policy{
 	// Tier 0: stdlib only, except buffer (layout + uniseg).
-	mod:             {closed: true},
+	mod:             {closed: true, allowTests: []string{mod + "/core", mod + "/ui", mod + "/tea", mod + "/widgets/table", bubbletea}},
 	mod + "/trie":   {closed: true},
 	mod + "/expr":   {closed: true},
 	mod + "/layout": {closed: true},
@@ -106,6 +107,14 @@ var policies = map[string]policy{
 	},
 	mod + "/config": {
 		allow:      []string{mod + "/core", mod + "/ui", mod + "/expr", mod + "/layout"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/widgets/input": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/buffer"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/widgets/bindings": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/expr", mod + "/config", mod + "/widgets/table"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 }
@@ -147,6 +156,10 @@ func TestDependencyBoundaries(t *testing.T) {
 		}
 
 		for kind, list := range map[string][]string{"Imports": p.Imports, "Deps": p.Deps, "TestImports": p.TestImports, "XTestImports": p.XTestImports} {
+			allowed := pol.allow
+			if (kind == "TestImports" || kind == "XTestImports") && len(pol.allowTests) > 0 {
+				allowed = slices.Concat(allowed, pol.allowTests)
+			}
 			for _, imp := range list {
 				if imp == "C" {
 					t.Errorf("%s %s imports cgo pseudo-package %q", p.ImportPath, kind, imp)
@@ -163,8 +176,8 @@ func TestDependencyBoundaries(t *testing.T) {
 							t.Errorf("%s has forbidden transitive dependency %q", p.ImportPath, imp)
 						}
 					}
-				} else if !slices.Contains(pol.allow, imp) {
-					t.Errorf("%s %s %q is outside its allowlist %v", p.ImportPath, kind, imp, pol.allow)
+				} else if !slices.Contains(allowed, imp) {
+					t.Errorf("%s %s %q is outside its allowlist %v", p.ImportPath, kind, imp, allowed)
 				}
 			}
 		}
