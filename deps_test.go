@@ -87,6 +87,27 @@ var policies = map[string]policy{
 	mod + "/tea": {
 		allow: []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/buffer", bubbletea},
 	},
+	// Tier 2: opt-in widgets and config; never imported by Tier 0/1, never import Bubble Tea or Lip Gloss.
+	mod + "/widgets/table": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/widgets/picker": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/widgets/pathpicker": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/widgets/picker"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/widgets/form": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/config": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/expr", mod + "/layout"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
 }
 
 func TestDependencyBoundaries(t *testing.T) {
