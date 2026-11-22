@@ -105,6 +105,46 @@ type Model struct {
 	Errors      map[string]string
 	Dirty       bool
 	SubmitLabel string
+
+	// ChoiceResolver, when set, supplies an enum field's choices from the
+	// current values, so one field's options can depend on another (the
+	// models offered for the chosen harness). A nil or empty result falls
+	// back to spec.Enum. A field whose spec has no Enum becomes an enum
+	// field while the resolver returns choices for it. The resolver must
+	// not modify values.
+	ChoiceResolver func(spec core.ParamSpec, values map[string]any) []string
+}
+
+// EffectiveEnum returns the choices of field idx: the ChoiceResolver's
+// result when non-empty, otherwise spec.Enum.
+func (m *Model) EffectiveEnum(idx int) []string {
+	if idx < 0 || idx >= len(m.Specs) {
+		return nil
+	}
+	s := m.Specs[idx]
+	if m.ChoiceResolver != nil {
+		if choices := m.ChoiceResolver(s, m.Values); len(choices) > 0 {
+			return choices
+		}
+	}
+	return s.Enum
+}
+
+// spec returns field idx with Enum replaced by EffectiveEnum.
+func (m *Model) spec(idx int) core.ParamSpec {
+	s := m.Specs[idx]
+	if m.ChoiceResolver != nil {
+		s.Enum = m.EffectiveEnum(idx)
+	}
+	return s
+}
+
+// KindAt infers the widget for field idx from its effective choices.
+func (m *Model) KindAt(idx int) FieldKind {
+	if idx < 0 || idx >= len(m.Specs) {
+		return ""
+	}
+	return KindFor(m.spec(idx))
 }
 
 // New builds a form. initial values win over ParamSpec.Default.
@@ -170,7 +210,7 @@ func (m *Model) active() (core.ParamSpec, bool) {
 	if m.ActiveIdx < 0 || m.ActiveIdx >= len(m.Specs) {
 		return core.ParamSpec{}, false
 	}
-	return m.Specs[m.ActiveIdx], true
+	return m.spec(m.ActiveIdx), true
 }
 
 func (m *Model) text(name string) string {
@@ -181,6 +221,25 @@ func (m *Model) text(name string) string {
 func (m *Model) touch(name string) {
 	m.Dirty = true
 	delete(m.Errors, name)
+	if m.ChoiceResolver == nil {
+		return
+	}
+	// Dependent choices may have changed: re-check the other enum fields
+	// so a value no longer offered is flagged at once.
+	if m.Errors == nil {
+		m.Errors = map[string]string{}
+	}
+	for i := range m.Specs {
+		s := m.spec(i)
+		if s.Name == name || KindFor(s) != KindEnum {
+			continue
+		}
+		if _, err := m.typed(s); err != nil {
+			m.Errors[s.Name] = err.Error()
+		} else {
+			delete(m.Errors, s.Name)
+		}
+	}
 }
 
 // Down, Up, Top and Bottom move the active field and stop editing.
@@ -277,8 +336,8 @@ func (m *Model) CycleEnum(dir int) {
 
 // SetValue sets a field from any Go value (e.g. a picker result).
 func (m *Model) SetValue(name string, v any) bool {
-	for _, s := range m.Specs {
-		if s.Name == name {
+	for i := range m.Specs {
+		if s := m.spec(i); s.Name == name {
 			m.Values[name] = display(s, v)
 			m.touch(name)
 			return true
@@ -290,7 +349,8 @@ func (m *Model) SetValue(name string, v any) bool {
 // Validate checks every field and records per-field Errors.
 func (m *Model) Validate() bool {
 	m.Errors = map[string]string{}
-	for _, s := range m.Specs {
+	for i := range m.Specs {
+		s := m.spec(i)
 		if _, err := m.typed(s); err != nil {
 			m.Errors[s.Name] = err.Error()
 		}
@@ -373,7 +433,8 @@ func (m *Model) typed(s core.ParamSpec) (any, error) {
 // fields are omitted.
 func (m *Model) TypedValues() map[string]any {
 	out := map[string]any{}
-	for _, s := range m.Specs {
+	for i := range m.Specs {
+		s := m.spec(i)
 		if v, err := m.typed(s); err == nil && v != nil {
 			out[s.Name] = v
 		}
@@ -470,7 +531,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		errs[k] = v
 	}
 	props := map[string]any{
-		"fields":      m.Specs,
+		"fields":      m.fields(),
 		"values":      values,
 		"active":      m.ActiveIdx,
 		"submitLabel": m.SubmitLabel,
@@ -489,6 +550,19 @@ func (m *Model) View(id string) ui.ViewNode {
 	}
 }
 
+// fields returns the specs with effective choices (Specs itself when no
+// ChoiceResolver is set).
+func (m *Model) fields() []core.ParamSpec {
+	if m.ChoiceResolver == nil {
+		return m.Specs
+	}
+	out := make([]core.ParamSpec, len(m.Specs))
+	for i := range m.Specs {
+		out[i] = m.spec(i)
+	}
+	return out
+}
+
 func (m *Model) cacheKey() uint64 {
 	h := fnv.New64a()
 	w := func(s string) { h.Write([]byte(s)); h.Write([]byte{0}) }
@@ -496,7 +570,7 @@ func (m *Model) cacheKey() uint64 {
 	w(m.SubmitLabel)
 	w(strconv.Itoa(m.ActiveIdx))
 	w(strconv.FormatBool(m.Editing))
-	for _, s := range m.Specs {
+	for _, s := range m.fields() {
 		w(s.Name)
 		w(string(s.Type))
 		w(strconv.FormatBool(s.Required))

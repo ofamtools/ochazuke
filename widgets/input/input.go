@@ -53,6 +53,8 @@ type pending struct {
 	op, prefix     string
 	opCount, count int
 	reg            byte
+	sur, surTarget string // surround stage ("ys", "ys:", "ds", "cs", "cs:", "S") and ys target
+	surFrom        rune   // cs delimiter being replaced
 }
 
 // Model owns the buffer, cursor, registers and undo history for one input.
@@ -140,6 +142,8 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 			m.typeIn(insertion{text: cmd.Arg("text")})
 		}
 		return true
+	case CmdSurroundAdd, CmdSurroundDelete, CmdSurroundChange:
+		return m.surroundCommand(cmd)
 	}
 	key, ok := commandKeys[cmd.ID]
 	if !ok {
@@ -200,6 +204,9 @@ func (m *Model) handle(key, text string, count int) bool {
 	p := &m.pending
 	if count > 0 {
 		p.count = count
+	}
+	if handled, ok := m.surroundKey(key); ok {
+		return handled
 	}
 	if p.prefix == `"` {
 		p.prefix = ""

@@ -117,6 +117,18 @@ var policies = map[string]policy{
 		allow:      []string{mod + "/core", mod + "/ui", mod + "/expr", mod + "/config", mod + "/widgets/table"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
+	mod + "/widgets/diff": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/widgets/markdown": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/widgets/commandline": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
 }
 
 func TestDependencyBoundaries(t *testing.T) {

@@ -22,6 +22,7 @@ type edit struct {
 	reg         byte
 	selection   shape
 	typed       []insertion
+	from, to    rune // surround delimiters
 }
 
 type insertSession struct {
@@ -143,6 +144,9 @@ func (m *Model) apply(a edit) {
 		m.paste(reg, a.key == "P" || overSelection, max(a.count, 1))
 		m.mode = ModeNormal
 		m.save(before, a)
+		return
+	case surroundAdd, surroundDelete, surroundChange, surroundVisual:
+		m.applySurround(before, a)
 		return
 	default:
 		return
