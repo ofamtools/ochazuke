@@ -22,6 +22,8 @@ type rnode struct {
 }
 
 type builder struct {
+	dens       string // effective theme density; sizes forms and cards
+	border     string // effective theme border style; glyphs only
 	focusID    string
 	focusSet   map[string]bool // IDs of the focus target and its ancestors
 	userFocus  map[string]bool // scroll IDs the user marked focusable
@@ -29,7 +31,7 @@ type builder struct {
 }
 
 func newBuilder(root *ViewNode, focusID string) *builder {
-	b := &builder{focusID: focusID, focusSet: map[string]bool{}, userFocus: map[string]bool{}}
+	b := &builder{dens: DensityBalanced, border: BorderRounded, focusID: focusID, focusSet: map[string]bool{}, userFocus: map[string]bool{}}
 	if focusID != "" {
 		b.markFocus(root, "~", focusID)
 	}
@@ -49,12 +51,18 @@ func (b *builder) markFocus(n *ViewNode, path, id string) bool {
 	return hit
 }
 
-func chromeOf(n *ViewNode) (bool, [4]int) {
+// chromeOf returns a node's border flag and padding. Chrome kinds default to
+// one column of side padding; spacious cards also get a padded top, bottom
+// and a wider gutter. Caller-set Padding always wins.
+func chromeOf(n *ViewNode, d string) (bool, [4]int) {
 	switch n.Kind {
 	case KindPanel, KindCard, KindOverlay:
 		pad := n.Padding
 		if pad == ([4]int{}) {
 			pad = [4]int{0, 1, 0, 1}
+			if n.Kind == KindCard && d == DensitySpacious {
+				pad = [4]int{1, 2, 1, 2}
+			}
 		}
 		return true, pad
 	}
@@ -84,7 +92,7 @@ func (b *builder) base(n *ViewNode, path string) (layout.Box, *rnode) {
 	rn := &rnode{n: n, id: id, path: path}
 	rn.isFocus = b.focusID != "" && n.ID == b.focusID
 	rn.onFocus = b.focusSet[id]
-	border, pad := chromeOf(n)
+	border, pad := chromeOf(n, b.dens)
 	box := layout.Box{ID: id, Focusable: n.Focusable, Padding: pad, Gap: max(0, n.Gap), Border: border, Constraints: n.Box}
 	return box, rn
 }
@@ -106,7 +114,7 @@ func (b *builder) build(n *ViewNode, path string, w, h int) (layout.Box, *rnode)
 		b.flow(&box, rn, n.Children, layout.Vertical, iw, ih, false)
 	case KindCard:
 		box.Kind = layout.BoxStack
-		head := cardHead(nil, n, iw, false)
+		head := cardHead(nil, n, iw, false, b.dens)
 		if len(head) > 0 {
 			rn.head = rn.path + "#head"
 			box.Children = append(box.Children, layout.Box{ID: rn.head, Constraints: layout.Constraints{FixedH: len(head)}})
@@ -154,7 +162,7 @@ func (b *builder) build(n *ViewNode, path string, w, h int) (layout.Box, *rnode)
 				posOf[i] = pos
 				pos++
 				had := cb.Constraints.FixedH > 0
-				fixHeight(&cb, k, colW, false)
+				fixHeight(&cb, k, colW, false, b.dens)
 				if !had && cb.Constraints.FixedH > 0 {
 					flowIdx = append(flowIdx, i)
 				}
@@ -178,7 +186,7 @@ func (b *builder) build(n *ViewNode, path string, w, h int) (layout.Box, *rnode)
 		if a := activeTab(n); a >= 0 {
 			k := &n.Children[a]
 			cb, crn := b.build(k, path+"/"+strconv.Itoa(a), iw, max(0, ih-2))
-			fixHeight(&cb, k, iw, false)
+			fixHeight(&cb, k, iw, false, b.dens)
 			box.Children = append(box.Children, cb)
 			rn.kids = append(rn.kids, crn)
 		}
@@ -190,7 +198,7 @@ func (b *builder) build(n *ViewNode, path string, w, h int) (layout.Box, *rnode)
 	case KindOverlay:
 		box.Kind = layout.BoxOverlay
 		box.AnchorID = n.propString("anchorId")
-		ow, oh := overlaySize(n, w, h)
+		ow, oh := overlaySize(n, w, h, b.dens)
 		if box.Constraints.FixedW == 0 {
 			box.Constraints.FixedW = ow
 		}
@@ -234,7 +242,7 @@ func (b *builder) flow(box *layout.Box, rn *rnode, kids []ViewNode, axis layout.
 		}
 		cb, crn := b.build(k, rn.path+"/"+strconv.Itoa(i), cw, ch)
 		if axis == layout.Vertical && !isOverlay(k) {
-			fixHeight(&cb, k, cw, fixAll)
+			fixHeight(&cb, k, cw, fixAll, b.dens)
 		}
 		box.Children = append(box.Children, cb)
 		rn.kids = append(rn.kids, crn)
@@ -242,12 +250,12 @@ func (b *builder) flow(box *layout.Box, rn *rnode, kids []ViewNode, axis layout.
 }
 
 // fixHeight gives a child its measured height unless it fills or sets its own.
-func fixHeight(cb *layout.Box, k *ViewNode, w int, force bool) {
+func fixHeight(cb *layout.Box, k *ViewNode, w int, force bool, d string) {
 	if cb.Constraints.FixedH > 0 || k.Box.Flex > 0 {
 		return
 	}
 	if force || !fills(k) {
-		cb.Constraints.FixedH = max(1, measure(k, w))
+		cb.Constraints.FixedH = max(1, measure(k, w, d))
 	}
 }
 
@@ -303,7 +311,7 @@ func gridCols(n *ViewNode, iw int) int {
 	return max(1, (iw+gap)/(gridMinColW(n)+gap))
 }
 
-func overlaySize(n *ViewNode, w, h int) (int, int) {
+func overlaySize(n *ViewNode, w, h int, d string) (int, int) {
 	wp, ok := n.propInt("widthPct")
 	if !ok || wp <= 0 {
 		wp = 60
@@ -312,13 +320,13 @@ func overlaySize(n *ViewNode, w, h int) (int, int) {
 	if n.Box.FixedW > 0 {
 		ow = n.Box.FixedW
 	}
-	border, pad := chromeOf(n)
+	border, pad := chromeOf(n, d)
 	var oh int
 	if hp, ok := n.propInt("heightPct"); ok && hp > 0 {
 		oh = h * min(hp, 100) / 100
 	} else {
 		iw, _ := innerSize(border, pad, ow, 0)
-		oh = flowHeight(n.Children, iw, 0) + chromeV(border, pad)
+		oh = flowHeight(n.Children, iw, 0, d) + chromeV(border, pad)
 	}
 	if n.Box.FixedH > 0 {
 		oh = n.Box.FixedH
@@ -376,24 +384,25 @@ func fills(n *ViewNode) bool {
 }
 
 // flowHeight sums the measured heights of non-overlay kids plus gaps.
-func flowHeight(kids []ViewNode, w, gap int) int {
+func flowHeight(kids []ViewNode, w, gap int, d string) int {
 	total, cnt := 0, 0
 	for i := range kids {
 		if isOverlay(&kids[i]) {
 			continue
 		}
-		total += max(1, measure(&kids[i], w))
+		total += max(1, measure(&kids[i], w, d))
 		cnt++
 	}
 	return total + max(0, gap)*max(0, cnt-1)
 }
 
-// measure returns a node's preferred height at width w, honouring Box limits.
-func measure(n *ViewNode, w int) int {
+// measure returns a node's preferred height at width w and density d,
+// honouring Box limits.
+func measure(n *ViewNode, w int, d string) int {
 	if n.Box.FixedH > 0 {
 		return n.Box.FixedH
 	}
-	h := natural(n, w)
+	h := natural(n, w, d)
 	if n.Box.MinH > 0 {
 		h = max(h, n.Box.MinH)
 	}
@@ -403,15 +412,15 @@ func measure(n *ViewNode, w int) int {
 	return h
 }
 
-func natural(n *ViewNode, w int) int {
-	border, pad := chromeOf(n)
+func natural(n *ViewNode, w int, d string) int {
+	border, pad := chromeOf(n, d)
 	iw, _ := innerSize(border, pad, w, 0)
 	cv := chromeV(border, pad)
 	switch n.Kind {
 	case KindVStack, KindPanel:
-		return flowHeight(n.Children, iw, n.Gap) + cv
+		return flowHeight(n.Children, iw, n.Gap, d) + cv
 	case KindCard:
-		h := flowHeight(n.Children, iw, n.Gap) + cv + len(cardHead(nil, n, iw, false))
+		h := flowHeight(n.Children, iw, n.Gap, d) + cv + len(cardHead(nil, n, iw, false, d))
 		if len(n.Actions) > 0 {
 			h++
 		}
@@ -421,7 +430,7 @@ func natural(n *ViewNode, w int) int {
 		h := 0
 		for i := range n.Children {
 			if !isOverlay(&n.Children[i]) {
-				h = max(h, measure(&n.Children[i], widths[i]))
+				h = max(h, measure(&n.Children[i], widths[i], d))
 			}
 		}
 		return h + cv
@@ -430,11 +439,11 @@ func natural(n *ViewNode, w int) int {
 			return cv
 		}
 		if splitAxis(n) == layout.Vertical {
-			return flowHeight(n.Children, iw, n.Gap) + cv
+			return flowHeight(n.Children, iw, n.Gap, d) + cv
 		}
 		h := 0
 		for i := range n.Children {
-			h = max(h, measure(&n.Children[i], iw/2))
+			h = max(h, measure(&n.Children[i], iw/2, d))
 		}
 		return h + cv
 	case KindGrid:
@@ -451,7 +460,7 @@ func natural(n *ViewNode, w int) int {
 		for i := 0; i < len(flow); i += cols {
 			rh := 0
 			for _, k := range flow[i:min(len(flow), i+cols)] {
-				rh = max(rh, measure(k, colW))
+				rh = max(rh, measure(k, colW, d))
 			}
 			total += rh
 			rows++
@@ -462,9 +471,9 @@ func natural(n *ViewNode, w int) int {
 		if a < 0 {
 			return 2 + cv
 		}
-		return 2 + measure(&n.Children[a], iw) + cv
+		return 2 + measure(&n.Children[a], iw, d) + cv
 	case KindScroll:
-		return flowHeight(n.Children, w, n.Gap)
+		return flowHeight(n.Children, w, n.Gap, d)
 	case KindOverlay:
 		return 0
 	case KindText:
@@ -481,7 +490,7 @@ func natural(n *ViewNode, w int) int {
 		}
 		return 1 + cv
 	case KindForm:
-		return len(formFields(n)) + 1 + cv
+		return formHeight(n, d) + cv
 	case KindPicker:
 		return 1 + len(toSlice(n.Props["items"])) + cv
 	case KindTerminal:
@@ -490,7 +499,7 @@ func natural(n *ViewNode, w int) int {
 		return max(1, len(ansiLines(n))) + cv
 	}
 	if len(n.Children) > 0 {
-		return flowHeight(n.Children, iw, n.Gap) + cv
+		return flowHeight(n.Children, iw, n.Gap, d) + cv
 	}
 	return 1 + cv
 }

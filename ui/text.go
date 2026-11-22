@@ -107,6 +107,23 @@ func truncate(s string, w int) string {
 	return sb.String()
 }
 
+// fieldText makes form text safe for one row: values are user-typed, and an
+// escape sequence would otherwise reach the terminal. A newline shows as "↵",
+// a tab as a space, and every other C0, DEL or C1 rune as U+FFFD.
+func fieldText(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r == '\n':
+			return '↵'
+		case r == '\t':
+			return ' '
+		case r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0):
+			return '\uFFFD'
+		}
+		return r
+	}, s)
+}
+
 func spaces(n int) string {
 	if n <= 0 {
 		return ""

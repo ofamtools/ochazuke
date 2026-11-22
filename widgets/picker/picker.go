@@ -9,6 +9,7 @@ package picker
 import (
 	"hash/fnv"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -67,6 +68,14 @@ type Model struct {
 	Badges      []ui.Badge     // node-level badges
 	Facts       map[string]any // extra node facts, merged under the picker's own
 	Scope       string         // node scope when no item is focused or it has none; default "picker"
+
+	// Pinned, when set, is the first row of Filtered and View whatever the
+	// query. It is not one of Items: it is never filtered, ranked or marked.
+	Pinned *Item
+	// Rank, when set, orders the matches of a non-empty substring or fuzzy
+	// query: lower ranks first, ties keep Items order. It gets the
+	// lower-cased query. An empty query and regex mode keep Items order.
+	Rank func(it Item, lowerQuery string) int
 }
 
 // New returns a Model over items with substring matching.
@@ -138,12 +147,27 @@ func (m *Model) CycleMatchMode() {
 
 // refresh recomputes FilterErr and clamps the selection.
 func (m *Model) refresh() {
-	_, m.FilterErr = m.filter()
-	m.clamp()
+	f, err := m.match()
+	m.FilterErr = err
+	m.clampTo(len(f) + m.pinnedRows())
 }
 
-func (m *Model) clamp() {
-	n := len(m.Filtered())
+func (m *Model) pinnedRows() int {
+	if m.Pinned != nil {
+		return 1
+	}
+	return 0
+}
+
+// rows counts the rows of Filtered without ranking them.
+func (m *Model) rows() int {
+	f, _ := m.match()
+	return len(f) + m.pinnedRows()
+}
+
+func (m *Model) clamp() { m.clampTo(m.rows()) }
+
+func (m *Model) clampTo(n int) {
 	m.SelectedIdx = max(0, min(m.SelectedIdx, n-1))
 }
 
@@ -163,9 +187,10 @@ func fuzzy(hay, q string) bool {
 	return i == len(qs)
 }
 
-// filter returns the matching items and a regex error message ("" when none).
-// An invalid regex matches everything so the list never blanks mid-typing.
-func (m *Model) filter() ([]Item, string) {
+// match returns the matching items in Items order and a regex error message
+// ("" when none). An invalid regex matches everything so the list never
+// blanks mid-typing.
+func (m *Model) match() ([]Item, string) {
 	if m.Query == "" {
 		return m.Items, ""
 	}
@@ -200,9 +225,33 @@ func (m *Model) filter() ([]Item, string) {
 	return out, ""
 }
 
-// Filtered returns the items matching the query, in original order.
+// filter is match ordered by Rank when it applies.
+func (m *Model) filter() ([]Item, string) {
+	out, errMsg := m.match()
+	if m.Rank != nil && m.Query != "" && m.mode() != MatchRegex {
+		q := strings.ToLower(m.Query)
+		ranked := make([]struct {
+			it   Item
+			rank int
+		}, len(out))
+		for i, it := range out {
+			ranked[i].it, ranked[i].rank = it, m.Rank(it, q)
+		}
+		sort.SliceStable(ranked, func(i, j int) bool { return ranked[i].rank < ranked[j].rank })
+		for i := range ranked {
+			out[i] = ranked[i].it
+		}
+	}
+	return out, errMsg
+}
+
+// Filtered returns Pinned (when set) followed by the items matching the
+// query, in original order or by Rank.
 func (m *Model) Filtered() []Item {
 	out, _ := m.filter()
+	if m.Pinned != nil {
+		return append([]Item{*m.Pinned}, out...)
+	}
 	return out
 }
 
@@ -218,7 +267,7 @@ func (m *Model) Focused() (Item, bool) {
 // ToggleMark toggles the mark of the focused item (MultiSelect only).
 func (m *Model) ToggleMark() {
 	it, ok := m.Focused()
-	if !ok || !m.MultiSelect {
+	if !ok || !m.MultiSelect || (m.Pinned != nil && m.SelectedIdx == 0) {
 		return
 	}
 	if m.Marked == nil {
@@ -268,8 +317,9 @@ func (m *Model) HandleCommand(cmd core.Command) (picked *Item, handled bool) {
 		m.SelectedIdx = 0
 		m.clamp()
 	case "motion.bottom":
-		m.SelectedIdx = len(m.Filtered()) - 1
-		m.clamp()
+		n := m.rows()
+		m.SelectedIdx = n - 1
+		m.clampTo(n)
 	case "motion.page.down":
 		m.move(n * m.page())
 	case "motion.page.up":
@@ -332,7 +382,10 @@ func (m *Model) props(f []Item, sel int) map[string]any {
 		if it.Unread {
 			label = "● " + label
 		}
-		if m.MultiSelect {
+		switch {
+		case m.MultiSelect && i < m.pinnedRows():
+			label = "    " + label // Pinned is never markable; keep columns aligned
+		case m.MultiSelect:
 			if m.Marked[it.ID] {
 				label = "[x] " + label
 			} else {
@@ -372,7 +425,7 @@ func (m *Model) props(f []Item, sel int) map[string]any {
 // first child is the picker (still ID id) and whose second is a preview panel.
 func (m *Model) View(id string) ui.ViewNode {
 	f := m.Filtered()
-	m.clamp()
+	m.clampTo(len(f))
 	sel := -1
 	if len(f) > 0 {
 		sel = min(max(m.SelectedIdx, 0), len(f)-1)
@@ -400,8 +453,9 @@ func (m *Model) View(id string) ui.ViewNode {
 	}
 	facts["query"] = m.Query
 	facts["matchMode"] = string(m.mode())
-	facts["count"] = len(f)
-	facts["total"] = len(m.Items)
+	facts["count"] = len(f) - m.pinnedRows() // matching Items; Pinned is not counted
+	facts["total"] = len(m.Items)            // all Items; Pinned is not one
+	facts["pinned"] = m.Pinned != nil
 	facts["selected"] = sel
 	facts["multiSelect"] = m.MultiSelect
 	facts["marked"] = len(m.MarkedItems())

@@ -13,7 +13,7 @@ import (
 func (c *ctx) drawLeaf(rn *rnode, lr layout.Rect) {
 	n := rn.n
 	if n.Border {
-		c.drawFrame(lr, frameOpts{thick: rn.onFocus, border: c.borderStyle(rn), title: n.Title, titleStyle: c.titleStyle(rn), right: c.badgeRow(n.Badges)})
+		c.drawFrame(lr, frameOpts{focus: rn.onFocus, border: c.borderStyle(rn), title: n.Title, titleStyle: c.titleStyle(rn), right: c.badgeRow(n.Badges)})
 	}
 	ir := lr
 	if r, ok := c.solved.InnerRects[rn.id]; ok {
@@ -36,7 +36,7 @@ func (c *ctx) drawLeaf(rn *rnode, lr layout.Rect) {
 	case KindInput:
 		out, cur = c.inputLines(rn, ir.W, ir.H)
 	case KindForm:
-		out, cur = c.formLines(rn, ir.W)
+		out, cur = c.formLines(rn, ir.W, ir.H)
 	case KindPicker:
 		out, cur = c.pickerLines(rn, ir.W, ir.H)
 	case KindTerminal:
@@ -599,10 +599,23 @@ func formFields(n *ViewNode) []core.ParamSpec {
 	return f
 }
 
-func (c *ctx) formLines(rn *rnode, w int) ([]string, *buffer.Cursor) {
-	n := rn.n
-	fields := formFields(n)
-	values, _ := propDecode[map[string]any](n, "values")
+// formRows is the number of rows one form field takes at density d: compact
+// fields are one row, balanced fields three (blank, control, note) and
+// spacious fields four (separator, blank, control, note).
+func formRows(d string) int {
+	switch d {
+	case DensityCompact:
+		return 1
+	case DensitySpacious:
+		return 4
+	}
+	return 3
+}
+
+// formHeight is a form's content height: every field block plus the submit row.
+func formHeight(n *ViewNode, d string) int { return len(formFields(n))*formRows(d) + 1 }
+
+func formActive(n *ViewNode, fields []core.ParamSpec) int {
 	active := 0
 	if v, ok := n.prop("active"); ok {
 		if i, isInt := anyInt(v); isInt {
@@ -615,14 +628,47 @@ func (c *ctx) formLines(rn *rnode, w int) ([]string, *buffer.Cursor) {
 			}
 		}
 	}
+	return active
+}
+
+// formLines renders a form at width w and height h. Compact fields keep the
+// value on the label row with any error inline after it; balanced and
+// spacious fields put the error, else the muted description, on the row
+// under the control. When h cannot hold the density's natural rows, fields
+// fall back to compact rows so every control stays visible, and only the
+// active field keeps its full block if the rows left over allow it. When even
+// compact rows do not fit, they scroll to keep the active control visible and
+// the submit row stays pinned at the bottom.
+func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
+	n := rn.n
+	d := c.b.dens
+	fields := formFields(n)
+	values, _ := propDecode[map[string]any](n, "values")
+	errsRaw, _ := propDecode[map[string]any](n, "errors")
+	active := formActive(n, fields)
 	lw := 0
 	for _, f := range fields {
-		lw = max(lw, strW(f.Name)+2)
+		lw = max(lw, strW(fieldText(f.Name))+2)
 	}
+	x0 := lw + 2 // value column: mark, space, name, required mark, space
+	tx := x0 + 1 // text column inside the value's leading space
+
+	// A field uses the density's block when the natural height fits; else one
+	// compact row, except the active field when its extra rows still fit.
+	per := formRows(d)
+	allFull := h <= 0 || len(fields)*per+1 <= h
+	activeFull := allFull || len(fields)+per <= h
+
 	var out []string
 	var cur *buffer.Cursor
+	ctl := 0 // the active field's control row
 	for i, f := range fields {
+		fd := d
+		if !allFull && !(activeFull && i == active) {
+			fd = DensityCompact
+		}
 		on := rn.onFocus && i == active
+		errMsg := fieldText(anyString(errsRaw[f.Name]))
 		mark := " "
 		ls := c.st.tone("muted")
 		if on {
@@ -632,56 +678,160 @@ func (c *ctx) formLines(rn *rnode, w int) ([]string, *buffer.Cursor) {
 		if f.Required {
 			req = c.st.t("error", "*")
 		}
-		label := mark + " " + c.st.paint(padPlain(f.Name, lw-2), ls) + req + " "
-		x0 := 2 + lw + 1
+		label := mark + " " + c.st.paint(padPlain(fieldText(f.Name), lw-2), ls) + req + " "
 		val, has := values[f.Name]
 		if !has {
 			val = f.Default
 		}
-		var body string
-		switch {
-		case len(f.Enum) > 0:
-			parts := make([]string, len(f.Enum))
-			for k, opt := range f.Enum {
-				if anyString(val) == opt {
-					parts[k] = c.st.paint("(•) "+opt, mergeTone(c.st.tone("accent"), ToneStyle{Bold: true}))
-				} else {
-					parts[k] = c.st.t("muted", "( ) "+opt)
-				}
+		inline, placeholder := "", ""
+		if fd == DensityCompact {
+			inline, placeholder = errMsg, fieldText(f.Description)
+		}
+		body, cx := c.formControl(f, val, on, max(0, w-x0), placeholder, inline)
+		switch fd {
+		case DensityCompact:
+		case DensitySpacious:
+			sep := ""
+			if c.b.border != BorderNone {
+				sep = c.st.t("border", strings.Repeat("─", max(0, w)))
 			}
-			body = strings.Join(parts, "  ")
-		case f.Type == core.ParamBool:
-			if b, _ := val.(bool); b {
-				body = c.st.t("accent", "[x]")
-			} else {
-				body = c.st.t("muted", "[ ]")
-			}
+			out = append(out, sep, "")
 		default:
-			style := c.st.tone("input")
-			if on {
-				style = c.st.tone("input.focus")
-			}
-			text := anyString(val)
-			if text == "" && !has {
-				text = ""
-			}
-			shown := c.st.paint(" "+text, style)
-			if text == "" && f.Description != "" {
-				shown = c.st.t("placeholder", " "+f.Description)
-			}
-			body = padLine(shown, max(0, w-x0), c.st.sgr(style))
-			if on && rn.isFocus {
-				cur = &buffer.Cursor{X: x0 + 1 + strW(text), Y: i, Shape: buffer.CursorBar}
-			}
+			out = append(out, "")
+		}
+		if i == active {
+			ctl = len(out)
+		}
+		if on && rn.isFocus && cx >= 0 {
+			cur = &buffer.Cursor{X: x0 + cx, Y: len(out), Shape: buffer.CursorBar}
 		}
 		out = append(out, label+body)
+		if fd != DensityCompact {
+			note := ""
+			switch desc := fieldText(f.Description); {
+			case errMsg != "":
+				note = spaces(tx) + c.st.t("error", truncate("✗ "+errMsg, max(0, w-tx)))
+			case desc != "":
+				note = spaces(tx) + c.st.t("muted", truncate(desc, max(0, w-tx)))
+			}
+			out = append(out, note)
+		}
 	}
-	submit := n.propString("submitLabel")
+	submit := fieldText(n.propString("submitLabel"))
 	if submit == "" {
 		submit = "Submit"
 	}
 	out = append(out, "  "+c.st.t("key", "⏎")+" "+c.st.t("muted", strings.ToLower(submit)))
-	return out, cur
+	if h <= 0 || len(out) <= h {
+		return out, cur
+	}
+
+	// Too short even for compact rows: every field is one row here, so window
+	// them around the active control.
+	rows, foot := out[:len(out)-1], out[len(out)-1:]
+	avail := h - 1
+	if h == 1 {
+		avail, foot = 1, nil
+	}
+	start := min(max(0, ctl+1-avail), max(0, len(rows)-avail))
+	win := append(append([]string{}, rows[start:min(len(rows), start+avail)]...), foot...)
+	if cur != nil {
+		cur.Y -= start
+		if cur.Y < 0 || cur.Y >= avail {
+			cur = nil
+		}
+	}
+	return win, cur
+}
+
+// formControl renders a field's value area, aw columns wide from the value
+// column. Text fields scroll to keep the cursor in view while focused. It
+// returns the body and the cursor column relative to the value column, or -1
+// when the field has no text cursor. A compact inline error follows the value.
+func (c *ctx) formControl(f core.ParamSpec, val any, on bool, aw int, placeholder, inlineErr string) (string, int) {
+	tail := ""
+	if inlineErr != "" {
+		tail = " ✗ " + inlineErr
+	}
+	// The active enum or toggle sits on the input.focus background and keeps
+	// its selected (accent) versus unselected (muted) foreground.
+	var hl ToneStyle
+	if on {
+		hl = ToneStyle{Bg: c.st.tone("input.focus").Bg}
+	}
+	switch {
+	case len(f.Enum) > 0:
+		parts := make([]string, len(f.Enum))
+		for k, opt := range f.Enum {
+			if anyString(val) == opt {
+				parts[k] = c.st.paint("(•) "+fieldText(opt), mergeTone(mergeTone(c.st.tone("accent"), ToneStyle{Bold: true}), hl))
+			} else {
+				parts[k] = c.st.paint("( ) "+fieldText(opt), mergeTone(c.st.tone("muted"), hl))
+			}
+		}
+		return strings.Join(parts, c.st.paint("  ", hl)) + c.st.t("error", tail), -1
+	case f.Type == core.ParamBool:
+		box := c.st.paint("[ ]", mergeTone(c.st.tone("muted"), hl))
+		if b, _ := val.(bool); b {
+			box = c.st.paint("[x]", mergeTone(c.st.tone("accent"), hl))
+		}
+		return box + c.st.t("error", tail), -1
+	}
+	iw := aw
+	if tail != "" {
+		if aw-strW(tail) < 6 {
+			tail = truncate(tail, max(0, aw-6))
+		}
+		iw = aw - strW(tail)
+	}
+	if iw <= 0 {
+		return c.st.t("error", tail), -1
+	}
+	style := c.st.tone("input")
+	if on {
+		style = c.st.tone("input.focus")
+	}
+	rs := []rune(fieldText(anyString(val)))
+	room := iw - 1 // columns after the leading space
+	var shown string
+	cx := 1
+	switch {
+	case len(rs) == 0 && placeholder != "":
+		shown = c.st.t("placeholder", " "+truncate(placeholder, room))
+	case on:
+		vis := tailFit(rs, room-1) // keep one column for the cursor
+		shown, cx = c.st.paint(" "+vis, style), 1+strW(vis)
+	default:
+		shown = c.st.paint(" "+truncate(string(rs), room), style)
+	}
+	if !on {
+		cx = -1
+	}
+	return padLine(shown, iw, c.st.sgr(style)) + c.st.t("error", tail), min(cx, iw-1)
+}
+
+// tailFit returns the longest suffix of rs whose display width is at most w.
+// It walks back from the end, so the work is bounded by the visible width
+// rather than the length of the text, and it never starts on a zero-width
+// rune, so combining marks stay with their base.
+func tailFit(rs []rune, w int) string {
+	if w <= 0 {
+		return ""
+	}
+	from, used := len(rs), 0
+	for from > 0 && used+runeW(rs[from-1]) <= w {
+		from--
+		used += runeW(rs[from])
+	}
+	for from < len(rs) && runeW(rs[from]) == 0 {
+		from++
+	}
+	vis := string(rs[from:])
+	for strW(vis) > w && from < len(rs) { // grapheme widths can exceed the per-rune sum
+		from++
+		vis = string(rs[from:])
+	}
+	return vis
 }
 
 // --- picker ------------------------------------------------------------------------

@@ -1,0 +1,14 @@
+// Keys for views.json, loaded with config.LoadBindings and checked with
+// config.CheckBindings. Built-in commands move focus. The host handles the
+// two view.* commands and quits on app.quit.
+[
+  {"mode": "normal", "keys": ["h"], "command": "focus.left", "hint": "left"},
+  {"mode": "normal", "keys": ["j"], "command": "focus.down", "hint": "down"},
+  {"mode": "normal", "keys": ["k"], "command": "focus.up", "hint": "up"},
+  {"mode": "normal", "keys": ["l"], "command": "focus.right", "hint": "right"},
+  {"mode": "normal", "keys": ["tab"], "command": "focus.next", "hint": "next"},
+  {"mode": "normal", "keys": ["shift+tab"], "command": "focus.prev", "hidden": true},
+  {"mode": "normal", "keys": ["d"], "command": "view.density.cycle", "hint": "density"},
+  {"mode": "normal", "keys": ["t"], "command": "view.theme.cycle", "hint": "theme"},
+  {"mode": "normal", "keys": ["q"], "command": "app.quit", "hint": "quit"},
+]

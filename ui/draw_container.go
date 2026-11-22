@@ -27,7 +27,7 @@ func (c *ctx) drawBody(rn *rnode) {
 		c.drawScroll(rn, lr)
 	default:
 		if n.Border && !isLeafKind(n.Kind) {
-			c.drawFrame(lr, frameOpts{border: c.borderStyle(rn), title: n.Title, titleStyle: c.st.tone("title"), right: c.badgeRow(n.Badges)})
+			c.drawFrame(lr, frameOpts{focus: rn.onFocus, border: c.borderStyle(rn), title: n.Title, titleStyle: c.st.tone("title"), right: c.badgeRow(n.Badges)})
 		}
 		if isStackKind(n.Kind) || len(rn.kids) > 0 {
 			c.drawKids(rn)
@@ -79,51 +79,74 @@ func (c *ctx) badgeRow(bs []Badge) string {
 }
 
 type frameOpts struct {
-	thick      bool
+	focus      bool // the frame holds the focus: heavy in rounded/sharp, ┃ on the left in minimal
 	border     ToneStyle
 	title      string
 	titleStyle ToneStyle
 	right      string // pre-styled text placed on the right of the top border
 }
 
-// drawFrame paints a rounded (or heavy) border with an optional title and right
-// text embedded in the top edge. The interior is blanked.
+// frameGlyphs is one border style's glyph set. left replaces vt on the left
+// edge of the interior rows.
+type frameGlyphs struct{ tl, tr, bl, br, hz, vt, left string }
+
+func glyphsFor(style string, focus bool) frameGlyphs {
+	switch style {
+	case BorderMinimal:
+		g := frameGlyphs{"─", "─", "─", "─", "─", " ", " "}
+		if focus {
+			g.left = "┃"
+		}
+		return g
+	case BorderNone:
+		return frameGlyphs{" ", " ", " ", " ", " ", " ", " "}
+	}
+	if focus {
+		return frameGlyphs{"┏", "┓", "┗", "┛", "━", "┃", "┃"}
+	}
+	if style == BorderSharp {
+		return frameGlyphs{"┌", "┐", "└", "┘", "─", "│", "│"}
+	}
+	return frameGlyphs{"╭", "╮", "╰", "╯", "─", "│", "│"}
+}
+
+// drawFrame paints a border in the theme's border style with an optional
+// title and right text embedded in the top edge. Every style occupies the
+// same one-cell ring, and the title starts at column 3 in all of them. The
+// interior is blanked.
 func (c *ctx) drawFrame(lr layout.Rect, o frameOpts) {
 	w, h := lr.W, lr.H
 	if w < 2 || h < 2 {
 		return
 	}
-	tl, tr, bl, br, hz, vt := "╭", "╮", "╰", "╯", "─", "│"
-	if o.thick {
-		tl, tr, bl, br, hz, vt = "┏", "┓", "┗", "┛", "━", "┃"
-	}
+	g := glyphsFor(c.b.border, o.focus)
 	bs := func(s string) string { return c.st.paint(s, o.border) }
 	span := w - 2
 	left, leftW := "", 0
 	if o.title != "" && span >= 5 {
 		t := truncate(o.title, span-4)
-		left = bs(hz+" ") + c.st.paint(t, o.titleStyle) + bs(" ")
+		left = bs(g.hz+" ") + c.st.paint(t, o.titleStyle) + bs(" ")
 		leftW = strW(t) + 3
 	}
 	right, rightW := "", 0
 	if o.right != "" && span-leftW >= strW(o.right)+3 {
-		right = bs(" ") + o.right + bs(" "+hz)
+		right = bs(" ") + o.right + bs(" "+g.hz)
 		rightW = strW(o.right) + 3
 	}
 	out := make([]string, h)
-	out[0] = bs(tl) + left + bs(strings.Repeat(hz, span-leftW-rightW)) + right + bs(tr)
-	mid := bs(vt) + spaces(span) + bs(vt)
+	out[0] = bs(g.tl) + left + bs(strings.Repeat(g.hz, span-leftW-rightW)) + right + bs(g.tr)
+	mid := bs(g.left) + spaces(span) + bs(g.vt)
 	for y := 1; y < h-1; y++ {
 		out[y] = mid
 	}
-	out[h-1] = bs(bl + strings.Repeat(hz, span) + br)
+	out[h-1] = bs(g.bl + strings.Repeat(g.hz, span) + g.br)
 	c.blitLines(lr, out, nil)
 }
 
 func (c *ctx) drawPanel(rn *rnode, lr layout.Rect) {
 	n := rn.n
 	c.drawFrame(lr, frameOpts{
-		thick:      false,
+		focus:      rn.onFocus,
 		border:     c.borderStyle(rn),
 		title:      n.Title,
 		titleStyle: c.titleStyle(rn),
@@ -149,16 +172,16 @@ func (c *ctx) drawOverlay(rn *rnode, lr layout.Rect) {
 	if n.Tone != "" {
 		border = c.st.tone(n.Tone)
 	}
-	c.drawFrame(lr, frameOpts{border: border, title: n.Title, titleStyle: c.titleStyle(rn), right: c.badgeRow(n.Badges)})
+	c.drawFrame(lr, frameOpts{focus: rn.onFocus, border: border, title: n.Title, titleStyle: c.titleStyle(rn), right: c.badgeRow(n.Badges)})
 	c.drawKids(rn)
 }
 
 func (c *ctx) drawCard(rn *rnode, lr layout.Rect) {
 	n := rn.n
-	c.drawFrame(lr, frameOpts{thick: rn.onFocus, border: c.borderStyle(rn)})
+	c.drawFrame(lr, frameOpts{focus: rn.onFocus, border: c.borderStyle(rn)})
 	if rn.head != "" {
 		if hr, ok := c.rect(rn.head); ok {
-			c.blitLines(hr, cardHead(c.st, n, hr.W, rn.onFocus), nil)
+			c.blitLines(hr, cardHead(c.st, n, hr.W, rn.onFocus, c.b.dens), nil)
 		}
 	}
 	c.drawKids(rn)
@@ -170,8 +193,11 @@ func (c *ctx) drawCard(rn *rnode, lr layout.Rect) {
 }
 
 // cardHead renders the title (wrapped, with unread marker), badge rows, summary
-// and meta of a card. st may be nil to count lines without styling.
-func cardHead(st *styler, n *ViewNode, w int, focused bool) []string {
+// and meta of a card. st may be nil to count lines without styling. At
+// balanced and spacious density a blank spacer separates a non-empty head
+// from the card's body or actions; compact heads carry no extra lines. Build, measure and draw
+// all call it with the same arguments, so the head's height always agrees.
+func cardHead(st *styler, n *ViewNode, w int, focused bool, d string) []string {
 	var out []string
 	tw := max(1, w-2)
 	if n.Title != "" {
@@ -217,7 +243,19 @@ func cardHead(st *styler, n *ViewNode, w int, focused bool) []string {
 			out = append(out, "  "+st.t("muted", ln))
 		}
 	}
+	if len(out) > 0 && d != DensityCompact && (len(n.Actions) > 0 || hasFlowKids(n)) {
+		out = append(out, "")
+	}
 	return out
+}
+
+func hasFlowKids(n *ViewNode) bool {
+	for i := range n.Children {
+		if !isOverlay(&n.Children[i]) {
+			return true
+		}
+	}
+	return false
 }
 
 func metaText(n *ViewNode) string {
@@ -314,18 +352,18 @@ func (c *ctx) drawTabs(rn *rnode, lr layout.Rect) {
 func (c *ctx) drawScroll(rn *rnode, lr layout.Rect) {
 	n := rn.n
 	if n.Border {
-		c.drawFrame(lr, frameOpts{border: c.borderStyle(rn), title: n.Title, titleStyle: c.titleStyle(rn), right: c.badgeRow(n.Badges)})
+		c.drawFrame(lr, frameOpts{focus: rn.onFocus, border: c.borderStyle(rn), title: n.Title, titleStyle: c.titleStyle(rn), right: c.badgeRow(n.Badges)})
 	}
 	ir := c.solved.InnerRects[rn.id]
 	vw, vh := ir.W, ir.H
 	if vw <= 0 || vh <= 0 {
 		return
 	}
-	total := flowHeight(n.Children, vw, n.Gap)
+	total := flowHeight(n.Children, vw, n.Gap, c.b.dens)
 	bar := total > vh
 	if bar {
 		vw = max(1, vw-1)
-		total = flowHeight(n.Children, vw, n.Gap)
+		total = flowHeight(n.Children, vw, n.Gap, c.b.dens)
 	}
 	total = max(total, 1)
 

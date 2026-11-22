@@ -2,6 +2,7 @@ package ui
 
 import (
 	"container/list"
+	"strings"
 	"sync"
 
 	"ofam.dev/ochazuke/buffer"
@@ -25,12 +26,23 @@ type RenderStats struct {
 const DefaultCacheEntries = 512
 
 type cacheKey struct {
-	id       string
-	key      uint64
-	w, h     int
-	focused  bool
-	themeVer uint64
-	theme    string
+	id      string
+	key     uint64
+	w, h    int
+	focused bool
+	theme   themeKey
+}
+
+// themeKey is the part of a Theme the caches depend on.
+type themeKey struct {
+	name    string
+	version uint64
+	density string
+	border  string
+}
+
+func keyOf(th Theme) themeKey {
+	return themeKey{th.Name, th.Version, th.EffectiveDensity(), th.EffectiveBorderStyle()}
 }
 
 type cacheEntry struct {
@@ -40,7 +52,8 @@ type cacheEntry struct {
 
 // Renderer renders ViewNode trees and keeps an LRU cache of subtree buffers.
 // A node with a non-empty ID and a non-zero CacheKey is re-rendered only when
-// its (ID, CacheKey, size, focus state, theme) changes. Subtrees containing
+// its (ID, CacheKey, size, focus state, theme name, version, density or
+// border style) changes. Subtrees containing
 // scroll or overlay nodes are never cached. A Renderer is safe for use from
 // one goroutine at a time; Render serializes callers.
 type Renderer struct {
@@ -52,7 +65,7 @@ type Renderer struct {
 	lru   *list.List // of *cacheEntry, front = most recent
 	items map[cacheKey]*list.Element
 	st    *styler
-	stKey [2]any
+	stKey themeKey
 }
 
 // NewRenderer returns a Renderer caching at most maxEntries subtree buffers
@@ -116,13 +129,14 @@ func (r *Renderer) Render(root ViewNode, theme Theme, focusID string, w, h int) 
 	r.Stats = RenderStats{}
 	w, h = max(w, 0), max(h, 0)
 
-	key := [2]any{theme.Name, theme.Version}
+	key := keyOf(theme)
 	if r.st == nil || r.stKey != key {
 		r.st, r.stKey = newStyler(theme), key
 	}
 
 	eff := effectiveRoot(root)
 	b := newBuilder(&eff, focusID)
+	b.dens, b.border = key.density, key.border
 	box, rn := b.build(&eff, "~", w, h)
 	solved := layout.Solve(box, w, h)
 
@@ -132,7 +146,33 @@ func (r *Renderer) Render(root ViewNode, theme Theme, focusID string, w, h int) 
 	c.flushOverlays()
 
 	solved = finalizeSolved(solved, c.merges, b.userFocus)
-	return Frame{ANSI: buf.String(), Cursor: buf.Cursor}, solved
+	return Frame{ANSI: paintCanvas(buf.String(), r.st.canvas()), Cursor: buf.Cursor}, solved
+}
+
+// canvas returns the SGR prefix of the theme's "canvas" background, or "".
+func (s *styler) canvas() string {
+	if _, ok := s.th.Tones["canvas"]; !ok {
+		return ""
+	}
+	ts := s.tone("canvas")
+	if ts.Bg == "" {
+		return ""
+	}
+	return s.sgr(ToneStyle{Fg: ts.Fg, Bg: ts.Bg})
+}
+
+// paintCanvas lays the canvas style under every row: it opens each row and
+// follows every reset, so cells with their own colors keep them and all
+// other cells take the canvas colors. Rows still end in a reset.
+func paintCanvas(ansi, canvas string) string {
+	if canvas == "" {
+		return ansi
+	}
+	rows := strings.Split(ansi, "\n")
+	for i, row := range rows {
+		rows[i] = canvas + strings.ReplaceAll(row, reset, reset+canvas) + reset
+	}
+	return strings.Join(rows, "\n")
 }
 
 // ctx is one drawing scope: a solved layout plus the buffer it paints into.
@@ -177,7 +217,7 @@ func (c *ctx) draw(rn *rnode) {
 	}
 	n := rn.n
 	if n.ID != "" && n.CacheKey != 0 && !hasVolatile(n) {
-		k := cacheKey{n.ID, n.CacheKey, lr.W, lr.H, rn.onFocus, c.r.stKey[1].(uint64), c.r.stKey[0].(string)}
+		k := cacheKey{n.ID, n.CacheKey, lr.W, lr.H, rn.onFocus, c.r.stKey}
 		if cached := c.r.get(k); cached != nil {
 			c.r.Stats.CacheHits++
 			c.buf.Blit(cached, lr)

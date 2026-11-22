@@ -170,3 +170,39 @@ func TestView(t *testing.T) {
 		t.Fatalf("empty: %+v", e)
 	}
 }
+
+func TestPinnedAndRank(t *testing.T) {
+	m := New("t", items())
+	m.MultiSelect = true
+	m.Pinned = &Item{ID: "p", Title: "pinned"}
+	m.Rank = func(it Item, q string) int { return len(it.Title) }
+	for q, want := range map[string]string{"": "p,1,2,3,4", "a": "p,2,1,4,3", "zzz": "p"} {
+		m.SetQuery(q)
+		if got := ids(m.Filtered()); got != want {
+			t.Fatalf("query %q: %s, want %s", q, got, want)
+		}
+	}
+	m.SetMatchMode(MatchRegex)
+	m.SetQuery("a")
+	if got := ids(m.Filtered()); got != "p,1,2,3,4" {
+		t.Fatalf("regex keeps order: %s", got)
+	}
+	if it, _ := m.Focused(); it.ID != "p" {
+		t.Fatalf("pinned row focused at 0: %v", it.ID)
+	}
+	m.ToggleMark()
+	if len(m.Marked) != 0 {
+		t.Fatal("pinned row is never marked")
+	}
+	v := m.View("p")
+	if v.Facts["total"] != 4 || v.Facts["count"] != 4 || v.Facts["pinned"] != true || v.Facts["query"] != "a" {
+		t.Fatalf("facts: %v", v.Facts)
+	}
+	if rows := v.Props["items"].([]any); rows[0].(map[string]any)["label"] != "    pinned" || rows[1].(map[string]any)["label"] != "[ ] alpha" {
+		t.Fatalf("pinned row is not markable: %v", rows[:2])
+	}
+	m.HandleCommand(core.Command{ID: "motion.bottom"})
+	if m.SelectedIdx != 4 {
+		t.Fatalf("bottom counts the pinned row: %d", m.SelectedIdx)
+	}
+}

@@ -165,7 +165,10 @@ func CheckBindings(modes []core.Mode, bindings []core.Binding, specs ...core.Com
 	return out
 }
 
-// LoadTheme merges a partial JSONC theme onto base and bumps Version.
+// LoadTheme merges a partial JSONC theme onto base and bumps Version. Roles
+// merge by name and a supplied tone replaces the base tone of that name.
+// density and borderStyle change only when present; an explicit "" selects
+// the default (balanced, rounded).
 func LoadTheme(data []byte, base ui.Theme) (ui.Theme, error) {
 	var p ui.Theme
 	if err := json.Unmarshal(StripJSONC(data), &p); err != nil {
@@ -190,10 +193,20 @@ func LoadTheme(data []byte, base ui.Theme) (ui.Theme, error) {
 		out.Name = p.Name
 	}
 	var flags struct {
-		Dark *bool `json:"dark"`
+		Dark        *bool   `json:"dark"`
+		Density     *string `json:"density"`
+		BorderStyle *string `json:"borderStyle"`
 	}
-	if json.Unmarshal(StripJSONC(data), &flags) == nil && flags.Dark != nil {
-		out.Dark = *flags.Dark
+	if json.Unmarshal(StripJSONC(data), &flags) == nil {
+		if flags.Dark != nil {
+			out.Dark = *flags.Dark
+		}
+		if flags.Density != nil {
+			out.Density = *flags.Density
+		}
+		if flags.BorderStyle != nil {
+			out.BorderStyle = *flags.BorderStyle
+		}
 	}
 	out.Version = base.Version + 1
 	return out, nil

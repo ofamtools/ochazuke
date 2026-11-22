@@ -1,0 +1,51 @@
+// A Level 1 static view. Every node is plain data: kind, ids, scopes, props.
+// The Go host loads it with config.LoadView and appends one status line.
+{
+  "kind": "vstack",
+  "children": [
+    {"kind": "text", "tone": "badge.accent", "props": {"text": " ochazuke · views.json · a UI made of data "}},
+    {"kind": "grid", "minColW": 26, "gap": 1, "children": [
+      {"id": "tier0", "kind": "card", "scope": "tier", "ref": {"kind": "tier", "id": "0"}, "focusable": true,
+       "title": "Tier 0 · primitives", "badges": [{"text": "stdlib", "tone": "badge.success"}],
+       "props": {"summary": "trie expr layout buffer"}},
+      {"id": "tier1", "kind": "card", "scope": "tier", "ref": {"kind": "tier", "id": "1"}, "focusable": true,
+       "title": "Tier 1 · kernel and render", "badges": [{"text": "core ui tea", "tone": "badge.accent"}],
+       "props": {"summary": "modal engine, view tree, Bubble Tea shell"}},
+      {"id": "tier2", "kind": "card", "scope": "tier", "ref": {"kind": "tier", "id": "2"}, "focusable": true, "unread": true,
+       "title": "Tier 2 · opt-in", "badges": [{"text": "widgets config", "tone": "badge.warning"}],
+       "props": {"summary": "table picker pathpicker form input bindings"}}
+    ]},
+    {"kind": "split", "ratio": 0.55, "gap": 1, "box": {"flex": 1}, "children": [
+      {"kind": "panel", "title": "Packages", "border": true, "children": [
+        {"id": "packages", "kind": "table", "focusable": true, "props": {
+          "columns": [{"key": "pkg", "title": "Package"}, {"key": "tier", "title": "Tier"}, {"key": "role", "title": "Role"}],
+          "rows": [
+            ["trie", "0", "key sequences"],
+            ["expr", "0", "when expressions"],
+            ["layout", "0", "constraint solver"],
+            ["buffer", "0", "cells and ANSI"],
+            ["core", "1", "modal engine"],
+            ["ui", "1", "view tree and theme"],
+            ["tea", "1", "Bubble Tea shell"],
+            ["config", "2", "JSONC loaders"],
+            ["widgets/*", "2", "stateful widgets"]
+          ],
+          "selected": 4
+        }}
+      ]},
+      {"kind": "panel", "title": "Settings", "border": true, "children": [
+        {"id": "settings", "kind": "form", "focusable": true, "props": {
+          "fields": [
+            {"name": "name", "type": "string", "required": true},
+            {"name": "density", "type": "string", "enum": ["compact", "balanced", "spacious"]},
+            {"name": "mouse", "type": "bool"},
+            {"name": "fps", "type": "int"}
+          ],
+          "values": {"name": "views-json", "density": "balanced", "mouse": true, "fps": "60"},
+          "active": 1,
+          "submitLabel": "Save"
+        }}
+      ]}
+    ]}
+  ]
+}

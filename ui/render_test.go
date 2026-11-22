@@ -95,19 +95,20 @@ func TestRenderCardUnreadAndFocused(t *testing.T) {
 		Badges:  []Badge{{Text: "new", Tone: "state.working"}},
 		Props:   map[string]any{"summary": "Decide today", "meta": []any{"alice", "2h"}},
 		Actions: []ActionHint{{Label: "Keep", Key: "k", Command: "x.keep"}, {Label: "Drop", Key: "d", Command: "x.drop"}}}
-	rows, plain, _ := draw(card, "", 30, 7)
+	rows, plain, _ := draw(card, "", 30, 8)
 	box := func(c string) string { return "│ " + padPlain(c, 26) + " │" }
-	wantRows(t, rows,
+	wantRows(t, rows, // balanced: a spacer separates the head from the actions
 		"╭────────────────────────────╮",
 		box("● Keep Saved Panes?"),
 		box("   new"),
 		box("  Decide today"),
 		box("  alice · 2h"),
+		box(""),
 		box("  k Keep  d Drop"),
 		"╰────────────────────────────╯")
 
-	rowsF, focused, _ := draw(card, "c", 30, 7)
-	if !strings.HasPrefix(rowsF[0], "┏━") || !strings.HasPrefix(rowsF[6], "┗━") {
+	rowsF, focused, _ := draw(card, "c", 30, 8)
+	if !strings.HasPrefix(rowsF[0], "┏━") || !strings.HasPrefix(rowsF[7], "┗━") {
 		t.Errorf("focused card should use the heavy border:\n%s", strings.Join(rowsF, "\n"))
 	}
 	if plain.ANSI == focused.ANSI {
@@ -218,7 +219,7 @@ func TestRenderRawCursorComposition(t *testing.T) {
 	// Cursor of an input nested in a card composes through the card's chrome.
 	in := ViewNode{Kind: KindInput, ID: "in", Focusable: true, Props: map[string]any{"value": "abc"}}
 	_, f3, _ := draw(ViewNode{Kind: KindCard, Title: "Q", Children: []ViewNode{in}}, "in", 20, 6)
-	if f3.Cursor.Shape != buffer.CursorBar || f3.Cursor.X != 2+1+3 || f3.Cursor.Y != 2 {
+	if f3.Cursor.Shape != buffer.CursorBar || f3.Cursor.X != 2+1+3 || f3.Cursor.Y != 3 { // border, title, spacer
 		t.Errorf("input cursor = %+v", f3.Cursor)
 	}
 }

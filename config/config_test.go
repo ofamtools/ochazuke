@@ -107,6 +107,19 @@ func TestLoadTheme(t *testing.T) {
 	}
 }
 
+func TestLoadThemeDensityAndBorder(t *testing.T) {
+	base := ui.CompactDarkTheme()
+	th, err := LoadTheme([]byte(`{"density": "spacious", // only density changes
+}`), base)
+	if err != nil || th.Density != ui.DensitySpacious || th.BorderStyle != ui.BorderMinimal || th.Version != base.Version+1 {
+		t.Fatalf("density only: %+v %v", th, err)
+	}
+	th, err = LoadTheme([]byte(`{"density": "", "borderStyle": ""}`), base)
+	if err != nil || th.EffectiveDensity() != ui.DensityBalanced || th.EffectiveBorderStyle() != ui.BorderRounded || base.Density != ui.DensityCompact {
+		t.Fatalf("explicit empty must select the defaults: %+v %v", th, err)
+	}
+}
+
 func TestSettings(t *testing.T) {
 	s, err := LoadSettings([]byte(`{"a": true, "n": 4, "f": 1.5, "s": "x", "l": ["p","q"],}`), map[string]any{"n": 1, "d": "def", "a": false})
 	if err != nil {

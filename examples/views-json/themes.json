@@ -1,0 +1,23 @@
+// Extra themes, each a partial theme merged by config.LoadTheme over the
+// built-in dark theme. The host cycles ui.ThemePresets() and then these.
+// density and borderStyle are optional and keep the base value when absent.
+[
+  {
+    "name": "matcha",
+    "borderStyle": "sharp",
+    "roles": {
+      "text": "#e6f2d8", "muted": "#8fa67a", "accent": "#9ccf5a", "border": "#4d6b35",
+      "surface": "#17220f", "surface.focus": "#2a3d1c", "selection": "#3f5c25"
+    }
+  },
+  {
+    "name": "hojicha",
+    "dark": false,
+    "density": "spacious",
+    "borderStyle": "minimal",
+    "roles": {
+      "text": "#3b2414", "muted": "#8a6a52", "accent": "#b5531c", "border": "#c9a588",
+      "surface": "#f6ead9", "surface.focus": "#ead3b8", "selection": "#e2b48a"
+    }
+  }
+]

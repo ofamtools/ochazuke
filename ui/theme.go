@@ -19,22 +19,70 @@ type ToneStyle struct {
 	Reverse   bool   `json:"reverse,omitempty"`
 }
 
+// Theme densities: how much vertical space forms and cards use. The empty
+// Density means DensityBalanced; unknown values also render as balanced.
+const (
+	DensityCompact  = "compact"  // one row per form field, no card spacing
+	DensityBalanced = "balanced" // three rows per form field, a spacer under card heads
+	DensitySpacious = "spacious" // four rows per form field, padded cards
+)
+
+// Theme border styles: the glyphs frames are drawn with. The empty
+// BorderStyle means BorderRounded; unknown values also render as rounded.
+// Every style keeps the same one-cell frame geometry, so layout never
+// depends on it.
+const (
+	BorderRounded = "rounded" // ╭─╮ corners, heavy ┏━┓ frame on focus
+	BorderSharp   = "sharp"   // ┌─┐ corners, heavy ┏━┓ frame on focus
+	BorderMinimal = "minimal" // top and bottom hairlines, open sides, ┃ on the left on focus
+	BorderNone    = "none"    // no border glyphs; titles and spacing only
+)
+
 // Theme maps semantic roles and tones to concrete styles. Bump Version
-// whenever Roles or Tones change so renderer caches are invalidated.
+// whenever Roles or Tones change so renderer caches are invalidated; Name,
+// Version, Density and BorderStyle together key the renderer caches. A
+// "canvas" tone with a background, when present, paints every cell that has
+// no background of its own; the light preset uses it so its dark text stays
+// legible on a dark terminal.
 type Theme struct {
-	Name    string               `json:"name"`
-	Dark    bool                 `json:"dark"`
-	Version uint64               `json:"version,omitempty"`
-	Roles   map[string]string    `json:"roles"` // text, muted, accent, border, surface, error, ...
-	Tones   map[string]ToneStyle `json:"tones"` // unread, state.working, state.needs-input, badge.*, ...
+	Name        string               `json:"name"`
+	Dark        bool                 `json:"dark"`
+	Version     uint64               `json:"version,omitempty"`
+	Density     string               `json:"density,omitempty"`     // DensityCompact, DensityBalanced (default), DensitySpacious
+	BorderStyle string               `json:"borderStyle,omitempty"` // BorderRounded (default), BorderSharp, BorderMinimal, BorderNone
+	Roles       map[string]string    `json:"roles"`                 // text, muted, accent, border, surface, error, ...
+	Tones       map[string]ToneStyle `json:"tones"`                 // unread, state.working, state.needs-input, badge.*, ...
 }
 
-// DefaultDarkTheme returns the built-in dark theme.
+// EffectiveDensity returns the density the renderer uses: Density when it is
+// a known value, else DensityBalanced. The theme itself is not changed.
+func (t Theme) EffectiveDensity() string {
+	switch t.Density {
+	case DensityCompact, DensitySpacious:
+		return t.Density
+	}
+	return DensityBalanced
+}
+
+// EffectiveBorderStyle returns the border style the renderer uses:
+// BorderStyle when it is a known value, else BorderRounded.
+func (t Theme) EffectiveBorderStyle() string {
+	switch t.BorderStyle {
+	case BorderSharp, BorderMinimal, BorderNone:
+		return t.BorderStyle
+	}
+	return BorderRounded
+}
+
+// DefaultDarkTheme returns the built-in dark theme: balanced density and
+// rounded borders.
 func DefaultDarkTheme() Theme {
 	return Theme{
-		Name:    "ochazuke-dark",
-		Dark:    true,
-		Version: 1,
+		Name:        "ochazuke-dark",
+		Dark:        true,
+		Version:     1,
+		Density:     DensityBalanced,
+		BorderStyle: BorderRounded,
 		Roles: map[string]string{
 			"text":          "#c8d3f5",
 			"muted":         "#8a93b8",
@@ -49,48 +97,143 @@ func DefaultDarkTheme() Theme {
 			"info":          "#86e1fc",
 			"magenta":       "#c099ff",
 		},
-		Tones: map[string]ToneStyle{
-			"text":              {Fg: "text"},
-			"muted":             {Fg: "muted"},
-			"dim":               {Fg: "muted", Dim: true},
-			"accent":            {Fg: "accent"},
-			"error":             {Fg: "error", Bold: true},
-			"success":           {Fg: "success"},
-			"warning":           {Fg: "warning"},
-			"info":              {Fg: "info"},
-			"unread":            {Fg: "warning", Bold: true},
-			"state.working":     {Fg: "info"},
-			"state.needs-input": {Fg: "warning", Bold: true},
-			"state.done":        {Fg: "success"},
-			"state.errored":     {Fg: "error", Bold: true},
-			"title":             {Fg: "text", Bold: true},
-			"border":            {Fg: "border"},
-			"border.focus":      {Fg: "accent", Bold: true},
-			"selected":          {Fg: "text", Bg: "selection", Bold: true},
-			"selected.inactive": {Fg: "text", Bg: "surface.focus"},
-			"surface":           {Bg: "surface"},
-			"input":             {Fg: "text", Bg: "surface"},
-			"input.focus":       {Fg: "text", Bg: "surface.focus"},
-			"placeholder":       {Fg: "muted", Bg: "surface"},
-			"badge":             {Fg: "text", Bg: "surface.focus"},
-			"badge.accent":      {Fg: "surface", Bg: "accent", Bold: true},
-			"badge.error":       {Fg: "surface", Bg: "error", Bold: true},
-			"badge.success":     {Fg: "surface", Bg: "success", Bold: true},
-			"badge.warning":     {Fg: "surface", Bg: "warning", Bold: true},
-			"table.header":      {Fg: "accent", Bold: true},
-			"key":               {Fg: "accent", Bold: true},
-			"match":             {Fg: "warning", Bold: true},
-			"heading.1":         {Fg: "accent", Bold: true},
-			"heading.2":         {Fg: "info", Bold: true},
-			"heading.3":         {Fg: "success", Bold: true},
-			"link":              {Fg: "accent", Underline: true},
-			"md.code":           {Fg: "magenta", Bg: "surface"},
-			"md.bold":           {Fg: "text", Bold: true},
-			"md.em":             {Fg: "info"},
-			"md.quote":          {Fg: "muted"},
-			"md.bullet":         {Fg: "accent"},
-		},
+		Tones: defaultTones(),
 	}
+}
+
+// defaultTones returns a fresh copy of the tone table every built-in theme
+// shares; tones name roles, so each theme's palette gives them their colors.
+func defaultTones() map[string]ToneStyle {
+	return map[string]ToneStyle{
+		"text":              {Fg: "text"},
+		"muted":             {Fg: "muted"},
+		"dim":               {Fg: "muted", Dim: true},
+		"accent":            {Fg: "accent"},
+		"error":             {Fg: "error", Bold: true},
+		"success":           {Fg: "success"},
+		"warning":           {Fg: "warning"},
+		"info":              {Fg: "info"},
+		"unread":            {Fg: "warning", Bold: true},
+		"state.working":     {Fg: "info"},
+		"state.needs-input": {Fg: "warning", Bold: true},
+		"state.done":        {Fg: "success"},
+		"state.errored":     {Fg: "error", Bold: true},
+		"title":             {Fg: "text", Bold: true},
+		"border":            {Fg: "border"},
+		"border.focus":      {Fg: "accent", Bold: true},
+		"selected":          {Fg: "text", Bg: "selection", Bold: true},
+		"selected.inactive": {Fg: "text", Bg: "surface.focus"},
+		"surface":           {Bg: "surface"},
+		"input":             {Fg: "text", Bg: "surface"},
+		"input.focus":       {Fg: "text", Bg: "surface.focus"},
+		"placeholder":       {Fg: "muted", Bg: "surface"},
+		"badge":             {Fg: "text", Bg: "surface.focus"},
+		"badge.accent":      {Fg: "surface", Bg: "accent", Bold: true},
+		"badge.error":       {Fg: "surface", Bg: "error", Bold: true},
+		"badge.success":     {Fg: "surface", Bg: "success", Bold: true},
+		"badge.warning":     {Fg: "surface", Bg: "warning", Bold: true},
+		"table.header":      {Fg: "accent", Bold: true},
+		"key":               {Fg: "accent", Bold: true},
+		"match":             {Fg: "warning", Bold: true},
+		"heading.1":         {Fg: "accent", Bold: true},
+		"heading.2":         {Fg: "info", Bold: true},
+		"heading.3":         {Fg: "success", Bold: true},
+		"link":              {Fg: "accent", Underline: true},
+		"md.code":           {Fg: "magenta", Bg: "surface"},
+		"md.bold":           {Fg: "text", Bold: true},
+		"md.em":             {Fg: "info"},
+		"md.quote":          {Fg: "muted"},
+		"md.bullet":         {Fg: "accent"},
+	}
+}
+
+// CompactDarkTheme returns the dark palette with compact density and minimal
+// borders, for dense dashboards and small terminals.
+func CompactDarkTheme() Theme {
+	t := DefaultDarkTheme()
+	t.Name = "ochazuke-dark-compact"
+	t.Density, t.BorderStyle = DensityCompact, BorderMinimal
+	return t
+}
+
+// SpaciousDarkTheme returns the dark palette with spacious density and
+// rounded borders.
+func SpaciousDarkTheme() Theme {
+	t := DefaultDarkTheme()
+	t.Name = "ochazuke-dark-spacious"
+	t.Density, t.BorderStyle = DensitySpacious, BorderRounded
+	return t
+}
+
+// DefaultLightTheme returns a high-contrast light theme: dark text on a white
+// canvas, balanced density and rounded borders. Its "canvas" tone paints the
+// whole frame white, so it reads the same on dark and light terminals.
+func DefaultLightTheme() Theme {
+	t := Theme{
+		Name:        "ochazuke-light",
+		Dark:        false,
+		Version:     1,
+		Density:     DensityBalanced,
+		BorderStyle: BorderRounded,
+		Roles: map[string]string{
+			"text":          "#14161f",
+			"muted":         "#464c63",
+			"accent":        "#0846b8",
+			"border":        "#5d6582",
+			"surface":       "#ffffff",
+			"surface.input": "#eceff6",
+			"surface.focus": "#d4def4",
+			"selection":     "#b7cbf4",
+			"error":         "#ad0019",
+			"success":       "#1b6510",
+			"warning":       "#7d4a00",
+			"info":          "#00577d",
+			"magenta":       "#72249f",
+		},
+		Tones: defaultTones(),
+	}
+	t.Tones["canvas"] = ToneStyle{Fg: "text", Bg: "surface"}
+	// Fields sit on a tint so they stand out from the white canvas.
+	t.Tones["input"] = ToneStyle{Fg: "text", Bg: "surface.input"}
+	t.Tones["placeholder"] = ToneStyle{Fg: "muted", Bg: "surface.input"}
+	t.Tones["md.code"] = ToneStyle{Fg: "magenta", Bg: "surface.input"}
+	return t
+}
+
+// HighContrastDarkTheme returns a crisp dark theme: white text on black,
+// bright accents, balanced density and sharp borders.
+func HighContrastDarkTheme() Theme {
+	t := Theme{
+		Name:        "ochazuke-high-contrast-dark",
+		Dark:        true,
+		Version:     1,
+		Density:     DensityBalanced,
+		BorderStyle: BorderSharp,
+		Roles: map[string]string{
+			"text":          "#ffffff",
+			"muted":         "#c6cad6",
+			"accent":        "#5cc8ff",
+			"border":        "#a3abc6",
+			"surface":       "#000000",
+			"surface.focus": "#1d2333",
+			"selection":     "#004f7a",
+			"error":         "#ff5c6c",
+			"success":       "#7dff8a",
+			"warning":       "#ffd34d",
+			"info":          "#6be4ff",
+			"magenta":       "#e3a6ff",
+		},
+		Tones: defaultTones(),
+	}
+	t.Tones["dim"] = ToneStyle{Fg: "muted"} // faint text loses contrast; muted is enough
+	return t
+}
+
+// ThemePresets returns the built-in themes in display order: default dark,
+// compact dark, spacious dark, light and high-contrast dark. Names are unique
+// and every theme owns its maps, so callers may edit them freely.
+func ThemePresets() []Theme {
+	return []Theme{DefaultDarkTheme(), CompactDarkTheme(), SpaciousDarkTheme(), DefaultLightTheme(), HighContrastDarkTheme()}
 }
 
 // Tone resolves a tone name to a concrete style whose Fg/Bg are "#RRGGBB" or
