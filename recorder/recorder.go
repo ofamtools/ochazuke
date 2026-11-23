@@ -40,6 +40,7 @@ const (
 	KindCommand EventKind = "command"
 	KindFrame   EventKind = "frame"
 	KindStatus  EventKind = "status"
+	KindNote    EventKind = "note"
 )
 
 // Options configures a Recorder.
@@ -103,10 +104,17 @@ type Event struct {
 	Handler   string    `json:"handler,omitempty"`
 	Mode      string    `json:"mode,omitempty"`
 	Page      string    `json:"page,omitempty"`
+	Modal     string    `json:"modal,omitempty"`
 	FocusID   string    `json:"focusId,omitempty"`
+	Scope     string    `json:"scope,omitempty"`
 	Status    string    `json:"status,omitempty"`
 	FrameHash string    `json:"frameHash,omitempty"`
 	ANSI      string    `json:"ansi,omitempty"`
+	NoteID    string    `json:"noteId,omitempty"`
+	Note      string    `json:"note,omitempty"`
+	Tag       string    `json:"tag,omitempty"`
+	Severity  string    `json:"severity,omitempty"`
+	TargetSeq int       `json:"targetSeq,omitempty"`
 }
 
 // Stats reports a point-in-time summary of a Recorder's buffer state.
@@ -152,8 +160,19 @@ type Recorder struct {
 	count int
 	bytes int
 
-	hasLastFrame  bool
-	lastFrameHash uint64
+	hasLastFrame          bool
+	lastFrameW            int
+	lastFrameH            int
+	lastFrameHash         uint64
+	lastFrameANSI         string
+	hasRecordedFrame      bool
+	lastRecordedFrameHash uint64
+
+	noteSeq int
+
+	flushMu     sync.Mutex
+	flushedPath string
+	flushedSeq  int
 }
 
 // New returns a Recorder initialized with opts. Non-positive MaxEvents or
@@ -248,7 +267,12 @@ func (r *Recorder) recordLocked(ev Event) bool {
 	if r.filter != nil && !r.filter(ev) {
 		return false
 	}
+	r.appendEventLocked(ev)
+	return true
+}
 
+func (r *Recorder) appendEventLocked(ev Event) Event {
+	ev.Type = "event"
 	now := r.now()
 	offset := now.Sub(r.startedAt).Milliseconds()
 	if offset < 0 {
@@ -286,7 +310,7 @@ func (r *Recorder) recordLocked(ev Event) bool {
 	r.buf[idx] = ringEntry{ev: ev, bytes: evBytes}
 	r.count++
 	r.bytes += evBytes
-	return true
+	return ev
 }
 
 func (r *Recorder) evictOldestLocked() {
@@ -297,20 +321,30 @@ func (r *Recorder) evictOldestLocked() {
 	r.dropped++
 }
 
-// RecordFrame hashes ansi using an inline zero-allocation FNV-1a 64-bit hash
-// and records a KindFrame event only when the hash differs from the previous
-// recorded frame. ANSI content is stored only when CaptureFrames is enabled.
+// RecordFrame hashes ansi using an inline zero-allocation FNV-1a 64-bit hash,
+// always caches the latest rendered frame for LastFrame/RecordNote (even when
+// CaptureFrames is false or passive recording is paused), and records a
+// KindFrame event only when enabled and the hash differs from the previous
+// recorded frame. ANSI content is stored on KindFrame events only when
+// CaptureFrames is enabled.
 func (r *Recorder) RecordFrame(w, h int, ansi string) {
 	if r == nil {
 		return
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	hash := fnv1a64String(ansi)
+	if !r.hasLastFrame || hash != r.lastFrameHash || w != r.lastFrameW || h != r.lastFrameH {
+		r.hasLastFrame = true
+		r.lastFrameW = w
+		r.lastFrameH = h
+		r.lastFrameHash = hash
+		r.lastFrameANSI = ansi
+	}
 	if !r.enabled {
 		return
 	}
-	hash := fnv1a64String(ansi)
-	if r.hasLastFrame && hash == r.lastFrameHash {
+	if r.hasRecordedFrame && hash == r.lastRecordedFrameHash {
 		return
 	}
 	ev := Event{
@@ -323,16 +357,19 @@ func (r *Recorder) RecordFrame(w, h int, ansi string) {
 		ev.ANSI = ansi
 	}
 	if r.recordLocked(ev) {
-		r.hasLastFrame = true
-		r.lastFrameHash = hash
+		r.hasRecordedFrame = true
+		r.lastRecordedFrameHash = hash
 	}
 }
 
-// Clear resets the ring buffer, counters, start timestamp, and frame-hash state.
+// Clear resets the ring buffer, counters, start timestamp, flush watermark, and
+// frame-hash state.
 func (r *Recorder) Clear() {
 	if r == nil {
 		return
 	}
+	r.flushMu.Lock()
+	defer r.flushMu.Unlock()
 	r.mu.Lock()
 	r.buf = nil
 	r.head = 0
@@ -341,10 +378,18 @@ func (r *Recorder) Clear() {
 	r.seq = 0
 	r.total = 0
 	r.dropped = 0
+	r.noteSeq = 0
 	r.hasLastFrame = false
+	r.lastFrameW = 0
+	r.lastFrameH = 0
 	r.lastFrameHash = 0
+	r.lastFrameANSI = ""
+	r.hasRecordedFrame = false
+	r.lastRecordedFrameHash = 0
 	r.startedAt = r.now().UTC()
 	r.mu.Unlock()
+	r.flushedPath = ""
+	r.flushedSeq = 0
 }
 
 // Len returns the number of currently buffered events.
@@ -610,10 +655,16 @@ func estimateEventBytes(ev Event) int {
 		len(ev.Handler) +
 		len(ev.Mode) +
 		len(ev.Page) +
+		len(ev.Modal) +
 		len(ev.FocusID) +
+		len(ev.Scope) +
 		len(ev.Status) +
 		len(ev.FrameHash) +
-		len(ev.ANSI)
+		len(ev.ANSI) +
+		len(ev.NoteID) +
+		len(ev.Note) +
+		len(ev.Tag) +
+		len(ev.Severity)
 }
 
 const (

@@ -393,12 +393,16 @@ func TestShellNilAndDisabledRecorderNoOp(t *testing.T) {
 		t.Fatalf("focus with nil recorder = %q, want b", got)
 	}
 
-	// Disabled recorder must record zero events.
+	// Disabled recorder must record zero events, yet still cache LastFrame().
 	disabled := recorder.New(recorder.Options{Enabled: false})
 	sh.SetRecorder(disabled)
 	sh.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
 	sh.Update(tea.WindowSizeMsg{Width: 60, Height: 30})
 	if disabled.Len() != 0 || disabled.Stats().Total != 0 {
 		t.Fatalf("disabled recorder captured events: %+v", disabled.Stats())
+	}
+	snap := sh.LastFrame()
+	if snap.Empty() || snap.W != 60 || snap.H != 30 || snap.ANSI == "" || snap.Hash == "" {
+		t.Fatalf("expected Shell.LastFrame() cached even when passive recording disabled: %+v", snap)
 	}
 }

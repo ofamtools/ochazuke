@@ -62,6 +62,7 @@ type Shell struct {
 	Renders     int
 
 	view         tea.View
+	lastFrame    recorder.FrameSnapshot
 	valid, dirty bool
 	framePending bool
 	gen          uint64
@@ -113,6 +114,20 @@ func (sh *Shell) EnableRecorder(opts recorder.Options) *recorder.Recorder {
 	r := recorder.New(opts)
 	sh.Recorder = r
 	return r
+}
+
+// LastFrame returns the most recently rendered terminal frame cached by the
+// shell's recorder (or by the shell itself if no recorder is attached).
+func (sh *Shell) LastFrame() recorder.FrameSnapshot {
+	if sh == nil {
+		return recorder.FrameSnapshot{}
+	}
+	if sh.Recorder != nil {
+		if snap := sh.Recorder.LastFrame(); !snap.Empty() {
+			return snap
+		}
+	}
+	return sh.lastFrame
 }
 
 // Init implements tea.Model.
@@ -303,6 +318,7 @@ func (sh *Shell) render() {
 		fr, solved := sh.Renderer.Render(tree, sh.Theme, sh.State.ActiveFrame().FocusID, sh.W, sh.H)
 		frame, sh.State.Layout = fr, solved
 		sh.Stats.CacheHits, sh.Stats.CacheMisses = sh.Renderer.Stats.CacheHits, sh.Renderer.Stats.CacheMisses
+		sh.lastFrame = recorder.FrameSnapshot{W: sh.W, H: sh.H, ANSI: frame.ANSI}
 		if sh.Recorder != nil {
 			sh.Recorder.RecordFrame(sh.W, sh.H, frame.ANSI)
 		}
