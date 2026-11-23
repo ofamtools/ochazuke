@@ -142,6 +142,10 @@ var policies = map[string]policy{
 		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/buffer"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
+	mod + "/tutorial": {
+		allow:      []string{mod + "/core"},
+		forbidDeps: []string{"bubbletea", "lipgloss", mod + "/tea", mod + "/ui"},
+	},
 	// Tier 3: opt-in CLI bridge connecting oden with Ochazuke; never imported by Tier 0/1/2.
 	mod + "/cli": {
 		allow: []string{
