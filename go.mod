@@ -6,10 +6,8 @@ require (
 	charm.land/bubbletea/v2 v2.1.0
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/rivo/uniseg v0.4.7
-	ofam.dev/oden v0.5.1
+	ofam.dev/oden v1.0.0
 )
-
-replace ofam.dev/oden => ../oden-next
 
 require (
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
