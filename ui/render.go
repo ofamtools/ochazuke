@@ -22,8 +22,9 @@ type RenderStats struct {
 	CacheMisses int
 }
 
-// DefaultCacheEntries bounds a Renderer's subtree cache.
-const DefaultCacheEntries = 512
+// DefaultCacheEntries bounds a Renderer's subtree cache to keep long-lived
+// TUI sessions memory-bounded while preserving subtree reuse.
+const DefaultCacheEntries = 96
 
 type cacheKey struct {
 	id      string

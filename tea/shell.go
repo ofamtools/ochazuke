@@ -81,11 +81,11 @@ type asyncDone struct {
 	ev   core.EffectResultEvent
 }
 
-// New returns a Shell with a 512-entry subtree cache and DefaultMaxFPS.
+// New returns a Shell with a bounded subtree cache and DefaultMaxFPS.
 func New(engine *core.Engine, initial core.State, viewFn ViewFunc, theme ui.Theme) *Shell {
 	return &Shell{
 		Engine: engine, State: initial, ViewFn: viewFn, Theme: theme,
-		Renderer: ui.NewRenderer(512), MaxFPS: DefaultMaxFPS,
+		Renderer: ui.NewRenderer(ui.DefaultCacheEntries), MaxFPS: DefaultMaxFPS,
 		slots: map[string]slot{},
 	}
 }
@@ -228,7 +228,7 @@ func (sh *Shell) render() {
 	var frame ui.Frame
 	if sh.W > 0 && sh.H > 0 {
 		if sh.Renderer == nil {
-			sh.Renderer = ui.NewRenderer(512)
+			sh.Renderer = ui.NewRenderer(ui.DefaultCacheEntries)
 		}
 		fr, solved := sh.Renderer.Render(tree, sh.Theme, sh.State.ActiveFrame().FocusID, sh.W, sh.H)
 		frame, sh.State.Layout = fr, solved
