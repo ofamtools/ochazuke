@@ -69,23 +69,77 @@ func (m *Model) lineRange(a, b int) span {
 }
 
 func wordClass(r rune, big bool) int {
-	switch {
-	case unicode.IsSpace(r):
+	return wordClassScoped(r, big, "")
+}
+
+func wordClassScoped(r rune, big bool, scope string) int {
+	if unicode.IsSpace(r) {
 		return 0
-	case big || unicode.IsLetter(r) || unicode.IsNumber(r) || unicode.IsMark(r) || r == '_':
+	}
+	if big {
 		return 1
+	}
+	isIdent := unicode.IsLetter(r) || unicode.IsNumber(r) || unicode.IsMark(r) || r == '_'
+	switch scope {
+	case "path":
+		if r == '/' || r == '\\' {
+			return 3
+		}
+		if isIdent {
+			return 1
+		}
+		return 2
+	case "code":
+		if isIdent {
+			return 1
+		}
+		if strings.ContainsRune("()[]{}", r) {
+			return 3
+		}
+		return 2
+	case "json":
+		if idx := strings.IndexRune(`{}[],:"`, r); idx >= 0 {
+			return 10 + idx
+		}
+		if isIdent || r == '-' || r == '.' {
+			return 1
+		}
+		return 2
+	case "csv":
+		if r == ',' {
+			return 3
+		}
+		if isIdent {
+			return 1
+		}
+		return 2
+	case "markdown":
+		if idx := strings.IndexRune("#*[]()", r); idx >= 0 {
+			return 10 + idx
+		}
+		if isIdent || r == '-' {
+			return 1
+		}
+		return 2
 	default:
+		if isIdent {
+			return 1
+		}
 		return 2
 	}
+}
+
+func (m *Model) wordClass(r rune, big bool) int {
+	return wordClassScoped(r, big, m.WordScope)
 }
 
 func (m *Model) wordNext(pos int, big bool) int {
 	if pos == len(m.text) {
 		return pos
 	}
-	class := wordClass(m.text[pos], big)
+	class := m.wordClass(m.text[pos], big)
 	start := pos
-	for pos < len(m.text) && class != 0 && wordClass(m.text[pos], big) == class {
+	for pos < len(m.text) && class != 0 && m.wordClass(m.text[pos], big) == class {
 		pos++
 	}
 	for pos < len(m.text) && unicode.IsSpace(m.text[pos]) {
@@ -105,8 +159,8 @@ func (m *Model) wordPrev(pos int, big bool) int {
 		}
 	}
 	if pos > 0 {
-		class := wordClass(m.text[pos-1], big)
-		for pos > 0 && wordClass(m.text[pos-1], big) == class {
+		class := m.wordClass(m.text[pos-1], big)
+		for pos > 0 && m.wordClass(m.text[pos-1], big) == class {
 			pos--
 		}
 	}
@@ -124,8 +178,8 @@ func (m *Model) wordEnd(pos int, big, includeCurrent bool) int {
 	if pos == len(m.text) {
 		return pos
 	}
-	class := wordClass(m.text[pos], big)
-	for pos+1 < len(m.text) && wordClass(m.text[pos+1], big) == class {
+	class := m.wordClass(m.text[pos], big)
+	for pos+1 < len(m.text) && m.wordClass(m.text[pos+1], big) == class {
 		pos++
 	}
 	return pos

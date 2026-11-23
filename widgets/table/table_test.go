@@ -150,3 +150,142 @@ func TestMarksContextAndRender(t *testing.T) {
 		t.Error("unknown handled")
 	}
 }
+
+func TestMultiKeySort(t *testing.T) {
+	m := sample()
+	// Start with primary sort on kind asc, then add secondary sort on size desc.
+	m.CycleSort("kind")
+	if got := ids(m.Filtered()); got != "1,2,5,3,4" {
+		t.Fatalf("primary kind asc: %s", got)
+	}
+	if !m.HandleCommand(core.Command{ID: "table.sort.add", Args: map[string]any{"field": "size"}}) {
+		t.Fatal("table.sort.add not handled")
+	}
+	// kind asc, size asc (ties broken by ID): go(400:2,5; 1200:1), md(7:4, 90:3)
+	if got := ids(m.Filtered()); got != "2,5,1,4,3" {
+		t.Fatalf("kind asc + size asc: %s", got)
+	}
+	if m.SortField != "kind" || m.SortDir != SortAsc || len(m.SortKeys) != 2 {
+		t.Fatalf("SortField/SortDir not synced: %q %v %+v", m.SortField, m.SortDir, m.SortKeys)
+	}
+	// View shows ▲1 / ▲2 for multi-key sort.
+	cols := m.View("t").Props["columns"].([]any)
+	kindTitle := cols[1].(map[string]any)["title"].(string)
+	sizeTitle := cols[2].(map[string]any)["title"].(string)
+	if !strings.Contains(kindTitle, "▲1") || !strings.Contains(sizeTitle, "▲2") {
+		t.Fatalf("multi-key titles: kind=%q size=%q", kindTitle, sizeTitle)
+	}
+	// Adding size again cycles it to desc.
+	m.AddSort("size")
+	if got := ids(m.Filtered()); got != "1,2,5,3,4" {
+		t.Fatalf("kind asc + size desc: %s", got)
+	}
+	sizeTitle = m.View("t").Props["columns"].([]any)[2].(map[string]any)["title"].(string)
+	if !strings.Contains(sizeTitle, "▼2") {
+		t.Fatalf("size desc title: %q", sizeTitle)
+	}
+	// Adding size a third time removes it, returning to single-key ▲ without number.
+	m.AddSort("size")
+	if len(m.SortKeys) != 1 || m.SortField != "kind" {
+		t.Fatalf("after removing secondary: %+v", m.SortKeys)
+	}
+	kindTitle = m.View("t").Props["columns"].([]any)[1].(map[string]any)["title"].(string)
+	if !strings.HasSuffix(kindTitle, "▲") || strings.Contains(kindTitle, "▲1") {
+		t.Fatalf("single-key title: %q", kindTitle)
+	}
+}
+
+func TestMultiConditionFilter(t *testing.T) {
+	cols := []Column{{Key: "name"}, {Key: "status"}, {Key: "prio"}}
+	mk := func(id, name, status, prio string) Row {
+		return Row{ID: id, Cells: map[string]any{"name": name, "status": status, "prio": prio}}
+	}
+	m := New(cols, []Row{
+		mk("1", "auth", "active", "P1"),
+		mk("2", "billing", "done", "P1"),
+		mk("3", "cache", "active", "P2"),
+		mk("4", "docs", "archived", "P2"),
+		mk("5", "edge:case", "active", "P3"),
+	})
+
+	for _, tc := range []struct{ q, want string }{
+		{"active !done", "1,3,5"},
+		{"P1|P2 !archived", "1,2,3"},
+		{"P1|P2 !=done !archived", "1,3"},
+		{"status:active prio:P1|P2", "1,3"},
+		{"status!=active", "2,4"},
+		{"edge:case", "5"}, // unknown field falls back to plain substring
+		{"!active", "2,4"},
+	} {
+		m.Query = tc.q
+		if got := ids(m.Filtered()); got != tc.want {
+			t.Errorf("query %q: got %s, want %s", tc.q, got, tc.want)
+		}
+	}
+}
+
+func TestVisualAndCellSelect(t *testing.T) {
+	m := sample()
+	// Visual range selection and marking.
+	m.SelectedIdx = 1
+	if !m.HandleCommand(core.Command{ID: "table.visual.toggle"}) {
+		t.Fatal("table.visual.toggle not handled")
+	}
+	m.HandleCommand(core.Command{ID: "motion.down", Count: 2}) // anchor=1, selected=3
+	vrows := m.VisualRows()
+	if got := ids(vrows); got != "2,3,4" {
+		t.Fatalf("VisualRows = %s, want 2,3,4", got)
+	}
+	v := m.View("t")
+	if v.Props["visualFrom"] != 1 || v.Props["visualTo"] != 3 {
+		t.Fatalf("visual props: %+v", v.Props)
+	}
+	if v.Facts["visualActive"] != true || v.Facts["visualCount"] != 3 {
+		t.Fatalf("visual facts: %+v", v.Facts)
+	}
+	// MarkVisual marks all visual rows and exits visual mode.
+	if !m.HandleCommand(core.Command{ID: "table.visual.mark"}) {
+		t.Fatal("table.visual.mark not handled")
+	}
+	if m.VisualActive || ids(m.MarkedRows()) != "2,3,4" {
+		t.Fatalf("after MarkVisual: active=%v marked=%s", m.VisualActive, ids(m.MarkedRows()))
+	}
+	// Esc clears visual mode when active, returns false when inactive.
+	if m.HandleCommand(core.Command{ID: "esc"}) {
+		t.Fatal("esc should not be handled when visual mode is inactive")
+	}
+	m.ToggleVisual()
+	if !m.HandleCommand(core.Command{ID: "esc"}) || m.VisualActive {
+		t.Fatal("esc should clear active visual mode")
+	}
+
+	// Cell-select mode.
+	if m.HandleCommand(core.Command{ID: "motion.right"}) {
+		t.Fatal("motion.right should not be handled when CellSelect is false")
+	}
+	if _, has := m.View("t").Props["selectedCol"]; has {
+		t.Fatal("selectedCol should be absent when CellSelect is false")
+	}
+	if !m.HandleCommand(core.Command{ID: "table.cell.toggle"}) || !m.CellSelect {
+		t.Fatal("table.cell.toggle failed")
+	}
+	if !m.HandleCommand(core.Command{ID: "motion.right", Count: 2}) || m.SelectedCol != 2 {
+		t.Fatalf("motion.right: SelectedCol=%d, want 2", m.SelectedCol)
+	}
+	m.HandleCommand(core.Command{ID: "motion.right", Count: 5}) // clamped
+	if m.SelectedCol != 2 {
+		t.Fatalf("clamped right: %d", m.SelectedCol)
+	}
+	m.HandleCommand(core.Command{ID: "motion.left"})
+	if m.SelectedCol != 1 {
+		t.Fatalf("motion.left: %d", m.SelectedCol)
+	}
+	colKey, val, ok := m.FocusedCell()
+	if !ok || colKey != "kind" || val != "md" {
+		t.Fatalf("FocusedCell = (%q, %v, %v), want (kind, md, true)", colKey, val, ok)
+	}
+	cv := m.View("t")
+	if cv.Props["selectedCol"] != 1 || cv.Facts["cellSelect"] != true || cv.Facts["selectedCol"] != 1 {
+		t.Fatalf("cell view props/facts: %+v %+v", cv.Props, cv.Facts)
+	}
+}

@@ -18,12 +18,12 @@ func (m *Model) object(key string, count int) (span, bool) {
 			return span{}, false
 		}
 		lo := m.cursor
-		class := wordClass(m.text[lo], false)
-		for lo > 0 && m.text[lo-1] != '\n' && wordClass(m.text[lo-1], false) == class {
+		class := m.wordClass(m.text[lo], false)
+		for lo > 0 && m.text[lo-1] != '\n' && m.wordClass(m.text[lo-1], false) == class {
 			lo--
 		}
 		hi := m.cursor
-		for hi < len(m.text) && m.text[hi] != '\n' && wordClass(m.text[hi], false) == class {
+		for hi < len(m.text) && m.text[hi] != '\n' && m.wordClass(m.text[hi], false) == class {
 			hi++
 		}
 		// An inner word counts both runs of blanks and runs of word
@@ -37,8 +37,8 @@ func (m *Model) object(key string, count int) (span, bool) {
 			if hi == len(m.text) {
 				return span{}, false
 			}
-			next := wordClass(m.text[hi], false)
-			for hi < len(m.text) && wordClass(m.text[hi], false) == next {
+			next := m.wordClass(m.text[hi], false)
+			for hi < len(m.text) && m.wordClass(m.text[hi], false) == next {
 				hi++
 			}
 		}

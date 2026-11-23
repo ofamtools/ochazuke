@@ -38,6 +38,12 @@ const (
 	SortDesc
 )
 
+// SortKey is one sort criterion.
+type SortKey struct {
+	Field string
+	Dir   SortDir
+}
+
 // Column describes one displayed column.
 type Column struct {
 	Key, Title string
@@ -78,14 +84,19 @@ type Model struct {
 
 	SortField string
 	SortDir   SortDir
+	SortKeys  []SortKey
 
 	GroupField string
 	Collapsed  map[string]bool
 
-	SelectedIdx int
-	Offset      int
-	PageSize    int
-	Marked      map[string]bool
+	SelectedIdx  int
+	Offset       int
+	PageSize     int
+	Marked       map[string]bool
+	VisualActive bool
+	VisualAnchor int
+	CellSelect   bool
+	SelectedCol  int
 }
 
 // New returns a model with defaults.
@@ -97,6 +108,7 @@ func New(cols []Column, rows []Row) *Model {
 func (m Model) Copy() Model {
 	m.Collapsed = cloneBool(m.Collapsed)
 	m.Marked = cloneBool(m.Marked)
+	m.SortKeys = slices.Clone(m.SortKeys)
 	return m
 }
 
@@ -230,12 +242,195 @@ func (m *Model) rowMatches(r Row, match func(string) bool) bool {
 	return false
 }
 
+func (m *Model) resolveFieldKey(r Row, field string) (string, bool) {
+	if field == "" {
+		return "", false
+	}
+	for _, c := range m.Columns {
+		if c.Key == field {
+			return c.Key, true
+		}
+	}
+	if _, ok := r.Cells[field]; ok {
+		return field, true
+	}
+	lf := strings.ToLower(field)
+	for _, c := range m.Columns {
+		if strings.ToLower(c.Key) == lf {
+			return c.Key, true
+		}
+	}
+	for k := range r.Cells {
+		if strings.ToLower(k) == lf {
+			return k, true
+		}
+	}
+	return "", false
+}
+
+func (m *Model) rowContains(r Row, term string) bool {
+	lt := strings.ToLower(term)
+	if m.FilterField != "" {
+		return strings.Contains(strings.ToLower(Text(r.Cells[m.FilterField])), lt)
+	}
+	for _, c := range m.Columns {
+		if strings.Contains(strings.ToLower(Text(r.Cells[c.Key])), lt) {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *Model) evalAlt(r Row, alt string) bool {
+	if m.FilterField == "" {
+		if idx := strings.Index(alt, "!="); idx > 0 {
+			if key, ok := m.resolveFieldKey(r, alt[:idx]); ok {
+				val := alt[idx+2:]
+				return !strings.Contains(strings.ToLower(Text(r.Cells[key])), strings.ToLower(val))
+			}
+		}
+		if idx := strings.Index(alt, ":"); idx > 0 {
+			if key, ok := m.resolveFieldKey(r, alt[:idx]); ok {
+				val := alt[idx+1:]
+				neg := false
+				if strings.HasPrefix(val, "!") && len(val) > 1 {
+					neg, val = true, val[1:]
+				}
+				hit := strings.Contains(strings.ToLower(Text(r.Cells[key])), strings.ToLower(val))
+				if neg {
+					return !hit
+				}
+				return hit
+			}
+		}
+	}
+	return m.rowContains(r, alt)
+}
+
+func (m *Model) evalClause(r Row, tok string) bool {
+	neg := false
+	body := tok
+	switch {
+	case strings.HasPrefix(body, "!=") && len(body) > 2:
+		neg, body = true, body[2:]
+	case strings.HasPrefix(body, "!") && len(body) > 1:
+		neg, body = true, body[1:]
+	}
+	// Check for field:a|b or field!=a|b before splitting on |.
+	if m.FilterField == "" {
+		if idx := strings.Index(body, "!="); idx > 0 {
+			if key, ok := m.resolveFieldKey(r, body[:idx]); ok {
+				cell := strings.ToLower(Text(r.Cells[key]))
+				alts := strings.Split(body[idx+2:], "|")
+				matched := false
+				for _, a := range alts {
+					if strings.Contains(cell, strings.ToLower(a)) {
+						matched = true
+						break
+					}
+				}
+				// field!=val negates the match; a leading ! flips it back.
+				res := !matched
+				if neg {
+					return !res
+				}
+				return res
+			}
+		}
+		if idx := strings.Index(body, ":"); idx > 0 {
+			if key, ok := m.resolveFieldKey(r, body[:idx]); ok {
+				rest := body[idx+1:]
+				if strings.HasPrefix(rest, "!") && len(rest) > 1 {
+					neg, rest = !neg, rest[1:]
+				}
+				cell := strings.ToLower(Text(r.Cells[key]))
+				alts := strings.Split(rest, "|")
+				matched := false
+				for _, a := range alts {
+					if strings.Contains(cell, strings.ToLower(a)) {
+						matched = true
+						break
+					}
+				}
+				if neg {
+					return !matched
+				}
+				return matched
+			}
+		}
+	}
+	alts := strings.Split(body, "|")
+	matched := false
+	for _, a := range alts {
+		if a == "" && len(alts) > 1 {
+			continue
+		}
+		if m.evalAlt(r, a) {
+			matched = true
+			break
+		}
+	}
+	if neg {
+		return !matched
+	}
+	return matched
+}
+
+func (m *Model) rowMatchesExpr(r Row, clauses []string) bool {
+	for _, c := range clauses {
+		if !m.evalClause(r, c) {
+			return false
+		}
+	}
+	return true
+}
+
+func (m *Model) effectiveSortKeys() []SortKey {
+	if len(m.SortKeys) > 0 {
+		out := make([]SortKey, 0, len(m.SortKeys))
+		for _, k := range m.SortKeys {
+			if k.Field != "" && k.Dir != SortNone {
+				out = append(out, k)
+			}
+		}
+		return out
+	}
+	if m.SortField != "" && m.SortDir != SortNone {
+		return []SortKey{{Field: m.SortField, Dir: m.SortDir}}
+	}
+	return nil
+}
+
+func (m *Model) syncPrimarySort() {
+	if len(m.SortKeys) > 0 {
+		m.SortField = m.SortKeys[0].Field
+		m.SortDir = m.SortKeys[0].Dir
+	}
+}
+
 // Filtered returns rows passing the filter, sorted. It refreshes FilterErr.
 func (m *Model) Filtered() []Row {
 	var out []Row
 	if m.Query == "" {
 		m.FilterErr = ""
 		out = slices.Clone(m.Rows)
+	} else if m.MatchMode == "" || m.MatchMode == MatchSubstring {
+		m.FilterErr = ""
+		clauses := strings.Fields(m.Query)
+		if len(clauses) == 0 {
+			match := m.matcher()
+			for _, r := range m.Rows {
+				if m.rowMatches(r, match) {
+					out = append(out, r)
+				}
+			}
+		} else {
+			for _, r := range m.Rows {
+				if m.rowMatchesExpr(r, clauses) {
+					out = append(out, r)
+				}
+			}
+		}
 	} else {
 		match := m.matcher()
 		for _, r := range m.Rows {
@@ -244,16 +439,21 @@ func (m *Model) Filtered() []Row {
 			}
 		}
 	}
-	if m.SortField != "" && m.SortDir != SortNone {
+	if len(m.SortKeys) > 0 {
+		m.syncPrimarySort()
+	}
+	if keys := m.effectiveSortKeys(); len(keys) > 0 {
 		sort.SliceStable(out, func(i, j int) bool {
-			c := compare(out[i].Cells[m.SortField], out[j].Cells[m.SortField])
-			if c == 0 {
-				return out[i].ID < out[j].ID
+			for _, k := range keys {
+				c := compare(out[i].Cells[k.Field], out[j].Cells[k.Field])
+				if c != 0 {
+					if k.Dir == SortDesc {
+						return c > 0
+					}
+					return c < 0
+				}
 			}
-			if m.SortDir == SortDesc {
-				return c > 0
-			}
-			return c < 0
+			return out[i].ID < out[j].ID
 		})
 	}
 	return out
@@ -414,9 +614,85 @@ func (m *Model) MarkedRows() []Row {
 	return out
 }
 
+// ToggleVisual enters visual range selection anchored at SelectedIdx, or exits it.
+func (m *Model) ToggleVisual() {
+	if m.VisualActive {
+		m.VisualActive = false
+		return
+	}
+	items := m.Items()
+	m.clamp(len(items))
+	m.VisualActive = true
+	m.VisualAnchor = m.SelectedIdx
+}
+
+// ClearVisual exits visual range selection.
+func (m *Model) ClearVisual() { m.VisualActive = false }
+
+func (m *Model) visualBounds(n int) (from, to int, ok bool) {
+	if !m.VisualActive || n == 0 {
+		return 0, 0, false
+	}
+	a := max(0, min(m.VisualAnchor, n-1))
+	s := max(0, min(m.SelectedIdx, n-1))
+	return min(a, s), max(a, s), true
+}
+
+// VisualRows returns the data rows within the active visual range, skipping group headers.
+func (m *Model) VisualRows() []Row {
+	items := m.Items()
+	from, to, ok := m.visualBounds(len(items))
+	if !ok {
+		return nil
+	}
+	var out []Row
+	for i := from; i <= to; i++ {
+		if !items[i].Header {
+			out = append(out, items[i].Row)
+		}
+	}
+	return out
+}
+
+// MarkVisual marks all data rows in the active visual range and exits visual mode.
+func (m *Model) MarkVisual() {
+	rows := m.VisualRows()
+	if len(rows) > 0 {
+		if m.Marked == nil {
+			m.Marked = map[string]bool{}
+		}
+		for _, r := range rows {
+			m.Marked[r.ID] = true
+		}
+	}
+	m.VisualActive = false
+}
+
+// ToggleCellSelect toggles cell-level selection mode.
+func (m *Model) ToggleCellSelect() {
+	m.CellSelect = !m.CellSelect
+	if len(m.Columns) > 0 {
+		m.SelectedCol = max(0, min(m.SelectedCol, len(m.Columns)-1))
+	} else {
+		m.SelectedCol = 0
+	}
+}
+
+// FocusedCell returns the column key and cell value at SelectedCol on the focused data row.
+func (m *Model) FocusedCell() (colKey string, value any, ok bool) {
+	r, ok := m.FocusedRow()
+	if !ok || len(m.Columns) == 0 {
+		return "", nil, false
+	}
+	col := max(0, min(m.SelectedCol, len(m.Columns)-1))
+	key := m.Columns[col].Key
+	return key, r.Cells[key], true
+}
+
 // CycleSort advances none -> asc -> desc -> none on field ("" = current, or
 // the first column). A different field starts at asc.
 func (m *Model) CycleSort(field string) {
+	m.SortKeys = nil
 	if field == "" {
 		field = m.SortField
 	}
@@ -430,6 +706,45 @@ func (m *Model) CycleSort(field string) {
 	m.SortDir = (m.SortDir + 1) % 3
 	if m.SortDir == SortNone {
 		m.SortField = ""
+	}
+}
+
+// AddSort cycles an existing sort key in SortKeys (asc -> desc -> removed) or
+// appends field as an ascending secondary sort key, keeping SortField/SortDir
+// synced to SortKeys[0].
+func (m *Model) AddSort(field string) {
+	if field == "" && len(m.Columns) > 0 {
+		field = m.Columns[0].Key
+	}
+	if field == "" {
+		return
+	}
+	if len(m.SortKeys) == 0 && m.SortField != "" && m.SortDir != SortNone {
+		m.SortKeys = []SortKey{{Field: m.SortField, Dir: m.SortDir}}
+	}
+	found := -1
+	for i, k := range m.SortKeys {
+		if k.Field == field {
+			found = i
+			break
+		}
+	}
+	if found >= 0 {
+		next := (m.SortKeys[found].Dir + 1) % 3
+		if next == SortNone {
+			m.SortKeys = slices.Delete(m.SortKeys, found, found+1)
+		} else {
+			m.SortKeys[found].Dir = next
+		}
+	} else {
+		m.SortKeys = append(m.SortKeys, SortKey{Field: field, Dir: SortAsc})
+	}
+	if len(m.SortKeys) > 0 {
+		m.SortField = m.SortKeys[0].Field
+		m.SortDir = m.SortKeys[0].Dir
+	} else {
+		m.SortField = ""
+		m.SortDir = SortNone
 	}
 }
 
@@ -496,8 +811,35 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 			}
 			move(to)
 		}
+	case "motion.left":
+		if !m.CellSelect {
+			return false
+		}
+		if len(m.Columns) > 0 {
+			m.SelectedCol = max(0, min(m.SelectedCol-n, len(m.Columns)-1))
+		}
+	case "motion.right":
+		if !m.CellSelect {
+			return false
+		}
+		if len(m.Columns) > 0 {
+			m.SelectedCol = max(0, min(m.SelectedCol+n, len(m.Columns)-1))
+		}
 	case "table.sort.cycle":
 		m.CycleSort(cmd.Arg("field"))
+	case "table.sort.add":
+		m.AddSort(cmd.Arg("field"))
+	case "table.visual.toggle":
+		m.ToggleVisual()
+	case "table.visual.mark":
+		m.MarkVisual()
+	case "table.cell.toggle":
+		m.ToggleCellSelect()
+	case "esc":
+		if !m.VisualActive {
+			return false
+		}
+		m.ClearVisual()
 	case "table.group.toggle":
 		if f := cmd.Arg("field"); f != "" {
 			if m.GroupField == f {
@@ -523,6 +865,9 @@ func (m *Model) facts(it Item, ok bool) map[string]any {
 	if mode == "" {
 		mode = MatchSubstring
 	}
+	if len(m.SortKeys) > 0 {
+		m.syncPrimarySort()
+	}
 	return map[string]any{
 		"hasFilter":     m.Query != "",
 		"matchMode":     string(mode),
@@ -531,6 +876,10 @@ func (m *Model) facts(it Item, ok bool) map[string]any {
 		"markedCount":   len(m.Marked),
 		"rowCount":      len(m.Filtered()),
 		"isGroupHeader": ok && it.Header,
+		"visualActive":  m.VisualActive,
+		"visualCount":   len(m.VisualRows()),
+		"cellSelect":    m.CellSelect,
+		"selectedCol":   m.SelectedCol,
 	}
 }
 
@@ -564,17 +913,25 @@ func (m *Model) ContextFrame(scope, nodeID string) core.ContextFrame {
 func (m *Model) View(id string) ui.ViewNode {
 	items := m.Items()
 	m.clamp(len(items))
+	sortKeys := m.effectiveSortKeys()
 	cols := make([]any, len(m.Columns))
 	for i, c := range m.Columns {
 		title := c.Title
 		if title == "" {
 			title = c.Key
 		}
-		if c.Key == m.SortField && m.SortDir != SortNone {
-			if m.SortDir == SortAsc {
-				title += " ▲"
-			} else {
-				title += " ▼"
+		for idx, sk := range sortKeys {
+			if c.Key == sk.Field && sk.Dir != SortNone {
+				arrow := "▲"
+				if sk.Dir == SortDesc {
+					arrow = "▼"
+				}
+				if len(sortKeys) > 1 {
+					title += fmt.Sprintf(" %s%d", arrow, idx+1)
+				} else {
+					title += " " + arrow
+				}
+				break
 			}
 		}
 		col := map[string]any{"key": c.Key, "title": title}
@@ -610,9 +967,20 @@ func (m *Model) View(id string) ui.ViewNode {
 		}
 		rows[i] = cells
 	}
+	props := map[string]any{"columns": cols, "rows": rows, "selected": m.SelectedIdx, "offset": m.Offset}
+	vFrom, vTo, vOK := m.visualBounds(len(items))
+	if vOK {
+		props["visualFrom"] = vFrom
+		props["visualTo"] = vTo
+	}
+	selCol := -1
+	if m.CellSelect && len(m.Columns) > 0 {
+		selCol = max(0, min(m.SelectedCol, len(m.Columns)-1))
+		props["selectedCol"] = selCol
+	}
 	n := ui.ViewNode{
 		ID: id, Kind: ui.KindTable, Focusable: true,
-		Props: map[string]any{"columns": cols, "rows": rows, "selected": m.SelectedIdx, "offset": m.Offset},
+		Props: props,
 	}
 	it, ok := m.Focused()
 	cf := m.ContextFrame("", id)
@@ -626,7 +994,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		}
 	}
 	h := fnv.New64a()
-	fmt.Fprintf(h, "%v|%v|%d|%d|%v", cols, rows, m.SelectedIdx, m.Offset, n.Facts["isGroupHeader"])
+	fmt.Fprintf(h, "%v|%v|%d|%d|%v|%t|%d|%d|%d", cols, rows, m.SelectedIdx, m.Offset, n.Facts["isGroupHeader"], vOK, vFrom, vTo, selCol)
 	n.CacheKey = h.Sum64() | 1
 	return n
 }

@@ -60,6 +60,8 @@ type pending struct {
 // Model owns the buffer, cursor, registers and undo history for one input.
 // Its zero value is an empty single-line input in normal mode.
 type Model struct {
+	WordScope string // "", "default", "code", "path", "json", "csv", "markdown"
+
 	text           []rune
 	initial        string
 	multiline      bool
@@ -72,7 +74,12 @@ type Model struct {
 	last           edit
 	session        *insertSession
 	kill           string
+	lastYank       span
+	hasLastYank    bool
 }
+
+// SetWordScope sets the scope used for word boundary motions and Readline word operations.
+func (m *Model) SetWordScope(scope string) { m.WordScope = scope }
 
 // New creates an input in normal mode at the first rune. Single-line inputs
 // turn pasted and initial line breaks into spaces.

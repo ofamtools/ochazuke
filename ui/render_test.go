@@ -172,6 +172,53 @@ func TestRenderTable(t *testing.T) {
 	}
 }
 
+func TestRenderTableCellSelectAndVisual(t *testing.T) {
+	base := ViewNode{Kind: KindTable, ID: "t", Focusable: true, Props: map[string]any{
+		"columns":  []any{"name", map[string]any{"title": "size", "align": "right"}},
+		"rows":     []any{[]any{"render.go", 1200}, []any{"theme.go", 400}, []any{"main.go", 90}},
+		"selected": 1,
+	}}
+	_, wholeRow, _ := draw(base, "t", 20, 6)
+
+	cell := ViewNode{Kind: KindTable, ID: "t", Focusable: true, Props: map[string]any{
+		"columns":     []any{"name", map[string]any{"title": "size", "align": "right"}},
+		"rows":        []any{[]any{"render.go", 1200}, []any{"theme.go", 400}, []any{"main.go", 90}},
+		"selected":    1,
+		"selectedCol": 1,
+	}}
+	rows, cellFrame, _ := draw(cell, "t", 20, 6)
+	wantRows(t, rows,
+		"name       size",
+		"────────────────────",
+		"render.go  1200",
+		"theme.go    400",
+		"main.go      90")
+	if cellFrame.ANSI == wholeRow.ANSI {
+		t.Fatal("selectedCol rendering should differ from whole-row selection")
+	}
+	// Selected cell uses accent fg (#82aaff -> 38;2;130;170;255) on selection bg,
+	// while rest of row uses selected.inactive bg (#2d3352 -> 48;2;45;51;82).
+	if !strings.Contains(cellFrame.ANSI, "38;2;130;170;255") {
+		t.Errorf("selected cell missing accent fg:\n%q", cellFrame.ANSI)
+	}
+	if !strings.Contains(cellFrame.ANSI, "48;2;45;51;82") {
+		t.Errorf("non-selected cells on selected row missing selected.inactive bg:\n%q", cellFrame.ANSI)
+	}
+
+	// Visual range highlights non-selected rows in [visualFrom, visualTo].
+	vis := ViewNode{Kind: KindTable, ID: "t", Focusable: true, Props: map[string]any{
+		"columns":    []any{"name", map[string]any{"title": "size", "align": "right"}},
+		"rows":       []any{[]any{"render.go", 1200}, []any{"theme.go", 400}, []any{"main.go", 90}},
+		"selected":   2,
+		"visualFrom": 0,
+		"visualTo":   2,
+	}}
+	_, visFrame, _ := draw(vis, "t", 20, 6)
+	if !strings.Contains(visFrame.ANSI, "48;2;45;51;82") {
+		t.Errorf("visual range rows missing inactive selection highlight:\n%q", visFrame.ANSI)
+	}
+}
+
 func TestRenderOverlay(t *testing.T) {
 	root := ViewNode{Kind: KindVStack, Children: []ViewNode{
 		txt("base text"),

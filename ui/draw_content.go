@@ -383,7 +383,7 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 		widths[best]--
 		total--
 	}
-	format := func(cells []string) string {
+	formatCells := func(cells []string) []string {
 		parts := make([]string, len(cols))
 		for i, cell := range cells {
 			cell = truncate(cell, widths[i])
@@ -393,7 +393,10 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 				parts[i] = padPlain(cell, widths[i])
 			}
 		}
-		return strings.Join(parts, "  ")
+		return parts
+	}
+	format := func(cells []string) string {
+		return strings.Join(formatCells(cells), "  ")
 	}
 	heads := make([]string, len(cols))
 	for i, col := range cols {
@@ -405,6 +408,13 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 	}
 	rowsH := h - 2
 	sel := selectedOf(n)
+	selCol, hasSelCol := n.propInt("selectedCol")
+	if !hasSelCol {
+		selCol = -1
+	}
+	vFrom, hasVFrom := n.propInt("visualFrom")
+	vTo, hasVTo := n.propInt("visualTo")
+	hasVisual := hasVFrom && hasVTo && vFrom <= vTo
 	start := windowStart(n, len(rows), rowsH, sel)
 	rule := strings.Repeat("─", w)
 	if len(rows) > rowsH && w > 12 {
@@ -413,8 +423,33 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 	}
 	out = append(out, c.st.t("border", rule))
 	for i := start; i < min(len(rows), start+rowsH); i++ {
+		if i == sel && selCol >= 0 && selCol < len(cols) {
+			parts := formatCells(rowCells(rows[i], cols))
+			rowTS := c.st.tone("selected.inactive")
+			cellTS := mergeTone(c.rowStyle(rn, true), ToneStyle{Fg: c.st.tone("accent").Fg, Bold: true})
+			var sb strings.Builder
+			for ci, p := range parts {
+				if ci > 0 {
+					sb.WriteString(c.st.paint("  ", rowTS))
+				}
+				if ci == selCol {
+					sb.WriteString(c.st.paint(p, cellTS))
+				} else {
+					sb.WriteString(c.st.paint(p, rowTS))
+				}
+			}
+			out = append(out, padLine(sb.String(), w, c.st.sgr(rowTS)))
+			continue
+		}
 		line := format(rowCells(rows[i], cols))
-		ts := c.rowStyle(rn, i == sel)
+		var ts ToneStyle
+		if i == sel {
+			ts = c.rowStyle(rn, true)
+		} else if hasVisual && i >= vFrom && i <= vTo {
+			ts = c.st.tone("selected.inactive")
+		} else {
+			ts = c.rowStyle(rn, false)
+		}
 		out = append(out, padLine(c.st.paint(line, ts), w, c.st.sgr(ts)))
 	}
 	return out

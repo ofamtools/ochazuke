@@ -110,6 +110,8 @@ func (m *Model) apply(a edit) {
 		}
 		m.mode = ModeNormal
 		if a.key == "y" {
+			m.lastYank = r
+			m.hasLastYank = true
 			m.cursor = m.normalPos(r.lo)
 			return
 		}

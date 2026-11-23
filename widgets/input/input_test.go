@@ -217,3 +217,100 @@ func TestZeroValueAndExplicitUnnamedRegister(t *testing.T) {
 		t.Fatalf("single-line paste: %q", m.Value())
 	}
 }
+
+func TestWordScopes(t *testing.T) {
+	// Path scope: a/b/c.go steps by segment and separator.
+	m := New("a/b/c.go", false)
+	m.SetWordScope("path")
+	var stops []int
+	for range 6 {
+		m.HandleKey("w")
+		stops = append(stops, m.Cursor())
+	}
+	wantPath := []int{1, 2, 3, 4, 5, 6}
+	for i, w := range wantPath {
+		if stops[i] != w {
+			t.Fatalf("path w stops = %v, want %v", stops, wantPath)
+		}
+	}
+	m.HandleKey("b")
+	if m.Cursor() != 5 {
+		t.Fatalf("path b cursor = %d, want 5", m.Cursor())
+	}
+	// Path scope on a/.hidden separates / from .
+	m2 := New("a/.hidden", false)
+	m2.SetWordScope("path")
+	m2.HandleKey("w") // /
+	m2.HandleKey("w") // .
+	if m2.Cursor() != 2 {
+		t.Fatalf("path a/.hidden 2w cursor = %d, want 2", m2.Cursor())
+	}
+
+	// Code scope: identifiers stay together, brackets separate from operators.
+	mc := New("foo_1(!bar)", false)
+	mc.SetWordScope("code")
+	mc.HandleKey("w") // (
+	if mc.Cursor() != 5 {
+		t.Fatalf("code w1 = %d, want 5", mc.Cursor())
+	}
+	mc.HandleKey("w") // !
+	if mc.Cursor() != 6 {
+		t.Fatalf("code w2 = %d, want 6", mc.Cursor())
+	}
+
+	// JSON scope: {}[],:" are distinct delimiters.
+	mj := New(`{"a":1}`, false)
+	mj.SetWordScope("json")
+	var jstops []int
+	for range 6 {
+		mj.HandleKey("w")
+		jstops = append(jstops, mj.Cursor())
+	}
+	wantJSON := []int{1, 2, 3, 4, 5, 6}
+	for i, w := range wantJSON {
+		if jstops[i] != w {
+			t.Fatalf("json w stops = %v, want %v", jstops, wantJSON)
+		}
+	}
+
+	// CSV scope: comma is its own separator class.
+	mcsv := New(`"a","b"`, false)
+	mcsv.SetWordScope("csv")
+	mcsv.HandleKey("3")
+	mcsv.HandleKey("w") // lands on ',' at index 3
+	if mcsv.Cursor() != 3 {
+		t.Fatalf("csv 3w cursor = %d, want 3", mcsv.Cursor())
+	}
+
+	// Markdown scope: foo-bar stays one word; # * [ ] ( ) are delimiters.
+	mmd := New("## foo-bar [baz](qux)", false)
+	mmd.SetWordScope("markdown")
+	mmd.HandleKey("w") // foo-bar at 3
+	if mmd.Cursor() != 3 {
+		t.Fatalf("md w1 = %d, want 3", mmd.Cursor())
+	}
+	mmd.HandleKey("w") // [ at 11 (skipped whole foo-bar!)
+	if mmd.Cursor() != 11 {
+		t.Fatalf("md w2 = %d, want 11", mmd.Cursor())
+	}
+
+	// Readline on Line and Model honors WordScope (path ctrl+w / alt+b).
+	l := NewLine("src/pkg/file.go")
+	l.SetWordScope("path")
+	l.HandleCommand(core.Command{ID: CmdKillWordBack})
+	if l.Value() != "src/pkg/file." || l.Kill != "go" {
+		t.Fatalf("line path ctrl+w: val=%q kill=%q", l.Value(), l.Kill)
+	}
+	l.HandleCommand(core.Command{ID: CmdWordLeft}) // before '.'
+	if l.Cursor != 12 {
+		t.Fatalf("line path alt+b: cursor=%d, want 12", l.Cursor)
+	}
+	mi := New("foo-bar baz", false)
+	mi.SetWordScope("markdown")
+	mi.HandleKey("A") // insert at end
+	mi.HandleCommand(core.Command{ID: CmdWordLeft})
+	mi.HandleCommand(core.Command{ID: CmdKillWordBack})
+	if mi.Value() != "baz" {
+		t.Fatalf("model markdown insert ctrl+w: val=%q, want %q", mi.Value(), "baz")
+	}
+}

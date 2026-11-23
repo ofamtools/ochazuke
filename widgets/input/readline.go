@@ -131,36 +131,28 @@ var readlineKeyCommands = map[string]string{
 	"ctrl+y":        CmdYankKill,
 }
 
-func isReadlineWord(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' }
-
-func readlineWordPrev(rs []rune, lo, pos int) int {
+func readlineWordPrev(rs []rune, lo, pos int, scope string) int {
 	i := pos
 	for i > lo && unicode.IsSpace(rs[i-1]) {
 		i--
 	}
-	if i > lo && isReadlineWord(rs[i-1]) {
-		for i > lo && isReadlineWord(rs[i-1]) {
-			i--
-		}
-	} else {
-		for i > lo && !isReadlineWord(rs[i-1]) && !unicode.IsSpace(rs[i-1]) {
+	if i > lo {
+		cls := wordClassScoped(rs[i-1], false, scope)
+		for i > lo && wordClassScoped(rs[i-1], false, scope) == cls {
 			i--
 		}
 	}
 	return i
 }
 
-func readlineWordNext(rs []rune, pos, hi int) int {
+func readlineWordNext(rs []rune, pos, hi int, scope string) int {
 	i := pos
 	for i < hi && unicode.IsSpace(rs[i]) {
 		i++
 	}
-	if i < hi && isReadlineWord(rs[i]) {
-		for i < hi && isReadlineWord(rs[i]) {
-			i++
-		}
-	} else {
-		for i < hi && !isReadlineWord(rs[i]) && !unicode.IsSpace(rs[i]) {
+	if i < hi {
+		cls := wordClassScoped(rs[i], false, scope)
+		for i < hi && wordClassScoped(rs[i], false, scope) == cls {
 			i++
 		}
 	}
@@ -170,10 +162,14 @@ func readlineWordNext(rs []rune, pos, hi int) int {
 // Line is a rune-indexed single-line editor with a cursor and kill buffer,
 // implementing the standard Readline commands for forms, pickers and filters.
 type Line struct {
-	Text   []rune
-	Cursor int
-	Kill   string
+	Text      []rune
+	Cursor    int
+	Kill      string
+	WordScope string // "", "default", "code", "path", "json", "csv", "markdown"
 }
+
+// SetWordScope sets the scope used for Readline word motions and kills.
+func (l *Line) SetWordScope(scope string) { l.WordScope = scope }
 
 // NewLine creates a Line holding s with the cursor at the end.
 func NewLine(s string) Line {
@@ -257,20 +253,20 @@ func (l *Line) HandleCommand(cmd core.Command) (changed, handled bool) {
 		}
 		return false, true
 	case CmdWordLeft:
-		l.Cursor = readlineWordPrev(l.Text, 0, l.Cursor)
+		l.Cursor = readlineWordPrev(l.Text, 0, l.Cursor, l.WordScope)
 		return false, true
 	case CmdWordRight:
-		l.Cursor = readlineWordNext(l.Text, l.Cursor, len(l.Text))
+		l.Cursor = readlineWordNext(l.Text, l.Cursor, len(l.Text), l.WordScope)
 		return false, true
 	case CmdBackspace:
 		return l.cut(l.Cursor-1, l.Cursor, false), true
 	case CmdDeleteChar:
 		return l.cut(l.Cursor, l.Cursor+1, false), true
 	case CmdKillWordBack:
-		from := readlineWordPrev(l.Text, 0, l.Cursor)
+		from := readlineWordPrev(l.Text, 0, l.Cursor, l.WordScope)
 		return l.cut(from, l.Cursor, true), true
 	case CmdKillWordForward:
-		to := readlineWordNext(l.Text, l.Cursor, len(l.Text))
+		to := readlineWordNext(l.Text, l.Cursor, len(l.Text), l.WordScope)
 		return l.cut(l.Cursor, to, true), true
 	case CmdKillLineBack:
 		return l.cut(0, l.Cursor, true), true
@@ -324,9 +320,9 @@ func (m *Model) handleReadline(id string) bool {
 			m.cursor++
 		}
 	case CmdWordLeft:
-		m.cursor = readlineWordPrev(m.text, lo, m.cursor)
+		m.cursor = readlineWordPrev(m.text, lo, m.cursor, m.WordScope)
 	case CmdWordRight:
-		m.cursor = readlineWordNext(m.text, m.cursor, hi)
+		m.cursor = readlineWordNext(m.text, m.cursor, hi, m.WordScope)
 	case CmdBackspace:
 		m.typeIn(insertion{backspace: true})
 	case CmdDeleteChar:
@@ -334,10 +330,10 @@ func (m *Model) handleReadline(id string) bool {
 			cut(m.cursor, m.cursor+1, false)
 		}
 	case CmdKillWordBack:
-		from := readlineWordPrev(m.text, lo, m.cursor)
+		from := readlineWordPrev(m.text, lo, m.cursor, m.WordScope)
 		cut(from, m.cursor, true)
 	case CmdKillWordForward:
-		to := readlineWordNext(m.text, m.cursor, hi)
+		to := readlineWordNext(m.text, m.cursor, hi, m.WordScope)
 		cut(m.cursor, to, true)
 	case CmdKillLineBack:
 		cut(lo, m.cursor, true)
