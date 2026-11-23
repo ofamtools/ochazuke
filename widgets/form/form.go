@@ -64,26 +64,31 @@ func KindFor(spec core.ParamSpec) FieldKind {
 
 // Command IDs HandleCommand understands, besides motion.down/up/top/bottom.
 const (
-	CmdSubmit    = "form.submit"
-	CmdCancel    = "form.cancel"
-	CmdEdit      = "form.edit"   // start editing the active text field
-	CmdStop      = "form.stop"   // leave editing; cancels when not editing
-	CmdToggle    = "form.toggle" // toggle bool / cycle enum
-	CmdCycle     = "form.cycle"  // Args dir: -1 or 1
-	CmdInsert    = "form.insert" // Args text
-	CmdBackspace = "form.backspace"
-	CmdPick      = "form.pick" // request a picker for the active path/ref field
-	CmdSet       = "form.set"  // Args field, value
+	CmdSubmit       = "form.submit"
+	CmdCancel       = "form.cancel"
+	CmdEdit         = "form.edit"   // start editing the active text field
+	CmdStop         = "form.stop"   // leave editing; cancels when not editing
+	CmdToggle       = "form.toggle" // toggle bool / cycle enum
+	CmdCycle        = "form.cycle"  // Args dir: -1 or 1
+	CmdInsert       = "form.insert" // Args text
+	CmdBackspace    = "form.backspace"
+	CmdPick         = "form.pick"          // request a picker for the active path/ref field
+	CmdSet          = "form.set"           // Args field, value
+	CmdDraftPrev    = "form.draft.prev"    // step backward into newest -> older drafts
+	CmdDraftNext    = "form.draft.next"    // step forward toward newer drafts -> live working state
+	CmdDraftDiscard = "form.draft.discard" // discard currently loaded draft
 )
 
 // FormResult is a signal returned by HandleCommand.
 type FormResult struct {
-	Submitted   bool
-	Cancelled   bool
-	PickPath    *PathRequest
-	PickRef     *RefRequest
-	Values      map[string]any // typed values when Submitted
-	ErrorFields []string       // fields failing validation on a rejected submit
+	Submitted         bool
+	Cancelled         bool
+	PickPath          *PathRequest
+	PickRef           *RefRequest
+	Values            map[string]any // typed values when Submitted
+	ErrorFields       []string       // fields failing validation on a rejected submit
+	DiscardedDraftIdx int
+	HasDiscardedDraft bool
 }
 
 // PathRequest asks the host to open a path picker for Field.
@@ -106,6 +111,12 @@ type Model struct {
 	Errors      map[string]string
 	Dirty       bool
 	SubmitLabel string
+	SubmitRow   bool
+
+	// Drafts holds saved snapshots (newest first). DraftIdx is -1 while editing
+	// live working values, or 0..len(Drafts)-1 when viewing a draft.
+	Drafts   []Draft
+	DraftIdx int
 
 	// ChoiceResolver, when set, supplies an enum field's choices from the
 	// current values, so one field's options can depend on another (the
@@ -115,8 +126,10 @@ type Model struct {
 	// not modify values.
 	ChoiceResolver func(spec core.ParamSpec, values map[string]any) []string
 
-	line      input.Line
-	lineField string
+	line       input.Line
+	lineField  string
+	liveValues map[string]any
+	liveDirty  bool
 }
 
 // EffectiveEnum returns the choices of field idx: the ChoiceResolver's
@@ -153,7 +166,7 @@ func (m *Model) KindAt(idx int) FieldKind {
 
 // New builds a form. initial values win over ParamSpec.Default.
 func New(title string, specs []core.ParamSpec, initial map[string]any) *Model {
-	m := &Model{Title: title, Specs: specs, Values: map[string]any{}, Errors: map[string]string{}, SubmitLabel: "Submit"}
+	m := &Model{Title: title, Specs: specs, Values: map[string]any{}, Errors: map[string]string{}, SubmitLabel: "Submit", DraftIdx: -1}
 	for _, s := range specs {
 		if v, ok := initial[s.Name]; ok {
 			m.Values[s.Name] = display(s, v)
@@ -246,6 +259,18 @@ func (m *Model) touch(name string) {
 	}
 }
 
+// OnSubmitRow reports whether the focusable Submit button row is active.
+func (m *Model) OnSubmitRow() bool {
+	return m.SubmitRow && m.ActiveIdx == len(m.Specs)
+}
+
+func (m *Model) maxIdx() int {
+	if m.SubmitRow {
+		return len(m.Specs)
+	}
+	return len(m.Specs) - 1
+}
+
 // Down, Up, Top and Bottom move the active field and stop editing.
 func (m *Model) Down() { m.move(m.ActiveIdx + 1) }
 
@@ -255,13 +280,132 @@ func (m *Model) Up() { m.move(m.ActiveIdx - 1) }
 // Top moves to the first field.
 func (m *Model) Top() { m.move(0) }
 
-// Bottom moves to the last field.
-func (m *Model) Bottom() { m.move(len(m.Specs) - 1) }
+// Bottom moves to the last field (or the Submit row when SubmitRow is enabled).
+func (m *Model) Bottom() { m.move(m.maxIdx()) }
 
 func (m *Model) move(i int) {
-	m.ActiveIdx = max(0, min(i, len(m.Specs)-1))
+	m.ActiveIdx = max(0, min(i, m.maxIdx()))
 	m.Editing = false
 	m.lineField = ""
+}
+
+// finishEditing syncs any in-progress line edit into m.Values and exits editing mode.
+func (m *Model) finishEditing() {
+	if !m.Editing {
+		return
+	}
+	if s, ok := m.active(); ok && m.Editable() && m.lineField == s.Name {
+		val := m.line.Value()
+		if m.Values[s.Name] != val {
+			m.Values[s.Name] = val
+			m.touch(s.Name)
+		}
+	}
+	m.Editing = false
+	m.lineField = ""
+}
+
+// SetDrafts replaces the form's draft ring with a clone of drafts and resets
+// cycling back to the live working state.
+func (m *Model) SetDrafts(drafts []Draft) {
+	m.Drafts = cloneDrafts(drafts)
+	m.DraftIdx = -1
+	m.liveValues = nil
+	m.liveDirty = false
+}
+
+// ActiveDraftIndex returns the active draft index (-1 when on live working values).
+func (m *Model) ActiveDraftIndex() int { return m.DraftIdx }
+
+// DraftCount returns the number of drafts loaded in the form.
+func (m *Model) DraftCount() int { return len(m.Drafts) }
+
+func (m *Model) loadDraftValues(src map[string]any) {
+	m.Values = map[string]any{}
+	for _, s := range m.Specs {
+		if v, ok := src[s.Name]; ok {
+			m.Values[s.Name] = display(s, v)
+		} else if s.Default != nil {
+			m.Values[s.Name] = display(s, s.Default)
+		} else if KindFor(s) == KindBool {
+			m.Values[s.Name] = false
+		}
+	}
+}
+
+// DraftPrev steps backward into the draft ring (live -> newest -> older).
+func (m *Model) DraftPrev() bool {
+	if len(m.Drafts) == 0 || m.DraftIdx >= len(m.Drafts)-1 {
+		return false
+	}
+	if m.DraftIdx < 0 {
+		m.finishEditing()
+		m.liveValues = cloneValueMap(m.Values)
+		m.liveDirty = m.Dirty
+		m.DraftIdx = 0
+	} else {
+		m.DraftIdx++
+	}
+	m.loadDraftValues(m.Drafts[m.DraftIdx].Values)
+	m.Errors = map[string]string{}
+	m.Editing = false
+	m.lineField = ""
+	m.Dirty = true
+	return true
+}
+
+// DraftNext steps forward toward newer drafts and back to live working values.
+func (m *Model) DraftNext() bool {
+	if m.DraftIdx < 0 {
+		return false
+	}
+	m.DraftIdx--
+	if m.DraftIdx < 0 {
+		m.DraftIdx = -1
+		if m.liveValues != nil {
+			m.Values = cloneValueMap(m.liveValues)
+		} else {
+			m.Values = map[string]any{}
+		}
+		m.Dirty = m.liveDirty
+		m.liveValues = nil
+	} else {
+		m.loadDraftValues(m.Drafts[m.DraftIdx].Values)
+		m.Dirty = true
+	}
+	m.Errors = map[string]string{}
+	m.Editing = false
+	m.lineField = ""
+	return true
+}
+
+// DraftDiscard removes the currently viewed draft, returning its original index.
+func (m *Model) DraftDiscard() (removedIdx int, ok bool) {
+	if m.DraftIdx < 0 || m.DraftIdx >= len(m.Drafts) {
+		return -1, false
+	}
+	removedIdx = m.DraftIdx
+	m.Drafts = append(m.Drafts[:removedIdx], m.Drafts[removedIdx+1:]...)
+	if len(m.Drafts) == 0 {
+		m.DraftIdx = -1
+		if m.liveValues != nil {
+			m.Values = cloneValueMap(m.liveValues)
+		} else {
+			m.Values = map[string]any{}
+		}
+		m.Dirty = m.liveDirty
+		m.liveValues = nil
+	} else {
+		if m.DraftIdx >= len(m.Drafts) {
+			m.DraftIdx = len(m.Drafts) - 1
+		}
+		m.loadDraftValues(m.Drafts[m.DraftIdx].Values)
+		m.Dirty = true
+	}
+	m.Errors = map[string]string{}
+	m.Editing = false
+	m.lineField = ""
+	return removedIdx, true
 }
 
 // syncLine aligns the active line editor with the focused text field.
@@ -480,6 +624,21 @@ func (m *Model) Submit() (map[string]any, bool) {
 	return m.TypedValues(), true
 }
 
+func (m *Model) handleSubmit() (FormResult, bool) {
+	m.finishEditing()
+	vals, ok := m.Submit()
+	if !ok {
+		var bad []string
+		for _, s := range m.Specs {
+			if _, has := m.Errors[s.Name]; has {
+				bad = append(bad, s.Name)
+			}
+		}
+		return FormResult{ErrorFields: bad}, true
+	}
+	return FormResult{Submitted: true, Values: vals}, true
+}
+
 // HandleCommand applies a form or motion command. ok is false for commands
 // the form does not handle.
 func (m *Model) HandleCommand(cmd core.Command) (FormResult, bool) {
@@ -493,6 +652,9 @@ func (m *Model) HandleCommand(cmd core.Command) (FormResult, bool) {
 	case "motion.bottom":
 		m.Bottom()
 	case CmdEdit:
+		if m.OnSubmitRow() {
+			return m.handleSubmit()
+		}
 		m.Editing = m.Editable()
 		if m.Editing {
 			m.lineField = ""
@@ -507,6 +669,9 @@ func (m *Model) HandleCommand(cmd core.Command) (FormResult, bool) {
 	case CmdCancel:
 		return FormResult{Cancelled: true}, true
 	case CmdToggle:
+		if m.OnSubmitRow() {
+			return m.handleSubmit()
+		}
 		m.ToggleBool()
 	case CmdCycle:
 		dir := 1
@@ -531,18 +696,16 @@ func (m *Model) HandleCommand(cmd core.Command) (FormResult, bool) {
 				return FormResult{PickRef: &RefRequest{Field: s.Name, RefKinds: s.RefKinds, SourceQuery: s.SourceQuery}}, true
 			}
 		}
-	case CmdSubmit:
-		vals, ok := m.Submit()
-		if !ok {
-			var bad []string
-			for _, s := range m.Specs {
-				if _, has := m.Errors[s.Name]; has {
-					bad = append(bad, s.Name)
-				}
-			}
-			return FormResult{ErrorFields: bad}, true
+	case CmdDraftPrev:
+		m.DraftPrev()
+	case CmdDraftNext:
+		m.DraftNext()
+	case CmdDraftDiscard:
+		if idx, ok := m.DraftDiscard(); ok {
+			return FormResult{DiscardedDraftIdx: idx, HasDiscardedDraft: true}, true
 		}
-		return FormResult{Submitted: true, Values: vals}, true
+	case CmdSubmit:
+		return m.handleSubmit()
 	default:
 		if input.IsReadlineCommand(cmd.ID) {
 			if s, ok := m.syncLine(); ok {
@@ -584,13 +747,26 @@ func (m *Model) View(id string) ui.ViewNode {
 	if m.Editing {
 		props["cursor"] = m.Cursor()
 	}
+	facts := map[string]any{
+		"field":      active,
+		"fieldKind":  kind,
+		"editing":    m.Editing,
+		"dirty":      m.Dirty,
+		"invalid":    len(m.Errors) > 0,
+		"draftCount": len(m.Drafts),
+		"draftIndex": m.DraftIdx,
+	}
+	if m.SubmitRow {
+		props["submitRow"] = true
+		facts["onSubmit"] = m.OnSubmitRow()
+	}
 	return ui.ViewNode{
 		ID:        id,
 		Kind:      ui.KindForm,
 		Scope:     "form",
 		Title:     m.Title,
 		Focusable: true,
-		Facts:     map[string]any{"field": active, "fieldKind": kind, "editing": m.Editing, "dirty": m.Dirty, "invalid": len(m.Errors) > 0},
+		Facts:     facts,
 		Props:     props,
 		CacheKey:  m.cacheKey(),
 	}
@@ -614,8 +790,12 @@ func (m *Model) cacheKey() uint64 {
 	w := func(s string) { h.Write([]byte(s)); h.Write([]byte{0}) }
 	w(m.Title)
 	w(m.SubmitLabel)
+	w(strconv.FormatBool(m.SubmitRow))
 	w(strconv.Itoa(m.ActiveIdx))
 	w(strconv.FormatBool(m.Editing))
+	w(strconv.FormatBool(m.Dirty))
+	w(strconv.Itoa(m.DraftIdx))
+	w(strconv.Itoa(len(m.Drafts)))
 	if m.Editing {
 		w(strconv.Itoa(m.Cursor()))
 	}

@@ -364,4 +364,55 @@ func TestRenderTinyViewportsDoNotPanic(t *testing.T) {
 	}
 }
 
+func TestRenderFormSubmitRow(t *testing.T) {
+	node := ViewNode{
+		Kind:      KindForm,
+		ID:        "frm",
+		Focusable: true,
+		Props: map[string]any{
+			"fields": []any{
+				map[string]any{"name": "a", "type": "string"},
+				map[string]any{"name": "b", "type": "string"},
+			},
+			"values":      map[string]any{"a": "one", "b": "two"},
+			"active":      2,
+			"submitLabel": "Create",
+			"submitRow":   true,
+		},
+	}
+
+	rowsF, focused, _ := draw(node, "frm", 30, 8)
+	joinedF := strings.Join(rowsF, "\n")
+	if !strings.Contains(joinedF, "▸ [ ⏎ Create ]") {
+		t.Fatalf("focused submit row missing highlight:\n%s", joinedF)
+	}
+	// Selected bg (#3b4f87 -> 48;2;59;79;135) and accent fg (#82aaff -> 38;2;130;170;255).
+	if !strings.Contains(focused.ANSI, "48;2;59;79;135") || !strings.Contains(focused.ANSI, "38;2;130;170;255") {
+		t.Errorf("focused submit row missing selected/accent styling: %q", focused.ANSI)
+	}
+
+	// Unfocused keeps subtle lowercase submit row.
+	rowsU, unfocused, _ := draw(node, "", 30, 8)
+	joinedU := strings.Join(rowsU, "\n")
+	if !strings.Contains(joinedU, "  ⏎ create") || strings.Contains(joinedU, "[ ⏎ Create ]") {
+		t.Fatalf("unfocused submit row should stay subtle:\n%s", joinedU)
+	}
+	if focused.ANSI == unfocused.ANSI {
+		t.Error("focused and unfocused submit row should differ")
+	}
+
+	// Short viewport scrolls to anchor the highlighted submit row at the bottom.
+	node.Props["fields"] = []any{
+		map[string]any{"name": "f1", "type": "string"},
+		map[string]any{"name": "f2", "type": "string"},
+		map[string]any{"name": "f3", "type": "string"},
+		map[string]any{"name": "f4", "type": "string"},
+	}
+	node.Props["active"] = 4
+	rowsShort, _, _ := draw(node, "frm", 30, 3)
+	if !strings.Contains(rowsShort[len(rowsShort)-1], "▸ [ ⏎ Create ]") {
+		t.Fatalf("short viewport should pin highlighted submit row at bottom:\n%s", strings.Join(rowsShort, "\n"))
+	}
+}
+
 func txtNode(s string) ViewNode { return txt(s) }

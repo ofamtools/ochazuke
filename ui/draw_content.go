@@ -652,9 +652,13 @@ func formHeight(n *ViewNode, d string) int { return len(formFields(n))*formRows(
 
 func formActive(n *ViewNode, fields []core.ParamSpec) int {
 	active := 0
+	maxIdx := len(fields) - 1
+	if n.propBool("submitRow") {
+		maxIdx = len(fields)
+	}
 	if v, ok := n.prop("active"); ok {
 		if i, isInt := anyInt(v); isInt {
-			active = clampInt(i, 0, len(fields)-1)
+			active = clampInt(i, 0, maxIdx)
 		} else if s, isStr := v.(string); isStr {
 			for i, f := range fields {
 				if f.Name == s {
@@ -761,7 +765,13 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 	if submit == "" {
 		submit = "Submit"
 	}
-	out = append(out, "  "+c.st.t("key", "⏎")+" "+c.st.t("muted", strings.ToLower(submit)))
+	if n.propBool("submitRow") && active == len(fields) && rn.onFocus {
+		ctl = len(out)
+		btnStyle := mergeTone(c.st.tone("selected"), ToneStyle{Fg: c.st.tone("accent").Fg, Bold: true})
+		out = append(out, c.st.t("accent", "▸")+" "+c.st.paint("[ ⏎ "+submit+" ]", btnStyle))
+	} else {
+		out = append(out, "  "+c.st.t("key", "⏎")+" "+c.st.t("muted", strings.ToLower(submit)))
+	}
 	if h <= 0 || len(out) <= h {
 		return out, cur
 	}
