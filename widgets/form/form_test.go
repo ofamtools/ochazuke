@@ -7,6 +7,7 @@ import (
 
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/ui"
+	"ofam.dev/ochazuke/widgets/input"
 )
 
 func specs() []core.ParamSpec {
@@ -171,5 +172,36 @@ func TestNavigationAndRender(t *testing.T) {
 		if !strings.Contains(frame.ANSI, want) {
 			t.Errorf("frame lacks %q", want)
 		}
+	}
+}
+
+func TestFormReadlineAndCursor(t *testing.T) {
+	m := New("Edit", specs(), map[string]any{"name": "hello world"})
+	m.HandleCommand(core.Command{ID: CmdEdit})
+	if m.Cursor() != 11 {
+		t.Fatalf("cursor on edit = %d, want 11", m.Cursor())
+	}
+	fEnd, _ := ui.Render(m.View("f"), ui.DefaultDarkTheme(), "f", 60, 14)
+	m.HandleCommand(core.Command{ID: input.CmdLineStart})
+	if m.Cursor() != 0 {
+		t.Fatalf("cursor after line.start = %d", m.Cursor())
+	}
+	fStart, _ := ui.Render(m.View("f"), ui.DefaultDarkTheme(), "f", 60, 14)
+	if fStart.Cursor.X >= fEnd.Cursor.X {
+		t.Fatalf("rendered cursor did not move left: start=%+v end=%+v", fStart.Cursor, fEnd.Cursor)
+	}
+	// Insert at start, kill word forward, yank at end.
+	m.HandleCommand(core.Command{ID: CmdInsert, Args: map[string]any{"text": "yo "}})
+	if m.Values["name"] != "yo hello world" {
+		t.Fatalf("after mid-line insert = %q", m.Values["name"])
+	}
+	m.HandleCommand(core.Command{ID: input.CmdKillWordForward})
+	if m.Values["name"] != "yo  world" {
+		t.Fatalf("after kill.word.forward = %q", m.Values["name"])
+	}
+	m.HandleCommand(core.Command{ID: input.CmdLineEnd})
+	m.HandleCommand(core.Command{ID: input.CmdYankKill})
+	if m.Values["name"] != "yo  worldhello" {
+		t.Fatalf("after yank.kill = %q", m.Values["name"])
 	}
 }

@@ -6,6 +6,7 @@ import (
 
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/ui"
+	"ofam.dev/ochazuke/widgets/input"
 )
 
 func items() []Item {
@@ -204,5 +205,31 @@ func TestPinnedAndRank(t *testing.T) {
 	m.HandleCommand(core.Command{ID: "motion.bottom"})
 	if m.SelectedIdx != 4 {
 		t.Fatalf("bottom counts the pinned row: %d", m.SelectedIdx)
+	}
+}
+
+func TestPickerReadlineAndCursor(t *testing.T) {
+	m := New("t", items())
+	m.SetQuery("gamma ray")
+	fEnd, _ := ui.Render(m.View("p"), ui.DefaultDarkTheme(), "p", 40, 8)
+	m.HandleCommand(core.Command{ID: input.CmdWordLeft})
+	if m.QueryCursor() != 6 {
+		t.Fatalf("cursor = %d, want 6", m.QueryCursor())
+	}
+	fMid, _ := ui.Render(m.View("p"), ui.DefaultDarkTheme(), "p", 40, 8)
+	if fMid.Cursor.X >= fEnd.Cursor.X {
+		t.Fatalf("picker cursor did not move: mid=%+v end=%+v", fMid.Cursor, fEnd.Cursor)
+	}
+	m.HandleCommand(core.Command{ID: input.CmdKillLineForward})
+	if m.Query != "gamma " {
+		t.Fatalf("after kill.line.forward: %q", m.Query)
+	}
+	m.HandleCommand(core.Command{ID: input.CmdKillWordBack})
+	if m.Query != "" {
+		t.Fatalf("after kill.word.back: %q", m.Query)
+	}
+	m.HandleCommand(core.Command{ID: input.CmdYankKill})
+	if m.Query != "gamma " {
+		t.Fatalf("after yank.kill: %q", m.Query)
 	}
 }

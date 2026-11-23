@@ -646,6 +646,7 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 	values, _ := propDecode[map[string]any](n, "values")
 	errsRaw, _ := propDecode[map[string]any](n, "errors")
 	active := formActive(n, fields)
+	cursorPos, hasCursor := n.propInt("cursor")
 	lw := 0
 	for _, f := range fields {
 		lw = max(lw, strW(fieldText(f.Name))+2)
@@ -687,7 +688,11 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 		if fd == DensityCompact {
 			inline, placeholder = errMsg, fieldText(f.Description)
 		}
-		body, cx := c.formControl(f, val, on, max(0, w-x0), placeholder, inline)
+		fieldCursor := -1
+		if on && hasCursor {
+			fieldCursor = cursorPos
+		}
+		body, cx := c.formControl(f, val, on, max(0, w-x0), placeholder, inline, fieldCursor)
 		switch fd {
 		case DensityCompact:
 		case DensitySpacious:
@@ -748,7 +753,7 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 // column. Text fields scroll to keep the cursor in view while focused. It
 // returns the body and the cursor column relative to the value column, or -1
 // when the field has no text cursor. A compact inline error follows the value.
-func (c *ctx) formControl(f core.ParamSpec, val any, on bool, aw int, placeholder, inlineErr string) (string, int) {
+func (c *ctx) formControl(f core.ParamSpec, val any, on bool, aw int, placeholder, inlineErr string, cursor int) (string, int) {
 	tail := ""
 	if inlineErr != "" {
 		tail = " ✗ " + inlineErr
@@ -798,6 +803,14 @@ func (c *ctx) formControl(f core.ParamSpec, val any, on bool, aw int, placeholde
 	switch {
 	case len(rs) == 0 && placeholder != "":
 		shown = c.st.t("placeholder", " "+truncate(placeholder, room))
+	case on && cursor >= 0:
+		ci := clampInt(cursor, 0, len(rs))
+		startRune := 0
+		for startRune < ci && runesW(rs[startRune:ci]) > max(0, room-1) {
+			startRune++
+		}
+		vis := truncate(string(rs[startRune:]), room)
+		shown, cx = c.st.paint(" "+vis, style), 1+runesW(rs[startRune:ci])
 	case on:
 		vis := tailFit(rs, room-1) // keep one column for the cursor
 		shown, cx = c.st.paint(" "+vis, style), 1+strW(vis)
@@ -948,7 +961,13 @@ func (c *ctx) pickerLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 		}
 		out = append(out, padLine(line, w, c.st.sgr(ts)))
 	}
-	return out, c.cursorIf(rn, 3+strW(query), 0, buffer.CursorBar)
+	curX := 3 + strW(query)
+	if ci, ok := n.propInt("cursor"); ok {
+		qrs := []rune(query)
+		ci = clampInt(ci, 0, len(qrs))
+		curX = 3 + runesW(qrs[:ci])
+	}
+	return out, c.cursorIf(rn, curX, 0, buffer.CursorBar)
 }
 
 // --- raw and terminal -----------------------------------------------------------------

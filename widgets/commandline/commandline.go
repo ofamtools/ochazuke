@@ -13,6 +13,7 @@ import (
 
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/ui"
+	"ofam.dev/ochazuke/widgets/input"
 )
 
 // Prefix selects what the command line means.
@@ -61,6 +62,7 @@ type Model struct {
 	Prefix  Prefix
 	Text    []rune
 	CursorX int // rune offset
+	kill    string
 
 	PendingRegister bool
 	RegisterLookup  func(reg rune) (string, bool)
@@ -207,11 +209,60 @@ func (m *Model) Delete() {
 func (m *Model) DeleteWord() {
 	end := m.CursorX
 	m.WordPrev()
+	if m.CursorX < end {
+		m.kill = string(m.Text[m.CursorX:end])
+	}
 	m.cut(m.CursorX, end)
 }
 
+// DeleteWordForward deletes the word after the cursor (alt+d).
+func (m *Model) DeleteWordForward() {
+	start := m.CursorX
+	m.WordNext()
+	end := m.CursorX
+	m.CursorX = start
+	if start < end {
+		m.kill = string(m.Text[start:end])
+		m.cut(start, end)
+	}
+}
+
 // Clear deletes everything before the cursor (ctrl+u).
-func (m *Model) Clear() { m.cut(0, m.CursorX) }
+func (m *Model) Clear() {
+	if m.CursorX > 0 {
+		m.kill = string(m.Text[:m.CursorX])
+	}
+	m.cut(0, m.CursorX)
+}
+
+// KillToEnd deletes everything from the cursor to the end of the line (ctrl+k).
+func (m *Model) KillToEnd() {
+	if m.CursorX < len(m.Text) {
+		m.kill = string(m.Text[m.CursorX:])
+		m.cut(m.CursorX, len(m.Text))
+	}
+}
+
+// Transpose swaps the two characters before the cursor (ctrl+t).
+func (m *Model) Transpose() {
+	if len(m.Text) < 2 || m.CursorX == 0 {
+		return
+	}
+	pos := m.CursorX
+	if pos == len(m.Text) {
+		pos--
+	}
+	m.Text[pos-1], m.Text[pos] = m.Text[pos], m.Text[pos-1]
+	m.CursorX = min(pos+1, len(m.Text))
+	m.edited()
+}
+
+// YankKill inserts the last killed text at the cursor (ctrl+y).
+func (m *Model) YankKill() {
+	if m.kill != "" {
+		m.Insert(m.kill)
+	}
+}
 
 // StartRegister arms register paste (ctrl+r); the next rune names the register.
 func (m *Model) StartRegister() { m.PendingRegister = true }
@@ -424,23 +475,31 @@ func (m *Model) HandleCommand(cmd core.Command) (Submission, bool) {
 		m.Backspace()
 	case CmdDelete:
 		m.Delete()
-	case CmdDeleteWord:
+	case CmdDeleteWord, input.CmdKillWordBack:
 		m.DeleteWord()
-	case CmdClear:
+	case input.CmdKillWordForward:
+		m.DeleteWordForward()
+	case CmdClear, input.CmdKillLineBack:
 		m.Clear()
+	case input.CmdKillLineForward:
+		m.KillToEnd()
+	case input.CmdTranspose:
+		m.Transpose()
+	case input.CmdYankKill:
+		m.YankKill()
 	case CmdRegister:
 		m.StartRegister()
-	case "motion.left":
+	case "motion.left", input.CmdCharLeft:
 		m.Left()
-	case "motion.right":
+	case "motion.right", input.CmdCharRight:
 		m.Right()
-	case "motion.start", "motion.home":
+	case "motion.start", "motion.home", input.CmdLineStart:
 		m.Home()
-	case "motion.end":
+	case "motion.end", input.CmdLineEnd:
 		m.End()
-	case "motion.word.next":
+	case "motion.word.next", input.CmdWordRight:
 		m.WordNext()
-	case "motion.word.prev":
+	case "motion.word.prev", input.CmdWordLeft:
 		m.WordPrev()
 	case CmdHistoryPrev, "motion.up":
 		m.HistoryPrev()

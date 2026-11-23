@@ -18,6 +18,7 @@ import (
 
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/ui"
+	"ofam.dev/ochazuke/widgets/input"
 )
 
 // FieldKind is the widget inferred for a ParamSpec.
@@ -113,6 +114,9 @@ type Model struct {
 	// field while the resolver returns choices for it. The resolver must
 	// not modify values.
 	ChoiceResolver func(spec core.ParamSpec, values map[string]any) []string
+
+	line      input.Line
+	lineField string
 }
 
 // EffectiveEnum returns the choices of field idx: the ChoiceResolver's
@@ -257,6 +261,31 @@ func (m *Model) Bottom() { m.move(len(m.Specs) - 1) }
 func (m *Model) move(i int) {
 	m.ActiveIdx = max(0, min(i, len(m.Specs)-1))
 	m.Editing = false
+	m.lineField = ""
+}
+
+// syncLine aligns the active line editor with the focused text field.
+func (m *Model) syncLine() (core.ParamSpec, bool) {
+	s, ok := m.active()
+	if !ok || !m.Editable() {
+		return core.ParamSpec{}, false
+	}
+	val := m.text(s.Name)
+	if m.lineField != s.Name {
+		m.lineField = s.Name
+		m.line.Set(val)
+	} else {
+		m.line.Sync(val)
+	}
+	return s, true
+}
+
+// Cursor returns the rune offset of the active text field's editing cursor.
+func (m *Model) Cursor() int {
+	if _, ok := m.syncLine(); !ok {
+		return 0
+	}
+	return m.line.Cursor
 }
 
 // Editable reports whether the active field takes typed text.
@@ -269,27 +298,28 @@ func (m *Model) Editable() bool {
 	return k != KindBool && k != KindEnum
 }
 
-// InsertRune appends r to the active text field.
+// InsertRune inserts r at the cursor in the active text field.
 func (m *Model) InsertRune(r rune) { m.insert(string(r)) }
 
 func (m *Model) insert(text string) {
-	s, ok := m.active()
-	if !ok || !m.Editable() {
+	s, ok := m.syncLine()
+	if !ok {
 		return
 	}
-	m.Values[s.Name] = m.text(s.Name) + text
-	m.touch(s.Name)
+	if m.line.Insert(text) {
+		m.Values[s.Name] = m.line.Value()
+		m.touch(s.Name)
+	}
 }
 
-// Backspace removes the last rune of the active text field.
+// Backspace removes the rune before the cursor in the active text field.
 func (m *Model) Backspace() {
-	s, ok := m.active()
-	if !ok || !m.Editable() {
+	s, ok := m.syncLine()
+	if !ok {
 		return
 	}
-	r := []rune(m.text(s.Name))
-	if len(r) > 0 {
-		m.Values[s.Name] = string(r[:len(r)-1])
+	if changed, _ := m.line.HandleCommand(core.Command{ID: input.CmdBackspace}); changed {
+		m.Values[s.Name] = m.line.Value()
 		m.touch(s.Name)
 	}
 }
@@ -464,6 +494,10 @@ func (m *Model) HandleCommand(cmd core.Command) (FormResult, bool) {
 		m.Bottom()
 	case CmdEdit:
 		m.Editing = m.Editable()
+		if m.Editing {
+			m.lineField = ""
+			m.syncLine()
+		}
 	case CmdStop:
 		if m.Editing {
 			m.Editing = false
@@ -482,9 +516,9 @@ func (m *Model) HandleCommand(cmd core.Command) (FormResult, bool) {
 			dir = int(d)
 		}
 		m.CycleEnum(dir)
-	case CmdInsert:
+	case CmdInsert, input.CmdInsert:
 		m.insert(cmd.Arg("text"))
-	case CmdBackspace:
+	case CmdBackspace, input.CmdBackspace:
 		m.Backspace()
 	case CmdSet:
 		m.SetValue(cmd.Arg("field"), cmd.Args["value"])
@@ -510,6 +544,15 @@ func (m *Model) HandleCommand(cmd core.Command) (FormResult, bool) {
 		}
 		return FormResult{Submitted: true, Values: vals}, true
 	default:
+		if input.IsReadlineCommand(cmd.ID) {
+			if s, ok := m.syncLine(); ok {
+				if changed, _ := m.line.HandleCommand(cmd); changed {
+					m.Values[s.Name] = m.line.Value()
+					m.touch(s.Name)
+				}
+			}
+			return FormResult{}, true
+		}
 		return FormResult{}, false
 	}
 	return FormResult{}, true
@@ -537,6 +580,9 @@ func (m *Model) View(id string) ui.ViewNode {
 		"submitLabel": m.SubmitLabel,
 		"errors":      errs,
 		"editing":     m.Editing,
+	}
+	if m.Editing {
+		props["cursor"] = m.Cursor()
 	}
 	return ui.ViewNode{
 		ID:        id,
@@ -570,6 +616,9 @@ func (m *Model) cacheKey() uint64 {
 	w(m.SubmitLabel)
 	w(strconv.Itoa(m.ActiveIdx))
 	w(strconv.FormatBool(m.Editing))
+	if m.Editing {
+		w(strconv.Itoa(m.Cursor()))
+	}
 	for _, s := range m.fields() {
 		w(s.Name)
 		w(string(s.Type))

@@ -71,6 +71,7 @@ type Model struct {
 	undo, redo     []snapshot
 	last           edit
 	session        *insertSession
+	kill           string
 }
 
 // New creates an input in normal mode at the first rune. Single-line inputs
@@ -145,6 +146,9 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 	case CmdSurroundAdd, CmdSurroundDelete, CmdSurroundChange:
 		return m.surroundCommand(cmd)
 	}
+	if m.mode == ModeInsert && IsReadlineCommand(cmd.ID) {
+		return m.handleReadline(cmd.ID)
+	}
 	key, ok := commandKeys[cmd.ID]
 	if !ok {
 		return false
@@ -179,6 +183,9 @@ func (m *Model) handle(key, text string, count int) bool {
 		return true
 	}
 	if m.mode == ModeInsert {
+		if rl, ok := readlineKeyCommands[key]; ok {
+			return m.handleReadline(rl)
+		}
 		switch key {
 		case "backspace":
 			m.typeIn(insertion{backspace: true})

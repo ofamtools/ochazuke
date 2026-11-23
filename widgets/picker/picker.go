@@ -15,6 +15,7 @@ import (
 
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/ui"
+	"ofam.dev/ochazuke/widgets/input"
 )
 
 // MatchMode selects how the query is matched against items.
@@ -76,6 +77,8 @@ type Model struct {
 	// query: lower ranks first, ties keep Items order. It gets the
 	// lower-cased query. An empty query and regex mode keep Items order.
 	Rank func(it Item, lowerQuery string) int
+
+	line input.Line
 }
 
 // New returns a Model over items with substring matching.
@@ -113,21 +116,37 @@ func (m *Model) SetMatchMode(mode MatchMode) {
 	m.refresh()
 }
 
-// SetQuery replaces the query and resets the selection to the first match.
+// SetQuery replaces the query, puts the cursor at the end, and resets selection.
 func (m *Model) SetQuery(q string) {
 	m.Query = q
+	m.line.Set(q)
 	m.SelectedIdx = 0
 	m.refresh()
 }
 
-// AppendQuery appends text to the query.
-func (m *Model) AppendQuery(s string) { m.SetQuery(m.Query + s) }
+// QueryCursor returns the rune offset of the query cursor.
+func (m *Model) QueryCursor() int {
+	m.line.Sync(m.Query)
+	return m.line.Cursor
+}
 
-// BackspaceQuery removes the last rune of the query.
+// AppendQuery inserts text at the query cursor.
+func (m *Model) AppendQuery(s string) {
+	m.line.Sync(m.Query)
+	if m.line.Insert(s) {
+		m.Query = m.line.Value()
+		m.SelectedIdx = 0
+		m.refresh()
+	}
+}
+
+// BackspaceQuery removes the rune before the query cursor.
 func (m *Model) BackspaceQuery() {
-	rs := []rune(m.Query)
-	if len(rs) > 0 {
-		m.SetQuery(string(rs[:len(rs)-1]))
+	m.line.Sync(m.Query)
+	if changed, _ := m.line.HandleCommand(core.Command{ID: input.CmdBackspace}); changed {
+		m.Query = m.line.Value()
+		m.SelectedIdx = 0
+		m.refresh()
 	}
 }
 
@@ -337,6 +356,15 @@ func (m *Model) HandleCommand(cmd core.Command) (picked *Item, handled bool) {
 	case CmdModeCycle:
 		m.CycleMatchMode()
 	default:
+		if cmd.ID == input.CmdInsert || input.IsReadlineCommand(cmd.ID) {
+			m.line.Sync(m.Query)
+			if changed, _ := m.line.HandleCommand(cmd); changed {
+				m.Query = m.line.Value()
+				m.SelectedIdx = 0
+				m.refresh()
+			}
+			return nil, true
+		}
 		return nil, false
 	}
 	return nil, true
@@ -351,6 +379,7 @@ func (m *Model) hash(f []Item) uint64 {
 	w := func(s string) { h.Write([]byte(s)); h.Write([]byte{0}) }
 	w(m.Title)
 	w(m.Query)
+	w(itoa(m.QueryCursor()))
 	w(string(m.mode()))
 	w(m.FilterErr)
 	w(itoa(m.SelectedIdx))
@@ -411,6 +440,7 @@ func (m *Model) props(f []Item, sel int) map[string]any {
 	p := map[string]any{
 		"items":     items,
 		"query":     m.Query,
+		"cursor":    m.QueryCursor(),
 		"matchMode": string(m.mode()),
 		"selected":  sel,
 	}

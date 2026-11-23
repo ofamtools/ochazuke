@@ -642,6 +642,10 @@ func (m *Model) HandleCommand(cmd core.Command) (picked *DirEntry, handled bool)
 		m.CycleMatchMode()
 	default:
 		_, handled := m.list.HandleCommand(cmd)
+		if handled && m.list.Query != m.Query {
+			m.Query = m.list.Query
+			m.rebuild()
+		}
 		return nil, handled
 	}
 	return nil, true
