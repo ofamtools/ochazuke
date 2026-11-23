@@ -481,12 +481,7 @@ type treeRow struct {
 
 func treeRows(n *ViewNode) []treeRow {
 	nodes, _ := propDecode[[]treeNode](n, "nodes")
-	guides := true
-	if v, ok := n.prop("guides"); ok {
-		if b, isBool := v.(bool); isBool {
-			guides = b
-		}
-	}
+	guides := n.propBoolDefault("guides", true)
 	var out []treeRow
 	var walk func(ns []treeNode, depth int, cont string)
 	walk = func(ns []treeNode, depth int, cont string) {

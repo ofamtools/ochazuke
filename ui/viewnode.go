@@ -176,14 +176,26 @@ func (n *ViewNode) propInt(key string) (int, bool) {
 }
 
 func (n *ViewNode) propBool(key string) bool {
-	v, _ := n.prop(key)
+	return n.propBoolDefault(key, false)
+}
+
+func (n *ViewNode) propBoolDefault(key string, def bool) bool {
+	v, ok := n.prop(key)
+	if !ok {
+		return def
+	}
 	switch x := v.(type) {
 	case bool:
 		return x
 	case string:
-		return x == "true"
+		if x == "true" {
+			return true
+		}
+		if x == "false" {
+			return false
+		}
 	}
-	return false
+	return def
 }
 
 func anyString(v any) string {

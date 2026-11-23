@@ -415,4 +415,97 @@ func TestRenderFormSubmitRow(t *testing.T) {
 	}
 }
 
+func TestRenderTreeGuides(t *testing.T) {
+	collapsed := false
+	nodes := []any{
+		map[string]any{
+			"label": "root",
+			"children": []any{
+				map[string]any{
+					"label": "branchA",
+					"children": []any{
+						map[string]any{"label": "a1"},
+						map[string]any{"label": "a2", "badge": "2"},
+					},
+				},
+				map[string]any{
+					"label":    "branchB",
+					"expanded": collapsed,
+					"children": []any{
+						map[string]any{"label": "hidden"},
+					},
+				},
+				map[string]any{
+					"label": "branchC",
+					"children": []any{
+						map[string]any{"label": "c1"},
+					},
+				},
+			},
+		},
+	}
+
+	// Default (guides unset) renders box-drawing tree guide lines.
+	rows, _, _ := draw(ViewNode{
+		Kind:  KindTree,
+		ID:    "tr",
+		Props: map[string]any{"nodes": nodes},
+	}, "", 30, 8)
+	wantRows(t, rows,
+		"▾ root",
+		"├─ ▾ branchA",
+		"│  ├─ · a1",
+		"│  └─ · a2 2",
+		"├─ ▸ branchB",
+		"└─ ▾ branchC",
+		"   └─ · c1",
+	)
+
+	// Opt-out with guides: false falls back to plain 2-space indentation.
+	rowsNoGuides, _, _ := draw(ViewNode{
+		Kind:  KindTree,
+		ID:    "tr",
+		Props: map[string]any{"nodes": nodes, "guides": false},
+	}, "", 30, 8)
+	wantRows(t, rowsNoGuides,
+		"▾ root",
+		"  ▾ branchA",
+		"    · a1",
+		"    · a2 2",
+		"  ▸ branchB",
+		"  ▾ branchC",
+		"    · c1",
+	)
+
+	// String "false" opt-out also disables guides.
+	rowsStrFalse, _, _ := draw(ViewNode{
+		Kind:  KindTree,
+		ID:    "tr",
+		Props: map[string]any{"nodes": nodes, "guides": "false"},
+	}, "", 30, 8)
+	wantRows(t, rowsStrFalse,
+		"▾ root",
+		"  ▾ branchA",
+		"    · a1",
+		"    · a2 2",
+		"  ▸ branchB",
+		"  ▾ branchC",
+		"    · c1",
+	)
+
+	// Selected row preserves guide prefix and applies selection highlight.
+	rowsSel, fSel, _ := draw(ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props:     map[string]any{"nodes": nodes, "selected": 2},
+	}, "tr", 30, 8)
+	if rowsSel[2] != "│  ├─ · a1" {
+		t.Fatalf("selected row text = %q, want %q", rowsSel[2], "│  ├─ · a1")
+	}
+	if !strings.Contains(fSel.ANSI, "48;2;59;79;135") {
+		t.Errorf("selected tree row missing selection bg: %q", fSel.ANSI)
+	}
+}
+
 func txtNode(s string) ViewNode { return txt(s) }

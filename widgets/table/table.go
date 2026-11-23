@@ -40,8 +40,8 @@ const (
 
 // SortKey is one sort criterion.
 type SortKey struct {
-	Field string
-	Dir   SortDir
+	Field string  `json:"field"`
+	Dir   SortDir `json:"dir"`
 }
 
 // Column describes one displayed column.
