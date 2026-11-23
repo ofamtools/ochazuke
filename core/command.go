@@ -206,6 +206,8 @@ var motionTable = [...]struct{ id, keys, desc string }{
 	{"motion.page.up", "ctrl+b", "Page up"},
 	{"motion.half.down", "ctrl+d", "Half page down"},
 	{"motion.half.up", "ctrl+u", "Half page up"},
+	{"motion.scroll.down", "ctrl+e", "Scroll viewport down"},
+	{"motion.scroll.up", "ctrl+y", "Scroll viewport up"},
 }
 
 // MotionSpecs returns the standard motion specs, tagged "motion". Each

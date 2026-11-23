@@ -92,6 +92,7 @@ type Model struct {
 	SelectedIdx  int
 	Offset       int
 	PageSize     int
+	ScrollOff    int
 	Marked       map[string]bool
 	VisualActive bool
 	VisualAnchor int
@@ -494,13 +495,7 @@ func (m *Model) Items() []Item {
 func (m *Model) clamp(n int) {
 	m.SelectedIdx = max(0, min(m.SelectedIdx, n-1))
 	ps := max(m.PageSize, 1)
-	if m.SelectedIdx < m.Offset {
-		m.Offset = m.SelectedIdx
-	}
-	if m.SelectedIdx >= m.Offset+ps {
-		m.Offset = m.SelectedIdx - ps + 1
-	}
-	m.Offset = max(0, m.Offset)
+	m.Offset = core.ViewportClamp(m.Offset, m.SelectedIdx, n, ps, m.ScrollOff)
 }
 
 // Focused returns the focused display item.
@@ -786,6 +781,10 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		move(m.SelectedIdx + n*max(ps/2, 1))
 	case "motion.half.up":
 		move(m.SelectedIdx - n*max(ps/2, 1))
+	case "motion.scroll.down":
+		m.Offset, m.SelectedIdx = core.ViewportScroll(m.Offset, m.SelectedIdx, len(items), ps, m.ScrollOff, n)
+	case "motion.scroll.up":
+		m.Offset, m.SelectedIdx = core.ViewportScroll(m.Offset, m.SelectedIdx, len(items), ps, m.ScrollOff, -n)
 	case "motion.block.next", "motion.block.prev":
 		next := cmd.ID == "motion.block.next"
 		for ; n > 0; n-- {

@@ -76,6 +76,8 @@ type Model struct {
 	kill           string
 	lastYank       span
 	hasLastYank    bool
+	lastFindKind   string // "f", "F", "t", or "T"
+	lastFindChar   rune
 }
 
 // SetWordScope sets the scope used for word boundary motions and Readline word operations.
@@ -131,6 +133,7 @@ var commandKeys = map[string]string{
 	"motion.word.next": "w", "motion.word.prev": "b", "motion.word.end": "e",
 	"motion.top": "gg", "motion.bottom": "G", "motion.start": "0", "motion.end": "$",
 	"motion.block.next": "}", "motion.block.prev": "{",
+	"motion.group.next": ")", "motion.group.prev": "(",
 	CmdBackspace: "backspace", CmdNewline: "enter", CmdEscape: "esc",
 	CmdDelete: "d", CmdChange: "c", CmdYank: "y", CmdPasteAfter: "p", CmdPasteBefore: "P",
 	CmdUndo: "u", CmdRedo: "ctrl+r", CmdRepeat: ".",
@@ -241,9 +244,24 @@ func (m *Model) handle(key, text string, count int) bool {
 		return true
 	}
 	if p.prefix != "" {
-		key = p.prefix + key
-		p.prefix = ""
-	} else if key == "g" || key == `"` || (p.op != "" || m.isVisual()) && (key == "i" || key == "a") {
+		if p.prefix == "f" || p.prefix == "F" || p.prefix == "t" || p.prefix == "T" {
+			ch := key
+			if text != "" {
+				ch = text
+			} else if ch == "space" {
+				ch = " "
+			}
+			if utf8.RuneCountInString(ch) != 1 {
+				m.pending = pending{}
+				return true
+			}
+			key = p.prefix + ch
+			p.prefix = ""
+		} else {
+			key = p.prefix + key
+			p.prefix = ""
+		}
+	} else if key == "g" || key == `"` || key == "f" || key == "F" || key == "t" || key == "T" || (p.op != "" || m.isVisual()) && (key == "i" || key == "a") {
 		p.prefix = key
 		return true
 	}

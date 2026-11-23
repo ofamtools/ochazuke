@@ -250,12 +250,139 @@ func (m *Model) partner(pos int) (int, bool) {
 	return pos, false
 }
 
+func isFindMotion(key string) (kind string, target rune, ok bool) {
+	if len(key) < 2 {
+		return "", 0, false
+	}
+	switch key[0] {
+	case 'f', 'F', 't', 'T':
+		rs := []rune(key[1:])
+		if len(rs) == 1 {
+			return key[:1], rs[0], true
+		}
+	}
+	return "", 0, false
+}
+
 func isMotion(key string) bool {
 	switch key {
-	case "h", "j", "k", "l", "w", "W", "b", "B", "e", "E", "0", "^", "$", "gg", "G", "{", "}", "%":
+	case "h", "j", "k", "l", "w", "W", "b", "B", "e", "E", "0", "^", "$", "gg", "G", "{", "}", "(", ")", "%", ";", ",":
 		return true
 	}
-	return false
+	_, _, ok := isFindMotion(key)
+	return ok
+}
+
+func (m *Model) findCharOnLine(pos int, kind string, target rune, count int) (int, bool) {
+	start, end := m.lineStart(pos), m.lineEnd(pos)
+	n := max(count, 1)
+	cur := pos
+	switch kind {
+	case "f", "t":
+		for step := 0; step < n; step++ {
+			from := cur + 1
+			if kind == "t" && step > 0 {
+				from = cur + 2
+			}
+			found := -1
+			for i := from; i < end; i++ {
+				if m.text[i] == target {
+					found = i
+					break
+				}
+			}
+			if found < 0 {
+				return pos, false
+			}
+			if kind == "t" {
+				cur = found - 1
+			} else {
+				cur = found
+			}
+		}
+		return cur, true
+	case "F", "T":
+		for step := 0; step < n; step++ {
+			from := cur - 1
+			if kind == "T" && step > 0 {
+				from = cur - 2
+			}
+			found := -1
+			for i := from; i >= start; i-- {
+				if m.text[i] == target {
+					found = i
+					break
+				}
+			}
+			if found < 0 {
+				return pos, false
+			}
+			if kind == "T" {
+				cur = found + 1
+			} else {
+				cur = found
+			}
+		}
+		return cur, true
+	}
+	return pos, false
+}
+
+func invertFindKind(kind string) string {
+	switch kind {
+	case "f":
+		return "F"
+	case "F":
+		return "f"
+	case "t":
+		return "T"
+	case "T":
+		return "t"
+	}
+	return kind
+}
+
+// unitMove implements ( and ) with WordScope-aware boundaries.
+func (m *Model) unitMove(pos, dir int) int {
+	n := len(m.text)
+	if n == 0 {
+		return 0
+	}
+	isDelim := func(i int) bool {
+		r := m.text[i]
+		switch m.WordScope {
+		case "csv":
+			return r == ',' || r == '\n'
+		case "json":
+			return r == ',' || r == '{' || r == '}' || r == '[' || r == ']' || r == '\n'
+		default:
+			if r == '\n' && i+1 < n && m.text[i+1] == '\n' {
+				return true
+			}
+			return (r == '.' || r == '!' || r == '?') && (i+1 == n || unicode.IsSpace(m.text[i+1]))
+		}
+	}
+	if dir > 0 {
+		i := pos
+		for i < n && !isDelim(i) {
+			i++
+		}
+		for i < n && (isDelim(i) || unicode.IsSpace(m.text[i])) {
+			i++
+		}
+		return min(i, n)
+	}
+	i := max(pos-1, 0)
+	for i > 0 && (isDelim(i) || unicode.IsSpace(m.text[i])) {
+		i--
+	}
+	for i > 0 && !isDelim(i-1) {
+		i--
+	}
+	for i < n && unicode.IsSpace(m.text[i]) {
+		i++
+	}
+	return i
 }
 
 // destination may return the insertion point at EOL/EOF for exclusive
@@ -263,6 +390,20 @@ func isMotion(key string) bool {
 func (m *Model) destination(key string, count int, operating bool) (int, bool) {
 	n := max(count, 1)
 	pos := m.cursor
+	if kind, target, ok := isFindMotion(key); ok {
+		m.lastFindKind, m.lastFindChar = kind, target
+		return m.findCharOnLine(pos, kind, target, n)
+	}
+	if key == ";" || key == "," {
+		if m.lastFindKind == "" {
+			return pos, false
+		}
+		kind := m.lastFindKind
+		if key == "," {
+			kind = invertFindKind(kind)
+		}
+		return m.findCharOnLine(pos, kind, m.lastFindChar, n)
+	}
 	switch key {
 	case "h":
 		return max(m.lineStart(pos), pos-min(pos, n)), true
@@ -326,6 +467,10 @@ func (m *Model) destination(key string, count int, operating bool) (int, bool) {
 			pos = m.paragraph(pos, -1)
 		case "}":
 			pos = m.paragraph(pos, 1)
+		case "(":
+			pos = m.unitMove(pos, -1)
+		case ")":
+			pos = m.unitMove(pos, 1)
 		default:
 			return pos, false
 		}
@@ -373,6 +518,22 @@ func (m *Model) motionRange(op, key string, count int) (span, bool) {
 	pos, ok := m.destination(key, count, true)
 	if !ok {
 		return span{}, false
+	}
+	if kind, _, ok := isFindMotion(key); ok {
+		if kind == "f" || kind == "t" {
+			return span{min(m.cursor, pos), min(max(m.cursor, pos)+1, len(m.text)), false}, true
+		}
+		return span{min(m.cursor, pos), max(m.cursor, pos), false}, true
+	}
+	if key == ";" || key == "," {
+		eff := m.lastFindKind
+		if key == "," {
+			eff = invertFindKind(eff)
+		}
+		if eff == "f" || eff == "t" {
+			return span{min(m.cursor, pos), min(max(m.cursor, pos)+1, len(m.text)), false}, true
+		}
+		return span{min(m.cursor, pos), max(m.cursor, pos), false}, true
 	}
 	switch key {
 	case "j", "k":

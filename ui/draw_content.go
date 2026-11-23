@@ -32,7 +32,7 @@ func (c *ctx) drawLeaf(rn *rnode, lr layout.Rect) {
 	case KindTable:
 		out = c.tableLines(rn, ir.W, ir.H)
 	case KindTree:
-		out = c.treeLines(rn, ir.W, ir.H)
+		out, cur = c.treeLines(rn, ir.W, ir.H)
 	case KindInput:
 		out, cur = c.inputLines(rn, ir.W, ir.H)
 	case KindForm:
@@ -460,32 +460,47 @@ func itoa(i int) string { return anyString(float64(i)) }
 // --- tree -----------------------------------------------------------------------
 
 type treeNode struct {
-	Label    string     `json:"label"`
-	Children []treeNode `json:"children"`
-	Expanded *bool      `json:"expanded"`
-	Tone     string     `json:"tone"`
-	Badge    string     `json:"badge"`
-	Unread   bool       `json:"unread"`
+	Label      string     `json:"label"`
+	Children   []treeNode `json:"children"`
+	Expanded   *bool      `json:"expanded"`
+	Tone       string     `json:"tone"`
+	Badge      string     `json:"badge"`
+	Unread     bool       `json:"unread"`
+	Editing    bool       `json:"editing"`
+	EditPrefix string     `json:"editPrefix"`
+	EditValue  string     `json:"editValue"`
+	EditCursor int        `json:"editCursor"`
 }
 
 type treeRow struct {
-	prefix   string
-	marker   string
-	label    string
-	badge    string
-	tone     string
-	unread   bool
-	hasKids  bool
-	expanded bool
+	itemIdx    int // logical item index, or -1 for visual spacer rows
+	spacer     bool
+	prefix     string
+	marker     string
+	label      string
+	badge      string
+	tone       string
+	unread     bool
+	hasKids    bool
+	expanded   bool
+	editing    bool
+	editPrefix string
+	editValue  string
+	editCursor int
 }
 
 func treeRows(n *ViewNode) []treeRow {
 	nodes, _ := propDecode[[]treeNode](n, "nodes")
 	guides := n.propBoolDefault("guides", true)
+	gapTop := n.propBool("gapTopLevel")
 	var out []treeRow
+	itemIdx := 0
 	var walk func(ns []treeNode, depth int, cont string)
 	walk = func(ns []treeNode, depth int, cont string) {
 		for i, nd := range ns {
+			if gapTop && depth == 0 && i > 0 {
+				out = append(out, treeRow{itemIdx: -1, spacer: true})
+			}
 			last := i == len(ns)-1
 			prefix := ""
 			switch {
@@ -505,7 +520,22 @@ func treeRows(n *ViewNode) []treeRow {
 					marker = "▾ "
 				}
 			}
-			out = append(out, treeRow{prefix, marker, nd.Label, nd.Badge, nd.Tone, nd.Unread, len(nd.Children) > 0, exp})
+			out = append(out, treeRow{
+				itemIdx:    itemIdx,
+				prefix:     prefix,
+				marker:     marker,
+				label:      nd.Label,
+				badge:      nd.Badge,
+				tone:       nd.Tone,
+				unread:     nd.Unread,
+				hasKids:    len(nd.Children) > 0,
+				expanded:   exp,
+				editing:    nd.Editing,
+				editPrefix: nd.EditPrefix,
+				editValue:  nd.EditValue,
+				editCursor: nd.EditCursor,
+			})
+			itemIdx++
 			if len(nd.Children) > 0 && exp {
 				next := cont
 				if depth > 0 {
@@ -523,18 +553,47 @@ func treeRows(n *ViewNode) []treeRow {
 	return out
 }
 
-func (c *ctx) treeLines(rn *rnode, w, h int) []string {
+func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 	rows := treeRows(rn.n)
-	sel := selectedOf(rn.n)
-	start := windowStart(rn.n, len(rows), h, sel)
+	selItem := selectedOf(rn.n)
+	selRow := -1
+	for i, r := range rows {
+		if !r.spacer && r.itemIdx == selItem {
+			selRow = i
+			break
+		}
+	}
+	start := windowStart(rn.n, len(rows), h, selRow)
 	var out []string
+	var cur *buffer.Cursor
 	for i := start; i < min(len(rows), start+h); i++ {
 		r := rows[i]
+		if r.spacer {
+			out = append(out, "")
+			continue
+		}
+		if r.editing {
+			style := c.st.tone("input.focus")
+			fill := c.st.sgr(style)
+			lead := r.prefix + r.marker + r.editPrefix
+			rs := []rune(r.editValue)
+			ci := clampInt(r.editCursor, 0, len(rs))
+			leadW := strW(lead)
+			avail := max(1, w-leadW-1)
+			startRune := 0
+			for startRune < ci && runesW(rs[startRune:ci]) > avail-1 {
+				startRune++
+			}
+			line := c.st.t("border", r.prefix) + c.st.t("accent", r.marker) + c.st.t("muted", r.editPrefix) + padLine(c.st.paint(string(rs[startRune:]), style), max(1, w-leadW), fill)
+			out = append(out, line)
+			cur = c.cursorIf(rn, leadW+runesW(rs[startRune:ci]), i-start, buffer.CursorBar)
+			continue
+		}
 		badge := ""
 		if r.badge != "" {
 			badge = " " + r.badge
 		}
-		if i == sel {
+		if i == selRow {
 			ts := c.rowStyle(rn, true)
 			line := r.prefix + r.marker + r.label + badge
 			out = append(out, padLine(c.st.paint(line, ts), w, c.st.sgr(ts)))
@@ -550,7 +609,7 @@ func (c *ctx) treeLines(rn *rnode, w, h int) []string {
 		}
 		out = append(out, c.st.t("border", r.prefix)+marker+label+c.st.t("muted", badge))
 	}
-	return out
+	return out, cur
 }
 
 // --- input and form ---------------------------------------------------------------

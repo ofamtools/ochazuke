@@ -241,6 +241,10 @@ func (m *Model) HandleCommand(cmd core.Command) (Action, bool) {
 		m.scrollTo(m.Offset + n*max(ps/2, 1))
 	case "motion.half.up":
 		m.scrollTo(m.Offset - n*max(ps/2, 1))
+	case "motion.scroll.down":
+		m.scrollTo(m.Offset + n)
+	case "motion.scroll.up":
+		m.scrollTo(m.Offset - n)
 	case "motion.block.next", "motion.block.prev":
 		next := cmd.ID == "motion.block.next"
 		for ; n > 0; n-- {
