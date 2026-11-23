@@ -70,6 +70,7 @@ const (
 	lipgloss  = "charm.land/lipgloss/v2"
 	bubbletea = "charm.land/bubbletea/v2"
 	uniseg    = "github.com/rivo/uniseg"
+	oden      = "ofam.dev/oden"
 )
 
 var policies = map[string]policy{
@@ -132,6 +133,20 @@ var policies = map[string]policy{
 	mod + "/widgets/palette": {
 		allow:      []string{mod + "/core", mod + "/ui", mod + "/widgets/picker", mod + "/widgets/form", mod + "/widgets/input"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	// Tier 3: opt-in CLI bridge connecting oden with Ochazuke; never imported by Tier 0/1/2.
+	mod + "/cli": {
+		allow: []string{
+			oden,
+			bubbletea,
+			mod + "/core",
+			mod + "/ui",
+			mod + "/tea",
+			mod + "/config",
+			mod + "/widgets/picker",
+			mod + "/widgets/bindings",
+			mod + "/widgets/input",
+		},
 	},
 }
 
