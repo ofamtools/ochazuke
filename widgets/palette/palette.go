@@ -276,9 +276,9 @@ func (m *Model) handlePickerCommand(cmd core.Command) (Result, bool) {
 		if !m.ActiveForm.Validate() {
 			m.FocusForm = true
 			// Jump to the first invalid/missing field so the user can fill it immediately.
-			for i, s := range m.ActiveForm.Specs {
+			for _, s := range m.ActiveForm.Specs {
 				if m.ActiveForm.Errors[s.Name] != "" {
-					m.ActiveForm.ActiveIdx = i
+					m.ActiveForm.FocusField(s.Name)
 					break
 				}
 			}

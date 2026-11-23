@@ -638,4 +638,91 @@ func TestRenderRichTreeNode(t *testing.T) {
 	}
 }
 
+func TestRenderPickerFilterModes(t *testing.T) {
+	items := []any{"alpha", "beta", "gamma"}
+
+	// Normal mode (filtering: false) with empty query: no cursor, unfocused input bar, muted hint.
+	normalEmpty := ViewNode{
+		Kind:      KindPicker,
+		ID:        "p",
+		Focusable: true,
+		Props: map[string]any{
+			"items":     items,
+			"query":     "",
+			"selected":  0,
+			"filtering": false,
+		},
+	}
+	rowsNE, fNE, _ := draw(normalEmpty, "p", 40, 4)
+	if fNE.Cursor.Shape != buffer.CursorHidden {
+		t.Errorf("normal mode should hide cursor, got %+v", fNE.Cursor)
+	}
+	if !strings.Contains(rowsNE[0], "[/ or i: filter] 3") {
+		t.Errorf("normal mode empty query header = %q, want hint \"[/ or i: filter] 3\"", rowsNE[0])
+	}
+
+	// Normal mode (filtering: false) with non-empty query: no cursor, edit hint.
+	normalQuery := ViewNode{
+		Kind:      KindPicker,
+		ID:        "p",
+		Focusable: true,
+		Props: map[string]any{
+			"items":     items,
+			"query":     "al",
+			"selected":  0,
+			"filtering": false,
+		},
+	}
+	rowsNQ, fNQ, _ := draw(normalQuery, "p", 40, 4)
+	if fNQ.Cursor.Shape != buffer.CursorHidden {
+		t.Errorf("normal mode with query should hide cursor, got %+v", fNQ.Cursor)
+	}
+	if !strings.Contains(rowsNQ[0], "❯ al") || !strings.Contains(rowsNQ[0], "[/ or i: edit] 3") {
+		t.Errorf("normal mode with query header = %q, want query and \"[/ or i: edit] 3\"", rowsNQ[0])
+	}
+
+	// Filter insert mode (filtering: true): active bar cursor, focused input bar, no normal-mode hint.
+	filtering := ViewNode{
+		Kind:      KindPicker,
+		ID:        "p",
+		Focusable: true,
+		Props: map[string]any{
+			"items":     items,
+			"query":     "al",
+			"cursor":    2,
+			"selected":  0,
+			"filtering": true,
+		},
+	}
+	rowsF, fF, _ := draw(filtering, "p", 40, 4)
+	if want := (buffer.Cursor{X: 5, Y: 0, Shape: buffer.CursorBar}); fF.Cursor != want {
+		t.Errorf("filter mode cursor = %+v, want %+v", fF.Cursor, want)
+	}
+	if strings.Contains(rowsF[0], "[/ or i:") {
+		t.Errorf("filter mode should not show normal-mode hint: %q", rowsF[0])
+	}
+	if !strings.HasSuffix(rowsF[0], "3") {
+		t.Errorf("filter mode header should end with count: %q", rowsF[0])
+	}
+	if strings.Split(fF.ANSI, "\n")[0] == strings.Split(fNQ.ANSI, "\n")[0] {
+		t.Error("filter mode and normal mode header styling should differ")
+	}
+
+	// Bare KindPicker without "filtering" prop defaults to filtering=true for compatibility.
+	bare := ViewNode{
+		Kind:      KindPicker,
+		ID:        "p",
+		Focusable: true,
+		Props: map[string]any{
+			"items":    items,
+			"query":    "a",
+			"selected": 0,
+		},
+	}
+	_, fBare, _ := draw(bare, "p", 40, 4)
+	if want := (buffer.Cursor{X: 4, Y: 0, Shape: buffer.CursorBar}); fBare.Cursor != want {
+		t.Errorf("bare picker default cursor = %+v, want %+v", fBare.Cursor, want)
+	}
+}
+
 func txtNode(s string) ViewNode { return txt(s) }

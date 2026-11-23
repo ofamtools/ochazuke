@@ -2,7 +2,7 @@
 // turns Bubble Tea messages into core events, runs core effects as tea
 // commands, and renders ui view trees with input-first frame coalescing.
 //
-// otea imports core, ui, buffer, layout and charm.land/bubbletea/v2 only.
+// otea imports core, ui, buffer, layout, recorder and charm.land/bubbletea/v2 only.
 package otea
 
 import (
@@ -15,6 +15,7 @@ import (
 
 	"ofam.dev/ochazuke/buffer"
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/recorder"
 	"ofam.dev/ochazuke/ui"
 )
 
@@ -40,6 +41,7 @@ type Shell struct {
 	ViewFn   ViewFunc
 	Theme    ui.Theme
 	Renderer *ui.Renderer
+	Recorder *recorder.Recorder
 	Stats    FrameStats
 	MaxFPS   int // background frame rate; 0 renders every update immediately
 	W, H     int
@@ -85,9 +87,32 @@ type asyncDone struct {
 func New(engine *core.Engine, initial core.State, viewFn ViewFunc, theme ui.Theme) *Shell {
 	return &Shell{
 		Engine: engine, State: initial, ViewFn: viewFn, Theme: theme,
-		Renderer: ui.NewRenderer(ui.DefaultCacheEntries), MaxFPS: DefaultMaxFPS,
-		slots: map[string]slot{},
+		Renderer: ui.NewRenderer(ui.DefaultCacheEntries),
+		Recorder: recorder.New(recorder.DefaultOptions()),
+		MaxFPS:   DefaultMaxFPS,
+		slots:    map[string]slot{},
 	}
+}
+
+// SetRecorder replaces the shell's session recorder. Passing nil disables
+// recording without affecting Shell behavior.
+func (sh *Shell) SetRecorder(r *recorder.Recorder) {
+	sh.Recorder = r
+	if r != nil && sh.W > 0 && sh.H > 0 {
+		r.SetInitialSize(sh.W, sh.H)
+	}
+}
+
+// EnableRecorder attaches a new enabled session recorder with opts, seeding
+// Width and Height from the shell's current size when unset.
+func (sh *Shell) EnableRecorder(opts recorder.Options) *recorder.Recorder {
+	opts.Enabled = true
+	if opts.Width <= 0 && opts.Height <= 0 && sh.W > 0 && sh.H > 0 {
+		opts.Width, opts.Height = sh.W, sh.H
+	}
+	r := recorder.New(opts)
+	sh.Recorder = r
+	return r
 }
 
 // Init implements tea.Model.
@@ -172,12 +197,17 @@ func (sh *Shell) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		ev = m.ev
 	case tea.WindowSizeMsg:
 		sh.W, sh.H = m.Width, m.Height
+		if sh.Recorder != nil {
+			sh.Recorder.SetInitialSize(m.Width, m.Height)
+			sh.Recorder.Record(recorder.Event{Kind: recorder.KindResize, W: m.Width, H: m.Height})
+		}
 		ev, _ = Translate(msg)
 	default:
 		var ok bool
 		if ev, ok = Translate(msg); !ok {
 			return sh, nil
 		}
+		sh.recordInput(ev)
 	}
 
 	var chain []core.ContextFrame
@@ -190,6 +220,23 @@ func (sh *Shell) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	sh.State, sh.LastTrace, sh.LastEffects = res.State, res.Trace, res.Effects
 	sh.dirty = true
 
+	if sh.Recorder != nil && sh.Recorder.Enabled() && len(res.Trace.Commands) > 0 {
+		mode := sh.Engine.Mode(res.State)
+		page := res.State.ActivePage
+		focusID := res.State.ActiveFrame().FocusID
+		for _, ct := range res.Trace.Commands {
+			sh.Recorder.Record(recorder.Event{
+				Kind:    recorder.KindCommand,
+				Command: ct.Command.ID,
+				Source:  ct.Command.Source,
+				Handler: ct.Handler,
+				Mode:    mode,
+				Page:    page,
+				FocusID: focusID,
+			})
+		}
+	}
+
 	cmds := sh.perform(res.Effects)
 	if _, background := ev.(core.EffectResultEvent); !background || sh.MaxFPS <= 0 {
 		sh.render()
@@ -198,6 +245,29 @@ func (sh *Shell) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, tea.Tick(time.Second/time.Duration(sh.MaxFPS), func(time.Time) tea.Msg { return frameMsg{} }))
 	}
 	return sh, tea.Batch(cmds...)
+}
+
+func (sh *Shell) recordInput(ev core.Event) {
+	if sh.Recorder == nil || !sh.Recorder.Enabled() {
+		return
+	}
+	switch e := ev.(type) {
+	case core.KeyEvent:
+		sh.Recorder.Record(recorder.Event{Kind: recorder.KindKey, Key: e.Key, Text: e.Text})
+	case core.PasteEvent:
+		sh.Recorder.Record(recorder.Event{Kind: recorder.KindPaste, Text: e.Text})
+	case core.MouseEvent:
+		if e.Action == "motion" && e.Button == "" {
+			return
+		}
+		sh.Recorder.Record(recorder.Event{
+			Kind:   recorder.KindMouse,
+			Button: e.Button,
+			Action: e.Action,
+			X:      e.X,
+			Y:      e.Y,
+		})
+	}
 }
 
 func (sh *Shell) facts() map[string]any {
@@ -233,6 +303,9 @@ func (sh *Shell) render() {
 		fr, solved := sh.Renderer.Render(tree, sh.Theme, sh.State.ActiveFrame().FocusID, sh.W, sh.H)
 		frame, sh.State.Layout = fr, solved
 		sh.Stats.CacheHits, sh.Stats.CacheMisses = sh.Renderer.Stats.CacheHits, sh.Renderer.Stats.CacheMisses
+		if sh.Recorder != nil {
+			sh.Recorder.RecordFrame(sh.W, sh.H, frame.ANSI)
+		}
 	}
 	sh.Stats.RenderUS = time.Since(t1).Microseconds()
 

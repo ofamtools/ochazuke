@@ -124,14 +124,7 @@ func (m *FormModal) FocusField(field string) bool {
 	if m.fm == nil {
 		return false
 	}
-	for i, s := range m.fm.Specs {
-		if s.Name == field {
-			m.fm.ActiveIdx = i
-			m.fm.Editing = false
-			return true
-		}
-	}
-	return false
+	return m.fm.FocusField(field)
 }
 
 // View renders the form inside an Overlay.
@@ -248,7 +241,7 @@ func (m *FormModal) Handle(cmd core.Command) Result {
 	switch {
 	case fr.PickPath != nil:
 		if m.opts.OnPickPath != nil {
-			res := m.opts.OnPickPath(*fr.PickPath, m.fm.Values[fr.PickPath.Field])
+			res := m.opts.OnPickPath(*fr.PickPath, currentFieldValue(m.fm, fr.PickPath.Field))
 			res.Handled = true
 			return res
 		}
@@ -312,8 +305,8 @@ func (m *FormModal) Handle(cmd core.Command) Result {
 		field := ""
 		if id == form.CmdSet {
 			field = cmd.Arg("field")
-		} else if m.fm.ActiveIdx >= 0 && m.fm.ActiveIdx < len(m.fm.Specs) {
-			field = m.fm.Specs[m.fm.ActiveIdx].Name
+		} else {
+			field = m.fm.ActiveFieldName()
 		}
 		res := m.opts.OnChange(m.fm, field)
 		res.Handled = true
@@ -341,9 +334,20 @@ func (m *FormModal) OnClose(reason CloseReason) {
 	}
 }
 
+func currentFieldValue(fm *form.Model, field string) any {
+	v := fm.Values[field]
+	if items, ok := v.([]string); ok {
+		if idx := fm.ActiveItemIndex(); idx >= 0 && idx < len(items) {
+			return items[idx]
+		}
+		return ""
+	}
+	return v
+}
+
 func isFormCommitChange(cmdID string, wasEditing bool) bool {
 	switch cmdID {
-	case form.CmdToggle, form.CmdCycle, form.CmdSet:
+	case form.CmdToggle, form.CmdCycle, form.CmdSet, form.CmdItemAdd, form.CmdItemRemove:
 		return true
 	case form.CmdStop:
 		return wasEditing
@@ -352,7 +356,7 @@ func isFormCommitChange(cmdID string, wasEditing bool) bool {
 }
 
 // activateFormCommand maps CmdFormActivate to the concrete form command for
-// the currently focused row (submit row, bool/enum toggle, path/ref pick, or edit).
+// the currently focused row (submit row, add row, bool/enum toggle, path/ref pick, or edit).
 func activateFormCommand(fm *form.Model) string {
 	if fm == nil {
 		return form.CmdEdit
@@ -360,7 +364,10 @@ func activateFormCommand(fm *form.Model) string {
 	if fm.OnSubmitRow() {
 		return form.CmdSubmit
 	}
-	switch fm.KindAt(fm.ActiveIdx) {
+	if fm.OnAddRow() {
+		return form.CmdItemAdd
+	}
+	switch fm.ActiveKind() {
 	case form.KindBool, form.KindEnum:
 		return form.CmdToggle
 	case form.KindPath, form.KindRef:

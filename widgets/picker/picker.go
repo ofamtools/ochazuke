@@ -30,9 +30,12 @@ const (
 
 // Command IDs handled by Model.HandleCommand besides the standard motions.
 const (
-	CmdConfirm    = "picker.confirm"
-	CmdMarkToggle = "picker.mark.toggle"
-	CmdModeCycle  = "picker.mode.cycle"
+	CmdConfirm     = "picker.confirm"
+	CmdMarkToggle  = "picker.mark.toggle"
+	CmdModeCycle   = "picker.mode.cycle"
+	CmdFilterStart = "picker.filter.start"
+	CmdFilterStop  = "picker.filter.stop"
+	CmdFilterClear = "picker.filter.clear"
 )
 
 // DefaultPageSize is the page length used when Model.PageSize is zero.
@@ -57,6 +60,7 @@ type Model struct {
 	Title       string
 	Items       []Item
 	Query       string
+	Filtering   bool // true while editing the filter query; false in normal mode
 	MatchMode   MatchMode
 	FilterErr   string // set while Query is an invalid regex; all items then match
 	SelectedIdx int    // index into Filtered()
@@ -355,6 +359,13 @@ func (m *Model) HandleCommand(cmd core.Command) (picked *Item, handled bool) {
 		m.ToggleMark()
 	case CmdModeCycle:
 		m.CycleMatchMode()
+	case CmdFilterStart:
+		m.Filtering = true
+	case CmdFilterStop:
+		m.Filtering = false
+	case CmdFilterClear:
+		m.SetQuery("")
+		m.Filtering = false
 	default:
 		if cmd.ID == input.CmdInsert || input.IsReadlineCommand(cmd.ID) {
 			m.line.Sync(m.Query)
@@ -379,6 +390,7 @@ func (m *Model) hash(f []Item) uint64 {
 	w := func(s string) { h.Write([]byte(s)); h.Write([]byte{0}) }
 	w(m.Title)
 	w(m.Query)
+	w(strconv.FormatBool(m.Filtering))
 	w(itoa(m.QueryCursor()))
 	w(string(m.mode()))
 	w(m.FilterErr)
@@ -443,6 +455,7 @@ func (m *Model) props(f []Item, sel int) map[string]any {
 		"cursor":    m.QueryCursor(),
 		"matchMode": string(m.mode()),
 		"selected":  sel,
+		"filtering": m.Filtering,
 	}
 	if m.Placeholder != "" {
 		p["placeholder"] = m.Placeholder
@@ -482,6 +495,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		facts[k] = v
 	}
 	facts["query"] = m.Query
+	facts["filtering"] = m.Filtering
 	facts["matchMode"] = string(m.mode())
 	facts["count"] = len(f) - m.pinnedRows() // matching Items; Pinned is not counted
 	facts["total"] = len(m.Items)            // all Items; Pinned is not one

@@ -75,11 +75,12 @@ const (
 
 var policies = map[string]policy{
 	// Tier 0: stdlib only, except buffer (layout + uniseg).
-	mod:             {closed: true, allowTests: []string{mod + "/core", mod + "/ui", mod + "/tea", mod + "/widgets/table", bubbletea}},
-	mod + "/trie":   {closed: true},
-	mod + "/expr":   {closed: true},
-	mod + "/layout": {closed: true},
-	mod + "/buffer": {closed: true, allow: []string{mod + "/layout", uniseg}},
+	mod:               {closed: true, allowTests: []string{mod + "/core", mod + "/ui", mod + "/tea", mod + "/widgets/table", bubbletea}},
+	mod + "/trie":     {closed: true},
+	mod + "/expr":     {closed: true},
+	mod + "/layout":   {closed: true},
+	mod + "/buffer":   {closed: true, allow: []string{mod + "/layout", uniseg}},
+	mod + "/recorder": {closed: true},
 	// Tier 1: the kernel is pure; ui renders with Lip Gloss; tea owns Bubble Tea.
 	mod + "/core": {closed: true, allow: []string{mod + "/trie", mod + "/expr", mod + "/layout"}},
 	mod + "/ui": {
@@ -87,7 +88,7 @@ var policies = map[string]policy{
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/tea": {
-		allow: []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/buffer", bubbletea},
+		allow: []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/buffer", mod + "/recorder", bubbletea},
 	},
 	// Tier 2: opt-in widgets and config; never imported by Tier 0/1, never import Bubble Tea or Lip Gloss.
 	mod + "/widgets/table": {
@@ -108,7 +109,7 @@ var policies = map[string]policy{
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/form": {
-		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/widgets/input"},
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/expr", mod + "/widgets/input"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/config": {
@@ -205,7 +206,7 @@ func TestDependencyBoundaries(t *testing.T) {
 		byPath[p.ImportPath] = p
 	}
 
-	for _, req := range []string{"trie", "expr", "layout", "buffer", "core", "ui", "tea"} {
+	for _, req := range []string{"trie", "expr", "layout", "buffer", "recorder", "core", "ui", "tea"} {
 		if _, ok := byPath[mod+"/"+req]; !ok {
 			t.Fatalf("required package %q missing from go list ./...", mod+"/"+req)
 		}

@@ -60,6 +60,9 @@ type ParamSpec struct {
 	RefKinds    []string  `json:"refKinds,omitempty"`
 	SourceQuery string    `json:"sourceQuery,omitempty"` // Data API query for dynamic picker choices
 	Description string    `json:"description,omitempty"`
+	VisibleWhen string    `json:"visibleWhen,omitempty"`
+	Repeatable  bool      `json:"repeatable,omitempty"`
+	AddLabel    string    `json:"addLabel,omitempty"`
 }
 
 // CommandSpec describes a command. Tags are open; core reads them only for

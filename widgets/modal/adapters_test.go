@@ -296,6 +296,66 @@ func TestFormModalAdapter(t *testing.T) {
 	}
 }
 
+func TestFormModalReactiveAndRepeatable(t *testing.T) {
+	specs := []core.ParamSpec{
+		{Name: "mode", Type: core.ParamString, Enum: []string{"basic", "advanced"}, Default: "basic"},
+		{Name: "secret", Type: core.ParamString, Required: true, VisibleWhen: `mode == "advanced"`},
+		{Name: "dirs", Type: core.ParamPath, Repeatable: true, AddLabel: "dir"},
+	}
+	fm := form.New("Config", specs, map[string]any{"dirs": []string{"/a", "/b"}})
+	var changed []string
+	var pickCurrent any
+
+	m := modal.NewFormModal(fm, modal.FormOptions{
+		ID: "cfg",
+		OnChange: func(_ *form.Model, field string) modal.Result {
+			changed = append(changed, field)
+			return modal.Result{}
+		},
+		OnPickPath: func(_ form.PathRequest, current any) modal.Result {
+			pickCurrent = current
+			return modal.Result{Status: "pick", SetStatus: true}
+		},
+	})
+
+	// Hidden field cannot be focused via FormModal.FocusField.
+	if m.FocusField("secret") {
+		t.Fatal("FocusField should return false when secret is hidden")
+	}
+
+	// Activate dirs item 1 -> OnPickPath receives focused item string "/b", NOT []string.
+	if !m.FocusField("dirs") {
+		t.Fatal("FocusField(dirs) returned false")
+	}
+	m.Handle(core.Command{ID: "motion.down"}) // item 1 ("/b")
+	m.Handle(core.Command{ID: modal.CmdFormActivate})
+	if pickCurrent != "/b" {
+		t.Fatalf("OnPickPath current = %#v, want \"/b\"", pickCurrent)
+	}
+	if !m.SetValue("dirs", "/updated") {
+		t.Fatal("SetValue(dirs) failed")
+	}
+	if got := fm.Values["dirs"].([]string); len(got) != 2 || got[1] != "/updated" {
+		t.Fatalf("SetValue did not update focused item: %#v", got)
+	}
+
+	// Move to [+ Add dir] and press CmdFormActivate -> adds item, enters ModeFormEdit, fires OnChange("dirs").
+	m.Handle(core.Command{ID: "motion.down"})
+	if !fm.OnAddRow() {
+		t.Fatalf("expected OnAddRow, idx=%d", fm.ActiveIdx)
+	}
+	res := m.Handle(core.Command{ID: modal.CmdFormActivate})
+	if m.Mode() != modal.ModeFormEdit || res.Mode != modal.ModeFormEdit || changed[len(changed)-1] != "dirs" {
+		t.Fatalf("activate on add row failed: mode=%q res=%+v changed=%v", m.Mode(), res, changed)
+	}
+
+	// Remove the newly added item -> exits edit mode and fires OnChange("dirs").
+	res = m.Handle(core.Command{ID: form.CmdItemRemove})
+	if m.Mode() != modal.ModeForm || res.Mode != modal.ModeForm || changed[len(changed)-1] != "dirs" {
+		t.Fatalf("CmdItemRemove failed: mode=%q res=%+v changed=%v", m.Mode(), res, changed)
+	}
+}
+
 func TestConfirmModalAdapter(t *testing.T) {
 	specs := modal.ConfirmSpecs()
 	if len(specs) != 2 || specs[0].ID != modal.CmdConfirmAccept || specs[1].ID != modal.CmdConfirmCancel {

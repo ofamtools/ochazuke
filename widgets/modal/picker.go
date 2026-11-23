@@ -27,34 +27,37 @@ type PickerCreateHook struct {
 
 // PickerOptions configures a PickerModal.
 type PickerOptions struct {
-	ID        string
-	Scope     string
-	Mode      string
-	FocusID   string
-	Title     string
-	Tone      string
-	WidthPct  int
-	HeightPct int
-	PageSize  int
-	Badges    func(pm *picker.Model) []ui.Badge
-	Facts     func(pm *picker.Model) map[string]any
-	Ref       *core.Ref
-	Create    *PickerCreateHook
-	OnCommand func(pm *picker.Model, cmd core.Command) (Result, bool)
-	OnConfirm func(item picker.Item) Result
-	OnCreate  func(query string) Result
-	OnClose   func(reason CloseReason)
+	ID            string
+	Scope         string
+	Mode          string
+	FilterMode    string
+	StartInFilter bool
+	FocusID       string
+	Title         string
+	Tone          string
+	WidthPct      int
+	HeightPct     int
+	PageSize      int
+	Badges        func(pm *picker.Model) []ui.Badge
+	Facts         func(pm *picker.Model) map[string]any
+	Ref           *core.Ref
+	Create        *PickerCreateHook
+	OnCommand     func(pm *picker.Model, cmd core.Command) (Result, bool)
+	OnConfirm     func(item picker.Item) Result
+	OnCreate      func(query string) Result
+	OnClose       func(reason CloseReason)
 }
 
 // PickerModal adapts picker.Model to the Modal interface.
 type PickerModal struct {
-	pm        *picker.Model
-	opts      PickerOptions
-	id        string
-	scope     string
-	mode      string
-	focusID   string
-	baseItems []picker.Item
+	pm         *picker.Model
+	opts       PickerOptions
+	id         string
+	scope      string
+	normalMode string
+	filterMode string
+	focusID    string
+	baseItems  []picker.Item
 }
 
 // NewPickerModal wraps pm in a PickerModal using opts.
@@ -67,6 +70,7 @@ func NewPickerModal(pm *picker.Model, opts PickerOptions) *PickerModal {
 	} else if pm.PageSize == 0 {
 		pm.PageSize = picker.DefaultPageSize
 	}
+	pm.Filtering = opts.StartInFilter
 	id := opts.ID
 	if id == "" {
 		id = "picker"
@@ -75,21 +79,26 @@ func NewPickerModal(pm *picker.Model, opts PickerOptions) *PickerModal {
 	if scope == "" {
 		scope = id
 	}
-	mode := opts.Mode
-	if mode == "" {
-		mode = ModePicker
+	normalMode := opts.Mode
+	if normalMode == "" {
+		normalMode = ModePicker
+	}
+	filterMode := opts.FilterMode
+	if filterMode == "" {
+		filterMode = ModePickerFilter
 	}
 	focusID := opts.FocusID
 	if focusID == "" {
 		focusID = id + ".list"
 	}
 	m := &PickerModal{
-		pm:      pm,
-		opts:    opts,
-		id:      id,
-		scope:   scope,
-		mode:    mode,
-		focusID: focusID,
+		pm:         pm,
+		opts:       opts,
+		id:         id,
+		scope:      scope,
+		normalMode: normalMode,
+		filterMode: filterMode,
+		focusID:    focusID,
 	}
 	if opts.Create != nil {
 		m.baseItems = slices.Clone(pm.Items)
@@ -105,14 +114,28 @@ func (m *PickerModal) Model() *picker.Model { return m.pm }
 func (m *PickerModal) ID() string { return m.id }
 
 // Mode returns the current modal input mode.
-func (m *PickerModal) Mode() string { return m.mode }
+func (m *PickerModal) Mode() string {
+	if m.pm != nil && m.pm.Filtering {
+		return m.filterMode
+	}
+	return m.normalMode
+}
 
 // SetMode updates the modal's input mode.
 func (m *PickerModal) SetMode(mode string) {
 	if mode == "" {
 		mode = ModePicker
 	}
-	m.mode = mode
+	if mode == m.filterMode {
+		if m.pm != nil {
+			m.pm.Filtering = true
+		}
+		return
+	}
+	if m.pm != nil {
+		m.pm.Filtering = false
+	}
+	m.normalMode = mode
 }
 
 // Scope returns the modal overlay scope.
@@ -181,14 +204,25 @@ func (m *PickerModal) Handle(cmd core.Command) Result {
 	switch cmd.ID {
 	case CmdCancel:
 		return Result{Handled: true, Close: true, CloseReason: CloseCancel}
+	case CmdPickerFilterStart:
+		m.pm.Filtering = true
+		return Result{Handled: true, Mode: m.Mode()}
+	case CmdPickerFilterStop:
+		m.pm.Filtering = false
+		return Result{Handled: true, Mode: m.Mode()}
+	case CmdPickerFilterClear:
+		m.pm.SetQuery("")
+		m.syncCreateItem()
+		m.pm.Filtering = false
+		return Result{Handled: true, Mode: m.Mode()}
 	case CmdPickerInsert, input.CmdInsert:
 		m.pm.AppendQuery(cmd.Arg("text"))
 		m.syncCreateItem()
-		return Result{Handled: true}
+		return Result{Handled: true, Mode: m.Mode()}
 	case CmdPickerBackspace, input.CmdBackspace:
 		m.pm.BackspaceQuery()
 		m.syncCreateItem()
-		return Result{Handled: true}
+		return Result{Handled: true, Mode: m.Mode()}
 	case "motion.scroll.down":
 		cmd.ID = "motion.down"
 	case "motion.scroll.up":
@@ -203,7 +237,7 @@ func (m *PickerModal) Handle(cmd core.Command) Result {
 		if input.IsReadlineCommand(cmd.ID) {
 			m.syncCreateItem()
 		}
-		return Result{Handled: true}
+		return Result{Handled: true, Mode: m.Mode()}
 	}
 	if picked.ID == PickerCreateItemID {
 		q := strings.TrimSpace(m.pm.Query)
@@ -214,10 +248,16 @@ func (m *PickerModal) Handle(cmd core.Command) Result {
 		case m.opts.OnCreate != nil:
 			res := m.opts.OnCreate(q)
 			res.Handled = true
+			if !res.Close && res.Push == nil && res.Mode == "" {
+				res.Mode = m.Mode()
+			}
 			return res
 		case m.opts.Create != nil && m.opts.Create.OnCreate != nil:
 			res := m.opts.Create.OnCreate(q)
 			res.Handled = true
+			if !res.Close && res.Push == nil && res.Mode == "" {
+				res.Mode = m.Mode()
+			}
 			return res
 		default:
 			return Result{Handled: true, Close: true, CloseReason: CloseSubmit}
@@ -226,6 +266,9 @@ func (m *PickerModal) Handle(cmd core.Command) Result {
 	if m.opts.OnConfirm != nil {
 		res := m.opts.OnConfirm(*picked)
 		res.Handled = true
+		if !res.Close && res.Push == nil && res.Mode == "" {
+			res.Mode = m.Mode()
+		}
 		return res
 	}
 	return Result{Handled: true, Close: true, CloseReason: CloseSubmit}

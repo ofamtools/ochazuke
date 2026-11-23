@@ -19,6 +19,8 @@ type PaletteOptions struct {
 	ExpandedWidthPct int
 	HeightPct        int
 	PickerMode       string
+	PickerFilterMode string
+	StartInFilter    bool
 	FormMode         string
 	FormEditMode     string
 	Badges           func(pal *palette.Model) []ui.Badge
@@ -34,19 +36,23 @@ type PaletteOptions struct {
 // PaletteModal adapts palette.Model to the Modal interface, synchronizing focus
 // and mode transitions between the command picker and live arguments form.
 type PaletteModal struct {
-	pal          *palette.Model
-	opts         PaletteOptions
-	id           string
-	scope        string
-	pickerMode   string
-	formMode     string
-	formEditMode string
+	pal              *palette.Model
+	opts             PaletteOptions
+	id               string
+	scope            string
+	pickerMode       string
+	pickerFilterMode string
+	formMode         string
+	formEditMode     string
 }
 
 // NewPaletteModal wraps pal in a PaletteModal using opts.
 func NewPaletteModal(pal *palette.Model, opts PaletteOptions) *PaletteModal {
 	if pal == nil {
 		pal = palette.New(opts.Title, nil)
+	}
+	if pal.Picker != nil {
+		pal.Picker.Filtering = opts.StartInFilter
 	}
 	id := opts.ID
 	if id == "" {
@@ -60,6 +66,10 @@ func NewPaletteModal(pal *palette.Model, opts PaletteOptions) *PaletteModal {
 	if pickerMode == "" {
 		pickerMode = ModePicker
 	}
+	pickerFilterMode := opts.PickerFilterMode
+	if pickerFilterMode == "" {
+		pickerFilterMode = ModePickerFilter
+	}
 	formMode := opts.FormMode
 	if formMode == "" {
 		formMode = ModeForm
@@ -69,13 +79,14 @@ func NewPaletteModal(pal *palette.Model, opts PaletteOptions) *PaletteModal {
 		formEditMode = ModeFormEdit
 	}
 	return &PaletteModal{
-		pal:          pal,
-		opts:         opts,
-		id:           id,
-		scope:        scope,
-		pickerMode:   pickerMode,
-		formMode:     formMode,
-		formEditMode: formEditMode,
+		pal:              pal,
+		opts:             opts,
+		id:               id,
+		scope:            scope,
+		pickerMode:       pickerMode,
+		pickerFilterMode: pickerFilterMode,
+		formMode:         formMode,
+		formEditMode:     formEditMode,
 	}
 }
 
@@ -92,6 +103,8 @@ func (m *PaletteModal) Mode() string {
 		return m.formEditMode
 	case m.pal.FocusForm && m.pal.ActiveForm != nil:
 		return m.formMode
+	case m.pal.Picker != nil && m.pal.Picker.Filtering:
+		return m.pickerFilterMode
 	default:
 		return m.pickerMode
 	}
@@ -172,6 +185,25 @@ func (m *PaletteModal) Handle(cmd core.Command) Result {
 	m.pal.Sync()
 	if !m.pal.FocusForm {
 		switch cmd.ID {
+		case CmdPickerFilterStart:
+			if m.pal.Picker != nil {
+				m.pal.Picker.Filtering = true
+			}
+			m.pal.Sync()
+			return Result{Handled: true, Mode: m.Mode(), FocusID: m.FocusID()}
+		case CmdPickerFilterStop:
+			if m.pal.Picker != nil {
+				m.pal.Picker.Filtering = false
+			}
+			m.pal.Sync()
+			return Result{Handled: true, Mode: m.Mode(), FocusID: m.FocusID()}
+		case CmdPickerFilterClear:
+			if m.pal.Picker != nil {
+				m.pal.Picker.SetQuery("")
+				m.pal.Picker.Filtering = false
+			}
+			m.pal.Sync()
+			return Result{Handled: true, Mode: m.Mode(), FocusID: m.FocusID()}
 		case CmdPickerInsert, input.CmdInsert:
 			if m.pal.Picker != nil {
 				m.pal.Picker.AppendQuery(cmd.Arg("text"))

@@ -469,3 +469,54 @@ func TestCreateDir(t *testing.T) {
 type reloadFailFS struct{ mapFS }
 
 func (f reloadFailFS) Mkdir(string) error { clear(f.dirs); return nil }
+
+func TestFilterModeAndSetDirPreservesFiltering(t *testing.T) {
+	root := tree(t)
+	m, err := New(nil, root, PickAny)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Filtering() {
+		t.Fatal("default Filtering should be false")
+	}
+
+	// Normal mode stays normal across SetDir.
+	if err := m.SetDir(filepath.Join(root, "src")); err != nil {
+		t.Fatal(err)
+	}
+	if m.Filtering() {
+		t.Fatal("SetDir should keep Filtering false")
+	}
+
+	// SetFiltering and CmdFilterStart/Stop/Clear.
+	m.SetFiltering(true)
+	if !m.Filtering() || !m.List().Filtering {
+		t.Fatal("SetFiltering(true) did not delegate")
+	}
+	if err := m.SetDir(root); err != nil {
+		t.Fatal(err)
+	}
+	if !m.Filtering() {
+		t.Fatal("SetDir must preserve Filtering=true")
+	}
+
+	m.SetQuery("readme")
+	cmd(m, picker.CmdFilterStop)
+	if m.Filtering() || m.Query != "readme" {
+		t.Fatalf("CmdFilterStop: filtering=%v query=%q", m.Filtering(), m.Query)
+	}
+
+	cmd(m, picker.CmdFilterStart)
+	if !m.Filtering() {
+		t.Fatal("CmdFilterStart did not enable filtering")
+	}
+
+	cmd(m, picker.CmdFilterClear)
+	if m.Filtering() || m.Query != "" || m.List().Query != "" {
+		t.Fatalf("CmdFilterClear: filtering=%v query=%q listQuery=%q", m.Filtering(), m.Query, m.List().Query)
+	}
+	// PickAny has a pinned current-folder row at index 0; resetSel focuses first real row (Docs/).
+	if e, ok := m.Focused(); !ok || e.Name != "Docs" || m.FocusedCurrent() {
+		t.Fatalf("CmdFilterClear should resetSel to first real row, got %+v ok=%v current=%v", e, ok, m.FocusedCurrent())
+	}
+}

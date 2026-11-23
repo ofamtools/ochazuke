@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/recorder"
 	"ofam.dev/ochazuke/ui"
 )
 
@@ -312,5 +313,92 @@ func TestViewChromeAndCursor(t *testing.T) {
 	sh.Update(tea.WindowSizeMsg{Width: 40, Height: 20})
 	if v := sh.View(); v.Cursor != nil || v.MouseMode != tea.MouseModeNone {
 		t.Errorf("unfocused raw node should hide cursor and honour DisableMouse: %+v", v)
+	}
+}
+
+func TestShellRecorderCaptureAndFrameDedupe(t *testing.T) {
+	sh := newShell(t, cards)
+	if sh.Recorder == nil || !sh.Recorder.Enabled() {
+		t.Fatalf("expected enabled default recorder on New")
+	}
+
+	// newShell already sent 40x20 WindowSizeMsg and rendered once.
+	hdr, evs := sh.Recorder.Snapshot()
+	if hdr.Width != 40 || hdr.Height != 20 {
+		t.Fatalf("initial header size = %dx%d, want 40x20", hdr.Width, hdr.Height)
+	}
+	if len(evs) != 2 || evs[0].Kind != recorder.KindResize || evs[1].Kind != recorder.KindFrame {
+		t.Fatalf("expected [resize, frame] after initial WindowSizeMsg, got %+v", evs)
+	}
+
+	// Bare hover mouse motion (empty button) must not be recorded, and unchanged render dedupes frame.
+	sh.Update(tea.MouseMotionMsg{X: 5, Y: 5})
+	if sh.Recorder.Len() != 2 {
+		t.Fatalf("hover motion + unchanged frame should not add events, got len=%d", sh.Recorder.Len())
+	}
+
+	// Key press moves focus a -> b, recording key, command, and new frame.
+	sh.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
+	// Paste and mouse click are also recorded.
+	sh.Update(tea.PasteMsg{Content: "hello"})
+	sh.Update(tea.MouseClickMsg{X: 2, Y: 1, Button: tea.MouseLeft})
+
+	_, evs = sh.Recorder.Snapshot()
+	var sawKey, sawCmd, sawPaste, sawMouse bool
+	frameCount := 0
+	for _, ev := range evs {
+		switch ev.Kind {
+		case recorder.KindKey:
+			if ev.Key == "n" && ev.Text == "n" {
+				sawKey = true
+			}
+		case recorder.KindCommand:
+			if ev.Command == core.CmdFocusNext && ev.Mode == "normal" && ev.Page == "main" && ev.FocusID == "b" {
+				sawCmd = true
+			}
+		case recorder.KindPaste:
+			if ev.Text == "hello" {
+				sawPaste = true
+			}
+		case recorder.KindMouse:
+			if ev.Button == "left" && ev.Action == "press" && ev.X == 2 && ev.Y == 1 {
+				sawMouse = true
+			}
+		case recorder.KindFrame:
+			frameCount++
+		}
+	}
+	if !sawKey || !sawCmd || !sawPaste || !sawMouse {
+		t.Fatalf("missing recorded events: key=%v cmd=%v paste=%v mouse=%v; all=%+v", sawKey, sawCmd, sawPaste, sawMouse, evs)
+	}
+	if frameCount < 2 {
+		t.Fatalf("expected at least 2 distinct frames recorded, got %d", frameCount)
+	}
+
+	// EnableRecorder seeds current shell size.
+	r2 := sh.EnableRecorder(recorder.Options{App: "test-app"})
+	if r2.Header().Width != 40 || r2.Header().Height != 20 || r2.Header().App != "test-app" {
+		t.Fatalf("EnableRecorder header = %+v", r2.Header())
+	}
+}
+
+func TestShellNilAndDisabledRecorderNoOp(t *testing.T) {
+	sh := newShell(t, cards)
+
+	// Nil recorder must be a clean no-op.
+	sh.SetRecorder(nil)
+	sh.Update(tea.WindowSizeMsg{Width: 50, Height: 25})
+	sh.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
+	if got := sh.State.ActiveFrame().FocusID; got != "b" {
+		t.Fatalf("focus with nil recorder = %q, want b", got)
+	}
+
+	// Disabled recorder must record zero events.
+	disabled := recorder.New(recorder.Options{Enabled: false})
+	sh.SetRecorder(disabled)
+	sh.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
+	sh.Update(tea.WindowSizeMsg{Width: 60, Height: 30})
+	if disabled.Len() != 0 || disabled.Stats().Total != 0 {
+		t.Fatalf("disabled recorder captured events: %+v", disabled.Stats())
 	}
 }

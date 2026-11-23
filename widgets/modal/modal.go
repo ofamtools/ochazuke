@@ -12,27 +12,32 @@ import (
 
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/ui"
+	"ofam.dev/ochazuke/widgets/picker"
 	"ofam.dev/ochazuke/widgets/toast"
 )
 
 // Shared modal command IDs.
 const (
-	CmdCancel          = "modal.cancel"
-	CmdConfirmAccept   = "confirm.accept"
-	CmdConfirmCancel   = "confirm.cancel"
-	CmdPickerInsert    = "picker.insert"
-	CmdPickerBackspace = "picker.backspace"
-	CmdFormActivate    = "form.activate"
+	CmdCancel            = "modal.cancel"
+	CmdConfirmAccept     = "confirm.accept"
+	CmdConfirmCancel     = "confirm.cancel"
+	CmdPickerInsert      = "picker.insert"
+	CmdPickerBackspace   = "picker.backspace"
+	CmdPickerFilterStart = picker.CmdFilterStart
+	CmdPickerFilterStop  = picker.CmdFilterStop
+	CmdPickerFilterClear = picker.CmdFilterClear
+	CmdFormActivate      = "form.activate"
 )
 
 // Standard modal mode names.
 const (
-	ModePicker      = "picker"
-	ModeForm        = "form"
-	ModeFormEdit    = "form-edit"
-	ModeConfirm     = "confirm"
-	ModeReader      = "reader"
-	ModeCommandLine = "commandline"
+	ModePicker       = "picker"
+	ModePickerFilter = "picker-filter"
+	ModeForm         = "form"
+	ModeFormEdit     = "form-edit"
+	ModeConfirm      = "confirm"
+	ModeReader       = "reader"
+	ModeCommandLine  = "commandline"
 )
 
 // CloseReason explains why a modal was dismissed.

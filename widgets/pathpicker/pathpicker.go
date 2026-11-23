@@ -187,6 +187,12 @@ func (m *Model) fs() FS {
 // List exposes the inner picker (read-only use: selection, filtered items).
 func (m *Model) List() *picker.Model { return &m.list }
 
+// Filtering reports whether the path picker is in filter-edit mode.
+func (m *Model) Filtering() bool { return m.list.Filtering }
+
+// SetFiltering sets whether the path picker is in filter-edit mode.
+func (m *Model) SetFiltering(v bool) { m.list.Filtering = v }
+
 // Reload re-reads Dir and rebuilds the list, keeping the query.
 func (m *Model) Reload() error {
 	es, err := m.fs().ReadDir(m.Dir)
@@ -645,6 +651,9 @@ func (m *Model) HandleCommand(cmd core.Command) (picked *DirEntry, handled bool)
 		if handled && m.list.Query != m.Query {
 			m.Query = m.list.Query
 			m.rebuild()
+			m.resetSel()
+		} else if handled && cmd.ID == picker.CmdFilterClear {
+			m.resetSel()
 		}
 		return nil, handled
 	}

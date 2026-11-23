@@ -210,6 +210,7 @@ func TestPinnedAndRank(t *testing.T) {
 
 func TestPickerReadlineAndCursor(t *testing.T) {
 	m := New("t", items())
+	m.HandleCommand(core.Command{ID: CmdFilterStart})
 	m.SetQuery("gamma ray")
 	fEnd, _ := ui.Render(m.View("p"), ui.DefaultDarkTheme(), "p", 40, 8)
 	m.HandleCommand(core.Command{ID: input.CmdWordLeft})
@@ -231,5 +232,44 @@ func TestPickerReadlineAndCursor(t *testing.T) {
 	m.HandleCommand(core.Command{ID: input.CmdYankKill})
 	if m.Query != "gamma " {
 		t.Fatalf("after yank.kill: %q", m.Query)
+	}
+}
+
+func TestFilterMode(t *testing.T) {
+	m := New("t", items())
+	if m.Filtering {
+		t.Fatal("default Filtering should be false")
+	}
+	vNormal := m.View("p")
+	if vNormal.Props["filtering"] != false || vNormal.Facts["filtering"] != false {
+		t.Fatalf("normal view filtering prop=%v fact=%v", vNormal.Props["filtering"], vNormal.Facts["filtering"])
+	}
+
+	if p, ok := m.HandleCommand(core.Command{ID: CmdFilterStart}); !ok || p != nil || !m.Filtering {
+		t.Fatalf("CmdFilterStart: picked=%v ok=%v filtering=%v", p, ok, m.Filtering)
+	}
+	vFilter := m.View("p")
+	if vFilter.Props["filtering"] != true || vFilter.Facts["filtering"] != true {
+		t.Fatalf("filter view filtering prop=%v fact=%v", vFilter.Props["filtering"], vFilter.Facts["filtering"])
+	}
+	if vFilter.CacheKey == vNormal.CacheKey {
+		t.Fatal("cache key must change when Filtering toggles")
+	}
+
+	m.SetQuery("gam")
+	vQueryFilter := m.View("p")
+	if p, ok := m.HandleCommand(core.Command{ID: CmdFilterStop}); !ok || p != nil || m.Filtering || m.Query != "gam" {
+		t.Fatalf("CmdFilterStop: picked=%v ok=%v filtering=%v query=%q", p, ok, m.Filtering, m.Query)
+	}
+	if m.View("p").CacheKey == vQueryFilter.CacheKey {
+		t.Fatal("cache key must change on CmdFilterStop")
+	}
+
+	m.HandleCommand(core.Command{ID: CmdFilterStart})
+	if p, ok := m.HandleCommand(core.Command{ID: CmdFilterClear}); !ok || p != nil || m.Filtering || m.Query != "" {
+		t.Fatalf("CmdFilterClear: picked=%v ok=%v filtering=%v query=%q", p, ok, m.Filtering, m.Query)
+	}
+	if len(m.Filtered()) != 4 {
+		t.Fatalf("CmdFilterClear should restore all items, got %d", len(m.Filtered()))
 	}
 }

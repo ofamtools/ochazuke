@@ -9,29 +9,32 @@ import (
 
 // PathPickerOptions configures a PathPickerModal.
 type PathPickerOptions struct {
-	ID        string
-	Scope     string
-	Mode      string
-	FocusID   string
-	Title     string
-	Tone      string
-	WidthPct  int
-	HeightPct int
-	Badges    func(pp *pathpicker.Model) []ui.Badge
-	Facts     func(pp *pathpicker.Model) map[string]any
-	OnPick    func(entry pathpicker.DirEntry) Result
-	OnCommand func(pp *pathpicker.Model, cmd core.Command) (Result, bool)
-	OnClose   func(reason CloseReason)
+	ID            string
+	Scope         string
+	Mode          string
+	FilterMode    string
+	StartInFilter bool
+	FocusID       string
+	Title         string
+	Tone          string
+	WidthPct      int
+	HeightPct     int
+	Badges        func(pp *pathpicker.Model) []ui.Badge
+	Facts         func(pp *pathpicker.Model) map[string]any
+	OnPick        func(entry pathpicker.DirEntry) Result
+	OnCommand     func(pp *pathpicker.Model, cmd core.Command) (Result, bool)
+	OnClose       func(reason CloseReason)
 }
 
 // PathPickerModal adapts pathpicker.Model to the Modal interface.
 type PathPickerModal struct {
-	pp      *pathpicker.Model
-	opts    PathPickerOptions
-	id      string
-	scope   string
-	mode    string
-	focusID string
+	pp         *pathpicker.Model
+	opts       PathPickerOptions
+	id         string
+	scope      string
+	normalMode string
+	filterMode string
+	focusID    string
 }
 
 // NewPathPickerModal wraps pp in a PathPickerModal using opts.
@@ -44,21 +47,29 @@ func NewPathPickerModal(pp *pathpicker.Model, opts PathPickerOptions) *PathPicke
 	if scope == "" {
 		scope = "pathpicker"
 	}
-	mode := opts.Mode
-	if mode == "" {
-		mode = ModePicker
+	normalMode := opts.Mode
+	if normalMode == "" {
+		normalMode = ModePicker
+	}
+	filterMode := opts.FilterMode
+	if filterMode == "" {
+		filterMode = ModePickerFilter
 	}
 	focusID := opts.FocusID
 	if focusID == "" {
 		focusID = id
 	}
+	if pp != nil {
+		pp.SetFiltering(opts.StartInFilter)
+	}
 	return &PathPickerModal{
-		pp:      pp,
-		opts:    opts,
-		id:      id,
-		scope:   scope,
-		mode:    mode,
-		focusID: focusID,
+		pp:         pp,
+		opts:       opts,
+		id:         id,
+		scope:      scope,
+		normalMode: normalMode,
+		filterMode: filterMode,
+		focusID:    focusID,
 	}
 }
 
@@ -69,7 +80,12 @@ func (m *PathPickerModal) Model() *pathpicker.Model { return m.pp }
 func (m *PathPickerModal) ID() string { return m.id }
 
 // Mode returns the modal input mode.
-func (m *PathPickerModal) Mode() string { return m.mode }
+func (m *PathPickerModal) Mode() string {
+	if m.pp != nil && m.pp.Filtering() {
+		return m.filterMode
+	}
+	return m.normalMode
+}
 
 // Scope returns the modal overlay scope.
 func (m *PathPickerModal) Scope() string { return m.scope }
@@ -144,12 +160,21 @@ func (m *PathPickerModal) Handle(cmd core.Command) Result {
 		return Result{}
 	}
 	switch cmd.ID {
+	case CmdPickerFilterStart:
+		m.pp.SetFiltering(true)
+		return Result{Handled: true, Mode: m.Mode()}
+	case CmdPickerFilterStop:
+		m.pp.SetFiltering(false)
+		return Result{Handled: true, Mode: m.Mode()}
+	case CmdPickerFilterClear:
+		m.pp.HandleCommand(cmd)
+		return Result{Handled: true, Mode: m.Mode()}
 	case CmdPickerInsert, input.CmdInsert:
 		m.pp.AppendQuery(cmd.Arg("text"))
-		return Result{Handled: true}
+		return Result{Handled: true, Mode: m.Mode()}
 	case CmdPickerBackspace, input.CmdBackspace:
 		m.pp.BackspaceQuery()
-		return Result{Handled: true}
+		return Result{Handled: true, Mode: m.Mode()}
 	case "motion.scroll.down":
 		cmd.ID = "motion.down"
 	case "motion.scroll.up":
@@ -164,11 +189,14 @@ func (m *PathPickerModal) Handle(cmd core.Command) Result {
 		if m.opts.OnPick != nil {
 			res := m.opts.OnPick(*picked)
 			res.Handled = true
+			if !res.Close && res.Push == nil && res.Mode == "" {
+				res.Mode = m.Mode()
+			}
 			return res
 		}
 		return Result{Handled: true, Close: true, CloseReason: CloseSubmit}
 	}
-	return Result{Handled: true}
+	return Result{Handled: true, Mode: m.Mode()}
 }
 
 // OnClose notifies the configured close hook.
