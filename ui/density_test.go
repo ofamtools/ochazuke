@@ -76,6 +76,49 @@ func TestThemePresets(t *testing.T) {
 	}
 }
 
+func TestSemanticTokensAndItalicStrikethrough(t *testing.T) {
+	tokens := []string{
+		"row.active", "row.attention", "row.muted", "row.dim", "row.cancelled", "row.error",
+		"state.review", "state.blocked", "state.planned", "state.cancelled", "state.done.dim",
+		"icon.star", "icon.unread", "table.group",
+	}
+	for _, p := range ThemePresets() {
+		for _, tok := range tokens {
+			ts := p.Tone(tok)
+			if ts.Fg == "" && ts.Bg == "" {
+				t.Errorf("%s: token %q did not resolve", p.Name, tok)
+			}
+		}
+	}
+
+	// HighContrastDarkTheme drops Dim on the 4 faint tokens while keeping Strikethrough.
+	hc := HighContrastDarkTheme()
+	for _, tok := range []string{"row.dim", "row.cancelled", "state.cancelled", "state.done.dim"} {
+		ts := hc.Tone(tok)
+		if ts.Dim {
+			t.Errorf("high-contrast %q should not set Dim: %+v", tok, ts)
+		}
+	}
+	if !hc.Tone("row.cancelled").Strikethrough || !hc.Tone("state.cancelled").Strikethrough {
+		t.Errorf("high-contrast cancelled tokens must keep Strikethrough")
+	}
+
+	// SGR 3 (italic) and SGR 9 (strikethrough) render cleanly and mergeTone preserves both.
+	merged := mergeTone(ToneStyle{Fg: "#ffffff", Italic: true}, ToneStyle{Strikethrough: true})
+	if !merged.Italic || !merged.Strikethrough {
+		t.Fatalf("mergeTone lost flags: %+v", merged)
+	}
+	st := newStyler(DefaultDarkTheme())
+	sgrItalic := st.sgr(ToneStyle{Italic: true})
+	sgrStrike := st.sgr(ToneStyle{Strikethrough: true})
+	if !strings.Contains(sgrItalic, "3m") && !strings.Contains(sgrItalic, ";3") && !strings.Contains(sgrItalic, "[3;") {
+		t.Errorf("italic SGR missing code 3: %q", sgrItalic)
+	}
+	if !strings.Contains(sgrStrike, "9m") && !strings.Contains(sgrStrike, ";9") && !strings.Contains(sgrStrike, "[9;") {
+		t.Errorf("strikethrough SGR missing code 9: %q", sgrStrike)
+	}
+}
+
 func TestFrameBorderStyles(t *testing.T) {
 	panel := ViewNode{Kind: KindPanel, ID: "p", Title: "T", Children: []ViewNode{{Kind: KindText, ID: "x", Focusable: true, Props: map[string]any{"text": "hi"}}}}
 	style := func(b string) Theme { th := DefaultDarkTheme(); th.BorderStyle = b; return th }

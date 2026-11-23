@@ -325,21 +325,256 @@ func firstOf(m map[string]any, keys ...string) any {
 	return nil
 }
 
-func rowCells(row any, cols []tableCol) []string {
+// TableRowSpec describes one styled table row with optional whole-row tone,
+// per-cell tones, per-cell leading icons, and per-cell icon tones.
+type TableRowSpec struct {
+	Cells     []any    `json:"cells"`
+	Tone      string   `json:"tone,omitempty"`
+	CellTones []string `json:"cellTones,omitempty"`
+	CellIcons []string `json:"cellIcons,omitempty"`
+	IconTones []string `json:"iconTones,omitempty"`
+}
+
+type parsedRow struct {
+	cells     []string
+	tone      string
+	cellTones []string
+	cellIcons []string
+	iconTones []string
+	rich      bool
+}
+
+func hasAnyNonEmpty(ss []string) bool {
+	for _, s := range ss {
+		if s != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func sliceAt(ss []string, i int) string {
+	if i >= 0 && i < len(ss) {
+		return ss[i]
+	}
+	return ""
+}
+
+func parseTableRow(row any, cols []tableCol) parsedRow {
 	out := make([]string, len(cols))
-	if m, ok := row.(map[string]any); ok {
+	switch x := row.(type) {
+	case TableRowSpec:
+		for i := range cols {
+			if i < len(x.Cells) {
+				out[i] = anyString(x.Cells[i])
+			}
+		}
+		return parsedRow{
+			cells:     out,
+			tone:      x.Tone,
+			cellTones: x.CellTones,
+			cellIcons: x.CellIcons,
+			iconTones: x.IconTones,
+			rich:      x.Tone != "" || hasAnyNonEmpty(x.CellTones) || hasAnyNonEmpty(x.CellIcons) || hasAnyNonEmpty(x.IconTones),
+		}
+	case *TableRowSpec:
+		if x == nil {
+			return parsedRow{cells: out}
+		}
+		for i := range cols {
+			if i < len(x.Cells) {
+				out[i] = anyString(x.Cells[i])
+			}
+		}
+		return parsedRow{
+			cells:     out,
+			tone:      x.Tone,
+			cellTones: x.CellTones,
+			cellIcons: x.CellIcons,
+			iconTones: x.IconTones,
+			rich:      x.Tone != "" || hasAnyNonEmpty(x.CellTones) || hasAnyNonEmpty(x.CellIcons) || hasAnyNonEmpty(x.IconTones),
+		}
+	case []any:
+		for i := range cols {
+			if i < len(x) {
+				out[i] = anyString(x[i])
+			}
+		}
+		return parsedRow{cells: out}
+	case map[string]any:
+		if rawCells, ok := x["cells"]; ok {
+			if cs := toSlice(rawCells); cs != nil {
+				for i := range cols {
+					if i < len(cs) {
+						out[i] = anyString(cs[i])
+					}
+				}
+				tone := anyString(x["tone"])
+				cellTones := toStrings(x["cellTones"])
+				cellIcons := toStrings(x["cellIcons"])
+				iconTones := toStrings(x["iconTones"])
+				return parsedRow{
+					cells:     out,
+					tone:      tone,
+					cellTones: cellTones,
+					cellIcons: cellIcons,
+					iconTones: iconTones,
+					rich:      tone != "" || hasAnyNonEmpty(cellTones) || hasAnyNonEmpty(cellIcons) || hasAnyNonEmpty(iconTones),
+				}
+			}
+		}
 		for i, col := range cols {
-			out[i] = anyString(m[col.key])
+			out[i] = anyString(x[col.key])
 		}
-		return out
+		return parsedRow{cells: out}
+	default:
+		cells := toSlice(row)
+		for i := range cols {
+			if i < len(cells) {
+				out[i] = anyString(cells[i])
+			}
+		}
+		return parsedRow{cells: out}
 	}
-	cells := toSlice(row)
-	for i := range cols {
-		if i < len(cells) {
-			out[i] = anyString(cells[i])
+}
+
+func (c *ctx) renderRichTableRow(pr parsedRow, cols []tableCol, widths []int, w int, selected bool, baseRowTS ToneStyle, activeCol int, activeColTS ToneStyle) string {
+	rowTS := c.st.tone(toneOr(pr.tone, "text"))
+	var rowPadTS ToneStyle
+	if selected {
+		rowPadTS = baseRowTS
+		rowPadTS.Strikethrough = false
+	} else {
+		rowPadTS = ToneStyle{Bg: rowTS.Bg}
+	}
+
+	var sb strings.Builder
+	for ci, cell := range pr.cells {
+		if ci > 0 {
+			sb.WriteString(c.st.paint("  ", rowPadTS))
+		}
+		cw := widths[ci]
+		icon := sliceAt(pr.cellIcons, ci)
+		ct := sliceAt(pr.cellTones, ci)
+		it := sliceAt(pr.iconTones, ci)
+
+		var cellTS, cellPadTS, iconTS ToneStyle
+		if selected {
+			baseTS := baseRowTS
+			if ci == activeCol {
+				baseTS = activeColTS
+			}
+			cellTS = baseTS
+			cellTS.Strikethrough = rowTS.Strikethrough || (ct != "" && c.st.tone(ct).Strikethrough)
+			cellPadTS = baseTS
+			cellPadTS.Strikethrough = false
+			if icon != "" {
+				var resolvedIcon ToneStyle
+				switch {
+				case it != "":
+					resolvedIcon = c.st.tone(it)
+				case ct != "":
+					resolvedIcon = c.st.tone(ct)
+				case pr.tone != "":
+					resolvedIcon = c.st.tone(pr.tone)
+				}
+				iconTS = cellPadTS
+				if resolvedIcon.Fg != "" {
+					iconTS.Fg = resolvedIcon.Fg
+				}
+				iconTS.Bg = baseTS.Bg
+				iconTS.Bold = baseTS.Bold || resolvedIcon.Bold
+				iconTS.Strikethrough = false
+			}
+		} else {
+			cellTS = rowTS
+			if ct != "" {
+				cellTS = c.st.tone(ct)
+				if cellTS.Bg == "" {
+					cellTS.Bg = rowTS.Bg
+				}
+				cellTS.Strikethrough = cellTS.Strikethrough || rowTS.Strikethrough
+			}
+			cellPadTS = ToneStyle{Bg: cellTS.Bg}
+			if icon != "" {
+				switch {
+				case it != "":
+					iconTS = c.st.tone(it)
+					if iconTS.Bg == "" {
+						iconTS.Bg = cellTS.Bg
+					}
+				case ct != "":
+					iconTS = cellTS
+				default:
+					iconTS = rowTS
+				}
+				iconTS.Strikethrough = false
+			}
+		}
+
+		if icon == "" {
+			txt := truncate(cell, cw)
+			pad := cw - strW(txt)
+			if cols[ci].right {
+				if pad > 0 {
+					sb.WriteString(c.st.paint(spaces(pad), cellPadTS))
+				}
+				sb.WriteString(c.st.paint(txt, cellTS))
+			} else {
+				sb.WriteString(c.st.paint(txt, cellTS))
+				if pad > 0 {
+					sb.WriteString(c.st.paint(spaces(pad), cellPadTS))
+				}
+			}
+			continue
+		}
+
+		iw := strW(icon)
+		iconPart := icon
+		txt := ""
+		pad := 0
+		switch {
+		case iw >= cw:
+			iconPart = truncate(icon, cw)
+			pad = cw - strW(iconPart)
+		case cell == "":
+			pad = cw - iw
+		default:
+			rem := cw - iw - 1
+			if rem <= 0 {
+				pad = cw - iw
+			} else {
+				txt = truncate(cell, rem)
+				pad = cw - iw - 1 - strW(txt)
+			}
+		}
+
+		if cols[ci].right {
+			if pad > 0 {
+				sb.WriteString(c.st.paint(spaces(pad), cellPadTS))
+			}
+			sb.WriteString(c.st.paint(iconPart, iconTS))
+			if txt != "" {
+				sb.WriteString(c.st.paint(" ", cellPadTS))
+				sb.WriteString(c.st.paint(txt, cellTS))
+			}
+		} else {
+			sb.WriteString(c.st.paint(iconPart, iconTS))
+			if txt != "" {
+				sb.WriteString(c.st.paint(" ", cellPadTS))
+				sb.WriteString(c.st.paint(txt, cellTS))
+			}
+			if pad > 0 {
+				sb.WriteString(c.st.paint(spaces(pad), cellPadTS))
+			}
 		}
 	}
-	return out
+
+	fill := ""
+	if selected || rowTS.Bg != "" {
+		fill = c.st.sgr(rowPadTS)
+	}
+	return padLine(sb.String(), w, fill)
 }
 
 func (c *ctx) tableLines(rn *rnode, w, h int) []string {
@@ -360,9 +595,18 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 		}
 	}
 	for _, row := range rows[:min(len(rows), 200)] {
-		for i, cell := range rowCells(row, cols) {
+		pr := parseTableRow(row, cols)
+		for i, cell := range pr.cells {
 			if flexible[i] {
-				widths[i] = min(max(widths[i], strW(cell)), 40)
+				cw := strW(cell)
+				if icon := sliceAt(pr.cellIcons, i); icon != "" {
+					if cell == "" {
+						cw = strW(icon)
+					} else {
+						cw += strW(icon) + 1
+					}
+				}
+				widths[i] = min(max(widths[i], cw), 40)
 			}
 		}
 	}
@@ -423,8 +667,24 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 	}
 	out = append(out, c.st.t("border", rule))
 	for i := start; i < min(len(rows), start+rowsH); i++ {
+		pr := parseTableRow(rows[i], cols)
+		if pr.rich {
+			switch {
+			case i == sel && selCol >= 0 && selCol < len(cols):
+				rowTS := c.st.tone("selected.inactive")
+				cellTS := mergeTone(c.rowStyle(rn, true), ToneStyle{Fg: c.st.tone("accent").Fg, Bold: true})
+				out = append(out, c.renderRichTableRow(pr, cols, widths, w, true, rowTS, selCol, cellTS))
+			case i == sel:
+				out = append(out, c.renderRichTableRow(pr, cols, widths, w, true, c.rowStyle(rn, true), -1, ToneStyle{}))
+			case hasVisual && i >= vFrom && i <= vTo:
+				out = append(out, c.renderRichTableRow(pr, cols, widths, w, true, c.st.tone("selected.inactive"), -1, ToneStyle{}))
+			default:
+				out = append(out, c.renderRichTableRow(pr, cols, widths, w, false, ToneStyle{}, -1, ToneStyle{}))
+			}
+			continue
+		}
 		if i == sel && selCol >= 0 && selCol < len(cols) {
-			parts := formatCells(rowCells(rows[i], cols))
+			parts := formatCells(pr.cells)
 			rowTS := c.st.tone("selected.inactive")
 			cellTS := mergeTone(c.rowStyle(rn, true), ToneStyle{Fg: c.st.tone("accent").Fg, Bold: true})
 			var sb strings.Builder
@@ -441,7 +701,7 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 			out = append(out, padLine(sb.String(), w, c.st.sgr(rowTS)))
 			continue
 		}
-		line := format(rowCells(rows[i], cols))
+		line := format(pr.cells)
 		var ts ToneStyle
 		if i == sel {
 			ts = c.rowStyle(rn, true)
@@ -459,17 +719,28 @@ func itoa(i int) string { return anyString(float64(i)) }
 
 // --- tree -----------------------------------------------------------------------
 
-type treeNode struct {
+// TreeMeta is one right-aligned metadata column on a tree row.
+type TreeMeta struct {
+	Text string `json:"text"`
+	Tone string `json:"tone,omitempty"`
+}
+
+// TreeNode is one node in a ui.KindTree ViewNode's "nodes" prop.
+type TreeNode struct {
 	Label      string     `json:"label"`
-	Children   []treeNode `json:"children"`
-	Expanded   *bool      `json:"expanded"`
-	Tone       string     `json:"tone"`
-	Badge      string     `json:"badge"`
-	Unread     bool       `json:"unread"`
-	Editing    bool       `json:"editing"`
-	EditPrefix string     `json:"editPrefix"`
-	EditValue  string     `json:"editValue"`
-	EditCursor int        `json:"editCursor"`
+	Children   []TreeNode `json:"children,omitempty"`
+	Expanded   *bool      `json:"expanded,omitempty"`
+	Tone       string     `json:"tone,omitempty"`
+	Icon       string     `json:"icon,omitempty"`
+	IconTone   string     `json:"iconTone,omitempty"`
+	Badge      string     `json:"badge,omitempty"`
+	Badges     []Badge    `json:"badges,omitempty"`
+	Meta       []TreeMeta `json:"meta,omitempty"`
+	Unread     bool       `json:"unread,omitempty"`
+	Editing    bool       `json:"editing,omitempty"`
+	EditPrefix string     `json:"editPrefix,omitempty"`
+	EditValue  string     `json:"editValue,omitempty"`
+	EditCursor int        `json:"editCursor,omitempty"`
 }
 
 type treeRow struct {
@@ -477,8 +748,12 @@ type treeRow struct {
 	spacer     bool
 	prefix     string
 	marker     string
+	icon       string
+	iconTone   string
 	label      string
 	badge      string
+	badges     []Badge
+	meta       []TreeMeta
 	tone       string
 	unread     bool
 	hasKids    bool
@@ -490,13 +765,13 @@ type treeRow struct {
 }
 
 func treeRows(n *ViewNode) []treeRow {
-	nodes, _ := propDecode[[]treeNode](n, "nodes")
+	nodes, _ := propDecode[[]TreeNode](n, "nodes")
 	guides := n.propBoolDefault("guides", true)
 	gapTop := n.propBool("gapTopLevel")
 	var out []treeRow
 	itemIdx := 0
-	var walk func(ns []treeNode, depth int, cont string)
-	walk = func(ns []treeNode, depth int, cont string) {
+	var walk func(ns []TreeNode, depth int, cont string)
+	walk = func(ns []TreeNode, depth int, cont string) {
 		for i, nd := range ns {
 			if gapTop && depth == 0 && i > 0 {
 				out = append(out, treeRow{itemIdx: -1, spacer: true})
@@ -524,8 +799,12 @@ func treeRows(n *ViewNode) []treeRow {
 				itemIdx:    itemIdx,
 				prefix:     prefix,
 				marker:     marker,
+				icon:       nd.Icon,
+				iconTone:   nd.IconTone,
 				label:      nd.Label,
 				badge:      nd.Badge,
+				badges:     nd.Badges,
+				meta:       nd.Meta,
 				tone:       nd.Tone,
 				unread:     nd.Unread,
 				hasKids:    len(nd.Children) > 0,
@@ -551,6 +830,13 @@ func treeRows(n *ViewNode) []treeRow {
 	}
 	walk(nodes, 0, "")
 	return out
+}
+
+func withBg(ts ToneStyle, bg string) ToneStyle {
+	if ts.Bg == "" && bg != "" {
+		ts.Bg = bg
+	}
+	return ts
 }
 
 func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
@@ -589,25 +875,179 @@ func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 			cur = c.cursorIf(rn, leadW+runesW(rs[startRune:ci]), i-start, buffer.CursorBar)
 			continue
 		}
-		badge := ""
-		if r.badge != "" {
-			badge = " " + r.badge
+
+		// Compute right-aligned meta width and optional label truncation.
+		var metas []TreeMeta
+		metaW := 0
+		for _, m := range r.meta {
+			if m.Text == "" {
+				continue
+			}
+			if len(metas) > 0 {
+				metaW += 2
+			}
+			metaW += strW(m.Text)
+			metas = append(metas, m)
 		}
+		badgesW := 0
+		if r.badge != "" {
+			badgesW += 1 + strW(r.badge)
+		}
+		for _, b := range r.badges {
+			badgesW += 1 + strW(b.Text) + 2
+		}
+		iconW := 0
+		if r.icon != "" {
+			iconW = strW(r.icon)
+			if r.label != "" {
+				iconW++
+			}
+		}
+		leadW := strW(r.prefix) + strW(r.marker) + iconW
+		shownLabel := r.label
+		showMeta := false
+		metaGap := 0
+		if metaW > 0 {
+			minLabel := min(strW(r.label), 4)
+			if leadW+minLabel+badgesW+2+metaW <= w {
+				showMeta = true
+				availLabel := w - leadW - badgesW - 2 - metaW
+				if strW(shownLabel) > availLabel {
+					shownLabel = truncate(shownLabel, availLabel)
+				}
+				metaGap = w - (leadW + strW(shownLabel) + badgesW) - metaW
+			}
+		}
+
+		rowTS := c.st.tone(toneOr(r.tone, "text"))
+
 		if i == selRow {
-			ts := c.rowStyle(rn, true)
-			line := r.prefix + r.marker + r.label + badge
-			out = append(out, padLine(c.st.paint(line, ts), w, c.st.sgr(ts)))
+			selTS := c.rowStyle(rn, true)
+			selPadTS := selTS
+			selPadTS.Strikethrough = false
+
+			var sb strings.Builder
+			if r.prefix != "" {
+				sb.WriteString(c.st.paint(r.prefix, selPadTS))
+			}
+			if r.marker != "" {
+				sb.WriteString(c.st.paint(r.marker, selPadTS))
+			}
+			if r.icon != "" {
+				var resolvedIcon ToneStyle
+				switch {
+				case r.iconTone != "":
+					resolvedIcon = c.st.tone(r.iconTone)
+				case r.tone != "":
+					resolvedIcon = c.st.tone(r.tone)
+				}
+				iconTS := selPadTS
+				if resolvedIcon.Fg != "" {
+					iconTS.Fg = resolvedIcon.Fg
+				}
+				iconTS.Bg = selTS.Bg
+				iconTS.Bold = selTS.Bold || resolvedIcon.Bold
+				iconTS.Strikethrough = false
+				sb.WriteString(c.st.paint(r.icon, iconTS))
+				if shownLabel != "" {
+					sb.WriteString(c.st.paint(" ", selPadTS))
+				}
+			}
+			if shownLabel != "" {
+				labelTS := selPadTS
+				labelTS.Strikethrough = rowTS.Strikethrough
+				sb.WriteString(c.st.paint(shownLabel, labelTS))
+			}
+			if r.badge != "" {
+				sb.WriteString(c.st.paint(" "+r.badge, selPadTS))
+			}
+			for _, b := range r.badges {
+				sb.WriteString(c.st.paint(" ", selPadTS))
+				bs := c.st.badgeStyle(b.Tone)
+				if bs.Bg == "" {
+					bs.Bg = selTS.Bg
+				}
+				bs.Strikethrough = false
+				sb.WriteString(c.st.paint(" "+b.Text+" ", bs))
+			}
+			if showMeta {
+				if metaGap > 0 {
+					sb.WriteString(c.st.paint(spaces(metaGap), selPadTS))
+				}
+				for mi, m := range metas {
+					if mi > 0 {
+						sb.WriteString(c.st.paint("  ", selPadTS))
+					}
+					mt := c.st.tone(toneOr(m.Tone, "muted"))
+					mTS := ToneStyle{
+						Fg:     mt.Fg,
+						Bg:     selTS.Bg,
+						Bold:   mt.Bold,
+						Dim:    mt.Dim,
+						Italic: mt.Italic,
+					}
+					if mTS.Fg == "" {
+						mTS.Fg = selTS.Fg
+					}
+					sb.WriteString(c.st.paint(m.Text, mTS))
+				}
+			}
+			out = append(out, padLine(sb.String(), w, c.st.sgr(selPadTS)))
 			continue
 		}
-		label := c.st.t(toneOr(r.tone, "text"), r.label)
-		if r.unread {
-			label = c.st.t("unread", r.label)
+
+		padTS := ToneStyle{Bg: rowTS.Bg}
+		var sb strings.Builder
+		if r.prefix != "" {
+			sb.WriteString(c.st.paint(r.prefix, withBg(c.st.tone("border"), rowTS.Bg)))
 		}
-		marker := c.st.t("accent", r.marker)
-		if !r.hasKids {
-			marker = c.st.t("muted", r.marker)
+		if r.marker != "" {
+			markerTone := "accent"
+			if !r.hasKids {
+				markerTone = "muted"
+			}
+			sb.WriteString(c.st.paint(r.marker, withBg(c.st.tone(markerTone), rowTS.Bg)))
 		}
-		out = append(out, c.st.t("border", r.prefix)+marker+label+c.st.t("muted", badge))
+		if r.icon != "" {
+			iconToneName := toneOr(r.iconTone, toneOr(r.tone, "text"))
+			iconTS := withBg(c.st.tone(iconToneName), rowTS.Bg)
+			iconTS.Strikethrough = false
+			sb.WriteString(c.st.paint(r.icon, iconTS))
+			if shownLabel != "" {
+				sb.WriteString(c.st.paint(" ", padTS))
+			}
+		}
+		if shownLabel != "" {
+			labelTS := rowTS
+			if r.unread {
+				labelTS = withBg(c.st.tone("unread"), rowTS.Bg)
+			}
+			sb.WriteString(c.st.paint(shownLabel, labelTS))
+		}
+		if r.badge != "" {
+			sb.WriteString(c.st.paint(" "+r.badge, withBg(c.st.tone("muted"), rowTS.Bg)))
+		}
+		for _, b := range r.badges {
+			sb.WriteString(c.st.paint(" ", padTS))
+			sb.WriteString(c.st.badgeText(b))
+		}
+		if showMeta {
+			if metaGap > 0 {
+				sb.WriteString(c.st.paint(spaces(metaGap), padTS))
+			}
+			for mi, m := range metas {
+				if mi > 0 {
+					sb.WriteString(c.st.paint("  ", padTS))
+				}
+				mTS := withBg(c.st.tone(toneOr(m.Tone, "muted")), rowTS.Bg)
+				sb.WriteString(c.st.paint(m.Text, mTS))
+			}
+		}
+		line := sb.String()
+		if rowTS.Bg != "" {
+			line = padLine(line, w, c.st.sgr(padTS))
+		}
+		out = append(out, line)
 	}
 	return out, cur
 }

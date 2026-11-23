@@ -54,13 +54,17 @@ type Column struct {
 // Row is one record. Cells holds values by key; any key may be filtered,
 // sorted or grouped, whether or not a Column displays it.
 type Row struct {
-	ID     string
-	Ref    *core.Ref
-	Scope  string
-	Cells  map[string]any
-	Badges []ui.Badge
-	Unread bool
-	Facts  map[string]any
+	ID        string
+	Ref       *core.Ref
+	Scope     string
+	Cells     map[string]any
+	Badges    []ui.Badge
+	Unread    bool
+	Facts     map[string]any
+	Tone      string
+	CellTones map[string]string
+	CellIcons map[string]string
+	IconTones map[string]string
 }
 
 // Item is one display line: a group header or a row.
@@ -956,15 +960,61 @@ func (m *Model) View(id string) ui.ViewNode {
 			for j := 1; j < len(cells); j++ {
 				cells[j] = ""
 			}
-		} else {
+			rows[i] = ui.TableRowSpec{Cells: cells, Tone: "table.group"}
+			continue
+		}
+		for j, c := range m.Columns {
+			cells[j] = Text(it.Row.Cells[c.Key])
+		}
+		if len(cells) > 0 && m.Marked[it.Row.ID] {
+			cells[0] = "● " + cells[0].(string)
+		}
+		styled := it.Row.Tone != ""
+		var cellTones, cellIcons, iconTones []string
+		if len(it.Row.CellTones) > 0 {
 			for j, c := range m.Columns {
-				cells[j] = Text(it.Row.Cells[c.Key])
-			}
-			if len(cells) > 0 && m.Marked[it.Row.ID] {
-				cells[0] = "● " + cells[0].(string)
+				if v := it.Row.CellTones[c.Key]; v != "" {
+					if cellTones == nil {
+						cellTones = make([]string, len(m.Columns))
+					}
+					cellTones[j] = v
+					styled = true
+				}
 			}
 		}
-		rows[i] = cells
+		if len(it.Row.CellIcons) > 0 {
+			for j, c := range m.Columns {
+				if v := it.Row.CellIcons[c.Key]; v != "" {
+					if cellIcons == nil {
+						cellIcons = make([]string, len(m.Columns))
+					}
+					cellIcons[j] = v
+					styled = true
+				}
+			}
+		}
+		if len(it.Row.IconTones) > 0 {
+			for j, c := range m.Columns {
+				if v := it.Row.IconTones[c.Key]; v != "" {
+					if iconTones == nil {
+						iconTones = make([]string, len(m.Columns))
+					}
+					iconTones[j] = v
+					styled = true
+				}
+			}
+		}
+		if styled {
+			rows[i] = ui.TableRowSpec{
+				Cells:     cells,
+				Tone:      it.Row.Tone,
+				CellTones: cellTones,
+				CellIcons: cellIcons,
+				IconTones: iconTones,
+			}
+		} else {
+			rows[i] = cells
+		}
 	}
 	props := map[string]any{"columns": cols, "rows": rows, "selected": m.SelectedIdx, "offset": m.Offset}
 	vFrom, vTo, vOK := m.visualBounds(len(items))

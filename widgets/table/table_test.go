@@ -289,3 +289,61 @@ func TestVisualAndCellSelect(t *testing.T) {
 		t.Fatalf("cell view props/facts: %+v %+v", cv.Props, cv.Facts)
 	}
 }
+
+func TestRowStylingProjectionAndCacheKey(t *testing.T) {
+	cols := []Column{{Key: "status", Title: "Status"}, {Key: "title", Title: "Title"}}
+	m := New(cols, []Row{
+		{
+			ID:        "1",
+			Cells:     map[string]any{"status": "working", "title": "Active item"},
+			Tone:      "row.active",
+			CellTones: map[string]string{"status": "state.working"},
+			CellIcons: map[string]string{"status": "●"},
+			IconTones: map[string]string{"status": "state.working"},
+		},
+		{
+			ID:    "2",
+			Cells: map[string]any{"status": "plain", "title": "Plain item"},
+		},
+	})
+
+	v1 := m.View("t")
+	rawRows := v1.Props["rows"].([]any)
+	spec, ok := rawRows[0].(ui.TableRowSpec)
+	if !ok {
+		t.Fatalf("styled row should project to ui.TableRowSpec, got %T", rawRows[0])
+	}
+	if spec.Tone != "row.active" || spec.CellTones[0] != "state.working" || spec.CellIcons[0] != "●" || spec.IconTones[0] != "state.working" {
+		t.Fatalf("unexpected projected spec: %+v", spec)
+	}
+	if _, isPlain := rawRows[1].([]any); !isPlain {
+		t.Fatalf("unstyled row should stay plain []any, got %T", rawRows[1])
+	}
+
+	// CacheKey invalidates on tone or icon mutation.
+	k1 := v1.CacheKey
+	m.Rows[0].Tone = "row.cancelled"
+	k2 := m.View("t").CacheKey
+	if k2 == k1 {
+		t.Error("CacheKey did not invalidate on Row.Tone change")
+	}
+	m.Rows[0].CellIcons["status"] = "✕"
+	k3 := m.View("t").CacheKey
+	if k3 == k2 {
+		t.Error("CacheKey did not invalidate on Row.CellIcons change")
+	}
+	m.Rows[0].IconTones["status"] = "state.cancelled"
+	k4 := m.View("t").CacheKey
+	if k4 == k3 {
+		t.Error("CacheKey did not invalidate on Row.IconTones change")
+	}
+
+	// Group headers emit ui.TableRowSpec with Tone "table.group".
+	m.GroupField = "status"
+	gv := m.View("t")
+	gRows := gv.Props["rows"].([]any)
+	hdr, ok := gRows[0].(ui.TableRowSpec)
+	if !ok || hdr.Tone != "table.group" {
+		t.Fatalf("group header should emit ui.TableRowSpec with table.group tone, got %#v", gRows[0])
+	}
+}

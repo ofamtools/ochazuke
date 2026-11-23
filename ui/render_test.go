@@ -508,4 +508,134 @@ func TestRenderTreeGuides(t *testing.T) {
 	}
 }
 
+func TestRenderRichTableRowSpec(t *testing.T) {
+	tbl := ViewNode{
+		Kind:      KindTable,
+		ID:        "t",
+		Focusable: true,
+		Props: map[string]any{
+			"columns": []any{"status", "title", map[string]any{"title": "prio", "align": "right"}},
+			"rows": []any{
+				TableRowSpec{
+					Cells:     []any{"working", "Implement phase 1", "P1"},
+					Tone:      "row.active",
+					CellTones: []string{"state.working", "", "state.blocked"},
+					CellIcons: []string{"●", "", ""},
+					IconTones: []string{"state.working", "", ""},
+				},
+				TableRowSpec{
+					Cells:     []any{"cancelled", "Drop old shim", "P3"},
+					Tone:      "row.cancelled",
+					CellIcons: []string{"✕", "", ""},
+					IconTones: []string{"state.cancelled", "", ""},
+				},
+				map[string]any{
+					"cells":     []any{"done", "Ship binary", "P2"},
+					"tone":      "row.dim",
+					"cellTones": []any{"state.done.dim", "", ""},
+					"cellIcons": []any{"✓", "", ""},
+					"iconTones": []any{"state.done", "", ""},
+				},
+			},
+			"selected": 0,
+		},
+	}
+
+	rows, f, _ := draw(tbl, "t", 50, 6)
+	if !strings.Contains(rows[2], "● working") || !strings.Contains(rows[3], "✕ cancelled") || !strings.Contains(rows[4], "✓ done") {
+		t.Fatalf("rich table icons/text missing:\n%s", strings.Join(rows, "\n"))
+	}
+
+	ansiRows := strings.Split(f.ANSI, "\n")
+	// Selected row 0 (ansiRows[2]) preserves status icon fg (#86e1fc -> 38;2;134;225;252) on selection bg (48;2;59;79;135).
+	if !strings.Contains(ansiRows[2], "38;2;134;225;252") || !strings.Contains(ansiRows[2], "48;2;59;79;135") {
+		t.Errorf("selected row should preserve icon fg over selection bg: %q", ansiRows[2])
+	}
+	// Unselected cancelled row (ansiRows[3]) has strikethrough on text, NOT on column gaps ("  ") and NOT on icon ("✕").
+	if !strings.Contains(ansiRows[3], ";9") && !strings.Contains(ansiRows[3], "[9") {
+		t.Errorf("cancelled row missing strikethrough SGR 9: %q", ansiRows[3])
+	}
+	if strings.Contains(ansiRows[3], "48;") {
+		t.Errorf("unselected row without Bg must not emit background fill: %q", ansiRows[3])
+	}
+	// Icon "✕" must not be painted with strikethrough.
+	if idx := strings.Index(ansiRows[3], "✕"); idx >= 0 {
+		prefix := ansiRows[3][:idx]
+		lastEsc := strings.LastIndex(prefix, "\x1b[")
+		if lastEsc >= 0 && strings.Contains(prefix[lastEsc:], ";9") {
+			t.Errorf("icon should not carry strikethrough: %q", prefix[lastEsc:])
+		}
+	}
+	// When cancelled row is selected, text keeps strikethrough while icon does not.
+	tbl.Props["selected"] = 1
+	_, fSelCancel, _ := draw(tbl, "t", 50, 6)
+	selCancelRow := strings.Split(fSelCancel.ANSI, "\n")[3]
+	if !strings.Contains(selCancelRow, "48;2;59;79;135") {
+		t.Errorf("selected cancelled row missing selection bg: %q", selCancelRow)
+	}
+	if !strings.Contains(selCancelRow, ";9") && !strings.Contains(selCancelRow, "[9") {
+		t.Errorf("selected cancelled row should preserve strikethrough on text: %q", selCancelRow)
+	}
+}
+
+func TestRenderRichTreeNode(t *testing.T) {
+	nodes := []TreeNode{
+		{
+			Label:    "Alpha release",
+			Tone:     "row.active",
+			Icon:     "●",
+			IconTone: "state.working",
+			Badges:   []Badge{{Text: "P1", Tone: "error"}},
+			Meta:     []TreeMeta{{Text: "2/5", Tone: "muted"}},
+			Children: []TreeNode{
+				{
+					Label:    "Very long child task name that should truncate cleanly",
+					Tone:     "row.cancelled",
+					Icon:     "✕",
+					IconTone: "state.blocked",
+					Meta:     []TreeMeta{{Text: "(+3)", Tone: "muted"}},
+				},
+			},
+		},
+	}
+
+	root := ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props: map[string]any{
+			"nodes":    nodes,
+			"guides":   true,
+			"selected": 0,
+		},
+	}
+
+	rows, f, _ := draw(root, "tr", 44, 4)
+	if !strings.Contains(rows[0], "▾ ● Alpha release") || !strings.Contains(rows[0], "P1") || !strings.HasSuffix(rows[0], "2/5") {
+		t.Fatalf("rich selected root row mismatch: %q", rows[0])
+	}
+	if !strings.Contains(rows[1], "└─ · ✕ ") || !strings.Contains(rows[1], "…") || !strings.HasSuffix(rows[1], "(+3)") {
+		t.Fatalf("rich child row truncation/right-align mismatch: %q", rows[1])
+	}
+
+	ansiRows := strings.Split(f.ANSI, "\n")
+	// Selected root preserves state.working icon fg (#86e1fc -> 38;2;134;225;252) on selection bg (48;2;59;79;135).
+	if !strings.Contains(ansiRows[0], "38;2;134;225;252") || !strings.Contains(ansiRows[0], "48;2;59;79;135") {
+		t.Errorf("selected tree row should preserve icon fg over selection bg: %q", ansiRows[0])
+	}
+	// Unselected child has no trailing bg fill and has strikethrough on label.
+	if strings.Contains(ansiRows[1], "48;") {
+		t.Errorf("unselected tree row without Bg must not emit background fill: %q", ansiRows[1])
+	}
+	if !strings.Contains(ansiRows[1], ";9") && !strings.Contains(ansiRows[1], "[9") {
+		t.Errorf("cancelled child row missing strikethrough SGR 9: %q", ansiRows[1])
+	}
+
+	// Narrow viewport drops Meta gracefully without panicking or crushing the label.
+	narrowRows, _, _ := draw(root, "tr", 12, 4)
+	if strings.Contains(narrowRows[1], "(+3)") {
+		t.Errorf("narrow viewport should drop Meta gracefully: %q", narrowRows[1])
+	}
+}
+
 func txtNode(s string) ViewNode { return txt(s) }

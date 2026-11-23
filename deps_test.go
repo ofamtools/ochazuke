@@ -94,6 +94,11 @@ var policies = map[string]policy{
 		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
+	mod + "/widgets/tree": {
+		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/widgets/input"},
+		allowTests: []string{mod + "/buffer"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
 	mod + "/widgets/picker": {
 		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/widgets/input"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
@@ -140,6 +145,22 @@ var policies = map[string]policy{
 	},
 	mod + "/widgets/hints": {
 		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/buffer"},
+		forbidDeps: []string{"bubbletea", mod + "/tea"},
+	},
+	mod + "/widgets/modal": {
+		allow: []string{
+			mod + "/core",
+			mod + "/ui",
+			mod + "/layout",
+			mod + "/widgets/commandline",
+			mod + "/widgets/form",
+			mod + "/widgets/input",
+			mod + "/widgets/markdown",
+			mod + "/widgets/palette",
+			mod + "/widgets/pathpicker",
+			mod + "/widgets/picker",
+			mod + "/widgets/toast",
+		},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/tutorial": {

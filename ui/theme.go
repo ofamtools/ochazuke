@@ -11,12 +11,14 @@ import (
 // ToneStyle is one semantic style. Fg and Bg may be "#RRGGBB", an ANSI index
 // ("0".."255"), or a role name defined in Theme.Roles.
 type ToneStyle struct {
-	Fg        string `json:"fg,omitempty"`
-	Bg        string `json:"bg,omitempty"`
-	Bold      bool   `json:"bold,omitempty"`
-	Dim       bool   `json:"dim,omitempty"`
-	Underline bool   `json:"underline,omitempty"`
-	Reverse   bool   `json:"reverse,omitempty"`
+	Fg            string `json:"fg,omitempty"`
+	Bg            string `json:"bg,omitempty"`
+	Bold          bool   `json:"bold,omitempty"`
+	Dim           bool   `json:"dim,omitempty"`
+	Italic        bool   `json:"italic,omitempty"`
+	Underline     bool   `json:"underline,omitempty"`
+	Strikethrough bool   `json:"strikethrough,omitempty"`
+	Reverse       bool   `json:"reverse,omitempty"`
 }
 
 // Theme densities: how much vertical space forms and cards use. The empty
@@ -144,6 +146,20 @@ func defaultTones() map[string]ToneStyle {
 		"md.em":             {Fg: "info"},
 		"md.quote":          {Fg: "muted"},
 		"md.bullet":         {Fg: "accent"},
+		"row.active":        {Fg: "text", Bold: true},
+		"row.attention":     {Fg: "magenta"},
+		"row.muted":         {Fg: "muted"},
+		"row.dim":           {Fg: "muted", Dim: true},
+		"row.cancelled":     {Fg: "muted", Dim: true, Strikethrough: true},
+		"row.error":         {Fg: "error"},
+		"state.review":      {Fg: "magenta", Bold: true},
+		"state.blocked":     {Fg: "error", Bold: true},
+		"state.planned":     {Fg: "muted"},
+		"state.cancelled":   {Fg: "muted", Dim: true, Strikethrough: true},
+		"state.done.dim":    {Fg: "success", Dim: true},
+		"icon.star":         {Fg: "warning", Bold: true},
+		"icon.unread":       {Fg: "warning", Bold: true},
+		"table.group":       {Fg: "accent", Bold: true},
 	}
 }
 
@@ -226,6 +242,10 @@ func HighContrastDarkTheme() Theme {
 		Tones: defaultTones(),
 	}
 	t.Tones["dim"] = ToneStyle{Fg: "muted"} // faint text loses contrast; muted is enough
+	t.Tones["row.dim"] = ToneStyle{Fg: "muted"}
+	t.Tones["row.cancelled"] = ToneStyle{Fg: "muted", Strikethrough: true}
+	t.Tones["state.cancelled"] = ToneStyle{Fg: "muted", Strikethrough: true}
+	t.Tones["state.done.dim"] = ToneStyle{Fg: "success"}
 	return t
 }
 
@@ -299,7 +319,9 @@ func mergeTone(a, b ToneStyle) ToneStyle {
 	}
 	a.Bold = a.Bold || b.Bold
 	a.Dim = a.Dim || b.Dim
+	a.Italic = a.Italic || b.Italic
 	a.Underline = a.Underline || b.Underline
+	a.Strikethrough = a.Strikethrough || b.Strikethrough
 	a.Reverse = a.Reverse || b.Reverse
 	return a
 }
@@ -347,7 +369,7 @@ func (s *styler) sgr(ts ToneStyle) string {
 	if c := colorOf(ts.Bg); c != nil {
 		st = st.Background(c)
 	}
-	st = st.Bold(ts.Bold).Faint(ts.Dim).Underline(ts.Underline).Reverse(ts.Reverse)
+	st = st.Bold(ts.Bold).Faint(ts.Dim).Italic(ts.Italic).Underline(ts.Underline).Strikethrough(ts.Strikethrough).Reverse(ts.Reverse)
 	out := st.Render("X")
 	prefix := ""
 	if i := strings.Index(out, "X"); i > 0 {

@@ -741,11 +741,17 @@ func toneToSGR(ts ui.ToneStyle) string {
 	if ts.Dim {
 		parts = append(parts, "2")
 	}
+	if ts.Italic {
+		parts = append(parts, "3")
+	}
 	if ts.Underline {
 		parts = append(parts, "4")
 	}
 	if ts.Reverse {
 		parts = append(parts, "7")
+	}
+	if ts.Strikethrough {
+		parts = append(parts, "9")
 	}
 	if fg := colorSGR(ts.Fg, false); fg != "" {
 		parts = append(parts, fg)
