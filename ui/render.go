@@ -278,10 +278,11 @@ func (c *ctx) blitLines(r layout.Rect, lines []string, cur *buffer.Cursor) {
 
 // mergeRec carries the geometry of a scroll viewport's descendants.
 type mergeRec struct {
-	owner string
-	rects map[string]layout.Rect
-	inner map[string]layout.Rect
-	focus []string
+	owner   string
+	rects   map[string]layout.Rect
+	inner   map[string]layout.Rect
+	focus   []string
+	scrolls map[string]layout.ScrollInfo
 }
 
 func clipRect(r, clip layout.Rect) (layout.Rect, bool) {
@@ -321,6 +322,17 @@ func foldNested(rects, inner map[string]layout.Rect, order []string, nested []me
 
 func finalizeSolved(s layout.Solved, merges []mergeRec, userFocus map[string]bool) layout.Solved {
 	s.FocusOrder = foldNested(s.Rects, s.InnerRects, s.FocusOrder, merges, userFocus)
+	for _, m := range merges {
+		for id, info := range m.scrolls {
+			if IsSyntheticID(id) {
+				continue
+			}
+			if s.Scrolls == nil {
+				s.Scrolls = map[string]layout.ScrollInfo{}
+			}
+			s.Scrolls[id] = info
+		}
+	}
 	for id := range s.Rects {
 		if IsSyntheticID(id) {
 			delete(s.Rects, id)

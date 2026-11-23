@@ -725,4 +725,35 @@ func TestRenderPickerFilterModes(t *testing.T) {
 	}
 }
 
+func TestScrollSolvedGeometry(t *testing.T) {
+	var kids []ViewNode
+	for i := range 20 {
+		kids = append(kids, ViewNode{
+			ID:        "row." + string(rune('a'+i)),
+			Kind:      KindText,
+			Focusable: i == 19,
+			Box:       layout.Constraints{FixedH: 2},
+			Props:     map[string]any{"text": "line"},
+		})
+	}
+	root := ViewNode{
+		ID:        "doc.scroll",
+		Kind:      KindScroll,
+		Focusable: true,
+		Props:     map[string]any{"offset": 0},
+		Children:  []ViewNode{{Kind: KindVStack, Children: kids}},
+	}
+	_, solved := Render(root, DefaultDarkTheme(), "doc.scroll", 40, 10)
+	info, ok := solved.Scrolls["doc.scroll"]
+	if !ok {
+		t.Fatalf("missing Scrolls[doc.scroll] in %+v", solved.Scrolls)
+	}
+	if info.ContentH != 40 || info.ViewH != 10 || info.Offset != 0 || info.MaxOff != 30 {
+		t.Fatalf("unexpected scroll info: %+v", info)
+	}
+	if info.ChildY["row.t"] != 38 {
+		t.Fatalf("expected bottom child row.t at Y=38, got %d", info.ChildY["row.t"])
+	}
+}
+
 func txtNode(s string) ViewNode { return txt(s) }

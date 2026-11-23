@@ -66,11 +66,23 @@ type Box struct {
 	Children    []Box
 }
 
+// ScrollInfo reports the solved content height, viewport height, effective
+// scroll offset, maximum scroll offset, and child vertical offsets of a
+// rendered ui.KindScroll node.
+type ScrollInfo struct {
+	ContentH int
+	ViewH    int
+	Offset   int
+	MaxOff   int
+	ChildY   map[string]int
+}
+
 // Solved holds the geometry and focus navigation outputs produced by Solve.
 type Solved struct {
-	Rects      map[string]Rect // outer Rect per node ID
-	InnerRects map[string]Rect // content Rect after border + padding
-	FocusOrder []string        // focusable IDs in visual order (top-to-bottom, left-to-right)
+	Rects      map[string]Rect       // outer Rect per node ID
+	InnerRects map[string]Rect       // content Rect after border + padding
+	FocusOrder []string              // focusable IDs in visual order (top-to-bottom, left-to-right)
+	Scrolls    map[string]ScrollInfo // scroll geometry per rendered KindScroll node ID
 
 	// hits records visible non-empty-ID nodes in painter's order (base DFS
 	// followed by overlays bottom-to-top) for HitTest reverse traversal.

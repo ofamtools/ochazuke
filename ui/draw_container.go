@@ -415,7 +415,28 @@ func (c *ctx) drawScroll(rn *rnode, lr layout.Rect) {
 	order := foldNested(sub.Rects, sub.InnerRects, sub.FocusOrder, win.merges, c.b.userFocus)
 	dx, dy := ir.X, ir.Y-offset
 	view := layout.Rect{X: ir.X, Y: ir.Y, W: vw, H: vh}
-	rec := mergeRec{owner: rn.id, rects: map[string]layout.Rect{}, inner: map[string]layout.Rect{}}
+	childY := map[string]int{}
+	for id, r := range sub.Rects {
+		if !IsSyntheticID(id) {
+			childY[id] = r.Y
+		}
+	}
+	scrolls := map[string]layout.ScrollInfo{}
+	for _, wm := range win.merges {
+		for id, info := range wm.scrolls {
+			scrolls[id] = info
+		}
+	}
+	if !IsSyntheticID(rn.id) {
+		scrolls[rn.id] = layout.ScrollInfo{
+			ContentH: total,
+			ViewH:    vh,
+			Offset:   offset,
+			MaxOff:   maxOff,
+			ChildY:   childY,
+		}
+	}
+	rec := mergeRec{owner: rn.id, rects: map[string]layout.Rect{}, inner: map[string]layout.Rect{}, scrolls: scrolls}
 	for id, r := range sub.Rects {
 		if cr, ok := clipRect(layout.Rect{X: r.X + dx, Y: r.Y + dy, W: r.W, H: r.H}, view); ok {
 			rec.rects[id] = cr
