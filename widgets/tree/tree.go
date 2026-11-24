@@ -109,6 +109,7 @@ type Model struct {
 	Guides        bool
 	GapTopLevel   bool
 	ShowFoldCount bool
+	Wrap          bool
 	Folded        map[string]bool
 
 	edit *EditState
@@ -572,6 +573,14 @@ func (m *Model) HandleEditCommand(cmd core.Command) bool {
 	return handled
 }
 
+// EditInsertNewline inserts a literal newline at the cursor of the active inline edit.
+func (m *Model) EditInsertNewline() bool {
+	if m.edit == nil {
+		return false
+	}
+	return m.edit.Line.Insert("\n")
+}
+
 // EditIndent demotes an inline-add draft under its preceding sibling.
 func (m *Model) EditIndent() bool {
 	if !m.hasAddDraft() || m.edit.AfterID == "" {
@@ -931,6 +940,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		"nodes":       uiNodes,
 		"guides":      m.Guides,
 		"gapTopLevel": m.GapTopLevel,
+		"wrap":        m.Wrap,
 		"selected":    selIdx,
 		"offset":      m.Offset,
 	}
@@ -947,7 +957,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		n.Unread, n.Badges = row.Node.Unread, row.Node.Badges
 	}
 	h := fnv.New64a()
-	fmt.Fprintf(h, "%t|%t|%t|%d|%d|", m.Guides, m.GapTopLevel, m.ShowFoldCount, selIdx, m.Offset)
+	fmt.Fprintf(h, "%t|%t|%t|%t|%d|%d|", m.Guides, m.GapTopLevel, m.ShowFoldCount, m.Wrap, selIdx, m.Offset)
 	hashUINodes(h, uiNodes)
 	n.CacheKey = h.Sum64() | 1
 	return n

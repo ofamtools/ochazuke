@@ -74,6 +74,27 @@ func wrapPara(rs []rune, s, e, w int) [][2]int {
 	return append(out, [2]int{ls, e})
 }
 
+// wrapCursor maps a rune cursor offset ci in rs onto (lineIdx, col) within
+// wrapRanges(rs, w) output rngs.
+func wrapCursor(rs []rune, rngs [][2]int, ci int) (int, int) {
+	if len(rngs) == 0 {
+		return 0, 0
+	}
+	ci = clampInt(ci, 0, len(rs))
+	for i, r := range rngs {
+		if ci >= r[0] && ci < r[1] {
+			return i, runesW(rs[r[0]:ci])
+		}
+		if ci == r[1] {
+			if i == len(rngs)-1 || rngs[i+1][0] > ci {
+				return i, runesW(rs[r[0]:ci])
+			}
+		}
+	}
+	last := rngs[len(rngs)-1]
+	return len(rngs) - 1, runesW(rs[last[0]:last[1]])
+}
+
 // wrapPlain wraps text to width w.
 func wrapPlain(text string, w int) []string {
 	rs := []rune(text)
@@ -115,6 +136,22 @@ func fieldText(s string) string {
 		switch {
 		case r == '\n':
 			return '↵'
+		case r == '\t':
+			return ' '
+		case r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0):
+			return '\uFFFD'
+		}
+		return r
+	}, s)
+}
+
+// fieldTextMultiline sanitizes user text for multiline wrapped rendering,
+// preserving explicit newlines while keeping a 1-to-1 rune mapping for cursor math.
+func fieldTextMultiline(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r == '\n':
+			return '\n'
 		case r == '\t':
 			return ' '
 		case r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0):

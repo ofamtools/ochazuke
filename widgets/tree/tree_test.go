@@ -298,4 +298,22 @@ func TestContextFrameFactsAndViewRender(t *testing.T) {
 	if frEdit.Cursor.Shape != buffer.CursorBar || frEdit.Cursor.Y != 0 {
 		t.Errorf("expected bar cursor on row 0 during rename, got %+v", frEdit.Cursor)
 	}
+
+	// Wrap prop, CacheKey invalidation, and EditInsertNewline / CmdInsert("\n").
+	if vEdit.Props["wrap"] != false {
+		t.Fatalf("default wrap prop = %v, want false", vEdit.Props["wrap"])
+	}
+	m.Wrap = true
+	vWrap := m.View("tr")
+	if vWrap.Props["wrap"] != true || vWrap.CacheKey == vEdit.CacheKey {
+		t.Fatalf("Wrap=true should emit wrap prop and update CacheKey")
+	}
+	if !m.EditInsertNewline() {
+		t.Fatal("EditInsertNewline returned false")
+	}
+	m.HandleEditCommand(core.Command{ID: input.CmdInsert, Args: map[string]any{"text": "line2"}})
+	res, ok := m.CommitEdit()
+	if !ok || res.Value != "Project A\nline2" {
+		t.Fatalf("multiline CommitEdit = %+v, ok=%v", res, ok)
+	}
 }

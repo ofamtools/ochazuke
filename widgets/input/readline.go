@@ -196,18 +196,29 @@ func (l *Line) Sync(s string) {
 	l.Cursor = min(max(l.Cursor, 0), len(l.Text))
 }
 
-// Insert inserts s (with line breaks collapsed to spaces) at the cursor.
+// Insert inserts s (normalizing CRLF and CR to LF) at the cursor.
 func (l *Line) Insert(s string) bool {
 	if s == "" {
 		return false
 	}
-	s = strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", " "), "\r", " ")
-	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(strings.ReplaceAll(s, "\r\n", "\n"), "\r", "\n")
 	rs := []rune(s)
 	l.Cursor = min(max(l.Cursor, 0), len(l.Text))
 	l.Text = slices.Insert(l.Text, l.Cursor, rs...)
 	l.Cursor += len(rs)
 	return true
+}
+
+func (l *Line) lineBounds() (lo, hi int) {
+	lo = l.Cursor
+	for lo > 0 && l.Text[lo-1] != '\n' {
+		lo--
+	}
+	hi = l.Cursor
+	for hi < len(l.Text) && l.Text[hi] != '\n' {
+		hi++
+	}
+	return lo, hi
 }
 
 func (l *Line) cut(from, to int, saveKill bool) bool {
@@ -228,19 +239,22 @@ func (l *Line) cut(from, to int, saveKill bool) bool {
 	return true
 }
 
-// HandleCommand applies CmdInsert or any Readline command to the line.
+// HandleCommand applies CmdInsert, CmdNewline, or any Readline command to the line.
 // changed reports whether Text was modified; handled reports whether cmd.ID
 // was recognized.
 func (l *Line) HandleCommand(cmd core.Command) (changed, handled bool) {
 	l.Cursor = min(max(l.Cursor, 0), len(l.Text))
+	lo, hi := l.lineBounds()
 	switch cmd.ID {
 	case CmdInsert:
 		return l.Insert(cmd.Arg("text")), true
+	case CmdNewline:
+		return l.Insert("\n"), true
 	case CmdLineStart:
-		l.Cursor = 0
+		l.Cursor = lo
 		return false, true
 	case CmdLineEnd:
-		l.Cursor = len(l.Text)
+		l.Cursor = hi
 		return false, true
 	case CmdCharLeft:
 		if l.Cursor > 0 {
@@ -253,35 +267,35 @@ func (l *Line) HandleCommand(cmd core.Command) (changed, handled bool) {
 		}
 		return false, true
 	case CmdWordLeft:
-		l.Cursor = readlineWordPrev(l.Text, 0, l.Cursor, l.WordScope)
+		l.Cursor = readlineWordPrev(l.Text, lo, l.Cursor, l.WordScope)
 		return false, true
 	case CmdWordRight:
-		l.Cursor = readlineWordNext(l.Text, l.Cursor, len(l.Text), l.WordScope)
+		l.Cursor = readlineWordNext(l.Text, l.Cursor, hi, l.WordScope)
 		return false, true
 	case CmdBackspace:
 		return l.cut(l.Cursor-1, l.Cursor, false), true
 	case CmdDeleteChar:
 		return l.cut(l.Cursor, l.Cursor+1, false), true
 	case CmdKillWordBack:
-		from := readlineWordPrev(l.Text, 0, l.Cursor, l.WordScope)
+		from := readlineWordPrev(l.Text, lo, l.Cursor, l.WordScope)
 		return l.cut(from, l.Cursor, true), true
 	case CmdKillWordForward:
-		to := readlineWordNext(l.Text, l.Cursor, len(l.Text), l.WordScope)
+		to := readlineWordNext(l.Text, l.Cursor, hi, l.WordScope)
 		return l.cut(l.Cursor, to, true), true
 	case CmdKillLineBack:
-		return l.cut(0, l.Cursor, true), true
+		return l.cut(lo, l.Cursor, true), true
 	case CmdKillLineForward:
-		return l.cut(l.Cursor, len(l.Text), true), true
+		return l.cut(l.Cursor, hi, true), true
 	case CmdTranspose:
-		if len(l.Text) < 2 || l.Cursor == 0 {
+		if hi-lo < 2 || l.Cursor <= lo {
 			return false, true
 		}
 		pos := l.Cursor
-		if pos == len(l.Text) {
+		if pos == hi {
 			pos--
 		}
 		l.Text[pos-1], l.Text[pos] = l.Text[pos], l.Text[pos-1]
-		l.Cursor = min(pos+1, len(l.Text))
+		l.Cursor = min(pos+1, hi)
 		return true, true
 	case CmdYankKill:
 		return l.Insert(l.Kill), true

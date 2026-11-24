@@ -490,7 +490,7 @@ func natural(n *ViewNode, w int, d string) int {
 		}
 		return 1 + cv
 	case KindForm:
-		return formHeight(n, d) + cv
+		return formHeight(n, iw, d) + cv
 	case KindPicker:
 		return 1 + len(toSlice(n.Props["items"])) + cv
 	case KindTerminal:

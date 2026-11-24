@@ -120,18 +120,87 @@ func formAddLabel(s core.ParamSpec) string {
 	return "item"
 }
 
+func formLabelWidth(fields []core.ParamSpec, values map[string]any) int {
+	lw := 0
+	for _, f := range fields {
+		lw = max(lw, strW(fieldText(f.Name))+2)
+		if f.Repeatable {
+			nItems := len(formRepeatableItems(f, values))
+			if nItems > 1 {
+				lw = max(lw, strW(fmt.Sprintf("[%d]", nItems))+2)
+			}
+		}
+	}
+	return lw
+}
+
+func formTextInputWidth(aw int, inlineErr string) (iw int, tail string) {
+	if inlineErr != "" {
+		tail = " ✗ " + inlineErr
+	}
+	iw = aw
+	if tail != "" {
+		if aw-strW(tail) < 6 {
+			tail = truncate(tail, max(0, aw-6))
+		}
+		iw = aw - strW(tail)
+	}
+	return iw, tail
+}
+
+func formWrappedLineCount(val any, aw int, inlineErr string) int {
+	iw, _ := formTextInputWidth(aw, inlineErr)
+	if iw <= 1 {
+		return 1
+	}
+	rs := []rune(fieldTextMultiline(anyString(val)))
+	return len(wrapRanges(rs, max(1, iw-1)))
+}
+
 // formHeight is a form's content height: every field block (including expanded
-// repeatable item rows and "+ Add" rows) plus the submit row.
-func formHeight(n *ViewNode, d string) int {
+// repeatable item rows, wrapped text lines when wrap is enabled, and "+ Add"
+// rows) plus the submit row.
+func formHeight(n *ViewNode, w int, d string) int {
 	fields := formFields(n)
 	values, _ := propDecode[map[string]any](n, "values")
+	errsRaw, _ := propDecode[map[string]any](n, "errors")
+	wrap := n.propBool("wrap")
 	per := formRows(d)
+	aw := 0
+	if wrap && w > 0 {
+		aw = max(0, w-(formLabelWidth(fields, values)+2))
+	}
 	total := 1
 	for _, f := range fields {
+		isText := len(f.Enum) == 0 && f.Type != core.ParamBool
 		if f.Repeatable {
-			total += (per - 1) + len(formRepeatableItems(f, values)) + 1
+			items := formRepeatableItems(f, values)
+			total += (per - 1) + 1
+			for idx, item := range items {
+				if wrap && isText && aw > 0 {
+					inline := ""
+					if d == DensityCompact && idx == 0 {
+						inline = fieldText(anyString(errsRaw[f.Name]))
+					}
+					total += formWrappedLineCount(item, aw, inline)
+				} else {
+					total++
+				}
+			}
 		} else {
-			total += per
+			extra := 0
+			if wrap && isText && aw > 0 {
+				val, has := values[f.Name]
+				if !has {
+					val = f.Default
+				}
+				inline := ""
+				if d == DensityCompact {
+					inline = fieldText(anyString(errsRaw[f.Name]))
+				}
+				extra = max(0, formWrappedLineCount(val, aw, inline)-1)
+			}
+			total += per + extra
 		}
 	}
 	return total
@@ -175,32 +244,21 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 	vrows := formVisualRows(fields, values)
 	active := formActive(n, vrows)
 	cursorPos, hasCursor := n.propInt("cursor")
-	lw := 0
-	for _, f := range fields {
-		lw = max(lw, strW(fieldText(f.Name))+2)
-		if f.Repeatable {
-			nItems := len(formRepeatableItems(f, values))
-			if nItems > 1 {
-				lw = max(lw, strW(fmt.Sprintf("[%d]", nItems))+2)
-			}
-		}
-	}
+	_, hasEditing := n.prop("editing")
+	editing := n.propBool("editing")
+	wrap := n.propBool("wrap")
+	showCursor := editing || hasCursor || !hasEditing
+	lw := formLabelWidth(fields, values)
 	x0 := lw + 2 // value column: mark, space, name, required mark, space
 	tx := x0 + 1 // text column inside the value's leading space
 
 	// A field uses the density's block when the natural height fits; else one
 	// compact row, except the active field when its extra rows still fit.
 	per := formRows(d)
-	natH := 1
-	for _, f := range fields {
-		if f.Repeatable {
-			natH += (per - 1) + len(formRepeatableItems(f, values)) + 1
-		} else {
-			natH += per
-		}
-	}
+	natH := formHeight(n, w, d)
 	allFull := h <= 0 || natH <= h
-	activeFull := allFull || len(vrows)+per <= h
+	compactH := formHeight(n, w, DensityCompact)
+	activeFull := allFull || compactH+(per-1) <= h
 	activeFieldIdx := -1
 	if active >= 0 && active < len(vrows) {
 		activeFieldIdx = vrows[active].fieldIdx
@@ -208,7 +266,7 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 
 	var out []string
 	var cur *buffer.Cursor
-	ctl := 0 // the active row's line index
+	ctlStart, ctlEnd := 0, 0 // line range [ctlStart, ctlEnd] of the active row
 	for i, vr := range vrows {
 		f := vr.field
 		fd := d
@@ -245,7 +303,7 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 		}
 
 		if i == active {
-			ctl = len(out)
+			ctlStart = len(out)
 		}
 
 		if vr.isAdd {
@@ -280,11 +338,22 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 			if on && hasCursor {
 				fieldCursor = cursorPos
 			}
-			body, cx := c.formControl(f, vr.value, on, max(0, w-x0), placeholder, inline, fieldCursor)
-			if on && rn.isFocus && cx >= 0 {
-				cur = &buffer.Cursor{X: x0 + cx, Y: len(out), Shape: buffer.CursorBar}
+			baseY := len(out)
+			bodyLines, cx, cy := c.formControl(f, vr.value, on, editing, showCursor, wrap, max(0, w-x0), placeholder, inline, fieldCursor)
+			for li, body := range bodyLines {
+				if li == 0 {
+					out = append(out, label+body)
+				} else {
+					out = append(out, spaces(x0)+body)
+				}
 			}
-			out = append(out, label+body)
+			if on && rn.isFocus && cx >= 0 {
+				cur = &buffer.Cursor{X: x0 + cx, Y: baseY + cy, Shape: buffer.CursorBar}
+			}
+		}
+
+		if i == active {
+			ctlEnd = len(out) - 1
 		}
 
 		if isLast && fd != DensityCompact {
@@ -304,7 +373,7 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 		submit = "Submit"
 	}
 	if n.propBool("submitRow") && active == len(vrows) && rn.onFocus {
-		ctl = len(out)
+		ctlStart, ctlEnd = len(out), len(out)
 		btnStyle := mergeTone(c.st.tone("selected"), ToneStyle{Fg: c.st.tone("accent").Fg, Bold: true})
 		out = append(out, c.st.t("accent", "▸")+" "+c.st.paint("[ ⏎ "+submit+" ]", btnStyle))
 	} else {
@@ -314,14 +383,21 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 		return out, cur
 	}
 
-	// Too short even for compact rows: every row is one line here, so window
-	// them around the active control.
+	// Too short for all lines: window them around the active control (and cursor
+	// line when wrapped) while keeping the submit row pinned at the bottom.
 	rows, foot := out[:len(out)-1], out[len(out)-1:]
 	avail := h - 1
 	if h == 1 {
 		avail, foot = 1, nil
 	}
-	start := min(max(0, ctl+1-avail), max(0, len(rows)-avail))
+	anchor := ctlStart
+	if ctlEnd-ctlStart+1 <= avail {
+		anchor = ctlEnd
+	}
+	if cur != nil && (cur.Y > anchor || ctlEnd-ctlStart+1 > avail) {
+		anchor = cur.Y
+	}
+	start := min(max(0, anchor+1-avail), max(0, len(rows)-avail))
 	win := append(append([]string{}, rows[start:min(len(rows), start+avail)]...), foot...)
 	if cur != nil {
 		cur.Y -= start
@@ -333,10 +409,12 @@ func (c *ctx) formLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 }
 
 // formControl renders a field's value area, aw columns wide from the value
-// column. Text fields scroll to keep the cursor in view while focused. It
-// returns the body and the cursor column relative to the value column, or -1
-// when the field has no text cursor. A compact inline error follows the value.
-func (c *ctx) formControl(f core.ParamSpec, val any, on bool, aw int, placeholder, inlineErr string, cursor int) (string, int) {
+// column. When wrap is true, text fields soft-wrap and preserve explicit
+// newlines so every character remains visible. Otherwise, text fields scroll
+// horizontally to keep the cursor in view while focused. It returns the
+// rendered lines and the cursor (col, line) relative to the value column, or
+// cx = -1 when the field has no text cursor.
+func (c *ctx) formControl(f core.ParamSpec, val any, on, editing, showCursor, wrap bool, aw int, placeholder, inlineErr string, cursor int) ([]string, int, int) {
 	tail := ""
 	if inlineErr != "" {
 		tail = " ✗ " + inlineErr
@@ -357,30 +435,61 @@ func (c *ctx) formControl(f core.ParamSpec, val any, on bool, aw int, placeholde
 				parts[k] = c.st.paint("( ) "+fieldText(opt), mergeTone(c.st.tone("muted"), hl))
 			}
 		}
-		return strings.Join(parts, c.st.paint("  ", hl)) + c.st.t("error", tail), -1
+		return []string{strings.Join(parts, c.st.paint("  ", hl)) + c.st.t("error", tail)}, -1, 0
 	case f.Type == core.ParamBool:
 		box := c.st.paint("[ ]", mergeTone(c.st.tone("muted"), hl))
 		if b, _ := val.(bool); b || anyString(val) == "true" {
 			box = c.st.paint("[x]", mergeTone(c.st.tone("accent"), hl))
 		}
-		return box + c.st.t("error", tail), -1
+		return []string{box + c.st.t("error", tail)}, -1, 0
 	}
-	iw := aw
-	if tail != "" {
-		if aw-strW(tail) < 6 {
-			tail = truncate(tail, max(0, aw-6))
-		}
-		iw = aw - strW(tail)
-	}
+	iw, tail := formTextInputWidth(aw, inlineErr)
 	if iw <= 0 {
-		return c.st.t("error", tail), -1
+		return []string{c.st.t("error", tail)}, -1, 0
 	}
 	style := c.st.tone("input")
 	if on {
-		style = c.st.tone("input.focus")
+		if editing {
+			style = c.st.tone("input.edit")
+		} else {
+			style = c.st.tone("input.focus")
+		}
 	}
-	rs := []rune(fieldText(anyString(val)))
 	room := iw - 1 // columns after the leading space
+	fill := c.st.sgr(style)
+
+	if wrap {
+		rs := []rune(fieldTextMultiline(anyString(val)))
+		if len(rs) == 0 && placeholder != "" {
+			shown := c.st.t("placeholder", " "+truncate(placeholder, room))
+			cx := -1
+			if on && showCursor {
+				cx = min(1, iw-1)
+			}
+			return []string{padLine(shown, iw, fill) + c.st.t("error", tail)}, cx, 0
+		}
+		rngs := wrapRanges(rs, max(1, room))
+		lines := make([]string, len(rngs))
+		for li, rng := range rngs {
+			seg := string(rs[rng[0]:rng[1]])
+			line := padLine(c.st.paint(" "+seg, style), iw, fill)
+			if li == 0 && tail != "" {
+				line += c.st.t("error", tail)
+			}
+			lines[li] = line
+		}
+		if !on || !showCursor {
+			return lines, -1, 0
+		}
+		ci := len(rs)
+		if cursor >= 0 {
+			ci = clampInt(cursor, 0, len(rs))
+		}
+		cy, col := wrapCursor(rs, rngs, ci)
+		return lines, min(1+col, iw-1), cy
+	}
+
+	rs := []rune(fieldText(anyString(val)))
 	var shown string
 	cx := 1
 	switch {
@@ -394,16 +503,16 @@ func (c *ctx) formControl(f core.ParamSpec, val any, on bool, aw int, placeholde
 		}
 		vis := truncate(string(rs[startRune:]), room)
 		shown, cx = c.st.paint(" "+vis, style), 1+runesW(rs[startRune:ci])
-	case on:
+	case on && showCursor:
 		vis := tailFit(rs, room-1) // keep one column for the cursor
 		shown, cx = c.st.paint(" "+vis, style), 1+strW(vis)
 	default:
 		shown = c.st.paint(" "+truncate(string(rs), room), style)
 	}
-	if !on {
+	if !on || !showCursor {
 		cx = -1
 	}
-	return padLine(shown, iw, c.st.sgr(style)) + c.st.t("error", tail), min(cx, iw-1)
+	return []string{padLine(shown, iw, fill) + c.st.t("error", tail)}, min(cx, iw-1), 0
 }
 
 // tailFit returns the longest suffix of rs whose display width is at most w.

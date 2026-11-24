@@ -130,3 +130,45 @@ func TestReadlineSpecsAndBindings(t *testing.T) {
 		}
 	}
 }
+
+func TestReadlineLineMultilineEditing(t *testing.T) {
+	l := NewLine("first")
+	if changed, handled := l.HandleCommand(core.Command{ID: CmdInsert, Args: map[string]any{"text": "\n"}}); !changed || !handled {
+		t.Fatalf("CmdInsert newline = (%v, %v)", changed, handled)
+	}
+	l.HandleCommand(core.Command{ID: CmdInsert, Args: map[string]any{"text": "second"}})
+	if l.Value() != "first\nsecond" || l.Cursor != 12 {
+		t.Fatalf("after insert: val=%q cursor=%d", l.Value(), l.Cursor)
+	}
+	// CmdNewline inserts at cursor.
+	l.HandleCommand(core.Command{ID: CmdLineStart})
+	if l.Cursor != 6 {
+		t.Fatalf("line.start on line 2 = %d, want 6", l.Cursor)
+	}
+	l.HandleCommand(core.Command{ID: CmdLineEnd})
+	if l.Cursor != 12 {
+		t.Fatalf("line.end on line 2 = %d, want 12", l.Cursor)
+	}
+	l.HandleCommand(core.Command{ID: CmdLineStart})
+	// CharLeft crosses newline to end of line 1; CharRight crosses back.
+	l.HandleCommand(core.Command{ID: CmdCharLeft})
+	if l.Cursor != 5 {
+		t.Fatalf("char.left across newline = %d, want 5", l.Cursor)
+	}
+	l.HandleCommand(core.Command{ID: CmdCharRight})
+	if l.Cursor != 6 {
+		t.Fatalf("char.right across newline = %d, want 6", l.Cursor)
+	}
+	// Backspace removes the newline and joins lines.
+	l.HandleCommand(core.Command{ID: CmdBackspace})
+	if l.Value() != "firstsecond" || l.Cursor != 5 {
+		t.Fatalf("after backspace across newline: val=%q cursor=%d", l.Value(), l.Cursor)
+	}
+	// CmdNewline re-splits at cursor.
+	if changed, handled := l.HandleCommand(core.Command{ID: CmdNewline}); !changed || !handled {
+		t.Fatalf("CmdNewline = (%v, %v)", changed, handled)
+	}
+	if l.Value() != "first\nsecond" || l.Cursor != 6 {
+		t.Fatalf("after CmdNewline: val=%q cursor=%d", l.Value(), l.Cursor)
+	}
+}

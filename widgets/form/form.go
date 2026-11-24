@@ -115,6 +115,7 @@ type Model struct {
 	Dirty       bool
 	SubmitLabel string
 	SubmitRow   bool
+	Wrap        bool
 
 	// Drafts holds saved snapshots (newest first). DraftIdx is -1 while editing
 	// live working values, or 0..len(Drafts)-1 when viewing a draft.
@@ -827,6 +828,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		"submitLabel": m.SubmitLabel,
 		"errors":      errs,
 		"editing":     m.Editing,
+		"wrap":        m.Wrap,
 	}
 	if m.Editing {
 		props["cursor"] = m.Cursor()
@@ -866,6 +868,7 @@ func (m *Model) cacheKey() uint64 {
 	w(m.Title)
 	w(m.SubmitLabel)
 	w(strconv.FormatBool(m.SubmitRow))
+	w(strconv.FormatBool(m.Wrap))
 	w(strconv.FormatBool(m.ShowAllFields))
 	w(strconv.Itoa(m.ActiveIdx))
 	w(strconv.FormatBool(m.Editing))

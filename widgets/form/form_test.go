@@ -205,3 +205,19 @@ func TestFormReadlineAndCursor(t *testing.T) {
 		t.Fatalf("after yank.kill = %q", m.Values["name"])
 	}
 }
+
+func TestFormWrapPropAndCacheKey(t *testing.T) {
+	m := New("Edit", specs(), map[string]any{"name": "hello"})
+	v0 := m.View("f")
+	if v0.Props["wrap"] != false {
+		t.Fatalf("default wrap prop = %v, want false", v0.Props["wrap"])
+	}
+	m.Wrap = true
+	v1 := m.View("f")
+	if v1.Props["wrap"] != true {
+		t.Fatalf("wrap prop = %v, want true", v1.Props["wrap"])
+	}
+	if v1.CacheKey == v0.CacheKey {
+		t.Fatal("toggling Wrap must invalidate CacheKey")
+	}
+}
