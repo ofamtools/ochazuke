@@ -142,7 +142,11 @@ func (c *ctx) drawFrame(lr layout.Rect, o frameOpts) {
 	left, leftW := "", 0
 	if o.title != "" && span >= 5 {
 		t := truncate(o.title, span-4)
-		left = bs(g.hz+" ") + c.st.paint(t, o.titleStyle) + bs(" ")
+		if o.focus {
+			left = bs(g.hz) + c.st.paint(" "+t+" ", o.titleStyle)
+		} else {
+			left = bs(g.hz+" ") + c.st.paint(t, o.titleStyle) + bs(" ")
+		}
 		leftW = strW(t) + 3
 	}
 	right, rightW := "", 0

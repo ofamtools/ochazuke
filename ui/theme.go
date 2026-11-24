@@ -150,7 +150,7 @@ func defaultTones() map[string]ToneStyle {
 		"focus.border":      {Fg: "accent", Bold: true},
 		"focus.bg":          {Bg: "surface.focus"},
 		"focus.fg":          {Fg: "text", Bold: true},
-		"focus.title":       {Fg: "accent", Bold: true},
+		"focus.title":       {Fg: "accent", Bold: true, Reverse: true},
 		"unfocused.border":  {Fg: "border", Dim: true},
 		"unfocused.fg":      {Fg: "muted"},
 		"selected":          {Fg: "text", Bg: "selection", Bold: true},
@@ -291,7 +291,7 @@ var focusRoleAliases = map[string]focusRoleAlias{
 	"focus.border":     {role: "focusBorder", def: ToneStyle{Fg: "accent", Bold: true}},
 	"focus.bg":         {role: "focusBg", bg: true, def: ToneStyle{Bg: "surface.focus"}},
 	"focus.fg":         {role: "focusFg", def: ToneStyle{Fg: "text", Bold: true}},
-	"focus.title":      {role: "focusTitleFg", def: ToneStyle{Fg: "accent", Bold: true}},
+	"focus.title":      {role: "focusTitleFg", def: ToneStyle{Fg: "accent", Bold: true, Reverse: true}},
 	"unfocused.border": {role: "unfocusedBorder", def: ToneStyle{Fg: "border", Dim: true}},
 	"unfocused.fg":     {role: "unfocusedFg", def: ToneStyle{Fg: "muted"}},
 }
