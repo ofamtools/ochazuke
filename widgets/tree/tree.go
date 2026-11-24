@@ -14,18 +14,6 @@ import (
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
-	"ofam.dev/ochazuke/widgets/input"
-)
-
-// EditKind identifies an inline edit operation on a tree model.
-type EditKind string
-
-// Inline edit kinds.
-const (
-	EditRename   EditKind = "rename"
-	EditAddBelow EditKind = "add_below"
-	EditAddAbove EditKind = "add_above"
-	EditAddChild EditKind = "add_child"
 )
 
 // Command IDs handled by Model.HandleCommand besides standard motions.
@@ -36,6 +24,26 @@ const (
 	CmdFoldOpenAll  = "tree.fold.open.all"
 	CmdFoldCloseAll = "tree.fold.close.all"
 )
+
+// Specs returns the CommandSpecs for tree-specific fold and hoist commands.
+func Specs() []core.CommandSpec {
+	tags := []string{"tree"}
+	return []core.CommandSpec{
+		{ID: CmdFoldToggle, Description: "Toggle fold on the focused tree node", Tags: tags},
+		{ID: CmdFoldOpen, Description: "Expand the focused tree node", Tags: tags},
+		{ID: CmdFoldClose, Description: "Collapse the focused tree node", Tags: tags},
+		{ID: CmdFoldOpenAll, Description: "Expand all tree nodes", Tags: tags},
+		{ID: CmdFoldCloseAll, Description: "Collapse all tree nodes", Tags: tags},
+		{
+			ID:          CmdHoistIn,
+			Description: "Zoom into the focused tree node subtree",
+			Tags:        tags,
+			Params:      []core.ParamSpec{{Name: "id", Type: core.ParamString, Description: "node ID to hoist (default: focused node)"}},
+		},
+		{ID: CmdHoistOut, Description: "Zoom out one level from the hoisted subtree", Tags: tags},
+		{ID: CmdHoistClear, Description: "Clear all hoisting and return to the full tree", Tags: tags},
+	}
+}
 
 // Node is one domain tree item. Domain records never appear here; Ref and
 // Facts carry identity and guard data.
@@ -70,35 +78,6 @@ type VisibleRow struct {
 	Draft            bool // true for a synthetic inline-add draft row
 }
 
-// EditState holds the active inline edit session (rename or add).
-type EditState struct {
-	Kind     EditKind
-	TargetID string // node being renamed, or anchor node for Add* ("" on empty tree)
-	ParentID string // resolved parent ID for Add* (changes with EditIndent/EditOutdent)
-	AfterID  string // sibling ID this new node is placed after ("" = first child/root)
-	BeforeID string // sibling ID this new node is placed before (EditAddAbove)
-	Depth    int    // visual depth of the edited/draft row
-	Prefix   string // optional display prefix shown before the edit field
-	Line     input.Line
-}
-
-// Value returns the current inline edit buffer text.
-func (e EditState) Value() string { return e.Line.Value() }
-
-// Cursor returns the current rune cursor offset in the edit buffer.
-func (e EditState) Cursor() int { return e.Line.Cursor }
-
-// EditResult describes the confirmed inline edit returned by CommitEdit.
-type EditResult struct {
-	Kind     EditKind
-	TargetID string
-	ParentID string
-	AfterID  string
-	BeforeID string
-	Depth    int
-	Value    string
-}
-
 // Model is the tree widget state. Use pointer methods to mutate.
 type Model struct {
 	Nodes         []Node
@@ -111,8 +90,11 @@ type Model struct {
 	ShowFoldCount bool
 	Wrap          bool
 	Folded        map[string]bool
+	HoistStack    []string
+	DefaultFolded bool
 
-	edit *EditState
+	foldInitialized bool
+	edit            *EditState
 }
 
 // New returns a Model over nodes with defaults (Guides, GapTopLevel, and
@@ -132,7 +114,7 @@ func New(nodes []Node) *Model {
 	return m
 }
 
-// Copy returns an independent copy (Folded map and active edit cloned; Nodes shared read-only).
+// Copy returns an independent copy (Folded map, HoistStack, and active edit cloned; Nodes shared read-only).
 func (m Model) Copy() Model {
 	if m.Folded != nil {
 		f := make(map[string]bool, len(m.Folded))
@@ -141,6 +123,7 @@ func (m Model) Copy() Model {
 		}
 		m.Folded = f
 	}
+	m.HoistStack = slices.Clone(m.HoistStack)
 	if m.edit != nil {
 		cp := *m.edit
 		cp.Line.Text = slices.Clone(m.edit.Line.Text)
@@ -149,12 +132,25 @@ func (m Model) Copy() Model {
 	return m
 }
 
-// SetNodes replaces the tree's nodes, drops fold entries for vanished nodes,
-// and re-clamps selection and viewport offset.
+// SetNodes replaces the tree's nodes, initializes DefaultFolded on first
+// non-empty load (or prunes fold entries for vanished nodes thereafter), prunes
+// vanished hoist targets, keeps the active hoisted root unfolded, and re-clamps
+// selection and viewport offset.
 func (m *Model) SetNodes(nodes []Node) {
 	m.Nodes = nodes
-	if len(m.Folded) > 0 {
-		m.Folded = traits.FoldPrune(traits.FoldState{Collapsed: m.Folded}, collectNodeIDs(nodes, false)).Collapsed
+	allIDs := collectNodeIDs(nodes, false)
+	if m.DefaultFolded && !m.foldInitialized && len(nodes) > 0 {
+		m.Folded = traits.FoldInitial(
+			traits.FoldConfig{DefaultFolded: true},
+			collectNodeIDs(nodes, true),
+		).Collapsed
+		m.foldInitialized = true
+	} else if len(m.Folded) > 0 {
+		m.Folded = traits.FoldPrune(traits.FoldState{Collapsed: m.Folded}, allIDs).Collapsed
+	}
+	m.pruneHoistStack(allIDs)
+	if id := m.HoistID(); id != "" {
+		delete(m.Folded, id)
 	}
 	m.Clamp()
 }
@@ -205,56 +201,12 @@ func (m *Model) findNodeWithParent(id string) (node *Node, parentID, prevSibling
 	return
 }
 
-func (m *Model) pathTo(id string) []string {
-	var path []string
-	var walk func(ns []Node) bool
-	walk = func(ns []Node) bool {
-		for _, nd := range ns {
-			if nd.ID == id {
-				path = append(path, nd.ID)
-				return true
-			}
-			if walk(nd.Children) {
-				path = append([]string{nd.ID}, path...)
-				return true
-			}
-		}
-		return false
-	}
-	if walk(m.Nodes) {
-		return path
-	}
-	return nil
-}
-
-// draftInsertIndex determines where the inline-add draft row sits within siblings.
-func draftInsertIndex(siblings []Node, e *EditState) int {
-	if e.BeforeID != "" {
-		for i, nd := range siblings {
-			if nd.ID == e.BeforeID {
-				return i
-			}
-		}
-	}
-	if e.AfterID != "" {
-		for i, nd := range siblings {
-			if nd.ID == e.AfterID {
-				return i + 1
-			}
-		}
-	}
-	return len(siblings)
-}
-
-func (m *Model) hasAddDraft() bool {
-	return m.edit != nil && m.edit.Kind != EditRename
-}
-
 // Flatten returns all currently visible rows in display order, including any
 // active inline-add draft row and visual row indices accounting for GapTopLevel.
 func (m *Model) Flatten() []VisibleRow {
 	var out []VisibleRow
 	visRow := 0
+	hoistID := m.HoistID()
 	emitDraft := func(parentID string, depth int, topIdx int) {
 		if m.GapTopLevel && depth == 0 && topIdx > 0 {
 			visRow++
@@ -288,7 +240,8 @@ func (m *Model) Flatten() []VisibleRow {
 			}
 			hasKids := len(nd.Children) > 0
 			draftUnder := m.hasAddDraft() && m.edit.ParentID == nd.ID
-			folded := hasKids && m.Folded[nd.ID] && !draftUnder
+			isHoistRoot := hoistID != "" && depth == 0 && nd.ID == hoistID
+			folded := hasKids && m.Folded[nd.ID] && !draftUnder && !isHoistRoot
 			hidden := 0
 			if folded {
 				hidden = countDescendants(nd.Children)
@@ -315,7 +268,7 @@ func (m *Model) Flatten() []VisibleRow {
 			emitDraft(parentID, depth, topIdx)
 		}
 	}
-	walk(m.Nodes, "", 0)
+	walk(m.activeRoots(), "", 0)
 	return out
 }
 
@@ -411,9 +364,9 @@ func (m *Model) Select(id string) bool {
 }
 
 // Reveal unfolds any folded ancestors of id, selects id, and clamps the viewport.
-// It returns false if id does not exist in Nodes.
+// It returns false if id does not exist in the active view.
 func (m *Model) Reveal(id string) bool {
-	path := m.pathTo(id)
+	path := pathIn(m.activeRoots(), id)
 	if len(path) == 0 {
 		return false
 	}
@@ -426,25 +379,40 @@ func (m *Model) Reveal(id string) bool {
 }
 
 func (m *Model) applyFold(cmdID string) bool {
+	hoistID := m.HoistID()
 	var target traits.FoldTarget
 	if row, ok := m.Focused(); ok && !row.Draft {
 		target = traits.FoldTarget{ID: row.ID, ParentID: row.ParentID, HasChildren: row.HasChildren}
 	}
+	if hoistID != "" && target.ID == hoistID && (cmdID == traits.FoldCmdToggle || cmdID == traits.FoldCmdClose) {
+		return false
+	}
 	var all []string
 	if cmdID == traits.FoldCmdCloseAll {
-		all = collectNodeIDs(m.Nodes, true)
+		for _, id := range collectNodeIDs(m.activeRoots(), true) {
+			if id != hoistID {
+				all = append(all, id)
+			}
+		}
 	}
 	next, focusID, changed, _ := traits.FoldHandle(
 		traits.FoldState{Collapsed: m.Folded},
-		traits.FoldConfig{LeafFoldsParent: true},
+		traits.FoldConfig{LeafFoldsParent: hoistID == "" || target.ParentID != hoistID},
 		target, all, core.Command{ID: cmdID},
 	)
 	m.Folded = next.Collapsed
+	if hoistID != "" {
+		delete(m.Folded, hoistID)
+	}
 	if focusID != "" {
 		m.SelectedID = focusID
 	} else if cmdID == traits.FoldCmdCloseAll {
-		if path := m.pathTo(m.SelectedID); len(path) > 0 {
-			m.SelectedID = path[0]
+		if path := pathIn(m.activeRoots(), m.SelectedID); len(path) > 0 {
+			if hoistID != "" && len(path) > 1 {
+				m.SelectedID = path[1]
+			} else {
+				m.SelectedID = path[0]
+			}
 		}
 	}
 	if changed || cmdID == traits.FoldCmdCloseAll || cmdID == traits.FoldCmdOpenAll {
@@ -470,186 +438,6 @@ func (m *Model) FoldAll() { m.applyFold(traits.FoldCmdCloseAll) }
 
 // UnfoldAll expands every node in the tree.
 func (m *Model) UnfoldAll() { m.applyFold(traits.FoldCmdOpenAll) }
-
-// Editing reports whether an inline rename or add session is active.
-func (m *Model) Editing() bool { return m.edit != nil }
-
-// Edit returns a copy of the active EditState, or nil when not editing.
-func (m *Model) Edit() *EditState {
-	if m.edit == nil {
-		return nil
-	}
-	cp := *m.edit
-	cp.Line.Text = slices.Clone(m.edit.Line.Text)
-	return &cp
-}
-
-// StartRename starts an inline rename on the focused node with an optional display prefix.
-func (m *Model) StartRename(prefix string) bool {
-	row, ok := m.Focused()
-	if !ok || row.Draft {
-		return false
-	}
-	m.edit = &EditState{
-		Kind:     EditRename,
-		TargetID: row.ID,
-		ParentID: row.ParentID,
-		Depth:    row.Depth,
-		Prefix:   prefix,
-		Line:     input.NewLine(row.Node.Label),
-	}
-	m.Clamp()
-	return true
-}
-
-// StartAdd starts an inline add (EditAddBelow, EditAddAbove, or EditAddChild)
-// relative to the focused node, or at root level when the tree is empty.
-func (m *Model) StartAdd(kind EditKind, prefix string) bool {
-	switch kind {
-	case EditAddBelow, EditAddAbove, EditAddChild:
-	default:
-		return false
-	}
-	row, ok := m.Focused()
-	if !ok || row.Draft {
-		m.edit = &EditState{
-			Kind:   kind,
-			Depth:  0,
-			Prefix: prefix,
-			Line:   input.NewLine(""),
-		}
-		m.Clamp()
-		return true
-	}
-	switch kind {
-	case EditAddBelow:
-		m.edit = &EditState{
-			Kind:     EditAddBelow,
-			TargetID: row.ID,
-			ParentID: row.ParentID,
-			AfterID:  row.ID,
-			Depth:    row.Depth,
-			Prefix:   prefix,
-			Line:     input.NewLine(""),
-		}
-	case EditAddAbove:
-		_, parentID, prevSib, depth, _ := m.findNodeWithParent(row.ID)
-		m.edit = &EditState{
-			Kind:     EditAddAbove,
-			TargetID: row.ID,
-			ParentID: parentID,
-			AfterID:  prevSib,
-			BeforeID: row.ID,
-			Depth:    depth,
-			Prefix:   prefix,
-			Line:     input.NewLine(""),
-		}
-	case EditAddChild:
-		delete(m.Folded, row.ID)
-		afterID := ""
-		if len(row.Node.Children) > 0 {
-			afterID = row.Node.Children[len(row.Node.Children)-1].ID
-		}
-		m.edit = &EditState{
-			Kind:     EditAddChild,
-			TargetID: row.ID,
-			ParentID: row.ID,
-			AfterID:  afterID,
-			Depth:    row.Depth + 1,
-			Prefix:   prefix,
-			Line:     input.NewLine(""),
-		}
-	}
-	m.Clamp()
-	return true
-}
-
-// HandleEditCommand forwards an input/Readline command to the active inline editor.
-func (m *Model) HandleEditCommand(cmd core.Command) bool {
-	if m.edit == nil {
-		return false
-	}
-	_, handled := m.edit.Line.HandleCommand(cmd)
-	return handled
-}
-
-// EditInsertNewline inserts a literal newline at the cursor of the active inline edit.
-func (m *Model) EditInsertNewline() bool {
-	if m.edit == nil {
-		return false
-	}
-	return m.edit.Line.Insert("\n")
-}
-
-// EditIndent demotes an inline-add draft under its preceding sibling.
-func (m *Model) EditIndent() bool {
-	if !m.hasAddDraft() || m.edit.AfterID == "" {
-		return false
-	}
-	prev, _, _, _, ok := m.findNodeWithParent(m.edit.AfterID)
-	if !ok {
-		return false
-	}
-	delete(m.Folded, prev.ID)
-	m.edit.ParentID = prev.ID
-	m.edit.Depth++
-	m.edit.BeforeID = ""
-	if len(prev.Children) > 0 {
-		m.edit.AfterID = prev.Children[len(prev.Children)-1].ID
-	} else {
-		m.edit.AfterID = ""
-	}
-	m.Clamp()
-	return true
-}
-
-// EditOutdent promotes an inline-add draft up one level to follow its current parent.
-func (m *Model) EditOutdent() bool {
-	if !m.hasAddDraft() || m.edit.Depth <= 0 || m.edit.ParentID == "" {
-		return false
-	}
-	parentID := m.edit.ParentID
-	_, grandParentID, _, _, ok := m.findNodeWithParent(parentID)
-	if !ok {
-		return false
-	}
-	m.edit.ParentID = grandParentID
-	m.edit.AfterID = parentID
-	m.edit.BeforeID = ""
-	m.edit.Depth--
-	m.Clamp()
-	return true
-}
-
-// CommitEdit ends the active inline edit and returns the resulting EditResult.
-func (m *Model) CommitEdit() (EditResult, bool) {
-	if m.edit == nil {
-		return EditResult{}, false
-	}
-	e := m.edit
-	res := EditResult{
-		Kind:     e.Kind,
-		TargetID: e.TargetID,
-		ParentID: e.ParentID,
-		AfterID:  e.AfterID,
-		BeforeID: e.BeforeID,
-		Depth:    e.Depth,
-		Value:    e.Line.Value(),
-	}
-	m.edit = nil
-	m.Clamp()
-	return res, true
-}
-
-// CancelEdit aborts the active inline edit without producing a result.
-func (m *Model) CancelEdit() bool {
-	if m.edit == nil {
-		return false
-	}
-	m.edit = nil
-	m.Clamp()
-	return true
-}
 
 // HandleCommand applies a standard motion or tree fold command, reporting
 // whether it was handled.
@@ -722,6 +510,16 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		m.UnfoldAll()
 	case CmdFoldCloseAll, traits.FoldCmdCloseAll:
 		m.FoldAll()
+	case CmdHoistIn:
+		if id, ok := cmd.Args["id"].(string); ok && id != "" {
+			m.Hoist(id)
+		} else if row, ok := m.Focused(); ok && !row.Draft {
+			m.Hoist(row.ID)
+		}
+	case CmdHoistOut:
+		m.Unhoist()
+	case CmdHoistClear:
+		m.ClearHoist()
 	default:
 		return false
 	}
@@ -782,10 +580,13 @@ func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any
 		selVis = row.VisualRow
 	}
 	f := traits.MergeFacts(traits.ViewportFacts(m.visualViewport(selVis, totalVisualRows(rows)), m.viewportConfig()), map[string]any{
-		"isTree":    true,
-		"rowCount":  rowCount,
-		"rootCount": len(m.Nodes),
-		"editing":   m.Editing(),
+		"isTree":     true,
+		"rowCount":   rowCount,
+		"rootCount":  len(m.Nodes),
+		"editing":    m.Editing(),
+		"hoisted":    m.Hoisted(),
+		"hoistDepth": len(m.HoistStack),
+		"hoistLabel": m.hoistLabel(),
 	})
 	if ok && !row.Draft {
 		f = traits.MergeFacts(f, traits.FoldFacts(traits.FoldState{Collapsed: m.Folded}, traits.FoldTarget{
@@ -844,12 +645,14 @@ func (m *Model) buildUINodes(ns []Node, parentID string) []ui.TreeNode {
 		}
 	}
 
+	hoistID := m.HoistID()
 	for i, nd := range ns {
 		if draftHere && i == draftPos {
 			out = append(out, makeDraft())
 		}
 		draftUnder := m.hasAddDraft() && m.edit.ParentID == nd.ID
-		folded := len(nd.Children) > 0 && m.Folded[nd.ID] && !draftUnder
+		isHoistRoot := hoistID != "" && parentID == "" && nd.ID == hoistID
+		folded := len(nd.Children) > 0 && m.Folded[nd.ID] && !draftUnder && !isHoistRoot
 		var expPtr *bool
 		if len(nd.Children) > 0 || draftUnder {
 			exp := !folded
@@ -934,7 +737,7 @@ func (m *Model) View(id string) ui.ViewNode {
 			}
 		}
 	}
-	uiNodes := m.buildUINodes(m.Nodes, "")
+	uiNodes := m.buildUINodes(m.activeRoots(), "")
 
 	props := map[string]any{
 		"nodes":       uiNodes,
@@ -957,7 +760,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		n.Unread, n.Badges = row.Node.Unread, row.Node.Badges
 	}
 	h := fnv.New64a()
-	fmt.Fprintf(h, "%t|%t|%t|%t|%d|%d|", m.Guides, m.GapTopLevel, m.ShowFoldCount, m.Wrap, selIdx, m.Offset)
+	fmt.Fprintf(h, "%t|%t|%t|%t|%q|%d|%d|", m.Guides, m.GapTopLevel, m.ShowFoldCount, m.Wrap, m.HoistID(), selIdx, m.Offset)
 	hashUINodes(h, uiNodes)
 	n.CacheKey = h.Sum64() | 1
 	return n

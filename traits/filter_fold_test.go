@@ -287,3 +287,25 @@ func TestFoldHandlePruneFactsAndJSON(t *testing.T) {
 		t.Fatalf("FoldConfig round-trip mismatch: got %+v, want %+v", out, in)
 	}
 }
+
+func TestFoldInitial(t *testing.T) {
+	ids := []string{"a", "a2", "", "b"}
+
+	stFalse := traits.FoldInitial(traits.FoldConfig{DefaultFolded: false}, ids)
+	if len(stFalse.Collapsed) != 0 {
+		t.Fatalf("DefaultFolded=false collapsed = %v, want empty", stFalse.Collapsed)
+	}
+
+	stTrue := traits.FoldInitial(traits.FoldConfig{DefaultFolded: true}, ids)
+	if len(stTrue.Collapsed) != 3 || !stTrue.Collapsed["a"] || !stTrue.Collapsed["a2"] || !stTrue.Collapsed["b"] {
+		t.Fatalf("DefaultFolded=true collapsed = %v, want {a, a2, b}", stTrue.Collapsed)
+	}
+	if stTrue.Collapsed[""] {
+		t.Fatalf("empty ID should not be marked collapsed: %v", stTrue.Collapsed)
+	}
+
+	stEmpty := traits.FoldInitial(traits.FoldConfig{DefaultFolded: true}, nil)
+	if len(stEmpty.Collapsed) != 0 {
+		t.Fatalf("DefaultFolded=true with empty ids = %v, want empty", stEmpty.Collapsed)
+	}
+}

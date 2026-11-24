@@ -29,6 +29,25 @@ type FoldState struct {
 	Collapsed map[string]bool
 }
 
+// FoldInitial returns the initial FoldState for collapsibleIDs under cfg.
+// When cfg.DefaultFolded is false, it returns an empty FoldState; when true,
+// every non-empty ID in collapsibleIDs is marked collapsed.
+func FoldInitial(cfg FoldConfig, collapsibleIDs []string) FoldState {
+	if !cfg.DefaultFolded || len(collapsibleIDs) == 0 {
+		return FoldState{}
+	}
+	m := make(map[string]bool, len(collapsibleIDs))
+	for _, id := range collapsibleIDs {
+		if id != "" {
+			m[id] = true
+		}
+	}
+	if len(m) == 0 {
+		return FoldState{}
+	}
+	return FoldState{Collapsed: m}
+}
+
 func cloneCollapsed(in map[string]bool) map[string]bool {
 	out := make(map[string]bool, len(in))
 	for k, v := range in {
