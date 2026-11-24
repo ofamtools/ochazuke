@@ -27,7 +27,7 @@ func (c *ctx) drawLeaf(rn *rnode, lr layout.Rect) {
 	case KindText:
 		out = c.textLines(rn, ir.W)
 	case KindMarkdown:
-		out = mdLines(c.st, n.propString("markdown"), ir.W)
+		out = c.markdownLines(rn, ir.W)
 	case KindTable:
 		out = c.tableLines(rn, ir.W, ir.H)
 	case KindTree:
@@ -145,142 +145,11 @@ func MarkdownHeadings(src string) []Heading {
 
 var orderedRe = regexp.MustCompile(`^(\d+)[.)] `)
 
-// mdLines renders basic Markdown (headings, lists, quotes, rules, fenced code,
-// and **bold**, *em*, `code`, [links](url)). st may be nil for plain output.
+// mdLines renders basic Markdown (headings, lists, checkboxes, quotes, rules,
+// fenced code, and **bold**, *em*, `code`, [links](url)). st may be nil for
+// plain output.
 func mdLines(st *styler, text string, w int) []string {
-	w = max(w, 1)
-	var out []string
-	var para []string
-	blank := func() {
-		if len(out) > 0 && out[len(out)-1] != "" {
-			out = append(out, "")
-		}
-	}
-	flush := func() {
-		if len(para) > 0 {
-			out = append(out, mdInline(st, strings.Join(para, " "), w, "", "")...)
-			para = nil
-		}
-	}
-	rule := func() string { return st.t("border", strings.Repeat("─", w)) }
-	inCode := false
-	for _, raw := range strings.Split(text, "\n") {
-		line := strings.TrimRight(raw, " \t\r")
-		trim := strings.TrimLeft(line, " ")
-		indent := (len(line) - len(trim)) / 2 * 2
-		switch {
-		case strings.HasPrefix(trim, "```"):
-			flush()
-			inCode = !inCode
-		case inCode:
-			ts := st.tone("md.code")
-			out = append(out, padLine(st.paint(" "+line, ts), w, st.sgr(ts)))
-		case trim == "":
-			flush()
-			blank()
-		case strings.Trim(trim, "-*_") == "" && len(trim) >= 3:
-			flush()
-			out = append(out, rule())
-		default:
-			if lvl, txt, ok := headingOf(trim); ok {
-				flush()
-				blank()
-				hs := st.tone("heading." + string(rune('0'+min(lvl, 3))))
-				for _, ln := range wrapPlain(txt, w) {
-					out = append(out, st.paint(ln, hs))
-				}
-				if lvl == 1 {
-					out = append(out, rule())
-				}
-				continue
-			}
-			if strings.HasPrefix(trim, "> ") {
-				flush()
-				q := st.t("md.quote", "│ ")
-				out = append(out, mdInline(st, trim[2:], max(1, w-2), q, q)...)
-				continue
-			}
-			marker, body := "", ""
-			switch {
-			case len(trim) > 2 && (trim[0] == '-' || trim[0] == '*' || trim[0] == '+') && trim[1] == ' ':
-				marker, body = "• ", trim[2:]
-			case orderedRe.MatchString(trim):
-				loc := orderedRe.FindString(trim)
-				marker, body = loc, trim[len(loc):]
-			}
-			if marker != "" {
-				flush()
-				mw := strW(marker)
-				first := spaces(indent) + st.t("md.bullet", marker)
-				rest := spaces(indent + mw)
-				out = append(out, mdInline(st, body, max(1, w-indent-mw), first, rest)...)
-				continue
-			}
-			para = append(para, trim)
-		}
-	}
-	flush()
-	for len(out) > 0 && out[len(out)-1] == "" {
-		out = out[:len(out)-1]
-	}
-	return out
-}
-
-// mdInline parses inline Markdown into spans, wraps to w, and prefixes lines.
-func mdInline(st *styler, text string, w int, first, rest string) []string {
-	var rs []rune
-	var spans []ToneSpan
-	src := []rune(text)
-	for i := 0; i < len(src); {
-		closer, tone, skip := rune(0), "", 1
-		switch {
-		case src[i] == '`':
-			closer, tone = '`', "md.code"
-		case src[i] == '*' && i+1 < len(src) && src[i+1] == '*':
-			closer, tone, skip = '*', "md.bold", 2
-		case (src[i] == '*' || src[i] == '_') && i+1 < len(src) && src[i+1] != ' ':
-			closer, tone = src[i], "md.em"
-		case src[i] == '[':
-			if j := indexRunes(src, i+1, "]("); j > 0 {
-				if k := indexRunes(src, j+2, ")"); k > 0 {
-					from := len(rs)
-					rs = append(rs, src[i+1:j]...)
-					spans = append(spans, ToneSpan{From: from, To: len(rs), Tone: "link"})
-					i = k + 1
-					continue
-				}
-			}
-		}
-		if closer != 0 {
-			end := -1
-			for j := i + skip; j < len(src); j++ {
-				if src[j] == closer && (skip == 1 || (j+1 < len(src) && src[j+1] == closer)) {
-					end = j
-					break
-				}
-			}
-			if end > i+skip {
-				from := len(rs)
-				rs = append(rs, src[i+skip:end]...)
-				spans = append(spans, ToneSpan{From: from, To: len(rs), Tone: tone})
-				i = end + skip
-				continue
-			}
-		}
-		rs = append(rs, src[i])
-		i++
-	}
-	base := st.tone("text")
-	rsp := st.resolveSpans(spans, base)
-	var out []string
-	for n, r := range wrapRanges(rs, w) {
-		prefix := rest
-		if n == 0 {
-			prefix = first
-		}
-		out = append(out, prefix+st.runs(rs, r[0], r[1], base, rsp))
-	}
-	return out
+	return mdLinesWith(st, text, w, mdRenderOpts{activeLink: -1, activeCheck: -1})
 }
 
 func indexRunes(rs []rune, from int, sub string) int {
