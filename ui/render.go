@@ -36,14 +36,15 @@ type cacheKey struct {
 
 // themeKey is the part of a Theme the caches depend on.
 type themeKey struct {
-	name    string
-	version uint64
-	density string
-	border  string
+	name       string
+	version    uint64
+	density    string
+	border     string
+	cardBorder string
 }
 
 func keyOf(th Theme) themeKey {
-	return themeKey{th.Name, th.Version, th.EffectiveDensity(), th.EffectiveBorderStyle()}
+	return themeKey{th.Name, th.Version, th.EffectiveDensity(), th.EffectiveBorderStyle(), th.EffectiveCardBorderStyle()}
 }
 
 type cacheEntry struct {
@@ -145,7 +146,7 @@ func (r *Renderer) Render(root ViewNode, theme Theme, focusID string, w, h int) 
 
 	eff := effectiveRoot(root)
 	b := newBuilder(&eff, focusID)
-	b.dens, b.border = key.density, key.border
+	b.dens, b.border, b.cardBorder = key.density, key.border, key.cardBorder
 	box, rn := b.build(&eff, "~", w, h)
 	solved := layout.Solve(box, w, h)
 

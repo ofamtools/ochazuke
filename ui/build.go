@@ -24,6 +24,7 @@ type rnode struct {
 type builder struct {
 	dens       string // effective theme density; sizes forms and cards
 	border     string // effective theme border style; glyphs only
+	cardBorder string // effective theme card border style; glyphs only
 	focusID    string
 	focusSet   map[string]bool // IDs of the focus target and its ancestors
 	userFocus  map[string]bool // scroll IDs the user marked focusable

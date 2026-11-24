@@ -40,20 +40,33 @@ const (
 	BorderNone    = "none"    // no border glyphs; titles and spacing only
 )
 
+// Card border styles: how KindCard draws its frame chrome. The empty
+// CardBorderStyle (CardBorderAuto) follows Theme.BorderStyle so existing
+// themes keep their default bordered card behavior. Every style keeps the same
+// one-cell frame ring geometry, so layout never depends on it.
+const (
+	CardBorderAuto    = ""        // follow Theme.BorderStyle (default)
+	CardBorderSubtle  = "subtle"  // quiet left rail (┃ on focus, │ unfocused), no 4-sided box
+	CardBorderMinimal = "minimal" // top and bottom hairlines, ┃ on the left on focus
+	CardBorderRounded = "rounded" // traditional 4-sided rounded box border
+	CardBorderNone    = "none"    // no border glyphs; whitespace and focus background tint only
+)
+
 // Theme maps semantic roles and tones to concrete styles. Bump Version
 // whenever Roles or Tones change so renderer caches are invalidated; Name,
-// Version, Density and BorderStyle together key the renderer caches. A
-// "canvas" tone with a background, when present, paints every cell that has
-// no background of its own; the light preset uses it so its dark text stays
-// legible on a dark terminal.
+// Version, Density, BorderStyle and CardBorderStyle together key the renderer
+// caches. A "canvas" tone with a background, when present, paints every cell
+// that has no background of its own; the light preset uses it so its dark text
+// stays legible on a dark terminal.
 type Theme struct {
-	Name        string               `json:"name"`
-	Dark        bool                 `json:"dark"`
-	Version     uint64               `json:"version,omitempty"`
-	Density     string               `json:"density,omitempty"`     // DensityCompact, DensityBalanced (default), DensitySpacious
-	BorderStyle string               `json:"borderStyle,omitempty"` // BorderRounded (default), BorderSharp, BorderMinimal, BorderNone
-	Roles       map[string]string    `json:"roles"`                 // text, muted, accent, border, surface, error, ...
-	Tones       map[string]ToneStyle `json:"tones"`                 // unread, state.working, state.needs-input, badge.*, ...
+	Name            string               `json:"name"`
+	Dark            bool                 `json:"dark"`
+	Version         uint64               `json:"version,omitempty"`
+	Density         string               `json:"density,omitempty"`         // DensityCompact, DensityBalanced (default), DensitySpacious
+	BorderStyle     string               `json:"borderStyle,omitempty"`     // BorderRounded (default), BorderSharp, BorderMinimal, BorderNone
+	CardBorderStyle string               `json:"cardBorderStyle,omitempty"` // CardBorderAuto (default), CardBorderSubtle, CardBorderMinimal, CardBorderRounded, CardBorderNone
+	Roles           map[string]string    `json:"roles"`                     // text, muted, accent, border, surface, error, ...
+	Tones           map[string]ToneStyle `json:"tones"`                     // unread, state.working, state.needs-input, badge.*, ...
 }
 
 // EffectiveDensity returns the density the renderer uses: Density when it is
@@ -74,6 +87,16 @@ func (t Theme) EffectiveBorderStyle() string {
 		return t.BorderStyle
 	}
 	return BorderRounded
+}
+
+// EffectiveCardBorderStyle returns the card border style the renderer uses:
+// CardBorderStyle when it is a known value, else CardBorderAuto.
+func (t Theme) EffectiveCardBorderStyle() string {
+	switch t.CardBorderStyle {
+	case CardBorderSubtle, CardBorderMinimal, CardBorderRounded, CardBorderNone:
+		return t.CardBorderStyle
+	}
+	return CardBorderAuto
 }
 
 // DefaultDarkTheme returns the built-in dark theme: balanced density and
@@ -124,6 +147,12 @@ func defaultTones() map[string]ToneStyle {
 		"border":            {Fg: "border"},
 		"border.focus":      {Fg: "accent", Bold: true},
 		"border.warn":       {Fg: "warning", Bold: true},
+		"focus.border":      {Fg: "accent", Bold: true},
+		"focus.bg":          {Bg: "surface.focus"},
+		"focus.fg":          {Fg: "text", Bold: true},
+		"focus.title":       {Fg: "accent", Bold: true},
+		"unfocused.border":  {Fg: "border", Dim: true},
+		"unfocused.fg":      {Fg: "muted"},
 		"selected":          {Fg: "text", Bg: "selection", Bold: true},
 		"selected.inactive": {Fg: "text", Bg: "surface.focus"},
 		"surface":           {Bg: "surface"},
@@ -248,7 +277,23 @@ func HighContrastDarkTheme() Theme {
 	t.Tones["row.cancelled"] = ToneStyle{Fg: "muted", Strikethrough: true}
 	t.Tones["state.cancelled"] = ToneStyle{Fg: "muted", Strikethrough: true}
 	t.Tones["state.done.dim"] = ToneStyle{Fg: "success"}
+	t.Tones["unfocused.border"] = ToneStyle{Fg: "border"}
 	return t
+}
+
+type focusRoleAlias struct {
+	role string
+	bg   bool
+	def  ToneStyle
+}
+
+var focusRoleAliases = map[string]focusRoleAlias{
+	"focus.border":     {role: "focusBorder", def: ToneStyle{Fg: "accent", Bold: true}},
+	"focus.bg":         {role: "focusBg", bg: true, def: ToneStyle{Bg: "surface.focus"}},
+	"focus.fg":         {role: "focusFg", def: ToneStyle{Fg: "text", Bold: true}},
+	"focus.title":      {role: "focusTitleFg", def: ToneStyle{Fg: "accent", Bold: true}},
+	"unfocused.border": {role: "unfocusedBorder", def: ToneStyle{Fg: "border", Dim: true}},
+	"unfocused.fg":     {role: "unfocusedFg", def: ToneStyle{Fg: "muted"}},
 }
 
 // ThemePresets returns the built-in themes in display order: default dark,
@@ -260,14 +305,33 @@ func ThemePresets() []Theme {
 
 // Tone resolves a tone name to a concrete style whose Fg/Bg are "#RRGGBB" or
 // ANSI indexes. Unknown names fall back to a role name or a literal color as
-// foreground, else the zero style.
+// foreground, else the zero style. Focus and unfocused chrome tones also honor
+// user-friendly camelCase role aliases (focusBorder, focusBg, focusFg,
+// focusTitleFg, unfocusedBorder, unfocusedFg) when defined in Theme.Roles.
 func (t Theme) Tone(name string) ToneStyle {
 	var ts ToneStyle
-	if s, ok := t.Tones[name]; ok {
+	s, hasTone := t.Tones[name]
+	if hasTone {
 		ts = s
 	} else if name != "" {
 		if _, ok := t.Roles[name]; ok || colorOf(name) != nil {
 			ts = ToneStyle{Fg: name}
+		}
+	}
+	if alias, ok := focusRoleAliases[name]; ok {
+		if _, hasRole := t.Roles[alias.role]; hasRole {
+			if !hasTone {
+				ts = alias.def
+			}
+			if alias.bg {
+				if ts.Bg == "" || ts.Bg == alias.def.Bg {
+					ts.Bg = alias.role
+				}
+			} else {
+				if ts.Fg == "" || ts.Fg == alias.def.Fg {
+					ts.Fg = alias.role
+				}
+			}
 		}
 	}
 	ts.Fg = t.resolveColor(ts.Fg)

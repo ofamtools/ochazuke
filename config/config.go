@@ -193,9 +193,10 @@ func LoadTheme(data []byte, base ui.Theme) (ui.Theme, error) {
 		out.Name = p.Name
 	}
 	var flags struct {
-		Dark        *bool   `json:"dark"`
-		Density     *string `json:"density"`
-		BorderStyle *string `json:"borderStyle"`
+		Dark            *bool   `json:"dark"`
+		Density         *string `json:"density"`
+		BorderStyle     *string `json:"borderStyle"`
+		CardBorderStyle *string `json:"cardBorderStyle"`
 	}
 	if json.Unmarshal(StripJSONC(data), &flags) == nil {
 		if flags.Dark != nil {
@@ -206,6 +207,9 @@ func LoadTheme(data []byte, base ui.Theme) (ui.Theme, error) {
 		}
 		if flags.BorderStyle != nil {
 			out.BorderStyle = *flags.BorderStyle
+		}
+		if flags.CardBorderStyle != nil {
+			out.CardBorderStyle = *flags.CardBorderStyle
 		}
 	}
 	out.Version = base.Version + 1

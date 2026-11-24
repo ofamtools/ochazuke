@@ -114,9 +114,13 @@ func TestLoadThemeDensityAndBorder(t *testing.T) {
 	if err != nil || th.Density != ui.DensitySpacious || th.BorderStyle != ui.BorderMinimal || th.Version != base.Version+1 {
 		t.Fatalf("density only: %+v %v", th, err)
 	}
-	th, err = LoadTheme([]byte(`{"density": "", "borderStyle": ""}`), base)
-	if err != nil || th.EffectiveDensity() != ui.DensityBalanced || th.EffectiveBorderStyle() != ui.BorderRounded || base.Density != ui.DensityCompact {
-		t.Fatalf("explicit empty must select the defaults: %+v %v", th, err)
+	th, err = LoadTheme([]byte(`{"density": "", "borderStyle": "", "cardBorderStyle": "subtle"}`), base)
+	if err != nil || th.EffectiveDensity() != ui.DensityBalanced || th.EffectiveBorderStyle() != ui.BorderRounded || th.EffectiveCardBorderStyle() != ui.CardBorderSubtle || base.Density != ui.DensityCompact {
+		t.Fatalf("explicit empty / cardBorderStyle: %+v %v", th, err)
+	}
+	th2, err := LoadTheme([]byte(`{"cardBorderStyle": ""}`), th)
+	if err != nil || th2.EffectiveCardBorderStyle() != ui.CardBorderAuto {
+		t.Fatalf("explicit empty cardBorderStyle must reset to auto: %+v %v", th2, err)
 	}
 }
 
