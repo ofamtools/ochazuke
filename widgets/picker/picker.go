@@ -8,7 +8,6 @@ package picker
 
 import (
 	"hash/fnv"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,13 +19,13 @@ import (
 )
 
 // MatchMode selects how the query is matched against items.
-type MatchMode string
+type MatchMode = traits.MatchMode
 
 // Match modes.
 const (
-	MatchSubstring MatchMode = "substring"
-	MatchFuzzy     MatchMode = "fuzzy"
-	MatchRegex     MatchMode = "regex"
+	MatchSubstring = traits.MatchSubstring
+	MatchFuzzy     = traits.MatchFuzzy
+	MatchRegex     = traits.MatchRegex
 )
 
 // Command IDs handled by Model.HandleCommand besides the standard motions.
@@ -162,14 +161,7 @@ func (m *Model) BackspaceQuery() {
 
 // CycleMatchMode advances substring -> fuzzy -> regex -> substring.
 func (m *Model) CycleMatchMode() {
-	switch m.mode() {
-	case MatchSubstring:
-		m.MatchMode = MatchFuzzy
-	case MatchFuzzy:
-		m.MatchMode = MatchRegex
-	default:
-		m.MatchMode = MatchSubstring
-	}
+	m.MatchMode = traits.CycleMatchMode(m.MatchMode, traits.FilterConfig{})
 	m.SelectedIdx = 0
 	m.Offset = 0
 	m.refresh()
@@ -212,18 +204,7 @@ func (m *Model) clampTo(n int) {
 
 func haystack(it Item) string {
 	parts := append([]string{it.Title, it.Subtitle}, it.Keywords...)
-	return strings.ToLower(strings.Join(parts, " "))
-}
-
-func fuzzy(hay, q string) bool {
-	qs := []rune(q)
-	i := 0
-	for _, r := range hay {
-		if i < len(qs) && r == qs[i] {
-			i++
-		}
-	}
-	return i == len(qs)
+	return strings.Join(parts, " ")
 }
 
 // match returns the matching items in Items order and a regex error message
@@ -233,31 +214,19 @@ func (m *Model) match() ([]Item, string) {
 	if m.Query == "" {
 		return m.Items, ""
 	}
-	var match func(Item) bool
-	q := strings.ToLower(m.Query)
-	switch m.mode() {
-	case MatchFuzzy:
-		match = func(it Item) bool { return fuzzy(haystack(it), q) }
-	case MatchRegex:
-		re, err := regexp.Compile("(?i)" + m.Query)
-		if err != nil {
-			return m.Items, err.Error()
-		}
-		match = func(it Item) bool {
-			parts := append([]string{it.Title, it.Subtitle}, it.Keywords...)
-			for _, p := range parts {
-				if re.MatchString(p) {
-					return true
-				}
-			}
-			return false
-		}
-	default:
-		match = func(it Item) bool { return strings.Contains(haystack(it), q) }
+	mode := m.mode()
+	matcher, errMsg := traits.CompileFilter(m.Query, mode, traits.FilterConfig{})
+	if errMsg != "" {
+		return m.Items, errMsg
 	}
 	var out []Item
 	for _, it := range m.Items {
-		if match(it) {
+		if mode == MatchRegex {
+			parts := append([]string{it.Title, it.Subtitle}, it.Keywords...)
+			if matcher.MatchAny(parts...) {
+				out = append(out, it)
+			}
+		} else if matcher.Match(haystack(it)) {
 			out = append(out, it)
 		}
 	}
@@ -492,17 +461,15 @@ func (m *Model) View(id string) ui.ViewNode {
 	}
 	facts := traits.MergeFacts(nil, m.Facts)
 	facts = traits.MergeFacts(facts, traits.ViewportFacts(m.viewportState(len(f)), m.viewportConfig()))
-	facts["query"] = m.Query
-	facts["queryEmpty"] = m.Query == ""
-	facts["filtering"] = m.Filtering
-	facts["matchMode"] = string(m.mode())
+	facts = traits.MergeFacts(facts, traits.FilterFacts(traits.FilterState{
+		Query: m.Query, Cursor: m.QueryCursor(), Active: m.Filtering, Mode: m.mode(), Err: m.FilterErr,
+	}, traits.FilterConfig{}))
 	facts["count"] = len(f) - m.pinnedRows() // matching Items; Pinned is not counted
 	facts["total"] = len(m.Items)            // all Items; Pinned is not one
 	facts["pinned"] = m.Pinned != nil
 	facts["selected"] = sel
 	facts["multiSelect"] = m.MultiSelect
 	facts["marked"] = len(m.MarkedItems())
-	facts["filterError"] = m.FilterErr
 	if focused != nil {
 		facts["focusedId"] = focused.ID
 	}

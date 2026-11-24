@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 	"ofam.dev/ochazuke/widgets/table"
 )
@@ -240,6 +241,8 @@ func (m *Model) FilterError() string { return m.filterErr }
 
 var queryTokens = regexp.MustCompile(`[^[:space:]:]+:"[^"]*"|[^[:space:]]+`)
 
+var filterFields = []string{"key", "scope", "mode", "verb", "hint", "status", "when"}
+
 func (m *Model) filter() {
 	type term struct{ field, value string }
 	var terms []term
@@ -263,17 +266,51 @@ func (m *Model) filter() {
 		terms = append(terms, term{"", free})
 	}
 
-	filter := table.New(append(columns(), table.Column{Key: "when"}), m.rows)
-	filter.MatchMode = m.list.MatchMode
+	type compiledTerm struct {
+		field   string
+		matcher traits.Matcher
+	}
+	compiled := make([]compiledTerm, 0, len(terms))
 	m.filterErr = ""
 	for _, t := range terms {
-		filter.Query, filter.FilterField = t.value, t.field
-		filter.Rows = filter.Filtered()
-		if filter.FilterErr != "" {
-			m.filterErr = filter.FilterErr
+		mat, errMsg := traits.CompileFilter(t.value, m.list.MatchMode, traits.FilterConfig{})
+		if errMsg != "" {
+			m.filterErr = errMsg
+		}
+		compiled = append(compiled, compiledTerm{field: t.field, matcher: mat})
+	}
+	if len(compiled) == 0 {
+		m.list.Rows = slices.Clone(m.rows)
+		return
+	}
+	out := make([]table.Row, 0, len(m.rows))
+	for _, r := range m.rows {
+		ok := true
+		for _, ct := range compiled {
+			if ct.field != "" {
+				if !ct.matcher.Match(table.Text(r.Cells[ct.field])) {
+					ok = false
+					break
+				}
+				continue
+			}
+			hit := false
+			for _, f := range filterFields {
+				if ct.matcher.Match(table.Text(r.Cells[f])) {
+					hit = true
+					break
+				}
+			}
+			if !hit {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			out = append(out, r)
 		}
 	}
-	m.list.Rows = filter.Rows
+	m.list.Rows = out
 }
 
 // Filtered returns declaration indices in display order.

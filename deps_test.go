@@ -109,7 +109,7 @@ var policies = map[string]policy{
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/pathpicker": {
-		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/widgets/picker", mod + "/widgets/input"},
+		allow:      []string{mod + "/core", mod + "/traits", mod + "/ui", mod + "/layout", mod + "/widgets/picker", mod + "/widgets/input"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/form": {
@@ -125,7 +125,7 @@ var policies = map[string]policy{
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/bindings": {
-		allow:      []string{mod + "/core", mod + "/ui", mod + "/expr", mod + "/config", mod + "/widgets/table"},
+		allow:      []string{mod + "/core", mod + "/traits", mod + "/ui", mod + "/expr", mod + "/config", mod + "/widgets/table"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/diff": {

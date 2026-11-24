@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math"
-	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -20,13 +19,13 @@ import (
 )
 
 // MatchMode selects how Query matches cells.
-type MatchMode string
+type MatchMode = traits.MatchMode
 
 // Match modes.
 const (
-	MatchSubstring MatchMode = "substring"
-	MatchFuzzy     MatchMode = "fuzzy"
-	MatchRegex     MatchMode = "regex"
+	MatchSubstring = traits.MatchSubstring
+	MatchFuzzy     = traits.MatchFuzzy
+	MatchRegex     = traits.MatchRegex
 )
 
 // SortDir is a sort direction.
@@ -201,47 +200,19 @@ func compare(a, b any) int {
 	return strings.Compare(strings.ToLower(Text(a)), strings.ToLower(Text(b)))
 }
 
-func fuzzy(hay, needle string) bool {
-	h := []rune(hay)
-	i := 0
-	for _, n := range []rune(needle) {
-		for i < len(h) && h[i] != n {
-			i++
-		}
-		if i == len(h) {
-			return false
-		}
-		i++
-	}
-	return true
-}
-
 // matcher builds the row predicate and records any regex error.
-func (m *Model) matcher() func(string) bool {
-	q := m.Query
-	m.FilterErr = ""
-	sub := func(s string) bool { return strings.Contains(strings.ToLower(s), strings.ToLower(q)) }
-	switch m.MatchMode {
-	case MatchFuzzy:
-		lq := strings.ToLower(q)
-		return func(s string) bool { return fuzzy(strings.ToLower(s), lq) }
-	case MatchRegex:
-		re, err := regexp.Compile("(?i)" + q)
-		if err != nil {
-			m.FilterErr = err.Error()
-			return sub
-		}
-		return re.MatchString
-	}
-	return sub
+func (m *Model) matcher() traits.Matcher {
+	mat, err := traits.CompileFilter(m.Query, m.MatchMode, traits.FilterConfig{})
+	m.FilterErr = err
+	return mat
 }
 
-func (m *Model) rowMatches(r Row, match func(string) bool) bool {
+func (m *Model) rowMatches(r Row, match traits.Matcher) bool {
 	if m.FilterField != "" {
-		return match(Text(r.Cells[m.FilterField]))
+		return match.Match(Text(r.Cells[m.FilterField]))
 	}
 	for _, c := range m.Columns {
-		if match(Text(r.Cells[c.Key])) {
+		if match.Match(Text(r.Cells[c.Key])) {
 			return true
 		}
 	}
@@ -539,31 +510,27 @@ func (m *Model) ToggleGroup() {
 	if !ok || m.GroupField == "" {
 		return
 	}
-	if m.Collapsed == nil {
-		m.Collapsed = map[string]bool{}
+	target := traits.FoldTarget{ID: it.Group, HasChildren: true}
+	if !it.Header {
+		target = traits.FoldTarget{ID: it.Row.ID, ParentID: it.Group}
 	}
-	m.Collapsed[it.Group] = !m.Collapsed[it.Group]
-	m.snapToGroup(it.Group)
+	st, focusID, _, _ := traits.FoldHandle(traits.FoldState{Collapsed: m.Collapsed}, traits.FoldConfig{LeafFoldsParent: true}, target, nil, core.Command{ID: traits.FoldCmdToggle})
+	m.Collapsed = st.Collapsed
+	if focusID == "" {
+		focusID = it.Group
+	}
+	m.snapToGroup(focusID)
 }
 
 func (m *Model) snapToGroup(g string) {
-	for i, it := range m.Items() {
+	items := m.Items()
+	for i, it := range items {
 		if it.Header && it.Group == g {
 			m.SelectedIdx = i
 			break
 		}
 	}
-	m.clamp(len(m.Items()))
-}
-
-func (m *Model) groups() []string {
-	var out []string
-	for _, it := range m.Items() {
-		if it.Header {
-			out = append(out, it.Group)
-		}
-	}
-	return out
+	m.clamp(len(items))
 }
 
 // groupsAll lists group values ignoring collapse state.
@@ -581,17 +548,19 @@ func (m *Model) groupsAll() []string {
 }
 
 // ExpandAllGroups expands every group.
-func (m *Model) ExpandAllGroups() { m.Collapsed = nil; m.clamp(len(m.Items())) }
+func (m *Model) ExpandAllGroups() {
+	st, _, _, _ := traits.FoldHandle(traits.FoldState{Collapsed: m.Collapsed}, traits.FoldConfig{}, traits.FoldTarget{}, nil, core.Command{ID: traits.FoldCmdOpenAll})
+	m.Collapsed = st.Collapsed
+	m.clamp(len(m.Items()))
+}
 
 // CollapseAllGroups collapses every group.
 func (m *Model) CollapseAllGroups() {
 	if m.GroupField == "" {
 		return
 	}
-	m.Collapsed = map[string]bool{}
-	for _, g := range m.groupsAll() {
-		m.Collapsed[g] = true
-	}
+	st, _, _, _ := traits.FoldHandle(traits.FoldState{Collapsed: m.Collapsed}, traits.FoldConfig{}, traits.FoldTarget{}, m.groupsAll(), core.Command{ID: traits.FoldCmdCloseAll})
+	m.Collapsed = st.Collapsed
 	m.clamp(len(m.Items()))
 }
 
@@ -761,14 +730,7 @@ func (m *Model) AddSort(field string) {
 
 // CycleMatchMode advances substring -> fuzzy -> regex.
 func (m *Model) CycleMatchMode() {
-	switch m.MatchMode {
-	case MatchFuzzy:
-		m.MatchMode = MatchRegex
-	case MatchRegex:
-		m.MatchMode = MatchSubstring
-	default:
-		m.MatchMode = MatchFuzzy
-	}
+	m.MatchMode = traits.CycleMatchMode(m.MatchMode, traits.FilterConfig{})
 }
 
 // HandleCommand applies a motion or table command; it reports whether the
@@ -859,16 +821,12 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 }
 
 func (m *Model) facts(it Item, ok bool, nItems int) map[string]any {
-	mode := m.MatchMode
-	if mode == "" {
-		mode = MatchSubstring
-	}
 	if len(m.SortKeys) > 0 {
 		m.syncPrimarySort()
 	}
-	return traits.MergeFacts(traits.ViewportFacts(m.viewportState(nItems), m.viewportConfig()), map[string]any{
-		"hasFilter":     m.Query != "",
-		"matchMode":     string(mode),
+	f := traits.ViewportFacts(m.viewportState(nItems), m.viewportConfig())
+	f = traits.MergeFacts(f, traits.FilterFacts(traits.FilterState{Query: m.Query, Mode: m.MatchMode, Err: m.FilterErr}, traits.FilterConfig{}))
+	return traits.MergeFacts(f, map[string]any{
 		"groupField":    m.GroupField,
 		"sortField":     m.SortField,
 		"markedCount":   len(m.Marked),
@@ -970,42 +928,10 @@ func (m *Model) View(id string) ui.ViewNode {
 		if len(cells) > 0 && m.Marked[it.Row.ID] {
 			cells[0] = "● " + cells[0].(string)
 		}
-		styled := it.Row.Tone != ""
-		var cellTones, cellIcons, iconTones []string
-		if len(it.Row.CellTones) > 0 {
-			for j, c := range m.Columns {
-				if v := it.Row.CellTones[c.Key]; v != "" {
-					if cellTones == nil {
-						cellTones = make([]string, len(m.Columns))
-					}
-					cellTones[j] = v
-					styled = true
-				}
-			}
-		}
-		if len(it.Row.CellIcons) > 0 {
-			for j, c := range m.Columns {
-				if v := it.Row.CellIcons[c.Key]; v != "" {
-					if cellIcons == nil {
-						cellIcons = make([]string, len(m.Columns))
-					}
-					cellIcons[j] = v
-					styled = true
-				}
-			}
-		}
-		if len(it.Row.IconTones) > 0 {
-			for j, c := range m.Columns {
-				if v := it.Row.IconTones[c.Key]; v != "" {
-					if iconTones == nil {
-						iconTones = make([]string, len(m.Columns))
-					}
-					iconTones[j] = v
-					styled = true
-				}
-			}
-		}
-		if styled {
+		cellTones, hasTones := projectCellMap(m.Columns, it.Row.CellTones)
+		cellIcons, hasIcons := projectCellMap(m.Columns, it.Row.CellIcons)
+		iconTones, hasIconTones := projectCellMap(m.Columns, it.Row.IconTones)
+		if it.Row.Tone != "" || hasTones || hasIcons || hasIconTones {
 			rows[i] = ui.TableRowSpec{
 				Cells:     cells,
 				Tone:      it.Row.Tone,
@@ -1041,4 +967,20 @@ func (m *Model) View(id string) ui.ViewNode {
 	fmt.Fprintf(h, "%v|%v|%d|%d|%v|%t|%d|%d|%d", cols, rows, m.SelectedIdx, m.Offset, n.Facts["isGroupHeader"], vOK, vFrom, vTo, selCol)
 	n.CacheKey = h.Sum64() | 1
 	return n
+}
+
+func projectCellMap(cols []Column, src map[string]string) ([]string, bool) {
+	if len(src) == 0 {
+		return nil, false
+	}
+	var out []string
+	for j, c := range cols {
+		if v := src[c.Key]; v != "" {
+			if out == nil {
+				out = make([]string, len(cols))
+			}
+			out[j] = v
+		}
+	}
+	return out, out != nil
 }

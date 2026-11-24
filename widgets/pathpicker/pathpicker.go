@@ -24,6 +24,7 @@ import (
 	"unicode/utf8"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 	"ofam.dev/ochazuke/widgets/picker"
 )
@@ -344,9 +345,7 @@ func (m *Model) BackspaceQuery() {
 
 // CycleMatchMode advances substring -> fuzzy -> regex.
 func (m *Model) CycleMatchMode() {
-	l := picker.Model{MatchMode: m.MatchMode}
-	l.CycleMatchMode()
-	m.MatchMode = l.MatchMode
+	m.MatchMode = traits.CycleMatchMode(m.MatchMode, traits.FilterConfig{})
 	m.rebuild()
 	m.resetSel()
 }

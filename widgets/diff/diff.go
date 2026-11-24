@@ -11,6 +11,7 @@ package diff
 import (
 	"fmt"
 	"hash/fnv"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -279,7 +280,9 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 	case CmdModeToggle:
 		m.setMode(cmd.Arg("mode"))
 	case CmdSectionToggle:
-		m.toggleSection()
+		m.applyFold(traits.FoldCmdToggle)
+	case traits.FoldCmdToggle, traits.FoldCmdOpen, traits.FoldCmdClose, traits.FoldCmdOpenAll, traits.FoldCmdCloseAll:
+		m.applyFold(cmd.ID)
 	case CmdYank:
 		m.Yanked = m.Yank(cmd.Arg("scope"))
 	default:
@@ -334,20 +337,59 @@ func (m *Model) setMode(want string) {
 	m.clamp(len(rows))
 }
 
-// toggleSection collapses or expands the section under the cursor and moves
-// the cursor to its header.
-func (m *Model) toggleSection() {
-	row, ok := m.Focused()
-	if !ok {
-		return
-	}
-	m.Doc.Sections[row.Section].Collapsed = !m.Doc.Sections[row.Section].Collapsed
-	for i, r := range m.Rows() {
-		if r.Kind == RowSection && r.Section == row.Section {
-			m.Cursor = i
-			break
+func (m *Model) foldState() (traits.FoldState, []string) {
+	collapsed := make(map[string]bool)
+	all := make([]string, len(m.Doc.Sections))
+	for i, s := range m.Doc.Sections {
+		k := strconv.Itoa(i)
+		all[i] = k
+		if s.Collapsed {
+			collapsed[k] = true
 		}
 	}
+	return traits.FoldState{Collapsed: collapsed}, all
+}
+
+// applyFold delegates section collapse/expand commands to traits.FoldHandle and
+// snaps the cursor to the target section header when needed.
+func (m *Model) applyFold(cmdID string) bool {
+	row, ok := m.Focused()
+	st, all := m.foldState()
+	var target traits.FoldTarget
+	if ok {
+		secKey := strconv.Itoa(row.Section)
+		if row.Kind == RowSection {
+			target = traits.FoldTarget{ID: secKey, HasChildren: true}
+		} else {
+			target = traits.FoldTarget{ParentID: secKey}
+		}
+	}
+	next, focusID, _, handled := traits.FoldHandle(
+		st,
+		traits.FoldConfig{LeafFoldsParent: true},
+		target, all, core.Command{ID: cmdID},
+	)
+	if !handled {
+		return false
+	}
+	for i := range m.Doc.Sections {
+		m.Doc.Sections[i].Collapsed = next.Collapsed[strconv.Itoa(i)]
+	}
+	snapSec := -1
+	if focusID != "" {
+		snapSec, _ = strconv.Atoi(focusID)
+	} else if ok && (cmdID == traits.FoldCmdToggle || cmdID == traits.FoldCmdCloseAll) {
+		snapSec = row.Section
+	}
+	if snapSec >= 0 {
+		for i, r := range m.Rows() {
+			if r.Kind == RowSection && r.Section == snapSec {
+				m.Cursor = i
+				break
+			}
+		}
+	}
+	return true
 }
 
 // Yank returns the text of the focused row: scope "line", "hunk" or
@@ -614,6 +656,13 @@ func (m *Model) View(id string) ui.ViewNode {
 	if len(rows) > 0 {
 		r := rows[m.Cursor]
 		s := m.Doc.Sections[r.Section]
+		secKey := strconv.Itoa(r.Section)
+		target := traits.FoldTarget{ParentID: secKey}
+		if r.Kind == RowSection {
+			target = traits.FoldTarget{ID: secKey, HasChildren: true}
+		}
+		fst, _ := m.foldState()
+		facts = traits.MergeFacts(facts, traits.FoldFacts(fst, target))
 		facts["rowKind"] = [...]string{"section", "hunk", "line"}[r.Kind]
 		facts["sectionIndex"] = r.Section
 		facts["sectionId"] = s.ID

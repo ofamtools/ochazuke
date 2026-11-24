@@ -17,9 +17,7 @@ const maxProductionFileLines = 1000
 // legacyLineCeilings freezes existing production files above maxProductionFileLines
 // at their exact current line counts so they cannot grow and no new god-files enter.
 var legacyLineCeilings = map[string]int{
-	"ui/draw_content.go":     1192,
-	"widgets/table/table.go": 1049,
-	"widgets/tree/tree.go":   1007,
+	"ui/draw_content.go": 1192,
 }
 
 func walkGoFiles(t *testing.T, fn func(relPath, base string)) {

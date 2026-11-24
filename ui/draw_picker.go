@@ -1,10 +1,8 @@
 package ui
 
 import (
-	"regexp"
-	"strings"
-
 	"ofam.dev/ochazuke/buffer"
+	"ofam.dev/ochazuke/traits"
 )
 
 type pickerItem struct{ label, desc, tone, badge string }
@@ -25,52 +23,6 @@ func pickerItems(n *ViewNode) []pickerItem {
 		}
 	}
 	return out
-}
-
-// matchRunes marks the runes of label matched by query under mode.
-func matchRunes(label, query, mode string) []bool {
-	rs := []rune(label)
-	hit := make([]bool, len(rs))
-	if query == "" {
-		return hit
-	}
-	switch mode {
-	case "regex":
-		re, err := regexp.Compile("(?i)" + query)
-		if err != nil {
-			return hit
-		}
-		if loc := re.FindStringIndex(label); loc != nil {
-			from := len([]rune(label[:loc[0]]))
-			to := from + len([]rune(label[loc[0]:loc[1]]))
-			for i := from; i < to; i++ {
-				hit[i] = true
-			}
-		}
-	case "fuzzy":
-		q := []rune(strings.ToLower(query))
-		qi := 0
-		for i, r := range []rune(strings.ToLower(label)) {
-			if qi < len(q) && r == q[qi] {
-				hit[i] = true
-				qi++
-			}
-		}
-		if qi < len(q) {
-			return make([]bool, len(rs))
-		}
-	default:
-		low := []rune(strings.ToLower(label))
-		q := []rune(strings.ToLower(query))
-		if len(low) == len(rs) {
-			if i := indexRunes(low, 0, string(q)); i >= 0 {
-				for k := range q {
-					hit[i+k] = true
-				}
-			}
-		}
-	}
-	return hit
 }
 
 func (c *ctx) pickerLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
@@ -114,10 +66,11 @@ func (c *ctx) pickerLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 	sel := selectedOf(n)
 	start := windowStart(n, len(items), rowsH, sel)
 	mode := n.propString("matchMode")
+	matcher, _ := traits.CompileFilter(query, traits.MatchMode(mode), traits.FilterConfig{})
 	for i := start; i < min(len(items), start+rowsH); i++ {
 		it := items[i]
 		ts := c.rowStyle(rn, i == sel)
-		hit := matchRunes(it.label, query, mode)
+		hit := matcher.MatchRunes(it.label)
 		var spans []rspan
 		for k, ok := range hit {
 			if ok {

@@ -153,22 +153,24 @@ func (m Model) Copy() Model {
 func (m *Model) SetNodes(nodes []Node) {
 	m.Nodes = nodes
 	if len(m.Folded) > 0 {
-		present := map[string]bool{}
-		var mark func(ns []Node)
-		mark = func(ns []Node) {
-			for _, nd := range ns {
-				present[nd.ID] = true
-				mark(nd.Children)
-			}
-		}
-		mark(nodes)
-		for id := range m.Folded {
-			if !present[id] {
-				delete(m.Folded, id)
-			}
-		}
+		m.Folded = traits.FoldPrune(traits.FoldState{Collapsed: m.Folded}, collectNodeIDs(nodes, false)).Collapsed
 	}
 	m.Clamp()
+}
+
+func collectNodeIDs(ns []Node, onlyParents bool) []string {
+	var ids []string
+	var walk func(ns []Node)
+	walk = func(ns []Node) {
+		for _, nd := range ns {
+			if !onlyParents || len(nd.Children) > 0 {
+				ids = append(ids, nd.ID)
+			}
+			walk(nd.Children)
+		}
+	}
+	walk(ns)
+	return ids
 }
 
 func countDescendants(ns []Node) int {
@@ -422,103 +424,51 @@ func (m *Model) Reveal(id string) bool {
 	return true
 }
 
+func (m *Model) applyFold(cmdID string) bool {
+	var target traits.FoldTarget
+	if row, ok := m.Focused(); ok && !row.Draft {
+		target = traits.FoldTarget{ID: row.ID, ParentID: row.ParentID, HasChildren: row.HasChildren}
+	}
+	var all []string
+	if cmdID == traits.FoldCmdCloseAll {
+		all = collectNodeIDs(m.Nodes, true)
+	}
+	next, focusID, changed, _ := traits.FoldHandle(
+		traits.FoldState{Collapsed: m.Folded},
+		traits.FoldConfig{LeafFoldsParent: true},
+		target, all, core.Command{ID: cmdID},
+	)
+	m.Folded = next.Collapsed
+	if focusID != "" {
+		m.SelectedID = focusID
+	} else if cmdID == traits.FoldCmdCloseAll {
+		if path := m.pathTo(m.SelectedID); len(path) > 0 {
+			m.SelectedID = path[0]
+		}
+	}
+	if changed || cmdID == traits.FoldCmdCloseAll || cmdID == traits.FoldCmdOpenAll {
+		m.Clamp()
+	}
+	return changed
+}
+
 // ToggleFold flips fold state of the focused node. On a leaf node with a parent,
 // it folds the parent and moves selection to the parent.
-func (m *Model) ToggleFold() bool {
-	row, ok := m.Focused()
-	if !ok || row.Draft {
-		return false
-	}
-	if row.HasChildren {
-		if m.Folded[row.ID] {
-			delete(m.Folded, row.ID)
-		} else {
-			if m.Folded == nil {
-				m.Folded = map[string]bool{}
-			}
-			m.Folded[row.ID] = true
-		}
-		m.Clamp()
-		return true
-	}
-	if row.ParentID != "" {
-		if m.Folded == nil {
-			m.Folded = map[string]bool{}
-		}
-		m.Folded[row.ParentID] = true
-		m.SelectedID = row.ParentID
-		m.Clamp()
-		return true
-	}
-	return false
-}
+func (m *Model) ToggleFold() bool { return m.applyFold(traits.FoldCmdToggle) }
 
 // Fold collapses the focused node. On a leaf node with a parent, it collapses
 // the parent and moves selection to the parent.
-func (m *Model) Fold() bool {
-	row, ok := m.Focused()
-	if !ok || row.Draft {
-		return false
-	}
-	if row.HasChildren {
-		if row.Folded {
-			return false
-		}
-		if m.Folded == nil {
-			m.Folded = map[string]bool{}
-		}
-		m.Folded[row.ID] = true
-		m.Clamp()
-		return true
-	}
-	if row.ParentID != "" {
-		if m.Folded == nil {
-			m.Folded = map[string]bool{}
-		}
-		m.Folded[row.ParentID] = true
-		m.SelectedID = row.ParentID
-		m.Clamp()
-		return true
-	}
-	return false
-}
+func (m *Model) Fold() bool { return m.applyFold(traits.FoldCmdClose) }
 
 // Unfold expands the focused node if it is folded.
-func (m *Model) Unfold() bool {
-	row, ok := m.Focused()
-	if !ok || row.Draft || !row.HasChildren || !row.Folded {
-		return false
-	}
-	delete(m.Folded, row.ID)
-	m.Clamp()
-	return true
-}
+func (m *Model) Unfold() bool { return m.applyFold(traits.FoldCmdOpen) }
 
 // FoldAll collapses every node with children, snapping selection to the
 // nearest visible ancestor if needed.
-func (m *Model) FoldAll() {
-	m.Folded = map[string]bool{}
-	var mark func(ns []Node)
-	mark = func(ns []Node) {
-		for _, nd := range ns {
-			if len(nd.Children) > 0 {
-				m.Folded[nd.ID] = true
-				mark(nd.Children)
-			}
-		}
-	}
-	mark(m.Nodes)
-	if path := m.pathTo(m.SelectedID); len(path) > 0 {
-		m.SelectedID = path[0]
-	}
-	m.Clamp()
-}
+func (m *Model) FoldAll() { m.applyFold(traits.FoldCmdCloseAll) }
 
 // UnfoldAll expands every node in the tree.
-func (m *Model) UnfoldAll() {
-	m.Folded = nil
-	m.Clamp()
-}
+func (m *Model) UnfoldAll() { m.applyFold(traits.FoldCmdOpenAll) }
 
 // Editing reports whether an inline rename or add session is active.
 func (m *Model) Editing() bool { return m.edit != nil }
@@ -753,15 +703,15 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 			}
 		}
 		moveToIdx(idx)
-	case CmdFoldToggle:
+	case CmdFoldToggle, traits.FoldCmdToggle:
 		m.ToggleFold()
-	case CmdFoldOpen:
+	case CmdFoldOpen, traits.FoldCmdOpen:
 		m.Unfold()
-	case CmdFoldClose:
+	case CmdFoldClose, traits.FoldCmdClose:
 		m.Fold()
-	case CmdFoldOpenAll:
+	case CmdFoldOpenAll, traits.FoldCmdOpenAll:
 		m.UnfoldAll()
-	case CmdFoldCloseAll:
+	case CmdFoldCloseAll, traits.FoldCmdCloseAll:
 		m.FoldAll()
 	default:
 		return false
@@ -829,8 +779,10 @@ func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any
 		"editing":   m.Editing(),
 	})
 	if ok && !row.Draft {
+		f = traits.MergeFacts(f, traits.FoldFacts(traits.FoldState{Collapsed: m.Folded}, traits.FoldTarget{
+			ID: row.ID, ParentID: row.ParentID, HasChildren: row.HasChildren,
+		}))
 		f["depth"] = row.Depth
-		f["hasChildren"] = row.HasChildren
 		f["folded"] = row.Folded
 		f["isRoot"] = row.IsRoot
 		for k, v := range row.Node.Facts {

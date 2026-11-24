@@ -1,6 +1,6 @@
 // Package traits defines pure, domain-agnostic interaction traits shared across
 // Ochazuke widgets and views: viewport motion/clamping, edge focus spilling,
-// and multi-step dismiss resolution.
+// multi-step dismiss resolution, text filtering/highlighting, and folding.
 //
 // traits performs no I/O, starts no goroutines, and imports only the Go
 // standard library and ofam.dev/ochazuke/core.
