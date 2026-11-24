@@ -25,7 +25,7 @@ func (c *ctx) drawLeaf(rn *rnode, lr layout.Rect) {
 	var cur *buffer.Cursor
 	switch n.Kind {
 	case KindText:
-		out = c.textLines(n, ir.W)
+		out = c.textLines(rn, ir.W)
 	case KindMarkdown:
 		out = mdLines(c.st, n.propString("markdown"), ir.W)
 	case KindTable:
@@ -56,14 +56,49 @@ func toneOr(name, def string) string {
 	return name
 }
 
-func (c *ctx) textLines(n *ViewNode, w int) []string {
-	rs := []rune(n.propString("text"))
+func (c *ctx) focusedTextStyle() ToneStyle {
+	if ts := c.st.tone("selected"); ts != (ToneStyle{}) {
+		return ts
+	}
+	return mergeTone(c.st.tone("focus.fg"), c.st.tone("focus.bg"))
+}
+
+func (c *ctx) textLines(rn *rnode, w int) []string {
+	n := rn.n
+	focused := rn.isFocus && n.Focusable
+	rawText := n.propString("text")
 	spans, _ := propDecode[[]ToneSpan](n, "spans")
+	if focused {
+		if ft := n.propString("focusedText"); ft != "" {
+			rawText = ft
+			spans = nil
+		}
+	}
+	rs := []rune(rawText)
 	base := c.st.tone(toneOr(n.Tone, "text"))
+	if focused {
+		base = c.focusedTextStyle()
+	}
 	rsp := c.st.resolveSpans(spans, base)
+	if focused && base.Bg != "" {
+		for i := range rsp {
+			if rsp[i].ts.Bg == "" {
+				rsp[i].ts.Bg = base.Bg
+			}
+			rsp[i].ts.Bold = rsp[i].ts.Bold || base.Bold
+		}
+	}
+	fill := ""
+	if focused {
+		fill = c.st.sgr(base)
+	}
 	var out []string
 	for _, r := range wrapRanges(rs, w) {
-		out = append(out, c.st.runs(rs, r[0], r[1], base, rsp))
+		line := c.st.runs(rs, r[0], r[1], base, rsp)
+		if focused {
+			line = padLine(line, w, fill)
+		}
+		out = append(out, line)
 	}
 	return out
 }

@@ -3,6 +3,8 @@ package ui
 import (
 	"strings"
 	"testing"
+
+	"ofam.dev/ochazuke/layout"
 )
 
 func TestFocusChromeTonesAndRoleAliases(t *testing.T) {
@@ -231,5 +233,92 @@ func TestCardBorderModesAndCacheInvalidation(t *testing.T) {
 	r.Render(cachedTree(9), subTh, "c1", 30, 12)
 	if r.Stats.CacheHits != 1 {
 		t.Fatalf("repeat subtle render should hit: %+v", r.Stats)
+	}
+}
+
+func TestFocusableTextRendersSelectionHighlightAndFocusedText(t *testing.T) {
+	th := DefaultDarkTheme()
+	root := ViewNode{
+		Kind:  KindPanel,
+		ID:    "toc",
+		Title: "Pages",
+		Children: []ViewNode{
+			{
+				Kind: KindScroll,
+				ID:   "toc.scroll",
+				Children: []ViewNode{
+					{
+						Kind: KindVStack,
+						Children: []ViewNode{
+							{
+								ID:        "row.1",
+								Kind:      KindText,
+								Focusable: true,
+								Tone:      "accent",
+								Box:       layout.Constraints{FixedH: 1},
+								Props:     map[string]any{"text": "◆ ▣ Screen", "focusedText": "▸ ▣ Screen"},
+							},
+							{
+								ID:        "row.2",
+								Kind:      KindText,
+								Focusable: true,
+								Tone:      "warning",
+								Box:       layout.Constraints{FixedH: 1},
+								Props:     map[string]any{"text": "● ▪ ALDI issues", "focusedText": "▸ ▪ ALDI issues"},
+							},
+							{
+								ID:        "row.3",
+								Kind:      KindText,
+								Focusable: false,
+								Tone:      "muted",
+								Box:       layout.Constraints{FixedH: 1},
+								Props:     map[string]any{"text": "static label", "focusedText": "should not show"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	rows, f, s := drawTheme(root, th, "row.2", 34, 8)
+	r1 := s.Rects["row.1"]
+	r2 := s.Rects["row.2"]
+	if r1.H != 1 || r2.H != 1 {
+		t.Fatalf("unexpected text row rects: r1=%+v r2=%+v", r1, r2)
+	}
+	if !strings.Contains(rows[r1.Y], "◆ ▣ Screen") || strings.Contains(rows[r1.Y], "▸ ▣ Screen") {
+		t.Errorf("unfocused row.1 should show normal text, got %q", rows[r1.Y])
+	}
+	if !strings.Contains(rows[r2.Y], "▸ ▪ ALDI issues") {
+		t.Errorf("focused row.2 should show focusedText, got %q", rows[r2.Y])
+	}
+
+	ansiRows := strings.Split(f.ANSI, "\n")
+	selBg := sgrBg(th, "selected")
+	if selBg == "" {
+		t.Fatal("DefaultDarkTheme selected tone must resolve a background")
+	}
+	if !strings.Contains(ansiRows[r2.Y], selBg) {
+		t.Errorf("focused KindText row.2 missing selected background %q: %q", selBg, ansiRows[r2.Y])
+	}
+	if strings.Contains(ansiRows[r1.Y], selBg) {
+		t.Errorf("unfocused KindText row.1 must not carry selected background: %q", ansiRows[r1.Y])
+	}
+
+	// Non-focusable KindText ignores focus even if its ID matches focusID.
+	rows3, f3, s3 := drawTheme(root, th, "row.3", 34, 8)
+	r3 := s3.Rects["row.3"]
+	if strings.Contains(rows3[r3.Y], "should not show") || strings.Contains(strings.Split(f3.ANSI, "\n")[r3.Y], selBg) {
+		t.Errorf("non-focusable KindText must not highlight or swap focusedText: %q", rows3[r3.Y])
+	}
+
+	// Zero Theme stays unstyled and still swaps focusedText cleanly.
+	rowsZero, fZero, sZero := drawTheme(root, Theme{}, "row.2", 34, 8)
+	if !strings.Contains(rowsZero[sZero.Rects["row.2"].Y], "▸ ▪ ALDI issues") {
+		t.Errorf("zero theme focusedText missing: %q", rowsZero[sZero.Rects["row.2"].Y])
+	}
+	if strings.Contains(fZero.ANSI, "\x1b[") {
+		t.Errorf("zero theme must not emit ANSI escapes: %q", fZero.ANSI)
 	}
 }
