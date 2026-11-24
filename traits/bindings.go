@@ -10,6 +10,7 @@ import (
 const (
 	TraitScroll  = "scroll"
 	TraitNav     = "nav"
+	TraitMotion  = "motion"
 	TraitFilter  = "filter"
 	TraitFold    = "fold"
 	TraitSpill   = "spill"
@@ -48,6 +49,11 @@ func DefaultTraitBindings(mode, traitName string) []core.Binding {
 			Hidden:  hidden,
 		}
 	}
+	bindArgs := func(keys, cmd string, args map[string]any, hint string, hidden bool) core.Binding {
+		b := bind(keys, cmd, hint, hidden)
+		b.Args = args
+		return b
+	}
 	switch name {
 	case TraitScroll:
 		return []core.Binding{
@@ -68,6 +74,17 @@ func DefaultTraitBindings(mode, traitName string) []core.Binding {
 			bind("home", "motion.top", "Top", true),
 			bind("G", "motion.bottom", "Bottom", false),
 			bind("end", "motion.bottom", "Bottom", true),
+		}
+	case TraitMotion:
+		return []core.Binding{
+			bindArgs("}", CmdMotionObjectNext, map[string]any{"object": ObjectBlock}, "Next block", false),
+			bindArgs("{", CmdMotionObjectPrev, map[string]any{"object": ObjectBlock}, "Prev block", false),
+			bindArgs("] ]", CmdMotionObjectNext, map[string]any{"object": ObjectSection}, "Next section", false),
+			bindArgs("[ [", CmdMotionObjectPrev, map[string]any{"object": ObjectSection}, "Prev section", false),
+			bind("] s", CmdMotionSameNext, "Next sibling/same", false),
+			bind("[ s", CmdMotionSamePrev, "Prev sibling/same", false),
+			bindArgs("v i p", CmdMotionObjectSelect, map[string]any{"object": ObjectBlock}, "Select block", false),
+			bindArgs("v i s", CmdMotionObjectSelect, map[string]any{"object": ObjectSection}, "Select section", false),
 		}
 	case TraitFold:
 		return []core.Binding{
