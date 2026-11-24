@@ -69,6 +69,7 @@ type ViewNode struct {
 	ID        string         `json:"id,omitempty"`
 	Kind      string         `json:"kind"`
 	Scope     string         `json:"scope,omitempty"`
+	Traits    []string       `json:"traits,omitempty"`
 	Ref       *core.Ref      `json:"ref,omitempty"`
 	Facts     map[string]any `json:"facts,omitempty"`
 	Focusable bool           `json:"focusable,omitempty"`

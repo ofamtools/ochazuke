@@ -754,6 +754,82 @@ func TestScrollSolvedGeometry(t *testing.T) {
 	if info.ChildY["row.t"] != 38 {
 		t.Fatalf("expected bottom child row.t at Y=38, got %d", info.ChildY["row.t"])
 	}
+	if r := info.ChildRects["row.t"]; r != (layout.Rect{X: 0, Y: 38, W: 39, H: 2}) {
+		t.Fatalf("expected bottom child row.t rect {0 38 39 2}, got %+v", r)
+	}
+}
+
+func TestMeasureHeadlessGeometryAndVariableHeightScroll(t *testing.T) {
+	root := ViewNode{
+		ID:     "page",
+		Kind:   KindPanel,
+		Title:  "Feed",
+		Border: true,
+		Children: []ViewNode{
+			{
+				ID:        "feed.scroll",
+				Kind:      KindScroll,
+				Focusable: true,
+				Gap:       1,
+				Props:     map[string]any{"offset": 2},
+				Children: []ViewNode{
+					{ID: "card.a", Kind: KindText, Focusable: true, Box: layout.Constraints{FixedH: 3}, Props: map[string]any{"text": "A"}},
+					{ID: "card.b", Kind: KindText, Focusable: true, Box: layout.Constraints{FixedH: 5}, Props: map[string]any{"text": "B"}},
+					{ID: "card.c", Kind: KindText, Focusable: true, Box: layout.Constraints{FixedH: 7}, Props: map[string]any{"text": "C"}},
+					{ID: "card.d", Kind: KindText, Focusable: true, Box: layout.Constraints{FixedH: 4}, Props: map[string]any{"text": "D"}},
+				},
+			},
+		},
+	}
+
+	th := DefaultDarkTheme()
+	measured := Measure(root, th, "card.a", 44, 12)
+	_, rendered := Render(root, th, "card.a", 44, 12)
+
+	// Exact parity with Render across Rects, InnerRects, FocusOrder, and Scrolls.
+	if len(measured.Rects) != len(rendered.Rects) || len(measured.InnerRects) != len(rendered.InnerRects) {
+		t.Fatalf("Measure/Render rect count mismatch: %+v vs %+v", measured, rendered)
+	}
+	for id, r := range rendered.Rects {
+		if measured.Rects[id] != r {
+			t.Errorf("Rects[%q]: Measure=%+v, Render=%+v", id, measured.Rects[id], r)
+		}
+	}
+	for id, r := range rendered.InnerRects {
+		if measured.InnerRects[id] != r {
+			t.Errorf("InnerRects[%q]: Measure=%+v, Render=%+v", id, measured.InnerRects[id], r)
+		}
+	}
+	if strings.Join(measured.FocusOrder, ",") != strings.Join(rendered.FocusOrder, ",") {
+		t.Errorf("FocusOrder: Measure=%v, Render=%v", measured.FocusOrder, rendered.FocusOrder)
+	}
+
+	// Panel 44x12 with border(1) + default side padding(1) -> InnerRect {X:2, Y:1, W:40, H:10}.
+	if got, want := measured.InnerRects["page"], (layout.Rect{X: 2, Y: 1, W: 40, H: 10}); got != want {
+		t.Fatalf("page InnerRect = %+v, want %+v", got, want)
+	}
+	info, ok := measured.Scrolls["feed.scroll"]
+	if !ok {
+		t.Fatalf("missing Scrolls[feed.scroll] in %+v", measured.Scrolls)
+	}
+	// Content heights: 3 + 1 + 5 + 1 + 7 + 1 + 4 = 22; ViewH = 10; scrollbar takes 1 col -> W = 39.
+	if info.ContentH != 22 || info.ViewH != 10 || info.Offset != 2 || info.MaxOff != 12 {
+		t.Fatalf("unexpected ScrollInfo: %+v", info)
+	}
+	wantRects := map[string]layout.Rect{
+		"card.a": {X: 0, Y: 0, W: 39, H: 3},
+		"card.b": {X: 0, Y: 4, W: 39, H: 5},
+		"card.c": {X: 0, Y: 10, W: 39, H: 7},
+		"card.d": {X: 0, Y: 18, W: 39, H: 4},
+	}
+	for id, want := range wantRects {
+		if got := info.ChildRects[id]; got != want {
+			t.Errorf("ChildRects[%q] = %+v, want %+v", id, got, want)
+		}
+		if gotY := info.ChildY[id]; gotY != want.Y {
+			t.Errorf("ChildY[%q] = %d, want %d", id, gotY, want.Y)
+		}
+	}
 }
 
 func txtNode(s string) ViewNode { return txt(s) }

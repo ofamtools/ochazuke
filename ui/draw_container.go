@@ -416,9 +416,11 @@ func (c *ctx) drawScroll(rn *rnode, lr layout.Rect) {
 	dx, dy := ir.X, ir.Y-offset
 	view := layout.Rect{X: ir.X, Y: ir.Y, W: vw, H: vh}
 	childY := map[string]int{}
+	childRects := map[string]layout.Rect{}
 	for id, r := range sub.Rects {
 		if !IsSyntheticID(id) {
 			childY[id] = r.Y
+			childRects[id] = r
 		}
 	}
 	scrolls := map[string]layout.ScrollInfo{}
@@ -429,11 +431,12 @@ func (c *ctx) drawScroll(rn *rnode, lr layout.Rect) {
 	}
 	if !IsSyntheticID(rn.id) {
 		scrolls[rn.id] = layout.ScrollInfo{
-			ContentH: total,
-			ViewH:    vh,
-			Offset:   offset,
-			MaxOff:   maxOff,
-			ChildY:   childY,
+			ContentH:   total,
+			ViewH:      vh,
+			Offset:     offset,
+			MaxOff:     maxOff,
+			ChildY:     childY,
+			ChildRects: childRects,
 		}
 	}
 	rec := mergeRec{owner: rn.id, rects: map[string]layout.Rect{}, inner: map[string]layout.Rect{}, scrolls: scrolls}

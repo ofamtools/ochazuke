@@ -421,6 +421,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		root.ID = id
 	}
 	root.Scope, root.Focusable = "markdown", true
+	root.Traits = []string{traits.TraitScroll}
 
 	cur, hasCur := m.CurrentHeading()
 	root.Facts = traits.MergeFacts(traits.ViewportFacts(m.viewportState(), m.viewportConfig()), map[string]any{

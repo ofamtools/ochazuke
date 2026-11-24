@@ -474,7 +474,9 @@ func (m *Model) View(id string) ui.ViewNode {
 		facts["focusedId"] = focused.ID
 	}
 	list := ui.ViewNode{
-		ID: id, Kind: ui.KindPicker, Scope: scope, Ref: ref, Facts: facts,
+		ID: id, Kind: ui.KindPicker, Scope: scope,
+		Traits: []string{traits.TraitNav, traits.TraitScroll, traits.TraitFilter},
+		Ref:    ref, Facts: facts,
 		Focusable: true, Title: m.Title, Badges: m.Badges,
 		CacheKey: m.hash(f), Props: m.props(f, sel),
 	}

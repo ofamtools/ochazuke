@@ -120,6 +120,14 @@ func Render(root ViewNode, theme Theme, focusID string, w, h int) (Frame, layout
 	return NewRenderer(1).Render(root, theme, focusID, w, h)
 }
 
+// Measure solves the layout geometry of root inside w x h cells headlessly
+// (including nested KindScroll ChildRects/ScrollInfo and FocusOrder) without
+// needing a terminal.
+func Measure(root ViewNode, theme Theme, focusID string, w, h int) layout.Solved {
+	_, solved := Render(root, theme, focusID, w, h)
+	return solved
+}
+
 // Render lays root out in w x h cells, draws it, and returns the frame plus the
 // solved geometry. The geometry is keyed by real node IDs only; for scroll
 // viewports it includes the visible part of their descendants. Rendering is

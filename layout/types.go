@@ -67,14 +67,15 @@ type Box struct {
 }
 
 // ScrollInfo reports the solved content height, viewport height, effective
-// scroll offset, maximum scroll offset, and child vertical offsets of a
-// rendered ui.KindScroll node.
+// scroll offset, maximum scroll offset, and child geometry (vertical offsets
+// and full rectangles in content coordinates) of a rendered ui.KindScroll node.
 type ScrollInfo struct {
-	ContentH int
-	ViewH    int
-	Offset   int
-	MaxOff   int
-	ChildY   map[string]int
+	ContentH   int
+	ViewH      int
+	Offset     int
+	MaxOff     int
+	ChildY     map[string]int
+	ChildRects map[string]Rect
 }
 
 // Solved holds the geometry and focus navigation outputs produced by Solve.

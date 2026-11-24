@@ -634,7 +634,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		title = "diff"
 	}
 	n := ui.ViewNode{
-		ID: id, Kind: ui.KindPanel, Scope: "diff", Focusable: true, Border: true,
+		ID: id, Kind: ui.KindPanel, Scope: "diff", Traits: []string{traits.TraitScroll}, Focusable: true, Border: true,
 		Title:  title,
 		Badges: []ui.Badge{{Text: string(m.mode()), Tone: "muted"}},
 		Children: []ui.ViewNode{{

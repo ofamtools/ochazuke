@@ -937,6 +937,7 @@ func (m *Model) View(id string) ui.ViewNode {
 	n := ui.ViewNode{
 		ID:        id,
 		Kind:      ui.KindTree,
+		Traits:    []string{traits.TraitNav, traits.TraitScroll, traits.TraitFilter, traits.TraitFold},
 		Focusable: true,
 		Props:     props,
 	}
