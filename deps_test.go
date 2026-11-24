@@ -81,27 +81,31 @@ var policies = map[string]policy{
 	mod + "/layout":   {closed: true},
 	mod + "/buffer":   {closed: true, allow: []string{mod + "/layout", uniseg}},
 	mod + "/recorder": {closed: true},
-	// Tier 1: the kernel is pure; ui renders with Lip Gloss; tea owns Bubble Tea.
+	// Tier 1: the kernel and traits are pure; ui renders with Lip Gloss; tea owns Bubble Tea.
 	mod + "/core": {closed: true, allow: []string{mod + "/trie", mod + "/expr", mod + "/layout"}},
+	mod + "/traits": {
+		allow:      []string{mod + "/core"},
+		forbidDeps: []string{"bubbletea", "lipgloss", mod + "/tea", mod + "/ui", mod + "/widgets"},
+	},
 	mod + "/ui": {
-		allow:      []string{mod + "/core", mod + "/layout", mod + "/buffer", lipgloss},
+		allow:      []string{mod + "/core", mod + "/traits", mod + "/layout", mod + "/buffer", lipgloss},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/tea": {
-		allow: []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/buffer", mod + "/recorder", bubbletea},
+		allow: []string{mod + "/core", mod + "/traits", mod + "/ui", mod + "/layout", mod + "/buffer", mod + "/recorder", bubbletea},
 	},
 	// Tier 2: opt-in widgets and config; never imported by Tier 0/1, never import Bubble Tea or Lip Gloss.
 	mod + "/widgets/table": {
-		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
+		allow:      []string{mod + "/core", mod + "/traits", mod + "/ui", mod + "/layout"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/tree": {
-		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/widgets/input"},
+		allow:      []string{mod + "/core", mod + "/traits", mod + "/ui", mod + "/layout", mod + "/widgets/input"},
 		allowTests: []string{mod + "/buffer"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/picker": {
-		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout", mod + "/widgets/input"},
+		allow:      []string{mod + "/core", mod + "/traits", mod + "/ui", mod + "/layout", mod + "/widgets/input"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/pathpicker": {
@@ -125,11 +129,11 @@ var policies = map[string]policy{
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/diff": {
-		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
+		allow:      []string{mod + "/core", mod + "/traits", mod + "/ui", mod + "/layout"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/markdown": {
-		allow:      []string{mod + "/core", mod + "/ui", mod + "/layout"},
+		allow:      []string{mod + "/core", mod + "/traits", mod + "/ui", mod + "/layout"},
 		forbidDeps: []string{"bubbletea", mod + "/tea"},
 	},
 	mod + "/widgets/commandline": {
@@ -151,6 +155,7 @@ var policies = map[string]policy{
 	mod + "/widgets/modal": {
 		allow: []string{
 			mod + "/core",
+			mod + "/traits",
 			mod + "/ui",
 			mod + "/layout",
 			mod + "/widgets/commandline",

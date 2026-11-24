@@ -175,10 +175,6 @@ func (m *PathPickerModal) Handle(cmd core.Command) Result {
 	case CmdPickerBackspace, input.CmdBackspace:
 		m.pp.BackspaceQuery()
 		return Result{Handled: true, Mode: m.Mode()}
-	case "motion.scroll.down":
-		cmd.ID = "motion.down"
-	case "motion.scroll.up":
-		cmd.ID = "motion.up"
 	}
 
 	picked, handled := m.pp.HandleCommand(cmd)

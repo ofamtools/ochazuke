@@ -99,6 +99,19 @@ func TestMotions(t *testing.T) {
 	if m.SelectedIdx != 3 {
 		t.Fatal("bottom")
 	}
+	run("motion.top", 0)
+	run("motion.scroll.down", 1)
+	if m.Offset != 1 || m.SelectedIdx != 1 {
+		t.Fatalf("scroll down: offset=%d sel=%d", m.Offset, m.SelectedIdx)
+	}
+	run("motion.scroll.up", 1)
+	if m.Offset != 0 || m.SelectedIdx != 1 {
+		t.Fatalf("scroll up: offset=%d sel=%d", m.Offset, m.SelectedIdx)
+	}
+	v := m.View("p")
+	if v.Facts["atTop"] != false || v.Facts["atBottom"] != false || v.Facts["queryEmpty"] != true || v.Facts["scrollable"] != true {
+		t.Fatalf("viewport facts: %+v", v.Facts)
+	}
 	if _, ok := m.HandleCommand(core.Command{ID: "nope"}); ok {
 		t.Fatal("unknown handled")
 	}

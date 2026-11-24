@@ -12,6 +12,7 @@ import (
 	"slices"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 	"ofam.dev/ochazuke/widgets/input"
 )
@@ -322,13 +323,20 @@ func totalVisualRows(rows []VisibleRow) int {
 	return rows[len(rows)-1].VisualRow + 1
 }
 
+func (m *Model) viewportConfig() traits.ViewportConfig {
+	return traits.ViewportConfig{ScrollOff: m.ScrollOff}
+}
+
+func (m *Model) visualViewport(cursor, total int) traits.ViewportState {
+	return traits.ViewportState{Cursor: cursor, Offset: m.Offset, Total: total, Height: max(m.PageSize, 1)}
+}
+
 // Clamp ensures SelectedID refers to a visible row (when non-empty) and clamps
 // Offset to keep the active row inside the viewport with ScrollOff padding.
 func (m *Model) Clamp() {
 	rows := m.Flatten()
 	if len(rows) == 0 {
-		m.SelectedID = ""
-		m.Offset = 0
+		m.SelectedID, m.Offset = "", 0
 		return
 	}
 	selIdx := -1
@@ -351,8 +359,7 @@ func (m *Model) Clamp() {
 	if selIdx < 0 {
 		for i, r := range rows {
 			if !r.Draft {
-				selIdx = i
-				m.SelectedID = r.ID
+				selIdx, m.SelectedID = i, r.ID
 				break
 			}
 		}
@@ -360,8 +367,7 @@ func (m *Model) Clamp() {
 	if selIdx < 0 {
 		selIdx = 0
 	}
-	ps := max(m.PageSize, 1)
-	m.Offset = core.ViewportClamp(m.Offset, rows[selIdx].VisualRow, totalVisualRows(rows), ps, m.ScrollOff)
+	m.Offset = traits.ViewportClamp(m.visualViewport(rows[selIdx].VisualRow, totalVisualRows(rows)), m.viewportConfig()).Offset
 }
 
 // Focused returns the currently focused visible row (or false when empty).
@@ -711,27 +717,16 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		m.Clamp()
 	}
 
+	if cmd.ID == "motion.scroll.down" || cmd.ID == "motion.scroll.up" {
+		m.scrollVisual(rows, curIdx, ps, cmd)
+		return true
+	}
+	if next, _, handled := traits.ViewportStep(traits.ViewportState{Cursor: curIdx, Total: len(rows), Height: ps}, m.viewportConfig(), cmd); handled {
+		moveToIdx(next.Cursor)
+		return true
+	}
+
 	switch cmd.ID {
-	case "motion.down":
-		moveToIdx(curIdx + n)
-	case "motion.up":
-		moveToIdx(curIdx - n)
-	case "motion.top":
-		moveToIdx(0)
-	case "motion.bottom":
-		moveToIdx(last)
-	case "motion.half.down":
-		moveToIdx(curIdx + n*max(ps/2, 1))
-	case "motion.half.up":
-		moveToIdx(curIdx - n*max(ps/2, 1))
-	case "motion.page.down":
-		moveToIdx(curIdx + n*ps)
-	case "motion.page.up":
-		moveToIdx(curIdx - n*ps)
-	case "motion.scroll.down":
-		m.scrollVisual(rows, curIdx, ps, n)
-	case "motion.scroll.up":
-		m.scrollVisual(rows, curIdx, ps, -n)
 	case "motion.block.next":
 		idx := curIdx
 		for ; n > 0; n-- {
@@ -774,14 +769,14 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 	return true
 }
 
-func (m *Model) scrollVisual(rows []VisibleRow, curIdx, ps, delta int) {
+func (m *Model) scrollVisual(rows []VisibleRow, curIdx, ps int, cmd core.Command) {
 	if len(rows) == 0 {
 		return
 	}
 	totalVis := totalVisualRows(rows)
-	curVis := rows[curIdx].VisualRow
-	newOff, targetVis := core.ViewportScroll(m.Offset, curVis, totalVis, ps, m.ScrollOff, delta)
-	m.Offset = newOff
+	next, _, _ := traits.ViewportStep(traits.ViewportState{Cursor: rows[curIdx].VisualRow, Offset: m.Offset, Total: totalVis, Height: ps}, m.viewportConfig(), cmd)
+	m.Offset = next.Offset
+	targetVis := next.Cursor
 
 	// Resolve targetVis to a visible row; if targetVis lands on a GapTopLevel
 	// spacer, break the tie in the scroll direction.
@@ -793,47 +788,46 @@ func (m *Model) scrollVisual(rows []VisibleRow, curIdx, ps, delta int) {
 		}
 	}
 	if picked < 0 {
-		if delta >= 0 {
+		if cmd.ID == "motion.scroll.down" {
+			picked = len(rows) - 1
 			for i, r := range rows {
 				if r.VisualRow > targetVis {
 					picked = i
 					break
 				}
 			}
-			if picked < 0 {
-				picked = len(rows) - 1
-			}
 		} else {
+			picked = 0
 			for i := len(rows) - 1; i >= 0; i-- {
 				if rows[i].VisualRow < targetVis {
 					picked = i
 					break
 				}
 			}
-			if picked < 0 {
-				picked = 0
-			}
 		}
 	}
 	m.SelectedID = rows[picked].ID
 	if rv := rows[picked].VisualRow; rv < m.Offset || rv >= m.Offset+ps {
-		m.Offset = core.ViewportClamp(m.Offset, rv, totalVis, ps, m.ScrollOff)
+		m.Offset = traits.ViewportClamp(traits.ViewportState{Cursor: rv, Offset: m.Offset, Total: totalVis, Height: ps}, m.viewportConfig()).Offset
 	}
 }
 
 func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any {
-	rowCount := 0
+	rowCount, selVis := 0, 0
 	for _, r := range rows {
 		if !r.Draft {
 			rowCount++
 		}
 	}
-	f := map[string]any{
+	if ok {
+		selVis = row.VisualRow
+	}
+	f := traits.MergeFacts(traits.ViewportFacts(m.visualViewport(selVis, totalVisualRows(rows)), m.viewportConfig()), map[string]any{
 		"isTree":    true,
 		"rowCount":  rowCount,
 		"rootCount": len(m.Nodes),
 		"editing":   m.Editing(),
-	}
+	})
 	if ok && !row.Draft {
 		f["depth"] = row.Depth
 		f["hasChildren"] = row.HasChildren

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 	"ofam.dev/ochazuke/widgets/input"
 )
@@ -64,6 +65,8 @@ type Model struct {
 	MatchMode   MatchMode
 	FilterErr   string // set while Query is an invalid regex; all items then match
 	SelectedIdx int    // index into Filtered()
+	Offset      int    // first visible row index
+	ScrollOff   int    // vertical context rows kept around selection
 	MultiSelect bool
 	Marked      map[string]bool
 	PreviewFn   func(Item) *ui.ViewNode
@@ -125,6 +128,7 @@ func (m *Model) SetQuery(q string) {
 	m.Query = q
 	m.line.Set(q)
 	m.SelectedIdx = 0
+	m.Offset = 0
 	m.refresh()
 }
 
@@ -140,6 +144,7 @@ func (m *Model) AppendQuery(s string) {
 	if m.line.Insert(s) {
 		m.Query = m.line.Value()
 		m.SelectedIdx = 0
+		m.Offset = 0
 		m.refresh()
 	}
 }
@@ -150,6 +155,7 @@ func (m *Model) BackspaceQuery() {
 	if changed, _ := m.line.HandleCommand(core.Command{ID: input.CmdBackspace}); changed {
 		m.Query = m.line.Value()
 		m.SelectedIdx = 0
+		m.Offset = 0
 		m.refresh()
 	}
 }
@@ -165,6 +171,7 @@ func (m *Model) CycleMatchMode() {
 		m.MatchMode = MatchSubstring
 	}
 	m.SelectedIdx = 0
+	m.Offset = 0
 	m.refresh()
 }
 
@@ -188,10 +195,19 @@ func (m *Model) rows() int {
 	return len(f) + m.pinnedRows()
 }
 
+func (m *Model) viewportState(n int) traits.ViewportState {
+	return traits.ViewportState{Cursor: m.SelectedIdx, Offset: m.Offset, Total: n, Height: m.page()}
+}
+
+func (m *Model) viewportConfig() traits.ViewportConfig {
+	return traits.ViewportConfig{ScrollOff: m.ScrollOff}
+}
+
 func (m *Model) clamp() { m.clampTo(m.rows()) }
 
 func (m *Model) clampTo(n int) {
-	m.SelectedIdx = max(0, min(m.SelectedIdx, n-1))
+	st := traits.ViewportClamp(m.viewportState(n), m.viewportConfig())
+	m.SelectedIdx, m.Offset = st.Cursor, st.Offset
 }
 
 func haystack(it Item) string {
@@ -321,36 +337,15 @@ func (m *Model) page() int {
 	return DefaultPageSize
 }
 
-func (m *Model) move(delta int) {
-	m.SelectedIdx += delta
-	m.clamp()
-}
-
 // HandleCommand applies a picker command. handled reports whether cmd was
 // one the picker understands; picked is non-nil only for picker.confirm on a
 // focused item.
 func (m *Model) HandleCommand(cmd core.Command) (picked *Item, handled bool) {
-	n := cmd.Times()
+	if next, _, ok := traits.ViewportStep(m.viewportState(m.rows()), m.viewportConfig(), cmd); ok {
+		m.SelectedIdx, m.Offset = next.Cursor, next.Offset
+		return nil, true
+	}
 	switch cmd.ID {
-	case "motion.down":
-		m.move(n)
-	case "motion.up":
-		m.move(-n)
-	case "motion.top":
-		m.SelectedIdx = 0
-		m.clamp()
-	case "motion.bottom":
-		n := m.rows()
-		m.SelectedIdx = n - 1
-		m.clampTo(n)
-	case "motion.page.down":
-		m.move(n * m.page())
-	case "motion.page.up":
-		m.move(-n * m.page())
-	case "motion.half.down":
-		m.move(n * max(1, m.page()/2))
-	case "motion.half.up":
-		m.move(-n * max(1, m.page()/2))
 	case CmdConfirm:
 		if it, ok := m.Focused(); ok {
 			return &it, true
@@ -372,6 +367,7 @@ func (m *Model) HandleCommand(cmd core.Command) (picked *Item, handled bool) {
 			if changed, _ := m.line.HandleCommand(cmd); changed {
 				m.Query = m.line.Value()
 				m.SelectedIdx = 0
+				m.Offset = 0
 				m.refresh()
 			}
 			return nil, true
@@ -395,6 +391,7 @@ func (m *Model) hash(f []Item) uint64 {
 	w(string(m.mode()))
 	w(m.FilterErr)
 	w(itoa(m.SelectedIdx))
+	w(itoa(m.Offset))
 	w(m.Placeholder)
 	w(strconv.FormatBool(m.MultiSelect))
 	for _, b := range m.Badges {
@@ -457,6 +454,9 @@ func (m *Model) props(f []Item, sel int) map[string]any {
 		"selected":  sel,
 		"filtering": m.Filtering,
 	}
+	if m.Offset > 0 {
+		p["offset"] = m.Offset
+	}
 	if m.Placeholder != "" {
 		p["placeholder"] = m.Placeholder
 	}
@@ -490,11 +490,10 @@ func (m *Model) View(id string) ui.ViewNode {
 			ref = &r
 		}
 	}
-	facts := map[string]any{}
-	for k, v := range m.Facts {
-		facts[k] = v
-	}
+	facts := traits.MergeFacts(nil, m.Facts)
+	facts = traits.MergeFacts(facts, traits.ViewportFacts(m.viewportState(len(f)), m.viewportConfig()))
 	facts["query"] = m.Query
+	facts["queryEmpty"] = m.Query == ""
 	facts["filtering"] = m.Filtering
 	facts["matchMode"] = string(m.mode())
 	facts["count"] = len(f) - m.pinnedRows() // matching Items; Pinned is not counted

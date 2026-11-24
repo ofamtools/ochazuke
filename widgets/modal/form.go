@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 	"ofam.dev/ochazuke/widgets/form"
 )
@@ -25,6 +26,7 @@ type FormOptions struct {
 	DisableSubmit  bool
 	DraftBadges    bool
 	Ref            *core.Ref
+	Dismiss        *traits.DismissConfig
 	Badges         func(fm *form.Model) []ui.Badge
 	Facts          func(fm *form.Model) map[string]any
 	RenderBody     func(fm *form.Model, focusID string) ui.ViewNode
@@ -208,6 +210,17 @@ func (m *FormModal) Handle(cmd core.Command) Result {
 		if res, ok := m.opts.OnCommand(m.fm, cmd); ok {
 			return res
 		}
+	}
+	if m.opts.Dismiss != nil && (cmd.ID == CmdCancel || cmd.ID == form.CmdStop) {
+		facts := map[string]any{"editing": m.fm.Editing}
+		resolved, ok := traits.ResolveDismiss(facts, *m.opts.Dismiss, traits.DismissVerbs{
+			StopEdit: form.CmdStop,
+			Close:    CmdCancel,
+		})
+		if !ok {
+			return Result{Handled: true, Mode: m.Mode()}
+		}
+		cmd.ID = resolved
 	}
 	if cmd.ID == CmdCancel {
 		return Result{Handled: true, Close: true, CloseReason: CloseCancel}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 	"ofam.dev/ochazuke/widgets/commandline"
 	"ofam.dev/ochazuke/widgets/form"
@@ -76,6 +77,40 @@ func TestOverlayFactMirroringAndKeymap(t *testing.T) {
 	}
 }
 
+func TestPickerAndFormModalDismissTrait(t *testing.T) {
+	pm := picker.New("Items", []picker.Item{{ID: "1", Title: "Alpha"}, {ID: "2", Title: "Beta"}})
+	pm.SetQuery("al")
+	pmodal := modal.NewPickerModal(pm, modal.PickerOptions{
+		ID:            "pick",
+		StartInFilter: true,
+		Dismiss: &traits.DismissConfig{
+			Steps: []string{traits.DismissStopFilter, traits.DismissClearQuery, traits.DismissClose},
+		},
+	})
+	if res := pmodal.Handle(core.Command{ID: modal.CmdCancel}); !res.Handled || res.Close || pm.Filtering || pm.Query != "al" {
+		t.Fatalf("step 1 (stop_filter): res=%+v filtering=%v query=%q", res, pm.Filtering, pm.Query)
+	}
+	if res := pmodal.Handle(core.Command{ID: modal.CmdCancel}); !res.Handled || res.Close || pm.Query != "" {
+		t.Fatalf("step 2 (clear_query): res=%+v query=%q", res, pm.Query)
+	}
+	if res := pmodal.Handle(core.Command{ID: modal.CmdCancel}); !res.Handled || !res.Close || res.CloseReason != modal.CloseCancel {
+		t.Fatalf("step 3 (close): res=%+v", res)
+	}
+
+	fm := form.New("Edit", []core.ParamSpec{{Name: "title", Type: core.ParamString}}, nil)
+	fm.Editing = true
+	fmodal := modal.NewFormModal(fm, modal.FormOptions{
+		ID:      "edit",
+		Dismiss: &traits.DismissConfig{Steps: []string{traits.DismissStopEdit, traits.DismissClose}},
+	})
+	if res := fmodal.Handle(core.Command{ID: modal.CmdCancel}); !res.Handled || res.Close || fm.Editing {
+		t.Fatalf("form step 1 (stop_edit): res=%+v editing=%v", res, fm.Editing)
+	}
+	if res := fmodal.Handle(core.Command{ID: modal.CmdCancel}); !res.Handled || !res.Close || res.CloseReason != modal.CloseCancel {
+		t.Fatalf("form step 2 (close): res=%+v", res)
+	}
+}
+
 func TestPickerModalAdapter(t *testing.T) {
 	items := []picker.Item{
 		{ID: "p1", Title: "Alpha"},
@@ -118,15 +153,17 @@ func TestPickerModalAdapter(t *testing.T) {
 	}
 	m.SetMode(modal.ModePicker)
 
-	// Scroll motions map to motion.down / motion.up.
+	// Scroll motions scroll viewport offset and nudge selection via traits.ViewportStep.
+	pm.PageSize = 1
 	m.Handle(core.Command{ID: "motion.scroll.down"})
-	if m.Model().SelectedIdx != 1 {
-		t.Fatalf("expected motion.scroll.down -> SelectedIdx 1, got %d", m.Model().SelectedIdx)
+	if m.Model().SelectedIdx != 1 || m.Model().Offset != 1 {
+		t.Fatalf("expected motion.scroll.down -> SelectedIdx 1 Offset 1, got (%d, %d)", m.Model().SelectedIdx, m.Model().Offset)
 	}
 	m.Handle(core.Command{ID: "motion.scroll.up"})
-	if m.Model().SelectedIdx != 0 {
-		t.Fatalf("expected motion.scroll.up -> SelectedIdx 0, got %d", m.Model().SelectedIdx)
+	if m.Model().SelectedIdx != 0 || m.Model().Offset != 0 {
+		t.Fatalf("expected motion.scroll.up -> SelectedIdx 0 Offset 0, got (%d, %d)", m.Model().SelectedIdx, m.Model().Offset)
 	}
+	pm.PageSize = picker.DefaultPageSize
 
 	// Typing a new query appends the "+ Create new" row and confirming triggers OnCreate.
 	m.Handle(core.Command{ID: modal.CmdPickerInsert, Args: map[string]any{"text": "Gamma"}})

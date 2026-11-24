@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 )
 
@@ -128,12 +129,13 @@ type Row struct {
 // section writes Doc.Sections[i].Collapsed, so copy the sections slice first
 // if the caller keeps sharing it.
 type Model struct {
-	Doc      Document
-	Mode     Mode
-	Cursor   int // flat visible row index
-	Offset   int // first visible row
-	PageSize int // rows per page (default 20 when <= 0)
-	Width    int // text columns inside the panel for side-by-side layout; set it to the panel's inner text width (default 80 when <= 0)
+	Doc       Document
+	Mode      Mode
+	Cursor    int // flat visible row index
+	Offset    int // first visible row
+	PageSize  int // rows per page (default 20 when <= 0)
+	ScrollOff int // vertical context rows kept around cursor
+	Width     int // text columns inside the panel for side-by-side layout; set it to the panel's inner text width (default 80 when <= 0)
 
 	// Yanked holds the text of the last diff.yank command.
 	Yanked string
@@ -213,16 +215,17 @@ func (m *Model) Rows() []Row {
 	return rows
 }
 
+func (m *Model) viewportState(n int) traits.ViewportState {
+	return traits.ViewportState{Cursor: m.Cursor, Offset: m.Offset, Total: n, Height: m.pageSize()}
+}
+
+func (m *Model) viewportConfig() traits.ViewportConfig {
+	return traits.ViewportConfig{ScrollOff: m.ScrollOff, Mode: traits.ViewportModeCursor}
+}
+
 func (m *Model) clamp(n int) {
-	m.Cursor = max(0, min(m.Cursor, n-1))
-	ps := m.pageSize()
-	if m.Cursor < m.Offset {
-		m.Offset = m.Cursor
-	}
-	if m.Cursor >= m.Offset+ps {
-		m.Offset = m.Cursor - ps + 1
-	}
-	m.Offset = max(0, m.Offset)
+	st := traits.ViewportClamp(m.viewportState(n), m.viewportConfig())
+	m.Cursor, m.Offset = st.Cursor, st.Offset
 }
 
 // Focused returns the row under the cursor.
@@ -238,29 +241,16 @@ func (m *Model) Focused() (Row, bool) {
 // HandleCommand applies a motion or diff command; it reports whether the
 // command was handled. diff.yank stores its text in Model.Yanked.
 func (m *Model) HandleCommand(cmd core.Command) bool {
-	n := cmd.Times()
 	rows := m.Rows()
-	last := len(rows) - 1
-	ps := m.pageSize()
 	m.clamp(len(rows))
+	if next, _, handled := traits.ViewportStep(m.viewportState(len(rows)), m.viewportConfig(), cmd); handled {
+		m.Cursor, m.Offset = next.Cursor, next.Offset
+		return true
+	}
+	n := cmd.Times()
+	last := len(rows) - 1
 	move := func(to int) { m.Cursor = max(0, min(to, last)) }
 	switch cmd.ID {
-	case "motion.down":
-		move(m.Cursor + n)
-	case "motion.up":
-		move(m.Cursor - n)
-	case "motion.top":
-		move(0)
-	case "motion.bottom":
-		move(last)
-	case "motion.page.down":
-		move(m.Cursor + n*ps)
-	case "motion.page.up":
-		move(m.Cursor - n*ps)
-	case "motion.half.down":
-		move(m.Cursor + n*max(ps/2, 1))
-	case "motion.half.up":
-		move(m.Cursor - n*max(ps/2, 1))
 	case "motion.block.next", "motion.block.prev":
 		next := cmd.ID == "motion.block.next"
 		for ; n > 0; n-- {
@@ -611,7 +601,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		}},
 	}
 
-	facts := map[string]any{
+	facts := traits.MergeFacts(traits.ViewportFacts(m.viewportState(len(rows)), m.viewportConfig()), map[string]any{
 		"mode":         string(m.mode()),
 		"cursor":       m.Cursor,
 		"offset":       m.Offset,
@@ -620,7 +610,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		"hunkCount":    m.hunkCount(),
 		"hasChanges":   len(m.Doc.Sections) > 0,
 		"rowKind":      "",
-	}
+	})
 	if len(rows) > 0 {
 		r := rows[m.Cursor]
 		s := m.Doc.Sections[r.Section]

@@ -231,10 +231,6 @@ func (m *PaletteModal) Handle(cmd core.Command) Result {
 					return res
 				}
 			}
-		case "motion.scroll.down":
-			cmd.ID = "motion.down"
-		case "motion.scroll.up":
-			cmd.ID = "motion.up"
 		}
 	} else if cmd.ID == CmdFormActivate && m.pal.ActiveForm != nil {
 		cmd.ID = activateFormCommand(m.pal.ActiveForm)

@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 )
 
@@ -86,6 +87,7 @@ type Model struct {
 
 	Offset          int // first visible source line
 	PageSize        int // lines per page (default 20 when <= 0)
+	ScrollOff       int // vertical context lines kept around revealed targets
 	ActiveLinkIdx   int // index into Links; the first link is active by default
 	ShowTOC         bool
 	SelectedHeading int // index into Headings
@@ -169,8 +171,16 @@ func (m *Model) pageSize() int {
 
 func (m *Model) total() int { return len(sourceLines(m.Source)) }
 
+func (m *Model) viewportState() traits.ViewportState {
+	return traits.ViewportState{Offset: m.Offset, Total: m.total(), Height: m.pageSize()}
+}
+
+func (m *Model) viewportConfig() traits.ViewportConfig {
+	return traits.ViewportConfig{ScrollOff: m.ScrollOff, Mode: traits.ViewportModeOffset, Overscroll: true}
+}
+
 func (m *Model) clamp() {
-	m.Offset = max(0, min(m.Offset, m.total()-1))
+	m.Offset = traits.ViewportClamp(m.viewportState(), m.viewportConfig()).Offset
 }
 
 // syncHeading selects the last heading at or above the viewport top.
@@ -191,13 +201,8 @@ func (m *Model) scrollTo(line int) {
 
 // reveal scrolls the minimum needed to bring line into the viewport.
 func (m *Model) reveal(line int) {
-	ps := m.pageSize()
-	switch {
-	case line < m.Offset:
-		m.scrollTo(line)
-	case line >= m.Offset+ps:
-		m.scrollTo(line - ps + 1)
-	}
+	m.Offset = traits.ViewportReveal(m.viewportState(), m.viewportConfig(), line).Offset
+	m.syncHeading()
 }
 
 func intArg(cmd core.Command, name string) (int, bool) {
@@ -220,31 +225,14 @@ func intArg(cmd core.Command, name string) (int, bool) {
 // markdown.link.open and markdown.code.yank (zero when there is nothing to
 // open or copy).
 func (m *Model) HandleCommand(cmd core.Command) (Action, bool) {
-	n := cmd.Times()
-	ps := m.pageSize()
-	last := max(0, m.total()-1)
 	m.clamp()
+	if next, _, handled := traits.ViewportStep(m.viewportState(), m.viewportConfig(), cmd); handled {
+		m.Offset = next.Offset
+		m.syncHeading()
+		return Action{}, true
+	}
+	n := cmd.Times()
 	switch cmd.ID {
-	case "motion.down":
-		m.scrollTo(m.Offset + n)
-	case "motion.up":
-		m.scrollTo(m.Offset - n)
-	case "motion.top":
-		m.scrollTo(0)
-	case "motion.bottom":
-		m.scrollTo(max(0, last+1-ps))
-	case "motion.page.down":
-		m.scrollTo(m.Offset + n*ps)
-	case "motion.page.up":
-		m.scrollTo(m.Offset - n*ps)
-	case "motion.half.down":
-		m.scrollTo(m.Offset + n*max(ps/2, 1))
-	case "motion.half.up":
-		m.scrollTo(m.Offset - n*max(ps/2, 1))
-	case "motion.scroll.down":
-		m.scrollTo(m.Offset + n)
-	case "motion.scroll.up":
-		m.scrollTo(m.Offset - n)
 	case "motion.block.next", "motion.block.prev":
 		next := cmd.ID == "motion.block.next"
 		for ; n > 0; n-- {
@@ -435,7 +423,7 @@ func (m *Model) View(id string) ui.ViewNode {
 	root.Scope, root.Focusable = "markdown", true
 
 	cur, hasCur := m.CurrentHeading()
-	root.Facts = map[string]any{
+	root.Facts = traits.MergeFacts(traits.ViewportFacts(m.viewportState(), m.viewportConfig()), map[string]any{
 		"offset":          m.Offset,
 		"showTOC":         m.ShowTOC,
 		"headingCount":    len(m.Headings),
@@ -446,7 +434,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		"activeLink":      active,
 		"hasLinks":        len(m.Links) > 0,
 		"hasCode":         len(m.CodeBlocks) > 0,
-	}
+	})
 	if hasCur {
 		root.Facts["heading"] = cur.Text
 	}

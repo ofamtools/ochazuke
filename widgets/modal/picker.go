@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 	"ofam.dev/ochazuke/widgets/input"
 	"ofam.dev/ochazuke/widgets/picker"
@@ -42,6 +43,7 @@ type PickerOptions struct {
 	Facts         func(pm *picker.Model) map[string]any
 	Ref           *core.Ref
 	Create        *PickerCreateHook
+	Dismiss       *traits.DismissConfig
 	OnCommand     func(pm *picker.Model, cmd core.Command) (Result, bool)
 	OnConfirm     func(item picker.Item) Result
 	OnCreate      func(query string) Result
@@ -201,6 +203,22 @@ func (m *PickerModal) Handle(cmd core.Command) Result {
 			return res
 		}
 	}
+	if m.opts.Dismiss != nil && (cmd.ID == CmdCancel || cmd.ID == CmdPickerFilterStop) {
+		facts := map[string]any{
+			"filtering":  m.pm.Filtering,
+			"queryEmpty": m.pm.Query == "",
+			"hasFilter":  m.pm.Query != "",
+		}
+		resolved, ok := traits.ResolveDismiss(facts, *m.opts.Dismiss, traits.DismissVerbs{
+			StopFilter: CmdPickerFilterStop,
+			ClearQuery: CmdPickerFilterClear,
+			Close:      CmdCancel,
+		})
+		if !ok {
+			return Result{Handled: true, Mode: m.Mode()}
+		}
+		cmd.ID = resolved
+	}
 	switch cmd.ID {
 	case CmdCancel:
 		return Result{Handled: true, Close: true, CloseReason: CloseCancel}
@@ -223,10 +241,6 @@ func (m *PickerModal) Handle(cmd core.Command) Result {
 		m.pm.BackspaceQuery()
 		m.syncCreateItem()
 		return Result{Handled: true, Mode: m.Mode()}
-	case "motion.scroll.down":
-		cmd.ID = "motion.down"
-	case "motion.scroll.up":
-		cmd.ID = "motion.up"
 	}
 
 	picked, handled := m.pm.HandleCommand(cmd)

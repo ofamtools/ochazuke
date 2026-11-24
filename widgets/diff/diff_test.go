@@ -323,6 +323,15 @@ func TestMotionsAndHunkJumps(t *testing.T) {
 	if m.Cursor != 0 || m.Offset != 0 {
 		t.Errorf("page up clamps: %d/%d", m.Cursor, m.Offset)
 	}
+	if !m.HandleCommand(cmd("motion.scroll.down", 2)) || m.Offset != 2 || m.Cursor != 2 {
+		t.Errorf("scroll down: cursor=%d offset=%d", m.Cursor, m.Offset)
+	}
+	if !m.HandleCommand(cmd("motion.scroll.up", 1)) || m.Offset != 1 || m.Cursor != 2 {
+		t.Errorf("scroll up: cursor=%d offset=%d", m.Cursor, m.Offset)
+	}
+	if v := m.View("d"); v.Facts["atTop"] != false || v.Facts["atBottom"] != false || v.Facts["scrollable"] != true {
+		t.Errorf("viewport facts: %+v", v.Facts)
+	}
 	if m.HandleCommand(cmd("nope", 0)) {
 		t.Error("unknown command handled")
 	}

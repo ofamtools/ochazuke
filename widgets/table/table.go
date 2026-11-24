@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 )
 
@@ -496,10 +497,21 @@ func (m *Model) Items() []Item {
 	return out
 }
 
+func (m *Model) viewportState(n int) traits.ViewportState {
+	st := traits.ViewportState{Cursor: m.SelectedIdx, Offset: m.Offset, Total: n, Height: max(m.PageSize, 1)}
+	if m.CellSelect && len(m.Columns) > 0 {
+		st.ScrollX, st.ContentWidth, st.ViewWidth = m.SelectedCol, len(m.Columns), 1
+	}
+	return st
+}
+
+func (m *Model) viewportConfig() traits.ViewportConfig {
+	return traits.ViewportConfig{ScrollOff: m.ScrollOff}
+}
+
 func (m *Model) clamp(n int) {
-	m.SelectedIdx = max(0, min(m.SelectedIdx, n-1))
-	ps := max(m.PageSize, 1)
-	m.Offset = core.ViewportClamp(m.Offset, m.SelectedIdx, n, ps, m.ScrollOff)
+	st := traits.ViewportClamp(m.viewportState(n), m.viewportConfig())
+	m.SelectedIdx, m.Offset = st.Cursor, st.Offset
 }
 
 // Focused returns the focused display item.
@@ -762,33 +774,16 @@ func (m *Model) CycleMatchMode() {
 // HandleCommand applies a motion or table command; it reports whether the
 // command was handled.
 func (m *Model) HandleCommand(cmd core.Command) bool {
-	n := cmd.Times()
 	items := m.Items()
-	last := len(items) - 1
-	ps := max(m.PageSize, 1)
-	move := func(to int) { m.SelectedIdx = max(0, min(to, last)); m.clamp(len(items)) }
 	m.clamp(len(items))
+	if next, _, handled := traits.ViewportStep(m.viewportState(len(items)), m.viewportConfig(), cmd); handled {
+		m.SelectedIdx, m.Offset = next.Cursor, next.Offset
+		return true
+	}
+	n := cmd.Times()
+	last := len(items) - 1
+	move := func(to int) { m.SelectedIdx = max(0, min(to, last)); m.clamp(len(items)) }
 	switch cmd.ID {
-	case "motion.down":
-		move(m.SelectedIdx + n)
-	case "motion.up":
-		move(m.SelectedIdx - n)
-	case "motion.top":
-		move(0)
-	case "motion.bottom":
-		move(last)
-	case "motion.page.down":
-		move(m.SelectedIdx + n*ps)
-	case "motion.page.up":
-		move(m.SelectedIdx - n*ps)
-	case "motion.half.down":
-		move(m.SelectedIdx + n*max(ps/2, 1))
-	case "motion.half.up":
-		move(m.SelectedIdx - n*max(ps/2, 1))
-	case "motion.scroll.down":
-		m.Offset, m.SelectedIdx = core.ViewportScroll(m.Offset, m.SelectedIdx, len(items), ps, m.ScrollOff, n)
-	case "motion.scroll.up":
-		m.Offset, m.SelectedIdx = core.ViewportScroll(m.Offset, m.SelectedIdx, len(items), ps, m.ScrollOff, -n)
 	case "motion.block.next", "motion.block.prev":
 		next := cmd.ID == "motion.block.next"
 		for ; n > 0; n-- {
@@ -863,7 +858,7 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 	return true
 }
 
-func (m *Model) facts(it Item, ok bool) map[string]any {
+func (m *Model) facts(it Item, ok bool, nItems int) map[string]any {
 	mode := m.MatchMode
 	if mode == "" {
 		mode = MatchSubstring
@@ -871,7 +866,7 @@ func (m *Model) facts(it Item, ok bool) map[string]any {
 	if len(m.SortKeys) > 0 {
 		m.syncPrimarySort()
 	}
-	return map[string]any{
+	return traits.MergeFacts(traits.ViewportFacts(m.viewportState(nItems), m.viewportConfig()), map[string]any{
 		"hasFilter":     m.Query != "",
 		"matchMode":     string(mode),
 		"groupField":    m.GroupField,
@@ -883,13 +878,19 @@ func (m *Model) facts(it Item, ok bool) map[string]any {
 		"visualCount":   len(m.VisualRows()),
 		"cellSelect":    m.CellSelect,
 		"selectedCol":   m.SelectedCol,
-	}
+	})
 }
 
 // ContextFrame describes the focused row for the modal context chain.
 func (m *Model) ContextFrame(scope, nodeID string) core.ContextFrame {
-	it, ok := m.Focused()
-	f := core.ContextFrame{Scope: scope, NodeID: nodeID, Facts: m.facts(it, ok)}
+	items := m.Items()
+	m.clamp(len(items))
+	var it Item
+	var ok bool
+	if len(items) > 0 {
+		it, ok = items[m.SelectedIdx], true
+	}
+	f := core.ContextFrame{Scope: scope, NodeID: nodeID, Facts: m.facts(it, ok, len(items))}
 	if ok && !it.Header {
 		if it.Row.Scope != "" && scope == "" {
 			f.Scope = it.Row.Scope
@@ -1031,16 +1032,10 @@ func (m *Model) View(id string) ui.ViewNode {
 		ID: id, Kind: ui.KindTable, Focusable: true,
 		Props: props,
 	}
-	it, ok := m.Focused()
 	cf := m.ContextFrame("", id)
-	n.Scope, n.Ref, n.Facts = cf.Scope, cf.Subject, m.facts(it, ok)
+	n.Scope, n.Ref, n.Facts = cf.Scope, cf.Subject, cf.Facts
 	if r, ok := m.FocusedRow(); ok {
 		n.Unread, n.Badges = r.Unread, r.Badges
-		for k, v := range r.Facts {
-			if _, dup := n.Facts[k]; !dup {
-				n.Facts[k] = v
-			}
-		}
 	}
 	h := fnv.New64a()
 	fmt.Fprintf(h, "%v|%v|%d|%d|%v|%t|%d|%d|%d", cols, rows, m.SelectedIdx, m.Offset, n.Facts["isGroupHeader"], vOK, vFrom, vTo, selCol)
