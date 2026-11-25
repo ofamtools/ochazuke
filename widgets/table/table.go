@@ -568,20 +568,38 @@ func (m *Model) CollapseAllGroups() {
 	m.clamp(len(m.Items()))
 }
 
+func (m *Model) selectState() traits.SelectState {
+	return traits.SelectState{
+		Marked:       m.Marked,
+		VisualActive: m.VisualActive,
+		VisualAnchor: m.VisualAnchor,
+	}
+}
+
+func (m *Model) applySelectState(st traits.SelectState) {
+	m.Marked = st.Marked
+	m.VisualActive = st.VisualActive
+	m.VisualAnchor = st.VisualAnchor
+}
+
+func itemVisibleIDs(items []Item) []string {
+	ids := make([]string, len(items))
+	for i, it := range items {
+		if !it.Header {
+			ids[i] = it.Row.ID
+		}
+	}
+	return ids
+}
+
 // ToggleMark flips the mark on the focused row.
 func (m *Model) ToggleMark() {
-	r, ok := m.FocusedRow()
-	if !ok {
-		return
-	}
-	if m.Marked == nil {
-		m.Marked = map[string]bool{}
-	}
-	if m.Marked[r.ID] {
-		delete(m.Marked, r.ID)
-	} else {
-		m.Marked[r.ID] = true
-	}
+	items := m.Items()
+	m.clamp(len(items))
+	st := m.selectState()
+	st.VisualActive = false
+	next, _, _ := traits.SelectHandle(st, itemVisibleIDs(items), m.SelectedIdx, core.Command{ID: traits.SelectCmdMarkToggle})
+	m.Marked = next.Marked
 }
 
 // ClearMarks clears all marks.
@@ -600,26 +618,17 @@ func (m *Model) MarkedRows() []Row {
 
 // ToggleVisual enters visual range selection anchored at SelectedIdx, or exits it.
 func (m *Model) ToggleVisual() {
-	if m.VisualActive {
-		m.VisualActive = false
-		return
-	}
 	items := m.Items()
 	m.clamp(len(items))
-	m.VisualActive = true
-	m.VisualAnchor = m.SelectedIdx
+	next, _, _ := traits.SelectHandle(m.selectState(), itemVisibleIDs(items), m.SelectedIdx, core.Command{ID: traits.SelectCmdVisualToggle})
+	m.applySelectState(next)
 }
 
 // ClearVisual exits visual range selection.
 func (m *Model) ClearVisual() { m.VisualActive = false }
 
 func (m *Model) visualBounds(n int) (from, to int, ok bool) {
-	if !m.VisualActive || n == 0 {
-		return 0, 0, false
-	}
-	a := max(0, min(m.VisualAnchor, n-1))
-	s := max(0, min(m.SelectedIdx, n-1))
-	return min(a, s), max(a, s), true
+	return traits.SelectBounds(m.selectState(), n, m.SelectedIdx)
 }
 
 // VisualRows returns the data rows within the active visual range, skipping group headers.
@@ -640,16 +649,10 @@ func (m *Model) VisualRows() []Row {
 
 // MarkVisual marks all data rows in the active visual range and exits visual mode.
 func (m *Model) MarkVisual() {
-	rows := m.VisualRows()
-	if len(rows) > 0 {
-		if m.Marked == nil {
-			m.Marked = map[string]bool{}
-		}
-		for _, r := range rows {
-			m.Marked[r.ID] = true
-		}
-	}
-	m.VisualActive = false
+	items := m.Items()
+	m.clamp(len(items))
+	next, _, _ := traits.SelectHandle(m.selectState(), itemVisibleIDs(items), m.SelectedIdx, core.Command{ID: traits.SelectCmdVisualMark})
+	m.applySelectState(next)
 }
 
 // ToggleCellSelect toggles cell-level selection mode.
@@ -746,6 +749,10 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		m.SelectedIdx, m.Offset = next.Cursor, next.Offset
 		return true
 	}
+	if next, _, handled := traits.SelectHandle(m.selectState(), itemVisibleIDs(items), m.SelectedIdx, cmd); handled {
+		m.applySelectState(next)
+		return true
+	}
 	n := cmd.Times()
 	last := len(items) - 1
 	move := func(to int) { m.SelectedIdx = max(0, min(to, last)); m.clamp(len(items)) }
@@ -797,6 +804,8 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		m.ToggleVisual()
 	case "table.visual.mark":
 		m.MarkVisual()
+	case "table.visual.clear":
+		m.ClearVisual()
 	case "table.cell.toggle":
 		m.ToggleCellSelect()
 	case "esc":
@@ -824,20 +833,18 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 	return true
 }
 
-func (m *Model) facts(it Item, ok bool, nItems int) map[string]any {
+func (m *Model) facts(it Item, ok bool, items []Item) map[string]any {
 	if len(m.SortKeys) > 0 {
 		m.syncPrimarySort()
 	}
-	f := traits.ViewportFacts(m.viewportState(nItems), m.viewportConfig())
+	f := traits.ViewportFacts(m.viewportState(len(items)), m.viewportConfig())
 	f = traits.MergeFacts(f, traits.FilterFacts(traits.FilterState{Query: m.Query, Mode: m.MatchMode, Err: m.FilterErr}, traits.FilterConfig{}))
+	f = traits.MergeFacts(f, traits.SelectFacts(m.selectState(), itemVisibleIDs(items), m.SelectedIdx))
 	return traits.MergeFacts(f, map[string]any{
 		"groupField":    m.GroupField,
 		"sortField":     m.SortField,
-		"markedCount":   len(m.Marked),
 		"rowCount":      len(m.Filtered()),
 		"isGroupHeader": ok && it.Header,
-		"visualActive":  m.VisualActive,
-		"visualCount":   len(m.VisualRows()),
 		"cellSelect":    m.CellSelect,
 		"selectedCol":   m.SelectedCol,
 	})
@@ -852,7 +859,7 @@ func (m *Model) ContextFrame(scope, nodeID string) core.ContextFrame {
 	if len(items) > 0 {
 		it, ok = items[m.SelectedIdx], true
 	}
-	f := core.ContextFrame{Scope: scope, NodeID: nodeID, Facts: m.facts(it, ok, len(items))}
+	f := core.ContextFrame{Scope: scope, NodeID: nodeID, Facts: m.facts(it, ok, items)}
 	if ok && !it.Header {
 		if it.Row.Scope != "" && scope == "" {
 			f.Scope = it.Row.Scope

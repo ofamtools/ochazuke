@@ -121,7 +121,7 @@ func (m *Model) View(id string) ui.ViewNode {
 	}
 	n := ui.ViewNode{
 		ID: id, Kind: ui.KindTable, Focusable: true,
-		Traits: []string{traits.TraitNav, traits.TraitScroll, traits.TraitFilter},
+		Traits: []string{traits.TraitNav, traits.TraitScroll, traits.TraitFilter, traits.TraitSelect},
 		Props:  props,
 	}
 	cf := m.ContextFrame("", id)

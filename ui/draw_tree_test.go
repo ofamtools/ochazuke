@@ -140,3 +140,85 @@ func TestTreeWrapFalsePreservesSingleLineBehavior(t *testing.T) {
 		t.Fatalf("wrap:false row 1 = %q, want %q", rows[1], "· Next row")
 	}
 }
+
+func TestTreeVisualRangeHighlightSingleAndWrapped(t *testing.T) {
+	th := DefaultDarkTheme()
+	selBg := sgrBg(th, "selected")
+	visBg := sgrBg(th, "selected.inactive")
+
+	nodes := []TreeNode{
+		{
+			Label: "First group",
+			Children: []TreeNode{
+				{Label: "Child one"},
+			},
+		},
+		{Label: "Second group"},
+		{Label: "Outside range"},
+	}
+
+	// Single-line with gapTopLevel: items are 0:First, 1:Child, (spacer), 2:Second, (spacer), 3:Outside.
+	root := ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props: map[string]any{
+			"nodes":       nodes,
+			"gapTopLevel": true,
+			"selected":    2,
+			"visualFrom":  0,
+			"visualTo":    2,
+		},
+	}
+	_, f, _ := drawTheme(root, th, "tr", 30, 8)
+	ansiRows := strings.Split(f.ANSI, "\n")
+	if !strings.Contains(ansiRows[0], visBg) {
+		t.Errorf("row 0 (First group) missing visual highlight %q:\n%q", visBg, ansiRows[0])
+	}
+	if !strings.Contains(ansiRows[1], visBg) {
+		t.Errorf("row 1 (Child one) missing visual highlight %q:\n%q", visBg, ansiRows[1])
+	}
+	if strings.Contains(ansiRows[2], visBg) || strings.Contains(ansiRows[2], selBg) {
+		t.Errorf("spacer row 2 should not carry selection highlight:\n%q", ansiRows[2])
+	}
+	if !strings.Contains(ansiRows[3], selBg) {
+		t.Errorf("selected row 3 (Second group) missing focused selection bg %q:\n%q", selBg, ansiRows[3])
+	}
+	if strings.Contains(ansiRows[5], visBg) || strings.Contains(ansiRows[5], selBg) {
+		t.Errorf("row 5 (Outside range) should not be highlighted:\n%q", ansiRows[5])
+	}
+
+	// Wrapped multi-line visual row carries visual highlight on continuation lines too.
+	wrapRoot := ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props: map[string]any{
+			"nodes": []TreeNode{
+				{Label: "A long visual row that wraps cleanly onto two lines"},
+				{Label: "Cursor row"},
+			},
+			"wrap":       true,
+			"selected":   1,
+			"visualFrom": 0,
+			"visualTo":   1,
+		},
+	}
+	_, fw, _ := drawTheme(wrapRoot, th, "tr", 24, 6)
+	wAnsi := strings.Split(fw.ANSI, "\n")
+	if !strings.Contains(wAnsi[0], visBg) || !strings.Contains(wAnsi[1], visBg) {
+		t.Errorf("wrapped visual row missing selected.inactive bg on continuation line:\n%q\n%q", wAnsi[0], wAnsi[1])
+	}
+	if !strings.Contains(wAnsi[len(wAnsi)-1], selBg) {
+		// Find cursor row line
+		foundSel := false
+		for _, ln := range wAnsi {
+			if strings.Contains(ln, "Cursor row") && strings.Contains(ln, selBg) {
+				foundSel = true
+			}
+		}
+		if !foundSel {
+			t.Errorf("wrapped cursor row missing focused selection bg %q:\n%s", selBg, fw.ANSI)
+		}
+	}
+}

@@ -13,6 +13,7 @@ const (
 	TraitMotion  = "motion"
 	TraitFilter  = "filter"
 	TraitFold    = "fold"
+	TraitSelect  = "select"
 	TraitSpill   = "spill"
 	TraitDismiss = "dismiss"
 )
@@ -89,11 +90,19 @@ func DefaultTraitBindings(mode, traitName string) []core.Binding {
 	case TraitFold:
 		return []core.Binding{
 			bind("space", "tree.fold.toggle", "Toggle fold", false),
+			bind("h", "tree.fold.out", "Fold or step to parent", false),
+			bind("l", "tree.fold.in", "Unfold or step into child", false),
 			bind("z a", "tree.fold.toggle", "Toggle fold", false),
 			bind("z o", "tree.fold.open", "Open fold", false),
 			bind("z c", "tree.fold.close", "Close fold", false),
 			bind("z M", "tree.fold.close.all", "Close all folds", false),
 			bind("z R", "tree.fold.open.all", "Open all folds", false),
+		}
+	case TraitSelect:
+		return []core.Binding{
+			bind("space", SelectCmdMarkToggle, "Toggle mark", false),
+			bind("v", SelectCmdVisualToggle, "Toggle visual selection", false),
+			bind("V", SelectCmdVisualLine, "Toggle visual line selection", false),
 		}
 	case TraitFilter:
 		return []core.Binding{

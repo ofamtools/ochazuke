@@ -23,6 +23,8 @@ const (
 	CmdFoldClose    = "tree.fold.close"
 	CmdFoldOpenAll  = "tree.fold.open.all"
 	CmdFoldCloseAll = "tree.fold.close.all"
+	CmdFoldOrStepIn = "tree.fold.in"
+	CmdFoldOrParent = "tree.fold.out"
 )
 
 // Specs returns the CommandSpecs for tree-specific fold and hoist commands.
@@ -34,6 +36,8 @@ func Specs() []core.CommandSpec {
 		{ID: CmdFoldClose, Description: "Collapse the focused tree node", Tags: tags},
 		{ID: CmdFoldOpenAll, Description: "Expand all tree nodes", Tags: tags},
 		{ID: CmdFoldCloseAll, Description: "Collapse all tree nodes", Tags: tags},
+		{ID: CmdFoldOrStepIn, Description: "Unfold collapsed node or step into first child", Tags: tags},
+		{ID: CmdFoldOrParent, Description: "Fold expanded node or step to parent", Tags: tags},
 		{
 			ID:          CmdHoistIn,
 			Description: "Zoom into the focused tree node subtree",
@@ -92,6 +96,9 @@ type Model struct {
 	ShowFoldCount bool
 	Wrap          bool
 	Folded        map[string]bool
+	Marked        map[string]bool
+	VisualActive  bool
+	VisualAnchor  int
 	HoistStack    []string
 	DefaultFolded bool
 
@@ -116,7 +123,7 @@ func New(nodes []Node) *Model {
 	return m
 }
 
-// Copy returns an independent copy (Folded map, HoistStack, and active edit cloned; Nodes shared read-only).
+// Copy returns an independent copy (Folded and Marked maps, HoistStack, and active edit cloned; Nodes shared read-only).
 func (m Model) Copy() Model {
 	if m.Folded != nil {
 		f := make(map[string]bool, len(m.Folded))
@@ -124,6 +131,13 @@ func (m Model) Copy() Model {
 			f[k] = v
 		}
 		m.Folded = f
+	}
+	if m.Marked != nil {
+		mk := make(map[string]bool, len(m.Marked))
+		for k, v := range m.Marked {
+			mk[k] = v
+		}
+		m.Marked = mk
 	}
 	m.HoistStack = slices.Clone(m.HoistStack)
 	if m.edit != nil {
@@ -136,8 +150,8 @@ func (m Model) Copy() Model {
 
 // SetNodes replaces the tree's nodes, initializes DefaultFolded on first
 // non-empty load (or prunes fold entries for vanished nodes thereafter), prunes
-// vanished hoist targets, keeps the active hoisted root unfolded, and re-clamps
-// selection and viewport offset.
+// vanished marks and hoist targets, keeps the active hoisted root unfolded, and
+// re-clamps selection and viewport offset.
 func (m *Model) SetNodes(nodes []Node) {
 	m.Nodes = nodes
 	allIDs := collectNodeIDs(nodes, false)
@@ -149,6 +163,9 @@ func (m *Model) SetNodes(nodes []Node) {
 		m.foldInitialized = true
 	} else if len(m.Folded) > 0 {
 		m.Folded = traits.FoldPrune(traits.FoldState{Collapsed: m.Folded}, allIDs).Collapsed
+	}
+	if len(m.Marked) > 0 {
+		m.Marked = traits.SelectPrune(m.selectState(), allIDs).Marked
 	}
 	m.pruneHoistStack(allIDs)
 	if id := m.HoistID(); id != "" {
@@ -474,6 +491,10 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		moveToIdx(next.Cursor)
 		return true
 	}
+	if next, _, handled := traits.SelectHandle(m.selectState(), rowVisibleIDs(rows), curIdx, cmd); handled {
+		m.applySelectState(next)
+		return true
+	}
 
 	switch cmd.ID {
 	case "motion.block.next":
@@ -512,6 +533,15 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		m.UnfoldAll()
 	case CmdFoldCloseAll, traits.FoldCmdCloseAll:
 		m.FoldAll()
+	case CmdFoldOrStepIn:
+		return m.StepIn()
+	case CmdFoldOrParent:
+		return m.StepOut()
+	case "esc":
+		if !m.VisualActive {
+			return false
+		}
+		m.ClearVisual()
 	case CmdHoistIn:
 		if id, ok := cmd.Args["id"].(string); ok && id != "" {
 			m.Hoist(id)
@@ -581,6 +611,7 @@ func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any
 	if ok {
 		selVis = row.VisualRow
 	}
+	curIdx := m.visibleIndex(rows)
 	f := traits.MergeFacts(traits.ViewportFacts(m.visualViewport(selVis, totalVisualRows(rows)), m.viewportConfig()), map[string]any{
 		"isTree":     true,
 		"rowCount":   rowCount,
@@ -590,18 +621,23 @@ func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any
 		"hoistDepth": len(m.HoistStack),
 		"hoistLabel": m.hoistLabel(),
 	})
+	f = traits.MergeFacts(f, traits.SelectFacts(m.selectState(), rowVisibleIDs(rows), curIdx))
 	if ok && !row.Draft {
 		f = traits.MergeFacts(f, traits.FoldFacts(traits.FoldState{Collapsed: m.Folded}, traits.FoldTarget{
 			ID: row.ID, ParentID: row.ParentID, HasChildren: row.HasChildren,
 		}))
 		f["depth"] = row.Depth
 		f["folded"] = row.Folded
+		f["hasParent"] = row.ParentID != "" && row.ParentID != m.HoistID()
 		f["isRoot"] = row.IsRoot
 		for k, v := range row.Node.Facts {
 			if _, dup := f[k]; !dup {
 				f[k] = v
 			}
 		}
+	} else {
+		f = traits.MergeFacts(f, traits.FoldFacts(traits.FoldState{Collapsed: m.Folded}, traits.FoldTarget{}))
+		f["hasParent"] = false
 	}
 	return f
 }
@@ -624,6 +660,7 @@ func (m *Model) ContextFrame(scope, nodeID string) core.ContextFrame {
 			cf.Subject = &r
 		}
 	}
+	cf.Subjects = m.markedRefs()
 	return cf
 }
 
@@ -679,6 +716,32 @@ func (m *Model) buildUINodes(ns []Node, parentID string) []ui.TreeNode {
 			Badges:     slices.Clone(nd.Badges),
 			Meta:       meta,
 			Unread:     nd.Unread,
+		}
+		if m.Marked[nd.ID] {
+			const markPrefix = "● "
+			shift := len([]rune(markPrefix))
+			if len(tn.LabelRuns) > 0 {
+				prefixed := make([]ui.InlineRun, 0, len(tn.LabelRuns)+1)
+				prefixed = append(prefixed, ui.InlineRun{Text: markPrefix, Tone: "accent"})
+				prefixed = append(prefixed, tn.LabelRuns...)
+				tn.LabelRuns = prefixed
+			} else {
+				tn.Label = markPrefix + tn.Label
+			}
+			if len(tn.LabelSpans) > 0 {
+				shifted := make([]ui.ToneSpan, len(tn.LabelSpans))
+				for si, sp := range tn.LabelSpans {
+					sp.From += shift
+					if sp.To > 0 {
+						sp.To += shift
+					}
+					shifted[si] = sp
+				}
+				tn.LabelSpans = shifted
+			}
+			if len(tn.LabelRuns) == 0 {
+				tn.LabelSpans = append([]ui.ToneSpan{{From: 0, To: shift, Tone: "accent"}}, tn.LabelSpans...)
+			}
 		}
 		if m.edit != nil && m.edit.Kind == EditRename && m.edit.TargetID == nd.ID {
 			tn.Editing = true
@@ -760,10 +823,15 @@ func (m *Model) View(id string) ui.ViewNode {
 		"selected":    selIdx,
 		"offset":      m.Offset,
 	}
+	vFrom, vTo, vOK := m.visualBounds(rows, selIdx)
+	if vOK {
+		props["visualFrom"] = vFrom
+		props["visualTo"] = vTo
+	}
 	n := ui.ViewNode{
 		ID:        id,
 		Kind:      ui.KindTree,
-		Traits:    []string{traits.TraitNav, traits.TraitScroll, traits.TraitFilter, traits.TraitFold},
+		Traits:    []string{traits.TraitNav, traits.TraitScroll, traits.TraitFilter, traits.TraitSelect, traits.TraitFold},
 		Focusable: true,
 		Props:     props,
 	}
@@ -773,7 +841,9 @@ func (m *Model) View(id string) ui.ViewNode {
 		n.Unread, n.Badges = row.Node.Unread, row.Node.Badges
 	}
 	h := fnv.New64a()
-	fmt.Fprintf(h, "%t|%t|%t|%t|%q|%d|%d|", m.Guides, m.GapTopLevel, m.ShowFoldCount, m.Wrap, m.HoistID(), selIdx, m.Offset)
+	fmt.Fprintf(h, "%t|%t|%t|%t|%q|%d|%d|%t|%d|%d|%t|%d|%v|",
+		m.Guides, m.GapTopLevel, m.ShowFoldCount, m.Wrap, m.HoistID(), selIdx, m.Offset,
+		vOK, vFrom, vTo, m.VisualActive, m.VisualAnchor, m.MarkedIDs())
 	hashUINodes(h, uiNodes)
 	n.CacheKey = h.Sum64() | 1
 	return n

@@ -178,7 +178,7 @@ func resolveTreeRowLabel(r treeRow, selected bool, activeLink int) (string, []To
 	return plain, spans
 }
 
-func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w int) (lines []string, curX, curLine int, hasCur bool) {
+func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, visual, wrap bool, w int) (lines []string, curX, curLine int, hasCur bool) {
 	if r.spacer {
 		return []string{""}, 0, 0, false
 	}
@@ -314,8 +314,11 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 	}
 	hasLabel := len(labelRunes) > 0 || len(labelRanges) > 1
 
-	if selected {
-		selTS := c.rowStyle(rn, true)
+	if selected || visual {
+		selTS := c.st.tone("selected.inactive")
+		if selected {
+			selTS = c.rowStyle(rn, true)
+		}
 		selPadTS := selTS
 		selPadTS.Strikethrough = false
 		labelTS := selPadTS
@@ -481,6 +484,9 @@ func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 			break
 		}
 	}
+	vFrom, hasVFrom := rn.n.propInt("visualFrom")
+	vTo, hasVTo := rn.n.propInt("visualTo")
+	hasVisual := hasVFrom && hasVTo && vFrom <= vTo
 	wrap := rn.n.propBool("wrap")
 	anyMultiLine := wrap
 	if !anyMultiLine {
@@ -496,7 +502,8 @@ func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 		var out []string
 		var cur *buffer.Cursor
 		for i := start; i < min(len(rows), start+h); i++ {
-			rLines, cx, cl, hasCur := c.renderTreeRowLines(rn, rows[i], i == selRow, false, w)
+			inVis := hasVisual && !rows[i].spacer && rows[i].itemIdx >= vFrom && rows[i].itemIdx <= vTo
+			rLines, cx, cl, hasCur := c.renderTreeRowLines(rn, rows[i], i == selRow, inVis, false, w)
 			if hasCur {
 				cur = c.cursorIf(rn, cx, i-start+cl, buffer.CursorBar)
 			}
@@ -511,7 +518,8 @@ func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 	rowEnds := make([]int, len(rows))
 	for i, r := range rows {
 		rowStarts[i] = len(allLines)
-		rLines, cx, cl, hasCur := c.renderTreeRowLines(rn, r, i == selRow, wrap, w)
+		inVis := hasVisual && !r.spacer && r.itemIdx >= vFrom && r.itemIdx <= vTo
+		rLines, cx, cl, hasCur := c.renderTreeRowLines(rn, r, i == selRow, inVis, wrap, w)
 		if hasCur {
 			cur = c.cursorIf(rn, cx, rowStarts[i]+cl, buffer.CursorBar)
 		}

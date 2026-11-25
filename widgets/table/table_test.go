@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"ofam.dev/ochazuke/core"
+	"ofam.dev/ochazuke/traits"
 	"ofam.dev/ochazuke/ui"
 )
 
@@ -345,5 +346,63 @@ func TestRowStylingProjectionAndCacheKey(t *testing.T) {
 	hdr, ok := gRows[0].(ui.TableRowSpec)
 	if !ok || hdr.Tone != "table.group" {
 		t.Fatalf("group header should emit ui.TableRowSpec with table.group tone, got %#v", gRows[0])
+	}
+}
+
+func TestCanonicalSelectCommandsAndFacts(t *testing.T) {
+	m := sample()
+	v0 := m.View("t")
+	if v0.Facts["marked"] != false || v0.Facts["markedCount"] != 0 ||
+		v0.Facts["visualActive"] != false || v0.Facts["visualCount"] != 0 ||
+		v0.Facts["hasSelection"] != false {
+		t.Fatalf("initial select facts: %+v", v0.Facts)
+	}
+	hasSelectTrait := false
+	for _, tr := range v0.Traits {
+		if tr == traits.TraitSelect {
+			hasSelectTrait = true
+		}
+	}
+	if !hasSelectTrait {
+		t.Fatalf("table View Traits missing TraitSelect: %v", v0.Traits)
+	}
+
+	// Mark focused row via select.mark.toggle.
+	if !m.HandleCommand(core.Command{ID: traits.SelectCmdMarkToggle}) {
+		t.Fatal("select.mark.toggle not handled")
+	}
+	v1 := m.View("t")
+	if v1.Facts["marked"] != true || v1.Facts["markedCount"] != 1 || v1.Facts["hasSelection"] != true {
+		t.Fatalf("marked facts: %+v", v1.Facts)
+	}
+
+	// Visual line + move + select.mark.toggle marks range and clears visual mode.
+	m.SelectedIdx = 1
+	if !m.HandleCommand(core.Command{ID: traits.SelectCmdVisualLine}) {
+		t.Fatal("select.visual.line not handled")
+	}
+	m.HandleCommand(core.Command{ID: "motion.down", Count: 2})
+	if !m.HandleCommand(core.Command{ID: traits.SelectCmdMarkToggle}) {
+		t.Fatal("select.mark.toggle in visual mode not handled")
+	}
+	if m.VisualActive || ids(m.MarkedRows()) != "1,2,3,4" {
+		t.Fatalf("after visual mark toggle: active=%v marked=%s", m.VisualActive, ids(m.MarkedRows()))
+	}
+
+	// Invert, all, clear marks, visual toggle & clear.
+	if !m.HandleCommand(core.Command{ID: traits.SelectCmdInvert}) || ids(m.MarkedRows()) != "5" {
+		t.Fatalf("select.invert: %s", ids(m.MarkedRows()))
+	}
+	if !m.HandleCommand(core.Command{ID: traits.SelectCmdAll}) || ids(m.MarkedRows()) != "1,2,3,4,5" {
+		t.Fatalf("select.all: %s", ids(m.MarkedRows()))
+	}
+	if !m.HandleCommand(core.Command{ID: traits.SelectCmdMarkClear}) || len(m.MarkedRows()) != 0 {
+		t.Fatalf("select.mark.clear: %s", ids(m.MarkedRows()))
+	}
+	if !m.HandleCommand(core.Command{ID: traits.SelectCmdVisualToggle}) || !m.VisualActive {
+		t.Fatal("select.visual.toggle did not enable visual mode")
+	}
+	if !m.HandleCommand(core.Command{ID: traits.SelectCmdVisualClear}) || m.VisualActive {
+		t.Fatal("select.visual.clear did not clear visual mode")
 	}
 }
