@@ -317,3 +317,59 @@ func TestContextFrameFactsAndViewRender(t *testing.T) {
 		t.Fatalf("multiline CommitEdit = %+v, ok=%v", res, ok)
 	}
 }
+
+func TestGutterPropAndCacheKey(t *testing.T) {
+	m := New([]Node{
+		{
+			ID:         "a",
+			Label:      "Task A",
+			Gutter:     "●",
+			GutterTone: "state.working",
+			Children: []Node{
+				{ID: "a1", Label: "Subtask A1"},
+			},
+		},
+	})
+	if m.ShowGutter {
+		t.Fatal("ShowGutter should default to false")
+	}
+
+	vOff := m.View("tr")
+	if vOff.Props["gutter"] != false {
+		t.Fatalf("default gutter prop = %v, want false", vOff.Props["gutter"])
+	}
+	frOff, _ := ui.Render(vOff, ui.DefaultDarkTheme(), "tr", 30, 4)
+	linesOff := strings.Split(stripANSI(frOff.ANSI), "\n")
+	if !strings.HasPrefix(linesOff[0], "▾ Task A") {
+		t.Fatalf("ShowGutter=false should not draw gutter: %q", linesOff[0])
+	}
+
+	m.ShowGutter = true
+	vOn := m.View("tr")
+	if vOn.Props["gutter"] != true {
+		t.Fatalf("ShowGutter=true gutter prop = %v, want true", vOn.Props["gutter"])
+	}
+	if vOn.CacheKey == vOff.CacheKey {
+		t.Error("CacheKey did not change when ShowGutter changed")
+	}
+	frOn, _ := ui.Render(vOn, ui.DefaultDarkTheme(), "tr", 30, 4)
+	linesOn := strings.Split(stripANSI(frOn.ANSI), "\n")
+	if !strings.HasPrefix(linesOn[0], "● ▾ Task A") {
+		t.Fatalf("ShowGutter=true root line mismatch: %q", linesOn[0])
+	}
+	if !strings.HasPrefix(linesOn[1], "  └─ · Subtask A1") {
+		t.Fatalf("ShowGutter=true child line mismatch: %q", linesOn[1])
+	}
+
+	m.Nodes[0].Gutter = "✓"
+	vGlyph := m.View("tr")
+	if vGlyph.CacheKey == vOn.CacheKey {
+		t.Error("CacheKey did not change when Node.Gutter changed")
+	}
+
+	m.Nodes[0].GutterTone = "success"
+	vTone := m.View("tr")
+	if vTone.CacheKey == vGlyph.CacheKey {
+		t.Error("CacheKey did not change when Node.GutterTone changed")
+	}
+}

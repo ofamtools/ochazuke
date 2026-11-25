@@ -20,6 +20,8 @@ type TreeNode struct {
 	Children   []TreeNode  `json:"children,omitempty"`
 	Expanded   *bool       `json:"expanded,omitempty"`
 	Tone       string      `json:"tone,omitempty"`
+	Gutter     string      `json:"gutter,omitempty"`
+	GutterTone string      `json:"gutterTone,omitempty"`
 	Icon       string      `json:"icon,omitempty"`
 	IconTone   string      `json:"iconTone,omitempty"`
 	Badge      string      `json:"badge,omitempty"`
@@ -37,6 +39,8 @@ type treeRow struct {
 	spacer     bool
 	prefix     string
 	marker     string
+	gutter     string
+	gutterTone string
 	icon       string
 	iconTone   string
 	label      string
@@ -94,6 +98,8 @@ func treeRows(n *ViewNode) []treeRow {
 				itemIdx:    itemIdx,
 				prefix:     prefix,
 				marker:     marker,
+				gutter:     nd.Gutter,
+				gutterTone: nd.GutterTone,
 				icon:       nd.Icon,
 				iconTone:   nd.IconTone,
 				label:      label,
@@ -178,16 +184,72 @@ func resolveTreeRowLabel(r treeRow, selected bool, activeLink int) (string, []To
 	return plain, spans
 }
 
+// treeGutterCell clamps s to strictly 1 display cell for the fixed column-0
+// tree gutter, padding empty or wide-only values to a single space.
+func treeGutterCell(s string) (cell string, blank bool) {
+	if s == "" {
+		return " ", true
+	}
+	var sb strings.Builder
+	w := 0
+	for _, r := range s {
+		if r < 0x20 || r == 0x7f || (r >= 0x80 && r < 0xa0) {
+			continue
+		}
+		rw := runeW(r)
+		if rw == 0 {
+			if w == 1 {
+				cand := sb.String() + string(r)
+				if strW(cand) == 1 {
+					sb.WriteRune(r)
+				}
+			}
+			continue
+		}
+		if w+rw > 1 {
+			break
+		}
+		sb.WriteRune(r)
+		w += rw
+	}
+	if w == 0 {
+		return " ", true
+	}
+	out := sb.String()
+	if out == " " {
+		return " ", true
+	}
+	return out, false
+}
+
 func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, visual, wrap bool, w int) (lines []string, curX, curLine int, hasCur bool) {
 	if r.spacer {
 		return []string{""}, 0, 0, false
+	}
+	showGutter := rn.n.propBool("gutter")
+	gutterW := 0
+	gutterCell := ""
+	gutterBlank := true
+	if showGutter {
+		gutterW = 2
+		gutterCell, gutterBlank = treeGutterCell(r.gutter)
 	}
 	if r.editing {
 		style := c.st.tone("input.edit")
 		fill := c.st.sgr(style)
 		lead := r.prefix + r.marker + r.editPrefix
-		leadW := strW(lead)
-		styledLead := c.st.t("border", r.prefix) + c.st.t("accent", r.marker) + c.st.t("muted", r.editPrefix)
+		leadW := gutterW + strW(lead)
+		gutterLead := ""
+		if showGutter {
+			if gutterBlank {
+				gutterLead = "  "
+			} else {
+				gutterTS := c.st.tone(toneOr(r.gutterTone, "muted"))
+				gutterTS.Strikethrough = false
+				gutterLead = c.st.paint(gutterCell, gutterTS) + " "
+			}
+		}
+		styledLead := gutterLead + c.st.t("border", r.prefix) + c.st.t("accent", r.marker) + c.st.t("muted", r.editPrefix)
 		if wrap || strings.Contains(r.editValue, "\n") {
 			avail := max(1, w-leadW)
 			rs := []rune(fieldTextMultiline(r.editValue))
@@ -250,7 +312,7 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, visual, wrap bo
 			iconW++
 		}
 	}
-	leadW := strW(r.prefix) + strW(r.marker) + iconW
+	leadW := gutterW + strW(r.prefix) + strW(r.marker) + iconW
 	doWrap := wrap || strings.Contains(rawLabel, "\n")
 	showMeta := false
 	metaGap := 0
@@ -329,6 +391,28 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, visual, wrap bo
 		}
 
 		var sb strings.Builder
+		if showGutter {
+			if gutterBlank {
+				sb.WriteString(c.st.paint(gutterCell+" ", selPadTS))
+			} else {
+				var resolvedGutter ToneStyle
+				switch {
+				case r.gutterTone != "":
+					resolvedGutter = c.st.tone(r.gutterTone)
+				case r.tone != "":
+					resolvedGutter = c.st.tone(r.tone)
+				}
+				gutterTS := selPadTS
+				if resolvedGutter.Fg != "" {
+					gutterTS.Fg = resolvedGutter.Fg
+				}
+				gutterTS.Bg = selTS.Bg
+				gutterTS.Bold = selTS.Bold || resolvedGutter.Bold
+				gutterTS.Strikethrough = false
+				sb.WriteString(c.st.paint(gutterCell, gutterTS))
+				sb.WriteString(c.st.paint(" ", selPadTS))
+			}
+		}
 		if r.prefix != "" {
 			sb.WriteString(c.st.paint(r.prefix, selPadTS))
 		}
@@ -414,6 +498,16 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, visual, wrap bo
 		rsp = c.st.resolveSpans(labelSpans, labelTS)
 	}
 	var sb strings.Builder
+	if showGutter {
+		if gutterBlank {
+			sb.WriteString(c.st.paint(gutterCell+" ", padTS))
+		} else {
+			gutterTS := withBg(c.st.tone(toneOr(r.gutterTone, "muted")), rowTS.Bg)
+			gutterTS.Strikethrough = false
+			sb.WriteString(c.st.paint(gutterCell, gutterTS))
+			sb.WriteString(c.st.paint(" ", padTS))
+		}
+	}
 	if r.prefix != "" {
 		sb.WriteString(c.st.paint(r.prefix, withBg(c.st.tone("border"), rowTS.Bg)))
 	}

@@ -59,6 +59,8 @@ type Node struct {
 	Ref        *core.Ref
 	Scope      string
 	Tone       string
+	Gutter     string
+	GutterTone string
 	Icon       string
 	IconTone   string
 	Badge      string
@@ -94,6 +96,7 @@ type Model struct {
 	Guides        bool
 	GapTopLevel   bool
 	ShowFoldCount bool
+	ShowGutter    bool
 	Wrap          bool
 	Folded        map[string]bool
 	Marked        map[string]bool
@@ -710,6 +713,8 @@ func (m *Model) buildUINodes(ns []Node, parentID string) []ui.TreeNode {
 			LabelRuns:  slices.Clone(nd.LabelRuns),
 			Expanded:   expPtr,
 			Tone:       nd.Tone,
+			Gutter:     nd.Gutter,
+			GutterTone: nd.GutterTone,
 			Icon:       nd.Icon,
 			IconTone:   nd.IconTone,
 			Badge:      nd.Badge,
@@ -767,8 +772,8 @@ func hashUINodes(h interface{ Write([]byte) (int, error) }, ns []ui.TreeNode) {
 		if nd.Expanded != nil {
 			exp = *nd.Expanded
 		}
-		fmt.Fprintf(h, "{%q|%t|%q|%q|%q|%q|%t|%t|%q|%q|%d|",
-			nd.Label, exp, nd.Tone, nd.Icon, nd.IconTone, nd.Badge,
+		fmt.Fprintf(h, "{%q|%t|%q|%q|%q|%q|%q|%q|%t|%t|%q|%q|%d|",
+			nd.Label, exp, nd.Tone, nd.Gutter, nd.GutterTone, nd.Icon, nd.IconTone, nd.Badge,
 			nd.Unread, nd.Editing, nd.EditPrefix, nd.EditValue, nd.EditCursor)
 		for _, b := range nd.Badges {
 			fmt.Fprintf(h, "B(%q,%q)", b.Text, b.Tone)
@@ -819,6 +824,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		"nodes":       uiNodes,
 		"guides":      m.Guides,
 		"gapTopLevel": m.GapTopLevel,
+		"gutter":      m.ShowGutter,
 		"wrap":        m.Wrap,
 		"selected":    selIdx,
 		"offset":      m.Offset,
@@ -841,8 +847,8 @@ func (m *Model) View(id string) ui.ViewNode {
 		n.Unread, n.Badges = row.Node.Unread, row.Node.Badges
 	}
 	h := fnv.New64a()
-	fmt.Fprintf(h, "%t|%t|%t|%t|%q|%d|%d|%t|%d|%d|%t|%d|%v|",
-		m.Guides, m.GapTopLevel, m.ShowFoldCount, m.Wrap, m.HoistID(), selIdx, m.Offset,
+	fmt.Fprintf(h, "%t|%t|%t|%t|%t|%q|%d|%d|%t|%d|%d|%t|%d|%v|",
+		m.Guides, m.GapTopLevel, m.ShowFoldCount, m.ShowGutter, m.Wrap, m.HoistID(), selIdx, m.Offset,
 		vOK, vFrom, vTo, m.VisualActive, m.VisualAnchor, m.MarkedIDs())
 	hashUINodes(h, uiNodes)
 	n.CacheKey = h.Sum64() | 1

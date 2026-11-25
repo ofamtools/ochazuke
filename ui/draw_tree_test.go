@@ -222,3 +222,231 @@ func TestTreeVisualRangeHighlightSingleAndWrapped(t *testing.T) {
 		}
 	}
 }
+
+func TestTreeGutterDisabledByDefault(t *testing.T) {
+	th := DefaultDarkTheme()
+	plainNodes := []TreeNode{
+		{
+			Label: "Root",
+			Children: []TreeNode{
+				{Label: "Child"},
+			},
+		},
+	}
+	gutterNodes := []TreeNode{
+		{
+			Label:      "Root",
+			Gutter:     "●",
+			GutterTone: "state.working",
+			Children: []TreeNode{
+				{Label: "Child", Gutter: "✓", GutterTone: "success"},
+			},
+		},
+	}
+	baseRoot := ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props:     map[string]any{"nodes": plainNodes, "selected": 0},
+	}
+	defaultRoot := ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props:     map[string]any{"nodes": gutterNodes, "selected": 0},
+	}
+	falseRoot := ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props:     map[string]any{"nodes": gutterNodes, "gutter": false, "selected": 0},
+	}
+
+	baseRows, baseF, _ := drawTheme(baseRoot, th, "tr", 30, 4)
+	defRows, defF, _ := drawTheme(defaultRoot, th, "tr", 30, 4)
+	falseRows, falseF, _ := drawTheme(falseRoot, th, "tr", 30, 4)
+
+	if strings.Join(defRows, "\n") != strings.Join(baseRows, "\n") || defF.ANSI != baseF.ANSI {
+		t.Fatalf("omitted gutter prop changed output:\ngot:\n%s\nwant:\n%s", strings.Join(defRows, "\n"), strings.Join(baseRows, "\n"))
+	}
+	if strings.Join(falseRows, "\n") != strings.Join(baseRows, "\n") || falseF.ANSI != baseF.ANSI {
+		t.Fatalf("gutter:false changed output:\ngot:\n%s\nwant:\n%s", strings.Join(falseRows, "\n"), strings.Join(baseRows, "\n"))
+	}
+}
+
+func TestTreeGutterAlignmentClampingAndSelectionTone(t *testing.T) {
+	th := DefaultDarkTheme()
+	selBg := sgrBg(th, "selected")
+	workFg := sgrFg(th, "state.working")
+	okFg := sgrFg(th, "success")
+
+	nodes := []TreeNode{
+		{
+			Label:      "Root",
+			Gutter:     "●",
+			GutterTone: "state.working",
+			Children: []TreeNode{
+				{
+					Label:      "Child",
+					Gutter:     "✓extra",
+					GutterTone: "success",
+					Children: []TreeNode{
+						{Label: "Grandchild"},
+					},
+				},
+			},
+		},
+		{
+			Label:      "Second",
+			Gutter:     "!?",
+			GutterTone: "danger",
+		},
+		{
+			Label:  "WideFallback",
+			Gutter: "中",
+		},
+	}
+	root := ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props: map[string]any{
+			"nodes":       nodes,
+			"gutter":      true,
+			"gapTopLevel": true,
+			"selected":    0,
+		},
+	}
+
+	rows, f, _ := drawTheme(root, th, "tr", 30, 8)
+	wantRows := []string{
+		"● ▾ Root",
+		"✓ └─ ▾ Child",
+		"     └─ · Grandchild",
+		"",
+		"! · Second",
+		"",
+		"  · WideFallback",
+	}
+	for i, want := range wantRows {
+		if rows[i] != want {
+			t.Errorf("row %d = %q, want %q\nall rows:\n%s", i, rows[i], want, strings.Join(rows, "\n"))
+		}
+	}
+
+	ansiRows := strings.Split(f.ANSI, "\n")
+	if !strings.Contains(ansiRows[0], selBg) || !strings.Contains(ansiRows[0], workFg) {
+		t.Errorf("selected row 0 should preserve gutterTone fg (%q) over selection bg (%q):\n%q", workFg, selBg, ansiRows[0])
+	}
+	if !strings.Contains(ansiRows[1], okFg) {
+		t.Errorf("unselected row 1 missing gutterTone fg (%q):\n%q", okFg, ansiRows[1])
+	}
+	if strings.Contains(ansiRows[3], selBg) {
+		t.Errorf("spacer row 3 should stay unstyled: %q", ansiRows[3])
+	}
+}
+
+func TestTreeGutterWrapAndMetaAlignment(t *testing.T) {
+	th := DefaultDarkTheme()
+	nodes := []TreeNode{
+		{
+			Label:      "Root",
+			Gutter:     "●",
+			GutterTone: "state.working",
+			Children: []TreeNode{
+				{
+					Label:      "A long nested task label that wraps cleanly",
+					Gutter:     "○",
+					GutterTone: "muted",
+					Meta:       []TreeMeta{{Text: "P1", Tone: "muted"}},
+				},
+			},
+		},
+	}
+	root := ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props: map[string]any{
+			"nodes":    nodes,
+			"gutter":   true,
+			"wrap":     true,
+			"selected": 1,
+		},
+	}
+
+	// Width 28: child lead = gutter(2) + "└─ "(3) + "· "(2) = 7 cols.
+	rows, _, _ := drawTheme(root, th, "tr", 28, 6)
+	if rows[0] != "● ▾ Root" {
+		t.Fatalf("row 0 = %q, want %q", rows[0], "● ▾ Root")
+	}
+	if !strings.HasPrefix(rows[1], "○ └─ · ") || !strings.HasSuffix(rows[1], "P1") {
+		t.Fatalf("wrapped child line 0 mismatch: %q", rows[1])
+	}
+	if strW(rows[1]) > 28 {
+		t.Fatalf("wrapped child line 0 width = %d, want <= 28: %q", strW(rows[1]), rows[1])
+	}
+	if !strings.HasPrefix(rows[2], strings.Repeat(" ", 7)) || strings.TrimLeft(rows[2], " ") == "" {
+		t.Fatalf("wrapped continuation line should indent 7 cols past gutter+prefix+marker: %q", rows[2])
+	}
+
+	// Single-line (wrap:false) with meta also accounts for gutterW without overflowing width.
+	root.Props["wrap"] = false
+	sRows, _, _ := drawTheme(root, th, "tr", 28, 4)
+	if !strings.HasPrefix(sRows[1], "○ └─ · ") || !strings.HasSuffix(sRows[1], "P1") || !strings.Contains(sRows[1], "…") {
+		t.Fatalf("single-line gutter row with meta mismatch: %q", sRows[1])
+	}
+	if strW(sRows[1]) != 28 {
+		t.Fatalf("single-line gutter row width = %d, want 28: %q", strW(sRows[1]), sRows[1])
+	}
+}
+
+func TestTreeGutterInlineEditCursor(t *testing.T) {
+	th := DefaultDarkTheme()
+	nodes := []TreeNode{
+		{
+			Label:      "ignored",
+			Gutter:     "●",
+			GutterTone: "state.working",
+			Editing:    true,
+			EditPrefix: "[ ] ",
+			EditValue:  "hello world\nnext line",
+			EditCursor: 16, // line 1 col 4 ("next| line")
+		},
+	}
+	// Wrapped multiline inline edit: lead = gutter(2) + marker(2) + editPrefix(4) = 8 cols.
+	root := ViewNode{
+		Kind:      KindTree,
+		ID:        "tr",
+		Focusable: true,
+		Props: map[string]any{
+			"nodes":    nodes,
+			"gutter":   true,
+			"wrap":     true,
+			"selected": 0,
+		},
+	}
+	rows, f, _ := drawTheme(root, th, "tr", 30, 4)
+	if !strings.HasPrefix(rows[0], "● · [ ] hello world") {
+		t.Fatalf("edit line 0 with gutter mismatch: %q", rows[0])
+	}
+	if rows[1] != "        next line" {
+		t.Fatalf("edit continuation line with gutter mismatch: %q", rows[1])
+	}
+	// Cursor: leadW(8) + col(4) = 12, Y = 1.
+	if f.Cursor != (buffer.Cursor{X: 12, Y: 1, Shape: buffer.CursorBar}) {
+		t.Fatalf("multiline inline-edit cursor with gutter = %+v, want X=12 Y=1 Bar", f.Cursor)
+	}
+
+	// Single-line inline edit: cursor shifts by gutterW (+2) -> leadW(8) + 3 = 11.
+	nodes[0].EditValue = "abcdef"
+	nodes[0].EditCursor = 3
+	root.Props["wrap"] = false
+	sRows, sf, _ := drawTheme(root, th, "tr", 30, 4)
+	if !strings.HasPrefix(sRows[0], "● · [ ] abcdef") {
+		t.Fatalf("single-line edit with gutter mismatch: %q", sRows[0])
+	}
+	if sf.Cursor != (buffer.Cursor{X: 11, Y: 0, Shape: buffer.CursorBar}) {
+		t.Fatalf("single-line inline-edit cursor with gutter = %+v, want X=11 Y=0 Bar", sf.Cursor)
+	}
+}
