@@ -391,10 +391,20 @@ func (m *Model) syncPrimarySort() {
 
 // Filtered returns rows passing the filter, sorted. It refreshes FilterErr.
 func (m *Model) Filtered() []Row {
+	return m.filteredSlice(true)
+}
+
+func (m *Model) filteredSlice(cloneUnmodified bool) []Row {
 	var out []Row
+	unmodified := false
 	if m.Query == "" {
 		m.FilterErr = ""
-		out = slices.Clone(m.Rows)
+		if cloneUnmodified {
+			out = slices.Clone(m.Rows)
+		} else {
+			out = m.Rows
+			unmodified = true
+		}
 	} else if m.MatchMode == "" || m.MatchMode == MatchSubstring {
 		m.FilterErr = ""
 		clauses := strings.Fields(m.Query)
@@ -424,6 +434,9 @@ func (m *Model) Filtered() []Row {
 		m.syncPrimarySort()
 	}
 	if keys := m.effectiveSortKeys(); len(keys) > 0 {
+		if unmodified {
+			out = slices.Clone(m.Rows)
+		}
 		sort.SliceStable(out, func(i, j int) bool {
 			for _, k := range keys {
 				c := compare(out[i].Cells[k.Field], out[j].Cells[k.Field])
@@ -442,11 +455,11 @@ func (m *Model) Filtered() []Row {
 
 // Items returns the display lines: filtered, sorted, grouped.
 func (m *Model) Items() []Item {
-	rows := m.Filtered()
+	rows := m.filteredSlice(false)
 	if m.GroupField == "" {
 		out := make([]Item, len(rows))
-		for i, r := range rows {
-			out[i] = Item{Row: r}
+		for i := range rows {
+			out[i] = Item{Row: rows[i]}
 		}
 		return out
 	}
@@ -491,7 +504,10 @@ func (m *Model) clamp(n int) {
 
 // Focused returns the focused display item.
 func (m *Model) Focused() (Item, bool) {
-	items := m.Items()
+	return m.focusedFor(m.Items())
+}
+
+func (m *Model) focusedFor(items []Item) (Item, bool) {
 	m.clamp(len(items))
 	if len(items) == 0 {
 		return Item{}, false
@@ -501,7 +517,11 @@ func (m *Model) Focused() (Item, bool) {
 
 // FocusedRow returns the focused data row (false on a group header or empty).
 func (m *Model) FocusedRow() (Row, bool) {
-	it, ok := m.Focused()
+	return m.focusedRowFor(m.Items())
+}
+
+func (m *Model) focusedRowFor(items []Item) (Row, bool) {
+	it, ok := m.focusedFor(items)
 	if !ok || it.Header {
 		return Row{}, false
 	}
@@ -607,6 +627,9 @@ func (m *Model) ClearMarks() { m.Marked = nil }
 
 // MarkedRows returns marked rows in model order.
 func (m *Model) MarkedRows() []Row {
+	if len(m.Marked) == 0 {
+		return nil
+	}
 	var out []Row
 	for _, r := range m.Rows {
 		if m.Marked[r.ID] {
@@ -833,17 +856,40 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 	return true
 }
 
+func rowCountFor(items []Item, grouped bool) int {
+	if !grouped {
+		return len(items)
+	}
+	n := 0
+	for i := range items {
+		if items[i].Header {
+			n += items[i].Count
+		}
+	}
+	return n
+}
+
+func (m *Model) selectFactsFor(it Item, ok bool, items []Item) map[string]any {
+	if m.VisualActive {
+		return traits.SelectFacts(m.selectState(), itemVisibleIDs(items), m.SelectedIdx)
+	}
+	if ok && !it.Header && len(m.Marked) > 0 {
+		return traits.SelectFacts(m.selectState(), []string{it.Row.ID}, 0)
+	}
+	return traits.SelectFacts(m.selectState(), nil, 0)
+}
+
 func (m *Model) facts(it Item, ok bool, items []Item) map[string]any {
 	if len(m.SortKeys) > 0 {
 		m.syncPrimarySort()
 	}
 	f := traits.ViewportFacts(m.viewportState(len(items)), m.viewportConfig())
 	f = traits.MergeFacts(f, traits.FilterFacts(traits.FilterState{Query: m.Query, Mode: m.MatchMode, Err: m.FilterErr}, traits.FilterConfig{}))
-	f = traits.MergeFacts(f, traits.SelectFacts(m.selectState(), itemVisibleIDs(items), m.SelectedIdx))
+	f = traits.MergeFacts(f, m.selectFactsFor(it, ok, items))
 	return traits.MergeFacts(f, map[string]any{
 		"groupField":    m.GroupField,
 		"sortField":     m.SortField,
-		"rowCount":      len(m.Filtered()),
+		"rowCount":      rowCountFor(items, m.GroupField != ""),
 		"isGroupHeader": ok && it.Header,
 		"cellSelect":    m.CellSelect,
 		"selectedCol":   m.SelectedCol,
@@ -852,7 +898,10 @@ func (m *Model) facts(it Item, ok bool, items []Item) map[string]any {
 
 // ContextFrame describes the focused row for the modal context chain.
 func (m *Model) ContextFrame(scope, nodeID string) core.ContextFrame {
-	items := m.Items()
+	return m.contextFrameFor(scope, nodeID, m.Items())
+}
+
+func (m *Model) contextFrameFor(scope, nodeID string, items []Item) core.ContextFrame {
 	m.clamp(len(items))
 	var it Item
 	var ok bool

@@ -1,8 +1,11 @@
 package table
 
 import (
+	"fmt"
+	"runtime/debug"
 	"strings"
 	"testing"
+	"time"
 
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/traits"
@@ -404,5 +407,161 @@ func TestCanonicalSelectCommandsAndFacts(t *testing.T) {
 	}
 	if !m.HandleCommand(core.Command{ID: traits.SelectCmdVisualClear}) || m.VisualActive {
 		t.Fatal("select.visual.clear did not clear visual mode")
+	}
+}
+
+func largeTable(n int) *Model {
+	cols := []Column{
+		{Key: "id", Title: "ID", Width: 10},
+		{Key: "kind", Title: "Kind", Width: 10},
+		{Key: "title", Title: "Title"},
+		{Key: "status", Title: "Status", Width: 10},
+		{Key: "updated", Title: "Updated", Width: 12, Align: "right"},
+	}
+	kinds := []string{"doc", "link", "note", "pr", "cmd"}
+	statuses := []string{"active", "open", "done", "muted"}
+	rows := make([]Row, n)
+	for i := range rows {
+		id := fmt.Sprintf("row-%d", i)
+		r := Row{
+			ID:  id,
+			Ref: &core.Ref{Kind: "context", ID: id},
+			Cells: map[string]any{
+				"id":      id,
+				"kind":    kinds[i%len(kinds)],
+				"title":   fmt.Sprintf("Context entry number %d for project table", i),
+				"status":  statuses[i%len(statuses)],
+				"updated": fmt.Sprintf("%dm ago", i%60),
+			},
+		}
+		if i%4 == 0 {
+			r.Tone = "row.active"
+			r.CellTones = map[string]string{"status": "state.working"}
+			r.CellIcons = map[string]string{"status": "●"}
+			r.IconTones = map[string]string{"status": "state.working"}
+		}
+		rows[i] = r
+	}
+	m := New(cols, rows)
+	m.PageSize = 30
+	return m
+}
+
+func TestLargeTableCacheKeyAndRender(t *testing.T) {
+	m := largeTable(5000)
+	th := ui.DefaultDarkTheme()
+
+	v0 := m.View("t")
+	if v0.CacheKey == 0 || v0.Facts["rowCount"] != 5000 || v0.Ref == nil || v0.Ref.ID != "row-0" {
+		t.Fatalf("initial view unexpected: key=%d rowCount=%v ref=%+v", v0.CacheKey, v0.Facts["rowCount"], v0.Ref)
+	}
+	f0, _ := ui.Render(v0, th, "t", 100, 32)
+	v0Again := m.View("t")
+	f0Again, _ := ui.Render(v0Again, th, "t", 100, 32)
+	if v0Again.CacheKey != v0.CacheKey || f0Again.ANSI != f0.ANSI {
+		t.Fatal("View() is not deterministic for unchanged state")
+	}
+
+	// Selection move invalidates CacheKey and updates rendered highlight.
+	m.HandleCommand(core.Command{ID: "motion.down"})
+	v1 := m.View("t")
+	if v1.CacheKey == v0.CacheKey || v1.Ref == nil || v1.Ref.ID != "row-1" {
+		t.Fatalf("selection move did not update CacheKey/Ref: k0=%d k1=%d ref=%+v", v0.CacheKey, v1.CacheKey, v1.Ref)
+	}
+	f1, _ := ui.Render(v1, th, "t", 100, 32)
+	if f1.ANSI == f0.ANSI {
+		t.Fatal("selection move produced identical render")
+	}
+
+	// Offset scroll invalidates CacheKey and renders newly visible rows.
+	m.HandleCommand(core.Command{ID: "motion.down", Count: 50})
+	v2 := m.View("t")
+	if m.Offset == 0 || v2.CacheKey == v1.CacheKey {
+		t.Fatalf("offset scroll did not update Offset/CacheKey: offset=%d k1=%d k2=%d", m.Offset, v1.CacheKey, v2.CacheKey)
+	}
+	f2, _ := ui.Render(v2, th, "t", 100, 32)
+	if !strings.Contains(f2.ANSI, "row-51") {
+		t.Fatalf("scrolled render missing focused row-51:\n%s", f2.ANSI)
+	}
+
+	// Visible cell edit invalidates CacheKey and updates rendered text.
+	m.Rows[m.SelectedIdx].Cells["title"] = "Edited visible title"
+	v3 := m.View("t")
+	if v3.CacheKey == v2.CacheKey {
+		t.Fatal("visible cell edit did not invalidate CacheKey")
+	}
+	f3, _ := ui.Render(v3, th, "t", 100, 32)
+	if !strings.Contains(f3.ANSI, "Edited visible title") {
+		t.Fatalf("edited cell missing from render:\n%s", f3.ANSI)
+	}
+
+	// Mark toggle invalidates CacheKey and renders mark prefix.
+	m.ToggleMark()
+	v4 := m.View("t")
+	if v4.CacheKey == v3.CacheKey || v4.Facts["marked"] != true || v4.Facts["markedCount"] != 1 {
+		t.Fatalf("mark toggle did not update CacheKey/Facts: k3=%d k4=%d facts=%+v", v3.CacheKey, v4.CacheKey, v4.Facts)
+	}
+	f4, _ := ui.Render(v4, th, "t", 100, 32)
+	if !strings.Contains(f4.ANSI, "● row-51") {
+		t.Fatalf("marked prefix missing from render:\n%s", f4.ANSI)
+	}
+
+	// Row count change invalidates CacheKey even when appended off-screen.
+	m.Rows = append(m.Rows, Row{
+		ID:    "row-5000",
+		Ref:   &core.Ref{Kind: "context", ID: "row-5000"},
+		Cells: map[string]any{"id": "row-5000", "kind": "doc", "title": "Appended", "status": "open", "updated": "now"},
+	})
+	v5 := m.View("t")
+	if v5.CacheKey == v4.CacheKey || v5.Facts["rowCount"] != 5001 {
+		t.Fatalf("row count change did not invalidate CacheKey/rowCount: k4=%d k5=%d rowCount=%v", v4.CacheKey, v5.CacheKey, v5.Facts["rowCount"])
+	}
+
+	// Grouped collapsed table still reports full filtered rowCount accurately.
+	gm := sample()
+	gm.GroupField = "kind"
+	gm.ToggleGroup()
+	gv := gm.View("g")
+	if gv.Facts["rowCount"] != len(gm.Filtered()) {
+		t.Fatalf("collapsed group rowCount = %v, want %d", gv.Facts["rowCount"], len(gm.Filtered()))
+	}
+}
+
+func TestLargeTableViewPerformance(t *testing.T) {
+	m := largeTable(5000)
+	// Warm up once before timing.
+	_ = m.View("t")
+
+	const iters = 20
+	start := time.Now()
+	for i := 0; i < iters; i++ {
+		m.SelectedIdx = i * 5
+		m.Offset = max(0, m.SelectedIdx-10)
+		_ = m.View("t")
+	}
+	avg := time.Since(start) / iters
+	budget := 5 * time.Millisecond
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "-race" && setting.Value == "true" {
+				budget = 15 * time.Millisecond
+				break
+			}
+		}
+	}
+	t.Logf("View() avg on 5000 rows: %v (budget %v)", avg, budget)
+	if avg >= budget {
+		t.Fatalf("View() on 5000 rows took %v avg, want < %v", avg, budget)
+	}
+}
+
+func BenchmarkView5000Rows(b *testing.B) {
+	m := largeTable(5000)
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.SelectedIdx = i % 5000
+		m.Offset = max(0, m.SelectedIdx-15)
+		_ = m.View("t")
 	}
 }
