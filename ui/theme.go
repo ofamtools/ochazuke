@@ -172,6 +172,7 @@ func defaultTones() map[string]ToneStyle {
 		"heading.2":         {Fg: "info", Bold: true},
 		"heading.3":         {Fg: "success", Bold: true},
 		"link":              {Fg: "accent", Underline: true},
+		"link.focused":      {Fg: "surface", Bg: "accent", Bold: true, Underline: true},
 		"md.code":           {Fg: "magenta", Bg: "surface"},
 		"md.bold":           {Fg: "text", Bold: true},
 		"md.em":             {Fg: "info"},

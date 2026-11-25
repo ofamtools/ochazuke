@@ -66,8 +66,7 @@ func (c *ctx) focusedTextStyle() ToneStyle {
 func (c *ctx) textLines(rn *rnode, w int) []string {
 	n := rn.n
 	focused := rn.isFocus && n.Focusable
-	rawText := n.propString("text")
-	spans, _ := propDecode[[]ToneSpan](n, "spans")
+	rawText, spans := resolveTextNode(n)
 	if focused {
 		if ft := n.propString("focusedText"); ft != "" {
 			rawText = ft
@@ -229,13 +228,15 @@ func firstOf(m map[string]any, keys ...string) any {
 }
 
 // TableRowSpec describes one styled table row with optional whole-row tone,
-// per-cell tones, per-cell leading icons, and per-cell icon tones.
+// per-cell tones, per-cell leading icons, per-cell icon tones, and per-cell
+// rune ToneSpans.
 type TableRowSpec struct {
-	Cells     []any    `json:"cells"`
-	Tone      string   `json:"tone,omitempty"`
-	CellTones []string `json:"cellTones,omitempty"`
-	CellIcons []string `json:"cellIcons,omitempty"`
-	IconTones []string `json:"iconTones,omitempty"`
+	Cells     []any        `json:"cells"`
+	Tone      string       `json:"tone,omitempty"`
+	CellTones []string     `json:"cellTones,omitempty"`
+	CellIcons []string     `json:"cellIcons,omitempty"`
+	IconTones []string     `json:"iconTones,omitempty"`
+	CellSpans [][]ToneSpan `json:"cellSpans,omitempty"`
 }
 
 type parsedRow struct {
@@ -244,6 +245,7 @@ type parsedRow struct {
 	cellTones []string
 	cellIcons []string
 	iconTones []string
+	cellSpans [][]ToneSpan
 	rich      bool
 }
 
@@ -256,6 +258,22 @@ func hasAnyNonEmpty(ss []string) bool {
 	return false
 }
 
+func hasAnyCellSpans(ss [][]ToneSpan) bool {
+	for _, s := range ss {
+		if len(s) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func cellSpansAt(ss [][]ToneSpan, i int) []ToneSpan {
+	if i >= 0 && i < len(ss) {
+		return ss[i]
+	}
+	return nil
+}
+
 func sliceAt(ss []string, i int) string {
 	if i >= 0 && i < len(ss) {
 		return ss[i]
@@ -263,81 +281,113 @@ func sliceAt(ss []string, i int) string {
 	return ""
 }
 
-func parseTableRow(row any, cols []tableCol) parsedRow {
-	out := make([]string, len(cols))
-	switch x := row.(type) {
-	case TableRowSpec:
-		for i := range cols {
-			if i < len(x.Cells) {
-				out[i] = anyString(x.Cells[i])
+func decodeTableCells(rawCells []any, colCount int, explicitSpans [][]ToneSpan, activeLink int) ([]string, [][]ToneSpan) {
+	out := make([]string, colCount)
+	var spans [][]ToneSpan
+	setSpans := func(i int, sp []ToneSpan) {
+		if len(sp) == 0 {
+			return
+		}
+		if spans == nil {
+			spans = make([][]ToneSpan, colCount)
+		}
+		spans[i] = sp
+	}
+	linkOffset := 0
+	for i := 0; i < colCount; i++ {
+		var cellSp []ToneSpan
+		if i < len(rawCells) {
+			if runs, ok := DecodeInlineRuns(rawCells[i]); ok {
+				localActive := -1
+				if activeLink >= 0 {
+					localActive = activeLink - linkOffset
+				}
+				plain, runSpans, links := CompileInlineRuns(runs, localActive)
+				linkOffset += len(links)
+				out[i] = plain
+				cellSp = runSpans
+			} else {
+				out[i] = anyString(rawCells[i])
 			}
 		}
+		if exp := cellSpansAt(explicitSpans, i); len(exp) > 0 {
+			if len(cellSp) > 0 {
+				combined := make([]ToneSpan, 0, len(cellSp)+len(exp))
+				combined = append(combined, cellSp...)
+				combined = append(combined, exp...)
+				cellSp = combined
+			} else {
+				cellSp = exp
+			}
+		}
+		setSpans(i, cellSp)
+	}
+	return out, spans
+}
+
+func parseTableRow(row any, cols []tableCol) parsedRow {
+	return parseTableRowWith(row, cols, -1)
+}
+
+func parseTableRowWith(row any, cols []tableCol, activeLink int) parsedRow {
+	switch x := row.(type) {
+	case TableRowSpec:
+		cells, cellSpans := decodeTableCells(x.Cells, len(cols), x.CellSpans, activeLink)
 		return parsedRow{
-			cells:     out,
+			cells:     cells,
 			tone:      x.Tone,
 			cellTones: x.CellTones,
 			cellIcons: x.CellIcons,
 			iconTones: x.IconTones,
-			rich:      x.Tone != "" || hasAnyNonEmpty(x.CellTones) || hasAnyNonEmpty(x.CellIcons) || hasAnyNonEmpty(x.IconTones),
+			cellSpans: cellSpans,
+			rich:      x.Tone != "" || hasAnyNonEmpty(x.CellTones) || hasAnyNonEmpty(x.CellIcons) || hasAnyNonEmpty(x.IconTones) || hasAnyCellSpans(cellSpans),
 		}
 	case *TableRowSpec:
 		if x == nil {
-			return parsedRow{cells: out}
+			return parsedRow{cells: make([]string, len(cols))}
 		}
-		for i := range cols {
-			if i < len(x.Cells) {
-				out[i] = anyString(x.Cells[i])
-			}
-		}
+		cells, cellSpans := decodeTableCells(x.Cells, len(cols), x.CellSpans, activeLink)
 		return parsedRow{
-			cells:     out,
+			cells:     cells,
 			tone:      x.Tone,
 			cellTones: x.CellTones,
 			cellIcons: x.CellIcons,
 			iconTones: x.IconTones,
-			rich:      x.Tone != "" || hasAnyNonEmpty(x.CellTones) || hasAnyNonEmpty(x.CellIcons) || hasAnyNonEmpty(x.IconTones),
+			cellSpans: cellSpans,
+			rich:      x.Tone != "" || hasAnyNonEmpty(x.CellTones) || hasAnyNonEmpty(x.CellIcons) || hasAnyNonEmpty(x.IconTones) || hasAnyCellSpans(cellSpans),
 		}
 	case []any:
-		for i := range cols {
-			if i < len(x) {
-				out[i] = anyString(x[i])
-			}
-		}
-		return parsedRow{cells: out}
+		cells, cellSpans := decodeTableCells(x, len(cols), nil, activeLink)
+		return parsedRow{cells: cells, cellSpans: cellSpans, rich: hasAnyCellSpans(cellSpans)}
 	case map[string]any:
 		if rawCells, ok := x["cells"]; ok {
 			if cs := toSlice(rawCells); cs != nil {
-				for i := range cols {
-					if i < len(cs) {
-						out[i] = anyString(cs[i])
-					}
-				}
+				expSpans, _ := decodeAny[[][]ToneSpan](x["cellSpans"])
+				cells, cellSpans := decodeTableCells(cs, len(cols), expSpans, activeLink)
 				tone := anyString(x["tone"])
 				cellTones := toStrings(x["cellTones"])
 				cellIcons := toStrings(x["cellIcons"])
 				iconTones := toStrings(x["iconTones"])
 				return parsedRow{
-					cells:     out,
+					cells:     cells,
 					tone:      tone,
 					cellTones: cellTones,
 					cellIcons: cellIcons,
 					iconTones: iconTones,
-					rich:      tone != "" || hasAnyNonEmpty(cellTones) || hasAnyNonEmpty(cellIcons) || hasAnyNonEmpty(iconTones),
+					cellSpans: cellSpans,
+					rich:      tone != "" || hasAnyNonEmpty(cellTones) || hasAnyNonEmpty(cellIcons) || hasAnyNonEmpty(iconTones) || hasAnyCellSpans(cellSpans),
 				}
 			}
 		}
+		rawCols := make([]any, len(cols))
 		for i, col := range cols {
-			out[i] = anyString(x[col.key])
+			rawCols[i] = x[col.key]
 		}
-		return parsedRow{cells: out}
+		cells, cellSpans := decodeTableCells(rawCols, len(cols), nil, activeLink)
+		return parsedRow{cells: cells, cellSpans: cellSpans, rich: hasAnyCellSpans(cellSpans)}
 	default:
-		cells := toSlice(row)
-		for i := range cols {
-			if i < len(cells) {
-				out[i] = anyString(cells[i])
-			}
-		}
-		return parsedRow{cells: out}
+		cells, cellSpans := decodeTableCells(toSlice(row), len(cols), nil, activeLink)
+		return parsedRow{cells: cells, cellSpans: cellSpans, rich: hasAnyCellSpans(cellSpans)}
 	}
 }
 
@@ -415,16 +465,17 @@ func (c *ctx) renderRichTableRow(pr parsedRow, cols []tableCol, widths []int, w 
 			}
 		}
 
+		spans := cellSpansAt(pr.cellSpans, ci)
 		if icon == "" {
-			txt := truncate(cell, cw)
-			pad := cw - strW(txt)
+			painted, visW := paintSpannedText(c.st, cell, cw, cellTS, spans)
+			pad := cw - visW
 			if cols[ci].right {
 				if pad > 0 {
 					sb.WriteString(c.st.paint(spaces(pad), cellPadTS))
 				}
-				sb.WriteString(c.st.paint(txt, cellTS))
+				sb.WriteString(painted)
 			} else {
-				sb.WriteString(c.st.paint(txt, cellTS))
+				sb.WriteString(painted)
 				if pad > 0 {
 					sb.WriteString(c.st.paint(spaces(pad), cellPadTS))
 				}
@@ -434,7 +485,7 @@ func (c *ctx) renderRichTableRow(pr parsedRow, cols []tableCol, widths []int, w 
 
 		iw := strW(icon)
 		iconPart := icon
-		txt := ""
+		paintedTxt := ""
 		pad := 0
 		switch {
 		case iw >= cw:
@@ -447,8 +498,9 @@ func (c *ctx) renderRichTableRow(pr parsedRow, cols []tableCol, widths []int, w 
 			if rem <= 0 {
 				pad = cw - iw
 			} else {
-				txt = truncate(cell, rem)
-				pad = cw - iw - 1 - strW(txt)
+				var visW int
+				paintedTxt, visW = paintSpannedText(c.st, cell, rem, cellTS, spans)
+				pad = cw - iw - 1 - visW
 			}
 		}
 
@@ -457,15 +509,15 @@ func (c *ctx) renderRichTableRow(pr parsedRow, cols []tableCol, widths []int, w 
 				sb.WriteString(c.st.paint(spaces(pad), cellPadTS))
 			}
 			sb.WriteString(c.st.paint(iconPart, iconTS))
-			if txt != "" {
+			if paintedTxt != "" {
 				sb.WriteString(c.st.paint(" ", cellPadTS))
-				sb.WriteString(c.st.paint(txt, cellTS))
+				sb.WriteString(paintedTxt)
 			}
 		} else {
 			sb.WriteString(c.st.paint(iconPart, iconTS))
-			if txt != "" {
+			if paintedTxt != "" {
 				sb.WriteString(c.st.paint(" ", cellPadTS))
-				sb.WriteString(c.st.paint(txt, cellTS))
+				sb.WriteString(paintedTxt)
 			}
 			if pad > 0 {
 				sb.WriteString(c.st.paint(spaces(pad), cellPadTS))
@@ -569,8 +621,16 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 		rule = strings.Repeat("─", w-strW(pos)-1) + pos + "─"
 	}
 	out = append(out, c.st.t("border", rule))
+	activeLink, hasActiveLink := n.propInt("activeLink")
+	if !hasActiveLink {
+		activeLink = -1
+	}
 	for i := start; i < min(len(rows), start+rowsH); i++ {
-		pr := parseTableRow(rows[i], cols)
+		rowActiveLink := -1
+		if i == sel && activeLink >= 0 {
+			rowActiveLink = activeLink
+		}
+		pr := parseTableRowWith(rows[i], cols, rowActiveLink)
 		if pr.rich {
 			switch {
 			case i == sel && selCol >= 0 && selCol < len(cols):
@@ -640,6 +700,26 @@ func (c *ctx) inputLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 	ph := n.propString("placeholder")
 
 	if n.propBool("multiline") {
+		if n.propBoolDefault("wrap", true) {
+			avail := max(1, w-2)
+			rngs := wrapRanges(rs, avail)
+			cl, cc := wrapCursor(rs, rngs, ci)
+			start := windowStart(&ViewNode{}, len(rngs), h, cl)
+			var out []string
+			for i := start; i < min(len(rngs), start+h); i++ {
+				out = append(out, padLine(c.st.paint(" "+string(rs[rngs[i][0]:rngs[i][1]]), style), w, fill))
+			}
+			for len(out) < h {
+				out = append(out, padLine("", w, fill))
+			}
+			if value == "" && ph != "" {
+				phLines := wrapPlain(ph, avail)
+				for i := 0; i < min(len(phLines), len(out)); i++ {
+					out[i] = padLine(c.st.t("placeholder", " "+phLines[i]), w, fill)
+				}
+			}
+			return out, c.cursorIf(rn, min(1+cc, max(0, w-1)), cl-start, buffer.CursorBar)
+		}
 		all := strings.Split(value, "\n")
 		cl, cc := 0, 0
 		for _, r := range rs[:ci] {
@@ -658,7 +738,7 @@ func (c *ctx) inputLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 		for len(out) < h {
 			out = append(out, padLine("", w, fill))
 		}
-		if value == "" && ph != "" {
+		if value == "" && ph != "" && len(out) > 0 {
 			out[0] = padLine(c.st.t("placeholder", " "+ph), w, fill)
 		}
 		return out, c.cursorIf(rn, 1+cc, cl-start, buffer.CursorBar)

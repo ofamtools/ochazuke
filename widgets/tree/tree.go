@@ -48,19 +48,21 @@ func Specs() []core.CommandSpec {
 // Node is one domain tree item. Domain records never appear here; Ref and
 // Facts carry identity and guard data.
 type Node struct {
-	ID       string
-	Label    string
-	Ref      *core.Ref
-	Scope    string
-	Tone     string
-	Icon     string
-	IconTone string
-	Badge    string
-	Badges   []ui.Badge
-	Meta     []ui.TreeMeta
-	Unread   bool
-	Facts    map[string]any
-	Children []Node
+	ID         string
+	Label      string
+	LabelSpans []ui.ToneSpan
+	LabelRuns  []ui.InlineRun
+	Ref        *core.Ref
+	Scope      string
+	Tone       string
+	Icon       string
+	IconTone   string
+	Badge      string
+	Badges     []ui.Badge
+	Meta       []ui.TreeMeta
+	Unread     bool
+	Facts      map[string]any
+	Children   []Node
 }
 
 // VisibleRow is one flattened visible row in display order.
@@ -666,15 +668,17 @@ func (m *Model) buildUINodes(ns []Node, parentID string) []ui.TreeNode {
 			})
 		}
 		tn := ui.TreeNode{
-			Label:    nd.Label,
-			Expanded: expPtr,
-			Tone:     nd.Tone,
-			Icon:     nd.Icon,
-			IconTone: nd.IconTone,
-			Badge:    nd.Badge,
-			Badges:   slices.Clone(nd.Badges),
-			Meta:     meta,
-			Unread:   nd.Unread,
+			Label:      nd.Label,
+			LabelSpans: slices.Clone(nd.LabelSpans),
+			LabelRuns:  slices.Clone(nd.LabelRuns),
+			Expanded:   expPtr,
+			Tone:       nd.Tone,
+			Icon:       nd.Icon,
+			IconTone:   nd.IconTone,
+			Badge:      nd.Badge,
+			Badges:     slices.Clone(nd.Badges),
+			Meta:       meta,
+			Unread:     nd.Unread,
 		}
 		if m.edit != nil && m.edit.Kind == EditRename && m.edit.TargetID == nd.ID {
 			tn.Editing = true
@@ -708,6 +712,15 @@ func hashUINodes(h interface{ Write([]byte) (int, error) }, ns []ui.TreeNode) {
 		}
 		for _, mt := range nd.Meta {
 			fmt.Fprintf(h, "M(%q,%q)", mt.Text, mt.Tone)
+		}
+		for _, sp := range nd.LabelSpans {
+			fmt.Fprintf(h, "S(%d,%d,%q,%q)", sp.From, sp.To, sp.Tone, sp.Bg)
+		}
+		for _, r := range nd.LabelRuns {
+			fmt.Fprintf(h, "R(%q,%q,%q,%q,%q,%q,%q)", r.Kind, r.Text, r.Label, r.Tone, r.Bg, r.Href, r.Command)
+			if r.Ref != nil {
+				fmt.Fprintf(h, "RF(%q,%q)", r.Ref.Kind, r.Ref.ID)
+			}
 		}
 		if len(nd.Children) > 0 {
 			hashUINodes(h, nd.Children)

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"strings"
+	"unicode"
 )
 
 // MarkdownLink describes one [label](href) link in Markdown source order.
@@ -134,7 +135,7 @@ func matchInlineLink(src []rune, i int) (labelEnd, hrefEnd int, ok bool) {
 			break
 		}
 	}
-	if k <= j+2 {
+	if k <= j+2 || strings.TrimSpace(string(src[j+2:k])) == "" {
 		return 0, 0, false
 	}
 	return j, k, true
@@ -233,7 +234,9 @@ func mdLinesWith(st *styler, text string, w int, opts mdRenderOpts) []string {
 	}
 	rule := func() string { return st.t("border", strings.Repeat("─", w)) }
 	inCode := false
-	for _, raw := range strings.Split(text, "\n") {
+	lines := strings.Split(text, "\n")
+	for i := 0; i < len(lines); i++ {
+		raw := lines[i]
 		line := strings.TrimRight(raw, " \t\r")
 		trim := strings.TrimLeft(line, " ")
 		indent := (len(line) - len(trim)) / 2 * 2
@@ -255,9 +258,7 @@ func mdLinesWith(st *styler, text string, w int, opts mdRenderOpts) []string {
 				flush()
 				blank()
 				hs := st.tone("heading." + string(rune('0'+min(lvl, 3))))
-				for _, ln := range wrapPlain(txt, w) {
-					out = append(out, st.paint(ln, hs))
-				}
+				out = append(out, mdInlineWithBase(st, txt, w, "", "", state, hs)...)
 				if lvl == 1 {
 					out = append(out, rule())
 				}
@@ -267,6 +268,14 @@ func mdLinesWith(st *styler, text string, w int, opts mdRenderOpts) []string {
 				flush()
 				q := st.t("md.quote", "│ ")
 				out = append(out, mdInlineWith(st, trim[2:], max(1, w-2), q, q, state, false)...)
+				continue
+			}
+			if tbl, consumed, ok := parseMarkdownTable(lines, i); ok {
+				flush()
+				blank()
+				out = append(out, renderMarkdownTable(st, tbl, w, state)...)
+				blank()
+				i += consumed - 1
 				continue
 			}
 			if checked, body, _, ok := parseTaskMarker(trim); ok {
@@ -326,57 +335,13 @@ func mdLinesWith(st *styler, text string, w int, opts mdRenderOpts) []string {
 	return out
 }
 
+type mdParsedInline struct {
+	rs   []rune
+	base ToneStyle
+	rsp  []rspan
+}
+
 func mdInlineWith(st *styler, text string, w int, first, rest string, state *mdRenderState, rowFocused bool) []string {
-	var rs []rune
-	var spans []ToneSpan
-	activeLinkRanges := map[int]bool{}
-	src := []rune(text)
-	for i := 0; i < len(src); {
-		closer, tone, skip := rune(0), "", 1
-		switch {
-		case src[i] == '`':
-			closer, tone = '`', "md.code"
-		case src[i] == '*' && i+1 < len(src) && src[i+1] == '*':
-			closer, tone, skip = '*', "md.bold", 2
-		case (src[i] == '*' || src[i] == '_') && i+1 < len(src) && src[i+1] != ' ':
-			closer, tone = src[i], "md.em"
-		case src[i] == '[':
-			if j, k, ok := matchInlineLink(src, i); ok {
-				from := len(rs)
-				rs = append(rs, src[i+1:j]...)
-				linkTone := "link"
-				if state != nil {
-					cur := state.linkIdx
-					state.linkIdx++
-					if state.opts.activeLink >= 0 && cur == state.opts.activeLink {
-						linkTone = "selected"
-						activeLinkRanges[len(spans)] = true
-					}
-				}
-				spans = append(spans, ToneSpan{From: from, To: len(rs), Tone: linkTone})
-				i = k + 1
-				continue
-			}
-		}
-		if closer != 0 {
-			end := -1
-			for j := i + skip; j < len(src); j++ {
-				if src[j] == closer && (skip == 1 || (j+1 < len(src) && src[j+1] == closer)) {
-					end = j
-					break
-				}
-			}
-			if end > i+skip {
-				from := len(rs)
-				rs = append(rs, src[i+skip:end]...)
-				spans = append(spans, ToneSpan{From: from, To: len(rs), Tone: tone})
-				i = end + skip
-				continue
-			}
-		}
-		rs = append(rs, src[i])
-		i++
-	}
 	base := st.tone("text")
 	if rowFocused {
 		if sel := st.tone("selected"); sel != (ToneStyle{}) {
@@ -385,30 +350,162 @@ func mdInlineWith(st *styler, text string, w int, first, rest string, state *mdR
 			base = mergeTone(st.tone("focus.fg"), st.tone("focus.bg"))
 		}
 	}
-	rsp := st.resolveSpans(spans, base)
-	for idx := range rsp {
-		if activeLinkRanges[idx] {
-			sel := st.tone("selected")
-			if sel == (ToneStyle{}) {
-				sel = mergeTone(st.tone("focus.fg"), st.tone("focus.bg"))
-			}
-			sel.Underline = true
-			sel.Bold = true
-			rsp[idx].ts = sel
-		} else if rowFocused && base.Bg != "" {
-			if rsp[idx].ts.Bg == "" {
-				rsp[idx].ts.Bg = base.Bg
-			}
-			rsp[idx].ts.Bold = rsp[idx].ts.Bold || base.Bold
-		}
-	}
+	return mdInlineWithBase(st, text, w, first, rest, state, base)
+}
+
+func mdInlineWithBase(st *styler, text string, w int, first, rest string, state *mdRenderState, base ToneStyle) []string {
+	parsed := parseMdInline(st, text, base, state)
 	var out []string
-	for n, r := range wrapRanges(rs, w) {
+	for n, r := range wrapRanges(parsed.rs, w) {
 		prefix := rest
 		if n == 0 {
 			prefix = first
 		}
-		out = append(out, prefix+st.runs(rs, r[0], r[1], base, rsp))
+		out = append(out, prefix+st.runs(parsed.rs, r[0], r[1], parsed.base, parsed.rsp))
 	}
 	return out
+}
+
+// parseMdInline parses inline Markdown (`code`, **bold**, *em*, _em_, and
+// [label](href)), supporting nested inline formatting inside bold/emphasis
+// and preserving exact MarkdownLinks ordering via state.
+func parseMdInline(st *styler, text string, base ToneStyle, state *mdRenderState) mdParsedInline {
+	var rs []rune
+	var rsp []rspan
+	parseMdInlineInto(st, []rune(text), base, state, &rs, &rsp)
+	return mdParsedInline{rs: rs, base: base, rsp: rsp}
+}
+
+func parseMdInlineInto(st *styler, src []rune, cur ToneStyle, state *mdRenderState, rs *[]rune, rsp *[]rspan) {
+	for i := 0; i < len(src); {
+		switch {
+		case src[i] == '`':
+			if end := findClosingBacktick(src, i+1); end > i+1 {
+				from := len(*rs)
+				*rs = append(*rs, src[i+1:end]...)
+				*rsp = append(*rsp, rspan{from: from, to: len(*rs), ts: mergeTone(cur, st.tone("md.code"))})
+				i = end + 1
+				continue
+			}
+		case src[i] == '*' && i+1 < len(src) && src[i+1] == '*':
+			if end := findClosingBold(src, i+2); end > i+2 {
+				boldTS := mergeTone(cur, st.tone("md.bold"))
+				from := len(*rs)
+				spanIdx := len(*rsp)
+				*rsp = append(*rsp, rspan{from: from, to: from, ts: boldTS})
+				parseMdInlineInto(st, src[i+2:end], boldTS, state, rs, rsp)
+				(*rsp)[spanIdx].to = len(*rs)
+				i = end + 2
+				continue
+			}
+		case (src[i] == '*' || src[i] == '_') && i+1 < len(src) && src[i+1] != ' ':
+			if src[i] == '_' && i > 0 && isWordRune(src[i-1]) {
+				break
+			}
+			if end := findClosingDelim(src, i+1, src[i]); end > i+1 {
+				emTS := mergeTone(cur, st.tone("md.em"))
+				from := len(*rs)
+				spanIdx := len(*rsp)
+				*rsp = append(*rsp, rspan{from: from, to: from, ts: emTS})
+				parseMdInlineInto(st, src[i+1:end], emTS, state, rs, rsp)
+				(*rsp)[spanIdx].to = len(*rs)
+				i = end + 1
+				continue
+			}
+		case src[i] == '[':
+			if j, k, ok := matchInlineLink(src, i); ok {
+				from := len(*rs)
+				*rs = append(*rs, src[i+1:j]...)
+				linkTS := mergeTone(cur, st.tone("link"))
+				if state != nil {
+					curIdx := state.linkIdx
+					state.linkIdx++
+					if state.opts.activeLink >= 0 && curIdx == state.opts.activeLink {
+						sel := st.tone("selected")
+						if sel == (ToneStyle{}) {
+							sel = mergeTone(st.tone("focus.fg"), st.tone("focus.bg"))
+						}
+						sel.Underline = true
+						sel.Bold = true
+						linkTS = sel
+					}
+				}
+				*rsp = append(*rsp, rspan{from: from, to: len(*rs), ts: linkTS})
+				i = k + 1
+				continue
+			}
+		}
+		*rs = append(*rs, src[i])
+		i++
+	}
+}
+
+func findClosingBacktick(src []rune, from int) int {
+	for j := from; j < len(src); j++ {
+		if src[j] == '`' {
+			return j
+		}
+	}
+	return -1
+}
+
+func findClosingBold(src []rune, from int) int {
+	for j := from; j < len(src); {
+		if src[j] == '`' {
+			if end := findClosingBacktick(src, j+1); end > j+1 {
+				j = end + 1
+				continue
+			}
+		}
+		if src[j] == '[' {
+			if _, k, ok := matchInlineLink(src, j); ok {
+				j = k + 1
+				continue
+			}
+		}
+		if src[j] == '*' && j+1 < len(src) && src[j+1] == '*' {
+			for j+2 < len(src) && src[j+2] == '*' {
+				j++
+			}
+			return j
+		}
+		j++
+	}
+	return -1
+}
+
+func findClosingDelim(src []rune, from int, delim rune) int {
+	for j := from; j < len(src); {
+		if src[j] == '`' {
+			if end := findClosingBacktick(src, j+1); end > j+1 {
+				j = end + 1
+				continue
+			}
+		}
+		if src[j] == '[' {
+			if _, k, ok := matchInlineLink(src, j); ok {
+				j = k + 1
+				continue
+			}
+		}
+		if delim == '*' && src[j] == '*' && j+1 < len(src) && src[j+1] == '*' {
+			if end := findClosingBold(src, j+2); end > j+2 {
+				j = end + 2
+				continue
+			}
+		}
+		if src[j] == delim {
+			if delim == '_' && j+1 < len(src) && isWordRune(src[j+1]) {
+				j++
+				continue
+			}
+			return j
+		}
+		j++
+	}
+	return -1
+}
+
+func isWordRune(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsDigit(r)
 }

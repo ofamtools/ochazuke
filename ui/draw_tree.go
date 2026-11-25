@@ -14,20 +14,22 @@ type TreeMeta struct {
 
 // TreeNode is one node in a ui.KindTree ViewNode's "nodes" prop.
 type TreeNode struct {
-	Label      string     `json:"label"`
-	Children   []TreeNode `json:"children,omitempty"`
-	Expanded   *bool      `json:"expanded,omitempty"`
-	Tone       string     `json:"tone,omitempty"`
-	Icon       string     `json:"icon,omitempty"`
-	IconTone   string     `json:"iconTone,omitempty"`
-	Badge      string     `json:"badge,omitempty"`
-	Badges     []Badge    `json:"badges,omitempty"`
-	Meta       []TreeMeta `json:"meta,omitempty"`
-	Unread     bool       `json:"unread,omitempty"`
-	Editing    bool       `json:"editing,omitempty"`
-	EditPrefix string     `json:"editPrefix,omitempty"`
-	EditValue  string     `json:"editValue,omitempty"`
-	EditCursor int        `json:"editCursor,omitempty"`
+	Label      string      `json:"label"`
+	LabelSpans []ToneSpan  `json:"labelSpans,omitempty"`
+	LabelRuns  []InlineRun `json:"labelRuns,omitempty"`
+	Children   []TreeNode  `json:"children,omitempty"`
+	Expanded   *bool       `json:"expanded,omitempty"`
+	Tone       string      `json:"tone,omitempty"`
+	Icon       string      `json:"icon,omitempty"`
+	IconTone   string      `json:"iconTone,omitempty"`
+	Badge      string      `json:"badge,omitempty"`
+	Badges     []Badge     `json:"badges,omitempty"`
+	Meta       []TreeMeta  `json:"meta,omitempty"`
+	Unread     bool        `json:"unread,omitempty"`
+	Editing    bool        `json:"editing,omitempty"`
+	EditPrefix string      `json:"editPrefix,omitempty"`
+	EditValue  string      `json:"editValue,omitempty"`
+	EditCursor int         `json:"editCursor,omitempty"`
 }
 
 type treeRow struct {
@@ -38,6 +40,8 @@ type treeRow struct {
 	icon       string
 	iconTone   string
 	label      string
+	labelSpans []ToneSpan
+	labelRuns  []InlineRun
 	badge      string
 	badges     []Badge
 	meta       []TreeMeta
@@ -82,13 +86,19 @@ func treeRows(n *ViewNode) []treeRow {
 					marker = "▾ "
 				}
 			}
+			label := nd.Label
+			if len(nd.LabelRuns) > 0 {
+				label, _, _ = CompileInlineRuns(nd.LabelRuns, -1)
+			}
 			out = append(out, treeRow{
 				itemIdx:    itemIdx,
 				prefix:     prefix,
 				marker:     marker,
 				icon:       nd.Icon,
 				iconTone:   nd.IconTone,
-				label:      nd.Label,
+				label:      label,
+				labelSpans: nd.LabelSpans,
+				labelRuns:  nd.LabelRuns,
 				badge:      nd.Badge,
 				badges:     nd.Badges,
 				meta:       nd.Meta,
@@ -126,31 +136,46 @@ func withBg(ts ToneStyle, bg string) ToneStyle {
 	return ts
 }
 
-func wrapLabelLines(label string, firstW, contW int) []string {
+func wrapLabelRanges(rs []rune, firstW, contW int) [][2]int {
 	firstW = max(firstW, 1)
 	contW = max(contW, 1)
 	if firstW == contW {
-		return wrapPlain(label, contW)
+		return wrapRanges(rs, contW)
 	}
-	paras := strings.Split(label, "\n")
-	var out []string
-	for pi, p := range paras {
-		rs := []rune(p)
-		if pi == 0 {
-			rngs := wrapPara(rs, 0, len(rs), firstW)
-			out = append(out, string(rs[rngs[0][0]:rngs[0][1]]))
-			if len(rngs) > 1 {
-				for _, r := range wrapPara(rs, rngs[1][0], len(rs), contW) {
-					out = append(out, string(rs[r[0]:r[1]]))
+	var out [][2]int
+	ps := 0
+	pi := 0
+	for i := 0; i <= len(rs); i++ {
+		if i == len(rs) || rs[i] == '\n' {
+			if pi == 0 {
+				rngs := wrapPara(rs, ps, i, firstW)
+				out = append(out, rngs[0])
+				if len(rngs) > 1 {
+					out = append(out, wrapPara(rs, rngs[1][0], i, contW)...)
 				}
+			} else {
+				out = append(out, wrapPara(rs, ps, i, contW)...)
 			}
-		} else {
-			for _, r := range wrapPara(rs, 0, len(rs), contW) {
-				out = append(out, string(rs[r[0]:r[1]]))
-			}
+			ps = i + 1
+			pi++
 		}
 	}
 	return out
+}
+
+func resolveTreeRowLabel(r treeRow, selected bool, activeLink int) (string, []ToneSpan) {
+	if len(r.labelRuns) == 0 {
+		return r.label, r.labelSpans
+	}
+	al := -1
+	if selected && activeLink >= 0 {
+		al = activeLink
+	}
+	plain, spans, _ := CompileInlineRuns(r.labelRuns, al)
+	if len(r.labelSpans) > 0 {
+		spans = append(spans, r.labelSpans...)
+	}
+	return plain, spans
 }
 
 func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w int) (lines []string, curX, curLine int, hasCur bool) {
@@ -192,6 +217,12 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 		return []string{line}, leadW + runesW(rs[startRune:ci]), 0, true
 	}
 
+	activeLink := -1
+	if v, ok := rn.n.propInt("activeLink"); ok {
+		activeLink = v
+	}
+	rawLabel, labelSpans := resolveTreeRowLabel(r, selected, activeLink)
+
 	// Compute right-aligned meta width and optional label truncation/wrapping.
 	var metas []TreeMeta
 	metaW := 0
@@ -215,18 +246,20 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 	iconW := 0
 	if r.icon != "" {
 		iconW = strW(r.icon)
-		if r.label != "" {
+		if rawLabel != "" {
 			iconW++
 		}
 	}
 	leadW := strW(r.prefix) + strW(r.marker) + iconW
-	doWrap := wrap || strings.Contains(r.label, "\n")
+	doWrap := wrap || strings.Contains(rawLabel, "\n")
 	showMeta := false
 	metaGap := 0
-	var labelLines []string
+	truncMaxW := 0
+	var labelRunes []rune
+	var labelRanges [][2]int
 
 	if doWrap {
-		cleanLabel := fieldTextMultiline(r.label)
+		cleanLabel := fieldTextMultiline(rawLabel)
 		availCont := max(1, w-leadW)
 		availFirst := max(1, w-leadW-badgesW)
 		if metaW > 0 {
@@ -240,28 +273,46 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 				availFirst = max(1, w-leadW-badgesW-2-metaW)
 			}
 		}
-		labelLines = wrapLabelLines(cleanLabel, availFirst, availCont)
+		labelRunes = []rune(cleanLabel)
+		labelRanges = wrapLabelRanges(labelRunes, availFirst, availCont)
 		if showMeta {
-			metaGap = max(0, w-(leadW+strW(labelLines[0])+badgesW)-metaW)
+			firstW := runesW(labelRunes[labelRanges[0][0]:labelRanges[0][1]])
+			metaGap = max(0, w-(leadW+firstW+badgesW)-metaW)
 		}
 	} else {
-		shownLabel := r.label
+		labelRunes = []rune(rawLabel)
+		labelRanges = [][2]int{{0, len(labelRunes)}}
 		if metaW > 0 {
-			minLabel := min(strW(r.label), 4)
+			minLabel := min(strW(rawLabel), 4)
 			if leadW+minLabel+badgesW+2+metaW <= w {
 				showMeta = true
 				availLabel := w - leadW - badgesW - 2 - metaW
-				if strW(shownLabel) > availLabel {
-					shownLabel = truncate(shownLabel, availLabel)
+				visW := strW(rawLabel)
+				if visW > availLabel {
+					truncMaxW = availLabel
+					visW = strW(truncate(rawLabel, availLabel))
 				}
-				metaGap = w - (leadW + strW(shownLabel) + badgesW) - metaW
+				metaGap = w - (leadW + visW + badgesW) - metaW
 			}
 		}
-		labelLines = []string{shownLabel}
 	}
 
 	rowTS := c.st.tone(toneOr(r.tone, "text"))
-	firstLabel := labelLines[0]
+	paintLabelSeg := func(segIdx int, labelTS ToneStyle, rsp []rspan) string {
+		if segIdx == 0 && truncMaxW > 0 {
+			s, _ := paintSpannedText(c.st, rawLabel, truncMaxW, labelTS, labelSpans)
+			return s
+		}
+		rng := labelRanges[segIdx]
+		if rng[0] >= rng[1] {
+			return ""
+		}
+		if len(rsp) == 0 {
+			return c.st.paint(string(labelRunes[rng[0]:rng[1]]), labelTS)
+		}
+		return c.st.runs(labelRunes, rng[0], rng[1], labelTS, rsp)
+	}
+	hasLabel := len(labelRunes) > 0 || len(labelRanges) > 1
 
 	if selected {
 		selTS := c.rowStyle(rn, true)
@@ -269,6 +320,10 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 		selPadTS.Strikethrough = false
 		labelTS := selPadTS
 		labelTS.Strikethrough = rowTS.Strikethrough
+		var rsp []rspan
+		if len(labelSpans) > 0 && truncMaxW == 0 {
+			rsp = c.st.resolveSpans(labelSpans, labelTS)
+		}
 
 		var sb strings.Builder
 		if r.prefix != "" {
@@ -293,12 +348,12 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 			iconTS.Bold = selTS.Bold || resolvedIcon.Bold
 			iconTS.Strikethrough = false
 			sb.WriteString(c.st.paint(r.icon, iconTS))
-			if firstLabel != "" || len(labelLines) > 1 {
+			if hasLabel {
 				sb.WriteString(c.st.paint(" ", selPadTS))
 			}
 		}
-		if firstLabel != "" {
-			sb.WriteString(c.st.paint(firstLabel, labelTS))
+		if seg := paintLabelSeg(0, labelTS, rsp); seg != "" {
+			sb.WriteString(seg)
 		}
 		if r.badge != "" {
 			sb.WriteString(c.st.paint(" "+r.badge, selPadTS))
@@ -334,12 +389,12 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 				sb.WriteString(c.st.paint(m.Text, mTS))
 			}
 		}
-		out := make([]string, 0, len(labelLines))
+		out := make([]string, 0, len(labelRanges))
 		out = append(out, padLine(sb.String(), w, c.st.sgr(selPadTS)))
-		for _, contSeg := range labelLines[1:] {
+		for li := 1; li < len(labelRanges); li++ {
 			cont := c.st.paint(spaces(leadW), selPadTS)
-			if contSeg != "" {
-				cont += c.st.paint(contSeg, labelTS)
+			if seg := paintLabelSeg(li, labelTS, rsp); seg != "" {
+				cont += seg
 			}
 			out = append(out, padLine(cont, w, c.st.sgr(selPadTS)))
 		}
@@ -350,6 +405,10 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 	labelTS := rowTS
 	if r.unread {
 		labelTS = withBg(c.st.tone("unread"), rowTS.Bg)
+	}
+	var rsp []rspan
+	if len(labelSpans) > 0 && truncMaxW == 0 {
+		rsp = c.st.resolveSpans(labelSpans, labelTS)
 	}
 	var sb strings.Builder
 	if r.prefix != "" {
@@ -367,12 +426,12 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 		iconTS := withBg(c.st.tone(iconToneName), rowTS.Bg)
 		iconTS.Strikethrough = false
 		sb.WriteString(c.st.paint(r.icon, iconTS))
-		if firstLabel != "" || len(labelLines) > 1 {
+		if hasLabel {
 			sb.WriteString(c.st.paint(" ", padTS))
 		}
 	}
-	if firstLabel != "" {
-		sb.WriteString(c.st.paint(firstLabel, labelTS))
+	if seg := paintLabelSeg(0, labelTS, rsp); seg != "" {
+		sb.WriteString(seg)
 	}
 	if r.badge != "" {
 		sb.WriteString(c.st.paint(" "+r.badge, withBg(c.st.tone("muted"), rowTS.Bg)))
@@ -393,16 +452,16 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, wrap bool, w in
 			sb.WriteString(c.st.paint(m.Text, mTS))
 		}
 	}
-	out := make([]string, 0, len(labelLines))
+	out := make([]string, 0, len(labelRanges))
 	line := sb.String()
 	if rowTS.Bg != "" {
 		line = padLine(line, w, c.st.sgr(padTS))
 	}
 	out = append(out, line)
-	for _, contSeg := range labelLines[1:] {
+	for li := 1; li < len(labelRanges); li++ {
 		cont := c.st.paint(spaces(leadW), padTS)
-		if contSeg != "" {
-			cont += c.st.paint(contSeg, labelTS)
+		if seg := paintLabelSeg(li, labelTS, rsp); seg != "" {
+			cont += seg
 		}
 		if rowTS.Bg != "" {
 			cont = padLine(cont, w, c.st.sgr(padTS))

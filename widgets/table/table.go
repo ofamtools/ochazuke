@@ -6,7 +6,6 @@ package table
 
 import (
 	"fmt"
-	"hash/fnv"
 	"math"
 	"slices"
 	"sort"
@@ -65,6 +64,7 @@ type Row struct {
 	CellTones map[string]string
 	CellIcons map[string]string
 	IconTones map[string]string
+	CellSpans map[string][]ui.ToneSpan
 }
 
 // Item is one display line: a group header or a row.
@@ -140,6 +140,10 @@ func Text(v any) string {
 	case float32:
 		return strconv.FormatFloat(float64(x), 'g', -1, 32)
 	default:
+		if runs, ok := ui.DecodeInlineRuns(v); ok {
+			plain, _, _ := ui.CompileInlineRuns(runs, -1)
+			return plain
+		}
 		return fmt.Sprint(v)
 	}
 }
@@ -869,119 +873,4 @@ func (m *Model) ContextFrame(scope, nodeID string) core.ContextFrame {
 		}
 	}
 	return f
-}
-
-// View renders the model as a ui.KindTable node.
-func (m *Model) View(id string) ui.ViewNode {
-	items := m.Items()
-	m.clamp(len(items))
-	sortKeys := m.effectiveSortKeys()
-	cols := make([]any, len(m.Columns))
-	for i, c := range m.Columns {
-		title := c.Title
-		if title == "" {
-			title = c.Key
-		}
-		for idx, sk := range sortKeys {
-			if c.Key == sk.Field && sk.Dir != SortNone {
-				arrow := "▲"
-				if sk.Dir == SortDesc {
-					arrow = "▼"
-				}
-				if len(sortKeys) > 1 {
-					title += fmt.Sprintf(" %s%d", arrow, idx+1)
-				} else {
-					title += " " + arrow
-				}
-				break
-			}
-		}
-		col := map[string]any{"key": c.Key, "title": title}
-		if c.Width > 0 {
-			col["width"] = c.Width
-		}
-		if c.Align != "" {
-			col["align"] = c.Align
-		}
-		cols[i] = col
-	}
-	rows := make([]any, len(items))
-	for i, it := range items {
-		cells := make([]any, len(m.Columns))
-		if it.Header {
-			mark := "▾"
-			if it.Collapsed {
-				mark = "▸"
-			}
-			if len(cells) > 0 {
-				cells[0] = fmt.Sprintf("%s %s (%d)", mark, it.Group, it.Count)
-			}
-			for j := 1; j < len(cells); j++ {
-				cells[j] = ""
-			}
-			rows[i] = ui.TableRowSpec{Cells: cells, Tone: "table.group"}
-			continue
-		}
-		for j, c := range m.Columns {
-			cells[j] = Text(it.Row.Cells[c.Key])
-		}
-		if len(cells) > 0 && m.Marked[it.Row.ID] {
-			cells[0] = "● " + cells[0].(string)
-		}
-		cellTones, hasTones := projectCellMap(m.Columns, it.Row.CellTones)
-		cellIcons, hasIcons := projectCellMap(m.Columns, it.Row.CellIcons)
-		iconTones, hasIconTones := projectCellMap(m.Columns, it.Row.IconTones)
-		if it.Row.Tone != "" || hasTones || hasIcons || hasIconTones {
-			rows[i] = ui.TableRowSpec{
-				Cells:     cells,
-				Tone:      it.Row.Tone,
-				CellTones: cellTones,
-				CellIcons: cellIcons,
-				IconTones: iconTones,
-			}
-		} else {
-			rows[i] = cells
-		}
-	}
-	props := map[string]any{"columns": cols, "rows": rows, "selected": m.SelectedIdx, "offset": m.Offset}
-	vFrom, vTo, vOK := m.visualBounds(len(items))
-	if vOK {
-		props["visualFrom"] = vFrom
-		props["visualTo"] = vTo
-	}
-	selCol := -1
-	if m.CellSelect && len(m.Columns) > 0 {
-		selCol = max(0, min(m.SelectedCol, len(m.Columns)-1))
-		props["selectedCol"] = selCol
-	}
-	n := ui.ViewNode{
-		ID: id, Kind: ui.KindTable, Focusable: true,
-		Traits: []string{traits.TraitNav, traits.TraitScroll, traits.TraitFilter},
-		Props:  props,
-	}
-	cf := m.ContextFrame("", id)
-	n.Scope, n.Ref, n.Facts = cf.Scope, cf.Subject, cf.Facts
-	if r, ok := m.FocusedRow(); ok {
-		n.Unread, n.Badges = r.Unread, r.Badges
-	}
-	h := fnv.New64a()
-	fmt.Fprintf(h, "%v|%v|%d|%d|%v|%t|%d|%d|%d", cols, rows, m.SelectedIdx, m.Offset, n.Facts["isGroupHeader"], vOK, vFrom, vTo, selCol)
-	n.CacheKey = h.Sum64() | 1
-	return n
-}
-
-func projectCellMap(cols []Column, src map[string]string) ([]string, bool) {
-	if len(src) == 0 {
-		return nil, false
-	}
-	var out []string
-	for j, c := range cols {
-		if v := src[c.Key]; v != "" {
-			if out == nil {
-				out = make([]string, len(cols))
-			}
-			out[j] = v
-		}
-	}
-	return out, out != nil
 }

@@ -478,7 +478,7 @@ func natural(n *ViewNode, w int, d string) int {
 	case KindOverlay:
 		return 0
 	case KindText:
-		return len(wrapRanges([]rune(n.propString("text")), iw)) + cv
+		return len(wrapRanges([]rune(textNodePlain(n)), iw)) + cv
 	case KindMarkdown:
 		return len(mdLines(nil, n.propString("markdown"), iw)) + cv
 	case KindTable:
@@ -487,6 +487,10 @@ func natural(n *ViewNode, w int, d string) int {
 		return len(treeRows(n)) + cv
 	case KindInput:
 		if n.propBool("multiline") {
+			if n.propBoolDefault("wrap", true) {
+				avail := max(1, iw-2)
+				return max(3, len(wrapRanges([]rune(n.propString("value")), avail))) + cv
+			}
 			return max(3, strings.Count(n.propString("value"), "\n")+1) + cv
 		}
 		return 1 + cv
