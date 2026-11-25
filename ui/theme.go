@@ -192,6 +192,9 @@ func defaultTones() map[string]ToneStyle {
 		"icon.star":         {Fg: "warning", Bold: true},
 		"icon.unread":       {Fg: "warning", Bold: true},
 		"table.group":       {Fg: "accent", Bold: true},
+		"progress.fill":     {Fg: "accent"},
+		"progress.active":   {Fg: "warning"},
+		"progress.track":    {Fg: "border", Dim: true},
 	}
 }
 
@@ -279,6 +282,7 @@ func HighContrastDarkTheme() Theme {
 	t.Tones["state.cancelled"] = ToneStyle{Fg: "muted", Strikethrough: true}
 	t.Tones["state.done.dim"] = ToneStyle{Fg: "success"}
 	t.Tones["unfocused.border"] = ToneStyle{Fg: "border"}
+	t.Tones["progress.track"] = ToneStyle{Fg: "border"}
 	return t
 }
 

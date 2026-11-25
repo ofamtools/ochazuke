@@ -40,6 +40,9 @@ func (c *ctx) drawLeaf(rn *rnode, lr layout.Rect) {
 		out, cur = c.pickerLines(rn, ir.W, ir.H)
 	case KindTerminal:
 		out, cur = c.terminalLines(rn, ir.W, ir.H)
+	case KindProgress:
+		drawProgress(c.buf, ir, n, c.st.th)
+		return
 	case KindRaw:
 		out = ansiLines(n)
 		cur = c.nodeCursor(rn)
@@ -561,7 +564,7 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 						cw += strW(icon) + 1
 					}
 				}
-				widths[i] = min(max(widths[i], cw), 40)
+				widths[i] = min(max(widths[i], cw), w)
 			}
 		}
 	}

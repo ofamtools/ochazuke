@@ -7,15 +7,11 @@
 package hints
 
 import (
-	"fmt"
-	"hash/fnv"
 	"slices"
-	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
 
-	"ofam.dev/ochazuke/buffer"
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/layout"
 	"ofam.dev/ochazuke/ui"
@@ -28,12 +24,15 @@ const DefaultAlphabet = "asdfghjklwertuiopyzxcvbnm"
 // Action classifies how a matched hint target should be acted upon.
 type Action string
 
-// Hint match actions determined by key modifiers.
+// Hint match actions determined by key modifiers or active action mode.
 const (
 	ActionDefault   Action = "default"   // lowercase key (e.g. focus / open)
 	ActionSecondary Action = "secondary" // uppercase / Shift key (e.g. yank / copy)
 	ActionAlt       Action = "alt"       // ctrl+key (e.g. inspect / alternate action)
+	ActionMeta      Action = "meta"      // alt+key (host-defined meta action)
 )
+
+var defaultActionOrder = []Action{ActionDefault, ActionSecondary, ActionAlt, ActionMeta}
 
 // Status describes the outcome of one input step on a Session.
 type Status uint8
@@ -71,12 +70,24 @@ type Placement struct {
 	RemainingSuffix string
 }
 
+// ActionLegend describes one host-defined hint action or control entry shown in
+// the session status bar.
+type ActionLegend struct {
+	Key    string `json:"key"`
+	Label  string `json:"label"`
+	Action Action `json:"action,omitempty"`
+}
+
 // Option configures a Session.
 type Option func(*sessionConfig)
 
 type sessionConfig struct {
-	alphabet    string
-	hasAlphabet bool
+	alphabet      string
+	hasAlphabet   bool
+	defaultAction Action
+	modifiers     bool
+	hasModifiers  bool
+	legend        []ActionLegend
 }
 
 // WithAlphabet sets a custom hint label alphabet for the session.
@@ -84,6 +95,30 @@ func WithAlphabet(alphabet string) Option {
 	return func(c *sessionConfig) {
 		c.alphabet = alphabet
 		c.hasAlphabet = true
+	}
+}
+
+// WithDefaultAction sets the initial active action resolved when an unmodified
+// lowercase label completes a match. Defaults to ActionDefault when empty.
+func WithDefaultAction(a Action) Option {
+	return func(c *sessionConfig) {
+		c.defaultAction = a
+	}
+}
+
+// WithModifiers enables or disables Shift, ctrl+, and alt+ modifier overrides.
+// Modifiers are enabled by default.
+func WithModifiers(enabled bool) Option {
+	return func(c *sessionConfig) {
+		c.modifiers = enabled
+		c.hasModifiers = true
+	}
+}
+
+// WithActionLegend configures the host-defined legend rendered by Session.View.
+func WithActionLegend(items []ActionLegend) Option {
+	return func(c *sessionConfig) {
+		c.legend = slices.Clone(items)
 	}
 }
 
@@ -222,14 +257,18 @@ func TargetsFromFocusOrder(solved layout.Solved) []Target {
 
 // Session is a pure state machine for one active hint selection overlay.
 type Session struct {
-	targets       []Target
-	alphabet      string
-	alphabetRunes map[rune]bool
-	prefix        string
-	active        bool
-	pendingAction Action
-	matched       *Target
-	matchedAction Action
+	targets         []Target
+	alphabet        string
+	alphabetRunes   map[rune]bool
+	prefix          string
+	active          bool
+	defaultAction   Action
+	activeAction    Action
+	pendingOverride Action
+	modifiers       bool
+	legend          []ActionLegend
+	matched         *Target
+	matchedAction   Action
 }
 
 // NewSession starts a hint session for targets. If WithAlphabet is provided,
@@ -237,7 +276,11 @@ type Session struct {
 // non-empty labels are preserved (normalized to lowercase) and missing or
 // colliding labels are assigned using DefaultAlphabet.
 func NewSession(targets []Target, opts ...Option) *Session {
-	cfg := sessionConfig{alphabet: DefaultAlphabet}
+	cfg := sessionConfig{
+		alphabet:      DefaultAlphabet,
+		defaultAction: ActionDefault,
+		modifiers:     true,
+	}
 	for _, o := range opts {
 		if o != nil {
 			o(&cfg)
@@ -279,13 +322,29 @@ func NewSession(targets []Target, opts ...Option) *Session {
 		}
 	}
 
+	defAct := normalizeAction(cfg.defaultAction)
+	mods := true
+	if cfg.hasModifiers {
+		mods = cfg.modifiers
+	}
+
 	return &Session{
 		targets:       cloned,
 		alphabet:      alphaStr,
 		alphabetRunes: alphaSet,
 		active:        len(cloned) > 0,
-		pendingAction: ActionDefault,
+		defaultAction: defAct,
+		activeAction:  defAct,
+		modifiers:     mods,
+		legend:        slices.Clone(cfg.legend),
 	}
+}
+
+func normalizeAction(a Action) Action {
+	if a == "" {
+		return ActionDefault
+	}
+	return a
 }
 
 // Active reports whether the session is currently awaiting input.
@@ -338,6 +397,147 @@ func (s *Session) Matched() (*Target, Action, bool) {
 	return &t, s.matchedAction, true
 }
 
+// ActiveAction returns the currently active action resolved by unmodified
+// lowercase label matches.
+func (s *Session) ActiveAction() Action {
+	if s == nil || s.activeAction == "" {
+		return ActionDefault
+	}
+	return s.activeAction
+}
+
+// SetAction changes the session's active action for unmodified lowercase label
+// matches and clears any pending mid-prefix modifier override.
+func (s *Session) SetAction(a Action) {
+	if s == nil {
+		return
+	}
+	s.activeAction = normalizeAction(a)
+	s.pendingOverride = ""
+}
+
+// CycleAction advances the session's active action to the next entry in order
+// (wrapping around) and returns the new active action. When order is empty, it
+// cycles through distinct actions from the configured ActionLegend, falling
+// back to [ActionDefault, ActionSecondary, ActionAlt, ActionMeta].
+func (s *Session) CycleAction(order []Action) Action {
+	if s == nil {
+		return ActionDefault
+	}
+	seq := uniqueNonEmptyActions(order)
+	if len(seq) == 0 {
+		for _, item := range s.legend {
+			if item.Action != "" && !slices.Contains(seq, item.Action) {
+				seq = append(seq, item.Action)
+			}
+		}
+	}
+	if len(seq) == 0 {
+		seq = defaultActionOrder
+	}
+	cur := s.ActiveAction()
+	next := seq[0]
+	for i, a := range seq {
+		if a == cur {
+			next = seq[(i+1)%len(seq)]
+			break
+		}
+	}
+	s.SetAction(next)
+	return next
+}
+
+func uniqueNonEmptyActions(in []Action) []Action {
+	var out []Action
+	for _, a := range in {
+		if a != "" && !slices.Contains(out, a) {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
+// ActionLegend returns a copy of the host-configured action legend, or nil when
+// unset.
+func (s *Session) ActionLegend() []ActionLegend {
+	if s == nil || len(s.legend) == 0 {
+		return nil
+	}
+	return slices.Clone(s.legend)
+}
+
+// SetActionLegend replaces the host-configured action legend rendered by View.
+func (s *Session) SetActionLegend(items []ActionLegend) {
+	if s == nil {
+		return
+	}
+	s.legend = slices.Clone(items)
+}
+
+// ModifiersEnabled reports whether Shift, ctrl+, and alt+ modifier overrides
+// are currently enabled.
+func (s *Session) ModifiersEnabled() bool {
+	if s == nil {
+		return true
+	}
+	return s.modifiers
+}
+
+// SetModifiers enables or disables Shift, ctrl+, and alt+ modifier overrides.
+func (s *Session) SetModifiers(enabled bool) {
+	if s == nil {
+		return
+	}
+	s.modifiers = enabled
+	if !enabled {
+		s.pendingOverride = ""
+	}
+}
+
+// Facts returns truthful read-only session state for declarative bindings and
+// presenters: active, prefix, remaining, total, and action.
+func (s *Session) Facts() map[string]any {
+	if s == nil {
+		return map[string]any{
+			"active":    false,
+			"prefix":    "",
+			"remaining": 0,
+			"total":     0,
+			"action":    string(ActionDefault),
+		}
+	}
+	act := s.effectiveAction()
+	if !s.active && s.matchedAction != "" {
+		act = s.matchedAction
+	}
+	return map[string]any{
+		"active":    s.active,
+		"prefix":    s.prefix,
+		"remaining": len(s.Remaining()),
+		"total":     len(s.targets),
+		"action":    string(act),
+	}
+}
+
+func (s *Session) effectiveAction() Action {
+	if s == nil {
+		return ActionDefault
+	}
+	if s.pendingOverride != "" {
+		return s.pendingOverride
+	}
+	return s.ActiveAction()
+}
+
+func (s *Session) hasCandidatePrefix(prefix string) bool {
+	for i := range s.targets {
+		if strings.HasPrefix(s.targets[i].Label, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 // Cancel deactivates the session and clears any typed prefix.
 func (s *Session) Cancel() {
 	if s == nil {
@@ -345,7 +545,9 @@ func (s *Session) Cancel() {
 	}
 	s.active = false
 	s.prefix = ""
-	s.pendingAction = ActionDefault
+	s.pendingOverride = ""
+	s.matched = nil
+	s.matchedAction = ""
 }
 
 // Reset reactivates the session from the initial state (if it has targets).
@@ -354,14 +556,15 @@ func (s *Session) Reset() {
 		return
 	}
 	s.prefix = ""
-	s.pendingAction = ActionDefault
+	s.activeAction = s.defaultAction
+	s.pendingOverride = ""
 	s.matched = nil
 	s.matchedAction = ""
 	s.active = len(s.targets) > 0
 }
 
 // HandleKey processes a normalized Ochazuke key string ("esc", "q", "backspace",
-// "a", "A", "ctrl+a", "ctrl+c", etc.).
+// "a", "A", "ctrl+a", "alt+a", "ctrl+c", etc.).
 func (s *Session) HandleKey(key string) Result {
 	if s == nil || !s.active {
 		return Result{}
@@ -370,28 +573,41 @@ func (s *Session) HandleKey(key string) Result {
 	case "esc", "escape", "ctrl+c":
 		s.Cancel()
 		return Result{Status: StatusCancelled, Handled: true}
-	case "backspace", "ctrl+h":
+	case "backspace":
 		s.backspace()
 		return Result{Status: StatusActive, Handled: true}
 	}
 	if rest, ok := strings.CutPrefix(key, "ctrl+"); ok {
 		r, size := utf8.DecodeRuneInString(rest)
 		if rest != "" && size == len(rest) && r != utf8.RuneError {
-			return s.HandleRune(r, true)
+			return s.handleRune(r, true, false)
+		}
+		return Result{Status: StatusNoMatch, Handled: true}
+	}
+	if rest, ok := strings.CutPrefix(key, "alt+"); ok {
+		r, size := utf8.DecodeRuneInString(rest)
+		if rest != "" && size == len(rest) && r != utf8.RuneError {
+			return s.handleRune(r, false, true)
 		}
 		return Result{Status: StatusNoMatch, Handled: true}
 	}
 	r, size := utf8.DecodeRuneInString(key)
 	if key != "" && size == len(key) && r != utf8.RuneError {
-		return s.HandleRune(r, false)
+		return s.handleRune(r, false, false)
 	}
 	return Result{Status: StatusNoMatch, Handled: true}
 }
 
 // HandleRune processes a single typed rune and optional ctrl modifier.
-// Uppercase runes select ActionSecondary; ctrl selects ActionAlt; esc or 'q'
-// (when 'q' is not in the active alphabet) cancels; backspace pops one rune.
+// When modifier actions are enabled, uppercase runes select ActionSecondary and
+// ctrl selects ActionAlt; otherwise lowercase matches resolve to ActiveAction.
+// esc or 'q' (when 'q' is not in the active alphabet) cancels; backspace pops
+// one rune.
 func (s *Session) HandleRune(r rune, ctrl bool) Result {
+	return s.handleRune(r, ctrl, false)
+}
+
+func (s *Session) handleRune(r rune, ctrl, alt bool) Result {
 	if s == nil || !s.active {
 		return Result{}
 	}
@@ -399,9 +615,15 @@ func (s *Session) HandleRune(r rune, ctrl bool) Result {
 		s.Cancel()
 		return Result{Status: StatusCancelled, Handled: true}
 	}
-	if r == '\b' || r == '\x7f' || (ctrl && (r == 'h' || r == 'H')) {
+	if r == '\b' || r == '\x7f' {
 		s.backspace()
 		return Result{Status: StatusActive, Handled: true}
+	}
+	if ctrl && (r == 'h' || r == 'H') {
+		if !s.modifiers || !s.hasCandidatePrefix(s.prefix+"h") {
+			s.backspace()
+			return Result{Status: StatusActive, Handled: true}
+		}
 	}
 
 	lower := unicode.ToLower(r)
@@ -410,12 +632,20 @@ func (s *Session) HandleRune(r rune, ctrl bool) Result {
 		return Result{Status: StatusCancelled, Handled: true}
 	}
 
-	stepAction := s.pendingAction
-	switch {
-	case ctrl:
-		stepAction = ActionAlt
-	case unicode.IsUpper(r):
-		stepAction = ActionSecondary
+	override := s.pendingOverride
+	if s.modifiers {
+		switch {
+		case alt:
+			override = ActionMeta
+		case ctrl:
+			override = ActionAlt
+		case unicode.IsUpper(r):
+			override = ActionSecondary
+		}
+	}
+	stepAction := s.ActiveAction()
+	if override != "" {
+		stepAction = override
 	}
 
 	next := s.prefix + string(lower)
@@ -450,23 +680,24 @@ func (s *Session) HandleRune(r rune, ctrl bool) Result {
 	}
 
 	s.prefix = next
-	s.pendingAction = stepAction
+	s.pendingOverride = override
 	return Result{Status: StatusActive, Handled: true}
 }
 
 func (s *Session) backspace() {
 	if s.prefix == "" {
-		s.pendingAction = ActionDefault
+		s.pendingOverride = ""
 		return
 	}
 	rs := []rune(s.prefix)
 	s.prefix = string(rs[:len(rs)-1])
 	if s.prefix == "" {
-		s.pendingAction = ActionDefault
+		s.pendingOverride = ""
 	}
 }
 
-// HandleCommand processes core commands (esc, input.backspace, input.insert).
+// HandleCommand processes core commands (esc, hints.cancel, hints.cycle_action,
+// hints.set_action, input.backspace, input.insert).
 func (s *Session) HandleCommand(cmd core.Command) (Result, bool) {
 	if s == nil || !s.active {
 		return Result{}, false
@@ -474,6 +705,14 @@ func (s *Session) HandleCommand(cmd core.Command) (Result, bool) {
 	switch cmd.ID {
 	case "esc", "hints.cancel":
 		return s.HandleKey("esc"), true
+	case "hints.cycle_action":
+		s.CycleAction(nil)
+		return Result{Status: StatusActive, Handled: true}, true
+	case "hints.set_action":
+		if act := Action(cmd.Arg("action")); act != "" {
+			s.SetAction(act)
+		}
+		return Result{Status: StatusActive, Handled: true}, true
 	case "input.backspace":
 		return s.HandleKey("backspace"), true
 	case "input.insert":
@@ -506,284 +745,4 @@ func (s *Session) Placements() []Placement {
 		}
 	}
 	return out
-}
-
-// OverlayStyle controls the ANSI SGR styling of hint badges painted by
-// PaintOverlay and RenderOverlay.
-type OverlayStyle struct {
-	PrefixSGR string // SGR for already-typed prefix runes
-	LabelSGR  string // SGR for remaining untyped label runes
-	Bracketed bool   // wrap badge in [brackets] (default true in DefaultOverlayStyle)
-}
-
-// DefaultOverlayStyle returns a high-contrast terminal-portable badge style
-// using standard ANSI bold/reverse SGR codes.
-func DefaultOverlayStyle() OverlayStyle {
-	return OverlayStyle{
-		PrefixSGR: "\x1b[2;7m",
-		LabelSGR:  "\x1b[1;7m",
-		Bracketed: true,
-	}
-}
-
-// OverlayStyleFromTheme derives an OverlayStyle from a ui.Theme without
-// importing Lip Gloss.
-func OverlayStyleFromTheme(th ui.Theme) OverlayStyle {
-	st := DefaultOverlayStyle()
-	if labelSGR := toneToSGR(th.Tone("badge.accent")); labelSGR != "" {
-		st.LabelSGR = labelSGR
-	}
-	if prefixSGR := toneToSGR(th.Tone("badge")); prefixSGR != "" {
-		st.PrefixSGR = prefixSGR
-	}
-	return st
-}
-
-// PaintOverlay composites active hint badges directly onto buf at each
-// remaining target's (Rect.X, Rect.Y) coordinate.
-func PaintOverlay(buf *buffer.Buffer, s *Session, style ...OverlayStyle) {
-	if buf == nil || s == nil || !s.active || buf.Width() <= 0 || buf.Height() <= 0 {
-		return
-	}
-	st := DefaultOverlayStyle()
-	if len(style) > 0 {
-		st = style[0]
-	}
-	w, h := buf.Width(), buf.Height()
-	for _, p := range s.Placements() {
-		if p.Y < 0 || p.Y >= h || p.X >= w {
-			continue
-		}
-		var sb strings.Builder
-		plainLen := 0
-		if st.Bracketed {
-			sb.WriteString(st.LabelSGR)
-			sb.WriteByte('[')
-			plainLen++
-		}
-		if p.MatchedPrefix != "" {
-			sb.WriteString("\x1b[0m")
-			sb.WriteString(st.PrefixSGR)
-			sb.WriteString(p.MatchedPrefix)
-			plainLen += utf8.RuneCountInString(p.MatchedPrefix)
-		}
-		if p.RemainingSuffix != "" {
-			sb.WriteString("\x1b[0m")
-			sb.WriteString(st.LabelSGR)
-			sb.WriteString(p.RemainingSuffix)
-			plainLen += utf8.RuneCountInString(p.RemainingSuffix)
-		}
-		if st.Bracketed {
-			sb.WriteString("\x1b[0m")
-			sb.WriteString(st.LabelSGR)
-			sb.WriteByte(']')
-			plainLen++
-		}
-		sb.WriteString("\x1b[0m")
-
-		if plainLen <= 0 {
-			continue
-		}
-		bx := max(0, p.X)
-		if bx+plainLen > w {
-			bx = max(0, w-plainLen)
-		}
-		bw := min(plainLen, w-bx)
-		if bw <= 0 {
-			continue
-		}
-		badge := buffer.New(bw, 1)
-		badge.SetLine(0, sb.String())
-		buf.Blit(badge, layout.Rect{X: bx, Y: p.Y, W: bw, H: 1})
-	}
-}
-
-// RenderOverlay composites active hint badges onto an already-rendered ANSI
-// frame of size w x h and returns the resulting ANSI string.
-func RenderOverlay(baseANSI string, w, h int, s *Session, style ...OverlayStyle) string {
-	if w <= 0 || h <= 0 || s == nil || !s.active {
-		return baseANSI
-	}
-	buf := buffer.New(w, h)
-	for y, line := range strings.Split(baseANSI, "\n") {
-		if y >= h {
-			break
-		}
-		buf.SetLine(y, line)
-	}
-	PaintOverlay(buf, s, style...)
-	return buf.String()
-}
-
-// View returns a compact single-row ui.KindText status bar describing the
-// active hint session (prefix, remaining count, modifier legend).
-func (s *Session) View(id string) ui.ViewNode {
-	if id == "" {
-		id = "hints"
-	}
-	rem := s.Remaining()
-	facts := map[string]any{
-		"active":    s.Active(),
-		"prefix":    s.Prefix(),
-		"remaining": len(rem),
-		"total":     len(s.Targets()),
-	}
-	if !s.Active() {
-		return ui.ViewNode{
-			ID:       id,
-			Kind:     ui.KindText,
-			Scope:    "hints",
-			Box:      layout.Constraints{FixedH: 1},
-			Props:    map[string]any{"text": ""},
-			Facts:    facts,
-			CacheKey: 1,
-		}
-	}
-
-	prefixDisp := s.prefix + "_"
-	head := "HINTS "
-	mid := prefixDisp
-	tail := fmt.Sprintf("  (%d)  [A-Z] secondary  [ctrl] alt  [esc] cancel", len(rem))
-	text := head + mid + tail
-
-	headR := utf8.RuneCountInString(head)
-	midR := utf8.RuneCountInString(mid)
-	spans := []ui.ToneSpan{
-		{From: 0, To: headR, Tone: "badge.accent"},
-		{From: headR, To: headR + midR, Tone: "match"},
-		{From: headR + midR, To: utf8.RuneCountInString(text), Tone: "muted"},
-	}
-
-	return ui.ViewNode{
-		ID:    id,
-		Kind:  ui.KindText,
-		Scope: "hints",
-		Box:   layout.Constraints{FixedH: 1},
-		Props: map[string]any{
-			"text":  text,
-			"spans": spans,
-		},
-		Facts:    facts,
-		CacheKey: sessionCacheKey(s, rem),
-	}
-}
-
-// ViewOverlay returns a floating ui.KindOverlay listing every remaining hint
-// target and its label, suitable as a standalone hint legend or accessible
-// overlay view.
-func (s *Session) ViewOverlay(id string) ui.ViewNode {
-	if id == "" {
-		id = "hints.overlay"
-	}
-	rem := s.Remaining()
-	if !s.Active() {
-		return s.View(id)
-	}
-	kids := make([]ui.ViewNode, 0, len(rem))
-	for _, p := range s.Placements() {
-		badge := "[" + p.Target.Label + "]"
-		desc := p.Target.Value
-		if desc == "" {
-			desc = p.Target.ID
-		}
-		if p.Target.Kind != "" {
-			desc = p.Target.Kind + " · " + desc
-		}
-		line := badge + " " + desc
-		bRunes := utf8.RuneCountInString(badge)
-		kids = append(kids, ui.ViewNode{
-			ID:   id + "." + p.Target.ID,
-			Kind: ui.KindText,
-			Props: map[string]any{
-				"text": line,
-				"spans": []ui.ToneSpan{
-					{From: 0, To: bRunes, Tone: "match"},
-					{From: bRunes, To: utf8.RuneCountInString(line), Tone: "text"},
-				},
-			},
-		})
-	}
-	title := "Hints"
-	if s.prefix != "" {
-		title = "Hints: " + s.prefix
-	}
-	return ui.ViewNode{
-		ID:       id,
-		Kind:     ui.KindOverlay,
-		Scope:    "hints",
-		Title:    title,
-		Badges:   []ui.Badge{{Text: strconv.Itoa(len(rem)), Tone: "accent"}},
-		Children: kids,
-		Facts: map[string]any{
-			"active":    true,
-			"prefix":    s.prefix,
-			"remaining": len(rem),
-			"total":     len(s.targets),
-		},
-		CacheKey: sessionCacheKey(s, rem),
-	}
-}
-
-func sessionCacheKey(s *Session, rem []Target) uint64 {
-	h := fnv.New64a()
-	fmt.Fprintf(h, "%t|%s|%s|", s.active, s.prefix, s.pendingAction)
-	for _, t := range rem {
-		fmt.Fprintf(h, "%s:%s@%d,%d;", t.ID, t.Label, t.Rect.X, t.Rect.Y)
-	}
-	return h.Sum64() | 1
-}
-
-func toneToSGR(ts ui.ToneStyle) string {
-	var parts []string
-	if ts.Bold {
-		parts = append(parts, "1")
-	}
-	if ts.Dim {
-		parts = append(parts, "2")
-	}
-	if ts.Italic {
-		parts = append(parts, "3")
-	}
-	if ts.Underline {
-		parts = append(parts, "4")
-	}
-	if ts.Reverse {
-		parts = append(parts, "7")
-	}
-	if ts.Strikethrough {
-		parts = append(parts, "9")
-	}
-	if fg := colorSGR(ts.Fg, false); fg != "" {
-		parts = append(parts, fg)
-	}
-	if bg := colorSGR(ts.Bg, true); bg != "" {
-		parts = append(parts, bg)
-	}
-	if len(parts) == 0 {
-		return ""
-	}
-	return "\x1b[" + strings.Join(parts, ";") + "m"
-}
-
-func colorSGR(c string, bg bool) string {
-	if c == "" {
-		return ""
-	}
-	code := "38"
-	if bg {
-		code = "48"
-	}
-	if strings.HasPrefix(c, "#") && len(c) == 7 {
-		r, err1 := strconv.ParseUint(c[1:3], 16, 8)
-		g, err2 := strconv.ParseUint(c[3:5], 16, 8)
-		b, err3 := strconv.ParseUint(c[5:7], 16, 8)
-		if err1 == nil && err2 == nil && err3 == nil {
-			return fmt.Sprintf("%s;2;%d;%d;%d", code, r, g, b)
-		}
-		return ""
-	}
-	if idx, err := strconv.Atoi(c); err == nil && idx >= 0 && idx <= 255 {
-		return fmt.Sprintf("%s;5;%d", code, idx)
-	}
-	return ""
 }

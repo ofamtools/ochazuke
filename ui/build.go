@@ -225,7 +225,7 @@ func (b *builder) build(n *ViewNode, path string, w, h int) (layout.Box, *rnode)
 
 func isLeafKind(k string) bool {
 	switch k {
-	case KindText, KindMarkdown, KindTable, KindTree, KindInput, KindForm, KindPicker, KindTerminal, KindRaw:
+	case KindText, KindMarkdown, KindTable, KindTree, KindInput, KindForm, KindPicker, KindTerminal, KindProgress, KindRaw:
 		return true
 	}
 	return false
@@ -500,6 +500,8 @@ func natural(n *ViewNode, w int, d string) int {
 		return 1 + len(toSlice(n.Props["items"])) + cv
 	case KindTerminal:
 		return max(3, len(ansiLines(n))) + cv
+	case KindProgress:
+		return 1 + cv
 	case KindRaw:
 		return max(1, len(ansiLines(n))) + cv
 	}

@@ -37,6 +37,7 @@ const (
 	KindForm     = "form"
 	KindPicker   = "picker"
 	KindTerminal = "terminal"
+	KindProgress = "progress"
 	KindRaw      = "raw"
 )
 
@@ -176,6 +177,14 @@ func (n *ViewNode) propInt(key string) (int, bool) {
 	return anyInt(v)
 }
 
+func (n *ViewNode) propFloat(key string) (float64, bool) {
+	v, ok := n.prop(key)
+	if !ok {
+		return 0, false
+	}
+	return anyFloat(v)
+}
+
 func (n *ViewNode) propBool(key string) bool {
 	return n.propBoolDefault(key, false)
 }
@@ -232,6 +241,42 @@ func anyInt(v any) (int, bool) {
 		return i, err == nil
 	}
 	return 0, false
+}
+
+func anyFloat(v any) (float64, bool) {
+	var f float64
+	switch x := v.(type) {
+	case float64:
+		f = x
+	case float32:
+		f = float64(x)
+	case int:
+		f = float64(x)
+	case int64:
+		f = float64(x)
+	case int32:
+		f = float64(x)
+	case uint:
+		f = float64(x)
+	case uint64:
+		f = float64(x)
+	case json.Number:
+		var err error
+		if f, err = x.Float64(); err != nil {
+			return 0, false
+		}
+	case string:
+		var err error
+		if f, err = strconv.ParseFloat(x, 64); err != nil {
+			return 0, false
+		}
+	default:
+		return 0, false
+	}
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return 0, false
+	}
+	return f, true
 }
 
 // decodeAny converts v to T by type assertion, falling back to a JSON round trip

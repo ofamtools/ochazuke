@@ -172,6 +172,41 @@ func TestRenderTable(t *testing.T) {
 	}
 }
 
+func TestRenderTableFlexibleColumnWidth(t *testing.T) {
+	longVal := "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ123" // 65 chars
+	if len(longVal) != 65 {
+		t.Fatalf("test value len = %d, want 65", len(longVal))
+	}
+	tbl := ViewNode{
+		Kind: KindTable,
+		ID:   "t",
+		Props: map[string]any{
+			"columns": []any{"key", "value"},
+			"rows": []any{
+				[]any{"summary", longVal},
+			},
+		},
+	}
+
+	// In a 90-col container, a 65-char value must not be clamped at 40 chars.
+	rows, _, _ := draw(tbl, "", 90, 4)
+	if !strings.Contains(rows[2], longVal) {
+		t.Fatalf("65-char cell was truncated in 90-col table:\n%s", strings.Join(rows, "\n"))
+	}
+	if strings.Contains(rows[2], "…") {
+		t.Errorf("unexpected ellipsis in 90-col table row: %q", rows[2])
+	}
+
+	// When total natural width exceeds container width, shrink trims cleanly to fit.
+	narrowRows, _, _ := draw(tbl, "", 40, 4)
+	if got := strW(narrowRows[2]); got > 40 {
+		t.Errorf("narrow table row overflowed 40 cols: %d (%q)", got, narrowRows[2])
+	}
+	if !strings.Contains(narrowRows[2], "…") {
+		t.Errorf("narrow table should truncate 65-char cell with ellipsis: %q", narrowRows[2])
+	}
+}
+
 func TestRenderTableCellSelectAndVisual(t *testing.T) {
 	base := ViewNode{Kind: KindTable, ID: "t", Focusable: true, Props: map[string]any{
 		"columns":  []any{"name", map[string]any{"title": "size", "align": "right"}},
