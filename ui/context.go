@@ -62,6 +62,29 @@ func ContextChain(root ViewNode, focusID string, appFacts map[string]any) []core
 	return append(chain, core.ContextFrame{Scope: "app", Facts: appFacts})
 }
 
+// ResolveFilterSpec walks root.Ancestors(focusID) innermost-first and returns
+// the nearest declared FilterSpec together with its effective registry ID
+// (spec.ID when non-empty, otherwise the declaring node's ID). Works uniformly
+// across pages, trees, tables, show panels, and modals with zero ID switches.
+func ResolveFilterSpec(root ViewNode, focusID string) (*FilterSpec, string) {
+	for _, n := range root.Ancestors(focusID) {
+		if n.Filter == nil {
+			continue
+		}
+		id := n.Filter.ID
+		if id == "" {
+			id = n.ID
+		}
+		if id == "" {
+			continue
+		}
+		cp := *n.Filter
+		cp.ID = id
+		return &cp, id
+	}
+	return nil, ""
+}
+
 func (n *ViewNode) ownScope() string {
 	if n.Scope != "" {
 		return n.Scope
