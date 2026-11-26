@@ -109,6 +109,10 @@ type Model struct {
 	MatchMode     traits.MatchMode
 	FilterErr     string
 
+	// MotionSelection is the range the last motion.object.select reported, in
+	// MotionNodes indices (nil when the focused row has no such object).
+	MotionSelection *traits.ObjectRange
+
 	foldInitialized bool
 	edit            *EditState
 }
@@ -468,7 +472,6 @@ func (m *Model) UnfoldAll() { m.applyFold(traits.FoldCmdOpenAll) }
 // HandleCommand applies a standard motion or tree fold command, reporting
 // whether it was handled.
 func (m *Model) HandleCommand(cmd core.Command) bool {
-	n := cmd.Times()
 	m.Clamp()
 	rows := m.Flatten()
 	ps := max(m.PageSize, 1)
@@ -502,34 +505,11 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		m.applySelectState(next)
 		return true
 	}
+	if m.stepMotion(rows, curIdx, moveToIdx, cmd) {
+		return true
+	}
 
 	switch cmd.ID {
-	case "motion.block.next":
-		idx := curIdx
-		for ; n > 0; n-- {
-			for i := idx + 1; i <= last; i++ {
-				if rows[i].IsRoot {
-					idx = i
-					break
-				}
-			}
-		}
-		moveToIdx(idx)
-	case "motion.block.prev":
-		idx := curIdx
-		for ; n > 0; n-- {
-			from := idx
-			if from >= 0 && from <= last && rows[from].IsRoot {
-				from--
-			}
-			for i := from; i >= 0; i-- {
-				if rows[i].IsRoot {
-					idx = i
-					break
-				}
-			}
-		}
-		moveToIdx(idx)
 	case CmdFoldToggle, traits.FoldCmdToggle:
 		m.ToggleFold()
 	case CmdFoldOpen, traits.FoldCmdOpen:

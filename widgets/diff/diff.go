@@ -140,6 +140,10 @@ type Model struct {
 
 	// Yanked holds the text of the last diff.yank command.
 	Yanked string
+
+	// MotionSelection is the range the last motion.object.select reported, in
+	// MotionNodes indices (nil when the cursor row has no such object).
+	MotionSelection *traits.ObjectRange
 }
 
 // New returns a unified-mode model with defaults.
@@ -248,35 +252,10 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		m.Cursor, m.Offset = next.Cursor, next.Offset
 		return true
 	}
-	n := cmd.Times()
-	last := len(rows) - 1
-	move := func(to int) { m.Cursor = max(0, min(to, last)) }
+	if m.stepMotion(rows, cmd) {
+		return true
+	}
 	switch cmd.ID {
-	case "motion.block.next", "motion.block.prev":
-		next := cmd.ID == "motion.block.next"
-		for ; n > 0; n-- {
-			to := m.Cursor
-			if next {
-				for i := m.Cursor + 1; i <= last; i++ {
-					if rows[i].Kind == RowHunk {
-						to = i
-						break
-					}
-				}
-			} else {
-				cur := m.Cursor
-				if cur >= 0 && cur <= last && rows[cur].Kind == RowHunk {
-					cur--
-				}
-				for i := cur; i >= 0; i-- {
-					if rows[i].Kind == RowHunk {
-						to = i
-						break
-					}
-				}
-			}
-			move(to)
-		}
 	case CmdModeToggle:
 		m.setMode(cmd.Arg("mode"))
 	case CmdSectionToggle:

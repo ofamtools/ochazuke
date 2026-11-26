@@ -102,6 +102,10 @@ type Model struct {
 	VisualAnchor int
 	CellSelect   bool
 	SelectedCol  int
+
+	// MotionSelection is the range the last motion.object.select reported, in
+	// MotionNodes indices (nil when the focused item has no such object).
+	MotionSelection *traits.ObjectRange
 }
 
 // New returns a model with defaults.
@@ -801,35 +805,11 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		m.applySelectState(next)
 		return true
 	}
+	if m.stepMotion(items, cmd) {
+		return true
+	}
 	n := cmd.Times()
-	last := len(items) - 1
-	move := func(to int) { m.SelectedIdx = max(0, min(to, last)); m.clamp(len(items)) }
 	switch cmd.ID {
-	case "motion.block.next", "motion.block.prev":
-		next := cmd.ID == "motion.block.next"
-		for ; n > 0; n-- {
-			to := m.SelectedIdx
-			if next {
-				for i := m.SelectedIdx + 1; i <= last; i++ {
-					if items[i].Header {
-						to = i
-						break
-					}
-				}
-			} else {
-				cur := m.SelectedIdx
-				if cur >= 0 && cur <= last && items[cur].Header {
-					cur--
-				}
-				for i := cur; i >= 0; i-- {
-					if items[i].Header {
-						to = i
-						break
-					}
-				}
-			}
-			move(to)
-		}
 	case "motion.left":
 		if !m.CellSelect {
 			return false

@@ -24,6 +24,13 @@ const (
 	CmdMotionSameNext     = "motion.same.next"
 	CmdMotionSamePrev     = "motion.same.prev"
 	CmdMotionObjectSelect = "motion.object.select"
+
+	// CmdMotionBlockNext and CmdMotionBlockPrev are the standard `}` / `{`
+	// motions (core's motion table). MotionStep treats them as aliases for
+	// motion.object.next / motion.object.prev with object "block"; an explicit
+	// "object" arg on the command still wins.
+	CmdMotionBlockNext = "motion.block.next"
+	CmdMotionBlockPrev = "motion.block.prev"
 )
 
 // MotionNode describes one navigable element with its geometry span and
@@ -267,39 +274,54 @@ func PrevSame(nodes []MotionNode, cur int, kind string, count int, wrap bool) (t
 	return idx, idx != startCur
 }
 
-// MotionStep dispatches the five canonical object and relative motion commands
-// against nodes from cur under cfg.
-func MotionStep(nodes []MotionNode, cur int, cfg MotionConfig, cmd core.Command) (target int, selection *ObjectRange, moved bool, handled bool) {
-	kind := cmd.Arg("object")
+// MotionObjectKind resolves the object kind cmd steps over under cfg: the
+// command's "object" arg when set, else "block" for the motion.block.*
+// aliases, cfg.RelativeObject for motion.same.*, and cfg.DefaultObject (or
+// "block") for the other object motions. ok is false when MotionStep does not
+// handle cmd, so a widget can check the kind against the kinds it declares
+// before claiming the command.
+func MotionObjectKind(cmd core.Command, cfg MotionConfig) (kind string, ok bool) {
+	kind = cmd.Arg("object")
 	switch cmd.ID {
-	case CmdMotionObjectNext:
+	case CmdMotionBlockNext, CmdMotionBlockPrev:
+		if kind == "" {
+			kind = ObjectBlock
+		}
+	case CmdMotionObjectNext, CmdMotionObjectPrev, CmdMotionObjectSelect:
 		if kind == "" {
 			kind = motionDefaultObject(cfg)
 		}
+	case CmdMotionSameNext, CmdMotionSamePrev:
+		if kind == "" {
+			kind = cfg.RelativeObject
+		}
+	default:
+		return "", false
+	}
+	return kind, true
+}
+
+// MotionStep dispatches the canonical object and relative motion commands
+// (and the motion.block.* aliases) against nodes from cur under cfg.
+func MotionStep(nodes []MotionNode, cur int, cfg MotionConfig, cmd core.Command) (target int, selection *ObjectRange, moved bool, handled bool) {
+	kind, ok := MotionObjectKind(cmd, cfg)
+	if !ok {
+		return cur, nil, false, false
+	}
+	switch cmd.ID {
+	case CmdMotionObjectNext, CmdMotionBlockNext:
 		next, ok := NextObject(nodes, cur, kind, cmd.Times(), cfg.Wrap)
 		return next, nil, ok, true
-	case CmdMotionObjectPrev:
-		if kind == "" {
-			kind = motionDefaultObject(cfg)
-		}
+	case CmdMotionObjectPrev, CmdMotionBlockPrev:
 		next, ok := PrevObject(nodes, cur, kind, cmd.Times(), cfg.Wrap)
 		return next, nil, ok, true
 	case CmdMotionSameNext:
-		if kind == "" {
-			kind = cfg.RelativeObject
-		}
 		next, ok := NextSame(nodes, cur, kind, cmd.Times(), cfg.Wrap)
 		return next, nil, ok, true
 	case CmdMotionSamePrev:
-		if kind == "" {
-			kind = cfg.RelativeObject
-		}
 		next, ok := PrevSame(nodes, cur, kind, cmd.Times(), cfg.Wrap)
 		return next, nil, ok, true
-	case CmdMotionObjectSelect:
-		if kind == "" {
-			kind = motionDefaultObject(cfg)
-		}
+	default: // CmdMotionObjectSelect
 		if len(nodes) == 0 {
 			return 0, nil, false, true
 		}
@@ -309,8 +331,6 @@ func MotionStep(nodes []MotionNode, cur int, cfg MotionConfig, cmd core.Command)
 			return idx, nil, false, true
 		}
 		return idx, &rng, true, true
-	default:
-		return cur, nil, false, false
 	}
 }
 

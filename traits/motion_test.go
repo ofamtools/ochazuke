@@ -488,3 +488,24 @@ func TestDefaultTraitBindingsMotionWithKeymap(t *testing.T) {
 		}
 	}
 }
+
+func TestMotionBlockAliases(t *testing.T) {
+	nodes := markdownFixture()
+	cfg := MotionConfig{DefaultObject: ObjectSection} // the alias ignores DefaultObject
+	pairs := []struct{ alias, canon string }{{CmdMotionBlockNext, CmdMotionObjectNext}, {CmdMotionBlockPrev, CmdMotionObjectPrev}}
+	for _, p := range pairs {
+		for cur := range nodes {
+			for _, args := range []map[string]any{nil, {"object": ObjectSection}} {
+				want := map[string]any{"object": ObjectBlock}
+				if args != nil {
+					want = args
+				}
+				gt, gs, gm, gh := MotionStep(nodes, cur, cfg, core.Command{ID: p.alias, Count: 2, Args: args})
+				wt, ws, wm, wh := MotionStep(nodes, cur, cfg, core.Command{ID: p.canon, Count: 2, Args: want})
+				if gt != wt || gs != ws || gm != wm || gh != wh || !gh {
+					t.Fatalf("%s from %d args %v = (%d %v %v %v), want %s = (%d %v %v %v)", p.alias, cur, args, gt, gs, gm, gh, p.canon, wt, ws, wm, wh)
+				}
+			}
+		}
+	}
+}
