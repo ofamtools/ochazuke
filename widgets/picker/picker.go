@@ -308,7 +308,8 @@ func (m *Model) page() int {
 
 // HandleCommand applies a picker command. handled reports whether cmd was
 // one the picker understands; picked is non-nil only for picker.confirm on a
-// focused item.
+// focused item (or the first marked item in MultiSelect mode when no item is
+// focused).
 func (m *Model) HandleCommand(cmd core.Command) (picked *Item, handled bool) {
 	if next, _, ok := traits.ViewportStep(m.viewportState(m.rows()), m.viewportConfig(), cmd); ok {
 		m.SelectedIdx, m.Offset = next.Cursor, next.Offset
@@ -318,6 +319,12 @@ func (m *Model) HandleCommand(cmd core.Command) (picked *Item, handled bool) {
 	case CmdConfirm:
 		if it, ok := m.Focused(); ok {
 			return &it, true
+		}
+		if m.MultiSelect {
+			if marked := m.MarkedItems(); len(marked) > 0 {
+				it := marked[0]
+				return &it, true
+			}
 		}
 	case CmdMarkToggle:
 		m.ToggleMark()

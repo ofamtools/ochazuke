@@ -138,12 +138,15 @@ func TestConfirmAndMarks(t *testing.T) {
 		t.Fatalf("unmark %s", got)
 	}
 	m.SetQuery("zzz")
-	if p, _ := m.HandleCommand(core.Command{ID: CmdConfirm}); p != nil {
-		t.Fatal("confirm on empty list")
+	if p, ok := m.HandleCommand(core.Command{ID: CmdConfirm}); !ok || p == nil || p.ID != "1" {
+		t.Fatalf("multi-select confirm with marked items on empty filter: p=%v ok=%v", p, ok)
 	}
 	m.SetItems(items()[1:])
 	if len(m.Marked) != 0 {
 		t.Fatalf("stale marks %v", m.Marked)
+	}
+	if p, _ := m.HandleCommand(core.Command{ID: CmdConfirm}); p != nil {
+		t.Fatal("confirm on empty list with no marks")
 	}
 }
 
