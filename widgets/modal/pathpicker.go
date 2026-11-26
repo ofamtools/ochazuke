@@ -39,14 +39,7 @@ type PathPickerModal struct {
 
 // NewPathPickerModal wraps pp in a PathPickerModal using opts.
 func NewPathPickerModal(pp *pathpicker.Model, opts PathPickerOptions) *PathPickerModal {
-	id := opts.ID
-	if id == "" {
-		id = "pathpicker"
-	}
-	scope := opts.Scope
-	if scope == "" {
-		scope = "pathpicker"
-	}
+	id, scope, focusID := resolveModalIdentity(opts.ID, opts.Scope, opts.FocusID, "pathpicker", "pathpicker", "")
 	normalMode := opts.Mode
 	if normalMode == "" {
 		normalMode = ModePicker
@@ -54,10 +47,6 @@ func NewPathPickerModal(pp *pathpicker.Model, opts PathPickerOptions) *PathPicke
 	filterMode := opts.FilterMode
 	if filterMode == "" {
 		filterMode = ModePickerFilter
-	}
-	focusID := opts.FocusID
-	if focusID == "" {
-		focusID = id
 	}
 	if pp != nil {
 		pp.SetFiltering(opts.StartInFilter)
@@ -96,54 +85,29 @@ func (m *PathPickerModal) FocusID() string { return m.focusID }
 // View wraps pathpicker.Model.View's panel children in an Overlay, mirroring
 // inner facts onto the overlay for scope-targeted bindings.
 func (m *PathPickerModal) View(w, h int) ui.ViewNode {
-	wp := m.opts.WidthPct
-	if wp <= 0 {
-		wp = 70
-	}
-	hp := m.opts.HeightPct
-	if hp <= 0 {
-		hp = 70
-	}
+	frame := Frame{
+		ID:        m.id,
+		Scope:     m.scope,
+		Title:     m.opts.Title,
+		Tone:      m.opts.Tone,
+		WidthPct:  m.opts.WidthPct,
+		HeightPct: m.opts.HeightPct,
+	}.WithDefaults(Frame{WidthPct: 70, HeightPct: 70})
 	if m.pp == nil {
-		title := m.opts.Title
-		if title == "" {
-			title = m.id
-		}
-		return Overlay(OverlaySpec{
-			ID:        m.id,
-			Scope:     m.scope,
-			Title:     title,
-			Tone:      m.opts.Tone,
-			WidthPct:  wp,
-			HeightPct: hp,
-		})
+		return frame.WithDefaults(Frame{Title: m.id}).Overlay()
 	}
 
 	panel := m.pp.View(m.focusID)
-	title := m.opts.Title
-	if title == "" {
-		title = panel.Title
-	}
+	frame = frame.WithDefaults(Frame{Title: panel.Title})
 	badges := append([]ui.Badge(nil), panel.Badges...)
 	if m.opts.Badges != nil {
 		badges = append(badges, m.opts.Badges(m.pp)...)
 	}
-	var facts map[string]any
+	frame.Badges = badges
 	if m.opts.Facts != nil {
-		facts = m.opts.Facts(m.pp)
+		frame.Facts = m.opts.Facts(m.pp)
 	}
-
-	return Overlay(OverlaySpec{
-		ID:        m.id,
-		Scope:     m.scope,
-		Title:     title,
-		Tone:      m.opts.Tone,
-		WidthPct:  wp,
-		HeightPct: hp,
-		Badges:    badges,
-		Facts:     facts,
-		Children:  panel.Children,
-	})
+	return frame.Overlay(panel.Children...)
 }
 
 // Handle dispatches a command to the path picker modal.

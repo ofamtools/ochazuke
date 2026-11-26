@@ -114,6 +114,7 @@ type Model struct {
 	MotionSelection *traits.ObjectRange
 
 	foldInitialized bool
+	filter          compiledFilter
 	edit            *EditState
 }
 
@@ -233,7 +234,12 @@ func (m *Model) findNodeWithParent(id string) (node *Node, parentID, prevSibling
 
 // Flatten returns all currently visible rows in display order, including any
 // active inline-add draft row and visual row indices accounting for GapTopLevel.
+// Flatten is a pure projection and never mutates m.
 func (m *Model) Flatten() []VisibleRow {
+	return m.flattenRoots(m.filteredRoots())
+}
+
+func (m *Model) flattenRoots(roots []Node) []VisibleRow {
 	var out []VisibleRow
 	visRow := 0
 	hoistID := m.HoistID()
@@ -298,7 +304,7 @@ func (m *Model) Flatten() []VisibleRow {
 			emitDraft(parentID, depth, topIdx)
 		}
 	}
-	walk(m.filteredRoots(), "", 0)
+	walk(roots, "", 0)
 	return out
 }
 
@@ -314,18 +320,21 @@ func (m *Model) viewportConfig() traits.ViewportConfig {
 }
 
 func (m *Model) visualViewport(cursor, total int) traits.ViewportState {
-	return traits.ViewportState{Cursor: cursor, Offset: m.Offset, Total: total, Height: max(m.PageSize, 1)}
+	return m.visualViewportAt(cursor, m.Offset, total)
 }
 
-// Clamp ensures SelectedID refers to a visible row (when non-empty) and clamps
-// Offset to keep the active row inside the viewport with ScrollOff padding.
-func (m *Model) Clamp() {
-	rows := m.Flatten()
+func (m *Model) visualViewportAt(cursor, offset, total int) traits.ViewportState {
+	return traits.ViewportState{Cursor: cursor, Offset: offset, Total: total, Height: max(m.PageSize, 1)}
+}
+
+// projectSelection computes the effective focused row index, ID, and clamped
+// viewport offset for rows without mutating m.
+func (m *Model) projectSelection(rows []VisibleRow) (int, string, int) {
 	if len(rows) == 0 {
-		m.SelectedID, m.Offset = "", 0
-		return
+		return -1, "", 0
 	}
 	selIdx := -1
+	selID := m.SelectedID
 	if m.hasAddDraft() {
 		for i, r := range rows {
 			if r.Draft {
@@ -336,7 +345,7 @@ func (m *Model) Clamp() {
 	}
 	if selIdx < 0 {
 		for i, r := range rows {
-			if !r.Draft && r.ID == m.SelectedID {
+			if !r.Draft && r.ID == selID {
 				selIdx = i
 				break
 			}
@@ -345,7 +354,7 @@ func (m *Model) Clamp() {
 	if selIdx < 0 {
 		for i, r := range rows {
 			if !r.Draft {
-				selIdx, m.SelectedID = i, r.ID
+				selIdx, selID = i, r.ID
 				break
 			}
 		}
@@ -353,29 +362,31 @@ func (m *Model) Clamp() {
 	if selIdx < 0 {
 		selIdx = 0
 	}
-	m.Offset = traits.ViewportClamp(m.visualViewport(rows[selIdx].VisualRow, totalVisualRows(rows)), m.viewportConfig()).Offset
+	offset := traits.ViewportClamp(m.visualViewport(rows[selIdx].VisualRow, totalVisualRows(rows)), m.viewportConfig()).Offset
+	return selIdx, selID, offset
 }
 
-// Focused returns the currently focused visible row (or false when empty).
-func (m *Model) Focused() (VisibleRow, bool) {
-	m.Clamp()
+// Clamp ensures SelectedID refers to a visible row (when non-empty) and clamps
+// Offset to keep the active row inside the viewport with ScrollOff padding.
+func (m *Model) Clamp() {
 	rows := m.Flatten()
-	if len(rows) == 0 {
+	selIdx, selID, offset := m.projectSelection(rows)
+	if selIdx < 0 {
+		m.SelectedID, m.Offset = "", 0
+		return
+	}
+	m.SelectedID, m.Offset = selID, offset
+}
+
+// Focused returns the currently focused visible row (or false when empty)
+// without mutating m.
+func (m *Model) Focused() (VisibleRow, bool) {
+	rows := m.Flatten()
+	selIdx, _, _ := m.projectSelection(rows)
+	if selIdx < 0 {
 		return VisibleRow{}, false
 	}
-	if m.hasAddDraft() {
-		for _, r := range rows {
-			if r.Draft {
-				return r, true
-			}
-		}
-	}
-	for _, r := range rows {
-		if !r.Draft && r.ID == m.SelectedID {
-			return r, true
-		}
-	}
-	return rows[0], true
+	return rows[selIdx], true
 }
 
 // Select focuses the visible node with the given ID, returning false if not visible.
@@ -590,7 +601,7 @@ func (m *Model) scrollVisual(rows []VisibleRow, curIdx, ps int, cmd core.Command
 	}
 }
 
-func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any {
+func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool, curIdx, offset int) map[string]any {
 	rowCount, selVis := 0, 0
 	for _, r := range rows {
 		if !r.Draft {
@@ -600,8 +611,7 @@ func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any
 	if ok {
 		selVis = row.VisualRow
 	}
-	curIdx := m.visibleIndex(rows)
-	f := traits.MergeFacts(traits.ViewportFacts(m.visualViewport(selVis, totalVisualRows(rows)), m.viewportConfig()), map[string]any{
+	f := traits.MergeFacts(traits.ViewportFacts(m.visualViewportAt(selVis, offset, totalVisualRows(rows)), m.viewportConfig()), map[string]any{
 		"isTree":     true,
 		"rowCount":   rowCount,
 		"rootCount":  len(m.Nodes),
@@ -613,7 +623,7 @@ func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any
 	f = traits.MergeFacts(f, traits.FilterFacts(traits.FilterState{
 		Query: m.Query,
 		Mode:  m.MatchMode,
-		Err:   m.FilterErr,
+		Err:   m.FilterError(),
 	}, traits.FilterConfig{}))
 	f = traits.MergeFacts(f, traits.SelectFacts(m.selectState(), rowVisibleIDs(rows), curIdx))
 	if ok && !row.Draft {
@@ -636,14 +646,24 @@ func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any
 	return f
 }
 
-// ContextFrame describes the focused tree node for the modal context chain.
+// ContextFrame describes the focused tree node for the modal context chain
+// without mutating m.
 func (m *Model) ContextFrame(scope, nodeID string) core.ContextFrame {
-	row, ok := m.Focused()
 	rows := m.Flatten()
+	selIdx, _, offset := m.projectSelection(rows)
+	return m.contextFrameFor(rows, selIdx, offset, scope, nodeID)
+}
+
+func (m *Model) contextFrameFor(rows []VisibleRow, selIdx, offset int, scope, nodeID string) core.ContextFrame {
+	var row VisibleRow
+	ok := selIdx >= 0 && selIdx < len(rows)
+	if ok {
+		row = rows[selIdx]
+	}
 	cf := core.ContextFrame{
 		Scope:  scope,
 		NodeID: nodeID,
-		Facts:  m.facts(rows, row, ok),
+		Facts:  m.facts(rows, row, ok, selIdx, offset),
 	}
 	if ok && !row.Draft {
 		if row.Node.Scope != "" && scope == "" {
@@ -789,27 +809,13 @@ func hashUINodes(h interface{ Write([]byte) (int, error) }, ns []ui.TreeNode) {
 	fmt.Fprint(h, "]")
 }
 
-// View renders the model as a ui.KindTree ViewNode.
+// View renders the model as a ui.KindTree ViewNode purely without mutating m.
 func (m *Model) View(id string) ui.ViewNode {
-	m.Clamp()
-	rows := m.Flatten()
-	selIdx := -1
-	if m.hasAddDraft() {
-		for _, r := range rows {
-			if r.Draft {
-				selIdx = r.Index
-				break
-			}
-		}
-	} else {
-		for _, r := range rows {
-			if !r.Draft && r.ID == m.SelectedID {
-				selIdx = r.Index
-				break
-			}
-		}
-	}
-	uiNodes := m.buildUINodes(m.filteredRoots(), "")
+	roots := m.filteredRoots()
+	rows := m.flattenRoots(roots)
+	selIdx, _, offset := m.projectSelection(rows)
+	uiNodes := m.buildUINodes(roots, "")
+	filterErr := m.FilterError()
 
 	props := map[string]any{
 		"nodes":       uiNodes,
@@ -818,7 +824,7 @@ func (m *Model) View(id string) ui.ViewNode {
 		"gutter":      m.ShowGutter,
 		"wrap":        m.Wrap,
 		"selected":    selIdx,
-		"offset":      m.Offset,
+		"offset":      offset,
 	}
 	vFrom, vTo, vOK := m.visualBounds(rows, selIdx)
 	if vOK {
@@ -832,15 +838,15 @@ func (m *Model) View(id string) ui.ViewNode {
 		Focusable: true,
 		Props:     props,
 	}
-	cf := m.ContextFrame("", id)
+	cf := m.contextFrameFor(rows, selIdx, offset, "", id)
 	n.Scope, n.Ref, n.Facts = cf.Scope, cf.Subject, cf.Facts
-	if row, ok := m.Focused(); ok && !row.Draft {
-		n.Unread, n.Badges = row.Node.Unread, row.Node.Badges
+	if selIdx >= 0 && selIdx < len(rows) && !rows[selIdx].Draft {
+		n.Unread, n.Badges = rows[selIdx].Node.Unread, rows[selIdx].Node.Badges
 	}
 	h := fnv.New64a()
 	fmt.Fprintf(h, "%t|%t|%t|%t|%t|%q|%d|%d|%t|%d|%d|%t|%d|%v|%q|%q|%q|",
-		m.Guides, m.GapTopLevel, m.ShowFoldCount, m.ShowGutter, m.Wrap, m.HoistID(), selIdx, m.Offset,
-		vOK, vFrom, vTo, m.VisualActive, m.VisualAnchor, m.MarkedIDs(), m.Query, m.MatchMode, m.FilterErr)
+		m.Guides, m.GapTopLevel, m.ShowFoldCount, m.ShowGutter, m.Wrap, m.HoistID(), selIdx, offset,
+		vOK, vFrom, vTo, m.VisualActive, m.VisualAnchor, m.MarkedIDs(), m.Query, m.MatchMode, filterErr)
 	hashUINodes(h, uiNodes)
 	n.CacheKey = h.Sum64() | 1
 	return n

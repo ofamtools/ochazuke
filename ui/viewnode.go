@@ -146,16 +146,27 @@ func (n ViewNode) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
-// Find returns the node with the given non-empty ID in the subtree, or nil.
-func (n *ViewNode) Find(id string) *ViewNode {
-	if id == "" {
+// ByID returns the first node with the given non-empty ID in the subtree
+// rooted at n (depth-first pre-order), or nil when n is nil, id is empty,
+// or no matching node exists.
+func (n *ViewNode) ByID(id string) *ViewNode {
+	if n == nil || id == "" {
 		return nil
 	}
-	var path []*ViewNode
-	if findPath(n, id, &path) {
-		return path[len(path)-1]
+	if n.ID == id {
+		return n
+	}
+	for i := range n.Children {
+		if hit := n.Children[i].ByID(id); hit != nil {
+			return hit
+		}
 	}
 	return nil
+}
+
+// Find returns the node with the given non-empty ID in the subtree, or nil.
+func (n *ViewNode) Find(id string) *ViewNode {
+	return n.ByID(id)
 }
 
 // findPath appends the nodes from root to the node with the given ID (inclusive).

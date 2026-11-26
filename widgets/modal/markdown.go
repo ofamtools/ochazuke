@@ -54,21 +54,10 @@ func NewMarkdownModal(md *markdown.Model, opts MarkdownOptions) *MarkdownModal {
 	if md == nil {
 		md = markdown.New("", "")
 	}
-	id := opts.ID
-	if id == "" {
-		id = "reader"
-	}
-	scope := opts.Scope
-	if scope == "" {
-		scope = "reader"
-	}
+	id, scope, focusID := resolveModalIdentity(opts.ID, opts.Scope, opts.FocusID, "reader", "reader", ".body")
 	mode := opts.Mode
 	if mode == "" {
 		mode = ModeReader
-	}
-	focusID := opts.FocusID
-	if focusID == "" {
-		focusID = id + ".body"
 	}
 	return &MarkdownModal{
 		md:      md,
@@ -133,16 +122,16 @@ func (m *MarkdownModal) Back() bool {
 
 // View adjusts PageSize to fit h and renders the reader inside an Overlay.
 func (m *MarkdownModal) View(w, h int) ui.ViewNode {
-	wp := m.opts.WidthPct
-	if wp <= 0 {
-		wp = 92
-	}
-	hp := m.opts.HeightPct
-	if hp <= 0 {
-		hp = 90
-	}
+	frame := Frame{
+		ID:        m.id,
+		Scope:     m.scope,
+		Title:     m.md.Title,
+		Tone:      m.opts.Tone,
+		WidthPct:  m.opts.WidthPct,
+		HeightPct: m.opts.HeightPct,
+	}.WithDefaults(Frame{Title: m.id, WidthPct: 92, HeightPct: 90})
 	if h > 12 {
-		if ps := h*hp/100 - 6; ps > 0 {
+		if ps := h*frame.HeightPct/100 - 6; ps > 0 {
 			m.md.PageSize = ps
 		}
 	}
@@ -176,22 +165,9 @@ func (m *MarkdownModal) View(w, h int) ui.ViewNode {
 		maps.Copy(facts, m.opts.Facts(m.md, m.path, len(m.back)))
 	}
 
-	title := m.md.Title
-	if title == "" {
-		title = m.id
-	}
-
-	return Overlay(OverlaySpec{
-		ID:        m.id,
-		Scope:     m.scope,
-		Title:     title,
-		Tone:      m.opts.Tone,
-		WidthPct:  wp,
-		HeightPct: hp,
-		Badges:    badges,
-		Facts:     facts,
-		Children:  []ui.ViewNode{body},
-	})
+	frame.Badges = badges
+	frame.Facts = facts
+	return BuildOverlay(frame, body)
 }
 
 // Handle dispatches a command to the markdown reader modal.

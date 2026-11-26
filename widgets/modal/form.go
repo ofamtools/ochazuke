@@ -56,14 +56,7 @@ func NewFormModal(fm *form.Model, opts FormOptions) *FormModal {
 	if fm == nil {
 		fm = form.New(opts.Title, nil, nil)
 	}
-	id := opts.ID
-	if id == "" {
-		id = "form"
-	}
-	scope := opts.Scope
-	if scope == "" {
-		scope = id
-	}
+	id, scope, focusID := resolveModalIdentity(opts.ID, opts.Scope, opts.FocusID, "form", "", ".form")
 	normalMode := opts.NormalMode
 	if normalMode == "" {
 		normalMode = ModeForm
@@ -71,10 +64,6 @@ func NewFormModal(fm *form.Model, opts FormOptions) *FormModal {
 	editMode := opts.EditMode
 	if editMode == "" {
 		editMode = ModeFormEdit
-	}
-	focusID := opts.FocusID
-	if focusID == "" {
-		focusID = id + ".form"
 	}
 	return &FormModal{
 		fm:         fm,
@@ -164,11 +153,9 @@ func (m *FormModal) View(w, h int) ui.ViewNode {
 		children = []ui.ViewNode{m.fm.View(m.focusID)}
 	}
 
-	if title == "" {
-		title = m.fm.Title
-	}
-	if title == "" {
-		title = m.id
+	fallbackTitle := m.fm.Title
+	if fallbackTitle == "" {
+		fallbackTitle = m.id
 	}
 	if m.opts.DraftBadges {
 		badges = append(badges, formDraftBadges(m.fm)...)
@@ -185,23 +172,18 @@ func (m *FormModal) View(w, h int) ui.ViewNode {
 		}
 	}
 
-	wp := m.opts.WidthPct
-	if wp <= 0 {
-		wp = 70
-	}
-
-	return Overlay(OverlaySpec{
+	frame := Frame{
 		ID:        m.id,
 		Scope:     scope,
 		Title:     title,
 		Tone:      m.opts.Tone,
-		WidthPct:  wp,
+		WidthPct:  m.opts.WidthPct,
 		HeightPct: m.opts.HeightPct,
-		Badges:    badges,
 		Ref:       ref,
+		Badges:    badges,
 		Facts:     facts,
-		Children:  children,
-	})
+	}.WithDefaults(Frame{Title: fallbackTitle, WidthPct: 70})
+	return frame.Overlay(children...)
 }
 
 // Handle dispatches a command to the form modal.

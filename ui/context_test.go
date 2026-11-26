@@ -339,3 +339,53 @@ func TestResolveFilterSpecAndJSON(t *testing.T) {
 		t.Fatalf("FilterSpec round-trip mismatch: got %+v want %+v", decoded.Filter, root.Children[0].Filter)
 	}
 }
+
+func TestViewNodeByIDAndFind(t *testing.T) {
+	var nilNode *ViewNode
+	if got := nilNode.ByID("root"); got != nil {
+		t.Fatalf("nil.ByID = %+v, want nil", got)
+	}
+	if got := nilNode.Find("root"); got != nil {
+		t.Fatalf("nil.Find = %+v, want nil", got)
+	}
+
+	root := ViewNode{
+		ID:   "page",
+		Kind: KindSplit,
+		Children: []ViewNode{
+			{
+				ID:   "nav.rail",
+				Kind: KindPanel,
+				Children: []ViewNode{
+					{ID: "nav.item.1", Kind: KindText, Title: "First"},
+				},
+			},
+			{
+				ID:   "content",
+				Kind: KindVStack,
+				Children: []ViewNode{
+					{ID: "content.body", Kind: KindMarkdown, Title: "Body"},
+				},
+			},
+		},
+	}
+
+	for _, id := range []string{"page", "nav.rail", "nav.item.1", "content", "content.body"} {
+		byID := root.ByID(id)
+		found := root.Find(id)
+		if byID == nil || byID.ID != id {
+			t.Fatalf("ByID(%q) = %+v, want node %q", id, byID, id)
+		}
+		if found != byID {
+			t.Fatalf("Find(%q) = %p, want same pointer as ByID %p", id, found, byID)
+		}
+	}
+	for _, miss := range []string{"", "missing", "nav.item.2"} {
+		if got := root.ByID(miss); got != nil {
+			t.Fatalf("ByID(%q) = %+v, want nil", miss, got)
+		}
+		if got := root.Find(miss); got != nil {
+			t.Fatalf("Find(%q) = %+v, want nil", miss, got)
+		}
+	}
+}

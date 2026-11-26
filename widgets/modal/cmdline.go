@@ -46,21 +46,10 @@ func NewCommandLineModal(cl *commandline.Model, opts CommandLineOptions) *Comman
 	if cl == nil {
 		cl = commandline.New(commandline.PrefixCommand)
 	}
-	id := opts.ID
-	if id == "" {
-		id = "commandline"
-	}
-	scope := opts.Scope
-	if scope == "" {
-		scope = "commandline"
-	}
+	id, scope, focusID := resolveModalIdentity(opts.ID, opts.Scope, opts.FocusID, "commandline", "commandline", ".input")
 	mode := opts.Mode
 	if mode == "" {
 		mode = ModeCommandLine
-	}
-	focusID := opts.FocusID
-	if focusID == "" {
-		focusID = id + ".input"
 	}
 	return &CommandLineModal{
 		cl:      cl,
@@ -96,10 +85,6 @@ func (m *CommandLineModal) View(w, h int) ui.ViewNode {
 	if m.opts.TitleSuffix != "" {
 		title += " · " + m.opts.TitleSuffix
 	}
-	wp := m.opts.WidthPct
-	if wp <= 0 {
-		wp = 78
-	}
 
 	children := []ui.ViewNode{m.cl.View(m.focusID)}
 	if hints := m.varHints(); len(hints) > 0 {
@@ -112,17 +97,17 @@ func (m *CommandLineModal) View(w, h int) ui.ViewNode {
 		})
 	}
 
-	return Overlay(OverlaySpec{
+	frame := Frame{
 		ID:        m.id,
 		Scope:     m.scope,
 		Title:     title,
 		Tone:      m.opts.Tone,
-		WidthPct:  wp,
+		WidthPct:  m.opts.WidthPct,
 		HeightPct: m.opts.HeightPct,
 		Badges:    m.opts.Badges,
 		Facts:     m.opts.Facts,
-		Children:  children,
-	})
+	}.WithDefaults(Frame{WidthPct: 78})
+	return frame.Overlay(children...)
 }
 
 // Handle dispatches a command to the command-line modal.

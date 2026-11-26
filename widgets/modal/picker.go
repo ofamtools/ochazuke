@@ -73,14 +73,7 @@ func NewPickerModal(pm *picker.Model, opts PickerOptions) *PickerModal {
 		pm.PageSize = picker.DefaultPageSize
 	}
 	pm.Filtering = opts.StartInFilter
-	id := opts.ID
-	if id == "" {
-		id = "picker"
-	}
-	scope := opts.Scope
-	if scope == "" {
-		scope = id
-	}
+	id, scope, focusID := resolveModalIdentity(opts.ID, opts.Scope, opts.FocusID, "picker", "", ".list")
 	normalMode := opts.Mode
 	if normalMode == "" {
 		normalMode = ModePicker
@@ -88,10 +81,6 @@ func NewPickerModal(pm *picker.Model, opts PickerOptions) *PickerModal {
 	filterMode := opts.FilterMode
 	if filterMode == "" {
 		filterMode = ModePickerFilter
-	}
-	focusID := opts.FocusID
-	if focusID == "" {
-		focusID = id + ".list"
 	}
 	m := &PickerModal{
 		pm:         pm,
@@ -158,20 +147,9 @@ func (m *PickerModal) SetItems(items []picker.Item) {
 
 // View renders the picker inside an Overlay.
 func (m *PickerModal) View(w, h int) ui.ViewNode {
-	title := m.opts.Title
-	if title == "" {
-		title = m.pm.Title
-	}
-	if title == "" {
-		title = m.id
-	}
-	wp := m.opts.WidthPct
-	if wp <= 0 {
-		wp = 64
-	}
-	hp := m.opts.HeightPct
-	if hp <= 0 {
-		hp = 70
+	fallbackTitle := m.pm.Title
+	if fallbackTitle == "" {
+		fallbackTitle = m.id
 	}
 	var badges []ui.Badge
 	if m.opts.Badges != nil {
@@ -181,19 +159,18 @@ func (m *PickerModal) View(w, h int) ui.ViewNode {
 	if m.opts.Facts != nil {
 		facts = m.opts.Facts(m.pm)
 	}
-	body := m.pm.View(m.focusID)
-	return Overlay(OverlaySpec{
+	frame := Frame{
 		ID:        m.id,
 		Scope:     m.scope,
-		Title:     title,
+		Title:     m.opts.Title,
 		Tone:      m.opts.Tone,
-		WidthPct:  wp,
-		HeightPct: hp,
-		Badges:    badges,
+		WidthPct:  m.opts.WidthPct,
+		HeightPct: m.opts.HeightPct,
 		Ref:       m.opts.Ref,
+		Badges:    badges,
 		Facts:     facts,
-		Children:  []ui.ViewNode{body},
-	})
+	}.WithDefaults(Frame{Title: fallbackTitle, WidthPct: 64, HeightPct: 70})
+	return BuildOverlay(frame, m.pm.View(m.focusID))
 }
 
 // Handle dispatches a command to the picker modal.
