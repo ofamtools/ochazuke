@@ -68,6 +68,7 @@ type Node struct {
 	Meta       []ui.TreeMeta
 	Unread     bool
 	Facts      map[string]any
+	SearchText string // optional preformatted FilterableText (e.g. "key:value\n...")
 	Children   []Node
 }
 
@@ -104,6 +105,9 @@ type Model struct {
 	VisualAnchor  int
 	HoistStack    []string
 	DefaultFolded bool
+	Query         string
+	MatchMode     traits.MatchMode
+	FilterErr     string
 
 	foldInitialized bool
 	edit            *EditState
@@ -263,7 +267,7 @@ func (m *Model) Flatten() []VisibleRow {
 			hasKids := len(nd.Children) > 0
 			draftUnder := m.hasAddDraft() && m.edit.ParentID == nd.ID
 			isHoistRoot := hoistID != "" && depth == 0 && nd.ID == hoistID
-			folded := hasKids && m.Folded[nd.ID] && !draftUnder && !isHoistRoot
+			folded := hasKids && m.Folded[nd.ID] && !draftUnder && !isHoistRoot && !m.IsFiltered()
 			hidden := 0
 			if folded {
 				hidden = countDescendants(nd.Children)
@@ -290,7 +294,7 @@ func (m *Model) Flatten() []VisibleRow {
 			emitDraft(parentID, depth, topIdx)
 		}
 	}
-	walk(m.activeRoots(), "", 0)
+	walk(m.filteredRoots(), "", 0)
 	return out
 }
 
@@ -555,6 +559,8 @@ func (m *Model) HandleCommand(cmd core.Command) bool {
 		m.Unhoist()
 	case CmdHoistClear:
 		m.ClearHoist()
+	case "table.filter.mode.cycle":
+		m.CycleMatchMode()
 	default:
 		return false
 	}
@@ -624,6 +630,11 @@ func (m *Model) facts(rows []VisibleRow, row VisibleRow, ok bool) map[string]any
 		"hoistDepth": len(m.HoistStack),
 		"hoistLabel": m.hoistLabel(),
 	})
+	f = traits.MergeFacts(f, traits.FilterFacts(traits.FilterState{
+		Query: m.Query,
+		Mode:  m.MatchMode,
+		Err:   m.FilterErr,
+	}, traits.FilterConfig{}))
 	f = traits.MergeFacts(f, traits.SelectFacts(m.selectState(), rowVisibleIDs(rows), curIdx))
 	if ok && !row.Draft {
 		f = traits.MergeFacts(f, traits.FoldFacts(traits.FoldState{Collapsed: m.Folded}, traits.FoldTarget{
@@ -694,7 +705,7 @@ func (m *Model) buildUINodes(ns []Node, parentID string) []ui.TreeNode {
 		}
 		draftUnder := m.hasAddDraft() && m.edit.ParentID == nd.ID
 		isHoistRoot := hoistID != "" && parentID == "" && nd.ID == hoistID
-		folded := len(nd.Children) > 0 && m.Folded[nd.ID] && !draftUnder && !isHoistRoot
+		folded := len(nd.Children) > 0 && m.Folded[nd.ID] && !draftUnder && !isHoistRoot && !m.IsFiltered()
 		var expPtr *bool
 		if len(nd.Children) > 0 || draftUnder {
 			exp := !folded
@@ -818,7 +829,7 @@ func (m *Model) View(id string) ui.ViewNode {
 			}
 		}
 	}
-	uiNodes := m.buildUINodes(m.activeRoots(), "")
+	uiNodes := m.buildUINodes(m.filteredRoots(), "")
 
 	props := map[string]any{
 		"nodes":       uiNodes,
@@ -847,9 +858,9 @@ func (m *Model) View(id string) ui.ViewNode {
 		n.Unread, n.Badges = row.Node.Unread, row.Node.Badges
 	}
 	h := fnv.New64a()
-	fmt.Fprintf(h, "%t|%t|%t|%t|%t|%q|%d|%d|%t|%d|%d|%t|%d|%v|",
+	fmt.Fprintf(h, "%t|%t|%t|%t|%t|%q|%d|%d|%t|%d|%d|%t|%d|%v|%q|%q|%q|",
 		m.Guides, m.GapTopLevel, m.ShowFoldCount, m.ShowGutter, m.Wrap, m.HoistID(), selIdx, m.Offset,
-		vOK, vFrom, vTo, m.VisualActive, m.VisualAnchor, m.MarkedIDs())
+		vOK, vFrom, vTo, m.VisualActive, m.VisualAnchor, m.MarkedIDs(), m.Query, m.MatchMode, m.FilterErr)
 	hashUINodes(h, uiNodes)
 	n.CacheKey = h.Sum64() | 1
 	return n

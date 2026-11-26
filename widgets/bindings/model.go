@@ -239,6 +239,29 @@ func (m *Model) SetMatchMode(mode table.MatchMode) { m.list.MatchMode = mode; m.
 // FilterError describes an invalid regex; table falls back to literal matching.
 func (m *Model) FilterError() string { return m.filterErr }
 
+var _ traits.Filterable = (*Model)(nil)
+
+// Filter implements traits.Filterable in place on the bindings table and
+// reports whether at least one binding remains visible.
+func (m *Model) Filter(query string, mode traits.MatchMode) bool {
+	if mode != "" {
+		m.list.MatchMode = mode
+	}
+	m.SetQuery(query)
+	return len(m.list.Rows) > 0
+}
+
+func (m *Model) FilterQuery() string { return m.query }
+
+func (m *Model) FilterMode() traits.MatchMode {
+	if m.list.MatchMode == "" {
+		return traits.MatchSubstring
+	}
+	return m.list.MatchMode
+}
+
+func (m *Model) IsFiltered() bool { return strings.TrimSpace(m.query) != "" }
+
 var queryTokens = regexp.MustCompile(`[^[:space:]:]+:"[^"]*"|[^[:space:]]+`)
 
 var filterFields = []string{"key", "scope", "mode", "verb", "hint", "status", "when"}
@@ -268,12 +291,12 @@ func (m *Model) filter() {
 
 	type compiledTerm struct {
 		field   string
-		matcher traits.Matcher
+		matcher traits.MultiMatcher
 	}
 	compiled := make([]compiledTerm, 0, len(terms))
 	m.filterErr = ""
 	for _, t := range terms {
-		mat, errMsg := traits.CompileFilter(t.value, m.list.MatchMode, traits.FilterConfig{})
+		mat, errMsg := traits.CompileMultiTerm(t.value, m.list.MatchMode, traits.FilterConfig{})
 		if errMsg != "" {
 			m.filterErr = errMsg
 		}
@@ -294,14 +317,11 @@ func (m *Model) filter() {
 				}
 				continue
 			}
-			hit := false
-			for _, f := range filterFields {
-				if ct.matcher.Match(table.Text(r.Cells[f])) {
-					hit = true
-					break
-				}
+			vals := make([]string, len(filterFields))
+			for i, f := range filterFields {
+				vals[i] = table.Text(r.Cells[f])
 			}
-			if !hit {
+			if !ct.matcher.MatchAny(vals...) {
 				ok = false
 				break
 			}

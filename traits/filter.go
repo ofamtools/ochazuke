@@ -279,3 +279,164 @@ func FilterFacts(st FilterState, cfg FilterConfig) map[string]any {
 		"filterError": st.Err,
 	}
 }
+
+// Filterable is the universal contract implemented by any UI value object,
+// container, or widget that filters its own content in place (flipping
+// visibility bits without deleting underlying data).
+type Filterable interface {
+	Filter(query string, mode MatchMode) bool
+	FilterQuery() string
+	FilterMode() MatchMode
+	FilterError() string
+	IsFiltered() bool
+}
+
+// FilterableNode is implemented by any item or tree node participating in
+// recursive filtering. FilterableText returns one concatenated searchable
+// string (for example "key:value\n..." lines for records, or the text itself
+// for plain strings).
+type FilterableNode interface {
+	FilterableText() string
+}
+
+// FormatFilterableText formats alternating key, value pairs into newline-
+// separated "key:value" lines suitable for FilterableNode.FilterableText.
+// Blank values are skipped; if key is empty, value is emitted as a bare line.
+func FormatFilterableText(pairs ...string) string {
+	var b strings.Builder
+	for i := 0; i < len(pairs); i += 2 {
+		k := strings.TrimSpace(pairs[i])
+		v := ""
+		if i+1 < len(pairs) {
+			v = strings.TrimSpace(pairs[i+1])
+		}
+		if v == "" {
+			continue
+		}
+		if b.Len() > 0 {
+			b.WriteByte('\n')
+		}
+		if k != "" {
+			b.WriteString(k)
+			b.WriteByte(':')
+		}
+		b.WriteString(v)
+	}
+	return b.String()
+}
+
+// MultiMatcher evaluates space-separated AND clauses (with "quoted phrases"
+// preserved as single clauses) for substring and fuzzy modes, and full-query
+// matching for regex mode. Its zero value matches all text.
+type MultiMatcher struct {
+	terms []Matcher
+}
+
+// CompileMultiTerm compiles query into a MultiMatcher under mode and cfg.
+// Empty or whitespace-only queries match all text with no error.
+func CompileMultiTerm(query string, mode MatchMode, cfg FilterConfig) (MultiMatcher, string) {
+	resolved := resolveMatchMode(mode, cfg)
+	if strings.TrimSpace(query) == "" {
+		return MultiMatcher{}, ""
+	}
+	if resolved == MatchRegex {
+		m, errMsg := CompileFilter(query, resolved, cfg)
+		return MultiMatcher{terms: []Matcher{m}}, errMsg
+	}
+	clauses := splitFilterClauses(query)
+	if len(clauses) == 0 {
+		return MultiMatcher{}, ""
+	}
+	terms := make([]Matcher, 0, len(clauses))
+	var firstErr string
+	for _, cl := range clauses {
+		m, errMsg := CompileFilter(cl, resolved, cfg)
+		if firstErr == "" && errMsg != "" {
+			firstErr = errMsg
+		}
+		terms = append(terms, m)
+	}
+	return MultiMatcher{terms: terms}, firstErr
+}
+
+// Match reports whether text satisfies every compiled clause in mm.
+func (mm MultiMatcher) Match(text string) bool {
+	for _, t := range mm.terms {
+		if !t.Match(text) {
+			return false
+		}
+	}
+	return true
+}
+
+// MatchAny reports whether every clause in mm matches at least one string in texts.
+func (mm MultiMatcher) MatchAny(texts ...string) bool {
+	for _, t := range mm.terms {
+		if !t.MatchAny(texts...) {
+			return false
+		}
+	}
+	return true
+}
+
+func splitFilterClauses(query string) []string {
+	var out []string
+	var cur strings.Builder
+	inQuote := false
+	flush := func() {
+		if cur.Len() > 0 {
+			out = append(out, cur.String())
+			cur.Reset()
+		}
+	}
+	for _, r := range query {
+		switch {
+		case r == '"':
+			inQuote = !inQuote
+		case !inQuote && unicode.IsSpace(r):
+			flush()
+		default:
+			cur.WriteRune(r)
+		}
+	}
+	flush()
+	return out
+}
+
+// TextValue is the minimal Filterable + FilterableNode value object for a
+// plain string: calling Filter flips its Visible bit without mutating Text.
+type TextValue struct {
+	Text    string
+	Visible bool
+	query   string
+	mode    MatchMode
+	err     string
+}
+
+var (
+	_ Filterable     = (*TextValue)(nil)
+	_ FilterableNode = (*TextValue)(nil)
+)
+
+// NewTextValue returns a visible TextValue holding text.
+func NewTextValue(text string) *TextValue {
+	return &TextValue{Text: text, Visible: true}
+}
+
+func (v *TextValue) FilterableText() string { return v.Text }
+
+func (v *TextValue) Filter(query string, mode MatchMode) bool {
+	v.query = query
+	if mode != "" {
+		v.mode = mode
+	}
+	mm, errMsg := CompileMultiTerm(query, v.mode, FilterConfig{})
+	v.err = errMsg
+	v.Visible = mm.Match(v.Text)
+	return v.Visible
+}
+
+func (v *TextValue) FilterQuery() string   { return v.query }
+func (v *TextValue) FilterMode() MatchMode { return resolveMatchMode(v.mode, FilterConfig{}) }
+func (v *TextValue) FilterError() string   { return v.err }
+func (v *TextValue) IsFiltered() bool      { return strings.TrimSpace(v.query) != "" }

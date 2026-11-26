@@ -763,6 +763,31 @@ func (m *Model) CycleMatchMode() {
 	m.MatchMode = traits.CycleMatchMode(m.MatchMode, traits.FilterConfig{})
 }
 
+var _ traits.Filterable = (*Model)(nil)
+
+// Filter implements traits.Filterable in place on the table without deleting
+// underlying rows and reports whether at least one row remains visible.
+func (m *Model) Filter(query string, mode traits.MatchMode) bool {
+	m.Query = query
+	if mode != "" {
+		m.MatchMode = mode
+	}
+	m.SelectedIdx, m.Offset = 0, 0
+	return len(m.Filtered()) > 0
+}
+
+func (m *Model) FilterQuery() string { return m.Query }
+
+func (m *Model) FilterMode() traits.MatchMode {
+	if m.MatchMode == "" {
+		return traits.MatchSubstring
+	}
+	return m.MatchMode
+}
+
+func (m *Model) FilterError() string { return m.FilterErr }
+func (m *Model) IsFiltered() bool    { return strings.TrimSpace(m.Query) != "" }
+
 // HandleCommand applies a motion or table command; it reports whether the
 // command was handled.
 func (m *Model) HandleCommand(cmd core.Command) bool {
