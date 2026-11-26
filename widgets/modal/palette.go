@@ -54,14 +54,7 @@ func NewPaletteModal(pal *palette.Model, opts PaletteOptions) *PaletteModal {
 	if pal.Picker != nil {
 		pal.Picker.Filtering = opts.StartInFilter
 	}
-	id := opts.ID
-	if id == "" {
-		id = "palette"
-	}
-	scope := opts.Scope
-	if scope == "" {
-		scope = "palette"
-	}
+	id, scope, _ := resolveModalIdentity(opts.ID, opts.Scope, "", "palette", "palette", "")
 	pickerMode := opts.PickerMode
 	if pickerMode == "" {
 		pickerMode = ModePicker
@@ -126,27 +119,15 @@ func (m *PaletteModal) View(w, h int) ui.ViewNode {
 	body := m.pal.View(m.id)
 
 	wp := m.opts.WidthPct
-	if wp <= 0 {
-		wp = 70
-	}
 	if m.pal.ActiveForm != nil {
-		ewp := m.opts.ExpandedWidthPct
-		if ewp <= 0 {
-			ewp = 90
+		wp = m.opts.ExpandedWidthPct
+		if wp <= 0 {
+			wp = 90
 		}
-		wp = ewp
 	}
-	hp := m.opts.HeightPct
-	if hp <= 0 {
-		hp = 75
-	}
-
-	title := m.opts.Title
-	if title == "" {
-		title = m.pal.Title
-	}
-	if title == "" {
-		title = "Palette"
+	fallbackTitle := m.pal.Title
+	if fallbackTitle == "" {
+		fallbackTitle = "Palette"
 	}
 
 	var badges []ui.Badge
@@ -158,17 +139,17 @@ func (m *PaletteModal) View(w, h int) ui.ViewNode {
 		facts = m.opts.Facts(m.pal)
 	}
 
-	return Overlay(OverlaySpec{
+	frame := Frame{
 		ID:        m.id,
 		Scope:     m.scope,
-		Title:     title,
+		Title:     m.opts.Title,
 		Tone:      m.opts.Tone,
 		WidthPct:  wp,
-		HeightPct: hp,
+		HeightPct: m.opts.HeightPct,
 		Badges:    badges,
 		Facts:     facts,
-		Children:  []ui.ViewNode{body},
-	})
+	}.WithDefaults(Frame{Title: fallbackTitle, WidthPct: 70, HeightPct: 75})
+	return BuildOverlay(frame, body)
 }
 
 // Handle dispatches a command to the palette modal.

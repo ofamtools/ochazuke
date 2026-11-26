@@ -47,14 +47,7 @@ type ConfirmModal struct {
 
 // NewConfirmModal creates a ConfirmModal with sensible defaults.
 func NewConfirmModal(opts ConfirmOptions) *ConfirmModal {
-	id := opts.ID
-	if id == "" {
-		id = "confirm"
-	}
-	scope := opts.Scope
-	if scope == "" {
-		scope = "confirm"
-	}
+	id, scope, focusID := resolveModalIdentity(opts.ID, opts.Scope, "", "confirm", "confirm", ".body")
 	mode := opts.Mode
 	if mode == "" {
 		mode = ModeConfirm
@@ -64,7 +57,7 @@ func NewConfirmModal(opts ConfirmOptions) *ConfirmModal {
 		id:      id,
 		scope:   scope,
 		mode:    mode,
-		focusID: id + ".body",
+		focusID: focusID,
 	}
 }
 
@@ -82,10 +75,6 @@ func (m *ConfirmModal) FocusID() string { return m.focusID }
 
 // View renders the confirmation message and action hint inside an Overlay.
 func (m *ConfirmModal) View(w, h int) ui.ViewNode {
-	title := m.opts.Title
-	if title == "" {
-		title = "Confirm"
-	}
 	confirmLabel := m.opts.ConfirmLabel
 	if confirmLabel == "" {
 		confirmLabel = "Confirm"
@@ -93,14 +82,6 @@ func (m *ConfirmModal) View(w, h int) ui.ViewNode {
 	cancelLabel := m.opts.CancelLabel
 	if cancelLabel == "" {
 		cancelLabel = "Cancel"
-	}
-	tone := m.opts.Tone
-	if tone == "" {
-		tone = "warning"
-	}
-	wp := m.opts.WidthPct
-	if wp <= 0 {
-		wp = 70
 	}
 
 	body := ui.ViewNode{
@@ -124,17 +105,17 @@ func (m *ConfirmModal) View(w, h int) ui.ViewNode {
 		},
 	}
 
-	return Overlay(OverlaySpec{
+	frame := Frame{
 		ID:        m.id,
 		Scope:     m.scope,
-		Title:     title,
-		Tone:      tone,
-		WidthPct:  wp,
+		Title:     m.opts.Title,
+		Tone:      m.opts.Tone,
+		WidthPct:  m.opts.WidthPct,
 		HeightPct: m.opts.HeightPct,
 		Badges:    m.opts.Badges,
 		Facts:     m.opts.Facts,
-		Children:  []ui.ViewNode{body},
-	})
+	}.WithDefaults(Frame{Title: "Confirm", Tone: "warning", WidthPct: 70})
+	return BuildOverlay(frame, body)
 }
 
 // Handle handles CmdConfirmAccept, CmdConfirmCancel, and CmdCancel.
