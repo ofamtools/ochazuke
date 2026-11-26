@@ -62,12 +62,24 @@ type Renderer struct {
 	// Stats holds the cache counters of the most recent Render call.
 	Stats RenderStats
 
+	// ScrollOff is the focus-follow padding of KindScroll containers, in rows,
+	// kept between the focused unit and the viewport edge it approaches (0 =
+	// flush). A node's "scrollOff" prop overrides it.
+	ScrollOff int
+	// StatelessScrollFollow restores the original stateless focus follow for
+	// every KindScroll container (the "followStateless" node prop overrides
+	// it per node). See scroll_follow.go for the offset precedence.
+	StatelessScrollFollow bool
+
 	mu    sync.Mutex
 	max   int
 	lru   *list.List // of *cacheEntry, front = most recent
 	items map[cacheKey]*list.Element
 	st    *styler
 	stKey themeKey
+
+	frame       uint64
+	scrollMemos map[string]scrollMemo // last drawn offset per scroll container ID
 }
 
 // NewRenderer returns a Renderer caching at most maxEntries subtree buffers
@@ -86,12 +98,13 @@ func (r *Renderer) CacheLen() int {
 	return r.lru.Len()
 }
 
-// Reset drops every cached buffer.
+// Reset drops every cached buffer and every remembered scroll offset.
 func (r *Renderer) Reset() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.lru.Init()
 	r.items = map[cacheKey]*list.Element{}
+	r.scrollMemos = nil
 }
 
 func (r *Renderer) get(k cacheKey) *buffer.Buffer {
@@ -132,11 +145,13 @@ func Measure(root ViewNode, theme Theme, focusID string, w, h int) layout.Solved
 // Render lays root out in w x h cells, draws it, and returns the frame plus the
 // solved geometry. The geometry is keyed by real node IDs only; for scroll
 // viewports it includes the visible part of their descendants. Rendering is
-// pure with respect to root and focusID.
+// pure with respect to root and focusID, apart from the remembered offsets of
+// scroll containers (see Renderer.ScrollOff and scroll_follow.go).
 func (r *Renderer) Render(root ViewNode, theme Theme, focusID string, w, h int) (Frame, layout.Solved) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.Stats = RenderStats{}
+	r.frame++
 	w, h = max(w, 0), max(h, 0)
 
 	key := keyOf(theme)

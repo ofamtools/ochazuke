@@ -20,12 +20,21 @@ import (
 
 // Supported ViewNode.Kind values.
 const (
-	KindVStack   = "vstack"
-	KindHStack   = "hstack"
-	KindSplit    = "split"
-	KindGrid     = "grid"
-	KindTabs     = "tabs"
-	KindPanel    = "panel"
+	KindVStack = "vstack"
+	KindHStack = "hstack"
+	KindSplit  = "split"
+	KindGrid   = "grid"
+	KindTabs   = "tabs"
+	KindPanel  = "panel"
+	// KindScroll is a vertical viewport over its children. Props: "offset"
+	// (int, an explicit drawn offset), "followTail" (bool, pin to the end),
+	// "scrollOff" (int, focus-follow padding in rows; default
+	// Renderer.ScrollOff), "followStateless" (bool, the original stateless
+	// focus follow; default Renderer.StatelessScrollFollow) and "scrollKey"
+	// (string, content identity: a new key drops the remembered offset). A
+	// container with a real ID remembers its drawn offset across frames and
+	// moves only when the focused unit leaves the padded window; see
+	// scroll_follow.go for the precedence.
 	KindScroll   = "scroll"
 	KindOverlay  = "overlay"
 	KindCard     = "card"

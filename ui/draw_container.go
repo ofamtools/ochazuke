@@ -432,38 +432,11 @@ func (c *ctx) drawScroll(rn *rnode, lr layout.Rect) {
 		c.drawFrame(lr, frameOpts{focus: rn.onFocus, border: c.borderStyle(rn), title: n.Title, titleStyle: c.titleStyle(rn), right: c.badgeRow(n.Badges)})
 	}
 	ir := c.solved.InnerRects[rn.id]
-	vw, vh := ir.W, ir.H
-	if vw <= 0 || vh <= 0 {
+	p := c.planScroll(rn, ir)
+	if p == nil {
 		return
 	}
-	total := flowHeight(n.Children, vw, n.Gap, c.b.dens)
-	bar := total > vh
-	if bar {
-		vw = max(1, vw-1)
-		total = flowHeight(n.Children, vw, n.Gap, c.b.dens)
-	}
-	total = max(total, 1)
-
-	cid := rn.path + "#content"
-	box := layout.Box{ID: cid, Kind: layout.BoxStack, Gap: max(0, n.Gap)}
-	crn := &rnode{n: &ViewNode{Kind: KindVStack}, id: cid, path: rn.path, onFocus: rn.onFocus}
-	c.b.flow(&box, crn, n.Children, layout.Vertical, vw, total, true)
-	sub := layout.Solve(box, vw, total)
-
-	maxOff := max(0, total-vh)
-	offset := 0
-	if o, ok := n.propInt("offset"); ok {
-		offset = o
-	} else if fr, ok := sub.Rects[c.b.focusID]; ok && c.b.focusID != "" {
-		if fr.Y+fr.H > vh {
-			offset = fr.Y + fr.H - vh
-		}
-		offset = min(offset, fr.Y)
-	}
-	if n.propBool("followTail") {
-		offset = maxOff
-	}
-	offset = min(max(offset, 0), maxOff)
+	vw, vh, total, maxOff, bar, crn, sub, offset := p.vw, p.vh, p.total, p.maxOff, p.bar, p.crn, p.sub, p.offset
 
 	win := &ctx{r: c.r, st: c.st, b: c.b, solved: sub, buf: buffer.New(vw, vh), oy: offset}
 	win.draw(crn)

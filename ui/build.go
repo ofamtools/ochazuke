@@ -29,6 +29,7 @@ type builder struct {
 	focusSet   map[string]bool // IDs of the focus target and its ancestors
 	userFocus  map[string]bool // scroll IDs the user marked focusable
 	hasScrolls bool
+	plans      map[string]*scrollPlan // per-frame scroll layouts and offsets, by tree path
 }
 
 func newBuilder(root *ViewNode, focusID string) *builder {
