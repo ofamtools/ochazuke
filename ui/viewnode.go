@@ -72,6 +72,15 @@ type ActionHint struct {
 	Args    map[string]any `json:"args,omitempty"`
 }
 
+// FilterSpec declares that a ViewNode (or its descendants via ContextChain
+// inheritance) exposes a filterable surface in a traits.FilterRegistry,
+// eliminating hardcoded component-ID switches in apps.
+type FilterSpec struct {
+	ID     string   `json:"id,omitempty"`     // registry key; defaults to ViewNode.ID when empty
+	Prefix string   `json:"prefix,omitempty"` // display prefix in the filter bar (e.g. "nav ", "pages ")
+	Fields []string `json:"fields,omitempty"` // optional filterable field names
+}
+
 // ViewNode is plain JSON-serializable data describing one UI node. Domain
 // records never appear in the tree; a node only carries an optional core.Ref.
 type ViewNode struct {
@@ -80,6 +89,7 @@ type ViewNode struct {
 	Kind      string         `json:"kind"`
 	Scope     string         `json:"scope,omitempty"`
 	Traits    []string       `json:"traits,omitempty"`
+	Filter    *FilterSpec    `json:"filter,omitempty"`
 	Ref       *core.Ref      `json:"ref,omitempty"`
 	Facts     map[string]any `json:"facts,omitempty"`
 	Focusable bool           `json:"focusable,omitempty"`

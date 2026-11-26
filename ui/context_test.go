@@ -258,3 +258,66 @@ func TestContextChainTraitsKeymapIntegration(t *testing.T) {
 		t.Fatalf("empty traits should be omitted from JSON: %s", rawEmpty)
 	}
 }
+
+func TestResolveFilterSpecAndJSON(t *testing.T) {
+	root := ViewNode{
+		ID:   "root",
+		Kind: KindVStack,
+		Children: []ViewNode{
+			{
+				ID:     "project.nav",
+				Kind:   KindPanel,
+				Filter: &FilterSpec{ID: "project.nav.filter:p1", Prefix: "nav "},
+				Children: []ViewNode{
+					{ID: "nav.item.1", Kind: KindText, Focusable: true},
+				},
+			},
+			{
+				ID:        "work.table",
+				Kind:      KindTable,
+				Focusable: true,
+				Filter:    &FilterSpec{Fields: []string{"title", "status"}},
+			},
+			{
+				ID:   "plain.panel",
+				Kind: KindPanel,
+				Children: []ViewNode{
+					{ID: "plain.child", Kind: KindText, Focusable: true},
+				},
+			},
+		},
+	}
+
+	// Ancestor inheritance resolves nearest FilterSpec with explicit ID & Prefix.
+	spec, id := ResolveFilterSpec(root, "nav.item.1")
+	if spec == nil || id != "project.nav.filter:p1" || spec.Prefix != "nav " {
+		t.Fatalf("ResolveFilterSpec(nav.item.1) = (%+v, %q)", spec, id)
+	}
+
+	// Empty spec.ID defaults cleanly to the declaring node's ID.
+	spec, id = ResolveFilterSpec(root, "work.table")
+	if spec == nil || id != "work.table" || len(spec.Fields) != 2 {
+		t.Fatalf("ResolveFilterSpec(work.table) = (%+v, %q)", spec, id)
+	}
+
+	// Unfilterable subtree returns nil, "".
+	if spec, id := ResolveFilterSpec(root, "plain.child"); spec != nil || id != "" {
+		t.Fatalf("ResolveFilterSpec(plain.child) = (%+v, %q), want nil", spec, id)
+	}
+
+	// JSON round-trip preserves FilterSpec and omits when nil.
+	raw, err := json.Marshal(root.Children[0])
+	if err != nil {
+		t.Fatalf("Marshal FilterSpec node: %v", err)
+	}
+	if !strings.Contains(string(raw), `"filter":{"id":"project.nav.filter:p1","prefix":"nav "}`) {
+		t.Fatalf("unexpected JSON: %s", raw)
+	}
+	var decoded ViewNode
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if !reflect.DeepEqual(decoded.Filter, root.Children[0].Filter) {
+		t.Fatalf("FilterSpec round-trip mismatch: got %+v want %+v", decoded.Filter, root.Children[0].Filter)
+	}
+}
