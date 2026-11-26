@@ -338,10 +338,14 @@ func TestFormModalReactiveAndRepeatable(t *testing.T) {
 		{Name: "mode", Type: core.ParamString, Enum: []string{"basic", "advanced"}, Default: "basic"},
 		{Name: "secret", Type: core.ParamString, Required: true, VisibleWhen: `mode == "advanced"`},
 		{Name: "dirs", Type: core.ParamPath, Repeatable: true, AddLabel: "dir"},
+		{Name: "refs", Type: core.ParamRef, RefKinds: []string{"task"}, SourceQuery: "tasks", Repeatable: true, AddLabel: "ref"},
+		{Name: "tags", Type: core.ParamString, Repeatable: true, AddLabel: "tag"},
 	}
 	fm := form.New("Config", specs, map[string]any{"dirs": []string{"/a", "/b"}})
 	var changed []string
+	var pickPathReq form.PathRequest
 	var pickCurrent any
+	var pickRefReq form.RefRequest
 
 	m := modal.NewFormModal(fm, modal.FormOptions{
 		ID: "cfg",
@@ -349,9 +353,14 @@ func TestFormModalReactiveAndRepeatable(t *testing.T) {
 			changed = append(changed, field)
 			return modal.Result{}
 		},
-		OnPickPath: func(_ form.PathRequest, current any) modal.Result {
+		OnPickPath: func(req form.PathRequest, current any) modal.Result {
+			pickPathReq = req
 			pickCurrent = current
-			return modal.Result{Status: "pick", SetStatus: true}
+			return modal.Result{Status: "pick-path", SetStatus: true}
+		},
+		OnPickRef: func(req form.RefRequest) modal.Result {
+			pickRefReq = req
+			return modal.Result{Status: "pick-ref", SetStatus: true}
 		},
 	})
 
@@ -366,8 +375,8 @@ func TestFormModalReactiveAndRepeatable(t *testing.T) {
 	}
 	m.Handle(core.Command{ID: "motion.down"}) // item 1 ("/b")
 	m.Handle(core.Command{ID: modal.CmdFormActivate})
-	if pickCurrent != "/b" {
-		t.Fatalf("OnPickPath current = %#v, want \"/b\"", pickCurrent)
+	if pickCurrent != "/b" || !pickPathReq.Repeatable {
+		t.Fatalf("OnPickPath item = req=%+v current=%#v, want Repeatable=true current=\"/b\"", pickPathReq, pickCurrent)
 	}
 	if !m.SetValue("dirs", "/updated") {
 		t.Fatal("SetValue(dirs) failed")
@@ -376,20 +385,80 @@ func TestFormModalReactiveAndRepeatable(t *testing.T) {
 		t.Fatalf("SetValue did not update focused item: %#v", got)
 	}
 
-	// Move to [+ Add dir] and press CmdFormActivate -> adds item, enters ModeFormEdit, fires OnChange("dirs").
+	// Move to [+ Add dir] and press CmdFormActivate -> opens path picker directly with Repeatable: true.
 	m.Handle(core.Command{ID: "motion.down"})
 	if !fm.OnAddRow() {
 		t.Fatalf("expected OnAddRow, idx=%d", fm.ActiveIdx)
 	}
+	pickPathReq = form.PathRequest{}
+	pickCurrent = "sentinel"
 	res := m.Handle(core.Command{ID: modal.CmdFormActivate})
-	if m.Mode() != modal.ModeFormEdit || res.Mode != modal.ModeFormEdit || changed[len(changed)-1] != "dirs" {
-		t.Fatalf("activate on add row failed: mode=%q res=%+v changed=%v", m.Mode(), res, changed)
+	if !res.Handled || res.Status != "pick-path" || pickPathReq.Field != "dirs" || !pickPathReq.Repeatable || pickCurrent != "" {
+		t.Fatalf("activate on repeatable path add row: res=%+v req=%+v current=%#v", res, pickPathReq, pickCurrent)
 	}
 
-	// Remove the newly added item -> exits edit mode and fires OnChange("dirs").
+	// Move to refs [+ Add ref] and press CmdFormActivate -> opens ref picker directly with Repeatable: true.
+	m.Handle(core.Command{ID: "motion.down"})
+	if !fm.OnAddRow() || fm.ActiveFieldName() != "refs" {
+		t.Fatalf("expected refs OnAddRow, field=%q onAdd=%v", fm.ActiveFieldName(), fm.OnAddRow())
+	}
+	res = m.Handle(core.Command{ID: modal.CmdFormActivate})
+	if !res.Handled || res.Status != "pick-ref" || pickRefReq.Field != "refs" || !pickRefReq.Repeatable || pickRefReq.SourceQuery != "tasks" {
+		t.Fatalf("activate on repeatable ref add row: res=%+v req=%+v", res, pickRefReq)
+	}
+
+	// Move to tags [+ Add tag] (ParamString) and press CmdFormActivate -> adds item, enters ModeFormEdit, fires OnChange("tags").
+	m.Handle(core.Command{ID: "motion.down"})
+	if !fm.OnAddRow() || fm.ActiveFieldName() != "tags" {
+		t.Fatalf("expected tags OnAddRow, field=%q onAdd=%v", fm.ActiveFieldName(), fm.OnAddRow())
+	}
+	res = m.Handle(core.Command{ID: modal.CmdFormActivate})
+	if m.Mode() != modal.ModeFormEdit || res.Mode != modal.ModeFormEdit || changed[len(changed)-1] != "tags" {
+		t.Fatalf("activate on string add row failed: mode=%q res=%+v changed=%v", m.Mode(), res, changed)
+	}
+
+	// Remove the newly added item -> exits edit mode and fires OnChange("tags").
 	res = m.Handle(core.Command{ID: form.CmdItemRemove})
-	if m.Mode() != modal.ModeForm || res.Mode != modal.ModeForm || changed[len(changed)-1] != "dirs" {
+	if m.Mode() != modal.ModeForm || res.Mode != modal.ModeForm || changed[len(changed)-1] != "tags" {
 		t.Fatalf("CmdItemRemove failed: mode=%q res=%+v changed=%v", m.Mode(), res, changed)
+	}
+}
+
+func TestPickerModalMultiSelectConfirmWithEmptyFilter(t *testing.T) {
+	pm := picker.New("Refs", []picker.Item{
+		{ID: "a", Title: "Alpha"},
+		{ID: "b", Title: "Beta"},
+	})
+	pm.MultiSelect = true
+	var confirmedID string
+	var markedCount int
+
+	m := modal.NewPickerModal(pm, modal.PickerOptions{
+		ID: "refs",
+		OnConfirm: func(it picker.Item) modal.Result {
+			confirmedID = it.ID
+			markedCount = len(pm.MarkedItems())
+			return modal.Result{Close: true, CloseReason: modal.CloseSubmit}
+		},
+	})
+
+	// Mark "a", filter to 0 matches, and confirm -> OnConfirm fires with first marked item.
+	m.Handle(core.Command{ID: picker.CmdMarkToggle})
+	m.Handle(core.Command{ID: modal.CmdPickerInsert, Args: map[string]any{"text": "zzz"}})
+	if len(pm.Filtered()) != 0 {
+		t.Fatalf("expected 0 filtered items, got %d", len(pm.Filtered()))
+	}
+	res := m.Handle(core.Command{ID: picker.CmdConfirm})
+	if !res.Close || res.CloseReason != modal.CloseSubmit || confirmedID != "a" || markedCount != 1 {
+		t.Fatalf("confirm with marked items on empty filter: res=%+v id=%q marked=%d", res, confirmedID, markedCount)
+	}
+
+	// Unmark all and confirm with 0 matches -> does not close or fire OnConfirm.
+	confirmedID = ""
+	pm.Marked = nil
+	res = m.Handle(core.Command{ID: picker.CmdConfirm})
+	if res.Close || confirmedID != "" {
+		t.Fatalf("confirm with no marks on empty filter should be no-op: res=%+v id=%q", res, confirmedID)
 	}
 }
 

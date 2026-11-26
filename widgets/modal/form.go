@@ -378,7 +378,12 @@ func activateFormCommand(fm *form.Model) string {
 		return form.CmdSubmit
 	}
 	if fm.OnAddRow() {
-		return form.CmdItemAdd
+		switch fm.ActiveKind() {
+		case form.KindPath, form.KindRef:
+			return form.CmdPick
+		default:
+			return form.CmdItemAdd
+		}
 	}
 	switch fm.ActiveKind() {
 	case form.KindBool, form.KindEnum:

@@ -203,3 +203,58 @@ func TestRepeatableRenderAndJSONRoundTrip(t *testing.T) {
 		}
 	}
 }
+
+func TestRepeatablePickOnAddAndItemRows(t *testing.T) {
+	specs := []core.ParamSpec{
+		{Name: "paths", Type: core.ParamPath, Repeatable: true, AddLabel: "path"},
+		{Name: "refs", Type: core.ParamRef, RefKinds: []string{"task", "doc"}, SourceQuery: "items", Repeatable: true},
+		{Name: "singleRef", Type: core.ParamRef, RefKinds: []string{"task"}},
+	}
+	m := New("Pick", specs, map[string]any{
+		"refs": []string{"task:1"},
+	})
+	m.SubmitRow = true
+
+	// Row 0: paths [+ Add path]
+	if !m.OnAddRow() || m.ActiveKind() != KindPath {
+		t.Fatalf("expected KindPath add row: onAdd=%v kind=%q", m.OnAddRow(), m.ActiveKind())
+	}
+	res, ok := m.HandleCommand(core.Command{ID: CmdPick})
+	if !ok || res.PickPath == nil || res.PickPath.Field != "paths" || !res.PickPath.Repeatable {
+		t.Fatalf("CmdPick on repeatable path add row = %+v (ok=%v)", res, ok)
+	}
+
+	// Row 1: refs item 0 ("task:1")
+	m.Down()
+	if m.OnAddRow() || m.ActiveItemIndex() != 0 || m.ActiveKind() != KindRef {
+		t.Fatalf("expected refs item 0: onAdd=%v item=%d kind=%q", m.OnAddRow(), m.ActiveItemIndex(), m.ActiveKind())
+	}
+	res, ok = m.HandleCommand(core.Command{ID: CmdPick})
+	if !ok || res.PickRef == nil || res.PickRef.Field != "refs" || !res.PickRef.Repeatable || res.PickRef.SourceQuery != "items" || len(res.PickRef.RefKinds) != 2 {
+		t.Fatalf("CmdPick on repeatable ref item row = %+v (ok=%v)", res, ok)
+	}
+
+	// Row 2: refs [+ Add ref]
+	m.Down()
+	if !m.OnAddRow() || m.ActiveKind() != KindRef {
+		t.Fatalf("expected KindRef add row: onAdd=%v kind=%q", m.OnAddRow(), m.ActiveKind())
+	}
+	res, ok = m.HandleCommand(core.Command{ID: CmdPick})
+	if !ok || res.PickRef == nil || res.PickRef.Field != "refs" || !res.PickRef.Repeatable || res.PickRef.SourceQuery != "items" {
+		t.Fatalf("CmdPick on repeatable ref add row = %+v (ok=%v)", res, ok)
+	}
+
+	// Row 3: singleRef (non-repeatable)
+	m.Down()
+	res, ok = m.HandleCommand(core.Command{ID: CmdPick})
+	if !ok || res.PickRef == nil || res.PickRef.Field != "singleRef" || res.PickRef.Repeatable {
+		t.Fatalf("CmdPick on non-repeatable ref = %+v (ok=%v)", res, ok)
+	}
+
+	// Row 4: SubmitRow emits neither PickPath nor PickRef.
+	m.Down()
+	res, ok = m.HandleCommand(core.Command{ID: CmdPick})
+	if !ok || res.PickPath != nil || res.PickRef != nil {
+		t.Fatalf("CmdPick on submit row should not emit pick request: %+v", res)
+	}
+}

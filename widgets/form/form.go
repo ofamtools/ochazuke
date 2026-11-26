@@ -95,13 +95,17 @@ type FormResult struct {
 }
 
 // PathRequest asks the host to open a path picker for Field.
-type PathRequest struct{ Field string }
+type PathRequest struct {
+	Field      string
+	Repeatable bool
+}
 
 // RefRequest asks the host to open a ref picker for Field.
 type RefRequest struct {
 	Field       string
 	RefKinds    []string
 	SourceQuery string
+	Repeatable  bool
 }
 
 // Model is the form state.
@@ -765,12 +769,12 @@ func (m *Model) HandleCommand(cmd core.Command) (FormResult, bool) {
 	case CmdSet:
 		m.SetValue(cmd.Arg("field"), cmd.Args["value"])
 	case CmdPick:
-		if s, _, ok := m.activeEditableRow(); ok {
+		if s, ok := m.ActiveField(); ok {
 			switch KindFor(s) {
 			case KindPath:
-				return FormResult{PickPath: &PathRequest{Field: s.Name}}, true
+				return FormResult{PickPath: &PathRequest{Field: s.Name, Repeatable: s.Repeatable}}, true
 			case KindRef:
-				return FormResult{PickRef: &RefRequest{Field: s.Name, RefKinds: s.RefKinds, SourceQuery: s.SourceQuery}}, true
+				return FormResult{PickRef: &RefRequest{Field: s.Name, RefKinds: s.RefKinds, SourceQuery: s.SourceQuery, Repeatable: s.Repeatable}}, true
 			}
 		}
 	case CmdItemAdd:
