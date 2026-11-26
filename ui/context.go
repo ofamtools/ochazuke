@@ -32,10 +32,10 @@ func (n *ViewNode) ContextFrames() []core.ContextFrame {
 	if n.Scope != "" || n.Ref != nil {
 		frames = append(frames, n.contextFrame(n.ownScope()))
 	}
-	if len(n.Traits) == 0 {
+	if len(n.Traits) == 0 && n.Filter == nil {
 		return frames
 	}
-	seen := make(map[string]bool, len(n.Traits))
+	seen := make(map[string]bool, len(n.Traits)+1)
 	for _, tr := range n.Traits {
 		scope := normalizeTraitScope(tr)
 		if scope == "" || seen[scope] {
@@ -43,6 +43,9 @@ func (n *ViewNode) ContextFrames() []core.ContextFrame {
 		}
 		seen[scope] = true
 		frames = append(frames, n.contextFrame(scope))
+	}
+	if n.Filter != nil && !seen["trait.filter"] {
+		frames = append(frames, n.contextFrame("trait.filter"))
 	}
 	return frames
 }

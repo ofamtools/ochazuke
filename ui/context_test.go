@@ -300,9 +300,27 @@ func TestResolveFilterSpecAndJSON(t *testing.T) {
 		t.Fatalf("ResolveFilterSpec(work.table) = (%+v, %q)", spec, id)
 	}
 
-	// Unfilterable subtree returns nil, "".
+	// Unfilterable subtree returns nil, "" and MUST NOT include trait.filter in ContextChain.
 	if spec, id := ResolveFilterSpec(root, "plain.child"); spec != nil || id != "" {
 		t.Fatalf("ResolveFilterSpec(plain.child) = (%+v, %q), want nil", spec, id)
+	}
+	hasFilterTrait := func(focusID string) int {
+		n := 0
+		for _, f := range ContextChain(root, focusID, nil) {
+			if f.Scope == "trait.filter" {
+				n++
+			}
+		}
+		return n
+	}
+	if got := hasFilterTrait("nav.item.1"); got != 1 {
+		t.Fatalf("ContextChain(nav.item.1) trait.filter count = %d, want 1", got)
+	}
+	if got := hasFilterTrait("work.table"); got != 1 {
+		t.Fatalf("ContextChain(work.table) trait.filter count = %d, want 1", got)
+	}
+	if got := hasFilterTrait("plain.child"); got != 0 {
+		t.Fatalf("ContextChain(plain.child) trait.filter count = %d, want 0 (non-filterable nodes must not expose trait.filter)", got)
 	}
 
 	// JSON round-trip preserves FilterSpec and omits when nil.
