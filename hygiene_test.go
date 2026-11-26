@@ -2,6 +2,9 @@ package ochazuke_deps_test
 
 import (
 	"bytes"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -15,9 +18,25 @@ var nonDomainFilenamePattern = regexp.MustCompile(`(?i)(^|_)(wave|sprint|phase|m
 const maxProductionFileLines = 1000
 
 // legacyLineCeilings freezes existing production files above maxProductionFileLines
-// at their exact current line counts so they cannot grow and no new god-files enter.
-var legacyLineCeilings = map[string]int{
-	"ui/draw_content.go": 1192,
+// so they cannot grow and no new god-files enter. (ui/draw_content.go is now <1000.)
+var legacyLineCeilings = map[string]int{}
+
+// forbiddenLibraryDomainTokens are app-specific domain words that must never
+// appear in ochazuke's exported struct field names (outside examples/).
+var forbiddenLibraryDomainTokens = []string{
+	"pane", "lane", "task", "harness", "zsh", "claude",
+	"culprit", "scratch", "daemon", "mtm",
+}
+
+// coreStructFieldCeilings ratchets the flattened exported+unexported field count
+// of ochazuke's core shared structs so "special cases in a trenchcoat" cannot
+// creep in silently. Shrink these numbers whenever fields are consolidated.
+var coreStructFieldCeilings = map[string]int{
+	"ui/viewnode.go:ViewNode":               23,
+	"ui/theme.go:Theme":                     14,
+	"core/command.go:ParamSpec":             14,
+	"widgets/modal/form.go:FormOptions":     24,
+	"widgets/modal/picker.go:PickerOptions": 20,
 }
 
 func walkGoFiles(t *testing.T, fn func(relPath, base string)) {
@@ -73,4 +92,113 @@ func TestNoGodFiles(t *testing.T) {
 			t.Errorf("%s has %d lines (limit %d); split by domain responsibility", relPath, lines, limit)
 		}
 	})
+}
+
+func splitCamelWords(s string) []string {
+	var words []string
+	var cur strings.Builder
+	for i, r := range s {
+		if r == '_' || r == '-' {
+			if cur.Len() > 0 {
+				words = append(words, strings.ToLower(cur.String()))
+				cur.Reset()
+			}
+			continue
+		}
+		if i > 0 && r >= 'A' && r <= 'Z' && cur.Len() > 0 {
+			prev := s[i-1]
+			if prev >= 'a' && prev <= 'z' {
+				words = append(words, strings.ToLower(cur.String()))
+				cur.Reset()
+			}
+		}
+		cur.WriteRune(r)
+	}
+	if cur.Len() > 0 {
+		words = append(words, strings.ToLower(cur.String()))
+	}
+	return words
+}
+
+// TestLibraryDomainPurity guarantees ochazuke library packages stay domain-agnostic
+// by forbidding app-specific vocabulary in exported struct fields (excluding examples/).
+func TestLibraryDomainPurity(t *testing.T) {
+	forbidden := make(map[string]bool, len(forbiddenLibraryDomainTokens))
+	for _, tok := range forbiddenLibraryDomainTokens {
+		forbidden[tok] = true
+	}
+	fset := token.NewFileSet()
+	walkGoFiles(t, func(relPath, base string) {
+		if strings.HasSuffix(base, "_test.go") || strings.HasPrefix(relPath, "examples/") {
+			return
+		}
+		file, err := parser.ParseFile(fset, relPath, nil, 0)
+		if err != nil {
+			t.Fatalf("parse %s: %v", relPath, err)
+		}
+		ast.Inspect(file, func(n ast.Node) bool {
+			ts, ok := n.(*ast.TypeSpec)
+			if !ok {
+				return true
+			}
+			st, ok := ts.Type.(*ast.StructType)
+			if !ok || st.Fields == nil {
+				return true
+			}
+			for _, f := range st.Fields.List {
+				for _, name := range f.Names {
+					if !name.IsExported() {
+						continue
+					}
+					for _, w := range splitCamelWords(name.Name) {
+						if forbidden[w] {
+							t.Errorf("%s: exported field %s.%s contains app-domain token %q; keep ochazuke domain-agnostic", relPath, ts.Name.Name, name.Name, w)
+						}
+					}
+				}
+			}
+			return true
+		})
+	})
+}
+
+// TestCoreStructSurfaceBudget enforces shrink-only field-count ceilings on core
+// shared structs so single-caller options cannot bloat shared library surfaces.
+func TestCoreStructSurfaceBudget(t *testing.T) {
+	fset := token.NewFileSet()
+	found := map[string]bool{}
+	for key, ceiling := range coreStructFieldCeilings {
+		parts := strings.SplitN(key, ":", 2)
+		relPath, typeName := parts[0], parts[1]
+		file, err := parser.ParseFile(fset, relPath, nil, 0)
+		if err != nil {
+			t.Fatalf("parse %s: %v", relPath, err)
+		}
+		ast.Inspect(file, func(n ast.Node) bool {
+			ts, ok := n.(*ast.TypeSpec)
+			if !ok || ts.Name.Name != typeName {
+				return true
+			}
+			st, ok := ts.Type.(*ast.StructType)
+			if !ok || st.Fields == nil {
+				return true
+			}
+			found[key] = true
+			count := 0
+			for _, f := range st.Fields.List {
+				if len(f.Names) == 0 {
+					count++ // embedded field
+				} else {
+					count += len(f.Names)
+				}
+			}
+			if count > ceiling {
+				t.Errorf("%s has %d fields (ceiling %d); consolidate or prove Rule-of-Two before expanding core surface", key, count, ceiling)
+			}
+			return false
+		})
+		if !found[key] {
+			t.Errorf("core struct %s not found; update coreStructFieldCeilings", key)
+		}
+	}
 }
