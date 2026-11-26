@@ -11,19 +11,31 @@ import (
 
 // drawProgress renders a KindProgress leaf node directly into buf at its exact
 // solved inner rect ir, expanding the bar fluidly to fill all available width.
-func drawProgress(buf *buffer.Buffer, ir layout.Rect, n *ViewNode, theme Theme) {
+func drawProgress(buf *buffer.Buffer, ir layout.Rect, n *ViewNode, theme Theme, focused bool) {
 	if buf == nil || n == nil || ir.W <= 0 || ir.H <= 0 {
 		return
 	}
-	line := progressLine(newStyler(theme), n, ir.W)
+	line := progressLine(newStyler(theme), n, ir.W, focused)
 	tmp := buffer.New(ir.W, ir.H)
 	tmp.SetLine(0, line)
 	buf.Blit(tmp, ir)
 }
 
-func progressLine(st *styler, n *ViewNode, w int) string {
+func progressLine(st *styler, n *ViewNode, w int, focused bool) string {
 	if n == nil || w <= 0 {
 		return ""
+	}
+
+	var focusStyle ToneStyle
+	if focused {
+		focusStyle = st.tone("selected")
+		if focusStyle == (ToneStyle{}) {
+			focusStyle = mergeTone(st.tone("focus.fg"), st.tone("focus.bg"))
+		}
+	}
+	prefixW := 0
+	if n.Focusable && w >= 4 {
+		prefixW = 2
 	}
 
 	done, hasDone := n.propFloat("done")
@@ -132,7 +144,7 @@ func progressLine(st *styler, n *ViewNode, w int) string {
 		if rw > 0 {
 			rg = gap
 		}
-		return w - lw - lg - rg - rw
+		return w - prefixW - lw - lg - rg - rw
 	}
 
 	barW := computeBarW()
@@ -175,50 +187,87 @@ func progressLine(st *styler, n *ViewNode, w int) string {
 	fillCells, activeCells, trackCells := progressSegments(barW, doneRatio, activeRatio)
 	sep := spaces(gap)
 
+	paintSeg := func(toneName, text string, boldOnFocus bool) string {
+		ts := st.tone(toneName)
+		if focused {
+			if focusStyle.Bg != "" && ts.Bg == "" {
+				ts.Bg = focusStyle.Bg
+			}
+			if boldOnFocus {
+				ts.Bold = true
+			}
+			if ts.Fg == "" && focusStyle.Fg != "" {
+				ts.Fg = focusStyle.Fg
+			}
+		}
+		return st.paint(text, ts)
+	}
+	paintSep := func(text string) string {
+		if !focused {
+			return text
+		}
+		return st.paint(text, focusStyle)
+	}
+
 	var sb strings.Builder
+	if prefixW > 0 {
+		if focused {
+			sb.WriteString(paintSeg("accent", "▸ ", true))
+		} else {
+			sb.WriteString("  ")
+		}
+	}
 	hasLeft := false
 	if label != "" {
-		sb.WriteString(st.t(labelTone, label))
+		lt := labelTone
+		if focused {
+			lt = "accent"
+		}
+		sb.WriteString(paintSeg(lt, label, true))
 		hasLeft = true
 	}
 	if showFrac {
 		if hasLeft {
-			sb.WriteString(sep)
+			sb.WriteString(paintSep(sep))
 		}
-		sb.WriteString(st.t("title", doneStr))
-		sb.WriteString(st.t("muted", "/"+totalStr))
+		sb.WriteString(paintSeg("title", doneStr, true))
+		sb.WriteString(paintSeg("muted", "/"+totalStr, false))
 		hasLeft = true
 	}
 	if barW > 0 {
 		if hasLeft {
-			sb.WriteString(sep)
+			sb.WriteString(paintSep(sep))
 		}
 		if fillCells > 0 {
-			sb.WriteString(st.t(fillTone, repeatToWidth(fillChar, fillCells)))
+			sb.WriteString(paintSeg(fillTone, repeatToWidth(fillChar, fillCells), false))
 		}
 		if activeCells > 0 {
-			sb.WriteString(st.t(activeTone, repeatToWidth(activeChar, activeCells)))
+			sb.WriteString(paintSeg(activeTone, repeatToWidth(activeChar, activeCells), false))
 		}
 		if trackCells > 0 {
-			sb.WriteString(st.t(trackTone, repeatToWidth(trackChar, trackCells)))
+			sb.WriteString(paintSeg(trackTone, repeatToWidth(trackChar, trackCells), false))
 		}
 	}
 	hasRight := showPct || suffix != ""
 	if hasRight {
 		if hasLeft || barW > 0 {
-			sb.WriteString(sep)
+			sb.WriteString(paintSep(sep))
 		}
 		if showPct {
-			sb.WriteString(st.t("title", pctStr))
+			sb.WriteString(paintSeg("title", pctStr, true))
 			if suffix != "" {
-				sb.WriteByte(' ')
+				sb.WriteString(paintSep(" "))
 			}
 		}
 		if suffix != "" {
-			sb.WriteString(st.t(suffixTone, suffix))
+			sb.WriteString(paintSeg(suffixTone, suffix, false))
 		}
 	}
-	return sb.String()
+	out := sb.String()
+	if focused {
+		out = padLine(out, w, st.sgr(focusStyle))
+	}
+	return out
 }
 
 func progressSegments(barW int, doneRatio, activeRatio float64) (fill, active, track int) {

@@ -242,3 +242,34 @@ func TestProgressNarrowDegradationAndLayout(t *testing.T) {
 		t.Errorf("bordered KindProgress height = %d, want 3", solved.Rects["p2"].H)
 	}
 }
+
+func TestProgressFocusContrast(t *testing.T) {
+	stack := ViewNode{
+		Kind: KindVStack,
+		Children: []ViewNode{
+			{Kind: KindProgress, ID: "bar1", Focusable: true, Props: map[string]any{"label": "Wave 1", "done": 3, "total": 3}},
+			{Kind: KindProgress, ID: "bar2", Focusable: true, Props: map[string]any{"label": "Wave 2", "done": 1, "active": 1, "total": 4}},
+		},
+	}
+	th := DefaultDarkTheme()
+	f1, _ := Render(stack, th, "bar1", 60, 2)
+	f2, _ := Render(stack, th, "bar2", 60, 2)
+
+	rows1 := strings.Split(stripANSI(f1.ANSI), "\n")
+	rows2 := strings.Split(stripANSI(f2.ANSI), "\n")
+	if !strings.HasPrefix(rows1[0], "▸ ") || !strings.HasPrefix(rows1[1], "  ") {
+		t.Fatalf("focus=bar1 rows = %q", rows1)
+	}
+	if !strings.HasPrefix(rows2[0], "  ") || !strings.HasPrefix(rows2[1], "▸ ") {
+		t.Fatalf("focus=bar2 rows = %q", rows2)
+	}
+	if f1.ANSI == f2.ANSI {
+		t.Fatal("moving focus between KindProgress bars produced identical ANSI")
+	}
+	// Non-focusable progress bars keep zero prefix even when focusID matches.
+	plain := ViewNode{Kind: KindProgress, ID: "plain", Props: map[string]any{"label": "Plain", "done": 1, "total": 2}}
+	fp, _ := Render(plain, th, "plain", 40, 1)
+	if strings.HasPrefix(stripANSI(fp.ANSI), "▸ ") {
+		t.Fatalf("non-focusable bar drew focus pointer: %q", stripANSI(fp.ANSI))
+	}
+}

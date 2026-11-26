@@ -42,7 +42,7 @@ func (c *ctx) drawLeaf(rn *rnode, lr layout.Rect) {
 	case KindTerminal:
 		out, cur = c.terminalLines(rn, ir.W, ir.H)
 	case KindProgress:
-		drawProgress(c.buf, ir, n, c.st.th)
+		drawProgress(c.buf, ir, n, c.st.th, rn.isFocus && n.Focusable)
 		return
 	case KindRaw:
 		out = ansiLines(n)
