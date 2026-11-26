@@ -91,6 +91,10 @@ type Model struct {
 	ActiveLinkIdx   int // index into Links; the first link is active by default
 	ShowTOC         bool
 	SelectedHeading int // index into Headings
+
+	// MotionSelection is the range the last motion.object.select reported, in
+	// MotionNodes indices (nil when the viewport top has no such object).
+	MotionSelection *traits.ObjectRange
 }
 
 // New returns a model for source with defaults.
@@ -231,32 +235,11 @@ func (m *Model) HandleCommand(cmd core.Command) (Action, bool) {
 		m.syncHeading()
 		return Action{}, true
 	}
+	if m.stepMotion(cmd) {
+		return Action{}, true
+	}
 	n := cmd.Times()
 	switch cmd.ID {
-	case "motion.block.next", "motion.block.prev":
-		next := cmd.ID == "motion.block.next"
-		for ; n > 0; n-- {
-			to := -1
-			if next {
-				for i, h := range m.Headings {
-					if h.Line > m.Offset {
-						to = i
-						break
-					}
-				}
-			} else {
-				for i := len(m.Headings) - 1; i >= 0; i-- {
-					if m.Headings[i].Line < m.Offset {
-						to = i
-						break
-					}
-				}
-			}
-			if to < 0 {
-				break
-			}
-			m.scrollTo(m.Headings[to].Line)
-		}
 	case CmdTOCToggle:
 		m.ShowTOC = !m.ShowTOC
 	case CmdTOCNext, CmdTOCPrev:
