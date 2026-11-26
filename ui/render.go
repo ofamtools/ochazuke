@@ -26,12 +26,21 @@ type RenderStats struct {
 // TUI sessions memory-bounded while preserving subtree reuse.
 const DefaultCacheEntries = 96
 
+type scrollCacheKey struct {
+	scrollOff int
+	stateless bool
+	hasMemo   bool
+	memoOff   int
+	memoKey   string
+}
+
 type cacheKey struct {
 	id      string
 	key     uint64
 	w, h    int
 	focused bool
 	theme   themeKey
+	scroll  scrollCacheKey
 }
 
 // themeKey is the part of a Theme the caches depend on.
@@ -62,13 +71,14 @@ type Renderer struct {
 	// Stats holds the cache counters of the most recent Render call.
 	Stats RenderStats
 
-	// ScrollOff is the focus-follow padding of KindScroll containers, in rows,
-	// kept between the focused unit and the viewport edge it approaches (0 =
-	// flush). A node's "scrollOff" prop overrides it.
+	// ScrollOff is the focus-follow padding of scroll viewports (KindScroll
+	// containers, wrapped/multi-line KindTree, and KindTree/KindTable without an
+	// explicit offset), in rows, kept between the focused unit and the viewport
+	// edge it approaches (0 = flush). A node's "scrollOff" prop overrides it.
 	ScrollOff int
 	// StatelessScrollFollow restores the original stateless focus follow for
-	// every KindScroll container (the "followStateless" node prop overrides
-	// it per node). See scroll_follow.go for the offset precedence.
+	// every scroll viewport (the "followStateless" node prop overrides it per
+	// node). See scroll_follow.go for the offset precedence.
 	StatelessScrollFollow bool
 
 	mu    sync.Mutex
@@ -242,15 +252,29 @@ func (c *ctx) draw(rn *rnode) {
 	}
 	n := rn.n
 	if n.ID != "" && n.CacheKey != 0 && !hasVolatile(n) {
-		k := cacheKey{n.ID, n.CacheKey, lr.W, lr.H, rn.onFocus, c.r.stKey}
+		statefulLeaf := n.Kind == KindTree || n.Kind == KindTable
+		sKey := ""
+		k := cacheKey{id: n.ID, key: n.CacheKey, w: lr.W, h: lr.H, focused: rn.onFocus, theme: c.r.stKey}
+		if statefulLeaf {
+			sKey = n.propString("scrollKey")
+			preOff, preOK := c.r.peekScroll(n.ID, sKey)
+			k.scroll = scrollCacheKey{c.r.ScrollOff, c.r.StatelessScrollFollow, preOK, preOff, sKey}
+		}
 		if cached := c.r.get(k); cached != nil {
 			c.r.Stats.CacheHits++
+			if statefulLeaf {
+				c.r.touchScroll(n.ID)
+			}
 			c.buf.Blit(cached, lr)
 			return
 		}
 		c.r.Stats.CacheMisses++
 		sub := &ctx{r: c.r, st: c.st, b: c.b, solved: c.solved, buf: buffer.New(lr.W, lr.H), ox: c.ox + lr.X, oy: c.oy + lr.Y}
 		sub.drawBody(rn)
+		if statefulLeaf {
+			postOff, postOK := c.r.peekScroll(n.ID, sKey)
+			k.scroll = scrollCacheKey{c.r.ScrollOff, c.r.StatelessScrollFollow, postOK, postOff, sKey}
+		}
 		c.r.put(k, sub.buf)
 		c.buf.Blit(sub.buf, lr)
 		return
@@ -265,14 +289,27 @@ func (c *ctx) flushOverlays() {
 	c.overlays = nil
 }
 
-// hasVolatile reports whether the subtree holds scroll or overlay nodes, whose
-// geometry escapes the cached rectangle.
+// hasVolatile reports whether the subtree holds scroll or overlay nodes (whose
+// geometry escapes the cached rectangle), or wraps a stateful scrollable leaf
+// child whose drawn slice depends on Renderer scroll memory.
 func hasVolatile(n *ViewNode) bool {
 	if n.Kind == KindScroll || n.Kind == KindOverlay {
 		return true
 	}
 	for i := range n.Children {
-		if hasVolatile(&n.Children[i]) {
+		if hasVolatileDescendant(&n.Children[i]) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasVolatileDescendant(n *ViewNode) bool {
+	if n.Kind == KindScroll || n.Kind == KindOverlay || n.Kind == KindTree || n.Kind == KindTable {
+		return true
+	}
+	for i := range n.Children {
+		if hasVolatileDescendant(&n.Children[i]) {
 			return true
 		}
 	}

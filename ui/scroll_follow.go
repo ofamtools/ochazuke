@@ -5,12 +5,14 @@ import (
 	"ofam.dev/ochazuke/traits"
 )
 
-// Scroll follow: how a KindScroll container picks its drawn offset.
+// Scroll follow: how KindScroll containers and scrollable leaf nodes
+// (wrapped/multi-line KindTree, and KindTree/KindTable without an explicit
+// "offset" prop) pick their drawn offset.
 //
-// The Renderer remembers the last drawn offset of each scroll container with
+// The Renderer remembers the last drawn offset of each scroll viewport with
 // a real (non-synthetic) ID. That memory is render-local view state, the same
 // category as the subtree buffer cache; it never reads an app store. On each
-// frame the offset is chosen in this order:
+// frame a KindScroll container picks its offset in this order:
 //
 //  1. Stateless follow (Renderer.StatelessScrollFollow, the node prop
 //     "followStateless", or a container without a real ID): the original
@@ -23,6 +25,11 @@ import (
 //     remembered offset with the scroll-off padding, so the view moves only
 //     when the focused unit leaves the padded window.
 //  5. Otherwise the remembered offset (0 when none).
+//
+// Wrapped/multi-line KindTree nodes use the same remembered visual-line offset,
+// scroll-off padding, scrollKey reset, and followStateless opt-out via
+// revealScroll (seeding from props.offset only before a memo exists, because
+// tree.Model's offset is in logical rows rather than wrapped screen lines).
 //
 // The result is clamped to [0, maxOff] and remembered. A "scrollKey" prop that
 // differs from the remembered one drops the remembered offset first.
@@ -37,18 +44,36 @@ type scrollMemo struct {
 	frame  uint64
 }
 
+// peekScroll returns the remembered offset of id for content key without
+// mutating scrollMemos.
+func (r *Renderer) peekScroll(id, key string) (int, bool) {
+	m, ok := r.scrollMemos[id]
+	if !ok || m.key != key {
+		return 0, false
+	}
+	return m.offset, true
+}
+
+// touchScroll refreshes id's LRU frame timestamp on a subtree cache hit.
+func (r *Renderer) touchScroll(id string) {
+	if m, ok := r.scrollMemos[id]; ok {
+		m.frame = r.frame
+		r.scrollMemos[id] = m
+	}
+}
+
 // recallScroll returns the remembered offset of id for content key, dropping
 // it when the key changed.
-func (r *Renderer) recallScroll(id, key string) int {
+func (r *Renderer) recallScroll(id, key string) (int, bool) {
 	m, ok := r.scrollMemos[id]
 	if !ok {
-		return 0
+		return 0, false
 	}
 	if m.key != key {
 		delete(r.scrollMemos, id)
-		return 0
+		return 0, false
 	}
-	return m.offset
+	return m.offset, true
 }
 
 func (r *Renderer) rememberScroll(id, key string, offset int) {
@@ -119,10 +144,41 @@ func (c *ctx) planScroll(rn *rnode, ir layout.Rect) *scrollPlan {
 	return p
 }
 
+func (c *ctx) followStateless(rn *rnode) bool {
+	return rn.n.propBoolDefault("followStateless", c.r.StatelessScrollFollow) || IsSyntheticID(rn.id)
+}
+
+func (c *ctx) scrollPad(n *ViewNode) int {
+	if v, ok := n.propInt("scrollOff"); ok {
+		return v
+	}
+	return c.r.ScrollOff
+}
+
+// revealScroll advances rn's remembered vertical offset to keep span inside
+// the padded viewport [offset+pad, offset+vh-pad], seeding from seed only
+// before a memo exists for rn's current scrollKey.
+func (c *ctx) revealScroll(rn *rnode, total, vh, seed int, span traits.ItemSpan, hasSpan bool) int {
+	maxOff := max(0, total-vh)
+	key := rn.n.propString("scrollKey")
+	offset, remembered := c.r.recallScroll(rn.id, key)
+	if !remembered {
+		offset = seed
+	}
+	offset = min(max(offset, 0), maxOff)
+	if hasSpan {
+		st := traits.ScrollState{OffsetY: offset, ContentH: total, ViewH: vh}
+		offset = traits.ScrollReveal(st, traits.ScrollConfig{ScrollOff: c.scrollPad(rn.n)}, span).OffsetY
+	}
+	offset = min(max(offset, 0), maxOff)
+	c.r.rememberScroll(rn.id, key, offset)
+	return offset
+}
+
 func (c *ctx) scrollOffset(rn *rnode, p *scrollPlan) int {
 	n := rn.n
 	offset := 0
-	if n.propBoolDefault("followStateless", c.r.StatelessScrollFollow) || IsSyntheticID(rn.id) {
+	if c.followStateless(rn) {
 		if o, ok := n.propInt("offset"); ok {
 			offset = o
 		} else if fr, ok := p.sub.Rects[c.b.focusID]; ok && c.b.focusID != "" {
@@ -142,7 +198,8 @@ func (c *ctx) scrollOffset(rn *rnode, p *scrollPlan) int {
 	}
 
 	key := n.propString("scrollKey")
-	offset = min(max(c.r.recallScroll(rn.id, key), 0), p.maxOff)
+	recalled, _ := c.r.recallScroll(rn.id, key)
+	offset = min(max(recalled, 0), p.maxOff)
 	switch o, ok := n.propInt("offset"); {
 	case n.propBool("followTail"):
 		offset = p.maxOff
@@ -150,12 +207,8 @@ func (c *ctx) scrollOffset(rn *rnode, p *scrollPlan) int {
 		offset = o
 	default:
 		if span, ok := c.focusSpan(p); ok {
-			pad := c.r.ScrollOff
-			if v, ok := n.propInt("scrollOff"); ok {
-				pad = v
-			}
 			st := traits.ScrollState{OffsetY: offset, ContentH: p.total, ViewH: p.vh}
-			offset = traits.ScrollReveal(st, traits.ScrollConfig{ScrollOff: pad}, span).OffsetY
+			offset = traits.ScrollReveal(st, traits.ScrollConfig{ScrollOff: c.scrollPad(n)}, span).OffsetY
 		}
 	}
 	offset = min(max(offset, 0), p.maxOff)

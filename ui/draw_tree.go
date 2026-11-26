@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"ofam.dev/ochazuke/buffer"
+	"ofam.dev/ochazuke/traits"
 )
 
 // TreeMeta is one right-aligned metadata column on a tree row.
@@ -592,7 +593,7 @@ func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 		}
 	}
 	if !anyMultiLine {
-		start := windowStart(rn.n, len(rows), h, selRow)
+		start := c.windowStart(rn, len(rows), h, selRow)
 		var out []string
 		var cur *buffer.Cursor
 		for i := start; i < min(len(rows), start+h); i++ {
@@ -623,40 +624,63 @@ func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 
 	total := len(allLines)
 	if h <= 0 || total <= h {
+		if !IsSyntheticID(rn.id) {
+			c.r.rememberScroll(rn.id, rn.n.propString("scrollKey"), 0)
+		}
 		return allLines, cur
 	}
 
-	visStart := 0
+	seed := 0
 	if o, ok := rn.n.propInt("offset"); ok && len(rows) > 0 {
 		oi := clampInt(o, 0, len(rows)-1)
-		visStart = rowStarts[oi]
+		seed = rowStarts[oi]
 	}
-	visStart = min(max(visStart, 0), max(0, total-h))
 
-	if selRow >= 0 && selRow < len(rows) {
-		selStart, selEnd := rowStarts[selRow], rowEnds[selRow]
-		if selEnd-selStart+1 <= h {
-			if selEnd >= visStart+h {
-				visStart = selEnd - h + 1
-			}
-			if selStart < visStart {
-				visStart = selStart
-			}
-		} else if cur == nil {
-			if selStart >= visStart+h || selEnd < visStart {
-				visStart = selStart
+	var visStart int
+	if c.followStateless(rn) {
+		visStart = min(max(seed, 0), max(0, total-h))
+		if selRow >= 0 && selRow < len(rows) {
+			selStart, selEnd := rowStarts[selRow], rowEnds[selRow]
+			if selEnd-selStart+1 <= h {
+				if selEnd >= visStart+h {
+					visStart = selEnd - h + 1
+				}
+				if selStart < visStart {
+					visStart = selStart
+				}
+			} else if cur == nil {
+				if selStart >= visStart+h || selEnd < visStart {
+					visStart = selStart
+				}
 			}
 		}
+		if cur != nil {
+			if cur.Y >= visStart+h {
+				visStart = cur.Y - h + 1
+			}
+			if cur.Y < visStart {
+				visStart = cur.Y
+			}
+		}
+		visStart = min(max(visStart, 0), max(0, total-h))
+		if !IsSyntheticID(rn.id) {
+			c.r.rememberScroll(rn.id, rn.n.propString("scrollKey"), visStart)
+		}
+	} else {
+		var span traits.ItemSpan
+		hasSpan := false
+		if selRow >= 0 && selRow < len(rows) {
+			selStart, selEnd := rowStarts[selRow], rowEnds[selRow]
+			if cur != nil && selEnd-selStart+1 > h {
+				span, hasSpan = traits.ItemSpan{Y: cur.Y, H: 1}, true
+			} else {
+				span, hasSpan = traits.ItemSpan{Y: selStart, H: selEnd - selStart + 1}, true
+			}
+		} else if cur != nil {
+			span, hasSpan = traits.ItemSpan{Y: cur.Y, H: 1}, true
+		}
+		visStart = c.revealScroll(rn, total, h, seed, span, hasSpan)
 	}
-	if cur != nil {
-		if cur.Y >= visStart+h {
-			visStart = cur.Y - h + 1
-		}
-		if cur.Y < visStart {
-			visStart = cur.Y
-		}
-	}
-	visStart = min(max(visStart, 0), max(0, total-h))
 
 	win := allLines[visStart:min(total, visStart+h)]
 	if cur != nil {

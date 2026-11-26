@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"ofam.dev/ochazuke/layout"
@@ -154,5 +155,137 @@ func TestScrollFollowNestedRevealsVisibleFocus(t *testing.T) {
 		if fr := s.Rects[tc.focus]; fr.H != 3 {
 			t.Errorf("focus %s: visible rect %+v, want fully visible", tc.focus, fr)
 		}
+	}
+}
+
+func renderPlainRows(r *Renderer, root ViewNode, focus string, w, h int) []string {
+	f, _ := r.Render(root, DefaultDarkTheme(), focus, w, h)
+	raw := strings.Split(f.ANSI, "\n")
+	out := make([]string, len(raw))
+	for i, ln := range raw {
+		out[i] = strings.TrimRight(stripANSI(ln), " ")
+	}
+	return out
+}
+
+func lineIndexContaining(rows []string, sub string) int {
+	for i, ln := range rows {
+		if strings.Contains(ln, sub) {
+			return i
+		}
+	}
+	return -1
+}
+
+func TestTreeWrapScrollFollowPaddedStatefulAndCached(t *testing.T) {
+	// Row 0 wraps across many screen lines (like a long task above short tasks),
+	// while tree.Model passes logical offset=0. Viewport h=10, ScrollOff=3.
+	nodes := []TreeNode{
+		{Label: strings.Repeat("long wrapped task text ", 8)},
+	}
+	for i := 1; i <= 20; i++ {
+		nodes = append(nodes, TreeNode{Label: fmt.Sprintf("task-%02d", i)})
+	}
+	makeTree := func(sel int, key string, extra map[string]any) ViewNode {
+		props := map[string]any{
+			"nodes":    nodes,
+			"wrap":     true,
+			"selected": sel,
+			"offset":   0, // logical offset from tree.Model
+		}
+		if key != "" {
+			props["scrollKey"] = key
+		}
+		for k, v := range extra {
+			props[k] = v
+		}
+		return ViewNode{
+			ID:        "proj.tasks.tree",
+			Kind:      KindTree,
+			Focusable: true,
+			CacheKey:  uint64(sel + 100),
+			Props:     props,
+		}
+	}
+
+	const w, h, pad = 32, 10, 3
+	r := NewRenderer(0)
+	r.ScrollOff = pad
+
+	// Moving down past the tall wrapped row keeps `pad` rows visible below selection.
+	rows := renderPlainRows(r, makeTree(10, "proj-a", nil), "proj.tasks.tree", w, h)
+	y := lineIndexContaining(rows, "task-10")
+	if y < 0 {
+		t.Fatalf("task-10 not visible:\n%s", strings.Join(rows, "\n"))
+	}
+	if gapBelow := (h - 1) - y; gapBelow != pad {
+		t.Fatalf("down to task-10: y=%d gapBelow=%d, want %d\n%s", y, gapBelow, pad, strings.Join(rows, "\n"))
+	}
+
+	// Idle re-render hits the subtree buffer cache while preserving scroll memo.
+	_ = renderPlainRows(r, makeTree(10, "proj-a", nil), "proj.tasks.tree", w, h)
+	if r.Stats.CacheHits != 1 {
+		t.Fatalf("idle re-render CacheHits=%d, want 1", r.Stats.CacheHits)
+	}
+
+	// Moving up inside the padded window keeps the viewport still (stateful!).
+	prevTop := rows[0]
+	upRows := renderPlainRows(r, makeTree(8, "proj-a", nil), "proj.tasks.tree", w, h)
+	if upRows[0] != prevTop {
+		t.Fatalf("up inside padded window moved viewport: %q -> %q", prevTop, upRows[0])
+	}
+	// Continuing up past top pad scrolls while keeping `pad` rows above selection.
+	upFar := renderPlainRows(r, makeTree(5, "proj-a", nil), "proj.tasks.tree", w, h)
+	y5 := lineIndexContaining(upFar, "task-05")
+	if y5 != pad {
+		t.Fatalf("up to task-05: y=%d, want %d (top pad)\n%s", y5, pad, strings.Join(upFar, "\n"))
+	}
+
+	// Changing scrollKey drops the remembered offset cleanly.
+	rKey := renderPlainRows(r, makeTree(0, "proj-b", nil), "proj.tasks.tree", w, h)
+	if !strings.Contains(rKey[0], "long wrapped") {
+		t.Fatalf("scrollKey change did not reset to top:\n%s", strings.Join(rKey, "\n"))
+	}
+
+	// Stateless opt-out restores original flush-to-bottom clamping.
+	rStateless := NewRenderer(0)
+	rStateless.ScrollOff = pad
+	rStateless.StatelessScrollFollow = true
+	sRows := renderPlainRows(rStateless, makeTree(10, "proj-a", nil), "proj.tasks.tree", w, h)
+	if ys := lineIndexContaining(sRows, "task-10"); ys != h-1 {
+		t.Fatalf("StatelessScrollFollow=true: task-10 y=%d, want flush bottom %d\n%s", ys, h-1, strings.Join(sRows, "\n"))
+	}
+}
+
+func TestTableScrollFollowWithoutExplicitOffset(t *testing.T) {
+	rows := make([]any, 20)
+	for i := range rows {
+		rows[i] = []any{fmt.Sprintf("row-%02d", i)}
+	}
+	makeTable := func(sel int) ViewNode {
+		return ViewNode{
+			ID:        "dyn.table",
+			Kind:      KindTable,
+			Focusable: true,
+			Props: map[string]any{
+				"columns":  []any{"Name"},
+				"rows":     rows,
+				"selected": sel,
+			},
+		}
+	}
+	// h=10 -> 2 header/rule lines + 8 data rows. ScrollOff=2 keeps 2 rows below.
+	r := NewRenderer(0)
+	r.ScrollOff = 2
+	out := renderPlainRows(r, makeTable(10), "dyn.table", 24, 10)
+	y := lineIndexContaining(out, "row-10")
+	if wantY := 2 + (8 - 1 - 2); y != wantY {
+		t.Fatalf("dynamic KindTable row-10 y=%d, want %d (pad=2)\n%s", y, wantY, strings.Join(out, "\n"))
+	}
+	// Moving up inside padded window holds the table viewport still.
+	prevFirst := out[2]
+	outUp := renderPlainRows(r, makeTable(8), "dyn.table", 24, 10)
+	if outUp[2] != prevFirst {
+		t.Fatalf("dynamic KindTable moved viewport on small upward move: %q -> %q", prevFirst, outUp[2])
 	}
 }

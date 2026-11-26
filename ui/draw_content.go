@@ -6,6 +6,7 @@ import (
 
 	"ofam.dev/ochazuke/buffer"
 	"ofam.dev/ochazuke/layout"
+	"ofam.dev/ochazuke/traits"
 )
 
 // drawLeaf paints content kinds into the node's inner rect.
@@ -184,6 +185,28 @@ func windowStart(n *ViewNode, total, h, sel int) int {
 		return 0
 	}
 	return min(sel-h+1, maxStart)
+}
+
+// windowStart picks the first visible row for scrollable leaves (single-line
+// KindTree and KindTable): explicit props.offset stays authoritative; when
+// omitted, stateful padded scroll-follow applies via revealScroll.
+func (c *ctx) windowStart(rn *rnode, total, h, sel int) int {
+	maxStart := max(0, total-h)
+	if o, ok := rn.n.propInt("offset"); ok {
+		start := min(max(o, 0), maxStart)
+		if !IsSyntheticID(rn.id) {
+			c.r.rememberScroll(rn.id, rn.n.propString("scrollKey"), start)
+		}
+		return start
+	}
+	if c.followStateless(rn) {
+		start := windowStart(rn.n, total, h, sel)
+		if !IsSyntheticID(rn.id) {
+			c.r.rememberScroll(rn.id, rn.n.propString("scrollKey"), start)
+		}
+		return start
+	}
+	return c.revealScroll(rn, total, h, 0, traits.ItemSpan{Y: sel, H: 1}, sel >= 0 && sel < total)
 }
 
 func (c *ctx) rowStyle(rn *rnode, selected bool) ToneStyle {
@@ -617,7 +640,7 @@ func (c *ctx) tableLines(rn *rnode, w, h int) []string {
 	vFrom, hasVFrom := n.propInt("visualFrom")
 	vTo, hasVTo := n.propInt("visualTo")
 	hasVisual := hasVFrom && hasVTo && vFrom <= vTo
-	start := windowStart(n, len(rows), rowsH, sel)
+	start := c.windowStart(rn, len(rows), rowsH, sel)
 	rule := strings.Repeat("─", w)
 	if len(rows) > rowsH && w > 12 {
 		pos := " " + itoa(min(len(rows), start+rowsH)) + "/" + itoa(len(rows)) + " "
