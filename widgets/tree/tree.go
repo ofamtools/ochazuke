@@ -8,7 +8,6 @@ package tree
 
 import (
 	"fmt"
-	"hash/fnv"
 	"slices"
 
 	"ofam.dev/ochazuke/core"
@@ -116,6 +115,7 @@ type Model struct {
 	foldInitialized bool
 	filter          compiledFilter
 	edit            *EditState
+	viewCache       *treeViewCache
 }
 
 // New returns a Model over nodes with defaults (Guides, GapTopLevel, and
@@ -157,6 +157,7 @@ func (m Model) Copy() Model {
 		cp.Line.Text = slices.Clone(m.edit.Line.Text)
 		m.edit = &cp
 	}
+	m.viewCache = nil
 	return m
 }
 
@@ -236,7 +237,8 @@ func (m *Model) findNodeWithParent(id string) (node *Node, parentID, prevSibling
 // active inline-add draft row and visual row indices accounting for GapTopLevel.
 // Flatten is a pure projection and never mutates m.
 func (m *Model) Flatten() []VisibleRow {
-	return m.flattenRoots(m.filteredRoots())
+	rows, _ := m.cachedRows(m.filteredRoots(), m.FilterError())
+	return rows
 }
 
 func (m *Model) flattenRoots(roots []Node) []VisibleRow {
@@ -776,46 +778,12 @@ func (m *Model) buildUINodes(ns []Node, parentID string) []ui.TreeNode {
 	return out
 }
 
-func hashUINodes(h interface{ Write([]byte) (int, error) }, ns []ui.TreeNode) {
-	fmt.Fprintf(h, "[%d:", len(ns))
-	for _, nd := range ns {
-		exp := true
-		if nd.Expanded != nil {
-			exp = *nd.Expanded
-		}
-		fmt.Fprintf(h, "{%q|%t|%q|%q|%q|%q|%q|%q|%t|%t|%q|%q|%d|",
-			nd.Label, exp, nd.Tone, nd.Gutter, nd.GutterTone, nd.Icon, nd.IconTone, nd.Badge,
-			nd.Unread, nd.Editing, nd.EditPrefix, nd.EditValue, nd.EditCursor)
-		for _, b := range nd.Badges {
-			fmt.Fprintf(h, "B(%q,%q)", b.Text, b.Tone)
-		}
-		for _, mt := range nd.Meta {
-			fmt.Fprintf(h, "M(%q,%q)", mt.Text, mt.Tone)
-		}
-		for _, sp := range nd.LabelSpans {
-			fmt.Fprintf(h, "S(%d,%d,%q,%q)", sp.From, sp.To, sp.Tone, sp.Bg)
-		}
-		for _, r := range nd.LabelRuns {
-			fmt.Fprintf(h, "R(%q,%q,%q,%q,%q,%q,%q)", r.Kind, r.Text, r.Label, r.Tone, r.Bg, r.Href, r.Command)
-			if r.Ref != nil {
-				fmt.Fprintf(h, "RF(%q,%q)", r.Ref.Kind, r.Ref.ID)
-			}
-		}
-		if len(nd.Children) > 0 {
-			hashUINodes(h, nd.Children)
-		}
-		fmt.Fprint(h, "}")
-	}
-	fmt.Fprint(h, "]")
-}
-
 // View renders the model as a ui.KindTree ViewNode purely without mutating m.
 func (m *Model) View(id string) ui.ViewNode {
 	roots := m.filteredRoots()
-	rows := m.flattenRoots(roots)
-	selIdx, _, offset := m.projectSelection(rows)
-	uiNodes := m.buildUINodes(roots, "")
 	filterErr := m.FilterError()
+	rows, uiNodes, contentHash := m.cachedViewData(roots, filterErr)
+	selIdx, _, offset := m.projectSelection(rows)
 
 	props := map[string]any{
 		"nodes":       uiNodes,
@@ -843,11 +811,6 @@ func (m *Model) View(id string) ui.ViewNode {
 	if selIdx >= 0 && selIdx < len(rows) && !rows[selIdx].Draft {
 		n.Unread, n.Badges = rows[selIdx].Node.Unread, rows[selIdx].Node.Badges
 	}
-	h := fnv.New64a()
-	fmt.Fprintf(h, "%t|%t|%t|%t|%t|%q|%d|%d|%t|%d|%d|%t|%d|%v|%q|%q|%q|",
-		m.Guides, m.GapTopLevel, m.ShowFoldCount, m.ShowGutter, m.Wrap, m.HoistID(), selIdx, offset,
-		vOK, vFrom, vTo, m.VisualActive, m.VisualAnchor, m.MarkedIDs(), m.Query, m.MatchMode, filterErr)
-	hashUINodes(h, uiNodes)
-	n.CacheKey = h.Sum64() | 1
+	n.CacheKey = combineViewCacheKey(contentHash, selIdx, offset, vOK, vFrom, vTo, m.VisualActive, m.VisualAnchor)
 	return n
 }

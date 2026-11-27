@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"sort"
 	"strings"
 
 	"ofam.dev/ochazuke/buffer"
@@ -39,6 +40,7 @@ type treeRow struct {
 	itemIdx    int // logical item index, or -1 for visual spacer rows
 	spacer     bool
 	prefix     string
+	prefixW    int
 	marker     string
 	gutter     string
 	gutterTone string
@@ -74,14 +76,18 @@ func treeRows(n *ViewNode) []treeRow {
 			}
 			last := i == len(ns)-1
 			prefix := ""
+			prefixW := 0
 			switch {
 			case depth == 0:
 			case guides && last:
 				prefix = cont + "└─ "
+				prefixW = 3 * depth
 			case guides:
 				prefix = cont + "├─ "
+				prefixW = 3 * depth
 			default:
 				prefix = spaces(2 * depth)
+				prefixW = 2 * depth
 			}
 			exp := nd.Expanded == nil || *nd.Expanded
 			marker := "· "
@@ -98,6 +104,7 @@ func treeRows(n *ViewNode) []treeRow {
 			out = append(out, treeRow{
 				itemIdx:    itemIdx,
 				prefix:     prefix,
+				prefixW:    prefixW,
 				marker:     marker,
 				gutter:     nd.Gutter,
 				gutterTone: nd.GutterTone,
@@ -569,6 +576,190 @@ func (c *ctx) renderTreeRowLines(rn *rnode, r treeRow, selected, visual, wrap bo
 	return out, 0, 0, false
 }
 
+func isPrintableASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] < 0x20 || s[i] >= 0x7f {
+			return false
+		}
+	}
+	return true
+}
+
+func plainW(s string) int {
+	if isPrintableASCII(s) {
+		return len(s)
+	}
+	return strW(s)
+}
+
+func treeRowMetaAndBadgesW(r *treeRow) (metaW, badgesW int) {
+	metaCount := 0
+	for _, m := range r.meta {
+		if m.Text == "" {
+			continue
+		}
+		if metaCount > 0 {
+			metaW += 2
+		}
+		metaW += plainW(m.Text)
+		metaCount++
+	}
+	if r.badge != "" {
+		badgesW += 1 + plainW(r.badge)
+	}
+	for _, b := range r.badges {
+		badgesW += 1 + plainW(b.Text) + 2
+	}
+	return metaW, badgesW
+}
+
+func treeRowLeadW(showGutter bool, r *treeRow, rawLabel string) int {
+	gutterW := 0
+	if showGutter {
+		gutterW = 2
+	}
+	iconW := 0
+	if r.icon != "" {
+		iconW = plainW(r.icon)
+		if rawLabel != "" {
+			iconW++
+		}
+	}
+	// marker is always one of "· ", "▸ ", "▾ " (display width 2).
+	return gutterW + r.prefixW + 2 + iconW
+}
+
+// treeRowLineCount returns the exact wrapped visual line count of a non-editing
+// treeRow without allocating or painting ANSI styling.
+func treeRowLineCount(showGutter bool, r *treeRow, wrap bool, w int) int {
+	if r.spacer {
+		return 1
+	}
+	rawLabel := r.label
+	if !wrap && !strings.Contains(rawLabel, "\n") {
+		return 1
+	}
+	metaW, badgesW := treeRowMetaAndBadgesW(r)
+	leadW := treeRowLeadW(showGutter, r, rawLabel)
+	availCont := max(1, w-leadW)
+	availFirst := max(1, w-leadW-badgesW)
+	if isPrintableASCII(rawLabel) {
+		if metaW > 0 {
+			minLabel := min(len(rawLabel), 4)
+			if leadW+minLabel+badgesW+2+metaW <= w {
+				availFirst = max(1, w-leadW-badgesW-2-metaW)
+			}
+		}
+		if len(rawLabel) <= availFirst {
+			return 1
+		}
+		return len(wrapLabelRanges([]rune(rawLabel), availFirst, availCont))
+	}
+	cleanLabel := fieldTextMultiline(rawLabel)
+	if metaW > 0 {
+		firstPara := cleanLabel
+		if nl := strings.IndexByte(firstPara, '\n'); nl >= 0 {
+			firstPara = firstPara[:nl]
+		}
+		minLabel := min(plainW(firstPara), 4)
+		if leadW+minLabel+badgesW+2+metaW <= w {
+			availFirst = max(1, w-leadW-badgesW-2-metaW)
+		}
+	}
+	return len(wrapLabelRanges([]rune(cleanLabel), availFirst, availCont))
+}
+
+func treeMultiLineRevealSpan(rows []treeRow, rowStarts, rowEnds []int, selRow, h int, cur *buffer.Cursor) (traits.ItemSpan, bool) {
+	if selRow >= 0 && selRow < len(rows) {
+		selStart, selEnd := rowStarts[selRow], rowEnds[selRow]
+		if cur != nil && selEnd-selStart+1 > h {
+			return traits.ItemSpan{Y: cur.Y, H: 1}, true
+		}
+		return traits.ItemSpan{Y: selStart, H: selEnd - selStart + 1}, true
+	}
+	if cur != nil {
+		return traits.ItemSpan{Y: cur.Y, H: 1}, true
+	}
+	return traits.ItemSpan{}, false
+}
+
+func treeMultiLineFollowStart(rowStarts, rowEnds []int, selRow, seed, total, h int, cur *buffer.Cursor) int {
+	visStart := min(max(seed, 0), max(0, total-h))
+	if selRow >= 0 && selRow < len(rowStarts) {
+		visStart = clampVisStartToSelection(visStart, rowStarts[selRow], rowEnds[selRow], h, cur == nil)
+	}
+	if cur != nil {
+		visStart = clampVisStartToLine(visStart, cur.Y, h)
+	}
+	return min(max(visStart, 0), max(0, total-h))
+}
+
+func clampVisStartToSelection(visStart, selStart, selEnd, h int, allowFallback bool) int {
+	if selEnd-selStart+1 <= h {
+		if selEnd >= visStart+h {
+			visStart = selEnd - h + 1
+		}
+		if selStart < visStart {
+			visStart = selStart
+		}
+		return visStart
+	}
+	if allowFallback && (selStart >= visStart+h || selEnd < visStart) {
+		return selStart
+	}
+	return visStart
+}
+
+func clampVisStartToLine(visStart, y, h int) int {
+	if y >= visStart+h {
+		visStart = y - h + 1
+	}
+	if y < visStart {
+		visStart = y
+	}
+	return visStart
+}
+
+func (c *ctx) treeMultiLineVisStart(rn *rnode, rows []treeRow, rowStarts, rowEnds []int, selRow, total, h int, cur *buffer.Cursor) int {
+	seed := 0
+	if o, ok := rn.n.propInt("offset"); ok && len(rows) > 0 {
+		oi := clampInt(o, 0, len(rows)-1)
+		seed = rowStarts[oi]
+	}
+	if !c.followStateless(rn) {
+		span, hasSpan := treeMultiLineRevealSpan(rows, rowStarts, rowEnds, selRow, h, cur)
+		return c.revealScroll(rn, total, h, seed, span, hasSpan)
+	}
+	visStart := treeMultiLineFollowStart(rowStarts, rowEnds, selRow, seed, total, h, cur)
+	if !IsSyntheticID(rn.id) {
+		c.r.rememberScroll(rn.id, rn.n.propString("scrollKey"), visStart)
+	}
+	return visStart
+}
+
+func (c *ctx) renderTreeWindow(rn *rnode, rows []treeRow, rowStarts, rowEnds []int, editLines map[int][]string, selRow, vFrom, vTo int, hasVisual, wrap bool, w, visStart, visEnd int) []string {
+	if visEnd <= visStart || len(rows) == 0 {
+		return nil
+	}
+	win := make([]string, 0, visEnd-visStart)
+	firstRow := sort.Search(len(rows), func(i int) bool { return rowEnds[i] >= visStart })
+	for i := firstRow; i < len(rows) && rowStarts[i] < visEnd; i++ {
+		var rLines []string
+		if cached, ok := editLines[i]; ok {
+			rLines = cached
+		} else {
+			inVis := hasVisual && !rows[i].spacer && rows[i].itemIdx >= vFrom && rows[i].itemIdx <= vTo
+			rLines, _, _, _ = c.renderTreeRowLines(rn, rows[i], i == selRow, inVis, wrap, w)
+		}
+		lo := max(0, visStart-rowStarts[i])
+		hi := min(len(rLines), visEnd-rowStarts[i])
+		if lo < hi {
+			win = append(win, rLines[lo:hi]...)
+		}
+	}
+	return win
+}
+
 func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 	rows := treeRows(rn.n)
 	selItem := selectedOf(rn.n)
@@ -607,82 +798,41 @@ func (c *ctx) treeLines(rn *rnode, w, h int) ([]string, *buffer.Cursor) {
 		return out, cur
 	}
 
-	var allLines []string
+	showGutter := rn.n.propBool("gutter")
 	var cur *buffer.Cursor
+	var editLines map[int][]string
 	rowStarts := make([]int, len(rows))
 	rowEnds := make([]int, len(rows))
-	for i, r := range rows {
-		rowStarts[i] = len(allLines)
-		inVis := hasVisual && !r.spacer && r.itemIdx >= vFrom && r.itemIdx <= vTo
-		rLines, cx, cl, hasCur := c.renderTreeRowLines(rn, r, i == selRow, inVis, wrap, w)
-		if hasCur {
-			cur = c.cursorIf(rn, cx, rowStarts[i]+cl, buffer.CursorBar)
+	total := 0
+	for i := range rows {
+		rowStarts[i] = total
+		if rows[i].editing {
+			inVis := hasVisual && !rows[i].spacer && rows[i].itemIdx >= vFrom && rows[i].itemIdx <= vTo
+			rLines, cx, cl, hasCur := c.renderTreeRowLines(rn, rows[i], i == selRow, inVis, wrap, w)
+			if hasCur {
+				cur = c.cursorIf(rn, cx, rowStarts[i]+cl, buffer.CursorBar)
+			}
+			if editLines == nil {
+				editLines = map[int][]string{}
+			}
+			editLines[i] = rLines
+			total += len(rLines)
+		} else {
+			total += treeRowLineCount(showGutter, &rows[i], wrap, w)
 		}
-		allLines = append(allLines, rLines...)
-		rowEnds[i] = len(allLines) - 1
+		rowEnds[i] = total - 1
 	}
 
-	total := len(allLines)
 	if h <= 0 || total <= h {
 		if !IsSyntheticID(rn.id) {
 			c.r.rememberScroll(rn.id, rn.n.propString("scrollKey"), 0)
 		}
-		return allLines, cur
+		return c.renderTreeWindow(rn, rows, rowStarts, rowEnds, editLines, selRow, vFrom, vTo, hasVisual, wrap, w, 0, total), cur
 	}
 
-	seed := 0
-	if o, ok := rn.n.propInt("offset"); ok && len(rows) > 0 {
-		oi := clampInt(o, 0, len(rows)-1)
-		seed = rowStarts[oi]
-	}
-
-	var visStart int
-	if c.followStateless(rn) {
-		visStart = min(max(seed, 0), max(0, total-h))
-		if selRow >= 0 && selRow < len(rows) {
-			selStart, selEnd := rowStarts[selRow], rowEnds[selRow]
-			if selEnd-selStart+1 <= h {
-				if selEnd >= visStart+h {
-					visStart = selEnd - h + 1
-				}
-				if selStart < visStart {
-					visStart = selStart
-				}
-			} else if cur == nil {
-				if selStart >= visStart+h || selEnd < visStart {
-					visStart = selStart
-				}
-			}
-		}
-		if cur != nil {
-			if cur.Y >= visStart+h {
-				visStart = cur.Y - h + 1
-			}
-			if cur.Y < visStart {
-				visStart = cur.Y
-			}
-		}
-		visStart = min(max(visStart, 0), max(0, total-h))
-		if !IsSyntheticID(rn.id) {
-			c.r.rememberScroll(rn.id, rn.n.propString("scrollKey"), visStart)
-		}
-	} else {
-		var span traits.ItemSpan
-		hasSpan := false
-		if selRow >= 0 && selRow < len(rows) {
-			selStart, selEnd := rowStarts[selRow], rowEnds[selRow]
-			if cur != nil && selEnd-selStart+1 > h {
-				span, hasSpan = traits.ItemSpan{Y: cur.Y, H: 1}, true
-			} else {
-				span, hasSpan = traits.ItemSpan{Y: selStart, H: selEnd - selStart + 1}, true
-			}
-		} else if cur != nil {
-			span, hasSpan = traits.ItemSpan{Y: cur.Y, H: 1}, true
-		}
-		visStart = c.revealScroll(rn, total, h, seed, span, hasSpan)
-	}
-
-	win := allLines[visStart:min(total, visStart+h)]
+	visStart := c.treeMultiLineVisStart(rn, rows, rowStarts, rowEnds, selRow, total, h, cur)
+	visEnd := min(total, visStart+h)
+	win := c.renderTreeWindow(rn, rows, rowStarts, rowEnds, editLines, selRow, vFrom, vTo, hasVisual, wrap, w, visStart, visEnd)
 	if cur != nil {
 		cur.Y -= visStart
 		if cur.Y < 0 || cur.Y >= len(win) {
