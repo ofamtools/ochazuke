@@ -22,10 +22,75 @@ const (
 )
 
 // RegisterValue is the content of one register. Linewise text excludes the
-// final line terminator.
+// final line terminator. A register may carry a plain text representation
+// alongside optional structured metadata (refs, field, cut flag, source,
+// extensible meta) so paste targets can consume either form.
 type RegisterValue struct {
-	Text     string `json:"text"`
-	Linewise bool   `json:"linewise,omitempty"`
+	Text     string         `json:"text"`
+	Linewise bool           `json:"linewise,omitempty"`
+	Kind     string         `json:"kind,omitempty"`   // e.g. "refs", "field", "text", "code", "path"
+	Refs     []Ref          `json:"refs,omitempty"`   // 1 or N visually-selected records
+	Field    string         `json:"field,omitempty"`  // set when user explicitly picked a field (e.g. "title", "markdown")
+	Cut      bool           `json:"cut,omitempty"`    // true when cut/move, false when copy/yank
+	Source   string         `json:"source,omitempty"` // origin scope/screen
+	Meta     map[string]any `json:"meta,omitempty"`   // optional extensible payload
+}
+
+// HasRefs reports whether the register carries at least one structured Ref.
+func (v RegisterValue) HasRefs() bool { return len(v.Refs) > 0 }
+
+// Clone returns a copy of v with independent Refs and Meta storage.
+func (v RegisterValue) Clone() RegisterValue {
+	v.Refs = slices.Clone(v.Refs)
+	v.Meta = cloneMeta(v.Meta)
+	return v
+}
+
+func cloneMeta(m map[string]any) map[string]any {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = cloneAny(v)
+	}
+	return out
+}
+
+func cloneAny(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		return cloneMeta(x)
+	case []any:
+		if x == nil {
+			return []any(nil)
+		}
+		out := make([]any, len(x))
+		for i, elem := range x {
+			out[i] = cloneAny(elem)
+		}
+		return out
+	case []string:
+		return slices.Clone(x)
+	case []Ref:
+		return slices.Clone(x)
+	default:
+		return v
+	}
+}
+
+func mergeMeta(old, add map[string]any) map[string]any {
+	if len(old) == 0 && len(add) == 0 {
+		return nil
+	}
+	out := make(map[string]any, len(old)+len(add))
+	for k, v := range old {
+		out[k] = cloneAny(v)
+	}
+	for k, v := range add {
+		out[k] = cloneAny(v)
+	}
+	return out
 }
 
 // Registers is a Vim-style register bank. Its zero value is empty and ready
@@ -69,7 +134,10 @@ func (r Registers) Get(reg rune) (RegisterValue, bool) {
 		return RegisterValue{}, false
 	}
 	v, ok := r.m[reg]
-	return v, ok
+	if !ok {
+		return RegisterValue{}, false
+	}
+	return v.Clone(), true
 }
 
 func (r *Registers) write(reg rune, v RegisterValue) {
@@ -77,30 +145,80 @@ func (r *Registers) write(reg rune, v RegisterValue) {
 	if m == nil {
 		m = map[rune]RegisterValue{}
 	}
-	m[reg] = v
+	m[reg] = v.Clone()
 	r.m = m
+}
+
+func isRefsPair(a, b RegisterValue) bool {
+	if a.Kind == "refs" && b.Kind == "refs" {
+		return true
+	}
+	return a.Kind == "" && b.Kind == "" && a.HasRefs() && b.HasRefs()
+}
+
+func joinAppendedText(a, b string, linewise, sepNewline bool) string {
+	if linewise || (sepNewline && a != "" && b != "") {
+		return a + "\n" + b
+	}
+	return a + b
+}
+
+func commonString(a, b string) string {
+	if a == b {
+		return a
+	}
+	return ""
+}
+
+func mergeRefs(a, b []Ref) []Ref {
+	if len(a) == 0 && len(b) == 0 {
+		return nil
+	}
+	out := make([]Ref, 0, len(a)+len(b))
+	out = append(out, a...)
+	return append(out, b...)
 }
 
 // appended returns the value stored after appending v to reg's content.
 func (r Registers) appended(reg rune, v RegisterValue) RegisterValue {
 	old, ok := r.m[reg]
 	if !ok {
-		return v
+		return v.Clone()
 	}
-	if old.Linewise || v.Linewise {
-		return RegisterValue{Text: old.Text + "\n" + v.Text, Linewise: true}
+	linewise := old.Linewise || v.Linewise
+	bothRefs := isRefsPair(old, v)
+	out := RegisterValue{
+		Text:     joinAppendedText(old.Text, v.Text, linewise, bothRefs),
+		Linewise: linewise,
+		Cut:      old.Cut && v.Cut,
 	}
-	return RegisterValue{Text: old.Text + v.Text}
+	if old.Kind == v.Kind {
+		out.Kind = old.Kind
+		out.Field = commonString(old.Field, v.Field)
+		out.Source = commonString(old.Source, v.Source)
+		out.Meta = mergeMeta(old.Meta, v.Meta)
+	}
+	if bothRefs {
+		out.Refs = mergeRefs(old.Refs, v.Refs)
+	}
+	return out
 }
 
 // Set stores text in reg directly, without touching other registers. An
 // uppercase name appends. The black hole discards the write.
 func (r *Registers) Set(reg rune, text string, linewise bool) {
+	r.SetValue(reg, RegisterValue{Text: text, Linewise: linewise})
+}
+
+// SetValue stores v in reg directly, without touching other registers. An
+// uppercase name appends. The black hole discards the write. Refs and Meta
+// are cloned on write so Registers remains copy-on-write and immutable to callers.
+func (r *Registers) SetValue(reg rune, v RegisterValue) {
 	reg = normalizeRegister(reg)
 	if reg == RegBlackHole {
 		return
 	}
-	v := RegisterValue{Text: text, Linewise: linewise}
+	v = v.Clone()
 	if reg >= 'A' && reg <= 'Z' {
 		reg = lower(reg)
 		v = r.appended(reg, v)
@@ -123,11 +241,20 @@ func (r *Registers) setNamed(reg rune, v RegisterValue) RegisterValue {
 // named register (appending for 'A'..'Z') or a special register receives
 // it when given; and the unnamed register "" mirrors the register written.
 func (r *Registers) Yank(reg rune, text string, linewise bool) {
+	r.YankValue(reg, RegisterValue{Text: text, Linewise: linewise})
+}
+
+// YankValue records a typed yank: the yank register "0 always receives v
+// (with Cut cleared); a named register (appending for 'A'..'Z', merging Text
+// and Refs when both are "refs") or a special register receives it when given;
+// and the unnamed register "" mirrors the register written.
+func (r *Registers) YankValue(reg rune, v RegisterValue) {
 	reg = normalizeRegister(reg)
 	if reg == RegBlackHole {
 		return
 	}
-	v := RegisterValue{Text: text, Linewise: linewise}
+	v = v.Clone()
+	v.Cut = false
 	r.write(RegYank, v)
 	switch {
 	case IsNamed(reg):
@@ -143,18 +270,28 @@ func (r *Registers) Yank(reg rune, text string, linewise bool) {
 // Multi-line or linewise deletes shift "1.."9; small deletes into no named
 // register go to "-.
 func (r *Registers) Delete(reg rune, text string, linewise bool) {
+	r.DeleteValue(reg, RegisterValue{Text: text, Linewise: linewise})
+}
+
+// DeleteValue records a typed delete: it marks v.Cut true, preserves "0,
+// updates any named/special register and "", shifts "1.."9 for linewise,
+// multi-line, or structured-ref deletes, and writes unnamed small plain-text
+// deletes to "-.
+func (r *Registers) DeleteValue(reg rune, v RegisterValue) {
 	reg = normalizeRegister(reg)
 	if reg == RegBlackHole {
 		return
 	}
-	v := RegisterValue{Text: text, Linewise: linewise}
+	orig := v.Clone()
+	orig.Cut = true
+	stored := orig
 	named := IsNamed(reg)
 	if named {
-		v = r.setNamed(reg, v)
+		stored = r.setNamed(reg, orig)
 	} else if isSpecialRegister(reg) {
-		r.write(reg, v)
+		r.write(reg, orig)
 	}
-	if linewise || strings.Contains(text, "\n") {
+	if orig.Linewise || strings.Contains(orig.Text, "\n") || orig.HasRefs() {
 		m := maps.Clone(r.m)
 		if m == nil {
 			m = map[rune]RegisterValue{}
@@ -166,22 +303,28 @@ func (r *Registers) Delete(reg rune, text string, linewise bool) {
 				delete(m, n)
 			}
 		}
-		m['1'] = RegisterValue{Text: text, Linewise: linewise}
+		m['1'] = orig.Clone()
 		r.m = m
 	} else if !named {
-		r.write(RegSmallDel, v)
+		r.write(RegSmallDel, stored)
 	}
-	r.write(RegUnnamed, v)
+	r.write(RegUnnamed, stored)
 }
 
 // SetSpecial stores a read-mostly register: '%' (path or ref), '/' (last
 // search), ':' (last command), '+' (clipboard), '*' (selection) or '.'
 // (last insert). It reports false for any other name.
 func (r *Registers) SetSpecial(reg rune, text string) bool {
+	return r.SetSpecialValue(reg, RegisterValue{Text: text})
+}
+
+// SetSpecialValue stores a typed value in a read-mostly special register.
+// It reports false for any non-special register name.
+func (r *Registers) SetSpecialValue(reg rune, v RegisterValue) bool {
 	if !isSpecialRegister(reg) {
 		return false
 	}
-	r.write(reg, RegisterValue{Text: text})
+	r.write(reg, v)
 	return true
 }
 
@@ -194,9 +337,9 @@ func (r Registers) Names() []rune {
 
 // Snapshot returns a copy of every register.
 func (r Registers) Snapshot() map[rune]RegisterValue {
-	out := maps.Clone(r.m)
-	if out == nil {
-		out = map[rune]RegisterValue{}
+	out := make(map[rune]RegisterValue, len(r.m))
+	for k, v := range r.m {
+		out[k] = v.Clone()
 	}
 	return out
 }
