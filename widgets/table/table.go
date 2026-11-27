@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -106,6 +105,8 @@ type Model struct {
 	// MotionSelection is the range the last motion.object.select reported, in
 	// MotionNodes indices (nil when the focused item has no such object).
 	MotionSelection *traits.ObjectRange
+
+	cache *tableCache
 }
 
 // New returns a model with defaults.
@@ -118,6 +119,7 @@ func (m Model) Copy() Model {
 	m.Collapsed = cloneBool(m.Collapsed)
 	m.Marked = cloneBool(m.Marked)
 	m.SortKeys = slices.Clone(m.SortKeys)
+	m.cache = nil
 	return m
 }
 
@@ -227,149 +229,6 @@ func (m *Model) rowMatches(r Row, match traits.Matcher) bool {
 	return false
 }
 
-func (m *Model) resolveFieldKey(r Row, field string) (string, bool) {
-	if field == "" {
-		return "", false
-	}
-	for _, c := range m.Columns {
-		if c.Key == field {
-			return c.Key, true
-		}
-	}
-	if _, ok := r.Cells[field]; ok {
-		return field, true
-	}
-	lf := strings.ToLower(field)
-	for _, c := range m.Columns {
-		if strings.ToLower(c.Key) == lf {
-			return c.Key, true
-		}
-	}
-	for k := range r.Cells {
-		if strings.ToLower(k) == lf {
-			return k, true
-		}
-	}
-	return "", false
-}
-
-func (m *Model) rowContains(r Row, term string) bool {
-	lt := strings.ToLower(term)
-	if m.FilterField != "" {
-		return strings.Contains(strings.ToLower(Text(r.Cells[m.FilterField])), lt)
-	}
-	for _, c := range m.Columns {
-		if strings.Contains(strings.ToLower(Text(r.Cells[c.Key])), lt) {
-			return true
-		}
-	}
-	return false
-}
-
-func (m *Model) evalAlt(r Row, alt string) bool {
-	if m.FilterField == "" {
-		if idx := strings.Index(alt, "!="); idx > 0 {
-			if key, ok := m.resolveFieldKey(r, alt[:idx]); ok {
-				val := alt[idx+2:]
-				return !strings.Contains(strings.ToLower(Text(r.Cells[key])), strings.ToLower(val))
-			}
-		}
-		if idx := strings.Index(alt, ":"); idx > 0 {
-			if key, ok := m.resolveFieldKey(r, alt[:idx]); ok {
-				val := alt[idx+1:]
-				neg := false
-				if strings.HasPrefix(val, "!") && len(val) > 1 {
-					neg, val = true, val[1:]
-				}
-				hit := strings.Contains(strings.ToLower(Text(r.Cells[key])), strings.ToLower(val))
-				if neg {
-					return !hit
-				}
-				return hit
-			}
-		}
-	}
-	return m.rowContains(r, alt)
-}
-
-func (m *Model) evalClause(r Row, tok string) bool {
-	neg := false
-	body := tok
-	switch {
-	case strings.HasPrefix(body, "!=") && len(body) > 2:
-		neg, body = true, body[2:]
-	case strings.HasPrefix(body, "!") && len(body) > 1:
-		neg, body = true, body[1:]
-	}
-	// Check for field:a|b or field!=a|b before splitting on |.
-	if m.FilterField == "" {
-		if idx := strings.Index(body, "!="); idx > 0 {
-			if key, ok := m.resolveFieldKey(r, body[:idx]); ok {
-				cell := strings.ToLower(Text(r.Cells[key]))
-				alts := strings.Split(body[idx+2:], "|")
-				matched := false
-				for _, a := range alts {
-					if strings.Contains(cell, strings.ToLower(a)) {
-						matched = true
-						break
-					}
-				}
-				// field!=val negates the match; a leading ! flips it back.
-				res := !matched
-				if neg {
-					return !res
-				}
-				return res
-			}
-		}
-		if idx := strings.Index(body, ":"); idx > 0 {
-			if key, ok := m.resolveFieldKey(r, body[:idx]); ok {
-				rest := body[idx+1:]
-				if strings.HasPrefix(rest, "!") && len(rest) > 1 {
-					neg, rest = !neg, rest[1:]
-				}
-				cell := strings.ToLower(Text(r.Cells[key]))
-				alts := strings.Split(rest, "|")
-				matched := false
-				for _, a := range alts {
-					if strings.Contains(cell, strings.ToLower(a)) {
-						matched = true
-						break
-					}
-				}
-				if neg {
-					return !matched
-				}
-				return matched
-			}
-		}
-	}
-	alts := strings.Split(body, "|")
-	matched := false
-	for _, a := range alts {
-		if a == "" && len(alts) > 1 {
-			continue
-		}
-		if m.evalAlt(r, a) {
-			matched = true
-			break
-		}
-	}
-	if neg {
-		return !matched
-	}
-	return matched
-}
-
-func (m *Model) rowMatchesExpr(r Row, clauses []string) bool {
-	for _, c := range clauses {
-		if !m.evalClause(r, c) {
-			return false
-		}
-	}
-	return true
-}
-
 func (m *Model) effectiveSortKeys() []SortKey {
 	if len(m.SortKeys) > 0 {
 		out := make([]SortKey, 0, len(m.SortKeys))
@@ -395,98 +254,18 @@ func (m *Model) syncPrimarySort() {
 
 // Filtered returns rows passing the filter, sorted. It refreshes FilterErr.
 func (m *Model) Filtered() []Row {
-	return m.filteredSlice(true)
+	return cloneFilteredRows(m.cachedFiltered())
 }
 
-func (m *Model) filteredSlice(cloneUnmodified bool) []Row {
-	var out []Row
-	unmodified := false
-	if m.Query == "" {
-		m.FilterErr = ""
-		if cloneUnmodified {
-			out = slices.Clone(m.Rows)
-		} else {
-			out = m.Rows
-			unmodified = true
-		}
-	} else if m.MatchMode == "" || m.MatchMode == MatchSubstring {
-		m.FilterErr = ""
-		clauses := strings.Fields(m.Query)
-		if len(clauses) == 0 {
-			match := m.matcher()
-			for _, r := range m.Rows {
-				if m.rowMatches(r, match) {
-					out = append(out, r)
-				}
-			}
-		} else {
-			for _, r := range m.Rows {
-				if m.rowMatchesExpr(r, clauses) {
-					out = append(out, r)
-				}
-			}
-		}
-	} else {
-		match := m.matcher()
-		for _, r := range m.Rows {
-			if m.rowMatches(r, match) {
-				out = append(out, r)
-			}
-		}
-	}
-	if len(m.SortKeys) > 0 {
-		m.syncPrimarySort()
-	}
-	if keys := m.effectiveSortKeys(); len(keys) > 0 {
-		if unmodified {
-			out = slices.Clone(m.Rows)
-		}
-		sort.SliceStable(out, func(i, j int) bool {
-			for _, k := range keys {
-				c := compare(out[i].Cells[k.Field], out[j].Cells[k.Field])
-				if c != 0 {
-					if k.Dir == SortDesc {
-						return c > 0
-					}
-					return c < 0
-				}
-			}
-			return out[i].ID < out[j].ID
-		})
-	}
-	return out
+// FilteredCount returns the number of rows passing the filter without cloning
+// the filtered row slice. It refreshes FilterErr.
+func (m *Model) FilteredCount() int {
+	return len(m.cachedFiltered())
 }
 
 // Items returns the display lines: filtered, sorted, grouped.
 func (m *Model) Items() []Item {
-	rows := m.filteredSlice(false)
-	if m.GroupField == "" {
-		out := make([]Item, len(rows))
-		for i := range rows {
-			out[i] = Item{Row: rows[i]}
-		}
-		return out
-	}
-	var order []string
-	groups := map[string][]Row{}
-	for _, r := range rows {
-		g := Text(r.Cells[m.GroupField])
-		if _, ok := groups[g]; !ok {
-			order = append(order, g)
-		}
-		groups[g] = append(groups[g], r)
-	}
-	var out []Item
-	for _, g := range order {
-		col := m.Collapsed[g]
-		out = append(out, Item{Header: true, Group: g, Count: len(groups[g]), Collapsed: col})
-		if !col {
-			for _, r := range groups[g] {
-				out = append(out, Item{Group: g, Row: r})
-			}
-		}
-	}
-	return out
+	return m.cachedItems()
 }
 
 func (m *Model) viewportState(n int) traits.ViewportState {
@@ -565,7 +344,7 @@ func (m *Model) snapToGroup(g string) {
 func (m *Model) groupsAll() []string {
 	var out []string
 	seen := map[string]bool{}
-	for _, r := range m.Filtered() {
+	for _, r := range m.cachedFiltered() {
 		g := Text(r.Cells[m.GroupField])
 		if !seen[g] {
 			seen[g] = true
@@ -777,7 +556,7 @@ func (m *Model) Filter(query string, mode traits.MatchMode) bool {
 		m.MatchMode = mode
 	}
 	m.SelectedIdx, m.Offset = 0, 0
-	return len(m.Filtered()) > 0
+	return m.FilteredCount() > 0
 }
 
 func (m *Model) FilterQuery() string { return m.Query }

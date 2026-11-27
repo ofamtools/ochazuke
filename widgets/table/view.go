@@ -174,40 +174,50 @@ func (h *fnv64a) writeRow(row any) {
 	}
 }
 
-// View renders the model as a ui.KindTable node.
-func (m *Model) View(id string) ui.ViewNode {
-	items := m.Items()
-	m.clamp(len(items))
-	sortKeys := m.effectiveSortKeys()
+func hashViewColumns(columns []Column, sortKeys []SortKey) uint64 {
 	h := newFNV64a()
-	ncols := len(m.Columns)
-	h.writeInt(ncols)
-	cols := make([]any, ncols)
-	colKeys := make([]string, ncols)
-	for i, c := range m.Columns {
-		colKeys[i] = c.Key
-		title := c.Title
-		if title == "" {
-			title = c.Key
-		}
-		for idx, sk := range sortKeys {
-			if c.Key == sk.Field && sk.Dir != SortNone {
-				arrow := "▲"
-				if sk.Dir == SortDesc {
-					arrow = "▼"
-				}
-				if len(sortKeys) > 1 {
-					title += fmt.Sprintf(" %s%d", arrow, idx+1)
-				} else {
-					title += " " + arrow
-				}
-				break
-			}
-		}
+	h.writeInt(len(columns))
+	for _, c := range columns {
 		h.writeString(c.Key)
-		h.writeString(title)
+		h.writeString(c.Title)
 		h.writeInt(c.Width)
 		h.writeString(c.Align)
+	}
+	h.writeInt(len(sortKeys))
+	for _, sk := range sortKeys {
+		h.writeString(sk.Field)
+		h.writeInt(int(sk.Dir))
+	}
+	return uint64(h)
+}
+
+func columnDisplayTitle(c Column, sortKeys []SortKey) string {
+	title := c.Title
+	if title == "" {
+		title = c.Key
+	}
+	for idx, sk := range sortKeys {
+		if c.Key == sk.Field && sk.Dir != SortNone {
+			arrow := "▲"
+			if sk.Dir == SortDesc {
+				arrow = "▼"
+			}
+			if len(sortKeys) > 1 {
+				return fmt.Sprintf("%s %s%d", title, arrow, idx+1)
+			}
+			return title + " " + arrow
+		}
+	}
+	return title
+}
+
+func buildViewColumns(columns []Column, sortKeys []SortKey) ([]any, []string) {
+	ncols := len(columns)
+	cols := make([]any, ncols)
+	colKeys := make([]string, ncols)
+	for i, c := range columns {
+		colKeys[i] = c.Key
+		title := columnDisplayTitle(c, sortKeys)
 		col := map[string]any{"key": c.Key, "title": title}
 		if c.Width > 0 {
 			col["width"] = c.Width
@@ -217,16 +227,130 @@ func (m *Model) View(id string) ui.ViewNode {
 		}
 		cols[i] = col
 	}
+	return cols, colKeys
+}
 
+func projectRowCells(rowCells map[string]any, colKeys []string, cells []any) {
+	for j, key := range colKeys {
+		raw := rowCells[key]
+		if _, ok := raw.(string); ok {
+			cells[j] = raw
+		} else if raw == nil {
+			cells[j] = emptyCellAny
+		} else if _, ok := ui.DecodeInlineRuns(raw); ok {
+			cells[j] = raw
+		} else {
+			cells[j] = Text(raw)
+		}
+	}
+}
+
+func applyMarkPrefix(cells []any, cellSpans [][]ui.ToneSpan, hasSpans bool) {
+	const markPrefix = "● "
+	if runs, ok := ui.DecodeInlineRuns(cells[0]); ok {
+		prefixed := make([]ui.InlineRun, 0, len(runs)+1)
+		prefixed = append(prefixed, ui.InlineRun{Text: markPrefix})
+		prefixed = append(prefixed, runs...)
+		cells[0] = prefixed
+	} else {
+		cells[0] = markPrefix + Text(cells[0])
+	}
+	if hasSpans && len(cellSpans[0]) > 0 {
+		shift := len([]rune(markPrefix))
+		shifted := make([]ui.ToneSpan, len(cellSpans[0]))
+		for si, sp := range cellSpans[0] {
+			sp.From += shift
+			if sp.To > 0 {
+				sp.To += shift
+			}
+			shifted[si] = sp
+		}
+		cellSpans[0] = shifted
+	}
+}
+
+func projectHeaderRow(it *Item, cells []any) any {
+	ncols := len(cells)
+	mark := "▾"
+	if it.Collapsed {
+		mark = "▸"
+	}
+	if ncols > 0 {
+		cells[0] = fmt.Sprintf("%s %s (%d)", mark, it.Group, it.Count)
+	}
+	for j := 1; j < ncols; j++ {
+		cells[j] = emptyCellAny
+	}
+	return ui.TableRowSpec{Cells: cells, Tone: "table.group"}
+}
+
+func projectDataRow(r *Row, colKeys []string, cells []any, slab *strSlab, marked bool) any {
+	projectRowCells(r.Cells, colKeys, cells)
+	var cellTones, cellIcons, iconTones []string
+	var cellSpans [][]ui.ToneSpan
+	var hasTones, hasIcons, hasIconTones, hasSpans bool
+	if len(r.CellTones) > 0 {
+		cellTones, hasTones = projectCellMap(colKeys, r.CellTones, slab)
+	}
+	if len(r.CellIcons) > 0 {
+		cellIcons, hasIcons = projectCellMap(colKeys, r.CellIcons, slab)
+	}
+	if len(r.IconTones) > 0 {
+		iconTones, hasIconTones = projectCellMap(colKeys, r.IconTones, slab)
+	}
+	if len(r.CellSpans) > 0 {
+		cellSpans, hasSpans = projectCellSpans(colKeys, r.CellSpans)
+	}
+	if len(cells) > 0 && marked {
+		applyMarkPrefix(cells, cellSpans, hasSpans)
+	}
+	if r.Tone != "" || hasTones || hasIcons || hasIconTones || hasSpans {
+		return ui.TableRowSpec{
+			Cells:     cells,
+			Tone:      r.Tone,
+			CellTones: cellTones,
+			CellIcons: cellIcons,
+			IconTones: iconTones,
+			CellSpans: cellSpans,
+		}
+	}
+	return cells
+}
+
+func (m *Model) liveRowAt(items []Item, itemRowIdx []int, i int) *Row {
+	if itemRowIdx == nil {
+		if i < len(m.Rows) {
+			return &m.Rows[i]
+		}
+		return &items[i].Row
+	}
+	if idx := itemRowIdx[i]; idx >= 0 && idx < len(m.Rows) {
+		return &m.Rows[idx]
+	}
+	return &items[i].Row
+}
+
+func visibleRowWindow(n, offset, pageSize int) (start, end int) {
+	start, end = 0, n
+	if n > 64 {
+		start = max(0, offset-2)
+		end = min(n, offset+max(pageSize, 32)+4)
+		if start > end {
+			start = end
+		}
+	}
+	return start, end
+}
+
+func (m *Model) projectAllRows(items []Item, itemRowIdx []int, colKeys []string, hasMarks bool) ([]any, []any) {
+	ncols := len(colKeys)
 	rows := make([]any, len(items))
 	var cellSlab []any
 	if ncols > 0 && len(items) > 0 {
 		cellSlab = make([]any, len(items)*ncols)
 	}
 	var slab strSlab
-	hasMarks := len(m.Marked) > 0
 	for i := range items {
-		it := &items[i]
 		var cells []any
 		if ncols > 0 {
 			base := i * ncols
@@ -234,106 +358,38 @@ func (m *Model) View(id string) ui.ViewNode {
 		} else {
 			cells = make([]any, 0)
 		}
-		if it.Header {
-			mark := "▾"
-			if it.Collapsed {
-				mark = "▸"
-			}
-			if ncols > 0 {
-				cells[0] = fmt.Sprintf("%s %s (%d)", mark, it.Group, it.Count)
-			}
-			for j := 1; j < ncols; j++ {
-				cells[j] = emptyCellAny
-			}
-			rows[i] = ui.TableRowSpec{Cells: cells, Tone: "table.group"}
+		if items[i].Header {
+			rows[i] = projectHeaderRow(&items[i], cells)
 			continue
 		}
-		rowCells := it.Row.Cells
-		for j, key := range colKeys {
-			raw := rowCells[key]
-			if _, ok := raw.(string); ok {
-				cells[j] = raw
-			} else if raw == nil {
-				cells[j] = emptyCellAny
-			} else if _, ok := ui.DecodeInlineRuns(raw); ok {
-				cells[j] = raw
-			} else {
-				cells[j] = Text(raw)
-			}
-		}
-		var cellTones, cellIcons, iconTones []string
-		var cellSpans [][]ui.ToneSpan
-		var hasTones, hasIcons, hasIconTones, hasSpans bool
-		if len(it.Row.CellTones) > 0 {
-			cellTones, hasTones = projectCellMap(colKeys, it.Row.CellTones, &slab)
-		}
-		if len(it.Row.CellIcons) > 0 {
-			cellIcons, hasIcons = projectCellMap(colKeys, it.Row.CellIcons, &slab)
-		}
-		if len(it.Row.IconTones) > 0 {
-			iconTones, hasIconTones = projectCellMap(colKeys, it.Row.IconTones, &slab)
-		}
-		if len(it.Row.CellSpans) > 0 {
-			cellSpans, hasSpans = projectCellSpans(colKeys, it.Row.CellSpans)
-		}
-		if ncols > 0 && hasMarks && m.Marked[it.Row.ID] {
-			const markPrefix = "● "
-			if runs, ok := ui.DecodeInlineRuns(cells[0]); ok {
-				prefixed := make([]ui.InlineRun, 0, len(runs)+1)
-				prefixed = append(prefixed, ui.InlineRun{Text: markPrefix})
-				prefixed = append(prefixed, runs...)
-				cells[0] = prefixed
-			} else {
-				cells[0] = markPrefix + Text(cells[0])
-			}
-			if hasSpans && len(cellSpans[0]) > 0 {
-				shift := len([]rune(markPrefix))
-				shifted := make([]ui.ToneSpan, len(cellSpans[0]))
-				for si, sp := range cellSpans[0] {
-					sp.From += shift
-					if sp.To > 0 {
-						sp.To += shift
-					}
-					shifted[si] = sp
-				}
-				cellSpans[0] = shifted
-			}
-		}
-		if it.Row.Tone != "" || hasTones || hasIcons || hasIconTones || hasSpans {
-			rows[i] = ui.TableRowSpec{
-				Cells:     cells,
-				Tone:      it.Row.Tone,
-				CellTones: cellTones,
-				CellIcons: cellIcons,
-				IconTones: iconTones,
-				CellSpans: cellSpans,
-			}
-		} else {
-			rows[i] = cells
-		}
+		r := m.liveRowAt(items, itemRowIdx, i)
+		rows[i] = projectDataRow(r, colKeys, cells, &slab, hasMarks && m.Marked[r.ID])
 	}
-	props := map[string]any{"columns": cols, "rows": rows, "selected": m.SelectedIdx, "offset": m.Offset}
-	vFrom, vTo, vOK := m.visualBounds(len(items))
-	if vOK {
-		props["visualFrom"] = vFrom
-		props["visualTo"] = vTo
-	}
-	selCol := -1
-	if m.CellSelect && ncols > 0 {
-		selCol = max(0, min(m.SelectedCol, ncols-1))
-		props["selectedCol"] = selCol
-	}
-	n := ui.ViewNode{
-		ID: id, Kind: ui.KindTable, Focusable: true,
-		Traits: []string{traits.TraitNav, traits.TraitScroll, traits.TraitFilter, traits.TraitSelect},
-		Props:  props,
-	}
-	cf := m.contextFrameFor("", id, items)
-	n.Scope, n.Ref, n.Facts = cf.Scope, cf.Subject, cf.Facts
-	if r, ok := m.focusedRowFor(items); ok {
-		n.Unread, n.Badges = r.Unread, r.Badges
-	}
+	return rows, cellSlab
+}
 
+func (m *Model) refreshVisibleRows(items []Item, itemRowIdx []int, colKeys []string, rows, cellSlab []any, start, end int, hasMarks bool) {
+	ncols := len(colKeys)
+	var slab strSlab
+	for i := start; i < end; i++ {
+		if items[i].Header {
+			continue
+		}
+		var cells []any
+		if ncols > 0 {
+			base := i * ncols
+			cells = cellSlab[base : base+ncols : base+ncols]
+		} else {
+			cells = make([]any, 0)
+		}
+		r := m.liveRowAt(items, itemRowIdx, i)
+		rows[i] = projectDataRow(r, colKeys, cells, &slab, hasMarks && m.Marked[r.ID])
+	}
+}
+
+func (m *Model) viewCacheKey(colsHash uint64, items []Item, rows []any, sortKeys []SortKey, n *ui.ViewNode, vOK bool, vFrom, vTo, selCol, start, end int, hasMarks bool) uint64 {
+	h := newFNV64a()
+	h.writeInt(int(colsHash))
 	rowCount, _ := n.Facts["rowCount"].(int)
 	markedCount, _ := n.Facts["markedCount"].(int)
 	focusedMarked, _ := n.Facts["marked"].(bool)
@@ -371,15 +427,6 @@ func (m *Model) View(id string) ui.ViewNode {
 		h.writeString(b.Text)
 		h.writeString(b.Tone)
 	}
-
-	start, end := 0, len(rows)
-	if len(rows) > 64 {
-		start = max(0, m.Offset-2)
-		end = min(len(rows), m.Offset+max(m.PageSize, 32)+4)
-		if start > end {
-			start = end
-		}
-	}
 	h.writeInt(start)
 	h.writeInt(end)
 	for i := start; i < end; i++ {
@@ -388,7 +435,65 @@ func (m *Model) View(id string) ui.ViewNode {
 			h.writeBool(m.Marked[items[i].Row.ID])
 		}
 	}
-	n.CacheKey = uint64(h) | 1
+	return uint64(h) | 1
+}
+
+// View renders the model as a ui.KindTable node.
+func (m *Model) View(id string) ui.ViewNode {
+	items, itemRowIdx := m.cachedItemsWithIdx()
+	m.clamp(len(items))
+	sortKeys := m.effectiveSortKeys()
+	ncols := len(m.Columns)
+	colsHash := hashViewColumns(m.Columns, sortKeys)
+	markedHash, markedCount := hashBoolMapTrue(m.Marked)
+	hasMarks := markedCount > 0
+
+	c := m.cache
+	vsig := viewSignature{
+		itemsVer:    c.itemsVer,
+		colsHash:    colsHash,
+		markedHash:  markedHash,
+		markedCount: markedCount,
+	}
+	start, end := visibleRowWindow(len(items), m.Offset, m.PageSize)
+	if c.viewValid && c.viewSig == vsig {
+		m.refreshVisibleRows(items, itemRowIdx, c.colKeys, c.rows, c.cellSlab, start, end, hasMarks)
+	} else {
+		cols, colKeys := buildViewColumns(m.Columns, sortKeys)
+		rows, cellSlab := m.projectAllRows(items, itemRowIdx, colKeys, hasMarks)
+		c.viewValid = true
+		c.viewSig = vsig
+		c.cols = cols
+		c.colKeys = colKeys
+		c.colsHash = colsHash
+		c.rows = rows
+		c.cellSlab = cellSlab
+	}
+	cols, rows := c.cols, c.rows
+
+	props := map[string]any{"columns": cols, "rows": rows, "selected": m.SelectedIdx, "offset": m.Offset}
+	vFrom, vTo, vOK := m.visualBounds(len(items))
+	if vOK {
+		props["visualFrom"] = vFrom
+		props["visualTo"] = vTo
+	}
+	selCol := -1
+	if m.CellSelect && ncols > 0 {
+		selCol = max(0, min(m.SelectedCol, ncols-1))
+		props["selectedCol"] = selCol
+	}
+	n := ui.ViewNode{
+		ID: id, Kind: ui.KindTable, Focusable: true,
+		Traits: []string{traits.TraitNav, traits.TraitScroll, traits.TraitFilter, traits.TraitSelect},
+		Props:  props,
+	}
+	cf := m.contextFrameFor("", id, items)
+	n.Scope, n.Ref, n.Facts = cf.Scope, cf.Subject, cf.Facts
+	if len(items) > 0 && !items[m.SelectedIdx].Header {
+		r := m.liveRowAt(items, itemRowIdx, m.SelectedIdx)
+		n.Unread, n.Badges = r.Unread, r.Badges
+	}
+	n.CacheKey = m.viewCacheKey(colsHash, items, rows, sortKeys, &n, vOK, vFrom, vTo, selCol, start, end, hasMarks)
 	return n
 }
 

@@ -225,6 +225,8 @@ func (sh *Shell) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		sh.recordInput(ev)
 	}
 
+	prevState := sh.State
+	prevDirty := sh.dirty
 	var chain []core.ContextFrame
 	if sh.ViewFn != nil {
 		chain = ui.ContextChain(sh.ViewFn(sh.State), sh.State.ActiveFrame().FocusID, sh.facts())
@@ -253,13 +255,43 @@ func (sh *Shell) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	cmds := sh.perform(res.Effects)
+	cmds = sh.finishRender(ev, prevState, prevDirty, res, cmds)
+	return sh, tea.Batch(cmds...)
+}
+
+func inputStateUnchanged(a, b core.InputState) bool {
+	return a.Idle() && b.Idle() && a.Register == b.Register && a.Seq == b.Seq
+}
+
+// isDeferredPassThrough reports whether Step produced only a PassToWidgetEffect
+// without mutating shell state and OnPassThrough emitted a follow-up tea.Cmd.
+// Skipping render avoids drawing an unchanged frame before the command runs.
+func isDeferredPassThrough(prev core.State, res core.StepResult, cmds []tea.Cmd, valid bool) bool {
+	if !valid || len(res.Trace.Commands) > 0 || len(res.Effects) != 1 || len(cmds) == 0 {
+		return false
+	}
+	if _, ok := res.Effects[0].(core.PassToWidgetEffect); !ok {
+		return false
+	}
+	return prev.ActivePage == res.State.ActivePage &&
+		prev.ActiveFrame().FocusID == res.State.ActiveFrame().FocusID &&
+		prev.ActiveFrame().Mode == res.State.ActiveFrame().Mode &&
+		len(prev.Modals) == len(res.State.Modals) &&
+		inputStateUnchanged(prev.Input, res.State.Input)
+}
+
+func (sh *Shell) finishRender(ev core.Event, prevState core.State, prevDirty bool, res core.StepResult, cmds []tea.Cmd) []tea.Cmd {
+	if isDeferredPassThrough(prevState, res, cmds, sh.valid) {
+		sh.dirty = prevDirty
+		return cmds
+	}
 	if _, background := ev.(core.EffectResultEvent); !background || sh.MaxFPS <= 0 {
 		sh.render()
 	} else if !sh.framePending {
 		sh.framePending = true
 		cmds = append(cmds, tea.Tick(time.Second/time.Duration(sh.MaxFPS), func(time.Time) tea.Msg { return frameMsg{} }))
 	}
-	return sh, tea.Batch(cmds...)
+	return cmds
 }
 
 func (sh *Shell) recordInput(ev core.Event) {

@@ -221,6 +221,77 @@ func TestPassThroughAndHooks(t *testing.T) {
 	}
 }
 
+func TestPassThroughSkipsWastedRenderWhenDeferred(t *testing.T) {
+	sh := newShell(t, cards)
+	var termKeys []string
+	sh.Engine.Handle("term.input", func(s core.State, c core.Command) core.StepResult {
+		termKeys = append(termKeys, c.Arg("key"))
+		return core.Next(s)
+	})
+	sh.OnPassThrough = func(e core.PassToWidgetEffect) tea.Cmd {
+		if e.Mouse != nil || e.Key == "" {
+			return nil
+		}
+		return func() tea.Msg {
+			return core.CommandEvent{Command: core.Command{ID: "term.input", Args: map[string]any{"key": e.Key, "text": e.Text}}}
+		}
+	}
+
+	sh.Update(core.CommandEvent{Command: core.Command{ID: "mode.set", Args: map[string]any{"mode": "term"}}})
+	before := sh.Renders
+
+	// Deferred pass-through key (returns a tea.Cmd without mutating shell state)
+	// must skip the wasted immediate render before the command runs.
+	_, cmd := sh.Update(tea.KeyPressMsg{Code: 'x', Text: "x"})
+	if cmd == nil {
+		t.Fatal("expected follow-up tea.Cmd from OnPassThrough")
+	}
+	if sh.Renders != before {
+		t.Fatalf("deferred PassToWidgetEffect triggered wasted render: renders=%d, want %d", sh.Renders, before)
+	}
+
+	// Executing the emitted CommandEvent runs the handler and renders once.
+	for _, msg := range run(cmd) {
+		sh.Update(msg)
+	}
+	if len(termKeys) != 1 || termKeys[0] != "x" {
+		t.Fatalf("termKeys = %v, want [x]", termKeys)
+	}
+	if sh.Renders != before+1 {
+		t.Fatalf("after CommandEvent renders=%d, want %d", sh.Renders, before+1)
+	}
+
+	// If a coalesced background result left sh.dirty=true before a deferred
+	// pass-through key, sh.dirty must remain true so frameMsg still renders it.
+	_, tickCmd := sh.Update(core.EffectResultEvent{Slot: "bg"})
+	if !sh.dirty {
+		t.Fatal("expected sh.dirty=true after coalesced EffectResultEvent")
+	}
+	beforeDirty := sh.Renders
+	_, _ = sh.Update(tea.KeyPressMsg{Code: 'y', Text: "y"})
+	if sh.Renders != beforeDirty {
+		t.Fatalf("deferred pass-through with pending dirty rendered early: %d != %d", sh.Renders, beforeDirty)
+	}
+	if !sh.dirty {
+		t.Fatal("deferred pass-through cleared pending sh.dirty")
+	}
+	for _, msg := range run(tickCmd) {
+		sh.Update(msg)
+	}
+	if sh.Renders != beforeDirty+1 {
+		t.Fatalf("frameMsg did not flush pending dirty frame: renders=%d, want %d", sh.Renders, beforeDirty+1)
+	}
+
+	// Synchronous OnPassThrough returning nil (mutating external widget state)
+	// must still render immediately.
+	sh.OnPassThrough = func(e core.PassToWidgetEffect) tea.Cmd { return nil }
+	beforeSync := sh.Renders
+	sh.Update(tea.KeyPressMsg{Code: 'z', Text: "z"})
+	if sh.Renders != beforeSync+1 {
+		t.Fatalf("synchronous OnPassThrough returning nil skipped render: renders=%d, want %d", sh.Renders, beforeSync+1)
+	}
+}
+
 func TestExecEffectBuildsCommand(t *testing.T) {
 	sh := newShell(t, cards)
 	sh.Engine.Handle("run.it", func(s core.State, c core.Command) core.StepResult {
