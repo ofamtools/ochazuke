@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"slices"
 	"strings"
@@ -10,11 +11,18 @@ import (
 	"ofam.dev/ochazuke/widgets/bindings"
 )
 
+//go:embed keyboard_bindings.json
+var keyboardBindingsJSON []byte
+
 // keysBindings drive the editor. Every other binding of the app is a row in
 // it, and each edit recompiles the engine keymap, so changes are live.
 func keysBindings() []core.Binding {
 	b := func(mode string, keys []string, cmd, hint string) core.Binding {
-		return core.Binding{Scope: "tab.keys", Mode: mode, Keys: keys, Command: cmd, Hint: hint}
+		row := core.Binding{Scope: "tab.keys", Mode: mode, Keys: keys, Command: cmd, Hint: hint}
+		if mode == "normal" {
+			row.Scope, row.When = "bindings", `facts.viewMode == "table"`
+		}
+		return row
 	}
 	return []core.Binding{
 		b("normal", k("r"), "keys.capture.start", "rebind (press the new key)"),
@@ -35,6 +43,12 @@ func keysBindings() []core.Binding {
 
 func (a *app) keysHandlers() {
 	m := a.keys
+	a.route("tab.keys", a.toggleKeysView, bindings.CmdViewToggle)
+	a.route("tab.keys", func(s core.State, c core.Command) core.State {
+		m.HandleCommand(c)
+		return s
+	}, bindings.CmdPrefixNext, bindings.CmdPrefixPrev, bindings.CmdPrefixSelect,
+		bindings.CmdPrefixClear, bindings.CmdShiftToggle, bindings.CmdKeySelect)
 	a.route("tab.keys", func(s core.State, c core.Command) core.State {
 		switch c.ID {
 		case "keys.capture.start":
@@ -79,6 +93,16 @@ func (a *app) keysHandlers() {
 		"bindings.filter.append", "bindings.filter.backspace", "table.filter.mode.cycle"))...)
 }
 
+func (a *app) toggleKeysView(s core.State, c core.Command) core.State {
+	a.keys.HandleCommand(c)
+	f := s.ActiveFrame()
+	f.FocusID = "keys.table"
+	if a.keys.ViewMode == bindings.ViewKeyboard {
+		f.FocusID = "keys.keyboard"
+	}
+	return s.WithActiveFrame(f)
+}
+
 // diagnostics explains the focused row: every conflict with the row it
 // involves, and the first key FindFreeBinding offers in the same context.
 func (a *app) diagnostics() []string {
@@ -118,6 +142,9 @@ func (a *app) diagnostics() []string {
 func (a *app) keysView(s core.State) []ui.ViewNode {
 	ev := a.keys.View("keys")
 	ev.Box = flex1
+	if a.keys.ViewMode == bindings.ViewKeyboard {
+		return []ui.ViewNode{ev}
+	}
 	diag := ui.ViewNode{Kind: ui.KindPanel, Title: "Diagnostics", Border: true}
 	for _, line := range a.diagnostics() {
 		tone := "text"

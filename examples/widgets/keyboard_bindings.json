@@ -1,0 +1,14 @@
+[
+  {"scope":"bindings", "mode":"normal", "keys":["v"], "command":"bindings.view.toggle", "hint":"table / keyboard"},
+  {"scope":"bindings", "mode":"normal", "keys":["j"], "when":"facts.viewMode == \"keyboard\"", "command":"bindings.prefix.next", "hint":"next prefix"},
+  {"scope":"bindings", "mode":"normal", "keys":["k"], "when":"facts.viewMode == \"keyboard\"", "command":"bindings.prefix.prev", "hint":"previous prefix"},
+  {"scope":"bindings", "mode":"normal", "keys":["backspace"], "when":"facts.viewMode == \"keyboard\"", "command":"bindings.prefix.clear", "hint":"base layer"},
+  {"scope":"bindings", "mode":"normal", "keys":["s"], "when":"facts.viewMode == \"keyboard\"", "command":"bindings.shift.toggle", "hint":"toggle Shift"},
+  {"scope":"bindings", "mode":"normal", "keys":["left"], "when":"facts.viewMode == \"keyboard\"", "command":"focus.left", "hint":"focus left"},
+  {"scope":"bindings", "mode":"normal", "keys":["right"], "when":"facts.viewMode == \"keyboard\"", "command":"focus.right", "hint":"focus right"},
+  {"scope":"bindings", "mode":"normal", "keys":["up"], "when":"facts.viewMode == \"keyboard\"", "command":"focus.up", "hint":"focus up"},
+  {"scope":"bindings", "mode":"normal", "keys":["down"], "when":"facts.viewMode == \"keyboard\"", "command":"focus.down", "hint":"focus down"},
+  {"scope":"bindings.prefix", "mode":"normal", "keys":["enter"], "command":"bindings.prefix.select", "args":{"prefix":"$facts.prefix"}, "hint":"open prefix"},
+  {"scope":"bindings.key", "mode":"normal", "keys":["enter"], "when":"facts.hasPrefix", "command":"bindings.prefix.select", "args":{"prefix":"$facts.prefix"}, "hint":"open prefix"},
+  {"scope":"bindings.key", "mode":"normal", "keys":["enter"], "when":"!facts.hasPrefix", "command":"bindings.key.select", "args":{"key":"$facts.key"}, "hint":"inspect key"}
+]

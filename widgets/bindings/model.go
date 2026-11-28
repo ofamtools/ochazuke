@@ -18,6 +18,8 @@ import (
 // Model owns the live declarations and their original baseline. All edit
 // indices refer to declaration order, independent of the filter and cursor.
 type Model struct {
+	// ViewMode defaults to ViewTable. Hosts can set ViewKeyboard to opt in.
+	ViewMode          string
 	modes             []core.Mode
 	specs             []core.CommandSpec
 	baseline, current []core.Binding
@@ -29,12 +31,16 @@ type Model struct {
 	list              *table.Model
 	query             string
 	filterErr         string
+	keyboard          keyboardIndex
+	activePrefix      string
+	selectedKey       string
+	shifted           bool
 }
 
 // New opens the editor on a snapshot of bindings. App command specs augment
 // the built-in registry. A registry's List() supplies its specs in order.
 func New(modes []core.Mode, bindings []core.Binding, specs ...core.CommandSpec) *Model {
-	m := &Model{modes: slices.Clone(modes), specs: slices.Clone(specs), list: table.New(columns(), nil)}
+	m := &Model{ViewMode: ViewTable, modes: slices.Clone(modes), specs: slices.Clone(specs), list: table.New(columns(), nil)}
 	m.current = copyBindings(bindings)
 	m.baseline = slices.Clone(m.current)
 	m.refresh()
@@ -101,6 +107,7 @@ func (m *Model) refresh() {
 		m.rows[i] = row(i, b, analysis[i])
 	}
 	m.filter()
+	m.refreshKeyboard()
 }
 
 func (m *Model) beginEdit() {
@@ -198,10 +205,6 @@ func row(i int, b core.Binding, analysis Analysis) table.Row {
 	if mode == "" {
 		mode = "*"
 	}
-	target := b.Command
-	if b.Layer != nil {
-		target = "layer.push " + b.Layer.Name
-	}
 	var conflicts []string
 	for _, c := range analysis.Conflicts {
 		if !slices.Contains(conflicts, c.Kind) {
@@ -214,13 +217,20 @@ func row(i int, b core.Binding, analysis Analysis) table.Row {
 	}
 	id := strconv.Itoa(i)
 	r := table.Row{ID: id, Scope: "binding", Ref: &core.Ref{Kind: "binding", ID: id}, Cells: map[string]any{
-		"key": key, "scope": scope, "mode": mode, "verb": target, "hint": b.Hint, "when": b.When,
+		"key": key, "scope": scope, "mode": mode, "verb": bindingTarget(b), "hint": b.Hint, "when": b.When,
 		"conflict": strings.Join(conflicts, " "), "status": strings.Join(status, " "),
 	}}
 	for _, s := range status {
 		r.Badges = append(r.Badges, ui.Badge{Text: s})
 	}
 	return r
+}
+
+func bindingTarget(b core.Binding) string {
+	if b.Layer != nil {
+		return "layer.push " + b.Layer.Name
+	}
+	return b.Command
 }
 
 // SetQuery applies space-separated field:value filters and free text together.
@@ -231,6 +241,7 @@ func (m *Model) SetQuery(q string) {
 	m.query = q
 	m.list.SelectedIdx, m.list.Offset = 0, 0
 	m.filter()
+	m.refreshKeyboard()
 }
 
 // SetMatchMode applies the table widget's matching rules to every filter.
@@ -353,9 +364,32 @@ func (m *Model) Focused() (int, bool) {
 	return i, true
 }
 
-// HandleCommand accepts table motions, filter text, undo, redo, and edits to
-// the focused declaration. Use Rebind and Add to supply structured bindings.
+// HandleCommand accepts view and prefix commands, table motions, filter text,
+// undo, redo, and edits. Use Rebind and Add to supply structured bindings.
 func (m *Model) HandleCommand(c core.Command) bool {
+	switch c.ID {
+	case CmdViewToggle:
+		m.toggleView()
+	case CmdPrefixNext:
+		return m.stepPrefix(1)
+	case CmdPrefixPrev:
+		return m.stepPrefix(-1)
+	case CmdPrefixSelect:
+		prefix, ok := c.Args["prefix"].(string)
+		return ok && m.selectPrefix(prefix)
+	case CmdPrefixClear:
+		return m.selectPrefix("")
+	case CmdShiftToggle:
+		m.shifted = !m.shifted
+	case CmdKeySelect:
+		return m.selectKey(c.Arg("key"))
+	default:
+		return m.handleTableCommand(c)
+	}
+	return true
+}
+
+func (m *Model) handleTableCommand(c core.Command) bool {
 	switch c.ID {
 	case "bindings.undo":
 		return m.Undo()
@@ -386,10 +420,20 @@ func (m *Model) HandleCommand(c core.Command) bool {
 	return true
 }
 
-// View renders the filter and live declarations as focusable child nodes.
-func (m *Model) View(id string) ui.ViewNode {
+// View renders the filter and the current bindings presentation.
+func (m *Model) View(id string) ui.ViewNode { return m.ViewNode(id) }
+
+// ViewNode projects the current bindings presentation as pure view data.
+func (m *Model) ViewNode(id string) ui.ViewNode {
 	input := ui.ViewNode{ID: id + ".filter", Kind: ui.KindInput, Title: "Filter", Focusable: true, Scope: "bindings.filter", Props: map[string]any{"value": m.query, "placeholder": "key:  verb:  mode:  scope:  when:  conflict:"}}
-	view := ui.ViewNode{ID: id, Kind: ui.KindVStack, Scope: "bindings", Children: []ui.ViewNode{input, m.list.View(id + ".table")}}
+	var view ui.ViewNode
+	if m.ViewMode == ViewKeyboard {
+		view = m.keyboard.project(m.activePrefix, m.shifted).ViewNode(id, m.selectedKey)
+	} else {
+		view = ui.ViewNode{ID: id, Kind: ui.KindVStack, Scope: "bindings", Facts: map[string]any{"viewMode": ViewTable, "empty": len(m.list.Rows) == 0}}
+		view.Children = []ui.ViewNode{m.list.View(id + ".table")}
+	}
+	view.Children = append([]ui.ViewNode{input}, view.Children...)
 	if m.filterErr != "" {
 		view.Children = append(view.Children, ui.ViewNode{Kind: ui.KindText, Tone: "error", Props: map[string]any{"text": m.filterErr}})
 	}

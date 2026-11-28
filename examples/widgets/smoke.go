@@ -141,6 +141,7 @@ func runSmoke() error {
 	d.smokePaths(o)
 	d.smokeVim()
 	d.smokeKeys()
+	d.smokeKeyboard()
 
 	d.key("?")
 	help, _ := a.sh.State.ActiveFrame().Data.(ui.ViewNode)
@@ -310,4 +311,25 @@ func (d *driver) smokeKeys() {
 	d.check("the added key "+strings.Join(free, " ")+" sorts the table live", sorted() != sort)
 	d.key("alt+5", "/", "esc")
 	d.check("esc clears the editor filter", len(m.Filtered()) == n+1)
+}
+
+func (d *driver) smokeKeyboard() {
+	facts := func() map[string]any { return d.a.keys.ViewNode("keys").Facts }
+	d.key("v")
+	d.check("v opens the keyboard and its prefix panel", facts()["viewMode"] == bindings.ViewKeyboard && strings.Contains(d.plain(), "Prefixes"))
+	d.key("j")
+	d.check("j opens the next prefix", facts()["activePrefix"] != "")
+	d.key("k")
+	d.check("k returns to Base", facts()["activePrefix"] == "")
+	_ = d.plain()
+	g := d.a.sh.State.Layout.Rects["keys.key.g"]
+	d.send(tea.MouseClickMsg{X: g.X + 1, Y: g.Y + 1, Button: tea.MouseLeft})
+	d.key("enter")
+	d.check("Enter on the g cap opens the g layer", facts()["activePrefix"] == "g")
+	d.key("enter")
+	d.check("Enter on the final g shows its command", strings.Contains(d.plain(), "motion.top"))
+	d.key("backspace", "s")
+	d.check("Backspace clears the prefix and s switches Shift on", facts()["activePrefix"] == "" && facts()["shifted"] == true && strings.Contains(d.plain(), "Shift on"))
+	d.key("v")
+	d.check("v returns to the bindings table", facts()["viewMode"] == bindings.ViewTable)
 }
