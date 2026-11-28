@@ -20,6 +20,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 
+	"ofam.dev/ochazuke/config"
 	"ofam.dev/ochazuke/core"
 	"ofam.dev/ochazuke/layout"
 	otea "ofam.dev/ochazuke/tea"
@@ -132,13 +133,16 @@ type options struct {
 
 func newApp(o options) (*app, error) {
 	editable := slices.Concat(appBindings(), tableBindings(), formBindings(), pathBindings())
-	a := &app{fixed: fixedBindings(), themes: ui.ThemePresets()}
+	keyboard, err := config.LoadBindings(keyboardBindingsJSON)
+	if err != nil {
+		return nil, err
+	}
+	a := &app{fixed: slices.Concat(fixedBindings(), keyboard), themes: ui.ThemePresets()}
 	a.specs = specsFor(slices.Concat(editable, a.fixed))
 	a.keys = bindings.New(modes, editable, a.specs...)
 	a.table = newTable()
 	a.form = newForm()
 	a.vim = input.New(vimText, true)
-	var err error
 	if a.paths, err = pathpicker.New(o.fs, o.start, pathpicker.PickAny); err != nil {
 		return nil, err
 	}
